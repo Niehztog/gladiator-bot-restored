@@ -129,8 +129,8 @@ float unk_1005C56C[3] = { 0.0f, -1.0f,  0.0f };
 /* unk_1005C584: vec3 {0.0, -2.0, 0.0}  (0xC0000000 = -2.0f) */
 float unk_1005C584[3] = { 0.0f, -2.0f,  0.0f };
 
-/* unk_100631CC: vec3 {0.0, 0.0, 0.0} — zero vector passed to AAS_ClientMovementHV */
-float unk_100631CC[3] = { 0.0f,  0.0f,  0.0f };
+/* velocity: vec3 {0.0, 0.0, 0.0} — zero vector passed to AAS_ClientMovementHV */
+float velocity[3] = { 0.0f,  0.0f,  0.0f };
 
 /* =========================================================================
  * unk_1005E678 — CRC16 weapon ID table (91 entries + NULL terminator)

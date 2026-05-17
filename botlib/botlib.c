@@ -1978,7 +1978,7 @@ float flt_1006298C = 0.0; // weak
 float flt_1006319C; // weak
 float flt_100631A0; // weak
 float flt_100631A8; // weak
-extern float unk_100631CC[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
+extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
 int dword_10063388; // weak
 int (__cdecl *dword_100637CC)(_DWORD); // weak
 int dword_100637D0; // weak
@@ -2100,16 +2100,16 @@ int dword_10066740; // weak
 int dword_10066744; // weak
 int dword_10066748; // weak
 int dword_10066758; // weak
-int dword_1006675C; // weak
+int areareachability; // weak
 int dword_10066778; // weak
 int dword_10066784; // weak
 int dword_10066788; // weak
-int dword_1006678C; // weak
+int reach_jump; // weak
 int dword_10066790; // weak
 int dword_10066794; // weak
 int dword_10066798; // weak
 int dword_100667A0; // weak
-int dword_100667A4; // weak
+int reach_swim; // weak
 int dword_100667AC; // weak
 int dword_100667B4; // weak
 int dword_100667B8; // weak
@@ -6806,7 +6806,7 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
     VectorNormalize(&v8);
     VectorScale((float *)&v8, v6, (float *)v11);
     v11[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((int)v13, -1, a1 + 12, 2, 1, (int)&unk_100631CC, (int)v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((int)v13, -1, a1 + 12, 2, 1, (int)&velocity, (int)v11, 3, 30, 0.1, 61, 1);
     if ( *(_DWORD *)(a1 + 36) == 5 ) /* TRAVEL_JUMP only */
     {
       AAS_JumpReachRunStart(a1, (int)&v8);
@@ -9423,7 +9423,7 @@ void __cdecl AAS_JumpReachRunStart(int a1, int a2)
   start_pos[1] = *(float *)(a1 + 16);
   start_pos[2] = *(float *)(a1 + 20) + 1.0f;
   VectorScale((float *)v14, 400.0, (float *)v15);
-  v5 = (const void *)AAS_ClientMovementPrediction((int)v16, -1, (int)start_pos, 2, 1, (int)&unk_100631CC, (int)v15, 1, 2, 0.1, 124, 0);
+  v5 = (const void *)AAS_ClientMovementPrediction((int)v16, -1, (int)start_pos, 2, 1, (int)&velocity, (int)v15, 1, 2, 0.1, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
   *(float *)a2 = *(float *)v16;
   v7 = v16[1];
@@ -10677,7 +10677,7 @@ int __cdecl AAS_ReachabilityExists(int a1, int a2)
 {
   _DWORD *v2; // eax
 
-  v2 = *(_DWORD **)(dword_1006675C + 4 * a1);
+  v2 = *(_DWORD **)(areareachability + 4 * a1);
   if ( !v2 )
     return 0;
   while ( *v2 != a2 )
@@ -10735,7 +10735,7 @@ int __cdecl AAS_Reachability_Swim(int a1, int a2)
   __int64 v11; // rax
   char v12; // al
   _DWORD *v14; // ebp
-  int *v15; // eax
+  int *lreach; // eax
   int *v16; // esi
   int v17; // [esp+10h] [ebp-14h]
   BOOL v18; // [esp+14h] [ebp-10h]
@@ -10790,30 +10790,30 @@ LABEL_14:
     goto LABEL_14;
   }
   v14 = (char *)aasworld.faces + 24 * v10;
-  v15 = (int *)AAS_AllocReachability();
-  v16 = v15;
-  if ( !v15 )
+  lreach = (int *)AAS_AllocReachability();
+  v16 = lreach;
+  if ( !lreach )
     return 0;
-  v15[1] = v10;
-  *v15 = a2;
-  v15[2] = 0;
-  v15[3] = v19[0];
-  v15[4] = v19[1];
-  v15[5] = v19[2];
+  lreach[1] = v10;
+  *lreach = a2;
+  lreach[2] = 0;
+  lreach[3] = v19[0];
+  lreach[4] = v19[1];
+  lreach[5] = v19[2];
   /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
    * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
    * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
    * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
    * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
    * numplanes/4 and the read crashed in VectorMA. */
-  VectorMA((float *)(v15 + 3), 2.0, (float *)((char *)aasworld.planes + 20 * (v18 ^ *v14)), (float *)(v15 + 6));
+  VectorMA((float *)(lreach + 3), 2.0, (float *)((char *)aasworld.planes + 20 * (v18 ^ *v14)), (float *)(lreach + 6));
   v16[9] = 8;
   *((_WORD *)v16 + 20) = 1;
   if ( sub_10011220(a2) < 800.0 )
     *((_WORD *)v16 + 20) += 200;
-  v16[11] = *(_DWORD *)(dword_1006675C + 4 * a1);
-  *(_DWORD *)(dword_1006675C + 4 * a1) = v16;
-  ++dword_100667A4;
+  v16[11] = *(_DWORD *)(areareachability + 4 * a1);
+  *(_DWORD *)(areareachability + 4 * a1) = v16;
+  ++reach_swim;
   return 1;
 }
 // 10011969: variable 'v12' is possibly undefined
@@ -11063,8 +11063,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                 *(float *)(v27 + 32) = v35;
                 *(_DWORD *)(v27 + 36) = v36;
                 *(_WORD *)(v27 + 40) = v34;
-                *(_DWORD *)(v27 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-                *(_DWORD *)(dword_1006675C + 4 * a1) = v27;
+                *(_DWORD *)(v27 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+                *(_DWORD *)(areareachability + 4 * a1) = v27;
                 if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
                   *(_WORD *)(v27 + 40) += 300;
                 if ( !sub_10011740((float *)(v27 + 12), (float *)(v27 + 24)) )
@@ -11580,8 +11580,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           *((_WORD *)v45 + 20) = 1;
           if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
             *((_WORD *)v45 + 20) += 300;
-          v45[11] = *(_DWORD *)(dword_1006675C + 4 * a1);
-          *(_DWORD *)(dword_1006675C + 4 * a1) = v45;
+          v45[11] = *(_DWORD *)(areareachability + 4 * a1);
+          *(_DWORD *)(areareachability + 4 * a1) = v45;
           if ( !sub_10011740((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
           if ( AAS_AreaReachability(*v45) < 500.0 )
@@ -11615,8 +11615,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             VectorMA((float *)v138, 15.0, (float *)v139, v50 + 24);
             *(_DWORD *)(v50 + 36) = 9;
             *(_WORD *)(v50 + 40) = 700;
-            *(_DWORD *)(v50 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-            *(_DWORD *)(dword_1006675C + 4 * a1) = v50;
+            *(_DWORD *)(v50 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+            *(_DWORD *)(areareachability + 4 * a1) = v50;
             ++dword_10066794;
             return 1;
           }
@@ -11645,8 +11645,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           VectorMA((float *)&v110, 5.0, (float *)v120, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
-          v55[11] = *(_DWORD *)(dword_1006675C + 4 * v48);
-          *(_DWORD *)(dword_1006675C + 4 * v48) = v55;
+          v55[11] = *(_DWORD *)(areareachability + 4 * v48);
+          *(_DWORD *)(areareachability + 4 * v48) = v55;
           ++dword_100667A0;
           return 1;
         }
@@ -11665,8 +11665,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           result = 1;
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
-          *(_DWORD *)(v56 + 44) = *(_DWORD *)(dword_1006675C + 4 * v48);
-          *(_DWORD *)(dword_1006675C + 4 * v48) = v56;
+          *(_DWORD *)(v56 + 44) = *(_DWORD *)(areareachability + 4 * v48);
+          *(_DWORD *)(areareachability + 4 * v48) = v56;
           ++dword_100667C4;
           return result;
         }
@@ -11701,8 +11701,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                 *(float *)(v57 + 32) = v112;
                 *(_DWORD *)(v57 + 36) = 7;
                 *(_WORD *)(v57 + 40) = 100;
-                *(_DWORD *)(v57 + 44) = *(_DWORD *)(dword_1006675C + 4 * v48);
-                *(_DWORD *)(dword_1006675C + 4 * v48) = v57;
+                *(_DWORD *)(v57 + 44) = *(_DWORD *)(areareachability + 4 * v48);
+                *(_DWORD *)(areareachability + 4 * v48) = v57;
                 ++dword_100667B8;
                 return 1;
               }
@@ -11783,31 +11783,31 @@ int __cdecl VectorMiddle(float *a1, float *a2, float *a3)
 }
 
 //----- (10013CC0) --------------------------------------------------------
-int AAS_Reachability_Jump(int a1, int a2)
+int AAS_Reachability_Jump(int area1num, int area2num)
 {
-  float v3; // ebx
-  char *v4; // esi
-  int v5; // edx
+  float area1; // ebx
+  char *area2; // esi
+  int i; // edx
   float *v6; // edi
   float *v7; // ecx
   int v8; // ecx
   int v9; // eax
-  __int64 v10; // rax
+  __int64 face1num; // rax
   int v11; // ecx
-  _DWORD *v12; // edi
+  _DWORD *face1; // edi
   int v13; // eax
   int v14; // ebp
-  __int64 v15; // rax
-  _DWORD *v16; // ecx
+  __int64 face2num; // rax
+  _DWORD *face2; // ecx
   int v17; // eax
-  int v18; // edx
-  __int64 v19; // rax
-  _DWORD *v20; // ecx
-  float *v21; // edi
-  float *v22; // ebx
+  int edge1num; // edx
+  __int64 edge2num; // rax
+  _DWORD *edge2; // ecx
+  float *v1; // edi
+  float *v2; // ebx
   int v23; // ecx
-  float *v24; // esi
-  float *v25; // ebp
+  float *v3; // esi
+  float *v4; // ebp
   double v26; // st7
   double v27; // st6
   double v28; // st5
@@ -11827,28 +11827,28 @@ int AAS_Reachability_Jump(int a1, int a2)
   int v42; // ecx
   int v43; // eax
   int v44; // ecx
-  int v45; // ebx
+  int traveltype; // ebx
   int v46; // edi
   float v47; // esi
   double v48; // st7
-  int v50; // esi
+  int lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
-  float v52; // [esp+1Ch] [ebp-1B0h]
-  int v53; // [esp+20h] [ebp-1ACh] BYREF
+  float bestdist; // [esp+1Ch] [ebp-1B0h]
+  int beststart; // [esp+20h] [ebp-1ACh] BYREF
   float v54; // [esp+24h] [ebp-1A8h]
   float v55; // [esp+28h] [ebp-1A4h]
-  int v56; // [esp+2Ch] [ebp-1A0h] BYREF
+  int bestend; // [esp+2Ch] [ebp-1A0h] BYREF
   float v57; // [esp+30h] [ebp-19Ch]
   float v58; // [esp+34h] [ebp-198h]
-  float v59; // [esp+38h] [ebp-194h]
-  int v60[3]; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
-  int v63; // [esp+48h] [ebp-184h] BYREF
+  float phys_jumpvel; // [esp+38h] [ebp-194h]
+  int dir[3]; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
+  int teststart; // [esp+48h] [ebp-184h] BYREF
   int v64; // [esp+4Ch] [ebp-180h]  — kept: stack-adjacent to v63 (BYREF); &v63+1 lands here
   float v65; // [esp+50h] [ebp-17Ch]
   _DWORD *v66; // [esp+54h] [ebp-178h]
   _DWORD *v67; // [esp+58h] [ebp-174h]
-  int v68; // [esp+5Ch] [ebp-170h]
-  float v69; // [esp+60h] [ebp-16Ch] BYREF
+  int maxjumpheight; // [esp+5Ch] [ebp-170h]
+  float speed; // [esp+60h] [ebp-16Ch] BYREF
   int v70; // [esp+64h] [ebp-168h] BYREF
   float v71; // [esp+68h] [ebp-164h]
   float v72; // [esp+6Ch] [ebp-160h]
@@ -11868,132 +11868,131 @@ int AAS_Reachability_Jump(int a1, int a2)
   float v86; // [esp+A8h] [ebp-124h]
   int v87; // [esp+B0h] [ebp-11Ch]
   int v88; // [esp+B4h] [ebp-118h]
-  float v89; // [esp+B8h] [ebp-114h]
+  float maxjumpdistance; // [esp+B8h] [ebp-114h]
   float v90; // [esp+BCh] [ebp-110h]
   char *v91; // [esp+C0h] [ebp-10Ch]
   int v92; // [esp+C4h] [ebp-108h]
-  int v93[3]; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination; v93[0..2] = old v93/v94/v95
-  _DWORD *v96; // [esp+D4h] [ebp-F8h]
-  int v97[2]; // [esp+D8h] [ebp-F4h] BYREF
-  aas_trace_t v99; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
-  int v101[20]; // [esp+12Ch] [ebp-A0h] BYREF
-  int v102[20]; // [esp+17Ch] [ebp-50h] BYREF
+  int testend[3]; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination; v93[0..2] = old v93/v94/v95
+  _DWORD *edge1; // [esp+D4h] [ebp-F8h]
+  int cmdmove[2]; // [esp+D8h] [ebp-F4h] BYREF
+  aas_trace_t trace; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
+  int move2[20]; // [esp+12Ch] [ebp-A0h] BYREF
+  int move[20]; // [esp+17Ch] [ebp-50h] BYREF
 
-  if ( AAS_AreaGrounded(a1) && AAS_AreaGrounded(a2) && !AAS_AreaCrouch(a1) && !AAS_AreaCrouch(a2) )
+  if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) && !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
   {
-    LODWORD(v3) = (char *)aasworld.areas + 48 * a1;
-    v4 = (char *)aasworld.areas + 48 * a2;
-    v90 = v3;
-    v91 = v4;
+    LODWORD(area1) = (char *)aasworld.areas + 48 * area1num;
+    area2 = (char *)aasworld.areas + 48 * area2num;
+    v90 = area1;
+    v91 = area2;
     /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
      * `call AAS_MaxJumpDistance` / `call AAS_MaxJumpHeight`, each followed by
      * `fstp [esp+...]` storing into v89 / v68.  IDA emitted `vN = a1` instead
      * — a1 is the area number, breaking the jump-time / jump-height checks
      * for barrier-jump reachability generation. */
-    v59 = libvar_sv_jumpvel->value;
-    v89 = (float)AAS_MaxJumpDistance(v59);
-    *(float *)&v68 = (float)AAS_MaxJumpHeight(v59);
-    v5 = 0;
-    v6 = (float *)(v4 + 12);
-    v7 = (float *)(LODWORD(v3) + 24);
-    do
+    phys_jumpvel = libvar_sv_jumpvel->value;
+    maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
+    *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
+
+    v6 = (float *)(area2 + 12);
+    v7 = (float *)(LODWORD(area1) + 24);
+    for (i = 0; i < 2; i++)
     {
-      if ( v89 + *(float *)&v4[(_DWORD)v7 - LODWORD(v3)] < *(v7 - 3) || *v6 - v89 > *v7 )
+      if ( maxjumpdistance + *(float *)&area2[(_DWORD)v7 - LODWORD(area1)] < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
-      ++v5;
       ++v7;
       ++v6;
     }
-    while ( v5 < 2 );
-    if ( *(float *)&v68 + *(float *)(LODWORD(v3) + 32) >= *((float *)v4 + 5) )
+
+    if ( *(float *)&maxjumpheight + *(float *)(LODWORD(area1) + 32) >= *((float *)area2 + 5) )
     {
-      v8 = *(_DWORD *)(LODWORD(v3) + 4);
+      v8 = *(_DWORD *)(LODWORD(area1) + 4);
       v9 = 0;
-      v52 = 999999.0;
-      *(float *)&v68 = 0.0;
+      bestdist = 999999.0;
+      *(float *)&maxjumpheight = 0.0;
       if ( v8 <= 0 )
         goto LABEL_67;
       do
       {
-        v10 = *((int *)aasworld.faceindex + v9 + *(_DWORD *)(LODWORD(v3) + 8));
-        LODWORD(v10) = (HIDWORD(v10) ^ v10) - HIDWORD(v10);
-        v11 = 3 * v10;
-        LOBYTE(v10) = *((_BYTE *)aasworld.faces + 24 * v10 + 4);
-        v12 = (char *)aasworld.faces + 8 * v11;
-        v66 = v12;
-        if ( (v10 & 4) != 0 )
+        face1num = *((int *)aasworld.faceindex + v9 + *(_DWORD *)(LODWORD(area1) + 8));
+        LODWORD(face1num) = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
+        v11 = 3 * face1num;
+        LOBYTE(face1num) = *((_BYTE *)aasworld.faces + 24 * face1num + 4);
+        face1 = (char *)aasworld.faces + 8 * v11;
+        v66 = face1;
+        if ( (face1num & 4) != 0 )
         {
-          v13 = *((_DWORD *)v4 + 1);
+          v13 = *((_DWORD *)area2 + 1);
           v14 = 0;
           v92 = 0;
           if ( v13 > 0 )
           {
             do
             {
-              v15 = *((int *)aasworld.faceindex + v14 + *((_DWORD *)v4 + 2));
-              v16 = (char *)aasworld.faces + 24 * ((HIDWORD(v15) ^ v15) - HIDWORD(v15));
-              v67 = v16;
-              if ( (v16[1] & 4) != 0 )
+              face2num = *((int *)aasworld.faceindex + v14 + *((_DWORD *)area2 + 2));
+              face2 = (char *)aasworld.faces + 24 * ((HIDWORD(face2num) ^ face2num) - HIDWORD(face2num));
+              v67 = face2;
+              if ( (face2[1] & 4) != 0 )
               {
-                v17 = v12[2];
+                v17 = face1[2];
                 v88 = 0;
                 if ( v17 > 0 )
                 {
                   while ( 1 )
                   {
-                    v18 = v88 + v12[3];
+                    edge1num = v88 + face1[3];
                     v87 = 0;
-                    v96 = (char *)aasworld.edges + 8 * abs32(*((_DWORD *)aasworld.edgeindex + v18));
-                    if ( (int)v16[2] > 0 )
+                    edge1 = (char *)aasworld.edges + 8 * abs32(*((_DWORD *)aasworld.edgeindex + edge1num));
+                    if ( (int)face2[2] > 0 )
                     {
                       while ( 1 )
                       {
-                        v19 = *((int *)aasworld.edgeindex + v87 + v67[3]);
-                        v20 = (char *)aasworld.edges + 8 * ((HIDWORD(v19) ^ v19) - HIDWORD(v19));
-                        v21 = (float *)((char *)aasworld.vertexes + 12 * *v96);
-                        v22 = (float *)((char *)aasworld.vertexes + 12 * v96[1]);
-                        HIDWORD(v19) = *v20;
-                        v23 = v20[1];
-                        v83 = *v22 - *v21;
-                        v24 = (float *)((char *)aasworld.vertexes + 12 * HIDWORD(v19));
-                        v25 = (float *)((char *)aasworld.vertexes + 12 * v23);
-                        v84 = v22[1] - v21[1];
-                        v85 = *v25 - *v24;
-                        v86 = v25[1] - v24[1];
+                        edge2num = *((int *)aasworld.edgeindex + v87 + v67[3]);
+                        edge2 = (char *)aasworld.edges + 8 * ((HIDWORD(edge2num) ^ edge2num) - HIDWORD(edge2num));
+                        v1 = (float *)((char *)aasworld.vertexes + 12 * *edge1);
+                        v2 = (float *)((char *)aasworld.vertexes + 12 * edge1[1]);
+                        HIDWORD(edge2num) = *edge2;
+                        v23 = edge2[1];
+                        v83 = *v2 - *v1;
+                        v3 = (float *)((char *)aasworld.vertexes + 12 * HIDWORD(edge2num));
+                        v4 = (float *)((char *)aasworld.vertexes + 12 * v23);
+                        v84 = v2[1] - v1[1];
+                        v85 = *v4 - *v3;
+                        v86 = v4[1] - v3[1];
                         if ( v85 == 0.0 )
                         {
-                          v70 = *(int *)v24;
-                          v71 = v21[1];
-                          v76 = *(int *)v24;
-                          v77 = v22[1];
+                          v70 = *(int *)v3;
+                          v71 = v1[1];
+                          v76 = *(int *)v3;
+                          v77 = v2[1];
                         }
                         else
                         {
                           v26 = v86 / v85;
-                          v27 = v24[1] - v26 * *v24;
+                          v27 = v3[1] - v26 * *v3;
                           v28 = v27 * v86 + v26 * v85;
-                          v29 = (v85 * *v21 + v86 * v21[1] - v28) / v85;
+                          v29 = (v85 * *v1 + v86 * v1[1] - v28) / v85;
                           *(float *)&v70 = v29;
                           v71 = v29 * v26 + v27;
-                          *(float *)&v76 = (v86 * v22[1] + v85 * *v22 - v28) / v85;
+                          *(float *)&v76 = (v86 * v2[1] + v85 * *v2 - v28) / v85;
                           v77 = *(float *)&v76 * v26 + v27;
                         }
                         if ( v83 == 0.0 )
                         {
-                          v80 = *(int *)v21;
-                          v81 = v24[1];
-                          v73 = *(int *)v21;
-                          v74 = v25[1];
+                          v80 = *(int *)v1;
+                          v81 = v3[1];
+                          v73 = *(int *)v1;
+                          v74 = v4[1];
                         }
                         else
                         {
                           v30 = v84 / v83;
-                          v31 = v21[1] - v30 * *v21;
+                          v31 = v1[1] - v30 * *v1;
                           v32 = v31 * v84 + v30 * v83;
-                          v33 = (v83 * *v24 + v84 * v24[1] - v32) / v83;
+                          v33 = (v83 * *v3 + v84 * v3[1] - v32) / v83;
                           *(float *)&v80 = v33;
                           v81 = v33 * v30 + v31;
-                          *(float *)&v73 = (v84 * v25[1] + v83 * *v25 - v32) / v83;
+                          *(float *)&v73 = (v84 * v4[1] + v83 * *v4 - v32) / v83;
                           v74 = *(float *)&v73 * v30 + v31;
                         }
                         v72 = 0.0;
@@ -12013,103 +12012,103 @@ int AAS_Reachability_Jump(int a1, int a2)
                         v75 = v39;
                         /* Is the projection of v21 onto edge2's line (stored
                          * in &v70..v72) between edge2's endpoints v24, v25? */
-                        if ( sub_10013BF0((float *)&v70, v24, v25) )
+                        if ( sub_10013BF0((float *)&v70, v3, v4) )
                         {
-                          VectorDistance(v21, (float *)&v70);
-                          if ( v52 - 0.5 >= v39 || v52 + 0.5 <= v39 )
+                          VectorDistance(v1, (float *)&v70);
+                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
                           {
-                            if ( v39 < v52 )
+                            if ( v39 < bestdist )
                             {
-                              v53 = *(int *)v21;
-                              v54 = v21[1];
-                              v52 = v39;
-                              v55 = v21[2];
-                              v56 = v70;
+                              beststart = *(int *)v1;
+                              v54 = v1[1];
+                              bestdist = v39;
+                              v55 = v1[2];
+                              bestend = v70;
                               v57 = v71;
                               v58 = v72;
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&v53, v21, (float *)&v53);
-                            VectorMiddle((float *)&v56, (float *)&v70, (float *)&v56);
+                            VectorMiddle((float *)&beststart, v1, (float *)&beststart);
+                            VectorMiddle((float *)&bestend, (float *)&v70, (float *)&bestend);
                           }
                           v79 = 1;
                         }
                         /* Is the projection of v22 onto edge2's line (stored
                          * in &v76..v78) between edge2's endpoints v24, v25? */
-                        if ( sub_10013BF0((float *)&v76, v24, v25) )
+                        if ( sub_10013BF0((float *)&v76, v3, v4) )
                         {
-                          VectorDistance(v22, (float *)&v76);
-                          if ( v52 - 0.5 >= v39 || v52 + 0.5 <= v39 )
+                          VectorDistance(v2, (float *)&v76);
+                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
                           {
-                            if ( v39 < v52 )
+                            if ( v39 < bestdist )
                             {
-                              v53 = *(int *)v22;
-                              v54 = v22[1];
-                              v52 = v39;
-                              v55 = v22[2];
-                              v56 = v76;
+                              beststart = *(int *)v2;
+                              v54 = v2[1];
+                              bestdist = v39;
+                              v55 = v2[2];
+                              bestend = v76;
                               v57 = v77;
                               v58 = v78;
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&v53, v22, (float *)&v53);
-                            VectorMiddle((float *)&v56, (float *)&v76, (float *)&v56);
+                            VectorMiddle((float *)&beststart, v2, (float *)&beststart);
+                            VectorMiddle((float *)&bestend, (float *)&v76, (float *)&bestend);
                           }
                           v79 = 1;
                         }
                         /* Is the projection of v24 onto edge1's line (stored
                          * in &v80..v82) between edge1's endpoints v21, v22? */
-                        if ( sub_10013BF0((float *)&v80, v21, v22) )
+                        if ( sub_10013BF0((float *)&v80, v1, v2) )
                         {
-                          VectorDistance(v24, (float *)&v80);
-                          if ( v52 - 0.5 >= v39 || v52 + 0.5 <= v39 )
+                          VectorDistance(v3, (float *)&v80);
+                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
                           {
-                            if ( v39 < v52 )
+                            if ( v39 < bestdist )
                             {
-                              v53 = v80;
+                              beststart = v80;
                               v54 = v81;
                               v55 = v82;
-                              v52 = v39;
-                              v56 = *(int *)v24;
-                              v57 = v24[1];
-                              v58 = v24[2];
+                              bestdist = v39;
+                              bestend = *(int *)v3;
+                              v57 = v3[1];
+                              v58 = v3[2];
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&v53, (float *)&v80, (float *)&v53);
-                            VectorMiddle((float *)&v56, v24, (float *)&v56);
+                            VectorMiddle((float *)&beststart, (float *)&v80, (float *)&beststart);
+                            VectorMiddle((float *)&bestend, v3, (float *)&bestend);
                           }
                           v79 = 1;
                         }
                         /* Is the projection of v25 onto edge1's line (stored
                          * in &v73..v75) between edge1's endpoints v21, v22? */
-                        if ( !sub_10013BF0((float *)&v73, v21, v22) )
+                        if ( !sub_10013BF0((float *)&v73, v1, v2) )
                           break;
-                        VectorDistance(v25, (float *)&v73);
-                        if ( v52 - 0.5 >= v39 || v52 + 0.5 <= v39 )
+                        VectorDistance(v4, (float *)&v73);
+                        if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
                         {
-                          if ( v39 < v52 )
+                          if ( v39 < bestdist )
                           {
-                            v52 = v39;
+                            bestdist = v39;
                             v40 = v75;
-                            v53 = v73;
+                            beststart = v73;
                             v54 = v74;
 LABEL_60:
                             v55 = v40;
-                            v56 = *(int *)v25;
-                            v57 = v25[1];
-                            v58 = v25[2];
+                            bestend = *(int *)v4;
+                            v57 = v4[1];
+                            v58 = v4[2];
                           }
                         }
                         else
                         {
-                          VectorMiddle((float *)&v53, (float *)&v73, (float *)&v53);
-                          VectorMiddle((float *)&v56, v25, (float *)&v56);
+                          VectorMiddle((float *)&beststart, (float *)&v73, (float *)&beststart);
+                          VectorMiddle((float *)&bestend, v4, (float *)&bestend);
                         }
 LABEL_61:
                         v41 = v67[2];
@@ -12118,190 +12117,190 @@ LABEL_61:
                       }
                       if ( v79 )
                         goto LABEL_61;
-                      VectorDistance(v21, v24);
-                      if ( v39 < v52 )
+                      VectorDistance(v1, v3);
+                      if ( v39 < bestdist )
                       {
-                        v53 = *(int *)v21;
-                        v54 = v21[1];
-                        v55 = v21[2];
-                        v52 = v39;
-                        v56 = *(int *)v24;
-                        v57 = v24[1];
-                        v58 = v24[2];
+                        beststart = *(int *)v1;
+                        v54 = v1[1];
+                        v55 = v1[2];
+                        bestdist = v39;
+                        bestend = *(int *)v3;
+                        v57 = v3[1];
+                        v58 = v3[2];
                       }
-                      VectorDistance(v21, v25);
-                      if ( v39 < v52 )
+                      VectorDistance(v1, v4);
+                      if ( v39 < bestdist )
                       {
-                        v53 = *(int *)v21;
-                        v54 = v21[1];
-                        v55 = v21[2];
-                        v52 = v39;
-                        v56 = *(int *)v25;
-                        v57 = v25[1];
-                        v58 = v25[2];
+                        beststart = *(int *)v1;
+                        v54 = v1[1];
+                        v55 = v1[2];
+                        bestdist = v39;
+                        bestend = *(int *)v4;
+                        v57 = v4[1];
+                        v58 = v4[2];
                       }
-                      VectorDistance(v22, v24);
-                      if ( v39 < v52 )
+                      VectorDistance(v2, v3);
+                      if ( v39 < bestdist )
                       {
-                        v53 = *(int *)v22;
-                        v54 = v22[1];
-                        v55 = v22[2];
-                        v52 = v39;
-                        v56 = *(int *)v24;
-                        v57 = v24[1];
-                        v58 = v24[2];
+                        beststart = *(int *)v2;
+                        v54 = v2[1];
+                        v55 = v2[2];
+                        bestdist = v39;
+                        bestend = *(int *)v3;
+                        v57 = v3[1];
+                        v58 = v3[2];
                       }
-                      VectorDistance(v22, v25);
-                      if ( v39 >= v52 )
+                      VectorDistance(v2, v4);
+                      if ( v39 >= bestdist )
                         goto LABEL_61;
-                      v52 = v39;
-                      v53 = *(int *)v22;
-                      v54 = v22[1];
-                      v40 = v22[2];
+                      bestdist = v39;
+                      beststart = *(int *)v2;
+                      v54 = v2[1];
+                      v40 = v2[2];
                       goto LABEL_60;
                     }
 LABEL_62:
                     v42 = v66[2];
                     if ( ++v88 >= v42 )
                       break;
-                    v16 = v67;
-                    v12 = v66;
+                    face2 = v67;
+                    face1 = v66;
                   }
                   v14 = v92;
-                  v3 = v90;
-                  v4 = v91;
-                  v12 = v66;
+                  area1 = v90;
+                  area2 = v91;
+                  face1 = v66;
                 }
               }
-              v43 = *((_DWORD *)v4 + 1);
+              v43 = *((_DWORD *)area2 + 1);
               v92 = ++v14;
             }
             while ( v14 < v43 );
           }
         }
-        v44 = *(_DWORD *)(LODWORD(v3) + 4);
-        v9 = ++v68;
+        v44 = *(_DWORD *)(LODWORD(area1) + 4);
+        v9 = ++maxjumpheight;
       }
-      while ( v68 < v44 );
-      if ( v52 > 4.0 )
+      while ( maxjumpheight < v44 );
+      if ( bestdist > 4.0 )
       {
 LABEL_67:
-        if ( v52 < (double)v89 )
+        if ( bestdist < (double)maxjumpdistance )
         {
           v90 = v55 - v58;
           v91 = (char *)sub_10011520();
           if ( (double)(int)v91 >= v90 )
           {
-            if ( AAS_HorizontalVelocityForJump(0.0, (int)&v53, (int)&v56, (int)&v69) )
+            if ( AAS_HorizontalVelocityForJump(0.0, (int)&beststart, (int)&bestend, (int)&speed) )
             {
-              v45 = 7;
-              v69 = v69 * 1.2;
+              traveltype = 7;
+              speed = speed * 1.2;
             }
             else
             {
-              if ( !AAS_HorizontalVelocityForJump(v59, (int)&v53, (int)&v56, (int)&v69) )
+              if ( !AAS_HorizontalVelocityForJump(phys_jumpvel, (int)&beststart, (int)&bestend, (int)&speed) )
                 return 0;
-              v45 = 5;
+              traveltype = 5;
             }
             /* X/Y horizontal-distance check (Z explicitly zeroed):
              * .text 0x100146cf-0x100146f4 — fld v56X / fsub v53X / fstp v60[0];
              * fld v57 / fsub v54 / fstp v60[1]; v60[2] := 0 just before. */
-            *(float *)&v60[2] = 0.0f;
-            *(float *)&v60[0] = *(float *)&v56 - *(float *)&v53;
-            *(float *)&v60[1] = v57 - v54;
-            if ( VectorLength((float *)v60) >= 10.0 )
+            *(float *)&dir[2] = 0.0f;
+            *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
+            *(float *)&dir[1] = v57 - v54;
+            if ( VectorLength((float *)dir) >= 10.0 )
             {
               /* Full 3-component direction vector for the actual barrier trace:
                * .text 0x1001470d-0x10014736 — three fld/fsub/fstp pairs. */
-              *(float *)&v60[0] = *(float *)&v56 - *(float *)&v53;
-              *(float *)&v60[1] = v57 - v54;
-              *(float *)&v60[2] = v58 - v55;
-              VectorNormalize((float *)v60);
-              VectorMA((float *)&v53, 1.0, (float *)v60, (float *)&v63);
+              *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
+              *(float *)&dir[1] = v57 - v54;
+              *(float *)&dir[2] = v58 - v55;
+              VectorNormalize((float *)dir);
+              VectorMA((float *)&beststart, 1.0, (float *)dir, (float *)&teststart);
               /* Build trace endpoint v93 = v63 (XY copied as bits) with Z dropped 100u:
                * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=v64,
                * fld v65 / fsub 100.0 / fstp [v95]. */
-              v93[0] = v63;
-              v93[1] = v64;
-              *(float *)&v93[2] = v65 - 100.0f;
-              v99 = AAS_TraceClientBBox((float *)&v63, (float *)v93, 2, -1);
-              if ( !v99.startsolid
-                && (v99.fraction >= 1.0
-                 || *((float *)aasworld.planes + 5 * v99.planenum + 2) < 0.7
-                 || v65 - v99.endpos[2] > libvar_sv_maxbarrier->value) )
+              testend[0] = teststart;
+              testend[1] = v64;
+              *(float *)&testend[2] = v65 - 100.0f;
+              trace = AAS_TraceClientBBox((float *)&teststart, (float *)testend, 2, -1);
+              if ( !trace.startsolid
+                && (trace.fraction >= 1.0
+                 || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
+                 || v65 - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
-                VectorMA((float *)&v56, -1.0, (float *)v60, (float *)&v63);
-                v93[0] = v63;
-                v93[1] = v64;
-                *(float *)&v93[2] = v65 - 100.0f;
-                v99 = AAS_TraceClientBBox((float *)&v63, (float *)v93, 2, -1);
-                if ( !v99.startsolid
-                  && (v99.fraction >= 1.0
-                   || *((float *)aasworld.planes + 5 * v99.planenum + 2) < 0.7
-                   || v65 - v99.endpos[2] > libvar_sv_maxbarrier->value) )
+                VectorMA((float *)&bestend, -1.0, (float *)dir, (float *)&teststart);
+                testend[0] = teststart;
+                testend[1] = v64;
+                *(float *)&testend[2] = v65 - 100.0f;
+                trace = AAS_TraceClientBBox((float *)&teststart, (float *)testend, 2, -1);
+                if ( !trace.startsolid
+                  && (trace.fraction >= 1.0
+                   || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
+                   || v65 - trace.endpos[2] > libvar_sv_maxbarrier->value) )
                 {
                   /* Horizontal velocity vector (Z explicitly zeroed):
                    * .text 0x100148e9-0x1001490e — same pattern as block 1. */
-                  *(float *)&v60[2] = 0.0f;
-                  *(float *)&v60[0] = *(float *)&v56 - *(float *)&v53;
-                  *(float *)&v60[1] = v57 - v54;
-                  VectorNormalize((float *)v60);
-                  VectorScale((float *)v60, v69, (float *)v97);
+                  *(float *)&dir[2] = 0.0f;
+                  *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
+                  *(float *)&dir[1] = v57 - v54;
+                  VectorNormalize((float *)dir);
+                  VectorScale((float *)dir, speed, (float *)cmdmove);
                   qmemcpy(
-                    v101,
+                    move2,
                     (const void *)AAS_ClientMovementPrediction(
-                                    (int)v102,
+                                    (int)move,
                                     -1,
-                                    (int)&v53,
+                                    (int)&beststart,
                                     2,
                                     1,
-                                    (int)&unk_100631CC,
-                                    (int)v97,
+                                    (int)&velocity,
+                                    (int)cmdmove,
                                     3,
                                     30,
                                     0.1,
                                     61,
                                     0),
-                    sizeof(v101));
-                  if ( v101[19] < 30 && (v101[16] & 0x38) == 0 )
+                    sizeof(move2));
+                  if ( move2[19] < 30 && (move2[16] & 0x38) == 0 )
                   {
                     v46 = 0;
                     v47 = 0.0;
-                    v59 = 0.0;
+                    phys_jumpvel = 0.0;
                     while ( 1 )
                     {
-                      v51 = (float)SLODWORD(v59);
-                      VectorMA((float *)v101, v51, (float *)v60, (float *)&v63);
+                      v51 = (float)SLODWORD(phys_jumpvel);
+                      VectorMA((float *)move2, v51, (float *)dir, (float *)&teststart);
                       v48 = v65 + 0.125;
                       v65 = v48;
-                      if ( AAS_PointAreaNum(&v63) == a2 )
+                      if ( AAS_PointAreaNum(&teststart) == area2num )
                         break;
                       LODWORD(v47) -= 8;
                       v46 += 8;
-                      v59 = v47;
+                      phys_jumpvel = v47;
                       if ( SLODWORD(v47) < -32 )
                         return 0;
                     }
                     if ( v46 <= 32 )
                     {
-                      v50 = AAS_AllocReachability();
-                      if ( v50 )
+                      lreach = AAS_AllocReachability();
+                      if ( lreach )
                       {
-                        *(_DWORD *)v50 = a2;
-                        *(_DWORD *)(v50 + 4) = 0;
-                        *(_DWORD *)(v50 + 8) = 0;
-                        *(float *)(v50 + 12) = *(float *)&v53;
-                        *(float *)(v50 + 16) = v54;
-                        *(float *)(v50 + 20) = v55;
-                        *(float *)(v50 + 24) = *(float *)&v56;
-                        *(float *)(v50 + 28) = v57;
-                        *(float *)(v50 + 32) = v58;
-                        *(_DWORD *)(v50 + 36) = v45;
-                        VectorDistance((float *)&v56, (float *)&v53);
-                        *(_WORD *)(v50 + 40) = (__int64)(v48 * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
-                        *(_DWORD *)(v50 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-                        *(_DWORD *)(dword_1006675C + 4 * a1) = v50;
-                        ++dword_1006678C;
+                        *(_DWORD *)lreach = area2num;
+                        *(_DWORD *)(lreach + 4) = 0;
+                        *(_DWORD *)(lreach + 8) = 0;
+                        *(float *)(lreach + 12) = *(float *)&beststart;
+                        *(float *)(lreach + 16) = v54;
+                        *(float *)(lreach + 20) = v55;
+                        *(float *)(lreach + 24) = *(float *)&bestend;
+                        *(float *)(lreach + 28) = v57;
+                        *(float *)(lreach + 32) = v58;
+                        *(_DWORD *)(lreach + 36) = traveltype;
+                        VectorDistance((float *)&bestend, (float *)&beststart);
+                        *(_WORD *)(lreach + 40) = (__int64)(v48 * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
+                        *(_DWORD *)(lreach + 44) = *(_DWORD *)(areareachability + 4 * area1num);
+                        *(_DWORD *)(areareachability + 4 * area1num) = lreach;
+                        ++reach_jump;
                       }
                     }
                   }
@@ -12388,7 +12387,7 @@ int AAS_Reachability_Ladder(int a1, int a2)
   char *v58; // eax
   int v59; // eax
   int v60; // ecx
-  int v61; // esi
+  int lreach; // esi
   int v62; // edx
   int v63; // edx
   double v64; // st7
@@ -12594,8 +12593,8 @@ LABEL_20:
                   VectorMA((float *)&v72, -3.0, (float *)v28, v32 + 24);
                   *(_DWORD *)(v33 + 36) = 6;
                   *(_WORD *)(v33 + 40) = 10;
-                  *(_DWORD *)(v33 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-                  *(_DWORD *)(dword_1006675C + 4 * a1) = v33;
+                  *(_DWORD *)(v33 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+                  *(_DWORD *)(areareachability + 4 * a1) = v33;
                   ++dword_10066778;
                   v35 = AAS_AllocReachability();
                   v36 = v35;
@@ -12611,8 +12610,8 @@ LABEL_20:
                     VectorMA((float *)&v68, -3.0, (float *)v28, v35 + 24);
                     *(_DWORD *)(v36 + 36) = 6;
                     *(_WORD *)(v36 + 40) = 10;
-                    *(_DWORD *)(v36 + 44) = *(_DWORD *)(dword_1006675C + 4 * a2);
-                    *(_DWORD *)(dword_1006675C + 4 * a2) = v36;
+                    *(_DWORD *)(v36 + 44) = *(_DWORD *)(areareachability + 4 * a2);
+                    *(_DWORD *)(areareachability + 4 * a2) = v36;
                     ++dword_10066778;
                     return 1;
                   }
@@ -12638,8 +12637,8 @@ LABEL_20:
                   VectorMA(v39 + 24, -15.0, (float *)v28, v39 + 24);
                   *(_DWORD *)(v40 + 36) = 6;
                   *(_WORD *)(v40 + 40) = 10;
-                  *(_DWORD *)(v40 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-                  *(_DWORD *)(dword_1006675C + 4 * a1) = v40;
+                  *(_DWORD *)(v40 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+                  *(_DWORD *)(areareachability + 4 * a1) = v40;
                   ++dword_10066778;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
@@ -12656,8 +12655,8 @@ LABEL_20:
                     *(float *)(v42 + 32) = v70;
                     *(_DWORD *)(v42 + 36) = 7;
                     *(_WORD *)(v42 + 40) = 10;
-                    *(_DWORD *)(v42 + 44) = *(_DWORD *)(dword_1006675C + 4 * a2);
-                    *(_DWORD *)(dword_1006675C + 4 * a2) = v42;
+                    *(_DWORD *)(v42 + 44) = *(_DWORD *)(areareachability + 4 * a2);
+                    *(_DWORD *)(areareachability + 4 * a2) = v42;
                     ++dword_100667B8;
                     return 1;
                   }
@@ -12741,28 +12740,28 @@ LABEL_20:
                     *(float *)(v59 + 32) = trace.endpos[2];
                     *(_DWORD *)(v59 + 36) = 6;
                     *(_WORD *)(v59 + 40) = 10;
-                    *(_DWORD *)(v59 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
-                    *(_DWORD *)(dword_1006675C + 4 * a1) = v59;
+                    *(_DWORD *)(v59 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+                    *(_DWORD *)(areareachability + 4 * a1) = v59;
                     ++dword_10066778;
-                    v61 = AAS_AllocReachability();
-                    if ( v61 )
+                    lreach = AAS_AllocReachability();
+                    if ( lreach )
                     {
                       v62 = v71;
-                      *(_DWORD *)v61 = a1;
-                      *(_DWORD *)(v61 + 4) = v62;
-                      *(_DWORD *)(v61 + 8) = v66;
-                      *(float *)(v61 + 12) = trace.endpos[0];
-                      *(float *)(v61 + 16) = trace.endpos[1];
+                      *(_DWORD *)lreach = a1;
+                      *(_DWORD *)(lreach + 4) = v62;
+                      *(_DWORD *)(lreach + 8) = v66;
+                      *(float *)(lreach + 12) = trace.endpos[0];
+                      *(float *)(lreach + 16) = trace.endpos[1];
                       v63 = v85;
-                      *(float *)(v61 + 20) = trace.endpos[2];
-                      VectorMA((float *)&v86, -5.0, v63, v61 + 24);
-                      v64 = *(float *)(v61 + 32) + 10.0;
-                      *(_DWORD *)(v61 + 36) = 5;
-                      *(_WORD *)(v61 + 40) = 10;
-                      *(float *)(v61 + 32) = v64;
-                      *(_DWORD *)(v61 + 44) = *(_DWORD *)(dword_1006675C + 4 * v53);
-                      *(_DWORD *)(dword_1006675C + 4 * v53) = v61;
-                      ++dword_1006678C;
+                      *(float *)(lreach + 20) = trace.endpos[2];
+                      VectorMA((float *)&v86, -5.0, v63, lreach + 24);
+                      v64 = *(float *)(lreach + 32) + 10.0;
+                      *(_DWORD *)(lreach + 36) = 5;
+                      *(_WORD *)(lreach + 40) = 10;
+                      *(float *)(lreach + 32) = v64;
+                      *(_DWORD *)(lreach + 44) = *(_DWORD *)(areareachability + 4 * v53);
+                      *(_DWORD *)(areareachability + 4 * v53) = lreach;
+                      ++reach_jump;
                       return 1;
                     }
                   }
@@ -12914,8 +12913,8 @@ LABEL_18:
                     *(float *)(v11 + 32) = destorigin[2];
                     *(_DWORD *)(v11 + 36) = 10;
                     *(_WORD *)(v11 + 40) = 50;
-                    *(_DWORD *)(v11 + 44) = *(_DWORD *)(dword_1006675C + 4 * v10);
-                    *(_DWORD *)(dword_1006675C + 4 * v10) = v11;
+                    *(_DWORD *)(v11 + 44) = *(_DWORD *)(areareachability + 4 * v10);
+                    *(_DWORD *)(areareachability + 4 * v10) = v11;
                     ++dword_10066798;
                   }
                 }
@@ -13226,8 +13225,8 @@ LABEL_30:
                   *((_WORD *)v21 + 20) = 50;
                 v27 = v33;
                 i = 9999;
-                v21[11] = *(_DWORD *)(dword_1006675C + 4 * LODWORD(v33));
-                *(_DWORD *)(dword_1006675C + 4 * LODWORD(v27)) = v21;
+                v21[11] = *(_DWORD *)(areareachability + 4 * LODWORD(v33));
+                *(_DWORD *)(areareachability + 4 * LODWORD(v27)) = v21;
                 ++dword_10066784;
               }
             }
@@ -13446,8 +13445,8 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                       v22 = *(float *)(v13 + 28) - *(float *)(v13 + 16);
                       v23 = *(float *)(v13 + 32) - *(float *)(v13 + 20);
                       *(_WORD *)(v13 + 40) = (__int64)(VectorLength(&v21) * 0.25 + 500.0);
-                      *(_DWORD *)(v13 + 44) = *(_DWORD *)(dword_1006675C + 4 * ArgList);
-                      *(_DWORD *)(dword_1006675C + 4 * ArgList) = v13;
+                      *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
+                      *(_DWORD *)(areareachability + 4 * ArgList) = v13;
                       ++dword_10066790;
                     }
                   }
@@ -13723,8 +13722,8 @@ LABEL_26:
   else
     *(_DWORD *)(v13 + 36) = 12;
   *(_WORD *)(v13 + 40) = 500;
-  *(_DWORD *)(v13 + 44) = *(_DWORD *)(dword_1006675C + 4 * ArgList);
-  *(_DWORD *)(dword_1006675C + 4 * ArgList) = v13;
+  *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
+  *(_DWORD *)(areareachability + 4 * ArgList) = v13;
   ++dword_100667BC;
   return 1;
 }
@@ -13987,9 +13986,9 @@ LABEL_29:
             else
               *(_WORD *)(v35 + 40) = 3000;
             v10 = v48;
-            *(_DWORD *)(v35 + 44) = *(_DWORD *)(dword_1006675C + 4 * a1);
+            *(_DWORD *)(v35 + 44) = *(_DWORD *)(areareachability + 4 * a1);
             v13 = v50;
-            *(_DWORD *)(dword_1006675C + 4 * a1) = v35;
+            *(_DWORD *)(areareachability + 4 * a1) = v35;
             v11 = v54;
             ++dword_100667B8;
           }
@@ -14040,7 +14039,7 @@ int AAS_StoreReachability()
       *(_DWORD *)((char *)aasworld.areasettings + v2 + 24) = result;
       *(_DWORD *)&v3[v2 + 20] = 0;
       v4 = &v3[v2];
-      for ( i = *(_DWORD *)(dword_1006675C + 4 * v1); i; i = *(_DWORD *)(i + 44) )
+      for ( i = *(_DWORD *)(areareachability + 4 * v1); i; i = *(_DWORD *)(i + 44) )
       {
         v6 = (char *)aasworld.reachability + 44 * *((_DWORD *)v4 + 6) + 44 * *((_DWORD *)v4 + 5);
         *(_DWORD *)v6 = *(_DWORD *)i;
@@ -14179,7 +14178,7 @@ int AAS_ContinueInitReachability(int a1)
     AAS_Reachability_Elevator();
     AAS_StoreReachability();
     AAS_ShutDownReachabilityHeap();
-    FreeMemory(dword_1006675C);
+    FreeMemory(areareachability);
     bi_Print(1, "calculating clusters...\n");
   }
   return 1;
@@ -14206,7 +14205,7 @@ int AAS_InitReachability()
       aasworld.savefile = 1;
       aasworld.numreachabilityareas = 1;
       AAS_SetupReachabilityHeap();
-      dword_1006675C = GetClearedMemory(4 * aasworld.numareas);
+      areareachability = GetClearedMemory(4 * aasworld.numareas);
       return AAS_SetWeaponJumpAreaFlags();
     }
     else
