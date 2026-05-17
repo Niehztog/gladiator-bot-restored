@@ -11834,17 +11834,15 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
   float bestdist; // [esp+1Ch] [ebp-1B0h]
-  int beststart; // [esp+20h] [ebp-1ACh] BYREF
-  float v54; // [esp+24h] [ebp-1A8h]
-  float v55; // [esp+28h] [ebp-1A4h]
-  int bestend; // [esp+2Ch] [ebp-1A0h] BYREF
-  float v57; // [esp+30h] [ebp-19Ch]
-  float v58; // [esp+34h] [ebp-198h]
+  /* beststart/bestend are vec3_t passed to AAS_HorizontalVelocityForJump and
+   * other vec3 helpers via (int)beststart / (int)bestend.  Original AAS
+   * stack layout had them as contiguous 12-byte vec3 slots; IDA split them
+   * into int+float+float locals.  GCC won't reliably keep these adjacent. */
+  vec3_t beststart; // [esp+20h..0x2B] [ebp-1ACh..-1A4h] BYREF
+  vec3_t bestend;   // [esp+2Ch..0x37] [ebp-1A0h..-198h] BYREF
   float phys_jumpvel; // [esp+38h] [ebp-194h]
   int dir[3]; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
-  int teststart; // [esp+48h] [ebp-184h] BYREF
-  int v64; // [esp+4Ch] [ebp-180h]  — kept: stack-adjacent to v63 (BYREF); &v63+1 lands here
-  float v65; // [esp+50h] [ebp-17Ch]
+  vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start (vec3, IDA split)
   _DWORD *v66; // [esp+54h] [ebp-178h]
   _DWORD *v67; // [esp+58h] [ebp-174h]
   int maxjumpheight; // [esp+5Ch] [ebp-170h]
@@ -11872,7 +11870,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   float v90; // [esp+BCh] [ebp-110h]
   char *v91; // [esp+C0h] [ebp-10Ch]
   int v92; // [esp+C4h] [ebp-108h]
-  int testend[3]; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination; v93[0..2] = old v93/v94/v95
+  vec3_t testend; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination
   _DWORD *edge1; // [esp+D4h] [ebp-F8h]
   int cmdmove[2]; // [esp+D8h] [ebp-F4h] BYREF
   aas_trace_t trace; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
@@ -12019,19 +12017,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart = *(int *)v1;
-                              v54 = v1[1];
+                              beststart[0] = *(float *)v1;
+                              beststart[1] = v1[1];
                               bestdist = v39;
-                              v55 = v1[2];
-                              bestend = v70;
-                              v57 = v71;
-                              v58 = v72;
+                              beststart[2] = v1[2];
+                              *(int *)bestend = v70;
+                              bestend[1] = v71;
+                              bestend[2] = v72;
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&beststart, v1, (float *)&beststart);
-                            VectorMiddle((float *)&bestend, (float *)&v70, (float *)&bestend);
+                            VectorMiddle(beststart, v1, beststart);
+                            VectorMiddle(bestend, (float *)&v70, bestend);
                           }
                           v79 = 1;
                         }
@@ -12044,19 +12042,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart = *(int *)v2;
-                              v54 = v2[1];
+                              beststart[0] = *(float *)v2;
+                              beststart[1] = v2[1];
                               bestdist = v39;
-                              v55 = v2[2];
-                              bestend = v76;
-                              v57 = v77;
-                              v58 = v78;
+                              beststart[2] = v2[2];
+                              *(int *)bestend = v76;
+                              bestend[1] = v77;
+                              bestend[2] = v78;
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&beststart, v2, (float *)&beststart);
-                            VectorMiddle((float *)&bestend, (float *)&v76, (float *)&bestend);
+                            VectorMiddle(beststart, v2, beststart);
+                            VectorMiddle(bestend, (float *)&v76, bestend);
                           }
                           v79 = 1;
                         }
@@ -12069,19 +12067,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart = v80;
-                              v54 = v81;
-                              v55 = v82;
+                              *(int *)beststart = v80;
+                              beststart[1] = v81;
+                              beststart[2] = v82;
                               bestdist = v39;
-                              bestend = *(int *)v3;
-                              v57 = v3[1];
-                              v58 = v3[2];
+                              bestend[0] = *(float *)v3;
+                              bestend[1] = v3[1];
+                              bestend[2] = v3[2];
                             }
                           }
                           else
                           {
-                            VectorMiddle((float *)&beststart, (float *)&v80, (float *)&beststart);
-                            VectorMiddle((float *)&bestend, v3, (float *)&bestend);
+                            VectorMiddle(beststart, (float *)&v80, beststart);
+                            VectorMiddle(bestend, v3, bestend);
                           }
                           v79 = 1;
                         }
@@ -12096,19 +12094,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             bestdist = v39;
                             v40 = v75;
-                            beststart = v73;
-                            v54 = v74;
+                            *(int *)beststart = v73;
+                            beststart[1] = v74;
 LABEL_60:
-                            v55 = v40;
-                            bestend = *(int *)v4;
-                            v57 = v4[1];
-                            v58 = v4[2];
+                            beststart[2] = v40;
+                            bestend[0] = *(float *)v4;
+                            bestend[1] = v4[1];
+                            bestend[2] = v4[2];
                           }
                         }
                         else
                         {
-                          VectorMiddle((float *)&beststart, (float *)&v73, (float *)&beststart);
-                          VectorMiddle((float *)&bestend, v4, (float *)&bestend);
+                          VectorMiddle(beststart, (float *)&v73, beststart);
+                          VectorMiddle(bestend, v4, bestend);
                         }
 LABEL_61:
                         v41 = v67[2];
@@ -12120,42 +12118,42 @@ LABEL_61:
                       VectorDistance(v1, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart = *(int *)v1;
-                        v54 = v1[1];
-                        v55 = v1[2];
+                        beststart[0] = *(float *)v1;
+                        beststart[1] = v1[1];
+                        beststart[2] = v1[2];
                         bestdist = v39;
-                        bestend = *(int *)v3;
-                        v57 = v3[1];
-                        v58 = v3[2];
+                        bestend[0] = *(float *)v3;
+                        bestend[1] = v3[1];
+                        bestend[2] = v3[2];
                       }
                       VectorDistance(v1, v4);
                       if ( v39 < bestdist )
                       {
-                        beststart = *(int *)v1;
-                        v54 = v1[1];
-                        v55 = v1[2];
+                        beststart[0] = *(float *)v1;
+                        beststart[1] = v1[1];
+                        beststart[2] = v1[2];
                         bestdist = v39;
-                        bestend = *(int *)v4;
-                        v57 = v4[1];
-                        v58 = v4[2];
+                        bestend[0] = *(float *)v4;
+                        bestend[1] = v4[1];
+                        bestend[2] = v4[2];
                       }
                       VectorDistance(v2, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart = *(int *)v2;
-                        v54 = v2[1];
-                        v55 = v2[2];
+                        beststart[0] = *(float *)v2;
+                        beststart[1] = v2[1];
+                        beststart[2] = v2[2];
                         bestdist = v39;
-                        bestend = *(int *)v3;
-                        v57 = v3[1];
-                        v58 = v3[2];
+                        bestend[0] = *(float *)v3;
+                        bestend[1] = v3[1];
+                        bestend[2] = v3[2];
                       }
                       VectorDistance(v2, v4);
                       if ( v39 >= bestdist )
                         goto LABEL_61;
                       bestdist = v39;
-                      beststart = *(int *)v2;
-                      v54 = v2[1];
+                      beststart[0] = *(float *)v2;
+                      beststart[1] = v2[1];
                       v40 = v2[2];
                       goto LABEL_60;
                     }
@@ -12187,63 +12185,63 @@ LABEL_62:
 LABEL_67:
         if ( bestdist < (double)maxjumpdistance )
         {
-          v90 = v55 - v58;
+          v90 = beststart[2] - bestend[2];
           v91 = (char *)sub_10011520();
           if ( (double)(int)v91 >= v90 )
           {
-            if ( AAS_HorizontalVelocityForJump(0.0, (int)&beststart, (int)&bestend, (int)&speed) )
+            if ( AAS_HorizontalVelocityForJump(0.0, (int)beststart, (int)bestend, (int)&speed) )
             {
               traveltype = 7;
               speed = speed * 1.2;
             }
             else
             {
-              if ( !AAS_HorizontalVelocityForJump(phys_jumpvel, (int)&beststart, (int)&bestend, (int)&speed) )
+              if ( !AAS_HorizontalVelocityForJump(phys_jumpvel, (int)beststart, (int)bestend, (int)&speed) )
                 return 0;
               traveltype = 5;
             }
             /* X/Y horizontal-distance check (Z explicitly zeroed):
              * .text 0x100146cf-0x100146f4 — fld v56X / fsub v53X / fstp v60[0];
-             * fld v57 / fsub v54 / fstp v60[1]; v60[2] := 0 just before. */
+             * fld bestend[1] / fsub beststart[1] / fstp v60[1]; v60[2] := 0 just before. */
             *(float *)&dir[2] = 0.0f;
-            *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
-            *(float *)&dir[1] = v57 - v54;
+            *(float *)&dir[0] = bestend[0] - beststart[0];
+            *(float *)&dir[1] = bestend[1] - beststart[1];
             if ( VectorLength((float *)dir) >= 10.0 )
             {
               /* Full 3-component direction vector for the actual barrier trace:
                * .text 0x1001470d-0x10014736 — three fld/fsub/fstp pairs. */
-              *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
-              *(float *)&dir[1] = v57 - v54;
-              *(float *)&dir[2] = v58 - v55;
+              *(float *)&dir[0] = bestend[0] - beststart[0];
+              *(float *)&dir[1] = bestend[1] - beststart[1];
+              *(float *)&dir[2] = bestend[2] - beststart[2];
               VectorNormalize((float *)dir);
-              VectorMA((float *)&beststart, 1.0, (float *)dir, (float *)&teststart);
+              VectorMA(beststart, 1.0, (float *)dir, teststart);
               /* Build trace endpoint v93 = v63 (XY copied as bits) with Z dropped 100u:
-               * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=v64,
-               * fld v65 / fsub 100.0 / fstp [v95]. */
-              testend[0] = teststart;
-              testend[1] = v64;
-              *(float *)&testend[2] = v65 - 100.0f;
-              trace = AAS_TraceClientBBox((float *)&teststart, (float *)testend, 2, -1);
+               * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=teststart[1],
+               * fld teststart[2] / fsub 100.0 / fstp [v95]. */
+              testend[0] = teststart[0];
+              testend[1] = teststart[1];
+              testend[2] = teststart[2] - 100.0f;
+              trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
               if ( !trace.startsolid
                 && (trace.fraction >= 1.0
                  || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
-                 || v65 - trace.endpos[2] > libvar_sv_maxbarrier->value) )
+                 || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
-                VectorMA((float *)&bestend, -1.0, (float *)dir, (float *)&teststart);
-                testend[0] = teststart;
-                testend[1] = v64;
-                *(float *)&testend[2] = v65 - 100.0f;
-                trace = AAS_TraceClientBBox((float *)&teststart, (float *)testend, 2, -1);
+                VectorMA(bestend, -1.0, (float *)dir, teststart);
+                testend[0] = teststart[0];
+                testend[1] = teststart[1];
+                testend[2] = teststart[2] - 100.0f;
+                trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
                 if ( !trace.startsolid
                   && (trace.fraction >= 1.0
                    || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
-                   || v65 - trace.endpos[2] > libvar_sv_maxbarrier->value) )
+                   || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
                 {
                   /* Horizontal velocity vector (Z explicitly zeroed):
                    * .text 0x100148e9-0x1001490e — same pattern as block 1. */
                   *(float *)&dir[2] = 0.0f;
-                  *(float *)&dir[0] = *(float *)&bestend - *(float *)&beststart;
-                  *(float *)&dir[1] = v57 - v54;
+                  *(float *)&dir[0] = bestend[0] - beststart[0];
+                  *(float *)&dir[1] = bestend[1] - beststart[1];
                   VectorNormalize((float *)dir);
                   VectorScale((float *)dir, speed, (float *)cmdmove);
                   qmemcpy(
@@ -12251,7 +12249,7 @@ LABEL_67:
                     (const void *)AAS_ClientMovementPrediction(
                                     (int)move,
                                     -1,
-                                    (int)&beststart,
+                                    (int)beststart,
                                     2,
                                     1,
                                     (int)&velocity,
@@ -12270,10 +12268,10 @@ LABEL_67:
                     while ( 1 )
                     {
                       v51 = (float)SLODWORD(phys_jumpvel);
-                      VectorMA((float *)move2, v51, (float *)dir, (float *)&teststart);
-                      v48 = v65 + 0.125;
-                      v65 = v48;
-                      if ( AAS_PointAreaNum(&teststart) == area2num )
+                      VectorMA((float *)move2, v51, (float *)dir, teststart);
+                      v48 = teststart[2] + 0.125;
+                      teststart[2] = v48;
+                      if ( AAS_PointAreaNum(teststart) == area2num )
                         break;
                       LODWORD(v47) -= 8;
                       v46 += 8;
@@ -12289,14 +12287,14 @@ LABEL_67:
                         *(_DWORD *)lreach = area2num;
                         *(_DWORD *)(lreach + 4) = 0;
                         *(_DWORD *)(lreach + 8) = 0;
-                        *(float *)(lreach + 12) = *(float *)&beststart;
-                        *(float *)(lreach + 16) = v54;
-                        *(float *)(lreach + 20) = v55;
-                        *(float *)(lreach + 24) = *(float *)&bestend;
-                        *(float *)(lreach + 28) = v57;
-                        *(float *)(lreach + 32) = v58;
+                        *(float *)(lreach + 12) = beststart[0];
+                        *(float *)(lreach + 16) = beststart[1];
+                        *(float *)(lreach + 20) = beststart[2];
+                        *(float *)(lreach + 24) = bestend[0];
+                        *(float *)(lreach + 28) = bestend[1];
+                        *(float *)(lreach + 32) = bestend[2];
                         *(_DWORD *)(lreach + 36) = traveltype;
-                        VectorDistance((float *)&bestend, (float *)&beststart);
+                        VectorDistance(bestend, beststart);
                         *(_WORD *)(lreach + 40) = (__int64)(v48 * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
                         *(_DWORD *)(lreach + 44) = *(_DWORD *)(areareachability + 4 * area1num);
                         *(_DWORD *)(areareachability + 4 * area1num) = lreach;
@@ -12860,11 +12858,11 @@ LABEL_18:
             }
             if ( AAS_VectorForBSPEpairKey(v4, aOrigin, destorigin) )
             {
-              v28[0] = *(int *)&destorigin[0];
-              v28[1] = *(int *)&destorigin[1];
+              v28[0] = destorigin[0];
+              v28[1] = destorigin[1];
               destorigin[2] = destorigin[2] + 24.0;
-              *(float *)&v28[2] = destorigin[2] - 100.0;
-              trace = AAS_TraceClientBBox(destorigin, (float *)v28, 4, -1);
+              v28[2] = destorigin[2] - 100.0;
+              trace = AAS_TraceClientBBox(destorigin, v28, 4, -1);
               if ( trace.startsolid )
               {
                 bi_Print(3, "teleporter destination (%s) in solid\n", v3);
@@ -12985,52 +12983,39 @@ int AAS_Reachability_Elevator()
   double v25; // st7
   double v26; // st7
   float v27; // eax
-  float v30; // [esp+4Ch] [ebp-180h]
-  float v31; // [esp+50h] [ebp-17Ch]
-  float v32; // [esp+10h] [ebp-18Ch]
-  float v33; // [esp+58h] [ebp-174h] BYREF
-  int v34; // [esp+5Ch] [ebp-170h] BYREF
-  float v35; // [esp+60h] [ebp-16Ch]
-  float v36; // [esp+20h] [ebp-17Ch]
-  int v37; // [esp+24h] [ebp-178h] BYREF
-  float v38; // [esp+28h] [ebp-174h]
-  int v40; // [esp+30h] [ebp-16Ch] BYREF
-  float v41; // [esp+34h] [ebp-168h]
-  float v42; // [esp+38h] [ebp-164h]
-  float v43; // [esp+3Ch] [ebp-160h]
-  float v44; // [esp+40h] [ebp-15Ch] BYREF
-  float v45; // [esp+44h] [ebp-158h]
-  float v46; // [esp+48h] [ebp-154h]
-  float v47; // [esp+4Ch] [ebp-150h] BYREF
-  float v48; // [esp+50h] [ebp-14Ch]
-  float v49; // [esp+54h] [ebp-148h]
-  int *v50; // [esp+58h] [ebp-144h]
-  int i; // [esp+5Ch] [ebp-140h]
-  float v52; // [esp+60h] [ebp-13Ch]
-  float v53; // [esp+64h] [ebp-138h] BYREF
-  float v54; // [esp+68h] [ebp-134h]
-  float v55; // [esp+6Ch] [ebp-130h]
-  int k; // [esp+70h] [ebp-12Ch]
-  int v57; // [esp+74h] [ebp-128h] BYREF
-  float v58; // [esp+78h] [ebp-124h]
-  float v59; // [esp+7Ch] [ebp-120h]
-  int v60; // [esp+80h] [ebp-11Ch]
-  int v61; // [esp+84h] [ebp-118h] BYREF
-  float v62; // [esp+88h] [ebp-114h]
-  float v63; // [esp+8Ch] [ebp-110h]
-  int v64[2]; // [esp+90h] [ebp-10Ch] BYREF
-  float v65; // [esp+98h] [ebp-104h]
-  int v66; // [esp+9Ch] [ebp-100h]
-  char **v67; // [esp+A0h] [ebp-FCh]
-  float v68[3]; // [esp+A4h] [ebp-F8h] BYREF
-  float v69[3]; // [esp+B0h] [ebp-ECh] BYREF
-  float v70[3]; // [esp+BCh] [ebp-E0h] BYREF
-  int v71[8]; // [esp+C8h] [ebp-D4h]
-  int v72[8]; // [esp+E8h] [ebp-B4h]
-  int v73[8]; // [esp+108h] [ebp-94h]
-  int v74[10]; // [esp+128h] [ebp-74h]
-  float v75; // [esp+150h] [ebp-4Ch]
-  aas_trace_t trace; // [esp+154h] [ebp-48h] (was float v76[9] + char v77[36] hidden return buffer)
+  /* IDA-split vec3 locals restored as contiguous vec3_t arrays.  In the
+   * original frame BSPModelMinsMaxs writes 12 bytes each to mins/maxs/origin
+   * starting at the addresses passed in; IDA decompiled the trios as scattered
+   * scalars which GCC will not lay out adjacently.  All vec3 trios passed by
+   * address (point/dir/sumvec/etc.) must also be contiguous. */
+  vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
+  float v33;            /* [BYREF] holds PointAreaNum return as float bits */
+  vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
+  vec3_t sumvec;        /* was v37/v38 (+missing v39) — mins+maxs sum for VectorMA */
+  vec3_t testpt;        /* was v40/v41/v42 — point for AAS_PointAreaNum */
+  float v43;
+  vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
+  vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
+  int *v50;
+  int i;
+  float v52;
+  vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
+  int k;
+  vec3_t toporg;        /* was v57/v58/v59 — VectorMA midpoint output (top) */
+  int v60;
+  vec3_t btmorg;        /* was v61/v62/v63 — VectorMA midpoint output (bottom) */
+  vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
+  int v66;
+  char **v67;
+  float v68[3];         /* [BYREF] */
+  float v69[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
+  float v70[3];         /* [BYREF] */
+  int v71[8];           /* offsets table (holds float bits) */
+  int v72[8];
+  int v73[8];
+  int v74[10];
+  float v75;
+  aas_trace_t trace;
 
   memset(v69, 0, sizeof(v69));
   v0 = sub_100069A0();
@@ -13066,14 +13051,11 @@ LABEL_58:
       bi_Print(3, aFuncPlatWithIn);
       goto LABEL_58;
     }
-    AAS_BSPModelMinsMaxs(v4, v69, (float *)&v34, (float *)&v30, (float *)&v53);
-    /* &v34, &v30 are IDA-split vec3 starts (mins/maxs); v34..v36 and v30..v32
-     * are stack-adjacent in the original frame — the function writes 3 floats
-     * each, which the post-call code reads back as v34/v35/v36, v30/v31/v32. */
-    v75 = v55;
-    *(float *)v64 = v53;
-    *(float *)&v64[1] = v54;
-    v65 = v55;
+    AAS_BSPModelMinsMaxs(v4, v69, mins, maxs, origin);
+    v75 = origin[2];
+    extent[0] = origin[0];
+    extent[1] = origin[1];
+    extent[2] = origin[2];
     v5 = FloatForKey(v1, aLip);
     v33 = v5;
     if ( v5 == 0.0 )
@@ -13081,122 +13063,121 @@ LABEL_58:
     v6 = FloatForKey(v1, aHeight);
     v43 = v6;
     if ( v6 == 0.0 )
-      v43 = v32 - v36 - v33;
+      v43 = maxs[2] - mins[2] - v33;
     v7 = FloatForKey(v1, aSpeed);
     v52 = v7;
     if ( v7 == 0.0 )
       v52 = 200.0;
-    v65 = v65 - v43;
-    *(float *)&v37 = *(float *)&v30 + *(float *)&v34;
-    v38 = *(float *)&v31 + *(float *)&v35;
-    VectorMA((float *)v64, 0.5, (float *)&v37, (float *)&v57);
-    v59 = v32 - (v75 - v65) + 2.0;
-    *(float *)&v37 = *(float *)&v30 + *(float *)&v34;
-    v38 = *(float *)&v31 + *(float *)&v35;
-    VectorMA((float *)v64, 0.5, (float *)&v37, (float *)&v61);
-    /* Original: *(float*)((char*)&v34+v8)-1 → v34[0..2] -= 1; v30[0..2] += 1.
-     * Loop read v34[i], wrote v33[i+1]=v34[i] (same loc!), wrote v29[i+1]+=1.
-     * Restored as direct operations on v34/v35/v36 and v30/v31/v32. */
-    v63 = v32 + 2.0;
-    *(float*)&v34 -= 1.0f; v30 += 1.0f;  /* v34 is int holding float bits */
-    v35 -= 1.0f; v31 += 1.0f;
-    v36 -= 1.0f; v32 += 1.0f;
-    *(float *)&v37 = *(float *)&v30 + *(float *)&v34;
-    v38 = *(float *)&v31 + *(float *)&v35;
-    VectorScale((float *)&v37, 0.5, (float *)&v37);
-    v71[0] = v34;
-    v71[1] = v37;
-    v71[3] = v37;
-    v71[2] = v30;
-    *(float *)v72 = v38;
-    *(float *)&v72[2] = v38;
-    v72[1] = v31;
-    v72[3] = v35;
-    v71[5] = v30;
-    v71[4] = v34;
-    v71[7] = v34;
-    v71[6] = v30;
-    v72[4] = v31;
+    extent[2] = extent[2] - v43;
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
+    VectorMA(extent, 0.5, sumvec, toporg);
+    toporg[2] = maxs[2] - (v75 - extent[2]) + 2.0;
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
+    VectorMA(extent, 0.5, sumvec, btmorg);
+    btmorg[2] = maxs[2] + 2.0;
+    mins[0] -= 1.0f; maxs[0] += 1.0f;
+    mins[1] -= 1.0f; maxs[1] += 1.0f;
+    mins[2] -= 1.0f; maxs[2] += 1.0f;
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
+    VectorScale(sumvec, 0.5, sumvec);
+    *(float *)&v71[0] = mins[0];
+    *(float *)&v71[1] = sumvec[0];
+    *(float *)&v71[3] = sumvec[0];
+    *(float *)&v71[2] = maxs[0];
+    *(float *)v72 = sumvec[1];
+    *(float *)&v72[2] = sumvec[1];
+    *(float *)&v72[1] = maxs[1];
+    *(float *)&v72[3] = mins[1];
+    *(float *)&v71[5] = maxs[0];
+    *(float *)&v71[4] = mins[0];
+    *(float *)&v71[7] = mins[0];
+    *(float *)&v71[6] = maxs[0];
+    *(float *)&v72[4] = maxs[1];
     v10 = 0;
-    v72[5] = v31;
-    v72[6] = v35;
-    v72[7] = v35;
+    *(float *)&v72[5] = maxs[1];
+    *(float *)&v72[6] = mins[1];
+    *(float *)&v72[7] = mins[1];
     v60 = 0;
     while ( v10 >= 32 )
     {
-      v40 = v61;
-      v41 = v62;
-      v42 = v63 + 24.0;
-      v33 = COERCE_FLOAT(AAS_PointAreaNum(&v40));
+      testpt[0] = btmorg[0];
+      testpt[1] = btmorg[1];
+      testpt[2] = btmorg[2] + 24.0;
+      v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
       if ( v33 != 0.0 )
       {
-        v40 = v57;
-        v41 = v58;
-        v42 = v59 + 24.0;
+        testpt[0] = toporg[0];
+        testpt[1] = toporg[1];
+        testpt[2] = toporg[2] + 24.0;
 LABEL_30:
         for ( i = 0; i < 3; ++i )
         {
-          /* Original: v34[0..2] -= 4; v30[0..2] += 4. Same structure as do-while above. */
-          *(float*)&v34 -= 4.0f; v30 += 4.0f;  /* v34 is int holding float bits */
-          v35 -= 4.0f; v31 += 4.0f;
-          v36 -= 4.0f; v32 += 4.0f;
-          v74[0] = v34;
-          v74[1] = v37;
-          v74[3] = v37;
-          *(float *)v73 = v38;
-          v74[2] = v30;
-          *(float *)&v73[2] = v38;
-          v73[3] = v35;
-          v73[1] = v31;
-          v74[5] = v30;
-          v74[6] = v30;
-          v74[4] = v34;
-          v74[7] = v34;
-          v73[4] = v31;
-          v73[5] = v31;
+          mins[0] -= 4.0f; maxs[0] += 4.0f;
+          mins[1] -= 4.0f; maxs[1] += 4.0f;
+          mins[2] -= 4.0f; maxs[2] += 4.0f;
+          *(float *)&v74[0] = mins[0];
+          *(float *)&v74[1] = sumvec[0];
+          *(float *)&v74[3] = sumvec[0];
+          *(float *)v73 = sumvec[1];
+          *(float *)&v74[2] = maxs[0];
+          *(float *)&v73[2] = sumvec[1];
+          *(float *)&v73[3] = mins[1];
+          *(float *)&v73[1] = maxs[1];
+          *(float *)&v74[5] = maxs[0];
+          *(float *)&v74[6] = maxs[0];
+          *(float *)&v74[4] = mins[0];
+          *(float *)&v74[7] = mins[0];
+          *(float *)&v73[4] = maxs[1];
+          *(float *)&v73[5] = maxs[1];
           v15 = 0;
-          v73[6] = v35;
-          v73[7] = v35;
+          *(float *)&v73[6] = mins[1];
+          *(float *)&v73[7] = mins[1];
           for ( k = 0; k < 32; k += 4 )
           {
-            v47 = v53 + *(float *)((char *)v74 + v15);
-            v48 = v54 + *(float *)((char *)v73 + v15);
-            v49 = v63 + 16.0;
-            v16 = AAS_PointAreaNum(&v47);
+            samplept[0] = origin[0] + *(float *)((char *)v74 + v15);
+            samplept[1] = origin[1] + *(float *)((char *)v73 + v15);
+            samplept[2] = btmorg[2] + 16.0;
+            v16 = AAS_PointAreaNum(samplept);
             v17 = 0;
             while ( 1 )
             {
               if ( v16 && (AAS_AreaGrounded(v16) || AAS_AreaSwim(v16)) )
               {
-                v68[0] = v61;
-                *(float *)&v68[1] = v62;
-                *(float *)v70 = v47;
-                *(float *)&v68[2] = v63 + 32.0;
-                *(float *)&v70[1] = v48;
-                *(float *)&v70[2] = v49 + 1.0;
+                v68[0] = btmorg[0];
+                v68[1] = btmorg[1];
+                v70[0] = samplept[0];
+                v68[2] = btmorg[2] + 32.0;
+                v70[1] = samplept[1];
+                v70[2] = samplept[2] + 1.0;
                 trace = AAS_TraceClientBBox(v68, v70, 4, -1);
                 if ( trace.fraction >= 1.0 )
                   break;
               }
-              v49 = v49 + 4.0;
+              samplept[2] = samplept[2] + 4.0;
               ++v17;
-              v16 = AAS_PointAreaNum(&v47);
+              v16 = AAS_PointAreaNum(samplept);
               if ( v17 >= 16 )
                 goto LABEL_53;
             }
             v18 = LODWORD(v33);
             if ( v16 != LODWORD(v33) && AAS_AreaGrounded(v16) && !AAS_ReachabilityExists(v18, v16) )
             {
-              v44 = *(float *)&v40 - *(float *)&v57;
-              v45 = v41 - v58;
-              v46 = v42 - v59;
-              VectorNormalize(&v44);
-              v46 = v42;
+              dirvec[0] = testpt[0] - toporg[0];
+              dirvec[1] = testpt[1] - toporg[1];
+              dirvec[2] = testpt[2] - toporg[2];
+              VectorNormalize(dirvec);
+              dirvec[2] = testpt[2];
               v19 = 0;
-              v44 = v44 * 24.0 + *(float *)&v40;
-              v45 = v45 * 24.0 + v41;
-              while ( *((float *)&v34 + v19) + *(&v53 + v19) <= *(&v44 + v19)
-                   && *((float *)&v30 + v19) + *(&v53 + v19) >= *(&v44 + v19) )
+              dirvec[0] = dirvec[0] * 24.0 + testpt[0];
+              dirvec[1] = dirvec[1] * 24.0 + testpt[1];
+              while ( mins[v19] + origin[v19] <= dirvec[v19]
+                   && maxs[v19] + origin[v19] >= dirvec[v19] )
               {
                 if ( ++v19 >= 3 )
                   goto LABEL_53;
@@ -13212,13 +13193,13 @@ LABEL_30:
                 v24 = (__int64)v23;
                 v25 = v43 * 100.0;
                 v21[2] = v24;
-                *((float *)v21 + 3) = v44;
+                *((float *)v21 + 3) = dirvec[0];
                 v26 = v25 / v52;
-                *((float *)v21 + 4) = v45;
-                *((float *)v21 + 5) = v46;
-                *((float *)v21 + 6) = v47;
-                *((float *)v21 + 7) = v48;
-                *((float *)v21 + 8) = v49;
+                *((float *)v21 + 4) = dirvec[1];
+                *((float *)v21 + 5) = dirvec[2];
+                *((float *)v21 + 6) = samplept[0];
+                *((float *)v21 + 7) = samplept[1];
+                *((float *)v21 + 8) = samplept[2];
                 v21[9] = 11;
                 *((_WORD *)v21 + 20) = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
@@ -13246,17 +13227,17 @@ LABEL_56:
         goto LABEL_58;
       }
     }
-    *(float *)&v40 = v53 + *(float *)((char *)v71 + v10);
-    v41 = v54 + *(float *)((char *)v72 + v10);
-    v42 = v59 + 16.0;
-    v11 = COERCE_FLOAT(AAS_PointAreaNum(&v40));
+    testpt[0] = origin[0] + *(float *)((char *)v71 + v10);
+    testpt[1] = origin[1] + *(float *)((char *)v72 + v10);
+    testpt[2] = toporg[2] + 16.0;
+    v11 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
     v33 = v11;
     v12 = 0;
     while ( v11 == 0.0 || !AAS_AreaGrounded(LODWORD(v11)) && !AAS_AreaSwim(LODWORD(v11)) )
     {
-      v42 = v42 + 4.0;
+      testpt[2] = testpt[2] + 4.0;
       ++v12;
-      v33 = COERCE_FLOAT(AAS_PointAreaNum(&v40));
+      v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
       if ( v12 >= 16 )
         goto LABEL_56;
       v11 = v33;
@@ -13300,27 +13281,21 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
   float v17; // eax
   float v18; // ecx
   int v19; // edx
-  int v21; // [esp+28h] [ebp-160h] BYREF
-  float v22; // [esp+2Ch] [ebp-15Ch]
-  float v23; // [esp+30h] [ebp-158h]
-  int v24; // [esp+34h] [ebp-154h] BYREF
-  int v25; // [esp+38h] [ebp-150h]
-  float v26; // [esp+3Ch] [ebp-14Ch]
-  int v27; // [esp+40h] [ebp-148h] BYREF
-  float v28; // [esp+44h] [ebp-144h]
-  float v29; // [esp+48h] [ebp-140h]
-  int v30; // [esp+4Ch] [ebp-13Ch] BYREF
-  int v32; // [esp+54h] [ebp-134h]
-  int v33; // [esp+58h] [ebp-130h] BYREF
-  int v34; // [esp+5Ch] [ebp-12Ch]
-  float v35; // [esp+60h] [ebp-128h]
-  float v36; // [esp+64h] [ebp-124h]
-  int v37; // [esp+68h] [ebp-120h]
-  int v38; // [esp+6Ch] [ebp-11Ch]
-  char *v39; // [esp+70h] [ebp-118h]
-  aas_trace_t trace; // [esp+74h] [ebp-114h] (was int v40[9])
-  float v41[21]; // [esp+98h] [ebp-F0h] BYREF
-  char v44[84]; // [esp+134h] [ebp-54h] BYREF
+  /* IDA-split vec3 locals restored as contiguous vec3_t arrays.
+   * VectorLength, VectorNormalize and AAS_Trace read 3 contiguous floats
+   * from the pointers passed in, so GCC must lay each trio out adjacently. */
+  vec3_t delta;       /* was v21/v22/v23 — vertex - origin delta vec */
+  vec3_t centerorg;   /* was v24/v25/v26 — center origin (trace start) */
+  vec3_t grounded;    /* was v27/v28/v29 — origin dropped onto floor */
+  vec3_t vmav;        /* was v30/(v31)/v32 — VectorMA output (v31 elided by IDA) */
+  vec3_t vertex;      /* was v33/v34/v35 — face center from sub_100113F0 */
+  float v36;          /* VectorLength horizontal-distance result */
+  float v37;          /* vertical delta (vertex_z - grounded_z) */
+  int v38;
+  char *v39;
+  aas_trace_t trace;
+  float v41[21]; /* [BYREF] */
+  char v44[84]; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(ArgList) && !AAS_AreaSwim(ArgList) )
     return 0;
@@ -13333,27 +13308,28 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
   v39 = v2;
   if ( *((float *)v2 + 8) < (double)*((float *)v3 + 5) )
     return 0;
-  v24 = *((_DWORD *)v3 + 9);
-  v25 = *((_DWORD *)v3 + 10);
-  v26 = *((float *)v3 + 11);
+  centerorg[0] = *((float *)v3 + 9);
+  centerorg[1] = *((float *)v3 + 10);
+  centerorg[2] = *((float *)v3 + 11);
   if ( AAS_AreaSwim(ArgList) )
   {
-    v4 = bi_PointContents((int)&v24);   /* IDA-dropped: swim-area liquid check */
+    v4 = bi_PointContents((int)centerorg);   /* IDA-dropped: swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
   else
   {
-    if ( !AAS_PointAreaNum(&v24) )
+    if ( !AAS_PointAreaNum(centerorg) )
       Log_Write(aAreaDCenterFFF, ArgList);
-    v30 = v24;
-    *(float *)&v32 = v26 - 1000.0;
-    trace = AAS_TraceClientBBox((float *)&v24, (float *)&v30, 4, -1);
+    vmav[0] = centerorg[0];
+    vmav[1] = centerorg[1];
+    vmav[2] = centerorg[2] - 1000.0;
+    trace = AAS_TraceClientBBox(centerorg, vmav, 4, -1);
     if ( trace.startsolid )
       return 0;
-    v27 = *(int *)&trace.endpos[0];
-    v28 = trace.endpos[1];
-    v29 = trace.endpos[2];
+    grounded[0] = trace.endpos[0];
+    grounded[1] = trace.endpos[1];
+    grounded[2] = trace.endpos[2];
   }
   v5 = *((_DWORD *)v2 + 1);
   v6 = 0;
@@ -13368,52 +13344,57 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
       {
         v9 = *((int *)aasworld.edgeindex + *((_DWORD *)v8 + 3));
         LODWORD(v9) = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * ((HIDWORD(v9) ^ v9) - HIDWORD(v9)));
-        *(float *)&v21 = *(float *)v9 - *(float *)&v27;
-        v22 = *(float *)(v9 + 4) - v28;
-        v23 = *(float *)(v9 + 8) - v29;
-        if ( v23 * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2)
-           + v22 * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 1)
-           + *(float *)&v21 * *((float *)aasworld.planes + 5 * *(_DWORD *)v8) <= 0.0 )
+        delta[0] = *(float *)v9 - grounded[0];
+        delta[1] = *(float *)(v9 + 4) - grounded[1];
+        delta[2] = *(float *)(v9 + 8) - grounded[2];
+        if ( delta[2] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2)
+           + delta[1] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 1)
+           + delta[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8) <= 0.0 )
         {
-          sub_100113F0(v7, (float *)&v33);
-          if ( v29 + 64.0 <= v35 && *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2) * -1.0 >= 0.0 )
+          sub_100113F0(v7, vertex);
+          if ( grounded[2] + 64.0 <= vertex[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2) * -1.0 >= 0.0 )
           {
-            v23 = 0.0;
-            *(float *)&v21 = *(float *)&v33 - *(float *)&v27;
-            v22 = *(float *)&v34 - v28;
-            *(float *)&v37 = v35 - v29;
-            v10 = VectorLength(&v21);
+            delta[2] = 0.0;
+            delta[0] = vertex[0] - grounded[0];
+            delta[1] = vertex[1] - grounded[1];
+            v37 = vertex[2] - grounded[2];
+            v10 = VectorLength(delta);
             v36 = v10;
-            if ( v10 != 0.0 && v36 <= 2000.0 && tan(0.2617993877991494) <= *(float *)&v37 / v36 )
+            if ( v10 != 0.0 && v36 <= 2000.0 && tan(0.2617993877991494) <= v37 / v36 )
             {
-              v24 = v33;
-              v25 = v34;
-              v26 = v35;
-              VectorMA((float *)&v33, -500.0, (float *)aasworld.planes + 20 * *(_DWORD *)v8, (float *)&v30);
-              qmemcpy(v41, AAS_Trace(v44, (int)&v24, 0, 0, (int)&v30, 0, 100663299), sizeof(v41));
+              centerorg[0] = vertex[0];
+              centerorg[1] = vertex[1];
+              centerorg[2] = vertex[2];
+              /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
+               * decompiled the address calc as `+ 20 * planenum` which would
+               * advance 20 floats = 80 bytes per plane; the original disasm
+               * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
+               * planes + planenum*5*4 = planes + planenum*20 bytes. */
+              VectorMA(vertex, -500.0, (float *)aasworld.planes + 5 * *(_DWORD *)v8, vmav);
+              qmemcpy(v41, AAS_Trace(v44, (int)centerorg, 0, 0, (int)vmav, 0, 100663299), sizeof(v41));
               if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0 < 32.0 )
               {
-                *(float *)&v21 = *(float *)&v33 - *(float *)&v27;
-                v22 = *(float *)&v34 - v28;
-                v23 = v35 - v29;
-                VectorNormalize(&v21);
-                VectorMA((float *)&v27, 4.0, (float *)&v21, (float *)&v24);
-                v30 = LODWORD(v41[3]);
-                v32 = SLODWORD(v41[5]);
-                trace = AAS_TraceClientBBox((float *)&v24, (float *)&v30, 2, -1);
-                *(float *)&v21 = trace.endpos[0] - *(float *)&v33;
-                v22 = trace.endpos[1] - *(float *)&v34;
-                v23 = trace.endpos[2] - v35;
-                if ( VectorLength(&v21) <= 24.0 )
+                delta[0] = vertex[0] - grounded[0];
+                delta[1] = vertex[1] - grounded[1];
+                delta[2] = vertex[2] - grounded[2];
+                VectorNormalize(delta);
+                VectorMA(grounded, 4.0, delta, centerorg);
+                vmav[0] = v41[3];
+                vmav[2] = v41[5];
+                trace = AAS_TraceClientBBox(centerorg, vmav, 2, -1);
+                delta[0] = trace.endpos[0] - vertex[0];
+                delta[1] = trace.endpos[1] - vertex[1];
+                delta[2] = trace.endpos[2] - vertex[2];
+                if ( VectorLength(delta) <= 24.0 )
                 {
-                  v24 = *(int *)&trace.endpos[0];
-                  v25 = *(int *)&trace.endpos[1];
-                  v26 = trace.endpos[2];
-                  v30 = *(int *)&trace.endpos[0];
-                  v32 = *(int *)&trace.endpos[2];
+                  centerorg[0] = trace.endpos[0];
+                  centerorg[1] = trace.endpos[1];
+                  centerorg[2] = trace.endpos[2];
+                  vmav[0] = trace.endpos[0];
+                  vmav[2] = trace.endpos[2];
                   v37 = sub_10011520();
-                  *(float *)&v32 = *(float *)&v32 - (double)v37;
-                  trace = AAS_TraceClientBBox((float *)&v24, (float *)&v30, 2, -1);
+                  vmav[2] = vmav[2] - (double)v37;
+                  trace = AAS_TraceClientBBox(centerorg, vmav, 2, -1);
                   if ( trace.fraction < 1.0 )
                   {
                     v11 = AAS_PointAreaNum(trace.endpos);
@@ -13430,21 +13411,21 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                       *(_DWORD *)v12 = v11;
                       *(_DWORD *)(v12 + 4) = v7;
                       *(_DWORD *)(v12 + 8) = 0;
-                      *(float *)(v12 + 12) = *(float *)&v27;
+                      *(float *)(v12 + 12) = grounded[0];
                       v15 = v14 - *(float *)(v12 + 12);
                       v16 = v41[3];
-                      *(float *)(v12 + 16) = v28;
+                      *(float *)(v12 + 16) = grounded[1];
                       v17 = v41[4];
-                      *(float *)(v13 + 20) = v29;
+                      *(float *)(v13 + 20) = grounded[2];
                       v18 = v41[5];
                       *(float *)(v13 + 24) = v16;
                       *(float *)(v13 + 28) = v17;
                       *(float *)(v13 + 32) = v18;
                       *(_DWORD *)(v13 + 36) = 14;
-                      *(float *)&v21 = v15;
-                      v22 = *(float *)(v13 + 28) - *(float *)(v13 + 16);
-                      v23 = *(float *)(v13 + 32) - *(float *)(v13 + 20);
-                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(&v21) * 0.25 + 500.0);
+                      delta[0] = v15;
+                      delta[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
+                      delta[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
+                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(delta) * 0.25 + 500.0);
                       *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
                       *(_DWORD *)(areareachability + 4 * ArgList) = v13;
                       ++dword_10066790;
@@ -13578,26 +13559,20 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   float v14; // [esp+Ch] [ebp-14Ch]
   float v15; // [esp+28h] [ebp-130h]
   int v16; // [esp+28h] [ebp-130h]
-  int v17; // [esp+2Ch] [ebp-12Ch] BYREF
-  float v18; // [esp+30h] [ebp-128h]
-  float v19; // [esp+34h] [ebp-124h]
-  int v20; // [esp+38h] [ebp-120h] BYREF
-  int v21; // [esp+3Ch] [ebp-11Ch]
-  float v22; // [esp+40h] [ebp-118h]
-  int v23; // [esp+44h] [ebp-114h]
-  float v24; // [esp+48h] [ebp-110h] BYREF
-  int v25; // [esp+4Ch] [ebp-10Ch] BYREF
-  float v26; // [esp+50h] [ebp-108h]
-  float v27; // [esp+54h] [ebp-104h]
-  float v28[3]; // [esp+58h] [ebp-100h] BYREF
-  float v29[3]; // [esp+64h] [ebp-F4h] BYREF
-  float v30[3]; // [esp+70h] [ebp-E8h] BYREF
-  int v31[2]; // [esp+7Ch] [ebp-DCh] BYREF
-  float v32; // [esp+84h] [ebp-D4h]
-  float v33[3]; // [esp+88h] [ebp-D0h] BYREF
-  aas_trace_t trace; // [esp+94h] [ebp-C4h] (was int v34[9])
-  int v35[20]; // [esp+B8h] [ebp-A0h] BYREF
-  int v36[20]; // [esp+108h] [ebp-50h] BYREF
+  /* IDA-split vec3 locals restored as contiguous vec3_t arrays. */
+  vec3_t groundedpos;   /* was v17/v18/v19 — origin dropped onto floor */
+  vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
+  int v23;
+  float v24;
+  vec3_t facecenter;    /* was v25/v26/v27 — face-center from sub_100113F0 */
+  float v28[3]; /* [BYREF] */
+  float v29[3]; /* [BYREF] */
+  float v30[3]; /* [BYREF] */
+  vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
+  float v33[3]; /* [BYREF] */
+  aas_trace_t trace;
+  int v35[20]; /* [BYREF] */
+  int v36[20]; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(ArgList) )
     return 0;
@@ -13611,20 +13586,20 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   v3 = (float *)((char *)aasworld.areas + 48 * ArgList);
   if ( *((float *)v2 + 8) < (double)v3[5] )
     return 0;
-  v20 = *((_DWORD *)v3 + 9);
-  v21 = *((_DWORD *)v3 + 10);
-  v22 = v3[11];
-  if ( !AAS_PointAreaNum(&v20) )
+  centerorg[0] = *((float *)v3 + 9);
+  centerorg[1] = *((float *)v3 + 10);
+  centerorg[2] = v3[11];
+  if ( !AAS_PointAreaNum(centerorg) )
     Log_Write(aAreaDCenterFFF, ArgList);
-  v30[0] = v20;
-  v30[1] = v21;
-  *(float *)&v30[2] = v22 - 1000.0;
-  trace = AAS_TraceClientBBox((float *)&v20, (float *)v30, 4, -1);
+  v30[0] = centerorg[0];
+  v30[1] = centerorg[1];
+  v30[2] = centerorg[2] - 1000.0;
+  trace = AAS_TraceClientBBox(centerorg, v30, 4, -1);
   if ( trace.startsolid )
     return 0;
-  v17 = *(int *)&trace.endpos[0];
-  v18 = trace.endpos[1];
-  v19 = trace.endpos[2];
+  groundedpos[0] = trace.endpos[0];
+  groundedpos[1] = trace.endpos[1];
+  groundedpos[2] = trace.endpos[2];
   v4 = *((_DWORD *)v2 + 1);
   v5 = 0;
   v23 = 0;
@@ -13635,9 +13610,9 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
     v6 = *((int *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2));
     if ( (*((_BYTE *)aasworld.faces + 24 * ((HIDWORD(v6) ^ v6) - HIDWORD(v6)) + 4) & 4) != 0 )
     {
-      sub_100113F0(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), (float *)&v25);
-      v7 = v19 + 64.0;
-      if ( v7 <= v27 )
+      sub_100113F0(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), facecenter);
+      v7 = groundedpos[2] + 64.0;
+      if ( v7 <= facecenter[2] )
         break;
     }
 LABEL_28:
@@ -13650,28 +13625,28 @@ LABEL_28:
   while ( 1 )
   {
     if ( v8 )
-      sub_1000F780((int)&v17);
+      sub_1000F780((int)groundedpos);
     else
-      v7 = AAS_RocketJumpZVelocity(&v17);
+      v7 = AAS_RocketJumpZVelocity(groundedpos);
     v15 = v7;
-    if ( AAS_HorizontalVelocityForJump(v15, (int)&v17, (int)&v25, (int)&v24) )
+    if ( AAS_HorizontalVelocityForJump(v15, (int)groundedpos, (int)facecenter, (int)&v24) )
     {
       v7 = v24;
       if ( v24 < 270.0 )
       {
         v28[2] = 0;
-        *(float *)v28 = *(float *)&v25 - *(float *)&v17;
-        *(float *)&v28[1] = v26 - v18;
+        v28[0] = facecenter[0] - groundedpos[0];
+        v28[1] = facecenter[1] - groundedpos[1];
         v7 = VectorNormalize(v28);
-        if ( v27 * 1.6 - v19 > v7 )
+        if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
         {
-          VectorScale((float *)v28, v24, (float *)v33);
-          *(float *)&v29[2] = v15;
+          VectorScale(v28, v24, v33);
+          v29[2] = v15;
           v29[0] = 0;
           v29[1] = 0;
           qmemcpy(
             v35,
-            (const void *)AAS_ClientMovementPrediction((int)v36, -1, (int)&v17, 2, 1, (int)v29, (int)v33, 3, 30, 0.1, 61, 0),
+            (const void *)AAS_ClientMovementPrediction((int)v36, -1, (int)groundedpos, 2, 1, (int)v29, (int)v33, 3, 30, 0.1, 61, 0),
             sizeof(v35));
           if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
           {
@@ -13681,10 +13656,10 @@ LABEL_28:
             while ( 1 )
             {
               v14 = (float)v16;
-              VectorMA((float *)v35, v14, (float *)v28, (float *)v31);
-              v7 = v32 + 0.125;
-              v32 = v7;
-              if ( AAS_PointAreaNum(v31) == a2 )
+              VectorMA((float *)v35, v14, v28, predictpos);
+              v7 = predictpos[2] + 0.125;
+              predictpos[2] = v7;
+              if ( AAS_PointAreaNum(predictpos) == a2 )
                 break;
               v10 -= 8;
               v9 += 8;
@@ -13711,12 +13686,12 @@ LABEL_26:
   *(_DWORD *)(v13 + 4) = 0;
   *(_DWORD *)v13 = a2;
   *(_DWORD *)(v13 + 8) = 0;
-  *(float *)(v13 + 12) = *(float *)&v17;
-  *(float *)(v13 + 16) = v18;
-  *(float *)(v13 + 20) = v19;
-  *(float *)(v13 + 24) = *(float *)&v25;
-  *(float *)(v13 + 28) = v26;
-  *(float *)(v13 + 32) = v27;
+  *(float *)(v13 + 12) = groundedpos[0];
+  *(float *)(v13 + 16) = groundedpos[1];
+  *(float *)(v13 + 20) = groundedpos[2];
+  *(float *)(v13 + 24) = facecenter[0];
+  *(float *)(v13 + 28) = facecenter[1];
+  *(float *)(v13 + 32) = facecenter[2];
   if ( v8 )
     *(_DWORD *)(v13 + 36) = 13;
   else
