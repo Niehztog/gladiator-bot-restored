@@ -245,15 +245,20 @@ int Export_BotDefine(char *string)
 
 /* =========================================================================
  * SLOT 6 — BotLoadMap: load BSP + AAS data for a new map.
- * Wrapper at 0x10037E10:
- *   1. Validates botlib setup; on failure returns the BotLoadMap result early.
- *   2. Calls BotLoadMap() — if it sets errno (non-zero), returns that errno.
- *   3. On success, calls sub_10029C10 → BotResetState (per client) +
- *      BotInitLevelItems + sub_100069A0 + sub_10028C30.
- *      sub_10028C30 is what populates libvar_ctf / libvar_dmflags /
- *      libvar_teamplay etc.; without it sub_10028650 crashes reading
- *      *(libvar_ctf + 16) on a NULL libvar.  Confirmed from disassembly at
- *      0x10037EAA: call sub_10029C10 → bi_Print "ai initialised\n".
+ *
+ * Faithful transcription of the wrapper at 0x10037E10.  Two branches:
+ *
+ *   mapname == NULL : just calls BotLoadMap (which forwards to sub_1000DCC0,
+ *                     the unload path) and returns its result.  No banners,
+ *                     no sub_10029C10.
+ *
+ *   mapname != NULL : 1. bi_Print(1, "------------ Map Loading ------------\n")
+ *                     2. result = BotLoadMap(mapname, ...)
+ *                        - stored into errno (call _errno; *errno = eax)
+ *                     3. if (errno != 0) return errno
+ *                     4. sub_10029C10()  (BotResetState/BotInitLevelItems/…)
+ *                     5. bi_Print(1, "-------------------------------------\n")
+ *                     6. return 0
  * ========================================================================= */
 extern int sub_10029C10(void);
 int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
@@ -262,11 +267,18 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
 {
     int result;
     if (!botlib_is_setup("BotLoadMap")) return 1;
+    if (!mapname) {
+        return BotLoadMap(0, modelindexes, (int)modelindex,
+                          soundindexes, (int)soundindex,
+                          imageindexes, (int)imageindex);
+    }
+    bi_Print(1, "------------ Map Loading ------------\n");
     result = BotLoadMap((int)mapname, modelindexes, (int)modelindex,
                         soundindexes, (int)soundindex,
                         imageindexes, (int)imageindex);
     if (result) return result;
     sub_10029C10();
+    bi_Print(1, "-------------------------------------\n");
     return 0;
 }
 
