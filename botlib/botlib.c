@@ -6717,7 +6717,8 @@ void __cdecl AAS_DrawArrow(float *a1, float *a2, int a3, int a4)
   v5 = v9 * v12 + v8 * v11 + *(float *)&v7 * v10;
   if ( v5 > 0.99 || v5 < -0.99 )
   {
-    v14[0] = 1065353216;
+    v14[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;
+                       v14 is float[3] so use the float literal */
     v14[1] = 0;
     v14[2] = 0;
   }
@@ -9539,7 +9540,12 @@ double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
   start[0] = *(float *)a1;
   start[1] = v2;
   start[2] = v3;
-  viewangles[0] = 1119092736;
+  /* 1119092736 = 0x42B40000 is the IEEE-754 BIT pattern of 90.0f.  IDA's
+   * decomp emitted the raw int literal under the assumption v18 was int[3]
+   * (bit-cast valid).  With float[3] storage GCC int-to-float-converts the
+   * literal to ~1.119e9, completely garbaging the pitch angle and breaking
+   * the downward rocket-blast trace.  Caused HV always-fail (hv_pass=0). */
+  viewangles[0] = 90.0f;   /* pitch = 90° (look straight down) */
   viewangles[1] = 0;
   viewangles[2] = 0;
   AngleVectors(viewangles, forward, right, 0);
@@ -13469,12 +13475,16 @@ int AAS_SetWeaponJumpAreaFlags()
   float v8[3]; // [esp+38h] [ebp-18h] BYREF
   float v9[3]; // [esp+44h] [ebp-Ch] BYREF
 
-  v9[0] = -1049624576;
-  v9[1] = -1049624576;
-  v9[2] = -1049624576;
-  v8[0] = 1097859072;
-  v8[1] = 1097859072;
-  v8[2] = 1097859072;
+  /* IDA emitted raw int bit-patterns: -1049624576 = 0xC1700000 = -15.0f,
+   * 1097859072 = 0x41700000 = 15.0f.  When v8/v9 are float[3], C converts
+   * the literals to ~±1.097e9 (NOT the intended ±15).  Bounds become
+   * essentially unbounded and AAS_BestReachableArea flags wrong areas. */
+  v9[0] = -15.0f;
+  v9[1] = -15.0f;
+  v9[2] = -15.0f;
+  v8[0] = 15.0f;
+  v8[1] = 15.0f;
+  v8[2] = 15.0f;
   v0 = sub_100069A0();
   v1 = (int *)v0;
   if ( v0 )
@@ -19690,7 +19700,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
 
   v36[0] = 0;
   v36[1] = 0;
-  v36[2] = 1065353216;
+  v36[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v36 is float[3] */
   if ( AAS_Time() < *(float *)(a2 + 2824) )
   {
     v3 = *(float *)(a2 + 4200);
@@ -20119,13 +20129,15 @@ void sub_10023CE0(int a1)
   float v46[31]; // [esp+D0h] [ebp-F8h] BYREF
   char v47[124]; // [esp+14Ch] [ebp-7Ch] BYREF
 
-  v43[0] = -1065353216;
+  /* -1065353216 = 0xBF800000 = -1.0f; 1082130432 = 0x40800000 = 4.0f.
+   * v43, v44 are float[3] — use float literals to avoid int→float conversion. */
+  v43[0] = -1.0f;
   v2 = bs->enemy;
-  v43[1] = -1065353216;
-  v43[2] = -1065353216;
-  v44[0] = 1082130432;
-  v44[1] = 1082130432;
-  v44[2] = 1082130432;
+  v43[1] = -1.0f;
+  v43[2] = -1.0f;
+  v44[0] = 4.0f;
+  v44[1] = 4.0f;
+  v44[2] = 4.0f;
   if ( v2 )
   {
     /* IDA dropped FPU returns: v27 and v35 hold the FPU-returned values from
@@ -20309,13 +20321,15 @@ void sub_10024590(int a1)
   float v23[31]; // [esp+BCh] [ebp-F8h] BYREF
   char v24[124]; // [esp+138h] [ebp-7Ch] BYREF
 
-  v20[0] = -1056964608;
+  /* -1056964608 = 0xC1000000 = -8.0f; 1090519040 = 0x41000000 = 8.0f.
+   * v17, v20 are float[3] — use float literals. */
+  v20[0] = -8.0f;
   v2 = bs->enemy;
-  v20[1] = -1056964608;
-  v20[2] = -1056964608;
-  v17[0] = 1090519040;
-  v17[1] = 1090519040;
-  v17[2] = 1090519040;
+  v20[1] = -8.0f;
+  v20[2] = -8.0f;
+  v17[0] = 8.0f;
+  v17[1] = 8.0f;
+  v17[2] = 8.0f;
   if ( v2 )
   {
     /* IDA dropped FPU return: original .text 0x100245ef is `call Char..._BFloat`
@@ -20790,7 +20804,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
   result = (int (__cdecl *)(int))a2[2];
   v73[0] = 0;
   v73[1] = 0;
-  v73[2] = 1065353216;
+  v73[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
   if ( !result )
     return result;
   qmemcpy(v77, AAS_EntityInfo(v77, a2[3]), sizeof(v77));
