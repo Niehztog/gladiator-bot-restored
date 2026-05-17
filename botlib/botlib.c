@@ -12392,46 +12392,32 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v65; // [esp+10h] [ebp-108h]
   BOOL v66; // [esp+10h] [ebp-108h]
   int v67; // [esp+14h] [ebp-104h]
-  int v68; // [esp+18h] [ebp-100h] BYREF
-  float v69; // [esp+1Ch] [ebp-FCh]
-  float v70; // [esp+20h] [ebp-F8h]
+  vec3_t mid; // [esp+18h] [ebp-100h] BYREF — v68/v69/v70 collapsed
   int v71; // [esp+24h] [ebp-F4h]
-  int v72; // [esp+28h] [ebp-F0h] BYREF
-  float v73; // [esp+2Ch] [ebp-ECh]
-  float v74; // [esp+30h] [ebp-E8h]
+  vec3_t mid2; // [esp+28h] [ebp-F0h] BYREF — v72/v73/v74 collapsed
   char *v75; // [esp+34h] [ebp-E4h]
-  float v76; // [esp+38h] [ebp-E0h]
-  float v77; // [esp+3Ch] [ebp-DCh]
-  float v78; // [esp+40h] [ebp-D8h]
-  float v79; // [esp+44h] [ebp-D4h]
-  float v80; // [esp+48h] [ebp-D0h]
-  float v81; // [esp+4Ch] [ebp-CCh]
+  vec3_t vert1; // [esp+38h] [ebp-E0h] — v76/v77/v78 collapsed (first edge vertex)
+  vec3_t vert2; // [esp+44h] [ebp-D4h] — v79/v80/v81 collapsed (second edge vertex)
   int v82; // [esp+50h] [ebp-C8h]
   char *v83; // [esp+54h] [ebp-C4h]
   int v84; // [esp+58h] [ebp-C0h]
   int v85; // [esp+5Ch] [ebp-BCh]
-  int v86; // [esp+60h] [ebp-B8h] BYREF
-  float v87; // [esp+64h] [ebp-B4h]
-  float v88; // [esp+68h] [ebp-B0h]
+  vec3_t bestmid; // [esp+60h] [ebp-B8h] BYREF — v86/v87/v88 collapsed
   int v89; // [esp+6Ch] [ebp-ACh]
   float v90; // [esp+70h] [ebp-A8h]
-  int v91; // [esp+74h] [ebp-A4h] BYREF
-  float v92; // [esp+78h] [ebp-A0h]
-  float v93; // [esp+7Ch] [ebp-9Ch]
+  vec3_t curmid; // [esp+74h] [ebp-A4h] BYREF — v91/v92/v93 collapsed
   char *v94; // [esp+80h] [ebp-98h]
   _DWORD *v95; // [esp+84h] [ebp-94h]
   float v96; // [esp+88h] [ebp-90h]
   int v97; // [esp+8Ch] [ebp-8Ch]
   float v98; // [esp+90h] [ebp-88h]
-  int v99[2]; // [esp+94h] [ebp-84h] BYREF
-  float v100; // [esp+9Ch] [ebp-7Ch]
+  vec3_t tracestart; // [esp+94h] [ebp-84h] BYREF — v99[2]+v100 collapsed
   int v101; // [esp+A0h] [ebp-78h]
   int v102; // [esp+A4h] [ebp-74h]
   float v103; // [esp+A8h] [ebp-70h]
-  float v104[2]; // [esp+ACh] [ebp-6Ch] BYREF
-  float v105; // [esp+B4h] [ebp-64h]
-  float v106[3]; // [esp+B8h] [ebp-60h] BYREF
-  float v107[3]; // [esp+C4h] [ebp-54h] BYREF
+  vec3_t edgedir; // [esp+ACh] [ebp-6Ch] BYREF — v104[2]+v105 collapsed
+  vec3_t edgecross; // [esp+B8h] [ebp-60h] BYREF — v106
+  vec3_t traceend; // [esp+C4h] [ebp-54h] BYREF — v107
   aas_trace_t trace; // [esp+D0h] [ebp-48h] (was int v108[9] + char v109[36] hidden return buffer)
 
   if ( AAS_AreaLadder(area1num) )
@@ -12543,39 +12529,39 @@ LABEL_20:
             v22 = (char *)aasworld.edges + 8 * v21;
             v23 = v67 < 0;
             v24 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v22[4 * v23]);
-            v76 = *v24;
+            vert1[0] = *v24;
             v25 = v24[1];
-            v78 = v24[2];
-            v77 = v25;
+            vert1[2] = v24[2];
+            vert1[1] = v25;
             v26 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v22[4 * !v23]);
-            v79 = *v26;
+            vert2[0] = *v26;
             v27 = v26[2];
-            v80 = v26[1];
-            v81 = v27;
-            *(float *)&v68 = v79 + v76;
-            v69 = v80 + v25;
-            v70 = v27 + v78;
-            VectorScale((float *)&v68, 0.5, (float *)&v68);
-            v73 = v69;
-            v72 = v68;
-            v74 = v70;
+            vert2[1] = v26[1];
+            vert2[2] = v27;
+            mid[0] = vert2[0] + vert1[0];
+            mid[1] = vert2[1] + v25;
+            mid[2] = v27 + vert1[2];
+            VectorScale(mid, 0.5, mid);
+            mid2[1] = mid[1];
+            mid2[0] = mid[0];
+            mid2[2] = mid[2];
             v28 = (float *)((char *)aasworld.planes + 20 * (*v7 ^ (v71 < 0)));
             v29 = *(_DWORD *)v75;
-            v104[0] = v79 - v76;
-            v104[1] = v80 - v77;
+            edgedir[0] = vert2[0] - vert1[0];
+            edgedir[1] = vert2[1] - vert1[1];
             v30 = (float *)((char *)aasworld.planes + 20 * (v29 ^ (v84 < 0)));
-            v105 = v81 - v78;
-            CrossProduct(v28, v104, v106);
-            VectorNormalize(v106);
-            VectorMA((float *)&v68, -32.0, (float *)v106, (float *)&v68);
-            VectorMA((float *)&v72, 32.0, (float *)v106, (float *)&v72);
+            edgedir[2] = vert2[2] - vert1[2];
+            CrossProduct(v28, edgedir, edgecross);
+            VectorNormalize(edgecross);
+            VectorMA(mid, -32.0, edgecross, mid);
+            VectorMA(mid2, 32.0, edgecross, mid2);
             v66 = (double)(int)abs32((__int64)v28[2]) < 0.1;
             v31 = (double)(int)abs32((__int64)v30[2]) < 0.1;
             if ( v66 )
             {
               if ( v31
                 && *v30 * *v28 + v30[2] * v28[2] + v30[1] * v28[1] > 0.7
-                && (double)(int)abs32((__int64)v105) < 0.7 )
+                && (double)(int)abs32((__int64)edgedir[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 v33 = v32;
@@ -12585,10 +12571,10 @@ LABEL_20:
                   *(_DWORD *)v32 = area2num;
                   *(_DWORD *)(v32 + 4) = v34;
                   *(_DWORD *)(v32 + 8) = v21;
-                  *(float *)(v32 + 12) = *(float *)&v68;
-                  *(float *)(v32 + 16) = v69;
-                  *(float *)(v32 + 20) = v70;
-                  VectorMA((float *)&v72, -3.0, (float *)v28, v32 + 24);
+                  *(float *)(v32 + 12) = mid[0];
+                  *(float *)(v32 + 16) = mid[1];
+                  *(float *)(v32 + 20) = mid[2];
+                  VectorMA(mid2, -3.0, (float *)v28, (float *)(v32 + 24));
                   *(_DWORD *)(v33 + 36) = 6;
                   *(_WORD *)(v33 + 40) = 10;
                   *(_DWORD *)(v33 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
@@ -12599,13 +12585,13 @@ LABEL_20:
                   if ( v35 )
                   {
                     v37 = v84;
-                    *(_DWORD *)v35 = a1;
+                    *(_DWORD *)v35 = area1num;
                     *(_DWORD *)(v35 + 4) = v37;
                     *(_DWORD *)(v35 + 8) = v21;
-                    *(_DWORD *)(v35 + 12) = v72;
-                    *(float *)(v35 + 16) = v73;
-                    *(float *)(v35 + 20) = v74;
-                    VectorMA((float *)&v68, -3.0, (float *)v28, v35 + 24);
+                    *(float *)(v35 + 12) = mid2[0];
+                    *(float *)(v35 + 16) = mid2[1];
+                    *(float *)(v35 + 20) = mid2[2];
+                    VectorMA(mid, -3.0, (float *)v28, (float *)(v35 + 24));
                     *(_DWORD *)(v36 + 36) = 6;
                     *(_WORD *)(v36 + 40) = 10;
                     *(_DWORD *)(v36 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
@@ -12625,14 +12611,14 @@ LABEL_20:
                   *(_DWORD *)v39 = area2num;
                   *(_DWORD *)(v39 + 4) = v41;
                   *(_DWORD *)(v39 + 8) = v21;
-                  *(float *)(v39 + 12) = *(float *)&v68;
-                  *(float *)(v39 + 16) = v69;
-                  *(float *)(v39 + 20) = v70;
-                  *(_DWORD *)(v39 + 24) = v72;
-                  *(float *)(v39 + 28) = v73;
-                  *(float *)(v39 + 32) = v74;
-                  *(float *)(v39 + 32) = v74 + 16.0;
-                  VectorMA(v39 + 24, -15.0, (float *)v28, v39 + 24);
+                  *(float *)(v39 + 12) = mid[0];
+                  *(float *)(v39 + 16) = mid[1];
+                  *(float *)(v39 + 20) = mid[2];
+                  *(float *)(v39 + 24) = mid2[0];
+                  *(float *)(v39 + 28) = mid2[1];
+                  *(float *)(v39 + 32) = mid2[2];
+                  *(float *)(v39 + 32) = mid2[2] + 16.0;
+                  VectorMA((float *)(v39 + 24), -15.0, (float *)v28, (float *)(v39 + 24));
                   *(_DWORD *)(v40 + 36) = 6;
                   *(_WORD *)(v40 + 40) = 10;
                   *(_DWORD *)(v40 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
@@ -12645,12 +12631,12 @@ LABEL_20:
                     *(_DWORD *)v42 = area1num;
                     *(_DWORD *)(v42 + 4) = v43;
                     *(_DWORD *)(v42 + 8) = v21;
-                    *(_DWORD *)(v42 + 12) = v72;
-                    *(float *)(v42 + 16) = v73;
-                    *(float *)(v42 + 20) = v74;
-                    *(float *)(v42 + 24) = *(float *)&v68;
-                    *(float *)(v42 + 28) = v69;
-                    *(float *)(v42 + 32) = v70;
+                    *(float *)(v42 + 12) = mid2[0];
+                    *(float *)(v42 + 16) = mid2[1];
+                    *(float *)(v42 + 20) = mid2[2];
+                    *(float *)(v42 + 24) = mid[0];
+                    *(float *)(v42 + 28) = mid[1];
+                    *(float *)(v42 + 32) = mid[2];
                     *(_DWORD *)(v42 + 36) = 7;
                     *(_WORD *)(v42 + 40) = 10;
                     *(_DWORD *)(v42 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
@@ -12662,40 +12648,40 @@ LABEL_20:
               }
               else
               {
-                v88 = 99999.0;
+                bestmid[2] = 99999.0;
                 for ( i = 0; i < v7[2]; ++i )
                 {
                   v45 = abs32(*((_DWORD *)aasworld.edgeindex + i + v7[3]));
                   v46 = *((float *)aasworld.vertexes + 3 * *((_DWORD *)aasworld.edges + 2 * v45));
                   v47 = (float *)((char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * v45));
-                  v77 = v47[1];
-                  v78 = v47[2];
+                  vert1[1] = v47[1];
+                  vert1[2] = v47[2];
                   v48 = (float *)((char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * v45 + 1));
                   v49 = *v48 + v46;
                   v50 = v48[1];
                   v51 = v48[2];
-                  v80 = v50;
-                  v81 = v51;
-                  *(float *)&v91 = v49;
-                  v92 = v50 + v77;
-                  v93 = v51 + v78;
-                  VectorScale((float *)&v91, 0.5, (float *)&v91);
-                  if ( v93 < (double)v88 )
+                  vert2[1] = v50;
+                  vert2[2] = v51;
+                  curmid[0] = v49;
+                  curmid[1] = v50 + vert1[1];
+                  curmid[2] = v51 + vert1[2];
+                  VectorScale(curmid, 0.5, curmid);
+                  if ( curmid[2] < (double)bestmid[2] )
                   {
-                    v86 = v91;
-                    v87 = v92;
-                    v88 = v93;
+                    bestmid[0] = curmid[0];
+                    bestmid[1] = curmid[1];
+                    bestmid[2] = curmid[2];
                     v66 = v45;
                   }
                 }
                 v85 = (int)aasworld.planes + 20 * *v7;
-                VectorMA((float *)&v86, 5.0, v85, (float *)v99);
-                v52 = v100;
-                v107[0] = v99[0];
-                v107[1] = v99[1];
-                v100 = v100 + 5.0;
-                *(float *)&v107[2] = v52 - 100.0;
-                trace = AAS_TraceClientBBox(v99, (float *)v107, 2, -1);
+                VectorMA(bestmid, 5.0, (float *)v85, tracestart);
+                v52 = tracestart[2];
+                traceend[0] = tracestart[0];
+                traceend[1] = tracestart[1];
+                tracestart[2] = tracestart[2] + 5.0;
+                traceend[2] = v52 - 100.0;
+                trace = AAS_TraceClientBBox(tracestart, traceend, 2, -1);
                 trace.endpos[2] = trace.endpos[2] + 1.0f;
                 v53 = AAS_PointAreaNum(trace.endpos);
                 v54 = 0;
@@ -12721,7 +12707,7 @@ LABEL_20:
                   && v53 != area1num
                   && !AAS_ReachabilityExists(area1num, v53)
                   && !AAS_ReachabilityExists(v53, area1num)
-                  && v100 - trace.endpos[2] < v103 )
+                  && tracestart[2] - trace.endpos[2] < v103 )
                 {
                   v59 = AAS_AllocReachability();
                   if ( v59 )
@@ -12730,9 +12716,9 @@ LABEL_20:
                     *(_DWORD *)v59 = v53;
                     *(_DWORD *)(v59 + 4) = v60;
                     *(_DWORD *)(v59 + 8) = v66;
-                    *(_DWORD *)(v59 + 12) = v86;
-                    *(float *)(v59 + 16) = v87;
-                    *(float *)(v59 + 20) = v88;
+                    *(float *)(v59 + 12) = bestmid[0];
+                    *(float *)(v59 + 16) = bestmid[1];
+                    *(float *)(v59 + 20) = bestmid[2];
                     *(float *)(v59 + 24) = trace.endpos[0];
                     *(float *)(v59 + 28) = trace.endpos[1];
                     *(float *)(v59 + 32) = trace.endpos[2];
@@ -12752,7 +12738,7 @@ LABEL_20:
                       *(float *)(lreach + 16) = trace.endpos[1];
                       v63 = v85;
                       *(float *)(lreach + 20) = trace.endpos[2];
-                      VectorMA((float *)&v86, -5.0, v63, lreach + 24);
+                      VectorMA(bestmid, -5.0, (float *)v63, (float *)(lreach + 24));
                       v64 = *(float *)(lreach + 32) + 10.0;
                       *(_DWORD *)(lreach + 36) = 5;
                       *(_WORD *)(lreach + 40) = 10;
