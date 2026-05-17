@@ -432,7 +432,7 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3);
 BOOL __cdecl sub_1000EFC0(int a1);
 void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
 int __cdecl sub_1000F2C0(int *a1);
-double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage);
+double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(int origin);
 int __cdecl AAS_BFGJumpZVelocity(int a1);
 void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4);
@@ -9515,7 +9515,7 @@ int __cdecl sub_1000F2C0(int *a1)
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 
 //----- (1000F4D0) --------------------------------------------------------
-double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
+double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
   float v2; // ecx
   double v3; // st7
@@ -9535,9 +9535,9 @@ double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
   float kvel[3]; /* BYREF — scaled direction */
   float bsptrace[21]; /* BYREF — trace result */
 
-  v2 = *(float *)(a1 + 4);
-  v3 = *(float *)(a1 + 8) + 8.0;
-  start[0] = *(float *)a1;
+  v2 = origin[1];
+  v3 = origin[2] + 8.0;
+  start[0] = origin[0];
   start[1] = v2;
   start[2] = v3;
   /* 1119092736 = 0x42B40000 is the IEEE-754 BIT pattern of 90.0f.  IDA's
@@ -9557,7 +9557,7 @@ double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
   v[0] = 0.0;
   v[1] = 0.0;
   v[2] = 8.0;
-  VectorMA((float *)a1, 0.5, v, v);
+  VectorMA(origin, 0.5, v, v);
   v[0] = bsptrace[3] - v[0];
   v[1] = bsptrace[4] - v[1];
   v[2] = bsptrace[5] - v[2];
@@ -9566,9 +9566,9 @@ double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
   *(float *)&v14 = points;
   if ( points < 0.0 )
     LODWORD(v14) = 0;
-  dir[0] = *(float *)a1 - bsptrace[3];
-  dir[1] = *(float *)(a1 + 4) - bsptrace[4];
-  dir[2] = *(float *)(a1 + 8) - bsptrace[5];
+  dir[0] = origin[0] - bsptrace[3];
+  dir[1] = origin[1] - bsptrace[4];
+  dir[2] = origin[2] - bsptrace[5];
   VectorNormalize(dir);
   v7 = *(float *)&v14 * 0.5 * 8.0;
   VectorScale(dir, v7, kvel);
@@ -9589,13 +9589,13 @@ double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
  */
 float __cdecl AAS_RocketJumpZVelocity(int a1)
 {
-  return AAS_WeaponJumpZVelocity(a1, 120.0);
+  return AAS_WeaponJumpZVelocity((float *)a1, 120.0);
 }
 
 //----- (1000F780) --------------------------------------------------------
 int __cdecl AAS_BFGJumpZVelocity(int a1)
 {
-  return AAS_WeaponJumpZVelocity(a1, 120.0);
+  return AAS_WeaponJumpZVelocity((float *)a1, 120.0);
 }
 
 //----- (1000F7B0) --------------------------------------------------------
