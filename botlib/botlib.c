@@ -43,7 +43,7 @@
  *
  * Renamed functions (~115 total)
  * --------------------------------
- * AAS subsystem   : sub_100044F0, AAS_DecompressVis, AAS_BSPModelMinsMaxs,
+ * AAS subsystem   : sub_100044F0, AAS_DecompressVis, AAS_BSPModelMinsMaxsOrigin,
  *                   AAS_UpdatePortal, AAS_FloodClusterAreas_r, AAS_FindClusters,
  *                   AAS_CreatePortals, AAS_UpdateEntity, AAS_EntityInfo,
  *                   AAS_EntityModelindex, sub_1000AD90, AAS_EntityModelNum,
@@ -336,7 +336,7 @@ int __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
 BOOL __cdecl sub_10005C60(float *a1, float *a2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
-int __cdecl AAS_BSPModelMinsMaxs(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
+int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 _DWORD *__cdecl sub_10006090(_DWORD *a1);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
 _DWORD *__cdecl sub_10006210(int *a1, int a2, int a3, int a4);
@@ -432,9 +432,9 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3);
 BOOL __cdecl sub_1000EFC0(int a1);
 void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
 int __cdecl sub_1000F2C0(int *a1);
-double __cdecl sub_1000F4D0(int a1, float a2);
+double __cdecl AAS_WeaponJumpZVelocity(int a1, float a2);
 float __cdecl AAS_RocketJumpZVelocity(int origin);
-int __cdecl sub_1000F780(int a1);
+int __cdecl AAS_BFGJumpZVelocity(int a1);
 void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4);
 int __cdecl AAS_ClientMovementPrediction(int, int, int, int, int, int, int, int, int, float, int, int); // idb
 int __cdecl AAS_HorizontalVelocityForJump(float, int, int, int); // idb
@@ -3942,14 +3942,14 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
 }
 
 //----- (10005E60) --------------------------------------------------------
-/* AAS_BSPModelMinsMaxs — return the rotated AABB of a Q2 BSP inline model.
+/* AAS_BSPModelMinsMaxsOrigin — return the rotated AABB of a Q2 BSP inline model.
  * Mirrors Q3 botlib's `AAS_BSPModelMinsMaxsOrigin` (be_aas_bspq3.c) but with
  * the rotation work done locally instead of delegating to a botimport callback.
  *
  * Each Q2 dmodel_t entry is 48 bytes: mins[3], maxs[3], origin[3], headnode,
  * firstface, numfaces.  `dword_100674C8` is the model array, `dword_100674C4`
  * the count, `dword_100674C0` the loaded flag. */
-int __cdecl AAS_BSPModelMinsMaxs(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
+int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
   int    i;
   int    model_offset;
@@ -6954,7 +6954,7 @@ int __cdecl AAS_UpdateEntity(int entnum, float *state)
       *(float *)(v4 + 32) = state[4];
       *(float *)(v4 + 36) = state[5];
     }
-    AAS_BSPModelMinsMaxs(*(_DWORD *)(v4 + 92) - 1, (float *)(v4 + 28), (float *)(v4 + 64), (float *)(v4 + 76), NULL);
+    AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(v4 + 92) - 1, (float *)(v4 + 28), (float *)(v4 + 64), (float *)(v4 + 76), NULL);
   }
   else if ( v10 == 2 && (!VectorCompare(state + 9, v4 + 64) || !VectorCompare(state + 12, v4 + 76)) )
   {
@@ -9514,7 +9514,7 @@ int __cdecl sub_1000F2C0(int *a1)
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 
 //----- (1000F4D0) --------------------------------------------------------
-double __cdecl sub_1000F4D0(int a1, float a2)
+double __cdecl AAS_WeaponJumpZVelocity(int a1, float a2)
 {
   float v2; // ecx
   double v3; // st7
@@ -9581,18 +9581,18 @@ double __cdecl sub_1000F4D0(int a1, float a2)
  * AAS_RocketJumpZVelocity — Z-velocity gained by self-rocketing at `origin`
  * with the rocket-launcher's 120-unit radius damage.  Renamed from
  * sub_1000F750 / AAS_FallVelocity; one-line wrapper around the underlying
- * AAS_WeaponJumpZVelocity (currently still named sub_1000F4D0 at
+ * AAS_WeaponJumpZVelocity (currently still named AAS_WeaponJumpZVelocity at
  * 0x1000F4D0; rename pending).  Matches ioq3 be_aas_move.c:341.
  */
 float __cdecl AAS_RocketJumpZVelocity(int a1)
 {
-  return sub_1000F4D0(a1, 120.0);
+  return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F780) --------------------------------------------------------
-int __cdecl sub_1000F780(int a1)
+int __cdecl AAS_BFGJumpZVelocity(int a1)
 {
-  return sub_1000F4D0(a1, 120.0);
+  return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F7B0) --------------------------------------------------------
@@ -13037,7 +13037,7 @@ LABEL_58:
       bi_Print(3, aFuncPlatWithIn);
       goto LABEL_58;
     }
-    AAS_BSPModelMinsMaxs(v4, v69, mins, maxs, origin);
+    AAS_BSPModelMinsMaxsOrigin(v4, v69, mins, maxs, origin);
     v75 = origin[2];
     extent[0] = origin[0];
     extent[1] = origin[1];
@@ -13611,7 +13611,7 @@ LABEL_28:
   while ( 1 )
   {
     if ( v8 )
-      sub_1000F780((int)groundedpos);
+      AAS_BFGJumpZVelocity((int)groundedpos);
     else
       v7 = AAS_RocketJumpZVelocity(groundedpos);
     v15 = v7;
@@ -20619,7 +20619,7 @@ void __cdecl sub_10025070(void)
       angles[0] = 0.0f;
       angles[1] = 0.0f;
       angles[2] = 0.0f;
-      AAS_BSPModelMinsMaxs(modelnum - 1, angles, mins, maxs, NULL);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
 
       /* Original calls FloatForKey for "lip" and discards the result. */
       FloatForKey((int *)ent, aLip);
@@ -20801,7 +20801,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
     if ( result )
     {
       v56 = 0;
-      AAS_BSPModelMinsMaxs((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+      AAS_BSPModelMinsMaxsOrigin((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
       *(float *)&v38 = v44 + v41;
       *(float *)&v39 = v45 + v42;
       *(float *)&v40 = v46 + v43;
@@ -20825,7 +20825,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
     if ( !result )
       return result;
     v56 = 0;
-    AAS_BSPModelMinsMaxs((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+    AAS_BSPModelMinsMaxsOrigin((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
     FloatForKey(v6, aLip);
     v56 = 0;
     sub_10024FD0((int)&v56, (int)&v50);
@@ -20962,7 +20962,7 @@ LABEL_37:
   if ( !v21 )
     v21 = atoi((const char *)(v20 + 1));
   v56 = 0;
-  AAS_BSPModelMinsMaxs(v21 - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+  AAS_BSPModelMinsMaxsOrigin(v21 - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
   *(float *)&v47 = v44 + v41;
   v48 = v45 + v42;
   v49 = v46 + v43;
@@ -26764,7 +26764,7 @@ BOOL __cdecl sub_10030D00(int a1, int a2, int a3)
   v13[2] = 1090519040;
   if ( v3 == 11 )
   {
-    AAS_BSPModelMinsMaxs(*(_DWORD *)(a3 + 4), v11, (float *)v17, (float *)v15, (float *)v16);
+    AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(a3 + 4), v11, (float *)v17, (float *)v15, (float *)v16);
     v4 = 0;
     v5 = (float *)a1;
     v6 = (char *)v16 - a1;
@@ -26805,7 +26805,7 @@ BOOL __cdecl BotOnMover(int a1)
   memset(v2, 0, sizeof(v2));
   if ( *(_DWORD *)(a1 + 36) != 11 )
     return 0;
-  AAS_BSPModelMinsMaxs(*(_DWORD *)(a1 + 4), v2, (float *)v5, (float *)v4, (float *)v3);
+  AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(a1 + 4), v2, (float *)v5, (float *)v4, (float *)v3);
   if ( !sub_1000AE30(*(_DWORD *)(a1 + 4), v3) )
   {
     bi_Print(1, "no entity with model %d\n", *(_DWORD *)(a1 + 4));
@@ -26958,7 +26958,7 @@ int __cdecl sub_10031380(int *a1, int a2)
   result = a1[9];
   if ( result == 11 )
   {
-    AAS_BSPModelMinsMaxs(a1[1], v3, v5, v4, (float *)v7);
+    AAS_BSPModelMinsMaxsOrigin(a1[1], v3, v5, v4, (float *)v7);
     *(float *)v6 = v4[0] + v5[0];
     *(float *)&v6[1] = v4[1] + v5[1];
     *(float *)&v6[2] = v4[2] + v5[2];
