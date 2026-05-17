@@ -432,7 +432,7 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3);
 BOOL __cdecl sub_1000EFC0(int a1);
 void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
 int __cdecl sub_1000F2C0(int *a1);
-double __cdecl AAS_WeaponJumpZVelocity(int a1, float a2);
+double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(int origin);
 int __cdecl AAS_BFGJumpZVelocity(int a1);
 void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4);
@@ -9514,62 +9514,59 @@ int __cdecl sub_1000F2C0(int *a1)
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 
 //----- (1000F4D0) --------------------------------------------------------
-double __cdecl AAS_WeaponJumpZVelocity(int a1, float a2)
+double __cdecl AAS_WeaponJumpZVelocity(int a1, float radiusdamage)
 {
   float v2; // ecx
   double v3; // st7
-  double v4; // st7
-  double v5; // st7
+  double points; // st7
   float v7; // [esp+0h] [ebp-D0h]
-  int v8; // [esp+14h] [ebp-BCh] BYREF
-  float v9; // [esp+18h] [ebp-B8h]
-  float v10; // [esp+1Ch] [ebp-B4h]
-  int v11; // [esp+20h] [ebp-B0h] BYREF
-  float v12; // [esp+24h] [ebp-ACh]
-  float v13; // [esp+28h] [ebp-A8h]
-  double v14; // [esp+2Ch] [ebp-A4h]
-  float v15[3]; // [esp+34h] [ebp-9Ch] BYREF
-  float v16[3]; // [esp+40h] [ebp-90h] BYREF
-  float v17[3]; // [esp+4Ch] [ebp-84h] BYREF
-  float v18[3]; // [esp+58h] [ebp-78h] BYREF
-  float v19[3]; // [esp+64h] [ebp-6Ch] BYREF
-  float v20[3]; // [esp+70h] [ebp-60h] BYREF
-  float v21[21]; // [esp+7Ch] [ebp-54h] BYREF
+  /* IDA-split vec3 trios v8/v9/v10 and v11/v12/v13 — both passed by address
+   * to VectorMA / AAS_Trace / VectorLength which read 3 contiguous floats.
+   * GCC would not lay the original int+float+float decls out adjacently. */
+  vec3_t v;       /* was v8/v9/v10 — VectorMA scratch (origin - explosion mid) */
+  vec3_t start;      /* was v11/v12/v13 — origin shifted forward 8u, passed to AAS_Trace */
+  double v14;
+  float dir[3]; /* BYREF */
+  float forward[3]; /* BYREF — right vector from AngleVectors */
+  float right[3]; /* BYREF — up vector from AngleVectors */
+  float viewangles[3]; /* BYREF — angles (pitch=90, yaw=0, roll=0) */
+  float end[3]; /* BYREF — trace end (origin11 + 500*v16) */
+  float kvel[3]; /* BYREF — scaled direction */
+  float bsptrace[21]; /* BYREF — trace result */
 
   v2 = *(float *)(a1 + 4);
   v3 = *(float *)(a1 + 8) + 8.0;
-  v11 = *(int *)a1;
-  v12 = v2;
-  v13 = v3;
-  v18[0] = 1119092736;
-  v18[1] = 0;
-  v18[2] = 0;
-  AngleVectors(v18, v16, v17, 0);
-  *(float *)&v11 = (v17[0] + *(float *)v16) * 8.0 + *(float *)&v11;
-  v12 = (v17[1] + *(float *)&v16[1]) * 8.0 + v12;
-  v13 = (v17[2] + *(float *)&v16[2]) * 8.0 + v13 - 8.0;
-  VectorMA((float *)&v11, 500.0, (float *)v16, (float *)v19);
-  qmemcpy(v21, AAS_Trace(v21, (int)&v11, 0, 0, (int)v19, 1, 3), sizeof(v21));
-  *(float *)&v8 = 0.0;
-  v9 = 0.0;
-  v10 = 8.0;
-  VectorMA(a1, 0.5, (float *)&v8, (float *)&v8);
-  *(float *)&v8 = v21[3] - *(float *)&v8;
-  v9 = v21[4] - v9;
-  v10 = v21[5] - v10;
-  v14 = a2;
-  v4 = VectorLength(&v8);
-  v5 = v14 - v4 * 0.5;
-  *(float *)&v14 = v5;
-  if ( v5 < 0.0 )
+  start[0] = *(float *)a1;
+  start[1] = v2;
+  start[2] = v3;
+  viewangles[0] = 1119092736;
+  viewangles[1] = 0;
+  viewangles[2] = 0;
+  AngleVectors(viewangles, forward, right, 0);
+  start[0] = (right[0] + forward[0]) * 8.0 + start[0];
+  start[1] = (right[1] + forward[1]) * 8.0 + start[1];
+  start[2] = (right[2] + forward[2]) * 8.0 + start[2] - 8.0;
+  VectorMA(start, 500.0, forward, end);
+  qmemcpy(bsptrace, AAS_Trace(bsptrace, (int)start, 0, 0, (int)end, 1, 3), sizeof(bsptrace));
+  v[0] = 0.0;
+  v[1] = 0.0;
+  v[2] = 8.0;
+  VectorMA((float *)a1, 0.5, v, v);
+  v[0] = bsptrace[3] - v[0];
+  v[1] = bsptrace[4] - v[1];
+  v[2] = bsptrace[5] - v[2];
+  v14 = radiusdamage;
+  points = v14 - 0.5 * VectorLength(v);
+  *(float *)&v14 = points;
+  if ( points < 0.0 )
     LODWORD(v14) = 0;
-  *(float *)v15 = *(float *)a1 - v21[3];
-  *(float *)&v15[1] = *(float *)(a1 + 4) - v21[4];
-  *(float *)&v15[2] = *(float *)(a1 + 8) - v21[5];
-  VectorNormalize(v15);
+  dir[0] = *(float *)a1 - bsptrace[3];
+  dir[1] = *(float *)(a1 + 4) - bsptrace[4];
+  dir[2] = *(float *)(a1 + 8) - bsptrace[5];
+  VectorNormalize(dir);
   v7 = *(float *)&v14 * 0.5 * 8.0;
-  VectorScale((float *)v15, v7, (float *)v20);
-  return *(float *)&v20[2] + libvar_sv_jumpvel->value;
+  VectorScale(dir, v7, kvel);
+  return kvel[2] + libvar_sv_jumpvel->value;
 }
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
 // 10001B9F: using guessed type _DWORD __cdecl AngleVectors(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -11872,7 +11869,11 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v92; // [esp+C4h] [ebp-108h]
   vec3_t testend; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination
   _DWORD *edge1; // [esp+D4h] [ebp-F8h]
-  int cmdmove[2]; // [esp+D8h] [ebp-F4h] BYREF
+  /* cmdmove must hold 3 floats: VectorScale writes 3 and ClientMovementPrediction
+   * reads 3.  IDA declared it int[2] but the original frame leaves 12 bytes
+   * (next slot `trace` at [ebp-E8h] is +12 from cmdmove [ebp-F4h]).  As int[2]
+   * the VectorScale's 3rd store overflows into whatever GCC laid out next. */
+  vec3_t cmdmove; // [esp+D8h..E3h] [ebp-F4h..-E8h] BYREF
   aas_trace_t trace; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
   int move2[20]; // [esp+12Ch] [ebp-A0h] BYREF
   int move[20]; // [esp+17Ch] [ebp-50h] BYREF
@@ -12243,7 +12244,7 @@ LABEL_67:
                   *(float *)&dir[0] = bestend[0] - beststart[0];
                   *(float *)&dir[1] = bestend[1] - beststart[1];
                   VectorNormalize((float *)dir);
-                  VectorScale((float *)dir, speed, (float *)cmdmove);
+                  VectorScale((float *)dir, speed, cmdmove);
                   qmemcpy(
                     move2,
                     (const void *)AAS_ClientMovementPrediction(
@@ -12253,7 +12254,7 @@ LABEL_67:
                                     2,
                                     1,
                                     (int)&velocity,
-                                    (int)cmdmove,
+                                    (int)cmdmove,    /* now vec3_t */
                                     3,
                                     30,
                                     0.1,
@@ -13090,6 +13091,13 @@ LABEL_58:
     *(float *)&v72[6] = mins[1];
     *(float *)&v72[7] = mins[1];
     v60 = 0;
+    /* IDA's `while (v10 >= 32)` IS correct.  Disasm at 0x10016470 is
+     * `cmp v10,0x20; jge 0x10016513`: at v10 < 32 fall through runs the
+     * "origin+grid[v10]" path (which IDA placed after the while), then
+     * `goto LABEL_30` re-enters the while body's inner per-i/per-k loops.
+     * At v10 == 32 the while body itself runs once with btmorg setup.
+     * Iteration pattern per plat: 8 grid probes (v10 = 0..28) + 1 btmorg
+     * probe (v10 = 32). */
     while ( v10 >= 32 )
     {
       testpt[0] = btmorg[0];
