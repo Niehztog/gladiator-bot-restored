@@ -2098,24 +2098,24 @@ char byte_10064A80[7344]; // weak
 int dword_10066730; // weak
 int dword_10066740; // weak
 int dword_10066744; // weak
-int dword_10066748; // weak
-int dword_10066758; // weak
+int numportalcacheupdates; // weak
+int numareacacheupdates; // weak
 int areareachability; // weak
-int dword_10066778; // weak
-int dword_10066784; // weak
-int dword_10066788; // weak
+int reach_ladder; // weak
+int reach_elevator; // weak
+int reachabilityheap; // weak
 int reach_jump; // weak
-int dword_10066790; // weak
-int dword_10066794; // weak
-int dword_10066798; // weak
-int dword_100667A0; // weak
+int reach_grapple; // weak
+int reach_waterjump; // weak
+int reach_teleport; // weak
+int reach_barrier; // weak
 int reach_swim; // weak
-int dword_100667AC; // weak
-int dword_100667B4; // weak
-int dword_100667B8; // weak
-int dword_100667BC; // weak
-int dword_100667C0; // weak
-int dword_100667C4; // weak
+int reach_equalfloor; // weak
+int nextreachability; // weak
+int reach_walkoffledge; // weak
+int reach_rocketjump; // weak
+int reach_step; // weak
+int reach_walk; // weak
 /* ----------------------------------------------------------------------
  * aas_world_t — single 676-byte AAS state struct (was 169 separate globals).
  *
@@ -10390,27 +10390,27 @@ int AAS_SetupReachabilityHeap()
   int i; // ecx
 
   result = GetClearedMemory(3145728);
-  dword_10066788 = result;
+  reachabilityheap = result;
   for ( i = 0; i < 3145680; i += 48 )
   {
     *(_DWORD *)(i + result + 44) = i + result + 48;
-    result = dword_10066788;
+    result = reachabilityheap;
   }
-  *(_DWORD *)(dword_10066788 + 3145724) = 0;
-  dword_100667B4 = dword_10066788;
+  *(_DWORD *)(reachabilityheap + 3145724) = 0;
+  nextreachability = reachabilityheap;
   return result;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
-// 10066788: using guessed type int dword_10066788;
-// 100667B4: using guessed type int dword_100667B4;
+// 10066788: using guessed type int reachabilityheap;
+// 100667B4: using guessed type int nextreachability;
 
 //----- (10010FD0) --------------------------------------------------------
 int AAS_ShutDownReachabilityHeap()
 {
-  return FreeMemory(dword_10066788);
+  return FreeMemory(reachabilityheap);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10066788: using guessed type int dword_10066788;
+// 10066788: using guessed type int reachabilityheap;
 
 //----- (10010FF0) --------------------------------------------------------
 /* AAS_AllocReachability — pop a link off the AAS-link free chain.
@@ -10436,12 +10436,12 @@ int AAS_ShutDownReachabilityHeap()
  *
  * Note this is a DIFFERENT free list from the entity-link one at
  * aasworld.freelinks (0x10066990, 16-byte stride, link at +8). */
-extern int dword_100667B4;          /* head of AAS-link free chain */
+extern int nextreachability;          /* head of AAS-link free chain */
 int dword_1006677C;                  /* AAS-link allocation counter */
 
 void *AAS_AllocReachability(void)
 {
-  int head = dword_100667B4;
+  int head = nextreachability;
   int next;
   if ( !head )
     return NULL;
@@ -10449,9 +10449,9 @@ void *AAS_AllocReachability(void)
   if ( !next )
     AAS_Error("AAS_MAX_REACHABILITYSIZE");
   /* Original re-reads head here in case AAS_Error trashed eax. */
-  head = dword_100667B4;
+  head = nextreachability;
   next = *(int *)(intptr_t)(head + 44);
-  dword_100667B4 = next;
+  nextreachability = next;
   ++dword_1006677C;
   return (void *)(intptr_t)head;
 }
@@ -11071,7 +11071,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                   *(_WORD *)(v27 + 40) += 100;
                 if ( AAS_AreaReachability(*(_DWORD *)v27) < 500.0 )
                   *(_WORD *)(v27 + 40) += 100;
-                ++dword_100667AC;
+                ++reach_equalfloor;
                 return 1;
               }
             }
@@ -11586,7 +11586,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             *((_WORD *)v45 + 20) += 400;
           if ( AAS_AreaReachability(*v45) < 500.0 )
             *((_WORD *)v45 + 20) += 400;
-          ++dword_100667C0;
+          ++reach_step;
           return 1;
         }
         if ( v118
@@ -11617,7 +11617,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             *(_WORD *)(v50 + 40) = 700;
             *(_DWORD *)(v50 + 44) = *(_DWORD *)(areareachability + 4 * a1);
             *(_DWORD *)(areareachability + 4 * a1) = v50;
-            ++dword_10066794;
+            ++reach_waterjump;
             return 1;
           }
         }
@@ -11647,7 +11647,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           *((_WORD *)v55 + 20) = 400;
           v55[11] = *(_DWORD *)(areareachability + 4 * v48);
           *(_DWORD *)(areareachability + 4 * v48) = v55;
-          ++dword_100667A0;
+          ++reach_barrier;
           return 1;
         }
         if ( v64 >= 0.0 )
@@ -11667,7 +11667,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           *(_WORD *)(v56 + 40) = 1;
           *(_DWORD *)(v56 + 44) = *(_DWORD *)(areareachability + 4 * v48);
           *(_DWORD *)(areareachability + 4 * v48) = v56;
-          ++dword_100667C4;
+          ++reach_walk;
           return result;
         }
         v114 = -(int)sub_10011520();
@@ -11703,7 +11703,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                 *(_WORD *)(v57 + 40) = 100;
                 *(_DWORD *)(v57 + 44) = *(_DWORD *)(areareachability + 4 * v48);
                 *(_DWORD *)(areareachability + 4 * v48) = v57;
-                ++dword_100667B8;
+                ++reach_walkoffledge;
                 return 1;
               }
             }
@@ -12326,7 +12326,7 @@ LABEL_67:
 // 10013CC0: using guessed type int var_50[20];
 
 //----- (10014E60) --------------------------------------------------------
-int AAS_Reachability_Ladder(int a1, int a2)
+int AAS_Reachability_Ladder(int area1num, int area2num)
 {
   char *v3; // edi
   char *v4; // ebx
@@ -12434,16 +12434,16 @@ int AAS_Reachability_Ladder(int a1, int a2)
   float v107[3]; // [esp+C4h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+D0h] [ebp-48h] (was int v108[9] + char v109[36] hidden return buffer)
 
-  if ( AAS_AreaLadder(a1) )
+  if ( AAS_AreaLadder(area1num) )
   {
-    if ( AAS_AreaLadder(a2) )
+    if ( AAS_AreaLadder(area2num) )
     {
       /* IDA dropped FPU return: original at AAS_Reachability_Ladder entry calls
        * AAS_MaxJumpHeight and stores the float result to v103.  IDA used a1
        * (the source area number) instead — breaks ladder-reachability filtering. */
       v103 = (float)AAS_MaxJumpHeight(libvar_sv_jumpvel->value);
-      v3 = (char *)aasworld.areas + 48 * a1;
-      v4 = (char *)aasworld.areas + 48 * a2;
+      v3 = (char *)aasworld.areas + 48 * area1num;
+      v4 = (char *)aasworld.areas + 48 * area2num;
       v5 = *((_DWORD *)v3 + 1);
       v6 = 0;
       v7 = 0;
@@ -12582,7 +12582,7 @@ LABEL_20:
                 if ( v32 )
                 {
                   v34 = v71;
-                  *(_DWORD *)v32 = a2;
+                  *(_DWORD *)v32 = area2num;
                   *(_DWORD *)(v32 + 4) = v34;
                   *(_DWORD *)(v32 + 8) = v21;
                   *(float *)(v32 + 12) = *(float *)&v68;
@@ -12591,9 +12591,9 @@ LABEL_20:
                   VectorMA((float *)&v72, -3.0, (float *)v28, v32 + 24);
                   *(_DWORD *)(v33 + 36) = 6;
                   *(_WORD *)(v33 + 40) = 10;
-                  *(_DWORD *)(v33 + 44) = *(_DWORD *)(areareachability + 4 * a1);
-                  *(_DWORD *)(areareachability + 4 * a1) = v33;
-                  ++dword_10066778;
+                  *(_DWORD *)(v33 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
+                  *(_DWORD *)(areareachability + 4 * area1num) = v33;
+                  ++reach_ladder;
                   v35 = AAS_AllocReachability();
                   v36 = v35;
                   if ( v35 )
@@ -12608,9 +12608,9 @@ LABEL_20:
                     VectorMA((float *)&v68, -3.0, (float *)v28, v35 + 24);
                     *(_DWORD *)(v36 + 36) = 6;
                     *(_WORD *)(v36 + 40) = 10;
-                    *(_DWORD *)(v36 + 44) = *(_DWORD *)(areareachability + 4 * a2);
-                    *(_DWORD *)(areareachability + 4 * a2) = v36;
-                    ++dword_10066778;
+                    *(_DWORD *)(v36 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
+                    *(_DWORD *)(areareachability + 4 * area2num) = v36;
+                    ++reach_ladder;
                     return 1;
                   }
                 }
@@ -12622,7 +12622,7 @@ LABEL_20:
                 if ( v39 )
                 {
                   v41 = v71;
-                  *(_DWORD *)v39 = a2;
+                  *(_DWORD *)v39 = area2num;
                   *(_DWORD *)(v39 + 4) = v41;
                   *(_DWORD *)(v39 + 8) = v21;
                   *(float *)(v39 + 12) = *(float *)&v68;
@@ -12635,14 +12635,14 @@ LABEL_20:
                   VectorMA(v39 + 24, -15.0, (float *)v28, v39 + 24);
                   *(_DWORD *)(v40 + 36) = 6;
                   *(_WORD *)(v40 + 40) = 10;
-                  *(_DWORD *)(v40 + 44) = *(_DWORD *)(areareachability + 4 * a1);
-                  *(_DWORD *)(areareachability + 4 * a1) = v40;
-                  ++dword_10066778;
+                  *(_DWORD *)(v40 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
+                  *(_DWORD *)(areareachability + 4 * area1num) = v40;
+                  ++reach_ladder;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
                   {
                     v43 = v84;
-                    *(_DWORD *)v42 = a1;
+                    *(_DWORD *)v42 = area1num;
                     *(_DWORD *)(v42 + 4) = v43;
                     *(_DWORD *)(v42 + 8) = v21;
                     *(_DWORD *)(v42 + 12) = v72;
@@ -12653,9 +12653,9 @@ LABEL_20:
                     *(float *)(v42 + 32) = v70;
                     *(_DWORD *)(v42 + 36) = 7;
                     *(_WORD *)(v42 + 40) = 10;
-                    *(_DWORD *)(v42 + 44) = *(_DWORD *)(areareachability + 4 * a2);
-                    *(_DWORD *)(areareachability + 4 * a2) = v42;
-                    ++dword_100667B8;
+                    *(_DWORD *)(v42 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
+                    *(_DWORD *)(areareachability + 4 * area2num) = v42;
+                    ++reach_walkoffledge;
                     return 1;
                   }
                 }
@@ -12718,9 +12718,9 @@ LABEL_20:
                   while ( v54 < v56 );
                 }
                 if ( v54 >= v56
-                  && v53 != a1
-                  && !AAS_ReachabilityExists(a1, v53)
-                  && !AAS_ReachabilityExists(v53, a1)
+                  && v53 != area1num
+                  && !AAS_ReachabilityExists(area1num, v53)
+                  && !AAS_ReachabilityExists(v53, area1num)
                   && v100 - trace.endpos[2] < v103 )
                 {
                   v59 = AAS_AllocReachability();
@@ -12738,14 +12738,14 @@ LABEL_20:
                     *(float *)(v59 + 32) = trace.endpos[2];
                     *(_DWORD *)(v59 + 36) = 6;
                     *(_WORD *)(v59 + 40) = 10;
-                    *(_DWORD *)(v59 + 44) = *(_DWORD *)(areareachability + 4 * a1);
-                    *(_DWORD *)(areareachability + 4 * a1) = v59;
-                    ++dword_10066778;
+                    *(_DWORD *)(v59 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
+                    *(_DWORD *)(areareachability + 4 * area1num) = v59;
+                    ++reach_ladder;
                     lreach = AAS_AllocReachability();
                     if ( lreach )
                     {
                       v62 = v71;
-                      *(_DWORD *)lreach = a1;
+                      *(_DWORD *)lreach = area1num;
                       *(_DWORD *)(lreach + 4) = v62;
                       *(_DWORD *)(lreach + 8) = v66;
                       *(float *)(lreach + 12) = trace.endpos[0];
@@ -12913,7 +12913,7 @@ LABEL_18:
                     *(_WORD *)(v11 + 40) = 50;
                     *(_DWORD *)(v11 + 44) = *(_DWORD *)(areareachability + 4 * v10);
                     *(_DWORD *)(areareachability + 4 * v10) = v11;
-                    ++dword_10066798;
+                    ++reach_teleport;
                   }
                 }
                 sub_1001C3F0(v8);
@@ -13208,7 +13208,7 @@ LABEL_30:
                 i = 9999;
                 v21[11] = *(_DWORD *)(areareachability + 4 * LODWORD(v33));
                 *(_DWORD *)(areareachability + 4 * LODWORD(v27)) = v21;
-                ++dword_10066784;
+                ++reach_elevator;
               }
             }
 LABEL_53:
@@ -13428,7 +13428,7 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                       *(_WORD *)(v13 + 40) = (__int64)(VectorLength(delta) * 0.25 + 500.0);
                       *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
                       *(_DWORD *)(areareachability + 4 * ArgList) = v13;
-                      ++dword_10066790;
+                      ++reach_grapple;
                     }
                   }
                 }
@@ -13699,7 +13699,7 @@ LABEL_26:
   *(_WORD *)(v13 + 40) = 500;
   *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
   *(_DWORD *)(areareachability + 4 * ArgList) = v13;
-  ++dword_100667BC;
+  ++reach_rocketjump;
   return 1;
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -13965,7 +13965,7 @@ LABEL_29:
             v13 = v50;
             *(_DWORD *)(areareachability + 4 * a1) = v35;
             v11 = v54;
-            ++dword_100667B8;
+            ++reach_walkoffledge;
           }
           v37 = *((_DWORD *)v11 + 2);
           v50 = ++v13;
@@ -14711,7 +14711,7 @@ _DWORD *__cdecl AAS_UpdateAreaRoutingCache(int a1)
   _DWORD *v25; // [esp+20h] [ebp-Ch]
   int v26; // [esp+24h] [ebp-8h]
 
-  ++dword_10066758;
+  ++numareacacheupdates;
   ++aasworld.frameroutingupdates;
   memset((void *)aasworld.areaupdate, 0, 40 * aasworld.numareas);
   v26 = ~*(_DWORD *)(a1 + 28);
@@ -14818,7 +14818,7 @@ _DWORD *__cdecl AAS_UpdateAreaRoutingCache(int a1)
   }
   return result;
 }
-// 10066758: using guessed type int dword_10066758;
+// 10066758: using guessed type int numareacacheupdates;
 // 10066948: using guessed type int aasworld.numareas;
 // 100669E8: using guessed type int aasworld.travelflagfortype[];
 // 10066A68: using guessed type int aasworld.areaupdate;
@@ -14907,7 +14907,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(int a1)
   int v26; // [esp+1Ch] [ebp-8h]
   char *v27; // [esp+20h] [ebp-4h]
 
-  ++dword_10066748;
+  ++numportalcacheupdates;
   v1 = a1;
   memset((void *)aasworld.portalupdate, 0, 40 * aasworld.numareas);
   v2 = aasworld.portalupdate + 40 * *(_DWORD *)(a1 + 8);
@@ -15008,7 +15008,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(int a1)
   }
   return v3;
 }
-// 10066748: using guessed type int dword_10066748;
+// 10066748: using guessed type int numportalcacheupdates;
 // 10066948: using guessed type int aasworld.numareas;
 // 10066A6C: using guessed type int aasworld.portalupdate;
 
@@ -15306,12 +15306,12 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4)
 //----- (1001A610) --------------------------------------------------------
 int AAS_RoutingInfo()
 {
-  bi_Print(1, "%d area cache updates\n", dword_10066758);
-  return bi_Print(1, "%d portal cache updates\n", dword_10066748);
+  bi_Print(1, "%d area cache updates\n", numareacacheupdates);
+  return bi_Print(1, "%d portal cache updates\n", numportalcacheupdates);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
-// 10066748: using guessed type int dword_10066748;
-// 10066758: using guessed type int dword_10066758;
+// 10066748: using guessed type int numportalcacheupdates;
+// 10066758: using guessed type int numareacacheupdates;
 
 //----- (1001A650) --------------------------------------------------------
 int __cdecl sub_1001A650(int a1)
