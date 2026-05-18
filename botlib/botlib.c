@@ -13436,7 +13436,10 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                 delta[2] = vertex[2] - grounded[2];
                 VectorNormalize(delta);
                 VectorMA(grounded, 4.0, delta, centerorg);
+                /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
+                 * IDA dropped the middle assignment. */
                 vmav[0] = v41[3];
+                vmav[1] = v41[4];
                 vmav[2] = v41[5];
                 trace = AAS_TraceClientBBox(centerorg, vmav, 2, -1);
                 delta[0] = trace.endpos[0] - vertex[0];
@@ -13447,7 +13450,10 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                   centerorg[0] = trace.endpos[0];
                   centerorg[1] = trace.endpos[1];
                   centerorg[2] = trace.endpos[2];
+                  /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
+                   * from trace.endpos; IDA dropped the middle assignment. */
                   vmav[0] = trace.endpos[0];
+                  vmav[1] = trace.endpos[1];
                   vmav[2] = trace.endpos[2];
                   v37 = sub_10011520();
                   vmav[2] = vmav[2] - (double)v37;
