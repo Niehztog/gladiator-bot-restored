@@ -245,8 +245,9 @@ typedef struct source_s {
     define_t             **definehash;         /* +536  define hash table (4096 B)          */
     indent_t              *indentstack;        /* +540  conditional-compile indent stack    */
     int                    skip;               /* +544  > 0 skipping #if/#else block        */
-    char                   _pad_2[1076];       /* +548..+1623 reserved (likely embedded token) */
-} source_t;                                    /* sizeof = 1624 */
+    int                    _pad_after_skip;    /* +548  unused / padding                    */
+    struct token_s         cachedtoken;        /* +552  last-read token (qmemcpy'd by PC_ReadTokenHandle) */
+} source_t;                                    /* sizeof = 1624 on 32-bit */
 
 /* -------------------------------------------------------------------------
  * AI weight structs (be_ai_weight.h equivalents).  Layouts taken from Q3 —
