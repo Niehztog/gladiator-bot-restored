@@ -210,7 +210,7 @@ endif
 # ----------
 
 # Builds everything
-all: gladiator
+all: gladiator game
 
 # ----------
 
@@ -226,7 +226,7 @@ endif
 # ----------
 
 # Phony targets
-.PHONY : all clean gladiator
+.PHONY : all clean gladiator game
 
 # ----------
 
@@ -265,7 +265,13 @@ build/%.o: botlib/%.c
 
 build/%.o: game/%.c
 	@echo "===> CC $<"
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DBOTLIB -o $@ $<
+	${Q}mkdir -p $(@D)
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Igame/ -o $@ $<
+
+build/game/%.o: game/%.c
+	@echo "===> CC $<"
+	${Q}mkdir -p $(@D)
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -Igame/ -o $@ $<
 
 # ----------
 
@@ -277,18 +283,106 @@ OBJS_ = \
 
 # ----------
 
+GAME_OBJS_ = \
+	bl_botcfg.o \
+	bl_cmd.o \
+	bl_debug.o \
+	bl_main.o \
+	bl_redirgi.o \
+	bl_spawn.o \
+	dm_ball_rogue.o \
+	dm_tag_rogue.o \
+	g_ai.o \
+	g_arena.o \
+	g_ch.o \
+	g_chase.o \
+	g_cmds.o \
+	g_combat.o \
+	g_ctf.o \
+	g_func.o \
+	g_items.o \
+	g_log.o \
+	g_main.o \
+	g_misc.o \
+	g_monster.o \
+	g_newai_rogue.o \
+	g_newdm_rogue.o \
+	g_newfnc_rogue.o \
+	g_newtarg_rogue.o \
+	g_newtrig_rogue.o \
+	g_newweap_rogue.o \
+	g_phys.o \
+	g_save.o \
+	g_spawn.o \
+	g_sphere_rogue.o \
+	g_svcmds.o \
+	g_target.o \
+	g_trigger.o \
+	g_turret.o \
+	g_utils.o \
+	g_weapon.o \
+	m_actor.o \
+	m_berserk.o \
+	m_boss2.o \
+	m_boss3.o \
+	m_boss31.o \
+	m_boss32.o \
+	m_boss5_xatrix.o \
+	m_brain.o \
+	m_carrier_rogue.o \
+	m_chick.o \
+	m_fixbot_xatrix.o \
+	m_flash.o \
+	m_flipper.o \
+	m_float.o \
+	m_flyer.o \
+	m_gekk_xatrix.o \
+	m_gladb_xatrix.o \
+	m_gladiator.o \
+	m_gunner.o \
+	m_hover.o \
+	m_infantry.o \
+	m_insane.o \
+	m_medic.o \
+	m_move.o \
+	m_move2_rogue.o \
+	m_mutant.o \
+	m_parasite.o \
+	m_soldier.o \
+	m_stalker_rogue.o \
+	m_supertank.o \
+	m_tank.o \
+	m_turret_rogue.o \
+	m_widow2_rogue.o \
+	m_widow_rogue.o \
+	p_botmenu.o \
+	p_client.o \
+	p_hud.o \
+	p_lag.o \
+	p_menu.o \
+	p_menulib.o \
+	p_trail.o \
+	p_view.o \
+	p_weapon.o \
+	q_shared.o
+
+# ----------
+
 # Rewrite pathes to our object directory
 OBJS = $(patsubst %,build/%,$(OBJS_))
+GAME_OBJS = $(patsubst %,build/game/%,$(GAME_OBJS_))
 
 # ----------
 
 # Generate header dependencies
 DEPS= $(OBJS:.o=.d)
+GAME_DEPS= $(GAME_OBJS:.o=.d)
 
 # ----------
 
 # Suck header dependencies in
 -include $(DEPS)
+-include $(GAME_DEPS)
 
 # ----------
 
@@ -304,6 +398,42 @@ else
 release/gladiator.so : $(OBJS)
 	@echo "===> LD $@"
 	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS)
+endif
+
+# ----------
+
+# The gladiator game module
+ifeq ($(YQ2_OSTYPE), Windows)
+game:
+	@echo "===> Building game.dll"
+	${Q}mkdir -p release/game
+	$(MAKE) release/game/game.dll
+
+release/game/game.dll : $(GAME_OBJS)
+	@echo "===> LD $@"
+	${Q}$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
+
+else ifeq ($(YQ2_OSTYPE), Darwin)
+game:
+	@echo "===> Building game.dylib"
+	${Q}mkdir -p release/game
+	$(MAKE) release/game/game.dylib
+
+release/game/game.dylib : CFLAGS += -fPIC
+release/game/game.dylib : $(GAME_OBJS)
+	@echo "===> LD $@"
+	${Q}$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
+
+else
+game:
+	@echo "===> Building game.so"
+	${Q}mkdir -p release/game
+	$(MAKE) release/game/game.so
+
+release/game/game.so : CFLAGS += -fPIC
+release/game/game.so : $(GAME_OBJS)
+	@echo "===> LD $@"
+	${Q}$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
 endif
 
 # ----------
