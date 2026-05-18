@@ -38,20 +38,27 @@ typedef struct {
     int presencetype;
     int cluster;
     int clusterareanum;
-    int firstreachablearea;
     int numreachableareas;
+    int firstreachablearea;
 } aas_areasettings_t;                   /* 28 bytes  (stride = 28) */
 
 typedef struct {
-    int   areanum;
-    float start[3];
-    float end[3];
-    int   traveltype;
-    short traveltime;
-} aas_reachability_t;
+    int   areanum;       /* +0  destination area number              */
+    int   facenum;       /* +4  face crossed by this reachability    */
+    int   edgenum;       /* +8  edge crossed by this reachability    */
+    float start[3];      /* +12 start origin                         */
+    float end[3];        /* +24 end origin                           */
+    int   traveltype;    /* +36                                      */
+    short traveltime;    /* +40                                      */
+} aas_reachability_t;    /* 44 bytes (stride = 44)                   */
 
 typedef struct { int planenum; int children[2]; } aas_node_t;
-typedef struct { int areanum; int clusterareanum; }        aas_portal_t;
+typedef struct {
+    int areanum;             /* +0  area on the front side                  */
+    int frontcluster;        /* +4  cluster on the front side               */
+    int backcluster;         /* +8  cluster on the back side                */
+    int clusterareanum[2];   /* +12 area number per side (front=0/back=1)   */
+} aas_portal_t;              /* 20 bytes (stride = 20)                      */
 typedef int                                                aas_portalindex_t;
 
 /* BSP traversal stack frame used by AAS_TraceClientBBox / AAS_TraceAreas.
@@ -76,19 +83,18 @@ typedef struct aas_trace_s {
 } aas_trace_t;
 
 typedef struct {
-    int   numareas;
-    int   numreachabilityareas;
-    int   firstportal;
-    int   numportals;
+    int   numareas;              /* +0  stride was 12 (3 ints) in 32-bit binary */
+    int   numreachabilityareas;  /* +4  */
+    int   firstportal;           /* +8  */
 } aas_cluster_t;
 
 typedef struct aas_link_s {
-    int                entnum;
-    int                areanum;
-    struct aas_link_s *prev_ent;
-    struct aas_link_s *next_ent;
-    struct aas_link_s *prev_area;
-    struct aas_link_s *next_area;
+    int                entnum;     /* +0  */
+    int                areanum;    /* +4  */
+    struct aas_link_s *next_ent;   /* +8  in-area entity chain (forward) */
+    struct aas_link_s *prev_ent;   /* +12 in-area entity chain (back)    */
+    struct aas_link_s *next_area;  /* +16 per-entity area chain (forward)*/
+    struct aas_link_s *prev_area;  /* +20 per-entity area chain (back)   */
 } aas_link_t;
 
 typedef struct aas_entity_s {
@@ -113,15 +119,8 @@ typedef struct aas_routingcache_s {
     struct aas_routingcache_s *next;
 } aas_routingcache_t;
 
-typedef struct {
-    int   areanum;
-    short delay;
-} aas_routingupdate_t;
-
-typedef struct {
-    int   numreachabilities;
-    int  *reachabilities;
-} aas_reversedreach_t;
+/* aas_routingupdate_t and aas_reversedreach_t are defined in
+ * gladiator.dll.h with their full pointer-typed restored layouts. */
 
 typedef struct {
     int   numreachabilityareas;

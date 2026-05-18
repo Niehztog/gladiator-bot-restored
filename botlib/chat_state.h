@@ -128,12 +128,11 @@ typedef struct bot_stringlist_s {
  * pointer fields grow from 4 to 8 bytes so we let the compiler compute
  * sizeof() and use struct field access instead of byte arithmetic. */
 typedef struct bot_consolemessage_s {
-    int                            handle;       /* +0 */
-    float                          time;         /* +4 */
-    int                            type;         /* +8 */
-    char                           message[148]; /* +12 — leading payload (handle+time+type included for total 160 on 32-bit) */
-    struct bot_consolemessage_s   *prev;         /* 32-bit: +160 / 64-bit: +160 */
-    struct bot_consolemessage_s   *next;         /* 32-bit: +164 / 64-bit: +168 */
+    float                          time;         /* +0  AAS_Time stamp */
+    int                            type;         /* +4  message type/level */
+    char                           message[152]; /* +8  message text (152 bytes -> +160) */
+    struct bot_consolemessage_s   *prev;         /* +160 */
+    struct bot_consolemessage_s   *next;         /* +164 / 64-bit: +168 */
 } bot_consolemessage_t;                          /* sizeof = 168 / 176 */
 
 

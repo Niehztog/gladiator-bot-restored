@@ -387,6 +387,34 @@ typedef struct aas_soundpool_s {
 /* Forward decl needed for aas_world_s::entities (defined in aas_world.h) */
 struct aas_entity_s;
 typedef struct aas_entity_s aas_entity_t;
+
+/* Routing structures whose pointer slots truncated when typed as plain
+ * `int` in the IDA decompile.  Restored with real pointer fields so the
+ * heap layout is 64-bit-safe.  Stride is computed via sizeof(...) at the
+ * use sites (instead of the hard-coded 40 / 8 / 12 constants from the
+ * 32-bit binary), keeping behaviour identical on 32-bit Windows. */
+typedef struct aas_reversedlink_s {
+    int                         linknum;     /* +0  reachability index        */
+    int                         areanum;     /* +4  source area for the link  */
+    struct aas_reversedlink_s  *next;        /* +8  next link for this area   */
+} aas_reversedlink_t;
+
+typedef struct {
+    int                         numlinks;    /* +0  links into this area      */
+    aas_reversedlink_t         *first;       /* +4  head of link chain        */
+} aas_reversedreach_t;
+
+typedef struct aas_routingupdate_s {
+    int                            pad0;             /* +0  unused (binary layout) */
+    int                            areanum;          /* +4  area being updated     */
+    float                          start[3];         /* +8  origin                 */
+    unsigned short                 tmptraveltime;    /* +20 best traveltime so far */
+    unsigned short                 pad22;            /* +22 alignment              */
+    unsigned short                *areatraveltimes;  /* +24 inner traveltime row   */
+    int                            inlist;           /* +28 1 = queued             */
+    struct aas_routingupdate_s    *next;             /* +32 fifo next              */
+    struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
+} aas_routingupdate_t;
 typedef struct aas_world_s {
     int   loaded;                   /* +0x000  (VA 0x100667E0) */
     int   initialized;              /* +0x004  (VA 0x100667E4) */
@@ -459,13 +487,13 @@ typedef struct aas_world_s {
     int   oldestcache;              /* +0x200  (VA 0x100669E0) */
     int   newestcache;              /* +0x204 */
     int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
-    int   areaupdate;               /* +0x288  (VA 0x10066A68) */
-    int   portalupdate;             /* +0x28C */
+    aas_routingupdate_t *areaupdate;     /* +0x288  (VA 0x10066A68) */
+    aas_routingupdate_t *portalupdate;   /* +0x28C */
     int   frameroutingupdates;      /* +0x290 */
-    int   reversedreachability;     /* +0x294 */
-    int   areatraveltimes;          /* +0x298 */
-    int   clusterareacache;         /* +0x29C */
-    int   portalcache;              /* +0x2A0 */
+    aas_reversedreach_t *reversedreachability; /* +0x294 */
+    unsigned short ***areatraveltimes; /* +0x298 [area][reachidx][2*linkidx] */
+    struct aas_routingcache_s ***clusterareacache; /* +0x29C [cluster][areaInCluster] */
+    struct aas_routingcache_s **portalcache;       /* +0x2A0 [area]                   */
 } aas_world_t;                      /* sizeof == 0x2A4 == 676                           */
 
 /* Compile-time offset checks vs the original binary's VA layout (must run
