@@ -1,6 +1,9 @@
 	
 // q_shared.h -- included first by ALL program modules
 
+#ifndef Q_SHARED_H
+#define Q_SHARED_H
+
 #ifdef _WIN32
 // unknown pragmas are SUPPOSED to be ignored, but....
 #pragma warning(disable : 4244)     // MIPS
@@ -1179,3 +1182,5 @@ typedef struct
 extern int vidref_val;
 // PGM
 // ==================
+
+#endif /* Q_SHARED_H */

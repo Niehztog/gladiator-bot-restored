@@ -247,10 +247,13 @@ struct _PROCESS_INFORMATION
 
 /* 29, 30 — _iobuf/FILE: provided by <stdio.h>, included before this header. */
 
-/* vec3_t — 3-component float vector, matches Q3/Q2 definition. */
+/* vec3_t — 3-component float vector, matches Q3/Q2 definition.
+ * Guarded: game/botlib.h (BOTLIB_H) and q_shared.h (Q_SHARED_H) both define it. */
+#if !defined(BOTLIB_H) && !defined(Q_SHARED_H)
 typedef float vec3_t[3];
+#endif
 
-/* Q2 BSP file header (AAS_LoadBSPFile, 0xA0 = 160 bytes).
+/* Q2 BSP file header (sub_10007D30, 0xA0 = 160 bytes).
  * Matches dheader_t from Quake 2 source qfiles.h.
  * Original: `lea eax,[esp+0x18]; push 0xa0; push eax; call fread_locked`
  * then fields at [esp+0x10]=ident, [esp+0x14]=version, [esp+0x18]=lumps[0]... */
@@ -272,37 +275,7 @@ typedef struct {
     aas_lump_t  lumps[AAS_LUMPS_Q2];/* 14 lumps × 8 = 112 B   */
 } aas_header_t;                     /* sizeof = 120 = 0x78     */
 
-/* 31 */
-struct bsp_surface_s
-{
-  char name[16];
-  int flags;
-  int value;
-};
-
-/* 32 */
-typedef struct bsp_surface_s bsp_surface_t;
-
-/* 33 */
-struct bot_settings_s
-{
-  char characterfile[144];
-  char charactername[144];
-  char ailibrary[144];
-};
-
-/* 34 */
-typedef struct bot_settings_s bot_settings_t;
-
-/* 35 */
-struct bot_clientsettings_s
-{
-  char netname[16];
-  char skin[128];
-};
-
-/* 36 */
-typedef struct bot_clientsettings_s bot_clientsettings_t;
+/* bsp_surface_t, bot_settings_t, bot_clientsettings_t — defined in game/botlib.h. */
 
 /* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.
  * Size = 4 + 4 + MAX_FILEPATH = 4 + 4 + 144 = 152 bytes = 38 ints.
@@ -347,59 +320,8 @@ typedef struct gladiator_token_s {
     int padding;                         /* +0x42C: (padding to reach 0x430 bytes)   */
 } gladiator_token_t;                     /* sizeof = 0x430 = 1072 bytes              */
 
-/* bot_import_t — function pointers the game DLL passes to GetBotAPI.
- * Field order matches gladq2_src/botlib.h exactly (40 bytes / 10 pointers).
- * Complex Q2 types (vec3_t, bsp_trace_t) are erased to void* here since
- * this header cannot pull in all Q2 game headers; the individual bi_xxx
- * globals in gladiator_deobfuscated.c carry the real typed declarations. */
-typedef struct bot_import_s {
-    void *BotInput;         /* void (*)(int client, bot_input_t *bi)            */
-    void *BotClientCommand; /* void (*)(int client, char *str, ...)             */
-    void *Print;            /* void (*)(int type, char *fmt, ...)               */
-    void *Trace;            /* bsp_trace_t (*)(vec3_t,vec3_t,vec3_t,vec3_t,int,int) */
-    void *PointContents;    /* int (*)(vec3_t point)                            */
-    void *(*GetMemory)(int size);
-    void  (*FreeMemory)(void *ptr);
-    void *DebugLineCreate;  /* int (*)(void)                                    */
-    void *DebugLineDelete;  /* void (*)(int line)                               */
-    void *DebugLineShow;    /* void (*)(int line, vec3_t, vec3_t, int)          */
-} bot_import_t;
-
-/* Forward declarations for Q2 structs used only as pointers in bot_export_t.
- * Full definitions live in game/botlib.h; we only need pointer-to-incomplete
- * here so the function pointer signatures are correct. */
-typedef struct bot_updateclient_s bot_updateclient_t;
-typedef struct bot_updateentity_s bot_updateentity_t;
-
-/* bot_export_t — function pointers returned by GetBotAPI to the game DLL.
- * Matches game/botlib.h exactly so the game can dereference the returned
- * pointer as a bot_export_t and call through these typed function pointers. */
-typedef struct bot_export_s {
-    char *(*BotVersion)(void);
-    int   (*BotSetupLibrary)(void);
-    int   (*BotShutdownLibrary)(void);
-    int   (*BotLibraryInitialized)(void);
-    int   (*BotLibVarSet)(char *var_name, char *value);
-    int   (*BotDefine)(char *string);
-    int   (*BotLoadMap)(char *mapname, int modelindexes, char **modelindex,
-                        int soundindexes, char **soundindex,
-                        int imageindexes, char **imageindex);
-    int   (*BotSetupClient)(int client, bot_settings_t *settings);
-    int   (*BotShutdownClient)(int client);
-    int   (*BotMoveClient)(int oldclnum, int newclnum);
-    int   (*BotClientSettings)(int client, bot_clientsettings_t *settings);
-    int   (*BotSettings)(int client, bot_settings_t *settings);
-    int   (*BotStartFrame)(float time);
-    int   (*BotUpdateClient)(int client, bot_updateclient_t *buc);
-    int   (*BotUpdateEntity)(int ent, bot_updateentity_t *bue);
-    int   (*BotAddSound)(vec3_t origin, int ent, int channel, int soundindex,
-                         float volume, float attenuation, float timeofs);
-    int   (*BotAddPointLight)(vec3_t origin, int ent, float radius,
-                              float r, float g, float b, float time, float decay);
-    int   (*BotAI)(int client, float thinktime);
-    int   (*BotConsoleMessage)(int client, int type, char *message);
-    int   (*Test)(int parm0, char *parm1, vec3_t parm2, vec3_t parm3);
-} bot_export_t;
+/* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
+ * Include game/botlib.h before this header to get these definitions. */
 
 /* ========================================================================
  * aas_world_t — Area Awareness System global state.
