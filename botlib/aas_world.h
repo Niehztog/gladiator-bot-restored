@@ -91,7 +91,7 @@ typedef struct aas_link_s {
     struct aas_link_s *next_area;
 } aas_link_t;
 
-typedef struct {
+typedef struct aas_entity_s {
     float   origin[3];
     float   angles[3];
     float   mins[3];

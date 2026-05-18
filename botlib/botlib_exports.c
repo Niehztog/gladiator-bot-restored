@@ -61,7 +61,7 @@ extern int  maxentities;     /* @ 0x10064024 */
 /* Slot 1 helpers */
 extern int    Swap_Init(void);                            /* 0x100439F0 */
 extern int    BotSetupLibrary(void);                      /* 0x10029C90 inner */
-extern double LibVarValue(char *name, char *default_str); /* 0x10038A90 */
+extern float  LibVarValue(char *name, char *default_str); /* 0x10038A90 */
 extern int    BotSetupMoveAI(void);                       /* 0x10037A00 */
 extern int    sub_1000EDC0(int maxentities, int maxclients);
 extern int    EA_Setup(void);                             /* 0x10037660 */

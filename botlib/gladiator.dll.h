@@ -384,6 +384,9 @@ typedef struct aas_soundpool_s {
  * Each field's binary VA is shown alongside the struct offset.  The matching
  * `aasworld_*` legacy names are restored as #define macros in the .c file.
  * ======================================================================== */
+/* Forward decl needed for aas_world_s::entities (defined in aas_world.h) */
+struct aas_entity_s;
+typedef struct aas_entity_s aas_entity_t;
 typedef struct aas_world_s {
     int   loaded;                   /* +0x000  (VA 0x100667E0) */
     int   initialized;              /* +0x004  (VA 0x100667E4) */
@@ -427,7 +430,7 @@ typedef struct aas_world_s {
     struct aas_link_s **arealinkedentities; /* +0x1B4 */
     int   numentities;              /* +0x1B8 */
     int   maxclients;               /* +0x1BC */
-    int   entities;                 /* +0x1C0 */
+    aas_entity_t *entities;         /* +0x1C0  (pointer; 32-bit binary stored as int) */
     struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
     struct indexlist_s *soundindex_table;  /* +0x1C8 */
     struct indexlist_s *imageindex_table;  /* +0x1CC */
