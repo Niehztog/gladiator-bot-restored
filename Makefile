@@ -210,7 +210,7 @@ endif
 # ----------
 
 # Builds everything
-all: gladiator game
+all: botlib game
 
 # ----------
 
@@ -226,7 +226,7 @@ endif
 # ----------
 
 # Phony targets
-.PHONY : all clean gladiator game
+.PHONY : all clean botlib game
 
 # ----------
 
@@ -237,19 +237,19 @@ clean:
 
 # ----------
 
-# The gladiator game
+# The botlib library
 ifeq ($(YQ2_OSTYPE), Windows)
-gladiator:
+botlib:
 	@echo "===> Building gladiator.dll"
 	${Q}mkdir -p release
 	$(MAKE) release/gladiator.dll
 else ifeq ($(YQ2_OSTYPE), Darwin)
-gladiator:
+botlib:
 	@echo "===> Building gladiator.dylib"
 	${Q}mkdir -p release
 	$(MAKE) release/gladiator.dylib
 else
-gladiator:
+botlib:
 	@echo "===> Building gladiator.so"
 	${Q}mkdir -p release
 	$(MAKE) release/gladiator.so
