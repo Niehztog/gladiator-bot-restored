@@ -918,10 +918,10 @@ int __cdecl PC_CheckTokenString(int a1, const char *a2);
 int __cdecl PC_UnreadLastToken(int a1);
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
 void      __cdecl FreeSource(source_t *src);
-int __cdecl PS_CreatePunctuationTable(int a1, const char **a2);
+void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations);
 int ScriptError(int a1, char *Format, ...);
 int ScriptWarning(int a1, char *Format, ...);
-int __cdecl SetScriptPunctuations(int a1, const char **a2);
+void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
 int __cdecl PS_ReadWhiteSpace(int a1);
 int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2);
 int __cdecl PS_ReadString(int a1, int ArgList, int a3);
@@ -1904,15 +1904,12 @@ char aCouldnTReadExp[] = "couldn't read expected token"; // idb
  * Restored from Q3A l_script.c::default_punctuations (same author, identical struct layout):
  *   { char *p, int n, punctuation_t *next }  — next is written at runtime by PS_CreatePunctuationTable.
  * SetScriptPunctuations is updated to pass the array directly instead of &off_1005FE00. */
-typedef struct gladiator_punc_s {
-    const char            *p;    /* punctuation string (IDA named [0] as off_1005FE00) */
-    int                    n;    /* punctuation id / subtype */
-    struct gladiator_punc_s *next; /* hash-chain next (set at runtime) */
-} gladiator_punc_t;
-
 /* Exact punctuation table from the original gladiator.dll binary at VA 0x1005FE00.
- * Verified by disassembling the .data section at file offset 0x5EE00 (52 entries + NULL). */
-static gladiator_punc_t gladiator_default_punc[] = {
+ * Verified by disassembling the .data section at file offset 0x5EE00 (52 entries
+ * + NULL).  Matches Q3 l_script.c::default_punctuations byte-for-byte.
+ * String literals are (const char *) but punctuation_t.p is `char *`; the
+ * BOTCFLAGS already suppresses -Wdiscarded-qualifiers for this codebase. */
+static punctuation_t default_punctuations[] = {
     /* multi-char — longest first */
     {">>=", 1,  NULL}, {"<<=", 2,  NULL},
     {"...", 3,  NULL}, {"##",  4,  NULL},
@@ -1946,7 +1943,7 @@ static gladiator_punc_t gladiator_default_punc[] = {
 };
 
 /* Preserved declaration so any remaining &off_1005FE00 references compile. */
-char *off_1005FE00 = ">>="; // weak — original value; array now in gladiator_default_punc
+char *off_1005FE00 = ">>="; // weak — original value; array now in default_punctuations
 char aTooLargeValueI[] = "too large value in escape character"; // idb
 char aUnknownEscapeC[] = "unknown escape char"; // idb
 char aNewlineInsideS[] = "newline inside string %s"; // idb
@@ -33703,74 +33700,43 @@ void __cdecl FreeSource(source_t *src)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1003E120) --------------------------------------------------------
-int __cdecl PS_CreatePunctuationTable(int a1, const char **a2)
+//----- (1003E1C0) --------------------------------------------------------
+/* Q3 l_script.c: void PS_CreatePunctuationTable(script_t *, punctuation_t *).
+ * Build a 256-entry perfect-hash table indexed by the first character of
+ * each punctuation, with chains sorted longer-first.  IDA emitted this as
+ * an `int a1` function with `const char **` array walking by stride 3 (=
+ * sizeof(punctuation_t) on 32-bit); restored to the Q3 form so it works
+ * with proper struct sizing on 64-bit. */
+void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations)
 {
-  int v2; // ebp
-  const char **v3; // esi
-  int result; // eax
-  int v5; // ebx
-  int v6; // edx
+  int i;
+  punctuation_t *p, *lastp, *newp;
 
-  v2 = a1;
-  if ( !((script_t *)a1)->punctuationtable )
-    ((script_t *)a1)->punctuationtable = GetMemory(1024);
-  v3 = a2;
-  result = 0;
-  memset(((script_t *)a1)->punctuationtable, 0, 0x400u);
-  if ( *a2 )
+  if ( !script->punctuationtable )
+    script->punctuationtable = (punctuation_t **)GetMemory(256 * sizeof(punctuation_t *));
+  memset(script->punctuationtable, 0, 256 * sizeof(punctuation_t *));
+  for ( i = 0; punctuations[i].p; i++ )
   {
-    do
+    newp  = &punctuations[i];
+    lastp = NULL;
+    for ( p = script->punctuationtable[(unsigned char)newp->p[0]]; p; p = p->next )
     {
-      v5 = 0;
-      result = **v3;
-      v6 = (int)((script_t *)v2)->punctuationtable[result];
-      if ( v6 )
+      if ( strlen(p->p) < strlen(newp->p) )
       {
-        while ( 1 )
-        {
-          result = 0;
-          if ( strlen(*(const char **)v6) < strlen(*v3) )
-            break;
-          v5 = v6;
-          v6 = *(_DWORD *)(v6 + 8);
-          if ( !v6 )
-          {
-            v2 = a1;
-            goto LABEL_11;
-          }
-        }
-        v3[2] = (const char *)v6;
-        v2 = a1;
-        if ( v5 )
-        {
-          *(_DWORD *)(v5 + 8) = v3;
-        }
-        else
-        {
-          result = **v3;
-          ((script_t *)a1)->punctuationtable[result] = (punctuation_t *)v3;
-        }
+        newp->next = p;
+        if ( lastp ) lastp->next = newp;
+        else         script->punctuationtable[(unsigned char)newp->p[0]] = newp;
+        break;
       }
-      else
-      {
-LABEL_11:
-        v3[2] = 0;
-        if ( v5 )
-        {
-          *(_DWORD *)(v5 + 8) = v3;
-        }
-        else
-        {
-          result = **v3;
-          ((script_t *)v2)->punctuationtable[result] = (punctuation_t *)v3;
-        }
-      }
-      v3 = a2 + 3;
-      a2 = v3;
+      lastp = p;
     }
-    while ( *v3 );
+    if ( !p )
+    {
+      newp->next = NULL;
+      if ( lastp ) lastp->next = newp;
+      else         script->punctuationtable[(unsigned char)newp->p[0]] = newp;
+    }
   }
-  return result;
 }
 // 1003E1C8: conditional instruction was optimized away because edx.4!=0
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
@@ -33810,23 +33776,22 @@ int ScriptWarning(int a1, char *Format, ...)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1003E3C0) --------------------------------------------------------
-int __cdecl SetScriptPunctuations(int a1, const char **a2)
+//----- (1003E3C0) --------------------------------------------------------
+/* Q3 l_script.c: void SetScriptPunctuations(script_t *, punctuation_t *).
+ * If a punctuation list is given, install it; otherwise install the
+ * gladiator default table (originally at .data VA 0x1005FE00). */
+void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 {
-  int result; // eax
-
-  if ( a2 )
+  if ( p )
   {
-    result = PS_CreatePunctuationTable(a1, a2);
-    ((script_t *)a1)->punctuations = a2;
+    PS_CreatePunctuationTable(script, p);
+    script->punctuations = p;
   }
   else
   {
-    /* Original: &off_1005FE00 was the start of the punctuation_t[] array in .data.
-     * Pass the restored array directly. */
-    result = PS_CreatePunctuationTable(a1, (const char **)gladiator_default_punc);
-    ((script_t *)a1)->punctuations = (int)gladiator_default_punc;
+    PS_CreatePunctuationTable(script, default_punctuations);
+    script->punctuations = default_punctuations;
   }
-  return result;
 }
 // 1005FE00: using guessed type char *off_1005FE00;
 
@@ -34804,7 +34769,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   script->tokenavailable = 0;
   script->line         = 1;
   script->lastline     = 1;
-  SetScriptPunctuations((int)script, 0);
+  SetScriptPunctuations(script, NULL);
   if ( fread_locked(script->buffer, length, 1u, fp) != 1 )
   {
     FreeMemory(script);
@@ -34839,7 +34804,7 @@ script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const c
   script->end_p        = script->buffer + length;
   script->line         = 1;
   script->lastline     = 1;
-  SetScriptPunctuations((int)script, 0);
+  SetScriptPunctuations(script, NULL);
   qmemcpy(script->buffer, buf, length);
   return script;
 }
