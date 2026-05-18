@@ -237,7 +237,10 @@ int sub_1001D260(); // weak
 /* sub_10006920: defined as sub_10006920 at 0x10006920 */
 /* BotInitialChat: defined as sub_1002E510 at 0x1002E510 (3-param Gladiator version) */
 int __cdecl sub_10021B90(int);
-double __cdecl Characteristic_Float(int *, int);
+/* bot_character internal layout (defined later); forward typedef needed
+ * here for Characteristic_* prototypes. */
+typedef struct bot_character_s bot_character_t;
+double __cdecl Characteristic_Float(bot_character_t *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
 int __cdecl BotReachabilityTime(int);
 void PrintUsedMemorySize(void);
@@ -271,7 +274,7 @@ void sub_1001D290(void);  /* was: sub_1001D290 thunk */
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 /* AAS_Error: real implementation as AAS_Error (renamed from sub_1000D7E0, 0x1000D7E0) */
 /* AAS_FloodClusterAreas_r: full decl with named args at line ~344 */
-int __cdecl Characteristic_Integer(int *, int);
+int __cdecl Characteristic_Integer(bot_character_t *, int);
 /* BotCheckChatMessageIntegrety: defined as BotCheckChatMessageIntegrety at 0x1002CB40 — accumulates undefined-variable list */
 /* LoadScriptFile: full decl at line ~914 (returns FILE*). */
 int __cdecl AAS_StartFrame(float time);  // fixed from 0-param idb decl
@@ -651,14 +654,14 @@ int __cdecl BotResetState(int *a1);
 int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
-int *__cdecl BotLoadCharacter(char *Source, const char *a2);
+bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2);
 int __cdecl sub_1002A590(int a1);
-int __cdecl CheckCharacteristicIndex(int *a1, int a2);
-double __cdecl Characteristic_Float(int *a1, int a2);
-double __cdecl Characteristic_BFloat(int a1, int a2, float a3, float a4);
-int __cdecl Characteristic_Integer(int *a1, int a2);
-int __cdecl Characteristic_BInteger(int *a1, int a2, int a3, int a4);
-char *__cdecl Characteristic_String(int *a1, int a2);
+int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
+double __cdecl Characteristic_Float(bot_character_t *a1, int a2);
+double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
+int __cdecl Characteristic_Integer(bot_character_t *a1, int a2);
+int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4);
+char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
 // int __usercall sub_1002A880@<eax>(double a1@<st0>);
 int sub_1002A9A0();
 int __cdecl sub_1002A9E0(bot_consolemessage_t *a1);
@@ -703,7 +706,7 @@ char __cdecl BotEnterChat(int a1, int a2, int a3);
 // int __usercall sub_1002EBB0@<eax>(double a1@<st0>);
 _DWORD *sub_1002EC80();
 // int *__usercall sub_1002ED20@<eax>(double a1@<st0>, char *Source);
-int *__cdecl sub_1002F100(int a1, int *a2);
+int *__cdecl sub_1002F100(weightconfig_t *a1, itemconfig_t *a2);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
 int __cdecl sub_1002F2B0(levelitem_t *item);
@@ -727,8 +730,8 @@ int __cdecl sub_1002FEB0(int, int, int, int); // idb
 int __cdecl sub_10030260(int, int, int, int, int, float); // idb
 int __cdecl sub_10030600(float *a1, float *a2);
 BOOL __cdecl sub_10030770(int a1, int a2, int a3, int a4);
-int __cdecl BotLoadItemWeights(int *a1, int a2);
-int __cdecl sub_10030950(_DWORD *a1);
+int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2);
+int __cdecl sub_10030950(bot_state_t *bs);
 int __cdecl sub_10030990(int a1);
 int sub_100309D0();
 int sub_10030A20();
@@ -783,7 +786,7 @@ void __cdecl sub_10035500(int a1);
 int __cdecl sub_10035640(_DWORD *a1);
 int sub_10035680();
 int sub_100356D0();
-int __cdecl sub_10035700(int a1, float *a2);
+int __cdecl sub_10035700(source_t *a1, float *a2);
 int __cdecl sub_10035820(source_t *a1, fuzzyseperator_t *a2);
 int __cdecl sub_10035960(fuzzyseperator_t *a1);
 fuzzyseperator_t *__cdecl sub_10035A20(source_t *a1);
@@ -2084,6 +2087,21 @@ bot_synonymlist_t *dword_10064384; /* synonyms head, set by sub_1002B110 */
 int dword_10064388; // weak
 int dword_10064398; // weak
 int dword_1006439C; // weak
+/* bot_character layout (private to botlib; not shared with engine):
+ *   { int numcharacteristics; bot_characteristic_t pairs[N]; char strings[]; }
+ * The original 32-bit DLL stored pairs as raw int[2] (type@+0 byte, value@+4).
+ * Restored as a typed struct so the value slot is naturally pointer-sized
+ * (4 bytes on 32-bit, 8 on 64-bit), eliminating the truncation that
+ * decompiled `(char *)a1[2*i+2]` would produce on 64-bit. */
+typedef struct bot_characteristic_s {
+    intptr_t type;   /* low byte: 0=unset, 1=int, 2=float, 3=string */
+    intptr_t value;  /* int, float (via *(float*)&value), or char * */
+} bot_characteristic_t;
+typedef struct bot_character_s {
+    int numcharacteristics;
+} bot_character_t;
+#define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
+    ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
 bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
 #define dword_100643A0 ((char *)botstates)
 /* Side-band table holding per-client pointer slots that on the original
@@ -2091,8 +2109,17 @@ bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_10
  * On 64-bit Linux these pointers do not fit in their 4-byte struct slots,
  * so they live in a parallel maxclients-sized array indexed by
  * (bs - botstates).  Use the BotCharacter() helper. */
-int **botcharacters;
+bot_character_t **botcharacters;
 #define BotCharacter(bs) (botcharacters[(bs) - botstates])
+/* Side-band pointer slots within bs->goalstate (embedded int[243]).
+ * goalstate[0] = weightconfig_t * for item weights (set by BotLoadItemWeights,
+ * freed by sub_10030950 via sub_100359B0).
+ * goalstate[1] = result of sub_1002F100 (weight×itemconfig table),
+ * freed by sub_10030950 via FreeMemory. */
+void **botgoalstate_p0;  /* weightconfig_t* */
+void **botgoalstate_p1;  /* iteminfo weight table */
+#define BotGoalP0(bs) (botgoalstate_p0[(bs) - botstates])
+#define BotGoalP1(bs) (botgoalstate_p1[(bs) - botstates])
 float flt_100643A4; // weak
 int dword_100643A8; // weak
 libvar_t *libvar_ctf; /* libvar handle */
@@ -19399,7 +19426,7 @@ int __cdecl sub_10022160(int *a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v6 = (float)Characteristic_BFloat(a1[418], 20, 0.0, 1.0);
+  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 20, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
@@ -19420,7 +19447,7 @@ int __cdecl sub_10022160(int *a1)
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
-    v8 = (float)Characteristic_BFloat(a1[418], 15, 0.0, 1.0);
+    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
     if ( v5 <= v8 )
       BotInitialChat((int)(a1 + 995), aDeathPraise, (int)v7, (char *)0);
     else
@@ -19447,7 +19474,7 @@ BOOL __cdecl sub_100222E0(int *a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v6 = (float)Characteristic_BFloat(a1[418], 19, 0.0, 1.0);
+  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
@@ -19470,7 +19497,7 @@ BOOL __cdecl sub_100222E0(int *a1)
       v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
       /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
        * Characteristic 15 is "praise vs insult" probability. */
-      v8 = (float)Characteristic_BFloat(a1[418], 15, 0.0, 1.0);
+      v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
       if ( v5 <= v8 )
         BotInitialChat((int)(a1 + 995), aKillPraise, (int)v7, (char *)0);
       else
@@ -19618,7 +19645,7 @@ BOOL sub_10022990(int *a1)
     return 0;
   if ( v3 < 90 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
     return 0;
-  return Characteristic_BFloat(a1[418], 26, 0.0, 1.0) >= 0.5;
+  return Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 26, 0.0, 1.0) >= 0.5;
 }
 
 //----- (10022A60) --------------------------------------------------------
@@ -19739,7 +19766,8 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   void *result; // eax
   __int16 v9; // ax
   double v10; // st7
-  int v11; // ecx
+  int v11_unused; // ecx (was: int v11)
+  bot_character_t *v11; // restored: holds BotCharacter pointer
   int v12; // edi
   int v13; // eax
   double v14; // st7
@@ -19748,7 +19776,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   int v17; // esi
   double v18; // st7
   int v19; // edx
-  int v20; // [esp-10h] [ebp-154h]
+  bot_character_t *v20; // [esp-10h] [ebp-154h]
   float v21; // [esp+10h] [ebp-134h]
   /* Collapsed vec3 triplets v22/v23/v24, v28/v29/v30, v32/v33/v34 — each
    * passed by-address to CrossProduct / VectorNormalize / VectorLength /
@@ -22512,8 +22540,8 @@ int Export_BotAIFrame(int a1, int a2)
 int __cdecl BotSetupClient(int a1, char *Source)
 {
   bot_state_t *bs;
-  int *char_handle;
-  int weights_handle;
+  bot_character_t *char_handle;
+  char *weights_handle;
   char *chat_path;
   int chat_arg;
   _DWORD *chat_state_ptr;
@@ -22534,21 +22562,21 @@ int __cdecl BotSetupClient(int a1, char *Source)
   }
   qmemcpy(bs->settings, Source, 0x1B0u);
   weights_handle = Characteristic_String(char_handle, 28);
-  if ( BotLoadItemWeights((int)bs->goalstate, weights_handle) )
+  if ( BotLoadItemWeights(bs, weights_handle) )
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
-  if ( BotLoadWeaponWeights((int)bs->weaponweights, weights_handle) )
+  if ( BotLoadWeaponWeights(bs->weaponweights, weights_handle) )
   {
-    sub_10030950((int)bs->goalstate);
+    sub_10030950(bs);
     return 0;
   }
-  chat_path = (char *)Characteristic_String(BotCharacter(bs), 12);
-  chat_arg = Characteristic_String(BotCharacter(bs), 13);
+  chat_path = Characteristic_String(BotCharacter(bs), 12);
+  chat_arg = (intptr_t)Characteristic_String(BotCharacter(bs), 13);
   chat_state_ptr = (_DWORD *)bs->chatstate;
-  if ( BotLoadChatFile((int)bs->chatstate, chat_path, chat_arg) )
+  if ( BotLoadChatFile((int)(intptr_t)bs->chatstate, chat_path, chat_arg) )
   {
-    sub_10030950((int)bs->goalstate);
-    sub_10035300((int)bs->weaponweights);
+    sub_10030950(bs);
+    sub_10035300((int)(intptr_t)bs->weaponweights);
     return 0;
   }
   gender = *(_BYTE *)Characteristic_String(BotCharacter(bs), 3);
@@ -22579,16 +22607,18 @@ int __cdecl BotSetupClient(int a1, char *Source)
 int __cdecl BotShutdownClient(int a1)
 {
   _DWORD *v1; // esi
+  bot_state_t *bs;
   int v3; // ecx
 
-  v1 = (_DWORD *)(dword_100643A0 + 4560 * a1);
+  bs = &botstates[a1];
+  v1 = (_DWORD *)bs;
   if ( *v1 )
   {
-    if ( sub_10021E90(dword_100643A0 + 4560 * a1) )
+    if ( sub_10021E90((int)(intptr_t)bs) )
       BotEnterChat(v1 + 995, v1[1], 0);
     sub_1002DFB0(v1 + 995);
     sub_10035300(v1 + 1042);
-    sub_10030950(v1 + 752);
+    sub_10030950(bs);
     sub_1002A590(v1[418]);
     sub_10021B90(v1[1136]);
     v3 = v1[1137];
@@ -22841,6 +22871,8 @@ int BotSetupLibrary()
     return *_errno();
   botstates = (bot_state_t *)GetClearedMemory(4560 * maxclients);
   botcharacters = (int **)GetClearedMemory(sizeof(int *) * maxclients);
+  botgoalstate_p0 = (void **)GetClearedMemory(sizeof(void *) * maxclients);
+  botgoalstate_p1 = (void **)GetClearedMemory(sizeof(void *) * maxclients);
   dword_100643A8 = GetClearedMemory(144 * maxclients);
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
@@ -22873,6 +22905,12 @@ int BotShutdownLibrary()
   if ( botcharacters )
     FreeMemory(botcharacters);
   botcharacters = 0;
+  if ( botgoalstate_p0 )
+    FreeMemory(botgoalstate_p0);
+  botgoalstate_p0 = 0;
+  if ( botgoalstate_p1 )
+    FreeMemory(botgoalstate_p1);
+  botgoalstate_p1 = 0;
   return result;
 }
 // 1000100F: using guessed type int sub_10028E80(void);
@@ -22884,9 +22922,10 @@ int BotShutdownLibrary()
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10029EB0) --------------------------------------------------------
-int *__cdecl BotLoadCharacter(char *Source, const char *a2)
+bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
 {
-  int *v2; // ebx
+  bot_character_t *v2; // ebx
+  bot_characteristic_t *pairs; // (pairs base)
   int v4; // ebp
   source_t *v5; // eax
   source_t *v6; // edi
@@ -22902,11 +22941,12 @@ int *__cdecl BotLoadCharacter(char *Source, const char *a2)
   int v16; // [esp+1Ch] [ebp-5D8h]
   int v17; // [esp+20h] [ebp-5D4h]
   char *v18; // [esp+24h] [ebp-5D0h]
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  token_t token; /* restored: original token_t local variable */
-  char Destination[260]; // [esp+4F0h] [ebp-104h] BYREF
+  bot_fileref_t file_ref;
+  token_t token;
+  char Destination[260];
 
   v2 = 0;
+  pairs = 0;
   strncpy(Destination, Source, 0x104u);
   if ( sub_10041F60(Destination, &file_ref) )
   {
@@ -22937,9 +22977,14 @@ LABEL_39:
       }
       if ( !v4 )
       {
-        v2 = (int *)GetClearedMemory(v15 + 8 * v7 + 12);
-        *v2 = v7;
-        v18 = (char *)&v2[2 * v7 + 3];
+        /* header + (v7+1) pair slots + string area.  The original
+         * `GetClearedMemory(v15 + 8 * v7 + 12)` reserved v7+1 pair
+         * slots: 4 (numchars) + 8*(v7+1) + v15. */
+        size_t header = ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1));
+        v2 = (bot_character_t *)GetClearedMemory(header + sizeof(bot_characteristic_t) * (v7 + 1) + v15);
+        v2->numcharacteristics = v7;
+        pairs = BC_PAIRS(v2);
+        v18 = (char *)&pairs[v7 + 1];
       }
       v16 = ++v4;
       if ( v4 >= 2 )
@@ -22996,7 +23041,7 @@ LABEL_52:
           v9 = token.intvalue;
           if ( token.intvalue > v14 )
             v14 = token.intvalue;
-          if ( v16 && LOBYTE(v2[2 * token.intvalue + 1]) )
+          if ( v16 && (unsigned char)pairs[token.intvalue].type )
           {
             LOBYTE(v12) = token.intvalue;
             v11 = aCharacteristic_4;
@@ -23013,13 +23058,13 @@ LABEL_52:
             {
               if ( (token.subtype & 0x800) != 0 )
               {
-                *(float *)&v2[2 * v9 + 2] = token.floatvalue;
-                LOBYTE(v2[2 * v9 + 1]) = 2;
+                *(float *)&pairs[v9].value = token.floatvalue;
+                pairs[v9].type = 2;
               }
               else
               {
-                v2[2 * v9 + 2] = token.intvalue;
-                LOBYTE(v2[2 * v9 + 1]) = 1;
+                pairs[v9].value = (intptr_t)token.intvalue;
+                pairs[v9].type = 1;
               }
             }
           }
@@ -23035,8 +23080,8 @@ LABEL_52:
             if ( v16 )
             {
               strcpy(v18, token.string);
-              v2[2 * v9 + 2] = (int)v18;
-              LOBYTE(v2[2 * v9 + 1]) = 3;
+              pairs[v9].value = (intptr_t)v18;
+              pairs[v9].type = 3;
               v18 += strlen(token.string) + 1;
             }
             else
@@ -23087,14 +23132,14 @@ int __cdecl sub_1002A590(int a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002A5B0) --------------------------------------------------------
-int __cdecl CheckCharacteristicIndex(int *a1, int a2)
+int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
 {
-  if ( a2 < 0 || a2 >= *a1 )
+  if ( a2 < 0 || a2 >= a1->numcharacteristics )
   {
     bi_Print(3, "characteristic %d does not exist\n", a2);
     return 0;
   }
-  else if ( LOBYTE(a1[2 * a2 + 1]) )
+  else if ( (unsigned char)BC_PAIRS(a1)[a2].type )
   {
     return 1;
   }
@@ -23107,17 +23152,17 @@ int __cdecl CheckCharacteristicIndex(int *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A620) --------------------------------------------------------
-double __cdecl Characteristic_Float(int *a1, int a2)
+double __cdecl Characteristic_Float(bot_character_t *a1, int a2)
 {
   char v2; // al
 
   if ( CheckCharacteristicIndex(a1, a2) )
   {
-    v2 = a1[2 * a2 + 1];
+    v2 = (char)BC_PAIRS(a1)[a2].type;
     if ( v2 == 1 )
-      return (double)a1[2 * a2 + 2];
+      return (double)(int)BC_PAIRS(a1)[a2].value;
     if ( v2 == 2 )
-      return *(float *)&a1[2 * a2 + 2];
+      return *(float *)&BC_PAIRS(a1)[a2].value;
     bi_Print(3, "characteristic %d is not a float\n", a2);
   }
   return 0.0;
@@ -23125,13 +23170,13 @@ double __cdecl Characteristic_Float(int *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A690) --------------------------------------------------------
-double __cdecl Characteristic_BFloat(int a1, int a2, float a3, float a4)
+double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4)
 {
   double result; // st7
 
   if ( a3 <= (double)a4 )
   {
-    result = Characteristic_Float((int *)a1, a2);
+    result = Characteristic_Float(a1, a2);
     if ( result >= a3 )
     {
       if ( result > a4 )
@@ -23152,30 +23197,30 @@ double __cdecl Characteristic_BFloat(int a1, int a2, float a3, float a4)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A730) --------------------------------------------------------
-int __cdecl Characteristic_Integer(int *a1, int a2)
+int __cdecl Characteristic_Integer(bot_character_t *a1, int a2)
 {
   char v2; // al
   __int64 v3; // rax
 
   if ( !CheckCharacteristicIndex(a1, a2) )
     goto LABEL_7;
-  v2 = a1[2 * a2 + 1];
+  v2 = (char)BC_PAIRS(a1)[a2].type;
   if ( v2 != 1 )
   {
     if ( v2 == 2 )
-      return (__int64)*(float *)&a1[2 * a2 + 2];
+      return (__int64)*(float *)&BC_PAIRS(a1)[a2].value;
     bi_Print(3, "characteristic %d is not a integer\n", a2);
 LABEL_7:
     LODWORD(v3) = 0;
     return v3;
   }
-  LODWORD(v3) = a1[2 * a2 + 2];
+  LODWORD(v3) = (int)BC_PAIRS(a1)[a2].value;
   return v3;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A7A0) --------------------------------------------------------
-int __cdecl Characteristic_BInteger(int *a1, int a2, int a3, int a4)
+int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4)
 {
   int result; // eax
 
@@ -23202,12 +23247,12 @@ int __cdecl Characteristic_BInteger(int *a1, int a2, int a3, int a4)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A810) --------------------------------------------------------
-char *__cdecl Characteristic_String(int *a1, int a2)
+char *__cdecl Characteristic_String(bot_character_t *a1, int a2)
 {
   if ( !CheckCharacteristicIndex(a1, a2) )
     return &byte_1006294C;
-  if ( LOBYTE(a1[2 * a2 + 1]) == 3 )
-    return (char *)a1[2 * a2 + 2];
+  if ( (unsigned char)BC_PAIRS(a1)[a2].type == 3 )
+    return (char *)BC_PAIRS(a1)[a2].value;
   bi_Print(3, "characteristic %d is not a string\n", a2);
   return 0;
 }
@@ -25619,7 +25664,7 @@ LABEL_13:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002F100) --------------------------------------------------------
-int *__cdecl sub_1002F100(int a1, int *a2)
+int *__cdecl sub_1002F100(weightconfig_t *a1, itemconfig_t *a2)
 {
   int *result; // eax
   int v4; // ebx
@@ -25628,16 +25673,16 @@ int *__cdecl sub_1002F100(int a1, int *a2)
   int v7; // eax
   int *v8; // [esp+10h] [ebp+8h]
 
-  result = (int *)GetClearedMemory(4 * *a2);
+  result = (int *)GetClearedMemory(4 * a2->numitems);
   v4 = 0;
   v8 = result;
-  if ( *a2 > 0 )
+  if ( a2->numitems > 0 )
   {
     v5 = 0;
     v6 = result;
     do
     {
-      v7 = sub_100369C0(a1, a2[1] + v5 + 80);
+      v7 = sub_100369C0((int *)a1, (const char *)a2->items + v5 + 80);
       *v6 = v7;
       if ( v7 < 0 )
         Log_Write(aItemInfoDSHasN, v4);
@@ -25645,7 +25690,7 @@ int *__cdecl sub_1002F100(int a1, int *a2)
       ++v6;
       v5 += 284;
     }
-    while ( v4 < *a2 );
+    while ( v4 < a2->numitems );
     return v8;
   }
   return result;
@@ -26543,17 +26588,17 @@ BOOL __cdecl sub_10030770(int a1, int a2, int a3, int a4)
 }
 
 //----- (100308D0) --------------------------------------------------------
-int __cdecl BotLoadItemWeights(int *a1, int a2)
+int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2)
 {
-  int v2; // eax
+  weightconfig_t *v2;
 
   v2 = sub_10035FA0(a2);
-  *a1 = v2;
+  BotGoalP0(bs) = v2;
   if ( v2 )
   {
     if ( dword_1006435C )
     {
-      a1[1] = (int)sub_1002F100(v2, (int *)dword_1006435C);
+      BotGoalP1(bs) = sub_1002F100(v2, dword_1006435C);
       return 0;
     }
     else
@@ -26572,15 +26617,15 @@ int __cdecl BotLoadItemWeights(int *a1, int a2)
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030950) --------------------------------------------------------
-int __cdecl sub_10030950(_DWORD *a1)
+int __cdecl sub_10030950(bot_state_t *bs)
 {
-  int result; // eax
+  int result;
 
-  if ( *a1 )
-    sub_100359B0(*a1);
-  result = a1[1];
+  if ( BotGoalP0(bs) )
+    sub_100359B0((weightconfig_t *)BotGoalP0(bs));
+  result = (intptr_t)BotGoalP1(bs);
   if ( result )
-    return FreeMemory(a1[1]);
+    return FreeMemory(BotGoalP1(bs));
   return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -29179,7 +29224,7 @@ int sub_100356D0()
 // 10064080: using guessed type int dword_10064080;
 
 //----- (10035700) --------------------------------------------------------
-int __cdecl sub_10035700(int a1, float *a2)
+int __cdecl sub_10035700(source_t *a1, float *a2)
 {
   int result; // eax
   char v3; // [esp+0h] [ebp-434h]
