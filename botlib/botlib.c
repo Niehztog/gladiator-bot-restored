@@ -11832,7 +11832,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v44; // ecx
   int traveltype; // ebx
   int v46; // edi
-  float v47; // esi
   double v48; // st7
   int lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
@@ -12269,21 +12268,37 @@ LABEL_67:
                     sizeof(move2));
                   if ( move2[19] < 30 && (move2[16] & 0x38) == 0 )
                   {
+                    /* Probe loop: pull the candidate test-point back along the
+                     * trace direction at scale 0, -8, -16, -24, -32 and accept
+                     * the first scale that lands in area2num.  Original asm at
+                     * 0x100149b2-0x10014a05 keeps an integer counter in esi.
+                     *
+                     * IDA decompiled the counter as float v47 + float
+                     * phys_jumpvel with LODWORD bit-pattern smuggling.  At -O0
+                     * GCC compiles `phys_jumpvel = v47` to fld+fstp via x87
+                     * (see compiled disasm at 6971a2b5/6971a2bc) — and x87
+                     * fld+fstp does NOT preserve qNaN bit patterns.  After the
+                     * first iteration v47.bits = 0xFFFFFFF8 (= -8 as int, qNaN
+                     * as float); the round-trip through phys_jumpvel quantizes
+                     * it to a canonical qNaN (e.g. 0xFFC00000), and the next
+                     * SLODWORD read gives ~-4.2M instead of -8.  Result: only
+                     * the scale=0 iteration ever worked, and the JUMP path
+                     * generated ~0 reaches vs the original ~89 on q2ctf2.
+                     *
+                     * Fix: use a plain int counter, matching the original asm. */
+                    int probe_scale = 0;
                     v46 = 0;
-                    v47 = 0.0;
-                    phys_jumpvel = 0.0;
                     while ( 1 )
                     {
-                      v51 = (float)SLODWORD(phys_jumpvel);
+                      v51 = (float)probe_scale;
                       VectorMA((float *)move2, v51, (float *)dir, teststart);
                       v48 = teststart[2] + 0.125;
                       teststart[2] = v48;
                       if ( AAS_PointAreaNum(teststart) == area2num )
                         break;
-                      LODWORD(v47) -= 8;
+                      probe_scale -= 8;
                       v46 += 8;
-                      phys_jumpvel = v47;
-                      if ( SLODWORD(v47) < -32 )
+                      if ( probe_scale < -32 )
                         return 0;
                     }
                     if ( v46 <= 32 )
@@ -13760,9 +13775,13 @@ int __cdecl AAS_Reachability_WalkOffLedge(int a1)
   int v37; // eax
   int v38; // [esp+8h] [ebp-ACh]
   float v39; // [esp+8h] [ebp-ACh]
-  int v40; // [esp+Ch] [ebp-A8h] BYREF
-  float v41; // [esp+10h] [ebp-A4h]
-  float v42; // [esp+14h] [ebp-A0h]
+  /* midorigin: edge midpoint, lifted off the floor by 8 units along edgecross.
+   * Passed by-address to VectorScale / VectorMA / AAS_TraceClientBBox and copied
+   * as the reach's `start` vec3.  IDA split this contiguous vec3 into int v40 +
+   * float v41 + float v42 at adjacent stack slots; GCC won't reliably keep them
+   * adjacent, which made the trace fire from a garbage origin and silently
+   * rejected ~97% of WALKOFFLEDGE candidates on q2ctf2 (23/755). */
+  vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   int v43; // [esp+18h] [ebp-9Ch]
   int *v44; // [esp+1Ch] [ebp-98h]
   unsigned int v45; // [esp+20h] [ebp-94h]
@@ -13928,15 +13947,15 @@ LABEL_29:
             v56[2] = v30[2] - v29[2];
             CrossProduct((char *)aasworld.planes + 4 * v31, v56, v57);
             VectorNormalize(v57);
-            *(float *)&v40 = *v29 + *v30;
-            v41 = v29[1] + v30[1];
-            v42 = v30[2] + v29[2];
-            VectorScale((float *)&v40, 0.5, (float *)&v40);
-            VectorMA((float *)&v40, 8.0, (float *)v57, (float *)&v40);
-            v55[0] = v40;
-            *(float *)&v55[1] = v41;
-            *(float *)&v55[2] = v42 - 1000.0;
-            trace = AAS_TraceClientBBox((float *)&v40, (float *)v55, 4, -1);
+            midorigin[0] = *v29 + *v30;
+            midorigin[1] = v29[1] + v30[1];
+            midorigin[2] = v30[2] + v29[2];
+            VectorScale(midorigin, 0.5, midorigin);
+            VectorMA(midorigin, 8.0, (float *)v57, midorigin);
+            v55[0] = midorigin[0];
+            v55[1] = midorigin[1];
+            v55[2] = midorigin[2] - 1000.0f;
+            trace = AAS_TraceClientBBox(midorigin, (float *)v55, 4, -1);
             if ( trace.startsolid )
               goto LABEL_42;
             v32 = AAS_PointAreaNum(trace.endpos);
@@ -13953,14 +13972,14 @@ LABEL_29:
             *(_DWORD *)v34 = v33;
             *(_DWORD *)(v34 + 4) = 0;
             *(_DWORD *)(v34 + 8) = v36;
-            *(float *)(v34 + 12) = *(float *)&v40;
-            *(float *)(v34 + 16) = v41;
-            *(float *)(v34 + 20) = v42;
+            *(float *)(v34 + 12) = midorigin[0];
+            *(float *)(v34 + 16) = midorigin[1];
+            *(float *)(v34 + 20) = midorigin[2];
             *(float *)(v34 + 24) = trace.endpos[0];
             *(float *)(v34 + 28) = trace.endpos[1];
             *(float *)(v34 + 32) = trace.endpos[2];
             *(_DWORD *)(v34 + 36) = 7;
-            if ( AAS_AreaSwim(v33) || (v39 = v42 - trace.endpos[2], v46 = sub_10011520(), (double)v46 >= v39) )
+            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = sub_10011520(), (double)v46 >= v39) )
               *(_WORD *)(v35 + 40) = 100;
             else
               *(_WORD *)(v35 + 40) = 3000;
