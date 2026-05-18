@@ -421,21 +421,21 @@ typedef struct aas_world_s {
     void *clusters;                 /* +0x19C */
     int   numreachabilityareas;     /* +0x1A0  (VA 0x10066980) */
     float reachabilitytime;         /* +0x1A4  (Q3-equivalent slot; binary leaves 4 B)  */
-    int   linkheap;                 /* +0x1A8  (VA 0x10066988) */
+    struct aas_link_s  *linkheap;   /* +0x1A8  (VA 0x10066988) */
     int   linkheapsize;             /* +0x1AC */
-    int   freelinks;                /* +0x1B0 */
-    int   arealinkedentities;       /* +0x1B4 */
+    struct aas_link_s  *freelinks;  /* +0x1B0 */
+    struct aas_link_s **arealinkedentities; /* +0x1B4 */
     int   numentities;              /* +0x1B8 */
     int   maxclients;               /* +0x1BC */
     int   entities;                 /* +0x1C0 */
-    int   modelindex_table;         /* +0x1C4  (VA 0x100669A4) */
-    int   soundindex_table;         /* +0x1C8 */
-    int   imageindex_table;         /* +0x1CC */
+    struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
+    struct indexlist_s *soundindex_table;  /* +0x1C8 */
+    struct indexlist_s *imageindex_table;  /* +0x1CC */
     int   indexes_loaded;           /* +0x1D0 */
     int   numsoundinfo;             /* +0x1D4  (VA 0x100669B4) sound entry count        */
     void *soundinfo;                /* +0x1D8  (VA 0x100669B8) soundinfo_t array        */
-    int   d_100669BC;               /* +0x1DC */
-    int   d_100669C0;               /* +0x1E0 */
+    int    d_100669BC;              /* +0x1DC */
+    void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
     /* aas_world.d_100669C4..D8 are six pointers maintaining a 52-byte
      * pool of `aas_soundpool_t` nodes (allocated by sub_1001CAB0):
      *   d_100669C4 = pool base (raw GetMemory return)

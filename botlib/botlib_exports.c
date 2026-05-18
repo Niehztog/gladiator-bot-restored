@@ -324,16 +324,16 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
     if (!BotLibSetup("BotLoadMap")) return 1;
 
     if (!mapname) {
-        return BotLoadMap(0, modelindexes, (int)modelindex,
-                          soundindexes, (int)soundindex,
-                          imageindexes, (int)imageindex);
+        return BotLoadMap(0, modelindexes, modelindex,
+                          soundindexes, soundindex,
+                          imageindexes, imageindex);
     }
 
     bi_Print(1, "------------ Map Loading ------------\n");
 
-    errno = BotLoadMap((int)mapname, modelindexes, (int)modelindex,
-                       soundindexes, (int)soundindex,
-                       imageindexes, (int)imageindex);
+    errno = BotLoadMap(mapname, modelindexes, modelindex,
+                       soundindexes, soundindex,
+                       imageindexes, imageindex);
     if (errno) return errno;
 
     sub_10029C10();

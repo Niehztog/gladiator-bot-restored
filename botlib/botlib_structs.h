@@ -443,4 +443,57 @@ typedef struct operator_s {
     struct operator_s *next;
 } operator_t;
 
+/* -------------------------------------------------------------------------
+ * bsp_link_t — entity<->BSP-leaf link node, 24 bytes on 32-bit.
+ *
+ * Q3 equivalent: be_aas_def.h:70 (same layout).  Field offsets are confirmed
+ * from sub_100030A0 disassembly (24-byte stride, +8/+12 used as free-list
+ * next/prev which corresponds to next_ent/prev_ent slots).  On 64-bit each
+ * pointer expands to 8 bytes so the node grows to 40 bytes.
+ */
+typedef struct bsp_link_s {
+    int                 entnum;
+    int                 leafnum;
+    struct bsp_link_s  *next_ent;
+    struct bsp_link_s  *prev_ent;
+    struct bsp_link_s  *next_leaf;
+    struct bsp_link_s  *prev_leaf;
+} bsp_link_t;
+
+/* -------------------------------------------------------------------------
+ * indexlist_t — model/sound/image name lookup table.
+ *
+ * Used by aasworld.modelindex_table / soundindex_table / imageindex_table.
+ * Original 32-bit layout (sub_1000DA80 disassembly @ 1000DA80):
+ *   +0  int    numindexes
+ *   +4  char **indexes   (points to the trailing array at +8)
+ *   +8  char  *slots[numindexes]
+ * Allocation = sizeof(int) + sizeof(char**) + numindexes*sizeof(char*).
+ * On 32-bit that's 4 + 4 + 4*n = 4*n + 8 (matches original "lea eax,[esi*4+8]").
+ * On 64-bit it becomes 4 + 8 + 8*n + 4 alignment = 8*n + 16.
+ */
+typedef struct indexlist_s {
+    int    numindexes;
+    char **indexes;
+} indexlist_t;
+
+/* -------------------------------------------------------------------------
+ * bsp_epair_t / bsp_entity_t — BSP entity-lump epair list.
+ *
+ * Q3 equivalent: be_aas_bspq2.c:60.  Layout confirmed from
+ * AAS_ValueForBSPEpairKey @ 0x10006760: reads key at +0, value at +4,
+ * next at +8 (32-bit).  bsp_entity_t holds just one pointer (epairs head).
+ * On 64-bit the struct grows from 12 → 24 bytes; entity slot from 4 → 8 bytes.
+ */
+typedef struct bsp_epair_s {
+    char               *key;
+    char               *value;
+    struct bsp_epair_s *next;
+} bsp_epair_t;
+
+typedef struct bsp_entity_s {
+    bsp_epair_t        *epairs;
+    struct bsp_entity_s *next;
+} bsp_entity_t;
+
 #endif /* BOTLIB_STRUCTS_H */
