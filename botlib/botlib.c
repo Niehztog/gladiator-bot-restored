@@ -778,7 +778,7 @@ _DWORD *__cdecl sub_10034AF0(_DWORD *a1);
 void __cdecl sub_10034B20(int a1);
 int __cdecl sub_10034B90(void *a1);
 // int *__usercall sub_10034BB0@<eax>(double a1@<st0>, char *Source);
-_DWORD *__cdecl sub_10035280(int a1, int *a2);
+_DWORD *__cdecl sub_10035280(weightconfig_t *a1, weaponconfig_t *a2);
 int __cdecl sub_10035300(int a1);
 int __cdecl BotLoadWeaponWeights(int a1, const char *a2);
 int __cdecl sub_100354B0(int a1);
@@ -794,7 +794,7 @@ void              __cdecl sub_100359B0(weightconfig_t *cfg);
 weightconfig_t   *__cdecl sub_10035FA0(char *Source);
 int __cdecl WriteFuzzyWeight(FILE *Stream, int); // idb
 int __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
-int __cdecl sub_100369C0(int *a1, const char *a2);
+int __cdecl sub_100369C0(weightconfig_t *a1, const char *a2);
 double __cdecl FuzzyWeight(int *facts, fuzzyseperator_t *sep);
 double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep);
 double __cdecl sub_10036C70(int *facts, weight_t *w);
@@ -25682,10 +25682,10 @@ int *__cdecl sub_1002F100(weightconfig_t *a1, itemconfig_t *a2)
     v6 = result;
     do
     {
-      v7 = sub_100369C0((int *)a1, (const char *)a2->items + v5 + 80);
+      v7 = sub_100369C0(a1, a2->items[v4].dispname);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4);
+        Log_Write(aItemInfoDSHasN, v4, a2->items[v4].dispname);
       ++v4;
       ++v6;
       v5 += 284;
@@ -29028,31 +29028,14 @@ LABEL_46:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10035280) --------------------------------------------------------
-_DWORD *__cdecl sub_10035280(int a1, int *a2)
+_DWORD *__cdecl sub_10035280(weightconfig_t *a1, weaponconfig_t *a2)
 {
-  _DWORD *result; // eax
-  int v4; // ebp
-  int v5; // edi
-  _DWORD *v6; // ebx
-  _DWORD *v7; // [esp+10h] [ebp+8h]
+  _DWORD *result;
+  int i;
 
-  result = (_DWORD *)GetClearedMemory(4 * *a2);
-  v4 = 0;
-  v7 = result;
-  if ( *a2 > 0 )
-  {
-    v5 = 0;
-    v6 = result;
-    do
-    {
-      *v6 = sub_100369C0(a1, a2[3] + v5 + 4);
-      ++v4;
-      v5 += 344;
-      ++v6;
-    }
-    while ( v4 < *a2 );
-    return v7;
-  }
+  result = (_DWORD *)GetClearedMemory(4 * a2->numweapons);
+  for ( i = 0; i < a2->numweapons; ++i )
+    result[i] = sub_100369C0(a1, a2->weapons[i].name);
   return result;
 }
 // 1000132F: using guessed type _DWORD __cdecl sub_100369C0(_DWORD, _DWORD);
@@ -29564,7 +29547,7 @@ LABEL_25:
             sep->value = 999999;
             sep->next  = 0;
             sep->child = 0;
-            if ( !sub_10035820(src, (int)sep) )
+            if ( !sub_10035820(src, sep) )
             {
               FreeMemory(sep);
               sub_100359B0(cfg);
@@ -29726,20 +29709,18 @@ int __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 }
 
 //----- (100369C0) --------------------------------------------------------
-int __cdecl sub_100369C0(int *a1, const char *a2)
+int __cdecl sub_100369C0(weightconfig_t *a1, const char *a2)
 {
-  int v2; // ebp
-  const char **i; // edi
+  int i;
 
-  v2 = 0;
-  if ( *a1 <= 0 )
+  if ( a1->numweights <= 0 )
     return -1;
-  for ( i = (const char **)(a1 + 1); strcmp(*i, a2); i += 2 )
+  for ( i = 0; i < a1->numweights; ++i )
   {
-    if ( ++v2 >= *a1 )
-      return -1;
+    if ( !strcmp(a1->weights[i].name, a2) )
+      return i;
   }
-  return v2;
+  return -1;
 }
 
 //----- (10036A40) --------------------------------------------------------
@@ -31225,7 +31206,7 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
           gotparms = 1;
           goto LABEL_31;
         }
-        if ( i < define->numparms )
+        if ( parmidx < define->numparms )
         {
           newtok = PC_CopyToken(&tok);
           newtok->next = NULL;
@@ -31245,7 +31226,7 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
     if ( needcomma )
       sub_10039270(src, aTooManyCommaS, v14);
 LABEL_31:
-    parmidx = ++i;
+    ++parmidx;
     ++pslot;
     if ( gotparms )
       return 1;
