@@ -24,11 +24,11 @@ gladiator_debug.log
 # Editor & tool state
 .idea/
 .vscode/
-.claude/
+# .claude/
 
 # OS metadata
 .DS_Store
 Thumbs.db
 desktop.ini
 
-CLAUDE.md
+# CLAUDE.md
