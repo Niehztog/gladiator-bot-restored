@@ -31906,15 +31906,14 @@ token_t *__cdecl sub_1003AC00(token_t *a1)
 //----- (1003AC30) --------------------------------------------------------
 int __cdecl PC_Directive_undef(source_t *src)
 {
-  unsigned int v2; // eax
-  int v3; // ecx
-  int v4; // ebp
-  int v5; // edi
-  _DWORD *v6; // edx
+  unsigned int hash;
+  define_t *prev;
+  define_t *d;
+  define_t **bucket;
   char v7; // [esp+0h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  if ( ((source_t *)src)->skip > 0 )
+  if ( src->skip > 0 )
     return 1;
   if ( !PC_ReadLine(src, token.string) )
   {
@@ -31927,30 +31926,29 @@ int __cdecl PC_Directive_undef(source_t *src)
     sub_10039200(src, aExpectedNameFo, token.string);
     return 0;
   }
-  v2 = sub_10039C30(token.string);
-  v3 = (int)((source_t *)src)->definehash;
-  v4 = 0;
-  v5 = *(_DWORD *)(v3 + 4 * v2);
-  v6 = (_DWORD *)(v3 + 4 * v2);
-  if ( v5 )
+  hash = sub_10039C30(token.string);
+  bucket = &src->definehash[hash];
+  prev = NULL;
+  d = *bucket;
+  if ( d )
   {
-    while ( strcmp(*(const char **)v5, token.string) )
+    while ( strcmp(d->name, token.string) )
     {
-      v4 = v5;
-      v5 = *(_DWORD *)(v5 + 28);
-      if ( !v5 )
+      prev = d;
+      d = d->hashnext;
+      if ( !d )
         return 1;
     }
-    if ( (*(_BYTE *)(v5 + 4) & 1) != 0 )
+    if ( (d->flags & 1) != 0 )
     {
       sub_10039270(src, aCanTUndefS, token.string);
       return 1;
     }
-    if ( v4 )
-      *(_DWORD *)(v4 + 28) = *(_DWORD *)(v5 + 28);
+    if ( prev )
+      prev->hashnext = d->hashnext;
     else
-      *v6 = *(_DWORD *)(v5 + 28);
-    PC_FreeDefine(v5);
+      *bucket = d->hashnext;
+    PC_FreeDefine(d);
   }
   return 1;
 }
