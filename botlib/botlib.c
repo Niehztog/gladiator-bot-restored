@@ -9014,8 +9014,6 @@ int AAS_StartFrame(float time)
   }
   return 0;
 }
-// 100014C9: using guessed type int PrintUsedMemorySize(void);
-// 1000185C: using guessed type int sub_10039190(void);
 // 1000186B: using guessed type int AAS_RoutingInfo(void);
 // 100667EC: using guessed type float aasworld.time;
 // 10066A70: using guessed type int aasworld.frameroutingupdates;
