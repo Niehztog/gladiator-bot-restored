@@ -699,7 +699,7 @@ int __cdecl sub_1002DF70(int *a1);
 int __cdecl sub_1002DFB0(int *a1);
 int __cdecl BotLoadChatFile(int *a1, char *a2, char *a3); // idb
 void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int a5);
-int __cdecl BotChooseInitialChatMessage(int a1, char *String2);
+char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2);
 void __cdecl BotInitialChat(int a1, char *String2, int a3, ...);
 int __cdecl sub_1002E7D0(_DWORD *a1, const char *a2);
 unsigned int __cdecl sub_1002EA50(int a1);
@@ -2148,6 +2148,33 @@ bot_weaponstate_t **botweaponstates;
 void **botchatdumps;
 #define BotChatDumpSlot(cs_ptr) \
     (botchatdumps[((char *)(cs_ptr) - (char *)botstates - 3980) / 4560])
+
+/* Initial-chat dump structures.  In the 32-bit original BotDumpInitialChat
+ * built a single contiguous heap buffer with inline 4-byte pointer slots
+ * (chat-type at +0..+43 with 32-byte name, numlines@+32, head@+36, next@+40;
+ * chat-line at +0..+11 with string*@+0, ltime@+4, next@+8, then inline
+ * string buffer).  On 64-bit those 4-byte slots can't hold pointers, so we
+ * allocate proper structs per chat-type / chat-line node and chain via real
+ * pointer fields.  The dump root is a single 'chatlist_t' cell whose
+ * address is what BotDumpInitialChat returns and what gets stored in the
+ * chatstate dump side-band slot. */
+typedef struct chatline_s {
+    char              *string;       /* +0  pointer to inline string buffer */
+    float              ltime;        /* +4  last-time gate (AAS_Time) */
+    struct chatline_s *next;         /* +8  next chat-line in this type */
+    char               buf[1];       /* +12 inline string follows (allocated) */
+} chatline_t;
+
+typedef struct chattype_s {
+    char               name[32];     /* +0  type tag */
+    int                numlines;     /* +32 number of chat-lines */
+    chatline_t        *firstline;    /* +36 head of chat-line list */
+    struct chattype_s *next;         /* +40 next chat-type */
+} chattype_t;
+
+typedef struct chatlist_s {
+    chattype_t        *types;        /* head of chat-type list */
+} chatlist_t;
 
 float flt_100643A4; // weak
 char *dword_100643A8; // weak
@@ -24640,16 +24667,19 @@ int __cdecl sub_1002CCF0(bot_replychat_t *a1)
 //----- (1002CD60) --------------------------------------------------------
 int __cdecl BotCheckInitialChatIntegrety(int *a1)
 {
-  int i; // edi
-  int j; // esi
-  bot_stringlist_t *result;
-  bot_stringlist_t *next;
+  chatlist_t        *list = (chatlist_t *)a1;
+  chattype_t        *t;
+  chatline_t        *l;
+  bot_stringlist_t  *result;
+  bot_stringlist_t  *next;
 
+  if ( !list )
+    return 0;
   result = NULL;
-  for ( i = *a1; i; i = *(_DWORD *)(i + 40) )
+  for ( t = list->types; t; t = t->next )
   {
-    for ( j = *(_DWORD *)(i + 36); j; j = *(_DWORD *)(j + 8) )
-      result = BotCheckChatMessageIntegrety(*(const char **)j, result);
+    for ( l = t->firstline; l; l = l->next )
+      result = BotCheckChatMessageIntegrety(l->string, result);
   }
   while ( result )
   {
@@ -24902,186 +24932,161 @@ FAIL:
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
+static void BotFreeChatList(chatlist_t *list);
+
 //----- (1002D8A0) --------------------------------------------------------
 int *__cdecl BotDumpInitialChat(char *a1, char *a2)
 {
-  char *v2; // ebx
-  int v4; // edi
-  char *v5; // ebp
-  int v6; // eax
-  source_t *v7; // esi
-  source_t *v8; // esi
-  char **v9; // eax
-  char *v10; // ebp
-  int v11; // edi
-  char *v12; // [esp-8h] [ebp-58Ch]
-  source_t *v13; // [esp+10h] [ebp-574h]
-  int v14; // [esp+14h] [ebp-570h]
-  int v15; // [esp+14h] [ebp-570h]
-  int v16; // [esp+18h] [ebp-56Ch]
-  int *v17; // [esp+1Ch] [ebp-568h]
-  int Destination; // [esp+20h] [ebp-564h]
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  char v22[152]; // [esp+BCh] [ebp-4C8h] BYREF
-  char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+154h] [ebp-430h] BYREF
+  /* 64-bit-safe rewrite: instead of building a single contiguous heap
+   * buffer with truncating 4-byte pointer slots, allocate one struct per
+   * chat-type and one struct per chat-line, chained via real pointers.
+   * Behaviour and parser-token sequence match the 32-bit original. */
+  source_t      *src;
+  chatlist_t    *list;
+  chattype_t    *cur_type;
+  bot_fileref_t  file_ref;
+  char           buf[152];
+  char           token[sizeof(token_t)] __attribute__((aligned(8)));
+  int            found;
+  int            v11;
 
-  v2 = 0;
-  v17 = 0;
-  if ( sub_10041F60(a1, &file_ref) )
-  {
-    v4 = v14;
-    Destination = 0;
-    v5 = 0;
-    v6 = 0;
-    v16 = 0;
-    while ( 1 )
-    {
-      if ( v6 && v4 )
-        v5 = (char *)GetClearedMemory(v4);
-      v7 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-      v13 = v7;
-      if ( !v7 )
-      {
-        bi_Print(3, "counldn't load %s\n", file_ref.path);
-        return 0;
-      }
-      if ( v16 )
-      {
-        v17 = (int *)v5;
-        v5 += 4;
-      }
-      v4 = 4;
-      v15 = 4;
-      if ( PC_ReadTokenHandle(v7, Source) )
-        break;
-LABEL_39:
-      FreeSource(v7);
-      if ( !Destination )
-      {
-        bi_Print(3, "couldn't find chat %s in %s\n", (const char *)a2, file_ref.path);
-        return 0;
-      }
-      v6 = ++v16;
-      if ( v16 >= 2 )
-      {
-        if ( file_ref.filelen )
-          bi_Print(1, "loaded %s from %s\\%s\n", (const char *)a2, file_ref.path, a1);
-        else
-          bi_Print(1, "loaded %s from %s\n", (const char *)a2, a1);
-        BotCheckInitialChatIntegrety(v17);
-        return v17;
-      }
-    }
-LABEL_11:
-    if ( !strcmp(Source, aChat) )
-    {
-      v8 = v13;
-      if ( PC_ExpectTokenType(v13, 1, 0, Source) )
-      {
-        StripDoubleQuotes(Source);
-        if ( PC_ExpectTokenString(v13, asc_1005AB58) )
-        {
-          if ( !strcmp(Source, (const char *)a2) )
-          {
-            Destination = 1;
-LABEL_16:
-            v8 = v13;
-            while ( PC_ExpectAnyToken(v8, Source) )
-            {
-              if ( !strcmp(Source, asc_1005AB54) )
-                goto LABEL_37;
-              if ( strcmp(Source, aType) )
-              {
-                v12 = aExpectedTypeFo;
-                goto LABEL_48;
-              }
-              v8 = v13;
-              if ( !PC_ExpectTokenType(v13, 1, 0, Source) || !PC_ExpectTokenString(v13, asc_1005AB58) )
-                break;
-              StripDoubleQuotes(Source);
-              if ( v16 )
-              {
-                v2 = v5;
-                strncpy(v5, Source, 0x20u);
-                *((_DWORD *)v5 + 9) = 0;
-                *((_DWORD *)v5 + 10) = *v17;
-                *v17 = (int)v5;
-                v5 += 44;
-              }
-              v15 += 44;
-              if ( !PC_CheckTokenString(v13, asc_1005AB54) )
-              {
-                while ( 1 )
-                {
-                  v8 = v13;
-                  if ( !sub_1002CDD0(v13, v22) )
-                    goto LABEL_44;
-                  if ( v16 )
-                  {
-                    *((_DWORD *)v5 + 1) = -1038090240;
-                    *((_DWORD *)v5 + 2) = *((_DWORD *)v2 + 9);
-                    v9 = (char **)v5;
-                    *((_DWORD *)v2 + 9) = v5;
-                    v10 = v5 + 12;
-                    *v9 = v10;
-                    strcpy(v10, v22);
-                    ++*((_DWORD *)v2 + 8);
-                    v5 = &v10[strlen(v22) + 1];
-                  }
-                  v15 += strlen(v22) + 13;
-                  if ( PC_CheckTokenString(v13, asc_1005AB54) )
-                    goto LABEL_16;
-                }
-              }
-            }
-          }
-          else
-          {
-            v11 = 1;
-            while ( 1 )
-            {
-              v8 = v13;
-              if ( !PC_ExpectAnyToken(v13, Source) )
-                break;
-              if ( !strcmp(Source, asc_1005AB58) )
-              {
-                ++v11;
-              }
-              else if ( !strcmp(Source, asc_1005AB54) )
-              {
-                --v11;
-              }
-              if ( !v11 )
-              {
-LABEL_37:
-                v7 = v13;
-                if ( PC_ReadTokenHandle(v13, Source) )
-                  goto LABEL_11;
-                v4 = v15;
-                goto LABEL_39;
-              }
-            }
-          }
-        }
-      }
-LABEL_44:
-      FreeSource(v8);
-      return 0;
-    }
-    else
-    {
-      v12 = aUnknownDefinit;
-LABEL_48:
-      sub_10039200(v13, v12, Source);
-      FreeSource(v13);
-      return 0;
-    }
-  }
-  else
+  if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
     return 0;
   }
+
+  src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !src )
+  {
+    bi_Print(3, "counldn't load %s\n", file_ref.path);
+    return 0;
+  }
+
+  list     = (chatlist_t *)GetClearedMemory(sizeof(chatlist_t));
+  cur_type = NULL;
+  found    = 0;
+
+  while ( PC_ReadTokenHandle(src, token) )
+  {
+    if ( strcmp(token, aChat) )
+    {
+      sub_10039200(src, aUnknownDefinit, token);
+      FreeSource(src);
+      BotFreeChatList(list);   /* free partial list */
+      return 0;
+    }
+    if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
+    {
+      FreeSource(src);
+      BotFreeChatList(list);
+      return 0;
+    }
+    StripDoubleQuotes(token);
+    if ( !PC_ExpectTokenString(src, asc_1005AB58) )
+    {
+      FreeSource(src);
+      BotFreeChatList(list);
+      return 0;
+    }
+    if ( !strcmp(token, a2) )
+    {
+      found = 1;
+      while ( PC_ExpectAnyToken(src, (intptr_t)token) )
+      {
+        if ( !strcmp(token, asc_1005AB54) )
+          goto type_done;
+        if ( strcmp(token, aType) )
+        {
+          sub_10039200(src, aExpectedTypeFo, token);
+          FreeSource(src);
+          BotFreeChatList(list);
+          return 0;
+        }
+        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, asc_1005AB58) )
+        {
+          FreeSource(src);
+          BotFreeChatList(list);
+          return 0;
+        }
+        StripDoubleQuotes(token);
+        cur_type = (chattype_t *)GetClearedMemory(sizeof(chattype_t));
+        strncpy(cur_type->name, token, sizeof(cur_type->name));
+        cur_type->next = list->types;
+        list->types    = cur_type;
+        if ( !PC_CheckTokenString(src, asc_1005AB54) )
+        {
+          while ( 1 )
+          {
+            chatline_t *line;
+            size_t      slen;
+            if ( !sub_1002CDD0(src, buf) )
+            {
+              FreeSource(src);
+              BotFreeChatList(list);
+              return 0;
+            }
+            slen = strlen(buf);
+            line = (chatline_t *)GetClearedMemory(sizeof(chatline_t) + slen);
+            line->string = line->buf;
+            line->ltime  = -40.0f;
+            line->next   = cur_type->firstline;
+            strcpy(line->buf, buf);
+            cur_type->firstline = line;
+            ++cur_type->numlines;
+            if ( PC_CheckTokenString(src, asc_1005AB54) )
+              break;
+          }
+        }
+      }
+type_done:
+      FreeSource(src);
+      if ( !found )
+      {
+        bi_Print(3, "couldn't find chat %s in %s\n", a2, file_ref.path);
+        BotFreeChatList(list);
+        return 0;
+      }
+      if ( file_ref.filelen )
+        bi_Print(1, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
+      else
+        bi_Print(1, "loaded %s from %s\n", a2, a1);
+      BotCheckInitialChatIntegrety((int *)list);
+      return (int *)list;
+    }
+    else
+    {
+      /* skip a non-matching chat block */
+      v11 = 1;
+      while ( PC_ExpectAnyToken(src, (intptr_t)token) )
+      {
+        if ( !strcmp(token, asc_1005AB58) )
+          ++v11;
+        else if ( !strcmp(token, asc_1005AB54) )
+          --v11;
+        if ( !v11 )
+          break;
+      }
+      if ( v11 )
+      {
+        /* unterminated block — bail */
+        FreeSource(src);
+        BotFreeChatList(list);
+        return 0;
+      }
+    }
+  }
+
+  /* end-of-file without finding chat */
+  FreeSource(src);
+  if ( !found )
+  {
+    bi_Print(3, "couldn't find chat %s in %s\n", a2, file_ref.path);
+    BotFreeChatList(list);
+    return 0;
+  }
+  BotCheckInitialChatIntegrety((int *)list);
+  return (int *)list;
 }
 // 1002D8E7: variable 'v14' is possibly undefined
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
@@ -25094,16 +25099,36 @@ LABEL_48:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002DF70) --------------------------------------------------------
+/* Direct free of a chat-dump structure (used during partial-build error
+ * paths in BotDumpInitialChat).  Walks all chat-types and chat-lines and
+ * releases the whole chain. */
+static void BotFreeChatList(chatlist_t *list)
+{
+  chattype_t *t, *tn;
+  chatline_t *l, *ln;
+  if ( !list )
+    return;
+  for ( t = list->types; t; t = tn )
+  {
+    tn = t->next;
+    for ( l = t->firstline; l; l = ln )
+    {
+      ln = l->next;
+      FreeMemory(l);
+    }
+    FreeMemory(t);
+  }
+  FreeMemory(list);
+}
+
 int __cdecl sub_1002DF70(int *a1)
 {
-  int result; // eax
-  void *dump = BotChatDumpSlot(a1);
-
-  result = (int)(intptr_t)dump;
-  if ( dump )
-    result = FreeMemory(dump);
+  chatlist_t *list = (chatlist_t *)BotChatDumpSlot(a1);
+  if ( !list )
+    return 0;
+  BotFreeChatList(list);
   BotChatDumpSlot(a1) = 0;
-  return result;
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -25280,108 +25305,91 @@ LABEL_37:
  * name at offset 0, chat-line list head at offset 36, and next at offset 40.
  * Returns the chosen chat line's chat-string pointer (chat_line[0]).
  * Q3 botlib has the same function with this name in be_ai_chat.c. */
-int __cdecl BotChooseInitialChatMessage(int a1, char *String2)
+char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2)
 {
-  int v2; // esi
-  int result; // eax
-  int v4; // edi
-  int v5; // ebx
-  int v6; // ecx
-  int v7; // edx
-  __int64 v8; // rax
-  int v9; // esi
-  int v10; // edi
-  double v11; // st7
-  float v12; // [esp+10h] [ebp+4h]
+  chatlist_t *list = (chatlist_t *)a1;
+  chattype_t *t;
+  chatline_t *l, *best;
+  int         n;
+  __int64     pick;
+  float       best_ltime;
 
-  v2 = *(_DWORD *)a1;
-  if ( !*(_DWORD *)a1 )
+  if ( !list || !list->types )
     return 0;
-  while ( _strcmpi((const char *)v2, String2) )
+  for ( t = list->types; t; t = t->next )
   {
-    v2 = *(_DWORD *)(v2 + 40);
-    if ( !v2 )
-      return 0;
+    if ( !_strcmpi(t->name, String2) )
+      break;
   }
-  v4 = *(_DWORD *)(v2 + 36);
-  v5 = 0;
-  if ( !v4 )
-    goto LABEL_10;
-  do
+  if ( !t )
+    return 0;
+
+  n = 0;
+  for ( l = t->firstline; l; l = l->next )
   {
-    if ( AAS_Time() >= *(float *)(v4 + 4) )
-      ++v5;
-    v4 = *(_DWORD *)(v4 + 8);
+    if ( AAS_Time() >= l->ltime )
+      ++n;
   }
-  while ( v4 );
-  if ( v5 <= 0 )
+
+  if ( n <= 0 )
   {
-LABEL_10:
-    v6 = *(_DWORD *)(v2 + 36);
-    v7 = 0;
-    v12 = 0.0;
-    if ( v6 )
+    best = NULL;
+    best_ltime = 0.0f;
+    for ( l = t->firstline; l; l = l->next )
     {
-      do
+      if ( best_ltime == 0.0f || l->ltime < (double)best_ltime )
       {
-        if ( v12 == 0.0 || *(float *)(v6 + 4) < (double)v12 )
-        {
-          v7 = v6;
-          v12 = *(float *)(v6 + 4);
-        }
-        v6 = *(_DWORD *)(v6 + 8);
+        best       = l;
+        best_ltime = l->ltime;
       }
-      while ( v6 );
-      if ( v7 )
-        return *(_DWORD *)v7;
     }
+    if ( best )
+      return best->string;
     return 0;
   }
-  v8 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v5);
-  v9 = *(_DWORD *)(v2 + 36);
-  v10 = v8;
-  if ( !v9 )
+
+  pick = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)n);
+  l    = t->firstline;
+  if ( !l )
     return 0;
-  while ( AAS_Time() < *(float *)(v9 + 4) || --v10 >= 0 )
+  while ( AAS_Time() < l->ltime || --pick >= 0 )
   {
-    v9 = *(_DWORD *)(v9 + 8);
-    if ( !v9 )
+    l = l->next;
+    if ( !l )
       return 0;
   }
-  v11 = AAS_Time();
-  result = *(_DWORD *)v9;
-  *(float *)(v9 + 4) = v11 + 20.0;
-  return result;
+  l->ltime = AAS_Time() + 20.0f;
+  return l->string;
 }
 
 //----- (1002E510) --------------------------------------------------------
 void __cdecl BotInitialChat(int a1, char *String2, int a3, ...)
 {
-  int v3; // eax
+  void *v3;       // chat list
   const char *v4; // ebp
   const char *v5; // edi
   int v6; // ebx
-  int *v7; // esi
+  intptr_t *v7;   // arg pointer walker
   char *v8; // edx
   unsigned int v9; // kr04_4
   char v10[80]; // [esp+4h] [ebp-50h] BYREF
 
-  v3 = (int)(intptr_t)BotChatDumpSlot(a1);
+  v3 = BotChatDumpSlot(a1);
   if ( v3 )
   {
-    v4 = (const char *)BotChooseInitialChatMessage(v3, String2);
+    v4 = BotChooseInitialChatMessage(v3, String2);
     if ( v4 )
     {
       memset(v10, 0, sizeof(v10));
-      v5 = (const char *)a3;
+      v5 = (const char *)(intptr_t)a3;
       v6 = 0;
-      v7 = &a3;
+      v7 = (intptr_t *)&a3;
       v8 = &v10[4];
       do
       {
         if ( !v5 )
           break;
-        *((_DWORD *)v8 - 1) = v5;
+        *((_DWORD *)v8 - 1) = (int)(intptr_t)v5;
         ++v7;
         v9 = strlen(v5) + 1;
         v5 = (const char *)*v7;
@@ -25390,7 +25398,7 @@ void __cdecl BotInitialChat(int a1, char *String2, int a3, ...)
         *((_DWORD *)v8 - 2) = v9 - 1;
       }
       while ( v6 < 10 );
-      BotConstructChatMessage(a1, v4, 0, (int)v10, 0);
+      BotConstructChatMessage(a1, v4, 0, (int)(intptr_t)v10, 0);
     }
   }
 }
