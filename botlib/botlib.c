@@ -845,15 +845,15 @@ FILE *Log_Close();
 FILE *Log_Write(char *Format, ...);
 FILE *Log_FilePointer();
 FILE *Log_Flush();
-int __cdecl sub_10038F10(int a1);
-int __cdecl sub_10038F50(int a1);
+int __cdecl LinkMemoryBlock(int a1);
+int __cdecl UnlinkMemoryBlock(int a1);
 int __cdecl GetMemory(int a1);
 void *__cdecl GetClearedMemory(unsigned int a1);
-int __cdecl UnlinkMemoryBlock(int a1, const char *a2);
+int __cdecl BlockFromPointer(int a1, const char *a2);
 int __cdecl FreeMemory(int ptr);
 int __cdecl MemoryByteSize(int ptr);
 int PrintUsedMemorySize();
-int sub_10039190();
+int PrintMemoryLabels();
 int DumpMemory();
 int sub_10039200(int a1, char *Format, ...);
 int sub_10039270(int a1, char *Format, ...);
@@ -9007,13 +9007,13 @@ int AAS_StartFrame(float time)
   }
   if ( LibVarGetValue(aMemorydump) != 0.0 )
   {
-    sub_10039190();
+    PrintMemoryLabels();
     sub_10038AC0(aMemorydump, (char *)a0);
   }
   return 0;
 }
 // 100014C9: using guessed type int PrintUsedMemorySize(void);
-// 1000185C: using guessed type int sub_10039190(void);
+// 1000185C: using guessed type int PrintMemoryLabels(void);
 // 1000186B: using guessed type int AAS_RoutingInfo(void);
 // 100667EC: using guessed type float aasworld.time;
 // 10066A70: using guessed type int aasworld.frameroutingupdates;
@@ -30760,7 +30760,7 @@ FILE *Log_Flush()
 }
 
 //----- (10038F10) --------------------------------------------------------
-int __cdecl sub_10038F10(int a1)
+int __cdecl LinkMemoryBlock(int a1)
 {
   int result; // eax
 
@@ -30775,7 +30775,7 @@ int __cdecl sub_10038F10(int a1)
 // 10063A30: using guessed type int dword_10063A30;
 
 //----- (10038F50) --------------------------------------------------------
-int __cdecl sub_10038F50(int a1)
+int __cdecl UnlinkMemoryBlock(int a1)
 {
   int result; // eax
   int v2; // ecx
@@ -30803,7 +30803,7 @@ int __cdecl GetMemory(int a1)
   *v1 = 305419896;
   v1[1] = v1 + 5;
   v1[2] = a1 + 20;
-  sub_10038F10((int)v1);
+  LinkMemoryBlock((int)v1);
   dword_10063A1C += v1[2];
   ++dword_10063A2C;
   return v1[1];
@@ -30824,7 +30824,7 @@ void *__cdecl GetClearedMemory(unsigned int a1)
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
 //----- (10039040) --------------------------------------------------------
-int __cdecl UnlinkMemoryBlock(int a1, const char *a2)
+int __cdecl BlockFromPointer(int a1, const char *a2)
 {
   int result; // eax
 
@@ -30851,11 +30851,11 @@ int __cdecl FreeMemory(int ptr)
   int result; // eax
   int v2; // esi
 
-  result = UnlinkMemoryBlock(ptr, aFreememory);
+  result = BlockFromPointer(ptr, aFreememory);
   v2 = result;
   if ( result )
   {
-    sub_10038F50(result);
+    UnlinkMemoryBlock(result);
     dword_10063A1C -= *(_DWORD *)(v2 + 8);
     --dword_10063A2C;
     return bi_FreeMemory(v2);
@@ -30871,7 +30871,7 @@ int __cdecl MemoryByteSize(int ptr)
 {
   int result; // eax
 
-  result = UnlinkMemoryBlock(ptr, aMemorybytesize);
+  result = BlockFromPointer(ptr, aMemorybytesize);
   if ( result )
     return *(_DWORD *)(result + 8);
   return result;
@@ -30888,7 +30888,7 @@ int PrintUsedMemorySize()
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10039190) --------------------------------------------------------
-int sub_10039190()
+int PrintMemoryLabels()
 {
   int result; // eax
 
