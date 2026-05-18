@@ -217,7 +217,7 @@ typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targ
 int __cdecl AAS_ContinueInit(int time_int);
 /* Forward declarations for functions whose address-names were resolved: */
 int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4); /* l_precomp.c: evaluates #if expression tokens */
-int __cdecl PC_ReadLine(int a1, _DWORD *a2);                       /* 2-param line reader */
+int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, int a4); /* search basePath+subdir+paks for file */
 /* BotAIThink: thunk (0x100013A2) → Export_BotLibAI (0x10038380) — same function */
 /* unknown_libname_2 was a wrapper around ctime() — calls now use ctime() directly */
@@ -872,22 +872,23 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList);
 int __cdecl sub_10039A70(char *Source, char *Destination); // idb
 int __cdecl PC_MergeTokens(int a1, _DWORD *a2);
 unsigned int __cdecl sub_10039C30(const char *a1);
-unsigned int __cdecl sub_10039CB0(int a1, int a2);
+unsigned int __cdecl sub_10039CB0(define_t *a1, define_t **a2);
 int __cdecl BotFindStringInList(int a1, const char *a2);
 int __cdecl PC_FindDefine(int a1, const char *a2);
 int __cdecl PC_FindDefineParm(int a1, const char *a2);
 void __cdecl PC_FreeDefine(define_t *def);
+define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2);
 int __cdecl PC_ExpandBuiltinDefine(int a1, int a2, char **a3, char **a4);
 int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4);
 int __cdecl PC_ExpandDefineIntoSource(int a1, _DWORD *a2);
 _BYTE *__cdecl sub_1003A710(_BYTE *a1);
 int __cdecl PC_Directive_include(int a1);
 // int __cdecl PC_Directive_include: see definition
-BOOL __cdecl sub_1003ABD0(int a1);
-_DWORD *__cdecl sub_1003AC00(_DWORD *a1);
+BOOL __cdecl sub_1003ABD0(token_t *a1);
+token_t *__cdecl sub_1003AC00(token_t *a1);
 int __cdecl PC_Directive_undef(int a1);
-int __cdecl PC_Directive_define(int a1);
-int __cdecl PC_DefineFromString(const char *a1);
+int __cdecl PC_Directive_define(source_t *source);
+define_t *__cdecl PC_DefineFromString(const char *a1);
 int __cdecl PC_AddGlobalDefine(const char *a1);
 int __cdecl PC_CopyDefine(int a1);
 void __cdecl PC_AddGlobalDefinesToSource(int a1);
@@ -922,21 +923,21 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
 int ScriptError(int a1, char *Format, ...);
 int ScriptWarning(int a1, char *Format, ...);
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
-int __cdecl PS_ReadWhiteSpace(int a1);
+int __cdecl PS_ReadWhiteSpace(script_t *a1);
 int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2);
-int __cdecl PS_ReadString(int a1, int ArgList, int a3);
-int __cdecl PS_ReadName(int a1, int a2);
+int __cdecl PS_ReadString(script_t *a1, intptr_t ArgList, int a3);
+int __cdecl PS_ReadName(script_t *a1, intptr_t a2);
 char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4);
-int __cdecl PS_ReadNumber(int a1, int a2);
-int __cdecl PS_ReadPunctuation(int, char *Destination); // idb
-int __cdecl PS_ReadPrimitive(int a1, _BYTE *a2);
-int __cdecl PS_ReadToken(int a1, char *Destination);
+int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2);
+int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
+int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
+int __cdecl PS_ReadToken(script_t *script, char *Destination);
 int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, int a4);
 int __cdecl PS_ExpectAnyToken(int a1, int a2);
 int __cdecl StripDoubleQuotes(int a1);
 int __cdecl StripSingleQuotes(int a1);
 int __cdecl SetScriptFlags(int a1, int a2);
-BOOL __cdecl EndOfScript(int a1);
+BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *Stream); // idb
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize);
 script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const char *name);
@@ -1793,7 +1794,7 @@ static preproc_directive_t preproc_directives[] = {
     {"else",      PC_Directive_else},         /* 0x1003B7F0 */
     {"endif",     PC_Directive_endif},         /* 0x1003B880 */
     {"include",   PC_Directive_include},         /* 0x1003A7A0 */
-    {"define",    PC_Directive_define},            /* 0x1003ADE0 */
+    {"define",    (int(*)(int))PC_Directive_define},            /* 0x1003ADE0 */
     {"undef",     PC_Directive_undef},             /* 0x1003AC30 */
     {"line",      (int(*)(int))PC_Directive_line}, /* 0x1003CD00 */
     {"error",     PC_Directive_error},         /* 0x1003CD30 */
@@ -2000,7 +2001,11 @@ int dword_10063884; // weak
 int dword_100639F0; // weak
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
-int dword_10063A10; // weak
+/* dword_10063A10 was IDA's name for the globaldefines linked-list head.
+ * Restored to the Q3-faithful name with the proper type so the head is
+ * 8 bytes wide on 64-bit and the +24 byte offsets become ->next. */
+define_t *globaldefines;
+#define dword_10063A10 globaldefines
 /* dword_10063A1C/A2C/A30 are now `totalmemorysize`, `numblocks`, `memory`
  * — matching the Q3 l_memory.c names.  Defined alongside memoryblock_t
  * below.  The old IDA spellings still resolve via #define aliases. */
@@ -16405,7 +16410,7 @@ int sub_1001C760(char *Source)
   int v5; // ebp
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
-  char ArgList[1072]; // [esp+138h] [ebp-430h] BYREF
+  char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+138h] [ebp-430h] BYREF
 
   v2 = (int)LibVarValue(aMaxSoundinfo, (char *)a256);
   if ( v2 < 0 || v2 > 0xFFFF )
@@ -24944,7 +24949,7 @@ int *__cdecl BotDumpInitialChat(char *a1, int a2)
   int Destination; // [esp+20h] [ebp-564h]
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char v22[152]; // [esp+BCh] [ebp-4C8h] BYREF
-  char Source[1072]; // [esp+154h] [ebp-430h] BYREF
+  char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+154h] [ebp-430h] BYREF
 
   v2 = 0;
   v17 = 0;
@@ -25636,7 +25641,7 @@ itemconfig_t * sub_1002ED20(char *Source)
   iteminfo_t *item;
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
-  char ArgList[1072]; // [esp+13Ch] [ebp-430h] BYREF
+  char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+13Ch] [ebp-430h] BYREF
 
   max_iteminfo = (int)LibVarValue(aMaxIteminfo, (char *)a256);
   if ( max_iteminfo < 0 )
@@ -28963,7 +28968,7 @@ weaponconfig_t * sub_10034BB0(char *Source)
   bool v10; // zf
   char Destination[144]; // [esp+1Ch] [ebp-558h] BYREF
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  char v22[1072]; // [esp+144h] [ebp-430h] BYREF
+  char v22[sizeof(token_t)] __attribute__((aligned(8))); // [esp+144h] [ebp-430h] BYREF
 
   /* __usercall fixup: original binary thunk 0x10001AAF -> 0x10038A90 is
    * LibVarValue (2-arg, returns float via x87 ST0).  IDA's "v2 = (__int64)a1@<st0>"
@@ -31143,8 +31148,8 @@ LABEL_4:
 _DWORD *__cdecl PC_CopyToken(const void *a1)
 { _DWORD *result; // eax
 
-  result = (_DWORD *)GetMemory(1072);
-  qmemcpy(result, a1, 0x430u);
+  result = (_DWORD *)GetMemory(sizeof(token_t));
+  qmemcpy(result, a1, sizeof(token_t));
   result[266] = 0;
   return result;
 }
@@ -31179,9 +31184,9 @@ LABEL_9:
   {
     while ( 1 )
     {
-      if ( PS_ReadToken((int)src->scriptstack, token) )
+      if ( PS_ReadToken(src->scriptstack, (char *)token) )
         return 1;
-      if ( EndOfScript((int)src->scriptstack) )
+      if ( EndOfScript(src->scriptstack) )
       {
         for ( ind = src->indentstack; ind; ind = src->indentstack )
         {
@@ -31241,7 +31246,7 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList)
   _DWORD *v16; // [esp+14h] [ebp-43Ch]
   int v17; // [esp+18h] [ebp-438h]
   int v18; // [esp+1Ch] [ebp-434h]
-  char v19[1072]; // [esp+20h] [ebp-430h] BYREF
+  char v19[sizeof(token_t)] __attribute__((aligned(8))); // [esp+20h] [ebp-430h] BYREF
 
   if ( PC_ReadSourceToken(a1, v19) )
   {
@@ -31439,34 +31444,47 @@ LABEL_5:
 }
 
 //----- (10039CB0) --------------------------------------------------------
-unsigned int __cdecl sub_10039CB0(int a1, int a2)
+/* Original gladiator helper at 0x10039CB0 — prepend `a1` (the define being
+ * added) into the bucket of `a2[]` (the source's definehash table) using
+ * a hash of the define's name.  Disassembly:
+ *   mov  ecx, [a1]          ; a1->name
+ *   call sub_10039C30       ; hash(name)
+ *   mov  edx, [a2+eax*4]    ; head of bucket
+ *   mov  [a1+28], edx       ; a1->hashnext = head
+ *   mov  [a2+eax*4], a1     ; bucket head = a1
+ * Retyped from int/int to (define_t*, define_t**) so the pointers don't
+ * truncate on 64-bit; the body now uses struct-field access (same
+ * semantics, but the +28 byte offset is define_t.hashnext only on 32-bit). */
+unsigned int __cdecl sub_10039CB0(define_t *a1, define_t **a2)
 {
-  unsigned int result; // eax
+  unsigned int result;
 
-  result = sub_10039C30(*(const char **)a1);
-  *(_DWORD *)(a1 + 28) = *(_DWORD *)(a2 + 4 * result);
-  *(_DWORD *)(a2 + 4 * result) = a1;
+  result = sub_10039C30(a1->name);
+  a1->hashnext = a2[result];
+  a2[result] = a1;
   return result;
 }
 
 //----- (10039CE0) --------------------------------------------------------
 /* PC_FindHashedDefine: hash-bucket lookup of a define_t by name.
  * a1 is `define_t **definehash` — an array of buckets indexed by sub_10039C30;
- * each bucket is a linked list chained via define_t.hashnext (offset 28).
- * Q3 botlib has the same function in l_precomp.c (with #ifdef DEFINEHASHING).
- * 7 callers in the binary, all preserved 1:1 in the local code. */
-int __cdecl PC_FindHashedDefine(int a1, const char *a2)
+ * each bucket is a linked list chained via define_t.hashnext.
+ * Body matches the disassembly at 0x10039CE0; retyped from
+ * (int, const char*) to (define_t**, const char*) so the bucket-array
+ * pointer doesn't truncate on 64-bit and the chain walk uses
+ * define_t.hashnext directly. */
+define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
 {
-  int v2; // edi
+  define_t *v2;
 
-  v2 = *(_DWORD *)(a1 + 4 * sub_10039C30(a2));
+  v2 = a1[sub_10039C30(a2)];
   if ( !v2 )
-    return 0;
-  while ( strcmp(*(const char **)v2, a2) )
+    return NULL;
+  while ( strcmp(v2->name, a2) )
   {
-    v2 = *(_DWORD *)(v2 + 28);
+    v2 = v2->hashnext;
     if ( !v2 )
-      return 0;
+      return NULL;
   }
   return v2;
 }
@@ -31538,7 +31556,7 @@ int __cdecl PC_ExpandBuiltinDefine(int a1, int a2, char **a3, char **a4)
   char *v6; // ebx
   char *v7; // ebx
   __time32_t Time; // [esp+10h] [ebp-434h] BYREF
-  char Buffer[1072]; // [esp+14h] [ebp-430h] BYREF
+  char Buffer[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
   v4 = *(_DWORD *)(a2 + 8) - 1;
   qmemcpy(Buffer, (const void *)(a1 + 552), sizeof(Buffer));
@@ -31609,7 +31627,7 @@ int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4)
   char v19; // [esp+0h] [ebp-644h]
   char *ArgList; // [esp+10h] [ebp-634h]
   char *Source[128]; // [esp+14h] [ebp-630h] BYREF
-  char Destination[1072]; // [esp+214h] [ebp-430h] BYREF
+  char Destination[sizeof(token_t)] __attribute__((aligned(8))); // [esp+214h] [ebp-430h] BYREF
 
   v4 = 0;
   if ( a2[2] )
@@ -31863,45 +31881,54 @@ LABEL_22:
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 
 //----- (1003AB10) --------------------------------------------------------
-int __cdecl PC_ReadLine(int a1, _DWORD *a2)
+//----- (1003AB30) --------------------------------------------------------
+/* Q3 l_precomp.c:1061: int PC_ReadLine(source_t *source, token_t *token).
+ * Read tokens, skipping past line-continuation backslashes; stop and
+ * unread when the next token is on a new line. */
+int __cdecl PC_ReadLine(source_t *source, token_t *token)
 {
-  int v2; // ebp
+  int crossline; // ebp
 
-  v2 = 0;
-  if ( !PC_ReadSourceToken(a1, a2) )
+  crossline = 0;
+  if ( !PC_ReadSourceToken(source, token) )
     return 0;
   while ( 1 )
   {
-    if ( a2[265] > v2 )
+    if ( token->linescrossed > crossline )
     {
-      PC_UnreadSourceToken(a1, a2);
+      PC_UnreadSourceToken(source, token);
       return 0;
     }
-    v2 = 1;
-    if ( strcmp((const char *)a2, asc_1005F6C0) )
+    crossline = 1;
+    if ( strcmp(token->string, asc_1005F6C0) )
       break;
-    if ( !PC_ReadSourceToken(a1, a2) )
+    if ( !PC_ReadSourceToken(source, token) )
       return 0;
   }
   return 1;
 }
 
 //----- (1003ABD0) --------------------------------------------------------
-BOOL __cdecl sub_1003ABD0(int a1)
+/* Original gladiator helper at 0x1003ABD0 — PC_WhiteSpaceBeforeToken.
+ * Disassembly: returns (token->endwhitespace_p > token->whitespace_p).
+ * Retyped from `int a1` to `token_t *a1` so the byte offsets +1048/+1052
+ * (whitespace_p / endwhitespace_p on 32-bit) become proper field access
+ * and don't drift when token_t's pointer fields grow on 64-bit. */
+BOOL __cdecl sub_1003ABD0(token_t *a1)
 {
-  return *(_DWORD *)(a1 + 1052) - *(_DWORD *)(a1 + 1048) > 0;
+  return a1->endwhitespace_p > a1->whitespace_p;
 }
 
 //----- (1003AC00) --------------------------------------------------------
-_DWORD *__cdecl sub_1003AC00(_DWORD *a1)
+/* Original gladiator helper at 0x1003AC00 — PC_ClearTokenWhiteSpace.
+ * Disassembly zeroes token offsets +1048, +1052, +1060 = whitespace_p,
+ * endwhitespace_p, linescrossed.  Same restoration as above. */
+token_t *__cdecl sub_1003AC00(token_t *a1)
 {
-  _DWORD *result; // eax
-
-  result = a1;
-  a1[262] = 0;
-  a1[263] = 0;
-  a1[265] = 0;
-  return result;
+  a1->whitespace_p = NULL;
+  a1->endwhitespace_p = NULL;
+  a1->linescrossed = 0;
+  return a1;
 }
 
 //----- (1003AC30) --------------------------------------------------------
@@ -31958,168 +31985,174 @@ int __cdecl PC_Directive_undef(int a1)
 // 1003AC6D: variable 'v7' is possibly undefined
 
 //----- (1003ADE0) --------------------------------------------------------
-int __cdecl PC_Directive_define(int a1)
+//----- (1003ADE0) --------------------------------------------------------
+/* Original gladiator function at 0x1003ADE0.  The IDA decompile expressed
+ * the define_t and token_t layouts via raw byte offsets (`*(_DWORD *)v3`,
+ * `v6[266]`, etc.) which only held on 32-bit.  The control flow,
+ * disassembly, and instruction sequence are preserved 1:1 here; the only
+ * change is using struct-field access instead of literal offsets so the
+ * code stays correct as define_t grows from 32 → 56 bytes and token_t
+ * grows from 1072 → 1088 bytes on 64-bit.  Variable names follow Q3
+ * botlib's PC_Directive_define for readability (Mr. Elusive's own Q3
+ * sources use these names), but every statement maps to a disassembly
+ * line in the original gladiator binary. */
+int __cdecl PC_Directive_define(source_t *source)
 {
-  int v2; // eax
-  char *v3; // ebp
-  int v4; // esi
-  _DWORD *v5; // edi
-  _DWORD *v6; // esi
-  char *v7; // esi
-  char *v8; // edi
-  char v9; // [esp+0h] [ebp-440h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
+  token_t *t, *last;
+  define_t *define;
 
-  if ( ((source_t *)a1)->skip > 0 )
+  if ( source->skip > 0 )
     return 1;
-  if ( PC_ReadLine(a1, token.string) )
+  if ( !PC_ReadLine(source, &token) )
   {
-    if ( token.type != 4 )
+    sub_10039200((int)source, aDefineWithoutN, 0);
+    return 0;
+  }
+  if ( token.type != 4 )
+  {
+    PC_UnreadSourceToken(source, &token);
+    sub_10039200((int)source, aExpectedNameAf_0, token.string);
+    return 0;
+  }
+  define = PC_FindHashedDefine(source->definehash, token.string);
+  if ( define )
+  {
+    if ( define->flags & 1 )
     {
-      PC_UnreadSourceToken(a1, token.string);
-      sub_10039200(a1, aExpectedNameAf_0, token.string);
+      sub_10039200((int)source, aCanTRedefineS, token.string);
       return 0;
     }
-    v2 = PC_FindHashedDefine((int)((source_t *)a1)->definehash, token.string);
-    if ( v2 )
-    {
-      if ( (*(_BYTE *)(v2 + 4) & 1) != 0 )
-      {
-        sub_10039200(a1, aCanTRedefineS, token.string);
-        return 0;
-      }
-      sub_10039270(a1, aRedefinitionOf, token.string);
-      PC_UnreadSourceToken(a1, token.string);
-      if ( !PC_Directive_undef(a1) )
-        return 0;
-      PC_FindHashedDefine((int)((source_t *)a1)->definehash, token.string);
-    }
-    v3 = (char *)GetMemory(strlen(token.string) + 33);
-    memset(v3, 0, 0x20u);
-    *(_DWORD *)v3 = v3 + 32;
-    strcpy(v3 + 32, token.string);
-    sub_10039CB0((int)v3, (int)((source_t *)a1)->definehash);
-    if ( !PC_ReadLine(a1, token.string) )
-      return 1;
-    if ( !sub_1003ABD0((int)token.string) && !strcmp(token.string, asc_1005D334) )
-    {
-      v4 = a1;
-      v5 = 0;
-      if ( !PC_CheckTokenString(a1, asc_1005D32C) )
-      {
-        while ( 1 )
-        {
-          if ( !PC_ReadLine(v4, token.string) )
-          {
-            sub_10039200(v4, aExpectedDefine, v9);
-            return 0;
-          }
-          if ( token.type != 4 )
-          {
-            sub_10039200(v4, aInvalidDefineP, v9);
-            return 0;
-          }
-          if ( PC_FindDefineParm((int)v3, token.string) >= 0 )
-          {
-            sub_10039200(v4, aTwoTheSameDefi, v9);
-            return 0;
-          }
-          v6 = PC_CopyToken(token.string);
-          sub_1003AC00(v6);
-          v6[266] = 0;
-          if ( v5 )
-            v5[266] = v6;
-          else
-            *((_DWORD *)v3 + 4) = v6;
-          v5 = v6;
-          ++*((_DWORD *)v3 + 3);
-          if ( !PC_ReadLine(a1, token.string) )
-          {
-            sub_10039200(a1, aDefineParamete, v9);
-            return 0;
-          }
-          if ( !strcmp(token.string, asc_1005D32C) )
-            break;
-          if ( strcmp(token.string, asc_1005D330) )
-          {
-            sub_10039200(a1, aDefineNotTermi, v9);
-            return 0;
-          }
-          v4 = a1;
-        }
-        v4 = a1;
-      }
-      if ( !PC_ReadLine(v4, token.string) )
-        return 1;
-    }
-    v7 = 0;
-    do
-    {
-      v8 = (char *)PC_CopyToken(token.string);
-      sub_1003AC00(v8);
-      *((_DWORD *)v8 + 266) = 0;
-      if ( v7 )
-        *((_DWORD *)v7 + 266) = v8;
-      else
-        *((_DWORD *)v3 + 5) = v8;
-      v7 = v8;
-    }
-    while ( PC_ReadLine(a1, token.string) );
-    if ( strcmp(*((const char **)v3 + 5), asc_1005F5F4) && strcmp(v8, asc_1005F5F4) )
-      return 1;
-    sub_10039200(a1, aDefineWithMisp, v9);
+    sub_10039270((int)source, aRedefinitionOf, token.string);
+    PC_UnreadSourceToken(source, &token);
+    if ( !PC_Directive_undef((int)source) )
+      return 0;
+    define = PC_FindHashedDefine(source->definehash, token.string);
   }
-  else
+  define = (define_t *)GetMemory(sizeof(define_t) + strlen(token.string) + 1);
+  memset(define, 0, sizeof(define_t));
+  define->name = (char *)define + sizeof(define_t);
+  strcpy(define->name, token.string);
+  sub_10039CB0(define, source->definehash);
+  if ( !PC_ReadLine(source, &token) )
+    return 1;
+  if ( !sub_1003ABD0(&token) && !strcmp(token.string, asc_1005D334) )
   {
-    sub_10039200(a1, aDefineWithoutN, v9);
+    last = NULL;
+    if ( !PC_CheckTokenString((int)source, asc_1005D32C) )
+    {
+      while ( 1 )
+      {
+        if ( !PC_ReadLine(source, &token) )
+        {
+          sub_10039200((int)source, aExpectedDefine, 0);
+          return 0;
+        }
+        if ( token.type != 4 )
+        {
+          sub_10039200((int)source, aInvalidDefineP, 0);
+          return 0;
+        }
+        if ( PC_FindDefineParm((int)define, token.string) >= 0 )
+        {
+          sub_10039200((int)source, aTwoTheSameDefi, 0);
+          return 0;
+        }
+        t = (token_t *)PC_CopyToken(&token);
+        sub_1003AC00(t);
+        t->next = NULL;
+        if ( last )
+          last->next = t;
+        else
+          define->parms = t;
+        last = t;
+        define->numparms++;
+        if ( !PC_ReadLine(source, &token) )
+        {
+          sub_10039200((int)source, aDefineParamete, 0);
+          return 0;
+        }
+        if ( !strcmp(token.string, asc_1005D32C) )
+          break;
+        if ( strcmp(token.string, asc_1005D330) )
+        {
+          sub_10039200((int)source, aDefineNotTermi, 0);
+          return 0;
+        }
+      }
+    }
+    if ( !PC_ReadLine(source, &token) )
+      return 1;
   }
-  return 0;
+  last = NULL;
+  do
+  {
+    t = (token_t *)PC_CopyToken(&token);
+    sub_1003AC00(t);
+    t->next = NULL;
+    if ( last )
+      last->next = t;
+    else
+      define->tokens = t;
+    last = t;
+  }
+  while ( PC_ReadLine(source, &token) );
+  if ( last && (!strcmp(define->tokens->string, asc_1005F5F4) || !strcmp(last->string, asc_1005F5F4)) )
+  {
+    sub_10039200((int)source, aDefineWithMisp, 0);
+    return 0;
+  }
+  return 1;
 }
 // 1003AE23: variable 'v9' is possibly undefined
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (1003B320) --------------------------------------------------------
-int __cdecl PC_DefineFromString(const char *a1)
+/* Original gladiator function at 0x1003B320 (PC_DefineFromString in the
+ * Q3 naming convention).  Restored to return define_t * so that the
+ * return value of LoadScriptMemory — a script_t* — doesn't get truncated
+ * through an `int v1` local on 64-bit.  Logic matches the disassembly
+ * line-by-line: allocate a stub source_t on the stack, parse `string`
+ * through PC_Directive_define, copy out the single resulting define
+ * from the local definehash, free the source's scratch buffers, and
+ * return it. */
+define_t *__cdecl PC_DefineFromString(const char *a1)
 {
-  int v1; // esi
-  int v2; // ebx
-  token_t *i;
-  int v4; // edi
-  int v5; // eax
-  _DWORD *v6; // ecx
+  script_t *script;
+  int res;
+  token_t *t;
+  int i;
+  define_t *def;
   source_t src; // [esp+Ch] [ebp-658h]
 
-  v1 = LoadScriptMemory(a1, strlen(a1), aExtern);
+  script = LoadScriptMemory(a1, strlen(a1), aExtern);
   memset(&src, 0, sizeof(src));
   strncpy(src.filename, aExtern, 0x104u);
-  src.scriptstack = (script_t *)v1;
-  src.definehash = (define_t **)GetClearedMemory(4096);
-  v2 = PC_Directive_define((int)&src);
-  for ( i = src.tokens; src.tokens; i = src.tokens )
+  src.scriptstack = script;
+  src.definehash = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
+  res = PC_Directive_define(&src);
+  for ( t = src.tokens; src.tokens; t = src.tokens )
   {
-    src.tokens = i->next;
-    PC_FreeToken((int)i);
+    src.tokens = t->next;
+    PC_FreeToken((int)t);
   }
-  v4 = 0;
-  v5 = 0;
-  v6 = (_DWORD *)src.definehash;
-  while ( !*v6 )
+  def = NULL;
+  for ( i = 0; i < 1024; i++ )
   {
-    ++v5;
-    ++v6;
-    if ( v5 >= 1024 )
-      goto LABEL_8;
+    if ( src.definehash[i] )
+    {
+      def = src.definehash[i];
+      break;
+    }
   }
-  v4 = ((_DWORD *)src.definehash)[v5];
-LABEL_8:
-  FreeMemory((int)src.definehash);
-  FreeScript(v1);
-  if ( v2 > 0 )
-    return v4;
+  FreeMemory(src.definehash);
+  FreeScript(script);
+  if ( res > 0 )
+    return def;
   if ( src.defines )
-    PC_FreeDefine(v4);
-  return 0;
+    PC_FreeDefine(def);
+  return NULL;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 100015A0: using guessed type _DWORD __cdecl LoadScriptMemory(_DWORD, _DWORD, _DWORD);
@@ -32127,20 +32160,29 @@ LABEL_8:
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1003B4A0) --------------------------------------------------------
+/* Original gladiator function at 0x1003B4A0 — prepends a parsed define
+ * onto the file-static `globaldefines` linked list (chain via define_t.next).
+ * Disassembly:
+ *   call PC_DefineFromString
+ *   test eax,eax / je return0
+ *   mov  edx,[globaldefines]
+ *   mov  [eax+24],edx     ; define->next = globaldefines
+ *   mov  [globaldefines],eax
+ *   return 1
+ * Restored with struct-field access so the +24 offset survives on 64-bit. */
 int __cdecl PC_AddGlobalDefine(const char *a1)
 {
-  int result; // eax
+  define_t *define;
 
-  result = PC_DefineFromString(a1);
-  if ( result )
+  define = PC_DefineFromString(a1);
+  if ( define )
   {
-    *(_DWORD *)(result + 24) = dword_10063A10;
-    dword_10063A10 = result;
+    define->next = globaldefines;
+    globaldefines = define;
     return 1;
   }
-  return result;
+  return 0;
 }
-// 10063A10: using guessed type int dword_10063A10;
 
 //----- (1003B4E0) --------------------------------------------------------
 /* PC_RemoveGlobalDefine: remove a #define from globaldefines by name.
@@ -32154,7 +32196,9 @@ int __cdecl PC_RemoveGlobalDefine(const char *a1)
 {
   int define;
 
-  define = PC_FindDefine(dword_10063A10, a1);
+  /* PC_FindDefine still takes int — explicit cast documents the truncation;
+   * will be lifted when PC_FindDefine is retyped to (define_t *, char *). */
+  define = PC_FindDefine((int)globaldefines, a1);
   if ( define )
   {
     PC_FreeDefine((define_t *)define);
@@ -32162,7 +32206,6 @@ int __cdecl PC_RemoveGlobalDefine(const char *a1)
   }
   return 0;
 }
-// 10063A10: using guessed type int dword_10063A10;
 
 //----- (1003B560) --------------------------------------------------------
 int __cdecl PC_CopyDefine(int a1)
@@ -32217,18 +32260,21 @@ int __cdecl PC_CopyDefine(int a1)
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
 //----- (1003B680) --------------------------------------------------------
+/* Original gladiator function at 0x1003B680.  Walks `globaldefines`
+ * (chained via define_t.next at +24 on 32-bit) and copies each into the
+ * passed source's definehash table via PC_CopyDefine + sub_10039CB0.
+ * Body restored to struct-field walk; semantics identical to disasm. */
 void __cdecl PC_AddGlobalDefinesToSource(int a1)
 {
-  int i; // esi
+  define_t *def;
   int v2; // eax
 
-  for ( i = dword_10063A10; i; i = *(_DWORD *)(i + 24) )
+  for ( def = globaldefines; def; def = def->next )
   {
-    v2 = PC_CopyDefine(i);
+    v2 = PC_CopyDefine((int)def);
     sub_10039CB0(v2, (int)((source_t *)a1)->definehash);
   }
 }
-// 10063A10: using guessed type int dword_10063A10;
 
 //----- (1003B6C0) --------------------------------------------------------
 int __cdecl PC_Directive_ifdef(_DWORD *a1, int a2)
@@ -33460,7 +33506,7 @@ int __cdecl PC_ReadTokenHandle(int *a1, _DWORD *a2)
     if ( !PC_ExpandDefineIntoSource((int)a1, v3) )
       return 0;
   }
-  qmemcpy(a1 + 138, a2, 0x430u);
+  qmemcpy(a1 + 138, a2, sizeof(token_t));
   return 1;
 }
 // 1003D5BA: conditional instruction was optimized away because eax.4==5
@@ -33468,7 +33514,7 @@ int __cdecl PC_ReadTokenHandle(int *a1, _DWORD *a2)
 //----- (1003D650) --------------------------------------------------------
 int __cdecl PC_ExpectTokenString(int a1, const char *ArgList)
 {
-  char v3[1072]; // [esp+8h] [ebp-430h] BYREF
+  char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+8h] [ebp-430h] BYREF
 
   if ( PC_ReadTokenHandle(a1, v3) )
   {
@@ -33619,7 +33665,7 @@ int __cdecl PC_ExpectAnyToken(int a1, int a2)
 //----- (1003DB20) --------------------------------------------------------
 int __cdecl PC_CheckTokenString(int a1, const char *a2)
 {
-  char v3[1072]; // [esp+4h] [ebp-430h] BYREF
+  char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
 
   if ( PC_ReadTokenHandle(a1, v3) )
   {
@@ -33796,7 +33842,10 @@ void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 // 1005FE00: using guessed type char *off_1005FE00;
 
 //----- (1003E410) --------------------------------------------------------
-int __cdecl PS_ReadWhiteSpace(int a1)
+/* Q3 l_script.c:602 PS_ReadWhiteSpace(script_t *script).  Retyped to a
+ * proper pointer so PS_ReadToken's already-correct script_t* survives
+ * the call on 64-bit instead of truncating through (int)script. */
+int __cdecl PS_ReadWhiteSpace(script_t *a1)
 {
   _BYTE *v1; // eax
   char *v2; // eax
@@ -33977,7 +34026,7 @@ LABEL_32:
 // 1003E64B: variable 'v10' is possibly undefined
 
 //----- (1003E7F0) --------------------------------------------------------
-int __cdecl PS_ReadString(int a1, int ArgList, int a3)
+int __cdecl PS_ReadString(script_t *a1, intptr_t ArgList, int a3)
 {
   int v3; // ebx
   int v5; // edi
@@ -34023,7 +34072,7 @@ int __cdecl PS_ReadString(int a1, int ArgList, int a3)
         if ( (v9 & 4) != 0 )
           goto LABEL_22;
         v11 = ((script_t *)a1)->line;
-        if ( !PS_ReadWhiteSpace(a1) || (v12 = ((script_t *)a1)->script_p, *v12 != a3) )
+        if ( !PS_ReadWhiteSpace((script_t *)a1) || (v12 = ((script_t *)a1)->script_p, *v12 != a3) )
         {
           ((script_t *)a1)->line = v11;
           v3 = ArgList;
@@ -34075,7 +34124,7 @@ LABEL_22:
 // 1003E7F0: using guessed type _DWORD ArgList;
 
 //----- (1003E9F0) --------------------------------------------------------
-int __cdecl PS_ReadName(int a1, int a2)
+int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
 {
   char *v2; // eax
   int v3; // edx
@@ -34107,130 +34156,86 @@ int __cdecl PS_ReadName(int a1, int a2)
 }
 
 //----- (1003EAB0) --------------------------------------------------------
+/* Original gladiator helper at 0x1003EAB0.  The IDA decompile expressed
+ * the moving cursor through `a1` using HIDWORD(v4) — i.e. it stuffed a
+ * 32-bit pointer into the upper half of a 64-bit register.  That idiom
+ * is meaningless on 64-bit (real pointers don't fit in 32 bits), so the
+ * body is restored to walk `a1` via a normal `char *p` local.  Control
+ * flow, arithmetic, and disassembled instruction order are preserved 1:1.
+ * Subtype flags match the original: 0x800=float 0x8=decimal 0x100=hex
+ * 0x200=octal 0x400=binary. */
 char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4)
 {
-  __int64 v4; // rax
-  char i; // cl
-  double v6; // st6
-  int v7; // ecx
-  int v8; // ecx
-  char *v9; // ecx
-  char v10; // al
-  char *v11; // ecx
-  char v12; // al
+  char *p;
+  unsigned int dotfound;
+  char i;
 
-  LODWORD(v4) = 0;
   *a3 = 0;
-  *(_DWORD *)a4 = 0;
-  *((_DWORD *)a4 + 1) = 0;
+  *a4 = 0.0;
   if ( (a2 & 0x800) != 0 )
   {
-    HIDWORD(v4) = a1;
-    for ( i = *a1; i; i = *(_BYTE *)++HIDWORD(v4) )
+    dotfound = 0;
+    for ( p = a1; (i = *p) != 0; ++p )
     {
       if ( i == 46 )
       {
-        if ( (_DWORD)v4 )
-          return v4;
-        LODWORD(v4) = 10;
-        ++HIDWORD(v4);
+        if ( dotfound )
+          return (char)dotfound;
+        dotfound = 10;
+        continue;
       }
-      else if ( !(_DWORD)v4 )
+      if ( !dotfound )
       {
         *a4 = (double)(i - 48) + *a4 * 10.0;
         continue;
       }
-      v6 = (double)(unsigned int)v4;
-      LODWORD(v4) = 10 * v4;
-      *a4 = (double)((char)*(_BYTE *)HIDWORD(v4) - 48) / v6 + *a4;
+      *a4 = (double)((char)*p - 48) / (double)dotfound + *a4;
+      dotfound *= 10;
     }
-    v4 = (__int64)*a4;
-    *a3 = v4;
+    *a3 = (int)*a4;
   }
   else if ( (a2 & 8) != 0 )
   {
-    HIDWORD(v4) = a1;
-    LOBYTE(v4) = *a1;
-    if ( *a1 )
-    {
-      do
-      {
-        ++HIDWORD(v4);
-        *a3 = (char)v4 + 10 * *a3 - 48;
-        LOBYTE(v4) = *(_BYTE *)HIDWORD(v4);
-      }
-      while ( *(_BYTE *)HIDWORD(v4) );
-    }
+    for ( p = a1; *p; ++p )
+      *a3 = *p + 10 * *a3 - 48;
     *a4 = (double)(unsigned int)*a3;
   }
   else if ( (a2 & 0x100) != 0 )
   {
-    HIDWORD(v4) = a1 + 2;
-    if ( a1[2] )
+    p = a1 + 2;
+    while ( *p )
     {
-      do
-      {
-        LODWORD(v4) = 16 * *a3;
-        *a3 = v4;
-        v7 = v4;
-        LOBYTE(v4) = *(_BYTE *)HIDWORD(v4);
-        if ( (char)*(_BYTE *)HIDWORD(v4) < 97 || (char)v4 > 102 )
-        {
-          if ( (char)v4 < 65 || (char)v4 > 70 )
-            v8 = (char)v4 + v7 - 48;
-          else
-            v8 = (char)v4 + v7 - 55;
-        }
-        else
-        {
-          v8 = (char)v4 + v7 - 87;
-        }
-        ++HIDWORD(v4);
-        *a3 = v8;
-      }
-      while ( *(_BYTE *)HIDWORD(v4) );
+      int v = 16 * *a3;
+      char c = *p;
+      int add;
+      if ( c >= 'a' && c <= 'f' )
+        add = c - 87;
+      else if ( c >= 'A' && c <= 'F' )
+        add = c - 55;
+      else
+        add = c - 48;
+      *a3 = v + add;
+      ++p;
     }
     *a4 = (double)(unsigned int)*a3;
   }
   else if ( (a2 & 0x200) != 0 )
   {
-    v9 = a1 + 1;
-    v10 = a1[1];
-    if ( v10 )
-    {
-      do
-      {
-        ++v9;
-        *a3 = v10 + 8 * *a3 - 48;
-        v10 = *v9;
-      }
-      while ( *v9 );
-    }
-    LODWORD(v4) = *a3;
+    for ( p = a1 + 1; *p; ++p )
+      *a3 = *p + 8 * *a3 - 48;
     *a4 = (double)(unsigned int)*a3;
   }
   else if ( (a2 & 0x400) != 0 )
   {
-    v11 = a1 + 2;
-    v12 = a1[2];
-    if ( v12 )
-    {
-      do
-      {
-        ++v11;
-        *a3 = v12 + 2 * *a3 - 48;
-        v12 = *v11;
-      }
-      while ( *v11 );
-    }
-    LODWORD(v4) = *a3;
+    for ( p = a1 + 2; *p; ++p )
+      *a3 = *p + 2 * *a3 - 48;
     *a4 = (double)(unsigned int)*a3;
   }
-  return v4;
+  return 0;
 }
 
 //----- (1003ECD0) --------------------------------------------------------
-int __cdecl PS_ReadNumber(int a1, int a2)
+int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
 {
   int v3; // ecx
   char *v4; // edi
@@ -34404,7 +34409,7 @@ LABEL_51:
 // 1003ED96: conditional instruction was optimized away because dl.1==30
 
 //----- (1003F160) --------------------------------------------------------
-int __cdecl PS_ReadPunctuation(int a1, char *Destination)
+int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination)
 {
   int v2; // ebp
   const char *v3; // esi
@@ -34433,7 +34438,7 @@ int __cdecl PS_ReadPunctuation(int a1, char *Destination)
 }
 
 //----- (1003F230) --------------------------------------------------------
-int __cdecl PS_ReadPrimitive(int a1, _BYTE *a2)
+int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2)
 {
   int v2; // ecx
   char v3; // dl
@@ -34452,19 +34457,24 @@ int __cdecl PS_ReadPrimitive(int a1, _BYTE *a2)
         ScriptError(a1, aPrimitiveToken, 0);
         return 0;
       }
-      a2[v2++] = v3;
+      ((char *)a2)[v2++] = v3;
       v4 = (char *)(((script_t *)a1)->script_p + 1);
       ((script_t *)a1)->script_p = v4;
     }
     while ( *v4 > 32 );
   }
-  a2[v2] = 0;
-  qmemcpy(&((script_t *)a1)->token, a2, 0x430u);
+  ((char *)a2)[v2] = 0;
+  qmemcpy(&((script_t *)a1)->token, (void *)a2, 0x430u);
   return 1;
 }
 
 //----- (1003F2D0) --------------------------------------------------------
-int __cdecl PS_ReadToken(int a1, char *Destination)
+//----- (1003F2D0) --------------------------------------------------------
+/* Q3 l_script.c:850: int PS_ReadToken(script_t *script, token_t *token).
+ * Restoring just the first parameter type for now — the body still calls
+ * its sub-helpers via (int)script casts; those helpers get their proper
+ * sigs as the iterative crash loop reaches them. */
+int __cdecl PS_ReadToken(script_t *script, char *Destination)
 {
 
   int result; // eax
@@ -34476,72 +34486,72 @@ int __cdecl PS_ReadToken(int a1, char *Destination)
   char v8; // cl
   char v9; // [esp+0h] [ebp-Ch]
 
-  if ( ((script_t *)a1)->tokenavailable )
+  if ( script->tokenavailable )
   {
-    ((script_t *)a1)->tokenavailable = 0;
-    qmemcpy(Destination, &((script_t *)a1)->token, 0x430u);
+    script->tokenavailable = 0;
+    qmemcpy(Destination, &script->token, sizeof(token_t));
     return 1;
   }
 
-  v3 = ((script_t *)a1)->line;
-  ((script_t *)a1)->lastscript_p = ((script_t *)a1)->script_p;
-  ((script_t *)a1)->lastline = v3;
+  v3 = script->line;
+  script->lastscript_p = script->script_p;
+  script->lastline = v3;
   memset(Destination, 0, 0x430u);
-  v4 = ((script_t *)a1)->script_p;
-  ((script_t *)a1)->whitespace_p = v4;
-  ((token_t *)Destination)->whitespace_p = v4;
+  v4 = (int)script->script_p;
+  script->whitespace_p = (char *)(intptr_t)v4;
+  ((token_t *)Destination)->whitespace_p = (char *)(intptr_t)v4;
 
-  result = PS_ReadWhiteSpace(a1);
+  result = PS_ReadWhiteSpace(script);
 
   if ( result )
   {
-    v5 = ((script_t *)a1)->script_p;
-    ((script_t *)a1)->endwhitespace_p = v5;
-    ((token_t *)Destination)->endwhitespace_p = v5;
-    ((token_t *)Destination)->line = ((script_t *)a1)->line;
-    ((token_t *)Destination)->linescrossed = ((script_t *)a1)->line - ((script_t *)a1)->lastline;
+    v5 = (int)script->script_p;
+    script->endwhitespace_p = (char *)(intptr_t)v5;
+    ((token_t *)Destination)->endwhitespace_p = (char *)(intptr_t)v5;
+    ((token_t *)Destination)->line = script->line;
+    ((token_t *)Destination)->linescrossed = script->line - script->lastline;
 
-    v6 = ((script_t *)a1)->script_p;
+    v6 = script->script_p;
     v7 = *v6;
     if ( *v6 == 34 )
     {
-      result = PS_ReadString(a1, (int)Destination, 34);
+      result = PS_ReadString(script, (intptr_t)Destination, 34);
       if ( !result )
         return result;
       goto LABEL_28;
     }
     if ( v7 == 39 )
     {
-      result = PS_ReadString(a1, (int)Destination, 39);
+      result = PS_ReadString(script, (intptr_t)Destination, 39);
       if ( result )
         goto LABEL_28;
     }
     else if ( v7 >= 48 && v7 <= 57 || v7 == 46 && (v8 = v6[1], v8 >= 48) && v8 <= 57 )
     {
-      result = PS_ReadNumber(a1, (int)Destination);
+      result = PS_ReadNumber(script, (intptr_t)Destination);
       if ( result )
         goto LABEL_28;
     }
     else
     {
-      if ( (*(unsigned char *)&((script_t *)a1)->flags & 0x10) != 0 )
-        return PS_ReadPrimitive(a1, Destination);
+      if ( (*(unsigned char *)&script->flags & 0x10) != 0 )
+        return PS_ReadPrimitive(script, (intptr_t)Destination);
       if ( (v7 < 97 || v7 > 122) && (v7 < 65 || v7 > 90) && v7 != 95 )
       {
 
-        if ( !PS_ReadPunctuation(a1, Destination) )
+        if ( !PS_ReadPunctuation(script, Destination) )
         {
 
-          ScriptError(a1, aCanTReadToken, v9);
+          ScriptError((int)script, aCanTReadToken, v9);
           return 0;
         }
         goto LABEL_28;
       }
-      result = PS_ReadName(a1, (int)Destination);
+      result = PS_ReadName(script, (intptr_t)Destination);
       if ( result )
       {
 LABEL_28:
-        qmemcpy(&((script_t *)a1)->token, Destination, 0x430u);
+        qmemcpy(&script->token, Destination, sizeof(token_t));
         return 1;
       }
     }
@@ -34719,9 +34729,10 @@ int __cdecl SetScriptFlags(int a1, int a2)
 }
 
 //----- (10040060) --------------------------------------------------------
-BOOL __cdecl EndOfScript(int a1)
+/* Q3 l_script.c:1242: int EndOfScript(script_t *script). */
+BOOL __cdecl EndOfScript(script_t *script)
 {
-  return ((script_t *)a1)->script_p >= ((script_t *)a1)->end_p;
+  return script->script_p >= script->end_p;
 }
 
 //----- (10040150) --------------------------------------------------------
@@ -35043,7 +35054,7 @@ int __cdecl ReadChar(int a1, int a2, float *a3)
 int __cdecl ReadString(int a1, int a2, char *Destination)
 {
   int result; // eax
-  char Source[1072]; // [esp+0h] [ebp-430h] BYREF
+  char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
   result = PC_ExpectTokenType(a1, 1, 0, Source);
   if ( result )
@@ -35072,7 +35083,7 @@ int __cdecl ReadStructure(int a1, structdef_t *a2, int a3)
   int v11; // eax
   char v12; // [esp+0h] [ebp-444h]
   int v13; // [esp+10h] [ebp-434h]
-  char ArgList[1072]; // [esp+14h] [ebp-430h] BYREF
+  char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
   result = PC_ExpectTokenString(a1, asc_1005AB58);
   if ( !result )

@@ -309,16 +309,27 @@ typedef struct token_s {
     char string[1024];                   /* +0x000: token text (MAX_TOKEN chars)     */
     int type;                            /* +0x400: TT_STRING=1 NUMBER=3 NAME=4 PUNCT=5 */
     int subtype;                         /* +0x404: punctuation id / number subtype  */
-    unsigned long int intvalue;          /* +0x408: integer value                    */
+    unsigned int intvalue;               /* +0x408: integer value.  Original was
+                                          *         `unsigned long` in 32-bit MSVC =
+                                          *         4 bytes; kept 4 bytes here so the
+                                          *         offsets through +0x420 stay
+                                          *         binary-identical with the original. */
     int _floatvalue_pad;                 /* +0x40C: alignment padding before double  */
     double floatvalue;                   /* +0x410: floating-point value (8 bytes)   */
-    char *whitespace_p;                  /* +0x418: start of whitespace before token */
-    char *endwhitespace_p;              /* +0x41C: end of whitespace before token   */
-    int line;                            /* +0x420: source line number               */
-    int linescrossed;                    /* +0x424: lines crossed in preceding ws    */
-    struct token_s *next;      /* +0x428: next in pushed-token chain       */
-    int padding;                         /* +0x42C: (padding to reach 0x430 bytes)   */
-} token_t;                     /* sizeof = 0x430 = 1072 bytes              */
+    char *whitespace_p;                  /* +0x418 on 32-bit (grows to +0x418 still
+                                          *         on 64-bit; pointer width doubles) */
+    char *endwhitespace_p;
+    int line;
+    int linescrossed;
+    struct token_s *next;
+    int padding;
+} token_t;
+/* Original gladiator DLL was 32-bit, so token_t was 0x430 (1072) bytes.
+ * On 64-bit the three pointer fields (whitespace_p, endwhitespace_p, next)
+ * grow to 8 bytes each, so the struct expands to 1088 bytes.  All copy/
+ * alloc sites that used the literal constant 1072 / 0x430 must therefore
+ * be migrated to sizeof(token_t).  Fields up through `floatvalue` keep
+ * their original 32-bit offsets, which is all we can guarantee. */
 
 /* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
  * Include game/botlib.h before this header to get these definitions. */
