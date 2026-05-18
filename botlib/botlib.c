@@ -10873,15 +10873,16 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
   int v34; // edx
   float v35; // eax
   int v36; // ecx
-  int v38; // [esp+10h] [ebp-A0h] BYREF
-  float v39; // [esp+14h] [ebp-9Ch]
-  float v40; // [esp+18h] [ebp-98h]
+  /* Original MSVC layout: int v38 + float v39 + float v40 were a contiguous
+   * vec3 (inner edge midpoint) passed by-address to VectorLength/VectorScale/
+   * VectorMA/sub_10011740.  GCC won't pack int adjacent to float, so collapse. */
+  vec3_t v38; // [esp+10h] [ebp-A0h] BYREF — was int v38 + float v39 + float v40
   float v41; // [esp+1Ch] [ebp-94h]
   int v42; // [esp+20h] [ebp-90h]
   float v43; // [esp+24h] [ebp-8Ch]
-  int v44; // [esp+28h] [ebp-88h] BYREF
-  int v45; // [esp+2Ch] [ebp-84h]
-  float v46; // [esp+30h] [ebp-80h]
+  /* Same pattern: int v44 + int v45 + float v46 were contiguous vec3 (outer
+   * edge point) passed by-address to VectorMA / sub_10011740. */
+  vec3_t v44; // [esp+28h] [ebp-88h] BYREF — was int v44 + int v45 + float v46
   int v47; // [esp+34h] [ebp-7Ch]
   float v48; // [esp+38h] [ebp-78h]
   int v49; // [esp+3Ch] [ebp-74h]
@@ -10976,17 +10977,17 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                               {
                                 v19 = v18 < 0;
                                 v20 = (char *)aasworld.edges + 8 * abs32(v18);
-                                *(float *)&v38 = *((float *)aasworld.vertexes + 3 * v20[1])
-                                               + *((float *)aasworld.vertexes + 3 * *v20);
-                                v39 = *((float *)aasworld.vertexes + 3 * v20[1] + 1)
-                                    + *((float *)aasworld.vertexes + 3 * *v20 + 1);
-                                v40 = *((float *)aasworld.vertexes + 3 * v20[1] + 2)
-                                    + *((float *)aasworld.vertexes + 3 * *v20 + 2);
-                                v48 = VectorLength(&v38);
-                                VectorScale((float *)&v38, 0.5, (float *)&v38);
-                                v44 = v38;
-                                v45 = LODWORD(v39);
-                                v46 = v40;
+                                v38[0] = *((float *)aasworld.vertexes + 3 * v20[1])
+                                       + *((float *)aasworld.vertexes + 3 * *v20);
+                                v38[1] = *((float *)aasworld.vertexes + 3 * v20[1] + 1)
+                                       + *((float *)aasworld.vertexes + 3 * *v20 + 1);
+                                v38[2] = *((float *)aasworld.vertexes + 3 * v20[1] + 2)
+                                       + *((float *)aasworld.vertexes + 3 * *v20 + 2);
+                                v48 = VectorLength(v38);
+                                VectorScale(v38, 0.5, v38);
+                                v44[0] = v38[0];
+                                v44[1] = v38[1];
+                                v44[2] = v38[2];
                                 v21 = &v20[!v19];
                                 v71[0] = *((float *)aasworld.vertexes + 3 * v20[v19])
                                        - *((float *)aasworld.vertexes + 3 * *v21);
@@ -10998,25 +10999,25 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                                        - *((float *)aasworld.vertexes + 3 * *v21 + 2);
                                 CrossProduct(v71, (char *)aasworld.planes + 20 * *v59, v72);
                                 VectorNormalize(v72);
-                                VectorMA((float *)&v44, 5.0, (float *)v72, (float *)&v44);
-                                VectorMA((float *)&v38, 0.1, (float *)v72, (float *)&v38);
-                                v46 = v46 + 0.125;
-                                v41 = v40 * v56 + v39 * v55 + *(float *)&v38 * v54;
-                                if ( !sub_10011740((float *)&v38, (float *)&v44) )
+                                VectorMA(v44, 5.0, v72, v44);
+                                VectorMA(v38, 0.1, v72, v38);
+                                v44[2] = v44[2] + 0.125;
+                                v41 = v38[2] * v56 + v38[1] * v55 + v38[0] * v54;
+                                if ( !sub_10011740(v38, v44) )
                                   v41 = v41 + 200.0;
                                 if ( v41 < (double)v43 || v43 + 1.0 > v41 && v48 > (double)v53 )
                                 {
                                   v60 = a2;
                                   v43 = v41;
                                   v53 = v48;
-                                  v65 = v40;
-                                  v63 = v38;
-                                  v64 = v39;
-                                  v68 = v46;
+                                  v65 = v38[2];
+                                  v63 = *(int *)v38;
+                                  v64 = v38[1];
+                                  v68 = v44[2];
                                   v61 = 0;
                                   v62 = v18;
-                                  v66 = v44;
-                                  v67 = v45;
+                                  v66 = *(int *)v44;
+                                  v67 = *(int *)&v44[1];
                                   v69 = 2;
                                   v70 = 1;
                                   v47 = 1;
@@ -11243,8 +11244,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   float v138[3]; // [esp+14Ch] [ebp-84h] BYREF
   float v139[3]; // [esp+158h] [ebp-78h] BYREF
   float v140[3]; // [esp+164h] [ebp-6Ch] BYREF
-  int v141[2]; // [esp+170h] [ebp-60h] BYREF
-  float v142; // [esp+178h] [ebp-58h]
+  /* Original MSVC layout: int v141[2] @ ebp-60h + float v142 @ ebp-58h were a
+   * contiguous vec3 used as VectorMA destination and trace point for
+   * AAS_PointAreaNum.  GCC won't pack int[2] adjacent to a separate float, so
+   * VectorMA's third write overruns v141 into stack padding, v142 is read
+   * uninitialized, and the z decrement has no effect on the trace point.
+   * Collapsed to a vec3_t. */
+  vec3_t v141; // [esp+170h] [ebp-60h] BYREF — was int v141[2] + float v142
   float v143[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
 
@@ -11530,9 +11536,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                                   v121 = v91;
                                   v122 = v92;
                                   v123 = *(float *)&v93;
-                                  *(float *)v120 = v101;
-                                  v120[1] = v102;
-                                  v120[2] = v103;
+                                  /* Original asm uses integer movs to copy bit patterns from
+                                   * v101/v102/v103 (int slots holding cross-product float bits)
+                                   * into v120[0..2].  IDA's `v120[1] = v102` decompile would
+                                   * become an int→float conversion (fild) in GCC, corrupting
+                                   * the float.  Bit-cast explicitly. */
+                                  *(int *)v120 = *(int *)&v101;
+                                  *(int *)&v120[1] = v102;
+                                  *(int *)&v120[2] = v103;
                                   v116 = 1;
                                   v113 = v13;
                                   v110 = v94;
@@ -11547,14 +11558,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                                 v135 = v91;
                                 v136 = *(float *)&v92;
                                 v137 = *(float *)&v93;
-                                *(float *)v139 = v101;
-                                v139[1] = v102;
-                                v139[2] = v103;
+                                /* Same bit-pattern preservation as v120 above. */
+                                *(int *)v139 = *(int *)&v101;
+                                *(int *)&v139[1] = v102;
+                                *(int *)&v139[2] = v103;
                                 v118 = 1;
                                 v114 = v13;
-                                v138[0] = v94;
-                                v138[1] = v95;
-                                v138[2] = v96;
+                                *(int *)v138 = v94;
+                                *(int *)&v138[1] = v95;
+                                *(int *)&v138[2] = v96;
                               }
                             }
                           }
@@ -11603,8 +11615,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           return 1;
         }
         if ( v118
-          && (VectorMA((float *)v138, -2.0, (float *)v139, (float *)v141),
-              v142 = v142 - libvar_sv_maxwaterjump->value,
+          && (VectorMA((float *)v138, -2.0, (float *)v139, v141),
+              v141[2] = v141[2] - libvar_sv_maxwaterjump->value,
               (*((_BYTE *)aasworld.areasettings + 28 * AAS_PointAreaNum(v141) + 4) & 4) != 0)
           && libvar_sv_maxwaterjump->value + 24.0 > v100 )
         {
