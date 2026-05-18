@@ -298,14 +298,14 @@ typedef struct bot_fileref_s {
  * Using a proper struct makes it pointer-size-agnostic (works on both 32 and 64-bit). */
 typedef struct { int size; char **fields; } structdef_t;
 
-/* gladiator_token_t — script token (= Q3A l_script.h::token_t with NUMBERVALUE).
+/* token_t — script token (= Q3A l_script.h::token_t with NUMBERVALUE).
  * Layout verified by disassembly of gladiator.dll (PS_ReadToken writes):
  *   type        at buf+256*4 = +0x400 ✓
  *   linescrossed at buf+265*4 = +0x424 ✓   → next at +0x428
  * Q3 comparison: Q3 has float floatvalue (+0x40C, 4 bytes) giving next at +0x420.
  * Gladiator has double floatvalue (+0x410, 8 bytes) with 4-byte alignment pad before it,
  * which pushes whitespace_p to +0x418 and next to +0x428 — matching disassembly. */
-typedef struct gladiator_token_s {
+typedef struct token_s {
     char string[1024];                   /* +0x000: token text (MAX_TOKEN chars)     */
     int type;                            /* +0x400: TT_STRING=1 NUMBER=3 NAME=4 PUNCT=5 */
     int subtype;                         /* +0x404: punctuation id / number subtype  */
@@ -316,9 +316,9 @@ typedef struct gladiator_token_s {
     char *endwhitespace_p;              /* +0x41C: end of whitespace before token   */
     int line;                            /* +0x420: source line number               */
     int linescrossed;                    /* +0x424: lines crossed in preceding ws    */
-    struct gladiator_token_s *next;      /* +0x428: next in pushed-token chain       */
+    struct token_s *next;      /* +0x428: next in pushed-token chain       */
     int padding;                         /* +0x42C: (padding to reach 0x430 bytes)   */
-} gladiator_token_t;                     /* sizeof = 0x430 = 1072 bytes              */
+} token_t;                     /* sizeof = 0x430 = 1072 bytes              */
 
 /* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
  * Include game/botlib.h before this header to get these definitions. */

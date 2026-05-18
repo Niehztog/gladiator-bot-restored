@@ -865,7 +865,7 @@ indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
 int __cdecl sub_100393E0(source_t *src, script_t *script);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
 int __cdecl PC_FreeToken(int a1);
-int __cdecl PC_ReadSourceToken(source_t *src, gladiator_token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
+int __cdecl PC_ReadSourceToken(source_t *src, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
 int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList);
 /* PC_ExpandDefine forward decl below (signature matches impl) */
@@ -4277,7 +4277,7 @@ char **sub_100069A0()
   char *v4; // edx
   char v6; // [esp+0h] [ebp-448h]
   char ***v7; // [esp+10h] [ebp-438h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v0 = LoadScriptMemory(dword_100674E4, dword_100674E0, aEntdata);
   SetScriptFlags(v0, 12);
@@ -22952,7 +22952,7 @@ int *__cdecl BotLoadCharacter(char *Source, int a2)
   int v17; // [esp+20h] [ebp-5D4h]
   char *v18; // [esp+24h] [ebp-5D0h]
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
   char Destination[260]; // [esp+4F0h] [ebp-104h] BYREF
 
   v2 = 0;
@@ -23647,7 +23647,7 @@ int *__cdecl sub_1002B110(char *a1)
   float *v25; // [esp+34h] [ebp-550h]
   int *v26; // [esp+38h] [ebp-54Ch]
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
   char v34; // [esp+504h] [ebp-80h] BYREF — separate local buffer (not part of token)
 
   if ( !sub_10041F60(a1, (int)&file_ref) )
@@ -23901,7 +23901,7 @@ int __cdecl sub_1002B990(char *a1)
   int v15; // [esp+1Ch] [ebp-4D0h]
   int v16; // [esp+20h] [ebp-4CCh]
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( sub_10041F60(a1, (int)&file_ref) )
   {
@@ -24101,7 +24101,7 @@ _DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2)
   _DWORD *v12; // [esp+18h] [ebp-43Ch]
   int v13; // [esp+1Ch] [ebp-438h]
   int v14; // [esp+20h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v2 = a1;
   v10 = 0;
@@ -24237,7 +24237,7 @@ int __cdecl BotLoadMatchTemplates(char *a1)
   int v7; // [esp+10h] [ebp-4D0h]
   int v8; // [esp+14h] [ebp-4CCh]
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( sub_10041F60(a1, (int)&file_ref) )
   {
@@ -24640,7 +24640,7 @@ int __cdecl sub_1002CDD0(int a1, char *a2)
 {
   const char *v3; // [esp-10h] [ebp-450h]
   char *v4; // [esp-8h] [ebp-448h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   *a2 = 0;
   while ( 1 )
@@ -24769,7 +24769,7 @@ _DWORD *__cdecl sub_1002D270(char *a1)
   int v17; // eax
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char v21[152]; // [esp+B4h] [ebp-4C8h] BYREF
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v1 = a1;
   if ( !sub_10041F60(a1, (int)&file_ref) )
@@ -29312,7 +29312,7 @@ int __cdecl sub_10035700(int a1, float *a2)
 {
   int result; // eax
   char v3; // [esp+0h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_ExpectAnyToken(a1, token.string);
   if ( result )
@@ -29459,7 +29459,7 @@ int *__cdecl sub_10035A20(int a1)
   int *v12; // [esp+14h] [ebp-43Ch]
   int v13; // [esp+18h] [ebp-438h]
   int v14; // [esp+1Ch] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v13 = 0;
   v11 = 0;
@@ -29586,7 +29586,7 @@ weightconfig_t *__cdecl sub_10035FA0(char *Source)
   int has_balance;
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char Destination[144]; // [esp+B0h] [ebp-4C0h] BYREF
-  gladiator_token_t token; // [esp+140h] [ebp-430h] BYREF
+  token_t token; // [esp+140h] [ebp-430h] BYREF
 
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
@@ -31158,9 +31158,9 @@ int __cdecl PC_FreeToken(int a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (100394C0) --------------------------------------------------------
-int __cdecl PC_ReadSourceToken(source_t *src, gladiator_token_t *token)
+int __cdecl PC_ReadSourceToken(source_t *src, token_t *token)
 {
-  struct gladiator_token_s *t;
+  struct token_s *t;
   script_t *s;
   indent_t *ind;
   char v9; // [esp+0h] [ebp-8h]
@@ -31169,7 +31169,7 @@ int __cdecl PC_ReadSourceToken(source_t *src, gladiator_token_t *token)
   if ( src->tokens )
   {
 LABEL_9:
-    qmemcpy(token, src->tokens, sizeof(gladiator_token_t));
+    qmemcpy(token, src->tokens, sizeof(token_t));
     t = src->tokens;
     src->tokens = t->next;
     PC_FreeToken((int)t);
@@ -31212,9 +31212,9 @@ LABEL_9:
 //----- (100395F0) --------------------------------------------------------
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token)
 {
-  struct gladiator_token_s *copy;
+  struct token_s *copy;
 
-  copy = (struct gladiator_token_s *)PC_CopyToken(token);  /* allocate 1072-byte copy */
+  copy = (struct token_s *)PC_CopyToken(token);  /* allocate 1072-byte copy */
   copy->next = src->tokens;
   src->tokens = copy;
   return 1;
@@ -31369,8 +31369,8 @@ int __cdecl sub_10039A70(char *Source, char *Destination)
   char *i; // esi
 
   *((_DWORD *)Destination + 256) = 1;
-  ((gladiator_token_t *)Destination)->whitespace_p = 0;
-  ((gladiator_token_t *)Destination)->endwhitespace_p = 0;
+  ((token_t *)Destination)->whitespace_p = 0;
+  ((token_t *)Destination)->endwhitespace_p = 0;
   *Destination = 0;
   strcat(Destination, word_1005F588);
   for ( i = Source; i; i = (char *)*((_DWORD *)i + 266) )
@@ -31494,10 +31494,10 @@ int __cdecl PC_FindDefine(int a1, const char *a2)
 //----- (10039DF0) --------------------------------------------------------
 int __cdecl PC_FindDefineParm(int a1, const char *a2)
 {
-  gladiator_token_t *v2;
+  token_t *v2;
   int v3; // ebp
 
-  v2 = *(gladiator_token_t **)(a1 + 16);
+  v2 = *(token_t **)(a1 + 16);
   v3 = 0;
   if ( !v2 )
     return -1;
@@ -31514,7 +31514,7 @@ int __cdecl PC_FindDefineParm(int a1, const char *a2)
 //----- (10039E70) --------------------------------------------------------
 void __cdecl PC_FreeDefine(define_t *def)
 {
-  struct gladiator_token_s *t, *next;
+  struct token_s *t, *next;
 
   for ( t = def->parms; t; t = next )
   {
@@ -31630,24 +31630,24 @@ int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4)
             for ( i = Source[v7]; i; v4 = v9 )
             {
               v9 = (char *)PC_CopyToken(i);
-              ((gladiator_token_t *)v9)->next = 0;
+              ((token_t *)v9)->next = 0;
               if ( v4 )
-                ((gladiator_token_t *)v4)->next = (gladiator_token_t *)v9;
+                ((token_t *)v4)->next = (token_t *)v9;
               else
                 ArgList = v9;
-              i = (char *)((gladiator_token_t *)i)->next;
+              i = (char *)((token_t *)i)->next;
             }
             goto LABEL_25;
           }
         }
         if ( strcmp((const char *)v6, asc_1005F630) )
           break;
-        if ( ((gladiator_token_t *)v6)->next )
+        if ( ((token_t *)v6)->next )
         {
-          v10 = PC_FindDefineParm((int)a2, (const char *)((gladiator_token_t *)v6)->next);
+          v10 = PC_FindDefineParm((int)a2, (const char *)((token_t *)v6)->next);
           if ( v10 >= 0 )
           {
-            v6 = (int)((gladiator_token_t *)v6)->next;
+            v6 = (int)((token_t *)v6)->next;
             if ( !sub_10039A70(Source[v10], Destination) )
             {
               sub_10039200(a1, aCanTStringizeT, v19);
@@ -31659,15 +31659,15 @@ int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4)
         }
         sub_10039270(a1, aStringizingOpe, v19);
 LABEL_25:
-        v6 = (int)((gladiator_token_t *)v6)->next;
+        v6 = (int)((token_t *)v6)->next;
         if ( !v6 )
           goto LABEL_26;
       }
       v11 = (char *)PC_CopyToken((const void *)v6);
 LABEL_21:
-      ((gladiator_token_t *)v11)->next = 0;
+      ((token_t *)v11)->next = 0;
       if ( v4 )
-        ((gladiator_token_t *)v4)->next = (gladiator_token_t *)v11;
+        ((token_t *)v4)->next = (token_t *)v11;
       else
         ArgList = v11;
       v4 = v11;
@@ -31679,23 +31679,23 @@ LABEL_26:
     {
       while ( 1 )
       {
-        v13 = (int)((gladiator_token_t *)v12)->next;
-        if ( v13 && !strcmp((const char *)((gladiator_token_t *)v12)->next, asc_1005F5F4) && (v14 = (int)((gladiator_token_t *)v13)->next) != 0 )
+        v13 = (int)((token_t *)v12)->next;
+        if ( v13 && !strcmp((const char *)((token_t *)v12)->next, asc_1005F5F4) && (v14 = (int)((token_t *)v13)->next) != 0 )
         {
-          if ( !PC_MergeTokens(v12, (_DWORD *)((gladiator_token_t *)v13)->next) )
+          if ( !PC_MergeTokens(v12, (_DWORD *)((token_t *)v13)->next) )
           {
             sub_10039200(a1, aCanTMergeSWith, v12);
             return 0;
           }
-          PC_FreeToken((int)((gladiator_token_t *)v12)->next);
-          ((gladiator_token_t *)v12)->next = ((gladiator_token_t *)v14)->next;
+          PC_FreeToken((int)((token_t *)v12)->next);
+          ((token_t *)v12)->next = ((token_t *)v14)->next;
           if ( (char *)v14 == v4 )
             v4 = (char *)v12;
           PC_FreeToken(v14);
         }
         else
         {
-          v12 = (int)((gladiator_token_t *)v12)->next;
+          v12 = (int)((token_t *)v12)->next;
         }
         if ( !v12 )
         {
@@ -31717,7 +31717,7 @@ LABEL_26:
         {
           do
           {
-            v18 = (int)((gladiator_token_t *)v17)->next;
+            v18 = (int)((token_t *)v17)->next;
             PC_FreeToken(v17);
             v17 = v18;
           }
@@ -31743,8 +31743,8 @@ int __cdecl PC_ExpandDefineIntoSource(int a1, _DWORD *a2)
   src = (source_t *)a1;
   if ( !PC_ExpandDefine(a1, a2, (char **)&a2, (char **)&a1) || !a2 || !a1 )
     return 0;
-  ((gladiator_token_t *)a1)->next = src->tokens;
-  src->tokens = (gladiator_token_t *)a2;
+  ((token_t *)a1)->next = src->tokens;
+  src->tokens = (token_t *)a2;
   return 1;
 }
 
@@ -31786,10 +31786,10 @@ int __cdecl PC_Directive_include(int a1)
   char Destination[260]; // [esp+10h] [ebp-5CCh] BYREF
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   /* Original: sub $0x5cc,%esp; token within that frame at [esp+1ACh].
-   * token.string[1024]+token.type+token.linescrossed were part of one contiguous gladiator_token_t.
+   * token.string[1024]+token.type+token.linescrossed were part of one contiguous token_t.
    * Keep token.string as char[] so string operations (strcpy/strncat) compile unchanged;
    * alias token.type/token.linescrossed via the struct overlay. */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( ((source_t *)a1)->skip > 0 )
     return 1;
@@ -31913,7 +31913,7 @@ int __cdecl PC_Directive_undef(int a1)
   int v5; // edi
   _DWORD *v6; // edx
   char v7; // [esp+0h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( ((source_t *)a1)->skip > 0 )
     return 1;
@@ -31968,7 +31968,7 @@ int __cdecl PC_Directive_define(int a1)
   char *v7; // esi
   char *v8; // edi
   char v9; // [esp+0h] [ebp-440h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( ((source_t *)a1)->skip > 0 )
     return 1;
@@ -32084,7 +32084,7 @@ int __cdecl PC_DefineFromString(const char *a1)
 {
   int v1; // esi
   int v2; // ebx
-  gladiator_token_t *i;
+  token_t *i;
   int v4; // edi
   int v5; // eax
   _DWORD *v6; // ecx
@@ -32235,7 +32235,7 @@ int __cdecl PC_Directive_ifdef(_DWORD *a1, int a2)
 {
   int v3; // eax
   char v4; // [esp+0h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( PC_ReadLine((int)a1, token.string) )
   {
@@ -32487,10 +32487,10 @@ LABEL_71:
           sub_10039200(a1, aUndefinedNameS, v9);
           goto LABEL_76;
         }
-        v9 = (int)((gladiator_token_t *)v9)->next;
+        v9 = (int)((token_t *)v9)->next;
         if ( !strcmp((const char *)v9, asc_1005D334) )
         {
-          v9 = (int)((gladiator_token_t *)v9)->next;
+          v9 = (int)((token_t *)v9)->next;
           v5 = 1;
         }
         if ( !v9 || *(_DWORD *)(v9 + 1024) != 4 )
@@ -32521,7 +32521,7 @@ LABEL_71:
         v8 = v12;
         if ( v5 )
         {
-          v9 = (int)((gladiator_token_t *)v9)->next;
+          v9 = (int)((token_t *)v9)->next;
           if ( !v9 || strcmp((const char *)v9, asc_1005D32C) )
           {
             sub_10039200(a1, aDefinedWithout, v45);
@@ -32620,7 +32620,7 @@ LABEL_29:
         sub_10039200(a1, aUnknownSInIfEl, v9);
         goto LABEL_76;
     }
-    v9 = (int)((gladiator_token_t *)v9)->next;
+    v9 = (int)((token_t *)v9)->next;
     if ( !v9 )
       break;
     v7 = v50;
@@ -32908,7 +32908,7 @@ int __cdecl PC_Evaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
   int v12; // esi
   char v13; // [esp+0h] [ebp-444h]
   int v14; // [esp+10h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v14 = 0;
   if ( a2 )
@@ -32984,7 +32984,7 @@ LABEL_22:
   {
     do
     {
-      v12 = (int)((gladiator_token_t *)v11)->next;
+      v12 = (int)((token_t *)v11)->next;
       PC_FreeToken(v11);
       v11 = v12;
     }
@@ -33009,7 +33009,7 @@ int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
   char v14; // [esp+0h] [ebp-448h]
   int v15; // [esp+10h] [ebp-438h]
   int v16; // [esp+14h] [ebp-434h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v16 = 0;
   if ( a2 )
@@ -33107,7 +33107,7 @@ LABEL_30:
   {
     do
     {
-      v13 = (int)((gladiator_token_t *)v12)->next;
+      v13 = (int)((token_t *)v12)->next;
       PC_FreeToken(v12);
       v12 = v13;
     }
@@ -33171,7 +33171,7 @@ int __cdecl PC_Directive_line(int a1)
 //----- (1003CD30) --------------------------------------------------------
 int __cdecl PC_Directive_error(int a1)
 {
-  gladiator_token_t token; // [esp+4h] [ebp-430h] BYREF
+  token_t token; // [esp+4h] [ebp-430h] BYREF
 
   token.string[0] = byte_1006294C;
   PC_ReadSourceToken(a1, token.string);
@@ -33212,7 +33212,7 @@ int __cdecl PC_Directive_eval(int a1)
   int result; // eax
   int v2; // eax
   int v3; // [esp+4h] [ebp-434h] BYREF
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_Evaluate(a1, &v3, 0, 1);
   if ( result )
@@ -33239,7 +33239,7 @@ int __cdecl PC_Directive_evalfloat(int a1)
   int result; // eax
   int v2; // eax
   long double v3; // [esp+Ch] [ebp-438h] BYREF
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_Evaluate(a1, 0, &v3, 0);
   if ( result )
@@ -33267,7 +33267,7 @@ int __cdecl PC_ReadDirective(int ArgList)
   /* Original binary: sub $0x430,%esp / lea 0x0(%esp),%eax / push %eax
    * — entire 1072-byte token_t allocated as one block, pointer passed to
    * sub_10001BBD.  token.string kept as char[] so all string ops compile unchanged. */
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( PC_ReadSourceToken(ArgList, token.string) )
   {
@@ -33315,7 +33315,7 @@ int __cdecl PC_DollarDirective_evalint(int a1)
   int result; // eax
   int v2; // eax
   int v3; // [esp+4h] [ebp-434h] BYREF
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(a1, &v3, 0, 1);
   if ( result )
@@ -33344,7 +33344,7 @@ int __cdecl PC_DollarDirective_evalfloat(int a1)
   int result; // eax
   int v2; // eax
   long double v3; // [esp+Ch] [ebp-438h] BYREF
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(a1, 0, &v3, 0);
   if ( result )
@@ -33375,7 +33375,7 @@ int __cdecl PC_ReadDollarDirective(int ArgList)
   eval_type_t *v4; // edi
   char v5; // [esp-8h] [ebp-448h]
   char v6; // [esp+0h] [ebp-440h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   if ( PC_ReadSourceToken(ArgList, token.string) )
   {
@@ -33664,7 +33664,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
 void __cdecl FreeSource(source_t *src)
 {
   script_t *s;
-  struct gladiator_token_s *tok;
+  struct token_s *tok;
   define_t *d;
   indent_t *ind;
   int k;
@@ -34489,7 +34489,7 @@ int __cdecl PS_ReadToken(int a1, char *Destination)
   memset(Destination, 0, 0x430u);
   v4 = ((script_t *)a1)->script_p;
   ((script_t *)a1)->whitespace_p = v4;
-  ((gladiator_token_t *)Destination)->whitespace_p = v4;
+  ((token_t *)Destination)->whitespace_p = v4;
 
   result = PS_ReadWhiteSpace(a1);
 
@@ -34497,9 +34497,9 @@ int __cdecl PS_ReadToken(int a1, char *Destination)
   {
     v5 = ((script_t *)a1)->script_p;
     ((script_t *)a1)->endwhitespace_p = v5;
-    ((gladiator_token_t *)Destination)->endwhitespace_p = v5;
-    ((gladiator_token_t *)Destination)->line = ((script_t *)a1)->line;
-    ((gladiator_token_t *)Destination)->linescrossed = ((script_t *)a1)->line - ((script_t *)a1)->lastline;
+    ((token_t *)Destination)->endwhitespace_p = v5;
+    ((token_t *)Destination)->line = ((script_t *)a1)->line;
+    ((token_t *)Destination)->linescrossed = ((script_t *)a1)->line - ((script_t *)a1)->lastline;
 
     v6 = ((script_t *)a1)->script_p;
     v7 = *v6;
@@ -34861,7 +34861,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
   int v17; // [esp+24h] [ebp-43Ch]
   double v18; // [esp+28h] [ebp-438h]
   int v19; // [esp+28h] [ebp-438h]
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   v3 = 0;
   if ( !PC_ExpectAnyToken(a1, token.string) )
@@ -35018,7 +35018,7 @@ LABEL_47:
 int __cdecl ReadChar(int a1, int a2, float *a3)
 {
   int result; // eax
-  gladiator_token_t token; /* restored: original token_t local variable */
+  token_t token; /* restored: original token_t local variable */
 
   result = PC_ExpectAnyToken(a1, token.string);
   if ( result )
