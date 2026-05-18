@@ -216,7 +216,7 @@ typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targ
 // AAS_Update: __usercall cleaned (original: double@<st0>, int -> int only)
 int __cdecl AAS_ContinueInit(int time_int);
 /* Forward declarations for functions whose address-names were resolved: */
-int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4); /* l_precomp.c: evaluates #if expression tokens */
+int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 /* BotAIThink: thunk (0x100013A2) → Export_BotLibAI (0x10038380) — same function */
@@ -784,10 +784,10 @@ int __cdecl sub_10035640(_DWORD *a1);
 int sub_10035680();
 int sub_100356D0();
 int __cdecl sub_10035700(int a1, float *a2);
-int __cdecl sub_10035820(int a1, int a2);
-int __cdecl sub_10035960(int a1);
+int __cdecl sub_10035820(source_t *a1, fuzzyseperator_t *a2);
+int __cdecl sub_10035960(fuzzyseperator_t *a1);
+fuzzyseperator_t *__cdecl sub_10035A20(source_t *a1);
 void              __cdecl sub_100359B0(weightconfig_t *cfg);
-int              *__cdecl sub_10035A20(int a1);
 weightconfig_t   *__cdecl sub_10035FA0(char *Source);
 int __cdecl WriteFuzzyWeight(FILE *Stream, int); // idb
 int __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
@@ -896,7 +896,7 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2);
 int __cdecl PC_Directive_else(source_t *src);
 int __cdecl PC_Directive_endif(source_t *src);
 int __cdecl PC_OperatorPriority(int a1);
-int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a5);
+int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, long double *floatvalue, int integer);
 int __cdecl PC_Evaluate(source_t *src, int *a2, long double *a3, int a4);
 // int __cdecl PC_ReadSourceToken: see definition
 int __cdecl PC_Directive_elif(source_t *src);
@@ -22941,7 +22941,7 @@ int *__cdecl BotLoadCharacter(char *Source, int a2)
 {
   int *v2; // ebx
   int v4; // ebp
-  int v5; // eax
+  source_t *v5; // eax
   int v6; // edi
   int v7; // esi
   int v8; // esi
@@ -23628,7 +23628,7 @@ int *__cdecl sub_1002B110(char *a1)
   char **v2; // ebx
   int v3; // edi
   int v4; // ebp
-  int v5; // esi
+  source_t *v5; // esi
   int v6; // ebp
   bool v7; // cc
   char *v8; // edx
@@ -23639,7 +23639,7 @@ int *__cdecl sub_1002B110(char *a1)
   char *v13; // ebx
   double v14; // st6
   char v15; // [esp+0h] [ebp-584h]
-  int v16; // [esp+10h] [ebp-574h]
+  source_t *v16; // [esp+10h] [ebp-574h]
   int v17; // [esp+14h] [ebp-570h]
   int v18; // [esp+18h] [ebp-56Ch]
   int v19; // [esp+1Ch] [ebp-568h]
@@ -23893,7 +23893,7 @@ int __cdecl sub_1002B990(char *a1)
   int v3; // ebp
   int v4; // eax
   int v5; // edi
-  int v6; // esi
+  source_t *v6; // esi
   int v7; // ebx
   int v8; // edx
   int v9; // ebx
@@ -24233,7 +24233,7 @@ int __cdecl BotFreeMatchTemplates(int a1)
 //----- (1002C410) --------------------------------------------------------
 int __cdecl BotLoadMatchTemplates(char *a1)
 {
-  int v2; // eax
+  source_t *v2; // eax
   int v3; // edi
   int v4; // esi
   int *v5; // ebp
@@ -24756,7 +24756,7 @@ _DWORD *__cdecl sub_1002D1B0(_DWORD *a1)
 _DWORD *__cdecl sub_1002D270(char *a1)
 {
   char *v1; // esi
-  int v3; // eax
+  source_t *v3; // eax
   int v4; // ebx
   _DWORD *v5; // edi
   int v6; // ebp
@@ -24934,7 +24934,7 @@ int *__cdecl BotDumpInitialChat(char *a1, int a2)
   int v4; // edi
   char *v5; // ebp
   int v6; // eax
-  int v7; // esi
+  source_t *v7; // esi
   int v8; // esi
   char **v9; // eax
   char *v10; // ebp
@@ -25659,18 +25659,18 @@ itemconfig_t * sub_1002ED20(char *Source)
       cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
       cfg->numitems = 0;
       cfg->items    = (iteminfo_t *)(cfg + 1);
-      if ( PC_ReadTokenHandle((int)src, ArgList) )
+      if ( PC_ReadTokenHandle(src, ArgList) )
       {
         while ( !strcmp(ArgList, aIteminfo) )
         {
           if ( cfg->numitems >= max_iteminfo )
           {
-            sub_10039200((int)src, aMoreThanDItemI, max_iteminfo);
+            sub_10039200(src, aMoreThanDItemI, max_iteminfo);
             goto LABEL_22;
           }
           item = &cfg->items[cfg->numitems];
           memset(item, 0, sizeof(iteminfo_t));
-          if ( !PC_ExpectTokenType((int)src, 1, 0, ArgList) )
+          if ( !PC_ExpectTokenType(src, 1, 0, ArgList) )
           {
             FreeMemory(cfg);
             FreeMemory(src);
@@ -25685,10 +25685,10 @@ itemconfig_t * sub_1002ED20(char *Source)
             return 0;
           }
           item->number = cfg->numitems++;
-          if ( !PC_ReadTokenHandle((int)src, ArgList) )
+          if ( !PC_ReadTokenHandle(src, ArgList) )
             goto LABEL_13;
         }
-        sub_10039200((int)src, aUnknownDefinit, ArgList);
+        sub_10039200(src, aUnknownDefinit, ArgList);
 LABEL_22:
         FreeMemory(cfg);
         FreeSource(src);
@@ -29355,7 +29355,7 @@ int __cdecl sub_10035700(int a1, float *a2)
 // 1005E498: using guessed type __int16 word_1005E498;
 
 //----- (10035820) --------------------------------------------------------
-int __cdecl sub_10035820(int a1, int a2)
+int __cdecl sub_10035820(source_t *a1, fuzzyseperator_t *a2)
 {
   int result; // eax
   int *v3; // ebx
@@ -29363,33 +29363,33 @@ int __cdecl sub_10035820(int a1, int a2)
 
   if ( !PC_CheckTokenString(a1, aBalance) )
   {
-    v3 = (int *)(a2 + 12);
-    *(_DWORD *)(a2 + 8) = 0;
-    result = sub_10035700(a1, (float *)(a2 + 12));
+    v3 = (int *)&a2->weight;
+    a2->type = 0;
+    result = sub_10035700(a1, &a2->weight);
     if ( !result )
       return result;
     v4 = *v3;
-    *(_DWORD *)(a2 + 16) = *v3;
-    *(_DWORD *)(a2 + 20) = v4;
+    a2->minweight = *(float *)v3;
+    a2->maxweight = *(float *)&v4;
     return PC_ExpectTokenString(a1, Control) != 0;
   }
-  *(_DWORD *)(a2 + 8) = 1;
+  a2->type = 1;
   result = PC_ExpectTokenString(a1, asc_1005D334);
   if ( result )
   {
-    result = sub_10035700(a1, (float *)(a2 + 12));
+    result = sub_10035700(a1, &a2->weight);
     if ( result )
     {
       result = PC_ExpectTokenString(a1, asc_1005D330);
       if ( result )
       {
-        result = sub_10035700(a1, (float *)(a2 + 16));
+        result = sub_10035700(a1, &a2->minweight);
         if ( result )
         {
           result = PC_ExpectTokenString(a1, asc_1005D330);
           if ( result )
           {
-            result = sub_10035700(a1, (float *)(a2 + 20));
+            result = sub_10035700(a1, &a2->maxweight);
             if ( result )
             {
               result = PC_ExpectTokenString(a1, asc_1005D32C);
@@ -29406,20 +29406,21 @@ int __cdecl sub_10035820(int a1, int a2)
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (10035960) --------------------------------------------------------
-int __cdecl sub_10035960(int a1)
+int __cdecl sub_10035960(fuzzyseperator_t *a1)
 {
-  int v1; // esi
-  int v2; // edi
+  fuzzyseperator_t *v1; // esi
+  fuzzyseperator_t *v2; // edi
   int result; // eax
 
   v1 = a1;
+  result = 0;
   if ( a1 )
   {
     while ( 1 )
     {
-      if ( *(_DWORD *)(v1 + 24) )
-        sub_10035960(*(_DWORD *)(v1 + 24));
-      v2 = *(_DWORD *)(v1 + 28);
+      if ( v1->child )
+        sub_10035960(v1->child);
+      v2 = v1->next;
       result = FreeMemory(v1);
       if ( !v2 )
         break;
@@ -29438,7 +29439,7 @@ void __cdecl sub_100359B0(weightconfig_t *cfg)
 
   for ( i = 0; i < cfg->numweights; ++i )
   {
-    sub_10035960((int)cfg->weights[i].firstseperator);
+    sub_10035960(cfg->weights[i].firstseperator);
     if ( cfg->weights[i].name )
       FreeMemory(cfg->weights[i].name);
   }
@@ -29448,19 +29449,19 @@ void __cdecl sub_100359B0(weightconfig_t *cfg)
 // 10001CA8: using guessed type _DWORD __cdecl sub_10035960(_DWORD);
 
 //----- (10035A20) --------------------------------------------------------
-int *__cdecl sub_10035A20(int a1)
+fuzzyseperator_t *__cdecl sub_10035A20(source_t *a1)
 {
   int v1; // eax
   BOOL v2; // edi
-  int *v3; // ebp
-  int *v4; // esi
-  int v5; // edi
+  fuzzyseperator_t *v3; // ebp
+  fuzzyseperator_t *v4; // esi
+  source_t *v5; // edi
   int v6; // edi
-  int v7; // eax
-  int *v9; // eax
+  fuzzyseperator_t *v7; // eax
+  fuzzyseperator_t *v9; // eax
   char v10; // [esp+0h] [ebp-450h]
-  int *v11; // [esp+10h] [ebp-440h]
-  int *v12; // [esp+14h] [ebp-43Ch]
+  fuzzyseperator_t *v11; // [esp+10h] [ebp-440h]
+  fuzzyseperator_t *v12; // [esp+14h] [ebp-43Ch]
   int v13; // [esp+18h] [ebp-438h]
   int v14; // [esp+1Ch] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
@@ -29485,12 +29486,12 @@ int *__cdecl sub_10035A20(int a1)
       sub_10039200(a1, aInvalidNameS, token.string);
       return 0;
     }
-    v3 = (int *)GetClearedMemory(32);
-    *v3 = v14;
+    v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+    v3->index = v14;
     if ( v12 )
     {
       v4 = v11;
-      v12[7] = (int)v3;
+      v12->next = v3;
     }
     else
     {
@@ -29507,7 +29508,7 @@ int *__cdecl sub_10035A20(int a1)
         return 0;
       }
       v5 = a1;
-      v3[1] = 999999;
+      v3->value = 999999;
       v13 = 1;
     }
     else
@@ -29515,7 +29516,7 @@ int *__cdecl sub_10035A20(int a1)
       v5 = a1;
       if ( !PC_ExpectTokenType(a1, 3, 4096, token.string) )
         goto LABEL_41;
-      v3[1] = token.intvalue;
+      v3->value = token.intvalue;
     }
     if ( !PC_ExpectTokenString(v5, asc_1005CB74) || !PC_ExpectAnyToken(v5, token.string) )
     {
@@ -29532,7 +29533,7 @@ LABEL_41:
     }
     if ( !strcmp(token.string, aReturn) )
     {
-      if ( !sub_10035820(a1, (int)v3) )
+      if ( !sub_10035820(a1, v3) )
         goto LABEL_32;
     }
     else
@@ -29543,7 +29544,7 @@ LABEL_41:
         return 0;
       }
       v7 = sub_10035A20(a1);
-      v3[6] = v7;
+      v3->child = v7;
       if ( !v7 )
         goto LABEL_32;
     }
@@ -29558,15 +29559,15 @@ LABEL_32:
   if ( !v13 )
   {
     sub_10039270(a1, aSwitchWithoutD, v10);
-    v9 = (int *)GetClearedMemory(32);
-    *v9 = v14;
-    v9[1] = 999999;
-    v9[3] = 0;
-    v9[7] = 0;
-    v9[6] = 0;
+    v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+    v9->index = v14;
+    v9->value = 999999;
+    v9->weight = 0;
+    v9->next = 0;
+    v9->child = 0;
     if ( v3 )
     {
-      v3[7] = (int)v9;
+      v3->next = v9;
       return v11;
     }
     return v9;
@@ -29601,16 +29602,16 @@ weightconfig_t *__cdecl sub_10035FA0(char *Source)
     {
       cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
       cfg->numweights = 0;
-      if ( PC_ReadTokenHandle((int)src, token.string) )
+      if ( PC_ReadTokenHandle(src, token.string) )
       {
         while ( !strcmp(token.string, aWeight) )
         {
           if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
           {
-            sub_10039270((int)src, aTooManyFuzzyWe, v6);
+            sub_10039270(src, aTooManyFuzzyWe, v6);
             goto LABEL_21;
           }
-          if ( !PC_ExpectTokenType((int)src, 1, 0, token.string) )
+          if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
           {
 LABEL_25:
             sub_100359B0(cfg);
@@ -29620,8 +29621,8 @@ LABEL_25:
           StripDoubleQuotes(token.string);
           cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
           strcpy(cfg->weights[cfg->numweights].name, token.string);
-          if ( !PC_ExpectAnyToken((int)src, token.string)
-            || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken((int)src, token.string)) )
+          if ( !PC_ExpectAnyToken(src, token.string)
+            || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
           {
             sub_100359B0(cfg);
             FreeSource(src);
@@ -29629,7 +29630,7 @@ LABEL_25:
           }
           if ( !strcmp(token.string, aSwitch) )
           {
-            sep = (fuzzyseperator_t *)sub_10035A20((int)src);
+            sep = (fuzzyseperator_t *)sub_10035A20(src);
             if ( !sep )
             {
               sub_100359B0(cfg);
@@ -29642,7 +29643,7 @@ LABEL_25:
           {
             if ( strcmp(token.string, aReturn) )
             {
-              sub_10039200((int)src, aInvalidNameS, token.string);
+              sub_10039200(src, aInvalidNameS, token.string);
               sub_100359B0(cfg);
               goto LABEL_31;
             }
@@ -29651,7 +29652,7 @@ LABEL_25:
             sep->value = 999999;
             sep->next  = 0;
             sep->child = 0;
-            if ( !sub_10035820((int)src, (int)sep) )
+            if ( !sub_10035820(src, (int)sep) )
             {
               FreeMemory(sep);
               sub_100359B0(cfg);
@@ -29660,13 +29661,13 @@ LABEL_25:
             }
             cfg->weights[cfg->numweights].firstseperator = sep;
           }
-          if ( has_balance && !PC_ExpectTokenString((int)src, asc_1005AB54) )
+          if ( has_balance && !PC_ExpectTokenString(src, asc_1005AB54) )
             goto LABEL_25;
           ++cfg->numweights;
-          if ( !PC_ReadTokenHandle((int)src, token.string) )
+          if ( !PC_ReadTokenHandle(src, token.string) )
             goto LABEL_21;
         }
-        sub_10039200((int)src, aInvalidNameS, token.string);
+        sub_10039200(src, aInvalidNameS, token.string);
         sub_100359B0(cfg);
 LABEL_31:
         FreeSource(src);
@@ -31133,7 +31134,7 @@ int __cdecl sub_100393E0(source_t *src, script_t *script)
       if ( !s )
         goto LABEL_4;
     }
-    return sub_10039200((int)src, aSRecursivelyIn, script->filename);
+    return sub_10039200(src, aSRecursivelyIn, script->filename);
   }
   else
   {
@@ -31197,7 +31198,7 @@ LABEL_9:
         {
           if ( ind->script != src->scriptstack )
             break;
-          sub_10039270((int)src, aMissingEndif, v9);
+          sub_10039270(src, aMissingEndif, v9);
           PC_PopIndent(src, &t_dummy, &s_dummy);
         }
       }
@@ -31977,13 +31978,13 @@ int __cdecl PC_Directive_define(source_t *source)
     return 1;
   if ( !PC_ReadLine(source, &token) )
   {
-    sub_10039200((int)source, aDefineWithoutN, 0);
+    sub_10039200(source, aDefineWithoutN, 0);
     return 0;
   }
   if ( token.type != 4 )
   {
     PC_UnreadSourceToken(source, &token);
-    sub_10039200((int)source, aExpectedNameAf_0, token.string);
+    sub_10039200(source, aExpectedNameAf_0, token.string);
     return 0;
   }
   define = PC_FindHashedDefine(source->definehash, token.string);
@@ -31991,12 +31992,12 @@ int __cdecl PC_Directive_define(source_t *source)
   {
     if ( define->flags & 1 )
     {
-      sub_10039200((int)source, aCanTRedefineS, token.string);
+      sub_10039200(source, aCanTRedefineS, token.string);
       return 0;
     }
-    sub_10039270((int)source, aRedefinitionOf, token.string);
+    sub_10039270(source, aRedefinitionOf, token.string);
     PC_UnreadSourceToken(source, &token);
-    if ( !PC_Directive_undef((int)source) )
+    if ( !PC_Directive_undef(source) )
       return 0;
     define = PC_FindHashedDefine(source->definehash, token.string);
   }
@@ -32010,23 +32011,23 @@ int __cdecl PC_Directive_define(source_t *source)
   if ( !sub_1003ABD0(&token) && !strcmp(token.string, asc_1005D334) )
   {
     last = NULL;
-    if ( !PC_CheckTokenString((int)source, asc_1005D32C) )
+    if ( !PC_CheckTokenString(source, asc_1005D32C) )
     {
       while ( 1 )
       {
         if ( !PC_ReadLine(source, &token) )
         {
-          sub_10039200((int)source, aExpectedDefine, 0);
+          sub_10039200(source, aExpectedDefine, 0);
           return 0;
         }
         if ( token.type != 4 )
         {
-          sub_10039200((int)source, aInvalidDefineP, 0);
+          sub_10039200(source, aInvalidDefineP, 0);
           return 0;
         }
-        if ( PC_FindDefineParm((int)define, token.string) >= 0 )
+        if ( PC_FindDefineParm(define, token.string) >= 0 )
         {
-          sub_10039200((int)source, aTwoTheSameDefi, 0);
+          sub_10039200(source, aTwoTheSameDefi, 0);
           return 0;
         }
         t = (token_t *)PC_CopyToken(&token);
@@ -32040,14 +32041,14 @@ int __cdecl PC_Directive_define(source_t *source)
         define->numparms++;
         if ( !PC_ReadLine(source, &token) )
         {
-          sub_10039200((int)source, aDefineParamete, 0);
+          sub_10039200(source, aDefineParamete, 0);
           return 0;
         }
         if ( !strcmp(token.string, asc_1005D32C) )
           break;
         if ( strcmp(token.string, asc_1005D330) )
         {
-          sub_10039200((int)source, aDefineNotTermi, 0);
+          sub_10039200(source, aDefineNotTermi, 0);
           return 0;
         }
       }
@@ -32070,7 +32071,7 @@ int __cdecl PC_Directive_define(source_t *source)
   while ( PC_ReadLine(source, &token) );
   if ( last && (!strcmp(define->tokens->string, asc_1005F5F4) || !strcmp(last->string, asc_1005F5F4)) )
   {
-    sub_10039200((int)source, aDefineWithMisp, 0);
+    sub_10039200(source, aDefineWithMisp, 0);
     return 0;
   }
   return 1;
@@ -32384,26 +32385,26 @@ int __cdecl PC_OperatorPriority(int a1)
 }
 
 //----- (1003B9E0) --------------------------------------------------------
-int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a5)
+int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, long double *floatvalue, int integer)
 {
   int v5; // ebx
   int v6; // ecx
   int v7; // edx
-  double *v8; // ebp
-  int v9; // edi
+  value_t *v8;
+  token_t *v9;
   int v10; // eax
-  _DWORD *v11; // esi
-  double *v12; // esi
-  int v13; // eax
+  operator_t *v11;
+  value_t *v12;
+  value_t *v13;
   int v14; // ebp
   int v15; // ebx
-  _DWORD *v16; // eax
-  double *v17; // esi
-  int *v18; // edi
-  int *v19; // eax
+  operator_t *v16;
+  value_t *v17;
+  operator_t *v18;
+  operator_t *v19;
   int v20; // ecx
   int v21; // edx
-  int v22; // ecx
+  value_t *v22;
   double v23; // st7
   double v24; // st7
   double v25; // st7
@@ -32418,20 +32419,20 @@ int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a
   double v34; // st7
   double v35; // st7
   int v36; // eax
-  int v37; // eax
-  int v38; // eax
-  int v39; // eax
-  int v40; // eax
-  _DWORD *v41; // esi
-  double *v42; // eax
-  double *v43; // esi
+  value_t *v37;
+  value_t *v38;
+  operator_t *v39;
+  operator_t *v40;
+  operator_t *v41;
+  value_t *v42;
+  value_t *v43;
   char v45; // [esp+0h] [ebp-2Ch]
   int v46; // [esp+10h] [ebp-1Ch]
   int v47; // [esp+14h] [ebp-18h]
-  _DWORD *v48; // [esp+18h] [ebp-14h]
-  double *v49; // [esp+1Ch] [ebp-10h]
+  operator_t *v48;
+  value_t *v49;
   int v50; // [esp+20h] [ebp-Ch]
-  _DWORD *v51; // [esp+24h] [ebp-8h]
+  operator_t *v51;
   double v52; // [esp+24h] [ebp-8h]
   int ArgLista; // [esp+34h] [ebp+8h]
   int ArgListb; // [esp+34h] [ebp+8h]
@@ -32452,43 +32453,42 @@ int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a
   v51 = 0;
   v48 = 0;
   v49 = 0;
-  if ( a3 )
-    *a3 = 0;
-  if ( a4 )
+  if ( intvalue )
+    *intvalue = 0;
+  if ( floatvalue )
   {
-    *a4 = 0;
-    a4[1] = 0;
+    *floatvalue = 0;
+    floatvalue[1] = 0;
   }
-  v9 = ArgList;
-  if ( !ArgList )
+  v9 = firsttoken;
+  if ( !firsttoken )
     goto LABEL_73;
   while ( 1 )
   {
-    switch ( *(_DWORD *)(v9 + 1024) )
+    switch ( v9->type )
     {
       case 3:
         if ( v6 )
           goto LABEL_71;
-        v13 = GetClearedMemory(32);
+        v13 = GetClearedMemory(sizeof(value_t));
         if ( v50 )
         {
-          *(_DWORD *)v13 = -*(_DWORD *)(v9 + 1032);
-          *(double *)(v13 + 8) = -*(double *)(v9 + 1040);
+          v13->intvalue = -(int)v9->intvalue;
+          v13->floatvalue = -v9->floatvalue;
         }
         else
         {
-          *(_DWORD *)v13 = *(_DWORD *)(v9 + 1032);
-          *(_DWORD *)(v13 + 8) = *(_DWORD *)(v9 + 1040);
-          *(_DWORD *)(v13 + 12) = *(_DWORD *)(v9 + 1044);
+          v13->intvalue = (int)v9->intvalue;
+          v13->floatvalue = v9->floatvalue;
         }
-        *(_DWORD *)(v13 + 16) = v47;
-        *(_DWORD *)(v13 + 24) = 0;
-        *(_DWORD *)(v13 + 20) = v8;
+        v13->parentheses = v47;
+        v13->next = 0;
+        v13->prev = v8;
         if ( v8 )
-          *((_DWORD *)v8 + 6) = v13;
+          v8->next = v13;
         else
-          v49 = (double *)v13;
-        v8 = (double *)v13;
+          v49 = v13;
+        v8 = v13;
         v6 = 1;
         v50 = 0;
         break;
@@ -32496,52 +32496,50 @@ int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a
         if ( v6 || v7 )
         {
 LABEL_71:
-          sub_10039200(a1, aSyntaxErrorInI, v45);
+          sub_10039200(src, aSyntaxErrorInI, v45);
           goto LABEL_76;
         }
         if ( strcmp((const char *)v9, aDefined) )
         {
-          sub_10039200(a1, aUndefinedNameS, v9);
+          sub_10039200(src, aUndefinedNameS, v9);
           goto LABEL_76;
         }
-        v9 = (int)((token_t *)v9)->next;
+        v9 = v9->next;
         if ( !strcmp((const char *)v9, asc_1005D334) )
         {
-          v9 = (int)((token_t *)v9)->next;
+          v9 = v9->next;
           v5 = 1;
         }
-        if ( !v9 || *(_DWORD *)(v9 + 1024) != 4 )
+        if ( !v9 || v9->type != 4 )
         {
-          sub_10039200(a1, aDefinedWithout_0, v45);
+          sub_10039200(src, aDefinedWithout_0, v45);
           goto LABEL_76;
         }
-        v12 = (double *)GetClearedMemory(32);
-        if ( PC_FindHashedDefine(((source_t *)a1)->definehash, (const char *)v9) )
+        v12 = GetClearedMemory(sizeof(value_t));
+        if ( PC_FindHashedDefine(((source_t *)src)->definehash, (const char *)v9) )
         {
-          *((_DWORD *)v12 + 2) = 0;
-          *(_DWORD *)v12 = 1;
-          *((_DWORD *)v12 + 3) = 1072693248;
+                    v12->intvalue = 1;
+          v12->floatvalue = 1.0;
         }
         else
         {
-          *((_DWORD *)v12 + 2) = 0;
-          *(_DWORD *)v12 = 0;
-          *((_DWORD *)v12 + 3) = 0;
+                    v12->intvalue = 0;
+          v12->floatvalue = 0.0;
         }
-        *((_DWORD *)v12 + 6) = 0;
-        *((_DWORD *)v12 + 4) = v47;
-        *((_DWORD *)v12 + 5) = v8;
+        v12->next = 0;
+        v12->parentheses = v47;
+        v12->prev = v8;
         if ( v8 )
-          *((_DWORD *)v8 + 6) = v12;
+          v8->next = v12;
         else
           v49 = v12;
         v8 = v12;
         if ( v5 )
         {
-          v9 = (int)((token_t *)v9)->next;
+          v9 = v9->next;
           if ( !v9 || strcmp((const char *)v9, asc_1005D32C) )
           {
-            sub_10039200(a1, aDefinedWithout, v45);
+            sub_10039200(src, aDefinedWithout, v45);
             goto LABEL_76;
           }
         }
@@ -32551,10 +32549,10 @@ LABEL_71:
       case 5:
         if ( v7 )
         {
-          sub_10039200(a1, aMisplacedMinus, v45);
+          sub_10039200(src, aMisplacedMinus, v45);
           goto LABEL_76;
         }
-        v10 = *(_DWORD *)(v9 + 1028);
+        v10 = v9->subtype;
         if ( v10 == 44 )
         {
           ++v47;
@@ -32563,15 +32561,15 @@ LABEL_71:
         {
           if ( --v47 < 0 )
           {
-            sub_10039200(a1, aTooManyInIfEls, v45);
+            sub_10039200(src, aTooManyInIfEls, v45);
             goto LABEL_76;
           }
         }
         else
         {
-          if ( !a5 && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
+          if ( !integer && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
           {
-            sub_10039200(a1, aIlligalOperato, v9);
+            sub_10039200(src, aIlligalOperato, v9);
             goto LABEL_76;
           }
           switch ( v10 )
@@ -32597,7 +32595,7 @@ LABEL_71:
             case 43:
               if ( v6 )
                 goto LABEL_29;
-              sub_10039200(a1, aOperatorSAfter, v9);
+              sub_10039200(src, aOperatorSAfter, v9);
               goto LABEL_76;
             case 30:
               if ( !v6 )
@@ -32607,20 +32605,20 @@ LABEL_71:
             case 36:
               if ( v6 )
               {
-                sub_10039200(a1, aOrAfterValueIn, v45);
+                sub_10039200(src, aOrAfterValueIn, v45);
                 goto LABEL_76;
               }
 LABEL_29:
               if ( !v50 )
               {
-                v11 = (_DWORD *)GetClearedMemory(20);
-                *v11 = *(_DWORD *)(v9 + 1028);
-                v11[1] = PC_OperatorPriority(*(_DWORD *)(v9 + 1028));
-                v11[2] = v47;
-                v11[4] = 0;
-                v11[3] = v51;
+                v11 = GetClearedMemory(sizeof(operator_t));
+                v11->op = v9->subtype;
+                v11->priority = PC_OperatorPriority(v9->subtype);
+                v11->parentheses = v47;
+                v11->next = 0;
+                v11->prev = v51;
                 if ( v51 )
-                  v51[4] = v11;
+                  v51->next = v11;
                 else
                   v48 = v11;
                 v51 = v11;
@@ -32628,16 +32626,16 @@ LABEL_29:
               }
               break;
             default:
-              sub_10039200(a1, aInvalidOperato, v9);
+              sub_10039200(src, aInvalidOperato, v9);
               goto LABEL_76;
           }
         }
         break;
       default:
-        sub_10039200(a1, aUnknownSInIfEl, v9);
+        sub_10039200(src, aUnknownSInIfEl, v9);
         goto LABEL_76;
     }
-    v9 = (int)((token_t *)v9)->next;
+    v9 = v9->next;
     if ( !v9 )
       break;
     v7 = v50;
@@ -32646,12 +32644,12 @@ LABEL_29:
   {
     if ( !v47 )
       goto LABEL_77;
-    sub_10039200(a1, aTooManyInIfEli, v45);
+    sub_10039200(src, aTooManyInIfEli, v45);
   }
   else
   {
 LABEL_73:
-    sub_10039200(a1, aTrailingOperat, v45);
+    sub_10039200(src, aTrailingOperat, v45);
   }
 LABEL_76:
   v46 = 1;
@@ -32668,176 +32666,175 @@ LABEL_77:
         goto LABEL_165;
       v17 = v49;
       v18 = v48;
-      v19 = (int *)v48[4];
+      v19 = v48->next;
       if ( v19 )
         break;
 LABEL_88:
-      v22 = *((_DWORD *)v17 + 6);
-      switch ( *v18 )
+      v22 = v17->next;
+      switch ( v18->op )
       {
         case 5:
-          v26 = *(_DWORD *)v17 && *(_DWORD *)v22;
-          v27 = v17[1];
-          *(_DWORD *)v17 = v26;
-          if ( v27 == 0.0 || (ArgLista = 1, *(double *)(v22 + 8) == 0.0) )
+          v26 = v17->intvalue && v22->intvalue;
+          v27 = v17->floatvalue;
+          v17->intvalue = v26;
+          if ( v27 == 0.0 || (ArgLista = 1, v22->floatvalue == 0.0) )
             ArgLista = 0;
-          v17[1] = (double)ArgLista;
+          v17->floatvalue = (double)ArgLista;
           goto LABEL_144;
         case 6:
-          v28 = *(_DWORD *)v17 || *(_DWORD *)v22;
-          v29 = v17[1];
-          *(_DWORD *)v17 = v28;
-          if ( v29 != 0.0 || (ArgListb = 0, *(double *)(v22 + 8) != 0.0) )
+          v28 = v17->intvalue || v22->intvalue;
+          v29 = v17->floatvalue;
+          v17->intvalue = v28;
+          if ( v29 != 0.0 || (ArgListb = 0, v22->floatvalue != 0.0) )
             ArgListb = 1;
-          v17[1] = (double)ArgListb;
+          v17->floatvalue = (double)ArgListb;
           goto LABEL_144;
         case 7:
           ArgListc = 1;
-          v30 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 >= *(_DWORD *)v22;
-          if ( v30 < *(double *)(v22 + 8) )
+          v30 = v17->floatvalue;
+          v17->intvalue = v17->intvalue >= v22->intvalue;
+          if ( v30 < v22->floatvalue )
             ArgListc = 0;
-          v17[1] = (double)ArgListc;
+          v17->floatvalue = (double)ArgListc;
           goto LABEL_144;
         case 8:
           ArgListd = 1;
-          v31 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 <= *(_DWORD *)v22;
-          if ( v31 > *(double *)(v22 + 8) )
+          v31 = v17->floatvalue;
+          v17->intvalue = v17->intvalue <= v22->intvalue;
+          if ( v31 > v22->floatvalue )
             ArgListd = 0;
-          v17[1] = (double)ArgListd;
+          v17->floatvalue = (double)ArgListd;
           goto LABEL_144;
         case 9:
           ArgListe = 1;
-          v32 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 == *(_DWORD *)v22;
-          if ( v32 != *(double *)(v22 + 8) )
+          v32 = v17->floatvalue;
+          v17->intvalue = v17->intvalue == v22->intvalue;
+          if ( v32 != v22->floatvalue )
             ArgListe = 0;
-          v17[1] = (double)ArgListe;
+          v17->floatvalue = (double)ArgListe;
           goto LABEL_144;
         case 10:
           ArgListf = 1;
-          v33 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 != *(_DWORD *)v22;
-          if ( v33 == *(double *)(v22 + 8) )
+          v33 = v17->floatvalue;
+          v17->intvalue = v17->intvalue != v22->intvalue;
+          if ( v33 == v22->floatvalue )
             ArgListf = 0;
-          v17[1] = (double)ArgListf;
+          v17->floatvalue = (double)ArgListf;
           goto LABEL_144;
         case 21:
-          *(int *)v17 >>= *(_DWORD *)v22;
+          v17->intvalue >>= v22->intvalue;
           goto LABEL_144;
         case 22:
-          *(_DWORD *)v17 <<= *(_DWORD *)v22;
+          v17->intvalue <<= v22->intvalue;
           goto LABEL_144;
         case 26:
-          *(_DWORD *)v17 *= *(_DWORD *)v22;
-          v17[1] = *(double *)(v22 + 8) * v17[1];
+          v17->intvalue *= v22->intvalue;
+          v17->floatvalue = v22->floatvalue * v17->floatvalue;
           goto LABEL_144;
         case 27:
-          v24 = v17[1];
-          *(int *)v17 /= *(int *)v22;
-          v17[1] = v24 / *(double *)(v22 + 8);
+          v24 = v17->floatvalue;
+          v17->intvalue /= v22->intvalue;
+          v17->floatvalue = v24 / v22->floatvalue;
           goto LABEL_144;
         case 28:
-          *(int *)v17 %= *(_DWORD *)v22;
+          v17->intvalue %= v22->intvalue;
           goto LABEL_144;
         case 29:
-          *(_DWORD *)v17 += *(_DWORD *)v22;
-          v17[1] = *(double *)(v22 + 8) + v17[1];
+          v17->intvalue += v22->intvalue;
+          v17->floatvalue = v22->floatvalue + v17->floatvalue;
           goto LABEL_144;
         case 30:
-          v25 = v17[1];
-          *(_DWORD *)v17 -= *(_DWORD *)v22;
-          v17[1] = v25 - *(double *)(v22 + 8);
+          v25 = v17->floatvalue;
+          v17->intvalue -= v22->intvalue;
+          v17->floatvalue = v25 - v22->floatvalue;
           goto LABEL_144;
         case 32:
-          *(_DWORD *)v17 &= *(_DWORD *)v22;
+          v17->intvalue &= v22->intvalue;
           goto LABEL_144;
         case 33:
-          *(_DWORD *)v17 |= *(_DWORD *)v22;
+          v17->intvalue |= v22->intvalue;
           goto LABEL_144;
         case 34:
-          *(_DWORD *)v17 ^= *(_DWORD *)v22;
+          v17->intvalue ^= v22->intvalue;
           goto LABEL_144;
         case 35:
-          *(_DWORD *)v17 = ~*(_DWORD *)v17;
+          v17->intvalue = ~v17->intvalue;
           goto LABEL_144;
         case 36:
-          v23 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 == 0;
-          v17[1] = (double)(v23 == 0.0);
+          v23 = v17->floatvalue;
+          v17->intvalue = v17->intvalue == 0;
+          v17->floatvalue = (double)(v23 == 0.0);
           goto LABEL_144;
         case 37:
           ArgListg = 1;
-          v34 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 > *(_DWORD *)v22;
-          if ( v34 <= *(double *)(v22 + 8) )
+          v34 = v17->floatvalue;
+          v17->intvalue = v17->intvalue > v22->intvalue;
+          if ( v34 <= v22->floatvalue )
             ArgListg = 0;
-          v17[1] = (double)ArgListg;
+          v17->floatvalue = (double)ArgListg;
           goto LABEL_144;
         case 38:
           ArgListh = 1;
-          v35 = v17[1];
-          *(_DWORD *)v17 = *(_DWORD *)v17 < *(_DWORD *)v22;
-          if ( v35 >= *(double *)(v22 + 8) )
+          v35 = v17->floatvalue;
+          v17->intvalue = v17->intvalue < v22->intvalue;
+          if ( v35 >= v22->floatvalue )
             ArgListh = 0;
-          v17[1] = (double)ArgListh;
+          v17->floatvalue = (double)ArgListh;
           goto LABEL_144;
         case 42:
           if ( !v14 )
           {
-            sub_10039200(a1, aWithoutInIfEli, v45);
+            sub_10039200(src, aWithoutInIfEli, v45);
             goto LABEL_163;
           }
-          if ( a5 )
+          if ( integer )
           {
             if ( !v15 )
             {
               v14 = 0;
-              *(_DWORD *)v17 = *(_DWORD *)v22;
+              v17->intvalue = v22->intvalue;
               goto LABEL_144;
             }
           }
           else if ( v52 == 0.0 )
           {
-            *((_DWORD *)v17 + 2) = *(_DWORD *)(v22 + 8);
-            *((_DWORD *)v17 + 3) = *(_DWORD *)(v22 + 12);
+            v17->floatvalue = v22->floatvalue;
           }
           v14 = 0;
           goto LABEL_144;
         case 43:
           if ( v14 )
           {
-            sub_10039200(a1, aAfterInIfElif, v45);
+            sub_10039200(src, aAfterInIfElif, v45);
             goto LABEL_163;
           }
-          v15 = *(_DWORD *)v17;
-          v52 = v17[1];
+          v15 = v17->intvalue;
+          v52 = v17->floatvalue;
           v14 = 1;
 LABEL_144:
-          v36 = *v18;
-          if ( *v18 != 36 && v36 != 35 )
+          v36 = v18->op;
+          if ( v18->op != 36 && v36 != 35 )
           {
             if ( v36 != 43 )
-              v17 = (double *)*((_DWORD *)v17 + 6);
-            v37 = *((_DWORD *)v17 + 5);
+              v17 = v17->next;
+            v37 = v17->prev;
             if ( v37 )
-              *(_DWORD *)(v37 + 24) = *((_DWORD *)v17 + 6);
+              v37->next = v17->next;
             else
-              v49 = (double *)*((_DWORD *)v17 + 6);
-            v38 = *((_DWORD *)v17 + 6);
+              v49 = v17->next;
+            v38 = v17->next;
             if ( v38 )
-              *(_DWORD *)(v38 + 20) = *((_DWORD *)v17 + 5);
+              v38->prev = v17->prev;
             FreeMemory(v17);
           }
-          v39 = v18[3];
+          v39 = v18->prev;
           if ( v39 )
-            *(_DWORD *)(v39 + 16) = v18[4];
+            v39->next = v18->next;
           else
-            v48 = (_DWORD *)v18[4];
-          v40 = v18[4];
+            v48 = v18->next;
+          v40 = v18->next;
           if ( v40 )
-            *(_DWORD *)(v40 + 12) = v18[3];
+            v40->prev = v18->prev;
           FreeMemory(v18);
           break;
         default:
@@ -32846,20 +32843,20 @@ LABEL_144:
     }
     while ( 1 )
     {
-      v20 = v18[2];
-      v21 = v19[2];
-      if ( v20 > v21 || v20 == v21 && v18[1] >= v19[1] )
+      v20 = v18->parentheses;
+      v21 = v19->parentheses;
+      if ( v20 > v21 || v20 == v21 && v18->priority >= v19->priority )
         goto LABEL_88;
-      if ( *v18 != 36 && *v18 != 35 )
-        v17 = (double *)*((_DWORD *)v17 + 6);
+      if ( v18->op != 36 && v18->op != 35 )
+        v17 = v17->next;
       if ( !v17 )
         break;
       v18 = v19;
-      v19 = (int *)v19[4];
+      v19 = v19->next;
       if ( !v19 )
         goto LABEL_88;
     }
-    sub_10039200(a1, aMisingValuesIn, v45);
+    sub_10039200(src, aMisingValuesIn, v45);
 LABEL_163:
     v46 = 1;
   }
@@ -32867,19 +32864,18 @@ LABEL_163:
 LABEL_165:
   if ( v49 )
   {
-    if ( a3 )
-      *a3 = *(_DWORD *)v49;
-    if ( a4 )
+    if ( intvalue )
+      *intvalue = v49->intvalue;
+    if ( floatvalue )
     {
-      *a4 = *((_DWORD *)v49 + 2);
-      a4[1] = *((_DWORD *)v49 + 3);
+      *floatvalue = v49->floatvalue;
     }
   }
   if ( v16 )
   {
     do
     {
-      v41 = (_DWORD *)v16[4];
+      v41 = v16->next;
       FreeMemory(v16);
       v16 = v41;
     }
@@ -32890,7 +32886,7 @@ LABEL_165:
   {
     do
     {
-      v43 = (double *)*((_DWORD *)v42 + 6);
+      v43 = v42->next;
       FreeMemory(v42);
       v42 = v43;
     }
@@ -32898,12 +32894,12 @@ LABEL_165:
   }
   if ( !v46 )
     return 1;
-  if ( a3 )
-    *a3 = 0;
-  if ( a4 )
+  if ( intvalue )
+    *intvalue = 0;
+  if ( floatvalue )
   {
-    *a4 = 0;
-    a4[1] = 0;
+    *floatvalue = 0;
+    floatvalue[1] = 0;
   }
   return 0;
 }
@@ -33011,39 +33007,38 @@ LABEL_22:
 // 1003C69C: variable 'v13' is possibly undefined
 
 //----- (1003C900) --------------------------------------------------------
-int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
+int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatvalue, int integer)
 {
-  int v4; // esi
-  int v6; // ebp
-  _DWORD *v7; // edi
-  _DWORD *v8; // eax
-  _DWORD *v9; // eax
-  _DWORD *v10; // eax
+  source_t *v4; // esi
+  token_t *v6; // ebp (firsttoken)
+  token_t *v7; // edi
+  token_t *v8; // eax
+  token_t *v9; // eax
+  define_t *v10; // eax
   int v11; // eax
-  int v12; // eax
-  int v13; // esi
+  token_t *v12; // eax
+  token_t *v13; // esi
   char v14; // [esp+0h] [ebp-448h]
   int v15; // [esp+10h] [ebp-438h]
   int v16; // [esp+14h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
   v16 = 0;
-  if ( a2 )
-    *a2 = 0;
-  if ( a3 )
+  if ( intvalue )
+    *intvalue = 0;
+  if ( floatvalue )
   {
-    *a3 = 0;
-    a3[1] = 0;
+    *floatvalue = 0;
   }
-  v4 = a1;
-  if ( !PC_ReadSourceToken(a1, token.string) )
+  v4 = src;
+  if ( !PC_ReadSourceToken(src, &token) )
   {
-    sub_10039200(a1, aNoLeadingAfter, v14);
+    sub_10039200(src, aNoLeadingAfter, v14);
     return 0;
   }
-  if ( !PC_ReadSourceToken(a1, token.string) )
+  if ( !PC_ReadSourceToken(src, &token) )
   {
-    sub_10039200(a1, aNothingToEvalu, v14);
+    sub_10039200(src, aNothingToEvalu, v14);
     return 0;
   }
   v6 = 0;
@@ -33069,7 +33064,7 @@ int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
 LABEL_28:
           if ( v15 <= 0 )
             break;
-          v8 = PC_CopyToken(token.string);
+          v8 = PC_CopyToken(&token);
           goto LABEL_30;
         }
         v11 = v15 - 1;
@@ -33080,50 +33075,50 @@ LABEL_28:
     if ( v16 )
     {
       v16 = 0;
-      v8 = PC_CopyToken(token.string);
+      v8 = PC_CopyToken(&token);
 LABEL_30:
-      v8[266] = 0;
+      v8->next = 0;
       if ( v7 )
-        v7[266] = v8;
+        v7->next = v8;
       else
-        v6 = (int)v8;
+        v6 = v8;
       v7 = v8;
       continue;
     }
     if ( !strcmp(token.string, aDefined) )
     {
       v16 = 1;
-      v9 = PC_CopyToken(token.string);
-      v9[266] = 0;
-      v4 = a1;
+      v9 = PC_CopyToken(&token);
+      v9->next = 0;
+      v4 = src;
       if ( v7 )
-        v7[266] = v9;
+        v7->next = v9;
       else
-        v6 = (int)v9;
+        v6 = v9;
       v7 = v9;
     }
     else
     {
-      v4 = a1;
-      v10 = (_DWORD *)PC_FindHashedDefine(((source_t *)a1)->definehash, token.string);
+      v4 = src;
+      v10 = PC_FindHashedDefine(src->definehash, token.string);
       if ( !v10 )
       {
-        sub_10039200(a1, aCanTEvaluateSN, token.string);
+        sub_10039200(src, aCanTEvaluateSN, token.string);
         return 0;
       }
-      if ( !PC_ExpandDefineIntoSource(a1, v10) )
+      if ( !PC_ExpandDefineIntoSource(src, v10) )
         return 0;
     }
   }
-  while ( PC_ReadSourceToken(v4, token.string) );
-  if ( !PC_EvaluateTokens(v4, v6, a2, a3, a4) )
+  while ( PC_ReadSourceToken(v4, &token) );
+  if ( !PC_EvaluateTokens(v4, v6, intvalue, floatvalue, integer) )
     return 0;
   v12 = v6;
   if ( v6 )
   {
     do
     {
-      v13 = (int)((token_t *)v12)->next;
+      v13 = v12->next;
       PC_FreeToken(v12);
       v12 = v13;
     }
@@ -33326,17 +33321,17 @@ LABEL_10:
 int __cdecl PC_DollarDirective_evalint(source_t *src)
 {
   int result; // eax
-  int v2; // eax
+  script_t *v2; // eax
   int v3; // [esp+4h] [ebp-434h] BYREF
   token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(src, &v3, 0, 1);
   if ( result )
   {
-    v2 = (int)((source_t *)src)->scriptstack;
-    token.line = ((script_t *)v2)->line;
-    token.whitespace_p = ((script_t *)v2)->script_p;
-    token.endwhitespace_p = ((script_t *)v2)->script_p;
+    v2 = src->scriptstack;
+    token.line = v2->line;
+    token.whitespace_p = v2->script_p;
+    token.endwhitespace_p = v2->script_p;
     token.linescrossed = 0;
     sprintf(token.string, "%d", abs32(v3));
     token.floatvalue = (double)v3;
@@ -33355,17 +33350,17 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
 int __cdecl PC_DollarDirective_evalfloat(source_t *src)
 {
   int result; // eax
-  int v2; // eax
+  script_t *v2; // eax
   long double v3; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(src, 0, &v3, 0);
   if ( result )
   {
-    v2 = (int)((source_t *)src)->scriptstack;
-    token.line = ((script_t *)v2)->line;
-    token.whitespace_p = ((script_t *)v2)->script_p;
-    token.endwhitespace_p = ((script_t *)v2)->script_p;
+    v2 = src->scriptstack;
+    token.line = v2->line;
+    token.whitespace_p = v2->script_p;
+    token.endwhitespace_p = v2->script_p;
     token.linescrossed = 0;
     sprintf(token.string, "%1.2f", (double)fabs(v3));
     token.type = 3;

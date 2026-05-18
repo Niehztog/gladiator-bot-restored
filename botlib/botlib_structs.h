@@ -378,4 +378,28 @@ typedef struct aas_settings_s {
     /* sizeof = 148 — confirm via Gladiator AAS_InitSettings disassembly */
 } aas_settings_t;
 
+/* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.
+ * Matches the Q3 botlib l_precomp.c shape, but with `double floatvalue`
+ * (Gladiator's expression evaluator was extended to doubles; the original
+ * binary's GetClearedMemory(32) for value_t and (24) for operator_t still
+ * hold on 32-bit MSVC; on 64-bit the trailing prev/next pointers double
+ * to 8 bytes so we must allocate sizeof(...) instead). */
+typedef struct value_s {
+    int intvalue;                /* +0  */
+    int _pad0;                   /* +4  alignment for double */
+    double floatvalue;           /* +8  */
+    int parentheses;             /* +16 */
+    /* Compiler auto-pads 4 bytes here on 64-bit ABIs to align prev/next. */
+    struct value_s *prev;        /* +20 on 32-bit, +24 on 64-bit */
+    struct value_s *next;        /* +24 on 32-bit, +32 on 64-bit */
+} value_t;
+
+typedef struct operator_s {
+    int op;
+    int priority;
+    int parentheses;
+    struct operator_s *prev;
+    struct operator_s *next;
+} operator_t;
+
 #endif /* BOTLIB_STRUCTS_H */
