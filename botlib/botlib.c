@@ -30406,11 +30406,10 @@ int *GetBotAPI(const void *a1)
   extern void botlib_install_exception_handler(void);
   botlib_install_exception_handler();
 
-  /* The game DLL copies the returned bot_export_t by value (80 bytes).  Use a
-   * static array so the 20 function pointers are guaranteed contiguous; the
-   * original binary had a single BSS block at 0x10063F80-0x10063FCF but GCC
-   * places each dword_10063F8x global at an independent address. */
-  static int bot_exports[20];
+  /* bot_export_t from gladiator.dll.h: properly typed function pointers,
+   * pointer-sized on all platforms (fixes the 32-bit int truncation that
+   * corrupted every slot on 64-bit Linux). */
+  static bot_export_t bot_exports;
   bot_import_t *imp = (bot_import_t *)a1;
 
   /* Store each import callback in its named global. The original source had a
@@ -30430,27 +30429,27 @@ int *GetBotAPI(const void *a1)
   /* imp->DebugLineDelete (offset 32) — same, not called; no bi_ global. */
   bi_DebugLineShow      = imp->DebugLineShow;
 
-  bot_exports[0]  = (int)&Export_BotVersion;
-  bot_exports[1]  = (int)&Export_BotSetupLibrary;
-  bot_exports[2]  = (int)&Export_BotShutdownLibrary;
-  bot_exports[3]  = (int)&Export_BotLibraryInitialized;
-  bot_exports[4]  = (int)&Export_BotLibVarSet;
-  bot_exports[5]  = (int)&Export_BotDefine;
-  bot_exports[6]  = (int)&Export_BotLoadMap;
-  bot_exports[7]  = (int)&Export_BotSetupClient;
-  bot_exports[8]  = (int)&Export_BotShutdownClient;
-  bot_exports[9]  = (int)&Export_BotMoveClient;
-  bot_exports[10] = (int)&Export_BotClientSettings;
-  bot_exports[11] = (int)&Export_BotSettings;
-  bot_exports[12] = (int)Export_BotLibStartFrame;
-  bot_exports[13] = (int)&Export_BotUpdateClient;
-  bot_exports[14] = (int)&Export_BotUpdateEntity;
-  bot_exports[15] = (int)&Export_BotAddSound;
-  bot_exports[16] = (int)&Export_BotAddPointLight;
-  bot_exports[17] = (int)Export_BotLibAI; /* BotAIThink thunk → Export_BotLibAI */
-  bot_exports[18] = (int)Export_BotLibConsoleMessage;
-  bot_exports[19] = (int)&Export_Test;
-  return bot_exports;
+  bot_exports.BotVersion           = Export_BotVersion;
+  bot_exports.BotSetupLibrary      = Export_BotSetupLibrary;
+  bot_exports.BotShutdownLibrary   = Export_BotShutdownLibrary;
+  bot_exports.BotLibraryInitialized = Export_BotLibraryInitialized;
+  bot_exports.BotLibVarSet         = Export_BotLibVarSet;
+  bot_exports.BotDefine            = Export_BotDefine;
+  bot_exports.BotLoadMap           = (void *)Export_BotLoadMap;
+  bot_exports.BotSetupClient       = (void *)Export_BotSetupClient;
+  bot_exports.BotShutdownClient    = Export_BotShutdownClient;
+  bot_exports.BotMoveClient        = Export_BotMoveClient;
+  bot_exports.BotClientSettings    = (void *)Export_BotClientSettings;
+  bot_exports.BotSettings          = (void *)Export_BotSettings;
+  bot_exports.BotStartFrame        = Export_BotLibStartFrame;
+  bot_exports.BotUpdateClient      = (void *)Export_BotUpdateClient;
+  bot_exports.BotUpdateEntity      = (void *)Export_BotUpdateEntity;
+  bot_exports.BotAddSound          = (void *)Export_BotAddSound;
+  bot_exports.BotAddPointLight     = (void *)Export_BotAddPointLight;
+  bot_exports.BotAI                = Export_BotLibAI;
+  bot_exports.BotConsoleMessage    = Export_BotLibConsoleMessage;
+  bot_exports.Test                 = (void *)Export_Test;
+  return (int *)&bot_exports;
 }
 // 10063F80: using guessed type int dword_10063F80;
 // 10063F84: using guessed type int dword_10063F84;

@@ -365,6 +365,42 @@ typedef struct bot_import_s {
     void *DebugLineShow;    /* void (*)(int line, vec3_t, vec3_t, int)          */
 } bot_import_t;
 
+/* Forward declarations for Q2 structs used only as pointers in bot_export_t.
+ * Full definitions live in game/botlib.h; we only need pointer-to-incomplete
+ * here so the function pointer signatures are correct. */
+typedef struct bot_updateclient_s bot_updateclient_t;
+typedef struct bot_updateentity_s bot_updateentity_t;
+
+/* bot_export_t — function pointers returned by GetBotAPI to the game DLL.
+ * Matches game/botlib.h exactly so the game can dereference the returned
+ * pointer as a bot_export_t and call through these typed function pointers. */
+typedef struct bot_export_s {
+    char *(*BotVersion)(void);
+    int   (*BotSetupLibrary)(void);
+    int   (*BotShutdownLibrary)(void);
+    int   (*BotLibraryInitialized)(void);
+    int   (*BotLibVarSet)(char *var_name, char *value);
+    int   (*BotDefine)(char *string);
+    int   (*BotLoadMap)(char *mapname, int modelindexes, char **modelindex,
+                        int soundindexes, char **soundindex,
+                        int imageindexes, char **imageindex);
+    int   (*BotSetupClient)(int client, bot_settings_t *settings);
+    int   (*BotShutdownClient)(int client);
+    int   (*BotMoveClient)(int oldclnum, int newclnum);
+    int   (*BotClientSettings)(int client, bot_clientsettings_t *settings);
+    int   (*BotSettings)(int client, bot_settings_t *settings);
+    int   (*BotStartFrame)(float time);
+    int   (*BotUpdateClient)(int client, bot_updateclient_t *buc);
+    int   (*BotUpdateEntity)(int ent, bot_updateentity_t *bue);
+    int   (*BotAddSound)(vec3_t origin, int ent, int channel, int soundindex,
+                         float volume, float attenuation, float timeofs);
+    int   (*BotAddPointLight)(vec3_t origin, int ent, float radius,
+                              float r, float g, float b, float time, float decay);
+    int   (*BotAI)(int client, float thinktime);
+    int   (*BotConsoleMessage)(int client, int type, char *message);
+    int   (*Test)(int parm0, char *parm1, vec3_t parm2, vec3_t parm3);
+} bot_export_t;
+
 /* ========================================================================
  * aas_world_t — Area Awareness System global state.
  *
