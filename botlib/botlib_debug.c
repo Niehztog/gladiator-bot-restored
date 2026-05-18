@@ -12,6 +12,14 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
+
+void botlib_log(const char *fmt, ...)
+{
+    /* No-op: stdio removed to avoid CRT heap interference with Yamagi's Z_TagMalloc */
+    (void)fmt;
+}
+
+#ifdef _WIN32
 #include <windows.h>
 
 /* -----------------------------------------------------------------------
@@ -34,12 +42,6 @@ static void blog_open(void)
             return;
         }
     }
-}
-
-void botlib_log(const char *fmt, ...)
-{
-    /* No-op: stdio removed to avoid CRT heap interference with Yamagi's Z_TagMalloc */
-    (void)fmt;
 }
 
 /* -----------------------------------------------------------------------
@@ -124,4 +126,13 @@ void botlib_install_exception_handler(void)
     SetUnhandledExceptionFilter(gladiator_exception_filter);
     botlib_log("Exception handler installed");
 }
+
+#else  /* !_WIN32 — Linux/POSIX: no DllMain, no SEH */
+
+void botlib_install_exception_handler(void)
+{
+    /* No-op on POSIX: use GDB / ASAN / UBSAN for crash diagnosis instead. */
+}
+
+#endif /* _WIN32 */
 

@@ -196,8 +196,18 @@ static int    remove_file(const char *path) { return remove(path); }
 static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
 static intptr_t SpawnProcess(int mode, char *file, char *args) { (void)mode; (void)file; (void)args; return -1; }
 /* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
-// _access: provided by MinGW <io.h>
 static int    _chdir(const char *path) { return chdir(path); }
+
+#ifndef _WIN32
+/* POSIX equivalents for Windows CRT functions used in the decompiled code.
+ * On Windows/MinGW these are provided by the runtime; on Linux we map them. */
+#include <strings.h>    /* strcasecmp */
+#include <errno.h>      /* errno */
+#define _strcmpi   strcasecmp
+#define _access    access
+static inline int *_errno(void) { return &errno; }
+typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
+#endif
 
 
 // AAS_Update: __usercall cleaned (original: double@<st0>, int -> int only)
@@ -932,7 +942,7 @@ const char **__cdecl FindField(const char **a1, const char *a2);
 int __cdecl ReadNumber(int a1, int a2, float *a3);
 int __cdecl ReadChar(int a1, int a2, float *a3);
 int __cdecl ReadString(int, int, char *Destination); // idb
-int __cdecl ReadStructure(int a1, int a2, int a3);
+int __cdecl ReadStructure(int a1, structdef_t *a2, int a3);
 int __cdecl WriteIndent(FILE *Stream, int); // idb
 int __cdecl WriteStructWithIndent(FILE *Stream, int, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
@@ -1170,7 +1180,7 @@ char aEmptyAasLinkHe[21] = "empty aas link heap\n"; // weak
 char aAasPointareanu[34] = "AAS_PointAreaNum: aas not loaded\n"; // weak
 char aAasAreapresenc[43] = "AAS_AreaPresenceType: invalid area number\n"; // weak
 char aAasLinkentityA[32] = "AAS_LinkEntity: aas not loaded\n"; /* original .data string at 0x5C048 in gladiator.dll_ — IDA mistranscribed as "sub_1001C460" */
-extern int unk_1005C138[]; /* sound info structdef — defined in botlib_structdefs.c */
+extern structdef_t unk_1005C138; /* sound info structdef — defined in botlib_structdefs.c */
 char aType[5] = "type"; // weak
 char aName[5] = "name"; // weak
 char aUnknownDefinit[] = "unknown definition %s\n"; // idb
@@ -1362,7 +1372,7 @@ char aRndfile[] = "rndfile"; // idb
 char aRndC[6] = "rnd.c"; // weak
 char aSynfile[] = "synfile"; // idb
 char aSynC[6] = "syn.c"; // weak
-extern int unk_1005D890[]; /* item/entity structdef — defined in botlib_structdefs.c */
+extern structdef_t unk_1005D890; /* item/entity structdef — defined in botlib_structdefs.c */
 char aMoreThanDItemI[32] = "more than %d item info defined\n"; // weak
 char aNoItemInfoLoad[21] = "no item info loaded\n"; // weak
 char aIteminfo[9] = "iteminfo"; // weak
@@ -1386,8 +1396,8 @@ char aModelsWeaponsG[] = "models/weapons/grapple/hook/tris.md2"; // idb
 char aLaserhook[] = "laserhook"; // idb
 char aHookoff[8] = "hookoff"; // weak
 char aHookon[7] = "hookon"; // weak
-extern int unk_1005DFD8[]; /* weapon config structdef — defined in botlib_structdefs.c */
-extern int unk_1005DFE0[]; /* projectile config structdef — defined in botlib_structdefs.c */
+extern structdef_t unk_1005DFD8; /* weapon config structdef — defined in botlib_structdefs.c */
+extern structdef_t unk_1005DFE0; /* projectile config structdef — defined in botlib_structdefs.c */
 char aNoWeaponInfoLo[23] = "no weapon info loaded\n"; // weak
 char aProjectileinfo[15] = "projectileinfo"; // weak
 char aWeaponinfo[11] = "weaponinfo"; // weak
@@ -34957,7 +34967,7 @@ int __cdecl ReadString(int a1, int a2, char *Destination)
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10040AD0) --------------------------------------------------------
-int __cdecl ReadStructure(int a1, int a2, int a3)
+int __cdecl ReadStructure(int a1, structdef_t *a2, int a3)
 {
   int result; // eax
   const char **v4; // eax
@@ -34982,7 +34992,7 @@ LABEL_2:
       return 0;
     if ( !strcmp(ArgList, asc_1005AB54) )
       return 1;
-    v4 = FindField(*(const char ***)(a2 + 4), ArgList);
+    v4 = FindField(a2->fields, ArgList);
     v5 = v4;
     if ( !v4 )
     {

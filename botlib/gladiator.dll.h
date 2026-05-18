@@ -7,6 +7,8 @@
 #ifndef GLADIATOR_DLL_H
 #define GLADIATOR_DLL_H
 
+#include <stddef.h>   /* wchar_t, offsetof, size_t */
+
 #define __int8 char
 #define __int16 short
 #define __int32 int
@@ -25,6 +27,9 @@
 #endif
 #ifndef __stdcall
 #define __stdcall
+#endif
+#ifndef __fastcall
+#define __fastcall
 #endif
 #endif
 
@@ -194,7 +199,9 @@ struct _OSVERSIONINFOA
 typedef int LONG;
 
 /* 25 */
-#ifndef __cplusplus
+/* wchar_t: defined by <stddef.h> on POSIX as unsigned int (32-bit).
+ * Only provide the Windows 16-bit alias on Windows targets. */
+#if defined(_WIN32) && !defined(__cplusplus)
 typedef unsigned __int16 wchar_t;
 #endif
 
@@ -312,6 +319,11 @@ typedef struct bot_fileref_s {
     char path[144];            /* path to pak file, or direct file path when fileofs == 0  */
                                /* 144 = MAX_FILEPATH from gladq2_src/botlib.h               */
 } bot_fileref_t;               /* sizeof = 152 bytes = 38 ints ("int Offset[38]" in IDA)   */
+
+/* structdef_t — struct descriptor passed to ReadStructure / FindField.
+ * In the original 32-bit DLL this was a plain int[2] array { size, fields_ptr }.
+ * Using a proper struct makes it pointer-size-agnostic (works on both 32 and 64-bit). */
+typedef struct { int size; char **fields; } structdef_t;
 
 /* gladiator_token_t — script token (= Q3A l_script.h::token_t with NUMBERVALUE).
  * Layout verified by disassembly of gladiator.dll (PS_ReadToken writes):
@@ -439,8 +451,12 @@ typedef struct aas_world_s {
 
 /* Compile-time offset checks vs the original binary's VA layout (must run
  * BEFORE the macro definitions below — some legacy names like
- * `modelindex_table` collide with struct field names). */
+ * `modelindex_table` collide with struct field names).
+ * These checks are only valid on 32-bit builds (Windows/MinGW): the struct
+ * contains void* pointers which are 4 bytes on 32-bit and 8 bytes on 64-bit,
+ * so the offsets beyond the first pointer field shift on 64-bit Linux. */
 #include <stddef.h>  /* offsetof */
+#if __SIZEOF_POINTER__ == 4
 _Static_assert(sizeof(aas_world_t) == 0x2A4,                     "aas_world_t size");
 _Static_assert(offsetof(aas_world_t, loaded)               == 0x000, "loaded");
 _Static_assert(offsetof(aas_world_t, time)                 == 0x00C, "time");
@@ -456,6 +472,7 @@ _Static_assert(offsetof(aas_world_t, oldestcache)          == 0x200, "oldestcach
 _Static_assert(offsetof(aas_world_t, travelflagfortype)    == 0x208, "travelflagfortype");
 _Static_assert(offsetof(aas_world_t, areaupdate)           == 0x288, "areaupdate");
 _Static_assert(offsetof(aas_world_t, portalcache)          == 0x2A0, "portalcache");
+#endif /* __SIZEOF_POINTER__ == 4 */
 
 /* Single instance defined in gladiator_deobfuscated.c. */
 extern aas_world_t aasworld;

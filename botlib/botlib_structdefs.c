@@ -18,6 +18,7 @@
  */
 
 #include <stdint.h>
+#include "gladiator.dll.h"   /* structdef_t */
 
 /* Cast integer constant to char * for mixed pointer/int field table slots */
 #define P(x) ((char *)(uintptr_t)(x))
@@ -45,7 +46,7 @@ static char *snd_fields[] = {
     FE("string",      0x60, 0x004, 0, 0x00000000),
     FE_END
 };
-int unk_1005C138[] = { 176, (int)(uintptr_t)snd_fields };
+structdef_t unk_1005C138 = { 176, snd_fields };
 
 /* =========================================================================
  * unk_1005D890 — item/entity struct descriptor (struct size = 284 = 0x11C)
@@ -63,7 +64,7 @@ static char *item_fields[] = {
     FE("maxs",        0x10C, 0x103, 3, 0x00000000),  /* vec3, flags 0x103 */
     FE_END
 };
-int unk_1005D890[] = { 284, (int)(uintptr_t)item_fields };
+structdef_t unk_1005D890 = { 284, item_fields };
 
 /* =========================================================================
  * unk_1005DFD8 — weapon config struct descriptor (struct size = 344 = 0x158)
@@ -93,7 +94,7 @@ static char *weap_fields[] = {
     FE("spindown",        0x150, 0x003, 0, 0x00000000),
     FE_END
 };
-int unk_1005DFD8[] = { 344, (int)(uintptr_t)weap_fields };
+structdef_t unk_1005DFD8 = { 344, weap_fields };
 
 /* =========================================================================
  * unk_1005DFE0 — projectile config struct descriptor (struct size = 208 = 0xD0)
@@ -116,7 +117,7 @@ static char *proj_fields[] = {
     FE("bouncestop",  0x0CC, 0x003, 0, 0x00000000),
     FE_END
 };
-int unk_1005DFE0[] = { 208, (int)(uintptr_t)proj_fields };
+structdef_t unk_1005DFE0 = { 208, proj_fields };
 
 /* =========================================================================
  * Vec3 constants from .rdata section
