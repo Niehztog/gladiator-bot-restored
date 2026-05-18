@@ -11198,12 +11198,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   float v88; // [esp+78h] [ebp-158h]
   float v89; // [esp+7Ch] [ebp-154h]
   float v90; // [esp+80h] [ebp-150h]
-  int v91; // [esp+84h] [ebp-14Ch] BYREF
-  int v92; // [esp+88h] [ebp-148h]
-  int v93; // [esp+8Ch] [ebp-144h]
-  int v94; // [esp+90h] [ebp-140h] BYREF
-  int v95; // [esp+94h] [ebp-13Ch]
-  int v96; // [esp+98h] [ebp-138h]
+  /* Collapsed from {int v91, int v92, int v93} — passed by reference to
+   * VectorScale, which writes 3 floats.  GCC was laying these three ints out
+   * in REVERSE order (v91 at +0x120, v92 at +0x11c, v93 at +0x118 in our
+   * compiled disasm), so VectorScale read garbage for v92/v93 and wrote back
+   * to unrelated stack slots.  Collapse to vec3_t. */
+  vec3_t v91; // [esp+84h] [ebp-14Ch] BYREF — was v91/v92/v93 int triplet
+  /* Same root cause as v91/v92/v93 — VectorScale destination. */
+  vec3_t v94; // [esp+90h] [ebp-140h] BYREF — was v94/v95/v96 int triplet
   float v97; // [esp+9Ch] [ebp-134h] BYREF
   float v98; // [esp+A0h] [ebp-130h]
   float v99; // [esp+A4h] [ebp-12Ch]
@@ -11495,35 +11497,35 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                                 if ( v36 >= v60 )
                                 {
                                   v65 = v60;
-                                  v91 = v104;
-                                  *(float *)&v92 = v105;
-                                  *(float *)&v93 = v106;
-                                  v94 = v84;
-                                  *(float *)&v95 = v85;
-                                  *(float *)&v96 = v86;
+                                  *(int *)&v91[0] = v104;
+                                  v91[1] = v105;
+                                  v91[2] = v106;
+                                  *(int *)&v94[0] = v84;
+                                  v94[1] = v85;
+                                  v94[2] = v86;
                                 }
                                 else
                                 {
-                                  v91 = v107;
-                                  *(float *)&v92 = v108;
-                                  *(float *)&v93 = v109;
-                                  v94 = v87;
+                                  *(int *)&v91[0] = v107;
+                                  v91[1] = v108;
+                                  v91[2] = v109;
+                                  *(int *)&v94[0] = v87;
                                   v65 = v36;
-                                  *(float *)&v95 = v88;
-                                  *(float *)&v96 = v89;
+                                  v94[1] = v88;
+                                  v94[2] = v89;
                                 }
                               }
                               else
                               {
                                 v65 = v36;
-                                *(float *)&v91 = *(float *)&v104 + *(float *)&v107;
-                                *(float *)&v92 = v105 + v108;
-                                *(float *)&v93 = v106 + v109;
-                                VectorScale((float *)&v91, 0.5, (float *)&v91);
-                                *(float *)&v94 = *(float *)&v84 + *(float *)&v87;
-                                *(float *)&v95 = v85 + v88;
-                                *(float *)&v96 = v86 + v89;
-                                VectorScale((float *)&v94, 0.5, (float *)&v94);
+                                v91[0] = *(float *)&v104 + *(float *)&v107;
+                                v91[1] = v105 + v108;
+                                v91[2] = v106 + v109;
+                                VectorScale(v91, 0.5, v91);
+                                v94[0] = *(float *)&v84 + *(float *)&v87;
+                                v94[1] = v85 + v88;
+                                v94[2] = v86 + v89;
+                                VectorScale(v94, 0.5, v94);
                               }
                               v140[0] = *(float *)&v84 - *(float *)&v87;
                               v140[1] = v85 - v88;
@@ -11536,9 +11538,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                                 {
                                   v64 = v65;
                                   v124 = v68;
-                                  *(int *)&v121[0] = v91;
-                                  *(int *)&v121[1] = v92;
-                                  v121[2] = *(float *)&v93;
+                                  *(int *)&v121[0] = *(int *)&v91[0];
+                                  *(int *)&v121[1] = *(int *)&v91[1];
+                                  v121[2] = v91[2];
                                   /* Original asm uses integer movs to copy bit patterns from
                                    * v101/v102/v103 (int slots holding cross-product float bits)
                                    * into v120[0..2].  IDA's `v120[1] = v102` decompile would
@@ -11549,27 +11551,27 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                                   *(int *)&v120[2] = *(int *)&v101[2];
                                   v116 = 1;
                                   v113 = v13;
-                                  *(int *)&v110[0] = v94;
-                                  v110[1] = *(float *)&v95;
-                                  v110[2] = *(float *)&v96;
+                                  *(int *)&v110[0] = *(int *)&v94[0];
+                                  v110[1] = v94[1];
+                                  v110[2] = v94[2];
                                 }
                               }
                               else if ( v41 < v100 || v100 + 1.0 > v65 && v68 > (double)v125 )
                               {
                                 v100 = v65;
                                 v125 = v68;
-                                v135 = v91;
-                                v136 = *(float *)&v92;
-                                v137 = *(float *)&v93;
+                                v135 = *(int *)&v91[0];
+                                v136 = v91[1];
+                                v137 = v91[2];
                                 /* Same bit-pattern preservation as v120 above. */
                                 *(int *)v139 = *(int *)&v101[0];
                                 *(int *)&v139[1] = *(int *)&v101[1];
                                 *(int *)&v139[2] = *(int *)&v101[2];
                                 v118 = 1;
                                 v114 = v13;
-                                *(int *)v138 = v94;
-                                *(int *)&v138[1] = v95;
-                                *(int *)&v138[2] = v96;
+                                *(int *)v138 = *(int *)&v94[0];
+                                *(int *)&v138[1] = *(int *)&v94[1];
+                                *(int *)&v138[2] = *(int *)&v94[2];
                               }
                             }
                           }
@@ -11702,13 +11704,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
         if ( (double)(int)v114 < v64 || AAS_AreaSwim(v49) )
         {
           VectorMA(v110, 2.0, (float *)v120, v110);
-          *(float *)&v93 = v121[2];
-          v91 = *(int *)&v110[0];
-          v94 = *(int *)&v110[0];
-          *(float *)&v92 = v110[1];
-          *(float *)&v95 = v110[1];
-          *(float *)&v96 = v110[2] + 4.0;
-          trace = AAS_TraceClientBBox((float *)&v91, (float *)&v94, 2, -1);
+          v91[2] = v121[2];
+          v91[0] = v110[0];
+          v94[0] = v110[0];
+          v91[1] = v110[1];
+          v94[1] = v110[1];
+          v94[2] = v110[2] + 4.0;
+          trace = AAS_TraceClientBBox(v91, v94, 2, -1);
           if ( !trace.startsolid && trace.fraction >= 1.0 )
           {
             trace.endpos[2] = trace.endpos[2] + 1.0f;
