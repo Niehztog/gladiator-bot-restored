@@ -293,6 +293,18 @@ typedef struct bot_fileref_s {
                                /* 144 = MAX_FILEPATH from gladq2_src/botlib.h               */
 } bot_fileref_t;               /* sizeof = 152 bytes = 38 ints ("int Offset[38]" in IDA)   */
 
+/* scriptcrc_s — 152-byte record in the dword_10063F2C linked list.
+ * Allocated by GetClearedMemory(152) in sub_100376B0.  Each record
+ * memorises a (filename, CRC-hash) pair so the engine can warn when a
+ * script's CRC differs from one previously seen.  Q3 botlib has no
+ * direct analogue (its CRC table is keyed differently); name chosen
+ * descriptively.  Field offsets exactly match the 32-bit binary. */
+typedef struct scriptcrc_s {
+    __int16              hash;            /* +0   CRC-16 of the file body  */
+    char                 name[146];       /* +2   filename (zero-terminated) */
+    struct scriptcrc_s  *next;            /* +148 on 32-bit; offset moves to +152 on 64-bit */
+} scriptcrc_t;                            /* sizeof = 152 on 32-bit, 160 on 64-bit */
+
 /* structdef_t — struct descriptor passed to ReadStructure / FindField.
  * In the original 32-bit DLL this was a plain int[2] array { size, fields_ptr }.
  * Using a proper struct makes it pointer-size-agnostic (works on both 32 and 64-bit). */
@@ -330,6 +342,31 @@ typedef struct token_s {
  * alloc sites that used the literal constant 1072 / 0x430 must therefore
  * be migrated to sizeof(token_t).  Fields up through `floatvalue` keep
  * their original 32-bit offsets, which is all we can guarantee. */
+
+/* ========================================================================
+ * aas_soundpool_t — node of the AAS active-sound bookkeeping pool.
+ *
+ * Original gladiator allocated `52 * MAX_AAS_SOUNDS` raw bytes from
+ * GetMemory and treated it as a packed array of 52-byte nodes.  Each
+ * node had a doubly-linked-list pair (prev,next) at offsets +44/+48,
+ * with the leading 44 bytes carrying payload — at minimum a float at
+ * offset +4 (sort key, see sub_1001CC50).  The remaining payload bytes
+ * have not yet been identified; they are preserved opaquely as
+ * `data[44]` so the on-disk 32-bit layout is byte-identical and field
+ * accesses at +44 / +48 become proper struct-pointer accesses on 64-bit
+ * (where the pool node grows from 52 to 64 bytes).
+ *
+ * Six aas_world fields reference these nodes:
+ *   d_100669C4 = pool base (FreeMemory'd in sub_1001CAB0)
+ *   d_100669C8 = free-list head, chained via .next
+ *   d_100669CC/D0 = head/tail of one sorted active list
+ *   d_100669D4/D8 = head/tail of a second sorted active list
+ * ======================================================================== */
+typedef struct aas_soundpool_s {
+    char                       data[44]; /* opaque payload (incl. float sort key @+4) */
+    struct aas_soundpool_s    *prev;     /* +44 on 32-bit; struct padding pushes to +48 on 64-bit */
+    struct aas_soundpool_s    *next;
+} aas_soundpool_t;
 
 /* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
  * Include game/botlib.h before this header to get these definitions. */
@@ -399,12 +436,22 @@ typedef struct aas_world_s {
     void *soundinfo;                /* +0x1D8  (VA 0x100669B8) soundinfo_t array        */
     int   d_100669BC;               /* +0x1DC */
     int   d_100669C0;               /* +0x1E0 */
-    int   d_100669C4;               /* +0x1E4 */
-    int   d_100669C8;               /* +0x1E8 */
-    int   d_100669CC;               /* +0x1EC */
-    int   d_100669D0;               /* +0x1F0 */
-    int   d_100669D4;               /* +0x1F4 */
-    int   d_100669D8;               /* +0x1F8 */
+    /* aas_world.d_100669C4..D8 are six pointers maintaining a 52-byte
+     * pool of `aas_soundpool_t` nodes (allocated by sub_1001CAB0):
+     *   d_100669C4 = pool base (raw GetMemory return)
+     *   d_100669C8 = free-list head (chained via next at +48)
+     *   d_100669CC, d_100669D0 = head/tail of sorted active list #1
+     *   d_100669D4, d_100669D8 = head/tail of sorted active list #2
+     * Original DLL stored these as `int` because pointers were 32-bit;
+     * on 64-bit they MUST be real pointer types or every list walk
+     * truncates.  Bound type-wise to aas_soundpool_t which is restored
+     * below. */
+    struct aas_soundpool_s *d_100669C4;  /* +0x1E4 */
+    struct aas_soundpool_s *d_100669C8;  /* +0x1E8 */
+    struct aas_soundpool_s *d_100669CC;  /* +0x1EC */
+    struct aas_soundpool_s *d_100669D0;  /* +0x1F0 */
+    struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
+    struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
     int   _pad_1FC;                 /* +0x1FC  (4-byte gap; binary leaves slot empty)   */
     int   oldestcache;              /* +0x200  (VA 0x100669E0) */
     int   newestcache;              /* +0x204 */

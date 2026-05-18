@@ -218,7 +218,7 @@ int __cdecl AAS_ContinueInit(int time_int);
 /* Forward declarations for functions whose address-names were resolved: */
 int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
-int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, int a4); /* search basePath+subdir+paks for file */
+int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 /* BotAIThink: thunk (0x100013A2) → Export_BotLibAI (0x10038380) — same function */
 /* unknown_libname_2 was a wrapper around ctime() — calls now use ctime() directly */
 
@@ -537,12 +537,12 @@ int __cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
 char *__cdecl AAS_PlaneFromNum(int a1);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
-int sub_1001CBE0();
-int __cdecl sub_1001CC10(int a1);
-void __cdecl sub_1001CC50(int a1);
-int __cdecl sub_1001CCC0(int a1);
-void __cdecl sub_1001CD10(int a1);
-int __cdecl sub_1001CD80(int a1);
+aas_soundpool_t *sub_1001CBE0();
+aas_soundpool_t *sub_1001CC10(aas_soundpool_t *a1);
+void sub_1001CC50(aas_soundpool_t *a1);
+aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1);
+void sub_1001CD10(aas_soundpool_t *a1);
+aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1);
 int __cdecl sub_1001CDD0(int a1, int a2);
 int __cdecl sub_1001CE20(int, int, int, int, int, int, float); // idb
 void __cdecl sub_1001CFA0(float a1);
@@ -819,7 +819,7 @@ int EA_Setup();
 int EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16); // idb
 int __cdecl sub_100377E0(char *String1, __int16); // idb
-int __cdecl sub_10037850(char *String1, int, int); // idb
+int __cdecl sub_10037850(char *String1, const unsigned char *, int); // idb
 unsigned int Sys_MilliSeconds();
 int __cdecl ValidClientNumber(int num, const char *str);
 int __cdecl ValidEntityNumber(int num, const char *str);
@@ -835,7 +835,7 @@ bot_export_t *GetBotAPI(bot_import_t *a1);
 #endif
 _WORD *__cdecl sub_100385B0(_WORD *a1);
 __int16 __cdecl sub_10038620(__int16 a1);
-__int16 __cdecl sub_10038640(int a1, int a2);
+__int16 __cdecl sub_10038640(const unsigned char *a1, int a2);
 double __cdecl sub_10038750(char *a1);
 libvar_t *__cdecl LibVarAlloc(const char *name);
 void      __cdecl LibVarDeAlloc(libvar_t *v);
@@ -959,9 +959,9 @@ int __stdcall sub_10041760(const char *a1, int a2);
 int __cdecl sub_10041790(float *a1, int a2);
 char __cdecl sub_100418D0(_BYTE *a1);
 char __cdecl sub_10041900(const char *a1, int a2);
-int __cdecl sub_10041970(char *FileName, int, int); // idb
+int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *); // idb
 // int __cdecl BotFindMatch: see definition
-BOOL __cdecl sub_10041F60(char *a1, int a2);
+BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2);
 HGLOBAL sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
 float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4);
@@ -2012,7 +2012,13 @@ define_t *globaldefines;
 char byte_10063A40[1024]; // idb
 FILE *Stream; // idb
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
-int dword_10063F2C; // weak
+/* dword_10063F2C — head of a singly-linked list of 152-byte "known
+ * script CRC" records, sorted alphabetically by filename.  Original DLL
+ * stored this as a 32-bit int because pointers were 32-bit; on 64-bit
+ * it MUST hold a real pointer.  Backed by scriptcrc_t (gladiator.dll.h).
+ * Used only by sub_100376B0 / sub_100377E0 (script CRC registration). */
+struct scriptcrc_s;
+struct scriptcrc_s *dword_10063F2C; // weak
 int dword_10063F80; // weak
 int dword_10063F84; // weak
 int dword_10063F88; // weak
@@ -2158,8 +2164,8 @@ int dword_100674D0; // weak
 int dword_100674D4; // weak
 int dword_100674D8; // weak
 int dword_100674DC; // weak
-int dword_100674E0; // idb
-int dword_100674E4; // idb
+int dword_100674E0; // idb (entdata length)
+unsigned char *dword_100674E4; // idb (entdata pointer; was int in 32-bit binary)
 int dword_100674E8; // weak
 int dword_100674EC; // weak
 int dword_100674F0; // weak
@@ -9166,19 +9172,19 @@ int BotLibLoadMap(char *Source)
   int v4; // esi
   int v5; // esi
   int v6; // esi
-  int v7[38]; // [esp+Ch] [ebp-1B8h] BYREF
+  bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF — was "int v7[38]" in IDA
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
   char v9[144]; // [esp+134h] [ebp-90h] BYREF
 
   strcpy(aasworld.mapname, Source);
   sub_1000B090();
-  memset(v7, 0, sizeof(v7));
+  memset(&v7, 0, sizeof(v7));
   strncpy(Destination, aMaps, 0x90u);
   strncat(Destination, Source, 144 - strlen(Destination));
   strncat(Destination, aBsp, 144 - strlen(Destination));
-  if ( sub_10041F60(Destination, (int)v7) )
+  if ( sub_10041F60(Destination, &v7) )
   {
-    v2 = sub_10007D30(&v7[2], v7[0]);
+    v2 = sub_10007D30(v7.path, v7.fileofs);
     *_errno() = v2;
     if ( *_errno() )
     {
@@ -9186,12 +9192,12 @@ int BotLibLoadMap(char *Source)
     }
     else
     {
-      if ( v7[1] )
-        bi_Print(1, "loaded %s\\%s\n", (const char *)&v7[2], Destination);
+      if ( v7.filelen )
+        bi_Print(1, "loaded %s\\%s\n", v7.path, Destination);
       else
         bi_Print(1, "loaded %s\n", Destination);
       v4 = 0;
-      memset(v7, 0, sizeof(v7));
+      memset(&v7, 0, sizeof(v7));
       while ( 1 )
       {
         if ( v4 )
@@ -9200,7 +9206,7 @@ int BotLibLoadMap(char *Source)
           strncpy(v9, &byte_1006294C, 0x90u);
         strncat(v9, Source, 144 - strlen(v9));
         strncat(v9, aAas, 144 - strlen(v9));
-        if ( sub_10041F60(v9, (int)v7) )
+        if ( sub_10041F60(v9, &v7) )
           break;
         if ( ++v4 >= 2 )
         {
@@ -9235,18 +9241,18 @@ int BotLibLoadMap(char *Source)
           return 5;
         }
       }
-      v6 = AAS_LoadAASFile(&v7[2], v7[0]);
+      v6 = AAS_LoadAASFile(v7.path, v7.fileofs);
       *_errno() = v6;
       if ( *_errno() )
         return *_errno();
-      if ( v7[0] )
-        bi_Print(1, "loaded %s\\%s\n", (const char *)&v7[2], v9);
+      if ( v7.fileofs )
+        bi_Print(1, "loaded %s\\%s\n", v7.path, v9);
       else
-        bi_Print(1, "loaded %s\n", (const char *)&v7[2]);
-      if ( v7[0] )
+        bi_Print(1, "loaded %s\n", v7.path);
+      if ( v7.fileofs )
         strncpy(aasworld.filename, v9, 0x90u);
       else
-        strncpy(aasworld.filename, (const char *)&v7[2], 0x90u);
+        strncpy(aasworld.filename, v7.path, 0x90u);
       return 0;
     }
   }
@@ -16424,7 +16430,7 @@ int sub_1001C760(char *Source)
   aasworld.soundinfo = GetClearedMemory(176 * v2);
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, (int)&file_ref) )
+  if ( sub_10041F60(Destination, &file_ref) )
   {
     v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     v5 = v4;
@@ -16488,13 +16494,19 @@ LABEL_15:
 // 100669B8: using guessed type int aasworld.soundinfo;
 
 //----- (1001CAB0) --------------------------------------------------------
+/* Original gladiator function at 0x1001CAB0 — initialise the aas-sound
+ * node free pool.  Allocates `52 * max_aas_sounds` bytes (raw size on
+ * 32-bit; on 64-bit the per-node size grows to sizeof(aas_soundpool_t))
+ * and threads them into a doubly-linked free list.  Disassembly:
+ *   sub_10038AC0 clamps the cvar; node[i].prev = node[i-1] (NULL at head);
+ *   node[i].next = node[i+1] (NULL at tail); free-head = pool base.
+ * Restored to use struct field access so the +44 / +48 offsets become
+ * proper aas_soundpool_t.prev / .next on both 32- and 64-bit. */
 int sub_1001CAB0()
 {
-  int v1; // esi
-  int v2; // edi
-  int v3; // eax
-  int v4; // edx
-  int result; // eax
+  int v1;
+  int i;
+  aas_soundpool_t *nodes;
 
   v1 = (int)LibVarValue(aMaxAassounds, (char *)a256);
   if ( v1 < 0 || v1 > 0x10000 )
@@ -16505,28 +16517,22 @@ int sub_1001CAB0()
   }
   if ( aasworld.d_100669C4 )
     FreeMemory(aasworld.d_100669C4);
-  v2 = 52 * v1;
-  aasworld.d_100669C4 = GetMemory(52 * v1);
-  *(_DWORD *)(aasworld.d_100669C4 + 44) = 0;
-  *(_DWORD *)(aasworld.d_100669C4 + 48) = aasworld.d_100669C4 + 52;
-  if ( v1 - 1 > 1 )
+  nodes = (aas_soundpool_t *)GetMemory(sizeof(aas_soundpool_t) * v1);
+  aasworld.d_100669C4 = nodes;
+  nodes[0].prev = NULL;
+  nodes[0].next = &nodes[1];
+  for ( i = 1; i < v1 - 1; ++i )
   {
-    v3 = 52;
-    v4 = v1 - 2;
-    do
-    {
-      *(_DWORD *)(v3 + aasworld.d_100669C4 + 44) = v3 + aasworld.d_100669C4 - 52;
-      *(_DWORD *)(v3 + aasworld.d_100669C4 + 48) = v3 + aasworld.d_100669C4 + 52;
-      v3 += 52;
-      --v4;
-    }
-    while ( v4 );
+    nodes[i].prev = &nodes[i - 1];
+    nodes[i].next = &nodes[i + 1];
   }
-  *(_DWORD *)(v2 + aasworld.d_100669C4 - 8) = aasworld.d_100669C4 + 4 * (v1 + 4 * (3 * v1 - 6) - 2);
-  result = aasworld.d_100669C4;
-  *(_DWORD *)(v2 + aasworld.d_100669C4 - 4) = 0;
-  aasworld.d_100669C8 = aasworld.d_100669C4;
-  return result;
+  if ( v1 >= 2 )
+  {
+    nodes[v1 - 1].prev = &nodes[v1 - 2];
+    nodes[v1 - 1].next = NULL;
+  }
+  aasworld.d_100669C8 = nodes;
+  return (int)(intptr_t)nodes;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
@@ -16535,175 +16541,165 @@ int sub_1001CAB0()
 // 100669C8: using guessed type int aasworld.d_100669C8;
 
 //----- (1001CBE0) --------------------------------------------------------
-int sub_1001CBE0()
+/* Pop next free aas_soundpool_t off the free-list. */
+aas_soundpool_t *sub_1001CBE0()
 {
-  int result; // eax
-
-  result = aasworld.d_100669C8;
-  if ( aasworld.d_100669C8 )
+  aas_soundpool_t *result = aasworld.d_100669C8;
+  if ( result )
   {
-    aasworld.d_100669C8 = *(_DWORD *)(aasworld.d_100669C8 + 48);
+    aasworld.d_100669C8 = result->next;
     if ( aasworld.d_100669C8 )
-      *(_DWORD *)(aasworld.d_100669C8 + 44) = 0;
+      aasworld.d_100669C8->prev = NULL;
   }
   return result;
 }
-// 100669C8: using guessed type int aasworld.d_100669C8;
 
 //----- (1001CC10) --------------------------------------------------------
-int __cdecl sub_1001CC10(int a1)
+/* Push an aas_soundpool_t back onto the free-list. */
+aas_soundpool_t *sub_1001CC10(aas_soundpool_t *a1)
 {
-  int result; // eax
-
-  result = a1;
   if ( aasworld.d_100669C8 )
-    *(_DWORD *)(aasworld.d_100669C8 + 44) = a1;
-  *(_DWORD *)(a1 + 44) = 0;
-  *(_DWORD *)(a1 + 48) = aasworld.d_100669C8;
+    aasworld.d_100669C8->prev = a1;
+  a1->prev = NULL;
+  a1->next = aasworld.d_100669C8;
   aasworld.d_100669C8 = a1;
-  return result;
+  return a1;
 }
-// 100669C8: using guessed type int aasworld.d_100669C8;
 
 //----- (1001CC50) --------------------------------------------------------
-void __cdecl sub_1001CC50(int a1)
+/* Insert into the d_100669CC/D0 sorted active list (descending by float at
+ * payload offset +4).  Original gladiator at 0x1001CC50. */
+void sub_1001CC50(aas_soundpool_t *a1)
 {
-  int v1; // ecx
-  int i; // edx
+  aas_soundpool_t *v1;
+  aas_soundpool_t *i;
 
   v1 = aasworld.d_100669D0;
-  for ( i = 0; v1; v1 = *(_DWORD *)(v1 + 44) )
+  for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)(v1 + 4) < (double)*(float *)(a1 + 4) )
+    if ( *(float *)(v1->data + 4) < (double)*(float *)(a1->data + 4) )
       break;
     i = v1;
   }
-  *(_DWORD *)(a1 + 48) = i;
-  *(_DWORD *)(a1 + 44) = v1;
+  a1->next = i;
+  a1->prev = v1;
   if ( i )
-    *(_DWORD *)(i + 44) = a1;
+    i->prev = a1;
   else
     aasworld.d_100669D0 = a1;
   if ( v1 )
-    *(_DWORD *)(v1 + 48) = a1;
+    v1->next = a1;
   else
     aasworld.d_100669CC = a1;
 }
-// 100669CC: using guessed type int aasworld.d_100669CC;
-// 100669D0: using guessed type int aasworld.d_100669D0;
 
 //----- (1001CCC0) --------------------------------------------------------
-int __cdecl sub_1001CCC0(int a1)
+/* Unlink from the d_100669CC/D0 sorted list. */
+aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1)
 {
-  int result; // eax
-  int v2; // ecx
-  int v3; // ecx
+  aas_soundpool_t *result = a1;
+  aas_soundpool_t *v2;
+  aas_soundpool_t *v3;
 
-  result = a1;
-  v2 = *(_DWORD *)(a1 + 44);
+  v2 = a1->prev;
   if ( v2 )
-    *(_DWORD *)(v2 + 48) = *(_DWORD *)(a1 + 48);
+    v2->next = a1->next;
   else
-    aasworld.d_100669CC = *(_DWORD *)(a1 + 48);
-  v3 = *(_DWORD *)(a1 + 48);
+    aasworld.d_100669CC = a1->next;
+  v3 = a1->next;
   if ( v3 )
   {
-    *(_DWORD *)(v3 + 44) = *(_DWORD *)(a1 + 44);
+    v3->prev = a1->prev;
   }
   else
   {
-    result = *(_DWORD *)(a1 + 44);
+    result = a1->prev;
     aasworld.d_100669D0 = result;
   }
   return result;
 }
-// 100669CC: using guessed type int aasworld.d_100669CC;
-// 100669D0: using guessed type int aasworld.d_100669D0;
 
 //----- (1001CD10) --------------------------------------------------------
-void __cdecl sub_1001CD10(int a1)
+/* Insert into the d_100669D4/D8 sorted active list (descending by float at
+ * payload offset +0).  Original gladiator at 0x1001CD10. */
+void sub_1001CD10(aas_soundpool_t *a1)
 {
-  int v1; // ecx
-  int i; // edx
+  aas_soundpool_t *v1;
+  aas_soundpool_t *i;
 
   v1 = aasworld.d_100669D8;
-  for ( i = 0; v1; v1 = *(_DWORD *)(v1 + 44) )
+  for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)v1 < (double)*(float *)a1 )
+    if ( *(float *)v1->data < (double)*(float *)a1->data )
       break;
     i = v1;
   }
-  *(_DWORD *)(a1 + 48) = i;
-  *(_DWORD *)(a1 + 44) = v1;
+  a1->next = i;
+  a1->prev = v1;
   if ( i )
-    *(_DWORD *)(i + 44) = a1;
+    i->prev = a1;
   else
     aasworld.d_100669D8 = a1;
   if ( v1 )
-    *(_DWORD *)(v1 + 48) = a1;
+    v1->next = a1;
   else
     aasworld.d_100669D4 = a1;
 }
-// 100669D4: using guessed type int aasworld.d_100669D4;
-// 100669D8: using guessed type int aasworld.d_100669D8;
 
 //----- (1001CD80) --------------------------------------------------------
-int __cdecl sub_1001CD80(int a1)
+/* Unlink from the d_100669D4/D8 sorted list. */
+aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
 {
-  int result; // eax
-  int v2; // ecx
-  int v3; // ecx
+  aas_soundpool_t *result = a1;
+  aas_soundpool_t *v2;
+  aas_soundpool_t *v3;
 
-  result = a1;
-  v2 = *(_DWORD *)(a1 + 44);
+  v2 = a1->prev;
   if ( v2 )
-    *(_DWORD *)(v2 + 48) = *(_DWORD *)(a1 + 48);
+    v2->next = a1->next;
   else
-    aasworld.d_100669D4 = *(_DWORD *)(a1 + 48);
-  v3 = *(_DWORD *)(a1 + 48);
+    aasworld.d_100669D4 = a1->next;
+  v3 = a1->next;
   if ( v3 )
   {
-    *(_DWORD *)(v3 + 44) = *(_DWORD *)(a1 + 44);
+    v3->prev = a1->prev;
   }
   else
   {
-    result = *(_DWORD *)(a1 + 44);
+    result = a1->prev;
     aasworld.d_100669D8 = result;
   }
   return result;
 }
-// 100669D4: using guessed type int aasworld.d_100669D4;
-// 100669D8: using guessed type int aasworld.d_100669D8;
 
 //----- (1001CDD0) --------------------------------------------------------
+/* Search the d_100669CC list for a node whose payload ints @+24 and @+32
+ * match a1/a2, unlink and free it.  Original gladiator at 0x1001CDD0. */
 int __cdecl sub_1001CDD0(int a1, int a2)
 {
-  _DWORD *v2; // esi
-  int result; // eax
+  aas_soundpool_t *v2;
 
-  v2 = (_DWORD *)aasworld.d_100669CC;
-  if ( aasworld.d_100669CC )
+  v2 = aasworld.d_100669CC;
+  if ( v2 )
   {
-    result = a2;
-    while ( v2[6] != a1 || v2[8] != a2 )
+    while ( ((int *)v2->data)[6] != a1 || ((int *)v2->data)[8] != a2 )
     {
-      v2 = (_DWORD *)v2[12];
+      v2 = v2->next;
       if ( !v2 )
-        return result;
+        return a2;
     }
-    sub_1001CCC0((int)v2);
-    return sub_1001CC10((int)v2);
+    sub_1001CCC0(v2);
+    return (int)(intptr_t)sub_1001CC10(v2);
   }
-  return result;
+  return a2;
 }
-// 100669CC: using guessed type int aasworld.d_100669CC;
 
 //----- (1001CE20) --------------------------------------------------------
 int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a7)
 {
   int v8; // ebx
   int i; // eax
-  int v10; // esi
+  aas_soundpool_t *v10;
 
   if ( a4 < 0 || a4 >= *(_DWORD *)aasworld.soundindex_table )
   {
@@ -16722,7 +16718,7 @@ int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a
       v8 = *(_DWORD *)(aasworld.d_100669C0 + 4 * a4);
       if ( !v8 )
         return 0;
-      for ( i = aasworld.d_100669CC; i; i = *(_DWORD *)(i + 48) )
+      for ( i = (intptr_t)aasworld.d_100669CC; i; i = *(_DWORD *)(i + 48) )
         ;
       if ( a7 == 0.0 )
         sub_1001CDD0(a2, a4);
@@ -16732,17 +16728,17 @@ int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a
         bi_Print(3, aEmptySoundHeap);
         return 0;
       }
-      *(float *)v10 = AAS_Time() + a7;
-      *(float *)(v10 + 4) = AAS_Time() + *(float *)(v8 + 84) + a7;
-      *(_DWORD *)(v10 + 8) = *(_DWORD *)a1;
-      *(_DWORD *)(v10 + 12) = *(_DWORD *)(a1 + 4);
-      *(_DWORD *)(v10 + 16) = *(_DWORD *)(a1 + 8);
-      *(_DWORD *)(v10 + 20) = 0;
-      *(_DWORD *)(v10 + 24) = a2;
-      *(_DWORD *)(v10 + 28) = a3;
-      *(_DWORD *)(v10 + 32) = a4;
-      *(_DWORD *)(v10 + 36) = a5;
-      *(_DWORD *)(v10 + 40) = a6;
+      *(float *)v10->data = AAS_Time() + a7;
+      *(float *)(v10->data + 4) = AAS_Time() + *(float *)(v8 + 84) + a7;
+      *(int *)(v10->data + 8) = *(_DWORD *)a1;
+      *(int *)(v10->data + 12) = *(_DWORD *)(a1 + 4);
+      *(int *)(v10->data + 16) = *(_DWORD *)(a1 + 8);
+      *(int *)(v10->data + 20) = 0;
+      *(int *)(v10->data + 24) = a2;
+      *(int *)(v10->data + 28) = a3;
+      *(int *)(v10->data + 32) = a4;
+      *(int *)(v10->data + 36) = a5;
+      *(int *)(v10->data + 40) = a6;
       sub_1001CD10(v10);
     }
     return 0;
@@ -16756,21 +16752,24 @@ int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a
 // 100669CC: using guessed type int aasworld.d_100669CC;
 
 //----- (1001CFA0) --------------------------------------------------------
+/* Time-tick: expire nodes whose +4 float (end-time) is past, and promote
+ * nodes from the d_100669D4/D8 list to the d_100669CC/D0 list when their
+ * +0 float (start-time) has elapsed.  Original gladiator at 0x1001CFA0. */
 void __cdecl sub_1001CFA0(float a1)
 {
-  int v1; // esi
-  int v2; // edi
-  int v3; // esi
-  int v4; // edi
+  aas_soundpool_t *v1;
+  aas_soundpool_t *v2;
+  aas_soundpool_t *v3;
+  aas_soundpool_t *v4;
 
   v1 = aasworld.d_100669CC;
-  if ( aasworld.d_100669CC )
+  if ( v1 )
   {
     do
     {
-      if ( *(float *)(v1 + 4) > (double)a1 )
+      if ( *(float *)(v1->data + 4) > (double)a1 )
         break;
-      v2 = *(_DWORD *)(v1 + 48);
+      v2 = v1->next;
       sub_1001CCC0(v1);
       sub_1001CC10(v1);
       v1 = v2;
@@ -16778,15 +16777,15 @@ void __cdecl sub_1001CFA0(float a1)
     while ( v2 );
   }
   v3 = aasworld.d_100669D4;
-  if ( aasworld.d_100669D4 )
+  if ( v3 )
   {
     do
     {
-      v4 = *(_DWORD *)(v3 + 48);
-      if ( *(float *)v3 < (double)a1 )
+      v4 = v3->next;
+      if ( *(float *)v3->data < (double)a1 )
       {
         sub_1001CD80(v3);
-        sub_1001CDD0(*(_DWORD *)(v3 + 24), *(_DWORD *)(v3 + 32));
+        sub_1001CDD0(*(int *)(v3->data + 24), *(int *)(v3->data + 32));
         sub_1001CC50(v3);
       }
       v3 = v4;
@@ -22962,7 +22961,7 @@ int *__cdecl BotLoadCharacter(char *Source, int a2)
 
   v2 = 0;
   strncpy(Destination, Source, 0x104u);
-  if ( sub_10041F60(Destination, (int)&file_ref) )
+  if ( sub_10041F60(Destination, &file_ref) )
   {
     v4 = 0;
     v16 = 0;
@@ -23655,7 +23654,7 @@ int *__cdecl sub_1002B110(char *a1)
   token_t token; /* restored: original token_t local variable */
   char v34; // [esp+504h] [ebp-80h] BYREF — separate local buffer (not part of token)
 
-  if ( !sub_10041F60(a1, (int)&file_ref) )
+  if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
     return 0;
@@ -23908,7 +23907,7 @@ int __cdecl sub_1002B990(char *a1)
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   token_t token; /* restored: original token_t local variable */
 
-  if ( sub_10041F60(a1, (int)&file_ref) )
+  if ( sub_10041F60(a1, &file_ref) )
   {
     v2 = v13;
     v3 = v13;
@@ -24244,7 +24243,7 @@ int __cdecl BotLoadMatchTemplates(char *a1)
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   token_t token; /* restored: original token_t local variable */
 
-  if ( sub_10041F60(a1, (int)&file_ref) )
+  if ( sub_10041F60(a1, &file_ref) )
   {
     v2 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     v3 = v2;
@@ -24777,7 +24776,7 @@ _DWORD *__cdecl sub_1002D270(char *a1)
   token_t token; /* restored: original token_t local variable */
 
   v1 = a1;
-  if ( !sub_10041F60(a1, (int)&file_ref) )
+  if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
     return 0;
@@ -24953,7 +24952,7 @@ int *__cdecl BotDumpInitialChat(char *a1, int a2)
 
   v2 = 0;
   v17 = 0;
-  if ( sub_10041F60(a1, (int)&file_ref) )
+  if ( sub_10041F60(a1, &file_ref) )
   {
     v4 = v14;
     Destination = 0;
@@ -25652,7 +25651,7 @@ itemconfig_t * sub_1002ED20(char *Source)
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, (int)&file_ref) )
+  if ( sub_10041F60(Destination, &file_ref) )
   {
     src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     if ( src )
@@ -28991,7 +28990,7 @@ weaponconfig_t * sub_10034BB0(char *Source)
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( !sub_10041F60(Destination, (int)&file_ref) )
+  if ( !sub_10041F60(Destination, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", Destination);
     return 0;
@@ -29595,7 +29594,7 @@ weightconfig_t *__cdecl sub_10035FA0(char *Source)
 
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, (int)&file_ref) )
+  if ( sub_10041F60(Destination, &file_ref) )
   {
     src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     if ( src )
@@ -30303,69 +30302,72 @@ int EA_Shutdown()
 }
 
 //----- (100376B0) --------------------------------------------------------
+/* Original gladiator function at 0x100376B0 — register/lookup a
+ * (filename, CRC) pair in the sorted dword_10063F2C list.  If the name
+ * is already in the list, returns the strcmpi result of the matching
+ * record; otherwise allocates a fresh 152-byte scriptcrc_t, stores
+ * hash+name, and inserts it in alphabetical order. */
 int __cdecl sub_100376B0(char *String1, __int16 a2)
 {
-  int v2; // esi
-  int result; // eax
-  int v4; // ebx
-  int v5; // esi
-  int v6; // edi
+  scriptcrc_t *v2;
+  int result;
+  scriptcrc_t *v4;
+  scriptcrc_t *v5;
+  scriptcrc_t *v6;
 
   v2 = dword_10063F2C;
   if ( !dword_10063F2C )
     goto LABEL_6;
   while ( 1 )
   {
-    result = _strcmpi(String1, (const char *)(v2 + 2));
+    result = _strcmpi(String1, v2->name);
     if ( !result )
       break;
-    v2 = *(_DWORD *)(v2 + 148);
+    v2 = v2->next;
     if ( !v2 )
       goto LABEL_6;
   }
   if ( !v2 )
   {
 LABEL_6:
-    v4 = GetClearedMemory(152);
+    v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
     result = 0;
-    *(_WORD *)v4 = a2;
-    strcpy((char *)(v4 + 2), String1);
+    v4->hash = a2;
+    strcpy(v4->name, String1);
     v5 = dword_10063F2C;
-    v6 = 0;
+    v6 = NULL;
     if ( dword_10063F2C )
     {
       do
       {
-        result = _strcmpi((const char *)(v4 + 2), (const char *)(v5 + 2));
+        result = _strcmpi(v4->name, v5->name);
         if ( result < 0 )
         {
-          *(_DWORD *)(v4 + 148) = v5;
+          v4->next = v5;
           if ( v6 )
-            *(_DWORD *)(v6 + 148) = v4;
+            v6->next = v4;
           else
             dword_10063F2C = v4;
           return result;
         }
         v6 = v5;
-        v5 = *(_DWORD *)(v5 + 148);
+        v5 = v5->next;
       }
       while ( v5 );
       if ( !v6 )
         goto LABEL_14;
-      *(_DWORD *)(v6 + 148) = v4;
-      *(_DWORD *)(v4 + 148) = 0;
+      v6->next = v4;
+      v4->next = NULL;
     }
     else
     {
 LABEL_14:
       dword_10063F2C = v4;
-      *(_DWORD *)(v4 + 148) = 0;
+      v4->next = NULL;
     }
   }
   return result;
 }
-// 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
-// 10063F2C: using guessed type int dword_10063F2C;
 
 //----- (100377E0) --------------------------------------------------------
 int __cdecl sub_100377E0(char *String1, __int16 a2)
@@ -30385,14 +30387,13 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
 }
 
 //----- (10037850) --------------------------------------------------------
-int __cdecl sub_10037850(char *String1, int a2, int a3)
+int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
   __int16 v3; // ax
 
   v3 = sub_10038640(a2, a3);
   return sub_100377E0(String1, v3);
 }
-// 1000199C: using guessed type _DWORD __cdecl sub_10038640(_DWORD, _DWORD);
 
 //----- (100378C0) --------------------------------------------------------
 unsigned int Sys_MilliSeconds()
@@ -30607,7 +30608,7 @@ __int16 __cdecl sub_10038620(__int16 a1)
 }
 
 //----- (10038640) --------------------------------------------------------
-__int16 __cdecl sub_10038640(int a1, int a2)
+__int16 __cdecl sub_10038640(const unsigned char *a1, int a2)
 {
   int v2; // esi
   int v3; // ecx
@@ -30622,7 +30623,7 @@ __int16 __cdecl sub_10038640(int a1, int a2)
   v3 = v7;
   do
   {
-    v4 = BYTE1(v3) ^ *(unsigned __int8 *)(v2 + a1);
+    v4 = BYTE1(v3) ^ a1[v2];
     if ( v4 > 256 )
       v4 = 0;
     LOBYTE(v5) = 0;
@@ -31864,7 +31865,7 @@ LABEL_22:
   if ( v3 )
     goto LABEL_26;
   memset(&file_ref, 0, sizeof(file_ref));
-  if ( sub_10041F60(Destination, (int)&file_ref) )
+  if ( sub_10041F60(Destination, &file_ref) )
   {
     v4 = (char *)LoadScriptFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     v2 = v4;
@@ -34790,7 +34791,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   fclose(fp);
   qmemcpy(v10, &unk_10060418, 0x48u);
   memset(&v10[72], 0, 0x48u);
-  if ( !sub_10037850(FileName, (int)script->buffer, script->length) )
+  if ( !sub_10037850(FileName, (const unsigned char *)script->buffer, script->length) )
   {
     LibVar(aSquatt, (char *)a1);
     bi_Print(5, &v10[3]);
@@ -35439,6 +35440,17 @@ int __cdecl sub_10041790(float *a1, int a2)
 }
 
 //----- (100418D0) --------------------------------------------------------
+/* sub_100418D0 — in-place path-separator normalisation.  Original Gladiator
+ * (Windows-only) folded both '/' and '\\' to '\\' since Win32 file APIs
+ * accept either but the engine preferred backslash internally.  On POSIX
+ * we must fold to '/' instead, otherwise access()/fopen() reject paths
+ * containing '\\'.  Disassembly preserved verbatim for _WIN32 builds. */
+#ifdef _WIN32
+#  define BOTLIB_PATHSEP '\\'
+#else
+#  define BOTLIB_PATHSEP '/'
+#endif
+
 char __cdecl sub_100418D0(_BYTE *a1)
 {
   _BYTE *v1; // ecx
@@ -35447,8 +35459,8 @@ char __cdecl sub_100418D0(_BYTE *a1)
   v1 = a1;
   for ( result = *a1; result; ++v1 )
   {
-    if ( result == 47 || result == 92 )
-      *v1 = 92;
+    if ( result == '/' || result == '\\' )
+      *v1 = BOTLIB_PATHSEP;
     result = v1[1];
   }
   return result;
@@ -35470,9 +35482,9 @@ char __cdecl sub_10041900(const char *a1, int a2)
     if ( (int)(a2 - v4) > 1 )
     {
       result = a1[v4 - 1];
-      if ( result != 47 && result != 92 )
+      if ( result != '/' && result != '\\' )
       {
-        ((char *)a1)[v4] = 92;
+        ((char *)a1)[v4] = BOTLIB_PATHSEP;
         ((char *)a1)[v3] = 0;
       }
     }
@@ -35481,7 +35493,7 @@ char __cdecl sub_10041900(const char *a1, int a2)
 }
 
 //----- (10041970) --------------------------------------------------------
-int __cdecl sub_10041970(char *FileName, int a2, int a3)
+int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
 {
   FILE *v3; // eax
   FILE *v4; // esi
@@ -35513,7 +35525,7 @@ int __cdecl sub_10041970(char *FileName, int a2, int a3)
   if ( fread_locked(v8, 0x40u, v7, v4) == v7 )
   {
     fclose(v4);
-    strcpy(v16, (const char *)a2);
+    strcpy(v16, a2);
     sub_100418D0(v16);
     v10 = 0;
     if ( v7 <= 0 )
@@ -35535,10 +35547,16 @@ LABEL_11:
         if ( v10 >= v7 )
           goto LABEL_11;
       }
-      strcpy((char *)(a3 + 8), FileName);
-      v12 = (void **)&v8[64 * v10];
-      *(_DWORD *)a3 = (int)v12[14];       /* PAK file offset → outbuf[0] */
-      *(_DWORD *)(a3 + 4) = (int)v12[15]; /* PAK file size   → outbuf[1] */
+      strcpy(a3->path, FileName);
+      /* PAK directory entry layout (64 bytes, identical on 32/64-bit):
+       *   char  name[56];
+       *   int32 filepos;     // byte offset 56
+       *   int32 filelen;     // byte offset 60
+       * IDA's `void *v12[14]/[15]` decompile is only correct on 32-bit
+       * (sizeof(void*) == 4).  Read the two ints directly. */
+      a3->fileofs = *(int32_t *)&v8[64 * v10 + 56];
+      a3->filelen = *(int32_t *)&v8[64 * v10 + 60];
+      (void)v12;
       FreeMemory(v8);
       return 1;
     }
@@ -35561,7 +35579,7 @@ LABEL_11:
 /* Original name unknown; equivalent to Q3A backport's Q3_FS_FOpenFile inner path search.
  * Searches for file a3 under basePath a1, first in subdir Source (gamedir), then "baseq2".
  * Both subdirs and pak archives are tried.  Result written to a4 (offset-info struct). */
-int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, int a4)
+int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
 {
   char *v4; // ebp
   int v5; // esi
@@ -35620,7 +35638,7 @@ LABEL_4:
       if ( !_access(FileName, 4) )
       {
         Log_Write(aSearchingSInS, a3, FileName); /* "searching %s in %s": file, pak */
-        if ( sub_10041970(FileName, (int)a3, a4) )
+        if ( sub_10041970(FileName, a3, a4) )
           break;
       }
       if ( ++v5 >= 10 )
@@ -35628,23 +35646,23 @@ LABEL_4:
         v4 += 144;  /* step from subdirs[0] to subdirs[1]; array guarantees 144-byte stride */
         if ( ++v7 < 2 )
           goto LABEL_4;
-        *(_DWORD *)a4 = 0;
-        *(_DWORD *)(a4 + 4) = 0;
+        a4->fileofs = 0;
+        a4->filelen = 0;
         return 0;
       }
     }
   }
   else
   {
-    strcpy((char *)(a4 + 8), FileName);
-    *(_DWORD *)(a4 + 4) = 0;
-    *(_DWORD *)a4 = 0;
+    strcpy(a4->path, FileName);
+    a4->filelen = 0;
+    a4->fileofs = 0;
   }
   return 1;
 }
 
 //----- (10041F60) --------------------------------------------------------
-BOOL __cdecl sub_10041F60(char *a1, int a2)
+BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 {
   char *v2; // eax
   char *v4; // eax
