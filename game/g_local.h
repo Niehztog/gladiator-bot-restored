@@ -24,7 +24,14 @@
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #else
-//LINUX?
+/* MSVC CRT compat shims for Linux */
+#define _isnan(x) isnan(x)
+#ifndef min
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#endif
+#ifndef max
+#define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
 #endif
 #endif
 
