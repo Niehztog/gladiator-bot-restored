@@ -2086,6 +2086,13 @@ int dword_10064398; // weak
 int dword_1006439C; // weak
 bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
 #define dword_100643A0 ((char *)botstates)
+/* Side-band table holding per-client pointer slots that on the original
+ * 32-bit DLL fit inside bot_state_t (e.g. BotCharacter(bs) at +1672).
+ * On 64-bit Linux these pointers do not fit in their 4-byte struct slots,
+ * so they live in a parallel maxclients-sized array indexed by
+ * (bs - botstates).  Use the BotCharacter() helper. */
+int **botcharacters;
+#define BotCharacter(bs) (botcharacters[(bs) - botstates])
 float flt_100643A4; // weak
 int dword_100643A8; // weak
 libvar_t *libvar_ctf; /* libvar handle */
@@ -17007,7 +17014,7 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
             /* IDA dropped fstps after BFloat; v51 is the bfloat result, not v18.
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
-            v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
+            v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
@@ -17182,7 +17189,7 @@ LABEL_86:
           {
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
-            v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
+            v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
@@ -18514,7 +18521,7 @@ LABEL_10:
            * earlier, never reset since.  Disasm at 10020901..1002090c shows
            * the bfloat result is compared directly with 0.3 (characteristic 4
            * is "aggression": >0.3 attack, <=0.3 dodge). */
-          v4b = (float)Characteristic_BFloat(bs->character, 4, 0.0, 1.0);
+          v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
           if ( v4b <= 0.3 )
           {
             if ( sub_10031270((int)bs->movestate, v3, v7, v9) )
@@ -19278,7 +19285,7 @@ BOOL __cdecl sub_10021D80(int a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
+  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
@@ -19310,7 +19317,7 @@ int __cdecl sub_10021E90(int a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
+  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
@@ -19337,7 +19344,7 @@ int __cdecl sub_10021F80(int a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
+  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
@@ -19364,7 +19371,7 @@ int __cdecl sub_10022070(int a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0 )
     return 0;
-  v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
+  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
@@ -19505,7 +19512,7 @@ int __cdecl sub_10022470(int a1)
    * probability"); v6 should be the bfloat result, not a copy of
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every sub_10022470 into return 0 on the !fastchat branch). */
-  v6 = (float)Characteristic_BFloat(bs->character, 21, 0.0, 1.0);
+  v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0, 1.0);
   if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509 )
     return 0;
   if ( libvar_fastchat->value == 0.0 )
@@ -19518,7 +19525,7 @@ int __cdecl sub_10022470(int a1)
   v4 = (double)(rand() & 0x7FFF) * 0.000030518509;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
    * probability); v7 should be the bfloat result, not a copy of v4. */
-  v7 = (float)Characteristic_BFloat(bs->character, 16, 0.0, 1.0);
+  v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0, 1.0);
   if ( v4 <= v7 )
     BotInitialChat((int)bs->chatstate, aRandomInsult, 0, (char *)0);
   else
@@ -19534,7 +19541,7 @@ double __cdecl sub_10022650(int a1)
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // [esp+4h] [ebp-4h]
 
-  v2 = Characteristic_BInteger(bs->character, 14, 1, 4000);
+  v2 = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
   return (double)(int)sub_1002EA50((int)bs->chatstate) * 30.0 / (double)v2;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -19788,7 +19795,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   }
   memset(v38, 0, sizeof(v38));
   v9 = rand();
-  v20 = *(_DWORD *)(a2 + 1672);
+  v20 = BotCharacter((bot_state_t *)a2);
   v10 = (double)(v9 & 0x7FFF) * 0.000030518509;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
@@ -19800,10 +19807,10 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   v25 = Characteristic_BFloat(v20, 48, 0.0, 1.0);
   if ( v10 <= v25 )
   {
-    v27 = Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 4, 0.0, 1.0);
-    v11 = *(_DWORD *)(a2 + 1672);
+    v27 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 4, 0.0, 1.0);
+    v11 = BotCharacter((bot_state_t *)a2);
     v21 = Characteristic_BFloat(v11, 25, 0.0, 1.0);
-    v25 = Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 24, 0.0, 1.0);
+    v25 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 24, 0.0, 1.0);
     if ( v27 >= 0.2 )
     {
       BotEntityInfo(a2, a2 + 2880);
@@ -20075,7 +20082,7 @@ int __cdecl sub_10023970(int a1)
   int v19[16]; // [esp+BCh] [ebp-BCh] BYREF
   char v20[124]; // [esp+FCh] [ebp-7Ch] BYREF
 
-  v1 = Characteristic_BInteger(bs->character, 45, 0, 1);
+  v1 = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
   v2 = bs->_i2764;
   v15 = v1;
   v3 = bs->_i1892;
@@ -20211,8 +20218,8 @@ void sub_10023CE0(int a1)
      * then fcomp 0.0 jumps if v35 > 0; else clamps to 0.000099999997f.
      * IDA emitted v27 = a1 / v35 = a1 because it confused the FPU register
      * for the eax return register. */
-    v27 = (float)Characteristic_BFloat(bs->character, 7, 0.0, 1.0);
-    v35 = (float)Characteristic_BFloat(bs->character, 8, 0.0, 1.0);
+    v27 = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
+    v35 = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
     if ( v35 <= 0.0 )
       v35 = 0.000099999997f;
     v3 = sub_100354B0((int)bs->weaponweights);
@@ -20402,7 +20409,7 @@ void sub_10024590(int a1)
      * of v11 = (float)Characteristic_BFloat(...) — which makes the splash-attack
      * timer compare AAS_Time() to the bot pointer cast as float, never letting
      * splash attacks fire. */
-    v11 = (float)Characteristic_BFloat(bs->character, 11, 0.0, 1.0);
+    v11 = (float)Characteristic_BFloat(BotCharacter(bs), 11, 0.0, 1.0);
     if ( AAS_Time() - v11 >= bs->_f2848 )
     {
       qmemcpy(v23, AAS_EntityInfo(v24, bs->enemy), sizeof(v23));
@@ -22094,7 +22101,7 @@ LABEL_11:
       {
         if ( sub_10021BC0(v1) )
         {
-          Characteristic_BFloat(*(_DWORD *)(v1 + 1672), 22, 0.0, 1.0);
+          Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
           v13 = (double)(rand() & 0x7FFF) * 0.000030518509;
           if ( 1.5 / (double)(sub_10028FD0() + 1) > v13 )
           {
@@ -22191,11 +22198,11 @@ int sub_10028A70(int a1, int a2)
   if ( bs->inuse_marker )
   {
     EA_Command(bs->client, aGender,
-               (char *)Characteristic_String(bs->character, 3), (char *)0);
+               (char *)Characteristic_String(BotCharacter(bs), 3), (char *)0);
     if ( LibVarValue(aAltnames, (char *)a0) != 0.0 )
     {
       EA_Command(bs->client, aName,
-                 (char *)Characteristic_String(bs->character, 1), (char *)0);
+                 (char *)Characteristic_String(BotCharacter(bs), 1), (char *)0);
     }
     bs->inuse_marker = 0;
   }
@@ -22426,8 +22433,8 @@ int __cdecl sub_10029150(int a1)
      * fstp [esp+0x10]` (= `v9 = <BFloat#10> * bs->_f1680`).  In the C control
      * flow we recapture it into v2, which the else-branch already overwrites
      * (= 150.0) and the post-merge `v5 = v2 * bs->_f1680;` then consumes. */
-    v10 = Characteristic_BFloat(bs->character, 9, 0.1, 1800.0);
-    v2  = Characteristic_BFloat(bs->character, 10, 0.1, 1800.0);
+    v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1, 1800.0);
+    v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1, 1800.0);
   }
   else
   {
@@ -22505,7 +22512,7 @@ int Export_BotAIFrame(int a1, int a2)
 int __cdecl BotSetupClient(int a1, char *Source)
 {
   bot_state_t *bs;
-  int char_handle;
+  int *char_handle;
   int weights_handle;
   char *chat_path;
   int chat_arg;
@@ -22519,7 +22526,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
     return 0;
   }
   char_handle = BotLoadCharacter(Source, Source + 144);
-  bs->character = char_handle;
+  BotCharacter(bs) = char_handle;
   if ( !char_handle )
   {
     bi_Print(4, "couldn't load bot character %s from %s\n", Source + 144, Source);
@@ -22529,14 +22536,14 @@ int __cdecl BotSetupClient(int a1, char *Source)
   weights_handle = Characteristic_String(char_handle, 28);
   if ( BotLoadItemWeights((int)bs->goalstate, weights_handle) )
     return 0;
-  weights_handle = Characteristic_String(bs->character, 5);
+  weights_handle = Characteristic_String(BotCharacter(bs), 5);
   if ( BotLoadWeaponWeights((int)bs->weaponweights, weights_handle) )
   {
     sub_10030950((int)bs->goalstate);
     return 0;
   }
-  chat_path = (char *)Characteristic_String(bs->character, 12);
-  chat_arg = Characteristic_String(bs->character, 13);
+  chat_path = (char *)Characteristic_String(BotCharacter(bs), 12);
+  chat_arg = Characteristic_String(BotCharacter(bs), 13);
   chat_state_ptr = (_DWORD *)bs->chatstate;
   if ( BotLoadChatFile((int)bs->chatstate, chat_path, chat_arg) )
   {
@@ -22544,7 +22551,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
     sub_10035300((int)bs->weaponweights);
     return 0;
   }
-  gender = *(_BYTE *)Characteristic_String(bs->character, 3);
+  gender = *(_BYTE *)Characteristic_String(BotCharacter(bs), 3);
   if ( gender == 102 || gender == 70 )
     *chat_state_ptr = 1;
   else if ( gender == 109 || gender == 77 )
@@ -22833,6 +22840,7 @@ int BotSetupLibrary()
   if ( *_errno() )
     return *_errno();
   botstates = (bot_state_t *)GetClearedMemory(4560 * maxclients);
+  botcharacters = (int **)GetClearedMemory(sizeof(int *) * maxclients);
   dword_100643A8 = GetClearedMemory(144 * maxclients);
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
@@ -22862,6 +22870,9 @@ int BotShutdownLibrary()
   if ( botstates )
     result = FreeMemory(botstates);
   botstates = 0;
+  if ( botcharacters )
+    FreeMemory(botcharacters);
+  botcharacters = 0;
   return result;
 }
 // 1000100F: using guessed type int sub_10028E80(void);
