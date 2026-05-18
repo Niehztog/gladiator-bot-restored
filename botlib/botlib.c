@@ -661,7 +661,7 @@ int __cdecl Characteristic_BInteger(int *a1, int a2, int a3, int a4);
 char *__cdecl Characteristic_String(int *a1, int a2);
 // int __usercall sub_1002A880@<eax>(double a1@<st0>);
 int sub_1002A9A0();
-int __cdecl sub_1002A9E0(int a1);
+int __cdecl sub_1002A9E0(bot_consolemessage_t *a1);
 int __cdecl sub_1002AA20(_DWORD *a1, int a2);
 int __cdecl BotQueueConsoleMessage(int, int, char *Source); // idb
 int __cdecl sub_1002AB90(int a1);
@@ -684,12 +684,12 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *); // idb
 BOOL __cdecl sub_1002C800(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
-int __cdecl BotCheckChatMessageIntegrety(const char *a1, int a2);
-int __cdecl sub_1002CCF0(int a1);
+bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
+int __cdecl sub_1002CCF0(bot_replychat_t *a1);
 int __cdecl BotCheckInitialChatIntegrety(int *a1);
-int __cdecl sub_1002CDD0(int a1, char *a2);
-// _DWORD *__cdecl sub_1002D1B0(_DWORD *a1);
-_DWORD *__cdecl sub_1002D270(char *a1);
+int __cdecl sub_1002CDD0(source_t *a1, char *a2);
+void *__cdecl sub_1002D1B0(bot_replychat_t *a1);
+bot_replychat_t *__cdecl sub_1002D270(char *a1);
 int *__cdecl BotDumpInitialChat(char *a1, int a2);
 int __cdecl sub_1002DF70(int a1);
 int __cdecl sub_1002DFB0(int a1);
@@ -873,7 +873,7 @@ int __cdecl sub_10039A70(token_t *Source, token_t *Destination);
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
 unsigned int __cdecl sub_10039C30(const char *a1);
 unsigned int __cdecl sub_10039CB0(define_t *a1, define_t **a2);
-int __cdecl BotFindStringInList(int a1, const char *a2);
+bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *a2);
 int __cdecl PC_FindDefine(int a1, const char *a2);
 int __cdecl PC_FindDefineParm(define_t *define, const char *a2);
 void __cdecl PC_FreeDefine(define_t *def);
@@ -2075,11 +2075,11 @@ int dword_10064354; // weak
 int dword_10064358; // weak
 itemconfig_t *dword_1006435C; /* current item config (was dword_1006435C) */
 int dword_10064360; // weak
-int dword_10064364; // weak
-int dword_10064374; // weak
+bot_consolemessage_t *dword_10064364; // freelist head (used freelist returns to pool)
+bot_consolemessage_t *dword_10064374; // pool base (initial bulk allocation)
 bot_matchtemplate_t *dword_10064378; // weak
 bot_randomlist_t *dword_1006437C; // weak
-int dword_10064380; // weak
+bot_replychat_t *dword_10064380; // weak
 bot_synonymlist_t *dword_10064384; /* synonyms head, set by sub_1002B110 */
 int dword_10064388; // weak
 int dword_10064398; // weak
@@ -23255,39 +23255,38 @@ char *__cdecl Characteristic_String(int *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A880) --------------------------------------------------------
+// Allocate a fixed-size freelist pool of bot_consolemessage_t and chain
+// every node by prev/next.  Original used hardcoded 168-byte stride and
+// +160/+164 byte offsets; on 64-bit the nodes grow to 176 bytes and
+// prev/next move past message[148] to 160/168 — using the struct lets the
+// compiler emit the right offsets and stride for both ABIs.
 int sub_1002A880()
 {
-  int v1; // edi
-  int v2; // esi
-  int v3; // eax
-  int v4; // edx
-  int result; // eax
+  int v1;
+  int i;
+  bot_consolemessage_t *pool;
+  bot_consolemessage_t *result;
 
   if ( dword_10064374 )
     FreeMemory(dword_10064374);
   v1 = (int)LibVarValue(aMaxMessages, (char *)a1024);
-  v2 = 168 * v1;
-  dword_10064374 = GetMemory(168 * v1);
-  *(_DWORD *)(dword_10064374 + 160) = 0;
-  *(_DWORD *)(dword_10064374 + 164) = dword_10064374 + 168;
+  pool = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
+  dword_10064374 = pool;
+  pool[0].prev = NULL;
+  pool[0].next = &pool[1];
   if ( v1 - 1 > 1 )
   {
-    v3 = 168;
-    v4 = v1 - 2;
-    do
+    for ( i = 1; i < v1 - 1; ++i )
     {
-      *(_DWORD *)(v3 + dword_10064374 + 160) = v3 + dword_10064374 - 168;
-      *(_DWORD *)(v3 + dword_10064374 + 164) = v3 + dword_10064374 + 168;
-      v3 += 168;
-      --v4;
+      pool[i].prev = &pool[i - 1];
+      pool[i].next = &pool[i + 1];
     }
-    while ( v4 );
   }
-  *(_DWORD *)(v2 + dword_10064374 - 8) = dword_10064374 + 168 * (v1 - 2);
-  *(_DWORD *)(v2 + dword_10064374 - 4) = 0;
-  result = dword_10064374;
-  dword_10064364 = dword_10064374;
-  return result;
+  pool[v1 - 1].prev = &pool[v1 - 2];
+  pool[v1 - 1].next = NULL;
+  result = pool;
+  dword_10064364 = pool;
+  return (int)(intptr_t)result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
@@ -23297,31 +23296,28 @@ int sub_1002A880()
 //----- (1002A9A0) --------------------------------------------------------
 int sub_1002A9A0()
 {
-  int result; // eax
+  bot_consolemessage_t *result;
 
   result = dword_10064364;
-  if ( dword_10064364 )
+  if ( result )
   {
-    dword_10064364 = *(_DWORD *)(dword_10064364 + 164);
+    dword_10064364 = result->next;
     if ( dword_10064364 )
-      *(_DWORD *)(dword_10064364 + 160) = 0;
+      dword_10064364->prev = NULL;
   }
-  return result;
+  return (int)(intptr_t)result;
 }
 // 10064364: using guessed type int dword_10064364;
 
 //----- (1002A9E0) --------------------------------------------------------
-int __cdecl sub_1002A9E0(int a1)
+int __cdecl sub_1002A9E0(bot_consolemessage_t *a1)
 {
-  int result; // eax
-
-  result = a1;
   if ( dword_10064364 )
-    *(_DWORD *)(dword_10064364 + 160) = a1;
-  *(_DWORD *)(a1 + 160) = 0;
-  *(_DWORD *)(a1 + 164) = dword_10064364;
+    dword_10064364->prev = a1;
+  a1->prev = NULL;
+  a1->next = dword_10064364;
   dword_10064364 = a1;
-  return result;
+  return (int)(intptr_t)a1;
 }
 // 10064364: using guessed type int dword_10064364;
 
@@ -23342,7 +23338,7 @@ int __cdecl sub_1002AA20(_DWORD *a1, int a2)
     *(_DWORD *)(v3 + 164) = *(_DWORD *)(a2 + 164);
   else
     a1[43] = *(_DWORD *)(a2 + 164);
-  sub_1002A9E0(a2);
+  sub_1002A9E0((bot_consolemessage_t *)(intptr_t)a2);
   result = a1[45] - 1;
   a1[45] = result;
   return result;
@@ -24476,26 +24472,22 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
  * Q3 botlib has the same function in be_ai_chat.c (offset 0 = char *string,
  * offset 4 = next).  Used by BotCheckChatMessageIntegrety to
  * deduplicate the missing-random-key list. */
-int __cdecl BotFindStringInList(int a1, const char *a2)
+bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *a2)
 {
-  int v2; // edi
+  bot_stringlist_t *n;
 
-  v2 = a1;
-  if ( !a1 )
-    return 0;
-  while ( strcmp(*(const char **)v2, a2) )
+  for ( n = a1; n; n = n->next )
   {
-    v2 = *(_DWORD *)(v2 + 4);
-    if ( !v2 )
-      return 0;
+    if ( !strcmp(n->string, a2) )
+      return n;
   }
-  return v2;
+  return NULL;
 }
 
 //----- (1002CB40) --------------------------------------------------------
 /* BotCheckChatMessageIntegrety scans a chat message for \001r<var> references; builds a linked
  * list of undefined variable nodes (accumulating into a2); returns updated list. */
-int __cdecl BotCheckChatMessageIntegrety(const char *a1, int a2)
+bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2)
 {
   const char *v2; // esi
   char *v3; // ebp
@@ -24504,7 +24496,7 @@ int __cdecl BotCheckChatMessageIntegrety(const char *a1, int a2)
   char v7; // al
   int v8; // ecx
   char v9; // al
-  int v10; // edx
+  bot_stringlist_t *node;
   char ArgList[152]; // [esp+8h] [ebp-98h] BYREF
 
   v2 = a1;
@@ -24539,12 +24531,12 @@ int __cdecl BotCheckChatMessageIntegrety(const char *a1, int a2)
         if ( !RandomString(ArgList) && !BotFindStringInList(a2, ArgList) )
         {
           Log_Write(aSSMissingRando, ArgList, ""); /* "%s = {\"%s\"}: no value found */
-          v10 = GetClearedMemory(strlen(ArgList) + 9);
-          *(_DWORD *)v10 = v10 + 8;
-          strcpy((char *)(v10 + 8), ArgList);
+          node = (bot_stringlist_t *)GetClearedMemory(sizeof(bot_stringlist_t) + strlen(ArgList) + 1);
+          node->string = (char *)(node + 1);
+          strcpy(node->string, ArgList);
           v2 = a1;
-          *(_DWORD *)(v10 + 4) = a2;
-          a2 = v10;
+          node->next = a2;
+          a2 = node;
         }
         goto LABEL_11;
       }
@@ -24573,63 +24565,60 @@ LABEL_10:
 // 1002CB40: using guessed type char ArgList[152];
 
 //----- (1002CCF0) --------------------------------------------------------
-int __cdecl sub_1002CCF0(int a1)
+// Q3 equivalent: BotCheckReplyChatIntegrity (be_ai_chat.c).  Walks every
+// chat message in the reply-chat chain and collects offenders into a
+// pointer linked list (each node = { void *something; void *next; }).
+// We keep the offender-list cleanup as raw _DWORD chain (it's an opaque
+// transient allocation) but retype the outer replychat walk.
+int __cdecl sub_1002CCF0(bot_replychat_t *a1)
 {
-  int v1; // edi
-  int result; // eax
-  int i; // esi
-  int v4; // esi
+  bot_replychat_t *rc;
+  bot_chatmessage_t *cm;
+  bot_stringlist_t *result;
+  bot_stringlist_t *next;
 
-  v1 = a1;
-  for ( result = 0; v1; v1 = *(_DWORD *)(v1 + 16) )
+  result = NULL;
+  for ( rc = a1; rc; rc = rc->next )
   {
-    for ( i = *(_DWORD *)(v1 + 12); i; i = *(_DWORD *)(i + 8) )
-      result = BotCheckChatMessageIntegrety(*(const char **)i, result);
+    for ( cm = rc->firstchatmessage; cm; cm = cm->next )
+      result = BotCheckChatMessageIntegrety(cm->chatmessage, result);
   }
-  if ( result )
+  while ( result )
   {
-    do
-    {
-      v4 = *(_DWORD *)(result + 4);
-      FreeMemory(result);
-      result = v4;
-    }
-    while ( v4 );
+    next = result->next;
+    FreeMemory(result);
+    result = next;
   }
-  return result;
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CD60) --------------------------------------------------------
 int __cdecl BotCheckInitialChatIntegrety(int *a1)
 {
-  int result; // eax
   int i; // edi
   int j; // esi
-  int v4; // esi
+  bot_stringlist_t *result;
+  bot_stringlist_t *next;
 
-  result = 0;
+  result = NULL;
   for ( i = *a1; i; i = *(_DWORD *)(i + 40) )
   {
     for ( j = *(_DWORD *)(i + 36); j; j = *(_DWORD *)(j + 8) )
       result = BotCheckChatMessageIntegrety(*(const char **)j, result);
   }
-  if ( result )
+  while ( result )
   {
-    do
-    {
-      v4 = *(_DWORD *)(result + 4);
-      FreeMemory(result);
-      result = v4;
-    }
-    while ( v4 );
+    next = result->next;
+    FreeMemory(result);
+    result = next;
   }
-  return result;
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CDD0) --------------------------------------------------------
-int __cdecl sub_1002CDD0(int a1, char *a2)
+int __cdecl sub_1002CDD0(source_t *a1, char *a2)
 {
   const char *v3; // [esp-10h] [ebp-450h]
   char *v4; // [esp-8h] [ebp-448h]
@@ -24678,235 +24667,188 @@ LABEL_14:
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (1002D1B0) --------------------------------------------------------
-_DWORD *__cdecl sub_1002D1B0(_DWORD *a1)
+// Q3 equivalent: BotFreeReplyChat.  Frees the entire reply-chat chain.
+void *__cdecl sub_1002D1B0(bot_replychat_t *a1)
 {
-  _DWORD *result; // eax
-  _DWORD *v2; // ebp
-  _DWORD *v3; // edi
-  int v4; // eax
-  _DWORD *v5; // ebx
-  int v6; // esi
-  int v7; // eax
-  int v8; // esi
-  _DWORD *v9; // [esp+8h] [ebp+4h]
+  bot_replychat_t *rc;
+  bot_replychat_t *nextrc;
+  bot_replychatkey_t *key;
+  bot_replychatkey_t *nextkey;
+  bot_chatmessage_t *cm;
+  bot_chatmessage_t *nextcm;
 
-  result = a1;
-  v2 = a1;
-  if ( a1 )
+  for ( rc = a1; rc; rc = nextrc )
   {
-    do
+    nextrc = rc->next;
+    for ( key = rc->keys; key; key = nextkey )
     {
-      v3 = (_DWORD *)*v2;
-      v9 = (_DWORD *)v2[4];
-      if ( *v2 )
-      {
-        do
-        {
-          v4 = v3[2];
-          v5 = (_DWORD *)v3[3];
-          if ( v4 )
-          {
-            do
-            {
-              v6 = *(_DWORD *)(v4 + 12);
-              FreeMemory(v4);
-              v4 = v6;
-            }
-            while ( v6 );
-          }
-          if ( v3[1] )
-            FreeMemory(v3[1]);
-          FreeMemory(v3);
-          v3 = v5;
-        }
-        while ( v5 );
-      }
-      v7 = v2[3];
-      if ( v7 )
-      {
-        do
-        {
-          v8 = *(_DWORD *)(v7 + 8);
-          FreeMemory(v7);
-          v7 = v8;
-        }
-        while ( v8 );
-      }
-      result = (_DWORD *)FreeMemory(v2);
-      v2 = v9;
+      nextkey = key->next;
+      if ( key->match )
+        BotFreeMatchPieces(key->match);
+      if ( key->string )
+        FreeMemory(key->string);
+      FreeMemory(key);
     }
-    while ( v9 );
+    for ( cm = rc->firstchatmessage; cm; cm = nextcm )
+    {
+      nextcm = cm->next;
+      FreeMemory(cm);
+    }
+    FreeMemory(rc);
   }
-  return result;
+  return NULL;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002D270) --------------------------------------------------------
-_DWORD *__cdecl sub_1002D270(char *a1)
+// Q3 equivalent: BotLoadReplyChat (be_ai_chat.c).  Loads rchat.c into a
+// linked list of bot_replychat_t.  Original IDA decompilation stored
+// pointers in ints (v5, v6, v7, v16) and used int-stride indexing which
+// truncates on 64-bit because every chain link doubles in width.
+// Rewritten with proper struct types so each allocation and field write
+// has the correct size and offset under both 32-bit and 64-bit ABIs.
+bot_replychat_t *__cdecl sub_1002D270(char *a1)
 {
-  char *v1; // esi
-  source_t *v3; // eax
-  int v4; // ebx
-  _DWORD *v5; // edi
-  int v6; // ebp
-  int *v7; // esi
-  int v8; // eax
-  int v9; // eax
-  int v10; // eax
-  int v11; // eax
-  int v12; // eax
-  bool v13; // zf
-  int v14; // eax
-  char *v15; // edx
-  int v16; // edx
-  int v17; // eax
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  char v21[152]; // [esp+B4h] [ebp-4C8h] BYREF
-  token_t token; /* restored: original token_t local variable */
+  char *v1;
+  source_t *v4;
+  bot_replychat_t *replyhead;
+  bot_replychat_t *rc;
+  bot_replychatkey_t *key;
+  bot_chatmessage_t *cm;
+  char *namestr;
+  bot_fileref_t file_ref;
+  char v21[152]; // sub_1002CDD0 output buffer
+  token_t token;
 
   v1 = a1;
   if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
-    return 0;
+    return NULL;
   }
-  v3 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-  v4 = v3;
-  if ( !v3 )
+  v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !v4 )
   {
     bi_Print(3, "counldn't load %s\n", file_ref.path);
-    return 0;
+    return NULL;
   }
-  v5 = 0;
-  if ( !PC_ReadTokenHandle(v3, token.string) )
-    goto LABEL_34;
-  while ( 2 )
+  replyhead = NULL;
+  if ( !PC_ReadTokenHandle(v4, token.string) )
+    goto DONE;
+
+  while ( 1 )
   {
     if ( strcmp(token.string, asc_1005C65C) )
     {
       sub_10039200(v4, aExpectedFoundS, token.string);
-      sub_1002D1B0(v5);
+      sub_1002D1B0(replyhead);
       FreeSource(v4);
-      return 0;
+      return NULL;
     }
-    v6 = GetClearedMemory(20);
-    *(_DWORD *)v6 = 0;
-    *(_DWORD *)(v6 + 16) = v5;
+    rc = (bot_replychat_t *)GetClearedMemory(sizeof(bot_replychat_t));
+    rc->keys = NULL;
+    rc->next = replyhead;
     do
     {
-      v7 = (int *)GetClearedMemory(16);
-      *v7 = 0;
-      v7[1] = 0;
-      v7[2] = 0;
-      v7[3] = *(_DWORD *)v6;
-      *(_DWORD *)v6 = v7;
+      key = (bot_replychatkey_t *)GetClearedMemory(sizeof(bot_replychatkey_t));
+      key->flags = 0;
+      key->string = NULL;
+      key->match = NULL;
+      key->next = rc->keys;
+      rc->keys = key;
       if ( PC_CheckTokenString(v4, asc_1005D548) )
       {
-        v8 = *v7;
-        LOBYTE(v8) = *v7 | 1;
+        key->flags |= 1;
       }
-      else
+      else if ( PC_CheckTokenString(v4, asc_1005D544) )
       {
-        if ( !PC_CheckTokenString(v4, asc_1005D544) )
-          goto LABEL_13;
-        v8 = *v7;
-        LOBYTE(v8) = *v7 | 2;
+        key->flags |= 2;
       }
-      *v7 = v8;
-LABEL_13:
+
       if ( PC_CheckTokenString(v4, aName) )
       {
-        v9 = *v7;
-        LOBYTE(v9) = *v7 | 4;
-        *v7 = v9;
+        key->flags |= 4;
       }
       else if ( PC_CheckTokenString(v4, aFemale) )
       {
-        v10 = *v7;
-        LOBYTE(v10) = *v7 | 0x20;
-        *v7 = v10;
+        key->flags |= 0x20;
       }
       else if ( PC_CheckTokenString(v4, aMale) )
       {
-        v11 = *v7;
-        LOBYTE(v11) = *v7 | 0x40;
-        *v7 = v11;
+        key->flags |= 0x40;
       }
       else if ( PC_CheckTokenString(v4, aIt) )
       {
-        v12 = *v7;
-        LOBYTE(v12) = *v7 | 0x80;
-        *v7 = v12;
+        key->flags |= 0x80;
+      }
+      else if ( !PC_CheckTokenString(v4, asc_1005D334) )
+      {
+        key->flags |= 8;
+        if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
+          goto FAIL;
+        StripDoubleQuotes(token.string);
+        namestr = (char *)GetClearedMemory(strlen(token.string) + 1);
+        key->string = namestr;
+        strcpy(namestr, token.string);
       }
       else
       {
-        v13 = PC_CheckTokenString(v4, asc_1005D334) == 0;
-        v14 = *v7;
-        if ( v13 )
-        {
-          LOBYTE(v14) = v14 | 8;
-          *v7 = v14;
-          if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
-            goto LABEL_37;
-          StripDoubleQuotes(token.string);
-          v15 = (char *)GetClearedMemory(strlen(token.string) + 1);
-          v7[1] = (int)v15;
-          strcpy(v15, token.string);
-        }
-        else
-        {
-          LOBYTE(v14) = v14 | 0x10;
-          *v7 = v14;
-          v7[2] = (int)(intptr_t)ReadFuzzySeperators_r((source_t *)(intptr_t)v4, asc_1005D32C);
-        }
+        key->flags |= 0x10;
+        key->match = ReadFuzzySeperators_r(v4, asc_1005D32C);
       }
       PC_CheckTokenString(v4, asc_1005D330);
     }
     while ( !PC_CheckTokenString(v4, asc_1005C658) );
+
     if ( !PC_ExpectTokenString(v4, asc_1005D364)
-      || !PC_ExpectTokenType(v4, 3, 0, token.string)
-      || (*(float *)(v6 + 4) = (float)token.intvalue, !PC_ExpectTokenString(v4, asc_1005AB58)) )
+      || !PC_ExpectTokenType(v4, 3, 0, token.string) )
     {
-LABEL_37:
-      sub_1002EC80();
-      FreeSource(v4);
-      return 0;
+      goto FAIL;
     }
-    *(_DWORD *)(v6 + 8) = 0;
+    rc->priority = (float)token.intvalue;
+    if ( !PC_ExpectTokenString(v4, asc_1005AB58) )
+      goto FAIL;
+    rc->numchatmessages = 0;
+    rc->firstchatmessage = NULL;
     if ( !PC_CheckTokenString(v4, asc_1005AB54) )
     {
       while ( sub_1002CDD0(v4, v21) )
       {
-        v16 = GetClearedMemory(strlen(v21) + 13);
-        *(_DWORD *)v16 = v16 + 12;
-        strcpy((char *)(v16 + 12), v21);
-        *(_DWORD *)(v16 + 4) = -1038090240;
-        *(_DWORD *)(v16 + 8) = *(_DWORD *)(v6 + 12);
-        v17 = *(_DWORD *)(v6 + 8) + 1;
-        *(_DWORD *)(v6 + 12) = v16;
-        *(_DWORD *)(v6 + 8) = v17;
+        cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(v21) + 1);
+        cm->chatmessage = (char *)(cm + 1);
+        strcpy(cm->chatmessage, v21);
+        cm->time = -40.0f;
+        cm->next = rc->firstchatmessage;
+        rc->firstchatmessage = cm;
+        rc->numchatmessages++;
         if ( PC_CheckTokenString(v4, asc_1005AB54) )
-          goto LABEL_32;
+          goto NEXT_ENTRY;
       }
-      goto LABEL_37;
+      goto FAIL;
     }
-LABEL_32:
-    v5 = (_DWORD *)v6;
+NEXT_ENTRY:
+    replyhead = rc;
     if ( PC_ReadTokenHandle(v4, token.string) )
       continue;
     break;
   }
+
   v1 = a1;
-LABEL_34:
+DONE:
   FreeSource(v4);
   if ( file_ref.filelen )
     bi_Print(1, "loaded %s\\%s\n", file_ref.path, v1);
   else
     bi_Print(1, "loaded %s\n", v1);
-  sub_1002CCF0((int)v5);
-  if ( !v5 )
+  sub_1002CCF0(replyhead);
+  if ( !replyhead )
     bi_Print(1, aNoRchats);
-  return v5;
+  return replyhead;
+
+FAIL:
+  sub_1002EC80();
+  FreeSource(v4);
+  return NULL;
 }
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
@@ -25609,7 +25551,7 @@ _DWORD *sub_1002EC80()
   result = (_DWORD *)dword_10064380;
   dword_10064384 = 0;
   if ( dword_10064380 )
-    result = sub_1002D1B0((_DWORD *)dword_10064380);
+    result = (_DWORD *)sub_1002D1B0(dword_10064380);
   dword_10064380 = 0;
   return result;
 }
