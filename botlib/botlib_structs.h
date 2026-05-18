@@ -281,6 +281,47 @@ typedef struct weightconfig_s {
 } weightconfig_t;                               /* sizeof = 4 + 128*8 = 1028  */
 
 /* -------------------------------------------------------------------------
+ * Synonym structs (be_ai_chat.c equivalents, used by sub_1002B110 — the
+ * syn.c loader).  Gladiator built these by 32-bit-only byte-stride
+ * arithmetic in a packed scratch buffer; on 64-bit the buffer must use
+ * the natural struct sizes (pointer fields grow 4→8 bytes).
+ *
+ * Layouts mirror Q3 botlib's bot_synonymlist_t / bot_synonym_t, but the
+ * `context` field is `int` (not `unsigned long`) to stay binary-compatible
+ * with the original 32-bit Windows DLL where sizeof(long) == 4.
+ * ------------------------------------------------------------------------- */
+typedef struct bot_synonym_s {
+    char                     *string;       /* +0   inline string ptr            */
+    float                     weight;       /* +4(32) / +8(64) probability       */
+    struct bot_synonym_s     *next;         /* +8(32) / +16(64) chain link       */
+} bot_synonym_t;                            /* sizeof = 12 (32-bit) / 24 (64-bit) */
+
+typedef struct bot_synonymlist_s {
+    int                       context;       /* +0  context bitmask              */
+    float                     totalweight;   /* +4  sum of synonym weights       */
+    struct bot_synonym_s     *firstsynonym;  /* +8(32) / +16(64) head of synonyms*/
+    struct bot_synonymlist_s *next;          /* +12(32)/+24(64) chain link       */
+} bot_synonymlist_t;                         /* sizeof = 16 (32-bit) / 32 (64-bit)*/
+
+/* -------------------------------------------------------------------------
+ * Random-string structs (be_ai_chat.c equivalents).  Used by sub_1002B990
+ * (the rnd.c loader / BotLoadRandomStrings).  Same 32-bit-only byte
+ * arithmetic problem as the synonym loader: pointer fields grow on
+ * 64-bit so size calc and buffer writes must use struct types.
+ * ------------------------------------------------------------------------- */
+typedef struct bot_randomstring_s {
+    char                       *string;     /* +0  inline string ptr           */
+    struct bot_randomstring_s  *next;       /* +4(32) / +8(64) chain link       */
+} bot_randomstring_t;                       /* sizeof = 8 (32-bit) / 16 (64-bit) */
+
+typedef struct bot_randomlist_s {
+    char                       *string;             /* +0  name token */
+    int                         numstrings;         /* +4 */
+    struct bot_randomstring_s  *firstrandomstring;  /* +8(32) / +16(64) */
+    struct bot_randomlist_s    *next;               /* +12(32) / +24(64) */
+} bot_randomlist_t;                                 /* sizeof = 16 / 32 */
+
+/* -------------------------------------------------------------------------
  * Bot goal struct — 56 bytes (matches Q3 be_ai_goal.h::bot_goal_t).
  * Field offsets confirmed from sub_1002F890 (sub_1002F890):
  *   a3+0,4,8   = origin[3]

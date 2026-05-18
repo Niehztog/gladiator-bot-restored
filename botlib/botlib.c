@@ -672,15 +672,15 @@ int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (
 const char *__cdecl StringContains(const char *a1, const char *a2, int a3);  /* 0x1002ACF0 — substring search */
 const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3);
 const char *__cdecl sub_1002AF30(const char *a1, const char *a2, const char *a3);
-int *__cdecl sub_1002B110(char *a1);
+bot_synonymlist_t *__cdecl sub_1002B110(char *a1);
 const char *__cdecl sub_1002B7C0(const char *a1, int a2);
 void __cdecl sub_1002B830(const char *a1, int a2);
-int __cdecl sub_1002B990(char *); // idb
-int __cdecl RandomString(const char *a1);
-void __cdecl BotFreeMatchPieces(_DWORD *a1);
-_DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2);
-int __cdecl BotFreeMatchTemplates(int a1);
-int __cdecl BotLoadMatchTemplates(char *); // idb
+bot_randomlist_t *__cdecl sub_1002B990(char *); // idb
+char *__cdecl RandomString(const char *a1);
+void __cdecl BotFreeMatchPieces(bot_matchpiece_t *a1);
+bot_matchpiece_t *__cdecl ReadFuzzySeperators_r(source_t *a1, const char *a2);
+int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *a1);
+bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *); // idb
 BOOL __cdecl sub_1002C800(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
@@ -924,7 +924,7 @@ int ScriptError(int a1, char *Format, ...);
 int ScriptWarning(int a1, char *Format, ...);
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
 int __cdecl PS_ReadWhiteSpace(script_t *a1);
-int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2);
+int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2);
 int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3);
 int __cdecl PS_ReadName(script_t *a1, intptr_t a2);
 char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4);
@@ -2040,7 +2040,7 @@ int dword_10063FC4; // weak
 int dword_10063FC8; // weak
 int dword_10063FCC; // weak
 int (__cdecl *dword_10063FE0)(_DWORD, _DWORD); // weak
-int (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak — variadic; engine import signature
+int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD); // weak
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 int (__cdecl *bi_Trace)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 int (__cdecl *bi_PointContents)(_DWORD); // weak — engine's BSP-level CONTENTS_* lookup
@@ -2077,10 +2077,10 @@ itemconfig_t *dword_1006435C; /* current item config (was dword_1006435C) */
 int dword_10064360; // weak
 int dword_10064364; // weak
 int dword_10064374; // weak
-int dword_10064378; // weak
-int dword_1006437C; // weak
+bot_matchtemplate_t *dword_10064378; // weak
+bot_randomlist_t *dword_1006437C; // weak
 int dword_10064380; // weak
-int dword_10064384; // weak
+bot_synonymlist_t *dword_10064384; /* synonyms head, set by sub_1002B110 */
 int dword_10064388; // weak
 int dword_10064398; // weak
 int dword_1006439C; // weak
@@ -15387,7 +15387,7 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4)
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  v4 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)aasworld.numareas);
+  v4 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)aasworld.numareas);
   v5 = aasworld.numareas;
   v12 = 0;
   if ( aasworld.numareas <= 0 )
@@ -17060,7 +17060,7 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
-            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509f )
+            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( sub_1000EFC0((int)bs->origin) )
@@ -17077,10 +17077,10 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
             }
             else if ( AAS_Time() >= bs->_f2820 )
             {
-              if ( bs->_f1680 * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509f )
+              if ( bs->_f1680 * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               {
                 v45 = rand() & 0x7FFF;
-                v20 = (__int64)floor((double)v45 * 0.000030518509f * 2.9);
+                v20 = (__int64)floor((double)v45 * 0.000030518509 * 2.9);
                 if ( (_DWORD)v20 )
                 {
                   if ( (_DWORD)v20 == 1 )
@@ -17101,7 +17101,7 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
           }
           if ( AAS_Time() - 2.0 >= bs->_f2876 )
           {
-            if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
+            if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
             {
 LABEL_86:
               sub_10034AF0((int)bs->movestate);
@@ -17182,7 +17182,7 @@ LABEL_86:
       if ( VectorLength(dir) < 70.0 )
       {
         sub_10034AF0((int)bs->movestate);
-        v46 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
+        v46 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
         v30 = AAS_Time();
         result = bs->teamgoal;
         bs->_f2860 = v30 + v46 + 5.0;
@@ -17220,7 +17220,7 @@ LABEL_86:
             BotEnterChat((int)bs->chatstate, bs->client, 1);
             bs->_f2876 = AAS_Time();
           }
-          if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509f )
+          if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
           {
             sub_10022A60(a1, target);
             dir[0] = target[0] - bs->origin[0];
@@ -17235,7 +17235,7 @@ LABEL_86:
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
-            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509f )
+            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( AAS_Time() < bs->_f2820 )
@@ -17343,7 +17343,7 @@ LABEL_106:
         if ( sub_10021650(a1) )
         {
           sub_10034AF0((int)bs->movestate);
-          v47 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
+          v47 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
           v43 = AAS_Time();
           result = v26;
           bs->_f2864 = v43 + v47 + 5.0;
@@ -17787,7 +17787,6 @@ int __cdecl AINode_Seek_NBG(int a1)
   int v15[12]; // [esp+2Ch] [ebp-60h] BYREF
   int v16[12]; // [esp+5Ch] [ebp-30h] BYREF
 
-
   if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
@@ -17848,7 +17847,7 @@ LABEL_18:
   {
     if ( (v15[5] & 4) != 0 )
     {
-      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
+      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
         goto LABEL_33;
       sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
@@ -17973,7 +17972,6 @@ int __cdecl AINode_Seek_LTG(int a1)
   int v18[12]; // [esp+34h] [ebp-60h] BYREF
   int v19[12]; // [esp+64h] [ebp-30h] BYREF
 
-
   if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
@@ -18010,9 +18008,9 @@ int __cdecl AINode_Seek_LTG(int a1)
   }
   bs->enemy = 0;
   if ( AAS_Time() - 5.0 < bs->_f2872
-    && (double)(rand() & 0x7FFF) * 0.000030518509f < bs->_f1680 )
+    && (double)(rand() & 0x7FFF) * 0.000030518509 < bs->_f1680 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.5 )
       sub_100371B0(bs->client, 2);
     else
       sub_100371B0(bs->client, 0);
@@ -18024,9 +18022,7 @@ int __cdecl AINode_Seek_LTG(int a1)
     v3 = BotLongTermGoal(a1, v2, 0);
     v17 = v3;
     if ( !v3 )
-    {
       goto LABEL_42;
-    }
     if ( AAS_Time() > bs->_f2808 )
     {
       v4 = AAS_Time();
@@ -18061,7 +18057,7 @@ int __cdecl AINode_Seek_LTG(int a1)
     }
     if ( (v18[5] & 4) != 0 )
     {
-      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
+      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
         goto LABEL_41;
       sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
@@ -19337,11 +19333,7 @@ BOOL __cdecl sub_10021D80(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    /* Constant suffix `f` matches the original 32-bit float at 0x10058218
-     * (0x38000100 = 1.0f/32767.0f, the random scale).  Without the `f` C
-     * promotes the literal to double, ~4.5e-10 higher than the float, which
-     * can flip the chat-gate at boundary cases. */
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
   }
   result = sub_10021BC0(a1);
@@ -19373,7 +19365,7 @@ int __cdecl sub_10021E90(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19400,7 +19392,7 @@ int __cdecl sub_10021F80(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19427,7 +19419,7 @@ int __cdecl sub_10022070(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19455,7 +19447,7 @@ int __cdecl sub_10022160(int *a1)
   v6 = (float)Characteristic_BFloat(a1[418], 20, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
       return 0;
   }
   v4 = a1[1049];
@@ -19469,7 +19461,7 @@ int __cdecl sub_10022160(int *a1)
   }
   else
   {
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
@@ -19503,7 +19495,7 @@ BOOL __cdecl sub_100222E0(int *a1)
   v6 = (float)Characteristic_BFloat(a1[418], 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
       return 0;
   }
   result = sub_10021BC0((int)a1);
@@ -19520,7 +19512,7 @@ BOOL __cdecl sub_100222E0(int *a1)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
       /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
        * Characteristic 15 is "praise vs insult" probability. */
       v8 = (float)Characteristic_BFloat(a1[418], 15, 0.0, 1.0);
@@ -19566,16 +19558,16 @@ int __cdecl sub_10022470(int a1)
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every sub_10022470 into return 0 on the !fastchat branch). */
   v6 = (float)Characteristic_BFloat(bs->character, 21, 0.0, 1.0);
-  if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509f )
+  if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509 )
     return 0;
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 || (double)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 || (double)(rand() & 0x7FFF) * 0.000030518509 > 0.25 )
       return 0;
   }
   if ( !sub_10021BC0(a1) )
     return 0;
-  v4 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+  v4 = (double)(rand() & 0x7FFF) * 0.000030518509;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
    * probability); v7 should be the bfloat result, not a copy of v4. */
   v7 = (float)Characteristic_BFloat(bs->character, 16, 0.0, 1.0);
@@ -19593,13 +19585,9 @@ double __cdecl sub_10022650(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // [esp+4h] [ebp-4h]
-  double dur;
-  unsigned int slen;
 
   v2 = Characteristic_BInteger(bs->character, 14, 1, 4000);
-  slen = sub_1002EA50((int)bs->chatstate);
-  dur = (double)(int)slen * 30.0 / (double)v2;
-  return dur;
+  return (double)(int)sub_1002EA50((int)bs->chatstate) * 30.0 / (double)v2;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001FD2: using guessed type _DWORD __cdecl sub_1002EA50(_DWORD);
@@ -19719,27 +19707,27 @@ float *__cdecl sub_10022A60(_DWORD *a1, float *a2)
     endpos[0] = *(float *)v2;
     endpos[1] = v3;
     endpos[2] = v4;
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
     v25 = v5;
     if ( v5 < 0.8 )
     {
       v6 = rand();
       v24 = -1.0;
-      if ( (double)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
+      if ( (double)(v6 & 0x7FFF) * 0.000030518509 >= 0.5 )
         v24 = 1.0;
-      endpos[0] = (double)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0 + endpos[0] + 50.0;
+      endpos[0] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[0] + 50.0;
     }
     if ( v25 > 0.2 )
     {
       v7 = rand();
       v24 = -1.0;
-      if ( (double)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
+      if ( (double)(v7 & 0x7FFF) * 0.000030518509 >= 0.5 )
         v24 = 1.0;
-      endpos[1] = (double)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0 + endpos[1] + 50.0;
+      endpos[1] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[1] + 50.0;
     }
     v20 = rand() & 0x7FFF;
     v18 = a1[2];
-    endpos[2] = (double)v20 * 0.000030518509f * 144.0 - 96.0 - 1.0 + endpos[2];
+    endpos[2] = (double)v20 * 0.000030518509 * 144.0 - 96.0 - 1.0 + endpos[2];
     v8 = AAS_Trace(v32, (int)v2, 0, 0, (int)endpos, v18, 3);
     v9 = endpos[0] - *(float *)v2;
     qmemcpy(v31, v8, sizeof(v31));
@@ -19853,7 +19841,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   memset(v38, 0, sizeof(v38));
   v9 = rand();
   v20 = *(_DWORD *)(a2 + 1672);
-  v10 = (double)(v9 & 0x7FFF) * 0.000030518509f;
+  v10 = (double)(v9 & 0x7FFF) * 0.000030518509;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
    * `fstp [esp+...]` immediately after each call.  In C those become the
@@ -19885,9 +19873,9 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
-        if ( (double)LOWORD(v31) * 0.000030518509f >= v21 )
+        if ( (double)LOWORD(v31) * 0.000030518509 >= v21 )
         {
-          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (double)(rand() & 0x7FFF) * 0.000030518509f < v25 )
+          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (double)(rand() & 0x7FFF) * 0.000030518509 < v25 )
             *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0;
         }
         else
@@ -19928,10 +19916,10 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       if ( v27 > 0.7 )
       {
         v15 = rand();
-        v14 = ((double)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
+        v14 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < *(float *)(a2 + 2816) && (double)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001 )
+      if ( v14 < *(float *)(a2 + 2816) && (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9350000000000001 )
       {
         v16 = *(_DWORD *)(a2 + 2752);
         *(_DWORD *)(a2 + 2816) = 0;
@@ -19951,7 +19939,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
-        if ( (double)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
+        if ( (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9 )
           goto LABEL_35;
         if ( v26 <= 180.0 )
           break;
@@ -20354,15 +20342,15 @@ void sub_10023CE0(int a1)
     }
     v28 = 1.0 - v35;
     v13 = rand();
-    *(float *)&v32 = ((double)(v13 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v13 & 0x7FFF) * 0.000030518509f - 0.5)
+    *(float *)&v32 = ((double)(v13 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v13 & 0x7FFF) * 0.000030518509 - 0.5)
                    * v28
                    * 20.0
                    + *(float *)&v32;
     v14 = rand();
-    v33 = ((double)(v14 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v14 & 0x7FFF) * 0.000030518509f - 0.5) * v28 * 20.0
+    v33 = ((double)(v14 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v14 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 20.0
         + v33;
     v15 = rand();
-    v34 = ((double)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * v28 * 10.0
+    v34 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in sub_10023CE0 tail */
@@ -20379,14 +20367,14 @@ void sub_10023CE0(int a1)
         ++v16;
         v24 = rand() & 0x7FFF;
         --v17;
-        *((float *)v16 - 1) = ((double)v24 * 0.000030518509f - 0.5 + (double)v24 * 0.000030518509f - 0.5) * v28 * 0.3
+        *((float *)v16 - 1) = ((double)v24 * 0.000030518509 - 0.5 + (double)v24 * 0.000030518509 - 0.5) * v28 * 0.3
                             + *((float *)v16 - 1);
       }
       while ( v17 );
     }
     sub_10041790(v29, a1 + 4236);
     v18 = rand();
-    v25 = ((double)(v18 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509f - 0.5)
+    v25 = ((double)(v18 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509 - 0.5)
         * (*(float *)(v3 + 264)
          * 6.0)
         * v28
@@ -20395,7 +20383,7 @@ void sub_10023CE0(int a1)
     v25 = AngleMod(v25);
     *(float *)&bs->_i4236 = v25;
     v19 = rand();
-    v26 = ((double)(v19 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v19 & 0x7FFF) * 0.000030518509f - 0.5)
+    v26 = ((double)(v19 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v19 & 0x7FFF) * 0.000030518509 - 0.5)
         * (*(float *)(v3 + 260)
          * 6.0)
         * v28
@@ -21250,9 +21238,9 @@ void __cdecl sub_10026440(int a1)
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && sub_100226C0((int *)a1) >= 50.0 )
     {
       v4 = rand();
-      v8 = (double)(v4 & 0x7FFF) * 0.000030518509f + (double)(v4 & 0x7FFF) * 0.000030518509f;
+      v8 = (double)(v4 & 0x7FFF) * 0.000030518509 + (double)(v4 & 0x7FFF) * 0.000030518509;
       bs->_f4324 = AAS_Time() + v8;
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
       if ( v5 < 0.33 && dword_1006442C && dword_100643EC )
       {
         bs->ltgtype = 4;
@@ -21526,7 +21514,7 @@ int __cdecl sub_10026BE0(int a1, int a2)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
       if ( 1.0 / (double)(sub_100238F0(a1) - 1) < v5 )
         return 0;
     }
@@ -21715,7 +21703,7 @@ LABEL_32:
         bs->teammate = v4;
         *(float *)&bs->_i4332 = AAS_Time();
         v10 = rand();
-        v55 = (double)(v10 & 0x7FFF) * 0.000030518509f + (double)(v10 & 0x7FFF) * 0.000030518509f;
+        v55 = (double)(v10 & 0x7FFF) * 0.000030518509 + (double)(v10 & 0x7FFF) * 0.000030518509;
         bs->_f4324 = AAS_Time() + v55;
         v11 = sub_100267E0((int)&v64);
         v12 = v64.type;
@@ -21759,7 +21747,7 @@ LABEL_27:
       if ( !sub_10026770(a1, String2, (int)bs->teamgoal) )
         goto LABEL_27;
       v14 = rand();
-      v56 = (double)(v14 & 0x7FFF) * 0.000030518509f + (double)(v14 & 0x7FFF) * 0.000030518509f;
+      v56 = (double)(v14 & 0x7FFF) * 0.000030518509 + (double)(v14 & 0x7FFF) * 0.000030518509;
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->_f4324 = v15 + v56;
@@ -21773,7 +21761,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v38 = rand();
-      v60 = (double)(v38 & 0x7FFF) * 0.000030518509f + (double)(v38 & 0x7FFF) * 0.000030518509f;
+      v60 = (double)(v38 & 0x7FFF) * 0.000030518509 + (double)(v38 & 0x7FFF) * 0.000030518509;
       v39 = AAS_Time();
       bs->ltgtype = 5;
       bs->_f4324 = v39 + v60;
@@ -21786,7 +21774,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v35 = rand();
-      v59 = (double)(v35 & 0x7FFF) * 0.000030518509f + (double)(v35 & 0x7FFF) * 0.000030518509f;
+      v59 = (double)(v35 & 0x7FFF) * 0.000030518509 + (double)(v35 & 0x7FFF) * 0.000030518509;
       v36 = AAS_Time();
       bs->ltgtype = 4;
       bs->_f4324 = v36 + v59;
@@ -21994,7 +21982,7 @@ LABEL_64:
         goto LABEL_64;
       }
       v24 = rand();
-      v57 = (double)(v24 & 0x7FFF) * 0.000030518509f + (double)(v24 & 0x7FFF) * 0.000030518509f;
+      v57 = (double)(v24 & 0x7FFF) * 0.000030518509 + (double)(v24 & 0x7FFF) * 0.000030518509;
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->_f4324 = v25 + v57;
@@ -22059,7 +22047,7 @@ LABEL_64:
       if ( !sub_10026990((_DWORD *)a1, (int)&v64) )
         return 1;
       v31 = rand();
-      v58 = (double)(v31 & 0x7FFF) * 0.000030518509f + (double)(v31 & 0x7FFF) * 0.000030518509f;
+      v58 = (double)(v31 & 0x7FFF) * 0.000030518509 + (double)(v31 & 0x7FFF) * 0.000030518509;
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->_f4324 = v32 + v58;
@@ -22123,7 +22111,7 @@ void __cdecl sub_10028650(int a1)
         if ( *(_DWORD *)(v3 + 4) != 1 )
           goto LABEL_11;
         v12 = AAS_Time();
-        if ( v12 - ((double)(rand() & 0x7FFF) * 0.000030518509f + 1.0) < *(float *)v3 )
+        if ( v12 - ((double)(rand() & 0x7FFF) * 0.000030518509 + 1.0) < *(float *)v3 )
           return;
       }
       if ( *(_DWORD *)(v3 + 4) != 1 )
@@ -22159,11 +22147,11 @@ LABEL_11:
         if ( sub_10021BC0(v1) )
         {
           Characteristic_BFloat(*(_DWORD *)(v1 + 1672), 22, 0.0, 1.0);
-          v13 = (double)(rand() & 0x7FFF) * 0.000030518509f;
+          v13 = (double)(rand() & 0x7FFF) * 0.000030518509;
           if ( 1.5 / (double)(sub_10028FD0() + 1) > v13 )
           {
             v11 = v7;
-            if ( (double)(rand() & 0x7FFF) * 0.000030518509f < v11 )
+            if ( (double)(rand() & 0x7FFF) * 0.000030518509 < v11 )
             {
               v8 = strstr((const char *)(v3 + 8), asc_1005CB74);
               if ( v8 )
@@ -23623,98 +23611,105 @@ LABEL_8:
 // 1002AF99: conditional instruction was optimized away because edx.4!=0
 
 //----- (1002B110) --------------------------------------------------------
-int *__cdecl sub_1002B110(char *a1)
+/* Original gladiator function at 0x1002B110 — the syn.c synonym-config
+ * loader.  Two-pass parser: pass 0 sums the required scratch-buffer size
+ * (`v18`), pass 1 allocates the buffer (v2) and populates it with packed
+ * bot_synonymlist_t / bot_synonym_t records.
+ *
+ * The original IDA decompile used raw `int *` indexing with literal +16
+ * (sizeof(bot_synonymlist_t)) and +13 (sizeof(bot_synonym_t)+1) byte
+ * strides, which only hold on 32-bit.  On 64-bit pointer fields grow
+ * (4→8 bytes), so the size calculation must use sizeof() and writes must
+ * use struct-field access.  Logic and control flow are preserved 1:1 with
+ * the disassembly at 0x1002B110. */
+bot_synonymlist_t *__cdecl sub_1002B110(char *a1)
 {
-  char **v2; // ebx
-  int v3; // edi
-  int v4; // ebp
-  source_t *v5; // esi
-  int v6; // ebp
-  bool v7; // cc
-  char *v8; // edx
-  bool v9; // sf
-  char **v10; // ebp
-  int *v11; // eax
-  char **v12; // edx
-  char *v13; // ebx
-  double v14; // st6
-  char v15; // [esp+0h] [ebp-584h]
-  source_t *v16; // [esp+10h] [ebp-574h]
-  int v17; // [esp+14h] [ebp-570h]
-  int v18; // [esp+18h] [ebp-56Ch]
-  int v19; // [esp+1Ch] [ebp-568h]
-  char *v20; // [esp+20h] [ebp-564h]
-  int v21; // [esp+24h] [ebp-560h]
-  int v22; // [esp+28h] [ebp-55Ch]
-  char **v23; // [esp+2Ch] [ebp-558h]
-  int *v24; // [esp+30h] [ebp-554h]
-  float *v25; // [esp+34h] [ebp-550h]
-  int *v26; // [esp+38h] [ebp-54Ch]
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  token_t token; /* restored: original token_t local variable */
-  char v34; // [esp+504h] [ebp-80h] BYREF — separate local buffer (not part of token)
+  char *ptr;                      /* IDA v2 — scratch buffer / advancing cursor */
+  int sizeNeeded;                 /* IDA v3 — alloc size (v18 from prev pass)   */
+  int pass;                       /* IDA v4 */
+  source_t *src;                  /* IDA v5 / v16 */
+  source_t *v16;
+  bool tooMany;                   /* IDA v7 */
+  int *ctxStackTop;               /* IDA v8 = ctxStack[level-1] addr */
+  bool ctxNegative;               /* IDA v9 */
+  bot_synonym_t *lastsynonym;     /* IDA v10 */
+  bot_synonymlist_t *syn;         /* IDA v11/v25 */
+  bot_synonym_t *synonym;         /* IDA v12/v23 */
+  char *stringStorage;            /* IDA v13 */
+  double weightval;               /* IDA v14 */
+  char v15;
+  int context;                    /* IDA v17 */
+  int sizeAccum;                  /* IDA v18 */
+  int level;                      /* IDA v19 */
+  int *ctxStackP;                 /* IDA v20 */
+  int doWrite;                    /* IDA v21 — nonzero on second pass */
+  int numsynonyms;                /* IDA v22 */
+  bot_synonymlist_t *lastsyn;     /* IDA v24 */
+  bot_synonymlist_t *synlist;     /* IDA v26 — head, returned */
+  bot_fileref_t file_ref;
+  token_t token;
+  int contextstack[32];           /* IDA v34 — char[128] really 32 ints */
 
   if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
     return 0;
   }
-  v2 = v23;
-  v3 = 0;
-  v4 = 0;
-  v18 = 0;
-  v21 = 0;
+  ptr = NULL;
+  sizeNeeded = 0;
+  pass = 0;
+  sizeAccum = 0;
+  doWrite = 0;
   while ( 1 )
   {
-    if ( v4 && v3 )
-      v2 = (char **)GetClearedMemory(v3);
-    v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    v16 = v5;
-    if ( !v5 )
+    if ( pass && sizeNeeded )
+      ptr = (char *)GetClearedMemory(sizeNeeded);
+    src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+    v16 = src;
+    if ( !src )
     {
       bi_Print(3, "counldn't load %s\n", file_ref.path);
       return 0;
     }
-    v17 = 0;
-    v19 = 0;
-    v26 = 0;
-    v24 = 0;
-    if ( PC_ReadTokenHandle(v5, token.string) )
+    context = 0;
+    level = 0;
+    synlist = NULL;
+    lastsyn = NULL;
+    if ( PC_ReadTokenHandle(src, token.string) )
       break;
 LABEL_45:
-    FreeSource(v5);
-    if ( v19 > 0 )
+    FreeSource(src);
+    if ( level > 0 )
     {
-      sub_10039200(v5, aMissing_0, v15);
+      sub_10039200(src, aMissing_0, v15);
       return 0;
     }
-    v21 = ++v4;
-    if ( v4 >= 2 )
+    doWrite = ++pass;
+    if ( pass >= 2 )
     {
       if ( file_ref.filelen )
         bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
       else
         bi_Print(1, "loaded %s\n", a1);
-      return v26;
+      return synlist;
     }
   }
-  v20 = &v34;
+  ctxStackP = contextstack;
   while ( 1 )
   {
     if ( token.type == 3 )
     {
-      v6 = token.intvalue | v17;
-      *(_DWORD *)v20 = token.intvalue;
-      v17 = v6;
-      v7 = ++v19 < 32;
-      v20 += 4;
-      if ( !v7 )
+      context |= token.intvalue;
+      *ctxStackP = token.intvalue;
+      tooMany = ++level < 32;
+      ++ctxStackP;
+      if ( !tooMany )
       {
-        sub_10039200(v5, aMoreThan32Cont, v15);
-        FreeSource(v5);
+        sub_10039200(src, aMoreThan32Cont, v15);
+        FreeSource(src);
         return 0;
       }
-      if ( !PC_ExpectTokenString(v5, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(src, asc_1005AB58) )
         goto LABEL_52;
       goto LABEL_43;
     }
@@ -23722,48 +23717,47 @@ LABEL_45:
       goto LABEL_43;
     if ( strcmp(token.string, asc_1005AB54) )
       break;
-    v8 = v20 - 4;
-    v9 = --v19 < 0;
-    v20 -= 4;
-    if ( v9 )
+    ctxStackTop = ctxStackP - 1;
+    ctxNegative = --level < 0;
+    --ctxStackP;
+    if ( ctxNegative )
     {
       sub_10039200(v16, aTooMany, v15);
       FreeSource(v16);
       return 0;
     }
-    v17 &= ~*(_DWORD *)v8;
+    context &= ~*ctxStackTop;
 LABEL_42:
-    v5 = v16;
+    src = v16;
 LABEL_43:
-    if ( !PC_ReadTokenHandle(v5, token.string) )
+    if ( !PC_ReadTokenHandle(src, token.string) )
     {
-      v4 = v21;
-      v3 = v18;
+      pass = doWrite;
+      sizeNeeded = sizeAccum;
       goto LABEL_45;
     }
   }
-  v10 = 0;
+  lastsynonym = NULL;
   if ( !strcmp(token.string, asc_1005C65C) )
   {
-    v18 += 16;
-    if ( v21 )
+    sizeAccum += sizeof(bot_synonymlist_t);
+    if ( doWrite )
     {
-      v11 = (int *)v2;
-      v2 += 4;
-      v25 = (float *)v11;
-      *v11 = v17;
-      v11[2] = 0;
-      v11[3] = 0;
-      if ( v24 )
-        v24[3] = (int)v11;
+      syn = (bot_synonymlist_t *)ptr;
+      ptr += sizeof(bot_synonymlist_t);
+      syn->context = context;
+      syn->firstsynonym = NULL;
+      syn->next = NULL;
+      if ( lastsyn )
+        lastsyn->next = syn;
       else
-        v26 = v11;
-      v24 = v11;
+        synlist = syn;
+      lastsyn = syn;
     }
-    v22 = 0;
+    numsynonyms = 0;
     do
     {
-      v5 = v16;
+      src = v16;
       if ( !PC_ExpectTokenString(v16, asc_1005D334) || !PC_ExpectTokenType(v16, 1, 0, token.string) )
         break;
       StripDoubleQuotes(token.string);
@@ -23772,53 +23766,52 @@ LABEL_43:
         sub_10039200(v16, aEmptyString, token.string);
         goto LABEL_58;
       }
-      v18 += strlen(token.string) + 13;
-      if ( v21 )
+      sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
+      if ( doWrite )
       {
-        v12 = v2;
-        v13 = (char *)(v2 + 3);
-        *v12 = v13;
-        v23 = v12;
-        v2 = (char **)&v13[strlen(token.string) + 1];
-        strcpy(*v12, token.string);
-        if ( v10 )
-          v10[2] = (char *)v12;
+        synonym = (bot_synonym_t *)ptr;
+        stringStorage = (char *)(synonym + 1);
+        synonym->string = stringStorage;
+        ptr = stringStorage + strlen(token.string) + 1;
+        strcpy(synonym->string, token.string);
+        if ( lastsynonym )
+          lastsynonym->next = synonym;
         else
-          *((_DWORD *)v25 + 2) = v12;
-        v5 = v16;
-        v10 = v12;
+          syn->firstsynonym = synonym;
+        src = v16;
+        lastsynonym = synonym;
       }
-      ++v22;
-      if ( !PC_ExpectTokenString(v5, asc_1005D330)
-        || !PC_ExpectTokenType(v5, 3, 0, token.string)
-        || !PC_ExpectTokenString(v5, asc_1005D32C) )
+      ++numsynonyms;
+      if ( !PC_ExpectTokenString(src, asc_1005D330)
+        || !PC_ExpectTokenType(src, 3, 0, token.string)
+        || !PC_ExpectTokenString(src, asc_1005D32C) )
       {
         break;
       }
-      if ( v21 )
+      if ( doWrite )
       {
-        v14 = token.floatvalue;
-        *((float *)v23 + 1) = token.floatvalue;
-        v25[1] = v14 + v25[1];
+        weightval = token.floatvalue;
+        synonym->weight = token.floatvalue;
+        syn->totalweight = (float)(weightval + syn->totalweight);
       }
-      if ( PC_CheckTokenString(v5, asc_1005C658) )
+      if ( PC_CheckTokenString(src, asc_1005C658) )
       {
-        if ( v22 >= 2 )
+        if ( numsynonyms >= 2 )
           goto LABEL_42;
         sub_10039200(v16, aSynonymMustHav, v15);
         FreeSource(v16);
         return 0;
       }
     }
-    while ( PC_ExpectTokenString(v5, asc_1005D330) );
+    while ( PC_ExpectTokenString(src, asc_1005D330) );
 LABEL_52:
-    FreeSource(v5);
+    FreeSource(src);
     return 0;
   }
-  v5 = v16;
+  src = v16;
   sub_10039200(v16, aUnexpectedS, token.string);
 LABEL_58:
-  FreeSource(v5);
+  FreeSource(src);
   return 0;
 }
 // 1002B151: variable 'v23' is possibly undefined
@@ -23833,179 +23826,187 @@ LABEL_58:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002B7C0) --------------------------------------------------------
+/* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
+ * traversal.  The original IDA expressed firstsynonym (+8) and next (+12)
+ * as raw _DWORD offsets which truncate on 64-bit. */
 const char *__cdecl sub_1002B7C0(const char *a1, int a2)
 {
-  int i; // edi
-  const char *result; // eax
-  int j; // esi
+  bot_synonymlist_t *syn;
+  bot_synonym_t *firstsyn;
+  bot_synonym_t *s;
+  const char *result;
 
-  for ( i = dword_10064384; i; i = *(_DWORD *)(i + 12) )
+  result = a1;
+  for ( syn = dword_10064384; syn; syn = syn->next )
   {
-    if ( (a2 & *(_DWORD *)i) != 0 )
+    if ( (a2 & syn->context) != 0 )
     {
-      result = *(const char **)(i + 8);
-      for ( j = *((_DWORD *)result + 2); j; j = *(_DWORD *)(j + 8) )
-        result = sub_1002AF30(a1, *(const char **)j, **(const char ***)(i + 8));
+      firstsyn = syn->firstsynonym;
+      result = firstsyn->string;
+      for ( s = firstsyn->next; s; s = s->next )
+        result = sub_1002AF30(a1, s->string, firstsyn->string);
     }
   }
   return result;
 }
-// 10064384: using guessed type int dword_10064384;
 
 //----- (1002B830) --------------------------------------------------------
+/* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
+ * traversal.  Selects a synonym by weighted random pick and rewrites all
+ * other occurrences in the string. */
 void __cdecl sub_1002B830(const char *a1, int a2)
 {
-  int i; // ebx
-  __int16 v4; // ax
-  int v5; // edi
-  int v6; // esi
-  double j; // st7
-  float v8; // [esp+8h] [ebp+4h]
+  bot_synonymlist_t *syn;
+  __int16 r;
+  bot_synonym_t *firsts;
+  bot_synonym_t *pick;
+  double acc;
+  float threshold;
 
-  for ( i = dword_10064384; i; i = *(_DWORD *)(i + 12) )
+  for ( syn = dword_10064384; syn; syn = syn->next )
   {
-    if ( (*(_DWORD *)i & a2) != 0 )
+    if ( (syn->context & a2) != 0 )
     {
-      v4 = rand();
-      v5 = *(_DWORD *)(i + 8);
-      v6 = v5;
-      for ( j = 0.0; v6; v6 = *(_DWORD *)(v6 + 8) )
+      r = rand();
+      firsts = syn->firstsynonym;
+      pick = firsts;
+      for ( acc = 0.0; pick; pick = pick->next )
       {
-        j = j + *(float *)(v6 + 4);
-        v8 = (double)(v4 & 0x7FFF) * 0.000030518509f * *(float *)(i + 4);
-        if ( v8 < j )
+        acc = acc + pick->weight;
+        threshold = (float)((double)(r & 0x7FFF) * 0.000030518509 * syn->totalweight);
+        if ( threshold < acc )
           break;
       }
-      for ( ; v5; v5 = *(_DWORD *)(v5 + 8) )
+      for ( ; firsts; firsts = firsts->next )
       {
-        if ( v5 != v6 )
-          sub_1002AF30(a1, *(const char **)v5, *(const char **)v6);
+        if ( firsts != pick )
+          sub_1002AF30(a1, firsts->string, pick->string);
       }
     }
   }
 }
-// 10064384: using guessed type int dword_10064384;
 
 //----- (1002B990) --------------------------------------------------------
-int __cdecl sub_1002B990(char *a1)
+// Q3 equivalent: BotLoadRandomStrings (be_ai_chat.c).  Two-pass loader:
+// pass 0 counts the required scratch-buffer size, pass 1 allocates a single
+// GetClearedMemory() block and populates it as a packed sequence of
+// bot_randomlist_t / bot_randomstring_t records, each immediately followed
+// by its inline string.  IDA's original used hardcoded 32-bit byte strides
+// (+16, +8, +12) which truncate on 64-bit because the pointer fields grow
+// from 4 to 8 bytes; we use sizeof() instead so the same source builds
+// correctly under both ABIs.
+bot_randomlist_t *__cdecl sub_1002B990(char *a1)
 {
-  int v2; // ebx
-  int v3; // ebp
-  int v4; // eax
-  int v5; // edi
-  source_t *v6; // esi
-  int v7; // ebx
-  int v8; // edx
-  int v9; // ebx
-  int v10; // ecx
-  int v11; // [esp+10h] [ebp-4DCh]
-  int v12; // [esp+14h] [ebp-4D8h]
-  int v13; // [esp+18h] [ebp-4D4h]
-  int v14; // [esp+18h] [ebp-4D4h]
-  int v15; // [esp+1Ch] [ebp-4D0h]
-  int v16; // [esp+20h] [ebp-4CCh]
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  token_t token; /* restored: original token_t local variable */
+  char *ptr;                /* IDA v2/v3: current write cursor in scratch  */
+  bot_randomlist_t *list;   /* IDA v3 reinterpreted: current randomlist     */
+  bot_randomstring_t *rs;   /* IDA v8 reinterpreted: current random string  */
+  source_t *source;
+  bot_randomlist_t *head;
+  bot_randomlist_t *lastlist;
+  int sizeNeeded;
+  int sizeAccum;
+  int pass;
+  int doWrite;
+  bot_fileref_t file_ref;
+  token_t token;
 
-  if ( sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(a1, &file_ref) )
   {
-    v2 = v13;
-    v3 = v13;
-    v4 = 0;
-    v5 = 0;
-    v11 = 0;
-    v12 = 0;
-    while ( 1 )
+    bi_Print(3, "couldn't find %s\n", a1);
+    return NULL;
+  }
+
+  ptr = NULL;
+  list = NULL;
+  sizeNeeded = 0;
+  pass = 0;
+  sizeAccum = 0;
+  doWrite = 0;
+  head = NULL;
+
+  while ( 1 )
+  {
+    if ( pass && sizeNeeded )
+      ptr = (char *)GetClearedMemory(sizeNeeded);
+    source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+    if ( !source )
     {
-      if ( v5 && v4 )
-        v2 = GetClearedMemory(v4);
-      v6 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-      v15 = v6;
-      if ( !v6 )
-      {
-        bi_Print(3, "counldn't load %s\n", file_ref.path);
-        return 0;
-      }
-      v14 = 0;
-      v16 = 0;
-      if ( PC_ReadTokenHandle(v6, token.string) )
-        break;
-LABEL_26:
-      FreeSource(v6);
-      v12 = ++v5;
-      if ( v5 >= 2 )
-      {
-        if ( file_ref.filelen )
-          bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
-        else
-          bi_Print(1, "loaded %s\n", a1);
-        return v14;
-      }
-      v4 = v11;
+      bi_Print(3, "counldn't load %s\n", file_ref.path);
+      return NULL;
     }
+    head = NULL;
+    lastlist = NULL;
+
+    if ( !PC_ReadTokenHandle(source, token.string) )
+      goto NEXT_PASS;
+
     while ( 1 )
     {
       if ( token.type != 4 )
       {
-        sub_10039200(v6, aUnknownRandomS, token.string);
-        FreeSource(v6);
-        return 0;
+        sub_10039200(source, aUnknownRandomS, token.string);
+        FreeSource(source);
+        return NULL;
       }
-      v11 += strlen(token.string) + 17;
-      if ( v12 )
+      sizeAccum += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
+      if ( doWrite )
       {
-        v3 = v2;
-        v7 = v2 + 16;
-        *(_DWORD *)v3 = v7;
-        v2 = v7 + strlen(token.string) + 1;
-        strcpy(*(char **)v3, token.string);
-        *(_DWORD *)(v3 + 8) = 0;
-        *(_DWORD *)(v3 + 4) = 0;
-        if ( v16 )
-          *(_DWORD *)(v16 + 12) = v3;
+        list = (bot_randomlist_t *)ptr;
+        list->string = (char *)(ptr + sizeof(bot_randomlist_t));
+        ptr += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
+        strcpy(list->string, token.string);
+        list->firstrandomstring = NULL;
+        list->numstrings = 0;
+        if ( lastlist )
+          lastlist->next = list;
         else
-          v14 = v3;
-        v6 = v15;
-        v16 = v3;
+          head = list;
+        lastlist = list;
       }
-      if ( !PC_ExpectTokenString(v6, asc_1005D364) || !PC_ExpectTokenString(v6, asc_1005AB58) )
-        break;
-      while ( PC_ExpectTokenType(v6, 1, 0, token.string) )
+      if ( !PC_ExpectTokenString(source, asc_1005D364) || !PC_ExpectTokenString(source, asc_1005AB58) )
+      {
+        FreeSource(source);
+        return NULL;
+      }
+      while ( PC_ExpectTokenType(source, 1, 0, token.string) )
       {
         StripDoubleQuotes(token.string);
-        v11 += strlen(token.string) + 9;
-        if ( v12 )
+        sizeAccum += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
+        if ( doWrite )
         {
-          v8 = v2;
-          v9 = v2 + 8;
-          *(_DWORD *)v8 = v9;
-          v2 = v9 + strlen(token.string) + 1;
-          strcpy(*(char **)v8, token.string);
-          v10 = *(_DWORD *)(v3 + 8);
-          v6 = v15;
-          ++*(_DWORD *)(v3 + 4);
-          *(_DWORD *)(v8 + 4) = v10;
-          *(_DWORD *)(v3 + 8) = v8;
+          rs = (bot_randomstring_t *)ptr;
+          rs->string = (char *)(ptr + sizeof(bot_randomstring_t));
+          ptr += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
+          strcpy(rs->string, token.string);
+          rs->next = list->firstrandomstring;
+          list->firstrandomstring = rs;
+          ++list->numstrings;
         }
-        if ( PC_CheckTokenString(v6, asc_1005AB54) )
+        if ( PC_CheckTokenString(source, asc_1005AB54) )
           break;
-        if ( !PC_ExpectTokenString(v6, asc_1005D330) )
-          goto LABEL_32;
+        if ( !PC_ExpectTokenString(source, asc_1005D330) )
+        {
+          FreeSource(source);
+          return NULL;
+        }
       }
-      if ( !PC_ReadTokenHandle(v6, token.string) )
-      {
-        v5 = v12;
-        goto LABEL_26;
-      }
+      if ( !PC_ReadTokenHandle(source, token.string) )
+        break;
     }
-LABEL_32:
-    FreeSource(v6);
-    return 0;
-  }
-  else
-  {
-    bi_Print(3, "couldn't find %s\n", a1);
-    return 0;
+
+NEXT_PASS:
+    FreeSource(source);
+    ++pass;
+    doWrite = pass;
+    if ( pass >= 2 )
+    {
+      if ( file_ref.filelen )
+        bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
+      else
+        bi_Print(1, "loaded %s\n", a1);
+      return head;
+    }
+    sizeNeeded = sizeAccum;
   }
 }
 // 1002B9D1: variable 'v13' is possibly undefined
@@ -24018,101 +24019,90 @@ LABEL_32:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002BDD0) --------------------------------------------------------
-int __cdecl RandomString(const char *a1)
+// Q3 equivalent: RandomString.  Walks the bot_randomlist_t chain looking
+// for a name match, then picks one of its bot_randomstring_t entries
+// pseudo-randomly weighted by numstrings.
+char *__cdecl RandomString(const char *a1)
 {
-  int v1; // edi
-  __int64 v2; // rax
-  _DWORD *v3; // ecx
+  bot_randomlist_t *list;
+  bot_randomstring_t *rs;
+  int n;
 
-  v1 = dword_1006437C;
-  if ( !dword_1006437C )
-    return 0;
-  while ( 1 )
+  list = dword_1006437C;
+  if ( !list )
+    return NULL;
+  while ( list )
   {
-    if ( !strcmp(*(const char **)v1, a1) )
+    if ( !strcmp(list->string, a1) )
     {
-      v2 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)*(int *)(v1 + 4));
-      v3 = *(_DWORD **)(v1 + 8);
-      if ( v3 )
-        break;
+      n = (int)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)list->numstrings);
+      rs = list->firstrandomstring;
+      while ( rs )
+      {
+        if ( --n < 0 )
+          return rs->string;
+        rs = rs->next;
+      }
     }
-LABEL_8:
-    v1 = *(_DWORD *)(v1 + 12);
-    if ( !v1 )
-      return 0;
+    list = list->next;
   }
-  while ( 1 )
-  {
-    LODWORD(v2) = v2 - 1;
-    if ( (int)v2 < 0 )
-      return *v3;
-    v3 = (_DWORD *)v3[1];
-    if ( !v3 )
-      goto LABEL_8;
-  }
+  return NULL;
 }
 // 1002BE4C: conditional instruction was optimized away because ecx.4!=0
 // 1006437C: using guessed type int dword_1006437C;
 
 //----- (1002BFB0) --------------------------------------------------------
-void __cdecl BotFreeMatchPieces(_DWORD *a1)
+void __cdecl BotFreeMatchPieces(bot_matchpiece_t *a1)
 {
-  _DWORD *v1; // edi
-  _DWORD *v2; // ebx
-  int v3; // eax
-  int v4; // esi
+  bot_matchpiece_t *mp;
+  bot_matchpiece_t *nextmp;
+  bot_matchstring_t *ms;
+  bot_matchstring_t *nextms;
 
-  v1 = a1;
-  if ( a1 )
+  for ( mp = a1; mp; mp = nextmp )
   {
-    do
+    nextmp = mp->next;
+    if ( mp->type == MT_STRING )
     {
-      v2 = (_DWORD *)v1[3];
-      if ( *v1 == 2 )
+      for ( ms = mp->firststring; ms; ms = nextms )
       {
-        v3 = v1[1];
-        if ( v3 )
-        {
-          do
-          {
-            v4 = *(_DWORD *)(v3 + 4);
-            FreeMemory(v3);
-            v3 = v4;
-          }
-          while ( v4 );
-        }
+        nextms = ms->next;
+        FreeMemory(ms);
       }
-      FreeMemory(v1);
-      v1 = v2;
     }
-    while ( v2 );
+    FreeMemory(mp);
   }
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002C020) --------------------------------------------------------
-_DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2)
+// Q3 equivalent: ReadFuzzySeparators (be_ai_chat.c).  Parses a single match
+// pattern body (list of pieces separated by ',' or '|') into a chain of
+// bot_matchpiece_t.  Original IDA decompilation used GetMemory(16) plus
+// int-stride indexing (v4[2], v4[3]) which truncates on 64-bit because
+// firststring/next pointers grow from 4 to 8 bytes.
+bot_matchpiece_t *__cdecl ReadFuzzySeperators_r(source_t *a1, const char *a2)
 {
-  int v2; // edi
-  _DWORD *v3; // esi
-  _DWORD *v4; // eax
-  _DWORD *v5; // eax
-  _DWORD *v6; // ebp
-  int v7; // edx
+  source_t *v2;
+  bot_matchpiece_t *last;
+  bot_matchpiece_t *mp;
+  bot_matchpiece_t *lastvar;
+  bot_matchstring_t *ms;
+  bot_matchstring_t *lastms;
+  bot_matchpiece_t *head;
+  int haveVariable;
+  int sawEmptyString;
   char v9; // [esp+0h] [ebp-454h]
-  _DWORD *v10; // [esp+10h] [ebp-444h]
-  int v11; // [esp+14h] [ebp-440h]
-  _DWORD *v12; // [esp+18h] [ebp-43Ch]
-  int v13; // [esp+1Ch] [ebp-438h]
-  int v14; // [esp+20h] [ebp-434h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   v2 = a1;
-  v10 = 0;
-  v3 = 0;
-  v11 = 0;
+  head = NULL;
+  last = NULL;
+  haveVariable = 0;
+
   if ( !PC_ReadTokenHandle(a1, token.string) )
-    return v10;
+    return head;
+
   while ( token.type == 3 )
   {
     if ( (token.subtype & 0x1000) == 0 )
@@ -24121,68 +24111,69 @@ _DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2)
     {
       sub_10039200(v2, aCanTHaveMoreTh, 10);
       FreeSource(v2);
-      BotFreeMatchPieces(v10);
-      return 0;
+      BotFreeMatchPieces(head);
+      return NULL;
     }
-    if ( v11 )
+    if ( haveVariable )
     {
       sub_10039200(v2, aNotAllowedToHa, v9);
       FreeSource(v2);
-      BotFreeMatchPieces(v10);
-      return 0;
+      BotFreeMatchPieces(head);
+      return NULL;
     }
-    v11 = 1;
-    v4 = (_DWORD *)GetMemory(16);
-    *v4 = 1;
-    v4[2] = token.intvalue;
-    v4[3] = 0;
-    if ( v3 )
-      v3[3] = v4;
+    haveVariable = 1;
+    mp = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
+    mp->type = MT_VARIABLE;
+    mp->variable = token.intvalue;
+    mp->next = NULL;
+    if ( last )
+      last->next = mp;
     else
-      v10 = v4;
-    v12 = v4;
+      head = mp;
+    lastvar = mp;
 LABEL_29:
     if ( PC_CheckTokenString(v2, a2) )
-      return v10;
+      return head;
     if ( !PC_ExpectTokenString(v2, asc_1005D330) )
       goto LABEL_35;
     if ( !PC_ReadTokenHandle(v2, token.string) )
-      return v10;
-    v3 = v12;
+      return head;
+    last = lastvar;
   }
+
   if ( token.type == 1 )
   {
-    v5 = (_DWORD *)GetMemory(16);
-    v6 = v5;
-    v5[1] = 0;
-    *v5 = 2;
-    v5[2] = 0;
-    v5[3] = 0;
-    if ( v3 )
-      v3[3] = v5;
+    mp = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
+    mp->firststring = NULL;
+    mp->type = MT_STRING;
+    mp->variable = 0;
+    mp->next = NULL;
+    if ( last )
+      last->next = mp;
     else
-      v10 = v5;
-    v12 = v5;
-    v14 = 0;
-    v13 = 0;
-    while ( !v6[1] || PC_ExpectTokenType(v2, 1, 0, token.string) )
+      head = mp;
+    lastvar = mp;
+    lastms = NULL;
+    sawEmptyString = 0;
+
+    while ( !mp->firststring || PC_ExpectTokenType(v2, 1, 0, token.string) )
     {
       StripDoubleQuotes(token.string);
-      v7 = GetMemory(strlen(token.string) + 9);
-      *(_DWORD *)v7 = v7 + 8;
-      strcpy((char *)(v7 + 8), token.string);
+      ms = (bot_matchstring_t *)GetMemory(sizeof(bot_matchstring_t) + strlen(token.string) + 1);
+      ms->string = (char *)(ms + 1);
+      strcpy(ms->string, token.string);
       if ( !strlen(token.string) )
-        v13 = 1;
-      *(_DWORD *)(v7 + 4) = 0;
-      if ( v14 )
-        *(_DWORD *)(v14 + 4) = v7;
+        sawEmptyString = 1;
+      ms->next = NULL;
+      if ( lastms )
+        lastms->next = ms;
       else
-        v6[1] = v7;
-      v14 = v7;
+        mp->firststring = ms;
+      lastms = ms;
       if ( !PC_CheckTokenString(a1, asc_1005D380) )
       {
-        if ( !v13 )
-          v11 = 0;
+        if ( !sawEmptyString )
+          haveVariable = 0;
         v2 = a1;
         goto LABEL_29;
       }
@@ -24190,14 +24181,15 @@ LABEL_29:
     }
 LABEL_35:
     FreeSource(v2);
-    BotFreeMatchPieces(v10);
-    return 0;
+    BotFreeMatchPieces(head);
+    return NULL;
   }
+
 LABEL_37:
   sub_10039200(v2, aInvalidTokenS, token.string);
   FreeSource(v2);
-  BotFreeMatchPieces(v10);
-  return 0;
+  BotFreeMatchPieces(head);
+  return NULL;
 }
 // 1002C24C: variable 'v9' is possibly undefined
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
@@ -24208,131 +24200,128 @@ LABEL_37:
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
 
 //----- (1002C3D0) --------------------------------------------------------
-int __cdecl BotFreeMatchTemplates(int a1)
+int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *a1)
 {
-  int v1; // esi
-  int v2; // edi
-  int result; // eax
+  bot_matchtemplate_t *m;
+  bot_matchtemplate_t *next;
 
-  v1 = a1;
-  if ( a1 )
+  for ( m = a1; m; m = next )
   {
-    do
-    {
-      v2 = *(_DWORD *)(v1 + 16);
-      BotFreeMatchPieces(*(_DWORD **)(v1 + 12));
-      result = FreeMemory(v1);
-      v1 = v2;
-    }
-    while ( v2 );
+    next = m->next;
+    BotFreeMatchPieces(m->first);
+    FreeMemory(m);
   }
-  return result;
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002C410) --------------------------------------------------------
-int __cdecl BotLoadMatchTemplates(char *a1)
+// Q3 equivalent: BotLoadMatchTemplates (be_ai_chat.c).  Parses match.c into
+// a linked list of bot_matchtemplate_t.  The IDA decompilation stored
+// source/template pointers in ints (v3, v4, v5, v6, v7) and used int-stride
+// indexing (v6[3]/v6[4]) which truncates on 64-bit because the pointer
+// fields of bot_matchtemplate_t live past padding.  Rewritten to use the
+// proper struct types so allocation size, field offsets and pointer width
+// are correct under both 32-bit and 64-bit ABIs.
+bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *a1)
 {
-  source_t *v2; // eax
-  int v3; // edi
-  int v4; // esi
-  int *v5; // ebp
-  int *v6; // esi
-  int v7; // [esp+10h] [ebp-4D0h]
-  int v8; // [esp+14h] [ebp-4CCh]
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  token_t token; /* restored: original token_t local variable */
+  source_t *source;
+  bot_matchtemplate_t *matches;       /* head of returned list */
+  bot_matchtemplate_t *match;         /* current template */
+  bot_matchtemplate_t *lastmatch;     /* previously appended template */
+  bot_matchtemplate_t *pendinghead;   /* template list built so far (v7) */
+  int context;
+  bot_fileref_t file_ref;
+  token_t token;
 
-  if ( sub_10041F60(a1, &file_ref) )
-  {
-    v2 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    v3 = v2;
-    if ( v2 )
-    {
-      v4 = 0;
-      v7 = 0;
-      v5 = 0;
-      if ( PC_ReadTokenHandle(v2, token.string) )
-      {
-        while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
-        {
-          v8 = token.intvalue;
-          if ( !PC_ExpectTokenString(v3, asc_1005AB58) )
-          {
-            BotFreeMatchTemplates(v4);
-LABEL_28:
-            FreeSource(v3);
-            return 0;
-          }
-          if ( PC_ReadTokenHandle(v3, token.string) )
-          {
-            while ( 1 )
-            {
-              if ( !strcmp(token.string, asc_1005AB54) )
-              {
-LABEL_21:
-                v4 = v7;
-                goto LABEL_22;
-              }
-              PC_UnreadLastToken(v3);
-              v6 = (int *)GetMemory(20);
-              *v6 = v8;
-              v6[4] = 0;
-              v6[3] = (int)ReadFuzzySeperators_r(v3, (int)asc_1005D364);
-              if ( v5 )
-                v5[4] = (int)v6;
-              else
-                v7 = (int)v6;
-              v5 = v6;
-              if ( !PC_ExpectTokenString(v3, asc_1005D334) )
-                break;
-              if ( !PC_ExpectTokenType(v3, 3, 4096, token.string) )
-                break;
-              v6[1] = token.intvalue;
-              if ( !PC_ExpectTokenString(v3, asc_1005D330) )
-                break;
-              if ( !PC_ExpectTokenType(v3, 3, 4096, token.string) )
-                break;
-              v6[2] = token.intvalue;
-              if ( !PC_ExpectTokenString(v3, asc_1005D32C) || !PC_ExpectTokenString(v3, Control) )
-                break;
-              if ( !PC_ReadTokenHandle(v3, token.string) )
-                goto LABEL_21;
-            }
-            BotFreeMatchTemplates(v7);
-            goto LABEL_28;
-          }
-LABEL_22:
-          if ( !PC_ReadTokenHandle(v3, token.string) )
-            goto LABEL_23;
-        }
-        sub_10039200(v3, aExpectedIntege, token.string);
-        BotFreeMatchTemplates(v4);
-        FreeSource(v3);
-        return 0;
-      }
-      else
-      {
-LABEL_23:
-        FreeSource(v3);
-        if ( file_ref.filelen )
-          bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
-        else
-          bi_Print(1, "loaded %s\n", a1);
-        return v4;
-      }
-    }
-    else
-    {
-      bi_Print(3, "counldn't load %s\n", file_ref.path);
-      return 0;
-    }
-  }
-  else
+  if ( !sub_10041F60(a1, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", a1);
-    return 0;
+    return NULL;
   }
+  source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !source )
+  {
+    bi_Print(3, "counldn't load %s\n", file_ref.path);
+    return NULL;
+  }
+
+  matches = NULL;
+  pendinghead = NULL;
+  lastmatch = NULL;
+
+  if ( !PC_ReadTokenHandle(source, token.string) )
+    goto DONE;
+
+  while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
+  {
+    context = token.intvalue;
+    if ( !PC_ExpectTokenString(source, asc_1005AB58) )
+    {
+      BotFreeMatchTemplates(matches);
+      FreeSource(source);
+      return NULL;
+    }
+    if ( !PC_ReadTokenHandle(source, token.string) )
+      goto DONE;
+
+    while ( 1 )
+    {
+      if ( !strcmp(token.string, asc_1005AB54) )
+      {
+        matches = pendinghead;
+        break;
+      }
+      PC_UnreadLastToken(source);
+      match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
+      match->context = context;
+      match->next = NULL;
+      match->first = ReadFuzzySeperators_r(source, asc_1005D364);
+      if ( lastmatch )
+        lastmatch->next = match;
+      else
+        pendinghead = match;
+      lastmatch = match;
+      if ( !PC_ExpectTokenString(source, asc_1005D334) )
+        goto FAIL_LOOP;
+      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+        goto FAIL_LOOP;
+      match->type = token.intvalue;
+      if ( !PC_ExpectTokenString(source, asc_1005D330) )
+        goto FAIL_LOOP;
+      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+        goto FAIL_LOOP;
+      match->subtype = token.intvalue;
+      if ( !PC_ExpectTokenString(source, asc_1005D32C) || !PC_ExpectTokenString(source, Control) )
+        goto FAIL_LOOP;
+      if ( !PC_ReadTokenHandle(source, token.string) )
+      {
+        matches = pendinghead;
+        goto DONE;
+      }
+    }
+
+    if ( !PC_ReadTokenHandle(source, token.string) )
+      goto DONE;
+  }
+
+  sub_10039200(source, aExpectedIntege, token.string);
+  BotFreeMatchTemplates(matches);
+  FreeSource(source);
+  return NULL;
+
+FAIL_LOOP:
+  BotFreeMatchTemplates(pendinghead);
+  FreeSource(source);
+  return NULL;
+
+DONE:
+  FreeSource(source);
+  if ( file_ref.filelen )
+    bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
+  else
+    bi_Print(1, "loaded %s\n", a1);
+  return matches;
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
@@ -24438,7 +24427,7 @@ int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
   while ( strlen(match->string) && match->string[strlen(match->string) - 1] == '\n' )
     match->string[strlen(match->string) - 1] = 0;
 
-  for ( ms = (bot_matchtemplate_t *)dword_10064378; ms; ms = ms->next )
+  for ( ms = dword_10064378; ms; ms = ms->next )
   {
     if ( !(context & ms->context) )
       continue;
@@ -24868,7 +24857,7 @@ LABEL_13:
         {
           LOBYTE(v14) = v14 | 0x10;
           *v7 = v14;
-          v7[2] = (int)ReadFuzzySeperators_r(v4, (int)asc_1005D32C);
+          v7[2] = (int)(intptr_t)ReadFuzzySeperators_r((source_t *)(intptr_t)v4, asc_1005D32C);
         }
       }
       PC_CheckTokenString(v4, asc_1005D330);
@@ -25361,7 +25350,7 @@ LABEL_10:
     }
     return 0;
   }
-  v8 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)v5);
+  v8 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v5);
   v9 = *(_DWORD *)(v2 + 36);
   v10 = v8;
   if ( !v9 )
@@ -25513,7 +25502,7 @@ LABEL_21:
         while ( v7 );
         v15 = v8;
       }
-      v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)v15);
+      v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
       v10 = *(_DWORD *)(v2 + 12);
       v11 = v9;
       if ( v10 )
@@ -25583,7 +25572,7 @@ int sub_1002EBB0()
   char *v4; // eax
 
   v1 = LibVarString(aSynfile, (char *)aSynC);
-  dword_10064384 = (int)sub_1002B110(v1);
+  dword_10064384 = sub_1002B110(v1);
   v2 = LibVarString(aRndfile, (char *)aRndC);
   dword_1006437C = sub_1002B990(v2);
   v3 = LibVarString(aMatchfile, (char *)aMatchC);
@@ -25750,7 +25739,7 @@ int *__cdecl sub_1002F100(int a1, int *a2)
       v7 = sub_100369C0(a1, a2[1] + v5 + 80);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4, a2[1] + v5 + 80);
+        Log_Write(aItemInfoDSHasN, v4);
       ++v4;
       ++v6;
       v5 += 284;
@@ -25900,31 +25889,23 @@ _DWORD * BotInitLevelItems()
   if ( dword_1006435C )
   {
     v4 = sub_100069A0();
-    /* Disasm at 0x1002f39f calls LibVarValue() (float-returning) and converts
-     * the result via __ftol to an int spawnflags mask (stored in [esp+0x18]).
-     * IDA decompiled this as a bare LibVar() call with the result discarded,
-     * then resolved the later "& a1" reference to the global "1" string
-     * (char a1[2] = "1") instead of recognising it as the LibVar return.
-     * That made the mask an arbitrary high address, over-filtering ~100
-     * entities out of bot goal scanning on base1 (35 items found vs 57). */
+    LibVar(aNotspawnflags, (char *)a2048);
+    for ( i = 0; i < *v2; v3 += 284 )
     {
-      int notspawnflags_mask = (int)LibVarValue(aNotspawnflags, (char *)a2048);
-      for ( i = 0; i < *v2; v3 += 284 )
+      *(_DWORD *)(v2[1] + v3 + 240) = IndexFromModel((char *)(v2[1] + v3 + 160));
+      v6 = v3 + v2[1];
+      if ( !*(_DWORD *)(v6 + 240) )
+        Log_Write(aItemSHasModeli, v6 + 80);
+      ++i;
+    }
+    v11 = (int *)v4;
+    if ( v4 )
+    {
+      do
       {
-        *(_DWORD *)(v2[1] + v3 + 240) = IndexFromModel((char *)(v2[1] + v3 + 160));
-        v6 = v3 + v2[1];
-        if ( !*(_DWORD *)(v6 + 240) )
-          Log_Write(aItemSHasModeli, v6 + 80);
-        ++i;
-      }
-      v11 = (int *)v4;
-      if ( v4 )
-      {
-        do
+        ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
+        if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & (unsigned int)(__int64)a1) == 0 )
         {
-          ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
-          if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & (unsigned int)notspawnflags_mask) == 0 )
-          {
           v7 = 0;
           if ( *v2 > 0 )
           {
@@ -25972,7 +25953,6 @@ LABEL_20:
       }
       while ( v11 );
     }
-    } /* end notspawnflags_mask scope */
     return (_DWORD *)bi_Print(1, "found %d level items\n", dword_10064354);
   }
   return result;
@@ -27655,7 +27635,7 @@ int *__cdecl sub_100324C0(int *a1, int a2, float *a3)
   dir[2] = v3;
   v10[0] = dir[0];
   v4 = rand();
-  dir[2] = ((double)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509f - 0.5) * 40.0
+  dir[2] = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
@@ -27711,15 +27691,15 @@ int *__cdecl sub_10032620(int *a1, int a2, float *a3)
       dir[1] = a3[7] - *(float *)(a2 + 4);
       dir[2] = a3[8] - *(float *)(a2 + 8);
       v6 = rand();
-      dir[0] = ((double)(v6 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v6 & 0x7FFF) * 0.000030518509f - 0.5)
+      dir[0] = ((double)(v6 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v6 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[0];
       v7 = rand();
-      dir[1] = ((double)(v7 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v7 & 0x7FFF) * 0.000030518509f - 0.5)
+      dir[1] = ((double)(v7 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v7 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[1];
       v8 = rand();
-      dir[2] = ((double)(v8 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v8 & 0x7FFF) * 0.000030518509f - 0.5)
+      dir[2] = ((double)(v8 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v8 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[2]
              + 70.0;
@@ -29895,7 +29875,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
       if ( factvalue >= sep->value )
         break;
       if ( !sep->child )
-        return (double)(rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight)
+        return (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight)
              + sep->minweight;
       sep = sep->child;
     }
@@ -29909,7 +29889,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
   if ( sep->child )
     v7 = sub_10036B10(facts, sep->child);
   else
-    v7 = (double)(rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight) + sep->minweight;
+    v7 = (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight) + sep->minweight;
   v14 = v7;
   if ( sep->next->child )
   {
@@ -29923,7 +29903,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
      * `+ 16` became 16 * sizeof(fuzzyseperator_t) = 512-byte stride, reading
      * far past the struct and AV-ing.  Original asm at 0x10036bdf is
      * `fadds 0x10(%edi)` — i.e. v10->minweight. */
-    v9 = (double)(rand() & 0x7FFF) * 0.000030518509f * (v10->maxweight - v10->minweight)
+    v9 = (double)(rand() & 0x7FFF) * 0.000030518509 * (v10->maxweight - v10->minweight)
        + v10->minweight;
   }
   v11 = sep->value;
@@ -29964,17 +29944,17 @@ void __cdecl sub_10036CD0(int a1)
     }
     else if ( *(_DWORD *)(a1 + 8) == 1 )
     {
-      if ( (double)(rand() & 0x7FFF) * 0.000030518509f >= 0.01 )
+      if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.01 )
       {
         v4 = rand();
-        v3 = ((double)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509f - 0.5)
+        v3 = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5)
            * (*(float *)(a1 + 20) - *(float *)(a1 + 16))
            * 0.5;
       }
       else
       {
         v2 = rand();
-        v3 = ((double)(v2 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509f - 0.5)
+        v3 = ((double)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
            * (*(float *)(a1 + 20) - *(float *)(a1 + 16));
       }
       *(float *)(a1 + 12) = v3 + *(float *)(a1 + 12);
@@ -30114,7 +30094,7 @@ int __cdecl EA_Command(int client, char *command, ...)
   int *i; // ecx
   int v5; // eax
   int v7; // [esp+4h] [ebp-28h]
-  int v8[9]; // [esp+8h] [ebp-24h] BYREF — up to 9 forwarded variadic ints
+  int v8[2]; // [esp+8h] [ebp-24h] BYREF
 
   v7 = (int)command;
   v2 = 1;
@@ -30129,14 +30109,10 @@ int __cdecl EA_Command(int client, char *command, ...)
     if ( ++v2 >= 10 )
     {
       bi_Print(3, aEaCommandTooMa);
-      return bi_BotClientCommand(client, (char *)v7,
-                                 v8[0], v8[1], v8[2], v8[3], v8[4],
-                                 v8[5], v8[6], v8[7], v8[8], 0);
+      return bi_BotClientCommand(client, v7, v8[0], v8[1]);
     }
   }
-  return bi_BotClientCommand(client, (char *)v7,
-                             v8[0], v8[1], v8[2], v8[3], v8[4],
-                             v8[5], v8[6], v8[7], v8[8], 0);
+  return bi_BotClientCommand(client, v7, v8[0], v8[1]);
 }
 // 10037233: conditional instruction was optimized away because esi.4<A
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -33643,7 +33619,7 @@ int __cdecl PC_CheckTokenString(source_t *src, const char *a2)
 //----- (1003DD40) --------------------------------------------------------
 int __cdecl PC_UnreadLastToken(source_t *src)
 {
-  return PC_UnreadSourceToken(src, (const void *)(src + 552));
+  return PC_UnreadSourceToken(src, &src->cachedtoken);
 }
 
 //----- (1003DE60) --------------------------------------------------------
@@ -33882,7 +33858,7 @@ LABEL_12:
 }
 
 //----- (1003E520) --------------------------------------------------------
-int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2)
+int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
 {
   char *v2; // ecx
   char v3; // al
@@ -33893,8 +33869,8 @@ int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2)
   char *v8; // edi
   char v10; // [esp+0h] [ebp-8h]
 
-  v2 = (char *)(((script_t *)a1)->script_p + 1);
-  ((script_t *)a1)->script_p = v2;
+  v2 = (char *)(a1->script_p + 1);
+  a1->script_p = v2;
   v3 = *v2;
   switch ( *v2 )
   {
@@ -33932,7 +33908,7 @@ int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2)
       LOBYTE(v4) = 11;
       break;
     case 'x':
-      ((script_t *)a1)->script_p = v2 + 1;
+      a1->script_p = v2 + 1;
       v4 = 0;
       while ( 1 )
       {
@@ -33940,24 +33916,24 @@ int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2)
         {
           while ( 1 )
           {
-            v5 = ((script_t *)a1)->script_p;
+            v5 = a1->script_p;
             v6 = *v5;
             if ( v6 < 48 || v6 > 57 )
               break;
             v4 = v6 - 48 + 16 * v4;
-            ((script_t *)a1)->script_p = v5 + 1;
+            a1->script_p = v5 + 1;
           }
           if ( v6 < 65 || v6 > 90 )
             break;
           v4 = v6 - 55 + 16 * v4;
-          ((script_t *)a1)->script_p = v5 + 1;
+          a1->script_p = v5 + 1;
         }
         if ( v6 < 97 || v6 > 122 )
           break;
         v4 = v6 - 87 + 16 * v4;
-        ((script_t *)a1)->script_p = v5 + 1;
+        a1->script_p = v5 + 1;
       }
-      --((script_t *)a1)->script_p;
+      --a1->script_p;
       if ( v4 > 255 )
         goto LABEL_32;
       break;
@@ -33965,15 +33941,15 @@ int __cdecl PS_ReadEscapeCharacter(int a1, _BYTE *a2)
       if ( v3 < 48 || v3 > 57 )
         ScriptError(a1, aUnknownEscapeC, v10);
       v4 = 0;
-      for ( i = *((script_t *)a1)->script_p; i >= 48; i = *v8 )
+      for ( i = *a1->script_p; i >= 48; i = *v8 )
       {
         if ( i > 57 )
           break;
-        v8 = (char *)(((script_t *)a1)->script_p + 1);
+        v8 = (char *)(a1->script_p + 1);
         v4 = i + 10 * v4 - 48;
-        ((script_t *)a1)->script_p = v8;
+        a1->script_p = v8;
       }
-      --((script_t *)a1)->script_p;
+      --a1->script_p;
       if ( v4 > 255 )
       {
 LABEL_32:
@@ -33982,7 +33958,7 @@ LABEL_32:
       }
       break;
   }
-  ++((script_t *)a1)->script_p;
+  ++a1->script_p;
   *a2 = v4;
   return 1;
 }
