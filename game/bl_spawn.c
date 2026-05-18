@@ -561,7 +561,7 @@ void BotAddDeathmatch(edict_t *ent)
 #if defined(WIN32) || defined(_WIN32)
 	AddBotToQueue(ent, gi.cvar("botlib", "gladiator.dll", 0)->string, uinfo);
 #else
-	AddBotToQueue(ent, gi.cvar("botlib", "gladi386.so", 0)->string, uinfo);
+	AddBotToQueue(ent, gi.cvar("botlib", "gladiator.so", 0)->string, uinfo);
 #endif
 } //end of the function AddDeathmatchBot
 //===========================================================================
@@ -588,7 +588,7 @@ void BotBecomeDeathmatch(edict_t *ent)
 #if defined(WIN32) || defined(_WIN32)
 	lib = BotUseLibrary(gi.cvar("botlib", "gladiator.dll", 0)->string);
 #else
-	lib = BotUseLibrary(gi.cvar("botlib", "gladi386.so", 0)->string);
+	lib = BotUseLibrary(gi.cvar("botlib", "gladiator.so", 0)->string);
 #endif
 	if (!lib)
 	{
