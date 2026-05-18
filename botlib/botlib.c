@@ -12277,6 +12277,14 @@ LABEL_67:
                   *(float *)&dir[1] = bestend[1] - beststart[1];
                   VectorNormalize((float *)dir);
                   VectorScale((float *)dir, speed, cmdmove);
+                  /* .text 0x1001492f-0x10014951 — cmdmove[2] override:
+                   *   if (traveltype == 5)  cmdmove[2] = libvar_sv_jumpvel->value;
+                   *   else                  cmdmove[2] = 0.0f;
+                   * IDA dropped this entire branch; without it the prediction
+                   * never applies a Z impulse, so every JUMP candidate's
+                   * landing point misses area2num in the probe loop and all
+                   * 89 JUMP reaches on q2ctf2 are lost. */
+                  cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
                   qmemcpy(
                     move2,
                     (const void *)AAS_ClientMovementPrediction(
