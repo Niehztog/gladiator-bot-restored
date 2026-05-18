@@ -651,7 +651,7 @@ int __cdecl BotResetState(int *a1);
 int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
-int *__cdecl BotLoadCharacter(char *Source, int a2);
+int *__cdecl BotLoadCharacter(char *Source, const char *a2);
 int __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(int *a1, int a2);
 double __cdecl Characteristic_Float(int *a1, int a2);
@@ -706,9 +706,9 @@ _DWORD *sub_1002EC80();
 int *__cdecl sub_1002F100(int a1, int *a2);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
-int __cdecl sub_1002F2B0(int a1);
-int __cdecl AddLevelItemToList(int a1);
-int __cdecl sub_1002F320(int a1);
+int __cdecl sub_1002F2B0(levelitem_t *item);
+levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
+levelitem_t *__cdecl sub_1002F320(levelitem_t *item);
 // _DWORD *__usercall BotInitLevelItems@<eax>(double a1@<st0>);
 char *__cdecl sub_1002F6A0(int a1);
 int __cdecl BotResetAvoidGoals(int a1);
@@ -2084,7 +2084,8 @@ bot_synonymlist_t *dword_10064384; /* synonyms head, set by sub_1002B110 */
 int dword_10064388; // weak
 int dword_10064398; // weak
 int dword_1006439C; // weak
-int dword_100643A0; // weak
+bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
+#define dword_100643A0 ((char *)botstates)
 float flt_100643A4; // weak
 int dword_100643A8; // weak
 libvar_t *libvar_ctf; /* libvar handle */
@@ -2223,14 +2224,11 @@ bsp_link_t **dword_10069584; // bsp_leaflinks (per-leaf list-heads array)
 //----- (10003010) --------------------------------------------------------
 void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float *end, int a6, int a7)
 {
-  const void *v7; // esi
-  void *result; // eax
-  char v9[84]; // [esp+8h] [ebp-54h] BYREF
+  bsp_trace_t bs;
 
-  v7 = (const void *)bi_Trace(v9, start, mins, maxs, end, a6, a7);
-  result = a1;
-  qmemcpy(a1, v7, 0x54u);
-  return result;
+  bs = ((bsp_trace_t (__cdecl *)(float *, float *, float *, float *, int, int))bi_Trace)(start, mins, maxs, end, a6, a7);
+  qmemcpy(a1, &bs, 0x54u);
+  return a1;
 }
 // 10063FEC: using guessed type int (__cdecl *bi_Trace)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
 // 10003010: using guessed type char var_54[84];
@@ -22520,7 +22518,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
     bi_Print(4, "client %d already setup\n", a1);
     return 0;
   }
-  char_handle = BotLoadCharacter(Source, (int)(Source + 144));
+  char_handle = BotLoadCharacter(Source, Source + 144);
   bs->character = char_handle;
   if ( !char_handle )
   {
@@ -22834,7 +22832,7 @@ int BotSetupLibrary()
   *_errno() = v4;
   if ( *_errno() )
     return *_errno();
-  dword_100643A0 = GetClearedMemory(4560 * maxclients);
+  botstates = (bot_state_t *)GetClearedMemory(4560 * maxclients);
   dword_100643A8 = GetClearedMemory(144 * maxclients);
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
@@ -22859,11 +22857,11 @@ int BotShutdownLibrary()
   sub_100356D0();
   if ( dword_100643A8 )
     FreeMemory(dword_100643A8);
-  result = dword_100643A0;
+  result = (int)(intptr_t)botstates;
   dword_100643A8 = 0;
-  if ( dword_100643A0 )
-    result = FreeMemory(dword_100643A0);
-  dword_100643A0 = 0;
+  if ( botstates )
+    result = FreeMemory(botstates);
+  botstates = 0;
   return result;
 }
 // 1000100F: using guessed type int sub_10028E80(void);
@@ -22875,19 +22873,19 @@ int BotShutdownLibrary()
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10029EB0) --------------------------------------------------------
-int *__cdecl BotLoadCharacter(char *Source, int a2)
+int *__cdecl BotLoadCharacter(char *Source, const char *a2)
 {
   int *v2; // ebx
   int v4; // ebp
   source_t *v5; // eax
-  int v6; // edi
+  source_t *v6; // edi
   int v7; // esi
-  int v8; // esi
+  source_t *v8; // esi
   int v9; // ebp
   int v10; // edi
   char *v11; // [esp-8h] [ebp-5FCh]
   char *v12; // [esp-4h] [ebp-5F8h]
-  int v13; // [esp+10h] [ebp-5E4h]
+  source_t *v13; // [esp+10h] [ebp-5E4h]
   int v14; // [esp+14h] [ebp-5E0h]
   int v15; // [esp+18h] [ebp-5DCh]
   int v16; // [esp+1Ch] [ebp-5D8h]
@@ -25701,34 +25699,29 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
 // 10064344: using guessed type int dword_10064344;
 
 //----- (1002F2B0) --------------------------------------------------------
-int __cdecl sub_1002F2B0(int a1)
+int __cdecl sub_1002F2B0(levelitem_t *item)
 {
-  levelitem_t *item = (levelitem_t *)a1;
-
   item->next = dword_10064344;
   dword_10064344 = item;
-  return a1;
+  return 0;
 }
 // 10064344: using guessed type int dword_10064344;
 
 //----- (1002F2E0) --------------------------------------------------------
-int __cdecl AddLevelItemToList(int a1)
+levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item)
 {
-  levelitem_t *item = (levelitem_t *)a1;
-
   if ( dword_10064360 )
     dword_10064360->prev = item;
   item->prev = 0;
   item->next = dword_10064360;
   dword_10064360 = item;
-  return a1;
+  return item;
 }
 // 10064360: using guessed type int dword_10064360;
 
 //----- (1002F320) --------------------------------------------------------
-int __cdecl sub_1002F320(int a1)
+levelitem_t *__cdecl sub_1002F320(levelitem_t *item)
 {
-  levelitem_t *item = (levelitem_t *)a1;
   levelitem_t *prev;
   levelitem_t *next;
 
@@ -25740,7 +25733,7 @@ int __cdecl sub_1002F320(int a1)
   next = item->next;
   if ( next )
     next->prev = item->prev;
-  return a1;
+  return item;
 }
 // 10064360: using guessed type int dword_10064360;
 
@@ -25755,7 +25748,6 @@ _DWORD * BotInitLevelItems()
   char *v6; // eax
   int v7; // ebp
   const char *v8; // edi
-  int v9; // esi
   const char *ArgList; // [esp+28h] [ebp-18h]
   bsp_entity_t *v11; // [esp+2Ch] [ebp-14h]
   /* IDA split the item-origin vec3 into three separate floats v12/v13/v14
@@ -25806,7 +25798,6 @@ _DWORD * BotInitLevelItems()
             {
               levelitem_t *li = (levelitem_t *)AllocLevelItem(0);
               result = (_DWORD *)li;
-              v9 = (int)li;
               if ( !li )
                 return result;
               li->number = ++dword_10064354;
@@ -25823,7 +25814,7 @@ _DWORD * BotInitLevelItems()
                                        (float *)((char *)v2->items + 284 * v7 + 256),
                                        (float *)((char *)v2->items + 284 * v7 + 268),
                                        li->goalorigin);
-              AddLevelItemToList(v9);
+              AddLevelItemToList(li);
             }
             else
             {
@@ -26007,8 +25998,8 @@ int sub_1002FA20()
       v1 = v0->next;
       if ( v0->timeout != 0.0 && AAS_Time() > v0->timeout )
       {
-        sub_1002F320((int)v0);
-        sub_1002F2B0((int)v0);
+        sub_1002F320(v0);
+        sub_1002F2B0(v0);
       }
       v0 = v1;
     }
@@ -26110,7 +26101,7 @@ LABEL_25:
                                   (float *)(*(_DWORD *)(v18 + 4) + 284 * v4 + 268),
                                   v13->goalorigin);
         v13->timeout = AAS_Time() + 30.0;
-        AddLevelItemToList((int)v13);
+        AddLevelItemToList(v13);
       }
     }
 LABEL_31:
