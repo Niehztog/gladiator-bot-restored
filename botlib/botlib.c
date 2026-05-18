@@ -46,25 +46,25 @@
  * AAS subsystem   : sub_100044F0, AAS_DecompressVis, AAS_BSPModelMinsMaxsOrigin,
  *                   AAS_UpdatePortal, AAS_FloodClusterAreas_r, AAS_FindClusters,
  *                   AAS_CreatePortals, AAS_UpdateEntity, AAS_EntityInfo,
- *                   AAS_EntityModelindex, AAS_EntityRenderFX, AAS_EntityModelNum,
+ *                   AAS_EntityModelindex, sub_1000AD90, AAS_EntityModelNum,
  *                   AAS_BestReachableArea, AAS_PresenceTypeBoundingBox, AAS_ContinueInit,
  *                   AAS_Shutdown, AAS_ClientMovementPrediction, AAS_Optimize,
  *                   AAS_AreaReachability, AAS_AreaTravelTimeToGoalArea,
  *                   AAS_NextAreaReachability, AAS_PointAreaNum, AAS_AreaPresenceType,
- *                   AAS_AASLinkEntity, AAS_StartFrame,
+ *                   sub_1001C460, AAS_StartFrame,
  *                   AAS_AreaSwim, AAS_AreaGrounded, AAS_AreaLadder,
  *                   AAS_AllocReachability, AAS_Error
- * EA subsystem    : EA_Say, EA_SayTeam, EA_Use, EA_DropItem, EA_Wave, EA_Command,
- *                   EA_Move, EA_View, EA_Setup, EA_Shutdown
+ * EA subsystem    : EA_Say, EA_SayTeam, EA_Use, EA_DropItem, sub_100371B0, EA_Command,
+ *                   EA_Move, sub_100375A0, EA_Setup, EA_Shutdown
  * Vector math     : VectorNormalize, VectorMA, VectorLength, VectorScale,
- *                   CrossProduct, VectorNegate, vectoangles
- * AI subsystem    : AINode_Stand, BotEntityToActivate
+ *                   CrossProduct, VectorNegate, sub_10041790
+ * AI subsystem    : AINode_Stand, sub_10024A10
  * Chat subsystem  : BotMatchVariable, BotCheckChatMessageIntegrety,
  *                   BotConstructChatMessage, BotInitialChat, BotEnterChat
  * Memory system   : GetMemory, FreeMemory, GetClearedMemory (GetClearedMemory)
  * LibVar system   : LibVar, LibVarGet, LibVarGetString, LibVarGetValue
  * PC parser       : PC_ReadSourceToken, PC_ExpectAnyToken, PC_StructureField,
- *                   SourceError, FreeSource, PC_ExpectTokenString,
+ *                   sub_10039200, FreeSource, PC_ExpectTokenString,
  *                   PC_CheckTokenString, PC_ExpectTokenType, PC_UnreadSourceToken,
  *                   PS_ReadToken
  * Export wrappers : Export_BotVersion, Export_BotSetupLibrary,
@@ -137,6 +137,7 @@
 #include <time.h>     // time()
 #include <unistd.h>   // access(), chdir(), getcwd()
 
+#include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
 #include "gladiator.dll.h"
 #include "ea_state.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
 #include "aas_world.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
@@ -223,30 +224,30 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, int a4); /* search ba
 
 // Declarations unique to the first IDA pass (preserved after dedup):
 void sub_10028E80(void);  /* was: sub_10028E80 thunk */
-void BotCheckAttack(int a1);  // fixed from weak _DWORD
+void sub_10024590(int a1);  // fixed from weak _DWORD
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
 int __cdecl AAS_AreaLadder(int);
 /* AAS_VectorForBSPEpairKey: full decl with named args at line ~329 */
 int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
 int AAS_InitReachability(); // weak
-itemconfig_t *LoadItemConfig(char *Source);
+itemconfig_t *sub_1002ED20(char *Source);
 int AAS_Optimize(void);
-int BotSetupChatAI(); // weak
+int sub_1002EBB0(); // weak
 int sub_1001D260(); // weak
-/* AAS_FreeBSPEntities: defined as AAS_FreeBSPEntities at 0x10006920 */
+/* sub_10006920: defined as sub_10006920 at 0x10006920 */
 /* BotInitialChat: defined as sub_1002E510 at 0x1002E510 (3-param Gladiator version) */
-int __cdecl BotFreeWaypoints(int);
+int __cdecl sub_10021B90(int);
 double __cdecl Characteristic_Float(int *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
 int __cdecl BotReachabilityTime(int);
-int PrintUsedMemorySize(void);
+void PrintUsedMemorySize(void);
 int __cdecl AAS_HorizontalVelocityForJump(float, int, int, int); // idb
 int __cdecl AAS_UpdatePortal(int ArgList, int);
-/* AAS_AASLinkEntity: see full declaration at line ~500 below */
+/* sub_1001C460: see full declaration at line ~500 below */
 int __cdecl AAS_ClientMovementPrediction(int, int, int, int, int, int, int, int, int, float, int, int); // idb
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
 int __cdecl sub_1001C760(char *Source); // idb
-BOOL BotCanAndWantsToRocketJump(int *a1);  // fixed from weak
+BOOL sub_10022990(int *a1);  // fixed from weak
 int __cdecl PC_FreeToken(int);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 /* AAS_DropToFloor: full decl at line ~374 — body at 0x1000AFD0 actually drops
@@ -259,7 +260,7 @@ int AAS_FreeRoutingCaches(void);  /* sub_10019550 (was: AAS_FreeRoutingCaches th
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
 libvar_t *__cdecl LibVar(char *name, char *value);            /* register/lookup libvar */
 float     __cdecl LibVarValue(char *name, char *defvalue);    /* register, return value */
-void Com_DPrintf(const char *fmt, ...);  /* was: Com_DPrintf thunk */
+void sub_10042410(const char *fmt, ...);  /* was: sub_10042410 thunk */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane);  /* Q3 canonical name */
 void sub_1001D290(void);  /* was: sub_1001D290 thunk */
 /* AAS_PointLight: defined as sub_1000D770 at 0x1000D770. takes a vec3 origin and traces 4096
@@ -276,8 +277,8 @@ int __cdecl Characteristic_Integer(int *, int);
 int __cdecl AAS_StartFrame(float time);  // fixed from 0-param idb decl
 int __cdecl BotEntityVisible(int, void *, int, float, int); // idb
 void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);
-weaponconfig_t *LoadWeaponConfig(char *Source);  /* fixed return type */
-void BotAimAtEnemy(int a1);  // fixed from weak _DWORD
+weaponconfig_t *sub_10034BB0(char *Source);  /* fixed return type */
+void sub_10023CE0(int a1);  // fixed from weak _DWORD
 
 /* Windows API stubs for decompilation reference (WinDDE functions) */
 static void *GlobalAlloc(unsigned int flags, size_t size) { (void)flags; return malloc(size); }
@@ -294,7 +295,7 @@ static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
 
 int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
-int __cdecl InFieldOfVision(int, float, int); // idb
+int __cdecl sub_1000B640(int, float, int); // idb
 int __cdecl WriteFloat(FILE *Stream, float); // idb
 // BotCheckActivateGoal: actual return type is function pointer - see definition
 /* BotMoveInDirection: at 0x10031BE0 — public movement-dispatcher entry that
@@ -304,7 +305,7 @@ int __cdecl WriteFloat(FILE *Stream, float); // idb
  * via thunk 0x10001E47 -> 0x10031BE0, and the swim/walk impls were also
  * swapped in their naming.  See body at ~line 27056. */
 /* sub_10038990 → LibVarGetValue: see decl above (1-arg, returns float). */
-// AAS_LoadBSPFile: see declaration in second block
+// sub_10007D30: see declaration in second block
 int AAS_InitAASLinkHeap(); // weak
 /* PC_ExpectTokenString: defined as sub_1003D650 at 0x1003D650 */
 /* AAS_Time: decl already present below */
@@ -316,55 +317,55 @@ int AAS_InitAASLinkHeap(); // weak
  * future Q2 source recovery. */
 int __cdecl sub_10007150(int start, int end, int endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
 
-unsigned int BotChatLength(int a1);  // fixed from weak
-int __cdecl AAS_AgainstLadder(int *);
-int AAS_ResetEntityLinks();
-float *__cdecl ProjectPointOnPlane(float *, float *, float *);
-void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
+unsigned int sub_1002EA50(int a1);  // fixed from weak
+int __cdecl sub_1000F2C0(int *);
+int sub_1000B090();
+float *__cdecl sub_10042860(float *, float *, float *);
+void __cdecl sub_10038AC0(char *name, char *value);  /* body at ~30304 */
 double __cdecl VectorDistance(float *, float *);
-int __cdecl AIEnter_Seek_ActivateEntity(int);
-int AAS_AllocBSPLink();
+int __cdecl sub_1001EF00(int);
+int sub_100031F0();
 int __cdecl AAS_BestReachableArea(int *, float *, float *, int);
 int AAS_TestPortals();
 int __cdecl EA_DropItem(int client, int item);  // fixed from weak
 void *__cdecl AAS_Trace(void *a1, int a2, int a3, int a4, int a5, int a6, int a7);
-// int __usercall AAS_InitBSPLinkHeap@<eax>(double a1@<st0>);
-int AAS_AllocBSPLink();
-_DWORD *__cdecl AAS_DeAllocBSPLink(_DWORD *a1);
-int AAS_InitBSPLinkedEntities();
+// int __usercall sub_100030A0@<eax>(double a1@<st0>);
+int sub_100031F0();
+_DWORD *__cdecl sub_10003240(_DWORD *a1);
+int sub_10003280();
 int sub_100032D0();
 int __cdecl sub_10003360(float *a1, int a2);
 int __cdecl sub_10003420(float *a1, int a2);
-float *__cdecl VectorTransform(float *a1, float *a2);
+float *__cdecl sub_10003460(float *a1, float *a2);
 int __cdecl AnglesToAxis(float *angles, int axis_out);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, float *a7);
-int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
+int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, int a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl sub_10004310(int a1, float *a2, float *a3, int a4, int *a5, int a6, int *a7, int a8, int a9);
 float *__cdecl sub_100044F0(float *a1, int a2, float *a3, float *a4, int a5, int *a6, float *a7, int *a8, int a9, int a10);
-int __cdecl BSP_InsideFace(_DWORD *a1, float *a2);
+int __cdecl sub_100056D0(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 int __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
-BOOL __cdecl AAS_inPVS(float *a1, float *a2);
-BOOL __cdecl AAS_inPHS(float *a1, float *a2);
+BOOL __cdecl sub_10005C60(float *a1, float *a2);
+BOOL __cdecl sub_10005C90(float *a1, float *a2);
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
-_DWORD *__cdecl AAS_UnlinkFromBSPLeaves(_DWORD *a1);
+_DWORD *__cdecl sub_10006090(_DWORD *a1);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
-_DWORD *__cdecl AAS_BSPLinkEntity(int *a1, int a2, int a3, int a4);
+_DWORD *__cdecl sub_10006210(int *a1, int a2, int a3, int a4);
 int __cdecl AAS_ValueForBSPEpairKey(int *a1, const char *a2);
 int __cdecl AAS_VectorForBSPEpairKey(int *a1, const char *a2, float *a3);
 double __cdecl FloatForKey(int *a1, const char *a2);
 const char *__cdecl AAS_IntForBSPEpairKey(int *a1, const char *a2);
-int __cdecl AAS_FreeBSPEntities(_DWORD *a1);
-char **AAS_ParseBSPEntities();
+int __cdecl sub_10006920(_DWORD *a1);
+char **sub_100069A0();
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
 /* sub_10007150 declared above as the AAS_LoadLump replacement */
 int sub_100071E0();
-int __fastcall AAS_SwapBSPData(void *a1);
-int AAS_DumpBSPData();
+int __fastcall sub_10007460(void *a1);
+int sub_10007980();
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char ArgList);
-// int __usercall AAS_LoadBSPFile@<eax>(double a1@<st0>, char *FileName, int Offset);
+// int __usercall sub_10007D30@<eax>(double a1@<st0>, char *FileName, int Offset);
 int sub_100085F0();
 int AAS_RemoveClusterAreas();
 int __cdecl AAS_UpdatePortal(int ArgList, int a2);
@@ -373,15 +374,15 @@ int __cdecl AAS_FloodClusterReachabilities(int a1);
 int __cdecl AAS_NumberClusterPortals(int a1);
 int AAS_FindClusters();
 int AAS_CreatePortals();
-int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, int a3, int a4);
-int __cdecl AAS_ConnectedAreas(int a1, int a2);
-int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3);
+int __cdecl sub_10008D40(_DWORD *a1, int a2, int a3, int a4);
+int __cdecl sub_10008E20(int a1, int a2);
+int __cdecl sub_10008EB0(_DWORD *a1, int a2, int a3);
 int __cdecl AAS_CheckAreaForPossiblePortals(int a1);
 int AAS_FindPossiblePortals();
-int AAS_RemoveAllPortals();
+int sub_100095C0();
 int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
-int AAS_ClearShownDebugLines();
+int sub_10009860();
 int __cdecl AAS_DebugLine(int a1, int a2, int a3);
 int __cdecl AAS_DrawPermanentCross(int, float, int); // idb
 int __cdecl AAS_ShowArea(int a1, int a2);
@@ -393,24 +394,24 @@ void __cdecl AAS_ShowReachableAreas(int areanum);
 int __cdecl AAS_UpdateEntity(int entnum, float *state);
 void *__cdecl AAS_EntityInfo(void *info, int entnum);
 int __cdecl AAS_EntityModelindex(int entnum);
-int __cdecl AAS_EntityRenderFX(int entnum);
+int __cdecl sub_1000AD90(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
-int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2);
-int __cdecl AAS_EntityBSPData(int a1, int a2);
+int __cdecl sub_1000AE30(int a1, _DWORD *a2);
+int __cdecl sub_1000AF30(int a1, int a2);
 int __cdecl AAS_DropToFloor(int a1, int a2, int a3);  // 5-param: matches call sites
-int AAS_ResetEntityLinks();
+int sub_1000B090();
 int AAS_InvalidateEntities();
-int __cdecl AAS_BestReachableLinkArea(int a1);
+int __cdecl sub_1000B130(int a1);
 int __cdecl AAS_BestReachableArea(int *a1, float *a2, float *a3, int a4);
-// int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
+// int __usercall sub_1000B640@<eax>(double a1@<st0>, int a2, float a3, int a4);
 int __cdecl BotEntityVisible(int, void *, int, float, int); // idb
 int __cdecl sub_1000BAA0(int, void *, int, float, int, int); // idb
 int __cdecl AAS_NextBSPEntity(int a1);
-int AAS_SwapAASData();
-void *AAS_DumpAASData();
-void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
+int sub_1000BBA0();
+void *sub_1000C490();
+void *__cdecl sub_1000C670(FILE *Stream, int Offset, size_t ElementCount);
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset);
-int __cdecl AAS_WriteAASLump(FILE *Stream, int, int, void *Buffer, size_t ElementSize); // idb
+int __cdecl sub_1000CE40(FILE *Stream, int, int, void *Buffer, size_t ElementSize); // idb
 int __cdecl AAS_WriteAASFile(char *FileName); // idb
 int sub_1000D450();
 int __cdecl sub_1000D4A0(int a1);
@@ -419,11 +420,11 @@ int __cdecl BotAddPointLight(vec3_t origin, int a2, int a3, int a4, int a5, int 
 int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(int origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
-char *__cdecl AAS_StringFromIndex(const char *a1, int *a2, int a3);
-int __cdecl AAS_IndexFromString(int, int, char *String2); // idb
-char *__cdecl AAS_ModelFromIndex(int a1);
+char *__cdecl sub_1000D830(const char *a1, int *a2, int a3);
+int __cdecl sub_1000D8D0(int, int, char *String2); // idb
+char *__cdecl sub_1000D960(int a1);
 int __cdecl IndexFromModel(char *String2); // idb
-char *__cdecl AAS_ImageFromIndex(int a1);
+char *__cdecl sub_1000DA20(int a1);
 int *__cdecl sub_1000DA80(int a1, int a2);
 int __cdecl sub_1000DB40(int a1, int a2, int a3);
 int __cdecl sub_1000DBD0(_DWORD *a1);
@@ -441,9 +442,9 @@ int __cdecl BotLoadMap(char *Source, int, int, int, int, int, int); // idb
 int __cdecl sub_1000EDC0(int a1, int a2);
 int AAS_Shutdown();
 BOOL __cdecl AAS_OnGround(int a1, int a2, int a3);
-BOOL __cdecl AAS_Swimming(int a1);
+BOOL __cdecl sub_1000EFC0(int a1);
 void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
-int __cdecl AAS_AgainstLadder(int *a1);
+int __cdecl sub_1000F2C0(int *a1);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(int origin);
 int __cdecl AAS_BFGJumpZVelocity(int a1);
@@ -463,10 +464,10 @@ int AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(int a1);
-double __cdecl AAS_AreaVolume(int a1);
+double __cdecl sub_10011220(int a1);
 double __cdecl AAS_AreaGroundFaceArea(int a1);
 int __cdecl AAS_FaceCenter(int a1, float *a2);
-__int64 AAS_FallDamageDistance();
+__int64 sub_10011520();
 double __cdecl AAS_MaxJumpHeight(float a1);
 long double __cdecl AAS_MaxJumpDistance(float a1);
 int __cdecl AAS_AreaCrouch(int a1);
@@ -474,12 +475,12 @@ int __cdecl AAS_AreaSwim(int a1); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int a1); /* AAS_AreaGrounded impl */
 int __cdecl AAS_AreaLadder(int a1);
 int __cdecl AAS_ReachabilityExists(int a1, int a2);
-BOOL __cdecl AAS_NearbySolidOrGap(float *a1, float *a2);
+BOOL __cdecl sub_10011740(float *a1, float *a2);
 int __cdecl AAS_Reachability_Swim(int a1, int a2);
 int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2);
 double __cdecl VectorDistance(float *a1, float *a2);
-int __cdecl VectorBetweenVectors(float *a, float *b, float *c);
+int __cdecl sub_10013BF0(float *a, float *b, float *c);
 int __cdecl VectorMiddle(float *a1, float *a2, float *a3);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
 // int __usercall AAS_Reachability_Ladder@<eax>(double a1@<st0>, int a2, int a3);
@@ -527,12 +528,12 @@ int __cdecl AAS_PointContents(int a1);
 int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, int a6);
 int __cdecl AAS_DropToFloor(int a1, int a2, int a3);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
-int __cdecl AAS_InsideFace(int a1);
-int __cdecl AAS_PointInsideFace(int, int, float); // idb
-int __cdecl AAS_BoxOnPlaneSide2_dup(int *a1, int a2, float *a3);
-_DWORD *__cdecl AAS_UnlinkFromAreas(_DWORD *a1);
-_DWORD *__cdecl AAS_AASLinkEntity(int *a1, int a2, int a3);
-int __cdecl AAS_LinkEntityClientBBox(float *a1, float *a2, int a3, int a4);
+int __cdecl sub_1001BD40(int a1);
+int __cdecl sub_1001BF00(int, int, float); // idb
+int __cdecl sub_1001C2E0(int *a1, int a2, float *a3);
+_DWORD *__cdecl sub_1001C3F0(_DWORD *a1);
+_DWORD *__cdecl sub_1001C460(int *a1, int a2, int a3);
+int __cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
 char *__cdecl AAS_PlaneFromNum(int a1);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
@@ -547,8 +548,8 @@ int __cdecl sub_1001CE20(int, int, int, int, int, int, float); // idb
 void __cdecl sub_1001CFA0(float a1);
 int *sub_1001D140();
 // int __usercall sub_1001D260@<eax>(double a1@<st0>);
-void BotResetNodeSwitches();
-int __cdecl BotDumpNodeSwitches(int a1);
+void sub_1001D2B0();
+int __cdecl sub_1001D2D0(int a1);
 int __cdecl BotRecordNodeSwitch(int a1, int a2, const char *a3);
 float *__cdecl BotLongTermGoal(int a1, int a2, int a3);
 int __cdecl AIEnter_Intermission(int a1);
@@ -559,8 +560,8 @@ int __cdecl AIEnter_Stand(int a1);
 int __cdecl AINode_Stand(int a1);
 void __cdecl AIEnter_Respawn(int a1);
 int __cdecl AINode_Respawn(int a1);
-int __cdecl AIEnter_Seek_ActivateEntity(int a1);
-int __cdecl AINode_Seek_ActivateEntity(int a1);
+int __cdecl sub_1001EF00(int a1);
+int __cdecl sub_1001EF40(int a1);
 int __cdecl AIEnter_Seek_NBG(int a1);
 int __cdecl AINode_Seek_NBG(int a1);
 int __cdecl AIEnter_Seek_LTG(int a1);
@@ -571,72 +572,72 @@ void __cdecl AIEnter_Battle_Chase(int a1);
 int __cdecl AINode_Battle_Chase(int a1);
 int __cdecl AIEnter_Battle_Retreat(int a1);
 int __cdecl AINode_Battle_Retreat(int a1);
-int __cdecl AIEnter_Battle_NBG(int a1);
+int __cdecl sub_10020AD0(int a1);
 int __cdecl AINode_Battle_NBG(int a1);
 _DWORD *__cdecl BotEntityInfo(int a1, _DWORD *a2);
 char *__cdecl sub_10020FE0(int a1, _DWORD *a2);
 void __cdecl sub_10021020(int a1);
-int __cdecl BotUpdateBattleInventory(int a1, int a2);
-int __cdecl BotBattleUseItems(_DWORD *a1);
+int __cdecl sub_10021290(int a1, int a2);
+int __cdecl sub_10021500(_DWORD *a1);
 _DWORD *__cdecl sub_100215E0(_DWORD *a1);
-int __cdecl BotCTFCarryingFlag(int a1);
-BOOL __cdecl BotIsDead(int a1);
-BOOL __cdecl BotIsObserver(int a1);
-BOOL __cdecl BotIntermission(int a1);
-BOOL __cdecl EntityDeadOrDying(_DWORD *a1);
-BOOL __cdecl EntityIsShooting(int a1);
-_BYTE *__cdecl stristr(_BYTE *a1, char *a2);
-char *__cdecl EasyClientName(int a1, char *a2);
-int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3);
-int __cdecl BotFindWayPoint(int, char *String2); // idb
-int __cdecl BotFreeWaypoints(int a1);
-BOOL __cdecl BotValidChatPosition(int a1);
-BOOL __cdecl BotChat_EnterGame(int a1);
-int __cdecl BotChat_ExitGame(int a1);
-int __cdecl BotChat_StartLevel(int a1);
-int __cdecl BotChat_EndLevel(int a1);
-int __cdecl BotChat_Death(int *a1);
-BOOL __cdecl BotChat_Kill(int *a1);
-int __cdecl BotChat_Random(int a1);
-double __cdecl BotChatTime(int a1);
-double __cdecl BotAggression(int *a1);
-BOOL __cdecl BotWantsToRetreat(int *a1);
-BOOL __cdecl BotWantsToChase(int *a1);
-// BOOL __usercall BotCanAndWantsToRocketJump@<eax>(double a1@<st0>, int *a2);
-float *__cdecl BotRoamGoal(_DWORD *a1, float *a2);
-void *__cdecl BotAttackMove(void *a1, int a2, int a3);
+int __cdecl sub_10021650(int a1);
+BOOL __cdecl sub_100216A0(int a1);
+BOOL __cdecl sub_100216D0(int a1);
+BOOL __cdecl sub_100216F0(int a1);
+BOOL __cdecl sub_10021710(_DWORD *a1);
+BOOL __cdecl sub_10021780(int a1);
+_BYTE *__cdecl sub_100217C0(_BYTE *a1, char *a2);
+char *__cdecl sub_10021860(int a1, char *a2);
+int __cdecl sub_10021A90(const char *a1, _DWORD *a2, int a3);
+int __cdecl sub_10021B50(int, char *String2); // idb
+int __cdecl sub_10021B90(int a1);
+BOOL __cdecl sub_10021BC0(int a1);
+BOOL __cdecl sub_10021D80(int a1);
+int __cdecl sub_10021E90(int a1);
+int __cdecl sub_10021F80(int a1);
+int __cdecl sub_10022070(int a1);
+int __cdecl sub_10022160(int *a1);
+BOOL __cdecl sub_100222E0(int *a1);
+int __cdecl sub_10022470(int a1);
+double __cdecl sub_10022650(int a1);
+double __cdecl sub_100226C0(int *a1);
+BOOL __cdecl sub_100228C0(int *a1);
+BOOL __cdecl sub_10022930(int *a1);
+// BOOL __usercall sub_10022990@<eax>(double a1@<st0>, int *a2);
+float *__cdecl sub_10022A60(_DWORD *a1, float *a2);
+void *__cdecl sub_10022E10(void *a1, int a2, int a3);
 int __cdecl BotCTFTeam(int a1);
 BOOL __cdecl BotSameTeam(int a1, int a2);
-int __cdecl BotNumTeamMates(int a1);
-int __cdecl BotFindEnemy(int a1);
-// void BotAimAtEnemy(int a1);
-// void BotCheckAttack(int a1);
-int *__cdecl BotEntityToActivate(int a1);
-int __cdecl BotSetMovedir(int a1, int a2);
+int __cdecl sub_100238F0(int a1);
+int __cdecl sub_10023970(int a1);
+// void sub_10023CE0(int a1);
+// void sub_10024590(int a1);
+int *__cdecl sub_10024A10(int a1);
+int __cdecl sub_10024FD0(int a1, int a2);
 int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int);
 void __cdecl sub_100262C0(_DWORD *a1, int a2);
-void __cdecl BotCTFRetreatGoals(int a1);
-void __cdecl BotCTFSeekGoals(int a1);
-BOOL TeamPlayIsOn();
-BOOL __cdecl BotGetItemTeamGoal(char *String1, int a2);
-int __cdecl BotGetMessageTeamGoal(int, char *String2, int); // idb
-double __cdecl BotGetTime(int a1);
+void __cdecl sub_100263D0(int a1);
+void __cdecl sub_10026440(int a1);
+BOOL sub_10026690();
+BOOL __cdecl sub_10026700(char *String1, int a2);
+int __cdecl sub_10026770(int, char *String2, int); // idb
+double __cdecl sub_100267E0(int a1);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
-int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2);
-int __cdecl BotAddressedToBot(int a1, int a2);
-int __cdecl BotMatchMessage(int, char *); // idb
-void __cdecl BotCheckConsoleMessages(int a1);
+int __cdecl sub_10026990(_DWORD *a1, int a2);
+int __cdecl sub_10026BE0(int a1, int a2);
+int __cdecl sub_10026F10(int, char *); // idb
+void __cdecl sub_10028650(int a1);
 float *__cdecl sub_100289A0(int a1, float a2);
 int __cdecl sub_10028A40(int a1, int a2);
-// int __usercall BotDeathmatchAI@<eax>(double a1@<st0>, int a2, int a3);
-void BotSetupDeathmatchAI();
-int __cdecl ClientFromName(const char *a1);
+// int __usercall sub_10028A70@<eax>(double a1@<st0>, int a2, int a3);
+void sub_10028C30();
+int __cdecl sub_10028EA0(const char *a1);
 char *__cdecl ClientName(int client);
 char *__cdecl ClientSkin(int client);
-int NumBots();
-double __cdecl AngleDifference(float a1, float a2);
+int sub_10028FD0();
+double __cdecl sub_10028FF0(float a1, float a2);
 // double __usercall BotChangeViewAngle@<st0>(double a1@<st0>, float a2, float a3, float a4);
-int __cdecl BotChangeViewAngles(int a1);
+int __cdecl sub_10029150(int a1);
 void sub_100292E0();
 // int __usercall Export_BotAIFrame@<eax>(double a1@<st0>, int a2, int a3);
 int __cdecl BotSetupClient(int, char *Source); // idb
@@ -651,158 +652,158 @@ int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
 int *__cdecl BotLoadCharacter(char *Source, int a2);
-int __cdecl FreeCharacter(int a1);
+int __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(int *a1, int a2);
 double __cdecl Characteristic_Float(int *a1, int a2);
 double __cdecl Characteristic_BFloat(int a1, int a2, float a3, float a4);
 int __cdecl Characteristic_Integer(int *a1, int a2);
 int __cdecl Characteristic_BInteger(int *a1, int a2, int a3, int a4);
 char *__cdecl Characteristic_String(int *a1, int a2);
-// int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
-int AllocConsoleMessage();
-int __cdecl FreeConsoleMessage(int a1);
-int __cdecl BotRemoveConsoleMessage(_DWORD *a1, int a2);
+// int __usercall sub_1002A880@<eax>(double a1@<st0>);
+int sub_1002A9A0();
+int __cdecl sub_1002A9E0(int a1);
+int __cdecl sub_1002AA20(_DWORD *a1, int a2);
 int __cdecl BotQueueConsoleMessage(int, int, char *Source); // idb
-int __cdecl BotNextConsoleMessage(int a1);
-int __cdecl BotNumConsoleMessages(int a1);
-BOOL __cdecl IsWhiteSpace(char a1);
-void __cdecl UnifyWhiteSpaces(void *Src);
+int __cdecl sub_1002AB90(int a1);
+int __cdecl sub_1002ABB0(int a1);
+BOOL __cdecl sub_1002ABD0(char a1);
+void __cdecl sub_1002AC50(void *Src);
 int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
 const char *__cdecl StringContains(const char *a1, const char *a2, int a3);  /* 0x1002ACF0 — substring search */
 const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3);
-const char *__cdecl StringReplaceWords(const char *a1, const char *a2, const char *a3);
-int *__cdecl BotLoadSynonyms(char *a1);
-const char *__cdecl BotReplaceSynonyms(const char *a1, int a2);
-void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2);
-int __cdecl BotLoadRandomStrings(char *); // idb
+const char *__cdecl sub_1002AF30(const char *a1, const char *a2, const char *a3);
+int *__cdecl sub_1002B110(char *a1);
+const char *__cdecl sub_1002B7C0(const char *a1, int a2);
+void __cdecl sub_1002B830(const char *a1, int a2);
+int __cdecl sub_1002B990(char *); // idb
 int __cdecl RandomString(const char *a1);
 void __cdecl BotFreeMatchPieces(_DWORD *a1);
-_DWORD *__cdecl BotLoadMatchPieces(int a1, int a2);
+_DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2);
 int __cdecl BotFreeMatchTemplates(int a1);
 int __cdecl BotLoadMatchTemplates(char *); // idb
-BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
+BOOL __cdecl sub_1002C800(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 int __cdecl BotCheckChatMessageIntegrety(const char *a1, int a2);
-int __cdecl BotCheckReplyChatIntegrety(int a1);
+int __cdecl sub_1002CCF0(int a1);
 int __cdecl BotCheckInitialChatIntegrety(int *a1);
-int __cdecl BotLoadChatMessage(int a1, char *a2);
-// _DWORD *__cdecl BotFreeReplyChat(_DWORD *a1);
-_DWORD *__cdecl BotLoadReplyChat(char *a1);
-int *__cdecl BotLoadInitialChat(char *a1, int a2);
-int __cdecl BotFreeChatFile(int a1);
-int __cdecl BotFreeChatState(int a1);
+int __cdecl sub_1002CDD0(int a1, char *a2);
+// _DWORD *__cdecl sub_1002D1B0(_DWORD *a1);
+_DWORD *__cdecl sub_1002D270(char *a1);
+int *__cdecl BotDumpInitialChat(char *a1, int a2);
+int __cdecl sub_1002DF70(int a1);
+int __cdecl sub_1002DFB0(int a1);
 int __cdecl BotLoadChatFile(int, char *, int); // idb
 void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int a5);
 int __cdecl BotChooseInitialChatMessage(int a1, char *String2);
 void __cdecl BotInitialChat(int a1, char *String2, int a3, ...);
-int __cdecl BotReplyChat(_DWORD *a1, const char *a2);
-unsigned int __cdecl BotChatLength(int a1);
+int __cdecl sub_1002E7D0(_DWORD *a1, const char *a2);
+unsigned int __cdecl sub_1002EA50(int a1);
 char __cdecl BotEnterChat(int a1, int a2, int a3);
-// int __usercall BotSetupChatAI@<eax>(double a1@<st0>);
-_DWORD *BotShutdownChatAI();
-// int *__usercall LoadItemConfig@<eax>(double a1@<st0>, char *Source);
-int *__cdecl ItemWeightIndex(int a1, int *a2);
+// int __usercall sub_1002EBB0@<eax>(double a1@<st0>);
+_DWORD *sub_1002EC80();
+// int *__usercall sub_1002ED20@<eax>(double a1@<st0>, char *Source);
+int *__cdecl sub_1002F100(int a1, int *a2);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
-int __cdecl FreeLevelItem(int a1);
+int __cdecl sub_1002F2B0(int a1);
 int __cdecl AddLevelItemToList(int a1);
-int __cdecl RemoveLevelItemFromList(int a1);
+int __cdecl sub_1002F320(int a1);
 // _DWORD *__usercall BotInitLevelItems@<eax>(double a1@<st0>);
-char *__cdecl BotGoalName(int a1);
+char *__cdecl sub_1002F6A0(int a1);
 int __cdecl BotResetAvoidGoals(int a1);
-void __cdecl BotDumpAvoidGoals(int a1);
-void __cdecl BotAddToAvoidGoals(int a1, int a2, float a3);
+void __cdecl sub_1002F730(int a1);
+void __cdecl sub_1002F7B0(int a1, int a2, float a3);
 double __cdecl BotAvoidGoalTime(int a1, int a2);
-int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
-int BotUpdateEntityItems();
+int __cdecl sub_1002F890(int a1, char *name, bot_goal_t *goal);
+int sub_1002FA20();
 int __cdecl BotDumpGoalStack(int a1);
-int __cdecl BotPushGoal(int a1, const void *a2);
-int __cdecl BotPopGoal(int a1);
-int __cdecl BotEmptyGoalStack(int a1);
+int __cdecl sub_1002FD90(int a1, const void *a2);
+int __cdecl sub_1002FE00(int a1);
+int __cdecl sub_1002FE30(int a1);
 int __cdecl BotGetTopGoal(int a1);
-int __cdecl BotGetSecondGoal(int a1);
-int __cdecl BotChooseLTGItem(int, int, int, int); // idb
-int __cdecl BotChooseNBGItem(int, int, int, int, int, float); // idb
-int __cdecl BotTouchingGoal(float *a1, float *a2);
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, int a2, int a3, int a4);
+int __cdecl sub_1002FE80(int a1);
+int __cdecl sub_1002FEB0(int, int, int, int); // idb
+int __cdecl sub_10030260(int, int, int, int, int, float); // idb
+int __cdecl sub_10030600(float *a1, float *a2);
+BOOL __cdecl sub_10030770(int a1, int a2, int a3, int a4);
 int __cdecl BotLoadItemWeights(int *a1, int a2);
-int __cdecl BotFreeItemWeights(_DWORD *a1);
-int __cdecl BotResetGoalState(int a1);
-int BotSetupGoalAI();
-int BotShutdownGoalAI();
+int __cdecl sub_10030950(_DWORD *a1);
+int __cdecl sub_10030990(int a1);
+int sub_100309D0();
+int sub_10030A20();
 double __cdecl AngleDiff(float a1, float a2);
-int __cdecl BotReachabilityArea(int *a1, int a2);
-BOOL __cdecl BotOnMover(int a1, int a2, int a3);
-BOOL __cdecl MoverDown(int a1);
-BOOL __cdecl BotValidTravel(int a1, int a2, int a3, int a4);
-void __cdecl BotAddToAvoidReach(int a1, int a2, float a3);
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10);
-int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4);
-int __cdecl MoverBottomCenter(int *a1, int a2);
-double __cdecl BotGapDistance(int a1, int a2);
-int __cdecl BotCheckBarrierJump(int, int, float); // idb
+int __cdecl BotGetReachabilityToGoal(int *a1, int a2);
+BOOL __cdecl sub_10030D00(int a1, int a2, int a3);
+BOOL __cdecl BotOnMover(int a1);
+BOOL __cdecl sub_10030FE0(int a1, int a2, int a3, int a4);
+void __cdecl sub_10031010(int a1, int a2, float a3);
+int __cdecl sub_100310E0(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10);
+int __cdecl sub_10031270(int a1, int a2, int a3, int a4);
+int __cdecl sub_10031380(int *a1, int a2);
+double __cdecl sub_10031450(int a1, int a2);
+int __cdecl sub_10031650(int, int, float); // idb
 int __cdecl BotSwimInDirection(int, int, float); // idb
 int __cdecl BotWalkInDirection(int, int, float, int); // idb
 int __cdecl BotMoveInDirection(int, int, float, int); // idb
 int __cdecl BotCheckBlocked(int a1, int a2, int a3);
-_DWORD *__cdecl BotClearMoveResult(_DWORD *a1);
-int __cdecl BotTravel_Walk(int, int, int); // idb
-int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3);
-int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3);
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3);
-int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3);
-int __cdecl BotTravel_Elevator(int, int, int); // idb
-void *__cdecl BotFinishTravel_Elevator(void *a1, int a2, int a3);
-int __cdecl GrappleState(int a1, float *a2);
-void __cdecl BotResetGrapple(float *a1);
-int __cdecl BotTravel_Grapple(int, int, int); // idb
-int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, int a2, int a3);
+_DWORD *__cdecl sub_10031E20(_DWORD *a1);
+int __cdecl sub_10031E50(int, int, int); // idb
+int *__cdecl sub_100320C0(int *a1, int a2, int a3);
+int *__cdecl sub_10032190(int *a1, int a2, int a3);
+int *__cdecl sub_100322C0(int *a1, int a2, int a3);
+int *__cdecl sub_100323E0(int *a1, int a2, float *a3);
+int *__cdecl sub_100324C0(int *a1, int a2, float *a3);
+int *__cdecl sub_10032620(int *a1, int a2, float *a3);
+int *__cdecl sub_100327F0(int *a1, int a2, float *a3);
+int *__cdecl sub_10032A00(int *a1, int a2, float *a3);
+int *__cdecl sub_10032AE0(int *a1, int a2, float *a3);
+int *__cdecl sub_10032E80(int *a1, int a2, float *a3);
+int *__cdecl sub_10032FC0(int *a1, int a2, float *a3);
+int *__cdecl sub_100330E0(int *a1, int a2, float *a3);
+int __cdecl sub_10033210(int, int, int); // idb
+void *__cdecl sub_10033790(void *a1, int a2, int a3);
+int __cdecl sub_100338A0(int a1, float *a2);
+void __cdecl sub_10033A70(float *a1);
+int __cdecl sub_10033B00(int, int, int); // idb
+int *__cdecl sub_10033EC0(int *a1, int a2, float *a3);
+int *__cdecl sub_100340B0(int *a1, int a2, int a3);
 int __cdecl BotReachabilityTime(int a1);
-int __cdecl BotMoveInGoalArea(int, int, int); // idb
+int __cdecl sub_10034210(int, int, int); // idb
 int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4);  // fixed
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *a1);
-void __cdecl BotResetLastAvoidReach(int a1);
-int __cdecl BotResetMoveState(void *a1);
-// int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
-_DWORD *__cdecl WeaponWeightIndex(int a1, int *a2);
-int __cdecl BotFreeWeaponWeights(int a1);
+_DWORD *__cdecl sub_10034AF0(_DWORD *a1);
+void __cdecl sub_10034B20(int a1);
+int __cdecl sub_10034B90(void *a1);
+// int *__usercall sub_10034BB0@<eax>(double a1@<st0>, char *Source);
+_DWORD *__cdecl sub_10035280(int a1, int *a2);
+int __cdecl sub_10035300(int a1);
 int __cdecl BotLoadWeaponWeights(int a1, const char *a2);
 int __cdecl sub_100354B0(int a1);
-void __cdecl BotChooseBestFightWeapon(int a1);
-int __cdecl BotResetWeaponState(_DWORD *a1);
-int BotSetupWeaponAI();
-int BotShutdownWeaponAI();
-int __cdecl ReadValue(int a1, float *a2);
-int __cdecl ReadFuzzyWeight(int a1, int a2);
-int __cdecl FreeFuzzySeperators_r(int a1);
-void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
-int              *__cdecl ReadFuzzySeperators_r(int a1);
-weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
+void __cdecl sub_10035500(int a1);
+int __cdecl sub_10035640(_DWORD *a1);
+int sub_10035680();
+int sub_100356D0();
+int __cdecl sub_10035700(int a1, float *a2);
+int __cdecl sub_10035820(int a1, int a2);
+int __cdecl sub_10035960(int a1);
+void              __cdecl sub_100359B0(weightconfig_t *cfg);
+int              *__cdecl sub_10035A20(int a1);
+weightconfig_t   *__cdecl sub_10035FA0(char *Source);
 int __cdecl WriteFuzzyWeight(FILE *Stream, int); // idb
 int __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
-int __cdecl FindFuzzyWeight(int *a1, const char *a2);
-double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
-double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep);
-double __cdecl FuzzyWeight(int *facts, weight_t *w);
-double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
-void __cdecl EvolveFuzzySeperator_r(int a1);
-void __cdecl ScaleFuzzySeperator_r(int a1, float a2);
-int __cdecl InterbreedFuzzySeperator_r(int a1, int a2);
+int __cdecl sub_100369C0(int *a1, const char *a2);
+double __cdecl FuzzyWeight(int *facts, fuzzyseperator_t *sep);
+double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep);
+double __cdecl sub_10036C70(int *facts, weight_t *w);
+double __cdecl sub_10036CA0(int *facts, weight_t *w);
+void __cdecl sub_10036CD0(int a1);
+void __cdecl sub_10036E30(int a1, float a2);
+int __cdecl sub_10036F90(int a1, int a2);
 int __cdecl EA_Say(int client, int str);
 int __cdecl EA_SayTeam(int client, int str);
 int __cdecl EA_Use(int client, int item);
 int __cdecl EA_DropItem(int client, int item);
-int __cdecl EA_Wave(int client, int sequence);
+int __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Attack(int a1);
 int __cdecl EA_Respawn(int a1);
@@ -812,8 +813,8 @@ int __cdecl EA_Crouch(int a1);
 int __cdecl EA_MoveUp(int a1);
 int __cdecl EA_MoveForward(int a1);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
-void __cdecl EA_View(int client, vec3_t angles); /* EA_View impl */
-int __cdecl EA_EndRegular(int a1, int a2);
+void __cdecl sub_100375A0(int client, vec3_t angles); /* sub_100375A0 impl */
+int __cdecl sub_100375E0(int a1, int a2);
 int EA_Setup();
 int EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16); // idb
@@ -828,14 +829,14 @@ int __cdecl Export_BotLibStartFrame(float); // idb
 // int __usercall Export_BotLibAI@<eax>(double a1@<st0>, int a2, int a3);
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message); // idb
 #if defined(_WIN32) && !defined(_WIN64)
-int * __stdcall GetBotAPI(const void *a1);
+bot_export_t * __stdcall GetBotAPI(bot_import_t *a1);
 #else
-int *GetBotAPI(const void *a1);
+bot_export_t *GetBotAPI(bot_import_t *a1);
 #endif
-_WORD *__cdecl CRC_Init(_WORD *a1);
-__int16 __cdecl CRC_Value(__int16 a1);
-__int16 __cdecl CRC_Block(int a1, int a2);
-double __cdecl LibVarStringValue(char *a1);
+_WORD *__cdecl sub_100385B0(_WORD *a1);
+__int16 __cdecl sub_10038620(__int16 a1);
+__int16 __cdecl sub_10038640(int a1, int a2);
+double __cdecl sub_10038750(char *a1);
 libvar_t *__cdecl LibVarAlloc(const char *name);
 void      __cdecl LibVarDeAlloc(libvar_t *v);
 libvar_t *__cdecl LibVarGet(const char *name);
@@ -847,31 +848,31 @@ FILE *Log_Close();
 FILE *Log_Write(char *Format, ...);
 FILE *Log_FilePointer();
 FILE *Log_Flush();
-int __cdecl LinkMemoryBlock(int a1);
-int __cdecl UnlinkMemoryBlock(int a1);
-int __cdecl GetMemory(int a1);
-void *__cdecl GetClearedMemory(unsigned int a1);
-int __cdecl BlockFromPointer(int a1, const char *a2);
-int __cdecl FreeMemory(int ptr);
-int __cdecl MemoryByteSize(int ptr);
-int PrintUsedMemorySize();
-int PrintMemoryLabels();
-int DumpMemory();
-int SourceError(int a1, char *Format, ...);
-int SourceWarning(int a1, char *Format, ...);
+/* sub_10038F10 / sub_10038F50 in IDA — restored as LinkMemoryBlock /
+ * UnlinkMemoryBlock alongside the memoryblock_t tracker.  sub_10039190
+ * restored as PrintMemoryLabels. */
+void *__cdecl GetMemory(int size);
+void *__cdecl GetClearedMemory(unsigned int size);
+int __cdecl FreeMemory(void *ptr);  /* dummy `int` return; see definition */
+int __cdecl MemoryByteSize(void *ptr);
+void PrintUsedMemorySize(void);
+void PrintMemoryLabels(void);
+void DumpMemory(void);
+int sub_10039200(int a1, char *Format, ...);
+int sub_10039270(int a1, char *Format, ...);
 indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
-int __cdecl PC_PushScript(source_t *src, script_t *script);
+int __cdecl sub_100393E0(source_t *src, script_t *script);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
 int __cdecl PC_FreeToken(int a1);
 int __cdecl PC_ReadSourceToken(source_t *src, gladiator_token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
 int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList);
 /* PC_ExpandDefine forward decl below (signature matches impl) */
-int __cdecl PC_StringizeTokens(char *Source, char *Destination); // idb
+int __cdecl sub_10039A70(char *Source, char *Destination); // idb
 int __cdecl PC_MergeTokens(int a1, _DWORD *a2);
-unsigned int __cdecl PC_NameHash(const char *a1);
-unsigned int __cdecl PC_AddDefineToHash(int a1, int a2);
+unsigned int __cdecl sub_10039C30(const char *a1);
+unsigned int __cdecl sub_10039CB0(int a1, int a2);
 int __cdecl BotFindStringInList(int a1, const char *a2);
 int __cdecl PC_FindDefine(int a1, const char *a2);
 int __cdecl PC_FindDefineParm(int a1, const char *a2);
@@ -879,18 +880,18 @@ void __cdecl PC_FreeDefine(define_t *def);
 int __cdecl PC_ExpandBuiltinDefine(int a1, int a2, char **a3, char **a4);
 int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4);
 int __cdecl PC_ExpandDefineIntoSource(int a1, _DWORD *a2);
-_BYTE *__cdecl PC_ConvertPath(_BYTE *a1);
+_BYTE *__cdecl sub_1003A710(_BYTE *a1);
 int __cdecl PC_Directive_include(int a1);
 // int __cdecl PC_Directive_include: see definition
-BOOL __cdecl PC_WhiteSpaceBeforeToken(int a1);
-_DWORD *__cdecl PC_ClearTokenWhiteSpace(_DWORD *a1);
+BOOL __cdecl sub_1003ABD0(int a1);
+_DWORD *__cdecl sub_1003AC00(_DWORD *a1);
 int __cdecl PC_Directive_undef(int a1);
 int __cdecl PC_Directive_define(int a1);
 int __cdecl PC_DefineFromString(const char *a1);
 int __cdecl PC_AddGlobalDefine(const char *a1);
 int __cdecl PC_CopyDefine(int a1);
 void __cdecl PC_AddGlobalDefinesToSource(int a1);
-int __cdecl PC_Directive_if_def(_DWORD *a1, int a2);
+int __cdecl PC_Directive_ifdef(_DWORD *a1, int a2);
 int __cdecl PC_Directive_else(int a1);
 int __cdecl PC_Directive_endif(int a1);
 int __cdecl PC_OperatorPriority(int a1);
@@ -909,7 +910,7 @@ int __cdecl PC_ReadDirective(int ArgList);
 int __cdecl PC_DollarDirective_evalint(int a1);
 int __cdecl PC_DollarDirective_evalfloat(int a1);
 int __cdecl PC_ReadDollarDirective(int ArgList);
-int __cdecl PC_ReadToken(int *a1, _DWORD *a2);
+int __cdecl PC_ReadTokenHandle(int *a1, _DWORD *a2);
 int __cdecl PC_ExpectTokenString(int a1, const char *ArgList);
 int __cdecl PC_ExpectTokenType(int a1, int a2, int a3, int a4);
 int __cdecl PC_ExpectAnyToken(int a1, int a2);
@@ -954,7 +955,7 @@ int __stdcall sub_100415E0(int a1);
 // LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
-int __cdecl vectoangles(float *a1, int a2);
+int __cdecl sub_10041790(float *a1, int a2);
 char __cdecl sub_100418D0(_BYTE *a1);
 char __cdecl sub_10041900(const char *a1, int a2);
 int __cdecl sub_10041970(char *FileName, int, int); // idb
@@ -963,9 +964,9 @@ BOOL __cdecl sub_10041F60(char *a1, int a2);
 HGLOBAL sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
 float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4);
-float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3);
+float *__cdecl sub_10042860(float *a1, float *a2, float *a3);
 void __cdecl PerpendicularVector(float *a1, float *a2);
-float *__cdecl Matrix3Multiply(float *a1, float *a2, float *a3);
+float *__cdecl sub_100429C0(float *a1, float *a2, float *a3);
 double __cdecl AngleMod(float a1);
 void __cdecl ClearBounds(vec3_t mins, vec3_t maxs);
 void __cdecl AddPointToBounds(vec3_t v, vec3_t mins, vec3_t maxs);
@@ -980,8 +981,8 @@ int __cdecl LittleFloat(int a1);
 __int16 __cdecl LittleShort(__int16 a1);
 __int16 __cdecl BigShort(__int16 a1);
 int __cdecl BigFloat(int a1);
-int __cdecl BigLong(int a1);
-int __cdecl LittleLong(int a1);
+int __cdecl sub_10043920(int a1);
+int __cdecl sub_10043970(int a1);
 int Swap_Init();
 int __cdecl sub_10043C10(char *String1, char *String2); // idb
 int __cdecl Q_strncasecmp(char *a1, char *a2, int a3);
@@ -1009,7 +1010,7 @@ char __cdecl Info_RemoveKey(int a1, char *Str);
 // FIXED: _UNKNOWN Export_BotLoadMap; // weak — was a BSS data slot; replaced by function in botlib_exports.c
 /* BotShutdownLibrary: slot  2 — shut down the botlib */
 // FIXED: _UNKNOWN Export_BotShutdownLibrary; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// FIXED: _UNKNOWN BotStateActivateEntity; // weak — was a BSS data slot; replaced by reverse-engineered AINode_Seek_ActivateEntity below
+// FIXED: _UNKNOWN BotStateActivateEntity; // weak — was a BSS data slot; replaced by reverse-engineered sub_1001EF40 below
 /* BotSetupLibrary: slot  1 — initialise the botlib */
 // FIXED: _UNKNOWN Export_BotSetupLibrary; // weak — was a BSS data slot; replaced by function in botlib_exports.c
 /* BotAddPointLight: slot 16 — notify bot of a light event */
@@ -1181,7 +1182,7 @@ char aMaxAaslinks[] = "max_aaslinks"; // idb
 char aEmptyAasLinkHe[21] = "empty aas link heap\n"; // weak
 char aAasPointareanu[34] = "AAS_PointAreaNum: aas not loaded\n"; // weak
 char aAasAreapresenc[43] = "AAS_AreaPresenceType: invalid area number\n"; // weak
-char aAasLinkentityA[32] = "AAS_LinkEntity: aas not loaded\n"; /* original .data string at 0x5C048 in gladiator.dll_ — IDA mistranscribed as "AAS_AASLinkEntity" */
+char aAasLinkentityA[32] = "AAS_LinkEntity: aas not loaded\n"; /* original .data string at 0x5C048 in gladiator.dll_ — IDA mistranscribed as "sub_1001C460" */
 extern structdef_t unk_1005C138; /* sound info structdef — defined in botlib_structdefs.c */
 char aType[5] = "type"; // weak
 char aName[5] = "name"; // weak
@@ -1779,15 +1780,15 @@ char aMemorybytesize[15] = "MemoryByteSize"; // weak
 /* Preprocessor directive table at VA 0x1005F260.
  * IDA captured only the first two fields (off_1005F260="if", off_1005F264=PC_Directive_if).
  * The full table was a {char*, int(*)(int)} array in .data — verified by disassembly.
- * #ifdef/#ifndef were 1-arg wrappers calling PC_Directive_if_def(source, 8/16). */
-static int preproc_ifdef_wrap(int a1)  { return PC_Directive_if_def((_DWORD*)a1, 8);  }
-static int preproc_ifndef_wrap(int a1) { return PC_Directive_if_def((_DWORD*)a1, 16); }
+ * #ifdef/#ifndef were 1-arg wrappers calling PC_Directive_ifdef(source, 8/16). */
+static int preproc_ifdef_wrap(int a1)  { return PC_Directive_ifdef((_DWORD*)a1, 8);  }
+static int preproc_ifndef_wrap(int a1) { return PC_Directive_ifdef((_DWORD*)a1, 16); }
 
 typedef struct { const char *name; int (*handler)(int); } preproc_directive_t;
 static preproc_directive_t preproc_directives[] = {
     {"if",        PC_Directive_if},   /* 0x1003CCB0 */
-    {"ifdef",     preproc_ifdef_wrap},   /* 0x1003B7B0 -> PC_Directive_if_def(s,8)  */
-    {"ifndef",    preproc_ifndef_wrap},  /* 0x1003B7D0 -> PC_Directive_if_def(s,16) */
+    {"ifdef",     preproc_ifdef_wrap},   /* 0x1003B7B0 -> PC_Directive_ifdef(s,8)  */
+    {"ifndef",    preproc_ifndef_wrap},  /* 0x1003B7D0 -> PC_Directive_ifdef(s,16) */
     {"elif",      PC_Directive_elif},         /* 0x1003CC10 */
     {"else",      PC_Directive_else},         /* 0x1003B7F0 */
     {"endif",     PC_Directive_endif},         /* 0x1003B880 */
@@ -2003,9 +2004,9 @@ int dword_100639F0; // weak
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 int dword_10063A10; // weak
-int dword_10063A1C; // weak
-int dword_10063A2C; // weak
-int dword_10063A30; // weak
+/* dword_10063A1C/A2C/A30 are now `totalmemorysize`, `numblocks`, `memory`
+ * — matching the Q3 l_memory.c names.  Defined alongside memoryblock_t
+ * below.  The old IDA spellings still resolve via #define aliases. */
 char byte_10063A40[1024]; // idb
 FILE *Stream; // idb
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
@@ -2035,8 +2036,8 @@ int (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak — vari
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 int (__cdecl *bi_Trace)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 int (__cdecl *bi_PointContents)(_DWORD); // weak — engine's BSP-level CONTENTS_* lookup
-int (__cdecl *bi_GetMemory)(_DWORD); // weak
-int (__cdecl *bi_FreeMemory)(_DWORD); // weak
+void *(__cdecl *bi_GetMemory)(int); // weak — engine malloc; returns real pointer (was IDA-typed as int)
+void  (__cdecl *bi_FreeMemory)(void *); // weak — engine free
 int (*bi_DebugLineCreate)(void); // weak
 int (__cdecl *bi_DebugLineShow)(_DWORD, _DWORD, _DWORD, _DWORD); // weak
 int botlibsetup; // weak
@@ -2079,7 +2080,7 @@ int dword_100643A0; // weak
 float flt_100643A4; // weak
 int dword_100643A8; // weak
 libvar_t *libvar_ctf; /* libvar handle */
-/* CTF flag goals.  BotGetLevelItemGoal fills a bot_goal_t (48 bytes); the
+/* CTF flag goals.  sub_1002F890 fills a bot_goal_t (48 bytes); the
  * original DLL reserved 56 bytes per slot in .bss to match Q3's bot_goal_t
  * size (Q3 has flags+iteminfo trailing fields that Gladiator omits).  The
  * `areanum` field doubles as "flag found" flag — 0 means not located yet. */
@@ -2227,7 +2228,7 @@ void *__cdecl AAS_Trace(void *a1, int a2, int a3, int a4, int a5, int a6, int a7
 // 10003010: using guessed type char var_54[84];
 
 //----- (100030A0) --------------------------------------------------------
-int AAS_InitBSPLinkHeap()
+int sub_100030A0()
 {
   int v1; // eax
   int v2; // esi
@@ -2273,7 +2274,7 @@ int AAS_InitBSPLinkHeap()
 // 10069580: using guessed type int dword_10069580;
 
 //----- (100031F0) --------------------------------------------------------
-int AAS_AllocBSPLink()
+int sub_100031F0()
 {
   int result; // eax
 
@@ -2295,7 +2296,7 @@ int AAS_AllocBSPLink()
 // 10069580: using guessed type int dword_10069580;
 
 //----- (10003240) --------------------------------------------------------
-_DWORD *__cdecl AAS_DeAllocBSPLink(_DWORD *a1)
+_DWORD *__cdecl sub_10003240(_DWORD *a1)
 {
   _DWORD *result; // eax
 
@@ -2312,7 +2313,7 @@ _DWORD *__cdecl AAS_DeAllocBSPLink(_DWORD *a1)
 // 10069580: using guessed type int dword_10069580;
 
 //----- (10003280) --------------------------------------------------------
-int AAS_InitBSPLinkedEntities()
+int sub_10003280()
 {
   int result; // eax
 
@@ -2397,7 +2398,7 @@ int __cdecl sub_10003420(float *a1, int a2)
 // 100674EC: using guessed type int dword_100674EC;
 
 //----- (10003460) --------------------------------------------------------
-float *__cdecl VectorTransform(float *a1, float *a2)
+float *__cdecl sub_10003460(float *a1, float *a2)
 {
   float *result; // eax
   double v3; // st7
@@ -2426,8 +2427,8 @@ float *__cdecl VectorTransform(float *a1, float *a2)
  *   yaw_m   = [[ cy, sy,0],[-sy,cy,0],[0,0,1]]   ; rotation around Z
  *   pitch_m = [[ cp, 0,-sp],[0, 1,0],[sp,0,cp]]  ; rotation around Y
  *   roll_m  = [[ 1, 0, 0],[0,cr,sr],[0,-sr,cr]]  ; rotation around X
- *   Matrix3Multiply(pitch_m, yaw_m, tmp)         ; tmp = pitch*yaw
- *   Matrix3Multiply(roll_m,  tmp,   axis_out)    ; axis = roll*tmp
+ *   sub_100429C0(pitch_m, yaw_m, tmp)         ; tmp = pitch*yaw
+ *   sub_100429C0(roll_m,  tmp,   axis_out)    ; axis = roll*tmp
  *
  * Precision: original uses an 80-bit FPU pipe with a 64-bit double
  * DEG2RAD constant at .rdata 0x10058008 (= π/180), truncating only at
@@ -2465,11 +2466,11 @@ int __cdecl AnglesToAxis(float *angles, int axis_out)
   roll_m[6] = 0; roll_m[7] = -sr; roll_m[8] = cr;
 
   /* tmp = pitch_m * yaw_m, then output = roll_m * tmp */
-  Matrix3Multiply(pitch_m, yaw_m, tmp);
-  Matrix3Multiply(roll_m, tmp, (float *)axis_out);
+  sub_100429C0(pitch_m, yaw_m, tmp);
+  sub_100429C0(roll_m, tmp, (float *)axis_out);
   return axis_out;
 }
-// 10001A8C: using guessed type _DWORD __cdecl Matrix3Multiply(_DWORD, _DWORD, _DWORD);
+// 10001A8C: using guessed type _DWORD __cdecl sub_100429C0(_DWORD, _DWORD, _DWORD);
 
 //----- (10003680) --------------------------------------------------------
 int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, float *a7)
@@ -2512,7 +2513,7 @@ int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a
 
   if ( !dword_100674C0 )
     return 0;
-  AAS_EntityBSPData(a1, v47);
+  sub_1000AF30(a1, v47);
   if ( LODWORD(v47[12]) != 2 && LODWORD(v47[12]) != 3 )
     return 0;
   if ( a4 )
@@ -2682,12 +2683,12 @@ LABEL_40:
 // 10003A1F: variable 'v36' is possibly undefined
 // 10003A1F: variable 'v37' is possibly undefined
 // 10001483: using guessed type _DWORD __cdecl sub_100044F0(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
-// 10001825: using guessed type _DWORD __cdecl AAS_EntityBSPData(_DWORD, _DWORD);
+// 10001825: using guessed type _DWORD __cdecl sub_1000AF30(_DWORD, _DWORD);
 // 100674C0: using guessed type int dword_100674C0;
 // 10003680: using guessed type char var_54[84];
 
 //----- (10003BF0) --------------------------------------------------------
-int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8)
+int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8)
 {
   int *i; // esi
   int v10; // [esp+0h] [ebp-4h]
@@ -2751,7 +2752,7 @@ int __cdecl sub_10003C90(
   int v42; // [esp+24h] [ebp-68h]
   float v43; // [esp+28h] [ebp-64h]
   vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
-  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (VectorTransform input/output)
+  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (sub_10003460 input/output)
   vec3_t endp; // [esp+44h] [ebp-48h] — clipped end point
   vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
   vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
@@ -2792,7 +2793,7 @@ int __cdecl sub_10003C90(
         normal[0] = *(float *)v16;
         normal[1] = *(float *)(v16 + 4);
         normal[2] = *(float *)(v16 + 8);
-        VectorTransform(normal, v59);
+        sub_10003460(normal, v59);
         v12 = a2;
         v17 = 4;
       }
@@ -3294,7 +3295,7 @@ LABEL_7:
             if ( *(_WORD *)(dword_100674EC + 28 * v29 + 26) && (*v30 & a10) != 0 )
               sub_10004310(v29, &v136, a4, a5, a6, (int)a7, a8, a10, (int)v150);
             if ( *(_DWORD *)(dword_10069584 + 4 * v29) )
-              AAS_BSPLeafEntityCollision(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
+              sub_10003BF0(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
           }
           v106 = *(float *)v25;
           v31 = (int *)(dword_10067504 + 28 * v28);
@@ -3320,7 +3321,7 @@ LABEL_7:
             v114[0] = *(float *)v38;
             v114[1] = *(float *)(v38 + 4);
             v114[2] = *(float *)(v38 + 8);
-            VectorTransform(&v114[0], v151);
+            sub_10003460(&v114[0], v151);
             v31 = v120;
             *(float *)&v38 = v110;
             v39 = 4;
@@ -3727,7 +3728,7 @@ LABEL_126:
 // 100044F0: using guessed type float var_1498[2];
 
 //----- (100056D0) --------------------------------------------------------
-int __cdecl BSP_InsideFace(_DWORD *a1, float *a2)
+int __cdecl sub_100056D0(_DWORD *a1, float *a2)
 {
   int v3; // ebx
   unsigned __int16 *i; // edi
@@ -3800,7 +3801,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v12[1] = -a4[1];
   v12[2] = -a4[2];
   AnglesToAxis(v12, (int)v13);
-  VectorTransform(v11, v13);
+  sub_10003460(v11, v13);
   v6 = sub_10003360(v11, a2);
   v7 = dword_100674EC + 28 * v6;
   if ( *(_WORD *)(v7 + 26) )
@@ -3809,7 +3810,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
     {
       v10 = (_DWORD *)(dword_1006753C
                      + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
-      if ( BSP_InsideFace(v10, v11) )
+      if ( sub_100056D0(v10, v11) )
         return v10[2];
       if ( ++v4 >= *(unsigned __int16 *)(v7 + 26) )
         goto LABEL_6;
@@ -3820,7 +3821,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 LABEL_6:
     for ( i = *(_DWORD **)(dword_10069584 + 4 * v6); i; i = (_DWORD *)i[2] )
     {
-      AAS_EntityBSPData(*i, v14);
+      sub_1000AF30(*i, v14);
       if ( *a1 > (double)v16
         && *a1 < (double)v19
         && a1[1] > (double)v17
@@ -3841,7 +3842,7 @@ LABEL_6:
     return v9;
   }
 }
-// 10001825: using guessed type _DWORD __cdecl AAS_EntityBSPData(_DWORD, _DWORD);
+// 10001825: using guessed type _DWORD __cdecl sub_1000AF30(_DWORD, _DWORD);
 // 10001AC8: using guessed type _DWORD __cdecl sub_100057A0(_DWORD, _DWORD, _DWORD, _DWORD);
 // 100674C0: using guessed type int dword_100674C0;
 // 100674EC: using guessed type int dword_100674EC;
@@ -3942,13 +3943,13 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 // 10069574: using guessed type float flt_10069574;
 
 //----- (10005C60) --------------------------------------------------------
-BOOL __cdecl AAS_inPVS(float *a1, float *a2)
+BOOL __cdecl sub_10005C60(float *a1, float *a2)
 {
   return AAS_InPVS(a1, a2, 0);
 }
 
 //----- (10005C90) --------------------------------------------------------
-BOOL __cdecl AAS_inPHS(float *a1, float *a2)
+BOOL __cdecl sub_10005C90(float *a1, float *a2)
 {
   return AAS_InPVS(a1, a2, 1);
 }
@@ -3994,14 +3995,14 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
 
   /* Iterate the 8 corners of the AABB, rotate each through `axis`, and
    * accumulate into bb_mins/bb_maxs.  &corner is read as a vec3_t inside
-   * VectorTransform — the array form forces the contiguous layout that GCC
+   * sub_10003460 — the array form forces the contiguous layout that GCC
    * would otherwise scramble for separate locals. */
   for ( i = 0; i < 8; ++i )
   {
     corner[0] = (i >= 4)         ? local_maxs[0] : local_mins[0];
     corner[1] = (i & 1)          ? local_mins[1] : local_maxs[1];
     corner[2] = (i < 2 || i > 6) ? local_mins[2] : local_maxs[2];
-    VectorTransform(corner, (float *)axis);
+    sub_10003460(corner, (float *)axis);
     AddPointToBounds(corner, bb_mins, bb_maxs);
   }
 
@@ -4024,7 +4025,7 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
 // 10005E60: using guessed type float var_24[9];
 
 //----- (10006090) --------------------------------------------------------
-_DWORD *__cdecl AAS_UnlinkFromBSPLeaves(_DWORD *a1)
+_DWORD *__cdecl sub_10006090(_DWORD *a1)
 {
   _DWORD *result; // eax
   int v2; // ecx
@@ -4045,7 +4046,7 @@ _DWORD *__cdecl AAS_UnlinkFromBSPLeaves(_DWORD *a1)
       v4 = result[2];
       if ( v4 )
         *(_DWORD *)(v4 + 12) = result[3];
-      AAS_DeAllocBSPLink(result);
+      sub_10003240(result);
       result = v3;
     }
     while ( v3 );
@@ -4088,7 +4089,7 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 }
 
 //----- (10006210) --------------------------------------------------------
-_DWORD *__cdecl AAS_BSPLinkEntity(int *a1, int a2, int a3, int a4)
+_DWORD *__cdecl sub_10006210(int *a1, int a2, int a3, int a4)
 {
   _DWORD *v5; // edi
   int *v6; // ebx
@@ -4100,7 +4101,7 @@ _DWORD *__cdecl AAS_BSPLinkEntity(int *a1, int a2, int a3, int a4)
   int v12; // ecx
   int v13; // edx
   char v14; // al
-  /* Same bug as AAS_AASLinkEntity: 256-byte stack-based BSP traversal
+  /* Same bug as sub_1001C460: 256-byte stack-based BSP traversal
    * queue, IDA reduced to int+char.  See that function for details. */
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
@@ -4140,7 +4141,7 @@ _DWORD *__cdecl AAS_BSPLinkEntity(int *a1, int a2, int a3, int a4)
     else
     {
       v8 = -1 - v7;
-      v9 = (_DWORD *)AAS_AllocBSPLink();
+      v9 = (_DWORD *)sub_100031F0();
       if ( !v9 )
         return v5;
       *v9 = a3;
@@ -4231,7 +4232,7 @@ const char *__cdecl AAS_IntForBSPEpairKey(int *a1, const char *a2)
 }
 
 //----- (10006920) --------------------------------------------------------
-int __cdecl AAS_FreeBSPEntities(_DWORD *a1)
+int __cdecl sub_10006920(_DWORD *a1)
 {
   _DWORD *v1; // ebx
   _DWORD *v2; // esi
@@ -4270,7 +4271,7 @@ int __cdecl AAS_FreeBSPEntities(_DWORD *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (100069A0) --------------------------------------------------------
-char **AAS_ParseBSPEntities()
+char **sub_100069A0()
 {
   int v0; // ebp
   char **v1; // edi
@@ -4300,7 +4301,7 @@ char **AAS_ParseBSPEntities()
           if ( token.type != 1 )
           {
             ScriptError(v0, aInvalidS, token.string);
-            AAS_FreeBSPEntities(v7);
+            sub_10006920(v7);
             goto LABEL_13;
           }
           StripDoubleQuotes(token.string);
@@ -4310,7 +4311,7 @@ char **AAS_ParseBSPEntities()
           /* Original calls sub_10001C30(v0, 1, 0, token.string) (0x1003F5C0):
            * a script-level expect that uses PS_ReadToken directly and checks
            * the token's type field, NOT a source-level expect that goes
-           * through PC_ReadToken.  v0 here is from
+           * through PC_ReadTokenHandle.  v0 here is from
            * LoadScriptMemory where scriptstack=0, so the source-level
            * path would deref NULL.  Inlined to avoid renaming the existing
            * source-level PC_ExpectTokenType (used by other callers that DO
@@ -4318,7 +4319,7 @@ char **AAS_ParseBSPEntities()
           if ( !PS_ReadToken(v0, token.string) || token.type != 1 )
           {
             ScriptError(v0, aCouldnTReadExp, v6);
-            AAS_FreeBSPEntities(v7);
+            sub_10006920(v7);
             FreeScript(v0);
             return 0;
           }
@@ -4333,7 +4334,7 @@ char **AAS_ParseBSPEntities()
       if ( strcmp(token.string, asc_1005AB54) )
       {
         ScriptError(v0, aMissing, v6);
-        AAS_FreeBSPEntities(v7);
+        sub_10006920(v7);
         FreeScript(v0);
         return 0;
       }
@@ -4342,7 +4343,7 @@ char **AAS_ParseBSPEntities()
         goto LABEL_10;
     }
     ScriptError(v0, aInvalidS, token.string);
-    AAS_FreeBSPEntities(v1);
+    sub_10006920(v1);
 LABEL_13:
     FreeScript(v0);
     return 0;
@@ -4675,7 +4676,7 @@ int sub_100071E0()
 // 10067558: using guessed type int dword_10067558;
 
 //----- (10007460) --------------------------------------------------------
-int __fastcall AAS_SwapBSPData(void *a1)
+int __fastcall sub_10007460(void *a1)
 {
   int v1; // ebp
   int v2; // ebx
@@ -5029,7 +5030,7 @@ int __fastcall AAS_SwapBSPData(void *a1)
 // 10067544: using guessed type int dword_10067544;
 
 //----- (10007980) --------------------------------------------------------
-int AAS_DumpBSPData()
+int sub_10007980()
 {
   int result; // eax
 
@@ -5156,14 +5157,14 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
   if ( (int)ElementSize % a4 )
   {
     AAS_Error(aOddSBspLumpSiz, ArgList);
-    AAS_DumpBSPData();
+    sub_10007980();
     fclose(Stream);
     return 0;
   }
   else if ( fseek(Stream, Offset, 0) )
   {
     AAS_Error(aCanTSeekToBspL, ArgList);
-    AAS_DumpBSPData();
+    sub_10007980();
     fclose(Stream);
     return 0;
   }
@@ -5178,7 +5179,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
     {
       AAS_Error(aCanTReadBspLum, ArgList);
       FreeMemory(v6);
-      AAS_DumpBSPData();
+      sub_10007980();
       fclose(Stream);
       return 0;
     }
@@ -5188,7 +5189,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (10007D30) --------------------------------------------------------
-int AAS_LoadBSPFile(char *FileName, int Offset)
+int sub_10007D30(char *FileName, int Offset)
 {
   FILE *v3; // eax
   FILE *v4; // esi
@@ -5262,7 +5263,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
   void *v73; // ecx
   dBspHeader_t bsp_h; /* Q2 BSP header: ident+version+19 lumps = 0xA0 bytes */
 
-  AAS_DumpBSPData();
+  sub_10007980();
   v3 = fopen(FileName, aRb);
   v4 = v3;
   if ( !v3 )
@@ -5447,12 +5448,12 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
   if ( !dword_10067544 )
     return 18;
   dword_10067540 = v72 >> 2;
-  AAS_SwapBSPData(v73);
+  sub_10007460(v73);
   dword_100674C0 = 1;
   fclose(v4);
   sub_100071E0();
-  AAS_InitBSPLinkHeap();
-  AAS_InitBSPLinkedEntities();
+  sub_100030A0();
+  sub_10003280();
   sub_100032D0();
   return 0;
 }
@@ -5868,7 +5869,7 @@ int AAS_CreatePortals()
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10008D40) --------------------------------------------------------
-int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, int a3, int a4)
+int __cdecl sub_10008D40(_DWORD *a1, int a2, int a3, int a4)
 {
   int v4; // ebx
   char *v5; // esi
@@ -5908,7 +5909,7 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, int a3, int a4)
           while ( v10 < a2 );
         }
         if ( v10 != a2 && !*(_DWORD *)(a3 + 4 * v10) )
-          AAS_ConnectedAreas_r(a1, a2, a3, v10);
+          sub_10008D40(a1, a2, a3, v10);
       }
       result = *((_DWORD *)v5 + 1);
       ++v4;
@@ -5917,10 +5918,10 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, int a3, int a4)
   }
   return result;
 }
-// 1000179E: using guessed type _DWORD __cdecl AAS_ConnectedAreas_r(_DWORD, _DWORD, _DWORD, _DWORD);
+// 1000179E: using guessed type _DWORD __cdecl sub_10008D40(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10008E20) --------------------------------------------------------
-int __cdecl AAS_ConnectedAreas(int a1, int a2)
+int __cdecl sub_10008E20(int a1, int a2)
 {
   int v3; // eax
   char *i; // ecx
@@ -5931,7 +5932,7 @@ int __cdecl AAS_ConnectedAreas(int a1, int a2)
     return 0;
   if ( a2 != 1 )
   {
-    AAS_ConnectedAreas_r(a1, a2, v5, 0);
+    sub_10008D40(a1, a2, v5, 0);
     v3 = 0;
     for ( i = v5; *(_DWORD *)i; i += 4 )
     {
@@ -5943,10 +5944,10 @@ int __cdecl AAS_ConnectedAreas(int a1, int a2)
   return 1;
 }
 // 10008E6A: conditional instruction was optimized away because %arg_4.4>=2
-// 1000179E: using guessed type _DWORD __cdecl AAS_ConnectedAreas_r(_DWORD, _DWORD, _DWORD, _DWORD);
+// 1000179E: using guessed type _DWORD __cdecl sub_10008D40(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10008EB0) --------------------------------------------------------
-int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
+int __cdecl sub_10008EB0(_DWORD *a1, int a2, int a3)
 {
   int *v4; // edi
   int v5; // esi
@@ -5997,7 +5998,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
       goto LABEL_15;
     if ( v5 >= 128 )
       break;
-    v5 = AAS_FloodAreas_r(a1, v5, v10);
+    v5 = sub_10008EB0(a1, v5, v10);
 LABEL_15:
     v6 = ++v15;
     if ( v15 >= v4[1] )
@@ -6007,7 +6008,7 @@ LABEL_15:
   return v5;
 }
 // 10008FA0: variable 'v14' is possibly undefined
-// 10001424: using guessed type int __cdecl AAS_FloodAreas_r(_DWORD, _DWORD, _DWORD);
+// 10001424: using guessed type int __cdecl sub_10008EB0(_DWORD, _DWORD, _DWORD);
 
 //----- (10008FF0) --------------------------------------------------------
 int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
@@ -6084,7 +6085,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
   v4 = 0;
   v41 = -1;
   v48 = -1;
-  v5 = AAS_FloodAreas_r(v52, 0, a1);
+  v5 = sub_10008EB0(v52, 0, a1);
   v6 = 0;
   v40 = v5;
   for ( i = 0; v6 < v5; i = v6 )
@@ -6202,10 +6203,10 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
     return 0;
   }
 LABEL_45:
-  result = AAS_ConnectedAreas((int)v56, v4);
+  result = sub_10008E20((int)v56, v4);
   if ( result )
   {
-    result = AAS_ConnectedAreas((int)v54, v3);
+    result = sub_10008E20((int)v54, v3);
     if ( result )
     {
       v22 = 0;
@@ -6293,7 +6294,7 @@ LABEL_45:
   }
   return result;
 }
-// 10001424: using guessed type int __cdecl AAS_FloodAreas_r(_DWORD, _DWORD, _DWORD);
+// 10001424: using guessed type int __cdecl sub_10008EB0(_DWORD, _DWORD, _DWORD);
 // 10008FF0: using guessed type int var_C00[128];
 // 10008FF0: using guessed type int var_800[128];
 // 10008FF0: using guessed type int var_E00[128];
@@ -6313,7 +6314,7 @@ int AAS_FindPossiblePortals()
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (100095C0) --------------------------------------------------------
-int AAS_RemoveAllPortals()
+int sub_100095C0()
 {
   int result; // eax
   int v1; // ecx
@@ -6374,7 +6375,7 @@ int AAS_InitClustering()
       || (unsigned int)(int)LibVarGetValue(aForceclusterin)
       || (v1 = (int)LibVarGetValue(aForcereachabil), (unsigned int)v1) )
     {
-      AAS_RemoveAllPortals();
+      sub_100095C0();
       AAS_RemoveClusterAreas();
       AAS_FindPossiblePortals();
       if ( aasworld.portals )
@@ -6413,7 +6414,7 @@ int AAS_InitClustering()
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (10009860) --------------------------------------------------------
-int AAS_ClearShownDebugLines()
+int sub_10009860()
 {
   int i; // esi
   int result; // eax
@@ -6996,16 +6997,16 @@ LABEL_14:
       v11[0] = *(float *)(v4 + 76) + *v9;
       v11[1] = *(float *)(v4 + 80) + *(float *)(v4 + 20);
       v11[2] = *(float *)(v4 + 84) + *(float *)(v4 + 24);
-      AAS_UnlinkFromAreas(*(_DWORD *)(v4 + 124));
-      *(_DWORD *)(v4 + 124) = AAS_LinkEntityClientBBox(v12, v11, entnum, 2);
-      AAS_UnlinkFromBSPLeaves(*(_DWORD **)(v4 + 128));
-      *(_DWORD *)(v4 + 128) = AAS_BSPLinkEntity(v12, (int)v11, entnum, 0);
+      sub_1001C3F0(*(_DWORD *)(v4 + 124));
+      *(_DWORD *)(v4 + 124) = sub_1001C620(v12, v11, entnum, 2);
+      sub_10006090(*(_DWORD **)(v4 + 128));
+      *(_DWORD *)(v4 + 128) = sub_10006210(v12, (int)v11, entnum, 0);
     }
   }
   return 0;
 }
-// 10001ABE: using guessed type _DWORD __cdecl AAS_UnlinkFromAreas(_DWORD);
-// 10001B36: using guessed type _DWORD __cdecl AAS_LinkEntityClientBBox(_DWORD, _DWORD, _DWORD, _DWORD);
+// 10001ABE: using guessed type _DWORD __cdecl sub_1001C3F0(_DWORD);
+// 10001B36: using guessed type _DWORD __cdecl sub_1001C620(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
 // 10001F0A: using guessed type double AAS_Time(void);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -7055,7 +7056,7 @@ int __cdecl AAS_EntityModelindex(int entnum)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AD90) --------------------------------------------------------
-int __cdecl AAS_EntityRenderFX(int entnum)
+int __cdecl sub_1000AD90(int entnum)
 {
   if ( aasworld.initialized )
   {
@@ -7087,7 +7088,7 @@ int __cdecl AAS_EntityModelNum(int entnum)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AE30) --------------------------------------------------------
-int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2)
+int __cdecl sub_1000AE30(int a1, _DWORD *a2)
 {
   int v2; // ecx
   _DWORD *i; // eax
@@ -7109,7 +7110,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AF30) --------------------------------------------------------
-int __cdecl AAS_EntityBSPData(int a1, int a2)
+int __cdecl sub_1000AF30(int a1, int a2)
 {
   int v2; // eax
   int result; // eax
@@ -7163,7 +7164,7 @@ int __cdecl AAS_DropToFloor(int a1, int a2, int a3)
 }
 
 //----- (1000B090) --------------------------------------------------------
-int AAS_ResetEntityLinks()
+int sub_1000B090()
 {
   int result; // eax
   int v1; // ecx
@@ -7212,7 +7213,7 @@ int AAS_InvalidateEntities()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000B130) --------------------------------------------------------
-int __cdecl AAS_BestReachableLinkArea(int a1)
+int __cdecl sub_1000B130(int a1)
 {
   int v1; // esi
   int result; // eax
@@ -7264,12 +7265,12 @@ int __cdecl AAS_BestReachableArea(int *a1, float *a2, float *a3, int a4)
   int *v13; // ecx
   int v16; // esi
   int v17; // edi
-  /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
+  /* Same vec3 stack-layout class of bug as in BotGetReachabilityToGoal:
    * IDA split the start position into v18/v19/v20 (three separate floats)
    * but the original passes &v18 to AAS_PointAreaNum / AAS_TraceClientBBox
    * as a vec3 pointer.  GCC won't keep them adjacent, so y/z are read as
    * garbage and AAS_PointAreaNum returns 0 for every level item, leaving
-   * goal_areanum=0 in the goal-item list and BotChooseLTGItem's weight loop
+   * goal_areanum=0 in the goal-item list and sub_1002FEB0's weight loop
    * unable to pick any item. */
   vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   int i; // [esp+1Ch] [ebp-80h]
@@ -7363,9 +7364,9 @@ LABEL_21:
     v28[0] = *(float *)a1 + *a3;
     v28[1] = a3[1] + *((float *)a1 + 1);
     v28[2] = a3[2] + *((float *)a1 + 2);
-    v16 = AAS_AASLinkEntity(v27, v28, -1);
-    v17 = AAS_BestReachableLinkArea(v16);
-    AAS_UnlinkFromAreas(v16);
+    v16 = sub_1001C460(v27, v28, -1);
+    v17 = sub_1000B130(v16);
+    sub_1001C3F0(v16);
     return v17;
   }
   else
@@ -7375,15 +7376,15 @@ LABEL_21:
   }
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
-// 100015C8: using guessed type _DWORD __cdecl AAS_AASLinkEntity(_DWORD, _DWORD, _DWORD);
+// 100015C8: using guessed type _DWORD __cdecl sub_1001C460(_DWORD, _DWORD, _DWORD);
 // 10001861: using guessed type _DWORD __cdecl AAS_DropToFloor(_DWORD, _DWORD, _DWORD);
-// 10001ABE: using guessed type _DWORD __cdecl AAS_UnlinkFromAreas(_DWORD);
+// 10001ABE: using guessed type _DWORD __cdecl sub_1001C3F0(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E0: using guessed type int aasworld.loaded;
 // 1000B300: using guessed type char var_24[36];
 
 //----- (1000B640) --------------------------------------------------------
-int InFieldOfVision(int a1, float a2, int a3)
+int sub_1000B640(int a1, float a2, int a3)
 {
   float *v4; // esi
   int v5; // edi
@@ -7457,13 +7458,13 @@ int __cdecl BotEntityVisible(int a1, void *a2, int a3, float a4, int a5)
   dir[0] = middle[0] - ((float *)a2)[0];
   dir[1] = middle[1] - ((float *)a2)[1];
   dir[2] = middle[2] - ((float *)a2)[2];
-  vectoangles((int)dir, (int)entangles);
-  if ( !InFieldOfVision(a3, a4, (int)entangles) )
+  sub_10041790((int)dir, (int)entangles);
+  if ( !sub_1000B640(a3, a4, (int)entangles) )
     return 0;
   v21 = 0;
   while ( 1 )
   {
-    if ( !AAS_inPVS((float *)a2, middle) )
+    if ( !sub_10005C60((float *)a2, middle) )
       goto LABEL_21;
     /* default: trace from viewer (a2) to entity middle */
     start[0] = ((float *)a2)[0];
@@ -7523,7 +7524,7 @@ LABEL_21:
     v5 = a5;
   }
 }
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000BAA0) --------------------------------------------------------
@@ -7588,7 +7589,7 @@ int __cdecl AAS_NextBSPEntity(int a1)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000BBA0) --------------------------------------------------------
-int AAS_SwapAASData()
+int sub_1000BBA0()
 {
   int v0; // ebp
   int v1; // edi
@@ -7981,7 +7982,7 @@ int AAS_SwapAASData()
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (1000C490) --------------------------------------------------------
-void *AAS_DumpAASData()
+void *sub_1000C490()
 {
   void *result; // eax
 
@@ -8055,7 +8056,7 @@ void *AAS_DumpAASData()
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (1000C670) --------------------------------------------------------
-void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
+void *__cdecl sub_1000C670(FILE *Stream, int Offset, size_t ElementCount)
 {
   void *v4; // edi
   char v5; // [esp+0h] [ebp-Ch]
@@ -8065,7 +8066,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
   if ( fseek(Stream, Offset, 0) )
   {
     AAS_Error(aCanTSeekToAasL, v5);
-    AAS_DumpAASData();
+    sub_1000C490();
     fclose(Stream);
     return 0;
   }
@@ -8080,7 +8081,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     {
       AAS_Error(aCanTReadAasLum, v5);
       FreeMemory(v4);
-      AAS_DumpAASData();
+      sub_1000C490();
       fclose(Stream);
       return 0;
     }
@@ -8171,7 +8172,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
    * lump-0 pointer directly to the global aasworld.bboxes at 0x10066914. */
   aas_header_t aas_h; /* Gladiator AAS header: ident+version+14 lumps = 0x78 bytes */
 
-  AAS_DumpAASData();
+  sub_1000C490();
   v2 = fopen(FileName, aRb);
   v3 = v2;
   if ( !v2 )
@@ -8217,7 +8218,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v8 = Offset + v7;
   v9 = (size_t)aas_h.lumps[0].filelen;
   v10 = v9;
-  v11 = AAS_LoadAASLump(v3, v8, v9);
+  v11 = sub_1000C670(v3, v8, v9);
   aasworld.bboxes = v11;
   aasworld.numbboxes = v10 >> 5;
   if ( v10 >> 5 && !v11 )
@@ -8226,7 +8227,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v13 = Offset + v12;
   v14 = (size_t)aas_h.lumps[1].filelen;
   v15 = v14;
-  v16 = AAS_LoadAASLump(v3, v13, v14);
+  v16 = sub_1000C670(v3, v13, v14);
   aasworld.vertexes = v16;
   aasworld.numvertexes = v15 / 0xC;
   if ( v15 / 0xC && !v16 )
@@ -8235,7 +8236,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v18 = Offset + v17;
   v19 = (size_t)aas_h.lumps[2].filelen;
   v20 = v19;
-  v21 = AAS_LoadAASLump(v3, v18, v19);
+  v21 = sub_1000C670(v3, v18, v19);
   aasworld.planes = v21;
   aasworld.numplanes = v20 / 0x14;
   if ( v20 / 0x14 && !v21 )
@@ -8244,7 +8245,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v23 = Offset + v22;
   v24 = (size_t)aas_h.lumps[3].filelen;
   v25 = v24;
-  v26 = AAS_LoadAASLump(v3, v23, v24);
+  v26 = sub_1000C670(v3, v23, v24);
   aasworld.edges = v26;
   aasworld.numedges = v25 >> 3;
   if ( v25 >> 3 && !v26 )
@@ -8253,7 +8254,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v28 = Offset + v27;
   v29 = (size_t)aas_h.lumps[4].filelen;
   v30 = v29;
-  v31 = AAS_LoadAASLump(v3, v28, v29);
+  v31 = sub_1000C670(v3, v28, v29);
   aasworld.edgeindex = v31;
   aasworld.edgeindexsize = v30 >> 2;
   if ( v30 >> 2 && !v31 )
@@ -8262,7 +8263,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v33 = Offset + v32;
   v34 = (size_t)aas_h.lumps[5].filelen;
   v35 = v34;
-  v36 = AAS_LoadAASLump(v3, v33, v34);
+  v36 = sub_1000C670(v3, v33, v34);
   aasworld.faces = v36;
   aasworld.numfaces = v35 / 0x18;
   if ( v35 / 0x18 && !v36 )
@@ -8271,7 +8272,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v38 = Offset + v37;
   v39 = (size_t)aas_h.lumps[6].filelen;
   v40 = v39;
-  v41 = AAS_LoadAASLump(v3, v38, v39);
+  v41 = sub_1000C670(v3, v38, v39);
   aasworld.faceindex = v41;
   aasworld.faceindexsize = v40 >> 2;
   if ( v40 >> 2 && !v41 )
@@ -8280,7 +8281,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v43 = Offset + v42;
   v44 = (size_t)aas_h.lumps[7].filelen;
   v45 = v44;
-  v46 = AAS_LoadAASLump(v3, v43, v44);
+  v46 = sub_1000C670(v3, v43, v44);
   aasworld.areas = v46;
   aasworld.numareas = v45 / 0x30;
   if ( v45 / 0x30 && !v46 )
@@ -8289,7 +8290,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v48 = Offset + v47;
   v49 = (size_t)aas_h.lumps[8].filelen;
   v50 = v49;
-  v51 = AAS_LoadAASLump(v3, v48, v49);
+  v51 = sub_1000C670(v3, v48, v49);
   aasworld.areasettings = v51;
   aasworld.numareasettings = v50 / 0x1C;
   if ( v50 / 0x1C && !v51 )
@@ -8298,7 +8299,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v53 = Offset + v52;
   v54 = (size_t)aas_h.lumps[9].filelen;
   v55 = v54;
-  v56 = AAS_LoadAASLump(v3, v53, v54);
+  v56 = sub_1000C670(v3, v53, v54);
   aasworld.reachability = v56;
   aasworld.reachabilitysize = v55 / 0x2C;
   if ( v55 / 0x2C && !v56 )
@@ -8307,7 +8308,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v58 = Offset + v57;
   v59 = (size_t)aas_h.lumps[10].filelen;
   v60 = v59;
-  v61 = AAS_LoadAASLump(v3, v58, v59);
+  v61 = sub_1000C670(v3, v58, v59);
   aasworld.nodes = v61;
   aasworld.numnodes = v60 / 0xC;
   if ( v60 / 0xC && !v61 )
@@ -8316,7 +8317,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v63 = Offset + v62;
   v64 = (size_t)aas_h.lumps[11].filelen;
   v65 = v64;
-  v66 = AAS_LoadAASLump(v3, v63, v64);
+  v66 = sub_1000C670(v3, v63, v64);
   aasworld.portals = v66;
   aasworld.numportals = v65 / 0x14;
   if ( v65 / 0x14 && !v66 )
@@ -8325,7 +8326,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v68 = Offset + v67;
   v69 = (size_t)aas_h.lumps[12].filelen;
   v70 = v69;
-  v71 = AAS_LoadAASLump(v3, v68, v69);
+  v71 = sub_1000C670(v3, v68, v69);
   aasworld.portalindex = v71;
   aasworld.portalindexsize = v70 >> 2;
   if ( v70 >> 2 && !v71 )
@@ -8334,12 +8335,12 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   v73 = Offset + v72;
   v74 = (size_t)aas_h.lumps[13].filelen;
   v75 = v74;
-  v76 = AAS_LoadAASLump(v3, v73, v74);
+  v76 = sub_1000C670(v3, v73, v74);
   aasworld.clusters = v76;
   aasworld.numclusters = v75 / 0xC;
   if ( v75 / 0xC && !v76 )
     return 11;
-  AAS_SwapAASData();
+  sub_1000BBA0();
   aasworld.loaded = 1;
   fclose(v3);
   return 0;
@@ -8391,7 +8392,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (1000CE40) --------------------------------------------------------
-int __cdecl AAS_WriteAASLump(FILE *Stream, int a2, int a3, void *Buffer, size_t ElementSize)
+int __cdecl sub_1000CE40(FILE *Stream, int a2, int a3, void *Buffer, size_t ElementSize)
 {
   long v5;
 
@@ -8421,7 +8422,7 @@ int __cdecl AAS_WriteAASFile(char *FileName)
   int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
 
   bi_Print(1, "writing %s\n", FileName);
-  AAS_SwapAASData();
+  sub_1000BBA0();
   memset(Buffer, 0, sizeof(Buffer));
   v1 = 0x53414145;
   Buffer[0] = v1;
@@ -8434,49 +8435,49 @@ int __cdecl AAS_WriteAASFile(char *FileName)
     bi_Print(3, "error opening %s\n", FileName);
     return 0;
   }
-  /* fopen mode is "wb" — this is fwrite, not fread (see AAS_WriteAASLump note). */
+  /* fopen mode is "wb" — this is fwrite, not fread (see sub_1000CE40 note). */
   if ( !fwrite(Buffer, 0x78u, 1u, v3) )
     goto LABEL_4;
-  result = AAS_WriteAASLump(v4, (int)Buffer, 0, Buffer, 32 * aasworld.numbboxes);
+  result = sub_1000CE40(v4, (int)Buffer, 0, Buffer, 32 * aasworld.numbboxes);
   if ( result )
   {
-    result = AAS_WriteAASLump(v4, (int)Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes);
+    result = sub_1000CE40(v4, (int)Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes);
     if ( result )
     {
-      result = AAS_WriteAASLump(v4, (int)Buffer, 2, aasworld.planes, 20 * aasworld.numplanes);
+      result = sub_1000CE40(v4, (int)Buffer, 2, aasworld.planes, 20 * aasworld.numplanes);
       if ( result )
       {
-        result = AAS_WriteAASLump(v4, (int)Buffer, 3, aasworld.edges, 8 * aasworld.numedges);
+        result = sub_1000CE40(v4, (int)Buffer, 3, aasworld.edges, 8 * aasworld.numedges);
         if ( result )
         {
-          result = AAS_WriteAASLump(v4, (int)Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize);
+          result = sub_1000CE40(v4, (int)Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize);
           if ( result )
           {
-            result = AAS_WriteAASLump(v4, (int)Buffer, 5, aasworld.faces, 24 * aasworld.numfaces);
+            result = sub_1000CE40(v4, (int)Buffer, 5, aasworld.faces, 24 * aasworld.numfaces);
             if ( result )
             {
-              result = AAS_WriteAASLump(v4, (int)Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize);
+              result = sub_1000CE40(v4, (int)Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize);
               if ( result )
               {
-                result = AAS_WriteAASLump(v4, (int)Buffer, 7, aasworld.areas, 48 * aasworld.numareas);
+                result = sub_1000CE40(v4, (int)Buffer, 7, aasworld.areas, 48 * aasworld.numareas);
                 if ( result )
                 {
-                  result = AAS_WriteAASLump(v4, (int)Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings);
+                  result = sub_1000CE40(v4, (int)Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings);
                   if ( result )
                   {
-                    result = AAS_WriteAASLump(v4, (int)Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize);
+                    result = sub_1000CE40(v4, (int)Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize);
                     if ( result )
                     {
-                      result = AAS_WriteAASLump(v4, (int)Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes);
+                      result = sub_1000CE40(v4, (int)Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes);
                       if ( result )
                       {
-                        result = AAS_WriteAASLump(v4, (int)Buffer, 11, aasworld.portals, 20 * aasworld.numportals);
+                        result = sub_1000CE40(v4, (int)Buffer, 11, aasworld.portals, 20 * aasworld.numportals);
                         if ( result )
                         {
-                          result = AAS_WriteAASLump(v4, (int)Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize);
+                          result = sub_1000CE40(v4, (int)Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize);
                           if ( result )
                           {
-                            result = AAS_WriteAASLump(v4, (int)Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters);
+                            result = sub_1000CE40(v4, (int)Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters);
                             if ( result )
                             {
                               fseek(v4, 0, 0);
@@ -8707,7 +8708,7 @@ int AAS_Error(char *Format, ...)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1000D830) --------------------------------------------------------
-char *__cdecl AAS_StringFromIndex(const char *a1, int *a2, int a3)
+char *__cdecl sub_1000D830(const char *a1, int *a2, int a3)
 {
   char *result; // eax
 
@@ -8737,7 +8738,7 @@ char *__cdecl AAS_StringFromIndex(const char *a1, int *a2, int a3)
 // 100669B0: using guessed type int aasworld.indexes_loaded;
 
 //----- (1000D8D0) --------------------------------------------------------
-int __cdecl AAS_IndexFromString(int a1, int a2, char *String2)
+int __cdecl sub_1000D8D0(int a1, int a2, char *String2)
 {
   int v4; // esi
   const char *v5; // eax
@@ -8767,21 +8768,21 @@ int __cdecl AAS_IndexFromString(int a1, int a2, char *String2)
 // 100669B0: using guessed type int aasworld.indexes_loaded;
 
 //----- (1000D960) --------------------------------------------------------
-char *__cdecl AAS_ModelFromIndex(int a1)
+char *__cdecl sub_1000D960(int a1)
 {
-  return AAS_StringFromIndex(aModelfromindex, (int *)aasworld.modelindex_table, a1);
+  return sub_1000D830(aModelfromindex, (int *)aasworld.modelindex_table, a1);
 }
 
 //----- (1000D990) --------------------------------------------------------
 int __cdecl IndexFromModel(char *String2)
 {
-  return AAS_IndexFromString((int)aIndexfrommodel, aasworld.modelindex_table, String2);
+  return sub_1000D8D0((int)aIndexfrommodel, aasworld.modelindex_table, String2);
 }
 
 //----- (1000DA20) --------------------------------------------------------
-char *__cdecl AAS_ImageFromIndex(int a1)
+char *__cdecl sub_1000DA20(int a1)
 {
-  return AAS_StringFromIndex(aImagefromindex, (int *)aasworld.imageindex_table, a1);
+  return sub_1000D830(aImagefromindex, (int *)aasworld.imageindex_table, a1);
 }
 // 100669AC: using guessed type int aasworld.imageindex_table;
 
@@ -8999,22 +9000,22 @@ int AAS_StartFrame(float time)
   if ( LibVarGetValue(aShowcacheupdat) != 0.0 )
   {
     AAS_RoutingInfo();
-    LibVarSet(aShowcacheupdat, (char *)a0);
+    sub_10038AC0(aShowcacheupdat, (char *)a0);
   }
   if ( LibVarGetValue(aShowmemoryusag) != 0.0 )
   {
     PrintUsedMemorySize();
-    LibVarSet(aShowmemoryusag, (char *)a0);
+    sub_10038AC0(aShowmemoryusag, (char *)a0);
   }
   if ( LibVarGetValue(aMemorydump) != 0.0 )
   {
     PrintMemoryLabels();
-    LibVarSet(aMemorydump, (char *)a0);
+    sub_10038AC0(aMemorydump, (char *)a0);
   }
   return 0;
 }
 // 100014C9: using guessed type int PrintUsedMemorySize(void);
-// 1000185C: using guessed type int PrintMemoryLabels(void);
+// 1000185C: using guessed type int sub_10039190(void);
 // 1000186B: using guessed type int AAS_RoutingInfo(void);
 // 100667EC: using guessed type float aasworld.time;
 // 10066A70: using guessed type int aasworld.frameroutingupdates;
@@ -9170,14 +9171,14 @@ int BotLibLoadMap(char *Source)
   char v9[144]; // [esp+134h] [ebp-90h] BYREF
 
   strcpy(aasworld.mapname, Source);
-  AAS_ResetEntityLinks();
+  sub_1000B090();
   memset(v7, 0, sizeof(v7));
   strncpy(Destination, aMaps, 0x90u);
   strncat(Destination, Source, 144 - strlen(Destination));
   strncat(Destination, aBsp, 144 - strlen(Destination));
   if ( sub_10041F60(Destination, (int)v7) )
   {
-    v2 = AAS_LoadBSPFile(&v7[2], v7[0]);
+    v2 = sub_10007D30(&v7[2], v7[0]);
     *_errno() = v2;
     if ( *_errno() )
     {
@@ -9327,7 +9328,7 @@ int AAS_Shutdown()
   sub_1001D290();
   AAS_FreeAASLinkHeap();
   AAS_FreeAASLinkedEntities();
-  AAS_DumpAASData();
+  sub_1000C490();
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
   /* Zero the entire 676-byte aas_world_t state.  Original used memset(&loaded,
@@ -9379,7 +9380,7 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3)
  * given origin is in liquid (LAVA|SLIME|WATER = 0x38).  Used by BotMoveInDirection
  * to pick a swim/jump movement style.  IDA dropped the bi_PointContents call
  * (compare 0x1000efe6 in the binary) and v3 was uninitialized. */
-BOOL __cdecl AAS_Swimming(int a1)
+BOOL __cdecl sub_1000EFC0(int a1)
 {
   /* v5 must be int[3]: the X/Y stores are raw 32-bit copies (not int->float
    * conversions), preserving the float bit pattern from a1.  Verified at
@@ -9452,7 +9453,7 @@ void __cdecl AAS_JumpReachRunStart(int a1, int a2)
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
 
 //----- (1000F2C0) --------------------------------------------------------
-int __cdecl AAS_AgainstLadder(int *a1)
+int __cdecl sub_1000F2C0(int *a1)
 {
   float v1; // ecx
   int v2; // edx
@@ -9514,7 +9515,7 @@ int __cdecl AAS_AgainstLadder(int *a1)
                               + *((float *)aasworld.planes + 5 * v9) * *(float *)a1
                               - *((float *)aasworld.planes + 5 * v9 + 3))) < 3 )
       {
-        if ( AAS_PointInsideFace(v7, (int)a1, 0.1) )
+        if ( sub_1001BF00(v7, (int)a1, 0.1) )
           break;
       }
     }
@@ -9741,7 +9742,7 @@ int __cdecl AAS_ClientMovementPrediction(
     goto LABEL_85;
   while ( 2 )
   {
-    v21 = AAS_Swimming((int)org);
+    v21 = sub_1000EFC0((int)org);
     v22 = v21;
     v57 = v21;
     if ( v21 )
@@ -10532,7 +10533,7 @@ double __cdecl AAS_FaceArea(int a1)
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10011220) --------------------------------------------------------
-double __cdecl AAS_AreaVolume(int a1)
+double __cdecl sub_10011220(int a1)
 {
   char *v1; // esi
   int v2; // edi
@@ -10634,7 +10635,7 @@ int __cdecl AAS_FaceCenter(int a1, float *a2)
 }
 
 //----- (10011520) --------------------------------------------------------
-__int64 AAS_FallDamageDistance()
+__int64 sub_10011520()
 {
   long double v0; // st7
 
@@ -10705,7 +10706,7 @@ int __cdecl AAS_ReachabilityExists(int a1, int a2)
 // 1006675C: using guessed type int dword_1006675C;
 
 //----- (10011740) --------------------------------------------------------
-BOOL __cdecl AAS_NearbySolidOrGap(float *a1, float *a2)
+BOOL __cdecl sub_10011740(float *a1, float *a2)
 {
   int v3; // eax
   int v4; // esi
@@ -10832,7 +10833,7 @@ LABEL_14:
   VectorMA((float *)(lreach + 3), 2.0, (float *)((char *)aasworld.planes + 20 * (v18 ^ *v14)), (float *)(lreach + 6));
   v16[9] = 8;
   *((_WORD *)v16 + 20) = 1;
-  if ( AAS_AreaVolume(a2) < 800.0 )
+  if ( sub_10011220(a2) < 800.0 )
     *((_WORD *)v16 + 20) += 200;
   v16[11] = *(_DWORD *)(areareachability + 4 * a1);
   *(_DWORD *)(areareachability + 4 * a1) = v16;
@@ -10885,13 +10886,13 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
   int v36; // ecx
   /* Original MSVC layout: int v38 + float v39 + float v40 were a contiguous
    * vec3 (inner edge midpoint) passed by-address to VectorLength/VectorScale/
-   * VectorMA/AAS_NearbySolidOrGap.  GCC won't pack int adjacent to float, so collapse. */
+   * VectorMA/sub_10011740.  GCC won't pack int adjacent to float, so collapse. */
   vec3_t v38; // [esp+10h] [ebp-A0h] BYREF — was int v38 + float v39 + float v40
   float v41; // [esp+1Ch] [ebp-94h]
   int v42; // [esp+20h] [ebp-90h]
   float v43; // [esp+24h] [ebp-8Ch]
   /* Same pattern: int v44 + int v45 + float v46 were contiguous vec3 (outer
-   * edge point) passed by-address to VectorMA / AAS_NearbySolidOrGap. */
+   * edge point) passed by-address to VectorMA / sub_10011740. */
   vec3_t v44; // [esp+28h] [ebp-88h] BYREF — was int v44 + int v45 + float v46
   int v47; // [esp+34h] [ebp-7Ch]
   float v48; // [esp+38h] [ebp-78h]
@@ -11013,7 +11014,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                                 VectorMA(v38, 0.1, v72, v38);
                                 v44[2] = v44[2] + 0.125;
                                 v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
-                                if ( !AAS_NearbySolidOrGap(v38, v44) )
+                                if ( !sub_10011740(v38, v44) )
                                   v41 = v41 + 200.0;
                                 if ( v41 < (double)v43 || v43 + 1.0 > v41 && v48 > (double)v53 )
                                 {
@@ -11091,7 +11092,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                 *(_DWORD *)(areareachability + 4 * a1) = v27;
                 if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
                   *(_WORD *)(v27 + 40) += 300;
-                if ( !AAS_NearbySolidOrGap((float *)(v27 + 12), (float *)(v27 + 24)) )
+                if ( !sub_10011740((float *)(v27 + 12), (float *)(v27 + 24)) )
                   *(_WORD *)(v27 + 40) += 100;
                 /* IDA confused the thunk at 0x10001be0 (jumps to 0x10011360
                  * = AAS_AreaGroundFaceArea, returns float) with the real
@@ -11634,7 +11635,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             *((_WORD *)v45 + 20) += 300;
           v45[11] = *(_DWORD *)(areareachability + 4 * a1);
           *(_DWORD *)(areareachability + 4 * a1) = v45;
-          if ( !AAS_NearbySolidOrGap((float *)v45 + 3, (float *)v45 + 6) )
+          if ( !sub_10011740((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
           /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
            * area sum, float), not to the real AAS_AreaReachability. */
@@ -11724,7 +11725,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           ++reach_walk;
           return result;
         }
-        v114 = -(int)AAS_FallDamageDistance();
+        v114 = -(int)sub_10011520();
         if ( (double)(int)v114 < v64 || AAS_AreaSwim(v49) )
         {
           VectorMA(v110, 2.0, (float *)v120, v110);
@@ -11821,7 +11822,7 @@ double __cdecl VectorDistance(float *a1, float *a2)
  * AAS_Reachability_Jump (asm at 0x1001417b, 0x1001423c, 0x10014300, 0x100143d0)
  * push (a, b, c) right-to-left immediately before the call; matching them to
  * the C decomp gives args of the form (projection, edge_v0, edge_v1). */
-int __cdecl VectorBetweenVectors(float *a, float *b, float *c)
+int __cdecl sub_10013BF0(float *a, float *b, float *c)
 {
   float ab[3], ac[3];
 
@@ -11911,7 +11912,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   /* Four edge-projection vec3 results used to find the best face-pair
    * candidate.  Each was IDA-split into int + float + float at adjacent
    * stack slots; GCC won't reliably keep them adjacent, so VectorDistance/
-   * VectorMiddle/VectorBetweenVectors read garbage Y/Z components — corrupting the
+   * VectorMiddle/sub_10013BF0 read garbage Y/Z components — corrupting the
    * "best candidate" selection and forcing beststart.z >= bestend.z in all
    * surviving candidates.  Net effect: HV @ 0.0 always succeeds → all reaches
    * take the traveltype=7 (WALKOFFLEDGE) branch and JUMP (5) is never
@@ -12075,7 +12076,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v73_vec[2] = v39;
                         /* Is the projection of v21 onto edge2's line (stored
                          * in v70_vec) between edge2's endpoints v24, v25? */
-                        if ( VectorBetweenVectors(v70_vec, v3, v4) )
+                        if ( sub_10013BF0(v70_vec, v3, v4) )
                         {
                           v39 = VectorDistance(v1, v70_vec);
                           if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
@@ -12100,7 +12101,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         /* Is the projection of v22 onto edge2's line (stored
                          * in v76_vec) between edge2's endpoints v24, v25? */
-                        if ( VectorBetweenVectors(v76_vec, v3, v4) )
+                        if ( sub_10013BF0(v76_vec, v3, v4) )
                         {
                           v39 = VectorDistance(v2, v76_vec);
                           if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
@@ -12125,7 +12126,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         /* Is the projection of v24 onto edge1's line (stored
                          * in v80_vec) between edge1's endpoints v21, v22? */
-                        if ( VectorBetweenVectors(v80_vec, v1, v2) )
+                        if ( sub_10013BF0(v80_vec, v1, v2) )
                         {
                           v39 = VectorDistance(v3, v80_vec);
                           if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
@@ -12150,7 +12151,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         /* Is the projection of v25 onto edge1's line (stored
                          * in v73_vec) between edge1's endpoints v21, v22? */
-                        if ( !VectorBetweenVectors(v73_vec, v1, v2) )
+                        if ( !sub_10013BF0(v73_vec, v1, v2) )
                           break;
                         v39 = VectorDistance(v4, v73_vec);
                         if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
@@ -12251,7 +12252,7 @@ LABEL_67:
         if ( bestdist < (double)maxjumpdistance )
         {
           v90 = beststart[2] - bestend[2];
-          v91 = (char *)AAS_FallDamageDistance();
+          v91 = (char *)sub_10011520();
           if ( (double)(int)v91 >= v90 )
           {
             if ( AAS_HorizontalVelocityForJump(0.0, (int)beststart, (int)bestend, (int)&speed) )
@@ -12912,7 +12913,7 @@ int AAS_Reachability_Teleport()
   float v30[3]; // [esp+7Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
-  v0 = AAS_ParseBSPEntities();
+  v0 = sub_100069A0();
   v1 = (int *)v0;
   v26 = (int *)v0;
   v25 = (int *)v0;
@@ -12990,7 +12991,7 @@ LABEL_18:
                 maxs[0] = maxs[0] - v29[0];
                 maxs[1] = maxs[1] - v29[1];
                 maxs[2] = maxs[2] - v29[2];
-                v8 = AAS_AASLinkEntity(mins, maxs, -1);
+                v8 = sub_1001C460(mins, maxs, -1);
                 for ( i = v8; i; i = *(_DWORD *)(i + 16) )
                 {
                   if ( AAS_AreaGrounded(*(_DWORD *)(i + 4)) )
@@ -13015,7 +13016,7 @@ LABEL_18:
                     ++reach_teleport;
                   }
                 }
-                AAS_UnlinkFromAreas(v8);
+                sub_1001C3F0(v8);
                 v1 = v25;
               }
             }
@@ -13042,13 +13043,13 @@ LABEL_29:
     }
     v0 = (char **)v26;
   }
-  return AAS_FreeBSPEntities(v0);
+  return sub_10006920(v0);
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 1000144C: using guessed type _DWORD __cdecl AAS_AreaGrounded(_DWORD);
-// 100015C8: using guessed type _DWORD __cdecl AAS_AASLinkEntity(_DWORD, _DWORD, _DWORD);
+// 100015C8: using guessed type _DWORD __cdecl sub_1001C460(_DWORD, _DWORD, _DWORD);
 // 10001861: using guessed type _DWORD __cdecl AAS_DropToFloor(_DWORD, _DWORD, _DWORD);
-// 10001ABE: using guessed type _DWORD __cdecl AAS_UnlinkFromAreas(_DWORD);
+// 10001ABE: using guessed type _DWORD __cdecl sub_1001C3F0(_DWORD);
 // 10001B27: using guessed type int AAS_AllocReachability();
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 1006675C: using guessed type int dword_1006675C;
@@ -13117,7 +13118,7 @@ int AAS_Reachability_Elevator()
   aas_trace_t trace;
 
   memset(v69, 0, sizeof(v69));
-  v0 = AAS_ParseBSPEntities();
+  v0 = sub_100069A0();
   v1 = (int *)v0;
   v67 = v0;
   v50 = (int *)v0;
@@ -13134,7 +13135,7 @@ int AAS_Reachability_Elevator()
 LABEL_58:
       v50 = (int *)v1[1];
       if ( !v50 )
-        return AAS_FreeBSPEntities(v0);
+        return sub_10006920(v0);
       v1 = v50;
     }
     v3 = AAS_ValueForBSPEpairKey(v1, aModel);
@@ -13350,7 +13351,7 @@ LABEL_56:
     }
     goto LABEL_30;
   }
-  return AAS_FreeBSPEntities(v0);
+  return sub_10006920(v0);
 }
 // 1001650B: conditional instruction was optimized away because esi.4<10
 // 10016781: conditional instruction was optimized away because ebp.4<10
@@ -13504,7 +13505,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                   vmav[0] = trace.endpos[0];
                   vmav[1] = trace.endpos[1];
                   vmav[2] = trace.endpos[2];
-                  v37 = AAS_FallDamageDistance();
+                  v37 = sub_10011520();
                   vmav[2] = vmav[2] - (double)v37;
                   trace = AAS_TraceClientBBox(start, vmav, 2, -1);
                   if ( trace.fraction < 1.0 )
@@ -13597,7 +13598,7 @@ int AAS_SetWeaponJumpAreaFlags()
   v8[0] = 15.0f;
   v8[1] = 15.0f;
   v8[2] = 15.0f;
-  v0 = AAS_ParseBSPEntities();
+  v0 = sub_100069A0();
   v1 = (int *)v0;
   if ( v0 )
   {
@@ -13654,7 +13655,7 @@ int AAS_SetWeaponJumpAreaFlags()
     }
     while ( v1 );
   }
-  return AAS_FreeBSPEntities(v0);
+  return sub_10006920(v0);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -14076,7 +14077,7 @@ LABEL_29:
             *(float *)(v34 + 28) = trace.endpos[1];
             *(float *)(v34 + 32) = trace.endpos[2];
             *(_DWORD *)(v34 + 36) = 7;
-            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (double)v46 >= v39) )
+            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = sub_10011520(), (double)v46 >= v39) )
               *(_WORD *)(v35 + 40) = 100;
             else
               *(_WORD *)(v35 + 40) = 3000;
@@ -16122,7 +16123,7 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BD40) --------------------------------------------------------
-int __cdecl AAS_InsideFace(int a1)
+int __cdecl sub_1001BD40(int a1)
 {
   char v3; // c0
   bool v4; // cc
@@ -16152,7 +16153,7 @@ int __cdecl AAS_InsideFace(int a1)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BF00) --------------------------------------------------------
-int __cdecl AAS_PointInsideFace(int a1, int a2, float a3)
+int __cdecl sub_1001BF00(int a1, int a2, float a3)
 {
   _DWORD *v5; // ebx
   __int64 v7; // rax
@@ -16202,13 +16203,7 @@ int __cdecl AAS_PointInsideFace(int a1, int a2, float a3)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001C2E0) --------------------------------------------------------
-/* AAS_BoxOnPlaneSide2_dup: structurally identical to AAS_BoxOnPlaneSide2 at
- * 0x10006130 (botlib.c:4066).  Mr. Elusive's source had BoxOnPlaneSide2 in
- * two separate modules (be_aas_bspq3.c-style BSP code and be_aas_sample.c-
- * style AAS-area code), and MSVC emitted both copies into the DLL without
- * deduplicating.  Called from AAS_AASLinkEntity at line 16319; the BSP-side
- * copy at 0x10006130 is called from AAS_BSPLinkEntity. */
-int __cdecl AAS_BoxOnPlaneSide2_dup(int *a1, int a2, float *a3)
+int __cdecl sub_1001C2E0(int *a1, int a2, float *a3)
 {
   int *v3; // ecx
   char *v4; // ebp
@@ -16251,7 +16246,7 @@ int __cdecl AAS_BoxOnPlaneSide2_dup(int *a1, int a2, float *a3)
 }
 
 //----- (1001C3F0) --------------------------------------------------------
-_DWORD *__cdecl AAS_UnlinkFromAreas(_DWORD *a1)
+_DWORD *__cdecl sub_1001C3F0(_DWORD *a1)
 {
   _DWORD *result; // eax
   int v2; // ecx
@@ -16282,7 +16277,7 @@ _DWORD *__cdecl AAS_UnlinkFromAreas(_DWORD *a1)
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001C460) --------------------------------------------------------
-_DWORD *__cdecl AAS_AASLinkEntity(int *a1, int a2, int a3)
+_DWORD *__cdecl sub_1001C460(int *a1, int a2, int a3)
 {
   _DWORD *v4; // edi
   int *v5; // ebx
@@ -16300,7 +16295,7 @@ _DWORD *__cdecl AAS_AASLinkEntity(int *a1, int a2, int a3)
    * asm pushed multiple children (`*v5++ = child1; *v5++ = child2;`) it ran
    * off the array into adjacent locals, corrupting the traversal.  This was
    * Bug #1 from memory: AAS_BestReachableArea's box-link fallback called
-   * AAS_AASLinkEntity, which mis-traversed and returned garbage, so 82
+   * sub_1001C460, which mis-traversed and returned garbage, so 82
    * of 83 q2dm1 items got goal_areanum=0 and the bot couldn't pursue items.
    * Original frame: sub $0x100,%esp = 256 bytes = 64 int slots. */
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
@@ -16322,7 +16317,7 @@ _DWORD *__cdecl AAS_AASLinkEntity(int *a1, int a2, int a3)
           v13 = *((_DWORD *)v12 + 4);
           if ( v13 >= 3 )
           {
-            v14 = AAS_BoxOnPlaneSide2_dup(a1, a2, (float *)aasworld.planes + 5 * *v11);
+            v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * *v11);
           }
           else if ( *((float *)v12 + 3) > (double)*(float *)&a1[v13] )
           {
@@ -16379,7 +16374,7 @@ _DWORD *__cdecl AAS_AASLinkEntity(int *a1, int a2, int a3)
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001C620) --------------------------------------------------------
-int __cdecl AAS_LinkEntityClientBBox(float *a1, float *a2, int a3, int a4)
+int __cdecl sub_1001C620(float *a1, float *a2, int a3, int a4)
 {
   float v5[3]; // [esp+0h] [ebp-30h] BYREF
   float v6[3]; // [esp+Ch] [ebp-24h] BYREF
@@ -16393,9 +16388,9 @@ int __cdecl AAS_LinkEntityClientBBox(float *a1, float *a2, int a3, int a4)
   v7[0] = *a2 - v6[0];
   v7[1] = a2[1] - v6[1];
   v7[2] = a2[2] - v6[2];
-  return AAS_AASLinkEntity(v8, v7, a3);
+  return sub_1001C460(v8, v7, a3);
 }
-// 100015C8: using guessed type _DWORD __cdecl AAS_AASLinkEntity(_DWORD, _DWORD, _DWORD);
+// 100015C8: using guessed type _DWORD __cdecl sub_1001C460(_DWORD, _DWORD, _DWORD);
 
 //----- (1001C6C0) --------------------------------------------------------
 char *__cdecl AAS_PlaneFromNum(int a1)
@@ -16422,7 +16417,7 @@ int sub_1001C760(char *Source)
   {
     bi_Print(3, aMaxSoundinfoOu);
     v2 = 256;
-    LibVarSet(aMaxSoundinfo, (char *)a256);
+    sub_10038AC0(aMaxSoundinfo, (char *)a256);
   }
   if ( aasworld.soundinfo )
     FreeMemory(aasworld.soundinfo);
@@ -16436,13 +16431,13 @@ int sub_1001C760(char *Source)
     if ( v4 )
     {
       aasworld.numsoundinfo = 0;
-      if ( PC_ReadToken(v4, ArgList) )
+      if ( PC_ReadTokenHandle(v4, ArgList) )
       {
         while ( !strcmp(ArgList, aSoundinfo) )
         {
           if ( aasworld.numsoundinfo >= v2 )
           {
-            SourceError(v5, aMoreThanDSound, v2);
+            sub_10039200(v5, aMoreThanDSound, v2);
             goto LABEL_21;
           }
           memset((void *)(aasworld.soundinfo + 176 * aasworld.numsoundinfo), 0, 0xB0u);
@@ -16452,10 +16447,10 @@ int sub_1001C760(char *Source)
             return 0;
           }
           ++aasworld.numsoundinfo;
-          if ( !PC_ReadToken(v5, ArgList) )
+          if ( !PC_ReadTokenHandle(v5, ArgList) )
             goto LABEL_15;
         }
-        SourceError(v5, aUnknownDefinit, ArgList);
+        sub_10039200(v5, aUnknownDefinit, ArgList);
 LABEL_21:
         FreeSource(v5);
         return 0;
@@ -16483,7 +16478,7 @@ LABEL_15:
     return 0;
   }
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001B13: using guessed type int __cdecl ReadStructure(_DWORD, _DWORD, _DWORD);
@@ -16506,7 +16501,7 @@ int sub_1001CAB0()
   {
     bi_Print(3, aMaxAassoundsOu);
     v1 = 256;
-    LibVarSet(aMaxAassounds, (char *)a256);
+    sub_10038AC0(aMaxAassounds, (char *)a256);
   }
   if ( aasworld.d_100669C4 )
     FreeMemory(aasworld.d_100669C4);
@@ -16880,14 +16875,14 @@ int sub_1001D260()
 void sub_1001D290(void) { /* empty body */ }
 
 //----- (1001D2B0) --------------------------------------------------------
-void BotResetNodeSwitches()
+void sub_1001D2B0()
 {
   dword_100644A0 = 0;
 }
 // 100644A0: using guessed type int dword_100644A0;
 
 //----- (1001D2D0) --------------------------------------------------------
-int __cdecl BotDumpNodeSwitches(int a1)
+int __cdecl sub_1001D2D0(int a1)
 {
   const char *v1; // eax
   int v2; // ebx
@@ -17020,9 +17015,9 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
   int v45; // [esp+18h] [ebp-230h]
   float v46; // [esp+18h] [ebp-230h]
   float v47; // [esp+18h] [ebp-230h]
-  vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/vectoangles
+  vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/sub_10041790
   float v51; // [esp+28h] [ebp-220h]
-  vec3_t target; // [esp+2Ch] [ebp-21Ch] BYREF — BotRoamGoal output position
+  vec3_t target; // [esp+2Ch] [ebp-21Ch] BYREF — sub_10022A60 output position
   int v55[31]; // [esp+38h] [ebp-210h] BYREF
   char v56[128]; // [esp+B4h] [ebp-194h] BYREF
   char v57[152]; // [esp+134h] [ebp-114h] BYREF
@@ -17035,14 +17030,14 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
     {
       if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
       {
-        v13 = EasyClientName(bs->teammate - 1, v56);
+        v13 = sub_10021860(bs->teammate - 1, v56);
         BotInitialChat((int)bs->chatstate, aAccompanyStart, v13, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         *(int *)&bs->_f4324 = 0;
       }
       if ( AAS_Time() > bs->teammatevisible_time )
       {
-        v14 = EasyClientName(bs->teammate - 1, v56);
+        v14 = sub_10021860(bs->teammate - 1, v56);
         BotInitialChat((int)bs->chatstate, aAccompanyStop, v14, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
@@ -17069,14 +17064,14 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
             if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509f )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
-          if ( AAS_Swimming((int)bs->origin) )
+          if ( sub_1000EFC0((int)bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
           if ( AAS_Time() - 2.0 > bs->_f2876 )
           {
             if ( bs->_f2876 == 0.0 )
             {
-              EA_Wave(bs->client, 1);
-              v19 = EasyClientName(bs->teammate - 1, v56);
+              sub_100371B0(bs->client, 1);
+              v19 = sub_10021860(bs->teammate - 1, v56);
               BotInitialChat((int)bs->chatstate, aAccompanyArriv, v19, (char *)0);
               BotEnterChat((int)bs->chatstate, bs->client, 1);
               bs->_f2876 = AAS_Time();
@@ -17090,13 +17085,13 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
                 if ( (_DWORD)v20 )
                 {
                   if ( (_DWORD)v20 == 1 )
-                    EA_Wave(bs->client, 2);
+                    sub_100371B0(bs->client, 2);
                   else
-                    EA_Wave(bs->client, 3);
+                    sub_100371B0(bs->client, 3);
                 }
                 else
                 {
-                  EA_Wave(bs->client, 0);
+                  sub_100371B0(bs->client, 0);
                 }
               }
             }
@@ -17110,21 +17105,21 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
             if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
             {
 LABEL_86:
-              BotResetAvoidReach((int)bs->movestate);
+              sub_10034AF0((int)bs->movestate);
               return 0;
             }
-            BotRoamGoal(a1, target);
+            sub_10022A60(a1, target);
             dir[0] = target[0] - *v17;
             dir[1] = target[1] - bs->origin[1];
             dir[2] = target[2] - bs->origin[2];
-            vectoangles(dir, a1 + 4236);
+            sub_10041790(dir, a1 + 4236);
           }
           else
           {
             dir[0] = *(float *)&v55[4] - *v17;
             dir[1] = *(float *)&v55[5] - bs->origin[1];
             dir[2] = *(float *)&v55[6] - bs->origin[2];
-            vectoangles(dir, a1 + 4236);
+            sub_10041790(dir, a1 + 4236);
           }
           *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
           goto LABEL_86;
@@ -17158,7 +17153,7 @@ LABEL_86:
       v26 = bs->teamgoal;
       if ( AAS_Time() - 60.0 > *(float *)&bs->_i4332 )
       {
-        v27 = EasyClientName(bs->teammate - 1, v56);
+        v27 = sub_10021860(bs->teammate - 1, v56);
         BotInitialChat((int)bs->chatstate, aAccompanyCanno, v27, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         goto LABEL_55;
@@ -17169,7 +17164,7 @@ LABEL_86:
     {
       if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
       {
-        v28 = BotGoalName(bs->_i4312);
+        v28 = sub_1002F6A0(bs->_i4312);
         BotInitialChat((int)bs->chatstate, aDefendStart, v28, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         *(int *)&bs->_f4324 = 0;
@@ -17177,7 +17172,7 @@ LABEL_86:
       v26 = bs->teamgoal;
       if ( AAS_Time() > bs->teammatevisible_time )
       {
-        v29 = BotGoalName(bs->_i4312);
+        v29 = sub_1002F6A0(bs->_i4312);
         BotInitialChat((int)bs->chatstate, aDefendStop, v29, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
@@ -17187,7 +17182,7 @@ LABEL_86:
       dir[2] = bs->teamgoal[2] - bs->origin[2];
       if ( VectorLength(dir) < 70.0 )
       {
-        BotResetAvoidReach((int)bs->movestate);
+        sub_10034AF0((int)bs->movestate);
         v46 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
         v30 = AAS_Time();
         result = bs->teamgoal;
@@ -17202,7 +17197,7 @@ LABEL_86:
       case 6:
         if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
         {
-          v32 = EasyClientName(bs->teammate - 1, v56);
+          v32 = sub_10021860(bs->teammate - 1, v56);
           BotInitialChat((int)bs->chatstate, aCampStart, v32, (char *)0);
           BotEnterChat((int)bs->chatstate, bs->client, 1);
           *(int *)&bs->_f4324 = 0;
@@ -17221,18 +17216,18 @@ LABEL_86:
         {
           if ( bs->_f2876 == 0.0 )
           {
-            v33 = EasyClientName(bs->teammate - 1, v56);
+            v33 = sub_10021860(bs->teammate - 1, v56);
             BotInitialChat((int)bs->chatstate, aCampArrive, v33, (char *)0);
             BotEnterChat((int)bs->chatstate, bs->client, 1);
             bs->_f2876 = AAS_Time();
           }
           if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509f )
           {
-            BotRoamGoal(a1, target);
+            sub_10022A60(a1, target);
             dir[0] = target[0] - bs->origin[0];
             dir[1] = target[1] - bs->origin[1];
             dir[2] = target[2] - bs->origin[2];
-            vectoangles(dir, a1 + 4236);
+            sub_10041790(dir, a1 + 4236);
             *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
           }
           v34 = AAS_Time() - 5.0;
@@ -17246,7 +17241,7 @@ LABEL_86:
           }
           if ( AAS_Time() < bs->_f2820 )
             EA_Crouch(bs->client);
-          if ( AAS_Swimming((int)bs->origin) )
+          if ( sub_1000EFC0((int)bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
           v35 = bi_PointContents((int)bs->eye);   /* IDA-dropped: bot-eye liquid check */
           if ( (v35 & 0x38) != 0 )
@@ -17278,7 +17273,7 @@ LABEL_86:
           bs->ltgtype = 0;
           return 0;
         }
-        if ( !BotTouchingGoal((int)bs->origin, v37 + 4) )
+        if ( !sub_10030600((int)bs->origin, v37 + 4) )
           goto LABEL_106;
         v38 = bs->_i4556;
         v39 = bs->_i4552;
@@ -17327,7 +17322,7 @@ LABEL_106:
         v26 = (float *)&unk_10064420;
         if ( BotCTFTeam(a1) == 1 )
           v26 = (float *)&unk_100643E0;
-        if ( BotTouchingGoal((int)bs->origin, v26) )
+        if ( sub_10030600((int)bs->origin, v26) )
           bs->ltgtype = 0;
         if ( AAS_Time() > bs->teammatevisible_time )
         {
@@ -17344,11 +17339,11 @@ LABEL_106:
         v26 = (float *)&unk_10064420;
       if ( AAS_Time() > bs->teammatevisible_time )
         bs->ltgtype = 0;
-      if ( BotTouchingGoal((int)bs->origin, v26) )
+      if ( sub_10030600((int)bs->origin, v26) )
       {
-        if ( BotCTFCarryingFlag(a1) )
+        if ( sub_10021650(a1) )
         {
-          BotResetAvoidReach((int)bs->movestate);
+          sub_10034AF0((int)bs->movestate);
           v47 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
           v43 = AAS_Time();
           result = v26;
@@ -17366,12 +17361,12 @@ LABEL_55:
     v26 = v44;
     if ( v44 )
     {
-      if ( BotTouchingGoal((int)bs->origin, v44) )
+      if ( sub_10030600((int)bs->origin, v44) )
       {
         if ( libvar_runes->value != 0.0 )
           sub_100262C0(a1, v26);
       }
-      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v26) )
+      else if ( !sub_10030770(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v26) )
       {
         goto LABEL_136;
       }
@@ -17380,15 +17375,15 @@ LABEL_55:
 LABEL_136:
     if ( AAS_Time() > bs->_f2792 )
     {
-      BotPopGoal((int)bs->goalstate);
-      if ( BotChooseLTGItem((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, a2) )
+      sub_1002FE00((int)bs->goalstate);
+      if ( sub_1002FEB0((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, a2) )
       {
         bs->_f2792 = AAS_Time() + 20.0;
       }
       else
       {
         BotResetAvoidGoals((int)bs->goalstate);
-        BotResetAvoidReach((int)bs->movestate);
+        sub_10034AF0((int)bs->movestate);
       }
       return (float *)BotGetTopGoal((int)bs->goalstate);
     }
@@ -17396,7 +17391,7 @@ LABEL_136:
   }
   if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
   {
-    v4 = EasyClientName(bs->teammate - 1, v56);
+    v4 = sub_10021860(bs->teammate - 1, v56);
     BotInitialChat((int)bs->chatstate, aHelpStart, v4, (char *)0);
     BotEnterChat((int)bs->chatstate, bs->client, 1);
     *(int *)&bs->_f4324 = 0;
@@ -17450,22 +17445,22 @@ LABEL_136:
 // 1001E273: variable 'v35' is possibly undefined
 // 100011FE: using guessed type _DWORD __cdecl BotCTFTeam(_DWORD);
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
-// 10001316: using guessed type _DWORD __cdecl BotTouchingGoal(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
+// 10001316: using guessed type _DWORD __cdecl sub_10030600(_DWORD, _DWORD);
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
-// 100015E6: using guessed type _DWORD __cdecl BotCTFCarryingFlag(_DWORD);
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
-// 100017C6: using guessed type _DWORD __cdecl BotItemGoalInVisButNotVisible(_DWORD, _DWORD, _DWORD, _DWORD);
+// 100015E6: using guessed type _DWORD __cdecl sub_10021650(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
+// 100017C6: using guessed type _DWORD __cdecl sub_10030770(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001942: using guessed type _DWORD __cdecl EA_Crouch(_DWORD);
-// 100019EC: using guessed type _DWORD __cdecl BotPopGoal(_DWORD);
-// 10001AD2: using guessed type _DWORD __cdecl EA_Wave(_DWORD, _DWORD);
+// 100019EC: using guessed type _DWORD __cdecl sub_1002FE00(_DWORD);
+// 10001AD2: using guessed type _DWORD __cdecl sub_100371B0(_DWORD, _DWORD);
 // 10001AD7: using guessed type _DWORD __cdecl BotGetTopGoal(_DWORD);
 // 10001C8A: using guessed type _DWORD __cdecl sub_100262C0(_DWORD, _DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
-// 10001E33: using guessed type _DWORD __cdecl BotRoamGoal(_DWORD, _DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E33: using guessed type _DWORD __cdecl sub_10022A60(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 // 10064468: using guessed type int libvar_runes;
 // 1001D760: using guessed type char var_114[152];
 
@@ -17477,7 +17472,7 @@ int __cdecl AIEnter_Intermission(int a1)
 
   BotRecordNodeSwitch(a1, (int)aIntermission, &byte_1006294C);
   BotResetState(a1);
-  result = BotChat_EndLevel(a1);
+  result = sub_10022070(a1);
   if ( result )
     result = BotEnterChat((int)bs->chatstate, bs->client, 0);
   bs->ainode = AINode_Intermission;
@@ -17486,7 +17481,7 @@ int __cdecl AIEnter_Intermission(int a1)
 // 10001406: using guessed type _DWORD __cdecl BotResetState(_DWORD);
 // 100014A1: using guessed type int __cdecl AINode_Intermission(int);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
-// 100019D3: using guessed type _DWORD __cdecl BotChat_EndLevel(_DWORD);
+// 100019D3: using guessed type _DWORD __cdecl sub_10022070(_DWORD);
 
 //----- (1001EB50) --------------------------------------------------------
 int __cdecl AINode_Intermission(int a1)
@@ -17494,11 +17489,11 @@ int __cdecl AINode_Intermission(int a1)
   double v2; // st7
   float v4; // [esp+8h] [ebp+4h]
 
-  if ( !BotIntermission(a1) )
+  if ( !sub_100216F0(a1) )
   {
-    if ( BotChat_StartLevel(a1) )
+    if ( sub_10021F80(a1) )
     {
-      v4 = BotChatTime(a1);
+      v4 = sub_10022650(a1);
       v2 = AAS_Time() + v4;
     }
     else
@@ -17510,10 +17505,10 @@ int __cdecl AINode_Intermission(int a1)
   }
   return 1;
 }
-// 100010CD: using guessed type _DWORD __cdecl BotChat_StartLevel(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
+// 100010CD: using guessed type _DWORD __cdecl sub_10021F80(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
 
 //----- (1001EBD0) --------------------------------------------------------
 int __cdecl AIEnter_Observer(int a1)
@@ -17532,12 +17527,12 @@ int __cdecl AIEnter_Observer(int a1)
 //----- (1001EC10) --------------------------------------------------------
 int __cdecl AINode_Observer(int a1)
 {
-  if ( !BotIsObserver(a1) )
+  if ( !sub_100216D0(a1) )
     AIEnter_Stand(a1);
   return 1;
 }
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
 
 //----- (1001EC50) --------------------------------------------------------
 int __cdecl AIEnter_Stand(int a1)
@@ -17557,12 +17552,12 @@ int __cdecl AINode_Stand(int a1)
   bot_state_t *bs = (bot_state_t *)a1;
   double v2; // st7
 
-  if ( BotFindEnemy(a1) )
+  if ( sub_10023970(a1) )
   {
     AIEnter_Battle_Fight(a1);
     return 0;
   }
-  BotChangeViewAngles(a1);
+  sub_10029150(a1);
   v2 = AAS_Time();
   if ( v2 <= bs->_f2812 )
     return 1;
@@ -17576,8 +17571,8 @@ int __cdecl AINode_Stand(int a1)
   AIEnter_Seek_LTG(a1);
   return 0;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
-// 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
+// 100011AE: using guessed type _DWORD __cdecl sub_10023970(_DWORD);
 // 10001488: using guessed type _DWORD __cdecl EA_Say(_DWORD, _DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
@@ -17593,14 +17588,14 @@ void __cdecl AIEnter_Respawn(int a1)
   float v3; // [esp+10h] [ebp+4h]
 
   BotRecordNodeSwitch(a1, (int)aRespawn, &byte_1006294C);
-  BotResetMoveState((int)bs->movestate);
-  BotResetGoalState((int)bs->goalstate);
-  BotResetWeaponState((int)bs->weaponweights);
+  sub_10034B90((int)bs->movestate);
+  sub_10030990((int)bs->goalstate);
+  sub_10035640((int)bs->weaponweights);
   BotResetAvoidGoals((int)bs->goalstate);
-  BotResetAvoidReach((int)bs->movestate);
-  if ( BotChat_Death(a1) )
+  sub_10034AF0((int)bs->movestate);
+  if ( sub_10022160(a1) )
   {
-    v3 = BotChatTime(a1);
+    v3 = sub_10022650(a1);
     v2 = AAS_Time() + v3;
   }
   else
@@ -17612,13 +17607,13 @@ void __cdecl AIEnter_Respawn(int a1)
   bs->ainode = AINode_Respawn;
 }
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
-// 100013D9: using guessed type _DWORD __cdecl BotResetWeaponState(_DWORD);
-// 1000196A: using guessed type _DWORD __cdecl BotChat_Death(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
+// 100013D9: using guessed type _DWORD __cdecl sub_10035640(_DWORD);
+// 1000196A: using guessed type _DWORD __cdecl sub_10022160(_DWORD);
 // 10001BB8: using guessed type int __cdecl AINode_Respawn(int);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
-// 10001D07: using guessed type _DWORD __cdecl BotResetGoalState(_DWORD);
-// 10001E4C: using guessed type _DWORD __cdecl BotResetMoveState(_DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
+// 10001D07: using guessed type _DWORD __cdecl sub_10030990(_DWORD);
+// 10001E4C: using guessed type _DWORD __cdecl sub_10034B90(_DWORD);
 
 //----- (1001EE40) --------------------------------------------------------
 int __cdecl AINode_Respawn(int a1)
@@ -17628,7 +17623,7 @@ int __cdecl AINode_Respawn(int a1)
 
   if ( bs->_i2760 )
   {
-    if ( !BotIsDead(a1) )
+    if ( !sub_100216A0(a1) )
     {
       AIEnter_Seek_LTG(a1);
       return 1;
@@ -17650,41 +17645,41 @@ int __cdecl AINode_Respawn(int a1)
 // 1000107D: using guessed type _DWORD __cdecl EA_Respawn(_DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 
 //----- (1001EF00) --------------------------------------------------------
-int __cdecl AIEnter_Seek_ActivateEntity(int a1)
+int __cdecl sub_1001EF00(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aActivateEntity, &byte_1006294C);
-  bs->ainode = (int)AINode_Seek_ActivateEntity;
+  bs->ainode = (int)sub_1001EF40;
   return result;
 }
 
 //----- (1001EF40) --------------------------------------------------------
-int __cdecl AINode_Seek_ActivateEntity(int a1)
+int __cdecl sub_1001EF40(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   float *ent;             // esi — &bs->_f4488 (embedded activate-goal struct)
   int v8;                 // [esp+0xc] — movement flags
   vec3_t target;          // [esp+0x14] BYREF — predicted move target
-  vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to vectoangles
+  vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to sub_10041790
   int v15[12];            // [esp+0x2c] BYREF — copy of BotMoveToGoal result
   int v16[12];            // [esp+0x5c] BYREF — BotMoveToGoal output buffer
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -17694,19 +17689,19 @@ int __cdecl AINode_Seek_ActivateEntity(int a1)
     v8 = 118718;
   ent = (float *)&bs->_f4488;
   bs->enemy = 0;
-  if ( !ent || BotTouchingGoal(bs->origin, ent) )
+  if ( !ent || sub_10030600(bs->origin, ent) )
     *(int *)&bs->_f2852 = 0;
   if ( AAS_Time() > bs->_f2852 )
   {
     AIEnter_Seek_NBG(a1);
     return 0;
   }
-  BotBattleUseItems(a1);
+  sub_10021500(a1);
   BotEntityInfo(a1, (int)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, (int)ent, v8), sizeof(v15));
   if ( v15[0] )
   {
-    BotResetAvoidReach((int)bs->movestate);
+    sub_10034AF0((int)bs->movestate);
     *(int *)&bs->_f2796 = 0;
   }
   BotCheckActivateGoal(a1, v15, 1);
@@ -17718,33 +17713,33 @@ int __cdecl AINode_Seek_ActivateEntity(int a1)
   }
   else
   {
-    if ( BotMovementViewTarget((int)bs->movestate, (int)ent, v8, (int)target) )
+    if ( sub_10031270((int)bs->movestate, (int)ent, v8, (int)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
-      vectoangles(dir, a1 + 4236);
+      sub_10041790(dir, a1 + 4236);
     }
     else
     {
-      vectoangles((float *)&v15[6], a1 + 4236);
+      sub_10041790((float *)&v15[6], a1 + 4236);
     }
     *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
   }
-  if ( BotFindEnemy(a1) )
+  if ( sub_10023970(a1) )
   {
-    if ( BotWantsToRetreat(a1) )
+    if ( sub_100228C0(a1) )
     {
-      AIEnter_Battle_NBG(a1);
+      sub_10020AD0(a1);
     }
     else
     {
-      BotResetLastAvoidReach((int)bs->movestate);
-      BotEmptyGoalStack((int)bs->goalstate);
+      sub_10034B20((int)bs->movestate);
+      sub_1002FE30((int)bs->goalstate);
       AIEnter_Battle_Fight(a1);
     }
   }
-  BotChangeViewAngles(a1);
+  sub_10029150(a1);
   return 1;
 }
 
@@ -17759,7 +17754,7 @@ int __cdecl AIEnter_Seek_NBG(int a1)
   v1 = BotGetTopGoal((int)bs->goalstate);
   if ( v1 )
   {
-    v2 = (const char *)BotGoalName(*(_DWORD *)(v1 + 44));
+    v2 = (const char *)sub_1002F6A0(*(_DWORD *)(v1 + 44));
     result = BotRecordNodeSwitch(a1, (int)aSeekNbg, v2);
   }
   else
@@ -17770,7 +17765,7 @@ int __cdecl AIEnter_Seek_NBG(int a1)
   return result;
 }
 // 1000149C: using guessed type int __cdecl AINode_Seek_NBG(int);
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
 // 10001AD7: using guessed type _DWORD __cdecl BotGetTopGoal(_DWORD);
 
 //----- (1001F290) --------------------------------------------------------
@@ -17789,22 +17784,22 @@ int __cdecl AINode_Seek_NBG(int a1)
   int v7; // edi
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
-  vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
+  vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to sub_10041790
   int v15[12]; // [esp+2Ch] [ebp-60h] BYREF
   int v16[12]; // [esp+5Ch] [ebp-30h] BYREF
 
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -17812,7 +17807,7 @@ int __cdecl AINode_Seek_NBG(int a1)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0 )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump(a1) )
+  if ( libvar_rocketjump->value != 0.0 && sub_10022990(a1) )
   {
     v2 = v8;
     BYTE1(v2) = BYTE1(v8) | 0x10;
@@ -17823,12 +17818,12 @@ int __cdecl AINode_Seek_NBG(int a1)
   v4 = v3;
   if ( v3 )
   {
-    if ( BotTouchingGoal(bs->origin, (float *)v3) )
+    if ( sub_10030600(bs->origin, (float *)v3) )
     {
       if ( libvar_runes->value != 0.0 )
         sub_100262C0(a1, v4);
     }
-    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v4) )
+    else if ( !sub_10030770(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v4) )
     {
       goto LABEL_18;
     }
@@ -17837,16 +17832,16 @@ int __cdecl AINode_Seek_NBG(int a1)
 LABEL_18:
   if ( AAS_Time() > bs->_f2796 )
   {
-    BotPopGoal((int)bs->goalstate);
+    sub_1002FE00((int)bs->goalstate);
     AIEnter_Seek_LTG(a1);
     return 0;
   }
-  BotBattleUseItems(a1);
+  sub_10021500(a1);
   BotEntityInfo(a1, (int)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, v4, v8), sizeof(v15));
   if ( v15[0] )
   {
-    BotResetAvoidReach((int)bs->movestate);
+    sub_10034AF0((int)bs->movestate);
     *(int *)&bs->_f2796 = 0;
   }
   BotCheckActivateGoal(a1, v15, 1);
@@ -17856,27 +17851,27 @@ LABEL_18:
     {
       if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_33;
-      BotRoamGoal(a1, target);
+      sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
-      vectoangles(dir, a1 + 4236);
+      sub_10041790(dir, a1 + 4236);
     }
     else
     {
-      v7 = BotGetSecondGoal((int)bs->goalstate);
+      v7 = sub_1002FE80((int)bs->goalstate);
       if ( !v7 )
         BotGetTopGoal((int)bs->goalstate);
-      if ( BotMovementViewTarget((int)bs->movestate, v7, v8, (int)target) )
+      if ( sub_10031270((int)bs->movestate, v7, v8, (int)target) )
       {
         dir[0] = target[0] - bs->origin[0];
         dir[1] = target[1] - bs->origin[1];
         dir[2] = target[2] - bs->origin[2];
-        vectoangles(dir, a1 + 4236);
+        sub_10041790(dir, a1 + 4236);
       }
       else
       {
-        vectoangles(&v15[6], a1 + 4236);
+        sub_10041790(&v15[6], a1 + 4236);
       }
     }
     *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
@@ -17888,48 +17883,48 @@ LABEL_18:
   bs->_i4240 = v5;
   bs->_i4244 = v6;
 LABEL_33:
-  if ( BotFindEnemy(a1) )
+  if ( sub_10023970(a1) )
   {
-    if ( BotWantsToRetreat(a1) )
+    if ( sub_100228C0(a1) )
     {
-      AIEnter_Battle_NBG(a1);
+      sub_10020AD0(a1);
     }
     else
     {
-      BotResetLastAvoidReach((int)bs->movestate);
-      BotEmptyGoalStack((int)bs->goalstate);
+      sub_10034B20((int)bs->movestate);
+      sub_1002FE30((int)bs->goalstate);
       AIEnter_Battle_Fight(a1);
     }
   }
   if ( (v15[5] & 8) == 0 )
-    BotChangeViewAngles(a1);
+    sub_10029150(a1);
   return 1;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
-// 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
-// 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
-// 10001316: using guessed type _DWORD __cdecl BotTouchingGoal(_DWORD, _DWORD);
-// 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
-// 10001587: using guessed type _DWORD __cdecl BotMovementViewTarget(_DWORD, _DWORD, _DWORD, _DWORD);
-// 100016EA: using guessed type _DWORD __cdecl BotCanAndWantsToRocketJump(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
+// 100011AE: using guessed type _DWORD __cdecl sub_10023970(_DWORD);
+// 100011F9: using guessed type _DWORD __cdecl sub_1002FE30(_DWORD);
+// 10001316: using guessed type _DWORD __cdecl sub_10030600(_DWORD, _DWORD);
+// 10001352: using guessed type _DWORD __cdecl sub_10021500(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
+// 10001587: using guessed type _DWORD __cdecl sub_10031270(_DWORD, _DWORD, _DWORD, _DWORD);
+// 100016EA: using guessed type _DWORD __cdecl sub_10022990(_DWORD);
 // 100017B7: using guessed type _DWORD __cdecl BotEntityInfo(_DWORD, _DWORD);
-// 100017C6: using guessed type _DWORD __cdecl BotItemGoalInVisButNotVisible(_DWORD, _DWORD, _DWORD, _DWORD);
-// 100019EC: using guessed type _DWORD __cdecl BotPopGoal(_DWORD);
+// 100017C6: using guessed type _DWORD __cdecl sub_10030770(_DWORD, _DWORD, _DWORD, _DWORD);
+// 100019EC: using guessed type _DWORD __cdecl sub_1002FE00(_DWORD);
 // 100019F1: using guessed type _DWORD __cdecl AIEnter_Battle_Fight(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
 // 10001AD7: using guessed type _DWORD __cdecl BotGetTopGoal(_DWORD);
 // 10001C8A: using guessed type _DWORD __cdecl sub_100262C0(_DWORD, _DWORD);
-// 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
-// 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
+// 10001CF8: using guessed type _DWORD __cdecl sub_10034B20(_DWORD);
+// 10001D02: using guessed type _DWORD __cdecl sub_10020AD0(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
-// 10001DBB: using guessed type _DWORD __cdecl BotGetSecondGoal(_DWORD);
+// 10001DBB: using guessed type _DWORD __cdecl sub_1002FE80(_DWORD);
 // 10001DF7: using guessed type _DWORD __cdecl BotCheckActivateGoal(_DWORD, _DWORD, _DWORD);
-// 10001E33: using guessed type _DWORD __cdecl BotRoamGoal(_DWORD, _DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
-// 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001E33: using guessed type _DWORD __cdecl sub_10022A60(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
+// 10001F96: using guessed type _DWORD __cdecl sub_100228C0(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 10064458: using guessed type int libvar_usehook;
 // 10064468: using guessed type int libvar_runes;
 // 10064478: using guessed type int libvar_rocketjump;
@@ -17946,7 +17941,7 @@ int __cdecl AIEnter_Seek_LTG(int a1)
   v1 = BotGetTopGoal((int)bs->goalstate);
   if ( v1 )
   {
-    v2 = (const char *)BotGoalName(*(_DWORD *)(v1 + 44));
+    v2 = (const char *)sub_1002F6A0(*(_DWORD *)(v1 + 44));
     result = BotRecordNodeSwitch(a1, (int)aSeekLtg, v2);
   }
   else
@@ -17957,7 +17952,7 @@ int __cdecl AIEnter_Seek_LTG(int a1)
   return result;
 }
 // 10001433: using guessed type int __cdecl AINode_Seek_LTG(int);
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
 // 10001AD7: using guessed type _DWORD __cdecl BotGetTopGoal(_DWORD);
 
 //----- (1001F760) --------------------------------------------------------
@@ -17974,30 +17969,30 @@ int __cdecl AINode_Seek_LTG(int a1)
   float v9; // [esp+14h] [ebp-80h]
   int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
-  vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
+  vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to sub_10041790
   int v17; // [esp+30h] [ebp-64h]
   int v18[12]; // [esp+34h] [ebp-60h] BYREF
   int v19[12]; // [esp+64h] [ebp-30h] BYREF
 
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
   }
-  if ( BotChat_Random(a1) )
+  if ( sub_10022470(a1) )
   {
-    v9 = BotChatTime(a1);
+    v9 = sub_10022650(a1);
     bs->_f2812 = AAS_Time() + v9;
     AIEnter_Stand(a1);
     return 0;
@@ -18009,7 +18004,7 @@ int __cdecl AINode_Seek_LTG(int a1)
     v10 = 118718;
     v2 = 118718;
   }
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump(a1) )
+  if ( libvar_rocketjump->value != 0.0 && sub_10022990(a1) )
   {
     v2 |= 0x1000u;
     v10 = v2;
@@ -18019,14 +18014,14 @@ int __cdecl AINode_Seek_LTG(int a1)
     && (double)(rand() & 0x7FFF) * 0.000030518509f < bs->_f1680 )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
-      EA_Wave(bs->client, 2);
+      sub_100371B0(bs->client, 2);
     else
-      EA_Wave(bs->client, 0);
+      sub_100371B0(bs->client, 0);
   }
-  if ( !BotFindEnemy(a1) )
+  if ( !sub_10023970(a1) )
   {
     if ( libvar_ctf->value != 0.0 )
-      BotCTFSeekGoals(a1);
+      sub_10026440(a1);
     v3 = BotLongTermGoal(a1, v2, 0);
     v17 = v3;
     if ( !v3 )
@@ -18039,20 +18034,20 @@ int __cdecl AINode_Seek_LTG(int a1)
       v5 = -(bs->ltgtype != 3);
       bs->_f2808 = v4 + 0.5;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
-      if ( BotChooseNBGItem((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, v3, v8) )
+      if ( sub_10030260((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, v3, v8) )
       {
-        BotResetLastAvoidReach((int)bs->movestate);
+        sub_10034B20((int)bs->movestate);
         bs->_f2796 = AAS_Time() + 5.0;
         AIEnter_Seek_NBG(a1);
         return 0;
       }
     }
-    BotBattleUseItems(a1);
+    sub_10021500(a1);
     BotEntityInfo(a1, (int)bs->movestate);
     qmemcpy(v18, (const void *)BotMoveToGoal((int)v19, (int)bs->movestate, v3, v2), sizeof(v18));
     if ( v18[0] )
     {
-      BotResetAvoidReach((int)bs->movestate);
+      sub_10034AF0((int)bs->movestate);
       *(int *)&bs->_f2792 = 0;
     }
     BotCheckActivateGoal(a1, v18, 1);
@@ -18069,66 +18064,66 @@ int __cdecl AINode_Seek_LTG(int a1)
     {
       if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_41;
-      BotRoamGoal(a1, target);
+      sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
-      vectoangles(dir, a1 + 4236);
+      sub_10041790(dir, a1 + 4236);
     }
-    else if ( BotMovementViewTarget((int)bs->movestate, v17, v10, (int)target) )
+    else if ( sub_10031270((int)bs->movestate, v17, v10, (int)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
-      vectoangles(dir, a1 + 4236);
+      sub_10041790(dir, a1 + 4236);
     }
     else
     {
-      vectoangles(&v18[6], a1 + 4236);
+      sub_10041790(&v18[6], a1 + 4236);
     }
     *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
 LABEL_41:
     if ( (v18[5] & 8) != 0 )
       return 1;
 LABEL_42:
-    BotChangeViewAngles(a1);
+    sub_10029150(a1);
     return 1;
   }
-  if ( BotWantsToRetreat(a1) )
+  if ( sub_100228C0(a1) )
   {
     AIEnter_Battle_Retreat(a1);
   }
   else
   {
-    BotResetLastAvoidReach((int)bs->movestate);
-    BotEmptyGoalStack((int)bs->goalstate);
+    sub_10034B20((int)bs->movestate);
+    sub_1002FE30((int)bs->goalstate);
     AIEnter_Battle_Fight(a1);
   }
   return 0;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
-// 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
-// 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
-// 10001348: using guessed type _DWORD __cdecl BotChat_Random(_DWORD);
-// 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
-// 1000141A: using guessed type _DWORD __cdecl BotCTFSeekGoals(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
+// 100011AE: using guessed type _DWORD __cdecl sub_10023970(_DWORD);
+// 100011F9: using guessed type _DWORD __cdecl sub_1002FE30(_DWORD);
+// 10001348: using guessed type _DWORD __cdecl sub_10022470(_DWORD);
+// 10001352: using guessed type _DWORD __cdecl sub_10021500(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
+// 1000141A: using guessed type _DWORD __cdecl sub_10026440(_DWORD);
 // 1000153C: using guessed type _DWORD __cdecl AIEnter_Battle_Retreat(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
-// 10001587: using guessed type _DWORD __cdecl BotMovementViewTarget(_DWORD, _DWORD, _DWORD, _DWORD);
-// 100016EA: using guessed type _DWORD __cdecl BotCanAndWantsToRocketJump(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
+// 10001587: using guessed type _DWORD __cdecl sub_10031270(_DWORD, _DWORD, _DWORD, _DWORD);
+// 100016EA: using guessed type _DWORD __cdecl sub_10022990(_DWORD);
 // 100017B7: using guessed type _DWORD __cdecl BotEntityInfo(_DWORD, _DWORD);
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
 // 100019F1: using guessed type _DWORD __cdecl AIEnter_Battle_Fight(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
-// 10001AD2: using guessed type _DWORD __cdecl EA_Wave(_DWORD, _DWORD);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
-// 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
+// 10001AD2: using guessed type _DWORD __cdecl sub_100371B0(_DWORD, _DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
+// 10001CF8: using guessed type _DWORD __cdecl sub_10034B20(_DWORD);
 // 10001DF7: using guessed type _DWORD __cdecl BotCheckActivateGoal(_DWORD, _DWORD, _DWORD);
-// 10001E33: using guessed type _DWORD __cdecl BotRoamGoal(_DWORD, _DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
-// 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001E33: using guessed type _DWORD __cdecl sub_10022A60(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
+// 10001F96: using guessed type _DWORD __cdecl sub_100228C0(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 100643AC: using guessed type int libvar_ctf;
 // 10064458: using guessed type int libvar_usehook;
 // 10064478: using guessed type int libvar_rocketjump;
@@ -18164,17 +18159,17 @@ int __cdecl AINode_Battle_Fight(int a1)
   char v13[48]; // [esp+BCh] [ebp-ACh] BYREF
   char v14[124]; // [esp+ECh] [ebp-7Ch] BYREF
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -18187,13 +18182,13 @@ LABEL_9:
     return 0;
   }
   qmemcpy(v12, AAS_EntityInfo(v14, bs->enemy), sizeof(v12));
-  if ( EntityDeadOrDying(v12) )
+  if ( sub_10021710(v12) )
   {
-    v2 = BotChat_Kill(a1);
+    v2 = sub_100222E0(a1);
     v9 = a1;
     if ( !v2 )
       goto LABEL_9;
-    v10 = BotChatTime(a1);
+    v10 = sub_10022650(a1);
     bs->_f2812 = AAS_Time() + v10;
     AIEnter_Stand(a1);
     return 0;
@@ -18211,34 +18206,34 @@ LABEL_9:
       bs->_i4212 = v6;
       bs->_i4200 = v4;
     }
-    BotUpdateBattleInventory(a1, bs->enemy);
+    sub_10021290(a1, bs->enemy);
     if ( BotEntityVisible(bs->entitynum, bs->eye, (int)bs->enemyorigin, 360.0, bs->enemy) )
     {
       v8 = 102334;
       if ( libvar_usehook->value != 0.0 )
         v8 = 118718;
-      if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump(a1) )
+      if ( libvar_rocketjump->value != 0.0 && sub_10022990(a1) )
         v8 |= 0x1000u;
       sub_10020FE0(a1, (int)bs->weaponweights);
-      BotChooseBestFightWeapon((int)bs->weaponweights);
+      sub_10035500((int)bs->weaponweights);
       sub_100215E0(a1);
-      BotBattleUseItems(a1);
-      qmemcpy(v11, (const void *)BotAttackMove(v13, a1, v8), sizeof(v11));
+      sub_10021500(a1);
+      qmemcpy(v11, (const void *)sub_10022E10(v13, a1, v8), sizeof(v11));
       if ( v11[0] )
       {
-        BotResetAvoidReach((int)bs->movestate);
+        sub_10034AF0((int)bs->movestate);
         *(int *)&bs->_f2792 = 0;
       }
       BotCheckActivateGoal(a1, v11, 0);
-      BotAimAtEnemy(a1);
-      BotCheckAttack(a1);
-      if ( BotWantsToRetreat(a1) )
+      sub_10023CE0(a1);
+      sub_10024590(a1);
+      if ( sub_100228C0(a1) )
         AIEnter_Battle_Retreat(a1);
       return 1;
     }
     else
     {
-      v7 = BotWantsToChase(a1);
+      v7 = sub_10022930(a1);
       v9 = a1;
       if ( !v7 )
         goto LABEL_9;
@@ -18247,30 +18242,30 @@ LABEL_9:
     }
   }
 }
-// 10001023: using guessed type _DWORD __cdecl BotCheckAttack(_DWORD);
-// 1000103C: using guessed type _DWORD __cdecl BotChooseBestFightWeapon(_DWORD);
-// 10001299: using guessed type _DWORD __cdecl BotChat_Kill(_DWORD);
+// 10001023: using guessed type _DWORD __cdecl sub_10024590(_DWORD);
+// 1000103C: using guessed type _DWORD __cdecl sub_10035500(_DWORD);
+// 10001299: using guessed type _DWORD __cdecl sub_100222E0(_DWORD);
 // 100012B2: using guessed type _DWORD __cdecl sub_10020FE0(_DWORD, _DWORD);
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
-// 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
+// 10001352: using guessed type _DWORD __cdecl sub_10021500(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
 // 1000153C: using guessed type _DWORD __cdecl AIEnter_Battle_Retreat(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
-// 100016EA: using guessed type _DWORD __cdecl BotCanAndWantsToRocketJump(_DWORD);
-// 10001712: using guessed type _DWORD __cdecl EntityDeadOrDying(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
+// 100016EA: using guessed type _DWORD __cdecl sub_10022990(_DWORD);
+// 10001712: using guessed type _DWORD __cdecl sub_10021710(_DWORD);
 // 10001749: using guessed type _DWORD __cdecl AIEnter_Battle_Chase(_DWORD);
-// 100017D5: using guessed type _DWORD __cdecl BotUpdateBattleInventory(_DWORD, _DWORD);
+// 100017D5: using guessed type _DWORD __cdecl sub_10021290(_DWORD, _DWORD);
 // 10001857: using guessed type _DWORD __cdecl sub_100215E0(_DWORD);
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
-// 10001B63: using guessed type _DWORD __cdecl BotAttackMove(_DWORD, _DWORD, _DWORD);
-// 10001C7B: using guessed type _DWORD __cdecl BotAimAtEnemy(_DWORD);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
+// 10001B63: using guessed type _DWORD __cdecl sub_10022E10(_DWORD, _DWORD, _DWORD);
+// 10001C7B: using guessed type _DWORD __cdecl sub_10023CE0(_DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
 // 10001DF7: using guessed type _DWORD __cdecl BotCheckActivateGoal(_DWORD, _DWORD, _DWORD);
-// 10001F73: using guessed type _DWORD __cdecl BotWantsToChase(_DWORD);
-// 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001F73: using guessed type _DWORD __cdecl sub_10022930(_DWORD);
+// 10001F96: using guessed type _DWORD __cdecl sub_100228C0(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 10064458: using guessed type int libvar_usehook;
 // 10064478: using guessed type int libvar_rocketjump;
 // 1001FD30: using guessed type char var_7C[124];
@@ -18307,17 +18302,17 @@ int __cdecl AINode_Battle_Chase(int a1)
   int v13[12]; // [esp+60h] [ebp-60h] BYREF
   int v14[12]; // [esp+90h] [ebp-30h] BYREF
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -18326,11 +18321,11 @@ int __cdecl AINode_Battle_Chase(int a1)
     goto LABEL_8;
   if ( BotEntityVisible(bs->entitynum, bs->eye, (int)bs->enemyorigin, 360.0, bs->enemy) )
   {
-    BotResetLastAvoidReach((int)bs->movestate);
+    sub_10034B20((int)bs->movestate);
     AIEnter_Battle_Fight(a1);
     return 0;
   }
-  else if ( BotFindEnemy(a1) )
+  else if ( sub_10023970(a1) )
   {
     AIEnter_Battle_Fight(a1);
     return 0;
@@ -18350,7 +18345,7 @@ LABEL_8:
       v9 = 118718;
       v2 = 118718;
     }
-    if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump(a1) )
+    if ( libvar_rocketjump->value != 0.0 && sub_10022990(a1) )
     {
       v2 |= 0x1000u;
       v9 = v2;
@@ -18370,28 +18365,28 @@ LABEL_8:
     v12[7] = 8.0;
     v12[8] = 8.0;
     v12[9] = 8.0;
-    if ( BotTouchingGoal((int)bs->origin, v12) )
+    if ( sub_10030600((int)bs->origin, v12) )
       *(int *)&bs->_f2804 = 0;
     if ( AAS_Time() <= bs->_f2804 )
     {
       if ( AAS_Time() > bs->_f2808
         && (bs->_f2808 = AAS_Time() + 1.0,
-            BotChooseNBGItem((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, (int)v12, 500.0)) )
+            sub_10030260((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, (int)v12, 500.0)) )
       {
         bs->_f2796 = AAS_Time() + 5.0;
-        BotResetLastAvoidReach((int)bs->movestate);
-        AIEnter_Battle_NBG(a1);
+        sub_10034B20((int)bs->movestate);
+        sub_10020AD0(a1);
         return 0;
       }
       else
       {
-        BotUpdateBattleInventory(a1, bs->enemy);
-        BotBattleUseItems(a1);
+        sub_10021290(a1, bs->enemy);
+        sub_10021500(a1);
         BotEntityInfo(a1, (int)bs->movestate);
         qmemcpy(v13, (const void *)BotMoveToGoal((int)v14, (int)bs->movestate, (int)v12, v2), sizeof(v13));
         if ( v13[0] )
         {
-          BotResetAvoidReach((int)bs->movestate);
+          sub_10034AF0((int)bs->movestate);
           *(int *)&bs->_f2792 = 0;
         }
         BotCheckActivateGoal(a1, v13, 0);
@@ -18405,24 +18400,24 @@ LABEL_8:
         }
         else
         {
-          if ( BotMovementViewTarget((int)bs->movestate, v12, v9, v11) )
+          if ( sub_10031270((int)bs->movestate, v12, v9, v11) )
           {
             v10[0] = v11[0] - bs->origin[0];
             v10[1] = v11[1] - bs->origin[1];
             v10[2] = v11[2] - bs->origin[2];
-            vectoangles(v10, a1 + 4236);
+            sub_10041790(v10, a1 + 4236);
           }
           else
           {
-            vectoangles(&v13[6], a1 + 4236);
+            sub_10041790(&v13[6], a1 + 4236);
           }
           *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
         }
         if ( bs->_i2944 == bs->_i4200 )
           *(int *)&bs->_f2804 = 0;
         if ( (v13[5] & 8) == 0 )
-          BotChangeViewAngles(a1);
-        if ( BotWantsToRetreat(a1) )
+          sub_10029150(a1);
+        if ( sub_100228C0(a1) )
           AIEnter_Battle_Retreat(a1);
         return 1;
       }
@@ -18434,26 +18429,26 @@ LABEL_8:
     }
   }
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
-// 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
-// 10001316: using guessed type _DWORD __cdecl BotTouchingGoal(_DWORD, _DWORD);
-// 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
+// 100011AE: using guessed type _DWORD __cdecl sub_10023970(_DWORD);
+// 10001316: using guessed type _DWORD __cdecl sub_10030600(_DWORD, _DWORD);
+// 10001352: using guessed type _DWORD __cdecl sub_10021500(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
 // 1000153C: using guessed type _DWORD __cdecl AIEnter_Battle_Retreat(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
-// 10001587: using guessed type _DWORD __cdecl BotMovementViewTarget(_DWORD, _DWORD, _DWORD, _DWORD);
-// 100016EA: using guessed type _DWORD __cdecl BotCanAndWantsToRocketJump(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
+// 10001587: using guessed type _DWORD __cdecl sub_10031270(_DWORD, _DWORD, _DWORD, _DWORD);
+// 100016EA: using guessed type _DWORD __cdecl sub_10022990(_DWORD);
 // 100017B7: using guessed type _DWORD __cdecl BotEntityInfo(_DWORD, _DWORD);
-// 100017D5: using guessed type _DWORD __cdecl BotUpdateBattleInventory(_DWORD, _DWORD);
+// 100017D5: using guessed type _DWORD __cdecl sub_10021290(_DWORD, _DWORD);
 // 100019F1: using guessed type _DWORD __cdecl AIEnter_Battle_Fight(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
-// 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
-// 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
+// 10001CF8: using guessed type _DWORD __cdecl sub_10034B20(_DWORD);
+// 10001D02: using guessed type _DWORD __cdecl sub_10020AD0(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
 // 10001DF7: using guessed type _DWORD __cdecl BotCheckActivateGoal(_DWORD, _DWORD, _DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
-// 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
+// 10001F96: using guessed type _DWORD __cdecl sub_100228C0(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 10064458: using guessed type int libvar_usehook;
 // 10064478: using guessed type int libvar_rocketjump;
 // 100200A0: using guessed type int var_30[12];
@@ -18488,17 +18483,17 @@ int __cdecl AINode_Battle_Retreat(int a1)
   char v12[124]; // [esp+8Ch] [ebp-F8h] BYREF
   char v13[124]; // [esp+108h] [ebp-7Ch] BYREF
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -18509,7 +18504,7 @@ int __cdecl AINode_Battle_Retreat(int a1)
     return 0;
   }
   qmemcpy(v12, AAS_EntityInfo(v13, bs->enemy), sizeof(v12));
-  if ( EntityDeadOrDying(v12) )
+  if ( sub_10021710(v12) )
     goto LABEL_10;
   v2 = 102334;
   v7 = 102334;
@@ -18518,10 +18513,10 @@ int __cdecl AINode_Battle_Retreat(int a1)
     v7 = 118718;
     v2 = 118718;
   }
-  BotUpdateBattleInventory(a1, bs->enemy);
-  if ( BotWantsToChase(a1) )
+  sub_10021290(a1, bs->enemy);
+  if ( sub_10022930(a1) )
   {
-    BotEmptyGoalStack((int)bs->goalstate);
+    sub_1002FE30((int)bs->goalstate);
     AIEnter_Battle_Chase(a1);
     return 0;
   }
@@ -18534,7 +18529,7 @@ LABEL_10:
       return 0;
     }
     if ( libvar_ctf->value != 0.0 )
-      BotCTFRetreatGoals(a1);
+      sub_100263D0(a1);
     v3 = BotLongTermGoal(a1, v2, 1);
     if ( v3 )
     {
@@ -18542,26 +18537,26 @@ LABEL_10:
       if ( v4 > bs->_f2808
         && (v4 = AAS_Time() + 1.0,
             bs->_f2808 = v4,
-            BotChooseNBGItem((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, v3, 500.0)) )
+            sub_10030260((int)bs->goalstate, (int)bs->origin, (int)bs->chat_lines, v2, v3, 500.0)) )
       {
-        BotResetLastAvoidReach((int)bs->movestate);
+        sub_10034B20((int)bs->movestate);
         bs->_f2796 = AAS_Time() + 5.0;
-        AIEnter_Battle_NBG(a1);
+        sub_10020AD0(a1);
         return 0;
       }
       else
       {
-        BotBattleUseItems(a1);
+        sub_10021500(a1);
         BotEntityInfo(a1, (int)bs->movestate);
         qmemcpy(v10, (const void *)BotMoveToGoal((int)v11, (int)bs->movestate, v3, v2), sizeof(v10));
         if ( v10[0] )
         {
-          BotResetAvoidReach((int)bs->movestate);
+          sub_10034AF0((int)bs->movestate);
           *(int *)&bs->_f2792 = 0;
         }
         BotCheckActivateGoal(a1, v10, 0);
         sub_10020FE0(a1, (int)bs->weaponweights);
-        BotChooseBestFightWeapon((int)bs->weaponweights);
+        sub_10035500((int)bs->weaponweights);
         if ( (v10[5] & 1) != 0 )
         {
           v5 = v10[10];
@@ -18579,66 +18574,66 @@ LABEL_10:
           v4b = (float)Characteristic_BFloat(bs->character, 4, 0.0, 1.0);
           if ( v4b <= 0.3 )
           {
-            if ( BotMovementViewTarget((int)bs->movestate, v3, v7, v9) )
+            if ( sub_10031270((int)bs->movestate, v3, v7, v9) )
             {
               v8[0] = v9[0] - bs->origin[0];
               v8[1] = v9[1] - bs->origin[1];
               v8[2] = v9[2] - bs->origin[2];
-              vectoangles(v8, a1 + 4236);
+              sub_10041790(v8, a1 + 4236);
             }
             else
             {
-              vectoangles(&v10[6], a1 + 4236);
+              sub_10041790(&v10[6], a1 + 4236);
             }
             *(float *)&bs->_i4244 = *(float *)&bs->_i4244 * 0.5;
-            BotChangeViewAngles(a1);
+            sub_10029150(a1);
           }
           else
           {
-            BotAimAtEnemy(a1);
+            sub_10023CE0(a1);
           }
         }
-        BotCheckAttack(a1);
+        sub_10024590(a1);
         return 1;
       }
     }
     else
     {
-      BotChangeViewAngles(a1);
+      sub_10029150(a1);
       return 1;
     }
   }
 }
-// 10001023: using guessed type _DWORD __cdecl BotCheckAttack(_DWORD);
-// 1000103C: using guessed type _DWORD __cdecl BotChooseBestFightWeapon(_DWORD);
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
-// 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
+// 10001023: using guessed type _DWORD __cdecl sub_10024590(_DWORD);
+// 1000103C: using guessed type _DWORD __cdecl sub_10035500(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
+// 100011F9: using guessed type _DWORD __cdecl sub_1002FE30(_DWORD);
 // 100012B2: using guessed type _DWORD __cdecl sub_10020FE0(_DWORD, _DWORD);
-// 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
-// 10001578: using guessed type _DWORD __cdecl BotIntermission(_DWORD);
-// 10001587: using guessed type _DWORD __cdecl BotMovementViewTarget(_DWORD, _DWORD, _DWORD, _DWORD);
-// 10001712: using guessed type _DWORD __cdecl EntityDeadOrDying(_DWORD);
+// 10001352: using guessed type _DWORD __cdecl sub_10021500(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
+// 10001578: using guessed type _DWORD __cdecl sub_100216F0(_DWORD);
+// 10001587: using guessed type _DWORD __cdecl sub_10031270(_DWORD, _DWORD, _DWORD, _DWORD);
+// 10001712: using guessed type _DWORD __cdecl sub_10021710(_DWORD);
 // 10001749: using guessed type _DWORD __cdecl AIEnter_Battle_Chase(_DWORD);
 // 100017B7: using guessed type _DWORD __cdecl BotEntityInfo(_DWORD, _DWORD);
-// 100017D5: using guessed type _DWORD __cdecl BotUpdateBattleInventory(_DWORD, _DWORD);
-// 10001901: using guessed type _DWORD __cdecl BotCTFRetreatGoals(_DWORD);
-// 10001A50: using guessed type _DWORD __cdecl BotIsObserver(_DWORD);
-// 10001C7B: using guessed type _DWORD __cdecl BotAimAtEnemy(_DWORD);
-// 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
-// 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
+// 100017D5: using guessed type _DWORD __cdecl sub_10021290(_DWORD, _DWORD);
+// 10001901: using guessed type _DWORD __cdecl sub_100263D0(_DWORD);
+// 10001A50: using guessed type _DWORD __cdecl sub_100216D0(_DWORD);
+// 10001C7B: using guessed type _DWORD __cdecl sub_10023CE0(_DWORD);
+// 10001CF8: using guessed type _DWORD __cdecl sub_10034B20(_DWORD);
+// 10001D02: using guessed type _DWORD __cdecl sub_10020AD0(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
 // 10001DF7: using guessed type _DWORD __cdecl BotCheckActivateGoal(_DWORD, _DWORD, _DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
-// 10001F73: using guessed type _DWORD __cdecl BotWantsToChase(_DWORD);
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
+// 10001F73: using guessed type _DWORD __cdecl sub_10022930(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 100643AC: using guessed type int libvar_ctf;
 // 10064458: using guessed type int libvar_usehook;
 // 10020600: using guessed type char var_7C[124];
 // 10020600: using guessed type int var_128[12];
 
 //----- (10020AD0) --------------------------------------------------------
-int __cdecl AIEnter_Battle_NBG(int a1)
+int __cdecl sub_10020AD0(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int result; // eax
@@ -18660,17 +18655,17 @@ int __cdecl AINode_Battle_NBG(int a1)
   int entinfo[31];        // [esp+0x4c] BYREF — copy of AAS entity info for enemy
   char v14[124];          // [esp+0xf4] BYREF — temp buffer passed to AAS_EntityInfo
 
-  if ( BotIsObserver(a1) )
+  if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
     return 0;
   }
-  if ( BotIntermission(a1) )
+  if ( sub_100216F0(a1) )
   {
     AIEnter_Intermission(a1);
     return 0;
   }
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
   {
     AIEnter_Respawn(a1);
     return 0;
@@ -18681,7 +18676,7 @@ int __cdecl AINode_Battle_NBG(int a1)
     return 0;
   }
   qmemcpy(entinfo, AAS_EntityInfo(v14, bs->enemy), sizeof(entinfo));
-  if ( EntityDeadOrDying((_DWORD *)entinfo) )
+  if ( sub_10021710((_DWORD *)entinfo) )
   {
     AIEnter_Seek_NBG(a1);
     return 0;
@@ -18689,7 +18684,7 @@ int __cdecl AINode_Battle_NBG(int a1)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0 )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump(a1) )
+  if ( libvar_rocketjump->value != 0.0 && sub_10022990(a1) )
     v8 |= 0x1000u;
   areanum = AAS_PointAreaNum((float *)&entinfo[4]);
   if ( areanum && AAS_AreaReachability(areanum) )
@@ -18702,7 +18697,7 @@ int __cdecl AINode_Battle_NBG(int a1)
   topgoal = BotGetTopGoal((int)bs->goalstate);
   if ( topgoal )
   {
-    if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
+    if ( sub_10030600(bs->origin, (float *)topgoal) )
     {
       if ( libvar_runes->value != 0.0 )
         sub_100262C0((_DWORD *)a1, topgoal);
@@ -18715,25 +18710,25 @@ int __cdecl AINode_Battle_NBG(int a1)
   }
   if ( AAS_Time() > bs->_f2796 )
   {
-    BotPopGoal((int)bs->goalstate);
+    sub_1002FE00((int)bs->goalstate);
     if ( BotGetTopGoal((int)bs->goalstate) )
       AIEnter_Battle_Retreat(a1);
     else
       AIEnter_Battle_Fight(a1);
     return 0;
   }
-  BotBattleUseItems(a1);
+  sub_10021500(a1);
   BotEntityInfo(a1, (int)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, topgoal, v8), sizeof(v15));
   if ( v15[0] )
   {
-    BotResetAvoidReach((int)bs->movestate);
+    sub_10034AF0((int)bs->movestate);
     *(int *)&bs->_f2796 = 0;
   }
   BotCheckActivateGoal(a1, v15, 0);
   sub_10020FE0(a1, (int)bs->weaponweights);
-  BotUpdateBattleInventory(a1, bs->enemy);
-  BotChooseBestFightWeapon((int)bs->weaponweights);
+  sub_10021290(a1, bs->enemy);
+  sub_10035500((int)bs->weaponweights);
   if ( (v15[5] & 1) != 0 )
   {
     bs->_i4236 = v15[9];
@@ -18742,11 +18737,11 @@ int __cdecl AINode_Battle_NBG(int a1)
   }
   else
   {
-    BotAimAtEnemy(a1);
+    sub_10023CE0(a1);
   }
-  BotCheckAttack(a1);
+  sub_10024590(a1);
   if ( (v15[5] & 8) == 0 )
-    BotChangeViewAngles(a1);
+    sub_10029150(a1);
   return 1;
 }
 
@@ -18802,7 +18797,7 @@ char *__cdecl sub_10020FE0(int a1, _DWORD *a2)
 
   *a2 = bs->client;
   a2[1] = (int)bs->chat_lines;
-  result = AAS_ModelFromIndex(bs->_i120);
+  result = sub_1000D960(bs->_i120);
   a2[4] = result;
   return result;
 }
@@ -18825,7 +18820,7 @@ void __cdecl sub_10021020(int a1)
   v1 = *(_WORD *)(a1 + 170);
   if ( v1 )
   {
-    v2 = AAS_ImageFromIndex(v1);
+    v2 = sub_1000DA20(v1);
     if ( _strcmpi(v2, aPQuad) )
     {
       if ( _strcmpi(v2, aPInvulnerabili) )
@@ -18869,7 +18864,7 @@ void __cdecl sub_10021020(int a1)
   v7 = *(_WORD *)(a1 + 160);
   if ( v7 )
   {
-    v8 = AAS_ImageFromIndex(v7);
+    v8 = sub_1000DA20(v7);
     if ( !_strcmpi(v8, aIPowershield) )
       *(float *)(a1 + 2828) = AAS_Time();
     v10 = *(float *)(a1 + 2828);
@@ -18888,7 +18883,7 @@ void __cdecl sub_10021020(int a1)
 }
 
 //----- (10021290) --------------------------------------------------------
-int __cdecl BotUpdateBattleInventory(int a1, int a2)
+int __cdecl sub_10021290(int a1, int a2)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // eax
@@ -18969,7 +18964,7 @@ int __cdecl BotUpdateBattleInventory(int a1, int a2)
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10021500) --------------------------------------------------------
-int __cdecl BotBattleUseItems(_DWORD *a1)
+int __cdecl sub_10021500(_DWORD *a1)
 {
   int v1;
   int result; // eax
@@ -19008,7 +19003,7 @@ _DWORD *__cdecl sub_100215E0(_DWORD *a1)
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
 
 //----- (10021650) --------------------------------------------------------
-int __cdecl BotCTFCarryingFlag(int a1)
+int __cdecl sub_10021650(int a1)
 {
   if ( libvar_ctf->value == 0.0 )
     return 0;
@@ -19019,7 +19014,7 @@ int __cdecl BotCTFCarryingFlag(int a1)
 // 100643AC: using guessed type int libvar_ctf;
 
 //----- (100216A0) --------------------------------------------------------
-BOOL __cdecl BotIsDead(int a1)
+BOOL __cdecl sub_100216A0(int a1)
 {
   int v1; // eax
 
@@ -19028,19 +19023,19 @@ BOOL __cdecl BotIsDead(int a1)
 }
 
 //----- (100216D0) --------------------------------------------------------
-BOOL __cdecl BotIsObserver(int a1)
+BOOL __cdecl sub_100216D0(int a1)
 {
   return *(_DWORD *)(a1 + 12) == 1;
 }
 
 //----- (100216F0) --------------------------------------------------------
-BOOL __cdecl BotIntermission(int a1)
+BOOL __cdecl sub_100216F0(int a1)
 {
   return *(_DWORD *)(a1 + 12) == 4;
 }
 
 //----- (10021710) --------------------------------------------------------
-BOOL __cdecl EntityDeadOrDying(_DWORD *a1)
+BOOL __cdecl sub_10021710(_DWORD *a1)
 {
   int v1; // eax
   int v2; // ecx
@@ -19062,7 +19057,7 @@ BOOL __cdecl EntityDeadOrDying(_DWORD *a1)
 // 10064028: using guessed type int maxclients;
 
 //----- (10021780) --------------------------------------------------------
-BOOL __cdecl EntityIsShooting(int a1)
+BOOL __cdecl sub_10021780(int a1)
 {
   int v1; // eax
   BOOL result; // eax
@@ -19078,7 +19073,7 @@ BOOL __cdecl EntityIsShooting(int a1)
 }
 
 //----- (100217C0) --------------------------------------------------------
-_BYTE *__cdecl stristr(_BYTE *a1, char *a2)
+_BYTE *__cdecl sub_100217C0(_BYTE *a1, char *a2)
 {
   _BYTE *v2; // edi
   char *v3; // ecx
@@ -19124,7 +19119,7 @@ _BYTE *__cdecl stristr(_BYTE *a1, char *a2)
 }
 
 //----- (10021860) --------------------------------------------------------
-char *__cdecl EasyClientName(int a1, char *a2)
+char *__cdecl sub_10021860(int a1, char *a2)
 {
   char v2; // cl
   char *p_Str; // eax
@@ -19198,7 +19193,7 @@ char *__cdecl EasyClientName(int a1, char *a2)
 // 10021860: using guessed type char Src[126];
 
 //----- (10021A90) --------------------------------------------------------
-int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3)
+int __cdecl sub_10021A90(const char *a1, _DWORD *a2, int a3)
 {
   int v3; // edx
 
@@ -19222,7 +19217,7 @@ int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3)
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
 //----- (10021B50) --------------------------------------------------------
-int __cdecl BotFindWayPoint(int a1, char *String2)
+int __cdecl sub_10021B50(int a1, char *String2)
 {
   int v2; // esi
 
@@ -19239,7 +19234,7 @@ int __cdecl BotFindWayPoint(int a1, char *String2)
 }
 
 //----- (10021B90) --------------------------------------------------------
-int __cdecl BotFreeWaypoints(int a1)
+int __cdecl sub_10021B90(int a1)
 {
   int result; // eax
   int v2; // esi
@@ -19260,7 +19255,7 @@ int __cdecl BotFreeWaypoints(int a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (10021BC0) --------------------------------------------------------
-BOOL __cdecl BotValidChatPosition(int a1)
+BOOL __cdecl sub_10021BC0(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // ecx
@@ -19275,7 +19270,7 @@ BOOL __cdecl BotValidChatPosition(int a1)
   /* v11/v12/v13 form the bi_PointContents test point: X/Y as raw int copies,
    * Z as float bit-pattern via v13.  IDA originally had all three as separate
    * locals; restored here so PointContents reads valid X/Y/Z (was reading
-   * stack garbage for Y/Z, missing lava/slime/water and breaking BotValidChatPosition). */
+   * stack garbage for Y/Z, missing lava/slime/water and breaking sub_10021BC0). */
   int v11; // [esp+4h] [ebp-90h] BYREF
   int v12; // [esp+8h] [ebp-8Ch]
   float v13; // [esp+Ch] [ebp-88h]
@@ -19286,7 +19281,7 @@ BOOL __cdecl BotValidChatPosition(int a1)
   _DWORD v17[3]; // [esp+34h] [ebp-60h] BYREF
   int v18[21]; // [esp+40h] [ebp-54h] BYREF
 
-  if ( BotIsDead(a1) )
+  if ( sub_100216A0(a1) )
     return 1;
   if ( (*(unsigned char *)&bs->_i40 & 4) == 0 )
     return 0;
@@ -19323,12 +19318,12 @@ BOOL __cdecl BotValidChatPosition(int a1)
 }
 // 10021C29: variable 'v4' is possibly undefined
 // 10021C68: variable 'v7' is possibly undefined
-// 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
+// 10001FB4: using guessed type _DWORD __cdecl sub_100216A0(_DWORD);
 // 10021BC0: using guessed type _DWORD var_6C[3];
 // 10021BC0: using guessed type _DWORD var_60[3];
 
 //----- (10021D80) --------------------------------------------------------
-BOOL __cdecl BotChat_EnterGame(int a1)
+BOOL __cdecl sub_10021D80(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
@@ -19350,22 +19345,22 @@ BOOL __cdecl BotChat_EnterGame(int a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  result = BotValidChatPosition(a1);
+  result = sub_10021BC0(a1);
   if ( result )
   {
-    v3 = EasyClientName(bs->client, v5);
+    v3 = sub_10021860(bs->client, v5);
     BotInitialChat((int)bs->chatstate, aEnterGame, v3, (char *)0);
     return 1;
   }
   return result;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 10021D80: using guessed type char var_20[32];
 
 //----- (10021E90) --------------------------------------------------------
-int __cdecl BotChat_ExitGame(int a1)
+int __cdecl sub_10021E90(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
@@ -19382,17 +19377,17 @@ int __cdecl BotChat_ExitGame(int a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
+  v3 = sub_10021860(bs->client, v5);
   BotInitialChat((int)bs->chatstate, aExitGame, v3, (char *)0);
   return 1;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 10021E90: using guessed type char var_20[32];
 
 //----- (10021F80) --------------------------------------------------------
-int __cdecl BotChat_StartLevel(int a1)
+int __cdecl sub_10021F80(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
@@ -19409,17 +19404,17 @@ int __cdecl BotChat_StartLevel(int a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
+  v3 = sub_10021860(bs->client, v5);
   BotInitialChat((int)bs->chatstate, aStartLevel, v3, (char *)0);
   return 1;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 10021F80: using guessed type char var_20[32];
 
 //----- (10022070) --------------------------------------------------------
-int __cdecl BotChat_EndLevel(int a1)
+int __cdecl sub_10022070(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
@@ -19436,17 +19431,17 @@ int __cdecl BotChat_EndLevel(int a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
+  v3 = sub_10021860(bs->client, v5);
   BotInitialChat((int)bs->chatstate, aEndLevel, v3, (char *)0);
   return 1;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 10022070: using guessed type char var_20[32];
 
 //----- (10022160) --------------------------------------------------------
-int __cdecl BotChat_Death(int *a1)
+int __cdecl sub_10022160(int *a1)
 {
   double v1; // st7
   int v4; // eax
@@ -19466,7 +19461,7 @@ int __cdecl BotChat_Death(int *a1)
   }
   v4 = a1[1049];
   if ( v4 )
-    EasyClientName(v4 - 1, v7);
+    sub_10021860(v4 - 1, v7);
   else
     v7[0] = byte_1006294C;
   if ( a1[693] == 12 )
@@ -19487,13 +19482,13 @@ int __cdecl BotChat_Death(int *a1)
   }
   return 1;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 10022160: using guessed type _BYTE var_20[32];
 
 //----- (100222E0) --------------------------------------------------------
-BOOL __cdecl BotChat_Kill(int *a1)
+BOOL __cdecl sub_100222E0(int *a1)
 {
   double v1; // st7
   BOOL result; // eax
@@ -19512,12 +19507,12 @@ BOOL __cdecl BotChat_Kill(int *a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
-  result = BotValidChatPosition((int)a1);
+  result = sub_10021BC0((int)a1);
   if ( result )
   {
     v4 = a1[1049];
     if ( v4 )
-      EasyClientName(v4 - 1, v7);
+      sub_10021860(v4 - 1, v7);
     else
       v7[0] = byte_1006294C;
     if ( a1[692] == 13 )
@@ -19539,13 +19534,13 @@ BOOL __cdecl BotChat_Kill(int *a1)
   }
   return result;
 }
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
 // 1006447C: using guessed type int libvar_fastchat;
 // 100222E0: using guessed type _BYTE var_20[32];
 
 //----- (10022470) --------------------------------------------------------
-int __cdecl BotChat_Random(int a1)
+int __cdecl sub_10022470(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
@@ -19570,7 +19565,7 @@ int __cdecl BotChat_Random(int a1)
   /* IDA dropped fstps after BFloat (characteristic 21 = "random chat
    * probability"); v6 should be the bfloat result, not a copy of
    * libvar_nochat (which is 0 — making the rand check always true and
-   * turning every BotChat_Random into return 0 on the !fastchat branch). */
+   * turning every sub_10022470 into return 0 on the !fastchat branch). */
   v6 = (float)Characteristic_BFloat(bs->character, 21, 0.0, 1.0);
   if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509f )
     return 0;
@@ -19579,7 +19574,7 @@ int __cdecl BotChat_Random(int a1)
     if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 || (double)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
       return 0;
   }
-  if ( !BotValidChatPosition(a1) )
+  if ( !sub_10021BC0(a1) )
     return 0;
   v4 = (double)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
@@ -19595,7 +19590,7 @@ int __cdecl BotChat_Random(int a1)
 // 1006447C: using guessed type int libvar_fastchat;
 
 //----- (10022650) --------------------------------------------------------
-double __cdecl BotChatTime(int a1)
+double __cdecl sub_10022650(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // [esp+4h] [ebp-4h]
@@ -19603,15 +19598,15 @@ double __cdecl BotChatTime(int a1)
   unsigned int slen;
 
   v2 = Characteristic_BInteger(bs->character, 14, 1, 4000);
-  slen = BotChatLength((int)bs->chatstate);
+  slen = sub_1002EA50((int)bs->chatstate);
   dur = (double)(int)slen * 30.0 / (double)v2;
   return dur;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
-// 10001FD2: using guessed type _DWORD __cdecl BotChatLength(_DWORD);
+// 10001FD2: using guessed type _DWORD __cdecl sub_1002EA50(_DWORD);
 
 //----- (100226C0) --------------------------------------------------------
-double __cdecl BotAggression(int *a1)
+double __cdecl sub_100226C0(int *a1)
 {
   int v2; // ecx
 
@@ -19647,24 +19642,24 @@ double __cdecl BotAggression(int *a1)
 }
 
 //----- (100228C0) --------------------------------------------------------
-BOOL __cdecl BotWantsToRetreat(int *a1)
+BOOL __cdecl sub_100228C0(int *a1)
 {
-  if ( BotCTFCarryingFlag(a1) )
+  if ( sub_10021650(a1) )
     return 1;
   if ( a1[1065] == 4 )
     return 1;
-  return BotAggression(a1) < 50.0;
+  return sub_100226C0(a1) < 50.0;
 }
-// 100015E6: using guessed type _DWORD __cdecl BotCTFCarryingFlag(_DWORD);
+// 100015E6: using guessed type _DWORD __cdecl sub_10021650(_DWORD);
 
 //----- (10022930) --------------------------------------------------------
-BOOL __cdecl BotWantsToChase(int *a1)
+BOOL __cdecl sub_10022930(int *a1)
 {
-  return BotAggression(a1) > 50.0;
+  return sub_100226C0(a1) > 50.0;
 }
 
 //----- (10022990) --------------------------------------------------------
-BOOL BotCanAndWantsToRocketJump(int *a1)
+BOOL sub_10022990(int *a1)
 {
   int v3; // ecx
 
@@ -19685,7 +19680,7 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
 }
 
 //----- (10022A60) --------------------------------------------------------
-float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
+float *__cdecl sub_10022A60(_DWORD *a1, float *a2)
 {
   int *v2; // ebp
   float v3; // ecx
@@ -19792,7 +19787,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 // 10022A60: using guessed type char var_54[84];
 
 //----- (10022E10) --------------------------------------------------------
-void *__cdecl BotAttackMove(void *a1, int a2, int a3)
+void *__cdecl sub_10022E10(void *a1, int a2, int a3)
 {
   float v3; // ecx
   float v4; // edx
@@ -20096,7 +20091,7 @@ BOOL __cdecl BotSameTeam(int a1, int a2)
 // 10064488: using guessed type int libvar_teamplay_shell;
 
 //----- (100238F0) --------------------------------------------------------
-int __cdecl BotNumTeamMates(int a1)
+int __cdecl sub_100238F0(int a1)
 {
   int v1; // ebp
   int v2; // esi
@@ -20124,7 +20119,7 @@ int __cdecl BotNumTeamMates(int a1)
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10023970) --------------------------------------------------------
-int __cdecl BotFindEnemy(int a1)
+int __cdecl sub_10023970(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v1; // eax
@@ -20158,7 +20153,7 @@ int __cdecl BotFindEnemy(int a1)
   for ( i = v19; ; ++i )
   {
     qmemcpy(v18, AAS_EntityInfo(v20, *i), sizeof(v18));
-    if ( !EntityDeadOrDying(v18) && v18[3] != bs->entitynum )
+    if ( !sub_10021710(v18) && v18[3] != bs->entitynum )
     {
       dir[0] = *(float *)&v18[4] - bs->origin[0];
       dir[1] = *(float *)&v18[5] - bs->origin[1];
@@ -20176,8 +20171,8 @@ int __cdecl BotFindEnemy(int a1)
           v6 = v8 <= 810.0 ? v8 : 810.0;
           v9 = 360.0 - (270.0 - v6 * 0.33333334);
         }
-        vectoangles(dir, (int)v17);
-        if ( InFieldOfVision((int)bs->enemyorigin, v9, (int)v17) && !BotSameTeam(a1, *i) )
+        sub_10041790(dir, (int)v17);
+        if ( sub_1000B640((int)bs->enemyorigin, v9, (int)v17) && !BotSameTeam(a1, *i) )
         {
           if ( v5 && v8 <= 300.0 )
             break;
@@ -20185,16 +20180,16 @@ int __cdecl BotFindEnemy(int a1)
           {
             if ( v8 <= 300.0 )
               break;
-            if ( EntityIsShooting((int)v18) )
+            if ( sub_10021780((int)v18) )
               break;
             dir[0] = bs->origin[0] - *(float *)&v18[4];
             dir[1] = bs->origin[1] - *(float *)&v18[5];
             dir[2] = bs->origin[2] - *(float *)&v18[6];
-            vectoangles(dir, (int)v17);
-            if ( InFieldOfVision((int)&v18[7], 160.0, (int)v17) )
+            sub_10041790(dir, (int)v17);
+            if ( sub_1000B640((int)&v18[7], 160.0, (int)v17) )
               break;
-            BotUpdateBattleInventory(a1, *i);
-            if ( !BotWantsToRetreat(a1) )
+            sub_10021290(a1, *i);
+            if ( !sub_100228C0(a1) )
               break;
           }
         }
@@ -20208,15 +20203,15 @@ int __cdecl BotFindEnemy(int a1)
   return 1;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
-// 10001712: using guessed type _DWORD __cdecl EntityDeadOrDying(_DWORD);
-// 100017D5: using guessed type _DWORD __cdecl BotUpdateBattleInventory(_DWORD, _DWORD);
+// 10001712: using guessed type _DWORD __cdecl sub_10021710(_DWORD);
+// 100017D5: using guessed type _DWORD __cdecl sub_10021290(_DWORD, _DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
-// 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
+// 10001F96: using guessed type _DWORD __cdecl sub_100228C0(_DWORD);
 // 10023970: using guessed type char var_7C[124];
 
 //----- (10023CE0) --------------------------------------------------------
-void BotAimAtEnemy(int a1)
+void sub_10023CE0(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // eax
@@ -20306,7 +20301,7 @@ void BotAimAtEnemy(int a1)
       v34 = v34 + 16.0;
     if ( *(float *)(v3 + 268) != 0.0 && v27 > 0.4 )
     {
-      /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
+      /* IDA dropped the Y/Z component stores; restored from sub_10023CE0 disasm
        * at 0x10023a3a-0x10023a65 (three fld/fsub/fstp triples) and the second
        * VectorNormalize block at 0x10023a... — see binary */
       v29[0] = v46[4] - bs->origin[0];
@@ -20371,7 +20366,7 @@ void BotAimAtEnemy(int a1)
     v34 = ((double)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
-     * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
+     * before sub_100018DE/sub_10001E9C in sub_10023CE0 tail */
     v29[0] = *(float *)&v32 - bs->eye[0];
     v29[1] = v33 - bs->eye[1];
     v29[2] = v34 - bs->eye[2];
@@ -20390,7 +20385,7 @@ void BotAimAtEnemy(int a1)
       }
       while ( v17 );
     }
-    vectoangles(v29, a1 + 4236);
+    sub_10041790(v29, a1 + 4236);
     v18 = rand();
     v25 = ((double)(v18 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509f - 0.5)
         * (*(float *)(v3 + 264)
@@ -20409,7 +20404,7 @@ void BotAimAtEnemy(int a1)
     *(float *)&bs->_i4240 = v26;
     v26 = AngleMod(v26);
     *(float *)&bs->_i4240 = v26;
-    BotChangeViewAngles(a1);
+    sub_10029150(a1);
     if ( v35 > 0.8 )
     {
       v20 = bs->_i4236;
@@ -20417,19 +20412,19 @@ void BotAimAtEnemy(int a1)
       v21 = bs->client;
       *(int *)&bs->enemyorigin[0] = v20;
       *(int *)&bs->enemyorigin[2] = bs->_i4244;
-      EA_View(v21, (int)bs->enemyorigin);
+      sub_100375A0(v21, (int)bs->enemyorigin);
     }
   }
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl sub_10029150(_DWORD);
 // 1000176C: using guessed type _DWORD __cdecl sub_100354B0(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
+// 1000193D: using guessed type _DWORD __cdecl sub_100375A0(_DWORD, _DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (10024590) --------------------------------------------------------
-void BotCheckAttack(int a1)
+void sub_10024590(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // eax
@@ -20534,7 +20529,7 @@ void BotCheckAttack(int a1)
 // 10064028: using guessed type int maxclients;
 
 //----- (10024A10) --------------------------------------------------------
-int *__cdecl BotEntityToActivate(int a1)
+int *__cdecl sub_10024A10(int a1)
 {
   char *v1; // eax
   int *v2; // edi
@@ -20555,7 +20550,7 @@ int *__cdecl BotEntityToActivate(int a1)
   int v18[31]; // [esp+68h] [ebp-7Ch] BYREF
 
   qmemcpy(v18, AAS_EntityInfo(v18, a1), sizeof(v18));
-  v1 = AAS_ModelFromIndex(v18[23]);
+  v1 = sub_1000D960(v18[23]);
   v2 = (int *)dword_10064398;
   v3 = v1;
   if ( !dword_10064398 )
@@ -20677,7 +20672,7 @@ LABEL_38:
 // 10024A10: using guessed type int var_CC[10];
 
 //----- (10024FD0) --------------------------------------------------------
-int __cdecl BotSetMovedir(int a1, int a2)
+int __cdecl sub_10024FD0(int a1, int a2)
 {
   int result; // eax
 
@@ -20713,7 +20708,7 @@ int __cdecl BotSetMovedir(int a1, int a2)
 //----- (10025070) --------------------------------------------------------
 /* Debug visualizer for func_button entities.  Restored from disassembly
  * 0x10025070-0x1002545d.  IDA Pro skipped this function entirely (gap
- * between BotCheckAttack and sub_10025560); RetDec emitted it as
+ * between sub_10024590 and sub_10025560); RetDec emitted it as
  * function_10025070 but in an unusable register-rewriting form.
  *
  * Walks the BSP entity linked list at dword_10064398, filters by
@@ -20784,7 +20779,7 @@ void __cdecl sub_10025070(void)
       angles[0] = 0.0f;
       angles[1] = (float)angle_yaw;
       angles[2] = 0.0f;
-      BotSetMovedir((int)angles, (int)forward);
+      sub_10024FD0((int)angles, (int)forward);
 
       /* Midpoint and "self" half-extent projected onto the press axis. */
       midpoint[0] = (mins[0] + maxs[0]) * 0.5f;
@@ -20945,7 +20940,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
   qmemcpy(v77, AAS_EntityInfo(v77, a2[3]), sizeof(v77));
   if ( v77[22] != 3 || !a3 )
     goto LABEL_37;
-  v5 = BotEntityToActivate(v77[3]);
+  v5 = sub_10024A10(v77[3]);
   v6 = v5;
   if ( v5 )
     v7 = (const char *)AAS_ValueForBSPEpairKey(v5, aClassname);
@@ -20966,7 +20961,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
       *(float *)&v50 = *(float *)&v38 - bs->origin[0];
       v50[1] = *(float *)&v39 - bs->origin[1];
       v50[2] = *(float *)&v40 - bs->origin[2];
-      vectoangles(&v50, a2 + 9);
+      sub_10041790(&v50, a2 + 9);
       v29 = a2[5];
       LOBYTE(v29) = v29 | 1;
       a2[5] = v29;
@@ -20985,7 +20980,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
     AAS_BSPModelMinsMaxsOrigin((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
     FloatForKey(v6, aLip);
     v56 = 0;
-    BotSetMovedir((int)&v56, (int)&v50);
+    sub_10024FD0((int)&v56, (int)&v50);
     v69 = v41 - v44;
     v70 = v42 - v45;
     v71 = v43 - v46;
@@ -21001,7 +20996,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
       *(float *)&v50 = *(float *)&v38 - bs->origin[0];
       v50[1] = *(float *)&v39 - bs->origin[1];
       v50[2] = *(float *)&v40 - bs->origin[2];
-      vectoangles(&v50, a2 + 9);
+      sub_10041790(&v50, a2 + 9);
       a2[5] |= 1u;
       EA_Use(bs->client, aBlaster);
       return (int (__cdecl *)(int))EA_Attack(bs->client);
@@ -21064,7 +21059,7 @@ LABEL_32:
         *(_DWORD *)(v13 + 2792) = 0;
       return result;
     }
-    return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
+    return (int (__cdecl *)(int))sub_1001EF00(v13);
   }
   if ( strcmp(v7, aTriggerMultipl) && strcmp(v7, aTriggerOnce) )
   {
@@ -21166,7 +21161,7 @@ LABEL_37:
       }
       goto LABEL_32;
     }
-    return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
+    return (int (__cdecl *)(int))sub_1001EF00(v13);
   }
   return result;
 }
@@ -21178,7 +21173,7 @@ LABEL_37:
 // 10001861: using guessed type _DWORD __cdecl AAS_DropToFloor(_DWORD, _DWORD, _DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001992: using guessed type _DWORD __cdecl EA_Attack(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 // 1006405C: using guessed type int libvar_sv_step;
 
 //----- (100262C0) --------------------------------------------------------
@@ -21210,12 +21205,12 @@ void __cdecl sub_100262C0(_DWORD *a1, int a2)
 // 1006449C: using guessed type int dword_1006449C;
 
 //----- (100263D0) --------------------------------------------------------
-void __cdecl BotCTFRetreatGoals(int a1)
+void __cdecl sub_100263D0(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v1; // st7
 
-  if ( BotCTFCarryingFlag(a1) )
+  if ( sub_10021650(a1) )
   {
     if ( bs->ltgtype != 5 )
     {
@@ -21226,10 +21221,10 @@ void __cdecl BotCTFRetreatGoals(int a1)
     }
   }
 }
-// 100015E6: using guessed type _DWORD __cdecl BotCTFCarryingFlag(_DWORD);
+// 100015E6: using guessed type _DWORD __cdecl sub_10021650(_DWORD);
 
 //----- (10026440) --------------------------------------------------------
-void __cdecl BotCTFSeekGoals(int a1)
+void __cdecl sub_10026440(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v2; // st7
@@ -21240,7 +21235,7 @@ void __cdecl BotCTFSeekGoals(int a1)
   double v7; // st7
   float v8; // [esp+8h] [ebp+4h]
 
-  if ( BotCTFCarryingFlag(a1) )
+  if ( sub_10021650(a1) )
   {
     if ( bs->ltgtype != 5 )
     {
@@ -21253,7 +21248,7 @@ void __cdecl BotCTFSeekGoals(int a1)
   else if ( AAS_Time() >= bs->_f2868 )
   {
     v3 = bs->ltgtype;
-    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)a1) >= 50.0 )
+    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && sub_100226C0((int *)a1) >= 50.0 )
     {
       v4 = rand();
       v8 = (double)(v4 & 0x7FFF) * 0.000030518509f + (double)(v4 & 0x7FFF) * 0.000030518509f;
@@ -21284,12 +21279,12 @@ void __cdecl BotCTFSeekGoals(int a1)
   }
 }
 // 100011FE: using guessed type _DWORD __cdecl BotCTFTeam(_DWORD);
-// 100015E6: using guessed type _DWORD __cdecl BotCTFCarryingFlag(_DWORD);
+// 100015E6: using guessed type _DWORD __cdecl sub_10021650(_DWORD);
 // 100643EC: using guessed type int dword_100643EC;
 // 1006442C: using guessed type int dword_1006442C;
 
 //----- (10026690) --------------------------------------------------------
-BOOL TeamPlayIsOn()
+BOOL sub_10026690()
 {
   return ((__int64)libvar_dmflags->value & 0xC0) != 0
       || libvar_ctf->value != 0.0
@@ -21300,20 +21295,20 @@ BOOL TeamPlayIsOn()
 // 10064470: using guessed type int libvar_dmflags;
 
 //----- (10026700) --------------------------------------------------------
-BOOL __cdecl BotGetItemTeamGoal(char *String1, int a2)
+BOOL __cdecl sub_10026700(char *String1, int a2)
 {
-  return strlen(String1) && BotGetLevelItemGoal(-1, String1, a2) > 0;
+  return strlen(String1) && sub_1002F890(-1, String1, a2) > 0;
 }
 // 10026728: conditional instruction was optimized away because eax.4<1
 
 //----- (10026770) --------------------------------------------------------
-int __cdecl BotGetMessageTeamGoal(int a1, char *String2, int a3)
+int __cdecl sub_10026770(int a1, char *String2, int a3)
 {
   int v4; // eax
 
-  if ( BotGetItemTeamGoal(String2, a3) )
+  if ( sub_10026700(String2, a3) )
     return 1;
-  v4 = BotFindWayPoint(*(_DWORD *)(a1 + 4544), String2);
+  v4 = sub_10021B50(*(_DWORD *)(a1 + 4544), String2);
   if ( !v4 )
     return 0;
   qmemcpy((void *)a3, (const void *)(v4 + 4), 0x38u);
@@ -21321,7 +21316,7 @@ int __cdecl BotGetMessageTeamGoal(int a1, char *String2, int a3)
 }
 
 //----- (100267E0) --------------------------------------------------------
-double __cdecl BotGetTime(int a1)
+double __cdecl sub_100267E0(int a1)
 {
   double v1; // st7
   float v3; // [esp+0h] [ebp-18Ch]
@@ -21376,7 +21371,7 @@ LABEL_5:
     }
     else
     {
-      for ( i = 0; !stristr((_BYTE *)(i + dword_100643A8), String2); i += 144 )
+      for ( i = 0; !sub_100217C0((_BYTE *)(i + dword_100643A8), String2); i += 144 )
       {
         if ( ++v4 >= maxclients )
           return -1;
@@ -21402,7 +21397,7 @@ LABEL_5:
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10026990) --------------------------------------------------------
-int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2)
+int __cdecl sub_10026990(_DWORD *a1, int a2)
 {
   int v2; // esi
   int v3; // edi
@@ -21423,16 +21418,16 @@ int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2)
     if ( !BotFindMatch(Destination, &v9, 64) )
     {
       EA_SayTeam(a1[1], aWhatDoYouSay);
-      BotFreeWaypoints(v2);
+      sub_10021B90(v2);
       a1[1137] = 0;
       return 0;
     }
     BotMatchVariable((int)&v9, 4, Destination);
-    if ( !BotGetMessageTeamGoal((int)a1, Destination, (int)v7) )
+    if ( !sub_10026770((int)a1, Destination, (int)v7) )
     {
       BotInitialChat((int)(a1 + 995), aCannotfind, (int)Destination, (char *)0);
       BotEnterChat(a1 + 995, a1[1], 1);
-      BotFreeWaypoints(v2);
+      sub_10021B90(v2);
       a1[1137] = 0;
       return 0;
     }
@@ -21469,7 +21464,7 @@ LABEL_8:
 LABEL_18:
   if ( v2 && *(_DWORD *)(v2 + 60) )
   {
-    BotFreeWaypoints(a1[1137]);
+    sub_10021B90(a1[1137]);
     a1[1139] = v3;
     a1[1137] = v2;
     a1[1138] = v2;
@@ -21478,7 +21473,7 @@ LABEL_18:
   else
   {
     EA_SayTeam(a1[1], aINeedMoreKeyPo);
-    BotFreeWaypoints(v2);
+    sub_10021B90(v2);
     return 0;
   }
 }
@@ -21487,7 +21482,7 @@ LABEL_18:
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
 
 //----- (10026BE0) --------------------------------------------------------
-int __cdecl BotAddressedToBot(int a1, int a2)
+int __cdecl sub_10026BE0(int a1, int a2)
 {
   int v2; // eax
   int result; // eax
@@ -21502,7 +21497,7 @@ int __cdecl BotAddressedToBot(int a1, int a2)
   char Destination[152]; // [esp+230h] [ebp-98h] BYREF
 
   BotMatchVariable(a2, 0, Destination);
-  v2 = ClientFromName(Destination);
+  v2 = sub_10028EA0(Destination);
   if ( v2 < 0 )
     return 0;
   result = BotSameTeam(a1, v2 + 1);
@@ -21533,7 +21528,7 @@ int __cdecl BotAddressedToBot(int a1, int a2)
     else
     {
       v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
-      if ( 1.0 / (double)(BotNumTeamMates(a1) - 1) < v5 )
+      if ( 1.0 / (double)(sub_100238F0(a1) - 1) < v5 )
         return 0;
     }
     return 1;
@@ -21542,10 +21537,10 @@ int __cdecl BotAddressedToBot(int a1, int a2)
 }
 // 1000119A: using guessed type _DWORD __cdecl FindClientByName(_DWORD, _DWORD, _DWORD);
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
-// 10001983: using guessed type _DWORD __cdecl ClientFromName(_DWORD);
+// 10001983: using guessed type _DWORD __cdecl sub_10028EA0(_DWORD);
 
 //----- (10026F10) --------------------------------------------------------
-int __cdecl BotMatchMessage(int a1, char *a2)
+int __cdecl sub_10026F10(int a1, char *a2)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int result; // eax
@@ -21612,7 +21607,7 @@ int __cdecl BotMatchMessage(int a1, char *a2)
    * separate `int v65/v66` and never recovered the variables[] capture
    * array.  Restored as the proper bot_match_t (chat_state.h) — same byte
    * layout (sizeof=240) but with named fields so the BotFindMatch /
-   * StringsMatch / BotMatchVariable interfaces type-check properly. */
+   * sub_1002C800 / BotMatchVariable interfaces type-check properly. */
   bot_match_t v64; // [esp+38h] [ebp-5B4h] -- the entire match struct
   char Destination[152]; // [esp+128h] [ebp-4C4h] BYREF
   int v68[31]; // [esp+1C0h] [ebp-42Ch] BYREF
@@ -21633,7 +21628,7 @@ int __cdecl BotMatchMessage(int a1, char *a2)
   {
     case 1:
       BotMatchVariable(&v64, 0, Buffer);
-      v3 = ClientFromName(Buffer);
+      v3 = sub_10028EA0(Buffer);
       if ( v3 == bs->client )
       {
         bs->_i2772 = v64.subtype;
@@ -21652,13 +21647,13 @@ int __cdecl BotMatchMessage(int a1, char *a2)
       return 1;
     case 3:
     case 4:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       if ( BotFindMatch(Source, &v74, 16) && v74.type == 100 )
       {
         BotMatchVariable(&v64, 0, Destination);
-        v4 = ClientFromName(Destination) + 1;
+        v4 = sub_10028EA0(Destination) + 1;
         v5 = 0;
       }
       else
@@ -21707,7 +21702,7 @@ LABEL_19:
       }
       if ( bs->_i4308 )
         goto LABEL_32;
-      if ( (v64.subtype & 1) == 0 || (BotMatchVariable(&v64, 2, String2), BotGetMessageTeamGoal(a1, String2, (int)bs->teamgoal)) )
+      if ( (v64.subtype & 1) == 0 || (BotMatchVariable(&v64, 2, String2), sub_10026770(a1, String2, (int)bs->teamgoal)) )
       {
         if ( !bs->_i4308 )
         {
@@ -21723,7 +21718,7 @@ LABEL_32:
         v10 = rand();
         v55 = (double)(v10 & 0x7FFF) * 0.000030518509f + (double)(v10 & 0x7FFF) * 0.000030518509f;
         bs->_f4324 = AAS_Time() + v55;
-        v11 = BotGetTime((int)&v64);
+        v11 = sub_100267E0((int)&v64);
         v12 = v64.type;
         bs->teammatevisible_time = v11;
         if ( v12 == 3 )
@@ -21759,24 +21754,24 @@ LABEL_27:
       }
       return result;
     case 5:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 4, String2);
-      if ( !BotGetMessageTeamGoal(a1, String2, (int)bs->teamgoal) )
+      if ( !sub_10026770(a1, String2, (int)bs->teamgoal) )
         goto LABEL_27;
       v14 = rand();
       v56 = (double)(v14 & 0x7FFF) * 0.000030518509f + (double)(v14 & 0x7FFF) * 0.000030518509f;
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->_f4324 = v15 + v56;
-      v16 = BotGetTime((int)&v64);
+      v16 = sub_100267E0((int)&v64);
       bs->teammatevisible_time = v16;
       if ( v16 == 0.0 )
         bs->teammatevisible_time = AAS_Time() + 120.0;
       *(int *)&bs->_f2860 = 0;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(a1, (int)&v64) )
+      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v38 = rand();
       v60 = (double)(v38 & 0x7FFF) * 0.000030518509f + (double)(v38 & 0x7FFF) * 0.000030518509f;
@@ -21789,7 +21784,7 @@ LABEL_27:
       bs->teammatevisible_time = v40 + 120.0;
       return result;
     case 7:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(a1, (int)&v64) )
+      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v35 = rand();
       v59 = (double)(v35 & 0x7FFF) * 0.000030518509f + (double)(v35 & 0x7FFF) * 0.000030518509f;
@@ -21801,7 +21796,7 @@ LABEL_27:
       bs->teammatevisible_time = v37 + 180.0;
       return result;
     case 8:
-      if ( !TeamPlayIsOn() )
+      if ( !sub_10026690() )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       if ( (v64.subtype & 0x80u) != 0 )
@@ -21816,7 +21811,7 @@ LABEL_27:
       strcpy((char *)&bs->_i4336, (const char *)ClientName(v49));
       return 1;
     case 9:
-      if ( !TeamPlayIsOn() )
+      if ( !sub_10026690() )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       if ( (v64.subtype & 0x80u) == 0 )
@@ -21836,24 +21831,24 @@ LABEL_27:
       *(unsigned char *)&bs->_i4336 = 0;
       return 1;
     case 11:
-      if ( !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026BE0(a1, (int)&v64) )
         return 1;
       switch ( bs->ltgtype )
       {
         case 1:
           BotMatchVariable(&v64, 0, Destination);
-          EasyClientName(bs->teammate - 1, Destination);
+          sub_10021860(bs->teammate - 1, Destination);
           BotInitialChat((int)bs->chatstate, aHelping, (int)Destination, (char *)0);
           BotEnterChat((int)bs->chatstate, bs->client, 1);
           return 1;
         case 2:
           BotMatchVariable(&v64, 0, Destination);
-          EasyClientName(bs->teammate - 1, Destination);
+          sub_10021860(bs->teammate - 1, Destination);
           BotInitialChat((int)bs->chatstate, aAccompanying, (int)Destination, (char *)0);
           BotEnterChat((int)bs->chatstate, bs->client, 1);
           return 1;
         case 3:
-          v52 = BotGoalName(bs->_i4312);
+          v52 = sub_1002F6A0(bs->_i4312);
           BotInitialChat((int)bs->chatstate, aDefending, v52, (char *)0);
           BotEnterChat((int)bs->chatstate, bs->client, 1);
           return 1;
@@ -21881,7 +21876,7 @@ LABEL_139:
       }
       return result;
     case 12:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       strncpy((char *)&bs->_i4352, Source, 0x20u);
@@ -21890,7 +21885,7 @@ LABEL_139:
       BotEnterChat((int)bs->chatstate, bs->client, 1);
       return 1;
     case 13:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       if ( strlen((const char *)&bs->_i4352) )
         BotInitialChat((int)bs->chatstate, aLeftteam, a1 + 4352, (char *)0);
@@ -21902,7 +21897,7 @@ LABEL_139:
       EA_SayTeam(bs->client, aThePartOfMyBra);
       return 1;
     case 16:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 4, Buffer);
       if ( (v64.subtype & 8) != 0 )
@@ -21914,9 +21909,9 @@ LABEL_139:
       *(float *)&bs->_i4384 = v47;
       return 1;
     case 18:
-      if ( !TeamPlayIsOn() )
+      if ( !sub_10026690() )
         return 1;
-      if ( !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v48 = bs->ltgtype;
       if ( v48 != 2 && v48 != 1 )
@@ -21924,7 +21919,7 @@ LABEL_139:
       bs->ltgtype = 0;
       return 1;
     case 19:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026690() || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 0, Destination);
       v17 = strlen(Destination);
@@ -21993,7 +21988,7 @@ LABEL_64:
           return 1;
         }
       }
-      else if ( !BotGetMessageTeamGoal(a1, String2, (int)bs->teamgoal) )
+      else if ( !sub_10026770(a1, String2, (int)bs->teamgoal) )
       {
         v19 = (int)bs->chatstate;
         BotInitialChat((int)bs->chatstate, aCannotfind, (int)String2, (char *)0);
@@ -22004,7 +21999,7 @@ LABEL_64:
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->_f4324 = v25 + v57;
-      v26 = BotGetTime((int)&v64);
+      v26 = sub_100267E0((int)&v64);
       bs->teammatevisible_time = v26;
       if ( v26 == 0.0 )
         bs->teammatevisible_time = AAS_Time() + 300.0;
@@ -22012,7 +22007,7 @@ LABEL_64:
       *(int *)&bs->_f2876 = 0;
       return 1;
     case 20:
-      if ( !TeamPlayIsOn() )
+      if ( !sub_10026690() )
         return 1;
       BotMatchVariable(&v64, 4, Buffer);
       origin[2] = 0.0;
@@ -22023,14 +22018,14 @@ LABEL_64:
       v41 = AAS_PointAreaNum(origin);
       if ( !v41 )
       {
-        if ( !BotAddressedToBot(a1, (int)&v64) )
+        if ( !sub_10026BE0(a1, (int)&v64) )
           return 1;
         BotInitialChat((int)bs->chatstate, aCheckpointInva, 0, (char *)0);
         BotEnterChat((int)bs->chatstate, bs->client, 1);
         return 1;
       }
       BotMatchVariable(&v64, 5, Buffer);
-      v42 = BotFindWayPoint(bs->_i4544, Buffer);
+      v42 = sub_10021B50(bs->_i4544, Buffer);
       if ( v42 )
       {
         v43 = *(_DWORD *)(v42 + 60);
@@ -22049,7 +22044,7 @@ LABEL_64:
       if ( v46 )
         *(_DWORD *)(v46 + 64) = v45;
       bs->_i4544 = v45;
-      if ( BotAddressedToBot(a1, (int)&v64) )
+      if ( sub_10026BE0(a1, (int)&v64) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", *(float *)(v45 + 4), *(float *)(v45 + 8), *(float *)(v45 + 12));
         BotInitialChat((int)bs->chatstate, aCheckpointConf, *(_DWORD *)v45, (char *)0);
@@ -22058,18 +22053,18 @@ LABEL_64:
       }
       return 1;
     case 21:
-      if ( !TeamPlayIsOn() )
+      if ( !sub_10026690() )
         return 1;
-      if ( !BotAddressedToBot(a1, (int)&v64) )
+      if ( !sub_10026BE0(a1, (int)&v64) )
         return 1;
-      if ( !BotGetPatrolWaypoints((_DWORD *)a1, (int)&v64) )
+      if ( !sub_10026990((_DWORD *)a1, (int)&v64) )
         return 1;
       v31 = rand();
       v58 = (double)(v31 & 0x7FFF) * 0.000030518509f + (double)(v31 & 0x7FFF) * 0.000030518509f;
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->_f4324 = v32 + v58;
-      v33 = BotGetTime((int)&v64);
+      v33 = sub_100267E0((int)&v64);
       bs->teammatevisible_time = v33;
       if ( v33 != 0.0 )
         return 1;
@@ -22084,12 +22079,12 @@ LABEL_64:
 }
 // 1000106E: using guessed type _DWORD __cdecl EA_SayTeam(_DWORD, _DWORD);
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
-// 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
+// 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
-// 10001983: using guessed type _DWORD __cdecl ClientFromName(_DWORD);
+// 10001983: using guessed type _DWORD __cdecl sub_10028EA0(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100643AC: using guessed type int libvar_ctf;
 // 100643EC: using guessed type int dword_100643EC;
@@ -22099,7 +22094,7 @@ LABEL_64:
 // 10026F10: using guessed type char var_16C[124];
 
 //----- (10028650) --------------------------------------------------------
-void __cdecl BotCheckConsoleMessages(int a1)
+void __cdecl sub_10028650(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v1; // edi
@@ -22119,12 +22114,12 @@ void __cdecl BotCheckConsoleMessages(int a1)
   v1 = a1;
   v2 = (int)bs->chatstate;
   Str2 = (char *)ClientName(bs->client);
-  v3 = BotNextConsoleMessage((int)bs->chatstate);
+  v3 = sub_1002AB90((int)bs->chatstate);
   if ( v3 )
   {
     while ( 1 )
     {
-      if ( (int)BotNumConsoleMessages(v2) < 10 )
+      if ( (int)sub_1002ABB0(v2) < 10 )
       {
         if ( *(_DWORD *)(v3 + 4) != 1 )
           goto LABEL_11;
@@ -22143,30 +22138,30 @@ void __cdecl BotCheckConsoleMessages(int a1)
         if ( strncmp((const char *)(v3 + 9), Str2, (size_t)(v5 - 10)) )
           break;
       }
-      BotRemoveConsoleMessage(v2, v3);
+      sub_1002AA20(v2, v3);
       v1 = a1;
 LABEL_24:
-      v3 = BotNextConsoleMessage(v2);
+      v3 = sub_1002AB90(v2);
       if ( !v3 )
         return;
     }
     v1 = a1;
 LABEL_11:
-    UnifyWhiteSpaces((void *)(v3 + 8));
+    sub_1002AC50((void *)(v3 + 8));
     v6 = 3;
     if ( libvar_ctf->value != 0.0 )
       v6 = BotCTFTeam(v1) != 1 ? 11 : 7;
-    BotReplaceSynonyms(v3 + 8, v6);
-    if ( !BotMatchMessage(v1, (char *)(v3 + 8)) && *(_DWORD *)(v3 + 4) == 1 )
+    sub_1002B7C0(v3 + 8, v6);
+    if ( !sub_10026F10(v1, (char *)(v3 + 8)) && *(_DWORD *)(v3 + 4) == 1 )
     {
       v7 = libvar_nochat->value;
       if ( v7 == 0.0 && *(int (__cdecl **)(int))(v1 + 1676) != AINode_Stand )
       {
-        if ( BotValidChatPosition(v1) )
+        if ( sub_10021BC0(v1) )
         {
           Characteristic_BFloat(*(_DWORD *)(v1 + 1672), 22, 0.0, 1.0);
           v13 = (double)(rand() & 0x7FFF) * 0.000030518509f;
-          if ( 1.5 / (double)(NumBots() + 1) > v13 )
+          if ( 1.5 / (double)(sub_10028FD0() + 1) > v13 )
           {
             v11 = v7;
             if ( (double)(rand() & 0x7FFF) * 0.000030518509f < v11 )
@@ -22175,11 +22170,11 @@ LABEL_11:
               if ( v8 )
               {
                 strcpy((char *)(v3 + 8), v8 + 1);
-                UnifyWhiteSpaces((void *)(v3 + 8));
-                if ( BotReplyChat(v2, v3 + 8) )
+                sub_1002AC50((void *)(v3 + 8));
+                if ( sub_1002E7D0(v2, v3 + 8) )
                 {
-                  BotRemoveConsoleMessage(v2, v3);
-                  v14 = BotChatTime(a1);
+                  sub_1002AA20(v2, v3);
+                  v14 = sub_10022650(a1);
                   bs->_f2812 = AAS_Time() + v14;
                   AIEnter_Stand(a1);
                   return;
@@ -22192,21 +22187,21 @@ LABEL_11:
       }
     }
 LABEL_23:
-    BotRemoveConsoleMessage(v2, v3);
+    sub_1002AA20(v2, v3);
     goto LABEL_24;
   }
 }
 // 100011FE: using guessed type _DWORD __cdecl BotCTFTeam(_DWORD);
-// 1000123F: using guessed type _DWORD __cdecl BotNextConsoleMessage(_DWORD);
-// 10001276: using guessed type _DWORD __cdecl BotReplaceSynonyms(_DWORD, _DWORD);
-// 100015AA: using guessed type _DWORD __cdecl BotReplyChat(_DWORD, _DWORD);
+// 1000123F: using guessed type _DWORD __cdecl sub_1002AB90(_DWORD);
+// 10001276: using guessed type _DWORD __cdecl sub_1002B7C0(_DWORD, _DWORD);
+// 100015AA: using guessed type _DWORD __cdecl sub_1002E7D0(_DWORD, _DWORD);
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
-// 10001870: using guessed type int NumBots(void);
+// 10001870: using guessed type int sub_10028FD0(void);
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
-// 100019C4: using guessed type _DWORD __cdecl BotNumConsoleMessages(_DWORD);
+// 100019C4: using guessed type _DWORD __cdecl sub_1002ABB0(_DWORD);
 // 100019F6: using guessed type int __cdecl AINode_Stand(int);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
-// 10001E65: using guessed type _DWORD __cdecl BotRemoveConsoleMessage(_DWORD, _DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
+// 10001E65: using guessed type _DWORD __cdecl sub_1002AA20(_DWORD, _DWORD);
 // 100643AC: using guessed type int libvar_ctf;
 // 10064474: using guessed type int libvar_nochat;
 
@@ -22243,12 +22238,12 @@ float *__cdecl sub_100289A0(int a1, float a2)
 int __cdecl sub_10028A40(int a1, int a2)
 {
   bot_state_t *bs = (bot_state_t *)a1;
-  return EA_EndRegular(bs->client, a2);
+  return sub_100375E0(bs->client, a2);
 }
-// 10001438: using guessed type _DWORD __cdecl EA_EndRegular(_DWORD, _DWORD);
+// 10001438: using guessed type _DWORD __cdecl sub_100375E0(_DWORD, _DWORD);
 
 //----- (10028A70) --------------------------------------------------------
-int BotDeathmatchAI(int a1, int a2)
+int sub_10028A70(int a1, int a2)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v4; // edi
@@ -22270,24 +22265,24 @@ int BotDeathmatchAI(int a1, int a2)
     bs->inuse_marker = 0;
   }
   sub_10021020(a1);
-  BotCheckConsoleMessages(a1);
+  sub_10028650(a1);
   if ( !bs->ainode )
     AIEnter_Seek_LTG(a1);
-  if ( AAS_Time() - 8.0 < bs->setup_time && BotChat_EnterGame(a1) )
+  if ( AAS_Time() - 8.0 < bs->setup_time && sub_10021D80(a1) )
   {
-    v6 = BotChatTime(a1);
+    v6 = sub_10022650(a1);
     bs->_f2812 = AAS_Time() + v6;
     AIEnter_Stand(a1);
   }
-  BotResetNodeSwitches();
+  sub_1001D2B0();
   v4 = 0;
   while ( !((int (__cdecl *)(int))bs->ainode)(a1) )
   {
     if ( ++v4 >= 50 )
     {
       BotDumpGoalStack((int)bs->goalstate);
-      BotDumpAvoidGoals((int)bs->goalstate);
-      BotDumpNodeSwitches(a1);
+      sub_1002F730((int)bs->goalstate);
+      sub_1001D2D0(a1);
       break;
     }
   }
@@ -22299,15 +22294,15 @@ int BotDeathmatchAI(int a1, int a2)
 // 10028B9E: conditional instruction was optimized away because edi.4<32
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
 // 100016B8: using guessed type _DWORD __cdecl BotDumpGoalStack(_DWORD);
-// 100017BC: using guessed type _DWORD __cdecl BotDumpAvoidGoals(_DWORD);
+// 100017BC: using guessed type _DWORD __cdecl sub_1002F730(_DWORD);
 // 100018E8: using guessed type _DWORD __cdecl AIEnter_Stand(_DWORD);
-// 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
+// 10001CD0: using guessed type double __cdecl sub_10022650(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
 // 10001D98: using guessed type _DWORD __cdecl Characteristic_String(_DWORD, _DWORD);
 // 1006446C: using guessed type int dword_1006446C;
 
 //----- (10028C30) --------------------------------------------------------
-void BotSetupDeathmatchAI()
+void sub_10028C30()
 {
   libvar_dmflags = LibVar(aDmflags, (char *)a0);
   libvar_ctf = LibVar(aCtf, (char *)a0);
@@ -22323,9 +22318,9 @@ void BotSetupDeathmatchAI()
   libvar_assimilation = LibVar(aAssimilation, (char *)a0);
   if ( libvar_ctf->value != 0.0 )
   {
-    if ( BotGetLevelItemGoal(-1, aRedFlag, (int)&unk_10064420) < 0 )
+    if ( sub_1002F890(-1, aRedFlag, (int)&unk_10064420) < 0 )
       bi_Print(2, aCtfWithoutRedF);
-    if ( BotGetLevelItemGoal(-1, aBlueFlag, (int)&unk_100643E0) < 0 )
+    if ( sub_1002F890(-1, aBlueFlag, (int)&unk_100643E0) < 0 )
       bi_Print(2, aCtfWithoutBlue);
     dword_10064484 = IndexFromModel(aPlayersMaleFla);
     dword_1006448C = IndexFromModel(aPlayersMaleFla_0);
@@ -22367,7 +22362,7 @@ void BotSetupDeathmatchAI()
 void sub_10028E80(void) { /* empty body — original returns immediately */ }
 
 //----- (10028EA0) --------------------------------------------------------
-int __cdecl ClientFromName(const char *a1)
+int __cdecl sub_10028EA0(const char *a1)
 {
   int v1; // ebp
   const char *i; // edi
@@ -22410,14 +22405,14 @@ char *__cdecl ClientSkin(int client)
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10028FD0) --------------------------------------------------------
-int NumBots()
+int sub_10028FD0()
 {
   return dword_10064388;
 }
 // 10064388: using guessed type int dword_10064388;
 
 //----- (10028FF0) --------------------------------------------------------
-double __cdecl AngleDifference(float a1, float a2)
+double __cdecl sub_10028FF0(float a1, float a2)
 {
   double result; // st7
 
@@ -22468,7 +22463,7 @@ double BotChangeViewAngle(float a1, float a2, float a3)
 }
 
 //----- (10029150) --------------------------------------------------------
-int __cdecl BotChangeViewAngles(int a1)
+int __cdecl sub_10029150(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   double v2; // st7
@@ -22511,7 +22506,7 @@ int __cdecl BotChangeViewAngles(int a1)
   v9 = v5;
   do
   {
-    AngleDifference(*(v3 - 6), *(v3 - 3));
+    sub_10028FF0(*(v3 - 6), *(v3 - 3));
     v5 = (double)(int)abs32((__int64)v5);
     if ( v5 <= *v3 )
     {
@@ -22536,21 +22531,21 @@ int __cdecl BotChangeViewAngles(int a1)
     --v4;
   }
   while ( v4 );
-  EA_View(bs->client, bs->enemyorigin);
+  sub_100375A0(bs->client, bs->enemyorigin);
   return 0;
 }
-// 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
+// 1000193D: using guessed type _DWORD __cdecl sub_100375A0(_DWORD, _DWORD);
 
 //----- (100292E0) --------------------------------------------------------
 void sub_100292E0()
 {
   if ( AAS_Time() > flt_100643A4 )
   {
-    BotUpdateEntityItems();
+    sub_1002FA20();
     flt_100643A4 = AAS_Time() + 1.0;
   }
 }
-// 10001E92: using guessed type int BotUpdateEntityItems(void);
+// 10001E92: using guessed type int sub_1002FA20(void);
 // 100643A4: using guessed type float flt_100643A4;
 
 //----- (10029320) --------------------------------------------------------
@@ -22563,7 +22558,7 @@ int Export_BotAIFrame(int a1, int a2)
       bi_Print(4, "client %d hasn't been setup\n", a1);
       return 19;
     }
-    BotDeathmatchAI(dword_100643A0 + 4560 * a1, a2);
+    sub_10028A70(dword_100643A0 + 4560 * a1, a2);
     sub_100292E0();
   }
   return 0;
@@ -22602,7 +22597,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   weights_handle = Characteristic_String(bs->character, 5);
   if ( BotLoadWeaponWeights((int)bs->weaponweights, weights_handle) )
   {
-    BotFreeItemWeights((int)bs->goalstate);
+    sub_10030950((int)bs->goalstate);
     return 0;
   }
   chat_path = (char *)Characteristic_String(bs->character, 12);
@@ -22610,8 +22605,8 @@ int __cdecl BotSetupClient(int a1, char *Source)
   chat_state_ptr = (_DWORD *)bs->chatstate;
   if ( BotLoadChatFile((int)bs->chatstate, chat_path, chat_arg) )
   {
-    BotFreeItemWeights((int)bs->goalstate);
-    BotFreeWeaponWeights((int)bs->weaponweights);
+    sub_10030950((int)bs->goalstate);
+    sub_10035300((int)bs->weaponweights);
     return 0;
   }
   gender = *(_BYTE *)Characteristic_String(bs->character, 3);
@@ -22629,9 +22624,9 @@ int __cdecl BotSetupClient(int a1, char *Source)
   ++dword_10064388;
   return 1;
 }
-// 10001078: using guessed type _DWORD __cdecl BotFreeWeaponWeights(_DWORD);
+// 10001078: using guessed type _DWORD __cdecl sub_10035300(_DWORD);
 // 10001802: using guessed type _DWORD __cdecl BotLoadWeaponWeights(_DWORD, _DWORD);
-// 1000182F: using guessed type _DWORD __cdecl BotFreeItemWeights(_DWORD);
+// 1000182F: using guessed type _DWORD __cdecl sub_10030950(_DWORD);
 // 10001B22: using guessed type _DWORD __cdecl BotLoadItemWeights(_DWORD, _DWORD);
 // 10001D98: using guessed type _DWORD __cdecl Characteristic_String(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -22647,16 +22642,16 @@ int __cdecl BotShutdownClient(int a1)
   v1 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( *v1 )
   {
-    if ( BotChat_ExitGame(dword_100643A0 + 4560 * a1) )
+    if ( sub_10021E90(dword_100643A0 + 4560 * a1) )
       BotEnterChat(v1 + 995, v1[1], 0);
-    BotFreeChatState(v1 + 995);
-    BotFreeWeaponWeights(v1 + 1042);
-    BotFreeItemWeights(v1 + 752);
-    FreeCharacter(v1[418]);
-    BotFreeWaypoints(v1[1136]);
+    sub_1002DFB0(v1 + 995);
+    sub_10035300(v1 + 1042);
+    sub_10030950(v1 + 752);
+    sub_1002A590(v1[418]);
+    sub_10021B90(v1[1136]);
     v3 = v1[1137];
     v1[1136] = 0;
-    BotFreeWaypoints(v3);
+    sub_10021B90(v3);
     v1[1137] = 0;
     memset(v1, 0, 0x11D0u);
     *v1 = 0;
@@ -22669,11 +22664,11 @@ int __cdecl BotShutdownClient(int a1)
     return 23;
   }
 }
-// 1000104B: using guessed type _DWORD __cdecl FreeCharacter(_DWORD);
-// 10001078: using guessed type _DWORD __cdecl BotFreeWeaponWeights(_DWORD);
+// 1000104B: using guessed type _DWORD __cdecl sub_1002A590(_DWORD);
+// 10001078: using guessed type _DWORD __cdecl sub_10035300(_DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
-// 1000175D: using guessed type _DWORD __cdecl BotFreeChatState(_DWORD);
-// 1000182F: using guessed type _DWORD __cdecl BotFreeItemWeights(_DWORD);
+// 1000175D: using guessed type _DWORD __cdecl sub_1002DFB0(_DWORD);
+// 1000182F: using guessed type _DWORD __cdecl sub_10030950(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10064388: using guessed type int dword_10064388;
 // 100643A0: using guessed type int dword_100643A0;
@@ -22824,8 +22819,8 @@ int __cdecl BotResetState(int *a1)
   v6 = v2;
   qmemcpy(v11, a1 + 995, sizeof(v11));
   v5 = v3;
-  BotFreeWaypoints(a1[1136]);
-  BotFreeWaypoints(a1[1137]);
+  sub_10021B90(a1[1136]);
+  sub_10021B90(a1[1137]);
   memset(a1, 0, 0x11D0u);
   qmemcpy(a1 + 720, v10, 0x80u);
   qmemcpy(a1 + 752, v13, 0x3CCu);
@@ -22836,17 +22831,17 @@ int __cdecl BotResetState(int *a1)
   qmemcpy(a1 + 310, v12, 0x1B0u);
   a1[418] = v5;
   a1[1] = v7;
-  BotResetMoveState(a1 + 720);
-  BotResetGoalState(a1 + 752);
-  BotResetWeaponState(a1 + 1042);
+  sub_10034B90(a1 + 720);
+  sub_10030990(a1 + 752);
+  sub_10035640(a1 + 1042);
   BotResetAvoidGoals(a1 + 752);
-  return BotResetAvoidReach(a1 + 720);
+  return sub_10034AF0(a1 + 720);
 }
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
-// 10001370: using guessed type _DWORD __cdecl BotResetAvoidReach(_DWORD);
-// 100013D9: using guessed type _DWORD __cdecl BotResetWeaponState(_DWORD);
-// 10001D07: using guessed type _DWORD __cdecl BotResetGoalState(_DWORD);
-// 10001E4C: using guessed type _DWORD __cdecl BotResetMoveState(_DWORD);
+// 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
+// 100013D9: using guessed type _DWORD __cdecl sub_10035640(_DWORD);
+// 10001D07: using guessed type _DWORD __cdecl sub_10030990(_DWORD);
+// 10001E4C: using guessed type _DWORD __cdecl sub_10034B90(_DWORD);
 
 //----- (10029C10) --------------------------------------------------------
 int sub_10029C10()
@@ -22868,9 +22863,9 @@ int sub_10029C10()
   }
   BotInitLevelItems();
   if ( dword_10064398 )
-    AAS_FreeBSPEntities((_DWORD *)dword_10064398);
-  dword_10064398 = (int)AAS_ParseBSPEntities();
-  BotSetupDeathmatchAI();
+    sub_10006920((_DWORD *)dword_10064398);
+  dword_10064398 = (int)sub_100069A0();
+  sub_10028C30();
   return 0;
 }
 // 10001406: using guessed type _DWORD __cdecl BotResetState(_DWORD);
@@ -22890,15 +22885,15 @@ int BotSetupLibrary()
 
   v1 = time(0);
   srand(v1);
-  v2 = BotSetupWeaponAI();
+  v2 = sub_10035680();
   *_errno() = v2;
   if ( *_errno() )
     return *_errno();
-  v3 = BotSetupGoalAI();
+  v3 = sub_100309D0();
   *_errno() = v3;
   if ( *_errno() )
     return *_errno();
-  v4 = BotSetupChatAI();
+  v4 = sub_1002EBB0();
   *_errno() = v4;
   if ( *_errno() )
     return *_errno();
@@ -22907,10 +22902,10 @@ int BotSetupLibrary()
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
 }
-// 10001249: using guessed type int BotSetupChatAI();
+// 10001249: using guessed type int sub_1002EBB0();
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
-// 100015B4: using guessed type int BotSetupGoalAI(void);
-// 100019C9: using guessed type int BotSetupWeaponAI(void);
+// 100015B4: using guessed type int sub_100309D0(void);
+// 100019C9: using guessed type int sub_10035680(void);
 // 10064028: using guessed type int maxclients;
 // 1006439C: using guessed type int dword_1006439C;
 // 100643A0: using guessed type int dword_100643A0;
@@ -22922,9 +22917,9 @@ int BotShutdownLibrary()
   int result; // eax
 
   sub_10028E80();
-  BotShutdownChatAI();
-  BotShutdownGoalAI();
-  BotShutdownWeaponAI();
+  sub_1002EC80();
+  sub_10030A20();
+  sub_100356D0();
   if ( dword_100643A8 )
     FreeMemory(dword_100643A8);
   result = dword_100643A0;
@@ -22936,9 +22931,9 @@ int BotShutdownLibrary()
 }
 // 1000100F: using guessed type int sub_10028E80(void);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10001BA9: using guessed type int BotFreeReplyChat(void);
-// 10001BEF: using guessed type int BotShutdownGoalAI(void);
-// 10001EF6: using guessed type int BotShutdownWeaponAI(void);
+// 10001BA9: using guessed type int sub_1002D1B0(void);
+// 10001BEF: using guessed type int sub_10030A20(void);
+// 10001EF6: using guessed type int sub_100356D0(void);
 // 100643A0: using guessed type int dword_100643A0;
 // 100643A8: using guessed type int dword_100643A8;
 
@@ -22985,7 +22980,7 @@ int *__cdecl BotLoadCharacter(char *Source, int a2)
       v15 = 0;
       v14 = 0;
       v17 = 0;
-      if ( PC_ReadToken(v5, token.string) )
+      if ( PC_ReadTokenHandle(v5, token.string) )
         break;
 LABEL_39:
       FreeSource(v6);
@@ -23086,7 +23081,7 @@ LABEL_52:
           {
             if ( token.type != 1 )
             {
-              SourceError(v13, aExpectedIntege_0, token.string);
+              sub_10039200(v13, aExpectedIntege_0, token.string);
               FreeSource(v13);
               return 0;
             }
@@ -23109,7 +23104,7 @@ LABEL_52:
       }
 LABEL_37:
       v6 = v13;
-      if ( !PC_ReadToken(v13, token.string) )
+      if ( !PC_ReadTokenHandle(v13, token.string) )
       {
         v7 = v14;
         v4 = v16;
@@ -23119,7 +23114,7 @@ LABEL_37:
     v12 = token.string;
     v11 = aUnknownDefinit;
 LABEL_54:
-    SourceError(v13, v11, v12);
+    sub_10039200(v13, v11, v12);
     FreeSource(v13);
     return 0;
   }
@@ -23130,7 +23125,7 @@ LABEL_54:
   }
 }
 // 1002A16A: variable 'v18' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
@@ -23139,7 +23134,7 @@ LABEL_54:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A590) --------------------------------------------------------
-int __cdecl FreeCharacter(int a1)
+int __cdecl sub_1002A590(int a1)
 {
   return FreeMemory(a1);
 }
@@ -23273,7 +23268,7 @@ char *__cdecl Characteristic_String(int *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A880) --------------------------------------------------------
-int InitConsoleMessageHeap()
+int sub_1002A880()
 {
   int v1; // edi
   int v2; // esi
@@ -23313,7 +23308,7 @@ int InitConsoleMessageHeap()
 // 10064374: using guessed type int dword_10064374;
 
 //----- (1002A9A0) --------------------------------------------------------
-int AllocConsoleMessage()
+int sub_1002A9A0()
 {
   int result; // eax
 
@@ -23329,7 +23324,7 @@ int AllocConsoleMessage()
 // 10064364: using guessed type int dword_10064364;
 
 //----- (1002A9E0) --------------------------------------------------------
-int __cdecl FreeConsoleMessage(int a1)
+int __cdecl sub_1002A9E0(int a1)
 {
   int result; // eax
 
@@ -23344,7 +23339,7 @@ int __cdecl FreeConsoleMessage(int a1)
 // 10064364: using guessed type int dword_10064364;
 
 //----- (1002AA20) --------------------------------------------------------
-int __cdecl BotRemoveConsoleMessage(_DWORD *a1, int a2)
+int __cdecl sub_1002AA20(_DWORD *a1, int a2)
 {
   int v2; // ecx
   int v3; // ecx
@@ -23360,7 +23355,7 @@ int __cdecl BotRemoveConsoleMessage(_DWORD *a1, int a2)
     *(_DWORD *)(v3 + 164) = *(_DWORD *)(a2 + 164);
   else
     a1[43] = *(_DWORD *)(a2 + 164);
-  FreeConsoleMessage(a2);
+  sub_1002A9E0(a2);
   result = a1[45] - 1;
   a1[45] = result;
   return result;
@@ -23374,7 +23369,7 @@ int __cdecl BotQueueConsoleMessage(int a1, int a2, char *Source)
   int v5; // ecx
   int v6; // ecx
 
-  v3 = AllocConsoleMessage();
+  v3 = sub_1002A9A0();
   if ( !v3 )
     return bi_Print(3, aEmptyConsoleMe);
   *(float *)v3 = AAS_Time();
@@ -23403,19 +23398,19 @@ int __cdecl BotQueueConsoleMessage(int a1, int a2, char *Source)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002AB90) --------------------------------------------------------
-int __cdecl BotNextConsoleMessage(int a1)
+int __cdecl sub_1002AB90(int a1)
 {
   return *(_DWORD *)(a1 + 172);
 }
 
 //----- (1002ABB0) --------------------------------------------------------
-int __cdecl BotNumConsoleMessages(int a1)
+int __cdecl sub_1002ABB0(int a1)
 {
   return *(_DWORD *)(a1 + 180);
 }
 
 //----- (1002ABD0) --------------------------------------------------------
-BOOL __cdecl IsWhiteSpace(char a1)
+BOOL __cdecl sub_1002ABD0(char a1)
 {
   return (a1 < 97 || a1 > 122)
       && (a1 < 65 || a1 > 90)
@@ -23434,7 +23429,7 @@ BOOL __cdecl IsWhiteSpace(char a1)
 }
 
 //----- (1002AC50) --------------------------------------------------------
-void __cdecl UnifyWhiteSpaces(void *Src)
+void __cdecl sub_1002AC50(void *Src)
 {
   char *v1; // ebx
   const char *i; // esi
@@ -23446,7 +23441,7 @@ void __cdecl UnifyWhiteSpaces(void *Src)
   {
     for ( j = *i; j; j = *++i )
     {
-      if ( !IsWhiteSpace(j) )
+      if ( !sub_1002ABD0(j) )
         break;
     }
     if ( i > v1 )
@@ -23458,7 +23453,7 @@ void __cdecl UnifyWhiteSpaces(void *Src)
     }
     for ( k = *i; k; k = *++i )
     {
-      if ( IsWhiteSpace(k) )
+      if ( sub_1002ABD0(k) )
         break;
     }
   }
@@ -23594,7 +23589,7 @@ const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
 }
 
 //----- (1002AF30) --------------------------------------------------------
-const char *__cdecl StringReplaceWords(const char *a1, const char *a2, const char *a3)
+const char *__cdecl sub_1002AF30(const char *a1, const char *a2, const char *a3)
 {
   const char *v3; // esi
   const char *result; // eax
@@ -23629,7 +23624,7 @@ LABEL_8:
 // 1002AF99: conditional instruction was optimized away because edx.4!=0
 
 //----- (1002B110) --------------------------------------------------------
-int *__cdecl BotLoadSynonyms(char *a1)
+int *__cdecl sub_1002B110(char *a1)
 {
   char **v2; // ebx
   int v3; // edi
@@ -23685,13 +23680,13 @@ int *__cdecl BotLoadSynonyms(char *a1)
     v19 = 0;
     v26 = 0;
     v24 = 0;
-    if ( PC_ReadToken(v5, token.string) )
+    if ( PC_ReadTokenHandle(v5, token.string) )
       break;
 LABEL_45:
     FreeSource(v5);
     if ( v19 > 0 )
     {
-      SourceError(v5, aMissing_0, v15);
+      sub_10039200(v5, aMissing_0, v15);
       return 0;
     }
     v21 = ++v4;
@@ -23716,7 +23711,7 @@ LABEL_45:
       v20 += 4;
       if ( !v7 )
       {
-        SourceError(v5, aMoreThan32Cont, v15);
+        sub_10039200(v5, aMoreThan32Cont, v15);
         FreeSource(v5);
         return 0;
       }
@@ -23733,7 +23728,7 @@ LABEL_45:
     v20 -= 4;
     if ( v9 )
     {
-      SourceError(v16, aTooMany, v15);
+      sub_10039200(v16, aTooMany, v15);
       FreeSource(v16);
       return 0;
     }
@@ -23741,7 +23736,7 @@ LABEL_45:
 LABEL_42:
     v5 = v16;
 LABEL_43:
-    if ( !PC_ReadToken(v5, token.string) )
+    if ( !PC_ReadTokenHandle(v5, token.string) )
     {
       v4 = v21;
       v3 = v18;
@@ -23775,7 +23770,7 @@ LABEL_43:
       StripDoubleQuotes(token.string);
       if ( !strlen(token.string) )
       {
-        SourceError(v16, aEmptyString, token.string);
+        sub_10039200(v16, aEmptyString, token.string);
         goto LABEL_58;
       }
       v18 += strlen(token.string) + 13;
@@ -23811,7 +23806,7 @@ LABEL_43:
       {
         if ( v22 >= 2 )
           goto LABEL_42;
-        SourceError(v16, aSynonymMustHav, v15);
+        sub_10039200(v16, aSynonymMustHav, v15);
         FreeSource(v16);
         return 0;
       }
@@ -23822,7 +23817,7 @@ LABEL_52:
     return 0;
   }
   v5 = v16;
-  SourceError(v16, aUnexpectedS, token.string);
+  sub_10039200(v16, aUnexpectedS, token.string);
 LABEL_58:
   FreeSource(v5);
   return 0;
@@ -23830,7 +23825,7 @@ LABEL_58:
 // 1002B151: variable 'v23' is possibly undefined
 // 1002B3E9: variable 'v25' is possibly undefined
 // 1002B546: variable 'v15' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -23839,7 +23834,7 @@ LABEL_58:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002B7C0) --------------------------------------------------------
-const char *__cdecl BotReplaceSynonyms(const char *a1, int a2)
+const char *__cdecl sub_1002B7C0(const char *a1, int a2)
 {
   int i; // edi
   const char *result; // eax
@@ -23851,7 +23846,7 @@ const char *__cdecl BotReplaceSynonyms(const char *a1, int a2)
     {
       result = *(const char **)(i + 8);
       for ( j = *((_DWORD *)result + 2); j; j = *(_DWORD *)(j + 8) )
-        result = StringReplaceWords(a1, *(const char **)j, **(const char ***)(i + 8));
+        result = sub_1002AF30(a1, *(const char **)j, **(const char ***)(i + 8));
     }
   }
   return result;
@@ -23859,7 +23854,7 @@ const char *__cdecl BotReplaceSynonyms(const char *a1, int a2)
 // 10064384: using guessed type int dword_10064384;
 
 //----- (1002B830) --------------------------------------------------------
-void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
+void __cdecl sub_1002B830(const char *a1, int a2)
 {
   int i; // ebx
   __int16 v4; // ax
@@ -23885,7 +23880,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
       for ( ; v5; v5 = *(_DWORD *)(v5 + 8) )
       {
         if ( v5 != v6 )
-          StringReplaceWords(a1, *(const char **)v5, *(const char **)v6);
+          sub_1002AF30(a1, *(const char **)v5, *(const char **)v6);
       }
     }
   }
@@ -23893,7 +23888,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
 // 10064384: using guessed type int dword_10064384;
 
 //----- (1002B990) --------------------------------------------------------
-int __cdecl BotLoadRandomStrings(char *a1)
+int __cdecl sub_1002B990(char *a1)
 {
   int v2; // ebx
   int v3; // ebp
@@ -23934,7 +23929,7 @@ int __cdecl BotLoadRandomStrings(char *a1)
       }
       v14 = 0;
       v16 = 0;
-      if ( PC_ReadToken(v6, token.string) )
+      if ( PC_ReadTokenHandle(v6, token.string) )
         break;
 LABEL_26:
       FreeSource(v6);
@@ -23953,7 +23948,7 @@ LABEL_26:
     {
       if ( token.type != 4 )
       {
-        SourceError(v6, aUnknownRandomS, token.string);
+        sub_10039200(v6, aUnknownRandomS, token.string);
         FreeSource(v6);
         return 0;
       }
@@ -23998,7 +23993,7 @@ LABEL_26:
         if ( !PC_ExpectTokenString(v6, asc_1005D330) )
           goto LABEL_32;
       }
-      if ( !PC_ReadToken(v6, token.string) )
+      if ( !PC_ReadTokenHandle(v6, token.string) )
       {
         v5 = v12;
         goto LABEL_26;
@@ -24015,7 +24010,7 @@ LABEL_32:
   }
 }
 // 1002B9D1: variable 'v13' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -24097,7 +24092,7 @@ void __cdecl BotFreeMatchPieces(_DWORD *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002C020) --------------------------------------------------------
-_DWORD *__cdecl BotLoadMatchPieces(int a1, int a2)
+_DWORD *__cdecl ReadFuzzySeperators_r(int a1, int a2)
 {
   int v2; // edi
   _DWORD *v3; // esi
@@ -24117,7 +24112,7 @@ _DWORD *__cdecl BotLoadMatchPieces(int a1, int a2)
   v10 = 0;
   v3 = 0;
   v11 = 0;
-  if ( !PC_ReadToken(a1, token.string) )
+  if ( !PC_ReadTokenHandle(a1, token.string) )
     return v10;
   while ( token.type == 3 )
   {
@@ -24125,14 +24120,14 @@ _DWORD *__cdecl BotLoadMatchPieces(int a1, int a2)
       goto LABEL_37;
     if ( token.intvalue >= 0xA )
     {
-      SourceError(v2, aCanTHaveMoreTh, 10);
+      sub_10039200(v2, aCanTHaveMoreTh, 10);
       FreeSource(v2);
       BotFreeMatchPieces(v10);
       return 0;
     }
     if ( v11 )
     {
-      SourceError(v2, aNotAllowedToHa, v9);
+      sub_10039200(v2, aNotAllowedToHa, v9);
       FreeSource(v2);
       BotFreeMatchPieces(v10);
       return 0;
@@ -24152,7 +24147,7 @@ LABEL_29:
       return v10;
     if ( !PC_ExpectTokenString(v2, asc_1005D330) )
       goto LABEL_35;
-    if ( !PC_ReadToken(v2, token.string) )
+    if ( !PC_ReadTokenHandle(v2, token.string) )
       return v10;
     v3 = v12;
   }
@@ -24200,13 +24195,13 @@ LABEL_35:
     return 0;
   }
 LABEL_37:
-  SourceError(v2, aInvalidTokenS, token.string);
+  sub_10039200(v2, aInvalidTokenS, token.string);
   FreeSource(v2);
   BotFreeMatchPieces(v10);
   return 0;
 }
 // 1002C24C: variable 'v9' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -24258,7 +24253,7 @@ int __cdecl BotLoadMatchTemplates(char *a1)
       v4 = 0;
       v7 = 0;
       v5 = 0;
-      if ( PC_ReadToken(v2, token.string) )
+      if ( PC_ReadTokenHandle(v2, token.string) )
       {
         while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
         {
@@ -24270,7 +24265,7 @@ LABEL_28:
             FreeSource(v3);
             return 0;
           }
-          if ( PC_ReadToken(v3, token.string) )
+          if ( PC_ReadTokenHandle(v3, token.string) )
           {
             while ( 1 )
             {
@@ -24284,7 +24279,7 @@ LABEL_21:
               v6 = (int *)GetMemory(20);
               *v6 = v8;
               v6[4] = 0;
-              v6[3] = (int)BotLoadMatchPieces(v3, (int)asc_1005D364);
+              v6[3] = (int)ReadFuzzySeperators_r(v3, (int)asc_1005D364);
               if ( v5 )
                 v5[4] = (int)v6;
               else
@@ -24302,17 +24297,17 @@ LABEL_21:
               v6[2] = token.intvalue;
               if ( !PC_ExpectTokenString(v3, asc_1005D32C) || !PC_ExpectTokenString(v3, Control) )
                 break;
-              if ( !PC_ReadToken(v3, token.string) )
+              if ( !PC_ReadTokenHandle(v3, token.string) )
                 goto LABEL_21;
             }
             BotFreeMatchTemplates(v7);
             goto LABEL_28;
           }
 LABEL_22:
-          if ( !PC_ReadToken(v3, token.string) )
+          if ( !PC_ReadTokenHandle(v3, token.string) )
             goto LABEL_23;
         }
-        SourceError(v3, aExpectedIntege, token.string);
+        sub_10039200(v3, aExpectedIntege, token.string);
         BotFreeMatchTemplates(v4);
         FreeSource(v3);
         return 0;
@@ -24341,7 +24336,7 @@ LABEL_23:
   }
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
@@ -24356,7 +24351,7 @@ LABEL_23:
  *
  * Returns true if `pieces` matches `match->string`, with capture info
  * written into match->variables[]. */
-BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
+BOOL __cdecl sub_1002C800(bot_matchpiece_t *pieces, bot_match_t *match)
 {
   bot_matchpiece_t  *mp;
   bot_matchstring_t *ms;
@@ -24432,7 +24427,7 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 //----- (1002C930) --------------------------------------------------------
 /* Restored from disassembly + Q3 reference.  Walks the chat-pattern template
  * list (head at dword_10064378), filtered by `context` bitmask; for each
- * matching template runs StringsMatch.  On success fills match->type and
+ * matching template runs sub_1002C800.  On success fills match->type and
  * match->subtype from the template. */
 int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
 {
@@ -24451,7 +24446,7 @@ int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
     /* Reset capture info for this template. */
     for ( i = 0; i < MAX_MATCHVARIABLES; i++ )
       match->variables[i].ptr = NULL;
-    if ( StringsMatch(ms->first, match) )
+    if ( sub_1002C800(ms->first, match) )
     {
       match->type    = ms->type;
       match->subtype = ms->subtype;
@@ -24590,7 +24585,7 @@ LABEL_10:
 // 1002CB40: using guessed type char ArgList[152];
 
 //----- (1002CCF0) --------------------------------------------------------
-int __cdecl BotCheckReplyChatIntegrety(int a1)
+int __cdecl sub_1002CCF0(int a1)
 {
   int v1; // edi
   int result; // eax
@@ -24646,7 +24641,7 @@ int __cdecl BotCheckInitialChatIntegrety(int *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CDD0) --------------------------------------------------------
-int __cdecl BotLoadChatMessage(int a1, char *a2)
+int __cdecl sub_1002CDD0(int a1, char *a2)
 {
   const char *v3; // [esp-10h] [ebp-450h]
   char *v4; // [esp-8h] [ebp-448h]
@@ -24676,7 +24671,7 @@ int __cdecl BotLoadChatMessage(int a1, char *a2)
         if ( token.type != 4 )
         {
 LABEL_14:
-          SourceError(a1, aUnknownMessage, token.string);
+          sub_10039200(a1, aUnknownMessage, token.string);
           return 0;
         }
         v4 = token.string;
@@ -24695,7 +24690,7 @@ LABEL_14:
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (1002D1B0) --------------------------------------------------------
-_DWORD *__cdecl BotFreeReplyChat(_DWORD *a1)
+_DWORD *__cdecl sub_1002D1B0(_DWORD *a1)
 {
   _DWORD *result; // eax
   _DWORD *v2; // ebp
@@ -24759,7 +24754,7 @@ _DWORD *__cdecl BotFreeReplyChat(_DWORD *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002D270) --------------------------------------------------------
-_DWORD *__cdecl BotLoadReplyChat(char *a1)
+_DWORD *__cdecl sub_1002D270(char *a1)
 {
   char *v1; // esi
   int v3; // eax
@@ -24795,14 +24790,14 @@ _DWORD *__cdecl BotLoadReplyChat(char *a1)
     return 0;
   }
   v5 = 0;
-  if ( !PC_ReadToken(v3, token.string) )
+  if ( !PC_ReadTokenHandle(v3, token.string) )
     goto LABEL_34;
   while ( 2 )
   {
     if ( strcmp(token.string, asc_1005C65C) )
     {
-      SourceError(v4, aExpectedFoundS, token.string);
-      BotFreeReplyChat(v5);
+      sub_10039200(v4, aExpectedFoundS, token.string);
+      sub_1002D1B0(v5);
       FreeSource(v4);
       return 0;
     }
@@ -24874,7 +24869,7 @@ LABEL_13:
         {
           LOBYTE(v14) = v14 | 0x10;
           *v7 = v14;
-          v7[2] = (int)BotLoadMatchPieces(v4, (int)asc_1005D32C);
+          v7[2] = (int)ReadFuzzySeperators_r(v4, (int)asc_1005D32C);
         }
       }
       PC_CheckTokenString(v4, asc_1005D330);
@@ -24885,14 +24880,14 @@ LABEL_13:
       || (*(float *)(v6 + 4) = (float)token.intvalue, !PC_ExpectTokenString(v4, asc_1005AB58)) )
     {
 LABEL_37:
-      BotShutdownChatAI();
+      sub_1002EC80();
       FreeSource(v4);
       return 0;
     }
     *(_DWORD *)(v6 + 8) = 0;
     if ( !PC_CheckTokenString(v4, asc_1005AB54) )
     {
-      while ( BotLoadChatMessage(v4, v21) )
+      while ( sub_1002CDD0(v4, v21) )
       {
         v16 = GetClearedMemory(strlen(v21) + 13);
         *(_DWORD *)v16 = v16 + 12;
@@ -24909,7 +24904,7 @@ LABEL_37:
     }
 LABEL_32:
     v5 = (_DWORD *)v6;
-    if ( PC_ReadToken(v4, token.string) )
+    if ( PC_ReadTokenHandle(v4, token.string) )
       continue;
     break;
   }
@@ -24920,12 +24915,12 @@ LABEL_34:
     bi_Print(1, "loaded %s\\%s\n", file_ref.path, v1);
   else
     bi_Print(1, "loaded %s\n", v1);
-  BotCheckReplyChatIntegrety((int)v5);
+  sub_1002CCF0((int)v5);
   if ( !v5 )
     bi_Print(1, aNoRchats);
   return v5;
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -24934,7 +24929,7 @@ LABEL_34:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002D8A0) --------------------------------------------------------
-int *__cdecl BotLoadInitialChat(char *a1, int a2)
+int *__cdecl BotDumpInitialChat(char *a1, int a2)
 {
   char *v2; // ebx
   int v4; // edi
@@ -24983,7 +24978,7 @@ int *__cdecl BotLoadInitialChat(char *a1, int a2)
       }
       v4 = 4;
       v15 = 4;
-      if ( PC_ReadToken(v7, Source) )
+      if ( PC_ReadTokenHandle(v7, Source) )
         break;
 LABEL_39:
       FreeSource(v7);
@@ -25045,7 +25040,7 @@ LABEL_16:
                 while ( 1 )
                 {
                   v8 = v13;
-                  if ( !BotLoadChatMessage(v13, v22) )
+                  if ( !sub_1002CDD0(v13, v22) )
                     goto LABEL_44;
                   if ( v16 )
                   {
@@ -25086,7 +25081,7 @@ LABEL_16:
               {
 LABEL_37:
                 v7 = v13;
-                if ( PC_ReadToken(v13, Source) )
+                if ( PC_ReadTokenHandle(v13, Source) )
                   goto LABEL_11;
                 v4 = v15;
                 goto LABEL_39;
@@ -25103,7 +25098,7 @@ LABEL_44:
     {
       v12 = aUnknownDefinit;
 LABEL_48:
-      SourceError(v13, v12, Source);
+      sub_10039200(v13, v12, Source);
       FreeSource(v13);
       return 0;
     }
@@ -25115,7 +25110,7 @@ LABEL_48:
   }
 }
 // 1002D8E7: variable 'v14' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
@@ -25125,7 +25120,7 @@ LABEL_48:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002DF70) --------------------------------------------------------
-int __cdecl BotFreeChatFile(int a1)
+int __cdecl sub_1002DF70(int a1)
 {
   int result; // eax
 
@@ -25138,25 +25133,25 @@ int __cdecl BotFreeChatFile(int a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002DFB0) --------------------------------------------------------
-int __cdecl BotFreeChatState(int a1)
+int __cdecl sub_1002DFB0(int a1)
 {
   int result; // eax
 
-  BotFreeChatFile(a1);
-  for ( result = BotNextConsoleMessage(a1); result; result = BotNextConsoleMessage(a1) )
-    BotRemoveConsoleMessage(a1, result);
+  sub_1002DF70(a1);
+  for ( result = sub_1002AB90(a1); result; result = sub_1002AB90(a1) )
+    sub_1002AA20(a1, result);
   return result;
 }
-// 1000123F: using guessed type _DWORD __cdecl BotNextConsoleMessage(_DWORD);
-// 10001E65: using guessed type _DWORD __cdecl BotRemoveConsoleMessage(_DWORD, _DWORD);
+// 1000123F: using guessed type _DWORD __cdecl sub_1002AB90(_DWORD);
+// 10001E65: using guessed type _DWORD __cdecl sub_1002AA20(_DWORD, _DWORD);
 
 //----- (1002DFF0) --------------------------------------------------------
 int __cdecl BotLoadChatFile(int a1, char *a2, int a3)
 {
   int v3; // eax
 
-  BotFreeChatFile(a1);
-  v3 = BotLoadInitialChat(a2, a3);
+  sub_1002DF70(a1);
+  v3 = BotDumpInitialChat(a2, a3);
   *(_DWORD *)(a1 + 184) = v3;
   if ( v3 )
     return 0;
@@ -25274,7 +25269,7 @@ void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int
         v6 = (const char *)(a1 + 20);
       }
       v23[v14] = 0;
-      BotReplaceSynonyms(v23, a5);
+      sub_1002B7C0(v23, a5);
       if ( v7 + strlen(v23) >= 0x96 )
       {
         bi_Print(3, "BotConstructChat: message %s too long\n", a2);
@@ -25297,9 +25292,9 @@ LABEL_30:
   bi_Print(3, "BotConstructChat: message \"%s\" too long\n", v5);
 LABEL_37:
   ((char *)v6)[v7] = 0;
-  BotReplaceWeightedSynonyms(v6, a3);
+  sub_1002B830(v6, a3);
 }
-// 10001276: using guessed type _DWORD __cdecl BotReplaceSynonyms(_DWORD, _DWORD);
+// 10001276: using guessed type _DWORD __cdecl sub_1002B7C0(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 1002E060: using guessed type char var_98[152];
 
@@ -25426,7 +25421,7 @@ void __cdecl BotInitialChat(int a1, char *String2, int a3, ...)
 }
 
 //----- (1002E7D0) --------------------------------------------------------
-int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
+int __cdecl sub_1002E7D0(_DWORD *a1, const char *a2)
 {
   int v2; // ebx
   int *v3; // esi
@@ -25472,7 +25467,7 @@ int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
       {
         if ( (v5 & 0x10) != 0 )
         {
-          v6 = StringsMatch((_DWORD *)v3[2], v16);
+          v6 = sub_1002C800((_DWORD *)v3[2], v16);
         }
         else if ( (v5 & 8) != 0 )
         {
@@ -25552,7 +25547,7 @@ LABEL_34:
 // 10064380: using guessed type int dword_10064380;
 
 //----- (1002EA50) --------------------------------------------------------
-unsigned int __cdecl BotChatLength(int a1)
+unsigned int __cdecl sub_1002EA50(int a1)
 {
   return strlen((const char *)(a1 + 20));
 }
@@ -25580,7 +25575,7 @@ char __cdecl BotEnterChat(int a1, int a2, int a3)
 // 10001488: using guessed type _DWORD __cdecl EA_Say(_DWORD, _DWORD);
 
 //----- (1002EBB0) --------------------------------------------------------
-int BotSetupChatAI()
+int sub_1002EBB0()
 {
 
   char *v1; // eax
@@ -25589,17 +25584,17 @@ int BotSetupChatAI()
   char *v4; // eax
 
   v1 = LibVarString(aSynfile, (char *)aSynC);
-  dword_10064384 = (int)BotLoadSynonyms(v1);
+  dword_10064384 = (int)sub_1002B110(v1);
   v2 = LibVarString(aRndfile, (char *)aRndC);
-  dword_1006437C = BotLoadRandomStrings(v2);
+  dword_1006437C = sub_1002B990(v2);
   v3 = LibVarString(aMatchfile, (char *)aMatchC);
   dword_10064378 = BotLoadMatchTemplates(v3);
   if ( LibVarValue(aNochat, (char *)a0) == 0.0 )
   {
     v4 = LibVarString(aRchatfile, (char *)aRchatC);
-    dword_10064380 = BotLoadReplyChat(v4);
+    dword_10064380 = sub_1002D270(v4);
   }
-  InitConsoleMessageHeap();
+  sub_1002A880();
   return 0;
 }
 // 10064378: using guessed type int dword_10064378;
@@ -25608,7 +25603,7 @@ int BotSetupChatAI()
 // 10064384: using guessed type int dword_10064384;
 
 //----- (1002EC80) --------------------------------------------------------
-_DWORD *BotShutdownChatAI()
+_DWORD *sub_1002EC80()
 {
   _DWORD *result; // eax
 
@@ -25626,7 +25621,7 @@ _DWORD *BotShutdownChatAI()
   result = (_DWORD *)dword_10064380;
   dword_10064384 = 0;
   if ( dword_10064380 )
-    result = BotFreeReplyChat((_DWORD *)dword_10064380);
+    result = sub_1002D1B0((_DWORD *)dword_10064380);
   dword_10064380 = 0;
   return result;
 }
@@ -25638,7 +25633,7 @@ _DWORD *BotShutdownChatAI()
 // 10064384: using guessed type int dword_10064384;
 
 //----- (1002ED20) --------------------------------------------------------
-itemconfig_t * LoadItemConfig(char *Source)
+itemconfig_t * sub_1002ED20(char *Source)
 {
   int max_iteminfo;
   source_t *src;
@@ -25653,7 +25648,7 @@ itemconfig_t * LoadItemConfig(char *Source)
   {
     bi_Print(3, "max_iteminfo = %d\n", max_iteminfo);
     max_iteminfo = 256;
-    LibVarSet(aMaxIteminfo, (char *)a256);
+    sub_10038AC0(aMaxIteminfo, (char *)a256);
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
@@ -25665,13 +25660,13 @@ itemconfig_t * LoadItemConfig(char *Source)
       cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
       cfg->numitems = 0;
       cfg->items    = (iteminfo_t *)(cfg + 1);
-      if ( PC_ReadToken((int)src, ArgList) )
+      if ( PC_ReadTokenHandle((int)src, ArgList) )
       {
         while ( !strcmp(ArgList, aIteminfo) )
         {
           if ( cfg->numitems >= max_iteminfo )
           {
-            SourceError((int)src, aMoreThanDItemI, max_iteminfo);
+            sub_10039200((int)src, aMoreThanDItemI, max_iteminfo);
             goto LABEL_22;
           }
           item = &cfg->items[cfg->numitems];
@@ -25691,10 +25686,10 @@ itemconfig_t * LoadItemConfig(char *Source)
             return 0;
           }
           item->number = cfg->numitems++;
-          if ( !PC_ReadToken((int)src, ArgList) )
+          if ( !PC_ReadTokenHandle((int)src, ArgList) )
             goto LABEL_13;
         }
-        SourceError((int)src, aUnknownDefinit, ArgList);
+        sub_10039200((int)src, aUnknownDefinit, ArgList);
 LABEL_22:
         FreeMemory(cfg);
         FreeSource(src);
@@ -25725,7 +25720,7 @@ LABEL_13:
     return 0;
   }
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -25735,7 +25730,7 @@ LABEL_13:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002F100) --------------------------------------------------------
-int *__cdecl ItemWeightIndex(int a1, int *a2)
+int *__cdecl sub_1002F100(int a1, int *a2)
 {
   int *result; // eax
   int v4; // ebx
@@ -25753,7 +25748,7 @@ int *__cdecl ItemWeightIndex(int a1, int *a2)
     v6 = result;
     do
     {
-      v7 = FindFuzzyWeight(a1, a2[1] + v5 + 80);
+      v7 = sub_100369C0(a1, a2[1] + v5 + 80);
       *v6 = v7;
       if ( v7 < 0 )
         Log_Write(aItemInfoDSHasN, v4, a2[1] + v5 + 80);
@@ -25766,7 +25761,7 @@ int *__cdecl ItemWeightIndex(int a1, int *a2)
   }
   return result;
 }
-// 1000132F: using guessed type _DWORD __cdecl FindFuzzyWeight(_DWORD, _DWORD);
+// 1000132F: using guessed type _DWORD __cdecl sub_100369C0(_DWORD, _DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (1002F1A0) --------------------------------------------------------
@@ -25833,7 +25828,7 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
 // 10064344: using guessed type int dword_10064344;
 
 //----- (1002F2B0) --------------------------------------------------------
-int __cdecl FreeLevelItem(int a1)
+int __cdecl sub_1002F2B0(int a1)
 {
   levelitem_t *item = (levelitem_t *)a1;
 
@@ -25858,7 +25853,7 @@ int __cdecl AddLevelItemToList(int a1)
 // 10064360: using guessed type int dword_10064360;
 
 //----- (1002F320) --------------------------------------------------------
-int __cdecl RemoveLevelItemFromList(int a1)
+int __cdecl sub_1002F320(int a1)
 {
   levelitem_t *item = (levelitem_t *)a1;
   levelitem_t *prev;
@@ -25894,7 +25889,7 @@ _DWORD * BotInitLevelItems()
    * but the original passes &v12 as vec3 to AAS_VectorForBSPEpairKey,
    * AAS_DropToFloor, and AAS_BestReachableArea.  GCC won't keep the locals
    * adjacent, so y/z are read as garbage and AAS_BestReachableArea returns
-   * 0 for nearly every item — leaving goal_areanum=0 and BotChooseLTGItem
+   * 0 for nearly every item — leaving goal_areanum=0 and sub_1002FEB0
    * unable to pick any goal. */
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
@@ -25905,7 +25900,7 @@ _DWORD * BotInitLevelItems()
   dword_10064354 = 0;
   if ( dword_1006435C )
   {
-    v4 = AAS_ParseBSPEntities();
+    v4 = sub_100069A0();
     /* Disasm at 0x1002f39f calls LibVarValue() (float-returning) and converts
      * the result via __ftol to an int spawnflags mask (stored in [esp+0x18]).
      * IDA decompiled this as a bare LibVar() call with the result discarded,
@@ -25989,7 +25984,7 @@ LABEL_20:
 // 10064360: using guessed type int dword_10064360;
 
 //----- (1002F6A0) --------------------------------------------------------
-char *__cdecl BotGoalName(int a1)
+char *__cdecl sub_1002F6A0(int a1)
 {
   levelitem_t *v1;
 
@@ -26021,7 +26016,7 @@ int __cdecl BotResetAvoidGoals(int a1)
 }
 
 //----- (1002F730) --------------------------------------------------------
-void __cdecl BotDumpAvoidGoals(int a1)
+void __cdecl sub_1002F730(int a1)
 {
   float *v1; // esi
   int v2; // ebx
@@ -26036,7 +26031,7 @@ void __cdecl BotDumpAvoidGoals(int a1)
     {
       v3 = *v1;
       AAS_Time();
-      v4 = BotGoalName(LODWORD(v3));
+      v4 = sub_1002F6A0(LODWORD(v3));
       Log_Write(aAvoidGoalSNumb, v4);
     }
     ++v1;
@@ -26044,10 +26039,10 @@ void __cdecl BotDumpAvoidGoals(int a1)
   }
   while ( v2 );
 }
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
 
 //----- (1002F7B0) --------------------------------------------------------
-void __cdecl BotAddToAvoidGoals(int a1, int a2, float a3)
+void __cdecl sub_1002F7B0(int a1, int a2, float a3)
 {
   int v3; // esi
   float *i; // edi
@@ -26078,7 +26073,7 @@ double __cdecl BotAvoidGoalTime(int a1, int a2)
 }
 
 //----- (1002F890) --------------------------------------------------------
-int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
+int __cdecl sub_1002F890(int a1, char *name, bot_goal_t *goal)
 {
   levelitem_t *li;
   iteminfo_t *item;
@@ -26113,7 +26108,7 @@ int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
 // 10064360: using guessed type int dword_10064360;
 
 //----- (1002FA20) --------------------------------------------------------
-int BotUpdateEntityItems()
+int sub_1002FA20()
 {
   levelitem_t *v0;
   levelitem_t *v1;
@@ -26148,8 +26143,8 @@ int BotUpdateEntityItems()
       v1 = v0->next;
       if ( v0->timeout != 0.0 && AAS_Time() > v0->timeout )
       {
-        RemoveLevelItemFromList((int)v0);
-        FreeLevelItem((int)v0);
+        sub_1002F320((int)v0);
+        sub_1002F2B0((int)v0);
       }
       v0 = v1;
     }
@@ -26280,7 +26275,7 @@ int __cdecl BotDumpGoalStack(int a1)
     v2 = (_DWORD *)(a1 + 108);
     do
     {
-      BotGoalName(*v2);
+      sub_1002F6A0(*v2);
       Log_Write(aDS, v1++);
       v2 += 14;
     }
@@ -26291,10 +26286,10 @@ int __cdecl BotDumpGoalStack(int a1)
    * Return the goal count to match the predominant code path. */
   return *(int *)(a1 + 456);
 }
-// 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
+// 100016EF: using guessed type _DWORD __cdecl sub_1002F6A0(_DWORD);
 
 //----- (1002FD90) --------------------------------------------------------
-int __cdecl BotPushGoal(int a1, const void *a2)
+int __cdecl sub_1002FD90(int a1, const void *a2)
 {
   int v2; // eax
   int result; // eax
@@ -26317,7 +26312,7 @@ int __cdecl BotPushGoal(int a1, const void *a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002FE00) --------------------------------------------------------
-int __cdecl BotPopGoal(int a1)
+int __cdecl sub_1002FE00(int a1)
 {
   int result; // eax
 
@@ -26328,7 +26323,7 @@ int __cdecl BotPopGoal(int a1)
 }
 
 //----- (1002FE30) --------------------------------------------------------
-int __cdecl BotEmptyGoalStack(int a1)
+int __cdecl sub_1002FE30(int a1)
 {
   int result; // eax
 
@@ -26349,7 +26344,7 @@ int __cdecl BotGetTopGoal(int a1)
 }
 
 //----- (1002FE80) --------------------------------------------------------
-int __cdecl BotGetSecondGoal(int a1)
+int __cdecl sub_1002FE80(int a1)
 {
   int v1; // eax
 
@@ -26361,7 +26356,7 @@ int __cdecl BotGetSecondGoal(int a1)
 }
 
 //----- (1002FEB0) --------------------------------------------------------
-int __cdecl BotChooseLTGItem(int a1, int a2, int a3, int a4)
+int __cdecl sub_1002FEB0(int a1, int a2, int a3, int a4)
 {
   int result; // eax
   BOOL v6; // eax
@@ -26383,8 +26378,8 @@ int __cdecl BotChooseLTGItem(int a1, int a2, int a3, int a4)
 
   if ( !*(_DWORD *)a1 )
     return 0;
-  v6 = AAS_Swimming(a2);
-  result = BotReachabilityArea(a2, !v6);
+  v6 = sub_1000EFC0(a2);
+  result = BotGetReachabilityToGoal(a2, !v6);
   v7 = result;
   v15 = result;
   if ( result )
@@ -26412,7 +26407,7 @@ int __cdecl BotChooseLTGItem(int a1, int a2, int a3, int a4)
               v11 = *(_DWORD *)(*(_DWORD *)(a1 + 4) + 4 * v10[70]);
               if ( v11 >= 0 )
               {
-                v12 = FuzzyWeightUndecided(a3, *(_DWORD *)a1 + 8 * v11 + 4);
+                v12 = sub_10036CA0(a3, *(_DWORD *)a1 + 8 * v11 + 4);
                 if ( v12 > 0.0 )
                 {
                   v17 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v15, v9, a4);
@@ -26454,16 +26449,16 @@ int __cdecl BotChooseLTGItem(int a1, int a2, int a3, int a4)
           v21 = *(float *)(*(_DWORD *)(v16 + 4) + 284 * v14->iteminfo + 252);
           if ( v21 == 0.0 )
             v21 = 30.0;
-          BotAddToAvoidGoals(a1, v14->number, v21);
-          BotPushGoal(a1, v18);
+          sub_1002F7B0(a1, v14->number, v21);
+          sub_1002FD90(a1, v18);
           return 1;
         }
         v7 = v15;
       }
       /* Original sub_10001A64 thunks to AAS_RandomGoalArea, a 4-arg "pick a
-       * reachable area for goal" function — NOT BotFindWayPoint (the chat
+       * reachable area for goal" function — NOT sub_10021B50 (the chat
        * linked-list walker our deobfuscator confused it with).  Wrong
-       * mapping passed v7 (= some pointer) into BotFindWayPoint where it
+       * mapping passed v7 (= some pointer) into sub_10021B50 where it
        * gets walked as a chat-node list, faulting on a corrupt next ptr
        * (= 0x5).  Restored to the correct function with all 4 args. */
       if ( !AAS_RandomGoalArea(v7, a4, (_DWORD *)&v18[3], (int)v18) )
@@ -26478,19 +26473,19 @@ int __cdecl BotChooseLTGItem(int a1, int a2, int a3, int a4)
       v18[11] = 0;
       v18[12] = 2;
       v18[13] = 0;
-      BotPushGoal(a1, v18);
+      sub_1002FD90(a1, v18);
       return 1;
     }
   }
   return result;
 }
-// 10001253: using guessed type double __cdecl FuzzyWeightUndecided(_DWORD, _DWORD);
-// 100014B0: using guessed type _DWORD __cdecl BotReachabilityArea(_DWORD, _DWORD);
+// 10001253: using guessed type double __cdecl sub_10036CA0(_DWORD, _DWORD);
+// 100014B0: using guessed type _DWORD __cdecl BotGetReachabilityToGoal(_DWORD, _DWORD);
 // 1006435C: using guessed type int dword_1006435C;
 // 10064360: using guessed type int dword_10064360;
 
 //----- (10030260) --------------------------------------------------------
-int __cdecl BotChooseNBGItem(int a1, int a2, int a3, int a4, int a5, float a6)
+int __cdecl sub_10030260(int a1, int a2, int a3, int a4, int a5, float a6)
 {
   int result; // eax
   BOOL v8; // eax
@@ -26515,8 +26510,8 @@ int __cdecl BotChooseNBGItem(int a1, int a2, int a3, int a4, int a5, float a6)
 
   if ( !*(_DWORD *)a1 )
     return 0;
-  v8 = AAS_Swimming(a2);
-  result = BotReachabilityArea(a2, !v8);
+  v8 = sub_1000EFC0(a2);
+  result = BotGetReachabilityToGoal(a2, !v8);
   v9 = result;
   v20 = result;
   if ( result )
@@ -26546,7 +26541,7 @@ int __cdecl BotChooseNBGItem(int a1, int a2, int a3, int a4, int a5, float a6)
               v13 = *(_DWORD *)(*(_DWORD *)(a1 + 4) + 4 * v12[70]);
               if ( v13 >= 0 )
               {
-                v14 = FuzzyWeightUndecided(a3, *(_DWORD *)a1 + 8 * v13 + 4);
+                v14 = sub_10036CA0(a3, *(_DWORD *)a1 + 8 * v13 + 4);
                 *(float *)&v23 = v14;
                 if ( v14 > 0.0 )
                 {
@@ -26598,8 +26593,8 @@ int __cdecl BotChooseNBGItem(int a1, int a2, int a3, int a4, int a5, float a6)
           v26 = *(float *)(*(_DWORD *)(v19 + 4) + 284 * v18->iteminfo + 252);
           if ( v26 == 0.0 )
             v26 = 30.0;
-          BotAddToAvoidGoals(a1, v18->number, v26);
-          BotPushGoal(a1, v22);
+          sub_1002F7B0(a1, v18->number, v26);
+          sub_1002FD90(a1, v22);
           return 1;
         }
         else
@@ -26611,13 +26606,13 @@ int __cdecl BotChooseNBGItem(int a1, int a2, int a3, int a4, int a5, float a6)
   }
   return result;
 }
-// 10001253: using guessed type double __cdecl FuzzyWeightUndecided(_DWORD, _DWORD);
-// 100014B0: using guessed type _DWORD __cdecl BotReachabilityArea(_DWORD, _DWORD);
+// 10001253: using guessed type double __cdecl sub_10036CA0(_DWORD, _DWORD);
+// 100014B0: using guessed type _DWORD __cdecl BotGetReachabilityToGoal(_DWORD, _DWORD);
 // 1006435C: using guessed type int dword_1006435C;
 // 10064360: using guessed type int dword_10064360;
 
 //----- (10030600) --------------------------------------------------------
-int __cdecl BotTouchingGoal(float *a1, float *a2)
+int __cdecl sub_10030600(float *a1, float *a2)
 {
   double v3; // st7
   int v4; // edx
@@ -26656,7 +26651,7 @@ int __cdecl BotTouchingGoal(float *a1, float *a2)
 }
 
 //----- (10030770) --------------------------------------------------------
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, int a2, int a3, int a4)
+BOOL __cdecl sub_10030770(int a1, int a2, int a3, int a4)
 {
   int v4; // ebx
   vec3_t origin; // [esp+Ch] [ebp-88h] BYREF — world-space goal center, passed to AAS_Trace and VectorScale
@@ -26686,13 +26681,13 @@ int __cdecl BotLoadItemWeights(int *a1, int a2)
 {
   int v2; // eax
 
-  v2 = ReadWeightConfig(a2);
+  v2 = sub_10035FA0(a2);
   *a1 = v2;
   if ( v2 )
   {
     if ( dword_1006435C )
     {
-      a1[1] = (int)ItemWeightIndex(v2, (int *)dword_1006435C);
+      a1[1] = (int)sub_1002F100(v2, (int *)dword_1006435C);
       return 0;
     }
     else
@@ -26706,27 +26701,27 @@ int __cdecl BotLoadItemWeights(int *a1, int a2)
     return 28;
   }
 }
-// 10001091: using guessed type int __cdecl ReadWeightConfig(_DWORD);
+// 10001091: using guessed type int __cdecl sub_10035FA0(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030950) --------------------------------------------------------
-int __cdecl BotFreeItemWeights(_DWORD *a1)
+int __cdecl sub_10030950(_DWORD *a1)
 {
   int result; // eax
 
   if ( *a1 )
-    FreeWeightConfig2(*a1);
+    sub_100359B0(*a1);
   result = a1[1];
   if ( result )
     return FreeMemory(a1[1]);
   return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
+// 10001DC5: using guessed type _DWORD __cdecl sub_100359B0(_DWORD);
 
 //----- (10030990) --------------------------------------------------------
-int __cdecl BotResetGoalState(int a1)
+int __cdecl sub_10030990(int a1)
 {
   memset((void *)(a1 + 8), 0, 0x1C0u);
   *(_DWORD *)(a1 + 456) = 0;
@@ -26735,13 +26730,13 @@ int __cdecl BotResetGoalState(int a1)
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
 
 //----- (100309D0) --------------------------------------------------------
-int BotSetupGoalAI()
+int sub_100309D0()
 {
 
   char *v0; // eax
 
   v0 = LibVarString(aItemconfig, (char *)aItemsC);
-  dword_1006435C = LoadItemConfig(v0);
+  dword_1006435C = sub_1002ED20(v0);
   if ( dword_1006435C )
     return 0;
   bi_Print(4, aCouldnTLoadIte);
@@ -26751,7 +26746,7 @@ int BotSetupGoalAI()
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030A20) --------------------------------------------------------
-int BotShutdownGoalAI()
+int sub_10030A20()
 {
   int result; // eax
 
@@ -26783,13 +26778,7 @@ double __cdecl AngleDiff(float a1, float a2)
 }
 
 //----- (10030AA0) --------------------------------------------------------
-/* BotReachabilityArea: Q3 canonical name (be_ai_move.c:3585).  Earlier
- * audit pass mis-renamed this to BotGetReachabilityToGoal; corrected after
- * comparing against Q3 BotReachabilityArea(vec3_t origin, int testground)
- * which matches this function's drop-to-floor + 3x3x3 grid sweep for first
- * reachable area exactly.  The real BotGetReachabilityToGoal is at
- * 0x100310E0 (10-arg routing inner loop). */
-int __cdecl BotReachabilityArea(int *a1, int a2)
+int __cdecl BotGetReachabilityToGoal(int *a1, int a2)
 {
   int v2; // ecx
   double v4; // st7
@@ -26807,7 +26796,7 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
    * laid them out as consecutive 4-byte slots and the function passes &v15
    * and &v20 to AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas as
    * vec3 pointers.  GCC's local placement broke that, so origin/y/z were
-   * read as garbage and BotReachabilityArea always returned 0 (causing
+   * read as garbage and BotGetReachabilityToGoal always returned 0 (causing
    * the bot to be inert).  Restored as proper vec3_t locals named "start"
    * and "end" per Mr. Elusive's Q3 conventions (cf. AAS_BestReachableArea
    * in ioq3 be_aas_reach.c). */
@@ -26910,7 +26899,7 @@ LABEL_17:
 // 10030AA0: using guessed type int var_4C[10];
 
 //----- (10030D00) --------------------------------------------------------
-BOOL __cdecl BotOnMover(int a1, int a2, int a3)
+BOOL __cdecl sub_10030D00(int a1, int a2, int a3)
 {
   int v3; // ecx
   int v4; // edi
@@ -26973,7 +26962,7 @@ BOOL __cdecl BotOnMover(int a1, int a2, int a3)
 // 10030D00: using guessed type _DWORD var_60[3];
 
 //----- (10030F10) --------------------------------------------------------
-BOOL __cdecl MoverDown(int a1)
+BOOL __cdecl BotOnMover(int a1)
 {
   float v2[3]; // [esp+4h] [ebp-30h] BYREF
   float v3[3]; // [esp+10h] [ebp-24h] BYREF
@@ -26984,7 +26973,7 @@ BOOL __cdecl MoverDown(int a1)
   if ( *(_DWORD *)(a1 + 36) != 11 )
     return 0;
   AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(a1 + 4), v2, (float *)v5, (float *)v4, (float *)v3);
-  if ( !AAS_OriginOfMoverWithModelNum(*(_DWORD *)(a1 + 4), v3) )
+  if ( !sub_1000AE30(*(_DWORD *)(a1 + 4), v3) )
   {
     bi_Print(1, "no entity with model %d\n", *(_DWORD *)(a1 + 4));
     return 0;
@@ -26995,13 +26984,13 @@ BOOL __cdecl MoverDown(int a1)
 // 10030F10: using guessed type int var_C[3];
 
 //----- (10030FE0) --------------------------------------------------------
-BOOL __cdecl BotValidTravel(int a1, int a2, int a3, int a4)
+BOOL __cdecl sub_10030FE0(int a1, int a2, int a3, int a4)
 {
   return (~a4 & AAS_TravelFlagForType(*(_DWORD *)(a3 + 36))) == 0;
 }
 
 //----- (10031010) --------------------------------------------------------
-void __cdecl BotAddToAvoidReach(int a1, int a2, float a3)
+void __cdecl sub_10031010(int a1, int a2, float a3)
 {
   int v3; // esi
   _DWORD *v4; // eax
@@ -27037,7 +27026,7 @@ void __cdecl BotAddToAvoidReach(int a1, int a2, float a3)
 }
 
 //----- (100310E0) --------------------------------------------------------
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10)
+int __cdecl sub_100310E0(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10)
 {
   int v10; // ebp
   float *v11; // edi
@@ -27068,7 +27057,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
       qmemcpy(v18, AAS_ReachabilityFromNum(v19, v10), sizeof(v18));
       if ( a3 != *(_DWORD *)(a9 + 12) || v18[0] != a4 )
       {
-        if ( BotValidTravel(a1, a5, (int)v18, a10) )
+        if ( sub_10030FE0(a1, a5, (int)v18, a10) )
         {
           v13 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v18[0], *(_DWORD *)(a9 + 12), a10);
           if ( v13 )
@@ -27091,7 +27080,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
 // 100310E0: using guessed type char var_2C[44];
 
 //----- (10031270) --------------------------------------------------------
-int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4)
+int __cdecl sub_10031270(int a1, int a2, int a3, int a4)
 {
   int v4; // eax
   int v6[11]; // [esp+10h] [ebp-58h] BYREF
@@ -27102,7 +27091,7 @@ int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4)
   if ( !a2 )
     return 0;
   qmemcpy(v6, AAS_ReachabilityFromNum(v7, *(_DWORD *)(a1 + 76)), sizeof(v6));
-  v4 = BotGetReachabilityToGoal(
+  v4 = sub_100310E0(
          (int)&v6[6],
          v6[0],
          *(_DWORD *)(a1 + 72),
@@ -27123,7 +27112,7 @@ int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4)
 }
 
 //----- (10031380) --------------------------------------------------------
-int __cdecl MoverBottomCenter(int *a1, int a2)
+int __cdecl sub_10031380(int *a1, int a2)
 {
   int result; // eax
   float v3[3]; // [esp+4h] [ebp-3Ch] BYREF
@@ -27148,7 +27137,7 @@ int __cdecl MoverBottomCenter(int *a1, int a2)
 }
 
 //----- (10031450) --------------------------------------------------------
-double __cdecl BotGapDistance(int a1, int a2)
+double __cdecl sub_10031450(int a1, int a2)
 {
   double v6; // st7
   char v8; // al
@@ -27158,7 +27147,7 @@ double __cdecl BotGapDistance(int a1, int a2)
    * all three components of both vectors before every AAS_TraceClientBBox /
    * bi_PointContents call.  Without the missing v10[1]/v10[2] stores the
    * trace's end vector contains uninitialized stack garbage — the trace
-   * returns a near-random v18, BotTravel_Walk then issues
+   * returns a near-random v18, sub_10031E50 then issues
    * `speed = 2 * v18`, so the bot crawls at 16 u/s and hitches every couple
    * of seconds.  Restored as float[3]; see bot_movement_split_vec3.md. */
   vec3_t v10; // [esp+14h] [ebp-60h] BYREF — trace end vector
@@ -27210,7 +27199,7 @@ LABEL_5:
 // 10031450: using guessed type char var_24[36];
 
 //----- (10031650) --------------------------------------------------------
-int __cdecl BotCheckBarrierJump(int a1, int a2, float a3)
+int __cdecl sub_10031650(int a1, int a2, float a3)
 {
   int result; // eax
   float v11; // [esp+0h] [ebp-84h]
@@ -27301,7 +27290,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
   double v10; // st7
   int v11; // ebx
   double v13; // st7
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. Original
+  /* IDA split a vec3 stack local — see sub_10031E50 note. Original
    * .text 0x10031995/0x1003199a/0x1003199e stores the 3 floats at contiguous
    * [esp+0x10/+0x14/+0x18]. */
   vec3_t dir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
@@ -27313,7 +27302,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
   v5 = *(_DWORD *)(a1 + 96);
   if ( (v5 & 2) != 0 )
   {
-    if ( !BotCheckBarrierJump(a1, a2, a3) )
+    if ( !sub_10031650(a1, a2, a3) )
     {
       v6 = a4;
       if ( (a4 & 2) == 0 || (v7 = 4, (a4 & 4) != 0) )
@@ -27324,7 +27313,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
       v9 = VectorNormalize(dir);
       if ( (a4 & 4) == 0 )
       {
-        BotGapDistance(a1, (int)dir);
+        sub_10031450(a1, (int)dir);
         if ( v9 > 0.0 )
         {
           v6 = a4 | 4;
@@ -27393,14 +27382,14 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
  * Routes (movestate, dir, speed, type) to BotSwimInDirection if the bot's
  * origin sits in a liquid contents (LAVA|SLIME|WATER), else to BotWalkInDirection.
  * Direct match for Q3 botlib's BotMoveInDirection at be_ai_move.c:1228
- * (which uses AAS_Swimming() instead of AAS_Swimming() — same intent;
+ * (which uses AAS_Swimming() instead of sub_1000EFC0() — same intent;
  *
  * Note: Q2 drops the `type` arg in the swim branch — BotSwimInDirection
  * here takes only 3 args, matching the 1999 Q2-botlib swim impl.  The walk
  * branch keeps all 4 args, matching Q3. */
 int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4)
 {
-  if ( AAS_Swimming(a1) )
+  if ( sub_1000EFC0(a1) )
     return BotSwimInDirection(a1, a2, a3);
   else
     return BotWalkInDirection(a1, a2, a3, a4);
@@ -27444,7 +27433,7 @@ int __cdecl BotCheckBlocked(int a1, int a2, int a3)
 // 10031D10: using guessed type _DWORD var_6C[2];
 
 //----- (10031E20) --------------------------------------------------------
-_DWORD *__cdecl BotClearMoveResult(_DWORD *a1)
+_DWORD *__cdecl sub_10031E20(_DWORD *a1)
 {
   _DWORD *result; // eax
 
@@ -27459,7 +27448,7 @@ _DWORD *__cdecl BotClearMoveResult(_DWORD *a1)
 }
 
 //----- (10031E50) --------------------------------------------------------
-int __cdecl BotTravel_Walk(int a1, int a2, int a3)
+int __cdecl sub_10031E50(int a1, int a2, int a3)
 {
   double v4; // st7
   double v5; // st7
@@ -27474,7 +27463,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
   float v11; // [esp+50h] [ebp+Ch]
   float v12; // [esp+50h] [ebp+Ch]
 
-  BotClearMoveResult(v10);
+  sub_10031E20(v10);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
@@ -27495,7 +27484,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
     if ( v11 < 20.0 )
       EA_Crouch(*(_DWORD *)(a2 + 40));
   }
-  /* IDA dropped FPU return: at .text 0x10031f12 the call to BotGapDistance
+  /* IDA dropped FPU return: at .text 0x10031f12 the call to sub_10031450
    * leaves its float result in ST(0); the very next `fcoms 0x10058000`
    * compares THAT value against 0.0, and the `fadd %st,%st(0)` doubles it for
    * the speed.  IDA reused the v4 stack slot from the dir-length expression
@@ -27503,7 +27492,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
    * speed = 2 * distance-to-goal instead of 2 * jump-distance, making the bot
    * crawl as it approaches every goal and "pause" when distance ≈ 0 (just
    * before the goal flips).  Capture the real return.  See ida_dropped_results.md. */
-  v4 = BotGapDistance(a2, (int)dir);
+  v4 = sub_10031450(a2, (int)dir);
   if ( v4 <= 0.0 )
     v12 = 400.0;
   else
@@ -27521,14 +27510,14 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
 // 10001BD6: using guessed type _DWORD __cdecl AAS_AreaPresenceType(_DWORD);
 
 //----- (100320C0) --------------------------------------------------------
-int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3)
+int *__cdecl sub_100320C0(int *a1, int a2, int a3)
 {
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   int v7[12]; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v7);
+  sub_10031E20(v7);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 24) - *(float *)a2;
   dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
@@ -27547,16 +27536,16 @@ int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3)
 // 10001942: using guessed type _DWORD __cdecl EA_Crouch(_DWORD);
 
 //----- (10032190) --------------------------------------------------------
-int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3)
+int *__cdecl sub_10032190(int *a1, int a2, int a3)
 {
   int *result; // eax
   float v4; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   int v8[12]; // [esp+18h] [ebp-30h] BYREF
   float v9; // [esp+54h] [ebp+Ch]
 
-  BotClearMoveResult(v8);
+  sub_10031E20(v8);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
@@ -27584,16 +27573,16 @@ int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100322C0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3)
+int *__cdecl sub_100322C0(int *a1, int a2, int a3)
 {
   int *result; // eax
   float v5; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   int v9[12]; // [esp+18h] [ebp-30h] BYREF
   float v10; // [esp+50h] [ebp+8h]
 
-  BotClearMoveResult(v9);
+  sub_10031E20(v9);
   if ( *(float *)(a2 + 20) < 250.0 )
   {
     dir[2] = 0.0f;
@@ -27616,15 +27605,15 @@ int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100323E0) --------------------------------------------------------
-int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
+int *__cdecl sub_100323E0(int *a1, int a2, float *a3)
 {
   int v3; // eax
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   int v8[12]; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v8);
+  sub_10031E20(v8);
   dir[0] = a3[3] - *(float *)a2;
   dir[1] = a3[4] - *(float *)(a2 + 4);
   dir[2] = a3[5] - *(float *)(a2 + 8);
@@ -27634,7 +27623,7 @@ int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
   v8[6] = *(int *)&dir[0];
   v8[7] = *(int *)&dir[1];
   v8[8] = *(int *)&dir[2];
-  vectoangles(dir, &v8[9]);
+  sub_10041790(dir, &v8[9]);
   v3 = v8[5];
   LOBYTE(v3) = LOBYTE(v8[5]) | 2;
   v8[5] = v3;
@@ -27643,22 +27632,22 @@ int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (100324C0) --------------------------------------------------------
-int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3)
+int *__cdecl sub_100324C0(int *a1, int a2, float *a3)
 {
   double v3; // st6
   __int16 v4; // ax
   int v5; // eax
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   float v10[3]; // [esp+14h] [ebp-3Ch] BYREF
   int v11[12]; // [esp+20h] [ebp-30h] BYREF
   float v12; // [esp+5Ch] [ebp+Ch]
 
-  BotClearMoveResult(v11);
+  sub_10031E20(v11);
   v10[2] = 0.0;
   dir[0] = a3[6] - *(float *)a2;
   dir[1] = a3[7] - *(float *)(a2 + 4);
@@ -27675,7 +27664,7 @@ int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3)
   EA_MoveForward(*(_DWORD *)(a2 + 40));
   if ( v12 < 40.0 )
     EA_MoveUp(*(_DWORD *)(a2 + 40));
-  vectoangles(dir, &v11[9]);
+  sub_10041790(dir, &v11[9]);
   v5 = v11[5];
   LOBYTE(v5) = LOBYTE(v11[5]) | 1;
   v11[6] = *(int *)&dir[0];
@@ -27688,11 +27677,11 @@ int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3)
 }
 // 100015B9: using guessed type _DWORD __cdecl EA_MoveUp(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (10032620) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
+int *__cdecl sub_10032620(int *a1, int a2, float *a3)
 {
   int v3; // edx
   double v4; // st7
@@ -27702,13 +27691,13 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
   __int16 v8; // ax
   int v9; // eax
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   /* int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v14[2]. */
   int v14[3]; // [esp+14h] [ebp-3Ch] BYREF
   int v15[12]; // [esp+20h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v15);
+  sub_10031E20(v15);
   if ( (*(_BYTE *)(a2 + 96) & 0x10) == 0 )
   {
     v3 = *(_DWORD *)(a2 + 4);
@@ -27737,7 +27726,7 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
              + 70.0;
       VectorNormalize(dir);
       EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-      vectoangles(dir, &v15[9]);
+      sub_10041790(dir, &v15[9]);
       v9 = v15[5];
       LOBYTE(v9) = LOBYTE(v15[5]) | 1;
       v15[6] = *(int *)&dir[0];
@@ -27752,10 +27741,10 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
 }
 // 10032667: variable 'v5' is possibly undefined
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (100327F0) --------------------------------------------------------
-int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3)
+int *__cdecl sub_100327F0(int *a1, int a2, float *a3)
 {
   float *v4; // ebx
   double v5; // st7
@@ -27763,13 +27752,13 @@ int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3)
   double v7; // st7
   int *result; // eax
   float v9; // [esp+10h] [ebp-4Ch] BYREF
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split two vec3 stack locals — see sub_10031E50 note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
   vec3_t pos; // [esp+20h] [ebp-3Ch] BYREF (was v13/v14/<hole>)
   int v16[12]; // [esp+2Ch] [ebp-30h] BYREF
   float v17; // [esp+68h] [ebp+Ch]
 
-  BotClearMoveResult(v16);
+  sub_10031E20(v16);
   v4 = a3 + 6;
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
@@ -27817,15 +27806,15 @@ LABEL_9:
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10032A00) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3)
+int *__cdecl sub_10032A00(int *a1, int a2, float *a3)
 {
   int *result; // eax
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split two vec3 stack locals — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   vec3_t pos; // [esp+14h] [ebp-3Ch] BYREF (was v7/v8/<hole>)
   int v10[12]; // [esp+20h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v10);
+  sub_10031E20(v10);
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
   pos[2] = 0.0f;
@@ -27845,7 +27834,7 @@ int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032AE0) --------------------------------------------------------
-int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3)
+int *__cdecl sub_10032AE0(int *a1, int a2, float *a3)
 {
   double v3; // st7
   int v4; // ecx
@@ -27860,13 +27849,13 @@ int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3)
   float v13; // [esp+10h] [ebp-80h]
   float v14; // [esp+14h] [ebp-7Ch]
   float v15; // [esp+14h] [ebp-7Ch]
-  /* IDA split four vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split four vec3 stack locals — see sub_10031E50 note. */
   vec3_t dir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
   vec3_t predpos; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
   vec3_t predd; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
   vec3_t botd;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
   float v27[3]; // [esp+48h] [ebp-48h] BYREF
-  /* Same vec3-split shape as AAS_NearbySolidOrGap: VectorMA at 0x10032b95 writes
+  /* Same vec3-split shape as sub_10011740: VectorMA at 0x10032b95 writes
    * three floats starting at [esp+0x4c], and disasm at 0x10032b9a/0x10032ba9
    * does `fld [esp+0x68]; fadd 1.0; fstp [esp+0x6c]` on that vec's z-slot
    * (same stack offset modulo intervening pushes).  IDA had decompiled the
@@ -27876,7 +27865,7 @@ int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3)
   float v28[3]; // [esp+54h] [ebp-3Ch] BYREF
   int v30[12]; // [esp+60h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v30);
+  sub_10031E20(v30);
   AAS_JumpReachRunStart(a3, (int)predpos);
   v3 = predpos[0] - a3[3];
   dir[2] = 0.0f;
@@ -27959,17 +27948,17 @@ LABEL_7:
 // 10001E7E: using guessed type _DWORD __cdecl AAS_JumpReachRunStart(_DWORD, _DWORD);
 
 //----- (10032E80) --------------------------------------------------------
-int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3)
+int *__cdecl sub_10032E80(int *a1, int a2, float *a3)
 {
   double v5; // st7
   int *result; // eax
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split two vec3 stack locals — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
   vec3_t reach_dir; // [esp+14h] [ebp-3Ch] BYREF (was v10/v11/v12)
   int v13[12]; // [esp+20h] [ebp-30h] BYREF
   float v14; // [esp+58h] [ebp+8h]
 
-  BotClearMoveResult(v13);
+  sub_10031E20(v13);
   if ( *(_DWORD *)(a2 + 100) )
   {
     dir[2] = 0.0f;
@@ -27996,18 +27985,18 @@ int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032FC0) --------------------------------------------------------
-int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3)
+int *__cdecl sub_10032FC0(int *a1, int a2, float *a3)
 {
   int v3; // eax
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   float v8[3]; // [esp+14h] [ebp-48h] BYREF
   float v9[3]; // [esp+20h] [ebp-3Ch] BYREF
   int v10[12]; // [esp+2Ch] [ebp-30h] BYREF
 
   memset(v9, 0, sizeof(v9));
-  BotClearMoveResult(v10);
+  sub_10031E20(v10);
   dir[0] = a3[6] - *(float *)a2;
   dir[1] = a3[7] - *(float *)(a2 + 4);
   dir[2] = a3[8] - *(float *)(a2 + 8);
@@ -28015,7 +28004,7 @@ int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3)
   v8[0] = dir[0];
   v8[1] = dir[1];
   v8[2] = dir[2] * 3.0f;
-  vectoangles(v8, &v10[9]);
+  sub_10041790(v8, &v10[9]);
   EA_Move(*(_DWORD *)(a2 + 40), v9, 0.0);
   EA_MoveForward(*(_DWORD *)(a2 + 40));
   v3 = v10[5];
@@ -28029,21 +28018,21 @@ int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3)
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (100330E0) --------------------------------------------------------
-int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3)
+int *__cdecl sub_100330E0(int *a1, int a2, float *a3)
 {
   int v4; // ecx
   int v5; // eax
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   int v10[12]; // [esp+14h] [ebp-30h] BYREF
   float v11; // [esp+4Ch] [ebp+8h]
 
-  BotClearMoveResult(v10);
+  sub_10031E20(v10);
   v4 = *(_DWORD *)(a2 + 96);
   if ( (v4 & 0x20) == 0 )
   {
@@ -28075,7 +28064,7 @@ int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10033210) --------------------------------------------------------
-int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
+int __cdecl sub_10033210(int a1, int a2, int a3)
 {
   double v4; // st7
   double v5; // st7
@@ -28092,7 +28081,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
   int result; // eax
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
-  /* IDA split five vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split five vec3 stack locals — see sub_10031E50 note. */
   vec3_t final; // [esp+10h] [ebp-6Ch] BYREF (was v19/v20/v21)
   vec3_t dir;   // [esp+1Ch] [ebp-60h] BYREF (was v22/v23/v24)
   vec3_t reach; // [esp+28h] [ebp-54h] BYREF (was v25/v26/v27)
@@ -28103,12 +28092,12 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
   float v36; // [esp+88h] [ebp+Ch]
   float v37; // [esp+88h] [ebp+Ch]
 
-  BotClearMoveResult(v34);
-  if ( BotOnMover(a2, *(_DWORD *)(a2 + 36), a3) )
+  sub_10031E20(v34);
+  if ( sub_10030D00(a2, *(_DWORD *)(a2 + 36), a3) )
   {
     if ( (double)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) >= libvar_sv_maxbarrier->value )
     {
-      MoverBottomCenter((int *)a3, (int)telegoal);
+      sub_10031380((int *)a3, (int)telegoal);
       v5 = telegoal[0] - *(float *)a2;
       dir[2] = 0.0f;
       dir[0] = v5;
@@ -28132,7 +28121,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
       dir[0] = v4;
       dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
       VectorNormalize(dir);
-      if ( !BotCheckBarrierJump(a2, (int)dir, 100.0) )
+      if ( !sub_10031650(a2, (int)dir, 100.0) )
         EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
       v34[6] = *(int *)&dir[0];
       v34[7] = *(int *)&dir[1];
@@ -28148,9 +28137,9 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
     if ( (v7 & 4) == 0 )
       reach[2] = 0.0f;
     *(float *)&v35 = VectorNormalize(reach);
-    if ( MoverDown(a3) )
+    if ( BotOnMover(a3) )
     {
-      MoverBottomCenter((int *)a3, (int)telegoal);
+      sub_10031380((int *)a3, (int)telegoal);
       v11 = *(_BYTE *)(a2 + 96);
       telegoaldir[0] = telegoal[0] - *(float *)a2;
       telegoaldir[1] = telegoal[1] - *(float *)(a2 + 4);
@@ -28178,7 +28167,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
       BotCheckBlocked(a2, (int)final, (int)v34);
       if ( v37 > 60.0 )
         v37 = 60.0;
-      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (int)final, 50.0) )
+      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !sub_10031650(a2, (int)final, 50.0) )
       {
         v18 = 400.0 - (400.0 - v37 * 6.0);
         EA_Move(*(_DWORD *)(a2 + 40), final, v18);
@@ -28205,7 +28194,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
       else
         v8 = 60.0;
       v36 = 360.0 - (360.0 - v8 * 6.0);
-      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (int)final, 50.0) && v36 > 5.0 )
+      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !sub_10031650(a2, (int)final, 50.0) && v36 > 5.0 )
         EA_Move(*(_DWORD *)(a2 + 40), final, v36);
       *(float *)&v34[8] = final[2];
       v9 = *(_BYTE *)(a2 + 96);
@@ -28229,17 +28218,17 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
 // 10064060: using guessed type int libvar_sv_maxbarrier;
 
 //----- (10033790) --------------------------------------------------------
-void *__cdecl BotFinishTravel_Elevator(void *a1, int a2, int a3)
+void *__cdecl sub_10033790(void *a1, int a2, int a3)
 {
   void *result; // eax
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* IDA split two vec3 stack locals — see sub_10031E50 note. */
   vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
   vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
   vec3_t telegoal;    // [esp+20h] [ebp-3Ch] BYREF (was v8[3])
   _DWORD v9[12];      // [esp+2Ch] [ebp-30h] BYREF
 
-  BotClearMoveResult(v9);
-  MoverBottomCenter((int *)a3, (int)telegoal);
+  sub_10031E20(v9);
+  sub_10031380((int *)a3, (int)telegoal);
   telegoaldir[0] = telegoal[0] - *(float *)a2;
   telegoaldir[1] = telegoal[1] - *(float *)(a2 + 4);
   telegoaldir[2] = telegoal[2] - *(float *)(a2 + 8);
@@ -28264,7 +28253,7 @@ void *__cdecl BotFinishTravel_Elevator(void *a1, int a2, int a3)
 // 10033790: using guessed type _DWORD var_30[12];
 
 //----- (100338A0) --------------------------------------------------------
-int __cdecl GrappleState(int a1, float *a2)
+int __cdecl sub_100338A0(int a1, float *a2)
 {
   int v2; // eax
   int v3; // ebx
@@ -28286,7 +28275,7 @@ int __cdecl GrappleState(int a1, float *a2)
   while ( 1 )
   {
     if ( (libvar_laserhook->value != 0.0 || AAS_EntityModelindex(v3) != dword_1006295C)
-      && (libvar_laserhook->value == 0.0 || (AAS_EntityRenderFX(v3) & 0x80u) == 0) )
+      && (libvar_laserhook->value == 0.0 || (sub_1000AD90(v3) & 0x80u) == 0) )
     {
       goto LABEL_13;
     }
@@ -28311,7 +28300,7 @@ LABEL_13:
 // 100338A0: using guessed type char var_7C[124];
 
 //----- (10033A70) --------------------------------------------------------
-void __cdecl BotResetGrapple(float *a1)
+void __cdecl sub_10033A70(float *a1)
 {
   int v1; // eax
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF
@@ -28329,7 +28318,7 @@ void __cdecl BotResetGrapple(float *a1)
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
 
 //----- (10033B00) --------------------------------------------------------
-int __cdecl BotTravel_Grapple(int a1, int a2, int a3)
+int __cdecl sub_10033B00(int a1, int a2, int a3)
 {
   int v3; // eax
   int v4; // eax
@@ -28348,7 +28337,7 @@ int __cdecl BotTravel_Grapple(int a1, int a2, int a3)
   double v17; // [esp+Ch] [ebp-54h]
   float v18; // [esp+10h] [ebp-50h]
   float v19; // [esp+14h] [ebp-4Ch]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
   float v23[3]; // [esp+24h] [ebp-3Ch] BYREF
   int v24[12]; // [esp+30h] [ebp-30h] BYREF
@@ -28356,7 +28345,7 @@ int __cdecl BotTravel_Grapple(int a1, int a2, int a3)
   float v26; // [esp+6Ch] [ebp+Ch]
   float v27; // [esp+6Ch] [ebp+Ch]
 
-  BotClearMoveResult(v24);
+  sub_10031E20(v24);
   v3 = *(_DWORD *)(a2 + 96);
   if ( (v3 & 0x80u) != 0 )
   {
@@ -28368,7 +28357,7 @@ int __cdecl BotTravel_Grapple(int a1, int a2, int a3)
   }
   if ( (v3 & 0x40) != 0 )
   {
-    v5 = GrappleState(a2, (float *)a3);
+    v5 = sub_100338A0(a2, (float *)a3);
     v6 = *(float *)(a3 + 24) - *(float *)a2;
     v7 = v5;
     dir[2] = 0.0f;
@@ -28425,7 +28414,7 @@ LABEL_26:
   v23[1] = *(float *)(a3 + 28) - v18;
   v23[2] = *(float *)(a3 + 32) - v19;
   v26 = VectorNormalize(dir);
-  vectoangles(v23, &v24[9]);
+  sub_10041790(v23, &v24[9]);
   v12 = v24[5];
   LOBYTE(v12) = LOBYTE(v24[5]) | 1;
   v24[5] = v12;
@@ -28463,10 +28452,10 @@ LABEL_27:
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (10033EC0) --------------------------------------------------------
-int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
+int *__cdecl sub_10033EC0(int *a1, int a2, float *a3)
 {
   double v3; // st7
   double v4; // st7
@@ -28474,11 +28463,11 @@ int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
   float v8; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF (was v9/v10/v11)
   int v12[12]; // [esp+18h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v12);
+  sub_10031E20(v12);
   dir[2] = 0.0f;
   dir[0] = a3[3] - *(float *)a2;
   dir[1] = a3[4] - *(float *)(a2 + 4);
@@ -28502,10 +28491,10 @@ int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
     EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
     *(_DWORD *)(a2 + 100) = *(_DWORD *)(a2 + 76);
   }
-  vectoangles(dir, a2 + 52);
+  sub_10041790(dir, a2 + 52);
   v7 = *(_DWORD *)(a2 + 40);
   *(_DWORD *)(a2 + 52) = 1119092736;
-  EA_View(v7, a2 + 52);
+  sub_100375A0(v7, a2 + 52);
   v6 = *(_DWORD *)(a2 + 40);
   v12[5] |= 8u;
   EA_Use(v6, aRocketLauncher);
@@ -28519,19 +28508,19 @@ int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
 // 10001429: using guessed type _DWORD __cdecl EA_Jump(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
+// 1000193D: using guessed type _DWORD __cdecl sub_100375A0(_DWORD, _DWORD);
 // 10001992: using guessed type _DWORD __cdecl EA_Attack(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (100340B0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, int a2, int a3)
+int *__cdecl sub_100340B0(int *a1, int a2, int a3)
 {
   int *result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
   int v7[12]; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v7);
+  sub_10031E20(v7);
   if ( *(_DWORD *)(a2 + 100) )
   {
     dir[2] = 0.0f;
@@ -28586,7 +28575,7 @@ LABEL_6:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10034210) --------------------------------------------------------
-int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
+int __cdecl sub_10034210(int a1, int a2, int a3)
 {
   bool v4; // zf
   double v5; // st7
@@ -28597,12 +28586,12 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
   int v10; // ecx
   int v11; // edx
   int result; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see sub_10031E50 note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
   int v16[12]; // [esp+14h] [ebp-30h] BYREF
   float v17; // [esp+50h] [ebp+Ch]
 
-  BotClearMoveResult(v16);
+  sub_10031E20(v16);
   v4 = (*(_BYTE *)(a2 + 96) & 4) == 0;
   dir[0] = *(float *)a3 - *(float *)a2;
   dir[1] = *(float *)(a3 + 4) - *(float *)(a2 + 4);
@@ -28632,7 +28621,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
   v8 = *(_BYTE *)(a2 + 96);
   if ( (v8 & 4) != 0 )
   {
-    vectoangles(dir, &v16[9]);
+    sub_10041790(dir, &v16[9]);
     v9 = v16[5];
     LOBYTE(v9) = LOBYTE(v16[5]) | 2;
     v16[5] = v9;
@@ -28650,7 +28639,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-// 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
+// 10001E9C: using guessed type _DWORD __cdecl sub_10041790(_DWORD, _DWORD);
 
 //----- (100343A0) --------------------------------------------------------
 /* BotMoveToGoal — at preferred address 0x100343A0.
@@ -28670,7 +28659,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
  * — there was only ever one function in the original source.
  *
  * Inner BotBuildMove* helpers (ToGoal, Attack, OnElevator, ToPos) and
- * BotGapDistance have had their signatures corrected to plain `int`
+ * sub_10031450 have had their signatures corrected to plain `int`
  * to match the original — see float_vs_int_signature_bug.md.
  */
 int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
@@ -28706,8 +28695,8 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
   int v32[12]; // [esp+250h] [ebp-60h] BYREF
   int v33[12]; // [esp+280h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v21);
-  BotResetGrapple((float *)a2);
+  sub_10031E20(v21);
+  sub_10033A70((float *)a2);
   if ( a3 )
   {
     v4 = *(_DWORD *)(a2 + 48);
@@ -28718,13 +28707,13 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
       LOBYTE(v5) = v5 | 2;
       *(_DWORD *)(a2 + 96) = v5;
     }
-    if ( AAS_Swimming(a2) )
+    if ( sub_1000EFC0(a2) )
     {
       v6 = *(_DWORD *)(a2 + 96);
       LOBYTE(v6) = v6 | 4;
       *(_DWORD *)(a2 + 96) = v6;
     }
-    if ( AAS_AgainstLadder((int *)a2) )
+    if ( sub_1000F2C0((int *)a2) )
     {
       v7 = *(_DWORD *)(a2 + 96);
       LOBYTE(v7) = v7 | 8;
@@ -28739,38 +28728,38 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((int)v31, a2, (int)v20);
+            v16 = (const void *)sub_10031E50((int)v31, a2, (int)v20);
             goto LABEL_41;
           case 3:
           case 0xA:
             goto LABEL_56;
           case 4:
-            v16 = BotFinishTravel_BarrierJump(v32, a2, (int)v20);
+            v16 = sub_100322C0(v32, a2, (int)v20);
             goto LABEL_41;
           case 5:
-            v16 = BotFinishTravel_Jump(v25, a2, v20);
+            v16 = sub_10032E80(v25, a2, v20);
             goto LABEL_41;
           case 6:
-            v16 = BotTravel_Ladder(v29, a2, v20);
+            v16 = sub_10032FC0(v29, a2, v20);
             goto LABEL_41;
           case 7:
-            v16 = BotFinishTravel_WalkOffLedge(v27, a2, v20);
+            v16 = sub_10032A00(v27, a2, v20);
             goto LABEL_41;
           case 8:
 LABEL_35:
-            v16 = BotTravel_Swim(v24, a2, v20);
+            v16 = sub_100323E0(v24, a2, v20);
             goto LABEL_41;
           case 9:
-            v16 = BotFinishTravel_WaterJump(v28, a2, v20);
+            v16 = sub_10032620(v28, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = BotFinishTravel_Elevator(v23, a2, (int)v20);
+            v16 = sub_10033790(v23, a2, (int)v20);
             goto LABEL_41;
           case 0xC:
-            v16 = BotFinishTravel_WeaponJump(v30, a2, (int)v20);
+            v16 = sub_100340B0(v30, a2, (int)v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((int)v26, a2, (int)v20);
+            v16 = (const void *)sub_10033B00((int)v26, a2, (int)v20);
 LABEL_41:
             qmemcpy(v21, v16, sizeof(v21));
             break;
@@ -28782,11 +28771,11 @@ LABEL_41:
       goto LABEL_56;
     }
     qmemcpy(v22, AAS_ReachabilityFromNum((char *)v22, *(_DWORD *)(a2 + 76)), 0x2Cu);
-    v8 = BotReachabilityArea(a2, v22[9] != 11);
+    v8 = BotGetReachabilityToGoal(a2, v22[9] != 11);
     *(_DWORD *)(a2 + 64) = v8;
     if ( v8 == *(_DWORD *)(a3 + 12) )
     {
-      v9 = (const void *)BotMoveInGoalArea((int)v22, a2, a3);
+      v9 = (const void *)sub_10034210((int)v22, a2, a3);
       result = a1;
       qmemcpy((void *)a1, v9, 0x30u);
       return result;
@@ -28814,39 +28803,39 @@ LABEL_27:
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((int)v22, a2, (int)v20);
+            v16 = (const void *)sub_10031E50((int)v22, a2, (int)v20);
             goto LABEL_41;
           case 3:
-            v16 = BotTravel_Crouch(v33, a2, (int)v20);
+            v16 = sub_100320C0(v33, a2, (int)v20);
             goto LABEL_41;
           case 4:
-            v16 = BotTravel_BarrierJump(v30, a2, (int)v20);
+            v16 = sub_10032190(v30, a2, (int)v20);
             goto LABEL_41;
           case 5:
-            v16 = BotTravel_Jump(v28, a2, v20);
+            v16 = sub_10032AE0(v28, a2, v20);
             goto LABEL_41;
           case 6:
-            v16 = BotTravel_Ladder(v26, a2, v20);
+            v16 = sub_10032FC0(v26, a2, v20);
             goto LABEL_41;
           case 7:
-            v16 = BotTravel_WalkOffLedge(v23, a2, v20);
+            v16 = sub_100327F0(v23, a2, v20);
             goto LABEL_41;
           case 8:
             goto LABEL_35;
           case 9:
-            v16 = BotTravel_WaterJump(v25, a2, v20);
+            v16 = sub_100324C0(v25, a2, v20);
             goto LABEL_41;
           case 0xA:
-            v16 = BotTravel_Teleport(v27, a2, v20);
+            v16 = sub_100330E0(v27, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = (const void *)BotTravel_Elevator((int)v29, a2, (int)v20);
+            v16 = (const void *)sub_10033210((int)v29, a2, (int)v20);
             goto LABEL_41;
           case 0xC:
-            v16 = BotTravel_RocketJump(v31, a2, v20);
+            v16 = sub_10033EC0(v31, a2, v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((int)v32, a2, (int)v20);
+            v16 = (const void *)sub_10033B00((int)v32, a2, (int)v20);
             goto LABEL_41;
           default:
             bi_Print(4, "travel type %d not implemented yet\n", v20[9]);
@@ -28880,7 +28869,7 @@ LABEL_56:
     }
 LABEL_25:
     AAS_AreaReachability(*(_DWORD *)(a2 + 64));
-    v12 = BotGetReachabilityToGoal(
+    v12 = sub_100310E0(
             a2,
             *(_DWORD *)(a2 + 64),
             *(_DWORD *)(a2 + 72),
@@ -28902,7 +28891,7 @@ LABEL_25:
       qmemcpy(v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
       v19 = (float)BotReachabilityTime((int)v20);
       *(float *)(a2 + 112) = AAS_Time() + v19;
-      BotAddToAvoidReach(a2, v11, 6.0);
+      sub_10031010(a2, v11, 6.0);
     }
     goto LABEL_27;
   }
@@ -28912,7 +28901,7 @@ LABEL_59:
   qmemcpy((void *)a1, v21, 0x30u);
   return result;
 }
-// 100014B0: using guessed type _DWORD __cdecl BotReachabilityArea(_DWORD, _DWORD);
+// 100014B0: using guessed type _DWORD __cdecl BotGetReachabilityToGoal(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100343A0: using guessed type int var_30[12];
 // 100343A0: using guessed type int var_C0[12];
@@ -28923,7 +28912,7 @@ LABEL_59:
 // 100343A0: using guessed type int var_150[12];
 
 //----- (10034AF0) --------------------------------------------------------
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *a1)
+_DWORD *__cdecl sub_10034AF0(_DWORD *a1)
 {
   _DWORD *result; // eax
 
@@ -28935,7 +28924,7 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *a1)
 }
 
 //----- (10034B20) --------------------------------------------------------
-void __cdecl BotResetLastAvoidReach(int a1)
+void __cdecl sub_10034B20(int a1)
 {
   double v1; // st7
   int v2; // edx
@@ -28959,7 +28948,7 @@ void __cdecl BotResetLastAvoidReach(int a1)
 }
 
 //----- (10034B90) --------------------------------------------------------
-int __cdecl BotResetMoveState(void *a1)
+int __cdecl sub_10034B90(void *a1)
 {
   int result; // eax
 
@@ -28969,7 +28958,7 @@ int __cdecl BotResetMoveState(void *a1)
 }
 
 //----- (10034BB0) --------------------------------------------------------
-weaponconfig_t * LoadWeaponConfig(char *Source)
+weaponconfig_t * sub_10034BB0(char *Source)
 {
   int max_weaponinfo;
   int max_projectileinfo;
@@ -28991,14 +28980,14 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
   {
     bi_Print(3, "max_weaponinfo = %d\n", max_weaponinfo);
     max_weaponinfo = 32;
-    LibVarSet(aMaxWeaponinfo, (char *)a32);
+    sub_10038AC0(aMaxWeaponinfo, (char *)a32);
   }
   max_projectileinfo = (int)LibVarValue(aMaxProjectilei, (char *)a32);
   if ( max_projectileinfo < 0 )
   {
     bi_Print(3, "max_projectileinfo = %d\n", max_projectileinfo);
     max_projectileinfo = 32;
-    LibVarSet(aMaxProjectilei, (char *)a32);
+    sub_10038AC0(aMaxProjectilei, (char *)a32);
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
@@ -29022,7 +29011,7 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
   cfg->weapons         = (weaponinfo_t *)(cfg + 1);
   cfg->projectiles     = (projectileinfo_t *)(cfg->weapons + max_weaponinfo);
 
-  while ( PC_ReadToken(v5, v22) )
+  while ( PC_ReadTokenHandle(v5, v22) )
   {
     if ( !strcmp(v22, aWeaponinfo) )
     {
@@ -29120,7 +29109,7 @@ LABEL_46:
     return 0;
   }
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001B13: using guessed type int __cdecl ReadStructure(_DWORD, _DWORD, _DWORD);
@@ -29128,7 +29117,7 @@ LABEL_46:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10035280) --------------------------------------------------------
-_DWORD *__cdecl WeaponWeightIndex(int a1, int *a2)
+_DWORD *__cdecl sub_10035280(int a1, int *a2)
 {
   _DWORD *result; // eax
   int v4; // ebp
@@ -29145,7 +29134,7 @@ _DWORD *__cdecl WeaponWeightIndex(int a1, int *a2)
     v6 = result;
     do
     {
-      *v6 = FindFuzzyWeight(a1, a2[3] + v5 + 4);
+      *v6 = sub_100369C0(a1, a2[3] + v5 + 4);
       ++v4;
       v5 += 344;
       ++v6;
@@ -29155,37 +29144,37 @@ _DWORD *__cdecl WeaponWeightIndex(int a1, int *a2)
   }
   return result;
 }
-// 1000132F: using guessed type _DWORD __cdecl FindFuzzyWeight(_DWORD, _DWORD);
+// 1000132F: using guessed type _DWORD __cdecl sub_100369C0(_DWORD, _DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (10035300) --------------------------------------------------------
-int __cdecl BotFreeWeaponWeights(int a1)
+int __cdecl sub_10035300(int a1)
 {
   int result; // eax
 
   if ( *(_DWORD *)(a1 + 8) )
-    FreeWeightConfig2(*(_DWORD *)(a1 + 8));
+    sub_100359B0(*(_DWORD *)(a1 + 8));
   result = *(_DWORD *)(a1 + 12);
   if ( result )
     return FreeMemory(*(_DWORD *)(a1 + 12));
   return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
+// 10001DC5: using guessed type _DWORD __cdecl sub_100359B0(_DWORD);
 
 //----- (10035340) --------------------------------------------------------
 int __cdecl BotLoadWeaponWeights(int a1, const char *a2)
 {
   int v2; // eax
 
-  BotFreeWeaponWeights(a1);
-  v2 = (int)ReadWeightConfig((char *)a2);  /* original takes char *; const-cast OK, function only reads filename */
+  sub_10035300(a1);
+  v2 = (int)sub_10035FA0((char *)a2);  /* original takes char *; const-cast OK, function only reads filename */
   *(_DWORD *)(a1 + 8) = v2;
   if ( v2 )
   {
     if ( dword_10064080 )
     {
-      *(_DWORD *)(a1 + 12) = WeaponWeightIndex(v2, (int *)dword_10064080);
+      *(_DWORD *)(a1 + 12) = sub_10035280(v2, (int *)dword_10064080);
       return 0;
     }
     else
@@ -29199,8 +29188,8 @@ int __cdecl BotLoadWeaponWeights(int a1, const char *a2)
     return 30;
   }
 }
-// 10001078: using guessed type _DWORD __cdecl BotFreeWeaponWeights(_DWORD);
-// 10001091: using guessed type int __cdecl ReadWeightConfig(_DWORD);
+// 10001078: using guessed type _DWORD __cdecl sub_10035300(_DWORD);
+// 10001091: using guessed type int __cdecl sub_10035FA0(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10064080: using guessed type int dword_10064080;
 
@@ -29219,7 +29208,7 @@ int __cdecl sub_100354B0(int a1)
 // 10064080: using guessed type int dword_10064080;
 
 //----- (10035500) --------------------------------------------------------
-void __cdecl BotChooseBestFightWeapon(int a1)
+void __cdecl sub_10035500(int a1)
 {
   int *v1; // ebp
   int v2; // edi
@@ -29247,7 +29236,7 @@ void __cdecl BotChooseBestFightWeapon(int a1)
             v5 = *(_DWORD *)(*(_DWORD *)(a1 + 12) + 4 * v4);
             if ( v5 >= 0 )
             {
-              v6 = FuzzyWeight(*(_DWORD *)(a1 + 4), *(_DWORD *)(a1 + 8) + 8 * v5 + 4);
+              v6 = sub_10036C70(*(_DWORD *)(a1 + 4), *(_DWORD *)(a1 + 8) + 8 * v5 + 4);
               if ( v6 > v7 )
               {
                 v7 = v6;
@@ -29274,11 +29263,11 @@ void __cdecl BotChooseBestFightWeapon(int a1)
   }
 }
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
-// 10001B95: using guessed type double __cdecl FuzzyWeight(_DWORD, _DWORD);
+// 10001B95: using guessed type double __cdecl sub_10036C70(_DWORD, _DWORD);
 // 10064080: using guessed type int dword_10064080;
 
 //----- (10035640) --------------------------------------------------------
-int __cdecl BotResetWeaponState(_DWORD *a1)
+int __cdecl sub_10035640(_DWORD *a1)
 {
   int v1; // esi
   int v2; // ebx
@@ -29294,13 +29283,13 @@ int __cdecl BotResetWeaponState(_DWORD *a1)
 }
 
 //----- (10035680) --------------------------------------------------------
-int BotSetupWeaponAI()
+int sub_10035680()
 {
 
   char *v0; // eax
 
   v0 = LibVarString(aWeaponconfig, (char *)aWeaponsC);
-  dword_10064080 = LoadWeaponConfig(v0);
+  dword_10064080 = sub_10034BB0(v0);
   if ( dword_10064080 )
     return 0;
   bi_Print(4, aCouldnTLoadThe);
@@ -29310,7 +29299,7 @@ int BotSetupWeaponAI()
 // 10064080: using guessed type int dword_10064080;
 
 //----- (100356D0) --------------------------------------------------------
-int BotShutdownWeaponAI()
+int sub_100356D0()
 {
   int result; // eax
 
@@ -29324,7 +29313,7 @@ int BotShutdownWeaponAI()
 // 10064080: using guessed type int dword_10064080;
 
 //----- (10035700) --------------------------------------------------------
-int __cdecl ReadValue(int a1, float *a2)
+int __cdecl sub_10035700(int a1, float *a2)
 {
   int result; // eax
   char v3; // [esp+0h] [ebp-434h]
@@ -29334,7 +29323,7 @@ int __cdecl ReadValue(int a1, float *a2)
   if ( result )
   {
     if ( strcmp(token.string, (const char *)&word_1005E498)
-      || (SourceWarning(a1, aNegativeValueS, v3), (result = PC_ExpectTokenType(a1, 3, 0, token.string)) != 0) )
+      || (sub_10039270(a1, aNegativeValueS, v3), (result = PC_ExpectTokenType(a1, 3, 0, token.string)) != 0) )
     {
       if ( token.type == 3 )
       {
@@ -29343,18 +29332,18 @@ int __cdecl ReadValue(int a1, float *a2)
          * [esp+0x414] — the floatvalue field of `token` (offset 0x410 from
          * token.string, original .text 0x100357b6 is `fld QWORD [esp+0x414]`).
          * Treating v6 as a real local lets GCC put it in a fresh stack slot
-         * that is never written, so ReadValue always stored 0.0
+         * that is never written, so sub_10035700 always stored 0.0
          * — which silently broke every `weight "X" { return N; }` rule:
-         * FuzzyWeight_r returned 0 for every weapon, so the bot never selected
+         * FuzzyWeight returned 0 for every weapon, so the bot never selected
          * any weapon via the weight tree, weaponweights[5] stayed 0 (Blaster),
-         * BotCheckAttack always used Blaster's flags (=0) for the alternation
+         * sub_10024590 always used Blaster's flags (=0) for the alternation
          * gate, and a continuously-pressed attack while hand grenades were
          * equipped (via game.dll auto-switch) primed them past the 3s timer. */
         *a2 = (float)token.floatvalue;
       }
       else
       {
-        SourceError(a1, aInvalidReturnV, token.string);
+        sub_10039200(a1, aInvalidReturnV, token.string);
         return 0;
       }
     }
@@ -29367,7 +29356,7 @@ int __cdecl ReadValue(int a1, float *a2)
 // 1005E498: using guessed type __int16 word_1005E498;
 
 //----- (10035820) --------------------------------------------------------
-int __cdecl ReadFuzzyWeight(int a1, int a2)
+int __cdecl sub_10035820(int a1, int a2)
 {
   int result; // eax
   int *v3; // ebx
@@ -29377,7 +29366,7 @@ int __cdecl ReadFuzzyWeight(int a1, int a2)
   {
     v3 = (int *)(a2 + 12);
     *(_DWORD *)(a2 + 8) = 0;
-    result = ReadValue(a1, (float *)(a2 + 12));
+    result = sub_10035700(a1, (float *)(a2 + 12));
     if ( !result )
       return result;
     v4 = *v3;
@@ -29389,19 +29378,19 @@ int __cdecl ReadFuzzyWeight(int a1, int a2)
   result = PC_ExpectTokenString(a1, asc_1005D334);
   if ( result )
   {
-    result = ReadValue(a1, (float *)(a2 + 12));
+    result = sub_10035700(a1, (float *)(a2 + 12));
     if ( result )
     {
       result = PC_ExpectTokenString(a1, asc_1005D330);
       if ( result )
       {
-        result = ReadValue(a1, (float *)(a2 + 16));
+        result = sub_10035700(a1, (float *)(a2 + 16));
         if ( result )
         {
           result = PC_ExpectTokenString(a1, asc_1005D330);
           if ( result )
           {
-            result = ReadValue(a1, (float *)(a2 + 20));
+            result = sub_10035700(a1, (float *)(a2 + 20));
             if ( result )
             {
               result = PC_ExpectTokenString(a1, asc_1005D32C);
@@ -29418,7 +29407,7 @@ int __cdecl ReadFuzzyWeight(int a1, int a2)
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (10035960) --------------------------------------------------------
-int __cdecl FreeFuzzySeperators_r(int a1)
+int __cdecl sub_10035960(int a1)
 {
   int v1; // esi
   int v2; // edi
@@ -29430,7 +29419,7 @@ int __cdecl FreeFuzzySeperators_r(int a1)
     while ( 1 )
     {
       if ( *(_DWORD *)(v1 + 24) )
-        FreeFuzzySeperators_r(*(_DWORD *)(v1 + 24));
+        sub_10035960(*(_DWORD *)(v1 + 24));
       v2 = *(_DWORD *)(v1 + 28);
       result = FreeMemory(v1);
       if ( !v2 )
@@ -29441,26 +29430,26 @@ int __cdecl FreeFuzzySeperators_r(int a1)
   return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
+// 10001CA8: using guessed type _DWORD __cdecl sub_10035960(_DWORD);
 
 //----- (100359B0) --------------------------------------------------------
-void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
+void __cdecl sub_100359B0(weightconfig_t *cfg)
 {
   int i;
 
   for ( i = 0; i < cfg->numweights; ++i )
   {
-    FreeFuzzySeperators_r((int)cfg->weights[i].firstseperator);
+    sub_10035960((int)cfg->weights[i].firstseperator);
     if ( cfg->weights[i].name )
       FreeMemory(cfg->weights[i].name);
   }
   FreeMemory(cfg);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
+// 10001CA8: using guessed type _DWORD __cdecl sub_10035960(_DWORD);
 
 //----- (10035A20) --------------------------------------------------------
-int *__cdecl ReadFuzzySeperators_r(int a1)
+int *__cdecl sub_10035A20(int a1)
 {
   int v1; // eax
   BOOL v2; // edi
@@ -29493,8 +29482,8 @@ int *__cdecl ReadFuzzySeperators_r(int a1)
     v2 = v1 == 0;
     if ( v1 && strcmp(token.string, aCase) )
     {
-      FreeFuzzySeperators_r(v11);
-      SourceError(a1, aInvalidNameS, token.string);
+      sub_10035960(v11);
+      sub_10039200(a1, aInvalidNameS, token.string);
       return 0;
     }
     v3 = (int *)GetClearedMemory(32);
@@ -29514,8 +29503,8 @@ int *__cdecl ReadFuzzySeperators_r(int a1)
     {
       if ( v13 )
       {
-        SourceError(a1, aSwitchAlreadyH, v10);
-        FreeFuzzySeperators_r(v4);
+        sub_10039200(a1, aSwitchAlreadyH, v10);
+        sub_10035960(v4);
         return 0;
       }
       v5 = a1;
@@ -29532,7 +29521,7 @@ int *__cdecl ReadFuzzySeperators_r(int a1)
     if ( !PC_ExpectTokenString(v5, asc_1005CB74) || !PC_ExpectAnyToken(v5, token.string) )
     {
 LABEL_41:
-      FreeFuzzySeperators_r(v4);
+      sub_10035960(v4);
       return 0;
     }
     v6 = 0;
@@ -29544,17 +29533,17 @@ LABEL_41:
     }
     if ( !strcmp(token.string, aReturn) )
     {
-      if ( !ReadFuzzyWeight(a1, (int)v3) )
+      if ( !sub_10035820(a1, (int)v3) )
         goto LABEL_32;
     }
     else
     {
       if ( strcmp(token.string, aSwitch) )
       {
-        SourceError(a1, aInvalidNameS, token.string);
+        sub_10039200(a1, aInvalidNameS, token.string);
         return 0;
       }
-      v7 = ReadFuzzySeperators_r(a1);
+      v7 = sub_10035A20(a1);
       v3[6] = v7;
       if ( !v7 )
         goto LABEL_32;
@@ -29562,14 +29551,14 @@ LABEL_41:
     if ( v6 && !PC_ExpectTokenString(a1, asc_1005AB54) || !PC_ExpectAnyToken(a1, token.string) )
     {
 LABEL_32:
-      FreeFuzzySeperators_r(v11);
+      sub_10035960(v11);
       return 0;
     }
   }
   while ( strcmp(token.string, asc_1005AB54) );
   if ( !v13 )
   {
-    SourceWarning(a1, aSwitchWithoutD, v10);
+    sub_10039270(a1, aSwitchWithoutD, v10);
     v9 = (int *)GetClearedMemory(32);
     *v9 = v14;
     v9[1] = 999999;
@@ -29589,11 +29578,11 @@ LABEL_32:
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
-// 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
-// 10001D2A: using guessed type int __cdecl ReadFuzzySeperators_r(_DWORD);
+// 10001CA8: using guessed type _DWORD __cdecl sub_10035960(_DWORD);
+// 10001D2A: using guessed type int __cdecl sub_10035A20(_DWORD);
 
 //----- (10035FA0) --------------------------------------------------------
-weightconfig_t *__cdecl ReadWeightConfig(char *Source)
+weightconfig_t *__cdecl sub_10035FA0(char *Source)
 {
   source_t *src;
   weightconfig_t *cfg;
@@ -29613,19 +29602,19 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
     {
       cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
       cfg->numweights = 0;
-      if ( PC_ReadToken((int)src, token.string) )
+      if ( PC_ReadTokenHandle((int)src, token.string) )
       {
         while ( !strcmp(token.string, aWeight) )
         {
           if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
           {
-            SourceWarning((int)src, aTooManyFuzzyWe, v6);
+            sub_10039270((int)src, aTooManyFuzzyWe, v6);
             goto LABEL_21;
           }
           if ( !PC_ExpectTokenType((int)src, 1, 0, token.string) )
           {
 LABEL_25:
-            FreeWeightConfig2(cfg);
+            sub_100359B0(cfg);
             FreeSource(src);
             return 0;
           }
@@ -29635,16 +29624,16 @@ LABEL_25:
           if ( !PC_ExpectAnyToken((int)src, token.string)
             || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken((int)src, token.string)) )
           {
-            FreeWeightConfig2(cfg);
+            sub_100359B0(cfg);
             FreeSource(src);
             return 0;
           }
           if ( !strcmp(token.string, aSwitch) )
           {
-            sep = (fuzzyseperator_t *)ReadFuzzySeperators_r((int)src);
+            sep = (fuzzyseperator_t *)sub_10035A20((int)src);
             if ( !sep )
             {
-              FreeWeightConfig2(cfg);
+              sub_100359B0(cfg);
               FreeSource(src);
               return 0;
             }
@@ -29654,8 +29643,8 @@ LABEL_25:
           {
             if ( strcmp(token.string, aReturn) )
             {
-              SourceError((int)src, aInvalidNameS, token.string);
-              FreeWeightConfig2(cfg);
+              sub_10039200((int)src, aInvalidNameS, token.string);
+              sub_100359B0(cfg);
               goto LABEL_31;
             }
             sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
@@ -29663,10 +29652,10 @@ LABEL_25:
             sep->value = 999999;
             sep->next  = 0;
             sep->child = 0;
-            if ( !ReadFuzzyWeight((int)src, (int)sep) )
+            if ( !sub_10035820((int)src, (int)sep) )
             {
               FreeMemory(sep);
-              FreeWeightConfig2(cfg);
+              sub_100359B0(cfg);
               FreeSource(src);
               return 0;
             }
@@ -29675,11 +29664,11 @@ LABEL_25:
           if ( has_balance && !PC_ExpectTokenString((int)src, asc_1005AB54) )
             goto LABEL_25;
           ++cfg->numweights;
-          if ( !PC_ReadToken((int)src, token.string) )
+          if ( !PC_ReadTokenHandle((int)src, token.string) )
             goto LABEL_21;
         }
-        SourceError((int)src, aInvalidNameS, token.string);
-        FreeWeightConfig2(cfg);
+        sub_10039200((int)src, aInvalidNameS, token.string);
+        sub_100359B0(cfg);
 LABEL_31:
         FreeSource(src);
         return 0;
@@ -29708,15 +29697,15 @@ LABEL_21:
   }
 }
 // 10036301: variable 'v6' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
-// 10001D2A: using guessed type int __cdecl ReadFuzzySeperators_r(_DWORD);
-// 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
+// 10001D2A: using guessed type int __cdecl sub_10035A20(_DWORD);
+// 10001DC5: using guessed type _DWORD __cdecl sub_100359B0(_DWORD);
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -29825,7 +29814,7 @@ int __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 }
 
 //----- (100369C0) --------------------------------------------------------
-int __cdecl FindFuzzyWeight(int *a1, const char *a2)
+int __cdecl sub_100369C0(int *a1, const char *a2)
 {
   int v2; // ebp
   const char **i; // edi
@@ -29842,7 +29831,7 @@ int __cdecl FindFuzzyWeight(int *a1, const char *a2)
 }
 
 //----- (10036A40) --------------------------------------------------------
-double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
+double __cdecl FuzzyWeight(int *facts, fuzzyseperator_t *sep)
 {
   int factvalue;
   fuzzyseperator_t *next;
@@ -29871,11 +29860,11 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
     sep = sep->next;
   }
   if ( sep->child )
-    v12 = FuzzyWeight_r(facts, sep->child);
+    v12 = FuzzyWeight(facts, sep->child);
   else
     v12 = sep->weight;
   if ( sep->next->child )
-    v7 = FuzzyWeight_r(facts, sep->next->child);
+    v7 = FuzzyWeight(facts, sep->next->child);
   else
     v7 = sep->next->weight;
   v8 = sep->value;
@@ -29883,10 +29872,10 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
   v10 = sep->next->value - v8;
   return v7 * (1.0 - (double)(v9 / v10)) + (double)(v9 / v10) * v12;
 }
-// 10001A73: using guessed type double __cdecl FuzzyWeight_r(_DWORD, _DWORD);
+// 10001A73: using guessed type double __cdecl FuzzyWeight(_DWORD, _DWORD);
 
 //----- (10036B10) --------------------------------------------------------
-double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
+double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
 {
   int factvalue;
   fuzzyseperator_t *next;
@@ -29918,13 +29907,13 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
     sep = sep->next;
   }
   if ( sep->child )
-    v7 = FuzzyWeightUndecided_r(facts, sep->child);
+    v7 = sub_10036B10(facts, sep->child);
   else
     v7 = (double)(rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight) + sep->minweight;
   v14 = v7;
   if ( sep->next->child )
   {
-    v9 = FuzzyWeight_r(facts, sep->next->child);
+    v9 = FuzzyWeight(facts, sep->next->child);
   }
   else
   {
@@ -29944,24 +29933,24 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
 }
 
 //----- (10036C70) --------------------------------------------------------
-double __cdecl FuzzyWeight(int *facts, weight_t *w)
+double __cdecl sub_10036C70(int *facts, weight_t *w)
 {
-  /* Binary at 0x10036C70 is a thin wrapper: push args, call FuzzyWeight_r, ret.
-   * FuzzyWeight_r returns double in ST(0); caller-side comments at IDA lines
-   * confirm `double __cdecl FuzzyWeight`. */
-  return FuzzyWeight_r(facts, w->firstseperator);
+  /* Binary at 0x10036C70 is a thin wrapper: push args, call FuzzyWeight, ret.
+   * FuzzyWeight returns double in ST(0); caller-side comments at IDA lines
+   * confirm `double __cdecl sub_10036C70`. */
+  return FuzzyWeight(facts, w->firstseperator);
 }
 
 //----- (10036CA0) --------------------------------------------------------
-double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
+double __cdecl sub_10036CA0(int *facts, weight_t *w)
 {
-  /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns double). */
-  return FuzzyWeightUndecided_r(facts, w->firstseperator);
+  /* Binary at 0x10036CA0 is a thin wrapper around sub_10036B10 (returns double). */
+  return sub_10036B10(facts, w->firstseperator);
 }
-// 100017DA: using guessed type double __cdecl FuzzyWeightUndecided_r(_DWORD, _DWORD);
+// 100017DA: using guessed type double __cdecl sub_10036B10(_DWORD, _DWORD);
 
 //----- (10036CD0) --------------------------------------------------------
-void __cdecl EvolveFuzzySeperator_r(int a1)
+void __cdecl sub_10036CD0(int a1)
 {
   __int16 v2; // ax
   double v3; // st7
@@ -29971,7 +29960,7 @@ void __cdecl EvolveFuzzySeperator_r(int a1)
   {
     if ( *(_DWORD *)(a1 + 24) )
     {
-      EvolveFuzzySeperator_r(*(_DWORD *)(a1 + 24));
+      sub_10036CD0(*(_DWORD *)(a1 + 24));
     }
     else if ( *(_DWORD *)(a1 + 8) == 1 )
     {
@@ -30003,10 +29992,10 @@ void __cdecl EvolveFuzzySeperator_r(int a1)
   }
   while ( a1 );
 }
-// 10001D5C: using guessed type _DWORD __cdecl EvolveFuzzySeperator_r(_DWORD);
+// 10001D5C: using guessed type _DWORD __cdecl sub_10036CD0(_DWORD);
 
 //----- (10036E30) --------------------------------------------------------
-void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
+void __cdecl sub_10036E30(int a1, float a2)
 {
   int v3; // eax
   double v4; // st7
@@ -30023,7 +30012,7 @@ void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
        * GCC to insert fildll/fstps at the call site (verified at our
        * .text 0x6974547b) which destroys the float bit pattern.  Pass a2
        * directly — original .text 0x10036e41 is just a raw 4-byte slot copy. */
-      ScaleFuzzySeperator_r(v3, a2);
+      sub_10036E30(v3, a2);
     }
     else if ( *(_DWORD *)(a1 + 8) == 1 )
     {
@@ -30043,10 +30032,10 @@ void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
   while ( a1 );
 }
 // 10036E68: variable 'v6' is possibly undefined
-// 10001708: using guessed type _DWORD __cdecl ScaleFuzzySeperator_r(_DWORD, _DWORD);
+// 10001708: using guessed type _DWORD __cdecl sub_10036E30(_DWORD, _DWORD);
 
 //----- (10036F90) --------------------------------------------------------
-int __cdecl InterbreedFuzzySeperator_r(int a1, int a2)
+int __cdecl sub_10036F90(int a1, int a2)
 {
   int result; // eax
   int v5; // eax
@@ -30059,7 +30048,7 @@ int __cdecl InterbreedFuzzySeperator_r(int a1, int a2)
       v5 = *(_DWORD *)(a2 + 24);
       if ( !v5 )
         return bi_Print(3, aCanTMergeWeigh);
-      result = InterbreedFuzzySeperator_r(v5, *(_DWORD *)(a2 + 24));
+      result = sub_10036F90(v5, *(_DWORD *)(a2 + 24));
     }
     else if ( *(_DWORD *)(a1 + 8) == 1 )
     {
@@ -30076,7 +30065,7 @@ int __cdecl InterbreedFuzzySeperator_r(int a1, int a2)
   }
   return bi_Print(3, aCanTMergeWeigh);
 }
-// 10001271: using guessed type _DWORD __cdecl InterbreedFuzzySeperator_r(_DWORD, _DWORD);
+// 10001271: using guessed type _DWORD __cdecl sub_10036F90(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10037090) --------------------------------------------------------
@@ -30108,7 +30097,7 @@ int __cdecl EA_DropItem(int client, int item)
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (100371B0) --------------------------------------------------------
-int __cdecl EA_Wave(int client, int sequence)
+int __cdecl sub_100371B0(int client, int sequence)
 {
   char Buffer[128]; // [esp+0h] [ebp-80h] BYREF
 
@@ -30222,7 +30211,7 @@ int __cdecl EA_Crouch(int client)
  * press of MoveUp climbs the bot up water/ladders the same way Q3's
  * EA_MoveUp does.  Distinguished from EA_Jump (0x10037350) by being
  * unconditional — EA_Jump gates on EA_JUMPEDLASTFRAME, this does not.
- * Used by BotTravel_WaterJump where the bot needs to jump out of
+ * Used by sub_100324C0 where the bot needs to jump out of
  * water regardless of jump-cooldown state.  IDA mis-named this
  * WeaponSetAttackFlag based on guessed cross-references. */
 int __cdecl EA_MoveUp(int client)
@@ -30264,7 +30253,7 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
 }
 
 //----- (100375A0) --------------------------------------------------------
-void __cdecl EA_View(int client, vec3_t angles)
+void __cdecl sub_100375A0(int client, vec3_t angles)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->angles[0] = angles[0];
@@ -30273,14 +30262,14 @@ void __cdecl EA_View(int client, vec3_t angles)
 }
 
 //----- (100375E0) --------------------------------------------------------
-/* EA_EndRegular — flush this frame's accumulated EA state to the
+/* sub_100375E0 — flush this frame's accumulated EA state to the
  * engine via the `dword_10063FE0` botimport callback, then clear the
  * EA fields ready for the next frame.  After the engine consumes the
  * input, if the jump bit was set (i.e. the bot just jumped this frame)
  * latch EA_JUMPEDLASTFRAME so the next call to EA_Jump emits a key
  * release.  This is the same press/release latch pattern Q3's botlib
  * uses around ACTION_JUMPEDLASTFRAME. */
-int __cdecl EA_EndRegular(int client, int weapon)
+int __cdecl sub_100375E0(int client, int weapon)
 {
   ea_state_t *ea = &ea_controls[client];
   bool jumped_this_frame;
@@ -30400,10 +30389,10 @@ int __cdecl sub_10037850(char *String1, int a2, int a3)
 {
   __int16 v3; // ax
 
-  v3 = CRC_Block(a2, a3);
+  v3 = sub_10038640(a2, a3);
   return sub_100377E0(String1, v3);
 }
-// 1000199C: using guessed type _DWORD __cdecl CRC_Block(_DWORD, _DWORD);
+// 1000199C: using guessed type _DWORD __cdecl sub_10038640(_DWORD, _DWORD);
 
 //----- (100378C0) --------------------------------------------------------
 unsigned int Sys_MilliSeconds()
@@ -30526,19 +30515,19 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
  * the caller's frame.  MinGW supports __stdcall natively; the gladiator.dll.h
  * header no longer redefines it as a no-op for _WIN32 targets. */
 #if defined(_WIN32) && !defined(_WIN64)
-int * __stdcall GetBotAPI(const void *a1)
+bot_export_t * __stdcall GetBotAPI(bot_import_t *a1)
 #else
-int *GetBotAPI(const void *a1)
+bot_export_t *GetBotAPI(bot_import_t *a1)
 #endif
 {
   extern void botlib_install_exception_handler(void);
   botlib_install_exception_handler();
 
-  /* bot_export_t from gladiator.dll.h: properly typed function pointers,
+  /* bot_export_t from game/botlib.h: properly typed function pointers,
    * pointer-sized on all platforms (fixes the 32-bit int truncation that
    * corrupted every slot on 64-bit Linux). */
   static bot_export_t bot_exports;
-  bot_import_t *imp = (bot_import_t *)a1;
+  bot_import_t *imp = a1;
 
   /* Store each import callback in its named global. The original source had a
    * single 'bot_import_t bi' global; IDA decompiled each field as a separate
@@ -30550,7 +30539,7 @@ int *GetBotAPI(const void *a1)
   bi_BotClientCommand = imp->BotClientCommand;
   bi_Print            = imp->Print;
   bi_Trace            = imp->Trace;
-  bi_PointContents    = imp->PointContents;  /* used by BotValidChatPosition's lava/slime/water check */
+  bi_PointContents    = imp->PointContents;  /* used by sub_10021BC0's lava/slime/water check */
   bi_GetMemory        = imp->GetMemory;
   bi_FreeMemory       = imp->FreeMemory;
   bi_DebugLineCreate  = imp->DebugLineCreate;
@@ -30577,7 +30566,7 @@ int *GetBotAPI(const void *a1)
   bot_exports.BotAI                = Export_BotLibAI;
   bot_exports.BotConsoleMessage    = Export_BotLibConsoleMessage;
   bot_exports.Test                 = (void *)Export_Test;
-  return (int *)&bot_exports;
+  return &bot_exports;
 }
 // 10063F80: using guessed type int dword_10063F80;
 // 10063F84: using guessed type int dword_10063F84;
@@ -30602,7 +30591,7 @@ int *GetBotAPI(const void *a1)
 // 10063FE0: using guessed type int (__cdecl *dword_10063FE0)(_DWORD, _DWORD);
 
 //----- (100385B0) --------------------------------------------------------
-_WORD *__cdecl CRC_Init(_WORD *a1)
+_WORD *__cdecl sub_100385B0(_WORD *a1)
 {
   _WORD *result; // eax
 
@@ -30612,13 +30601,13 @@ _WORD *__cdecl CRC_Init(_WORD *a1)
 }
 
 //----- (10038620) --------------------------------------------------------
-__int16 __cdecl CRC_Value(__int16 a1)
+__int16 __cdecl sub_10038620(__int16 a1)
 {
   return a1;
 }
 
 //----- (10038640) --------------------------------------------------------
-__int16 __cdecl CRC_Block(int a1, int a2)
+__int16 __cdecl sub_10038640(int a1, int a2)
 {
   int v2; // esi
   int v3; // ecx
@@ -30626,10 +30615,10 @@ __int16 __cdecl CRC_Block(int a1, int a2)
   __int16 v5; // dx
   int v7; // [esp+8h] [ebp-4h] BYREF
 
-  CRC_Init(&v7);
+  sub_100385B0(&v7);
   v2 = 0;
   if ( a2 <= 0 )
-    return CRC_Value(v7);
+    return sub_10038620(v7);
   v3 = v7;
   do
   {
@@ -30643,12 +30632,12 @@ __int16 __cdecl CRC_Block(int a1, int a2)
   }
   while ( v2 < a2 );
   v7 = v3;
-  return CRC_Value(v3);
+  return sub_10038620(v3);
 }
 // 1005EE70: using guessed type __int16 word_1005EE70[308];
 
 //----- (10038750) --------------------------------------------------------
-double __cdecl LibVarStringValue(char *a1)
+double __cdecl sub_10038750(char *a1)
 {
   char *v1; // edx
   int v2; // ecx
@@ -30749,7 +30738,7 @@ libvar_t *__cdecl LibVar(char *name, char *value)
     v = LibVarAlloc(name);
     v->string = (char *)GetMemory(strlen(value) + 1);
     strcpy(v->string, value);
-    v->value = LibVarStringValue(v->string);
+    v->value = sub_10038750(v->string);
     v->modified = 1;
   }
   return v;
@@ -30774,7 +30763,7 @@ float __cdecl LibVarValue(char *name, char *defvalue)
 }
 
 //----- (10038AC0) --------------------------------------------------------
-void __cdecl LibVarSet(char *name, char *value)
+void __cdecl sub_10038AC0(char *name, char *value)
 {
   libvar_t *v = LibVarGet(name);
   if ( v )
@@ -30783,7 +30772,7 @@ void __cdecl LibVarSet(char *name, char *value)
     v = LibVarAlloc(name);
   v->string = (char *)GetMemory(strlen(value) + 1);
   strcpy(v->string, value);
-  v->value = LibVarStringValue(v->string);
+  v->value = sub_10038750(v->string);
   v->modified = 1;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -30888,162 +30877,175 @@ FILE *Log_Flush()
 }
 
 //----- (10038F10) --------------------------------------------------------
-int __cdecl LinkMemoryBlock(int a1)
-{
-  int result; // eax
+/* ----------------------------------------------------------------------
+ * Memory-block leak tracker (10038F10..100391C0).
+ *
+ * The Gladiator botlib uses a slimmed-down variant of the Q3 botlib
+ * l_memory.c MEMORYMANEGER (sic) path: every bi_GetMemory allocation is
+ * prefixed with a memoryblock_t header that threads onto a doubly-linked
+ * list rooted at `memory`.  Q3 tracks both `allocatedmemory` (raw user
+ * bytes) and `totalmemorysize` (bytes incl. headers); Gladiator dropped
+ * the first counter — only `totalmemorysize` and `numblocks` remain,
+ * matching the two-line `PrintUsedMemorySize` output ("total botlib
+ * memory" + "total memory blocks").
+ *
+ * IDA emitted the header as five hardcoded `*(_DWORD *)(p + 0/4/8/12/16)`
+ * accesses because all five fields fit in 4 bytes on 32-bit Windows.  We
+ * restore the struct so `void *ptr`, `*prev`, `*next` size correctly on
+ * 64-bit Linux.  Names match Q3's l_memory.c exactly.
+ *
+ * IDA also mislabeled the validator function as `UnlinkMemoryBlock`; the
+ * real Q3 name for that helper is `BlockFromPointer`.  The actual list-
+ * unlink helper (sub_10038F50 in IDA) is the true `UnlinkMemoryBlock`.
+ * ---------------------------------------------------------------------- */
+typedef struct memoryblock_s {
+  unsigned long int       id;        /* +0  MEM_ID sentinel               */
+  void                   *ptr;       /* +4  user pointer (= block + 1)    */
+  int                     size;      /* +8  total alloc incl. header      */
+  struct memoryblock_s   *prev;      /* +12                               */
+  struct memoryblock_s   *next;      /* +16  sizeof = 20 on 32-bit        */
+} memoryblock_t;
 
-  result = a1;
-  *(_DWORD *)(a1 + 12) = 0;
-  *(_DWORD *)(a1 + 16) = dword_10063A30;
-  if ( dword_10063A30 )
-    *(_DWORD *)(dword_10063A30 + 12) = a1;
-  dword_10063A30 = a1;
-  return result;
+#define MEM_ID 0x12345678l
+
+memoryblock_t *memory;          /* list head    (was dword_10063A30) */
+int            totalmemorysize; /* bytes alloc  (was dword_10063A1C) */
+int            numblocks;       /* block count  (was dword_10063A2C) */
+
+/* Legacy IDA names retained as aliases so any code that still spells them
+ * the old way continues to resolve to the same storage. */
+#define dword_10063A30 memory
+#define dword_10063A1C totalmemorysize
+#define dword_10063A2C numblocks
+
+//----- (10038F10) --------------------------------------------------------
+void LinkMemoryBlock(memoryblock_t *block)
+{
+  block->prev = NULL;
+  block->next = memory;
+  if ( memory )
+    memory->prev = block;
+  memory = block;
 }
-// 10063A30: using guessed type int dword_10063A30;
 
 //----- (10038F50) --------------------------------------------------------
-int __cdecl UnlinkMemoryBlock(int a1)
+void UnlinkMemoryBlock(memoryblock_t *block)
 {
-  int result; // eax
-  int v2; // ecx
-  int v3; // ecx
-
-  result = a1;
-  v2 = *(_DWORD *)(a1 + 12);
-  if ( v2 )
-    *(_DWORD *)(v2 + 16) = *(_DWORD *)(a1 + 16);
+  if ( block->prev )
+    block->prev->next = block->next;
   else
-    dword_10063A30 = *(_DWORD *)(a1 + 16);
-  v3 = *(_DWORD *)(a1 + 16);
-  if ( v3 )
-    *(_DWORD *)(v3 + 12) = *(_DWORD *)(a1 + 12);
-  return result;
+    memory = block->next;
+  if ( block->next )
+    block->next->prev = block->prev;
 }
-// 10063A30: using guessed type int dword_10063A30;
 
 //----- (10038F90) --------------------------------------------------------
-int __cdecl GetMemory(int a1)
+void *__cdecl GetMemory(int size)
 {
-  _DWORD *v1; // esi
+  void          *ptr;
+  memoryblock_t *block;
 
-  v1 = (_DWORD *)bi_GetMemory(a1 + 20);
-  *v1 = 305419896;
-  v1[1] = v1 + 5;
-  v1[2] = a1 + 20;
-  LinkMemoryBlock((int)v1);
-  dword_10063A1C += v1[2];
-  ++dword_10063A2C;
-  return v1[1];
+  ptr = bi_GetMemory(size + (int)sizeof(memoryblock_t));
+  block = (memoryblock_t *)ptr;
+  block->id   = MEM_ID;
+  block->ptr  = (char *)ptr + sizeof(memoryblock_t);
+  block->size = size + (int)sizeof(memoryblock_t);
+  LinkMemoryBlock(block);
+  totalmemorysize += block->size;
+  ++numblocks;
+  return block->ptr;
 }
-// 10063A1C: using guessed type int dword_10063A1C;
-// 10063A2C: using guessed type int dword_10063A2C;
-// 10063FF4: using guessed type int (__cdecl *bi_GetMemory)(_DWORD);
 
 //----- (10039000) --------------------------------------------------------
-void *__cdecl GetClearedMemory(unsigned int a1)
+void *__cdecl GetClearedMemory(unsigned int size)
 {
-  void *v1; // edx
-
-  v1 = (void *)GetMemory(a1);
-  memset(v1, 0, a1);
-  return v1;
+  void *ptr = GetMemory((int)size);
+  memset(ptr, 0, size);
+  return ptr;
 }
-// 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
 //----- (10039040) --------------------------------------------------------
-int __cdecl BlockFromPointer(int a1, const char *a2)
+/* IDA named this `UnlinkMemoryBlock`; the Q3 source shows the original
+ * name was `BlockFromPointer`.  The real list-unlink helper is sub_10038F50. */
+static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 {
-  int result; // eax
+  memoryblock_t *block;
 
-  if ( !a1 )
-    return 0;
-  result = a1 - 20;
-  if ( *(_DWORD *)(a1 - 20) != 305419896 )
+  if ( !ptr )
+    return NULL;
+  block = (memoryblock_t *)((char *)ptr - sizeof(memoryblock_t));
+  if ( block->id != MEM_ID )
   {
-    bi_Print(4, "%s: invalid memory block\n", a2);
-    return 0;
+    bi_Print(4, "%s: invalid memory block\n", str);
+    return NULL;
   }
-  if ( *(_DWORD *)(result + 4) != a1 )
+  if ( block->ptr != ptr )
   {
-    bi_Print(4, "%s: memory block pointer invalid\n", a2);
-    return 0;
+    bi_Print(4, "%s: memory block pointer invalid\n", str);
+    return NULL;
   }
-  return result;
+  return block;
 }
-// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (100390B0) --------------------------------------------------------
-int __cdecl FreeMemory(int ptr)
+/* Q3 source: `void FreeMemory(void *ptr)`.  IDA inferred an `int` return
+ * because MSVC's epilogue leaves `totalmemorysize - block->size` in eax;
+ * that's a register-allocation artifact, not a real return value.  We
+ * keep the `int` signature here as a transitional dummy so the ~25 IDA-
+ * generated `return FreeMemory(x);` call sites still compile.  Each
+ * caller will be restored to `void`-returning form when its parent
+ * function is faithfulness-audited. */
+int __cdecl FreeMemory(void *ptr)
 {
-  int result; // eax
-  int v2; // esi
-
-  result = BlockFromPointer(ptr, aFreememory);
-  v2 = result;
-  if ( result )
+  memoryblock_t *block = BlockFromPointer(ptr, aFreememory);
+  if ( block )
   {
-    UnlinkMemoryBlock(result);
-    dword_10063A1C -= *(_DWORD *)(v2 + 8);
-    --dword_10063A2C;
-    return bi_FreeMemory(v2);
+    UnlinkMemoryBlock(block);
+    totalmemorysize -= block->size;
+    --numblocks;
+    bi_FreeMemory(block);
   }
-  return result;
+  return 0;
 }
-// 10063A1C: using guessed type int dword_10063A1C;
-// 10063A2C: using guessed type int dword_10063A2C;
-// 10063FF8: using guessed type int (__cdecl *bi_FreeMemory)(_DWORD);
 
 //----- (10039120) --------------------------------------------------------
-int __cdecl MemoryByteSize(int ptr)
+int __cdecl MemoryByteSize(void *ptr)
 {
-  int result; // eax
-
-  result = BlockFromPointer(ptr, aMemorybytesize);
-  if ( result )
-    return *(_DWORD *)(result + 8);
-  return result;
+  memoryblock_t *block = BlockFromPointer(ptr, aMemorybytesize);
+  if ( !block )
+    return 0;
+  return block->size;
 }
 
 //----- (10039150) --------------------------------------------------------
-int PrintUsedMemorySize()
+void PrintUsedMemorySize(void)
 {
-  bi_Print(1, "total botlib memory: %d KB\n", dword_10063A1C >> 10);
-  return bi_Print(1, "total memory blocks: %d\n", dword_10063A2C);
+  bi_Print(1, "total botlib memory: %d KB\n", totalmemorysize >> 10);
+  bi_Print(1, "total memory blocks: %d\n", numblocks);
 }
-// 10063A1C: using guessed type int dword_10063A1C;
-// 10063A2C: using guessed type int dword_10063A2C;
-// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10039190) --------------------------------------------------------
-int PrintMemoryLabels()
+/* Q3 name: `PrintMemoryLabels`.  Gladiator stripped the MEMDEBUG payload,
+ * leaving an empty for-walk over the block list. */
+void PrintMemoryLabels(void)
 {
-  int result; // eax
-
+  memoryblock_t *block;
   PrintUsedMemorySize();
-  for ( result = dword_10063A30; result; result = *(_DWORD *)(result + 16) )
+  for ( block = memory; block; block = block->next )
     ;
-  return result;
 }
-// 100014C9: using guessed type int PrintUsedMemorySize(void);
-// 10063A30: using guessed type int dword_10063A30;
 
 //----- (100391C0) --------------------------------------------------------
-int DumpMemory()
+void DumpMemory(void)
 {
-  int result; // eax
-
-  for ( result = dword_10063A30; dword_10063A30; result = dword_10063A30 )
-    FreeMemory(*(_DWORD *)(result + 4));
-  dword_10063A1C = 0;
-  return result;
+  memoryblock_t *block;
+  for ( block = memory; memory; block = memory )
+    FreeMemory(block->ptr);
+  totalmemorysize = 0;
 }
-// 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
-// 10063A1C: using guessed type int dword_10063A1C;
-// 10063A30: using guessed type int dword_10063A30;
 
 //----- (10039200) --------------------------------------------------------
-int SourceError(int a1, char *Format, ...)
+int sub_10039200(int a1, char *Format, ...)
 {
   source_t *src = (source_t *)a1;
   char Buffer[1024]; // [esp+0h] [ebp-400h] BYREF
@@ -31061,7 +31063,7 @@ int SourceError(int a1, char *Format, ...)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10039270) --------------------------------------------------------
-int SourceWarning(int a1, char *Format, ...)
+int sub_10039270(int a1, char *Format, ...)
 {
   source_t *src = (source_t *)a1;
   char Buffer[1024]; // [esp+0h] [ebp-400h] BYREF
@@ -31110,14 +31112,14 @@ indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out)
       src->indentstack = ind->next;
       src->skip       -= ind->skip;
       /* Asm leaves FreeMemory's return value in eax — preserve that here. */
-      return (indent_t *)FreeMemory(ind);
+      return (indent_t *)(uintptr_t)FreeMemory(ind);
     }
   }
   return ind;
 }
 
 //----- (100393E0) --------------------------------------------------------
-int __cdecl PC_PushScript(source_t *src, script_t *script)
+int __cdecl sub_100393E0(source_t *src, script_t *script)
 {
   script_t *s = src->scriptstack;
   int result;
@@ -31130,7 +31132,7 @@ int __cdecl PC_PushScript(source_t *src, script_t *script)
       if ( !s )
         goto LABEL_4;
     }
-    return SourceError((int)src, aSRecursivelyIn, script->filename);
+    return sub_10039200((int)src, aSRecursivelyIn, script->filename);
   }
   else
   {
@@ -31156,7 +31158,7 @@ _DWORD *__cdecl PC_CopyToken(const void *a1)
 //----- (100394A0) --------------------------------------------------------
 int __cdecl PC_FreeToken(int a1)
 {
-  return FreeMemory(a1);
+  return FreeMemory((void *)(uintptr_t)a1);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -31190,7 +31192,7 @@ LABEL_9:
         {
           if ( ind->script != src->scriptstack )
             break;
-          SourceWarning((int)src, aMissingEndif, v9);
+          sub_10039270((int)src, aMissingEndif, v9);
           PC_PopIndent(src, &t_dummy, &s_dummy);
         }
       }
@@ -31276,12 +31278,12 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList)
         {
           if ( v10 >= v6 )
           {
-            SourceError(a1, aDefineSWithToo, *v5);
+            sub_10039200(a1, aDefineSWithToo, *v5);
             return 0;
           }
           else if ( v10 >= v5[3] )
           {
-            SourceWarning(a1, aDefineSHasTooM, *v5);
+            sub_10039270(a1, aDefineSHasTooM, *v5);
             return 0;
           }
           else
@@ -31293,7 +31295,7 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList)
             {
               if ( !PC_ReadSourceToken(a1, v19) )
               {
-                SourceError(a1, aDefineSIncompl, *(_DWORD *)a2);
+                sub_10039200(a1, aDefineSIncompl, *(_DWORD *)a2);
                 return 0;
               }
               if ( !strcmp(v19, asc_1005D330) && v15 <= 0 )
@@ -31308,7 +31310,7 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList)
                 if ( !strcmp(v19, asc_1005D32C) && --v15 <= 0 )
                 {
                   if ( !*(_DWORD *)(a3 + 4 * *(_DWORD *)(a2 + 12) - 4) )
-                    SourceWarning(a1, aTooFewDefinePa, v14);
+                    sub_10039270(a1, aTooFewDefinePa, v14);
                   v18 = 1;
                   goto LABEL_31;
                 }
@@ -31330,7 +31332,7 @@ int __cdecl PC_ReadDefineParms(int a1, int a2, int a3, int ArgList)
               }
             }
             if ( v12 )
-              SourceWarning(a1, aTooManyCommaS, v14);
+              sub_10039270(a1, aTooManyCommaS, v14);
 LABEL_31:
             v10 = ++v17;
             ++v16;
@@ -31347,19 +31349,19 @@ LABEL_31:
       else
       {
         PC_UnreadSourceToken(a1, v19);
-        SourceError(a1, aDefineSMissing, *(_DWORD *)a2);
+        sub_10039200(a1, aDefineSMissing, *(_DWORD *)a2);
         return 0;
       }
     }
     else
     {
-      SourceError(a1, aDefineWithMore, ArgList);
+      sub_10039200(a1, aDefineWithMore, ArgList);
       return 0;
     }
   }
   else
   {
-    SourceError(a1, aDefineSMissing, *(_DWORD *)a2);
+    sub_10039200(a1, aDefineSMissing, *(_DWORD *)a2);
     return 0;
   }
 }
@@ -31367,7 +31369,7 @@ LABEL_31:
 // 100398B3: variable 'v14' is possibly undefined
 
 //----- (10039A70) --------------------------------------------------------
-int __cdecl PC_StringizeTokens(char *Source, char *Destination)
+int __cdecl sub_10039A70(char *Source, char *Destination)
 {
   char *i; // esi
 
@@ -31417,7 +31419,7 @@ LABEL_5:
 }
 
 //----- (10039C30) --------------------------------------------------------
-unsigned int __cdecl PC_NameHash(const char *a1)
+unsigned int __cdecl sub_10039C30(const char *a1)
 {
   unsigned int v1; // kr04_4
   unsigned int v2; // ecx
@@ -31442,11 +31444,11 @@ LABEL_5:
 }
 
 //----- (10039CB0) --------------------------------------------------------
-unsigned int __cdecl PC_AddDefineToHash(int a1, int a2)
+unsigned int __cdecl sub_10039CB0(int a1, int a2)
 {
   unsigned int result; // eax
 
-  result = PC_NameHash(*(const char **)a1);
+  result = sub_10039C30(*(const char **)a1);
   *(_DWORD *)(a1 + 28) = *(_DWORD *)(a2 + 4 * result);
   *(_DWORD *)(a2 + 4 * result) = a1;
   return result;
@@ -31454,7 +31456,7 @@ unsigned int __cdecl PC_AddDefineToHash(int a1, int a2)
 
 //----- (10039CE0) --------------------------------------------------------
 /* PC_FindHashedDefine: hash-bucket lookup of a define_t by name.
- * a1 is `define_t **definehash` — an array of buckets indexed by PC_NameHash;
+ * a1 is `define_t **definehash` — an array of buckets indexed by sub_10039C30;
  * each bucket is a linked list chained via define_t.hashnext (offset 28).
  * Q3 botlib has the same function in l_precomp.c (with #ifdef DEFINEHASHING).
  * 7 callers in the binary, all preserved 1:1 in the local code. */
@@ -31462,7 +31464,7 @@ int __cdecl PC_FindHashedDefine(int a1, const char *a2)
 {
   int v2; // edi
 
-  v2 = *(_DWORD *)(a1 + 4 * PC_NameHash(a2));
+  v2 = *(_DWORD *)(a1 + 4 * sub_10039C30(a2));
   if ( !v2 )
     return 0;
   while ( strcmp(*(const char **)v2, a2) )
@@ -31651,16 +31653,16 @@ int __cdecl PC_ExpandDefine(int a1, _DWORD *a2, char **a3, char **a4)
           if ( v10 >= 0 )
           {
             v6 = (int)((gladiator_token_t *)v6)->next;
-            if ( !PC_StringizeTokens(Source[v10], Destination) )
+            if ( !sub_10039A70(Source[v10], Destination) )
             {
-              SourceError(a1, aCanTStringizeT, v19);
+              sub_10039200(a1, aCanTStringizeT, v19);
               return 0;
             }
             v11 = (char *)PC_CopyToken(Destination);
             goto LABEL_21;
           }
         }
-        SourceWarning(a1, aStringizingOpe, v19);
+        sub_10039270(a1, aStringizingOpe, v19);
 LABEL_25:
         v6 = (int)((gladiator_token_t *)v6)->next;
         if ( !v6 )
@@ -31687,7 +31689,7 @@ LABEL_26:
         {
           if ( !PC_MergeTokens(v12, (_DWORD *)((gladiator_token_t *)v13)->next) )
           {
-            SourceError(a1, aCanTMergeSWith, v12);
+            sub_10039200(a1, aCanTMergeSWith, v12);
             return 0;
           }
           PC_FreeToken((int)((gladiator_token_t *)v12)->next);
@@ -31752,7 +31754,7 @@ int __cdecl PC_ExpandDefineIntoSource(int a1, _DWORD *a2)
 }
 
 //----- (1003A710) --------------------------------------------------------
-_BYTE *__cdecl PC_ConvertPath(_BYTE *a1)
+_BYTE *__cdecl sub_1003A710(_BYTE *a1)
 {
   _BYTE *v1; // edx
   char v2; // al
@@ -31817,28 +31819,28 @@ int __cdecl PC_Directive_include(int a1)
       }
 LABEL_17:
       if ( token.string[0] != 62 )
-        SourceWarning(a1, aIncludeMissing, v5);
+        sub_10039270(a1, aIncludeMissing, v5);
 LABEL_19:
       if ( strlen(Destination) )
       {
-        PC_ConvertPath(Destination);
+        sub_1003A710(Destination);
         v3 = LoadScriptFile(Destination, 0, 0);
         goto LABEL_22;
       }
-      SourceError(a1, aIncludeWithout, v5);
+      sub_10039200(a1, aIncludeWithout, v5);
       return 0;
     }
 LABEL_28:
-    SourceError(a1, aIncludeWithout_0, v5);
+    sub_10039200(a1, aIncludeWithout_0, v5);
     return 0;
   }
   StripDoubleQuotes(token.string);
-  PC_ConvertPath(token.string);
+  sub_1003A710(token.string);
   v2 = (char *)LoadScriptFile(token.string, 0, 0);
   if ( v2 )
   {
 LABEL_26:
-    PC_PushScript(a1, v2);
+    sub_100393E0(a1, v2);
     return 1;
   }
   strcpy(Destination, ((source_t *)a1)->includepath);
@@ -31859,7 +31861,7 @@ LABEL_22:
       goto LABEL_26;
     }
   }
-  SourceError(a1, aFileSNotFound, Destination);
+  sub_10039200(a1, aFileSNotFound, Destination);
   return 0;
 }
 // 1003A965: variable 'v5' is possibly undefined
@@ -31890,13 +31892,13 @@ int __cdecl PC_ReadLine(int a1, _DWORD *a2)
 }
 
 //----- (1003ABD0) --------------------------------------------------------
-BOOL __cdecl PC_WhiteSpaceBeforeToken(int a1)
+BOOL __cdecl sub_1003ABD0(int a1)
 {
   return *(_DWORD *)(a1 + 1052) - *(_DWORD *)(a1 + 1048) > 0;
 }
 
 //----- (1003AC00) --------------------------------------------------------
-_DWORD *__cdecl PC_ClearTokenWhiteSpace(_DWORD *a1)
+_DWORD *__cdecl sub_1003AC00(_DWORD *a1)
 {
   _DWORD *result; // eax
 
@@ -31922,16 +31924,16 @@ int __cdecl PC_Directive_undef(int a1)
     return 1;
   if ( !PC_ReadLine(a1, token.string) )
   {
-    SourceError(a1, aUndefWithoutNa, v7);
+    sub_10039200(a1, aUndefWithoutNa, v7);
     return 0;
   }
   if ( token.type != 4 )
   {
     PC_UnreadSourceToken(a1, token.string);
-    SourceError(a1, aExpectedNameFo, token.string);
+    sub_10039200(a1, aExpectedNameFo, token.string);
     return 0;
   }
-  v2 = PC_NameHash(token.string);
+  v2 = sub_10039C30(token.string);
   v3 = (int)((source_t *)a1)->definehash;
   v4 = 0;
   v5 = *(_DWORD *)(v3 + 4 * v2);
@@ -31947,7 +31949,7 @@ int __cdecl PC_Directive_undef(int a1)
     }
     if ( (*(_BYTE *)(v5 + 4) & 1) != 0 )
     {
-      SourceWarning(a1, aCanTUndefS, token.string);
+      sub_10039270(a1, aCanTUndefS, token.string);
       return 1;
     }
     if ( v4 )
@@ -31980,7 +31982,7 @@ int __cdecl PC_Directive_define(int a1)
     if ( token.type != 4 )
     {
       PC_UnreadSourceToken(a1, token.string);
-      SourceError(a1, aExpectedNameAf_0, token.string);
+      sub_10039200(a1, aExpectedNameAf_0, token.string);
       return 0;
     }
     v2 = PC_FindHashedDefine((int)((source_t *)a1)->definehash, token.string);
@@ -31988,10 +31990,10 @@ int __cdecl PC_Directive_define(int a1)
     {
       if ( (*(_BYTE *)(v2 + 4) & 1) != 0 )
       {
-        SourceError(a1, aCanTRedefineS, token.string);
+        sub_10039200(a1, aCanTRedefineS, token.string);
         return 0;
       }
-      SourceWarning(a1, aRedefinitionOf, token.string);
+      sub_10039270(a1, aRedefinitionOf, token.string);
       PC_UnreadSourceToken(a1, token.string);
       if ( !PC_Directive_undef(a1) )
         return 0;
@@ -32001,10 +32003,10 @@ int __cdecl PC_Directive_define(int a1)
     memset(v3, 0, 0x20u);
     *(_DWORD *)v3 = v3 + 32;
     strcpy(v3 + 32, token.string);
-    PC_AddDefineToHash((int)v3, (int)((source_t *)a1)->definehash);
+    sub_10039CB0((int)v3, (int)((source_t *)a1)->definehash);
     if ( !PC_ReadLine(a1, token.string) )
       return 1;
-    if ( !PC_WhiteSpaceBeforeToken((int)token.string) && !strcmp(token.string, asc_1005D334) )
+    if ( !sub_1003ABD0((int)token.string) && !strcmp(token.string, asc_1005D334) )
     {
       v4 = a1;
       v5 = 0;
@@ -32014,21 +32016,21 @@ int __cdecl PC_Directive_define(int a1)
         {
           if ( !PC_ReadLine(v4, token.string) )
           {
-            SourceError(v4, aExpectedDefine, v9);
+            sub_10039200(v4, aExpectedDefine, v9);
             return 0;
           }
           if ( token.type != 4 )
           {
-            SourceError(v4, aInvalidDefineP, v9);
+            sub_10039200(v4, aInvalidDefineP, v9);
             return 0;
           }
           if ( PC_FindDefineParm((int)v3, token.string) >= 0 )
           {
-            SourceError(v4, aTwoTheSameDefi, v9);
+            sub_10039200(v4, aTwoTheSameDefi, v9);
             return 0;
           }
           v6 = PC_CopyToken(token.string);
-          PC_ClearTokenWhiteSpace(v6);
+          sub_1003AC00(v6);
           v6[266] = 0;
           if ( v5 )
             v5[266] = v6;
@@ -32038,14 +32040,14 @@ int __cdecl PC_Directive_define(int a1)
           ++*((_DWORD *)v3 + 3);
           if ( !PC_ReadLine(a1, token.string) )
           {
-            SourceError(a1, aDefineParamete, v9);
+            sub_10039200(a1, aDefineParamete, v9);
             return 0;
           }
           if ( !strcmp(token.string, asc_1005D32C) )
             break;
           if ( strcmp(token.string, asc_1005D330) )
           {
-            SourceError(a1, aDefineNotTermi, v9);
+            sub_10039200(a1, aDefineNotTermi, v9);
             return 0;
           }
           v4 = a1;
@@ -32059,7 +32061,7 @@ int __cdecl PC_Directive_define(int a1)
     do
     {
       v8 = (char *)PC_CopyToken(token.string);
-      PC_ClearTokenWhiteSpace(v8);
+      sub_1003AC00(v8);
       *((_DWORD *)v8 + 266) = 0;
       if ( v7 )
         *((_DWORD *)v7 + 266) = v8;
@@ -32070,11 +32072,11 @@ int __cdecl PC_Directive_define(int a1)
     while ( PC_ReadLine(a1, token.string) );
     if ( strcmp(*((const char **)v3 + 5), asc_1005F5F4) && strcmp(v8, asc_1005F5F4) )
       return 1;
-    SourceError(a1, aDefineWithMisp, v9);
+    sub_10039200(a1, aDefineWithMisp, v9);
   }
   else
   {
-    SourceError(a1, aDefineWithoutN, v9);
+    sub_10039200(a1, aDefineWithoutN, v9);
   }
   return 0;
 }
@@ -32228,13 +32230,13 @@ void __cdecl PC_AddGlobalDefinesToSource(int a1)
   for ( i = dword_10063A10; i; i = *(_DWORD *)(i + 24) )
   {
     v2 = PC_CopyDefine(i);
-    PC_AddDefineToHash(v2, (int)((source_t *)a1)->definehash);
+    sub_10039CB0(v2, (int)((source_t *)a1)->definehash);
   }
 }
 // 10063A10: using guessed type int dword_10063A10;
 
 //----- (1003B6C0) --------------------------------------------------------
-int __cdecl PC_Directive_if_def(_DWORD *a1, int a2)
+int __cdecl PC_Directive_ifdef(_DWORD *a1, int a2)
 {
   int v3; // eax
   char v4; // [esp+0h] [ebp-434h]
@@ -32251,13 +32253,13 @@ int __cdecl PC_Directive_if_def(_DWORD *a1, int a2)
     else
     {
       PC_UnreadSourceToken((int)a1, token.string);
-      SourceError((int)a1, aExpectedNameAf, token.string);
+      sub_10039200((int)a1, aExpectedNameAf, token.string);
       return 0;
     }
   }
   else
   {
-    SourceError((int)a1, aIfdefWithoutNa, v4);
+    sub_10039200((int)a1, aIfdefWithoutNa, v4);
     return 0;
   }
 }
@@ -32276,7 +32278,7 @@ int __cdecl PC_Directive_else(int a1)
   {
     if ( a1 == 2 )
     {
-      SourceError((int)v1, aElseAfterElse, v3);
+      sub_10039200((int)v1, aElseAfterElse, v3);
       return 0;
     }
     else
@@ -32287,7 +32289,7 @@ int __cdecl PC_Directive_else(int a1)
   }
   else
   {
-    SourceError((int)v1, aMisplacedElse, v3);
+    sub_10039200((int)v1, aMisplacedElse, v3);
     return 0;
   }
 }
@@ -32304,7 +32306,7 @@ int __cdecl PC_Directive_endif(int a1)
   PC_PopIndent((_DWORD *)a1, &a1, &v4);
   if ( a1 )
     return 1;
-  SourceError(v1, aMisplacedEndif, v3);
+  sub_10039200(v1, aMisplacedEndif, v3);
   return 0;
 }
 // 1003B8A7: variable 'v3' is possibly undefined
@@ -32482,12 +32484,12 @@ int __cdecl PC_EvaluateTokens(int a1, int ArgList, _DWORD *a3, _DWORD *a4, int a
         if ( v6 || v7 )
         {
 LABEL_71:
-          SourceError(a1, aSyntaxErrorInI, v45);
+          sub_10039200(a1, aSyntaxErrorInI, v45);
           goto LABEL_76;
         }
         if ( strcmp((const char *)v9, aDefined) )
         {
-          SourceError(a1, aUndefinedNameS, v9);
+          sub_10039200(a1, aUndefinedNameS, v9);
           goto LABEL_76;
         }
         v9 = (int)((gladiator_token_t *)v9)->next;
@@ -32498,7 +32500,7 @@ LABEL_71:
         }
         if ( !v9 || *(_DWORD *)(v9 + 1024) != 4 )
         {
-          SourceError(a1, aDefinedWithout_0, v45);
+          sub_10039200(a1, aDefinedWithout_0, v45);
           goto LABEL_76;
         }
         v12 = (double *)GetClearedMemory(32);
@@ -32527,7 +32529,7 @@ LABEL_71:
           v9 = (int)((gladiator_token_t *)v9)->next;
           if ( !v9 || strcmp((const char *)v9, asc_1005D32C) )
           {
-            SourceError(a1, aDefinedWithout, v45);
+            sub_10039200(a1, aDefinedWithout, v45);
             goto LABEL_76;
           }
         }
@@ -32537,7 +32539,7 @@ LABEL_71:
       case 5:
         if ( v7 )
         {
-          SourceError(a1, aMisplacedMinus, v45);
+          sub_10039200(a1, aMisplacedMinus, v45);
           goto LABEL_76;
         }
         v10 = *(_DWORD *)(v9 + 1028);
@@ -32549,7 +32551,7 @@ LABEL_71:
         {
           if ( --v47 < 0 )
           {
-            SourceError(a1, aTooManyInIfEls, v45);
+            sub_10039200(a1, aTooManyInIfEls, v45);
             goto LABEL_76;
           }
         }
@@ -32557,7 +32559,7 @@ LABEL_71:
         {
           if ( !a5 && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
           {
-            SourceError(a1, aIlligalOperato, v9);
+            sub_10039200(a1, aIlligalOperato, v9);
             goto LABEL_76;
           }
           switch ( v10 )
@@ -32583,7 +32585,7 @@ LABEL_71:
             case 43:
               if ( v6 )
                 goto LABEL_29;
-              SourceError(a1, aOperatorSAfter, v9);
+              sub_10039200(a1, aOperatorSAfter, v9);
               goto LABEL_76;
             case 30:
               if ( !v6 )
@@ -32593,7 +32595,7 @@ LABEL_71:
             case 36:
               if ( v6 )
               {
-                SourceError(a1, aOrAfterValueIn, v45);
+                sub_10039200(a1, aOrAfterValueIn, v45);
                 goto LABEL_76;
               }
 LABEL_29:
@@ -32614,13 +32616,13 @@ LABEL_29:
               }
               break;
             default:
-              SourceError(a1, aInvalidOperato, v9);
+              sub_10039200(a1, aInvalidOperato, v9);
               goto LABEL_76;
           }
         }
         break;
       default:
-        SourceError(a1, aUnknownSInIfEl, v9);
+        sub_10039200(a1, aUnknownSInIfEl, v9);
         goto LABEL_76;
     }
     v9 = (int)((gladiator_token_t *)v9)->next;
@@ -32632,12 +32634,12 @@ LABEL_29:
   {
     if ( !v47 )
       goto LABEL_77;
-    SourceError(a1, aTooManyInIfEli, v45);
+    sub_10039200(a1, aTooManyInIfEli, v45);
   }
   else
   {
 LABEL_73:
-    SourceError(a1, aTrailingOperat, v45);
+    sub_10039200(a1, aTrailingOperat, v45);
   }
 LABEL_76:
   v46 = 1;
@@ -32772,7 +32774,7 @@ LABEL_88:
         case 42:
           if ( !v14 )
           {
-            SourceError(a1, aWithoutInIfEli, v45);
+            sub_10039200(a1, aWithoutInIfEli, v45);
             goto LABEL_163;
           }
           if ( a5 )
@@ -32794,7 +32796,7 @@ LABEL_88:
         case 43:
           if ( v14 )
           {
-            SourceError(a1, aAfterInIfElif, v45);
+            sub_10039200(a1, aAfterInIfElif, v45);
             goto LABEL_163;
           }
           v15 = *(_DWORD *)v17;
@@ -32845,7 +32847,7 @@ LABEL_144:
       if ( !v19 )
         goto LABEL_88;
     }
-    SourceError(a1, aMisingValuesIn, v45);
+    sub_10039200(a1, aMisingValuesIn, v45);
 LABEL_163:
     v46 = 1;
   }
@@ -32924,7 +32926,7 @@ int __cdecl PC_Evaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
   v4 = a1;
   if ( !PC_ReadLine(a1, token.string) )
   {
-    SourceError(a1, aNoValueAfterIf, v13);
+    sub_10039200(a1, aNoValueAfterIf, v13);
     return 0;
   }
   v6 = 0;
@@ -32935,7 +32937,7 @@ int __cdecl PC_Evaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
     {
       if ( token.type != 3 && token.type != 5 )
       {
-        SourceError(v4, aCanTEvaluateS, token.string);
+        sub_10039200(v4, aCanTEvaluateS, token.string);
         return 0;
       }
       v8 = PC_CopyToken(token.string);
@@ -32972,7 +32974,7 @@ LABEL_22:
       v10 = (_DWORD *)PC_FindHashedDefine((int)((source_t *)a1)->definehash, token.string);
       if ( !v10 )
       {
-        SourceError(a1, aCanTEvaluateSN, token.string);
+        sub_10039200(a1, aCanTEvaluateSN, token.string);
         return 0;
       }
       if ( !PC_ExpandDefineIntoSource(a1, v10) )
@@ -33025,12 +33027,12 @@ int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
   v4 = a1;
   if ( !PC_ReadSourceToken(a1, token.string) )
   {
-    SourceError(a1, aNoLeadingAfter, v14);
+    sub_10039200(a1, aNoLeadingAfter, v14);
     return 0;
   }
   if ( !PC_ReadSourceToken(a1, token.string) )
   {
-    SourceError(a1, aNothingToEvalu, v14);
+    sub_10039200(a1, aNothingToEvalu, v14);
     return 0;
   }
   v6 = 0;
@@ -33042,7 +33044,7 @@ int __cdecl PC_DollarEvaluate(int a1, _DWORD *a2, _DWORD *a3, int a4)
     {
       if ( token.type != 3 && token.type != 5 )
       {
-        SourceError(v4, aCanTEvaluateS, token.string);
+        sub_10039200(v4, aCanTEvaluateS, token.string);
         return 0;
       }
       if ( token.string[0] == 40 )
@@ -33095,7 +33097,7 @@ LABEL_30:
       v10 = (_DWORD *)PC_FindHashedDefine((int)((source_t *)a1)->definehash, token.string);
       if ( !v10 )
       {
-        SourceError(a1, aCanTEvaluateSN, token.string);
+        sub_10039200(a1, aCanTEvaluateSN, token.string);
         return 0;
       }
       if ( !PC_ExpandDefineIntoSource(a1, v10) )
@@ -33132,7 +33134,7 @@ int __cdecl PC_Directive_elif(int a1)
   PC_PopIndent((_DWORD *)a1, &a1, &v5);
   if ( !a1 || a1 == 2 )
   {
-    SourceError((int)v1, aMisplacedElif, v3);
+    sub_10039200((int)v1, aMisplacedElif, v3);
   }
   else if ( PC_Evaluate((int)v1, &v4, 0, 1) )
   {
@@ -33167,7 +33169,7 @@ int __cdecl PC_Directive_if(int a1)
  * via the source error reporter and return false (0). */
 int __cdecl PC_Directive_line(int a1)
 {
-  SourceError(a1, "#line directive not supported");
+  sub_10039200(a1, "#line directive not supported");
   return 0;
 }
 
@@ -33178,7 +33180,7 @@ int __cdecl PC_Directive_error(int a1)
 
   token.string[0] = byte_1006294C;
   PC_ReadSourceToken(a1, token.string);
-  SourceError(a1, aErrorDirective, token.string);
+  sub_10039200(a1, aErrorDirective, token.string);
   return 0;
 }
 
@@ -33188,7 +33190,7 @@ int __cdecl PC_Directive_pragma(int a1)
   char v2; // [esp+0h] [ebp-434h]
   _DWORD v3[268]; // [esp+4h] [ebp-430h] BYREF
 
-  SourceWarning(a1, aPragmaDirectiv, v2);
+  sub_10039270(a1, aPragmaDirectiv, v2);
   while ( PC_ReadLine(a1, v3) )
     ;
   return 1;
@@ -33290,20 +33292,20 @@ int __cdecl PC_ReadDirective(int ArgList)
       else
       {
 LABEL_10:
-        SourceError(ArgList, aUnknownPrecomp, token.string);
+        sub_10039200(ArgList, aUnknownPrecomp, token.string);
         return 0;
       }
     }
     else
     {
       PC_UnreadSourceToken(ArgList, token.string);
-      SourceError(ArgList, aFoundAtEndOfLi, 0);
+      sub_10039200(ArgList, aFoundAtEndOfLi, 0);
       return 0;
     }
   }
   else
   {
-    SourceError(ArgList, aFoundWithoutNa, v6);
+    sub_10039200(ArgList, aFoundWithoutNa, v6);
     return 0;
   }
 }
@@ -33401,20 +33403,20 @@ int __cdecl PC_ReadDollarDirective(int ArgList)
       {
 LABEL_10:
         PC_UnreadSourceToken(ArgList, token.string);
-        SourceError(ArgList, aUnknownPrecomp, token.string);
+        sub_10039200(ArgList, aUnknownPrecomp, token.string);
         return 0;
       }
     }
     else
     {
       PC_UnreadSourceToken(ArgList, token.string);
-      SourceError(ArgList, aFoundAtEndOfLi_0, v5);
+      sub_10039200(ArgList, aFoundAtEndOfLi_0, v5);
       return 0;
     }
   }
   else
   {
-    SourceError(ArgList, aFoundWithoutNa_0, v6);
+    sub_10039200(ArgList, aFoundWithoutNa_0, v6);
     return 0;
   }
 }
@@ -33424,7 +33426,7 @@ LABEL_10:
 // 1005F304: using guessed type int (__cdecl *off_1005F304)(int);
 
 //----- (1003D580) --------------------------------------------------------
-int __cdecl PC_ReadToken(int *a1, _DWORD *a2)
+int __cdecl PC_ReadTokenHandle(int *a1, _DWORD *a2)
 {
   int v2; // eax
   _DWORD *v3; // eax
@@ -33473,7 +33475,7 @@ int __cdecl PC_ExpectTokenString(int a1, const char *ArgList)
 {
   char v3[1072]; // [esp+8h] [ebp-430h] BYREF
 
-  if ( PC_ReadToken(a1, v3) )
+  if ( PC_ReadTokenHandle(a1, v3) )
   {
     if ( !strcmp(v3, ArgList) )
     {
@@ -33481,17 +33483,17 @@ int __cdecl PC_ExpectTokenString(int a1, const char *ArgList)
     }
     else
     {
-      SourceError(a1, aExpectedSFound, ArgList);
+      sub_10039200(a1, aExpectedSFound, ArgList);
       return 0;
     }
   }
   else
   {
-    SourceError(a1, aCouldnTFindExp, ArgList);
+    sub_10039200(a1, aCouldnTFindExp, ArgList);
     return 0;
   }
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
 //----- (1003D740) --------------------------------------------------------
 int __cdecl PC_ExpectTokenType(int a1, int a2, int a3, int a4)
@@ -33517,9 +33519,9 @@ int __cdecl PC_ExpectTokenType(int a1, int a2, int a3, int a4)
   char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
 
   v4 = a1;
-  if ( !PC_ReadToken(a1, a4) )
+  if ( !PC_ReadTokenHandle(a1, a4) )
   {
-    SourceError(a1, aCouldnTReadExp, v22);
+    sub_10039200(a1, aCouldnTReadExp, v22);
     return 0;
   }
   v6 = *(_DWORD *)(a4 + 1024);
@@ -33543,14 +33545,14 @@ int __cdecl PC_ExpectTokenType(int a1, int a2, int a3, int a4)
         strcpy(ArgList, "punctuation");
         break;
     }
-    SourceError(a1, aExpectedASFoun, ArgList);
+    sub_10039200(a1, aExpectedASFoun, ArgList);
     return 0;
   }
   if ( v6 != 3 )
   {
     if ( v6 == 5 && *(_DWORD *)(a4 + 1028) != a3 )
     {
-      SourceError(a1, aFoundS, a4);
+      sub_10039200(a1, aFoundS, a4);
       return 0;
     }
     return 1;
@@ -33600,31 +33602,31 @@ int __cdecl PC_ExpectTokenType(int a1, int a2, int a3, int a4)
   }
   if ( (a3 & 0x1000) != 0 )
     strcat(ArgList, aInteger);
-  SourceError(v4, aExpectedSFound, ArgList);
+  sub_10039200(v4, aExpectedSFound, ArgList);
   return 0;
 }
 // 1003D76A: variable 'v22' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
 //----- (1003DAE0) --------------------------------------------------------
 int __cdecl PC_ExpectAnyToken(int a1, int a2)
 {
   char v3; // [esp+0h] [ebp-4h]
 
-  if ( PC_ReadToken(a1, a2) )
+  if ( PC_ReadTokenHandle(a1, a2) )
     return 1;
-  SourceError(a1, aCouldnTReadExp, v3);
+  sub_10039200(a1, aCouldnTReadExp, v3);
   return 0;
 }
 // 1003DAFD: variable 'v3' is possibly undefined
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
 //----- (1003DB20) --------------------------------------------------------
 int __cdecl PC_CheckTokenString(int a1, const char *a2)
 {
   char v3[1072]; // [esp+4h] [ebp-430h] BYREF
 
-  if ( PC_ReadToken(a1, v3) )
+  if ( PC_ReadTokenHandle(a1, v3) )
   {
     if ( !strcmp(v3, a2) )
       return 1;
@@ -33632,7 +33634,7 @@ int __cdecl PC_CheckTokenString(int a1, const char *a2)
   }
   return 0;
 }
-// 100010A5: using guessed type _DWORD __cdecl PC_ReadToken(_DWORD, _DWORD);
+// 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
 //----- (1003DD40) --------------------------------------------------------
 int __cdecl PC_UnreadLastToken(int a1)
@@ -34905,12 +34907,12 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
   {
     if ( (*(_DWORD *)(a2 + 8) & 0x400) != 0 )
     {
-      SourceError(a1, aExpectedUnsign, token.string);
+      sub_10039200(a1, aExpectedUnsign, token.string);
       return 0;
     }
     if ( strcmp(token.string, (const char *)&word_1005E498) )
     {
-      SourceError(a1, aUnexpectedPunc, token.string);
+      sub_10039200(a1, aUnexpectedPunc, token.string);
       return 0;
     }
     v3 = 1;
@@ -34919,7 +34921,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
   }
   if ( token.type != 3 )
   {
-    SourceError(a1, aExpectedNumber, token.string);
+    sub_10039200(a1, aExpectedNumber, token.string);
     return 0;
   }
   if ( (token.subtype & 0x800) != 0 )
@@ -34932,7 +34934,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
         v6 = -token.floatvalue;
       if ( (v5 & 0x200) != 0 && ((v18 = *(float *)(a2 + 16), v6 < v18) || v6 > *(float *)(a2 + 20)) )
       {
-        SourceError(a1, aFloatOutOfRang, SLOBYTE(v18));
+        sub_10039200(a1, aFloatOutOfRang, SLOBYTE(v18));
         return 0;
       }
       else
@@ -34943,7 +34945,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
     }
     else
     {
-      SourceError(a1, aUnexpectedFloa, v15);
+      sub_10039200(a1, aUnexpectedFloa, v15);
       return 0;
     }
   }
@@ -35000,7 +35002,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
       v11 = (double)v19;
       if ( v11 < *(float *)(a2 + 16) || v11 > *(float *)(a2 + 20) )
       {
-        SourceError(a1, aValueDOutOfRan, v7);
+        sub_10039200(a1, aValueDOutOfRan, v7);
         return 0;
       }
     }
@@ -35020,7 +35022,7 @@ int __cdecl ReadNumber(int a1, int a2, float *a3)
   }
   if ( v7 < v9 || v7 > (int)v10 )
   {
-    SourceError(a1, aValueDOutOfRan_0, v7);
+    sub_10039200(a1, aValueDOutOfRan_0, v7);
     return 0;
   }
 LABEL_47:
@@ -35123,7 +35125,7 @@ LABEL_2:
     v5 = v4;
     if ( !v4 )
     {
-      SourceError(a1, aUnknownStructu, ArgList);
+      sub_10039200(a1, aUnknownStructu, ArgList);
       return 0;
     }
     if ( (((unsigned __int16)v4[2] >> 8) & 1) != 0 )
@@ -35168,7 +35170,7 @@ LABEL_2:
         v10 = v5[6];
         if ( !v10 )
         {
-          SourceError(a1, aBugNoSubStruct, v12);
+          sub_10039200(a1, aBugNoSubStruct, v12);
           return 0;
         }
         ReadStructure(a1, v10, v7);
@@ -35190,7 +35192,7 @@ LABEL_26:
             goto LABEL_2;
           continue;
         }
-        SourceError(a1, aExpectedAComma, ArgList);
+        sub_10039200(a1, aExpectedAComma, ArgList);
         return 0;
       default:
         goto LABEL_21;
@@ -35312,7 +35314,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, int a2, int a3, int a4)
           case 6u:
             /* Nested struct case: recursive call. The original binary thunked
              * via 0x10001500 → WriteStructWithIndent (0x10040F20). The earlier
-             * PC_Directive_if_def name was a deobfuscation mislabel of that thunk. */
+             * PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
             if ( !WriteStructWithIndent(Stream, v6[v7 + 6], a3, v12) )
               return 0;
             v8 = (float *)((char *)v8 + *(_DWORD *)v6[v7 + 6]);
@@ -35355,7 +35357,7 @@ int __cdecl WriteStructure(FILE *Stream, int a2, int a3)
 {
   /* WriteStructure is a thin entry point that just calls WriteStructWithIndent
    * with indent=0. Original binary used the 0x10001500 thunk → 0x10040F20. The
-   * earlier PC_Directive_if_def name was a deobfuscation mislabel of that thunk. */
+   * earlier PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
   return WriteStructWithIndent(Stream, a2, a3, 0);
 }
 
@@ -35430,7 +35432,7 @@ int __stdcall sub_10041760(const char *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10041790) --------------------------------------------------------
-int __cdecl vectoangles(float *a1, int a2)
+int __cdecl sub_10041790(float *a1, int a2)
 {
   int result; // eax
   double v3; // st7
@@ -35744,16 +35746,16 @@ float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
 // 100631A8: using guessed type float flt_100631A8;
 
 //----- (10042410) --------------------------------------------------------
-/* Com_DPrintf — empty function (just `ret`).  Faithful transcription:
+/* sub_10042410 — empty function (just `ret`).  Faithful transcription:
  *   ret
  * (IDA couldn't follow MSVC thunk at 0x100019AB).
  * Called from Com_sprintf's overflow path with a printf-style
  * argument list.  In Q3 botlib this is Com_DPrintf — a debug print that
  * is empty in release builds.  Body is empty here too. */
-void Com_DPrintf(const char *fmt, ...) { (void)fmt; /* empty body */ }
+void sub_10042410(const char *fmt, ...) { (void)fmt; /* empty body */ }
 
 //----- (10042860) --------------------------------------------------------
-float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3)
+float *__cdecl sub_10042860(float *a1, float *a2, float *a3)
 {
   double v4; // st4
   double v5; // st7
@@ -35802,13 +35804,13 @@ void __cdecl PerpendicularVector(float *a1, float *a2)
   while ( v3 < 3 );
   memset(v7, 0, sizeof(v7));
   v7[v2] = 1.0;
-  ProjectPointOnPlane(a1, v7, a2);
+  sub_10042860(a1, v7, a2);
   VectorNormalize(a1);
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100429C0) --------------------------------------------------------
-float *__cdecl Matrix3Multiply(float *a1, float *a2, float *a3)
+float *__cdecl sub_100429C0(float *a1, float *a2, float *a3)
 {
   float *result; // eax
 
@@ -35961,13 +35963,13 @@ __int16 __cdecl LittleShort(__int16 a1)
 }
 
 //----- (10043920) --------------------------------------------------------
-int __cdecl BigLong(int a1)
+int __cdecl sub_10043920(int a1)
 {
   return HIBYTE(a1) + ((BYTE2(a1) + ((((unsigned __int8)a1 << 8) + BYTE1(a1)) << 8)) << 8);
 }
 
 //----- (10043970) --------------------------------------------------------
-int __cdecl LittleLong(int a1)
+int __cdecl sub_10043970(int a1)
 {
   return a1;
 }
@@ -35997,10 +35999,10 @@ int Swap_Init()
   dword_10063884 = 0;
   dword_100637DC = (int)BigShort;                 /* BigShort dispatch slot — identity on LE */
   dword_100637D8 = (int)LittleShort;              /* LittleShort = short identity on LE */
-  dword_100637E0 = (int)BigLong;                 /* BigLong dispatch slot = 32-bit byte swap */
-  dword_100637D4 = (int)LittleLong;     /* LittleLong = int identity on LE */
+  dword_100637E0 = (int)sub_10043920;                 /* BigLong dispatch slot = 32-bit byte swap */
+  dword_100637D4 = (int)sub_10043970;     /* LittleLong = int identity on LE */
   dword_100637D0 = (int)BigFloat;                 /* BigFloat dispatch slot — identity on LE */
-  dword_100637CC = (int (__cdecl *)(_DWORD))LittleLong; /* LittleFloat = float identity on LE */
+  dword_100637CC = (int (__cdecl *)(_DWORD))sub_10043970; /* LittleFloat = float identity on LE */
   return result;
 }
 // 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
@@ -36074,10 +36076,10 @@ char *Com_sprintf(char *Destination, int a2, char *Format, ...)
   va_start(va, Format);
   v3 = vsprintf(Buffer, Format, va);
   if ( v3 >= a2 )
-    Com_DPrintf("Com_sprintf: overflow of %i in %i\n", v3, a2);
+    sub_10042410("Com_sprintf: overflow of %i in %i\n", v3, a2);
   return strncpy(Destination, Buffer, a2 - 1);
 }
-// 100019AB: using guessed type int Com_DPrintf(const char *, ...);
+// 100019AB: using guessed type int sub_10042410(const char *, ...);
 
 //----- (10043EA0) --------------------------------------------------------
 char __cdecl Info_RemoveKey(int a1, char *Str)
