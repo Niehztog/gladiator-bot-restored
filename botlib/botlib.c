@@ -19840,17 +19840,20 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   v9 = rand();
   v20 = *(_DWORD *)(a2 + 1672);
   v10 = (double)(v9 & 0x7FFF) * 0.000030518509;
-  v25 = v10;
-  Characteristic_BFloat(v20, 48, 0.0, 1.0);
+  /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
+   * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
+   * `fstp [esp+...]` immediately after each call.  In C those become the
+   * `vN = Characteristic_BFloat(...)` captures below.  IDA had emitted
+   * spurious `vN = v10;` assignments using the random number — which made
+   * every probability gate trivially `random <= random` (always true) and
+   * destroyed the BFloat gating throughout this AI helper. */
+  v25 = Characteristic_BFloat(v20, 48, 0.0, 1.0);
   if ( v10 <= v25 )
   {
-    Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 4, 0.0, 1.0);
+    v27 = Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 4, 0.0, 1.0);
     v11 = *(_DWORD *)(a2 + 1672);
-    v27 = v10;
-    Characteristic_BFloat(v11, 25, 0.0, 1.0);
-    v21 = v10;
-    Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 24, 0.0, 1.0);
-    v25 = v10;
+    v21 = Characteristic_BFloat(v11, 25, 0.0, 1.0);
+    v25 = Characteristic_BFloat(*(_DWORD *)(a2 + 1672), 24, 0.0, 1.0);
     if ( v27 >= 0.2 )
     {
       BotEntityInfo(a2, a2 + 2880);
@@ -22466,9 +22469,15 @@ int __cdecl sub_10029150(int a1)
   }
   if ( bs->enemy )
   {
-    Characteristic_BFloat(bs->character, 9, 0.1, 1800.0);
-    v10 = v2;
-    Characteristic_BFloat(bs->character, 10, 0.1, 1800.0);
+    /* IDA dropped the FPU return captures of both Characteristic_BFloat calls
+     * here.  Per original asm at .text 100291ac / 100291ef the first BFloat
+     * (#9) is captured into the slot IDA names v10, and the second BFloat
+     * (#10) is left in ST(0) and consumed at the post-merge `fmul [edi+0x690];
+     * fstp [esp+0x10]` (= `v9 = <BFloat#10> * bs->_f1680`).  In the C control
+     * flow we recapture it into v2, which the else-branch already overwrites
+     * (= 150.0) and the post-merge `v5 = v2 * bs->_f1680;` then consumes. */
+    v10 = Characteristic_BFloat(bs->character, 9, 0.1, 1800.0);
+    v2  = Characteristic_BFloat(bs->character, 10, 0.1, 1800.0);
   }
   else
   {
