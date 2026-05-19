@@ -11206,9 +11206,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   vec3_t v91; // [esp+84h] [ebp-14Ch] BYREF — was v91/v92/v93 int triplet
   /* Same root cause as v91/v92/v93 — VectorScale destination. */
   vec3_t v94; // [esp+90h] [ebp-140h] BYREF — was v94/v95/v96 int triplet
-  float v97; // [esp+9Ch] [ebp-134h] BYREF
-  float v98; // [esp+A0h] [ebp-130h]
-  float v99; // [esp+A4h] [ebp-12Ch]
+  /* Collapsed from {float v97, v98, v99} — same root cause as v91/v94/v101:
+   * CrossProduct(up, v101, &v97) writes 3 floats expecting a contiguous vec3.
+   * GCC may insert padding between separate float BYREF locals, so the writes
+   * land in different stack slots from the reads, yielding garbage values
+   * (e.g. v98 = 1.84e27). Collapse into a vec3_t to enforce contiguity. */
+  vec3_t v97_vec; // [esp+9Ch] [ebp-134h] BYREF
+#define v97 v97_vec[0]
+#define v98 v97_vec[1]
+#define v99 v97_vec[2]
   float v100; // [esp+A8h] [ebp-128h]
   /* Collapsed from {float v101, int v102, int v103} per uninit-read root-cause
    * analysis: GCC may insert padding between mixed-type BYREF locals,
@@ -11354,7 +11360,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                           v26 = v74 * v101[2] + v73 * v101[1] + v72 * v101[0] - v65;
                           if ( v26 >= -0.1 && v26 <= 0.1 )
                           {
-                            CrossProduct(up, v101, &v97);
+                            CrossProduct(up, v101, v97_vec);
                             v81 = v80;
                             v82 = *(float *)&v71;
                             v90 = v77;
@@ -11745,6 +11751,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   }
   return 0;
 }
+#undef v97
+#undef v98
+#undef v99
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 1000138E: using guessed type _DWORD __cdecl AAS_AreaSwim(_DWORD);
 // 1000144C: using guessed type _DWORD __cdecl AAS_AreaGrounded(_DWORD);
