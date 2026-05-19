@@ -462,7 +462,7 @@ _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(int a1);
 double __cdecl sub_10011220(int a1);
-double __cdecl sub_10011360(int a1);
+double __cdecl AAS_AreaGroundFaceArea(int a1);
 int __cdecl AAS_FaceCenter(int a1, float *a2);
 __int64 sub_10011520();
 double __cdecl AAS_MaxJumpHeight(float a1);
@@ -10566,7 +10566,7 @@ double __cdecl sub_10011220(int a1)
 }
 
 //----- (10011360) --------------------------------------------------------
-double __cdecl sub_10011360(int a1)
+double __cdecl AAS_AreaGroundFaceArea(int a1)
 {
   double result; // st7
   int v2; // edi
@@ -10707,22 +10707,27 @@ BOOL __cdecl sub_10011740(float *a1, float *a2)
 {
   int v3; // eax
   int v4; // esi
-  int v5[2]; // [esp+4h] [ebp-18h] BYREF
-  float v6; // [esp+Ch] [ebp-10h]
+  /* Original MSVC frame: vec3_t v5 at [ebp-18h] (12 bytes) and vec3_t v7 at [ebp-Ch].
+   * IDA split v5 into `int v5[2] + float v6` because the .z slot at [ebp-10h]
+   * was assigned via `fadd 16.0; fstp [ebp-10h]` only after the first
+   * AAS_PointAreaNum, making it look like a separate scalar to the decompiler.
+   * Restoring as vec3_t so VectorMA writes/reads land in the same slot the
+   * disassembly bumps by 16.0. */
+  float v5[3]; // [esp+4h] [ebp-18h] BYREF
   float v7[3]; // [esp+10h] [ebp-Ch] BYREF
 
   v7[2] = 0;
-  *(float *)v7 = *a2 - *a1;
-  *(float *)&v7[1] = a2[1] - a1[1];
+  v7[0] = *a2 - *a1;
+  v7[1] = a2[1] - a1[1];
   VectorNormalize(v7);
-  VectorMA((float *)a2, 48.0, (float *)v7, (float *)v5);
+  VectorMA(a2, 48.0, v7, v5);
   if ( !AAS_PointAreaNum(v5) )
   {
-    v6 = v6 + 16.0;
+    v5[2] = v5[2] + 16.0;
     if ( !AAS_PointAreaNum(v5) )
       return 1;
   }
-  VectorMA((float *)a2, 64.0, (float *)v7, (float *)v5);
+  VectorMA(a2, 64.0, v7, v5);
   v3 = AAS_PointAreaNum(v5);
   v4 = v3;
   return v3 && !AAS_AreaSwim(v3) && !AAS_AreaGrounded(v4);
@@ -10809,9 +10814,13 @@ LABEL_14:
   lreach[1] = v10;
   *lreach = a2;
   lreach[2] = 0;
-  lreach[3] = v19[0];
-  lreach[4] = v19[1];
-  lreach[5] = v19[2];
+  /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
+   * bits) into reach->start.x/y/z.  IDA's `lreach[i] = v19[i]` on an `int *`
+   * silently inserts a float→int truncation, which produces denormal-NaN
+   * float bits when the .aas is later re-read as floats. */
+  *(float *)(lreach + 3) = v19[0];
+  *(float *)(lreach + 4) = v19[1];
+  *(float *)(lreach + 5) = v19[2];
   /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
    * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
    * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
@@ -11082,7 +11091,13 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                   *(_WORD *)(v27 + 40) += 300;
                 if ( !sub_10011740((float *)(v27 + 12), (float *)(v27 + 24)) )
                   *(_WORD *)(v27 + 40) += 100;
-                if ( AAS_AreaReachability(*(_DWORD *)v27) < 500.0 )
+                /* IDA confused the thunk at 0x10001be0 (jumps to 0x10011360
+                 * = AAS_AreaGroundFaceArea, returns float) with the real
+                 * AAS_AreaReachability (at 0x10011040, returns int).  Q3
+                 * source confirms this: be_aas_reach.c:1183 has the same
+                 * `AAS_AreaGroundFaceArea(...) < 500` check, only commented
+                 * out in the Q3 evolution. */
+                if ( AAS_AreaGroundFaceArea(*(_DWORD *)v27) < 500.0 )
                   *(_WORD *)(v27 + 40) += 100;
                 ++reach_equalfloor;
                 return 1;
@@ -11619,7 +11634,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           *(_DWORD *)(areareachability + 4 * a1) = v45;
           if ( !sub_10011740((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
-          if ( AAS_AreaReachability(*v45) < 500.0 )
+          /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
+           * area sum, float), not to the real AAS_AreaReachability. */
+          if ( AAS_AreaGroundFaceArea(*v45) < 500.0 )
             *((_WORD *)v45 + 20) += 400;
           ++reach_step;
           return 1;
@@ -27785,8 +27802,14 @@ int *__cdecl sub_10032AE0(int *a1, int a2, float *a3)
   vec3_t predd; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
   vec3_t botd;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
   float v27[3]; // [esp+48h] [ebp-48h] BYREF
-  int v28[2]; // [esp+54h] [ebp-3Ch] BYREF
-  float v29; // [esp+5Ch] [ebp-34h]
+  /* Same vec3-split shape as sub_10011740: VectorMA at 0x10032b95 writes
+   * three floats starting at [esp+0x4c], and disasm at 0x10032b9a/0x10032ba9
+   * does `fld [esp+0x68]; fadd 1.0; fstp [esp+0x6c]` on that vec's z-slot
+   * (same stack offset modulo intervening pushes).  IDA had decompiled the
+   * 12-byte slot as `int v28[2] + float v29;` and rendered the z-bump as
+   * `v29 += 1.0`, which only updates the same memory under MSVC's frame
+   * layout.  Restore as proper vec3. */
+  float v28[3]; // [esp+54h] [ebp-3Ch] BYREF
   int v30[12]; // [esp+60h] [ebp-30h] BYREF
 
   sub_10031E20(v30);
@@ -27806,8 +27829,8 @@ int *__cdecl sub_10032AE0(int *a1, int a2, float *a3)
   while ( 1 )
   {
     v14 = v12 + 10.0;
-    VectorMA((float *)v27, v14, dir, (float *)v28);
-    v29 = v29 + 1.0;
+    VectorMA((float *)v27, v14, dir, v28);
+    v28[2] = v28[2] + 1.0;
     if ( AAS_PointAreaNum(v28) != *(_DWORD *)(a2 + 92) )
       break;
     v12 = v12 + 10.0;
