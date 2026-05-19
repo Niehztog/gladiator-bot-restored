@@ -104,8 +104,8 @@ extern int    BotAddPointLight(_DWORD *origin, int ent, int radius_bits,
 
 /* =========================================================================
  * SLOT 0 — BotVersion: returns "BotLib v0.96".
- * Original (0x100379E0):  mov eax,0x1005ea98; ret
  * ========================================================================= */
+//----- (100379E0) --------------------------------------------------------
 char *Export_BotVersion(void)
 {
     return "BotLib v0.96";
@@ -132,6 +132,7 @@ char *Export_BotVersion(void)
  *   bi_Print(1, "-------------------------------------\n");
  *   return 0;
  * ========================================================================= */
+//----- (10037BB0) --------------------------------------------------------
 int Export_BotSetupLibrary(void)
 {
     if (botlibsetup) {
@@ -203,6 +204,7 @@ extern struct libvar_s *libvar_sv_friction, *libvar_sv_stopspeed,
                        *libvar_sv_maxbarrier, *libvar_sv_maxsteepness,
                        *libvar_sv_jumpvel, *libvar_sv_maxwaterjump;
 
+//----- (10037CF0) --------------------------------------------------------
 int Export_BotShutdownLibrary(void)
 {
     if (!botlibsetup) {
@@ -264,6 +266,7 @@ int Export_BotShutdownLibrary(void)
  * SLOT 3 — BotLibraryInitialized (0x10037D80).
  *   Original: jmp 0x1000DEE0  (AAS_Initialized: return aasworld.initialized)
  * ========================================================================= */
+//----- (10037D80) --------------------------------------------------------
 int Export_BotLibraryInitialized(void)
 {
     return AAS_Initialized();
@@ -275,6 +278,7 @@ int Export_BotLibraryInitialized(void)
  *   call sub_10038AC0; add esp,8; xor eax,eax; ret
  * Returns 0 unconditionally.  No null-check in the original.
  * ========================================================================= */
+//----- (10037DA0) --------------------------------------------------------
 int Export_BotLibVarSet(char *var_name, char *value)
 {
     sub_10038AC0(var_name, value);
@@ -287,6 +291,7 @@ int Export_BotLibVarSet(char *var_name, char *value)
  *       bi_Print(3, "couldn't add define %s\n", string);
  *   return 0;
  * ========================================================================= */
+//----- (10037DD0) --------------------------------------------------------
 int Export_BotDefine(char *string)
 {
     if (!PC_AddGlobalDefine(string))
@@ -310,6 +315,7 @@ int Export_BotDefine(char *string)
  *   bi_Print(1, "-------------------------------------\n");
  *   return 0;
  * ========================================================================= */
+//----- (10037E10) --------------------------------------------------------
 int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
                      int soundindexes, char **soundindex,
                      int imageindexes, char **imageindex)
@@ -342,6 +348,7 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
  *   sub_100085F0();                  // AAS map-sync pre-setup
  *   return BotSetupClient(client, settings) != 0;          (neg/sbb/neg)
  * ========================================================================= */
+//----- (10037F00) --------------------------------------------------------
 int Export_BotSetupClient(int client, void *settings)
 {
     int r;
@@ -355,6 +362,7 @@ int Export_BotSetupClient(int client, void *settings)
 /* =========================================================================
  * SLOT 8 — BotShutdownClient (0x10037F70).
  * ========================================================================= */
+//----- (10037F70) --------------------------------------------------------
 int Export_BotShutdownClient(int client)
 {
     if (!BotLibSetup("BotShutdownClient")) return 1;
@@ -365,6 +373,7 @@ int Export_BotShutdownClient(int client)
 /* =========================================================================
  * SLOT 9 — BotMoveClient (0x10037FE0).
  * ========================================================================= */
+//----- (10037FE0) --------------------------------------------------------
 int Export_BotMoveClient(int oldclnum, int newclnum)
 {
     if (!BotLibSetup("BotMoveClient")) return 1;
@@ -376,6 +385,7 @@ int Export_BotMoveClient(int oldclnum, int newclnum)
 /* =========================================================================
  * SLOT 10 — BotClientSettings (0x10038070).  Inner body at 0x10029920.
  * ========================================================================= */
+//----- (10038070) --------------------------------------------------------
 int Export_BotClientSettings(int client, void *settings)
 {
     if (!BotLibSetup("BotClientSettings")) return 1;
@@ -386,6 +396,7 @@ int Export_BotClientSettings(int client, void *settings)
 /* =========================================================================
  * SLOT 11 — BotSettings (0x100380E0).  Inner body at 0x100299D0.
  * ========================================================================= */
+//----- (100380E0) --------------------------------------------------------
 int Export_BotSettings(int client, void *settings)
 {
     if (!BotLibSetup("BotSettings")) return 1;
@@ -400,6 +411,7 @@ int Export_BotSettings(int client, void *settings)
 /* =========================================================================
  * SLOT 13 — BotUpdateClient (0x10038190).
  * ========================================================================= */
+//----- (10038190) --------------------------------------------------------
 int Export_BotUpdateClient(int client, void *buc)
 {
     if (!BotLibSetup("BotUpdateClient")) return 1;
@@ -414,6 +426,7 @@ int Export_BotUpdateClient(int client, void *buc)
  *   if (!ValidEntityNumber(ent, "BotUpdateEntity")) return 4;
  *   return AAS_UpdateEntity(ent, bue);
  * ========================================================================= */
+//----- (10038200) --------------------------------------------------------
 int Export_BotUpdateEntity(int ent, void *bue)
 {
     if (!BotLibSetup("BotUpdateEntity")) return 1;
@@ -434,6 +447,7 @@ int Export_BotUpdateEntity(int ent, void *bue)
  * raw 32-bit values (float bits passed through int slots).  The last
  * argument (timeofs) is pushed as a float.
  * ========================================================================= */
+//----- (10038270) --------------------------------------------------------
 int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
                        float volume, float attenuation, float timeofs)
 {
@@ -454,6 +468,7 @@ int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
  *                           r_bits, g_bits, b_bits,
  *                           time_bits, decay_bits);
  * ========================================================================= */
+//----- (100382F0) --------------------------------------------------------
 int Export_BotAddPointLight(int *origin, int ent, float radius,
                             float r, float g, float b,
                             float time, float decay)
@@ -469,6 +484,7 @@ int Export_BotAddPointLight(int *origin, int ent, float radius,
 /* =========================================================================
  * SLOT 19 — Test (0x10038460).  Original: xor eax,eax; ret.
  * ========================================================================= */
+//----- (10038460) --------------------------------------------------------
 int Export_Test(int parm0, char *parm1, float *parm2, float *parm3)
 {
     (void)parm0; (void)parm1; (void)parm2; (void)parm3;
