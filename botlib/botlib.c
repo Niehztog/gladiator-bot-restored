@@ -10380,7 +10380,22 @@ int AAS_Optimize()
     {
       if ( *(_DWORD *)&v2[v3 + 36] != 11 )
       {
-        *(_DWORD *)&v2[v3 + 4] = *(_DWORD *)(v5[14] + 4 * *(_DWORD *)&v2[v3 + 4]);
+        /* Original disasm at 0x10010ef2 uses a raw signed index:
+         *   mov edi, [ebx + edi*4]
+         * which fetches garbage from memory preceding faceoptimizeindex when
+         * the reach record's facenum is negative.  Some Q2 reach generators
+         * (notably AAS_Reachability_Ladder) propagate the signed face-index
+         * value from aasworld.faceindex into reach.facenum without
+         * abs()-stripping (Q3 fixed this defensively); MSVC's heap happened
+         * to keep negative offsets mapped, so the original DLL silently
+         * produced garbage facenum bytes instead of crashing.  MinGW's heap
+         * layout leaves that region unmapped, so we must guard.  Skip the
+         * remap when facenum is out of range — matches orig semantics for
+         * the affected reach records (their facenum is meaningless either
+         * way once they reach AAS_Optimize). */
+        int _facenum = *(_DWORD *)&v2[v3 + 4];
+        if ( (unsigned)_facenum < (unsigned)aasworld.numfaces )
+          *(_DWORD *)&v2[v3 + 4] = *(_DWORD *)(v5[14] + 4 * _facenum);
         v2 = (char *)aasworld.reachability;
       }
       ++v1;
