@@ -57,7 +57,39 @@ typedef struct bot_state_s {
             char   _pad_6B0h[16];         /* +1696..+1711 */
             vec3_t eye;                   /* +1712..+1723 */
             char   _pad_6BCh[4];          /* +1724..+1727 */
-            char   chat_lines[1024];      /* +1728..+2751 */
+            /* +1728..+2751: structured per-target / enemy-observation region.
+             * Verified offsets below come from `BotInitAttackTarget`
+             * (sub_10021290) + sub_100204D0; remaining bytes stay padding.
+             * Wrapped in an inner union so legacy `bs->chat_lines` (the
+             * 1024-byte qmemcpy buffer) and the typed view share storage. */
+            union {
+                char chat_lines[1024];                /* +1728..+2751 raw 1024-byte view */
+                struct {
+                    char   _pad_6C0h[164];        /* +1728..+1891 */
+                    int    _i1892;                /* +1892 read/written in sub_100204D0 */
+                    char   _pad_764h[632];        /* +1896..+2527 */
+                    int    _i2528;                /* +2528 target XY distance truncated to int (_ftol) */
+                    int    _i2532;                /* +2532 target Z delta truncated to int (_ftol) */
+                    char   _pad_9E4h[112];        /* +2536..+2647 */
+                    int    _i2648;                /* +2648 \                            */
+                    int    _i2652;                /* +2652 |                            */
+                    int    _i2656;                /* +2656 |                            */
+                    int    _i2660;                /* +2660 |                            */
+                    int    _i2664;                /* +2664 |                            */
+                    int    _i2668;                /* +2668 |  12-entry per-weapon       */
+                    int    _i2672;                /* +2672 |  target-class flag table   */
+                    int    _i2676;                /* +2676 |  (one int set per Q2 wid)  */
+                    int    _i2680;                /* +2680 |                            */
+                    int    _i2684;                /* +2684 |                            */
+                    int    _i2688;                /* +2688 |                            */
+                    int    _i2692;                /* +2692 /                            */
+                    char   _pad_A88h[12];         /* +2696..+2707 */
+                    int    _i2708;                /* +2708 entity event flag bit (& 0x10000) */
+                    int    _i2712;                /* +2712 entity flags sign bit */
+                    int    _i2716;                /* +2716 entity flags & 2 */
+                    char   _pad_A9Ch[32];         /* +2720..+2751 */
+                };
+            };
             int    _i2752;                /* +2752 byte- and dword-accessed */
             int    _i2756;                /* +2756 */
             int    _i2760;                /* +2760 */
@@ -88,12 +120,10 @@ typedef struct bot_state_s {
             int    movestate[16];         /* +2880..+2943 embedded movement/goal scratch (64 bytes) */
             int    _i2944;                /* +2944 */
             char   _pad_B84h[60];         /* +2948..+3007 */
-            /* Note: offsets +1892, +2528, +2532, +2648..+2692, +2708..+2716,
-             * +4248, +4336, +4352, +4351, +4383 are accessed via byte-offset
-             * forms (_BYTE for byte accesses, _DWORD for dword) but live
-             * inside the padding regions above.  The union with _raw[]
-             * keeps those accesses correct against the same memory.  Adding
-             * them as named fields would require splitting more pads. */
+            /* Note: a few stray byte-offset accesses outside the chat
+             * region still go through the `_raw[]` union (e.g. +4248 in
+             * the patrol-state loop).  Splitting more pads is fine; the
+             * union keeps both spellings live against the same memory. */
             int    goalstate[243];        /* +3008..+3979 */
             int    chatstate[47];         /* +3980..+4167 */
             int    weaponweights[7];      /* +4168..+4195 */

@@ -18891,69 +18891,69 @@ int __cdecl sub_10021290(int a1, int a2)
   qmemcpy(v7, AAS_EntityInfo(v7, a2), sizeof(v7));
   v6[0] = v7[4] - bs->origin[0];
   v6[1] = v7[5] - bs->origin[1];
-  bs->_raw[633] = (__int64)(v7[6] - bs->origin[2]);
+  bs->_i2532 = (int)(v7[6] - bs->origin[2]);
   v6[2] = 0.0;
-  bs->_raw[632] = (__int64)VectorLength(v6);
+  bs->_i2528 = (int)VectorLength(v6);
   v2 = BYTE1(v7[28]);
-  bs->_raw[662] = 0;
-  bs->_raw[663] = 0;
+  bs->_i2648 = 0;
+  bs->_i2652 = 0;
   v3 = v2 - 1;
-  bs->_raw[664] = 0;
-  bs->_raw[665] = 0;
-  bs->_raw[666] = 0;
-  bs->_raw[672] = 0;
-  bs->_raw[667] = 0;
-  bs->_raw[668] = 0;
-  bs->_raw[669] = 0;
-  bs->_raw[670] = 0;
-  bs->_raw[671] = 0;
-  bs->_raw[673] = 0;
+  bs->_i2656 = 0;
+  bs->_i2660 = 0;
+  bs->_i2664 = 0;
+  bs->_i2688 = 0;
+  bs->_i2668 = 0;
+  bs->_i2672 = 0;
+  bs->_i2676 = 0;
+  bs->_i2680 = 0;
+  bs->_i2684 = 0;
+  bs->_i2692 = 0;
   result = 1;
   switch ( v3 )
   {
     case 0:
-      bs->_raw[662] = 1;
+      bs->_i2648 = 1;
       break;
     case 1:
-      bs->_raw[663] = 1;
+      bs->_i2652 = 1;
       break;
     case 2:
-      bs->_raw[664] = 1;
+      bs->_i2656 = 1;
       break;
     case 3:
-      bs->_raw[665] = 1;
+      bs->_i2660 = 1;
       break;
     case 4:
-      bs->_raw[666] = 1;
+      bs->_i2664 = 1;
       break;
     case 5:
-      bs->_raw[672] = 1;
+      bs->_i2688 = 1;
       break;
     case 6:
-      bs->_raw[667] = 1;
+      bs->_i2668 = 1;
       break;
     case 7:
-      bs->_raw[668] = 1;
+      bs->_i2672 = 1;
       break;
     case 8:
-      bs->_raw[669] = 1;
+      bs->_i2676 = 1;
       break;
     case 9:
-      bs->_raw[670] = 1;
+      bs->_i2680 = 1;
       break;
     case 10:
-      bs->_raw[671] = 1;
+      bs->_i2684 = 1;
       break;
     case 11:
-      bs->_raw[673] = 1;
+      bs->_i2692 = 1;
       break;
     default:
       break;
   }
   v5 = BYTE1(v7[29]);
-  bs->_raw[678] = (LODWORD(v7[29]) & 0x10000) != 0;
-  bs->_raw[677] = v5 < 0;
-  bs->_raw[679] = (v5 & 2) != 0;
+  bs->_i2712 = (LODWORD(v7[29]) & 0x10000) != 0;
+  bs->_i2708 = v5 < 0;
+  bs->_i2716 = (v5 & 2) != 0;
   return result;
 }
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
@@ -20130,7 +20130,7 @@ int __cdecl sub_10023970(int a1)
   v1 = Characteristic_BInteger(bs->character, 45, 0, 1);
   v2 = bs->_i2764;
   v15 = v1;
-  v3 = bs->_raw[473];
+  v3 = bs->_i1892;
   bs->_i2764 = v3;
   v16 = v2 > v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, (int)bs->enemyorigin, 360.0, 16, (int)v19);
