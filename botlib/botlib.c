@@ -6706,25 +6706,24 @@ void __cdecl AAS_DrawArrow(float *a1, float *a2, int a3, int a4)
 {
   double v4; // st7
   double v5; // st7
-  int v7; // [esp+8h] [ebp-3Ch] BYREF
-  float v8; // [esp+Ch] [ebp-38h]
-  float v9; // [esp+10h] [ebp-34h]
-  float v10; // [esp+14h] [ebp-30h] BYREF
-  float v11; // [esp+18h] [ebp-2Ch]
-  float v12; // [esp+1Ch] [ebp-28h]
+  /* Collapsed v7/v8/v9 (int+float+float) and v10/v11/v12 (float×3) into
+   * vec3_t locals.  CrossProduct/VectorNormalize/VectorMA require 3
+   * contiguous floats; separate scalar decls let GCC reorder/pad them. */
+  vec3_t v7;  // [esp+8h] [ebp-3Ch] BYREF
+  vec3_t v10; // [esp+14h] [ebp-30h] BYREF
   float v13[3]; // [esp+20h] [ebp-24h] BYREF
   float v14[3]; // [esp+2Ch] [ebp-18h] BYREF
   float v15[3]; // [esp+38h] [ebp-Ch] BYREF
 
   v4 = *a2 - *a1;
-  v10 = 0.0;
-  v11 = 0.0;
-  v12 = 1.0;
-  *(float *)&v7 = v4;
-  v8 = a2[1] - a1[1];
-  v9 = a2[2] - a1[2];
-  VectorNormalize(&v7);
-  v5 = v9 * v12 + v8 * v11 + *(float *)&v7 * v10;
+  v10[0] = 0.0;
+  v10[1] = 0.0;
+  v10[2] = 1.0;
+  v7[0] = v4;
+  v7[1] = a2[1] - a1[1];
+  v7[2] = a2[2] - a1[2];
+  VectorNormalize(v7);
+  v5 = v7[2] * v10[2] + v7[1] * v10[1] + v7[0] * v10[0];
   if ( v5 > 0.99 || v5 < -0.99 )
   {
     v14[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;
@@ -6734,9 +6733,9 @@ void __cdecl AAS_DrawArrow(float *a1, float *a2, int a3, int a4)
   }
   else
   {
-    CrossProduct(&v7, &v10, v14);
+    CrossProduct(v7, v10, v14);
   }
-  VectorMA((float *)a2, -6.0, (float *)&v7, (float *)v13);
+  VectorMA((float *)a2, -6.0, v7, (float *)v13);
   v15[0] = v13[0];
   v15[1] = v13[1];
   v15[2] = v13[2];
@@ -10890,9 +10889,9 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
   char *v51; // [esp+44h] [ebp-6Ch]
   int v52; // [esp+48h] [ebp-68h]
   float v53; // [esp+4Ch] [ebp-64h]
-  float v54; // [esp+50h] [ebp-60h] BYREF
-  float v55; // [esp+54h] [ebp-5Ch]
-  float v56; // [esp+58h] [ebp-58h]
+  /* Collapsed v54/v55/v56 (3× float) into a single vec3_t.  VectorNegate
+   * writes 3 contiguous floats; separate float decls let GCC reorder/pad. */
+  vec3_t v54; // [esp+50h] [ebp-60h] BYREF
   char *v57; // [esp+5Ch] [ebp-54h]
   char *v58; // [esp+60h] [ebp-50h]
   _DWORD *v59; // [esp+64h] [ebp-4Ch]
@@ -10928,10 +10927,10 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
       {
         if ( *((float *)v3 + 5) <= (double)*((float *)v4 + 8) )
         {
-          v54 = 0.0;
-          v55 = 0.0;
-          v56 = -1.0;
-          VectorNegate(&v54);
+          v54[0] = 0.0;
+          v54[1] = 0.0;
+          v54[2] = -1.0;
+          VectorNegate(v54);
           v7 = *((_DWORD *)v4 + 1);
           v8 = 0;
           v43 = 99999.0;
@@ -11002,7 +11001,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                                 VectorMA(v44, 5.0, v72, v44);
                                 VectorMA(v38, 0.1, v72, v38);
                                 v44[2] = v44[2] + 0.125;
-                                v41 = v38[2] * v56 + v38[1] * v55 + v38[0] * v54;
+                                v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
                                 if ( !sub_10011740(v38, v44) )
                                   v41 = v41 + 200.0;
                                 if ( v41 < (double)v43 || v43 + 1.0 > v41 && v48 > (double)v53 )
@@ -19757,19 +19756,17 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   int v19; // edx
   int v20; // [esp-10h] [ebp-154h]
   float v21; // [esp+10h] [ebp-134h]
-  int v22; // [esp+14h] [ebp-130h] BYREF
-  float v23; // [esp+18h] [ebp-12Ch]
-  float v24; // [esp+1Ch] [ebp-128h]
+  /* Collapsed vec3 triplets v22/v23/v24, v28/v29/v30, v32/v33/v34 — each
+   * passed by-address to CrossProduct / VectorNormalize / VectorLength /
+   * BotMoveInDirection which expect 3 contiguous floats.  Separate scalar
+   * decls let GCC reorder/pad them and corrupt the vec3 contract. */
+  vec3_t v22; // [esp+14h] [ebp-130h] BYREF
   float v25; // [esp+20h] [ebp-124h]
   float v26; // [esp+24h] [ebp-120h]
   float v27; // [esp+28h] [ebp-11Ch]
-  int v28; // [esp+2Ch] [ebp-118h] BYREF
-  int v29; // [esp+30h] [ebp-114h]
-  float v30; // [esp+34h] [ebp-110h]
+  vec3_t v28; // [esp+2Ch] [ebp-118h] BYREF
   float v31; // [esp+38h] [ebp-10Ch]
-  int v32; // [esp+3Ch] [ebp-108h] BYREF
-  float v33; // [esp+40h] [ebp-104h]
-  float v34; // [esp+44h] [ebp-100h]
+  vec3_t v32; // [esp+3Ch] [ebp-108h] BYREF
   float v35[3]; // [esp+48h] [ebp-FCh] BYREF
   float v36[3]; // [esp+54h] [ebp-F0h] BYREF
   float v37[14]; // [esp+60h] [ebp-E4h] BYREF
@@ -19821,14 +19818,14 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
     {
       BotEntityInfo(a2, a2 + 2880);
       qmemcpy(v39, AAS_EntityInfo(v39, *(_DWORD *)(a2 + 4196)), sizeof(v39));
-      *(float *)&v28 = v39[4] - *(float *)(a2 + 1684);
-      *(float *)&v29 = v39[5] - *(float *)(a2 + 1688);
-      v30 = v39[6] - *(float *)(a2 + 1692);
-      v26 = VectorLength(&v28);
-      VectorNormalize(&v28);
-      *(float *)&v32 = -*(float *)&v28;
-      v33 = -*(float *)&v29;
-      v34 = -v30;
+      *(float *)&v28[0] = v39[4] - *(float *)(a2 + 1684);
+      *(float *)&v28[1] = v39[5] - *(float *)(a2 + 1688);
+      v28[2] = v39[6] - *(float *)(a2 + 1692);
+      v26 = VectorLength(v28);
+      VectorNormalize(v28);
+      *(float *)&v32[0] = -*(float *)&v28[0];
+      v32[1] = -*(float *)&v28[1];
+      v32[2] = -v28[2];
       v12 = 1;
       if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) )
       {
@@ -19867,8 +19864,8 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       }
       if ( v27 <= 0.4 )
       {
-        if ( (v26 <= 180.0 || !BotMoveInDirection(a2 + 2880, (int)&v28, 400.0, v12)) && v26 < 100.0 )
-          BotMoveInDirection(a2 + 2880, (int)&v32, 400.0, v12);
+        if ( (v26 <= 180.0 || !BotMoveInDirection(a2 + 2880, (int)v28, 400.0, v12)) && v26 < 100.0 )
+          BotMoveInDirection(a2 + 2880, (int)v32, 400.0, v12);
         goto LABEL_39;
       }
       *(float *)(a2 + 2816) = *(float *)(a2 + 2816) + 0.1;
@@ -19889,28 +19886,28 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       v17 = 0;
       while ( 1 )
       {
-        v35[0] = v28;
-        v35[1] = v29;
+        v35[0] = v28[0];
+        v35[1] = v28[1];
         v35[2] = 0;
         VectorNormalize(v35);
-        CrossProduct(v35, v36, &v22);
+        CrossProduct(v35, v36, v22);
         if ( (*(_BYTE *)(a2 + 2752) & 1) != 0 )
         {
-          *(float *)&v22 = -*(float *)&v22;
-          v23 = -v23;
-          v24 = -v24;
+          *(float *)&v22[0] = -*(float *)&v22[0];
+          v22[1] = -v22[1];
+          v22[2] = -v22[2];
         }
         if ( (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9 )
           goto LABEL_35;
         if ( v26 <= 180.0 )
           break;
-        *(float *)&v22 = *(float *)&v22 + *(float *)&v28;
-        v23 = v23 + *(float *)&v29;
-        v18 = v24 + v30;
+        *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v28[0];
+        v22[1] = v22[1] + *(float *)&v28[1];
+        v18 = v22[2] + v28[2];
 LABEL_36:
-        v24 = v18;
+        v22[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection(a2 + 2880, (int)&v22, 400.0, v12) )
+        if ( !BotMoveInDirection(a2 + 2880, (int)v22, 400.0, v12) )
         {
           v19 = *(_DWORD *)(a2 + 2752);
           *(_DWORD *)(a2 + 2816) = 0;
@@ -19924,9 +19921,9 @@ LABEL_37:
       if ( v26 >= 100.0 )
         goto LABEL_37;
 LABEL_35:
-      *(float *)&v22 = *(float *)&v22 + *(float *)&v32;
-      v23 = v23 + v33;
-      v18 = v24 + v34;
+      *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v32[0];
+      v22[1] = v22[1] + v32[1];
+      v18 = v22[2] + v32[2];
       goto LABEL_36;
     }
   }
