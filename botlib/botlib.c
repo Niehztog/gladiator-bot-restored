@@ -1460,7 +1460,7 @@ char aSvFriction[] = "sv_friction"; // idb
 char a6[2] = "6"; // weak
 char aBotstartframe[14] = "BotStartFrame"; // weak
 char aBotai[6] = "BotAI"; // weak
-char aBotconsolemess[18] = "BotClientSettings"; // weak
+char aBotconsolemess[18] = "BotConsoleMessage"; // weak
 __int16 word_1005EE70[308] =
 {
   0,
