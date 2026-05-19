@@ -703,12 +703,22 @@ int *__cdecl BotDumpInitialChat(char *a1, char *a2);
 int __cdecl sub_1002DF70(int *a1);
 int __cdecl sub_1002DFB0(int *a1);
 int __cdecl BotLoadChatFile(int *a1, char *a2, char *a3); // idb
-void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int a5);
+/* Initial-chat variable slot: caller passes up to 10 (char *) variables to
+ * BotInitialChat, which records each as { str, len } pairs in a stack-local
+ * array and forwards a pointer to that array to BotConstructChatMessage for
+ * %v0..%v9 template substitution.  Original 32-bit layout was 8 bytes per
+ * entry (4-byte ptr + 4-byte len); on 64-bit we widen to (8-byte ptr +
+ * 4-byte len + 4-byte pad) so the pointer survives. */
+typedef struct bot_chatvar_s {
+    char *str;
+    int   len;
+} bot_chatvar_t;
+void __cdecl BotConstructChatMessage(void *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5);
 char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2);
-void __cdecl BotInitialChat(int a1, char *String2, int a3, ...);
+void __cdecl BotInitialChat(void *cs, char *String2, ...);
 int __cdecl sub_1002E7D0(_DWORD *a1, const char *a2);
 unsigned int __cdecl sub_1002EA50(int a1);
-char __cdecl BotEnterChat(int a1, int a2, int a3);
+char __cdecl BotEnterChat(void *cs, int a2, int a3);
 // int __usercall sub_1002EBB0@<eax>(double a1@<st0>);
 _DWORD *sub_1002EC80();
 // int *__usercall sub_1002ED20@<eax>(double a1@<st0>, char *Source);
@@ -16920,7 +16930,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
 {
 
   int v3; // eax
-  int v4; // eax
+  char *v4; // eax
   void *v5; // eax
   int v6; // edx
   int v7; // eax
@@ -16929,13 +16939,13 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
   int v10; // ecx
   int v11; // edx
   float *result; // eax
-  int v13; // eax
-  int v14; // eax
+  char *v13; // eax
+  char *v14; // eax
   void *v15; // eax
   int v16; // edx
   float *v17; // edi
   double v18; // st7
-  int v19; // eax
+  char *v19; // eax
   __int64 v20; // rax
   int v21; // eax
   int v22; // esi
@@ -16943,13 +16953,13 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
   int v24; // edx
   int v25; // ecx
   float *v26; // esi
-  int v27; // eax
+  char *v27; // eax
   int v28; // eax
   int v29; // eax
   double v30; // st7
   int v31; // eax
-  int v32; // eax
-  int v33; // eax
+  char *v32; // eax
+  char *v33; // eax
   double v34; // st7
   char v35; // al
   int i; // edx
@@ -16980,15 +16990,15 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
       if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
       {
         v13 = sub_10021860(bs->teammate - 1, v56);
-        BotInitialChat((int)bs->chatstate, aAccompanyStart, v13, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aAccompanyStart, v13, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         *(int *)&bs->_f4324 = 0;
       }
       if ( AAS_Time() > bs->teammatevisible_time )
       {
         v14 = sub_10021860(bs->teammate - 1, v56);
-        BotInitialChat((int)bs->chatstate, aAccompanyStop, v14, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aAccompanyStop, v14, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
       v15 = AAS_EntityInfo(v58, bs->teammate);
@@ -17021,8 +17031,8 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
             {
               sub_100371B0(bs->client, 1);
               v19 = sub_10021860(bs->teammate - 1, v56);
-              BotInitialChat((int)bs->chatstate, aAccompanyArriv, v19, (char *)0);
-              BotEnterChat((int)bs->chatstate, bs->client, 1);
+              BotInitialChat(bs->chatstate, aAccompanyArriv, v19, (char *)0);
+              BotEnterChat(bs->chatstate, bs->client, 1);
               bs->_f2876 = AAS_Time();
             }
             else if ( AAS_Time() >= bs->_f2820 )
@@ -17103,8 +17113,8 @@ LABEL_86:
       if ( AAS_Time() - 60.0 > *(float *)&bs->_i4332 )
       {
         v27 = sub_10021860(bs->teammate - 1, v56);
-        BotInitialChat((int)bs->chatstate, aAccompanyCanno, v27, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aAccompanyCanno, v27, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         goto LABEL_55;
       }
       return v26;
@@ -17114,16 +17124,16 @@ LABEL_86:
       if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
       {
         v28 = sub_1002F6A0(bs->_i4312);
-        BotInitialChat((int)bs->chatstate, aDefendStart, v28, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aDefendStart, v28, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         *(int *)&bs->_f4324 = 0;
       }
       v26 = bs->teamgoal;
       if ( AAS_Time() > bs->teammatevisible_time )
       {
         v29 = sub_1002F6A0(bs->_i4312);
-        BotInitialChat((int)bs->chatstate, aDefendStop, v29, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aDefendStop, v29, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
       dir[0] = *v26 - bs->origin[0];
@@ -17147,15 +17157,15 @@ LABEL_86:
         if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
         {
           v32 = sub_10021860(bs->teammate - 1, v56);
-          BotInitialChat((int)bs->chatstate, aCampStart, v32, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aCampStart, v32, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           *(int *)&bs->_f4324 = 0;
         }
         v26 = bs->teamgoal;
         if ( AAS_Time() > bs->teammatevisible_time )
         {
-          BotInitialChat((int)bs->chatstate, aCampStop, 0, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aCampStop, (char *)0, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           bs->ltgtype = 0;
         }
         dir[0] = *v26 - bs->origin[0];
@@ -17166,8 +17176,8 @@ LABEL_86:
           if ( bs->_f2876 == 0.0 )
           {
             v33 = sub_10021860(bs->teammate - 1, v56);
-            BotInitialChat((int)bs->chatstate, aCampArrive, v33, (char *)0);
-            BotEnterChat((int)bs->chatstate, bs->client, 1);
+            BotInitialChat(bs->chatstate, aCampArrive, v33, (char *)0);
+            BotEnterChat(bs->chatstate, bs->client, 1);
             bs->_f2876 = AAS_Time();
           }
           if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
@@ -17195,8 +17205,8 @@ LABEL_86:
           v35 = bi_PointContents((int)bs->eye);   /* IDA-dropped: bot-eye liquid check */
           if ( (v35 & 0x38) != 0 )
           {
-            BotInitialChat((int)bs->chatstate, aCampStop, 0, (char *)0);
-            BotEnterChat((int)bs->chatstate, bs->client, 1);
+            BotInitialChat(bs->chatstate, aCampStop, (char *)0, (char *)0);
+            BotEnterChat(bs->chatstate, bs->client, 1);
             bs->ltgtype = 0;
           }
           goto LABEL_86;
@@ -17212,8 +17222,8 @@ LABEL_86:
             if ( *(_DWORD *)(i + 60) )
               strcat(v57, aTo);
           }
-          BotInitialChat((int)bs->chatstate, aPatrolStart, (int)v57, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aPatrolStart, v57, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           *(int *)&bs->_f4324 = 0;
         }
         v37 = bs->_i4552;
@@ -17235,8 +17245,8 @@ LABEL_86:
 LABEL_106:
             if ( AAS_Time() > bs->teammatevisible_time )
             {
-              BotInitialChat((int)bs->chatstate, aPatrolStop, 0, (char *)0);
-              BotEnterChat((int)bs->chatstate, bs->client, 1);
+              BotInitialChat(bs->chatstate, aPatrolStop, 0, (char *)0);
+              BotEnterChat(bs->chatstate, bs->client, 1);
               bs->ltgtype = 0;
             }
             v42 = bs->_i4552;
@@ -17264,8 +17274,8 @@ LABEL_106:
       case 4:
         if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
         {
-          BotInitialChat((int)bs->chatstate, aCaptureflagSta, 0, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aCaptureflagSta, (char *)0, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           *(int *)&bs->_f4324 = 0;
         }
         v26 = (float *)&unk_10064420;
@@ -17341,8 +17351,8 @@ LABEL_136:
   if ( bs->_f4324 != 0.0 && AAS_Time() > bs->_f4324 )
   {
     v4 = sub_10021860(bs->teammate - 1, v56);
-    BotInitialChat((int)bs->chatstate, aHelpStart, v4, (char *)0);
-    BotEnterChat((int)bs->chatstate, bs->client, 1);
+    BotInitialChat(bs->chatstate, aHelpStart, v4, (char *)0);
+    BotEnterChat(bs->chatstate, bs->client, 1);
     *(int *)&bs->_f4324 = 0;
   }
   if ( AAS_Time() > bs->teammatevisible_time )
@@ -17423,7 +17433,7 @@ int __cdecl AIEnter_Intermission(bot_state_t *bs)
   BotResetState((int *)bs);
   result = sub_10022070(bs);
   if ( result )
-    result = BotEnterChat((int)bs->chatstate, bs->client, 0);
+    result = BotEnterChat(bs->chatstate, bs->client, 0);
   BotAINode(bs) = AINode_Intermission;
   return result;
 }
@@ -17516,7 +17526,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
     EA_Command(bs->client, aRemovebot, ClientName(bs->client), (void *)0);
     return 1;
   }
-  BotEnterChat((int)bs->chatstate, bs->client, 0);
+  BotEnterChat(bs->chatstate, bs->client, 0);
   AIEnter_Seek_LTG(bs);
   return 0;
 }
@@ -17585,7 +17595,7 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
     EA_Respawn(v2);
     if ( bs->enemy )
     {
-      BotEnterChat((int)bs->chatstate, bs->client, 0);
+      BotEnterChat(bs->chatstate, bs->client, 0);
       bs->enemy = 0;
     }
   }
@@ -19274,7 +19284,7 @@ BOOL __cdecl sub_10021D80(bot_state_t *bs)
 
   double v1; // st7
   BOOL result; // eax
-  int v3; // eax
+  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
@@ -19291,7 +19301,7 @@ BOOL __cdecl sub_10021D80(bot_state_t *bs)
   if ( result )
   {
     v3 = sub_10021860(bs->client, v5);
-    BotInitialChat((int)bs->chatstate, aEnterGame, v3, (char *)0);
+    BotInitialChat(bs->chatstate, aEnterGame, v3, (char *)0);
     return 1;
   }
   return result;
@@ -19306,7 +19316,7 @@ int __cdecl sub_10021E90(bot_state_t *bs)
 {
 
   double v1; // st7
-  int v3; // eax
+  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
@@ -19320,7 +19330,7 @@ int __cdecl sub_10021E90(bot_state_t *bs)
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
-  BotInitialChat((int)bs->chatstate, aExitGame, v3, (char *)0);
+  BotInitialChat(bs->chatstate, aExitGame, v3, (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
@@ -19333,7 +19343,7 @@ int __cdecl sub_10021F80(bot_state_t *bs)
 {
 
   double v1; // st7
-  int v3; // eax
+  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
@@ -19347,7 +19357,7 @@ int __cdecl sub_10021F80(bot_state_t *bs)
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
-  BotInitialChat((int)bs->chatstate, aStartLevel, v3, (char *)0);
+  BotInitialChat(bs->chatstate, aStartLevel, v3, (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
@@ -19360,7 +19370,7 @@ int __cdecl sub_10022070(bot_state_t *bs)
 {
 
   double v1; // st7
-  int v3; // eax
+  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
@@ -19374,7 +19384,7 @@ int __cdecl sub_10022070(bot_state_t *bs)
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
-  BotInitialChat((int)bs->chatstate, aEndLevel, v3, (char *)0);
+  BotInitialChat(bs->chatstate, aEndLevel, v3, (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl sub_10021860(_DWORD, _DWORD);
@@ -19408,7 +19418,7 @@ int __cdecl sub_10022160(int *a1)
     v7[0] = byte_1006294C;
   if ( a1[693] == 12 )
   {
-    BotInitialChat((int)(a1 + 995), aDeathBfg, (int)v7, (char *)0);
+    BotInitialChat(a1 + 995, aDeathBfg, v7, (char *)0);
   }
   else
   {
@@ -19418,9 +19428,9 @@ int __cdecl sub_10022160(int *a1)
      * Characteristic 15 is "praise vs insult" probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
     if ( v5 <= v8 )
-      BotInitialChat((int)(a1 + 995), aDeathPraise, (int)v7, (char *)0);
+      BotInitialChat(a1 + 995, aDeathPraise, v7, (char *)0);
     else
-      BotInitialChat((int)(a1 + 995), aDeathInsult, (int)v7, (char *)0);
+      BotInitialChat(a1 + 995, aDeathInsult, v7, (char *)0);
   }
   return 1;
 }
@@ -19459,7 +19469,7 @@ BOOL __cdecl sub_100222E0(int *a1)
       v7[0] = byte_1006294C;
     if ( a1[692] == 13 )
     {
-      BotInitialChat((int)(a1 + 995), aKillTelefrag, (int)v7, (char *)0);
+      BotInitialChat(a1 + 995, aKillTelefrag, v7, (char *)0);
     }
     else
     {
@@ -19468,9 +19478,9 @@ BOOL __cdecl sub_100222E0(int *a1)
        * Characteristic 15 is "praise vs insult" probability. */
       v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
       if ( v5 <= v8 )
-        BotInitialChat((int)(a1 + 995), aKillPraise, (int)v7, (char *)0);
+        BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
       else
-        BotInitialChat((int)(a1 + 995), aKillInsult, (int)v7, (char *)0);
+        BotInitialChat(a1 + 995, aKillInsult, v7, (char *)0);
     }
     return 1;
   }
@@ -19523,9 +19533,9 @@ int __cdecl sub_10022470(bot_state_t *bs)
    * probability); v7 should be the bfloat result, not a copy of v4. */
   v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0, 1.0);
   if ( v4 <= v7 )
-    BotInitialChat((int)bs->chatstate, aRandomInsult, 0, (char *)0);
+    BotInitialChat(bs->chatstate, aRandomInsult, (char *)0, (char *)0);
   else
-    BotInitialChat((int)bs->chatstate, aRandomMisc, 0, (char *)0);
+    BotInitialChat(bs->chatstate, aRandomMisc, (char *)0, (char *)0);
   return 1;
 }
 // 10064474: using guessed type int libvar_nochat;
@@ -21364,7 +21374,7 @@ int __cdecl sub_10026990(_DWORD *a1, int a2)
     BotMatchVariable((int)&v9, 4, Destination);
     if ( !sub_10026770((int)a1, Destination, (int)v7) )
     {
-      BotInitialChat((int)(a1 + 995), aCannotfind, (int)Destination, (char *)0);
+      BotInitialChat(a1 + 995, aCannotfind, Destination, (char *)0);
       BotEnterChat(a1 + 995, a1[1], 1);
       sub_10021B90(v2);
       a1[1137] = 0;
@@ -21606,11 +21616,11 @@ int __cdecl sub_10026F10(bot_state_t *bs, char *a2)
       if ( !v4 )
       {
         if ( v5 )
-          BotInitialChat((int)bs->chatstate, aWhois, (int)Source, (char *)0);
+          BotInitialChat(bs->chatstate, aWhois, Source, (char *)0);
         else
-          BotInitialChat((int)bs->chatstate, aWhois, (int)Destination, (char *)0);
+          BotInitialChat(bs->chatstate, aWhois, Destination, (char *)0);
 LABEL_19:
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         return 1;
       }
       bs->_i4308 = 0;
@@ -21646,9 +21656,9 @@ LABEL_19:
         if ( !bs->_i4308 )
         {
           if ( v54 )
-            BotInitialChat((int)bs->chatstate, aWhereis, (int)Source, (char *)0);
+            BotInitialChat(bs->chatstate, aWhereis, Source, (char *)0);
           else
-            BotInitialChat((int)bs->chatstate, aWhereareyou, (int)Destination, (char *)0);
+            BotInitialChat(bs->chatstate, aWhereareyou, Destination, (char *)0);
           goto LABEL_19;
         }
 LABEL_32:
@@ -21687,8 +21697,8 @@ LABEL_32:
       else
       {
 LABEL_27:
-        BotInitialChat((int)bs->chatstate, aCannotfind, (int)String2, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aCannotfind, String2, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         return 1;
       }
       return result;
@@ -21777,35 +21787,35 @@ LABEL_27:
         case 1:
           BotMatchVariable(&v64, 0, Destination);
           sub_10021860(bs->teammate - 1, Destination);
-          BotInitialChat((int)bs->chatstate, aHelping, (int)Destination, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aHelping, Destination, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           return 1;
         case 2:
           BotMatchVariable(&v64, 0, Destination);
           sub_10021860(bs->teammate - 1, Destination);
-          BotInitialChat((int)bs->chatstate, aAccompanying, (int)Destination, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aAccompanying, Destination, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           return 1;
         case 3:
           v52 = sub_1002F6A0(bs->_i4312);
-          BotInitialChat((int)bs->chatstate, aDefending, v52, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aDefending, v52, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           return 1;
         case 4:
           v53 = (int)bs->chatstate;
-          BotInitialChat((int)bs->chatstate, aCapturingflag, 0, (char *)0);
+          BotInitialChat(bs->chatstate, aCapturingflag, (char *)0, (char *)0);
           goto LABEL_139;
         case 5:
           v53 = (int)bs->chatstate;
-          BotInitialChat((int)bs->chatstate, aRushingbase, 0, (char *)0);
+          BotInitialChat(bs->chatstate, aRushingbase, (char *)0, (char *)0);
           goto LABEL_139;
         case 6:
           v53 = (int)bs->chatstate;
-          BotInitialChat((int)bs->chatstate, aCamping, 0, (char *)0);
+          BotInitialChat(bs->chatstate, aCamping, (char *)0, (char *)0);
           goto LABEL_139;
         case 7:
           v53 = (int)bs->chatstate;
-          BotInitialChat((int)bs->chatstate, aPatrolling, 0, (char *)0);
+          BotInitialChat(bs->chatstate, aPatrolling, (char *)0, (char *)0);
 LABEL_139:
           BotEnterChat(v53, bs->client, 1);
           result = 1;
@@ -21820,15 +21830,15 @@ LABEL_139:
       BotMatchVariable(&v64, 3, Source);
       strncpy((char *)&bs->_i4352, Source, 0x20u);
       *((unsigned char *)&bs->_i4384 - 1) = 0;
-      BotInitialChat((int)bs->chatstate, aJoinedteam, (int)Source, (char *)0);
-      BotEnterChat((int)bs->chatstate, bs->client, 1);
+      BotInitialChat(bs->chatstate, aJoinedteam, Source, (char *)0);
+      BotEnterChat(bs->chatstate, bs->client, 1);
       return 1;
     case 13:
       if ( !sub_10026690() || !sub_10026BE0(bs, (int)&v64) )
         return 1;
       if ( strlen((const char *)&bs->_i4352) )
-        BotInitialChat((int)bs->chatstate, aLeftteam, (char *)bs + 4352, (char *)0);
-      BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aLeftteam, (char *)bs + 4352, (char *)0);
+      BotEnterChat(bs->chatstate, bs->client, 1);
       *(unsigned char *)&bs->_i4352 = byte_1006294C;
       return 1;
     case 14:
@@ -21866,7 +21876,7 @@ LABEL_139:
       if ( v17 == -1 )
       {
         v19 = (int)bs->chatstate;
-        BotInitialChat((int)bs->chatstate, aWhois, (int)Destination, (char *)0);
+        BotInitialChat(bs->chatstate, aWhois, Destination, (char *)0);
 LABEL_64:
         BotEnterChat(v19, bs->client, 1);
         return 1;
@@ -21922,15 +21932,15 @@ LABEL_64:
         }
         if ( !bs->_i4308 )
         {
-          BotInitialChat((int)bs->chatstate, aWhereareyou, (int)Destination, (char *)0);
-          BotEnterChat((int)bs->chatstate, bs->client, 1);
+          BotInitialChat(bs->chatstate, aWhereareyou, Destination, (char *)0);
+          BotEnterChat(bs->chatstate, bs->client, 1);
           return 1;
         }
       }
       else if ( !sub_10026770(bs, String2, (int)bs->teamgoal) )
       {
         v19 = (int)bs->chatstate;
-        BotInitialChat((int)bs->chatstate, aCannotfind, (int)String2, (char *)0);
+        BotInitialChat(bs->chatstate, aCannotfind, String2, (char *)0);
         goto LABEL_64;
       }
       v24 = rand();
@@ -21959,8 +21969,8 @@ LABEL_64:
       {
         if ( !sub_10026BE0(bs, (int)&v64) )
           return 1;
-        BotInitialChat((int)bs->chatstate, aCheckpointInva, 0, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aCheckpointInva, (char *)0, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         return 1;
       }
       BotMatchVariable(&v64, 5, Buffer);
@@ -21986,8 +21996,8 @@ LABEL_64:
       if ( sub_10026BE0(bs, (int)&v64) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", *(float *)(v45 + 4), *(float *)(v45 + 8), *(float *)(v45 + 12));
-        BotInitialChat((int)bs->chatstate, aCheckpointConf, *(_DWORD *)v45, (char *)0);
-        BotEnterChat((int)bs->chatstate, bs->client, 1);
+        BotInitialChat(bs->chatstate, aCheckpointConf, *(_DWORD *)v45, (char *)0);
+        BotEnterChat(bs->chatstate, bs->client, 1);
         return 1;
       }
       return 1;
@@ -25071,7 +25081,7 @@ int __cdecl BotLoadChatFile(int *a1, char *a2, char *a3)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002E060) --------------------------------------------------------
-void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int a5)
+void __cdecl BotConstructChatMessage(void *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5)
 {
   const char *v5; // edx
   const char *v6; // esi
@@ -25080,8 +25090,7 @@ void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int
   char v9; // al
   char v10; // cl
   int v11; // eax
-  int v12; // edi
-  int *v13; // eax
+  char *v12; // edi  (was int — pointer to caller string)
   int v14; // ecx
   int v15; // edx
   const char *v16; // edi
@@ -25093,7 +25102,7 @@ void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int
   char v23[152]; // [esp+18h] [ebp-98h] BYREF
 
   v5 = a2;
-  v6 = (const char *)(a1 + 20);
+  v6 = (const char *)cs + 20;
   v7 = 0;
   v8 = (char *)a2;
   if ( !*a2 )
@@ -25163,20 +25172,19 @@ void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int
       bi_Print(3, "BotConstructChat: message %s variable %d out of range\n", v5, v11);
       return;
     }
-    v12 = *(_DWORD *)(a4 + 8 * v11);
+    v12 = vars[v11].str;
     if ( v12 )
     {
-      v13 = (int *)(a4 + 8 * v11 + 4);
       v14 = 0;
-      if ( *v13 > 0 )
+      if ( vars[v11].len > 0 )
       {
         do
         {
-          v15 = v12 - (_DWORD)v23 + v14++;
-          v23[v14 - 1] = v23[v15];
+          v15 = v14++;
+          v23[v15] = v12[v15];
         }
-        while ( v14 < *v13 );
-        v6 = (const char *)(a1 + 20);
+        while ( v14 < vars[v11].len );
+        v6 = (const char *)cs + 20;
       }
       v23[v14] = 0;
       sub_1002B7C0(v23, a5);
@@ -25188,7 +25196,7 @@ void __cdecl BotConstructChatMessage(int a1, const char *a2, int a3, int a4, int
       strcpy((char *)&v6[v7], v23);
       v16 = v23;
 LABEL_20:
-      v6 = (const char *)(a1 + 20);
+      v6 = (const char *)cs + 20;
       v7 += strlen(v16);
     }
 LABEL_30:
@@ -25273,42 +25281,36 @@ char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2)
 }
 
 //----- (1002E510) --------------------------------------------------------
-void __cdecl BotInitialChat(int a1, char *String2, int a3, ...)
+void __cdecl BotInitialChat(void *cs, char *String2, ...)
 {
   void *v3;       // chat list
   const char *v4; // ebp
   const char *v5; // edi
   int v6; // ebx
-  intptr_t *v7;   // arg pointer walker
-  char *v8; // edx
-  unsigned int v9; // kr04_4
-  char v10[80]; // [esp+4h] [ebp-50h] BYREF
+  va_list ap;
+  bot_chatvar_t v10[10]; // BYREF
 
-  v3 = BotChatDumpSlot(a1);
+  v3 = BotChatDumpSlot(cs);
   if ( v3 )
   {
     v4 = BotChooseInitialChatMessage(v3, String2);
     if ( v4 )
     {
       memset(v10, 0, sizeof(v10));
-      v5 = (const char *)(intptr_t)a3;
+      va_start(ap, String2);
+      v5 = va_arg(ap, const char *);
       v6 = 0;
-      v7 = (intptr_t *)&a3;
-      v8 = &v10[4];
-      do
+      while ( v6 < 10 )
       {
         if ( !v5 )
           break;
-        *((_DWORD *)v8 - 1) = (int)(intptr_t)v5;
-        ++v7;
-        v9 = strlen(v5) + 1;
-        v5 = (const char *)*v7;
-        v8 += 8;
+        v10[v6].str = (char *)v5;
+        v10[v6].len = (int)strlen(v5);
+        v5 = va_arg(ap, const char *);
         ++v6;
-        *((_DWORD *)v8 - 2) = v9 - 1;
       }
-      while ( v6 < 10 );
-      BotConstructChatMessage(a1, v4, 0, (int)(intptr_t)v10, 0);
+      va_end(ap);
+      BotConstructChatMessage(cs, v4, 0, v10, 0);
     }
   }
 }
@@ -25446,21 +25448,21 @@ unsigned int __cdecl sub_1002EA50(int a1)
 }
 
 //----- (1002EA80) --------------------------------------------------------
-char __cdecl BotEnterChat(int a1, int a2, int a3)
+char __cdecl BotEnterChat(void *cs, int a2, int a3)
 {
   char result; // al
-  int v4; // [esp-4h] [ebp-Ch]
+  char *v4; // [esp-4h] [ebp-Ch]
 
   result = 0;
-  if ( strlen((const char *)(a1 + 20)) )
+  if ( strlen((const char *)cs + 20) )
   {
-    v4 = a1 + 20;
+    v4 = (char *)cs + 20;
     if ( a3 == 1 )
       EA_SayTeam(a2, v4);
     else
       EA_Say(a2, v4);
     result = byte_1006294C;
-    *(_BYTE *)(a1 + 20) = byte_1006294C;
+    *((char *)cs + 20) = byte_1006294C;
   }
   return result;
 }
