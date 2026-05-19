@@ -10,6 +10,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <stdarg.h>
 
@@ -23,9 +24,29 @@ void botlib_log(const char *fmt, ...)
 #include <windows.h>
 
 /* -----------------------------------------------------------------------
- * Log file handle — opened in DllMain, written by BOTLIB_LOG()
+ * Log file handle — opened in DllMain, written only when something
+ * worth logging happens (exception filter, explicit botlib_log()).
+ *
+ * The file is created with "w" mode at DllMain time because fopen() can
+ * fail at crash time when the heap is corrupted — we want a guaranteed
+ * writable handle ready in advance.  However we deliberately do NOT
+ * emit any content until an actual crash fires; that way a clean run
+ * leaves a 0-byte file, and the file's mere non-zero size is a crash
+ * indicator on its own.
+ *
+ * On DLL_PROCESS_DETACH we close the file and unlink it if nothing was
+ * ever written (the common "clean shutdown" case).
  * --------------------------------------------------------------------- */
 static FILE *g_log = NULL;
+static char  g_log_path[MAX_PATH] = {0};
+static int   g_log_dirty = 0;   /* set to 1 the moment we write anything */
+
+static void blog_write_header_once(void)
+{
+    if (!g_log || g_log_dirty) return;
+    fputs("=== gladiator.dll debug log ===\n", g_log);
+    g_log_dirty = 1;
+}
 
 static void blog_open(void)
 {
@@ -37,8 +58,7 @@ static void blog_open(void)
     for (int i = 0; paths[i]; i++) {
         g_log = fopen(paths[i], "w");
         if (g_log) {
-            fputs("=== gladiator.dll debug log ===\n", g_log);
-            fflush(g_log);
+            strncpy(g_log_path, paths[i], sizeof(g_log_path) - 1);
             return;
         }
     }
@@ -61,7 +81,16 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 
     case DLL_PROCESS_DETACH:
         botlib_log("DllMain: DLL_PROCESS_DETACH — gladiator.dll unloading");
-        if (g_log) { fclose(g_log); g_log = NULL; }
+        if (g_log) {
+            int clean = !g_log_dirty;
+            fclose(g_log);
+            g_log = NULL;
+            /* Clean shutdown (no crash content written) — delete the
+             * empty placeholder file so it doesn't look like a crash
+             * happened. */
+            if (clean && g_log_path[0])
+                remove(g_log_path);
+        }
         break;
     }
     return TRUE;
@@ -79,6 +108,7 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
 
     if (g_log) {
         HMODULE hmod = GetModuleHandleA("gladiator.dll");
+        blog_write_header_once();
         fprintf(g_log, "CRASH: exception 0x%08X at 0x%08X\n",
                 (unsigned)code, (unsigned)(intptr_t)addr);
         fprintf(g_log, "  gladiator.dll runtime base: 0x%08X\n",
