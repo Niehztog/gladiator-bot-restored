@@ -10380,22 +10380,7 @@ int AAS_Optimize()
     {
       if ( *(_DWORD *)&v2[v3 + 36] != 11 )
       {
-        /* Original disasm at 0x10010ef2 uses a raw signed index:
-         *   mov edi, [ebx + edi*4]
-         * which fetches garbage from memory preceding faceoptimizeindex when
-         * the reach record's facenum is negative.  Some Q2 reach generators
-         * (notably AAS_Reachability_Ladder) propagate the signed face-index
-         * value from aasworld.faceindex into reach.facenum without
-         * abs()-stripping (Q3 fixed this defensively); MSVC's heap happened
-         * to keep negative offsets mapped, so the original DLL silently
-         * produced garbage facenum bytes instead of crashing.  MinGW's heap
-         * layout leaves that region unmapped, so we must guard.  Skip the
-         * remap when facenum is out of range — matches orig semantics for
-         * the affected reach records (their facenum is meaningless either
-         * way once they reach AAS_Optimize). */
-        int _facenum = *(_DWORD *)&v2[v3 + 4];
-        if ( (unsigned)_facenum < (unsigned)aasworld.numfaces )
-          *(_DWORD *)&v2[v3 + 4] = *(_DWORD *)(v5[14] + 4 * _facenum);
+        *(_DWORD *)&v2[v3 + 4] = *(_DWORD *)(v5[14] + 4 * *(_DWORD *)&v2[v3 + 4]);
         v2 = (char *)aasworld.reachability;
       }
       ++v1;
@@ -12432,6 +12417,26 @@ LABEL_67:
 // 10013CC0: using guessed type int var_50[20];
 
 //----- (10014E60) --------------------------------------------------------
+/* AAS_Reachability_Ladder
+ *
+ * Six reach.facenum writes in this function (v34, v37, v41, v43, v60, v62)
+ * originally stored the raw SIGNED faceindex value (v71 or v84) — both
+ * loaded from aasworld.faceindex[], where the sign encodes face orientation
+ * (used locally for plane-flip selection at lines 12658 and 12644).  The
+ * original DLL did not abs() these before storing; AAS_Optimize at
+ * 0x10010ef2 then did a raw signed [base+idx*4] lookup, producing garbage
+ * face numbers on every ladder/jump-off-ladder reach in the optimized .aas
+ * (MSVC's heap kept the negative offsets mapped so the orig DLL silently
+ * produced wrong values instead of crashing; MinGW unmaps that region,
+ * which is what crashed us on q2dm3).
+ *
+ * Q3's later AAS_Optimize fixed this defensively (be_aas_optimize.c:301
+ * uses abs() + sign-preserve).  We apply the deeper fix here: store the
+ * absolute face number at the reach writer.  Downstream code only ever
+ * needs the magnitude.  This deviates from the original DLL's byte content
+ * for ladder reach records whose underlying faceindex entry was negative,
+ * but those bytes were meaningless in the orig anyway.
+ */
 int AAS_Reachability_Ladder(int area1num, int area2num)
 {
   char *v3; // edi
@@ -12673,7 +12678,7 @@ LABEL_20:
                 v33 = v32;
                 if ( v32 )
                 {
-                  v34 = v71;
+                  v34 = abs32(v71);
                   *(_DWORD *)v32 = area2num;
                   *(_DWORD *)(v32 + 4) = v34;
                   *(_DWORD *)(v32 + 8) = v21;
@@ -12690,7 +12695,7 @@ LABEL_20:
                   v36 = v35;
                   if ( v35 )
                   {
-                    v37 = v84;
+                    v37 = abs32(v84);
                     *(_DWORD *)v35 = area1num;
                     *(_DWORD *)(v35 + 4) = v37;
                     *(_DWORD *)(v35 + 8) = v21;
@@ -12713,7 +12718,7 @@ LABEL_20:
                 v40 = v39;
                 if ( v39 )
                 {
-                  v41 = v71;
+                  v41 = abs32(v71);
                   *(_DWORD *)v39 = area2num;
                   *(_DWORD *)(v39 + 4) = v41;
                   *(_DWORD *)(v39 + 8) = v21;
@@ -12733,7 +12738,7 @@ LABEL_20:
                   v42 = AAS_AllocReachability();
                   if ( v42 )
                   {
-                    v43 = v84;
+                    v43 = abs32(v84);
                     *(_DWORD *)v42 = area1num;
                     *(_DWORD *)(v42 + 4) = v43;
                     *(_DWORD *)(v42 + 8) = v21;
@@ -12818,7 +12823,7 @@ LABEL_20:
                   v59 = AAS_AllocReachability();
                   if ( v59 )
                   {
-                    v60 = v71;
+                    v60 = abs32(v71);
                     *(_DWORD *)v59 = v53;
                     *(_DWORD *)(v59 + 4) = v60;
                     *(_DWORD *)(v59 + 8) = v66;
@@ -12836,7 +12841,7 @@ LABEL_20:
                     lreach = AAS_AllocReachability();
                     if ( lreach )
                     {
-                      v62 = v71;
+                      v62 = abs32(v71);
                       *(_DWORD *)lreach = area1num;
                       *(_DWORD *)(lreach + 4) = v62;
                       *(_DWORD *)(lreach + 8) = v66;
