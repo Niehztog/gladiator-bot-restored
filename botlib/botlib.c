@@ -356,7 +356,7 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
 BOOL __cdecl sub_10005C60(float *a1, float *a2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
-_DWORD *__cdecl sub_10006090(_DWORD *a1);
+bsp_link_t *__cdecl sub_10006090(bsp_link_t *a1);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
 bsp_link_t *__cdecl sub_10006210(float *a1, float *a2, int a3, int a4);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
@@ -537,9 +537,9 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 int __cdecl sub_1001BD40(int a1);
 int __cdecl sub_1001BF00(int, int, float); // idb
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3);
-_DWORD *__cdecl sub_1001C3F0(_DWORD *a1);
+aas_link_t *__cdecl sub_1001C3F0(aas_link_t *a1);
 aas_link_t *__cdecl sub_1001C460(float *a1, float *a2, int a3);
-int __cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
+aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
 char *__cdecl AAS_PlaneFromNum(int a1);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
@@ -2184,6 +2184,18 @@ chatmsg_links_t *botchatmsglinks;
 typedef int (*ai_node_fn_t)(bot_state_t *);
 ai_node_fn_t *botainodes;
 #define BotAINode(bs) (botainodes[(bs) - botstates])
+
+/* Side-band for the two pointer slots inside the 132-byte aas_entity_t at
+ * +124 (areas link-list head) and +128 (BSP-leaf link-list head).  The
+ * 32-bit original kept these inline as 4-byte slots; on 64-bit the
+ * aas_link_t / bsp_link_t pointers don't fit, so we mirror them out into
+ * parallel numentities-sized arrays keyed by entity index.  Allocated
+ * together with aasworld.entities in sub_1000EDC0. */
+aas_link_t **aasentity_arealinks;
+bsp_link_t **aasentity_bsplinks;
+#define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
+#define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])
+
 
 /* Initial-chat dump structures.  In the 32-bit original BotDumpInitialChat
  * built a single contiguous heap buffer with inline 4-byte pointer slots
@@ -4144,27 +4156,27 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
 // 10005E60: using guessed type float var_24[9];
 
 //----- (10006090) --------------------------------------------------------
-_DWORD *__cdecl sub_10006090(_DWORD *a1)
+bsp_link_t *__cdecl sub_10006090(bsp_link_t *a1)
 {
-  _DWORD *result; // eax
-  int v2; // ecx
-  _DWORD *v3; // esi
-  int v4; // ecx
+  bsp_link_t *result; // eax
+  bsp_link_t *prev;   // ecx — prev_ent in leaf chain
+  bsp_link_t *v3;     // esi — saved next_leaf
+  bsp_link_t *next;   // ecx — next_ent in leaf chain
 
   result = a1;
   if ( a1 )
   {
     do
     {
-      v2 = result[3];
-      v3 = (_DWORD *)result[4];
-      if ( v2 )
-        *(_DWORD *)(v2 + 8) = result[2];
+      prev = result->prev_ent;
+      v3 = result->next_leaf;
+      if ( prev )
+        prev->next_ent = result->next_ent;
       else
-        *(_DWORD *)(dword_10069584 + 4 * result[1]) = result[2];
-      v4 = result[2];
-      if ( v4 )
-        *(_DWORD *)(v4 + 12) = result[3];
+        dword_10069584[result->leafnum] = result->next_ent;
+      next = result->next_ent;
+      if ( next )
+        next->prev_ent = result->prev_ent;
       sub_10003240(result);
       result = v3;
     }
@@ -7114,10 +7126,10 @@ LABEL_14:
       v11[0] = *(float *)(v4 + 76) + *v9;
       v11[1] = *(float *)(v4 + 80) + *(float *)(v4 + 20);
       v11[2] = *(float *)(v4 + 84) + *(float *)(v4 + 24);
-      sub_1001C3F0(*(_DWORD *)(v4 + 124));
-      *(_DWORD *)(v4 + 124) = sub_1001C620(v12, v11, entnum, 2);
-      sub_10006090(*(_DWORD **)(v4 + 128));
-      *(_DWORD *)(v4 + 128) = (_DWORD)(uintptr_t)sub_10006210(v12, v11, entnum, 0);
+      sub_1001C3F0(AAS_EntAreaLink(entnum));
+      AAS_EntAreaLink(entnum) = sub_1001C620(v12, v11, entnum, 2);
+      sub_10006090(AAS_EntBspLink(entnum));
+      AAS_EntBspLink(entnum) = sub_10006210(v12, v11, entnum, 0);
     }
   }
   return 0;
@@ -7291,9 +7303,13 @@ int sub_1000B090()
     result = 0;
     do
     {
-      ++v1;
       *(_DWORD *)((char *)aasworld.entities + result + 124) = 0;
       *(_DWORD *)((char *)aasworld.entities + result + 128) = 0;
+      if ( aasentity_arealinks )
+        aasentity_arealinks[v1] = NULL;
+      if ( aasentity_bsplinks )
+        aasentity_bsplinks[v1] = NULL;
+      ++v1;
       result += 132;
     }
     while ( v1 < aasworld.numentities );
@@ -9403,6 +9419,12 @@ int __cdecl sub_1000EDC0(int a1, int a2)
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
   aasworld.entities = GetClearedMemory(132 * a1);
+  if ( aasentity_arealinks )
+    FreeMemory(aasentity_arealinks);
+  aasentity_arealinks = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * a1);
+  if ( aasentity_bsplinks )
+    FreeMemory(aasentity_bsplinks);
+  aasentity_bsplinks = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * a1);
   sub_1001D260();
   AAS_InvalidateEntities();
   return 0;
@@ -16219,27 +16241,27 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
 }
 
 //----- (1001C3F0) --------------------------------------------------------
-_DWORD *__cdecl sub_1001C3F0(_DWORD *a1)
+aas_link_t *__cdecl sub_1001C3F0(aas_link_t *a1)
 {
-  _DWORD *result; // eax
-  int v2; // ecx
-  _DWORD *v3; // esi
-  int v4; // ecx
+  aas_link_t *result; // eax
+  aas_link_t *prev;   // ecx — prev_ent in area chain
+  aas_link_t *v3;     // esi — saved next_area for iteration
+  aas_link_t *next;   // ecx — next_ent in area chain
 
   result = a1;
   if ( a1 )
   {
     do
     {
-      v2 = result[3];
-      v3 = (_DWORD *)result[4];
-      if ( v2 )
-        *(_DWORD *)(v2 + 8) = result[2];
+      prev = result->prev_ent;
+      v3 = result->next_area;
+      if ( prev )
+        prev->next_ent = result->next_ent;
       else
-        *(_DWORD *)(aasworld.arealinkedentities + 4 * result[1]) = result[2];
-      v4 = result[2];
-      if ( v4 )
-        *(_DWORD *)(v4 + 12) = result[3];
+        aasworld.arealinkedentities[result->areanum] = result->next_ent;
+      next = result->next_ent;
+      if ( next )
+        next->prev_ent = result->prev_ent;
       AAS_DeAllocAASLink(result);
       result = v3;
     }
@@ -16340,7 +16362,7 @@ aas_link_t *__cdecl sub_1001C460(float *a1, float *a2, int a3)
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001C620) --------------------------------------------------------
-int __cdecl sub_1001C620(float *a1, float *a2, int a3, int a4)
+aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4)
 {
   float v5[3]; // [esp+0h] [ebp-30h] BYREF
   float v6[3]; // [esp+Ch] [ebp-24h] BYREF
