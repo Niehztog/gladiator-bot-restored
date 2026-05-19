@@ -150,6 +150,8 @@
                                weight_t, weightconfig_t, bot_goal_t,
                                aas_settings_t (reconstructed from Q3 layouts
                                + Gladiator disassembly verification) */
+#include "struct_sizes_asserts.h" /* compile-time guard: every reconstructed
+                                     struct must match original binary layout */
 
 
 

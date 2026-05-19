@@ -226,7 +226,39 @@ endif
 # ----------
 
 # Phony targets
-.PHONY : all clean botlib game
+.PHONY : all clean botlib game verify scan
+
+# ----------
+
+# Regression / quality gates
+#
+#   make verify  — runs every static scanner under tools/ and the
+#                  struct-size cross-check.  Intended for CI.  Does NOT
+#                  build the DLL; pair with `make botlib` to also verify
+#                  the compile-time _Static_assert layout guards.
+#
+#   make scan    — alias for verify (legacy name)
+#
+# Each scanner exits non-zero on a hit, so any new bug-class regression
+# fails the umbrella.  `check_struct_sizes.py` similarly fails if a
+# documented `/* sizeof = N */` comment loses its matching assert.
+
+verify scan:
+	@echo "===> tools/scan_plane_stride.py"
+	${Q}python3 tools/scan_plane_stride.py
+	@echo "===> tools/scan_int_as_float_array.py"
+	${Q}python3 tools/scan_int_as_float_array.py
+	@echo "===> tools/scan_lodword_into_float.py"
+	${Q}python3 tools/scan_lodword_into_float.py
+	@echo "===> tools/scan_dropped_st0.py"
+	${Q}python3 tools/scan_dropped_st0.py
+	@echo "===> tools/scan_float_where_int_sig.py (informational; non-zero allowed)"
+	-${Q}python3 tools/scan_float_where_int_sig.py
+	@echo "===> tools/scan_vec3_splits.py"
+	${Q}python3 tools/scan_vec3_splits.py
+	@echo "===> tools/check_struct_sizes.py"
+	${Q}python3 tools/check_struct_sizes.py
+	@echo "===> verify OK"
 
 # ----------
 
