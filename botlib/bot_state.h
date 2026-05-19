@@ -51,7 +51,7 @@ typedef struct bot_state_s {
             char   chat_lines_src[1024];  /* +216..+1239  qmemcpy source for chat_lines */
             char   settings[432];         /* +1240..+1671 bot_clientsettings_t */
             int    character;             /* +1672 */
-            int    _i1676;                /* +1676 AI node function pointer */
+            int    ainode;                /* +1676 current AINode_* dispatcher; called via (int(*)(int))bs->ainode */
             float  _f1680;                /* +1680 random/skill factor */
             vec3_t origin;                /* +1684..+1695 */
             char   _pad_6B0h[16];         /* +1696..+1711 */

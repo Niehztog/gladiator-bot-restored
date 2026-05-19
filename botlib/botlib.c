@@ -17474,7 +17474,7 @@ int __cdecl AIEnter_Intermission(int a1)
   result = sub_10022070(a1);
   if ( result )
     result = BotEnterChat((int)bs->chatstate, bs->client, 0);
-  bs->_i1676 = AINode_Intermission;
+  bs->ainode = AINode_Intermission;
   return result;
 }
 // 10001406: using guessed type _DWORD __cdecl BotResetState(_DWORD);
@@ -17517,7 +17517,7 @@ int __cdecl AIEnter_Observer(int a1)
 
   BotRecordNodeSwitch(a1, (int)aObserver, &byte_1006294C);
   result = BotResetState(a1);
-  bs->_i1676 = (int)AINode_Observer;
+  bs->ainode = (int)AINode_Observer;
   return result;
 }
 // 10001406: using guessed type _DWORD __cdecl BotResetState(_DWORD);
@@ -17540,7 +17540,7 @@ int __cdecl AIEnter_Stand(int a1)
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aStand, &byte_1006294C);
-  bs->_i1676 = (int)AINode_Stand;
+  bs->ainode = (int)AINode_Stand;
   return result;
 }
 // 100019F6: using guessed type int __cdecl AINode_Stand(int);
@@ -17603,7 +17603,7 @@ void __cdecl AIEnter_Respawn(int a1)
   }
   bs->_f2800 = v2;
   bs->_i2760 = 0;
-  bs->_i1676 = AINode_Respawn;
+  bs->ainode = AINode_Respawn;
 }
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
 // 10001370: using guessed type _DWORD __cdecl sub_10034AF0(_DWORD);
@@ -17653,7 +17653,7 @@ int __cdecl sub_1001EF00(int a1)
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aActivateEntity, &byte_1006294C);
-  bs->_i1676 = (int)sub_1001EF40;
+  bs->ainode = (int)sub_1001EF40;
   return result;
 }
 
@@ -17760,7 +17760,7 @@ int __cdecl AIEnter_Seek_NBG(int a1)
   {
     result = BotRecordNodeSwitch(a1, (int)aSeekNbg, aNoGoal);
   }
-  bs->_i1676 = AINode_Seek_NBG;
+  bs->ainode = AINode_Seek_NBG;
   return result;
 }
 // 1000149C: using guessed type int __cdecl AINode_Seek_NBG(int);
@@ -17946,7 +17946,7 @@ int __cdecl AIEnter_Seek_LTG(int a1)
   {
     result = BotRecordNodeSwitch(a1, (int)aSeekLtg, aNoGoal);
   }
-  bs->_i1676 = AINode_Seek_LTG;
+  bs->ainode = AINode_Seek_LTG;
   return result;
 }
 // 10001433: using guessed type int __cdecl AINode_Seek_LTG(int);
@@ -18131,7 +18131,7 @@ int __cdecl AIEnter_Battle_Fight(int a1)
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aBattleFight, &byte_1006294C);
-  bs->_i1676 = (int)AINode_Battle_Fight;
+  bs->ainode = (int)AINode_Battle_Fight;
   return result;
 }
 // 10001965: using guessed type int __cdecl AINode_Battle_Fight(int);
@@ -18274,7 +18274,7 @@ void __cdecl AIEnter_Battle_Chase(int a1)
 
   BotRecordNodeSwitch(a1, (int)aBattleChase, &byte_1006294C);
   v1 = AAS_Time();
-  bs->_i1676 = (int)AINode_Battle_Chase;
+  bs->ainode = (int)AINode_Battle_Chase;
   bs->_f2804 = v1 + 10.0;
 }
 // 1000156E: using guessed type int __cdecl AINode_Battle_Chase(int);
@@ -18455,7 +18455,7 @@ int __cdecl AIEnter_Battle_Retreat(int a1)
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aBattleRetreat, &byte_1006294C);
-  bs->_i1676 = (int)AINode_Battle_Retreat;
+  bs->ainode = (int)AINode_Battle_Retreat;
   return result;
 }
 // 100019BF: using guessed type int __cdecl AINode_Battle_Retreat(int);
@@ -18634,7 +18634,7 @@ int __cdecl sub_10020AD0(int a1)
   int result; // eax
 
   result = BotRecordNodeSwitch(a1, (int)aBattleNbg, &byte_1006294C);
-  bs->_i1676 = (int)AINode_Battle_NBG;
+  bs->ainode = (int)AINode_Battle_NBG;
   return result;
 }
 
@@ -21035,7 +21035,7 @@ int (__cdecl *__cdecl BotCheckActivateGoal(int a1, _DWORD *a2, int a3))(int)
     bs->_f2852 = v19 + 10.0;
     if ( !AAS_AreaReachability(v36) )
     {
-      result = (int (__cdecl *)(int))bs->_i1676;
+      result = (int (__cdecl *)(int))bs->ainode;
       if ( result == AINode_Seek_NBG )
       {
         *(int *)&bs->_f2796 = 0;
@@ -21085,7 +21085,7 @@ LABEL_37:
       bs->_i2752 = v33 ^ 0x10;
       BotMoveInDirection((int)bs->movestate, (int)&v62, 400.0, 1);
     }
-    result = (int (__cdecl *)(int))bs->_i1676;
+    result = (int (__cdecl *)(int))bs->ainode;
     if ( result == AINode_Seek_NBG )
     {
       *(int *)&bs->_f2796 = 0;
@@ -21140,7 +21140,7 @@ LABEL_37:
     bs->_f2852 = v27 + 10.0;
     if ( !AAS_AreaReachability(v37) )
     {
-      result = (int (__cdecl *)(int))bs->_i1676;
+      result = (int (__cdecl *)(int))bs->ainode;
       if ( result == AINode_Seek_NBG )
       {
         *(int *)&bs->_f2796 = 0;
@@ -22253,7 +22253,7 @@ int sub_10028A70(int a1, int a2)
   }
   sub_10021020(a1);
   sub_10028650(a1);
-  if ( !bs->_i1676 )
+  if ( !bs->ainode )
     AIEnter_Seek_LTG(a1);
   if ( AAS_Time() - 8.0 < bs->setup_time && sub_10021D80(a1) )
   {
@@ -22263,7 +22263,7 @@ int sub_10028A70(int a1, int a2)
   }
   sub_1001D2B0();
   v4 = 0;
-  while ( !((int (__cdecl *)(int))bs->_i1676)(a1) )
+  while ( !((int (__cdecl *)(int))bs->ainode)(a1) )
   {
     if ( ++v4 >= 50 )
     {
