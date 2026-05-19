@@ -78,8 +78,18 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
     void *addr = er->ExceptionAddress;
 
     if (g_log) {
+        HMODULE hmod = GetModuleHandleA("gladiator.dll");
         fprintf(g_log, "CRASH: exception 0x%08X at 0x%08X\n",
                 (unsigned)code, (unsigned)(intptr_t)addr);
+        fprintf(g_log, "  gladiator.dll runtime base: 0x%08X\n",
+                (unsigned)(intptr_t)hmod);
+        if (hmod) {
+            unsigned base = (unsigned)(intptr_t)hmod;
+            unsigned eip  = (unsigned)(intptr_t)addr;
+            if (eip >= base)
+                fprintf(g_log, "  crash file offset (vma 0x69700000-relative): 0x%08X\n",
+                        eip - base + 0x69700000u);
+        }
 
         /* For access violations, log the faulting memory address */
         if (code == 0xC0000005 && er->NumberParameters >= 2) {
