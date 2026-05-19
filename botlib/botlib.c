@@ -2031,7 +2031,7 @@ int dword_10063FC4; // weak
 int dword_10063FC8; // weak
 int dword_10063FCC; // weak
 int (__cdecl *dword_10063FE0)(_DWORD, _DWORD); // weak
-int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD); // weak
+int (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak — variadic; engine import signature
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 int (__cdecl *bi_Trace)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 int (__cdecl *bi_PointContents)(_DWORD); // weak — engine's BSP-level CONTENTS_* lookup
@@ -30092,7 +30092,7 @@ int __cdecl EA_Command(int client, char *command, ...)
   int *i; // ecx
   int v5; // eax
   int v7; // [esp+4h] [ebp-28h]
-  int v8[2]; // [esp+8h] [ebp-24h] BYREF
+  int v8[9]; // [esp+8h] [ebp-24h] BYREF — up to 9 forwarded variadic ints
 
   v7 = (int)command;
   v2 = 1;
@@ -30107,10 +30107,14 @@ int __cdecl EA_Command(int client, char *command, ...)
     if ( ++v2 >= 10 )
     {
       bi_Print(3, aEaCommandTooMa);
-      return bi_BotClientCommand(client, v7, v8[0], v8[1]);
+      return bi_BotClientCommand(client, (char *)v7,
+                                 v8[0], v8[1], v8[2], v8[3], v8[4],
+                                 v8[5], v8[6], v8[7], v8[8], 0);
     }
   }
-  return bi_BotClientCommand(client, v7, v8[0], v8[1]);
+  return bi_BotClientCommand(client, (char *)v7,
+                             v8[0], v8[1], v8[2], v8[3], v8[4],
+                             v8[5], v8[6], v8[7], v8[8], 0);
 }
 // 10037233: conditional instruction was optimized away because esi.4<A
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
