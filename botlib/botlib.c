@@ -463,7 +463,7 @@ int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(int a1);
 double __cdecl sub_10011220(int a1);
 double __cdecl sub_10011360(int a1);
-int __cdecl sub_100113F0(int a1, float *a2);
+int __cdecl AAS_FaceCenter(int a1, float *a2);
 __int64 sub_10011520();
 double __cdecl AAS_MaxJumpHeight(float a1);
 long double __cdecl AAS_MaxJumpDistance(float a1);
@@ -483,7 +483,7 @@ int __cdecl VectorMiddle(float *a1, float *a2, float *a3);
 // int __usercall AAS_Reachability_Ladder@<eax>(double a1@<st0>, int a2, int a3);
 int AAS_Reachability_Teleport();
 int AAS_Reachability_Elevator();
-int __cdecl AAS_Reachability_Grapple(int ArgList, int a2);
+int __cdecl AAS_Reachability_Grapple(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
 int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2);
 int __cdecl AAS_Reachability_WalkOffLedge(int a1);
@@ -10599,7 +10599,7 @@ double __cdecl sub_10011360(int a1)
 }
 
 //----- (100113F0) --------------------------------------------------------
-int __cdecl sub_100113F0(int a1, float *a2)
+int __cdecl AAS_FaceCenter(int a1, float *a2)
 {
   int v2; // esi
   char *v3; // edi
@@ -10795,7 +10795,7 @@ LABEL_14:
     if ( ++v9 >= *((_DWORD *)v3 + 1) )
       goto LABEL_15;
   }
-  sub_100113F0(v10, (float *)v19);
+  AAS_FaceCenter(v10, (float *)v19);
   v12 = bi_PointContents((int)v19);   /* IDA-dropped: water-edge contents check */
   if ( (v12 & 0x38) == 0 )
   {
@@ -13320,19 +13320,19 @@ LABEL_56:
 // 100160E0: using guessed type char var_24[36];
 
 //----- (10016BA0) --------------------------------------------------------
-int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
+int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
-  char *v2; // ebp
-  char *v3; // ecx
+  char *area2; // ebp
+  char *area1; // ecx
   char v4; // al
   int v5; // ecx
   int v6; // eax
-  int v7; // ebp
-  char *v8; // esi
-  __int64 v9; // rax
-  double v10; // st7
+  int face2num; // ebp
+  char *face2; // esi
+  __int64 v; // rax
+  double hordist; // st7
   int v11; // edi
-  int v12; // eax
+  int lreach; // eax
   int v13; // esi
   double v14; // st7
   double v15; // st7
@@ -13343,11 +13343,11 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays.
    * VectorLength, VectorNormalize and AAS_Trace read 3 contiguous floats
    * from the pointers passed in, so GCC must lay each trio out adjacently. */
-  vec3_t delta;       /* was v21/v22/v23 — vertex - origin delta vec */
-  vec3_t centerorg;   /* was v24/v25/v26 — center origin (trace start) */
-  vec3_t grounded;    /* was v27/v28/v29 — origin dropped onto floor */
+  vec3_t dir;       /* was v21/v22/v23 — vertex - origin delta vec */
+  vec3_t start;   /* was v24/v25/v26 — center origin (trace start) */
+  vec3_t areastart;    /* was v27/v28/v29 — origin dropped onto floor */
   vec3_t vmav;        /* was v30/(v31)/v32 — VectorMA output (v31 elided by IDA) */
-  vec3_t vertex;      /* was v33/v34/v35 — face center from sub_100113F0 */
+  vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
   int v38;
@@ -13356,102 +13356,102 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
   float v41[21]; /* [BYREF] */
   char v44[84]; /* [BYREF] */
 
-  if ( !AAS_AreaGrounded(ArgList) && !AAS_AreaSwim(ArgList) )
+  if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
     return 0;
-  if ( (AAS_AreaPresenceType(ArgList) & 2) == 0 )
+  if ( (AAS_AreaPresenceType(area1num) & 2) == 0 )
     return 0;
-  if ( AAS_AreaSwim(ArgList) )
+  if ( AAS_AreaSwim(area1num) )
     return 0;
-  v2 = (char *)aasworld.areas + 48 * a2;
-  v3 = (char *)aasworld.areas + 48 * ArgList;
-  v39 = v2;
-  if ( *((float *)v2 + 8) < (double)*((float *)v3 + 5) )
+  area2 = (char *)aasworld.areas + 48 * area2num;
+  area1 = (char *)aasworld.areas + 48 * area1num;
+  v39 = area2;
+  if ( *((float *)area2 + 8) < (double)*((float *)area1 + 5) )
     return 0;
-  centerorg[0] = *((float *)v3 + 9);
-  centerorg[1] = *((float *)v3 + 10);
-  centerorg[2] = *((float *)v3 + 11);
-  if ( AAS_AreaSwim(ArgList) )
+  start[0] = *((float *)area1 + 9);
+  start[1] = *((float *)area1 + 10);
+  start[2] = *((float *)area1 + 11);
+  if ( AAS_AreaSwim(area1num) )
   {
-    v4 = bi_PointContents((int)centerorg);   /* IDA-dropped: swim-area liquid check */
+    v4 = bi_PointContents((int)start);   /* IDA-dropped: swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
   else
   {
-    if ( !AAS_PointAreaNum(centerorg) )
-      Log_Write(aAreaDCenterFFF, ArgList);
-    vmav[0] = centerorg[0];
-    vmav[1] = centerorg[1];
-    vmav[2] = centerorg[2] - 1000.0;
-    trace = AAS_TraceClientBBox(centerorg, vmav, 4, -1);
+    if ( !AAS_PointAreaNum(start) )
+      Log_Write(aAreaDCenterFFF, area1num);
+    vmav[0] = start[0];
+    vmav[1] = start[1];
+    vmav[2] = start[2] - 1000.0;
+    trace = AAS_TraceClientBBox(start, vmav, 4, -1);
     if ( trace.startsolid )
       return 0;
-    grounded[0] = trace.endpos[0];
-    grounded[1] = trace.endpos[1];
-    grounded[2] = trace.endpos[2];
+    areastart[0] = trace.endpos[0];
+    areastart[1] = trace.endpos[1];
+    areastart[2] = trace.endpos[2];
   }
-  v5 = *((_DWORD *)v2 + 1);
+  v5 = *((_DWORD *)area2 + 1);
   v6 = 0;
   v38 = 0;
   if ( v5 > 0 )
   {
     while ( 1 )
     {
-      v7 = *((_DWORD *)aasworld.faceindex + v6 + *((_DWORD *)v2 + 2));
-      v8 = (char *)aasworld.faces + 24 * abs32(v7);
-      if ( (v8[4] & 1) != 0 )
+      face2num = *((_DWORD *)aasworld.faceindex + v6 + *((_DWORD *)area2 + 2));
+      face2 = (char *)aasworld.faces + 24 * abs32(face2num);
+      if ( (face2[4] & 1) != 0 )
       {
-        v9 = *((int *)aasworld.edgeindex + *((_DWORD *)v8 + 3));
-        LODWORD(v9) = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * ((HIDWORD(v9) ^ v9) - HIDWORD(v9)));
-        delta[0] = *(float *)v9 - grounded[0];
-        delta[1] = *(float *)(v9 + 4) - grounded[1];
-        delta[2] = *(float *)(v9 + 8) - grounded[2];
-        if ( delta[2] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2)
-           + delta[1] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 1)
-           + delta[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)v8) <= 0.0 )
+        v = *((int *)aasworld.edgeindex + *((_DWORD *)face2 + 3));
+        LODWORD(v) = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * ((HIDWORD(v) ^ v) - HIDWORD(v)));
+        dir[0] = *(float *)v - areastart[0];
+        dir[1] = *(float *)(v + 4) - areastart[1];
+        dir[2] = *(float *)(v + 8) - areastart[2];
+        if ( dir[2] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2)
+           + dir[1] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 1)
+           + dir[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2) <= 0.0 )
         {
-          sub_100113F0(v7, vertex);
-          if ( grounded[2] + 64.0 <= vertex[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)v8 + 2) * -1.0 >= 0.0 )
+          AAS_FaceCenter(face2num, facecenter);
+          if ( areastart[2] + 64.0 <= facecenter[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2) * -1.0 >= 0.0 )
           {
-            delta[2] = 0.0;
-            delta[0] = vertex[0] - grounded[0];
-            delta[1] = vertex[1] - grounded[1];
-            v37 = vertex[2] - grounded[2];
-            v10 = VectorLength(delta);
-            v36 = v10;
-            if ( v10 != 0.0 && v36 <= 2000.0 && tan(0.2617993877991494) <= v37 / v36 )
+            dir[2] = 0.0;
+            dir[0] = facecenter[0] - areastart[0];
+            dir[1] = facecenter[1] - areastart[1];
+            v37 = facecenter[2] - areastart[2];
+            hordist = VectorLength(dir);
+            v36 = hordist;
+            if ( hordist != 0.0 && v36 <= 2000.0 && tan(0.2617993877991494) <= v37 / v36 )
             {
-              centerorg[0] = vertex[0];
-              centerorg[1] = vertex[1];
-              centerorg[2] = vertex[2];
+              start[0] = facecenter[0];
+              start[1] = facecenter[1];
+              start[2] = facecenter[2];
               /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
                * decompiled the address calc as `+ 20 * planenum` which would
                * advance 20 floats = 80 bytes per plane; the original disasm
                * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
                * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(vertex, -500.0, (float *)aasworld.planes + 5 * *(_DWORD *)v8, vmav);
-              qmemcpy(v41, AAS_Trace(v44, (int)centerorg, 0, 0, (int)vmav, 0, 100663299), sizeof(v41));
+              VectorMA(facecenter, -500.0, (float *)aasworld.planes + 5 * *(_DWORD *)face2, vmav);
+              qmemcpy(v41, AAS_Trace(v44, (int)start, 0, 0, (int)vmav, 0, 100663299), sizeof(v41));
               if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0 < 32.0 )
               {
-                delta[0] = vertex[0] - grounded[0];
-                delta[1] = vertex[1] - grounded[1];
-                delta[2] = vertex[2] - grounded[2];
-                VectorNormalize(delta);
-                VectorMA(grounded, 4.0, delta, centerorg);
+                dir[0] = facecenter[0] - areastart[0];
+                dir[1] = facecenter[1] - areastart[1];
+                dir[2] = facecenter[2] - areastart[2];
+                VectorNormalize(dir);
+                VectorMA(areastart, 4.0, dir, start);
                 /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
                  * IDA dropped the middle assignment. */
                 vmav[0] = v41[3];
                 vmav[1] = v41[4];
                 vmav[2] = v41[5];
-                trace = AAS_TraceClientBBox(centerorg, vmav, 2, -1);
-                delta[0] = trace.endpos[0] - vertex[0];
-                delta[1] = trace.endpos[1] - vertex[1];
-                delta[2] = trace.endpos[2] - vertex[2];
-                if ( VectorLength(delta) <= 24.0 )
+                trace = AAS_TraceClientBBox(start, vmav, 2, -1);
+                dir[0] = trace.endpos[0] - facecenter[0];
+                dir[1] = trace.endpos[1] - facecenter[1];
+                dir[2] = trace.endpos[2] - facecenter[2];
+                if ( VectorLength(dir) <= 24.0 )
                 {
-                  centerorg[0] = trace.endpos[0];
-                  centerorg[1] = trace.endpos[1];
-                  centerorg[2] = trace.endpos[2];
+                  start[0] = trace.endpos[0];
+                  start[1] = trace.endpos[1];
+                  start[2] = trace.endpos[2];
                   /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
                    * from trace.endpos; IDA dropped the middle assignment. */
                   vmav[0] = trace.endpos[0];
@@ -13459,40 +13459,40 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
                   vmav[2] = trace.endpos[2];
                   v37 = sub_10011520();
                   vmav[2] = vmav[2] - (double)v37;
-                  trace = AAS_TraceClientBBox(centerorg, vmav, 2, -1);
+                  trace = AAS_TraceClientBBox(start, vmav, 2, -1);
                   if ( trace.fraction < 1.0 )
                   {
                     v11 = AAS_PointAreaNum(trace.endpos);
                     if ( (*((_BYTE *)aasworld.areasettings + 28 * v11) & 6) == 0
-                      && v11 != ArgList
-                      && !AAS_ReachabilityExists(ArgList, v11)
+                      && v11 != area1num
+                      && !AAS_ReachabilityExists(area1num, v11)
                       && AAS_AreaGrounded(v11) )
                     {
-                      v12 = AAS_AllocReachability();
-                      v13 = v12;
-                      if ( !v12 )
+                      lreach = AAS_AllocReachability();
+                      v13 = lreach;
+                      if ( !lreach )
                         return 0;
                       v14 = v41[3];
-                      *(_DWORD *)v12 = v11;
-                      *(_DWORD *)(v12 + 4) = v7;
-                      *(_DWORD *)(v12 + 8) = 0;
-                      *(float *)(v12 + 12) = grounded[0];
-                      v15 = v14 - *(float *)(v12 + 12);
+                      *(_DWORD *)lreach = v11;
+                      *(_DWORD *)(lreach + 4) = face2num;
+                      *(_DWORD *)(lreach + 8) = 0;
+                      *(float *)(lreach + 12) = areastart[0];
+                      v15 = v14 - *(float *)(lreach + 12);
                       v16 = v41[3];
-                      *(float *)(v12 + 16) = grounded[1];
+                      *(float *)(lreach + 16) = areastart[1];
                       v17 = v41[4];
-                      *(float *)(v13 + 20) = grounded[2];
+                      *(float *)(v13 + 20) = areastart[2];
                       v18 = v41[5];
                       *(float *)(v13 + 24) = v16;
                       *(float *)(v13 + 28) = v17;
                       *(float *)(v13 + 32) = v18;
                       *(_DWORD *)(v13 + 36) = 14;
-                      delta[0] = v15;
-                      delta[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
-                      delta[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
-                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(delta) * 0.25 + 500.0);
-                      *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
-                      *(_DWORD *)(areareachability + 4 * ArgList) = v13;
+                      dir[0] = v15;
+                      dir[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
+                      dir[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
+                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(dir) * 0.25 + 500.0);
+                      *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
+                      *(_DWORD *)(areareachability + 4 * area1num) = v13;
                       ++reach_grapple;
                     }
                   }
@@ -13507,7 +13507,7 @@ int __cdecl AAS_Reachability_Grapple(int ArgList, int a2)
       v38 = v6;
       if ( v6 >= v19 )
         break;
-      v2 = v39;
+      area2 = v39;
     }
   }
   return 0;
@@ -13633,7 +13633,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
   int v23;
   float v24;
-  vec3_t facecenter;    /* was v25/v26/v27 — face-center from sub_100113F0 */
+  vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
   float v28[3]; /* [BYREF] */
   float v29[3]; /* [BYREF] */
   float v30[3]; /* [BYREF] */
@@ -13679,7 +13679,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
     v6 = *((int *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2));
     if ( (*((_BYTE *)aasworld.faces + 24 * ((HIDWORD(v6) ^ v6) - HIDWORD(v6)) + 4) & 4) != 0 )
     {
-      sub_100113F0(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), facecenter);
+      AAS_FaceCenter(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), facecenter);
       v7 = groundedpos[2] + 64.0;
       if ( v7 <= facecenter[2] )
         break;
