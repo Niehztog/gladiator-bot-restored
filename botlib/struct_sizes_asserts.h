@@ -28,11 +28,20 @@
 #include "chat_state.h"
 #include "ea_state.h"
 
-/* -- Core file / world ----------------------------------------------- */
+/*
+ * These assertions encode the original 32-bit Windows DLL struct layout.
+ * On 64-bit hosts, pointer-containing structs naturally grow, so we only
+ * enable the asserts when compiling for a 32-bit target.  Binary
+ * compatibility with the original DLL is enforced through the MinGW
+ * 32-bit build path; the 64-bit Linux build path is for development
+ * smoke-testing only.
+ */
+#include <stdint.h>
+#if INTPTR_MAX == INT32_MAX
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
 _Static_assert(sizeof(aas_header_t)        == 120,  "aas_header_t size (0x78)");
 _Static_assert(sizeof(bot_fileref_t)       == 152,  "bot_fileref_t size (38 ints)");
-_Static_assert(sizeof(gladiator_token_t)   == 1072, "gladiator_token_t size (0x430)");
+_Static_assert(sizeof(token_t)             == 1072, "token_t size (0x430)");
 _Static_assert(sizeof(aas_world_t)         == 676,  "aas_world_t size (0x2A4)");
 
 /* -- Soundinfo / iteminfo / weaponinfo ------------------------------- */
@@ -68,5 +77,6 @@ _Static_assert(sizeof(bot_match_t)         == 240,  "bot_match_t size");
 /* -- Bot state ------------------------------------------------------- */
 _Static_assert(sizeof(ea_state_t)          == 36,   "ea_state_t size");
 _Static_assert(sizeof(bot_state_t)         == 4560, "bot_state_t size (BOT_STATE_SIZE)");
+#endif  /* INTPTR_MAX == INT32_MAX */
 
 #endif /* BOTLIB_STRUCT_SIZES_ASSERTS_H */

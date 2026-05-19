@@ -80,9 +80,9 @@ extern void   sub_10038AC0(char *name, char *value);      /* LibVarSet body */
 extern int    PC_AddGlobalDefine(const char *string);
 
 /* Slot 6 helpers */
-extern int    BotLoadMap(int mapname, int modelindexes, int modelindex,
-                         int soundindexes, int soundindex,
-                         int imageindexes, int imageindex);
+extern int    BotLoadMap(char *mapname, int modelindexes, char **modelindex,
+                         int soundindexes, char **soundindex,
+                         int imageindexes, char **imageindex);
 extern int    sub_10029C10(void);                         /* post-load init */
 
 /* Slot 7 helpers */
