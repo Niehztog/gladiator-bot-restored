@@ -22037,8 +22037,11 @@ LABEL_64:
 //----- (10028650) --------------------------------------------------------
 void __cdecl sub_10028650(bot_state_t *bs)
 {
-  int a1 = (int)(intptr_t)bs;
-  int v1; // edi
+  /* a1/v1 hold the bs pointer; on 64-bit we must keep their full
+   * width or BotAINode((bot_state_t *)v1) re-truncates to a bogus
+   * index.  Keep both as intptr_t to preserve the original cast sites. */
+  intptr_t a1 = (intptr_t)bs;
+  intptr_t v1; // edi (was int)
   int v2; // ebp
   bot_consolemessage_t *v3;
   char *v4; // eax
