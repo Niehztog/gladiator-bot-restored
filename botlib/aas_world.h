@@ -52,6 +52,16 @@ typedef struct {
     short traveltime;    /* +40                                      */
 } aas_reachability_t;    /* 44 bytes (stride = 44)                   */
 
+/* Free-list node used by AAS_SetupReachabilityHeap / AAS_AllocReachability.
+ * 32-bit: 44 reach bytes + 4-byte next ptr = 48-byte stride.  64-bit
+ * widens next to 8 bytes; the allocator uses sizeof() so the pool sizes
+ * correctly for either word width and reach offsets within the node
+ * remain at +0 (consumers cast the popped void* straight to int* / reach). */
+typedef struct aas_reachabilitynode_s {
+    aas_reachability_t              reach;     /* +0   payload */
+    struct aas_reachabilitynode_s  *next;      /* +44 on 32-bit, +48 on 64-bit (padding) */
+} aas_reachabilitynode_t;
+
 typedef struct { int planenum; int children[2]; } aas_node_t;
 typedef struct {
     int areanum;             /* +0  area on the front side                  */

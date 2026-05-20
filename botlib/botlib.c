@@ -2102,7 +2102,7 @@ bot_randomlist_t *dword_1006437C; // weak
 bot_replychat_t *dword_10064380; // weak
 bot_synonymlist_t *dword_10064384; /* synonyms head, set by sub_1002B110 */
 int dword_10064388; // weak
-int dword_10064398; // weak
+bsp_entity_t *dword_10064398; // BSP entity list head (parsed by sub_100069A0)
 int dword_1006439C; // weak
 /* bot_character layout (private to botlib; not shared with engine):
  *   { int numcharacteristics; bot_characteristic_t pairs[N]; char strings[]; }
@@ -2260,10 +2260,10 @@ int dword_10066740; // weak
 int dword_10066744; // weak
 int numportalcacheupdates; // weak
 int numareacacheupdates; // weak
-int areareachability; // weak
+aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
 int reach_ladder; // weak
 int reach_elevator; // weak
-int reachabilityheap; // weak
+intptr_t reachabilityheap; // pool base (was: int truncated ptr)
 int reach_jump; // weak
 int reach_grapple; // weak
 int reach_waterjump; // weak
@@ -2271,7 +2271,7 @@ int reach_teleport; // weak
 int reach_barrier; // weak
 int reach_swim; // weak
 int reach_equalfloor; // weak
-int nextreachability; // weak
+intptr_t nextreachability; // free-list head (was: int truncated ptr)
 int reach_walkoffledge; // weak
 int reach_rocketjump; // weak
 int reach_step; // weak
@@ -10514,21 +10514,25 @@ int AAS_Optimize()
 // 10066958: using guessed type int aasworld.reachabilitysize;
 
 //----- (10010F60) --------------------------------------------------------
+/* 32-bit DLL allocated 65536 fixed-size nodes (48 B each, next-ptr at
+ * +44) for the reach free-list.  The +44 next slot can't hold a 64-bit
+ * pointer, so retype the heap/free-head to aas_reachabilitynode_t* and
+ * size the pool via sizeof() so the stride is correct on both word widths. */
+#define AAS_REACHABILITYHEAP_NODES 65536
+
 int AAS_SetupReachabilityHeap()
 {
-  int result; // eax
-  int i; // ecx
+  aas_reachabilitynode_t *pool;
+  int i;
 
-  result = GetClearedMemory(3145728);
-  reachabilityheap = result;
-  for ( i = 0; i < 3145680; i += 48 )
-  {
-    *(_DWORD *)(i + result + 44) = i + result + 48;
-    result = reachabilityheap;
-  }
-  *(_DWORD *)(reachabilityheap + 3145724) = 0;
-  nextreachability = reachabilityheap;
-  return result;
+  pool = (aas_reachabilitynode_t *)GetClearedMemory(
+      AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
+  reachabilityheap = (intptr_t)pool;
+  for ( i = 0; i < AAS_REACHABILITYHEAP_NODES - 1; ++i )
+    pool[i].next = &pool[i + 1];
+  pool[AAS_REACHABILITYHEAP_NODES - 1].next = NULL;
+  nextreachability = (intptr_t)pool;
+  return (int)(intptr_t)pool;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10066788: using guessed type int reachabilityheap;
@@ -10537,7 +10541,7 @@ int AAS_SetupReachabilityHeap()
 //----- (10010FD0) --------------------------------------------------------
 int AAS_ShutDownReachabilityHeap()
 {
-  return FreeMemory(reachabilityheap);
+  return FreeMemory((void *)reachabilityheap);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066788: using guessed type int reachabilityheap;
@@ -10566,24 +10570,21 @@ int AAS_ShutDownReachabilityHeap()
  *
  * Note this is a DIFFERENT free list from the entity-link one at
  * aasworld.freelinks (0x10066990, 16-byte stride, link at +8). */
-extern int nextreachability;          /* head of AAS-link free chain */
+extern intptr_t nextreachability;          /* head of AAS-link free chain */
 int dword_1006677C;                  /* AAS-link allocation counter */
 
 void *AAS_AllocReachability(void)
 {
-  int head = nextreachability;
-  int next;
+  aas_reachabilitynode_t *head = (aas_reachabilitynode_t *)nextreachability;
   if ( !head )
     return NULL;
-  next = *(int *)(intptr_t)(head + 44);  /* link->next at +0x2C */
-  if ( !next )
+  if ( !head->next )
     AAS_Error("AAS_MAX_REACHABILITYSIZE");
   /* Original re-reads head here in case AAS_Error trashed eax. */
-  head = nextreachability;
-  next = *(int *)(intptr_t)(head + 44);
-  nextreachability = next;
+  head = (aas_reachabilitynode_t *)nextreachability;
+  nextreachability = (intptr_t)head->next;
   ++dword_1006677C;
-  return (void *)(intptr_t)head;
+  return head;
 }
 
 //----- (10011040) --------------------------------------------------------
@@ -10812,7 +10813,7 @@ int __cdecl AAS_ReachabilityExists(int a1, int a2)
     return 0;
   while ( *v2 != a2 )
   {
-    v2 = (_DWORD *)v2[11];
+    v2 = (_DWORD *)((aas_reachabilitynode_t *)v2)->next;
     if ( !v2 )
       return 0;
   }
@@ -10950,8 +10951,8 @@ LABEL_14:
   *((_WORD *)v16 + 20) = 1;
   if ( sub_10011220(a2) < 800.0 )
     *((_WORD *)v16 + 20) += 200;
-  v16[11] = *(_DWORD *)(areareachability + 4 * a1);
-  *(_DWORD *)(areareachability + 4 * a1) = v16;
+  ((aas_reachabilitynode_t *)v16)->next = (aas_reachabilitynode_t *)areareachability[a1];
+  areareachability[a1] = (aas_reachabilitynode_t *)v16;
   ++reach_swim;
   return 1;
 }
@@ -11203,8 +11204,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                 *(float *)(v27 + 32) = v35;
                 *(_DWORD *)(v27 + 36) = v36;
                 *(_WORD *)(v27 + 40) = v34;
-                *(_DWORD *)(v27 + 44) = *(_DWORD *)(areareachability + 4 * a1);
-                *(_DWORD *)(areareachability + 4 * a1) = v27;
+                ((aas_reachabilitynode_t *)v27)->next = areareachability[a1];
+                areareachability[a1] = (aas_reachabilitynode_t *)v27;
                 if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
                   *(_WORD *)(v27 + 40) += 300;
                 if ( !sub_10011740((float *)(v27 + 12), (float *)(v27 + 24)) )
@@ -11748,8 +11749,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           *((_WORD *)v45 + 20) = 1;
           if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
             *((_WORD *)v45 + 20) += 300;
-          v45[11] = *(_DWORD *)(areareachability + 4 * a1);
-          *(_DWORD *)(areareachability + 4 * a1) = v45;
+          ((aas_reachabilitynode_t *)v45)->next = (aas_reachabilitynode_t *)areareachability[a1];
+          areareachability[a1] = (aas_reachabilitynode_t *)v45;
           if ( !sub_10011740((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
           /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
@@ -11785,8 +11786,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             VectorMA((float *)v138, 15.0, (float *)v139, v50 + 24);
             *(_DWORD *)(v50 + 36) = 9;
             *(_WORD *)(v50 + 40) = 700;
-            *(_DWORD *)(v50 + 44) = *(_DWORD *)(areareachability + 4 * a1);
-            *(_DWORD *)(areareachability + 4 * a1) = v50;
+            ((aas_reachabilitynode_t *)v50)->next = areareachability[a1];
+            areareachability[a1] = (aas_reachabilitynode_t *)v50;
             ++reach_waterjump;
             return 1;
           }
@@ -11815,8 +11816,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           VectorMA(v110, 5.0, (float *)v120, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
-          v55[11] = *(_DWORD *)(areareachability + 4 * v48);
-          *(_DWORD *)(areareachability + 4 * v48) = v55;
+          ((aas_reachabilitynode_t *)v55)->next = (aas_reachabilitynode_t *)areareachability[v48];
+          areareachability[v48] = (aas_reachabilitynode_t *)v55;
           ++reach_barrier;
           return 1;
         }
@@ -11835,8 +11836,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           result = 1;
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
-          *(_DWORD *)(v56 + 44) = *(_DWORD *)(areareachability + 4 * v48);
-          *(_DWORD *)(areareachability + 4 * v48) = v56;
+          ((aas_reachabilitynode_t *)v56)->next = areareachability[v48];
+          areareachability[v48] = (aas_reachabilitynode_t *)v56;
           ++reach_walk;
           return result;
         }
@@ -11871,8 +11872,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                 *(float *)(v57 + 32) = v110[2];
                 *(_DWORD *)(v57 + 36) = 7;
                 *(_WORD *)(v57 + 40) = 100;
-                *(_DWORD *)(v57 + 44) = *(_DWORD *)(areareachability + 4 * v48);
-                *(_DWORD *)(areareachability + 4 * v48) = v57;
+                ((aas_reachabilitynode_t *)v57)->next = areareachability[v48];
+                areareachability[v48] = (aas_reachabilitynode_t *)v57;
                 ++reach_walkoffledge;
                 return 1;
               }
@@ -12505,8 +12506,8 @@ LABEL_67:
                          * the return and used v48 (probe-loop teststart.z), which
                          * is wrong — see ida_dropped_results.md. */
                         *(_WORD *)(lreach + 40) = (__int64)(VectorDistance(bestend, beststart) * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
-                        *(_DWORD *)(lreach + 44) = *(_DWORD *)(areareachability + 4 * area1num);
-                        *(_DWORD *)(areareachability + 4 * area1num) = lreach;
+                        ((aas_reachabilitynode_t *)lreach)->next = areareachability[area1num];
+                        areareachability[area1num] = (aas_reachabilitynode_t *)lreach;
                         ++reach_jump;
                       }
                     }
@@ -12806,8 +12807,8 @@ LABEL_20:
                   VectorMA(mid2, -3.0, (float *)v28, (float *)(v32 + 24));
                   *(_DWORD *)(v33 + 36) = 6;
                   *(_WORD *)(v33 + 40) = 10;
-                  *(_DWORD *)(v33 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
-                  *(_DWORD *)(areareachability + 4 * area1num) = v33;
+                  ((aas_reachabilitynode_t *)v33)->next = areareachability[area1num];
+                  areareachability[area1num] = (aas_reachabilitynode_t *)v33;
                   ++reach_ladder;
                   v35 = AAS_AllocReachability();
                   v36 = v35;
@@ -12823,8 +12824,8 @@ LABEL_20:
                     VectorMA(mid, -3.0, (float *)v28, (float *)(v35 + 24));
                     *(_DWORD *)(v36 + 36) = 6;
                     *(_WORD *)(v36 + 40) = 10;
-                    *(_DWORD *)(v36 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
-                    *(_DWORD *)(areareachability + 4 * area2num) = v36;
+                    ((aas_reachabilitynode_t *)v36)->next = areareachability[area2num];
+                    areareachability[area2num] = (aas_reachabilitynode_t *)v36;
                     ++reach_ladder;
                     return 1;
                   }
@@ -12850,8 +12851,8 @@ LABEL_20:
                   VectorMA((float *)(v39 + 24), -15.0, (float *)v28, (float *)(v39 + 24));
                   *(_DWORD *)(v40 + 36) = 6;
                   *(_WORD *)(v40 + 40) = 10;
-                  *(_DWORD *)(v40 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
-                  *(_DWORD *)(areareachability + 4 * area1num) = v40;
+                  ((aas_reachabilitynode_t *)v40)->next = areareachability[area1num];
+                  areareachability[area1num] = (aas_reachabilitynode_t *)v40;
                   ++reach_ladder;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
@@ -12868,8 +12869,8 @@ LABEL_20:
                     *(float *)(v42 + 32) = mid[2];
                     *(_DWORD *)(v42 + 36) = 7;
                     *(_WORD *)(v42 + 40) = 10;
-                    *(_DWORD *)(v42 + 44) = *(_DWORD *)(areareachability + 4 * area2num);
-                    *(_DWORD *)(areareachability + 4 * area2num) = v42;
+                    ((aas_reachabilitynode_t *)v42)->next = areareachability[area2num];
+                    areareachability[area2num] = (aas_reachabilitynode_t *)v42;
                     ++reach_walkoffledge;
                     return 1;
                   }
@@ -12953,8 +12954,8 @@ LABEL_20:
                     *(float *)(v59 + 32) = trace.endpos[2];
                     *(_DWORD *)(v59 + 36) = 6;
                     *(_WORD *)(v59 + 40) = 10;
-                    *(_DWORD *)(v59 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
-                    *(_DWORD *)(areareachability + 4 * area1num) = v59;
+                    ((aas_reachabilitynode_t *)v59)->next = areareachability[area1num];
+                    areareachability[area1num] = (aas_reachabilitynode_t *)v59;
                     ++reach_ladder;
                     lreach = AAS_AllocReachability();
                     if ( lreach )
@@ -12972,8 +12973,8 @@ LABEL_20:
                       *(_DWORD *)(lreach + 36) = 5;
                       *(_WORD *)(lreach + 40) = 10;
                       *(float *)(lreach + 32) = v64;
-                      *(_DWORD *)(lreach + 44) = *(_DWORD *)(areareachability + 4 * v53);
-                      *(_DWORD *)(areareachability + 4 * v53) = lreach;
+                      ((aas_reachabilitynode_t *)lreach)->next = areareachability[v53];
+                      areareachability[v53] = (aas_reachabilitynode_t *)lreach;
                       ++reach_jump;
                       return 1;
                     }
@@ -13004,11 +13005,11 @@ LABEL_20:
 //----- (10015BB0) --------------------------------------------------------
 int AAS_Reachability_Teleport()
 {
-  char **v0; // eax
-  int *v1; // ebx
+  bsp_entity_t *v0; // eax — entity list head
+  bsp_entity_t *v1; // ebx — current entrance entity
   const char *v2; // eax
   const char *v3; // ebp
-  int *v4; // edi
+  bsp_entity_t *v4; // edi — current destination-search entity
   const char *v5; // eax
   const char *v6; // eax
   int v7; // ebp
@@ -13020,8 +13021,8 @@ int AAS_Reachability_Teleport()
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
   vec3_t origin; // [ebp-84h] BYREF — teleport entrance origin (VectorForBSPEpairKey output)
-  int *v25; // [esp+58h] [ebp-78h]
-  int *v26; // [esp+5Ch] [ebp-74h]
+  bsp_entity_t *v25; // [esp+58h] [ebp-78h]
+  bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for sub_10006920
   const char *v27; // [esp+60h] [ebp-70h]
   float v28[3]; // [esp+64h] [ebp-6Ch] BYREF
   float v29[3]; // [esp+70h] [ebp-60h] BYREF
@@ -13029,9 +13030,9 @@ int AAS_Reachability_Teleport()
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
   v0 = sub_100069A0();
-  v1 = (int *)v0;
-  v26 = (int *)v0;
-  v25 = (int *)v0;
+  v1 = v0;
+  v26 = v0;
+  v25 = v0;
   if ( v0 )
   {
     while ( 1 )
@@ -13061,7 +13062,7 @@ int AAS_Reachability_Teleport()
                   }
                 }
               }
-              v4 = (int *)v4[1];
+              v4 = v4->next;
               if ( !v4 )
                 goto LABEL_18;
             }
@@ -13126,8 +13127,8 @@ LABEL_18:
                     *(float *)(v11 + 32) = destorigin[2];
                     *(_DWORD *)(v11 + 36) = 10;
                     *(_WORD *)(v11 + 40) = 50;
-                    *(_DWORD *)(v11 + 44) = *(_DWORD *)(areareachability + 4 * v10);
-                    *(_DWORD *)(areareachability + 4 * v10) = v11;
+                    ((aas_reachabilitynode_t *)v11)->next = areareachability[v10];
+                    areareachability[v10] = (aas_reachabilitynode_t *)v11;
                     ++reach_teleport;
                   }
                 }
@@ -13151,12 +13152,12 @@ LABEL_18:
         }
       }
 LABEL_29:
-      v25 = (int *)v1[1];
+      v25 = v1->next;
       if ( !v25 )
         break;
       v1 = v25;
     }
-    v0 = (char **)v26;
+    v0 = v26;
   }
   return sub_10006920(v0);
 }
@@ -13174,8 +13175,8 @@ LABEL_29:
 //----- (100160E0) --------------------------------------------------------
 int AAS_Reachability_Elevator()
 {
-  char **v0; // edi
-  int *v1; // ebp
+  bsp_entity_t *v0; // edi
+  bsp_entity_t *v1; // ebp — current entity walk
   const char *v2; // eax
   int v3; // eax
   int v4; // eax
@@ -13211,7 +13212,7 @@ int AAS_Reachability_Elevator()
   float v43;
   vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
   vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
-  int *v50;
+  bsp_entity_t *v50;
   int i;
   float v52;
   vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
@@ -13221,7 +13222,7 @@ int AAS_Reachability_Elevator()
   vec3_t btmorg;        /* was v61/v62/v63 — VectorMA midpoint output (bottom) */
   vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
   int v66;
-  char **v67;
+  bsp_entity_t *v67;
   float v68[3];         /* [BYREF] */
   float v69[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
   float v70[3];         /* [BYREF] */
@@ -13234,9 +13235,9 @@ int AAS_Reachability_Elevator()
 
   memset(v69, 0, sizeof(v69));
   v0 = sub_100069A0();
-  v1 = (int *)v0;
+  v1 = v0;
   v67 = v0;
-  v50 = (int *)v0;
+  v50 = v0;
   if ( v0 )
   {
     while ( 1 )
@@ -13248,7 +13249,7 @@ int AAS_Reachability_Elevator()
           break;
       }
 LABEL_58:
-      v50 = (int *)v1[1];
+      v50 = v1->next;
       if ( !v50 )
         return sub_10006920(v0);
       v1 = v50;
@@ -13428,8 +13429,8 @@ LABEL_30:
                   *((_WORD *)v21 + 20) = 50;
                 v27 = v33;
                 i = 9999;
-                v21[11] = *(_DWORD *)(areareachability + 4 * LODWORD(v33));
-                *(_DWORD *)(areareachability + 4 * LODWORD(v27)) = v21;
+                ((aas_reachabilitynode_t *)v21)->next = (aas_reachabilitynode_t *)areareachability[LODWORD(v33)];
+                areareachability[LODWORD(v27)] = (aas_reachabilitynode_t *)v21;
                 ++reach_elevator;
               }
             }
@@ -13654,8 +13655,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                       dir[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
                       dir[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
                       *(_WORD *)(v13 + 40) = (__int64)(VectorLength(dir) * 0.25 + 500.0);
-                      *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * area1num);
-                      *(_DWORD *)(areareachability + 4 * area1num) = v13;
+                      ((aas_reachabilitynode_t *)v13)->next = areareachability[area1num];
+                      areareachability[area1num] = (aas_reachabilitynode_t *)v13;
                       ++reach_grapple;
                     }
                   }
@@ -13693,8 +13694,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 //----- (10017350) --------------------------------------------------------
 int AAS_SetWeaponJumpAreaFlags()
 {
-  char **v0; // ebx
-  int *v1; // ebp
+  bsp_entity_t *v0; // ebx — entity list head
+  bsp_entity_t *v1; // ebp — current entity
   const char *v2; // eax
   const char *v3; // edi
   int v4; // eax
@@ -13714,7 +13715,7 @@ int AAS_SetWeaponJumpAreaFlags()
   v8[1] = 15.0f;
   v8[2] = 15.0f;
   v0 = sub_100069A0();
-  v1 = (int *)v0;
+  v1 = v0;
   if ( v0 )
   {
     do
@@ -13766,7 +13767,7 @@ int AAS_SetWeaponJumpAreaFlags()
         BYTE1(v5) |= 0x20u;
         *((_DWORD *)aasworld.areasettings + 7 * v4 + 1) = v5;
       }
-      v1 = (int *)v1[1];
+      v1 = v1->next;
     }
     while ( v1 );
   }
@@ -13929,8 +13930,8 @@ LABEL_26:
   else
     *(_DWORD *)(v13 + 36) = 12;
   *(_WORD *)(v13 + 40) = 500;
-  *(_DWORD *)(v13 + 44) = *(_DWORD *)(areareachability + 4 * ArgList);
-  *(_DWORD *)(areareachability + 4 * ArgList) = v13;
+  ((aas_reachabilitynode_t *)v13)->next = areareachability[ArgList];
+  areareachability[ArgList] = (aas_reachabilitynode_t *)v13;
   ++reach_rocketjump;
   return 1;
 }
@@ -14197,9 +14198,9 @@ LABEL_29:
             else
               *(_WORD *)(v35 + 40) = 3000;
             v10 = v48;
-            *(_DWORD *)(v35 + 44) = *(_DWORD *)(areareachability + 4 * a1);
+            ((aas_reachabilitynode_t *)v35)->next = areareachability[a1];
             v13 = v50;
-            *(_DWORD *)(areareachability + 4 * a1) = v35;
+            areareachability[a1] = (aas_reachabilitynode_t *)v35;
             v11 = v54;
             ++reach_walkoffledge;
           }
@@ -14250,7 +14251,7 @@ int AAS_StoreReachability()
       *(_DWORD *)((char *)aasworld.areasettings + v2 + 24) = result;
       *(_DWORD *)&v3[v2 + 20] = 0;
       v4 = &v3[v2];
-      for ( i = *(_DWORD *)(areareachability + 4 * v1); i; i = *(_DWORD *)(i + 44) )
+      for ( i = areareachability[v1]; i; i = ((aas_reachabilitynode_t *)i)->next )
       {
         v6 = (char *)aasworld.reachability + 44 * *((_DWORD *)v4 + 6) + 44 * *((_DWORD *)v4 + 5);
         *(_DWORD *)v6 = *(_DWORD *)i;
@@ -14389,7 +14390,7 @@ int AAS_ContinueInitReachability(int a1)
     AAS_Reachability_Elevator();
     AAS_StoreReachability();
     AAS_ShutDownReachabilityHeap();
-    FreeMemory(areareachability);
+    FreeMemory(areareachability); areareachability = NULL;
     bi_Print(1, "calculating clusters...\n");
   }
   return 1;
@@ -14416,7 +14417,7 @@ int AAS_InitReachability()
       aasworld.savefile = 1;
       aasworld.numreachabilityareas = 1;
       AAS_SetupReachabilityHeap();
-      areareachability = GetClearedMemory(4 * aasworld.numareas);
+      areareachability = (aas_reachabilitynode_t **)GetClearedMemory(sizeof(aas_reachabilitynode_t *) * aasworld.numareas);
       return AAS_SetWeaponJumpAreaFlags();
     }
     else
@@ -20473,26 +20474,26 @@ void sub_10024590(bot_state_t *bs)
 int *__cdecl sub_10024A10(int a1)
 {
   char *v1; // eax
-  int *v2; // edi
+  bsp_entity_t *v2; // edi — current entity walk
   const char *v3; // ebp
   const char *v4; // eax
   const char *v5; // eax
   const char *v6; // ebx
   int v7; // esi
   const char *v8; // eax
-  int **v10; // ebx
+  bsp_entity_t **v10; // ebx — pointer into stack-resident heads array
   const char **v11; // ebp
   const char *v12; // eax
   const char *v13; // eax
   int v14; // [esp+10h] [ebp-D4h]
   const char *v15; // [esp+14h] [ebp-D0h]
-  int v16[10]; // [esp+18h] [ebp-CCh] BYREF
-  int v17; // [esp+40h] [ebp-A4h] BYREF
+  const char *v16[10]; // [esp+18h] [ebp-CCh] BYREF — targetname stack
+  bsp_entity_t *v17; // [esp+40h] [ebp-A4h] BYREF — heads stack (one slot, walked via v10++)
   int v18[31]; // [esp+68h] [ebp-7Ch] BYREF
 
   qmemcpy(v18, AAS_EntityInfo(v18, a1), sizeof(v18));
   v1 = sub_1000D960(v18[23]);
-  v2 = (int *)dword_10064398;
+  v2 = dword_10064398;
   v3 = v1;
   if ( !dword_10064398 )
     goto LABEL_5;
@@ -20504,7 +20505,7 @@ int *__cdecl sub_10024A10(int a1)
       if ( !strcmp(v3, v4) )
         break;
     }
-    v2 = (int *)v2[1];
+    v2 = v2->next;
     if ( !v2 )
       goto LABEL_5;
   }
@@ -20527,17 +20528,17 @@ LABEL_5:
     v7 = AAS_ValueForBSPEpairKey(v2, aTargetname);
     v8 = (const char *)AAS_ValueForBSPEpairKey(v2, aSpawnflags);
     if ( !v7 || (atoi(v8) & 1) != 0 )
-      return v2;
+      return (int *)v2;
   }
   if ( !strcmp(v6, aFuncDoor) && FloatForKey(v2, aHealth) != 0.0 )
-    return v2;
-  v16[0] = AAS_ValueForBSPEpairKey(v2, aTargetname);
+    return (int *)v2;
+  v16[0] = (const char *)AAS_ValueForBSPEpairKey(v2, aTargetname);
   if ( !v16[0] )
     return 0;
   v14 = 0;
   v17 = dword_10064398;
-  v10 = (int **)&v17;
-  v11 = (const char **)v16;
+  v10 = &v17;
+  v11 = v16;
   while ( 1 )
   {
     if ( v14 >= 10 )
@@ -20557,11 +20558,11 @@ LABEL_39:
           if ( !strcmp(*v11, v12) )
             break;
         }
-        v2 = (int *)v2[1];
+        v2 = v2->next;
         if ( !v2 )
           goto LABEL_26;
       }
-      *v10 = (int *)v2[1];
+      *v10 = v2->next;
       if ( v2 )
         break;
     }
@@ -20587,7 +20588,7 @@ LABEL_38:
       || !strcmp(v15, aTriggerOnce)
       || !strcmp(v15, aFuncDoorRotati) )
     {
-      return v2;
+      return (int *)v2;
     }
     if ( !strcmp(v15, aTriggerKey) )
       return 0;
@@ -20602,7 +20603,7 @@ LABEL_38:
     ++v11;
     ++v10;
     *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, aTargetname);
-    *v10 = (int *)dword_10064398;
+    *v10 = dword_10064398;
     goto LABEL_38;
   }
   bi_Print(3, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
@@ -20673,7 +20674,7 @@ int __cdecl sub_10024FD0(int a1, int a2)
  * axis-aligned local-space AABB rather than a world-rotated one. */
 void __cdecl sub_10025070(void)
 {
-  int        *ent;          // ebp — current entity in linked list
+  bsp_entity_t *ent;        // ebp — current entity in linked list
   int         drawn;        // ebx — drawn-button counter
   const char *classname;
   const char *model_str;
@@ -20694,7 +20695,7 @@ void __cdecl sub_10025070(void)
   vec3_t      cross_a, cross_b;
 
   drawn = 0;
-  ent   = (int *)dword_10064398;
+  ent   = dword_10064398;
   if ( !ent )
     return;
 
@@ -20715,8 +20716,8 @@ void __cdecl sub_10025070(void)
       AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
 
       /* Original calls FloatForKey for "lip" and discards the result. */
-      FloatForKey((int *)ent, aLip);
-      angle_yaw = FloatForKey((int *)ent, aAngle);
+      FloatForKey(ent, aLip);
+      angle_yaw = FloatForKey(ent, aAngle);
       angles[0] = 0.0f;
       angles[1] = (float)angle_yaw;
       angles[2] = 0.0f;
@@ -20730,7 +20731,7 @@ void __cdecl sub_10025070(void)
                          + (float)fabs(forward[1]) * (maxs[1] - mins[1])
                          + (float)fabs(forward[2]) * (maxs[2] - mins[2]) );
 
-      health = FloatForKey((int *)ent, aHealth);
+      health = FloatForKey(ent, aHealth);
       if ( health == 0.0 )
       {
         /* Instant-fire button: pull the marker back from the face. */
@@ -20789,7 +20790,7 @@ void __cdecl sub_10025070(void)
       if ( ++drawn > 5 )
         return;
     }
-    ent = (int *)ent[1];   /* next entity (linked list, next-ptr at offset 4) */
+    ent = ent->next; /* next entity (typed bsp_entity_t) */
   }
   while ( ent );
 }
@@ -22810,8 +22811,8 @@ int sub_10029C10()
   }
   BotInitLevelItems();
   if ( dword_10064398 )
-    sub_10006920((_DWORD *)dword_10064398);
-  dword_10064398 = (int)sub_100069A0();
+    sub_10006920(dword_10064398);
+  dword_10064398 = sub_100069A0();
   sub_10028C30();
   return 0;
 }
