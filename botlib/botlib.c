@@ -626,8 +626,8 @@ void __cdecl sub_100262C0(_DWORD *a1, int a2);
 void __cdecl sub_100263D0(bot_state_t *bs);
 void __cdecl sub_10026440(bot_state_t *bs);
 BOOL sub_10026690();
-BOOL __cdecl sub_10026700(char *String1, int a2);
-int __cdecl sub_10026770(bot_state_t *bs, char *String2, int a3);
+BOOL __cdecl sub_10026700(char *String1, bot_goal_t *goal);
+int __cdecl sub_10026770(bot_state_t *bs, char *String2, bot_goal_t *goal);
 double __cdecl sub_100267E0(int a1);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
 int __cdecl sub_10026990(_DWORD *a1, int a2);
@@ -21245,23 +21245,23 @@ BOOL sub_10026690()
 // 10064470: using guessed type int libvar_dmflags;
 
 //----- (10026700) --------------------------------------------------------
-BOOL __cdecl sub_10026700(char *String1, int a2)
+BOOL __cdecl sub_10026700(char *String1, bot_goal_t *goal)
 {
-  return strlen(String1) && sub_1002F890(-1, String1, a2) > 0;
+  return strlen(String1) && sub_1002F890(-1, String1, goal) > 0;
 }
 // 10026728: conditional instruction was optimized away because eax.4<1
 
 //----- (10026770) --------------------------------------------------------
-int __cdecl sub_10026770(bot_state_t *bs, char *String2, int a3)
+int __cdecl sub_10026770(bot_state_t *bs, char *String2, bot_goal_t *goal)
 {
   int v4; // eax
 
-  if ( sub_10026700(String2, a3) )
+  if ( sub_10026700(String2, goal) )
     return 1;
   v4 = sub_10021B50(*(_DWORD *)((char *)bs + 4544), String2);
   if ( !v4 )
     return 0;
-  qmemcpy((void *)a3, (const void *)(v4 + 4), 0x38u);
+  qmemcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
   return 1;
 }
 
@@ -21373,7 +21373,7 @@ int __cdecl sub_10026990(_DWORD *a1, int a2)
       return 0;
     }
     BotMatchVariable((int)&v9, 4, Destination);
-    if ( !sub_10026770((int)a1, Destination, (int)v7) )
+    if ( !sub_10026770((bot_state_t *)a1, Destination, (bot_goal_t *)v7) )
     {
       BotInitialChat(a1 + 995, aCannotfind, Destination, (char *)0);
       BotEnterChat(a1 + 995, a1[1], 1);
@@ -21652,7 +21652,7 @@ LABEL_19:
       }
       if ( bs->_i4308 )
         goto LABEL_32;
-      if ( (v64.subtype & 1) == 0 || (BotMatchVariable(&v64, 2, String2), sub_10026770(bs, String2, (int)bs->teamgoal)) )
+      if ( (v64.subtype & 1) == 0 || (BotMatchVariable(&v64, 2, String2), sub_10026770(bs, String2, (bot_goal_t *)bs->teamgoal)) )
       {
         if ( !bs->_i4308 )
         {
@@ -21707,7 +21707,7 @@ LABEL_27:
       if ( !sub_10026690() || !sub_10026BE0(bs, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 4, String2);
-      if ( !sub_10026770(bs, String2, (int)bs->teamgoal) )
+      if ( !sub_10026770(bs, String2, (bot_goal_t *)bs->teamgoal) )
         goto LABEL_27;
       v14 = rand();
       v56 = (double)(v14 & 0x7FFF) * 0.000030518509 + (double)(v14 & 0x7FFF) * 0.000030518509;
@@ -21938,7 +21938,7 @@ LABEL_64:
           return 1;
         }
       }
-      else if ( !sub_10026770(bs, String2, (int)bs->teamgoal) )
+      else if ( !sub_10026770(bs, String2, (bot_goal_t *)bs->teamgoal) )
       {
         v19 = (int)bs->chatstate;
         BotInitialChat(bs->chatstate, aCannotfind, String2, (char *)0);
@@ -22269,9 +22269,9 @@ void sub_10028C30()
   libvar_assimilation = LibVar(aAssimilation, (char *)a0);
   if ( libvar_ctf->value != 0.0 )
   {
-    if ( sub_1002F890(-1, aRedFlag, (int)&unk_10064420) < 0 )
+    if ( sub_1002F890(-1, aRedFlag, &unk_10064420) < 0 )
       bi_Print(2, aCtfWithoutRedF);
-    if ( sub_1002F890(-1, aBlueFlag, (int)&unk_100643E0) < 0 )
+    if ( sub_1002F890(-1, aBlueFlag, &unk_100643E0) < 0 )
       bi_Print(2, aCtfWithoutBlue);
     dword_10064484 = IndexFromModel(aPlayersMaleFla);
     dword_1006448C = IndexFromModel(aPlayersMaleFla_0);
