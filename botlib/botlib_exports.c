@@ -9,7 +9,7 @@
  *   slot 1  BotSetupLibrary       impl=0x10037BB0   sets up library + LibVars
  *   slot 2  BotShutdownLibrary    impl=0x10037CF0   tears down (5 calls + memsets)
  *   slot 3  BotLibraryInit        impl=0x10037D80   tail-jmp AAS_Initialized
- *   slot 4  BotLibVarSet          impl=0x10037DA0   forwards to sub_10038AC0
+ *   slot 4  BotLibVarSet          impl=0x10037DA0   forwards to LibVarSet
  *   slot 5  BotDefine             impl=0x10037DD0   PC_AddGlobalDefine + warn
  *   slot 6  BotLoadMap            impl=0x10037E10   BotLibSetup + load + sub_10029C10
  *   slot 7  BotSetupClient        impl=0x10037F00   ValidClient + sub_100085F0 + !!body
@@ -76,7 +76,7 @@ extern int    DumpMemory(void);                           /* 0x100391C0 */
 
 /* Slot 3-5 */
 extern int    AAS_Initialized(void);
-extern void   sub_10038AC0(char *name, char *value);      /* LibVarSet body */
+extern void   LibVarSet(char *name, char *value);      /* LibVarSet body */
 extern int    PC_AddGlobalDefine(const char *string);
 
 /* Slot 6 helpers */
@@ -276,13 +276,13 @@ int Export_BotLibraryInitialized(void)
 /* =========================================================================
  * SLOT 4 — BotLibVarSet (0x10037DA0).
  *   mov eax,[esp+8]; mov ecx,[esp+4]; push eax; push ecx;
- *   call sub_10038AC0; add esp,8; xor eax,eax; ret
+ *   call LibVarSet; add esp,8; xor eax,eax; ret
  * Returns 0 unconditionally.  No null-check in the original.
  * ========================================================================= */
 //----- (10037DA0) --------------------------------------------------------
 int Export_BotLibVarSet(char *var_name, char *value)
 {
-    sub_10038AC0(var_name, value);
+    LibVarSet(var_name, value);
     return 0;
 }
 
