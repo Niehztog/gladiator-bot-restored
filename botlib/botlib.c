@@ -19104,20 +19104,21 @@ char *__cdecl sub_10021860(int a1, char *a2)
     while ( v2 );
   }
   for ( i = strstr(Str, SubStr); i; i = strstr(Str, SubStr) )
-    strcpy(i, i + 1);
+    memmove(i, i + 1, strlen(i));  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
   v5 = strstr(Str, asc_1005C65C);
   v6 = strstr(Str, asc_1005C658);
   if ( v5 && v6 )
   {
+    /* overlapping shift-left: use memmove (was strcpy — UB on aarch64) */
     if ( v6 <= v5 )
-      strcpy(v6, v5 + 1);
+      memmove(v6, v5 + 1, strlen(v5 + 1) + 1);
     else
-      strcpy(v5, v6 + 1);
+      memmove(v5, v6 + 1, strlen(v6 + 1) + 1);
   }
   v7 = Str[0];
   if ( (Str[0] == 109 || Str[0] == 77) && (Str[1] == 114 || Str[1] == 82) )
   {
-    strcpy(Str, &Str[2]);
+    memmove(Str, &Str[2], strlen(&Str[2]) + 1);  /* was strcpy — UB on aarch64 */
     v7 = Str[0];
   }
   v8 = Str;
@@ -31597,7 +31598,7 @@ _BYTE *__cdecl sub_1003A710(_BYTE *a1)
   while ( *v1 )
   {
     if ( (*v1 == 92 || *v1 == 47) && ((v2 = v1[1], v2 == 92) || v2 == 47) )
-      strcpy(v1, v1 + 1);
+      memmove(v1, v1 + 1, strlen(v1));  /* was strcpy — UB on aarch64 */
     else
       ++v1;
   }
@@ -34508,8 +34509,14 @@ int __cdecl StripDoubleQuotes(char *string)
 {
   size_t len;
 
+  /* IDA original used strcpy(string, string+1) for left-shift of one byte.
+   * On 32-bit MSVC this happened to byte-copy and worked.  On 64-bit
+   * glibc (aarch64 in particular) strcpy uses SIMD chunked loads that
+   * mangle overlapping copies — observed as `armor/body` -> `armorbodyy`
+   * etc., breaking IndexFromModel for every item.  memmove handles
+   * overlap correctly. */
   while ( string[0] == '"' )
-    strcpy(string, string + 1);
+    memmove(string, string + 1, strlen(string));
   while ( (len = strlen(string)) > 0 && string[len - 1] == '"' )
     string[len - 1] = 0;
   return 0;
@@ -34521,7 +34528,7 @@ int __cdecl StripSingleQuotes(char *string)
   size_t len;
 
   while ( string[0] == '\'' )
-    strcpy(string, string + 1);
+    memmove(string, string + 1, strlen(string));
   while ( (len = strlen(string)) > 0 && string[len - 1] == '\'' )
     string[len - 1] = 0;
   return 0;
