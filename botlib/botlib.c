@@ -15380,7 +15380,7 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4)
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  v4 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)aasworld.numareas);
+  v4 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)aasworld.numareas);
   v5 = aasworld.numareas;
   v12 = 0;
   if ( aasworld.numareas <= 0 )
@@ -17060,7 +17060,7 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
-            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509f )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( sub_1000EFC0((int)bs->origin) )
@@ -17077,10 +17077,10 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
             }
             else if ( AAS_Time() >= bs->_f2820 )
             {
-              if ( bs->_f1680 * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+              if ( bs->_f1680 * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509f )
               {
                 v45 = rand() & 0x7FFF;
-                v20 = (__int64)floor((double)v45 * 0.000030518509 * 2.9);
+                v20 = (__int64)floor((double)v45 * 0.000030518509f * 2.9);
                 if ( (_DWORD)v20 )
                 {
                   if ( (_DWORD)v20 == 1 )
@@ -17101,7 +17101,7 @@ float *__cdecl BotLongTermGoal(int a1, int a2, int a3)
           }
           if ( AAS_Time() - 2.0 >= bs->_f2876 )
           {
-            if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
             {
 LABEL_86:
               sub_10034AF0((int)bs->movestate);
@@ -17182,7 +17182,7 @@ LABEL_86:
       if ( VectorLength(dir) < 70.0 )
       {
         sub_10034AF0((int)bs->movestate);
-        v46 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+        v46 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
         v30 = AAS_Time();
         result = bs->teamgoal;
         bs->_f2860 = v30 + v46 + 5.0;
@@ -17220,7 +17220,7 @@ LABEL_86:
             BotEnterChat((int)bs->chatstate, bs->client, 1);
             bs->_f2876 = AAS_Time();
           }
-          if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+          if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509f )
           {
             sub_10022A60(a1, target);
             dir[0] = target[0] - bs->origin[0];
@@ -17235,7 +17235,7 @@ LABEL_86:
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(bs->character, 24, 0.0, 1.0);
-            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509f )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( AAS_Time() < bs->_f2820 )
@@ -17343,7 +17343,7 @@ LABEL_106:
         if ( sub_10021650(a1) )
         {
           sub_10034AF0((int)bs->movestate);
-          v47 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+          v47 = (double)(rand() & 0x7FFF) * 0.000030518509f * 10.0;
           v43 = AAS_Time();
           result = v26;
           bs->_f2864 = v43 + v47 + 5.0;
@@ -17787,6 +17787,7 @@ int __cdecl AINode_Seek_NBG(int a1)
   int v15[12]; // [esp+2Ch] [ebp-60h] BYREF
   int v16[12]; // [esp+5Ch] [ebp-30h] BYREF
 
+
   if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
@@ -17847,7 +17848,7 @@ LABEL_18:
   {
     if ( (v15[5] & 4) != 0 )
     {
-      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_33;
       sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
@@ -17972,6 +17973,7 @@ int __cdecl AINode_Seek_LTG(int a1)
   int v18[12]; // [esp+34h] [ebp-60h] BYREF
   int v19[12]; // [esp+64h] [ebp-30h] BYREF
 
+
   if ( sub_100216D0(a1) )
   {
     AIEnter_Observer(a1);
@@ -18008,9 +18010,9 @@ int __cdecl AINode_Seek_LTG(int a1)
   }
   bs->enemy = 0;
   if ( AAS_Time() - 5.0 < bs->_f2872
-    && (double)(rand() & 0x7FFF) * 0.000030518509 < bs->_f1680 )
+    && (double)(rand() & 0x7FFF) * 0.000030518509f < bs->_f1680 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.5 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
       sub_100371B0(bs->client, 2);
     else
       sub_100371B0(bs->client, 0);
@@ -18022,7 +18024,9 @@ int __cdecl AINode_Seek_LTG(int a1)
     v3 = BotLongTermGoal(a1, v2, 0);
     v17 = v3;
     if ( !v3 )
+    {
       goto LABEL_42;
+    }
     if ( AAS_Time() > bs->_f2808 )
     {
       v4 = AAS_Time();
@@ -18057,7 +18061,7 @@ int __cdecl AINode_Seek_LTG(int a1)
     }
     if ( (v18[5] & 4) != 0 )
     {
-      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+      if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_41;
       sub_10022A60(a1, target);
       dir[0] = target[0] - bs->origin[0];
@@ -19333,7 +19337,11 @@ BOOL __cdecl sub_10021D80(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    /* Constant suffix `f` matches the original 32-bit float at 0x10058218
+     * (0x38000100 = 1.0f/32767.0f, the random scale).  Without the `f` C
+     * promotes the literal to double, ~4.5e-10 higher than the float, which
+     * can flip the chat-gate at boundary cases. */
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
   result = sub_10021BC0(a1);
@@ -19365,7 +19373,7 @@ int __cdecl sub_10021E90(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19392,7 +19400,7 @@ int __cdecl sub_10021F80(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19419,7 +19427,7 @@ int __cdecl sub_10022070(int a1)
   v4 = (float)Characteristic_BFloat(bs->character, 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
   v3 = sub_10021860(bs->client, v5);
@@ -19447,7 +19455,7 @@ int __cdecl sub_10022160(int *a1)
   v6 = (float)Characteristic_BFloat(a1[418], 20, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
   v4 = a1[1049];
@@ -19461,7 +19469,7 @@ int __cdecl sub_10022160(int *a1)
   }
   else
   {
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+    v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
@@ -19495,7 +19503,7 @@ BOOL __cdecl sub_100222E0(int *a1)
   v6 = (float)Characteristic_BFloat(a1[418], 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
   result = sub_10021BC0((int)a1);
@@ -19512,7 +19520,7 @@ BOOL __cdecl sub_100222E0(int *a1)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
       /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
        * Characteristic 15 is "praise vs insult" probability. */
       v8 = (float)Characteristic_BFloat(a1[418], 15, 0.0, 1.0);
@@ -19558,16 +19566,16 @@ int __cdecl sub_10022470(int a1)
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every sub_10022470 into return 0 on the !fastchat branch). */
   v6 = (float)Characteristic_BFloat(bs->character, 21, 0.0, 1.0);
-  if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509 )
+  if ( bs->_f1680 * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509f )
     return 0;
   if ( libvar_fastchat->value == 0.0 )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 || (double)(rand() & 0x7FFF) * 0.000030518509 > 0.25 )
+    if ( (double)(rand() & 0x7FFF) * 0.000030518509f > v6 || (double)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
       return 0;
   }
   if ( !sub_10021BC0(a1) )
     return 0;
-  v4 = (double)(rand() & 0x7FFF) * 0.000030518509;
+  v4 = (double)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
    * probability); v7 should be the bfloat result, not a copy of v4. */
   v7 = (float)Characteristic_BFloat(bs->character, 16, 0.0, 1.0);
@@ -19585,9 +19593,13 @@ double __cdecl sub_10022650(int a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // [esp+4h] [ebp-4h]
+  double dur;
+  unsigned int slen;
 
   v2 = Characteristic_BInteger(bs->character, 14, 1, 4000);
-  return (double)(int)sub_1002EA50((int)bs->chatstate) * 30.0 / (double)v2;
+  slen = sub_1002EA50((int)bs->chatstate);
+  dur = (double)(int)slen * 30.0 / (double)v2;
+  return dur;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001FD2: using guessed type _DWORD __cdecl sub_1002EA50(_DWORD);
@@ -19707,27 +19719,27 @@ float *__cdecl sub_10022A60(_DWORD *a1, float *a2)
     endpos[0] = *(float *)v2;
     endpos[1] = v3;
     endpos[2] = v4;
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+    v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
     v25 = v5;
     if ( v5 < 0.8 )
     {
       v6 = rand();
       v24 = -1.0;
-      if ( (double)(v6 & 0x7FFF) * 0.000030518509 >= 0.5 )
+      if ( (double)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[0] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[0] + 50.0;
+      endpos[0] = (double)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0 + endpos[0] + 50.0;
     }
     if ( v25 > 0.2 )
     {
       v7 = rand();
       v24 = -1.0;
-      if ( (double)(v7 & 0x7FFF) * 0.000030518509 >= 0.5 )
+      if ( (double)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[1] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[1] + 50.0;
+      endpos[1] = (double)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0 + endpos[1] + 50.0;
     }
     v20 = rand() & 0x7FFF;
     v18 = a1[2];
-    endpos[2] = (double)v20 * 0.000030518509 * 144.0 - 96.0 - 1.0 + endpos[2];
+    endpos[2] = (double)v20 * 0.000030518509f * 144.0 - 96.0 - 1.0 + endpos[2];
     v8 = AAS_Trace(v32, (int)v2, 0, 0, (int)endpos, v18, 3);
     v9 = endpos[0] - *(float *)v2;
     qmemcpy(v31, v8, sizeof(v31));
@@ -19841,7 +19853,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
   memset(v38, 0, sizeof(v38));
   v9 = rand();
   v20 = *(_DWORD *)(a2 + 1672);
-  v10 = (double)(v9 & 0x7FFF) * 0.000030518509;
+  v10 = (double)(v9 & 0x7FFF) * 0.000030518509f;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
    * `fstp [esp+...]` immediately after each call.  In C those become the
@@ -19873,9 +19885,9 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
-        if ( (double)LOWORD(v31) * 0.000030518509 >= v21 )
+        if ( (double)LOWORD(v31) * 0.000030518509f >= v21 )
         {
-          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (double)(rand() & 0x7FFF) * 0.000030518509 < v25 )
+          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (double)(rand() & 0x7FFF) * 0.000030518509f < v25 )
             *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0;
         }
         else
@@ -19916,10 +19928,10 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
       if ( v27 > 0.7 )
       {
         v15 = rand();
-        v14 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * 0.1
+        v14 = ((double)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < *(float *)(a2 + 2816) && (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9350000000000001 )
+      if ( v14 < *(float *)(a2 + 2816) && (double)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001 )
       {
         v16 = *(_DWORD *)(a2 + 2752);
         *(_DWORD *)(a2 + 2816) = 0;
@@ -19939,7 +19951,7 @@ void *__cdecl sub_10022E10(void *a1, int a2, int a3)
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
-        if ( (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9 )
+        if ( (double)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
           goto LABEL_35;
         if ( v26 <= 180.0 )
           break;
@@ -20342,15 +20354,15 @@ void sub_10023CE0(int a1)
     }
     v28 = 1.0 - v35;
     v13 = rand();
-    *(float *)&v32 = ((double)(v13 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v13 & 0x7FFF) * 0.000030518509 - 0.5)
+    *(float *)&v32 = ((double)(v13 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v13 & 0x7FFF) * 0.000030518509f - 0.5)
                    * v28
                    * 20.0
                    + *(float *)&v32;
     v14 = rand();
-    v33 = ((double)(v14 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v14 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 20.0
+    v33 = ((double)(v14 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v14 & 0x7FFF) * 0.000030518509f - 0.5) * v28 * 20.0
         + v33;
     v15 = rand();
-    v34 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 10.0
+    v34 = ((double)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in sub_10023CE0 tail */
@@ -20367,14 +20379,14 @@ void sub_10023CE0(int a1)
         ++v16;
         v24 = rand() & 0x7FFF;
         --v17;
-        *((float *)v16 - 1) = ((double)v24 * 0.000030518509 - 0.5 + (double)v24 * 0.000030518509 - 0.5) * v28 * 0.3
+        *((float *)v16 - 1) = ((double)v24 * 0.000030518509f - 0.5 + (double)v24 * 0.000030518509f - 0.5) * v28 * 0.3
                             + *((float *)v16 - 1);
       }
       while ( v17 );
     }
     sub_10041790(v29, a1 + 4236);
     v18 = rand();
-    v25 = ((double)(v18 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509 - 0.5)
+    v25 = ((double)(v18 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509f - 0.5)
         * (*(float *)(v3 + 264)
          * 6.0)
         * v28
@@ -20383,7 +20395,7 @@ void sub_10023CE0(int a1)
     v25 = AngleMod(v25);
     *(float *)&bs->_i4236 = v25;
     v19 = rand();
-    v26 = ((double)(v19 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v19 & 0x7FFF) * 0.000030518509 - 0.5)
+    v26 = ((double)(v19 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v19 & 0x7FFF) * 0.000030518509f - 0.5)
         * (*(float *)(v3 + 260)
          * 6.0)
         * v28
@@ -21238,9 +21250,9 @@ void __cdecl sub_10026440(int a1)
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && sub_100226C0((int *)a1) >= 50.0 )
     {
       v4 = rand();
-      v8 = (double)(v4 & 0x7FFF) * 0.000030518509 + (double)(v4 & 0x7FFF) * 0.000030518509;
+      v8 = (double)(v4 & 0x7FFF) * 0.000030518509f + (double)(v4 & 0x7FFF) * 0.000030518509f;
       bs->_f4324 = AAS_Time() + v8;
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
       if ( v5 < 0.33 && dword_1006442C && dword_100643EC )
       {
         bs->ltgtype = 4;
@@ -21514,7 +21526,7 @@ int __cdecl sub_10026BE0(int a1, int a2)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+      v5 = (double)(rand() & 0x7FFF) * 0.000030518509f;
       if ( 1.0 / (double)(sub_100238F0(a1) - 1) < v5 )
         return 0;
     }
@@ -21703,7 +21715,7 @@ LABEL_32:
         bs->teammate = v4;
         *(float *)&bs->_i4332 = AAS_Time();
         v10 = rand();
-        v55 = (double)(v10 & 0x7FFF) * 0.000030518509 + (double)(v10 & 0x7FFF) * 0.000030518509;
+        v55 = (double)(v10 & 0x7FFF) * 0.000030518509f + (double)(v10 & 0x7FFF) * 0.000030518509f;
         bs->_f4324 = AAS_Time() + v55;
         v11 = sub_100267E0((int)&v64);
         v12 = v64.type;
@@ -21747,7 +21759,7 @@ LABEL_27:
       if ( !sub_10026770(a1, String2, (int)bs->teamgoal) )
         goto LABEL_27;
       v14 = rand();
-      v56 = (double)(v14 & 0x7FFF) * 0.000030518509 + (double)(v14 & 0x7FFF) * 0.000030518509;
+      v56 = (double)(v14 & 0x7FFF) * 0.000030518509f + (double)(v14 & 0x7FFF) * 0.000030518509f;
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->_f4324 = v15 + v56;
@@ -21761,7 +21773,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v38 = rand();
-      v60 = (double)(v38 & 0x7FFF) * 0.000030518509 + (double)(v38 & 0x7FFF) * 0.000030518509;
+      v60 = (double)(v38 & 0x7FFF) * 0.000030518509f + (double)(v38 & 0x7FFF) * 0.000030518509f;
       v39 = AAS_Time();
       bs->ltgtype = 5;
       bs->_f4324 = v39 + v60;
@@ -21774,7 +21786,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !sub_10026BE0(a1, (int)&v64) )
         return 1;
       v35 = rand();
-      v59 = (double)(v35 & 0x7FFF) * 0.000030518509 + (double)(v35 & 0x7FFF) * 0.000030518509;
+      v59 = (double)(v35 & 0x7FFF) * 0.000030518509f + (double)(v35 & 0x7FFF) * 0.000030518509f;
       v36 = AAS_Time();
       bs->ltgtype = 4;
       bs->_f4324 = v36 + v59;
@@ -21982,7 +21994,7 @@ LABEL_64:
         goto LABEL_64;
       }
       v24 = rand();
-      v57 = (double)(v24 & 0x7FFF) * 0.000030518509 + (double)(v24 & 0x7FFF) * 0.000030518509;
+      v57 = (double)(v24 & 0x7FFF) * 0.000030518509f + (double)(v24 & 0x7FFF) * 0.000030518509f;
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->_f4324 = v25 + v57;
@@ -22047,7 +22059,7 @@ LABEL_64:
       if ( !sub_10026990((_DWORD *)a1, (int)&v64) )
         return 1;
       v31 = rand();
-      v58 = (double)(v31 & 0x7FFF) * 0.000030518509 + (double)(v31 & 0x7FFF) * 0.000030518509;
+      v58 = (double)(v31 & 0x7FFF) * 0.000030518509f + (double)(v31 & 0x7FFF) * 0.000030518509f;
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->_f4324 = v32 + v58;
@@ -22111,7 +22123,7 @@ void __cdecl sub_10028650(int a1)
         if ( *(_DWORD *)(v3 + 4) != 1 )
           goto LABEL_11;
         v12 = AAS_Time();
-        if ( v12 - ((double)(rand() & 0x7FFF) * 0.000030518509 + 1.0) < *(float *)v3 )
+        if ( v12 - ((double)(rand() & 0x7FFF) * 0.000030518509f + 1.0) < *(float *)v3 )
           return;
       }
       if ( *(_DWORD *)(v3 + 4) != 1 )
@@ -22147,11 +22159,11 @@ LABEL_11:
         if ( sub_10021BC0(v1) )
         {
           Characteristic_BFloat(*(_DWORD *)(v1 + 1672), 22, 0.0, 1.0);
-          v13 = (double)(rand() & 0x7FFF) * 0.000030518509;
+          v13 = (double)(rand() & 0x7FFF) * 0.000030518509f;
           if ( 1.5 / (double)(sub_10028FD0() + 1) > v13 )
           {
             v11 = v7;
-            if ( (double)(rand() & 0x7FFF) * 0.000030518509 < v11 )
+            if ( (double)(rand() & 0x7FFF) * 0.000030518509f < v11 )
             {
               v8 = strstr((const char *)(v3 + 8), asc_1005CB74);
               if ( v8 )
@@ -23860,7 +23872,7 @@ void __cdecl sub_1002B830(const char *a1, int a2)
       for ( j = 0.0; v6; v6 = *(_DWORD *)(v6 + 8) )
       {
         j = j + *(float *)(v6 + 4);
-        v8 = (double)(v4 & 0x7FFF) * 0.000030518509 * *(float *)(i + 4);
+        v8 = (double)(v4 & 0x7FFF) * 0.000030518509f * *(float *)(i + 4);
         if ( v8 < j )
           break;
       }
@@ -24019,7 +24031,7 @@ int __cdecl RandomString(const char *a1)
   {
     if ( !strcmp(*(const char **)v1, a1) )
     {
-      v2 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)*(int *)(v1 + 4));
+      v2 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)*(int *)(v1 + 4));
       v3 = *(_DWORD **)(v1 + 8);
       if ( v3 )
         break;
@@ -25349,7 +25361,7 @@ LABEL_10:
     }
     return 0;
   }
-  v8 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v5);
+  v8 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)v5);
   v9 = *(_DWORD *)(v2 + 36);
   v10 = v8;
   if ( !v9 )
@@ -25501,7 +25513,7 @@ LABEL_21:
         while ( v7 );
         v15 = v8;
       }
-      v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
+      v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509f * (double)v15);
       v10 = *(_DWORD *)(v2 + 12);
       v11 = v9;
       if ( v10 )
@@ -27643,7 +27655,7 @@ int *__cdecl sub_100324C0(int *a1, int a2, float *a3)
   dir[2] = v3;
   v10[0] = dir[0];
   v4 = rand();
-  dir[2] = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5) * 40.0
+  dir[2] = ((double)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509f - 0.5) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
@@ -27699,15 +27711,15 @@ int *__cdecl sub_10032620(int *a1, int a2, float *a3)
       dir[1] = a3[7] - *(float *)(a2 + 4);
       dir[2] = a3[8] - *(float *)(a2 + 8);
       v6 = rand();
-      dir[0] = ((double)(v6 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v6 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[0] = ((double)(v6 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v6 & 0x7FFF) * 0.000030518509f - 0.5)
              * 10.0
              + dir[0];
       v7 = rand();
-      dir[1] = ((double)(v7 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v7 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[1] = ((double)(v7 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v7 & 0x7FFF) * 0.000030518509f - 0.5)
              * 10.0
              + dir[1];
       v8 = rand();
-      dir[2] = ((double)(v8 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v8 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[2] = ((double)(v8 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v8 & 0x7FFF) * 0.000030518509f - 0.5)
              * 10.0
              + dir[2]
              + 70.0;
@@ -29882,7 +29894,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
       if ( factvalue >= sep->value )
         break;
       if ( !sep->child )
-        return (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight)
+        return (double)(rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight)
              + sep->minweight;
       sep = sep->child;
     }
@@ -29896,7 +29908,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
   if ( sep->child )
     v7 = sub_10036B10(facts, sep->child);
   else
-    v7 = (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight) + sep->minweight;
+    v7 = (double)(rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight) + sep->minweight;
   v14 = v7;
   if ( sep->next->child )
   {
@@ -29910,7 +29922,7 @@ double __cdecl sub_10036B10(int *facts, fuzzyseperator_t *sep)
      * `+ 16` became 16 * sizeof(fuzzyseperator_t) = 512-byte stride, reading
      * far past the struct and AV-ing.  Original asm at 0x10036bdf is
      * `fadds 0x10(%edi)` — i.e. v10->minweight. */
-    v9 = (double)(rand() & 0x7FFF) * 0.000030518509 * (v10->maxweight - v10->minweight)
+    v9 = (double)(rand() & 0x7FFF) * 0.000030518509f * (v10->maxweight - v10->minweight)
        + v10->minweight;
   }
   v11 = sep->value;
@@ -29951,17 +29963,17 @@ void __cdecl sub_10036CD0(int a1)
     }
     else if ( *(_DWORD *)(a1 + 8) == 1 )
     {
-      if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.01 )
+      if ( (double)(rand() & 0x7FFF) * 0.000030518509f >= 0.01 )
       {
         v4 = rand();
-        v3 = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5)
+        v3 = ((double)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509f - 0.5)
            * (*(float *)(a1 + 20) - *(float *)(a1 + 16))
            * 0.5;
       }
       else
       {
         v2 = rand();
-        v3 = ((double)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
+        v3 = ((double)(v2 & 0x7FFF) * 0.000030518509f - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509f - 0.5)
            * (*(float *)(a1 + 20) - *(float *)(a1 + 16));
       }
       *(float *)(a1 + 12) = v3 + *(float *)(a1 + 12);
