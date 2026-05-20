@@ -79,7 +79,7 @@ typedef const char  *LPCSTR;
 #define LOWORD(x)    (*(unsigned short *)&(x))
 #define HIWORD(x)    (*((unsigned short *)&(x) + 1))
 #define LODWORD(x)   (*(unsigned int *)&(x))
-#define HIDWORD(x)   (*((unsigned int *)&(x) + 1))
+#define HIDWORD(x)   (*((int *)&(x) + 1))            /* signed: needed for IDA's `(HIDWORD(v) ^ v) - HIDWORD(v)` abs idiom on 64-bit */
 #define SLODWORD(x)  (*(int *)&(x))                   /* signed variant */
 #define SLOBYTE(x)   (*(signed char *)&(x))
 #define BYTE2(x)     (*((unsigned char *)&(x) + 2))                   /* signed variant */
