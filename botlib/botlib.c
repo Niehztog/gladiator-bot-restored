@@ -25738,7 +25738,7 @@ int *__cdecl sub_1002F100(int a1, int *a2)
       v7 = sub_100369C0(a1, a2[1] + v5 + 80);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4);
+        Log_Write(aItemInfoDSHasN, v4, a2[1] + v5 + 80);
       ++v4;
       ++v6;
       v5 += 284;
@@ -25888,23 +25888,31 @@ _DWORD * BotInitLevelItems()
   if ( dword_1006435C )
   {
     v4 = sub_100069A0();
-    LibVar(aNotspawnflags, (char *)a2048);
-    for ( i = 0; i < *v2; v3 += 284 )
+    /* Disasm at 0x1002f39f calls LibVarValue() (float-returning) and converts
+     * the result via __ftol to an int spawnflags mask (stored in [esp+0x18]).
+     * IDA decompiled this as a bare LibVar() call with the result discarded,
+     * then resolved the later "& a1" reference to the global "1" string
+     * (char a1[2] = "1") instead of recognising it as the LibVar return.
+     * That made the mask an arbitrary high address, over-filtering ~100
+     * entities out of bot goal scanning on base1 (35 items found vs 57). */
     {
-      *(_DWORD *)(v2[1] + v3 + 240) = IndexFromModel((char *)(v2[1] + v3 + 160));
-      v6 = v3 + v2[1];
-      if ( !*(_DWORD *)(v6 + 240) )
-        Log_Write(aItemSHasModeli, v6 + 80);
-      ++i;
-    }
-    v11 = (int *)v4;
-    if ( v4 )
-    {
-      do
+      int notspawnflags_mask = (int)LibVarValue(aNotspawnflags, (char *)a2048);
+      for ( i = 0; i < *v2; v3 += 284 )
       {
-        ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
-        if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & (unsigned int)(__int64)a1) == 0 )
+        *(_DWORD *)(v2[1] + v3 + 240) = IndexFromModel((char *)(v2[1] + v3 + 160));
+        v6 = v3 + v2[1];
+        if ( !*(_DWORD *)(v6 + 240) )
+          Log_Write(aItemSHasModeli, v6 + 80);
+        ++i;
+      }
+      v11 = (int *)v4;
+      if ( v4 )
+      {
+        do
         {
+          ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
+          if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & (unsigned int)notspawnflags_mask) == 0 )
+          {
           v7 = 0;
           if ( *v2 > 0 )
           {
@@ -25952,6 +25960,7 @@ LABEL_20:
       }
       while ( v11 );
     }
+    } /* end notspawnflags_mask scope */
     return (_DWORD *)bi_Print(1, "found %d level items\n", dword_10064354);
   }
   return result;
