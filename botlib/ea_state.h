@@ -5,7 +5,7 @@
  * indexed with stride 36 = sizeof(ea_state_t) per client.
  *
  * Field layout confirmed from the EA_* function bodies (EA_Move writes dir +
- * speed at +4..+19; sub_100375A0 writes angles at +20..+31; EA_Jump/Attack
+ * speed at +4..+19; EA_View writes angles at +20..+31; EA_Jump/Attack
  * toggle bits in flags at +32; weapon for fire command at +0).
  *
  * The flags field holds bitmasks defined as ACTION_* in gladq2_src/botlib.h.
@@ -34,7 +34,7 @@
 #endif
 
 /* Internal-only bit used by EA_Jump / EA_DelayedJump to gate the
- * jump-press to one frame at a time.  Set by sub_100375E0 when the
+ * jump-press to one frame at a time.  Set by EA_EndRegular when the
  * frame's input is consumed; checked at the top of EA_Jump.  This bit
  * does not have an ACTION_* name in botlib.h since it's an
  * implementation detail of the jump latch. */

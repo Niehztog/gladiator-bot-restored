@@ -59,7 +59,7 @@ typedef struct bot_state_s {
             char   _pad_6BCh[4];          /* +1724..+1727 */
             /* +1728..+2751: structured per-target / enemy-observation region.
              * Verified offsets below come from `BotInitAttackTarget`
-             * (sub_10021290) + sub_100204D0; remaining bytes stay padding.
+             * (BotUpdateBattleInventory) + sub_100204D0; remaining bytes stay padding.
              * Wrapped in an inner union so legacy `bs->chat_lines` (the
              * 1024-byte qmemcpy buffer) and the typed view share storage. */
             union {

@@ -250,7 +250,7 @@ struct _PROCESS_INFORMATION
 /* vec3_t — 3-component float vector, matches Q3/Q2 definition. */
 typedef float vec3_t[3];
 
-/* Q2 BSP file header (sub_10007D30, 0xA0 = 160 bytes).
+/* Q2 BSP file header (AAS_LoadBSPFile, 0xA0 = 160 bytes).
  * Matches dheader_t from Quake 2 source qfiles.h.
  * Original: `lea eax,[esp+0x18]; push 0xa0; push eax; call fread_locked`
  * then fields at [esp+0x10]=ident, [esp+0x14]=version, [esp+0x18]=lumps[0]... */

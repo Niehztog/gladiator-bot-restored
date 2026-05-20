@@ -47,7 +47,7 @@ typedef struct soundinfo_s {
  * ------------------------------------------------------------------------- */
 typedef struct iteminfo_s {
     char    name[80];        /* +0x000 — item classname (e.g. "item_health")  */
-    char    dispname[80];    /* +0x050 — display name (set by sub_1002ED20 before sub_10040AD0) */
+    char    dispname[80];    /* +0x050 — display name (set by LoadItemConfig before sub_10040AD0) */
     char    model[84];       /* +0x0A0 — model path; ends at 0xF4             */
     int     type;            /* +0x0F4 — item-type bitfield                   */
     int     index;           /* +0x0F8 — item index in inventory              */
@@ -57,8 +57,8 @@ typedef struct iteminfo_s {
     int     number;          /* +0x118 — loader-assigned index in items[]     */
 } iteminfo_t;                /* sizeof = 0x11C = 284 */
 
-/* itemconfig_t — top-level container returned by sub_1002ED20
- * (sub_1002ED20).  Header is 8 bytes followed by `numitems * 284`-byte
+/* itemconfig_t — top-level container returned by LoadItemConfig
+ * (LoadItemConfig).  Header is 8 bytes followed by `numitems * 284`-byte
  * iteminfo_t entries inline.
  *   v5[0] = numitems
  *   v5[1] = (iteminfo_t *)(v5 + 2)   → points just past the header
@@ -83,7 +83,7 @@ typedef struct itemconfig_s {
  * ------------------------------------------------------------------------- */
 typedef struct projectileinfo_s projectileinfo_t;  /* fwd decl for proj field */
 typedef struct weaponinfo_s {
-    int                number;          /* +0x000 — index in weaponconfig array (set by sub_10034BB0) */
+    int                number;          /* +0x000 — index in weaponconfig array (set by LoadWeaponConfig) */
     char               name[80];        /* +0x004 — weapon symbolic name                 */
     char               model[80];       /* +0x054 — weapon model path                    */
     int                level;           /* +0x0A4 — weapon level                         */
@@ -135,9 +135,9 @@ struct projectileinfo_s {
 };                           /* sizeof = 0xD0 = 208 */
 
 /* -------------------------------------------------------------------------
- * weaponconfig_t — top-level container returned by sub_10034BB0.
+ * weaponconfig_t — top-level container returned by LoadWeaponConfig.
  * Single allocation: 16-byte header + (numweapons * 344) + (numprojectiles * 208).
- * Header layout confirmed at sub_10034BB0 (line ~28567):
+ * Header layout confirmed at LoadWeaponConfig (line ~28567):
  *   v7[0] = numweapons               (int)
  *   v7[1] = numprojectiles           (int)
  *   v7[2] = (projectileinfo_t *)     points at base + 16 + 344*numweapons
@@ -251,7 +251,7 @@ typedef struct source_s {
 /* -------------------------------------------------------------------------
  * AI weight structs (be_ai_weight.h equivalents).  Layouts taken from Q3 —
  * Gladiator field offsets in fuzzyseperator_t are 36 bytes / 9 ints; matched
- * by ReadFuzzyWeights / FuzzyWeight functions in the original DLL.
+ * by ReadFuzzyWeights / FuzzyWeight_r functions in the original DLL.
  * ------------------------------------------------------------------------- */
 typedef struct fuzzyseperator_s {
     int                       index;       /* +0  fact index             */
@@ -281,7 +281,7 @@ typedef struct weightconfig_s {
 
 /* -------------------------------------------------------------------------
  * Bot goal struct — 56 bytes (matches Q3 be_ai_goal.h::bot_goal_t).
- * Field offsets confirmed from sub_1002F890 (sub_1002F890):
+ * Field offsets confirmed from BotGetLevelItemGoal (BotGetLevelItemGoal):
  *   a3+0,4,8   = origin[3]
  *   a3+12      = areanum
  *   a3+16..28  = mins[3]
@@ -291,7 +291,7 @@ typedef struct weightconfig_s {
  * The trailing `flags` and `iteminfo` fields are present in the layout (the
  * CTF-flag .bss slots are 56 bytes, and qmemcpy at sub_10027240 copies 0x38u
  * = 56 bytes when transferring a goal) but Gladiator never writes to them —
- * sub_1002F890 fills 48 bytes; the trailing 8 stay zero from .bss.
+ * BotGetLevelItemGoal fills 48 bytes; the trailing 8 stay zero from .bss.
  * ------------------------------------------------------------------------- */
 typedef struct bot_goal_s {
     vec3_t                    origin;        /* +0   goal world position    */
@@ -310,7 +310,7 @@ typedef struct bot_goal_s {
  * Free list is singly linked via `next`; active list is doubly linked via
  * `prev`/`next` (AddLevelItemToList / sub_1002F320).
  * Field offsets confirmed from sub_1002FA20 (sub_1002FA20) and
- * sub_1002F890 (sub_1002F890):
+ * BotGetLevelItemGoal (BotGetLevelItemGoal):
  *   +0   number      — item number = entitynum + map base bias
  *   +4   iteminfo    — index into itemconfig->items[]
  *   +8   origin      — entity world position (vec3)
