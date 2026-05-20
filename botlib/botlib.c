@@ -22096,7 +22096,7 @@ LABEL_11:
     if ( !sub_10026F10(v1, v3->message) && v3->type == 1 )
     {
       v7 = libvar_nochat->value;
-      if ( v7 == 0.0 && *(int (__cdecl **)(int))(v1 + 1676) != AINode_Stand )
+      if ( v7 == 0.0 && BotAINode((bot_state_t *)v1) != AINode_Stand )
       {
         if ( sub_10021BC0(v1) )
         {
