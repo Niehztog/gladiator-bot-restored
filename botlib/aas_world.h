@@ -98,6 +98,28 @@ typedef struct {
     int   firstportal;           /* +8  */
 } aas_cluster_t;
 
+/* Working struct used by AAS_Optimize / AAS_OptimizeArea / AAS_OptimizeFace /
+ * AAS_OptimizeEdge / AAS_OptimizeAlloc / AAS_OptimizeStore.  In the IDA
+ * decompilation this was an anonymous _DWORD[15] local; on 64-bit pointer
+ * fields are 8 bytes so a flat _DWORD[] truncates them. */
+typedef struct optimized_s {
+    int      numvertexes;        /*  0 */
+    void    *vertexes;           /*  1  12-byte vec3 per vertex */
+    int      numedges;           /*  2 */
+    void    *edges;              /*  3  8-byte aas_edge_t */
+    int      edgeindexsize;      /*  4 */
+    int     *edgeindex;          /*  5 */
+    int      numfaces;           /*  6 */
+    void    *faces;              /*  7  24-byte aas_face_t */
+    int      faceindexsize;      /*  8 */
+    int     *faceindex;          /*  9 */
+    int      numareas;           /* 10 */
+    void    *areas;              /* 11  48-byte aas_area_t */
+    int     *vertexremap;        /* 12  4*numvertexes */
+    int     *edgeremap;          /* 13  4*numedges */
+    int     *faceremap;          /* 14  4*numfaces */
+} optimized_t;
+
 typedef struct aas_link_s {
     int                entnum;     /* +0  */
     int                areanum;    /* +4  */

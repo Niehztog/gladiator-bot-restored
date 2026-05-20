@@ -247,10 +247,10 @@ double __cdecl Characteristic_Float(bot_character_t *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
 int __cdecl BotReachabilityTime(int);
 void PrintUsedMemorySize(void);
-int __cdecl AAS_HorizontalVelocityForJump(float, int, int, int); // idb
+int __cdecl AAS_HorizontalVelocityForJump(float, float *, float *, float *); // idb
 int __cdecl AAS_UpdatePortal(int ArgList, int);
 /* sub_1001C460: see full declaration at line ~500 below */
-int __cdecl AAS_ClientMovementPrediction(int, int, int, int, int, int, int, int, int, float, int, int); // idb
+char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
 int __cdecl sub_1001C760(char *Source); // idb
 BOOL sub_10022990(int *a1);  // fixed from weak
@@ -380,8 +380,8 @@ int __cdecl AAS_FloodClusterReachabilities(int a1);
 int __cdecl AAS_NumberClusterPortals(int a1);
 int AAS_FindClusters();
 int AAS_CreatePortals();
-int __cdecl sub_10008D40(_DWORD *a1, int a2, int a3, int a4);
-int __cdecl sub_10008E20(int a1, int a2);
+int __cdecl sub_10008D40(_DWORD *a1, int a2, char *a3, int a4);
+int __cdecl sub_10008E20(_DWORD *a1, int a2);
 int __cdecl sub_10008EB0(_DWORD *a1, int a2, int a3);
 int __cdecl AAS_CheckAreaForPossiblePortals(int a1);
 int AAS_FindPossiblePortals();
@@ -417,7 +417,7 @@ int sub_1000BBA0();
 void *sub_1000C490();
 void *__cdecl sub_1000C670(FILE *Stream, int Offset, size_t ElementCount);
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset);
-int __cdecl sub_1000CE40(FILE *Stream, int, int, void *Buffer, size_t ElementSize); // idb
+int __cdecl sub_1000CE40(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize); // idb
 int __cdecl AAS_WriteAASFile(char *FileName); // idb
 int sub_1000D450();
 int __cdecl sub_1000D4A0(int a1);
@@ -447,29 +447,29 @@ int __cdecl sub_1000E430(char *Source); // idb
 int __cdecl BotLoadMap(char *Source, int, char **, int, char **, int, char **); // idb
 int __cdecl sub_1000EDC0(int a1, int a2);
 int AAS_Shutdown();
-BOOL __cdecl AAS_OnGround(int a1, int a2, int a3);
-BOOL __cdecl sub_1000EFC0(int a1);
+BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3);
+BOOL __cdecl sub_1000EFC0(float *a1);
 void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
 int __cdecl sub_1000F2C0(int *a1);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
-float __cdecl AAS_RocketJumpZVelocity(int origin);
-int __cdecl AAS_BFGJumpZVelocity(int a1);
-void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4);
-int __cdecl AAS_ClientMovementPrediction(int, int, int, int, int, int, int, int, int, float, int, int); // idb
-int __cdecl AAS_HorizontalVelocityForJump(float, int, int, int); // idb
+float __cdecl AAS_RocketJumpZVelocity(float *origin);
+int __cdecl AAS_BFGJumpZVelocity(float *a1);
+void __cdecl AAS_ApplyFriction(float *a1, float a2, float a3, float a4);
+char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
+int __cdecl AAS_HorizontalVelocityForJump(float, float *, float *, float *); // idb
 int AAS_KeepEdge();
-int __cdecl AAS_OptimizeEdge(_DWORD *a1, int a2);
-int __cdecl AAS_KeepFace(int a1);
-int __cdecl AAS_OptimizeFace(_DWORD *a1, int a2);
-int __cdecl AAS_OptimizeArea(_DWORD *a1, int a2);
-int __cdecl AAS_OptimizeAlloc(_DWORD *a1);
-int __cdecl AAS_OptimizeStore(int *a1);
+int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2);
+int __cdecl AAS_KeepFace(char *a1);
+int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2);
+int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2);
+int __cdecl AAS_OptimizeAlloc(optimized_t *a1);
+int __cdecl AAS_OptimizeStore(optimized_t *a1);
 int AAS_Optimize();
 int AAS_SetupReachabilityHeap();
 int AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
-double __cdecl AAS_FaceArea(int a1);
+double __cdecl AAS_FaceArea(char *a1);
 double __cdecl sub_10011220(int a1);
 double __cdecl AAS_AreaGroundFaceArea(int a1);
 int __cdecl AAS_FaceCenter(int a1, float *a2);
@@ -5794,7 +5794,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
         do
         {
           v8 = *((int *)aasworld.faceindex + v6 + *((_DWORD *)v7 + 2));
-          LODWORD(v8) = (HIDWORD(v8) ^ v8) - HIDWORD(v8);
+          v8 = (HIDWORD(v8) ^ v8) - HIDWORD(v8);
           v9 = 3 * v8;
           v10 = *((_DWORD *)aasworld.faces + 6 * v8 + 4);
           v11 = (char *)aasworld.faces + 8 * v9;
@@ -5892,27 +5892,29 @@ LABEL_13:
 //----- (10008AC0) --------------------------------------------------------
 int __cdecl AAS_NumberClusterPortals(int a1)
 {
-  __int64 v1; // rax
+  char *cluster; // was packed low-32 of __int64 v1 — aasworld.clusters + 12*a1
+  int counter; // was HIDWORD(v1) — loop counter into portalindex
   _DWORD *v2; // ecx
   int v3; // edi
 
-  v1 = (unsigned int)aasworld.clusters + 12 * a1;
-  if ( *(int *)(v1 + 4) > 0 )
+  cluster = (char *)aasworld.clusters + 12 * a1;
+  if ( *(int *)(cluster + 4) > 0 )
   {
+    counter = 0;
     do
     {
-      v2 = (char *)aasworld.portals + 20 * *((_DWORD *)aasworld.portalindex + HIDWORD(v1) + *(_DWORD *)(v1 + 8));
-      v3 = *(_DWORD *)v1;
+      v2 = (_DWORD *)((char *)aasworld.portals + 20 * *((_DWORD *)aasworld.portalindex + counter + *(_DWORD *)(cluster + 8)));
+      v3 = *(_DWORD *)cluster;
       if ( v2[1] == a1 )
         v2[3] = v3;
       else
         v2[4] = v3;
-      ++HIDWORD(v1);
-      ++*(_DWORD *)v1;
+      ++counter;
+      ++*(_DWORD *)cluster;
     }
-    while ( SHIDWORD(v1) < *(_DWORD *)(v1 + 4) );
+    while ( counter < *(_DWORD *)(cluster + 4) );
   }
-  return v1;
+  return 0;
 }
 
 //----- (10008B40) --------------------------------------------------------
@@ -5998,7 +6000,7 @@ int AAS_CreatePortals()
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10008D40) --------------------------------------------------------
-int __cdecl sub_10008D40(_DWORD *a1, int a2, int a3, int a4)
+int __cdecl sub_10008D40(_DWORD *a1, int a2, char *a3, int a4)
 {
   int v4; // ebx
   char *v5; // esi
@@ -6050,7 +6052,7 @@ int __cdecl sub_10008D40(_DWORD *a1, int a2, int a3, int a4)
 // 1000179E: using guessed type _DWORD __cdecl sub_10008D40(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10008E20) --------------------------------------------------------
-int __cdecl sub_10008E20(int a1, int a2)
+int __cdecl sub_10008E20(_DWORD *a1, int a2)
 {
   int v3; // eax
   char *i; // ecx
@@ -6332,10 +6334,10 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
     return 0;
   }
 LABEL_45:
-  result = sub_10008E20((int)v56, v4);
+  result = sub_10008E20(v56, v4);
   if ( result )
   {
-    result = sub_10008E20((int)v54, v3);
+    result = sub_10008E20(v54, v3);
     if ( result )
     {
       v22 = 0;
@@ -6942,13 +6944,13 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
   traveltype = *(_DWORD *)(a1 + 36);
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
-    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, a1 + 12, a1 + 24, (int)&v6);
+    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, (float *)(a1 + 12), (float *)(a1 + 24), &v6);
     v5 = *v1 - *v2;
     *(float *)&v8 = v5;
     VectorNormalize(&v8);
     VectorScale((float *)&v8, v6, (float *)v11);
     v11[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((int)v13, -1, a1 + 12, 2, 1, (int)&velocity, (int)v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((char *)v13, -1, (float *)(a1 + 12), 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
     if ( *(_DWORD *)(a1 + 36) == 5 ) /* TRAVEL_JUMP only */
     {
       AAS_JumpReachRunStart(a1, (int)&v8);
@@ -6957,8 +6959,8 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
   }
   else if ( traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
   {
-    v7 = AAS_RocketJumpZVelocity(a1 + 12); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
-    AAS_HorizontalVelocityForJump(v7, a1 + 12, a1 + 24, (int)&v6);
+    v7 = AAS_RocketJumpZVelocity((float *)(a1 + 12)); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
+    AAS_HorizontalVelocityForJump(v7, (float *)(a1 + 12), (float *)(a1 + 24), &v6);
     v4 = *v1 - *v2;
     *(float *)&v8 = v4;
     VectorNormalize(&v8);
@@ -6966,7 +6968,7 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
     *(float *)&v12[2] = v7;
     v12[0] = 0;
     v12[1] = 0;
-    AAS_ClientMovementPrediction((int)v13, -1, a1 + 12, 2, 1, (int)v12, (int)v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((char *)v13, -1, (float *)(a1 + 12), 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
   }
 }
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
@@ -8518,20 +8520,20 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (1000CE40) --------------------------------------------------------
-int __cdecl sub_1000CE40(FILE *Stream, int a2, int a3, void *Buffer, size_t ElementSize)
+int __cdecl sub_1000CE40(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize)
 {
   long v5;
 
   v5 = ftell(Stream);
   /* original calls LittleLong (engine import) on each — identity on x86 LE */
-  *(_DWORD *)(a2 + 8 * a3 + 8) = (int)v5;
-  *(_DWORD *)(a2 + 8 * a3 + 12) = (int)ElementSize;
+  Lumps[2 * a3 + 2] = (int)v5;
+  Lumps[2 * a3 + 3] = (int)ElementSize;
   /* IDA mis-identified the CRT helper at 0x10044949 as fread; the inner
    * workhorse (0x10044978) does memcpy(file->_ptr, caller_buf, n) — that's
    * fwrite. The error string "error writing lump" confirms the direction. */
   if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) )
     return 1;
-  bi_Print(3, "error writing lump %s\n", (const char *)a3);
+  bi_Print(3, "error writing lump %s\n", (const char *)(intptr_t)a3);
   fclose(Stream);
   return 0;
 }
@@ -8564,46 +8566,46 @@ int __cdecl AAS_WriteAASFile(char *FileName)
   /* fopen mode is "wb" — this is fwrite, not fread (see sub_1000CE40 note). */
   if ( !fwrite(Buffer, 0x78u, 1u, v3) )
     goto LABEL_4;
-  result = sub_1000CE40(v4, (int)Buffer, 0, Buffer, 32 * aasworld.numbboxes);
+  result = sub_1000CE40(v4, Buffer, 0, Buffer, 32 * aasworld.numbboxes);
   if ( result )
   {
-    result = sub_1000CE40(v4, (int)Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes);
+    result = sub_1000CE40(v4, Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes);
     if ( result )
     {
-      result = sub_1000CE40(v4, (int)Buffer, 2, aasworld.planes, 20 * aasworld.numplanes);
+      result = sub_1000CE40(v4, Buffer, 2, aasworld.planes, 20 * aasworld.numplanes);
       if ( result )
       {
-        result = sub_1000CE40(v4, (int)Buffer, 3, aasworld.edges, 8 * aasworld.numedges);
+        result = sub_1000CE40(v4, Buffer, 3, aasworld.edges, 8 * aasworld.numedges);
         if ( result )
         {
-          result = sub_1000CE40(v4, (int)Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize);
+          result = sub_1000CE40(v4, Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize);
           if ( result )
           {
-            result = sub_1000CE40(v4, (int)Buffer, 5, aasworld.faces, 24 * aasworld.numfaces);
+            result = sub_1000CE40(v4, Buffer, 5, aasworld.faces, 24 * aasworld.numfaces);
             if ( result )
             {
-              result = sub_1000CE40(v4, (int)Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize);
+              result = sub_1000CE40(v4, Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize);
               if ( result )
               {
-                result = sub_1000CE40(v4, (int)Buffer, 7, aasworld.areas, 48 * aasworld.numareas);
+                result = sub_1000CE40(v4, Buffer, 7, aasworld.areas, 48 * aasworld.numareas);
                 if ( result )
                 {
-                  result = sub_1000CE40(v4, (int)Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings);
+                  result = sub_1000CE40(v4, Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings);
                   if ( result )
                   {
-                    result = sub_1000CE40(v4, (int)Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize);
+                    result = sub_1000CE40(v4, Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize);
                     if ( result )
                     {
-                      result = sub_1000CE40(v4, (int)Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes);
+                      result = sub_1000CE40(v4, Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes);
                       if ( result )
                       {
-                        result = sub_1000CE40(v4, (int)Buffer, 11, aasworld.portals, 20 * aasworld.numportals);
+                        result = sub_1000CE40(v4, Buffer, 11, aasworld.portals, 20 * aasworld.numportals);
                         if ( result )
                         {
-                          result = sub_1000CE40(v4, (int)Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize);
+                          result = sub_1000CE40(v4, Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize);
                           if ( result )
                           {
-                            result = sub_1000CE40(v4, (int)Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters);
+                            result = sub_1000CE40(v4, Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters);
                             if ( result )
                             {
                               fseek(v4, 0, 0);
@@ -9464,7 +9466,7 @@ int AAS_Shutdown()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000EEB0) --------------------------------------------------------
-BOOL __cdecl AAS_OnGround(int a1, int a2, int a3)
+BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3)
 {
   int v3; // ecx
   double v4; // st7
@@ -9472,17 +9474,17 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3)
   int v6[3]; // [esp+Ch] [ebp-30h] BYREF
   aas_trace_t trace;
 
-  v3 = *(_DWORD *)(a1 + 4);
-  v4 = *(float *)(a1 + 8);
+  v3 = *(_DWORD *)((char *)a1 + 4);
+  v4 = a1[2];
   v6[0] = *(_DWORD *)a1;
   v6[1] = v3;
   *(float *)&v6[2] = v4 - 4.0;
-  trace = AAS_TraceClientBBox((float *)a1, (float *)v6, a2, a3);
+  trace = AAS_TraceClientBBox(a1, (float *)v6, a2, a3);
   if ( trace.startsolid )
     return 0;
   if ( trace.fraction >= 1.0 )
     return 0;
-  if ( *(float *)(a1 + 8) - trace.endpos[2] <= 2.0 )
+  if ( a1[2] - trace.endpos[2] <= 2.0 )
     return *(float *)(AAS_PlaneFromNum(trace.planenum) + 8) >= (double)libvar_sv_maxsteepness->value;
   return 0;
 }
@@ -9495,7 +9497,7 @@ BOOL __cdecl AAS_OnGround(int a1, int a2, int a3)
  * given origin is in liquid (LAVA|SLIME|WATER = 0x38).  Used by BotMoveInDirection
  * to pick a swim/jump movement style.  IDA dropped the bi_PointContents call
  * (compare 0x1000efe6 in the binary) and v3 was uninitialized. */
-BOOL __cdecl sub_1000EFC0(int a1)
+BOOL __cdecl sub_1000EFC0(float *a1)
 {
   /* v5 must be int[3]: the X/Y stores are raw 32-bit copies (not int->float
    * conversions), preserving the float bit pattern from a1.  Verified at
@@ -9507,8 +9509,8 @@ BOOL __cdecl sub_1000EFC0(int a1)
   int v5[3]; // [esp+0h] [ebp-Ch] BYREF
 
   v5[0] = *(_DWORD *)a1;
-  v5[1] = *(_DWORD *)(a1 + 4);
-  *(float *)&v5[2] = *(float *)(a1 + 8) - 2.0f;
+  v5[1] = *(_DWORD *)((char *)a1 + 4);
+  *(float *)&v5[2] = *((float *)a1 + 2) - 2.0f;
   return (bi_PointContents((int)v5) & 0x38) != 0;
 }
 // 1000EFEB: variable 'v3' is possibly undefined
@@ -9551,7 +9553,7 @@ void __cdecl AAS_JumpReachRunStart(int a1, int a2)
   start_pos[1] = *(float *)(a1 + 16);
   start_pos[2] = *(float *)(a1 + 20) + 1.0f;
   VectorScale((float *)v14, 400.0, (float *)v15);
-  v5 = (const void *)AAS_ClientMovementPrediction((int)v16, -1, (int)start_pos, 2, 1, (int)&velocity, (int)v15, 1, 2, 0.1, 124, 0);
+  v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
   *(float *)a2 = *(float *)v16;
   v7 = v16[1];
@@ -9714,25 +9716,25 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
  * AAS_WeaponJumpZVelocity (currently still named AAS_WeaponJumpZVelocity at
  * 0x1000F4D0; rename pending).  Matches ioq3 be_aas_move.c:341.
  */
-float __cdecl AAS_RocketJumpZVelocity(int a1)
+float __cdecl AAS_RocketJumpZVelocity(float *a1)
 {
-  return AAS_WeaponJumpZVelocity((float *)a1, 120.0);
+  return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F780) --------------------------------------------------------
-int __cdecl AAS_BFGJumpZVelocity(int a1)
+int __cdecl AAS_BFGJumpZVelocity(float *a1)
 {
-  return AAS_WeaponJumpZVelocity((float *)a1, 120.0);
+  return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F7B0) --------------------------------------------------------
-void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4)
+void __cdecl AAS_ApplyFriction(float *a1, float a2, float a3, float a4)
 {
   long double v4; // st5
   long double v5; // st6
   long double v6; // st6
 
-  v4 = sqrt(*(float *)a1 * *(float *)a1 + *(float *)(a1 + 4) * *(float *)(a1 + 4));
+  v4 = sqrt(a1[0] * a1[0] + a1[1] * a1[1]);
   if ( v4 != 0.0 )
   {
     if ( v4 >= a3 )
@@ -9742,20 +9744,20 @@ void __cdecl AAS_ApplyFriction(int a1, float a2, float a3, float a4)
     v6 = v4 - v5 * a2 * a4;
     if ( v6 < 0.0 )
       v6 = 0.0;
-    *(float *)a1 = v6 / v4 * *(float *)a1;
-    *(float *)(a1 + 4) = v6 / v4 * *(float *)(a1 + 4);
+    a1[0] = v6 / v4 * a1[0];
+    a1[1] = v6 / v4 * a1[1];
   }
 }
 
 //----- (1000F840) --------------------------------------------------------
-int __cdecl AAS_ClientMovementPrediction(
-        int a1,
+char *__cdecl AAS_ClientMovementPrediction(
+        char *a1,
         int a2,
-        int a3,
+        float *a3,
         int a4,
         int a5,
-        int a6,
-        int a7,
+        float *a6,
+        float *a7,
         int a8,
         int a9,
         float a10,
@@ -9780,7 +9782,7 @@ int __cdecl AAS_ClientMovementPrediction(
   int v28; // esi
   double v29; // st6
   float *v30; // ebp
-  int v31; // eax
+  char *v31; // eax
   double v32; // st7
   double v33; // st6
   int v34; // ecx
@@ -9789,7 +9791,7 @@ int __cdecl AAS_ClientMovementPrediction(
   int v37; // eax
   int v38; // ecx
   char v39; // al
-  int result; // eax
+  char *result; // eax
   float v41; // [esp+0h] [ebp-1F8h]
   float v42; // [esp+0h] [ebp-1F8h]
   int v43; // [esp+1Ch] [ebp-1DCh]
@@ -9845,8 +9847,8 @@ int __cdecl AAS_ClientMovementPrediction(
   memset(v62, 0, sizeof(v62));
   v67 = v17;
   memset(&v80, 0, sizeof(v80));
-  v18 = *(int *)(a3 + 4);
-  v19 = *(float *)(a3 + 8) + 0.25;
+  v18 = *(int *)&a3[1];
+  v19 = a3[2] + 0.25;
   *(int *)&org[0] = *(int *)a3;
   *(int *)&org[1] = v18;
   org[2] = v19;
@@ -9857,7 +9859,7 @@ int __cdecl AAS_ClientMovementPrediction(
     goto LABEL_85;
   while ( 2 )
   {
-    v21 = sub_1000EFC0((int)org);
+    v21 = sub_1000EFC0(org);
     v22 = v21;
     v57 = v21;
     if ( v21 )
@@ -9880,7 +9882,7 @@ int __cdecl AAS_ClientMovementPrediction(
       v65 = v71;
     }
     VectorScale(frame_test_vel, 10.0, frame_test_vel);
-    AAS_ApplyFriction((int)frame_test_vel, v65, v77, a10);
+    AAS_ApplyFriction(frame_test_vel, v65, v77, a10);
     VectorScale(frame_test_vel, 0.1, frame_test_vel);
 LABEL_12:
     v24 = 0;
@@ -9895,12 +9897,12 @@ LABEL_35:
     v26 = 0;
     if ( a5 )
     {
-      if ( *(float *)(a7 + 8) < -300.0 )
+      if ( a7[2] < -300.0 )
       {
         v25 = v73;
         v24 = 1;
       }
-      if ( !v22 && *(float *)(a7 + 8) > 1.0 )
+      if ( !v22 && a7[2] > 1.0 )
       {
         v64 = v43;
         frame_test_vel[2] = v67 - v50 + 5.0;
@@ -9920,7 +9922,7 @@ LABEL_35:
     v28 = v26;
     do
     {
-      v29 = a10 * *(float *)((char *)v27 + a7 - (_DWORD)frame_test_vel) - *(float *)v27;
+      v29 = a10 * *(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel)) - *(float *)v27;
       if ( v29 <= v58 )
       {
         *(float *)&v50 = -v58;
@@ -10088,7 +10090,7 @@ LABEL_66:
     else
     {
 LABEL_76:
-      a5 = AAS_OnGround((int)org, a4, a2);
+      a5 = AAS_OnGround(org, a4, a2);
       if ( a5 )
       {
         if ( (a11 & 1) != 0 )
@@ -10174,7 +10176,7 @@ LABEL_86:
   }
 LABEL_87:
   result = a1;
-  qmemcpy((void *)a1, v62, 0x50u);
+  qmemcpy(a1, v62, 0x50u);
   return result;
 }
 // 1000FFD6: variable 'v37' is possibly undefined
@@ -10201,7 +10203,7 @@ LABEL_87:
 // 1000F840: using guessed type char var_6C[36];
 
 //----- (10010780) --------------------------------------------------------
-int __cdecl AAS_HorizontalVelocityForJump(float a1, int a2, int a3, int a4)
+int __cdecl AAS_HorizontalVelocityForJump(float a1, float *a2, float *a3, float *a4)
 {
   long double v4; // st7
   double v5; // st6
@@ -10216,13 +10218,13 @@ int __cdecl AAS_HorizontalVelocityForJump(float a1, int a2, int a3, int a4)
   v11 = libvar_sv_gravity->value;
   v5 = a1 / v11;
   v12 = v5;
-  v6 = v5 * (v11 * v5) * 0.5 + *(float *)(a2 + 8) - *(float *)(a3 + 8);
+  v6 = v5 * (v11 * v5) * 0.5 + a2[2] - a3[2];
   if ( v6 >= 0.0 )
   {
-    v8 = *(float *)a3 - *(float *)a2;
-    v9 = *(float *)(a3 + 4) - *(float *)(a2 + 4);
+    v8 = a3[0] - a2[0];
+    v9 = a3[1] - a2[1];
     v10 = sqrt(v9 * v9 + v8 * v8) / (sqrt(v6 / (v11 * 0.5)) + v12);
-    *(float *)a4 = v10;
+    *a4 = v10;
     if ( v10 <= v4 )
     {
       return 1;
@@ -10249,16 +10251,16 @@ int AAS_KeepEdge()
 }
 
 //----- (10010880) --------------------------------------------------------
-int __cdecl AAS_OptimizeEdge(_DWORD *a1, int a2)
+int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2)
 {
   unsigned int v2; // ebx
   char *v3; // edi
   int result; // eax
   int v6; // eax
-  int v7; // edx
+  char *v7; // edx — a1->edges
   int v8; // esi
   _DWORD *v9; // eax
-  int v10; // esi
+  long v10; // esi — byte offset between source and destination edge slot
   int v11; // edi
   unsigned int v12; // [esp+Ch] [ebp-4h]
   int v13; // [esp+14h] [ebp+4h]
@@ -10269,7 +10271,7 @@ int __cdecl AAS_OptimizeEdge(_DWORD *a1, int a2)
   result = AAS_KeepEdge();
   if ( result )
   {
-    result = *(_DWORD *)(a1[13] + 4 * v2);
+    result = a1->edgeremap[v2];
     if ( result )
     {
       if ( a2 <= 0 )
@@ -10277,36 +10279,36 @@ int __cdecl AAS_OptimizeEdge(_DWORD *a1, int a2)
     }
     else
     {
-      v6 = a1[2];
-      v7 = a1[3];
+      v6 = a1->numedges;
+      v7 = (char *)a1->edges;
       v13 = 2;
-      v8 = v7 + 8 * v6;
-      v9 = v3;
-      v10 = v8 - (_DWORD)v3;
+      v8 = (int)(v7 + 8 * v6);
+      v9 = (_DWORD *)v3;
+      v10 = (v7 + 8 * v6) - v3;
       do
       {
-        v11 = *(_DWORD *)(a1[12] + 4 * *v9);
+        v11 = a1->vertexremap[*v9];
         if ( v11 )
         {
           *(_DWORD *)((char *)v9 + v10) = v11;
         }
         else
         {
-          *(_DWORD *)(a1[1] + 12 * *a1) = *((_DWORD *)aasworld.vertexes + 3 * *v9);
-          *(_DWORD *)(a1[1] + 12 * *a1 + 4) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 1);
-          *(_DWORD *)(a1[1] + 12 * *a1 + 8) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 2);
-          *(_DWORD *)((char *)v9 + v10) = *a1;
-          *(_DWORD *)(a1[12] + 4 * *v9) = *a1;
+          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * *v9);
+          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 1);
+          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 2);
+          *(_DWORD *)((char *)v9 + v10) = a1->numvertexes;
+          a1->vertexremap[*v9] = a1->numvertexes;
           v2 = v12;
-          ++*a1;
+          ++a1->numvertexes;
         }
         ++v9;
         --v13;
       }
       while ( v13 );
-      *(_DWORD *)(a1[13] + 4 * v2) = a1[2];
-      result = a1[2];
-      a1[2] = result + 1;
+      a1->edgeremap[v2] = a1->numedges;
+      result = a1->numedges;
+      a1->numedges = result + 1;
       if ( a2 <= 0 )
         return -result;
     }
@@ -10315,13 +10317,13 @@ int __cdecl AAS_OptimizeEdge(_DWORD *a1, int a2)
 }
 
 //----- (100109E0) --------------------------------------------------------
-int __cdecl AAS_KeepFace(int a1)
+int __cdecl AAS_KeepFace(char *a1)
 {
-  return (unsigned __int8)(*(_BYTE *)(a1 + 4) & 2) >> 1;
+  return (unsigned __int8)(a1[4] & 2) >> 1;
 }
 
 //----- (10010A00) --------------------------------------------------------
-int __cdecl AAS_OptimizeFace(_DWORD *a1, int a2)
+int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2)
 {
   unsigned int v2; // edi
   char *v3; // esi
@@ -10334,10 +10336,10 @@ int __cdecl AAS_OptimizeFace(_DWORD *a1, int a2)
   v2 = abs32(a2);
   v3 = (char *)aasworld.faces + 24 * v2;
   v8 = v3;
-  result = AAS_KeepFace((int)v3);
+  result = AAS_KeepFace(v3);
   if ( result )
   {
-    result = *(_DWORD *)(a1[14] + 4 * v2);
+    result = a1->faceremap[v2];
     if ( result )
     {
       if ( a2 <= 0 )
@@ -10345,23 +10347,23 @@ int __cdecl AAS_OptimizeFace(_DWORD *a1, int a2)
     }
     else
     {
-      v5 = (_DWORD *)(a1[7] + 24 * a1[6]);
+      v5 = (_DWORD *)((char *)a1->faces + 24 * a1->numfaces);
       qmemcpy(v5, v3, 0x18u);
       v5[2] = 0;
       v6 = 0;
-      for ( v5[3] = a1[4]; v6 < *((_DWORD *)v8 + 2); ++v6 )
+      for ( v5[3] = a1->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
       {
         v7 = AAS_OptimizeEdge(a1, *((_DWORD *)aasworld.edgeindex + v6 + *((_DWORD *)v8 + 3)));
         if ( v7 )
         {
-          *(_DWORD *)(a1[5] + 4 * (v5[2] + v5[3])) = v7;
+          a1->edgeindex[v5[2] + v5[3]] = v7;
           ++v5[2];
-          ++a1[4];
+          ++a1->edgeindexsize;
         }
       }
-      *(_DWORD *)(a1[14] + 4 * v2) = a1[6];
-      result = a1[6];
-      a1[6] = result + 1;
+      a1->faceremap[v2] = a1->numfaces;
+      result = a1->numfaces;
+      a1->numfaces = result + 1;
       if ( a2 <= 0 )
         return -result;
     }
@@ -10370,7 +10372,7 @@ int __cdecl AAS_OptimizeFace(_DWORD *a1, int a2)
 }
 
 //----- (10010B40) --------------------------------------------------------
-int __cdecl AAS_OptimizeArea(_DWORD *a1, int a2)
+int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2)
 {
   _DWORD *v2; // edx
   _DWORD *v3; // ebx
@@ -10379,11 +10381,11 @@ int __cdecl AAS_OptimizeArea(_DWORD *a1, int a2)
   int v6; // eax
   _DWORD *v7; // [esp+18h] [ebp+8h]
 
-  v2 = (char *)aasworld.areas + 48 * a2;
-  v3 = (_DWORD *)(48 * a2 + a1[11]);
+  v2 = (_DWORD *)((char *)aasworld.areas + 48 * a2);
+  v3 = (_DWORD *)((char *)a1->areas + 48 * a2);
   qmemcpy(v3, v2, 0x30u);
   v3[1] = 0;
-  v3[2] = a1[8];
+  v3[2] = a1->faceindexsize;
   result = v2[1];
   v5 = 0;
   v7 = v2;
@@ -10394,11 +10396,11 @@ int __cdecl AAS_OptimizeArea(_DWORD *a1, int a2)
       v6 = AAS_OptimizeFace(a1, *((_DWORD *)aasworld.faceindex + v5 + v2[2]));
       if ( v6 )
       {
-        *(_DWORD *)(a1[9] + 4 * (v3[1] + v3[2])) = v6;
+        a1->faceindex[v3[1] + v3[2]] = v6;
         ++v3[1];
-        ++a1[8];
+        ++a1->faceindexsize;
       }
-      result = (int)v7;
+      result = (intptr_t)v7;
       if ( ++v5 >= v7[1] )
         break;
       v2 = v7;
@@ -10408,27 +10410,27 @@ int __cdecl AAS_OptimizeArea(_DWORD *a1, int a2)
 }
 
 //----- (10010C10) --------------------------------------------------------
-int __cdecl AAS_OptimizeAlloc(_DWORD *a1)
+int __cdecl AAS_OptimizeAlloc(optimized_t *a1)
 {
-  int result; // eax
+  void *result; // eax
 
-  a1[1] = GetClearedMemory(12 * aasworld.numvertexes);
-  *a1 = 0;
-  a1[3] = GetClearedMemory(8 * aasworld.numedges);
-  a1[2] = 1;
-  a1[5] = GetClearedMemory(4 * aasworld.edgeindexsize);
-  a1[4] = 0;
-  a1[7] = GetClearedMemory(24 * aasworld.numfaces);
-  a1[6] = 1;
-  a1[9] = GetClearedMemory(4 * aasworld.faceindexsize);
-  a1[8] = 0;
-  a1[11] = GetClearedMemory(48 * aasworld.numareas);
-  a1[10] = aasworld.numareas;
-  a1[12] = GetClearedMemory(4 * aasworld.numvertexes);
-  a1[13] = GetClearedMemory(4 * aasworld.numedges);
+  a1->vertexes = GetClearedMemory(12 * aasworld.numvertexes);
+  a1->numvertexes = 0;
+  a1->edges = GetClearedMemory(8 * aasworld.numedges);
+  a1->numedges = 1;
+  a1->edgeindex = (int *)GetClearedMemory(4 * aasworld.edgeindexsize);
+  a1->edgeindexsize = 0;
+  a1->faces = GetClearedMemory(24 * aasworld.numfaces);
+  a1->numfaces = 1;
+  a1->faceindex = (int *)GetClearedMemory(4 * aasworld.faceindexsize);
+  a1->faceindexsize = 0;
+  a1->areas = GetClearedMemory(48 * aasworld.numareas);
+  a1->numareas = aasworld.numareas;
+  a1->vertexremap = (int *)GetClearedMemory(4 * aasworld.numvertexes);
+  a1->edgeremap = (int *)GetClearedMemory(4 * aasworld.numedges);
   result = GetClearedMemory(4 * aasworld.numfaces);
-  a1[14] = result;
-  return result;
+  a1->faceremap = (int *)result;
+  return (intptr_t)result;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10066918: using guessed type int aasworld.numvertexes;
@@ -10439,35 +10441,35 @@ int __cdecl AAS_OptimizeAlloc(_DWORD *a1)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10010D50) --------------------------------------------------------
-int __cdecl AAS_OptimizeStore(int *a1)
+int __cdecl AAS_OptimizeStore(optimized_t *a1)
 {
   if ( aasworld.vertexes )
     FreeMemory(aasworld.vertexes);
-  aasworld.vertexes = (void *)a1[1];
-  aasworld.numvertexes = *a1;
+  aasworld.vertexes = a1->vertexes;
+  aasworld.numvertexes = a1->numvertexes;
   if ( aasworld.edges )
     FreeMemory(aasworld.edges);
-  aasworld.edges = (void *)a1[3];
-  aasworld.numedges = a1[2];
+  aasworld.edges = a1->edges;
+  aasworld.numedges = a1->numedges;
   if ( aasworld.edgeindex )
     FreeMemory(aasworld.edgeindex);
-  aasworld.edgeindex = (void *)a1[5];
-  aasworld.edgeindexsize = a1[4];
+  aasworld.edgeindex = a1->edgeindex;
+  aasworld.edgeindexsize = a1->edgeindexsize;
   if ( aasworld.faces )
     FreeMemory(aasworld.faces);
-  aasworld.faces = (void *)a1[7];
-  aasworld.numfaces = a1[6];
+  aasworld.faces = a1->faces;
+  aasworld.numfaces = a1->numfaces;
   if ( aasworld.faceindex )
     FreeMemory(aasworld.faceindex);
-  aasworld.faceindex = (void *)a1[9];
-  aasworld.faceindexsize = a1[8];
+  aasworld.faceindex = a1->faceindex;
+  aasworld.faceindexsize = a1->faceindexsize;
   if ( aasworld.areas )
     FreeMemory(aasworld.areas);
-  aasworld.areas = (void *)a1[11];
-  aasworld.numareas = a1[10];
-  FreeMemory(a1[12]);
-  FreeMemory(a1[13]);
-  return FreeMemory(a1[14]);
+  aasworld.areas = a1->areas;
+  aasworld.numareas = a1->numareas;
+  FreeMemory(a1->vertexremap);
+  FreeMemory(a1->edgeremap);
+  return FreeMemory(a1->faceremap);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066918: using guessed type int aasworld.numvertexes;
@@ -10484,11 +10486,11 @@ int AAS_Optimize()
   int v1; // edx
   char *v2; // eax
   int v3; // ecx
-  int v5[15]; // [esp+4h] [ebp-3Ch] BYREF
+  optimized_t v5; // [esp+4h] [ebp-3Ch] BYREF (was int[15])
 
-  AAS_OptimizeAlloc(v5);
+  AAS_OptimizeAlloc(&v5);
   for ( i = 1; i < aasworld.numareas; ++i )
-    AAS_OptimizeArea(v5, i);
+    AAS_OptimizeArea(&v5, i);
   v1 = 0;
   if ( aasworld.reachabilitysize > 0 )
   {
@@ -10498,7 +10500,7 @@ int AAS_Optimize()
     {
       if ( *(_DWORD *)&v2[v3 + 36] != 11 )
       {
-        *(_DWORD *)&v2[v3 + 4] = *(_DWORD *)(v5[14] + 4 * *(_DWORD *)&v2[v3 + 4]);
+        *(_DWORD *)&v2[v3 + 4] = v5.faceremap[*(_DWORD *)&v2[v3 + 4]];
         v2 = (char *)aasworld.reachability;
       }
       ++v1;
@@ -10506,7 +10508,7 @@ int AAS_Optimize()
     }
     while ( v1 < aasworld.reachabilitysize );
   }
-  AAS_OptimizeStore(v5);
+  AAS_OptimizeStore(&v5);
   return bi_Print(1, aAasDataOptimiz);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -10598,7 +10600,7 @@ int __cdecl AAS_AreaReachability(int areanum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10011090) --------------------------------------------------------
-double __cdecl AAS_FaceArea(int a1)
+double __cdecl AAS_FaceArea(char *a1)
 {
   int v2; // ebp
   int v3; // eax
@@ -10653,8 +10655,9 @@ double __cdecl sub_10011220(int a1)
 {
   char *v1; // esi
   int v2; // edi
-  __int64 v3; // rax
-  __int64 v4; // rax
+  int v3i;
+  int v4i;
+  char *vp;
   __int64 v5; // rax
   _DWORD *v7; // [esp-4h] [ebp-1Ch]
   float v8; // [esp+8h] [ebp-10h]
@@ -10666,12 +10669,12 @@ double __cdecl sub_10011220(int a1)
   v1 = (char *)aasworld.areas + 48 * a1;
   v2 = 0;
   v12 = 0.0;
-  v3 = *((int *)aasworld.faceindex + *((_DWORD *)v1 + 2));
-  v4 = *((int *)aasworld.edgeindex + *((_DWORD *)aasworld.faces + 6 * ((HIDWORD(v3) ^ v3) - HIDWORD(v3)) + 3));
-  LODWORD(v4) = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * ((HIDWORD(v4) ^ v4) - HIDWORD(v4)));
-  v9 = *(float *)v4;
-  v11 = *(float *)(v4 + 8);
-  for ( i = *(float *)(v4 + 4); v2 < *((_DWORD *)v1 + 1); v12 = AAS_FaceArea((int)v7) * v8 + v12 )
+  v3i = *((int *)aasworld.faceindex + *((_DWORD *)v1 + 2));
+  v4i = *((int *)aasworld.edgeindex + *((_DWORD *)aasworld.faces + 6 * abs32(v3i) + 3));
+  vp = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * abs32(v4i));
+  v9 = *(float *)vp;
+  v11 = *(float *)(vp + 8);
+  for ( i = *(float *)(vp + 4); v2 < *((_DWORD *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
   {
     v5 = *((int *)aasworld.faceindex + v2 + *((_DWORD *)v1 + 2));
     v7 = (char *)aasworld.faces + 24 * ((HIDWORD(v5) ^ v5) - HIDWORD(v5));
@@ -10706,7 +10709,7 @@ double __cdecl AAS_AreaGroundFaceArea(int a1)
       v5 = 3 * ((HIDWORD(v4) ^ v4) - HIDWORD(v4));
       if ( (*((_BYTE *)aasworld.faces + 8 * v5 + 4) & 4) != 0 )
       {
-        result = AAS_FaceArea((int)aasworld.faces + 8 * v5) + v6;
+        result = AAS_FaceArea((char *)aasworld.faces + 8 * v5) + v6;
         v6 = result;
       }
       ++v2;
@@ -10721,7 +10724,8 @@ int __cdecl AAS_FaceCenter(int a1, float *a2)
 {
   int v2; // esi
   char *v3; // edi
-  __int64 v4; // rax
+  int v4i;
+  char *v4;
   float v6; // [esp+0h] [ebp-10h]
 
   v2 = 0;
@@ -10733,9 +10737,9 @@ int __cdecl AAS_FaceCenter(int a1, float *a2)
   {
     do
     {
-      v4 = *((int *)aasworld.edgeindex + v2 + *((_DWORD *)v3 + 3));
+      v4i = *((int *)aasworld.edgeindex + v2 + *((_DWORD *)v3 + 3));
       ++v2;
-      LODWORD(v4) = (char *)aasworld.edges + 8 * ((HIDWORD(v4) ^ v4) - HIDWORD(v4));
+      v4 = (char *)aasworld.edges + 8 * abs32(v4i);
       *a2 = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4) + *a2;
       a2[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 1) + a2[1];
       a2[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 2) + a2[2];
@@ -10806,14 +10810,14 @@ int __cdecl AAS_AreaLadder(int a1)
 //----- (10011700) --------------------------------------------------------
 int __cdecl AAS_ReachabilityExists(int a1, int a2)
 {
-  _DWORD *v2; // eax
+  aas_reachabilitynode_t *v2;
 
-  v2 = *(_DWORD **)(areareachability + 4 * a1);
+  v2 = areareachability[a1];
   if ( !v2 )
     return 0;
-  while ( *v2 != a2 )
+  while ( *(_DWORD *)v2 != a2 )
   {
-    v2 = (_DWORD *)((aas_reachabilitynode_t *)v2)->next;
+    v2 = v2->next;
     if ( !v2 )
       return 0;
   }
@@ -10990,7 +10994,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
   int v24; // ecx
   int v25; // eax
   int v26; // eax
-  int v27; // esi
+  char *v27; // esi
   int v28; // edx
   int v29; // eax
   int v30; // ecx
@@ -11259,7 +11263,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   float v16; // ebx
   float *v17; // eax
   int v18; // ebx
-  int v19; // eax
+  char *v19; // eax — base pointer alias of v115 (was int, must hold 64-bit ptr)
   __int64 v20; // rax
   char *v21; // edi
   int j; // ebp
@@ -11290,14 +11294,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   int result; // eax
   int v48; // ebp
   int v49; // ebx
-  int v50; // esi
+  char *v50; // esi
   int v51; // edx
   float v52; // eax
   float v53; // ecx
   int *v54; // eax
   int *v55; // esi
-  int v56; // esi
-  int v57; // eax
+  char *v56; // esi
+  char *v57; // eax
   int v58; // edx
   float v59; // [esp+10h] [ebp-1C0h]
   float v60; // [esp+10h] [ebp-1C0h]
@@ -11365,7 +11369,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   vec3_t v110; // [esp+D0h] [ebp-100h] BYREF — was v110/v111/v112 mixed triplet
   int v113; // [esp+DCh] [ebp-F4h]
   unsigned int v114; // [esp+E0h] [ebp-F0h]
-  int v115; // [esp+E4h] [ebp-ECh]
+  char *v115; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
   int v116; // [esp+E8h] [ebp-E8h]
   int v117; // [esp+ECh] [ebp-E4h]
   int v118; // [esp+F0h] [ebp-E0h]
@@ -11405,12 +11409,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   {
     v2 = (char *)aasworld.areas + 48 * a1;
     v127 = v2;
-    v115 = (int)aasworld.areas + 48 * a2;
+    v115 = (char *)aasworld.areas + 48 * a2;
     v3 = AAS_AreaSwim(a1);
     v4 = 0;
     v5 = (float *)(v115 + 12);
     v134 = v3;
-    for ( i = (float *)(v2 + 24); *(float *)((char *)i + v115 - (_DWORD)v2) + 10.0 >= *(i - 3) && *v5 - 10.0 <= *i; ++i )
+    for ( i = (float *)(v2 + 24); *(float *)((char *)i + (v115 - v2)) + 10.0 >= *(i - 3) && *v5 - 10.0 <= *i; ++i )
     {
       ++v4;
       ++v5;
@@ -11479,14 +11483,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
                       {
                         v23 = *((int *)aasworld.edgeindex + j + *((_DWORD *)v21 + 3));
                         v24 = (char *)aasworld.edges + 8 * ((HIDWORD(v23) ^ v23) - HIDWORD(v23));
-                        LODWORD(v23) = (char *)aasworld.vertexes + 12 * *v24;
-                        v78 = *(float *)v23;
-                        v79 = *(int *)(v23 + 4);
-                        v80 = *(float *)(v23 + 8);
-                        LODWORD(v23) = (char *)aasworld.vertexes + 12 * v24[1];
-                        v72 = *(float *)v23;
-                        v74 = *(float *)(v23 + 8);
-                        v73 = *(float *)(v23 + 4);
+                        v23 = (__int64)(intptr_t)((char *)aasworld.vertexes + 12 * *v24);
+                        v78 = *(float *)(intptr_t)v23;
+                        v79 = *(int *)((intptr_t)v23 + 4);
+                        v80 = *(float *)((intptr_t)v23 + 8);
+                        v23 = (__int64)(intptr_t)((char *)aasworld.vertexes + 12 * v24[1]);
+                        v72 = *(float *)(intptr_t)v23;
+                        v74 = *(float *)((intptr_t)v23 + 8);
+                        v73 = *(float *)((intptr_t)v23 + 4);
                         v25 = v80 * v101[2] + *(float *)&v79 * v101[1] + v78 * v101[0] - v65;
                         if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
@@ -11964,7 +11968,8 @@ int __cdecl VectorMiddle(float *a1, float *a2, float *a3)
 //----- (10013CC0) --------------------------------------------------------
 int AAS_Reachability_Jump(int area1num, int area2num)
 {
-  float area1; // ebx
+  char *area1; // ebx (was `float area1` IDA punned a pointer in float-typed slot — must be a real ptr on 64-bit)
+  char *area1_save; // backup of area1 across the inner face1 loop (was sharing v90's slot in IDA)
   char *area2; // esi
   int i; // edx
   float *v6; // edi
@@ -12009,7 +12014,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int traveltype; // ebx
   int v46; // edi
   double v48; // st7
-  int lreach; // esi
+  char *lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
   float bestdist; // [esp+1Ch] [ebp-1B0h]
   /* beststart/bestend are vec3_t passed to AAS_HorizontalVelocityForJump and
@@ -12061,9 +12066,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) && !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
   {
-    LODWORD(area1) = (char *)aasworld.areas + 48 * area1num;
+    area1 = (char *)aasworld.areas + 48 * area1num;
     area2 = (char *)aasworld.areas + 48 * area2num;
-    v90 = area1;
+    area1_save = area1;
     v91 = area2;
     /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
      * `call AAS_MaxJumpDistance` / `call AAS_MaxJumpHeight`, each followed by
@@ -12075,18 +12080,18 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
 
     v6 = (float *)(area2 + 12);
-    v7 = (float *)(LODWORD(area1) + 24);
+    v7 = (float *)(area1 + 24);
     for (i = 0; i < 2; i++)
     {
-      if ( maxjumpdistance + *(float *)&area2[(_DWORD)v7 - LODWORD(area1)] < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
+      if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
       ++v7;
       ++v6;
     }
 
-    if ( *(float *)&maxjumpheight + *(float *)(LODWORD(area1) + 32) >= *((float *)area2 + 5) )
+    if ( *(float *)&maxjumpheight + *(float *)(area1 + 32) >= *((float *)area2 + 5) )
     {
-      v8 = *(_DWORD *)(LODWORD(area1) + 4);
+      v8 = *(_DWORD *)(area1 + 4);
       v9 = 0;
       bestdist = 999999.0;
       *(float *)&maxjumpheight = 0.0;
@@ -12094,8 +12099,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         goto LABEL_67;
       do
       {
-        face1num = *((int *)aasworld.faceindex + v9 + *(_DWORD *)(LODWORD(area1) + 8));
-        LODWORD(face1num) = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
+        face1num = *((int *)aasworld.faceindex + v9 + *(_DWORD *)(area1 + 8));
+        face1num = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
         v11 = 3 * face1num;
         LOBYTE(face1num) = *((_BYTE *)aasworld.faces + 24 * face1num + 4);
         face1 = (char *)aasworld.faces + 8 * v11;
@@ -12347,7 +12352,7 @@ LABEL_62:
                     face1 = v66;
                   }
                   v14 = v92;
-                  area1 = v90;
+                  area1 = area1_save;
                   area2 = v91;
                   face1 = v66;
                 }
@@ -12358,7 +12363,7 @@ LABEL_62:
             while ( v14 < v43 );
           }
         }
-        v44 = *(_DWORD *)(LODWORD(area1) + 4);
+        v44 = *(_DWORD *)(area1 + 4);
         v9 = ++maxjumpheight;
       }
       while ( maxjumpheight < v44 );
@@ -12371,14 +12376,14 @@ LABEL_67:
           v91 = (char *)sub_10011520();
           if ( (double)(int)v91 >= v90 )
           {
-            if ( AAS_HorizontalVelocityForJump(0.0, (int)beststart, (int)bestend, (int)&speed) )
+            if ( AAS_HorizontalVelocityForJump(0.0, beststart, bestend, &speed) )
             {
               traveltype = 7;
               speed = speed * 1.2;
             }
             else
             {
-              if ( !AAS_HorizontalVelocityForJump(phys_jumpvel, (int)beststart, (int)bestend, (int)&speed) )
+              if ( !AAS_HorizontalVelocityForJump(phys_jumpvel, beststart, bestend, &speed) )
                 return 0;
               traveltype = 5;
             }
@@ -12436,14 +12441,14 @@ LABEL_67:
                   cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
                   qmemcpy(
                     move2,
-                    (const void *)AAS_ClientMovementPrediction(
-                                    (int)move,
+                    AAS_ClientMovementPrediction(
+                                    (char *)move,
                                     -1,
-                                    (int)beststart,
+                                    beststart,
                                     2,
                                     1,
-                                    (int)&velocity,
-                                    (int)cmdmove,    /* now vec3_t */
+                                    velocity,
+                                    cmdmove,    /* now vec3_t */
                                     3,
                                     30,
                                     0.1,
@@ -12587,16 +12592,16 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v29; // esi
   float *v30; // esi
   BOOL v31; // eax
-  int v32; // eax
-  int v33; // esi
+  char *v32; // eax
+  char *v33; // esi (was int — alloc'd reach slot pointer)
   int v34; // edx
-  int v35; // eax
-  int v36; // esi
+  char *v35; // eax
+  char *v36; // esi (was int)
   int v37; // ecx
-  int v39; // eax
-  int v40; // esi
+  char *v39; // eax
+  char *v40; // esi (was int)
   int v41; // ecx
-  int v42; // eax
+  char *v42; // eax
   int v43; // ecx
   int i; // edi
   unsigned int v45; // esi
@@ -12613,11 +12618,11 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v56; // esi
   int *v57; // ebp
   char *v58; // eax
-  int v59; // eax
+  char *v59; // eax
   int v60; // ecx
-  int lreach; // esi
+  char *lreach; // esi
   int v62; // edx
-  int v63; // edx
+  char *v63; // edx (was int — alias of v85 plane pointer)
   double v64; // st7
   int v65; // [esp+10h] [ebp-108h]
   BOOL v66; // [esp+10h] [ebp-108h]
@@ -12631,7 +12636,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v82; // [esp+50h] [ebp-C8h]
   char *v83; // [esp+54h] [ebp-C4h]
   int v84; // [esp+58h] [ebp-C0h]
-  int v85; // [esp+5Ch] [ebp-BCh]
+  char *v85; // [esp+5Ch] [ebp-BCh] (was int — aas_area_t * stash)
   vec3_t bestmid; // [esp+60h] [ebp-B8h] BYREF — v86/v87/v88 collapsed
   int v89; // [esp+6Ch] [ebp-ACh]
   float v90; // [esp+70h] [ebp-A8h]
@@ -12664,7 +12669,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       v6 = 0;
       v7 = 0;
       v94 = v3;
-      v85 = (int)v4;
+      v85 = v4;
       v95 = 0;
       v75 = 0;
       v98 = -9999.0;
@@ -12710,8 +12715,8 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
                           if ( ++v82 >= v14 )
                             goto LABEL_16;
                         }
-                        v96 = AAS_FaceArea((int)v83);
-                        v18 = AAS_FaceArea((int)v11);
+                        v96 = AAS_FaceArea((char *)v83);
+                        v18 = AAS_FaceArea((char *)v11);
                         if ( v96 > (double)v98 && v18 > v90 )
                         {
                           v98 = v96;
@@ -12737,7 +12742,7 @@ LABEL_16:
 LABEL_20:
                     v7 = v95;
                     v10 = v89;
-                    v4 = (char *)v85;
+                    v4 = v85;
                   }
                 }
                 v20 = *((_DWORD *)v4 + 1);
@@ -12904,7 +12909,7 @@ LABEL_20:
                     v66 = v45;
                   }
                 }
-                v85 = (int)aasworld.planes + 20 * *v7;
+                v85 = (char *)aasworld.planes + 20 * *v7;
                 VectorMA(bestmid, 5.0, (float *)v85, tracestart);
                 v52 = tracestart[2];
                 traceend[0] = tracestart[0];
@@ -13016,7 +13021,7 @@ int AAS_Reachability_Teleport()
   int v8; // ebx
   int i; // edi
   int v10; // esi
-  int v11; // eax
+  char *v11; // eax
   vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
@@ -13178,7 +13183,7 @@ int AAS_Reachability_Elevator()
   bsp_entity_t *v0; // edi
   bsp_entity_t *v1; // ebp — current entity walk
   const char *v2; // eax
-  int v3; // eax
+  char *v3; // eax — AAS_ValueForBSPEpairKey return
   int v4; // eax
   double v5; // st7
   double v6; // st7
@@ -13260,7 +13265,7 @@ LABEL_58:
       bi_Print(3, aFuncPlatWithou);
       goto LABEL_58;
     }
-    v4 = atoi((const char *)(v3 + 1));
+    v4 = atoi(v3 + 1);
     v66 = v4;
     if ( v4 <= 0 )
     {
@@ -13493,11 +13498,12 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   int v6; // eax
   int face2num; // ebp
   char *face2; // esi
-  __int64 v; // rax
+  char *v; // rax (was __int64) — pointer to vertex (float[3])
+  int vidx; // edge index value
   double hordist; // st7
   int v11; // edi
-  int lreach; // eax
-  int v13; // esi
+  char *lreach; // eax
+  char *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
   double v14; // st7
   double v15; // st7
   float v16; // edx
@@ -13565,8 +13571,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
       face2 = (char *)aasworld.faces + 24 * abs32(face2num);
       if ( (face2[4] & 1) != 0 )
       {
-        v = *((int *)aasworld.edgeindex + *((_DWORD *)face2 + 3));
-        LODWORD(v) = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * ((HIDWORD(v) ^ v) - HIDWORD(v)));
+        vidx = *((int *)aasworld.edgeindex + *((_DWORD *)face2 + 3));
+        v = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * abs32(vidx));
         dir[0] = *(float *)v - areastart[0];
         dir[1] = *(float *)(v + 4) - areastart[1];
         dir[2] = *(float *)(v + 8) - areastart[2];
@@ -13788,7 +13794,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v9; // edi
   int v10; // esi
   int v11; // eax
-  int v13; // eax
+  char *v13; // eax
   float v14; // [esp+Ch] [ebp-14Ch]
   float v15; // [esp+28h] [ebp-130h]
   int v16; // [esp+28h] [ebp-130h]
@@ -13858,11 +13864,11 @@ LABEL_28:
   while ( 1 )
   {
     if ( v8 )
-      AAS_BFGJumpZVelocity((int)groundedpos);
+      AAS_BFGJumpZVelocity(groundedpos);
     else
       v7 = AAS_RocketJumpZVelocity(groundedpos);
     v15 = v7;
-    if ( AAS_HorizontalVelocityForJump(v15, (int)groundedpos, (int)facecenter, (int)&v24) )
+    if ( AAS_HorizontalVelocityForJump(v15, groundedpos, facecenter, &v24) )
     {
       v7 = v24;
       if ( v24 < 270.0 )
@@ -13879,7 +13885,7 @@ LABEL_28:
           v29[1] = 0;
           qmemcpy(
             v35,
-            (const void *)AAS_ClientMovementPrediction((int)v36, -1, (int)groundedpos, 2, 1, (int)v29, (int)v33, 3, 30, 0.1, 61, 0),
+            AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1, 61, 0),
             sizeof(v35));
           if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
           {
@@ -13983,8 +13989,8 @@ int __cdecl AAS_Reachability_WalkOffLedge(int a1)
   int v31; // edx
   int v32; // eax
   int v33; // edi
-  int v34; // eax
-  int v35; // esi
+  char *v34; // eax
+  char *v35; // esi (was int) — alias of lreach (aas_reachabilitynode_t *)
   int v36; // edx
   int v37; // eax
   int v38; // [esp+8h] [ebp-ACh]
@@ -14233,7 +14239,7 @@ int AAS_StoreReachability()
   int v2; // edi
   char *v3; // ecx
   char *v4; // edx
-  int i; // eax
+  char *i; // eax — was int, holds aas_reachabilitynode_t * pointer
   char *v6; // ecx
 
   if ( aasworld.reachability )
@@ -14251,7 +14257,7 @@ int AAS_StoreReachability()
       *(_DWORD *)((char *)aasworld.areasettings + v2 + 24) = result;
       *(_DWORD *)&v3[v2 + 20] = 0;
       v4 = &v3[v2];
-      for ( i = areareachability[v1]; i; i = ((aas_reachabilitynode_t *)i)->next )
+      for ( i = (char *)areareachability[v1]; i; i = (char *)((aas_reachabilitynode_t *)i)->next )
       {
         v6 = (char *)aasworld.reachability + 44 * *((_DWORD *)v4 + 6) + 44 * *((_DWORD *)v4 + 5);
         *(_DWORD *)v6 = *(_DWORD *)i;
@@ -16139,7 +16145,9 @@ int __cdecl sub_1001BD40(int a1)
 int __cdecl sub_1001BF00(int a1, int a2, float a3)
 {
   _DWORD *v5; // ebx
-  __int64 v7; // rax
+  int eidx;
+  char *edge;
+  char *v7;
   BOOL v8; // esi
   float *v9; // ecx
   char *v10; // [esp+10h] [ebp-28h]
@@ -16160,11 +16168,11 @@ int __cdecl sub_1001BF00(int a1, int a2, float a3)
   {
     while ( 1 )
     {
-      v7 = *((int *)aasworld.edgeindex + v16 + v5[3]);
-      HIDWORD(v7) = (char *)aasworld.edges + 8 * ((HIDWORD(v7) ^ v7) - HIDWORD(v7));
-      v8 = *((int *)aasworld.edgeindex + v16 + v5[3]) < 0;
-      LODWORD(v7) = (char *)aasworld.vertexes + 12 * *(_DWORD *)(HIDWORD(v7) + 4 * v8);
-      v9 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)(HIDWORD(v7) + 4 * !v8));
+      eidx = *((int *)aasworld.edgeindex + v16 + v5[3]);
+      edge = (char *)aasworld.edges + 8 * abs32(eidx);
+      v8 = eidx < 0;
+      v7 = (char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * v8);
+      v9 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * !v8));
       v14[0] = *v9 - *(float *)v7;
       v14[1] = v9[1] - *(float *)(v7 + 4);
       v14[2] = v9[2] - *(float *)(v7 + 8);
@@ -17016,7 +17024,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
             if ( v51 * bs->_f1680 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
           }
-          if ( sub_1000EFC0((int)bs->origin) )
+          if ( sub_1000EFC0(bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
           if ( AAS_Time() - 2.0 > bs->_f2876 )
           {
@@ -17193,7 +17201,7 @@ LABEL_86:
           }
           if ( AAS_Time() < bs->_f2820 )
             EA_Crouch(bs->client);
-          if ( sub_1000EFC0((int)bs->origin) )
+          if ( sub_1000EFC0(bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
           v35 = bi_PointContents((int)bs->eye);   /* IDA-dropped: bot-eye liquid check */
           if ( (v35 & 0x38) != 0 )
@@ -27204,14 +27212,14 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
       v11 = (__int64)(v10 / v20);
       qmemcpy(
         v18,
-        (const void *)AAS_ClientMovementPrediction(
-                        (int)v18,
+        AAS_ClientMovementPrediction(
+                        (char *)v18,
                         *(_DWORD *)(a1 + 36),
-                        a1,
+                        (float *)a1,
                         v7,
                         1,
-                        a1 + 12,
-                        (int)v17,
+                        (float *)(a1 + 12),
+                        v17,
                         v11,
                         v11,
                         v20,
@@ -27257,7 +27265,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
  * branch keeps all 4 args, matching Q3. */
 int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4)
 {
-  if ( sub_1000EFC0(a1) )
+  if ( sub_1000EFC0((float *)a1) )
     return BotSwimInDirection(a1, a2, a3);
   else
     return BotWalkInDirection(a1, a2, a3, a4);
@@ -27658,7 +27666,7 @@ LABEL_8:
     v9 = 400.0;
     goto LABEL_9;
   }
-  if ( !AAS_HorizontalVelocityForJump(0.0, (int)(a3 + 3), (int)v4, (int)&v9) )
+  if ( !AAS_HorizontalVelocityForJump(0.0, (float *)(a3 + 3), v4, &v9) )
     v9 = 200.0;
 LABEL_9:
   BotCheckBlocked(a2, (int)dir, (int)v16);
@@ -28569,13 +28577,13 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
   {
     v4 = *(_DWORD *)(a2 + 48);
     *(_DWORD *)(a2 + 96) &= 0xFFFFFFF3;
-    if ( AAS_OnGround(a2, v4, *(_DWORD *)(a2 + 36)) )
+    if ( AAS_OnGround((float *)a2, v4, *(_DWORD *)(a2 + 36)) )
     {
       v5 = *(_DWORD *)(a2 + 96);
       LOBYTE(v5) = v5 | 2;
       *(_DWORD *)(a2 + 96) = v5;
     }
-    if ( sub_1000EFC0(a2) )
+    if ( sub_1000EFC0((float *)a2) )
     {
       v6 = *(_DWORD *)(a2 + 96);
       LOBYTE(v6) = v6 | 4;
@@ -30281,7 +30289,7 @@ int __cdecl BotLibSetup(const char *str)
 //----- (10037A00) --------------------------------------------------------
 int BotSetupMoveAI()
 {
-  int result; // eax
+  libvar_t *result;
 
   libvar_sv_friction = LibVar(aSvFriction, (char *)a6);
   libvar_sv_stopspeed = LibVar(aSvStopspeed, (char *)a100);
@@ -30300,7 +30308,7 @@ int BotSetupMoveAI()
   libvar_sv_jumpvel = LibVar(aSvJumpvel, (char *)a224);
   result = LibVar(aSvMaxwaterjump, (char *)a21);
   libvar_sv_maxwaterjump = result;
-  return result;
+  return (intptr_t)result;
 }
 // 10064030: using guessed type int libvar_sv_friction;
 // 10064034: using guessed type int libvar_sv_stopspeed;
