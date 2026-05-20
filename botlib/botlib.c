@@ -14639,7 +14639,12 @@ int AAS_CalculateAreaTravelTimes(void)
 //----- (10019230) --------------------------------------------------------
 int __cdecl AAS_AllocRoutingCache(int a1)
 {
-  return GetClearedMemory(2 * a1 + 44);
+  /* Original 32-bit disasm: GetClearedMemory(2 * numareas + 44).
+   * 44 = sizeof(aas_routingcache_t) on 32-bit (40-byte header + 4 slop).
+   * Using sizeof() keeps the trailing unsigned short traveltimes[] array
+   * placed correctly for both 32-bit and 64-bit pointer-widened layouts.
+   * The trailing array is accessed via &cache[1] (pointer arithmetic). */
+  return GetClearedMemory(2 * a1 + (int)sizeof(aas_routingcache_t) + 4);
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
@@ -14653,57 +14658,35 @@ int __cdecl AAS_FreeRoutingCache(int a1)
 //----- (10019280) --------------------------------------------------------
 int AAS_FreeAllClusterAreaCache()
 {
-  int result; // eax
-  int v1; // ebx
-  int v2; // ebp
-  int v3; // esi
-  int *v4; // ebp
-  int v5; // eax
-  int v6; // edi
-  int v7; // [esp+0h] [ebp-4h]
+  /* Faithful transcription of 0x10019280 disasm.  Original 32-bit code
+   * walked aasworld.clusterareacache[cluster][areaInCluster] (a 2-D
+   * pointer table) and per-slot followed cache->next (+0x24) freeing
+   * each entry.  On 64-bit we use the typed array indexing and typed
+   * `next` field so 8-byte pointers survive.  Behaviour identical. */
+  int                  cluster, areaInCluster;
+  aas_cluster_t       *clusters;
+  aas_routingcache_t **row;
+  aas_routingcache_t  *entry, *next;
 
-  result = aasworld.clusterareacache;
-  if ( aasworld.clusterareacache )
+  if ( !aasworld.clusterareacache )
+    return 0;
+  clusters = (aas_cluster_t *)aasworld.clusters;
+  for ( cluster = 0; cluster < aasworld.numclusters; ++cluster )
   {
-    v1 = 0;
-    if ( aasworld.numclusters > 0 )
+    row = aasworld.clusterareacache[cluster];
+    for ( areaInCluster = 0; areaInCluster < clusters[cluster].numareas; ++areaInCluster )
     {
-      v2 = 0;
-      v7 = 0;
-      do
+      for ( entry = row[areaInCluster]; entry; entry = next )
       {
-        v3 = 0;
-        v4 = (int *)((char *)aasworld.clusters + v2);
-        if ( *v4 > 0 )
-        {
-          do
-          {
-            v5 = *(_DWORD *)(*(_DWORD *)(aasworld.clusterareacache + 4 * v1) + 4 * v3);
-            if ( v5 )
-            {
-              do
-              {
-                v6 = *(_DWORD *)(v5 + 36);
-                AAS_FreeRoutingCache(v5);
-                v5 = v6;
-              }
-              while ( v6 );
-            }
-            ++v3;
-            *(_DWORD *)(*(_DWORD *)(aasworld.clusterareacache + 4 * v1) + 4 * v3 - 4) = 0;
-          }
-          while ( v3 < *v4 );
-        }
-        ++v1;
-        v2 = v7 + 12;
-        v7 += 12;
+        next = entry->next;
+        AAS_FreeRoutingCache((int)(intptr_t)entry);
       }
-      while ( v1 < aasworld.numclusters );
+      row[areaInCluster] = NULL;
     }
-    result = FreeMemory(aasworld.clusterareacache);
-    aasworld.clusterareacache = 0;
   }
-  return result;
+  FreeMemory(aasworld.clusterareacache);
+  aasworld.clusterareacache = NULL;
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066A7C: using guessed type int aasworld.clusterareacache;
@@ -14759,34 +14742,37 @@ int AAS_InitClusterAreaCache(void)
  * binary address. */
 int AAS_FreeAllPortalCache(void)
 {
+  /* Faithful transcription of 0x100193E0.  Original 32-bit walked
+   * aasworld.portalcache[area] following cache->next (+0x24).
+   * 64-bit-safe via typed array indexing + typed `next` field. */
   int i;
-  int *cache = (int *)(intptr_t)aasworld.portalcache;
-  if ( !cache )
+  aas_routingcache_t *entry, *next;
+
+  if ( !aasworld.portalcache )
     return 0;
   for ( i = 0; i < aasworld.numareas; ++i )
   {
-    int entry = cache[i];
-    while ( entry )
+    for ( entry = aasworld.portalcache[i]; entry; entry = next )
     {
-      int next = *(int *)(intptr_t)(entry + 0x24);
-      FreeMemory(entry);
-      entry = next;
+      next = entry->next;
+      AAS_FreeRoutingCache((int)(intptr_t)entry);
     }
-    cache[i] = 0;
+    aasworld.portalcache[i] = NULL;
   }
   FreeMemory(aasworld.portalcache);
-  aasworld.portalcache = 0;
+  aasworld.portalcache = NULL;
   return 0;
 }
 
 //----- (10019470) --------------------------------------------------------
 int AAS_InitPortalCache()
 {
-  int result; // eax
-
-  result = GetClearedMemory(4 * aasworld.numareas);
-  aasworld.portalcache = result;
-  return result;
+  /* Original 32-bit: GetClearedMemory(4 * numareas) — one pointer slot
+   * per area in a flat array.  On 64-bit each slot is 8 bytes, so use
+   * sizeof(aas_routingcache_t *). */
+  aasworld.portalcache = (aas_routingcache_t **)GetClearedMemory(
+      aasworld.numareas * (int)sizeof(aas_routingcache_t *));
+  return (int)(intptr_t)aasworld.portalcache;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10066948: using guessed type int aasworld.numareas;
@@ -14842,8 +14828,9 @@ int AAS_FreeRoutingCaches(void)
  * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
  * everything with byte arithmetic on the int-typed globals.  Field
  * accesses now go through the typed structs; semantics preserved. */
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1)
+aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1_)
 {
+  aas_routingcache_t  *cache = (aas_routingcache_t *)(intptr_t)a1_;
   int                  travelmask;       /* v26 */
   int                  startareanum;
   aas_routingupdate_t *cur;              /* v25 */
@@ -14872,11 +14859,11 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1)
   settings_base   = (aas_areasettings_t *)aasworld.areasettings;
   reach_base      = (aas_reachability_t *)aasworld.reachability;
 
-  travelmask       = ~*(int *)((char *)a1 + 28);
-  cache_cluster    = *(int *)((char *)a1 + 4);
-  cache_starttt    = *(float *)((char *)a1 + 24);
-  cache_areanum    = *(int *)((char *)a1 + 8);
-  cache_traveltimes = (unsigned short *)((char *)a1 + 40);
+  travelmask        = ~cache->travelflags;
+  cache_cluster     = cache->cluster;
+  cache_starttt     = cache->starttraveltime;
+  cache_areanum     = cache->areanum;
+  cache_traveltimes = (unsigned short *)(cache + 1);
 
   startareanum     = cache_areanum;
   cur              = &aasworld.areaupdate[startareanum];
@@ -14982,11 +14969,14 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1)
 //----- (10019A90) --------------------------------------------------------
 int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
 {
+  /* Faithful 64-bit-safe transcription of 0x10019A90.
+   * Per-area chain head lives at aasworld.clusterareacache[cluster][areaInCluster];
+   * each entry's prev/next pointers must hold full 64-bit pointers, so we
+   * use the typed aas_routingcache_t struct fields instead of the original
+   * raw *(_DWORD *)(p + 0x20/0x24) byte accesses. */
   char *v4; // ecx
   int v5; // eax
-  int v6; // edi
-  int v7; // esi
-  int v8; // eax
+  aas_routingcache_t *head, *cur;
   int v10; // [esp+18h] [ebp+8h]
 
   v4 = (char *)aasworld.areasettings + 28 * a2;
@@ -14995,171 +14985,152 @@ int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
     v10 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v5)[1] != a1) - 5 * v5 + 3);
   else
     v10 = *((_DWORD *)v4 + 4);
-  v6 = *(_DWORD *)(*(_DWORD *)(aasworld.clusterareacache + 4 * a1) + 4 * v10);
-  v7 = v6;
-  if ( !v6 )
-    goto LABEL_9;
-  while ( *(_DWORD *)(v7 + 28) != a3 )
+  head = aasworld.clusterareacache[a1][v10];
+  cur  = head;
+  if ( cur )
   {
-    v7 = *(_DWORD *)(v7 + 36);
-    if ( !v7 )
-      goto LABEL_9;
+    while ( cur->travelflags != a3 )
+    {
+      cur = cur->next;
+      if ( !cur )
+        break;
+    }
   }
-  if ( !v7 )
+  if ( !cur )
   {
-LABEL_9:
-    v7 = AAS_AllocRoutingCache(*((_DWORD *)aasworld.clusters + 3 * a1));
-    *(_DWORD *)(v7 + 4) = a1;
-    *(_DWORD *)(v7 + 8) = a2;
-    *(_DWORD *)(v7 + 12) = *((_DWORD *)aasworld.areas + 12 * a2 + 9);
-    *(_DWORD *)(v7 + 16) = *((_DWORD *)aasworld.areas + 12 * a2 + 10);
-    v8 = *((_DWORD *)aasworld.areas + 12 * a2 + 11);
-    *(_DWORD *)(v7 + 24) = 1065353216;
-    *(_DWORD *)(v7 + 20) = v8;
-    *(_DWORD *)(v7 + 28) = a3;
-    *(_DWORD *)(v7 + 32) = 0;
-    *(_DWORD *)(v7 + 36) = v6;
-    if ( v6 )
-      *(_DWORD *)(v6 + 32) = v7;
-    *(_DWORD *)(*(_DWORD *)(aasworld.clusterareacache + 4 * a1) + 4 * v10) = v7;
-    AAS_UpdateAreaRoutingCache(v7);
+    cur = (aas_routingcache_t *)(intptr_t)AAS_AllocRoutingCache(
+        *((_DWORD *)aasworld.clusters + 3 * a1));
+    cur->cluster        = a1;
+    cur->areanum        = a2;
+    cur->origin[0]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 9);
+    cur->origin[1]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 10);
+    cur->origin[2]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 11);
+    cur->starttraveltime = 1.0f;
+    cur->travelflags    = a3;
+    cur->prev           = NULL;
+    cur->next           = head;
+    if ( head )
+      head->prev = cur;
+    aasworld.clusterareacache[a1][v10] = cur;
+    AAS_UpdateAreaRoutingCache((int)(intptr_t)cur);
   }
-  *(float *)v7 = AAS_Time();
-  return v7;
+  cur->time = AAS_Time();
+  return (int)(intptr_t)cur;
 }
 // 10001F0A: using guessed type double AAS_Time(void);
 // 10066A7C: using guessed type int aasworld.clusterareacache;
 
 //----- (10019C00) --------------------------------------------------------
-int __cdecl AAS_UpdatePortalRoutingCache(int a1)
+int __cdecl AAS_UpdatePortalRoutingCache(int a1_)
 {
-  int v1; // ebx
-  int v2; // esi
-  __int64 v3; // rax
-  int v4; // edi
-  int v5; // edi
-  int v6; // eax
-  int v7; // eax
-  char *v8; // esi
-  _DWORD *v9; // ebp
-  int v10; // ecx
-  int v11; // esi
-  _DWORD *v12; // edx
-  char *v13; // ebx
-  int v14; // esi
-  int v15; // ebx
-  __int16 v16; // si
-  unsigned __int16 v17; // si
-  unsigned __int16 v18; // bx
-  int v19; // ecx
-  int v20; // ebx
-  int v21; // edx
-  int v23; // [esp+10h] [ebp-14h]
-  int v24; // [esp+14h] [ebp-10h]
-  int v25; // [esp+18h] [ebp-Ch]
-  int v26; // [esp+1Ch] [ebp-8h]
-  char *v27; // [esp+20h] [ebp-4h]
+  /* Faithful 64-bit-safe transcription of 0x10019C00.  The original
+   * decompilation walked aasworld.portalupdate via raw 40-byte byte
+   * arithmetic and chained slots through 4-byte ptr fields; both break
+   * on 64-bit.  Restored using the typed aas_routingupdate_t fifo. */
+  aas_routingcache_t  *cache = (aas_routingcache_t *)(intptr_t)a1_;
+  aas_routingupdate_t *cur, *head, *tail, *upd;
+  aas_routingupdate_t *portalupdate = aasworld.portalupdate;
+  aas_areasettings_t  *settings_base = (aas_areasettings_t *)aasworld.areasettings;
+  aas_portal_t        *portals = (aas_portal_t *)aasworld.portals;
+  aas_cluster_t       *clusters = (aas_cluster_t *)aasworld.clusters;
+  unsigned short      *cache_traveltimes;
+  unsigned short      *other_traveltimes;
+  int v4, v7, v10, v11, v14, v15, v20;
+  unsigned short v16, v17, v18;
+  aas_cluster_t *clust;
+  int i;
 
   ++numportalcacheupdates;
-  v1 = a1;
-  memset((void *)aasworld.portalupdate, 0, 40 * aasworld.numareas);
-  v2 = aasworld.portalupdate + 40 * *(_DWORD *)(a1 + 8);
-  *(_DWORD *)v2 = *(_DWORD *)(a1 + 4);
-  *(_DWORD *)(v2 + 4) = *(_DWORD *)(a1 + 8);
-  *(_WORD *)(v2 + 20) = (__int64)*(float *)(a1 + 24);
-  LODWORD(v3) = *(_DWORD *)(a1 + 8);
-  v4 = *((_DWORD *)aasworld.areasettings + 7 * v3 + 3);
+  memset((void *)aasworld.portalupdate, 0,
+         sizeof(aas_routingupdate_t) * aasworld.numareas);
+
+  cache_traveltimes = (unsigned short *)(cache + 1);
+
+  cur = &portalupdate[cache->areanum];
+  cur->cluster       = cache->cluster;
+  cur->areanum       = cache->areanum;
+  cur->tmptraveltime = (unsigned short)(long long)cache->starttraveltime;
+  v4 = settings_base[cache->areanum].cluster;
   if ( v4 < 0 )
+    cache_traveltimes[-v4] = (unsigned short)(long long)cache->starttraveltime;
+  cur->inlist = 0;
+  cur->next   = NULL;
+  cur->prev   = NULL;
+  head = cur;
+  tail = cur;
+
+  while ( cur )
   {
-    v3 = (__int64)*(float *)(a1 + 24);
-    *(_WORD *)(a1 + 2 * (20 - v4)) = v3;
-  }
-  *(_DWORD *)(v2 + 32) = 0;
-  *(_DWORD *)(v2 + 36) = 0;
-  v5 = v2;
-  v23 = v2;
-  if ( v2 )
-  {
-    while ( 1 )
+    upd = cur->next;
+    if ( upd )
+      upd->prev = NULL;
+    else
+      head = NULL;
+    v7 = cur->cluster;
+    tail = cur->next;
+    cur->inlist = 0;
+    clust = &clusters[v7];
     {
-      v6 = *(_DWORD *)(v5 + 32);
-      if ( v6 )
-        *(_DWORD *)(v6 + 36) = 0;
-      else
-        v23 = 0;
-      v7 = *(_DWORD *)v5;
-      v24 = *(_DWORD *)(v5 + 32);
-      *(_DWORD *)(v5 + 28) = 0;
-      v8 = (char *)aasworld.clusters + 12 * v7;
-      v27 = v8;
-      v26 = AAS_GetAreaRoutingCache(v7, *(_DWORD *)(v5 + 4), *(_DWORD *)(v1 + 28));
-      LODWORD(v3) = 0;
-      v25 = 0;
-      if ( *((int *)v8 + 1) > 0 )
+      aas_routingcache_t *entry = (aas_routingcache_t *)(intptr_t)
+          AAS_GetAreaRoutingCache(v7, cur->areanum, cache->travelflags);
+      other_traveltimes = (unsigned short *)(entry + 1);
+    }
+
+    if ( ((int *)clust)[1] > 0 )
+    {
+      int cluster_numportals  = ((int *)clust)[1];
+      int cluster_firstportal = ((int *)clust)[2];
+      for ( i = 0; i < cluster_numportals; ++i )
       {
-        v9 = aasworld.portals;
-        do
+        v10 = ((int *)aasworld.portalindex)[cluster_firstportal + i];
+        v11 = portals[v10].areanum;
+        if ( v11 != cur->areanum )
         {
-          v10 = *((_DWORD *)aasworld.portalindex + v3 + *((_DWORD *)v8 + 2));
-          v11 = v9[5 * v10];
-          v12 = &v9[5 * v10];
-          if ( v11 != *(_DWORD *)(v5 + 4) )
+          v14 = settings_base[v11].cluster;
+          if ( v14 <= 0 )
           {
-            v13 = (char *)aasworld.areasettings + 28 * v11;
-            v14 = *((_DWORD *)v13 + 3);
-            if ( v14 <= 0 )
+            v15 = portals[-v14].clusterareanum[portals[-v14].frontcluster != cur->cluster];
+          }
+          else
+          {
+            v15 = settings_base[v11].clusterareanum;
+          }
+          v16 = other_traveltimes[v15];
+          if ( v16 )
+          {
+            v17 = cur->tmptraveltime + v16;
+            v18 = cache_traveltimes[v10];
+            if ( !v18 || v18 > v17 )
             {
-              LODWORD(v3) = v25;
-              v15 = v9[(v9[-5 * v14 + 1] != *(_DWORD *)v5) - 5 * v14 + 3];
-            }
-            else
-            {
-              v15 = *((_DWORD *)v13 + 4);
-            }
-            v16 = *(_WORD *)(v26 + 2 * v15 + 40);
-            if ( v16 )
-            {
-              v17 = *(_WORD *)(v5 + 20) + v16;
-              v18 = *(_WORD *)(a1 + 2 * v10 + 40);
-              if ( !v18 || v18 > v17 )
+              cache_traveltimes[v10] = v17;
+              upd = &portalupdate[portals[v10].areanum];
+              v20 = portals[v10].frontcluster;
+              if ( v20 == cur->cluster )
+                v20 = portals[v10].backcluster;
+              upd->cluster = v20;
+              upd->areanum = portals[v10].areanum;
+              upd->tmptraveltime = v17;
+              if ( !upd->inlist )
               {
-                *(_WORD *)(a1 + 2 * v10 + 40) = v17;
-                v19 = aasworld.portalupdate + 40 * *v12;
-                v20 = v12[1];
-                if ( v20 == *(_DWORD *)v5 )
-                  v20 = v12[2];
-                *(_DWORD *)v19 = v20;
-                *(_DWORD *)(v19 + 4) = *v12;
-                v21 = *(_DWORD *)(v19 + 28);
-                *(_WORD *)(v19 + 20) = v17;
-                if ( !v21 )
-                {
-                  *(_DWORD *)(v19 + 32) = 0;
-                  *(_DWORD *)(v19 + 36) = v23;
-                  if ( v23 )
-                    *(_DWORD *)(v23 + 32) = v19;
-                  else
-                    v24 = v19;
-                  v23 = v19;
-                  *(_DWORD *)(v19 + 28) = 1;
-                }
-                v9 = aasworld.portals;
+                upd->next = NULL;
+                upd->prev = head;
+                if ( head )
+                  head->next = upd;
+                else
+                  tail = upd;
+                head = upd;
+                upd->inlist = 1;
               }
             }
           }
-          v8 = v27;
-          LODWORD(v3) = v3 + 1;
-          v25 = v3;
         }
-        while ( (int)v3 < *((_DWORD *)v27 + 1) );
-        v1 = a1;
       }
-      if ( !v24 )
-        break;
-      v5 = v24;
     }
+    if ( !tail )
+      break;
+    cur = tail;
   }
-  return v3;
+  return 0;
 }
 // 10066748: using guessed type int numportalcacheupdates;
 // 10066948: using guessed type int aasworld.numareas;
@@ -15168,42 +15139,41 @@ int __cdecl AAS_UpdatePortalRoutingCache(int a1)
 //----- (10019EB0) --------------------------------------------------------
 int __cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
 {
-  int v3; // esi
-  int v4; // edx
-  int v5; // eax
+  /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
+   * chain head lives at aasworld.portalcache[area]; entries link via
+   * prev/next which must hold full 64-bit pointers. */
+  aas_routingcache_t *head, *cur;
 
-  v3 = *(_DWORD *)(aasworld.portalcache + 4 * a2);
-  if ( v3 )
+  head = aasworld.portalcache[a2];
+  cur  = head;
+  if ( cur )
   {
-    while ( *(_DWORD *)(v3 + 28) != a3 )
+    while ( cur->travelflags != a3 )
     {
-      v3 = *(_DWORD *)(v3 + 36);
-      if ( !v3 )
-        goto LABEL_6;
+      cur = cur->next;
+      if ( !cur )
+        break;
     }
   }
-  else
+  if ( !cur )
   {
-LABEL_6:
-    v3 = AAS_AllocRoutingCache(aasworld.numportals);
-    *(_DWORD *)(v3 + 4) = a1;
-    *(_DWORD *)(v3 + 8) = a2;
-    *(_DWORD *)(v3 + 12) = *((_DWORD *)aasworld.areas + 12 * a2 + 9);
-    *(_DWORD *)(v3 + 16) = *((_DWORD *)aasworld.areas + 12 * a2 + 10);
-    v4 = *((_DWORD *)aasworld.areas + 12 * a2 + 11);
-    *(_DWORD *)(v3 + 24) = 1065353216;
-    *(_DWORD *)(v3 + 20) = v4;
-    *(_DWORD *)(v3 + 28) = a3;
-    *(_DWORD *)(v3 + 32) = 0;
-    *(_DWORD *)(v3 + 36) = *(_DWORD *)(aasworld.portalcache + 4 * a2);
-    v5 = *(_DWORD *)(aasworld.portalcache + 4 * a2);
-    if ( v5 )
-      *(_DWORD *)(v5 + 32) = v3;
-    *(_DWORD *)(aasworld.portalcache + 4 * a2) = v3;
-    AAS_UpdatePortalRoutingCache(v3);
+    cur = (aas_routingcache_t *)(intptr_t)AAS_AllocRoutingCache(aasworld.numportals);
+    cur->cluster        = a1;
+    cur->areanum        = a2;
+    cur->origin[0]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 9);
+    cur->origin[1]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 10);
+    cur->origin[2]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 11);
+    cur->starttraveltime = 1.0f;
+    cur->travelflags    = a3;
+    cur->prev           = NULL;
+    cur->next           = head;
+    if ( head )
+      head->prev = cur;
+    aasworld.portalcache[a2] = cur;
+    AAS_UpdatePortalRoutingCache((int)(intptr_t)cur);
   }
-  *(float *)v3 = AAS_Time();
-  return v3;
+  cur->time = AAS_Time();
+  return (int)(intptr_t)cur;
 }
 // 10019ED7: conditional instruction was optimized away because esi.4!=0
 // 10001F0A: using guessed type double AAS_Time(void);

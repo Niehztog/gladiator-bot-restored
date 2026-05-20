@@ -107,16 +107,24 @@ typedef struct aas_entity_s {
 } aas_entity_t;
 
 typedef struct aas_routingcache_s {
-    int   type;
-    float time;
-    int   areanum;
-    int   cluster;
-    int  *startareaslist;
-    int   startareaslistsize;
-    unsigned char *reachabilities;
-    unsigned short *traveltimes;
-    struct aas_routingcache_s *prev;
-    struct aas_routingcache_s *next;
+    /* Faithful Gladiator 32-bit layout (44-byte header + trailing
+     * unsigned short traveltimes[numareas]).  Field offsets on 32-bit
+     * match the original disassembly:
+     *   +0  time, +4 cluster, +8 areanum, +12..+20 origin,
+     *   +24 starttraveltime, +28 travelflags, +32 prev, +36 next.
+     * On 64-bit the pointer fields grow, header becomes 56 bytes; the
+     * trailing traveltimes are accessed via (cache + 1) instead of
+     * (cache + 0x28), and AAS_AllocRoutingCache uses sizeof() so the
+     * trailing array is correctly placed for either word size. */
+    float time;                          /* +0    last-used timestamp */
+    int   cluster;                       /* +4    source cluster      */
+    int   areanum;                       /* +8    source area in cluster */
+    float origin[3];                     /* +12   area->center        */
+    float starttraveltime;               /* +24   typically 1.0f      */
+    int   travelflags;                   /* +28   chain selector key  */
+    struct aas_routingcache_s *prev;     /* +32   per-area chain link */
+    struct aas_routingcache_s *next;     /* +36   per-area chain link */
+    /* unsigned short traveltimes[numareas]  follows immediately after */
 } aas_routingcache_t;
 
 /* aas_routingupdate_t and aas_reversedreach_t are defined in

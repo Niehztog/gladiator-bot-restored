@@ -405,7 +405,7 @@ typedef struct {
 } aas_reversedreach_t;
 
 typedef struct aas_routingupdate_s {
-    int                            pad0;             /* +0  unused (binary layout) */
+    int                            cluster;          /* +0  origin cluster (portal updates) */
     int                            areanum;          /* +4  area being updated     */
     float                          start[3];         /* +8  origin                 */
     unsigned short                 tmptraveltime;    /* +20 best traveltime so far */
