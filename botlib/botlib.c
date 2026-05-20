@@ -13018,8 +13018,8 @@ int AAS_Reachability_Teleport()
   const char *v5; // eax
   const char *v6; // eax
   int v7; // ebp
-  int v8; // ebx
-  int i; // edi
+  aas_link_t *v8; // ebx
+  aas_link_t *i; // edi
   int v10; // esi
   char *v11; // eax
   vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
@@ -13113,11 +13113,11 @@ LABEL_18:
                 maxs[1] = maxs[1] - v29[1];
                 maxs[2] = maxs[2] - v29[2];
                 v8 = sub_1001C460(mins, maxs, -1);
-                for ( i = v8; i; i = *(_DWORD *)(i + 16) )
+                for ( i = v8; i; i = i->next_area )
                 {
-                  if ( AAS_AreaGrounded(*(_DWORD *)(i + 4)) )
+                  if ( AAS_AreaGrounded(i->areanum) )
                   {
-                    v10 = *(_DWORD *)(i + 4);
+                    v10 = i->areanum;
                     v11 = AAS_AllocReachability();
                     if ( !v11 )
                       break;

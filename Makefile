@@ -303,7 +303,7 @@ build/%.o: game/%.c
 build/game/%.o: game/%.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -Igame/ -o $@ $<
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -DZOID -Igame/ -o $@ $<
 
 # ----------
 
