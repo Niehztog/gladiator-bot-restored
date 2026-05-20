@@ -323,7 +323,7 @@ int AAS_InitAASLinkHeap(); // weak
  * future Q2 source recovery. */
 int __cdecl sub_10007150(int start, int end, int endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
 
-unsigned int sub_1002EA50(int a1);  // fixed from weak
+unsigned int sub_1002EA50(void *cs);  // fixed from weak
 int __cdecl sub_1000F2C0(int *);
 int sub_1000B090();
 float *__cdecl sub_10042860(float *, float *, float *);
@@ -717,7 +717,7 @@ void __cdecl BotConstructChatMessage(void *cs, const char *a2, int a3, bot_chatv
 char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2);
 void __cdecl BotInitialChat(void *cs, char *String2, ...);
 int __cdecl sub_1002E7D0(_DWORD *a1, const char *a2);
-unsigned int __cdecl sub_1002EA50(int a1);
+unsigned int __cdecl sub_1002EA50(void *cs);
 char __cdecl BotEnterChat(void *cs, int a2, int a3);
 // int __usercall sub_1002EBB0@<eax>(double a1@<st0>);
 _DWORD *sub_1002EC80();
@@ -19570,7 +19570,7 @@ double __cdecl sub_10022650(bot_state_t *bs)
   int v2; // [esp+4h] [ebp-4h]
 
   v2 = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
-  return (double)(int)sub_1002EA50((int)bs->chatstate) * 30.0 / (double)v2;
+  return (double)(int)sub_1002EA50(bs->chatstate) * 30.0 / (double)v2;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001FD2: using guessed type _DWORD __cdecl sub_1002EA50(_DWORD);
@@ -25464,9 +25464,9 @@ LABEL_34:
 // 10064380: using guessed type int dword_10064380;
 
 //----- (1002EA50) --------------------------------------------------------
-unsigned int __cdecl sub_1002EA50(int a1)
+unsigned int __cdecl sub_1002EA50(void *cs)
 {
-  return strlen((const char *)(a1 + 20));
+  return strlen((const char *)cs + 20);
 }
 
 //----- (1002EA80) --------------------------------------------------------
