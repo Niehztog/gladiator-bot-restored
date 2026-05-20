@@ -4825,7 +4825,7 @@ int __fastcall sub_10007460(void *a1)
   int v16; // ebx
   char *v17; // esi
   _DWORD *v18; // edi
-  double v19; // st7
+  int v19; // st7 -- IDA decompiled FPU temp as double; LittleFloat is int identity so plain int round-trips bit pattern
   void *v20; // edx
   int v21; // eax
   int v22; // ebp
