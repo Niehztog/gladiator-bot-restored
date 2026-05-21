@@ -764,7 +764,7 @@ double __cdecl BotGapDistance(intptr_t a1, intptr_t a2);
 int __cdecl BotCheckBarrierJump(int, int, float); // idb
 int __cdecl BotSwimInDirection(int, int, float); // idb
 int __cdecl BotWalkInDirection(int, int, float, int); // idb
-int __cdecl BotMoveInDirection(int, int, float, int); // idb
+int __cdecl BotMoveInDirection(intptr_t, intptr_t, float, int); // idb
 int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3);
 _DWORD *__cdecl BotClearMoveResult(_DWORD *a1);
 intptr_t __cdecl BotTravel_Walk(intptr_t, intptr_t, intptr_t); // idb
@@ -789,7 +789,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3);
 int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3);
 int __cdecl BotReachabilityTime(intptr_t a1);
 intptr_t __cdecl BotMoveInGoalArea(intptr_t, intptr_t, intptr_t); // idb
-int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4);  // fixed
+int __cdecl BotMoveInDirection(intptr_t a1, intptr_t a2, float a3, int a4);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *a1);
 void __cdecl BotResetLastAvoidReach(intptr_t a1);
 int __cdecl sub_10034B90(void *a1);
@@ -17548,7 +17548,7 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   float v3; // [esp+10h] [ebp+4h]
 
   BotRecordNodeSwitch(bs, aRespawn, &byte_1006294C);
-  sub_10034B90((int)bs->movestate);
+  sub_10034B90(bs->movestate);
   BotResetGoalState(bs->goalstate);
   BotResetMoveState(BotWS(bs));
   BotResetAvoidGoals(bs->goalstate);
@@ -19870,8 +19870,8 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       }
       if ( v27 <= 0.4 )
       {
-        if ( (v26 <= 180.0 || !BotMoveInDirection(a2 + 2880, (int)v28, 400.0, v12)) && v26 < 100.0 )
-          BotMoveInDirection(a2 + 2880, (int)v32, 400.0, v12);
+        if ( (v26 <= 180.0 || !BotMoveInDirection(a2 + 2880, (intptr_t)v28, 400.0, v12)) && v26 < 100.0 )
+          BotMoveInDirection(a2 + 2880, (intptr_t)v32, 400.0, v12);
         goto LABEL_39;
       }
       *(float *)(a2 + 2816) = *(float *)(a2 + 2816) + 0.1;
@@ -19913,7 +19913,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
 LABEL_36:
         v22[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection(a2 + 2880, (int)v22, 400.0, v12) )
+        if ( !BotMoveInDirection(a2 + 2880, (intptr_t)v22, 400.0, v12) )
         {
           v19 = *(_DWORD *)(a2 + 2752);
           *(_DWORD *)(a2 + 2816) = 0;
@@ -20438,7 +20438,7 @@ void BotCheckAttack(bot_state_t *bs)
           v13 = *(int *)bs->origin;
           v15 = v5;
           v14 = v4;
-          AngleVectors((int)bs->enemyorigin, v16, v19, 0);
+          AngleVectors(bs->enemyorigin, v16, v19, 0);
           *(float *)&v13 = v19[0] * *(float *)(v3 + 292) + *(float *)v16 * *(float *)(v3 + 288) + *(float *)&v13;
           v14 = v19[1] * *(float *)(v3 + 292) + *(float *)&v16[1] * *(float *)(v3 + 288) + v14;
           v15 = v19[2] * *(float *)(v3 + 292) + *(float *)&v16[2] * *(float *)(v3 + 288) + *(float *)(v3 + 296) + v15;
@@ -21040,14 +21040,14 @@ LABEL_37:
       v63 = -v63;
       v64 = -v64;
     }
-    if ( !BotMoveInDirection((int)bs->movestate, (int)&v62, 400.0, 1) )
+    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)&v62, 400.0, 1) )
     {
       *(float *)&v62 = -*(float *)&v62;
       v33 = bs->_i2752;
       v63 = -v63;
       v64 = -v64;
       bs->_i2752 = v33 ^ 0x10;
-      BotMoveInDirection((int)bs->movestate, (int)&v62, 400.0, 1);
+      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)&v62, 400.0, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
@@ -27276,7 +27276,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
  * Note: Q2 drops the `type` arg in the swim branch — BotSwimInDirection
  * here takes only 3 args, matching the 1999 Q2-botlib swim impl.  The walk
  * branch keeps all 4 args, matching Q3. */
-int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4)
+int __cdecl BotMoveInDirection(intptr_t a1, intptr_t a2, float a3, int a4)
 {
   if ( AAS_Swimming((float *)a1) )
     return BotSwimInDirection(a1, a2, a3);
