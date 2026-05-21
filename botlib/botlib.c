@@ -17068,7 +17068,7 @@ LABEL_86:
               BotResetAvoidReach((_DWORD *)bs->movestate);
               return 0;
             }
-            BotRoamGoal(a1, target);
+            BotRoamGoal((_DWORD *)bs, target);
             dir[0] = target[0] - *v17;
             dir[1] = target[1] - bs->origin[1];
             dir[2] = target[2] - bs->origin[2];
@@ -17553,7 +17553,7 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   BotResetMoveState(BotWS(bs));
   BotResetAvoidGoals(bs->goalstate);
   BotResetAvoidReach((_DWORD *)bs->movestate);
-  if ( sub_10022160(a1) )
+  if ( sub_10022160((int *)bs) )
   {
     v3 = BotChatTime(bs);
     v2 = AAS_Time() + v3;
@@ -17780,7 +17780,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
       if ( libvar_runes->value != 0.0 )
-        sub_100262C0(a1, (intptr_t)v4);
+        sub_100262C0((_DWORD *)bs, (intptr_t)v4);
     }
     else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->enemyorigin, (intptr_t)v4) )
     {
@@ -18020,7 +18020,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
         goto LABEL_41;
-      BotRoamGoal(a1, target);
+      BotRoamGoal((_DWORD *)bs, target);
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
@@ -22008,7 +22008,7 @@ LABEL_64:
         return 1;
       if ( !BotAddressedToBot(bs, (int)&v64) )
         return 1;
-      if ( !BotGetPatrolWaypoints((_DWORD *)a1, (int)&v64) )
+      if ( !BotGetPatrolWaypoints((_DWORD *)bs, (int)&v64) )
         return 1;
       v31 = rand();
       v58 = (double)(v31 & 0x7FFF) * 0.000030518509 + (double)(v31 & 0x7FFF) * 0.000030518509;
