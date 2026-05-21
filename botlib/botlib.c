@@ -20363,7 +20363,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       v21 = bs->client;
       *(int *)&bs->enemyorigin[0] = v20;
       *(int *)&bs->enemyorigin[2] = bs->_i4244;
-      EA_View(v21, (int)bs->enemyorigin);
+      EA_View(v21, bs->enemyorigin);
     }
   }
 }
