@@ -636,7 +636,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2);
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
 // ...
-int BotDeathmatchAI(bot_state_t *bs, int a2);
+int BotDeathmatchAI(bot_state_t *bs, float a2);
 int __cdecl sub_10028A40(bot_state_t *bs, int a2);
 // int __usercall BotDeathmatchAI@<eax>(double a1@<st0>, int a2, int a3);
 void BotSetupDeathmatchAI();
@@ -22196,13 +22196,13 @@ int __cdecl sub_10028A40(bot_state_t *bs, int a2)
 // 10001438: using guessed type _DWORD __cdecl EA_EndRegular(_DWORD, _DWORD);
 
 //----- (10028A70) --------------------------------------------------------
-int BotDeathmatchAI(bot_state_t *bs, int a2)
+int BotDeathmatchAI(bot_state_t *bs, float a2)
 {
   int v4; // edi
   int result; // eax
   float v6; // [esp+10h] [ebp+8h]
 
-  sub_100289A0(bs, *(float *)&a2);
+  sub_100289A0(bs, a2);
   if ( dword_1006446C && AAS_Initialized() )
     dword_1006446C = 0;
   if ( bs->inuse_marker )
@@ -22501,7 +22501,7 @@ void sub_100292E0()
 // 100643A4: using guessed type float flt_100643A4;
 
 //----- (10029320) --------------------------------------------------------
-int Export_BotAIFrame(int a1, int a2)
+int Export_BotAIFrame(int a1, float a2)
 {
   if ( AAS_Initialized() )
   {
@@ -30339,7 +30339,7 @@ int __cdecl Export_BotLibStartFrame(float time)
 // 1006402C: using guessed type int dword_1006402C;
 
 //----- (10038380) --------------------------------------------------------
-int Export_BotLibAI(int a1, int a2)
+int Export_BotLibAI(int a1, float a2)
 {
   if ( !BotLibSetup(aBotai) )
     return 1;
