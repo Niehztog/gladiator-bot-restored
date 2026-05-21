@@ -592,7 +592,7 @@ BOOL __cdecl BotIsDead(bot_state_t *bs);
 BOOL __cdecl BotIsObserver(bot_state_t *bs);
 BOOL __cdecl BotIntermission(bot_state_t *bs);
 BOOL __cdecl EntityDeadOrDying(_DWORD *a1);
-BOOL __cdecl EntityIsShooting(int a1);
+BOOL __cdecl EntityIsShooting(intptr_t a1);
 _BYTE *__cdecl stristr(_BYTE *a1, char *a2);
 char *__cdecl EasyClientName(int a1, char *a2);
 int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3);
@@ -19014,7 +19014,7 @@ BOOL __cdecl EntityDeadOrDying(_DWORD *a1)
 // 10064028: using guessed type int maxclients;
 
 //----- (10021780) --------------------------------------------------------
-BOOL __cdecl EntityIsShooting(int a1)
+BOOL __cdecl EntityIsShooting(intptr_t a1)
 {
   int v1; // eax
   BOOL result; // eax
@@ -20131,7 +20131,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
           {
             if ( v8 <= 300.0 )
               break;
-            if ( EntityIsShooting((int)v18) )
+            if ( EntityIsShooting((intptr_t)v18) )
               break;
             dir[0] = bs->origin[0] - *(float *)&v18[4];
             dir[1] = bs->origin[1] - *(float *)&v18[5];
