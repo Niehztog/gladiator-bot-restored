@@ -52,41 +52,57 @@ typedef struct bot_state_s {
             char   settings[432];         /* +1240..+1671 bot_clientsettings_t */
             int    character;             /* +1672 */
             int    ainode;                /* +1676 current AINode_* dispatcher; called via (int(*)(int))bs->ainode */
-            float  _f1680;                /* +1680 random/skill factor */
+            float  thinktime;             /* +1680 per-frame think delta; written `bs->thinktime = a2` at top of sub_100289A0 (bot frame entry) */
             vec3_t origin;                /* +1684..+1695 */
             char   _pad_6B0h[16];         /* +1696..+1711 */
             vec3_t eye;                   /* +1712..+1723 */
             char   _pad_6BCh[4];          /* +1724..+1727 */
-            /* +1728..+2751: structured per-target / enemy-observation region.
-             * Verified offsets below come from `BotInitAttackTarget`
-             * (BotUpdateBattleInventory) + sub_100204D0; remaining bytes stay padding.
+            /* +1728..+2751: structured battle-snapshot region populated by
+             * `BotUpdateBattleInventory(bs, enemy)` (enemy-side fields) and
+             * `sub_10021020(bs)` (own-inventory & powerup fields).  Only the
+             * verified offsets get named fields; the remainder stays padding.
              * Wrapped in an inner union so legacy `bs->chat_lines` (the
-             * 1024-byte qmemcpy buffer) and the typed view share storage. */
+             * 1024-byte qmemcpy buffer at +1728) and the typed view share
+             * storage. */
             union {
                 char chat_lines[1024];                /* +1728..+2751 raw 1024-byte view */
                 struct {
                     char   _pad_6C0h[164];        /* +1728..+1891 */
-                    int    _i1892;                /* +1892 read/written in sub_100204D0 */
+                    int    _i1892;                /* +1892 health snapshot copied from playerstate ps[154] */
                     char   _pad_764h[632];        /* +1896..+2527 */
-                    int    _i2528;                /* +2528 target XY distance truncated to int (_ftol) */
-                    int    _i2532;                /* +2532 target Z delta truncated to int (_ftol) */
-                    char   _pad_9E4h[112];        /* +2536..+2647 */
-                    int    _i2648;                /* +2648 \                            */
-                    int    _i2652;                /* +2652 |                            */
-                    int    _i2656;                /* +2656 |                            */
-                    int    _i2660;                /* +2660 |                            */
-                    int    _i2664;                /* +2664 |                            */
-                    int    _i2668;                /* +2668 |  12-entry per-weapon       */
-                    int    _i2672;                /* +2672 |  target-class flag table   */
-                    int    _i2676;                /* +2676 |  (one int set per Q2 wid)  */
-                    int    _i2680;                /* +2680 |                            */
-                    int    _i2684;                /* +2684 |                            */
-                    int    _i2688;                /* +2688 |                            */
-                    int    _i2692;                /* +2692 /                            */
+                    int    enemy_horiz_dist;      /* +2528 (int)VectorLength(enemy.xy - bs.xy) */
+                    int    enemy_height_diff;     /* +2532 (int)(enemy.z - bs.z) */
+                    char   _pad_9E8h[8];          /* +2536..+2543 */
+                    int    quad_seconds;          /* +2544 quad-damage seconds remaining (clamped >=0) */
+                    int    invuln_seconds;        /* +2548 invulnerability seconds remaining */
+                    char   _pad_9F4h[4];          /* +2552 — slot for a 5th powerup; never written in our codepaths */
+                    int    rebreather_seconds;    /* +2556 rebreather seconds remaining */
+                    int    enviro_seconds;        /* +2560 envirosuit seconds remaining */
+                    char   _pad_A00h[4];          /* +2564 */
+                    int    powershield_a;         /* +2568 powershield active-flag pair, set together */
+                    int    powershield_b;         /* +2572 */
+                    char   _pad_A0Ch[72];         /* +2576..+2647 */
+                    /* +2648..+2692 — 12-entry per-weapon-class flag table set
+                     * by BotUpdateBattleInventory from the enemy entity's
+                     * current-weapon byte.  Switch->offset map is not a clean
+                     * sequential array (case 5 → +2688, case 6..10 → +2668..+2684),
+                     * so the slots are kept as individually-named ints. */
+                    int    _i2648;                /* +2648 case 0  */
+                    int    _i2652;                /* +2652 case 1  */
+                    int    _i2656;                /* +2656 case 2  */
+                    int    _i2660;                /* +2660 case 3  */
+                    int    _i2664;                /* +2664 case 4  */
+                    int    _i2668;                /* +2668 case 6  */
+                    int    _i2672;                /* +2672 case 7  */
+                    int    _i2676;                /* +2676 case 8  */
+                    int    _i2680;                /* +2680 case 9  */
+                    int    _i2684;                /* +2684 case 10 */
+                    int    _i2688;                /* +2688 case 5  */
+                    int    _i2692;                /* +2692 case 11 */
                     char   _pad_A88h[12];         /* +2696..+2707 */
-                    int    _i2708;                /* +2708 entity event flag bit (& 0x10000) */
-                    int    _i2712;                /* +2712 entity flags sign bit */
-                    int    _i2716;                /* +2716 entity flags & 2 */
+                    int    _i2708;                /* +2708 enemy entity-flags high bit */
+                    int    _i2712;                /* +2712 enemy entity-flags & 0x10000 */
+                    int    _i2716;                /* +2716 enemy entity-flags bit 9 */
                     char   _pad_A9Ch[32];         /* +2720..+2751 */
                 };
             };
@@ -98,10 +114,10 @@ typedef struct bot_state_s {
             int    _i2772;                /* +2772 */
             int    inuse_marker;          /* +2776 */
             int    _i2780;                /* +2780 */
-            float  _f2784;                /* +2784 */
+            float  ltime;                 /* +2784 wall-clock accumulator; `bs->ltime += thinktime` per frame */
             float  setup_time;            /* +2788 */
-            float  _f2792;                /* +2792 */
-            float  _f2796;                /* +2796 */
+            float  ltg_time;              /* +2792 long-term-goal re-pick throttle (set to AAS_Time()+20.0 after BotChooseLTGItem) */
+            float  nbg_time;              /* +2796 nearby-goal timeout (set to AAS_Time()+5.0 after BotChooseNBGItem) */
             float  _f2800;                /* +2800 */
             float  _f2804;                /* +2804 */
             float  _f2808;                /* +2808 */
@@ -134,25 +150,13 @@ typedef struct bot_state_s {
             int    _i4212;                /* +4212 */
             char   _pad_1058h[8];         /* +4216..+4223 */
             vec3_t enemyorigin;           /* +4224..+4235 */
-            int    _i4236;                /* +4236 */
-            int    _i4240;                /* +4240 */
-            int    _i4244;                /* +4244 */
+            vec3_t ideal_viewangles;      /* +4236..+4247  vectoangles dst; copied into EA_View vec3 arg */
             int    _i4248;                /* +4248 */
             char   _pad_1094h[8];         /* +4252..+4259 */
             int    ltgtype;               /* +4260 */
             int    teammate;              /* +4264 */
-            vec3_t teamgoal;              /* +4268..+4279 */
-            int    _i4280;                /* +4280 */
-            int    _i4284;                /* +4284 */
-            int    _i4288;                /* +4288 */
-            int    _i4292;                /* +4292 */
-            int    _i4296;                /* +4296 */
-            int    _i4300;                /* +4300 */
-            int    _i4304;                /* +4304 */
-            int    _i4308;                /* +4308 */
-            int    _i4312;                /* +4312 */
-            char   _pad_10D8h[8];         /* +4316..+4323 */
-            float  _f4324;                /* +4324 */
+            bot_goal_t teamgoal;          /* +4268..+4323 (56 B; origin/areanum/mins/maxs/entitynum/number/flags/iteminfo) */
+            float  teammessage_time;      /* +4324  schedule LTG-start chat (Accompany/GetFlag/...) */
             float  teammatevisible_time;  /* +4328 */
             int    _i4332;                /* +4332 */
             int    _i4336;                /* +4336 */
