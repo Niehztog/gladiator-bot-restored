@@ -18327,7 +18327,7 @@ LABEL_8:
     {
       if ( AAS_Time() > bs->_f2808
         && (bs->_f2808 = AAS_Time() + 1.0,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, (int)v12, 500.0)) )
+            BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, (bot_goal_t *)v12, 500.0)) )
       {
         bs->_f2796 = AAS_Time() + 5.0;
         BotResetLastAvoidReach((intptr_t)bs->movestate);
