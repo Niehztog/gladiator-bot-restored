@@ -2063,7 +2063,7 @@ int (__cdecl *dword_10063FE0)(_DWORD, _DWORD); // weak
 void (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 void *(__cdecl *bi_Trace)(void *retbuf, float *start, float *mins, float *maxs, float *end, int passent, int contentmask); // weak
-int (__cdecl *bi_PointContents)(_DWORD); // weak — engine's BSP-level CONTENTS_* lookup
+int (__cdecl *bi_PointContents)(float *point); // engine's BSP-level CONTENTS_* lookup (takes vec3)
 void *(__cdecl *bi_GetMemory)(int); // weak — engine malloc; returns real pointer (was IDA-typed as int)
 void  (__cdecl *bi_FreeMemory)(void *); // weak — engine free
 int (*bi_DebugLineCreate)(void); // weak
@@ -7609,10 +7609,10 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
      * (the engine import). Without the calls, eyecontents/fromcontents stay
      * uninitialized and the trace direction never swaps when one endpoint is
      * underwater, so visibility checks across water surfaces silently fail. */
-    eyecontents = bi_PointContents((int)middle);
+    eyecontents = bi_PointContents((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       v10 = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
-    fromcontents = bi_PointContents((int)a2);
+    fromcontents = bi_PointContents((float *)a2);
     if ( (fromcontents & 0x38) != 0 )
     {
       if ( (v10 & 0x38) == 0 )
@@ -9511,7 +9511,7 @@ BOOL __cdecl AAS_Swimming(float *a1)
   v5[0] = *(_DWORD *)a1;
   v5[1] = *(_DWORD *)((char *)a1 + 4);
   *(float *)&v5[2] = *((float *)a1 + 2) - 2.0f;
-  return (bi_PointContents((int)v5) & 0x38) != 0;
+  return (bi_PointContents((float *)v5) & 0x38) != 0;
 }
 // 1000EFEB: variable 'v3' is possibly undefined
 
@@ -10064,7 +10064,7 @@ LABEL_66:
     v81[0] = org[0];
     v81[1] = org[1];
     v81[2] = org[2] - 22.0;
-    v37 = bi_PointContents((int)v81);   /* IDA-dropped: see 0x100100dd */
+    v37 = bi_PointContents((float *)v81);   /* IDA-dropped: see 0x100100dd */
     v38 = 0;
     v57 = v37;
     if ( (v37 & 8) != 0 )
@@ -10155,7 +10155,7 @@ LABEL_86:
           goto LABEL_84;
         if ( org[2] - libvar_sv_step->value - 1.0 <= v84.endpos[2] )
           goto LABEL_84;
-        v39 = bi_PointContents((int)end);   /* IDA-dropped barrier-water check */
+        v39 = bi_PointContents((float *)end);   /* IDA-dropped barrier-water check */
         if ( (v39 & 0x20) != 0 )
           goto LABEL_84;
         v62[1] = v75;
@@ -10923,7 +10923,7 @@ LABEL_14:
       goto LABEL_15;
   }
   AAS_FaceCenter(v10, (float *)v19);
-  v12 = bi_PointContents((int)v19);   /* IDA-dropped: water-edge contents check */
+  v12 = bi_PointContents((float *)v19);   /* IDA-dropped: water-edge contents check */
   if ( (v12 & 0x38) == 0 )
   {
     v7 = (int *)aasworld.faceindex;
@@ -13542,7 +13542,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   start[2] = *((float *)area1 + 11);
   if ( AAS_AreaSwim(area1num) )
   {
-    v4 = bi_PointContents((int)start);   /* IDA-dropped: swim-area liquid check */
+    v4 = bi_PointContents((float *)start);   /* IDA-dropped: swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
@@ -17204,7 +17204,7 @@ LABEL_86:
             EA_Crouch(bs->client);
           if ( AAS_Swimming(bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
-          v35 = bi_PointContents((int)bs->eye);   /* IDA-dropped: bot-eye liquid check */
+          v35 = bi_PointContents((float *)bs->eye);   /* IDA-dropped: bot-eye liquid check */
           if ( (v35 & 0x38) != 0 )
           {
             BotInitialChat(bs->chatstate, aCampStop, (char *)0, (char *)0);
@@ -18929,7 +18929,7 @@ int __cdecl BotBattleUseItems(_DWORD *a1)
 
   if ( (int)a1[457] > 0 )
     EA_Use(a1[1], aSilencer);
-  v1 = bi_PointContents((int)(a1 + 428));   /* IDA-dropped: eye-pos liquid check for rebreather */
+  v1 = bi_PointContents((float *)(a1 + 428));   /* IDA-dropped: eye-pos liquid check for rebreather */
   if ( (v1 & 0x38) != 0 && !a1[639] && (int)a1[458] > 0 )
     EA_Use(a1[1], aRebreather);
   if ( !a1[643] && (int)a1[438] > 0 )
@@ -19251,7 +19251,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   v13 = v3;
   /* IDA dropped the call: original was AAS_PointContents-equivalent via the
    * engine's bi_PointContents callback (dword_10063FF0). */
-  v4 = (char)bi_PointContents((int)&v11);
+  v4 = (char)bi_PointContents((float *)&v11);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
   v5 = *(int *)&bs->origin[1];
@@ -19259,7 +19259,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   v11 = *(int *)&bs->origin[0];
   v12 = v5;
   v13 = v6;
-  v7 = (char)bi_PointContents((int)&v11);
+  v7 = (char)bi_PointContents((float *)&v11);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
   v8 = *(int *)&bs->origin[1];
@@ -19715,7 +19715,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       if ( !v31[1] )
       {
         *(float *)&v31[5] = *(float *)&v31[5] + 1.0;
-        v12 = bi_PointContents((int)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
+        v12 = bi_PointContents((float *)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
         if ( (v12 & 0x18) == 0 )
           break;
       }
@@ -27094,7 +27094,7 @@ LABEL_5:
   v10[0] = trace.endpos[0];
   v10[1] = trace.endpos[1];
   v10[2] = trace.endpos[2] - 20.0f;
-  v8 = bi_PointContents((int)v10);   /* IDA-dropped: barrier-jump under-water check */
+  v8 = bi_PointContents((float *)v10);   /* IDA-dropped: barrier-jump under-water check */
   if ( (v8 & 0x20) != 0 )
     return 0.0;
   return v18;
@@ -27306,21 +27306,26 @@ int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   int result; // eax
   int v4; // ecx
-  _DWORD v5[2]; // [esp+8h] [ebp-78h] BYREF
-  float v6; // [esp+10h] [ebp-70h]
-  _DWORD v7[2]; // [esp+14h] [ebp-6Ch] BYREF
-  float v8; // [esp+1Ch] [ebp-64h]
-  float v9[3]; // [esp+20h] [ebp-60h] BYREF
+  /* IDA split mins/maxs/end vec3 stack locals into _DWORD[2]+float
+   * triples.  On 64-bit GCC won't necessarily place a float right
+   * after a 2-int array — AAS_PresenceTypeBoundingBox would write
+   * mins[2]/maxs[2] into stray slots and AAS_Trace would read garbage
+   * past the bounding box, blocking *every* movement with phantom
+   * collisions.  Restored as proper vec3_t locals (mins/maxs/end)
+   * matching Q3 botlib (BotCheckBlocked, be_ai_move.c). */
+  vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
+  vec3_t mins; // [esp+14h] [ebp-6Ch] BYREF (was _DWORD v7[2] + float v8)
+  vec3_t end;  // [esp+20h] [ebp-60h] BYREF (was float v9[3])
   int v10[21]; // [esp+2Ch] [ebp-54h] BYREF
 
-  AAS_PresenceTypeBoundingBox(*(_DWORD *)(a1 + 48), v7, v5);
+  AAS_PresenceTypeBoundingBox(*(_DWORD *)(a1 + 48), mins, maxs);
   if ( fabs(*(float *)(a2 + 8)) < 0.7 )
   {
-    v8 = v8 + libvar_sv_step->value;
-    v6 = v6 - 10.0;
+    mins[2] = mins[2] + libvar_sv_step->value;
+    maxs[2] = maxs[2] - 10.0;
   }
-  VectorMA(a1, 3.0, a2, (float *)v9);
-  qmemcpy(v10, AAS_Trace(v10, (float*)a1, v7, v5, v9, *(_DWORD *)(a1 + 36), 33619971), sizeof(v10));
+  VectorMA((float *)a1, 3.0, (float *)a2, end);
+  qmemcpy(v10, AAS_Trace(v10, (float*)a1, mins, maxs, end, *(_DWORD *)(a1 + 36), 33619971), sizeof(v10));
   result = v10[1];
   if ( !v10[1] )
   {
@@ -27611,7 +27616,7 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
     v14[0] = *(_DWORD *)a2;
     v14[1] = v3;
     *(float *)&v14[2] = v4;
-    v5 = (char)bi_PointContents((int)v14);   /* IDA-dropped: under-foot liquid check */
+    v5 = (char)bi_PointContents((float *)v14);   /* IDA-dropped: under-foot liquid check */
     if ( (v5 & 0x38) != 0 )
     {
       dir[0] = a3[6] - *(float *)a2;
@@ -28073,7 +28078,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       BotCheckBlocked(a2, (intptr_t)final, (intptr_t)v34);
       if ( v37 > 60.0 )
         v37 = 60.0;
-      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (int)final, 50.0) )
+      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (intptr_t)final, 50.0) )
       {
         v18 = 400.0 - (400.0 - v37 * 6.0);
         EA_Move(*(_DWORD *)(a2 + 40), final, v18);
@@ -28100,7 +28105,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       else
         v8 = 60.0;
       v36 = 360.0 - (360.0 - v8 * 6.0);
-      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (int)final, 50.0) && v36 > 5.0 )
+      if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (intptr_t)final, 50.0) && v36 > 5.0 )
         EA_Move(*(_DWORD *)(a2 + 40), final, v36);
       *(float *)&v34[8] = final[2];
       v9 = *(_BYTE *)(a2 + 96);
