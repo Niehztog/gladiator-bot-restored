@@ -17278,7 +17278,7 @@ LABEL_86:
           BotEnterChat(bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
-        v37 = bs->_i4552;
+        v37 = bs->curpatrolpoint;
         if ( !v37 )
         {
           bs->ltgtype = 0;
@@ -17286,14 +17286,14 @@ LABEL_86:
         }
         if ( !BotTouchingGoal(bs->origin, v37 + 4) )
           goto LABEL_106;
-        v38 = bs->_i4556;
-        v39 = bs->_i4552;
+        v38 = bs->patrolflags;
+        v39 = bs->curpatrolpoint;
         if ( (v38 & 4) != 0 )
         {
           v40 = *(_DWORD *)(v39 + 64);
           if ( v40 )
           {
-            bs->_i4552 = v40;
+            bs->curpatrolpoint = v40;
 LABEL_106:
             if ( AAS_Time() > bs->teammatevisible_time )
             {
@@ -17301,27 +17301,27 @@ LABEL_106:
               BotEnterChat(bs->chatstate, bs->client, 1);
               bs->ltgtype = 0;
             }
-            v42 = bs->_i4552;
+            v42 = bs->curpatrolpoint;
             if ( v42 )
               return (float *)(v42 + 4);
             bs->ltgtype = 0;
             return 0;
           }
           LOBYTE(v38) = v38 & 0xFB;
-          bs->_i4552 = *(_DWORD *)(v39 + 60);
+          bs->curpatrolpoint = *(_DWORD *)(v39 + 60);
         }
         else
         {
           v41 = *(_DWORD *)(v39 + 60);
           if ( v41 )
           {
-            bs->_i4552 = v41;
+            bs->curpatrolpoint = v41;
             goto LABEL_106;
           }
           LOBYTE(v38) = v38 | 4;
-          bs->_i4552 = *(_DWORD *)(v39 + 64);
+          bs->curpatrolpoint = *(_DWORD *)(v39 + 64);
         }
-        bs->_i4556 = v38;
+        bs->patrolflags = v38;
         goto LABEL_106;
       case 4:
         if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
@@ -17673,7 +17673,7 @@ int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
 int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
 {
 
-  float *ent;             // esi — &bs->_f4488 (embedded activate-goal struct)
+  float *ent;             // esi — &bs->activategoal.origin[0] (embedded activate-goal struct)
   int v8;                 // [esp+0xc] — movement flags
   vec3_t target;          // [esp+0x14] BYREF — predicted move target
   vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to vectoangles
@@ -17698,7 +17698,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0 )
     v8 = 118718;
-  ent = (float *)&bs->_f4488;
+  ent = bs->activategoal.origin;
   bs->enemy = 0;
   if ( !ent || BotTouchingGoal(bs->origin, ent) )
     *(int *)&bs->_f2852 = 0;
@@ -18208,10 +18208,10 @@ LABEL_9:
     {
       v5 = v12[5];
       v6 = v12[6];
-      bs->_i4204 = v12[4];
-      bs->_i4208 = v5;
-      bs->_i4212 = v6;
-      bs->_i4200 = v4;
+      (*(int *)&bs->lastenemyorigin[0]) = v12[4];
+      (*(int *)&bs->lastenemyorigin[1]) = v5;
+      (*(int *)&bs->lastenemyorigin[2]) = v6;
+      bs->lastenemyareanum = v4;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
     if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, bs->enemy) )
@@ -18339,7 +18339,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   else
   {
-    if ( !bs->_i4200 )
+    if ( !bs->lastenemyareanum )
     {
 LABEL_8:
       AIEnter_Seek_LTG(bs);
@@ -18358,12 +18358,12 @@ LABEL_8:
       v9 = v2;
     }
     v3 = *(float *)&bs->enemy;
-    v4 = *(float *)&bs->_i4200;
-    v12[0] = *(float *)&bs->_i4204;
+    v4 = *(float *)&bs->lastenemyareanum;
+    v12[0] = bs->lastenemyorigin[0];
     v12[10] = v3;
-    v5 = *(float *)&bs->_i4208;
+    v5 = bs->lastenemyorigin[1];
     v12[3] = v4;
-    v6 = *(float *)&bs->_i4212;
+    v6 = bs->lastenemyorigin[2];
     v12[1] = v5;
     v12[2] = v6;
     v12[4] = -8.0;
@@ -18420,7 +18420,7 @@ LABEL_8:
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
         }
-        if ( bs->_i2944 == bs->_i4200 )
+        if ( bs->_i2944 == bs->lastenemyareanum )
           *(int *)&bs->_f2804 = 0;
         if ( (v13[5] & 8) == 0 )
           BotChangeViewAngles(bs);
@@ -18696,10 +18696,10 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   areanum = AAS_PointAreaNum((float *)&entinfo[4]);
   if ( areanum && AAS_AreaReachability(areanum) )
   {
-    bs->_i4204 = entinfo[4];
-    bs->_i4208 = entinfo[5];
-    bs->_i4212 = entinfo[6];
-    bs->_i4200 = areanum;
+    (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
+    (*(int *)&bs->lastenemyorigin[1]) = entinfo[5];
+    (*(int *)&bs->lastenemyorigin[2]) = entinfo[6];
+    bs->lastenemyareanum = areanum;
   }
   topgoal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
   if ( topgoal )
@@ -21029,24 +21029,24 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
     v13 = a1;
     v14 = v60;
     v15 = v61;
-    bs->_f4488 = *(float *)&v59;
-    bs->_f4492 = v14;
-    bs->_f4496 = v15;
+    bs->activategoal.origin[0] = *(float *)&v59;
+    bs->activategoal.origin[1] = v14;
+    bs->activategoal.origin[2] = v15;
     v16 = AAS_PointAreaNum(&v38);
     v17 = v44 - *(float *)&v59;
     v18 = v77[3];
-    bs->_i4500 = v16;
-    bs->_i4528 = v18;
-    bs->_i4532 = 0;
-    bs->_i4536 = 0;
-    bs->_f4504 = v17 - 5.0;
-    bs->_f4508 = v45 - v60 - 5.0;
-    bs->_f4512 = v46 - v61 - 5.0;
-    bs->_f4516 = v41 - *(float *)&v59 + 5.0;
-    bs->_f4520 = v42 - v60 + 5.0;
-    bs->_f4524 = v43 - v61 + 5.0;
+    bs->activategoal.areanum = v16;
+    bs->activategoal.entitynum = v18;
+    bs->activategoal.number = 0;
+    bs->activategoal.flags = 0;
+    bs->activategoal.mins[0] = v17 - 5.0;
+    bs->activategoal.mins[1] = v45 - v60 - 5.0;
+    bs->activategoal.mins[2] = v46 - v61 - 5.0;
+    bs->activategoal.maxs[0] = v41 - *(float *)&v59 + 5.0;
+    bs->activategoal.maxs[1] = v42 - v60 + 5.0;
+    bs->activategoal.maxs[2] = v43 - v61 + 5.0;
     v19 = AAS_Time();
-    v36 = bs->_i4500;
+    v36 = bs->activategoal.areanum;
     bs->_f2852 = v19 + 10.0;
     if ( !AAS_AreaReachability(v36) )
     {
@@ -21134,24 +21134,24 @@ LABEL_37:
     v22 = v48;
     v39 = *(int *)&trace.endpos[1];
     v23 = v49;
-    bs->_f4488 = *(float *)&v47;
-    bs->_f4492 = v22;
-    bs->_f4496 = v23;
+    bs->activategoal.origin[0] = *(float *)&v47;
+    bs->activategoal.origin[1] = v22;
+    bs->activategoal.origin[2] = v23;
     v24 = AAS_PointAreaNum(&v38);
     v25 = v44 - *(float *)&v47;
     v26 = v77[3];
-    bs->_i4500 = v24;
-    bs->_i4528 = v26;
-    bs->_i4532 = 0;
-    bs->_i4536 = 0;
-    bs->_f4504 = v25;
-    bs->_f4508 = v45 - v48;
-    bs->_f4512 = v46 - v49;
-    bs->_f4516 = v41 - *(float *)&v47;
-    bs->_f4520 = v42 - v48;
-    bs->_f4524 = v43 - v49;
+    bs->activategoal.areanum = v24;
+    bs->activategoal.entitynum = v26;
+    bs->activategoal.number = 0;
+    bs->activategoal.flags = 0;
+    bs->activategoal.mins[0] = v25;
+    bs->activategoal.mins[1] = v45 - v48;
+    bs->activategoal.mins[2] = v46 - v49;
+    bs->activategoal.maxs[0] = v41 - *(float *)&v47;
+    bs->activategoal.maxs[1] = v42 - v48;
+    bs->activategoal.maxs[2] = v43 - v49;
     v27 = AAS_Time();
-    v37 = bs->_i4500;
+    v37 = bs->activategoal.areanum;
     bs->_f2852 = v27 + 10.0;
     if ( !AAS_AreaReachability(v37) )
     {
@@ -21803,14 +21803,14 @@ LABEL_27:
       BotMatchVariable(&v64, 3, Source);
       if ( (v64.subtype & 0x80u) != 0 )
       {
-        strncpy((char *)&bs->_i4336, Source, 0x10u);
-        *((unsigned char *)&bs->_i4352 - 1) = 0;
+        strncpy(bs->formation_teammate, Source, 0x10u);
+        bs->formation_teammate[15] = 0;
         return 1;
       }
       v49 = strlen(Source);
       if ( v49 < 0 )
         return 1;
-      strcpy((char *)&bs->_i4336, (const char *)ClientName(v49));
+      strcpy(bs->formation_teammate, (const char *)ClientName(v49));
       return 1;
     case 9:
       if ( !TeamPlayIsOn() )
@@ -21828,9 +21828,9 @@ LABEL_27:
       if ( v50 < 0 )
         return 1;
       v51 = (const char *)ClientName(v50);
-      if ( _strcmpi((const char *)&bs->_i4336, v51) )
+      if ( _strcmpi(bs->formation_teammate, v51) )
         return 1;
-      *(unsigned char *)&bs->_i4336 = 0;
+      bs->formation_teammate[0] = 0;
       return 1;
     case 11:
       if ( !BotAddressedToBot(bs, (int)&v64) )
@@ -21881,7 +21881,7 @@ LABEL_139:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
         return 1;
       BotMatchVariable(&v64, 3, Source);
-      strncpy((char *)&bs->_i4352, Source, 0x20u);
+      strncpy(bs->teamleader, Source, 0x20u);
       *((unsigned char *)&bs->_i4384 - 1) = 0;
       BotInitialChat(bs->chatstate, aJoinedteam, Source, (char *)0);
       BotEnterChat(bs->chatstate, bs->client, 1);
@@ -21889,10 +21889,10 @@ LABEL_139:
     case 13:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
         return 1;
-      if ( strlen((const char *)&bs->_i4352) )
+      if ( strlen(bs->teamleader) )
         BotInitialChat(bs->chatstate, aLeftteam, (char *)bs + 4352, (char *)0);
       BotEnterChat(bs->chatstate, bs->client, 1);
-      *(unsigned char *)&bs->_i4352 = byte_1006294C;
+      bs->teamleader[0] = byte_1006294C;
       return 1;
     case 14:
     case 15:
@@ -22027,7 +22027,7 @@ LABEL_64:
         return 1;
       }
       BotMatchVariable(&v64, 5, Buffer);
-      v42 = BotFindWayPoint(bs->_i4544, Buffer);
+      v42 = BotFindWayPoint(bs->checkpoints, Buffer);
       if ( v42 )
       {
         v43 = *(_DWORD *)(v42 + 60);
@@ -22037,15 +22037,15 @@ LABEL_64:
         if ( v44 )
           *(_DWORD *)(v44 + 60) = *(_DWORD *)(v42 + 60);
         else
-          bs->_i4544 = *(_DWORD *)(v42 + 60);
+          bs->checkpoints = *(_DWORD *)(v42 + 60);
         FreeMemory(v42);
       }
       v45 = BotResetState(Buffer);
-      *(_DWORD *)(v45 + 60) = bs->_i4544;
-      v46 = bs->_i4544;
+      *(_DWORD *)(v45 + 60) = bs->checkpoints;
+      v46 = bs->checkpoints;
       if ( v46 )
         *(_DWORD *)(v46 + 64) = v45;
-      bs->_i4544 = v45;
+      bs->checkpoints = v45;
       if ( BotAddressedToBot(bs, (int)&v64) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", *(float *)(v45 + 4), *(float *)(v45 + 8), *(float *)(v45 + 12));

@@ -144,10 +144,8 @@ typedef struct bot_state_s {
             int    chatstate[47];         /* +3980..+4167 */
             int    weaponweights[7];      /* +4168..+4195 */
             int    enemy;                 /* +4196 */
-            int    _i4200;                /* +4200 */
-            int    _i4204;                /* +4204 */
-            int    _i4208;                /* +4208 */
-            int    _i4212;                /* +4212 */
+            int    lastenemyareanum;      /* +4200 areanum of enemy's last-confirmed position */
+            vec3_t lastenemyorigin;       /* +4204..+4215 enemy origin at last sighting (written from AAS_EntityInfo origin) */
             char   _pad_1058h[8];         /* +4216..+4223 */
             vec3_t enemyorigin;           /* +4224..+4235 */
             vec3_t ideal_viewangles;      /* +4236..+4247  vectoangles dst; copied into EA_View vec3 arg */
@@ -159,30 +157,17 @@ typedef struct bot_state_s {
             float  teammessage_time;      /* +4324  schedule LTG-start chat (Accompany/GetFlag/...) */
             float  teammatevisible_time;  /* +4328 */
             int    _i4332;                /* +4332 */
-            int    _i4336;                /* +4336 */
-            char   _pad_10F0h[12];        /* +4340..+4351 */
-            int    _i4352;                /* +4352 byte-accessed at low + second byte */
-            char   _pad_1104h[28];        /* +4356..+4383 */
+            char   formation_teammate[16];/* +4336..+4351 netname of teammate used for formation positioning (Q3 backport: bs->formation_teammate[16]) */
+            char   teamleader[32];        /* +4352..+4383 netname of team leader (Q3 backport: bs->teamleader[32]) */
             int    _i4384;                /* +4384 */
             char   _pad_1124h[100];       /* +4388..+4487 */
-            float  _f4488;                /* +4488 */
-            float  _f4492;                /* +4492 */
-            float  _f4496;                /* +4496 */
-            int    _i4500;                /* +4500 */
-            float  _f4504;                /* +4504 */
-            float  _f4508;                /* +4508 */
-            float  _f4512;                /* +4512 */
-            float  _f4516;                /* +4516 */
-            float  _f4520;                /* +4520 */
-            float  _f4524;                /* +4524 */
-            int    _i4528;                /* +4528 */
-            int    _i4532;                /* +4532 */
-            int    _i4536;                /* +4536 */
-            char   _pad_11BCh[4];         /* +4540..+4543 */
-            int    _i4544;                /* +4544 */
-            int    patrolpoints;          /* +4548 */
-            int    _i4552;                /* +4552 */
-            int    _i4556;                /* +4556 */
+            bot_goal_t activategoal;      /* +4488..+4543 (56 B) embedded activate-goal: origin/areanum/mins/maxs/entitynum/number/flags/iteminfo.
+                                           * Pointer to this is passed as `bot_goal_t *` to BotTouchingGoal/BotMoveToGoal.
+                                           * Mins/maxs set as origin ± 5 with z-offsets; areanum filled from AAS_PointAreaNum. */
+            int    checkpoints;           /* +4544 head of bot_waypoint_t linked list (chat /checkpoint cmd); walked via +60 (next) / +64 (prev). Q3 backport: bs->checkpoints. */
+            int    patrolpoints;          /* +4548 head of patrol-checkpoints linked list */
+            int    curpatrolpoint;        /* +4552 current waypoint the bot is going toward (Q3: curpatrolpoint) */
+            int    patrolflags;           /* +4556 patrol direction/reverse flags (Q3: patrolflags) */
         };
     };
 } bot_state_t;
