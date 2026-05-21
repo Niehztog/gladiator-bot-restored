@@ -16955,8 +16955,8 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
   int v25; // ecx
   float *v26; // esi
   char *v27; // eax
-  int v28; // eax
-  int v29; // eax
+  char *v28; // eax
+  char *v29; // eax
   double v30; // st7
   int v31; // eax
   char *v32; // eax
@@ -18605,7 +18605,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
 
   int v8;                 // [esp+0x10] — movement flags
   int areanum;            // esi — AAS area number of enemy origin
-  int topgoal;            // esi — top goal pointer
+  bot_goal_t *topgoal;    // esi — top goal pointer
   int v15[12];            // BotMoveToGoal result copy
   int v16[12];            // BotMoveToGoal output buffer
   int entinfo[31];        // [esp+0x4c] BYREF — copy of AAS entity info for enemy
@@ -18650,13 +18650,13 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     bs->_i4212 = entinfo[6];
     bs->_i4200 = areanum;
   }
-  topgoal = BotGetTopGoal(bs->goalstate);
+  topgoal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
   if ( topgoal )
   {
     if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
     {
       if ( libvar_runes->value != 0.0 )
-        sub_100262C0((_DWORD *)a1, topgoal);
+        sub_100262C0((_DWORD *)bs, (intptr_t)topgoal);
       *(int *)&bs->_f2796 = 0;
     }
   }
@@ -18675,7 +18675,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   BotBattleUseItems((_DWORD *)bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, topgoal, v8), sizeof(v15));
+  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)topgoal, v8), sizeof(v15));
   if ( v15[0] )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -20266,7 +20266,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       v22 = v23 / *(float *)(v3 + 268) * (v9 / v46[2]);
       VectorMA((float *)&v46[4], v22, v29, (float *)&v32);
     }
-    if ( v27 > 0.6 && (*(_BYTE *)(*(_DWORD *)(v3 + 340) + 180) & 2) != 0 && bs->origin[2] + 16.0 > v46[6] )
+    if ( v27 > 0.6 && (((weaponinfo_t *)v3)->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0 > v46[6] )
     {
       *(float *)v42 = v46[4];
       *(float *)&v42[1] = v46[5];
@@ -20382,7 +20382,7 @@ void BotCheckAttack(bot_state_t *bs)
   uintptr_t v3; // ebx
   float v4; // ecx
   double v5; // st7
-  int v6; // ecx
+  uintptr_t v6; // ecx
   void *v7; // esi
   int v8; // eax
   void *v9; // esi
@@ -20450,9 +20450,9 @@ void BotCheckAttack(bot_state_t *bs)
             sizeof(v22));
           if ( LODWORD(v22[20]) == bs->enemy
             || (SLODWORD(v22[20]) <= 0 || SLODWORD(v22[20]) > maxclients || !BotSameTeam(bs, SLODWORD(v22[20])))
-            && ((v6 = *(_DWORD *)(v3 + 340), (*(_BYTE *)(v6 + 180) & 2) == 0)
-             || v22[2] * 1000.0 >= *(float *)(v6 + 172)
-             || ((double)*(int *)(v6 + 168) - v22[2] * 500.0) * 0.5 <= 0.0) )
+            && ((v6 = (uintptr_t)((weaponinfo_t *)v3)->proj, (((projectileinfo_t *)v6)->damagetype & 2) == 0)
+             || v22[2] * 1000.0 >= ((projectileinfo_t *)v6)->radius
+             || ((double)((projectileinfo_t *)v6)->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
           {
             if ( (LOBYTE(v22[19]) & 2) == 0
               || (v7 = AAS_EntityInfo(v24, bs->enemy),
@@ -21544,7 +21544,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   int v49; // eax
   int v50; // eax
   const char *v51; // eax
-  int v52; // eax
+  char *v52; // eax
   int v53; // esi
   int v54; // [esp+28h] [ebp-5C4h]
   float v55; // [esp+28h] [ebp-5C4h]
@@ -27967,7 +27967,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
   float v13; // eax
   char v14; // al
   int v15; // eax
-  int result; // eax
+  intptr_t result; // eax
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
   /* IDA split five vec3 stack locals — see BotTravel_Walk note. */
@@ -28144,7 +28144,7 @@ void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
 //----- (100338A0) --------------------------------------------------------
 int __cdecl GrappleState(int a1, float *a2)
 {
-  int v2; // eax
+  libvar_t *v2; // eax
   int v3; // ebx
   float v5[3]; // [esp+0h] [ebp-104h] BYREF
   float v6[31]; // [esp+Ch] [ebp-F8h] BYREF
@@ -28156,7 +28156,7 @@ int __cdecl GrappleState(int a1, float *a2)
     v2 = LibVar(aLaserhook, (char *)a0);
     libvar_laserhook = v2;
   }
-  if ( *(float *)(v2 + 16) == 0.0 && !dword_1006295C )
+  if ( v2->value == 0.0 && !dword_1006295C )
     dword_1006295C = IndexFromModel(aModelsWeaponsG);
   v3 = AAS_NextBSPEntity(0);
   if ( !v3 )
@@ -28222,7 +28222,7 @@ intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
   long double v13; // st7
   int v14; // eax
   int v15; // eax
-  int result; // eax
+  intptr_t result; // eax
   double v17; // [esp+Ch] [ebp-54h]
   float v18; // [esp+10h] [ebp-50h]
   float v19; // [esp+14h] [ebp-4Ch]
