@@ -299,7 +299,7 @@ static void *GetProcAddress(void *h, const char *name) { (void)h; (void)name; re
 static int FreeLibrary(void *h) { (void)h; return 1; }
 static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
 
-int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *green, int *blue);
+int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
 int __cdecl WriteFloat(FILE *Stream, float); // idb
@@ -321,7 +321,7 @@ int AAS_InitAASLinkHeap(); // weak
  * the binary (no string references; Q3 botlib has no analogue — be_aas_bspq3.c
  * stubs AAS_BSPTraceLight entirely).  Kept under the address name pending any
  * future Q2 source recovery. */
-int __cdecl sub_10007150(int start, int end, int endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
+int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
 
 unsigned int BotChatLength(void *cs);  // fixed from weak
 int __cdecl AAS_AgainstLadder(int *);
@@ -423,8 +423,8 @@ int sub_1000D450();
 int __cdecl sub_1000D4A0(int a1);
 void __cdecl sub_1000D4E0(float a1);
 int __cdecl BotAddPointLight(vec3_t origin, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
-int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *green, int *blue);
-int __cdecl AAS_PointLight(int origin, int *red, int *green, int *blue);
+int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
+int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
 char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3);
 int __cdecl AAS_IndexFromString(int, indexlist_t *, char *String2); // idb
@@ -4667,7 +4667,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
  * Q3 botlib has no equivalent because
  * be_aas_bspq3.c stubs the entire BSPTraceLight feature.  Q2-canonical name
  * is unrecoverable — kept under the address name. */
-int __cdecl sub_10007150(int start, int end, int endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
+int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
 {
   int result; // eax
   /* IDA decompiled this as `float v7[3]`, but the original asm does raw 4-byte
@@ -8757,7 +8757,7 @@ int __cdecl BotAddPointLight(vec3_t origin, int a2, int a3, int a4, int a5, int 
  * Q3 stubs this in be_aas_bspq3.c (returns 0); the Q2-specific implementation
  * here is the original.  Was IDA-named sub_1000D5F0; signature matches Q3's
  * forward decl exactly. */
-int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *green, int *blue)
+int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue)
 {
   float *v6; // ebx
   int v7; // edi
@@ -8765,10 +8765,14 @@ int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *gre
   double v9; // st7
   int i; // [esp+Ch] [ebp-10h]
   float v12[3]; // [esp+10h] [ebp-Ch] BYREF
+  /* On 64-bit, sub_10007150 writes RGB ints into local slots; we can't reuse
+   * the (now intptr_t) parameter slots for that purpose like the IDA decomp
+   * did on 32-bit.  Use dedicated int locals instead and feed them by name. */
+  int rs = 0, gs = 0, bs_ = 0;
 
   v6 = (float *)endpos;
-  if ( sub_10007150(start, end, endpos, &endpos, &end, &start) )
-    v7 = (start + endpos + end) / 3;
+  if ( sub_10007150(start, end, endpos, (_DWORD *)&rs, (_DWORD *)&gs, (_DWORD *)&bs_) )
+    v7 = (rs + gs + bs_) / 3;
   else
     v7 = 255;
   v8 = aasworld.newestcache;
@@ -8782,17 +8786,17 @@ int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *gre
     {
       v7 = (__int64)((double)i + v9);
       i = v7;
-      endpos = (__int64)((double)endpos + *(float *)(v8 + 16));
-      end = (__int64)((double)end + *(float *)(v8 + 20));
-      start = (__int64)((double)start + *(float *)(v8 + 24));
+      rs = (__int64)((double)rs + *(float *)(v8 + 16));
+      gs = (__int64)((double)gs + *(float *)(v8 + 20));
+      bs_ = (__int64)((double)bs_ + *(float *)(v8 + 24));
     }
   }
   if ( red )
-    *red = endpos;
+    *red = rs;
   if ( green )
-    *green = end;
+    *green = gs;
   if ( blue )
-    *blue = start;
+    *blue = bs_;
   return v7;
 }
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
@@ -8806,20 +8810,16 @@ int __cdecl AAS_BSPTraceLight(int start, int end, int endpos, int *red, int *gre
  *
  * Signature matches the Q3 botlib forward
  * decl in be_interface.c:310 and the q3a_bot_backport_for_q2 stub. */
-int __cdecl AAS_PointLight(int origin, int *red, int *green, int *blue)
+int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue)
 {
-  int v4; // edx
-  double v5; // st7
   /* int[3]: raw bit copies for X/Y, float bit pattern stored at [2]. */
   int v7[3]; // [esp+0h] [ebp-18h] BYREF
   char v8[12]; // [esp+Ch] [ebp-Ch] BYREF
 
-  v4 = *(_DWORD *)(origin + 4);
-  v5 = *(float *)(origin + 8) - 4096.0;
-  v7[0] = *(_DWORD *)origin;
-  v7[1] = v4;
-  *(float *)&v7[2] = v5;
-  return AAS_BSPTraceLight(origin, (int)v7, (int)v8, red, green, blue);
+  v7[0] = *(_DWORD *)&origin[0];
+  v7[1] = *(_DWORD *)&origin[1];
+  *(float *)&v7[2] = origin[2] - 4096.0f;
+  return AAS_BSPTraceLight((intptr_t)origin, (intptr_t)v7, (intptr_t)v8, red, green, blue);
 }
 // 1000D770: using guessed type char var_C[12];
 
@@ -16659,7 +16659,7 @@ int __cdecl sub_1001CDD0(int a1, int a2)
 int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a7)
 {
   char *v8; // ebx
-  int i; // eax
+  aas_soundpool_t *i;
   aas_soundpool_t *v10;
 
   if ( a4 < 0 || a4 >= aasworld.soundindex_table->numindexes )
@@ -16679,7 +16679,7 @@ int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a
       v8 = (char *)aasworld.d_100669C0[a4];
       if ( !v8 )
         return 0;
-      for ( i = (intptr_t)aasworld.d_100669CC; i; i = *(_DWORD *)(i + 48) )
+      for ( i = aasworld.d_100669CC; i; i = i->next )
         ;
       if ( a7 == 0.0 )
         sub_1001CDD0(a2, a4);
@@ -20127,7 +20127,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
         {
           if ( v5 && v8 <= 300.0 )
             break;
-          if ( AAS_PointLight((int)&v18[4], 0, 0, 0) >= 5 )
+          if ( AAS_PointLight((float *)&v18[4], 0, 0, 0) >= 5 )
           {
             if ( v8 <= 300.0 )
               break;
