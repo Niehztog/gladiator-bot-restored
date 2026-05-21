@@ -2145,10 +2145,10 @@ void **botgoalstate_p1;  /* iteminfo weight table */
  * inline layout (byte offsets +0, +4, +8, +12, +16, +20, +24). */
 typedef struct bot_weaponstate_s {
     int               client;       /* +0   = bs->client copy */
-    char             *chatlines;    /* +4   = pointer into bs->chat_lines */
+    int              *inventory;    /* +4   pointer into bs->inventory (item-count array; cast as int* for FuzzyWeight) */
     weightconfig_t   *weightconfig; /* +8   = loaded weights */
     int              *itemweights;  /* +12  = WeaponWeightIndex mapping table */
-    char             *modelname;    /* +16  = AAS_ModelFromIndex(bs->_i120) */
+    char             *modelname;    /* +16  = AAS_ModelFromIndex(bs->gunindex) */
     int               weaponindex;  /* +20  = chosen weapon index */
     float             nextthink;    /* +24  = AAS_Time gate */
 } bot_weaponstate_t;
@@ -17056,7 +17056,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
       v15 = AAS_EntityInfo(v58, bs->teammate);
       v16 = bs->teammate;
       qmemcpy(v55, v15, sizeof(v55));
-      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, v16) )
+      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v16) )
       {
         *(float *)&bs->_i4332 = AAS_Time();
         v17 = bs->origin;
@@ -17377,7 +17377,7 @@ LABEL_55:
         if ( libvar_runes->value != 0.0 )
           sub_100262C0(a1, (intptr_t)v26);
       }
-      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->enemyorigin, (intptr_t)v26) )
+      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v26) )
       {
         goto LABEL_136;
       }
@@ -17387,7 +17387,7 @@ LABEL_136:
     if ( AAS_Time() > bs->ltg_time )
     {
       BotPopGoal(bs->goalstate);
-      if ( BotChooseLTGItem(bs->goalstate, bs->origin, bs->chat_lines, a2) )
+      if ( BotChooseLTGItem(bs->goalstate, bs->origin, bs->inventory, a2) )
       {
         bs->ltg_time = AAS_Time() + 20.0;
       }
@@ -17414,7 +17414,7 @@ LABEL_136:
   v5 = AAS_EntityInfo(v58, bs->teammate);
   v6 = bs->teammate;
   qmemcpy(v55, v5, sizeof(v55));
-  if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, v6) )
+  if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v6) )
   {
     dir[0] = *(float *)&v55[4] - bs->origin[0];
     dir[1] = *(float *)&v55[5] - bs->origin[1];
@@ -17833,7 +17833,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       if ( libvar_runes->value != 0.0 )
         sub_100262C0((_DWORD *)bs, (intptr_t)v4);
     }
-    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->enemyorigin, (intptr_t)v4) )
+    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v4) )
     {
       goto LABEL_18;
     }
@@ -18041,7 +18041,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       v5 = -(bs->ltgtype != 3);
       bs->_f2808 = v4 + 0.5;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
-      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, v3, v8) )
+      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, v8) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0;
@@ -18214,7 +18214,7 @@ LABEL_9:
       bs->lastenemyareanum = v4;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
-    if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, bs->enemy) )
+    if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       v8 = 102334;
       if ( libvar_usehook->value != 0.0 )
@@ -18326,7 +18326,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( !bs->enemy )
     goto LABEL_8;
-  if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, bs->enemy) )
+  if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
   {
     BotResetLastAvoidReach((intptr_t)bs->movestate);
     AIEnter_Battle_Fight(bs);
@@ -18378,7 +18378,7 @@ LABEL_8:
     {
       if ( AAS_Time() > bs->_f2808
         && (bs->_f2808 = AAS_Time() + 1.0,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, (bot_goal_t *)v12, 500.0)) )
+            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
       {
         bs->nbg_time = AAS_Time() + 5.0;
         BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -18529,7 +18529,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   }
   else
   {
-    if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, bs->enemy) )
+    if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
 LABEL_10:
       AIEnter_Seek_LTG(bs);
@@ -18544,7 +18544,7 @@ LABEL_10:
       if ( v4 > bs->_f2808
         && (v4 = AAS_Time() + 1.0,
             bs->_f2808 = v4,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, v3, 500.0)) )
+            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0;
@@ -18762,37 +18762,37 @@ _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2)
   unsigned int v5; // edx
 
   result = a2;
-  *a2 = bs->_i16;
-  a2[1] = bs->_i20;
-  a2[2] = bs->_i24;
-  a2[3] = bs->_i28;
-  a2[4] = bs->_i32;
-  a2[5] = bs->_i36;
-  a2[6] = bs->_i72;
-  a2[7] = bs->_i76;
-  a2[8] = *(int *)&bs->_f80;
+  *a2 = (*(int *)&bs->ps_origin[0]);
+  a2[1] = (*(int *)&bs->ps_origin[1]);
+  a2[2] = (*(int *)&bs->ps_origin[2]);
+  a2[3] = (*(int *)&bs->ps_velocity[0]);
+  a2[4] = (*(int *)&bs->ps_velocity[1]);
+  a2[5] = (*(int *)&bs->ps_velocity[2]);
+  a2[6] = (*(int *)&bs->viewoffset[0]);
+  a2[7] = (*(int *)&bs->viewoffset[1]);
+  a2[8] = (*(int *)&bs->viewoffset[2]);
   a2[9] = bs->entitynum;
   a2[10] = bs->client;
   a2[11] = *(int *)&bs->thinktime;
   v3 = a2[24] & 0xFFFFFFFD;
   a2[24] = v3;
-  if ( (*(unsigned char *)&bs->_i40 & 4) != 0 )
+  if ( (bs->pm_flags & 4) != 0 )
     a2[24] = v3 | 2;
   v4 = a2[24] & 0xFFFFFFDF;
   a2[24] = v4;
-  if ( (*(unsigned char *)&bs->_i40 & 0x20) != 0 && ((unsigned char *)&bs->_i40)[1] )
+  if ( (bs->pm_flags & 0x20) != 0 && bs->pm_time )
     a2[24] = v4 | 0x20;
   v5 = a2[24] & 0xFFFFFFEF;
   a2[24] = v5;
-  if ( (*(unsigned char *)&bs->_i40 & 8) != 0 && ((unsigned char *)&bs->_i40)[1] )
+  if ( (bs->pm_flags & 8) != 0 && bs->pm_time )
     a2[24] = v5 | 0x10;
-  if ( (*(unsigned char *)&bs->_i40 & 1) != 0 )
+  if ( (bs->pm_flags & 1) != 0 )
     a2[12] = 4;
   else
     a2[12] = 2;
-  a2[13] = *(int *)&bs->enemyorigin[0];
-  a2[14] = *(int *)&bs->enemyorigin[1];
-  a2[15] = *(int *)&bs->enemyorigin[2];
+  a2[13] = *(int *)&bs->viewangles[0];
+  a2[14] = *(int *)&bs->viewangles[1];
+  a2[15] = *(int *)&bs->viewangles[2];
   return result;
 }
 
@@ -18803,8 +18803,8 @@ char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
   char *result; // eax
 
   ws->client = bs->client;
-  ws->chatlines = bs->chat_lines;
-  result = AAS_ModelFromIndex(bs->_i120);
+  ws->inventory = bs->inventory;
+  result = AAS_ModelFromIndex(bs->gunindex);
   ws->modelname = result;
   return result;
 }
@@ -19292,7 +19292,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 
   if ( BotIsDead(bs) )
     return 1;
-  if ( (*(unsigned char *)&bs->_i40 & 4) == 0 )
+  if ( (bs->pm_flags & 4) == 0 )
     return 0;
   v2 = *(int *)&bs->origin[1];
   v3 = bs->origin[2] - 24.0;
@@ -20148,7 +20148,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v3 = bs->_i1892;
   bs->_i2764 = v3;
   v16 = v2 > v3;
-  v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, 16, v19);
+  v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0, 16, v19);
   v10 = 0;
   if ( v14 <= 0 )
     return 0;
@@ -20174,7 +20174,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
           v9 = 360.0 - (270.0 - v6 * 0.33333334);
         }
         vectoangles(dir, (float *)v17);
-        if ( InFieldOfVision(bs->enemyorigin, v9, v17) && !BotSameTeam(bs, *i) )
+        if ( InFieldOfVision(bs->viewangles, v9, v17) && !BotSameTeam(bs, *i) )
         {
           if ( v5 && v8 <= 300.0 )
             break;
@@ -20294,7 +20294,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v6 = bs->origin[2];
     v7 = bs->entitynum;
     v39 = v4;
-    v8 = v6 + bs->_f80;
+    v8 = v6 + bs->viewoffset[2];
     v40 = v5;
     v41 = v8;
     v41 = v8 + *(float *)(v3 + 296);
@@ -20410,11 +20410,11 @@ void BotAimAtEnemy(bot_state_t *bs)
     if ( v35 > 0.8 )
     {
       v20 = (*(int *)&bs->ideal_viewangles[0]);
-      *(int *)&bs->enemyorigin[1] = (*(int *)&bs->ideal_viewangles[1]);
+      *(int *)&bs->viewangles[1] = (*(int *)&bs->ideal_viewangles[1]);
       v21 = bs->client;
-      *(int *)&bs->enemyorigin[0] = v20;
-      *(int *)&bs->enemyorigin[2] = (*(int *)&bs->ideal_viewangles[2]);
-      EA_View(v21, bs->enemyorigin);
+      *(int *)&bs->viewangles[0] = v20;
+      *(int *)&bs->viewangles[2] = (*(int *)&bs->ideal_viewangles[2]);
+      EA_View(v21, bs->viewangles);
     }
   }
 }
@@ -20479,17 +20479,17 @@ void BotCheckAttack(bot_state_t *bs)
       v12 = 1123024896;
       if ( VectorLength(v18) >= 100.0 )
         v12 = 1112014848;
-      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, *(float *)&v12, bs->enemy) )
+      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, *(float *)&v12, bs->enemy) )
       {
         v3 = (uintptr_t)sub_100354B0(BotWS(bs));
         if ( v3 )
         {
           v4 = bs->origin[1];
-          v5 = bs->origin[2] + bs->_f80;
+          v5 = bs->origin[2] + bs->viewoffset[2];
           v13 = *(int *)bs->origin;
           v15 = v5;
           v14 = v4;
-          AngleVectors(bs->enemyorigin, v16, v19, 0);
+          AngleVectors(bs->viewangles, v16, v19, 0);
           *(float *)&v13 = v19[0] * *(float *)(v3 + 292) + *(float *)v16 * *(float *)(v3 + 288) + *(float *)&v13;
           v14 = v19[1] * *(float *)(v3 + 292) + *(float *)&v16[1] * *(float *)(v3 + 288) + v14;
           v15 = v19[2] * *(float *)(v3 + 292) + *(float *)&v16[2] * *(float *)(v3 + 288) + *(float *)(v3 + 296) + v15;
@@ -21965,7 +21965,7 @@ LABEL_64:
           v28 = v27;
           if ( v27 )
           {
-            if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, v18) )
+            if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v18) )
             {
               v29 = v68[4];
               v30 = v68[5];
@@ -22222,18 +22222,18 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 
   result = (float *)bs;
   v3 = a2 + bs->ltime;
-  v4 = bs->_i16;
+  v4 = (*(int *)&bs->ps_origin[0]);
   bs->thinktime = a2;
-  *(int *)&bs->origin[1] = bs->_i20;
+  *(int *)&bs->origin[1] = (*(int *)&bs->ps_origin[1]);
   bs->ltime = v3;
   v5 = result[18] + result[4];
   *(int *)&bs->origin[0] = v4;
-  v6 = bs->_i24;
+  v6 = (*(int *)&bs->ps_origin[2]);
   bs->eye[0] = v5;
   v7 = result[19] + result[5];
-  qmemcpy(bs->chat_lines, bs->chat_lines_src, 0x400u);
+  qmemcpy(bs->inventory, bs->inventory_src, 0x400u);
   bs->eye[1] = v7;
-  bs->eye[2] = bs->_f80 + *(float *)&bs->_i24;
+  bs->eye[2] = bs->viewoffset[2] + *(float *)&(*(int *)&bs->ps_origin[2]);
   *(int *)&bs->origin[2] = v6;
   return result;
 }
@@ -22534,7 +22534,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs)
     --v4;
   }
   while ( v4 );
-  EA_View(bs->client, bs->enemyorigin);
+  EA_View(bs->client, bs->viewangles);
   return 0;
 }
 // 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
@@ -29178,7 +29178,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
             v5 = ws->itemweights[v4];
             if ( v5 >= 0 )
             {
-              v6 = FuzzyWeight((int *)ws->chatlines, &ws->weightconfig->weights[v5]);
+              v6 = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[v5]);
               if ( v6 > v7 )
               {
                 v7 = v6;

@@ -33,22 +33,30 @@ typedef struct bot_state_s {
             int    inuse;                 /* +0    */
             int    client;                /* +4    */
             int    entitynum;             /* +8    */
-            int    _i12;                  /* +12   */
-            int    _i16;                  /* +16   */
-            int    _i20;                  /* +20   */
-            int    _i24;                  /* +24   */
-            int    _i28;                  /* +28   */
-            int    _i32;                  /* +32   */
-            int    _i36;                  /* +36   */
-            int    _i40;                  /* +40   flags (low byte at +40, second byte at +41) */
-            char   _pad_2Ch[28];          /* +44..+71  */
-            int    _i72;                  /* +72   */
-            int    _i76;                  /* +76   */
-            float  _f80;                  /* +80   */
-            char   _pad_54h[36];          /* +84..+119 */
-            int    _i120;                 /* +120  */
-            char   _pad_7Ch[92];          /* +124..+215 */
-            char   chat_lines_src[1024];  /* +216..+1239  qmemcpy source for chat_lines */
+            /* +12..+1239 (1228 B = 0x4CC): bot_updateclient_t snapshot.
+             * Written wholesale every frame by the engine via the
+             * BotUpdateClient import (slot 13).  Layout matches
+             * `bot_updateclient_t` in game/botlib.h. */
+            int    pm_type;               /* +12   movement type (pmtype_t) */
+            vec3_t ps_origin;             /* +16..+27   client origin from playerstate */
+            vec3_t ps_velocity;           /* +28..+39   client velocity */
+            unsigned char pm_flags;       /* +40   PMF_DUCKED(1)/PMF_JUMP_HELD(2)/PMF_ON_GROUND(4)/PMF_TIME_WATERJUMP(8)/PMF_TIME_LAND(16)/PMF_TIME_TELEPORT(32)/... */
+            unsigned char pm_time;        /* +41   each unit = 8 ms */
+            char   _pad_2Ah[2];           /* +42..+43 struct alignment pad before float */
+            float  gravity;               /* +44   current gravity */
+            vec3_t delta_angles;          /* +48..+59   add to cmd angles for view dir (teleports/rotating objects) */
+            vec3_t ps_viewangles;         /* +60..+71   fixed-view angles from playerstate */
+            vec3_t viewoffset;            /* +72..+83   add to origin for eye coordinates */
+            vec3_t kick_angles;           /* +84..+95   weapon-kick + pain effect angles */
+            vec3_t gunangles;             /* +96..+107  gun model angles */
+            vec3_t gunoffset;             /* +108..+119 gun model offset relative to origin */
+            int    gunindex;              /* +120  gun model number (-> AAS_ModelFromIndex) */
+            int    gunframe;              /* +124  gun model frame number */
+            float  blend[4];              /* +128..+143 RGBA full-screen effect */
+            float  fov;                   /* +144  horizontal field of view */
+            int    rdflags;               /* +148  refdef flags */
+            short  stats[32];             /* +152..+215 MAX_STATS player stats (health/timer/items/etc) */
+            int    inventory_src[256];    /* +216..+1239 MAX_ITEMS inventory snapshot; mirrored each frame into `inventory` (+1728) */
             char   settings[432];         /* +1240..+1671 bot_clientsettings_t */
             int    character;             /* +1672 */
             int    ainode;                /* +1676 current AINode_* dispatcher; called via (int(*)(int))bs->ainode */
@@ -64,8 +72,15 @@ typedef struct bot_state_s {
              * Wrapped in an inner union so legacy `bs->chat_lines` (the
              * 1024-byte qmemcpy buffer at +1728) and the typed view share
              * storage. */
+            /* +1728..+2751: 1024-byte inventory mirror.  qmemcpy'd each
+             * frame from `inventory_src` (+216).  BotUpdateInventory and
+             * BotUpdateBattleInventory overlay derived powerup/battle
+             * snapshot fields onto this region at offsets that don't
+             * collide with item slots actually read by the AI (powershield
+             * at inventory[20] / +1808 is read via `bs->inventory[20]`,
+             * while +1892 / +2528 / +2544.. are written for derived state). */
             union {
-                char chat_lines[1024];                /* +1728..+2751 raw 1024-byte view */
+                int  inventory[256];                  /* +1728..+2751 working copy of inventory_src */
                 struct {
                     char   _pad_6C0h[164];        /* +1728..+1891 */
                     int    _i1892;                /* +1892 health snapshot copied from playerstate ps[154] */
@@ -147,7 +162,13 @@ typedef struct bot_state_s {
             int    lastenemyareanum;      /* +4200 areanum of enemy's last-confirmed position */
             vec3_t lastenemyorigin;       /* +4204..+4215 enemy origin at last sighting (written from AAS_EntityInfo origin) */
             char   _pad_1058h[8];         /* +4216..+4223 */
-            vec3_t enemyorigin;           /* +4224..+4235 */
+            vec3_t viewangles;            /* +4224..+4235 bot's current view angles, updated each frame
+                                            * in BotUpdateClient via AngleMod(delta_angles + viewangles).
+                                            * Passed as 3rd arg to BotEntityVisible/InFieldOfVision (the
+                                            * "viewer angles" parameter) and overwritten with
+                                            * ideal_viewangles before EA_View calls.  IDA decompilations
+                                            * named this `enemyorigin` by mistake — fov=360.0 traces
+                                            * masked the misnomer. */
             vec3_t ideal_viewangles;      /* +4236..+4247  vectoangles dst; copied into EA_View vec3 arg */
             int    _i4248;                /* +4248 */
             char   _pad_1094h[8];         /* +4252..+4259 */
