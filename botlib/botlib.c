@@ -346,9 +346,9 @@ float *__cdecl VectorTransform(float *a1, float *a2);
 void __cdecl AnglesToAxis(float *angles, float *axis_out);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, float *a7);
 int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
-int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, int a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
-int __cdecl sub_10004310(int a1, float *a2, float *a3, int a4, int *a5, int a6, int *a7, int a8, int a9);
-float *__cdecl sub_100044F0(float *a1, int a2, float *a3, float *a4, int a5, int *a6, float *a7, int *a8, int a9, int a10);
+int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
+int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9);
+float *__cdecl sub_100044F0(float *a1, int a2, float *a3, float *a4, intptr_t a5, int *a6, float *a7, int *a8, int a9, int a10);
 int __cdecl BSP_InsideFace(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 int __cdecl AAS_DecompressVis(int a1, int a2);
@@ -2847,7 +2847,7 @@ int __cdecl sub_10003C90(
         float *a3,
         int *a4,
         int *a5,
-        int a6,
+        intptr_t a6,
         int *a7,
         float *a8,
         _DWORD *a9,
@@ -3083,7 +3083,7 @@ LABEL_43:
 // 10003C90: using guessed type float var_24[9];
 
 //----- (10004310) --------------------------------------------------------
-int __cdecl sub_10004310(int a1, float *a2, float *a3, int a4, int *a5, int a6, int *a7, int a8, int a9)
+int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
 {
   int v9; // ebp
   bool v10; // zf
@@ -3161,7 +3161,7 @@ float *__cdecl sub_100044F0(
         int a2,
         float *a3,
         float *a4,
-        int a5,
+        intptr_t a5,
         int *a6,
         float *a7,
         int *a8,
@@ -3424,7 +3424,7 @@ LABEL_7:
             v29 = -1 - v28;
             v30 = (_DWORD *)(dword_100674EC + 28 * (-1 - v28));
             if ( *(_WORD *)(dword_100674EC + 28 * v29 + 26) && (*v30 & a10) != 0 )
-              sub_10004310(v29, &v136, a4, a5, a6, (int)a7, a8, a10, (int)v150);
+              sub_10004310(v29, &v136, a4, a5, a6, (intptr_t)a7, a8, a10, (intptr_t)v150);
             if ( dword_10069584[v29] )
               AAS_BSPLeafEntityCollision(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
           }
