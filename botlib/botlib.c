@@ -2859,7 +2859,9 @@ int __cdecl sub_10003C90(
   float *v13; // eax
   _DWORD *v14; // ebx
   float *v15; // ecx
-  int v16; // esi
+  /* v16: BSP plane-pointer base; was `int v16` in IDA, used as `*(float*)(v16+N)`.
+   * On aarch64 the int truncated dword_100674F4's heap address.  Widened to char *. */
+  char *v16;
   int v17; // ecx
   double v18; // st7
   double v19; // st7
@@ -3087,13 +3089,18 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
 {
   int v9; // ebp
   bool v10; // zf
-  int v11; // ebx
-  int v12; // esi
+  /* v11: BSP-leaf base pointer (`dword_100674EC + 28 * a1`).  Int→char* widening. */
+  char *v11;
+  /* v12: output-struct base pointer (caller passes `(intptr_t)v150` stack
+   * array via a9).  IDA typed it `int v12` which truncates on aarch64. */
+  char *v12;
   _DWORD *v13; // edi
   float v14; // ecx
   float v15; // eax
   int v16; // ecx
-  int v17; // eax
+  /* v17: BSP plane-pointer base (`dword_100674F4 + 20 * plane_index`).
+   * Same int→char* widening as the rest of the BSP-base fixes. */
+  char *v17;
   int v18; // ecx
   int v20; // [esp+10h] [ebp-10h] BYREF
   vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by sub_10003C90 via a11
@@ -3105,7 +3112,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   v24 = 0;
   if ( v10 )
     return 0;
-  v12 = a9;
+  v12 = (char *)a9;
   do
   {
     v13 = (_DWORD *)(dword_1006753C
@@ -3172,12 +3179,25 @@ float *__cdecl sub_100044F0(
   float v11; // ecx
   int v12; // eax
   double v13; // st7
-  int v14; // ecx
+  /* v14: originally `int v14` in IDA — was used as `char*` base via
+   * `v14 = dword_100674C8 + 48*a2` then `*(float*)(v14+24)`.  On aarch64
+   * the int storage truncated dword_100674C8's heap address producing
+   * a SIGSEGV in AAS_OnGround → AAS_TraceClientBBox → AAS_EntityCollision
+   * → here.  Widened to `char *`. */
+  char *v14;
   double v15; // st7
   int *v16; // eax
   int v17; // edx
   int v18; // eax
-  int v19; // edi
+  /* v19, v62, v79, v100: AArch64 — these hold pointers into trace_buf
+   * (the trace-stack free/active lists).  IDA typed them `int` because
+   * on 32-bit MSVC every link slot was 4 bytes; on aarch64 the 4-byte
+   * int storage truncated 8-byte stack pointers, crashing
+   * AAS_OnGround → AAS_TraceClientBBox → here.  Widened to char *.
+   * Link slots in the trace_buf still store 4-byte values, but they
+   * are now encoded byte-offsets into trace_buf (see TR_ENC/TR_DEC
+   * macros below) instead of raw truncated pointers. */
+  char *v19;
   int v20; // edx
   float v21; // eax
   int v22; // edx
@@ -3196,7 +3216,14 @@ float *__cdecl sub_100044F0(
   int v35; // eax
   float v36; // ecx
   int v37; // eax
-  int v38; // eax
+  /* v38: same bug class as v14 above — set to
+   * `dword_100674F4 + 20*v37` (BSP plane base + 20 *plane_index).  On
+   * aarch64 the int storage truncated the pointer, so later
+   * `*(float*)(v38+N)` reads crashed in AAS_OnGround chain.  Widened
+   * to char *.  The IDA-spilled `v110 = *(float*)&v38; ...; *(float*)&v38 = v110;`
+   * temp-bit-pattern dance is harmless on 64-bit (write/read of the low
+   * 4 bytes of v38 nets to zero net change within the same code path). */
+  char *v38;
   int v39; // ecx
   double v40; // st7
   double v41; // st6
@@ -3214,13 +3241,13 @@ float *__cdecl sub_100044F0(
   int v54; // eax
   float v55; // eax
   int *v56; // eax
-  int **v57; // esi
+  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset)
   float v58; // ebp
   int v59; // edx
   double v60; // st7
   float v61; // edx
-  int v62; // ecx
-  int **v63; // ebp
+  char *v62; // ecx — AArch64: was `int`; trace-stack frame pointer (see v19)
+  int *v63; // ebp  — AArch64: was `int**`
   int *v64; // esi
   float v65; // eax
   float v66; // edx
@@ -3236,8 +3263,8 @@ float *__cdecl sub_100044F0(
   int *v76; // edx
   int v77; // eax
   float v78; // edx
-  int v79; // eax
-  int **v80; // ecx
+  char *v79; // eax — AArch64: was `int`; trace-stack frame pointer
+  int *v80; // ecx  — AArch64: was `int**`
   float v81; // esi
   int v82; // edx
   double v83; // st7
@@ -3257,7 +3284,7 @@ float *__cdecl sub_100044F0(
   int v97; // ecx
   double v98; // st7
   float v99; // edi
-  int v100; // eax
+  char *v100; // eax — AArch64: was `int`; trace-stack frame pointer (see v19)
   int v101; // ecx
   float v102; // ebx
   int v103; // edx
@@ -3288,9 +3315,16 @@ float *__cdecl sub_100044F0(
   float v128; // [esp+68h] [ebp-14F0h]
   float v129; // [esp+6Ch] [ebp-14ECh]
   float v130; // [esp+70h] [ebp-14E8h]
-  float v132[3]; // [esp+78h] [ebp-14E0h] BYREF
-  float v133[2]; /* was v133,v134 — 2-element float array for BSP side distances */
-  /* float v134 subsumed into v133[1] above */
+  /* AArch64 stack-layout fix: the original 32-bit binary had a 4-byte slot
+   * at [esp+0x74] (v131 in the asm) that IDA dropped from the decompile.
+   * The code uses negative indices (v132[-1]) and over-indices (v132[3]/[4])
+   * to access this slot and v133[0..1] respectively — relying on a
+   * contiguous 6-float layout the 32-bit compiler happened to emit.  GCC on
+   * aarch64 reorders locals so those OOB accesses crash.  Fold v131+v132+v133
+   * into one backing array and expose v132/v133 as pointer aliases. */
+  float _v131_v133_buf[6];
+  float *const v132 = &_v131_v133_buf[1];   /* v132[-1..4] -> buf[0..5] */
+  float *const v133 = &_v131_v133_buf[4];   /* v133[0..1]  -> buf[4..5] */
   BOOL v135; // [esp+8Ch] [ebp-14CCh]
   float v136; // [esp+90h] [ebp-14C8h] BYREF
   float v137; // [esp+94h] [ebp-14C4h]
@@ -3325,6 +3359,13 @@ float *__cdecl sub_100044F0(
   int trace_buf[1280];   // = 9 (v152) + 1271 (v153); BYREF
   int *v152 = trace_buf;
   int *v153 = trace_buf + 9;
+  /* AArch64: the trace-stack free/active linked-lists store "next-pointer"
+   * in 4-byte int slots (at byte offset +36 of each 40-byte frame, plus
+   * v153[0] as the free-list head).  On 32-bit Windows pointers fit; on
+   * aarch64 they don't.  Encode each link as a 32-bit byte offset into
+   * trace_buf (value 0 reserved for NULL; stored value = offset + 1). */
+  #define TR_ENC(p) ((p) ? (int)((intptr_t)((char *)(p) - (char *)trace_buf) + 1) : 0)
+  #define TR_DEC(i) ((i) ? (char *)trace_buf + ((unsigned int)(i) - 1u) : (char *)0)
 
   v10 = *((float *)a8 + 2);
   memset(v150, 0, sizeof(v150));
@@ -3376,7 +3417,7 @@ LABEL_7:
   v17 = 127;
   do
   {
-    *v16 = (int)(v16 + 1);
+    *v16 = TR_ENC(v16 + 1);   /* AArch64: encode offset into trace_buf, not raw ptr */
     v16 += 10;
     --v17;
   }
@@ -3385,7 +3426,7 @@ LABEL_7:
   if ( &v105 != (int *)-344 )
   {
     v18 = *(_DWORD *)(a5 + 4);
-    v19 = v153[0];
+    v19 = (char *)TR_DEC(v153[0]);
     v152[0] = *(_DWORD *)a5;
     v20 = *(_DWORD *)(a5 + 8);
     v152[1] = v18;
@@ -3414,7 +3455,7 @@ LABEL_7:
               goto LABEL_126;
             v26 = v24[7];
             v27 = v24 + 9;
-            v24 = (int *)v24[9];
+            v24 = (int *)TR_DEC(v24[9]);
             v119 = v25[7];
             if ( v26 < 0 )
               goto LABEL_126;
@@ -3440,11 +3481,11 @@ LABEL_7:
           v111 = v34;
           v36 = *((float *)v25 + 5);
           v127 = v35;
-          *v27 = v19;
+          *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
           v37 = *v31;
           v113 = v36;
           v120 = v31;
-          v19 = (int)v25;
+          v19 = (char *)v25;
           v38 = dword_100674F4 + 20 * v37;
           v110 = *(float *)&v38;
           if ( v144 )
@@ -3500,15 +3541,15 @@ LABEL_7:
               *((float *)v25 + 3) = v111;
               *((float *)v25 + 4) = v112;
               *((float *)v25 + 5) = v113;
-              v100 = *v27;
+              v100 = (char *)TR_DEC(*v27);
               v25[7] = *v31;
               v25[8] = 0;
               v101 = v31[(LODWORD(v99) == 0) + 1];
-              *v27 = (int)v24;
+              *v27 = TR_ENC(v24);
               v25[6] = v101;
               if ( !v100 )
                 goto LABEL_125;
-              v19 = *(_DWORD *)(v100 + 36);
+              v19 = (char *)TR_DEC(*(int *)(v100 + 36));
               *(float *)v100 = v106;
               *(float *)(v100 + 4) = v107;
               *(float *)(v100 + 8) = v108;
@@ -3521,14 +3562,14 @@ LABEL_7:
               v103 = v31[LODWORD(v102) + 1];
               v24 = (int *)v100;
               *(_DWORD *)(v100 + 24) = v103;
-              *(_DWORD *)(v100 + 36) = v25;
+              *(int *)(v100 + 36) = TR_ENC(v25);
             }
             else
             {
               v91 = v107;
               *(float *)v25 = v106;
               v92 = v108;
-              v19 = *v27;
+              v19 = (char *)TR_DEC(*v27);
               *((float *)v25 + 1) = v91;
               v93 = v111;
               *((float *)v25 + 2) = v92;
@@ -3541,7 +3582,7 @@ LABEL_7:
               v25[7] = v96;
               v25[8] = 0;
               v97 = v31[2];
-              *v27 = (int)v24;
+              *v27 = TR_ENC(v24);
               v25[6] = v97;
               v24 = v25;
             }
@@ -3551,7 +3592,7 @@ LABEL_7:
             v84 = v107;
             *(float *)v25 = v106;
             v85 = v108;
-            v19 = *v27;
+            v19 = (char *)TR_DEC(*v27);
             *((float *)v25 + 1) = v84;
             v86 = v111;
             *((float *)v25 + 2) = v85;
@@ -3564,7 +3605,7 @@ LABEL_7:
             v25[7] = v89;
             v25[8] = 0;
             v90 = v31[1];
-            *v27 = (int)v24;
+            *v27 = TR_ENC(v24);
             v25[6] = v90;
             v24 = v25;
           }
@@ -3611,7 +3652,7 @@ LABEL_7:
           v133[0] = -*(float *)&a6[v39];
           v133[1] = -a7[v39];
         }
-        v122 = v132;
+        v122 = (int *)v132;
         v47 = 0;
         v117 = 0;
         do
@@ -3634,7 +3675,7 @@ LABEL_7:
         v53 = v121;
         if ( !v132[v121 - 1] && !v132[v121 + 1] )
           break;
-        v19 = *v27;
+        v19 = (char *)TR_DEC(*v27);
         *(float *)v25 = v106;
         *((float *)v25 + 1) = v107;
         *((float *)v25 + 2) = v108;
@@ -3645,7 +3686,7 @@ LABEL_7:
         v25[8] = v127;
         v25[6] = v31[v53 + 1];
         v54 = v132[v53 - 1];
-        *v27 = (int)v24;
+        *v27 = TR_ENC(v24);
         v24 = v25;
         if ( !v54 )
           break;
@@ -3653,34 +3694,34 @@ LABEL_7:
       while ( v132[v53 + 1] );
       LODWORD(v55) = v53 == 0;
       v109 = v55;
-      if ( v132[LODWORD(v55) - 1] || v132[LODWORD(v55) + 1] )
+      if ( v132[(int)LODWORD(v55) - 1] || v132[(int)LODWORD(v55) + 1] )
       {
         if ( !v19 )
           break;
         v56 = (int *)v19;
-        v57 = (int **)(v19 + 36);
+        v57 = (int *)(v19 + 36);
         *(float *)v19 = v106;
         *(float *)(v19 + 4) = v107;
         *(float *)(v19 + 8) = v108;
         *(float *)(v19 + 12) = v111;
         *(float *)(v19 + 16) = v112;
         *(float *)(v19 + 20) = v113;
-        v19 = *(_DWORD *)(v19 + 36);
+        v19 = (char *)TR_DEC(*(int *)(v19 + 36));
         v56[7] = v119;
         v56[8] = v127;
         v58 = v109;
         v59 = v31[LODWORD(v109) + 1];
-        *v57 = v24;
+        *v57 = TR_ENC(v24);
         v56[6] = v59;
         v24 = v56;
-        if ( !v132[LODWORD(v58) - 1] || !v132[LODWORD(v58) + 1] )
+        if ( !v132[(int)LODWORD(v58) - 1] || !v132[(int)LODWORD(v58) + 1] )
           goto LABEL_71;
       }
       else
       {
         v58 = v109;
 LABEL_71:
-        if ( v132[2 * LODWORD(v58) - 1] || v132[2 * LODWORD(v58)] )
+        if ( v132[2 * (int)LODWORD(v58) - 1] || v132[2 * (int)LODWORD(v58)] )
         {
           v118 = -1.0;
         }
@@ -3714,7 +3755,7 @@ LABEL_71:
               break;
             v71 = v140;
             v62 = v19;
-            v63 = (int **)(v19 + 36);
+            v63 = (int *)(v19 + 36);
             *(float *)v19 = v139;
             v72 = v141;
             *(float *)(v19 + 4) = v71;
@@ -3726,7 +3767,7 @@ LABEL_71:
             *(float *)(v19 + 16) = v74;
             v76 = v120;
             *(float *)(v19 + 20) = v75;
-            v19 = *(_DWORD *)(v19 + 36);
+            v19 = (char *)TR_DEC(*(int *)(v19 + 36));
             *(_DWORD *)(v62 + 28) = *v76;
             v77 = v121;
             *(float *)(v62 + 32) = *(&v133[0] + v121);
@@ -3742,7 +3783,7 @@ LABEL_101:
             while ( *(float *)(v62 + 4 * v126) < (double)*(float *)&v70[v126] != v135 )
             {
               v64 = v70;
-              v70 = (int *)v70[9];
+              v70 = (int *)TR_DEC(v70[9]);
               if ( !v70 )
                 goto LABEL_99;
             }
@@ -3753,7 +3794,7 @@ LABEL_101:
               break;
             v61 = v124;
             v62 = v19;
-            v63 = (int **)(v19 + 36);
+            v63 = (int *)(v19 + 36);
             v64 = 0;
             *(float *)v19 = v123;
             v65 = v125;
@@ -3766,7 +3807,7 @@ LABEL_101:
             *(float *)(v19 + 16) = v67;
             v69 = v120;
             *(float *)(v19 + 20) = v68;
-            v19 = *(_DWORD *)(v19 + 36);
+            v19 = (char *)TR_DEC(*(int *)(v19 + 36));
             *(_DWORD *)(v62 + 28) = *v69;
             *(float *)(v62 + 32) = *(&v133[0] + LODWORD(v109));
             v70 = v24;
@@ -3776,14 +3817,14 @@ LABEL_101:
             while ( *(float *)(v62 + 4 * v126) < (double)*(float *)&v70[v126] != v135 )
             {
               v64 = v70;
-              v70 = (int *)v70[9];
+              v70 = (int *)TR_DEC(v70[9]);
               if ( !v70 )
                 goto LABEL_99;
             }
           }
-          *v63 = v70;
+          *v63 = TR_ENC(v70);
           if ( v64 )
-            v64[9] = v62;
+            v64[9] = TR_ENC(v62);
           else
             v24 = (int *)v62;
           if ( v70 )
@@ -3791,22 +3832,22 @@ LABEL_101:
 LABEL_99:
           if ( !v64 )
             goto LABEL_101;
-          v64[9] = v62;
+          v64[9] = TR_ENC(v62);
 LABEL_102:
           *v63 = 0;
 LABEL_103:
           v78 = v109;
-          if ( !v132[LODWORD(v109) - 1] && !v132[LODWORD(v109) + 1] )
+          if ( !v132[(int)LODWORD(v109) - 1] && !v132[(int)LODWORD(v109) + 1] )
           {
             if ( v60 >= 0.0 )
             {
               if ( !v19 )
                 break;
               v79 = v19;
-              v80 = (int **)(v19 + 36);
+              v80 = (int *)(v19 + 36);
               *(float *)v19 = v106;
               *(float *)(v19 + 4) = v107;
-              v19 = *(_DWORD *)(v19 + 36);
+              v19 = (char *)TR_DEC(*(int *)(v19 + 36));
               *(float *)(v79 + 8) = v108;
               *(float *)(v79 + 12) = v139;
               *(float *)(v79 + 16) = v140;
@@ -3818,10 +3859,10 @@ LABEL_103:
               if ( !v19 )
                 break;
               v79 = v19;
-              v80 = (int **)(v19 + 36);
+              v80 = (int *)(v19 + 36);
               *(float *)v19 = v106;
               *(float *)(v19 + 4) = v107;
-              v19 = *(_DWORD *)(v19 + 36);
+              v19 = (char *)TR_DEC(*(int *)(v19 + 36));
               *(float *)(v79 + 8) = v108;
               *(float *)(v79 + 12) = v123;
               *(float *)(v79 + 16) = v124;
@@ -3831,7 +3872,7 @@ LABEL_111:
               *(_DWORD *)(v79 + 28) = v119;
               *(_DWORD *)(v79 + 32) = v127;
               v82 = v120[LODWORD(v78) + 1];
-              *v80 = v24;
+              *v80 = TR_ENC(v24);
               *(_DWORD *)(v79 + 24) = v82;
               v24 = (int *)v79;
             }
@@ -3863,7 +3904,9 @@ int __cdecl BSP_InsideFace(_DWORD *a1, float *a2)
 {
   int v3; // ebx
   unsigned __int16 *i; // edi
-  int v5; // ecx
+  /* v5: same BSP-plane-pointer-truncation bug class as sub_100044F0:v14/v38.
+   * Original `int v5` truncated `dword_100674F4 + 20 * *i` on aarch64. */
+  char *v5;
   int v6; // edx
   double v8; // st7
   int v12; // [esp+14h] [ebp+4h]
@@ -3903,7 +3946,9 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 {
   int v4; // edi
   int v6; // ebp
-  int v7; // esi
+  /* v7: BSP node base (`dword_100674EC + 28 * leafnum`).  IDA's
+   * `int v7` truncates the heap pointer on aarch64. */
+  char *v7;
   bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
   _DWORD *v10; // [esp+14h] [ebp-78h]
@@ -15272,7 +15317,12 @@ LABEL_20:
       {
         v13 = *(_DWORD *)((char *)aasworld.areasettings + v4 + 16);
       }
-      result = *(_WORD *)((char *)v12 + 2 * v13 + 40);
+      /* 64-bit fix: the original `+ 40` hard-coded the 32-bit aas_routingcache_t
+       * header size.  On aarch64 the header grows to 48 bytes (8-byte prev/next),
+       * so the byte-arithmetic form read into the `next` pointer instead of
+       * traveltimes[].  Use `((unsigned short *)(cache + 1))[idx]` which is
+       * sizeof-correct on both ABIs. */
+      result = ((unsigned short *)(v12 + 1))[v13];
       if ( result )
         return result;
     }
@@ -15285,7 +15335,7 @@ LABEL_20:
   v17 = v15;
   v28 = v15;
   if ( v6 < 0 )
-    return *(_WORD *)((char *)v15 + 2 * (20 - v6));
+    return ((unsigned short *)(v15 + 1))[-v6];   /* 64-bit fix: was `+ 2*(20-v6)` */
   v29 = 0;
   v27 = 0;
   v18 = (char *)aasworld.clusters + 12 * v6;
@@ -15296,7 +15346,7 @@ LABEL_20:
     while ( 1 )
     {
       v20 = *((_DWORD *)aasworld.portalindex + v16 + *((_DWORD *)v18 + 2));
-      if ( *(_WORD *)((char *)v17 + 2 * v20 + 40) )
+      if ( ((unsigned short *)(v17 + 1))[v20] )   /* 64-bit fix: was `+ 2*v20 + 40` */
       {
         v21 = AAS_GetAreaRoutingCache(v6, v19[5 * v20], goalareanum);
         v19 = aasworld.portals;
@@ -15310,10 +15360,10 @@ LABEL_20:
         {
           v23 = *(_DWORD *)((char *)aasworld.areasettings + v4 + 16);
         }
-        v24 = *(_WORD *)((char *)v21 + 2 * v23 + 40);
+        v24 = ((unsigned short *)(v21 + 1))[v23];   /* 64-bit fix: was `+ 2*v23 + 40` */
         if ( v24 )
         {
-          v25 = v24 + *(_WORD *)((char *)v28 + 2 * v20 + 40);
+          v25 = v24 + ((unsigned short *)(v28 + 1))[v20];   /* 64-bit fix: was `+ 2*v20 + 40` */
           if ( !v29 || v25 < v29 )
             v29 = v25;
         }
@@ -17184,7 +17234,7 @@ LABEL_86:
           }
           if ( bs->_f1680 * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
           {
-            BotRoamGoal(a1, target);
+            BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
             dir[0] = target[0] - bs->origin[0];
             dir[1] = target[1] - bs->origin[1];
             dir[2] = target[2] - bs->origin[2];
@@ -17811,7 +17861,7 @@ LABEL_18:
     {
       if ( bs->_f1680 * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
         goto LABEL_33;
-      BotRoamGoal(a1, target);
+      BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
       dir[2] = target[2] - bs->origin[2];
