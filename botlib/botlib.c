@@ -231,7 +231,7 @@ void BotCheckAttack(bot_state_t *bs);  // fixed from weak _DWORD
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
 int __cdecl AAS_AreaLadder(int);
 /* AAS_VectorForBSPEpairKey: full decl with named args at line ~329 */
-int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
+intptr_t __cdecl BotMoveToGoal(intptr_t a1, intptr_t a2, intptr_t a3, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
 int AAS_InitReachability(); // weak
 itemconfig_t *LoadItemConfig(char *Source);
 int AAS_Optimize(void);
@@ -245,7 +245,7 @@ int __cdecl BotFreeWaypoints(int);
 typedef struct bot_character_s bot_character_t;
 double __cdecl Characteristic_Float(bot_character_t *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
-int __cdecl BotReachabilityTime(int);
+int __cdecl BotReachabilityTime(intptr_t);
 void PrintUsedMemorySize(void);
 int __cdecl AAS_HorizontalVelocityForJump(float, float *, float *, float *); // idb
 int __cdecl AAS_UpdatePortal(int ArgList, int);
@@ -403,7 +403,7 @@ int __cdecl AAS_EntityModelindex(int entnum);
 int __cdecl AAS_EntityRenderFX(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
 int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2);
-int __cdecl AAS_EntityBSPData(int a1, int a2);
+int __cdecl AAS_EntityBSPData(int a1, intptr_t a2);
 int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
 int AAS_InvalidateEntities();
@@ -449,7 +449,7 @@ int __cdecl sub_1000EDC0(int a1, int a2);
 int AAS_Shutdown();
 BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3);
 BOOL __cdecl AAS_Swimming(float *a1);
-void __cdecl AAS_JumpReachRunStart(int reach, int runstart);
+void __cdecl AAS_JumpReachRunStart(intptr_t reach, intptr_t runstart);
 int __cdecl AAS_AgainstLadder(int *a1);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(float *origin);
@@ -503,21 +503,21 @@ int __cdecl AAS_TravelFlagForType(int a1);
 int AAS_CreateReversedReachability();
 int __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
 int AAS_CalculateAreaTravelTimes();
-int __cdecl AAS_AllocRoutingCache(int a1);
-int __cdecl AAS_FreeRoutingCache(int a1);
+aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1);
+int __cdecl AAS_FreeRoutingCache(void *a1);
 int AAS_FreeAllClusterAreaCache();
 int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
 int AAS_InitRouting();
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1);
-int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
-int __cdecl AAS_UpdatePortalRoutingCache(int a1);
-int __cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
+aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache);
+aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
+int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *a1);
+aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
 char *__cdecl AAS_ReachabilityFromNum(char *a1, int a2);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4);
+int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, float *a4);
 aas_trace_t __cdecl AAS_TraceClientBBox(float *start, float *end, int presencetype, int passent);
 int AAS_RoutingInfo();
 int __cdecl sub_1001A650(int a1);
@@ -531,7 +531,7 @@ int AAS_FreeAASLinkedEntities();
 int __cdecl AAS_PointAreaNum(float *point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 int __cdecl AAS_PointContents(int a1);
-int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, int a6);
+int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, intptr_t a6);
 int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 int __cdecl AAS_InsideFace(int a1);
@@ -550,13 +550,13 @@ aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1);
 void sub_1001CD10(aas_soundpool_t *a1);
 aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1);
 int __cdecl sub_1001CDD0(int a1, int a2);
-int __cdecl sub_1001CE20(int, int, int, int, int, int, float); // idb
+int __cdecl sub_1001CE20(intptr_t, int, int, int, int, int, float); // idb
 void __cdecl sub_1001CFA0(float a1);
 int *sub_1001D140();
 // int __usercall sub_1001D260@<eax>(double a1@<st0>);
 void BotResetNodeSwitches();
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs);
-int __cdecl BotRecordNodeSwitch(bot_state_t *bs, int a2, const char *a3);
+int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3);
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3);
 int __cdecl AIEnter_Intermission(bot_state_t *bs);
 int __cdecl AINode_Intermission(bot_state_t *bs);
@@ -612,7 +612,7 @@ BOOL __cdecl BotWantsToRetreat(int *a1);
 BOOL __cdecl BotWantsToChase(int *a1);
 // BOOL __usercall BotCanAndWantsToRocketJump@<eax>(double a1@<st0>, int *a2);
 float *__cdecl BotRoamGoal(_DWORD *a1, float *a2);
-void *__cdecl BotAttackMove(void *a1, int a2, int a3);
+void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3);
 int __cdecl BotCTFTeam(bot_state_t *bs);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int a2);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
@@ -622,7 +622,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
 int __cdecl BotSetMovedir(int a1, int a2);
 ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3);
-void __cdecl sub_100262C0(_DWORD *a1, int a2);
+void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
 BOOL TeamPlayIsOn();
@@ -637,7 +637,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
 // ...
 int BotDeathmatchAI(bot_state_t *bs, float a2);
-int __cdecl sub_10028A40(bot_state_t *bs, int a2);
+int __cdecl sub_10028A40(bot_state_t *bs, float a2);
 // int __usercall BotDeathmatchAI@<eax>(double a1@<st0>, int a2, int a3);
 void BotSetupDeathmatchAI();
 int __cdecl ClientFromName(const char *a1);
@@ -732,8 +732,8 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
 char *__cdecl BotGoalName(int a1);
 int __cdecl BotResetAvoidGoals(void *a1);
 void __cdecl BotDumpAvoidGoals(int *a1);
-void __cdecl BotAddToAvoidGoals(int a1, int a2, float a3);
-double __cdecl BotAvoidGoalTime(int a1, int a2);
+void __cdecl BotAddToAvoidGoals(int *a1, int a2, float a3);
+double __cdecl BotAvoidGoalTime(int *a1, int a2);
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
 int sub_1002FA20();
 int __cdecl BotDumpGoalStack(int *a1);
@@ -743,9 +743,9 @@ void __cdecl BotEmptyGoalStack(int *a1);
 void *__cdecl BotGetTopGoal(int *a1);
 void *__cdecl BotGetSecondGoal(int *a1);
 int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4);
-int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float a6);
+int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, bot_goal_t *a5, float a6);
 int __cdecl BotTouchingGoal(float *a1, float *a2);
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, int a2, int a3, int a4);
+BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
 int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2);
 int __cdecl BotFreeItemWeights(bot_state_t *bs);
 int __cdecl BotResetGoalState(void *a1);
@@ -755,43 +755,43 @@ double __cdecl AngleDiff(float a1, float a2);
 int __cdecl BotReachabilityArea(int *a1, int a2);
 BOOL __cdecl BotOnMover(int a1, int a2, int a3);
 BOOL __cdecl MoverDown(int a1);
-BOOL __cdecl BotValidTravel(int a1, int a2, int a3, int a4);
-void __cdecl BotAddToAvoidReach(int a1, int a2, float a3);
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10);
-int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4);
+BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
+void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3);
+int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10);
+int __cdecl BotMovementViewTarget(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
 int __cdecl MoverBottomCenter(int *a1, int a2);
-double __cdecl BotGapDistance(int a1, int a2);
+double __cdecl BotGapDistance(intptr_t a1, intptr_t a2);
 int __cdecl BotCheckBarrierJump(int, int, float); // idb
 int __cdecl BotSwimInDirection(int, int, float); // idb
 int __cdecl BotWalkInDirection(int, int, float, int); // idb
 int __cdecl BotMoveInDirection(int, int, float, int); // idb
-int __cdecl BotCheckBlocked(int a1, int a2, int a3);
+int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3);
 _DWORD *__cdecl BotClearMoveResult(_DWORD *a1);
-int __cdecl BotTravel_Walk(int, int, int); // idb
-int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3);
-int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3);
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3);
-int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3);
-int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3);
-int __cdecl BotTravel_Elevator(int, int, int); // idb
-void *__cdecl BotFinishTravel_Elevator(void *a1, int a2, int a3);
+intptr_t __cdecl BotTravel_Walk(intptr_t, intptr_t, intptr_t); // idb
+int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3);
+int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3);
+int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3);
+int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3);
+intptr_t __cdecl BotTravel_Elevator(intptr_t, intptr_t, intptr_t); // idb
+void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3);
 int __cdecl GrappleState(int a1, float *a2);
 void __cdecl BotResetGrapple(float *a1);
-int __cdecl BotTravel_Grapple(int, int, int); // idb
-int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3);
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, int a2, int a3);
-int __cdecl BotReachabilityTime(int a1);
-int __cdecl BotMoveInGoalArea(int, int, int); // idb
+intptr_t __cdecl BotTravel_Grapple(intptr_t, intptr_t, intptr_t); // idb
+int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3);
+int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3);
+int __cdecl BotReachabilityTime(intptr_t a1);
+intptr_t __cdecl BotMoveInGoalArea(intptr_t, intptr_t, intptr_t); // idb
 int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *a1);
-void __cdecl BotResetLastAvoidReach(int a1);
+void __cdecl BotResetLastAvoidReach(intptr_t a1);
 int __cdecl sub_10034B90(void *a1);
 // int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *a1, weaponconfig_t *a2);
@@ -834,7 +834,7 @@ int __cdecl EA_MoveUp(int a1);
 int __cdecl EA_MoveForward(int a1);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t angles); /* EA_View impl */
-int __cdecl EA_EndRegular(int a1, int a2);
+int __cdecl EA_EndRegular(int a1, float a2);
 int EA_Setup();
 int EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16); // idb
@@ -2644,7 +2644,7 @@ int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a
 
   if ( !dword_100674C0 )
     return 0;
-  AAS_EntityBSPData(a1, v47);
+  AAS_EntityBSPData(a1, (intptr_t)v47);
   if ( LODWORD(v47[12]) != 2 && LODWORD(v47[12]) != 3 )
     return 0;
   if ( a4 )
@@ -2821,17 +2821,17 @@ LABEL_40:
 //----- (10003BF0) --------------------------------------------------------
 int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8)
 {
-  int *i; // esi
+  bsp_link_t *i; // esi
   int v10; // [esp+0h] [ebp-4h]
 
   if ( !dword_100674C0 )
     return 0;
   v10 = 0;
-  for ( i = *(int **)(dword_10069584 + 4 * a1); i; i = (int *)i[2] )
+  for ( i = dword_10069584[a1]; i; i = i->next_ent )
   {
-    if ( *i != a6 )
+    if ( i->entnum != a6 )
     {
-      if ( AAS_EntityCollision(*i, a2, a3, a4, a5, a7, a8) )
+      if ( AAS_EntityCollision(i->entnum, a2, a3, a4, a5, a7, a8) )
         v10 = 1;
     }
   }
@@ -3425,7 +3425,7 @@ LABEL_7:
             v30 = (_DWORD *)(dword_100674EC + 28 * (-1 - v28));
             if ( *(_WORD *)(dword_100674EC + 28 * v29 + 26) && (*v30 & a10) != 0 )
               sub_10004310(v29, &v136, a4, a5, a6, (int)a7, a8, a10, (int)v150);
-            if ( *(_DWORD *)(dword_10069584 + 4 * v29) )
+            if ( dword_10069584[v29] )
               AAS_BSPLeafEntityCollision(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
           }
           v106 = *(float *)v25;
@@ -3904,7 +3904,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   int v4; // edi
   int v6; // ebp
   int v7; // esi
-  _DWORD *i; // ebp
+  bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
   _DWORD *v10; // [esp+14h] [ebp-78h]
   float v11[3]; // [esp+18h] [ebp-74h] BYREF
@@ -3950,9 +3950,9 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   else
   {
 LABEL_6:
-    for ( i = *(_DWORD **)(dword_10069584 + 4 * v6); i; i = (_DWORD *)i[2] )
+    for ( i = dword_10069584[v6]; i; i = i->next_ent )
     {
-      AAS_EntityBSPData(*i, v14);
+      AAS_EntityBSPData(i->entnum, (intptr_t)v14);
       if ( *a1 > (double)v16
         && *a1 < (double)v19
         && a1[1] > (double)v17
@@ -4497,7 +4497,7 @@ LABEL_10:
 //----- (10006D10) --------------------------------------------------------
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
 {
-  int v6; // esi
+  intptr_t v6; // esi
   int v7; // edx
   float *v8; // eax
   float *v9; // ebp
@@ -4531,10 +4531,10 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   float v37; // edx
   float v38; // edx
   int v39; // [esp+10h] [ebp-14h]
-  int v40; // [esp+14h] [ebp-10h]
+  intptr_t v40; // [esp+14h] [ebp-10h]
   vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive sub_10006D10
   int v44; // [esp+28h] [ebp+4h]
-  int v45; // [esp+2Ch] [ebp+8h]
+  intptr_t v45; // [esp+2Ch] [ebp+8h]
   int i; // [esp+30h] [ebp+Ch]
 
   if ( a1 < 0 )
@@ -6953,7 +6953,7 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
     AAS_ClientMovementPrediction((char *)v13, -1, (float *)(a1 + 12), 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
     if ( *(_DWORD *)(a1 + 36) == 5 ) /* TRAVEL_JUMP only */
     {
-      AAS_JumpReachRunStart(a1, (int)&v8);
+      AAS_JumpReachRunStart(a1, (intptr_t)&v8);
       AAS_DrawCross((int)&v8, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
@@ -7241,7 +7241,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AF30) --------------------------------------------------------
-int __cdecl AAS_EntityBSPData(int a1, int a2)
+int __cdecl AAS_EntityBSPData(int a1, intptr_t a2)
 {
   char *v2; // eax
   int result; // eax
@@ -9527,7 +9527,7 @@ BOOL __cdecl AAS_Swimming(float *a1)
  * Renamed from sub_1000F010 / AAS_PredictMoveDir.
  * Structural match: ioq3 code/botlib/be_aas_move.c:256.
  */
-void __cdecl AAS_JumpReachRunStart(int a1, int a2)
+void __cdecl AAS_JumpReachRunStart(intptr_t a1, intptr_t a2)
 {
   double v2; // st7
   const void *v5; // esi
@@ -14644,21 +14644,22 @@ int AAS_CalculateAreaTravelTimes(void)
 // 10066A78: using guessed type int aasworld.areatraveltimes;
 
 //----- (10019230) --------------------------------------------------------
-int __cdecl AAS_AllocRoutingCache(int a1)
+aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1)
 {
   /* Original 32-bit disasm: GetClearedMemory(2 * numareas + 44).
    * 44 = sizeof(aas_routingcache_t) on 32-bit (40-byte header + 4 slop).
    * Using sizeof() keeps the trailing unsigned short traveltimes[] array
    * placed correctly for both 32-bit and 64-bit pointer-widened layouts.
-   * The trailing array is accessed via &cache[1] (pointer arithmetic). */
-  return GetClearedMemory(2 * a1 + (int)sizeof(aas_routingcache_t) + 4);
+   * The trailing array is accessed via &cache[1] (pointer arithmetic).
+   * 64-bit: must return a real pointer (was int → truncated on aarch64). */
+  return (aas_routingcache_t *)GetClearedMemory(2 * a1 + (int)sizeof(aas_routingcache_t) + 4);
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (10019260) --------------------------------------------------------
-int __cdecl AAS_FreeRoutingCache(int a1)
+int __cdecl AAS_FreeRoutingCache(void *a1)
 {
-  return FreeMemory(a1);
+  return FreeMemory((int)(intptr_t)a1);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -14686,7 +14687,7 @@ int AAS_FreeAllClusterAreaCache()
       for ( entry = row[areaInCluster]; entry; entry = next )
       {
         next = entry->next;
-        AAS_FreeRoutingCache((int)(intptr_t)entry);
+        AAS_FreeRoutingCache(entry);
       }
       row[areaInCluster] = NULL;
     }
@@ -14762,7 +14763,7 @@ int AAS_FreeAllPortalCache(void)
     for ( entry = aasworld.portalcache[i]; entry; entry = next )
     {
       next = entry->next;
-      AAS_FreeRoutingCache((int)(intptr_t)entry);
+      AAS_FreeRoutingCache(entry);
     }
     aasworld.portalcache[i] = NULL;
   }
@@ -14788,16 +14789,16 @@ int AAS_InitPortalCache()
 //----- (100194A0) --------------------------------------------------------
 int AAS_InitRoutingUpdate()
 {
-  int result; // eax
-
+  /* 64-bit fix: was assigning int return of GetClearedMemory to a pointer
+   * (truncated to 32 bits on aarch64).  Use sizeof() so allocation grows
+   * to match the typed struct (40 -> 56 bytes per slot on 64-bit). */
   if ( aasworld.areaupdate )
-    FreeMemory(aasworld.areaupdate);
-  aasworld.areaupdate = GetClearedMemory(40 * aasworld.numareas);
+    FreeMemory((int)(intptr_t)aasworld.areaupdate);
+  aasworld.areaupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
   if ( aasworld.portalupdate )
-    FreeMemory(aasworld.portalupdate);
-  result = GetClearedMemory(40 * aasworld.numareas);
-  aasworld.portalupdate = result;
-  return result;
+    FreeMemory((int)(intptr_t)aasworld.portalupdate);
+  aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
+  return aasworld.portalupdate ? 1 : 0;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -14835,9 +14836,9 @@ int AAS_FreeRoutingCaches(void)
  * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
  * everything with byte arithmetic on the int-typed globals.  Field
  * accesses now go through the typed structs; semantics preserved. */
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1_)
+aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache)
 {
-  aas_routingcache_t  *cache = (aas_routingcache_t *)(intptr_t)a1_;
+  /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
   int                  travelmask;       /* v26 */
   int                  startareanum;
   aas_routingupdate_t *cur;              /* v25 */
@@ -14974,7 +14975,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(int a1_)
 // 10066A78: using guessed type int aasworld.areatraveltimes;
 
 //----- (10019A90) --------------------------------------------------------
-int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
+aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
 {
   /* Faithful 64-bit-safe transcription of 0x10019A90.
    * Per-area chain head lives at aasworld.clusterareacache[cluster][areaInCluster];
@@ -15005,7 +15006,7 @@ int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
   }
   if ( !cur )
   {
-    cur = (aas_routingcache_t *)(intptr_t)AAS_AllocRoutingCache(
+    cur = AAS_AllocRoutingCache(
         *((_DWORD *)aasworld.clusters + 3 * a1));
     cur->cluster        = a1;
     cur->areanum        = a2;
@@ -15019,22 +15020,22 @@ int __cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
     if ( head )
       head->prev = cur;
     aasworld.clusterareacache[a1][v10] = cur;
-    AAS_UpdateAreaRoutingCache((int)(intptr_t)cur);
+    AAS_UpdateAreaRoutingCache(cur);
   }
   cur->time = AAS_Time();
-  return (int)(intptr_t)cur;
+  return cur;
 }
 // 10001F0A: using guessed type double AAS_Time(void);
 // 10066A7C: using guessed type int aasworld.clusterareacache;
 
 //----- (10019C00) --------------------------------------------------------
-int __cdecl AAS_UpdatePortalRoutingCache(int a1_)
+int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
 {
   /* Faithful 64-bit-safe transcription of 0x10019C00.  The original
    * decompilation walked aasworld.portalupdate via raw 40-byte byte
    * arithmetic and chained slots through 4-byte ptr fields; both break
-   * on 64-bit.  Restored using the typed aas_routingupdate_t fifo. */
-  aas_routingcache_t  *cache = (aas_routingcache_t *)(intptr_t)a1_;
+   * on 64-bit.  Restored using the typed aas_routingupdate_t fifo.
+   * 64-bit fix: was `int a1_` -> truncated pointer. */
   aas_routingupdate_t *cur, *head, *tail, *upd;
   aas_routingupdate_t *portalupdate = aasworld.portalupdate;
   aas_areasettings_t  *settings_base = (aas_areasettings_t *)aasworld.areasettings;
@@ -15078,7 +15079,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(int a1_)
     cur->inlist = 0;
     clust = &clusters[v7];
     {
-      aas_routingcache_t *entry = (aas_routingcache_t *)(intptr_t)
+      aas_routingcache_t *entry =
           AAS_GetAreaRoutingCache(v7, cur->areanum, cache->travelflags);
       other_traveltimes = (unsigned short *)(entry + 1);
     }
@@ -15144,7 +15145,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(int a1_)
 // 10066A6C: using guessed type int aasworld.portalupdate;
 
 //----- (10019EB0) --------------------------------------------------------
-int __cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
+aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
 {
   /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
    * chain head lives at aasworld.portalcache[area]; entries link via
@@ -15164,7 +15165,7 @@ int __cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
   }
   if ( !cur )
   {
-    cur = (aas_routingcache_t *)(intptr_t)AAS_AllocRoutingCache(aasworld.numportals);
+    cur = AAS_AllocRoutingCache(aasworld.numportals);
     cur->cluster        = a1;
     cur->areanum        = a2;
     cur->origin[0]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 9);
@@ -15177,10 +15178,10 @@ int __cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
     if ( head )
       head->prev = cur;
     aasworld.portalcache[a2] = cur;
-    AAS_UpdatePortalRoutingCache((int)(intptr_t)cur);
+    AAS_UpdatePortalRoutingCache(cur);
   }
   cur->time = AAS_Time();
-  return (int)(intptr_t)cur;
+  return cur;
 }
 // 10019ED7: conditional instruction was optimized away because esi.4!=0
 // 10001F0A: using guessed type double AAS_Time(void);
@@ -15198,23 +15199,23 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   int v9; // eax
   char *v10; // ecx
   char *v11; // ecx
-  int v12; // eax
+  aas_routingcache_t *v12; // 64-bit fix (was int)
   int v13; // edx
   int v14; // ebp
-  int v15; // eax
+  aas_routingcache_t *v15; // 64-bit fix (was int)
   int v16; // edx
-  int v17; // ebp
+  aas_routingcache_t *v17; // 64-bit fix (was int)
   char *v18; // ecx
   _DWORD *v19; // eax
   int v20; // esi
-  int v21; // ebp
+  aas_routingcache_t *v21; // 64-bit fix (was int)
   int v22; // ecx
   int v23; // edx
   __int16 v24; // cx
   unsigned __int16 v25; // si
   char *v26; // [esp+10h] [ebp-8h]
   int v27; // [esp+14h] [ebp-4h]
-  int v28; // [esp+1Ch] [ebp+4h]
+  aas_routingcache_t *v28; // 64-bit fix (was int)
   unsigned __int16 v29; // [esp+20h] [ebp+8h]
 
   if ( !aasworld.initialized )
@@ -15270,7 +15271,7 @@ LABEL_20:
       {
         v13 = *(_DWORD *)((char *)aasworld.areasettings + v4 + 16);
       }
-      result = *(_WORD *)(v12 + 2 * v13 + 40);
+      result = *(_WORD *)((char *)v12 + 2 * v13 + 40);
       if ( result )
         return result;
     }
@@ -15283,7 +15284,7 @@ LABEL_20:
   v17 = v15;
   v28 = v15;
   if ( v6 < 0 )
-    return *(_WORD *)(v15 + 2 * (20 - v6));
+    return *(_WORD *)((char *)v15 + 2 * (20 - v6));
   v29 = 0;
   v27 = 0;
   v18 = (char *)aasworld.clusters + 12 * v6;
@@ -15294,7 +15295,7 @@ LABEL_20:
     while ( 1 )
     {
       v20 = *((_DWORD *)aasworld.portalindex + v16 + *((_DWORD *)v18 + 2));
-      if ( *(_WORD *)(v17 + 2 * v20 + 40) )
+      if ( *(_WORD *)((char *)v17 + 2 * v20 + 40) )
       {
         v21 = AAS_GetAreaRoutingCache(v6, v19[5 * v20], goalareanum);
         v19 = aasworld.portals;
@@ -15308,10 +15309,10 @@ LABEL_20:
         {
           v23 = *(_DWORD *)((char *)aasworld.areasettings + v4 + 16);
         }
-        v24 = *(_WORD *)(v21 + 2 * v23 + 40);
+        v24 = *(_WORD *)((char *)v21 + 2 * v23 + 40);
         if ( v24 )
         {
-          v25 = v24 + *(_WORD *)(v28 + 2 * v20 + 40);
+          v25 = v24 + *(_WORD *)((char *)v28 + 2 * v20 + 40);
           if ( !v29 || v25 < v29 )
             v29 = v25;
         }
@@ -15379,7 +15380,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (1001A410) --------------------------------------------------------
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4)
+int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, float *a4)
 {
   int v4; // ebx
   int v5; // eax
@@ -15423,9 +15424,9 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, int a4)
   }
   v8 = AAS_PointAreaNum(trace.endpos);
   *a3 = v8;
-  *(float *)a4 = trace.endpos[0];
-  *(float *)(a4 + 4) = trace.endpos[1];
-  *(float *)(a4 + 8) = trace.endpos[2];
+  a4[0] = trace.endpos[0];
+  a4[1] = trace.endpos[1];
+  a4[2] = trace.endpos[2];
   return 1;
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -15688,9 +15689,9 @@ int __cdecl AAS_PointContents(int a1)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001B130) --------------------------------------------------------
-int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, int a6)
+int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, intptr_t a6)
 {
-  int *v6; // esi
+  aas_link_t *v6; // esi
   float v7; // edx
   float v8; // ecx
   float v9; // edx
@@ -15702,18 +15703,18 @@ int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5,
 
   AAS_PresenceTypeBoundingBox(a4, v13, v12);
   v14[2] = 1.0;
-  v6 = *(int **)(aasworld.arealinkedentities + 4 * a1);
+  v6 = aasworld.arealinkedentities[a1];
   v15 = 0;
   if ( !v6 )
     return 0;
   do
   {
-    if ( *v6 != a5 )
+    if ( v6->entnum != a5 )
     {
-      if ( AAS_EntityCollision(*v6, a2, v13, v12, a3, 33619971, v14) )
+      if ( AAS_EntityCollision(v6->entnum, a2, v13, v12, a3, 33619971, v14) )
         v15 = 1;
     }
-    v6 = (int *)v6[2];
+    v6 = v6->next_ent;
   }
   while ( v6 );
   if ( !v15 )
@@ -15938,7 +15939,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(float *start, float *end,
        * thunk 0x10001B1D → AAS_AreaEntityCollision(0x1001B130) with 6 args. */
       if ( AAS_AreaEntityCollision(-nodenum, (char *)tstack_p,
                                    (float *)((char *)tstack_p + 12),
-                                   presencetype, passent, (int)&trace) )
+                                   presencetype, passent, (intptr_t)&trace) )
       {
         if ( !trace.startsolid )
         {
@@ -16656,7 +16657,7 @@ int __cdecl sub_1001CDD0(int a1, int a2)
 }
 
 //----- (1001CE20) --------------------------------------------------------
-int __cdecl sub_1001CE20(int a1, int a2, int a3, int a4, int a5, int a6, float a7)
+int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, float a7)
 {
   char *v8; // ebx
   aas_soundpool_t *i;
@@ -16879,23 +16880,22 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 // 100644A0: using guessed type int dword_100644A0;
 
 //----- (1001D3A0) --------------------------------------------------------
-int __cdecl BotRecordNodeSwitch(bot_state_t *bs, int a2, const char *a3)
+int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
 {
   const char *v3; // eax
   double v5; // [esp+0h] [ebp-10h]
-  /* IDA flagged v6 as "possibly undefined" — the original Gladiator DLL has
-   * an off-by-one in this function: sprintf format needs 4 substitutions but
-   * only 3 args were prepared.  v6 is uninitialised stack data that gets
-   * dereferenced as %s and usually crashes; the original happened to land
-   * on a valid string in some stack states.  Most likely intent: the AI
-   * state name (function pointer at (char *)bs + 1676 → AINode_Stand etc.).  We don't
-   * have a name table for the AI nodes, so use "" to keep the log readable
-   * without crashing. */
-  const char *v6 = "";
+  /* Original asm at .text 0x1001d3a0 reuses the function's own `a2` argument
+   * (the state name pointer) as the 3rd %s in sprintf — it was already on
+   * the stack from the function entry, and the caller passed string
+   * literals like aSeekLtg/aSeekNbg cast to int.  IDA misread this as
+   * "v6 uninitialised" and invented a separate local.  On 64-bit, the
+   * `(int)aSeekLtg` casts at call sites truncated the pointer and made
+   * sprintf's strlen() segfault.  Restore the original semantics: a2 is
+   * the state name string. */
 
-  v5 = AAS_Time(a2);
+  v5 = AAS_Time();
   v3 = (const char *)ClientName(*(_DWORD *)((char *)bs + 4));
-  sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n", v3, v5, v6, a3);
+  sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n", v3, v5, a2, a3);
   return ++dword_100644A0;
 }
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
@@ -17233,7 +17233,7 @@ LABEL_86:
           bs->ltgtype = 0;
           return 0;
         }
-        if ( !BotTouchingGoal((int)bs->origin, v37 + 4) )
+        if ( !BotTouchingGoal(bs->origin, v37 + 4) )
           goto LABEL_106;
         v38 = bs->_i4556;
         v39 = bs->_i4552;
@@ -17282,7 +17282,7 @@ LABEL_106:
         v26 = (float *)&unk_10064420;
         if ( BotCTFTeam(bs) == 1 )
           v26 = (float *)&unk_100643E0;
-        if ( BotTouchingGoal((int)bs->origin, v26) )
+        if ( BotTouchingGoal(bs->origin, v26) )
           bs->ltgtype = 0;
         if ( AAS_Time() > bs->teammatevisible_time )
         {
@@ -17299,7 +17299,7 @@ LABEL_106:
         v26 = (float *)&unk_10064420;
       if ( AAS_Time() > bs->teammatevisible_time )
         bs->ltgtype = 0;
-      if ( BotTouchingGoal((int)bs->origin, v26) )
+      if ( BotTouchingGoal(bs->origin, v26) )
       {
         if ( BotCTFCarryingFlag(bs) )
         {
@@ -17321,12 +17321,12 @@ LABEL_55:
     v26 = v44;
     if ( v44 )
     {
-      if ( BotTouchingGoal((int)bs->origin, v44) )
+      if ( BotTouchingGoal(bs->origin, v44) )
       {
         if ( libvar_runes->value != 0.0 )
-          sub_100262C0(a1, v26);
+          sub_100262C0(a1, (intptr_t)v26);
       }
-      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v26) )
+      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->enemyorigin, (intptr_t)v26) )
       {
         goto LABEL_136;
       }
@@ -17430,7 +17430,7 @@ int __cdecl AIEnter_Intermission(bot_state_t *bs)
 
   int result; // eax
 
-  BotRecordNodeSwitch(bs, (int)aIntermission, &byte_1006294C);
+  BotRecordNodeSwitch(bs, aIntermission, &byte_1006294C);
   BotResetState((int *)bs);
   result = BotChat_EndLevel(bs);
   if ( result )
@@ -17476,7 +17476,7 @@ int __cdecl AIEnter_Observer(bot_state_t *bs)
 
   int result; // eax
 
-  BotRecordNodeSwitch(bs, (int)aObserver, &byte_1006294C);
+  BotRecordNodeSwitch(bs, aObserver, &byte_1006294C);
   result = BotResetState((int *)bs);
   BotAINode(bs) = AINode_Observer;
   return result;
@@ -17500,7 +17500,7 @@ int __cdecl AIEnter_Stand(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, (int)aStand, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, aStand, &byte_1006294C);
   BotAINode(bs) = AINode_Stand;
   return result;
 }
@@ -17547,7 +17547,7 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   double v2; // st7
   float v3; // [esp+10h] [ebp+4h]
 
-  BotRecordNodeSwitch(bs, (int)aRespawn, &byte_1006294C);
+  BotRecordNodeSwitch(bs, aRespawn, &byte_1006294C);
   sub_10034B90((int)bs->movestate);
   BotResetGoalState(bs->goalstate);
   BotResetMoveState(BotWS(bs));
@@ -17613,7 +17613,7 @@ int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, (int)aActivateEntity, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, aActivateEntity, &byte_1006294C);
   BotAINode(bs) = AINode_Seek_ActivateEntity;
   return result;
 }
@@ -17657,8 +17657,8 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     return 0;
   }
   BotBattleUseItems((_DWORD *)bs);
-  BotEntityInfo(bs, (int)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, (int)ent, v8), sizeof(v15));
+  BotEntityInfo(bs, (_DWORD *)bs->movestate);
+  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)ent, v8), sizeof(v15));
   if ( v15[0] )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -17673,7 +17673,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   else
   {
-    if ( BotMovementViewTarget((int)bs->movestate, (int)ent, v8, (int)target) )
+    if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)ent, v8, (intptr_t)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
@@ -17694,7 +17694,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((int)bs->movestate);
+      BotResetLastAvoidReach((intptr_t)bs->movestate);
       BotEmptyGoalStack(bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -17707,19 +17707,19 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
 int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 {
 
-  int v1; // eax
+  bot_goal_t *v1; // eax
   const char *v2; // eax
   int result; // eax
 
-  v1 = BotGetTopGoal(bs->goalstate);
+  v1 = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
   if ( v1 )
   {
-    v2 = (const char *)BotGoalName(*(_DWORD *)(v1 + 44));
-    result = BotRecordNodeSwitch(bs, (int)aSeekNbg, v2);
+    v2 = (const char *)BotGoalName(v1->number);
+    result = BotRecordNodeSwitch(bs, aSeekNbg, v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, (int)aSeekNbg, aNoGoal);
+    result = BotRecordNodeSwitch(bs, aSeekNbg, aNoGoal);
   }
   BotAINode(bs) = AINode_Seek_NBG;
   return result;
@@ -17737,11 +17737,11 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
    * throughout (.text 0x1001f35e-0x1001f410, no FPU touch).  IDA mistyped
    * them as float because BotGetTopGoal's return is later compared to 0.0f
    * in a sibling function, but here they stay integer. */
-  int v3; // eax
-  int v4; // esi
+  void *v3; // eax
+  void *v4; // esi
   int v5; // edx
   int v6; // eax
-  int v7; // edi
+  void *v7; // edi
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
   vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
@@ -17780,9 +17780,9 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
       if ( libvar_runes->value != 0.0 )
-        sub_100262C0(a1, v4);
+        sub_100262C0(a1, (intptr_t)v4);
     }
-    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (int)bs->eye, (int)bs->enemyorigin, v4) )
+    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->enemyorigin, (intptr_t)v4) )
     {
       goto LABEL_18;
     }
@@ -17796,8 +17796,8 @@ LABEL_18:
     return 0;
   }
   BotBattleUseItems((_DWORD *)bs);
-  BotEntityInfo(bs, (int)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, v4, v8), sizeof(v15));
+  BotEntityInfo(bs, (_DWORD *)bs->movestate);
+  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)v4, v8), sizeof(v15));
   if ( v15[0] )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -17821,7 +17821,7 @@ LABEL_18:
       v7 = BotGetSecondGoal(bs->goalstate);
       if ( !v7 )
         BotGetTopGoal(bs->goalstate);
-      if ( BotMovementViewTarget((int)bs->movestate, v7, v8, (int)target) )
+      if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v7, v8, (intptr_t)target) )
       {
         dir[0] = target[0] - bs->origin[0];
         dir[1] = target[1] - bs->origin[1];
@@ -17850,7 +17850,7 @@ LABEL_33:
     }
     else
     {
-      BotResetLastAvoidReach((int)bs->movestate);
+      BotResetLastAvoidReach((intptr_t)bs->movestate);
       BotEmptyGoalStack(bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -17893,19 +17893,19 @@ LABEL_33:
 int __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 {
 
-  int v1; // eax
+  bot_goal_t *v1; // eax
   const char *v2; // eax
   int result; // eax
 
-  v1 = BotGetTopGoal(bs->goalstate);
+  v1 = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
   if ( v1 )
   {
-    v2 = (const char *)BotGoalName(*(_DWORD *)(v1 + 44));
-    result = BotRecordNodeSwitch(bs, (int)aSeekLtg, v2);
+    v2 = (const char *)BotGoalName(v1->number);
+    result = BotRecordNodeSwitch(bs, aSeekLtg, v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, (int)aSeekLtg, aNoGoal);
+    result = BotRecordNodeSwitch(bs, aSeekLtg, aNoGoal);
   }
   BotAINode(bs) = AINode_Seek_LTG;
   return result;
@@ -17919,7 +17919,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 {
 
   int v2; // edi
-  int v3; // esi
+  bot_goal_t *v3; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
   double v4; // st7
   int v5; // edx
   int v6; // ecx
@@ -17929,7 +17929,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
-  int v17; // [esp+30h] [ebp-64h]
+  bot_goal_t *v17; // 64-bit fix (was int) - alias of v3
   int v18[12]; // [esp+34h] [ebp-60h] BYREF
   int v19[12]; // [esp+64h] [ebp-30h] BYREF
 
@@ -17980,7 +17980,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   {
     if ( libvar_ctf->value != 0.0 )
       BotCTFSeekGoals(bs);
-    v3 = BotLongTermGoal(bs, v2, 0);
+    v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
     v17 = v3;
     if ( !v3 )
       goto LABEL_42;
@@ -17992,15 +17992,15 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
       if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, v3, v8) )
       {
-        BotResetLastAvoidReach((int)bs->movestate);
+        BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->_f2796 = AAS_Time() + 5.0;
         AIEnter_Seek_NBG(bs);
         return 0;
       }
     }
     BotBattleUseItems((_DWORD *)bs);
-    BotEntityInfo(bs, (int)bs->movestate);
-    qmemcpy(v18, (const void *)BotMoveToGoal((int)v19, (int)bs->movestate, v3, v2), sizeof(v18));
+    BotEntityInfo(bs, (_DWORD *)bs->movestate);
+    qmemcpy(v18, (const void *)BotMoveToGoal((intptr_t)v19, (intptr_t)bs->movestate, v3, v2), sizeof(v18));
     if ( v18[0] )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18026,7 +18026,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       dir[2] = target[2] - bs->origin[2];
       vectoangles(dir, (float *)((char *)bs + 4236));
     }
-    else if ( BotMovementViewTarget((int)bs->movestate, v17, v10, (int)target) )
+    else if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v17, v10, (intptr_t)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
@@ -18051,7 +18051,7 @@ LABEL_42:
   }
   else
   {
-    BotResetLastAvoidReach((int)bs->movestate);
+    BotResetLastAvoidReach((intptr_t)bs->movestate);
     BotEmptyGoalStack(bs->goalstate);
     AIEnter_Battle_Fight(bs);
   }
@@ -18091,7 +18091,7 @@ int __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, (int)aBattleFight, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, aBattleFight, &byte_1006294C);
   BotAINode(bs) = AINode_Battle_Fight;
   return result;
 }
@@ -18108,7 +18108,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   int v6; // edx
   int v7; // eax
   int v8; // edi
-  int v9; // [esp-4h] [ebp-16Ch]
+  bot_state_t *v9; // [esp-4h] [ebp-16Ch]
   float v10; // [esp+Ch] [ebp-15Ch]
   int v11[12]; // [esp+10h] [ebp-158h] BYREF
   int v12[31]; // [esp+40h] [ebp-128h] BYREF
@@ -18132,7 +18132,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   }
   if ( !bs->enemy )
   {
-    v9 = a1;
+    v9 = bs;
 LABEL_9:
     AIEnter_Seek_LTG(v9);
     return 0;
@@ -18140,8 +18140,8 @@ LABEL_9:
   qmemcpy(v12, AAS_EntityInfo(v14, bs->enemy), sizeof(v12));
   if ( EntityDeadOrDying(v12) )
   {
-    v2 = BotChat_Kill(a1);
-    v9 = a1;
+    v2 = BotChat_Kill((int *)bs);
+    v9 = bs;
     if ( !v2 )
       goto LABEL_9;
     v10 = BotChatTime(bs);
@@ -18172,9 +18172,9 @@ LABEL_9:
         v8 |= 0x1000u;
       sub_10020FE0(bs, BotWS(bs));
       BotChooseBestFightWeapon(BotWS(bs));
-      sub_100215E0(a1);
+      sub_100215E0((_DWORD *)bs);
       BotBattleUseItems((_DWORD *)bs);
-      qmemcpy(v11, (const void *)BotAttackMove(v13, a1, v8), sizeof(v11));
+      qmemcpy(v11, (const void *)BotAttackMove(v13, (intptr_t)bs, v8), sizeof(v11));
       if ( v11[0] )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18190,7 +18190,7 @@ LABEL_9:
     else
     {
       v7 = BotWantsToChase((int *)bs);
-      v9 = a1;
+      v9 = bs;
       if ( !v7 )
         goto LABEL_9;
       AIEnter_Battle_Chase(bs);
@@ -18233,7 +18233,7 @@ void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 
   double v1; // st7
 
-  BotRecordNodeSwitch(bs, (int)aBattleChase, &byte_1006294C);
+  BotRecordNodeSwitch(bs, aBattleChase, &byte_1006294C);
   v1 = AAS_Time();
   BotAINode(bs) = AINode_Battle_Chase;
   bs->_f2804 = v1 + 10.0;
@@ -18277,7 +18277,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     goto LABEL_8;
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->enemyorigin, 360.0, bs->enemy) )
   {
-    BotResetLastAvoidReach((int)bs->movestate);
+    BotResetLastAvoidReach((intptr_t)bs->movestate);
     AIEnter_Battle_Fight(bs);
     return 0;
   }
@@ -18321,7 +18321,7 @@ LABEL_8:
     v12[7] = 8.0;
     v12[8] = 8.0;
     v12[9] = 8.0;
-    if ( BotTouchingGoal((int)bs->origin, v12) )
+    if ( BotTouchingGoal(bs->origin, v12) )
       *(int *)&bs->_f2804 = 0;
     if ( AAS_Time() <= bs->_f2804 )
     {
@@ -18330,7 +18330,7 @@ LABEL_8:
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, (int)v12, 500.0)) )
       {
         bs->_f2796 = AAS_Time() + 5.0;
-        BotResetLastAvoidReach((int)bs->movestate);
+        BotResetLastAvoidReach((intptr_t)bs->movestate);
         AIEnter_Battle_NBG(bs);
         return 0;
       }
@@ -18338,8 +18338,8 @@ LABEL_8:
       {
         BotUpdateBattleInventory(bs, bs->enemy);
         BotBattleUseItems((_DWORD *)bs);
-        BotEntityInfo(bs, (int)bs->movestate);
-        qmemcpy(v13, (const void *)BotMoveToGoal((int)v14, (int)bs->movestate, (int)v12, v2), sizeof(v13));
+        BotEntityInfo(bs, (_DWORD *)bs->movestate);
+        qmemcpy(v13, (const void *)BotMoveToGoal((intptr_t)v14, (intptr_t)bs->movestate, (intptr_t)v12, v2), sizeof(v13));
         if ( v13[0] )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18356,7 +18356,7 @@ LABEL_8:
         }
         else
         {
-          if ( BotMovementViewTarget((int)bs->movestate, v12, v9, v11) )
+          if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v12, v9, (intptr_t)v11) )
           {
             v10[0] = v11[0] - bs->origin[0];
             v10[1] = v11[1] - bs->origin[1];
@@ -18415,7 +18415,7 @@ int __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, (int)aBattleRetreat, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, aBattleRetreat, &byte_1006294C);
   BotAINode(bs) = AINode_Battle_Retreat;
   return result;
 }
@@ -18426,7 +18426,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
 {
 
   int v2; // edi
-  int v3; // esi
+  bot_goal_t *v3; // esi (was int — holds BotLongTermGoal pointer)
   double v4; // st7
   float v4b; // captured BFloat dodge probability (IDA dropped the fstps)
   int v5; // eax
@@ -18486,7 +18486,7 @@ LABEL_10:
     }
     if ( libvar_ctf->value != 0.0 )
       BotCTFRetreatGoals(bs);
-    v3 = BotLongTermGoal(bs, v2, 1);
+    v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
     if ( v3 )
     {
       v4 = AAS_Time();
@@ -18495,7 +18495,7 @@ LABEL_10:
             bs->_f2808 = v4,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->chat_lines, v2, v3, 500.0)) )
       {
-        BotResetLastAvoidReach((int)bs->movestate);
+        BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->_f2796 = AAS_Time() + 5.0;
         AIEnter_Battle_NBG(bs);
         return 0;
@@ -18503,8 +18503,8 @@ LABEL_10:
       else
       {
         BotBattleUseItems((_DWORD *)bs);
-        BotEntityInfo(bs, (int)bs->movestate);
-        qmemcpy(v10, (const void *)BotMoveToGoal((int)v11, (int)bs->movestate, v3, v2), sizeof(v10));
+        BotEntityInfo(bs, (_DWORD *)bs->movestate);
+        qmemcpy(v10, (const void *)BotMoveToGoal((intptr_t)v11, (intptr_t)bs->movestate, (intptr_t)v3, v2), sizeof(v10));
         if ( v10[0] )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18530,7 +18530,7 @@ LABEL_10:
           v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
           if ( v4b <= 0.3 )
           {
-            if ( BotMovementViewTarget((int)bs->movestate, v3, v7, v9) )
+            if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v3, v7, (intptr_t)v9) )
             {
               v8[0] = v9[0] - bs->origin[0];
               v8[1] = v9[1] - bs->origin[1];
@@ -18594,7 +18594,7 @@ int __cdecl AIEnter_Battle_NBG(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, (int)aBattleNbg, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, aBattleNbg, &byte_1006294C);
   BotAINode(bs) = AINode_Battle_NBG;
   return result;
 }
@@ -18674,8 +18674,8 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     return 0;
   }
   BotBattleUseItems((_DWORD *)bs);
-  BotEntityInfo(bs, (int)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((int)v16, (int)bs->movestate, topgoal, v8), sizeof(v15));
+  BotEntityInfo(bs, (_DWORD *)bs->movestate);
+  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, topgoal, v8), sizeof(v15));
   if ( v15[0] )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -19737,7 +19737,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 // 10022A60: using guessed type char var_54[84];
 
 //----- (10022E10) --------------------------------------------------------
-void *__cdecl BotAttackMove(void *a1, int a2, int a3)
+void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
 {
   float v3; // ecx
   float v4; // edx
@@ -19797,7 +19797,7 @@ void *__cdecl BotAttackMove(void *a1, int a2, int a3)
     v37[8] = 8.0;
     v37[9] = 8.0;
     BotEntityInfo(a2, a2 + 2880);
-    v7 = (const void *)BotMoveToGoal((int)v38, a2 + 2880, (int)v37, a3);
+    v7 = (const void *)BotMoveToGoal((intptr_t)v38, a2 + 2880, (intptr_t)v37, a3);
     result = a1;
     qmemcpy(a1, v7, 0x30u);
     return result;
@@ -20166,7 +20166,7 @@ void BotAimAtEnemy(bot_state_t *bs)
 {
 
   int v2; // eax
-  int v3; // ebp
+  uintptr_t v3; // ebp
   float v4; // ecx
   float v5; // edx
   double v6; // st7
@@ -20379,7 +20379,7 @@ void BotCheckAttack(bot_state_t *bs)
 {
 
   int v2; // eax
-  int v3; // ebx
+  uintptr_t v3; // ebx
   float v4; // ecx
   double v5; // st7
   int v6; // ecx
@@ -21128,7 +21128,7 @@ LABEL_37:
 // 1006405C: using guessed type int libvar_sv_step;
 
 //----- (100262C0) --------------------------------------------------------
-void __cdecl sub_100262C0(_DWORD *a1, int a2)
+void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2)
 {
   int v2[31]; // [esp+8h] [ebp-7Ch] BYREF
 
@@ -22188,7 +22188,7 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 }
 
 //----- (10028A40) --------------------------------------------------------
-int __cdecl sub_10028A40(bot_state_t *bs, int a2)
+int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 {
 
   return EA_EndRegular(bs->client, a2);
@@ -25876,7 +25876,7 @@ char *__cdecl BotGoalName(int a1)
     if ( !v1 )
       return &byte_1006294C;
   }
-  return (char *)((int)&dword_1006435C->items[v1->iteminfo]);
+  return (char *)&dword_1006435C->items[v1->iteminfo];
 }
 // 1006435C: using guessed type int dword_1006435C;
 // 10064360: using guessed type int dword_10064360;
@@ -25919,34 +25919,34 @@ void __cdecl BotDumpAvoidGoals(int *a1)
 // 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
 
 //----- (1002F7B0) --------------------------------------------------------
-void __cdecl BotAddToAvoidGoals(int a1, int a2, float a3)
+void __cdecl BotAddToAvoidGoals(int *a1, int a2, float a3)
 {
   int v3; // esi
   float *i; // edi
 
   v3 = 0;
-  for ( i = (float *)(a1 + 716); AAS_Time() <= *i; ++i )
+  for ( i = (float *)((char *)a1 + 716); AAS_Time() <= *i; ++i )
   {
     if ( ++v3 >= 64 )
       return;
   }
-  *(_DWORD *)(a1 + 4 * v3 + 460) = a2;
-  *(float *)(a1 + 4 * v3 + 716) = AAS_Time() + a3;
+  *(_DWORD *)((char *)a1 + 4 * v3 + 460) = a2;
+  *(float *)((char *)a1 + 4 * v3 + 716) = AAS_Time() + a3;
 }
 
 //----- (1002F820) --------------------------------------------------------
-double __cdecl BotAvoidGoalTime(int a1, int a2)
+double __cdecl BotAvoidGoalTime(int *a1, int a2)
 {
   int v2; // esi
   float *i; // edi
 
   v2 = 0;
-  for ( i = (float *)(a1 + 716); *((_DWORD *)i - 64) != a2 || AAS_Time() > *i; ++i )
+  for ( i = (float *)((char *)a1 + 716); *((_DWORD *)i - 64) != a2 || AAS_Time() > *i; ++i )
   {
     if ( ++v2 >= 64 )
       return 0.0;
   }
-  return *(float *)(a1 + 4 * v2 + 716) - AAS_Time();
+  return *(float *)((char *)a1 + 4 * v2 + 716) - AAS_Time();
 }
 
 //----- (1002F890) --------------------------------------------------------
@@ -26240,20 +26240,27 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
   int v7; // ebx
   levelitem_t *li; // esi (was v8)
   int v9; // ebx
-  _DWORD *v10; // edi
+  iteminfo_t *v10; // edi (was _DWORD *) - 64-bit fix
   int v11; // eax
   double v12; // st7
   double v13; // st7
   levelitem_t *v14; // [esp+10h] [ebp-48h]
   int v15; // [esp+14h] [ebp-44h]
-  int v16; // [esp+18h] [ebp-40h]
+  itemconfig_t *v16; // [esp+18h] [ebp-40h]  - 64-bit fix (was int)
   int v17; // [esp+1Ch] [ebp-3Ch]
   int v18[14]; // [esp+20h] [ebp-38h] BYREF
   float v19; // [esp+5Ch] [ebp+4h]
   float v20; // [esp+60h] [ebp+8h]
   float v21; // [esp+68h] [ebp+10h]
+  /* 64-bit fix: goalstate[0]/[1] used to hold weightconfig_t* / int* inline.
+   * On 64-bit they live in the sideband BotGoalP0/BotGoalP1 maxclients arrays.
+   * Recover bs from the goalstate pointer (goalstate is at +3008 inside bot_state_t)
+   * and read the typed pointers from the sideband. */
+  bot_state_t *bs = (bot_state_t *)((char *)a1 - offsetof(bot_state_t, goalstate));
+  weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
+  int *p1 = (int *)BotGoalP1(bs);
 
-  if ( !*(_DWORD *)a1 )
+  if ( !p0 )
     return 0;
   v6 = AAS_Swimming(a2);
   result = BotReachabilityArea(a2, !v6);
@@ -26280,11 +26287,11 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
             v9 = li->areanum;
             if ( v9 )
             {
-              v10 = (_DWORD *)(*(_DWORD *)(v16 + 4) + 284 * li->iteminfo);
-              v11 = *(_DWORD *)(*(_DWORD *)((char *)a1 + 4) + 4 * v10[70]);
+              v10 = &v16->items[li->iteminfo];
+              v11 = (v10->number >= 0) ? p1[v10->number] : -1;
               if ( v11 >= 0 )
               {
-                v12 = FuzzyWeightUndecided(a3, *(_DWORD *)a1 + 8 * v11 + 4);
+                v12 = FuzzyWeightUndecided(a3, &p0->weights[v11]);
                 if ( v12 > 0.0 )
                 {
                   v17 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v15, v9, a4);
@@ -26300,12 +26307,12 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
                       v18[0] = *(int *)&li->goalorigin[0];
                       v18[1] = *(int *)&li->goalorigin[1];
                       v18[2] = *(int *)&li->goalorigin[2];
-                      v18[4] = v10[64];
-                      v18[5] = v10[65];
-                      v18[6] = v10[66];
-                      v18[7] = v10[67];
-                      v18[8] = v10[68];
-                      v18[9] = v10[69];
+                      v18[4] = *(int *)&v10->mins[0];
+                      v18[5] = *(int *)&v10->mins[1];
+                      v18[6] = *(int *)&v10->mins[2];
+                      v18[7] = *(int *)&v10->maxs[0];
+                      v18[8] = *(int *)&v10->maxs[1];
+                      v18[9] = *(int *)&v10->maxs[2];
                       v18[3] = v9;
                       v20 = v13;
                       v18[10] = li->entitynum;
@@ -26323,7 +26330,7 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
         while ( li );
         if ( v14 )
         {
-          v21 = *(float *)(*(_DWORD *)(v16 + 4) + 284 * v14->iteminfo + 252);
+          v21 = v16->items[v14->iteminfo].respawntime;
           if ( v21 == 0.0 )
             v21 = 30.0;
           BotAddToAvoidGoals(a1, v14->number, v21);
@@ -26338,7 +26345,7 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
        * mapping passed v7 (= some pointer) into BotFindWayPoint where it
        * gets walked as a chat-node list, faulting on a corrupt next ptr
        * (= 0x5).  Restored to the correct function with all 4 args. */
-      if ( !AAS_RandomGoalArea(v7, a4, (_DWORD *)&v18[3], (int)v18) )
+      if ( !AAS_RandomGoalArea(v7, a4, (_DWORD *)&v18[3], (float *)v18) )
         return 0;
       v18[4] = -1049624576;
       v18[5] = -1049624576;
@@ -26362,21 +26369,22 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
 // 10064360: using guessed type int dword_10064360;
 
 //----- (10030260) --------------------------------------------------------
-int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float a6)
+int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, bot_goal_t *a5, float a6)
 {
   int result; // eax
   BOOL v8; // eax
   int v9; // esi
   levelitem_t *li; // esi (was v10)
   int v11; // ebx
-  _DWORD *v12; // edi
+  iteminfo_t *v12; // edi (was _DWORD *) - 64-bit fix
   int v13; // eax
   double v14; // st7
   double v15; // st7
   int v16; // eax
   float v17; // [esp+Ch] [ebp-4Ch]
   levelitem_t *v18; // [esp+10h] [ebp-48h]
-  int v19; // [esp+14h] [ebp-44h]
+  int v19_unused; // (was v19/dword_1006435C copy; replaced by typed v19p)
+  itemconfig_t *v19p; // 64-bit fix - typed copy of dword_1006435C
   int v20; // [esp+18h] [ebp-40h]
   int v21; // [esp+1Ch] [ebp-3Ch]
   int v22[14]; // [esp+20h] [ebp-38h] BYREF
@@ -26384,8 +26392,12 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
   int v24; // [esp+5Ch] [ebp+4h]
   int v25; // [esp+60h] [ebp+8h]
   float v26; // [esp+68h] [ebp+10h]
+  /* 64-bit fix: see BotChooseLTGItem — goalstate[0]/[1] live in sideband. */
+  bot_state_t *bs = (bot_state_t *)((char *)a1 - offsetof(bot_state_t, goalstate));
+  weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
+  int *p1 = (int *)BotGoalP1(bs);
 
-  if ( !*(_DWORD *)a1 )
+  if ( !p0 )
     return 0;
   v8 = AAS_Swimming(a2);
   result = BotReachabilityArea(a2, !v8);
@@ -26396,10 +26408,10 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
     result = AAS_AreaReachability(result);
     if ( result )
     {
-      v25 = a5 ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, *(_DWORD *)(a5 + 12), a4) : 99999;
-      result = dword_1006435C;
-      v19 = dword_1006435C;
-      if ( dword_1006435C )
+      v25 = a5 ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, a5->areanum, a4) : 99999;
+      v19p = dword_1006435C;
+      result = (int)(intptr_t)dword_1006435C;
+      if ( v19p )
       {
         li = (levelitem_t *)dword_10064360;
         v17 = 0.0;
@@ -26414,11 +26426,11 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
             v11 = li->areanum;
             if ( v11 )
             {
-              v12 = (_DWORD *)(*(_DWORD *)(v19 + 4) + 284 * li->iteminfo);
-              v13 = *(_DWORD *)(*(_DWORD *)((char *)a1 + 4) + 4 * v12[70]);
+              v12 = &v19p->items[li->iteminfo];
+              v13 = (v12->number >= 0) ? p1[v12->number] : -1;
               if ( v13 >= 0 )
               {
-                v14 = FuzzyWeightUndecided(a3, *(_DWORD *)a1 + 8 * v13 + 4);
+                v14 = FuzzyWeightUndecided(a3, &p0->weights[v13]);
                 *(float *)&v23 = v14;
                 if ( v14 > 0.0 )
                 {
@@ -26435,7 +26447,7 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
                       {
                         v16 = 0;
                         if ( a5 )
-                          v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, *(_DWORD *)(a5 + 12), a4);
+                          v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, a5->areanum, a4);
                         if ( v16 <= v25 )
                         {
                           v22[0] = *(int *)&li->goalorigin[0];
@@ -26443,12 +26455,12 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
                           v22[1] = *(int *)&li->goalorigin[1];
                           v18 = li;
                           v22[2] = *(int *)&li->goalorigin[2];
-                          v22[4] = v12[64];
-                          v22[5] = v12[65];
-                          v22[6] = v12[66];
-                          v22[7] = v12[67];
-                          v22[8] = v12[68];
-                          v22[9] = v12[69];
+                          v22[4] = *(int *)&v12->mins[0];
+                          v22[5] = *(int *)&v12->mins[1];
+                          v22[6] = *(int *)&v12->mins[2];
+                          v22[7] = *(int *)&v12->maxs[0];
+                          v22[8] = *(int *)&v12->maxs[1];
+                          v22[9] = *(int *)&v12->maxs[2];
                           v22[3] = v11;
                           v22[10] = li->entitynum;
                           v22[11] = li->number;
@@ -26467,7 +26479,7 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, int a5, float
         while ( li );
         if ( v18 )
         {
-          v26 = *(float *)(*(_DWORD *)(v19 + 4) + 284 * v18->iteminfo + 252);
+          v26 = v19p->items[v18->iteminfo].respawntime;
           if ( v26 == 0.0 )
             v26 = 30.0;
           BotAddToAvoidGoals(a1, v18->number, v26);
@@ -26528,7 +26540,7 @@ int __cdecl BotTouchingGoal(float *a1, float *a2)
 }
 
 //----- (10030770) --------------------------------------------------------
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, int a2, int a3, int a4)
+BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
 {
   int v4; // ebx
   vec3_t origin; // [esp+Ch] [ebp-88h] BYREF — world-space goal center, passed to AAS_Trace and VectorScale
@@ -26861,13 +26873,13 @@ BOOL __cdecl MoverDown(int a1)
 // 10030F10: using guessed type int var_C[3];
 
 //----- (10030FE0) --------------------------------------------------------
-BOOL __cdecl BotValidTravel(int a1, int a2, int a3, int a4)
+BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4)
 {
   return (~a4 & AAS_TravelFlagForType(*(_DWORD *)(a3 + 36))) == 0;
 }
 
 //----- (10031010) --------------------------------------------------------
-void __cdecl BotAddToAvoidReach(int a1, int a2, float a3)
+void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3)
 {
   int v3; // esi
   _DWORD *v4; // eax
@@ -26903,7 +26915,7 @@ void __cdecl BotAddToAvoidReach(int a1, int a2, float a3)
 }
 
 //----- (100310E0) --------------------------------------------------------
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int a6, float *a7, int a8, int a9, int a10)
+int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10)
 {
   int v10; // ebp
   float *v11; // edi
@@ -26925,7 +26937,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
     v11 = a7;
     for ( i = 0; i < 1; ++i )
     {
-      if ( *(_DWORD *)((char *)v11 + a6 - (_DWORD)a7) == v10 && AAS_Time() <= *v11 )
+      if ( *(_DWORD *)((char *)v11 + (a6 - (intptr_t)a7)) == v10 && AAS_Time() <= *v11 )
         break;
       ++v11;
     }
@@ -26934,7 +26946,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
       qmemcpy(v18, AAS_ReachabilityFromNum(v19, v10), sizeof(v18));
       if ( a3 != *(_DWORD *)(a9 + 12) || v18[0] != a4 )
       {
-        if ( BotValidTravel(a1, a5, (int)v18, a10) )
+        if ( BotValidTravel(a1, a5, (intptr_t)v18, a10) )
         {
           v13 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v18[0], *(_DWORD *)(a9 + 12), a10);
           if ( v13 )
@@ -26957,7 +26969,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
 // 100310E0: using guessed type char var_2C[44];
 
 //----- (10031270) --------------------------------------------------------
-int __cdecl BotMovementViewTarget(int a1, int a2, int a3, int a4)
+int __cdecl BotMovementViewTarget(intptr_t a1, intptr_t a2, int a3, intptr_t a4)
 {
   int v4; // eax
   int v6[11]; // [esp+10h] [ebp-58h] BYREF
@@ -27014,7 +27026,7 @@ int __cdecl MoverBottomCenter(int *a1, int a2)
 }
 
 //----- (10031450) --------------------------------------------------------
-double __cdecl BotGapDistance(int a1, int a2)
+double __cdecl BotGapDistance(intptr_t a1, intptr_t a2)
 {
   double v6; // st7
   char v8; // al
@@ -27190,7 +27202,7 @@ int __cdecl BotWalkInDirection(int a1, int a2, float a3, int a4)
       v9 = VectorNormalize(dir);
       if ( (a4 & 4) == 0 )
       {
-        BotGapDistance(a1, (int)dir);
+        BotGapDistance(a1, (intptr_t)dir);
         if ( v9 > 0.0 )
         {
           v6 = a4 | 4;
@@ -27273,7 +27285,7 @@ int __cdecl BotMoveInDirection(int a1, int a2, float a3, int a4)
 }
 
 //----- (10031D10) --------------------------------------------------------
-int __cdecl BotCheckBlocked(int a1, int a2, int a3)
+int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   int result; // eax
   int v4; // ecx
@@ -27325,11 +27337,11 @@ _DWORD *__cdecl BotClearMoveResult(_DWORD *a1)
 }
 
 //----- (10031E50) --------------------------------------------------------
-int __cdecl BotTravel_Walk(int a1, int a2, int a3)
+intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   double v4; // st7
   double v5; // st7
-  int result; // eax
+  intptr_t result; // eax
   /* IDA split a vec3 stack local into v7/v8/v9; original .text 0x10031e6b
    * stores the 3 floats at contiguous [esp+0xc/0x10/0x14].  GCC won't keep
    * three independent locals adjacent — VectorNormalize/EA_Move would then
@@ -27345,7 +27357,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
   v11 = VectorNormalize(dir);
-  BotCheckBlocked(a2, (int)dir, (int)v10);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
   v4 = v11;
   if ( v11 < 10.0 )
   {
@@ -27369,7 +27381,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
    * speed = 2 * distance-to-goal instead of 2 * jump-distance, making the bot
    * crawl as it approaches every goal and "pause" when distance ≈ 0 (just
    * before the goal flips).  Capture the real return.  See ida_dropped_results.md. */
-  v4 = BotGapDistance(a2, (int)dir);
+  v4 = BotGapDistance(a2, (intptr_t)dir);
   if ( v4 <= 0.0 )
     v12 = 400.0;
   else
@@ -27387,7 +27399,7 @@ int __cdecl BotTravel_Walk(int a1, int a2, int a3)
 // 10001BD6: using guessed type _DWORD __cdecl AAS_AreaPresenceType(_DWORD);
 
 //----- (100320C0) --------------------------------------------------------
-int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3)
+int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3)
 {
   int *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
@@ -27399,7 +27411,7 @@ int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3)
   dir[0] = *(float *)(a3 + 24) - *(float *)a2;
   dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
   VectorNormalize(dir);
-  BotCheckBlocked(a2, (int)dir, (int)v7);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v7);
   EA_Crouch(*(_DWORD *)(a2 + 40));
   EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
   v7[6] = *(int *)&dir[0];
@@ -27413,7 +27425,7 @@ int *__cdecl BotTravel_Crouch(int *a1, int a2, int a3)
 // 10001942: using guessed type _DWORD __cdecl EA_Crouch(_DWORD);
 
 //----- (10032190) --------------------------------------------------------
-int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3)
+int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
 {
   int *result; // eax
   float v4; // [esp+0h] [ebp-48h]
@@ -27427,7 +27439,7 @@ int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3)
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
   v9 = VectorNormalize(dir);
-  BotCheckBlocked(a2, (int)dir, (int)v8);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v8);
   if ( v9 >= 7.0 )
   {
     if ( v9 > 60.0 )
@@ -27450,7 +27462,7 @@ int *__cdecl BotTravel_BarrierJump(int *a1, int a2, int a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100322C0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3)
+int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
 {
   int *result; // eax
   float v5; // [esp+0h] [ebp-48h]
@@ -27466,7 +27478,7 @@ int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3)
     dir[0] = *(float *)(a3 + 24) - *(float *)a2;
     dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
     v10 = VectorNormalize(dir);
-    BotCheckBlocked(a2, (int)dir, (int)v9);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v9);
     if ( v10 > 60.0 )
       v10 = 60.0;
     v5 = 400.0 - (400.0 - v10 * 6.0);
@@ -27482,7 +27494,7 @@ int *__cdecl BotFinishTravel_BarrierJump(int *a1, int a2, int a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100323E0) --------------------------------------------------------
-int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3)
 {
   int v3; // eax
   int *result; // eax
@@ -27495,7 +27507,7 @@ int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
   dir[1] = a3[4] - *(float *)(a2 + 4);
   dir[2] = a3[5] - *(float *)(a2 + 8);
   VectorNormalize(dir);
-  BotCheckBlocked(a2, (int)dir, (int)v8);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v8);
   EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
   v8[6] = *(int *)&dir[0];
   v8[7] = *(int *)&dir[1];
@@ -27512,7 +27524,7 @@ int *__cdecl BotTravel_Swim(int *a1, int a2, float *a3)
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (100324C0) --------------------------------------------------------
-int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
 {
   double v3; // st6
   __int16 v4; // ax
@@ -27558,7 +27570,7 @@ int *__cdecl BotTravel_WaterJump(int *a1, int a2, float *a3)
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (10032620) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
+int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
 {
   int v3; // edx
   double v4; // st7
@@ -27621,7 +27633,7 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, int a2, float *a3)
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (100327F0) --------------------------------------------------------
-int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
 {
   float *v4; // ebx
   double v5; // st7
@@ -27640,7 +27652,7 @@ int *__cdecl BotTravel_WalkOffLedge(int *a1, int a2, float *a3)
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
   pos[2] = 0.0f;
-  BotCheckBlocked(a2, (int)pos, (int)v16);
+  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v16);
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
@@ -27670,7 +27682,7 @@ LABEL_8:
   if ( !AAS_HorizontalVelocityForJump(0.0, (float *)(a3 + 3), v4, &v9) )
     v9 = 200.0;
 LABEL_9:
-  BotCheckBlocked(a2, (int)dir, (int)v16);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v16);
   EA_Move(*(_DWORD *)(a2 + 40), dir, v9);
   v16[6] = *(int *)&dir[0];
   *(float *)&v16[7] = dir[1];
@@ -27683,7 +27695,7 @@ LABEL_9:
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10032A00) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3)
+int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
 {
   int *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
@@ -27695,7 +27707,7 @@ int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3)
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
   pos[2] = 0.0f;
-  BotCheckBlocked(a2, (int)pos, (int)v10);
+  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v10);
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
@@ -27711,7 +27723,7 @@ int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032AE0) --------------------------------------------------------
-int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
 {
   double v3; // st7
   int v4; // ecx
@@ -27743,7 +27755,7 @@ int *__cdecl BotTravel_Jump(int *a1, int a2, float *a3)
   int v30[12]; // [esp+60h] [ebp-30h] BYREF
 
   BotClearMoveResult(v30);
-  AAS_JumpReachRunStart(a3, (int)predpos);
+  AAS_JumpReachRunStart(a3, (intptr_t)predpos);
   v3 = predpos[0] - a3[3];
   dir[2] = 0.0f;
   dir[0] = v3;
@@ -27825,7 +27837,7 @@ LABEL_7:
 // 10001E7E: using guessed type _DWORD __cdecl AAS_JumpReachRunStart(_DWORD, _DWORD);
 
 //----- (10032E80) --------------------------------------------------------
-int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3)
+int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
 {
   double v5; // st7
   int *result; // eax
@@ -27862,7 +27874,7 @@ int *__cdecl BotFinishTravel_Jump(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032FC0) --------------------------------------------------------
-int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
 {
   int v3; // eax
   int *result; // eax
@@ -27899,7 +27911,7 @@ int *__cdecl BotTravel_Ladder(int *a1, int a2, float *a3)
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (100330E0) --------------------------------------------------------
-int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3)
 {
   int v4; // ecx
   int v5; // eax
@@ -27919,7 +27931,7 @@ int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3)
     if ( (v4 & 4) == 0 )
       dir[2] = 0.0f;
     v11 = VectorNormalize(dir);
-    BotCheckBlocked(a2, (int)dir, (int)v10);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
     if ( v11 >= 30.0 )
       EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
     else
@@ -27941,7 +27953,7 @@ int *__cdecl BotTravel_Teleport(int *a1, int a2, float *a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10033210) --------------------------------------------------------
-int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
+intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   double v4; // st7
   double v5; // st7
@@ -28041,7 +28053,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
         final[1] = reach[1];
       }
       final[2] = v13;
-      BotCheckBlocked(a2, (int)final, (int)v34);
+      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)v34);
       if ( v37 > 60.0 )
         v37 = 60.0;
       if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (int)final, 50.0) )
@@ -28065,7 +28077,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
       final[0] = reach[0];
       final[1] = reach[1];
       final[2] = reach[2];
-      BotCheckBlocked(a2, (int)final, (int)v34);
+      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)v34);
       if ( *(float *)&v35 <= 60.0 )
         v8 = *(float *)&v35;
       else
@@ -28095,7 +28107,7 @@ int __cdecl BotTravel_Elevator(int a1, int a2, int a3)
 // 10064060: using guessed type int libvar_sv_maxbarrier;
 
 //----- (10033790) --------------------------------------------------------
-void *__cdecl BotFinishTravel_Elevator(void *a1, int a2, int a3)
+void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
 {
   void *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
@@ -28195,7 +28207,7 @@ void __cdecl BotResetGrapple(float *a1)
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
 
 //----- (10033B00) --------------------------------------------------------
-int __cdecl BotTravel_Grapple(int a1, int a2, int a3)
+intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   int v3; // eax
   int v4; // eax
@@ -28303,7 +28315,7 @@ LABEL_26:
       v27 = 400.0;
     else
       v27 = 300.0 - (300.0 - v26 * 4.0);
-    BotCheckBlocked(a2, (int)dir, (int)v24);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v24);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v27);
     v24[6] = *(int *)&dir[0];
     v24[7] = *(int *)&dir[1];
@@ -28332,7 +28344,7 @@ LABEL_27:
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (10033EC0) --------------------------------------------------------
-int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
+int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
 {
   double v3; // st7
   double v4; // st7
@@ -28390,7 +28402,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, int a2, float *a3)
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (100340B0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, int a2, int a3)
+int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
 {
   int *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
@@ -28416,7 +28428,7 @@ int *__cdecl BotFinishTravel_WeaponJump(int *a1, int a2, int a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10034170) --------------------------------------------------------
-int __cdecl BotReachabilityTime(int a1)
+int __cdecl BotReachabilityTime(intptr_t a1)
 {
   int result; // eax
 
@@ -28452,7 +28464,7 @@ LABEL_6:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10034210) --------------------------------------------------------
-int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
+intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
 {
   bool v4; // zf
   double v5; // st7
@@ -28462,7 +28474,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
   int v9; // eax
   int v10; // ecx
   int v11; // edx
-  int result; // eax
+  intptr_t result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
   int v16[12]; // [esp+14h] [ebp-30h] BYREF
@@ -28490,7 +28502,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
   v17 = v7;
   if ( v7 < 10.0 )
     v17 = 0.0;
-  BotCheckBlocked(a2, (int)dir, (int)v16);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v16);
   EA_Move(*(_DWORD *)(a2 + 40), dir, v17);
   v16[6] = *(int *)&dir[0];
   v16[7] = *(int *)&dir[1];
@@ -28539,7 +28551,7 @@ int __cdecl BotMoveInGoalArea(int a1, int a2, int a3)
  * BotGapDistance have had their signatures corrected to plain `int`
  * to match the original — see float_vs_int_signature_bug.md.
  */
-int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
+intptr_t __cdecl BotMoveToGoal(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
 {
   int v4; // edx
   int v5; // eax
@@ -28547,7 +28559,7 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
   int v7; // eax
   int v8; // eax
   const void *v9; // esi
-  int result; // eax
+  intptr_t result; // eax
   int v11; // ebp
   int v12; // eax
   int v13; // ecx
@@ -28605,13 +28617,13 @@ int __cdecl BotMoveToGoal(int a1, int a2, int a3, int a4)
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((int)v31, a2, (int)v20);
+            v16 = (const void *)BotTravel_Walk((intptr_t)v31, a2, (intptr_t)v20);
             goto LABEL_41;
           case 3:
           case 0xA:
             goto LABEL_56;
           case 4:
-            v16 = BotFinishTravel_BarrierJump(v32, a2, (int)v20);
+            v16 = BotFinishTravel_BarrierJump(v32, a2, (intptr_t)v20);
             goto LABEL_41;
           case 5:
             v16 = BotFinishTravel_Jump(v25, a2, v20);
@@ -28630,13 +28642,13 @@ LABEL_35:
             v16 = BotFinishTravel_WaterJump(v28, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = BotFinishTravel_Elevator(v23, a2, (int)v20);
+            v16 = BotFinishTravel_Elevator(v23, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xC:
-            v16 = BotFinishTravel_WeaponJump(v30, a2, (int)v20);
+            v16 = BotFinishTravel_WeaponJump(v30, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((int)v26, a2, (int)v20);
+            v16 = (const void *)BotTravel_Grapple((intptr_t)v26, a2, (intptr_t)v20);
 LABEL_41:
             qmemcpy(v21, v16, sizeof(v21));
             break;
@@ -28652,7 +28664,7 @@ LABEL_41:
     *(_DWORD *)(a2 + 64) = v8;
     if ( v8 == *(_DWORD *)(a3 + 12) )
     {
-      v9 = (const void *)BotMoveInGoalArea((int)v22, a2, a3);
+      v9 = (const void *)BotMoveInGoalArea((intptr_t)v22, a2, a3);
       result = a1;
       qmemcpy((void *)a1, v9, 0x30u);
       return result;
@@ -28680,13 +28692,13 @@ LABEL_27:
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((int)v22, a2, (int)v20);
+            v16 = (const void *)BotTravel_Walk((intptr_t)v22, a2, (intptr_t)v20);
             goto LABEL_41;
           case 3:
-            v16 = BotTravel_Crouch(v33, a2, (int)v20);
+            v16 = BotTravel_Crouch(v33, a2, (intptr_t)v20);
             goto LABEL_41;
           case 4:
-            v16 = BotTravel_BarrierJump(v30, a2, (int)v20);
+            v16 = BotTravel_BarrierJump(v30, a2, (intptr_t)v20);
             goto LABEL_41;
           case 5:
             v16 = BotTravel_Jump(v28, a2, v20);
@@ -28706,13 +28718,13 @@ LABEL_27:
             v16 = BotTravel_Teleport(v27, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = (const void *)BotTravel_Elevator((int)v29, a2, (int)v20);
+            v16 = (const void *)BotTravel_Elevator((intptr_t)v29, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xC:
             v16 = BotTravel_RocketJump(v31, a2, v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((int)v32, a2, (int)v20);
+            v16 = (const void *)BotTravel_Grapple((intptr_t)v32, a2, (intptr_t)v20);
             goto LABEL_41;
           default:
             bi_Print(4, "travel type %d not implemented yet\n", v20[9]);
@@ -28766,7 +28778,7 @@ LABEL_25:
     if ( v12 )
     {
       qmemcpy(v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
-      v19 = (float)BotReachabilityTime((int)v20);
+      v19 = (float)BotReachabilityTime((intptr_t)v20);
       *(float *)(a2 + 112) = AAS_Time() + v19;
       BotAddToAvoidReach(a2, v11, 6.0);
     }
@@ -28801,7 +28813,7 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *a1)
 }
 
 //----- (10034B20) --------------------------------------------------------
-void __cdecl BotResetLastAvoidReach(int a1)
+void __cdecl BotResetLastAvoidReach(intptr_t a1)
 {
   double v1; // st7
   int v2; // edx
@@ -30118,15 +30130,37 @@ void __cdecl EA_View(int client, vec3_t angles)
  * latch EA_JUMPEDLASTFRAME so the next call to EA_Jump emits a key
  * release.  This is the same press/release latch pattern Q3's botlib
  * uses around ACTION_JUMPEDLASTFRAME. */
-int __cdecl EA_EndRegular(int client, int weapon)
+/* Original gladiator function at 0x10037580 — flush this frame's
+ * accumulated EA state to the engine via the BotInput callback.
+ *
+ * IMPORTANT: ea[+0] is `thinktime` (float), NOT `weapon` (int).  IDA
+ * decompiled the 2nd arg as int because on x86 a float and int both
+ * occupy 4 stack bytes and the disassembly doesn't distinguish.  But:
+ * (a) the only call site (sub_10028A40) carries the BotDeathmatchAI
+ * float thinktime through, and (b) the engine's bot_input_t struct
+ * (game/botlib.h) layout matches ea_state_t exactly when [+0] is read
+ * as `float thinktime`: thinktime@0, dir@4, speed@16, viewangles@20,
+ * actionflags@32 — total 36 bytes.
+ *
+ * The aarch64 AAPCS lands `float` in s0..s7 and `int` in w0..w7, so
+ * declaring this with `int` here causes the float arg to be silently
+ * truncated to 0 by GCC's implicit conversion at the call site.  This
+ * results in `bi->thinktime = 0` -> `ucmd.msec = 0` -> bot frozen at
+ * spawn (no movement at all).  Same class of bug as BotAI.
+ *
+ * After the BotInput call, if the jump bit was set (i.e. the bot just
+ * jumped this frame) latch EA_JUMPEDLASTFRAME so the next call to
+ * EA_Jump emits a key release.  This is the same press/release latch
+ * pattern Q3's botlib uses around ACTION_JUMPEDLASTFRAME. */
+int __cdecl EA_EndRegular(int client, float thinktime)
 {
   ea_state_t *ea = &ea_controls[client];
   bool jumped_this_frame;
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
-  ea->weapon = weapon;
+  ea->thinktime = thinktime;
   dword_10063FE0(client, ea);
   jumped_this_frame = (ea->flags & ACTION_JUMP) != 0;
-  ea->weapon   = 0;
+  ea->thinktime = 0.0f;
   ea->dir[0]   = 0.0f;
   ea->dir[1]   = 0.0f;
   ea->dir[2]   = 0.0f;

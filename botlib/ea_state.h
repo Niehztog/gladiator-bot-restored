@@ -6,10 +6,17 @@
  *
  * Field layout confirmed from the EA_* function bodies (EA_Move writes dir +
  * speed at +4..+19; EA_View writes angles at +20..+31; EA_Jump/Attack
- * toggle bits in flags at +32; weapon for fire command at +0).
+ * toggle bits in flags at +32; thinktime at +0 set just before BotInput
+ * fires, then cleared after).
  *
  * The flags field holds bitmasks defined as ACTION_* in gladq2_src/botlib.h.
  * Reproduced here so callers don't have to pull in the whole botlib.h.
+ *
+ * Layout matches the engine's bot_input_t exactly (thinktime/dir/speed/
+ * viewangles/actionflags).  EA_EndRegular passes a pointer to this struct
+ * to game.dll's BotInput() which memcpys all 36 bytes into
+ * botglobals.botinputs[client] — so the field types and offsets here are
+ * what the engine sees.
  */
 
 #ifndef EA_STATE_H
@@ -41,7 +48,7 @@
 #define EA_JUMPEDLASTFRAME  0x080
 
 typedef struct ea_state_s {
-    int   weapon;     /* +0  weapon id for fire command (0 = none)  */
+    float thinktime;  /* +0  frame thinktime in seconds (used by BotInput→ucmd.msec) */
     float dir[3];     /* +4  movement direction vector              */
     float speed;      /* +16 movement speed, clamped to ±565        */
     float angles[3];  /* +20 view angles: pitch, yaw, roll          */

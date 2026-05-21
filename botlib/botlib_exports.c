@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <errno.h>
 
 #include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
@@ -96,7 +97,7 @@ extern int    BotClientSettings(int client, const void *settings);  /* 0x1002992
 extern int    BotSettings(int client, const void *settings);        /* 0x100299D0 */
 extern int    BotUpdateClient(int client, const void *buc);
 extern int    AAS_UpdateEntity(int entnum, float *state);
-extern int    sub_1001CE20(int origin, int ent, int channel, int soundindex,
+extern int    sub_1001CE20(intptr_t origin, int ent, int channel, int soundindex,
                            int volume_bits, int attn_bits, float timeofs);
 extern int    BotAddPointLight(_DWORD *origin, int ent, int radius_bits,
                                int r_bits, int g_bits, int b_bits,
@@ -454,7 +455,7 @@ int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
 {
     if (!BotLibSetup("BotUpdateSound")) return 1;
     if (!ValidEntityNumber(ent, "BotUpdateSound")) return 4;
-    return sub_1001CE20((int)origin, ent, channel, soundindex,
+    return sub_1001CE20((intptr_t)origin, ent, channel, soundindex,
                         *(int *)&volume,
                         *(int *)&attenuation,
                         timeofs);
