@@ -14659,7 +14659,8 @@ aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1)
 //----- (10019260) --------------------------------------------------------
 int __cdecl AAS_FreeRoutingCache(void *a1)
 {
-  return FreeMemory((int)(intptr_t)a1);
+  FreeMemory(a1);
+  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
