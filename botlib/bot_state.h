@@ -22,7 +22,8 @@
 #ifndef BOT_STATE_H
 #define BOT_STATE_H
 
-#include "botlib_structs.h"   /* vec3_t */
+#include "../game/botlib.h"    /* bot_updateclient_t */
+#include "botlib_structs.h"   /* bot_goal_t */
 
 #define BOT_STATE_SIZE       4560
 
@@ -35,28 +36,33 @@ typedef struct bot_state_s {
             int    entitynum;             /* +8    */
             /* +12..+1239 (1228 B = 0x4CC): bot_updateclient_t snapshot.
              * Written wholesale every frame by the engine via the
-             * BotUpdateClient import (slot 13).  Layout matches
-             * `bot_updateclient_t` in game/botlib.h. */
-            int    pm_type;               /* +12   movement type (pmtype_t) */
-            vec3_t ps_origin;             /* +16..+27   client origin from playerstate */
-            vec3_t ps_velocity;           /* +28..+39   client velocity */
-            unsigned char pm_flags;       /* +40   PMF_DUCKED(1)/PMF_JUMP_HELD(2)/PMF_ON_GROUND(4)/PMF_TIME_WATERJUMP(8)/PMF_TIME_LAND(16)/PMF_TIME_TELEPORT(32)/... */
-            unsigned char pm_time;        /* +41   each unit = 8 ms */
-            char   _pad_2Ah[2];           /* +42..+43 struct alignment pad before float */
-            float  gravity;               /* +44   current gravity */
-            vec3_t delta_angles;          /* +48..+59   add to cmd angles for view dir (teleports/rotating objects) */
-            vec3_t ps_viewangles;         /* +60..+71   fixed-view angles from playerstate */
-            vec3_t viewoffset;            /* +72..+83   add to origin for eye coordinates */
-            vec3_t kick_angles;           /* +84..+95   weapon-kick + pain effect angles */
-            vec3_t gunangles;             /* +96..+107  gun model angles */
-            vec3_t gunoffset;             /* +108..+119 gun model offset relative to origin */
-            int    gunindex;              /* +120  gun model number (-> AAS_ModelFromIndex) */
-            int    gunframe;              /* +124  gun model frame number */
-            float  blend[4];              /* +128..+143 RGBA full-screen effect */
-            float  fov;                   /* +144  horizontal field of view */
-            int    rdflags;               /* +148  refdef flags */
-            short  stats[32];             /* +152..+215 MAX_STATS player stats (health/timer/items/etc) */
-            int    inventory_src[256];    /* +216..+1239 MAX_ITEMS inventory snapshot; mirrored each frame into `inventory` (+1728) */
+             * BotUpdateClient import (slot 13).  The anonymous struct is only
+             * a byte-exact alias for older restored field names. */
+            union {
+                bot_updateclient_t snapshot;
+                struct {
+                    int    pm_type;               /* +12   movement type (pmtype_t) */
+                    vec3_t ps_origin;             /* +16..+27   alias of snapshot.origin */
+                    vec3_t ps_velocity;           /* +28..+39   alias of snapshot.velocity */
+                    unsigned char pm_flags;       /* +40   PMF_DUCKED/PMF_ON_GROUND/etc. */
+                    unsigned char pm_time;        /* +41   each unit = 8 ms */
+                    char   _pad_2Ah[2];           /* +42..+43 struct alignment pad before float */
+                    float  gravity;               /* +44   current gravity */
+                    vec3_t delta_angles;          /* +48..+59   add to cmd angles for view dir */
+                    vec3_t ps_viewangles;         /* +60..+71   fixed-view angles from playerstate */
+                    vec3_t viewoffset;            /* +72..+83   add to origin for eye coordinates */
+                    vec3_t kick_angles;           /* +84..+95   weapon-kick + pain effect angles */
+                    vec3_t gunangles;             /* +96..+107  gun model angles */
+                    vec3_t gunoffset;             /* +108..+119 gun model offset relative to origin */
+                    int    gunindex;              /* +120  gun model number (-> AAS_ModelFromIndex) */
+                    int    gunframe;              /* +124  gun model frame number */
+                    float  blend[4];              /* +128..+143 RGBA full-screen effect */
+                    float  fov;                   /* +144  horizontal field of view */
+                    int    rdflags;               /* +148  refdef flags */
+                    short  stats[32];             /* +152..+215 MAX_STATS player stats */
+                    int    inventory_src[256];    /* +216..+1239 alias of snapshot.inventory */
+                };
+            };
             char   settings[432];         /* +1240..+1671 bot_clientsettings_t */
             int    character;             /* +1672 */
             int    ainode;                /* +1676 current AINode_* dispatcher; called via (int(*)(int))bs->ainode */
@@ -83,73 +89,126 @@ typedef struct bot_state_s {
                 int  inventory[256];                  /* +1728..+2751 working copy of inventory_src */
                 struct {
                     char   _pad_6C0h[164];        /* +1728..+1891 */
-                    int    _i1892;                /* +1892 health snapshot copied from playerstate ps[154] */
+                    int    inventory_health;       /* +1892 ps.stats[STAT_HEALTH] snapshot; Q3: inventory[INVENTORY_HEALTH] */
                     char   _pad_764h[632];        /* +1896..+2527 */
-                    int    enemy_horiz_dist;      /* +2528 (int)VectorLength(enemy.xy - bs.xy) */
-                    int    enemy_height_diff;     /* +2532 (int)(enemy.z - bs.z) */
+                    int    enemy_horizontal_dist;  /* +2528 Q3: inventory[ENEMY_HORIZONTAL_DIST] */
+                    int    enemy_height;           /* +2532 Q3: inventory[ENEMY_HEIGHT] */
                     char   _pad_9E8h[8];          /* +2536..+2543 */
-                    int    quad_seconds;          /* +2544 quad-damage seconds remaining (clamped >=0) */
-                    int    invuln_seconds;        /* +2548 invulnerability seconds remaining */
-                    char   _pad_9F4h[4];          /* +2552 — slot for a 5th powerup; never written in our codepaths */
-                    int    rebreather_seconds;    /* +2556 rebreather seconds remaining */
-                    int    enviro_seconds;        /* +2560 envirosuit seconds remaining */
+                    int    quad_seconds;           /* +2544 quad-damage seconds remaining (clamped >=0) */
+                    int    invuln_seconds;         /* +2548 invulnerability seconds remaining */
+                    char   _pad_9F4h[4];          /* +2552 — unused/reserved inventory slot */
+                    int    rebreather_seconds;     /* +2556 rebreather seconds remaining */
+                    int    enviro_seconds;         /* +2560 envirosuit seconds remaining */
                     char   _pad_A00h[4];          /* +2564 */
-                    int    powershield_a;         /* +2568 powershield active-flag pair, set together */
-                    int    powershield_b;         /* +2572 */
+                    int    power_screen_active_cells; /* +2568 active power armor cells gate for Power Screen */
+                    int    power_shield_active_cells; /* +2572 active power armor cells gate for Power Shield */
                     char   _pad_A0Ch[72];         /* +2576..+2647 */
-                    /* +2648..+2692 — 12-entry per-weapon-class flag table set
-                     * by BotUpdateBattleInventory from the enemy entity's
-                     * current-weapon byte.  Switch->offset map is not a clean
-                     * sequential array (case 5 → +2688, case 6..10 → +2668..+2684),
-                     * so the slots are kept as individually-named ints. */
-                    int    _i2648;                /* +2648 case 0  */
-                    int    _i2652;                /* +2652 case 1  */
-                    int    _i2656;                /* +2656 case 2  */
-                    int    _i2660;                /* +2660 case 3  */
-                    int    _i2664;                /* +2664 case 4  */
-                    int    _i2668;                /* +2668 case 6  */
-                    int    _i2672;                /* +2672 case 7  */
-                    int    _i2676;                /* +2676 case 8  */
-                    int    _i2680;                /* +2680 case 9  */
-                    int    _i2684;                /* +2684 case 10 */
-                    int    _i2688;                /* +2688 case 5  */
-                    int    _i2692;                /* +2692 case 11 */
+                    /* +2648..+2692: one-hot enemy current-weapon flags from
+                     * high byte of entity skinnum (Quake II WEAP_* numbers). */
+                    int    enemy_weapon_blaster;        /* +2648 WEAP_BLASTER */
+                    int    enemy_weapon_shotgun;        /* +2652 WEAP_SHOTGUN */
+                    int    enemy_weapon_supershotgun;   /* +2656 WEAP_SUPERSHOTGUN */
+                    int    enemy_weapon_machinegun;     /* +2660 WEAP_MACHINEGUN */
+                    int    enemy_weapon_chaingun;       /* +2664 WEAP_CHAINGUN */
+                    int    enemy_weapon_grenadelauncher;/* +2668 WEAP_GRENADELAUNCHER */
+                    int    enemy_weapon_rocketlauncher; /* +2672 WEAP_ROCKETLAUNCHER */
+                    int    enemy_weapon_hyperblaster;   /* +2676 WEAP_HYPERBLASTER */
+                    int    enemy_weapon_railgun;        /* +2680 WEAP_RAILGUN */
+                    int    enemy_weapon_bfg;            /* +2684 WEAP_BFG */
+                    int    enemy_weapon_grenades;       /* +2688 WEAP_GRENADES */
+                    int    enemy_weapon_phalanx;        /* +2692 WEAP_PHALANX / WEAP_12 */
                     char   _pad_A88h[12];         /* +2696..+2707 */
-                    int    _i2708;                /* +2708 enemy entity-flags high bit */
-                    int    _i2712;                /* +2712 enemy entity-flags & 0x10000 */
-                    int    _i2716;                /* +2716 enemy entity-flags bit 9 */
+                    int    enemy_quad;             /* +2708 enemy effects & EF_QUAD */
+                    int    enemy_invulnerability;  /* +2712 enemy effects & EF_PENT */
+                    int    enemy_powerscreen;      /* +2716 enemy effects & EF_POWERSCREEN */
                     char   _pad_A9Ch[32];         /* +2720..+2751 */
                 };
             };
-            int    _i2752;                /* +2752 byte- and dword-accessed */
-            int    _i2756;                /* +2756 */
-            int    _i2760;                /* +2760 */
-            int    _i2764;                /* +2764 */
-            int    _i2768;                /* +2768 */
-            int    _i2772;                /* +2772 */
+            int    flags;                 /* +2752 several flags — bit 0x02 toggled in BotEntityVisible area,
+                                           * bit 0x10 XOR-toggled in BotCheckActivateGoal direction flip.
+                                           * Q3 ancestor: bs->flags (ai_main.h:143). Byte- and dword-accessed. */
+            int    _i2756;                /* +2756 no readers in restored code; reserved placeholder */
+            int    respawn_wait;          /* +2760 AIEnter_Respawn sets =0; AINode_Respawn sets =1 after EA_Respawn fires.
+                                           * Q3 ancestor: bs->respawn_wait (ai_main.h:144). */
+            int    lasthealth;            /* +2764 health value previous frame; compared against inventory_health
+                                           * in BotFindEnemy to detect "I just took damage".
+                                           * Q3 ancestor: bs->lasthealth (ai_main.h:145). */
+            int    enemydeathtype;        /* +2768 bot_match_t.subtype recorded when a death-message names the
+                                           * bot's enemy as victim (chat-driven death-type tracking).
+                                           * Q3 ancestor: bs->enemydeathtype (ai_main.h:149). */
+            int    botdeathtype;          /* +2772 bot_match_t.subtype recorded when a death-message names the
+                                           * bot itself as victim.
+                                           * Q3 ancestor: bs->botdeathtype (ai_main.h:148). */
             int    inuse_marker;          /* +2776 */
-            int    _i2780;                /* +2780 */
+            int    _i2780;                /* +2780 no readers in restored code; reserved placeholder */
             float  ltime;                 /* +2784 wall-clock accumulator; `bs->ltime += thinktime` per frame */
             float  setup_time;            /* +2788 */
             float  ltg_time;              /* +2792 long-term-goal re-pick throttle (set to AAS_Time()+20.0 after BotChooseLTGItem) */
             float  nbg_time;              /* +2796 nearby-goal timeout (set to AAS_Time()+5.0 after BotChooseNBGItem) */
-            float  _f2800;                /* +2800 */
-            float  _f2804;                /* +2804 */
-            float  _f2808;                /* +2808 */
-            float  _f2812;                /* +2812 */
-            char   _pad_AFCh[4];          /* +2816..+2819 */
-            float  _f2820;                /* +2820 */
-            char   _pad_B04h[24];         /* +2824..+2847 */
-            float  _f2848;                /* +2848 */
-            float  _f2852;                /* +2852 */
+            float  respawnchat_time;      /* +2800 time the bot started a chat during respawn; set in AIEnter_Respawn
+                                           * to AAS_Time()+BotChatTime() if a chat fires; tested in AINode_Respawn.
+                                           * Q3 ancestor: bs->respawnchat_time (ai_main.h:168). */
+            float  chase_time;            /* +2804 time the bot will chase the enemy; set to AAS_Time()+10 in
+                                           * AIEnter_Battle_Chase; reset to 0 when reaching enemy area or goal.
+                                           * Q3 ancestor: bs->chase_time (ai_main.h:169). */
+            float  check_time;            /* +2808 0.5–1.0 s throttle for BotChooseNBGItem nearby-item scans.
+                                           * Q3 ancestor: bs->check_time (ai_main.h:171). */
+            float  stand_time;            /* +2812 time the bot is standing still during random/kill/etc chats;
+                                           * set in BotChat_Random / BotChat_Kill paths via AAS_Time()+BotChatTime().
+                                           * Q3 ancestor: bs->stand_time (ai_main.h:172). */
+            float  attackstrafe_drift;    /* +2816 strafe-direction confidence counter in BotAttackMove;
+                                           * accumulates +0.1 per frame, reset to 0 when bs->flags bit 1 flips
+                                           * (XOR 1) on direction reversal triggered by a random threshold.
+                                           * Q3 ancestor: bs->attackstrafe_time (ai_main.h:177) but semantics
+                                           * differ (Q3 stores AAS_Time(), we store a per-frame accumulator). */
+            float  _f2820;                /* +2820 dual-use wait/crouch countdown in accompany (LTG=?) and
+                                           * camp (LTG=?) branches: 5 s base + char24*15 randomized extension.
+                                           * Bot crouches while it remains > AAS_Time() in camp; periodic
+                                           * wave/say in accompany.  No clean Q3 ancestor — closest is
+                                           * bs->attackcrouch_time (ai_main.h:178) but semantics differ. */
+            float  _f2824;                /* +2824 read in BotAttackMove (`if AAS_Time() < _f2824, use lastenemyorigin`);
+                                           * no write site found in restored code.  Likely Q3 ancestor:
+                                           * bs->enemyposition_time (ai_main.h:183) or bs->attackchase_time
+                                           * (ai_main.h:179).  Pending writer discovery. */
+            float  powerscreen_seen_time; /* +2828 last time the bot saw the powershield icon in stats[4];
+                                           * 0.9 s grace before clearing power_screen/shield_active_cells.
+                                           * Set to AAS_Time() in BotUpdatePowerupSeconds. */
+            float  quad_endtime;          /* +2832 absolute deadline for quad damage; set on pickup to
+                                           * AAS_Time()+stats[10].  Drives quad_seconds countdown. */
+            float  invulnerability_endtime; /* +2836 deadline for Pent of Invulnerability; drives invuln_seconds. */
+            float  rebreather_endtime;    /* +2840 deadline for Rebreather; drives rebreather_seconds. */
+            float  enviro_endtime;        /* +2844 deadline for Environment Suit; drives enviro_seconds. */
+            float  enemysight_time;       /* +2848 time the bot first saw the current enemy this engagement;
+                                           * set to AAS_Time() at the end of BotFindEnemy. Tested as
+                                           * `AAS_Time() - reaction >= enemysight_time` to gate firing.
+                                           * Q3 ancestor: bs->enemysight_time (ai_main.h:181). */
+            float  activategoal_time;     /* +2852 time the activategoal expires; set to AAS_Time()+10 when the
+                                           * activategoal is established in BotCheckActivateGoal; reset to 0 on
+                                           * touching goal. No direct Q3 ancestor (Q3 uses a stack of
+                                           * bot_activategoal_t instead of a scalar timer). */
             char   _pad_B1Ch[4];          /* +2856..+2859 */
-            float  _f2860;                /* +2860 */
-            float  _f2864;                /* +2864 */
-            float  _f2868;                /* +2868 */
-            float  _f2872;                /* +2872 */
-            float  _f2876;                /* +2876 */
+            float  defendaway_time;       /* +2860 time away while defending; randomized extension when bot
+                                           * is at the defend teamgoal (ltgtype==3 / DEFEND).
+                                           * Q3 ancestor: bs->defendaway_time (ai_main.h:184). */
+            float  rushbaseaway_time;     /* +2864 time away from rushing to the base; randomized extension
+                                           * when CTF flag-carrier is touching the home flag goal (ltgtype==5).
+                                           * Q3 ancestor: bs->rushbaseaway_time (ai_main.h:186). */
+            float  ctfroam_time;          /* +2868 CTF roam-then-pick-new-LTG cooldown; set to AAS_Time()+60
+                                           * after picking nothing this cycle.
+                                           * Q3 ancestor: bs->ctfroam_time (ai_main.h:189). */
+            float  killedenemy_time;      /* +2872 time the bot killed the enemy; set to AAS_Time() in the
+                                           * chat-death-message handler when match.victim == bot's enemy.
+                                           * Drives 5-second post-kill EA_Wave celebration.
+                                           * Q3 ancestor: bs->killedenemy_time (ai_main.h:190). */
+            float  arrive_time;           /* +2876 time the bot arrived at the companion (accompany teammate);
+                                           * set to AAS_Time() when bot first reaches the teammate area;
+                                           * tested as `AAS_Time() - 2.0 > arrive_time` to throttle waves.
+                                           * Q3 ancestor: bs->arrive_time (ai_main.h:191). */
             int    movestate[16];         /* +2880..+2943 embedded movement/goal scratch (64 bytes) */
-            int    _i2944;                /* +2944 */
+            int    areanum;               /* +2944 the AAS area number the bot is currently in; refreshed each
+                                           * frame via AAS_PointAreaNum(bs->origin).  Compared against
+                                           * lastenemyareanum in Battle_Chase to detect arrival.
+                                           * Q3 ancestor: bs->areanum (ai_main.h:140). */
             char   _pad_B84h[60];         /* +2948..+3007 */
             /* Note: a few stray byte-offset accesses outside the chat
              * region still go through the `_raw[]` union (e.g. +4248 in
@@ -170,17 +229,27 @@ typedef struct bot_state_s {
                                             * named this `enemyorigin` by mistake — fov=360.0 traces
                                             * masked the misnomer. */
             vec3_t ideal_viewangles;      /* +4236..+4247  vectoangles dst; copied into EA_View vec3 arg */
-            int    _i4248;                /* +4248 */
+            int    _i4248;                /* +4248 no readers in restored code; reserved placeholder */
             char   _pad_1094h[8];         /* +4252..+4259 */
             int    ltgtype;               /* +4260 */
             int    teammate;              /* +4264 */
             bot_goal_t teamgoal;          /* +4268..+4323 (56 B; origin/areanum/mins/maxs/entitynum/number/flags/iteminfo) */
             float  teammessage_time;      /* +4324  schedule LTG-start chat (Accompany/GetFlag/...) */
-            float  teammatevisible_time;  /* +4328 */
-            int    _i4332;                /* +4332 */
+            float  teammatevisible_time;  /* +4328 NOTE: holds a deadline timestamp (AAS_Time()+120/240) not
+                                           * a last-seen marker — semantics differ from Q3's same-named field.
+                                           * Likely Q3 ancestor: bs->teamgoal_time (ai_main.h:236).  Kept under
+                                           * the historical name pending a swap-pass with teammatelastseen_time. */
+            float  teammatelastseen_time; /* +4332 set to AAS_Time() the moment the teammate becomes invisible
+                                           * (BotEntityVisible() == false path); tested as
+                                           * `AAS_Time() - 10.0 > teammatelastseen_time` to drop the LTG, and
+                                           * `AAS_Time() - 60.0 > teammatelastseen_time` to chat "cannot find you".
+                                           * Q3 ancestor: bs->teammatevisible_time (ai_main.h:237). */
             char   formation_teammate[16];/* +4336..+4351 netname of teammate used for formation positioning (Q3 backport: bs->formation_teammate[16]) */
             char   teamleader[32];        /* +4352..+4383 netname of team leader (Q3 backport: bs->teamleader[32]) */
-            int    _i4384;                /* +4384 */
+            float  formation_dist;        /* +4384 formation-spacing distance to maintain from formation_teammate;
+                                           * defaulted to 100.0f (encoded 0x42E80000); set by chat-match type 16
+                                           * to atof(arg)*32.0 (units) or atof(arg)*9.7536 (feet→units), clamped
+                                           * to [48,500].  Q3 ancestor: bs->formation_dist (ai_main.h:266). */
             char   _pad_1124h[100];       /* +4388..+4487 */
             bot_goal_t activategoal;      /* +4488..+4543 (56 B) embedded activate-goal: origin/areanum/mins/maxs/entitynum/number/flags/iteminfo.
                                            * Pointer to this is passed as `bot_goal_t *` to BotTouchingGoal/BotMoveToGoal.

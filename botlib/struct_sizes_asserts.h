@@ -37,6 +37,8 @@
  * smoke-testing only.
  */
 #include <stdint.h>
+_Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must remain 0x4CC bytes");
+
 #if INTPTR_MAX == INT32_MAX
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
 _Static_assert(sizeof(aas_header_t)        == 120,  "aas_header_t size (0x78)");

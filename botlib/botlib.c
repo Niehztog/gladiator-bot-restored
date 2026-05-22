@@ -628,9 +628,9 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs);
 BOOL TeamPlayIsOn();
 BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal);
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *goal);
-double __cdecl BotGetTime(int a1);
+double __cdecl BotGetTime(bot_match_t *match);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
-int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2);
+int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2);
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
@@ -716,7 +716,7 @@ typedef struct bot_chatvar_s {
 void __cdecl BotConstructChatMessage(void *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5);
 char *__cdecl BotChooseInitialChatMessage(void *a1, char *String2);
 void __cdecl BotInitialChat(void *cs, char *String2, ...);
-int __cdecl BotReplyChat(_DWORD *a1, const char *a2);
+int __cdecl BotReplyChat(void *cs, const char *a2);
 unsigned int __cdecl BotChatLength(void *cs);
 char __cdecl BotEnterChat(void *cs, int a2, int a3);
 // int __usercall BotSetupChatAI@<eax>(double a1@<st0>);
@@ -2148,7 +2148,7 @@ typedef struct bot_weaponstate_s {
     int              *inventory;    /* +4   pointer into bs->inventory (item-count array; cast as int* for FuzzyWeight) */
     weightconfig_t   *weightconfig; /* +8   = loaded weights */
     int              *itemweights;  /* +12  = WeaponWeightIndex mapping table */
-    char             *modelname;    /* +16  = AAS_ModelFromIndex(bs->gunindex) */
+    char             *modelname;    /* +16  = AAS_ModelFromIndex(bs->snapshot.gunindex) */
     int               weaponindex;  /* +20  = chosen weapon index */
     float             nextthink;    /* +24  = AAS_Time gate */
 } bot_weaponstate_t;
@@ -17058,12 +17058,12 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
       qmemcpy(v55, v15, sizeof(v55));
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v16) )
       {
-        *(float *)&bs->_i4332 = AAS_Time();
+        bs->teammatelastseen_time = AAS_Time();
         v17 = bs->origin;
         dir[0] = *(float *)&v55[4] - bs->origin[0];
         dir[1] = *(float *)&v55[5] - bs->origin[1];
         dir[2] = *(float *)&v55[6] - bs->origin[2];
-        if ( VectorLength(dir) < *(float *)&bs->_i4384 )
+        if ( VectorLength(dir) < bs->formation_dist )
         {
           v18 = AAS_Time() - 5.0;
           if ( v18 > bs->_f2820 )
@@ -17077,15 +17077,15 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
           }
           if ( AAS_Swimming(bs->origin) )
             bs->_f2820 = AAS_Time() - 1.0;
-          if ( AAS_Time() - 2.0 > bs->_f2876 )
+          if ( AAS_Time() - 2.0 > bs->arrive_time )
           {
-            if ( bs->_f2876 == 0.0 )
+            if ( bs->arrive_time == 0.0 )
             {
               EA_Wave(bs->client, 1);
               v19 = EasyClientName(bs->teammate - 1, v56);
               BotInitialChat(bs->chatstate, aAccompanyArriv, v19, (char *)0);
               BotEnterChat(bs->chatstate, bs->client, 1);
-              bs->_f2876 = AAS_Time();
+              bs->arrive_time = AAS_Time();
             }
             else if ( AAS_Time() >= bs->_f2820 )
             {
@@ -17111,7 +17111,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
               EA_Crouch(bs->client);
             }
           }
-          if ( AAS_Time() - 2.0 >= bs->_f2876 )
+          if ( AAS_Time() - 2.0 >= bs->arrive_time )
           {
             if ( bs->thinktime * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
             {
@@ -17162,7 +17162,7 @@ LABEL_86:
         }
       }
       v26 = bs->teamgoal.origin;
-      if ( AAS_Time() - 60.0 > *(float *)&bs->_i4332 )
+      if ( AAS_Time() - 60.0 > bs->teammatelastseen_time )
       {
         v27 = EasyClientName(bs->teammate - 1, v56);
         BotInitialChat(bs->chatstate, aAccompanyCanno, v27, (char *)0);
@@ -17171,7 +17171,7 @@ LABEL_86:
       }
       return v26;
     }
-    if ( v3 == 3 && AAS_Time() > bs->_f2860 && !a3 )
+    if ( v3 == 3 && AAS_Time() > bs->defendaway_time && !a3 )
     {
       if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
       {
@@ -17197,7 +17197,7 @@ LABEL_86:
         v46 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
         v30 = AAS_Time();
         result = bs->teamgoal.origin;
-        bs->_f2860 = v30 + v46 + 5.0;
+        bs->defendaway_time = v30 + v46 + 5.0;
         return result;
       }
       return v26;
@@ -17225,12 +17225,12 @@ LABEL_86:
         dir[2] = bs->teamgoal.origin[2] - bs->origin[2];
         if ( VectorLength(dir) < 40.0 )
         {
-          if ( bs->_f2876 == 0.0 )
+          if ( bs->arrive_time == 0.0 )
           {
             v33 = EasyClientName(bs->teammate - 1, v56);
             BotInitialChat(bs->chatstate, aCampArrive, v33, (char *)0);
             BotEnterChat(bs->chatstate, bs->client, 1);
-            bs->_f2876 = AAS_Time();
+            bs->arrive_time = AAS_Time();
           }
           if ( bs->thinktime * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
           {
@@ -17343,7 +17343,7 @@ LABEL_106:
         }
         return v26;
     }
-    if ( v31 == 5 && AAS_Time() > bs->_f2864 )
+    if ( v31 == 5 && AAS_Time() > bs->rushbaseaway_time )
     {
       v26 = (float *)&unk_100643E0;
       if ( BotCTFTeam(bs) == 1 )
@@ -17358,7 +17358,7 @@ LABEL_106:
           v47 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
           v43 = AAS_Time();
           result = v26;
-          bs->_f2864 = v43 + v47 + 5.0;
+          bs->rushbaseaway_time = v43 + v47 + 5.0;
           return result;
         }
 LABEL_55:
@@ -17409,7 +17409,7 @@ LABEL_136:
   }
   if ( AAS_Time() > bs->teammatevisible_time )
     bs->ltgtype = 0;
-  if ( AAS_Time() - 10.0 > *(float *)&bs->_i4332 )
+  if ( AAS_Time() - 10.0 > bs->teammatelastseen_time )
     bs->ltgtype = 0;
   v5 = AAS_EntityInfo(v58, bs->teammate);
   v6 = bs->teammate;
@@ -17424,7 +17424,7 @@ LABEL_136:
   }
   else
   {
-    *(float *)&bs->_i4332 = AAS_Time();
+    bs->teammatelastseen_time = AAS_Time();
   }
   if ( v55[0] )
   {
@@ -17570,7 +17570,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   }
   BotChangeViewAngles(bs);
   v2 = AAS_Time();
-  if ( v2 <= bs->_f2812 )
+  if ( v2 <= bs->stand_time )
     return 1;
   if ( LibVarGetValue(aSquatt) != 0.0 )
   {
@@ -17613,8 +17613,8 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   {
     v2 = AAS_Time();
   }
-  bs->_f2800 = v2;
-  bs->_i2760 = 0;
+  bs->respawnchat_time = v2;
+  bs->respawn_wait = 0;
   BotAINode(bs) = AINode_Respawn;
 }
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
@@ -17632,7 +17632,7 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
 
   int v2; // eax
 
-  if ( bs->_i2760 )
+  if ( bs->respawn_wait )
   {
     if ( !BotIsDead(bs) )
     {
@@ -17640,10 +17640,10 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
       return 1;
     }
   }
-  else if ( AAS_Time() > bs->_f2800 )
+  else if ( AAS_Time() > bs->respawnchat_time )
   {
     v2 = bs->client;
-    bs->_i2760 = 1;
+    bs->respawn_wait = 1;
     EA_Respawn(v2);
     if ( bs->enemy )
     {
@@ -17701,8 +17701,8 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   ent = bs->activategoal.origin;
   bs->enemy = 0;
   if ( !ent || BotTouchingGoal(bs->origin, ent) )
-    *(int *)&bs->_f2852 = 0;
-  if ( AAS_Time() > bs->_f2852 )
+    *(int *)&bs->activategoal_time = 0;
+  if ( AAS_Time() > bs->activategoal_time )
   {
     AIEnter_Seek_NBG(bs);
     return 0;
@@ -18002,7 +18002,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   if ( BotChat_Random(bs) )
   {
     v9 = BotChatTime(bs);
-    bs->_f2812 = AAS_Time() + v9;
+    bs->stand_time = AAS_Time() + v9;
     AIEnter_Stand(bs);
     return 0;
   }
@@ -18019,7 +18019,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     v10 = v2;
   }
   bs->enemy = 0;
-  if ( AAS_Time() - 5.0 < bs->_f2872
+  if ( AAS_Time() - 5.0 < bs->killedenemy_time
     && (double)(rand() & 0x7FFF) * 0.000030518509 < bs->thinktime )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.5 )
@@ -18035,11 +18035,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     v17 = v3;
     if ( !v3 )
       goto LABEL_42;
-    if ( AAS_Time() > bs->_f2808 )
+    if ( AAS_Time() > bs->check_time )
     {
       v4 = AAS_Time();
       v5 = -(bs->ltgtype != 3);
-      bs->_f2808 = v4 + 0.5;
+      bs->check_time = v4 + 0.5;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
       if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, v8) )
       {
@@ -18196,7 +18196,7 @@ LABEL_9:
     if ( !v2 )
       goto LABEL_9;
     v10 = BotChatTime(bs);
-    bs->_f2812 = AAS_Time() + v10;
+    bs->stand_time = AAS_Time() + v10;
     AIEnter_Stand(bs);
     return 0;
   }
@@ -18287,7 +18287,7 @@ void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
   BotRecordNodeSwitch(bs, aBattleChase, &byte_1006294C);
   v1 = AAS_Time();
   BotAINode(bs) = AINode_Battle_Chase;
-  bs->_f2804 = v1 + 10.0;
+  bs->chase_time = v1 + 10.0;
 }
 // 1000156E: using guessed type int __cdecl AINode_Battle_Chase(bot_state_t *bs);
 
@@ -18373,11 +18373,11 @@ LABEL_8:
     v12[8] = 8.0;
     v12[9] = 8.0;
     if ( BotTouchingGoal(bs->origin, v12) )
-      *(int *)&bs->_f2804 = 0;
-    if ( AAS_Time() <= bs->_f2804 )
+      *(int *)&bs->chase_time = 0;
+    if ( AAS_Time() <= bs->chase_time )
     {
-      if ( AAS_Time() > bs->_f2808
-        && (bs->_f2808 = AAS_Time() + 1.0,
+      if ( AAS_Time() > bs->check_time
+        && (bs->check_time = AAS_Time() + 1.0,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
       {
         bs->nbg_time = AAS_Time() + 5.0;
@@ -18420,8 +18420,8 @@ LABEL_8:
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
         }
-        if ( bs->_i2944 == bs->lastenemyareanum )
-          *(int *)&bs->_f2804 = 0;
+        if ( bs->areanum == bs->lastenemyareanum )
+          *(int *)&bs->chase_time = 0;
         if ( (v13[5] & 8) == 0 )
           BotChangeViewAngles(bs);
         if ( BotWantsToRetreat((int *)bs) )
@@ -18541,9 +18541,9 @@ LABEL_10:
     if ( v3 )
     {
       v4 = AAS_Time();
-      if ( v4 > bs->_f2808
+      if ( v4 > bs->check_time
         && (v4 = AAS_Time() + 1.0,
-            bs->_f2808 = v4,
+            bs->check_time = v4,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -18762,31 +18762,31 @@ _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2)
   unsigned int v5; // edx
 
   result = a2;
-  *a2 = (*(int *)&bs->ps_origin[0]);
-  a2[1] = (*(int *)&bs->ps_origin[1]);
-  a2[2] = (*(int *)&bs->ps_origin[2]);
-  a2[3] = (*(int *)&bs->ps_velocity[0]);
-  a2[4] = (*(int *)&bs->ps_velocity[1]);
-  a2[5] = (*(int *)&bs->ps_velocity[2]);
-  a2[6] = (*(int *)&bs->viewoffset[0]);
-  a2[7] = (*(int *)&bs->viewoffset[1]);
-  a2[8] = (*(int *)&bs->viewoffset[2]);
+  *a2 = (*(int *)&bs->snapshot.origin[0]);
+  a2[1] = (*(int *)&bs->snapshot.origin[1]);
+  a2[2] = (*(int *)&bs->snapshot.origin[2]);
+  a2[3] = (*(int *)&bs->snapshot.velocity[0]);
+  a2[4] = (*(int *)&bs->snapshot.velocity[1]);
+  a2[5] = (*(int *)&bs->snapshot.velocity[2]);
+  a2[6] = (*(int *)&bs->snapshot.viewoffset[0]);
+  a2[7] = (*(int *)&bs->snapshot.viewoffset[1]);
+  a2[8] = (*(int *)&bs->snapshot.viewoffset[2]);
   a2[9] = bs->entitynum;
   a2[10] = bs->client;
   a2[11] = *(int *)&bs->thinktime;
   v3 = a2[24] & 0xFFFFFFFD;
   a2[24] = v3;
-  if ( (bs->pm_flags & 4) != 0 )
+  if ( (bs->snapshot.pm_flags & 4) != 0 )
     a2[24] = v3 | 2;
   v4 = a2[24] & 0xFFFFFFDF;
   a2[24] = v4;
-  if ( (bs->pm_flags & 0x20) != 0 && bs->pm_time )
+  if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time )
     a2[24] = v4 | 0x20;
   v5 = a2[24] & 0xFFFFFFEF;
   a2[24] = v5;
-  if ( (bs->pm_flags & 8) != 0 && bs->pm_time )
+  if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time )
     a2[24] = v5 | 0x10;
-  if ( (bs->pm_flags & 1) != 0 )
+  if ( (bs->snapshot.pm_flags & 1) != 0 )
     a2[12] = 4;
   else
     a2[12] = 2;
@@ -18804,7 +18804,7 @@ char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
 
   ws->client = bs->client;
   ws->inventory = bs->inventory;
-  result = AAS_ModelFromIndex(bs->gunindex);
+  result = AAS_ModelFromIndex(bs->snapshot.gunindex);
   ws->modelname = result;
   return result;
 }
@@ -18824,8 +18824,8 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   int v9; // eax
   double v10; // [esp+Ch] [ebp-8h]
 
-  bs->_i1892 = *(__int16 *)(a1 + 154);
-  v1 = *(_WORD *)(a1 + 170);
+  bs->inventory_health = bs->snapshot.stats[1];
+  v1 = bs->snapshot.stats[9];
   if ( v1 )
   {
     v2 = AAS_ImageFromIndex(v1);
@@ -18836,56 +18836,56 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
         if ( _strcmpi(v2, aPRebreather) )
         {
           if ( !_strcmpi(v2, aPEnvirosuit) )
-            *(float *)(a1 + 2844) = AAS_Time() + (double)*(__int16 *)(a1 + 172);
+            bs->enviro_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
         }
         else
         {
-          *(float *)(a1 + 2840) = AAS_Time() + (double)*(__int16 *)(a1 + 172);
+          bs->rebreather_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
         }
       }
       else
       {
-        *(float *)(a1 + 2836) = AAS_Time() + (double)*(__int16 *)(a1 + 172);
+        bs->invulnerability_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
       }
     }
     else
     {
-      *(float *)(a1 + 2832) = AAS_Time() + (double)*(__int16 *)(a1 + 172);
+      bs->quad_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
     }
   }
-  v3 = (__int64)(*(float *)(a1 + 2832) - AAS_Time());
+  v3 = (__int64)(bs->quad_endtime - AAS_Time());
   bs->quad_seconds = v3;
   if ( (int)v3 <= 0 )
     bs->quad_seconds = 0;
-  v4 = (__int64)(*(float *)(a1 + 2836) - AAS_Time());
+  v4 = (__int64)(bs->invulnerability_endtime - AAS_Time());
   bs->invuln_seconds = v4;
   if ( (int)v4 <= 0 )
     bs->invuln_seconds = 0;
-  v5 = (__int64)(*(float *)(a1 + 2840) - AAS_Time());
+  v5 = (__int64)(bs->rebreather_endtime - AAS_Time());
   bs->rebreather_seconds = v5;
   if ( (int)v5 <= 0 )
     bs->rebreather_seconds = 0;
-  v6 = (__int64)(*(float *)(a1 + 2844) - AAS_Time());
+  v6 = (__int64)(bs->enviro_endtime - AAS_Time());
   bs->enviro_seconds = v6;
   if ( (int)v6 <= 0 )
     bs->enviro_seconds = 0;
-  v7 = *(_WORD *)(a1 + 160);
+  v7 = bs->snapshot.stats[4];
   if ( v7 )
   {
     v8 = AAS_ImageFromIndex(v7);
     if ( !_strcmpi(v8, aIPowershield) )
-      *(float *)(a1 + 2828) = AAS_Time();
-    v10 = *(float *)(a1 + 2828);
+      bs->powerscreen_seen_time = AAS_Time();
+    v10 = bs->powerscreen_seen_time;
     if ( AAS_Time() - 0.9 >= v10 )
     {
-      bs->powershield_a = 0;
-      bs->powershield_b = 0;
+      bs->power_screen_active_cells = 0;
+      bs->power_shield_active_cells = 0;
     }
     else
     {
       v9 = *(_DWORD *)(a1 + 1808);
-      bs->powershield_a = v9;
-      bs->powershield_b = v9;
+      bs->power_screen_active_cells = v9;
+      bs->power_shield_active_cells = v9;
     }
   }
 }
@@ -18904,69 +18904,69 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   qmemcpy(v7, AAS_EntityInfo(v7, a2), sizeof(v7));
   v6[0] = v7[4] - bs->origin[0];
   v6[1] = v7[5] - bs->origin[1];
-  bs->enemy_height_diff = (int)(v7[6] - bs->origin[2]);
+  bs->enemy_height = (int)(v7[6] - bs->origin[2]);
   v6[2] = 0.0;
-  bs->enemy_horiz_dist = (int)VectorLength(v6);
+  bs->enemy_horizontal_dist = (int)VectorLength(v6);
   v2 = BYTE1(v7[28]);
-  bs->_i2648 = 0;
-  bs->_i2652 = 0;
+  bs->enemy_weapon_blaster = 0;
+  bs->enemy_weapon_shotgun = 0;
   v3 = v2 - 1;
-  bs->_i2656 = 0;
-  bs->_i2660 = 0;
-  bs->_i2664 = 0;
-  bs->_i2688 = 0;
-  bs->_i2668 = 0;
-  bs->_i2672 = 0;
-  bs->_i2676 = 0;
-  bs->_i2680 = 0;
-  bs->_i2684 = 0;
-  bs->_i2692 = 0;
+  bs->enemy_weapon_supershotgun = 0;
+  bs->enemy_weapon_machinegun = 0;
+  bs->enemy_weapon_chaingun = 0;
+  bs->enemy_weapon_grenades = 0;
+  bs->enemy_weapon_grenadelauncher = 0;
+  bs->enemy_weapon_rocketlauncher = 0;
+  bs->enemy_weapon_hyperblaster = 0;
+  bs->enemy_weapon_railgun = 0;
+  bs->enemy_weapon_bfg = 0;
+  bs->enemy_weapon_phalanx = 0;
   result = 1;
   switch ( v3 )
   {
     case 0:
-      bs->_i2648 = 1;
+      bs->enemy_weapon_blaster = 1;
       break;
     case 1:
-      bs->_i2652 = 1;
+      bs->enemy_weapon_shotgun = 1;
       break;
     case 2:
-      bs->_i2656 = 1;
+      bs->enemy_weapon_supershotgun = 1;
       break;
     case 3:
-      bs->_i2660 = 1;
+      bs->enemy_weapon_machinegun = 1;
       break;
     case 4:
-      bs->_i2664 = 1;
+      bs->enemy_weapon_chaingun = 1;
       break;
     case 5:
-      bs->_i2688 = 1;
+      bs->enemy_weapon_grenades = 1;
       break;
     case 6:
-      bs->_i2668 = 1;
+      bs->enemy_weapon_grenadelauncher = 1;
       break;
     case 7:
-      bs->_i2672 = 1;
+      bs->enemy_weapon_rocketlauncher = 1;
       break;
     case 8:
-      bs->_i2676 = 1;
+      bs->enemy_weapon_hyperblaster = 1;
       break;
     case 9:
-      bs->_i2680 = 1;
+      bs->enemy_weapon_railgun = 1;
       break;
     case 10:
-      bs->_i2684 = 1;
+      bs->enemy_weapon_bfg = 1;
       break;
     case 11:
-      bs->_i2692 = 1;
+      bs->enemy_weapon_phalanx = 1;
       break;
     default:
       break;
   }
   v5 = BYTE1(v7[29]);
-  bs->_i2712 = (LODWORD(v7[29]) & 0x10000) != 0;
-  bs->_i2708 = v5 < 0;
-  bs->_i2716 = (v5 & 2) != 0;
+  bs->enemy_invulnerability = (LODWORD(v7[29]) & 0x10000) != 0;
+  bs->enemy_quad = v5 < 0;
+  bs->enemy_powerscreen = (v5 & 2) != 0;
   return result;
 }
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
@@ -18974,17 +18974,18 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
 //----- (10021500) --------------------------------------------------------
 int __cdecl BotBattleUseItems(_DWORD *a1)
 {
+  bot_state_t *bs = (bot_state_t *)a1;
   int v1;
   int result; // eax
 
   if ( (int)a1[457] > 0 )
     EA_Use(a1[1], aSilencer);
   v1 = bi_PointContents((float *)(a1 + 428));   /* IDA-dropped: eye-pos liquid check for rebreather */
-  if ( (v1 & 0x38) != 0 && !a1[639] && (int)a1[458] > 0 )
+  if ( (v1 & 0x38) != 0 && !bs->rebreather_seconds && (int)a1[458] > 0 )
     EA_Use(a1[1], aRebreather);
-  if ( !a1[643] && (int)a1[438] > 0 )
+  if ( !bs->power_shield_active_cells && (int)a1[438] > 0 )
     EA_Use(a1[1], aPowerShield);
-  result = a1[642];
+  result = bs->power_screen_active_cells;
   if ( !result )
   {
     result = a1[437];
@@ -18999,12 +19000,13 @@ int __cdecl BotBattleUseItems(_DWORD *a1)
 //----- (100215E0) --------------------------------------------------------
 _DWORD *__cdecl sub_100215E0(_DWORD *a1)
 {
+  bot_state_t *bs = (bot_state_t *)a1;
   _DWORD *result; // eax
 
   result = a1;
-  if ( !a1[636] && (int)a1[455] > 0 )
+  if ( !bs->quad_seconds && (int)a1[455] > 0 )
     return (_DWORD *)EA_Use(a1[1], aQuadDamage);
-  if ( !a1[637] && (int)a1[456] > 0 )
+  if ( !bs->invuln_seconds && (int)a1[456] > 0 )
     return (_DWORD *)EA_Use(a1[1], aInvulnerabilit);
   return result;
 }
@@ -19026,20 +19028,20 @@ BOOL __cdecl BotIsDead(bot_state_t *bs)
 {
   int v1; // eax
 
-  v1 = *(_DWORD *)((char *)bs + 12);
+  v1 = bs->snapshot.pm_type;
   return v1 == 2 || v1 == 3;
 }
 
 //----- (100216D0) --------------------------------------------------------
 BOOL __cdecl BotIsObserver(bot_state_t *bs)
 {
-  return *(_DWORD *)((char *)bs + 12) == 1;
+  return bs->snapshot.pm_type == 1;
 }
 
 //----- (100216F0) --------------------------------------------------------
 BOOL __cdecl BotIntermission(bot_state_t *bs)
 {
-  return *(_DWORD *)((char *)bs + 12) == 4;
+  return bs->snapshot.pm_type == 4;
 }
 
 //----- (10021710) --------------------------------------------------------
@@ -19292,7 +19294,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 
   if ( BotIsDead(bs) )
     return 1;
-  if ( (bs->pm_flags & 4) == 0 )
+  if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
   v2 = *(int *)&bs->origin[1];
   v3 = bs->origin[2] - 24.0;
@@ -19609,17 +19611,18 @@ double __cdecl BotChatTime(bot_state_t *bs)
 //----- (100226C0) --------------------------------------------------------
 double __cdecl BotAggression(int *a1)
 {
+  bot_state_t *bs = (bot_state_t *)a1;
   int v2; // ecx
 
-  if ( a1[637] )
+  if ( bs->invuln_seconds )
     return 100.0;
-  if ( a1[678] || a1[677] && !a1[636] )
+  if ( bs->enemy_invulnerability || bs->enemy_quad && !bs->quad_seconds )
     return 0.0;
-  if ( a1[679] && (!a1[642] || a1[452] < 50) )
+  if ( bs->enemy_powerscreen && (!bs->power_screen_active_cells || a1[452] < 50) )
     return 0.0;
-  if ( a1[633] > 200 )
+  if ( bs->enemy_height > 200 )
     return 0.0;
-  v2 = a1[473];
+  v2 = bs->inventory_health;
   if ( v2 < 40 || v2 < 70 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
     return 0.0;
   if ( a1[449] > 0 && a1[452] > 50 )
@@ -19662,17 +19665,18 @@ BOOL __cdecl BotWantsToChase(int *a1)
 //----- (10022990) --------------------------------------------------------
 BOOL BotCanAndWantsToRocketJump(int *a1)
 {
+  bot_state_t *bs = (bot_state_t *)a1;
   int v3; // ecx
 
   if ( a1[446] <= 0 )
     return 0;
   if ( a1[453] < 3 )
     return 0;
-  if ( a1[636] )
+  if ( bs->quad_seconds )
     return 0;
-  if ( a1[637] )
+  if ( bs->invuln_seconds )
     return 1;
-  v3 = a1[473];
+  v3 = bs->inventory_health;
   if ( v3 < 60 )
     return 0;
   if ( v3 < 90 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
@@ -19790,6 +19794,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 //----- (10022E10) --------------------------------------------------------
 void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
 {
+  bot_state_t *bs = (bot_state_t *)a2;   /* restored: a2 is the bot state pointer (mirrors other __cdecl(int a) bot funcs) */
   float v3; // ecx
   float v4; // edx
   float v5; // eax
@@ -19830,7 +19835,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
   v36[0] = 0;
   v36[1] = 0;
   v36[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v36 is float[3] */
-  if ( AAS_Time() < *(float *)(a2 + 2824) )
+  if ( AAS_Time() < bs->_f2824 )
   {
     v3 = *(float *)(a2 + 4200);
     v4 = *(float *)(a2 + 4204);
@@ -19902,7 +19907,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       {
         if ( v12 == 4 )
         {
-          v13 = *(_DWORD *)(a2 + 2752);
+          v13 = *(_DWORD *)&bs->flags;
           if ( (v13 & 4) != 0 )
           {
             LOBYTE(v13) = v13 & 0xFB;
@@ -19912,7 +19917,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
           {
             LOBYTE(v13) = v13 | 4;
           }
-          *(_DWORD *)(a2 + 2752) = v13;
+          *(_DWORD *)&bs->flags = v13;
         }
       }
       else
@@ -19925,7 +19930,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
           BotMoveInDirection(a2 + 2880, (intptr_t)v32, 400.0, v12);
         goto LABEL_39;
       }
-      *(float *)(a2 + 2816) = *(float *)(a2 + 2816) + 0.1;
+      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
       v14 = (1.0 - v27) * 0.2 + 0.4;
       v31 = v14;
       if ( v27 > 0.7 )
@@ -19934,11 +19939,11 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
         v14 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < *(float *)(a2 + 2816) && (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9350000000000001 )
+      if ( v14 < bs->attackstrafe_drift && (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9350000000000001 )
       {
-        v16 = *(_DWORD *)(a2 + 2752);
-        *(_DWORD *)(a2 + 2816) = 0;
-        *(_DWORD *)(a2 + 2752) = v16 ^ 1;
+        v16 = *(_DWORD *)&bs->flags;
+        *(_DWORD *)&bs->attackstrafe_drift = 0;
+        *(_DWORD *)&bs->flags = v16 ^ 1;
       }
       v17 = 0;
       while ( 1 )
@@ -19948,7 +19953,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
         v35[2] = 0;
         VectorNormalize(v35);
         CrossProduct(v35, v36, v22);
-        if ( (*(_BYTE *)(a2 + 2752) & 1) != 0 )
+        if ( (*(unsigned char *)&bs->flags & 1) != 0 )
         {
           *(float *)&v22[0] = -*(float *)&v22[0];
           v22[1] = -v22[1];
@@ -19966,10 +19971,10 @@ LABEL_36:
 LABEL_37:
         if ( !BotMoveInDirection(a2 + 2880, (intptr_t)v22, 400.0, v12) )
         {
-          v19 = *(_DWORD *)(a2 + 2752);
-          *(_DWORD *)(a2 + 2816) = 0;
+          v19 = *(_DWORD *)&bs->flags;
+          *(_DWORD *)&bs->attackstrafe_drift = 0;
           ++v17;
-          *(_DWORD *)(a2 + 2752) = v19 ^ 1;
+          *(_DWORD *)&bs->flags = v19 ^ 1;
           if ( v17 < 2 )
             continue;
         }
@@ -20143,10 +20148,10 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   char v20[124]; // [esp+FCh] [ebp-7Ch] BYREF
 
   v1 = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
-  v2 = bs->_i2764;
+  v2 = bs->lasthealth;
   v15 = v1;
-  v3 = bs->_i1892;
-  bs->_i2764 = v3;
+  v3 = bs->inventory_health;
+  bs->lasthealth = v3;
   v16 = v2 > v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0, 16, v19);
   v10 = 0;
@@ -20201,7 +20206,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
       return 0;
   }
   bs->enemy = v18[3];
-  bs->_f2848 = AAS_Time();
+  bs->enemysight_time = AAS_Time();
   return 1;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -20294,7 +20299,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v6 = bs->origin[2];
     v7 = bs->entitynum;
     v39 = v4;
-    v8 = v6 + bs->viewoffset[2];
+    v8 = v6 + bs->snapshot.viewoffset[2];
     v40 = v5;
     v41 = v8;
     v41 = v8 + *(float *)(v3 + 296);
@@ -20470,7 +20475,7 @@ void BotCheckAttack(bot_state_t *bs)
      * timer compare AAS_Time() to the bot pointer cast as float, never letting
      * splash attacks fire. */
     v11 = (float)Characteristic_BFloat(BotCharacter(bs), 11, 0.0, 1.0);
-    if ( AAS_Time() - v11 >= bs->_f2848 )
+    if ( AAS_Time() - v11 >= bs->enemysight_time )
     {
       qmemcpy(v23, AAS_EntityInfo(v24, bs->enemy), sizeof(v23));
       v18[0] = v23[4] - bs->origin[0];
@@ -20485,7 +20490,7 @@ void BotCheckAttack(bot_state_t *bs)
         if ( v3 )
         {
           v4 = bs->origin[1];
-          v5 = bs->origin[2] + bs->viewoffset[2];
+          v5 = bs->origin[2] + bs->snapshot.viewoffset[2];
           v13 = *(int *)bs->origin;
           v15 = v5;
           v14 = v4;
@@ -20514,9 +20519,9 @@ void BotCheckAttack(bot_state_t *bs)
                   qmemcpy(v22, v9, sizeof(v22)),
                   LODWORD(v22[20]) == v10) )
             {
-              if ( (*(_BYTE *)(v3 + 172) & 1) == 0 || (*(unsigned char *)&bs->_i2752 & 2) != 0 )
+              if ( (*(_BYTE *)(v3 + 172) & 1) == 0 || (*(unsigned char *)&bs->flags & 2) != 0 )
                 EA_Attack(bs->client);
-              bs->_i2752 ^= 2u;
+              bs->flags ^= 2u;
             }
           }
         }
@@ -20896,32 +20901,39 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
   float v35; // [esp+0h] [ebp-174h]
   int v36; // [esp+4h] [ebp-170h]
   int v37; // [esp+4h] [ebp-170h]
-  int v38; // [esp+1Ch] [ebp-158h] BYREF
-  int v39; // [esp+20h] [ebp-154h]
-  int v40; // [esp+24h] [ebp-150h]
-  float v41; // [esp+28h] [ebp-14Ch] BYREF
-  float v42; // [esp+2Ch] [ebp-148h]
-  float v43; // [esp+30h] [ebp-144h]
-  float v44; // [esp+34h] [ebp-140h] BYREF
-  float v45; // [esp+38h] [ebp-13Ch]
-  float v46; // [esp+3Ch] [ebp-138h]
-  int v47; // [esp+40h] [ebp-134h] BYREF
-  float v48; // [esp+44h] [ebp-130h]
-  float v49; // [esp+48h] [ebp-12Ch]
-  float v50[3]; /* was v50,v50[1],v50[2] — vec3_t for activated area check */
+  float v38_vec[3]; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
+#define v38 v38_vec[0]
+#define v39 v38_vec[1]
+#define v40 v38_vec[2]
+  float v41_vec[3]; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
+#define v41 v41_vec[0]
+#define v42 v41_vec[1]
+#define v43 v41_vec[2]
+  float v44_vec[3]; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
+#define v44 v44_vec[0]
+#define v45 v44_vec[1]
+#define v46 v44_vec[2]
+  float v47_vec[3]; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
+#define v47 v47_vec[0]
+#define v48 v47_vec[1]
+#define v49 v47_vec[2]
+  float v50[3]; /* was v50,v51,v52 — vec3_t for activated area check */
   /* v51/v52 subsumed into v50[1]/v50[2] */
-  /* v51/v52 subsumed into v50[1]/v50[2] */
-  int v53; // [esp+58h] [ebp-11Ch] BYREF
-  float v55; // [esp+60h] [ebp-114h]
-  int v56; // [esp+64h] [ebp-110h] BYREF
-  int v59; // [esp+70h] [ebp-104h] BYREF
-  float v60; // [esp+74h] [ebp-100h]
-  float v61; // [esp+78h] [ebp-FCh]
-  int v62; // [esp+7Ch] [ebp-F8h] BYREF
-  float v63; // [esp+80h] [ebp-F4h]
-  float v64; // [esp+84h] [ebp-F0h]
+  float v53_vec[3]; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
+#define v53 v53_vec[0]
+#define v55 v53_vec[2]
+  float v56_vec[3]; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
+#define v56 v56_vec[0]
+  float v59_vec[3]; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
+#define v59 v59_vec[0]
+#define v60 v59_vec[1]
+#define v61 v59_vec[2]
+  float v62[3]; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
+  /* v63 subsumed into v62[1] */
+  /* v64 subsumed into v62[2] */
   float v65; // [esp+88h] [ebp-ECh]
-  int v66; // [esp+8Ch] [ebp-E8h] BYREF
+  float v66_vec[3]; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
+#define v66 v66_vec[0]
   float v69; // [esp+98h] [ebp-DCh]
   float v70; // [esp+9Ch] [ebp-D8h]
   float v71; // [esp+A0h] [ebp-D4h]
@@ -20955,15 +20967,17 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
     if ( result )
     {
       v56 = 0;
-      AAS_BSPModelMinsMaxsOrigin((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+      v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x100256e3..0x100256fa */
+      v56_vec[2] = 0;
+      AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
       *(float *)&v38 = v44 + v41;
       *(float *)&v39 = v45 + v42;
       *(float *)&v40 = v46 + v43;
-      VectorScale((float *)&v38, 0.5, (float *)&v38);
-      *(float *)&v50 = *(float *)&v38 - bs->origin[0];
-      v50[1] = *(float *)&v39 - bs->origin[1];
-      v50[2] = *(float *)&v40 - bs->origin[2];
-      vectoangles(&v50, a2 + 9);
+      VectorScale(v38_vec, 0.5, v38_vec);
+      v50[0] = v38 - bs->origin[0];
+      v50[1] = v39 - bs->origin[1];
+      v50[2] = v40 - bs->origin[2];
+      vectoangles(v50, a2 + 9);
       v29 = a2[5];
       LOBYTE(v29) = v29 | 1;
       a2[5] = v29;
@@ -20979,26 +20993,28 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
     if ( !result )
       return result;
     v56 = 0;
-    AAS_BSPModelMinsMaxsOrigin((int)result - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+    v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x100256e3..0x100256fa */
+    v56_vec[2] = 0;
+    AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, aLip);
     v56 = 0;
-    BotSetMovedir((int)&v56, (int)&v50);
+    BotSetMovedir((int)&v56, (int)v50);
     v69 = v41 - v44;
     v70 = v42 - v45;
     v71 = v43 - v46;
-    *(float *)&v59 = v44 + v41;
+    v59 = v44 + v41;
     v60 = v45 + v42;
     v61 = v46 + v43;
-    VectorScale((float *)&v59, 0.5, (float *)&v59);
-    v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(*(float *)&v50) * v69) * 0.5;
+    VectorScale(v59_vec, 0.5, v59_vec);
+    v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(v50[0]) * v69) * 0.5;
     if ( FloatForKey(v6, aHealth) != 0.0 )
     {
       v34 = -v65;
-      VectorMA((float *)&v59, v34, (float *)&v50, (float *)&v38);
-      *(float *)&v50 = *(float *)&v38 - bs->origin[0];
-      v50[1] = *(float *)&v39 - bs->origin[1];
-      v50[2] = *(float *)&v40 - bs->origin[2];
-      vectoangles(&v50, a2 + 9);
+      VectorMA(v59_vec, v34, v50, v38_vec);
+      v50[0] = v38 - bs->origin[0];
+      v50[1] = v39 - bs->origin[1];
+      v50[2] = v40 - bs->origin[2];
+      vectoangles(v50, a2 + 9);
       a2[5] |= 1u;
       EA_Use(bs->client, aBlaster);
       return (int (__cdecl *)(int))EA_Attack(bs->client);
@@ -21015,25 +21031,28 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
       v9 = v12 + v9;
     }
     v35 = -v9;
-    VectorMA((float *)&v59, v35, (float *)&v50, (float *)&v38);
+    VectorMA(v59_vec, v35, v50, v38_vec);
     v53 = v38;
+    v53_vec[1] = v39; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
+    v55 = v40 + 24.0;
     v66 = v38;
-    v55 = *(float *)&v40 + 24.0;
-    trace = AAS_TraceClientBBox((float *)&v53, (float *)&v66, 4, -1);
+    v66_vec[1] = v39; /* IDA dropped middle end write; original mov [esp+0x98], eax at 0x10025954 */
+    v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xAC] at 0x1002596B */
+    trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
     if ( !trace.startsolid )
     {
-      v38 = *(int *)&trace.endpos[0];
-      v39 = *(int *)&trace.endpos[1];
-      v40 = *(int *)&trace.endpos[2];
+      v38 = trace.endpos[0];
+      v39 = trace.endpos[1];
+      v40 = trace.endpos[2];
     }
     v13 = a1;
     v14 = v60;
     v15 = v61;
-    bs->activategoal.origin[0] = *(float *)&v59;
+    bs->activategoal.origin[0] = v59;
     bs->activategoal.origin[1] = v14;
     bs->activategoal.origin[2] = v15;
-    v16 = AAS_PointAreaNum(&v38);
-    v17 = v44 - *(float *)&v59;
+    v16 = AAS_PointAreaNum(v38_vec);
+    v17 = v44 - v59;
     v18 = v77[3];
     bs->activategoal.areanum = v16;
     bs->activategoal.entitynum = v18;
@@ -21042,12 +21061,12 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
     bs->activategoal.mins[0] = v17 - 5.0;
     bs->activategoal.mins[1] = v45 - v60 - 5.0;
     bs->activategoal.mins[2] = v46 - v61 - 5.0;
-    bs->activategoal.maxs[0] = v41 - *(float *)&v59 + 5.0;
+    bs->activategoal.maxs[0] = v41 - v59 + 5.0;
     bs->activategoal.maxs[1] = v42 - v60 + 5.0;
     bs->activategoal.maxs[2] = v43 - v61 + 5.0;
     v19 = AAS_Time();
     v36 = bs->activategoal.areanum;
-    bs->_f2852 = v19 + 10.0;
+    bs->activategoal_time = v19 + 10.0;
     if ( !AAS_AreaReachability(v36) )
     {
       result = BotAINode(bs);
@@ -21074,31 +21093,32 @@ LABEL_37:
     VectorNormalize(v72);
     v31 = bs->origin[2];
     v32 = bs->origin[1];
-    v53 = *(int *)&bs->origin[0];
+    v53 = bs->origin[0];
+    v53_vec[1] = v32;
     v55 = v31;
     v55 = v31 + libvar_sv_step->value;
-    VectorMA((float *)&v53, 5.0, (float *)v72, (float *)&v66);
+    VectorMA(v53_vec, 5.0, v72, v66_vec);
     v44 = -16.0;
     v45 = -16.0;
     v46 = -24.0;
     v41 = 16.0;
     v42 = 16.0;
     v43 = 4.0;
-    CrossProduct(v72, v73, &v62);
-    if ( (*(unsigned char *)&bs->_i2752 & 0x10) != 0 )
+    CrossProduct(v72, v73, v62);
+    if ( (*(unsigned char *)&bs->flags & 0x10) != 0 )
     {
-      *(float *)&v62 = -*(float *)&v62;
-      v63 = -v63;
-      v64 = -v64;
+      v62[0] = -v62[0];
+      v62[1] = -v62[1];
+      v62[2] = -v62[2];
     }
-    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)&v62, 400.0, 1) )
+    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0, 1) )
     {
-      *(float *)&v62 = -*(float *)&v62;
-      v33 = bs->_i2752;
-      v63 = -v63;
-      v64 = -v64;
-      bs->_i2752 = v33 ^ 0x10;
-      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)&v62, 400.0, 1);
+      v62[0] = -v62[0];
+      v33 = bs->flags;
+      v62[1] = -v62[1];
+      v62[2] = -v62[2];
+      bs->flags = v33 ^ 0x10;
+      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
@@ -21116,29 +21136,34 @@ LABEL_37:
   if ( !v21 )
     v21 = atoi((const char *)(v20 + 1));
   v56 = 0;
-  AAS_BSPModelMinsMaxsOrigin(v21 - 1, (float *)&v56, (float *)&v44, (float *)&v41, NULL);
+  v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x10025b78..0x10025b8f/0x10025d9f..0x10025db7 */
+  v56_vec[2] = 0;
+  AAS_BSPModelMinsMaxsOrigin(v21 - 1, v56_vec, v44_vec, v41_vec, NULL);
   *(float *)&v47 = v44 + v41;
   v48 = v45 + v42;
   v49 = v46 + v43;
-  VectorScale((float *)&v47, 0.5, (float *)&v47);
+  VectorScale(v47_vec, 0.5, v47_vec);
   v53 = v47;
+  v53_vec[1] = v48; /* IDA dropped middle start write; original mov [esp+0x70], edx at 0x10025BE5 */
   v55 = v43 + 24.0;
   v66 = v47;
+  v66_vec[1] = v48; /* IDA dropped middle end write; original mov [esp+0xA8], ecx at 0x10025C09 */
+  v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xBC] at 0x10025C20 */
   /* Original IDA: sub_10001861 (thunk → 0x1001B260 = AAS_TraceClientBBox). */
-  trace = AAS_TraceClientBBox((float *)&v53, (float *)&v66, 4, -1);
+  trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
   if ( !trace.startsolid )
   {
     v13 = a1;
-    v40 = *(int *)&trace.endpos[2];
-    v38 = *(int *)&trace.endpos[0];
+    v40 = trace.endpos[2];
+    v38 = trace.endpos[0];
     v22 = v48;
-    v39 = *(int *)&trace.endpos[1];
+    v39 = trace.endpos[1];
     v23 = v49;
-    bs->activategoal.origin[0] = *(float *)&v47;
+    bs->activategoal.origin[0] = v47;
     bs->activategoal.origin[1] = v22;
     bs->activategoal.origin[2] = v23;
-    v24 = AAS_PointAreaNum(&v38);
-    v25 = v44 - *(float *)&v47;
+    v24 = AAS_PointAreaNum(v38_vec);
+    v25 = v44 - v47;
     v26 = v77[3];
     bs->activategoal.areanum = v24;
     bs->activategoal.entitynum = v26;
@@ -21147,12 +21172,12 @@ LABEL_37:
     bs->activategoal.mins[0] = v25;
     bs->activategoal.mins[1] = v45 - v48;
     bs->activategoal.mins[2] = v46 - v49;
-    bs->activategoal.maxs[0] = v41 - *(float *)&v47;
+    bs->activategoal.maxs[0] = v41 - v47;
     bs->activategoal.maxs[1] = v42 - v48;
     bs->activategoal.maxs[2] = v43 - v49;
     v27 = AAS_Time();
     v37 = bs->activategoal.areanum;
-    bs->_f2852 = v27 + 10.0;
+    bs->activategoal_time = v27 + 10.0;
     if ( !AAS_AreaReachability(v37) )
     {
       result = BotAINode(bs);
@@ -21166,6 +21191,25 @@ LABEL_37:
     return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
   }
   return result;
+#undef v66
+#undef v59
+#undef v60
+#undef v61
+#undef v56
+#undef v53
+#undef v55
+#undef v47
+#undef v48
+#undef v49
+#undef v44
+#undef v45
+#undef v46
+#undef v41
+#undef v42
+#undef v43
+#undef v38
+#undef v39
+#undef v40
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
@@ -21218,7 +21262,7 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
     {
       bs->ltgtype = 5;
       v1 = AAS_Time();
-      *(int *)&bs->_f2864 = 0;
+      *(int *)&bs->rushbaseaway_time = 0;
       bs->teammatevisible_time = v1 + 120.0;
     }
   }
@@ -21243,11 +21287,11 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     {
       bs->ltgtype = 5;
       v2 = AAS_Time();
-      *(int *)&bs->_f2864 = 0;
+      *(int *)&bs->rushbaseaway_time = 0;
       bs->teammatevisible_time = v2 + 120.0;
     }
   }
-  else if ( AAS_Time() >= bs->_f2868 )
+  else if ( AAS_Time() >= bs->ctfroam_time )
   {
     v3 = bs->ltgtype;
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0 )
@@ -21269,13 +21313,13 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
         qmemcpy(&bs->teamgoal, v6, 0x38u);
         bs->ltgtype = 3;
         v7 = AAS_Time();
-        *(int *)&bs->_f2860 = 0;
+        *(int *)&bs->defendaway_time = 0;
         bs->teammatevisible_time = v7 + 120.0;
       }
       else
       {
         bs->ltgtype = 0;
-        bs->_f2868 = AAS_Time() + 60.0;
+        bs->ctfroam_time = AAS_Time() + 60.0;
       }
     }
   }
@@ -21318,7 +21362,7 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *go
 }
 
 //----- (100267E0) --------------------------------------------------------
-double __cdecl BotGetTime(int a1)
+double __cdecl BotGetTime(bot_match_t *match)
 {
   double v1; // st7
   float v3; // [esp+0h] [ebp-18Ch]
@@ -21328,12 +21372,12 @@ double __cdecl BotGetTime(int a1)
    * sub_10001267 = BotFindMatch, not strncmp.  See chat_state.h. */
   bot_match_t Destination; // [esp+9Ch] [ebp-F0h] BYREF
 
-  if ( (*(_BYTE *)(a1 + 156) & 0x10) == 0 )
+  if ( (match->subtype & 0x10) == 0 )
     return 0.0;
-  BotMatchVariable(a1, 5, String);
+  BotMatchVariable(match, 5, String);
   if ( !BotFindMatch(String, &Destination, 8) )
     return 0.0;
-  BotMatchVariable((int)&Destination, 5, String);
+  BotMatchVariable(&Destination, 5, String);
   if ( Destination.type == 105 )
   {
     v1 = atof(String) * 60.0;
@@ -21399,7 +21443,7 @@ LABEL_5:
 // 100643A8: using guessed type int dword_100643A8;
 
 //----- (10026990) --------------------------------------------------------
-int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2)
+int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 {
   int v2; // esi
   int v3; // edi
@@ -21414,23 +21458,23 @@ int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2)
 
   v2 = 0;
   v3 = 0;
-  BotMatchVariable(a2, 4, Destination);
+  BotMatchVariable(match, 4, Destination);
   while ( 1 )
   {
     if ( !BotFindMatch(Destination, &v9, 64) )
     {
-      EA_SayTeam(a1[1], aWhatDoYouSay);
+      EA_SayTeam(bs->client, aWhatDoYouSay);
       BotFreeWaypoints(v2);
-      a1[1137] = 0;
+      bs->patrolpoints = 0;
       return 0;
     }
-    BotMatchVariable((int)&v9, 4, Destination);
-    if ( !BotGetMessageTeamGoal((bot_state_t *)a1, Destination, (bot_goal_t *)v7) )
+    BotMatchVariable(&v9, 4, Destination);
+    if ( !BotGetMessageTeamGoal(bs, Destination, (bot_goal_t *)v7) )
     {
-      BotInitialChat(a1 + 995, aCannotfind, Destination, (char *)0);
-      BotEnterChat(a1 + 995, a1[1], 1);
+      BotInitialChat(bs->chatstate, aCannotfind, Destination, (char *)0);
+      BotEnterChat(bs->chatstate, bs->client, 1);
       BotFreeWaypoints(v2);
-      a1[1137] = 0;
+      bs->patrolpoints = 0;
       return 0;
     }
     v4 = BotResetState(Destination);
@@ -21460,21 +21504,21 @@ LABEL_8:
       break;
     if ( (v9.subtype & 0x100) == 0 )
       goto LABEL_18;
-    BotMatchVariable((int)&v9, 5, Destination);
+    BotMatchVariable(&v9, 5, Destination);
   }
   v3 = 2;
 LABEL_18:
   if ( v2 && *(_DWORD *)(v2 + 60) )
   {
-    BotFreeWaypoints(a1[1137]);
-    a1[1139] = v3;
-    a1[1137] = v2;
-    a1[1138] = v2;
+    BotFreeWaypoints(bs->patrolpoints);
+    bs->patrolflags = v3;
+    bs->patrolpoints = v2;
+    bs->curpatrolpoint = v2;
     return 1;
   }
   else
   {
-    EA_SayTeam(a1[1], aINeedMoreKeyPo);
+    EA_SayTeam(bs->client, aINeedMoreKeyPo);
     BotFreeWaypoints(v2);
     return 0;
   }
@@ -21562,7 +21606,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   double v16; // st7
   int v17; // eax
   int v18; // ebx
-  int v19; // edi
+  void *v19; // edi (chatstate pointer)
   int v20; // ecx
   int v21; // edx
   int v22; // eax
@@ -21596,7 +21640,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   int v50; // eax
   const char *v51; // eax
   char *v52; // eax
-  int v53; // esi
+  void *v53; // esi (chatstate pointer)
   int v54; // [esp+28h] [ebp-5C4h]
   float v55; // [esp+28h] [ebp-5C4h]
   float v56; // [esp+28h] [ebp-5C4h]
@@ -21633,15 +21677,15 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
       v3 = ClientFromName(Buffer);
       if ( v3 == bs->client )
       {
-        bs->_i2772 = v64.subtype;
+        bs->botdeathtype = v64.subtype;
         return 1;
       }
       else
       {
         if ( v3 + 1 != bs->enemy )
           return 1;
-        bs->_i2768 = v64.subtype;
-        bs->_f2872 = AAS_Time();
+        bs->enemydeathtype = v64.subtype;
+        bs->killedenemy_time = AAS_Time();
         return 1;
       }
     case 2:
@@ -21716,11 +21760,11 @@ LABEL_19:
         }
 LABEL_32:
         bs->teammate = v4;
-        *(float *)&bs->_i4332 = AAS_Time();
+        bs->teammatelastseen_time = AAS_Time();
         v10 = rand();
         v55 = (double)(v10 & 0x7FFF) * 0.000030518509 + (double)(v10 & 0x7FFF) * 0.000030518509;
         bs->teammessage_time = AAS_Time() + v55;
-        v11 = BotGetTime((int)&v64);
+        v11 = BotGetTime(&v64);
         v12 = v64.type;
         bs->teammatevisible_time = v11;
         if ( v12 == 3 )
@@ -21742,8 +21786,8 @@ LABEL_32:
           bs->ltgtype = 2;
           if ( v11 == 0.0 )
             bs->teammatevisible_time = AAS_Time() + 240.0;
-          bs->_i4384 = 1121976320;
-          *(int *)&bs->_f2876 = 0;
+          bs->formation_dist = 100.0f;
+          *(int *)&bs->arrive_time = 0;
           return 1;
         }
       }
@@ -21766,11 +21810,11 @@ LABEL_27:
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->teammessage_time = v15 + v56;
-      v16 = BotGetTime((int)&v64);
+      v16 = BotGetTime(&v64);
       bs->teammatevisible_time = v16;
       if ( v16 == 0.0 )
         bs->teammatevisible_time = AAS_Time() + 120.0;
-      *(int *)&bs->_f2860 = 0;
+      *(int *)&bs->defendaway_time = 0;
       return 1;
     case 6:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
@@ -21781,7 +21825,7 @@ LABEL_27:
       bs->ltgtype = 5;
       bs->teammessage_time = v39 + v60;
       v40 = AAS_Time();
-      *(int *)&bs->_f2864 = 0;
+      *(int *)&bs->rushbaseaway_time = 0;
       result = 1;
       bs->teammatevisible_time = v40 + 120.0;
       return result;
@@ -21855,19 +21899,19 @@ LABEL_27:
           BotEnterChat(bs->chatstate, bs->client, 1);
           return 1;
         case 4:
-          v53 = (int)bs->chatstate;
+          v53 = bs->chatstate;
           BotInitialChat(bs->chatstate, aCapturingflag, (char *)0, (char *)0);
           goto LABEL_139;
         case 5:
-          v53 = (int)bs->chatstate;
+          v53 = bs->chatstate;
           BotInitialChat(bs->chatstate, aRushingbase, (char *)0, (char *)0);
           goto LABEL_139;
         case 6:
-          v53 = (int)bs->chatstate;
+          v53 = bs->chatstate;
           BotInitialChat(bs->chatstate, aCamping, (char *)0, (char *)0);
           goto LABEL_139;
         case 7:
-          v53 = (int)bs->chatstate;
+          v53 = bs->chatstate;
           BotInitialChat(bs->chatstate, aPatrolling, (char *)0, (char *)0);
 LABEL_139:
           BotEnterChat(v53, bs->client, 1);
@@ -21882,7 +21926,7 @@ LABEL_139:
         return 1;
       BotMatchVariable(&v64, 3, Source);
       strncpy(bs->teamleader, Source, 0x20u);
-      *((unsigned char *)&bs->_i4384 - 1) = 0;
+      bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
       BotInitialChat(bs->chatstate, aJoinedteam, Source, (char *)0);
       BotEnterChat(bs->chatstate, bs->client, 1);
       return 1;
@@ -21908,7 +21952,7 @@ LABEL_139:
         v47 = atof(Buffer) * 32.0;
       if ( v47 < 48.0 || v47 > 500.0 )
         v47 = 100.0;
-      *(float *)&bs->_i4384 = v47;
+      bs->formation_dist = v47;
       return 1;
     case 18:
       if ( !TeamPlayIsOn() )
@@ -21928,7 +21972,7 @@ LABEL_139:
       v18 = v17 + 1;
       if ( v17 == -1 )
       {
-        v19 = (int)bs->chatstate;
+        v19 = bs->chatstate;
         BotInitialChat(bs->chatstate, aWhois, Destination, (char *)0);
 LABEL_64:
         BotEnterChat(v19, bs->client, 1);
@@ -21937,7 +21981,7 @@ LABEL_64:
       BotMatchVariable(&v64, 4, String2);
       if ( (v64.subtype & 0x40) != 0 )
       {
-        v20 = bs->_i2944;
+        v20 = bs->areanum;
         v21 = *(int *)&bs->origin[0];
         bs->teamgoal.entitynum = bs->entitynum;
         v22 = *(int *)&bs->origin[1];
@@ -21992,7 +22036,7 @@ LABEL_64:
       }
       else if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
       {
-        v19 = (int)bs->chatstate;
+        v19 = bs->chatstate;
         BotInitialChat(bs->chatstate, aCannotfind, String2, (char *)0);
         goto LABEL_64;
       }
@@ -22001,12 +22045,12 @@ LABEL_64:
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->teammessage_time = v25 + v57;
-      v26 = BotGetTime((int)&v64);
+      v26 = BotGetTime(&v64);
       bs->teammatevisible_time = v26;
       if ( v26 == 0.0 )
         bs->teammatevisible_time = AAS_Time() + 300.0;
       bs->teammate = v18;
-      *(int *)&bs->_f2876 = 0;
+      *(int *)&bs->arrive_time = 0;
       return 1;
     case 20:
       if ( !TeamPlayIsOn() )
@@ -22059,14 +22103,14 @@ LABEL_64:
         return 1;
       if ( !BotAddressedToBot(bs, &v64) )
         return 1;
-      if ( !BotGetPatrolWaypoints((_DWORD *)bs, (int)&v64) )
+      if ( !BotGetPatrolWaypoints(bs, &v64) )
         return 1;
       v31 = rand();
       v58 = (double)(v31 & 0x7FFF) * 0.000030518509 + (double)(v31 & 0x7FFF) * 0.000030518509;
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->teammessage_time = v32 + v58;
-      v33 = BotGetTime((int)&v64);
+      v33 = BotGetTime(&v64);
       bs->teammatevisible_time = v33;
       if ( v33 != 0.0 )
         return 1;
@@ -22176,11 +22220,11 @@ LABEL_11:
               {
                 strcpy(v3->message, v8 + 1);
                 UnifyWhiteSpaces(v3->message);
-                if ( BotReplyChat(v2, (int)v3->message) )
+                if ( BotReplyChat(bs->chatstate, v3->message) )
                 {
                   sub_1002AA20(v2, v3);
                   v14 = BotChatTime(a1);
-                  bs->_f2812 = AAS_Time() + v14;
+                  bs->stand_time = AAS_Time() + v14;
                   AIEnter_Stand(a1);
                   return;
                 }
@@ -22222,18 +22266,18 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 
   result = (float *)bs;
   v3 = a2 + bs->ltime;
-  v4 = (*(int *)&bs->ps_origin[0]);
+  v4 = (*(int *)&bs->snapshot.origin[0]);
   bs->thinktime = a2;
-  *(int *)&bs->origin[1] = (*(int *)&bs->ps_origin[1]);
+  *(int *)&bs->origin[1] = (*(int *)&bs->snapshot.origin[1]);
   bs->ltime = v3;
-  v5 = result[18] + result[4];
+  v5 = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   *(int *)&bs->origin[0] = v4;
-  v6 = (*(int *)&bs->ps_origin[2]);
+  v6 = (*(int *)&bs->snapshot.origin[2]);
   bs->eye[0] = v5;
-  v7 = result[19] + result[5];
+  v7 = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
   qmemcpy(bs->inventory, bs->inventory_src, 0x400u);
   bs->eye[1] = v7;
-  bs->eye[2] = bs->viewoffset[2] + *(float *)&(*(int *)&bs->ps_origin[2]);
+  bs->eye[2] = bs->snapshot.viewoffset[2] + *(float *)&(*(int *)&bs->snapshot.origin[2]);
   *(int *)&bs->origin[2] = v6;
   return result;
 }
@@ -22274,7 +22318,7 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
   if ( AAS_Time() - 8.0 < bs->setup_time && BotChat_EnterGame(bs) )
   {
     v6 = BotChatTime(bs);
-    bs->_f2812 = AAS_Time() + v6;
+    bs->stand_time = AAS_Time() + v6;
     AIEnter_Stand(bs);
   }
   BotResetNodeSwitches();
@@ -25380,7 +25424,7 @@ void __cdecl BotInitialChat(void *cs, char *String2, ...)
 }
 
 //----- (1002E7D0) --------------------------------------------------------
-int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
+int __cdecl BotReplyChat(void *cs, const char *a2)
 {
   int v2; // ebx
   int *v3; // esi
@@ -25395,12 +25439,12 @@ int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
   int v13; // [esp+10h] [ebp-100h]
   int v14; // [esp+14h] [ebp-FCh]
   int v15; // [esp+18h] [ebp-F8h]
-  char v16[240]; // [esp+20h] [ebp-F0h] BYREF
+  bot_match_t v16; // [esp+20h] [ebp-F0h] BYREF
 
-  memset(v16, 0, sizeof(v16));
+  memset(&v16, 0, sizeof(v16));
   v2 = dword_10064380;
   v14 = 0;
-  strcpy(v16, a2);
+  strcpy(v16.string, a2);
   v13 = 0;
   if ( !v2 )
     return 0;
@@ -25416,17 +25460,17 @@ int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
       v6 = 0;
       if ( (*v3 & 0x20) != 0 )
       {
-        LOBYTE(v6) = *a1 == 1;
+        LOBYTE(v6) = *(_DWORD *)cs == 1;
       }
       else if ( (v5 & 0x40) != 0 )
       {
-        v6 = *a1 == 2;
+        v6 = *(_DWORD *)cs == 2;
       }
       else if ( (v5 & 0x80u) == 0 )
       {
         if ( (v5 & 0x10) != 0 )
         {
-          v6 = StringsMatch((_DWORD *)v3[2], v16);
+          v6 = StringsMatch((bot_matchpiece_t *)v3[2], &v16);
         }
         else if ( (v5 & 8) != 0 )
         {
@@ -25435,7 +25479,7 @@ int __cdecl BotReplyChat(_DWORD *a1, const char *a2)
       }
       else
       {
-        v6 = *a1 == 0;
+        v6 = *(_DWORD *)cs == 0;
       }
       if ( (*v3 & 1) != 0 )
       {
@@ -25496,7 +25540,7 @@ LABEL_34:
   if ( v13 )
   {
     *(float *)(v13 + 4) = AAS_Time() + 20.0;
-    BotConstructChatMessage((int)a1, *(const char **)v13, 0, (int)&v16[160], 16);
+    BotConstructChatMessage(cs, *(const char **)v13, 0, (bot_chatvar_t *)v16.variables, 16);
     return 1;
   }
   return 0;
