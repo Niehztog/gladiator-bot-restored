@@ -631,7 +631,7 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *go
 double __cdecl BotGetTime(int a1);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
 int __cdecl BotGetPatrolWaypoints(_DWORD *a1, int a2);
-int __cdecl BotAddressedToBot(bot_state_t *bs, int a2);
+int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2);
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
@@ -21484,11 +21484,11 @@ LABEL_18:
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
 
 //----- (10026BE0) --------------------------------------------------------
-int __cdecl BotAddressedToBot(bot_state_t *bs, int a2)
+int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 {
   int v2; // eax
   int result; // eax
-  int v4; // esi
+  const char *v4; // esi (Q2 ClientName returns char*)
   float v5; // [esp+Ch] [ebp-2BCh]
   char v6[152]; // [esp+10h] [ebp-2B8h] BYREF
   char Source[152]; // [esp+A8h] [ebp-220h] BYREF
@@ -21498,16 +21498,16 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, int a2)
   bot_match_t v8; // [esp+140h] [ebp-188h] BYREF
   char Destination[152]; // [esp+230h] [ebp-98h] BYREF
 
-  BotMatchVariable(a2, 0, Destination);
+  BotMatchVariable(match, 0, Destination);
   v2 = ClientFromName(Destination);
   if ( v2 < 0 )
     return 0;
   result = BotSameTeam(bs, v2 + 1);
   if ( result )
   {
-    if ( (*(_BYTE *)(a2 + 156) & 2) != 0 )
+    if ( (match->subtype & 2) != 0 )
     {
-      BotMatchVariable(a2, 1, Source);
+      BotMatchVariable(match, 1, Source);
       v4 = ClientName(*(_DWORD *)((char *)bs + 4));
       if ( !BotFindMatch(Source, &v8, 32) )
         return 0;
@@ -21515,13 +21515,13 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, int a2)
       {
         if ( v8.type != 102 )
         {
-          BotMatchVariable((int)&v8, 3, v6);
-          return StringContains((const char *)v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0);
+          BotMatchVariable(&v8, 3, v6);
+          return StringContains(v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0);
         }
-        BotMatchVariable((int)&v8, 3, v6);
-        if ( StringContains((const char *)v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0) )
+        BotMatchVariable(&v8, 3, v6);
+        if ( StringContains(v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0) )
           return 1;
-        BotMatchVariable((int)&v8, 5, Source);
+        BotMatchVariable(&v8, 5, Source);
         result = BotFindMatch(Source, &v8, 32);
         if ( !result )
           return result;
@@ -21649,7 +21649,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
       return 1;
     case 3:
     case 4:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       if ( BotFindMatch(Source, &v74, 16) && v74.type == 100 )
@@ -21756,7 +21756,7 @@ LABEL_27:
       }
       return result;
     case 5:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 4, String2);
       if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
@@ -21773,7 +21773,7 @@ LABEL_27:
       *(int *)&bs->_f2860 = 0;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, (int)&v64) )
+      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v38 = rand();
       v60 = (double)(v38 & 0x7FFF) * 0.000030518509 + (double)(v38 & 0x7FFF) * 0.000030518509;
@@ -21786,7 +21786,7 @@ LABEL_27:
       bs->teammatevisible_time = v40 + 120.0;
       return result;
     case 7:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, (int)&v64) )
+      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v35 = rand();
       v59 = (double)(v35 & 0x7FFF) * 0.000030518509 + (double)(v35 & 0x7FFF) * 0.000030518509;
@@ -21833,7 +21833,7 @@ LABEL_27:
       bs->formation_teammate[0] = 0;
       return 1;
     case 11:
-      if ( !BotAddressedToBot(bs, (int)&v64) )
+      if ( !BotAddressedToBot(bs, &v64) )
         return 1;
       switch ( bs->ltgtype )
       {
@@ -21878,7 +21878,7 @@ LABEL_139:
       }
       return result;
     case 12:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 3, Source);
       strncpy(bs->teamleader, Source, 0x20u);
@@ -21887,7 +21887,7 @@ LABEL_139:
       BotEnterChat(bs->chatstate, bs->client, 1);
       return 1;
     case 13:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       if ( strlen(bs->teamleader) )
         BotInitialChat(bs->chatstate, aLeftteam, (char *)bs + 4352, (char *)0);
@@ -21899,7 +21899,7 @@ LABEL_139:
       EA_SayTeam(bs->client, aThePartOfMyBra);
       return 1;
     case 16:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 4, Buffer);
       if ( (v64.subtype & 8) != 0 )
@@ -21913,7 +21913,7 @@ LABEL_139:
     case 18:
       if ( !TeamPlayIsOn() )
         return 1;
-      if ( !BotAddressedToBot(bs, (int)&v64) )
+      if ( !BotAddressedToBot(bs, &v64) )
         return 1;
       v48 = bs->ltgtype;
       if ( v48 != 2 && v48 != 1 )
@@ -21921,7 +21921,7 @@ LABEL_139:
       bs->ltgtype = 0;
       return 1;
     case 19:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, (int)&v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 0, Destination);
       v17 = strlen(Destination);
@@ -22020,7 +22020,7 @@ LABEL_64:
       v41 = AAS_PointAreaNum(origin);
       if ( !v41 )
       {
-        if ( !BotAddressedToBot(bs, (int)&v64) )
+        if ( !BotAddressedToBot(bs, &v64) )
           return 1;
         BotInitialChat(bs->chatstate, aCheckpointInva, (char *)0, (char *)0);
         BotEnterChat(bs->chatstate, bs->client, 1);
@@ -22046,7 +22046,7 @@ LABEL_64:
       if ( v46 )
         *(_DWORD *)(v46 + 64) = v45;
       bs->checkpoints = v45;
-      if ( BotAddressedToBot(bs, (int)&v64) )
+      if ( BotAddressedToBot(bs, &v64) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", *(float *)(v45 + 4), *(float *)(v45 + 8), *(float *)(v45 + 12));
         BotInitialChat(bs->chatstate, aCheckpointConf, *(_DWORD *)v45, (char *)0);
@@ -22057,7 +22057,7 @@ LABEL_64:
     case 21:
       if ( !TeamPlayIsOn() )
         return 1;
-      if ( !BotAddressedToBot(bs, (int)&v64) )
+      if ( !BotAddressedToBot(bs, &v64) )
         return 1;
       if ( !BotGetPatrolWaypoints((_DWORD *)bs, (int)&v64) )
         return 1;
