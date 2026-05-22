@@ -27,6 +27,40 @@
 
 #define BOT_STATE_SIZE       4560
 
+/* bot_movestate_t — inline movement-state struct embedded in bot_state_t at
+ * +2880 (covers +2880..+3007 = 128 bytes).  Reverse-engineered from
+ * BotMoveToGoal (sub_100343A0) disasm offsets, which match Q3
+ * bot_movestate_t (be_ai_move.c:59-88) field-for-field with MAX_AVOIDREACH=1.
+ *
+ * The struct aliases the legacy `movestate[16]` + `areanum` + `_pad_B84h[60]`
+ * triple in bot_state_t via an anonymous union, so existing callers that
+ * pass `bs->movestate` (decayed int*) still work unchanged while new code
+ * can write `bs->ms.areanum` for typed access. */
+typedef struct bot_movestate_s {
+    vec3_t  origin;                 /* +0   bot world position (written at top of BotMoveToGoal via sub_10001550) */
+    vec3_t  velocity;               /* +12  bot velocity */
+    vec3_t  viewoffset;             /* +24  add to origin for eye coords */
+    int     entitynum;              /* +36  bot entity number; 3rd arg to sub_10001EE2 swim/jump trigger */
+    int     client;                 /* +40  bot client number */
+    float   thinktime;              /* +44  frame-time delta; scaled by *10.0 in reachability_time decrement */
+    int     presencetype;           /* +48  bbox presence type (normal/crouched/spectator) — 2nd arg to sub_10001EE2 */
+    vec3_t  viewangles;             /* +52  ms-local view angles (note: bs->viewangles at +4224 is a separate snapshot field) */
+    int     areanum;                /* +64  ALIASES bs->areanum (+2944 = +2880+64).  Written: BotReachabilityArea result. */
+    int     lastareanum;            /* +68 */
+    int     lastgoalareanum;        /* +72  compared to goal->areanum to detect re-pathing need */
+    int     lastreachnum;           /* +76  current reachability number */
+    vec3_t  lastorigin;             /* +80  copied from origin[] each BotMoveToGoal call */
+    int     reachareanum;           /* +92 */
+    int     moveflags;              /* +96  MFL_SWIMMING (2) | MFL_TELEPORTED (4) | MFL_WATERJUMP (8); cleared via &0xFFFFFFF3 */
+    int     jumpreach;              /* +100 zeroed at LABEL_25 of BotMoveToGoal */
+    float   grapplevisible_time;    /* +104 */
+    float   lastgrappledist;        /* +108 */
+    float   reachability_time;      /* +112 deadline vs AAS_Time(); decremented by thinktime*10.0 */
+    int     avoidreach[1];          /* +116 reachability number to avoid (MAX_AVOIDREACH=1 inferred from BotMoveToGoal +116/+120/+124 out-pointer triple) */
+    float   avoidreachtimes[1];     /* +120 expiry timestamp */
+    int     avoidreachtries[1];     /* +124 retry count before adding to avoid list */
+} bot_movestate_t;                  /* sizeof == 128 */
+
 /* Named team-waypoint linked-list node, heap-allocated by BotCreateWayPoint.
  * On 32-bit the original DLL allocates `strlen(name)+1+68` bytes and stores
  * the head/tail pointers inline in bot_state_t's +4544/+4548/+4552 int slots
@@ -231,12 +265,20 @@ typedef struct bot_state_s {
                                            * set to AAS_Time() when bot first reaches the teammate area;
                                            * tested as `AAS_Time() - 2.0 > arrive_time` to throttle waves.
                                            * Q3 ancestor: bs->arrive_time (ai_main.h:191). */
-            int    movestate[16];         /* +2880..+2943 embedded movement/goal scratch (64 bytes) */
-            int    areanum;               /* +2944 the AAS area number the bot is currently in; refreshed each
-                                           * frame via AAS_PointAreaNum(bs->origin).  Compared against
-                                           * lastenemyareanum in Battle_Chase to detect arrival.
-                                           * Q3 ancestor: bs->areanum (ai_main.h:140). */
-            char   _pad_B84h[60];         /* +2948..+3007 */
+            /* +2880..+3007 inline bot_movestate_t (128 B).  An anonymous union
+             * provides both the legacy decay-as-int* view (`bs->movestate`,
+             * used by ~30 opaque calls to BotMoveToGoal / BotResetAvoidReach /
+             * BotMoveInDirection / BotEntityInfo / etc.) and the typed view
+             * (`bs->ms`).  `bs->areanum` at +2944 lives inside this region —
+             * it's the same memory as `bs->ms.areanum`. */
+            union {
+                struct {
+                    int    movestate[16];        /* +2880..+2943 legacy int[]: first 16 ints of bot_movestate_t */
+                    int    areanum;              /* +2944 alias of bs->ms.areanum */
+                    char   _pad_B84h[60];        /* +2948..+3007 remainder of bot_movestate_t (lastareanum..avoidreachtries) */
+                };
+                bot_movestate_t ms;              /* +2880..+3007 typed view */
+            };
             /* Note: a few stray byte-offset accesses outside the chat
              * region still go through the `_raw[]` union (e.g. +4248 in
              * the patrol-state loop).  Splitting more pads is fine; the
