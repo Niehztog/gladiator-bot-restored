@@ -27,6 +27,22 @@
 
 #define BOT_STATE_SIZE       4560
 
+/* Named team-waypoint linked-list node, heap-allocated by BotCreateWayPoint.
+ * On 32-bit the original DLL allocates `strlen(name)+1+68` bytes and stores
+ * the head/tail pointers inline in bot_state_t's +4544/+4548/+4552 int slots
+ * plus the node-internal +60/+64 dword slots.  On 64-bit Linux the host
+ * pointers are 8 bytes wide, so we use a proper C struct here and side-band
+ * the three bot_state_t head slots through parallel maxclients-sized arrays
+ * (botcheckpoints/botpatrolpoints/botcurpatrolpoint in botlib.c).  Allocation
+ * size becomes `sizeof(bot_waypoint_t) + strlen(name) + 1`; the trailing
+ * inline name buffer lives at `(char *)(node + 1)`. */
+typedef struct bot_waypoint_s {
+    char                   *name;   /* points to inline name buffer right after struct */
+    bot_goal_t              goal;   /* origin/areanum/mins/maxs/...; passed as bot_goal_t* */
+    struct bot_waypoint_s  *next;
+    struct bot_waypoint_s  *prev;
+} bot_waypoint_t;
+
 typedef struct bot_state_s {
     union {
         int _raw[BOT_STATE_SIZE / sizeof(int)];
@@ -127,7 +143,11 @@ typedef struct bot_state_s {
             int    flags;                 /* +2752 several flags — bit 0x02 toggled in BotEntityVisible area,
                                            * bit 0x10 XOR-toggled in BotCheckActivateGoal direction flip.
                                            * Q3 ancestor: bs->flags (ai_main.h:143). Byte- and dword-accessed. */
-            int    _i2756;                /* +2756 no readers in restored code; reserved placeholder */
+            int    _i2756;                /* +2756 no readers AND no writers in the original DLL disasm
+                                           * (zero hits for `[reg+0xac4]`).  Truly vestigial slot — likely a
+                                           * planned field (the Q3 ancestor block at this offset holds e.g.
+                                           * lastkilledplayer / lastkilledby / botsuicide) that gladiator
+                                           * never implemented. */
             int    respawn_wait;          /* +2760 AIEnter_Respawn sets =0; AINode_Respawn sets =1 after EA_Respawn fires.
                                            * Q3 ancestor: bs->respawn_wait (ai_main.h:144). */
             int    lasthealth;            /* +2764 health value previous frame; compared against inventory_health
@@ -140,7 +160,10 @@ typedef struct bot_state_s {
                                            * bot itself as victim.
                                            * Q3 ancestor: bs->botdeathtype (ai_main.h:148). */
             int    inuse_marker;          /* +2776 */
-            int    _i2780;                /* +2780 no readers in restored code; reserved placeholder */
+            int    _i2780;                /* +2780 no readers AND no writers in the original DLL disasm
+                                           * (zero hits for `[reg+0xadc]`).  Truly vestigial — likely a
+                                           * planned field (Q3's enemysuicide / setupcount / num_deaths
+                                           * fall in this vicinity) that gladiator never wired up. */
             float  ltime;                 /* +2784 wall-clock accumulator; `bs->ltime += thinktime` per frame */
             float  setup_time;            /* +2788 */
             float  ltg_time;              /* +2792 long-term-goal re-pick throttle (set to AAS_Time()+20.0 after BotChooseLTGItem) */
@@ -166,10 +189,14 @@ typedef struct bot_state_s {
                                            * Bot crouches while it remains > AAS_Time() in camp; periodic
                                            * wave/say in accompany.  No clean Q3 ancestor — closest is
                                            * bs->attackcrouch_time (ai_main.h:178) but semantics differ. */
-            float  _f2824;                /* +2824 read in BotAttackMove (`if AAS_Time() < _f2824, use lastenemyorigin`);
-                                           * no write site found in restored code.  Likely Q3 ancestor:
-                                           * bs->enemyposition_time (ai_main.h:183) or bs->attackchase_time
-                                           * (ai_main.h:179).  Pending writer discovery. */
+            float  attackchase_time;      /* +2824 chase-using-lastenemyorigin window.  In the original DLL
+                                           * the WRITER IS COMMENTED OUT (Q3 ai_dmq3.c:2759 still preserves
+                                           * `// bs->attackchase_time = AAS_Time() + 6;`), so this field
+                                           * stays 0.0f from calloc and the `AAS_Time() < attackchase_time`
+                                           * branch at BotAttackMove entry is dead code in shipped builds.
+                                           * Restored under its Q3 ancestor name (ai_main.h:179) for
+                                           * fidelity — the dead branch matches gladiator.dll.disasm.txt
+                                           * exactly (only `fcomp [ebp+0xb08]` at 0x10022e3e, no store). */
             float  powerscreen_seen_time; /* +2828 last time the bot saw the powershield icon in stats[4];
                                            * 0.9 s grace before clearing power_screen/shield_active_cells.
                                            * Set to AAS_Time() in BotUpdatePowerupSeconds. */
@@ -229,8 +256,12 @@ typedef struct bot_state_s {
                                             * named this `enemyorigin` by mistake — fov=360.0 traces
                                             * masked the misnomer. */
             vec3_t ideal_viewangles;      /* +4236..+4247  vectoangles dst; copied into EA_View vec3 arg */
-            int    _i4248;                /* +4248 no readers in restored code; reserved placeholder */
-            char   _pad_1094h[8];         /* +4252..+4259 */
+            vec3_t viewanglespeed;        /* +4248..+4259 per-axis view-angle smoothing speed (pitch/yaw/roll
+                                           * change rate); evolved each frame in BotChangeViewAngles.  The
+                                           * pattern at 0x100291da is `lea esi,[edi+0x1098]` followed by an
+                                           * ebx=2..0 loop that fld/fcom/fadd/fsub against `[esi+ebx*4]`
+                                           * — classic per-component speed clamp toward ideal_viewangles.
+                                           * Q3 ancestor: bs->viewanglespeed (ai_main.h:223). */
             int    ltgtype;               /* +4260 */
             int    teammate;              /* +4264 */
             bot_goal_t teamgoal;          /* +4268..+4323 (56 B; origin/areanum/mins/maxs/entitynum/number/flags/iteminfo) */
@@ -254,9 +285,10 @@ typedef struct bot_state_s {
             bot_goal_t activategoal;      /* +4488..+4543 (56 B) embedded activate-goal: origin/areanum/mins/maxs/entitynum/number/flags/iteminfo.
                                            * Pointer to this is passed as `bot_goal_t *` to BotTouchingGoal/BotMoveToGoal.
                                            * Mins/maxs set as origin ± 5 with z-offsets; areanum filled from AAS_PointAreaNum. */
-            int    checkpoints;           /* +4544 head of bot_waypoint_t linked list (chat /checkpoint cmd); walked via +60 (next) / +64 (prev). Q3 backport: bs->checkpoints. */
-            int    patrolpoints;          /* +4548 head of patrol-checkpoints linked list */
-            int    curpatrolpoint;        /* +4552 current waypoint the bot is going toward (Q3: curpatrolpoint) */
+            int    checkpoints;           /* +4544 LEGACY 4-byte slot for bot_waypoint_t * head; on 64-bit Linux the
+                                           * real pointer is side-banded via BotCheckpoints(bs); do not access directly. */
+            int    patrolpoints;          /* +4548 LEGACY slot; real ptr in BotPatrolpoints(bs). */
+            int    curpatrolpoint;        /* +4552 LEGACY slot; real ptr in BotCurPatrolPoint(bs). */
             int    patrolflags;           /* +4556 patrol direction/reverse flags (Q3: patrolflags) */
         };
     };

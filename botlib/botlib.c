@@ -239,7 +239,8 @@ int BotSetupChatAI(); // weak
 int sub_1001D260(); // weak
 /* AAS_FreeBSPEntities: defined as AAS_FreeBSPEntities at 0x10006920 */
 /* BotInitialChat: defined as sub_1002E510 at 0x1002E510 (3-param Gladiator version) */
-int __cdecl BotFreeWaypoints(int);
+/* BotFreeWaypoints prototype updated below to take bot_waypoint_t *; old
+ * forward decl removed (used to be `int __cdecl BotFreeWaypoints(int);`). */
 /* bot_character internal layout (defined later); forward typedef needed
  * here for Characteristic_* prototypes. */
 typedef struct bot_character_s bot_character_t;
@@ -595,9 +596,9 @@ BOOL __cdecl EntityDeadOrDying(_DWORD *a1);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
 _BYTE *__cdecl stristr(_BYTE *a1, char *a2);
 char *__cdecl EasyClientName(int a1, char *a2);
-int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3);
-int __cdecl BotFindWayPoint(int, char *String2); // idb
-int __cdecl BotFreeWaypoints(int a1);
+bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum);
+bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name);
+void            __cdecl BotFreeWaypoints(bot_waypoint_t *head);
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs);
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs);
 int __cdecl BotChat_ExitGame(bot_state_t *bs);
@@ -2184,6 +2185,18 @@ chatmsg_links_t *botchatmsglinks;
 typedef int (*ai_node_fn_t)(bot_state_t *);
 ai_node_fn_t *botainodes;
 #define BotAINode(bs) (botainodes[(bs) - botstates])
+
+/* Side-band for the three waypoint head-pointer slots inside bot_state_t at
+ * +4544 (checkpoints), +4548 (patrolpoints), +4552 (curpatrolpoint).  These
+ * 4-byte int slots cannot hold an 8-byte bot_waypoint_t* on 64-bit Linux, so
+ * the real pointers live in parallel maxclients-sized arrays indexed by
+ * (bs - botstates).  Allocated in BotSetupLibrary, freed in BotShutdownLibrary. */
+bot_waypoint_t **botcheckpoints;
+bot_waypoint_t **botpatrolpoints;
+bot_waypoint_t **botcurpatrolpoint;
+#define BotCheckpoints(bs)    (botcheckpoints[(bs) - botstates])
+#define BotPatrolpoints(bs)   (botpatrolpoints[(bs) - botstates])
+#define BotCurPatrolPoint(bs) (botcurpatrolpoint[(bs) - botstates])
 
 /* Side-band for the two pointer slots inside the 132-byte aas_entity_t at
  * +124 (areas link-list head) and +128 (BSP-leaf link-list head).  The
@@ -17014,13 +17027,13 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
   char *v33; // eax
   double v34; // st7
   char v35; // al
-  int i; // edx
-  int v37; // eax
+  bot_waypoint_t *i; // edx
+  bot_waypoint_t *v37; // eax
   int v38; // eax
-  int v39; // ecx
-  int v40; // edx
-  int v41; // edx
-  int v42; // eax
+  bot_waypoint_t *v39; // ecx
+  bot_waypoint_t *v40; // edx
+  bot_waypoint_t *v41; // edx
+  bot_waypoint_t *v42; // eax
   double v43; // st7
   float *v44; // eax
   int v45; // [esp+18h] [ebp-230h]
@@ -17268,32 +17281,32 @@ LABEL_86:
         if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
         {
           v57[0] = byte_1006294C;
-          for ( i = bs->patrolpoints; i; i = *(_DWORD *)(i + 60) )
+          for ( i = BotPatrolpoints(bs); i; i = i->next )
           {
-            strcat(v57, *(const char **)i);
-            if ( *(_DWORD *)(i + 60) )
+            strcat(v57, i->name);
+            if ( i->next )
               strcat(v57, aTo);
           }
           BotInitialChat(bs->chatstate, aPatrolStart, v57, (char *)0);
           BotEnterChat(bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
-        v37 = bs->curpatrolpoint;
+        v37 = BotCurPatrolPoint(bs);
         if ( !v37 )
         {
           bs->ltgtype = 0;
           return 0;
         }
-        if ( !BotTouchingGoal(bs->origin, v37 + 4) )
+        if ( !BotTouchingGoal(bs->origin, &v37->goal) )
           goto LABEL_106;
         v38 = bs->patrolflags;
-        v39 = bs->curpatrolpoint;
+        v39 = BotCurPatrolPoint(bs);
         if ( (v38 & 4) != 0 )
         {
-          v40 = *(_DWORD *)(v39 + 64);
+          v40 = v39->prev;
           if ( v40 )
           {
-            bs->curpatrolpoint = v40;
+            BotCurPatrolPoint(bs) = v40;
 LABEL_106:
             if ( AAS_Time() > bs->teammatevisible_time )
             {
@@ -17301,25 +17314,25 @@ LABEL_106:
               BotEnterChat(bs->chatstate, bs->client, 1);
               bs->ltgtype = 0;
             }
-            v42 = bs->curpatrolpoint;
+            v42 = BotCurPatrolPoint(bs);
             if ( v42 )
-              return (float *)(v42 + 4);
+              return v42->goal.origin;
             bs->ltgtype = 0;
             return 0;
           }
           LOBYTE(v38) = v38 & 0xFB;
-          bs->curpatrolpoint = *(_DWORD *)(v39 + 60);
+          BotCurPatrolPoint(bs) = v39->next;
         }
         else
         {
-          v41 = *(_DWORD *)(v39 + 60);
+          v41 = v39->next;
           if ( v41 )
           {
-            bs->curpatrolpoint = v41;
+            BotCurPatrolPoint(bs) = v41;
             goto LABEL_106;
           }
           LOBYTE(v38) = v38 | 4;
-          bs->curpatrolpoint = *(_DWORD *)(v39 + 64);
+          BotCurPatrolPoint(bs) = v39->prev;
         }
         bs->patrolflags = v38;
         goto LABEL_106;
@@ -19204,64 +19217,55 @@ char *__cdecl EasyClientName(int a1, char *a2)
 // 10021860: using guessed type char Src[126];
 
 //----- (10021A90) --------------------------------------------------------
-int __cdecl BotCreateWayPoint(const char *a1, _DWORD *a2, int a3)
+bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum)
 {
-  int v3; // edx
+  /* Original 32-bit alloc was `GetMemory(strlen(name)+1+68)` with a hand-laid
+   * header of name-ptr@+0, origin@+4, areanum@+16, mins@+20, maxs@+32, next@+60,
+   * prev@+64.  On 64-bit Linux the pointer width forces a real C struct; the
+   * trailing name buffer still lives inline immediately after the node so a
+   * single FreeMemory frees both. */
+  bot_waypoint_t *wp;
+  size_t namelen = strlen(name);
 
-  v3 = GetMemory(strlen(a1) + 69);
-  *(_DWORD *)v3 = v3 + 68;
-  strcpy((char *)(v3 + 68), a1);
-  *(_DWORD *)(v3 + 4) = *a2;
-  *(_DWORD *)(v3 + 8) = a2[1];
-  *(_DWORD *)(v3 + 12) = a2[2];
-  *(_DWORD *)(v3 + 20) = -1056964608;
-  *(_DWORD *)(v3 + 24) = -1056964608;
-  *(_DWORD *)(v3 + 28) = -1056964608;
-  *(_DWORD *)(v3 + 32) = 1090519040;
-  *(_DWORD *)(v3 + 36) = 1090519040;
-  *(_DWORD *)(v3 + 40) = 1090519040;
-  *(_DWORD *)(v3 + 60) = 0;
-  *(_DWORD *)(v3 + 64) = 0;
-  *(_DWORD *)(v3 + 16) = a3;
-  return v3;
+  wp = (bot_waypoint_t *)GetMemory((unsigned)(sizeof(bot_waypoint_t) + namelen + 1));
+  wp->name = (char *)(wp + 1);
+  strcpy(wp->name, name);
+  wp->goal.origin[0] = origin[0];
+  wp->goal.origin[1] = origin[1];
+  wp->goal.origin[2] = origin[2];
+  wp->goal.areanum   = areanum;
+  wp->goal.mins[0] = wp->goal.mins[1] = wp->goal.mins[2] = -8.0f;
+  wp->goal.maxs[0] = wp->goal.maxs[1] = wp->goal.maxs[2] =  8.0f;
+  wp->next = NULL;
+  wp->prev = NULL;
+  return wp;
 }
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
 //----- (10021B50) --------------------------------------------------------
-int __cdecl BotFindWayPoint(int a1, char *String2)
+bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name)
 {
-  int v2; // esi
+  bot_waypoint_t *wp;
 
-  v2 = a1;
-  if ( !a1 )
-    return 0;
-  while ( _strcmpi(*(const char **)v2, String2) )
+  for ( wp = head; wp; wp = wp->next )
   {
-    v2 = *(_DWORD *)(v2 + 60);
-    if ( !v2 )
-      return 0;
+    if ( !_strcmpi(wp->name, name) )
+      return wp;
   }
-  return v2;
+  return NULL;
 }
 
 //----- (10021B90) --------------------------------------------------------
-int __cdecl BotFreeWaypoints(int a1)
+void __cdecl BotFreeWaypoints(bot_waypoint_t *head)
 {
-  int result; // eax
-  int v2; // esi
+  bot_waypoint_t *next;
 
-  result = a1;
-  if ( a1 )
+  while ( head )
   {
-    do
-    {
-      v2 = *(_DWORD *)(result + 60);
-      FreeMemory(result);
-      result = v2;
-    }
-    while ( v2 );
+    next = head->next;
+    FreeMemory(head);
+    head = next;
   }
-  return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -19835,7 +19839,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
   v36[0] = 0;
   v36[1] = 0;
   v36[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v36 is float[3] */
-  if ( AAS_Time() < bs->_f2824 )
+  if ( AAS_Time() < bs->attackchase_time )
   {
     v3 = *(float *)(a2 + 4200);
     v4 = *(float *)(a2 + 4204);
@@ -21445,18 +21449,18 @@ LABEL_5:
 //----- (10026990) --------------------------------------------------------
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 {
-  int v2; // esi
-  int v3; // edi
-  int v4; // eax
-  int v5; // ecx
-  int v7[14]; // [esp+10h] [ebp-1C0h] BYREF
+  bot_waypoint_t *v2; // esi (head of new patrol list)
+  int v3; // edi (patrol flags accumulator)
+  bot_waypoint_t *v4; // eax (newly-allocated node)
+  bot_waypoint_t *v5; // ecx (tail walker)
+  bot_goal_t v7; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
   char Destination[152]; // [esp+48h] [ebp-188h] BYREF
   /* IDA split bot_match_t (240 B) into `char v9[4]` + phantom `int v10` at
    * offset +156 (= match.subtype).  The original calls sub_10001267 =
    * BotFindMatch, not strncmp.  See chat_state.h. */
   bot_match_t v9; // [esp+E0h] [ebp-F0h] BYREF
 
-  v2 = 0;
+  v2 = NULL;
   v3 = 0;
   BotMatchVariable(match, 4, Destination);
   while ( 1 )
@@ -21465,35 +21469,38 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
     {
       EA_SayTeam(bs->client, aWhatDoYouSay);
       BotFreeWaypoints(v2);
-      bs->patrolpoints = 0;
+      BotPatrolpoints(bs) = NULL;
       return 0;
     }
     BotMatchVariable(&v9, 4, Destination);
-    if ( !BotGetMessageTeamGoal(bs, Destination, (bot_goal_t *)v7) )
+    if ( !BotGetMessageTeamGoal(bs, Destination, &v7) )
     {
       BotInitialChat(bs->chatstate, aCannotfind, Destination, (char *)0);
       BotEnterChat(bs->chatstate, bs->client, 1);
       BotFreeWaypoints(v2);
-      bs->patrolpoints = 0;
+      BotPatrolpoints(bs) = NULL;
       return 0;
     }
-    v4 = BotResetState(Destination);
-    *(_DWORD *)(v4 + 60) = 0;
+    /* IDA mis-named the thunk at 0x10001401 (which jumps to BotCreateWayPoint
+     * at 0x10021A90) as BotResetState; the real call is BotCreateWayPoint
+     * with (name, &goal.origin, areanum). */
+    v4 = BotCreateWayPoint(Destination, v7.origin, v7.areanum);
+    v4->next = NULL;
     v5 = v2;
     if ( !v2 )
       goto LABEL_8;
-    while ( *(_DWORD *)(v5 + 60) )
-      v5 = *(_DWORD *)(v5 + 60);
+    while ( v5->next )
+      v5 = v5->next;
     if ( v5 )
     {
-      *(_DWORD *)(v5 + 60) = v4;
-      *(_DWORD *)(v4 + 64) = v5;
+      v5->next = v4;
+      v4->prev = v5;
     }
     else
     {
 LABEL_8:
       v2 = v4;
-      *(_DWORD *)(v4 + 64) = 0;
+      v4->prev = NULL;
     }
     if ( (v9.subtype & 0x200) != 0 )
     {
@@ -21508,12 +21515,12 @@ LABEL_8:
   }
   v3 = 2;
 LABEL_18:
-  if ( v2 && *(_DWORD *)(v2 + 60) )
+  if ( v2 && v2->next )
   {
-    BotFreeWaypoints(bs->patrolpoints);
+    BotFreeWaypoints(BotPatrolpoints(bs));
     bs->patrolflags = v3;
-    bs->patrolpoints = v2;
-    bs->curpatrolpoint = v2;
+    BotPatrolpoints(bs) = v2;
+    BotCurPatrolPoint(bs) = v2;
     return 1;
   }
   else
@@ -21629,11 +21636,11 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   double v39; // st7
   double v40; // st7
   int v41; // ebx
-  int v42; // eax
-  int v43; // ecx
-  int v44; // ecx
-  int v45; // esi
-  int v46; // eax
+  bot_waypoint_t *v42; // eax
+  bot_waypoint_t *v43; // ecx
+  bot_waypoint_t *v44; // ecx
+  bot_waypoint_t *v45; // esi
+  bot_waypoint_t *v46; // eax
   double v47; // st7
   int v48; // eax
   int v49; // eax
@@ -22071,29 +22078,30 @@ LABEL_64:
         return 1;
       }
       BotMatchVariable(&v64, 5, Buffer);
-      v42 = BotFindWayPoint(bs->checkpoints, Buffer);
+      v42 = BotFindWayPoint(BotCheckpoints(bs), Buffer);
       if ( v42 )
       {
-        v43 = *(_DWORD *)(v42 + 60);
+        v43 = v42->next;
         if ( v43 )
-          *(_DWORD *)(v43 + 64) = *(_DWORD *)(v42 + 64);
-        v44 = *(_DWORD *)(v42 + 64);
+          v43->prev = v42->prev;
+        v44 = v42->prev;
         if ( v44 )
-          *(_DWORD *)(v44 + 60) = *(_DWORD *)(v42 + 60);
+          v44->next = v42->next;
         else
-          bs->checkpoints = *(_DWORD *)(v42 + 60);
+          BotCheckpoints(bs) = v42->next;
         FreeMemory(v42);
       }
-      v45 = BotResetState(Buffer);
-      *(_DWORD *)(v45 + 60) = bs->checkpoints;
-      v46 = bs->checkpoints;
+      /* IDA mis-named the 0x10001401 thunk again — real call is BotCreateWayPoint. */
+      v45 = BotCreateWayPoint(Buffer, origin, v41);
+      v45->next = BotCheckpoints(bs);
+      v46 = BotCheckpoints(bs);
       if ( v46 )
-        *(_DWORD *)(v46 + 64) = v45;
-      bs->checkpoints = v45;
+        v46->prev = v45;
+      BotCheckpoints(bs) = v45;
       if ( BotAddressedToBot(bs, &v64) )
       {
-        sprintf(Buffer, "%1.0f %1.0f %1.0f", *(float *)(v45 + 4), *(float *)(v45 + 8), *(float *)(v45 + 12));
-        BotInitialChat(bs->chatstate, aCheckpointConf, *(_DWORD *)v45, (char *)0);
+        sprintf(Buffer, "%1.0f %1.0f %1.0f", v45->goal.origin[0], v45->goal.origin[1], v45->goal.origin[2]);
+        BotInitialChat(bs->chatstate, aCheckpointConf, v45->name, (char *)0);
         BotEnterChat(bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -22546,7 +22554,9 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs)
     v2 = 150.0;
     v10 = 100.0;
   }
-  v3 = (float *)&bs->_raw[1062];
+  v3 = bs->viewanglespeed;  /* was: (float *)&bs->_raw[1062]; offset +4248 = start of viewanglespeed[3].
+                              * v3-6 (offset -24) → viewangles[i]; v3-3 (offset -12) → ideal_viewangles[i];
+                              * *v3 → viewanglespeed[i].  The ++v3 walk advances all three in lockstep. */
   v4 = 2;
   v11 = v10 * bs->thinktime;
   v5 = v2 * bs->thinktime;
@@ -22957,6 +22967,9 @@ int BotSetupLibrary()
   botchatdumps = (void **)GetClearedMemory(sizeof(void *) * maxclients);
   botchatmsglinks = (chatmsg_links_t *)GetClearedMemory(sizeof(chatmsg_links_t) * maxclients);
   botainodes = (ai_node_fn_t *)GetClearedMemory(sizeof(ai_node_fn_t) * maxclients);
+  botcheckpoints    = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
+  botpatrolpoints   = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
+  botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
   dword_100643A8 = GetClearedMemory(144 * maxclients);
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
@@ -23007,6 +23020,15 @@ int BotShutdownLibrary()
   if ( botainodes )
     FreeMemory(botainodes);
   botainodes = 0;
+  if ( botcheckpoints )
+    FreeMemory(botcheckpoints);
+  botcheckpoints = 0;
+  if ( botpatrolpoints )
+    FreeMemory(botpatrolpoints);
+  botpatrolpoints = 0;
+  if ( botcurpatrolpoint )
+    FreeMemory(botcurpatrolpoint);
+  botcurpatrolpoint = 0;
   return result;
 }
 // 1000100F: using guessed type int sub_10028E80(void);
