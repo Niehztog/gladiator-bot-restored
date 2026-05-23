@@ -17389,7 +17389,7 @@ LABEL_55:
       if ( BotTouchingGoal(bs->origin, v44) )
       {
         if ( libvar_runes->value != 0.0 )
-          sub_100262C0(a1, (intptr_t)v26);
+          sub_100262C0((_DWORD *)bs, (intptr_t)v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
       }
       else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v26) )
       {
