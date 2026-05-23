@@ -702,7 +702,7 @@ void *__cdecl BotFreeReplyChat(bot_replychat_t *a1);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *a1);
 void *__cdecl BotDumpInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
-int __cdecl BotFreeChatState(bot_chatstate_t *cs);
+int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client);
 int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3); // idb
 /* Initial-chat variable slot: caller passes up to 10 (char *) variables to
  * BotInitialChat, which records each as { str, len } pairs in a stack-local
@@ -22706,7 +22706,7 @@ int __cdecl BotShutdownClient(int a1)
   {
     if ( BotChat_ExitGame((int)(intptr_t)bs) )
       BotEnterChat(&bs->chatstate, v1[1], 0);
-    BotFreeChatState(&bs->chatstate);
+    BotFreeChatState(&bs->chatstate, v1[1]);
     BotFreeWeaponWeights(BotWS(bs));
     if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
     BotFreeItemWeights(bs);
@@ -25184,19 +25184,20 @@ int __cdecl BotFreeChatFile(bot_chatstate_t *cs)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002DFB0) --------------------------------------------------------
-int __cdecl BotFreeChatState(bot_chatstate_t *cs)
+int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client)
 {
-  int result; // eax
+  bot_consolemessage_t *msg;
 
   BotFreeChatFile(cs);
-  /* TODO: BotNextConsoleMessage/sub_1002AA20 take a client index, not a
-   * chatstate pointer.  The (int)(intptr_t)cs cast preserves the original
-   * IDA decomp's mistaken type — fixing requires recovering the client
-   * from the chatstate pointer or threading client through the call.
-   * Tracked under todo `ptr-trunc-deferred`. */
-  for ( result = (intptr_t)BotNextConsoleMessage((int)(intptr_t)cs); result; result = (intptr_t)BotNextConsoleMessage((int)(intptr_t)cs) )
-    sub_1002AA20((int)(intptr_t)cs, (bot_consolemessage_t *)(intptr_t)result);
-  return result;
+  /* Original 0x1002DFB0 passes the chatstate pointer to BotNextConsoleMessage
+   * / sub_1002AA20 because the 32-bit binary stored the per-client console-
+   * message linked list inline in the chatstate at +0xac/+0xb0/+0xb4.  In
+   * the 64-bit port those head/tail/count slots cannot hold real pointers,
+   * so the list lives in side-band `botchatmsglinks[client]`; the caller
+   * (BotShutdownClient) threads its client index through. */
+  for ( msg = BotNextConsoleMessage(client); msg; msg = BotNextConsoleMessage(client) )
+    sub_1002AA20(client, msg);
+  return 0;
 }
 // 1000123F: using guessed type _DWORD __cdecl BotNextConsoleMessage(_DWORD);
 // 10001E65: using guessed type _DWORD __cdecl sub_1002AA20(_DWORD, _DWORD);
