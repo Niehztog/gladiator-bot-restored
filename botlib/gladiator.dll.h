@@ -164,6 +164,7 @@ typedef void *LPVOID;
 
 /* 18 */
 typedef int BOOL;
+typedef int qboolean;  /* Q3-style boolean; matches game/botlib.h `typedef int qboolean` */
 
 /* 16 */
 struct _SECURITY_ATTRIBUTES
