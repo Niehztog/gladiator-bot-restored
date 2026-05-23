@@ -29375,6 +29375,9 @@ int __cdecl ReadValue(source_t *a1, float *a2)
 // 1005E498: using guessed type __int16 word_1005E498;
 
 //----- (10035820) --------------------------------------------------------
+// Parse one `weight`/`minweight`/`maxweight` clause from a bot's _i.c/_w.c
+// file into a fuzzyseperator_t leaf. LIVE: called during config load.
+// Part of the runtime config reader chain.
 int __cdecl ReadFuzzyWeight(source_t *a1, fuzzyseperator_t *a2)
 {
   int result; // eax
@@ -29426,6 +29429,8 @@ int __cdecl ReadFuzzyWeight(source_t *a1, fuzzyseperator_t *a2)
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (10035960) --------------------------------------------------------
+// Recursively free a fuzzy decision-tree subtree (child + next siblings +
+// own node). LIVE: paired with FreeWeightConfig2 on bot teardown.
 int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *a1)
 {
   fuzzyseperator_t *v1; // esi
@@ -29453,6 +29458,8 @@ int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *a1)
 // 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
 
 //----- (100359B0) --------------------------------------------------------
+// Free a full weightconfig_t (all weight_t entries + their trees + name
+// strings + the container). LIVE: called when releasing a bot.
 void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
 {
   int i;
@@ -29469,6 +29476,9 @@ void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
 // 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
 
 //----- (10035A20) --------------------------------------------------------
+// Recursive parser for one decision-tree subtree: reads `switch`/`case`
+// blocks from the config and builds linked fuzzyseperator_t nodes
+// (child = yes-branch, next = sibling case). LIVE.
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1)
 {
   int v1; // eax
@@ -29602,6 +29612,9 @@ LABEL_32:
 // 10001D2A: using guessed type int __cdecl ReadFuzzySeperators_r(_DWORD);
 
 //----- (10035FA0) --------------------------------------------------------
+// Top-level loader: opens a bot's _i.c (items) or _w.c (weapons) config,
+// parses each `weight "name" { ... }` block, returns a populated
+// weightconfig_t. LIVE: entry point for item & weapon priority data.
 weightconfig_t *__cdecl ReadWeightConfig(char *Source)
 {
   source_t *src;
@@ -29730,6 +29743,10 @@ LABEL_21:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10036570) --------------------------------------------------------
+// Serialise one leaf weight (constant or min/max fuzzy range) back to a
+// config file. DEAD in Gladiator (no callers); part of the GA-tuning
+// pipeline that writes evolved weights back to bots/*_i.c / *_w.c.
+// Live in Q3 via WriteWeightConfig wrapper.
 int __cdecl WriteFuzzyWeight(FILE *Stream, int a2)
 {
   int v2; // eax
@@ -29761,6 +29778,9 @@ int __cdecl WriteFuzzyWeight(FILE *Stream, int a2)
 }
 
 //----- (10036690) --------------------------------------------------------
+// Recursively serialise a decision-tree subtree as nested `switch`/`case`
+// blocks. DEAD in Gladiator (only self-recursive callers); GA-pipeline
+// counterpart of ReadFuzzySeperators_r. Live in Q3.
 int __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 {
   int result; // eax
@@ -29834,6 +29854,8 @@ int __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 }
 
 //----- (100369C0) --------------------------------------------------------
+// Linear lookup of a weight_t* in a weightconfig_t by item/weapon name.
+// LIVE: called by the goal AI before each FuzzyWeight evaluation.
 int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2)
 {
   int i;
@@ -29849,6 +29871,9 @@ int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2)
 }
 
 //----- (10036A40) --------------------------------------------------------
+// Recursive tree walk for the discrete case: tests `facts[index]` against
+// each seperator's threshold, descends the matching branch, returns the
+// leaf weight. LIVE: core of FuzzyWeight.
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
 {
   int factvalue;
@@ -29893,6 +29918,9 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
 // 10001A73: using guessed type double __cdecl FuzzyWeight_r(_DWORD, _DWORD);
 
 //----- (10036B10) --------------------------------------------------------
+// Recursive tree walk with fuzzy interpolation: when a fact straddles a
+// seperator threshold, blends the two branch weights instead of snapping.
+// LIVE: core of FuzzyWeightUndecided (used for smooth priority changes).
 double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
 {
   int factvalue;
@@ -29951,6 +29979,9 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
 }
 
 //----- (10036C70) --------------------------------------------------------
+// Public entry: discrete fuzzy weight for one weight_t (one item/weapon).
+// Returns the leaf value of the decision tree given current bot facts.
+// LIVE: called by the item/weapon goal scorers every think.
 double __cdecl FuzzyWeight(int *facts, weight_t *w)
 {
   /* Binary at 0x10036C70 is a thin wrapper: push args, call FuzzyWeight_r, ret.
@@ -29960,6 +29991,9 @@ double __cdecl FuzzyWeight(int *facts, weight_t *w)
 }
 
 //----- (10036CA0) --------------------------------------------------------
+// Public entry: fuzzy-interpolated weight for one weight_t. Smooth
+// variant of FuzzyWeight; avoids snap behaviour when a fact value
+// crosses a threshold. LIVE.
 double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 {
   /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns double). */
@@ -29968,6 +30002,10 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // 100017DA: using guessed type double __cdecl FuzzyWeightUndecided_r(_DWORD, _DWORD);
 
 //----- (10036CD0) --------------------------------------------------------
+// GA mutation operator: walks a tree and randomly perturbs seperator
+// thresholds and leaf weights. DEAD in Gladiator (no callers); intended
+// for offline auto-tuning of bot personalities. Live in Q3 via
+// EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
 void __cdecl EvolveFuzzySeperator_r(int a1)
 {
   __int16 v2; // ax
@@ -30013,6 +30051,9 @@ void __cdecl EvolveFuzzySeperator_r(int a1)
 // 10001D5C: using guessed type _DWORD __cdecl EvolveFuzzySeperator_r(_DWORD);
 
 //----- (10036E30) --------------------------------------------------------
+// Uniformly rescale all weights in a subtree by a scalar factor.
+// DEAD in Gladiator. Used by the GA pipeline to normalise mutated trees
+// and as a primitive for crossover blending. Live in Q3.
 void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
 {
   int v3; // eax
@@ -30053,6 +30094,10 @@ void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
 // 10001708: using guessed type _DWORD __cdecl ScaleFuzzySeperator_r(_DWORD, _DWORD);
 
 //----- (10036F90) --------------------------------------------------------
+// GA crossover operator: blends two parent trees into a child tree by
+// recursively averaging seperator thresholds and leaf weights.
+// DEAD in Gladiator. Live in Q3 via InterbreedingGoalFuzzyLogic.
+// Together with Evolve* and Write* forms the offline bot-tuning pipeline.
 int __cdecl InterbreedFuzzySeperator_r(int a1, int a2)
 {
   int result; // eax
