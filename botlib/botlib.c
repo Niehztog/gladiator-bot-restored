@@ -428,7 +428,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
 char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3);
-int __cdecl AAS_IndexFromString(int, indexlist_t *, char *String2); // idb
+int __cdecl AAS_IndexFromString(const char *, indexlist_t *, char *String2); // idb
 char *__cdecl AAS_ModelFromIndex(int a1);
 int __cdecl IndexFromModel(char *String2); // idb
 char *__cdecl AAS_ImageFromIndex(int a1);
@@ -8925,14 +8925,14 @@ char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3)
 // 100669B0: using guessed type int aasworld.indexes_loaded;
 
 //----- (1000D8D0) --------------------------------------------------------
-int __cdecl AAS_IndexFromString(int a1, indexlist_t *a2, char *String2)
+int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
 {
   int v4; // esi
   const char *v5; // eax
 
   if ( !aasworld.indexes_loaded )
   {
-    bi_Print(3, "%s: index not setup \"%s\"\n", (const char *)a1, String2);
+    bi_Print(3, "%s: index not setup \"%s\"\n", a1, String2);
     return 0;
   }
   v4 = 0;
@@ -8963,7 +8963,7 @@ char *__cdecl AAS_ModelFromIndex(int a1)
 //----- (1000D990) --------------------------------------------------------
 int __cdecl IndexFromModel(char *String2)
 {
-  return AAS_IndexFromString((int)aIndexfrommodel, aasworld.modelindex_table, String2);
+  return AAS_IndexFromString(aIndexfrommodel, aasworld.modelindex_table, String2);
 }
 
 //----- (1000DA20) --------------------------------------------------------
@@ -20881,14 +20881,14 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
   int i; // ecx
   long double v11; // st6
   long double v12; // rt0
-  int v13; // esi
+  bot_state_t *v13; // esi (originally `int v13 = a1` where `a1` aliased a global char[] - decompiler artifact; real value is bs)
   float v14; // ecx
   float v15; // edx
   int v16; // eax
   double v17; // st7
   int v18; // ecx
   double v19; // st7
-  int v20; // esi
+  char *v20; // esi
   int v21; // eax
   float v22; // edx
   float v23; // eax
@@ -21050,7 +21050,7 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
       v39 = trace.endpos[1];
       v40 = trace.endpos[2];
     }
-    v13 = a1;
+    v13 = bs;
     v14 = v60;
     v15 = v61;
     bs->activategoal.origin[0] = v59;
@@ -21082,7 +21082,7 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
       }
 LABEL_32:
       if ( result == AINode_Seek_LTG )
-        *(_DWORD *)(v13 + 2792) = 0;
+        v13->ltg_time = 0.0f;
       return result;
     }
     return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
@@ -21137,9 +21137,9 @@ LABEL_37:
     return result;
   }
   v20 = AAS_ValueForBSPEpairKey(v6, aModel);
-  v21 = IndexFromModel((char *)v20);
+  v21 = IndexFromModel(v20);
   if ( !v21 )
-    v21 = atoi((const char *)(v20 + 1));
+    v21 = atoi(v20 + 1);
   v56 = 0;
   v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x10025b78..0x10025b8f/0x10025d9f..0x10025db7 */
   v56_vec[2] = 0;
@@ -21158,7 +21158,7 @@ LABEL_37:
   trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
   if ( !trace.startsolid )
   {
-    v13 = a1;
+    v13 = bs;
     v40 = trace.endpos[2];
     v38 = trace.endpos[0];
     v22 = v48;
