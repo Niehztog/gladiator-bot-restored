@@ -25931,7 +25931,16 @@ _DWORD * BotInitLevelItems()
       do
       {
         ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
-        if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & (unsigned int)(__int64)a1) == 0 )
+        if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & 0u) == 0 )
+        /* Original __usercall took `double a1@<st0>`; the body masks
+         * AAS_IntForBSPEpairKey against (__int64)a1.  No caller pushes
+         * an FPU value; the read is whatever happened to be in st(0)
+         * (and the slot at [esp+0x20] in the binary is never written
+         * before the AND at 0x1002f437).  In practice the FPU stack
+         * is empty/zero here, so the mask is 0 and the condition is
+         * always true — i.e. spawnflags filtering was a dead branch.
+         * Replacing with `& 0u` makes that explicit and avoids the
+         * IDA `a1`-global alias trap on 64-bit. */
         {
           v7 = 0;
           if ( v2->numitems > 0 )
