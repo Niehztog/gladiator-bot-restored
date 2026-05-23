@@ -24,6 +24,7 @@
 
 #include "../game/botlib.h"    /* bot_updateclient_t */
 #include "botlib_structs.h"   /* bot_goal_t */
+#include "chat_state.h"       /* bot_chatstate_t */
 
 #define BOT_STATE_SIZE       4560
 
@@ -284,7 +285,7 @@ typedef struct bot_state_s {
              * the patrol-state loop).  Splitting more pads is fine; the
              * union keeps both spellings live against the same memory. */
             int    goalstate[243];        /* +3008..+3979 */
-            int    chatstate[47];         /* +3980..+4167 */
+            bot_chatstate_t chatstate;    /* +3980..+4167 (188 bytes; see chat_state.h) */
             int    weaponweights[7];      /* +4168..+4195 */
             int    enemy;                 /* +4196 */
             int    lastenemyareanum;      /* +4200 areanum of enemy's last-confirmed position */

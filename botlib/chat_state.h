@@ -84,6 +84,40 @@ typedef struct bot_match_s {
 
 /* ---- Reply-chat structures (rchat.c) ----------------------------------- */
 
+/* bot_chatstate_t — per-client chat state embedded inline in bot_state_t
+ * at offset +3980.  Original 32-bit DLL size = 47 ints = 188 bytes.  Most
+ * of the slot layout is opaque; the few fields confirmed from disasm /
+ * existing code paths are aliased below.  All actual pointer-bearing
+ * slots ([43..46]) cannot hold 64-bit pointers and are routed through
+ * side-band arrays (`botchatdumps`, `botchatmsglinks`) — they remain
+ * 4-byte ints here purely to preserve the 188-byte layout.
+ *
+ * Confirmed accessors:
+ *   - chatstate[0]      @ +0    int  gender   — 1=female, 2=male, 0=neutral.
+ *     Set by BotSetupClient from Characteristic_String(BotCharacter, 3).
+ *     Read by BotReplyChat (sub_1002E7D0) via *(_DWORD *)cs comparisons.
+ *   - chatstate[5..]    @ +20   char name[?]  — strlen()/strcpy() target
+ *     in BotChatLength (sub_1002E760) and BotInitialChat.
+ *   - chatstate[43]     @ +172  bot_consolemessage_t *first  (side-banded)
+ *   - chatstate[44]     @ +176  bot_consolemessage_t *last   (side-banded)
+ *   - chatstate[45]     @ +180  int                   count  (side-banded)
+ *   - chatstate[46]     @ +184  chatlist_t *chatdump         (side-banded) */
+typedef struct bot_chatstate_s {
+    union {
+        int  _slots[47];                         /* opaque 47-int payload — preserves 188-byte size */
+        struct {
+            int  gender;                         /* +0 — 0/1/2 */
+            char _pad_04[16];                    /* +4..+19 */
+            char name[20];                       /* +20..+39 — strlen/strcpy target */
+            char _pad_28[132];                   /* +40..+171 — unmapped slots [10..42] */
+            int  _slot_43;                       /* +172 — side-banded first-msg ptr */
+            int  _slot_44;                       /* +176 — side-banded last-msg ptr */
+            int  _slot_45;                       /* +180 — side-banded count (mirror only) */
+            int  _slot_46;                       /* +184 — side-banded chatdump ptr */
+        };
+    };
+} bot_chatstate_t;                               /* sizeof = 188 */
+
 /* bot_chatmessage_t — one message body inside a reply-chat entry. */
 typedef struct bot_chatmessage_s {
     char *chatmessage;                          /* +0  message text (points just past header) */
