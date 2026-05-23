@@ -621,7 +621,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs);
 // void BotAimAtEnemy(bot_state_t *bs);
 // void BotCheckAttack(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
-int __cdecl BotSetMovedir(int a1, int a2);
+int __cdecl BotSetMovedir(float *angles, float *dir);
 ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3);
 void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
@@ -20684,29 +20684,26 @@ LABEL_38:
 // 10024A10: using guessed type int var_CC[10];
 
 //----- (10024FD0) --------------------------------------------------------
-int __cdecl BotSetMovedir(int a1, int a2)
+int __cdecl BotSetMovedir(float *angles, float *dir)
 {
-  int result; // eax
-
-  if ( VectorCompare(a1, &unk_1005C56C) )
+  if ( VectorCompare(angles, (float *)&unk_1005C56C) )
   {
-    result = a2;
-    *(float *)a2 = flt_1005C578;
-    *(_DWORD *)(a2 + 4) = dword_1005C57C;
-    *(_DWORD *)(a2 + 8) = dword_1005C580;
+    dir[0] = flt_1005C578;
+    *(_DWORD *)&dir[1] = dword_1005C57C;
+    *(_DWORD *)&dir[2] = dword_1005C580;
+    return (int)(intptr_t)dir;
   }
-  else if ( VectorCompare(a1, &unk_1005C584) )
+  else if ( VectorCompare(angles, (float *)&unk_1005C584) )
   {
-    result = a2;
-    *(float *)a2 = flt_1005C590;
-    *(_DWORD *)(a2 + 4) = dword_1005C594;
-    *(_DWORD *)(a2 + 8) = dword_1005C598;
+    dir[0] = flt_1005C590;
+    *(_DWORD *)&dir[1] = dword_1005C594;
+    *(_DWORD *)&dir[2] = dword_1005C598;
+    return (int)(intptr_t)dir;
   }
   else
   {
-    return AngleVectors(a1, a2, 0, 0);
+    return (int)(intptr_t)AngleVectors(angles, dir, NULL, NULL);
   }
-  return result;
 }
 // 10001B9F: using guessed type _DWORD __cdecl AngleVectors(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
@@ -20791,7 +20788,7 @@ void __cdecl sub_10025070(void)
       angles[0] = 0.0f;
       angles[1] = (float)angle_yaw;
       angles[2] = 0.0f;
-      BotSetMovedir((int)angles, (int)forward);
+      BotSetMovedir(angles, forward);
 
       /* Midpoint and "self" half-extent projected onto the press axis. */
       midpoint[0] = (mins[0] + maxs[0]) * 0.5f;
@@ -21003,7 +21000,7 @@ ai_node_fn_t __cdecl BotCheckActivateGoal(bot_state_t *bs, _DWORD *a2, int a3)
     AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, aLip);
     v56 = 0;
-    BotSetMovedir((int)&v56, (int)v50);
+    BotSetMovedir(v56_vec, v50);
     v69 = v41 - v44;
     v70 = v42 - v45;
     v71 = v43 - v46;
