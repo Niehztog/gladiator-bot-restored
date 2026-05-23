@@ -248,7 +248,7 @@ double __cdecl Characteristic_Float(bot_character_t *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
 int __cdecl BotReachabilityTime(intptr_t);
 void PrintUsedMemorySize(void);
-int __cdecl AAS_HorizontalVelocityForJump(float, float *, float *, float *); // idb
+int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
 int __cdecl AAS_UpdatePortal(int ArgList, int);
 /* AAS_AASLinkEntity: see full declaration at line ~500 below */
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
@@ -329,10 +329,10 @@ int __cdecl AAS_AgainstLadder(int *);
 int AAS_ResetEntityLinks();
 float *__cdecl ProjectPointOnPlane(float *, float *, float *);
 void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
-double __cdecl VectorDistance(float *, float *);
+double __cdecl VectorDistance(vec3_t, vec3_t);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 bsp_link_t *AAS_AllocBSPLink(void);
-int __cdecl AAS_BestReachableArea(int *, float *, float *, float *);
+int __cdecl AAS_BestReachableArea(int *, vec3_t, vec3_t, vec3_t);
 int AAS_TestPortals();
 int __cdecl EA_DropItem(int client, char *item);  // fixed from weak
 void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float *end, int a6, int a7);
@@ -345,7 +345,7 @@ int __cdecl sub_10003360(float *a1, int a2);
 char *__cdecl sub_10003420(float *a1, int a2);
 float *__cdecl VectorTransform(float *a1, float *a2);
 void __cdecl AnglesToAxis(float *angles, float *axis_out);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
-int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, float *a7);
+int __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec3_t a5, int a6, float *a7);
 int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9);
@@ -354,14 +354,14 @@ int __cdecl BSP_InsideFace(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 int __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
-BOOL __cdecl AAS_inPVS(float *a1, float *a2);
+BOOL __cdecl AAS_inPVS(vec3_t a1, vec3_t a2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *a1);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
-bsp_link_t *__cdecl AAS_BSPLinkEntity(float *a1, float *a2, int a3, int a4);
+bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
-int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, float *a3);
+int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3);
 double __cdecl FloatForKey(bsp_entity_t *a1, const char *a2);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2);
 int __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
@@ -395,7 +395,7 @@ int __cdecl AAS_DrawPermanentCross(int, float, int); // idb
 int __cdecl AAS_ShowArea(int a1, int a2);
 void __cdecl AAS_DrawCross(int origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
-void __cdecl AAS_DrawArrow(float *start, float *end, int linecolor, int arrowcolor);
+void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
 void __cdecl AAS_ShowReachability(int reach); /* aas_reachability_t *reach */
 void __cdecl AAS_ShowReachableAreas(int areanum);
 int __cdecl AAS_UpdateEntity(int entnum, float *state);
@@ -405,11 +405,11 @@ int __cdecl AAS_EntityRenderFX(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
 int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2);
 int __cdecl AAS_EntityBSPData(int a1, intptr_t a2);
-int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs);  // 5-param: matches call sites
+int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
 int AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(int a1);
-int __cdecl AAS_BestReachableArea(int *a1, float *a2, float *a3, float *outgoal);
+int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *); // idb
@@ -448,16 +448,16 @@ int __cdecl sub_1000E430(char *Source); // idb
 int __cdecl BotLoadMap(char *Source, int, char **, int, char **, int, char **); // idb
 int __cdecl sub_1000EDC0(int a1, int a2);
 int AAS_Shutdown();
-BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3);
-BOOL __cdecl AAS_Swimming(float *a1);
+BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3);
+BOOL __cdecl AAS_Swimming(vec3_t a1);
 void __cdecl AAS_JumpReachRunStart(intptr_t reach, intptr_t runstart);
 int __cdecl AAS_AgainstLadder(int *a1);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
-float __cdecl AAS_RocketJumpZVelocity(float *origin);
-int __cdecl AAS_BFGJumpZVelocity(float *a1);
-void __cdecl AAS_ApplyFriction(float *a1, float a2, float a3, float a4);
+float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
+int __cdecl AAS_BFGJumpZVelocity(vec3_t a1);
+void __cdecl AAS_ApplyFriction(vec3_t a1, float a2, float a3, float a4);
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
-int __cdecl AAS_HorizontalVelocityForJump(float, float *, float *, float *); // idb
+int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
 int AAS_KeepEdge();
 int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2);
 int __cdecl AAS_KeepFace(char *a1);
@@ -473,7 +473,7 @@ int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(char *a1);
 double __cdecl AAS_AreaVolume(int a1);
 double __cdecl AAS_AreaGroundFaceArea(int a1);
-int __cdecl AAS_FaceCenter(int a1, float *a2);
+int __cdecl AAS_FaceCenter(int a1, vec3_t a2);
 __int64 AAS_FallDamageDistance();
 double __cdecl AAS_MaxJumpHeight(float a1);
 long double __cdecl AAS_MaxJumpDistance(float a1);
@@ -482,13 +482,13 @@ int __cdecl AAS_AreaSwim(int a1); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int a1); /* AAS_AreaGrounded impl */
 int __cdecl AAS_AreaLadder(int a1);
 int __cdecl AAS_ReachabilityExists(int a1, int a2);
-BOOL __cdecl AAS_NearbySolidOrGap(float *a1, float *a2);
+BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2);
 int __cdecl AAS_Reachability_Swim(int a1, int a2);
 int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2);
-double __cdecl VectorDistance(float *a1, float *a2);
-int __cdecl VectorBetweenVectors(float *a, float *b, float *c);
-int __cdecl VectorMiddle(float *a1, float *a2, float *a3);
+double __cdecl VectorDistance(vec3_t a1, vec3_t a2);
+int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
+int __cdecl VectorMiddle(vec3_t a1, vec3_t a2, vec3_t a3);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
 // int __usercall AAS_Reachability_Ladder@<eax>(double a1@<st0>, int a2, int a3);
 int AAS_Reachability_Teleport();
@@ -518,8 +518,8 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
 char *__cdecl AAS_ReachabilityFromNum(char *a1, int a2);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, float *a4);
-aas_trace_t __cdecl AAS_TraceClientBBox(float *start, float *end, int presencetype, int passent);
+int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4);
+aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int passent);
 int AAS_RoutingInfo();
 int __cdecl sub_1001A650(int a1);
 int sub_1001AB80();
@@ -529,17 +529,17 @@ aas_link_t *AAS_AllocAASLink(void);
 aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1);
 int AAS_InitAASLinkedEntities();
 int AAS_FreeAASLinkedEntities();
-int __cdecl AAS_PointAreaNum(float *point);
+int __cdecl AAS_PointAreaNum(vec3_t point);
 int __cdecl AAS_AreaPresenceType(int areanum);
-int __cdecl AAS_PointContents(float *point);
-int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, intptr_t a6);
-int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs);  // 5-param: matches call sites
+int __cdecl AAS_PointContents(vec3_t point);
+int __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, int a5, intptr_t a6);
+int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 int __cdecl AAS_InsideFace(int a1);
 int __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *a1);
-aas_link_t *__cdecl AAS_AASLinkEntity(float *a1, float *a2, int a3);
+aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3);
 aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
 char *__cdecl AAS_PlaneFromNum(int a1);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
@@ -744,9 +744,9 @@ int __cdecl BotPopGoal(int *a1);
 void __cdecl BotEmptyGoalStack(int *a1);
 void *__cdecl BotGetTopGoal(int *a1);
 void *__cdecl BotGetSecondGoal(int *a1);
-int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4);
-int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, bot_goal_t *a5, float a6);
-int __cdecl BotTouchingGoal(float *a1, float *a2);
+int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
+int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6);
+int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
 int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2);
 int __cdecl BotFreeItemWeights(bot_state_t *bs);
@@ -2618,7 +2618,7 @@ void __cdecl AnglesToAxis(float *angles, float *axis_out)
 // 10001A8C: using guessed type _DWORD __cdecl Matrix3Multiply(_DWORD, _DWORD, _DWORD);
 
 //----- (10003680) --------------------------------------------------------
-int __cdecl AAS_EntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, float *a7)
+int __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec3_t a5, int a6, float *a7)
 {
   int v7; // edi
   int v12; // edx
@@ -4133,7 +4133,7 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 // 10069574: using guessed type float flt_10069574;
 
 //----- (10005C60) --------------------------------------------------------
-BOOL __cdecl AAS_inPVS(float *a1, float *a2)
+BOOL __cdecl AAS_inPVS(vec3_t a1, vec3_t a2)
 {
   return AAS_InPVS(a1, a2, 0);
 }
@@ -4279,7 +4279,7 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 }
 
 //----- (10006210) --------------------------------------------------------
-bsp_link_t *__cdecl AAS_BSPLinkEntity(float *a1, float *a2, int a3, int a4)
+bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
 {
   bsp_link_t *v5; // edi
   int *v6; // ebx
@@ -4374,7 +4374,7 @@ char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
 }
 
 //----- (100067E0) --------------------------------------------------------
-int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, float *a3)
+int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3)
 {
   char *result; // eax
   double v4; // [esp+0h] [ebp-18h] BYREF
@@ -6895,7 +6895,7 @@ void __cdecl AAS_PrintTravelType(int traveltype)
  * three calls to AAS_DebugLine draw shaft + two
  * arrowhead strokes.  Magic 1065353216 = 0x3F800000 = 1.0f.
  */
-void __cdecl AAS_DrawArrow(float *a1, float *a2, int a3, int a4)
+void __cdecl AAS_DrawArrow(vec3_t a1, vec3_t a2, int a3, int a4)
 {
   double v4; // st7
   double v5; // st7
@@ -7326,7 +7326,7 @@ int __cdecl AAS_EntityBSPData(int a1, intptr_t a2)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AFD0) --------------------------------------------------------
-int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs)
+int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
   int v3; // ecx
   double v4; // st7
@@ -7445,7 +7445,7 @@ LABEL_5:
 // 1000144C: using guessed type _DWORD __cdecl AAS_AreaGrounded(_DWORD);
 
 //----- (1000B300) --------------------------------------------------------
-int __cdecl AAS_BestReachableArea(int *a1, float *a2, float *a3, float *outgoal)
+int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
 {
   int result; // eax
   int v7; // ebp
@@ -9525,7 +9525,7 @@ int AAS_Shutdown()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000EEB0) --------------------------------------------------------
-BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3)
+BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3)
 {
   int v3; // ecx
   double v4; // st7
@@ -9556,7 +9556,7 @@ BOOL __cdecl AAS_OnGround(float *a1, int a2, int a3)
  * given origin is in liquid (LAVA|SLIME|WATER = 0x38).  Used by BotMoveInDirection
  * to pick a swim/jump movement style.  IDA dropped the bi_PointContents call
  * (compare 0x1000efe6 in the binary) and v3 was uninitialized. */
-BOOL __cdecl AAS_Swimming(float *a1)
+BOOL __cdecl AAS_Swimming(vec3_t a1)
 {
   /* v5 must be int[3]: the X/Y stores are raw 32-bit copies (not int->float
    * conversions), preserving the float bit pattern from a1.  Verified at
@@ -9775,19 +9775,19 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
  * AAS_WeaponJumpZVelocity (currently still named AAS_WeaponJumpZVelocity at
  * 0x1000F4D0; rename pending).  Matches ioq3 be_aas_move.c:341.
  */
-float __cdecl AAS_RocketJumpZVelocity(float *a1)
+float __cdecl AAS_RocketJumpZVelocity(vec3_t a1)
 {
   return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F780) --------------------------------------------------------
-int __cdecl AAS_BFGJumpZVelocity(float *a1)
+int __cdecl AAS_BFGJumpZVelocity(vec3_t a1)
 {
   return AAS_WeaponJumpZVelocity(a1, 120.0);
 }
 
 //----- (1000F7B0) --------------------------------------------------------
-void __cdecl AAS_ApplyFriction(float *a1, float a2, float a3, float a4)
+void __cdecl AAS_ApplyFriction(vec3_t a1, float a2, float a3, float a4)
 {
   long double v4; // st5
   long double v5; // st6
@@ -10262,7 +10262,7 @@ LABEL_87:
 // 1000F840: using guessed type char var_6C[36];
 
 //----- (10010780) --------------------------------------------------------
-int __cdecl AAS_HorizontalVelocityForJump(float a1, float *a2, float *a3, float *a4)
+int __cdecl AAS_HorizontalVelocityForJump(float a1, vec3_t a2, vec3_t a3, float *a4)
 {
   long double v4; // st7
   double v5; // st6
@@ -10779,7 +10779,7 @@ double __cdecl AAS_AreaGroundFaceArea(int a1)
 }
 
 //----- (100113F0) --------------------------------------------------------
-int __cdecl AAS_FaceCenter(int a1, float *a2)
+int __cdecl AAS_FaceCenter(int a1, vec3_t a2)
 {
   int v2; // esi
   char *v3; // edi
@@ -10885,7 +10885,7 @@ int __cdecl AAS_ReachabilityExists(int a1, int a2)
 // 1006675C: using guessed type int dword_1006675C;
 
 //----- (10011740) --------------------------------------------------------
-BOOL __cdecl AAS_NearbySolidOrGap(float *a1, float *a2)
+BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2)
 {
   int v3; // eax
   int v4; // esi
@@ -11977,7 +11977,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
  * leaves on ST(0).  IDA decompiled this as `void` because the body looks
  * like a fire-and-forget call; that broke every caller that read v39 (or
  * similar) immediately after — see `ida_dropped_results.md`. */
-double __cdecl VectorDistance(float *a1, float *a2)
+double __cdecl VectorDistance(vec3_t a1, vec3_t a2)
 {
   float v2[3]; // [esp+0h] [ebp-Ch] BYREF
 
@@ -12001,7 +12001,7 @@ double __cdecl VectorDistance(float *a1, float *a2)
  * AAS_Reachability_Jump (asm at 0x1001417b, 0x1001423c, 0x10014300, 0x100143d0)
  * push (a, b, c) right-to-left immediately before the call; matching them to
  * the C decomp gives args of the form (projection, edge_v0, edge_v1). */
-int __cdecl VectorBetweenVectors(float *a, float *b, float *c)
+int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c)
 {
   float ab[3], ac[3];
 
@@ -12015,7 +12015,7 @@ int __cdecl VectorBetweenVectors(float *a, float *b, float *c)
 }
 
 //----- (10013C70) --------------------------------------------------------
-int __cdecl VectorMiddle(float *a1, float *a2, float *a3)
+int __cdecl VectorMiddle(vec3_t a1, vec3_t a2, vec3_t a3)
 {
   *a3 = *a1 + *a2;
   a3[1] = a1[1] + a2[1];
@@ -15445,7 +15445,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (1001A410) --------------------------------------------------------
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, float *a4)
+int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4)
 {
   int v4; // ebx
   int v5; // eax
@@ -15688,7 +15688,7 @@ int AAS_FreeAASLinkedEntities()
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001AE60) --------------------------------------------------------
-int __cdecl AAS_PointAreaNum(float *point)
+int __cdecl AAS_PointAreaNum(vec3_t point)
 {
   int v2; // eax
   _DWORD *v3; // ecx
@@ -15738,7 +15738,7 @@ int __cdecl AAS_AreaPresenceType(int areanum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (1001AFA0) --------------------------------------------------------
-int __cdecl AAS_PointContents(float *point)
+int __cdecl AAS_PointContents(vec3_t point)
 {
   int v2; // eax
 
@@ -15754,7 +15754,7 @@ int __cdecl AAS_PointContents(float *point)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001B130) --------------------------------------------------------
-int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5, intptr_t a6)
+int __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, int a5, intptr_t a6)
 {
   aas_link_t *v6; // esi
   float v7; // edx
@@ -15825,7 +15825,7 @@ int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5,
  * start/end = vec3, presencetype = PRESENCE_* mask, passent = -1 disables
  * entity collision test.
  */
-aas_trace_t __cdecl AAS_TraceClientBBox(float *start, float *end,
+aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
                                         int presencetype, int passent)
 {
   aas_tracestack_t tracestack[64];
@@ -16317,7 +16317,7 @@ aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *a1)
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001C460) --------------------------------------------------------
-aas_link_t *__cdecl AAS_AASLinkEntity(float *a1, float *a2, int a3)
+aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
 {
   aas_link_t *v4; // edi  (areas chain head)
   int *v5; // ebx
@@ -26370,7 +26370,7 @@ void *__cdecl BotGetSecondGoal(int *a1)
 }
 
 //----- (1002FEB0) --------------------------------------------------------
-int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
+int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
 {
   int result; // eax
   BOOL v6; // eax
@@ -26506,7 +26506,7 @@ int __cdecl BotChooseLTGItem(int *a1, float *a2, char *a3, int a4)
 // 10064360: using guessed type int dword_10064360;
 
 //----- (10030260) --------------------------------------------------------
-int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, bot_goal_t *a5, float a6)
+int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6)
 {
   int result; // eax
   BOOL v8; // eax
@@ -26638,7 +26638,7 @@ int __cdecl BotChooseNBGItem(int *a1, float *a2, char *a3, int a4, bot_goal_t *a
 // 10064360: using guessed type int dword_10064360;
 
 //----- (10030600) --------------------------------------------------------
-int __cdecl BotTouchingGoal(float *a1, float *a2)
+int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
 {
   double v3; // st7
   int v4; // edx
