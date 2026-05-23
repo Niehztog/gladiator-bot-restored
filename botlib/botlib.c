@@ -17080,17 +17080,17 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
         if ( VectorLength(dir) < bs->formation_dist )
         {
           v18 = AAS_Time() - 5.0;
-          if ( v18 > bs->_f2820 )
+          if ( v18 > bs->attackcrouch_time )
           {
             /* IDA dropped fstps after BFloat; v51 is the bfloat result, not v18.
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( v51 * bs->thinktime > (double)(rand() & 0x7FFF) * 0.000030518509 )
-              bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
+              bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( AAS_Swimming(bs->origin) )
-            bs->_f2820 = AAS_Time() - 1.0;
+            bs->attackcrouch_time = AAS_Time() - 1.0;
           if ( AAS_Time() - 2.0 > bs->arrive_time )
           {
             if ( bs->arrive_time == 0.0 )
@@ -17101,7 +17101,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
               BotEnterChat(&bs->chatstate, bs->client, 1);
               bs->arrive_time = AAS_Time();
             }
-            else if ( AAS_Time() >= bs->_f2820 )
+            else if ( AAS_Time() >= bs->attackcrouch_time )
             {
               if ( bs->thinktime * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               {
@@ -17256,18 +17256,18 @@ LABEL_86:
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
           }
           v34 = AAS_Time() - 5.0;
-          if ( v34 > bs->_f2820 )
+          if ( v34 > bs->attackcrouch_time )
           {
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( v51 * bs->thinktime > (double)(rand() & 0x7FFF) * 0.000030518509 )
-              bs->_f2820 = AAS_Time() + v51 * 15.0 + 5.0;
+              bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
           }
-          if ( AAS_Time() < bs->_f2820 )
+          if ( AAS_Time() < bs->attackcrouch_time )
             EA_Crouch(bs->client);
           if ( AAS_Swimming(bs->origin) )
-            bs->_f2820 = AAS_Time() - 1.0;
+            bs->attackcrouch_time = AAS_Time() - 1.0;
           v35 = bi_PointContents((float *)bs->eye);   /* IDA-dropped: bot-eye liquid check */
           if ( (v35 & 0x38) != 0 )
           {

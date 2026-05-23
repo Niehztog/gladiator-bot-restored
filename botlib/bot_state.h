@@ -219,11 +219,12 @@ typedef struct bot_state_s {
                                            * (XOR 1) on direction reversal triggered by a random threshold.
                                            * Q3 ancestor: bs->attackstrafe_time (ai_main.h:177) but semantics
                                            * differ (Q3 stores AAS_Time(), we store a per-frame accumulator). */
-            float  _f2820;                /* +2820 dual-use wait/crouch countdown in accompany (LTG=?) and
-                                           * camp (LTG=?) branches: 5 s base + char24*15 randomized extension.
-                                           * Bot crouches while it remains > AAS_Time() in camp; periodic
-                                           * wave/say in accompany.  No clean Q3 ancestor — closest is
-                                           * bs->attackcrouch_time (ai_main.h:178) but semantics differ. */
+            float  attackcrouch_time;     /* +2820 dual-use crouch/wait deadline.  Identical logic to Q3
+                                           * `bs->attackcrouch_time` (ai_main.h:178; ai_dmnet.c:440-447,
+                                           * 662-673): if (now-5 > t) t = now + croucher*15 + 5;
+                                           * if (Swimming) t = now - 1.  Used in both accompany (LTG)
+                                           * and camp (LTG) branches: bot crouches while t > now in
+                                           * camp; periodic wave/say in accompany. */
             float  attackchase_time;      /* +2824 chase-using-lastenemyorigin window.  In the original DLL
                                            * the WRITER IS COMMENTED OUT (Q3 ai_dmq3.c:2759 still preserves
                                            * `// bs->attackchase_time = AAS_Time() + 6;`), so this field
