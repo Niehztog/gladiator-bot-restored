@@ -536,7 +536,7 @@ int __cdecl AAS_AreaEntityCollision(int a1, char *a2, float *a3, int a4, int a5,
 int __cdecl AAS_DropToFloor(float *origin, float *mins, float *maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 int __cdecl AAS_InsideFace(int a1);
-int __cdecl AAS_PointInsideFace(int, int, float); // idb
+int __cdecl AAS_PointInsideFace(int, float *, float); // idb
 int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *a1);
 aas_link_t *__cdecl AAS_AASLinkEntity(float *a1, float *a2, int a3);
@@ -9691,7 +9691,7 @@ int __cdecl AAS_AgainstLadder(int *a1)
                               + *((float *)aasworld.planes + 5 * v9) * *(float *)a1
                               - *((float *)aasworld.planes + 5 * v9 + 3))) < 3 )
       {
-        if ( AAS_PointInsideFace(v7, (int)a1, 0.1) )
+        if ( AAS_PointInsideFace(v7, (float *)a1, 0.1) )
           break;
       }
     }
@@ -16208,7 +16208,7 @@ int __cdecl AAS_InsideFace(int a1)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BF00) --------------------------------------------------------
-int __cdecl AAS_PointInsideFace(int a1, int a2, float a3)
+int __cdecl AAS_PointInsideFace(int a1, float *a2, float a3)
 {
   _DWORD *v5; // ebx
   int eidx;
@@ -16242,9 +16242,9 @@ int __cdecl AAS_PointInsideFace(int a1, int a2, float a3)
       v14[0] = *v9 - *(float *)v7;
       v14[1] = v9[1] - *(float *)(v7 + 4);
       v14[2] = v9[2] - *(float *)(v7 + 8);
-      v11 = *(float *)a2 - *(float *)v7;
-      v12 = *(float *)(a2 + 4) - *(float *)(v7 + 4);
-      v13 = *(float *)(a2 + 8) - *(float *)(v7 + 8);
+      v11 = a2[0] - *(float *)v7;
+      v12 = a2[1] - *(float *)(v7 + 4);
+      v13 = a2[2] - *(float *)(v7 + 8);
       CrossProduct(v14, v10, v15);
       v17 = -a3;
       if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
