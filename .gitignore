@@ -33,3 +33,4 @@ desktop.ini
 
 # CLAUDE.md
 aas_results/
+tools/__pycache__/
