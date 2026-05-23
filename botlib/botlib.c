@@ -345,7 +345,7 @@ int __cdecl sub_10003360(float *a1, int a2);
 char *__cdecl sub_10003420(float *a1, int a2);
 float *__cdecl VectorTransform(float *a1, float *a2);
 void __cdecl AnglesToAxis(float *angles, float *axis_out);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
-qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec3_t a5, int a6, float *a7);
+qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace);
 int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9);
@@ -354,10 +354,10 @@ int __cdecl BSP_InsideFace(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 int __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
-qboolean __cdecl AAS_inPVS(vec3_t a1, vec3_t a2);
+qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
-bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *a1);
+bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
@@ -377,22 +377,22 @@ int sub_100085F0();
 int AAS_RemoveClusterAreas();
 int __cdecl AAS_UpdatePortal(int ArgList, int a2);
 int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList);
-int __cdecl AAS_FloodClusterReachabilities(int a1);
-int __cdecl AAS_NumberClusterPortals(int a1);
+int __cdecl AAS_FloodClusterReachabilities(int clusternum);
+int __cdecl AAS_NumberClusterPortals(int clusternum);
 int AAS_FindClusters();
 int AAS_CreatePortals();
-int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4);
-qboolean __cdecl AAS_ConnectedAreas(_DWORD *a1, int a2);
-int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3);
-int __cdecl AAS_CheckAreaForPossiblePortals(int a1);
+int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea);
+qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas);
+int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done);
+int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);
 int AAS_FindPossiblePortals();
 int AAS_RemoveAllPortals();
 int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
 int AAS_ClearShownDebugLines();
-int __cdecl AAS_DebugLine(int a1, int a2, int a3);
+int __cdecl AAS_DebugLine(int start, int end, int color);
 int __cdecl AAS_DrawPermanentCross(int, float, int); // idb
-int __cdecl AAS_ShowArea(int a1, int a2);
+int __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
 void __cdecl AAS_DrawCross(int origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
@@ -403,17 +403,17 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum);
 int __cdecl AAS_EntityModelindex(int entnum);
 int __cdecl AAS_EntityRenderFX(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
-int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2);
-int __cdecl AAS_EntityBSPData(int a1, intptr_t a2);
+int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin);
+int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
 int AAS_InvalidateEntities();
-int __cdecl AAS_BestReachableLinkArea(int a1);
+int __cdecl AAS_BestReachableLinkArea(int areas);
 int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *); // idb
-int __cdecl AAS_NextBSPEntity(int a1);
+int __cdecl AAS_NextBSPEntity(int ent);
 int AAS_SwapAASData();
 void *AAS_DumpAASData();
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
@@ -448,47 +448,47 @@ int __cdecl sub_1000E430(char *Source); // idb
 int __cdecl BotLoadMap(char *Source, int, char **, int, char **, int, char **); // idb
 int __cdecl sub_1000EDC0(int a1, int a2);
 int AAS_Shutdown();
-BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3);
-BOOL __cdecl AAS_Swimming(vec3_t a1);
+BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent);
+BOOL __cdecl AAS_Swimming(vec3_t origin);
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart);
-int __cdecl AAS_AgainstLadder(int *a1);
+int __cdecl AAS_AgainstLadder(int *origin);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
-int __cdecl AAS_BFGJumpZVelocity(vec3_t a1);
-void __cdecl AAS_ApplyFriction(vec3_t a1, float a2, float a3, float a4);
+int __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
+void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime);
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
 int AAS_KeepEdge();
-int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2);
-int __cdecl AAS_KeepFace(char *a1);
-int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2);
-int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2);
-int __cdecl AAS_OptimizeAlloc(optimized_t *a1);
-int __cdecl AAS_OptimizeStore(optimized_t *a1);
+int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum);
+int __cdecl AAS_KeepFace(char *face);
+int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum);
+int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum);
+int __cdecl AAS_OptimizeAlloc(optimized_t *optimized);
+int __cdecl AAS_OptimizeStore(optimized_t *optimized);
 int AAS_Optimize();
 int AAS_SetupReachabilityHeap();
 int AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
-double __cdecl AAS_FaceArea(char *a1);
-double __cdecl AAS_AreaVolume(int a1);
-double __cdecl AAS_AreaGroundFaceArea(int a1);
-int __cdecl AAS_FaceCenter(int a1, vec3_t a2);
+double __cdecl AAS_FaceArea(char *face);
+double __cdecl AAS_AreaVolume(int areanum);
+double __cdecl AAS_AreaGroundFaceArea(int areanum);
+int __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 __int64 AAS_FallDamageDistance();
-double __cdecl AAS_MaxJumpHeight(float a1);
+double __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
 long double __cdecl AAS_MaxJumpDistance(float a1);
-int __cdecl AAS_AreaCrouch(int a1);
-int __cdecl AAS_AreaSwim(int a1); /* AAS_AreaSwim impl */
-int __cdecl AAS_AreaGrounded(int a1); /* AAS_AreaGrounded impl */
-int __cdecl AAS_AreaLadder(int a1);
-qboolean __cdecl AAS_ReachabilityExists(int a1, int a2);
-BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2);
-int __cdecl AAS_Reachability_Swim(int a1, int a2);
-int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2);
-int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2);
+int __cdecl AAS_AreaCrouch(int areanum);
+int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
+int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
+int __cdecl AAS_AreaLadder(int areanum);
+qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num);
+BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end);
+int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
+int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
+int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
 double __cdecl VectorDistance(vec3_t a1, vec3_t a2);
 int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
-int __cdecl VectorMiddle(vec3_t a1, vec3_t a2, vec3_t a3);
+int __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
 // int __usercall AAS_Reachability_Ladder@<eax>(double a1@<st0>, int a2, int a3);
 int AAS_Reachability_Teleport();
@@ -496,16 +496,16 @@ int AAS_Reachability_Elevator();
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
 int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2);
-int __cdecl AAS_Reachability_WalkOffLedge(int a1);
+int __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int AAS_StoreReachability();
 int AAS_ContinueInitReachability(int a1);
 // int __usercall AAS_InitReachability@<eax>(double a1@<st0>);
-int __cdecl AAS_TravelFlagForType(int a1);
+int __cdecl AAS_TravelFlagForType(int traveltype);
 int AAS_CreateReversedReachability();
 int __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
 int AAS_CalculateAreaTravelTimes();
-aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1);
-int __cdecl AAS_FreeRoutingCache(void *a1);
+aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
+int __cdecl AAS_FreeRoutingCache(void *cache);
 int AAS_FreeAllClusterAreaCache();
 int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
@@ -516,9 +516,9 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
 int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *a1);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
-char *__cdecl AAS_ReachabilityFromNum(char *a1, int a2);
+char *__cdecl AAS_ReachabilityFromNum(char *num, int reach);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4);
+int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int passent);
 int AAS_RoutingInfo();
 int __cdecl sub_1001A650(int a1);
@@ -532,16 +532,16 @@ int AAS_FreeAASLinkedEntities();
 int __cdecl AAS_PointAreaNum(vec3_t point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 int __cdecl AAS_PointContents(vec3_t point);
-qboolean __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, int a5, intptr_t a6);
+qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 qboolean __cdecl AAS_InsideFace(int a1);
 qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3);
-aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *a1);
+aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3);
 aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
-char *__cdecl AAS_PlaneFromNum(int a1);
+char *__cdecl AAS_PlaneFromNum(int planenum);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
 aas_soundpool_t *sub_1001CBE0();
@@ -671,7 +671,7 @@ int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4)
 char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
 // int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
 bot_consolemessage_t *AllocConsoleMessage();
-int __cdecl FreeConsoleMessage(bot_consolemessage_t *a1);
+int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
 int __cdecl sub_1002AA20(int client, bot_consolemessage_t *msg);
 int __cdecl BotQueueConsoleMessage(int client, int type, char *Source); // idb
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(int client);
@@ -679,27 +679,27 @@ int __cdecl BotNumConsoleMessages(int client);
 BOOL __cdecl IsWhiteSpace(char a1);
 void __cdecl UnifyWhiteSpaces(void *Src);
 int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
-const char *__cdecl StringContains(const char *a1, const char *a2, int a3);  /* 0x1002ACF0 — substring search */
-const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3);
-const char *__cdecl StringReplaceWords(const char *a1, const char *a2, const char *a3);
-bot_synonymlist_t *__cdecl BotLoadSynonyms(char *a1);
+const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);  /* 0x1002ACF0 — substring search */
+const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive);
+const char *__cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
+bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
 const char *__cdecl BotReplaceSynonyms(const char *a1, int a2);
 void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2);
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *); // idb
-char *__cdecl RandomString(const char *a1);
-void __cdecl BotFreeMatchPieces(bot_matchpiece_t *a1);
-bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *a1, const char *a2);
-int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *a1);
+char *__cdecl RandomString(const char *name);
+void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces);
+bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken);
+int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
 bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *); // idb
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
-int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *a1);
-int __cdecl BotCheckInitialChatIntegrety(int *a1);
-int __cdecl BotLoadChatMessage(source_t *a1, char *a2);
-void *__cdecl BotFreeReplyChat(bot_replychat_t *a1);
-bot_replychat_t *__cdecl BotLoadReplyChat(char *a1);
+int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
+int __cdecl BotCheckInitialChatIntegrety(int *chat);
+int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
+void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat);
+bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
 void *__cdecl BotDumpInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
 int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client);
@@ -724,7 +724,7 @@ char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3);
 // int __usercall BotSetupChatAI@<eax>(double a1@<st0>);
 _DWORD *BotShutdownChatAI();
 // int *__usercall LoadItemConfig@<eax>(double a1@<st0>, char *Source);
-int *__cdecl ItemWeightIndex(weightconfig_t *a1, itemconfig_t *a2);
+int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
 int __cdecl FreeLevelItem(levelitem_t *item);
@@ -732,16 +732,16 @@ levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
 // _DWORD *__usercall BotInitLevelItems@<eax>(double a1@<st0>);
 char *__cdecl BotGoalName(int a1);
-int __cdecl BotResetAvoidGoals(void *a1);
-void __cdecl BotDumpAvoidGoals(int *a1);
-void __cdecl BotAddToAvoidGoals(int *a1, int a2, float a3);
-double __cdecl BotAvoidGoalTime(int *a1, int a2);
+int __cdecl BotResetAvoidGoals(void *goalstate);
+void __cdecl BotDumpAvoidGoals(int *goalstate);
+void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
+double __cdecl BotAvoidGoalTime(int *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
 int sub_1002FA20();
-int __cdecl BotDumpGoalStack(int *a1);
-int __cdecl BotPushGoal(int *a1, const void *a2);
-int __cdecl BotPopGoal(int *a1);
-void __cdecl BotEmptyGoalStack(int *a1);
+int __cdecl BotDumpGoalStack(int *goalstate);
+int __cdecl BotPushGoal(int *goalstate, const void *goal);
+int __cdecl BotPopGoal(int *goalstate);
+void __cdecl BotEmptyGoalStack(int *goalstate);
 void *__cdecl BotGetTopGoal(int *a1);
 void *__cdecl BotGetSecondGoal(int *a1);
 int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
@@ -750,15 +750,15 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
 int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2);
 int __cdecl BotFreeItemWeights(bot_state_t *bs);
-int __cdecl BotResetGoalState(void *a1);
+int __cdecl BotResetGoalState(void *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
-double __cdecl AngleDiff(float a1, float a2);
+double __cdecl AngleDiff(float ang1, float ang2);
 int __cdecl BotReachabilityArea(int *a1, int a2);
 BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3);
-BOOL __cdecl MoverDown(aas_reachability_t* a1);
+BOOL __cdecl MoverDown(aas_reachability_t* reach);
 BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
-void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3);
+void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
 int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10);
 int __cdecl BotMovementViewTarget(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
 int __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
@@ -768,7 +768,7 @@ int __cdecl BotSwimInDirection(intptr_t, intptr_t, float); // idb
 int __cdecl BotWalkInDirection(intptr_t, intptr_t, float, int); // idb
 int __cdecl BotMoveInDirection(intptr_t, intptr_t, float, int); // idb
 int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3);
-_DWORD *__cdecl BotClearMoveResult(_DWORD *a1);
+_DWORD *__cdecl BotClearMoveResult(_DWORD *moveresult);
 intptr_t __cdecl BotTravel_Walk(intptr_t, intptr_t, intptr_t); // idb
 int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3);
 int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3);
@@ -784,19 +784,19 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3);
 int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3);
 intptr_t __cdecl BotTravel_Elevator(intptr_t, intptr_t, intptr_t); // idb
 void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3);
-int __cdecl GrappleState(int a1, float *a2);
-void __cdecl BotResetGrapple(float *a1);
+int __cdecl GrappleState(int ms, float *reach);
+void __cdecl BotResetGrapple(float *ms);
 intptr_t __cdecl BotTravel_Grapple(intptr_t, intptr_t, intptr_t); // idb
 int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3);
 int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3);
-int __cdecl BotReachabilityTime(aas_reachability_t* a1);
+int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 intptr_t __cdecl BotMoveInGoalArea(intptr_t, intptr_t, intptr_t); // idb
-int __cdecl BotMoveInDirection(intptr_t a1, intptr_t a2, float a3, int a4);  // fixed
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *a1);
-void __cdecl BotResetLastAvoidReach(intptr_t a1);
+int __cdecl BotMoveInDirection(intptr_t movestate, intptr_t dir, float speed, int type);  // fixed
+_DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
+void __cdecl BotResetLastAvoidReach(intptr_t movestate);
 int __cdecl sub_10034B90(void *a1);
 // int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
-_DWORD *__cdecl WeaponWeightIndex(weightconfig_t *a1, weaponconfig_t *a2);
+_DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
 typedef struct bot_weaponstate_s bot_weaponstate_t;
 int __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2);
@@ -805,10 +805,10 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
 int __cdecl BotResetMoveState(bot_weaponstate_t *ws);
 int BotSetupWeaponAI();
 int sub_100356D0();
-int __cdecl ReadValue(source_t *a1, float *a2);
-int __cdecl ReadFuzzyWeight(source_t *a1, fuzzyseperator_t *a2);
-int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *a1);
-fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1);
+int __cdecl ReadValue(source_t *source, float *value);
+int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
+int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
+fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
 qboolean __cdecl WriteFuzzyWeight(FILE *Stream, int); // idb
@@ -818,8 +818,8 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeight(int *facts, weight_t *w);
 double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
-void __cdecl EvolveFuzzySeperator_r(int a1);
-void __cdecl ScaleFuzzySeperator_r(int a1, float a2);
+void __cdecl EvolveFuzzySeperator_r(int fs);
+void __cdecl ScaleFuzzySeperator_r(int fs, float scale);
 int __cdecl InterbreedFuzzySeperator_r(int a1, int a2);
 int __cdecl EA_Say(int client, char *str);
 int __cdecl EA_SayTeam(int client, char *str);
@@ -2618,7 +2618,7 @@ void __cdecl AnglesToAxis(float *angles, float *axis_out)
 // 10001A8C: using guessed type _DWORD __cdecl Matrix3Multiply(_DWORD, _DWORD, _DWORD);
 
 //----- (10003680) --------------------------------------------------------
-qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec3_t a5, int a6, float *a7)
+qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace)
 {
   int v7; // edi
   int v12; // edx
@@ -2658,14 +2658,14 @@ qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec
 
   if ( !dword_100674C0 )
     return 0;
-  AAS_EntityBSPData(a1, (intptr_t)v47);
+  AAS_EntityBSPData(entnum, (intptr_t)v47);
   if ( LODWORD(v47[12]) != 2 && LODWORD(v47[12]) != 3 )
     return 0;
-  if ( a4 )
+  if ( boxmaxs )
   {
-    v41[0] = v47[6] - *a4;
-    v41[1] = v47[7] - a4[1];
-    v41[2] = v47[8] - a4[2];
+    v41[0] = v47[6] - *boxmaxs;
+    v41[1] = v47[7] - boxmaxs[1];
+    v41[2] = v47[8] - boxmaxs[2];
   }
   else
   {
@@ -2673,11 +2673,11 @@ qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec
     v41[1] = v47[7];
     v41[2] = v47[8];
   }
-  if ( a3 )
+  if ( boxmins )
   {
-    v44[0] = v47[9] - *a3;
-    v44[1] = v47[10] - a3[1];
-    v44[2] = v47[11] - a3[2];
+    v44[0] = v47[9] - *boxmins;
+    v44[1] = v47[10] - boxmins[1];
+    v44[2] = v47[11] - boxmins[2];
   }
   else
   {
@@ -2685,13 +2685,13 @@ qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec
     v44[1] = v47[10];
     v44[2] = v47[11];
   }
-  /* Original: 3-iteration loop using (char*)&v41-a2 and (char*)&v44-a2 offsets
-   * to compare a2[i] and a5[i] against bbox mins (v41[3]) and maxs (v44[3]).
+  /* Original: 3-iteration loop using (char*)&v41-start and (char*)&v44-start offsets
+   * to compare start[i] and end[i] against bbox mins (v41[3]) and maxs (v44[3]).
    * Restored with direct array indexing — v41[3]={v41,v42,v43}, v44[3]={v44,v45,v46}. */
   v7 = 0;
   {
-    float *_a2 = (float *)a2;
-    float *_a5 = (float *)a5;
+    float *_a2 = (float *)start;
+    float *_a5 = (float *)end;
     while (v7 < 3) {
       if (_a2[v7] < v41[v7] && _a5[v7] < v41[v7]) break;
       if (_a2[v7] > v44[v7] && _a5[v7] > v44[v7]) break;
@@ -2708,52 +2708,52 @@ qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec
      * exits when *i <= v41+0.5, so continue iff *i > v41+0.5. Same form for v44-0.5
      * with test ah,0x41 (C0|C3) → continue iff *i < v44-0.5. The original IDA
      * decompilation `v41[idx]+0.5 < *i && v44[idx]-0.5 > *i` was correct as-is. */
-    for ( i = (float *)a2; v41[i-(float*)a2] + 0.5 < *i && v44[i-(float*)a2] - 0.5 > *i; ++i )
+    for ( i = (float *)start; v41[i-(float*)start] + 0.5 < *i && v44[i-(float*)start] - 0.5 > *i; ++i )
     {
       if ( ++v12 >= 3 )
       {
-        *((_DWORD *)a7 + 20) = a1;
-        *((_DWORD *)a7 + 1) = 1;
-        *(_DWORD *)a7 = 1;
-        a7[2] = 0.0;
-        a7[19] = 0.0;
-        a7[12] = NAN;
-        a7[6] = 0.0;
-        a7[7] = 0.0;
-        a7[8] = 0.0;
-        a7[9] = 0.0;
-        a7[10] = 0.0;
-        a7[3] = *(float *)a2;
-        a7[4] = *((float *)a2 + 1);
-        a7[5] = *((float *)a2 + 2);
+        *((_DWORD *)trace + 20) = entnum;
+        *((_DWORD *)trace + 1) = 1;
+        *(_DWORD *)trace = 1;
+        trace[2] = 0.0;
+        trace[19] = 0.0;
+        trace[12] = NAN;
+        trace[6] = 0.0;
+        trace[7] = 0.0;
+        trace[8] = 0.0;
+        trace[9] = 0.0;
+        trace[10] = 0.0;
+        trace[3] = *(float *)start;
+        trace[4] = *((float *)start + 1);
+        trace[5] = *((float *)start + 2);
         return 1;
       }
     }
   }
   v15 = 0;
-  v40[0] = *a5 - *(float *)a2;
-  v40[1] = a5[1] - *((float *)a2 + 1);
-  v40[2] = a5[2] - *((float *)a2 + 2);
+  v40[0] = *end - *(float *)start;
+  v40[1] = end[1] - *((float *)start + 1);
+  v40[2] = end[2] - *((float *)start + 2);
   while ( 1 )
   {
     if ( v40[v15] <= 0.0 )
       v16 = v44[v15];
     else
       v16 = v41[v15];
-    v17 = *(float *)&a2[4 * v15] - v16;
+    v17 = *(float *)&start[4 * v15] - v16;
     v18 = v15 + 1;
     v19 = v15 + 1;
-    v39 = v17 / (v17 - (a5[v15] - v16));
+    v39 = v17 / (v17 - (end[v15] - v16));
     if ( v15 > 1 )
       v19 = 0;
-    v20 = v39 * v40[v19] + *(float *)&a2[4 * v19];
+    v20 = v39 * v40[v19] + *(float *)&start[4 * v19];
     v47[v19 + 21] = v20;
     if ( !(v22 | v23) && v20 < v44[v19] )
     {
       v24 = v19 + 1;
       if ( v24 > 2 )
         v24 = 0;
-      v25 = v39 * v40[v24] + *(float *)&a2[4 * v24];
+      v25 = v39 * v40[v24] + *(float *)&start[4 * v24];
       v47[v24 + 21] = v25;
       if ( !(v27 | v28) && v25 < v44[v24] )
         break;
@@ -2764,40 +2764,40 @@ qboolean __cdecl AAS_EntityCollision(int a1, char *a2, vec3_t a3, vec3_t a4, vec
   }
   v47[v15 + 21] = v16;
 LABEL_40:
-  if ( v15 == 3 || v39 >= (double)a7[2] )
+  if ( v15 == 3 || v39 >= (double)trace[2] )
     return 0;
   if ( LODWORD(v47[12]) != 2 )
   {
     if ( LODWORD(v47[12]) == 3 )
     {
-      qmemcpy(v47, (const void *)sub_100044F0(v48, LODWORD(v47[13]), v47, &v47[3], a2, a3, a4, a5, 0, a6), 0x54u);
-      if ( v47[2] < (double)a7[2] )
+      qmemcpy(v47, (const void *)sub_100044F0(v48, LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask), 0x54u);
+      if ( v47[2] < (double)trace[2] )
       {
         result = 1;
-        qmemcpy(a7, v47, 0x54u);
+        qmemcpy(trace, v47, 0x54u);
         return result;
       }
     }
     return 0;
   }
-  a7[2] = v39;
-  a7[12] = NAN;
-  a7[1] = 0.0;
-  *a7 = 0.0;
-  *((_DWORD *)a7 + 20) = a1;
-  if ( a3 && a4 )
+  trace[2] = v39;
+  trace[12] = NAN;
+  trace[1] = 0.0;
+  *trace = 0.0;
+  *((_DWORD *)trace + 20) = entnum;
+  if ( boxmins && boxmaxs )
   {
     if ( v40[v15] <= 0.0 )
-      a7[11] = -a3[v15];
+      trace[11] = -boxmins[v15];
     else
-      a7[11] = a4[v15];
+      trace[11] = boxmaxs[v15];
   }
-  v29 = a2;
-  v30 = a7 + 3;
+  v29 = start;
+  v30 = trace + 3;
   v31 = 3;
   do
   {
-    v32 = v39 * *(float *)&v29[(char *)v40 - a2];
+    v32 = v39 * *(float *)&v29[(char *)v40 - start];
     v29 += 4;
     ++v30;
     --v31;
@@ -2805,19 +2805,19 @@ LABEL_40:
   }
   while ( v31 );
   v33 = v40[v15];
-  a7[(v15 + 1) % 3 + 6] = 0.0;
-  a7[(v15 + 2) % 3 + 6] = 0.0;
+  trace[(v15 + 1) % 3 + 6] = 0.0;
+  trace[(v15 + 2) % 3 + 6] = 0.0;
   if ( v33 <= 0.0 )
-    a7[v15 + 6] = 1.0;
+    trace[v15 + 6] = 1.0;
   else
-    a7[v15 + 6] = -1.0;
-  v35 = a7[v15 + 3];
+    trace[v15 + 6] = -1.0;
+  v35 = trace[v15 + 3];
   if ( !(v36 | v37) )
     v35 = -v35;
-  v38 = v35 - a7[11];
-  *((_BYTE *)a7 + 40) = v15;
+  v38 = v35 - trace[11];
+  *((_BYTE *)trace + 40) = v15;
   result = 1;
-  a7[9] = v38;
+  trace[9] = v38;
   return result;
 }
 // 100037F3: conditional instruction was optimized away because edx.4<3
@@ -4133,9 +4133,9 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 // 10069574: using guessed type float flt_10069574;
 
 //----- (10005C60) --------------------------------------------------------
-qboolean __cdecl AAS_inPVS(vec3_t a1, vec3_t a2)
+qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2)
 {
-  return AAS_InPVS(a1, a2, 0);
+  return AAS_InPVS(p1, p2, 0);
 }
 
 //----- (10005C90) --------------------------------------------------------
@@ -4215,15 +4215,15 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
 // 10005E60: using guessed type float var_24[9];
 
 //----- (10006090) --------------------------------------------------------
-bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *a1)
+bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 {
   bsp_link_t *result; // eax
   bsp_link_t *prev;   // ecx — prev_ent in leaf chain
   bsp_link_t *v3;     // esi — saved next_leaf
   bsp_link_t *next;   // ecx — next_ent in leaf chain
 
-  result = a1;
-  if ( a1 )
+  result = leaves;
+  if ( leaves )
   {
     do
     {
@@ -5904,7 +5904,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (100089E0) --------------------------------------------------------
-int __cdecl AAS_FloodClusterReachabilities(int a1)
+int __cdecl AAS_FloodClusterReachabilities(int clusternum)
 {
   int v1; // edi
   _BYTE *v2; // ebx
@@ -5936,7 +5936,7 @@ int __cdecl AAS_FloodClusterReachabilities(int a1)
       if ( v5 >= v4 )
         goto LABEL_13;
     }
-    if ( !AAS_FloodClusterAreas_r(v1, a1) )
+    if ( !AAS_FloodClusterAreas_r(v1, clusternum) )
       return 0;
     v2 = aasworld.areasettings;
     v1 = 0;
@@ -5949,14 +5949,14 @@ LABEL_13:
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10008AC0) --------------------------------------------------------
-int __cdecl AAS_NumberClusterPortals(int a1)
+int __cdecl AAS_NumberClusterPortals(int clusternum)
 {
-  char *cluster; // was packed low-32 of __int64 v1 — aasworld.clusters + 12*a1
+  char *cluster; // was packed low-32 of __int64 v1 — aasworld.clusters + 12*clusternum
   int counter; // was HIDWORD(v1) — loop counter into portalindex
   _DWORD *v2; // ecx
   int v3; // edi
 
-  cluster = (char *)aasworld.clusters + 12 * a1;
+  cluster = (char *)aasworld.clusters + 12 * clusternum;
   if ( *(int *)(cluster + 4) > 0 )
   {
     counter = 0;
@@ -5964,7 +5964,7 @@ int __cdecl AAS_NumberClusterPortals(int a1)
     {
       v2 = (_DWORD *)((char *)aasworld.portals + 20 * *((_DWORD *)aasworld.portalindex + counter + *(_DWORD *)(cluster + 8)));
       v3 = *(_DWORD *)cluster;
-      if ( v2[1] == a1 )
+      if ( v2[1] == clusternum )
         v2[3] = v3;
       else
         v2[4] = v3;
@@ -6059,7 +6059,7 @@ int AAS_CreatePortals()
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10008D40) --------------------------------------------------------
-int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4)
+int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea)
 {
   int v4; // ebx
   char *v5; // esi
@@ -6070,9 +6070,9 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4)
   int v10; // eax
   _DWORD *v11; // ecx
 
-  *(_DWORD *)(a3 + 4 * a4) = 1;
+  *(_DWORD *)(connectedareas + 4 * curarea) = 1;
   v4 = 0;
-  v5 = (char *)aasworld.areas + 48 * a1[a4];
+  v5 = (char *)aasworld.areas + 48 * areanums[curarea];
   result = *((_DWORD *)v5 + 1);
   if ( result > 0 )
   {
@@ -6083,12 +6083,12 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4)
       if ( (v8[4] & 1) == 0 )
       {
         v9 = *((_DWORD *)v8 + 4);
-        if ( v9 == a1[a4] )
+        if ( v9 == areanums[curarea] )
           v9 = *((_DWORD *)v8 + 5);
         v10 = 0;
-        if ( a2 > 0 )
+        if ( numareas > 0 )
         {
-          v11 = a1;
+          v11 = areanums;
           do
           {
             if ( *v11 == v9 )
@@ -6096,10 +6096,10 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4)
             ++v10;
             ++v11;
           }
-          while ( v10 < a2 );
+          while ( v10 < numareas );
         }
-        if ( v10 != a2 && !*(_DWORD *)(a3 + 4 * v10) )
-          AAS_ConnectedAreas_r(a1, a2, a3, v10);
+        if ( v10 != numareas && !*(_DWORD *)(connectedareas + 4 * v10) )
+          AAS_ConnectedAreas_r(areanums, numareas, connectedareas, v10);
       }
       result = *((_DWORD *)v5 + 1);
       ++v4;
@@ -6111,22 +6111,22 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *a1, int a2, char *a3, int a4)
 // 1000179E: using guessed type _DWORD __cdecl AAS_ConnectedAreas_r(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10008E20) --------------------------------------------------------
-qboolean __cdecl AAS_ConnectedAreas(_DWORD *a1, int a2)
+qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas)
 {
   int v3; // eax
   char *i; // ecx
   char v5[512]; // [esp+8h] [ebp-200h] BYREF
 
   memset(v5, 0, sizeof(v5));
-  if ( a2 < 1 )
+  if ( numareas < 1 )
     return 0;
-  if ( a2 != 1 )
+  if ( numareas != 1 )
   {
-    AAS_ConnectedAreas_r(a1, a2, v5, 0);
+    AAS_ConnectedAreas_r(areanums, numareas, v5, 0);
     v3 = 0;
     for ( i = v5; *(_DWORD *)i; i += 4 )
     {
-      if ( ++v3 >= a2 )
+      if ( ++v3 >= numareas )
         return 1;
     }
     return 0;
@@ -6137,7 +6137,7 @@ qboolean __cdecl AAS_ConnectedAreas(_DWORD *a1, int a2)
 // 1000179E: using guessed type _DWORD __cdecl AAS_ConnectedAreas_r(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (10008EB0) --------------------------------------------------------
-int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
+int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
 {
   int *v4; // edi
   int v5; // esi
@@ -6151,11 +6151,11 @@ int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
   char v14; // [esp+0h] [ebp-10h]
   int v15; // [esp+1Ch] [ebp+Ch]
 
-  a1[a2] = a3;
-  v4 = (int *)((char *)aasworld.areas + 48 * a3);
-  v5 = a2 + 1;
+  areanum[cluster] = done;
+  v4 = (int *)((char *)aasworld.areas + 48 * done);
+  v5 = cluster + 1;
   v6 = 0;
-  v7 = *((_DWORD *)aasworld.areasettings + 7 * a3 + 2);
+  v7 = *((_DWORD *)aasworld.areasettings + 7 * done + 2);
   v15 = 0;
   if ( v4[1] <= 0 )
     return v5;
@@ -6165,7 +6165,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
     v9 = (char *)aasworld.faces + 24 * ((HIDWORD(v8) ^ v8) - HIDWORD(v8));
     if ( (v9[4] & 1) != 0 )
       goto LABEL_15;
-    v10 = *((_DWORD *)v9 + 4) == a3 ? *((_DWORD *)v9 + 5) : *((_DWORD *)v9 + 4);
+    v10 = *((_DWORD *)v9 + 4) == done ? *((_DWORD *)v9 + 5) : *((_DWORD *)v9 + 4);
     if ( (~*((_DWORD *)aasworld.areasettings + 7 * v10 + 2) & v7) == 0
       || (~v7 & *((_DWORD *)aasworld.areasettings + 7 * v10 + 2)) != 0 )
     {
@@ -6174,7 +6174,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
     v11 = 0;
     if ( v5 > 0 )
     {
-      v12 = a1;
+      v12 = areanum;
       do
       {
         if ( v10 == *v12 )
@@ -6188,7 +6188,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *a1, int a2, int a3)
       goto LABEL_15;
     if ( v5 >= 128 )
       break;
-    v5 = AAS_FloodAreas_r(a1, v5, v10);
+    v5 = AAS_FloodAreas_r(areanum, v5, v10);
 LABEL_15:
     v6 = ++v15;
     if ( v15 >= v4[1] )
@@ -6201,7 +6201,7 @@ LABEL_15:
 // 10001424: using guessed type int __cdecl AAS_FloodAreas_r(_DWORD, _DWORD, _DWORD);
 
 //----- (10008FF0) --------------------------------------------------------
-int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
+int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
 {
   char *v1; // eax
   int result; // eax
@@ -6262,7 +6262,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
   _DWORD v57[128]; // [esp+A44h] [ebp-400h] BYREF
   _DWORD v58[128]; // [esp+C44h] [ebp-200h] BYREF
 
-  v1 = (char *)aasworld.areasettings + 28 * a1;
+  v1 = (char *)aasworld.areasettings + 28 * areanum;
   if ( (*v1 & 8) != 0 )
     return 0;
   if ( (v1[4] & 1) == 0 )
@@ -6275,7 +6275,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int a1)
   v4 = 0;
   v41 = -1;
   v48 = -1;
-  v5 = AAS_FloodAreas_r(v52, 0, a1);
+  v5 = AAS_FloodAreas_r(v52, 0, areanum);
   v6 = 0;
   v40 = v5;
   for ( i = 0; v6 < v5; i = v6 )
@@ -6625,7 +6625,7 @@ int AAS_ClearShownDebugLines()
 // 100670C0: using guessed type int dword_100670C0[];
 
 //----- (100098B0) --------------------------------------------------------
-int __cdecl AAS_DebugLine(int a1, int a2, int a3)
+int __cdecl AAS_DebugLine(int start, int end, int color)
 {
   int v3; // esi
   int v4; // eax
@@ -6647,7 +6647,7 @@ int __cdecl AAS_DebugLine(int a1, int a2, int a3)
     if ( ++v3 >= 256 )
       return result;
   }
-  result = bi_DebugLineShow(dword_100670C0[v3], a1, a2, a3);
+  result = bi_DebugLineShow(dword_100670C0[v3], start, end, color);
   dword_10066CC0[v3] = 1;
   return result;
 }
@@ -6658,7 +6658,7 @@ int __cdecl AAS_DebugLine(int a1, int a2, int a3)
 // 100670C0: using guessed type int dword_100670C0[256];
 
 //----- (10009950) --------------------------------------------------------
-int __cdecl AAS_DrawPermanentCross(int a1, float a2, int a3)
+int __cdecl AAS_DrawPermanentCross(int origin, float size, int color)
 {
   int i; // edi
   int v4; // ecx
@@ -6674,20 +6674,20 @@ int __cdecl AAS_DrawPermanentCross(int a1, float a2, int a3)
 
   for ( i = 0; i < 3; ++i )
   {
-    v4 = *(_DWORD *)(a1 + 4);
-    v5 = *(_DWORD *)(a1 + 8);
-    v10[0] = *(_DWORD *)a1;
+    v4 = *(_DWORD *)(origin + 4);
+    v5 = *(_DWORD *)(origin + 8);
+    v10[0] = *(_DWORD *)origin;
     v10[1] = v4;
     v10[2] = v5;
-    v6 = a2 + *(float *)&v10[i];
+    v6 = size + *(float *)&v10[i];
     v9[0] = v10[0];
     v9[1] = v4;
     v9[2] = v5;
     *(float *)&v10[i] = v6;
-    *(float *)&v9[i] = *(float *)&v9[i] - a2;
-    AAS_DebugLine((int)v10, (int)v9, a3);
+    *(float *)&v9[i] = *(float *)&v9[i] - size;
+    AAS_DebugLine((int)v10, (int)v9, color);
     v7 = bi_DebugLineCreate();
-    result = bi_DebugLineShow(v7, v10, v9, a3);
+    result = bi_DebugLineShow(v7, v10, v9, color);
   }
   return result;
 }
@@ -6695,7 +6695,7 @@ int __cdecl AAS_DrawPermanentCross(int a1, float a2, int a3)
 // 10064004: using guessed type int (__cdecl *bi_DebugLineShow)(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (1000A0A0) --------------------------------------------------------
-int __cdecl AAS_ShowArea(int a1, int a2)
+int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 {
   int result; // eax
   int v3; // ebp
@@ -6717,12 +6717,12 @@ int __cdecl AAS_ShowArea(int a1, int a2)
   char *i; // [esp+1Ch] [ebp-404h]
   _DWORD v20[256]; // [esp+20h] [ebp-400h] BYREF
 
-  result = a1;
+  result = areanum;
   v3 = 0;
   v16 = 0;
-  if ( a1 < 0 || a1 >= aasworld.numareas )
-    return bi_Print(3, "area %d out of range [0, %d]\n", a1, aasworld.numareas);
-  v4 = (char *)aasworld.areas + 48 * a1;
+  if ( areanum < 0 || areanum >= aasworld.numareas )
+    return bi_Print(3, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
+  v4 = (char *)aasworld.areas + 48 * areanum;
   v17 = 0;
   for ( i = v4; v17 < *((_DWORD *)v4 + 1); ++v17 )
   {
@@ -6730,7 +6730,7 @@ int __cdecl AAS_ShowArea(int a1, int a2)
     if ( v5 >= aasworld.numfaces )
       bi_Print(3, "facenum %d out of range\n", v5);
     v6 = (char *)aasworld.faces + 24 * v5;
-    if ( !a2 || (v6[4] & 6) != 0 )
+    if ( !groundfacesonly || (v6[4] & 6) != 0 )
     {
       v7 = 0;
       if ( *((int *)v6 + 2) > 0 )
@@ -6843,7 +6843,7 @@ int __cdecl AAS_ShowArea(int a1, int a2)
  * Structural match: ioq3 code/botlib/be_aas_debug.c:525 — three line
  * segments along each axis, each spanning [origin-size, origin+size].
  */
-void __cdecl AAS_DrawCross(int a1, float a2, int a3)
+void __cdecl AAS_DrawCross(int origin, float size, int color)
 {
   int i; // edi
   int v4; // ecx
@@ -6855,18 +6855,18 @@ void __cdecl AAS_DrawCross(int a1, float a2, int a3)
 
   for ( i = 0; i < 3; ++i )
   {
-    v4 = *(_DWORD *)(a1 + 4);
-    v5 = *(_DWORD *)(a1 + 8);
-    v9[0] = *(_DWORD *)a1;
+    v4 = *(_DWORD *)(origin + 4);
+    v5 = *(_DWORD *)(origin + 8);
+    v9[0] = *(_DWORD *)origin;
     v9[1] = v4;
     v9[2] = v5;
-    v6 = a2 + *(float *)&v9[i];
+    v6 = size + *(float *)&v9[i];
     v8[0] = v9[0];
     v8[1] = v4;
     v8[2] = v5;
     *(float *)&v9[i] = v6;
-    *(float *)&v8[i] = *(float *)&v8[i] - a2;
-    AAS_DebugLine((int)v9, (int)v8, a3);
+    *(float *)&v8[i] = *(float *)&v8[i] - size;
+    AAS_DebugLine((int)v9, (int)v8, color);
   }
 }
 
@@ -6895,7 +6895,7 @@ void __cdecl AAS_PrintTravelType(int traveltype)
  * three calls to AAS_DebugLine draw shaft + two
  * arrowhead strokes.  Magic 1065353216 = 0x3F800000 = 1.0f.
  */
-void __cdecl AAS_DrawArrow(vec3_t a1, vec3_t a2, int a3, int a4)
+void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor)
 {
   double v4; // st7
   double v5; // st7
@@ -6908,13 +6908,13 @@ void __cdecl AAS_DrawArrow(vec3_t a1, vec3_t a2, int a3, int a4)
   float v14[3]; // [esp+2Ch] [ebp-18h] BYREF
   float v15[3]; // [esp+38h] [ebp-Ch] BYREF
 
-  v4 = *a2 - *a1;
+  v4 = *end - *start;
   v10[0] = 0.0;
   v10[1] = 0.0;
   v10[2] = 1.0;
   v7[0] = v4;
-  v7[1] = a2[1] - a1[1];
-  v7[2] = a2[2] - a1[2];
+  v7[1] = end[1] - start[1];
+  v7[2] = end[2] - start[2];
   VectorNormalize(v7);
   v5 = v7[2] * v10[2] + v7[1] * v10[1] + v7[0] * v10[0];
   if ( v5 > 0.99 || v5 < -0.99 )
@@ -6928,15 +6928,15 @@ void __cdecl AAS_DrawArrow(vec3_t a1, vec3_t a2, int a3, int a4)
   {
     CrossProduct(v7, v10, v14);
   }
-  VectorMA((float *)a2, -6.0, v7, (float *)v13);
+  VectorMA((float *)end, -6.0, v7, (float *)v13);
   v15[0] = v13[0];
   v15[1] = v13[1];
   v15[2] = v13[2];
   VectorMA((float *)v13, 6.0, (float *)v14, (float *)v13);
   VectorMA((float *)v15, -6.0, (float *)v14, (float *)v15);
-  AAS_DebugLine((int)a1, (int)a2, a3);
-  AAS_DebugLine((int)v13, (int)a2, a4);
-  AAS_DebugLine((int)v15, (int)a2, a4);
+  AAS_DebugLine((int)start, (int)end, linecolor);
+  AAS_DebugLine((int)v13, (int)end, arrowcolor);
+  AAS_DebugLine((int)v15, (int)end, arrowcolor);
 }
 // 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
@@ -7278,7 +7278,7 @@ int __cdecl AAS_EntityModelNum(int entnum)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AE30) --------------------------------------------------------
-int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2)
+int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
 {
   int v2; // ecx
   _DWORD *i; // eax
@@ -7286,41 +7286,41 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int a1, _DWORD *a2)
   v2 = 0;
   if ( aasworld.numentities <= 0 )
     return 0;
-  for ( i = (_DWORD *)aasworld.entities; i[23] - 1 != a1; i += 33 )
+  for ( i = (_DWORD *)aasworld.entities; i[23] - 1 != modelnum; i += 33 )
   {
     if ( ++v2 >= aasworld.numentities )
       return 0;
   }
-  *a2 = i[4];
-  a2[1] = i[5];
-  a2[2] = i[6];
+  *origin = i[4];
+  origin[1] = i[5];
+  origin[2] = i[6];
   return 1;
 }
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AF30) --------------------------------------------------------
-int __cdecl AAS_EntityBSPData(int a1, intptr_t a2)
+int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata)
 {
   char *v2; // eax
   int result; // eax
 
-  v2 = (char *)aasworld.entities + 132 * a1;
-  *(_DWORD *)a2 = *(_DWORD *)(v2 + 16);
-  *(_DWORD *)(a2 + 4) = *(_DWORD *)(v2 + 20);
-  *(_DWORD *)(a2 + 8) = *(_DWORD *)(v2 + 24);
-  *(_DWORD *)(a2 + 12) = *(_DWORD *)(v2 + 28);
-  *(_DWORD *)(a2 + 16) = *(_DWORD *)(v2 + 32);
-  *(_DWORD *)(a2 + 20) = *(_DWORD *)(v2 + 36);
-  *(float *)(a2 + 24) = *(float *)(v2 + 64) + *(float *)(v2 + 16);
-  *(float *)(a2 + 28) = *(float *)(v2 + 68) + *(float *)(v2 + 20);
-  *(float *)(a2 + 32) = *(float *)(v2 + 72) + *(float *)(v2 + 24);
-  *(float *)(a2 + 36) = *(float *)(v2 + 76) + *(float *)(v2 + 16);
-  *(float *)(a2 + 40) = *(float *)(v2 + 80) + *(float *)(v2 + 20);
-  *(float *)(a2 + 44) = *(float *)(v2 + 84) + *(float *)(v2 + 24);
-  *(_DWORD *)(a2 + 48) = *(_DWORD *)(v2 + 88);
+  v2 = (char *)aasworld.entities + 132 * entnum;
+  *(_DWORD *)entdata = *(_DWORD *)(v2 + 16);
+  *(_DWORD *)(entdata + 4) = *(_DWORD *)(v2 + 20);
+  *(_DWORD *)(entdata + 8) = *(_DWORD *)(v2 + 24);
+  *(_DWORD *)(entdata + 12) = *(_DWORD *)(v2 + 28);
+  *(_DWORD *)(entdata + 16) = *(_DWORD *)(v2 + 32);
+  *(_DWORD *)(entdata + 20) = *(_DWORD *)(v2 + 36);
+  *(float *)(entdata + 24) = *(float *)(v2 + 64) + *(float *)(v2 + 16);
+  *(float *)(entdata + 28) = *(float *)(v2 + 68) + *(float *)(v2 + 20);
+  *(float *)(entdata + 32) = *(float *)(v2 + 72) + *(float *)(v2 + 24);
+  *(float *)(entdata + 36) = *(float *)(v2 + 76) + *(float *)(v2 + 16);
+  *(float *)(entdata + 40) = *(float *)(v2 + 80) + *(float *)(v2 + 20);
+  *(float *)(entdata + 44) = *(float *)(v2 + 84) + *(float *)(v2 + 24);
+  *(_DWORD *)(entdata + 48) = *(_DWORD *)(v2 + 88);
   result = *(_DWORD *)(v2 + 92) - 1;
-  *(_DWORD *)(a2 + 52) = result;
+  *(_DWORD *)(entdata + 52) = result;
   return result;
 }
 // 100669A0: using guessed type int aasworld.entities;
@@ -7405,13 +7405,13 @@ int AAS_InvalidateEntities()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000B130) --------------------------------------------------------
-int __cdecl AAS_BestReachableLinkArea(int a1)
+int __cdecl AAS_BestReachableLinkArea(int areas)
 {
   int v1; // esi
   int result; // eax
 
-  v1 = a1;
-  if ( a1 )
+  v1 = areas;
+  if ( areas )
   {
     while ( !AAS_AreaGrounded(*(_DWORD *)(v1 + 4)) && !AAS_AreaSwim(*(_DWORD *)(v1 + 4)) )
     {
@@ -7424,8 +7424,8 @@ int __cdecl AAS_BestReachableLinkArea(int a1)
   else
   {
 LABEL_5:
-    result = a1;
-    if ( a1 )
+    result = areas;
+    if ( areas )
     {
       while ( !*(_DWORD *)(result + 4) )
       {
@@ -7750,7 +7750,7 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000BB30) --------------------------------------------------------
-int __cdecl AAS_NextBSPEntity(int a1)
+int __cdecl AAS_NextBSPEntity(int ent)
 {
   int v1; // eax
   int result; // eax
@@ -7758,8 +7758,8 @@ int __cdecl AAS_NextBSPEntity(int a1)
 
   if ( !aasworld.loaded )
     return 0;
-  v1 = a1;
-  if ( a1 < 0 )
+  v1 = ent;
+  if ( ent < 0 )
     v1 = -1;
   result = v1 + 1;
   if ( result >= aasworld.numentities )
@@ -9525,7 +9525,7 @@ int AAS_Shutdown()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000EEB0) --------------------------------------------------------
-BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3)
+BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 {
   int v3; // ecx
   double v4; // st7
@@ -9533,17 +9533,17 @@ BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3)
   int v6[3]; // [esp+Ch] [ebp-30h] BYREF
   aas_trace_t trace;
 
-  v3 = *(_DWORD *)((char *)a1 + 4);
-  v4 = a1[2];
-  v6[0] = *(_DWORD *)a1;
+  v3 = *(_DWORD *)((char *)origin + 4);
+  v4 = origin[2];
+  v6[0] = *(_DWORD *)origin;
   v6[1] = v3;
   *(float *)&v6[2] = v4 - 4.0;
-  trace = AAS_TraceClientBBox(a1, (float *)v6, a2, a3);
+  trace = AAS_TraceClientBBox(origin, (float *)v6, presencetype, passent);
   if ( trace.startsolid )
     return 0;
   if ( trace.fraction >= 1.0 )
     return 0;
-  if ( a1[2] - trace.endpos[2] <= 2.0 )
+  if ( origin[2] - trace.endpos[2] <= 2.0 )
     return *(float *)(AAS_PlaneFromNum(trace.planenum) + 8) >= (double)libvar_sv_maxsteepness->value;
   return 0;
 }
@@ -9556,10 +9556,10 @@ BOOL __cdecl AAS_OnGround(vec3_t a1, int a2, int a3)
  * given origin is in liquid (LAVA|SLIME|WATER = 0x38).  Used by BotMoveInDirection
  * to pick a swim/jump movement style.  IDA dropped the bi_PointContents call
  * (compare 0x1000efe6 in the binary) and v3 was uninitialized. */
-BOOL __cdecl AAS_Swimming(vec3_t a1)
+BOOL __cdecl AAS_Swimming(vec3_t origin)
 {
   /* v5 must be int[3]: the X/Y stores are raw 32-bit copies (not int->float
-   * conversions), preserving the float bit pattern from a1.  Verified at
+   * conversions), preserving the float bit pattern from origin.  Verified at
    * .text 0x1000efc0: mov [esp+0],ecx / mov [esp+8],edx for X/Y, and
    * fstp [esp+0xc] for Z.  Retyping to float[3] silently injects a
    * cvtsi2ss on the first two stores, garbling X/Y of the test point and
@@ -9567,9 +9567,9 @@ BOOL __cdecl AAS_Swimming(vec3_t a1)
    * the swim branch and get stuck. */
   int v5[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  v5[0] = *(_DWORD *)a1;
-  v5[1] = *(_DWORD *)((char *)a1 + 4);
-  *(float *)&v5[2] = *((float *)a1 + 2) - 2.0f;
+  v5[0] = *(_DWORD *)origin;
+  v5[1] = *(_DWORD *)((char *)origin + 4);
+  *(float *)&v5[2] = *((float *)origin + 2) - 2.0f;
   return (bi_PointContents((float *)v5) & 0x38) != 0;
 }
 // 1000EFEB: variable 'v3' is possibly undefined
@@ -9586,7 +9586,7 @@ BOOL __cdecl AAS_Swimming(vec3_t a1)
  * Renamed from sub_1000F010 / AAS_PredictMoveDir.
  * Structural match: ioq3 code/botlib/be_aas_move.c:256.
  */
-void __cdecl AAS_JumpReachRunStart(aas_reachability_t* a1, intptr_t a2)
+void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
   double v2; // st7
   const void *v5; // esi
@@ -9603,33 +9603,33 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* a1, intptr_t a2)
   float v15[3]; // [esp+20h] [ebp-5Ch] BYREF
   int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
 
-  v2 = *(float *)(a1 + 12) - *(float *)(a1 + 24);
+  v2 = *(float *)(reach + 12) - *(float *)(reach + 24);
   v14[2] = 0;
   *(float *)v14 = v2;
-  *(float *)&v14[1] = *(float *)(a1 + 16) - *(float *)(a1 + 28);
+  *(float *)&v14[1] = *(float *)(reach + 16) - *(float *)(reach + 28);
   VectorNormalize(v14);
-  start_pos[0] = *(float *)(a1 + 12);
-  start_pos[1] = *(float *)(a1 + 16);
-  start_pos[2] = *(float *)(a1 + 20) + 1.0f;
+  start_pos[0] = *(float *)(reach + 12);
+  start_pos[1] = *(float *)(reach + 16);
+  start_pos[2] = *(float *)(reach + 20) + 1.0f;
   VectorScale((float *)v14, 400.0, (float *)v15);
   v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
-  *(float *)a2 = *(float *)v16;
+  *(float *)runstart = *(float *)v16;
   v7 = v16[1];
-  *(_DWORD *)(a2 + 8) = v16[2];
+  *(_DWORD *)(runstart + 8) = v16[2];
   v8 = v16[16];
-  *(_DWORD *)(a2 + 4) = v7;
+  *(_DWORD *)(runstart + 4) = v7;
   if ( (v8 & 0x38) != 0 )
   {
-    *(float *)a2       = start_pos[0];
-    *(float *)(a2 + 4) = start_pos[1];
-    *(float *)(a2 + 8) = start_pos[2];
+    *(float *)runstart       = start_pos[0];
+    *(float *)(runstart + 4) = start_pos[1];
+    *(float *)(runstart + 8) = start_pos[2];
   }
 }
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
 
 //----- (1000F2C0) --------------------------------------------------------
-int __cdecl AAS_AgainstLadder(int *a1)
+int __cdecl AAS_AgainstLadder(int *origin)
 {
   float v1; // ecx
   int v2; // edx
@@ -9643,9 +9643,9 @@ int __cdecl AAS_AgainstLadder(int *a1)
   float v11; // [esp+10h] [ebp-Ch] BYREF
   float v12; // [esp+14h] [ebp-8h]
 
-  v1 = *((float *)a1 + 1);
-  v2 = a1[2];
-  v11 = *(float *)a1;
+  v1 = *((float *)origin + 1);
+  v2 = origin[2];
+  v11 = *(float *)origin;
   v12 = v1;
   v3 = AAS_PointAreaNum(&v11);
   if ( !v3 )
@@ -9686,12 +9686,12 @@ int __cdecl AAS_AgainstLadder(int *a1)
     if ( (v8[4] & 2) != 0 )
     {
       v9 = *(_DWORD *)v8 ^ (*((int *)aasworld.faceindex + v6 + v5[2]) < 0);
-      if ( (int)abs32((__int64)(*((float *)aasworld.planes + 5 * v9 + 2) * *((float *)a1 + 2)
-                              + *((float *)aasworld.planes + 5 * v9 + 1) * *((float *)a1 + 1)
-                              + *((float *)aasworld.planes + 5 * v9) * *(float *)a1
+      if ( (int)abs32((__int64)(*((float *)aasworld.planes + 5 * v9 + 2) * *((float *)origin + 2)
+                              + *((float *)aasworld.planes + 5 * v9 + 1) * *((float *)origin + 1)
+                              + *((float *)aasworld.planes + 5 * v9) * *(float *)origin
                               - *((float *)aasworld.planes + 5 * v9 + 3))) < 3 )
       {
-        if ( AAS_PointInsideFace(v7, (float *)a1, 0.1) )
+        if ( AAS_PointInsideFace(v7, (float *)origin, 0.1) )
           break;
       }
     }
@@ -9775,36 +9775,36 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
  * AAS_WeaponJumpZVelocity (currently still named AAS_WeaponJumpZVelocity at
  * 0x1000F4D0; rename pending).  Matches ioq3 be_aas_move.c:341.
  */
-float __cdecl AAS_RocketJumpZVelocity(vec3_t a1)
+float __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
-  return AAS_WeaponJumpZVelocity(a1, 120.0);
+  return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
 
 //----- (1000F780) --------------------------------------------------------
-int __cdecl AAS_BFGJumpZVelocity(vec3_t a1)
+int __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 {
-  return AAS_WeaponJumpZVelocity(a1, 120.0);
+  return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
 
 //----- (1000F7B0) --------------------------------------------------------
-void __cdecl AAS_ApplyFriction(vec3_t a1, float a2, float a3, float a4)
+void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime)
 {
   long double v4; // st5
   long double v5; // st6
   long double v6; // st6
 
-  v4 = sqrt(a1[0] * a1[0] + a1[1] * a1[1]);
+  v4 = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
   if ( v4 != 0.0 )
   {
-    if ( v4 >= a3 )
+    if ( v4 >= stopspeed )
       v5 = v4;
     else
-      v5 = a3;
-    v6 = v4 - v5 * a2 * a4;
+      v5 = stopspeed;
+    v6 = v4 - v5 * friction * frametime;
     if ( v6 < 0.0 )
       v6 = 0.0;
-    a1[0] = v6 / v4 * a1[0];
-    a1[1] = v6 / v4 * a1[1];
+    vel[0] = v6 / v4 * vel[0];
+    vel[1] = v6 / v4 * vel[1];
   }
 }
 
@@ -10262,7 +10262,7 @@ LABEL_87:
 // 1000F840: using guessed type char var_6C[36];
 
 //----- (10010780) --------------------------------------------------------
-int __cdecl AAS_HorizontalVelocityForJump(float a1, vec3_t a2, vec3_t a3, float *a4)
+int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float *velocity)
 {
   long double v4; // st7
   double v5; // st6
@@ -10275,28 +10275,28 @@ int __cdecl AAS_HorizontalVelocityForJump(float a1, vec3_t a2, vec3_t a3, float 
 
   v4 = libvar_sv_maxvelocity->value;
   v11 = libvar_sv_gravity->value;
-  v5 = a1 / v11;
+  v5 = zvel / v11;
   v12 = v5;
-  v6 = v5 * (v11 * v5) * 0.5 + a2[2] - a3[2];
+  v6 = v5 * (v11 * v5) * 0.5 + start[2] - end[2];
   if ( v6 >= 0.0 )
   {
-    v8 = a3[0] - a2[0];
-    v9 = a3[1] - a2[1];
+    v8 = end[0] - start[0];
+    v9 = end[1] - start[1];
     v10 = sqrt(v9 * v9 + v8 * v8) / (sqrt(v6 / (v11 * 0.5)) + v12);
-    *a4 = v10;
+    *velocity = v10;
     if ( v10 <= v4 )
     {
       return 1;
     }
     else
     {
-      *(float *)a4 = v4;
+      *(float *)velocity = v4;
       return 0;
     }
   }
   else
   {
-    *(float *)a4 = libvar_sv_maxvelocity->value;
+    *(float *)velocity = libvar_sv_maxvelocity->value;
     return 0;
   }
 }
@@ -10310,13 +10310,13 @@ int AAS_KeepEdge()
 }
 
 //----- (10010880) --------------------------------------------------------
-int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2)
+int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 {
   unsigned int v2; // ebx
   char *v3; // edi
   int result; // eax
   int v6; // eax
-  char *v7; // edx — a1->edges
+  char *v7; // edx — optimized->edges
   int v8; // esi
   _DWORD *v9; // eax
   long v10; // esi — byte offset between source and destination edge slot
@@ -10324,51 +10324,51 @@ int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2)
   unsigned int v12; // [esp+Ch] [ebp-4h]
   int v13; // [esp+14h] [ebp+4h]
 
-  v2 = abs32(a2);
+  v2 = abs32(edgenum);
   v12 = v2;
   v3 = (char *)aasworld.edges + 8 * v2;
   result = AAS_KeepEdge();
   if ( result )
   {
-    result = a1->edgeremap[v2];
+    result = optimized->edgeremap[v2];
     if ( result )
     {
-      if ( a2 <= 0 )
+      if ( edgenum <= 0 )
         return -result;
     }
     else
     {
-      v6 = a1->numedges;
-      v7 = (char *)a1->edges;
+      v6 = optimized->numedges;
+      v7 = (char *)optimized->edges;
       v13 = 2;
       v8 = (int)(v7 + 8 * v6);
       v9 = (_DWORD *)v3;
       v10 = (v7 + 8 * v6) - v3;
       do
       {
-        v11 = a1->vertexremap[*v9];
+        v11 = optimized->vertexremap[*v9];
         if ( v11 )
         {
           *(_DWORD *)((char *)v9 + v10) = v11;
         }
         else
         {
-          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * *v9);
-          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 1);
-          *(_DWORD *)((char *)a1->vertexes + 12 * a1->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 2);
-          *(_DWORD *)((char *)v9 + v10) = a1->numvertexes;
-          a1->vertexremap[*v9] = a1->numvertexes;
+          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * *v9);
+          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 1);
+          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 2);
+          *(_DWORD *)((char *)v9 + v10) = optimized->numvertexes;
+          optimized->vertexremap[*v9] = optimized->numvertexes;
           v2 = v12;
-          ++a1->numvertexes;
+          ++optimized->numvertexes;
         }
         ++v9;
         --v13;
       }
       while ( v13 );
-      a1->edgeremap[v2] = a1->numedges;
-      result = a1->numedges;
-      a1->numedges = result + 1;
-      if ( a2 <= 0 )
+      optimized->edgeremap[v2] = optimized->numedges;
+      result = optimized->numedges;
+      optimized->numedges = result + 1;
+      if ( edgenum <= 0 )
         return -result;
     }
   }
@@ -10376,13 +10376,13 @@ int __cdecl AAS_OptimizeEdge(optimized_t *a1, int a2)
 }
 
 //----- (100109E0) --------------------------------------------------------
-int __cdecl AAS_KeepFace(char *a1)
+int __cdecl AAS_KeepFace(char *face)
 {
-  return (unsigned __int8)(a1[4] & 2) >> 1;
+  return (unsigned __int8)(face[4] & 2) >> 1;
 }
 
 //----- (10010A00) --------------------------------------------------------
-int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2)
+int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 {
   unsigned int v2; // edi
   char *v3; // esi
@@ -10392,38 +10392,38 @@ int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2)
   int v7; // eax
   char *v8; // [esp+10h] [ebp-8h]
 
-  v2 = abs32(a2);
+  v2 = abs32(facenum);
   v3 = (char *)aasworld.faces + 24 * v2;
   v8 = v3;
   result = AAS_KeepFace(v3);
   if ( result )
   {
-    result = a1->faceremap[v2];
+    result = optimized->faceremap[v2];
     if ( result )
     {
-      if ( a2 <= 0 )
+      if ( facenum <= 0 )
         return -result;
     }
     else
     {
-      v5 = (_DWORD *)((char *)a1->faces + 24 * a1->numfaces);
+      v5 = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
       qmemcpy(v5, v3, 0x18u);
       v5[2] = 0;
       v6 = 0;
-      for ( v5[3] = a1->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
+      for ( v5[3] = optimized->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
       {
-        v7 = AAS_OptimizeEdge(a1, *((_DWORD *)aasworld.edgeindex + v6 + *((_DWORD *)v8 + 3)));
+        v7 = AAS_OptimizeEdge(optimized, *((_DWORD *)aasworld.edgeindex + v6 + *((_DWORD *)v8 + 3)));
         if ( v7 )
         {
-          a1->edgeindex[v5[2] + v5[3]] = v7;
+          optimized->edgeindex[v5[2] + v5[3]] = v7;
           ++v5[2];
-          ++a1->edgeindexsize;
+          ++optimized->edgeindexsize;
         }
       }
-      a1->faceremap[v2] = a1->numfaces;
-      result = a1->numfaces;
-      a1->numfaces = result + 1;
-      if ( a2 <= 0 )
+      optimized->faceremap[v2] = optimized->numfaces;
+      result = optimized->numfaces;
+      optimized->numfaces = result + 1;
+      if ( facenum <= 0 )
         return -result;
     }
   }
@@ -10431,7 +10431,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *a1, int a2)
 }
 
 //----- (10010B40) --------------------------------------------------------
-int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2)
+int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
   _DWORD *v2; // edx
   _DWORD *v3; // ebx
@@ -10440,11 +10440,11 @@ int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2)
   int v6; // eax
   _DWORD *v7; // [esp+18h] [ebp+8h]
 
-  v2 = (_DWORD *)((char *)aasworld.areas + 48 * a2);
-  v3 = (_DWORD *)((char *)a1->areas + 48 * a2);
+  v2 = (_DWORD *)((char *)aasworld.areas + 48 * areanum);
+  v3 = (_DWORD *)((char *)optimized->areas + 48 * areanum);
   qmemcpy(v3, v2, 0x30u);
   v3[1] = 0;
-  v3[2] = a1->faceindexsize;
+  v3[2] = optimized->faceindexsize;
   result = v2[1];
   v5 = 0;
   v7 = v2;
@@ -10452,12 +10452,12 @@ int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2)
   {
     while ( 1 )
     {
-      v6 = AAS_OptimizeFace(a1, *((_DWORD *)aasworld.faceindex + v5 + v2[2]));
+      v6 = AAS_OptimizeFace(optimized, *((_DWORD *)aasworld.faceindex + v5 + v2[2]));
       if ( v6 )
       {
-        a1->faceindex[v3[1] + v3[2]] = v6;
+        optimized->faceindex[v3[1] + v3[2]] = v6;
         ++v3[1];
-        ++a1->faceindexsize;
+        ++optimized->faceindexsize;
       }
       result = (intptr_t)v7;
       if ( ++v5 >= v7[1] )
@@ -10469,26 +10469,26 @@ int __cdecl AAS_OptimizeArea(optimized_t *a1, int a2)
 }
 
 //----- (10010C10) --------------------------------------------------------
-int __cdecl AAS_OptimizeAlloc(optimized_t *a1)
+int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
 {
   void *result; // eax
 
-  a1->vertexes = GetClearedMemory(12 * aasworld.numvertexes);
-  a1->numvertexes = 0;
-  a1->edges = GetClearedMemory(8 * aasworld.numedges);
-  a1->numedges = 1;
-  a1->edgeindex = (int *)GetClearedMemory(4 * aasworld.edgeindexsize);
-  a1->edgeindexsize = 0;
-  a1->faces = GetClearedMemory(24 * aasworld.numfaces);
-  a1->numfaces = 1;
-  a1->faceindex = (int *)GetClearedMemory(4 * aasworld.faceindexsize);
-  a1->faceindexsize = 0;
-  a1->areas = GetClearedMemory(48 * aasworld.numareas);
-  a1->numareas = aasworld.numareas;
-  a1->vertexremap = (int *)GetClearedMemory(4 * aasworld.numvertexes);
-  a1->edgeremap = (int *)GetClearedMemory(4 * aasworld.numedges);
+  optimized->vertexes = GetClearedMemory(12 * aasworld.numvertexes);
+  optimized->numvertexes = 0;
+  optimized->edges = GetClearedMemory(8 * aasworld.numedges);
+  optimized->numedges = 1;
+  optimized->edgeindex = (int *)GetClearedMemory(4 * aasworld.edgeindexsize);
+  optimized->edgeindexsize = 0;
+  optimized->faces = GetClearedMemory(24 * aasworld.numfaces);
+  optimized->numfaces = 1;
+  optimized->faceindex = (int *)GetClearedMemory(4 * aasworld.faceindexsize);
+  optimized->faceindexsize = 0;
+  optimized->areas = GetClearedMemory(48 * aasworld.numareas);
+  optimized->numareas = aasworld.numareas;
+  optimized->vertexremap = (int *)GetClearedMemory(4 * aasworld.numvertexes);
+  optimized->edgeremap = (int *)GetClearedMemory(4 * aasworld.numedges);
   result = GetClearedMemory(4 * aasworld.numfaces);
-  a1->faceremap = (int *)result;
+  optimized->faceremap = (int *)result;
   return (intptr_t)result;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
@@ -10500,35 +10500,35 @@ int __cdecl AAS_OptimizeAlloc(optimized_t *a1)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10010D50) --------------------------------------------------------
-int __cdecl AAS_OptimizeStore(optimized_t *a1)
+int __cdecl AAS_OptimizeStore(optimized_t *optimized)
 {
   if ( aasworld.vertexes )
     FreeMemory(aasworld.vertexes);
-  aasworld.vertexes = a1->vertexes;
-  aasworld.numvertexes = a1->numvertexes;
+  aasworld.vertexes = optimized->vertexes;
+  aasworld.numvertexes = optimized->numvertexes;
   if ( aasworld.edges )
     FreeMemory(aasworld.edges);
-  aasworld.edges = a1->edges;
-  aasworld.numedges = a1->numedges;
+  aasworld.edges = optimized->edges;
+  aasworld.numedges = optimized->numedges;
   if ( aasworld.edgeindex )
     FreeMemory(aasworld.edgeindex);
-  aasworld.edgeindex = a1->edgeindex;
-  aasworld.edgeindexsize = a1->edgeindexsize;
+  aasworld.edgeindex = optimized->edgeindex;
+  aasworld.edgeindexsize = optimized->edgeindexsize;
   if ( aasworld.faces )
     FreeMemory(aasworld.faces);
-  aasworld.faces = a1->faces;
-  aasworld.numfaces = a1->numfaces;
+  aasworld.faces = optimized->faces;
+  aasworld.numfaces = optimized->numfaces;
   if ( aasworld.faceindex )
     FreeMemory(aasworld.faceindex);
-  aasworld.faceindex = a1->faceindex;
-  aasworld.faceindexsize = a1->faceindexsize;
+  aasworld.faceindex = optimized->faceindex;
+  aasworld.faceindexsize = optimized->faceindexsize;
   if ( aasworld.areas )
     FreeMemory(aasworld.areas);
-  aasworld.areas = a1->areas;
-  aasworld.numareas = a1->numareas;
-  FreeMemory(a1->vertexremap);
-  FreeMemory(a1->edgeremap);
-  return FreeMemory(a1->faceremap);
+  aasworld.areas = optimized->areas;
+  aasworld.numareas = optimized->numareas;
+  FreeMemory(optimized->vertexremap);
+  FreeMemory(optimized->edgeremap);
+  return FreeMemory(optimized->faceremap);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066918: using guessed type int aasworld.numvertexes;
@@ -10659,7 +10659,7 @@ int __cdecl AAS_AreaReachability(int areanum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10011090) --------------------------------------------------------
-double __cdecl AAS_FaceArea(char *a1)
+double __cdecl AAS_FaceArea(char *face)
 {
   int v2; // ebp
   int v3; // eax
@@ -10675,7 +10675,7 @@ double __cdecl AAS_FaceArea(char *a1)
   float v14; // [esp+34h] [ebp+4h]
 
   v2 = 1;
-  v3 = *(_DWORD *)(a1 + 12);
+  v3 = *(_DWORD *)(face + 12);
   v14 = 0.0;
   v4 = (float *)aasworld.vertexes;
   v5 = (float *)((char *)aasworld.vertexes
@@ -10683,11 +10683,11 @@ double __cdecl AAS_FaceArea(char *a1)
                * *((_DWORD *)aasworld.edges
                  + 2 * abs32(*((_DWORD *)aasworld.edgeindex + v3))
                  + (*((int *)aasworld.edgeindex + v3) < 0)));
-  if ( *(_DWORD *)(a1 + 8) - 1 <= 1 )
+  if ( *(_DWORD *)(face + 8) - 1 <= 1 )
     return 0.0;
   while ( 1 )
   {
-    v6 = *((_DWORD *)aasworld.edgeindex + *(_DWORD *)(a1 + 12) + v2);
+    v6 = *((_DWORD *)aasworld.edgeindex + *(_DWORD *)(face + 12) + v2);
     v7 = v6 < 0;
     v8 = (char *)aasworld.edges + 8 * abs32(v6);
     v12[0] = v4[3 * *(_DWORD *)&v8[4 * v7]] - *v5;
@@ -10700,7 +10700,7 @@ double __cdecl AAS_FaceArea(char *a1)
     CrossProduct(v12, v11, v13);
     ++v2;
     v14 = VectorLength(v13) * 0.5 + v14;
-    if ( v2 >= *(_DWORD *)(a1 + 8) - 1 )
+    if ( v2 >= *(_DWORD *)(face + 8) - 1 )
       break;
     v4 = (float *)aasworld.vertexes;
   }
@@ -10710,7 +10710,7 @@ double __cdecl AAS_FaceArea(char *a1)
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10011220) --------------------------------------------------------
-double __cdecl AAS_AreaVolume(int a1)
+double __cdecl AAS_AreaVolume(int areanum)
 {
   char *v1; // esi
   int v2; // edi
@@ -10725,7 +10725,7 @@ double __cdecl AAS_AreaVolume(int a1)
   float v11; // [esp+14h] [ebp-4h]
   float v12; // [esp+1Ch] [ebp+4h]
 
-  v1 = (char *)aasworld.areas + 48 * a1;
+  v1 = (char *)aasworld.areas + 48 * areanum;
   v2 = 0;
   v12 = 0.0;
   v3i = *((int *)aasworld.faceindex + *((_DWORD *)v1 + 2));
@@ -10747,7 +10747,7 @@ double __cdecl AAS_AreaVolume(int a1)
 }
 
 //----- (10011360) --------------------------------------------------------
-double __cdecl AAS_AreaGroundFaceArea(int a1)
+double __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
   double result; // st7
   int v2; // edi
@@ -10759,7 +10759,7 @@ double __cdecl AAS_AreaGroundFaceArea(int a1)
   result = 0.0;
   v2 = 0;
   v6 = 0.0;
-  v3 = (char *)aasworld.areas + 48 * a1;
+  v3 = (char *)aasworld.areas + 48 * areanum;
   if ( *((int *)v3 + 1) > 0 )
   {
     do
@@ -10779,7 +10779,7 @@ double __cdecl AAS_AreaGroundFaceArea(int a1)
 }
 
 //----- (100113F0) --------------------------------------------------------
-int __cdecl AAS_FaceCenter(int a1, vec3_t a2)
+int __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
   int v2; // esi
   char *v3; // edi
@@ -10788,10 +10788,10 @@ int __cdecl AAS_FaceCenter(int a1, vec3_t a2)
   float v6; // [esp+0h] [ebp-10h]
 
   v2 = 0;
-  v3 = (char *)aasworld.faces + 24 * a1;
-  a2[2] = 0.0;
-  a2[1] = 0.0;
-  *a2 = 0.0;
+  v3 = (char *)aasworld.faces + 24 * facenum;
+  center[2] = 0.0;
+  center[1] = 0.0;
+  *center = 0.0;
   if ( *((int *)v3 + 2) > 0 )
   {
     do
@@ -10799,17 +10799,17 @@ int __cdecl AAS_FaceCenter(int a1, vec3_t a2)
       v4i = *((int *)aasworld.edgeindex + v2 + *((_DWORD *)v3 + 3));
       ++v2;
       v4 = (char *)aasworld.edges + 8 * abs32(v4i);
-      *a2 = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4) + *a2;
-      a2[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 1) + a2[1];
-      a2[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 2) + a2[2];
-      *a2 = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4)) + *a2;
-      a2[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 1) + a2[1];
-      a2[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 2) + a2[2];
+      *center = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4) + *center;
+      center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 1) + center[1];
+      center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 2) + center[2];
+      *center = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4)) + *center;
+      center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 1) + center[1];
+      center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 2) + center[2];
     }
     while ( v2 < *((_DWORD *)v3 + 2) );
   }
   v6 = 0.5 / (double)*((int *)v3 + 2);
-  VectorScale((float *)a2, v6, (float *)a2);
+  VectorScale((float *)center, v6, (float *)center);
   return 0;
 }
 
@@ -10824,11 +10824,11 @@ __int64 AAS_FallDamageDistance()
 // 10064038: using guessed type int libvar_sv_gravity;
 
 //----- (10011560) --------------------------------------------------------
-double __cdecl AAS_MaxJumpHeight(float a1)
+double __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
 {
   double v1; // st6
 
-  v1 = a1 / libvar_sv_gravity->value;
+  v1 = phys_jumpvel / libvar_sv_gravity->value;
   return libvar_sv_gravity->value * v1 * v1 * 0.5;
 }
 // 10064038: using guessed type int libvar_sv_gravity;
@@ -10843,38 +10843,38 @@ long double __cdecl AAS_MaxJumpDistance(float a1)
 // 10064044: using guessed type int libvar_sv_maxvelocity;
 
 //----- (100115D0) --------------------------------------------------------
-int __cdecl AAS_AreaCrouch(int a1)
+int __cdecl AAS_AreaCrouch(int areanum)
 {
-  return (unsigned __int8)(~(unsigned __int8)*((_DWORD *)aasworld.areasettings + 7 * a1 + 2) & 2) >> 1;
+  return (unsigned __int8)(~(unsigned __int8)*((_DWORD *)aasworld.areasettings + 7 * areanum + 2) & 2) >> 1;
 }
 
 //----- (10011610) --------------------------------------------------------
-int __cdecl AAS_AreaSwim(int a1)
+int __cdecl AAS_AreaSwim(int areanum)
 {
-  return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * a1 + 4) & 4) >> 2;
+  return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
 }
 
 //----- (10011670) --------------------------------------------------------
-int __cdecl AAS_AreaGrounded(int a1)
+int __cdecl AAS_AreaGrounded(int areanum)
 {
-  return *((_DWORD *)aasworld.areasettings + 7 * a1 + 1) & 1;
+  return *((_DWORD *)aasworld.areasettings + 7 * areanum + 1) & 1;
 }
 
 //----- (100116A0) --------------------------------------------------------
-int __cdecl AAS_AreaLadder(int a1)
+int __cdecl AAS_AreaLadder(int areanum)
 {
-  return *((_DWORD *)aasworld.areasettings + 7 * a1 + 1) & 2;
+  return *((_DWORD *)aasworld.areasettings + 7 * areanum + 1) & 2;
 }
 
 //----- (10011700) --------------------------------------------------------
-qboolean __cdecl AAS_ReachabilityExists(int a1, int a2)
+qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
 {
   aas_reachabilitynode_t *v2;
 
-  v2 = areareachability[a1];
+  v2 = areareachability[area1num];
   if ( !v2 )
     return 0;
-  while ( *(_DWORD *)v2 != a2 )
+  while ( *(_DWORD *)v2 != area2num )
   {
     v2 = v2->next;
     if ( !v2 )
@@ -10885,7 +10885,7 @@ qboolean __cdecl AAS_ReachabilityExists(int a1, int a2)
 // 1006675C: using guessed type int dword_1006675C;
 
 //----- (10011740) --------------------------------------------------------
-BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2)
+BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 {
   int v3; // eax
   int v4; // esi
@@ -10899,17 +10899,17 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2)
   float v7[3]; // [esp+10h] [ebp-Ch] BYREF
 
   v7[2] = 0;
-  v7[0] = *a2 - *a1;
-  v7[1] = a2[1] - a1[1];
+  v7[0] = *end - *start;
+  v7[1] = end[1] - start[1];
   VectorNormalize(v7);
-  VectorMA(a2, 48.0, v7, v5);
+  VectorMA(end, 48.0, v7, v5);
   if ( !AAS_PointAreaNum(v5) )
   {
     v5[2] = v5[2] + 16.0;
     if ( !AAS_PointAreaNum(v5) )
       return 1;
   }
-  VectorMA(a2, 64.0, v7, v5);
+  VectorMA(end, 64.0, v7, v5);
   v3 = AAS_PointAreaNum(v5);
   v4 = v3;
   return v3 && !AAS_AreaSwim(v3) && !AAS_AreaGrounded(v4);
@@ -10920,7 +10920,7 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t a1, vec3_t a2)
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
 
 //----- (10011860) --------------------------------------------------------
-int __cdecl AAS_Reachability_Swim(int a1, int a2)
+int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 {
   int v2; // edx
   char *v3; // esi
@@ -10940,11 +10940,11 @@ int __cdecl AAS_Reachability_Swim(int a1, int a2)
   BOOL v18; // [esp+14h] [ebp-10h]
   float v19[3]; // [esp+18h] [ebp-Ch] BYREF
 
-  if ( !AAS_AreaSwim(a1) || !AAS_AreaSwim(a2) || (*((_BYTE *)aasworld.areasettings + 28 * a2 + 8) & 2) == 0 )
+  if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (*((_BYTE *)aasworld.areasettings + 28 * area2num + 8) & 2) == 0 )
     return 0;
   v2 = 0;
-  v3 = (char *)aasworld.areas + 48 * a2;
-  v4 = (char *)aasworld.areas + 48 * a1;
+  v3 = (char *)aasworld.areas + 48 * area2num;
+  v4 = (char *)aasworld.areas + 48 * area1num;
   v5 = (float *)(v3 + 12);
   v6 = (float *)(v4 + 24);
   do
@@ -10994,7 +10994,7 @@ LABEL_14:
   if ( !lreach )
     return 0;
   lreach[1] = v10;
-  *lreach = a2;
+  *lreach = area2num;
   lreach[2] = 0;
   /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
    * bits) into reach->start.x/y/z.  IDA's `lreach[i] = v19[i]` on an `int *`
@@ -11012,10 +11012,10 @@ LABEL_14:
   VectorMA((float *)(lreach + 3), 2.0, (float *)((char *)aasworld.planes + 20 * (v18 ^ *v14)), (float *)(lreach + 6));
   v16[9] = 8;
   *((_WORD *)v16 + 20) = 1;
-  if ( AAS_AreaVolume(a2) < 800.0 )
+  if ( AAS_AreaVolume(area2num) < 800.0 )
     *((_WORD *)v16 + 20) += 200;
-  ((aas_reachabilitynode_t *)v16)->next = (aas_reachabilitynode_t *)areareachability[a1];
-  areareachability[a1] = (aas_reachabilitynode_t *)v16;
+  ((aas_reachabilitynode_t *)v16)->next = (aas_reachabilitynode_t *)areareachability[area1num];
+  areareachability[area1num] = (aas_reachabilitynode_t *)v16;
   ++reach_swim;
   return 1;
 }
@@ -11026,7 +11026,7 @@ LABEL_14:
 // 100667A4: using guessed type int dword_100667A4;
 
 //----- (10011AE0) --------------------------------------------------------
-int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
+int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 {
   int v2; // edx
   char *v3; // ebx
@@ -11100,11 +11100,11 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
   float v71[3]; // [esp+98h] [ebp-18h] BYREF
   float v72[3]; // [esp+A4h] [ebp-Ch] BYREF
 
-  if ( AAS_AreaGrounded(a1) && AAS_AreaGrounded(a2) )
+  if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) )
   {
     v2 = 0;
-    v3 = (char *)aasworld.areas + 48 * a2;
-    v4 = (char *)aasworld.areas + 48 * a1;
+    v3 = (char *)aasworld.areas + 48 * area2num;
+    v4 = (char *)aasworld.areas + 48 * area1num;
     v57 = v4;
     v58 = v3;
     v5 = (float *)(v3 + 12);
@@ -11197,7 +11197,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                                   v41 = v41 + 200.0;
                                 if ( v41 < (double)v43 || v43 + 1.0 > v41 && v48 > (double)v53 )
                                 {
-                                  v60 = a2;
+                                  v60 = area2num;
                                   v43 = v41;
                                   v53 = v48;
                                   v65 = v38[2];
@@ -11267,9 +11267,9 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
                 *(float *)(v27 + 32) = v35;
                 *(_DWORD *)(v27 + 36) = v36;
                 *(_WORD *)(v27 + 40) = v34;
-                ((aas_reachabilitynode_t *)v27)->next = areareachability[a1];
-                areareachability[a1] = (aas_reachabilitynode_t *)v27;
-                if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
+                ((aas_reachabilitynode_t *)v27)->next = areareachability[area1num];
+                areareachability[area1num] = (aas_reachabilitynode_t *)v27;
+                if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
                   *(_WORD *)(v27 + 40) += 300;
                 if ( !AAS_NearbySolidOrGap((float *)(v27 + 12), (float *)(v27 + 24)) )
                   *(_WORD *)(v27 + 40) += 100;
@@ -11303,7 +11303,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int a1, int a2)
 // 100667AC: using guessed type int dword_100667AC;
 
 //----- (10012200) --------------------------------------------------------
-int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
+int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num)
 {
   char *v2; // ebp
   int v3; // eax
@@ -11464,12 +11464,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
   up[0] = 0.0;
   up[1] = 0.0;
   up[2] = 1.0;
-  if ( (AAS_AreaGrounded(a1) || AAS_AreaSwim(a1)) && (AAS_AreaGrounded(a2) || AAS_AreaSwim(a2)) )
+  if ( (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
   {
-    v2 = (char *)aasworld.areas + 48 * a1;
+    v2 = (char *)aasworld.areas + 48 * area1num;
     v127 = v2;
-    v115 = (char *)aasworld.areas + 48 * a2;
-    v3 = AAS_AreaSwim(a1);
+    v115 = (char *)aasworld.areas + 48 * area2num;
+    v3 = AAS_AreaSwim(area1num);
     v4 = 0;
     v5 = (float *)(v115 + 12);
     v134 = v3;
@@ -11803,17 +11803,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
           if ( !v44 )
             return 0;
           v46 = v113;
-          *v44 = a2;
+          *v44 = area2num;
           v44[1] = 0;
           v44[2] = v46;
           VectorMA(v121, 0.1, (float *)v120, (float *)(v44 + 3));
           VectorMA(v110, 5.0, (float *)v120, (float *)(v45 + 6));
           v45[9] = 2;
           *((_WORD *)v45 + 20) = 1;
-          if ( !AAS_AreaCrouch(a1) && AAS_AreaCrouch(a2) )
+          if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
             *((_WORD *)v45 + 20) += 300;
-          ((aas_reachabilitynode_t *)v45)->next = (aas_reachabilitynode_t *)areareachability[a1];
-          areareachability[a1] = (aas_reachabilitynode_t *)v45;
+          ((aas_reachabilitynode_t *)v45)->next = (aas_reachabilitynode_t *)areareachability[area1num];
+          areareachability[area1num] = (aas_reachabilitynode_t *)v45;
           if ( !AAS_NearbySolidOrGap((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
           /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
@@ -11829,10 +11829,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
               (*((_BYTE *)aasworld.areasettings + 28 * AAS_PointAreaNum(v141) + 4) & 4) != 0)
           && libvar_sv_maxwaterjump->value + 24.0 > v100 )
         {
-          v48 = a1;
-          v49 = a2;
-          if ( (*((_BYTE *)aasworld.areasettings + 28 * a1 + 8) & 2) != 0
-            && (*((_BYTE *)aasworld.areasettings + 28 * a2 + 8) & 2) != 0 )
+          v48 = area1num;
+          v49 = area2num;
+          if ( (*((_BYTE *)aasworld.areasettings + 28 * area1num + 8) & 2) != 0
+            && (*((_BYTE *)aasworld.areasettings + 28 * area2num + 8) & 2) != 0 )
           {
             v50 = AAS_AllocReachability();
             if ( !v50 )
@@ -11844,21 +11844,21 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int a1, int a2)
             *(_DWORD *)(v50 + 12) = v51;
             *(float *)(v50 + 16) = v52;
             *(float *)(v50 + 20) = v53;
-            *(_DWORD *)v50 = a2;
+            *(_DWORD *)v50 = area2num;
             *(_DWORD *)(v50 + 4) = 0;
             VectorMA((float *)v138, 15.0, (float *)v139, v50 + 24);
             *(_DWORD *)(v50 + 36) = 9;
             *(_WORD *)(v50 + 40) = 700;
-            ((aas_reachabilitynode_t *)v50)->next = areareachability[a1];
-            areareachability[a1] = (aas_reachabilitynode_t *)v50;
+            ((aas_reachabilitynode_t *)v50)->next = areareachability[area1num];
+            areareachability[area1num] = (aas_reachabilitynode_t *)v50;
             ++reach_waterjump;
             return 1;
           }
         }
         else
         {
-          v49 = a2;
-          v48 = a1;
+          v49 = area2num;
+          v48 = area1num;
         }
         if ( !v116 )
           return 0;
@@ -12015,12 +12015,12 @@ int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c)
 }
 
 //----- (10013C70) --------------------------------------------------------
-int __cdecl VectorMiddle(vec3_t a1, vec3_t a2, vec3_t a3)
+int __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 {
-  *a3 = *a1 + *a2;
-  a3[1] = a1[1] + a2[1];
-  a3[2] = a1[2] + a2[2];
-  VectorScale((float *)a3, 0.5, (float *)a3);
+  *middle = *v1 + *v2;
+  middle[1] = v1[1] + v2[1];
+  middle[2] = v1[2] + v2[2];
+  VectorScale((float *)middle, 0.5, (float *)middle);
   return 0;
 }
 
@@ -14013,7 +14013,7 @@ LABEL_26:
 // 10017CA0: using guessed type int var_50[20];
 
 //----- (100181D0) --------------------------------------------------------
-int __cdecl AAS_Reachability_WalkOffLedge(int a1)
+int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
   int result; // eax
   char *v2; // esi
@@ -14078,13 +14078,13 @@ int __cdecl AAS_Reachability_WalkOffLedge(int a1)
   float v57[3]; // [esp+60h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+6Ch] [ebp-48h] (was int v58[9] + char v59[36] hidden return buffer)
 
-  result = AAS_AreaGrounded(a1);
+  result = AAS_AreaGrounded(areanum);
   if ( result )
   {
-    result = AAS_AreaSwim(a1);
+    result = AAS_AreaSwim(areanum);
     if ( !result )
     {
-      v2 = (char *)aasworld.areas + 48 * a1;
+      v2 = (char *)aasworld.areas + 48 * areanum;
       v3 = 0;
       v53 = v2;
       v47 = 0;
@@ -14138,7 +14138,7 @@ LABEL_7:
           if ( v14 == (HIDWORD(v15) ^ (unsigned int)v15) - HIDWORD(v15) )
           {
             v16 = *((_DWORD *)v11 + 4);
-            if ( v16 == a1 )
+            if ( v16 == areanum )
               v16 = *((_DWORD *)v11 + 5);
             v17 = (char *)aasworld.areas + 48 * v16;
             if ( (*((_BYTE *)aasworld.areasettings + 28 * v16 + 4) & 1) != 0 )
@@ -14239,7 +14239,7 @@ LABEL_29:
               goto LABEL_42;
             v32 = AAS_PointAreaNum(trace.endpos);
             v33 = v32;
-            if ( v32 == a1 || AAS_ReachabilityExists(a1, v32) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
+            if ( v32 == areanum || AAS_ReachabilityExists(areanum, v32) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
               goto LABEL_42;
             if ( (*((_BYTE *)aasworld.areasettings + 28 * v33) & 6) != 0 )
               goto LABEL_42;
@@ -14263,9 +14263,9 @@ LABEL_29:
             else
               *(_WORD *)(v35 + 40) = 3000;
             v10 = v48;
-            ((aas_reachabilitynode_t *)v35)->next = areareachability[a1];
+            ((aas_reachabilitynode_t *)v35)->next = areareachability[areanum];
             v13 = v50;
-            areareachability[a1] = (aas_reachabilitynode_t *)v35;
+            areareachability[areanum] = (aas_reachabilitynode_t *)v35;
             v11 = v54;
             ++reach_walkoffledge;
           }
@@ -14540,12 +14540,12 @@ void AAS_InitTravelFlagFromType(void)
 }
 
 //----- (10018DC0) --------------------------------------------------------
-int __cdecl AAS_TravelFlagForType(int a1)
+int __cdecl AAS_TravelFlagForType(int traveltype)
 {
-  if ( a1 < 0 || a1 >= 32 )
+  if ( traveltype < 0 || traveltype >= 32 )
     return 0;
   else
-    return aasworld.travelflagfortype[a1];
+    return aasworld.travelflagfortype[traveltype];
 }
 // 100669E8: using guessed type int aasworld.travelflagfortype[];
 
@@ -14703,7 +14703,7 @@ int AAS_CalculateAreaTravelTimes(void)
 // 10066A78: using guessed type int aasworld.areatraveltimes;
 
 //----- (10019230) --------------------------------------------------------
-aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1)
+aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes)
 {
   /* Original 32-bit disasm: GetClearedMemory(2 * numareas + 44).
    * 44 = sizeof(aas_routingcache_t) on 32-bit (40-byte header + 4 slop).
@@ -14711,14 +14711,14 @@ aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int a1)
    * placed correctly for both 32-bit and 64-bit pointer-widened layouts.
    * The trailing array is accessed via &cache[1] (pointer arithmetic).
    * 64-bit: must return a real pointer (was int → truncated on aarch64). */
-  return (aas_routingcache_t *)GetClearedMemory(2 * a1 + (int)sizeof(aas_routingcache_t) + 4);
+  return (aas_routingcache_t *)GetClearedMemory(2 * numtraveltimes + (int)sizeof(aas_routingcache_t) + 4);
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (10019260) --------------------------------------------------------
-int __cdecl AAS_FreeRoutingCache(void *a1)
+int __cdecl AAS_FreeRoutingCache(void *cache)
 {
-  FreeMemory(a1);
+  FreeMemory(cache);
   return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -15397,21 +15397,21 @@ LABEL_20:
 // 10066A70: using guessed type int aasworld.frameroutingupdates;
 
 //----- (1001A2E0) --------------------------------------------------------
-char *__cdecl AAS_ReachabilityFromNum(char *a1, int a2)
+char *__cdecl AAS_ReachabilityFromNum(char *num, int reach)
 {
   char *result; // eax
   char v3[44]; // [esp+8h] [ebp-2Ch] BYREF
 
-  if ( aasworld.initialized && a2 >= 0 && a2 <= aasworld.reachabilitysize )
+  if ( aasworld.initialized && reach >= 0 && reach <= aasworld.reachabilitysize )
   {
-    result = a1;
-    qmemcpy(a1, (char *)aasworld.reachability + 44 * a2, 0x2Cu);
+    result = num;
+    qmemcpy(num, (char *)aasworld.reachability + 44 * reach, 0x2Cu);
   }
   else
   {
     memset(v3, 0, sizeof(v3));
-    result = a1;
-    qmemcpy(a1, v3, 0x2Cu);
+    result = num;
+    qmemcpy(num, v3, 0x2Cu);
   }
   return result;
 }
@@ -15445,7 +15445,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (1001A410) --------------------------------------------------------
-int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4)
+int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin)
 {
   int v4; // ebx
   int v5; // eax
@@ -15467,7 +15467,7 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4)
       v4 = 1;
     if ( v4 >= v5 )
       v4 = 1;
-    if ( AAS_AreaReachability(v4) && AAS_AreaTravelTimeToGoalArea(a1, v4, a2) )
+    if ( AAS_AreaReachability(v4) && AAS_AreaTravelTimeToGoalArea(areanum, v4, travelflags) )
     {
       v6 = (float *)((char *)aasworld.areas + 48 * v4);
       center[0] = v6[9];
@@ -15488,10 +15488,10 @@ int __cdecl AAS_RandomGoalArea(int a1, int a2, _DWORD *a3, vec3_t a4)
       return 0;
   }
   v8 = AAS_PointAreaNum(trace.endpos);
-  *a3 = v8;
-  a4[0] = trace.endpos[0];
-  a4[1] = trace.endpos[1];
-  a4[2] = trace.endpos[2];
+  *goalareanum = v8;
+  goalorigin[0] = trace.endpos[0];
+  goalorigin[1] = trace.endpos[1];
+  goalorigin[2] = trace.endpos[2];
   return 1;
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -15754,7 +15754,7 @@ int __cdecl AAS_PointContents(vec3_t point)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001B130) --------------------------------------------------------
-qboolean __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, int a5, intptr_t a6)
+qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace)
 {
   aas_link_t *v6; // esi
   float v7; // edx
@@ -15766,17 +15766,17 @@ qboolean __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, in
   float v14[21]; // [esp+1Ch] [ebp-54h] BYREF
   int v15; // [esp+80h] [ebp+10h]
 
-  AAS_PresenceTypeBoundingBox(a4, v13, v12);
+  AAS_PresenceTypeBoundingBox(presencetype, v13, v12);
   v14[2] = 1.0;
-  v6 = aasworld.arealinkedentities[a1];
+  v6 = aasworld.arealinkedentities[areanum];
   v15 = 0;
   if ( !v6 )
     return 0;
   do
   {
-    if ( v6->entnum != a5 )
+    if ( v6->entnum != passent )
     {
-      if ( AAS_EntityCollision(v6->entnum, a2, v13, v12, a3, 33619971, v14) )
+      if ( AAS_EntityCollision(v6->entnum, start, v13, v12, end, 33619971, v14) )
         v15 = 1;
     }
     v6 = v6->next_ent;
@@ -15785,16 +15785,16 @@ qboolean __cdecl AAS_AreaEntityCollision(int a1, char *a2, vec3_t a3, int a4, in
   if ( !v15 )
     return 0;
   v7 = v14[20];
-  *(float *)a6 = v14[1];
+  *(float *)trace = v14[1];
   v8 = v14[3];
-  *(float *)(a6 + 20) = v7;
+  *(float *)(trace + 20) = v7;
   v9 = v14[4];
-  *(float *)(a6 + 8) = v8;
+  *(float *)(trace + 8) = v8;
   v10 = v14[5];
-  *(float *)(a6 + 12) = v9;
-  *(float *)(a6 + 16) = v10;
-  *(_DWORD *)(a6 + 28) = 0;
-  *(_DWORD *)(a6 + 32) = 0;
+  *(float *)(trace + 12) = v9;
+  *(float *)(trace + 16) = v10;
+  *(_DWORD *)(trace + 28) = 0;
+  *(_DWORD *)(trace + 32) = 0;
   return 1;
 }
 // 10066994: using guessed type int aasworld.arealinkedentities;
@@ -16208,7 +16208,7 @@ qboolean __cdecl AAS_InsideFace(int a1)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BF00) --------------------------------------------------------
-qboolean __cdecl AAS_PointInsideFace(int a1, vec3_t a2, float a3)
+qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 {
   _DWORD *v5; // ebx
   int eidx;
@@ -16228,7 +16228,7 @@ qboolean __cdecl AAS_PointInsideFace(int a1, vec3_t a2, float a3)
   if ( !aasworld.loaded )
     return 0;
   v16 = 0;
-  v5 = (char *)aasworld.faces + 24 * a1;
+  v5 = (char *)aasworld.faces + 24 * facenum;
   v10 = (char *)aasworld.planes + 20 * *v5;
   if ( (int)v5[2] > 0 )
   {
@@ -16242,11 +16242,11 @@ qboolean __cdecl AAS_PointInsideFace(int a1, vec3_t a2, float a3)
       v14[0] = *v9 - *(float *)v7;
       v14[1] = v9[1] - *(float *)(v7 + 4);
       v14[2] = v9[2] - *(float *)(v7 + 8);
-      v11 = a2[0] - *(float *)v7;
-      v12 = a2[1] - *(float *)(v7 + 4);
-      v13 = a2[2] - *(float *)(v7 + 8);
+      v11 = point[0] - *(float *)v7;
+      v12 = point[1] - *(float *)(v7 + 4);
+      v13 = point[2] - *(float *)(v7 + 8);
       CrossProduct(v14, v10, v15);
-      v17 = -a3;
+      v17 = -epsilon;
       if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
         break;
       if ( ++v16 >= v5[2] )
@@ -16286,15 +16286,15 @@ int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3)
 }
 
 //----- (1001C3F0) --------------------------------------------------------
-aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *a1)
+aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
 {
   aas_link_t *result; // eax
   aas_link_t *prev;   // ecx — prev_ent in area chain
   aas_link_t *v3;     // esi — saved next_area for iteration
   aas_link_t *next;   // ecx — next_ent in area chain
 
-  result = a1;
-  if ( a1 )
+  result = areas;
+  if ( areas )
   {
     do
     {
@@ -16426,10 +16426,10 @@ aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4)
 // 100015C8: using guessed type _DWORD __cdecl AAS_AASLinkEntity(_DWORD, _DWORD, _DWORD);
 
 //----- (1001C6C0) --------------------------------------------------------
-char *__cdecl AAS_PlaneFromNum(int a1)
+char *__cdecl AAS_PlaneFromNum(int planenum)
 {
   if ( aasworld.loaded )
-    return (char *)aasworld.planes + 20 * a1;
+    return (char *)aasworld.planes + 20 * planenum;
   else
     return 0;
 }
@@ -23430,14 +23430,14 @@ bot_consolemessage_t *AllocConsoleMessage()
 // 10064364: using guessed type int dword_10064364;
 
 //----- (1002A9E0) --------------------------------------------------------
-int __cdecl FreeConsoleMessage(bot_consolemessage_t *a1)
+int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 {
   if ( dword_10064364 )
-    dword_10064364->prev = a1;
-  a1->prev = NULL;
-  a1->next = dword_10064364;
-  dword_10064364 = a1;
-  return (int)(intptr_t)a1;
+    dword_10064364->prev = message;
+  message->prev = NULL;
+  message->next = dword_10064364;
+  dword_10064364 = message;
+  return (int)(intptr_t)message;
 }
 // 10064364: using guessed type int dword_10064364;
 
@@ -23562,7 +23562,7 @@ void __cdecl UnifyWhiteSpaces(void *Src)
 }
 
 //----- (1002ACF0) --------------------------------------------------------
-const char *__cdecl StringContains(const char *a1, const char *a2, int a3)
+const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive)
 {
   unsigned int v4; // kr04_4
   unsigned int v5; // kr08_4
@@ -23574,21 +23574,21 @@ const char *__cdecl StringContains(const char *a1, const char *a2, int a3)
   int v12; // [esp+10h] [ebp-8h]
   int v13; // [esp+20h] [ebp+8h]
 
-  v4 = strlen(a1) + 1;
-  v5 = strlen(a2) + 1;
+  v4 = strlen(str1) + 1;
+  v5 = strlen(str2) + 1;
   v12 = 0;
   if ( (int)(v4 - v5) < 0 )
     return 0;
   while ( 1 )
   {
     v13 = 0;
-    if ( *a2 )
+    if ( *str2 )
     {
-      v6 = a2;
-      v7 = a1 - a2;
+      v6 = str2;
+      v7 = str1 - str2;
       do
       {
-        if ( a3 )
+        if ( casesensitive )
         {
           if ( v6[v7] != *v6 )
             break;
@@ -23604,17 +23604,17 @@ const char *__cdecl StringContains(const char *a1, const char *a2, int a3)
       }
       while ( v9 );
     }
-    if ( !a2[v13] )
-      return a1;
+    if ( !str2[v13] )
+      return str1;
     v10 = ++v12 <= (int)(v4 - v5);
-    ++a1;
+    ++str1;
     if ( !v10 )
       return 0;
   }
 }
 
 //----- (1002AE00) --------------------------------------------------------
-const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
+const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive)
 {
   const char *v3; // ebx
   int v4; // eax
@@ -23631,12 +23631,12 @@ const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
   int v16; // [esp+10h] [ebp-8h]
   int v17; // [esp+1Ch] [ebp+4h]
 
-  v3 = a1;
+  v3 = str1;
   v4 = 0;
-  v5 = strlen(a1) + 1;
-  v6 = a2;
+  v5 = strlen(str1) + 1;
+  v6 = str2;
   v16 = 0;
-  v7 = strlen(a2) + 1;
+  v7 = strlen(str2) + 1;
   if ( (int)(v5 - v7) < 0 )
     return 0;
   while ( 1 )
@@ -23659,7 +23659,7 @@ const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
       v10 = v3 - v6;
       do
       {
-        if ( a3 )
+        if ( casesensitive )
         {
           if ( v9[v10] != *v9 )
             break;
@@ -23668,7 +23668,7 @@ const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
         {
           v11 = toupper(v9[v10]);
           v12 = toupper(*v9);
-          v6 = a2;
+          v6 = str2;
           if ( v11 != v12 )
             break;
         }
@@ -23691,23 +23691,23 @@ const char *__cdecl StringContainsWord(const char *a1, const char *a2, int a3)
 }
 
 //----- (1002AF30) --------------------------------------------------------
-const char *__cdecl StringReplaceWords(const char *a1, const char *a2, const char *a3)
+const char *__cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement)
 {
   const char *v3; // esi
   const char *result; // eax
   char *i; // ebx
   const char *v6; // edx
 
-  v3 = a2;
-  result = StringContainsWord(a1, a2, 0);
+  v3 = synonym;
+  result = StringContainsWord(string, synonym, 0);
   for ( i = (char *)result; result; i = (char *)result )
   {
-    v6 = StringContainsWord(a1, a3, 0);
+    v6 = StringContainsWord(string, replacement, 0);
     if ( v6 )
     {
-      while ( v6 > i || i >= &v6[strlen(a3)] )
+      while ( v6 > i || i >= &v6[strlen(replacement)] )
       {
-        v6 = StringContainsWord(v6 + 1, a3, 0);
+        v6 = StringContainsWord(v6 + 1, replacement, 0);
         if ( !v6 )
           goto LABEL_8;
       }
@@ -23715,11 +23715,11 @@ const char *__cdecl StringReplaceWords(const char *a1, const char *a2, const cha
     else
     {
 LABEL_8:
-      memcpy(&i[strlen(a3)], &i[strlen(v3)], strlen(&i[strlen(v3)]));
-      qmemcpy(i, a3, strlen(a3));
-      v3 = a2;
+      memcpy(&i[strlen(replacement)], &i[strlen(v3)], strlen(&i[strlen(v3)]));
+      qmemcpy(i, replacement, strlen(replacement));
+      v3 = synonym;
     }
-    result = StringContainsWord(&i[strlen(a3)], v3, 0);
+    result = StringContainsWord(&i[strlen(replacement)], v3, 0);
   }
   return result;
 }
@@ -23737,7 +23737,7 @@ LABEL_8:
  * (4→8 bytes), so the size calculation must use sizeof() and writes must
  * use struct-field access.  Logic and control flow are preserved 1:1 with
  * the disassembly at 0x1002B110. */
-bot_synonymlist_t *__cdecl BotLoadSynonyms(char *a1)
+bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 {
   char *ptr;                      /* IDA v2 — scratch buffer / advancing cursor */
   int sizeNeeded;                 /* IDA v3 — alloc size (v18 from prev pass)   */
@@ -23765,9 +23765,9 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *a1)
   token_t token;
   int contextstack[32];           /* IDA v34 — char[128] really 32 ints */
 
-  if ( !sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", a1);
+    bi_Print(3, "couldn't find %s\n", filename);
     return 0;
   }
   ptr = NULL;
@@ -23803,9 +23803,9 @@ LABEL_45:
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
-        bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
+        bi_Print(1, "loaded %s\\%s\n", file_ref.path, filename);
       else
-        bi_Print(1, "loaded %s\n", a1);
+        bi_Print(1, "loaded %s\n", filename);
       return synlist;
     }
   }
@@ -24010,7 +24010,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
 // (+16, +8, +12) which truncate on 64-bit because the pointer fields grow
 // from 4 to 8 bytes; we use sizeof() instead so the same source builds
 // correctly under both ABIs.
-bot_randomlist_t *__cdecl BotLoadRandomStrings(char *a1)
+bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 {
   char *ptr;                /* IDA v2/v3: current write cursor in scratch  */
   bot_randomlist_t *list;   /* IDA v3 reinterpreted: current randomlist     */
@@ -24025,9 +24025,9 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *a1)
   bot_fileref_t file_ref;
   token_t token;
 
-  if ( !sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", a1);
+    bi_Print(3, "couldn't find %s\n", filename);
     return NULL;
   }
 
@@ -24116,9 +24116,9 @@ NEXT_PASS:
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
-        bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
+        bi_Print(1, "loaded %s\\%s\n", file_ref.path, filename);
       else
-        bi_Print(1, "loaded %s\n", a1);
+        bi_Print(1, "loaded %s\n", filename);
       return head;
     }
     sizeNeeded = sizeAccum;
@@ -24137,7 +24137,7 @@ NEXT_PASS:
 // Q3 equivalent: RandomString.  Walks the bot_randomlist_t chain looking
 // for a name match, then picks one of its bot_randomstring_t entries
 // pseudo-randomly weighted by numstrings.
-char *__cdecl RandomString(const char *a1)
+char *__cdecl RandomString(const char *name)
 {
   bot_randomlist_t *list;
   bot_randomstring_t *rs;
@@ -24148,7 +24148,7 @@ char *__cdecl RandomString(const char *a1)
     return NULL;
   while ( list )
   {
-    if ( !strcmp(list->string, a1) )
+    if ( !strcmp(list->string, name) )
     {
       n = (int)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)list->numstrings);
       rs = list->firstrandomstring;
@@ -24167,14 +24167,14 @@ char *__cdecl RandomString(const char *a1)
 // 1006437C: using guessed type int dword_1006437C;
 
 //----- (1002BFB0) --------------------------------------------------------
-void __cdecl BotFreeMatchPieces(bot_matchpiece_t *a1)
+void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces)
 {
   bot_matchpiece_t *mp;
   bot_matchpiece_t *nextmp;
   bot_matchstring_t *ms;
   bot_matchstring_t *nextms;
 
-  for ( mp = a1; mp; mp = nextmp )
+  for ( mp = matchpieces; mp; mp = nextmp )
   {
     nextmp = mp->next;
     if ( mp->type == MT_STRING )
@@ -24196,7 +24196,7 @@ void __cdecl BotFreeMatchPieces(bot_matchpiece_t *a1)
 // bot_matchpiece_t.  Original IDA decompilation used GetMemory(16) plus
 // int-stride indexing (v4[2], v4[3]) which truncates on 64-bit because
 // firststring/next pointers grow from 4 to 8 bytes.
-bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *a1, const char *a2)
+bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken)
 {
   source_t *v2;
   bot_matchpiece_t *last;
@@ -24210,12 +24210,12 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *a1, const char *a2)
   char v9; // [esp+0h] [ebp-454h]
   token_t token;
 
-  v2 = a1;
+  v2 = source;
   head = NULL;
   last = NULL;
   haveVariable = 0;
 
-  if ( !PC_ReadTokenHandle(a1, token.string) )
+  if ( !PC_ReadTokenHandle(source, token.string) )
     return head;
 
   while ( token.type == 3 )
@@ -24247,7 +24247,7 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *a1, const char *a2)
       head = mp;
     lastvar = mp;
 LABEL_29:
-    if ( PC_CheckTokenString(v2, a2) )
+    if ( PC_CheckTokenString(v2, endtoken) )
       return head;
     if ( !PC_ExpectTokenString(v2, asc_1005D330) )
       goto LABEL_35;
@@ -24285,14 +24285,14 @@ LABEL_29:
       else
         mp->firststring = ms;
       lastms = ms;
-      if ( !PC_CheckTokenString(a1, asc_1005D380) )
+      if ( !PC_CheckTokenString(source, asc_1005D380) )
       {
         if ( !sawEmptyString )
           haveVariable = 0;
-        v2 = a1;
+        v2 = source;
         goto LABEL_29;
       }
-      v2 = a1;
+      v2 = source;
     }
 LABEL_35:
     FreeSource(v2);
@@ -24315,12 +24315,12 @@ LABEL_37:
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
 
 //----- (1002C3D0) --------------------------------------------------------
-int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *a1)
+int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 {
   bot_matchtemplate_t *m;
   bot_matchtemplate_t *next;
 
-  for ( m = a1; m; m = next )
+  for ( m = mt; m; m = next )
   {
     next = m->next;
     BotFreeMatchPieces(m->first);
@@ -24338,7 +24338,7 @@ int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *a1)
 // fields of bot_matchtemplate_t live past padding.  Rewritten to use the
 // proper struct types so allocation size, field offsets and pointer width
 // are correct under both 32-bit and 64-bit ABIs.
-bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *a1)
+bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 {
   source_t *source;
   bot_matchtemplate_t *matches;       /* head of returned list */
@@ -24349,9 +24349,9 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *a1)
   bot_fileref_t file_ref;
   token_t token;
 
-  if ( !sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(matchfile, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", a1);
+    bi_Print(3, "couldn't find %s\n", matchfile);
     return NULL;
   }
   source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
@@ -24433,9 +24433,9 @@ FAIL_LOOP:
 DONE:
   FreeSource(source);
   if ( file_ref.filelen )
-    bi_Print(1, "loaded %s\\%s\n", file_ref.path, a1);
+    bi_Print(1, "loaded %s\\%s\n", file_ref.path, matchfile);
   else
-    bi_Print(1, "loaded %s\n", a1);
+    bi_Print(1, "loaded %s\n", matchfile);
   return matches;
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
@@ -24689,7 +24689,7 @@ LABEL_10:
 // pointer linked list (each node = { void *something; void *next; }).
 // We keep the offender-list cleanup as raw _DWORD chain (it's an opaque
 // transient allocation) but retype the outer replychat walk.
-int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *a1)
+int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
 {
   bot_replychat_t *rc;
   bot_chatmessage_t *cm;
@@ -24697,7 +24697,7 @@ int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *a1)
   bot_stringlist_t *next;
 
   result = NULL;
-  for ( rc = a1; rc; rc = rc->next )
+  for ( rc = replychat; rc; rc = rc->next )
   {
     for ( cm = rc->firstchatmessage; cm; cm = cm->next )
       result = BotCheckChatMessageIntegrety(cm->chatmessage, result);
@@ -24713,9 +24713,9 @@ int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CD60) --------------------------------------------------------
-int __cdecl BotCheckInitialChatIntegrety(int *a1)
+int __cdecl BotCheckInitialChatIntegrety(int *chat)
 {
-  chatlist_t        *list = (chatlist_t *)a1;
+  chatlist_t        *list = (chatlist_t *)chat;
   chattype_t        *t;
   chatline_t        *l;
   bot_stringlist_t  *result;
@@ -24740,21 +24740,21 @@ int __cdecl BotCheckInitialChatIntegrety(int *a1)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CDD0) --------------------------------------------------------
-int __cdecl BotLoadChatMessage(source_t *a1, char *a2)
+int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
 {
   const char *v3; // [esp-10h] [ebp-450h]
   char *v4; // [esp-8h] [ebp-448h]
   token_t token; /* restored: original token_t local variable */
 
-  *a2 = 0;
+  *chatmessagestring = 0;
   while ( 1 )
   {
-    if ( !PC_ExpectAnyToken(a1, token.string) )
+    if ( !PC_ExpectAnyToken(source, token.string) )
       return 0;
     if ( token.type == 1 )
     {
       StripDoubleQuotes(token.string);
-      strcat(a2, token.string);
+      strcat(chatmessagestring, token.string);
     }
     else
     {
@@ -24770,17 +24770,17 @@ int __cdecl BotLoadChatMessage(source_t *a1, char *a2)
         if ( token.type != 4 )
         {
 LABEL_14:
-          SourceError(a1, aUnknownMessage, token.string);
+          SourceError(source, aUnknownMessage, token.string);
           return 0;
         }
         v4 = token.string;
         v3 = aCrSC;
       }
-      sprintf(&a2[strlen(a2)], v3, 1, v4, 1);
+      sprintf(&chatmessagestring[strlen(chatmessagestring)], v3, 1, v4, 1);
     }
-    if ( PC_CheckTokenString(a1, Control) )
+    if ( PC_CheckTokenString(source, Control) )
       return 1;
-    if ( !PC_ExpectTokenString(a1, asc_1005D330) )
+    if ( !PC_ExpectTokenString(source, asc_1005D330) )
       return 0;
   }
 }
@@ -24790,7 +24790,7 @@ LABEL_14:
 
 //----- (1002D1B0) --------------------------------------------------------
 // Q3 equivalent: BotFreeReplyChat.  Frees the entire reply-chat chain.
-void *__cdecl BotFreeReplyChat(bot_replychat_t *a1)
+void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 {
   bot_replychat_t *rc;
   bot_replychat_t *nextrc;
@@ -24799,7 +24799,7 @@ void *__cdecl BotFreeReplyChat(bot_replychat_t *a1)
   bot_chatmessage_t *cm;
   bot_chatmessage_t *nextcm;
 
-  for ( rc = a1; rc; rc = nextrc )
+  for ( rc = replychat; rc; rc = nextrc )
   {
     nextrc = rc->next;
     for ( key = rc->keys; key; key = nextkey )
@@ -24829,7 +24829,7 @@ void *__cdecl BotFreeReplyChat(bot_replychat_t *a1)
 // truncates on 64-bit because every chain link doubles in width.
 // Rewritten with proper struct types so each allocation and field write
 // has the correct size and offset under both 32-bit and 64-bit ABIs.
-bot_replychat_t *__cdecl BotLoadReplyChat(char *a1)
+bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
 {
   char *v1;
   source_t *v4;
@@ -24842,10 +24842,10 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *a1)
   char v21[152]; // BotLoadChatMessage output buffer
   token_t token;
 
-  v1 = a1;
-  if ( !sub_10041F60(a1, &file_ref) )
+  v1 = filename;
+  if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", a1);
+    bi_Print(3, "couldn't find %s\n", filename);
     return NULL;
   }
   v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
@@ -24955,7 +24955,7 @@ NEXT_ENTRY:
     break;
   }
 
-  v1 = a1;
+  v1 = filename;
 DONE:
   FreeSource(v4);
   if ( file_ref.filelen )
@@ -25758,7 +25758,7 @@ LABEL_13:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002F100) --------------------------------------------------------
-int *__cdecl ItemWeightIndex(weightconfig_t *a1, itemconfig_t *a2)
+int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 {
   int *result; // eax
   int v4; // ebx
@@ -25767,24 +25767,24 @@ int *__cdecl ItemWeightIndex(weightconfig_t *a1, itemconfig_t *a2)
   int v7; // eax
   int *v8; // [esp+10h] [ebp+8h]
 
-  result = (int *)GetClearedMemory(4 * a2->numitems);
+  result = (int *)GetClearedMemory(4 * ic->numitems);
   v4 = 0;
   v8 = result;
-  if ( a2->numitems > 0 )
+  if ( ic->numitems > 0 )
   {
     v5 = 0;
     v6 = result;
     do
     {
-      v7 = FindFuzzyWeight(a1, a2->items[v4].dispname);
+      v7 = FindFuzzyWeight(iwc, ic->items[v4].dispname);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4, a2->items[v4].dispname);
+        Log_Write(aItemInfoDSHasN, v4, ic->items[v4].dispname);
       ++v4;
       ++v6;
       v5 += 284;
     }
-    while ( v4 < a2->numitems );
+    while ( v4 < ic->numitems );
     return v8;
   }
   return result;
@@ -26019,25 +26019,25 @@ char *__cdecl BotGoalName(int a1)
 // 10064360: using guessed type int dword_10064360;
 
 //----- (1002F6F0) --------------------------------------------------------
-int __cdecl BotResetAvoidGoals(void *a1)
+int __cdecl BotResetAvoidGoals(void *goalstate)
 {
   int result; // eax
 
   result = 0;
-  memset((char *)a1 + 460, 0, 0x100u);
-  memset((char *)a1 + 716, 0, 0x100u);
+  memset((char *)goalstate + 460, 0, 0x100u);
+  memset((char *)goalstate + 716, 0, 0x100u);
   return result;
 }
 
 //----- (1002F730) --------------------------------------------------------
-void __cdecl BotDumpAvoidGoals(int *a1)
+void __cdecl BotDumpAvoidGoals(int *goalstate)
 {
   float *v1; // esi
   int v2; // ebx
   float v3; // edi
   char v4; // al
 
-  v1 = (float *)(a1 + 460);
+  v1 = (float *)(goalstate + 460);
   v2 = 64;
   do
   {
@@ -26056,34 +26056,34 @@ void __cdecl BotDumpAvoidGoals(int *a1)
 // 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
 
 //----- (1002F7B0) --------------------------------------------------------
-void __cdecl BotAddToAvoidGoals(int *a1, int a2, float a3)
+void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime)
 {
   int v3; // esi
   float *i; // edi
 
   v3 = 0;
-  for ( i = (float *)((char *)a1 + 716); AAS_Time() <= *i; ++i )
+  for ( i = (float *)((char *)gs + 716); AAS_Time() <= *i; ++i )
   {
     if ( ++v3 >= 64 )
       return;
   }
-  *(_DWORD *)((char *)a1 + 4 * v3 + 460) = a2;
-  *(float *)((char *)a1 + 4 * v3 + 716) = AAS_Time() + a3;
+  *(_DWORD *)((char *)gs + 4 * v3 + 460) = number;
+  *(float *)((char *)gs + 4 * v3 + 716) = AAS_Time() + avoidtime;
 }
 
 //----- (1002F820) --------------------------------------------------------
-double __cdecl BotAvoidGoalTime(int *a1, int a2)
+double __cdecl BotAvoidGoalTime(int *goalstate, int number)
 {
   int v2; // esi
   float *i; // edi
 
   v2 = 0;
-  for ( i = (float *)((char *)a1 + 716); *((_DWORD *)i - 64) != a2 || AAS_Time() > *i; ++i )
+  for ( i = (float *)((char *)goalstate + 716); *((_DWORD *)i - 64) != number || AAS_Time() > *i; ++i )
   {
     if ( ++v2 >= 64 )
       return 0.0;
   }
-  return *(float *)((char *)a1 + 4 * v2 + 716) - AAS_Time();
+  return *(float *)((char *)goalstate + 4 * v2 + 716) - AAS_Time();
 }
 
 //----- (1002F890) --------------------------------------------------------
@@ -26278,47 +26278,47 @@ LABEL_31:
 // 1002FA20: using guessed type char var_7C[124];
 
 //----- (1002FD40) --------------------------------------------------------
-int __cdecl BotDumpGoalStack(int *a1)
+int __cdecl BotDumpGoalStack(int *goalstate)
 {
   int v1; // esi
   _DWORD *v2; // edi
 
   v1 = 1;
-  if ( *(int *)((char *)a1 + 456) >= 1 )
+  if ( *(int *)((char *)goalstate + 456) >= 1 )
   {
-    v2 = (_DWORD *)((char *)a1 + 108);
+    v2 = (_DWORD *)((char *)goalstate + 108);
     do
     {
       BotGoalName(*v2);
       Log_Write(aDS, v1++);
       v2 += 14;
     }
-    while ( v1 <= *(_DWORD *)((char *)a1 + 456) );
+    while ( v1 <= *(_DWORD *)((char *)goalstate + 456) );
   }
   /* Binary leaves the loop's last `mov eax, [ebx+0x1c8]` (goal count) in eax;
    * with count==0 the loop never runs and eax is whatever caller passed.
    * Return the goal count to match the predominant code path. */
-  return *(int *)((char *)a1 + 456);
+  return *(int *)((char *)goalstate + 456);
 }
 // 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
 
 //----- (1002FD90) --------------------------------------------------------
-int __cdecl BotPushGoal(int *a1, const void *a2)
+int __cdecl BotPushGoal(int *goalstate, const void *goal)
 {
   int v2; // eax
   int result; // eax
 
-  v2 = *(_DWORD *)((char *)a1 + 456);
+  v2 = *(_DWORD *)((char *)goalstate + 456);
   if ( v2 < 7 )
   {
     result = v2 + 1;
-    *(_DWORD *)((char *)a1 + 456) = result;
-    qmemcpy((char *)a1 + 56 * result + 8, a2, 0x38u);
+    *(_DWORD *)((char *)goalstate + 456) = result;
+    qmemcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
   }
   else
   {
     bi_Print(3, aGoalHeapOverfl);
-    return BotDumpGoalStack(a1);
+    return BotDumpGoalStack(goalstate);
   }
   return result;
 }
@@ -26326,23 +26326,23 @@ int __cdecl BotPushGoal(int *a1, const void *a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002FE00) --------------------------------------------------------
-int __cdecl BotPopGoal(int *a1)
+int __cdecl BotPopGoal(int *goalstate)
 {
   int result; // eax
 
-  result = *(_DWORD *)((char *)a1 + 456);
+  result = *(_DWORD *)((char *)goalstate + 456);
   if ( result > 0 )
-    *(_DWORD *)((char *)a1 + 456) = --result;
+    *(_DWORD *)((char *)goalstate + 456) = --result;
   return result;
 }
 
 //----- (1002FE30) --------------------------------------------------------
-void __cdecl BotEmptyGoalStack(int *a1)
+void __cdecl BotEmptyGoalStack(int *goalstate)
 {
   int result; // eax
 
-  result = a1;
-  *(_DWORD *)((char *)a1 + 456) = 0;
+  result = goalstate;
+  *(_DWORD *)((char *)goalstate + 456) = 0;
   return result;
 }
 
@@ -26747,11 +26747,11 @@ int __cdecl BotFreeItemWeights(bot_state_t *bs)
 // 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
 
 //----- (10030990) --------------------------------------------------------
-int __cdecl BotResetGoalState(void *a1)
+int __cdecl BotResetGoalState(void *goalstate)
 {
-  memset((char *)a1 + 8, 0, 0x1C0u);
-  *(_DWORD *)((char *)a1 + 456) = 0;
-  return BotResetAvoidGoals(a1);
+  memset((char *)goalstate + 8, 0, 0x1C0u);
+  *(_DWORD *)((char *)goalstate + 456) = 0;
+  return BotResetAvoidGoals(goalstate);
 }
 // 10001339: using guessed type _DWORD __cdecl BotResetAvoidGoals(_DWORD);
 
@@ -26786,12 +26786,12 @@ int BotShutdownGoalAI()
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030A50) --------------------------------------------------------
-double __cdecl AngleDiff(float a1, float a2)
+double __cdecl AngleDiff(float ang1, float ang2)
 {
   double result; // st7
 
-  result = a1 - a2;
-  if ( a1 <= (double)a2 )
+  result = ang1 - ang2;
+  if ( ang1 <= (double)ang2 )
   {
     if ( result < -180.0 )
       return result + 360.0;
@@ -26996,7 +26996,7 @@ BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
 // 10030D00: using guessed type _DWORD var_60[3];
 
 //----- (10030F10) --------------------------------------------------------
-BOOL __cdecl MoverDown(aas_reachability_t* a1)
+BOOL __cdecl MoverDown(aas_reachability_t* reach)
 {
   float v2[3]; // [esp+4h] [ebp-30h] BYREF
   float v3[3]; // [esp+10h] [ebp-24h] BYREF
@@ -27004,15 +27004,15 @@ BOOL __cdecl MoverDown(aas_reachability_t* a1)
   float v5[3]; // [esp+28h] [ebp-Ch] BYREF
 
   memset(v2, 0, sizeof(v2));
-  if ( *(_DWORD *)(a1 + 36) != 11 )
+  if ( *(_DWORD *)(reach + 36) != 11 )
     return 0;
-  AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(a1 + 4), v2, (float *)v5, (float *)v4, (float *)v3);
-  if ( !AAS_OriginOfMoverWithModelNum(*(_DWORD *)(a1 + 4), v3) )
+  AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(reach + 4), v2, (float *)v5, (float *)v4, (float *)v3);
+  if ( !AAS_OriginOfMoverWithModelNum(*(_DWORD *)(reach + 4), v3) )
   {
-    bi_Print(1, "no entity with model %d\n", *(_DWORD *)(a1 + 4));
+    bi_Print(1, "no entity with model %d\n", *(_DWORD *)(reach + 4));
     return 0;
   }
-  return *(float *)&v4[2] + *(float *)&v3[2] < *(float *)(a1 + 20);
+  return *(float *)&v4[2] + *(float *)&v3[2] < *(float *)(reach + 20);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10030F10: using guessed type int var_C[3];
@@ -27024,7 +27024,7 @@ BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4)
 }
 
 //----- (10031010) --------------------------------------------------------
-void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3)
+void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime)
 {
   int v3; // esi
   _DWORD *v4; // eax
@@ -27032,16 +27032,16 @@ void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3)
   float *i; // ebx
 
   v3 = 0;
-  v4 = (_DWORD *)(a1 + 116);
+  v4 = (_DWORD *)(ms + 116);
   do
   {
-    if ( *v4 == a2 )
+    if ( *v4 == number )
     {
-      if ( AAS_Time() >= *(float *)(a1 + 4 * v3 + 120) )
-        *(_DWORD *)(a1 + 4 * v3 + 124) = 1;
+      if ( AAS_Time() >= *(float *)(ms + 4 * v3 + 120) )
+        *(_DWORD *)(ms + 4 * v3 + 124) = 1;
       else
-        ++*(_DWORD *)(a1 + 4 * v3 + 124);
-      *(float *)(a1 + 4 * v3 + 120) = AAS_Time() + a3;
+        ++*(_DWORD *)(ms + 4 * v3 + 124);
+      *(float *)(ms + 4 * v3 + 120) = AAS_Time() + avoidtime;
       return;
     }
     ++v3;
@@ -27049,14 +27049,14 @@ void __cdecl BotAddToAvoidReach(intptr_t a1, int a2, float a3)
   }
   while ( v3 < 1 );
   v5 = 0;
-  for ( i = (float *)(a1 + 120); AAS_Time() <= *i; ++i )
+  for ( i = (float *)(ms + 120); AAS_Time() <= *i; ++i )
   {
     if ( ++v5 >= 1 )
       return;
   }
-  *(_DWORD *)(a1 + 4 * v5 + 116) = a2;
-  *(float *)(a1 + 4 * v5 + 120) = AAS_Time() + a3;
-  *(_DWORD *)(a1 + 4 * v5 + 124) = 1;
+  *(_DWORD *)(ms + 4 * v5 + 116) = number;
+  *(float *)(ms + 4 * v5 + 120) = AAS_Time() + avoidtime;
+  *(_DWORD *)(ms + 4 * v5 + 124) = 1;
 }
 
 //----- (100310E0) --------------------------------------------------------
@@ -27233,7 +27233,7 @@ LABEL_5:
 // 10031450: using guessed type char var_24[36];
 
 //----- (10031650) --------------------------------------------------------
-int __cdecl BotCheckBarrierJump(intptr_t a1, intptr_t a2, float a3)
+int __cdecl BotCheckBarrierJump(intptr_t ms, intptr_t dir, float speed)
 {
   int result; // eax
   float v11; // [esp+0h] [ebp-84h]
@@ -27246,25 +27246,25 @@ int __cdecl BotCheckBarrierJump(intptr_t a1, intptr_t a2, float a3)
   float v18[3]; // [esp+30h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+3Ch] [ebp-48h] (was int v19[9] + char v20[36] hidden return buffer)
 
-  v12[0] = *(float *)a1;
-  v12[1] = *(float *)(a1 + 4);
-  v12[2] = *(float *)(a1 + 8) + libvar_sv_maxbarrier->value;
-  trace = AAS_TraceClientBBox((float *)a1, v12, 2, *(_DWORD *)(a1 + 36));
+  v12[0] = *(float *)ms;
+  v12[1] = *(float *)(ms + 4);
+  v12[2] = *(float *)(ms + 8) + libvar_sv_maxbarrier->value;
+  trace = AAS_TraceClientBBox((float *)ms, v12, 2, *(_DWORD *)(ms + 36));
   if ( trace.startsolid )
     return 0;
-  if ( trace.endpos[2] - *(float *)(a1 + 8) < libvar_sv_step->value )
+  if ( trace.endpos[2] - *(float *)(ms + 8) < libvar_sv_step->value )
     return 0;
-  v18[0] = *(float *)a2;
-  v18[1] = *(float *)(a2 + 4);
+  v18[0] = *(float *)dir;
+  v18[1] = *(float *)(dir + 4);
   v18[2] = 0;
   VectorNormalize(v18);
-  v11 = a3 * *(float *)(a1 + 44) * 0.5;
-  VectorMA(a1, v11, v18, v12);
+  v11 = speed * *(float *)(ms + 44) * 0.5;
+  VectorMA(ms, v11, v18, v12);
   v15[0] = trace.endpos[0];
   v15[1] = trace.endpos[1];
   v15[2] = trace.endpos[2];
   v12[2] = trace.endpos[2];
-  trace = AAS_TraceClientBBox(v15, v12, 2, *(_DWORD *)(a1 + 36));
+  trace = AAS_TraceClientBBox(v15, v12, 2, *(_DWORD *)(ms + 36));
   if ( trace.startsolid )
     return 0;
   v15[0] = trace.endpos[0];
@@ -27272,18 +27272,18 @@ int __cdecl BotCheckBarrierJump(intptr_t a1, intptr_t a2, float a3)
   v15[2] = trace.endpos[2];
   v12[0] = trace.endpos[0];
   v12[1] = trace.endpos[1];
-  v12[2] = *(float *)(a1 + 8);
-  trace = AAS_TraceClientBBox(v15, v12, 2, *(_DWORD *)(a1 + 36));
+  v12[2] = *(float *)(ms + 8);
+  trace = AAS_TraceClientBBox(v15, v12, 2, *(_DWORD *)(ms + 36));
   if ( trace.startsolid )
     return 0;
   if ( trace.fraction >= 1.0 )
     return 0;
-  if ( trace.endpos[2] - *(float *)(a1 + 8) < libvar_sv_step->value )
+  if ( trace.endpos[2] - *(float *)(ms + 8) < libvar_sv_step->value )
     return 0;
-  EA_Jump(*(_DWORD *)(a1 + 40));
-  EA_Move(*(_DWORD *)(a1 + 40), v18, a3);
+  EA_Jump(*(_DWORD *)(ms + 40));
+  EA_Move(*(_DWORD *)(ms + 40), v18, speed);
   result = 1;
-  *(_DWORD *)(a1 + 96) |= 1u;
+  *(_DWORD *)(ms + 96) |= 1u;
   return result;
 }
 // 10001429: using guessed type _DWORD __cdecl EA_Jump(_DWORD);
@@ -27421,12 +27421,12 @@ int __cdecl BotWalkInDirection(intptr_t a1, intptr_t a2, float a3, int a4)
  * Note: Q2 drops the `type` arg in the swim branch — BotSwimInDirection
  * here takes only 3 args, matching the 1999 Q2-botlib swim impl.  The walk
  * branch keeps all 4 args, matching Q3. */
-int __cdecl BotMoveInDirection(intptr_t a1, intptr_t a2, float a3, int a4)
+int __cdecl BotMoveInDirection(intptr_t movestate, intptr_t dir, float speed, int type)
 {
-  if ( AAS_Swimming((float *)a1) )
-    return BotSwimInDirection(a1, a2, a3);
+  if ( AAS_Swimming((float *)movestate) )
+    return BotSwimInDirection(movestate, dir, speed);
   else
-    return BotWalkInDirection(a1, a2, a3, a4);
+    return BotWalkInDirection(movestate, dir, speed, type);
 }
 
 //----- (10031D10) --------------------------------------------------------
@@ -27472,17 +27472,17 @@ int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3)
 // 10031D10: using guessed type _DWORD var_6C[2];
 
 //----- (10031E20) --------------------------------------------------------
-_DWORD *__cdecl BotClearMoveResult(_DWORD *a1)
+_DWORD *__cdecl BotClearMoveResult(_DWORD *moveresult)
 {
   _DWORD *result; // eax
 
-  result = a1;
-  *a1 = 0;
-  a1[1] = 0;
-  a1[2] = 0;
-  a1[3] = 0;
-  a1[4] = 0;
-  a1[5] = 0;
+  result = moveresult;
+  *moveresult = 0;
+  moveresult[1] = 0;
+  moveresult[2] = 0;
+  moveresult[3] = 0;
+  moveresult[4] = 0;
+  moveresult[5] = 0;
   return result;
 }
 
@@ -28292,7 +28292,7 @@ void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
 // 10033790: using guessed type _DWORD var_30[12];
 
 //----- (100338A0) --------------------------------------------------------
-int __cdecl GrappleState(int a1, float *a2)
+int __cdecl GrappleState(int ms, float *reach)
 {
   libvar_t *v2; // eax
   int v3; // ebx
@@ -28321,9 +28321,9 @@ int __cdecl GrappleState(int a1, float *a2)
     qmemcpy(v6, AAS_EntityInfo(v7, v3), sizeof(v6));
     if ( !VectorCompare(&v6[4], &v6[13]) )
       return 1;
-    v5[0] = v6[4] - a2[6];
-    v5[1] = v6[5] - a2[7];
-    v5[2] = v6[6] - a2[8];
+    v5[0] = v6[4] - reach[6];
+    v5[1] = v6[5] - reach[7];
+    v5[2] = v6[6] - reach[8];
     if ( VectorLength(v5) < 32.0 )
       return 2;
 LABEL_13:
@@ -28339,19 +28339,19 @@ LABEL_13:
 // 100338A0: using guessed type char var_7C[124];
 
 //----- (10033A70) --------------------------------------------------------
-void __cdecl BotResetGrapple(float *a1)
+void __cdecl BotResetGrapple(float *ms)
 {
   int v1; // eax
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF
 
-  qmemcpy(v2, AAS_ReachabilityFromNum((char *)v2, *((_DWORD *)a1 + 19)), sizeof(v2));
-  if ( v2[9] != 14 && (((_BYTE)a1[24] & 0x40) != 0 || a1[26] != 0.0) )
+  qmemcpy(v2, AAS_ReachabilityFromNum((char *)v2, *((_DWORD *)ms + 19)), sizeof(v2));
+  if ( v2[9] != 14 && (((_BYTE)ms[24] & 0x40) != 0 || ms[26] != 0.0) )
   {
-    EA_Command(*((_DWORD *)a1 + 10), aHookoff, (char *)0);
-    v1 = *((_DWORD *)a1 + 24);
+    EA_Command(*((_DWORD *)ms + 10), aHookoff, (char *)0);
+    v1 = *((_DWORD *)ms + 24);
     LOBYTE(v1) = v1 & 0xBF;
-    a1[26] = 0.0;
-    *((_DWORD *)a1 + 24) = v1;
+    ms[26] = 0.0;
+    *((_DWORD *)ms + 24) = v1;
   }
 }
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
@@ -28578,11 +28578,11 @@ int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10034170) --------------------------------------------------------
-int __cdecl BotReachabilityTime(aas_reachability_t* a1)
+int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
   int result; // eax
 
-  switch ( *(_DWORD *)(a1 + 36) )
+  switch ( *(_DWORD *)(reach + 36) )
   {
     case 2:
     case 3:
@@ -28604,7 +28604,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* a1)
     case 0xE:
       goto LABEL_6;
     default:
-      bi_Print(3, "travel type %d not implemented yet\n", *(_DWORD *)(a1 + 36));
+      bi_Print(3, "travel type %d not implemented yet\n", *(_DWORD *)(reach + 36));
 LABEL_6:
       result = 8;
       break;
@@ -28951,38 +28951,38 @@ LABEL_59:
 // 100343A0: using guessed type int var_150[12];
 
 //----- (10034AF0) --------------------------------------------------------
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *a1)
+_DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate)
 {
   _DWORD *result; // eax
 
-  result = a1 + 31;
-  a1[29] = 0;
-  a1[30] = 0;
-  a1[31] = 0;
+  result = movestate + 31;
+  movestate[29] = 0;
+  movestate[30] = 0;
+  movestate[31] = 0;
   return result;
 }
 
 //----- (10034B20) --------------------------------------------------------
-void __cdecl BotResetLastAvoidReach(intptr_t a1)
+void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 {
   double v1; // st7
   int v2; // edx
 
   v1 = 0.0;
-  if ( *(float *)(a1 + 120) <= 0.0 )
+  if ( *(float *)(movestate + 120) <= 0.0 )
   {
-    v2 = a1;
+    v2 = movestate;
   }
   else
   {
-    v1 = *(float *)(a1 + 120);
+    v1 = *(float *)(movestate + 120);
     v2 = 0;
   }
   if ( v1 != 0.0 )
   {
-    *(_DWORD *)(a1 + 4 * v2 + 120) = 0;
-    if ( *(int *)(a1 + 128) > 0 )
-      --*(_DWORD *)(a1 + 4 * v2 + 124);
+    *(_DWORD *)(movestate + 4 * v2 + 120) = 0;
+    if ( *(int *)(movestate + 128) > 0 )
+      --*(_DWORD *)(movestate + 4 * v2 + 124);
   }
 }
 
@@ -29156,14 +29156,14 @@ LABEL_46:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10035280) --------------------------------------------------------
-_DWORD *__cdecl WeaponWeightIndex(weightconfig_t *a1, weaponconfig_t *a2)
+_DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 {
   _DWORD *result;
   int i;
 
-  result = (_DWORD *)GetClearedMemory(4 * a2->numweapons);
-  for ( i = 0; i < a2->numweapons; ++i )
-    result[i] = FindFuzzyWeight(a1, a2->weapons[i].name);
+  result = (_DWORD *)GetClearedMemory(4 * wc->numweapons);
+  for ( i = 0; i < wc->numweapons; ++i )
+    result[i] = FindFuzzyWeight(wwc, wc->weapons[i].name);
   return result;
 }
 // 1000132F: using guessed type _DWORD __cdecl FindFuzzyWeight(_DWORD, _DWORD);
@@ -29332,22 +29332,22 @@ int sub_100356D0()
 // 10064080: using guessed type int dword_10064080;
 
 //----- (10035700) --------------------------------------------------------
-int __cdecl ReadValue(source_t *a1, float *a2)
+int __cdecl ReadValue(source_t *source, float *value)
 {
   int result; // eax
   char v3; // [esp+0h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_ExpectAnyToken(a1, token.string);
+  result = PC_ExpectAnyToken(source, token.string);
   if ( result )
   {
     if ( strcmp(token.string, (const char *)&word_1005E498)
-      || (SourceWarning(a1, aNegativeValueS, v3), (result = PC_ExpectTokenType(a1, 3, 0, token.string)) != 0) )
+      || (SourceWarning(source, aNegativeValueS, v3), (result = PC_ExpectTokenType(source, 3, 0, token.string)) != 0) )
     {
       if ( token.type == 3 )
       {
         result = 1;
-        /* IDA emitted `*a2 = v6` where v6 was a separate `double` local at
+        /* IDA emitted `*value = v6` where v6 was a separate `double` local at
          * [esp+0x414] — the floatvalue field of `token` (offset 0x410 from
          * token.string, original .text 0x100357b6 is `fld QWORD [esp+0x414]`).
          * Treating v6 as a real local lets GCC put it in a fresh stack slot
@@ -29358,11 +29358,11 @@ int __cdecl ReadValue(source_t *a1, float *a2)
          * BotCheckAttack always used Blaster's flags (=0) for the alternation
          * gate, and a continuously-pressed attack while hand grenades were
          * equipped (via game.dll auto-switch) primed them past the 3s timer. */
-        *a2 = (float)token.floatvalue;
+        *value = (float)token.floatvalue;
       }
       else
       {
-        SourceError(a1, aInvalidReturnV, token.string);
+        SourceError(source, aInvalidReturnV, token.string);
         return 0;
       }
     }
@@ -29378,46 +29378,46 @@ int __cdecl ReadValue(source_t *a1, float *a2)
 // Parse one `weight`/`minweight`/`maxweight` clause from a bot's _i.c/_w.c
 // file into a fuzzyseperator_t leaf. LIVE: called during config load.
 // Part of the runtime config reader chain.
-int __cdecl ReadFuzzyWeight(source_t *a1, fuzzyseperator_t *a2)
+int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 {
   int result; // eax
   int *v3; // ebx
   int v4; // eax
 
-  if ( !PC_CheckTokenString(a1, aBalance) )
+  if ( !PC_CheckTokenString(source, aBalance) )
   {
-    v3 = (int *)&a2->weight;
-    a2->type = 0;
-    result = ReadValue(a1, &a2->weight);
+    v3 = (int *)&fs->weight;
+    fs->type = 0;
+    result = ReadValue(source, &fs->weight);
     if ( !result )
       return result;
     v4 = *v3;
-    a2->minweight = *(float *)v3;
-    a2->maxweight = *(float *)&v4;
-    return PC_ExpectTokenString(a1, Control) != 0;
+    fs->minweight = *(float *)v3;
+    fs->maxweight = *(float *)&v4;
+    return PC_ExpectTokenString(source, Control) != 0;
   }
-  a2->type = 1;
-  result = PC_ExpectTokenString(a1, asc_1005D334);
+  fs->type = 1;
+  result = PC_ExpectTokenString(source, asc_1005D334);
   if ( result )
   {
-    result = ReadValue(a1, &a2->weight);
+    result = ReadValue(source, &fs->weight);
     if ( result )
     {
-      result = PC_ExpectTokenString(a1, asc_1005D330);
+      result = PC_ExpectTokenString(source, asc_1005D330);
       if ( result )
       {
-        result = ReadValue(a1, &a2->minweight);
+        result = ReadValue(source, &fs->minweight);
         if ( result )
         {
-          result = PC_ExpectTokenString(a1, asc_1005D330);
+          result = PC_ExpectTokenString(source, asc_1005D330);
           if ( result )
           {
-            result = ReadValue(a1, &a2->maxweight);
+            result = ReadValue(source, &fs->maxweight);
             if ( result )
             {
-              result = PC_ExpectTokenString(a1, asc_1005D32C);
+              result = PC_ExpectTokenString(source, asc_1005D32C);
               if ( result )
-                return PC_ExpectTokenString(a1, Control) != 0;
+                return PC_ExpectTokenString(source, Control) != 0;
             }
           }
         }
@@ -29431,15 +29431,15 @@ int __cdecl ReadFuzzyWeight(source_t *a1, fuzzyseperator_t *a2)
 //----- (10035960) --------------------------------------------------------
 // Recursively free a fuzzy decision-tree subtree (child + next siblings +
 // own node). LIVE: paired with FreeWeightConfig2 on bot teardown.
-int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *a1)
+int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
 {
   fuzzyseperator_t *v1; // esi
   fuzzyseperator_t *v2; // edi
   int result; // eax
 
-  v1 = a1;
+  v1 = fs;
   result = 0;
-  if ( a1 )
+  if ( fs )
   {
     while ( 1 )
     {
@@ -29479,7 +29479,7 @@ void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
 // Recursive parser for one decision-tree subtree: reads `switch`/`case`
 // blocks from the config and builds linked fuzzyseperator_t nodes
 // (child = yes-branch, next = sibling case). LIVE.
-fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1)
+fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 {
   int v1; // eax
   BOOL v2; // edi
@@ -29499,12 +29499,12 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1)
   v13 = 0;
   v11 = 0;
   v12 = 0;
-  if ( !PC_ExpectTokenString(a1, asc_1005D334) )
+  if ( !PC_ExpectTokenString(source, asc_1005D334) )
     return 0;
-  if ( !PC_ExpectTokenType(a1, 3, 4096, token.string) )
+  if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
     return 0;
   v14 = token.intvalue;
-  if ( !PC_ExpectTokenString(a1, asc_1005D32C) || !PC_ExpectTokenString(a1, asc_1005AB58) || !PC_ExpectAnyToken(a1, token.string) )
+  if ( !PC_ExpectTokenString(source, asc_1005D32C) || !PC_ExpectTokenString(source, asc_1005AB58) || !PC_ExpectAnyToken(source, token.string) )
     return 0;
   do
   {
@@ -29513,7 +29513,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1)
     if ( v1 && strcmp(token.string, aCase) )
     {
       FreeFuzzySeperators_r(v11);
-      SourceError(a1, aInvalidNameS, token.string);
+      SourceError(source, aInvalidNameS, token.string);
       return 0;
     }
     v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
@@ -29533,18 +29533,18 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *a1)
     {
       if ( v13 )
       {
-        SourceError(a1, aSwitchAlreadyH, v10);
+        SourceError(source, aSwitchAlreadyH, v10);
         FreeFuzzySeperators_r(v4);
         return 0;
       }
-      v5 = a1;
+      v5 = source;
       v3->value = 999999;
       v13 = 1;
     }
     else
     {
-      v5 = a1;
-      if ( !PC_ExpectTokenType(a1, 3, 4096, token.string) )
+      v5 = source;
+      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
         goto LABEL_41;
       v3->value = token.intvalue;
     }
@@ -29558,27 +29558,27 @@ LABEL_41:
     if ( !strcmp(token.string, asc_1005AB58) )
     {
       v6 = 1;
-      if ( !PC_ExpectAnyToken(a1, token.string) )
+      if ( !PC_ExpectAnyToken(source, token.string) )
         goto LABEL_32;
     }
     if ( !strcmp(token.string, aReturn) )
     {
-      if ( !ReadFuzzyWeight(a1, v3) )
+      if ( !ReadFuzzyWeight(source, v3) )
         goto LABEL_32;
     }
     else
     {
       if ( strcmp(token.string, aSwitch) )
       {
-        SourceError(a1, aInvalidNameS, token.string);
+        SourceError(source, aInvalidNameS, token.string);
         return 0;
       }
-      v7 = ReadFuzzySeperators_r(a1);
+      v7 = ReadFuzzySeperators_r(source);
       v3->child = v7;
       if ( !v7 )
         goto LABEL_32;
     }
-    if ( v6 && !PC_ExpectTokenString(a1, asc_1005AB54) || !PC_ExpectAnyToken(a1, token.string) )
+    if ( v6 && !PC_ExpectTokenString(source, asc_1005AB54) || !PC_ExpectAnyToken(source, token.string) )
     {
 LABEL_32:
       FreeFuzzySeperators_r(v11);
@@ -29588,7 +29588,7 @@ LABEL_32:
   while ( strcmp(token.string, asc_1005AB54) );
   if ( !v13 )
   {
-    SourceWarning(a1, aSwitchWithoutD, v10);
+    SourceWarning(source, aSwitchWithoutD, v10);
     v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
     v9->index = v14;
     v9->value = 999999;
@@ -30006,7 +30006,7 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // thresholds and leaf weights. DEAD in Gladiator (no callers); intended
 // for offline auto-tuning of bot personalities. Live in Q3 via
 // EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
-void __cdecl EvolveFuzzySeperator_r(int a1)
+void __cdecl EvolveFuzzySeperator_r(int fs)
 {
   __int16 v2; // ax
   double v3; // st7
@@ -30014,39 +30014,39 @@ void __cdecl EvolveFuzzySeperator_r(int a1)
 
   do
   {
-    if ( *(_DWORD *)(a1 + 24) )
+    if ( *(_DWORD *)(fs + 24) )
     {
-      EvolveFuzzySeperator_r(*(_DWORD *)(a1 + 24));
+      EvolveFuzzySeperator_r(*(_DWORD *)(fs + 24));
     }
-    else if ( *(_DWORD *)(a1 + 8) == 1 )
+    else if ( *(_DWORD *)(fs + 8) == 1 )
     {
       if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.01 )
       {
         v4 = rand();
         v3 = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5)
-           * (*(float *)(a1 + 20) - *(float *)(a1 + 16))
+           * (*(float *)(fs + 20) - *(float *)(fs + 16))
            * 0.5;
       }
       else
       {
         v2 = rand();
         v3 = ((double)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
-           * (*(float *)(a1 + 20) - *(float *)(a1 + 16));
+           * (*(float *)(fs + 20) - *(float *)(fs + 16));
       }
-      *(float *)(a1 + 12) = v3 + *(float *)(a1 + 12);
-      if ( *(float *)(a1 + 12) >= (double)*(float *)(a1 + 16) )
+      *(float *)(fs + 12) = v3 + *(float *)(fs + 12);
+      if ( *(float *)(fs + 12) >= (double)*(float *)(fs + 16) )
       {
-        if ( *(float *)(a1 + 12) > (double)*(float *)(a1 + 20) )
-          *(_DWORD *)(a1 + 12) = *(_DWORD *)(a1 + 20);
+        if ( *(float *)(fs + 12) > (double)*(float *)(fs + 20) )
+          *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 20);
       }
       else
       {
-        *(_DWORD *)(a1 + 12) = *(_DWORD *)(a1 + 16);
+        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 16);
       }
     }
-    a1 = *(_DWORD *)(a1 + 28);
+    fs = *(_DWORD *)(fs + 28);
   }
-  while ( a1 );
+  while ( fs );
 }
 // 10001D5C: using guessed type _DWORD __cdecl EvolveFuzzySeperator_r(_DWORD);
 
@@ -30054,7 +30054,7 @@ void __cdecl EvolveFuzzySeperator_r(int a1)
 // Uniformly rescale all weights in a subtree by a scalar factor.
 // DEAD in Gladiator. Used by the GA pipeline to normalise mutated trees
 // and as a primitive for crossover blending. Live in Q3.
-void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
+void __cdecl ScaleFuzzySeperator_r(int fs, float scale)
 {
   int v3; // eax
   double v4; // st7
@@ -30062,33 +30062,33 @@ void __cdecl ScaleFuzzySeperator_r(int a1, float a2)
 
   do
   {
-    v3 = *(_DWORD *)(a1 + 24);
+    v3 = *(_DWORD *)(fs + 24);
     if ( v3 )
     {
-      /* IDA emitted LODWORD(a2) here from `mov edi,[esp+0x10]; push edi`,
-       * but a2 is a real float (the fuzzy invar — see Q3 EvaluateFuzzyRelationship
+      /* IDA emitted LODWORD(scale) here from `mov edi,[esp+0x10]; push edi`,
+       * but scale is a real float (the fuzzy invar — see Q3 EvaluateFuzzyRelationship
        * lineage and the fmul at .text 0x10036e59).  Passing LODWORD forces
        * GCC to insert fildll/fstps at the call site (verified at our
-       * .text 0x6974547b) which destroys the float bit pattern.  Pass a2
+       * .text 0x6974547b) which destroys the float bit pattern.  Pass scale
        * directly — original .text 0x10036e41 is just a raw 4-byte slot copy. */
-      ScaleFuzzySeperator_r(v3, a2);
+      ScaleFuzzySeperator_r(v3, scale);
     }
-    else if ( *(_DWORD *)(a1 + 8) == 1 )
+    else if ( *(_DWORD *)(fs + 8) == 1 )
     {
-      v4 = (*(float *)(a1 + 16) + *(float *)(a1 + 20)) * a2;
-      *(float *)(a1 + 12) = v4;
+      v4 = (*(float *)(fs + 16) + *(float *)(fs + 20)) * scale;
+      *(float *)(fs + 12) = v4;
       if ( v6 )
       {
-        *(_DWORD *)(a1 + 12) = *(_DWORD *)(a1 + 16);
+        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 16);
       }
-      else if ( v4 > *(float *)(a1 + 20) )
+      else if ( v4 > *(float *)(fs + 20) )
       {
-        *(_DWORD *)(a1 + 12) = *(_DWORD *)(a1 + 20);
+        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 20);
       }
     }
-    a1 = *(_DWORD *)(a1 + 28);
+    fs = *(_DWORD *)(fs + 28);
   }
-  while ( a1 );
+  while ( fs );
 }
 // 10036E68: variable 'v6' is possibly undefined
 // 10001708: using guessed type _DWORD __cdecl ScaleFuzzySeperator_r(_DWORD, _DWORD);
