@@ -35944,19 +35944,19 @@ double __cdecl VectorLength(float *v)
 {
   long double sq_sum; // st7
   int count; // ecx
-  double term; // st5
+  long double term; // st5
 
-  sq_sum = 0.0;
+  sq_sum = 0.0L;
   count = 3;
   do
   {
-    term = *v * *v;
+    term = (long double)*v * (long double)*v;
     ++v;
     --count;
     sq_sum = sq_sum + term;
   }
   while ( count );
-  return sqrt(sq_sum);
+  return (double)sqrtl(sq_sum);
 }
 
 //----- (10043540) --------------------------------------------------------
