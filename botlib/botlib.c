@@ -850,11 +850,6 @@ int BotSetupMoveAI();
 int __cdecl Export_BotLibStartFrame(float); // idb
 // int __usercall Export_BotLibAI@<eax>(double a1@<st0>, int a2, int a3);
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message); // idb
-#if defined(_WIN32) && !defined(_WIN64)
-bot_export_t * __stdcall GetBotAPI(bot_import_t *a1);
-#else
-bot_export_t *GetBotAPI(bot_import_t *a1);
-#endif
 _WORD *__cdecl CRC_Init(_WORD *a1);
 __int16 __cdecl CRC_Value(__int16 a1);
 __int16 __cdecl CRC_Block(const unsigned char *a1, int a2);
@@ -26339,11 +26334,7 @@ int __cdecl BotPopGoal(int *goalstate)
 //----- (1002FE30) --------------------------------------------------------
 void __cdecl BotEmptyGoalStack(int *goalstate)
 {
-  int result; // eax
-
-  result = goalstate;
   *(_DWORD *)((char *)goalstate + 456) = 0;
-  return result;
 }
 
 //----- (1002FE50) --------------------------------------------------------
@@ -30588,17 +30579,12 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 }
 
 //----- (10038480) --------------------------------------------------------
-/* On 32-bit Windows the game DLL declares GetBotAPI via a WINAPI (__stdcall)
- * function pointer (see gladq2_src/bl_main.c:1028).  The calling convention
- * must match: __stdcall means the callee cleans the stack (ret 4), __cdecl
- * means the caller does.  A mismatch leaves ESP off by 4 on return, corrupting
- * the caller's frame.  MinGW supports __stdcall natively; the gladiator.dll.h
- * header no longer redefines it as a no-op for _WIN32 targets. */
-#if defined(_WIN32) && !defined(_WIN64)
-bot_export_t * __stdcall GetBotAPI(bot_import_t *a1)
-#else
+/* Original GetBotAPI at 0x10038480 ends with a plain `ret` (no `ret 4`), so
+ * the export is __cdecl despite gladq2_src/bl_main.c:1028 declaring the
+ * function pointer as WINAPI.  The header `game/botlib.h` matches with a
+ * plain prototype; we stick with __cdecl here to stay faithful to the
+ * original binary. */
 bot_export_t *GetBotAPI(bot_import_t *a1)
-#endif
 {
   extern void botlib_install_exception_handler(void);
   botlib_install_exception_handler();
