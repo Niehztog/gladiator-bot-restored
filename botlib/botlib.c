@@ -772,8 +772,8 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
 int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6);
 int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
-int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2);
-int __cdecl BotFreeItemWeights(bot_state_t *bs);
+int __cdecl BotLoadItemWeights(int *goalstate, char *a2);
+int __cdecl BotFreeItemWeights(int *goalstate);
 int __cdecl BotResetGoalState(void *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
@@ -2170,6 +2170,22 @@ void **botgoalstate_p1;  /* iteminfo weight table */
 #else
 #define BotGoalP0(bs) (*(void **)&(bs)->goalstate[0])
 #define BotGoalP1(bs) (*(void **)&(bs)->goalstate[1])
+#endif
+
+/* Goalstate-handle accessors — used by BotLoadItemWeights /
+ * BotFreeItemWeights, which take a `goalstate*` handle (= &bs->goalstate[0])
+ * directly, exactly as the original 32-bit DLL pushed at the call sites
+ * (push edi where edi = lea [ebx+0xBC0]).  On 32-bit this is byte-identical
+ * to the disasm.  On 64-bit the int slots can't hold pointers, so we
+ * recover bs via the goalstate offset and route through the side-band
+ * arrays. */
+#if BOTLIB_NEED_SIDEBAND
+#define _GoalHandleBs(h) ((bot_state_t *)((char *)(h) - offsetof(bot_state_t, goalstate)))
+#define BotGoalHandleP0(h) (botgoalstate_p0[_GoalHandleBs(h) - botstates])
+#define BotGoalHandleP1(h) (botgoalstate_p1[_GoalHandleBs(h) - botstates])
+#else
+#define BotGoalHandleP0(h) (*(void **)&(h)[0])
+#define BotGoalHandleP1(h) (*(void **)&(h)[1])
 #endif
 
 /* bs->weaponweights is `int[7]` in the original 32-bit DLL — a flattened
@@ -22773,7 +22789,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   }
   qmemcpy(bs->settings, Source, 0x1B0u);
   weights_handle = Characteristic_String(char_handle, 28);
-  if ( BotLoadItemWeights(bs, weights_handle) )
+  if ( BotLoadItemWeights(&bs->goalstate[0], weights_handle) )
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
 #if BOTLIB_NEED_SIDEBAND
@@ -22786,7 +22802,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
 #endif
   if ( BotLoadWeaponWeights(BotWS(bs), weights_handle) )
   {
-    BotFreeItemWeights(bs);
+    BotFreeItemWeights(&bs->goalstate[0]);
     return 0;
   }
   chat_path = Characteristic_String(BotCharacter(bs), 12);
@@ -22794,7 +22810,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   chat_state_ptr = (_DWORD *)&bs->chatstate;
   if ( BotLoadChatFile(&bs->chatstate, chat_path, chat_arg) )
   {
-    BotFreeItemWeights(bs);
+    BotFreeItemWeights(&bs->goalstate[0]);
     BotFreeWeaponWeights(BotWS(bs));
     return 0;
   }
@@ -22843,7 +22859,7 @@ int __cdecl BotShutdownClient(int a1)
      * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
     if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
 #endif
-    BotFreeItemWeights(bs);
+    BotFreeItemWeights(&bs->goalstate[0]);
     FreeCharacter(v1[418]);
     BotFreeWaypoints(v1[1136]);
     v3 = v1[1137];
@@ -26840,17 +26856,17 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, int
 }
 
 //----- (100308D0) --------------------------------------------------------
-int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2)
+int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
 {
   weightconfig_t *v2;
 
   v2 = ReadWeightConfig(a2);
-  BotGoalP0(bs) = v2;
+  BotGoalHandleP0(goalstate) = v2;
   if ( v2 )
   {
     if ( dword_1006435C )
     {
-      BotGoalP1(bs) = ItemWeightIndex(v2, dword_1006435C);
+      BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, dword_1006435C);
       return 0;
     }
     else
@@ -26869,15 +26885,15 @@ int __cdecl BotLoadItemWeights(bot_state_t *bs, char *a2)
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030950) --------------------------------------------------------
-int __cdecl BotFreeItemWeights(bot_state_t *bs)
+int __cdecl BotFreeItemWeights(int *goalstate)
 {
   int result;
 
-  if ( BotGoalP0(bs) )
-    FreeWeightConfig2((weightconfig_t *)BotGoalP0(bs));
-  result = (intptr_t)BotGoalP1(bs);
+  if ( BotGoalHandleP0(goalstate) )
+    FreeWeightConfig2((weightconfig_t *)BotGoalHandleP0(goalstate));
+  result = (intptr_t)BotGoalHandleP1(goalstate);
   if ( result )
-    return FreeMemory(BotGoalP1(bs));
+    return FreeMemory(BotGoalHandleP1(goalstate));
   return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
