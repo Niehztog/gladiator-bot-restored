@@ -17070,7 +17070,7 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
  * and returns the goal position vec3 to seek (NULL if no goal active).
  *
  *   a1 = bot_state pointer (offsets are bs->ltgtype@4260, bs->teammate@4264,
- *        bs->teammatevisible_time@4332, bs->teamgoal@4268-4276, etc.)
+ *        bs->teamgoal_time@4328, bs->teamgoal@4268-4276, etc.)
  *   a2 = travel flags as float (TFL_* mask, packed in low 17 bits)
  *   a3 = "in battle" flag — 0 = full LTG processing (called from
  *        AINode_Seek_LTG); 1 = just check if goal is still valid (called
@@ -17158,7 +17158,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->teammessage_time = 0.0f;
       }
-      if ( AAS_Time() > bs->teammatevisible_time )
+      if ( AAS_Time() > bs->teamgoal_time )
       {
         v14 = EasyClientName(bs->teammate - 1, v56);
         BotInitialChat(&bs->chatstate, aAccompanyStop, v14, (char *)0);
@@ -17170,7 +17170,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
       qmemcpy(v55, v15, sizeof(v55));
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v16) )
       {
-        bs->teammatelastseen_time = AAS_Time();
+        bs->teammatevisible_time = AAS_Time();
         v17 = bs->origin;
         dir[0] = *(float *)&v55[4] - bs->origin[0];
         dir[1] = *(float *)&v55[5] - bs->origin[1];
@@ -17274,7 +17274,7 @@ LABEL_86:
         }
       }
       v26 = bs->teamgoal.origin;
-      if ( AAS_Time() - 60.0 > bs->teammatelastseen_time )
+      if ( AAS_Time() - 60.0 > bs->teammatevisible_time )
       {
         v27 = EasyClientName(bs->teammate - 1, v56);
         BotInitialChat(&bs->chatstate, aAccompanyCanno, v27, (char *)0);
@@ -17293,7 +17293,7 @@ LABEL_86:
         bs->teammessage_time = 0.0f;
       }
       v26 = bs->teamgoal.origin;
-      if ( AAS_Time() > bs->teammatevisible_time )
+      if ( AAS_Time() > bs->teamgoal_time )
       {
         v29 = BotGoalName(bs->teamgoal.number);
         BotInitialChat(&bs->chatstate, aDefendStop, v29, (char *)0);
@@ -17326,7 +17326,7 @@ LABEL_86:
           bs->teammessage_time = 0.0f;
         }
         v26 = bs->teamgoal.origin;
-        if ( AAS_Time() > bs->teammatevisible_time )
+        if ( AAS_Time() > bs->teamgoal_time )
         {
           BotInitialChat(&bs->chatstate, aCampStop, (char *)0, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -17407,7 +17407,7 @@ LABEL_86:
           {
             BotCurPatrolPoint(bs) = v40;
 LABEL_106:
-            if ( AAS_Time() > bs->teammatevisible_time )
+            if ( AAS_Time() > bs->teamgoal_time )
             {
               BotInitialChat(&bs->chatstate, aPatrolStop, 0, (char *)0);
               BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -17447,7 +17447,7 @@ LABEL_106:
           v26 = (float *)&unk_100643E0;
         if ( BotTouchingGoal(bs->origin, v26) )
           bs->ltgtype = 0;
-        if ( AAS_Time() > bs->teammatevisible_time )
+        if ( AAS_Time() > bs->teamgoal_time )
         {
           result = v26;
           bs->ltgtype = 0;
@@ -17460,7 +17460,7 @@ LABEL_106:
       v26 = (float *)&unk_100643E0;
       if ( BotCTFTeam(bs) == 1 )
         v26 = (float *)&unk_10064420;
-      if ( AAS_Time() > bs->teammatevisible_time )
+      if ( AAS_Time() > bs->teamgoal_time )
         bs->ltgtype = 0;
       if ( BotTouchingGoal(bs->origin, v26) )
       {
@@ -17519,9 +17519,9 @@ LABEL_136:
     BotEnterChat(&bs->chatstate, bs->client, 1);
     bs->teammessage_time = 0.0f;
   }
-  if ( AAS_Time() > bs->teammatevisible_time )
+  if ( AAS_Time() > bs->teamgoal_time )
     bs->ltgtype = 0;
-  if ( AAS_Time() - 10.0 > bs->teammatelastseen_time )
+  if ( AAS_Time() - 10.0 > bs->teammatevisible_time )
     bs->ltgtype = 0;
   v5 = AAS_EntityInfo(v58, bs->teammate);
   v6 = bs->teammate;
@@ -17536,7 +17536,7 @@ LABEL_136:
   }
   else
   {
-    bs->teammatelastseen_time = AAS_Time();
+    bs->teammatevisible_time = AAS_Time();
   }
   if ( v55[0] )
   {
@@ -21364,7 +21364,7 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
       bs->ltgtype = 5;
       v1 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
-      bs->teammatevisible_time = v1 + 120.0;
+      bs->teamgoal_time = v1 + 120.0;
     }
   }
 }
@@ -21389,7 +21389,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       bs->ltgtype = 5;
       v2 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
-      bs->teammatevisible_time = v2 + 120.0;
+      bs->teamgoal_time = v2 + 120.0;
     }
   }
   else if ( AAS_Time() >= bs->ctfroam_time )
@@ -21404,7 +21404,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       if ( v5 < 0.33 && dword_1006442C && dword_100643EC )
       {
         bs->ltgtype = 4;
-        bs->teammatevisible_time = AAS_Time() + 180.0;
+        bs->teamgoal_time = AAS_Time() + 180.0;
       }
       else if ( v5 < 0.66 && dword_1006442C && dword_100643EC )
       {
@@ -21415,7 +21415,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
         bs->ltgtype = 3;
         v7 = AAS_Time();
         *(int *)&bs->defendaway_time = 0;
-        bs->teammatevisible_time = v7 + 120.0;
+        bs->teamgoal_time = v7 + 120.0;
       }
       else
       {
@@ -21864,13 +21864,13 @@ LABEL_19:
         }
 LABEL_32:
         bs->teammate = v4;
-        bs->teammatelastseen_time = AAS_Time();
+        bs->teammatevisible_time = AAS_Time();
         v10 = rand();
         v55 = (double)(v10 & 0x7FFF) * 0.000030518509 + (double)(v10 & 0x7FFF) * 0.000030518509;
         bs->teammessage_time = AAS_Time() + v55;
         v11 = BotGetTime(&v64);
         v12 = v64.type;
-        bs->teammatevisible_time = v11;
+        bs->teamgoal_time = v11;
         if ( v12 == 3 )
         {
           bs->ltgtype = 1;
@@ -21878,7 +21878,7 @@ LABEL_32:
           {
             v13 = AAS_Time();
             result = 1;
-            bs->teammatevisible_time = v13 + 60.0;
+            bs->teamgoal_time = v13 + 60.0;
           }
           else
           {
@@ -21889,7 +21889,7 @@ LABEL_32:
         {
           bs->ltgtype = 2;
           if ( v11 == 0.0 )
-            bs->teammatevisible_time = AAS_Time() + 240.0;
+            bs->teamgoal_time = AAS_Time() + 240.0;
           bs->formation_dist = 100.0f;
           *(int *)&bs->arrive_time = 0;
           return 1;
@@ -21915,9 +21915,9 @@ LABEL_27:
       bs->ltgtype = 3;
       bs->teammessage_time = v15 + v56;
       v16 = BotGetTime(&v64);
-      bs->teammatevisible_time = v16;
+      bs->teamgoal_time = v16;
       if ( v16 == 0.0 )
-        bs->teammatevisible_time = AAS_Time() + 120.0;
+        bs->teamgoal_time = AAS_Time() + 120.0;
       *(int *)&bs->defendaway_time = 0;
       return 1;
     case 6:
@@ -21931,7 +21931,7 @@ LABEL_27:
       v40 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
       result = 1;
-      bs->teammatevisible_time = v40 + 120.0;
+      bs->teamgoal_time = v40 + 120.0;
       return result;
     case 7:
       if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
@@ -21943,7 +21943,7 @@ LABEL_27:
       bs->teammessage_time = v36 + v59;
       v37 = AAS_Time();
       result = 1;
-      bs->teammatevisible_time = v37 + 180.0;
+      bs->teamgoal_time = v37 + 180.0;
       return result;
     case 8:
       if ( !TeamPlayIsOn() )
@@ -22150,9 +22150,9 @@ LABEL_64:
       bs->ltgtype = 6;
       bs->teammessage_time = v25 + v57;
       v26 = BotGetTime(&v64);
-      bs->teammatevisible_time = v26;
+      bs->teamgoal_time = v26;
       if ( v26 == 0.0 )
-        bs->teammatevisible_time = AAS_Time() + 300.0;
+        bs->teamgoal_time = AAS_Time() + 300.0;
       bs->teammate = v18;
       *(int *)&bs->arrive_time = 0;
       return 1;
@@ -22216,12 +22216,12 @@ LABEL_64:
       bs->ltgtype = 7;
       bs->teammessage_time = v32 + v58;
       v33 = BotGetTime(&v64);
-      bs->teammatevisible_time = v33;
+      bs->teamgoal_time = v33;
       if ( v33 != 0.0 )
         return 1;
       v34 = AAS_Time();
       result = 1;
-      bs->teammatevisible_time = v34 + 300.0;
+      bs->teamgoal_time = v34 + 300.0;
       return result;
     default:
       bi_Print(1, aUnknownMatchTy);

@@ -310,15 +310,20 @@ typedef struct bot_state_s {
             int    teammate;              /* +4264 */
             bot_goal_t teamgoal;          /* +4268..+4323 (56 B; origin/areanum/mins/maxs/entitynum/number/flags/iteminfo) */
             float  teammessage_time;      /* +4324  schedule LTG-start chat (Accompany/GetFlag/...) */
-            float  teammatevisible_time;  /* +4328 NOTE: holds a deadline timestamp (AAS_Time()+120/240) not
-                                           * a last-seen marker — semantics differ from Q3's same-named field.
-                                           * Likely Q3 ancestor: bs->teamgoal_time (ai_main.h:236).  Kept under
-                                           * the historical name pending a swap-pass with teammatelastseen_time. */
-            float  teammatelastseen_time; /* +4332 set to AAS_Time() the moment the teammate becomes invisible
-                                           * (BotEntityVisible() == false path); tested as
-                                           * `AAS_Time() - 10.0 > teammatelastseen_time` to drop the LTG, and
-                                           * `AAS_Time() - 60.0 > teammatelastseen_time` to chat "cannot find you".
-                                           * Q3 ancestor: bs->teammatevisible_time (ai_main.h:237). */
+            float  teamgoal_time;         /* +4328 deadline timestamp for current team LTG (Accompany/GetFlag/
+                                           * ReturnFlag/Defend/etc.); set to `AAS_Time() + {60,120,180,240,300}`
+                                           * when LTG is established or extended, tested as
+                                           * `AAS_Time() > teamgoal_time` to drop the LTG.
+                                           * Q3 ancestor: bs->teamgoal_time (ai_main.h:236, "time to stop
+                                           * helping team mate").  Renamed 2026-05-26 from `teammatevisible_time`
+                                           * after Q3 cross-reference confirmed the semantics (a future
+                                           * deadline, not a last-seen past-timestamp). */
+            float  teammatevisible_time;  /* +4332 last time the teammate was NOT visible (Q3's wording);
+                                           * set to AAS_Time() the moment BotEntityVisible() returns false,
+                                           * tested as `AAS_Time() - 10.0 > teammatevisible_time` to drop the
+                                           * LTG and `AAS_Time() - 60.0 > teammatevisible_time` to chat
+                                           * "cannot find you".  Q3 ancestor: bs->teammatevisible_time
+                                           * (ai_main.h:237).  Renamed 2026-05-26 from `teammatelastseen_time`. */
             char   formation_teammate[16];/* +4336..+4351 netname of teammate used for formation positioning (Q3 backport: bs->formation_teammate[16]) */
             char   teamleader[32];        /* +4352..+4383 netname of team leader (Q3 backport: bs->teamleader[32]) */
             float  formation_dist;        /* +4384 formation-spacing distance to maintain from formation_teammate;
