@@ -9820,28 +9820,28 @@ char *__cdecl AAS_ClientMovementPrediction(
 {
   float v12; // eax
   float v13; // ecx
-  double v14; // st7
-  double v15; // st7
+  long double v14; // st7
+  long double v15; // st7
   float v16; // edx
-  double v17; // st7
+  long double v17; // st7
   int v18; // edx
-  double v19; // st7
+  long double v19; // st7
   BOOL v21; // eax
   BOOL v22; // esi
-  double v23; // st7
+  long double v23; // st7
   int v24; // edi
-  double v25; // st7
+  long double v25; // st7
   int v26; // eax
   int *v27; // ecx
   int v28; // esi
-  double v29; // st6
+  long double v29; // st6
   float *v30; // ebp
   char *v31; // eax
-  double v32; // st7
-  double v33; // st6
+  long double v32; // st7
+  long double v33; // st6
   int v34; // ecx
-  double v35; // st7
-  double v36; // st7
+  long double v35; // st7
+  long double v36; // st7
   int v37; // eax
   int v38; // ecx
   char v39; // al
@@ -9887,25 +9887,25 @@ char *__cdecl AAS_ClientMovementPrediction(
   v13 = libvar_sv_waterfriction->value;
   v68 = libvar_sv_gravity->value;
   v66 = v13;
-  v14 = a10 * libvar_sv_maxwalkvelocity->value;
+  v14 = (long double)a10 * (long double)libvar_sv_maxwalkvelocity->value;
   v70 = libvar_sv_watergravity->value;
-  v72 = v14;
+  v72 = (float)v14;
   v73 = a10 * libvar_sv_maxcrouchvelocity->value;
-  v15 = a10 * libvar_sv_maxswimvelocity->value;
+  v15 = (long double)a10 * (long double)libvar_sv_maxswimvelocity->value;
   v69 = libvar_sv_step->value;
-  v78 = v15;
+  v78 = (float)v15;
   v16 = libvar_sv_maxsteepness->value;
   v58 = a10 * libvar_sv_maxaccelerate->value;
-  v17 = a10 * libvar_sv_jumpvel->value;
+  v17 = (long double)a10 * (long double)libvar_sv_jumpvel->value;
   v63 = v16;
   memset(v62, 0, sizeof(v62));
-  v67 = v17;
+  v67 = (float)v17;
   memset(&v80, 0, sizeof(v80));
   v18 = *(int *)&a3[1];
-  v19 = a3[2] + 0.25;
+  v19 = (long double)a3[2] + 0.25L;
   *(int *)&org[0] = *(int *)a3;
   *(int *)&org[1] = v18;
-  org[2] = v19;
+  org[2] = (float)v19;
   VectorScale(a6, a10, frame_test_vel);
   v64 = -1;
   v43 = 0;
@@ -9917,11 +9917,11 @@ char *__cdecl AAS_ClientMovementPrediction(
     v22 = v21;
     v57 = v21;
     if ( v21 )
-      v23 = v70;
+      v23 = (long double)v70;
     else
-      v23 = v68;
-    v50 = v23 * a10 * 0.1;
-    frame_test_vel[2] = frame_test_vel[2] - v50;
+      v23 = (long double)v68;
+    v50 = (double)(v23 * (long double)a10 * 0.1L);
+    frame_test_vel[2] = (float)((long double)frame_test_vel[2] - (long double)v50);
     if ( a5 )
     {
       if ( v21 )
@@ -9959,7 +9959,7 @@ LABEL_35:
       if ( !v22 && a7[2] > 1.0 )
       {
         v64 = v43;
-        frame_test_vel[2] = v67 - v50 + 5.0;
+        frame_test_vel[2] = (float)((long double)v67 - (long double)v50 + 5.0L);
       }
       v26 = 2;
     }
@@ -9976,27 +9976,27 @@ LABEL_35:
     v28 = v26;
     do
     {
-      v29 = a10 * *(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel)) - *(float *)v27;
-      if ( v29 <= v58 )
+      v29 = (long double)a10 * (long double)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (long double)(*(float *)v27);
+      if ( v29 <= (long double)v58 )
       {
         *(float *)&v50 = -v58;
-        if ( v29 < *(float *)&v50 )
-          v29 = *(float *)&v50;
+        if ( v29 < (long double)(*(float *)&v50) )
+          v29 = (long double)(*(float *)&v50);
       }
       else
       {
-        v29 = v58;
+        v29 = (long double)v58;
       }
-      *(float *)&v50 = v29 + *(float *)v27;
+      *(float *)&v50 = (float)(v29 + (long double)(*(float *)v27));
       *v27 = SLODWORD(v50);
-      if ( *(float *)&v50 <= v25 )
+      if ( (long double)(*(float *)&v50) <= v25 )
       {
-        if ( *(float *)&v50 < -v25 )
-          *(float *)v27 = -v25;
+        if ( (long double)(*(float *)&v50) < -v25 )
+          *(float *)v27 = (float)(-v25);
       }
       else
       {
-        *(float *)v27 = v25;
+        *(float *)v27 = (float)v25;
       }
       ++v27;
       --v28;
@@ -10061,12 +10061,12 @@ LABEL_38:
           }
         }
       }
-      v41 = -(left_test_vel[1] * v30[1] + left_test_vel[2] * v30[2] + left_test_vel[0] * *v30);
+      v41 = (float)(-((long double)left_test_vel[1] * (long double)v30[1] + (long double)left_test_vel[2] * (long double)v30[2] + (long double)left_test_vel[0] * (long double)*v30));
       VectorMA(left_test_vel, v41, (float *)v30, left_test_vel);
-      v32 = frame_test_vel[1] * v30[1];
-      v33 = frame_test_vel[2] * v30[2];
+      v32 = (long double)frame_test_vel[1] * (long double)v30[1];
+      v33 = (long double)frame_test_vel[2] * (long double)v30[2];
       v79 = frame_test_vel[2];
-      v42 = -(v32 + v33 + frame_test_vel[0] * *v30);
+      v42 = (float)(-(v32 + v33 + (long double)frame_test_vel[0] * (long double)*v30));
       VectorMA(frame_test_vel, v42, (float *)v30, frame_test_vel);
       if ( v30[2] <= (double)v63 )
       {
@@ -10079,22 +10079,22 @@ LABEL_38:
       }
       if ( (a11 & 0x20) == 0 )
         goto LABEL_66;
-      if ( v79 >= 0.0 || frame_test_vel[2] <= (double)v79 )
+      if ( v79 >= 0.0 || (long double)frame_test_vel[2] <= (long double)v79 )
       {
         if ( !v34 )
           goto LABEL_66;
 LABEL_62:
-        v35 = frame_test_vel[2] - v79;
+        v35 = (long double)frame_test_vel[2] - (long double)v79;
         goto LABEL_63;
       }
       if ( v34 )
         goto LABEL_62;
-      v35 = v79;
+      v35 = (long double)v79;
 LABEL_63:
-      if ( v35 != 0.0 )
+      if ( v35 != 0.0L )
       {
-        v36 = v35 * 10.0 * (v35 * 10.0) * 0.0001;
-        if ( !v57 && v36 > 30.0 )
+        v36 = v35 * 10.0L * (v35 * 10.0L) * 0.0001L;
+        if ( !v57 && v36 > 30.0L )
         {
           v62[0] = *(int *)&org[0];
           v62[1] = *(int *)&org[1];
