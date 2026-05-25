@@ -2945,6 +2945,76 @@ int __cdecl AAS_BSPLeafEntityCollision(int a1, char *a2, float *a3, float *a4, f
 // 100674C0: using guessed type int dword_100674C0;
 // 10069584: using guessed type int dword_10069584;
 
+/* ------------------------------------------------------------------------
+ * DIAGNOSTIC GUARD — brushside-planenum OOB in sub_10003C90
+ * ------------------------------------------------------------------------
+ * Three crash dumps have shown sub_10003C90 read an out-of-range planenum
+ * from the brushsides buffer (planenum >> plane-count) — always on a brush
+ * whose brushsides sit in the LAST ~5% of the brushsides lump.  The v59
+ * LittleShort fix in commit d2f477d is confirmed compiled in; the lump load
+ * and byte-swap are clean.  So the corruption is a runtime heap-adjacent
+ * write into the tail of the brushsides allocation.  See
+ * .claude/memory/ida_swapbspdata_brushside_planenum_corruption.md.
+ *
+ * To catch the stomp pattern (zeros / pointers / floats / specific bytes)
+ * and identify the culprit, log a window of brushside memory around the OOB
+ * index the first time the OOB is observed per session, then skip the bad
+ * side (treat as miss) so the bot keeps running instead of CTD.
+ *
+ * REMOVE this guard once the corruption source is found and fixed. */
+#include <stdio.h>
+static void gladiator_diag_brushside_oob(
+        _DWORD *brush, int side_idx, int first_side,
+        unsigned planenum, unsigned plane_count,
+        const unsigned char *bs_base, unsigned bs_count)
+{
+    static int s_logged = 0;
+    if (s_logged) return;
+    s_logged = 1;
+    FILE *f = fopen("gladiator_debug.log", "ab");
+    if (!f) f = fopen("C:/gladiator_debug.log", "ab");
+    if (!f) return;
+    fprintf(f,
+        "\n=== brushside-planenum OOB in sub_10003C90 ===\n"
+        "  brush       = %p\n"
+        "  brush[0]    = firstside %d (0x%x)\n"
+        "  brush[1]    = numsides  %d\n"
+        "  brush[2]    = contents  0x%x\n"
+        "  side index  = %d  (absolute brushside #%d)\n"
+        "  raw planenum= %u (0x%x)\n"
+        "  plane count = %u\n"
+        "  brushsides  = %p  count=%u  end=%p\n",
+        (void *)brush, first_side, (unsigned)first_side,
+        (int)brush[1], (unsigned)brush[2],
+        side_idx, side_idx + first_side,
+        planenum, planenum,
+        plane_count,
+        (void *)bs_base, bs_count, (void *)(bs_base + 4u * bs_count));
+    /* Dump 96 bytes (24 brushsides) around the OOB entry */
+    int abs_idx = side_idx + first_side;
+    int lo = abs_idx - 12;  if (lo < 0) lo = 0;
+    int hi = abs_idx + 12;  if ((unsigned)hi > bs_count) hi = (int)bs_count;
+    fprintf(f, "  brushside window [%d..%d]:\n", lo, hi - 1);
+    for (int k = lo; k < hi; k++) {
+        const unsigned char *p = bs_base + 4u * (unsigned)k;
+        unsigned short pn = (unsigned short)(p[0] | (p[1] << 8));
+        short ti = (short)(p[2] | (p[3] << 8));
+        fprintf(f, "    [%5d] planenum=%-6u texinfo=%-6d raw=%02x %02x %02x %02x %s\n",
+                k, pn, ti, p[0], p[1], p[2], p[3],
+                k == abs_idx ? "  <-- OOB" : "");
+    }
+    /* Dump 64 bytes BEFORE bs_base to see what's adjacent in the heap */
+    fprintf(f, "  heap window before brushsides base (64B):\n");
+    for (int o = -64; o < 0; o += 16) {
+        const unsigned char *p = bs_base + o;
+        fprintf(f, "    [%+4d] %02x %02x %02x %02x  %02x %02x %02x %02x"
+                   "  %02x %02x %02x %02x  %02x %02x %02x %02x\n", o,
+                p[0],p[1],p[2],p[3], p[4],p[5],p[6],p[7],
+                p[8],p[9],p[10],p[11], p[12],p[13],p[14],p[15]);
+    }
+    fclose(f);
+}
+
 //----- (10003C90) --------------------------------------------------------
 int __cdecl sub_10003C90(
         _DWORD *a1,
@@ -3025,7 +3095,25 @@ int __cdecl sub_10003C90(
   {
     while ( 1 )
     {
-      v16 = dword_100674F4 + 20 * *(unsigned __int16 *)(dword_10067544 + 4 * (v11 + *v14));
+      {
+        unsigned _pn = *(unsigned __int16 *)(dword_10067544 + 4 * (v11 + *v14));
+        if ( _pn >= (unsigned)dword_100674F0 )
+        {
+          gladiator_diag_brushside_oob(v14, v11, *v14, _pn,
+                                       (unsigned)dword_100674F0,
+                                       (const unsigned char *)dword_10067544,
+                                       (unsigned)dword_10067540);
+          v36 = ++v11;
+          if ( v11 >= v14[1] )
+          {
+            v15 = (float *)a7;
+            v13 = (float *)a4;
+            break;
+          }
+          continue;
+        }
+        v16 = dword_100674F4 + 20 * _pn;
+      }
       if ( v39 )
       {
         normal[0] = *(float *)v16;
