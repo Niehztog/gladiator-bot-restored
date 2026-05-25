@@ -564,7 +564,7 @@ qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3);
-aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4);
+aas_link_t *__cdecl AAS_LinkEntityClientBBox(float *absmins, float *absmaxs, int entnum, int presencetype);
 char *__cdecl AAS_PlaneFromNum(int planenum);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
@@ -7298,7 +7298,7 @@ LABEL_14:
       v11[1] = *(float *)(v4 + 80) + *(float *)(v4 + 20);
       v11[2] = *(float *)(v4 + 84) + *(float *)(v4 + 24);
       AAS_UnlinkFromAreas(AAS_EntAreaLink(entnum));
-      AAS_EntAreaLink(entnum) = sub_1001C620(v12, v11, entnum, 2);
+      AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(v12, v11, entnum, 2);
       AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
       AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(v12, v11, entnum, 0);
     }
@@ -7306,7 +7306,7 @@ LABEL_14:
   return 0;
 }
 // 10001ABE: using guessed type _DWORD __cdecl AAS_UnlinkFromAreas(_DWORD);
-// 10001B36: using guessed type _DWORD __cdecl sub_1001C620(_DWORD, _DWORD, _DWORD, _DWORD);
+// 10001B36: using guessed type _DWORD __cdecl AAS_LinkEntityClientBBox(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
 // 10001F0A: using guessed type double AAS_Time(void);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -16567,21 +16567,27 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001C620) --------------------------------------------------------
-aas_link_t *__cdecl sub_1001C620(float *a1, float *a2, int a3, int a4)
+/* AAS_LinkEntityClientBBox — adjusts the entity bbox by the AAS presence
+ * type bounding box and links it into the AAS area tree.  Identified from
+ * Q3 botlib (be_aas_sample.c:1323 in Q3 source) — structurally identical:
+ * AAS_PresenceTypeBoundingBox + VectorSubtract x2 + AAS_AASLinkEntity.
+ * IDA arg order for AAS_PresenceTypeBoundingBox(type, mins, maxs) in Q3
+ * matches the disasm (2nd arg = mins-out, 3rd arg = maxs-out).           */
+aas_link_t *__cdecl AAS_LinkEntityClientBBox(float *absmins, float *absmaxs, int entnum, int presencetype)
 {
-  float v5[3]; // [esp+0h] [ebp-30h] BYREF
-  float v6[3]; // [esp+Ch] [ebp-24h] BYREF
-  float v7[3]; // [esp+18h] [ebp-18h] BYREF
-  float v8[3]; // [esp+24h] [ebp-Ch] BYREF
+  float maxs[3]; // [esp+0h] [ebp-30h] BYREF
+  float mins[3]; // [esp+Ch] [ebp-24h] BYREF
+  float newabsmaxs[3]; // [esp+18h] [ebp-18h] BYREF
+  float newabsmins[3]; // [esp+24h] [ebp-Ch] BYREF
 
-  AAS_PresenceTypeBoundingBox(a4, v6, v5);
-  v8[0] = *a1 - v5[0];
-  v8[1] = a1[1] - v5[1];
-  v8[2] = a1[2] - v5[2];
-  v7[0] = *a2 - v6[0];
-  v7[1] = a2[1] - v6[1];
-  v7[2] = a2[2] - v6[2];
-  return AAS_AASLinkEntity(v8, v7, a3);
+  AAS_PresenceTypeBoundingBox(presencetype, mins, maxs);
+  newabsmins[0] = *absmins - maxs[0];
+  newabsmins[1] = absmins[1] - maxs[1];
+  newabsmins[2] = absmins[2] - maxs[2];
+  newabsmaxs[0] = *absmaxs - mins[0];
+  newabsmaxs[1] = absmaxs[1] - mins[1];
+  newabsmaxs[2] = absmaxs[2] - mins[2];
+  return AAS_AASLinkEntity(newabsmins, newabsmaxs, entnum);
 }
 // 100015C8: using guessed type _DWORD __cdecl AAS_AASLinkEntity(_DWORD, _DWORD, _DWORD);
 
