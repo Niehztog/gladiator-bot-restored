@@ -18924,7 +18924,6 @@ char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
 //----- (10021020) --------------------------------------------------------
 void __cdecl BotUpdateInventory(bot_state_t *bs)
 {
-  char *a1 = (char *)bs;
   __int16 v1; // ax
   char *v2; // edi
   __int64 v3; // rax
@@ -18995,7 +18994,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
     }
     else
     {
-      v9 = *(_DWORD *)(a1 + 1808);
+      v9 = bs->inventory[20];  /* inventory[20] = power shield cells */
       bs->power_screen_active_cells = v9;
       bs->power_shield_active_cells = v9;
     }
@@ -19129,8 +19128,10 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
 {
   if ( libvar_ctf->value == 0.0 )
     return 0;
-  if ( *(int *)((char *)bs + 1900) <= 0 )
-    return *(_DWORD *)((char *)bs + 1904) <= 0 ? 0 : 2;
+  /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).
+   * Returns 1 (red), 2 (blue), or 0 (not carrying). */
+  if ( bs->inventory[43] <= 0 )
+    return bs->inventory[44] <= 0 ? 0 : 2;
   return 1;
 }
 // 100643AC: using guessed type int libvar_ctf;
