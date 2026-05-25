@@ -12046,20 +12046,28 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v23; // ecx
   float *v3; // esi
   float *v4; // ebp
-  double v26; // st7
-  double v27; // st6
-  double v28; // st5
-  double v29; // st4
-  double v30; // st7
-  double v31; // st6
-  double v32; // st5
-  double v33; // st4
+  /* v26..v39: original x87 80-bit FPU temporaries.  Declared `double` by IDA
+   * because the FPU return values were fstp'd to double slots, but the
+   * intermediate computations in the original happened entirely in 80-bit
+   * registers (fld float promotes to 80-bit, fmul/fdiv/fadd stay 80-bit).
+   * GCC with -mfpmath=sse computes float*float in 32-bit SSE precision and
+   * only widens for storage — losing precision.  Use `long double` here and
+   * cast each float operand below to match the original x87 pipeline,
+   * mirroring the VectorLength fix. */
+  long double v26; // st7
+  long double v27; // st6
+  long double v28; // st5
+  long double v29; // st4
+  long double v30; // st7
+  long double v31; // st6
+  long double v32; // st5
+  long double v33; // st4
   int v34; // ecx
   float *v35; // eax
-  double v36; // st7
-  double v37; // st6
+  long double v36; // st7
+  long double v37; // st6
   float *v38; // ecx
-  double v39; // st7
+  long double v39; // st7
   float v40; // edx
   int v41; // edx
   int v42; // ecx
@@ -12207,14 +12215,17 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v26 = v86 / v85;
-                          v27 = v3[1] - v26 * *v3;
-                          v28 = v27 * v86 + v26 * v85;
-                          v29 = (v85 * *v1 + v86 * v1[1] - v28) / v85;
-                          v70_vec[0] = v29;
-                          v70_vec[1] = v29 * v26 + v27;
-                          v76_vec[0] = (v86 * v2[1] + v85 * *v2 - v28) / v85;
-                          v76_vec[1] = v76_vec[0] * v26 + v27;
+                          v26 = (long double)v86 / (long double)v85;
+                          v27 = (long double)v3[1] - v26 * (long double)*v3;
+                          v28 = v27 * (long double)v86 + v26 * (long double)v85;
+                          v29 = ((long double)v85 * (long double)*v1 + (long double)v86 * (long double)v1[1] - v28) / (long double)v85;
+                          v70_vec[0] = (float)v29;
+                          v70_vec[1] = (float)(v29 * v26 + v27);
+                          {
+                            long double tmp = ((long double)v86 * (long double)v2[1] + (long double)v85 * (long double)*v2 - v28) / (long double)v85;
+                            v76_vec[0] = (float)tmp;
+                            v76_vec[1] = (float)(tmp * v26 + v27);
+                          }
                         }
                         if ( v83 == 0.0 )
                         {
@@ -12225,14 +12236,17 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v30 = v84 / v83;
-                          v31 = v1[1] - v30 * *v1;
-                          v32 = v31 * v84 + v30 * v83;
-                          v33 = (v83 * *v3 + v84 * v3[1] - v32) / v83;
-                          v80_vec[0] = v33;
-                          v80_vec[1] = v33 * v30 + v31;
-                          v73_vec[0] = (v84 * v4[1] + v83 * *v4 - v32) / v83;
-                          v73_vec[1] = v73_vec[0] * v30 + v31;
+                          v30 = (long double)v84 / (long double)v83;
+                          v31 = (long double)v1[1] - v30 * (long double)*v1;
+                          v32 = v31 * (long double)v84 + v30 * (long double)v83;
+                          v33 = ((long double)v83 * (long double)*v3 + (long double)v84 * (long double)v3[1] - v32) / (long double)v83;
+                          v80_vec[0] = (float)v33;
+                          v80_vec[1] = (float)(v33 * v30 + v31);
+                          {
+                            long double tmp = ((long double)v84 * (long double)v4[1] + (long double)v83 * (long double)*v4 - v32) / (long double)v83;
+                            v73_vec[0] = (float)tmp;
+                            v73_vec[1] = (float)(tmp * v30 + v31);
+                          }
                         }
                         v70_vec[2] = 0.0f;
                         v76_vec[2] = 0.0f;
@@ -12241,14 +12255,14 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v34 = 5 * *v67;
                         v35 = (float *)((char *)aasworld.planes + 20 * *v66);
                         v79 = 0;
-                        v36 = v70_vec[1] * *((float *)aasworld.planes + v34 + 1);
-                        v37 = v70_vec[0] * *((float *)aasworld.planes + v34);
+                        v36 = (long double)v70_vec[1] * (long double)*((float *)aasworld.planes + v34 + 1);
+                        v37 = (long double)v70_vec[0] * (long double)*((float *)aasworld.planes + v34);
                         v38 = (float *)((char *)aasworld.planes + 4 * v34);
-                        v70_vec[2] = (v38[3] - (v36 + v37)) / v38[2];
-                        v76_vec[2] = (v38[3] - (v76_vec[1] * v38[1] + v76_vec[0] * *v38)) / v38[2];
-                        v80_vec[2] = (v35[3] - (v80_vec[0] * *v35 + v80_vec[1] * v35[1])) / v35[2];
-                        v39 = (v35[3] - (v73_vec[0] * *v35 + v73_vec[1] * v35[1])) / v35[2];
-                        v73_vec[2] = v39;
+                        v70_vec[2] = (float)(((long double)v38[3] - (v36 + v37)) / (long double)v38[2]);
+                        v76_vec[2] = (float)(((long double)v38[3] - ((long double)v76_vec[1] * (long double)v38[1] + (long double)v76_vec[0] * (long double)*v38)) / (long double)v38[2]);
+                        v80_vec[2] = (float)(((long double)v35[3] - ((long double)v80_vec[0] * (long double)*v35 + (long double)v80_vec[1] * (long double)v35[1])) / (long double)v35[2]);
+                        v39 = ((long double)v35[3] - ((long double)v73_vec[0] * (long double)*v35 + (long double)v73_vec[1] * (long double)v35[1])) / (long double)v35[2];
+                        v73_vec[2] = (float)v39;
                         /* Is the projection of v21 onto edge2's line (stored
                          * in v70_vec) between edge2's endpoints v24, v25? */
                         if ( VectorBetweenVectors(v70_vec, v3, v4) )
