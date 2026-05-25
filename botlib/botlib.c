@@ -9935,7 +9935,7 @@ char *__cdecl AAS_ClientMovementPrediction(
   int v43; // [esp+1Ch] [ebp-1DCh]
   vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
-  double v50;            // [esp+38h] [ebp-1C0h]
+  long double v50;       // [esp+38h] [ebp-1C0h]  long double to preserve 80-bit precision between assignments; original stack slot also aliased as int/float bit-storage which still works because alias reads use only the first 4 bytes
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
   int v57;               // [esp+58h] [ebp-1A0h]
@@ -10004,8 +10004,8 @@ char *__cdecl AAS_ClientMovementPrediction(
       v23 = (long double)v70;
     else
       v23 = (long double)v68;
-    v50 = (double)(v23 * (long double)a10 * 0.1L);
-    frame_test_vel[2] = (float)((long double)frame_test_vel[2] - (long double)v50);
+    v50 = v23 * (long double)a10 * 0.1L;
+    frame_test_vel[2] = (float)((long double)frame_test_vel[2] - v50);
     if ( a5 )
     {
       if ( v21 )
@@ -10043,7 +10043,7 @@ LABEL_35:
       if ( !v22 && a7[2] > 1.0 )
       {
         v64 = v43;
-        frame_test_vel[2] = (float)((long double)v67 - (long double)v50 + 5.0L);
+        frame_test_vel[2] = (float)((long double)v67 - v50 + 5.0L);
       }
       v26 = 2;
     }
