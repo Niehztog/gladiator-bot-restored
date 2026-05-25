@@ -9598,14 +9598,14 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   float v15[3]; // [esp+20h] [ebp-5Ch] BYREF
   int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
 
-  v2 = *(float *)(reach + 12) - *(float *)(reach + 24);
+  v2 = (long double)reach->start[0] - (long double)reach->end[0];
   v14[2] = 0;
-  *(float *)v14 = v2;
-  *(float *)&v14[1] = *(float *)(reach + 16) - *(float *)(reach + 28);
+  *(float *)v14 = (float)v2;
+  *(float *)&v14[1] = reach->start[1] - reach->end[1];
   VectorNormalize(v14);
-  start_pos[0] = *(float *)(reach + 12);
-  start_pos[1] = *(float *)(reach + 16);
-  start_pos[2] = *(float *)(reach + 20) + 1.0f;
+  start_pos[0] = reach->start[0];
+  start_pos[1] = reach->start[1];
+  start_pos[2] = reach->start[2] + 1.0f;
   VectorScale((float *)v14, 400.0, (float *)v15);
   v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
@@ -26957,7 +26957,7 @@ BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
   _DWORD v17[3]; // [esp+64h] [ebp-60h] BYREF
   int v18[21]; // [esp+70h] [ebp-54h] BYREF
 
-  v3 = *(_DWORD *)(a3 + 36);
+  v3 = a3->traveltype;
   memset(v11, 0, sizeof(v11));
   v12[0] = -1048576000;
   v12[1] = -1048576000;
@@ -26967,7 +26967,7 @@ BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
   v13[2] = 1090519040;
   if ( v3 == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(a3 + 4), v11, (float *)v17, (float *)v15, (float *)v16);
+    AAS_BSPModelMinsMaxsOrigin(a3->facenum, v11, (float *)v17, (float *)v15, (float *)v16);
     /* Original used pointer arithmetic `v6 = (char *)v16 - a1` then
      * `*(float *)((char *)v5 + (_DWORD)v6)` — the (_DWORD) cast
      * truncates the pointer difference to 32 bits and breaks on
@@ -26990,7 +26990,7 @@ BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
         *(float *)&v10[2] = v8;
         *(float *)&v14[2] = *(float *)(a1 + 8) - 48.0;
         qmemcpy(v18, AAS_Trace(v18, (float*)(v10), (float*)v12, (float*)v13, (float*)(v14), a2, 33619971), sizeof(v18));
-        return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == *(_DWORD *)(a3 + 4);
+        return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == a3->facenum;
       }
     }
   }
@@ -27009,15 +27009,15 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
   float v5[3]; // [esp+28h] [ebp-Ch] BYREF
 
   memset(v2, 0, sizeof(v2));
-  if ( *(_DWORD *)(reach + 36) != 11 )
+  if ( reach->traveltype != 11 )
     return 0;
-  AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(reach + 4), v2, (float *)v5, (float *)v4, (float *)v3);
-  if ( !AAS_OriginOfMoverWithModelNum(*(_DWORD *)(reach + 4), v3) )
+  AAS_BSPModelMinsMaxsOrigin(reach->facenum, v2, (float *)v5, (float *)v4, (float *)v3);
+  if ( !AAS_OriginOfMoverWithModelNum(reach->facenum, v3) )
   {
-    bi_Print(1, "no entity with model %d\n", *(_DWORD *)(reach + 4));
+    bi_Print(1, "no entity with model %d\n", reach->facenum);
     return 0;
   }
-  return *(float *)&v4[2] + *(float *)&v3[2] < *(float *)(reach + 20);
+  return v4[2] + v3[2] < reach->start[2];
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10030F10: using guessed type int var_C[3];
@@ -28587,7 +28587,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
   int result; // eax
 
-  switch ( *(_DWORD *)(reach + 36) )
+  switch ( reach->traveltype )
   {
     case 2:
     case 3:
@@ -28609,7 +28609,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
     case 0xE:
       goto LABEL_6;
     default:
-      bi_Print(3, "travel type %d not implemented yet\n", *(_DWORD *)(reach + 36));
+      bi_Print(3, "travel type %d not implemented yet\n", reach->traveltype);
 LABEL_6:
       result = 8;
       break;
