@@ -2969,8 +2969,20 @@ static void gladiator_diag_brushside_oob(
         const unsigned char *bs_base, unsigned bs_count)
 {
     static int s_logged = 0;
-    if (s_logged) return;
-    s_logged = 1;
+    if (!s_logged) {
+        s_logged = 1;
+        bi_Print(2,
+            "\n*** BRUSHSIDE-PLANENUM OOB CAUGHT (skipping side) ***\n"
+            "    brushside #%d  planenum=%u  (max %u)\n"
+            "    See gladiator_debug.log for memory dump.  STOP PLAYING\n"
+            "    and report the log file.\n",
+            side_idx + first_side, planenum, plane_count);
+    } else {
+        /* already logged once this session — only print a brief reminder */
+        bi_Print(2, "*** brushside OOB again (#%d pn=%u) ***\n",
+                 side_idx + first_side, planenum);
+        return;
+    }
     FILE *f = fopen("gladiator_debug.log", "ab");
     if (!f) f = fopen("C:/gladiator_debug.log", "ab");
     if (!f) return;
