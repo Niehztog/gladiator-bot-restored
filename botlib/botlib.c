@@ -671,7 +671,7 @@ char *__cdecl ClientSkin(int client);
 int NumBots();
 double __cdecl AngleDifference(float a1, float a2);
 // double __usercall BotChangeViewAngle@<st0>(double a1@<st0>, float a2, float a3, float a4);
-int __cdecl BotChangeViewAngles(bot_state_t *bs);
+int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);
 void sub_100292E0();
 // int __usercall Export_BotAIFrame@<eax>(double a1@<st0>, int a2, int a3);
 int __cdecl BotSetupClient(int, char *Source); // idb
@@ -17748,7 +17748,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
     AIEnter_Battle_Fight(bs);
     return 0;
   }
-  BotChangeViewAngles(bs);
+  BotChangeViewAngles(bs, bs->thinktime);
   v2 = AAS_Time();
   if ( v2 <= bs->stand_time )
     return 1;
@@ -17762,7 +17762,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   AIEnter_Seek_LTG(bs);
   return 0;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
 // 10001488: using guessed type _DWORD __cdecl EA_Say(_DWORD, _DWORD);
 // 1000158C: using guessed type _DWORD __cdecl BotEnterChat(_DWORD, _DWORD, _DWORD);
@@ -17930,7 +17930,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
       AIEnter_Battle_Fight(bs);
     }
   }
-  BotChangeViewAngles(bs);
+  BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
 
@@ -18087,10 +18087,10 @@ LABEL_33:
     }
   }
   if ( (v15[5] & 8) == 0 )
-    BotChangeViewAngles(bs);
+    BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
 // 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
 // 10001316: using guessed type _DWORD __cdecl BotTouchingGoal(_DWORD, _DWORD);
@@ -18273,7 +18273,7 @@ LABEL_41:
     if ( (v18[5] & 8) != 0 )
       return 1;
 LABEL_42:
-    BotChangeViewAngles(bs);
+    BotChangeViewAngles(bs, bs->thinktime);
     return 1;
   }
   if ( BotWantsToRetreat((int *)bs) )
@@ -18288,7 +18288,7 @@ LABEL_42:
   }
   return 0;
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
 // 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
 // 10001348: using guessed type _DWORD __cdecl BotChat_Random(_DWORD);
@@ -18603,7 +18603,7 @@ LABEL_8:
         if ( bs->areanum == bs->lastenemyareanum )
           *(int *)&bs->chase_time = 0;
         if ( (v13[5] & 8) == 0 )
-          BotChangeViewAngles(bs);
+          BotChangeViewAngles(bs, bs->thinktime);
         if ( BotWantsToRetreat((int *)bs) )
           AIEnter_Battle_Retreat(bs);
         return 1;
@@ -18616,7 +18616,7 @@ LABEL_8:
     }
   }
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
 // 10001316: using guessed type _DWORD __cdecl BotTouchingGoal(_DWORD, _DWORD);
 // 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
@@ -18773,7 +18773,7 @@ LABEL_10:
               vectoangles(&v10[6], bs->ideal_viewangles);
             }
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-            BotChangeViewAngles(bs);
+            BotChangeViewAngles(bs, bs->thinktime);
           }
           else
           {
@@ -18786,14 +18786,14 @@ LABEL_10:
     }
     else
     {
-      BotChangeViewAngles(bs);
+      BotChangeViewAngles(bs, bs->thinktime);
       return 1;
     }
   }
 }
 // 10001023: using guessed type _DWORD __cdecl BotCheckAttack(_DWORD);
 // 1000103C: using guessed type _DWORD __cdecl BotChooseBestFightWeapon(_DWORD);
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011F9: using guessed type _DWORD __cdecl BotEmptyGoalStack(_DWORD);
 // 100012B2: using guessed type _DWORD __cdecl sub_10020FE0(_DWORD, _DWORD);
 // 10001352: using guessed type _DWORD __cdecl BotBattleUseItems(_DWORD);
@@ -18928,7 +18928,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   BotCheckAttack(bs);
   if ( (v15[5] & 8) == 0 )
-    BotChangeViewAngles(bs);
+    BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
 
@@ -20583,7 +20583,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     bs->ideal_viewangles[1] = v26;
     v26 = AngleMod(v26);
     bs->ideal_viewangles[1] = v26;
-    BotChangeViewAngles(bs);
+    BotChangeViewAngles(bs, bs->thinktime);
     if ( v35 > 0.8 )
     {
       v20 = (*(int *)&bs->ideal_viewangles[0]);
@@ -20595,7 +20595,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
   }
 }
-// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD);
+// 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 1000176C: using guessed type _DWORD __cdecl sub_100354B0(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
@@ -22683,9 +22683,17 @@ double BotChangeViewAngle(float a1, float a2, float a3)
 }
 
 //----- (10029150) --------------------------------------------------------
-int __cdecl BotChangeViewAngles(bot_state_t *bs)
+/* Signature recovered from .text callsite analysis: all 9 callers push two
+ * dwords (`push bs->thinktime; push bs`) and clean up with `add esp,8`, so
+ * the function takes (bs, thinktime).  However, the function body itself
+ * reads `bs->thinktime` directly from the struct via `fmul [edi+0x690]`
+ * (see .text 100291d4 / 100291e9) rather than from the 2nd argument — the
+ * `thinktime` parameter is redundant.  Mr. Elusive's original source most
+ * likely declared the param for API symmetry with Q3 but the body re-reads
+ * bs->thinktime from the struct.  Leave `thinktime` unused on purpose. */
+int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
-
+  (void)thinktime;
   double v2; // st7
   float *v3; // esi
   int v4; // ebx
