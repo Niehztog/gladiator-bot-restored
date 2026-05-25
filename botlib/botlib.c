@@ -215,6 +215,30 @@ typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targ
 /* AI node function pointer type (used for BotAINode side-band table) */
 typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 
+/* ------------------------------------------------------------------------
+ * Side-band gate.
+ *
+ * The original 1999 Gladiator DLL was 32-bit MSVC, so every "pointer slot"
+ * inside bot_state_t / bot_chatstate_t / aas_entity_t was just a 4-byte
+ * `int` field that held the pointer's bit pattern directly.  When we port
+ * to 64-bit (Linux x86_64, aarch64) those 4-byte slots can no longer hold
+ * an 8-byte pointer, so we mirror each such slot into a parallel
+ * heap-allocated array (the "side-band") and route reads/writes through
+ * helper macros (BotCharacter, BotAINode, BotWS, ...).
+ *
+ * On 32-bit targets the original inline layout is still valid: the macros
+ * re-interpret the int slot as the typed pointer it actually holds, and
+ * the side-band tables — together with their allocate / free / clear
+ * boilerplate — are compiled out completely.  This restores the original
+ * memory image of bot_state_t / bot_chatstate_t / aas_entity_t exactly.
+ *
+ * Toggle the predicate here and gates throughout botlib.c will follow. */
+#if defined(__x86_64__) || defined(__aarch64__)
+#define BOTLIB_NEED_SIDEBAND 1
+#else
+#define BOTLIB_NEED_SIDEBAND 0
+#endif
+
 
 // AAS_Update: __usercall cleaned (original: double@<st0>, int -> int only)
 int __cdecl AAS_ContinueInit(int time_int);
@@ -2118,22 +2142,36 @@ typedef struct bot_character_s {
     ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
 bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
 #define dword_100643A0 ((char *)botstates)
-/* Side-band table holding per-client pointer slots that on the original
- * 32-bit DLL fit inside bot_state_t (e.g. BotCharacter(bs) at +1672).
- * On 64-bit Linux these pointers do not fit in their 4-byte struct slots,
- * so they live in a parallel maxclients-sized array indexed by
- * (bs - botstates).  Use the BotCharacter() helper. */
+/* Side-band tables — see BOTLIB_NEED_SIDEBAND gate above.  On 64-bit the
+ * parallel arrays declared here back each helper macro; on 32-bit the
+ * arrays are not declared and the macros resolve to direct casts of the
+ * original inline int slots.  Either way the macro is an lvalue of the
+ * correct typed-pointer (or, for chatmsg_links_t, the correct struct).
+ * Keep each macro identical in semantics across the two branches. */
+#if BOTLIB_NEED_SIDEBAND
 bot_character_t **botcharacters;
 #define BotCharacter(bs) (botcharacters[(bs) - botstates])
+#else
+/* bs->character is an int slot at +1672 holding a bot_character_t pointer
+ * on the original 32-bit DLL — exactly the same layout as MSVC 1999. */
+#define BotCharacter(bs) (*(bot_character_t **)&(bs)->character)
+#endif
+
 /* Side-band pointer slots within bs->goalstate (embedded int[243]).
  * goalstate[0] = weightconfig_t * for item weights (set by BotLoadItemWeights,
  * freed by BotFreeItemWeights via FreeWeightConfig2).
  * goalstate[1] = result of ItemWeightIndex (weight×itemconfig table),
  * freed by BotFreeItemWeights via FreeMemory. */
+#if BOTLIB_NEED_SIDEBAND
 void **botgoalstate_p0;  /* weightconfig_t* */
 void **botgoalstate_p1;  /* iteminfo weight table */
 #define BotGoalP0(bs) (botgoalstate_p0[(bs) - botstates])
 #define BotGoalP1(bs) (botgoalstate_p1[(bs) - botstates])
+#else
+#define BotGoalP0(bs) (*(void **)&(bs)->goalstate[0])
+#define BotGoalP1(bs) (*(void **)&(bs)->goalstate[1])
+#endif
+
 /* bs->weaponweights is `int[7]` in the original 32-bit DLL — a flattened
  * inline struct.  Five of its seven slots hold pointers (chat_lines,
  * weightconfig, item-weight map, modelname string, ...) which on 64-bit
@@ -2149,17 +2187,30 @@ typedef struct bot_weaponstate_s {
     int               weaponindex;  /* +20  = chosen weapon index */
     float             nextthink;    /* +24  = AAS_Time gate */
 } bot_weaponstate_t;
+#if BOTLIB_NEED_SIDEBAND
 bot_weaponstate_t **botweaponstates;
 #define BotWS(bs) (botweaponstates[(bs) - botstates])
+#else
+/* On 32-bit the weaponstate IS the inline bs->weaponweights[7] (28 bytes,
+ * same byte offsets as bot_weaponstate_t's seven 4-byte fields).  The
+ * struct is never separately heap-allocated on 32-bit — alloc/free
+ * patterns are #if-guarded out at the call sites. */
+#define BotWS(bs) ((bot_weaponstate_t *)&(bs)->weaponweights[0])
+#endif
 
 /* Side-band for the pointer slot at chatstate+184 (BotDumpInitialChat
  * result).  On 32-bit Windows this slot lives inline at chatstate[46];
  * on 64-bit we route reads/writes through this parallel array indexed by
  * client number, derived from the chatstate pointer's distance from the
  * bot_state_t base array (chatstate offset is +3980 in bot_state_t). */
+#if BOTLIB_NEED_SIDEBAND
 void **botchatdumps;
 #define BotChatDumpSlot(cs_ptr) \
     (botchatdumps[((char *)(cs_ptr) - (char *)botstates - 3980) / 4560])
+#else
+/* 32-bit: the pointer lives inline at chatstate +184 (_slot_46). */
+#define BotChatDumpSlot(cs_ptr) (*(chatlist_t **)&(cs_ptr)->_slot_46)
+#endif
 
 /* Side-band for the per-client console-message FIFO that the original
  * 32-bit DLL stored inline in chatstate slots [43..45] (firstmessage,
@@ -2171,28 +2222,48 @@ typedef struct chatmsg_links_s {
     bot_consolemessage_t *last;    /* chatstate[44] @ +176 */
     int                   count;   /* chatstate[45] @ +180 */
 } chatmsg_links_t;
+#if BOTLIB_NEED_SIDEBAND
 chatmsg_links_t *botchatmsglinks;
 #define BotChatMsgLinks(client) (botchatmsglinks[(client)])
+#else
+/* 32-bit: chatstate slots [43..45] (+172/+176/+180) are 4+4+4 = 12 bytes,
+ * matching chatmsg_links_t natural layout on 32-bit pointers.  Aliasing
+ * the three int fields as the struct gives an lvalue for .first/.last/
+ * .count assignments. */
+#define BotChatMsgLinks(client) \
+    (*(chatmsg_links_t *)&botstates[(client)].chatstate._slot_43)
+#endif
 
 /* Side-band for the AI node function pointer stored in BotAINode(bs).
  * On 32-bit Windows a function pointer fits in the 4-byte int slot;
  * on 64-bit Linux it doesn't.  BotAINode(bs) reads/writes the real
  * pointer through this parallel maxclients-sized array. */
-typedef int (*ai_node_fn_t)(bot_state_t *);
+#if BOTLIB_NEED_SIDEBAND
 ai_node_fn_t *botainodes;
 #define BotAINode(bs) (botainodes[(bs) - botstates])
+#else
+/* 32-bit: bs->ainode (int @ +1676) IS the function pointer slot. */
+#define BotAINode(bs) (*(ai_node_fn_t *)&(bs)->ainode)
+#endif
 
 /* Side-band for the three waypoint head-pointer slots inside bot_state_t at
  * +4544 (checkpoints), +4548 (patrolpoints), +4552 (curpatrolpoint).  These
  * 4-byte int slots cannot hold an 8-byte bot_waypoint_t* on 64-bit Linux, so
  * the real pointers live in parallel maxclients-sized arrays indexed by
  * (bs - botstates).  Allocated in BotSetupLibrary, freed in BotShutdownLibrary. */
+#if BOTLIB_NEED_SIDEBAND
 bot_waypoint_t **botcheckpoints;
 bot_waypoint_t **botpatrolpoints;
 bot_waypoint_t **botcurpatrolpoint;
 #define BotCheckpoints(bs)    (botcheckpoints[(bs) - botstates])
 #define BotPatrolpoints(bs)   (botpatrolpoints[(bs) - botstates])
 #define BotCurPatrolPoint(bs) (botcurpatrolpoint[(bs) - botstates])
+#else
+/* 32-bit: pointers live inline in bs->checkpoints/patrolpoints/curpatrolpoint. */
+#define BotCheckpoints(bs)    (*(bot_waypoint_t **)&(bs)->checkpoints)
+#define BotPatrolpoints(bs)   (*(bot_waypoint_t **)&(bs)->patrolpoints)
+#define BotCurPatrolPoint(bs) (*(bot_waypoint_t **)&(bs)->curpatrolpoint)
+#endif
 
 /* Side-band for the two pointer slots inside the 132-byte aas_entity_t at
  * +124 (areas link-list head) and +128 (BSP-leaf link-list head).  The
@@ -2200,10 +2271,19 @@ bot_waypoint_t **botcurpatrolpoint;
  * aas_link_t / bsp_link_t pointers don't fit, so we mirror them out into
  * parallel numentities-sized arrays keyed by entity index.  Allocated
  * together with aasworld.entities in sub_1000EDC0. */
+#if BOTLIB_NEED_SIDEBAND
 aas_link_t **aasentity_arealinks;
 bsp_link_t **aasentity_bsplinks;
 #define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
 #define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])
+#else
+/* 32-bit: aasworld.entities is a 132-byte stride; the two link-list heads
+ * are inline ints at +124 (area chain) and +128 (BSP-leaf chain). */
+#define AAS_EntAreaLink(entnum) \
+    (*(aas_link_t **)((char *)aasworld.entities + (entnum) * 132 + 124))
+#define AAS_EntBspLink(entnum) \
+    (*(bsp_link_t **)((char *)aasworld.entities + (entnum) * 132 + 128))
+#endif
 
 
 /* Initial-chat dump structures.  In the 32-bit original BotDumpInitialChat
@@ -7361,10 +7441,12 @@ int AAS_ResetEntityLinks()
     {
       *(_DWORD *)((char *)aasworld.entities + result + 124) = 0;
       *(_DWORD *)((char *)aasworld.entities + result + 128) = 0;
+#if BOTLIB_NEED_SIDEBAND
       if ( aasentity_arealinks )
         aasentity_arealinks[v1] = NULL;
       if ( aasentity_bsplinks )
         aasentity_bsplinks[v1] = NULL;
+#endif
       ++v1;
       result += 132;
     }
@@ -9475,12 +9557,14 @@ int __cdecl sub_1000EDC0(int a1, int a2)
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
   aasworld.entities = GetClearedMemory(132 * a1);
+#if BOTLIB_NEED_SIDEBAND
   if ( aasentity_arealinks )
     FreeMemory(aasentity_arealinks);
   aasentity_arealinks = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * a1);
   if ( aasentity_bsplinks )
     FreeMemory(aasentity_bsplinks);
   aasentity_bsplinks = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * a1);
+#endif
   sub_1001D260();
   AAS_InvalidateEntities();
   return 0;
@@ -22659,8 +22743,14 @@ int __cdecl BotSetupClient(int a1, char *Source)
   if ( BotLoadItemWeights(bs, weights_handle) )
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
+#if BOTLIB_NEED_SIDEBAND
+  /* On 64-bit the weaponstate lives in a side-band heap struct because
+   * the original inline int[7] cannot hold its five pointer fields.
+   * On 32-bit BotWS(bs) already aliases &bs->weaponweights[0] and needs
+   * no separate allocation — matching the original DLL exactly. */
   if ( !BotWS(bs) )
     BotWS(bs) = (bot_weaponstate_t *)GetClearedMemory(sizeof(bot_weaponstate_t));
+#endif
   if ( BotLoadWeaponWeights(BotWS(bs), weights_handle) )
   {
     BotFreeItemWeights(bs);
@@ -22714,7 +22804,12 @@ int __cdecl BotShutdownClient(int a1)
       BotEnterChat(&bs->chatstate, v1[1], 0);
     BotFreeChatState(&bs->chatstate, v1[1]);
     BotFreeWeaponWeights(BotWS(bs));
+#if BOTLIB_NEED_SIDEBAND
+    /* 64-bit only: free the heap-allocated weaponstate struct.  On 32-bit
+     * BotWS(bs) aliases inline bs->weaponweights[7] (no heap struct) and
+     * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
     if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
+#endif
     BotFreeItemWeights(bs);
     FreeCharacter(v1[418]);
     BotFreeWaypoints(v1[1136]);
@@ -22967,7 +23062,8 @@ int BotSetupLibrary()
   if ( *_errno() )
     return *_errno();
   botstates = (bot_state_t *)GetClearedMemory(4560 * maxclients);
-  botcharacters = (int **)GetClearedMemory(sizeof(int *) * maxclients);
+#if BOTLIB_NEED_SIDEBAND
+  botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * maxclients);
   botgoalstate_p0 = (void **)GetClearedMemory(sizeof(void *) * maxclients);
   botgoalstate_p1 = (void **)GetClearedMemory(sizeof(void *) * maxclients);
   botweaponstates = (bot_weaponstate_t **)GetClearedMemory(sizeof(void *) * maxclients);
@@ -22977,6 +23073,7 @@ int BotSetupLibrary()
   botcheckpoints    = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
   botpatrolpoints   = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
   botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
+#endif
   dword_100643A8 = GetClearedMemory(144 * maxclients);
   dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
   return 0;
@@ -23006,6 +23103,7 @@ int BotShutdownLibrary()
   if ( botstates )
     result = FreeMemory(botstates);
   botstates = 0;
+#if BOTLIB_NEED_SIDEBAND
   if ( botcharacters )
     FreeMemory(botcharacters);
   botcharacters = 0;
@@ -23036,6 +23134,7 @@ int BotShutdownLibrary()
   if ( botcurpatrolpoint )
     FreeMemory(botcurpatrolpoint);
   botcurpatrolpoint = 0;
+#endif
   return result;
 }
 // 1000100F: using guessed type int sub_10028E80(void);
