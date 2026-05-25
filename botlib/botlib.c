@@ -5015,7 +5015,6 @@ int __fastcall AAS_SwapBSPData(void *a1)
   int n; // esi
   __int16 v57; // ax
   int ii; // esi
-  __int16 v59; // ax
   void *v60; // ecx
   __int16 v61; // ax
   int v62; // edi
@@ -5188,9 +5187,27 @@ int __fastcall AAS_SwapBSPData(void *a1)
   }
   for ( ii = 0; ii < dword_10067540; ++ii )
   {
+    /* Original disasm (10007745..10007777):
+     *   mov   cx, [brushsides + 4*ii]      ; planenum
+     *   push  ecx
+     *   call  LittleShort                  ; no-op on little-endian
+     *   mov   [brushsides + 4*ii], ax      ; write swapped value back
+     *   mov   cx, [brushsides + 4*ii + 2]  ; texinfo
+     *   push  ecx
+     *   call  LittleShort
+     *   mov   [brushsides + 4*ii + 2], ax
+     * IDA inlined LittleShort and lost the call/return chain, leaving
+     * `*(_WORD *)(... + 4*ii) = v59;` writing an UNINITIALIZED `v59` over
+     * every brush's planenum at map-load time.  On x86 the garbage stack
+     * value happens to land within the plane array most runs but
+     * intermittently corrupts a planenum to e.g. 25667, which then drives
+     * sub_10003C90 into an OOB plane pointer dereference during
+     * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
+     * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
+     * the LittleShort round-trip (identity on little-endian). */
     LOWORD(a1) = *(_WORD *)(dword_10067544 + 4 * ii);
     v57 = (__int16)(int)(intptr_t)a1;
-    *(_WORD *)(dword_10067544 + 4 * ii) = v59;
+    *(_WORD *)(dword_10067544 + 4 * ii) = v57;
     LOWORD(v60) = *(_WORD *)(dword_10067544 + 4 * ii + 2);
     v61 = (__int16)(intptr_t)v60;
     *(_WORD *)(dword_10067544 + 4 * ii + 2) = v61;
@@ -5280,7 +5297,9 @@ int __fastcall AAS_SwapBSPData(void *a1)
 // 100076E8: variable 'v55' is possibly undefined
 // 1000771E: variable 'a1' is possibly undefined
 // 1000772C: variable 'v57' is possibly undefined
-// 1000775A: variable 'v59' is possibly undefined
+// 1000775A: AAS_SwapBSPData brushsides loop — IDA dropped the LittleShort
+//            call+return chain; fixed by writing v57 (read planenum) back.
+//            See note inside the function.
 // 10007769: variable 'v60' is possibly undefined
 // 10007777: variable 'v61' is possibly undefined
 // 100077A7: variable 'v64' is possibly undefined
