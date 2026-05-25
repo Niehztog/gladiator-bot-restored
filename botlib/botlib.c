@@ -9788,18 +9788,18 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
   long double v5; // st6
   long double v6; // st6
 
-  v4 = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
-  if ( v4 != 0.0 )
+  v4 = sqrtl((long double)vel[0] * (long double)vel[0] + (long double)vel[1] * (long double)vel[1]);
+  if ( v4 != 0.0L )
   {
-    if ( v4 >= stopspeed )
+    if ( v4 >= (long double)stopspeed )
       v5 = v4;
     else
-      v5 = stopspeed;
-    v6 = v4 - v5 * friction * frametime;
-    if ( v6 < 0.0 )
-      v6 = 0.0;
-    vel[0] = v6 / v4 * vel[0];
-    vel[1] = v6 / v4 * vel[1];
+      v5 = (long double)stopspeed;
+    v6 = v4 - v5 * (long double)friction * (long double)frametime;
+    if ( v6 < 0.0L )
+      v6 = 0.0L;
+    vel[0] = (float)(v6 / v4 * (long double)vel[0]);
+    vel[1] = (float)(v6 / v4 * (long double)vel[1]);
   }
 }
 
