@@ -10343,33 +10343,38 @@ LABEL_87:
 //----- (10010780) --------------------------------------------------------
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float *velocity)
 {
+  /* Mirror the original x87 80-bit pipeline (disasm 0x10010780): every
+   * fld/fmul/fadd/fdiv/fsqrt operates in FPU registers, with stores narrowing
+   * to float only at the named results (v12 = (float)v5 at 0x100107a6, and
+   * the final *velocity store).  Promote intermediates to long double with
+   * explicit operand casts to keep GCC from collapsing into 32-bit SSE. */
   long double v4; // st7
-  double v5; // st6
-  double v6; // st6
-  double v8; // st5
-  double v9; // st4
+  long double v5; // st6
+  long double v6; // st6
+  long double v8; // st5
+  long double v9; // st4
   long double v10; // st5
   float v11; // [esp+0h] [ebp-4h]
   float v12; // [esp+8h] [ebp+4h]
 
-  v4 = libvar_sv_maxvelocity->value;
+  v4 = (long double)libvar_sv_maxvelocity->value;
   v11 = libvar_sv_gravity->value;
-  v5 = zvel / v11;
-  v12 = v5;
-  v6 = v5 * (v11 * v5) * 0.5 + start[2] - end[2];
-  if ( v6 >= 0.0 )
+  v5 = (long double)zvel / (long double)v11;
+  v12 = (float)v5;
+  v6 = v5 * ((long double)v11 * v5) * 0.5L + (long double)start[2] - (long double)end[2];
+  if ( v6 >= 0.0L )
   {
-    v8 = end[0] - start[0];
-    v9 = end[1] - start[1];
-    v10 = sqrt(v9 * v9 + v8 * v8) / (sqrt(v6 / (v11 * 0.5)) + v12);
-    *velocity = v10;
+    v8 = (long double)end[0] - (long double)start[0];
+    v9 = (long double)end[1] - (long double)start[1];
+    v10 = sqrtl(v9 * v9 + v8 * v8) / (sqrtl(v6 / ((long double)v11 * 0.5L)) + (long double)v12);
+    *velocity = (float)v10;
     if ( v10 <= v4 )
     {
       return 1;
     }
     else
     {
-      *(float *)velocity = v4;
+      *(float *)velocity = (float)v4;
       return 0;
     }
   }
