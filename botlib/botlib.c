@@ -16851,6 +16851,40 @@ char *__cdecl AAS_PlaneFromNum(int planenum)
 }
 // 100667E0: using guessed type int aasworld.loaded;
 
+//----- (1001C6F0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1001C6F0:
+ *   mov eax,ds:aasworld.numsoundinfo (0x100669b4); push esi/edi
+ *   xor edi,edi; test eax,eax; jle ret
+ * loop:
+ *   call Log_FilePointer (thunk 0x1000120d -> 0x10038EC0)
+ *   test eax,eax; je ret
+ *   mov ecx,ds:aasworld.soundinfo (0x100669b8)
+ *   lea edx,[esi+ecx]                ;; esi = i * 0xB0
+ *   push edx; push 0x1005C138; push eax
+ *   call WriteStructure (thunk 0x100013e3 -> 0x10041210)
+ *   call Log_Flush (thunk 0x100011b3 -> 0x10038EE0)
+ *   inc edi; add esi,0xB0; cmp edi,numsoundinfo; jl loop
+ * Dumps every loaded soundinfo_t entry to the bot debug log using the
+ * generic ReadStructure/WriteStructure pretty-printer with the
+ * soundinfo structdef at .data 0x1005C138 (stride 0xB0 = 176 bytes
+ * verified against the ReadStructure call at sub_10042F90).  Companion
+ * to AAS_DumpAreas / AAS_DumpReachabilities (Q3 botlib).  Dead in
+ * Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_1001C6F0(void)
+{
+  int   i;
+  FILE *fp;
+  for ( i = 0; i < aasworld.numsoundinfo; ++i )
+  {
+    fp = Log_FilePointer();
+    if ( !fp )
+      return;
+    WriteStructure(fp, (int)&unk_1005C138, aasworld.soundinfo + 176 * i);
+    Log_Flush();
+  }
+}
+
 //----- (1001C760) --------------------------------------------------------
 int sub_1001C760(char *Source)
 {
@@ -35030,6 +35064,42 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
 }
 // 1003E1C8: conditional instruction was optimized away because edx.4!=0
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
+
+//----- (1003E250) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003E250:
+ *   mov esi,[arg1+0x130]                ;; script->punctuations
+ *   cmp [esi],0; je return_default      ;; empty table check
+ *   xor edx,edx; mov edi,arg2(num); mov ecx,esi; mov eax,esi
+ * loop:
+ *   cmp [ecx+4],edi; je return_match    ;; record.n == num?
+ *   mov ebx,[eax+0xc]                   ;; peek next record's p
+ *   add eax,0xc; inc edx; mov ecx,eax   ;; advance, idx++
+ *   test ebx,ebx; jne loop              ;; while next->p != NULL
+ * return_default: return "unkown punctuation" (.data @0x10060188 — verbatim, sic).
+ * return_match: lea ecx,[edx*3]; return [esi+ecx*4] (= base[idx].p).
+ * Canonical Q3 l_script.c PunctuationFromNum: linear scan of the
+ * per-script punctuation array, indexed by .n; returns the matching
+ * punctuation string or a typo'd default.  Walks `script->punctuations`
+ * as a contiguous punctuation_t[] terminated by a record with NULL p.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static char *__cdecl sub_1003E250(script_t *script, int num)
+{
+  punctuation_t *base = script->punctuations;
+  punctuation_t *p;
+  int            idx;
+  if ( !base->p )
+    return "unkown punctuation";
+  p = base;
+  for ( idx = 0; ; ++idx )
+  {
+    if ( p->n == num )
+      return base[idx].p;
+    if ( !(p + 1)->p )
+      return "unkown punctuation";
+    ++p;
+  }
+}
 
 //----- (1003E2C0) --------------------------------------------------------
 int ScriptError(int a1, char *Format, ...)
