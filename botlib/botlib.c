@@ -37019,6 +37019,61 @@ double __cdecl AngleMod(float a1)
   return (double)(unsigned __int16)(__int64)(a1 * 182.0444444444445) * 0.0054931640625;
 }
 
+//----- (10042D80) --------------------------------------------------------
+/* BoxOnPlaneSide — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Canonical Quake-engine routine for testing an AABB
+ * against a plane.  Verified against objdump@10042D80:
+ *   - Builds the two extremal corners on stack ([esp+0x10..+0x1c] and
+ *     [esp+0x1c..+0x28]):
+ *         for each i in 0..2: if (normal[i] < 0) {
+ *             corners_min[i] = emaxs[i];  // minimises normal·corner
+ *             corners_max[i] = emins[i];
+ *         } else {
+ *             corners_min[i] = emins[i];
+ *             corners_max[i] = emaxs[i];
+ *         }
+ *     The loop uses ebp = plane - emins as a relative offset trick so
+ *     normal[i] can be reached as *(float*)(ecx + ebp) while ecx tracks
+ *     emins; same trick for edi/edx pointing at the two corner buffers.
+ *   - dist_max = DotProduct(normal, corners_max) - plane->dist
+ *   - dist_min = DotProduct(normal, corners_min) - plane->dist
+ *     (FPU stack: dist_min on top after compute, dist_max below.)
+ *   - sides = 0;  if (dist_min >= 0) sides = 1;  if (dist_max < 0) sides |= 2;
+ *
+ * The 0.0f literal compared against is at .rdata 0x10058000 (already
+ * known).  Plane layout used: normal[0..2] @ +0, dist @ +0xc — matches
+ * aas_plane_t / cplane_t.  Dead in Gladiator: no caller; the actual
+ * runtime BoxOnPlaneSide is the export AAS_BoxOnPlaneSide2 elsewhere.
+ * Only the /INCREMENTAL relink stub keeps this copy live. */
+static int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
+{
+  float corners[2][3];
+  float dist_min, dist_max;
+  int sides, i;
+
+  for ( i = 0; i < 3; ++i )
+  {
+    if ( plane[i] < 0.0f )
+    {
+      corners[1][i] = emins[i];
+      corners[0][i] = emaxs[i];
+    }
+    else
+    {
+      corners[0][i] = emins[i];
+      corners[1][i] = emaxs[i];
+    }
+  }
+  dist_max = (corners[1][0] * plane[0] + corners[1][1] * plane[1] + corners[1][2] * plane[2]) - plane[3];
+  dist_min = (corners[0][0] * plane[0] + corners[0][1] * plane[1] + corners[0][2] * plane[2]) - plane[3];
+  sides = 0;
+  if ( dist_min >= 0.0f )
+    sides = 1;
+  if ( dist_max < 0.0f )
+    sides |= 2;
+  return sides;
+}
+
 //----- (100431B0) --------------------------------------------------------
 /* Q2 q_shared.c::ClearBounds — initialise mins to +99999, maxs to -99999.
  * IDA decompiled the writes as `_DWORD *` stores of the 32-bit float bit
@@ -37632,6 +37687,46 @@ skipwhite:
   com_token_10043AF0[len] = 0;
   *data_p = data;
   return com_token_10043AF0;
+}
+
+//----- (10043BD0) --------------------------------------------------------
+/* Com_TouchMemory — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Verified against objdump@10043BD0:
+ *
+ *     i = size - 1;
+ *     if (i > 0) {
+ *         acc = global_touch_sum;        // ds:0x10063880
+ *         do {
+ *             acc += ((byte *)buffer)[i];
+ *             i  -= 0x1000;              // one byte per 4KB page
+ *         } while (i > 0);
+ *         global_touch_sum = acc;
+ *     }
+ *
+ * Classic Quake "page-warm" idiom: touch one byte per 4 KB page so the
+ * OS faults the whole range into RAM and the accumulated sum prevents
+ * the optimiser from eliding the reads.  Q3's z_touchhash is the
+ * direct lineal descendant.  Dead in Gladiator: no caller; only the
+ * /INCREMENTAL relink stub keeps it live.  Global at 0x10063880 is
+ * private to this dead helper. */
+static unsigned int dword_10063880;
+static void __cdecl sub_10043BD0(const void *buffer, int size)
+{
+  unsigned int acc;
+  int i;
+
+  i = size - 1;
+  if ( i > 0 )
+  {
+    acc = dword_10063880;
+    do
+    {
+      acc += ((const unsigned char *)buffer)[i];
+      i -= 0x1000;
+    }
+    while ( i > 0 );
+    dword_10063880 = acc;
+  }
 }
 
 //----- (10043C10) --------------------------------------------------------
