@@ -30851,6 +30851,22 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
   return 256;
 }
 
+//----- (10037820) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against objdump@10037820:
+ * the instruction sequence is byte-identical to sub_10037850 below
+ * (same `mov [esp+0xc/0x8]; push; call CRC_Block; push; call
+ * sub_100377E0` template) — /INCREMENTAL produced two compiled copies of
+ * the same C source function and preserved both via separate thunks.
+ * Same semantics as sub_10037850: CRC-hash the buffer and register the
+ * (name, crc) pair through sub_100377E0. */
+static int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
+{
+  __int16 crc; // ax
+
+  crc = CRC_Block(buf, len);
+  return sub_100377E0(name, crc);
+}
+
 //----- (10037850) --------------------------------------------------------
 int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
@@ -36423,6 +36439,30 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
   vecc[2] = veca[2] + scale * vecb[2];
 }
 
+//----- (10043400) --------------------------------------------------------
+/* VectorSubtract — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10043400: three FPU `fld; fsub; fstp` triples writing
+ *     out[i] = veca[i] - vecb[i]
+ * for i in 0..2.  Q3 q_shared.h emitted as a function by /INCREMENTAL.
+ * Dead in Gladiator — every site uses the macro form inlined. */
+static void __cdecl sub_10043400(const vec3_t veca, const vec3_t vecb, vec3_t out)
+{
+  out[0] = veca[0] - vecb[0];
+  out[1] = veca[1] - vecb[1];
+  out[2] = veca[2] - vecb[2];
+}
+
+//----- (10043440) --------------------------------------------------------
+/* VectorAdd — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10043440: identical structure to sub_10043400 above but using
+ * `fadd` instead of `fsub`.  Q3 q_shared.h emitted by /INCREMENTAL. */
+static void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
+{
+  out[0] = veca[0] + vecb[0];
+  out[1] = veca[1] + vecb[1];
+  out[2] = veca[2] + vecb[2];
+}
+
 //----- (10043480) --------------------------------------------------------
 /* VectorCopy — restored IDA-missed dead-code stub.  Verified against
  * objdump@10043480:
@@ -36495,6 +36535,78 @@ void __cdecl VectorScale(vec3_t v, float scale, vec3_t out)
   out[2] = scale * v[2];
 }
 
+//----- (100435B0) --------------------------------------------------------
+/* Q_log2 / floor-log2 — restored IDA-missed dead-code stub.  Verified
+ * against objdump@100435B0:
+ *     int v = arg;
+ *     int n = 0;
+ *     v >>= 1;       // arithmetic right shift
+ *     if (v == 0) return 0;
+ *     do { n++; v >>= 1; } while (v != 0);
+ *     return n;
+ * which is the standard floor(log2(x)) for positive x.  Matches Q3
+ * common.c::Q_log2.  Dead in Gladiator. */
+static int __cdecl sub_100435B0(int x)
+{
+  int n;
+
+  n = 0;
+  x >>= 1;
+  if ( x == 0 )
+    return 0;
+  do
+  {
+    ++n;
+    x >>= 1;
+  }
+  while ( x );
+  return n;
+}
+
+//----- (100435D0) --------------------------------------------------------
+/* COM_SkipPath — restored IDA-missed dead-code stub.  Verified against
+ * objdump@100435D0: walks string forward, tracking pointer to character
+ * AFTER the last '/'.  Returns the input pointer if no '/' is present.
+ * Matches Q3 q_shared.c::COM_SkipPath exactly. */
+static char *__cdecl sub_100435D0(char *pathname)
+{
+  char *last;
+  char *p;
+
+  last = pathname;
+  p = pathname;
+  while ( *p )
+  {
+    if ( *p == '/' )
+      last = p + 1;
+    ++p;
+  }
+  return last;
+}
+
+//----- (10043600) --------------------------------------------------------
+/* COM_StripExtension — restored IDA-missed dead-code stub.  Verified
+ * against objdump@10043600: copies `in` to `out` byte-by-byte until
+ * either '\0' or '.' is hit, then null-terminates `out`.  Matches Q3
+ * q_shared.c::COM_StripExtension. */
+static void __cdecl sub_10043600(const char *in, char *out)
+{
+  char c;
+
+  c = *in;
+  if ( !c )
+  {
+    *out = '\0';
+    return;
+  }
+  while ( c && c != '.' )
+  {
+    *out++ = c;
+    c = *++in;
+  }
+  *out = '\0';
+}
+
 //----- (10043640) --------------------------------------------------------
 /* COM_FileExtension — restored IDA-missed dead-code stub.  Verified
  * against objdump@10043640:
@@ -36531,6 +36643,27 @@ static char *__cdecl sub_10043640(const char *path)
   }
   byte_10062D90[i] = '\0';
   return byte_10062D90;
+}
+
+//----- (10043740) --------------------------------------------------------
+/* COM_FilePath — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10043740: computes the position of the last '/' in `in` (or
+ * stays at start if no '/'), memcpy's that many bytes into `out`, and
+ * null-terminates.  Matches Q3 q_shared.c::COM_FilePath exactly.  The
+ * helper call at 0x10044DE0 is the static-linked MSVC memcpy.
+ *
+ * Disasm uses `repnz scas al, [edi]` to compute strlen, then walks
+ * backward looking for '/'.  Restored using straight C — same
+ * semantics.  Dead in Gladiator. */
+static void __cdecl sub_10043740(const char *in, char *out)
+{
+  const char *s;
+
+  s = in + strlen(in) - 1;
+  while ( s != in && *s != '/' )
+    --s;
+  memcpy(out, in, s - in);
+  out[s - in] = '\0';
 }
 
 //----- (10043810) --------------------------------------------------------
