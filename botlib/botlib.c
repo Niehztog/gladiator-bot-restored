@@ -414,10 +414,10 @@ int AAS_RemoveAllPortals();
 int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
 int AAS_ClearShownDebugLines();
-int __cdecl AAS_DebugLine(float *start, float *end, int color);
-int __cdecl AAS_DrawPermanentCross(float *, float, int); // idb
+int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
+int __cdecl AAS_DrawPermanentCross(vec3_t, float, int); // idb
 int __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
-void __cdecl AAS_DrawCross(float *origin, float size, int color);
+void __cdecl AAS_DrawCross(vec3_t origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach);
@@ -564,7 +564,7 @@ qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3);
-aas_link_t *__cdecl AAS_LinkEntityClientBBox(float *absmins, float *absmaxs, int entnum, int presencetype);
+aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype);
 char *__cdecl AAS_PlaneFromNum(int planenum);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
 // int __usercall sub_1001CAB0@<eax>(double a1@<st0>);
@@ -7142,7 +7142,7 @@ int AAS_ClearShownDebugLines()
 // 100670C0: using guessed type int dword_100670C0[];
 
 //----- (100098B0) --------------------------------------------------------
-int __cdecl AAS_DebugLine(float *start, float *end, int color)
+int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 {
   int v3; // esi
   int v4; // eax
@@ -7175,7 +7175,7 @@ int __cdecl AAS_DebugLine(float *start, float *end, int color)
 // 100670C0: using guessed type int dword_100670C0[256];
 
 //----- (10009950) --------------------------------------------------------
-int __cdecl AAS_DrawPermanentCross(float *origin, float size, int color)
+int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 {
   int i; // edi
   float v4; // ecx
@@ -7636,7 +7636,7 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
  * Structural match: ioq3 code/botlib/be_aas_debug.c:525 — three line
  * segments along each axis, each spanning [origin-size, origin+size].
  */
-void __cdecl AAS_DrawCross(float *origin, float size, int color)
+void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 {
   int i; // edi
   float v4; // ecx
@@ -18086,7 +18086,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
  * AAS_PresenceTypeBoundingBox + VectorSubtract x2 + AAS_AASLinkEntity.
  * IDA arg order for AAS_PresenceTypeBoundingBox(type, mins, maxs) in Q3
  * matches the disasm (2nd arg = mins-out, 3rd arg = maxs-out).           */
-aas_link_t *__cdecl AAS_LinkEntityClientBBox(float *absmins, float *absmaxs, int entnum, int presencetype)
+aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype)
 {
   float maxs[3]; // [esp+0h] [ebp-30h] BYREF
   float mins[3]; // [esp+Ch] [ebp-24h] BYREF
