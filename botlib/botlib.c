@@ -7070,6 +7070,115 @@ int __cdecl AAS_DrawPermanentCross(float *origin, float size, int color)
 // 10063FFC: using guessed type int (*bi_DebugLineCreate)(void);
 // 10064004: using guessed type int (__cdecl *bi_DebugLineShow)(_DWORD, _DWORD, _DWORD, _DWORD);
 
+//----- (10009CB0) --------------------------------------------------------
+/* sub_10009CB0 — DEAD debug-cube draw helper.  Restored from
+ * objdump@0x10009CB0 (131 lines).  Draws an AABB at origin with
+ * mins/maxs offsets as a wireframe cube of color 0xF2F2F0F0 using the
+ * shared dword_100670C0 line-ID slot table — but only retains THREE
+ * line IDs across all 12 edges, so the bottom-quad / top-quad /
+ * vertical edges visible at any moment cycle through which 3 of the
+ * 12 are present.  Almost certainly a development-time visualization
+ * (e.g., a "flicker the entity bbox so it's not too noisy in the
+ * debug view" toggle).
+ *
+ * Signature (cdecl, 3 vec3 args):
+ *   void sub_10009CB0(vec3_t origin, vec3_t maxs_offset, vec3_t mins_offset)
+ *
+ * Geometry (verified field-by-field from the .text FPU schedule):
+ *   X1 = origin[0] + mins[0]   X4 = origin[0] + maxs[0]
+ *   X2 = origin[1] + mins[1]   X5 = origin[1] + maxs[1]
+ *   X3 = origin[2] + mins[2]   X6 = origin[2] + maxs[2]
+ *
+ *   bottom_corners[4] @ [ebp-0x60..0x34]:   z = X3 (= origin.z + mins.z)
+ *     [0] = (X1, X2, X3)   SW
+ *     [1] = (X4, X2, X3)   SE
+ *     [2] = (X4, X5, X3)   NE
+ *     [3] = (X1, X5, X3)   NW
+ *   top_corners[4]    @ [ebp-0x30..0x04]:   z = X6 (= origin.z + maxs.z)
+ *     (memcpy from bottom, then a 4×stride-12 fst loop overwrites z
+ *     of each copy with X6 — Mr. Elusive's verbatim trick to build
+ *     "same XY, different Z" by patching the third float in place.)
+ *
+ * Per outer iteration i in [1..4]:
+ *   - bi_DebugLineShow(line_ids[0], &bot[i-1],         &bot[i & 3],   0xF2F2F0F0)
+ *   - bi_DebugLineShow(line_ids[1], &top[i-1],         &top[i & 3],   0xF2F2F0F0)
+ *   - bi_DebugLineShow(line_ids[2], &bot[i-1],         &top[i-1],     0xF2F2F0F0)
+ *   = 12 line draws covering all 12 cube edges, but with only
+ *     3 line IDs cycled (each ID's last assignment wins on screen).
+ *
+ * Line-ID allocation (front of function) inlines a private copy of
+ * AAS_DebugLine's slot scan: it walks dword_100670C0[0..255] looking
+ * for either an empty slot (calls bi_DebugLineCreate, bumps
+ * dword_10066B14 free counter) or an existing-but-unused slot,
+ * markes it in-use via dword_10066CC0[slot] = 1, and stashes 3 IDs
+ * into a local int[3].
+ *
+ * NOTE: The .text writes the outer-loop counter `i` to scratch slot
+ * [esp+0x80] (= the function's arg0 stack slot — overwritten because
+ * arg0/1/2 were already loaded into eax/edx/ecx).  Restoration
+ * uses a real local instead.
+ *
+ * Thunks: ds:0x10063FFC = bi_DebugLineCreate
+ *         ds:0x10064004 = bi_DebugLineShow
+ * Globals: dword_100670C0[256] = line-ID slot table
+ *          dword_10066CC0[256] = per-slot in-use flag
+ *          dword_10066B14      = free counter
+ *
+ * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
+static void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
+{
+  float corners[8][3];
+  int   line_ids[3];
+  int   collected, slot, i;
+  int   prev_idx, next_idx;
+  float X1, X2, X3, X4, X5, X6;
+
+  X1 = origin[0] + mins[0];
+  X2 = origin[1] + mins[1];
+  X3 = origin[2] + mins[2];
+  X4 = origin[0] + maxs[0];
+  X5 = origin[1] + maxs[1];
+  X6 = origin[2] + maxs[2];
+
+  /* bottom quad (z = X3) */
+  corners[0][0] = X1; corners[0][1] = X2; corners[0][2] = X3;
+  corners[1][0] = X4; corners[1][1] = X2; corners[1][2] = X3;
+  corners[2][0] = X4; corners[2][1] = X5; corners[2][2] = X3;
+  corners[3][0] = X1; corners[3][1] = X5; corners[3][2] = X3;
+  /* top quad (memcpy from bottom, then z patched to X6) */
+  memcpy(&corners[4], &corners[0], 4 * 3 * sizeof(float));
+  corners[4][2] = X6;
+  corners[5][2] = X6;
+  corners[6][2] = X6;
+  corners[7][2] = X6;
+
+  /* Collect 3 free line-IDs from the shared slot table.  Inlined
+   * AAS_DebugLine-style scan; bails after collecting 3 even if the
+   * table has more free slots. */
+  collected = 0;
+  for (slot = 0; slot < 256 && collected < 3; slot++) {
+    if (!dword_100670C0[slot]) {
+      dword_100670C0[slot]  = bi_DebugLineCreate();
+      dword_10066CC0[slot]  = 1;
+      dword_10066B14       += 1;
+      line_ids[collected++] = dword_100670C0[slot];
+    } else if (!dword_10066CC0[slot]) {
+      dword_10066CC0[slot]  = 1;
+      line_ids[collected++] = dword_100670C0[slot];
+    }
+  }
+
+  /* Draw 12 edges across i=1..4; each edge connects corner i-1 to
+   * corner (i & 3), so the 4th iteration wraps and closes the loop. */
+  for (i = 1; i <= 4; i++) {
+    prev_idx = i - 1;
+    next_idx = i & 3;
+    bi_DebugLineShow(line_ids[0], corners[prev_idx],     corners[next_idx],     0xF2F2F0F0);
+    bi_DebugLineShow(line_ids[1], corners[4 + prev_idx], corners[4 + next_idx], 0xF2F2F0F0);
+    bi_DebugLineShow(line_ids[2], corners[prev_idx],     corners[4 + prev_idx], 0xF2F2F0F0);
+  }
+}
+
 //----- (1000A0A0) --------------------------------------------------------
 int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 {
