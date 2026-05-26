@@ -16584,6 +16584,29 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
 // 100667E0: using guessed type int aasworld.loaded;
 
+//----- (1001C1C0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1001C1C0: copies the BSP plane (normal + dist) of a face
+ * into caller buffers.
+ *   plane_idx = ((int *)aasworld.faces)[face_idx * 6]   // face stride 24
+ *   plane     = (float *)aasworld.planes + plane_idx * 5 // plane stride 20
+ *   out_normal[0..2] = plane[0..2]
+ *   *out_dist        = plane[3]
+ * Dead in Gladiator — live code (AAS_FaceOnSameSide etc.) walks
+ * aasworld.planes/faces directly; preserved by /INCREMENTAL. */
+static void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dist)
+{
+  int    plane_idx;
+  float *plane;
+
+  plane_idx = ((int *)aasworld.faces)[face_idx * 6];
+  plane     = (float *)((char *)aasworld.planes + plane_idx * 20);
+  out_normal[0] = plane[0];
+  out_normal[1] = plane[1];
+  out_normal[2] = plane[2];
+  *out_dist     = plane[3];
+}
+
 //----- (1001C2E0) --------------------------------------------------------
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
 {
@@ -19340,6 +19363,18 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   return result;
 }
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
+
+//----- (100214E0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100214E0: `movsx eax, WORD PTR [eax+0xB8]; ret`.  Loads the
+ * signed 16-bit field at +0xB8 of the supplied struct.  Looks like a
+ * bot_state_t accessor (offset 0xB8 maps to one of the int16 fields in
+ * the bot-state region).  Dead in Gladiator — live call sites read the
+ * same field via direct indexing; preserved by /INCREMENTAL. */
+static int __cdecl sub_100214E0(char *p)
+{
+  return *(__int16 *)(p + 0xB8);
+}
 
 //----- (10021500) --------------------------------------------------------
 int __cdecl BotBattleUseItems(_DWORD *a1)
@@ -25996,6 +26031,25 @@ char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
 // 1000106E: using guessed type _DWORD __cdecl EA_SayTeam(_DWORD, _DWORD);
 // 10001488: using guessed type _DWORD __cdecl EA_Say(_DWORD, _DWORD);
 
+//----- (1002EAF0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002EAF0: switch on second arg, writing an int to *first arg.
+ *   b == 1 → *out = 1
+ *   b == 2 → *out = 2
+ *   else   → *out = 0
+ * Enum-to-int mapper, looks like a chat-context selector (matches the
+ * shape of Q3 trap_BotEnterChat's chat-type argument).  Dead in
+ * Gladiator; preserved by /INCREMENTAL. */
+static void __cdecl sub_1002EAF0(int *out, int b)
+{
+  if ( b == 1 )
+    *out = 1;
+  else if ( b == 2 )
+    *out = 2;
+  else
+    *out = 0;
+}
+
 //----- (1002EBB0) --------------------------------------------------------
 int BotSetupChatAI()
 {
@@ -30941,6 +30995,16 @@ LABEL_14:
     }
   }
   return result;
+}
+
+//----- (10037770) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10037770: single-byte function body — `c3 (ret)`.  Empty
+ * no-op cdecl void function.  Reachable through thunk 0x10001Bxx;
+ * dead in Gladiator (no live call path ever invokes the no-op).
+ * Likely a placeholder/abandoned hook left over by /INCREMENTAL. */
+static void __cdecl sub_10037770(void)
+{
 }
 
 //----- (100377E0) --------------------------------------------------------
