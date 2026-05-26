@@ -7978,6 +7978,59 @@ LABEL_21:
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 100669A0: using guessed type int aasworld.entities;
 
+//----- (1000B1F0) --------------------------------------------------------
+// FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities)
+// for the entry whose 4-byte field at +0x5C equals target and whose
+// origin is within 40 units of the caller's reference point in both
+// the x and y axes (integer-truncated abs(dx) < 40 && abs(dy) < 40).
+// Of all candidates passing the gate, return the index whose 3D
+// straight-line distance to ref is smallest (initial best = 100000.0,
+// .rdata literal 0x47C34F80).  Result index lives in eax; best
+// distance is dropped on return.  When numentities <= 0 the function
+// short-circuits to eax = 0 without touching arg1.
+// Stride 132 (=sizeof(aas_entity_t)); field +0x10 = origin xyz, +0x5C
+// = classnum/spawnflags-style key (matches the disasm).  Distance via
+// VectorLength thunk @0x10001D75 → VectorLength@10043500.  DEAD in
+// Gladiator — /INCREMENTAL.  Restored from objdump@1000B1F0.
+static int __cdecl sub_1000B1F0(float *ref, int target)
+{
+  int i;
+  int best_index;
+  float best_dist;
+  char *ents;
+  float dx, dy, dz;
+  vec3_t delta;
+  double d;
+
+  best_dist  = 100000.0f;
+  best_index = 0;
+  if ( aasworld.numentities <= 0 )
+    return 0;
+  ents = (char *)aasworld.entities;
+  for ( i = 0; i < aasworld.numentities; i++, ents += 132 )
+  {
+    if ( *(int *)(ents + 0x5C) != target )
+      continue;
+    dx = *(float *)(ents + 0x10) - ref[0];
+    dy = *(float *)(ents + 0x14) - ref[1];
+    dz = *(float *)(ents + 0x18) - ref[2];
+    if ( abs((int)dx) >= 40 )
+      continue;
+    if ( abs((int)dy) >= 40 )
+      continue;
+    delta[0] = dx;
+    delta[1] = dy;
+    delta[2] = dz;
+    d = VectorLength(delta);
+    if ( d < best_dist )
+    {
+      best_dist  = (float)d;
+      best_index = i;
+    }
+  }
+  return best_index;
+}
+
 //----- (1000B1B0) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
  * objdump@1000B1B0:
@@ -17376,6 +17429,40 @@ static int __cdecl sub_1001D040(char *p)
 static int __cdecl sub_1001D070(int *p)
 {
   return (int)aasworld.d_100669C0[p[8]];
+}
+
+//----- (1001D0A0) --------------------------------------------------------
+// Inverse-square sound audibility on a moving source.  Args:
+//   arg1 (edi) — listener origin (vec3 at +0)
+//   arg2 (esi) — sound emitter struct: vec3 origin at +8, soundindex
+//                at +0x20, volume-or-priority at +0x24 (float)
+// Walks aasworld.d_100669C0[esi->soundindex] to obtain the per-sound
+// soundinfo_t whose +0x50 holds the sound's range/strength constant.
+// First gates on AAS_InPVS(listener, &emitter->origin, default-flags)
+// via thunk @0x10001fc8 → sub_10005C90: returns 0.0f (.rdata
+// 0x10058000) when the emitter isn't in PVS or the soundindex maps
+// to a NULL soundinfo.  Otherwise returns
+//   (soundinfo[+0x50] * emitter[+0x24]) / dot(delta, delta)
+// where delta = emitter->origin - listener.  DEAD in Gladiator —
+// /INCREMENTAL; the live sound code uses a per-cluster path instead.
+// Restored from objdump@1001D0A0.
+static float __cdecl sub_1001D0A0(float *listener, void *emitter)
+{
+  float *eorigin;
+  void  *info;
+  float dx, dy, dz;
+
+  eorigin = (float *)((char *)emitter + 8);
+  if ( !sub_10005C90(listener, eorigin) )
+    return 0.0f;
+  info = aasworld.d_100669C0[*(int *)((char *)emitter + 0x20)];
+  if ( !info )
+    return 0.0f;
+  dx = eorigin[0] - listener[0];
+  dy = ((float *)emitter)[3] - listener[1];
+  dz = ((float *)emitter)[4] - listener[2];
+  return (*(float *)((char *)info + 0x50) * *(float *)((char *)emitter + 0x24))
+       / (dx*dx + dy*dy + dz*dz);
 }
 
 //----- (1001D140) --------------------------------------------------------
