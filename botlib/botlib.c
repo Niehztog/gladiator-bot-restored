@@ -30456,6 +30456,28 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
 // 10001271: using guessed type _DWORD __cdecl InterbreedFuzzySeperator_r(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
+//----- (10037020) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@10037020: top-level pair-wise interbreed of two
+// weightconfig_t's.  Bails with "can't merge weight configs\n" if the
+// configs' numweights disagree; otherwise calls InterbreedFuzzySeperator_r
+// on every (a->weights[i].firstseperator, b->weights[i].firstseperator)
+// pair.  This is the public entry to the GA crossover used by the offline
+// bot-tuning pipeline — dead in Gladiator (live in Q3 InterbreedGoalFuzzyLogic).
+static void __cdecl sub_10037020(weightconfig_t *a, weightconfig_t *b)
+{
+  int i;
+
+  if ( a->numweights != b->numweights )
+  {
+    bi_Print(3, aCanTMergeWeigh);
+    return;
+  }
+  for ( i = 0; i < a->numweights; ++i )
+    InterbreedFuzzySeperator_r(a->weights[i].firstseperator, b->weights[i].firstseperator);
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
+
 //----- (10037090) --------------------------------------------------------
 int __cdecl EA_Say(int client, char *str)
 {
@@ -30818,6 +30840,22 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 
   v3 = CRC_Block(a2, a3);
   return sub_100377E0(String1, v3);
+}
+
+//----- (10037880) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@10037880: walks the dword_10063F2C scriptcrc linked
+// list and Log_Write's each entry as a C array initializer line:
+//   \t{0x%04X, 1}, //name
+// Format string at 0x1005E9EC, next-pointer at scriptcrc_t offset +0x94
+// (+148 on the 32-bit binary).  This was a dev tool for dumping the
+// known-CRC table to be pasted into a config; dead in the shipped DLL.
+static void __cdecl sub_10037880(void)
+{
+  scriptcrc_t *p;
+
+  for ( p = dword_10063F2C; p; p = p->next )
+    Log_Write("\t{0x%04X, 1}, //%s", (unsigned int)(unsigned __int16)p->hash, p->name);
 }
 
 //----- (100378C0) --------------------------------------------------------
