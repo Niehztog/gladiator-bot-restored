@@ -31157,6 +31157,26 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
   FreeMemory(v);
 }
 
+//----- (100388D0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@100388D0: drains the libvarlist by repeatedly popping
+// the head, advancing libvarlist to head->next (struct offset +0x14),
+// and calling LibVarDeAlloc on the popped node.  Final
+// libvarlist = NULL is redundant after the loop but is present in the
+// disasm (a literal "mov DWORD PTR ds:0x10063F20, 0").  This is the
+// shutdown path that Q3 botlib exposes as LibVarDeAllocAll.
+static void __cdecl sub_100388D0(void)
+{
+  libvar_t *v;
+
+  while ( (v = libvarlist) != NULL )
+  {
+    libvarlist = v->next;
+    LibVarDeAlloc(v);
+  }
+  libvarlist = NULL;
+}
+
 //----- (10038910) --------------------------------------------------------
 libvar_t *__cdecl LibVarGet(const char *name)
 {
@@ -32632,6 +32652,25 @@ int __cdecl PC_RemoveGlobalDefine(const char *a1)
     return 1;
   }
   return 0;
+}
+
+//----- (1003B520) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@1003B520: drains the globaldefines list by repeatedly
+// popping the head, advancing globaldefines to head->next (define_t
+// offset +0x18 = +24, matching botlib_structs.h define_s::next), and
+// calling PC_FreeDefine on the popped node.  This is the shutdown path
+// for the preprocessor's global #define table; Q3 botlib exposes it as
+// PC_RemoveAllGlobalDefines.
+static void __cdecl sub_1003B520(void)
+{
+  define_t *d;
+
+  while ( (d = globaldefines) != NULL )
+  {
+    globaldefines = d->next;
+    PC_FreeDefine(d);
+  }
 }
 
 //----- (1003B560) --------------------------------------------------------
