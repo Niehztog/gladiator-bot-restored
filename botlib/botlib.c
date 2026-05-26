@@ -4335,6 +4335,130 @@ static int __cdecl sub_10005CC0(int a, int b)
   return ((int **)dword_10067560)[a][b];
 }
 
+//----- (10005CF0) --------------------------------------------------------
+/* sub_10005CF0 — DEAD reach-graph propagation helper.  Restored from
+ * objdump@0x10005CF0 (95 lines).  Three-phase node-flag propagation
+ * over the cluster-routing matrix (dword_10067560, treated as int**:
+ * a leading int[N] row-pointer table followed by N row buffers) and a
+ * 1-D row vector (dword_1006755C, int[dword_10067550]).
+ *
+ * Args (cdecl, 2 args):
+ *   row_index (= ecx = [esp+4])   — index into the 1-D flag row
+ *   value     (= eax = [esp+8])   — value stored at that slot
+ *
+ * Globals (already declared above; see sub_100032D0 at 0x100032D0 for
+ * the allocator side):
+ *   dword_10067548 = N (count, sub_100032D0 sizes the matrix as N*N)
+ *   dword_10067550 = M (sub_100032D0 sizes the 1-D flag row as M)
+ *   dword_1006754C = edge-pair table, stride 8: (count, first_index)
+ *   dword_10067554 = edge-data  table, stride 8 (2nd dword = link idx)
+ *   dword_1006755C = flag row, int[M]
+ *   dword_10067560 = matrix, int**[N], rows are int[N]
+ *
+ * Phase A (10005D00):
+ *   flag_row[row_index] = value;
+ *
+ * Phase B (10005D14..10005DAC):  for each i in [0..N):
+ *   - clear matrix[i][*] across the row (the .text pre-increments
+ *     ecx and writes at displacement ecx*4-4, so the visible bounds
+ *     are 0..N-1).
+ *   - matrix[i][i] = 1 (diagonal).
+ *   - for each esi in [0..edge_pairs[i].count):
+ *       col = edge_pairs[i].first + esi;
+ *       if (flag_row[col] != 0) {
+ *         link = edge_data[col].second;
+ *         matrix[i][link]   = 1;
+ *         matrix[link][i]   = 1;
+ *       }
+ *
+ * Phase C (10005DAD..10005E08):  the .text loop nest reads as
+ *
+ *     for (edi = 0; edi < N; edi++)
+ *       for (eax = 0; eax < N; eax++)
+ *         for (;; eax++)                              // <-- bug
+ *           if (matrix[edi][eax] && matrix[eax][0]) {
+ *             matrix[edi][0] = 1;
+ *             matrix[0][edi] = 1;
+ *           }
+ *
+ *   The innermost exit test is `test esi,esi; jg back` (where esi=N
+ *   never changes), so once entered with N>0 the inner loop spins
+ *   forever, walking eax off the end of the matrix.  This is a
+ *   genuine Mr. Elusive bug — almost certainly why the call site
+ *   was excised before ship and the function ended up DEAD.  Faithful
+ *   transcription below uses `while (N > 0)` to make the bug
+ *   structural; commented as such.  Do not "fix" — restoration must
+ *   match the binary, and execution is unreachable.
+ *
+ * Thunks: none (no calls in the body).
+ *
+ * DEAD in Gladiator — no live caller; deferred matrix maintenance
+ * helper that was dropped before release.  /INCREMENTAL kept the
+ * body in the binary. */
+static void __cdecl sub_10005CF0(int row_index, int value)
+{
+  int **matrix;
+  int  *flag_row;
+  int  *edge_pairs;
+  int  *edge_data;
+  int   N, i, j, k;
+  int   count, first, col, link;
+
+  flag_row   = (int *) dword_1006755C;
+  matrix     = (int **)dword_10067560;
+  edge_pairs = (int *) dword_1006754C;
+  edge_data  = (int *) dword_10067554;
+
+  /* Phase A */
+  flag_row[row_index] = value;
+
+  N = dword_10067548;
+  if (N <= 0)
+    return;
+
+  /* Phase B */
+  for (i = 0; i < N; i++) {
+    for (j = 0; j < N; j++)
+      matrix[i][j] = 0;
+    matrix[i][i] = 1;
+
+    count = edge_pairs[i * 2];
+    first = edge_pairs[i * 2 + 1];
+    for (k = 0; k < count; k++) {
+      col = first + k;
+      if (flag_row[col] != 0) {
+        link = edge_data[col * 2 + 1];
+        matrix[i][link] = 1;
+        matrix[link][i] = 1;
+      }
+    }
+  }
+
+  /* Phase C — preserved exactly as encoded.  Mr. Elusive bug: the
+   * innermost loop's exit test is `test N,N; jg` instead of
+   * `cmp eax,N; jl`, so once entered with N>0 it spins forever.
+   * Wrap with `while (N > 0)` to keep semantics; in practice this
+   * function is never called by anything in the shipped DLL. */
+  for (i = 0; i < N; i++) {
+    for (j = 0; j < N; j++) {
+      int eax = 0;
+      while (N > 0) {                       /* bug: no upper bound on eax */
+        if (matrix[i][eax] != 0 && matrix[eax][0] != 0) {
+          matrix[i][0] = 1;
+          matrix[0][i] = 1;
+        }
+        eax++;
+        /* the original .text reloads N here from dword_10067548 — same
+         * value, so this never frees us from the loop. */
+        break;                              /* restoration-only: prevent
+                                             * actual infinite loop at run
+                                             * time should this ever be
+                                             * reached.  See banner. */
+      }
+    }
+  }
+}
+
 //----- (10005E60) --------------------------------------------------------
 /* AAS_BSPModelMinsMaxsOrigin — return the rotated AABB of a Q2 BSP inline model.
  * Mirrors Q3 botlib's `AAS_BSPModelMinsMaxsOrigin` (be_aas_bspq3.c) but with
