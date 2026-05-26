@@ -30580,6 +30580,20 @@ int __cdecl EA_Attack(int client)
   return (int)ea;
 }
 
+//----- (100372F0) --------------------------------------------------------
+/* EA_Use — set ACTION_USE.  Restored IDA-missed dead-code stub.
+ * Verified against objdump@100372F0: identical EA-template to EA_Attack
+ * above but with `or [eax+0x20], 0x2` setting ACTION_USE (bit 0x02).
+ * Sits in the EA family between EA_Attack (100372C0) and EA_Respawn
+ * (10037320).  Matches Q3 be_ea.c::EA_Use.  Dead in Gladiator —
+ * Gladiator's mod never queues USE actions through the EA layer (it
+ * uses bi_BotClientCommand "use" directly); preserved by /INCREMENTAL. */
+static void __cdecl sub_100372F0(int client)
+{
+  ea_state_t *ea = &ea_controls[client];
+  ea->flags |= ACTION_USE;
+}
+
 //----- (10037320) --------------------------------------------------------
 /* EA_Respawn — set ACTION_RESPAWN.  Matches ioq3 be_ea.c::EA_Respawn.
  * IDA mis-named WeaponSetFlag from a guessed cross-reference. */
@@ -30672,6 +30686,37 @@ int __cdecl EA_MoveForward(int client)
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEFORWARD;
   return (int)ea;
+}
+
+//----- (10037490) --------------------------------------------------------
+/* EA_MoveBack — set ACTION_MOVEBACK (bit 0x40).  Restored IDA-missed
+ * dead-code stub.  Verified against objdump@10037490: same EA template
+ * as EA_MoveForward with `or [eax+0x20], 0x40`.  Matches Q3 be_ea.c. */
+static void __cdecl sub_10037490(int client)
+{
+  ea_state_t *ea = &ea_controls[client];
+  ea->flags |= ACTION_MOVEBACK;
+}
+
+//----- (100374C0) --------------------------------------------------------
+/* EA_MoveLeft — set ACTION_MOVELEFT (bit 0x80).  Restored IDA-missed
+ * dead-code stub.  Verified against objdump@100374C0: same EA template
+ * using `or cl, 0x80` (low byte of [eax+0x20] dword).  Q3 be_ea.c. */
+static void __cdecl sub_100374C0(int client)
+{
+  ea_state_t *ea = &ea_controls[client];
+  ea->flags |= ACTION_MOVELEFT;
+}
+
+//----- (100374F0) --------------------------------------------------------
+/* EA_MoveRight — set ACTION_MOVERIGHT (bit 0x100).  Restored IDA-missed
+ * dead-code stub.  Verified against objdump@100374F0: same EA template
+ * using `or ch, 0x01` (high byte of low word of [eax+0x20] dword =
+ * bit 8 = 0x100).  Q3 be_ea.c. */
+static void __cdecl sub_100374F0(int client)
+{
+  ea_state_t *ea = &ea_controls[client];
+  ea->flags |= ACTION_MOVERIGHT;
 }
 
 //----- (10037520) --------------------------------------------------------
@@ -36427,6 +36472,27 @@ double __cdecl VectorNormalize(float *v)
     v[2] = 1.0 / length * v[2];
   }
   return result;
+}
+
+//----- (10043300) --------------------------------------------------------
+/* VectorNormalize2 — normalize v into out, return original length.
+ * Restored IDA-missed dead-code stub.  Verified against objdump@10043300:
+ * computes len = sqrt(v[0]^2 + v[1]^2 + v[2]^2); if non-zero stores
+ * v[i]/len into out[i]; returns len on FPU.  Matches Q3 q_math.c
+ * VectorNormalize2 verbatim.  Dead in Gladiator — code only uses the
+ * in-place VectorNormalize at 10043290; preserved by /INCREMENTAL. */
+static double __cdecl sub_10043300(float *v, float *out)
+{
+  double length;
+
+  length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  if ( length != 0.0 )
+  {
+    out[0] = (float)(1.0 / length * v[0]);
+    out[1] = (float)(1.0 / length * v[1]);
+    out[2] = (float)(1.0 / length * v[2]);
+  }
+  return length;
 }
 
 //----- (10043380) --------------------------------------------------------
