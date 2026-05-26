@@ -31059,6 +31059,23 @@ _WORD *__cdecl CRC_Init(_WORD *a1)
   return result;
 }
 
+//----- (100385D0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@100385D0: standard CCITT CRC-16 single-byte update
+// against the lookup table at word_1005EE70.  Mirrors Q3 CRC_ProcessByte.
+// Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
+// preserved by the linker.
+static void __cdecl sub_100385D0(unsigned __int16 *crc, int byte)
+{
+  unsigned int idx;
+  unsigned int low_shifted;
+
+  idx = ((*crc >> 8) ^ (byte & 0xFF)) & 0xFFFF;
+  low_shifted = (*crc & 0xFF) << 8;
+  *crc = (unsigned __int16)(low_shifted ^ word_1005EE70[idx]);
+}
+// 1005EE70: using guessed type __int16 word_1005EE70[308];
+
 //----- (10038620) --------------------------------------------------------
 __int16 __cdecl CRC_Value(__int16 a1)
 {
@@ -31092,6 +31109,35 @@ __int16 __cdecl CRC_Block(const unsigned char *a1, int a2)
   while ( v2 < a2 );
   v7 = v3;
   return CRC_Value(v3);
+}
+// 1005EE70: using guessed type __int16 word_1005EE70[308];
+
+//----- (100386E0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub). Verified against objdump@100386E0:
+// CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte
+// transform as sub_100385D0 in a tight loop and writing the result back
+// through `crc`.  Mirrors Q3 CRC_ProcessByteString — dead in Gladiator (the
+// equivalent loop is inlined in CRC_Block at 10038640).  Note the disasm
+// scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
+// ebp=base — this is the classic IDA index-base swap and is equivalent to
+// data[i] for i in [0..len).
+static void __cdecl sub_100386E0(unsigned __int16 *crc, const unsigned char *data, int len)
+{
+  int i;
+  unsigned int idx;
+  unsigned int low_shifted;
+  unsigned __int16 c;
+
+  if ( len <= 0 )
+    return;
+  c = *crc;
+  for ( i = 0; i < len; ++i )
+  {
+    idx = ((c >> 8) ^ data[i]) & 0xFFFF;
+    low_shifted = (c & 0xFF) << 8;
+    c = (unsigned __int16)(low_shifted ^ word_1005EE70[idx]);
+    *crc = c;
+  }
 }
 // 1005EE70: using guessed type __int16 word_1005EE70[308];
 
