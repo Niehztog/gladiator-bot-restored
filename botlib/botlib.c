@@ -7342,6 +7342,30 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
 
+//----- (1000ACB0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@1000ACB0: bounds-checked copy of entities[entnum].origin
+// (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
+// prints via bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", ...)
+// and zeroes the destination vec3.
+static void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
+{
+  if ( entnum >= 0 && entnum < aasworld.numentities )
+  {
+    origin[0] = *(float *)((char *)aasworld.entities + 132 * entnum + 16);
+    origin[1] = *(float *)((char *)aasworld.entities + 132 * entnum + 20);
+    origin[2] = *(float *)((char *)aasworld.entities + 132 * entnum + 24);
+    return;
+  }
+  bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
+  origin[0] = 0.0f;
+  origin[1] = 0.0f;
+  origin[2] = 0.0f;
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
+// 10066998: using guessed type int aasworld.numentities;
+// 100669A0: using guessed type int aasworld.entities;
+
 //----- (1000AD40) --------------------------------------------------------
 int __cdecl AAS_EntityModelindex(int entnum)
 {
@@ -7405,6 +7429,38 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
   origin[2] = i[6];
   return 1;
 }
+// 10066998: using guessed type int aasworld.numentities;
+// 100669A0: using guessed type int aasworld.entities;
+
+//----- (1000AEA0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub). Verified against objdump@1000AEA0:
+// returns the bbox of entities[entnum] via two vec3 out-params (mins from
+// struct offsets +0x40..+0x48, maxs from +0x4C..+0x54).  Guards on
+// aasworld.initialized then bounds-checks entnum; on OOR prints via
+// bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum) and
+// returns *without* writing to mins/maxs (matches the original — the
+// disasm has no clear path on the OOR exit).
+static void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
+{
+  char *v;
+
+  if ( !aasworld.initialized )
+    return;
+  if ( entnum < 0 || entnum >= aasworld.numentities )
+  {
+    bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum);
+    return;
+  }
+  v = (char *)aasworld.entities + 132 * entnum;
+  mins[0] = *(float *)(v + 0x40);
+  mins[1] = *(float *)(v + 0x44);
+  mins[2] = *(float *)(v + 0x48);
+  maxs[0] = *(float *)(v + 0x4C);
+  maxs[1] = *(float *)(v + 0x50);
+  maxs[2] = *(float *)(v + 0x54);
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
+// 100667E4: using guessed type int aasworld.initialized;
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
 
@@ -9257,6 +9313,20 @@ int AAS_Initialized()
 {
   return aasworld.initialized;
 }
+// 100667E4: using guessed type int aasworld.initialized;
+
+//----- (1000DF00) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub). Verified against objdump@1000DF00:
+// sets aasworld.initialized = 1, then prints "AAS initialized.\n" at level 1.
+// This is the late-init announcer that *would* have been called from
+// AAS_ContinueInit's tail in earlier builds before the print/flag-set were
+// inlined; preserved by /INCREMENTAL.
+static void __cdecl sub_1000DF00(void)
+{
+  aasworld.initialized = 1;
+  bi_Print(1, aAasInitialized);
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
 
 //----- (1000DF30) --------------------------------------------------------
