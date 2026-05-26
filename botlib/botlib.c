@@ -1227,6 +1227,7 @@ char aMaxAaslinks[] = "max_aaslinks"; // idb
 char aEmptyAasLinkHe[21] = "empty aas link heap\n"; // weak
 char aAasPointareanu[34] = "AAS_PointAreaNum: aas not loaded\n"; // weak
 char aAasAreapresenc[43] = "AAS_AreaPresenceType: invalid area number\n"; // weak
+char aAasAreacluster[38] = "AAS_AreaCluster: invalid area number\n"; // weak (restored: ref'd by sub_1001AF00)
 char aAasLinkentityA[32] = "AAS_LinkEntity: aas not loaded\n"; /* original .data string at 0x5C048 in gladiator.dll_ — IDA mistranscribed as "AAS_AASLinkEntity" */
 extern structdef_t unk_1005C138; /* sound info structdef — defined in botlib_structdefs.c */
 char aType[5] = "type"; // weak
@@ -1473,6 +1474,8 @@ char aSay[4] = "say"; // weak
 char aSayTeam[9] = "say_team"; // weak
 char aUse[4] = "use"; // weak
 char aDrop[5] = "drop"; // weak
+char aInvuse[7] = "invuse"; // weak (restored: ref'd by sub_10037150)
+char aInvdrop[8] = "invdrop"; // weak (restored: ref'd by sub_10037180)
 char aWave[5] = "wave"; // weak
 char aEaCommandTooMa[31] = "EA_Command: too many arguments"; // weak
 extern int unk_1005E678[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
@@ -15979,6 +15982,24 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E0: using guessed type int aasworld.loaded;
 
+//----- (1001AF00) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@1001AF00: returns aasworld.areasettings[areanum].cluster
+// (struct offset +0xC into the 28-byte aas_areasettings_t).  No
+// aasworld.loaded guard (unlike AAS_AreaPresenceType — this variant just
+// trusts the bounds-check).  Uses `areanum > 0` (not `>= 0`) so area 0 is
+// treated as OOR.  On OOR prints "AAS_AreaCluster: invalid area number\n"
+// at level 3 and returns 0.
+static int __cdecl sub_1001AF00(int areanum)
+{
+  if ( areanum > 0 && areanum < aasworld.numareas )
+    return *((_DWORD *)aasworld.areasettings + 7 * areanum + 3);
+  bi_Print(3, aAasAreacluster);
+  return 0;
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
+// 10066948: using guessed type int aasworld.numareas;
+
 //----- (1001AF50) --------------------------------------------------------
 int __cdecl AAS_AreaPresenceType(int areanum)
 {
@@ -30439,6 +30460,27 @@ int __cdecl EA_Use(int client, char *item)
 int __cdecl EA_DropItem(int client, char *item)
 {
   bi_BotClientCommand(client, aDrop, item, (char *)NULL);
+  return 0;
+}
+// 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
+
+//----- (10037150) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
+// then tail-calls bi_BotClientCommand.  Matches the sibling family
+// EA_Say/EA_SayTeam/EA_Use/EA_DropItem exactly.
+static int __cdecl sub_10037150(int client, char *item)
+{
+  bi_BotClientCommand(client, aInvuse, item, (char *)NULL);
+  return 0;
+}
+
+//----- (10037180) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub).  Mirror of sub_10037150 with the
+// "invdrop" command string (0x1005E63C).
+static int __cdecl sub_10037180(int client, char *item)
+{
+  bi_BotClientCommand(client, aInvdrop, item, (char *)NULL);
   return 0;
 }
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
