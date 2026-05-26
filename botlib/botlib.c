@@ -4671,6 +4671,144 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
 // 10067504: using guessed type int dword_10067504;
 // 10069584: using guessed type int dword_10069584;
 
+//----- (100063D0) --------------------------------------------------------
+/* sub_100063D0 — DEAD `AAS_EntitiesInBox(mins, maxs, list, maxcount)`.
+ * Restored from objdump@0x100063D0 (~155 lines).
+ *
+ * Queries which world entities overlap the AABB [mins,maxs] and
+ * writes up to `maxcount` entnums into `list[]`, returning the
+ * number written.
+ *
+ * Flow:
+ *   1. linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0)
+ *      — builds a transient chain of bsp_link_t nodes, one per leaf
+ *      the query box touches.  Saved to a stack slot for cleanup.
+ *   2. For each leaf in the chain (walking ->next_leaf at +0x10):
+ *      a. entlist = dword_10069584[leaf->leafnum]  — the leaf's own
+ *         entity-link chain (heads array indexed by leafnum).
+ *      b. For each ent_link in that chain (walking ->next_ent at +0x8),
+ *         while count < maxcount:
+ *           - Dedupe: linear scan list[0..count-1] for entlink->entnum.
+ *             Skip if already present.
+ *           - AAS_EntityBSPData(entlink->entnum, &entdata):
+ *               entdata @ [esp+0x1c], 52 bytes:
+ *                 +0x00..0x0B origin     +0x0C..0x17 angles
+ *                 +0x18..0x23 absmin     +0x24..0x2F absmax
+ *                 +0x30 solid            +0x34 modelnum-1
+ *           - AABB overlap test against (mins,maxs):
+ *               absmin.X<=maxs.X && absmax.X>=mins.X
+ *               absmin.Y<=maxs.Y && absmax.Y>=mins.Y
+ *               absmin.Z<=maxs.Z && absmax.Z>=mins.Z
+ *             ** Mr. Elusive bug preserved verbatim **: the X-axis
+ *             test in the original .text reads entdata[0x20] (which
+ *             is absmin.Z) instead of entdata[0x18] (absmin.X), so
+ *             the X test is really `absmin.Z <= maxs.X` and the Z
+ *             test repeats `absmin.Z <= maxs.Z`.  The absmin.X bound
+ *             is never actually tested.  Reproduced below verbatim.
+ *           - On overlap pass:
+ *             * solid == 1 or 2 (SOLID_BBOX / SOLID_TRIGGER): add
+ *               entnum to list and bump count.
+ *             * solid == 3 (SOLID_BSP movable brush): re-call
+ *               AAS_BSPLinkEntity(mins, maxs, 0, ent->entnum) to get
+ *               THIS entity's own leaf chain, then scan it for any
+ *               leaf whose word @ dword_100674EC[leafnum*28 + 26]
+ *               is non-zero (= "this leaf carries an AAS area
+ *               marker"); if found, add the entnum.  Always
+ *               AAS_UnlinkFromBSPLeaves(temp) before continuing.
+ *             * other solid values: silently skipped.
+ *   3. AAS_UnlinkFromBSPLeaves(linkhead) frees the original chain.
+ *   4. Return edi (accumulated count).
+ *
+ * Thunks: 0x10001E24 → 0x10006210 = AAS_BSPLinkEntity,
+ *         0x10001825 → 0x1000AF30 = AAS_EntityBSPData,
+ *         0x100019A6 → 0x10006090 = AAS_UnlinkFromBSPLeaves.
+ *
+ * Globals: ds:0x10069584 = bsp_leaf_entlinks[leafnum] (head array),
+ *          ds:0x100674EC = aasworld.bspleafs (stride 28).
+ *
+ * DEAD in Gladiator — no live caller. */
+static int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
+{
+  bsp_link_t *linkhead;
+  bsp_link_t *link;
+  bsp_link_t *ent_link;
+  bsp_link_t *brush_links;
+  bsp_link_t *brush_iter;
+  int        *out;
+  int         count;
+  int         j;
+  int         entnum;
+  int         solid;
+  float       entdata[13];   /* AAS_EntityBSPData destination — 52 B */
+
+  count = 0;
+  linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0);
+  if (!linkhead)
+    return 0;
+
+  for (link = linkhead; link && count < maxcount; link = (bsp_link_t *)*(int *)((char *)link + 0x10)) {
+    ent_link = (bsp_link_t *)dword_10069584[link->leafnum];
+    if (!ent_link)
+      continue;
+    out = &list[count];
+
+    while (ent_link && count < maxcount) {
+      entnum = *(int *)ent_link;   /* ent_link->entnum @ +0 */
+
+      /* Dedupe scan over already-collected results. */
+      j = 0;
+      if (count > 0) {
+        int *p = list;
+        while (j < count) {
+          if (*p == entnum)
+            break;
+          j++;
+          p++;
+        }
+      }
+
+      if (j == count) {
+        AAS_EntityBSPData(entnum, (intptr_t)entdata);
+
+        /* MR. ELUSIVE BUG preserved verbatim: original .text uses
+         * entdata[0x20] (absmin.Z) where absmin.X (entdata[0x18])
+         * was clearly intended for the X-axis overlap check.  The
+         * Z test then redundantly checks absmin.Z again.  Net
+         * effect: absmin.X never participates in the overlap. */
+        if (entdata[8 /*[esp+0x3c] = entdata[0x20] = absmin.Z*/] <= maxs[0]
+         && entdata[9 /*[esp+0x40] = entdata[0x24] = absmax.X*/] >= mins[0]
+         && entdata[7 /*[esp+0x38] = entdata[0x1C] = absmin.Y*/] <= maxs[1]
+         && entdata[10/*[esp+0x44] = entdata[0x28] = absmax.Y*/] >= mins[1]
+         && entdata[8 /*[esp+0x3c] = entdata[0x20] = absmin.Z*/] <= maxs[2]
+         && entdata[11/*[esp+0x48] = entdata[0x2C] = absmax.Z*/] >= mins[2]) {
+          solid = *(int *)((char *)entdata + 0x30);
+          if (solid == 1 || solid == 2) {
+            *out++ = entnum;
+            count++;
+          } else if (solid == 3) {
+            brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entnum);
+            if (brush_links) {
+              for (brush_iter = brush_links; brush_iter; brush_iter = (bsp_link_t *)*(int *)((char *)brush_iter + 0x10)) {
+                if (*(unsigned short *)(dword_100674EC + brush_iter->leafnum * 28 + 26)) {
+                  *out++ = entnum;
+                  count++;
+                  break;
+                }
+              }
+              AAS_UnlinkFromBSPLeaves(brush_links);
+            }
+          }
+        }
+      }
+      ent_link = (bsp_link_t *)*(int *)((char *)ent_link + 8);   /* ->next_ent */
+    }
+  }
+
+  AAS_UnlinkFromBSPLeaves(linkhead);
+  return count;
+}
+
+
 //----- (10006600) --------------------------------------------------------
 // Set/update a BSP epair in an entity's epair list — the writing
 // counterpart of AAS_ValueForBSPEpairKey at 10006760.  Walks the
