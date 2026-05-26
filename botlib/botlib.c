@@ -34746,6 +34746,68 @@ int __cdecl PC_CheckTokenString(source_t *src, const char *a2)
 }
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
+//----- (1003DBE0) --------------------------------------------------------
+/* PC_ExpectTokenType — restored IDA-missed dead-code stub (preserved
+ * by /INCREMENTAL).  Verified against objdump@1003DBE0:
+ *   - 0x430-byte on-stack token_t Buffer (matches gladiator_token_t).
+ *   - PC_ReadTokenHandle(source, &Buffer)  (thunk 0x100010A5)
+ *   - if returned 0: return 0 (failure to read)
+ *   - else if Buffer.type == expected_type (offset +0x404 = type field
+ *     of token_t) AND (Buffer.subtype & expected_subtype) ==
+ *     expected_subtype (offset +0x408 = subtype field):
+ *         memcpy(out_token, &Buffer, 0x10c * 4 = 0x430 bytes)
+ *         return 1
+ *   - else: PC_UnreadSourceToken(source, &Buffer); return 0
+ *
+ * The `and edx, eax; cmp edx, eax` idiom expresses subtype mask-match
+ * (all bits in `expected_subtype` must be set in token.subtype) — the
+ * canonical Q3 PC_ExpectTokenType subtype semantics.  The rep movsd
+ * 0x10c-count copy is the standard sizeof(token_t)/4 token return.
+ *
+ * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
+ * keeps it live.  Matches Q3 l_precomp.c::PC_ExpectTokenType. */
+static int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t *out_token)
+{
+  token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
+
+  if ( !PC_ReadTokenHandle(source, &Buffer) )
+    return 0;
+  if ( Buffer.type == type && (Buffer.subtype & subtype) == subtype )
+  {
+    memcpy(out_token, &Buffer, sizeof(token_t));
+    return 1;
+  }
+  PC_UnreadSourceToken(source, &Buffer);
+  return 0;
+}
+
+//----- (1003DC80) --------------------------------------------------------
+/* PC_SkipUntilString — restored IDA-missed dead-code stub (preserved
+ * by /INCREMENTAL).  Verified against objdump@1003DC80:
+ *   - 0x430-byte on-stack token_t Buffer.
+ *   - Outer loop: PC_ReadTokenHandle(source, &Buffer).
+ *     - If 0: return 0 (end of stream, target string not found).
+ *     - Inline 2-byte-at-a-time strcmp of Buffer.string (offset 0)
+ *       against the target string argument (esi/edi).  The compare
+ *       uses the standard MSVC `sbb eax,eax; sbb eax,-1` idiom to
+ *       produce +1 / -1 / 0 from the differing byte pair.
+ *     - If strcmp == 0 (match): return 1.
+ *     - Otherwise read the next token and repeat.
+ *
+ * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
+ * keeps it live.  Matches Q3 l_precomp.c::PC_SkipUntilString. */
+static int __cdecl sub_1003DC80(source_t *source, char *string)
+{
+  token_t Buffer __attribute__((aligned(8))); // [esp+10h] [ebp-430h] BYREF
+
+  while ( PC_ReadTokenHandle(source, &Buffer) )
+  {
+    if ( !strcmp(Buffer.string, string) )
+      return 1;
+  }
+  return 0;
+}
+
 //----- (1003DD40) --------------------------------------------------------
 int __cdecl PC_UnreadLastToken(source_t *src)
 {
@@ -37836,6 +37898,66 @@ char *Com_sprintf(char *Destination, int a2, char *Format, ...)
   return strncpy(Destination, Buffer, a2 - 1);
 }
 // 100019AB: using guessed type int Com_DPrintf(const char *, ...);
+
+//----- (10043D80) --------------------------------------------------------
+/* Info_ValueForKey — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Verified against objdump@10043D80:
+ *   - 512-byte on-stack `pkey` buffer at [esp+0x10..+0x210].
+ *   - Globals:
+ *       ds:0x10062D98  ->  static int valueindex   (toggle 0/1, XOR 1 each call)
+ *       ds:0x10062D9C  ->  static char value[2][512]  (1024-byte buffer at base,
+ *                                                       value[i] = base + i*512)
+ *       ds:0x1006294C  ->  static const char empty[] = ""   (fail sentinel)
+ *   - Per call: valueindex ^= 1;  o = value[valueindex];
+ *   - Skip a leading '\\' if present, then for each "\\key\\value" pair:
+ *       1. Copy chars up to the next '\\' into pkey.
+ *       2. Copy chars up to the next '\\' (or end of string) into value[].
+ *       3. Inline 2-byte strcmp(key, pkey) against the function's `key`
+ *          argument (ebp).  On match -> return value[valueindex].
+ *       4. If we hit '\\0' before a match -> return &empty (1006294C).
+ *
+ * Byte-for-byte Quake II q_shared.c::Info_ValueForKey — the
+ * double-buffer toggle lets callers chain two Info_ValueForKey calls
+ * without aliasing the returned pointer.  Dead in Gladiator: no
+ * caller (info-string parsing is handled engine-side); preserved
+ * only by the /INCREMENTAL relink stub. */
+static int dword_10062D98;
+static char byte_10062D9C[2][512];
+static char *__cdecl sub_10043D80(const char *s, const char *key)
+{
+  char pkey[512];
+  char *o;
+  int idx;
+
+  idx = dword_10062D98 ^ 1;
+  dword_10062D98 = idx;
+
+  if ( *s == '\\' )
+    ++s;
+  while ( 1 )
+  {
+    o = pkey;
+    while ( *s != '\\' )
+    {
+      if ( !*s )
+        return &byte_1006294C;
+      *o++ = *s++;
+    }
+    *o = '\0';
+    ++s;
+
+    o = byte_10062D9C[idx];
+    while ( *s != '\\' && *s )
+      *o++ = *s++;
+    *o = '\0';
+
+    if ( !strcmp(key, pkey) )
+      return byte_10062D9C[idx];
+    if ( !*s )
+      return &byte_1006294C;
+    ++s;
+  }
+}
 
 //----- (10043EA0) --------------------------------------------------------
 char __cdecl Info_RemoveKey(int a1, char *Str)
