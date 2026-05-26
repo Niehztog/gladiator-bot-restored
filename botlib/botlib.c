@@ -1079,6 +1079,7 @@ char __cdecl Info_RemoveKey(int a1, char *Str);
 char aMaxBsplinks[] = "max_bsplinks"; // idb
 char a4096[5] = "4096"; // weak
 char aEmptyBspLinkHe[21] = "empty bsp link heap\n"; // weak
+char aDFreeBspLinks[23] = "%d free bsp links, %s\n"; // weak (restored: ref'd by sub_100031B0)
 char aAasTracebspmod[39] = "AAS_TraceBSPModel: out of trace lines\n"; // weak
 char aAasDecompressv[] = "AAS_DecompressVis: 0 repeat"; // idb
 char aMissing[] = "missing }\n"; // idb
@@ -2516,6 +2517,26 @@ int sub_100030A0()  /* InitBSPLinkHeap */
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10069578: using guessed type int dword_10069578;
 // 1006957C: using guessed type int dword_1006957C;
+// 10069580: using guessed type int dword_10069580;
+
+//----- (100031B0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@100031B0: walks the bsp_link freelist headed at
+// dword_10069580, chasing .next_ent (offset +8) and counting nodes; then
+// prints "%d free bsp links, %s\n" at level 1 with (count, caller_name).
+// This is a heap-diagnostic helper that earlier builds called from
+// AAS_DumpBSPLinks or similar verbose-mode reporting.
+static void __cdecl sub_100031B0(char *name)
+{
+  bsp_link_t *node;
+  int count;
+
+  count = 0;
+  for ( node = dword_10069580; node; node = node->next_ent )
+    ++count;
+  bi_Print(1, aDFreeBspLinks, count, name);
+}
+// 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10069580: using guessed type int dword_10069580;
 
 //----- (100031F0) --------------------------------------------------------
