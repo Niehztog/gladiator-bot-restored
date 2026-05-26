@@ -25271,6 +25271,78 @@ char *__cdecl RandomString(const char *name)
 // 1002BE4C: conditional instruction was optimized away because ecx.4!=0
 // 1006437C: using guessed type int dword_1006437C;
 
+//----- (1002BEA0) --------------------------------------------------------
+// Dumps a chain of bot_matchtemplate_t records to the active log
+// stream (Log_FilePointer()).  For each template node the printed
+// form is the original Mr. Elusive notation:
+//
+//   %8d { <pieces> = (type, sub);}\n
+//
+// where <pieces> walks the template's bot_matchpiece_t list and per
+// piece emits either a "|"-joined run of "\"%s\"" strings (type 2,
+// matchstring chain at +0x04) or a bare "%d" variable index (type 1,
+// integer at +0x08), with ", " separating successive pieces.
+//
+// Format strings: 0x1005D384="%8d { ", 0x1005D33C="\"%s\"",
+// 0x1005D380="|", 0x1005D37C="%d", 0x1005D368=" = (%d, %d);}\n",
+// 0x1005D280=", ".
+//
+// Mr. Elusive bug preserved verbatim: the leading "%8d { " fprintf
+// call at 1002BEC7 pushes only the format string and the FILE*; no
+// integer argument is supplied, so the %8d consumes whatever the
+// next stack slot happens to hold.  Replicated with an explicit
+// "garbage" int local so the call site retains the same arity as
+// the original — and the same UB on the value.
+//
+// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
+static void __cdecl sub_1002BEA0(void *unused, void *templates)
+{
+  FILE *log;
+  char *tmpl;
+  char *piece;
+  char *str;
+  int   type;
+  int   garbage;  /* Mr. Elusive bug: %8d arg never pushed; reads stack slop */
+
+  log = Log_FilePointer();
+  if ( !log )
+    return;
+  tmpl = (char *)templates;
+  if ( !tmpl )
+    return;
+  while ( tmpl )
+  {
+    /* BUG: the original .text pushes only the format + FILE* here;
+     * the %8d eats whatever 4 bytes follow on the caller stack. */
+    fprintf(log, "%8d { ", garbage);
+    piece = *(char **)(tmpl + 0xC);
+    while ( piece )
+    {
+      type = *(int *)piece;
+      if ( type == 2 )
+      {
+        str = *(char **)(piece + 4);
+        while ( str )
+        {
+          fprintf(log, "\"%s\"", *(char **)str);
+          if ( *(char **)(str + 4) )
+            fprintf(log, "|");
+          str = *(char **)(str + 4);
+        }
+      }
+      else if ( type == 1 )
+      {
+        fprintf(log, "%d", *(int *)(piece + 8));
+      }
+      if ( *(char **)(piece + 0xC) )
+        fprintf(log, ", ");
+      piece = *(char **)(piece + 0xC);
+    }
+    fprintf(log, " = (%d, %d);}\n", *(int *)(tmpl + 4), *(int *)(tmpl + 8));
+    tmpl = *(char **)(tmpl + 0x10);
+  }
+}
+
 //----- (1002BFB0) --------------------------------------------------------
 void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces)
 {
