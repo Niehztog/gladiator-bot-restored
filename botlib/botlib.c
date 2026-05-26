@@ -4032,6 +4032,44 @@ LABEL_126:
 // 100044F0: using guessed type float var_14A4[2];
 // 100044F0: using guessed type float var_1498[2];
 
+//----- (10005640) --------------------------------------------------------
+// Thin wrapper around sub_100044F0 (AAS_TraceClientBBox-style 10-arg trace)
+// that supplies three zero locals as the entity-origin / mins / maxs slots
+// (forwarding the real start/boxmins/boxmaxs/end/a9/contentmask), then
+// memcpy's the 84-byte trace result into the caller-supplied output buffer.
+// DEAD in Gladiator — no live caller; only reachable via the MSVC
+// /INCREMENTAL thunk that preserved this entry point in the linker output.
+// Restored IDA-missed stub.  Verified against objdump@10005640:
+//   sub esp,0x60 ; reserve trace-local frame
+//   push 10 args (3 stack-local ptrs + zero int + 6 forwarded caller args)
+//   call sub_100044F0
+//   rep movsd 21 dwords (=0x54) from returned ptr into [esp+0x94]=arg0=out
+// Note: the two "mins/maxs" slot pointers passed to sub_100044F0 are
+// identical (both point to the same 3-dword zero local at esp_entry-0x60),
+// and the entity-origin slot points at an uninitialized stack location at
+// esp_entry-0x54 — both are decompiler-visible artifacts of the original
+// dead code, not introduced by reconstruction.
+static void sub_10005640(
+        void *out,
+        float *start,
+        int *boxmins,
+        float *boxmaxs,
+        int *end,
+        int a5,
+        int contentmask)
+{
+  float zero_vec[3];
+  float origin_slot[3];
+  float *trace;
+
+  zero_vec[0] = 0.0f;
+  zero_vec[1] = 0.0f;
+  zero_vec[2] = 0.0f;
+  trace = sub_100044F0(origin_slot, 0, zero_vec, zero_vec,
+                       (intptr_t)start, boxmins, boxmaxs, end, a5, contentmask);
+  qmemcpy(out, trace, 0x54u);
+}
+
 //----- (100056D0) --------------------------------------------------------
 int __cdecl sub_100056D0(_DWORD *a1, float *a2)
 {
@@ -30956,6 +30994,54 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 }
 // 10036E68: variable 'v6' is possibly undefined
 // 10001708: using guessed type _DWORD __cdecl ScaleFuzzySeperator_r(_DWORD, _DWORD);
+
+//----- (10036EB0) --------------------------------------------------------
+// Look up a named fuzzy-weight entry in a (count, {name, fs}[]) table and
+// rescale that subtree by a scalar clamped to [0,1].  Maps closely to a
+// GA-pipeline helper: `ScaleWeight(weightconfig, name, scale)`.  The float
+// clamp pattern (fld + fcomp 0.0f@.rdata 0x10058000 / 1.0f@0x100580c4) is
+// canonical Mr. Elusive — same idiom appears in the live fuzzy code.
+// DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk.
+// Restored IDA-missed stub.  Verified against objdump@10036EB0:
+//   clamp [esp+0xc] (scale) into [0,1]
+//   edx = table->count; if (count <= 0) return
+//   edi = &table->entries[0]; ebp = 0
+//   for each entry { esi = entry->name; inline strcmp(arg2, esi); if equal: break }
+//   on hit: push (scale, entry->fs); call ScaleFuzzySeperator_r
+static void sub_10036EB0(int *table, const char *name, float scale)
+{
+  int count;
+  int i;
+  const char *entry_name;
+  const char *p;
+  const char *q;
+
+  if ( scale < 0.0f )
+    scale = 0.0f;
+  else if ( scale > 1.0f )
+    scale = 1.0f;
+  count = table[0];
+  if ( count <= 0 )
+    return;
+  for ( i = 0; i < count; ++i )
+  {
+    entry_name = (const char *)table[1 + i * 2];
+    p = name;
+    q = entry_name;
+    while ( *p == *q )
+    {
+      if ( !*p )
+      {
+        ScaleFuzzySeperator_r(
+            (fuzzyseperator_t *)table[1 + i * 2 + 1],
+            scale);
+        return;
+      }
+      ++p;
+      ++q;
+    }
+  }
+}
 
 //----- (10036F90) --------------------------------------------------------
 // GA crossover operator: blends two parent trees into a child tree by
