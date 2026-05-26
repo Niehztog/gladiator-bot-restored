@@ -10052,6 +10052,46 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 }
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
 
+//----- (1000F130) --------------------------------------------------------
+// Probes the engine's PointContents() at six positions around a 3D
+// origin, looking for the high-bit-29 content flag (0x20000000 —
+// Gladiator's "do-not-enter / bot-area-block" overlay).  The probes
+// trace a 16x16 box at the eye-height offset (+48 on Z) plus the
+// floor point itself:
+//   (x,   y,   z+48)
+//   (x+8, y+8, z+48)
+//   (x-8, y+8, z+48)
+//   (x-8, y-8, z+48)
+//   (x+8, y-8, z+48)
+//   (x,   y,   z)
+// The first five take the early-exit "return 1" path on a hit; the
+// floor probe returns the bit as 0/1 directly via shr 29 / and 1.
+// Constants from .rdata 0x100580dc/e0/e4 = 16.0f / 8.0f / 48.0f.
+// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1000F130.
+extern int __cdecl sub_10003080(vec3_t point);
+static int __cdecl sub_1000F130(vec3_t origin)
+{
+  vec3_t p;
+
+  p[0] = origin[0];
+  p[1] = origin[1];
+  p[2] = origin[2] + 48.0f;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  p[0] += 8.0f;
+  p[1] += 8.0f;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  p[0] -= 16.0f;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  p[1] -= 16.0f;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  p[0] += 16.0f;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  p[0] -= 8.0f;
+  p[1] += 8.0f;
+  p[2] -= 48.0f;
+  return ((unsigned)sub_10003080(p) >> 29) & 1;
+}
+
 //----- (1000F2C0) --------------------------------------------------------
 int __cdecl AAS_AgainstLadder(int *origin)
 {
@@ -28749,6 +28789,44 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001942: using guessed type _DWORD __cdecl EA_Crouch(_DWORD);
 // 10001BD6: using guessed type _DWORD __cdecl AAS_AreaPresenceType(_DWORD);
+
+//----- (10031FE0) --------------------------------------------------------
+// 2D-direction "travel toward target" helper.  Clears a local
+// bot_moveresult_t, builds the planar (XY) delta from origin to
+// target (target = ent->_f18,_f1C; .z forced to 0), normalizes it in
+// place, then issues EA_Move(ent->_i28, dir, speed) where the speed
+// is clamped to min 100 (.rdata 0x1005807c) and then mapped through
+// the duplicate `fsubr DWORD [0x10058384] = 400.0` pair preserved
+// verbatim from the original DLL — those two reverse-subtracts
+// cancel, leaving speed = 3.0f * max(100.0f, |delta_xy|).  The
+// (cleared + dx/dy-tagged at offsets +0x18/+0x1C/+0x20) movestate is
+// then copied to *out via a 12-dword rep movs.  DEAD in Gladiator —
+// /INCREMENTAL.  Restored from objdump@10031FE0.
+static void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
+{
+  unsigned char mr[48];
+  vec3_t dir;
+  double speed;
+
+  BotClearMoveResult((_DWORD *)mr);
+  dir[2] = 0.0f;
+  dir[0] = *(float *)((char *)ent + 0x18) - origin[0];
+  dir[1] = *(float *)((char *)ent + 0x1C) - origin[1];
+  speed = VectorNormalize(dir);
+  if ( speed < 100.0 )
+    speed = 100.0;
+  /* Mr. Elusive bug preserved verbatim: the .text at 10032042 /
+   * 10032048 contains two consecutive `fsubr DWORD [0x10058384]`
+   * (= 400.0) instructions.  Algebraically they cancel:
+   * 400 - (400 - 3*speed) == 3*speed, so the net effect is just
+   * `speed *= 3`.  Coded as a single multiply here. */
+  speed = speed * 3.0;
+  ((float *)mr)[6] = dir[0];   /* +0x18 */
+  ((float *)mr)[7] = 0.0f;     /* +0x1C */
+  ((float *)mr)[8] = dir[1];   /* +0x20 */
+  EA_Move(*(int *)((char *)ent + 0x28), dir, (float)speed);
+  memcpy(out, mr, 48);
+}
 
 //----- (100320C0) --------------------------------------------------------
 int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3)
