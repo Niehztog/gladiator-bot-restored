@@ -36627,6 +36627,63 @@ int __cdecl StripSingleQuotes(char *string)
   return 0;
 }
 
+//----- (1003FDD0) --------------------------------------------------------
+// Signed float reader: PS_ExpectAnyToken; if token == "-" set sign=-1.0
+// and read another token (PS_ExpectTokenType with type=TT_NUMBER, mask=0);
+// else require token.type == TT_NUMBER, ScriptError'ing on mismatch
+// with .rdata 0x100603c8 "expected float value, found %s\n".  Returns
+// token.floatvalue * sign as a double.
+// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of sub_1003FEC0
+// (integer variant below).  Restored from objdump@1003FDD0; sign is
+// constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
+// 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
+static double __cdecl sub_1003FDD0(int script)
+{
+  double sign;
+  token_t token;
+
+  sign = 1.0;
+  PS_ExpectAnyToken(script, (int)&token);
+  if ( !strcmp(token.string, "-") )
+  {
+    sign = -1.0;
+    PS_ExpectTokenType(script, 3, 0, &token);
+  }
+  else if ( token.type != 3 )
+  {
+    ScriptError(script, "expected float value, found %s\n", token.string);
+  }
+  return token.floatvalue * sign;
+}
+
+//----- (1003FEC0) --------------------------------------------------------
+// Signed integer reader: PS_ExpectAnyToken; if token == "-" set sign=-1
+// and read another token (PS_ExpectTokenType with type=TT_NUMBER,
+// mask=0x1000); else require token.type == TT_NUMBER and reject the
+// float subtype (0x800), ScriptError'ing on mismatch with .rdata
+// 0x100603f0 "expected integer value, found %s\n".  Returns
+// token.intvalue * sign as int.
+// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of sub_1003FDD0
+// (float variant above).  Restored from objdump@1003FEC0.
+static int __cdecl sub_1003FEC0(int script)
+{
+  int sign;
+  token_t token;
+
+  sign = 1;
+  PS_ExpectAnyToken(script, (int)&token);
+  if ( !strcmp(token.string, "-") )
+  {
+    sign = -1;
+    PS_ExpectTokenType(script, 3, 0x1000, &token);
+  }
+  else if ( token.type != 3 || token.subtype == 0x800 )
+  {
+    ScriptError(script, "expected integer value, found %s\n", token.string);
+  }
+  return (int)token.intvalue * sign;
+}
+
 //----- (1003FFB0) --------------------------------------------------------
 void __cdecl SetScriptFlags(script_t *script, int flags)
 {
