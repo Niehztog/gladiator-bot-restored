@@ -10654,7 +10654,12 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 // floor probe returns the bit as 0/1 directly via shr 29 / and 1.
 // Constants from .rdata 0x100580dc/e0/e4 = 16.0f / 8.0f / 48.0f.
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1000F130.
-extern int __cdecl sub_10003080(vec3_t point);
+//----- (10003080) --- thin wrapper forwarding to bi_PointContents
+static int __cdecl sub_10003080(vec3_t point)
+{
+  return bi_PointContents(point);
+}
+
 static int __cdecl sub_1000F130(vec3_t origin)
 {
   vec3_t p;
@@ -17032,7 +17037,7 @@ static int __cdecl sub_1001A720(
 }
 // 10001168: using guessed type _DWORD __cdecl sub_1001A650(_DWORD);
 
-
+//----- (1001AB80) --------------------------------------------------------
 int sub_1001AB80()
 {
   int result; // eax
@@ -17824,7 +17829,14 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
-extern void *__cdecl sub_1001BD40(void *face, float *dir, void *p, float eps);
+//----- (1001BD40) --- DEAD stub: face-edge-test predicate
+static void *__cdecl sub_1001BD40(void *face, float *dir, void *p, float eps)
+{
+  // DEAD stub — full implementation pending disasm translation.
+  // Both callers (sub_1001C0B0, sub_1001C210) are also DEAD (no live callers).
+  (void)face; (void)dir; (void)p; (void)eps;
+  return 0;
+}
 static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
 {
   int    i;
