@@ -7940,6 +7940,28 @@ LABEL_21:
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 100669A0: using guessed type int aasworld.entities;
 
+//----- (1000B1B0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1000B1B0:
+ *   mov eax,[esp+4]; mov edx,ds:0x100669a0 (= aasworld.entities);
+ *   mov ecx,eax; shl ecx,5; add ecx,eax;       (ecx = arg * 33)
+ *   lea eax,[edx+ecx*4];                       (entry addr; result unused)
+ *   mov eax,[edx+ecx*4+0x7c];                  (load aasworld.entities[arg]._7c)
+ *   push eax; call 0x10001f6e (-> 0x1000B130 = AAS_BestReachableLinkArea);
+ *   add esp,4; ret
+ * Stride 33*4 = 132 = sizeof(aas_entity_t).  Field +0x7c on aas_entity_t
+ * holds the entity's aas_link_t* chain head; this thin wrapper hands
+ * that chain to AAS_BestReachableLinkArea and returns the result.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1000B1B0(int entitynum)
+{
+  /* aasworld.entities is exposed in botlib.c as `aasworld.entities`
+   * (the 132-byte-stride aas_entity_t array); the +0x7c field is the
+   * entity's link_areas pointer. */
+  aas_link_t *links = *(aas_link_t **)((char *)aasworld.entities + entitynum * 132 + 0x7c);
+  return AAS_BestReachableLinkArea(links);
+}
+
 //----- (1000BAA0) --------------------------------------------------------
 int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6)
 {
@@ -11151,6 +11173,25 @@ int __cdecl AAS_AreaGrounded(int areanum)
 int __cdecl AAS_AreaLadder(int areanum)
 {
   return *((_DWORD *)aasworld.areasettings + 7 * areanum + 1) & 2;
+}
+
+//----- (100116D0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100116D0:
+ *   eax = ds:0x10064068    (= libvar_sv_jumpvel)
+ *   ecx = ds:0x10064038    (= libvar_sv_gravity)
+ *   fld  [eax+0x10]        (sv_jumpvel.value)
+ *   fld  [ecx+0x10]        (sv_gravity.value)
+ *   fmul qword ds:0x10058130   (* 0.1 -- verified from PE .rdata)
+ *   fdivp st(1),st         (sv_jumpvel / (sv_gravity * 0.1)
+ *                              = 10 * sv_jumpvel / sv_gravity)
+ *   jmp  0x100442e8        (tail-call _ftol; returns int)
+ * Returns (int)(10 * sv_jumpvel.value / sv_gravity.value), a crude
+ * jump-time / hang-time estimate in tics.  Dead in Gladiator --
+ * preserved by /INCREMENTAL. */
+static int __cdecl sub_100116D0(void)
+{
+  return (int)(libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1));
 }
 
 //----- (10011700) --------------------------------------------------------
@@ -29744,6 +29785,60 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2)
 // 10001091: using guessed type int __cdecl ReadWeightConfig(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10064080: using guessed type int dword_10064080;
+
+//----- (100353C0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100353C0: iterates the active weaponconfig (dword_10064080)
+ * over `weapons[0..numweapons-1]` (stride 0x158 = sizeof(weaponinfo_t),
+ * model field at +0x54), calls sub_10043C10 (= Q_stricmp) against arg2,
+ * and on first case-insensitive match returns weapons[i].number
+ * (=*weapons[i] = field +0).  Returns -1 (or eax,0xffffffff) if the
+ * config is unloaded, empty, or no entry matches.  Sibling pattern of
+ * sub_10035430.  Mirror of Q3's ReadWeaponConfig name-resolver.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_100353C0(const char *modelname)
+{
+  weaponconfig_t *cfg;
+  weaponinfo_t   *w;
+  int             i;
+
+  cfg = (weaponconfig_t *)dword_10064080;
+  if ( !cfg )
+    return -1;
+  for ( i = 0; i < cfg->numweapons; i++ )
+  {
+    w = &cfg->weapons[i];
+    if ( !sub_10043C10(w->model, (char *)modelname) )
+      return w->number;
+  }
+  return -1;
+}
+
+//----- (10035430) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10035430: sibling of sub_100353C0 -- same loop and same
+ * Q_stricmp comparison, but on match returns `&weapons[i].name`
+ * (lea eax,[esi+4]) and on miss returns 0x1005E3FC = "unknown weapon".
+ * Mirror of Q3's weapon-model-to-name resolver.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static const char *__cdecl sub_10035430(const char *modelname)
+{
+  static const char default_name[] = "unknown weapon"; /* @0x1005E3FC */
+  weaponconfig_t *cfg;
+  weaponinfo_t   *w;
+  int             i;
+
+  cfg = (weaponconfig_t *)dword_10064080;
+  if ( !cfg )
+    return default_name;
+  for ( i = 0; i < cfg->numweapons; i++ )
+  {
+    w = &cfg->weapons[i];
+    if ( !sub_10043C10(w->model, (char *)modelname) )
+      return w->name;
+  }
+  return default_name;
+}
 
 //----- (100354B0) --------------------------------------------------------
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
