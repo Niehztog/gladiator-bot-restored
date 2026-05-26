@@ -16822,7 +16822,217 @@ int __cdecl sub_1001A650(int a1)
 // 10066740: using guessed type int dword_10066740;
 // 10066744: using guessed type int dword_10066744;
 
-//----- (1001AB80) --------------------------------------------------------
+//----- (1001A720) --------------------------------------------------------
+/* AAS_AlternativeRouteGoals — find clusters of "midrange" jumppad
+ * areas that lie within a 1.5x detour budget of the direct
+ * start→goal route, and emit one alternative-route goal per cluster.
+ *
+ * Algorithm:
+ *   1) Resolve start/goal to areas via AAS_PointAreaNum.
+ *   2) Baseline travel = AAS_AreaTravelTimeToGoalArea(start, goal, tf).
+ *   3) Zero the candidate-flag table dword_10066740 (8 bytes/area).
+ *   4) For each area a in 1..numareas, mark dword_10066740[a].flag=1
+ *      and record travel_to_start/travel_to_goal as words iff:
+ *        - contents byte at areasettings[a]+0 has bit 0x20 set
+ *          (AREACONTENTS_JUMPPAD), AND
+ *        - AAS_AreaReachability(a) != 0 (area has reachabilities), AND
+ *        - travel(start→a, tf) ≤ 1.5 * baseline, AND
+ *        - travel(a→goal,  tf) ≤ 1.5 * baseline.
+ *      Each marked area is logged via Log_Write("%d midrange area %d").
+ *   5) For each ebp in 1..numareas where dword_10066740[ebp].flag!=0:
+ *        - Recursively flood-fill via face neighbors (sub_1001A650)
+ *          which clears flags and accumulates the connected cluster's
+ *          area indices into dword_10066744[0..dword_10066730-1].
+ *        - Compute the cluster centroid as the average of each member
+ *          area's center (aasworld.areas[i]+0x24).
+ *        - Within the cluster, find the area whose center is closest
+ *          to the centroid (VectorLength of the diff).
+ *        - Emit one aas_altroutegoal_t entry:
+ *            vec3   origin = areas[best].center
+ *            int    areanum = best
+ *            u16    travel_to_start  = dword_10066740[best]+4
+ *            u16    travel_to_goal   = dword_10066740[best]+6
+ *            u16    extra_travel     = (start+goal) - baseline
+ *        - Stop once count == maxaltroutegoals.
+ *   6) bi_Print(1, "%d alternative route goals\n", count); return count.
+ *
+ * Output struct (24 bytes, stride matches `add ebx,0x18`):
+ *   +0..0xB  vec3 origin
+ *   +0xC     int  areanum
+ *   +0x10    u16  travel_to_start
+ *   +0x12    u16  travel_to_goal
+ *   +0x14    u16  extra_travel_time
+ *   +0x16    (2 bytes padding)
+ *
+ * Constants (resolved from .rdata):
+ *   ds:0x10058070  (double) 1.5  — detour-budget factor
+ *   ds:0x100580d0  (double) 1.0  — for VectorScale(1.0/N)
+ *   ds:0x1005bf78  "%d midrange area %d"
+ *   ds:0x1005bf54  "%d alternative route goals\n"
+ *
+ * DEAD in Gladiator — no .text caller; /INCREMENTAL leftover.  Q3's
+ * AAS_AlternativeRouteGoals adds a `type` discriminator and explicit
+ * start/goal areanums; this Q2 prototype derives them via
+ * AAS_PointAreaNum inside.  Restored from objdump@1001A720.
+ *
+ * Note: the per-iteration Log_Write call passes (counter, areanum) but
+ * counter is `ebx` which the .text only increments AFTER the call —
+ * so the printed counter lags by one (0 for the first match, etc.).
+ * Preserved verbatim.
+ */
+typedef struct aas_altroutegoal_s {
+  vec3_t          origin;
+  int             areanum;
+  unsigned short  travel_to_start;
+  unsigned short  travel_to_goal;
+  unsigned short  extra_travel_time;
+  unsigned short  pad;
+} aas_altroutegoal_t;
+
+static int __cdecl sub_1001A720(
+    vec3_t start, vec3_t goal, int travelflags,
+    aas_altroutegoal_t *altroutegoals, int maxaltroutegoals)
+{
+  int   startareanum;
+  int   goalareanum;
+  int   baseline_travel;
+  short travel_to_start;
+  short travel_to_goal;
+  int   areanum;
+  int   ebp_area;
+  int   i;
+  int   count;
+  int   best_area;
+  char *as_byte;
+  char *areas_base;
+  int  *visit_stack;
+  vec3_t centroid;
+  vec3_t diff;
+  float best_dist;
+  double threshold;
+  float fcount;
+  aas_altroutegoal_t *out;
+
+  startareanum = AAS_PointAreaNum(start);
+  if ( !startareanum )
+    return 0;
+  goalareanum = AAS_PointAreaNum(goal);
+  if ( !goalareanum )
+    return 0;
+
+  baseline_travel = (unsigned short)AAS_AreaTravelTimeToGoalArea(
+      startareanum, goalareanum, travelflags);
+
+  /* Zero candidate flag table: 8 bytes per area. */
+  {
+    int nbytes = 8 * aasworld.numareas;
+    memset((void *)(intptr_t)dword_10066740, 0, nbytes);
+  }
+  count = 0;
+
+  /* Phase 1: mark candidate jumppad areas within 1.5x baseline. */
+  if ( aasworld.numareas > 1 )
+  {
+    as_byte = (char *)aasworld.areasettings + 0x1c; /* areasettings[1] */
+    for ( areanum = 1; areanum < aasworld.numareas; areanum++ )
+    {
+      if ( (as_byte[0] & 0x20)
+        && AAS_AreaReachability(areanum) )
+      {
+        travel_to_start = (short)AAS_AreaTravelTimeToGoalArea(
+            startareanum, areanum, travelflags);
+        if ( travel_to_start )
+        {
+          threshold = (double)(unsigned short)baseline_travel * 1.5;
+          if ( (double)(unsigned short)travel_to_start <= threshold )
+          {
+            travel_to_goal = (short)AAS_AreaTravelTimeToGoalArea(
+                areanum, goalareanum, travelflags);
+            if ( travel_to_goal
+              && (double)(unsigned short)travel_to_goal <= threshold )
+            {
+              *(int   *)(dword_10066740 + 8 * areanum    ) = 1;
+              *(short *)(dword_10066740 + 8 * areanum + 4) = travel_to_start;
+              *(short *)(dword_10066740 + 8 * areanum + 6) = travel_to_goal;
+              /* Log_Write("%d midrange area %d", count_pre_inc, areanum) */
+              Log_Write("%d midrange area %d", count, areanum);
+              count++;
+            }
+          }
+        }
+      }
+      as_byte += 0x1c;
+    }
+  }
+
+  /* Phase 2: flood-fill each remaining candidate cluster and emit
+   * one alt-route goal per cluster (centroid → nearest member). */
+  count = 0;
+  out = altroutegoals;
+  areas_base  = (char *)aasworld.areas;
+  visit_stack = (int *)(intptr_t)dword_10066744;
+
+  for ( ebp_area = 1; ebp_area < aasworld.numareas; ebp_area++ )
+  {
+    if ( !*(int *)(dword_10066740 + 8 * ebp_area) )
+      continue;
+
+    dword_10066730 = 0;
+    sub_1001A650(ebp_area);          /* fills visit_stack[0..N-1] */
+
+    centroid[0] = 0.0f;
+    centroid[1] = 0.0f;
+    centroid[2] = 0.0f;
+    for ( i = 0; i < dword_10066730; i++ )
+    {
+      char *a = areas_base + 48 * visit_stack[i];
+      centroid[0] += *(float *)(a + 0x24);
+      centroid[1] += *(float *)(a + 0x28);
+      centroid[2] += *(float *)(a + 0x2c);
+    }
+    fcount = (float)(1.0 / (double)dword_10066730);
+    VectorScale(centroid, fcount, centroid);
+
+    best_dist = 1000000.0f;          /* 0x497423F0 */
+    best_area = 0;
+    for ( i = 0; i < dword_10066730; i++ )
+    {
+      char *a = areas_base + 48 * visit_stack[i];
+      double d;
+      diff[0] = centroid[0] - *(float *)(a + 0x24);
+      diff[1] = centroid[1] - *(float *)(a + 0x28);
+      diff[2] = centroid[2] - *(float *)(a + 0x2c);
+      d = VectorLength(diff);
+      if ( (float)d < best_dist )
+      {
+        best_dist = (float)d;
+        best_area = visit_stack[i];
+      }
+    }
+
+    {
+      char *a = areas_base + 48 * best_area;
+      out->origin[0]         = *(float *)(a + 0x24);
+      out->origin[1]         = *(float *)(a + 0x28);
+      out->origin[2]         = *(float *)(a + 0x2c);
+      out->areanum           = best_area;
+      out->travel_to_start   = *(unsigned short *)(dword_10066740 + 8 * best_area + 4);
+      out->travel_to_goal    = *(unsigned short *)(dword_10066740 + 8 * best_area + 6);
+      out->extra_travel_time = (unsigned short)(
+          out->travel_to_start + out->travel_to_goal - (unsigned short)baseline_travel);
+      out++;
+    }
+    count++;
+    if ( count >= maxaltroutegoals )
+      break;
+  }
+
+  bi_Print(1, "%d alternative route goals\n", count);
+  return count;
+}
+// 10001168: using guessed type _DWORD __cdecl sub_1001A650(_DWORD);
+
+
 int sub_1001AB80()
 {
   int result; // eax
