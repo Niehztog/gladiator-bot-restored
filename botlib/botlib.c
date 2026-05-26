@@ -26387,6 +26387,133 @@ LABEL_14:
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
+//----- (1002CF40) --------------------------------------------------------
+/* sub_1002CF40 — DEAD `BotDumpReplyChat`.  Restored from
+ * objdump@0x1002CF40 (~221 instructions).  String table contains
+ * "BotDumpReplyChat:\n" @0x1005D54C (function-name banner header),
+ * confirming the identity.
+ *
+ * Walks the bot_replychat_t chain pointed to by arg0 and dumps each
+ * entry to Log_FilePointer() in the same `[<LHS>] = <weight>\n{\n
+ * \t"chat1";\n\t"chat2";\n}\n` syntax that sub_1002E5D0 generates
+ * for in-memory weight rules — but here the LHS-pattern formatter is
+ * inlined again (Mr. Elusive duplicated the dumper instead of
+ * sharing one helper), and after the LHS terminator each entry's
+ * own quoted-chat list (replychat->chats at +0x0C) is enumerated.
+ *
+ * Replychat node layout (offsets verified from the .text):
+ *   +0x00  lhs_node_t *lhs          (linked-list head — same node
+ *                                     layout as sub_1002E5D0 takes)
+ *   +0x04  float       weight
+ *   +0x08  ???                       (unused by this dumper)
+ *   +0x0C  chat_str_t *chats         (linked list of chat strings,
+ *                                     each {char *string @+0, ?@+4,
+ *                                     chat_str_t *next @+8})
+ *   +0x10  bot_replychat_t *next
+ *
+ * Per replychat entry the output is:
+ *   "["                                          (open LHS)
+ *   <LHS expansion — same flag cascade as sub_1002E5D0>
+ *   "] = %1.0f\n"   using replychat->weight     (close LHS + weight)
+ *   "{\n"
+ *   for each chat in replychat->chats:
+ *     "\t\"%s\";\n"
+ *   "}\n"
+ *
+ * Strings: "BotDumpReplyChat:\n" @0x1005D54C, "[" @0x1005C65C,
+ *          "&" @0x1005D548, "!" @0x1005D544, "name" @0x1005C1A0,
+ *          "female" @0x1005D53C, "male" @0x1005D534, "it" @0x1005D530,
+ *          "(" @0x1005D334, "\"%s\"" @0x1005D33C, "%d" @0x1005D37C,
+ *          ", " @0x1005D280, ")" @0x1005D32C, "] = %1.0f\n" @0x1005D520,
+ *          "{\n" @0x1005D51C, "\t\"%s\";\n" @0x1005D510, "}\n" @0x1005D338.
+ *
+ * Thunks: 0x1000120D → 0x10038EC0 = Log_FilePointer (returns FILE*),
+ *         0x10045898               = fprintf.
+ *
+ * DEAD in Gladiator — no live caller. */
+static void __cdecl sub_1002CF40(bot_replychat_t *replychat)
+{
+  struct lhs_inner { int type; char **strptr_ptr; int intval; struct lhs_inner *next; };
+  struct lhs_node  { int flags; char *strptr;    struct lhs_inner *inner; struct lhs_node *next; };
+
+  FILE             *log;
+  bot_replychat_t  *esi;
+  struct lhs_node  *ebx;
+  struct lhs_inner *p;
+  char             *chat;
+  int               flags;
+
+  log = Log_FilePointer();
+  if (!log)
+    return;
+  fprintf(log, "BotDumpReplyChat:\n");
+
+  esi = replychat;
+  if (!esi)
+    return;
+
+  do {
+    fprintf(log, "[");
+
+    ebx = *(struct lhs_node **)esi;
+    if (ebx) {
+      do {
+        flags = ebx->flags;
+        if (flags & 0x01)
+          fprintf(log, "&");
+        else if (flags & 0x02)
+          fprintf(log, "!");
+
+        flags = ebx->flags;
+        if (flags & 0x04) {
+          fprintf(log, "name");
+        } else if (flags & 0x20) {
+          fprintf(log, "female");
+        } else if (flags & 0x40) {
+          fprintf(log, "male");
+        } else if (flags & 0x80) {
+          fprintf(log, "it");
+        } else if (flags & 0x10) {
+          fprintf(log, "(");
+          p = ebx->inner;
+          if (p) {
+            do {
+              if (p->type == 2) {
+                fprintf(log, "\"%s\"", *p->strptr_ptr);
+              } else {
+                fprintf(log, "%d", p->intval);
+              }
+              if (p->next)
+                fprintf(log, ", ");
+              p = p->next;
+            } while (p);
+          }
+          fprintf(log, ")");
+        } else if (flags & 0x08) {
+          fprintf(log, "\"%s\"", ebx->strptr);
+        }
+
+        if (ebx->next) {
+          fprintf(log, ", ");
+        } else {
+          fprintf(log, "] = %1.0f\n", *(float *)((char *)esi + 4));
+        }
+        ebx = ebx->next;
+      } while (ebx);
+    }
+
+    fprintf(log, "{\n");
+    chat = *(char **)((char *)esi + 0x0C);
+    while (chat) {
+      fprintf(log, "\t\"%s\";\n", *(char **)chat);
+      chat = *(char **)(chat + 8);
+    }
+    fprintf(log, "}\n");
+
+    esi = *(bot_replychat_t **)((char *)esi + 0x10);
+  } while (esi);
+}
+
 //----- (1002D1B0) --------------------------------------------------------
 // Q3 equivalent: BotFreeReplyChat.  Frees the entire reply-chat chain.
 void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat)
