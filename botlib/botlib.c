@@ -559,7 +559,7 @@ int __cdecl AAS_PointContents(vec3_t point);
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
-qboolean __cdecl AAS_InsideFace(aas_face_t *a1);
+qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon);
 qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
@@ -17737,33 +17737,50 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BD40) --------------------------------------------------------
-qboolean __cdecl AAS_InsideFace(aas_face_t *a1)
+// Restored from objdump@1001BD40.  IDA's 1-arg decompile (`int sub_1001BD40(int a1)`
+// with "v3 possibly undefined" — see reference/ida/gladiator.dll.c:16267) was
+// structurally broken: the disasm shows 4 args (face, pnormal, point, epsilon)
+// and an inlined CrossProduct + DotProduct loop matching Q3's AAS_InsideFace
+// (be_aas_route.c).  Caller cleanup `add esp,0x10` at 1001c159 / 1001c28b
+// confirms the 4-dword stack-arg layout.
+// DEAD in Gladiator — only reachable via /INCREMENTAL thunks
+// (0x1000119f → 1001BD40) from sub_1001C0B0 and sub_1001C210.
+qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon)
 {
-  char v3; // c0
-  bool v4; // cc
-  int v5; // [esp+10h] [ebp-20h]
-  int v6; // [esp+14h] [ebp-1Ch]
-  char *v7; // [esp+34h] [ebp+4h]
+  int eidx;
+  int v8;
+  char *edge;
+  char *v7;
+  float *v9;
+  vec3_t v14;
+  vec3_t v15;
+  float v11, v12, v13;
+  float v17;
+  int v16;
 
   if ( !aasworld.loaded )
     return 0;
-  v5 = 0;
-  v6 = a1->numedges;
-  if ( v6 > 0 )
+  v17 = -epsilon;
+  for ( v16 = 0; v16 < face->numedges; v16++ )
   {
-    v7 = (char *)aasworld.edgeindex + 4 * a1->firstedge;
-    while ( !v3 )
-    {
-      v4 = ++v5 < v6;
-      v7 += 4;
-      if ( !v4 )
-        return 1;
-    }
-    return 0;
+    eidx = ((int *)aasworld.edgeindex)[face->firstedge + v16];
+    edge = (char *)aasworld.edges + 8 * abs32(eidx);
+    v8 = eidx < 0;
+    v7 = (char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * v8);
+    v9 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * !v8));
+    v14[0] = *v9 - *(float *)v7;
+    v14[1] = v9[1] - *(float *)(v7 + 4);
+    v14[2] = v9[2] - *(float *)(v7 + 8);
+    v11 = point[0] - *(float *)v7;
+    v12 = point[1] - *(float *)(v7 + 4);
+    v13 = point[2] - *(float *)(v7 + 8);
+    CrossProduct(v14, pnormal, v15);
+    if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
+      return 0;
   }
   return 1;
 }
-// 1001BE65: variable 'v3' is possibly undefined
+// 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BF00) --------------------------------------------------------
@@ -17821,7 +17838,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 //----- (1001C0B0) --------------------------------------------------------
 // Scans an area's face list for the first face whose faceflags byte
 // (offset +4) has bit 0x04 set, and that survives a predicate-call
-// into sub_1001BD40 with a +Z or -Z unit vector (chosen by the sign
+// into AAS_InsideFace with a +Z or -Z unit vector (chosen by the sign
 // of the face plane's z-component) and a 0.01f epsilon.  Returns
 // the matching face pointer or NULL.  aasworld globals consulted:
 // areas (0x1006694c, stride 48 — numfaces at +4, firstface at +8),
@@ -17829,14 +17846,6 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
-//----- (1001BD40) --- DEAD stub: face-edge-test predicate
-static void *__cdecl sub_1001BD40(void *face, float *dir, void *p, float eps)
-{
-  // DEAD stub — full implementation pending disasm translation.
-  // Both callers (sub_1001C0B0, sub_1001C210) are also DEAD (no live callers).
-  (void)face; (void)dir; (void)p; (void)eps;
-  return 0;
-}
 static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
 {
   int    i;
@@ -17867,7 +17876,7 @@ static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
     dir[0] = 0.0f;
     dir[1] = 0.0f;
     dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
-    if ( sub_1001BD40(face, dir, predicate_arg, 0.01f) )
+    if ( AAS_InsideFace((aas_face_t *)face, dir, (float *)predicate_arg, 0.01f) )
       return face;
   }
   return 0;
@@ -17903,7 +17912,7 @@ static void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dis
 // face the test is planenum XOR arg1->_i20 masked with 0xFFFFFFFE
 // — i.e. "equal except possibly the low bit" (matches the two
 // orientations of a single BSP plane).  On match, calls
-// sub_1001BD40(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
+// AAS_InsideFace(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
 // 0.01f); a non-zero return promotes the face pointer to the result.
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C210.
 static void *__cdecl sub_1001C210(int *gate)
@@ -17938,7 +17947,7 @@ static void *__cdecl sub_1001C210(int *gate)
     if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
     plane = (char *)aasworld.planes + planenum * 20;
-    if ( sub_1001BD40(face, (float *)plane, (char *)gate + 8, 0.01f) )
+    if ( AAS_InsideFace((aas_face_t *)face, (float *)plane, (float *)((char *)gate + 8), 0.01f) )
       return face;
   }
   return 0;
