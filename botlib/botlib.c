@@ -27094,6 +27094,107 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *String2, ...)
   }
 }
 
+//----- (1002E5D0) --------------------------------------------------------
+/* sub_1002E5D0 — DEAD fuzzy-weight LHS / condition dumper.  Restored
+ * from objdump@0x1002E5D0 (~98 instructions, ~131 lines of .text).
+ *
+ * Walks a linked list of fuzzy-rule LHS nodes and pretty-prints the
+ * pattern surrounded by `[...] = <weight>\n{\n` — the standard
+ * Mr. Elusive weight-config syntax.  Sole arg is a pointer to a
+ * { list_head_t *head;  float weight; } pair.
+ *
+ * Per-node flags select prefix + body format:
+ *   0x01  →  prefix "&"   (continued conjunction)
+ *   0x02  →  prefix "!"   (negation)
+ *   0x04  →  body "name"
+ *   0x20  →  body "female"
+ *   0x40  →  body "male"
+ *   0x80  →  body "it"
+ *   0x10  →  body "(<inner1>, <inner2>, ...)" where each inner item is
+ *            either   "\"%s\""   if inner->type == 2 (string ptr at
+ *                                inner->strptr_ptr → *strptr_ptr)
+ *            or       "%d"        for the default branch
+ *                                (inner->intval at +0x8).
+ *   0x08  →  body "\"%s\"" with node->strptr (at node+4)
+ *
+ * Between nodes:  ", "
+ * After last node: "] = %1.0f\n" using *(float *)(arg0 + 4)
+ * Tail (always):  "{\n"
+ *
+ * Strings: "[" @0x1005c65c, "&" @0x1005d548, "!" @0x1005d544,
+ *          "name" @0x1005c1a0, "female" @0x1005d53c, "male" @0x1005d534,
+ *          "it" @0x1005d530, "(" @0x1005d334, "\"%s\"" @0x1005d33c,
+ *          "%d" @0x1005d37c, ", " @0x1005d280, ")" @0x1005d32c,
+ *          "] = %1.0f\n" @0x1005d520, "{\n" @0x1005d51c.
+ *
+ * Thunk: ds:0x10063FE8 = bi_Print.
+ *
+ * DEAD in Gladiator — no live caller. */
+static void __cdecl sub_1002E5D0(void *arg)
+{
+  struct lhs_inner { int type; int *strptr_ptr; int intval; struct lhs_inner *next; };
+  struct lhs_node  { int flags; int strptr;    struct lhs_inner *inner; struct lhs_node *next; };
+
+  struct lhs_node  *edi;
+  struct lhs_inner *esi;
+  int flags;
+
+  bi_Print(PRT_MESSAGE, "[");
+
+  edi = *(struct lhs_node **)arg;
+  if (!edi)
+    goto done;
+
+  do {
+    flags = edi->flags;
+    if (flags & 0x01)
+      bi_Print(PRT_MESSAGE, "&");
+    else if (flags & 0x02)
+      bi_Print(PRT_MESSAGE, "!");
+
+    flags = edi->flags;
+    if (flags & 0x04) {
+      bi_Print(PRT_MESSAGE, "name");
+    } else if (flags & 0x20) {
+      bi_Print(PRT_MESSAGE, "female");
+    } else if (flags & 0x40) {
+      bi_Print(PRT_MESSAGE, "male");
+    } else if (flags & 0x80) {
+      bi_Print(PRT_MESSAGE, "it");
+    } else if (flags & 0x10) {
+      bi_Print(PRT_MESSAGE, "(");
+      esi = edi->inner;
+      if (esi) {
+        do {
+          if (esi->type == 2) {
+            bi_Print(PRT_MESSAGE, "\"%s\"", *esi->strptr_ptr);
+          } else {
+            bi_Print(PRT_MESSAGE, "%d", esi->intval);
+          }
+          if (esi->next)
+            bi_Print(PRT_MESSAGE, ", ");
+          esi = esi->next;
+        } while (esi);
+      }
+      bi_Print(PRT_MESSAGE, ")");
+    } else if (flags & 0x08) {
+      bi_Print(PRT_MESSAGE, "\"%s\"", edi->strptr);
+    }
+
+    if (edi->next) {
+      bi_Print(PRT_MESSAGE, ", ");
+    } else {
+      bi_Print(PRT_MESSAGE, "] = %1.0f\n", *(float *)((char *)arg + 4));
+    }
+
+    edi = edi->next;
+  } while (edi);
+
+done:
+  bi_Print(PRT_MESSAGE, "{\n");
+}
+// 10063FE8: using guessed type int (__cdecl *bi_Print)(int, const char *, ...);
+
 //----- (1002E7D0) --------------------------------------------------------
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
 {
