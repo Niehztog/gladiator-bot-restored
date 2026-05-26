@@ -34901,6 +34901,55 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
   return src;
 }
 
+//----- (1003DF30) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003DF30 -- the memory-buffer twin of LoadSourceFile
+ * (0x1003DE60):
+ *   push args; call LoadScriptMemory@0x10040380 via thunk 0x100015A0
+ *   mov ebx,eax; xor ebp,ebp
+ *   test ebx,ebx; je return_null
+ *   mov [ebx+0x568],ebp                      ;; script->next = NULL
+ *   push 0x658; call GetMemory@0x10039040 via thunk 0x10001AB4
+ *   mov esi,eax; mov ecx,0x196; xor eax,eax; rep stosd  ;; memset(src,0,0x658)
+ *   push 0x104; push arg3(name); push esi
+ *   call memcpy@0x10044DE0                   ;; memcpy(src->filename, name, 0x104)
+ *   mov [esi+0x20C],ebx                      ;; src->scriptstack = script
+ *   mov [esi+0x210],ebp                      ;; src->tokens      = NULL
+ *   mov [esi+0x214],ebp                      ;; src->defines     = NULL
+ *   mov [esi+0x21C],ebp                      ;; src->indentstack = NULL
+ *   mov [esi+0x220],ebp                      ;; src->skip        = 0
+ *   push 0x1000; call GetClearedMemory@0x10039000 via thunk 0x10001479
+ *   mov [esi+0x218],eax                      ;; src->definehash
+ *   push esi; call PC_AddGlobalDefinesToSource@0x1003B680 via 0x1000167C
+ *   mov eax,esi; ret
+ * Canonical Q3 LoadSourceMemory(char *ptr, int length, char *name): same
+ * structure as LoadSourceFile above but uses LoadScriptMemory to wrap
+ * an already-in-memory script buffer.  The 0x104-byte memcpy of the
+ * name buffer is verbatim from the binary (LoadSourceFile uses
+ * strncpy; the memory variant uses raw memcpy).  Dead in Gladiator --
+ * preserved by /INCREMENTAL. */
+static source_t *__cdecl sub_1003DF30(const void *buf, unsigned int length, const char *name)
+{
+  script_t *script;
+  source_t *src;
+
+  script = LoadScriptMemory(buf, length, name);
+  if ( !script )
+    return NULL;
+  script->next = NULL;
+  src = (source_t *)GetMemory(sizeof(source_t));
+  memset(src, 0, sizeof(source_t));
+  memcpy(src->filename, name, 0x104);
+  src->scriptstack  = script;
+  src->tokens       = NULL;
+  src->defines      = NULL;
+  src->indentstack  = NULL;
+  src->skip         = 0;
+  src->definehash   = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
+  PC_AddGlobalDefinesToSource(src);
+  return src;
+}
+
 //----- (1003E000) --------------------------------------------------------
 void __cdecl FreeSource(source_t *src)
 {
