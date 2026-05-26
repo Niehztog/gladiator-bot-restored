@@ -35073,7 +35073,6 @@ const char **__cdecl FindField(const char **a1, const char *a2)
   return &a1[7 * v3];
 }
 
-//----- (10040540) --------------------------------------------------------
 /* Field-table slot helpers — field tables are emitted as char *[7] entries
  * to preserve binary layout via slot indices (not byte offsets) so they
  * work on both 32-bit and 64-bit (slot size = sizeof(char *)).
@@ -35088,6 +35087,7 @@ static inline float fielddef_float(char **f, int slot) {
     return r;
 }
 
+//----- (10040540) --------------------------------------------------------
 int __cdecl ReadNumber(source_t *src, char **field, float *out)
 {
   int v3; // esi
