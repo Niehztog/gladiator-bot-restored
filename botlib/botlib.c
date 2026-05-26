@@ -26050,6 +26050,24 @@ static void __cdecl sub_1002EAF0(int *out, int b)
     *out = 0;
 }
 
+//----- (1002EB30) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002EB30:
+ *   mov eax,[esp+4]; xor ecx,ecx; mov [eax+4],ecx; mov [eax+8],ecx;
+ *   mov [eax+0xc],ecx; mov [eax+0x10],ecx; mov word ptr [eax+0x12],cx;
+ *   mov edx,[esp+8]; push 0xf; push edx; lea ecx,[eax+4]; push ecx;
+ *   call 0x10044de0 (= strncpy); add esp,0xc; ret
+ * Zeros a 15-byte slot at arg1+4 (offsets +4..+0x12, i.e. 4 dwords
+ * + 1 word + 1 byte trailing terminator), then strncpy's arg2 into
+ * the same slot with a 15-byte limit.  Bot-name-style fixed-width
+ * setter.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_1002EB30(void *target, const char *src)
+{
+  char *dst = (char *)target + 4;
+  memset(dst, 0, 15);
+  strncpy(dst, src, 15);
+}
+
 //----- (1002EBB0) --------------------------------------------------------
 int BotSetupChatAI()
 {
@@ -28995,6 +29013,25 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
 // 10001992: using guessed type _DWORD __cdecl EA_Attack(_DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
+//----- (10034070) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10034070:
+ *   sub esp,0x30; lea eax,[esp+0]; push eax;
+ *   call 0x100015eb (-> 0x10031e20 = BotClearMoveResult);
+ *   add esp,4; mov edi,[esp+0x34]; lea esi,[esp+0];
+ *   mov ecx,0xc; rep movsd; add esp,0x30; ret
+ * Allocates a 48-byte (bot_moveresult_t-sized) local, hands it to
+ * BotClearMoveResult to zero out the leading 6 dwords, then copies
+ * the entire 48-byte buffer to the caller-supplied output via
+ * rep movsd.  Equivalent to: bot_moveresult_t r; BotClearMoveResult(&r);
+ * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_10034070(void *out)
+{
+  int local[12];
+  BotClearMoveResult((_DWORD *)local);
+  memcpy(out, local, 48);
+}
+
 //----- (100340B0) --------------------------------------------------------
 int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
 {
@@ -30493,6 +30530,28 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
   while ( fs );
 }
 // 10001D5C: using guessed type _DWORD __cdecl EvolveFuzzySeperator_r(_DWORD);
+
+//----- (10036DF0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10036DF0:
+ *   push ebx; mov ebx,[esp+8]; push esi; xor esi,esi;
+ *   cmp [ebx],esi; jle exit; push edi; lea edi,[ebx+8];
+ *   loop: mov eax,[edi]; push eax;
+ *         call 0x10001d5c (-> 0x10036cd0 = EvolveFuzzySeperator_r);
+ *         add esp,4; mov eax,[ebx]; inc esi; add edi,8;
+ *         cmp esi,eax; jl loop; pop edi;
+ *   exit: pop esi; pop ebx; ret
+ * Iterates an array at arg+8 (stride 8 bytes, count at arg+0) and
+ * calls EvolveFuzzySeperator_r on the first dword of each entry.
+ * Outer driver in the GA pipeline -- evolves a list of fuzzy-logic
+ * subtrees (matching Q3's EvolveFuzzyNetwork over BotMutateGoalFuzzyLogic).
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_10036DF0(int *arr)
+{
+  int i;
+  for ( i = 0; i < arr[0]; ++i )
+    EvolveFuzzySeperator_r((fuzzyseperator_t *)((int *)(arr + 2))[i * 2]);
+}
 
 //----- (10036E30) --------------------------------------------------------
 // Uniformly rescale all weights in a subtree by a scalar factor.
@@ -35481,6 +35540,26 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
 static void __cdecl sub_1003FC10(void *ctx)
 {
   *(int *)((char *)ctx + 0x128) = 1;
+}
+
+//----- (1003FC70) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003FC70:
+ *   mov edx,[esp+4]; mov ecx,[edx+0x114]; mov eax,[edx+0x118];
+ *   cmp ecx,eax; je _eof; mov al,[ecx]; inc ecx;
+ *   mov [edx+0x114],ecx; ret    (returns the read byte in AL)
+ *   _eof: xor al,al; ret
+ * Reads one byte from a [cursor..end) buffer carried in a PC-context
+ * (+0x114 = cursor, +0x118 = end), advances the cursor, and returns
+ * the byte; returns 0 at EOF.  Standalone getc-style reader.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static unsigned char __cdecl sub_1003FC70(void *ctx)
+{
+  char **cursor = (char **)((char *)ctx + 0x114);
+  char  *end    = *(char **)((char *)ctx + 0x118);
+  if ( *cursor == end )
+    return 0;
+  return *(*cursor)++;
 }
 
 //----- (1003FCB0) --------------------------------------------------------
