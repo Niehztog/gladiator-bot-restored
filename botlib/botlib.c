@@ -414,7 +414,7 @@ int AAS_RemoveAllPortals();
 int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
 int AAS_ClearShownDebugLines();
-int __cdecl AAS_DebugLine(int start, int end, int color);
+int __cdecl AAS_DebugLine(float *start, float *end, int color);
 int __cdecl AAS_DrawPermanentCross(float *, float, int); // idb
 int __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
 void __cdecl AAS_DrawCross(float *origin, float size, int color);
@@ -2080,7 +2080,7 @@ int dword_10063FC0; // weak
 int dword_10063FC4; // weak
 int dword_10063FC8; // weak
 int dword_10063FCC; // weak
-int (__cdecl *dword_10063FE0)(_DWORD, _DWORD); // weak
+void (__cdecl *dword_10063FE0)(int, ea_state_t *); // bi_BotInput — engine: void(int client, bot_input_t *bi); ea_state_t layout-matches bot_input_t (both 36 B)
 void (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 void *(__cdecl *bi_Trace)(void *retbuf, float *start, float *mins, float *maxs, float *end, int passent, int contentmask); // weak
@@ -2088,7 +2088,7 @@ int (__cdecl *bi_PointContents)(float *point); // engine's BSP-level CONTENTS_* 
 void *(__cdecl *bi_GetMemory)(int); // weak — engine malloc; returns real pointer (was IDA-typed as int)
 void  (__cdecl *bi_FreeMemory)(void *); // weak — engine free
 int (*bi_DebugLineCreate)(void); // weak
-int (__cdecl *bi_DebugLineShow)(_DWORD, _DWORD, _DWORD, _DWORD); // weak
+int (__cdecl *bi_DebugLineShow)(int, float *, float *, int); // engine: void(int, vec3_t, vec3_t, int) — vec3_t decays to float* across the ABI boundary
 int botlibsetup; // weak
 int maxentities; // weak
 int maxclients; // weak
@@ -6735,7 +6735,7 @@ int AAS_ClearShownDebugLines()
 // 100670C0: using guessed type int dword_100670C0[];
 
 //----- (100098B0) --------------------------------------------------------
-int __cdecl AAS_DebugLine(int start, int end, int color)
+int __cdecl AAS_DebugLine(float *start, float *end, int color)
 {
   int v3; // esi
   int v4; // eax
@@ -6792,7 +6792,7 @@ int __cdecl AAS_DrawPermanentCross(float *origin, float size, int color)
     v9[2] = v5;
     v10[i] = v6;
     v9[i] -= size;
-    AAS_DebugLine((intptr_t)v10, (intptr_t)v9, color);
+    AAS_DebugLine(v10, v9, color);
     v7 = bi_DebugLineCreate();
     result = bi_DebugLineShow(v7, v10, v9, color);
   }
@@ -6902,8 +6902,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = -202116623;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (char *)aasworld.vertexes + 12 * *v15,
-                   (char *)aasworld.vertexes + 12 * v15[1],
+                   (float *)((char *)aasworld.vertexes + 12 * *v15),
+                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
                    -202116623);
       }
       else if ( v16 == -202116623 )
@@ -6911,8 +6911,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = -791555373;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (char *)aasworld.vertexes + 12 * *v15,
-                   (char *)aasworld.vertexes + 12 * v15[1],
+                   (float *)((char *)aasworld.vertexes + 12 * *v15),
+                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
                    -791555373);
       }
       else
@@ -6920,8 +6920,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = v16 != -791555373 ? -218959632 : -589439265;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (char *)aasworld.vertexes + 12 * *v15,
-                   (char *)aasworld.vertexes + 12 * v15[1],
+                   (float *)((char *)aasworld.vertexes + 12 * *v15),
+                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
                    v16);
       }
       ++v11;
@@ -6972,7 +6972,7 @@ void __cdecl AAS_DrawCross(float *origin, float size, int color)
     v8[2] = v5;
     v9[i] = v6;
     v8[i] -= size;
-    AAS_DebugLine((intptr_t)v9, (intptr_t)v8, color);
+    AAS_DebugLine(v9, v8, color);
   }
 }
 
@@ -7040,9 +7040,9 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   v15[2] = v13[2];
   VectorMA((float *)v13, 6.0, (float *)v14, (float *)v13);
   VectorMA((float *)v15, -6.0, (float *)v14, (float *)v15);
-  AAS_DebugLine((int)start, (int)end, linecolor);
-  AAS_DebugLine((int)v13, (int)end, arrowcolor);
-  AAS_DebugLine((int)v15, (int)end, arrowcolor);
+  AAS_DebugLine(start, end, linecolor);
+  AAS_DebugLine(v13, end, arrowcolor);
+  AAS_DebugLine(v15, end, arrowcolor);
 }
 // 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
@@ -10142,7 +10142,7 @@ LABEL_38:
       {
         if ( v80.startsolid )
           bi_Print(1, aPredictmovemen);
-        AAS_DebugLine((int)org, (int)v80.endpos, -218959632);
+        AAS_DebugLine(org, v80.endpos, -218959632);
       }
       org[0] = v80.endpos[0];
       org[1] = v80.endpos[1];
@@ -10172,7 +10172,7 @@ LABEL_38:
               start[0] = org[0];
               start[1] = org[1];
               start[2] = v83.endpos[2];
-              AAS_DebugLine((int)org, (int)start, -202116623);
+              AAS_DebugLine(org, start, -202116623);
             }
             org[2] = v83.endpos[2];
             goto LABEL_66;
