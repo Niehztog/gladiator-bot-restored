@@ -31510,6 +31510,45 @@ void __cdecl LibVarSet(char *name, char *value)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 
+//----- (10038B80) --------------------------------------------------------
+/* LibVarGetModified — restored IDA-missed dead-code stub.  Verified
+ * against objdump@10038B80:
+ *   push [esp+4]; call thunk@0x10001C71 (→ LibVarGet);
+ *   add esp,4; test eax,eax; je _ret0;
+ *   mov eax,[eax+0xc]; ret    ; (+0xc = libvar_t::modified)
+ *   _ret0: xor eax,eax; ret
+ * Returns the `modified` flag for the libvar with the given name, or 0
+ * if no such libvar exists.  Direct counterpart of Q3 botlib's
+ * LibVarGetModified.  Dead in Gladiator — never reached via thunk
+ * 0x10001C71; preserved by /INCREMENTAL. */
+static int __cdecl sub_10038B80(const char *name)
+{
+  libvar_t *v;
+
+  v = LibVarGet(name);
+  if ( v )
+    return v->modified;
+  return 0;
+}
+
+//----- (10038BB0) --------------------------------------------------------
+/* LibVarClearModified — restored IDA-missed dead-code stub.  Verified
+ * against objdump@10038BB0:
+ *   push [esp+4]; call thunk@0x10001C71 (→ LibVarGet);
+ *   add esp,4; test eax,eax; je _ret;
+ *   mov DWORD[eax+0xc],0; _ret: ret
+ * Clears the `modified` flag on the libvar with the given name (no-op
+ * if it doesn't exist).  Direct counterpart of Q3 botlib's
+ * LibVarClearModified.  Dead in Gladiator — preserved by /INCREMENTAL. */
+static void __cdecl sub_10038BB0(const char *name)
+{
+  libvar_t *v;
+
+  v = LibVarGet(name);
+  if ( v )
+    v->modified = 0;
+}
+
 //----- (10038BE0) --------------------------------------------------------
 /* Log_Open: faithful transcription of the disassembly at 0x10038BE0.  IDA's
  * decompiler invented an `a1@<st0>` first parameter because the function
@@ -34395,6 +34434,32 @@ int __cdecl PC_UnreadLastToken(source_t *src)
   return PC_UnreadSourceToken(src, &src->cachedtoken);
 }
 
+//----- (1003DD70) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003DD70:
+ *   push [esp+8]; push [esp+8]; call thunk@0x10001631; add esp,8; ret
+ * Thunk 0x10001631 targets PC_UnreadSourceToken (0x100395F0).  Pure
+ * pass-through wrapper — likely the abandoned `PC_UnreadToken(src,
+ * token)` external entry point that paralleled PC_UnreadLastToken.
+ * Dead in Gladiator — preserved by /INCREMENTAL. */
+static void __cdecl sub_1003DD70(source_t *src, const void *token)
+{
+  PC_UnreadSourceToken(src, token);
+}
+
+//----- (1003DE40) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003DE40:
+ *   mov ecx,[esp+4]; mov eax,[esp+8]; mov [ecx+0x208],eax; ret
+ * Setter that writes a dword to offset 0x208 of the supplied struct
+ * (lies inside source_t's reserved _pad_1 region between +312 and
+ * +523, so the field carries no live name in the present
+ * reconstruction).  Dead in Gladiator — preserved by /INCREMENTAL. */
+static void __cdecl sub_1003DE40(void *p, int value)
+{
+  *(int *)((char *)p + 0x208) = value;
+}
+
 //----- (1003DE60) --------------------------------------------------------
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
 {
@@ -35403,6 +35468,20 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
 }
 // 1003F9CD: variable 'v3' is possibly undefined
 // 1000127B: using guessed type int __cdecl PS_ReadToken(_DWORD, _DWORD);
+
+//----- (1003FC10) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003FC10:
+ *   mov eax,[esp+4]; mov DWORD[eax+0x128],1; ret
+ * Setter that marks the "loaded" flag (+0x128 = 1) on a preprocessor
+ * context struct.  Pairs with the init at 0x1003FFF0 (which clears
+ * the same flag) and the bulk-load helper at 0x1003FC30 (which fills
+ * the +0x138 macro table then sets the flag).  Dead in Gladiator —
+ * preserved by /INCREMENTAL. */
+static void __cdecl sub_1003FC10(void *ctx)
+{
+  *(int *)((char *)ctx + 0x128) = 1;
+}
 
 //----- (1003FCB0) --------------------------------------------------------
 int __cdecl StripDoubleQuotes(char *string)
