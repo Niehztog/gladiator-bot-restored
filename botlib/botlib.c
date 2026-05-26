@@ -7208,6 +7208,82 @@ int __cdecl AAS_DrawPermanentCross(float *origin, float size, int color)
 // 10063FFC: using guessed type int (*bi_DebugLineCreate)(void);
 // 10064004: using guessed type int (__cdecl *bi_DebugLineShow)(_DWORD, _DWORD, _DWORD, _DWORD);
 
+//----- (10009A10) --------------------------------------------------------
+/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
+ * from objdump@10009A10 (size 0x208 / 168 lines).  Identity: plane-
+ * projection debug-X visualizer.  Given a 3D point, a plane (normal,
+ * dist) and a target axis index in {0,1,2}, construct four corners of a
+ * 12x12 square around the point in the two transverse axes (±6 from
+ * .rdata 0x1005804c = 6.0f), then for each corner solve the plane
+ * equation `dot(n, p) = d` for the chosen axis to project the corner
+ * onto the plane.  Draws an X (the two diagonals of the projected
+ * square) via bi_DebugLineShow using two line-IDs allocated from the
+ * shared dword_100670C0/dword_10066CC0/dword_10066B14 slot table (same
+ * pattern as sub_10009CB0).
+ *
+ *   arg0 = vec3 origin point (read 4 times into copies A/B/C/D)
+ *   arg1 = vec3 plane normal (3 floats, indexed by {ecx,esi,edx} axis
+ *          permutation = {axis, (axis+1)%3, (axis+2)%3})
+ *   arg2 = float plane distance d
+ *   arg3 = int axis (selects which coord gets projected)
+ *   arg4 = int color (passed to bi_DebugLineShow)
+ *
+ * Corners (in (esi,edx) plane indices, projected on ecx axis to plane):
+ *   A = origin + (-6,-6)   B = origin + (+6,+6)   line 1: A → B
+ *   C = origin + (+6,-6)   D = origin + (-6,+6)   line 2: C → D
+ *
+ * DEAD in shipped Gladiator (no .text caller).  Probably the inner of an
+ * AAS_DrawAreaPlane debug pair that was excised before ship — only the
+ * sibling sub_10009CB0 (DrawDebugCube) made it into the call graph. */
+static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int color)
+{
+  vec3_t cA, cB, cC, cD;
+  int    ix = axis % 3;           /* ecx */
+  int    iy = (axis + 1) % 3;     /* esi */
+  int    iz = (axis + 2) % 3;     /* edx */
+  int    line_id[2];
+  int    i, found;
+
+  cA[0] = origin[0]; cA[1] = origin[1]; cA[2] = origin[2];
+  cB[0] = origin[0]; cB[1] = origin[1]; cB[2] = origin[2];
+  cC[0] = origin[0]; cC[1] = origin[1]; cC[2] = origin[2];
+  cD[0] = origin[0]; cD[1] = origin[1]; cD[2] = origin[2];
+
+  /* perturb iy/iz axes by ±6 to form four corners */
+  cA[iy] -= 6.0f;  cA[iz] -= 6.0f;
+  cB[iy] += 6.0f;  cB[iz] += 6.0f;
+  cC[iy] += 6.0f;  cC[iz] -= 6.0f;
+  cD[iy] -= 6.0f;  cD[iz] += 6.0f;
+
+  /* project each corner onto plane: corner[ix] = (d - n[iy]*c[iy] - n[iz]*c[iz]) / n[ix] */
+  cA[ix] = (dist - normal[iy] * cA[iy] - normal[iz] * cA[iz]) / normal[ix];
+  cB[ix] = (dist - normal[iy] * cB[iy] - normal[iz] * cB[iz]) / normal[ix];
+  cC[ix] = (dist - normal[iy] * cC[iy] - normal[iz] * cC[iz]) / normal[ix];
+  cD[ix] = (dist - normal[iy] * cD[iy] - normal[iz] * cD[iz]) / normal[ix];
+
+  /* allocate up to 2 debug-line slot IDs from the global pool */
+  line_id[0] = 0; line_id[1] = 0;
+  found = 0;
+  for ( i = 0; i < 256 && found < 2; i++ )
+  {
+    if ( !dword_100670C0[i] )
+    {
+      dword_100670C0[i] = bi_DebugLineCreate();
+      line_id[found++] = dword_100670C0[i];
+      dword_10066B14++;
+      dword_10066CC0[i] = 1;
+    }
+    else if ( !dword_10066CC0[i] )
+    {
+      line_id[found++] = dword_100670C0[i];
+      dword_10066CC0[i] = 1;
+    }
+  }
+
+  bi_DebugLineShow(line_id[0], cA, cB, color);
+  bi_DebugLineShow(line_id[1], cC, cD, color);
+}
+
 //----- (10009CB0) --------------------------------------------------------
 /* sub_10009CB0 — DEAD debug-cube draw helper.  Restored from
  * objdump@0x10009CB0 (131 lines).  Draws an AABB at origin with
