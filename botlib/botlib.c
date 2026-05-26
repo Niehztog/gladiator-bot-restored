@@ -38964,6 +38964,61 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
   return sub_10041BA0(v4, v6, a1, a2) != 0;
 }
 
+//----- (10041FF0) --------------------------------------------------------
+/* sub_10041FF0 — DEAD `BotArchiveZip` / `Log_ArchiveToZip`-style
+ * helper using Info-ZIP's ZIP32.DLL (Win32-only).  Restored from
+ * objdump@0x10041FF0 (~198 lines).  Cross-checked against the RetDec
+ * decompilation (function_10041ff0, lines 77237-77378 in
+ * reference/retdec/gladiator.dll_retdec.c) which makes the Win32
+ * imports legible.
+ *
+ * Original (Win32) flow:
+ *   1. cdecl args: (zipfile_name, file_to_archive); reject NULLs.
+ *   2. GlobalAlloc(GMEM_FIXED, 12) a 3-pointer ZIP-callback table
+ *      [0] = 0x100013AC  ("print"  callback thunk)
+ *      [4] = 0x10001F55  ("comment" thunk)
+ *      [8] = 0x100014A6  ("password"/service thunk)
+ *      Saved at ds:0x1006297C (handle) / ds:0x100639DC (locked ptr).
+ *   3. SearchPathA(NULL, "ZIP32.DLL", NULL, 128, buf, &filepart).
+ *      Bail (and call sub_10042380 cleanup) if not found.
+ *   4. LoadLibraryA("ZIP32.DLL") → ds:0x100639E0.
+ *   5. GetProcAddress for "ZpArchive" (→ ds:0x100639E4),
+ *      "ZpSetOptions" (→ ds:0x100639E8),
+ *      "ZpInit"       (→ ds:0x100639EC).
+ *      Any failure → FreeLibrary + sub_10042380 + return 0.
+ *   6. Zero out a global ZPOPT struct at ds:0x100638E0…ds:0x1006393C,
+ *      setting fNoDirEntries (g325) = 1 and fUpdate (g328) = 1.
+ *      sub_1004501E(&g341, 260) → blank the zipfile-name buffer.
+ *   7. Call ZpInit(&zpopt).
+ *   8. argc = 1, argv = &fname; copy the ZPOPT block (62 dwords =
+ *      248 B) onto the stack via `rep movsd`.
+ *   9. Call ZpSetOptions(&zpopt_copy).
+ *  10. Call ZpArchive(argc, argv, dst, &zpopt_copy, &cb_vtable).
+ *  11. On non-zero return → bi_Print(PRT_ERROR,
+ *      "Error during archiving.\nUnable to create \"%s\"\n", dst).
+ *  12. GlobalUnlock + GlobalFree the callback table, sub_10042380
+ *      cleanup, FreeLibrary(zip32), return (rc == 0).
+ *
+ * The companion sub_10042380 is already restored in this file as a
+ * Linux no-op; we mirror that policy here.  bspc/yquake2 builds run
+ * on Linux as well as Windows and never re-link ZIP32.DLL; the only
+ * caller of this routine in the original binary was an unreachable
+ * debug menu entry, so a clean no-op preserves semantics for the
+ * live build.  Win32-fidelity restoration is intentionally skipped.
+ *
+ * Strings (.rdata, verified): "ZIP32.DLL" @0x10060694,
+ *   "ZpArchive" @0x10060688, "ZpSetOptions" @0x10060678,
+ *   "ZpInit" @0x10060670, error fmt @0x10060638.
+ *
+ * DEAD in Gladiator — no live caller. */
+static int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
+{
+  (void)zipfile;
+  (void)file_to_archive;
+  /* Win32 ZIP32.DLL invocation removed — see banner. */
+  return 0;
+}
+
 //----- (10042380) --------------------------------------------------------
 HGLOBAL sub_10042380()
 {
