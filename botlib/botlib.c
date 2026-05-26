@@ -32494,6 +32494,54 @@ void __cdecl PC_FreeDefine(define_t *def)
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
+//----- (10039EE0) --------------------------------------------------------
+/* PC_AddBuiltinDefines — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Verified against objdump@10039EE0:
+ *   - Stack table (5 entries, {char *name; int value;}) is built in place
+ *     at [esp+0x04..+0x28]:
+ *         { "__LINE__", 1 }, { "__FILE__", 2 },
+ *         { "__DATE__", 3 }, { "__TIME__", 4 }, { NULL, 0 }
+ *     Name string literals confirmed at .rdata VAs 0x1005F5B0/5A4/598/58C.
+ *   - For each non-NULL name, allocates (strlen + 0x21) bytes via
+ *     GetMemory (thunk 0x10001AB4 -> 0x10038F90), zeros the leading 32
+ *     bytes (= sizeof(define_t)), points define->name to (def + 0x20),
+ *     memcpy's the name (rep movs dword + byte), sets flags |= 1 and
+ *     builtin = value, then calls PC_AddDefineToHash(def,
+ *     source->definehash @ +0x218).  Loop driven by ebx walking the
+ *     5-entry table in 8-byte stride.
+ *
+ * This is the canonical Q3 botlib helper (l_precomp.c::PC_AddBuiltin-
+ * Defines) — same author, same code, restored in the corresponding Q3
+ * sources.  Dead in Gladiator: no caller; only kept live by the
+ * /INCREMENTAL relink stub. */
+static void __cdecl sub_10039EE0(source_t *source)
+{
+  static const struct {
+  char *name;
+  int   value;
+  } builtin[] = {
+  { "__LINE__", 1 },
+  { "__FILE__", 2 },
+  { "__DATE__", 3 },
+  { "__TIME__", 4 },
+  { NULL,       0 },
+  };
+  define_t *def;
+  int i, len;
+
+  for ( i = 0; builtin[i].name; ++i )
+  {
+  len = strlen(builtin[i].name);
+  def = (define_t *)GetMemory(len + 0x21);
+  memset(def, 0, sizeof(define_t));
+  def->name = (char *)def + sizeof(define_t);
+  memcpy(def->name, builtin[i].name, len + 1);
+  def->flags |= 1;
+  def->builtin = builtin[i].value;
+  PC_AddDefineToHash(def, source->definehash);
+  }
+}
+
 //----- (1003A000) --------------------------------------------------------
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4)
 {
@@ -37269,6 +37317,42 @@ static char *__cdecl sub_10043640(const char *path)
   }
   byte_10062D90[i] = '\0';
   return byte_10062D90;
+}
+
+//----- (100436B0) --------------------------------------------------------
+/* COM_FileBase — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Verified against objdump@100436B0:
+ *   - s   = in + strlen(in) - 1   (repnz scas al, [edi])
+ *   - walk s backward to first '.' or until s == in
+ *   - walk s2 from s backward to first '/' or until s2 == in
+ *   - if (s - s2) < 2 -> out[0] = 0; return
+ *   - else: s--; memcpy(out, s2 + 1, s - s2); out[s - s2] = 0
+ *     (memcpy via thunk 0x10044DE0 = static-linked MSVC memcpy).
+ *
+ * Byte-for-byte match with the Quake II q_shared.c COM_FileBase (same
+ * author lineage as Gladiator — preserves the quirky "loses first
+ * basename character when there is no '/' in the path" behavior, which
+ * is a known artifact of the Q2 implementation; Q3 fixed this).
+ * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
+static void __cdecl sub_100436B0(const char *in, char *out)
+{
+  const char *s, *s2;
+
+  s = in + strlen(in) - 1;
+  while ( s != in && *s != '.' )
+    --s;
+  for ( s2 = s; s2 != in && *s2 != '/'; --s2 )
+    ;
+  if ( s - s2 < 2 )
+  {
+    out[0] = '\0';
+  }
+  else
+  {
+    --s;
+    memcpy(out, s2 + 1, s - s2);
+    out[s - s2] = '\0';
+  }
 }
 
 //----- (10043740) --------------------------------------------------------
