@@ -16833,6 +16833,54 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
 // 100667E0: using guessed type int aasworld.loaded;
 
+//----- (1001C0B0) --------------------------------------------------------
+// Scans an area's face list for the first face whose faceflags byte
+// (offset +4) has bit 0x04 set, and that survives a predicate-call
+// into sub_1001BD40 with a +Z or -Z unit vector (chosen by the sign
+// of the face plane's z-component) and a 0.01f epsilon.  Returns
+// the matching face pointer or NULL.  aasworld globals consulted:
+// areas (0x1006694c, stride 48 — numfaces at +4, firstface at +8),
+// faceindex (0x10066944), faces pool (0x1006693c, stride 24 —
+// planenum at +0, faceflags at +4), planes pool (0x10066924,
+// stride 20 — normal at +0..+8, dist at +12, signbits at +16).
+// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
+extern void *__cdecl sub_1001BD40(void *face, float *dir, void *p, float eps);
+static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
+{
+  int    i;
+  int    numfaces;
+  int    firstface;
+  int    idx;
+  char  *face;
+  char  *area;
+  float  plane_z;
+  vec3_t dir;
+
+  if ( !aasworld.loaded )
+    return 0;
+  area = (char *)aasworld.areas + areanum * 48;
+  numfaces = *(int *)(area + 4);
+  if ( numfaces <= 0 )
+    return 0;
+  firstface = *(int *)(area + 8);
+  for ( i = 0; i < numfaces; i++ )
+  {
+    idx = ((int *)aasworld.faceindex)[firstface + i];
+    if ( idx < 0 )
+      idx = -idx;
+    face = (char *)aasworld.faces + idx * 24;
+    if ( !(*(unsigned char *)(face + 4) & 4) )
+      continue;
+    plane_z = ((float *)((char *)aasworld.planes + *(int *)face * 20))[2];
+    dir[0] = 0.0f;
+    dir[1] = 0.0f;
+    dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
+    if ( sub_1001BD40(face, dir, predicate_arg, 0.01f) )
+      return face;
+  }
+  return 0;
+}
+
 //----- (1001C1C0) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
  * objdump@1001C1C0: copies the BSP plane (normal + dist) of a face
@@ -16854,6 +16902,54 @@ static void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dis
   out_normal[1] = plane[1];
   out_normal[2] = plane[2];
   *out_dist     = plane[3];
+}
+
+//----- (1001C210) --------------------------------------------------------
+// Sibling of sub_1001C0B0 — same face-scan skeleton, but driven from
+// a caller-supplied struct (arg1) instead of a bare areanum.  Guard:
+// arg1->_i0 must be 0; areanum is read from arg1->_i18.  For each
+// face the test is planenum XOR arg1->_i20 masked with 0xFFFFFFFE
+// — i.e. "equal except possibly the low bit" (matches the two
+// orientations of a single BSP plane).  On match, calls
+// sub_1001BD40(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
+// 0.01f); a non-zero return promotes the face pointer to the result.
+// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C210.
+static void *__cdecl sub_1001C210(int *gate)
+{
+  int    i;
+  int    numfaces;
+  int    firstface;
+  int    idx;
+  int    areanum;
+  int    planenum;
+  char  *face;
+  char  *area;
+  char  *plane;
+
+  if ( !aasworld.loaded )
+    return 0;
+  if ( gate[0] != 0 )
+    return 0;
+  areanum = gate[6];                                  /* gate->_i18 */
+  area = (char *)aasworld.areas + areanum * 48;
+  numfaces = *(int *)(area + 4);
+  if ( numfaces <= 0 )
+    return 0;
+  firstface = *(int *)(area + 8);
+  for ( i = 0; i < numfaces; i++ )
+  {
+    idx = ((int *)aasworld.faceindex)[firstface + i];
+    if ( idx < 0 )
+      idx = -idx;
+    face = (char *)aasworld.faces + idx * 24;
+    planenum = *(int *)face;
+    if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
+      continue;
+    plane = (char *)aasworld.planes + planenum * 20;
+    if ( sub_1001BD40(face, (float *)plane, (char *)gate + 8, 0.01f) )
+      return face;
+  }
+  return 0;
 }
 
 //----- (1001C2E0) --------------------------------------------------------
