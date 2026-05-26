@@ -34827,6 +34827,44 @@ static void __cdecl sub_1003DD70(source_t *src, const void *token)
   PC_UnreadSourceToken(src, token);
 }
 
+//----- (1003DDA0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003DDA0:
+ *   mov eax,[esp+8]      ; arg2 = path
+ *   push ebx; push esi
+ *   mov esi,[esp+0xc]    ; arg1 = source_t *
+ *   push edi
+ *   push 0x104; lea ebx,[esi+0x104]; push eax; push ebx
+ *   call memcpy@0x10044de0       ;; memcpy(esi+0x104, path, 0x104)
+ *   add esp,0xc
+ *   mov edi,ebx; or ecx,-1; xor eax,eax; repnz scasb; not ecx; dec ecx
+ *   cmp [ecx+esi+0x103], 0x5c    ;; last char == '\\' ?
+ *   je  done
+ *   ... (same check for '/' )  je done
+ *   mov edi,0x1005f6c6           ;; "\\\\"
+ *   ... strcat(esi+0x104, "\\\\")  via repnz scasb to find end + rep movs
+ *   done: ret
+ * String literal at .rdata 0x1005F6C0 = "\\\\".  This is the canonical
+ * Q3 PC_SetIncludePath / PC_SetBaseFolder pattern: copy the path into
+ * a fixed-size buffer at source->includepath (+0x104) and ensure it
+ * ends with a path separator.  The 0x104-byte memcpy (rather than
+ * strncpy) is verbatim from the binary — it reads past the source
+ * string's nul, but the function is dead so it never executes.
+ * Dead in Gladiator — preserved by /INCREMENTAL. */
+static void __cdecl sub_1003DDA0(void *src, const char *path)
+{
+  char  *dst = (char *)src + 0x104;
+  size_t len;
+  memcpy(dst, path, 0x104);
+  len = strlen(dst);
+  if ( len && dst[len - 1] == '\\' )
+    return;
+  len = strlen(dst);
+  if ( len && dst[len - 1] == '/' )
+    return;
+  strcat(dst, "\\");
+}
+
 //----- (1003DE40) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
  * objdump@1003DE40:
@@ -36595,6 +36633,31 @@ HGLOBAL sub_10041600()
 {
   /* GlobalFree stubs — removed Windows heap management */
   return 0;
+}
+
+//----- (10041650) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10041650:
+ *   mov eax,ds:0x100605DC      ; cached value
+ *   cmp eax,0xFFFFFFFF
+ *   jne done
+ *   call DWORD PTR ds:0x1006C230   ; kernel32!GetVersion IAT slot
+ *   cmp eax,0x80000000
+ *   sbb eax,eax
+ *   neg eax
+ *   mov ds:0x100605DC,eax
+ *   done: ret
+ * Cached MSVC _osplatform-style helper: returns 1 if running on
+ * Windows NT (top bit of GetVersion() == 0) and 0 on Windows 9x.
+ * Cache slot lives at ds:0x100605DC, initialised to -1 in .data
+ * and overwritten with the 0/1 result on first call.
+ * Dead in Gladiator — preserved by /INCREMENTAL. */
+static int sub_10041650(void)
+{
+  static unsigned int cached = 0xFFFFFFFFu;
+  if ( cached == 0xFFFFFFFFu )
+    cached = 1; /* GetVersion unavailable cross-platform; dead code anyway */
+  return (int)cached;
 }
 
 //----- (10041680) --------------------------------------------------------
