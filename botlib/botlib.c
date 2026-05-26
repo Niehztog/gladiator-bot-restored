@@ -35753,6 +35753,44 @@ LABEL_28:
 }
 // 1003F43B: variable 'v9' is possibly undefined
 
+//----- (1003F4D0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003F4D0:
+ *   sub esp,0x430                ;; token_t on stack
+ *   push esp; push ebp(script)
+ *   call PS_ReadToken via thunk 0x1000127B
+ *   test eax,eax; je fail_read
+ *   ... inline strcmp(token.string, expected) using sbb/sbb idiom
+ *   test eax,eax; jne mismatch
+ *   success: return 1
+ *   mismatch:
+ *     push &token; push expected; push "expected %s, found %s"; push script
+ *     call ScriptError; return 0
+ *   fail_read:
+ *     push expected; push "couldn't find expected %s"; push script
+ *     call ScriptError; return 0
+ * Canonical Q3 l_script.c PS_ExpectTokenString: read next token, error
+ * if read fails or the token's string field doesn't equal the expected
+ * literal.  Format strings at .rdata 0x1005FD28 ("couldn't find
+ * expected %s") and 0x1005FD0C ("expected %s, found %s") -- already
+ * declared in botlib.c as aCouldnTFindExp / aExpectedSFound.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1003F4D0(script_t *script, const char *string)
+{
+  token_t token;
+  if ( !PS_ReadToken(script, (char *)&token) )
+  {
+    ScriptError((int)script, aCouldnTFindExp, string);
+    return 0;
+  }
+  if ( strcmp(token.string, string) != 0 )
+  {
+    ScriptError((int)script, aExpectedSFound, string, token.string);
+    return 0;
+  }
+  return 1;
+}
+
 //----- (1003F5C0) --------------------------------------------------------
 int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
 {
@@ -35886,6 +35924,76 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
 }
 // 1003F9CD: variable 'v3' is possibly undefined
 // 1000127B: using guessed type int __cdecl PS_ReadToken(_DWORD, _DWORD);
+
+//----- (1003FAB0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003FAB0:
+ *   sub esp,0x430                 ;; token_t on stack
+ *   push esi; mov esi,arg1(script)
+ *   push esp; push esi
+ *   call PS_ReadToken via 0x1000127B
+ *   test eax,eax; je fail
+ *   mov ecx,[esp+0x404]           ;; token.type
+ *   cmp ecx,arg2(expected_type)
+ *   jne unread
+ *   mov edx,[esp+0x408]           ;; token.subtype
+ *   and edx,arg3(subtype_mask)
+ *   cmp edx,arg3; jne unread
+ *   ;; match: push edi; mov edi,arg4; mov ecx,0x10c;
+ *   ;;        lea esi,[esp+8]; rep movsd; return 1
+ *   unread: mov eax,[esi+0x110]; mov [esi+0x108],eax  ;; rewind script_p
+ *   fail:   return 0
+ * Canonical Q3 PS_CheckTokenType: peek-read next token, on
+ * (type==expected && (subtype & mask)==mask) copy out and return 1;
+ * otherwise restore script->script_p from script->lastscript_p and
+ * return 0.  Sibling of PS_ExpectTokenType (0x1003F5C0).
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t *out)
+{
+  token_t token;
+  if ( !PS_ReadToken(script, (char *)&token) )
+    return 0;
+  if ( token.type != type || (token.subtype & subtype) != subtype )
+  {
+    script->script_p = script->lastscript_p;
+    return 0;
+  }
+  memcpy(out, &token, sizeof(token_t));
+  return 1;
+}
+
+//----- (1003FB50) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003FB50:
+ *   sub esp,0x430                 ;; token_t on stack
+ *   push ebx,ebp,esi,edi; mov ebp,arg1(script)
+ *   push esp; push ebp
+ *   call PS_ReadToken via 0x1000127B
+ *   test eax,eax; je fail
+ *   mov edi,arg2(string); mov esi,edi
+ *   loop_cmp:
+ *     ... inline strcmp(token.string, string) ...
+ *     test eax,eax; je success
+ *     push esp(&token); push ebp(script); call PS_ReadToken
+ *     test eax,eax; jne loop_cmp
+ *   fail:    return 0
+ *   success: return 1
+ * Canonical Q3 l_script.c PS_SkipUntilString: keep reading tokens
+ * until one whose string equals the target is found, or stream ends.
+ * The compiler hoisted the first PS_ReadToken out of the while loop
+ * for code-size; behaviour is identical to the source idiom.  Sibling
+ * of PC_SkipUntilString (0x1003DC80, batch 23).
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1003FB50(script_t *script, const char *string)
+{
+  token_t token;
+  while ( PS_ReadToken(script, (char *)&token) )
+  {
+    if ( strcmp(token.string, string) == 0 )
+      return 1;
+  }
+  return 0;
+}
 
 //----- (1003FC10) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
