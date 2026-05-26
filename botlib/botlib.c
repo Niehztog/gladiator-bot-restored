@@ -432,7 +432,7 @@ int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
 int AAS_InvalidateEntities();
-int __cdecl AAS_BestReachableLinkArea(int areas);
+int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
 int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
@@ -7517,21 +7517,21 @@ int AAS_InvalidateEntities()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000B130) --------------------------------------------------------
-int __cdecl AAS_BestReachableLinkArea(int areas)
+int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
 {
-  int v1; // esi
-  int result; // eax
+  aas_link_t *v1; // esi
+  aas_link_t *result; // eax
 
   v1 = areas;
   if ( areas )
   {
-    while ( !AAS_AreaGrounded(*(_DWORD *)(v1 + 4)) && !AAS_AreaSwim(*(_DWORD *)(v1 + 4)) )
+    while ( !AAS_AreaGrounded(v1->areanum) && !AAS_AreaSwim(v1->areanum) )
     {
-      v1 = *(_DWORD *)(v1 + 16);
+      v1 = v1->next_area;
       if ( !v1 )
         goto LABEL_5;
     }
-    return *(_DWORD *)(v1 + 4);
+    return v1->areanum;
   }
   else
   {
@@ -7539,13 +7539,13 @@ LABEL_5:
     result = areas;
     if ( areas )
     {
-      while ( !*(_DWORD *)(result + 4) )
+      while ( !result->areanum )
       {
-        result = *(_DWORD *)(result + 16);
+        result = result->next_area;
         if ( !result )
-          return result;
+          return 0;
       }
-      return *(_DWORD *)(result + 4);
+      return result->areanum;
     }
     else
     {
