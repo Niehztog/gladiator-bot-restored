@@ -39746,6 +39746,103 @@ static int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
   return sides;
 }
 
+//----- (10042E90) --------------------------------------------------------
+/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
+ * from objdump@10042E90 (size 0x27D / 217 lines).  Identity: the canonical
+ * id Tech FAST BoxOnPlaneSide — the optimized signbits-dispatched variant
+ * from q_shared.c (Q2/Q3) using a lazy-initialized 8-entry function-pointer
+ * table at ds:0x100631AC..C8 indexed by plane->signbits (the byte at
+ * +0x11) to pick the correct {emins, emaxs} extremal combination for the
+ * d1=DotProduct(n, far) / d2=DotProduct(n, near) computation.  The init
+ * guard at ds:0x10062980 mirrors the static `inited` local of the macro
+ * BOX_ON_PLANE_SIDE_EPSILON_EXPANSION expansion.
+ *
+ * In a pure-C restoration the function-pointer table is meaningless (the
+ * compiler picks its own dispatch), so the 8 cases are inlined as a
+ * switch.  Mapping: signbits bit k set ⇔ normal[k] < 0 ⇒ the far corner
+ * uses emins[k] (because n[k]<0 makes emins[k]*n[k] the larger product)
+ * and the near corner uses emaxs[k] — swap per axis.
+ *
+ *   plane layout (cplane_t, NOT the 20-byte aas_plane_t):
+ *     +0x00..0x0B  normal[3]
+ *     +0x0C        dist
+ *     +0x10        type
+ *     +0x11        signbits (precomputed by SetPlaneSignbits)
+ *
+ *   args: (vec3_t emins, vec3_t emaxs, cplane_t *plane) — ecx=emins,
+ *   ebx=emaxs, edx=plane (verified via [esp+0x8/0xC/0x10] after push ebx).
+ *
+ *   return: 1 = box wholly on front, 2 = wholly on back, 3 = straddles.
+ *           Original computes the two-bit result via fnstsw/and/xor/add
+ *           gymnastics in the tail at 0x100430EA-0x10043107.
+ *
+ * DEAD in shipped Gladiator (no .text caller; AAS routes go through the
+ * slower 10042D80 / AAS_BoxOnPlaneSide2 paths).  Kept by /INCREMENTAL
+ * relink of the q_shared.obj from Q2's source — Mr. Elusive pulled in
+ * the engine helper but never wired it up.  Original case 7 falls through
+ * to the int3 trap at 0x1004310D for signbits>=8, preserved as 0-return. */
+static int __cdecl sub_10042E90(vec3_t emins, vec3_t emaxs, float *plane)
+{
+  static int boxonplaneside_inited;     /* mirrors ds:0x10062980 */
+  float dist1, dist2;
+  int   sides;
+  unsigned char signbits;
+  const float *n = plane;
+  float pdist = plane[3];               /* +0x0C */
+
+  /* Lazy-init guard preserved verbatim from .text 10042E91-10042EF1.  The
+   * eight stores populated ds:0x100631AC[0..7] with case-handler addresses
+   * (10042F1D, 10042F58, …, 100430B4) — no-op in the C translation but the
+   * init flag toggle is kept so the static-trip semantics match. */
+  if ( !boxonplaneside_inited )
+    boxonplaneside_inited = 1;
+
+  signbits = ((unsigned char *)plane)[0x11];
+  if ( signbits >= 8 )
+    return 0;                           /* int3 trap in original */
+
+  switch ( signbits )
+  {
+  case 0:
+    dist1 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
+    dist2 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emins[2];
+    break;
+  case 1:
+    dist1 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
+    dist2 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emins[2];
+    break;
+  case 2:
+    dist1 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emaxs[2];
+    dist2 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emins[2];
+    break;
+  case 3:
+    dist1 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emaxs[2];
+    dist2 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emins[2];
+    break;
+  case 4:
+    dist1 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emins[2];
+    dist2 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emaxs[2];
+    break;
+  case 5:
+    dist1 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emins[2];
+    dist2 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emaxs[2];
+    break;
+  case 6:
+    dist1 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emins[2];
+    dist2 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
+    break;
+  default: /* 7 */
+    dist1 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emins[2];
+    dist2 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
+    break;
+  }
+
+  sides = 0;
+  if ( dist1 >= pdist ) sides  = 1;
+  if ( dist2 <  pdist ) sides |= 2;
+  return sides;
+}
+
 //----- (100431B0) --------------------------------------------------------
 /* Q2 q_shared.c::ClearBounds — initialise mins to +99999, maxs to -99999.
  * IDA decompiled the writes as `_DWORD *` stores of the 32-bit float bit
