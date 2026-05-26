@@ -204,80 +204,14 @@ typedef struct {
 } aas_reachabilityareas_t;
 
 /* -----------------------------------------------------------------------
- * The AAS world state — mirrors the aasworld_* globals in the decompiled
- * file. This header documents the intended layout; the actual code still
- * uses the individual globals.
+ * Historical note: the original Q3 source kept a single global `aasworld`
+ * of type `aas_t` (be_aas_def.h).  In Gladiator-Q2 the same fields were
+ * linked as individually-named globals (aasworld_numareas, aasworld_planes,
+ * ...).  The active reconstruction collects them back into one struct
+ * `aas_world_t` defined in gladiator.dll.h (with a _Static_assert gate on
+ * the original 32-bit binary layout).  No separate `aas_t` typedef is
+ * defined here — the per-field mapping comments scattered above (e.g.
+ * "aasworld_numareas") double as documentation.
  * --------------------------------------------------------------------- */
-typedef struct {
-    /* --- status --- */
-    int   loaded;               /* aasworld_loaded              */
-    int   initialized;          /* aasworld_initialized         */
-    int   savefile;             /* aasworld_savefile            */
-    float time;                 /* aastime                      */
-    char  filename[144];        /* [Q2-ONLY, larger than Q3]    */
-    char  mapname[144];         /* [Q2-ONLY, larger than Q3]    */
-
-    /* --- geometry --- */
-    int            numbboxes;           /* aasworld_numbboxes         */
-    /* bboxes not present as separate global in Q2 decompilation */
-    int            numvertexes;         /* aasworld_numvertexes       */
-    aas_vertex_t  *vertexes;            /* aasworld_vertexes          */
-    int            numplanes;           /* aasworld_numplanes         */
-    aas_plane_t   *planes;              /* aasworld_planes            */
-    int            numedges;            /* aasworld_numedges          */
-    aas_edge_t    *edges;               /* aasworld_edges             */
-    int            edgeindexsize;       /* aasworld_edgeindexsize     */
-    aas_edgeindex_t *edgeindex;         /* aasworld_edgeindex         */
-    int            numfaces;            /* aasworld_numfaces          */
-    aas_face_t    *faces;               /* aasworld_faces             */
-    int            faceindexsize;       /* aasworld_faceindexsize     */
-    aas_faceindex_t *faceindex;         /* aasworld_faceindex         */
-    int            numareas;            /* aasworld_numareas          */
-    aas_area_t    *areas;               /* aasworld_areas             */
-    int            numareasettings;     /* aasworld_numareasettings   */
-    aas_areasettings_t *areasettings;   /* aasworld_areasettings      */
-    int            reachabilitysize;    /* aasworld_reachabilitysize  */
-    aas_reachability_t *reachability;   /* aasworld_reachability      */
-    int            numnodes;            /* aasworld_numnodes          */
-    aas_node_t    *nodes;               /* aasworld_nodes             */
-    aas_portal_t  *portals;             /* aasworld_portals           */
-    int            portalindexsize;     /* aasworld_portalindexsize   */
-    aas_portalindex_t *portalindex;     /* aasworld_portalindex       */
-    aas_cluster_t *clusters;            /* aasworld_clusters          */
-
-    /* --- entity tracking --- */
-    int            numentities;         /* aasworld_numentities       */
-    int            maxclients;          /* aasworld_maxclients        */
-    aas_entity_t  *entities;            /* aasworld_entities          */
-    aas_link_t   **arealinkedentities;  /* aasworld_arealinkedentities*/
-
-    /* --- link heap --- */
-    aas_link_t    *linkheap;            /* aasworld_linkheap          */
-    int            linkheapsize;        /* aasworld_linkheapsize      */
-    aas_link_t    *freelinks;           /* aasworld_freelinks         */
-
-    /* --- routing cache --- */
-    aas_routingupdate_t *areaupdate;    /* aasworld_areaupdate        */
-    aas_routingupdate_t *portalupdate;  /* aasworld_portalupdate      */
-    int            frameroutingupdates; /* aasworld_frameroutingupdates*/
-    aas_reversedreach_t *reversedreachability; /* aasworld_reversedreachability */
-    unsigned short ***areatraveltimes;  /* aasworld_areatraveltimes   */
-    aas_routingcache_t ***clusterareacache; /* aasworld_clusterareacache */
-    aas_routingcache_t **portalcache;   /* aasworld_portalcache       */
-    bsp_pointlight_t   *oldestcache;    /* aasworld_oldestcache  (point-light free pool head) */
-    bsp_pointlight_t   *newestcache;    /* aasworld_newestcache  (point-light live list head) */
-
-    /* --- misc --- */
-    int  *travelflagfortype;            /* aasworld_travelflagfortype (array) */
-    int   areaupdate_count;             /* aasworld_areaupdate (count variant) */
-    int   numframes;                    /* [Q3-ONLY; not present in Q2 globals] */
-} aas_t;
-
-/*
- * NOTE: The decompiled code uses the individual aasworld_* globals directly.
- * This header documents what those globals represent. To fully consolidate
- * them into a single aasworld struct, each occurrence of e.g.
- * `aasworld_numareas` would need to become `aasworld.numareas`.
- */
 
 #endif /* AAS_WORLD_H */
