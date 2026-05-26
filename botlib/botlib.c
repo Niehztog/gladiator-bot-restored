@@ -37292,6 +37292,39 @@ static void __cdecl sub_10043740(const char *in, char *out)
   out[s - in] = '\0';
 }
 
+//----- (10043790) --------------------------------------------------------
+/* COM_DefaultExtension — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Dead in Gladiator: nothing in the bot calls it; only the
+ * thunk entry at 0x10001B40 keeps it alive.  Classic Q2/Q3 q_shared.c
+ * helper: if `path` does not already end in an extension on its basename,
+ * append `ext`.  Verified against objdump@10043790:
+ *   - walks to last char via repnz scasb (strlen);
+ *   - if last char is '/' or string is empty, strcat(ext);
+ *   - else walks backward, returning early on '.' (already has extension)
+ *     or strcat'ing on '/' or reaching the start.
+ * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
+ * /Oi expansions of the obvious C source; restored as straight C. */
+static void __cdecl sub_10043790(char *path, const char *ext)
+{
+  char *p;
+
+  p = path + strlen(path) - 1;
+  if ( *p != '/' )
+  {
+    while ( 1 )
+    {
+      if ( p == path )
+        break;
+      if ( *p == '.' )
+        return;
+      --p;
+      if ( *p == '/' )
+        break;
+    }
+  }
+  strcat(path, ext);
+}
+
 //----- (10043810) --------------------------------------------------------
 /* Public byte-order dispatcher #1 — calls through fn-ptr slot
  * dword_100637DC (set by Swap_Init to BigShort impl).  Restored
@@ -37441,6 +37474,80 @@ static char *__cdecl sub_10043AC0(const char *fmt, ...)
   vsprintf(buffer, fmt, ap);
   va_end(ap);
   return buffer;
+}
+
+//----- (10043AF0) --------------------------------------------------------
+/* COM_Parse — restored IDA-missed dead-code stub (preserved by /INCREMENTAL).
+ * Dead in Gladiator: the bot's live parsers (PC_ReadToken, PS_ReadToken)
+ * supersede it; only the thunk entry at 0x10001AFF keeps it linked.
+ * Standard Q2/Q3 q_shared.c text tokenizer:
+ *   - skips whitespace (and '//' line comments);
+ *   - reads a "quoted string" up to the closing quote into com_token[];
+ *   - else reads a bareword token up to the next whitespace;
+ *   - returns pointer to the static com_token buffer.
+ * Verified against objdump@10043AF0: the static buffer at ds:0x10063800 is
+ * com_token[128]; the empty-string return at ds:0x1006294C is the literal "".
+ * MAX_TOKEN_CHARS = 128 matches the bound check at 10043b58/10043b69. */
+static char com_token_10043AF0[128]; /* ds:0x10063800 (.bss) */
+static char *__cdecl sub_10043AF0(char **data_p)
+{
+  int c;
+  int len;
+  char *data;
+
+  data = *data_p;
+  len = 0;
+  com_token_10043AF0[0] = 0;
+  if ( !data )
+  {
+    *data_p = NULL;
+    return "";
+  }
+skipwhite:
+  while ( (c = (unsigned char)*data) <= ' ' )
+  {
+    if ( c == 0 )
+    {
+      *data_p = NULL;
+      return "";
+    }
+    ++data;
+  }
+  if ( c == '/' && data[1] == '/' )
+  {
+    while ( *data && *data != '\n' )
+      ++data;
+    goto skipwhite;
+  }
+  if ( c == '"' )
+  {
+    ++data;
+    while ( 1 )
+    {
+      c = (unsigned char)*data++;
+      if ( c == '"' || !c )
+      {
+        com_token_10043AF0[len] = 0;
+        *data_p = data;
+        return com_token_10043AF0;
+      }
+      if ( len < 128 )
+        com_token_10043AF0[len++] = c;
+    }
+  }
+  do
+  {
+    if ( len < 128 )
+      com_token_10043AF0[len++] = c;
+    ++data;
+    c = (unsigned char)*data;
+  }
+  while ( c > ' ' );
+  if ( len == 128 )
+    len = 0;
+  com_token_10043AF0[len] = 0;
+  *data_p = data;
+  return com_token_10043AF0;
 }
 
 //----- (10043C10) --------------------------------------------------------
