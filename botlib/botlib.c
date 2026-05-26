@@ -30811,6 +30811,52 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
   return result;
 }
 
+//----- (100368B0) --------------------------------------------------------
+// WriteWeightConfig: serialise a weightconfig_t back to disk as a
+// weights-file ('wb' fopen mode, .rdata 0x1005b32c).  For each weight
+// entry write a banner via fprintf(fp, '\nweight "%s"\n', name),
+// then '{\n', then the body — recursive WriteFuzzySeperators_r(fp,
+// fs, indent=1) when fs->type > 0, else WriteIndent(fp, 1) followed
+// by WriteFuzzyWeight(fp, fs) for a leaf — and close with
+// '} //end itemweight\n' (.rdata 0x1005e5cc).  Returns 1 on success,
+// 0 on any fopen/fprintf/recursion failure (note: failure path does
+// not close fp — minor leak in the dead code, preserved).  DEAD in
+// Gladiator — /INCREMENTAL; live in Q3 as WriteWeightConfig.
+// Restored from objdump@100368B0.
+static int __cdecl sub_100368B0(const char *filename, weightconfig_t *config)
+{
+  FILE *fp;
+  int i;
+  weight_t *w;
+
+  fp = fopen(filename, "wb");
+  if ( !fp )
+    return 0;
+  for ( i = 0, w = &config->weights[0]; i < config->numweights; i++, w++ )
+  {
+    if ( fprintf(fp, "\nweight \"%s\"\n", w->name) < 0 )
+      return 0;
+    if ( fprintf(fp, "{\n") < 0 )
+      return 0;
+    if ( w->firstseperator->type > 0 )
+    {
+      if ( !WriteFuzzySeperators_r(fp, (int)w->firstseperator, 1) )
+        return 0;
+    }
+    else
+    {
+      if ( !WriteIndent(fp, 1) )
+        return 0;
+      if ( !WriteFuzzyWeight(fp, w->firstseperator) )
+        return 0;
+    }
+    if ( fprintf(fp, "} //end itemweight\n") < 0 )
+      return 0;
+  }
+  fclose(fp);
+  return 1;
+}
+
 //----- (100369C0) --------------------------------------------------------
 // Linear lookup of a weight_t* in a weightconfig_t by item/weapon name.
 // LIVE: called by the goal AI before each FuzzyWeight evaluation.
@@ -37909,6 +37955,31 @@ float *__cdecl sub_100429C0(float *a1, float *a2, float *a3)
   a3[7] = a2[7] * a1[8] + a2[4] * a1[7] + a2[1] * a1[6];
   a3[8] = a2[8] * a1[8] + a2[5] * a1[7] + a2[2] * a1[6];
   return result;
+}
+
+//----- (10042AF0) --------------------------------------------------------
+// 3x4 affine matrix multiply: out = a * b.  Each matrix is laid out as
+// three rows of four floats (row-major, row stride 0x10); the implicit
+// fourth row is (0,0,0,1) so the translation column (c=3) gets the
+// row-3 column of A added on each output row.  Restored verbatim from
+// objdump@10042AF0; DEAD in Gladiator (preserved by /INCREMENTAL) —
+// live in Q3 as MatrixMultiply.  fld/fmul interleaving below matches
+// the binary order so the fuse-add operand reorderings (e.g. row 1
+// loads A[r][1]*B[1][c] before A[r][0]*B[0][c]) survive the rebuild.
+static void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float out[3][4])
+{
+  out[0][0] = a[0][0]*b[0][0] + a[0][1]*b[1][0] + a[0][2]*b[2][0];
+  out[0][1] = a[0][1]*b[1][1] + a[0][0]*b[0][1] + a[0][2]*b[2][1];
+  out[0][2] = a[0][1]*b[1][2] + a[0][0]*b[0][2] + a[0][2]*b[2][2];
+  out[0][3] = a[0][1]*b[1][3] + a[0][0]*b[0][3] + a[0][2]*b[2][3] + a[0][3];
+  out[1][0] = a[1][2]*b[2][0] + a[1][1]*b[1][0] + a[1][0]*b[0][0];
+  out[1][1] = a[1][2]*b[2][1] + a[1][1]*b[1][1] + a[1][0]*b[0][1];
+  out[1][2] = a[1][2]*b[2][2] + a[1][1]*b[1][2] + a[1][0]*b[0][2];
+  out[1][3] = b[2][3]*a[1][2] + a[1][1]*b[1][3] + a[1][0]*b[0][3] + a[1][3];
+  out[2][0] = a[2][2]*b[2][0] + a[2][1]*b[1][0] + b[0][0]*a[2][0];
+  out[2][1] = a[2][2]*b[2][1] + a[2][1]*b[1][1] + b[0][1]*a[2][0];
+  out[2][2] = a[2][2]*b[2][2] + a[2][1]*b[1][2] + b[0][2]*a[2][0];
+  out[2][3] = a[2][2]*b[2][3] + a[2][1]*b[1][3] + b[0][3]*a[2][0] + a[2][3];
 }
 
 //----- (10042C80) --------------------------------------------------------
