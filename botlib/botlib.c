@@ -22171,6 +22171,56 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
 // 10001983: using guessed type _DWORD __cdecl ClientFromName(_DWORD);
 
+//----- (10026E40) --------------------------------------------------------
+// Parse 3 space-separated signed decimal integers from a C string into
+// a float vec3, echoing each parsed value via bi_Print(1, "%d\n", val)
+// (.rdata 0x1005ca18 = "%d\n").  Per component: skip leading spaces,
+// take an optional '-' sign, consume contiguous digits; a non-digit
+// terminator (other than NUL) is itself consumed (esi++) before moving
+// on — matches the binary's quirk.  Stores (float)(sign*cur) into
+// out[0..2]; returns 1.  DEAD in Gladiator — /INCREMENTAL.  Restored
+// from objdump@10026E40.
+static int __cdecl sub_10026E40(char *string, float *out)
+{
+  int n;
+  int sign;
+  int cur;
+  unsigned char c;
+
+  for ( n = 0; n < 3; n++ )
+  {
+    cur = 0;
+    while ( *string == ' ' )
+      string++;
+    if ( *string == '-' )
+    {
+      string++;
+      sign = -1;
+    }
+    else
+    {
+      sign = 1;
+    }
+    c = (unsigned char)*string;
+    if ( c )
+    {
+      while ( c >= '0' && c <= '9' )
+      {
+        cur = cur * 10 + (c - '0');
+        string++;
+        c = (unsigned char)*string;
+        if ( !c )
+          break;
+      }
+      if ( c && (c < '0' || c > '9') )
+        string++;
+    }
+    bi_Print(1, "%d\n", sign * cur);
+    out[n] = (float)(sign * cur);
+  }
+  return 1;
+}
+
 //----- (10026F10) --------------------------------------------------------
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
 {
@@ -32298,6 +32348,58 @@ FILE *Log_Write(char *Format, ...)
     return (FILE *)fflush(Stream);
   }
   return result;
+}
+
+//----- (10038DD0) --------------------------------------------------------
+/* IDA-missed dead-code stub: an older, more elaborate variant of
+ * Log_Write that prepends a per-line counter + uptime timestamp to
+ * every log entry.  /INCREMENTAL preserved it alongside the live
+ * minimal Log_Write@10038D80.  Restored from objdump@10038DD0:
+ *
+ *   fprintf(Stream, "%d   %02d:%02d:%02d:%02d   ", counter, hour, min,
+ *           sec_total, hund);
+ *   vfprintf(Stream, Format, va);
+ *   counter++;
+ *   fprintf(Stream, "\r\n");
+ *   fflush(Stream);
+ *
+ * Time decomposition (with `t` = dword_1006402C, the live cached
+ * floattime):  sec_total = (int)t; hund = -100*sec_total -
+ * (int)(t * -100.0);  min = (int)(t * 1/60);  hour = (int)(t * 1/3600).
+ * Float constants @ .rdata 0x100583E8 = 1/3600, 0x100583EC = 1/60,
+ * 0x100583F0 = -100.0; fmt @ 0x1005F18C; "\r\n" @ 0x1005F188; counter
+ * lives at .data 0x10063E44 and is incremented post-print.
+ *
+ * Note: the 4th '%02d' field is fed sec_total (total uptime seconds),
+ * not seconds-within-minute, so timestamps > 60 s read oddly — this
+ * is a real Mr. Elusive bug in the dead path, preserved verbatim.
+ * DEAD in Gladiator — /INCREMENTAL.
+ */
+static int dword_10063E44; // log line counter @ .data 0x10063E44
+static FILE *__cdecl sub_10038DD0(const char *Format, ...)
+{
+  va_list va;
+  float t;
+  int sec_total;
+  int hund;
+  int min;
+  int hour;
+
+  if ( !Stream )
+    return Stream;
+  t = *(float *)&dword_1006402C;
+  sec_total = (int)t;
+  hund      = -100 * sec_total - (int)(t * -100.0f);
+  min       = (int)(t * 0.01666666753590107f);
+  hour      = (int)(t * 0.00027777778450399637f);
+  fprintf(Stream, "%d   %02d:%02d:%02d:%02d   ",
+          dword_10063E44, hour, min, sec_total, hund);
+  va_start(va, Format);
+  vfprintf(Stream, Format, va);
+  va_end(va);
+  dword_10063E44++;
+  fprintf(Stream, "\r\n");
+  return (FILE *)fflush(Stream);
 }
 
 //----- (10038EC0) --------------------------------------------------------
