@@ -4547,6 +4547,51 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
 // 10067504: using guessed type int dword_10067504;
 // 10069584: using guessed type int dword_10069584;
 
+//----- (10006600) --------------------------------------------------------
+// Set/update a BSP epair in an entity's epair list — the writing
+// counterpart of AAS_ValueForBSPEpairKey at 10006760.  Walks the
+// singly-linked bsp_epair_t chain rooted at *head; on a key-hit
+// frees the old value and replaces it with GetMemory(strlen(value)+1)
+// + memcpy; on a miss prepends a freshly-cleared 12-byte epair with
+// both fields freshly-allocated.  The original .text inlines the
+// strcmp/strlen/memcpy as repe scas / rep movs sequences (see
+// 10006615..10006637 for the strcmp, 1000666a/10006681 for the
+// scas-derived strlen, and 10006690..10006699 for the dword+byte rep
+// movs) — restored here as the equivalent strdup-style idiom that
+// MSVC inlined from <string.h>.
+// Allocator thunks: 0x10001479 → GetClearedMemory, 0x10001AB4 →
+// GetMemory, 0x1000180C → FreeMemory.
+// DEAD in Gladiator — the engine builds its BSP entity dict from the
+// .bsp lump and never patches entries post-load; preserved by
+// /INCREMENTAL.  Restored from objdump@10006600.
+static void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
+{
+  bsp_epair_t *ep;
+  int          klen;
+  int          vlen;
+
+  for ( ep = *head; ep; ep = ep->next )
+  {
+    if ( !strcmp(ep->key, key) )
+    {
+      FreeMemory(ep->value);
+      vlen = strlen(value) + 1;
+      ep->value = (char *)GetMemory(vlen);
+      memcpy(ep->value, value, vlen);
+      return;
+    }
+  }
+  ep = (bsp_epair_t *)GetClearedMemory(12);
+  ep->next = *head;
+  *head    = ep;
+  klen = strlen(key) + 1;
+  ep->key = (char *)GetMemory(klen);
+  memcpy(ep->key, key, klen);
+  vlen = strlen(value) + 1;
+  ep->value = (char *)GetMemory(vlen);
+  memcpy(ep->value, value, vlen);
+}
+
 //----- (10006760) --------------------------------------------------------
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
