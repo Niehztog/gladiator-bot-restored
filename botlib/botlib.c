@@ -4263,6 +4263,19 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
   return AAS_InPVS(a1, a2, 1);
 }
 
+//----- (10005CC0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10005CC0: double-indirect lookup
+ *   `((int **)dword_10067560)[a][b]`
+ * where dword_10067560 is the cluster-routing pointer table.  Dead in
+ * Gladiator — the live AAS routing accessors use direct indexed access
+ * through aasworld.clusterareacache/portalcache instead; this is a
+ * lookup helper preserved by /INCREMENTAL. */
+static int __cdecl sub_10005CC0(int a, int b)
+{
+  return ((int **)dword_10067560)[a][b];
+}
+
 //----- (10005E60) --------------------------------------------------------
 /* AAS_BSPModelMinsMaxsOrigin — return the rotated AABB of a Q2 BSP inline model.
  * Mirrors Q3 botlib's `AAS_BSPModelMinsMaxsOrigin` (be_aas_bspq3.c) but with
@@ -11095,6 +11108,18 @@ int __cdecl AAS_AreaSwim(int areanum)
   return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
 }
 
+//----- (10011640) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10011640: byte-identical duplicate of AAS_AreaSwim@10011610
+ * (same `lea ecx,[eax*8]; sub ecx,eax; movsx eax,BYTE[edx+ecx*4+4];
+ * and 4; shr 2` sequence reading areasettings[a].areaflags bit 2).
+ * Either an alias (AAS_AreaWater?) or /INCREMENTAL's second emission
+ * of the same body; preserved by the linker. */
+static int __cdecl sub_10011640(int areanum)
+{
+  return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
+}
+
 //----- (10011670) --------------------------------------------------------
 int __cdecl AAS_AreaGrounded(int areanum)
 {
@@ -17129,6 +17154,32 @@ void __cdecl sub_1001CFA0(float a1)
 // 100669CC: using guessed type int aasworld.d_100669CC;
 // 100669D4: using guessed type int aasworld.d_100669D4;
 
+//----- (1001D040) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1001D040: `if (p==NULL) return aasworld.d_100669CC;
+ *                    else return *(int*)((char*)p + 0x30);`
+ * Returns either the active sound-pool list head (when called with a
+ * null cursor to reset) or the +0x30 next-chain field of the supplied
+ * node.  Dead in Gladiator — the active iteration uses sub_1001CFA0's
+ * inline `v1 = v1->next` instead. */
+static int __cdecl sub_1001D040(char *p)
+{
+  if ( !p )
+    return (int)aasworld.d_100669CC;
+  return *(int *)(p + 0x30);
+}
+
+//----- (1001D070) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1001D070: returns aasworld.d_100669C0[ p[8] ] — i.e. the
+ * sound-pool entity-payload pointer keyed by the dword field at +0x20
+ * (which is dword index 8) of the supplied node.  Dead in Gladiator;
+ * preserved by /INCREMENTAL. */
+static int __cdecl sub_1001D070(int *p)
+{
+  return (int)aasworld.d_100669C0[p[8]];
+}
+
 //----- (1001D140) --------------------------------------------------------
 int *sub_1001D140()
 {
@@ -19972,6 +20023,19 @@ BOOL __cdecl BotWantsToRetreat(int *a1)
 BOOL __cdecl BotWantsToChase(int *a1)
 {
   return BotAggression(a1) > 50.0;
+}
+
+//----- (10022970) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10022970: `mov eax, 1; ret`.  Always-true predicate sitting
+ * between BotWantsToChase and BotCanAndWantsToRocketJump in the bot
+ * decision-helper run.  Likely a placeholder for a feature toggle
+ * (BotWantsToRetreat? BotShouldRetreat?) that ended up hard-coded to 1.
+ * Dead in Gladiator; preserved by /INCREMENTAL. */
+static int __cdecl sub_10022970(int *a1)
+{
+  (void)a1;
+  return 1;
 }
 
 //----- (10022990) --------------------------------------------------------
