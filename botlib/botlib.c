@@ -16272,6 +16272,61 @@ int __cdecl AAS_PointContents(vec3_t point)
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 100667E0: using guessed type int aasworld.loaded;
 
+//----- (1001AFF0) --------------------------------------------------------
+// Signed support-distance of an AABB along a 3D direction.  Builds a
+// per-axis support point from {mins, maxs} keyed on sign(normal[i])
+// with a +/-0.001 deadband (.rdata QWORD doubles 0x10058230 = +0.001,
+// 0x10058220 = -0.001 — `near` and `far` switch when normal[i] lands
+// inside that band, the component is forced to 0), then returns
+// dot(support, normalize(normal)).  The `sign_select` flag (arg4)
+// toggles which AABB end maps to "positive normal":
+//   sign_select != 0 → far  side : normal[i] > 0 picks maxs[i]
+//                                  normal[i] < 0 picks mins[i]
+//   sign_select == 0 → near side : normal[i] > 0 picks mins[i]
+//                                  normal[i] < 0 picks maxs[i]
+// VectorNormalize is run on a *local copy* of the normal (see esp+0x10
+// memcpy then push+call), so the caller's vector survives unchanged
+// even though the assembly does an in-place normalize.  DEAD in
+// Gladiator — /INCREMENTAL.  Restored from objdump@1001AFF0.
+static double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
+{
+  vec3_t support;
+  vec3_t normal_local;
+  int i;
+
+  if ( sign_select )
+  {
+    for ( i = 0; i < 3; i++ )
+    {
+      if ( (double)normal[i] > 0.001 )
+        support[i] = maxs[i];
+      else if ( (double)normal[i] < -0.001 )
+        support[i] = mins[i];
+      else
+        support[i] = 0.0f;
+    }
+  }
+  else
+  {
+    for ( i = 0; i < 3; i++ )
+    {
+      if ( (double)normal[i] > 0.001 )
+        support[i] = mins[i];
+      else if ( (double)normal[i] < -0.001 )
+        support[i] = maxs[i];
+      else
+        support[i] = 0.0f;
+    }
+  }
+  normal_local[0] = normal[0];
+  normal_local[1] = normal[1];
+  normal_local[2] = normal[2];
+  VectorNormalize(normal_local);
+  return support[0] * normal_local[0]
+       + support[1] * normal_local[1]
+       + support[2] * normal_local[2];
+}
+
 //----- (1001B130) --------------------------------------------------------
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace)
 {
@@ -28449,6 +28504,35 @@ int __cdecl BotMoveInDirection(intptr_t movestate, intptr_t dir, float speed, in
     return BotSwimInDirection(movestate, dir, speed);
   else
     return BotWalkInDirection(movestate, dir, speed, type);
+}
+
+//----- (10031C30) --------------------------------------------------------
+// 2D line-line intersection (infinite lines through {p1,p2} and {p3,p4}).
+// Returns 0 if the lines are parallel (det == 0); otherwise writes the
+// truncated intersection-point coords (via _ftol, i.e. C casts to int)
+// to out[0]/out[1] and returns 1.  Derived directly from the FPU
+// sequence at 10031C30 — det = (p2.x-p1.x)*(p4.y-p3.y) -
+// (p2.y-p1.y)*(p4.x-p3.x), the two side-crosses c1 / c2 are formed
+// against p1 and p3 respectively, and the result is the rational
+// formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
+// /INCREMENTAL.  Restored from objdump@10031C30.
+static int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, int *out)
+{
+  float d1x = p2[0] - p1[0];
+  float d1y = p2[1] - p1[1];
+  float d2x = p4[0] - p3[0];
+  float d2y = p4[1] - p3[1];
+  float det = d2x * d1y - d2y * d1x;
+  float c1;
+  float c2;
+
+  if ( det == 0.0f )
+    return 0;
+  c1 = d1x * p1[1] - d1y * p1[0];
+  c2 = d2x * p3[1] - d2y * p3[0];
+  out[0] = (int)((c2 * d1x - c1 * d2x) / det);
+  out[1] = (int)((c2 * d1y - c1 * d2y) / det);
+  return 1;
 }
 
 //----- (10031D10) --------------------------------------------------------
