@@ -15477,6 +15477,80 @@ int AAS_FreeRoutingCaches(void)
   return AAS_FreeAllPortalCache();
 }
 
+//----- (10019570) --------------------------------------------------------
+/* AAS_FreeOldRoutingCache — DEAD in Gladiator.  Walks both routing caches
+ * and FreeMemory's every aas_routingcache_t whose .time field is older
+ * than (AAS_Time() - 15.0s).  Restored from objdump@0x10019570 (119
+ * lines).  Same idea (and very nearly the same instruction stream) as
+ * Q3's AAS_FreeOldRoutingCache in be_aas_route.c.
+ *
+ * Layout used:
+ *   aas_cluster_t  stride 12, field0 = numareas (loop bound, edx)
+ *   aas_routingcache_t:
+ *     +0x00  float time          (timestamp; compared via FSUB QWORD 15.0)
+ *     +0x20  aas_routingcache_t *prev   (timestamp-link)
+ *     +0x24  aas_routingcache_t *next   (timestamp-link)
+ *
+ * Globals via aasworld:
+ *   numclusters        +0x198 (VA 0x10066978)
+ *   clusters           +0x19C (VA 0x1006697C, stride 12)
+ *   numareas           +0x168 (VA 0x10066948)
+ *   clusterareacache   +0x29C (VA 0x10066A7C, [cluster][areaInCluster])
+ *   portalcache        +0x2A0 (VA 0x10066A80, [area])
+ *
+ * Thunks:
+ *   0x10001F0A → 0x1000E120 = AAS_Time() (returns aasworld.time as double)
+ *   0x10001B04 → 0x10019260 = AAS_FreeRoutingCache (FreeMemory wrapper)
+ *
+ * The .text re-fetches numclusters/numareas inside the loop tail (the
+ * compiler can't prove they don't alias FreeMemory) — preserved here. */
+static void AAS_FreeOldRoutingCache(void)
+{
+  int i, j, numareas_in_cluster;
+  aas_routingcache_t *cache, *nextcache, *prev;
+  const char *clusters_base;
+
+  for (i = 0; i < aasworld.numclusters; i++) {
+    clusters_base = (const char *)aasworld.clusters;
+    numareas_in_cluster = *(const int *)(clusters_base + i * 12);
+    for (j = 0; j < numareas_in_cluster; j++) {
+      cache = aasworld.clusterareacache[i][j];
+      while (cache) {
+        nextcache = *(aas_routingcache_t **)((char *)cache + 0x24);
+        if (AAS_Time() - 15.0 > *(float *)cache) {
+          prev = *(aas_routingcache_t **)((char *)cache + 0x20);
+          if (prev)
+            *(aas_routingcache_t **)((char *)prev + 0x24) = nextcache;
+          else
+            aasworld.clusterareacache[i][j] = nextcache;
+          if (nextcache)
+            *(aas_routingcache_t **)((char *)nextcache + 0x20) = prev;
+          AAS_FreeRoutingCache(cache);
+        }
+        cache = nextcache;
+      }
+    }
+  }
+
+  for (i = 0; i < aasworld.numareas; i++) {
+    cache = aasworld.portalcache[i];
+    while (cache) {
+      nextcache = *(aas_routingcache_t **)((char *)cache + 0x24);
+      if (AAS_Time() - 15.0 > *(float *)cache) {
+        prev = *(aas_routingcache_t **)((char *)cache + 0x20);
+        if (prev)
+          *(aas_routingcache_t **)((char *)prev + 0x24) = nextcache;
+        else
+          aasworld.portalcache[i] = nextcache;
+        if (nextcache)
+          *(aas_routingcache_t **)((char *)nextcache + 0x20) = prev;
+        AAS_FreeRoutingCache(cache);
+      }
+      cache = nextcache;
+    }
+  }
+}
+
 //----- (10019700) --------------------------------------------------------
 /* 64-bit-safe restoration.  The 32-bit DLL chained the routing-update
  * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
