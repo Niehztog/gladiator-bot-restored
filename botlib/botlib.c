@@ -35440,6 +35440,20 @@ void __cdecl SetScriptFlags(script_t *script, int flags)
   script->flags = flags;
 }
 
+//----- (1003FFD0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003FFD0:
+ *   mov eax,[esp+4]; mov eax,[eax+0x12c]; ret
+ * Returns the int field at offset 0x12c of the supplied struct.
+ * Within script_t layout +0x12c sits between the script_t's
+ * lastscriptload-counter (+0x128) and the load-flag (+0x130);
+ * the live API uses dedicated accessors (PS_GetScriptName etc.)
+ * instead.  Dead in Gladiator — preserved by /INCREMENTAL. */
+static int __cdecl sub_1003FFD0(int script)
+{
+  return *(int *)(script + 0x12c);
+}
+
 //----- (10040060) --------------------------------------------------------
 /* Q3 l_script.c:1242: int EndOfScript(script_t *script). */
 BOOL __cdecl EndOfScript(script_t *script)
@@ -36605,6 +36619,23 @@ static int __cdecl sub_10042CB0(float f)
   return tmp;
 }
 
+//----- (10042CD0) --------------------------------------------------------
+/* LerpAngle — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10042CD0: normalises (to-from) into (-180, +180] via
+ *   ds:0x100582d4 = 180.0,  ds:0x100582e4 = 360.0,
+ *   ds:0x10058424 = -180.0,
+ * then returns `from + frac * (to_norm - from)`.  Identical to Q3
+ * q_math.c::LerpAngle.  Dead in Gladiator — live bot AI normalises
+ * angles inline (BotChangeViewAngle); preserved by /INCREMENTAL. */
+static float __cdecl sub_10042CD0(float from, float to, float frac)
+{
+  if (to - from > 180.0f)
+    to -= 360.0f;
+  if (to - from < -180.0f)
+    to += 360.0f;
+  return from + (to - from) * frac;
+}
+
 //----- (10042D40) --------------------------------------------------------
 double __cdecl AngleMod(float a1)
 {
@@ -37021,6 +37052,20 @@ int __cdecl BigFloat(int a1)
   return a1;
 }
 
+//----- (100439D0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100439D0: `fld DWORD [esp+4]; ret`.  Loads its single
+ * float argument onto ST(0) and returns it — a no-op pass-through
+ * sitting next to the LittleFloat/BigFloat byte-order helpers.
+ * Likely the abandoned `LittleFloat` slot (matches the identity
+ * shape used for LittleShort/LittleLong/BigShort/BigFloat above).
+ * Dead in Gladiator — Swap_Init never patches this slot;
+ * preserved by /INCREMENTAL. */
+static float __cdecl sub_100439D0(float f)
+{
+  return f;
+}
+
 //----- (100439F0) --------------------------------------------------------
 int Swap_Init()
 {
@@ -37043,6 +37088,31 @@ int Swap_Init()
 // 100637DC: using guessed type int dword_100637DC;
 // 100637E0: using guessed type int dword_100637E0;
 // 10063884: using guessed type int dword_10063884;
+
+//----- (10043AC0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10043AC0:
+ *   mov  ecx,[esp+4]                ; fmt
+ *   lea  eax,[esp+8]                ; va_args
+ *   push eax; push ecx
+ *   push 0x10062990                 ; static scratch buffer
+ *   call 0x10044c05                 ; vsprintf
+ *   add  esp,0xc
+ *   mov  eax,0x10062990
+ *   ret
+ * Classic Q2/Q3 `va(fmt, ...)`: formats into a fixed scratch buffer
+ * and returns its address.  Dead in Gladiator — the live code uses
+ * its own formatting paths; preserved by /INCREMENTAL. */
+static char *__cdecl sub_10043AC0(const char *fmt, ...)
+{
+  static char buffer[1024]; /* mirrors ds:0x10062990 */
+  va_list ap;
+
+  va_start(ap, fmt);
+  vsprintf(buffer, fmt, ap);
+  va_end(ap);
+  return buffer;
+}
 
 //----- (10043C10) --------------------------------------------------------
 int __cdecl sub_10043C10(char *String1, char *String2)
