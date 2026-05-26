@@ -2023,6 +2023,7 @@ char aCddir[] = "cddir"; // idb
 _UNKNOWN unk_10061280; // weak
 _UNKNOWN unk_10061298; // weak
 char byte_1006294C = '\0'; // idb
+char byte_10062D90[8]; // sub_10043640 (IDA-missed) — COM_FileExtension static buffer
 libvar_t *libvar_framereachability; /* cached LibVar handle (was libvar_framereachability) */
 libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabilitydelay) */
 int dword_1006295C = 0; // weak
@@ -30645,6 +30646,23 @@ int __cdecl EA_MoveUp(int client)
   return (int)ea;
 }
 
+//----- (10037430) --------------------------------------------------------
+/* EA_MoveDown — set ACTION_MOVEDOWN.  Restored (IDA-missed dead-code
+ * stub, /INCREMENTAL leftover).  Verified against objdump@10037430:
+ *     ea_state_t *ea = &ea_controls[client];   // [10064074 + client*36]
+ *     ea->flags |= 0x10;                       // ACTION_MOVEDOWN
+ * which is bit-for-bit identical to EA_Crouch (100373D0) because
+ * ACTION_MOVEDOWN and ACTION_CROUCH alias to the same flag bit (0x10).
+ * Q3 be_ea.c::EA_MoveDown.  Sits in the EA family between EA_MoveUp
+ * (10037400) and EA_MoveForward (10037460).  Dead in Gladiator — the
+ * mod only ever calls EA_Crouch when it wants this bit set — but the
+ * /INCREMENTAL thunk preserved the symbol. */
+static void __cdecl sub_10037430(int client)
+{
+  ea_state_t *ea = &ea_controls[client];
+  ea->flags |= ACTION_MOVEDOWN;
+}
+
 //----- (10037460) --------------------------------------------------------
 /* EA_MoveForward — set ACTION_MOVEFORWARD.  Matches Q3
  * be_ea.c::EA_MoveForward.  IDA mis-named AAS_EntityMark from a
@@ -36405,6 +36423,24 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
   vecc[2] = veca[2] + scale * vecb[2];
 }
 
+//----- (10043480) --------------------------------------------------------
+/* VectorCopy — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10043480:
+ *     dst[0] = src[0];
+ *     dst[1] = src[1];
+ *     dst[2] = src[2];
+ * Three dword-sized moves, args ordered (src, dst) — matches Q3
+ * q_shared.h's `VectorCopy(in, out)` macro that was emitted as a
+ * function by /INCREMENTAL. Dead in Gladiator because every site uses
+ * the macro form inlined directly; the thunk preserved one slot for
+ * possible incremental relinking. */
+static void __cdecl sub_10043480(const vec3_t src, vec3_t dst)
+{
+  dst[0] = src[0];
+  dst[1] = src[1];
+  dst[2] = src[2];
+}
+
 //----- (100434B0) --------------------------------------------------------
 float *__cdecl CrossProduct(float *v1, float *v2, float *cross)
 {
@@ -36457,6 +36493,92 @@ void __cdecl VectorScale(vec3_t v, float scale, vec3_t out)
   out[0] = scale * v[0];
   out[1] = scale * v[1];
   out[2] = scale * v[2];
+}
+
+//----- (10043640) --------------------------------------------------------
+/* COM_FileExtension — restored IDA-missed dead-code stub.  Verified
+ * against objdump@10043640:
+ *   1. Walk `path` forward to the last '\0' or first '.'.
+ *   2. If at '\0' (no dot), return pointer to the empty-string sentinel
+ *      byte_1006294C.
+ *   3. Otherwise advance past the dot and copy up to 7 chars of the
+ *      extension into static buffer byte_10062D90, null-terminate, and
+ *      return its address.
+ * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
+ * Gladiator (the engine handles file paths via its own COM_*); the
+ * /INCREMENTAL thunk preserved this for incremental relinking. */
+static char *__cdecl sub_10043640(const char *path)
+{
+  const char *p;
+  int i;
+  char c;
+
+  p = path;
+  c = *p;
+  while ( c && c != '.' )
+  {
+    c = *++p;
+  }
+  if ( !*p )
+    return &byte_1006294C;
+  ++p;
+  for ( i = 0; i < 7; ++i )
+  {
+    c = *p++;
+    if ( !c )
+      break;
+    byte_10062D90[i] = c;
+  }
+  byte_10062D90[i] = '\0';
+  return byte_10062D90;
+}
+
+//----- (10043810) --------------------------------------------------------
+/* Public byte-order dispatcher #1 — calls through fn-ptr slot
+ * dword_100637DC (set by Swap_Init to BigShort impl).  Restored
+ * IDA-missed dead-code stub; verified against objdump@10043810:
+ *     return ((short (*)(short))dword_100637DC)((short)x);
+ * The /INCREMENTAL thunk preserved this 5-instruction wrapper even
+ * though every caller in the binary uses the impl symbol directly.
+ * Cannot be named `BigShort` here because that symbol is already
+ * occupied by the no-swap LE identity impl at 100438D0. */
+static short __cdecl sub_10043810(short x)
+{
+  return ((short (__cdecl *)(short))dword_100637DC)(x);
+}
+
+//----- (10043830) --------------------------------------------------------
+/* Public byte-order dispatcher #2 — calls slot dword_100637D8
+ * (LittleShort impl).  See sub_10043810 banner. */
+static short __cdecl sub_10043830(short x)
+{
+  return ((short (__cdecl *)(short))dword_100637D8)(x);
+}
+
+//----- (10043850) --------------------------------------------------------
+/* Public byte-order dispatcher #3 — calls slot dword_100637E0
+ * (BigLong impl).  See sub_10043810 banner. */
+static int __cdecl sub_10043850(int x)
+{
+  return ((int (__cdecl *)(int))dword_100637E0)(x);
+}
+
+//----- (10043870) --------------------------------------------------------
+/* Public byte-order dispatcher #4 — calls slot dword_100637D4
+ * (LittleLong impl).  See sub_10043810 banner. */
+static int __cdecl sub_10043870(int x)
+{
+  return ((int (__cdecl *)(int))dword_100637D4)(x);
+}
+
+//----- (10043890) --------------------------------------------------------
+/* Public byte-order dispatcher #5 — calls slot dword_100637D0
+ * (BigFloat impl).  See sub_10043810 banner.  Note the original disasm
+ * uses `pop ecx` instead of `add esp,4` for stack cleanup — same
+ * semantics, just shorter codegen MSVC chose for this one. */
+static int __cdecl sub_10043890(int x)
+{
+  return ((int (__cdecl *)(int))dword_100637D0)(x);
 }
 
 //----- (100438B0) --------------------------------------------------------
