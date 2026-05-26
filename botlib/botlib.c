@@ -835,16 +835,16 @@ int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
-qboolean __cdecl WriteFuzzyWeight(FILE *Stream, int); // idb
+qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *); // idb
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
 int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2);
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeight(int *facts, weight_t *w);
 double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
-void __cdecl EvolveFuzzySeperator_r(int fs);
-void __cdecl ScaleFuzzySeperator_r(int fs, float scale);
-int __cdecl InterbreedFuzzySeperator_r(int a1, int a2);
+void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
+void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
+int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2);
 int __cdecl EA_Say(int client, char *str);
 int __cdecl EA_SayTeam(int client, char *str);
 int __cdecl EA_Use(int client, char *item);
@@ -989,7 +989,7 @@ int __cdecl ReadChar(source_t *src, char **field, float *out);
 int __cdecl ReadString(source_t *, char **, char *Destination); // idb
 int __cdecl ReadStructure(source_t *src, structdef_t *def, void *dst);
 int __cdecl WriteIndent(FILE *Stream, int); // idb
-int __cdecl WriteStructWithIndent(FILE *Stream, int, int, int); // idb
+int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 int __stdcall sub_100415E0(int a1);
@@ -29932,19 +29932,19 @@ LABEL_21:
 // config file. DEAD in Gladiator (no callers); part of the GA-tuning
 // pipeline that writes evolved weights back to bots/*_i.c / *_w.c.
 // Live in Q3 via WriteWeightConfig wrapper.
-qboolean __cdecl WriteFuzzyWeight(FILE *Stream, int a2)
+qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *a2)
 {
   int v2; // eax
   int result; // eax
 
-  if ( *(_DWORD *)(a2 + 8) == 1 )
+  if ( a2->type == 1 )
   {
     if ( fprintf(Stream, " return balance(") < 0
-      || !WriteFloat(Stream, *(float *)(a2 + 12))
+      || !WriteFloat(Stream, a2->weight)
       || fprintf(Stream, ",") < 0
-      || !WriteFloat(Stream, *(float *)(a2 + 16))
+      || !WriteFloat(Stream, a2->minweight)
       || fprintf(Stream, ",") < 0
-      || !WriteFloat(Stream, *(float *)(a2 + 20)) )
+      || !WriteFloat(Stream, a2->maxweight) )
     {
       return 0;
     }
@@ -29954,7 +29954,7 @@ qboolean __cdecl WriteFuzzyWeight(FILE *Stream, int a2)
   {
     if ( fprintf(Stream, " return ") < 0 )
       return 0;
-    result = WriteFloat(Stream, *(float *)(a2 + 12));
+    result = WriteFloat(Stream, a2->weight);
     if ( !result )
       return result;
     v2 = fprintf(Stream, ";\n");
@@ -30011,7 +30011,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
             if ( v6 < 0 )
               return 0;
           }
-          else if ( !WriteFuzzyWeight(Stream, (int)v4) )
+            else if ( !WriteFuzzyWeight(Stream, (fuzzyseperator_t *)v4) )
           {
             return 0;
           }
@@ -30191,7 +30191,7 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // thresholds and leaf weights. DEAD in Gladiator (no callers); intended
 // for offline auto-tuning of bot personalities. Live in Q3 via
 // EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
-void __cdecl EvolveFuzzySeperator_r(int fs)
+void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 {
   __int16 v2; // ax
   double v3; // st7
@@ -30199,37 +30199,37 @@ void __cdecl EvolveFuzzySeperator_r(int fs)
 
   do
   {
-    if ( *(_DWORD *)(fs + 24) )
+    if ( fs->child )
     {
-      EvolveFuzzySeperator_r(*(_DWORD *)(fs + 24));
+      EvolveFuzzySeperator_r(fs->child);
     }
-    else if ( *(_DWORD *)(fs + 8) == 1 )
+    else if ( fs->type == 1 )
     {
       if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.01 )
       {
         v4 = rand();
         v3 = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5)
-           * (*(float *)(fs + 20) - *(float *)(fs + 16))
+           * (fs->maxweight - fs->minweight)
            * 0.5;
       }
       else
       {
         v2 = rand();
         v3 = ((double)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
-           * (*(float *)(fs + 20) - *(float *)(fs + 16));
+           * (fs->maxweight - fs->minweight);
       }
-      *(float *)(fs + 12) = v3 + *(float *)(fs + 12);
-      if ( *(float *)(fs + 12) >= (double)*(float *)(fs + 16) )
+      fs->weight = v3 + fs->weight;
+      if ( fs->weight >= (double)fs->minweight )
       {
-        if ( *(float *)(fs + 12) > (double)*(float *)(fs + 20) )
-          *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 20);
+        if ( fs->weight > (double)fs->maxweight )
+          fs->weight = fs->maxweight;
       }
       else
       {
-        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 16);
+        fs->weight = fs->minweight;
       }
     }
-    fs = *(_DWORD *)(fs + 28);
+    fs = fs->next;
   }
   while ( fs );
 }
@@ -30239,15 +30239,15 @@ void __cdecl EvolveFuzzySeperator_r(int fs)
 // Uniformly rescale all weights in a subtree by a scalar factor.
 // DEAD in Gladiator. Used by the GA pipeline to normalise mutated trees
 // and as a primitive for crossover blending. Live in Q3.
-void __cdecl ScaleFuzzySeperator_r(int fs, float scale)
+void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 {
-  int v3; // eax
+  fuzzyseperator_t *v3; // eax
   double v4; // st7
   char v6; // c0
 
   do
   {
-    v3 = *(_DWORD *)(fs + 24);
+    v3 = fs->child;
     if ( v3 )
     {
       /* IDA emitted LODWORD(scale) here from `mov edi,[esp+0x10]; push edi`,
@@ -30258,20 +30258,20 @@ void __cdecl ScaleFuzzySeperator_r(int fs, float scale)
        * directly — original .text 0x10036e41 is just a raw 4-byte slot copy. */
       ScaleFuzzySeperator_r(v3, scale);
     }
-    else if ( *(_DWORD *)(fs + 8) == 1 )
+    else if ( fs->type == 1 )
     {
-      v4 = (*(float *)(fs + 16) + *(float *)(fs + 20)) * scale;
-      *(float *)(fs + 12) = v4;
+      v4 = (fs->minweight + fs->maxweight) * scale;
+      fs->weight = v4;
       if ( v6 )
       {
-        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 16);
+        fs->weight = fs->minweight;
       }
-      else if ( v4 > *(float *)(fs + 20) )
+      else if ( v4 > fs->maxweight )
       {
-        *(_DWORD *)(fs + 12) = *(_DWORD *)(fs + 20);
+        fs->weight = fs->maxweight;
       }
     }
-    fs = *(_DWORD *)(fs + 28);
+    fs = fs->next;
   }
   while ( fs );
 }
@@ -30283,31 +30283,31 @@ void __cdecl ScaleFuzzySeperator_r(int fs, float scale)
 // recursively averaging seperator thresholds and leaf weights.
 // DEAD in Gladiator. Live in Q3 via InterbreedingGoalFuzzyLogic.
 // Together with Evolve* and Write* forms the offline bot-tuning pipeline.
-int __cdecl InterbreedFuzzySeperator_r(int a1, int a2)
+int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2)
 {
   int result; // eax
-  int v5; // eax
+  fuzzyseperator_t *v5; // eax
 
   while ( 1 )
   {
-    result = *(_DWORD *)(a1 + 24);
+    result = (int)a1->child;
     if ( result )
     {
-      v5 = *(_DWORD *)(a2 + 24);
+      v5 = a2->child;
       if ( !v5 )
         return bi_Print(3, aCanTMergeWeigh);
-      result = InterbreedFuzzySeperator_r(v5, *(_DWORD *)(a2 + 24));
+      result = InterbreedFuzzySeperator_r(v5, a2->child);
     }
-    else if ( *(_DWORD *)(a1 + 8) == 1 )
+    else if ( a1->type == 1 )
     {
-      if ( *(_DWORD *)(a2 + 8) != 1 )
+      if ( a2->type != 1 )
         return bi_Print(3, aCanTMergeWeigh);
-      *(float *)(a1 + 12) = (*(float *)(a2 + 12) + *(float *)(a1 + 12)) * 0.5;
+      a1->weight = (a2->weight + a1->weight) * 0.5;
     }
-    a1 = *(_DWORD *)(a1 + 28);
+    a1 = a1->next;
     if ( !a1 )
       return result;
-    if ( *(_DWORD *)(a2 + 28) )
+    if ( a2->next )
       break;
     a2 = 0;
   }
@@ -35462,7 +35462,7 @@ int __cdecl WriteFloat(FILE *Stream, float a2)
 // 10040E80: using guessed type char Buffer[128];
 
 //----- (10040F20) --------------------------------------------------------
-int __cdecl WriteStructWithIndent(FILE *Stream, int a2, int a3, int a4)
+int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
 {
   int result; // eax
   _DWORD *v6; // ebx
@@ -35478,7 +35478,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, int a2, int a3, int a4)
   if ( fprintf(Stream, "{\r\n") < 0 )
     return 0;
   v12 = a4 + 1;
-  v6 = *(_DWORD **)(a2 + 4);
+  v6 = (_DWORD *)a2->fields;
   if ( *v6 )
   {
     v7 = 0;
@@ -35524,7 +35524,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, int a2, int a3, int a4)
             /* Nested struct case: recursive call. The original binary thunked
              * via 0x10001500 → WriteStructWithIndent (0x10040F20). The earlier
              * PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-            if ( !WriteStructWithIndent(Stream, v6[v7 + 6], a3, v12) )
+            if ( !WriteStructWithIndent(Stream, (structdef_t *)v6[v7 + 6], a3, v12) )
               return 0;
             v8 = (float *)((char *)v8 + *(_DWORD *)v6[v7 + 6]);
             break;
@@ -35548,7 +35548,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, int a2, int a3, int a4)
       if ( fprintf(Stream, "\r\n") < 0 )
         break;
       v7 += 7;
-      v6 = *(_DWORD **)(a2 + 4);
+      v6 = (_DWORD *)a2->fields;
       if ( !v6[v7] )
         goto LABEL_33;
     }
@@ -35567,7 +35567,7 @@ int __cdecl WriteStructure(FILE *Stream, int a2, int a3)
   /* WriteStructure is a thin entry point that just calls WriteStructWithIndent
    * with indent=0. Original binary used the 0x10001500 thunk → 0x10040F20. The
    * earlier PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-  return WriteStructWithIndent(Stream, a2, a3, 0);
+  return WriteStructWithIndent(Stream, (structdef_t *)a2, a3, 0);
 }
 
 //----- (10041240) --------------------------------------------------------
