@@ -35319,6 +35319,18 @@ BOOL __cdecl EndOfScript(script_t *script)
   return script->script_p >= script->end_p;
 }
 
+//----- (10040090) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10040090: loads two adjacent dwords from a script_t at +0x120
+ * and +0x124 and returns their difference.  Matches Q3 l_script.c's
+ * ScriptError/length accessor pattern: returns (current_token_offset -
+ * something_offset).  Dead in Gladiator — never reached via thunk
+ * 0x10001492; preserved by /INCREMENTAL. */
+static int __cdecl sub_10040090(int script)
+{
+  return *(int *)(script + 0x120) - *(int *)(script + 0x124);
+}
+
 //----- (10040150) --------------------------------------------------------
 int __cdecl FileLength(FILE *Stream)
 {
@@ -36289,6 +36301,28 @@ int __stdcall sub_100423B0(int a1, int a2, int a3, int a4)
   return 1;
 }
 
+//----- (100423D0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100423D0: `mov eax, [esp+0x8]; ret`.  Two-argument cdecl
+ * function that simply returns its second argument unchanged.  Looks
+ * like a placeholder identity passthrough left over from a refactored
+ * 2-arg helper.  Dead in Gladiator; preserved by /INCREMENTAL. */
+static int __cdecl sub_100423D0(int a1, int a2)
+{
+  (void)a1;
+  return a2;
+}
+
+//----- (100423F0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100423F0: `mov eax, [esp+0x4]; mov BYTE PTR [eax], 0;
+ * ret 0x4`.  Stdcall 1-arg function that NUL-terminates a string at
+ * the supplied pointer.  Dead in Gladiator; preserved by /INCREMENTAL. */
+static void __stdcall sub_100423F0(char *p)
+{
+  p[0] = 0;
+}
+
 //----- (100426B0) --------------------------------------------------------
 float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
 {
@@ -36416,6 +36450,33 @@ float *__cdecl sub_100429C0(float *a1, float *a2, float *a3)
   return result;
 }
 
+//----- (10042C80) --------------------------------------------------------
+/* Q_fabs — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10042C80: masks the sign bit (and 0x7FFFFFFF) of the float
+ * argument viewed as int, then reloads as float.  Q3 q_math.c::Q_fabs
+ * verbatim.  Dead in Gladiator — code uses libm fabs(); preserved by
+ * /INCREMENTAL. */
+static float __cdecl sub_10042C80(float f)
+{
+  union { float f; int i; } u;
+  u.f = f;
+  u.i &= 0x7FFFFFFF;
+  return u.f;
+}
+
+//----- (10042CB0) --------------------------------------------------------
+/* Q_ftol — restored IDA-missed dead-code stub.  Verified against
+ * objdump@10042CB0: `fld DWORD [esp+4]; fistp DWORD ds:0x100631A4;
+ * mov eax, ds:0x100631A4; ret`.  Converts float to int via FPU using
+ * a static spill slot at 0x100631A4 (shared with AngleVectors result
+ * area).  Q3-style ftol helper.  Dead in Gladiator. */
+static int __cdecl sub_10042CB0(float f)
+{
+  static int tmp;  /* mirrors the static spill slot at ds:0x100631A4 */
+  tmp = (int)f;
+  return tmp;
+}
+
 //----- (10042D40) --------------------------------------------------------
 double __cdecl AngleMod(float a1)
 {
@@ -36503,6 +36564,17 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
   vecc[0] = veca[0] + scale * vecb[0];
   vecc[1] = veca[1] + scale * vecb[1];
   vecc[2] = veca[2] + scale * vecb[2];
+}
+
+//----- (100433D0) --------------------------------------------------------
+/* DotProduct — restored IDA-missed dead-code stub.  Verified against
+ * objdump@100433D0: computes a[2]*b[2] + a[1]*b[1] + a[0]*b[0] on the
+ * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
+ * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
+ * the out-of-line copy was emitted by /INCREMENTAL. */
+static double __cdecl sub_100433D0(const float *a, const float *b)
+{
+  return a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
 }
 
 //----- (10043400) --------------------------------------------------------
