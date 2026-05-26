@@ -16905,6 +16905,7 @@ static int __cdecl sub_1001A720(
   int   best_area;
   char *as_byte;
   char *areas_base;
+  char *flagtbl;             /* dword_10066740 as char* (8 bytes/area) */
   int  *visit_stack;
   vec3_t centroid;
   vec3_t diff;
@@ -16923,11 +16924,11 @@ static int __cdecl sub_1001A720(
   baseline_travel = (unsigned short)AAS_AreaTravelTimeToGoalArea(
       startareanum, goalareanum, travelflags);
 
+  flagtbl     = (char *)(intptr_t)dword_10066740;
+  visit_stack = (int  *)(intptr_t)dword_10066744;
+
   /* Zero candidate flag table: 8 bytes per area. */
-  {
-    int nbytes = 8 * aasworld.numareas;
-    memset((void *)(intptr_t)dword_10066740, 0, nbytes);
-  }
+  memset(flagtbl, 0, 8 * aasworld.numareas);
   count = 0;
 
   /* Phase 1: mark candidate jumppad areas within 1.5x baseline. */
@@ -16951,9 +16952,9 @@ static int __cdecl sub_1001A720(
             if ( travel_to_goal
               && (double)(unsigned short)travel_to_goal <= threshold )
             {
-              *(int   *)(dword_10066740 + 8 * areanum    ) = 1;
-              *(short *)(dword_10066740 + 8 * areanum + 4) = travel_to_start;
-              *(short *)(dword_10066740 + 8 * areanum + 6) = travel_to_goal;
+              *(int   *)(flagtbl + 8 * areanum    ) = 1;
+              *(short *)(flagtbl + 8 * areanum + 4) = travel_to_start;
+              *(short *)(flagtbl + 8 * areanum + 6) = travel_to_goal;
               /* Log_Write("%d midrange area %d", count_pre_inc, areanum) */
               Log_Write("%d midrange area %d", count, areanum);
               count++;
@@ -16970,11 +16971,10 @@ static int __cdecl sub_1001A720(
   count = 0;
   out = altroutegoals;
   areas_base  = (char *)aasworld.areas;
-  visit_stack = (int *)(intptr_t)dword_10066744;
 
   for ( ebp_area = 1; ebp_area < aasworld.numareas; ebp_area++ )
   {
-    if ( !*(int *)(dword_10066740 + 8 * ebp_area) )
+    if ( !*(int *)(flagtbl + 8 * ebp_area) )
       continue;
 
     dword_10066730 = 0;
@@ -17016,8 +17016,8 @@ static int __cdecl sub_1001A720(
       out->origin[1]         = *(float *)(a + 0x28);
       out->origin[2]         = *(float *)(a + 0x2c);
       out->areanum           = best_area;
-      out->travel_to_start   = *(unsigned short *)(dword_10066740 + 8 * best_area + 4);
-      out->travel_to_goal    = *(unsigned short *)(dword_10066740 + 8 * best_area + 6);
+      out->travel_to_start   = *(unsigned short *)(flagtbl + 8 * best_area + 4);
+      out->travel_to_goal    = *(unsigned short *)(flagtbl + 8 * best_area + 6);
       out->extra_travel_time = (unsigned short)(
           out->travel_to_start + out->travel_to_goal - (unsigned short)baseline_travel);
       out++;
@@ -38567,9 +38567,9 @@ void __cdecl SetScriptFlags(script_t *script, int flags)
  * lastscriptload-counter (+0x128) and the load-flag (+0x130);
  * the live API uses dedicated accessors (PS_GetScriptName etc.)
  * instead.  Dead in Gladiator — preserved by /INCREMENTAL. */
-static int __cdecl sub_1003FFD0(int script)
+static int __cdecl sub_1003FFD0(script_t *script)
 {
-  return *(int *)(script + 0x12c);
+  return *(int *)((char *)script + 0x12c);
 }
 
 //----- (10040060) --------------------------------------------------------
@@ -38586,9 +38586,9 @@ BOOL __cdecl EndOfScript(script_t *script)
  * ScriptError/length accessor pattern: returns (current_token_offset -
  * something_offset).  Dead in Gladiator — never reached via thunk
  * 0x10001492; preserved by /INCREMENTAL. */
-static int __cdecl sub_10040090(int script)
+static int __cdecl sub_10040090(script_t *script)
 {
-  return *(int *)(script + 0x120) - *(int *)(script + 0x124);
+  return *(int *)((char *)script + 0x120) - *(int *)((char *)script + 0x124);
 }
 
 //----- (100400C0) --------------------------------------------------------
