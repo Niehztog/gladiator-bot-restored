@@ -415,12 +415,12 @@ int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
 int AAS_ClearShownDebugLines();
 int __cdecl AAS_DebugLine(int start, int end, int color);
-int __cdecl AAS_DrawPermanentCross(int, float, int); // idb
+int __cdecl AAS_DrawPermanentCross(float *, float, int); // idb
 int __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
-void __cdecl AAS_DrawCross(int origin, float size, int color);
+void __cdecl AAS_DrawCross(float *origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
-void __cdecl AAS_ShowReachability(int reach); /* aas_reachability_t *reach */
+void __cdecl AAS_ShowReachability(aas_reachability_t *reach);
 void __cdecl AAS_ShowReachableAreas(int areanum);
 int __cdecl AAS_UpdateEntity(int entnum, float *state);
 void *__cdecl AAS_EntityInfo(void *info, int entnum);
@@ -559,7 +559,7 @@ int __cdecl AAS_PointContents(vec3_t point);
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
-qboolean __cdecl AAS_InsideFace(int a1);
+qboolean __cdecl AAS_InsideFace(aas_face_t *a1);
 qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl AAS_BoxOnPlaneSide2_dup(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
@@ -915,7 +915,7 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
 unsigned int __cdecl PC_NameHash(const char *a1);
 unsigned int __cdecl PC_AddDefineToHash(define_t *a1, define_t **a2);
 bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *a2);
-int __cdecl PC_FindDefine(int a1, const char *a2);
+int __cdecl PC_FindDefine(define_t *a1, const char *a2);
 int __cdecl PC_FindDefineParm(define_t *define, const char *a2);
 void __cdecl PC_FreeDefine(define_t *def);
 define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2);
@@ -973,7 +973,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2);
 int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
 int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
-int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, int a4);
+int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4);
 int __cdecl PS_ExpectAnyToken(int a1, int a2);
 int __cdecl StripDoubleQuotes(char *string);
 int __cdecl StripSingleQuotes(char *string);
@@ -6768,34 +6768,31 @@ int __cdecl AAS_DebugLine(int start, int end, int color)
 // 100670C0: using guessed type int dword_100670C0[256];
 
 //----- (10009950) --------------------------------------------------------
-int __cdecl AAS_DrawPermanentCross(int origin, float size, int color)
+int __cdecl AAS_DrawPermanentCross(float *origin, float size, int color)
 {
   int i; // edi
-  int v4; // ecx
-  int v5; // edx
+  float v4; // ecx
+  float v5; // edx
   double v6; // st7
   int v7; // eax
   int result; // eax
-  /* v9/v10 are int[3] in the original IDA decomp; raw 32-bit copies preserve
-   * the float bit pattern.  Retyping to float[3] silently injects int->float
-   * conversions on the v10[1]=v4/v10[2]=v5/v10[0]=*(_DWORD*) stores. */
-  int v9[3]; // [esp+Ch] [ebp-18h] BYREF
-  int v10[3]; // [esp+18h] [ebp-Ch] BYREF
+  float v9[3]; // [esp+Ch] [ebp-18h] BYREF
+  float v10[3]; // [esp+18h] [ebp-Ch] BYREF
 
   for ( i = 0; i < 3; ++i )
   {
-    v4 = *(_DWORD *)(origin + 4);
-    v5 = *(_DWORD *)(origin + 8);
-    v10[0] = *(_DWORD *)origin;
+    v4 = origin[1];
+    v5 = origin[2];
+    v10[0] = origin[0];
     v10[1] = v4;
     v10[2] = v5;
-    v6 = size + *(float *)&v10[i];
+    v6 = size + v10[i];
     v9[0] = v10[0];
     v9[1] = v4;
     v9[2] = v5;
-    *(float *)&v10[i] = v6;
-    *(float *)&v9[i] = *(float *)&v9[i] - size;
-    AAS_DebugLine((int)v10, (int)v9, color);
+    v10[i] = v6;
+    v9[i] -= size;
+    AAS_DebugLine((intptr_t)v10, (intptr_t)v9, color);
     v7 = bi_DebugLineCreate();
     result = bi_DebugLineShow(v7, v10, v9, color);
   }
@@ -6953,30 +6950,29 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
  * Structural match: ioq3 code/botlib/be_aas_debug.c:525 — three line
  * segments along each axis, each spanning [origin-size, origin+size].
  */
-void __cdecl AAS_DrawCross(int origin, float size, int color)
+void __cdecl AAS_DrawCross(float *origin, float size, int color)
 {
   int i; // edi
-  int v4; // ecx
-  int v5; // edx
+  float v4; // ecx
+  float v5; // edx
   double v6; // st7
-  /* int[3] in IDA decomp; raw bit copies of float coords. */
-  int v8[3]; // [esp+Ch] [ebp-18h] BYREF
-  int v9[3]; // [esp+18h] [ebp-Ch] BYREF
+  float v8[3]; // [esp+Ch] [ebp-18h] BYREF
+  float v9[3]; // [esp+18h] [ebp-Ch] BYREF
 
   for ( i = 0; i < 3; ++i )
   {
-    v4 = *(_DWORD *)(origin + 4);
-    v5 = *(_DWORD *)(origin + 8);
-    v9[0] = *(_DWORD *)origin;
+    v4 = origin[1];
+    v5 = origin[2];
+    v9[0] = origin[0];
     v9[1] = v4;
     v9[2] = v5;
-    v6 = size + *(float *)&v9[i];
+    v6 = size + v9[i];
     v8[0] = v9[0];
     v8[1] = v4;
     v8[2] = v5;
-    *(float *)&v9[i] = v6;
-    *(float *)&v8[i] = *(float *)&v8[i] - size;
-    AAS_DebugLine((int)v9, (int)v8, color);
+    v9[i] = v6;
+    v8[i] -= size;
+    AAS_DebugLine((intptr_t)v9, (intptr_t)v8, color);
   }
 }
 
@@ -7092,7 +7088,7 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
  *                                          AAS_WeaponJumpZVelocity(origin,120)
  *                                          — matches ioq3 be_aas_move.c:341
  */
-void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
+void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
 {
   float *v1; // ebx
   float *v2; // edi
@@ -7101,43 +7097,43 @@ void __cdecl AAS_ShowReachability(int a1) /* aas_reachability_t *reach */
   double v5; // st7
   float v6; // [esp+Ch] [ebp-7Ch] BYREF
   float v7; // [esp+10h] [ebp-78h]
-  int v8; // [esp+14h] [ebp-74h] BYREF
+  float v8[3]; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
   float v11[3]; // [esp+20h] [ebp-68h] BYREF
   float v12[3]; // [esp+2Ch] [ebp-5Ch] BYREF
   int v13[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
-  AAS_ShowArea(*(_DWORD *)a1, 1);
-  v1 = (float *)(a1 + 24); /* reach->end */
-  v2 = (float *)(a1 + 12); /* reach->start */
-  AAS_DrawArrow((float *)(a1 + 12), (float *)(a1 + 24), -202116623, -589439265);
-  traveltype = *(_DWORD *)(a1 + 36);
+  AAS_ShowArea(a1->areanum, 1);
+  v1 = a1->end;
+  v2 = a1->start;
+  AAS_DrawArrow(a1->start, a1->end, -202116623, -589439265);
+  traveltype = a1->traveltype;
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
-    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, (float *)(a1 + 12), (float *)(a1 + 24), &v6);
+    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, a1->start, a1->end, &v6);
     v5 = *v1 - *v2;
-    *(float *)&v8 = v5;
-    VectorNormalize(&v8);
-    VectorScale((float *)&v8, v6, (float *)v11);
+    v8[0] = v5;
+    VectorNormalize(v8);
+    VectorScale(v8, v6, (float *)v11);
     v11[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((char *)v13, -1, (float *)(a1 + 12), 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
-    if ( *(_DWORD *)(a1 + 36) == 5 ) /* TRAVEL_JUMP only */
+    AAS_ClientMovementPrediction((char *)v13, -1, a1->start, 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
+    if ( a1->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
-      AAS_JumpReachRunStart(a1, (intptr_t)&v8);
-      AAS_DrawCross((int)&v8, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
+      AAS_JumpReachRunStart((intptr_t)a1, (intptr_t)v8);
+      AAS_DrawCross(v8, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
   else if ( traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
   {
-    v7 = AAS_RocketJumpZVelocity((float *)(a1 + 12)); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
-    AAS_HorizontalVelocityForJump(v7, (float *)(a1 + 12), (float *)(a1 + 24), &v6);
+    v7 = AAS_RocketJumpZVelocity(a1->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
+    AAS_HorizontalVelocityForJump(v7, a1->start, a1->end, &v6);
     v4 = *v1 - *v2;
-    *(float *)&v8 = v4;
-    VectorNormalize(&v8);
-    VectorScale((float *)&v8, v6, (float *)v11);
-    *(float *)&v12[2] = v7;
+    v8[0] = v4;
+    VectorNormalize(v8);
+    VectorScale(v8, v6, (float *)v11);
+    v12[2] = v7;
     v12[0] = 0;
     v12[1] = 0;
-    AAS_ClientMovementPrediction((char *)v13, -1, (float *)(a1 + 12), 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((char *)v13, -1, a1->start, 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
   }
 }
 // 100018DE: using guessed type _DWORD __cdecl VectorNormalize(_DWORD);
@@ -7210,7 +7206,7 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
     AAS_PrintTravelType(showreach_reach[9]);                /* reach.traveltype at +36 */
     bi_Print(1, "\n");
   }
-  AAS_ShowReachability((int)showreach_reach);
+  AAS_ShowReachability(showreach_reach);
 }
 
 //----- (1000A920) --------------------------------------------------------
@@ -16341,7 +16337,7 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // 100667E0: using guessed type int aasworld.loaded;
 
 //----- (1001BD40) --------------------------------------------------------
-qboolean __cdecl AAS_InsideFace(int a1)
+qboolean __cdecl AAS_InsideFace(aas_face_t *a1)
 {
   char v3; // c0
   bool v4; // cc
@@ -16352,10 +16348,10 @@ qboolean __cdecl AAS_InsideFace(int a1)
   if ( !aasworld.loaded )
     return 0;
   v5 = 0;
-  v6 = *(_DWORD *)(a1 + 8);
+  v6 = a1->numedges;
   if ( v6 > 0 )
   {
-    v7 = (char *)aasworld.edgeindex + 4 * *(_DWORD *)(a1 + 12);
+    v7 = (char *)aasworld.edgeindex + 4 * a1->firstedge;
     while ( !v3 )
     {
       v4 = ++v5 < v6;
@@ -20973,7 +20969,7 @@ void __cdecl sub_10025070(void)
       {
         /* Instant-fire button: pull the marker back from the face. */
         VectorMA(midpoint, -half_self, forward, pre_press);
-        AAS_DrawPermanentCross((int)pre_press, 4.0f, (int)0xf3f3f1f1);
+        AAS_DrawPermanentCross(pre_press, 4.0f, (int)0xf3f3f1f1);
       }
       else
       {
@@ -21004,7 +21000,7 @@ void __cdecl sub_10025070(void)
           pre_press[1] = trace.endpos[1];
           pre_press[2] = trace.endpos[2];
         }
-        AAS_DrawPermanentCross((int)pre_press, 4.0f, (int)0xdcdddedf);
+        AAS_DrawPermanentCross(pre_press, 4.0f, (int)0xdcdddedf);
 
         /* The remaining two crosses mark the brush AABB corners after
          * recentering on `midpoint`: (mins - midpoint) added back to the
@@ -21016,12 +21012,12 @@ void __cdecl sub_10025070(void)
         cross_a[0] = midpoint[0] + mins[0];
         cross_a[1] = midpoint[1] + mins[1];
         cross_a[2] = midpoint[2] + mins[2];
-        AAS_DrawPermanentCross((int)cross_a, 4.0f, (int)0xf3f3f1f1);
+        AAS_DrawPermanentCross(cross_a, 4.0f, (int)0xf3f3f1f1);
 
         cross_b[0] = midpoint[0] + maxs[0];
         cross_b[1] = midpoint[1] + maxs[1];
         cross_b[2] = midpoint[2] + maxs[2];
-        AAS_DrawPermanentCross((int)cross_b, 4.0f, (int)0xf3f3f1f1);
+        AAS_DrawPermanentCross(cross_b, 4.0f, (int)0xf3f3f1f1);
       }
 
       if ( ++drawn > 5 )
@@ -31729,20 +31725,20 @@ define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
 /* PC_FindDefine: linear search of a define_t linked list (next at offset 24).
  * Q3 botlib has the same function in l_precomp.c.  In Gladiator the only
  * caller is PC_RemoveGlobalDefine (sub_1003B4E0) walking globaldefines. */
-int __cdecl PC_FindDefine(int a1, const char *a2)
+int __cdecl PC_FindDefine(define_t *a1, const char *a2)
 {
-  int v2; // edi
+  define_t *v2; // edi
 
   v2 = a1;
   if ( !a1 )
     return 0;
-  while ( strcmp(*(const char **)v2, a2) )
+  while ( strcmp(v2->name, a2) )
   {
-    v2 = *(_DWORD *)(v2 + 24);
+    v2 = v2->next;
     if ( !v2 )
       return 0;
   }
-  return v2;
+  return (intptr_t)v2;
 }
 
 //----- (10039DF0) --------------------------------------------------------
@@ -34784,7 +34780,7 @@ LABEL_28:
 // 1003F43B: variable 'v9' is possibly undefined
 
 //----- (1003F5C0) --------------------------------------------------------
-int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, int a4)
+int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
 {
   int v4; // ebp
   int v6; // eax
@@ -34807,12 +34803,12 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, int a4)
   char ArgList[1024]; // [esp+10h] [ebp-400h] BYREF
 
   v4 = a1;
-  if ( !PS_ReadToken(a1, a4) )
+  if ( !PS_ReadToken((script_t *)(intptr_t)a1, (char *)a4) )
   {
     ScriptError(a1, aCouldnTReadExp, v22);
     return 0;
   }
-  v6 = *(_DWORD *)(a4 + 1024);
+  v6 = a4->type;
   if ( v6 != a2 )
   {
     switch ( a2 )
@@ -34845,15 +34841,15 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, int a4)
         ScriptError(a1, aBugWrongPunctu, v22);
         return 0;
       }
-      if ( *(_DWORD *)(a4 + 1028) != a3 )
+      if ( a4->subtype != a3 )
       {
-        ScriptError(a1, aExpectedSFound, *(_DWORD *)(((script_t *)a1)->punctuations + 12 * a3));
+        ScriptError(a1, aExpectedSFound, *(_DWORD *)(((script_t *)(intptr_t)a1)->punctuations + 12 * a3));
         return 0;
       }
     }
     return 1;
   }
-  if ( (a3 & *(_DWORD *)(a4 + 1028)) == a3 )
+  if ( (a3 & a4->subtype) == a3 )
     return 1;
   if ( (a3 & 8) != 0 )
     strcpy(ArgList, "decimal");

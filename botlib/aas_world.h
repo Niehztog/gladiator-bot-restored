@@ -22,7 +22,21 @@ typedef float  aas_vertex_t[3];
 typedef struct { float normal[3]; float dist; int type; }  aas_plane_t;
 typedef struct { int v[2]; }                               aas_edge_t;
 typedef int                                                aas_edgeindex_t;
-typedef struct { int planenum; int areas[2]; int edges[2]; } aas_face_t;
+/* aas_face_t — 24-byte face record (verified by stride `24 * facenum` in
+ * 10+ usages).  Field naming matches Q3 botlib (be_aas_def.h aas_face_t):
+ *   +0  planenum  +4 faceflags  +8 numedges  +12 firstedge
+ *   +16 frontarea +20 backarea
+ * Earlier reconstruction had `{planenum; areas[2]; edges[2]}` which yielded
+ * 20 bytes and reversed the area-vs-edge order; nothing in the codebase
+ * referenced those member names so the rename is safe. */
+typedef struct {
+    int planenum;
+    int faceflags;
+    int numedges;
+    int firstedge;
+    int frontarea;
+    int backarea;
+} aas_face_t;
 typedef int                                                aas_faceindex_t;
 
 typedef struct {
