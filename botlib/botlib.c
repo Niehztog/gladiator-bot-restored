@@ -23562,6 +23562,56 @@ int BotShutdownLibrary()
 // 100643A0: using guessed type int dword_100643A0;
 // 100643A8: using guessed type int dword_100643A8;
 
+//----- (10029E10) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10029E10:
+ *   push 0x1005ab58("{"); call Log_Write
+ *   ebx = arg; xor esi,esi (i=0); cmp [ebx],0; jle done
+ *   edi = ebx + 8                  ;; first entry's value field
+ *   loop:
+ *     movsx eax, byte [edi-4]      ;; type byte (entry layout: char type
+ *                                  ;;   @+0, 3 pad, value @+4 ; stride 8)
+ *     dec eax; je print_int(1)
+ *     dec eax; je print_float(2)
+ *     dec eax; jne skip
+ *     push [edi]; push esi; push 0x1005cfec(" %4d %s"); call Log_Write
+ *     jmp next
+ *   print_float: fld [edi]; sub esp,8; fstp qword [esp];
+ *     push esi; push 0x1005cfe0(" %4d %f"); call Log_Write
+ *   print_int: push [edi]; push esi; push 0x1005cfd4(" %4d %d"); call Log_Write
+ *   next: ++esi; edi += 8; cmp esi,[ebx]; jl loop
+ *   done: push 0x1005ab54("}"); call Log_Write
+ * Iterates a typed-value list { int count; struct{char type; char pad[3];
+ * union{int i; float f; char *s;} u;} entries[]; }, printing each entry
+ * with its index and a type-specific format.  Companion dead dumper to
+ * the named-value list printers at 1002B070/1002B900.  Type tags 1=int,
+ * 2=float (printed via promotion to double), 3=string.  Dead in
+ * Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_10029E10(int *list)
+{
+  int   count;
+  int   i;
+  char *p;
+  Log_Write("{");
+  count = *list;
+  if ( count > 0 )
+  {
+    p = (char *)list + 8;
+    for ( i = 0; i < count; ++i )
+    {
+      int type = (signed char)*(p - 4);
+      if ( type == 1 )
+        Log_Write(" %4d %d", i, *(int *)p);
+      else if ( type == 2 )
+        Log_Write(" %4d %f", i, (double)*(float *)p);
+      else if ( type == 3 )
+        Log_Write(" %4d %s", i, *(char **)p);
+      p += 8;
+    }
+  }
+  Log_Write("}");
+}
+
 //----- (10029EB0) --------------------------------------------------------
 bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
 {
@@ -24249,6 +24299,49 @@ LABEL_8:
   return result;
 }
 // 1002AF99: conditional instruction was optimized away because edx.4!=0
+
+//----- (1002B070) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002B070:
+ *   call Log_FilePointer; edi=eax; test; je end
+ *   ebx = arg; test; je end
+ * outer:
+ *   fprintf(edi, "%d : [", *(int*)ebx)          ;; 0x1005d294
+ *   esi = *(int*)(ebx+8)                        ;; inner-list head
+ *   if !esi goto skip_inner
+ *   inner:
+ *     fld [esi+4]; sub esp,8; fstp qword [esp]
+ *     push [esi]; push 0x1005d284; push edi; call fprintf  ;; ("%s", %1.2f)
+ *     if [esi+8] != 0: push 0x1005d280; push edi; call fprintf  ;; ", "
+ *     esi = [esi+8]                              ;; next item
+ *     if (esi) goto inner
+ *   skip_inner: push 0x1005d27c; push edi; call fprintf  ;; "]\n"
+ *   ebx = [ebx+0xc]; if (ebx) goto outer
+ *   end: ret
+ * Outer list = { int key; pad; struct item *items; struct list *next; } stride 16.
+ * Inner item = { char *name; float val; struct item *next; } stride 12.
+ * Companion to the named-list dumper at 1002B900 (which uses %s-only
+ * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_1002B070(int *list)
+{
+  FILE *fp;
+  int  *outer;
+  char *item;
+  fp = Log_FilePointer();
+  if ( !fp || !list )
+    return;
+  for ( outer = list; outer; outer = (int *)outer[3] )
+  {
+    fprintf(fp, "%d : [", outer[0]);
+    for ( item = (char *)outer[2]; item; item = *(char **)(item + 8) )
+    {
+      fprintf(fp, "(\"%s\", %1.2f)", *(char **)item, (double)*(float *)(item + 4));
+      if ( *(int *)(item + 8) )
+        fprintf(fp, ", ");
+    }
+    fprintf(fp, "]\n");
+  }
+}
 
 //----- (1002B110) --------------------------------------------------------
 /* Original gladiator function at 0x1002B110 — the syn.c synonym-config
