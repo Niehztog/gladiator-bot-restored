@@ -1143,7 +1143,10 @@ char Mode[] = "wb"; // idb
 char aWarningEmptyLi[27] = "WARNING: empty light heap\n"; // weak
 char aModelfromindex[15] = "ModelFromIndex"; // weak
 char aIndexfrommodel[15] = "IndexFromModel"; // weak
+char aSoundfromindex[15] = "SoundFromIndex"; // weak (restored: ref'd by sub_1000D9C0)
+char aIndexfromsound[15] = "IndexFromSound"; // weak (restored: ref'd by sub_1000D9F0)
 char aImagefromindex[15] = "ImageFromIndex"; // weak
+char aIndexfromimage[15] = "IndexFromImage"; // weak (restored: ref'd by sub_1000DA50)
 char aAasPresencetyp[52] = "AAS_PresenceTypeBoundingBox: unknown presence type\n"; // weak
 char aAasInitialized[18] = "AAS initialized.\n"; // weak
 char aNooptimize[] = "nooptimize"; // idb
@@ -9077,12 +9080,37 @@ int __cdecl IndexFromModel(char *String2)
   return AAS_IndexFromString(aIndexfrommodel, aasworld.modelindex_table, String2);
 }
 
+//----- (1000D9C0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
+// against objdump@1000D9C0: pushes "SoundFromIndex" + aasworld.soundindex_table,
+// tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
+static char *__cdecl sub_1000D9C0(int a1)
+{
+  return AAS_StringFromIndex(aSoundfromindex, aasworld.soundindex_table, a1);
+}
+
+//----- (1000D9F0) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
+// soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
+static int __cdecl sub_1000D9F0(char *String2)
+{
+  return AAS_IndexFromString(aIndexfromsound, aasworld.soundindex_table, String2);
+}
+
 //----- (1000DA20) --------------------------------------------------------
 char *__cdecl sub_1000DA20(int a1)
 {
   return AAS_StringFromIndex(aImagefromindex, aasworld.imageindex_table, a1);
 }
 // 100669AC: using guessed type int aasworld.imageindex_table;
+
+//----- (1000DA50) --------------------------------------------------------
+// Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
+// imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
+static int __cdecl sub_1000DA50(char *String2)
+{
+  return AAS_IndexFromString(aIndexfromimage, aasworld.imageindex_table, String2);
+}
 
 //----- (1000DA80) --------------------------------------------------------
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
