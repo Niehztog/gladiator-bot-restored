@@ -447,7 +447,7 @@ typedef struct operator_s {
  * bsp_link_t — entity<->BSP-leaf link node, 24 bytes on 32-bit.
  *
  * Q3 equivalent: be_aas_def.h:70 (same layout).  Field offsets are confirmed
- * from AAS_InitBSPLinkHeap disassembly (24-byte stride, +8/+12 used as free-list
+ * from sub_100030A0 disassembly (24-byte stride, +8/+12 used as free-list
  * next/prev which corresponds to next_ent/prev_ent slots).  On 64-bit each
  * pointer expands to 8 bytes so the node grows to 40 bytes.
  */
