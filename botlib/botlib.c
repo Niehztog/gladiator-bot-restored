@@ -24619,6 +24619,49 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
   }
 }
 
+//----- (1002B900) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002B900:
+ *   call Log_FilePointer; edi=eax; test; je end
+ *   ebx = arg; test; je end
+ * outer:
+ *   fprintf(edi, "%s = {", *(char**)ebx)        ;; 0x1005d344
+ *   esi = *(int*)(ebx+8); if !esi goto skip_inner
+ *   inner:
+ *     fprintf(edi, "\"%s\"", *(char**)esi)      ;; 0x1005d33c
+ *     if (*(int*)(esi+4)) fprintf(edi, ", ")    ;; 0x1005d280
+ *     else                fprintf(edi, "}\n")   ;; 0x1005d338
+ *     esi = *(char**)(esi+4); if esi goto inner
+ * skip_inner:
+ *   ebx = *(int**)(ebx+0xc); if ebx goto outer
+ *   end: ret
+ * Outer node = { char *name; pad; struct item *items; struct list *next; }
+ *   stride 16, walked via [+0xc].next.
+ * Inner item = { char *name; struct item *next; } stride 8.
+ * The outer block's closing "}\n" is emitted by the LAST inner item;
+ * an empty inner list leaves the block unterminated -- abandoned/buggy
+ * Mr. Elusive helper, no canonical Q3 counterpart.  Sibling of the
+ * named-float dumper at sub_1002B070.  Dead in Gladiator --
+ * preserved by /INCREMENTAL. */
+static void __cdecl sub_1002B900(int *list)
+{
+  FILE *fp;
+  char *outer;
+  char *item;
+  fp = Log_FilePointer();
+  if ( !fp || !list )
+    return;
+  for ( outer = (char *)list; outer; outer = *(char **)(outer + 0xc) )
+  {
+    fprintf(fp, "%s = {", *(char **)outer);
+    for ( item = *(char **)(outer + 8); item; item = *(char **)(item + 4) )
+    {
+      fprintf(fp, "\"%s\"", *(char **)item);
+      fprintf(fp, *(int *)(item + 4) ? ", " : "}\n");
+    }
+  }
+}
+
 //----- (1002B990) --------------------------------------------------------
 // Q3 equivalent: BotLoadRandomStrings (be_ai_chat.c).  Two-pass loader:
 // pass 0 counts the required scratch-buffer size, pass 1 allocates a single
@@ -25599,6 +25642,53 @@ FAIL:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 static void sub_1002DF70(chatlist_t *list);
+
+//----- (1002D7E0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002D7E0:
+ *   push 0x1005ab58("{"); call Log_Write
+ *   eax = arg; edi = [eax]; test edi,edi; je tail
+ * outer:
+ *   push esi; push edi; push 0x1005d5bc(' type "%s"'); call Log_Write
+ *   push 0x1005d5b8(" {"); call Log_Write
+ *   ecx = [edi+0x20]; push ecx; push 0x1005d59c("  numchatmessages = %d"); call Log_Write
+ *   esi = [edi+0x24]                       ;; chattype_t->messages head
+ *   if (!esi) goto skip_inner
+ *   inner:
+ *     edx = [esi]; push edx; push 0x1005d594('  "%s"'); call Log_Write
+ *     esi = [esi+8]; if (esi) goto inner
+ *   skip_inner:
+ *     push 0x1005d590(" }"); call Log_Write
+ *     edi = [edi+0x28]; if (edi) goto outer
+ *   tail: push 0x1005ab54("}"); call Log_Write; ret
+ * Twin of the live BotDumpInitialChat at 1002D8A0: this is the loaded-
+ * chat-tree pretty-printer that BotDumpInitialChat would call after
+ * parsing if dumping were enabled.  Walks chatlist_t->types (chattype_t
+ * chain) and per-type chattype_t->messages (chatmessage_t chain),
+ * matching the chat-config grammar that BotDumpInitialChat parses
+ * just below.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+static void __cdecl sub_1002D7E0(chatlist_t *list)
+{
+  chattype_t *t;
+  chatline_t *msg;
+  Log_Write("{");
+  t = list->types;
+  while ( t )
+  {
+    Log_Write(" type \"%s\"", t->name);
+    Log_Write(" {");
+    Log_Write("  numchatmessages = %d", t->numlines);
+    msg = t->firstline;
+    while ( msg )
+    {
+      Log_Write("  \"%s\"", msg->string);
+      msg = msg->next;
+    }
+    Log_Write(" }");
+    t = t->next;
+  }
+  Log_Write("}");
+}
 
 //----- (1002D8A0) --------------------------------------------------------
 void *__cdecl BotDumpInitialChat(char *a1, char *a2)
