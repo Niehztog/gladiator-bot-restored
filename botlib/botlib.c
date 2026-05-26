@@ -8995,6 +8995,47 @@ LABEL_4:
 // 10066960: using guessed type int aasworld.numnodes;
 // 10066970: using guessed type int aasworld.portalindexsize;
 
+//----- (1000D340) --------------------------------------------------------
+// AAS_InitBSPPointLights — allocate and freelist-initialise the
+// bsp_pointlight_t pool used by BotAddPointLight (0x1000D550) and
+// AAS_BSPTraceLight (0x1000D5F0).  Pool size = max_aaslights * 52
+// bytes; default 128 lights.  After init the entire pool is chained
+// via .next/.prev into aasworld.oldestcache (free pool), and the
+// pool base is stashed in aasworld._pad_1FC for later FreeMemory.
+// DEAD in Gladiator — preserved by /INCREMENTAL: in stock builds the
+// engine never sets up max_aaslights and never calls this init, so
+// BotAddPointLight's free-list pop in sub_1000D450 always returns
+// NULL and the point-light cache stays empty.  Restored from
+// objdump@1000D340.
+static void sub_1000D340(void)
+{
+  int max;
+  bsp_pointlight_t *pool;
+  bsp_pointlight_t *node;
+  int i;
+
+  max = (int)LibVarValue("max_aaslights", "128");
+  if ( max < 0 || max > 0x10000 )
+  {
+    bi_Print(3, "max_aaslights out of range [0, 65536]");
+    max = 128;
+  }
+  pool = (bsp_pointlight_t *)GetMemory(max * 52);
+  *(bsp_pointlight_t **)&aasworld._pad_1FC = pool;
+  pool[0].prev = NULL;
+  pool[0].next = &pool[1];
+  for ( i = 1; i < max - 1; ++i )
+  {
+    node = (bsp_pointlight_t *)((char *)pool + i * 52);
+    node->prev = (bsp_pointlight_t *)((char *)node - 52);
+    node->next = (bsp_pointlight_t *)((char *)node + 52);
+  }
+  node = (bsp_pointlight_t *)((char *)pool + (max - 1) * 52);
+  node->prev = (bsp_pointlight_t *)((char *)node - 52);
+  node->next = NULL;
+  aasworld.oldestcache = pool;
+}
+
 //----- (1000D450) --------------------------------------------------------
 bsp_pointlight_t *sub_1000D450()
 {
@@ -23168,6 +23209,43 @@ int Export_BotAIFrame(int a1, float a2)
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100643A0: using guessed type int dword_100643A0;
+
+//----- (100293A0) --------------------------------------------------------
+// Per-bot memory-usage dumper: reports the byte size of every allocation
+// the bot owns (character / item weights / item index / weapon weights /
+// weapon index / chat file), then calls PrintUsedMemorySize for the
+// totals.  Format strings live at .rdata 0x1005cda8..0x1005ce38.
+// DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk
+// (no live caller; debug-only telemetry sibling of the dump helpers at
+// 10029E10/1002B070/1002B900).
+// Restored IDA-missed stub.  Verified against objdump@100293A0:
+//   for each field: push *(int *)(bs+ofs); call MemoryByteSize@10039120;
+//   push ret, push fmt, push 1; call bi_Print@ds:0x10063fe8
+//   end: call PrintUsedMemorySize@10039150
+// Field offsets (raw — our bot_state_t labels in this region — goalstate
+// / chatstate / weaponweights — don't match these handle slots one-to-one):
+//   +0x688  = character handle
+//   +0xbc0  = item weights handle
+//   +0xbc4  = item index handle
+//   +0x1044 = chat file handle
+//   +0x1050 = weapon weights handle
+//   +0x1054 = weapon index handle
+static void sub_100293A0(bot_state_t *bs)
+{
+  bi_Print(1, "%6d bytes character\n",
+           MemoryByteSize(*(void **)((char *)bs + 0x688)));
+  bi_Print(1, "%6d bytes item weights\n",
+           MemoryByteSize(*(void **)((char *)bs + 0xbc0)));
+  bi_Print(1, "%6d bytes item index\n",
+           MemoryByteSize(*(void **)((char *)bs + 0xbc4)));
+  bi_Print(1, "%6d bytes weapon weights\n",
+           MemoryByteSize(*(void **)((char *)bs + 0x1050)));
+  bi_Print(1, "%6d bytes weapon index\n",
+           MemoryByteSize(*(void **)((char *)bs + 0x1054)));
+  bi_Print(1, "%6d bytes chat file\n",
+           MemoryByteSize(*(void **)((char *)bs + 0x1044)));
+  PrintUsedMemorySize();
+}
 
 //----- (10029480) --------------------------------------------------------
 int __cdecl BotSetupClient(int a1, char *Source)
