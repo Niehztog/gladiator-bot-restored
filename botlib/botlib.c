@@ -18360,6 +18360,141 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
 // 10001F0A: using guessed type double __cdecl AAS_Time(_DWORD);
 // 100644A0: using guessed type int dword_100644A0;
 
+//----- (1001D420) --------------------------------------------------------
+/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
+ * from objdump@1001D420 (size 0x281 / 193 lines); cross-referenced against
+ * RetDec function_1001d420 (reference/retdec/gladiator.dll_retdec.c:39074).
+ * Identity: BotEntityFuturePosition-style helper.  Looks up an entity by
+ * the name string at bs+0x1124, fetches its AAS_EntityInfo, validates the
+ * point->area->reachability chain, derives a velocity vector from the
+ * delta between the current info and a previous-frame info (named at
+ * bs+0x10F0), and runs AAS_ClientMovementPrediction forward by 0.1s of
+ * 400-unit/s motion to compute a predicted aim point.  The result block
+ * at bs+0x1150..+0x1178 is populated with {entnum, predicted_pos,
+ * mins=-8,-8,-8, maxs=+8,+8,+8, name_string_length} and a pointer to
+ * bs+0x1150 is returned.  Static-image constants verified via PE read:
+ *   ds:0x10058130  = 0.1   (double; |velocity| > 0.1 acceptance threshold)
+ *   ds:0x100580C4  = 1.0   (float; vz adjustment before AngleVectors)
+ *   ds:0x100631CC  = `velocity` global (zero-init vec3 reused as the
+ *                    AAS_ClientMovementPrediction velocity arg — same
+ *                    pattern as AAS_JumpReachRunStart@1000F010)
+ *   0xC1000000 = -8.0f, 0x41000000 = 8.0f, 0x43C80000 = 400.0f,
+ *   0x3DCCCCCD = 0.1f.
+ * DEAD in shipped Gladiator (no extant caller in the .idata-walked call
+ * graph; RetDec hallucinates a single ref at line 6354 against a stripped
+ * &g645).  Restored verbatim — Mr. Elusive's behavior preserved including
+ * the zero-velocity fall-through and the predicted-vs-current branch via
+ * the 0x38 stopevent mask. */
+static int sub_1001D420(bot_state_t *bs)
+{
+  char entinfo[124];        /* [esp+0x4C] — current-frame target entityinfo  */
+  char prevent[124];        /* [esp+0xC4] — wait, no: this is the scratch    *
+                             * buffer passed in to AAS_EntityInfo; the same  *
+                             * 124 bytes are read back via the returned ptr. */
+  char scratch[124];        /* [esp+0xC0] — AAS_EntityInfo target buffer     */
+  int predict[20];          /* [esp+0x110] — AAS_ClientMovementPrediction out */
+  vec3_t origin;            /* [esp+0x40 .. 0x4C overlay with entinfo origin] */
+  vec3_t delta;             /* [esp+0x1C] — current.origin - prev.origin     */
+  vec3_t angles;            /* [esp+0x10] — vectoangles output               */
+  vec3_t forward;           /* [esp+0x28 after reshuffle] — AngleVectors fwd */
+  vec3_t scaled;            /* [esp+0x34] — VectorScale(forward, 400, ...)   */
+  vec3_t start_pos;         /* [esp+0x4C reshuffled] — start for prediction  */
+  int    entnum;            /* [esp+0x30] — ClientFromName(bs+0x1124) + 1    */
+  int    prevent_namelen;   /* ebp — ClientFromName(bs+0x10F0) + 1           */
+  int    out_entnum;        /* final entnum stored at bs+0x1150               */
+  float  out_pitch;         /* final pitch stored at bs+0x1158                */
+  float  vx, vy, vz;        /* mirror of [esp+0x1c..0x28] velocity-fp temps   */
+  (void)prevent; (void)scratch;
+  /* 1. Look up the named target → entnum.  ClientFromName returns -1 when
+   *    no match; the +1 turns -1 into 0, which AAS_EntityInfo treats as
+   *    "out of range" and zeroes the info buffer (the v1==0 early-out at
+   *    1001d461 catches that case). */
+  entnum = ClientFromName((const char *)((char *)bs + 0x1124)) + 1;
+  qmemcpy(entinfo, AAS_EntityInfo(scratch, entnum), 124);
+  if ( *(_DWORD *)entinfo == 0 )
+    return (int)((char *)bs + 0x1150);
+  /* 2. Validate that the entity sits in a reachable AAS area. */
+  out_entnum = AAS_PointAreaNum((float *)(entinfo + 4));   /* info.origin @+4 */
+  if ( !out_entnum )
+    return (int)((char *)bs + 0x1150);
+  if ( !AAS_AreaReachability(out_entnum) )
+    return (int)((char *)bs + 0x1150);
+  /* 3. Stash the live origin into bs->target_origin (bs+0x1144..+0x114C). */
+  origin[0] = *(float *)(entinfo + 4);
+  origin[1] = *(float *)(entinfo + 8);
+  origin[2] = *(float *)(entinfo + 12);
+  *(_DWORD *)((char *)bs + 0x1144) = *(_DWORD *)(entinfo + 4);
+  *(_DWORD *)((char *)bs + 0x1148) = *(_DWORD *)(entinfo + 8);
+  *(_DWORD *)((char *)bs + 0x114C) = *(_DWORD *)(entinfo + 12);
+  /* 4. Look up the previous-frame target name (bs+0x10F0) and re-fetch its
+   *    entityinfo; ebp keeps the +1'd entnum to write back to bs+0x1178.   */
+  prevent_namelen = ClientFromName((const char *)((char *)bs + 0x10F0)) + 1;
+  qmemcpy(entinfo, AAS_EntityInfo(scratch, prevent_namelen), 124);
+  /* 5. If the prev-frame lookup succeeded, derive a velocity from
+   *    (current_origin - prev_origin).  current_origin is in `origin` (3.);
+   *    the just-overwritten entinfo holds the prev info — origin at +4.    */
+  vx = vy = vz = 0.0f;
+  if ( *(_DWORD *)entinfo != 0 )
+  {
+    vx = origin[0] - *(float *)(entinfo + 4);
+    vy = origin[1] - *(float *)(entinfo + 8);
+    vz = origin[2] - *(float *)(entinfo + 12);
+    delta[0] = vx; delta[1] = vy; delta[2] = vz;
+    if ( (long double)VectorLength(delta) > 0.1L )
+    {
+      *(_DWORD *)((char *)bs + 0x1138) = *(_DWORD *)&vx;
+      *(_DWORD *)((char *)bs + 0x113C) = *(_DWORD *)&vy;
+      *(_DWORD *)((char *)bs + 0x1140) = *(_DWORD *)&vz;
+    }
+  }
+  /* 6. Convert the stored velocity to angles, bias yaw by bs+0x1134, and
+   *    wrap with AngleMod.  Pitch comes back through st0 → angles[2] slot. */
+  vectoangles((float *)((char *)bs + 0x1138), angles);
+  angles[2] = AngleMod(angles[2] + *(float *)((char *)bs + 0x1134));
+  angles[1] = 0.0f;
+  /* 7. AngleVectors gives the forward unit vec; scale to 400 u/s.  Pitch
+   *    is overwritten with 1.0 (ds:0x100580C4) to keep the prediction in
+   *    the horizontal plane regardless of input pitch. */
+  AngleVectors(angles, forward, NULL, NULL);
+  forward[2] += 1.0f;
+  start_pos[0] = origin[0];
+  start_pos[1] = origin[1];
+  start_pos[2] = origin[2];
+  VectorScale(forward, 400.0f, scaled);
+  /* 8. Predict 0.1s of horizontal motion.  Stopevent mask 0x7C catches the
+   *    same flag set used by AAS_JumpReachRunStart's runstart helper.      */
+  qmemcpy(predict,
+          AAS_ClientMovementPrediction((char *)predict, -1, start_pos,
+                                       2, 1, velocity, scaled,
+                                       1, 2, 0.1, 124, 0),
+          sizeof(predict));
+  /* 9. If the prediction tripped a water/slime/lava stopevent (mask 0x38),
+   *    bail to the unpredicted aim — use the *current* origin and 0.0 pitch
+   *    instead of the predicted endpos.  Otherwise commit the prediction. */
+  if ( (*((unsigned char *)predict + 0x40) & 0x38) != 0 )
+  {
+    out_pitch = *(float *)((char *)predict + 0x0C);   /* predicted z       */
+    angles[0] = *(float *)((char *)predict + 0x04);   /* predicted x       */
+    angles[1] = *(float *)((char *)predict + 0x08);   /* predicted y       */
+  }
+  else
+  {
+    out_pitch = 0.0f;
+  }
+  *(_DWORD *)((char *)bs + 0x115C) = *(_DWORD *)&scaled[2];     /* yaw kept */
+  *(float  *)((char *)bs + 0x1158) = out_pitch;
+  *(_DWORD *)((char *)bs + 0x1154) = *(_DWORD *)&angles[0];
+  *(_DWORD *)((char *)bs + 0x1178) = prevent_namelen;
+  *(float  *)((char *)bs + 0x1160) = -8.0f;
+  *(float  *)((char *)bs + 0x1164) = -8.0f;
+  *(float  *)((char *)bs + 0x1168) = -8.0f;
+  *(float  *)((char *)bs + 0x116C) = 8.0f;
+  *(float  *)((char *)bs + 0x1170) = 8.0f;
+  *(float  *)((char *)bs + 0x1174) = 8.0f;
+  *(_DWORD *)((char *)bs + 0x1150) = out_entnum;
+  return (int)((char *)bs + 0x1150);
+}
+
 //----- (1001D760) --------------------------------------------------------
 /* BotLongTermGoal: dispatches the bot's current LTG (long-term goal) state
  * and returns the goal position vec3 to seek (NULL if no goal active).
