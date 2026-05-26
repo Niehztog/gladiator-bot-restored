@@ -4161,6 +4161,27 @@ LABEL_6:
 // 100057A0: using guessed type float var_5C[9];
 // 100057A0: using guessed type char var_2C[12];
 
+//----- (10005A10) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@10005A10:
+ *   sub esp,0xc; mov edx,[esp+0x10]; lea eax,[esp]; lea ecx,[esp];
+ *   push eax; push ecx; push 0; push edx;
+ *   mov [esp+0x10..0x18],0  (zero a vec3 local at esp+0..0xb);
+ *   call 0x10001ac8 (-> 0x100057A0 = AAS_AreaContents/leaf-walker);
+ *   add esp,0x1c; ret
+ * Point-only flavor of sub_100057A0: passes the caller's vec3 as
+ * origin, zero-mins/zero-maxs (degenerate point box).  Returns whatever
+ * sub_100057A0 returned in EAX.  Dead in Gladiator -- preserved by
+ * /INCREMENTAL. */
+static int __cdecl sub_10005A10(float *origin)
+{
+  float zero_vec[3];
+  zero_vec[0] = 0.0f;
+  zero_vec[1] = 0.0f;
+  zero_vec[2] = 0.0f;
+  return sub_100057A0(origin, 0, zero_vec, zero_vec);
+}
+
 //----- (10005A60) --------------------------------------------------------
 int __cdecl AAS_DecompressVis(int a1, int a2)
 {
@@ -26068,6 +26089,34 @@ static void __cdecl sub_1002EB30(void *target, const char *src)
   strncpy(dst, src, 15);
 }
 
+//----- (1002EB70) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1002EB70:
+ *   ecx = ds:0x10064380   (= bot_replychat_t * head: dword_10064380)
+ *   xor edx,edx
+ *   while ( ecx ) {
+ *     eax = [ecx+0xc]     (firstchatmessage)
+ *     while ( eax ) {
+ *       [eax+0x4] = 0     (bot_chatmessage_t.time = 0)
+ *       eax = [eax+0x8]   (chat->next)
+ *     }
+ *     ecx = [ecx+0x10]    (replychat->next)
+ *   }
+ *   ret
+ * Walks the global reply-chat list and clears the last-used timestamp on
+ * every chatmessage in every entry.  Matches Q3's BotResetReplyChat /
+ * BotInitChatMessage usage-throttle reset.  Dead in Gladiator --
+ * preserved by /INCREMENTAL. */
+static void __cdecl sub_1002EB70(void)
+{
+  bot_replychat_t   *rc;
+  bot_chatmessage_t *cm;
+
+  for ( rc = dword_10064380; rc; rc = rc->next )
+    for ( cm = rc->firstchatmessage; cm; cm = cm->next )
+      cm->time = 0;
+}
+
 //----- (1002EBB0) --------------------------------------------------------
 int BotSetupChatAI()
 {
@@ -32956,6 +33005,33 @@ define_t *__cdecl PC_DefineFromString(const char *a1)
 // 100015A0: using guessed type _DWORD __cdecl LoadScriptMemory(_DWORD, _DWORD, _DWORD);
 // 100017AD: using guessed type _DWORD __cdecl FreeScript(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
+
+//----- (1003B460) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003B460:
+ *   mov eax,[esp+8]; push eax;
+ *   call 0x10001104 (-> 0x1003B320 = PC_DefineFromString);
+ *   add esp,4; test eax,eax; jne L;
+ *   ret                       (returns eax which is 0 / NULL)
+ * L: mov ecx,[esp+4]          (source_t * arg1)
+ *   mov edx,[ecx+0x218]       (source->definehash, +536)
+ *   push edx; push eax;
+ *   call 0x100013ca (-> 0x10039CB0 = PC_AddDefineToHash);
+ *   add esp,8; mov eax,1; ret
+ * Mirror of Q3's PC_AddDefine(handle, string): parses `string` into a
+ * fresh define_t and links it into source->definehash; returns 1 on
+ * success, 0 if parsing failed.  Dead in Gladiator -- preserved by
+ * /INCREMENTAL. */
+static int __cdecl sub_1003B460(source_t *source, const char *string)
+{
+  define_t *def;
+
+  def = PC_DefineFromString(string);
+  if ( !def )
+    return 0;
+  PC_AddDefineToHash(def, source->definehash);
+  return 1;
+}
 
 //----- (1003B4A0) --------------------------------------------------------
 /* Original gladiator function at 0x1003B4A0 — prepends a parsed define
