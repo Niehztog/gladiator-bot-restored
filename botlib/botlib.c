@@ -25641,17 +25641,17 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *String2, ...)
 //----- (1002E7D0) --------------------------------------------------------
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
 {
-  int v2; // ebx
-  int *v3; // esi
+  bot_replychat_t *v2; // ebx
+  bot_replychatkey_t *v3; // esi
   int v4; // edi
   int v5; // ecx
   BOOL v6; // eax
-  int v7; // esi
+  bot_chatmessage_t *v7; // esi
   int v8; // edi
   __int64 v9; // rax
-  int v10; // esi
+  bot_chatmessage_t *v10; // esi
   int v11; // edi
-  int v13; // [esp+10h] [ebp-100h]
+  bot_chatmessage_t *v13; // [esp+10h] [ebp-100h]
   int v14; // [esp+14h] [ebp-FCh]
   int v15; // [esp+18h] [ebp-F8h]
   bot_match_t v16; // [esp+20h] [ebp-F0h] BYREF
@@ -25665,15 +25665,15 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
     return 0;
   do
   {
-    v3 = *(int **)v2;
+    v3 = v2->keys;
     v4 = 0;
-    if ( !*(_DWORD *)v2 )
+    if ( !v2->keys )
       goto LABEL_34;
     do
     {
-      v5 = *v3;
+      v5 = v3->flags;
       v6 = 0;
-      if ( (*v3 & 0x20) != 0 )
+      if ( (v3->flags & 0x20) != 0 )
       {
         LOBYTE(v6) = *(_DWORD *)cs == 1;
       }
@@ -25685,18 +25685,18 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
       {
         if ( (v5 & 0x10) != 0 )
         {
-          v6 = StringsMatch((bot_matchpiece_t *)v3[2], &v16);
+          v6 = StringsMatch(v3->match, &v16);
         }
         else if ( (v5 & 8) != 0 )
         {
-          v6 = StringContains((const char *)a2, (const char *)v3[1], 0) != 0;
+          v6 = StringContains(a2, v3->string, 0) != 0;
         }
       }
       else
       {
         v6 = *(_DWORD *)cs == 0;
       }
-      if ( (*v3 & 1) != 0 )
+      if ( (v3->flags & 1) != 0 )
       {
         if ( !v6 )
           goto LABEL_34;
@@ -25704,7 +25704,7 @@ LABEL_20:
         v4 = 1;
         goto LABEL_21;
       }
-      if ( (*v3 & 2) == 0 )
+      if ( (v3->flags & 2) == 0 )
       {
         if ( !v6 )
           goto LABEL_21;
@@ -25713,49 +25713,49 @@ LABEL_20:
       if ( v6 )
         goto LABEL_34;
 LABEL_21:
-      v3 = (int *)v3[3];
+      v3 = v3->next;
     }
     while ( v3 );
-    if ( v4 && (double)v14 < *(float *)(v2 + 4) )
+    if ( v4 && (double)v14 < v2->priority )
     {
-      v7 = *(_DWORD *)(v2 + 12);
+      v7 = v2->firstchatmessage;
       v8 = 0;
       v15 = 0;
       if ( v7 )
       {
         do
         {
-          if ( AAS_Time() >= *(float *)(v7 + 4) )
+          if ( AAS_Time() >= v7->time )
             ++v8;
-          v7 = *(_DWORD *)(v7 + 8);
+          v7 = v7->next;
         }
         while ( v7 );
         v15 = v8;
       }
       v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
-      v10 = *(_DWORD *)(v2 + 12);
+      v10 = v2->firstchatmessage;
       v11 = v9;
       if ( v10 )
       {
         while ( --v11 >= 0 )
         {
           AAS_Time();
-          v10 = *(_DWORD *)(v10 + 8);
+          v10 = v10->next;
           if ( !v10 )
             goto LABEL_34;
         }
         v13 = v10;
-        v14 = (__int64)*(float *)(v2 + 4);
+        v14 = (__int64)v2->priority;
       }
     }
 LABEL_34:
-    v2 = *(_DWORD *)(v2 + 16);
+    v2 = v2->next;
   }
   while ( v2 );
   if ( v13 )
   {
-    *(float *)(v13 + 4) = AAS_Time() + 20.0;
-    BotConstructChatMessage(cs, *(const char **)v13, 0, (bot_chatvar_t *)v16.variables, 16);
+    v13->time = AAS_Time() + 20.0;
+    BotConstructChatMessage(cs, v13->chatmessage, 0, (bot_chatvar_t *)v16.variables, 16);
     return 1;
   }
   return 0;
