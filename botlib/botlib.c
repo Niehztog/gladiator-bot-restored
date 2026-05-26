@@ -35646,6 +35646,77 @@ LABEL_51:
 }
 // 1003ED96: conditional instruction was optimized away because dl.1==30
 
+//----- (1003F020) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003F020:
+ *   mov esi,arg1(script); mov edi,arg2(token)
+ *   mov [edi+0x400],2                 ;; token.type = TT_LITERAL
+ *   mov cl,[esi+0x108]
+ *   mov [edi],cl                      ;; token.string[0] = *script_p
+ *   inc DWORD[esi+0x108]
+ *   mov al,*script_p; test al,al
+ *   jne 0x1003F068
+ *     push "end of file before trailing '"@0x10060334; push script
+ *     call ScriptError via 0x10001A23; return 0
+ *   cmp al,'\\'; lea ebx,[edi+1]
+ *   jne 0x1003F081
+ *     push ebx; push esi; call PS_ReadEscapeCharacter via 0x10001C99
+ *     test eax,eax; je return_0
+ *     jmp 0x1003F090
+ *   0x1003F081: mov [ebx],al; ++script_p
+ *   0x1003F090: cmp *script_p,'\''; je 0x1003F0E4
+ *     push "too many characters in literal, ignored"@0x10060304
+ *     push script; call ScriptWarning via 0x10001460
+ *     skip-loop: while *script_p && != '\'' && != '\n': ++script_p
+ *     if *script_p=='\'': ++script_p
+ *   0x1003F0E4:
+ *     mov [edi+2], *script_p; ++script_p; mov [edi+3],0
+ *     movsx eax,[ebx]; mov [edi+0x404],eax   ;; subtype = (signed char)string[1]
+ *     return 1
+ * Canonical Q3 l_script.c PS_ReadCharacterLiteral: reads a 'x' or '\\n'-
+ * style character constant and stores the character value in
+ * token.subtype.  Matches the live PS_ReadString family in structure.
+ * Strings at .rdata 0x10060304 / 0x10060334 inlined below.
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1003F020(script_t *script, token_t *token)
+{
+  char *p;
+
+  token->type = 2; /* TT_LITERAL */
+  token->string[0] = *script->script_p;
+  script->script_p++;
+  if ( !*script->script_p )
+  {
+    ScriptError((int)script, "end of file before trailing \'");
+    return 0;
+  }
+  if ( *script->script_p == '\\' )
+  {
+    if ( !PS_ReadEscapeCharacter(script, (_BYTE *)&token->string[1]) )
+      return 0;
+  }
+  else
+  {
+    token->string[1] = *script->script_p;
+    script->script_p++;
+  }
+  if ( *script->script_p != '\'' )
+  {
+    ScriptWarning((int)script, "too many characters in literal, ignored");
+    p = script->script_p;
+    while ( *p && *p != '\'' && *p != '\n' )
+      ++p;
+    if ( *p == '\'' )
+      ++p;
+    script->script_p = p;
+  }
+  token->string[2] = *script->script_p;
+  script->script_p++;
+  token->string[3] = 0;
+  token->subtype = (signed char)token->string[1];
+  return 1;
+}
+
 //----- (1003F160) --------------------------------------------------------
 /* Original gladiator function at 0x1003F160 — try to read a punctuation
  * token from the script's current position.  IDA decompile used
@@ -35974,6 +36045,37 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
 // 1003F9CD: variable 'v3' is possibly undefined
 // 1000127B: using guessed type int __cdecl PS_ReadToken(_DWORD, _DWORD);
 
+//----- (1003F9F0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@1003F9F0:
+ *   sub esp,0x430                  ;; token_t on stack
+ *   push edi; mov edi,arg1(script)
+ *   push esp; push edi
+ *   call PS_ReadToken via 0x1000127B
+ *   test eax,eax; je fail (1003FA69)
+ *   mov esi,arg2(string)
+ *   ... inline strcmp(token.string, string) ...
+ *   test eax,eax; jne mismatch (1003FA5D)
+ *   return 1
+ *   mismatch:
+ *     mov eax,[edi+0x110]; mov [edi+0x108],eax  ;; script_p = lastscript_p
+ *   fail: return 0
+ * Canonical Q3 l_script.c PS_CheckTokenString: peek-read next token,
+ * if its string matches the expected literal return 1, else rewind
+ * script->script_p from script->lastscript_p and return 0.
+ * Sibling of PS_CheckTokenType (0x1003FAB0).
+ * Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_1003F9F0(script_t *script, const char *string)
+{
+  token_t token;
+  if ( !PS_ReadToken(script, (char *)&token) )
+    return 0;
+  if ( strcmp(token.string, string) == 0 )
+    return 1;
+  script->script_p = script->lastscript_p;
+  return 0;
+}
+
 //----- (1003FAB0) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
  * objdump@1003FAB0:
@@ -36145,6 +36247,50 @@ BOOL __cdecl EndOfScript(script_t *script)
 static int __cdecl sub_10040090(int script)
 {
   return *(int *)(script + 0x120) - *(int *)(script + 0x124);
+}
+
+//----- (100400C0) --------------------------------------------------------
+/* Restored IDA-missed dead-code stub.  Verified against
+ * objdump@100400C0:
+ *   mov ebp,arg1(string)
+ *   strlen(string) -> edi    (via repnz scasb)
+ *   mov esi,arg2(script); mov bl,*string
+ *   push esi; call PS_ReadWhiteSpace via 0x10001DFC
+ *   test eax,eax; je return_0
+ *   loop_check:
+ *     mov eax,[esi+0x108]
+ *     cmp [eax],bl                      ;; *script_p == string[0]?
+ *     jne advance
+ *     push edi(len); push ebp(string); push eax(script_p)
+ *     call strncmp@0x100456B0
+ *     test eax,eax; je return_1
+ *   advance:
+ *     ++script->script_p
+ *     push esi; call PS_ReadWhiteSpace via 0x10001DFC
+ *     test eax,eax; jne loop_check
+ *   return_0: return 0
+ *   return_1: return 1
+ * Lower-level companion to the token-based PS_SkipUntilString
+ * (0x1003FB50): scans the raw script stream character-by-character,
+ * skipping whitespace between probes, looking for an occurrence of
+ * the target string anchored on its first byte.  Returns 1 if found,
+ * 0 on EOF.  No canonical Q3 counterpart -- abandoned Mr. Elusive
+ * helper.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+static int __cdecl sub_100400C0(const char *string, script_t *script)
+{
+  size_t len = strlen(string);
+  char   first = string[0];
+  if ( !PS_ReadWhiteSpace(script) )
+    return 0;
+  while ( 1 )
+  {
+    if ( *script->script_p == first
+      && strncmp(script->script_p, string, len) == 0 )
+      return 1;
+    script->script_p++;
+    if ( !PS_ReadWhiteSpace(script) )
+      return 0;
+  }
 }
 
 //----- (10040150) --------------------------------------------------------
