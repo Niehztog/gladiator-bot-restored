@@ -10770,6 +10770,76 @@ LABEL_87:
 // 1000F840: using guessed type char var_48[36];
 // 1000F840: using guessed type char var_6C[36];
 
+//----- (10010690) --------------------------------------------------------
+/* sub_10010690 — DEAD movement-prediction debug helper.  Restored from
+ * objdump@0x10010690 (68 lines).  Drives one AAS_ClientMovementPrediction
+ * step with a forced +Z=224 jump impulse, then prints "leave ground\n"
+ * via bi_Print if the prediction's result-flags byte sets bit 0x02.
+ *
+ * Signature (cdecl, 3 args):
+ *   void sub_10010690(int client, vec3_t origin, vec3_t move_dir)
+ *
+ *   1. If !AAS_Swimming(origin), move_dir[2] = 0 (flatten Z so the bot
+ *      doesn't run into a ceiling).
+ *   2. VectorNormalize(move_dir) (FPU return discarded with fstp st(0)).
+ *   3. VectorScale(move_dir, 400, cmd_move) — 400 u/s desired speed.
+ *   4. cmd_move[2] = 224.0f — fixed jump impulse (matches sv_jumpvel
+ *      default in Q2's playermove).
+ *   5. velocity = {0, 0, GARBAGE}.  The .text writes only [esp+0xc] and
+ *      [esp+0x10] to zero (= velocity.x and velocity.y); velocity.z is
+ *      whatever stack slop was at entry.  Genuine Mr. Elusive bug —
+ *      preserved.
+ *   6. AAS_ClearShownDebugLines().
+ *   7. AAS_ClientMovementPrediction(result, client, origin, 2, 1,
+ *                                   velocity, cmd_move, 13, 13, 0.1f, 1, 1)
+ *      — 13 frames at 0.1s each = 1.3s simulated, presence=PRESENCE_NORMAL,
+ *      onground=1, stopevent=1, visualize=1.
+ *   8. The 80-byte (aas_clientmove_t) return value is copied to a local
+ *      via rep movs (compiler artifact — return-by-value-into-out-buf
+ *      from MSVC); then the first byte's 0x02 bit is tested.
+ *
+ * Thunks resolved:
+ *   0x10001032 → 0x1000EFC0 = AAS_Swimming
+ *   0x100018DE → 0x10043290 = VectorNormalize
+ *   0x10001C62 → 0x10043570 = VectorScale
+ *   0x100019FB → 0x10009860 = AAS_ClearShownDebugLines
+ *   0x100015FF → 0x1000F840 = AAS_ClientMovementPrediction
+ *   ds:0x10063FE8 = bi_Print
+ *
+ * Constants:
+ *   0x43C80000 = 400.0f  (speed)
+ *   0x43600000 = 224.0f  (jump Z impulse)
+ *   0x3DCCCCCD = 0.1f    (frametime)
+ *   0x1005B844 = "leave ground\n"
+ *
+ * DEAD — Gladiator never references this; almost certainly a leftover
+ * jump-prediction test harness from development. */
+static void sub_10010690(int client, vec3_t origin, vec3_t move_dir)
+{
+  char    result[80];        /* aas_clientmove_t — filled by prediction */
+  vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
+  vec3_t  cmd_move;          /* desired-input vec: scaled forward + Z jump */
+
+  velocity[0] = 0.0f;
+  velocity[1] = 0.0f;
+  /* velocity[2] left uninitialized — original DLL bug, preserved. */
+
+  if (!AAS_Swimming(origin))
+    move_dir[2] = 0.0f;
+
+  VectorNormalize(move_dir);
+  VectorScale(move_dir, 400.0f, cmd_move);
+  cmd_move[2] = 224.0f;
+
+  AAS_ClearShownDebugLines();
+  AAS_ClientMovementPrediction(result, client, origin, 2, 1,
+                               velocity, cmd_move, 13, 13,
+                               0.1f, 1, 1);
+
+  if (result[0] & 0x02)
+    bi_Print(1, "leave ground\n");
+}
+
 //----- (10010780) --------------------------------------------------------
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float *velocity)
 {
