@@ -31790,6 +31790,46 @@ void Log_Open(char *FileName)
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
+//----- (10038CF0) --------------------------------------------------------
+/* Older /INCREMENTAL copy of Log_Close — IDA-missed dead-code stub
+ * (preserved only by the /INCREMENTAL relink path).  Verified against
+ * objdump@10038CF0:
+ *
+ *     if (logfile = ds:0x10063E40) {
+ *         if (fclose(logfile)) {
+ *             bi_Print(3, "can't close log file %s\n", logfilename);
+ *             return;                       // does NOT clear logfile on error
+ *         }
+ *         logfile = NULL;
+ *         bi_Print(1, "Closed log %s\n", logfilename);
+ *     }
+ *
+ * Globals match the live Log_Close at 0x10038D60: Stream @ 0x10063E40
+ * and byte_10063A40 holds the log filename.  fclose thunk 0x10044888
+ * is the static-linked MSVC fclose.  Strings 0x1005F168 / 0x1005F154
+ * are the same format strings used by the live copy.
+ *
+ * The two implementations differ only trivially (IDA renders the live
+ * Log_Close with a redundant double `if (Stream)` check) which is
+ * consistent with a pre-/INCREMENTAL relink leaving behind the
+ * earlier object-file copy of the routine.  Dead in Gladiator: no
+ * caller reaches 0x10038CF0; only the relink thunk keeps it live. */
+static void __cdecl sub_10038CF0(void)
+{
+  if ( Stream )
+  {
+    if ( fclose(Stream) )
+    {
+      bi_Print(3, "can't close log file %s\n", byte_10063A40);
+    }
+    else
+    {
+      Stream = 0;
+      bi_Print(1, "Closed log %s\n", byte_10063A40);
+    }
+  }
+}
+
 //----- (10038D60) --------------------------------------------------------
 FILE *Log_Close()
 {
@@ -37853,6 +37893,30 @@ LABEL_7:
     }
   }
   return (char)v2;
+}
+
+//----- (10043FC0) --------------------------------------------------------
+/* Info_Validate — restored IDA-missed dead-code stub (preserved by
+ * /INCREMENTAL).  Verified against objdump@10043FC0:
+ *   - strstr(s, "\"")  (string literal at .rdata 0x1005F588 = "\"")
+ *       -> if non-NULL, return 0 (fail: contains a double-quote)
+ *   - strstr(s, ";")   (string literal at .rdata 0x1005D42C = ";")
+ *       -> return (result == NULL) ? 1 : 0  via the canonical
+ *          `neg eax; sbb eax, eax; inc eax` !x idiom.
+ *
+ * The strstr thunk at 0x10045630 is confirmed as the static-linked
+ * MSVC strstr (already documented in prior batches).
+ *
+ * Byte-for-byte match with Q3 q_shared.c::Info_Validate — rejects
+ * info-string fragments containing '"' or ';' (both would break the
+ * key/value tokeniser).  Dead in Gladiator: no caller reaches the
+ * info-validation path; only the /INCREMENTAL relink stub keeps it
+ * alive. */
+static int __cdecl sub_10043FC0(const char *s)
+{
+  if ( strstr(s, "\"") )
+    return 0;
+  return strstr(s, ";") == NULL;
 }
 
 // nfuncs=1767 queued=667 decompiled=667 lumina nreq=0 worse=0 better=0
