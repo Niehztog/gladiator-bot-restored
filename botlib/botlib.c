@@ -38662,6 +38662,92 @@ static void __stdcall sub_100423F0(char *p)
   p[0] = 0;
 }
 
+//----- (10042430) --------------------------------------------------------
+/* sub_10042430 — RotatePointAroundVector.  Restored from
+ * objdump@0x10042430 (142 lines).  Rotates `point` around the axis
+ * `dir` by `degrees` and stores the result in `dst`.  Identical to
+ * Q3's RotatePointAroundVector in q_math.c — same orthonormal-basis
+ * change, same Z-rot trick:
+ *
+ *   vf  = dir
+ *   vr  = PerpendicularVector(dir)
+ *   vup = CrossProduct(vr, vf)
+ *   m[*][0] = vr, m[*][1] = vup, m[*][2] = vf       (columns)
+ *   im      = m^T                                   (inverse since
+ *                                                    m is orthogonal)
+ *   zrot    = standard 2D rotation around Z:
+ *               [  cos(rad)  sin(rad)  0 ]
+ *               [ -sin(rad)  cos(rad)  0 ]
+ *               [    0          0      1 ]
+ *   rot     = m * zrot * im
+ *   dst[i]  = rot[i][0]*point[0] + rot[i][1]*point[1] + rot[i][2]*point[2]
+ *
+ * Thunks resolved:
+ *   0x100014BA → 0x10042920 = PerpendicularVector
+ *   0x10001627 → 0x100434B0 = CrossProduct
+ *   0x10001A8C → 0x100429C0 = sub_100429C0 (3x3 MatrixMultiplier;
+ *                              row-major, stride 12 floats)
+ *   0x10045B50 = sinf
+ *   0x10045C00 = cosf
+ *
+ * Constants:
+ *   QWORD ds:0x10058418 = 3.141592653589793  (pi)
+ *   QWORD ds:0x100580B8 = 180.0
+ *   DWORD ds:0x3F800000 = 1.0f
+ *
+ * Locals layout (verified field-by-field from the .text writes):
+ *   [ebp-0x0C] vec3 vr      [ebp-0x18] vec3 vf      [ebp-0x24] vec3 vup
+ *   [ebp-0xB8] float m[3][3]    (column-stored basis)
+ *   [ebp-0x48] float im[3][3]   (memcpy from m, then transposed in place)
+ *   [ebp-0x70] float zrot[3][3] (rep-stos zeroed, identity init, then
+ *                                trig fills [0][0], [0][1], [1][0], [1][1])
+ *   [ebp-0x94] float tmpmat[3][3]
+ *   [ebp-0xDC] float rot[3][3]
+ *
+ * DEAD in Gladiator — no live caller.  Live in Q3 as
+ * RotatePointAroundVector; preserved here by /INCREMENTAL. */
+static void __cdecl sub_10042430(float dst[3], const float dir[3],
+                                  const float point[3], float degrees)
+{
+  float m[3][3], im[3][3], zrot[3][3], tmpmat[3][3], rot[3][3];
+  float vr[3], vf[3], vup[3];
+  float rad;
+  int   i;
+
+  vf[0] = dir[0];
+  vf[1] = dir[1];
+  vf[2] = dir[2];
+
+  PerpendicularVector(vr, (float *)dir);
+  CrossProduct(vr, vf, vup);
+
+  /* m stores the basis as columns: m[row][col] = (col==0?vr : col==1?vup : vf)[row] */
+  m[0][0] = vr[0];  m[0][1] = vup[0]; m[0][2] = vf[0];
+  m[1][0] = vr[1];  m[1][1] = vup[1]; m[1][2] = vf[1];
+  m[2][0] = vr[2];  m[2][1] = vup[2]; m[2][2] = vf[2];
+
+  /* im = m, then transpose in place (m is orthonormal so im = m^-1) */
+  memcpy(im, m, sizeof(im));
+  im[0][1] = m[1][0]; im[0][2] = m[2][0];
+  im[1][0] = m[0][1]; im[1][2] = m[2][1];
+  im[2][0] = m[0][2]; im[2][1] = m[1][2];
+
+  memset(zrot, 0, sizeof(zrot));
+  zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0f;
+
+  rad = degrees * 3.141592653589793 / 180.0;
+  zrot[0][0] =  cos(rad);
+  zrot[0][1] =  sin(rad);
+  zrot[1][0] = -sin(rad);
+  zrot[1][1] =  cos(rad);
+
+  sub_100429C0((float *)m,      (float *)zrot, (float *)tmpmat);
+  sub_100429C0((float *)tmpmat, (float *)im,   (float *)rot);
+
+  for (i = 0; i < 3; i++)
+    dst[i] = rot[i][0]*point[0] + rot[i][1]*point[1] + rot[i][2]*point[2];
+}
+
 //----- (100426B0) --------------------------------------------------------
 float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
 {
