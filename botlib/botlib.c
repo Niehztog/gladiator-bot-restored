@@ -26611,7 +26611,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
             if ( v9 )
             {
               v10 = &v16->items[li->iteminfo];
-              v11 = (v10->number >= 0) ? p1[v10->number] : -1;
+              v11 = p1[v10->number];
               if ( v11 >= 0 )
               {
                 v12 = FuzzyWeightUndecided(a3, &p0->weights[v11]);
@@ -26750,7 +26750,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
             if ( v11 )
             {
               v12 = &v19p->items[li->iteminfo];
-              v13 = (v12->number >= 0) ? p1[v12->number] : -1;
+              v13 = p1[v12->number];
               if ( v13 >= 0 )
               {
                 v14 = FuzzyWeightUndecided(a3, &p0->weights[v13]);
