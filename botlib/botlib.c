@@ -7393,6 +7393,100 @@ static void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
   }
 }
 
+//----- (10009ED0) --------------------------------------------------------
+/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
+ * from objdump@10009ED0 (size 0x162 / 128 lines).  Identity: AAS_ShowFace
+ * — given a face index, draws every edge of the face as a line with a
+ * rotating 4-color debug palette, then draws a 20-unit normal arrow from
+ * the face's first vertex along the face's plane normal in color
+ * 0xF2F2F0F0.  Sibling of AAS_ShowArea@1000A0A0 (which calls AAS_DebugLine
+ * per ground-face edge) but operates on a single face index directly.
+ *
+ * aasworld globals consulted (all already documented elsewhere):
+ *   ds:0x1006691C  vertexes pool       (stride 12  = vec3)
+ *   ds:0x10066924  planes pool         (stride 20  = normal[3] + dist + type)
+ *   ds:0x10066928  numedges            (range-check bound)
+ *   ds:0x1006692C  edges pool          (stride 8   = v0_idx, v1_idx)
+ *   ds:0x10066934  edgeindex           (signed; abs = edge_idx)
+ *   ds:0x10066938  numfaces            (range-check bound)
+ *   ds:0x1006693C  faces pool          (stride 24  = planenum@0, numedges@8, firstedge@0xC)
+ *
+ * Color rotation (initial value 0xDCDDDEDF, then cycles 4 ways):
+ *   0xDCDDDEDF → 0xF2F2F0F0 → 0xD0D1D2D3 → 0xF3F3F1F1 → (loop)
+ * Decoded from the if/else/else chain at 10009F48-10009F7B which the
+ * compiler obfuscated into a sub/neg/sbb/and/add bit-twiddle for the
+ * fall-through branch — the algebra reduces to exactly the same 4-cycle.
+ * Cleanest C expression is a 4-entry table and modulo step.
+ *
+ * Range warnings issued via bi_Print(3, msg, idx) for facenum or edgenum
+ * out of range (.rdata strings 0x1005AFE8="facenum %d out of range\\n",
+ * 0x1005AFC8="edgenum %d out of range\\n").
+ *
+ * DEAD in shipped Gladiator (no .text caller; AAS_ShowArea draws
+ * area-level wireframes via a different path).  Restored verbatim. */
+static void __cdecl sub_10009ED0(int facenum)
+{
+  static const unsigned int edge_color_cycle[4] = {
+    0xF2F2F0F0u,  /* state 0 (after first xform from initial 0xDCDDDEDF) */
+    0xD0D1D2D3u,  /* state 1 */
+    0xF3F3F1F1u,  /* state 2 */
+    0xDCDDDEDFu,  /* state 3 — original initial */
+  };
+  int   color_state;
+  char *face;
+  int   numedges, firstedge;
+  int   i;
+  int   edge_idx, vert_a, vert_b;
+  float *vertexes = (float *)aasworld.vertexes;
+  char  *edges = (char *)aasworld.edges;
+  int   *edgeindex = (int *)aasworld.edgeindex;
+  char  *planes = (char *)aasworld.planes;
+  int   planenum;
+  float *normal;
+  vec3_t first_vert;
+  vec3_t arrow_end;
+
+  if ( facenum >= aasworld.numfaces )
+    bi_Print(3, "facenum %d out of range\n", facenum);
+
+  face = (char *)aasworld.faces + facenum * 24;
+  numedges = *(int *)(face + 8);
+  firstedge = *(int *)(face + 0xC);
+
+  color_state = 3;          /* initial edi = 0xDCDDDEDF — slot 3 in our table */
+
+  for ( i = 0; i < numedges; ++i )
+  {
+    edge_idx = edgeindex[firstedge + i];
+    if ( edge_idx < 0 )
+      edge_idx = -edge_idx;
+    if ( edge_idx >= aasworld.numedges )
+      bi_Print(3, "edgenum %d out of range\n", edge_idx);
+
+    /* advance color cycle one step (state was 3 → 0 → 1 → 2 → 3 …) */
+    color_state = (color_state + 1) & 3;
+
+    vert_a = *(int *)(edges + edge_idx * 8 + 0);
+    vert_b = *(int *)(edges + edge_idx * 8 + 4);
+    AAS_DebugLine(&vertexes[vert_a * 3],
+                  &vertexes[vert_b * 3],
+                  (int)edge_color_cycle[color_state]);
+  }
+
+  /* draw 20-unit normal arrow from the first vertex of the first edge */
+  planenum = *(int *)face;
+  normal = (float *)(planes + planenum * 20);
+  edge_idx = edgeindex[firstedge];
+  if ( edge_idx < 0 )
+    edge_idx = -edge_idx;
+  vert_a = *(int *)(edges + edge_idx * 8 + 0);
+  first_vert[0] = vertexes[vert_a * 3 + 0];
+  first_vert[1] = vertexes[vert_a * 3 + 1];
+  first_vert[2] = vertexes[vert_a * 3 + 2];
+  VectorMA(first_vert, 20.0f, normal, arrow_end);
+  AAS_DebugLine(first_vert, arrow_end, 0xF2F2F0F0);
+}
+
 //----- (1000A0A0) --------------------------------------------------------
 int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 {
