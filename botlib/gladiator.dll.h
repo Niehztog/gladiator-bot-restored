@@ -485,8 +485,8 @@ typedef struct aas_world_s {
     struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
     struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
     int   _pad_1FC;                 /* +0x1FC  (4-byte gap; binary leaves slot empty)   */
-    int   oldestcache;              /* +0x200  (VA 0x100669E0) */
-    int   newestcache;              /* +0x204 */
+    struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
+    struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
     int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
     aas_routingupdate_t *areaupdate;     /* +0x288  (VA 0x10066A68) */
     aas_routingupdate_t *portalupdate;   /* +0x28C */

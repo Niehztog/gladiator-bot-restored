@@ -444,10 +444,10 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset);
 int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize); // idb
 qboolean __cdecl AAS_WriteAASFile(char *FileName); // idb
-int sub_1000D450();
-int __cdecl sub_1000D4A0(int a1);
+bsp_pointlight_t *sub_1000D450();
+bsp_pointlight_t *__cdecl sub_1000D4A0(bsp_pointlight_t *a1);
 void __cdecl sub_1000D4E0(float a1);
-int __cdecl BotAddPointLight(vec3_t origin, int a2, int a3, int a4, int a5, int a6, int a7, int a8);
+int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, float g, float b, float time, float decay);
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
@@ -8822,16 +8822,16 @@ LABEL_4:
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (1000D450) --------------------------------------------------------
-int sub_1000D450()
+bsp_pointlight_t *sub_1000D450()
 {
-  int v0; // esi
+  bsp_pointlight_t *v0; // esi
 
   v0 = aasworld.oldestcache;
   if ( aasworld.oldestcache )
   {
-    aasworld.oldestcache = *(_DWORD *)(aasworld.oldestcache + 44);
+    aasworld.oldestcache = aasworld.oldestcache->next;
     if ( aasworld.oldestcache )
-      *(_DWORD *)(aasworld.oldestcache + 48) = 0;
+      aasworld.oldestcache->prev = 0;
   }
   if ( !v0 )
     bi_Print(1, aWarningEmptyLi);
@@ -8841,15 +8841,15 @@ int sub_1000D450()
 // 100669E0: using guessed type int aasworld.oldestcache;
 
 //----- (1000D4A0) --------------------------------------------------------
-int __cdecl sub_1000D4A0(int a1)
+bsp_pointlight_t *__cdecl sub_1000D4A0(bsp_pointlight_t *a1)
 {
-  int result; // eax
+  bsp_pointlight_t *result; // eax
 
   result = a1;
   if ( aasworld.oldestcache )
-    *(_DWORD *)(aasworld.oldestcache + 48) = a1;
-  *(_DWORD *)(a1 + 48) = 0;
-  *(_DWORD *)(a1 + 44) = aasworld.oldestcache;
+    aasworld.oldestcache->prev = a1;
+  a1->prev = 0;
+  a1->next = aasworld.oldestcache;
   aasworld.oldestcache = a1;
   return result;
 }
@@ -8858,25 +8858,25 @@ int __cdecl sub_1000D4A0(int a1)
 //----- (1000D4E0) --------------------------------------------------------
 void __cdecl sub_1000D4E0(float a1)
 {
-  int v1; // ecx
-  int v2; // esi
-  int v3; // eax
+  bsp_pointlight_t *v1; // ecx
+  bsp_pointlight_t *v2; // esi
+  bsp_pointlight_t *v3; // eax
 
   v1 = aasworld.newestcache;
   if ( aasworld.newestcache )
   {
     do
     {
-      v2 = *(_DWORD *)(v1 + 44);
-      if ( *(float *)(v1 + 32) < (double)a1 )
+      v2 = v1->next;
+      if ( v1->endtime < (double)a1 )
       {
         if ( v2 )
-          *(_DWORD *)(v2 + 48) = *(_DWORD *)(v1 + 48);
-        v3 = *(_DWORD *)(v1 + 48);
+          v2->prev = v1->prev;
+        v3 = v1->prev;
         if ( v3 )
-          *(_DWORD *)(v3 + 44) = *(_DWORD *)(v1 + 44);
+          v3->next = v1->next;
         else
-          aasworld.newestcache = *(_DWORD *)(v1 + 44);
+          aasworld.newestcache = v1->next;
         sub_1000D4A0(v1);
       }
       v1 = v2;
@@ -8887,28 +8887,31 @@ void __cdecl sub_1000D4E0(float a1)
 // 100669E4: using guessed type int aasworld.newestcache;
 
 //----- (1000D550) --------------------------------------------------------
-int __cdecl BotAddPointLight(vec3_t origin, int a2, int a3, int a4, int a5, int a6, int a7, int a8)
+int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, float g, float b, float time, float decay)
 {
-  int v8; // esi
+  bsp_pointlight_t *v8; // esi
 
   v8 = sub_1000D450();
   if ( v8 )
   {
-    origin[0] = *(float *)v8;
-    origin[1] = *(float *)(v8 + 4);
-    origin[2] = *(float *)(v8 + 8);
-    *(_DWORD *)(v8 + 12) = a2;
-    *(_DWORD *)(v8 + 28) = a3;
-    *(_DWORD *)(v8 + 16) = a4;
-    *(_DWORD *)(v8 + 20) = a5;
-    *(_DWORD *)(v8 + 24) = a6;
-    *(_DWORD *)(v8 + 32) = a7;
-    *(_DWORD *)(v8 + 40) = a8;
-    *(float *)(v8 + 36) = AAS_Time();
-    *(_DWORD *)(v8 + 48) = 0;
-    *(_DWORD *)(v8 + 44) = aasworld.newestcache;
+    /* Note: the original copies the free-list entry's stale xyz back into
+     * the caller's origin buffer (asm at 0x1000d560-d571 loads from [esi+0..8]
+     * into [eax+0..8] where eax = origin param).  Quirk preserved. */
+    origin[0] = v8->origin[0];
+    origin[1] = v8->origin[1];
+    origin[2] = v8->origin[2];
+    v8->ent       = ent;
+    v8->radius    = radius;
+    v8->color[0]  = r;
+    v8->color[1]  = g;
+    v8->color[2]  = b;
+    v8->endtime   = time;
+    v8->decay     = decay;
+    v8->starttime = AAS_Time();
+    v8->prev      = 0;
+    v8->next      = aasworld.newestcache;
     if ( aasworld.newestcache )
-      *(_DWORD *)(aasworld.newestcache + 48) = v8;
+      aasworld.newestcache->prev = v8;
     aasworld.newestcache = v8;
   }
   return 0;
@@ -8932,7 +8935,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 {
   float *v6; // ebx
   int v7; // edi
-  int v8; // esi
+  bsp_pointlight_t *v8; // esi
   double v9; // st7
   int i; // [esp+Ch] [ebp-10h]
   float v12[3]; // [esp+10h] [ebp-Ch] BYREF
@@ -8947,19 +8950,19 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   else
     v7 = 255;
   v8 = aasworld.newestcache;
-  for ( i = v7; v8; v8 = *(_DWORD *)(v8 + 44) )
+  for ( i = v7; v8; v8 = v8->next )
   {
-    v12[0] = *v6 - *(float *)v8;
-    v12[1] = v6[1] - *(float *)(v8 + 4);
-    v12[2] = v6[2] - *(float *)(v8 + 8);
-    v9 = *(float *)(v8 + 28) - VectorLength(v12);
+    v12[0] = *v6 - v8->origin[0];
+    v12[1] = v6[1] - v8->origin[1];
+    v12[2] = v6[2] - v8->origin[2];
+    v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0 )
     {
       v7 = (__int64)((double)i + v9);
       i = v7;
-      rs = (__int64)((double)rs + *(float *)(v8 + 16));
-      gs = (__int64)((double)gs + *(float *)(v8 + 20));
-      bs_ = (__int64)((double)bs_ + *(float *)(v8 + 24));
+      rs  = (__int64)((double)rs  + v8->color[0]);
+      gs  = (__int64)((double)gs  + v8->color[1]);
+      bs_ = (__int64)((double)bs_ + v8->color[2]);
     }
   }
   if ( red )

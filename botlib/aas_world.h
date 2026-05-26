@@ -159,6 +159,41 @@ typedef struct aas_routingcache_s {
     /* unsigned short traveltimes[numareas]  follows immediately after */
 } aas_routingcache_t;
 
+/* bsp_pointlight_t — Gladiator's Q2-specific dynamic point-light cache
+ * entry used by BotAddPointLight / AAS_BSPTraceLight.  Q3 stubs the whole
+ * subsystem (be_aas_bspq3.c returns 0 from AAS_BSPTraceLight); the live
+ * list head is aasworld.newestcache, the free pool is aasworld.oldestcache.
+ *
+ * Verified offsets in BotAddPointLight (0x1000D550) and AAS_BSPTraceLight
+ * (0x1000D5F0) on the 32-bit binary:
+ *   +0..+8   origin xyz       (BotAddPointLight writes from vec3 param)
+ *   +12      ent              (entity number that owns the light)
+ *   +16..+24 color rgb        (intensity per channel)
+ *   +28      radius           (used as r² in distance test in TraceLight)
+ *   +32      endtime          (sub_1000D4E0 prunes when endtime < now)
+ *   +36      starttime        (AAS_Time() at insert; record-keeping)
+ *   +40      decay            (set but not read in the 5 consumers;
+ *                              presumably consulted by engine-side code)
+ *   +44      next             (live-list / free-list forward link)
+ *   +48      prev             (live-list back link; head's prev == NULL)
+ * Size = 52 B on 32-bit; on 64-bit the two trailing pointers grow.
+ *
+ * NB: in stock Gladiator the engine never calls Export_BotAddPointLight
+ * in deathmatch — the free pool is never seeded, so sub_1000D450 emits
+ * "Warning: empty list" on the first allocation attempt.  The subsystem
+ * is effectively dormant at runtime; restoring it is fidelity work. */
+typedef struct bsp_pointlight_s {
+    float origin[3];                     /* +0   */
+    int   ent;                           /* +12  */
+    float color[3];                      /* +16  */
+    float radius;                        /* +28  */
+    float endtime;                       /* +32  */
+    float starttime;                     /* +36  */
+    float decay;                         /* +40  */
+    struct bsp_pointlight_s *next;       /* +44  */
+    struct bsp_pointlight_s *prev;       /* +48  */
+} bsp_pointlight_t;
+
 /* aas_routingupdate_t and aas_reversedreach_t are defined in
  * gladiator.dll.h with their full pointer-typed restored layouts. */
 
@@ -229,8 +264,8 @@ typedef struct {
     unsigned short ***areatraveltimes;  /* aasworld_areatraveltimes   */
     aas_routingcache_t ***clusterareacache; /* aasworld_clusterareacache */
     aas_routingcache_t **portalcache;   /* aasworld_portalcache       */
-    aas_routingcache_t *oldestcache;    /* aasworld_oldestcache       */
-    aas_routingcache_t *newestcache;    /* aasworld_newestcache       */
+    bsp_pointlight_t   *oldestcache;    /* aasworld_oldestcache  (point-light free pool head) */
+    bsp_pointlight_t   *newestcache;    /* aasworld_newestcache  (point-light live list head) */
 
     /* --- misc --- */
     int  *travelflagfortype;            /* aasworld_travelflagfortype (array) */
