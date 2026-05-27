@@ -1507,12 +1507,12 @@ static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
 	if (!gi.inPVS(start, point))
 		return false;
 
-	if (gi.pointcontents(point) & 0x38)
-		contmask |= 0x38;
+	if (gi.pointcontents(point) & MASK_WATER)
+		contmask |= MASK_WATER;
 
-	if (gi.pointcontents(start) & 0x38)
+	if (gi.pointcontents(start) & MASK_WATER)
 	{
-		if (!(contmask & 0x38))
+		if (!(contmask & MASK_WATER))
 		{
 			VectorCopy(point, start);
 			VectorCopy(ent->s.origin, end);
@@ -1522,7 +1522,7 @@ static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
 			VectorCopy(start, end);
 			end[0] = point[0]; end[1] = point[1]; end[2] = point[2];
 		}
-		contmask ^= 0x38;
+		contmask ^= MASK_WATER;
 	}
 	else
 	{
@@ -1531,11 +1531,11 @@ static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
 
 	tr = gi.trace(start, NULL, NULL, end, ent, contmask);
 
-	if (tr.contents & 0x38)
+	if (tr.contents & MASK_WATER)
 	{
-		if (tr.surface == NULL || !(tr.surface->flags & 0x30))
+		if (tr.surface == NULL || !(tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
 		{
-			contmask &= ~0x38;
+			contmask &= ~MASK_WATER;
 			tr = gi.trace(tr.endpos, NULL, NULL, end, ent, contmask);
 		}
 	}
@@ -1561,27 +1561,27 @@ static qboolean SubTargetVisible(edict_t *ent, edict_t *target)
 	VectorCopy(ent->s.origin,    start);
 	VectorCopy(target->s.origin, end);
 
-	if (gi.pointcontents(target->s.origin) & 0x38)
-		contmask |= 0x38;
+	if (gi.pointcontents(target->s.origin) & MASK_WATER)
+		contmask |= MASK_WATER;
 
-	if (gi.pointcontents(ent->s.origin) & 0x38)
+	if (gi.pointcontents(ent->s.origin) & MASK_WATER)
 	{
-		if (!(contmask & 0x38))
+		if (!(contmask & MASK_WATER))
 		{
 			passent = target;
 			VectorCopy(target->s.origin, start);
 			VectorCopy(ent->s.origin,    end);
 		}
-		contmask ^= 0x38;
+		contmask ^= MASK_WATER;
 	}
 
 	tr = gi.trace(start, NULL, NULL, end, passent, contmask);
 
-	if (tr.contents & 0x38)
+	if (tr.contents & MASK_WATER)
 	{
-		if (tr.surface == NULL || !(tr.surface->flags & 0x30))
+		if (tr.surface == NULL || !(tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
 		{
-			contmask &= ~0x38;
+			contmask &= ~MASK_WATER;
 			tr = gi.trace(tr.endpos, NULL, NULL, end, passent, contmask);
 		}
 	}
@@ -1927,8 +1927,8 @@ static float SubScoreCameraPos(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 	if (gi.pointcontents(out_endpos) & 1)
 		return 1111.0f;
 
-	cv_view = gi.pointcontents(viewfrom) & 0x38;
-	cv_end  = gi.pointcontents(out_endpos) & 0x38;
+	cv_view = gi.pointcontents(viewfrom) & MASK_WATER;
+	cv_end  = gi.pointcontents(out_endpos) & MASK_WATER;
 
 	if (cv_view && !cv_end)
 	{
@@ -1949,11 +1949,11 @@ static float SubScoreCameraPos(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 		              MASK_SHOT|MASK_OPAQUE|MASK_WATER);
 	}
 
-	if (tr.contents & 0x38)
+	if (tr.contents & MASK_WATER)
 	{
 		if (!tr.surface)
 			return 1111.0f;
-		if (!(tr.surface->flags & 0x30))
+		if (!(tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
 			return 1111.0f;
 	}
 
