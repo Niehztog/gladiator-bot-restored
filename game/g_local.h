@@ -4,7 +4,7 @@
 #define BOT								//Gladiator Bot
 #define BOT_IMPORT					//game import redirection
 //#define BOT_DEBUG						//bot debug
-//#define OBSERVER						//observer mode
+#define OBSERVER						//observer mode
 #define TRIGGER_COUNTING			//trigger counting
 #define TRIGGER_LOG					//trigger log
 #define FUNC_BUTTON_ROTATING		//rotating button
@@ -741,6 +741,9 @@ extern	edict_t			*g_edicts;
 extern	cvar_t	*maxentities;
 extern	cvar_t	*deathmatch;
 extern	cvar_t	*coop;
+#ifdef OBSERVER
+extern	cvar_t	*observer;
+#endif //OBSERVER
 extern	cvar_t	*dmflags;
 extern	cvar_t	*skill;
 extern	cvar_t	*fraglimit;

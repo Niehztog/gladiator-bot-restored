@@ -393,6 +393,7 @@ GAME_OBJS_ = \
 	p_lag.o \
 	p_menu.o \
 	p_menulib.o \
+	p_observer.o \
 	p_trail.o \
 	p_view.o \
 	p_weapon.o \
