@@ -97,6 +97,32 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 }
 
 /* -----------------------------------------------------------------------
+ * blog_annotate_module — if `v` points into an executable image, write
+ *   " (modname+0xRVA)" into `out`.  Otherwise leave `out` empty.
+ *
+ * Uses VirtualQuery + GetModuleFileNameA so it works for *any* loaded
+ * module (gladiator.dll, game.dll, yquake2.exe, system DLLs), not just
+ * gladiator.dll.  Filters out non-image pages (heap, stack, free) by
+ * requiring MEM_IMAGE.
+ * --------------------------------------------------------------------- */
+static void blog_annotate_module(unsigned v, char *out, size_t outsz)
+{
+    out[0] = '\0';
+    MEMORY_BASIC_INFORMATION mbi;
+    if (VirtualQuery((LPCVOID)(intptr_t)v, &mbi, sizeof(mbi)) != sizeof(mbi))
+        return;
+    if (mbi.State != MEM_COMMIT || mbi.Type != MEM_IMAGE || !mbi.AllocationBase)
+        return;
+    char path[MAX_PATH];
+    if (!GetModuleFileNameA((HMODULE)mbi.AllocationBase, path, sizeof(path)))
+        return;
+    const char *name = strrchr(path, '\\');
+    name = name ? name + 1 : path;
+    unsigned rva = v - (unsigned)(intptr_t)mbi.AllocationBase;
+    snprintf(out, outsz, "  (%s+0x%X)", name, rva);
+}
+
+/* -----------------------------------------------------------------------
  * Structured Exception handler — wraps GetBotAPI to catch hard crashes
  * --------------------------------------------------------------------- */
 static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
@@ -107,18 +133,44 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
     void *addr = er->ExceptionAddress;
 
     if (g_log) {
-        HMODULE hmod = GetModuleHandleA("gladiator.dll");
         blog_write_header_once();
         fprintf(g_log, "CRASH: exception 0x%08X at 0x%08X\n",
                 (unsigned)code, (unsigned)(intptr_t)addr);
+
+        /* Identify which module actually contains EIP, not just gladiator.dll.
+         * VirtualQuery on the crash address yields the allocation base of the
+         * mapped image; that base IS the HMODULE of the containing DLL/EXE.
+         * From there GetModuleFileNameA gives the path so we can name it. */
+        MEMORY_BASIC_INFORMATION mbi;
+        HMODULE eip_mod = NULL;
+        char eip_modpath[MAX_PATH] = {0};
+        if (VirtualQuery(addr, &mbi, sizeof(mbi)) == sizeof(mbi) &&
+            mbi.AllocationBase) {
+            eip_mod = (HMODULE)mbi.AllocationBase;
+            GetModuleFileNameA(eip_mod, eip_modpath, sizeof(eip_modpath));
+        }
+        if (eip_mod) {
+            const char *name = strrchr(eip_modpath, '\\');
+            name = name ? name + 1 : (eip_modpath[0] ? eip_modpath : "<unknown>");
+            unsigned base = (unsigned)(intptr_t)eip_mod;
+            unsigned eip  = (unsigned)(intptr_t)addr;
+            fprintf(g_log, "  EIP module: %s  base=0x%08X  RVA=0x%08X\n",
+                    name, base, eip - base);
+        } else {
+            fprintf(g_log, "  EIP module: <unresolved>\n");
+        }
+
+        /* gladiator.dll's own base, for reference + the preserved
+         * vma-relative offset (only meaningful if EIP is actually in
+         * gladiator.dll). */
+        HMODULE hmod = GetModuleHandleA("gladiator.dll");
         fprintf(g_log, "  gladiator.dll runtime base: 0x%08X\n",
                 (unsigned)(intptr_t)hmod);
-        if (hmod) {
+        if (hmod && eip_mod == hmod) {
             unsigned base = (unsigned)(intptr_t)hmod;
             unsigned eip  = (unsigned)(intptr_t)addr;
-            if (eip >= base)
-                fprintf(g_log, "  crash file offset (vma 0x69700000-relative): 0x%08X\n",
-                        eip - base + 0x69700000u);
+            fprintf(g_log, "  crash file offset (vma 0x69700000-relative): 0x%08X\n",
+                    eip - base + 0x69700000u);
         }
 
         /* For access violations, log the faulting memory address */
@@ -137,13 +189,19 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         fprintf(g_log, "  ESI=0x%08X  EDI=0x%08X  ESP=0x%08X  EBP=0x%08X\n",
                 (unsigned)ctx->Esi, (unsigned)ctx->Edi, (unsigned)ctx->Esp, (unsigned)ctx->Ebp);
 
-        /* Dump stack from ESP — show 64 entries to capture return address past local frame */
+        /* Dump stack from ESP — show 64 entries to capture return address past local frame.
+         * Annotate each slot with module!RVA if it points into a loaded image,
+         * so call-chain reconstruction doesn't require manually probing every
+         * address against the linker maps. */
         fprintf(g_log, "  Stack (ESP-relative):\n");
         unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
         for (int i = 0; i < 64; i++) {
             if (IsBadReadPtr(sp + i, sizeof(unsigned)))
                 break;
-            fprintf(g_log, "    [ESP+%03d] 0x%08X\n", i*4, sp[i]);
+            unsigned v = sp[i];
+            char ann[MAX_PATH + 32] = {0};
+            blog_annotate_module(v, ann, sizeof(ann));
+            fprintf(g_log, "    [ESP+%03d] 0x%08X%s\n", i*4, v, ann);
         }
         /* Also dump EBP frame */
         fprintf(g_log, "  EBP frame:\n");
@@ -152,7 +210,10 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
             unsigned *p = bp + i;
             if (IsBadReadPtr(p, sizeof(unsigned)))
                 continue;
-            fprintf(g_log, "    [EBP%+d] 0x%08X\n", i*4, *p);
+            unsigned v = *p;
+            char ann[MAX_PATH + 32] = {0};
+            blog_annotate_module(v, ann, sizeof(ann));
+            fprintf(g_log, "    [EBP%+d] 0x%08X%s\n", i*4, v, ann);
         }
         fflush(g_log);
     }

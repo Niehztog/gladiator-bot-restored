@@ -202,7 +202,9 @@ override LDFLAGS += -static-libgcc
 override LDFLAGS += -Wl,--kill-at
 # Generate a linker map: maps every symbol to its address in the DLL.
 # When the exception handler logs a crash address, look it up in this file.
-override LDFLAGS += -Wl,-Map,release/gladiator.map
+# Each DLL link rule appends -Wl,-Map,<its-own-map> to LDFLAGS so the two
+# linker invocations don't overwrite each other's output.  See the
+# release/gladiator.dll and release/game/game.dll rules further down.
 else
 override LDFLAGS += -lm
 endif
@@ -422,7 +424,7 @@ GAME_DEPS= $(GAME_OBJS:.o=.d)
 ifeq ($(YQ2_OSTYPE), Windows)
 release/gladiator.dll : $(OBJS)
 	@echo "===> LD $@"
-	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS) -Wl,-Map,release/gladiator.map
 else ifeq ($(YQ2_OSTYPE), Darwin)
 release/gladiator.dylib : $(OBJS)
 	@echo "===> LD $@"
@@ -444,7 +446,7 @@ game:
 
 release/game/game.dll : $(GAME_OBJS)
 	@echo "===> LD $@"
-	${Q}$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS)
+	${Q}$(CC) -o $@ $(GAME_OBJS) $(LDFLAGS) -Wl,-Map,release/game/game.map
 
 else ifeq ($(YQ2_OSTYPE), Darwin)
 game:
