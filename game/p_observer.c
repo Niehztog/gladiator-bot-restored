@@ -599,55 +599,16 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 } //end of the function CameraFixedCamThink
 
 //===========================================================================
-// ClientSetViewAngles                                  (header-declared only)
-//
-// Origin: declared in the ORIGINAL Mr. Elusive p_observer.h shipped with
-// gladq2_src (1998-01-12):
-//
-//     void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang);
-//
-// So this IS part of the canonical public observer API.  However, by the
-// time the 1999 shipping gamex86.dll was compiled the function body had
-// been removed from p_observer.c (probably folded inline into the
-// CameraChaseCamThink / CameraFixedCamThink paths, both of which contain
-// the same "snap-or-lerp target v_angle, then chaseoffset + origin"
-// sequence).  A byte-pattern search of the full DLL turns up no body
-// matching this signature.
-//
-// We retain the symbol so the public header stays satisfied; the body
-// below is the most plausible reconstruction given the documented
-// purpose (it mirrors the inline code in CameraChaseCamThink and
-// CameraFixedCamThink).  It is the ONE function in this file that is
-// NOT byte-faithful to the shipping binary.
+// NOTE: ClientSetViewAngles was declared in Mr. Elusive's original
+// p_observer.h (gladq2_src, 1998-01-12) but its body was removed from
+// p_observer.c before the 1999 shipping gamex86.dll was compiled --
+// byte-pattern search of the full DLL finds no function matching the
+// signature.  The header declaration is kept verbatim for archival
+// fidelity to the 1998 source; no body is provided here because doing
+// so would require synthesizing code with no disassembly origin.
+// Nothing in the reconstructed codebase calls it, so the missing
+// definition does not break the link.
 //===========================================================================
-void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
-{
-	camera_t *cam;
-
-	cam = &ent->client->camera;
-	if (cam->flags & CAMFL_NOSMOOTHING)
-	{
-		VectorCopy(cam->ent->client->v_angle, cam->ent_angles);
-	} //end if
-	else
-	{
-		float frac = 1.0 - cam->lasttime;
-		if (frac < 0) frac = 0;
-		if (frac > 1) frac = 1;
-		cam->ent_angles[0] = cam->ent_angles[0] + frac * AngleDifference(cam->ent->client->v_angle[0], cam->ent_angles[0]);
-		cam->ent_angles[1] = cam->ent_angles[1] + frac * AngleDifference(cam->ent->client->v_angle[1], cam->ent_angles[1]);
-		cam->ent_angles[2] = cam->ent_angles[2] + frac * AngleDifference(cam->ent->client->v_angle[2], cam->ent_angles[2]);
-	} //end else
-	cam->lasttime = 1.0;
-	cam->origin[0] = cam->chaseoffset[0] + cam->ent->s.origin[0];
-	cam->origin[1] = cam->chaseoffset[1] + cam->ent->s.origin[1];
-	cam->origin[2] = cam->chaseoffset[2] + cam->ent->s.origin[2];
-
-	if (ang)
-		VectorCopy(cam->ent_angles, ang);
-	if (realang)
-		VectorCopy(cam->ent_angles, realang);
-} //end of the function ClientSetViewAngles
 
 //===========================================================================
 // Faithful disassembly-derived reconstruction of the 5 autocam state
