@@ -27,10 +27,15 @@ extern cvar_t *observer;
 extern void SelectSpawnPoint(edict_t *ent, vec3_t origin, vec3_t angles);
 
 //===========================================================================
-// AngleDifference
+// AngleDifference                                            sub_10077eba
 //
-// returns the angular difference between two angles, normalized to
-// the range [-180, 180]
+// Public per the original p_observer.h from gladq2_src.  The shipping
+// gamex86.dll has exactly ONE copy of this routine in .text at
+// 0x10077eba; earlier drafts of this reconstruction carried a second
+// "SubAngleDifference" alias which has now been folded into this one.
+//
+// Returns the signed shortest-arc difference (ang1 - ang2), wrapped to
+// the range [-180, 180].  Reconstructed line-by-line from the disasm.
 //===========================================================================
 float AngleDifference(float ang1, float ang2)
 {
@@ -594,17 +599,26 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 } //end of the function CameraFixedCamThink
 
 //===========================================================================
-// ClientSetViewAngles                                        (no disasm origin)
+// ClientSetViewAngles                                  (header-declared only)
 //
-// This helper does NOT correspond to any function in the shipping
-// gamex86.dll -- a byte search for any plausible signature turns up
-// nothing, and no caller in the reconstructed code references it.
-// Retained here for archival completeness because earlier development
-// drafts called it from the chase/observer paths; the body is a plain
-// "copy target's v_angle into the camera with optional smoothing"
-// utility that mirrors what the inline code in CameraChaseCamThink and
-// CameraFixedCamThink do.  Kept non-static in case external code in a
-// later mod build referred to it.
+// Origin: declared in the ORIGINAL Mr. Elusive p_observer.h shipped with
+// gladq2_src (1998-01-12):
+//
+//     void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang);
+//
+// So this IS part of the canonical public observer API.  However, by the
+// time the 1999 shipping gamex86.dll was compiled the function body had
+// been removed from p_observer.c (probably folded inline into the
+// CameraChaseCamThink / CameraFixedCamThink paths, both of which contain
+// the same "snap-or-lerp target v_angle, then chaseoffset + origin"
+// sequence).  A byte-pattern search of the full DLL turns up no body
+// matching this signature.
+//
+// We retain the symbol so the public header stays satisfied; the body
+// below is the most plausible reconstruction given the documented
+// purpose (it mirrors the inline code in CameraChaseCamThink and
+// CameraFixedCamThink).  It is the ONE function in this file that is
+// NOT byte-faithful to the shipping binary.
 //===========================================================================
 void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
 {
@@ -664,7 +678,6 @@ void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
 static void  SubApplyCameraOrigin   (edict_t *ent, vec3_t origin);                     /* sub_10077f15 */
 static void  SubApplyCameraAngles   (edict_t *ent, vec3_t out_angles, vec3_t cmd);     /* sub_10077f7d */
 static void  SubLerpAngle           (float *out, vec3_t target, float frac, float maxstep); /* sub_10077e29 */
-static float SubAngleDifference     (float a, float b);                                /* sub_10077eba */
 static qboolean SubCanSeePoint      (edict_t *ent, vec3_t point);                      /* sub_10078125 */
 static qboolean SubTargetVisible    (edict_t *ent, edict_t *target);                   /* sub_100782ad */
 static edict_t *SubNextClient       (edict_t *prev);                                   /* sub_1007845f */
@@ -716,9 +729,9 @@ static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
 	cam->angles[1] = anglemod(cam->angles[1]);
 	cam->angles[2] = anglemod(cam->angles[2]);
 
-	pitch_diff = SubAngleDifference(pitch_in, cam->angles[0]);
-	yaw_diff   = SubAngleDifference(yaw_in,   cam->angles[1]);
-	roll_diff  = SubAngleDifference(roll_in,  cam->angles[2]);
+	pitch_diff = AngleDifference(pitch_in, cam->angles[0]);
+	yaw_diff   = AngleDifference(yaw_in,   cam->angles[1]);
+	roll_diff  = AngleDifference(roll_in,  cam->angles[2]);
 
 	// Clamp pitch_diff into [-20, 20].
 	if (pitch_diff >  20.0f) pitch_diff =  20.0f;
@@ -1474,24 +1487,12 @@ static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
 	out[2] = target[2];
 }
 
-// --- sub_10077eba -----------------------------------------------------------
-// Same as AngleDifference at file top; kept as a separate symbol because the
-// original DLL exported two copies (one for the camera code path, one for the
-// chase code path).
+// --- sub_10077eba is reconstructed as AngleDifference() at the top of this
+// file (it is the public per gladq2_src/p_observer.h).  The earlier draft
+// duplicated it as `SubAngleDifference`; that alias has been removed and the
+// three call sites below in SubLerpAngle / SubApplyCameraAngles now call
+// AngleDifference directly.
 //===========================================================================
-static float SubAngleDifference(float ang1, float ang2)
-{
-	float diff = ang1 - ang2;
-	if (ang1 > ang2)
-	{
-		if (diff >  180.0) diff -= 360.0;
-	}
-	else
-	{
-		if (diff < -180.0) diff += 360.0;
-	}
-	return diff;
-}
 
 // --- sub_10077f15 -----------------------------------------------------------
 // Apply a new origin to the observer.  Writes both pmove.origin (rounded to
@@ -1523,7 +1524,7 @@ static void SubApplyCameraAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_ang
 	int i;
 	for (i = 0; i < 3; i++)
 	{
-		diff = SubAngleDifference(new_angles[i], cmd_angles[i]);
+		diff = AngleDifference(new_angles[i], cmd_angles[i]);
 		diff = anglemod(diff);
 		cl->ps.pmove.delta_angles[i] =
 			(short)((int)(diff * 65536.0f / 360.0f) & 0xffff);
@@ -1658,25 +1659,28 @@ static edict_t *SubNextClient(edict_t *prev)
 }
 
 // --- sub_1007806c -----------------------------------------------------------
-// CenterPrintScore: when ent is in observer "score notify" mode (flag 0x10
-// of client->flags(+0xf98) set), print the target client's name and score
-// to ent's centerprint.  Used by SubOnTargetDeath and SubSetAutocamTarget
-// to notify the observer about who they're now looking at.
+// SubCenterPrintScore: when the OBSERVER's camera-state flag 0x10
+// (CAMFL_NAME == "show target name + score") is set in
+// client->camera.flags (offset client+0xf98), print the target's name
+// and current score to the observer via gi.centerprintf.  Used by
+// SubOnTargetDeath and SubSetAutocamTarget as a HUD notify.
+//
+// Reconstructed line-by-line from gamex86.dll @ 0x1007806c.  Stack
+// frame: char score_buf[0x80] @ [ebp-0x80], char fragword[0x80] @
+// [ebp-0x100].  The CRT helpers at 0x1008721f and 0x10087010 are
+// sprintf() and strcpy() respectively.
 //===========================================================================
 static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 {
-	gclient_t *tc = target->client;
-	char buf[128];
-	char fragword[16];
+	char score_buf[0x80];                                /* [ebp-0x80]  */
+	char fragword[0x80];                                 /* [ebp-0x100] */
 	int  score;
 
-	/* flag 0x10 in client+0xf98 = "score on display" sub-flag */
-	if (!(*(int *)((char *)ent->client + 0xf98) & 0x10))
+	if (!(*(int *)((char *)ent->client + 0xf98) & 0x10)) /* CAMFL_NAME */
 		return;
 
-	score = *(int *)((char *)tc + 0xda8);
-
-	Com_sprintf(buf, sizeof(buf), "%d", score);
+	score = *(int *)((char *)target->client + 0xda8);    /* resp.score */
+	sprintf(score_buf, "%d", score);
 
 	if (score == 1 || score == -11)
 		strcpy(fragword, "frag");
@@ -1684,30 +1688,40 @@ static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 		strcpy(fragword, "frags");
 
 	gi.centerprintf(ent, "%s\n\n\n%s - %s %s",
-		prefix,
-		(char *)((char *)tc + 0x2bc),
-		buf,
-		fragword);
+	                prefix,
+	                (char *)((char *)target->client + 0x2bc),  /* pers.netname */
+	                score_buf,
+	                fragword);
 }
 
 // --- sub_1007886c -----------------------------------------------------------
-// Helper used by SubAbortAutocam: snap dest to current origin, set
-// viewtarget to origin + forward(angles), then call CameraMove with state 0.
+// SubCameraSnapToOrigin: snap the autocam's dest to the observer's own
+// origin, derive a viewtarget one unit forward along the current
+// cam->angles, then enter idle (state 0) via CameraMove(ent, 0, ucmd).
+// Used by SubAbortAutocam.
+//
+// Reconstructed line-by-line from gamex86.dll @ 0x1007886c.  The
+// compiler kept cam at [ebp-0x10] = &client->camera (client+0xf64) and
+// the AngleVectors out-vector at [ebp-0xc..-4].  Field offsets used:
+//   cam+0x04 = angles, cam+0x40 = dest, cam+0x4c = viewtarget
+//   ent+0x04 = ent->s.origin
 //===========================================================================
 static void SubCameraSnapToOrigin(edict_t *ent, usercmd_t *ucmd)
 {
-	camera_t *cam = &ent->client->camera;
-	vec3_t fwd;
+	camera_t *cam;
+	vec3_t forward;                                       /* [ebp-0xc..-4] */
+
+	cam = &ent->client->camera;                           /* [ebp-0x10]    */
 
 	cam->dest[0] = ent->s.origin[0];
 	cam->dest[1] = ent->s.origin[1];
 	cam->dest[2] = ent->s.origin[2];
 
-	AngleVectors(cam->angles, fwd, NULL, NULL);
+	AngleVectors(cam->angles, forward, NULL, NULL);
 
-	cam->viewtarget[0] = fwd[0] + ent->s.origin[0];
-	cam->viewtarget[1] = fwd[1] + ent->s.origin[1];
-	cam->viewtarget[2] = fwd[2] + ent->s.origin[2];
+	cam->viewtarget[0] = forward[0] + ent->s.origin[0];
+	cam->viewtarget[1] = forward[1] + ent->s.origin[1];
+	cam->viewtarget[2] = forward[2] + ent->s.origin[2];
 
 	CameraMove(ent, 0, ucmd);
 }
