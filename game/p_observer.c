@@ -648,7 +648,7 @@ static void  SubGetTargetMuzzle     (edict_t *ent, vec3_t out);                 
 static void  SubGetTargetAimEnd     (edict_t *ent, vec3_t out);                        /* sub_10078bcc */
 static void  SubAutocamSetSpot      (edict_t *target, vec3_t spot);                    /* sub_10079a92 */
 static void  SubSetAutocamTarget    (edict_t *ent, edict_t *target, usercmd_t *ucmd);  /* sub_10079acf */
-static int   SubVectorCompare       (vec3_t a, vec3_t b);                              /* sub_10085904 */
+// (sub_10085904 = q_shared.c VectorCompare, declared in q_shared.h)
 
 // Mask value at gamex86.dll+0x10092 area, embedded as immediate 0x2010003 in
 // every trace call.  Standard MASK_OPAQUE = SOLID|LAVA|SLIME|WINDOW, encoded
@@ -1242,7 +1242,7 @@ install_target:
 
 	// If cam->dest already equals ent->s.origin, yaw_to_target stays 0;
 	// otherwise compute yaw from cam->dest toward ent.
-	if (SubVectorCompare(&ent->s.origin[0], cam->dest) == 0)
+	if (VectorCompare(&ent->s.origin[0], cam->dest) == 0)
 	{
 		vec3_t out_ang;
 		delta[0] = ent->s.origin[0] - cam->dest[0];
@@ -1863,16 +1863,9 @@ static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 	CameraMove(ent, 0, ucmd);
 }
 
-// --- sub_10085904 -----------------------------------------------------------
-// VectorCompare: returns 1 if a == b component-wise.
-//===========================================================================
-static int SubVectorCompare(vec3_t a, vec3_t b)
-{
-	if (a[0] != b[0]) return 0;
-	if (a[1] != b[1]) return 0;
-	if (a[2] != b[2]) return 0;
-	return 1;
-}
+// NOTE: sub_10085904 in the shipping DLL is the q_shared.c VectorCompare
+// statically linked into the .text segment.  We do not re-define it
+// locally; callers below use the shared declaration from q_shared.h.
 
 // --- sub_10078c53 -----------------------------------------------------------
 // Score a candidate camera offset relative to the target (cam->ent).
