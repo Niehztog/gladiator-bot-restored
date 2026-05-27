@@ -31133,9 +31133,17 @@ LABEL_26:
   v12 = v24[5];
   LOBYTE(v12) = LOBYTE(v24[5]) | 1;
   v24[5] = v12;
+  /* IDA-dropped FPU-return pattern: the original asm at 0x10033cfb/0x10033d1b
+   * does `call AngleDiff; fabs; fcomp 2.0` (the abs operates on the AngleDiff
+   * result still in ST(0)). IDA dropped the captured return and left the
+   * preceding `fabs(v26)` chain bound to the length, never to the angle
+   * difference — so the gate "yaw/pitch aligned to within 2°" was actually
+   * "length < 2.0", which on a far hookable surface kept the bot perpetually
+   * in the walk-toward branch and never fired the hookon command. See
+   * .claude/memory/ida_dropped_results.md. */
   if ( v26 >= 5.0
-    || (AngleDiff(*(float *)&v24[9], *(float *)(a2 + 52)), v13 = fabs(v26), v13 >= 2.0)
-    || (AngleDiff(*(float *)&v24[10], *(float *)(a2 + 56)), fabs(v13) >= 2.0) )
+    || (v13 = fabs(AngleDiff(*(float *)&v24[9],  *(float *)(a2 + 52))), v13 >= 2.0)
+    || (v13 = fabs(AngleDiff(*(float *)&v24[10], *(float *)(a2 + 56))), v13 >= 2.0) )
   {
     if ( v26 >= 70.0 )
       v27 = 400.0;
