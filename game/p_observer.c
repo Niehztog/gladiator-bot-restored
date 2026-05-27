@@ -93,9 +93,9 @@ static void ClientPlaceCamera(edict_t *ent)
 		CameraPlaceAtTarget(ent,
 			cam->clientorigin,
 			cam->clientangles,
-			/* sub_10077f7d cmdangles arg -- gclient_t field at +0xdc8;
-			   matches the original byte-for-byte */
-			*(vec3_t *)((char *)ent->client + 0xdc8));
+			/* sub_10077f7d cmdangles arg -- gclient_t resp.cmd_angles at +0xdc8;
+			   the most-recent received cmd-angles vector. */
+			ent->client->resp.cmd_angles);
 	} //end else if
 	/* else: current target is a valid observer client; leave camera alone */
 } //end of the function ClientPlaceCamera
@@ -146,7 +146,7 @@ void ClientCycleCamera(edict_t *ent)
 		CameraPlaceAtTarget(ent,
 			cam->clientorigin,
 			cam->clientangles,
-			*(vec3_t *)((char *)ent->client + 0xdc8));
+			ent->client->resp.cmd_angles);
 } //end of the function ClientCycleCamera
 
 //===========================================================================
@@ -201,7 +201,7 @@ void ClientSetCamera(edict_t *ent)
 		CameraPlaceAtTarget(ent,
 			cam->clientorigin,
 			cam->clientangles,
-			*(vec3_t *)((char *)ent->client + 0xdc8));
+			ent->client->resp.cmd_angles);
 } //end of the function ClientSetCamera
 
 //===========================================================================
@@ -670,19 +670,18 @@ static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
 
 	cam = &ent->client->camera;
 
-	// pitch_in = anglemod( SHORT2ANGLE(ucmd->angles[PITCH]) + SHORT2ANGLE(ent->client->ps.viewangles[PITCH]_short) )
-	// (the ps angles are pulled out of client->ps.pmove.delta_angles via the +0x14 offset
-	//  on the gclient_t at +0x54 from edict, which is short[3])
+	// pitch_in = anglemod( SHORT2ANGLE(ucmd->angles[PITCH]) + SHORT2ANGLE(client->ps.pmove.delta_angles[PITCH]) )
+	// (gclient_t.ps.pmove.delta_angles lives at +0x14, short[3])
 	pitch_in = SHORT2ANGLE(ucmd->angles[PITCH])
-	         + SHORT2ANGLE(((short *)((char *)ent->client + 0x14))[0]);
+	         + SHORT2ANGLE(ent->client->ps.pmove.delta_angles[PITCH]);
 	pitch_in = anglemod(pitch_in);
 
 	yaw_in   = SHORT2ANGLE(ucmd->angles[YAW])
-	         + SHORT2ANGLE(((short *)((char *)ent->client + 0x14))[1]);
+	         + SHORT2ANGLE(ent->client->ps.pmove.delta_angles[YAW]);
 	yaw_in   = anglemod(yaw_in);
 
 	roll_in  = SHORT2ANGLE(ucmd->angles[ROLL])
-	         + SHORT2ANGLE(((short *)((char *)ent->client + 0x14))[2]);
+	         + SHORT2ANGLE(ent->client->ps.pmove.delta_angles[ROLL]);
 	roll_in  = anglemod(roll_in);
 
 	// Wrap cam->angles[*] through anglemod to keep them in [0,360).
@@ -828,9 +827,9 @@ angles_phase:
 	}
 	else if (cam->state == 3)
 	{
-		// Aim at where the target is aiming: cam->ent->client + 0xe8c (= ps.viewangles or similar)
+		// Aim at where the target is aiming: gclient_t.v_angle (at +0xe8c).
 		SubLerpAngle(cam->angles,
-		             (float *)((char *)cam->ent->client + 0xe8c),
+		             cam->ent->client->v_angle,
 		             0.8f,
 		             level.time - cam->lasttime);
 	}
@@ -1016,8 +1015,8 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 	if (strcmp(cam->ent->classname, "bodyque") == 0
 	    && cam->ent->deadflag == 0)
 	{
-		// edict_t[+0x19c] = chain pointer (next corpse in the queue)
-		void *chain = *(void **)((char *)cam->ent + 0x19c);
+		// edict_t.chain at +0x19c -- next corpse in the queue
+		void *chain = cam->ent->chain;
 		if (chain != NULL)
 			cam->ent = chain;
 		else
@@ -1055,10 +1054,10 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 		// If we can see straight to that point, no further work.
 		if (!SubCanSeePoint(ent, cam->viewtarget))
 		{
-			// Else: if the corpse's velocity components are both <= 0,
+			// Else: if the corpse's velocity Y/Z are both <= 0,
 			// abort -- it's stopped tumbling and we can't reach.
-			float vy = *(float *)((char *)cam->ent + 0x178);
-			float vz = *(float *)((char *)cam->ent + 0x17c);
+			float vy = cam->ent->velocity[1];
+			float vz = cam->ent->velocity[2];
 			if (vy <= 0.0f && vz <= 0.0f)
 			{
 				SubAbortAutocam(ent, ucmd);
@@ -1071,8 +1070,8 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 
 		// Refresh pause_time if velocity is non-zero (corpse still moving).
 		{
-			float vy = *(float *)((char *)cam->ent + 0x178);
-			float vz = *(float *)((char *)cam->ent + 0x17c);
+			float vy = cam->ent->velocity[1];
+			float vz = cam->ent->velocity[2];
 			if (vy > 0.0f || vz > 0.0f)
 				cam->pause_time = level.time + 2.0f;
 		}
@@ -1637,10 +1636,10 @@ static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 	char fragword[0x80];                                 /* [ebp-0x100] */
 	int  score;
 
-	if (!(*(int *)((char *)ent->client + 0xf98) & 0x10)) /* CAMFL_NAME */
+	if (!(ent->client->camera.flags & CAMFL_NAME))      /* +0xf98 */
 		return;
 
-	score = *(int *)((char *)target->client + 0xda8);    /* resp.score */
+	score = target->client->resp.score;                 /* +0xda8 */
 	sprintf(score_buf, "%d", score);
 
 	if (score == 1 || score == -11)
@@ -1650,7 +1649,7 @@ static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 
 	gi.centerprintf(ent, "%s\n\n\n%s - %s %s",
 	                prefix,
-	                (char *)((char *)target->client + 0x2bc),  /* pers.netname */
+	                target->client->pers.netname,       /* +0x2bc */
 	                score_buf,
 	                fragword);
 }
@@ -1759,12 +1758,12 @@ static void SubGetTargetMuzzle(edict_t *ent, vec3_t out)
 	VectorScale(fwd, -90.0f, ofs);
 	ofs[2] += 16.0f;
 
-	/* viewfrom = cam->ent->s.origin + cam->ent->client->chaseoffset */
+	/* viewfrom = cam->ent->s.origin + cam->ent->client->ps.viewoffset */
 	{
 		gclient_t *tc = cam->ent->client;
-		viewfrom[0] = cam->ent->s.origin[0] + *(float *)((char *)tc + 0x28);
-		viewfrom[1] = cam->ent->s.origin[1] + *(float *)((char *)tc + 0x2c);
-		viewfrom[2] = cam->ent->s.origin[2] + *(float *)((char *)tc + 0x30);
+		viewfrom[0] = cam->ent->s.origin[0] + tc->ps.viewoffset[0];   /* +0x28 */
+		viewfrom[1] = cam->ent->s.origin[1] + tc->ps.viewoffset[1];   /* +0x2c */
+		viewfrom[2] = cam->ent->s.origin[2] + tc->ps.viewoffset[2];   /* +0x30 */
 	}
 
 	endpos[0] = viewfrom[0] + ofs[0];
