@@ -1739,14 +1739,241 @@ static int SubVectorCompare(vec3_t a, vec3_t b)
 	return 1;
 }
 
-/* TODO: sub_10078f4a CameraFindFlybyPos (~989 lines) -- next reconstruction tier */
-static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out_pos)
+// --- sub_10078c53 -----------------------------------------------------------
+// Score a candidate camera offset relative to the target (cam->ent).
+//
+//   * Normalises 'ofs' in place, then scales it to 700 units (the search
+//     radius).  Callers that share an offset vector across multiple calls
+//     will therefore see it overwritten.
+//   * Traces 700 units from the target's bbox-top (origin with z = maxs[2]-8)
+//     along 'ofs' with mask 0x2010003 (MASK_SHOT|MASK_OPAQUE).  If the trace
+//     hits anything other than worldspawn the candidate is rejected.
+//   * The candidate point is the trace endpos pulled 5 units back toward
+//     the target.  If that point is inside solid (pointcontents & 1) the
+//     candidate is rejected.
+//   * If the target and candidate are on opposite sides of a water surface
+//     (mask 0x38 = CONTENTS_LAVA|SLIME|WATER) re-trace with the water bits
+//     included so the candidate is moved to the water boundary.
+//   * If the resulting trace contents include water, require that we hit a
+//     translucent surface (SURF_TRANS33|SURF_TRANS66 = 0x30); otherwise
+//     reject.
+//   * Reject anything farther than 50 units from the target.
+//   * Returns 1111 for any rejection (well above the 1000-init); otherwise
+//     returns sqrt(333 - dist).  Lower scores correspond to *larger* (but
+//     <= 50) distances from the target, so callers minimise.
+//===========================================================================
+static float SubScoreCameraPos(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 {
-	(void)ent;
-	VectorCopy(target->s.origin, out_pos);
-	out_pos[2] += 64.0f;
+	camera_t *cam = &ent->client->camera;
+	vec3_t    mins, maxs;
+	vec3_t    unit5;            /* [ebp - 0x6c] = unit_ofs * 5 */
+	vec3_t    viewfrom;         /* [ebp - 0x78] */
+	vec3_t    end;              /* [ebp - 0x50] */
+	vec3_t    diff;             /* [ebp - 0x9c] */
+	trace_t   tr;               /* [ebp - 0xd4] / copied to [ebp - 0x38] */
+	int       cv_view, cv_end;
+	float     dist;
+
+	mins[0] = mins[1] = mins[2] = -8.0f;
+	maxs[0] = maxs[1] = maxs[2] =  8.0f;
+
+	VectorNormalize(ofs);
+	VectorScale(ofs, 5.0f,   unit5);
+	VectorScale(ofs, 700.0f, ofs);
+
+	VectorCopy(cam->ent->s.origin, viewfrom);
+	viewfrom[2] = cam->ent->absmax[2] - 8.0f;
+
+	end[0] = viewfrom[0] + ofs[0];
+	end[1] = viewfrom[1] + ofs[1];
+	end[2] = viewfrom[2] + ofs[2];
+
+	tr = gi.trace(viewfrom, mins, maxs, end, cam->ent, MASK_SHOT|MASK_OPAQUE);
+
+	if (tr.ent != g_edicts)
+		return 1111.0f;
+
+	out_endpos[0] = tr.endpos[0] - unit5[0];
+	out_endpos[1] = tr.endpos[1] - unit5[1];
+	out_endpos[2] = tr.endpos[2] - unit5[2];
+
+	if (gi.pointcontents(out_endpos) & 1)
+		return 1111.0f;
+
+	cv_view = gi.pointcontents(viewfrom) & 0x38;
+	cv_end  = gi.pointcontents(out_endpos) & 0x38;
+
+	if (cv_view && !cv_end)
+	{
+		vec3_t start2;
+		start2[0] = tr.endpos[0];
+		start2[1] = tr.endpos[1];
+		start2[2] = tr.endpos[2];
+		tr = gi.trace(start2, NULL, NULL, viewfrom, cam->ent,
+		              MASK_SHOT|MASK_OPAQUE|MASK_WATER);
+	}
+	else if (!cv_view && cv_end)
+	{
+		vec3_t start2;
+		start2[0] = tr.endpos[0];
+		start2[1] = tr.endpos[1];
+		start2[2] = tr.endpos[2];
+		tr = gi.trace(viewfrom, NULL, NULL, start2, cam->ent,
+		              MASK_SHOT|MASK_OPAQUE|MASK_WATER);
+	}
+
+	if (tr.contents & 0x38)
+	{
+		if (!tr.surface)
+			return 1111.0f;
+		if (!(tr.surface->flags & 0x30))
+			return 1111.0f;
+	}
+
+	diff[0] = cam->ent->s.origin[0] - out_endpos[0];
+	diff[1] = cam->ent->s.origin[1] - out_endpos[1];
+	diff[2] = cam->ent->s.origin[2] - out_endpos[2];
+	dist = VectorLength(diff);
+	if (dist > 50.0f)
+		return 1111.0f;
+
+	return (float)sqrt(333.0 - (double)dist);
+}
+
+// --- sub_10078f4a -----------------------------------------------------------
+// CameraFindFlybyPos: 6-tier search for a vantage point around the current
+// camera target (cam->ent).  Each tier tries 4 candidate offset directions
+// (combinations of forward/right/up basis vectors from the camera's
+// cam->angles) and keeps the best (lowest score from SubScoreCameraPos).  If
+// any tier finds a valid candidate (best < 1000) the remaining tiers are
+// skipped.  Returns 1 and writes the chosen world position to 'out' on
+// success; returns 0 if no tier found a position.
+//
+// The 'target' arg is present in the original signature (the caller in
+// SubSetAutocamTarget passes it after assigning cam->ent = target) but is
+// never read -- the disassembly only ever dereferences ent and the cam->ent
+// it points at.
+//
+// Side-effect to be aware of: starting at tier 3 the helper passes the
+// running forward/right basis vectors *directly* to SubScoreCameraPos, which
+// normalises and re-scales them to 700 units.  Tiers 4-5 then use those
+// post-scoring values when building their additive offsets.
+//===========================================================================
+#define TRY_CANDIDATE(ofs_expr) do { \
+		ofs_expr; \
+		score = SubScoreCameraPos(ent, cand_ofs, cand_endpos); \
+		if (score < best_score) { \
+			best_score = score; \
+			VectorCopy(cand_endpos, best_endpos); \
+		} \
+	} while (0)
+
+static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out)
+{
+	camera_t *cam = &ent->client->camera;
+	vec3_t    fwd, right, up;
+	vec3_t    cand_ofs;
+	vec3_t    cand_endpos;
+	vec3_t    best_endpos;
+	float     best_score;
+	float     score;
+
+	(void)target;   /* unused in the original */
+
+	best_endpos[0] = 0;
+	best_endpos[1] = 0;
+	best_endpos[2] = cam->ent->s.angles[2]; /* raw seed from [ent+0x18] */
+
+	AngleVectors(cam->angles, fwd, right, up);
+	VectorScale(fwd, 3.0f, fwd);
+	best_score = 1000.0f;
+
+	/* Tier 0: ±3fwd ±right combined with +up */
+	TRY_CANDIDATE((VectorAdd     (up, fwd, cand_ofs),
+	               VectorAdd     (cand_ofs, right, cand_ofs)));
+	TRY_CANDIDATE((VectorSubtract(up, fwd, cand_ofs),
+	               VectorAdd     (cand_ofs, right, cand_ofs)));
+	TRY_CANDIDATE((VectorAdd     (up, fwd, cand_ofs),
+	               VectorSubtract(cand_ofs, right, cand_ofs)));
+	TRY_CANDIDATE((VectorSubtract(up, fwd, cand_ofs),
+	               VectorSubtract(cand_ofs, right, cand_ofs)));
+
+	if (best_score >= 1000.0f)
+	{
+		/* Tier 1: ±3fwd alone or ±right alone, combined with +up */
+		TRY_CANDIDATE( VectorAdd     (up, fwd,   cand_ofs));
+		TRY_CANDIDATE( VectorSubtract(up, fwd,   cand_ofs));
+		TRY_CANDIDATE( VectorAdd     (up, right, cand_ofs));
+		TRY_CANDIDATE( VectorSubtract(up, right, cand_ofs));
+	}
+
+	if (best_score >= 1000.0f)
+	{
+		/* Tier 2: ±3fwd ±right at target altitude */
+		TRY_CANDIDATE( VectorAdd     (fwd,   right, cand_ofs));
+		TRY_CANDIDATE( VectorSubtract(fwd,   right, cand_ofs));
+		TRY_CANDIDATE( VectorSubtract(right, fwd,   cand_ofs));
+		TRY_CANDIDATE((VectorClear   (cand_ofs),
+		               VectorSubtract(cand_ofs, fwd,   cand_ofs),
+		               VectorSubtract(cand_ofs, right, cand_ofs)));
+	}
+
+	if (best_score >= 1000.0f)
+	{
+		/* Tier 3: pure ±fwd or ±right (these calls mutate fwd/right to 700*unit) */
+		score = SubScoreCameraPos(ent, fwd,   cand_endpos);
+		if (score < best_score) { best_score = score; VectorCopy(cand_endpos, best_endpos); }
+		score = SubScoreCameraPos(ent, right, cand_endpos);
+		if (score < best_score) { best_score = score; VectorCopy(cand_endpos, best_endpos); }
+		TRY_CANDIDATE((VectorClear(cand_ofs), VectorSubtract(cand_ofs, fwd,   cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs), VectorSubtract(cand_ofs, right, cand_ofs)));
+	}
+
+	if (best_score >= 1000.0f)
+	{
+		/* Tier 4: -up combined with ±fwd ±right */
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorAdd     (cand_ofs, fwd,   cand_ofs),
+		               VectorAdd     (cand_ofs, right, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorSubtract(cand_ofs, fwd,   cand_ofs),
+		               VectorAdd     (cand_ofs, right, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorAdd     (cand_ofs, fwd,   cand_ofs),
+		               VectorSubtract(cand_ofs, right, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorSubtract(cand_ofs, fwd,   cand_ofs),
+		               VectorSubtract(cand_ofs, right, cand_ofs)));
+	}
+
+	if (best_score >= 1000.0f)
+	{
+		/* Tier 5: -up combined with ±fwd alone or ±right alone */
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,  cand_ofs),
+		               VectorAdd     (cand_ofs, fwd, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorAdd     (cand_ofs, right, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,  cand_ofs),
+		               VectorSubtract(cand_ofs, fwd, cand_ofs)));
+		TRY_CANDIDATE((VectorClear(cand_ofs),
+		               VectorSubtract(cand_ofs, up,    cand_ofs),
+		               VectorSubtract(cand_ofs, right, cand_ofs)));
+	}
+
+	if (best_score >= 1000.0f)
+		return false;
+
+	VectorCopy(best_endpos, out);
 	return true;
 }
+#undef TRY_CANDIDATE
 
 //===========================================================================
 // DoObserver
