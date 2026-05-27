@@ -1249,127 +1249,503 @@ install_target:
 } //end of the function CameraAutoCamState0
 
 //===========================================================================
-// Nested helper stubs.  The dispatcher-level functions above are 100%
-// faithful to the disassembly; these inner helpers are NOT.  Faithful
-// versions are pending.  The stubs below are written to keep the higher
-// layer functional in observer mode.
+// Nested helper functions, reconstructed line-by-line from the gamex86.dll
+// disassembly.  The fourth-tier helper sub_10078f4a (CameraFindFlybyPos,
+// ~989 lines) is still forward-declared as a stub at the bottom of this
+// file --- to be reconstructed in the next pass.
+//===========================================================================
+
+// --- sub_10077d50 -----------------------------------------------------------
+// Step `from` toward `to` by at most `maxstep` degrees, taking the shorter
+// way around the circle.  Both inputs are anglemod'd first.  Returns the
+// new angle, anglemod'd.
+//===========================================================================
+static float SubAngleStep(float from, float to, float maxstep)
+{
+	float diff;
+
+	from = anglemod(from);
+	to   = anglemod(to);
+
+	if (from == to)
+		return from;
+
+	diff = to - from;
+	if (to > from)
+	{
+		if (diff >  180.0) diff -= 360.0;
+	}
+	else
+	{
+		if (diff < -180.0) diff += 360.0;
+	}
+
+	if (diff > 0)
+	{
+		if (diff >  maxstep) diff =  maxstep;
+	}
+	else
+	{
+		if (diff < -maxstep) diff = -maxstep;
+	}
+
+	return anglemod(from + diff);
+}
+
+// --- sub_10077e29 -----------------------------------------------------------
+// LerpAngles helper.  Steps pitch (out[0]) and yaw (out[1]) toward target,
+// roll (out[2]) snaps directly.  Pitch uses a max of 100*frac*maxstep
+// degrees, yaw uses 150*frac*maxstep --- the bot can pan faster than tilt.
+// Note: also normalizes target[0] from (180,360] down to (-180,0].
+//===========================================================================
+static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
+{
+	float tmp;
+
+	if (target[0] > 180.0f)
+		target[0] -= 360.0f;
+
+	tmp    = 100.0f * frac * maxstep;
+	out[0] = SubAngleStep(out[0], target[0], tmp);
+
+	tmp    = 150.0f * frac * maxstep;
+	out[1] = SubAngleStep(out[1], target[1], tmp);
+
+	out[2] = target[2];
+}
+
+// --- sub_10077eba -----------------------------------------------------------
+// Same as AngleDifference at file top; kept as a separate symbol because the
+// original DLL exported two copies (one for the camera code path, one for the
+// chase code path).
+//===========================================================================
+static float SubAngleDifference(float ang1, float ang2)
+{
+	float diff = ang1 - ang2;
+	if (ang1 > ang2)
+	{
+		if (diff >  180.0) diff -= 360.0;
+	}
+	else
+	{
+		if (diff < -180.0) diff += 360.0;
+	}
+	return diff;
+}
+
+// --- sub_10077f15 -----------------------------------------------------------
+// Apply a new origin to the observer.  Writes both pmove.origin (rounded to
+// short) and s.origin (float).  Note: pmove.origin is written raw, not
+// *8-scaled --- this is intentional, the observer's pmove is PM_FREEZE so
+// pmove.origin is never read by the engine.
 //===========================================================================
 static void SubApplyCameraOrigin(edict_t *ent, vec3_t origin)
 {
-	camera_t *cam = &ent->client->camera;
-	VectorCopy(origin, cam->origin);
-	VectorCopy(origin, ent->s.origin);
+	gclient_t *cl = ent->client;
+	cl->ps.pmove.origin[0] = (short)(int)origin[0];
+	cl->ps.pmove.origin[1] = (short)(int)origin[1];
+	cl->ps.pmove.origin[2] = (short)(int)origin[2];
+	ent->s.origin[0] = origin[0];
+	ent->s.origin[1] = origin[1];
+	ent->s.origin[2] = origin[2];
 }
 
-static void SubApplyCameraAngles(edict_t *ent, vec3_t out_angles, vec3_t cmd)
+// --- sub_10077f7d -----------------------------------------------------------
+// Apply new view angles to the observer by locking the client's view via
+// pmove.delta_angles.  delta_angles[i] = ANGLE2SHORT(new[i] - cmd[i]).
+// Does NOT touch v_angle / ps.viewangles directly --- the engine will
+// derive viewangles = cmd + delta on the next pmove tick.
+//===========================================================================
+static void SubApplyCameraAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_angles)
 {
-	camera_t *cam = &ent->client->camera;
-	(void)cmd;
-	VectorCopy(out_angles, cam->angles);
-	VectorCopy(out_angles, ent->client->ps.viewangles);
-}
-
-static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
-{
+	gclient_t *cl = ent->client;
+	float diff;
 	int i;
-	(void)maxstep;
 	for (i = 0; i < 3; i++)
-		out[i] = anglemod(out[i] + AngleDifference(target[i], out[i]) * frac);
+	{
+		diff = SubAngleDifference(new_angles[i], cmd_angles[i]);
+		diff = anglemod(diff);
+		cl->ps.pmove.delta_angles[i] =
+			(short)((int)(diff * 65536.0f / 360.0f) & 0xffff);
+	}
 }
 
-static float SubAngleDifference(float a, float b)
-{
-	return AngleDifference(a, b);
-}
-
+// --- sub_10078125 -----------------------------------------------------------
+// CanSee(ent, point): true if ent->s.origin can see `point` through the
+// world (water boundary handled: if start/end straddle water, re-trace from
+// the water-surface hit forward with the water content bits removed).
+//===========================================================================
 static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
 {
+	vec3_t start, end;
+	int contmask = 1;
 	trace_t tr;
-	tr = gi.trace(ent->s.origin, vec3_origin, vec3_origin,
-	              point, ent, OBSERVER_TRACE_MASK);
+
+	VectorCopy(ent->s.origin, start);
+
+	if (!gi.inPVS(start, point))
+		return false;
+
+	if (gi.pointcontents(point) & 0x38)
+		contmask |= 0x38;
+
+	if (gi.pointcontents(start) & 0x38)
+	{
+		if (!(contmask & 0x38))
+		{
+			VectorCopy(point, start);
+			VectorCopy(ent->s.origin, end);
+		}
+		else
+		{
+			VectorCopy(start, end);
+			end[0] = point[0]; end[1] = point[1]; end[2] = point[2];
+		}
+		contmask ^= 0x38;
+	}
+	else
+	{
+		VectorCopy(point, end);
+	}
+
+	tr = gi.trace(start, NULL, NULL, end, ent, contmask);
+
+	if (tr.contents & 0x38)
+	{
+		if (tr.surface == NULL || !(tr.surface->flags & 0x30))
+		{
+			contmask &= ~0x38;
+			tr = gi.trace(tr.endpos, NULL, NULL, end, ent, contmask);
+		}
+	}
+
 	return tr.fraction >= 1.0f;
 }
 
+// --- sub_100782ad -----------------------------------------------------------
+// TargetVisible(ent, target): like SubCanSeePoint, but trace endpoint is
+// target->s.origin and target itself is treated as a valid hit
+// (tr.ent == target counts as visible).
+//===========================================================================
 static qboolean SubTargetVisible(edict_t *ent, edict_t *target)
 {
-	if (!target || !target->inuse) return false;
-	return SubCanSeePoint(ent, target->s.origin);
+	vec3_t start, end;
+	edict_t *passent = ent;
+	int contmask = 1;
+	trace_t tr;
+
+	if (!gi.inPVS(ent->s.origin, target->s.origin))
+		return false;
+
+	VectorCopy(ent->s.origin,    start);
+	VectorCopy(target->s.origin, end);
+
+	if (gi.pointcontents(target->s.origin) & 0x38)
+		contmask |= 0x38;
+
+	if (gi.pointcontents(ent->s.origin) & 0x38)
+	{
+		if (!(contmask & 0x38))
+		{
+			passent = target;
+			VectorCopy(target->s.origin, start);
+			VectorCopy(ent->s.origin,    end);
+		}
+		contmask ^= 0x38;
+	}
+
+	tr = gi.trace(start, NULL, NULL, end, passent, contmask);
+
+	if (tr.contents & 0x38)
+	{
+		if (tr.surface == NULL || !(tr.surface->flags & 0x30))
+		{
+			contmask &= ~0x38;
+			tr = gi.trace(tr.endpos, NULL, NULL, end, passent, contmask);
+		}
+	}
+
+	return (tr.fraction >= 1.0f) || (tr.ent == target);
 }
 
+// --- sub_1007845f -----------------------------------------------------------
+// NextClient(prev): return next entity after `prev` in g_edicts that has
+// classname=="player" (case-insensitive), is inuse, and does NOT have the
+// FL_OBSERVER (0x10000) flag.  If `prev` is NULL, start from g_edicts[1]
+// (the lea +0x458 indexes prev+1 in either case).
+//===========================================================================
 static edict_t *SubNextClient(edict_t *prev)
 {
-	int start = prev ? (int)(prev - g_edicts) + 1 : 1;
 	int i;
-	for (i = start; i <= maxclients->value; i++)
+	int num_edicts = globals.num_edicts;
+
+	if (prev == NULL)
+		i = 0;
+	else
+		i = (int)(prev - g_edicts);
+
+	for (; i < num_edicts; i++)
 	{
-		edict_t *e = &g_edicts[i];
-		if (e->inuse && e->client && !(e->flags & FL_OBSERVER))
+		edict_t *e = &g_edicts[i + 1];
+		if (!e->inuse)
+			continue;
+		if (e->flags & FL_OBSERVER)
+			continue;
+		if (Q_stricmp(e->classname, "player") == 0)
 			return e;
 	}
 	return NULL;
 }
 
+// --- sub_1007806c -----------------------------------------------------------
+// CenterPrintScore: when ent is in observer "score notify" mode (flag 0x10
+// of client->flags(+0xf98) set), print the target client's name and score
+// to ent's centerprint.  Used by SubOnTargetDeath and SubSetAutocamTarget
+// to notify the observer about who they're now looking at.
+//===========================================================================
+static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
+{
+	gclient_t *tc = target->client;
+	char buf[128];
+	char fragword[16];
+	int  score;
+
+	/* flag 0x10 in client+0xf98 = "score on display" sub-flag */
+	if (!(*(int *)((char *)ent->client + 0xf98) & 0x10))
+		return;
+
+	score = *(int *)((char *)tc + 0xda8);
+
+	Com_sprintf(buf, sizeof(buf), "%d", score);
+
+	if (score == 1 || score == -11)
+		strcpy(fragword, "frag");
+	else
+		strcpy(fragword, "frags");
+
+	gi.centerprintf(ent, "%s\n\n\n%s - %s %s",
+		prefix,
+		(char *)((char *)tc + 0x2bc),
+		buf,
+		fragword);
+}
+
+// --- sub_1007886c -----------------------------------------------------------
+// Helper used by SubAbortAutocam: snap dest to current origin, set
+// viewtarget to origin + forward(angles), then call CameraMove with state 0.
+//===========================================================================
+static void SubCameraSnapToOrigin(edict_t *ent, usercmd_t *ucmd)
+{
+	camera_t *cam = &ent->client->camera;
+	vec3_t fwd;
+
+	cam->dest[0] = ent->s.origin[0];
+	cam->dest[1] = ent->s.origin[1];
+	cam->dest[2] = ent->s.origin[2];
+
+	AngleVectors(cam->angles, fwd, NULL, NULL);
+
+	cam->viewtarget[0] = fwd[0] + ent->s.origin[0];
+	cam->viewtarget[1] = fwd[1] + ent->s.origin[1];
+	cam->viewtarget[2] = fwd[2] + ent->s.origin[2];
+
+	CameraMove(ent, 0, ucmd);
+}
+
+// --- sub_100788ff -----------------------------------------------------------
+// AbortAutocam: stop following any target, lock the current view in place,
+// hold for 2 seconds.
+//===========================================================================
 static void SubAbortAutocam(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
-	(void)ucmd;
-	cam->state = 0;
-	cam->pause_time = level.time;
+
+	SubCameraSnapToOrigin(ent, ucmd);
+
+	cam->state       = 0;
+	cam->pause_time  = level.time + 2.0f;
 	cam->search_time = level.time;
+	cam->dest2[0]    = cam->viewtarget[0];
+	cam->dest2[1]    = cam->viewtarget[1];
+	cam->dest2[2]    = cam->viewtarget[2];
+	cam->ent         = ent;
 }
 
+// --- sub_1007897a -----------------------------------------------------------
+// OnTargetDeath: announce score, then drop into bodyque-chase (state 7)
+// for 2 seconds with a 5-second search timeout.
+//===========================================================================
 static void SubOnTargetDeath(edict_t *ent)
 {
 	camera_t *cam = &ent->client->camera;
-	cam->state = 7;
-	cam->pause_time = level.time + 2.0f;
+
+	SubCenterPrintScore(ent, cam->ent, "");
+
+	cam->dest[0]     = ent->s.origin[0];
+	cam->dest[1]     = ent->s.origin[1];
+	cam->dest[2]     = ent->s.origin[2];
+	cam->state       = 7;
+	cam->pause_time  = level.time + 2.0f;
+	cam->lastent     = NULL;
+	cam->search_time = level.time + 5.0f;
 }
 
+// --- sub_10078a04 -----------------------------------------------------------
+// GetTargetMuzzle: compute a "muzzle"-aligned camera offset and trace from
+// the target's viewpoint along it.  Pitch is decoupled (camera stays
+// horizontal); 90 units back and 16 units up.  If the trace hits a wall,
+// snap to 70 units off the wall along the wall normal; otherwise, push 20
+// more units backward beyond the offset point.
+//===========================================================================
 static void SubGetTargetMuzzle(edict_t *ent, vec3_t out)
 {
 	camera_t *cam = &ent->client->camera;
-	if (cam->ent)
-		VectorCopy(cam->ent->s.origin, out);
+	vec3_t angles, up, fwd, viewfrom, endpos, ofs;
+	float adj;
+	trace_t tr;
+
+	/* angles = cam->angles, but pitch zeroed, yaw anglemod'd */
+	angles[0] = 0.0f;
+	angles[1] = anglemod(cam->angles[1] + 0.0f);
+	angles[2] = cam->angles[2];
+
+	/* 1) up from full angles */
+	AngleVectors(cam->angles, NULL, NULL, up);
+
+	/* 2) forward from flat angles */
+	AngleVectors(angles, fwd, NULL, NULL);
+
+	/* re-tilt forward so it's perpendicular to up */
+	adj = (fwd[0]*up[0] + fwd[1]*up[1]) * -1.0f / up[2];
+	fwd[2] = adj;
+	VectorNormalize(fwd);
+
+	/* ofs = -90 * fwd + (0,0,16) */
+	VectorScale(fwd, -90.0f, ofs);
+	ofs[2] += 16.0f;
+
+	/* viewfrom = cam->ent->s.origin + cam->ent->client->chaseoffset */
+	{
+		gclient_t *tc = cam->ent->client;
+		viewfrom[0] = cam->ent->s.origin[0] + *(float *)((char *)tc + 0x28);
+		viewfrom[1] = cam->ent->s.origin[1] + *(float *)((char *)tc + 0x2c);
+		viewfrom[2] = cam->ent->s.origin[2] + *(float *)((char *)tc + 0x30);
+	}
+
+	endpos[0] = viewfrom[0] + ofs[0];
+	endpos[1] = viewfrom[1] + ofs[1];
+	endpos[2] = viewfrom[2] + ofs[2];
+
+	tr = gi.trace(viewfrom, NULL, NULL, endpos, cam->ent, OBSERVER_TRACE_MASK);
+
+	if (tr.fraction < 1.0f && tr.ent != g_edicts)
+		VectorMA(tr.endpos, 70.0f, tr.plane.normal, out);
 	else
-		VectorClear(out);
+		VectorMA(tr.endpos, 20.0f, fwd, out);
 }
 
+// --- sub_10078bcc -----------------------------------------------------------
+// GetTargetAimEnd: 2048 units along cam->angles from cam->ent->s.origin
+// when the target is alive; just the corpse position when dead.
+//===========================================================================
 static void SubGetTargetAimEnd(edict_t *ent, vec3_t out)
 {
 	camera_t *cam = &ent->client->camera;
-	if (cam->ent)
+
+	if (cam->ent->deadflag == 0)
 	{
 		vec3_t fwd;
-		AngleVectors(cam->ent->s.angles, fwd, NULL, NULL);
-		VectorMA(cam->ent->s.origin, 1024.0f, fwd, out);
+		AngleVectors(cam->angles, fwd, NULL, NULL);
+		VectorMA(cam->ent->s.origin, 2048.0f, fwd, out);
 	}
 	else
 	{
-		VectorClear(out);
+		out[0] = cam->ent->s.origin[0];
+		out[1] = cam->ent->s.origin[1];
+		out[2] = cam->ent->s.origin[2];
 	}
 }
 
-static void SubAutocamSetSpot(edict_t *target, vec3_t spot)
+// --- sub_10079a92 -----------------------------------------------------------
+// AutocamSetSpot: copy `src->s.origin` to `spot`, then override the Z to
+// (src->maxs[2] - 8) --- a point near the top of the entity's bounding box.
+//===========================================================================
+static void SubAutocamSetSpot(edict_t *src, vec3_t spot)
 {
-	(void)target; (void)spot;
+	spot[0] = src->s.origin[0];
+	spot[1] = src->s.origin[1];
+	spot[2] = src->s.origin[2];
+	spot[2] = src->maxs[2] - 8.0f;
 }
+
+// --- sub_10079acf -----------------------------------------------------------
+// SetAutocamTarget: bind the camera to a new target, compute a good vantage
+// point via the (still-stubbed) flyby helper, and either commit to state 2
+// (flyby) or fall back to abort.
+//===========================================================================
+static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out_pos); /* sub_10078f4a */
 
 static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
-	(void)ucmd;
-	if (target && target->inuse && !(target->flags & FL_OBSERVER))
+	vec3_t   pos, diff;
+	float    len;
+
+	cam->pause_time = level.time + 0.4f;
+
+	if (cam->ent != target)
 	{
 		cam->ent = target;
-		cam->lastent = target;
-		VectorCopy(target->s.origin, cam->dest);
-		VectorCopy(target->s.origin, cam->viewtarget);
+		if (cam->lastent != cam->ent)
+		{
+			SubCenterPrintScore(ent, cam->ent, "looking at");
+			cam->lastent = target;
+		}
 	}
+
+	if (!SubCameraFindFlybyPos(ent, target, pos))
+	{
+		SubAbortAutocam(ent, ucmd);
+		cam->pause_time = level.time + 2.0f;
+		return;
+	}
+
+	SubAutocamSetSpot(target, cam->viewtarget);
+
+	cam->dest[0] = pos[0];
+	cam->dest[1] = pos[1];
+	cam->dest[2] = pos[2];
+	cam->state   = 2;
+
+	diff[0] = cam->dest[0] - cam->viewtarget[0];
+	diff[1] = cam->dest[1] - cam->viewtarget[1];
+	diff[2] = cam->dest[2] - cam->viewtarget[2];
+
+	len = VectorLength(diff) * 1.5f;
+	if (len > 500.0f) len = 500.0f;
+	cam->maxflybydist = len;
+
+	CameraMove(ent, 0, ucmd);
 }
 
+// --- sub_10085904 -----------------------------------------------------------
+// VectorCompare: returns 1 if a == b component-wise.
+//===========================================================================
 static int SubVectorCompare(vec3_t a, vec3_t b)
 {
-	return (a[0] == b[0]) && (a[1] == b[1]) && (a[2] == b[2]);
+	if (a[0] != b[0]) return 0;
+	if (a[1] != b[1]) return 0;
+	if (a[2] != b[2]) return 0;
+	return 1;
+}
+
+/* TODO: sub_10078f4a CameraFindFlybyPos (~989 lines) -- next reconstruction tier */
+static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out_pos)
+{
+	(void)ent;
+	VectorCopy(target->s.origin, out_pos);
+	out_pos[2] += 64.0f;
+	return true;
 }
 
 //===========================================================================
