@@ -23,7 +23,7 @@
 
 #ifdef OBSERVER
 
-extern cvar_t *observer;
+extern cvar_t *ra;	/* rocketarena cvar; gates leaving observer mode */
 extern void SelectSpawnPoint(edict_t *ent, vec3_t origin, vec3_t angles);
 
 //===========================================================================
@@ -218,12 +218,12 @@ void ClientToggleObserver(edict_t *ent)
 	if (ent->flags & FL_OBSERVER)
 	{
 		// ---- leaving observer mode ----
-		if (deathmatch->value == 0)
+		if (deathmatch->value)
 		{
 			respawn(ent);
 			return;
 		} //end if
-		if (observer->value == 0)
+		if (ra->value)
 		{
 			gi.cprintf(ent, PRINT_HIGH, "can't leave observer mode\n");
 			return;

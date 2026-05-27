@@ -34,9 +34,6 @@ edict_t		*g_edicts;
 
 cvar_t	*deathmatch;
 cvar_t	*coop;
-#ifdef OBSERVER
-cvar_t	*observer;
-#endif //OBSERVER
 cvar_t	*dmflags;
 cvar_t	*skill;
 cvar_t	*fraglimit;

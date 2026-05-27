@@ -741,9 +741,6 @@ extern	edict_t			*g_edicts;
 extern	cvar_t	*maxentities;
 extern	cvar_t	*deathmatch;
 extern	cvar_t	*coop;
-#ifdef OBSERVER
-extern	cvar_t	*observer;
-#endif //OBSERVER
 extern	cvar_t	*dmflags;
 extern	cvar_t	*skill;
 extern	cvar_t	*fraglimit;
