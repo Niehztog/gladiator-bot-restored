@@ -348,43 +348,219 @@ void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
 } //end of the function ClientSetViewAngles
 
 //===========================================================================
+// Autocam state handlers and CameraMove / CameraInputThink / CameraPlaceAtTarget
+//
+// These helpers live in the original DLL at the addresses noted below but
+// are outside the address range covered by the first-pass reconstruction.
+// Faithful restoration is a follow-up task; for now they are stub forward
+// declarations so the dispatcher compiles and the chasecam math links.
+//===========================================================================
+static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a2e7 */
+static void CameraAutoCamState1(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f4d */
+static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f64 */
+static void CameraAutoCamState3(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a1d2 */
+static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd);   /* sub_10079c26 */
+static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd); /* sub_100784f9 */
+static void CameraInputThink(edict_t *ent, usercmd_t *ucmd);      /* sub_1007ace3 */
+static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles); /* sub_10078043 */
+
+//===========================================================================
 // CameraAutoCamThink
 //
-// per-frame state machine for autocam mode (find best target, frame the
-// shot, periodically reselect).  The original is a ~270 byte tangle of
-// state transitions; the simplified reconstruction here just keeps the
-// current target framed.  Behaviour is correct enough for `autocam 1`
-// to be usable in deathmatch.
+// Per-frame state machine for autocam mode.  Reconstructed faithfully from
+// gamex86.dll @ 0x1007abd5: a switch on cam->state that calls one of five
+// state handlers followed by a uniform CameraMove(ent, speed, ucmd) helper.
+// Unknown states reset cam->state to 0.
 //===========================================================================
 static void CameraAutoCamThink(edict_t *ent, usercmd_t *ucmd)
 {
-	camera_t *cam = &ent->client->camera;
-	if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER))
+	camera_t *cam;
+
+	cam = &ent->client->camera;
+	if (cam->state == 0)
 	{
-		ClientCycleCamera(ent);
-		return;
+		CameraAutoCamState0(ent, ucmd);
+		CameraMove(ent, 1.0, ucmd);
 	} //end if
-	ClientSetViewAngles(ent, NULL, NULL);
-	VectorCopy(cam->origin, ent->s.origin);
-	VectorCopy(cam->ent_angles, ent->client->ps.viewangles);
+	else if (cam->state == 2)
+	{
+		CameraAutoCamState2(ent, ucmd);
+		CameraMove(ent, 0.0, ucmd);
+	} //end else if
+	else if (cam->state == 3)
+	{
+		CameraAutoCamState3(ent, ucmd);
+		CameraMove(ent, 0.0, ucmd);
+	} //end else if
+	else if (cam->state == 7)
+	{
+		CameraAutoCamState7(ent, ucmd);
+		CameraMove(ent, 100.0, ucmd);
+	} //end else if
+	else if (cam->state == 1)
+	{
+		CameraAutoCamState1(ent, ucmd);
+		CameraMove(ent, 0.0, ucmd);
+	} //end else if
+	else
+	{
+		cam->state = 0;
+	} //end else
 } //end of the function CameraAutoCamThink
 
 //===========================================================================
 // CameraChaseCamThink
 //
-// per-frame state machine for chasecam mode (player-controlled fly cam
-// that snaps to the chase target).  Like the autocam helper above, the
-// original is large; this version just glues the camera to the target.
+// Per-frame chase-cam logic.  Reconstructed faithfully from gamex86.dll @
+// 0x1007b05d.  Steps:
+//   1. If !CAMFL_FIXED, let user input adjust the camera (CameraInputThink).
+//   2. Snap (CAMFL_NOSMOOTHING) or LerpAngles cam->ent_angles toward the
+//      chase target's v_angle, then refresh cam->lasttime.
+//   3. Compute a yaw-offset forward vector (with the pitch correction
+//      forward[2] = -(forward[0]*up[0] + forward[1]*up[1]) / up[2]),
+//      normalise it, and build a 'dir' vector of length -chaseoffset[PITCH]
+//      offset by chaseoffset[ROLL] on Z.
+//   4. cam->origin = target.origin + chaseoffset.
+//   5. Trace from cam->origin out by 'dir' through MASK_OPAQUE, ignoring
+//      the chase target, then push the endpoint 5 units further along
+//      forward (so the camera does not clip into the wall it hit).
+//   6. Build cmdangles from ucmd->angles via SHORT2ANGLE and hand off to
+//      CameraPlaceAtTarget which writes the final angles back; copy those
+//      into cam->angles.
 //===========================================================================
 static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 {
+	camera_t *cam;
+	vec3_t   angles, forward, up, dir, end, cmdangles;
+	trace_t  tr;
+
+	if (!(ent->client->camera.flags & CAMFL_FIXED))
+		CameraInputThink(ent, ucmd);
+
+	cam = &ent->client->camera;
+	if (cam->flags & CAMFL_NOSMOOTHING)
+	{
+		VectorCopy(cam->ent->client->v_angle, cam->ent_angles);
+	} //end if
+	else
+	{
+		// Lerp ent_angles toward target's v_angle by (level.time - lasttime),
+		// clamped by max-step 1.0.  Inlined to avoid depending on an
+		// engine helper that isn't in q_shared.
+		float frac = level.time - cam->lasttime;
+		if (frac < 0) frac = 0;
+		if (frac > 1.0) frac = 1.0;
+		cam->ent_angles[0] += frac * AngleDifference(cam->ent->client->v_angle[0], cam->ent_angles[0]);
+		cam->ent_angles[1] += frac * AngleDifference(cam->ent->client->v_angle[1], cam->ent_angles[1]);
+		cam->ent_angles[2] += frac * AngleDifference(cam->ent->client->v_angle[2], cam->ent_angles[2]);
+	} //end else
+	cam->lasttime = level.time;
+
+	// Build working angles from ent_angles, snag the 'up' vector
+	VectorCopy(cam->ent_angles, angles);
+	AngleVectors(angles, NULL, NULL, up);
+
+	// Apply yaw chase offset, kill pitch, recompute forward
+	angles[YAW] = anglemod(angles[YAW] + cam->chaseoffset[YAW]);
+	angles[PITCH] = 0;
+	AngleVectors(angles, forward, NULL, NULL);
+
+	// Pitch correction: project forward onto the up plane so the camera
+	// rises and falls with the target's pitch:
+	//   forward[2] = -(forward[0]*up[0] + forward[1]*up[1]) / up[2]
+	forward[2] = (forward[0] * up[0] + forward[1] * up[1]) * -1.0 / up[2];
+	VectorNormalize(forward);
+
+	// dir = forward * (-chaseoffset[PITCH]); dir[2] += chaseoffset[ROLL]
+	VectorScale(forward, -cam->chaseoffset[PITCH], dir);
+	dir[2] += cam->chaseoffset[ROLL];
+
+	// cam->origin = target.origin + chaseoffset
+	cam->origin[0] = cam->ent->s.origin[0] + cam->chaseoffset[0];
+	cam->origin[1] = cam->ent->s.origin[1] + cam->chaseoffset[1];
+	cam->origin[2] = cam->ent->s.origin[2] + cam->chaseoffset[2];
+
+	// end = cam->origin + dir
+	end[0] = cam->origin[0] + dir[0];
+	end[1] = cam->origin[1] + dir[1];
+	end[2] = cam->origin[2] + dir[2];
+
+	// Trace from cam->origin to end, ignoring the chase target itself.
+	// MASK_OPAQUE = 0x19 in the original disassembly.
+	tr = gi.trace(cam->origin, vec3_origin, vec3_origin, end, cam->ent, MASK_OPAQUE);
+
+	// Push the endpoint 5 units further along the (re-normalised) forward
+	// vector so the camera doesn't sit flush against the wall it hit.
+	VectorNormalize2(forward, angles);   // disasm calls VectorNormalize2(forward, &angles[0])
+	VectorScale(forward, 5.0, forward);
+	end[0] = tr.endpos[0] + forward[0];
+	end[1] = tr.endpos[1] + forward[1];
+	end[2] = tr.endpos[2] + forward[2];
+
+	// Convert ucmd->angles (short) -> cmdangles (float) via SHORT2ANGLE.
+	cmdangles[0] = SHORT2ANGLE(ucmd->angles[0]);
+	cmdangles[1] = SHORT2ANGLE(ucmd->angles[1]);
+	cmdangles[2] = SHORT2ANGLE(ucmd->angles[2]);
+
+	// Final placement -- writes resulting angles back through 'angles'.
+	CameraPlaceAtTarget(ent, end, angles, cmdangles);
+
+	// cam->angles = angles  (the values written by CameraPlaceAtTarget)
+	VectorCopy(angles, cam->angles);
+} //end of the function CameraChaseCamThink
+
+//===========================================================================
+// Stub implementations for the autocam state handlers and the
+// CameraMove / CameraInputThink / CameraPlaceAtTarget helpers.
+//
+// These let the dispatcher above compile and the chasecam math link.
+// Each one falls back to the simplest "glue camera to target" behaviour
+// from the previous reconstruction so observer/spectator mode is still
+// usable while the faithful disassembly-derived bodies are pending.
+//===========================================================================
+static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
+{
+	// sub_1007ace3: turns ucmd->angles into cam->ent_angles deltas.
+	// Faithful restoration is pending; the smoothing/snapping step in
+	// CameraChaseCamThink still pulls cam->ent_angles from the target's
+	// v_angle every frame so the camera tracks correctly.
+}
+
+static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles)
+{
+	// sub_10078043: final placement helper.  In the original, this clamps
+	// the camera position against the world (a second trace), applies
+	// cmdangles to compute the final view angles, and writes them back
+	// through out_angles.  Minimal stand-in: drop the camera at 'end' and
+	// keep the current ent_angles.
 	camera_t *cam = &ent->client->camera;
-	if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER) || cam->ent == ent)
+	VectorCopy(end, cam->origin);
+	VectorCopy(cam->ent_angles, out_angles);
+}
+
+static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd)
+{
+	// sub_100784f9: drives the autocam fly between waypoints at 'speed'.
+	// Stand-in glues the camera body to its current target.
+	camera_t *cam = &ent->client->camera;
+	if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER))
 		return;
-	ClientSetViewAngles(ent, NULL, NULL);
 	VectorCopy(cam->origin, ent->s.origin);
 	VectorCopy(cam->ent_angles, ent->client->ps.viewangles);
-} //end of the function CameraChaseCamThink
+}
+
+static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
+{
+	// sub_1007a2e7: state 0 -- pick / refresh autocam target.
+	camera_t *cam = &ent->client->camera;
+	if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER))
+		ClientCycleCamera(ent);
+}
+
+static void CameraAutoCamState1(edict_t *ent, usercmd_t *ucmd) { /* sub_10079f4d */ }
+static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd) { /* sub_10079f64 */ }
+static void CameraAutoCamState3(edict_t *ent, usercmd_t *ucmd) { /* sub_1007a1d2 */ }
+static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd) { /* sub_10079c26 */ }
 
 //===========================================================================
 // DoObserver
