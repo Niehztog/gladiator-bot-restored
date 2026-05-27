@@ -58,6 +58,7 @@ float AngleDifference(float ang1, float ang2)
 //===========================================================================
 void ClientToggleObserver(edict_t *ent);
 static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles);
+static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep);
 
 //===========================================================================
 // ClientPlaceCamera                                          sub_1007b56a
@@ -527,6 +528,112 @@ static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 	// cam->angles = angles  (the values written by CameraPlaceAtTarget)
 	VectorCopy(angles, cam->angles);
 } //end of the function CameraChaseCamThink
+
+//===========================================================================
+// CameraFixedCamThink                                        sub_1007b363
+//
+// Dead code in the shipping DLL -- the byte pattern of its address
+// (63 b3 07 10) appears nowhere else in gamex86.dll, so this function is
+// never reached.  Reconstructed here line-by-line from the disassembly
+// for archival completeness; kept static so the link is silent if it
+// stays unreferenced.  The shape is a "fixed chase camera" variant: it
+// snaps/lerps the cam's view to the target's v_angle, then pushes the
+// camera forward 15 units along the horizontal view vector before
+// finalising via CameraPlaceAtTarget.
+//===========================================================================
+static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
+{
+	camera_t *cam;
+	vec3_t forward;
+	vec3_t cmdangles;
+
+	cam = &ent->client->camera;
+	if (cam->flags & CAMFL_NOSMOOTHING)
+	{
+		cam->ent_angles[0] = cam->ent->client->v_angle[0];
+		cam->ent_angles[1] = cam->ent->client->v_angle[1];
+		cam->ent_angles[2] = cam->ent->client->v_angle[2];
+	} //end if
+	else
+	{
+		SubLerpAngle(cam->ent_angles, cam->ent->client->v_angle,
+		             level.time - cam->lasttime, 1.0f);
+	} //end else
+	cam->lasttime = level.time;
+
+	cam->origin[0] = cam->chaseoffset[0] + cam->ent->s.origin[0];
+	cam->origin[1] = cam->chaseoffset[1] + cam->ent->s.origin[1];
+	cam->origin[2] = cam->chaseoffset[2] + cam->ent->s.origin[2];
+
+	AngleVectors(cam->ent_angles, forward, NULL, NULL);
+	forward[2] = 0;
+	VectorNormalize(forward);   // length discarded
+	forward[0] *= 15.0f;
+	forward[1] *= 15.0f;
+	// forward[2] stays 0 (multiplied by 0 in disasm via fld [ebp-8])
+
+	cam->origin[0] += forward[0];
+	cam->origin[1] += forward[1];
+	cam->origin[2] += forward[2];
+
+	// pre-copy cam->ent_angles into cam->angles (this is overwritten again
+	// after CameraPlaceAtTarget but the original does both writes verbatim)
+	cam->angles[0] = cam->ent_angles[0];
+	cam->angles[1] = cam->ent_angles[1];
+	cam->angles[2] = cam->ent_angles[2];
+
+	cmdangles[0] = SHORT2ANGLE(ucmd->angles[0]);
+	cmdangles[1] = SHORT2ANGLE(ucmd->angles[1]);
+	cmdangles[2] = SHORT2ANGLE(ucmd->angles[2]);
+
+	CameraPlaceAtTarget(ent, cam->origin, cam->ent_angles, cmdangles);
+
+	cam->angles[0] = cam->ent_angles[0];
+	cam->angles[1] = cam->ent_angles[1];
+	cam->angles[2] = cam->ent_angles[2];
+} //end of the function CameraFixedCamThink
+
+//===========================================================================
+// ClientSetViewAngles                                        (no disasm origin)
+//
+// This helper does NOT correspond to any function in the shipping
+// gamex86.dll -- a byte search for any plausible signature turns up
+// nothing, and no caller in the reconstructed code references it.
+// Retained here for archival completeness because earlier development
+// drafts called it from the chase/observer paths; the body is a plain
+// "copy target's v_angle into the camera with optional smoothing"
+// utility that mirrors what the inline code in CameraChaseCamThink and
+// CameraFixedCamThink do.  Kept non-static in case external code in a
+// later mod build referred to it.
+//===========================================================================
+void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
+{
+	camera_t *cam;
+
+	cam = &ent->client->camera;
+	if (cam->flags & CAMFL_NOSMOOTHING)
+	{
+		VectorCopy(cam->ent->client->v_angle, cam->ent_angles);
+	} //end if
+	else
+	{
+		float frac = 1.0 - cam->lasttime;
+		if (frac < 0) frac = 0;
+		if (frac > 1) frac = 1;
+		cam->ent_angles[0] = cam->ent_angles[0] + frac * AngleDifference(cam->ent->client->v_angle[0], cam->ent_angles[0]);
+		cam->ent_angles[1] = cam->ent_angles[1] + frac * AngleDifference(cam->ent->client->v_angle[1], cam->ent_angles[1]);
+		cam->ent_angles[2] = cam->ent_angles[2] + frac * AngleDifference(cam->ent->client->v_angle[2], cam->ent_angles[2]);
+	} //end else
+	cam->lasttime = 1.0;
+	cam->origin[0] = cam->chaseoffset[0] + cam->ent->s.origin[0];
+	cam->origin[1] = cam->chaseoffset[1] + cam->ent->s.origin[1];
+	cam->origin[2] = cam->chaseoffset[2] + cam->ent->s.origin[2];
+
+	if (ang)
+		VectorCopy(cam->ent_angles, ang);
+	if (realang)
+		VectorCopy(cam->ent_angles, realang);
+} //end of the function ClientSetViewAngles
 
 //===========================================================================
 // Faithful disassembly-derived reconstruction of the 5 autocam state
