@@ -133,6 +133,8 @@ void SP_misc_ctf_small_banner (edict_t *ent);
 
 extern char *ctf_statusbar;
 
+void stuffcmd(edict_t *ent, char *s);
+
 void UpdateChaseCam(edict_t *ent);
 void ChaseNext(edict_t *ent);
 void ChasePrev(edict_t *ent);
