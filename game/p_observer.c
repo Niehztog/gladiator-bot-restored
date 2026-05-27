@@ -350,10 +350,9 @@ void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
 //===========================================================================
 // Autocam state handlers and CameraMove / CameraInputThink / CameraPlaceAtTarget
 //
-// These helpers live in the original DLL at the addresses noted below but
-// are outside the address range covered by the first-pass reconstruction.
-// Faithful restoration is a follow-up task; for now they are stub forward
-// declarations so the dispatcher compiles and the chasecam math links.
+// These helpers live in the original DLL at the addresses noted below.
+// They are now fully reconstructed below; these are the dispatch-order
+// forward declarations.
 //===========================================================================
 static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a2e7 */
 static void CameraAutoCamState1(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f4d */
@@ -529,13 +528,12 @@ static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 // The nested helper functions (sub_10077e29, sub_10077eba, sub_10077f15,
 // sub_10077f7d, sub_1007845f, sub_100788ff, sub_1007897a, sub_10078125,
 // sub_100782ad, sub_10078a04, sub_10078bcc, sub_10079a92, sub_10079acf,
-// sub_10085904) are still pending faithful reconstruction.  They live at
-// the bottom of this file as small forward-stubs that approximate their
-// effect; behaviour comparable to the original DLL therefore requires
-// restoring those next.
+// sub_10078c53 SubScoreCameraPos, sub_10078f4a SubCameraFindFlybyPos,
+// sub_10085904) are all reconstructed line-by-line from the disassembly
+// further down in this file.
 //===========================================================================
 
-// ---- Forward declarations for the nested helper stubs (see end of file) ----
+// ---- Forward declarations for the nested helpers (defined at file bottom) --
 static void  SubApplyCameraOrigin   (edict_t *ent, vec3_t origin);                     /* sub_10077f15 */
 static void  SubApplyCameraAngles   (edict_t *ent, vec3_t out_angles, vec3_t cmd);     /* sub_10077f7d */
 static void  SubLerpAngle           (float *out, vec3_t target, float frac, float maxstep); /* sub_10077e29 */
@@ -1000,126 +998,132 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 //===========================================================================
 // sub_1007a2e7 -- CameraAutoCamState0
 //
-// Target selection pass.  Walks the client list, picks the highest-health
-// candidate, otherwise weights a random pick by 'team score' or just picks
-// randomly.  Then traces from the chosen target backward (along a random
-// pitch and yaw) to find a free observer spot.
+// Target-selection pass: walks the client list and picks a new chase target
+// using one of three random strategies (highest health / highest score /
+// uniform-random).  Then either commits to the new target via
+// SubSetAutocamTarget, or -- if no different target was found -- refines
+// cam->viewtarget and (when search_time has elapsed) backtracks cam->dest
+// along the viewtarget->dest direction by a random distance.
+//
+// Reconstructed line-by-line from gamex86.dll @ 0x1007a2e7 (670 disasm
+// lines).  The two trace-based "find a new dest2" blocks immediately after
+// the angle-vectors call are dead in the original binary (their sqrt<=60
+// guard is always satisfied because the operand is anglemod-bounded to
+// [0,360)) -- preserved here as faithful no-ops via the same guard.
 //===========================================================================
 static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
-	edict_t *candidate;
-	edict_t *best;
-	float best_score;
-	float rnd;
-	float weight;
-	vec3_t fwd;
-	vec3_t dest_try;
-	vec3_t diff;
-	vec3_t cmdangles;        /* unused locally, kept for shape parity */
-	trace_t tr;
-	float angle_pitch;
-	float angle_yaw;
-	float dist;
-	float best_dist;
+	edict_t  *chosen;
+	edict_t  *it;
+	float     best;
+	float     rnd;
+	float     angle_pitch;
+	float     yaw_random;
+	float     yaw_anglemod;
+	float     yaw_to_target;
+	vec3_t    angles;       // [-0x70..-0x68]: angles, later overwritten with fwd*2000
+	vec3_t    delta;        // [-0x64..-0x5c]: target.origin - cam->dest, later angles via vectoangles
+	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
+	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
+	vec3_t    new_dest;
+	trace_t   tr;
 
-	(void)cmdangles;
+	// ent->client->camera
+	chosen = ent;
 
-	// best initially := lastent (slot 0x38) if still alive.
-	best = ent;
+	// chosen := cam->lastent if alive
 	if (cam->lastent && cam->lastent->deadflag == 0)
-		best = cam->lastent;
+		chosen = cam->lastent;
 
-	best_score = -1.0f;
-	rnd = (float)(rand() & 0x7FFF) / 32767.0f * 10.0f;     // 0x10092164 = 10
+	best = -1.0f;
+	rnd  = (float)(rand() & 0x7FFF) / 32767.0f * 5.0f;   // 0x10092164 = 5.0
 
-	// If goalent (slot 0x3c) is set, just adopt it (cheap path).
+	// cam->goalent shortcut
 	if (cam->goalent)
 	{
 		if (cam->goalent->deadflag == 0)
-			best = cam->goalent;
+			chosen = cam->goalent;
 		else
-			best = ent;
+			chosen = ent;
 		goto install_target;
 	}
 
-	// rnd < 1.0 path -> "pick best-health client"
-	if (rnd < 1.0f)
+	if (rnd < 1.0f)                                       // 0x10092178 = 1.0
 	{
-		candidate = SubNextClient(NULL);
-		while (candidate)
+		// Pick best-health client.
+		for (it = SubNextClient(NULL); it != NULL; it = SubNextClient(it))
 		{
-			if (candidate != cam->lastent
-			    && candidate->deadflag == 0)
+			if (it != cam->lastent && it->deadflag == 0)
 			{
-				float h = (float)candidate->health;
-				if (best_score < h)
+				float h = (float)it->health;
+				if (best < h)
 				{
-					best = candidate;
-					best_score = h;
+					chosen = it;
+					best   = h;
 				}
 			}
-			candidate = SubNextClient(candidate);
 		}
 		goto install_target;
 	}
 
-	// 1.0 <= rnd < 2.0 path -> "pick highest team-score (client+0xda8)"
-	if (rnd < 2.0f)
+	if (rnd < 2.0f)                                       // 0x1009216c = 2.0
 	{
-		candidate = SubNextClient(NULL);
-		while (candidate)
+		// Pick best-score client (negative score clamped to zero).
+		for (it = SubNextClient(NULL); it != NULL; it = SubNextClient(it))
 		{
-			if (candidate != cam->lastent
-			    && candidate->deadflag == 0)
+			if (it != cam->lastent && it->deadflag == 0)
 			{
-				float v = (float)(*(int *)((char *)candidate->client + 0xda8));
-				if (v < 0.0f) v = 0.0f;
-				if (best_score < v)
+				float s = (float)it->client->resp.score;  // client + 0xda8
+				if (s < 0.0f) s = 0.0f;
+				if (best < s)
 				{
-					best = candidate;
-					best_score = v;
+					chosen = it;
+					best   = s;
 				}
 			}
-			candidate = SubNextClient(candidate);
 		}
 		goto install_target;
 	}
 
-	// Else -> weighted random walk over candidates.
-	best_score = 0.0f;
-	candidate = SubNextClient(NULL);
-	while (candidate)
+	// Uniform random pick: count valid candidates, then pick the n-th.
+	best = 0.0f;
+	for (it = SubNextClient(NULL); it != NULL; it = SubNextClient(it))
 	{
-		if (candidate != cam->lastent && candidate->deadflag == 0)
-			best_score += 1.0f;
-		candidate = SubNextClient(candidate);
+		if (it != cam->lastent && it->deadflag == 0)
+			best += 1.0f;                                 // 0x10092178 = 1.0
 	}
-	if (best_score == 0.0f)
+	if (best <= 0.0f)
 		goto install_target;
 
-	weight = (float)(rand() & 0x7FFF) / 32767.0f * best_score;
-	candidate = NULL;
-	do {
-		candidate = SubNextClient(candidate);
-		if (candidate == cam->lastent || candidate->deadflag != 0)
-			continue;
-		weight -= 1.0f;
-	} while (candidate != NULL && weight > 0.0f);
-	if (candidate)
-		best = candidate;
+	best = (float)(rand() & 0x7FFF) / 32767.0f * best;
+
+	it = NULL;
+	for (;;)
+	{
+		it = SubNextClient(it);
+		if (it == cam->lastent)         continue;
+		if (it->deadflag != 0)          continue;
+		best -= 1.0f;                                     // 0x10092178 = 1.0
+		if (best > 0.0f)                continue;
+		break;
+	}
+	if (it != NULL)
+		chosen = it;
 
 install_target:
-	if (best == ent)
+	if (chosen != ent)
 	{
-		// No good candidate: extend cooldown timers, keep current target.
-		cam->delay       = level.time + 10.0f;   // 0x10092168 = 10
-		cam->search_time = level.time + 60.0f;   // 0x10092230 = 60
+		// Found a (different) target: commit and bail.
+		SubSetAutocamTarget(ent, chosen, ucmd);
+		cam->delay       = level.time + 10.0f;            // 0x10092168 = 10
+		cam->search_time = level.time + 60.0f;            // 0x10092230 = 60
 		return;
 	}
 
-	SubSetAutocamTarget(ent, best, ucmd);
-
+	// No different target: tighten viewtarget by tracing from cam->dest
+	// toward cam->viewtarget through walls/glass; the trace endpoint
+	// becomes the new viewtarget.
 	cam->ent = ent;
 	tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
 	              cam->viewtarget, ent, OBSERVER_TRACE_MASK);
@@ -1127,132 +1131,161 @@ install_target:
 	cam->viewtarget[1] = tr.endpos[1];
 	cam->viewtarget[2] = tr.endpos[2];
 
-	// Compute search pitch in [-20, 20] (40 wide), yaw in [0, 360).
+	// Random pitch in [-20,+20] and random yaw in [0,360).
 	angle_pitch = (float)(rand() & 0x7FFF) / 32767.0f * 40.0f - 20.0f;
-	angle_yaw   = (float)(rand() & 0x7FFF) / 32767.0f * 360.0f;
-	cam->dest2[2] = 0.0f;            /* roll */
-	cam->dest2[1] = angle_yaw;       /* yaw  initial */
-	{
-		vec3_t ang;
-		ang[PITCH] = angle_pitch;
-		ang[YAW]   = angle_yaw;
-		ang[ROLL]  = 0.0f;
-		AngleVectors(ang, fwd, NULL, NULL);
-	}
-	VectorScale(fwd, 2000.0f, fwd);              /* 0x44fa0000 = 2000 */
+	yaw_random  = (float)(rand() & 0x7FFF) / 32767.0f * 360.0f;
+	angles[PITCH] = angle_pitch;
+	angles[YAW]   = yaw_random;
+	angles[ROLL]  = 0.0f;
+	yaw_anglemod  = yaw_random;          // saved into [-0x74] before AngleVectors
 
-	// dest2 - cam->dest distance
+	// If cam->dest already equals ent->s.origin, yaw_to_target stays 0;
+	// otherwise compute yaw from cam->dest toward ent.
+	if (SubVectorCompare(&ent->s.origin[0], cam->dest) == 0)
+	{
+		vec3_t out_ang;
+		delta[0] = ent->s.origin[0] - cam->dest[0];
+		delta[1] = ent->s.origin[1] - cam->dest[1];
+		delta[2] = ent->s.origin[2] - cam->dest[2];
+		vectoangles(delta, out_ang);
+		delta[0] = out_ang[0];           // overwrite delta with the angles result
+		delta[1] = out_ang[1];
+		delta[2] = out_ang[2];
+		yaw_to_target = delta[1];
+	}
+	else
+	{
+		yaw_to_target = 0.0f;
+	}
+
+	yaw_anglemod = anglemod(yaw_anglemod);
+
+	// Convert the random pitch/yaw to a forward vector scaled by 2000.
+	AngleVectors(angles, fwd, NULL, NULL);
+	VectorScale(fwd, 2000.0f, angles);   // [-0x70..-0x68] reused as fwd*2000
+
+	// best := |cam->dest2 - cam->dest|  (initial "best distance to beat").
 	diff[0] = cam->dest2[0] - cam->dest[0];
 	diff[1] = cam->dest2[1] - cam->dest[1];
 	diff[2] = cam->dest2[2] - cam->dest[2];
-	best_dist = VectorLength(diff);
+	best = VectorLength(diff);
 
+	// --- First trace candidate (dead code in the original) -----------------
+	// Guard: sqrt(anglemod(yaw_anglemod - yaw_to_target)) > 60.0?  The
+	// operand is in [0,360) so its sqrt is in [0,~19) and the comparison
+	// always fails -- the block below never executes.  Kept for parity.
+	if ((float)sqrt(anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
 	{
-		float a = anglemod(angle_yaw - 0.0f /*best.yaw*/);
-		(void)a;
+		new_dest[0] = delta[0] + cam->dest[0];
+		new_dest[1] = delta[1] + cam->dest[1];
+		new_dest[2] = delta[2] + cam->dest[2];
+		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
+		              new_dest, ent, OBSERVER_TRACE_MASK);
+		delta[0] = tr.endpos[0];
+		delta[1] = tr.endpos[1];
+		delta[2] = tr.endpos[2];
+		diff[0] = delta[0] - cam->dest[0];
+		diff[1] = delta[1] - cam->dest[1];
+		diff[2] = delta[2] - cam->dest[2];
+		{
+			float len = VectorLength(diff);
+			if (best < len)
+			{
+				cam->dest2[0] = delta[0];
+				cam->dest2[1] = delta[1];
+				cam->dest2[2] = delta[2];
+				best = len;
+			}
+		}
 	}
 
-	// First trace candidate.
-	dest_try[0] = ent->s.origin[0] + fwd[0];
-	dest_try[1] = ent->s.origin[1] + fwd[1];
-	dest_try[2] = ent->s.origin[2] + fwd[2];
-
-	tr = gi.trace(cam->dest, vec3_origin, vec3_origin, dest_try, ent, OBSERVER_TRACE_MASK);
-
-	diff[0] = tr.endpos[0] - cam->dest[0];
-	diff[1] = tr.endpos[1] - cam->dest[1];
-	diff[2] = tr.endpos[2] - cam->dest[2];
-	dist = VectorLength(diff);
-	if (dist > best_dist)
+	// --- Second trace candidate (yaw + 180) --------------------------------
+	yaw_anglemod = anglemod(yaw_anglemod + 180.0f);       // 0x100922f0 = 180
+	if ((float)sqrt(anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
 	{
-		cam->dest2[0] = tr.endpos[0];
-		cam->dest2[1] = tr.endpos[1];
-		cam->dest2[2] = tr.endpos[2];
-		best_dist = dist;
+		new_dest[0] = cam->dest[0] - angles[0];           // -fwd*2000
+		new_dest[1] = cam->dest[1] - angles[1];
+		new_dest[2] = cam->dest[2] - angles[2];
+		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
+		              new_dest, ent, OBSERVER_TRACE_MASK);
+		delta[0] = tr.endpos[0];
+		delta[1] = tr.endpos[1];
+		delta[2] = tr.endpos[2];
+		diff[0] = delta[0] - cam->dest[0];
+		diff[1] = delta[1] - cam->dest[1];
+		diff[2] = delta[2] - cam->dest[2];
+		{
+			float len = VectorLength(diff);
+			if (best < len)
+			{
+				cam->dest2[0] = delta[0];
+				cam->dest2[1] = delta[1];
+				cam->dest2[2] = delta[2];
+				best = len;
+			}
+		}
 	}
 
-	// Second candidate: yaw + 180 (back) of the same pitch/randomyaw.
-	angle_yaw = anglemod(angle_yaw + 180.0f);
-	{
-		vec3_t ang;
-		ang[PITCH] = angle_pitch;
-		ang[YAW]   = angle_yaw;
-		ang[ROLL]  = 0.0f;
-		AngleVectors(ang, fwd, NULL, NULL);
-	}
-	tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
-	              ent->s.origin, ent, OBSERVER_TRACE_MASK);
-	diff[0] = tr.endpos[0] - cam->dest[0];
-	diff[1] = tr.endpos[1] - cam->dest[1];
-	diff[2] = tr.endpos[2] - cam->dest[2];
-	dist = VectorLength(diff);
-	if (dist > best_dist)
-	{
-		cam->dest2[0] = tr.endpos[0];
-		cam->dest2[1] = tr.endpos[1];
-		cam->dest2[2] = tr.endpos[2];
-		best_dist = dist;
-	}
-
-	// If we have a future pause window, advance dest by the random offset
-	// and reset the viewtarget to track cam->dest2 from this side.
+	// pause_time elapsed: bump it [3, 5] seconds and resync viewtarget.
 	if (cam->pause_time < level.time)
 	{
-		float bump = level.time + 3.0f                   // 0x10092140 = 3
-		           + 2.0f * (float)(rand() & 0x7FFF) / 32767.0f;
-		cam->pause_time = bump;
+		cam->pause_time = level.time + 3.0f               // 0x10092140 = 3
+		                + 2.0f * ((float)(rand() & 0x7FFF) / 32767.0f);
 		cam->viewtarget[0] = cam->dest2[0];
 		cam->viewtarget[1] = cam->dest2[1];
 		cam->viewtarget[2] = cam->dest2[2];
 	}
 
+	// search_time elapsed: backtrack along viewtarget->dest by a random
+	// distance, and trace from ent toward that new point.
 	if (cam->search_time < level.time)
 	{
-		// Backtrack: choose the side that is more open (cam->dest2 -> diff).
+		float scale;
+
 		diff[0] = cam->dest[0] - cam->viewtarget[0];
 		diff[1] = cam->dest[1] - cam->viewtarget[1];
 		diff[2] = cam->dest[2] - cam->viewtarget[2];
 		VectorNormalize(diff);
-		{
-			float scale = (float)(rand() & 0x7FFF) / 32767.0f * 50.0f + 10.0f;
-			VectorScale(diff, scale, diff);
-		}
-		dest_try[0] = cam->viewtarget[0] + diff[0];
-		dest_try[1] = cam->viewtarget[1] + diff[1];
-		dest_try[2] = cam->viewtarget[2] + diff[2];
 
-		tr = gi.trace(dest_try, vec3_origin, vec3_origin,
-		              ent->s.origin, ent, OBSERVER_TRACE_MASK);
+		scale = (float)(rand() & 0x7FFF) / 32767.0f * 50.0f + 10.0f;   // [10,60]
+		VectorScale(diff, scale, diff);
 
-		if (tr.fraction >= 1.0f)
+		diff[0] += cam->viewtarget[0];
+		diff[1] += cam->viewtarget[1];
+		diff[2] += cam->viewtarget[2];
+
+		tr = gi.trace(ent->s.origin, vec3_origin, vec3_origin,
+		              diff, ent, OBSERVER_TRACE_MASK);
+
+		if (tr.fraction >= 1.0f)                          // 0x10092178 = 1.0
 		{
-			cam->dest[0] = dest_try[0];
-			cam->dest[1] = dest_try[1];
-			cam->dest[2] = dest_try[2];
+			// Trace got all the way: commit the backtracked dest.
+			cam->dest[0]  = diff[0];
+			cam->dest[1]  = diff[1];
+			cam->dest[2]  = diff[2];
 			cam->dest2[0] = cam->viewtarget[0];
 			cam->dest2[1] = cam->viewtarget[1];
 			cam->dest2[2] = cam->viewtarget[2];
-			cam->search_time = level.time
-			                 + 8.0f                                  // 0x1009215c
-			                 + (float)(rand() & 0x7FFF) / 32767.0f * 10.0f;
+			cam->search_time = level.time + 8.0f          // 0x1009215c = 8
+			                 + ((float)(rand() & 0x7FFF) / 32767.0f) * 5.0f;
 		}
 		else
 		{
+			// Trace blocked: pin dest2 to dest and retry soon.
 			cam->dest2[0] = cam->dest[0];
 			cam->dest2[1] = cam->dest[1];
 			cam->dest2[2] = cam->dest[2];
-			cam->search_time = level.time
-			                 + 1.0f                                  // 0x10092178
-			                 + (float)(rand() & 0x7FFF) / 32767.0f;
+			cam->search_time = level.time + 1.0f          // 0x10092178 = 1
+			                 + ((float)(rand() & 0x7FFF) / 32767.0f);
 		}
 	}
 } //end of the function CameraAutoCamState0
 
 //===========================================================================
 // Nested helper functions, reconstructed line-by-line from the gamex86.dll
-// disassembly.  The fourth-tier helper sub_10078f4a (CameraFindFlybyPos,
-// ~989 lines) is still forward-declared as a stub at the bottom of this
-// file --- to be reconstructed in the next pass.
+// disassembly.  All helpers (including the fourth-tier sub_10078c53
+// SubScoreCameraPos and sub_10078f4a SubCameraFindFlybyPos) are fully
+// restored below.
 //===========================================================================
 
 // --- sub_10077d50 -----------------------------------------------------------
@@ -1680,8 +1713,8 @@ static void SubAutocamSetSpot(edict_t *src, vec3_t spot)
 
 // --- sub_10079acf -----------------------------------------------------------
 // SetAutocamTarget: bind the camera to a new target, compute a good vantage
-// point via the (still-stubbed) flyby helper, and either commit to state 2
-// (flyby) or fall back to abort.
+// point via the flyby helper SubCameraFindFlybyPos, and either commit to
+// state 2 (flyby) or fall back to abort.
 //===========================================================================
 static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out_pos); /* sub_10078f4a */
 
