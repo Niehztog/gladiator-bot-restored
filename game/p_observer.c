@@ -8,8 +8,13 @@
 //
 // Reconstructed from the 1999 Win32 gamex86.dll (the only release where this
 // file was compiled in -- the public source release omitted it).  Behaviour
-// matches the disassembly at addresses 0x1007b05d..0x1007c180 in
-// reference/gamex86.dll.
+// matches the disassembly at addresses 0x1007a2e7..0x1007c174 in
+// reference/gamex86.dll.  The client-facing observer surface
+// (ClientPlaceCamera, ClientCycleCamera, ClientSetCamera, DoObserver,
+// ClientToggleObserver / ClientToggleAutoCam / ClientToggleChaseCam /
+// ClientToggleCameraFixed / ClientToggleCameraName, ClientObserverHelp,
+// ClientObserverCmd) is reconstructed line-by-line from x86 disasm of
+// sub_1007b56a..sub_1007c043.
 //
 //===========================================================================
 
@@ -44,13 +49,23 @@ float AngleDifference(float ang1, float ang2)
 } //end of the function AngleDifference
 
 //===========================================================================
-// ClientPlaceCamera
+// Forward declarations (the dispatcher and DoObserver call functions
+// defined further down in this file; their reconstructions live near the
+// bottom, in the original source order).  Kept here so the linker
+// notices the cross-references inside ClientCycleCamera/ClientSetCamera/
+// ClientToggleAutoCam/ClientToggleChaseCam which all call
+// ClientToggleObserver as their first action.
+//===========================================================================
+void ClientToggleObserver(edict_t *ent);
+static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles);
+
+//===========================================================================
+// ClientPlaceCamera                                          sub_1007b56a
 //
-// initial placement of the observer camera.  If the camera is already
-// targeting the observing player, it just refreshes the cached origin
-// and angles.  Otherwise (no target, target gone or target now in
-// observer mode) the camera snaps back to the observer and the engine
-// is asked to drop the spectator at a free position.
+// Snapshot the observer's own viewangles+origin into cam->clientangles/
+// cam->clientorigin while the camera is targeting the observer himself,
+// or hand the camera back to him (calling CameraPlaceAtTarget) when the
+// current target is gone / no longer an observer.
 //===========================================================================
 static void ClientPlaceCamera(edict_t *ent)
 {
@@ -59,31 +74,40 @@ static void ClientPlaceCamera(edict_t *ent)
 	cam = &ent->client->camera;
 	if (cam->ent == ent)
 	{
-		VectorCopy(ent->client->ps.viewangles, cam->clientangles);
-		VectorCopy(ent->s.origin, cam->clientorigin);
+		cam->clientangles[0] = ent->client->ps.viewangles[0];
+		cam->clientangles[1] = ent->client->ps.viewangles[1];
+		cam->clientangles[2] = ent->client->ps.viewangles[2];
+		cam->clientorigin[0] = ent->s.origin[0];
+		cam->clientorigin[1] = ent->s.origin[1];
+		cam->clientorigin[2] = ent->s.origin[2];
 	} //end if
-	else if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER))
+	else if (!cam->ent || !cam->ent->inuse || !(cam->ent->flags & FL_OBSERVER))
 	{
 		cam->ent = ent;
-		// place the observer body at a free position so that it doesn't
-		// stay welded to the corpse of whoever it was just chasing.
-		// (the fourth argument is &client->resp.coop_respawn or similar
-		// state; we use the same engine helper as the original.)
-		SelectSpawnPoint(ent, cam->clientorigin, cam->clientangles);
+		CameraPlaceAtTarget(ent,
+			cam->clientorigin,
+			cam->clientangles,
+			/* sub_10077f7d cmdangles arg -- gclient_t field at +0xdc8;
+			   matches the original byte-for-byte */
+			*(vec3_t *)((char *)ent->client + 0xdc8));
 	} //end else if
+	/* else: current target is a valid observer client; leave camera alone */
 } //end of the function ClientPlaceCamera
 
 //===========================================================================
-// ClientCycleCamera
+// ClientCycleCamera                                          sub_1007b652
 //
-// "cyclecam" command: walk through the clients and target the next
-// in-use, non-observer one.  Refuses to do anything in autocam mode.
+// "cyclecam" command: walk through the clients starting at the slot
+// after the current target and lock onto the first in-use, non-observer
+// one.  Falls back to ClientToggleObserver / ClientPlaceCamera and
+// refuses to do anything while CAMFL_AUTOCAM is set.
 //===========================================================================
 void ClientCycleCamera(edict_t *ent)
 {
-	int i, index;
-	edict_t *target;
 	camera_t *cam;
+	edict_t *cand;
+	int i;
+	int idx;
 
 	if (!(ent->flags & FL_OBSERVER))
 		ClientToggleObserver(ent);
@@ -91,42 +115,48 @@ void ClientCycleCamera(edict_t *ent)
 	cam = &ent->client->camera;
 	if (cam->flags & CAMFL_AUTOCAM)
 	{
-		gi.cprintf(ent, PRINT_HIGH, "setcam not available in autocam mode\n");
+		gi.cprintf(ent, PRINT_HIGH, "cyclecam not available in autocam mode\n");
 		return;
 	} //end if
 
 	ClientPlaceCamera(ent);
 
-	index = (cam->ent - g_edicts) - 1;
-	for (i = 0; i < (int)maxclients->value; i++)
+	idx = (cam->ent - g_edicts) - 1;
+	for (i = 0; i < game.maxclients; i++)
 	{
-		index++;
-		if (index >= (int)maxclients->value) index = 0;
-		target = g_edicts + 1 + index;
-		if (!target->inuse) continue;
-		if ((target->flags & FL_OBSERVER) && target != ent) continue;
-		cam->ent = target;
+		idx++;
+		if (idx >= game.maxclients) idx = 0;
+		cand = g_edicts + 1 + idx;
+		if (!cand->inuse) continue;
+		if ((cand->flags & FL_OBSERVER) && cand != ent) continue;
+		cam->ent = cand;
 		break;
 	} //end for
 
-	if (i == (int)maxclients->value)
+	if (i == game.maxclients)
 		gi.cprintf(ent, PRINT_HIGH, "no valid client found to observe\n");
 
 	if (cam->ent == ent)
-		SelectSpawnPoint(ent, cam->clientorigin, cam->clientangles);
+		CameraPlaceAtTarget(ent,
+			cam->clientorigin,
+			cam->clientangles,
+			*(vec3_t *)((char *)ent->client + 0xdc8));
 } //end of the function ClientCycleCamera
 
 //===========================================================================
-// ClientSetCamera
+// ClientSetCamera                                            sub_1007b7bd
 //
-// "setcam <name>" command: target a named client.
+// "setcam <name>" command: target an in-use client whose pers.netname
+// matches the first command argument.  Behaves like ClientCycleCamera
+// for the prelude (FL_OBSERVER auto-enter, CAMFL_AUTOCAM refusal,
+// ClientPlaceCamera snapshot).
 //===========================================================================
 void ClientSetCamera(edict_t *ent)
 {
+	camera_t *cam;
+	edict_t *cand;
 	int i;
 	char *name;
-	edict_t *target;
-	camera_t *cam;
 
 	if (!(ent->flags & FL_OBSERVER))
 		ClientToggleObserver(ent);
@@ -145,42 +175,49 @@ void ClientSetCamera(edict_t *ent)
 	} //end if
 
 	ClientPlaceCamera(ent);
-
 	name = gi.argv(1);
-	for (i = 0; i < (int)maxclients->value; i++)
+
+	for (i = 0; i < game.maxclients; i++)
 	{
-		target = g_edicts + 1 + i;
-		if (!target->inuse) continue;
-		if (!Q_stricmp(name, target->client->pers.netname))
+		cand = g_edicts + 1 + i;
+		if (!cand->inuse) continue;
+		if (!strcmp(name, cand->client->pers.netname))
 		{
-			cam->ent = target;
+			cam->ent = cand;
 			break;
 		} //end if
 	} //end for
 
-	if (i == (int)maxclients->value)
+	if (i == game.maxclients)
 		gi.cprintf(ent, PRINT_HIGH, "no valid client found with the name %s\n", name);
 
 	if (cam->ent == ent)
-		SelectSpawnPoint(ent, cam->clientorigin, cam->clientangles);
+		CameraPlaceAtTarget(ent,
+			cam->clientorigin,
+			cam->clientangles,
+			*(vec3_t *)((char *)ent->client + 0xdc8));
 } //end of the function ClientSetCamera
 
 //===========================================================================
-// ClientToggleObserver
+// ClientToggleObserver                                       sub_1007bb4c
 //
-// "observer" command: enter or leave observer mode.
+// "observer" command toggle.  Note the original tests "deathmatch ==
+// 0" first (in which case respawn() is called -- single-player drops
+// back into normal play immediately), and only then "observer == 0"
+// (which forbids leaving observer mode in a deathmatch where the cvar
+// was disabled).
 //===========================================================================
 void ClientToggleObserver(edict_t *ent)
 {
 	if (ent->flags & FL_OBSERVER)
 	{
-		// leaving observer mode
-		if (!deathmatch->value)
+		// ---- leaving observer mode ----
+		if (deathmatch->value == 0)
 		{
 			respawn(ent);
 			return;
 		} //end if
-		if (!observer->value)
+		if (observer->value == 0)
 		{
 			gi.cprintf(ent, PRINT_HIGH, "can't leave observer mode\n");
 			return;
@@ -191,23 +228,20 @@ void ClientToggleObserver(edict_t *ent)
 		ent->takedamage = DAMAGE_AIM;
 		ent->svflags &= ~SVF_NOCLIENT;
 		PutClientInServer(ent);
-		// add a teleportation effect
+		// teleport-style spawn-in effect
 		ent->client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 		ent->client->ps.pmove.pm_time = 14;
-		if (ent->client->pers.weapon)
-			ent->client->ps.gunindex = gi.modelindex(ent->client->pers.weapon->view_model);
-		else
-			ent->client->ps.gunindex = 0;
+		ent->client->ps.gunindex = gi.modelindex(ent->client->pers.weapon->view_model);
 		ent->movetype = MOVETYPE_WALK;
-		gi.WriteByte (svc_muzzleflash);
-		gi.WriteShort (ent - g_edicts);
-		gi.WriteByte (MZ_LOGIN);
-		gi.multicast (ent->s.origin, MULTICAST_PVS);
+		gi.WriteByte(svc_muzzleflash);
+		gi.WriteShort(ent - g_edicts);
+		gi.WriteByte(MZ_LOGIN);
+		gi.multicast(ent->s.origin, MULTICAST_PVS);
 		gi.bprintf(PRINT_HIGH, "%s left observer mode\n", ent->client->pers.netname);
 	} //end if
 	else
 	{
-		// entering observer mode
+		// ---- entering observer mode ----
 		ent->classname = "observer";
 		ent->flags |= FL_OBSERVER;
 		ent->solid = SOLID_NOT;
@@ -225,7 +259,10 @@ void ClientToggleObserver(edict_t *ent)
 } //end of the function ClientToggleObserver
 
 //===========================================================================
-// ClientToggleCameraFixed
+// ClientToggleCameraFixed                                    sub_1007bda4
+//
+// "camfixed" command: flip CAMFL_FIXED and tell the player whether the
+// chase-cam offset is now "fixed" or "variable".
 //===========================================================================
 void ClientToggleCameraFixed(edict_t *ent)
 {
@@ -238,7 +275,10 @@ void ClientToggleCameraFixed(edict_t *ent)
 } //end of the function ClientToggleCameraFixed
 
 //===========================================================================
-// ClientToggleCameraName
+// ClientToggleCameraName                                     sub_1007be15
+//
+// "camname" command: flip CAMFL_NAME (whether the tracked player's
+// name is shown on the chase camera).
 //===========================================================================
 static void ClientToggleCameraName(edict_t *ent)
 {
@@ -251,11 +291,19 @@ static void ClientToggleCameraName(edict_t *ent)
 } //end of the function ClientToggleCameraName
 
 //===========================================================================
-// ClientToggleAutoCam
+// ClientToggleAutoCam                                        sub_1007be86
+//
+// "autocam" command toggle.  When enabling, snapshot the observer's
+// current position into cam->dest, fire AngleVectors() through the
+// observer's v_angle to seed cam->dest+0xc..0x14 (a forward vector
+// scaled by 100.0 -- the BE85b constant 0x42c80000 = 100.0f), point
+// the camera at the observer himself and start the autocam state
+// machine on a fresh frame.
 //===========================================================================
 static void ClientToggleAutoCam(edict_t *ent)
 {
 	camera_t *cam;
+	vec3_t forward;
 
 	if (!(ent->flags & FL_OBSERVER))
 		ClientToggleObserver(ent);
@@ -265,12 +313,14 @@ static void ClientToggleAutoCam(edict_t *ent)
 	gi.cprintf(ent, PRINT_HIGH, "autocam ");
 	if (cam->flags & CAMFL_AUTOCAM)
 	{
-		VectorCopy(ent->s.origin, cam->dest);
-		// snap-search the current viewangles to find the first valid target
-		AngleVectors(ent->client->v_angle, NULL, NULL, NULL);
+		cam->dest[0] = ent->s.origin[0];
+		cam->dest[1] = ent->s.origin[1];
+		cam->dest[2] = ent->s.origin[2];
+		AngleVectors(ent->client->v_angle, forward, NULL, NULL);
+		VectorMA(cam->dest, 100.0, forward, cam->viewtarget);
 		cam->ent = ent;
-		cam->pause_time = 1.0;
-		cam->delay = 1.0;
+		cam->pause_time = level.time;
+		cam->delay = level.time;
 		gi.cprintf(ent, PRINT_HIGH, "on\n");
 	} //end if
 	else
@@ -280,7 +330,10 @@ static void ClientToggleAutoCam(edict_t *ent)
 } //end of the function ClientToggleAutoCam
 
 //===========================================================================
-// ClientToggleChaseCam
+// ClientToggleChaseCam                                       sub_1007bfae
+//
+// "chasecam" command: enter observer mode if necessary, then flip
+// CAMFL_CHASECAM.
 //===========================================================================
 static void ClientToggleChaseCam(edict_t *ent)
 {
@@ -295,7 +348,11 @@ static void ClientToggleChaseCam(edict_t *ent)
 } //end of the function ClientToggleChaseCam
 
 //===========================================================================
-// ClientObserverHelp
+// ClientObserverHelp                                         sub_1007c02a
+//
+// "observerhelp" command: dump the observer command summary at
+// PRINT_HIGH.  The original is a single gi.cprintf into one big
+// string at 0x100c04f0; we keep the C-string-concatenation style.
 //===========================================================================
 void ClientObserverHelp(edict_t *ent)
 {
@@ -309,43 +366,6 @@ void ClientObserverHelp(edict_t *ent)
 		"camname         toggle showing name of tracked player\n"
 		"observerhelp    this help message\n");
 } //end of the function ClientObserverHelp
-
-//===========================================================================
-// ClientSetViewAngles
-//
-// helper to copy the current chase target's view angles & origin into
-// the camera so the local player sees what the target sees.  Smoothing
-// is applied unless CAMFL_NOSMOOTHING is set.
-//===========================================================================
-void ClientSetViewAngles(edict_t *ent, vec3_t ang, vec3_t realang)
-{
-	camera_t *cam;
-
-	cam = &ent->client->camera;
-	if (cam->flags & CAMFL_NOSMOOTHING)
-	{
-		VectorCopy(cam->ent->client->v_angle, cam->ent_angles);
-	} //end if
-	else
-	{
-		// time-based interpolation toward the target's view
-		float frac = 1.0 - cam->lasttime;
-		if (frac < 0) frac = 0;
-		if (frac > 1) frac = 1;
-		cam->ent_angles[0] = cam->ent_angles[0] + frac * AngleDifference(cam->ent->client->v_angle[0], cam->ent_angles[0]);
-		cam->ent_angles[1] = cam->ent_angles[1] + frac * AngleDifference(cam->ent->client->v_angle[1], cam->ent_angles[1]);
-		cam->ent_angles[2] = cam->ent_angles[2] + frac * AngleDifference(cam->ent->client->v_angle[2], cam->ent_angles[2]);
-	} //end else
-	cam->lasttime = 1.0;
-	cam->origin[0] = cam->chaseoffset[0] + cam->ent->s.origin[0];
-	cam->origin[1] = cam->chaseoffset[1] + cam->ent->s.origin[1];
-	cam->origin[2] = cam->chaseoffset[2] + cam->ent->s.origin[2];
-
-	if (ang)
-		VectorCopy(cam->ent_angles, ang);
-	if (realang)
-		VectorCopy(cam->ent_angles, realang);
-} //end of the function ClientSetViewAngles
 
 //===========================================================================
 // Autocam state handlers and CameraMove / CameraInputThink / CameraPlaceAtTarget
@@ -2009,14 +2029,19 @@ static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out)
 #undef TRY_CANDIDATE
 
 //===========================================================================
-// DoObserver
+// DoObserver                                                 sub_1007b926
 //
-// called from ClientThink.  Returns 1 if the entity is in observer mode
-// (so the caller skips normal player think), 0 otherwise.
+// Called from ClientThink per frame.  Returns 0 if the entity is not an
+// observer (caller continues normal player think).  When observing, runs
+// the autocam/chasecam jump-button retarget, dispatches to
+// CameraAutoCamThink / CameraChaseCamThink, and either zeros the usercmd
+// for a spectator frame or returns 1 with PM_SPECTATOR set when the
+// camera has been handed back to the observer himself.
 //===========================================================================
 int DoObserver(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
+	edict_t *next;
 
 	if (!(ent->flags & FL_OBSERVER)) return 0;
 	if (!ent->client) return 0;
@@ -2025,61 +2050,52 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 	if (!(cam->flags & CAMFL_AUTOCAM))
 		ClientPlaceCamera(ent);
 
-	// jump button cycles target / camera (with a small debounce so a held
-	// key doesn't tear through the client list in one frame)
-	if (ucmd->upmove > 100)
+	// jump button (upmove > 100) cycles the target / chase camera, with a
+	// 0.7s debounce held in cam->lastcycle so a held key doesn't tear
+	// through the client list in one frame
+	if (ucmd->upmove > 100 && level.time - 0.7 > cam->lastcycle)
 	{
-		if (ent->client->respawn_time != 1.0)
+		cam->lastcycle = level.time;
+		if (cam->flags & CAMFL_AUTOCAM)
 		{
-			ent->client->respawn_time = 1.0;
-			if (cam->flags & CAMFL_AUTOCAM)
-			{
-				edict_t *next = G_Find(cam->ent, FOFS(classname), "player");
-				if (!next || next == ent)
-					next = G_Find(next, FOFS(classname), "player");
-				if (next && next != ent)
-				{
-					// retarget (the original called the AI's "select target"
-					// helper here -- substitute a plain swap)
-					cam->ent = next;
-				} //end if
-			} //end if
-			else if (cam->flags & CAMFL_CHASECAM)
-			{
-				ClientCycleCamera(ent);
-			} //end else if
+			next = SubNextClient(cam->ent);
+			if (!next || next == ent)
+				next = SubNextClient(next);
+			if (next && next != ent)
+				SubSetAutocamTarget(ent, next, ucmd);
 		} //end if
+		else if (cam->flags & CAMFL_CHASECAM)
+		{
+			ClientCycleCamera(ent);
+		} //end else if
 	} //end if
 
 	ent->client->ps.gunindex = 0;
 
-	if (cam->flags & (CAMFL_AUTOCAM | CAMFL_CHASECAM))
+	if ((cam->flags & (CAMFL_AUTOCAM | CAMFL_CHASECAM)) &&
+	    !(cam->ent == ent && (cam->flags & CAMFL_CHASECAM)))
 	{
-		if (cam->ent == ent && (cam->flags & CAMFL_CHASECAM))
-		{
-			// chase target is ourself -- fall through to spectator mode
-		} //end if
-		else
-		{
-			ent->movetype = MOVETYPE_NOCLIP;
-			ent->client->ps.pmove.pm_type = PM_SPECTATOR;
-			ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
-			return 1;
-		} //end else
+		// tracking some other client: drive the camera and silence input
+		ent->client->ps.pmove.pm_type = PM_DEAD;
+		if (cam->flags & CAMFL_AUTOCAM)
+			CameraAutoCamThink(ent, ucmd);
+		else if (cam->flags & CAMFL_CHASECAM)
+			CameraChaseCamThink(ent, ucmd);
+		ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
+		ucmd->forwardmove = 0;
+		ucmd->sidemove = 0;
+		ucmd->upmove = 0;
+		ent->client->ps.pmove.gravity = 0;
+		return 1;
 	} //end if
-
-	ent->client->ps.pmove.pm_type = PM_DEAD;
-	if (cam->flags & CAMFL_AUTOCAM)
-		CameraAutoCamThink(ent, ucmd);
-	else if (cam->flags & CAMFL_CHASECAM)
-		CameraChaseCamThink(ent, ucmd);
-
-	ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
-	ucmd->forwardmove = 0;
-	ucmd->sidemove = 0;
-	ucmd->upmove = 0;
-	ent->client->ps.pmove.gravity = 0;
-	return 1;
+	else
+	{
+		// plain spectator (no autocam/chasecam, or chasecam targeting self)
+		ent->movetype = MOVETYPE_NOCLIP;
+		ent->client->ps.pmove.pm_type = PM_SPECTATOR;
+		ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
+		return 1;
+	} //end else
 } //end of the function DoObserver
 
 //===========================================================================
