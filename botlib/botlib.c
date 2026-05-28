@@ -16094,11 +16094,11 @@ int AAS_FreeRoutingCaches(void)
 }
 
 //----- (10019570) --------------------------------------------------------
-/* AAS_FreeOldRoutingCache — DEAD in Gladiator.  Walks both routing caches
+/* sub_10019570 — DEAD in Gladiator.  Walks both routing caches
  * and FreeMemory's every aas_routingcache_t whose .time field is older
  * than (AAS_Time() - 15.0s).  Restored from objdump@0x10019570 (119
  * lines).  Same idea (and very nearly the same instruction stream) as
- * Q3's AAS_FreeOldRoutingCache in be_aas_route.c.
+ * Q3's sub_10019570 in be_aas_route.c.
  *
  * Layout used:
  *   aas_cluster_t  stride 12, field0 = numareas (loop bound, edx)
@@ -16120,7 +16120,7 @@ int AAS_FreeRoutingCaches(void)
  *
  * The .text re-fetches numclusters/numareas inside the loop tail (the
  * compiler can't prove they don't alias FreeMemory) — preserved here. */
-static void AAS_FreeOldRoutingCache(void)
+static void sub_10019570(void)
 {
   int i, j, numareas_in_cluster;
   aas_routingcache_t *cache, *nextcache, *prev;
@@ -31021,7 +31021,17 @@ void __cdecl BotResetGrapple(float *ms)
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF
 
   qmemcpy(v2, AAS_ReachabilityFromNum((char *)v2, *((_DWORD *)ms + 19)), sizeof(v2));
-  if ( v2[9] != 14 && (((_BYTE)ms[24] & 0x40) != 0 || ms[26] != 0.0) )
+  /* IDA decompiled the moveflags read at +0x60 as `(_BYTE)ms[24] & 0x40`,
+   * but `ms` is `float *` so `ms[24]` is a FLOAT load and `(_BYTE)float`
+   * compiles to a runtime float→byte conversion — not a bit-extract on
+   * the underlying integer flags.  For flag bit 0x40 (= 9e-44f as float
+   * bits) the float→byte conversion truncates to 0, so the test never
+   * fired and `hookoff` was only ever issued via the second condition
+   * (`ms[26] != 0.0`).  Disasm @ 0x10033a9f is `test BYTE PTR
+   * [ebx+0x60],0x40` — a direct integer-flag read.  Match it by going
+   * through the _DWORD lens (same shape used below in this function for
+   * the write of the same field).  Pattern: float_array_int_bitpattern. */
+  if ( v2[9] != 14 && ((*((_DWORD *)ms + 24) & 0x40) != 0 || ms[26] != 0.0) )
   {
     EA_Command(*((_DWORD *)ms + 10), aHookoff, (char *)0);
     v1 = *((_DWORD *)ms + 24);
