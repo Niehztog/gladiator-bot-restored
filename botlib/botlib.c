@@ -8305,7 +8305,7 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   float v11; // edx
   double v12; // st7
   float *v13; // ecx
-  int v16; // esi
+  aas_link_t *v16; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
   int v17; // edi
   /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
    * IDA split the start position into v18/v19/v20 (three separate floats)
