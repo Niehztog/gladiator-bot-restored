@@ -1126,11 +1126,13 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 	float     yaw_random;
 	float     yaw_anglemod;
 	float     yaw_to_target;
-	vec3_t    angles;       // [-0x70..-0x68]: angles, later overwritten with fwd*2000
-	vec3_t    delta;        // [-0x64..-0x5c]: target.origin - cam->dest, later angles via vectoangles
+	vec3_t    angles;       // [-0x70..-0x68]: random angles → fwd*2000 → block-1 scratch
+	                        // (overwritten in block 1 with delta+cam->dest; block 2 reads
+	                        // whichever value it currently holds)
+	vec3_t    delta;        // [-0x64..-0x5c]: pos diff → vectoangles result → trace target
+	                        // → trace endpoint.  Both blocks pass &delta to gi.trace.
 	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
 	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
-	vec3_t    new_dest;
 	trace_t   tr;
 
 	// ent->client->camera
@@ -1281,14 +1283,21 @@ install_target:
 	   0x10087c3f -- *not* sqrt as earlier drafts assumed; the block is
 	   therefore LIVE for most yaw deltas, not dead.  Constant at
 	   0x100925e8 is 60.0 (double).  Since anglemod's output is already
-	   non-negative the fabs() is identity here, but kept verbatim. */
+	   non-negative the fabs() is identity here, but kept verbatim.
+
+	   The store to `angles` (= [-0x70..-0x68]) is intentional: this slot
+	   was fwd*2000 going in but is reused as a *cross-block scratch*
+	   read by the second trace candidate as the subtraction operand.
+	   The first trace itself targets &delta (still the vectoangles
+	   output at this point, treated as raw coordinates) -- this matches
+	   disasm @ 0x1007a7c2 (lea eax,[ebp-0x64]; push eax) exactly. */
 	if (fabs((double)anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
 	{
-		new_dest[0] = delta[0] + cam->dest[0];
-		new_dest[1] = delta[1] + cam->dest[1];
-		new_dest[2] = delta[2] + cam->dest[2];
+		angles[0] = delta[0] + cam->dest[0];
+		angles[1] = delta[1] + cam->dest[1];
+		angles[2] = delta[2] + cam->dest[2];
 		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
-		              new_dest, ent, OBSERVER_TRACE_MASK);
+		              delta, ent, OBSERVER_TRACE_MASK);
 		delta[0] = tr.endpos[0];
 		delta[1] = tr.endpos[1];
 		delta[2] = tr.endpos[2];
@@ -1307,16 +1316,19 @@ install_target:
 		}
 	}
 
-	// --- Second trace candidate (yaw + 180) --------------------------------
+	/* --- Second trace candidate (yaw + 180) -------------------------------
+	   disasm @ 0x1007a8af..0x1007a8d0 stores delta = cam->dest - angles.
+	   `angles` here holds either fwd*2000 (if block 1's guard failed) or
+	   delta_old + cam->dest (if block 1 ran) -- block 1's side-effect is
+	   load-bearing for this trace target. */
 	yaw_anglemod = anglemod(yaw_anglemod + 180.0f);       // 0x100922f0 = 180
-	/* Same fabs(anglemod(...)) > 60.0 guard at 0x1007a879..0x1007a8a9. */
 	if (fabs((double)anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
 	{
-		new_dest[0] = cam->dest[0] - angles[0];           // -fwd*2000
-		new_dest[1] = cam->dest[1] - angles[1];
-		new_dest[2] = cam->dest[2] - angles[2];
+		delta[0] = cam->dest[0] - angles[0];
+		delta[1] = cam->dest[1] - angles[1];
+		delta[2] = cam->dest[2] - angles[2];
 		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
-		              new_dest, ent, OBSERVER_TRACE_MASK);
+		              delta, ent, OBSERVER_TRACE_MASK);
 		delta[0] = tr.endpos[0];
 		delta[1] = tr.endpos[1];
 		delta[2] = tr.endpos[2];
