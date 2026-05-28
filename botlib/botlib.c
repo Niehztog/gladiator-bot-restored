@@ -24616,98 +24616,6 @@ void sub_100292E0()
 // 10001E92: using guessed type int sub_1002FA20(void);
 // 100643A4: using guessed type float flt_100643A4;
 
-/* ============================================================
- * TEMP DEBUG: stuck-bot detector.
- * ------------------------------------------------------------
- * The user reports that on q2ctf6 bots sometimes respawn and then
- * just stand at the spawn point indefinitely while still aiming and
- * firing at attackers.  This instrumentation watches each bot's
- * origin per-frame; once a bot has stayed within STUCK_EPSILON of
- * its position for STUCK_THRESHOLD seconds it dumps the AI state
- * that should explain why nothing wants to move (current AINode,
- * ltgtype, area / reachability / goal-area / moveflags, enemy slot,
- * velocity, reachability_time deadline).  Repeats the dump every
- * STUCK_LOG_INTERVAL seconds while the condition persists, and
- * resets cleanly as soon as the bot moves again or transitions to
- * Respawn/Intermission/Observer.
- *
- * REMOVE this block (and the call from Export_BotAIFrame below) once
- * the underlying bug is identified.
- * ============================================================ */
-#define STUCK_DEBUG_MAX        64
-#define STUCK_EPSILON          4.0f
-#define STUCK_THRESHOLD        4.0f
-#define STUCK_LOG_INTERVAL     4.0f
-
-static struct {
-    vec3_t last_origin;
-    float  stuck_since;
-    float  last_log_time;
-    int    armed;
-} g_stuck_dbg[STUCK_DEBUG_MAX];
-
-static const char *BotAINodeName(ai_node_fn_t fn)
-{
-    if (fn == AINode_Intermission)        return "Intermission";
-    if (fn == AINode_Observer)            return "Observer";
-    if (fn == AINode_Stand)               return "Stand";
-    if (fn == AINode_Respawn)             return "Respawn";
-    if (fn == AINode_Seek_NBG)            return "Seek_NBG";
-    if (fn == AINode_Seek_LTG)            return "Seek_LTG";
-    if (fn == AINode_Battle_Fight)        return "Battle_Fight";
-    if (fn == AINode_Battle_Chase)        return "Battle_Chase";
-    if (fn == AINode_Battle_Retreat)      return "Battle_Retreat";
-    if (fn == AINode_Battle_NBG)          return "Battle_NBG";
-    if (fn == AINode_Seek_ActivateEntity) return "Seek_ActivateEntity";
-    return "?";
-}
-
-static void BotDebugStuckCheck(int client, bot_state_t *bs)
-{
-    float now, dx, dy, dz, d2, stuck_for;
-    ai_node_fn_t node;
-
-    if (client < 0 || client >= STUCK_DEBUG_MAX) return;
-    node = BotAINode(bs);
-    /* Dead / between-spawn / observer / intermission don't move by design. */
-    if (node == AINode_Respawn || node == AINode_Intermission || node == AINode_Observer) {
-        g_stuck_dbg[client].armed = 0;
-        return;
-    }
-    now = (float)AAS_Time();
-    dx  = bs->origin[0] - g_stuck_dbg[client].last_origin[0];
-    dy  = bs->origin[1] - g_stuck_dbg[client].last_origin[1];
-    dz  = bs->origin[2] - g_stuck_dbg[client].last_origin[2];
-    d2  = dx*dx + dy*dy + dz*dz;
-    if (!g_stuck_dbg[client].armed || d2 > STUCK_EPSILON * STUCK_EPSILON) {
-        g_stuck_dbg[client].last_origin[0] = bs->origin[0];
-        g_stuck_dbg[client].last_origin[1] = bs->origin[1];
-        g_stuck_dbg[client].last_origin[2] = bs->origin[2];
-        g_stuck_dbg[client].stuck_since    = now;
-        g_stuck_dbg[client].last_log_time  = 0.0f;
-        g_stuck_dbg[client].armed          = 1;
-        return;
-    }
-    stuck_for = now - g_stuck_dbg[client].stuck_since;
-    if (stuck_for < STUCK_THRESHOLD) return;
-    if (now - g_stuck_dbg[client].last_log_time < STUCK_LOG_INTERVAL) return;
-    g_stuck_dbg[client].last_log_time = now;
-    bi_Print(1,
-        "[STUCK] c%d t=%4.1fs node=%-14s ltg=%d enemy=%d area=%d "
-        "lastreach=%d lastgoalarea=%d reacharea=%d moveflags=0x%x "
-        "reach_t_left=%.2f teamgoal_area=%d origin=%.0f,%.0f,%.0f "
-        "vel=%.1f,%.1f,%.1f\n",
-        client, stuck_for, BotAINodeName(node),
-        bs->ltgtype, bs->enemy,
-        bs->ms.areanum, bs->ms.lastreachnum, bs->ms.lastgoalareanum,
-        bs->ms.reachareanum, bs->ms.moveflags,
-        bs->ms.reachability_time - now,
-        bs->teamgoal.areanum,
-        bs->origin[0], bs->origin[1], bs->origin[2],
-        bs->ms.velocity[0], bs->ms.velocity[1], bs->ms.velocity[2]);
-}
-/* ===================== END TEMP DEBUG ===================== */
-
 //----- (10029320) --------------------------------------------------------
 int Export_BotAIFrame(int a1, float a2)
 {
@@ -24720,8 +24628,6 @@ int Export_BotAIFrame(int a1, float a2)
     }
     BotDeathmatchAI(&botstates[a1], a2);
     sub_100292E0();
-    /* TEMP DEBUG: stuck-bot detector (remove once standing-bot bug is fixed) */
-    BotDebugStuckCheck(a1, &botstates[a1]);
   }
   return 0;
 }
