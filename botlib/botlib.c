@@ -8078,17 +8078,25 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
   _DWORD *i; // eax
 
   v2 = 0;
-  if ( aasworld.numentities <= 0 )
-    return 0;
-  for ( i = (_DWORD *)aasworld.entities; i[23] - 1 != modelnum; i += 33 )
+  if ( aasworld.numentities > 0 )
   {
-    if ( ++v2 >= aasworld.numentities )
-      return 0;
+    i = (_DWORD *)aasworld.entities;
+    while ( 1 )
+    {
+      if ( i[23] - 1 == modelnum )
+      {
+        *origin = i[4];
+        origin[1] = i[5];
+        origin[2] = i[6];
+        return 1;
+      }
+      ++v2;
+      i += 33;
+      if ( v2 >= aasworld.numentities )
+        break;
+    }
   }
-  *origin = i[4];
-  origin[1] = i[5];
-  origin[2] = i[6];
-  return 1;
+  return 0;
 }
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
