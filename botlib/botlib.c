@@ -38715,11 +38715,12 @@ int __cdecl ReadChar(source_t *src, char **field, float *out)
   {
     StripSingleQuotes(token.string);
     *(_BYTE *)out = token.string[0];
-    return 1;
+    goto LABEL_ret1;
   }
   PC_UnreadLastToken(src);
   if ( !ReadNumber(src, field, out) )
     return 0;
+LABEL_ret1:
   return 1;
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
