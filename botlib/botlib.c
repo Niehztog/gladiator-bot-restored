@@ -8680,12 +8680,16 @@ int __cdecl AAS_NextBSPEntity(int ent)
   result = v1 + 1;
   if ( result >= aasworld.numentities )
     return 0;
-  for ( i = (_DWORD *)((char *)aasworld.entities + 132 * result); !*i; i += 33 )
+  i = (_DWORD *)((char *)aasworld.entities + 132 * result);
+  while ( 1 )
   {
-    if ( ++result >= aasworld.numentities )
+    if ( *i )
+      return result;
+    ++result;
+    i += 33;
+    if ( result >= aasworld.numentities )
       return 0;
   }
-  return result;
 }
 // 100667E0: using guessed type int aasworld.loaded;
 // 10066998: using guessed type int aasworld.numentities;
@@ -12007,15 +12011,13 @@ qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
   aas_reachabilitynode_t *v2;
 
   v2 = areareachability[area1num];
-  if ( !v2 )
-    return 0;
-  while ( *(_DWORD *)v2 != area2num )
+  while ( v2 )
   {
+    if ( *(_DWORD *)v2 == area2num )
+      return 1;
     v2 = v2->next;
-    if ( !v2 )
-      return 0;
   }
-  return 1;
+  return 0;
 }
 // 1006675C: using guessed type int dword_1006675C;
 
@@ -40445,7 +40447,14 @@ __int16 __cdecl LittleShort(__int16 a1)
 //----- (10043920) --------------------------------------------------------
 int __cdecl BigLong(int a1)
 {
-  return HIBYTE(a1) + ((BYTE2(a1) + ((((unsigned __int8)a1 << 8) + BYTE1(a1)) << 8)) << 8);
+  unsigned char b1, b2, b3, b4;
+
+  b1 = a1 & 0xff;
+  b2 = (a1 >> 8) & 0xff;
+  b3 = (a1 >> 16) & 0xff;
+  b4 = (a1 >> 24) & 0xff;
+
+  return ((int)b1 << 24) + ((int)b2 << 16) + ((int)b3 << 8) + b4;
 }
 
 //----- (10043970) --------------------------------------------------------
