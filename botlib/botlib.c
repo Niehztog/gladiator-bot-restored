@@ -22099,7 +22099,7 @@ void BotAimAtEnemy(bot_state_t *bs)
   double v9; // st7
   double v10; // st7
   int v11; // eax
-  long double v12; // st7
+  float v12; // st7
   __int16 v13; // ax
   __int16 v14; // ax
   __int16 v15; // ax
@@ -22153,7 +22153,7 @@ void BotAimAtEnemy(bot_state_t *bs)
      * for the eax return register. */
     v27 = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
     v35 = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
-    if ( v35 <= 0.0 )
+    if ( v35 <= 0.0f )
       v35 = 0.000099999997f;
     v3 = (uintptr_t)sub_100354B0(BotWS(bs));
     if ( !_strcmpi((const char *)(v3 + 4), aRocketLauncher) )
@@ -22163,7 +22163,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v32 = SLODWORD(v46[4]);
     v5 = bs->origin[1];
     v33 = v46[5];
-    v34 = v46[6] + 8.0;
+    v34 = v46[6] + 8.0f;
     v6 = bs->origin[2];
     v7 = bs->entitynum;
     v39 = v4;
@@ -22173,7 +22173,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v41 = v8 + *(float *)(v3 + 296);
     qmemcpy(v45, AAS_Trace(v47, (float*)(&v39), (float*)v43, (float*)v44, (float*)(&v32), v7, 100663299), sizeof(v45));
     if ( *(float *)&v45[2] <= 1.0 && v45[20] != LODWORD(v46[3]) )
-      v34 = v34 + 16.0;
+      v34 = v34 + 16.0f;
     if ( *(float *)(v3 + 268) != 0.0 && v27 > 0.4 )
     {
       /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
@@ -32548,7 +32548,7 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
       if ( factvalue >= sep->value )
         break;
       if ( !sep->child )
-        return (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight)
+        return (rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight)
              + sep->minweight;
       sep = sep->child;
     }
@@ -32562,7 +32562,7 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
   if ( sep->child )
     v7 = FuzzyWeightUndecided_r(facts, sep->child);
   else
-    v7 = (double)(rand() & 0x7FFF) * 0.000030518509 * (sep->maxweight - sep->minweight) + sep->minweight;
+    v7 = (rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight) + sep->minweight;
   v14 = v7;
   if ( sep->next->child )
   {
@@ -32576,13 +32576,13 @@ double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
      * `+ 16` became 16 * sizeof(fuzzyseperator_t) = 512-byte stride, reading
      * far past the struct and AV-ing.  Original asm at 0x10036bdf is
      * `fadds 0x10(%edi)` — i.e. v10->minweight. */
-    v9 = (double)(rand() & 0x7FFF) * 0.000030518509 * (v10->maxweight - v10->minweight)
+    v9 = (rand() & 0x7FFF) * 0.000030518509f * (v10->maxweight - v10->minweight)
        + v10->minweight;
   }
   v11 = sep->value;
   v12 = facts[sep->index] - v11;
   v13 = sep->next->value - v11;
-  return v9 * (1.0 - (double)(v12 / v13)) + (double)(v12 / v13) * v14;
+  return v9 * (1.0f - (float)(v12 / v13)) + (float)(v12 / v13) * v14;
 }
 
 //----- (10036C70) --------------------------------------------------------
