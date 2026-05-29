@@ -39710,7 +39710,9 @@ void __cdecl PerpendicularVector(float *a1, float *a2)
     ++v4;
   }
   while ( v3 < 3 );
-  memset(v7, 0, sizeof(v7));
+  *(int *)&v7[2] = 0;
+  *(int *)&v7[1] = 0;
+  *(int *)&v7[0] = 0;
   v7[v2] = 1.0;
   ProjectPointOnPlane(a1, v7, a2);
   VectorNormalize(a1);
