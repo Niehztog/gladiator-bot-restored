@@ -26226,7 +26226,7 @@ char *__cdecl RandomString(const char *name)
   {
     if ( !strcmp(list->string, name) )
     {
-      n = (int)((rand() & 0x7FFF) * 0.000030518509f * list->numstrings);
+      n = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * list->numstrings);
       rs = list->firstrandomstring;
       while ( rs )
       {
