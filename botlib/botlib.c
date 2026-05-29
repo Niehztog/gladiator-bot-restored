@@ -500,7 +500,7 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum);
 int __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 __int64 AAS_FallDamageDistance();
 double __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
-long double __cdecl AAS_MaxJumpDistance(float a1);
+float __cdecl AAS_MaxJumpDistance(float a1);
 int __cdecl AAS_AreaCrouch(int areanum);
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
@@ -529,7 +529,7 @@ int AAS_CreateReversedReachability();
 int __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
 int AAS_CalculateAreaTravelTimes();
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
-int __cdecl AAS_FreeRoutingCache(void *cache);
+void __cdecl AAS_FreeRoutingCache(void *cache);
 int AAS_FreeAllClusterAreaCache();
 int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
@@ -632,7 +632,7 @@ int __cdecl sub_10022160(int *a1);
 BOOL __cdecl BotChat_Kill(int *a1);
 int __cdecl BotChat_Random(bot_state_t *bs);
 double __cdecl BotChatTime(bot_state_t *bs);
-double __cdecl BotAggression(int *a1);
+float __cdecl BotAggression(int *a1);
 BOOL __cdecl BotWantsToRetreat(int *a1);
 BOOL __cdecl BotWantsToChase(int *a1);
 // BOOL __usercall BotCanAndWantsToRocketJump@<eax>(double a1@<st0>, int *a2);
@@ -11964,9 +11964,9 @@ double __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
 // 10064038: using guessed type int libvar_sv_gravity;
 
 //----- (10011590) --------------------------------------------------------
-long double __cdecl AAS_MaxJumpDistance(float a1)
+float __cdecl AAS_MaxJumpDistance(float a1)
 {
-  return (sqrt(450.0 / (libvar_sv_gravity->value * 0.5)) + a1 / libvar_sv_gravity->value)
+  return (float)(sqrt(450.0 / (libvar_sv_gravity->value * 0.5)) + a1 / libvar_sv_gravity->value)
        * libvar_sv_maxvelocity->value;
 }
 // 10064038: using guessed type int libvar_sv_gravity;
@@ -15919,10 +15919,9 @@ aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes)
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (10019260) --------------------------------------------------------
-int __cdecl AAS_FreeRoutingCache(void *cache)
+void __cdecl AAS_FreeRoutingCache(void *cache)
 {
   FreeMemory(cache);
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -21016,16 +21015,13 @@ BOOL __cdecl sub_10021710(_DWORD *a1)
 BOOL __cdecl EntityIsShooting(intptr_t a1)
 {
   int v1; // eax
-  BOOL result; // eax
 
-  result = 0;
-  if ( *(_DWORD *)(a1 + 92) == 255 )
-  {
-    v1 = *(_DWORD *)(a1 + 108);
-    if ( v1 >= 46 && v1 <= 53 )
-      return 1;
-  }
-  return result;
+  if ( *(_DWORD *)(a1 + 92) != 255 )
+    return 0;
+  v1 = *(_DWORD *)(a1 + 108);
+  if ( v1 < 46 || v1 > 53 )
+    return 0;
+  return 1;
 }
 
 //----- (100217C0) --------------------------------------------------------
@@ -21546,40 +21542,40 @@ double __cdecl BotChatTime(bot_state_t *bs)
 // 10001FD2: using guessed type _DWORD __cdecl BotChatLength(_DWORD);
 
 //----- (100226C0) --------------------------------------------------------
-double __cdecl BotAggression(int *a1)
+float __cdecl BotAggression(int *a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
   int v2; // ecx
 
   if ( bs->invuln_seconds )
-    return 100.0;
+    return 100.0f;
   if ( bs->enemy_invulnerability || bs->enemy_quad && !bs->quad_seconds )
-    return 0.0;
+    return 0.0f;
   if ( bs->enemy_powerscreen && (!bs->power_screen_active_cells || a1[452] < 50) )
-    return 0.0;
+    return 0.0f;
   if ( bs->enemy_height > 200 )
-    return 0.0;
+    return 0.0f;
   v2 = bs->inventory_health;
   if ( v2 < 40 || v2 < 70 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
-    return 0.0;
+    return 0.0f;
   if ( a1[449] > 0 && a1[452] > 50 )
-    return 100.0;
+    return 100.0f;
   if ( a1[448] > 0 && a1[454] > 5 )
-    return 100.0;
+    return 100.0f;
   if ( a1[447] > 0 && a1[452] > 50 )
-    return 100.0;
+    return 100.0f;
   if ( a1[446] > 0 && a1[453] > 5 )
-    return 100.0;
+    return 100.0f;
   if ( a1[445] > 0 && a1[444] > 10 )
-    return 100.0;
+    return 100.0f;
   if ( a1[443] > 0 && a1[451] > 100 )
-    return 100.0;
+    return 100.0f;
   if ( a1[442] > 0 && a1[451] > 75 )
-    return 100.0;
+    return 100.0f;
   if ( a1[441] <= 0 || a1[450] <= 20 )
-    return 0.0;
+    return 0.0f;
   else
-    return 100.0;
+    return 100.0f;
 }
 
 //----- (100228C0) --------------------------------------------------------
@@ -21589,14 +21585,14 @@ BOOL __cdecl BotWantsToRetreat(int *a1)
     return 1;
   if ( a1[1065] == 4 )
     return 1;
-  return BotAggression(a1) < 50.0;
+  return BotAggression(a1) < 50.0f;
 }
 // 100015E6: using guessed type _DWORD __cdecl BotCTFCarryingFlag(_DWORD);
 
 //----- (10022930) --------------------------------------------------------
 BOOL __cdecl BotWantsToChase(int *a1)
 {
-  return BotAggression(a1) > 50.0;
+  return BotAggression(a1) > 50.0f;
 }
 
 //----- (10022970) --------------------------------------------------------
@@ -23241,7 +23237,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
   else if ( AAS_Time() >= bs->ctfroam_time )
   {
     v3 = bs->ltgtype;
-    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0 )
+    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0f )
     {
       v4 = rand();
       v8 = (double)(v4 & 0x7FFF) * 0.000030518509 + (double)(v4 & 0x7FFF) * 0.000030518509;
@@ -33170,10 +33166,10 @@ int __cdecl EA_DelayedJump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   int v = ea->flags;
-  if ( (v & EA_JUMPEDLASTFRAME) == 0 )
-    v |= ACTION_DELAYEDJUMP;
-  else
+  if ( v & EA_JUMPEDLASTFRAME )
     v &= ~ACTION_DELAYEDJUMP;
+  else
+    v |= ACTION_DELAYEDJUMP;
   ea->flags = v;
   return v;
 }
