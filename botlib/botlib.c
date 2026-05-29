@@ -39949,7 +39949,7 @@ double __cdecl VectorNormalize(float *v)
 
   length = sqrt(*v * *v + v[1] * v[1] + v[2] * v[2]);
   result = length;
-  if ( length != 0.0f )
+  if ( length != 0 )
   {
     ilength = 1.0f / length;
     *v = *v * ilength;
