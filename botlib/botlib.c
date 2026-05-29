@@ -39749,10 +39749,9 @@ void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float out[3]
  * /INCREMENTAL. */
 float __cdecl sub_10042C80(float f)
 {
-  union { float f; int i; } u;
-  u.f = f;
-  u.i &= 0x7FFFFFFF;
-  return u.f;
+  int tmp = *(int *)&f;
+  tmp &= 0x7FFFFFFF;
+  return *(float *)&tmp;
 }
 
 //----- (10042CB0) --------------------------------------------------------
