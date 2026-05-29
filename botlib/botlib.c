@@ -388,7 +388,7 @@ char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
 int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3);
 float __cdecl FloatForKey(bsp_entity_t *a1, const char *a2);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2);
-int __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
+void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
 /* sub_10007150 declared above as the AAS_LoadLump replacement */
@@ -4915,13 +4915,12 @@ int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2)
 }
 
 //----- (10006920) --------------------------------------------------------
-int __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
+void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
 {
   bsp_entity_t *v1; // ebx
   bsp_epair_t  *v2; // esi
   bsp_entity_t *v3; // ebp
   bsp_epair_t  *v4; // edi
-  int result = 0; // eax
 
   v1 = a1;
   if ( a1 )
@@ -4944,12 +4943,11 @@ int __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
         }
         while ( v4 );
       }
-      result = (int)(intptr_t)FreeMemory(v1);
+      FreeMemory(v1);
       v1 = v3;
     }
     while ( v3 );
   }
-  return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -14400,7 +14398,7 @@ LABEL_29:
     }
     v0 = v26;
   }
-  return AAS_FreeBSPEntities(v0);
+  return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 1000144C: using guessed type _DWORD __cdecl AAS_AreaGrounded(_DWORD);
@@ -14492,7 +14490,7 @@ int AAS_Reachability_Elevator()
 LABEL_58:
       v50 = v1->next;
       if ( !v50 )
-        return AAS_FreeBSPEntities(v0);
+        return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
       v1 = v50;
     }
     v3 = AAS_ValueForBSPEpairKey(v1, aModel);
@@ -14708,7 +14706,7 @@ LABEL_56:
     }
     goto LABEL_30;
   }
-  return AAS_FreeBSPEntities(v0);
+  return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
 // 1001650B: conditional instruction was optimized away because esi.4<10
 // 10016781: conditional instruction was optimized away because ebp.4<10
@@ -15011,7 +15009,7 @@ int AAS_SetWeaponJumpAreaFlags()
     }
     while ( v1 );
   }
-  return AAS_FreeBSPEntities(v0);
+  return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
