@@ -402,7 +402,7 @@ int AAS_RemoveClusterAreas();
 int __cdecl AAS_UpdatePortal(int ArgList, int a2);
 int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList);
 int __cdecl AAS_FloodClusterReachabilities(int clusternum);
-int __cdecl AAS_NumberClusterPortals(int clusternum);
+void __cdecl AAS_NumberClusterPortals(int clusternum);
 int AAS_FindClusters();
 int AAS_CreatePortals();
 int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea);
@@ -6449,7 +6449,7 @@ LABEL_13:
 // 10066948: using guessed type int aasworld.numareas;
 
 //----- (10008AC0) --------------------------------------------------------
-int __cdecl AAS_NumberClusterPortals(int clusternum)
+void __cdecl AAS_NumberClusterPortals(int clusternum)
 {
   char *cluster; // was packed low-32 of __int64 v1 — aasworld.clusters + 12*clusternum
   int counter; // was HIDWORD(v1) — loop counter into portalindex
@@ -6457,9 +6457,9 @@ int __cdecl AAS_NumberClusterPortals(int clusternum)
   int v3; // edi
 
   cluster = (char *)aasworld.clusters + 12 * clusternum;
+  counter = 0;
   if ( *(int *)(cluster + 4) > 0 )
   {
-    counter = 0;
     do
     {
       v2 = (_DWORD *)((char *)aasworld.portals + 20 * *((_DWORD *)aasworld.portalindex + counter + *(_DWORD *)(cluster + 8)));
@@ -6471,9 +6471,8 @@ int __cdecl AAS_NumberClusterPortals(int clusternum)
       ++counter;
       ++*(_DWORD *)cluster;
     }
-    while ( counter < *(_DWORD *)(cluster + 4) );
+    while ( counter < *(int *)(cluster + 4) );
   }
-  return 0;
 }
 
 //----- (10008B40) --------------------------------------------------------
