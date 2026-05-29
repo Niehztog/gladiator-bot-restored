@@ -17988,69 +17988,66 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
    * Original frame: sub $0x100,%esp = 256 bytes = 64 int slots. */
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
-  if ( aasworld.loaded )
-  {
-    v4 = 0;
-    v15[0] = 1;
-    v5 = &v15[1];
-    while ( --v5 >= &v15[0] )
-    {
-      v6 = *v5;
-      if ( *v5 >= 0 )
-      {
-        if ( *v5 )
-        {
-          v11 = (_DWORD *)((char *)aasworld.nodes + 12 * v6);
-          v12 = (char *)aasworld.planes + 20 * *v11;
-          v13 = *((_DWORD *)v12 + 4);
-          if ( v13 >= 3 )
-          {
-            v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * *v11);
-          }
-          else if ( *((float *)v12 + 3) > (double)a1[v13] )
-          {
-            if ( *((float *)v12 + 3) < (double)a2[v13] )
-              v14 = 3;
-            else
-              v14 = 2;
-          }
-          else
-          {
-            v14 = 1;
-          }
-          if ( (v14 & 1) != 0 )
-            *v5++ = v11[1];
-          if ( (v14 & 2) != 0 )
-            *v5++ = v11[2];
-        }
-      }
-      else
-      {
-        v7 = AAS_AllocAASLink();
-        if ( !v7 )
-          return v4;
-        v7->prev_area = NULL;
-        v7->entnum    = a3;
-        v7->areanum   = -v6;
-        v7->next_area = v4;
-        if ( v4 )
-          v4->prev_area = v7;
-        v7->prev_ent  = NULL;
-        v4 = v7;
-        v10 = ((aas_link_t **)aasworld.arealinkedentities)[-v6];
-        v7->next_ent  = v10;
-        if ( v10 )
-          v10->prev_ent = v7;
-        ((aas_link_t **)aasworld.arealinkedentities)[-v6] = v7;
-      }
-    }
-    return v4;
-  }
-  else
+  if ( !aasworld.loaded )
   {
     bi_Print(3, aAasLinkentityA);
     return 0;
   }
+  v4 = 0;
+  v15[0] = 1;
+  v5 = &v15[1];
+  while ( --v5 >= &v15[0] )
+  {
+    v6 = *v5;
+    if ( *v5 >= 0 )
+    {
+      if ( *v5 )
+      {
+        v11 = (_DWORD *)((char *)aasworld.nodes + 12 * v6);
+        v12 = (char *)aasworld.planes + 20 * *v11;
+        v13 = *((_DWORD *)v12 + 4);
+        if ( v13 >= 3 )
+        {
+          v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * *v11);
+        }
+        else if ( *((float *)v12 + 3) > (double)a1[v13] )
+        {
+          if ( *((float *)v12 + 3) < (double)a2[v13] )
+            v14 = 3;
+          else
+            v14 = 2;
+        }
+        else
+        {
+          v14 = 1;
+        }
+        if ( (v14 & 1) != 0 )
+          *v5++ = v11[1];
+        if ( (v14 & 2) != 0 )
+          *v5++ = v11[2];
+      }
+    }
+    else
+    {
+      v7 = AAS_AllocAASLink();
+      if ( !v7 )
+        return v4;
+      v7->prev_area = NULL;
+      v7->entnum    = a3;
+      v7->areanum   = -v6;
+      v7->next_area = v4;
+      if ( v4 )
+        v4->prev_area = v7;
+      v7->prev_ent  = NULL;
+      v4 = v7;
+      v10 = ((aas_link_t **)aasworld.arealinkedentities)[-v6];
+      v7->next_ent  = v10;
+      if ( v10 )
+        v10->prev_ent = v7;
+      ((aas_link_t **)aasworld.arealinkedentities)[-v6] = v7;
+    }
+  }
+  return v4;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E0: using guessed type int aasworld.loaded;
