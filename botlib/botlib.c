@@ -759,7 +759,7 @@ char *__cdecl BotGoalName(int a1);
 int __cdecl BotResetAvoidGoals(void *goalstate);
 void __cdecl BotDumpAvoidGoals(int *goalstate);
 void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
-double __cdecl BotAvoidGoalTime(int *goalstate, int number);
+float __cdecl BotAvoidGoalTime(int *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
 int sub_1002FA20();
 void __cdecl BotDumpGoalStack(int *goalstate);
@@ -28582,16 +28582,21 @@ void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime)
 }
 
 //----- (1002F820) --------------------------------------------------------
-double __cdecl BotAvoidGoalTime(int *goalstate, int number)
+float __cdecl BotAvoidGoalTime(int *goalstate, int number)
 {
   int v2; // esi
   float *i; // edi
 
   v2 = 0;
-  for ( i = (float *)((char *)goalstate + 716); *((_DWORD *)i - 64) != number || AAS_Time() > *i; ++i )
+  i = (float *)((char *)goalstate + 716);
+  while ( 1 )
   {
-    if ( ++v2 >= 64 )
-      return 0.0;
+    if ( *((_DWORD *)i - 64) == number && AAS_Time() <= *i )
+      break;
+    ++v2;
+    ++i;
+    if ( v2 >= 64 )
+      return 0.0f;
   }
   return *(float *)((char *)goalstate + 4 * v2 + 716) - AAS_Time();
 }
