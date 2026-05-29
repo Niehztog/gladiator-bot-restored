@@ -15004,9 +15004,7 @@ int AAS_SetWeaponJumpAreaFlags()
             *(float *)&v7[1],
             *(float *)&v7[2]);
         v4 = AAS_BestReachableArea(v7, (float *)v9, (float *)v8, (float *)v7);
-        v5 = *((_DWORD *)aasworld.areasettings + 7 * v4 + 1);
-        BYTE1(v5) |= 0x20u;
-        *((_DWORD *)aasworld.areasettings + 7 * v4 + 1) = v5;
+        *((_DWORD *)aasworld.areasettings + 7 * v4 + 1) |= 0x2000u;
       }
       v1 = v1->next;
     }
