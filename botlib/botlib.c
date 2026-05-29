@@ -395,7 +395,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
 int sub_100071E0();
 int __fastcall sub_10007460(void *a1);
 int AAS_DumpBSPData();
-void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char ArgList);
+void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
 // int __usercall AAS_LoadBSPFile@<eax>(double a1@<st0>, char *FileName, int Offset);
 int sub_100085F0();
 int AAS_RemoveClusterAreas();
@@ -5854,7 +5854,7 @@ int AAS_DumpBSPData()
 // 10067554: using guessed type int dword_10067554;
 
 //----- (10007C40) --------------------------------------------------------
-void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char ArgList)
+void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList)
 {
   void *v6; // esi
 
@@ -5865,29 +5865,23 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
     fclose(Stream);
     return 0;
   }
-  else if ( fseek(Stream, Offset, 0) )
+  if ( fseek(Stream, Offset, 0) )
   {
     AAS_Error(aCanTSeekToBspL, ArgList);
     AAS_DumpBSPData();
     fclose(Stream);
     return 0;
   }
-  else
+  v6 = (void *)GetClearedMemory(ElementSize);
+  if ( fread_locked(v6, ElementSize, 1u, Stream) != 1 )
   {
-    v6 = (void *)GetClearedMemory(ElementSize);
-    if ( fread_locked(v6, ElementSize, 1u, Stream) == 1 )
-    {
-      return v6;
-    }
-    else
-    {
-      AAS_Error(aCanTReadBspLum, ArgList);
-      FreeMemory(v6);
-      AAS_DumpBSPData();
-      fclose(Stream);
-      return 0;
-    }
+    AAS_Error(aCanTReadBspLum, ArgList);
+    FreeMemory(v6);
+    AAS_DumpBSPData();
+    fclose(Stream);
+    return 0;
   }
+  return v6;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -8000,19 +7994,19 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
   void *result; // eax
   char v3[124]; // [esp+8h] [ebp-7Ch] BYREF
 
-  if ( aasworld.initialized )
+  if ( !aasworld.initialized )
   {
-    if ( entnum >= 0 && entnum < aasworld.numentities )
-    {
-      result = info;
-      qmemcpy(info, (const void *)((char *)aasworld.entities + 132 * entnum), 0x7Cu);
-      return result;
-    }
-    bi_Print(4, "AAS_EntityInfo: entnum %d out of range\n", entnum);
+    bi_Print(4, aAasEntityinfoA);
+  }
+  else if ( entnum >= 0 && entnum < aasworld.numentities )
+  {
+    result = info;
+    qmemcpy(info, (const void *)((char *)aasworld.entities + 132 * entnum), 0x7Cu);
+    return result;
   }
   else
   {
-    bi_Print(4, aAasEntityinfoA);
+    bi_Print(4, "AAS_EntityInfo: entnum %d out of range\n", entnum);
   }
   memset(v3, 0, sizeof(v3));
   result = info;
@@ -10442,33 +10436,27 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
 
   int v8; // esi
 
-  if ( Source )
-  {
-    aasworld.initialized = 0;
-    sub_1000DC20(a2, a3, a4, a5, a6, a7);
-    AAS_FreeRoutingCaches();
-    v8 = BotLibLoadMap(Source);
-    *_errno() = v8;
-    if ( *_errno() )
-    {
-      aasworld.loaded = 0;
-      return *_errno();
-    }
-    else
-    {
-      AAS_InitAASLinkHeap();
-      AAS_InitAASLinkedEntities();
-      AAS_InitReachability();
-      sub_1001D140();
-      sub_1001AB80();
-      return 0;
-    }
-  }
-  else
+  if ( !Source )
   {
     sub_1000DCC0(a2, a3, a4, a5, a6, a7);
     return 0;
   }
+  aasworld.initialized = 0;
+  sub_1000DC20(a2, a3, a4, a5, a6, a7);
+  AAS_FreeRoutingCaches();
+  v8 = BotLibLoadMap(Source);
+  *_errno() = v8;
+  if ( *_errno() )
+  {
+    aasworld.loaded = 0;
+    return *_errno();
+  }
+  AAS_InitAASLinkHeap();
+  AAS_InitAASLinkedEntities();
+  AAS_InitReachability();
+  sub_1001D140();
+  sub_1001AB80();
+  return 0;
 }
 // 100011CC: using guessed type int AAS_InitReachability();
 // 100012F3: using guessed type int sub_1001D140(void);
@@ -23203,12 +23191,10 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
 void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 {
 
-  double v2; // st7
   int v3; // eax
-  __int16 v4; // ax
+  int v4; // ax
   double v5; // st7
   const void *v6; // esi
-  double v7; // st7
   float v8; // [esp+8h] [ebp+4h]
 
   if ( BotCTFCarryingFlag(bs) )
@@ -23216,9 +23202,8 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     if ( bs->ltgtype != 5 )
     {
       bs->ltgtype = 5;
-      v2 = AAS_Time();
+      bs->teamgoal_time = AAS_Time() + 120.0f;
       *(int *)&bs->rushbaseaway_time = 0;
-      bs->teamgoal_time = v2 + 120.0f;
     }
   }
   else if ( AAS_Time() >= bs->ctfroam_time )
@@ -23227,29 +23212,26 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0f )
     {
       v4 = rand();
-      v8 = (double)(v4 & 0x7FFF) * 0.000030518509 + (double)(v4 & 0x7FFF) * 0.000030518509;
+      v8 = (float)(v4 & 0x7FFF) * 0.000030518509f + (float)(v4 & 0x7FFF) * 0.000030518509f;
       bs->teammessage_time = AAS_Time() + v8;
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+      v5 = (rand() & 0x7FFF) * 0.000030518509f;
       if ( v5 < 0.33f && dword_1006442C && dword_100643EC )
       {
         bs->ltgtype = 4;
-        bs->teamgoal_time = AAS_Time() + 180.0;
+        bs->teamgoal_time = AAS_Time() + 180.0f;
       }
       else if ( v5 < 0.66 && dword_1006442C && dword_100643EC )
       {
-        v6 = &unk_10064420;
-        if ( BotCTFTeam(bs) != 1 )
-          v6 = &unk_100643E0;
+        v6 = BotCTFTeam(bs) == 1 ? &unk_10064420 : &unk_100643E0;
         qmemcpy(&bs->teamgoal, v6, 0x38u);
         bs->ltgtype = 3;
-        v7 = AAS_Time();
+        bs->teamgoal_time = AAS_Time() + 120.0f;
         *(int *)&bs->defendaway_time = 0;
-        bs->teamgoal_time = v7 + 120.0;
       }
       else
       {
         bs->ltgtype = 0;
-        bs->ctfroam_time = AAS_Time() + 60.0;
+        bs->ctfroam_time = AAS_Time() + 60.0f;
       }
     }
   }
