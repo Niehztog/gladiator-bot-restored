@@ -30269,12 +30269,10 @@ int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   if ( v12 < 40.0 )
     EA_MoveUp(*(_DWORD *)(a2 + 40));
   vectoangles(dir, (float *)&v11[9]);
-  v5 = v11[5];
-  LOBYTE(v5) = LOBYTE(v11[5]) | 1;
   v11[6] = *(int *)&dir[0];
   v11[7] = *(int *)&dir[1];
   v11[8] = *(int *)&dir[2];
-  v11[5] = v5;
+  v11[5] |= 1;
   result = a1;
   qmemcpy(a1, v11, 0x30u);
   return result;
@@ -30331,12 +30329,10 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
       VectorNormalize(dir);
       EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
       vectoangles(dir, (float *)&v15[9]);
-      v9 = v15[5];
-      LOBYTE(v9) = LOBYTE(v15[5]) | 1;
       v15[6] = *(int *)&dir[0];
       v15[7] = *(int *)&dir[1];
       v15[8] = *(int *)&dir[2];
-      v15[5] = v9;
+      v15[5] |= 1;
     }
   }
   result = a1;
@@ -30598,7 +30594,9 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
   float v9[3]; // [esp+20h] [ebp-3Ch] BYREF
   int v10[12]; // [esp+2Ch] [ebp-30h] BYREF
 
-  memset(v9, 0, sizeof(v9));
+  v9[0] = 0.0f;
+  v9[1] = 0.0f;
+  v9[2] = 0.0f;
   BotClearMoveResult(v10);
   dir[0] = a3[6] - *(float *)a2;
   dir[1] = a3[7] - *(float *)(a2 + 4);
@@ -30610,9 +30608,7 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
   vectoangles(v8, (float *)&v10[9]);
   EA_Move(*(_DWORD *)(a2 + 40), v9, 0.0);
   EA_MoveForward(*(_DWORD *)(a2 + 40));
-  v3 = v10[5];
-  LOBYTE(v3) = LOBYTE(v10[5]) | 1;
-  v10[5] = v3;
+  v10[5] |= 1;
   v10[6] = *(int *)&dir[0];
   v10[7] = *(int *)&dir[1];
   v10[8] = *(int *)&dir[2];
@@ -30776,9 +30772,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       *(float *)&v34[8] = final[2];
       if ( (v14 & 4) != 0 )
       {
-        v15 = v34[5];
-        LOBYTE(v15) = LOBYTE(v34[5]) | 2;
-        v34[5] = v15;
+        v34[5] |= 2;
       }
     }
     else
@@ -30800,9 +30794,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       *(float *)&v34[7] = final[1];
       if ( (v9 & 4) != 0 )
       {
-        v10 = v34[5];
-        LOBYTE(v10) = LOBYTE(v34[5]) | 2;
-        v34[5] = v10;
+        v34[5] |= 2;
       }
       v34[1] = 1;
       v34[5] |= 4u;
@@ -31020,9 +31012,7 @@ LABEL_26:
   v23[2] = *(float *)(a3 + 32) - v19;
   v26 = VectorNormalize(dir);
   vectoangles(v23, (float *)&v24[9]);
-  v12 = v24[5];
-  LOBYTE(v12) = LOBYTE(v24[5]) | 1;
-  v24[5] = v12;
+  v24[5] |= 1;
   /* IDA-dropped FPU-return pattern: the original asm at 0x10033cfb/0x10033d1b
    * does `call AngleDiff; fabs; fcomp 2.0` (the abs operates on the AngleDiff
    * result still in ST(0)). IDA dropped the captured return and left the
@@ -31254,9 +31244,7 @@ intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
   if ( (v8 & 4) != 0 )
   {
     vectoangles(dir, (float *)&v16[9]);
-    v9 = v16[5];
-    LOBYTE(v9) = LOBYTE(v16[5]) | 2;
-    v16[5] = v9;
+    v16[5] |= 2;
   }
   v10 = *(_DWORD *)a2;
   v11 = *(_DWORD *)(a2 + 4);
