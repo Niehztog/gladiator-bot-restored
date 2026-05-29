@@ -8177,7 +8177,7 @@ int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata)
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
   int v3; // ecx
-  double v4; // st7
+  float v4; // st7
   int v6; // ecx
   int v7; // edx
   int v8[3]; // [esp+Ch] [ebp-60h] BYREF
@@ -8187,7 +8187,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
   v4 = origin[2];
   v8[0] = *(_DWORD *)&origin[0];
   v8[1] = v3;
-  *(float *)&v8[2] = v4 - 100.0;
+  *(float *)&v8[2] = v4 - 100.0f;
   qmemcpy(v9, AAS_Trace(v9, (float*)(origin), (float*)mins, (float*)maxs, (float*)(v8), 0, 3), sizeof(v9));
   if ( v9[1] )
     return 0;
@@ -12063,10 +12063,10 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
   v7[0] = *end - *start;
   v7[1] = end[1] - start[1];
   VectorNormalize(v7);
-  VectorMA(end, 48.0, v7, v5);
+  VectorMA(end, 48.0f, v7, v5);
   if ( !AAS_PointAreaNum(v5) )
   {
-    v5[2] = v5[2] + 16.0;
+    v5[2] = v5[2] + 16.0f;
     if ( !AAS_PointAreaNum(v5) )
       return 1;
   }
@@ -15575,7 +15575,7 @@ int AAS_ContinueInitReachability(int a1)
   {
     v1 = LibVar(aFramereachabil, (char *)a20);
     libvar_reachabilitydelay = v1;
-    if ( v1->value <= 0.0 )
+    if ( v1->value <= 0.0f )
     {
       v1->value = 15.0f;
       v1 = libvar_reachabilitydelay;
@@ -18480,7 +18480,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
         return 0;
       for ( i = aasworld.d_100669CC; i; i = i->next )
         ;
-      if ( a7 == 0.0 )
+      if ( a7 == 0.0f )
         sub_1001CDD0(a2, a4);
       v10 = sub_1001CBE0();
       if ( !v10 )
@@ -19316,7 +19316,7 @@ LABEL_55:
     {
       if ( BotTouchingGoal(bs->origin, v44) )
       {
-        if ( libvar_runes->value != 0.0 )
+        if ( libvar_runes->value != 0.0f )
           sub_100262C0((_DWORD *)bs, (intptr_t)v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
       }
       else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v26) )
@@ -19439,7 +19439,7 @@ int __cdecl AIEnter_Intermission(bot_state_t *bs)
 //----- (1001EB50) --------------------------------------------------------
 int __cdecl AINode_Intermission(bot_state_t *bs)
 {
-  double v2; // st7
+  float v2; // st7
   float v4; // [esp+8h] [ebp+4h]
 
   if ( !BotIntermission(bs) )
@@ -19451,7 +19451,7 @@ int __cdecl AINode_Intermission(bot_state_t *bs)
     }
     else
     {
-      v2 = AAS_Time() + 2.0;
+      v2 = AAS_Time() + 2.0f;
     }
     *(float *)((char *)bs + 2812) = v2;
     AIEnter_Stand(bs);
@@ -19514,7 +19514,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   v2 = AAS_Time();
   if ( v2 <= bs->stand_time )
     return 1;
-  if ( LibVarGetValue(aSquatt) != 0.0 )
+  if ( LibVarGetValue(aSquatt) != 0.0f )
   {
     EA_Say(bs->client, aINeverHackedYo);
     EA_Command(bs->client, aRemovebot, ClientName(bs->client), (void *)0);
@@ -19638,7 +19638,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0 )
+  if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
   ent = bs->activategoal.origin;
   bs->enemy = 0;
@@ -19757,9 +19757,9 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0 )
+  if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
   {
     v2 = v8;
     BYTE1(v2) = BYTE1(v8) | 0x10;
@@ -19772,7 +19772,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   {
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
-      if ( libvar_runes->value != 0.0 )
+      if ( libvar_runes->value != 0.0f )
         sub_100262C0((_DWORD *)bs, (intptr_t)v4);
     }
     else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v4) )
@@ -19950,12 +19950,12 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   }
   v2 = 102334;
   v10 = 102334;
-  if ( libvar_usehook->value != 0.0 )
+  if ( libvar_usehook->value != 0.0f )
   {
     v10 = 118718;
     v2 = 118718;
   }
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
   {
     v2 |= 0x1000u;
     v10 = v2;
@@ -19971,7 +19971,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   }
   if ( !BotFindEnemy(bs) )
   {
-    if ( libvar_ctf->value != 0.0 )
+    if ( libvar_ctf->value != 0.0f )
       BotCTFSeekGoals(bs);
     v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
     v17 = v3;
@@ -20159,9 +20159,9 @@ LABEL_9:
     if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       v8 = 102334;
-      if ( libvar_usehook->value != 0.0 )
+      if ( libvar_usehook->value != 0.0f )
         v8 = 118718;
-      if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump((int *)bs) )
+      if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
         v8 |= 0x1000u;
       sub_10020FE0(bs, BotWS(bs));
       BotChooseBestFightWeapon(BotWS(bs));
@@ -20289,12 +20289,12 @@ LABEL_8:
     }
     v2 = 102334;
     v9 = 102334;
-    if ( libvar_usehook->value != 0.0 )
+    if ( libvar_usehook->value != 0.0f )
     {
       v9 = 118718;
       v2 = 118718;
     }
-    if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump((int *)bs) )
+    if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
     {
       v2 |= 0x1000u;
       v9 = v2;
@@ -20457,7 +20457,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     goto LABEL_10;
   v2 = 102334;
   v7 = 102334;
-  if ( libvar_usehook->value != 0.0 )
+  if ( libvar_usehook->value != 0.0f )
   {
     v7 = 118718;
     v2 = 118718;
@@ -20477,7 +20477,7 @@ LABEL_10:
       AIEnter_Seek_LTG(bs);
       return 0;
     }
-    if ( libvar_ctf->value != 0.0 )
+    if ( libvar_ctf->value != 0.0f )
       BotCTFRetreatGoals(bs);
     v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
     if ( v3 )
@@ -20631,9 +20631,9 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0 )
+  if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0 && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
     v8 |= 0x1000u;
   areanum = AAS_PointAreaNum((float *)&entinfo[4]);
   if ( areanum && AAS_AreaReachability(areanum) )
@@ -20648,7 +20648,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   {
     if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
     {
-      if ( libvar_runes->value != 0.0 )
+      if ( libvar_runes->value != 0.0f )
         sub_100262C0((_DWORD *)bs, (intptr_t)topgoal);
       bs->nbg_time = 0.0f;
     }
@@ -20957,7 +20957,7 @@ void __cdecl sub_100215E0(bot_state_t *bs)
 //----- (10021650) --------------------------------------------------------
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
 {
-  if ( libvar_ctf->value == 0.0 )
+  if ( libvar_ctf->value == 0.0f )
     return 0;
   /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).
    * Returns 1 (red), 2 (blue), or 0 (not carrying). */
@@ -21279,7 +21279,7 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
   if ( v1 != 0.0 )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
@@ -21311,7 +21311,7 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
   if ( v1 != 0.0 )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
@@ -21338,7 +21338,7 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
   if ( v1 != 0.0 )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
@@ -21365,7 +21365,7 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
   if ( v1 != 0.0 )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
       return 0;
@@ -21393,7 +21393,7 @@ int __cdecl sub_10022160(int *a1)
   if ( v1 != 0.0 )
     return 0;
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 20, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
       return 0;
@@ -21441,7 +21441,7 @@ BOOL __cdecl BotChat_Kill(int *a1)
   if ( v1 != 0.0 )
     return 0;
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 19, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
       return 0;
@@ -21508,7 +21508,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0, 1.0);
   if ( bs->thinktime * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509 )
     return 0;
-  if ( libvar_fastchat->value == 0.0 )
+  if ( libvar_fastchat->value == 0.0f )
   {
     if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 || (double)(rand() & 0x7FFF) * 0.000030518509 > 0.25 )
       return 0;
@@ -21535,7 +21535,7 @@ double __cdecl BotChatTime(bot_state_t *bs)
   int v2; // [esp+4h] [ebp-4h]
 
   v2 = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
-  return (double)(int)BotChatLength(&bs->chatstate) * 30.0 / (double)v2;
+  return (int)BotChatLength(&bs->chatstate) * 30.0f / v2;
 }
 // 10001208: using guessed type _DWORD __cdecl Characteristic_BInteger(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001FD2: using guessed type _DWORD __cdecl BotChatLength(_DWORD);
@@ -21981,21 +21981,21 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int a2)
   v2 = v21[3];
   if ( v21[3] )
   {
-    if ( libvar_teamplay_shell->value != 0.0 )
+    if ( libvar_teamplay_shell->value != 0.0f )
     {
       qmemcpy(v20, AAS_EntityInfo(v20, *(_DWORD *)((char *)bs + 8)), sizeof(v20));
       return ((LOWORD(v20[30]) ^ LOWORD(v21[30])) & 0x1C00) == 0;
     }
-    if ( libvar_ch->value == 0.0 )
+    if ( libvar_ch->value == 0.0f )
     {
-      if ( libvar_teamplay->value != 0.0 )
+      if ( libvar_teamplay->value != 0.0f )
       {
         v18 = (const char *)ClientSkin(v21[3] - 1);
         v4 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
         return _strcmpi(v4, v18) == 0;
       }
       v5 = (__int64)libvar_dmflags->value;
-      if ( (v5 & 0x40) != 0 || libvar_ctf->value != 0.0 )
+      if ( (v5 & 0x40) != 0 || libvar_ctf->value != 0.0f )
       {
         v13 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
         v14 = strchr(v13, 47);
@@ -23169,7 +23169,7 @@ void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2)
 {
   int v2[31]; // [esp+8h] [ebp-7Ch] BYREF
 
-  if ( libvar_ctf->value != 0.0 )
+  if ( libvar_ctf->value != 0.0f )
   {
     if ( *(_DWORD *)(a2 + 40) )
     {
@@ -23196,7 +23196,7 @@ void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2)
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
 {
 
-  double v1; // st7
+  float v1; // st7
 
   if ( BotCTFCarryingFlag(bs) )
   {
@@ -23205,7 +23205,7 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
       bs->ltgtype = 5;
       v1 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
-      bs->teamgoal_time = v1 + 120.0;
+      bs->teamgoal_time = v1 + 120.0f;
     }
   }
 }
@@ -23230,7 +23230,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       bs->ltgtype = 5;
       v2 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
-      bs->teamgoal_time = v2 + 120.0;
+      bs->teamgoal_time = v2 + 120.0f;
     }
   }
   else if ( AAS_Time() >= bs->ctfroam_time )
@@ -23242,7 +23242,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       v8 = (double)(v4 & 0x7FFF) * 0.000030518509 + (double)(v4 & 0x7FFF) * 0.000030518509;
       bs->teammessage_time = AAS_Time() + v8;
       v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
-      if ( v5 < 0.33 && dword_1006442C && dword_100643EC )
+      if ( v5 < 0.33f && dword_1006442C && dword_100643EC )
       {
         bs->ltgtype = 4;
         bs->teamgoal_time = AAS_Time() + 180.0;
@@ -23276,7 +23276,7 @@ BOOL TeamPlayIsOn()
 {
   return ((__int64)libvar_dmflags->value & 0xC0) != 0
       || libvar_ctf->value != 0.0
-      || libvar_teamplay->value != 0.0;
+      || libvar_teamplay->value != 0.0f;
 }
 // 100643AC: using guessed type int libvar_ctf;
 // 10064460: using guessed type int libvar_teamplay;
@@ -23812,7 +23812,7 @@ LABEL_27:
       *(int *)&bs->defendaway_time = 0;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v38 = rand();
       v60 = (double)(v38 & 0x7FFF) * 0.000030518509 + (double)(v38 & 0x7FFF) * 0.000030518509;
@@ -23825,7 +23825,7 @@ LABEL_27:
       bs->teamgoal_time = v40 + 120.0;
       return result;
     case 7:
-      if ( libvar_ctf->value == 0.0 || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v35 = rand();
       v59 = (double)(v35 & 0x7FFF) * 0.000030518509 + (double)(v35 & 0x7FFF) * 0.000030518509;
@@ -24194,7 +24194,7 @@ LABEL_24:
 LABEL_11:
     UnifyWhiteSpaces(v3->message);
     v6 = 3;
-    if ( libvar_ctf->value != 0.0 )
+    if ( libvar_ctf->value != 0.0f )
       v6 = BotCTFTeam(v1) != 1 ? 11 : 7;
     BotReplaceSynonyms(v3->message, v6);
     if ( !BotMatchMessage(v1, v3->message) && v3->type == 1 )
@@ -24359,7 +24359,7 @@ void BotSetupDeathmatchAI()
   libvar_runes = LibVar(aRunes, (char *)a0);
   libvar_teamplay_shell = LibVar(aTeamplayShell, (char *)a0);
   libvar_assimilation = LibVar(aAssimilation, (char *)a0);
-  if ( libvar_ctf->value != 0.0 )
+  if ( libvar_ctf->value != 0.0f )
   {
     if ( BotGetLevelItemGoal(-1, aRedFlag, &unk_10064420) < 0 )
       bi_Print(2, aCtfWithoutRedF);
@@ -25378,7 +25378,7 @@ double __cdecl Characteristic_Float(bot_character_t *a1, int a2)
       return *(float *)&BC_PAIRS(a1)[a2].value;
     bi_Print(3, "characteristic %d is not a float\n", a2);
   }
-  return 0.0;
+  return 0.0f;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -28212,7 +28212,7 @@ int BotSetupChatAI()
   dword_1006437C = BotLoadRandomStrings(v2);
   v3 = LibVarString(aMatchfile, (char *)aMatchC);
   dword_10064378 = BotLoadMatchTemplates(v3);
-  if ( LibVarValue(aNochat, (char *)a0) == 0.0 )
+  if ( LibVarValue(aNochat, (char *)a0) == 0.0f )
   {
     v4 = LibVarString(aRchatfile, (char *)aRchatC);
     dword_10064380 = BotLoadReplyChat(v4);
@@ -29255,7 +29255,7 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
   maxs[2] = maxs[2] + a2[2];
   maxs[0] = v7 - 4.0;
   maxs[1] = maxs[1] - 4.0;
-  maxs[2] = maxs[2] - 10.0;
+  maxs[2] = maxs[2] - 10.0f;
   mins[0] = v5 - -4.0;
   mins[1] = mins[1] - -4.0;
   mins[2] = v6;
@@ -30066,12 +30066,12 @@ int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3)
   int v10[21]; // [esp+2Ch] [ebp-54h] BYREF
 
   AAS_PresenceTypeBoundingBox(*(_DWORD *)(a1 + 48), mins, maxs);
-  if ( fabs(*(float *)(a2 + 8)) < 0.7 )
+  if ( fabs(*(float *)(a2 + 8)) < 0.7f )
   {
     mins[2] = mins[2] + libvar_sv_step->value;
-    maxs[2] = maxs[2] - 10.0;
+    maxs[2] = maxs[2] - 10.0f;
   }
-  VectorMA((float *)a1, 3.0, (float *)a2, end);
+  VectorMA((float *)a1, 3.0f, (float *)a2, end);
   qmemcpy(v10, AAS_Trace(v10, (float*)a1, mins, maxs, end, *(_DWORD *)(a1 + 36), 33619971), sizeof(v10));
   result = v10[1];
   if ( !v10[1] )
@@ -30963,15 +30963,15 @@ int __cdecl GrappleState(int ms, float *reach)
     v2 = LibVar(aLaserhook, (char *)a0);
     libvar_laserhook = v2;
   }
-  if ( v2->value == 0.0 && !dword_1006295C )
+  if ( v2->value == 0.0f && !dword_1006295C )
     dword_1006295C = IndexFromModel(aModelsWeaponsG);
   v3 = AAS_NextBSPEntity(0);
   if ( !v3 )
     return 0;
   while ( 1 )
   {
-    if ( (libvar_laserhook->value != 0.0 || AAS_EntityModelindex(v3) != dword_1006295C)
-      && (libvar_laserhook->value == 0.0 || (AAS_EntityRenderFX(v3) & 0x80u) == 0) )
+    if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(v3) != dword_1006295C)
+      && (libvar_laserhook->value == 0.0f || (AAS_EntityRenderFX(v3) & 0x80u) == 0) )
     {
       goto LABEL_13;
     }
@@ -32981,7 +32981,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
     {
       if ( a2->type != 1 )
         return bi_Print(3, aCanTMergeWeigh);
-      a1->weight = (a2->weight + a1->weight) * 0.5;
+      a1->weight = (a2->weight + a1->weight) * 0.5f;
     }
     a1 = a1->next;
     if ( !a1 )
