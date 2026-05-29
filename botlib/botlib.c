@@ -32943,19 +32943,17 @@ void __cdecl EA_DropItem(int client, char *item)
 // against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_Use/EA_DropItem exactly.
-int __cdecl sub_10037150(int client, char *item)
+void __cdecl sub_10037150(int client, char *item)
 {
   bi_BotClientCommand(client, aInvuse, item, (char *)NULL);
-  return 0;
 }
 
 //----- (10037180) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub).  Mirror of sub_10037150 with the
 // "invdrop" command string (0x1005E63C).
-int __cdecl sub_10037180(int client, char *item)
+void __cdecl sub_10037180(int client, char *item)
 {
   bi_BotClientCommand(client, aInvdrop, item, (char *)NULL);
-  return 0;
 }
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
 
@@ -40054,14 +40052,14 @@ double __cdecl VectorNormalize(float *v)
  * in-place VectorNormalize at 10043290; preserved by /INCREMENTAL. */
 double __cdecl sub_10043300(float *v, float *out)
 {
-  double length;
+  float length;
 
   length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  if ( length != 0.0 )
+  if ( length != 0.0f )
   {
-    out[0] = (float)(1.0 / length * v[0]);
-    out[1] = (float)(1.0 / length * v[1]);
-    out[2] = (float)(1.0 / length * v[2]);
+    out[0] = (float)(1.0f / length * v[0]);
+    out[1] = (float)(1.0f / length * v[1]);
+    out[2] = (float)(1.0f / length * v[2]);
   }
   return length;
 }
