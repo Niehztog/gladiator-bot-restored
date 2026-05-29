@@ -29176,23 +29176,15 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
 
   v2 = ReadWeightConfig(a2);
   BotGoalHandleP0(goalstate) = v2;
-  if ( v2 )
-  {
-    if ( dword_1006435C )
-    {
-      BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, dword_1006435C);
-      return 0;
-    }
-    else
-    {
-      return 28;
-    }
-  }
-  else
+  if ( !v2 )
   {
     bi_Print(4, aCouldnTLoadWei);
     return 28;
   }
+  if ( !dword_1006435C )
+    return 28;
+  BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, dword_1006435C);
+  return 0;
 }
 // 10001091: using guessed type int __cdecl ReadWeightConfig(_DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
