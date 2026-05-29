@@ -30776,19 +30776,19 @@ void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
 {
   void *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
-  vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
   vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
+  vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
   vec3_t telegoal;    // [esp+20h] [ebp-3Ch] BYREF (was v8[3])
   _DWORD v9[12];      // [esp+2Ch] [ebp-30h] BYREF
 
   BotClearMoveResult(v9);
   MoverBottomCenter((aas_reachability_t *)a3, telegoal);
-  telegoaldir[0] = telegoal[0] - *(float *)a2;
-  telegoaldir[1] = telegoal[1] - *(float *)(a2 + 4);
-  telegoaldir[2] = telegoal[2] - *(float *)(a2 + 8);
   reachdir[0] = *(float *)(a3 + 24) - *(float *)a2;
   reachdir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
   reachdir[2] = *(float *)(a3 + 32) - *(float *)(a2 + 8);
+  telegoaldir[0] = telegoal[0] - *(float *)a2;
+  telegoaldir[1] = telegoal[1] - *(float *)(a2 + 4);
+  telegoaldir[2] = telegoal[2] - *(float *)(a2 + 8);
   if ( fabs(reachdir[2]) <= fabs(telegoaldir[2]) )
   {
     VectorNormalize(reachdir);
