@@ -36378,7 +36378,7 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
 {
   int result; // eax
   int v2; // eax
-  long double v3; // [esp+Ch] [ebp-438h] BYREF
+  double v3; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
   result = PC_Evaluate(src, 0, &v3, 0);
@@ -36389,7 +36389,7 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
   token.linescrossed = 0;
-  sprintf(token.string, "%1.2f", (double)fabs(v3));
+  sprintf(token.string, "%1.2f", fabs(v3));
   token.type = 3;
   token.subtype = 10248;
   PC_UnreadSourceToken(src, token.string);
@@ -36468,28 +36468,26 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *src)
 {
   int result; // eax
   script_t *v2; // eax
-  long double v3; // [esp+Ch] [ebp-438h] BYREF
+  double v3; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(src, 0, &v3, 0);
-  if ( result )
-  {
-    v2 = src->scriptstack;
-    token.line = v2->line;
-    token.whitespace_p = v2->script_p;
-    token.endwhitespace_p = v2->script_p;
-    token.linescrossed = 0;
-    sprintf(token.string, "%1.2f", (double)fabs(v3));
-    token.type = 3;
-    token.subtype = 10248;
-    token.floatvalue = v3;
-    token.intvalue = (__int64)v3;
-    PC_UnreadSourceToken(src, token.string);
-    if ( v3 < 0.0 )
-      UnreadSignToken(src);
-    return 1;
-  }
-  return result;
+  if ( !result )
+    return result;
+  v2 = src->scriptstack;
+  token.line = v2->line;
+  token.whitespace_p = v2->script_p;
+  token.endwhitespace_p = v2->script_p;
+  token.linescrossed = 0;
+  sprintf(token.string, "%1.2f", fabs(v3));
+  token.type = 3;
+  token.subtype = 10248;
+  token.intvalue = (__int64)v3;
+  token.floatvalue = v3;
+  PC_UnreadSourceToken(src, token.string);
+  if ( v3 < 0.0 )
+    UnreadSignToken(src);
+  return 1;
 }
 
 //----- (1003D420) --------------------------------------------------------
