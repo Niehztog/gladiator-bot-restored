@@ -9886,20 +9886,22 @@ int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
     return 0;
   }
   v4 = 0;
-  if ( a2->numindexes <= 0 )
-    return 0;
-  while ( 1 )
+  if ( a2->numindexes > 0 )
   {
-    v5 = a2->indexes[v4];
-    if ( v5 )
+    while ( 1 )
     {
-      if ( !_strcmpi(v5, String2) )
-        break;
+      v5 = a2->indexes[v4];
+      if ( v5 )
+      {
+        if ( !_strcmpi(v5, String2) )
+          break;
+      }
+      if ( ++v4 >= a2->numindexes )
+        return 0;
     }
-    if ( ++v4 >= a2->numindexes )
-      return 0;
+    return v4;
   }
-  return v4;
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100669B0: using guessed type int aasworld.indexes_loaded;
