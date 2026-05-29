@@ -15947,7 +15947,7 @@ int AAS_FreeAllClusterAreaCache()
       for ( entry = row[areaInCluster]; entry; entry = next )
       {
         next = entry->next;
-        AAS_FreeRoutingCache(entry);
+        FreeMemory(entry);
       }
       row[areaInCluster] = NULL;
     }
