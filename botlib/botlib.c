@@ -552,7 +552,7 @@ int AAS_FreeAASLinkHeap();
 aas_link_t *AAS_AllocAASLink(void);
 aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1);
 int AAS_InitAASLinkedEntities();
-int AAS_FreeAASLinkedEntities();
+void AAS_FreeAASLinkedEntities();
 int __cdecl AAS_PointAreaNum(vec3_t point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 int __cdecl AAS_PointContents(vec3_t point);
@@ -719,7 +719,7 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
-int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
+void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
 int __cdecl BotCheckInitialChatIntegrety(int *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat);
@@ -849,7 +849,7 @@ void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
 void __cdecl EA_Use(int client, char *item);
 void __cdecl EA_DropItem(int client, char *item);
-int __cdecl sub_100371B0(int client, int sequence);
+void __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Attack(int a1);
 int __cdecl EA_Respawn(int a1);
@@ -4910,9 +4910,9 @@ int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2)
   const char *result; // eax
 
   result = (const char *)AAS_ValueForBSPEpairKey(a1, a2);
-  if ( result )
-    return atoi(result);
-  return 0;
+  if ( !result )
+    return (int)result;
+  return atoi(result);
 }
 
 //----- (10006920) --------------------------------------------------------
@@ -17145,12 +17145,11 @@ int AAS_InitAASLinkedEntities()
 // 10066994: using guessed type int aasworld.arealinkedentities;
 
 //----- (1001AE30) --------------------------------------------------------
-int AAS_FreeAASLinkedEntities()
+void AAS_FreeAASLinkedEntities()
 {
   if ( aasworld.arealinkedentities )
     FreeMemory(aasworld.arealinkedentities);
   aasworld.arealinkedentities = NULL;
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066994: using guessed type int aasworld.arealinkedentities;
@@ -26883,7 +26882,7 @@ LABEL_10:
 // pointer linked list (each node = { void *something; void *next; }).
 // We keep the offender-list cleanup as raw _DWORD chain (it's an opaque
 // transient allocation) but retype the outer replychat walk.
-int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
+void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
 {
   bot_replychat_t *rc;
   bot_chatmessage_t *cm;
@@ -26902,7 +26901,6 @@ int __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
     FreeMemory(result);
     result = next;
   }
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -32992,13 +32990,12 @@ static int __cdecl sub_10037180(int client, char *item)
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
 
 //----- (100371B0) --------------------------------------------------------
-int __cdecl sub_100371B0(int client, int sequence)
+void __cdecl sub_100371B0(int client, int sequence)
 {
   char Buffer[128]; // [esp+0h] [ebp-80h] BYREF
 
   sprintf(Buffer, "%d", sequence);
   bi_BotClientCommand(client, aWave, Buffer, (char *)NULL);
-  return 0;
 }
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
 
@@ -35134,7 +35131,10 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
  * and don't drift when token_t's pointer fields grow on 64-bit. */
 BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *a1)
 {
-  return a1->endwhitespace_p > a1->whitespace_p;
+  int diff;
+
+  diff = a1->endwhitespace_p - a1->whitespace_p;
+  return diff > 0;
 }
 
 //----- (1003AC00) --------------------------------------------------------
@@ -40210,21 +40210,21 @@ float *__cdecl CrossProduct(float *v1, float *v2, float *cross)
 //----- (10043500) --------------------------------------------------------
 double __cdecl VectorLength(float *v)
 {
-  long double sq_sum; // st7
+  float sq_sum; // st7
   int count; // ecx
-  long double term; // st5
+  float term; // st5
 
-  sq_sum = 0.0L;
+  sq_sum = 0.0f;
   count = 3;
   do
   {
-    term = (long double)*v * (long double)*v;
+    term = *v * *v;
     ++v;
     --count;
     sq_sum = sq_sum + term;
   }
   while ( count );
-  return (double)sqrtl(sq_sum);
+  return sqrt(sq_sum);
 }
 
 //----- (10043540) --------------------------------------------------------
