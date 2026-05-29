@@ -26250,7 +26250,7 @@ char *__cdecl RandomString(const char *name)
   {
     if ( !strcmp(list->string, name) )
     {
-      n = (int)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)list->numstrings);
+      n = (int)((rand() & 0x7FFF) * 0.000030518509f * list->numstrings);
       rs = list->firstrandomstring;
       while ( rs )
       {
@@ -28569,14 +28569,15 @@ void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime)
   int v3; // esi
   float *i; // edi
 
-  v3 = 0;
-  for ( i = (float *)((char *)gs + 716); AAS_Time() <= *i; ++i )
+  for ( v3 = 0, i = (float *)((char *)gs + 716); v3 < 64; ++v3, ++i )
   {
-    if ( ++v3 >= 64 )
+    if ( AAS_Time() > *i )
+    {
+      *(_DWORD *)((char *)gs + 4 * v3 + 460) = number;
+      *(float *)((char *)gs + 4 * v3 + 716) = AAS_Time() + avoidtime;
       return;
+    }
   }
-  *(_DWORD *)((char *)gs + 4 * v3 + 460) = number;
-  *(float *)((char *)gs + 4 * v3 + 716) = AAS_Time() + avoidtime;
 }
 
 //----- (1002F820) --------------------------------------------------------
@@ -30873,7 +30874,7 @@ int __cdecl GrappleState(int ms, float *reach)
     v5[0] = v6[4] - reach[6];
     v5[1] = v6[5] - reach[7];
     v5[2] = v6[6] - reach[8];
-    if ( VectorLength(v5) < 32.0 )
+    if ( VectorLength(v5) < 32.0f )
       return 2;
 LABEL_13:
     v3 = AAS_NextBSPEntity(v3);
