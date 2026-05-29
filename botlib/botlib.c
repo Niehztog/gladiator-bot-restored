@@ -497,7 +497,7 @@ int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(char *face);
 double __cdecl AAS_AreaVolume(int areanum);
 double __cdecl AAS_AreaGroundFaceArea(int areanum);
-int __cdecl AAS_FaceCenter(int facenum, vec3_t center);
+void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 __int64 AAS_FallDamageDistance();
 double __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
 float __cdecl AAS_MaxJumpDistance(float a1);
@@ -583,7 +583,7 @@ void BotResetNodeSwitches();
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs);
 int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3);
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3);
-int __cdecl AIEnter_Intermission(bot_state_t *bs);
+void __cdecl AIEnter_Intermission(bot_state_t *bs);
 int __cdecl AINode_Intermission(bot_state_t *bs);
 int __cdecl AIEnter_Observer(bot_state_t *bs);
 int __cdecl AINode_Observer(bot_state_t *bs);
@@ -11892,9 +11892,9 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum)
 }
 
 //----- (100113F0) --------------------------------------------------------
-int __cdecl AAS_FaceCenter(int facenum, vec3_t center)
+void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
-  int v2; // esi
+  unsigned int v2; // esi
   char *v3; // edi
   int v4i;
   char *v4;
@@ -11919,11 +11919,10 @@ int __cdecl AAS_FaceCenter(int facenum, vec3_t center)
       center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 1) + center[1];
       center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 2) + center[2];
     }
-    while ( v2 < *((_DWORD *)v3 + 2) );
+    while ( v2 < *((unsigned int *)v3 + 2) );
   }
   v6 = 0.5 / (double)*((int *)v3 + 2);
   VectorScale((float *)center, v6, (float *)center);
-  return 0;
 }
 
 //----- (10011520) --------------------------------------------------------
@@ -19399,18 +19398,14 @@ LABEL_136:
 // 1001D760: using guessed type char var_114[152];
 
 //----- (1001EAE0) --------------------------------------------------------
-int __cdecl AIEnter_Intermission(bot_state_t *bs)
+void __cdecl AIEnter_Intermission(bot_state_t *bs)
 {
-
-  int result; // eax
 
   BotRecordNodeSwitch(bs, aIntermission, &byte_1006294C);
   BotResetState((int *)bs);
-  result = BotChat_EndLevel(bs);
-  if ( result )
-    result = BotEnterChat(&bs->chatstate, bs->client, 0);
+  if ( BotChat_EndLevel(bs) )
+    BotEnterChat(&bs->chatstate, bs->client, 0);
   BotAINode(bs) = AINode_Intermission;
-  return result;
 }
 // 10001406: using guessed type _DWORD __cdecl BotResetState(_DWORD);
 // 100014A1: using guessed type int __cdecl AINode_Intermission(bot_state_t *bs);
@@ -28873,9 +28868,9 @@ void *__cdecl BotGetTopGoal(int *a1)
   int result; // eax
 
   result = *(_DWORD *)((char *)a1 + 456);
-  if ( result )
-    return (char *)a1 + 56 * result + 8;
-  return result;
+  if ( !result )
+    return (void *)result;
+  return (char *)a1 + 56 * result + 8;
 }
 
 //----- (1002FE80) --------------------------------------------------------
