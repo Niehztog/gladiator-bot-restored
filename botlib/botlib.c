@@ -11884,7 +11884,7 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum)
 //----- (100113F0) --------------------------------------------------------
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
-  unsigned int v2; // esi
+  int v2; // esi
   char *v3; // edi
   int v4i;
   char *v4;
@@ -11909,7 +11909,7 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
       center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 1) + center[1];
       center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 2) + center[2];
     }
-    while ( v2 < *((unsigned int *)v3 + 2) );
+    while ( v2 < *((int *)v3 + 2) );
   }
   v6 = 0.5 / (double)*((int *)v3 + 2);
   VectorScale((float *)center, v6, (float *)center);
