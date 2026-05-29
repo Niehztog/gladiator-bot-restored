@@ -20927,7 +20927,7 @@ void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
     EA_Use(bs->client, aSilencer);
-  if ( (bi_PointContents(bs->eye) & 0x38) != 0
+  if ( (sub_10003080(bs->eye) & 0x38) != 0
        && !bs->rebreather_seconds
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
     EA_Use(bs->client, aRebreather);
@@ -22037,21 +22037,23 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
 
   v1 = 0;
   v2 = 0;
-  if ( maxclients <= 0 )
-    return 0;
-  v3 = 0;
-  do
+  if ( maxclients > 0 )
   {
-    if ( strlen(v3 + dword_100643A8) )
+    v3 = 0;
+    do
     {
-      if ( BotSameTeam(bs, v2 + 1) )
-        ++v1;
+      if ( strlen(v3 + dword_100643A8) )
+      {
+        if ( BotSameTeam(bs, v2 + 1) )
+          ++v1;
+      }
+      ++v2;
+      v3 += 144;
     }
-    ++v2;
-    v3 += 144;
+    while ( v2 < maxclients );
+    return v1;
   }
-  while ( v2 < maxclients );
-  return v1;
+  return 0;
 }
 // 10064028: using guessed type int maxclients;
 // 100643A8: using guessed type int dword_100643A8;
@@ -24860,22 +24862,15 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
 int __cdecl BotSettings(int a1, const void *a2)
 {
   _DWORD *v2; // eax
-  int result; // eax
-  void *v4; // edi
 
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
-  if ( *v2 )
-  {
-    v4 = v2 + 310;
-    result = 0;
-    qmemcpy(v4, a2, 0x1B0u);
-  }
-  else
+  if ( !*v2 )
   {
     bi_Print(4, aTriedToUpdateS);
     return 26;
   }
-  return result;
+  qmemcpy(v2 + 310, a2, 0x1B0u);
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100643A0: using guessed type int dword_100643A0;
@@ -25396,22 +25391,17 @@ double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, floa
 int __cdecl Characteristic_Integer(bot_character_t *a1, int a2)
 {
   char v2; // al
-  __int64 v3; // rax
 
-  if ( !CheckCharacteristicIndex(a1, a2) )
-    goto LABEL_7;
-  v2 = (char)BC_PAIRS(a1)[a2].type;
-  if ( v2 != 1 )
+  if ( CheckCharacteristicIndex(a1, a2) )
   {
+    v2 = (char)BC_PAIRS(a1)[a2].type;
+    if ( v2 == 1 )
+      return (int)BC_PAIRS(a1)[a2].value;
     if ( v2 == 2 )
       return (__int64)*(float *)&BC_PAIRS(a1)[a2].value;
-    bi_Print(3, "characteristic %d is not a integer\n", a2);
-LABEL_7:
-    LODWORD(v3) = 0;
-    return v3;
   }
-  LODWORD(v3) = (int)BC_PAIRS(a1)[a2].value;
-  return v3;
+  bi_Print(3, "characteristic %d is not a integer\n", a2);
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
