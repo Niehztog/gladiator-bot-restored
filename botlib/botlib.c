@@ -30214,7 +30214,6 @@ int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
 //----- (100323E0) --------------------------------------------------------
 int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3)
 {
-  int v3; // eax
   int *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
@@ -30231,9 +30230,7 @@ int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3)
   v8[7] = *(int *)&dir[1];
   v8[8] = *(int *)&dir[2];
   vectoangles(dir, (float *)&v8[9]);
-  v3 = v8[5];
-  LOBYTE(v3) = LOBYTE(v8[5]) | 2;
-  v8[5] = v3;
+  v8[5] |= 2;
   result = a1;
   qmemcpy(a1, v8, 0x30u);
   return result;
@@ -30631,7 +30628,6 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
 int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3)
 {
   int v4; // ecx
-  int v5; // eax
   int *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
@@ -30649,16 +30645,12 @@ int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3)
       dir[2] = 0.0f;
     v11 = VectorNormalize(dir);
     BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
-    if ( v11 >= 30.0 )
-      EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-    else
+    if ( v11 < 30.0f )
       EA_Move(*(_DWORD *)(a2 + 40), dir, 200.0);
+    else
+      EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
     if ( (*(_BYTE *)(a2 + 96) & 4) != 0 )
-    {
-      v5 = v10[5];
-      LOBYTE(v5) = LOBYTE(v10[5]) | 2;
-      v10[5] = v5;
-    }
+      v10[5] |= 2;
     v10[6] = *(int *)&dir[0];
     v10[7] = *(int *)&dir[1];
     v10[8] = *(int *)&dir[2];
@@ -30908,7 +30900,6 @@ LABEL_13:
 //----- (10033A70) --------------------------------------------------------
 void __cdecl BotResetGrapple(float *ms)
 {
-  int v1; // eax
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF
 
   qmemcpy(v2, AAS_ReachabilityFromNum((char *)v2, *((_DWORD *)ms + 19)), sizeof(v2));
@@ -30922,13 +30913,11 @@ void __cdecl BotResetGrapple(float *ms)
    * [ebx+0x60],0x40` — a direct integer-flag read.  Match it by going
    * through the _DWORD lens (same shape used below in this function for
    * the write of the same field).  Pattern: float_array_int_bitpattern. */
-  if ( v2[9] != 14 && ((*((_DWORD *)ms + 24) & 0x40) != 0 || ms[26] != 0.0) )
+  if ( v2[9] != 14 && ((*((_DWORD *)ms + 24) & 0x40) != 0 || ms[26] != 0.0f) )
   {
     EA_Command(*((_DWORD *)ms + 10), aHookoff, (char *)0);
-    v1 = *((_DWORD *)ms + 24);
-    LOBYTE(v1) = v1 & 0xBF;
-    ms[26] = 0.0;
-    *((_DWORD *)ms + 24) = v1;
+    *((_DWORD *)ms + 24) &= 0xFFFFFFBFu;
+    ms[26] = 0.0f;
   }
 }
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
@@ -31937,8 +31926,6 @@ int __cdecl BotResetMoveState(bot_weaponstate_t *ws)
   weightconfig_t *v1; // esi
   int *v2; // ebx
 
-  if ( !ws )
-    return 0;
   v1 = ws->weightconfig;
   v2 = ws->itemweights;
   memset(ws, 0, sizeof(*ws));
