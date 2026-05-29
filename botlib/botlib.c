@@ -11688,10 +11688,10 @@ int AAS_SetupReachabilityHeap()
       AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
   reachabilityheap = (intptr_t)pool;
   for ( i = 0; i < AAS_REACHABILITYHEAP_NODES - 1; ++i )
-    pool[i].next = &pool[i + 1];
-  pool[AAS_REACHABILITYHEAP_NODES - 1].next = NULL;
-  nextreachability = (intptr_t)pool;
-  return (int)(intptr_t)pool;
+    ((aas_reachabilitynode_t *)reachabilityheap)[i].next = &((aas_reachabilitynode_t *)reachabilityheap)[i + 1];
+  ((aas_reachabilitynode_t *)reachabilityheap)[AAS_REACHABILITYHEAP_NODES - 1].next = NULL;
+  nextreachability = reachabilityheap;
+  return (int)reachabilityheap;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10066788: using guessed type int reachabilityheap;
