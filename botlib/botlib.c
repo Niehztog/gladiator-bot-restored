@@ -465,7 +465,7 @@ int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t ma
 int AAS_Initialized();
 // int __usercall AAS_ContinueInit@<eax>(double a1@<st0>, int a2);
 // int __usercall AAS_StartFrame@<eax>(double a1@<st0>, float time); /* AAS_StartFrame body */
-double AAS_Time();
+float AAS_Time();
 intptr_t __cdecl sub_1000E140(char *Source);
 int __cdecl sub_1000E430(char *Source); // idb
 // int __usercall BotLibLoadMap@<eax>(double a1@<st0>, char *Source);
@@ -10177,17 +10177,17 @@ int AAS_StartFrame(float time)
   sub_1000D4E0(time);
   AAS_ContinueInit(SLODWORD(time));
   aasworld.frameroutingupdates = 0;
-  if ( LibVarGetValue(aShowcacheupdat) != 0.0 )
+  if ( LibVarGetValue(aShowcacheupdat) != 0.0f )
   {
     AAS_RoutingInfo();
     LibVarSet(aShowcacheupdat, (char *)a0);
   }
-  if ( LibVarGetValue(aShowmemoryusag) != 0.0 )
+  if ( LibVarGetValue(aShowmemoryusag) != 0.0f )
   {
     PrintUsedMemorySize();
     LibVarSet(aShowmemoryusag, (char *)a0);
   }
-  if ( LibVarGetValue(aMemorydump) != 0.0 )
+  if ( LibVarGetValue(aMemorydump) != 0.0f )
   {
     PrintMemoryLabels();
     LibVarSet(aMemorydump, (char *)a0);
@@ -10199,7 +10199,7 @@ int AAS_StartFrame(float time)
 // 10066A70: using guessed type int aasworld.frameroutingupdates;
 
 //----- (1000E120) --------------------------------------------------------
-double AAS_Time()
+float AAS_Time()
 {
   return aasworld.time;
 }
@@ -22540,7 +22540,7 @@ LABEL_5:
     if ( !v7 || (atoi(v8) & 1) != 0 )
       return (int *)v2;
   }
-  if ( !strcmp(v6, aFuncDoor) && FloatForKey(v2, aHealth) != 0.0 )
+  if ( !strcmp(v6, aFuncDoor) && FloatForKey(v2, aHealth) != 0.0f )
     return (int *)v2;
   v16[0] = (const char *)AAS_ValueForBSPEpairKey(v2, aTargetname);
   if ( !v16[0] )
@@ -22949,7 +22949,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
     v61 = v46 + v43;
     VectorScale(v59_vec, 0.5, v59_vec);
     v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(v50[0]) * v69) * 0.5;
-    if ( FloatForKey(v6, aHealth) != 0.0 )
+    if ( FloatForKey(v6, aHealth) != 0.0f )
     {
       v34 = -v65;
       VectorMA(v59_vec, v34, v50, v38_vec);
@@ -23315,10 +23315,10 @@ double __cdecl BotGetTime(bot_match_t *match)
   bot_match_t Destination; // [esp+9Ch] [ebp-F0h] BYREF
 
   if ( (match->subtype & 0x10) == 0 )
-    return 0.0;
+    return 0.0f;
   BotMatchVariable(match, 5, String);
   if ( !BotFindMatch(String, &Destination, 8) )
-    return 0.0;
+    return 0.0f;
   BotMatchVariable(&Destination, 5, String);
   if ( Destination.type == 105 )
   {
@@ -23332,9 +23332,9 @@ double __cdecl BotGetTime(bot_match_t *match)
   }
   v3 = v1;
 LABEL_8:
-  if ( v3 > 0.0 )
+  if ( v3 > 0.0f )
     return AAS_Time() + v3;
-  return 0.0;
+  return 0.0f;
 }
 // 1002686D: variable 'v3' is possibly undefined
 
