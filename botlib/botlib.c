@@ -31808,9 +31808,9 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
   v1 = ws->weaponindex;
   if ( v1 < 0 )
     return 0;
-  if ( dword_10064080 )
-    return &dword_10064080->weapons[v1];
-  return 0;
+  if ( !dword_10064080 )
+    return 0;
+  return &dword_10064080->weapons[v1];
 }
 // 10064080: using guessed type int dword_10064080;
 
