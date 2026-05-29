@@ -22142,12 +22142,12 @@ void BotAimAtEnemy(bot_state_t *bs)
   float v46[31]; // [esp+D0h] [ebp-F8h] BYREF
   char v47[124]; // [esp+14Ch] [ebp-7Ch] BYREF
 
-  /* -1065353216 = 0xBF800000 = -1.0f; 1082130432 = 0x40800000 = 4.0f.
+  /* 0xc0800000 = -4.0f; 0x40800000 = 4.0f.
    * v43, v44 are float[3] — use float literals to avoid int→float conversion. */
-  v43[0] = -1.0f;
+  v43[0] = -4.0f;
   v2 = bs->enemy;
-  v43[1] = -1.0f;
-  v43[2] = -1.0f;
+  v43[1] = -4.0f;
+  v43[2] = -4.0f;
   v44[0] = 4.0f;
   v44[1] = 4.0f;
   v44[2] = 4.0f;
