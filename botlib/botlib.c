@@ -358,7 +358,7 @@ int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 bsp_link_t *sub_100031F0(void);
 int __cdecl AAS_BestReachableArea(int *, vec3_t, vec3_t, vec3_t);
 int AAS_TestPortals();
-int __cdecl EA_DropItem(int client, char *item);  // fixed from weak
+void __cdecl EA_DropItem(int client, char *item);  // fixed from weak
 void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float *end, int a6, int a7);
 // int __usercall sub_100030A0@<eax>(double a1@<st0>);
 bsp_link_t *sub_100031F0(void);
@@ -610,8 +610,8 @@ typedef struct bot_weaponstate_s bot_weaponstate_t;
 char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws);
 void __cdecl BotUpdateInventory(bot_state_t *bs);
 int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2);
-int __cdecl BotBattleUseItems(_DWORD *a1);
-_DWORD *__cdecl sub_100215E0(_DWORD *a1);
+void __cdecl BotBattleUseItems(bot_state_t *bs);
+void __cdecl sub_100215E0(bot_state_t *bs);
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs);
 BOOL __cdecl BotIsDead(bot_state_t *bs);
 BOOL __cdecl BotIsObserver(bot_state_t *bs);
@@ -751,7 +751,7 @@ _DWORD *BotShutdownChatAI();
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
-int __cdecl FreeLevelItem(levelitem_t *item);
+void __cdecl FreeLevelItem(levelitem_t *item);
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
 // _DWORD *__usercall BotInitLevelItems@<eax>(double a1@<st0>);
@@ -845,10 +845,10 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2);
-int __cdecl EA_Say(int client, char *str);
-int __cdecl EA_SayTeam(int client, char *str);
-int __cdecl EA_Use(int client, char *item);
-int __cdecl EA_DropItem(int client, char *item);
+void __cdecl EA_Say(int client, char *str);
+void __cdecl EA_SayTeam(int client, char *str);
+void __cdecl EA_Use(int client, char *item);
+void __cdecl EA_DropItem(int client, char *item);
 int __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Attack(int a1);
@@ -19651,7 +19651,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     AIEnter_Seek_NBG(bs);
     return 0;
   }
-  BotBattleUseItems((_DWORD *)bs);
+  BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)ent, v8), sizeof(v15));
   if ( v15[0] )
@@ -19790,7 +19790,7 @@ LABEL_18:
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  BotBattleUseItems((_DWORD *)bs);
+  BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)v4, v8), sizeof(v15));
   if ( v15[0] )
@@ -19993,7 +19993,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
         return 0;
       }
     }
-    BotBattleUseItems((_DWORD *)bs);
+    BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
     qmemcpy(v18, (const void *)BotMoveToGoal((intptr_t)v19, (intptr_t)bs->movestate, v3, v2), sizeof(v18));
     if ( v18[0] )
@@ -20167,8 +20167,8 @@ LABEL_9:
         v8 |= 0x1000u;
       sub_10020FE0(bs, BotWS(bs));
       BotChooseBestFightWeapon(BotWS(bs));
-      sub_100215E0((_DWORD *)bs);
-      BotBattleUseItems((_DWORD *)bs);
+      sub_100215E0(bs);
+      BotBattleUseItems(bs);
       qmemcpy(v11, (const void *)BotAttackMove(v13, (intptr_t)bs, v8), sizeof(v11));
       if ( v11[0] )
       {
@@ -20332,7 +20332,7 @@ LABEL_8:
       else
       {
         BotUpdateBattleInventory(bs, bs->enemy);
-        BotBattleUseItems((_DWORD *)bs);
+        BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
         qmemcpy(v13, (const void *)BotMoveToGoal((intptr_t)v14, (intptr_t)bs->movestate, (intptr_t)v12, v2), sizeof(v13));
         if ( v13[0] )
@@ -20497,7 +20497,7 @@ LABEL_10:
       }
       else
       {
-        BotBattleUseItems((_DWORD *)bs);
+        BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
         qmemcpy(v10, (const void *)BotMoveToGoal((intptr_t)v11, (intptr_t)bs->movestate, (intptr_t)v3, v2), sizeof(v10));
         if ( v10[0] )
@@ -20668,7 +20668,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
       AIEnter_Battle_Fight(bs);
     return 0;
   }
-  BotBattleUseItems((_DWORD *)bs);
+  BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
   qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)topgoal, v8), sizeof(v15));
   if ( v15[0] )
@@ -20927,43 +20927,32 @@ static int __cdecl sub_100214E0(char *p)
 }
 
 //----- (10021500) --------------------------------------------------------
-int __cdecl BotBattleUseItems(_DWORD *a1)
+void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
-  bot_state_t *bs = (bot_state_t *)a1;
-  int v1;
-  int result; // eax
-
-  if ( (int)a1[457] > 0 )
-    EA_Use(a1[1], aSilencer);
-  v1 = bi_PointContents((float *)(a1 + 428));   /* IDA-dropped: eye-pos liquid check for rebreather */
-  if ( (v1 & 0x38) != 0 && !bs->rebreather_seconds && (int)a1[458] > 0 )
-    EA_Use(a1[1], aRebreather);
-  if ( !bs->power_shield_active_cells && (int)a1[438] > 0 )
-    EA_Use(a1[1], aPowerShield);
-  result = bs->power_screen_active_cells;
-  if ( !result )
-  {
-    result = a1[437];
-    if ( result > 0 )
-      return EA_Use(a1[1], aPowerScreen);
-  }
-  return result;
+  if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
+    EA_Use(bs->client, aSilencer);
+  if ( (bi_PointContents(bs->eye) & 0x38) != 0
+       && !bs->rebreather_seconds
+       && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
+    EA_Use(bs->client, aRebreather);
+  if ( !bs->power_shield_active_cells && bs->inventory[6] > 0 )   /* +1752 */
+    EA_Use(bs->client, aPowerShield);
+  if ( !bs->power_screen_active_cells && bs->inventory[5] > 0 )   /* +1748 */
+    EA_Use(bs->client, aPowerScreen);
 }
 // 1002152F: variable 'v1' is possibly undefined
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
 
 //----- (100215E0) --------------------------------------------------------
-_DWORD *__cdecl sub_100215E0(_DWORD *a1)
+void __cdecl sub_100215E0(bot_state_t *bs)
 {
-  bot_state_t *bs = (bot_state_t *)a1;
-  _DWORD *result; // eax
-
-  result = a1;
-  if ( !bs->quad_seconds && (int)a1[455] > 0 )
-    return (_DWORD *)EA_Use(a1[1], aQuadDamage);
-  if ( !bs->invuln_seconds && (int)a1[456] > 0 )
-    return (_DWORD *)EA_Use(a1[1], aInvulnerabilit);
-  return result;
+  if ( !bs->quad_seconds && bs->inventory[23] > 0 )   /* +1820 quad ammo */
+  {
+    EA_Use(bs->client, aQuadDamage);
+    return;
+  }
+  if ( !bs->invuln_seconds && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
+    EA_Use(bs->client, aInvulnerabilit);
 }
 // 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
 
@@ -28463,11 +28452,10 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
 // 10064344: using guessed type int dword_10064344;
 
 //----- (1002F2B0) --------------------------------------------------------
-int __cdecl FreeLevelItem(levelitem_t *item)
+void __cdecl FreeLevelItem(levelitem_t *item)
 {
   item->next = dword_10064344;
   dword_10064344 = item;
-  return 0;
 }
 // 10064344: using guessed type int dword_10064344;
 
@@ -33038,31 +33026,27 @@ static void __cdecl sub_10037020(weightconfig_t *a, weightconfig_t *b)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10037090) --------------------------------------------------------
-int __cdecl EA_Say(int client, char *str)
+void __cdecl EA_Say(int client, char *str)
 {
   bi_BotClientCommand(client, aSay, str, (char *)NULL);
-  return 0;
 }
 
 //----- (100370C0) --------------------------------------------------------
-int __cdecl EA_SayTeam(int client, char *str)
+void __cdecl EA_SayTeam(int client, char *str)
 {
   bi_BotClientCommand(client, aSayTeam, str, (char *)NULL);
-  return 0;
 }
 
 //----- (100370F0) --------------------------------------------------------
-int __cdecl EA_Use(int client, char *item)
+void __cdecl EA_Use(int client, char *item)
 {
   bi_BotClientCommand(client, aUse, item, (char *)NULL);
-  return 0;
 }
 
 //----- (10037120) --------------------------------------------------------
-int __cdecl EA_DropItem(int client, char *item)
+void __cdecl EA_DropItem(int client, char *item)
 {
   bi_BotClientCommand(client, aDrop, item, (char *)NULL);
-  return 0;
 }
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
 
