@@ -2638,10 +2638,10 @@ int __cdecl sub_10003360(float *a1, int a2)
     if ( *(float *)(dword_100674F4 + 20 * *v4 + 4) * a1[1]
        + *(float *)(dword_100674F4 + 20 * *v4 + 8) * a1[2]
        + *(float *)(dword_100674F4 + 20 * *v4) * *a1
-       - *(float *)(dword_100674F4 + 20 * *v4 + 12) <= 0.0 )
-      v3 = v4[2];
-    else
+       - *(float *)(dword_100674F4 + 20 * *v4 + 12) > 0.0f )
       v3 = v4[1];
+    else
+      v3 = v4[2];
   }
   return -1 - v3;
 }
@@ -19616,8 +19616,8 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
-  ent = bs->activategoal.origin;
   bs->enemy = 0;
+  ent = bs->activategoal.origin;
   if ( !ent || BotTouchingGoal(bs->origin, ent) )
     *(int *)&bs->activategoal_time = 0;
   if ( AAS_Time() > bs->activategoal_time )
@@ -21134,8 +21134,12 @@ bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int a
   wp->goal.origin[1] = origin[1];
   wp->goal.origin[2] = origin[2];
   wp->goal.areanum   = areanum;
-  wp->goal.mins[0] = wp->goal.mins[1] = wp->goal.mins[2] = -8.0f;
-  wp->goal.maxs[0] = wp->goal.maxs[1] = wp->goal.maxs[2] =  8.0f;
+  wp->goal.mins[0] = -8.0f;
+  wp->goal.mins[1] = -8.0f;
+  wp->goal.mins[2] = -8.0f;
+  wp->goal.maxs[0] =  8.0f;
+  wp->goal.maxs[1] =  8.0f;
+  wp->goal.maxs[2] =  8.0f;
   wp->next = NULL;
   wp->prev = NULL;
   return wp;
@@ -22025,9 +22029,8 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
       v3 += 144;
     }
     while ( v2 < maxclients );
-    return v1;
   }
-  return 0;
+  return v1;
 }
 // 10064028: using guessed type int maxclients;
 // 100643A8: using guessed type int dword_100643A8;
@@ -33066,10 +33069,10 @@ int __cdecl EA_Respawn(int client)
 char __cdecl EA_Jump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
-  if ( (ea->flags & EA_JUMPEDLASTFRAME) == 0 )
-    ea->flags |= ACTION_JUMP;
-  else
+  if ( ea->flags & EA_JUMPEDLASTFRAME )
     ea->flags &= ~ACTION_JUMP;
+  else
+    ea->flags |= ACTION_JUMP;
   return (char)ea->flags;
 }
 
