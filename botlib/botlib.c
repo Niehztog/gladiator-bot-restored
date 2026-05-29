@@ -2569,8 +2569,8 @@ bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1)  /* FreeBSPLink */
     dword_10069580->prev_ent = a1;
   a1->prev_ent = NULL;
   a1->next_ent = dword_10069580;
-  a1->next_leaf = NULL;
   a1->prev_leaf = NULL;
+  a1->next_leaf = NULL;
   dword_10069580 = a1;
   return a1;
 }
@@ -2653,10 +2653,9 @@ int __cdecl sub_10003360(float *a1, int a2)
 //----- (10003420) --------------------------------------------------------
 char *__cdecl sub_10003420(float *a1, int a2)
 {
-  if ( dword_100674C0 )
-    return dword_100674EC + 28 * sub_10003360(a1, a2);
-  else
+  if ( !dword_100674C0 )
     return 0;
+  return dword_100674EC + 28 * sub_10003360(a1, a2);
 }
 // 100674C0: using guessed type int dword_100674C0;
 // 100674EC: using guessed type int dword_100674EC;
@@ -10563,11 +10562,13 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
    * making bi_PointContents always miss water — bots in water never enter
    * the swim branch and get stuck. */
   int v5[3]; // [esp+0h] [ebp-Ch] BYREF
+  float z; // st7
 
+  z = ((float *)origin)[2];
   v5[0] = *(_DWORD *)origin;
   v5[1] = *(_DWORD *)((char *)origin + 4);
-  *(float *)&v5[2] = *((float *)origin + 2) - 2.0f;
-  return (bi_PointContents((float *)v5) & 0x38) != 0;
+  *(float *)&v5[2] = z - 2.0f;
+  return (sub_10003080((float *)v5) & 0x38) != 0;
 }
 // 1000EFEB: variable 'v3' is possibly undefined
 
@@ -11866,31 +11867,26 @@ double __cdecl AAS_AreaVolume(int areanum)
 //----- (10011360) --------------------------------------------------------
 double __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
-  double result; // st7
+  float result; // st7
   int v2; // edi
   char *v3; // esi
   __int64 v4; // rax
   int v5; // edx
-  float v6; // [esp+0h] [ebp-4h]
 
-  result = 0.0;
+  result = 0.0f;
   v2 = 0;
-  v6 = 0.0;
   v3 = (char *)aasworld.areas + 48 * areanum;
   if ( *((int *)v3 + 1) > 0 )
   {
     do
     {
-      v4 = *((int *)aasworld.faceindex + v2 + *((_DWORD *)v3 + 2));
-      v5 = 3 * ((HIDWORD(v4) ^ v4) - HIDWORD(v4));
-      if ( (*((_BYTE *)aasworld.faces + 8 * v5 + 4) & 4) != 0 )
-      {
-        result = AAS_FaceArea((char *)aasworld.faces + 8 * v5) + v6;
-        v6 = result;
-      }
+      v4 = *((int *)aasworld.faceindex + v2 + *((int *)v3 + 2));
+      v5 = (HIDWORD(v4) ^ v4) - HIDWORD(v4);
+      if ( (*((_BYTE *)aasworld.faces + 24 * v5 + 4) & 4) != 0 )
+        result = AAS_FaceArea((char *)aasworld.faces + 24 * v5) + result;
       ++v2;
     }
-    while ( v2 < *((_DWORD *)v3 + 1) );
+    while ( v2 < *((int *)v3 + 1) );
   }
   return result;
 }
@@ -17120,8 +17116,8 @@ aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1)
     aasworld.freelinks->prev_ent = a1;
   a1->prev_ent = NULL;
   a1->next_ent = aasworld.freelinks;
-  a1->next_area = NULL;
   a1->prev_area = NULL;
+  a1->next_area = NULL;
   aasworld.freelinks = a1;
   return a1;
 }
@@ -20209,13 +20205,9 @@ LABEL_9:
 //----- (10020050) --------------------------------------------------------
 void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 {
-
-  double v1; // st7
-
   BotRecordNodeSwitch(bs, aBattleChase, &byte_1006294C);
-  v1 = AAS_Time();
+  bs->chase_time = AAS_Time() + 10.0f;
   BotAINode(bs) = AINode_Battle_Chase;
-  bs->chase_time = v1 + 10.0;
 }
 // 1000156E: using guessed type int __cdecl AINode_Battle_Chase(bot_state_t *bs);
 
@@ -24565,7 +24557,7 @@ void sub_100292E0()
   if ( AAS_Time() > flt_100643A4 )
   {
     sub_1002FA20();
-    flt_100643A4 = AAS_Time() + 1.0;
+    flt_100643A4 = AAS_Time() + 1.0f;
   }
 }
 // 10001E92: using guessed type int sub_1002FA20(void);
@@ -31828,23 +31820,15 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2)
   BotFreeWeaponWeights(ws);
   v2 = (weightconfig_t *)ReadWeightConfig((char *)a2);
   ws->weightconfig = v2;
-  if ( v2 )
-  {
-    if ( dword_10064080 )
-    {
-      ws->itemweights = WeaponWeightIndex(v2, (weaponconfig_t *)dword_10064080);
-      return 0;
-    }
-    else
-    {
-      return 31;
-    }
-  }
-  else
+  if ( !v2 )
   {
     bi_Print(4, "couldn't load weapon config %s\n", a2);
     return 30;
   }
+  if ( !dword_10064080 )
+    return 31;
+  ws->itemweights = WeaponWeightIndex(v2, (weaponconfig_t *)dword_10064080);
+  return 0;
 }
 // 10001078: using guessed type _DWORD __cdecl BotFreeWeaponWeights(_DWORD);
 // 10001091: using guessed type int __cdecl ReadWeightConfig(_DWORD);
