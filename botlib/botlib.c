@@ -27560,10 +27560,12 @@ int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3)
   BotFreeChatFile(cs);
   v3 = BotDumpInitialChat(a2, a3);
   BotChatDumpSlot(cs) = v3;
-  if ( v3 )
-    return 0;
-  bi_Print(4, "couldn't load chat %s from %s\n", a3, a2);
-  return 27;
+  if ( !v3 )
+  {
+    bi_Print(4, "couldn't load chat %s from %s\n", a3, a2);
+    return 27;
+  }
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -33925,20 +33927,24 @@ void Log_Open(char *FileName)
  * consistent with a pre-/INCREMENTAL relink leaving behind the
  * earlier object-file copy of the routine.  Dead in Gladiator: no
  * caller reaches 0x10038CF0; only the relink thunk keeps it live. */
-static void __cdecl sub_10038CF0(void)
+static int __cdecl sub_10038CF0(void)
 {
+  int result; // eax
+
+  result = (int)Stream;
   if ( Stream )
   {
     if ( fclose(Stream) )
     {
-      bi_Print(3, "can't close log file %s\n", byte_10063A40);
+      return bi_Print(3, "can't close log file %s\n", byte_10063A40);
     }
     else
     {
       Stream = 0;
-      bi_Print(1, "Closed log %s\n", byte_10063A40);
+      result = bi_Print(1, "Closed log %s\n", byte_10063A40);
     }
   }
+  return result;
 }
 
 //----- (10038D60) --------------------------------------------------------
@@ -33948,21 +33954,7 @@ FILE *Log_Close()
 
   result = Stream;
   if ( Stream )
-  {
-    result = Stream;
-    if ( Stream )
-    {
-      if ( fclose(Stream) )
-      {
-        return (FILE *)bi_Print(3, "can't close log file %s\n", byte_10063A40);
-      }
-      else
-      {
-        Stream = 0;
-        return (FILE *)bi_Print(1, "Closed log %s\n", byte_10063A40);
-      }
-    }
-  }
+    result = (FILE *)sub_10038CF0();
   return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
