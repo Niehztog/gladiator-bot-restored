@@ -16458,18 +16458,14 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
   /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
    * chain head lives at aasworld.portalcache[area]; entries link via
    * prev/next which must hold full 64-bit pointers. */
-  aas_routingcache_t *head, *cur;
+  aas_routingcache_t *cur;
 
-  head = aasworld.portalcache[a2];
-  cur  = head;
-  if ( cur )
+  cur = aasworld.portalcache[a2];
+  while ( cur )
   {
-    while ( cur->travelflags != a3 )
-    {
-      cur = cur->next;
-      if ( !cur )
-        break;
-    }
+    if ( cur->travelflags == a3 )
+      break;
+    cur = cur->next;
   }
   if ( !cur )
   {
@@ -16482,9 +16478,9 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
     cur->starttraveltime = 1.0f;
     cur->travelflags    = a3;
     cur->prev           = NULL;
-    cur->next           = head;
-    if ( head )
-      head->prev = cur;
+    cur->next           = aasworld.portalcache[a2];
+    if ( aasworld.portalcache[a2] )
+      aasworld.portalcache[a2]->prev = cur;
     aasworld.portalcache[a2] = cur;
     AAS_UpdatePortalRoutingCache(cur);
   }
