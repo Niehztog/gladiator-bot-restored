@@ -39838,8 +39838,8 @@ float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
   if ( a3 )
   {
     *a3 = flt_10062988 * flt_100631A8 - flt_10062984 * flt_1006298C * flt_1006319C;
-    a3[1] = (flt_10062984 * flt_1006298C * flt_100631A8 + flt_10062988 * flt_1006319C) * -1.0;
-    a3[2] = flt_10062984 * flt_100631A0 * -1.0;
+    a3[1] = (flt_10062984 * flt_1006298C * flt_100631A8 + flt_10062988 * flt_1006319C) * -1.0f;
+    a3[2] = flt_10062984 * flt_100631A0 * -1.0f;
   }
   result = a4;
   if ( a4 )
