@@ -8019,9 +8019,9 @@ void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
     return;
   }
   bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
-  origin[0] = 0.0f;
-  origin[1] = 0.0f;
   origin[2] = 0.0f;
+  origin[1] = 0.0f;
+  origin[0] = 0.0f;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10066998: using guessed type int aasworld.numentities;
