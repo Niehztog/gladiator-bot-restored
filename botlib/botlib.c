@@ -5885,8 +5885,8 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
 {
   FILE *v3; // eax
   FILE *v4; // esi
-  void *v6; // eax
-  void *v7; // eax
+  int v6; // eax
+  int v7; // eax
   int v8; // eax
   int v9; // ebx
   size_t v10; // eax
@@ -5965,9 +5965,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
   }
   if ( fseek(v3, Offset, 0) )
   {
-    /* IDA decompiled the FileName arg as local v74 (a 1-byte stack slot);
-     * binary actually pushes FileName.  Format expects %s, so pass it. */
-    AAS_Error(aCanTSeekToBspF, FileName);
+    AAS_Error(aCanTSeekToBspF);
     fclose(v4);
     return 14;
   }
@@ -5977,49 +5975,47 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
     fclose(v4);
     return 15;
   }
-  v6 = (void*)(intptr_t)bsp_h.ident;
-  /* bsp_h.ident = bsp_h.ident; no-op */
-  if ( v6 != (void *)1347633737 )
+  v6 = bsp_h.ident = LittleLong(bsp_h.ident);
+  if ( v6 != 1347633737 )
   {
     AAS_Error(aSIsNotAnBspFil, FileName);
     fclose(v4);
     return 16;
   }
-  v7 = (void*)(intptr_t)bsp_h.version;
-  /* bsp_h.version = bsp_h.version; no-op */
-  if ( v7 != (void *)38 )
+  v7 = bsp_h.version = LittleLong(bsp_h.version);
+  if ( v7 != 38 )
   {
-    AAS_Error(aBspFileSIsVers, FileName);
+    AAS_Error(aBspFileSIsVers, FileName, v7, 38);
     fclose(v4);
     return 17;
   }
-  v8 = bsp_h.lumps[0].fileofs;
+  v8 = LittleLong(bsp_h.lumps[0].fileofs);
   v9 = Offset + v8;
-  v10 = (size_t)bsp_h.lumps[0].filelen;
+  v10 = (size_t)LittleLong(bsp_h.lumps[0].filelen);
   v11 = v10;
   dword_100674E4 = sub_10007C40(v4, v9, v10, 1, aEntity);
   if ( !dword_100674E4 )
     return 18;
   dword_100674E0 = v11;
-  v12 = bsp_h.lumps[1].fileofs;
+  v12 = LittleLong(bsp_h.lumps[1].fileofs);
   v13 = Offset + v12;
-  v14 = (size_t)bsp_h.lumps[1].filelen;
+  v14 = (size_t)LittleLong(bsp_h.lumps[1].filelen);
   v15 = v14;
   dword_100674F4 = sub_10007C40(v4, v13, v14, 20, aPlanes);
   if ( !dword_100674F4 )
     return 18;
   dword_100674F0 = v15 / 0x14;
-  v16 = bsp_h.lumps[2].fileofs;
+  v16 = LittleLong(bsp_h.lumps[2].fileofs);
   v17 = Offset + v16;
-  v18 = (size_t)bsp_h.lumps[2].filelen;
+  v18 = (size_t)LittleLong(bsp_h.lumps[2].filelen);
   v19 = v18;
   dword_100674FC = sub_10007C40(v4, v17, v18, 12, aVertexes);
   if ( !dword_100674FC )
     return 18;
   dword_100674F8 = v19 / 0xC;
-  v20 = bsp_h.lumps[3].fileofs;
+  v20 = LittleLong(bsp_h.lumps[3].fileofs);
   v21 = Offset + v20;
-  v22 = (size_t)bsp_h.lumps[3].filelen;
+  v22 = (size_t)LittleLong(bsp_h.lumps[3].filelen);
   v23 = v22;
   if ( v22 )
   {
@@ -6036,33 +6032,33 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
   }
   dword_100674CC = v23;
   dword_100674D4 = v24;
-  v25 = bsp_h.lumps[4].fileofs;
+  v25 = LittleLong(bsp_h.lumps[4].fileofs);
   v26 = Offset + v25;
-  v27 = (size_t)bsp_h.lumps[4].filelen;
+  v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
   v28 = v27;
   dword_10067504 = sub_10007C40(v4, v26, v27, 28, aNodes);
   if ( !dword_10067504 )
     return 18;
   dword_10067500 = v28 / 0x1C;
-  v29 = bsp_h.lumps[5].fileofs;
+  v29 = LittleLong(bsp_h.lumps[5].fileofs);
   v30 = Offset + v29;
-  v31 = (size_t)bsp_h.lumps[5].filelen;
+  v31 = (size_t)LittleLong(bsp_h.lumps[5].filelen);
   v32 = v31;
   dword_1006750C = sub_10007C40(v4, v30, v31, 76, aTexinfo);
   if ( !dword_1006750C )
     return 18;
   dword_10067508 = v32 / 0x4C;
-  v33 = bsp_h.lumps[6].fileofs;
+  v33 = LittleLong(bsp_h.lumps[6].fileofs);
   v34 = Offset + v33;
-  v35 = (size_t)bsp_h.lumps[6].filelen;
+  v35 = (size_t)LittleLong(bsp_h.lumps[6].filelen);
   v36 = v35;
   dword_10067514 = sub_10007C40(v4, v34, v35, 20, aFaces);
   if ( !dword_10067514 )
     return 18;
   dword_10067510 = v36 / 0x14;
-  v37 = bsp_h.lumps[7].fileofs;
+  v37 = LittleLong(bsp_h.lumps[7].fileofs);
   v38 = Offset + v37;
-  v39 = (size_t)bsp_h.lumps[7].filelen;
+  v39 = (size_t)LittleLong(bsp_h.lumps[7].filelen);
   v40 = v39;
   if ( v39 )
   {
@@ -6076,65 +6072,65 @@ int AAS_LoadBSPFile(char *FileName, int Offset)
     bi_Print(1, aWarningBspHasN);
   }
   dword_100674D8 = v40;
-  v41 = bsp_h.lumps[8].fileofs;
+  v41 = LittleLong(bsp_h.lumps[8].fileofs);
   v42 = Offset + v41;
-  v43 = (size_t)bsp_h.lumps[8].filelen;
+  v43 = (size_t)LittleLong(bsp_h.lumps[8].filelen);
   v44 = v43;
   dword_100674EC = sub_10007C40(v4, v42, v43, 28, aLeafs);
   if ( !dword_100674EC )
     return 18;
   dword_100674E8 = v44 / 0x1C;
-  v45 = bsp_h.lumps[9].fileofs;
+  v45 = LittleLong(bsp_h.lumps[9].fileofs);
   v46 = Offset + v45;
-  v47 = (size_t)bsp_h.lumps[9].filelen;
+  v47 = (size_t)LittleLong(bsp_h.lumps[9].filelen);
   v48 = v47;
   dword_10067524 = sub_10007C40(v4, v46, v47, 2, aLeafFaces);
   if ( !dword_10067524 )
     return 18;
   dword_10067520 = v48 >> 1;
-  v49 = bsp_h.lumps[10].fileofs;
+  v49 = LittleLong(bsp_h.lumps[10].fileofs);
   v50 = Offset + v49;
-  v51 = (size_t)bsp_h.lumps[10].filelen;
+  v51 = (size_t)LittleLong(bsp_h.lumps[10].filelen);
   v52 = v51;
   dword_1006752C = sub_10007C40(v4, v50, v51, 2, aLeafBrushes);
   if ( !dword_1006752C )
     return 18;
   dword_10067528 = v52 >> 1;
-  v53 = bsp_h.lumps[11].fileofs;
+  v53 = LittleLong(bsp_h.lumps[11].fileofs);
   v54 = Offset + v53;
-  v55 = (size_t)bsp_h.lumps[11].filelen;
+  v55 = (size_t)LittleLong(bsp_h.lumps[11].filelen);
   v56 = v55;
   dword_1006751C = sub_10007C40(v4, v54, v55, 4, aEdges);
   if ( !dword_1006751C )
     return 18;
   dword_10067518 = v56 >> 2;
-  v57 = bsp_h.lumps[12].fileofs;
+  v57 = LittleLong(bsp_h.lumps[12].fileofs);
   v58 = Offset + v57;
-  v59 = (size_t)bsp_h.lumps[12].filelen;
+  v59 = (size_t)LittleLong(bsp_h.lumps[12].filelen);
   v60 = v59;
   dword_10067534 = sub_10007C40(v4, v58, v59, 4, aSurfedges);
   if ( !dword_10067534 )
     return 18;
   dword_10067530 = v60 >> 2;
-  v61 = bsp_h.lumps[13].fileofs;
+  v61 = LittleLong(bsp_h.lumps[13].fileofs);
   v62 = Offset + v61;
-  v63 = (size_t)bsp_h.lumps[13].filelen;
+  v63 = (size_t)LittleLong(bsp_h.lumps[13].filelen);
   v64 = v63;
   dword_100674C8 = sub_10007C40(v4, v62, v63, 48, aModels);
   if ( !dword_100674C8 )
     return 18;
   dword_100674C4 = v64 / 0x30;
-  v65 = bsp_h.lumps[14].fileofs;
+  v65 = LittleLong(bsp_h.lumps[14].fileofs);
   v66 = Offset + v65;
-  v67 = (size_t)bsp_h.lumps[14].filelen;
+  v67 = (size_t)LittleLong(bsp_h.lumps[14].filelen);
   v68 = v67;
   dword_1006753C = sub_10007C40(v4, v66, v67, 12, aBrushes);
   if ( !dword_1006753C )
     return 18;
   dword_10067538 = v68 / 0xC;
-  v69 = bsp_h.lumps[15].fileofs;
+  v69 = LittleLong(bsp_h.lumps[15].fileofs);
   v70 = Offset + v69;
-  v71 = (size_t)bsp_h.lumps[15].filelen;
+  v71 = (size_t)LittleLong(bsp_h.lumps[15].filelen);
   v72 = v71;
   dword_10067544 = sub_10007C40(v4, v70, v71, 4, aBrushSides);
   if ( !dword_10067544 )
