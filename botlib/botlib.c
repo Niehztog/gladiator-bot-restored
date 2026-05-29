@@ -243,7 +243,7 @@ typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 // AAS_Update: __usercall cleaned (original: double@<st0>, int -> int only)
 int __cdecl AAS_ContinueInit(int time_int);
 /* Forward declarations for functions whose address-names were resolved: */
-int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
+int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 /* BotAIThink: thunk (0x100013A2) → Export_BotLibAI (0x10038380) — same function */
@@ -937,8 +937,8 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2);
 int __cdecl PC_Directive_else(source_t *src);
 int __cdecl PC_Directive_endif(source_t *src);
 int __cdecl PC_OperatorPriority(int a1);
-int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, long double *floatvalue, int integer);
-int __cdecl PC_Evaluate(source_t *src, int *a2, long double *a3, int a4);
+int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer);
+int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4);
 // int __cdecl PC_ReadSourceToken: see definition
 int __cdecl PC_Directive_elif(source_t *src);
 int __cdecl PC_Directive_if(source_t *src);
@@ -35543,7 +35543,7 @@ int __cdecl PC_OperatorPriority(int a1)
 }
 
 //----- (1003B9E0) --------------------------------------------------------
-int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, long double *floatvalue, int integer)
+int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer)
 {
   int v5; // ebx
   int v6; // ecx
@@ -36067,7 +36067,7 @@ LABEL_165:
 // 1003B9E0: using guessed type int ArgList;
 
 //----- (1003C650) --------------------------------------------------------
-int __cdecl PC_Evaluate(source_t *src, int *a2, long double *a3, int a4)
+int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
 {
   source_t *v4;
   token_t *v6;
@@ -36165,7 +36165,7 @@ LABEL_22:
 // 1003C69C: variable 'v13' is possibly undefined
 
 //----- (1003C900) --------------------------------------------------------
-int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatvalue, int integer)
+int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
 {
   source_t *v4; // esi
   token_t *v6; // ebp (firsttoken)
@@ -36176,7 +36176,6 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatva
   int v11; // eax
   token_t *v12; // eax
   token_t *v13; // esi
-  char v14; // [esp+0h] [ebp-448h]
   int v15; // [esp+10h] [ebp-438h]
   int v16; // [esp+14h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
