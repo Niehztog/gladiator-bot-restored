@@ -24822,25 +24822,22 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   double v6; // st7
 
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
-  if ( *v2 )
-  {
-    qmemcpy(v2 + 3, a2, 0x4CCu);
-    v4 = (float *)(v2 + 1056);
-    v5 = 3;
-    do
-    {
-      v6 = AngleMod(*(v4 - 1044) + *v4);
-      *v4++ = v6;
-      --v5;
-    }
-    while ( v5 );
-    return 0;
-  }
-  else
+  if ( !*v2 )
   {
     bi_Print(4, aTriedToUpdated);
     return 24;
   }
+  qmemcpy(v2 + 3, a2, 0x4CCu);
+  v4 = (float *)(v2 + 1056);
+  v5 = 3;
+  do
+  {
+    v6 = AngleMod(*(v4 - 1044) + *v4);
+    *v4++ = v6;
+    --v5;
+  }
+  while ( v5 );
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100643A0: using guessed type int dword_100643A0;
@@ -34675,26 +34672,24 @@ LABEL_5:
 //----- (10039C30) --------------------------------------------------------
 unsigned int __cdecl PC_NameHash(const char *a1)
 {
-  unsigned int v1; // kr04_4
   unsigned int v2; // ecx
   int v4; // [esp+4h] [ebp-4h] BYREF
 
   v4 = 0;
   if ( a1 )
   {
-    v1 = strlen(a1) + 1;
-    v2 = v1 - 1;
-    if ( (int)(v1 - 1) > 4 )
+    v2 = strlen(a1);
+    if ( (int)v2 > 4 )
     {
       v2 = 4;
 LABEL_5:
       qmemcpy(&v4, a1, v2);
       return abs32(v4) & 0x3FF;
     }
-    if ( v1 != 1 )
+    if ( v2 )
       goto LABEL_5;
   }
-  return 0;
+  return abs32(v4) & 0x3FF;
 }
 
 //----- (10039CB0) --------------------------------------------------------
