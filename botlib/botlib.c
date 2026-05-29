@@ -11908,8 +11908,8 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 //----- (10011520) --------------------------------------------------------
 __int64 AAS_FallDamageDistance()
 {
-  long double v0; // st7
-  float grav; // st6
+  double v0; // st7
+  double grav; // st6
 
   grav = libvar_sv_gravity->value;
   v0 = sqrt(300000.0) / grav;
