@@ -386,7 +386,7 @@ int __cdecl sub_10006100(int *a1, int a2, float *a3);
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
 int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3);
-double __cdecl FloatForKey(bsp_entity_t *a1, const char *a2);
+float __cdecl FloatForKey(bsp_entity_t *a1, const char *a2);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2);
 int __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
@@ -4895,15 +4895,14 @@ int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3
 }
 
 //----- (100068A0) --------------------------------------------------------
-double __cdecl FloatForKey(bsp_entity_t *a1, const char *a2)
+float __cdecl FloatForKey(bsp_entity_t *a1, const char *a2)
 {
   const char *v2; // eax
 
   v2 = (const char *)AAS_ValueForBSPEpairKey(a1, a2);
-  if ( v2 )
-    return atof(v2);
-  else
-    return 0.0;
+  if ( !v2 )
+    return 0.0f;
+  return atof(v2);
 }
 
 //----- (100068E0) --------------------------------------------------------
