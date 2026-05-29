@@ -36403,22 +36403,20 @@ int __cdecl PC_Directive_eval(source_t *src)
   token_t token; /* restored: original token_t local variable */
 
   result = PC_Evaluate(src, &v3, 0, 1);
-  if ( result )
-  {
-    v2 = (int)((source_t *)src)->scriptstack;
-    token.line = ((script_t *)v2)->line;
-    token.whitespace_p = ((script_t *)v2)->script_p;
-    token.endwhitespace_p = ((script_t *)v2)->script_p;
-    token.linescrossed = 0;
-    sprintf(token.string, "%d", abs32(v3));
-    token.type = 3;
-    token.subtype = 12296;
-    PC_UnreadSourceToken(src, token.string);
-    if ( v3 < 0 )
-      UnreadSignToken(src);
-    return 1;
-  }
-  return result;
+  if ( !result )
+    return result;
+  v2 = (int)((source_t *)src)->scriptstack;
+  token.line = ((script_t *)v2)->line;
+  token.whitespace_p = ((script_t *)v2)->script_p;
+  token.endwhitespace_p = ((script_t *)v2)->script_p;
+  token.linescrossed = 0;
+  sprintf(token.string, "%d", abs32(v3));
+  token.type = 3;
+  token.subtype = 12296;
+  PC_UnreadSourceToken(src, token.string);
+  if ( v3 < 0 )
+    UnreadSignToken(src);
+  return 1;
 }
 
 //----- (1003CF80) --------------------------------------------------------
@@ -36430,22 +36428,20 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
   token_t token; /* restored: original token_t local variable */
 
   result = PC_Evaluate(src, 0, &v3, 0);
-  if ( result )
-  {
-    v2 = (int)((source_t *)src)->scriptstack;
-    token.line = ((script_t *)v2)->line;
-    token.whitespace_p = ((script_t *)v2)->script_p;
-    token.endwhitespace_p = ((script_t *)v2)->script_p;
-    token.linescrossed = 0;
-    sprintf(token.string, "%1.2f", (double)fabs(v3));
-    token.type = 3;
-    token.subtype = 10248;
-    PC_UnreadSourceToken(src, token.string);
-    if ( v3 < 0.0 )
-      UnreadSignToken(src);
-    return 1;
-  }
-  return result;
+  if ( !result )
+    return result;
+  v2 = (int)((source_t *)src)->scriptstack;
+  token.line = ((script_t *)v2)->line;
+  token.whitespace_p = ((script_t *)v2)->script_p;
+  token.endwhitespace_p = ((script_t *)v2)->script_p;
+  token.linescrossed = 0;
+  sprintf(token.string, "%1.2f", (double)fabs(v3));
+  token.type = 3;
+  token.subtype = 10248;
+  PC_UnreadSourceToken(src, token.string);
+  if ( v3 < 0.0 )
+    UnreadSignToken(src);
+  return 1;
 }
 
 //----- (1003D090) --------------------------------------------------------
@@ -36495,24 +36491,22 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
   token_t token; /* restored: original token_t local variable */
 
   result = PC_DollarEvaluate(src, &v3, 0, 1);
-  if ( result )
-  {
-    v2 = src->scriptstack;
-    token.line = v2->line;
-    token.whitespace_p = v2->script_p;
-    token.endwhitespace_p = v2->script_p;
-    token.linescrossed = 0;
-    sprintf(token.string, "%d", abs32(v3));
-    token.floatvalue = (double)v3;
-    token.type = 3;
-    token.subtype = 12296;
-    token.intvalue = v3;
-    PC_UnreadSourceToken(src, token.string);
-    if ( v3 < 0 )
-      UnreadSignToken(src);
-    return 1;
-  }
-  return result;
+  if ( !result )
+    return result;
+  v2 = src->scriptstack;
+  token.line = v2->line;
+  token.whitespace_p = v2->script_p;
+  token.endwhitespace_p = v2->script_p;
+  token.linescrossed = 0;
+  sprintf(token.string, "%d", abs32(v3));
+  token.floatvalue = (double)v3;
+  token.type = 3;
+  token.subtype = 12296;
+  token.intvalue = v3;
+  PC_UnreadSourceToken(src, token.string);
+  if ( v3 < 0 )
+    UnreadSignToken(src);
+  return 1;
 }
 
 //----- (1003D2F0) --------------------------------------------------------
