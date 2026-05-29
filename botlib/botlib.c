@@ -478,7 +478,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 int __cdecl AAS_AgainstLadder(int *origin);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
-int __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
+double __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime);
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
@@ -2544,19 +2544,18 @@ static void __cdecl sub_100031B0(char *name)
 bsp_link_t *sub_100031F0()  /* AllocBSPLink */
 {
   bsp_link_t *result;
+  bsp_link_t *next;
 
   result = dword_10069580;
-  if ( dword_10069580 )
-  {
-    dword_10069580 = dword_10069580->next_ent;
-    if ( dword_10069580 )
-      dword_10069580->prev_ent = NULL;
-  }
-  else
+  if ( !result )
   {
     bi_Print(4, aEmptyBspLinkHe);
     return NULL;
   }
+  next = result->next_ent;
+  dword_10069580 = next;
+  if ( next )
+    next->prev_ent = NULL;
   return result;
 }
 // 10063FE8: using guessed type int (__cdecl *bi_Print)(_DWORD, _DWORD);
@@ -10824,7 +10823,7 @@ float __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 }
 
 //----- (1000F780) --------------------------------------------------------
-int __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
+double __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
@@ -17089,19 +17088,18 @@ int AAS_FreeAASLinkHeap()
 aas_link_t *AAS_AllocAASLink()
 {
   aas_link_t *result;
+  aas_link_t *next;
 
   result = aasworld.freelinks;
-  if ( aasworld.freelinks )
-  {
-    aasworld.freelinks = aasworld.freelinks->next_ent;
-    if ( aasworld.freelinks )
-      aasworld.freelinks->prev_ent = NULL;
-  }
-  else
+  if ( !result )
   {
     bi_Print(4, aEmptyAasLinkHe);
     return NULL;
   }
+  next = result->next_ent;
+  aasworld.freelinks = next;
+  if ( next )
+    next->prev_ent = NULL;
   return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -20693,11 +20691,11 @@ _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2)
     a2[24] = v3 | 2;
   v4 = a2[24] & 0xFFFFFFDF;
   a2[24] = v4;
-  if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time )
+  if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time > 0 )
     a2[24] = v4 | 0x20;
   v5 = a2[24] & 0xFFFFFFEF;
   a2[24] = v5;
-  if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time )
+  if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time > 0 )
     a2[24] = v5 | 0x10;
   if ( (bs->snapshot.pm_flags & 1) != 0 )
     a2[12] = 4;
@@ -35578,17 +35576,17 @@ int __cdecl PC_Directive_else(source_t *src)
 //----- (1003B880) --------------------------------------------------------
 int __cdecl PC_Directive_endif(source_t *src)
 {
-  char v3; // [esp+0h] [ebp-8h]
   int type; // BYREF
   int skip;
 
   PC_PopIndent(src, &type, &skip);
-  if ( type )
-    return 1;
-  SourceError(src, aMisplacedEndif, v3);
-  return 0;
+  if ( !type )
+  {
+    SourceError(src, aMisplacedEndif);
+    return 0;
+  }
+  return 1;
 }
-// 1003B8A7: variable 'v3' is possibly undefined
 
 //----- (1003B8D0) --------------------------------------------------------
 int __cdecl PC_OperatorPriority(int a1)
@@ -36872,14 +36870,13 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
 //----- (1003DAE0) --------------------------------------------------------
 int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t a2)
 {
-  char v3; // [esp+0h] [ebp-4h]
-
-  if ( PC_ReadTokenHandle(src, a2) )
-    return 1;
-  SourceError(src, aCouldnTReadExp, v3);
-  return 0;
+  if ( !PC_ReadTokenHandle(src, a2) )
+  {
+    SourceError(src, aCouldnTReadExp);
+    return 0;
+  }
+  return 1;
 }
-// 1003DAFD: variable 'v3' is possibly undefined
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
 //----- (1003DB20) --------------------------------------------------------
@@ -38218,14 +38215,13 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
 //----- (1003F9B0) --------------------------------------------------------
 int __cdecl PS_ExpectAnyToken(int a1, int a2)
 {
-  char v3; // [esp+0h] [ebp-4h]
-
-  if ( PS_ReadToken(a1, a2) )
-    return 1;
-  ScriptError(a1, aCouldnTReadExp, v3);
-  return 0;
+  if ( !PS_ReadToken(a1, a2) )
+  {
+    ScriptError(a1, aCouldnTReadExp);
+    return 0;
+  }
+  return 1;
 }
-// 1003F9CD: variable 'v3' is possibly undefined
 // 1000127B: using guessed type int __cdecl PS_ReadToken(_DWORD, _DWORD);
 
 //----- (1003F9F0) --------------------------------------------------------
