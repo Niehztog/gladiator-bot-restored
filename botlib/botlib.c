@@ -9194,8 +9194,8 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
 {
   FILE *v2; // eax
   FILE *v3; // esi
-  void *v5; // eax
-  void *v6; // eax
+  int v5; // eax
+  int v6; // eax
   int v7; // eax
   int v8; // ebp
   size_t v9; // eax
@@ -9280,8 +9280,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
   }
   if ( fseek(v2, Offset, 0) )
   {
-    /* IDA: v77 is a 1-byte stack slot; binary passes FileName here for "%s\n". */
-    AAS_Error(aCanTSeekToFile, FileName);
+    AAS_Error(aCanTSeekToFile);
     fclose(v3);
     return 7;
   }
@@ -9291,147 +9290,149 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
     fclose(v3);
     return 8;
   }
-  v5 = (void*)(intptr_t)aas_h.ident;          /* identity(Buffer) = AAS magic bytes (0x53414145 = "EAAS") */
-  /* aas_h.ident = aas_h.ident; no-op */
-  if ( v5 != (void *)1396785477 )
+  v5 = aas_h.ident = LittleLong(aas_h.ident);
+  if ( v5 != 1396785477 )
   {
     AAS_Error(aSIsNotAnAasFil, FileName);
     fclose(v3);
     return 9;
   }
-  v6 = (void*)(intptr_t)aas_h.version;
-  /* aas_h.version = aas_h.version; no-op */
-  if ( v6 == (void *)2 )
+  v6 = aas_h.version = LittleLong(aas_h.version);
+  if ( v6 == 2 )
   {
     bi_Print(2, aFoundAnOldAasF);
   }
-  else if ( v6 != (void *)3 )
+  else if ( v6 != 3 )
   {
-    /* Format expects 3 args (file, actual ver, expected ver); IDA dropped them. */
-    AAS_Error(aAasFileSIsVers, FileName, aas_h.version, 3);
+    AAS_Error(aAasFileSIsVers, FileName, v6, 3);
     fclose(v3);
     return 10;
   }
-  v7 = aas_h.lumps[0].fileofs;
+  v7 = LittleLong(aas_h.lumps[0].fileofs);
   v8 = Offset + v7;
-  v9 = (size_t)aas_h.lumps[0].filelen;
+  v9 = (size_t)LittleLong(aas_h.lumps[0].filelen);
   v10 = v9;
   v11 = AAS_LoadAASLump(v3, v8, v9);
   aasworld.bboxes = v11;
-  aasworld.numbboxes = v10 >> 5;
-  if ( v10 >> 5 && !v11 )
+  v10 >>= 5;
+  aasworld.numbboxes = v10;
+  if ( v10 && !v11 )
     return 11;
-  v12 = aas_h.lumps[1].fileofs;
+  v12 = LittleLong(aas_h.lumps[1].fileofs);
   v13 = Offset + v12;
-  v14 = (size_t)aas_h.lumps[1].filelen;
+  v14 = (size_t)LittleLong(aas_h.lumps[1].filelen);
   v15 = v14;
   v16 = AAS_LoadAASLump(v3, v13, v14);
   aasworld.vertexes = v16;
   aasworld.numvertexes = v15 / 0xC;
   if ( v15 / 0xC && !v16 )
     return 11;
-  v17 = aas_h.lumps[2].fileofs;
+  v17 = LittleLong(aas_h.lumps[2].fileofs);
   v18 = Offset + v17;
-  v19 = (size_t)aas_h.lumps[2].filelen;
+  v19 = (size_t)LittleLong(aas_h.lumps[2].filelen);
   v20 = v19;
   v21 = AAS_LoadAASLump(v3, v18, v19);
   aasworld.planes = v21;
   aasworld.numplanes = v20 / 0x14;
   if ( v20 / 0x14 && !v21 )
     return 11;
-  v22 = aas_h.lumps[3].fileofs;
+  v22 = LittleLong(aas_h.lumps[3].fileofs);
   v23 = Offset + v22;
-  v24 = (size_t)aas_h.lumps[3].filelen;
+  v24 = (size_t)LittleLong(aas_h.lumps[3].filelen);
   v25 = v24;
   v26 = AAS_LoadAASLump(v3, v23, v24);
   aasworld.edges = v26;
-  aasworld.numedges = v25 >> 3;
-  if ( v25 >> 3 && !v26 )
+  v25 >>= 3;
+  aasworld.numedges = v25;
+  if ( v25 && !v26 )
     return 11;
-  v27 = aas_h.lumps[4].fileofs;
+  v27 = LittleLong(aas_h.lumps[4].fileofs);
   v28 = Offset + v27;
-  v29 = (size_t)aas_h.lumps[4].filelen;
+  v29 = (size_t)LittleLong(aas_h.lumps[4].filelen);
   v30 = v29;
   v31 = AAS_LoadAASLump(v3, v28, v29);
   aasworld.edgeindex = v31;
-  aasworld.edgeindexsize = v30 >> 2;
-  if ( v30 >> 2 && !v31 )
+  v30 >>= 2;
+  aasworld.edgeindexsize = v30;
+  if ( v30 && !v31 )
     return 11;
-  v32 = aas_h.lumps[5].fileofs;
+  v32 = LittleLong(aas_h.lumps[5].fileofs);
   v33 = Offset + v32;
-  v34 = (size_t)aas_h.lumps[5].filelen;
+  v34 = (size_t)LittleLong(aas_h.lumps[5].filelen);
   v35 = v34;
   v36 = AAS_LoadAASLump(v3, v33, v34);
   aasworld.faces = v36;
   aasworld.numfaces = v35 / 0x18;
   if ( v35 / 0x18 && !v36 )
     return 11;
-  v37 = aas_h.lumps[6].fileofs;
+  v37 = LittleLong(aas_h.lumps[6].fileofs);
   v38 = Offset + v37;
-  v39 = (size_t)aas_h.lumps[6].filelen;
+  v39 = (size_t)LittleLong(aas_h.lumps[6].filelen);
   v40 = v39;
   v41 = AAS_LoadAASLump(v3, v38, v39);
   aasworld.faceindex = v41;
-  aasworld.faceindexsize = v40 >> 2;
-  if ( v40 >> 2 && !v41 )
+  v40 >>= 2;
+  aasworld.faceindexsize = v40;
+  if ( v40 && !v41 )
     return 11;
-  v42 = aas_h.lumps[7].fileofs;
+  v42 = LittleLong(aas_h.lumps[7].fileofs);
   v43 = Offset + v42;
-  v44 = (size_t)aas_h.lumps[7].filelen;
+  v44 = (size_t)LittleLong(aas_h.lumps[7].filelen);
   v45 = v44;
   v46 = AAS_LoadAASLump(v3, v43, v44);
   aasworld.areas = v46;
   aasworld.numareas = v45 / 0x30;
   if ( v45 / 0x30 && !v46 )
     return 11;
-  v47 = aas_h.lumps[8].fileofs;
+  v47 = LittleLong(aas_h.lumps[8].fileofs);
   v48 = Offset + v47;
-  v49 = (size_t)aas_h.lumps[8].filelen;
+  v49 = (size_t)LittleLong(aas_h.lumps[8].filelen);
   v50 = v49;
   v51 = AAS_LoadAASLump(v3, v48, v49);
   aasworld.areasettings = v51;
   aasworld.numareasettings = v50 / 0x1C;
   if ( v50 / 0x1C && !v51 )
     return 11;
-  v52 = aas_h.lumps[9].fileofs;
+  v52 = LittleLong(aas_h.lumps[9].fileofs);
   v53 = Offset + v52;
-  v54 = (size_t)aas_h.lumps[9].filelen;
+  v54 = (size_t)LittleLong(aas_h.lumps[9].filelen);
   v55 = v54;
   v56 = AAS_LoadAASLump(v3, v53, v54);
   aasworld.reachability = v56;
   aasworld.reachabilitysize = v55 / 0x2C;
   if ( v55 / 0x2C && !v56 )
     return 11;
-  v57 = aas_h.lumps[10].fileofs;
+  v57 = LittleLong(aas_h.lumps[10].fileofs);
   v58 = Offset + v57;
-  v59 = (size_t)aas_h.lumps[10].filelen;
+  v59 = (size_t)LittleLong(aas_h.lumps[10].filelen);
   v60 = v59;
   v61 = AAS_LoadAASLump(v3, v58, v59);
   aasworld.nodes = v61;
   aasworld.numnodes = v60 / 0xC;
   if ( v60 / 0xC && !v61 )
     return 11;
-  v62 = aas_h.lumps[11].fileofs;
+  v62 = LittleLong(aas_h.lumps[11].fileofs);
   v63 = Offset + v62;
-  v64 = (size_t)aas_h.lumps[11].filelen;
+  v64 = (size_t)LittleLong(aas_h.lumps[11].filelen);
   v65 = v64;
   v66 = AAS_LoadAASLump(v3, v63, v64);
   aasworld.portals = v66;
   aasworld.numportals = v65 / 0x14;
   if ( v65 / 0x14 && !v66 )
     return 11;
-  v67 = aas_h.lumps[12].fileofs;
+  v67 = LittleLong(aas_h.lumps[12].fileofs);
   v68 = Offset + v67;
-  v69 = (size_t)aas_h.lumps[12].filelen;
+  v69 = (size_t)LittleLong(aas_h.lumps[12].filelen);
   v70 = v69;
   v71 = AAS_LoadAASLump(v3, v68, v69);
   aasworld.portalindex = v71;
-  aasworld.portalindexsize = v70 >> 2;
-  if ( v70 >> 2 && !v71 )
+  v70 >>= 2;
+  aasworld.portalindexsize = v70;
+  if ( v70 && !v71 )
     return 11;
-  v72 = aas_h.lumps[13].fileofs;
+  v72 = LittleLong(aas_h.lumps[13].fileofs);
   v73 = Offset + v72;
-  v74 = (size_t)aas_h.lumps[13].filelen;
+  v74 = (size_t)LittleLong(aas_h.lumps[13].filelen);
   v75 = v74;
   v76 = AAS_LoadAASLump(v3, v73, v74);
   aasworld.clusters = v76;
