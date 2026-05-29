@@ -460,7 +460,7 @@ indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
 int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
 indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6);
-indexlist_t *__cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6);
+void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6);
 int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t maxs);
 int AAS_Initialized();
 // int __usercall AAS_ContinueInit@<eax>(double a1@<st0>, int a2);
@@ -9713,7 +9713,7 @@ void __cdecl sub_1000D4E0(float a1)
     do
     {
       v2 = v1->next;
-      if ( v1->endtime < (double)a1 )
+      if ( v1->endtime < a1 )
       {
         if ( v2 )
           v2->prev = v1->prev;
@@ -10037,10 +10037,8 @@ indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, 
 }
 
 //----- (1000DCC0) --------------------------------------------------------
-indexlist_t *__cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6)
+void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6)
 {
-  indexlist_t *result; // eax
-
   if ( aasworld.modelindex_table )
     sub_1000DB40(aasworld.modelindex_table, a1, a2);
   else
@@ -10050,17 +10048,10 @@ indexlist_t *__cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, 
   else
     aasworld.soundindex_table = sub_1000DA80(a3, a4);
   if ( aasworld.imageindex_table )
-  {
     sub_1000DB40(aasworld.imageindex_table, a5, a6);
-    result = aasworld.imageindex_table;
-  }
   else
-  {
-    result = sub_1000DA80(a5, a6);
-    aasworld.imageindex_table = result;
-  }
+    aasworld.imageindex_table = sub_1000DA80(a5, a6);
   aasworld.indexes_loaded = 1;
-  return result;
 }
 // 100669A8: using guessed type int aasworld.soundindex_table;
 // 100669AC: using guessed type int aasworld.imageindex_table;
@@ -17225,10 +17216,9 @@ int __cdecl AAS_PointContents(vec3_t point)
   if ( !aasworld.loaded )
     return 0;
   v2 = AAS_PointAreaNum(point);
-  if ( v2 )
-    return *((_DWORD *)aasworld.areasettings + 7 * v2 + 2);
-  else
+  if ( !v2 )
     return 1;
+  return *((_DWORD *)aasworld.areasettings + 7 * v2 + 2);
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 100667E0: using guessed type int aasworld.loaded;
@@ -23231,8 +23221,8 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 //----- (10026690) --------------------------------------------------------
 BOOL TeamPlayIsOn()
 {
-  return ((__int64)libvar_dmflags->value & 0xC0) != 0
-      || libvar_ctf->value != 0.0
+  return ((int)libvar_dmflags->value & 0xC0) != 0
+      || libvar_ctf->value != 0.0f
       || libvar_teamplay->value != 0.0f;
 }
 // 100643AC: using guessed type int libvar_ctf;
@@ -31899,8 +31889,8 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
   float v7; // [esp+10h] [ebp-4h]
 
   v1 = (weaponconfig_t *)dword_10064080;
+  v7 = 0.0f;
   v2 = 0;
-  v7 = 0.0;
   if ( dword_10064080 )
   {
     if ( AAS_Time() >= ws->nextthink )
@@ -31930,7 +31920,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
             if ( sub_10043C10(v2->model, ws->modelname) )
             {
               EA_Use(ws->client, v2->name);
-              ws->nextthink = AAS_Time() + v1->weapons[v2->number].activate + 3.0;
+              ws->nextthink = AAS_Time() + v1->weapons[v2->number].activate + 3.0f;
             }
             ws->modelname = v2->model;
             ws->weaponindex = v2->number;
@@ -32567,8 +32557,6 @@ int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2)
 {
   int i;
 
-  if ( a1->numweights <= 0 )
-    return -1;
   for ( i = 0; i < a1->numweights; ++i )
   {
     if ( !strcmp(a1->weights[i].name, a2) )
@@ -33493,9 +33481,9 @@ int Export_BotLibAI(int a1, float a2)
 {
   if ( !BotLibSetup(aBotai) )
     return 1;
-  if ( ValidClientNumber(a1, aBotai) )
-    return Export_BotAIFrame(a1, a2);
-  return 3;
+  if ( !ValidClientNumber(a1, aBotai) )
+    return 3;
+  return Export_BotAIFrame(a1, a2);
 }
 
 //----- (100383F0) --------------------------------------------------------
@@ -36449,10 +36437,9 @@ int __cdecl PC_Directive_error(source_t *src)
 //----- (1003CD80) --------------------------------------------------------
 int __cdecl PC_Directive_pragma(source_t *src)
 {
-  char v2; // [esp+0h] [ebp-434h]
-  _DWORD v3[268]; // [esp+4h] [ebp-430h] BYREF
+  _DWORD v3[268]; // [esp+0h] [ebp-430h] BYREF
 
-  SourceWarning(src, aPragmaDirectiv, v2);
+  SourceWarning(src, aPragmaDirectiv);
   while ( PC_ReadLine(src, v3) )
     ;
   return 1;
@@ -37930,26 +37917,20 @@ int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2)
 {
   int v2; // ecx
   char v3; // dl
-  char *v4; // edx
 
   v2 = 0;
-  if ( *((script_t *)a1)->script_p > 32 )
+  while ( *((script_t *)a1)->script_p > 32 )
   {
-    do
+    v3 = *(_BYTE *)((script_t *)a1)->script_p;
+    if ( v3 == 59 )
+      break;
+    if ( v2 >= 1024 )
     {
-      v3 = *(_BYTE *)((script_t *)a1)->script_p;
-      if ( v3 == 59 )
-        break;
-      if ( v2 >= 1024 )
-      {
-        ScriptError(a1, aPrimitiveToken, 0);
-        return 0;
-      }
-      ((char *)a2)[v2++] = v3;
-      v4 = (char *)(((script_t *)a1)->script_p + 1);
-      ((script_t *)a1)->script_p = v4;
+      ScriptError(a1, aPrimitiveToken, 0x400);
+      return 0;
     }
-    while ( *v4 > 32 );
+    ((char *)a2)[v2++] = v3;
+    ((script_t *)a1)->script_p = (intptr_t)((char *)((script_t *)a1)->script_p + 1);
   }
   ((char *)a2)[v2] = 0;
   qmemcpy(&((script_t *)a1)->token, (void *)a2, 0x430u);
@@ -38856,18 +38837,14 @@ int __cdecl ReadChar(source_t *src, char **field, float *out)
 //----- (10040A50) --------------------------------------------------------
 int __cdecl ReadString(source_t *src, char **field, char *Destination)
 {
-  int result; // eax
   char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
-  result = PC_ExpectTokenType(src, 1, 0, Source);
-  if ( result )
-  {
-    StripDoubleQuotes(Source);
-    strncpy(Destination, Source, 0x50u);
-    Destination[79] = 0;
-    return 1;
-  }
-  return result;
+  if ( !PC_ExpectTokenType(src, 1, 0, Source) )
+    return 0;
+  StripDoubleQuotes(Source);
+  strncpy(Destination, Source, 0x50u);
+  Destination[79] = 0;
+  return 1;
 }
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 // 10001BAE: using guessed type int __cdecl PC_ExpectTokenType(_DWORD, _DWORD, _DWORD, _DWORD);
@@ -40076,14 +40053,16 @@ double __cdecl VectorNormalize(float *v)
 {
   double length; // st4
   double result; // st7
+  float ilength;
 
   length = sqrt(*v * *v + v[1] * v[1] + v[2] * v[2]);
   result = length;
-  if ( length != 0.0 )
+  if ( length != 0.0f )
   {
-    *v = 1.0 / length * *v;
-    v[1] = 1.0 / length * v[1];
-    v[2] = 1.0 / length * v[2];
+    ilength = 1.0f / length;
+    *v = *v * ilength;
+    v[1] = v[1] * ilength;
+    v[2] = v[2] * ilength;
   }
   return result;
 }
