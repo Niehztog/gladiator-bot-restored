@@ -4225,7 +4225,6 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
   char *v4; // edx
   unsigned int v5; // ebx
   char *v6; // edi
-  char v7; // [esp+0h] [ebp-10h]
   int v8; // [esp+18h] [ebp+8h]
 
   result = a1;
@@ -4245,7 +4244,7 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
       {
         v5 = (unsigned __int8)v4[1];
         if ( !v4[1] )
-          return AAS_Error(aAasDecompressv, v7);
+          return AAS_Error(aAasDecompressv);
         memset(v3, 0, 4 * (v5 >> 2));
         v6 = &v3[4 * (v5 >> 2)];
         v4 += 2;
@@ -6253,7 +6252,6 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   int v6; // edi
   int v7; // ebx
   char *v8; // ecx
-  char v9; // [esp+0h] [ebp-Ch]
 
   v2 = 1;
   if ( aasworld.numportals > 1 )
@@ -6304,7 +6302,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   }
   else
   {
-    AAS_Error(aAasMaxPortalin, v9);
+    AAS_Error(aAasMaxPortalin);
   }
   return 1;
 }
@@ -6482,7 +6480,6 @@ int AAS_FindClusters()
   _BYTE *v2; // ecx
   int i; // ebx
   _DWORD *v4; // esi
-  char v6; // [esp+0h] [ebp-Ch]
 
   AAS_RemoveClusterAreas();
   v0 = 1;
@@ -6503,14 +6500,14 @@ int AAS_FindClusters()
     if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
       return 0;
     AAS_NumberClusterPortals(aasworld.numclusters);
-    Log_Write(aClusterDHasDAr, aasworld.numclusters);
+    Log_Write(aClusterDHasDAr, aasworld.numclusters, *v4);
     v2 = aasworld.areasettings;
     v1 = ++aasworld.numclusters;
 LABEL_9:
     if ( ++v0 >= aasworld.numareas )
       return 1;
   }
-  AAS_Error(aAasMaxClusters, v6);
+  AAS_Error(aAasMaxClusters);
   return 0;
 }
 // 10008C27: variable 'v6' is possibly undefined
@@ -6525,7 +6522,6 @@ int AAS_CreatePortals()
   int v1; // esi
   int v2; // ebx
   int *v3; // eax
-  char v4; // [esp+0h] [ebp-Ch]
 
   result = aasworld.numareas;
   v1 = 1;
@@ -6538,7 +6534,7 @@ int AAS_CreatePortals()
       if ( (*((_BYTE *)aasworld.areasettings + v2) & 8) != 0 )
       {
         if ( result >= 0x10000 )
-          return AAS_Error(aAasMaxPortals, v4);
+          return AAS_Error(aAasMaxPortals);
         v3 = (int *)((char *)aasworld.portals + 20 * result);
         *v3 = v1;
         v3[1] = 0;
@@ -9156,13 +9152,12 @@ void *AAS_DumpAASData()
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
 {
   void *v4; // edi
-  char v5; // [esp+0h] [ebp-Ch]
 
   if ( !ElementCount )
     return 0;
   if ( fseek(Stream, Offset, 0) )
   {
-    AAS_Error(aCanTSeekToAasL, v5);
+    AAS_Error(aCanTSeekToAasL);
     AAS_DumpAASData();
     fclose(Stream);
     return 0;
@@ -9176,7 +9171,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     }
     else
     {
-      AAS_Error(aCanTReadAasLum, v5);
+      AAS_Error(aCanTReadAasLum);
       FreeMemory(v4);
       AAS_DumpAASData();
       fclose(Stream);
