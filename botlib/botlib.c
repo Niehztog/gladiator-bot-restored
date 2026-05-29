@@ -32230,106 +32230,97 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
 
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, &file_ref) )
-  {
-    src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    if ( src )
-    {
-      cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
-      cfg->numweights = 0;
-      if ( PC_ReadTokenHandle(src, token.string) )
-      {
-        while ( !strcmp(token.string, aWeight) )
-        {
-          if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
-          {
-            SourceWarning(src, aTooManyFuzzyWe, v6);
-            goto LABEL_21;
-          }
-          if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
-          {
-LABEL_25:
-            FreeWeightConfig2(cfg);
-            FreeSource(src);
-            return 0;
-          }
-          StripDoubleQuotes(token.string);
-          cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
-          strcpy(cfg->weights[cfg->numweights].name, token.string);
-          if ( !PC_ExpectAnyToken(src, token.string)
-            || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
-          {
-            FreeWeightConfig2(cfg);
-            FreeSource(src);
-            return 0;
-          }
-          if ( !strcmp(token.string, aSwitch) )
-          {
-            sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
-            if ( !sep )
-            {
-              FreeWeightConfig2(cfg);
-              FreeSource(src);
-              return 0;
-            }
-            cfg->weights[cfg->numweights].firstseperator = sep;
-          }
-          else
-          {
-            if ( strcmp(token.string, aReturn) )
-            {
-              SourceError(src, aInvalidNameS, token.string);
-              FreeWeightConfig2(cfg);
-              goto LABEL_31;
-            }
-            sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-            sep->index = 0;
-            sep->value = 999999;
-            sep->next  = 0;
-            sep->child = 0;
-            if ( !ReadFuzzyWeight(src, sep) )
-            {
-              FreeMemory(sep);
-              FreeWeightConfig2(cfg);
-              FreeSource(src);
-              return 0;
-            }
-            cfg->weights[cfg->numweights].firstseperator = sep;
-          }
-          if ( has_balance && !PC_ExpectTokenString(src, asc_1005AB54) )
-            goto LABEL_25;
-          ++cfg->numweights;
-          if ( !PC_ReadTokenHandle(src, token.string) )
-            goto LABEL_21;
-        }
-        SourceError(src, aInvalidNameS, token.string);
-        FreeWeightConfig2(cfg);
-LABEL_31:
-        FreeSource(src);
-        return 0;
-      }
-      else
-      {
-LABEL_21:
-        FreeSource(src);
-        if ( file_ref.filelen )
-          bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
-        else
-          bi_Print(1, "loaded %s\n", Destination);
-        return cfg;
-      }
-    }
-    else
-    {
-      bi_Print(3, "counldn't load %s\n", Destination);
-      return 0;
-    }
-  }
-  else
+  if ( !sub_10041F60(Destination, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", Destination);
     return 0;
   }
+  src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !src )
+  {
+    bi_Print(3, "counldn't load %s\n", Destination);
+    return 0;
+  }
+  cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
+  cfg->numweights = 0;
+  if ( PC_ReadTokenHandle(src, token.string) )
+  {
+    while ( !strcmp(token.string, aWeight) )
+    {
+      if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
+      {
+        SourceWarning(src, aTooManyFuzzyWe, v6);
+        goto LABEL_21;
+      }
+      if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
+      {
+LABEL_25:
+        FreeWeightConfig2(cfg);
+        FreeSource(src);
+        return 0;
+      }
+      StripDoubleQuotes(token.string);
+      cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
+      strcpy(cfg->weights[cfg->numweights].name, token.string);
+      if ( !PC_ExpectAnyToken(src, token.string)
+        || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
+      {
+        FreeWeightConfig2(cfg);
+        FreeSource(src);
+        return 0;
+      }
+      if ( !strcmp(token.string, aSwitch) )
+      {
+        sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
+        if ( !sep )
+        {
+          FreeWeightConfig2(cfg);
+          FreeSource(src);
+          return 0;
+        }
+        cfg->weights[cfg->numweights].firstseperator = sep;
+      }
+      else
+      {
+        if ( strcmp(token.string, aReturn) )
+        {
+          SourceError(src, aInvalidNameS, token.string);
+          FreeWeightConfig2(cfg);
+          goto LABEL_31;
+        }
+        sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+        sep->index = 0;
+        sep->value = 999999;
+        sep->next  = 0;
+        sep->child = 0;
+        if ( !ReadFuzzyWeight(src, sep) )
+        {
+          FreeMemory(sep);
+          FreeWeightConfig2(cfg);
+          FreeSource(src);
+          return 0;
+        }
+        cfg->weights[cfg->numweights].firstseperator = sep;
+      }
+      if ( has_balance && !PC_ExpectTokenString(src, asc_1005AB54) )
+        goto LABEL_25;
+      ++cfg->numweights;
+      if ( !PC_ReadTokenHandle(src, token.string) )
+        goto LABEL_21;
+    }
+    SourceError(src, aInvalidNameS, token.string);
+    FreeWeightConfig2(cfg);
+LABEL_31:
+    FreeSource(src);
+    return 0;
+  }
+LABEL_21:
+  FreeSource(src);
+  if ( file_ref.filelen )
+    bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
+  else
+    bi_Print(1, "loaded %s\n", Destination);
+  return cfg;
 }
 // 10036301: variable 'v6' is possibly undefined
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
