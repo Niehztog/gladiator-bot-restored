@@ -6642,7 +6642,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
   int v5; // esi
   int v6; // eax
   int v7; // ebx
-  __int64 v8; // rax
+  int v8; // rax (was __int64)
   char *v9; // eax
   int v10; // eax
   int v11; // ecx
@@ -6656,44 +6656,45 @@ int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
   v6 = 0;
   v7 = *((_DWORD *)aasworld.areasettings + 7 * done + 2);
   v15 = 0;
-  if ( v4[1] <= 0 )
-    return v5;
-  while ( 1 )
+  if ( v4[1] > 0 )
   {
-    v8 = *((int *)aasworld.faceindex + v6 + v4[2]);
-    v9 = (char *)aasworld.faces + 24 * ((HIDWORD(v8) ^ v8) - HIDWORD(v8));
-    if ( (v9[4] & 1) != 0 )
-      goto LABEL_15;
-    v10 = *((_DWORD *)v9 + 4) == done ? *((_DWORD *)v9 + 5) : *((_DWORD *)v9 + 4);
-    if ( (~*((_DWORD *)aasworld.areasettings + 7 * v10 + 2) & v7) == 0
-      || (~v7 & *((_DWORD *)aasworld.areasettings + 7 * v10 + 2)) != 0 )
+    while ( 1 )
     {
-      goto LABEL_15;
-    }
-    v11 = 0;
-    if ( v5 > 0 )
-    {
-      v12 = areanum;
-      do
+      v8 = *((int *)aasworld.faceindex + v6 + v4[2]);
+      v9 = (char *)aasworld.faces + 24 * abs32(v8);
+      if ( (v9[4] & 1) != 0 )
+        goto LABEL_15;
+      v10 = *((_DWORD *)v9 + 4) == done ? *((_DWORD *)v9 + 5) : *((_DWORD *)v9 + 4);
+      if ( (~*((_DWORD *)aasworld.areasettings + 7 * v10 + 2) & v7) == 0
+        || (~v7 & *((_DWORD *)aasworld.areasettings + 7 * v10 + 2)) != 0 )
       {
-        if ( v10 == *v12 )
-          break;
-        ++v11;
-        ++v12;
+        goto LABEL_15;
       }
-      while ( v11 < v5 );
-    }
-    if ( v11 != v5 )
-      goto LABEL_15;
-    if ( v5 >= 128 )
-      break;
-    v5 = AAS_FloodAreas_r(areanum, v5, v10);
+      v11 = 0;
+      if ( v5 > 0 )
+      {
+        v12 = areanum;
+        do
+        {
+          if ( v10 == *v12 )
+            break;
+          ++v11;
+          ++v12;
+        }
+        while ( v11 < v5 );
+      }
+      if ( v11 != v5 )
+        goto LABEL_15;
+      if ( v5 >= 128 )
+        break;
+      v5 = AAS_FloodAreas_r(areanum, v5, v10);
 LABEL_15:
-    v6 = ++v15;
-    if ( v15 >= v4[1] )
-      return v5;
+      v6 = ++v15;
+      if ( v15 >= v4[1] )
+        return v5;
+    }
+    AAS_Error(aMaxPortalareas, v14);
   }
-  AAS_Error(aMaxPortalareas, v14);
   return v5;
 }
 // 10008FA0: variable 'v14' is possibly undefined
