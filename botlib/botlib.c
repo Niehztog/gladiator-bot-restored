@@ -15898,24 +15898,25 @@ int AAS_FreeAllClusterAreaCache()
   aas_routingcache_t **row;
   aas_routingcache_t  *entry, *next;
 
-  if ( !aasworld.clusterareacache )
-    return 0;
-  clusters = (aas_cluster_t *)aasworld.clusters;
-  for ( cluster = 0; cluster < aasworld.numclusters; ++cluster )
+  if ( aasworld.clusterareacache )
   {
-    row = aasworld.clusterareacache[cluster];
-    for ( areaInCluster = 0; areaInCluster < clusters[cluster].numareas; ++areaInCluster )
+    clusters = (aas_cluster_t *)aasworld.clusters;
+    for ( cluster = 0; cluster < aasworld.numclusters; ++cluster )
     {
-      for ( entry = row[areaInCluster]; entry; entry = next )
+      row = aasworld.clusterareacache[cluster];
+      for ( areaInCluster = 0; areaInCluster < clusters[cluster].numareas; ++areaInCluster )
       {
-        next = entry->next;
-        AAS_FreeRoutingCache(entry);
+        for ( entry = row[areaInCluster]; entry; entry = next )
+        {
+          next = entry->next;
+          AAS_FreeRoutingCache(entry);
+        }
+        row[areaInCluster] = NULL;
       }
-      row[areaInCluster] = NULL;
     }
+    FreeMemory(aasworld.clusterareacache);
+    aasworld.clusterareacache = NULL;
   }
-  FreeMemory(aasworld.clusterareacache);
-  aasworld.clusterareacache = NULL;
   return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
