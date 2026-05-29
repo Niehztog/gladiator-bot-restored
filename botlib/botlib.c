@@ -11919,9 +11919,11 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 __int64 AAS_FallDamageDistance()
 {
   long double v0; // st7
+  float grav; // st6
 
-  v0 = sqrt(300000.0) / libvar_sv_gravity->value;
-  return (__int64)(libvar_sv_gravity->value * v0 * v0 * 0.5);
+  grav = libvar_sv_gravity->value;
+  v0 = sqrt(300000.0) / grav;
+  return (__int64)(grav * v0 * v0 * 0.5);
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 
@@ -33384,10 +33386,7 @@ static void __cdecl sub_10037880(void)
 //----- (100378C0) --------------------------------------------------------
 unsigned int Sys_MilliSeconds()
 {
-  unsigned int v0; // eax
-
-  v0 = (int)((unsigned __int64)((__int64)274877907000 * clock()) >> 32) >> 6;
-  return (v0 >> 31) + v0;
+  return clock() * 1000 / CLOCKS_PER_SEC;
 }
 
 //----- (10037900) --------------------------------------------------------
@@ -33471,7 +33470,7 @@ int __cdecl Export_BotLibStartFrame(float time)
 {
   if ( !BotLibSetup(aBotstartframe) )
     return 1;
-  dword_1006402C = LODWORD(time);
+  *(float *)&dword_1006402C = time;
   return AAS_StartFrame(time);
 }
 // 1006402C: using guessed type int dword_1006402C;
@@ -34287,7 +34286,7 @@ indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out)
     {
       *type_out = ind->type;
       *skip_out = ind->skip;
-      src->indentstack = ind->next;
+      src->indentstack = src->indentstack->next;
       src->skip       -= ind->skip;
       /* Asm leaves FreeMemory's return value in eax — preserve that here. */
       return (indent_t *)(uintptr_t)FreeMemory(ind);
@@ -38979,16 +38978,16 @@ int __cdecl WriteIndent(FILE *Stream, int def)
 //----- (10040E80) --------------------------------------------------------
 int __cdecl WriteFloat(FILE *Stream, float a2)
 {
-  unsigned int v2; // kr04_4
+  unsigned int v2; // edx
   unsigned int v3; // ecx
   char v4; // al
   int v5; // eax
   char Buffer[128]; // [esp+Ch] [ebp-80h] BYREF
 
   sprintf(Buffer, "%f", a2);
-  v2 = strlen(Buffer) + 1;
-  v3 = v2 - 2;
-  if ( (int)(v2 - 1) > 1 )
+  v2 = strlen(Buffer);
+  v3 = v2 - 1;
+  if ( (int)v2 > 1 )
   {
     do
     {
@@ -40168,16 +40167,16 @@ double __cdecl VectorLength(float *v)
 {
   float sq_sum; // st7
   int count; // ecx
-  float term; // st5
+  float t; // st5
 
   sq_sum = 0.0f;
   count = 3;
   do
   {
-    term = *v * *v;
+    t = *v;
+    sq_sum = sq_sum + t * t;
     ++v;
     --count;
-    sq_sum = sq_sum + term;
   }
   while ( count );
   return sqrt(sq_sum);
