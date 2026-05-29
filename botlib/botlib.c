@@ -2527,7 +2527,7 @@ int sub_100030A0()  /* InitBSPLinkHeap */
 // prints "%d free bsp links, %s\n" at level 1 with (count, caller_name).
 // This is a heap-diagnostic helper that earlier builds called from
 // AAS_DumpBSPLinks or similar verbose-mode reporting.
-static void __cdecl sub_100031B0(char *name)
+void __cdecl sub_100031B0(char *name)
 {
   bsp_link_t *node;
   int count;
@@ -4209,7 +4209,7 @@ LABEL_6:
  * origin, zero-mins/zero-maxs (degenerate point box).  Returns whatever
  * sub_100057A0 returned in EAX.  Dead in Gladiator -- preserved by
  * /INCREMENTAL. */
-static int __cdecl sub_10005A10(float *origin)
+int __cdecl sub_10005A10(float *origin)
 {
   float zero_vec[3];
   zero_vec[0] = 0.0f;
@@ -4393,7 +4393,7 @@ int __cdecl sub_10005CC0(int a, int b)
  * DEAD in Gladiator — no live caller; deferred matrix maintenance
  * helper that was dropped before release.  /INCREMENTAL kept the
  * body in the binary. */
-static void __cdecl sub_10005CF0(int row_index, int value)
+void __cdecl sub_10005CF0(int row_index, int value)
 {
   int **matrix;
   int  *flag_row;
@@ -4725,7 +4725,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
  *          ds:0x100674EC = aasworld.bspleafs (stride 28).
  *
  * DEAD in Gladiator — no live caller. */
-static int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
+int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 {
   bsp_link_t *linkhead;
   bsp_link_t *link;
@@ -4824,7 +4824,7 @@ static int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcoun
 // DEAD in Gladiator — the engine builds its BSP entity dict from the
 // .bsp lump and never patches entries post-load; preserved by
 // /INCREMENTAL.  Restored from objdump@10006600.
-static void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
+void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
 {
   bsp_epair_t *ep;
   int          klen;
@@ -7330,7 +7330,7 @@ static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int
  *          dword_10066B14      = free counter
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
-static void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
+void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
 {
   float corners[8][3];
   int   line_ids[3];
@@ -7415,7 +7415,7 @@ static void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
  *
  * DEAD in shipped Gladiator (no .text caller; AAS_ShowArea draws
  * area-level wireframes via a different path).  Restored verbatim. */
-static void __cdecl sub_10009ED0(int facenum)
+void __cdecl sub_10009ED0(int facenum)
 {
   static const unsigned int edge_color_cycle[4] = {
     0xF2F2F0F0u,  /* state 0 (after first xform from initial 0xDCDDDEDF) */
@@ -8114,7 +8114,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
 // bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum) and
 // returns *without* writing to mins/maxs (matches the original — the
 // disasm has no clear path on the OOR exit).
-static void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
+void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
 {
   char *v;
 
@@ -8569,7 +8569,7 @@ LABEL_21:
 // = classnum/spawnflags-style key (matches the disasm).  Distance via
 // VectorLength thunk @0x10001D75 → VectorLength@10043500.  DEAD in
 // Gladiator — /INCREMENTAL.  Restored from objdump@1000B1F0.
-static int __cdecl sub_1000B1F0(float *ref, int target)
+int __cdecl sub_1000B1F0(float *ref, int target)
 {
   int i;
   int best_index;
@@ -8621,7 +8621,7 @@ static int __cdecl sub_1000B1F0(float *ref, int target)
  * holds the entity's aas_link_t* chain head; this thin wrapper hands
  * that chain to AAS_BestReachableLinkArea and returns the result.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1000B1B0(int entitynum)
+int __cdecl sub_1000B1B0(int entitynum)
 {
   /* aasworld.entities is exposed in botlib.c as `aasworld.entities`
    * (the 132-byte-stride aas_entity_t array); the +0x7c field is the
@@ -9930,7 +9930,7 @@ int __cdecl IndexFromModel(char *String2)
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@1000D9C0: pushes "SoundFromIndex" + aasworld.soundindex_table,
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
-static char *__cdecl sub_1000D9C0(int a1)
+char *__cdecl sub_1000D9C0(int a1)
 {
   return AAS_StringFromIndex(aSoundfromindex, aasworld.soundindex_table, a1);
 }
@@ -9938,7 +9938,7 @@ static char *__cdecl sub_1000D9C0(int a1)
 //----- (1000D9F0) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
-static int __cdecl sub_1000D9F0(char *String2)
+int __cdecl sub_1000D9F0(char *String2)
 {
   return AAS_IndexFromString(aIndexfromsound, aasworld.soundindex_table, String2);
 }
@@ -9953,7 +9953,7 @@ char *__cdecl sub_1000DA20(int a1)
 //----- (1000DA50) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
-static int __cdecl sub_1000DA50(char *String2)
+int __cdecl sub_1000DA50(char *String2)
 {
   return AAS_IndexFromString(aIndexfromimage, aasworld.imageindex_table, String2);
 }
@@ -10102,7 +10102,7 @@ int AAS_Initialized()
 // This is the late-init announcer that *would* have been called from
 // AAS_ContinueInit's tail in earlier builds before the print/flag-set were
 // inlined; preserved by /INCREMENTAL.
-static void __cdecl sub_1000DF00(void)
+void __cdecl sub_1000DF00(void)
 {
   aasworld.initialized = 1;
   bi_Print(1, aAasInitialized);
@@ -10633,12 +10633,12 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 // Constants from .rdata 0x100580dc/e0/e4 = 16.0f / 8.0f / 48.0f.
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1000F130.
 //----- (10003080) --- thin wrapper forwarding to bi_PointContents
-static int __cdecl sub_10003080(vec3_t point)
+int __cdecl sub_10003080(vec3_t point)
 {
   return bi_PointContents(point);
 }
 
-static int __cdecl sub_1000F130(vec3_t origin)
+int __cdecl sub_1000F130(vec3_t origin)
 {
   vec3_t p;
 
@@ -11965,7 +11965,7 @@ int __cdecl AAS_AreaSwim(int areanum)
  * and 4; shr 2` sequence reading areasettings[a].areaflags bit 2).
  * Either an alias (AAS_AreaWater?) or /INCREMENTAL's second emission
  * of the same body; preserved by the linker. */
-static int __cdecl sub_10011640(int areanum)
+int __cdecl sub_10011640(int areanum)
 {
   return (*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
 }
@@ -11996,7 +11996,7 @@ int __cdecl AAS_AreaLadder(int areanum)
  * Returns (int)(10 * sv_jumpvel.value / sv_gravity.value), a crude
  * jump-time / hang-time estimate in tics.  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-static int __cdecl sub_100116D0(void)
+int __cdecl sub_100116D0(void)
 {
   return (int)(libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1));
 }
@@ -16862,7 +16862,7 @@ typedef struct aas_altroutegoal_s {
   unsigned short  pad;
 } aas_altroutegoal_t;
 
-static int __cdecl sub_1001A720(
+int __cdecl sub_1001A720(
     vec3_t start, vec3_t goal, int travelflags,
     aas_altroutegoal_t *altroutegoals, int maxaltroutegoals)
 {
@@ -17181,7 +17181,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 // trusts the bounds-check).  Uses `areanum > 0` (not `>= 0`) so area 0 is
 // treated as OOR.  On OOR prints "AAS_AreaCluster: invalid area number\n"
 // at level 3 and returns 0.
-static int __cdecl sub_1001AF00(int areanum)
+int __cdecl sub_1001AF00(int areanum)
 {
   if ( areanum > 0 && areanum < aasworld.numareas )
     return *((_DWORD *)aasworld.areasettings + 7 * areanum + 3);
@@ -17237,7 +17237,7 @@ int __cdecl AAS_PointContents(vec3_t point)
 // memcpy then push+call), so the caller's vector survives unchanged
 // even though the assembly does an in-place normalize.  DEAD in
 // Gladiator — /INCREMENTAL.  Restored from objdump@1001AFF0.
-static double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
+double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
 {
   vec3_t support;
   vec3_t normal_local;
@@ -17810,7 +17810,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
-static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
+void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
 {
   int    i;
   int    numfaces;
@@ -17856,7 +17856,7 @@ static void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
  *   *out_dist        = plane[3]
  * Dead in Gladiator — live code (AAS_FaceOnSameSide etc.) walks
  * aasworld.planes/faces directly; preserved by /INCREMENTAL. */
-static void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dist)
+void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dist)
 {
   int    plane_idx;
   float *plane;
@@ -17879,7 +17879,7 @@ static void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dis
 // AAS_InsideFace(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
 // 0.01f); a non-zero return promotes the face pointer to the result.
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C210.
-static void *__cdecl sub_1001C210(int *gate)
+void *__cdecl sub_1001C210(int *gate)
 {
   int    i;
   int    numfaces;
@@ -18118,7 +18118,7 @@ char *__cdecl AAS_PlaneFromNum(int planenum)
  * verified against the ReadStructure call at sub_10042F90).  Companion
  * to AAS_DumpAreas / AAS_DumpReachabilities (Q3 botlib).  Dead in
  * Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_1001C6F0(void)
+void __cdecl sub_1001C6F0(void)
 {
   int   i;
   FILE *fp;
@@ -18524,7 +18524,7 @@ void __cdecl sub_1001CFA0(float a1)
  * null cursor to reset) or the +0x30 next-chain field of the supplied
  * node.  Dead in Gladiator — the active iteration uses sub_1001CFA0's
  * inline `v1 = v1->next` instead. */
-static int __cdecl sub_1001D040(char *p)
+int __cdecl sub_1001D040(char *p)
 {
   if ( !p )
     return (int)aasworld.d_100669CC;
@@ -18537,7 +18537,7 @@ static int __cdecl sub_1001D040(char *p)
  * sound-pool entity-payload pointer keyed by the dword field at +0x20
  * (which is dword index 8) of the supplied node.  Dead in Gladiator;
  * preserved by /INCREMENTAL. */
-static int __cdecl sub_1001D070(int *p)
+int __cdecl sub_1001D070(int *p)
 {
   return (int)aasworld.d_100669C0[p[8]];
 }
@@ -18557,7 +18557,7 @@ static int __cdecl sub_1001D070(int *p)
 // where delta = emitter->origin - listener.  DEAD in Gladiator —
 // /INCREMENTAL; the live sound code uses a per-cluster path instead.
 // Restored from objdump@1001D0A0.
-static float __cdecl sub_1001D0A0(float *listener, void *emitter)
+float __cdecl sub_1001D0A0(float *listener, void *emitter)
 {
   float *eorigin;
   void  *info;
@@ -20871,7 +20871,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
  * bot_state_t accessor (offset 0xB8 maps to one of the int16 fields in
  * the bot-state region).  Dead in Gladiator — live call sites read the
  * same field via direct indexing; preserved by /INCREMENTAL. */
-static int __cdecl sub_100214E0(char *p)
+int __cdecl sub_100214E0(char *p)
 {
   return *(__int16 *)(p + 0xB8);
 }
@@ -21545,7 +21545,7 @@ BOOL __cdecl BotWantsToChase(int *a1)
  * decision-helper run.  Likely a placeholder for a feature toggle
  * (BotWantsToRetreat? BotShouldRetreat?) that ended up hard-coded to 1.
  * Dead in Gladiator; preserved by /INCREMENTAL. */
-static int __cdecl sub_10022970(int *a1)
+int __cdecl sub_10022970(int *a1)
 {
   (void)a1;
   return 1;
@@ -23480,7 +23480,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 // on — matches the binary's quirk.  Stores (float)(sign*cur) into
 // out[0..2]; returns 1.  DEAD in Gladiator — /INCREMENTAL.  Restored
 // from objdump@10026E40.
-static int __cdecl sub_10026E40(char *string, float *out)
+int __cdecl sub_10026E40(char *string, float *out)
 {
   int n;
   int sign;
@@ -25043,7 +25043,7 @@ int BotShutdownLibrary()
  * the named-value list printers at 1002B070/1002B900.  Type tags 1=int,
  * 2=float (printed via promotion to double), 3=string.  Dead in
  * Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_10029E10(int *list)
+void __cdecl sub_10029E10(int *list)
 {
   int   count;
   int   i;
@@ -25762,7 +25762,7 @@ LABEL_8:
  * Inner item = { char *name; float val; struct item *next; } stride 12.
  * Companion to the named-list dumper at 1002B900 (which uses %s-only
  * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_1002B070(int *list)
+void __cdecl sub_1002B070(int *list)
 {
   FILE *fp;
   int  *outer;
@@ -26083,7 +26083,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
  * Mr. Elusive helper, no canonical Q3 counterpart.  Sibling of the
  * named-float dumper at sub_1002B070.  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-static void __cdecl sub_1002B900(int *list)
+void __cdecl sub_1002B900(int *list)
 {
   FILE *fp;
   char *outer;
@@ -26291,7 +26291,7 @@ char *__cdecl RandomString(const char *name)
 // the original — and the same UB on the value.
 //
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
-static void __cdecl sub_1002BEA0(void *unused, void *templates)
+void __cdecl sub_1002BEA0(void *unused, void *templates)
 {
   FILE *log;
   char *tmpl;
@@ -27003,7 +27003,7 @@ LABEL_14:
  *         0x10045898               = fprintf.
  *
  * DEAD in Gladiator — no live caller. */
-static void __cdecl sub_1002CF40(bot_replychat_t *replychat)
+void __cdecl sub_1002CF40(bot_replychat_t *replychat)
 {
   struct lhs_inner { int type; char **strptr_ptr; int intval; struct lhs_inner *next; };
   struct lhs_node  { int flags; char *strptr;    struct lhs_inner *inner; struct lhs_node *next; };
@@ -27304,7 +27304,7 @@ static void sub_1002DF70(chatlist_t *list);
  * chain) and per-type chattype_t->messages (chatmessage_t chain),
  * matching the chat-config grammar that BotDumpInitialChat parses
  * just below.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_1002D7E0(chatlist_t *list)
+void __cdecl sub_1002D7E0(chatlist_t *list)
 {
   chattype_t *t;
   chatline_t *msg;
@@ -27831,7 +27831,7 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *String2, ...)
  * Thunk: ds:0x10063FE8 = bi_Print.
  *
  * DEAD in Gladiator — no live caller. */
-static void __cdecl sub_1002E5D0(void *arg)
+void __cdecl sub_1002E5D0(void *arg)
 {
   struct lhs_inner { int type; int *strptr_ptr; int intval; struct lhs_inner *next; };
   struct lhs_node  { int flags; int strptr;    struct lhs_inner *inner; struct lhs_node *next; };
@@ -28059,7 +28059,7 @@ char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
  * Enum-to-int mapper, looks like a chat-context selector (matches the
  * shape of Q3 trap_BotEnterChat's chat-type argument).  Dead in
  * Gladiator; preserved by /INCREMENTAL. */
-static void __cdecl sub_1002EAF0(int *out, int b)
+void __cdecl sub_1002EAF0(int *out, int b)
 {
   if ( b == 1 )
     *out = 1;
@@ -28080,7 +28080,7 @@ static void __cdecl sub_1002EAF0(int *out, int b)
  * + 1 word + 1 byte trailing terminator), then strncpy's arg2 into
  * the same slot with a 15-byte limit.  Bot-name-style fixed-width
  * setter.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_1002EB30(void *target, const char *src)
+void __cdecl sub_1002EB30(void *target, const char *src)
 {
   char *dst = (char *)target + 4;
   memset(dst, 0, 15);
@@ -28105,7 +28105,7 @@ static void __cdecl sub_1002EB30(void *target, const char *src)
  * every chatmessage in every entry.  Matches Q3's BotResetReplyChat /
  * BotInitChatMessage usage-throttle reset.  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-static void __cdecl sub_1002EB70(void)
+void __cdecl sub_1002EB70(void)
 {
   bot_replychat_t   *rc;
   bot_chatmessage_t *cm;
@@ -29938,7 +29938,7 @@ int __cdecl BotMoveInDirection(intptr_t movestate, intptr_t dir, float speed, in
 // against p1 and p3 respectively, and the result is the rational
 // formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
 // /INCREMENTAL.  Restored from objdump@10031C30.
-static int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, int *out)
+int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, int *out)
 {
   float d1x = p2[0] - p1[0];
   float d1y = p2[1] - p1[1];
@@ -30088,7 +30088,7 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
 // (cleared + dx/dy-tagged at offsets +0x18/+0x1C/+0x20) movestate is
 // then copied to *out via a 12-dword rep movs.  DEAD in Gladiator —
 // /INCREMENTAL.  Restored from objdump@10031FE0.
-static void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
+void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
 {
   unsigned char mr[48];
   vec3_t dir;
@@ -31146,7 +31146,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
  * the entire 48-byte buffer to the caller-supplied output via
  * rep movsd.  Equivalent to: bot_moveresult_t r; BotClearMoveResult(&r);
  * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_10034070(void *out)
+void __cdecl sub_10034070(void *out)
 {
   int local[12];
   BotClearMoveResult((_DWORD *)local);
@@ -31815,7 +31815,7 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2)
  * config is unloaded, empty, or no entry matches.  Sibling pattern of
  * sub_10035430.  Mirror of Q3's ReadWeaponConfig name-resolver.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_100353C0(const char *modelname)
+int __cdecl sub_100353C0(const char *modelname)
 {
   weaponconfig_t *cfg;
   weaponinfo_t   *w;
@@ -31840,7 +31840,7 @@ static int __cdecl sub_100353C0(const char *modelname)
  * (lea eax,[esi+4]) and on miss returns 0x1005E3FC = "unknown weapon".
  * Mirror of Q3's weapon-model-to-name resolver.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static const char *__cdecl sub_10035430(const char *modelname)
+const char *__cdecl sub_10035430(const char *modelname)
 {
   static const char default_name[] = "unknown weapon"; /* @0x1005E3FC */
   weaponconfig_t *cfg;
@@ -32511,7 +32511,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 // not close fp — minor leak in the dead code, preserved).  DEAD in
 // Gladiator — /INCREMENTAL; live in Q3 as WriteWeightConfig.
 // Restored from objdump@100368B0.
-static int __cdecl sub_100368B0(const char *filename, weightconfig_t *config)
+int __cdecl sub_100368B0(const char *filename, weightconfig_t *config)
 {
   FILE *fp;
   int i;
@@ -32755,7 +32755,7 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
  * Outer driver in the GA pipeline -- evolves a list of fuzzy-logic
  * subtrees (matching Q3's EvolveFuzzyNetwork over BotMutateGoalFuzzyLogic).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static void __cdecl sub_10036DF0(int *arr)
+void __cdecl sub_10036DF0(int *arr)
 {
   int i;
   for ( i = 0; i < arr[0]; ++i )
@@ -32899,7 +32899,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
 // on every (a->weights[i].firstseperator, b->weights[i].firstseperator)
 // pair.  This is the public entry to the GA crossover used by the offline
 // bot-tuning pipeline — dead in Gladiator (live in Q3 InterbreedGoalFuzzyLogic).
-static void __cdecl sub_10037020(weightconfig_t *a, weightconfig_t *b)
+void __cdecl sub_10037020(weightconfig_t *a, weightconfig_t *b)
 {
   int i;
 
@@ -32943,7 +32943,7 @@ void __cdecl EA_DropItem(int client, char *item)
 // against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_Use/EA_DropItem exactly.
-static int __cdecl sub_10037150(int client, char *item)
+int __cdecl sub_10037150(int client, char *item)
 {
   bi_BotClientCommand(client, aInvuse, item, (char *)NULL);
   return 0;
@@ -32952,7 +32952,7 @@ static int __cdecl sub_10037150(int client, char *item)
 //----- (10037180) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub).  Mirror of sub_10037150 with the
 // "invdrop" command string (0x1005E63C).
-static int __cdecl sub_10037180(int client, char *item)
+int __cdecl sub_10037180(int client, char *item)
 {
   bi_BotClientCommand(client, aInvdrop, item, (char *)NULL);
   return 0;
@@ -33017,7 +33017,7 @@ int __cdecl EA_Attack(int client)
  * (10037320).  Matches Q3 be_ea.c::EA_Use.  Dead in Gladiator —
  * Gladiator's mod never queues USE actions through the EA layer (it
  * uses bi_BotClientCommand "use" directly); preserved by /INCREMENTAL. */
-static void __cdecl sub_100372F0(int client)
+void __cdecl sub_100372F0(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_USE;
@@ -33100,7 +33100,7 @@ int __cdecl EA_MoveUp(int client)
  * (10037400) and EA_MoveForward (10037460).  Dead in Gladiator — the
  * mod only ever calls EA_Crouch when it wants this bit set — but the
  * /INCREMENTAL thunk preserved the symbol. */
-static void __cdecl sub_10037430(int client)
+void __cdecl sub_10037430(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEDOWN;
@@ -33121,7 +33121,7 @@ int __cdecl EA_MoveForward(int client)
 /* EA_MoveBack — set ACTION_MOVEBACK (bit 0x40).  Restored IDA-missed
  * dead-code stub.  Verified against objdump@10037490: same EA template
  * as EA_MoveForward with `or [eax+0x20], 0x40`.  Matches Q3 be_ea.c. */
-static void __cdecl sub_10037490(int client)
+void __cdecl sub_10037490(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEBACK;
@@ -33131,7 +33131,7 @@ static void __cdecl sub_10037490(int client)
 /* EA_MoveLeft — set ACTION_MOVELEFT (bit 0x80).  Restored IDA-missed
  * dead-code stub.  Verified against objdump@100374C0: same EA template
  * using `or cl, 0x80` (low byte of [eax+0x20] dword).  Q3 be_ea.c. */
-static void __cdecl sub_100374C0(int client)
+void __cdecl sub_100374C0(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVELEFT;
@@ -33142,7 +33142,7 @@ static void __cdecl sub_100374C0(int client)
  * dead-code stub.  Verified against objdump@100374F0: same EA template
  * using `or ch, 0x01` (high byte of low word of [eax+0x20] dword =
  * bit 8 = 0x100).  Q3 be_ea.c. */
-static void __cdecl sub_100374F0(int client)
+void __cdecl sub_100374F0(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVERIGHT;
@@ -33314,7 +33314,7 @@ LABEL_14:
  * no-op cdecl void function.  Reachable through thunk 0x10001Bxx;
  * dead in Gladiator (no live call path ever invokes the no-op).
  * Likely a placeholder/abandoned hook left over by /INCREMENTAL. */
-static void __cdecl sub_10037770(void)
+void __cdecl sub_10037770(void)
 {
 }
 
@@ -33343,7 +33343,7 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
  * the same C source function and preserved both via separate thunks.
  * Same semantics as sub_10037850: CRC-hash the buffer and register the
  * (name, crc) pair through sub_100377E0. */
-static int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
+int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 {
   __int16 crc; // ax
 
@@ -33368,7 +33368,7 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 // Format string at 0x1005E9EC, next-pointer at scriptcrc_t offset +0x94
 // (+148 on the 32-bit binary).  This was a dev tool for dumping the
 // known-CRC table to be pasted into a config; dead in the shipped DLL.
-static void __cdecl sub_10037880(void)
+void __cdecl sub_10037880(void)
 {
   scriptcrc_t *p;
 
@@ -33582,7 +33582,7 @@ _WORD *__cdecl CRC_Init(_WORD *a1)
 // against the lookup table at word_1005EE70.  Mirrors Q3 CRC_ProcessByte.
 // Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
 // preserved by the linker.
-static void __cdecl sub_100385D0(unsigned __int16 *crc, int byte)
+void __cdecl sub_100385D0(unsigned __int16 *crc, int byte)
 {
   unsigned int idx;
   unsigned int low_shifted;
@@ -33638,7 +33638,7 @@ __int16 __cdecl CRC_Block(const unsigned char *a1, int a2)
 // scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
 // ebp=base — this is the classic IDA index-base swap and is equivalent to
 // data[i] for i in [0..len).
-static void __cdecl sub_100386E0(unsigned __int16 *crc, const unsigned char *data, int len)
+void __cdecl sub_100386E0(unsigned __int16 *crc, const unsigned char *data, int len)
 {
   int i;
   unsigned int idx;
@@ -33728,7 +33728,7 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
 // libvarlist = NULL is redundant after the loop but is present in the
 // disasm (a literal "mov DWORD PTR ds:0x10063F20, 0").  This is the
 // shutdown path that Q3 botlib exposes as LibVarDeAllocAll.
-static void __cdecl sub_100388D0(void)
+void __cdecl sub_100388D0(void)
 {
   libvar_t *v;
 
@@ -33831,7 +33831,7 @@ void __cdecl LibVarSet(char *name, char *value)
  * if no such libvar exists.  Direct counterpart of Q3 botlib's
  * LibVarGetModified.  Dead in Gladiator — never reached via thunk
  * 0x10001C71; preserved by /INCREMENTAL. */
-static int __cdecl sub_10038B80(const char *name)
+int __cdecl sub_10038B80(const char *name)
 {
   libvar_t *v;
 
@@ -33850,7 +33850,7 @@ static int __cdecl sub_10038B80(const char *name)
  * Clears the `modified` flag on the libvar with the given name (no-op
  * if it doesn't exist).  Direct counterpart of Q3 botlib's
  * LibVarClearModified.  Dead in Gladiator — preserved by /INCREMENTAL. */
-static void __cdecl sub_10038BB0(const char *name)
+void __cdecl sub_10038BB0(const char *name)
 {
   libvar_t *v;
 
@@ -33918,7 +33918,7 @@ void Log_Open(char *FileName)
  * consistent with a pre-/INCREMENTAL relink leaving behind the
  * earlier object-file copy of the routine.  Dead in Gladiator: no
  * caller reaches 0x10038CF0; only the relink thunk keeps it live. */
-static int __cdecl sub_10038CF0(void)
+int __cdecl sub_10038CF0(void)
 {
   int result; // eax
 
@@ -33993,7 +33993,7 @@ FILE *Log_Write(char *Format, ...)
  * DEAD in Gladiator — /INCREMENTAL.
  */
 static int dword_10063E44; // log line counter @ .data 0x10063E44
-static FILE *__cdecl sub_10038DD0(const char *Format, ...)
+FILE *__cdecl sub_10038DD0(const char *Format, ...)
 {
   va_list va;
   float t;
@@ -34694,7 +34694,7 @@ void __cdecl PC_FreeDefine(define_t *def)
  * Defines) — same author, same code, restored in the corresponding Q3
  * sources.  Dead in Gladiator: no caller; only kept live by the
  * /INCREMENTAL relink stub. */
-static void __cdecl sub_10039EE0(source_t *source)
+void __cdecl sub_10039EE0(source_t *source)
 {
   static const struct {
   char *name;
@@ -35344,7 +35344,7 @@ define_t *__cdecl PC_DefineFromString(const char *a1)
  * fresh define_t and links it into source->definehash; returns 1 on
  * success, 0 if parsing failed.  Dead in Gladiator -- preserved by
  * /INCREMENTAL. */
-static int __cdecl sub_1003B460(source_t *source, const char *string)
+int __cdecl sub_1003B460(source_t *source, const char *string)
 {
   define_t *def;
 
@@ -35411,7 +35411,7 @@ int __cdecl PC_RemoveGlobalDefine(const char *a1)
 // calling PC_FreeDefine on the popped node.  This is the shutdown path
 // for the preprocessor's global #define table; Q3 botlib exposes it as
 // PC_RemoveAllGlobalDefines.
-static void __cdecl sub_1003B520(void)
+void __cdecl sub_1003B520(void)
 {
   define_t *d;
 
@@ -36874,7 +36874,7 @@ int __cdecl PC_CheckTokenString(source_t *src, const char *a2)
  *
  * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
  * keeps it live.  Matches Q3 l_precomp.c::PC_ExpectTokenType. */
-static int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t *out_token)
+int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t *out_token)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
@@ -36904,7 +36904,7 @@ static int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t
  *
  * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
  * keeps it live.  Matches Q3 l_precomp.c::PC_SkipUntilString. */
-static int __cdecl sub_1003DC80(source_t *source, char *string)
+int __cdecl sub_1003DC80(source_t *source, char *string)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+10h] [ebp-430h] BYREF
 
@@ -36959,7 +36959,7 @@ void __cdecl sub_1003DD70(source_t *src, const void *token)
  * strncpy) is verbatim from the binary — it reads past the source
  * string's nul, but the function is dead so it never executes.
  * Dead in Gladiator — preserved by /INCREMENTAL. */
-static void __cdecl sub_1003DDA0(void *src, const char *path)
+void __cdecl sub_1003DDA0(void *src, const char *path)
 {
   char  *dst = (char *)src + 0x104;
   size_t len;
@@ -36981,7 +36981,7 @@ static void __cdecl sub_1003DDA0(void *src, const char *path)
  * (lies inside source_t's reserved _pad_1 region between +312 and
  * +523, so the field carries no live name in the present
  * reconstruction).  Dead in Gladiator — preserved by /INCREMENTAL. */
-static void __cdecl sub_1003DE40(void *p, int value)
+void __cdecl sub_1003DE40(void *p, int value)
 {
   *(int *)((char *)p + 0x208) = value;
 }
@@ -37036,7 +37036,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
  * name buffer is verbatim from the binary (LoadSourceFile uses
  * strncpy; the memory variant uses raw memcpy).  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-static source_t *__cdecl sub_1003DF30(const void *buf, unsigned int length, const char *name)
+source_t *__cdecl sub_1003DF30(const void *buf, unsigned int length, const char *name)
 {
   script_t *script;
   source_t *src;
@@ -37157,7 +37157,7 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
  * punctuation string or a typo'd default.  Walks `script->punctuations`
  * as a contiguous punctuation_t[] terminated by a record with NULL p.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static char *__cdecl sub_1003E250(script_t *script, int num)
+char *__cdecl sub_1003E250(script_t *script, int num)
 {
   punctuation_t *base = script->punctuations;
   punctuation_t *p;
@@ -37818,7 +37818,7 @@ LABEL_51:
  * token.subtype.  Matches the live PS_ReadString family in structure.
  * Strings at .rdata 0x10060304 / 0x10060334 inlined below.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1003F020(script_t *script, token_t *token)
+int __cdecl sub_1003F020(script_t *script, token_t *token)
 {
   char *p;
 
@@ -38029,7 +38029,7 @@ LABEL_28:
  * expected %s") and 0x1005FD0C ("expected %s, found %s") -- already
  * declared in botlib.c as aCouldnTFindExp / aExpectedSFound.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1003F4D0(script_t *script, const char *string)
+int __cdecl sub_1003F4D0(script_t *script, const char *string)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -38198,7 +38198,7 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
  * script->script_p from script->lastscript_p and return 0.
  * Sibling of PS_CheckTokenType (0x1003FAB0).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1003F9F0(script_t *script, const char *string)
+int __cdecl sub_1003F9F0(script_t *script, const char *string)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -38232,7 +38232,7 @@ static int __cdecl sub_1003F9F0(script_t *script, const char *string)
  * otherwise restore script->script_p from script->lastscript_p and
  * return 0.  Sibling of PS_ExpectTokenType (0x1003F5C0).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t *out)
+int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t *out)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -38268,7 +38268,7 @@ static int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t
  * for code-size; behaviour is identical to the source idiom.  Sibling
  * of PC_SkipUntilString (0x1003DC80, batch 23).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_1003FB50(script_t *script, const char *string)
+int __cdecl sub_1003FB50(script_t *script, const char *string)
 {
   token_t token;
   while ( PS_ReadToken(script, (char *)&token) )
@@ -38288,7 +38288,7 @@ static int __cdecl sub_1003FB50(script_t *script, const char *string)
  * the same flag) and the bulk-load helper at 0x1003FC30 (which fills
  * the +0x138 macro table then sets the flag).  Dead in Gladiator —
  * preserved by /INCREMENTAL. */
-static void __cdecl sub_1003FC10(void *ctx)
+void __cdecl sub_1003FC10(void *ctx)
 {
   *(int *)((char *)ctx + 0x128) = 1;
 }
@@ -38304,7 +38304,7 @@ static void __cdecl sub_1003FC10(void *ctx)
  * (+0x114 = cursor, +0x118 = end), advances the cursor, and returns
  * the byte; returns 0 at EOF.  Standalone getc-style reader.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-static unsigned char __cdecl sub_1003FC70(void *ctx)
+unsigned char __cdecl sub_1003FC70(void *ctx)
 {
   char **cursor = (char **)((char *)ctx + 0x114);
   char  *end    = *(char **)((char *)ctx + 0x118);
@@ -38353,7 +38353,7 @@ int __cdecl StripSingleQuotes(char *string)
 // (integer variant below).  Restored from objdump@1003FDD0; sign is
 // constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
 // 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
-static double __cdecl sub_1003FDD0(int script)
+double __cdecl sub_1003FDD0(int script)
 {
   double sign;
   token_t token;
@@ -38415,7 +38415,7 @@ void __cdecl SetScriptFlags(script_t *script, int flags)
  * lastscriptload-counter (+0x128) and the load-flag (+0x130);
  * the live API uses dedicated accessors (PS_GetScriptName etc.)
  * instead.  Dead in Gladiator — preserved by /INCREMENTAL. */
-static int __cdecl sub_1003FFD0(script_t *script)
+int __cdecl sub_1003FFD0(script_t *script)
 {
   return *(int *)((char *)script + 0x12c);
 }
@@ -38434,7 +38434,7 @@ BOOL __cdecl EndOfScript(script_t *script)
  * ScriptError/length accessor pattern: returns (current_token_offset -
  * something_offset).  Dead in Gladiator — never reached via thunk
  * 0x10001492; preserved by /INCREMENTAL. */
-static int __cdecl sub_10040090(script_t *script)
+int __cdecl sub_10040090(script_t *script)
 {
   return *(int *)((char *)script + 0x120) - *(int *)((char *)script + 0x124);
 }
@@ -38466,7 +38466,7 @@ static int __cdecl sub_10040090(script_t *script)
  * the target string anchored on its first byte.  Returns 1 if found,
  * 0 on EOF.  No canonical Q3 counterpart -- abandoned Mr. Elusive
  * helper.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-static int __cdecl sub_100400C0(const char *string, script_t *script)
+int __cdecl sub_100400C0(const char *string, script_t *script)
 {
   size_t len = strlen(string);
   char   first = string[0];
@@ -39508,7 +39508,7 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
  *   "ZpInit" @0x10060670, error fmt @0x10060638.
  *
  * DEAD in Gladiator — no live caller. */
-static int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
+int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
 {
   (void)zipfile;
   (void)file_to_archive;
@@ -39535,7 +39535,7 @@ int __stdcall sub_100423B0(int a1, int a2, int a3, int a4)
  * function that simply returns its second argument unchanged.  Looks
  * like a placeholder identity passthrough left over from a refactored
  * 2-arg helper.  Dead in Gladiator; preserved by /INCREMENTAL. */
-static int __cdecl sub_100423D0(int a1, int a2)
+int __cdecl sub_100423D0(int a1, int a2)
 {
   (void)a1;
   return a2;
@@ -39546,7 +39546,7 @@ static int __cdecl sub_100423D0(int a1, int a2)
  * objdump@100423F0: `mov eax, [esp+0x4]; mov BYTE PTR [eax], 0;
  * ret 0x4`.  Stdcall 1-arg function that NUL-terminates a string at
  * the supplied pointer.  Dead in Gladiator; preserved by /INCREMENTAL. */
-static void __stdcall sub_100423F0(char *p)
+void __stdcall sub_100423F0(char *p)
 {
   p[0] = 0;
 }
@@ -39595,7 +39595,7 @@ static void __stdcall sub_100423F0(char *p)
  *
  * DEAD in Gladiator — no live caller.  Live in Q3 as
  * RotatePointAroundVector; preserved here by /INCREMENTAL. */
-static void __cdecl sub_10042430(float dst[3], const float dir[3],
+void __cdecl sub_10042430(float dst[3], const float dir[3],
                                   const float point[3], float degrees)
 {
   float m[3][3], im[3][3], zrot[3][3], tmpmat[3][3], rot[3][3];
@@ -39773,7 +39773,7 @@ float *__cdecl sub_100429C0(float *a1, float *a2, float *a3)
 // live in Q3 as MatrixMultiply.  fld/fmul interleaving below matches
 // the binary order so the fuse-add operand reorderings (e.g. row 1
 // loads A[r][1]*B[1][c] before A[r][0]*B[0][c]) survive the rebuild.
-static void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float out[3][4])
+void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float out[3][4])
 {
   out[0][0] = a[0][0]*b[0][0] + a[0][1]*b[1][0] + a[0][2]*b[2][0];
   out[0][1] = a[0][1]*b[1][1] + a[0][0]*b[0][1] + a[0][2]*b[2][1];
@@ -39795,7 +39795,7 @@ static void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float
  * argument viewed as int, then reloads as float.  Q3 q_math.c::Q_fabs
  * verbatim.  Dead in Gladiator — code uses libm fabs(); preserved by
  * /INCREMENTAL. */
-static float __cdecl sub_10042C80(float f)
+float __cdecl sub_10042C80(float f)
 {
   union { float f; int i; } u;
   u.f = f;
@@ -39809,7 +39809,7 @@ static float __cdecl sub_10042C80(float f)
  * mov eax, ds:0x100631A4; ret`.  Converts float to int via FPU using
  * a static spill slot at 0x100631A4 (shared with AngleVectors result
  * area).  Q3-style ftol helper.  Dead in Gladiator. */
-static int __cdecl sub_10042CB0(float f)
+int __cdecl sub_10042CB0(float f)
 {
   static int tmp;  /* mirrors the static spill slot at ds:0x100631A4 */
   tmp = (int)f;
@@ -39824,7 +39824,7 @@ static int __cdecl sub_10042CB0(float f)
  * then returns `from + frac * (to_norm - from)`.  Identical to Q3
  * q_math.c::LerpAngle.  Dead in Gladiator — live bot AI normalises
  * angles inline (BotChangeViewAngle); preserved by /INCREMENTAL. */
-static float __cdecl sub_10042CD0(float from, float to, float frac)
+float __cdecl sub_10042CD0(float from, float to, float frac)
 {
   if (to - from > 180.0f)
     to -= 360.0f;
@@ -39865,7 +39865,7 @@ float __cdecl AngleMod(float a1)
  * aas_plane_t / cplane_t.  Dead in Gladiator: no caller; the actual
  * runtime BoxOnPlaneSide is the export AAS_BoxOnPlaneSide2 elsewhere.
  * Only the /INCREMENTAL relink stub keeps this copy live. */
-static int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
+int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
 {
   float corners[2][3];
   float dist_min, dist_max;
@@ -39929,7 +39929,7 @@ static int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
  * relink of the q_shared.obj from Q2's source — Mr. Elusive pulled in
  * the engine helper but never wired it up.  Original case 7 falls through
  * to the int3 trap at 0x1004310D for signbits>=8, preserved as 0-return. */
-static int __cdecl sub_10042E90(vec3_t emins, vec3_t emaxs, float *plane)
+int __cdecl sub_10042E90(vec3_t emins, vec3_t emaxs, float *plane)
 {
   static int boxonplaneside_inited;     /* mirrors ds:0x10062980 */
   float dist1, dist2;
@@ -40052,7 +40052,7 @@ double __cdecl VectorNormalize(float *v)
  * v[i]/len into out[i]; returns len on FPU.  Matches Q3 q_math.c
  * VectorNormalize2 verbatim.  Dead in Gladiator — code only uses the
  * in-place VectorNormalize at 10043290; preserved by /INCREMENTAL. */
-static double __cdecl sub_10043300(float *v, float *out)
+double __cdecl sub_10043300(float *v, float *out)
 {
   double length;
 
@@ -40082,7 +40082,7 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
  * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
  * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
  * the out-of-line copy was emitted by /INCREMENTAL. */
-static double __cdecl sub_100433D0(const float *a, const float *b)
+double __cdecl sub_100433D0(const float *a, const float *b)
 {
   return a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
 }
@@ -40093,7 +40093,7 @@ static double __cdecl sub_100433D0(const float *a, const float *b)
  *     out[i] = veca[i] - vecb[i]
  * for i in 0..2.  Q3 q_shared.h emitted as a function by /INCREMENTAL.
  * Dead in Gladiator — every site uses the macro form inlined. */
-static void __cdecl sub_10043400(const vec3_t veca, const vec3_t vecb, vec3_t out)
+void __cdecl sub_10043400(const vec3_t veca, const vec3_t vecb, vec3_t out)
 {
   out[0] = veca[0] - vecb[0];
   out[1] = veca[1] - vecb[1];
@@ -40104,7 +40104,7 @@ static void __cdecl sub_10043400(const vec3_t veca, const vec3_t vecb, vec3_t ou
 /* VectorAdd — restored IDA-missed dead-code stub.  Verified against
  * objdump@10043440: identical structure to sub_10043400 above but using
  * `fadd` instead of `fsub`.  Q3 q_shared.h emitted by /INCREMENTAL. */
-static void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
+void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
 {
   out[0] = veca[0] + vecb[0];
   out[1] = veca[1] + vecb[1];
@@ -40122,7 +40122,7 @@ static void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t ou
  * function by /INCREMENTAL. Dead in Gladiator because every site uses
  * the macro form inlined directly; the thunk preserved one slot for
  * possible incremental relinking. */
-static void __cdecl sub_10043480(const vec3_t src, vec3_t dst)
+void __cdecl sub_10043480(const vec3_t src, vec3_t dst)
 {
   dst[0] = src[0];
   dst[1] = src[1];
@@ -40194,7 +40194,7 @@ void __cdecl VectorScale(vec3_t v, float scale, vec3_t out)
  *     return n;
  * which is the standard floor(log2(x)) for positive x.  Matches Q3
  * common.c::Q_log2.  Dead in Gladiator. */
-static int __cdecl sub_100435B0(int x)
+int __cdecl sub_100435B0(int x)
 {
   int n;
 
@@ -40216,7 +40216,7 @@ static int __cdecl sub_100435B0(int x)
  * objdump@100435D0: walks string forward, tracking pointer to character
  * AFTER the last '/'.  Returns the input pointer if no '/' is present.
  * Matches Q3 q_shared.c::COM_SkipPath exactly. */
-static char *__cdecl sub_100435D0(char *pathname)
+char *__cdecl sub_100435D0(char *pathname)
 {
   char *last;
   char *p;
@@ -40237,7 +40237,7 @@ static char *__cdecl sub_100435D0(char *pathname)
  * against objdump@10043600: copies `in` to `out` byte-by-byte until
  * either '\0' or '.' is hit, then null-terminates `out`.  Matches Q3
  * q_shared.c::COM_StripExtension. */
-static void __cdecl sub_10043600(const char *in, char *out)
+void __cdecl sub_10043600(const char *in, char *out)
 {
   char c;
 
@@ -40267,7 +40267,7 @@ static void __cdecl sub_10043600(const char *in, char *out)
  * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
  * Gladiator (the engine handles file paths via its own COM_*); the
  * /INCREMENTAL thunk preserved this for incremental relinking. */
-static char *__cdecl sub_10043640(const char *path)
+char *__cdecl sub_10043640(const char *path)
 {
   const char *p;
   int i;
@@ -40308,7 +40308,7 @@ static char *__cdecl sub_10043640(const char *path)
  * basename character when there is no '/' in the path" behavior, which
  * is a known artifact of the Q2 implementation; Q3 fixed this).
  * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
-static void __cdecl sub_100436B0(const char *in, char *out)
+void __cdecl sub_100436B0(const char *in, char *out)
 {
   const char *s, *s2;
 
@@ -40339,7 +40339,7 @@ static void __cdecl sub_100436B0(const char *in, char *out)
  * Disasm uses `repnz scas al, [edi]` to compute strlen, then walks
  * backward looking for '/'.  Restored using straight C — same
  * semantics.  Dead in Gladiator. */
-static void __cdecl sub_10043740(const char *in, char *out)
+void __cdecl sub_10043740(const char *in, char *out)
 {
   const char *s;
 
@@ -40362,7 +40362,7 @@ static void __cdecl sub_10043740(const char *in, char *out)
  *     or strcat'ing on '/' or reaching the start.
  * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
  * /Oi expansions of the obvious C source; restored as straight C. */
-static void __cdecl sub_10043790(char *path, const char *ext)
+void __cdecl sub_10043790(char *path, const char *ext)
 {
   char *p;
 
@@ -40392,7 +40392,7 @@ static void __cdecl sub_10043790(char *path, const char *ext)
  * though every caller in the binary uses the impl symbol directly.
  * Cannot be named `BigShort` here because that symbol is already
  * occupied by the no-swap LE identity impl at 100438D0. */
-static short __cdecl sub_10043810(short x)
+short __cdecl sub_10043810(short x)
 {
   return ((short (__cdecl *)(short))dword_100637DC)(x);
 }
@@ -40400,7 +40400,7 @@ static short __cdecl sub_10043810(short x)
 //----- (10043830) --------------------------------------------------------
 /* Public byte-order dispatcher #2 — calls slot dword_100637D8
  * (LittleShort impl).  See sub_10043810 banner. */
-static short __cdecl sub_10043830(short x)
+short __cdecl sub_10043830(short x)
 {
   return ((short (__cdecl *)(short))dword_100637D8)(x);
 }
@@ -40408,7 +40408,7 @@ static short __cdecl sub_10043830(short x)
 //----- (10043850) --------------------------------------------------------
 /* Public byte-order dispatcher #3 — calls slot dword_100637E0
  * (BigLong impl).  See sub_10043810 banner. */
-static int __cdecl sub_10043850(int x)
+int __cdecl sub_10043850(int x)
 {
   return ((int (__cdecl *)(int))dword_100637E0)(x);
 }
@@ -40416,7 +40416,7 @@ static int __cdecl sub_10043850(int x)
 //----- (10043870) --------------------------------------------------------
 /* Public byte-order dispatcher #4 — calls slot dword_100637D4
  * (LittleLong impl).  See sub_10043810 banner. */
-static int __cdecl sub_10043870(int x)
+int __cdecl sub_10043870(int x)
 {
   return ((int (__cdecl *)(int))dword_100637D4)(x);
 }
@@ -40426,7 +40426,7 @@ static int __cdecl sub_10043870(int x)
  * (BigFloat impl).  See sub_10043810 banner.  Note the original disasm
  * uses `pop ecx` instead of `add esp,4` for stack cleanup — same
  * semantics, just shorter codegen MSVC chose for this one. */
-static int __cdecl sub_10043890(int x)
+int __cdecl sub_10043890(int x)
 {
   return ((int (__cdecl *)(int))dword_100637D0)(x);
 }
@@ -40481,7 +40481,7 @@ int __cdecl BigFloat(int a1)
  * shape used for LittleShort/LittleLong/BigShort/BigFloat above).
  * Dead in Gladiator — Swap_Init never patches this slot;
  * preserved by /INCREMENTAL. */
-static float __cdecl sub_100439D0(float f)
+float __cdecl sub_100439D0(float f)
 {
   return f;
 }
@@ -40523,7 +40523,7 @@ int Swap_Init()
  * Classic Q2/Q3 `va(fmt, ...)`: formats into a fixed scratch buffer
  * and returns its address.  Dead in Gladiator — the live code uses
  * its own formatting paths; preserved by /INCREMENTAL. */
-static char *__cdecl sub_10043AC0(const char *fmt, ...)
+char *__cdecl sub_10043AC0(const char *fmt, ...)
 {
   static char buffer[1024]; /* mirrors ds:0x10062990 */
   va_list ap;
@@ -40547,7 +40547,7 @@ static char *__cdecl sub_10043AC0(const char *fmt, ...)
  * com_token[128]; the empty-string return at ds:0x1006294C is the literal "".
  * MAX_TOKEN_CHARS = 128 matches the bound check at 10043b58/10043b69. */
 static char com_token_10043AF0[128]; /* ds:0x10063800 (.bss) */
-static char *__cdecl sub_10043AF0(char **data_p)
+char *__cdecl sub_10043AF0(char **data_p)
 {
   int c;
   int len;
@@ -40629,7 +40629,7 @@ skipwhite:
  * /INCREMENTAL relink stub keeps it live.  Global at 0x10063880 is
  * private to this dead helper. */
 static unsigned int dword_10063880;
-static void __cdecl sub_10043BD0(const void *buffer, int size)
+void __cdecl sub_10043BD0(const void *buffer, int size)
 {
   unsigned int acc;
   int i;
@@ -40740,7 +40740,7 @@ char *Com_sprintf(char *Destination, int a2, char *Format, ...)
  * only by the /INCREMENTAL relink stub. */
 static int dword_10062D98;
 static char byte_10062D9C[2][512];
-static char *__cdecl sub_10043D80(const char *s, const char *key)
+char *__cdecl sub_10043D80(const char *s, const char *key)
 {
   char pkey[512];
   char *o;
@@ -40851,7 +40851,7 @@ LABEL_7:
  * key/value tokeniser).  Dead in Gladiator: no caller reaches the
  * info-validation path; only the /INCREMENTAL relink stub keeps it
  * alive. */
-static int __cdecl sub_10043FC0(const char *s)
+int __cdecl sub_10043FC0(const char *s)
 {
   if ( strstr(s, "\"") )
     return 0;
