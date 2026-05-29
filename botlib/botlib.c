@@ -10815,22 +10815,22 @@ double __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 //----- (1000F7B0) --------------------------------------------------------
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime)
 {
-  long double v4; // st5
-  long double v5; // st6
-  long double v6; // st6
+  float v4; // st5
+  float v5; // st6
+  float v6; // st6
 
-  v4 = sqrtl((long double)vel[0] * (long double)vel[0] + (long double)vel[1] * (long double)vel[1]);
-  if ( v4 != 0.0L )
+  v4 = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
+  if ( v4 != 0.0f )
   {
-    if ( v4 >= (long double)stopspeed )
-      v5 = v4;
+    if ( v4 < stopspeed )
+      v5 = stopspeed;
     else
-      v5 = (long double)stopspeed;
-    v6 = v4 - v5 * (long double)friction * (long double)frametime;
-    if ( v6 < 0.0L )
-      v6 = 0.0L;
-    vel[0] = (float)(v6 / v4 * (long double)vel[0]);
-    vel[1] = (float)(v6 / v4 * (long double)vel[1]);
+      v5 = v4;
+    v6 = v4 - v5 * friction * frametime;
+    if ( v6 < 0.0f )
+      v6 = 0.0f;
+    vel[0] = v6 / v4 * vel[0];
+    vel[1] = v6 / v4 * vel[1];
   }
 }
 
