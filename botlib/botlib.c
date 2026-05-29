@@ -548,7 +548,7 @@ int AAS_RoutingInfo();
 int __cdecl sub_1001A650(int a1);
 int sub_1001AB80();
 // int __usercall AAS_InitAASLinkHeap@<eax>(double a1@<st0>);
-int AAS_FreeAASLinkHeap();
+void AAS_FreeAASLinkHeap();
 aas_link_t *AAS_AllocAASLink(void);
 aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1);
 int AAS_InitAASLinkedEntities();
@@ -17072,13 +17072,12 @@ int AAS_InitAASLinkHeap()
 // 10066990: using guessed type int aasworld.freelinks;
 
 //----- (1001AD10) --------------------------------------------------------
-int AAS_FreeAASLinkHeap()
+void AAS_FreeAASLinkHeap()
 {
   if ( aasworld.linkheap )
     FreeMemory(aasworld.linkheap);
   aasworld.linkheap = NULL;
   aasworld.linkheapsize = 0;
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066988: using guessed type int aasworld.linkheap;
@@ -18314,7 +18313,7 @@ void sub_1001CC50(aas_soundpool_t *a1)
   v1 = aasworld.d_100669D0;
   for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)(v1->data + 4) < (double)*(float *)(a1->data + 4) )
+    if ( *(float *)(v1->data + 4) < *(float *)(a1->data + 4) )
       break;
     i = v1;
   }
@@ -18367,7 +18366,7 @@ void sub_1001CD10(aas_soundpool_t *a1)
   v1 = aasworld.d_100669D8;
   for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)v1->data < (double)*(float *)a1->data )
+    if ( *(float *)v1->data < *(float *)a1->data )
       break;
     i = v1;
   }
@@ -20930,9 +20929,9 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
     return 0;
   /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).
    * Returns 1 (red), 2 (blue), or 0 (not carrying). */
-  if ( bs->inventory[43] <= 0 )
-    return bs->inventory[44] <= 0 ? 0 : 2;
-  return 1;
+  if ( bs->inventory[43] > 0 )
+    return 1;
+  return bs->inventory[44] > 0 ? 2 : 0;
 }
 // 100643AC: using guessed type int libvar_ctf;
 
@@ -29305,14 +29304,14 @@ double __cdecl AngleDiff(float ang1, float ang2)
   double result; // st7
 
   result = ang1 - ang2;
-  if ( ang1 <= (double)ang2 )
+  if ( ang1 > ang2 )
   {
-    if ( result < -180.0 )
-      return result + 360.0;
+    if ( result > 180.0 )
+      return result - 360.0;
   }
-  else if ( result > 180.0 )
+  else if ( result < -180.0 )
   {
-    return result - 360.0;
+    return result + 360.0;
   }
   return result;
 }
@@ -36395,7 +36394,6 @@ LABEL_30:
 //----- (1003CC10) --------------------------------------------------------
 int __cdecl PC_Directive_elif(source_t *src)
 {
-  char v3; // [esp+0h] [ebp-Ch]
   int value; // [esp+4h] [ebp-8h] BYREF
   int type; // [esp+8h] [ebp-4h] BYREF
   int skip;
@@ -36403,11 +36401,12 @@ int __cdecl PC_Directive_elif(source_t *src)
   PC_PopIndent(src, &type, &skip);
   if ( !type || type == 2 )
   {
-    SourceError(src, aMisplacedElif, v3);
+    SourceError(src, aMisplacedElif);
   }
   else if ( PC_Evaluate(src, &value, 0, 1) )
   {
-    PC_PushIndent(src, 4, value == 0);
+    skip = value == 0;
+    PC_PushIndent(src, 4, skip);
     return 1;
   }
   return 0;
@@ -36418,15 +36417,11 @@ int __cdecl PC_Directive_elif(source_t *src)
 int __cdecl PC_Directive_if(source_t *src)
 {
   int value;
-  int result;
 
-  result = PC_Evaluate(src, &value, 0, 1);
-  if ( result )
-  {
-    PC_PushIndent(src, 1, value == 0);
-    return 1;
-  }
-  return result;
+  if ( !PC_Evaluate(src, &value, 0, 1) )
+    return 0;
+  PC_PushIndent(src, 1, value == 0);
+  return 1;
 }
 
 //----- (1003CD00) --------------------------------------------------------
