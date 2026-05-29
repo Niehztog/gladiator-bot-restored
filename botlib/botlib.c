@@ -22498,7 +22498,7 @@ int *__cdecl BotEntityToActivate(int a1)
   int v14; // [esp+10h] [ebp-D4h]
   const char *v15; // [esp+14h] [ebp-D0h]
   const char *v16[10]; // [esp+18h] [ebp-CCh] BYREF — targetname stack
-  bsp_entity_t *v17; // [esp+40h] [ebp-A4h] BYREF — heads stack (one slot, walked via v10++)
+  bsp_entity_t *v17[10]; // [esp+40h] [ebp-A4h] BYREF — heads stack walked via v10
   int v18[31]; // [esp+68h] [ebp-7Ch] BYREF
 
   qmemcpy(v18, AAS_EntityInfo(v18, a1), sizeof(v18));
@@ -22546,8 +22546,8 @@ LABEL_5:
   if ( !v16[0] )
     return 0;
   v14 = 0;
-  v17 = dword_10064398;
-  v10 = &v17;
+  v17[0] = dword_10064398;
+  v10 = v17;
   v11 = v16;
   while ( 1 )
   {
@@ -35095,7 +35095,6 @@ int __cdecl PC_Directive_include(source_t *src)
   char *v2; // esi
   int v3; // eax
   char *v4; // eax
-  char v5; // [esp+0h] [ebp-5DCh]
   char Destination[260]; // [esp+10h] [ebp-5CCh] BYREF
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   /* Original: sub $0x5cc,%esp; token within that frame at [esp+1ACh].
@@ -35127,7 +35126,7 @@ int __cdecl PC_Directive_include(source_t *src)
       }
 LABEL_17:
       if ( token.string[0] != 62 )
-        SourceWarning(src, aIncludeMissing, v5);
+        SourceWarning(src, aIncludeMissing);
 LABEL_19:
       if ( strlen(Destination) )
       {
@@ -35135,11 +35134,11 @@ LABEL_19:
         v3 = LoadScriptFile(Destination, 0, 0);
         goto LABEL_22;
       }
-      SourceError(src, aIncludeWithout, v5);
+      SourceError(src, aIncludeWithout);
       return 0;
     }
 LABEL_28:
-    SourceError(src, aIncludeWithout_0, v5);
+    SourceError(src, aIncludeWithout_0);
     return 0;
   }
   StripDoubleQuotes(token.string);
