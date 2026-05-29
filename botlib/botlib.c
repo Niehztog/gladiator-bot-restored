@@ -18407,17 +18407,13 @@ int __cdecl sub_1001CDD0(int a1, int a2)
 {
   aas_soundpool_t *v2;
 
-  v2 = aasworld.d_100669CC;
-  if ( v2 )
+  for ( v2 = aasworld.d_100669CC; v2; v2 = v2->next )
   {
-    while ( ((int *)v2->data)[6] != a1 || ((int *)v2->data)[8] != a2 )
+    if ( ((int *)v2->data)[6] == a1 && ((int *)v2->data)[8] == a2 )
     {
-      v2 = v2->next;
-      if ( !v2 )
-        return a2;
+      sub_1001CCC0(v2);
+      return (int)(intptr_t)sub_1001CC10(v2);
     }
-    sub_1001CCC0(v2);
-    return (int)(intptr_t)sub_1001CC10(v2);
   }
   return a2;
 }
