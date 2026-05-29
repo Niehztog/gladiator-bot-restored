@@ -28036,12 +28036,12 @@ char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
  * Gladiator; preserved by /INCREMENTAL. */
 void __cdecl sub_1002EAF0(int *out, int b)
 {
-  if ( b == 1 )
-    *out = 1;
-  else if ( b == 2 )
-    *out = 2;
-  else
-    *out = 0;
+  switch ( b )
+  {
+    case 1: *out = 1; break;
+    case 2: *out = 2; break;
+    default: *out = 0; break;
+  }
 }
 
 //----- (1002EB30) --------------------------------------------------------
