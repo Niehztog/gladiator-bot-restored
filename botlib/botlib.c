@@ -4328,7 +4328,7 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
  * Gladiator — the live AAS routing accessors use direct indexed access
  * through aasworld.clusterareacache/portalcache instead; this is a
  * lookup helper preserved by /INCREMENTAL. */
-static int __cdecl sub_10005CC0(int a, int b)
+int __cdecl sub_10005CC0(int a, int b)
 {
   return ((int **)dword_10067560)[a][b];
 }
@@ -8022,7 +8022,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 // (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
 // prints via bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", ...)
 // and zeroes the destination vec3.
-static void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
+void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
 {
   if ( entnum >= 0 && entnum < aasworld.numentities )
   {
@@ -36930,7 +36930,7 @@ int __cdecl PC_UnreadLastToken(source_t *src)
  * pass-through wrapper — likely the abandoned `PC_UnreadToken(src,
  * token)` external entry point that paralleled PC_UnreadLastToken.
  * Dead in Gladiator — preserved by /INCREMENTAL. */
-static void __cdecl sub_1003DD70(source_t *src, const void *token)
+void __cdecl sub_1003DD70(source_t *src, const void *token)
 {
   PC_UnreadSourceToken(src, token);
 }
@@ -38381,7 +38381,7 @@ static double __cdecl sub_1003FDD0(int script)
 // token.intvalue * sign as int.
 // DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of sub_1003FDD0
 // (float variant above).  Restored from objdump@1003FEC0.
-static int __cdecl sub_1003FEC0(int script)
+int __cdecl sub_1003FEC0(int script)
 {
   int sign;
   token_t token;
