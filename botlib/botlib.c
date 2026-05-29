@@ -785,7 +785,7 @@ BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
 void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
 int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10);
 int __cdecl BotMovementViewTarget(intptr_t a1, intptr_t a2, int a3, intptr_t a4);
-int __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
+void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
 double __cdecl BotGapDistance(intptr_t a1, intptr_t a2);
 int __cdecl BotCheckBarrierJump(intptr_t, intptr_t, float); // idb
 int __cdecl BotSwimInDirection(intptr_t, intptr_t, float); // idb
@@ -29500,7 +29500,9 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
   float v4[3]; // [esp+1Ch] [ebp-18h] BYREF
   float v5[3]; // [esp+28h] [ebp-Ch] BYREF
 
-  memset(v2, 0, sizeof(v2));
+  v2[0] = 0;
+  v2[1] = 0;
+  v2[2] = 0;
   if ( reach->traveltype != 11 )
     return 0;
   AAS_BSPModelMinsMaxsOrigin(reach->facenum, v2, (float *)v5, (float *)v4, (float *)v3);
@@ -29509,7 +29511,7 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
     bi_Print(1, "no entity with model %d\n", reach->facenum);
     return 0;
   }
-  return v4[2] + v3[2] < reach->start[2];
+  return v3[2] + v4[2] < reach->start[2];
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10030F10: using guessed type int var_C[3];
@@ -29643,28 +29645,26 @@ int __cdecl BotMovementViewTarget(intptr_t a1, intptr_t a2, int a3, intptr_t a4)
 }
 
 //----- (10031380) --------------------------------------------------------
-int __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
+void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 {
-  int result; // eax
   float v3[3]; // [esp+4h] [ebp-3Ch] BYREF
   float v4[3]; // [esp+10h] [ebp-30h] BYREF
   float v5[3]; // [esp+1Ch] [ebp-24h] BYREF
   float v6[3]; // [esp+28h] [ebp-18h] BYREF
   float v7[3]; // [esp+34h] [ebp-Ch] BYREF
 
-  memset(v3, 0, sizeof(v3));
-  result = reach->traveltype;
-  if ( result == 11 )
+  v3[0] = 0;
+  v3[1] = 0;
+  v3[2] = 0;
+  if ( reach->traveltype == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(reach->facenum, v3, v5, v4, (float *)v7);
+    AAS_BSPModelMinsMaxsOrigin(reach->facenum, v3, v4, v5, (float *)v7);
     *(float *)v6 = v4[0] + v5[0];
     *(float *)&v6[1] = v4[1] + v5[1];
     *(float *)&v6[2] = v4[2] + v5[2];
     VectorMA((float *)v7, 0.5, (float *)v6, bottomcenter);
     bottomcenter[2] = reach->start[2];
-    result = 1;
   }
-  return result;
 }
 
 //----- (10031450) --------------------------------------------------------
