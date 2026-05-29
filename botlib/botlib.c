@@ -15922,7 +15922,7 @@ int AAS_FreeAllClusterAreaCache()
       for ( entry = row[areaInCluster]; entry; entry = next )
       {
         next = entry->next;
-        FreeMemory(entry);
+        AAS_FreeRoutingCache(entry);
       }
       row[areaInCluster] = NULL;
     }
@@ -25289,17 +25289,17 @@ int __cdecl sub_1002A590(int a1)
 //----- (1002A5B0) --------------------------------------------------------
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
 {
-  if ( a2 < 0 || a2 >= a1->numcharacteristics )
+  if ( a2 >= 0 && a2 < a1->numcharacteristics )
   {
-    bi_Print(3, "characteristic %d does not exist\n", a2);
-    return 0;
+    if ( !(unsigned char)BC_PAIRS(a1)[a2].type )
+    {
+      bi_Print(3, "characteristic %d is not initialized\n", a2);
+      return 0;
+    }
+    return 1;
   }
-  if ( !(unsigned char)BC_PAIRS(a1)[a2].type )
-  {
-    bi_Print(3, "characteristic %d is not initialized\n", a2);
-    return 0;
-  }
-  return 1;
+  bi_Print(3, "characteristic %d does not exist\n", a2);
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
