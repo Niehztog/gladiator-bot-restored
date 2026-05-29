@@ -6539,7 +6539,7 @@ int AAS_CreatePortals()
         *v3 = v1;
         v3[1] = 0;
         v3[2] = 0;
-        Log_Write(aPortalDAreaD, aasworld.numportals);
+        Log_Write(aPortalDAreaD, aasworld.numportals, v1);
         result = ++aasworld.numportals;
       }
       ++v1;
@@ -14772,7 +14772,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   else
   {
     if ( !AAS_PointAreaNum(start) )
-      Log_Write(aAreaDCenterFFF, area1num);
+      Log_Write(aAreaDCenterFFF, area1num, start[0], start[1], start[2]);
     vmav[0] = start[0];
     vmav[1] = start[1];
     vmav[2] = start[2] - 1000.0;
@@ -15050,7 +15050,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   centerorg[1] = *((float *)v3 + 10);
   centerorg[2] = v3[11];
   if ( !AAS_PointAreaNum(centerorg) )
-    Log_Write(aAreaDCenterFFF, ArgList);
+    Log_Write(aAreaDCenterFFF, ArgList, centerorg[0], centerorg[1], centerorg[2]);
   v30[0] = centerorg[0];
   v30[1] = centerorg[1];
   v30[2] = centerorg[2] - 1000.0;
@@ -16705,7 +16705,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       center[1] = v6[10];
       center[2] = v6[11];
       if ( !AAS_PointAreaNum(center) )
-        Log_Write(aAreaDCenterFFF, v4);
+        Log_Write(aAreaDCenterFFF, v4, center[0], center[1], center[2]);
       end[0] = center[0];
       end[1] = center[1];
       end[2] = center[2] - 300.0f;
