@@ -30207,16 +30207,16 @@ int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
   v9 = VectorNormalize(dir);
   BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v8);
-  if ( v9 >= 7.0 )
+  if ( v9 < 7.0f )
   {
-    if ( v9 > 60.0 )
-      v9 = 60.0;
-    v4 = 360.0 - (360.0 - v9 * 6.0);
-    EA_Move(*(_DWORD *)(a2 + 40), dir, v4);
+    EA_Jump(*(_DWORD *)(a2 + 40));
   }
   else
   {
-    EA_Jump(*(_DWORD *)(a2 + 40));
+    if ( v9 > 60.0f )
+      v9 = 60.0f;
+    v4 = 360.0f - (360.0f - v9 * 6.0f);
+    EA_Move(*(_DWORD *)(a2 + 40), dir, v4);
   }
   v8[6] = *(int *)&dir[0];
   v8[7] = *(int *)&dir[1];
@@ -30239,16 +30239,16 @@ int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
   float v10; // [esp+50h] [ebp+8h]
 
   BotClearMoveResult(v9);
-  if ( *(float *)(a2 + 20) < 250.0 )
+  if ( *(float *)(a2 + 20) < 250.0f )
   {
     dir[2] = 0.0f;
     dir[0] = *(float *)(a3 + 24) - *(float *)a2;
     dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
     v10 = VectorNormalize(dir);
     BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v9);
-    if ( v10 > 60.0 )
-      v10 = 60.0;
-    v5 = 400.0 - (400.0 - v10 * 6.0);
+    if ( v10 > 60.0f )
+      v10 = 60.0f;
+    v5 = 400.0f - (400.0f - v10 * 6.0f);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v5);
     v9[6] = *(int *)&dir[0];
     v9[7] = *(int *)&dir[1];
@@ -31131,8 +31131,8 @@ LABEL_27:
 //----- (10033EC0) --------------------------------------------------------
 int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
 {
-  double v3; // st7
-  double v4; // st7
+  float v3; // st7
+  float v4; // st7
   int *result; // eax
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
@@ -31146,14 +31146,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
   dir[0] = a3[3] - *(float *)a2;
   dir[1] = a3[4] - *(float *)(a2 + 4);
   v3 = VectorNormalize(dir);
-  if ( v3 >= 5.0 )
-  {
-    if ( v3 > 80.0 )
-      v3 = 80.0;
-    v8 = 400.0 - (400.0 - v3 * 5.0);
-    EA_Move(*(_DWORD *)(a2 + 40), dir, v8);
-  }
-  else
+  if ( v3 < 5.0f )
   {
     v4 = a3[6] - *(float *)a2;
     dir[2] = 0.0f;
@@ -31162,8 +31155,15 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
     VectorNormalize(dir);
     EA_Jump(*(_DWORD *)(a2 + 40));
     EA_Attack(*(_DWORD *)(a2 + 40));
-    EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
+    EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0f);
     *(_DWORD *)(a2 + 100) = *(_DWORD *)(a2 + 76);
+  }
+  else
+  {
+    if ( v3 > 80.0f )
+      v3 = 80.0f;
+    v8 = 400.0f - (400.0f - v3 * 5.0f);
+    EA_Move(*(_DWORD *)(a2 + 40), dir, v8);
   }
   vectoangles(dir, a2 + 52);
   v7 = *(_DWORD *)(a2 + 40);
