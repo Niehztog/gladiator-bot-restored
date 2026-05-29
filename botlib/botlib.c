@@ -279,7 +279,7 @@ char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
 int __cdecl sub_1001C760(char *Source); // idb
 BOOL BotCanAndWantsToRocketJump(int *a1);  // fixed from weak
-int __cdecl PC_FreeToken(token_t *t);
+void __cdecl PC_FreeToken(token_t *t);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 /* AAS_DropToFloor: full decl at line ~374 — body at 0x1000AFD0 actually drops
  * an origin to nearest floor via AAS_Trace.  IDA inferred 5 params but
@@ -491,7 +491,7 @@ int __cdecl AAS_OptimizeAlloc(optimized_t *optimized);
 int __cdecl AAS_OptimizeStore(optimized_t *optimized);
 int AAS_Optimize();
 int AAS_SetupReachabilityHeap();
-int AAS_ShutDownReachabilityHeap();
+void AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(char *face);
@@ -686,7 +686,7 @@ int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
 bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2);
-int __cdecl sub_1002A590(int a1);
+void __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
 float __cdecl Characteristic_Float(bot_character_t *a1, int a2);
 double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
@@ -862,7 +862,7 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t angles); /* EA_View impl */
 int __cdecl EA_EndRegular(int a1, float a2);
 int EA_Setup();
-int EA_Shutdown();
+void EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16); // idb
 int __cdecl sub_100377E0(char *String1, __int16); // idb
 int __cdecl sub_10037850(char *String1, const unsigned char *, int); // idb
@@ -888,7 +888,7 @@ void Log_Open(char *FileName);  /* IDA's __usercall a1@<st0> was a phantom param
 FILE *Log_Close();
 FILE *Log_Write(char *Format, ...);
 FILE *Log_FilePointer();
-FILE *Log_Flush();
+void Log_Flush();
 /* sub_10038F10 / sub_10038F50 in IDA — restored as LinkMemoryBlock /
  * UnlinkMemoryBlock alongside the memoryblock_t tracker.  sub_10039190
  * restored as PrintMemoryLabels. */
@@ -905,7 +905,7 @@ indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
 int __cdecl PC_PushScript(source_t *src, script_t *script);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
-int __cdecl PC_FreeToken(token_t *t);
+void __cdecl PC_FreeToken(token_t *t);
 int __cdecl PC_ReadSourceToken(source_t *src, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
 int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms);
@@ -11708,9 +11708,9 @@ int AAS_SetupReachabilityHeap()
 // 100667B4: using guessed type int nextreachability;
 
 //----- (10010FD0) --------------------------------------------------------
-int AAS_ShutDownReachabilityHeap()
+void AAS_ShutDownReachabilityHeap()
 {
-  return FreeMemory((void *)reachabilityheap);
+  FreeMemory((void *)reachabilityheap);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066788: using guessed type int reachabilityheap;
@@ -25280,9 +25280,9 @@ LABEL_54:
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A590) --------------------------------------------------------
-int __cdecl sub_1002A590(int a1)
+void __cdecl sub_1002A590(int a1)
 {
-  return FreeMemory(a1);
+  FreeMemory(a1);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -33244,9 +33244,9 @@ int EA_Setup()
 }
 
 //----- (10037690) --------------------------------------------------------
-int EA_Shutdown()
+void EA_Shutdown()
 {
-  return FreeMemory(ea_controls);
+  FreeMemory(ea_controls);
 }
 
 //----- (100376B0) --------------------------------------------------------
@@ -34035,14 +34035,10 @@ FILE *Log_FilePointer()
 }
 
 //----- (10038EE0) --------------------------------------------------------
-FILE *Log_Flush()
+void Log_Flush()
 {
-  FILE *result; // eax
-
-  result = Stream;
   if ( Stream )
-    return (FILE *)fflush(Stream);
-  return result;
+    fflush(Stream);
 }
 
 //----- (10038F10) --------------------------------------------------------
@@ -34329,9 +34325,9 @@ token_t *__cdecl PC_CopyToken(const token_t *a1)
 }
 
 //----- (100394A0) --------------------------------------------------------
-int __cdecl PC_FreeToken(token_t *t)
+void __cdecl PC_FreeToken(token_t *t)
 {
-  return FreeMemory(t);
+  FreeMemory(t);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
