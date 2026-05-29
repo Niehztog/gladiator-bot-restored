@@ -30559,7 +30559,7 @@ LABEL_7:
 //----- (10032E80) --------------------------------------------------------
 int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
 {
-  double v5; // st7
+  double v5; // unused
   int *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
@@ -30574,12 +30574,11 @@ int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
     dir[0] = a3[6] - *(float *)a2;
     dir[1] = a3[7] - *(float *)(a2 + 4);
     v14 = VectorNormalize(dir);
-    v5 = a3[6] - a3[3];
     reach_dir[2] = 0.0f;
-    reach_dir[0] = v5;
+    reach_dir[0] = a3[6] - a3[3];
     reach_dir[1] = a3[7] - a3[4];
     VectorNormalize(reach_dir);
-    if ( reach_dir[2] * dir[2] + reach_dir[1] * dir[1] + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0 )
+    if ( reach_dir[2] * dir[2] + reach_dir[1] * dir[1] + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0f )
     {
       EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
       v13[6] = *(int *)&dir[0];
