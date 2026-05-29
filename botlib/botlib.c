@@ -4996,7 +4996,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
            * need scriptstack semantics, e.g. weapon config loader). */
           if ( !PS_ReadToken(v0, token.string) || token.type != 1 )
           {
-            ScriptError(v0, aCouldnTReadExp, v6);
+            ScriptError(v0, aCouldnTReadExp);
             AAS_FreeBSPEntities(v7);
             FreeScript(v0);
             return 0;
@@ -5011,7 +5011,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       }
       if ( strcmp(token.string, asc_1005AB54) )
       {
-        ScriptError(v0, aMissing, v6);
+        ScriptError(v0, aMissing);
         AAS_FreeBSPEntities(v7);
         FreeScript(v0);
         return 0;
@@ -6688,7 +6688,7 @@ LABEL_15:
       if ( v15 >= v4[1] )
         return v5;
     }
-    AAS_Error(aMaxPortalareas, v14);
+    AAS_Error(aMaxPortalareas);
   }
   return v5;
 }
@@ -25835,7 +25835,7 @@ LABEL_45:
     FreeSource(src);
     if ( level > 0 )
     {
-      SourceError(src, aMissing_0, v15);
+      SourceError(src, aMissing_0);
       return 0;
     }
     doWrite = ++pass;
@@ -25859,7 +25859,7 @@ LABEL_45:
       ++ctxStackP;
       if ( !tooMany )
       {
-        SourceError(src, aMoreThan32Cont, v15);
+        SourceError(src, aMoreThan32Cont);
         FreeSource(src);
         return 0;
       }
@@ -25876,7 +25876,7 @@ LABEL_45:
     --ctxStackP;
     if ( ctxNegative )
     {
-      SourceError(v16, aTooMany, v15);
+      SourceError(v16, aTooMany);
       FreeSource(v16);
       return 0;
     }
@@ -25952,7 +25952,7 @@ LABEL_43:
       {
         if ( numsynonyms >= 2 )
           goto LABEL_42;
-        SourceError(v16, aSynonymMustHav, v15);
+        SourceError(v16, aSynonymMustHav);
         FreeSource(v16);
         return 0;
       }
@@ -26385,7 +26385,7 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
     }
     if ( haveVariable )
     {
-      SourceError(v2, aNotAllowedToHa, v9);
+      SourceError(v2, aNotAllowedToHa);
       FreeSource(v2);
       BotFreeMatchPieces(head);
       return NULL;
@@ -31936,7 +31936,7 @@ int __cdecl ReadValue(source_t *source, float *value)
   if ( result )
   {
     if ( strcmp(token.string, (const char *)&word_1005E498)
-      || (SourceWarning(source, aNegativeValueS, v3), (result = PC_ExpectTokenType(source, 3, 0, token.string)) != 0) )
+      || (SourceWarning(source, aNegativeValueS), (result = PC_ExpectTokenType(source, 3, 0, token.string)) != 0) )
     {
       if ( token.type == 3 )
       {
@@ -32124,7 +32124,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
     {
       if ( v13 )
       {
-        SourceError(source, aSwitchAlreadyH, v10);
+        SourceError(source, aSwitchAlreadyH);
         FreeFuzzySeperators_r(v4);
         return 0;
       }
@@ -32179,7 +32179,7 @@ LABEL_32:
   while ( strcmp(token.string, asc_1005AB54) );
   if ( !v13 )
   {
-    SourceWarning(source, aSwitchWithoutD, v10);
+    SourceWarning(source, aSwitchWithoutD);
     v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
     v9->index = v14;
     v9->value = 999999;
@@ -32238,7 +32238,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
     {
       if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
       {
-        SourceWarning(src, aTooManyFuzzyWe, v6);
+        SourceWarning(src, aTooManyFuzzyWe);
         goto LABEL_21;
       }
       if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
@@ -34399,7 +34399,7 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
         if ( !strcmp(tok.string, asc_1005D32C) && --indent <= 0 )
         {
           if ( !parms[define->numparms - 1] )
-            SourceWarning(src, aTooFewDefinePa, v14);
+            SourceWarning(src, aTooFewDefinePa);
           gotparms = 1;
           goto LABEL_31;
         }
@@ -34421,7 +34421,7 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
       }
     }
     if ( needcomma )
-      SourceWarning(src, aTooManyCommaS, v14);
+      SourceWarning(src, aTooManyCommaS);
 LABEL_31:
     ++parmidx;
     ++pslot;
@@ -34772,14 +34772,14 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
             t = t->next;
             if ( !PC_StringizeTokens((char *)Source[parmidx], (char *)&Destination) )
             {
-              SourceError(src, aCanTStringizeT, v19);
+              SourceError(src, aCanTStringizeT);
               return 0;
             }
             newtok = PC_CopyToken(&Destination);
             goto LABEL_21;
           }
         }
-        SourceWarning(src, aStringizingOpe, v19);
+        SourceWarning(src, aStringizingOpe);
 LABEL_25:
         t = t->next;
         if ( !t )
@@ -35048,7 +35048,7 @@ int __cdecl PC_Directive_undef(source_t *src)
     return 1;
   if ( !PC_ReadLine(src, token.string) )
   {
-    SourceError(src, aUndefWithoutNa, v7);
+    SourceError(src, aUndefWithoutNa);
     return 0;
   }
   if ( token.type != 4 )
@@ -35805,7 +35805,7 @@ LABEL_29:
   {
     if ( !v47 )
       goto LABEL_77;
-    SourceError(src, aTooManyInIfEli, v45);
+    SourceError(src, aTooManyInIfEli);
   }
   else
   {
@@ -35966,7 +35966,7 @@ LABEL_88:
         case 43:
           if ( v14 )
           {
-            SourceError(src, aAfterInIfElif, v45);
+            SourceError(src, aAfterInIfElif);
             goto LABEL_163;
           }
           v15 = v17->intvalue;
@@ -36094,7 +36094,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, long double *a3, int a4)
   v4 = src;
   if ( !PC_ReadLine(src, &token) )
   {
-    SourceError(src, aNoValueAfterIf, v13);
+    SourceError(src, aNoValueAfterIf);
     return 0;
   }
   v6 = NULL;
@@ -36194,12 +36194,12 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, long double *floatva
   v4 = src;
   if ( !PC_ReadSourceToken(src, &token) )
   {
-    SourceError(src, aNoLeadingAfter, v14);
+    SourceError(src, aNoLeadingAfter);
     return 0;
   }
   if ( !PC_ReadSourceToken(src, &token) )
   {
-    SourceError(src, aNothingToEvalu, v14);
+    SourceError(src, aNothingToEvalu);
     return 0;
   }
   v6 = 0;
@@ -36552,13 +36552,13 @@ LABEL_10:
     else
     {
       PC_UnreadSourceToken(src, token.string);
-      SourceError(src, aFoundAtEndOfLi_0, v5);
+      SourceError(src, aFoundAtEndOfLi_0);
       return 0;
     }
   }
   else
   {
-    SourceError(src, aFoundWithoutNa_0, v6);
+    SourceError(src, aFoundWithoutNa_0);
     return 0;
   }
 }
@@ -36666,7 +36666,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   v4 = src;
   if ( !PC_ReadTokenHandle(src, a4) )
   {
-    SourceError(src, aCouldnTReadExp, v22);
+    SourceError(src, aCouldnTReadExp);
     return 0;
   }
   v6 = *(_DWORD *)(a4 + 1024);
@@ -37994,7 +37994,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
   v4 = a1;
   if ( !PS_ReadToken((script_t *)(intptr_t)a1, (char *)a4) )
   {
-    ScriptError(a1, aCouldnTReadExp, v22);
+    ScriptError(a1, aCouldnTReadExp);
     return 0;
   }
   v6 = a4->type;
@@ -38027,7 +38027,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
     {
       if ( a3 < 0 )
       {
-        ScriptError(a1, aBugWrongPunctu, v22);
+        ScriptError(a1, aBugWrongPunctu);
         return 0;
       }
       if ( a4->subtype != a3 )
@@ -38604,7 +38604,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     }
     else
     {
-      SourceError(src, aUnexpectedFloa, v15);
+      SourceError(src, aUnexpectedFloa);
       return 0;
     }
   }
@@ -38825,7 +38825,7 @@ LABEL_2:
         v10 = v5[6];
         if ( !v10 )
         {
-          SourceError(src, aBugNoSubStruct, v12);
+          SourceError(src, aBugNoSubStruct);
           return 0;
         }
         ReadStructure(src, (structdef_t *)v10, (void *)v7);
