@@ -9,10 +9,12 @@
 
 #include <stddef.h>   /* wchar_t, offsetof, size_t */
 
+#ifndef _MSC_VER
 #define __int8 char
 #define __int16 short
 #define __int32 int
 #define __int64 long long
+#endif
 
 /* _iobuf/FILE are provided by <stdio.h> which must be included before this header. */
 
@@ -86,6 +88,9 @@ typedef const char  *LPCSTR;
 /* COERCE_FLOAT: reinterpret an int's bits as a float.
    Implemented as an inline function (union type-punning, C99 §6.5.2.3) so it
    works on rvalues (e.g., function return values) unlike the & form. */
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define inline __inline
+#endif
 static inline float COERCE_FLOAT(int _x) { union { int i; float f; } _u; _u.i = _x; return _u.f; }
 
 /* 3 */

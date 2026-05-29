@@ -37,6 +37,14 @@
  * smoke-testing only.
  */
 #include <stdint.h>
+
+/* MSVC 6.0 oracle build: _Static_assert is C11 and not supported. Skip the
+ * size guards entirely under that compiler — the assertions are validated
+ * by the native (MinGW/gcc) build path. */
+#if defined(_MSC_VER) && _MSC_VER < 1900
+#define _Static_assert(cond, msg) /* skipped under MSVC < 14.0 */
+#endif
+
 _Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must remain 0x4CC bytes");
 
 #if INTPTR_MAX == INT32_MAX

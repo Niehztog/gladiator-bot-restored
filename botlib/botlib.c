@@ -15552,7 +15552,6 @@ int AAS_StoreReachability()
 //----- (10018920) --------------------------------------------------------
 int AAS_ContinueInitReachability(int a1)
 {
-  (void)a1; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
   libvar_t *v1;
   double v2; // st7
   int v3; // ebx
@@ -15565,6 +15564,8 @@ int AAS_ContinueInitReachability(int a1)
   int v10; // edi
   int v11; // eax
   int j; // esi
+
+  (void)a1; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
 
   if ( !aasworld.loaded )
     return 0;
@@ -16213,7 +16214,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cach
   cur              = &aasworld.areaupdate[startareanum];
   cur->areanum         = startareanum;
   cur->areatraveltimes = aasworld.areatraveltimes[startareanum][0];
-  cur->tmptraveltime   = (unsigned short)(long long)cache_starttt;
+  cur->tmptraveltime   = (unsigned short)(__int64)cache_starttt;
 
   destcluster = settings_base[startareanum].cluster;
   if ( destcluster <= 0 )
@@ -16225,7 +16226,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cach
   {
     destclusterareanum = settings_base[startareanum].clusterareanum;
   }
-  cache_traveltimes[destclusterareanum] = (unsigned short)(long long)cache_starttt;
+  cache_traveltimes[destclusterareanum] = (unsigned short)(__int64)cache_starttt;
 
   cur->next = NULL;
   cur->prev = NULL;
@@ -16393,10 +16394,10 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
   cur = &portalupdate[cache->areanum];
   cur->cluster       = cache->cluster;
   cur->areanum       = cache->areanum;
-  cur->tmptraveltime = (unsigned short)(long long)cache->starttraveltime;
+  cur->tmptraveltime = (unsigned short)(__int64)cache->starttraveltime;
   v4 = settings_base[cache->areanum].cluster;
   if ( v4 < 0 )
-    cache_traveltimes[-v4] = (unsigned short)(long long)cache->starttraveltime;
+    cache_traveltimes[-v4] = (unsigned short)(__int64)cache->starttraveltime;
   cur->inlist = 0;
   cur->next   = NULL;
   cur->prev   = NULL;
@@ -18164,7 +18165,7 @@ static void __cdecl sub_1001C6F0(void)
     fp = Log_FilePointer();
     if ( !fp )
       return;
-    WriteStructure(fp, (int)&unk_1005C138, aasworld.soundinfo + 176 * i);
+    WriteStructure(fp, (int)&unk_1005C138, (char *)aasworld.soundinfo + 176 * i);
     Log_Flush();
   }
 }
@@ -18207,8 +18208,8 @@ int sub_1001C760(char *Source)
             SourceError(v5, aMoreThanDSound, v2);
             goto LABEL_21;
           }
-          memset((void *)(aasworld.soundinfo + 176 * aasworld.numsoundinfo), 0, 0xB0u);
-          if ( !ReadStructure(v5, &unk_1005C138, aasworld.soundinfo + 176 * aasworld.numsoundinfo) )
+          memset((void *)((char *)aasworld.soundinfo + 176 * aasworld.numsoundinfo), 0, 0xB0u);
+          if ( !ReadStructure(v5, &unk_1005C138, (char *)aasworld.soundinfo + 176 * aasworld.numsoundinfo) )
           {
             FreeSource(v5);
             return 0;
@@ -18646,7 +18647,7 @@ int *sub_1001D140()
         if ( aasworld.numsoundinfo > 0 )
         {
           v3 = 0;
-          while ( sub_10043C10((char *)((char *)aasworld.soundinfo + v3), aasworld.soundindex_table->indexes[v0]) )
+          while ( sub_10043C10((char *)((char *)(char *)aasworld.soundinfo + v3), aasworld.soundindex_table->indexes[v0]) )
           {
             ++v2;
             v3 += 176;
@@ -18654,7 +18655,7 @@ int *sub_1001D140()
             if ( v2 >= aasworld.numsoundinfo )
               goto LABEL_11;
           }
-          aasworld.d_100669C0[v0] = (char *)aasworld.soundinfo + 176 * v2;
+          aasworld.d_100669C0[v0] = (char *)(char *)aasworld.soundinfo + 176 * v2;
           result = (int *)aasworld.soundindex_table;
         }
       }
@@ -24531,7 +24532,6 @@ double BotChangeViewAngle(float a1, float a2, float a3)
  * bs->thinktime from the struct.  Leave `thinktime` unused on purpose. */
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
-  (void)thinktime;
   double v2; // st7
   float *v3; // esi
   int v4; // ebx
@@ -24542,6 +24542,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   float v10; // [esp+18h] [ebp+4h]
   float v11; // [esp+18h] [ebp+4h]
 
+  (void)thinktime;
   v2 = bs->ideal_viewangles[0];
   if ( v2 > 180.0 )
   {
@@ -33509,7 +33510,7 @@ unsigned int Sys_MilliSeconds()
 {
   unsigned int v0; // eax
 
-  v0 = (int)((unsigned __int64)(274877907000LL * clock()) >> 32) >> 6;
+  v0 = (int)((unsigned __int64)((__int64)274877907000 * clock()) >> 32) >> 6;
   return (v0 >> 31) + v0;
 }
 
@@ -33626,13 +33627,13 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 bot_export_t *GetBotAPI(bot_import_t *a1)
 {
   extern void botlib_install_exception_handler(void);
-  botlib_install_exception_handler();
-
   /* bot_export_t from game/botlib.h: properly typed function pointers,
    * pointer-sized on all platforms (fixes the 32-bit int truncation that
    * corrupted every slot on 64-bit Linux). */
   static bot_export_t bot_exports;
   bot_import_t *imp = a1;
+
+  botlib_install_exception_handler();
 
   /* Store each import callback in its named global. The original source had a
    * single 'bot_import_t bi' global; IDA decompiled each field as a separate
