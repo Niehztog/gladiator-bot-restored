@@ -2487,7 +2487,7 @@ void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float 
 int sub_100030A0()  /* InitBSPLinkHeap */
 {
   int i;
-  int count;
+  int count = dword_1006957C;
 
   if ( !dword_10069578 )
   {
@@ -2497,22 +2497,18 @@ int sub_100030A0()  /* InitBSPLinkHeap */
     dword_1006957C = count;
     dword_10069578 = (bsp_link_t *)GetMemory(sizeof(bsp_link_t) * count);
   }
-  count = dword_1006957C;
   /* Doubly-linked free list via next_ent / prev_ent slots. */
   dword_10069578[0].prev_ent = NULL;
-  dword_10069578[0].next_ent = (count > 1) ? &dword_10069578[1] : NULL;
+  dword_10069578[0].next_ent = &dword_10069578[1];
   for ( i = 1; i < count - 1; ++i )
   {
     dword_10069578[i].prev_ent = &dword_10069578[i - 1];
     dword_10069578[i].next_ent = &dword_10069578[i + 1];
   }
-  if ( count > 1 )
-  {
-    dword_10069578[count - 1].prev_ent = &dword_10069578[count - 2];
-    dword_10069578[count - 1].next_ent = NULL;
-  }
+  dword_10069578[count - 1].prev_ent = &dword_10069578[count - 2];
+  dword_10069578[count - 1].next_ent = NULL;
   dword_10069580 = dword_10069578;
-  return count;
+  return sizeof(bsp_link_t) * count;
 }
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
 // 10069578: using guessed type int dword_10069578;
@@ -34475,9 +34471,8 @@ LABEL_5:
 unsigned int __cdecl PC_NameHash(const char *a1)
 {
   unsigned int v2; // ecx
-  int v4; // [esp+4h] [ebp-4h] BYREF
+  int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
-  v4 = 0;
   if ( a1 )
   {
     v2 = strlen(a1);
