@@ -713,7 +713,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *); // idb
 char *__cdecl RandomString(const char *name);
 void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces);
 bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken);
-int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
+void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
 bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *); // idb
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
@@ -773,7 +773,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
 int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
 int __cdecl BotLoadItemWeights(int *goalstate, char *a2);
-int __cdecl BotFreeItemWeights(int *goalstate);
+void __cdecl BotFreeItemWeights(int *goalstate);
 int __cdecl BotResetGoalState(void *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
@@ -822,7 +822,7 @@ int __cdecl sub_10034B90(void *a1);
 // int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
 typedef struct bot_weaponstate_s bot_weaponstate_t;
-int __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
+void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2);
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws);
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
@@ -961,8 +961,8 @@ int __cdecl PC_UnreadLastToken(source_t *src);
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
 void      __cdecl FreeSource(source_t *src);
 void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations);
-int ScriptError(int a1, char *Format, ...);
-int ScriptWarning(int a1, char *Format, ...);
+void ScriptError(int a1, char *Format, ...);
+void ScriptWarning(int a1, char *Format, ...);
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
 int __cdecl PS_ReadWhiteSpace(script_t *a1);
 int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2);
@@ -16040,8 +16040,7 @@ int AAS_InitRoutingUpdate()
   aasworld.areaupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
   if ( aasworld.portalupdate )
     FreeMemory((int)(intptr_t)aasworld.portalupdate);
-  aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
-  return aasworld.portalupdate ? 1 : 0;
+  return (int)(intptr_t)(aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas));
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -21914,7 +21913,9 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
   const char *v1; // eax
 
   v1 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-  return 2 - (strstr(v1, aCtfR) != 0);
+  if ( strstr(v1, aCtfR) )
+    return 1;
+  return 2;
 }
 // 10001893: using guessed type _DWORD __cdecl ClientSkin(_DWORD);
 
@@ -26506,7 +26507,7 @@ LABEL_37:
 // 10001EDD: using guessed type _DWORD __cdecl FreeSource(_DWORD);
 
 //----- (1002C3D0) --------------------------------------------------------
-int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
+void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 {
   bot_matchtemplate_t *m;
   bot_matchtemplate_t *next;
@@ -26517,7 +26518,6 @@ int __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
     BotFreeMatchPieces(m->first);
     FreeMemory(m);
   }
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -29250,16 +29250,12 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
 // 1006435C: using guessed type int dword_1006435C;
 
 //----- (10030950) --------------------------------------------------------
-int __cdecl BotFreeItemWeights(int *goalstate)
+void __cdecl BotFreeItemWeights(int *goalstate)
 {
-  int result;
-
   if ( BotGoalHandleP0(goalstate) )
     FreeWeightConfig2((weightconfig_t *)BotGoalHandleP0(goalstate));
-  result = (intptr_t)BotGoalHandleP1(goalstate);
-  if ( result )
-    return FreeMemory(BotGoalHandleP1(goalstate));
-  return result;
+  if ( BotGoalHandleP1(goalstate) )
+    FreeMemory(BotGoalHandleP1(goalstate));
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
@@ -31794,16 +31790,12 @@ _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 
 //----- (10035300) --------------------------------------------------------
-int __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws)
+void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws)
 {
-  int result; // eax
-
   if ( ws->weightconfig )
     FreeWeightConfig2((int)(intptr_t)ws->weightconfig);
-  result = (int)(intptr_t)ws->itemweights;
-  if ( result )
-    return FreeMemory(ws->itemweights);
-  return result;
+  if ( ws->itemweights )
+    FreeMemory(ws->itemweights);
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001DC5: using guessed type _DWORD __cdecl FreeWeightConfig2(_DWORD);
@@ -37227,9 +37219,8 @@ static char *__cdecl sub_1003E250(script_t *script, int num)
 }
 
 //----- (1003E2C0) --------------------------------------------------------
-int ScriptError(int a1, char *Format, ...)
+void ScriptError(int a1, char *Format, ...)
 {
-  int result; // eax
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
@@ -37237,16 +37228,14 @@ int ScriptError(int a1, char *Format, ...)
   if ( (*(unsigned char *)&((script_t *)a1)->flags & 1) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    return bi_Print(3, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    bi_Print(3, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
   }
-  return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1003E340) --------------------------------------------------------
-int ScriptWarning(int a1, char *Format, ...)
+void ScriptWarning(int a1, char *Format, ...)
 {
-  int result; // eax
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
@@ -37254,9 +37243,8 @@ int ScriptWarning(int a1, char *Format, ...)
   if ( (*(unsigned char *)&((script_t *)a1)->flags & 2) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    return bi_Print(2, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    bi_Print(2, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
   }
-  return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
