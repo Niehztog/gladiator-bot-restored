@@ -4294,10 +4294,11 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
     dword_10069568 = *(__int16 *)(v5 + 6);
   }
   v7 = sub_10003420(a2, 0);
-  if ( *(_WORD *)(v7 + 4) == 0xFFFF )
+  if ( *(__int16 *)(v7 + 4) == -1 )
     return 0;
   AAS_DecompressVis(v4, a3);
-  return ((unsigned __int8)byte_10067564[*(__int16 *)(v7 + 4) >> 3] & (unsigned __int8)(1 << (*(_WORD *)(v7 + 4) & 7))) != 0;
+  v6 = *(__int16 *)(v7 + 4);
+  return ((unsigned __int8)byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
 }
 // 100674C0: using guessed type int dword_100674C0;
 // 100674CC: using guessed type int dword_100674CC;
