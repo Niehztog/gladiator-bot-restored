@@ -40156,15 +40156,13 @@ void __cdecl sub_10043600(const char *in, char *out)
   char c;
 
   c = *in;
-  if ( !c )
+  if ( c )
   {
-    *out = '\0';
-    return;
-  }
-  while ( c && c != '.' )
-  {
-    *out++ = c;
-    c = *++in;
+    while ( c && c != '.' )
+    {
+      *out++ = c;
+      c = *++in;
+    }
   }
   *out = '\0';
 }
