@@ -25420,24 +25420,16 @@ int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4)
 {
   int result; // eax
 
-  if ( a3 <= a4 )
-  {
-    result = Characteristic_Integer(a1, a2);
-    if ( result >= a3 )
-    {
-      if ( result > a4 )
-        return a4;
-    }
-    else
-    {
-      return a3;
-    }
-  }
-  else
+  if ( a3 > a4 )
   {
     bi_Print(3, "cannot bound characteristic %d between %d and %d\n", a2, a3, a4);
     return 0;
   }
+  result = Characteristic_Integer(a1, a2);
+  if ( result < a3 )
+    return a3;
+  if ( result > a4 )
+    return a4;
   return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -28883,17 +28875,14 @@ int __cdecl BotPushGoal(int *goalstate, const void *goal)
   int result; // eax
 
   v2 = *(_DWORD *)((char *)goalstate + 456);
-  if ( v2 < 7 )
-  {
-    result = v2 + 1;
-    *(_DWORD *)((char *)goalstate + 456) = result;
-    qmemcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
-  }
-  else
+  if ( v2 >= 7 )
   {
     bi_Print(3, aGoalHeapOverfl);
     return BotDumpGoalStack(goalstate);
   }
+  result = v2 + 1;
+  *(_DWORD *)((char *)goalstate + 456) = result;
+  qmemcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
   return result;
 }
 // 100016B8: using guessed type _DWORD __cdecl BotDumpGoalStack(_DWORD);
@@ -30089,8 +30078,8 @@ _DWORD *__cdecl BotClearMoveResult(_DWORD *moveresult)
 //----- (10031E50) --------------------------------------------------------
 intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
 {
-  double v4; // st7
-  double v5; // st7
+  float v4; // st7
+  float v5; // st7
   intptr_t result; // eax
   /* IDA split a vec3 stack local into v7/v8/v9; original .text 0x10031e6b
    * stores the 3 floats at contiguous [esp+0xc/0x10/0x14].  GCC won't keep
@@ -30109,7 +30098,7 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
   v11 = VectorNormalize(dir);
   BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
   v4 = v11;
-  if ( v11 < 10.0 )
+  if ( v11 < 10.0f )
   {
     v5 = *(float *)(a3 + 24) - *(float *)a2;
     dir[2] = 0.0f;
@@ -30120,7 +30109,7 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
   }
   if ( (AAS_AreaPresenceType(*(_DWORD *)a3) & 2) == 0 )
   {
-    if ( v11 < 20.0 )
+    if ( v11 < 20.0f )
       EA_Crouch(*(_DWORD *)(a2 + 40));
   }
   /* IDA dropped FPU return: at .text 0x10031f12 the call to BotGapDistance
@@ -30132,10 +30121,10 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
    * crawl as it approaches every goal and "pause" when distance ≈ 0 (just
    * before the goal flips).  Capture the real return.  See ida_dropped_results.md. */
   v4 = BotGapDistance(a2, (intptr_t)dir);
-  if ( v4 <= 0.0 )
-    v12 = 400.0;
+  if ( v4 > 0.0f )
+    v12 = 300.0f - (300.0f - (v4 + v4));
   else
-    v12 = 300.0 - (300.0 - (v4 + v4));
+    v12 = 400.0f;
   EA_Move(*(_DWORD *)(a2 + 40), dir, v12);
   v10[6] = *(int *)&dir[0];
   v10[7] = *(int *)&dir[1];
