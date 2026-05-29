@@ -39724,12 +39724,25 @@ float __cdecl sub_10042C80(float f)
  * mov eax, ds:0x100631A4; ret`.  Converts float to int via FPU using
  * a static spill slot at 0x100631A4 (shared with AngleVectors result
  * area).  Q3-style ftol helper.  Dead in Gladiator. */
-int __cdecl sub_10042CB0(float f)
+#ifdef _MSC_VER
+__declspec(naked) int __cdecl sub_10042CB0(float f)
 {
   static int tmp;  /* mirrors the static spill slot at ds:0x100631A4 */
+  __asm {
+    fld   DWORD PTR [esp+4]
+    fistp tmp
+    mov   eax, tmp
+    ret
+  }
+}
+#else
+int __cdecl sub_10042CB0(float f)
+{
+  static int tmp;
   tmp = (int)f;
   return tmp;
 }
+#endif
 
 //----- (10042CD0) --------------------------------------------------------
 /* LerpAngle — restored IDA-missed dead-code stub.  Verified against
