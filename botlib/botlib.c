@@ -16285,21 +16285,14 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
 
   v4 = (char *)aasworld.areasettings + 28 * a2;
   v5 = *((_DWORD *)v4 + 3);
-  if ( v5 <= 0 )
-    v10 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v5)[1] != a1) - 5 * v5 + 3);
-  else
+  if ( v5 > 0 )
     v10 = *((_DWORD *)v4 + 4);
+  else
+    v10 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v5)[1] != a1) - 5 * v5 + 3);
   head = aasworld.clusterareacache[a1][v10];
   cur  = head;
-  if ( cur )
-  {
-    while ( cur->travelflags != a3 )
-    {
-      cur = cur->next;
-      if ( !cur )
-        break;
-    }
-  }
+  while ( cur && cur->travelflags != a3 )
+    cur = cur->next;
   if ( !cur )
   {
     cur = AAS_AllocRoutingCache(
