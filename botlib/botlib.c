@@ -34803,7 +34803,7 @@ LABEL_26:
         {
           if ( !PC_MergeTokens(tlist, tnext->next) )
           {
-            SourceError(src, aCanTMergeSWith, tlist);
+            SourceError(src, aCanTMergeSWith, tlist->string, tnext->string);
             return 0;
           }
           PC_FreeToken(tlist->next);
@@ -38590,7 +38590,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
         v6 = -token.floatvalue;
       if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(field, 4), v6 < v18) || v6 > fielddef_float(field, 5)) )
       {
-        SourceError(src, aFloatOutOfRang, SLOBYTE(v18));
+        SourceError(src, aFloatOutOfRang, v18, fielddef_float(field, 5));
         return 0;
       }
       else
@@ -38658,7 +38658,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       v11 = (double)v19;
       if ( v11 < fielddef_float(field, 4) || v11 > fielddef_float(field, 5) )
       {
-        SourceError(src, aValueDOutOfRan, v7);
+        SourceError(src, aValueDOutOfRan, v7, fielddef_float(field, 4), fielddef_float(field, 5));
         return 0;
       }
     }
@@ -38678,7 +38678,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   }
   if ( v7 < v9 || v7 > (int)v10 )
   {
-    SourceError(src, aValueDOutOfRan_0, v7);
+    SourceError(src, aValueDOutOfRan_0, v7, v9, (int)v10);
     return 0;
   }
 LABEL_47:
