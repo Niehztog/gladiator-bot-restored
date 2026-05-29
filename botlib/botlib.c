@@ -14716,7 +14716,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
   char *area2; // ebp
   char *area1; // ecx
-  char v4; // al
+  int v4; // restored from disasm at 0x10016a78
   int v5; // ecx
   int v6; // eax
   int face2num; // ebp
@@ -28515,7 +28515,6 @@ void __cdecl BotDumpAvoidGoals(int *goalstate)
   float *v1; // esi
   int v2; // ebx
   float v3; // edi
-  char v4; // al
 
   v1 = (float *)(goalstate + 460);
   v2 = 64;
@@ -28524,9 +28523,7 @@ void __cdecl BotDumpAvoidGoals(int *goalstate)
     if ( AAS_Time() <= v1[64] )
     {
       v3 = *v1;
-      AAS_Time();
-      v4 = BotGoalName(LODWORD(v3));
-      Log_Write(aAvoidGoalSNumb, v4);
+      Log_Write(aAvoidGoalSNumb, BotGoalName(LODWORD(v3)), LODWORD(v3), v1[64] - AAS_Time());
     }
     ++v1;
     --v2;
@@ -33598,8 +33595,8 @@ double __cdecl LibVarStringValue(char *a1)
   char *v1; // edx
   int v2; // ecx
   double result; // st7
-  char v4; // al
   double v5; // st6
+  char v4; // al
   int i; // [esp+0h] [ebp-4h]
 
   v1 = a1;
