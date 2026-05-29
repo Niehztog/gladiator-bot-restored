@@ -6328,11 +6328,10 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
   char *v13; // ecx
   int v14; // esi
   int v15; // eax
-  char v16; // [esp+0h] [ebp-10h]
 
   if ( a1 <= 0 || a1 >= aasworld.numareas )
   {
-    AAS_Error(aAasFloodcluste, v16);
+    AAS_Error(aAasFloodcluste);
     return 0;
   }
   else
