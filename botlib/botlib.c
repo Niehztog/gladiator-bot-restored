@@ -4878,18 +4878,16 @@ int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3
   double v6; // [esp+10h] [ebp-8h] BYREF
 
   result = AAS_ValueForBSPEpairKey(a1, a2);
-  if ( result )
-  {
-    v6 = 0.0;
-    v5 = 0.0;
-    v4 = 0.0;
-    sscanf(result, "%lf %lf %lf", &v4, &v5, &v6);
-    *a3 = v4;
-    a3[1] = v5;
-    a3[2] = v6;
-    return 1;
-  }
-  return 0;
+  if ( !result )
+    return (int)(intptr_t)result;
+  v6 = 0.0;
+  v5 = 0.0;
+  v4 = 0.0;
+  sscanf(result, "%lf %lf %lf", &v4, &v5, &v6);
+  *a3 = v4;
+  a3[1] = v5;
+  a3[2] = v6;
+  return 1;
 }
 
 //----- (100068A0) --------------------------------------------------------
