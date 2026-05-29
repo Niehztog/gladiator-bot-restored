@@ -34261,7 +34261,6 @@ int __cdecl PC_ReadSourceToken(source_t *src, token_t *token)
   struct token_s *t;
   script_t *s;
   indent_t *ind;
-  char v9; // [esp+0h] [ebp-8h]
   int t_dummy, s_dummy;
 
   if ( src->tokens )
@@ -34285,7 +34284,7 @@ LABEL_9:
         {
           if ( ind->script != src->scriptstack )
             break;
-          SourceWarning(src, aMissingEndif, v9);
+          SourceWarning(src, aMissingEndif);
           PC_PopIndent(src, &t_dummy, &s_dummy);
         }
       }
@@ -37239,7 +37238,6 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
   int v6; // eax
   int i; // eax
   char *v8; // edi
-  char v10; // [esp+0h] [ebp-8h]
 
   v2 = (char *)(a1->script_p + 1);
   a1->script_p = v2;
@@ -37311,7 +37309,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       break;
     default:
       if ( v3 < 48 || v3 > 57 )
-        ScriptError(a1, aUnknownEscapeC, v10);
+        ScriptError(a1, aUnknownEscapeC);
       v4 = 0;
       for ( i = *a1->script_p; i >= 48; i = *v8 )
       {
@@ -37325,7 +37323,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       if ( v4 > 255 )
       {
 LABEL_32:
-        ScriptWarning(a1, aTooLargeValueI, v10);
+        ScriptWarning(a1, aTooLargeValueI);
         LOBYTE(v4) = -1;
       }
       break;
@@ -37348,7 +37346,6 @@ int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
   char *v12; // eax
   int result; // eax
   int v14; // edi
-  char v15; // [esp+0h] [ebp-10h]
   char *v16; // [esp+14h] [ebp+4h]
 
   if ( a3 == 34 )
@@ -37399,7 +37396,7 @@ LABEL_22:
         if ( !v8 )
         {
           token->string[v5] = 0;
-          ScriptError(a1, aMissingTrailin, v15);
+          ScriptError(a1, aMissingTrailin);
           return 0;
         }
         if ( v8 == 10 )
@@ -37858,7 +37855,6 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
   char *v6; // edi
   char v7; // al
   char v8; // cl
-  char v9; // [esp+0h] [ebp-Ch]
 
   if ( script->tokenavailable )
   {
@@ -37916,7 +37912,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
         if ( !PS_ReadPunctuation(script, Destination) )
         {
 
-          ScriptError((int)script, aCanTReadToken, v9);
+          ScriptError((int)script, aCanTReadToken);
           return 0;
         }
         goto LABEL_28;
