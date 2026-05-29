@@ -32691,8 +32691,6 @@ void __cdecl sub_10036DF0(int *arr)
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 {
   fuzzyseperator_t *v3; // eax
-  double v4; // st7
-  char v6; // c0
 
   do
   {
@@ -32709,9 +32707,11 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
     }
     else if ( fs->type == 1 )
     {
+      float v4;
+
       v4 = (fs->minweight + fs->maxweight) * scale;
       fs->weight = v4;
-      if ( v6 )
+      if ( v4 < fs->minweight )
       {
         fs->weight = fs->minweight;
       }
@@ -32724,7 +32724,6 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
   }
   while ( fs );
 }
-// 10036E68: variable 'v6' is possibly undefined
 // 10001708: using guessed type _DWORD __cdecl ScaleFuzzySeperator_r(_DWORD, _DWORD);
 
 //----- (10036EB0) --------------------------------------------------------
