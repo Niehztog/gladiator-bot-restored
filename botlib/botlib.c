@@ -8312,7 +8312,11 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   float v28[3]; // [esp+48h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+54h] [ebp-48h] (was int v29[9] + char v30[36] hidden return buffer)
 
-  if ( aasworld.loaded )
+  if ( !aasworld.loaded )
+  {
+    bi_Print(3, aAasBestreachab);
+    return 0;
+  }
   {
     start[0] = ((float *)a1)[0];
     start[1] = ((float *)a1)[1];
@@ -8397,11 +8401,6 @@ LABEL_21:
     v17 = AAS_BestReachableLinkArea(v16);
     AAS_UnlinkFromAreas(v16);
     return v17;
-  }
-  else
-  {
-    bi_Print(3, aAasBestreachab);
-    return 0;
   }
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -28189,73 +28188,63 @@ itemconfig_t * LoadItemConfig(char *Source)
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, &file_ref) )
-  {
-    src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    if ( src )
-    {
-      cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
-      cfg->numitems = 0;
-      cfg->items    = (iteminfo_t *)(cfg + 1);
-      if ( PC_ReadTokenHandle(src, ArgList) )
-      {
-        while ( !strcmp(ArgList, aIteminfo) )
-        {
-          if ( cfg->numitems >= max_iteminfo )
-          {
-            SourceError(src, aMoreThanDItemI, max_iteminfo);
-            goto LABEL_22;
-          }
-          item = &cfg->items[cfg->numitems];
-          memset(item, 0, sizeof(iteminfo_t));
-          if ( !PC_ExpectTokenType(src, 1, 0, ArgList) )
-          {
-            FreeMemory(cfg);
-            FreeMemory(src);
-            return 0;
-          }
-          StripDoubleQuotes(ArgList);
-          strncpy(item->dispname, ArgList, 80);
-          if ( !ReadStructure(src, &unk_1005D890, item) )
-          {
-            FreeMemory(cfg);
-            FreeSource(src);
-            return 0;
-          }
-          item->number = cfg->numitems++;
-          if ( !PC_ReadTokenHandle(src, ArgList) )
-            goto LABEL_13;
-        }
-        SourceError(src, aUnknownDefinit, ArgList);
-LABEL_22:
-        FreeMemory(cfg);
-        FreeSource(src);
-        return 0;
-      }
-      else
-      {
-LABEL_13:
-        FreeSource(src);
-        if ( !cfg->numitems )
-          bi_Print(2, aNoItemInfoLoad);
-        if ( file_ref.filelen )
-          bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
-        else
-          bi_Print(1, "loaded %s\n", Destination);
-        return cfg;
-      }
-    }
-    else
-    {
-      bi_Print(3, "counldn't load %s\n", Destination);
-      return 0;
-    }
-  }
-  else
+  if ( !sub_10041F60(Destination, &file_ref) )
   {
     bi_Print(3, "couldn't find %s\n", Destination);
     return 0;
   }
+  src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !src )
+  {
+    bi_Print(3, "counldn't load %s\n", Destination);
+    return 0;
+  }
+  cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
+  cfg->numitems = 0;
+  cfg->items    = (iteminfo_t *)(cfg + 1);
+  if ( !PC_ReadTokenHandle(src, ArgList) )
+    goto LABEL_13;
+  while ( !strcmp(ArgList, aIteminfo) )
+  {
+    if ( cfg->numitems >= max_iteminfo )
+    {
+      SourceError(src, aMoreThanDItemI, max_iteminfo);
+      goto LABEL_22;
+    }
+    item = &cfg->items[cfg->numitems];
+    memset(item, 0, sizeof(iteminfo_t));
+    if ( !PC_ExpectTokenType(src, 1, 0, ArgList) )
+    {
+      FreeMemory(cfg);
+      FreeMemory(src);
+      return 0;
+    }
+    StripDoubleQuotes(ArgList);
+    strncpy(item->dispname, ArgList, 80);
+    if ( !ReadStructure(src, &unk_1005D890, item) )
+    {
+      FreeMemory(cfg);
+      FreeSource(src);
+      return 0;
+    }
+    item->number = cfg->numitems++;
+    if ( !PC_ReadTokenHandle(src, ArgList) )
+      goto LABEL_13;
+  }
+  SourceError(src, aUnknownDefinit, ArgList);
+LABEL_22:
+  FreeMemory(cfg);
+  FreeSource(src);
+  return 0;
+LABEL_13:
+  FreeSource(src);
+  if ( !cfg->numitems )
+    bi_Print(2, aNoItemInfoLoad);
+  if ( file_ref.filelen )
+    bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
+  else
+    bi_Print(1, "loaded %s\n", Destination);
+  return cfg;
 }
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
