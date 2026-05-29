@@ -11507,7 +11507,7 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 //----- (100109E0) --------------------------------------------------------
 int __cdecl AAS_KeepFace(char *face)
 {
-  return (unsigned __int8)(face[4] & 2) >> 1;
+  return (face[4] & 2) >> 1;
 }
 
 //----- (10010A00) --------------------------------------------------------
@@ -11980,7 +11980,7 @@ int __cdecl AAS_AreaCrouch(int areanum)
 //----- (10011610) --------------------------------------------------------
 int __cdecl AAS_AreaSwim(int areanum)
 {
-  return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
+  return (*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
 }
 
 //----- (10011640) --------------------------------------------------------
@@ -11992,7 +11992,7 @@ int __cdecl AAS_AreaSwim(int areanum)
  * of the same body; preserved by the linker. */
 static int __cdecl sub_10011640(int areanum)
 {
-  return (unsigned __int8)(*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
+  return (*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
 }
 
 //----- (10011670) --------------------------------------------------------
@@ -18126,10 +18126,9 @@ aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int
 //----- (1001C6C0) --------------------------------------------------------
 char *__cdecl AAS_PlaneFromNum(int planenum)
 {
-  if ( aasworld.loaded )
-    return (char *)aasworld.planes + 20 * planenum;
-  else
+  if ( !aasworld.loaded )
     return 0;
+  return (char *)aasworld.planes + 20 * planenum;
 }
 // 100667E0: using guessed type int aasworld.loaded;
 
@@ -25351,15 +25350,12 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
     bi_Print(3, "characteristic %d does not exist\n", a2);
     return 0;
   }
-  else if ( (unsigned char)BC_PAIRS(a1)[a2].type )
-  {
-    return 1;
-  }
-  else
+  if ( !(unsigned char)BC_PAIRS(a1)[a2].type )
   {
     bi_Print(3, "characteristic %d is not initialized\n", a2);
     return 0;
   }
+  return 1;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -28428,15 +28424,12 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
   levelitem_t *result;
 
   result = dword_10064344;
-  if ( dword_10064344 )
-  {
-    dword_10064344 = result->next;
-  }
-  else
+  if ( !dword_10064344 )
   {
     bi_Print(4, aOutOfLevelItem);
     return 0;
   }
+  dword_10064344 = result->next;
   return (_DWORD *)result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -28952,10 +28945,9 @@ void *__cdecl BotGetSecondGoal(int *a1)
   int v1; // eax
 
   v1 = *(_DWORD *)((char *)a1 + 456);
-  if ( v1 > 1 )
-    return (char *)a1 + 56 * v1 - 48;
-  else
+  if ( v1 <= 1 )
     return 0;
+  return (char *)a1 + 56 * v1 - 48;
 }
 
 //----- (1002FEB0) --------------------------------------------------------
@@ -29352,10 +29344,12 @@ int BotSetupGoalAI()
 
   v0 = LibVarString(aItemconfig, (char *)aItemsC);
   dword_1006435C = LoadItemConfig(v0);
-  if ( dword_1006435C )
-    return 0;
-  bi_Print(4, aCouldnTLoadIte);
-  return 29;
+  if ( !dword_1006435C )
+  {
+    bi_Print(4, aCouldnTLoadIte);
+    return 29;
+  }
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 1006435C: using guessed type int dword_1006435C;
@@ -32056,10 +32050,12 @@ int BotSetupWeaponAI()
 
   v0 = LibVarString(aWeaponconfig, (char *)aWeaponsC);
   dword_10064080 = LoadWeaponConfig(v0);
-  if ( dword_10064080 )
-    return 0;
-  bi_Print(4, aCouldnTLoadThe);
-  return 31;
+  if ( !dword_10064080 )
+  {
+    bi_Print(4, aCouldnTLoadThe);
+    return 31;
+  }
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10064080: using guessed type int dword_10064080;
@@ -33259,17 +33255,17 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
   ea->dir[0] = dir[0];
   ea->dir[1] = dir[1];
   ea->dir[2] = dir[2];
-  if ( speed <= 565.0f )
-  {
-    if ( speed >= -565.0f )
-      ea->speed = speed;
-    else
-      ea->speed = -565.0f;
-  }
-  else
+  if ( speed > 565.0f )
   {
     ea->speed = 565.0f;
+    return;
   }
+  if ( speed < -565.0f )
+  {
+    ea->speed = -565.0f;
+    return;
+  }
+  ea->speed = speed;
 }
 
 //----- (100375A0) --------------------------------------------------------
@@ -33514,10 +33510,12 @@ qboolean __cdecl ValidEntityNumber(int num, const char *str)
 //----- (100379A0) --------------------------------------------------------
 qboolean __cdecl BotLibSetup(const char *str)
 {
-  if ( botlibsetup )
-    return 1;
-  bi_Print(3, "%s: bot library used before being setup\n", str);
-  return 0;
+  if ( !botlibsetup )
+  {
+    bi_Print(3, "%s: bot library used before being setup\n", str);
+    return 0;
+  }
+  return 1;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10064020: using guessed type int botlibsetup;
@@ -33588,9 +33586,9 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 {
   if ( !BotLibSetup(aBotconsolemess) )
     return 1;
-  if ( ValidClientNumber(client, aBotconsolemess) )
-    return BotConsoleMessage(client, a2, message);
-  return 3;
+  if ( !ValidClientNumber(client, aBotconsolemess) )
+    return 3;
+  return BotConsoleMessage(client, a2, message);
 }
 
 //----- (10038480) --------------------------------------------------------
@@ -33972,31 +33970,28 @@ static void __cdecl sub_10038BB0(const char *name)
  * the libvar value is read internally. */
 void Log_Open(char *FileName)
 {
-  if ( LibVarValue(aLog, (char *)a0) != 0.0 )      /* "log" libvar enabled (default "0") */
+  if ( LibVarValue(aLog, (char *)a0) != 0.0f )      /* "log" libvar enabled (default "0") */
   {
-    if ( FileName && strlen(FileName) )
+    if ( !FileName || !strlen(FileName) )
     {
-      if ( Stream )
-      {
-        bi_Print(3, "log file %s is already opened\n", byte_10063A40);
-      }
-      else
-      {
-        Stream = fopen(FileName, Mode);          /* Mode = "wb" */
-        if ( Stream )
-        {
-          strncpy(byte_10063A40, FileName, 0x400u);
-          bi_Print(1, "Opened log %s\n", byte_10063A40);
-        }
-        else
-        {
-          bi_Print(3, "can't open the log file %s\n", FileName);
-        }
-      }
+      bi_Print(1, aOpenlogFilenam);
+    }
+    else if ( Stream )
+    {
+      bi_Print(3, "log file %s is already opened\n", byte_10063A40);
     }
     else
     {
-      bi_Print(1, aOpenlogFilenam);
+      Stream = fopen(FileName, Mode);          /* Mode = "wb" */
+      if ( !Stream )
+      {
+        bi_Print(3, "can't open the log file %s\n", FileName);
+      }
+      else
+      {
+        strncpy(byte_10063A40, FileName, 0x400u);
+        bi_Print(1, "Opened log %s\n", byte_10063A40);
+      }
     }
   }
 }
