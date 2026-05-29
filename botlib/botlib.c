@@ -762,7 +762,7 @@ void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
 double __cdecl BotAvoidGoalTime(int *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
 int sub_1002FA20();
-int __cdecl BotDumpGoalStack(int *goalstate);
+void __cdecl BotDumpGoalStack(int *goalstate);
 int __cdecl BotPushGoal(int *goalstate, const void *goal);
 int __cdecl BotPopGoal(int *goalstate);
 void __cdecl BotEmptyGoalStack(int *goalstate);
@@ -2477,8 +2477,7 @@ void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float 
 {
   bsp_trace_t bs;
 
-  bs = ((bsp_trace_t (__cdecl *)(float *, float *, float *, float *, int, int))bi_Trace)(start, mins, maxs, end, a6, a7);
-  qmemcpy(a1, &bs, 0x54u);
+  qmemcpy(a1, bi_Trace(&bs, start, mins, maxs, end, a6, a7), 0x54u);
   return a1;
 }
 // 10063FEC: using guessed type int (__cdecl *bi_Trace)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
@@ -28789,7 +28788,7 @@ LABEL_31:
 // 1002FA20: using guessed type char var_7C[124];
 
 //----- (1002FD40) --------------------------------------------------------
-int __cdecl BotDumpGoalStack(int *goalstate)
+void __cdecl BotDumpGoalStack(int *goalstate)
 {
   int v1; // esi
   _DWORD *v2; // edi
@@ -28800,16 +28799,12 @@ int __cdecl BotDumpGoalStack(int *goalstate)
     v2 = (_DWORD *)((char *)goalstate + 108);
     do
     {
-      BotGoalName(*v2);
-      Log_Write(aDS, v1++);
+      Log_Write(aDS, v1, BotGoalName(*v2));
+      ++v1;
       v2 += 14;
     }
-    while ( v1 <= *(_DWORD *)((char *)goalstate + 456) );
+    while ( v1 <= *(int *)((char *)goalstate + 456) );
   }
-  /* Binary leaves the loop's last `mov eax, [ebx+0x1c8]` (goal count) in eax;
-   * with count==0 the loop never runs and eax is whatever caller passed.
-   * Return the goal count to match the predominant code path. */
-  return *(int *)((char *)goalstate + 456);
 }
 // 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
 
@@ -28823,7 +28818,7 @@ int __cdecl BotPushGoal(int *goalstate, const void *goal)
   if ( v2 >= 7 )
   {
     bi_Print(3, aGoalHeapOverfl);
-    return BotDumpGoalStack(goalstate);
+    return ((int (__cdecl *)(int *))BotDumpGoalStack)(goalstate);
   }
   result = v2 + 1;
   *(_DWORD *)((char *)goalstate + 456) = result;
