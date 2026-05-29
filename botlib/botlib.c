@@ -11940,8 +11940,8 @@ double __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
 //----- (10011590) --------------------------------------------------------
 float __cdecl AAS_MaxJumpDistance(float a1)
 {
-  return (float)(sqrt(450.0 / (libvar_sv_gravity->value * 0.5)) + a1 / libvar_sv_gravity->value)
-       * libvar_sv_maxvelocity->value;
+  float g = libvar_sv_gravity->value;
+  return (float)(sqrt(450.0 / (g * 0.5)) + a1 / g) * libvar_sv_maxvelocity->value;
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 // 10064044: using guessed type int libvar_sv_maxvelocity;
