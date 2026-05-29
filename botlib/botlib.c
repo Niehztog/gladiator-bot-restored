@@ -31816,7 +31816,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
   weaponinfo_t *v2; // edi
   int v4; // ebx
   int v5; // eax
-  double v6; // st7
+  float v6; // st7
   float v7; // [esp+10h] [ebp-4h]
 
   v1 = (weaponconfig_t *)dword_10064080;
