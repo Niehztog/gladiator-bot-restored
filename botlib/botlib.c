@@ -268,7 +268,7 @@ int sub_1001D260(); // weak
 /* bot_character internal layout (defined later); forward typedef needed
  * here for Characteristic_* prototypes. */
 typedef struct bot_character_s bot_character_t;
-double __cdecl Characteristic_Float(bot_character_t *, int);
+float __cdecl Characteristic_Float(bot_character_t *, int);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
 int __cdecl BotReachabilityTime(aas_reachability_t*);
 void PrintUsedMemorySize(void);
@@ -688,7 +688,7 @@ int BotShutdownLibrary();
 bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2);
 int __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
-double __cdecl Characteristic_Float(bot_character_t *a1, int a2);
+float __cdecl Characteristic_Float(bot_character_t *a1, int a2);
 double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
 int __cdecl Characteristic_Integer(bot_character_t *a1, int a2);
 int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4);
@@ -25365,7 +25365,7 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A620) --------------------------------------------------------
-double __cdecl Characteristic_Float(bot_character_t *a1, int a2)
+float __cdecl Characteristic_Float(bot_character_t *a1, int a2)
 {
   char v2; // al
 
@@ -35184,21 +35184,18 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
   int crossline; // ebp
 
   crossline = 0;
-  if ( !PC_ReadSourceToken(source, token) )
-    return 0;
-  while ( 1 )
+  do
   {
+    if ( !PC_ReadSourceToken(source, token) )
+      return 0;
     if ( token->linescrossed > crossline )
     {
       PC_UnreadSourceToken(source, token);
       return 0;
     }
     crossline = 1;
-    if ( strcmp(token->string, asc_1005F6C0) )
-      break;
-    if ( !PC_ReadSourceToken(source, token) )
-      return 0;
   }
+  while ( !strcmp(token->string, asc_1005F6C0) );
   return 1;
 }
 
@@ -35620,58 +35617,44 @@ void __cdecl PC_AddGlobalDefinesToSource(source_t *a1)
 int __cdecl PC_Directive_ifdef(source_t *src, int a2)
 {
   define_t *def;
-  char v4; // [esp+0h] [ebp-434h]
   token_t token;
 
-  if ( PC_ReadLine(src, token.string) )
+  if ( !PC_ReadLine(src, token.string) )
   {
-    if ( token.type == 4 )
-    {
-      def = PC_FindHashedDefine(src->definehash, token.string);
-      PC_PushIndent(src, a2, (a2 == 8) == (def == NULL));
-      return 1;
-    }
-    else
-    {
-      PC_UnreadSourceToken(src, token.string);
-      SourceError(src, aExpectedNameAf, token.string);
-      return 0;
-    }
-  }
-  else
-  {
-    SourceError(src, aIfdefWithoutNa, v4);
+    SourceError(src, aIfdefWithoutNa);
     return 0;
   }
+  if ( token.type != 4 )
+  {
+    PC_UnreadSourceToken(src, token.string);
+    SourceError(src, aExpectedNameAf, token.string);
+    return 0;
+  }
+  def = PC_FindHashedDefine(src->definehash, token.string);
+  PC_PushIndent(src, a2, (a2 == 8) == (def == NULL));
+  return 1;
 }
 // 1003B6E6: variable 'v4' is possibly undefined
 
 //----- (1003B7F0) --------------------------------------------------------
 int __cdecl PC_Directive_else(source_t *src)
 {
-  char v3; // [esp+0h] [ebp-8h]
   int type; // [esp+4h] [ebp-4h] BYREF
   int skip;
 
   PC_PopIndent(src, &type, &skip);
-  if ( type )
+  if ( !type )
   {
-    if ( type == 2 )
-    {
-      SourceError(src, aElseAfterElse, v3);
-      return 0;
-    }
-    else
-    {
-      PC_PushIndent(src, 2, skip == 0);
-      return 1;
-    }
-  }
-  else
-  {
-    SourceError(src, aMisplacedElse, v3);
+    SourceError(src, aMisplacedElse);
     return 0;
   }
+  if ( type == 2 )
+  {
+    SourceError(src, aElseAfterElse);
+    return 0;
+  }
+  PC_PushIndent(src, 2, skip == 0);
+  return 1;
 }
 // 1003B817: variable 'v3' is possibly undefined
 
@@ -36637,46 +36620,35 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
 //----- (1003D090) --------------------------------------------------------
 int __cdecl PC_ReadDirective(source_t *src)
 {
-  char v6; // [esp+0h] [ebp-440h]
   /* Original binary: sub $0x430,%esp / lea 0x0(%esp),%eax / push %eax
    * — entire 1072-byte token_t allocated as one block, pointer passed to
    * sub_10001BBD.  token.string kept as char[] so all string ops compile unchanged. */
   token_t token; /* restored: original token_t local variable */
+  preproc_directive_t *pd;
 
-  if ( PC_ReadSourceToken(src, token.string) )
+  if ( !PC_ReadSourceToken(src, token.string) )
   {
-    if ( token.linescrossed <= 0 )
-    {
-      if ( token.type == 4 && preproc_directives[0].name )
-      {
-        /* Original used &off_1005F260 as start of {name,handler} array — restored
-         * as preproc_directives[].  Advance by one entry per iteration. */
-        preproc_directive_t *pd = preproc_directives;
-        while ( pd->name && strcmp(pd->name, token.string) )
-          ++pd;
-        if ( !pd->name )
-          goto LABEL_10;
-        return pd->handler(src);
-      }
-      else
-      {
-LABEL_10:
-        SourceError(src, aUnknownPrecomp, token.string);
-        return 0;
-      }
-    }
-    else
-    {
-      PC_UnreadSourceToken(src, token.string);
-      SourceError(src, aFoundAtEndOfLi, 0);
-      return 0;
-    }
-  }
-  else
-  {
-    SourceError(src, aFoundWithoutNa, v6);
+    SourceError(src, aFoundWithoutNa);
     return 0;
   }
+  if ( token.linescrossed > 0 )
+  {
+    PC_UnreadSourceToken(src, token.string);
+    SourceError(src, aFoundAtEndOfLi);
+    return 0;
+  }
+  if ( token.type == 4 && preproc_directives[0].name )
+  {
+    /* Original used &off_1005F260 as start of {name,handler} array — restored
+     * as preproc_directives[].  Advance by one entry per iteration. */
+    pd = preproc_directives;
+    while ( pd->name && strcmp(pd->name, token.string) )
+      ++pd;
+    if ( pd->name )
+      return pd->handler(src);
+  }
+  SourceError(src, aUnknownPrecomp, token.string);
+  return 0;
 }
 // 1003D0B9: variable 'v6' is possibly undefined
 // 1003D0EA: variable 'v5' is possibly undefined
