@@ -21300,22 +21300,18 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 int __cdecl BotChat_ExitGame(bot_state_t *bs)
 {
 
-  double v1; // st7
-  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
-  v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( libvar_nochat->value != 0.0f )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
-  BotInitialChat(&bs->chatstate, aExitGame, v3, (char *)0);
+  BotInitialChat(&bs->chatstate, aExitGame, EasyClientName(bs->client, v5), (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
@@ -21327,22 +21323,18 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
 int __cdecl BotChat_StartLevel(bot_state_t *bs)
 {
 
-  double v1; // st7
-  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
-  v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( libvar_nochat->value != 0.0f )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
-  BotInitialChat(&bs->chatstate, aStartLevel, v3, (char *)0);
+  BotInitialChat(&bs->chatstate, aStartLevel, EasyClientName(bs->client, v5), (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
@@ -21354,22 +21346,18 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
 int __cdecl BotChat_EndLevel(bot_state_t *bs)
 {
 
-  double v1; // st7
-  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
-  v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( libvar_nochat->value != 0.0f )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  v3 = EasyClientName(bs->client, v5);
-  BotInitialChat(&bs->chatstate, aEndLevel, v3, (char *)0);
+  BotInitialChat(&bs->chatstate, aEndLevel, EasyClientName(bs->client, v5), (char *)0);
   return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
