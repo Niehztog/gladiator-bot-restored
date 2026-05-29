@@ -9964,16 +9964,13 @@ indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
   list = (indexlist_t *)GetClearedMemory(sizeof(indexlist_t) + numindexes * sizeof(char *));
   list->numindexes = numindexes;
   list->indexes = (char **)(list + 1);
-  if ( numindexes > 0 )
+  for ( v4 = 0; v4 < numindexes; ++v4 )
   {
-    for ( v4 = 0; v4 < numindexes; ++v4 )
+    v5 = names[v4];
+    if ( v5 )
     {
-      v5 = names[v4];
-      if ( v5 )
-      {
-        list->indexes[v4] = (char *)GetMemory(strlen(v5) + 1);
-        strcpy(list->indexes[v4], names[v4]);
-      }
+      list->indexes[v4] = (char *)GetMemory(strlen(v5) + 1);
+      strcpy(list->indexes[v4], names[v4]);
     }
   }
   return list;
