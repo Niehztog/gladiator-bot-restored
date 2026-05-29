@@ -831,7 +831,7 @@ int BotSetupWeaponAI();
 int sub_100356D0();
 int __cdecl ReadValue(source_t *source, float *value);
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
-int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
+void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
@@ -32053,14 +32053,12 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 //----- (10035960) --------------------------------------------------------
 // Recursively free a fuzzy decision-tree subtree (child + next siblings +
 // own node). LIVE: paired with FreeWeightConfig2 on bot teardown.
-int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
+void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
 {
   fuzzyseperator_t *v1; // esi
   fuzzyseperator_t *v2; // edi
-  int result; // eax
 
   v1 = fs;
-  result = 0;
   if ( fs )
   {
     while ( 1 )
@@ -32068,13 +32066,12 @@ int __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
       if ( v1->child )
         FreeFuzzySeperators_r(v1->child);
       v2 = v1->next;
-      result = FreeMemory(v1);
+      FreeMemory(v1);
       if ( !v2 )
         break;
       v1 = v2;
     }
   }
-  return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001CA8: using guessed type _DWORD __cdecl FreeFuzzySeperators_r(_DWORD);
