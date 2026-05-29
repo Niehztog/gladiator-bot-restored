@@ -25084,13 +25084,16 @@ bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
   v2 = 0;
   pairs = 0;
   strncpy(Destination, Source, 0x104u);
-  if ( sub_10041F60(Destination, &file_ref) )
+  if ( !sub_10041F60(Destination, &file_ref) )
   {
-    v4 = 0;
-    v16 = 0;
-    while ( 1 )
-    {
-      v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+    bi_Print(3, "couldn't find %s\n", Destination);
+    return 0;
+  }
+  v4 = 0;
+  v16 = 0;
+  while ( 1 )
+  {
+    v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
       v6 = v5;
       v13 = v5;
       if ( !v5 )
@@ -25244,12 +25247,6 @@ LABEL_54:
     SourceError(v13, v11, v12);
     FreeSource(v13);
     return 0;
-  }
-  else
-  {
-    bi_Print(3, "couldn't find %s\n", Destination);
-    return 0;
-  }
 }
 // 1002A16A: variable 'v18' is possibly undefined
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
