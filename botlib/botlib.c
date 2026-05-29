@@ -34136,7 +34136,6 @@ int __cdecl FreeMemory(void *ptr)
     --numblocks;
     bi_FreeMemory(block);
   }
-  return 0;
 }
 
 //----- (10039120) --------------------------------------------------------
