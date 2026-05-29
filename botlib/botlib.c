@@ -39949,13 +39949,13 @@ BOOL __cdecl VectorCompare(float *a1, float *a2)
 //----- (10043290) --------------------------------------------------------
 double __cdecl VectorNormalize(float *v)
 {
-  double length; // st4
-  double result; // st7
+  float length; // st4
+  float result; // st7
   float ilength;
 
   length = sqrt(*v * *v + v[1] * v[1] + v[2] * v[2]);
   result = length;
-  if ( length != 0 )
+  if ( length != 0.0f )
   {
     ilength = 1.0f / length;
     *v = *v * ilength;
