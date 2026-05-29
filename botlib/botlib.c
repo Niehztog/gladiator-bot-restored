@@ -11837,9 +11837,9 @@ double __cdecl AAS_AreaVolume(int areanum)
   vp = (char *)aasworld.vertexes + 12 * *((_DWORD *)aasworld.edges + 2 * abs32(v4i));
   v9 = *(float *)vp;
   v11 = *(float *)(vp + 8);
-  for ( i = *(float *)(vp + 4); v2 < *((_DWORD *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
+  for ( i = *(float *)(vp + 4); v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
   {
-    v5 = *((int *)aasworld.faceindex + v2 + *((_DWORD *)v1 + 2));
+    v5 = *((int *)aasworld.faceindex + v2 + *((int *)v1 + 2));
     v7 = (char *)aasworld.faces + 24 * ((HIDWORD(v5) ^ v5) - HIDWORD(v5));
     v8 = -(v11 * *((float *)aasworld.planes + 5 * *v7 + 2)
          + i * *((float *)aasworld.planes + 5 * *v7 + 1)
