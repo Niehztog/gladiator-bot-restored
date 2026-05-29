@@ -38709,20 +38709,18 @@ int __cdecl ReadChar(source_t *src, char **field, float *out)
   token_t token; /* restored: original token_t local variable */
 
   result = PC_ExpectAnyToken(src, token.string);
-  if ( result )
+  if ( !result )
+    return result;
+  if ( token.type == 2 )
   {
-    if ( token.type == 2 )
-    {
-      StripSingleQuotes(token.string);
-      *(_BYTE *)out = token.string[0];
-      return 1;
-    }
-    PC_UnreadLastToken(src);
-    result = ReadNumber(src, field, out); /* sub_10001816 thunk → ReadNumber */
-    if ( result )
-      return 1;
+    StripSingleQuotes(token.string);
+    *(_BYTE *)out = token.string[0];
+    return 1;
   }
-  return result;
+  PC_UnreadLastToken(src);
+  if ( !ReadNumber(src, field, out) )
+    return 0;
+  return 1;
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
