@@ -14408,9 +14408,9 @@ int AAS_Reachability_Elevator()
   const char *v2; // eax
   char *v3; // eax — AAS_ValueForBSPEpairKey return
   int v4; // eax
-  double v5; // st7
-  double v6; // st7
-  double v7; // st7
+  float v5; // st7
+  float v6; // st7
+  float v7; // st7
   int v10; // ebx
   float v11; // edi
   int v12; // esi
@@ -14502,15 +14502,15 @@ LABEL_58:
     extent[2] = origin[2];
     v5 = FloatForKey(v1, aLip);
     v33 = v5;
-    if ( v5 == 0.0 )
+    if ( v5 == 0 )
       v33 = 8.0;
     v6 = FloatForKey(v1, aHeight);
     v43 = v6;
-    if ( v6 == 0.0 )
+    if ( v6 == 0 )
       v43 = maxs[2] - mins[2] - v33;
     v7 = FloatForKey(v1, aSpeed);
     v52 = v7;
-    if ( v7 == 0.0 )
+    if ( v7 == 0 )
       v52 = 200.0;
     extent[2] = extent[2] - v43;
     sumvec[0] = maxs[0] + mins[0];
@@ -14561,7 +14561,7 @@ LABEL_58:
       testpt[1] = btmorg[1];
       testpt[2] = btmorg[2] + 24.0;
       v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
-      if ( v33 != 0.0 )
+      if ( v33 != 0.0f )
       {
         testpt[0] = toporg[0];
         testpt[1] = toporg[1];
@@ -14684,7 +14684,7 @@ LABEL_56:
     v11 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
     v33 = v11;
     v12 = 0;
-    while ( v11 == 0.0 || !AAS_AreaGrounded(LODWORD(v11)) && !AAS_AreaSwim(LODWORD(v11)) )
+    while ( v11 == 0.0f || !AAS_AreaGrounded(LODWORD(v11)) && !AAS_AreaSwim(LODWORD(v11)) )
     {
       testpt[2] = testpt[2] + 4.0;
       ++v12;
