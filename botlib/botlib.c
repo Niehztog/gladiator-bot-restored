@@ -512,7 +512,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
 double __cdecl VectorDistance(vec3_t a1, vec3_t a2);
 int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
-int __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
+void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
 // int __usercall AAS_Reachability_Ladder@<eax>(double a1@<st0>, int a2, int a3);
 int AAS_Reachability_Teleport();
@@ -13203,13 +13203,12 @@ int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c)
 }
 
 //----- (10013C70) --------------------------------------------------------
-int __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
+void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 {
   *middle = *v1 + *v2;
   middle[1] = v1[1] + v2[1];
   middle[2] = v1[2] + v2[2];
   VectorScale((float *)middle, 0.5, (float *)middle);
-  return 0;
 }
 
 //----- (10013CC0) --------------------------------------------------------
