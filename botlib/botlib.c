@@ -353,7 +353,7 @@ int __cdecl AAS_AgainstLadder(int *);
 int AAS_ResetEntityLinks();
 float *__cdecl ProjectPointOnPlane(float *, float *, float *);
 void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
-double __cdecl VectorDistance(vec3_t, vec3_t);
+float __cdecl VectorDistance(vec3_t, vec3_t);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 bsp_link_t *sub_100031F0(void);
 int __cdecl AAS_BestReachableArea(int *, vec3_t, vec3_t, vec3_t);
@@ -510,7 +510,7 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end);
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
-double __cdecl VectorDistance(vec3_t a1, vec3_t a2);
+float __cdecl VectorDistance(vec3_t a1, vec3_t a2);
 int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
@@ -669,7 +669,7 @@ int __cdecl ClientFromName(const char *a1);
 char *__cdecl ClientName(int client);
 char *__cdecl ClientSkin(int client);
 int NumBots();
-double __cdecl AngleDifference(float a1, float a2);
+float __cdecl AngleDifference(float a1, float a2);
 // double __usercall BotChangeViewAngle@<st0>(double a1@<st0>, float a2, float a3, float a4);
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);
 void sub_100292E0();
@@ -1009,7 +1009,7 @@ float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4);
 float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3);
 void __cdecl PerpendicularVector(float *a1, float *a2);
 float *__cdecl sub_100429C0(float *a1, float *a2, float *a3);
-double __cdecl AngleMod(float a1);
+float __cdecl AngleMod(float a1);
 void __cdecl ClearBounds(vec3_t mins, vec3_t maxs);
 void __cdecl AddPointToBounds(vec3_t v, vec3_t mins, vec3_t maxs);
 BOOL __cdecl VectorCompare(float *a1, float *a2);
@@ -13164,7 +13164,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
  * leaves on ST(0).  IDA decompiled this as `void` because the body looks
  * like a fire-and-forget call; that broke every caller that read v39 (or
  * similar) immediately after — see `ida_dropped_results.md`. */
-double __cdecl VectorDistance(vec3_t a1, vec3_t a2)
+float __cdecl VectorDistance(vec3_t a1, vec3_t a2)
 {
   float v2[3]; // [esp+0h] [ebp-Ch] BYREF
 
@@ -24453,19 +24453,19 @@ int NumBots()
 // 10064388: using guessed type int dword_10064388;
 
 //----- (10028FF0) --------------------------------------------------------
-double __cdecl AngleDifference(float a1, float a2)
+float __cdecl AngleDifference(float a1, float a2)
 {
   double result; // st7
 
   result = a1 - a2;
-  if ( a1 <= (double)a2 )
+  if ( a1 > a2 )
   {
-    if ( result < -180.0 )
-      return result + 360.0;
+    if ( result > 180.0 )
+      return result - 360.0;
   }
-  else if ( result > 180.0 )
+  else if ( result < -180.0 )
   {
-    return result - 360.0;
+    return result + 360.0;
   }
   return result;
 }
@@ -39969,7 +39969,7 @@ static float __cdecl sub_10042CD0(float from, float to, float frac)
 }
 
 //----- (10042D40) --------------------------------------------------------
-double __cdecl AngleMod(float a1)
+float __cdecl AngleMod(float a1)
 {
   return (double)(unsigned __int16)(__int64)(a1 * 182.0444444444445) * 0.0054931640625;
 }
