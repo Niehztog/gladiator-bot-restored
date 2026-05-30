@@ -452,7 +452,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin);
 int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
-int AAS_InvalidateEntities();
+void AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
 int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
@@ -547,7 +547,7 @@ int AAS_ContinueInitReachability(int a1);
 // int __usercall AAS_InitReachability@<eax>(double a1@<st0>);
 int __cdecl AAS_TravelFlagForType(int traveltype);
 int AAS_CreateReversedReachability();
-int __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
+unsigned short __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
 int AAS_CalculateAreaTravelTimes();
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 void __cdecl AAS_FreeRoutingCache(void *cache);
@@ -6411,27 +6411,20 @@ LABEL_13:
 //----- (10008AC0) --------------------------------------------------------
 void __cdecl AAS_NumberClusterPortals(int clusternum)
 {
-  char *cluster; // was packed low-32 of __int64 v1 — aasworld.clusters + 12*clusternum
-  int counter; // was HIDWORD(v1) — loop counter into portalindex
-  _DWORD *v2; // ecx
-  int v3; // edi
+  int i;
+  int portalnum;
+  _DWORD *cluster;
+  _DWORD *portal;
 
-  cluster = (char *)aasworld.clusters + 12 * clusternum;
-  counter = 0;
-  if ( *(int *)(cluster + 4) > 0 )
+  cluster = (_DWORD *)((char *)aasworld.clusters + 12 * clusternum);
+  for ( i = 0; i < (int)cluster[1]; i++ )
   {
-    do
-    {
-      v2 = (_DWORD *)((char *)aasworld.portals + 20 * *((_DWORD *)aasworld.portalindex + counter + *(_DWORD *)(cluster + 8)));
-      v3 = *(_DWORD *)cluster;
-      if ( v2[1] == clusternum )
-        v2[3] = v3;
-      else
-        v2[4] = v3;
-      ++counter;
-      ++*(_DWORD *)cluster;
-    }
-    while ( counter < *(int *)(cluster + 4) );
+    portalnum = *((_DWORD *)aasworld.portalindex + cluster[2] + i);
+    portal = (_DWORD *)((char *)aasworld.portals + 20 * portalnum);
+    if ( portal[1] == clusternum )
+      portal[3] = cluster[0]++;
+    else
+      portal[4] = cluster[0]++;
   }
 }
 
@@ -8172,25 +8165,14 @@ int AAS_ResetEntityLinks()
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000B0E0) --------------------------------------------------------
-int AAS_InvalidateEntities()
+void __cdecl AAS_InvalidateEntities()
 {
-  int result; // eax
-  int v1; // ecx
-
-  result = aasworld.numentities;
-  v1 = 0;
-  if ( aasworld.numentities > 0 )
+  int i;
+  for ( i = 0; i < aasworld.numentities; i++ )
   {
-    result = 0;
-    do
-    {
-      result += 132;
-      *(_DWORD *)((char *)aasworld.entities + result - 132) = 0;
-      *(_DWORD *)((char *)aasworld.entities + result - 120) = v1++;
-    }
-    while ( v1 < aasworld.numentities );
+    *(_DWORD *)((char *)aasworld.entities + 132 * i) = 0;
+    *(_DWORD *)((char *)aasworld.entities + 132 * i + 12) = i;
   }
-  return result;
 }
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
@@ -15639,33 +15621,26 @@ int AAS_CreateReversedReachability(void)
 // 10066A74: using guessed type int aasworld.reversedreachability;
 
 //----- (10018F50) --------------------------------------------------------
-int __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3)
+unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
 {
-  double v3; // st7
-  __int64 v4; // rax
-  float v6[3]; // [esp+4h] [ebp-Ch] BYREF
-  float v7; // [esp+18h] [ebp+8h]
+  int intdist;
+  float dist;
+  float dir[3];
 
-  v6[0] = *a2 - *a3;
-  v6[1] = a2[1] - a3[1];
-  v6[2] = a2[2] - a3[2];
-  v7 = VectorLength(v6);
-  if ( AAS_AreaCrouch(a1) )
-  {
-    v3 = v7 * 1.3;
-  }
-  else if ( AAS_AreaSwim(a1) )
-  {
-    v3 = v7;
-  }
+  dir[0] = start[0] - end[0];
+  dir[1] = start[1] - end[1];
+  dir[2] = start[2] - end[2];
+  dist = VectorLength(dir);
+  if ( AAS_AreaCrouch(areanum) )
+    dist = dist * 1.3;
+  else if ( AAS_AreaSwim(areanum) )
+    dist = dist * 1;
   else
-  {
-    v3 = v7 * 0.33;
-  }
-  v4 = (__int64)v3;
-  if ( (int)(__int64)v3 <= 0 )
-    LODWORD(v4) = 1;
-  return v4;
+    dist = dist * 0.33;
+  intdist = (int)dist;
+  if ( intdist <= 0 )
+    intdist = 1;
+  return intdist;
 }
 // 1000138E: using guessed type _DWORD __cdecl AAS_AreaSwim(_DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
