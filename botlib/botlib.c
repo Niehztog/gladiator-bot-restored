@@ -23065,10 +23065,12 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *go
   if ( BotGetItemTeamGoal(String2, goal) )
     return 1;
   v4 = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), String2);
-  if ( !v4 )
-    return 0;
-  qmemcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
-  return 1;
+  if ( v4 )
+  {
+    qmemcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
+    return 1;
+  }
+  return 0;
 }
 
 //----- (100267E0) --------------------------------------------------------
