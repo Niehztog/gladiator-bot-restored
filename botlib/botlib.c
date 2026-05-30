@@ -36955,7 +36955,7 @@ int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
     {
       if ( v5 >= 1022 )
       {
-        ScriptError(a1, aStringLongerTh, 0);
+        ScriptError(a1, aStringLongerTh, 1024);
         return 0;
       }
       v7 = a1->script_p;
@@ -37041,7 +37041,7 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
     a1->script_p = v2;
     if ( v3 >= 1024 )
     {
-      ScriptError(a1, aNameLongerThan, 0);
+      ScriptError(a1, aNameLongerThan, 1024);
       return 0;
     }
   }
@@ -37184,7 +37184,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
         v8 = (char *)v10;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aHexadecimalNum, 0);
+          ScriptError(a1, aHexadecimalNum, 1024);
           return 0;
         }
       }
@@ -37214,7 +37214,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
         v15 = (char *)v17;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aBinaryNumberLo, 0);
+          ScriptError(a1, aBinaryNumberLo, 1024);
           return 0;
         }
       }
@@ -37238,7 +37238,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
         ((script_t *)a1)->script_p = v20;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aNumberLongerTh, 0);
+          ScriptError(a1, aNumberLongerTh, 1024);
           return 0;
         }
         v21 = *v20;
