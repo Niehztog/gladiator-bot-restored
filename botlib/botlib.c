@@ -38074,15 +38074,15 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   int v3; // esi
   int result; // eax
   int v5; // eax
-  double v6; // st7
+  float v6; // st7
   int v7; // ebx
   int v8; // ecx
   int v9; // esi
   int v10; // rax
-  double v11; // st7
-  double v12; // st7
+  float v11; // st7
+  float v12; // st7
   int v13; // rax
-  double v14; // st7
+  float v14; // st7
   char v15; // [esp+10h] [ebp-450h]
   int v16; // [esp+20h] [ebp-440h]
   int v17; // [esp+24h] [ebp-43Ch]
