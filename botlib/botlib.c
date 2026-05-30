@@ -25847,31 +25847,25 @@ void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
 void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
 {
   bot_synonymlist_t *syn;
-  __int16 r;
-  bot_synonym_t *firsts;
-  bot_synonym_t *pick;
-  double acc;
-  float threshold;
+  bot_synonym_t *synonym, *replacement;
+  float weight, curweight;
+  int r;
 
   for ( syn = dword_10064384; syn; syn = syn->next )
   {
-    if ( (syn->context & a2) != 0 )
+    if ( !(syn->context & a2) ) continue;
+    r = rand() & 0x7FFF;
+    weight = ((float)r * 0.000030518509f) * syn->totalweight;
+    curweight = 0.0;
+    for ( replacement = syn->firstsynonym; replacement; replacement = replacement->next )
     {
-      r = rand();
-      firsts = syn->firstsynonym;
-      pick = firsts;
-      for ( acc = 0.0; pick; pick = pick->next )
-      {
-        acc = acc + pick->weight;
-        threshold = (float)((double)(r & 0x7FFF) * 0.000030518509 * syn->totalweight);
-        if ( threshold < acc )
-          break;
-      }
-      for ( ; firsts; firsts = firsts->next )
-      {
-        if ( firsts != pick )
-          StringReplaceWords(a1, firsts->string, pick->string);
-      }
+      curweight = curweight + replacement->weight;
+      if ( weight < curweight ) break;
+    }
+    for ( synonym = syn->firstsynonym; synonym; synonym = synonym->next )
+    {
+      if ( synonym == replacement ) continue;
+      StringReplaceWords(a1, synonym->string, replacement->string);
     }
   }
 }
