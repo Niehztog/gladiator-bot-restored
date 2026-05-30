@@ -28303,16 +28303,12 @@ char *__cdecl BotGoalName(int a1)
 
   if ( !dword_1006435C )
     return &byte_1006294C;
-  v1 = (levelitem_t *)dword_10064360;
-  if ( !v1 )
-    return &byte_1006294C;
-  while ( v1->number != a1 )
+  for ( v1 = (levelitem_t *)dword_10064360; v1; v1 = v1->next )
   {
-    v1 = v1->next;
-    if ( !v1 )
-      return &byte_1006294C;
+    if ( v1->number == a1 )
+      return (char *)&dword_1006435C->items[v1->iteminfo];
   }
-  return (char *)&dword_1006435C->items[v1->iteminfo];
+  return &byte_1006294C;
 }
 // 1006435C: using guessed type int dword_1006435C;
 // 10064360: using guessed type int dword_10064360;
