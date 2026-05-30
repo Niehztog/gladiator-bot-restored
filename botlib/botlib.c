@@ -697,7 +697,7 @@ char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
 bot_consolemessage_t *AllocConsoleMessage();
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
 int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg);
-int __cdecl BotQueueConsoleMessage(int client, int type, char *Source); // idb
+int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source); // idb
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs);
 int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs);
 BOOL __cdecl IsWhiteSpace(char a1);
@@ -24777,16 +24777,13 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   _DWORD *v3; // eax
 
   v3 = (_DWORD *)(dword_100643A0 + 4560 * a1);
-  if ( *v3 )
-  {
-    BotQueueConsoleMessage(a1, a2, Source);
-    return 0;
-  }
-  else
+  if ( !*v3 )
   {
     bi_Print(3, aRecievedConsol);
     return 25;
   }
+  BotQueueConsoleMessage((bot_chatstate_t *)((char *)v3 + 0xf8c), a2, Source);
+  return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100643A0: using guessed type int dword_100643A0;
@@ -25461,7 +25458,7 @@ int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg)
 }
 
 //----- (1002AAB0) --------------------------------------------------------
-int __cdecl BotQueueConsoleMessage(int client, int type, char *Source)
+int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
 {
   bot_consolemessage_t *msg;
   chatmsg_links_t      *links;
@@ -25472,22 +25469,24 @@ int __cdecl BotQueueConsoleMessage(int client, int type, char *Source)
   msg->time = AAS_Time();
   msg->type = type;
   strncpy(msg->message, Source, 0x96u);
-  links = &BotChatMsgLinks(client);
+  links = &BotChatMsgLinksCS(cs);
   msg->next = NULL;
   if ( links->last )
   {
     links->last->next = msg;
     msg->prev = links->last;
     links->last = msg;
+    ++links->count;
+    return (intptr_t)cs;
   }
   else
   {
     links->last  = msg;
     links->first = msg;
     msg->prev    = NULL;
+    ++links->count;
+    return (intptr_t)cs;
   }
-  ++links->count;
-  return client;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
