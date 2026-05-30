@@ -21095,20 +21095,20 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
 //----- (10022160) --------------------------------------------------------
 int __cdecl sub_10022160(int *a1)
 {
-  double v1; // st7
+  float v1; // st7
   int v4; // eax
-  double v5; // st7
+  float v5; // st7
   float v6; // [esp+4h] [ebp-24h]
   _BYTE v7[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( v1 != 0.0f )
     return 0;
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 20, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
   v4 = a1[1049];
@@ -21122,7 +21122,7 @@ int __cdecl sub_10022160(int *a1)
   }
   else
   {
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
@@ -21142,21 +21142,21 @@ int __cdecl sub_10022160(int *a1)
 //----- (100222E0) --------------------------------------------------------
 BOOL __cdecl BotChat_Kill(int *a1)
 {
-  double v1; // st7
+  float v1; // st7
   BOOL result; // eax
   int v4; // eax
-  double v5; // st7
+  float v5; // st7
   float v6; // [esp+4h] [ebp-24h]
   _BYTE v7[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( v1 != 0.0f )
     return 0;
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
   result = BotValidChatPosition((bot_state_t *)a1);
@@ -21173,7 +21173,7 @@ BOOL __cdecl BotChat_Kill(int *a1)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+      v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
       /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
        * Characteristic 15 is "praise vs insult" probability. */
       v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
