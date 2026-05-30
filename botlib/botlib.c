@@ -18680,8 +18680,6 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 //----- (1001D3A0) --------------------------------------------------------
 int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
 {
-  const char *v3; // eax
-  double v5; // [esp+0h] [ebp-10h]
   /* Original asm at .text 0x1001d3a0 reuses the function's own `a2` argument
    * (the state name pointer) as the 3rd %s in sprintf — it was already on
    * the stack from the function entry, and the caller passed string
@@ -18691,9 +18689,8 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
    * sprintf's strlen() segfault.  Restore the original semantics: a2 is
    * the state name string. */
 
-  v5 = AAS_Time();
-  v3 = (const char *)ClientName(*(_DWORD *)((char *)bs + 4));
-  sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n", v3, v5, a2, a3);
+  sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n",
+          (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), a2, a3);
   return ++dword_100644A0;
 }
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
