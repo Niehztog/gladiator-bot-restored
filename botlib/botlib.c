@@ -19524,7 +19524,7 @@ LABEL_18:
   {
     if ( (v15[5] & 4) != 0 )
     {
-      if ( bs->thinktime * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+      if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_33;
       BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
       dir[0] = target[0] - bs->origin[0];
@@ -19685,9 +19685,9 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   }
   bs->enemy = 0;
   if ( AAS_Time() - 5.0 < bs->killedenemy_time
-    && (double)(rand() & 0x7FFF) * 0.000030518509 < bs->thinktime )
+    && (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.5 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
       sub_100371B0(bs->client, 2);
     else
       sub_100371B0(bs->client, 0);
@@ -19734,7 +19734,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     if ( (v18[5] & 4) != 0 )
     {
-      if ( bs->thinktime * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+      if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_41;
       BotRoamGoal((_DWORD *)bs, target);
       dir[0] = target[0] - bs->origin[0];
