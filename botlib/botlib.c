@@ -6563,23 +6563,19 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connected
 //----- (10008E20) --------------------------------------------------------
 qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas)
 {
-  int v3; // eax
-  char *i; // ecx
-  char v5[512]; // [esp+8h] [ebp-200h] BYREF
+  int connectedareas[128]; // [esp+8h] [ebp-200h] BYREF
+  int i;
 
-  memset(v5, 0, sizeof(v5));
+  memset(connectedareas, 0, sizeof(connectedareas));
   if ( numareas < 1 )
     return 0;
-  if ( numareas != 1 )
+  if ( numareas == 1 )
+    return 1;
+  AAS_ConnectedAreas_r(areanums, numareas, connectedareas, 0);
+  for ( i = 0; i < numareas; i++ )
   {
-    AAS_ConnectedAreas_r(areanums, numareas, v5, 0);
-    v3 = 0;
-    for ( i = v5; *(_DWORD *)i; i += 4 )
-    {
-      if ( ++v3 >= numareas )
-        return 1;
-    }
-    return 0;
+    if ( !connectedareas[i] )
+      return 0;
   }
   return 1;
 }
@@ -16500,8 +16496,7 @@ char *__cdecl AAS_ReachabilityFromNum(char *num, int reach)
 //----- (1001A370) --------------------------------------------------------
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 {
-  char *v2; // ecx
-  int v4; // edx
+  aas_areasettings_t *settings;
 
   if ( !aasworld.initialized )
     return 0;
@@ -16510,14 +16505,18 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
     bi_Print(3, "AAS_NextAreaReachability: areanum %d out of range\n", areanum);
     return 0;
   }
-  v2 = (char *)aasworld.areasettings + 28 * areanum;
+  settings = (aas_areasettings_t *)((char *)aasworld.areasettings + 28 * areanum);
   if ( !reachnum )
-    return *((_DWORD *)v2 + 6);
-  v4 = *((_DWORD *)v2 + 6);
-  if ( reachnum >= v4 )
-    return reachnum + 1 >= v4 + *((_DWORD *)v2 + 5) ? 0 : reachnum + 1;
-  bi_Print(4, aAasNextarearea);
-  return 0;
+    return settings->firstreachablearea;
+  if ( reachnum < settings->firstreachablearea )
+  {
+    bi_Print(4, aAasNextarearea);
+    return 0;
+  }
+  reachnum++;
+  if ( reachnum >= settings->firstreachablearea + settings->numreachableareas )
+    return 0;
+  return reachnum;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
@@ -26071,23 +26070,19 @@ char *__cdecl RandomString(const char *name)
   bot_randomstring_t *rs;
   int n;
 
-  list = dword_1006437C;
-  if ( !list )
-    return NULL;
-  while ( list )
+  for ( list = dword_1006437C; list; list = list->next )
   {
     if ( !strcmp(list->string, name) )
     {
-      n = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * list->numstrings);
-      rs = list->firstrandomstring;
-      while ( rs )
+      n = (int)(((float)(rand() & 0x7FFF) * 0.000030518509f) * (float)list->numstrings);
+      for ( rs = list->firstrandomstring; rs; rs = rs->next )
       {
         if ( --n < 0 )
-          return rs->string;
-        rs = rs->next;
+          break;
       }
+      if ( rs )
+        return rs->string;
     }
-    list = list->next;
   }
   return NULL;
 }
@@ -27859,21 +27854,15 @@ unsigned int __cdecl BotChatLength(bot_chatstate_t *cs)
 //----- (1002EA80) --------------------------------------------------------
 char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
 {
-  char result; // al
-  char *v4; // [esp-4h] [ebp-Ch]
-
-  result = 0;
   if ( strlen((const char *)cs + 20) )
   {
-    v4 = (char *)cs + 20;
     if ( a3 == 1 )
-      EA_SayTeam(a2, v4);
+      EA_SayTeam(a2, (char *)cs + 20);
     else
-      EA_Say(a2, v4);
-    result = byte_1006294C;
-    *((char *)cs + 20) = byte_1006294C;
+      EA_Say(a2, (char *)cs + 20);
+    return *((char *)cs + 20) = byte_1006294C;
   }
-  return result;
+  return 0;
 }
 // 1000106E: using guessed type _DWORD __cdecl EA_SayTeam(_DWORD, _DWORD);
 // 10001488: using guessed type _DWORD __cdecl EA_Say(_DWORD, _DWORD);
@@ -31345,11 +31334,11 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate)
 //----- (10034B20) --------------------------------------------------------
 void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 {
-  double v1; // st7
+  float v1; // st7
   int v2; // edx
 
-  v1 = 0.0;
-  if ( *(float *)(movestate + 120) <= 0.0 )
+  v1 = 0.0f;
+  if ( *(float *)(movestate + 120) <= 0.0f )
   {
     v2 = movestate;
   }
@@ -31358,7 +31347,7 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
     v1 = *(float *)(movestate + 120);
     v2 = 0;
   }
-  if ( v1 != 0.0 )
+  if ( v1 != 0.0f )
   {
     *(_DWORD *)(movestate + 4 * v2 + 120) = 0;
     if ( *(int *)(movestate + 128) > 0 )
