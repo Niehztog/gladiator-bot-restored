@@ -653,7 +653,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs);
 BOOL TeamPlayIsOn();
 BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal);
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *goal);
-double __cdecl BotGetTime(bot_match_t *match);
+float __cdecl BotGetTime(bot_match_t *match);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
@@ -23221,9 +23221,9 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *go
 }
 
 //----- (100267E0) --------------------------------------------------------
-double __cdecl BotGetTime(bot_match_t *match)
+float __cdecl BotGetTime(bot_match_t *match)
 {
-  double v1; // st7
+  float v1; // st7
   float v3; // [esp+0h] [ebp-18Ch]
   char String[152]; // [esp+4h] [ebp-188h] BYREF
   /* IDA split bot_match_t (240 B) into `char Destination[4]` + a phantom
