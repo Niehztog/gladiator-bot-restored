@@ -6277,7 +6277,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
   int v5; // edx
   int v6; // ebp
   char *v7; // esi
-  __int64 v8; // rax
+  int v8; // rax (was __int64 — abs32 idiom)
   int v9; // ecx
   int v10; // eax
   char *v11; // ecx
@@ -6309,7 +6309,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
         do
         {
           v8 = *((int *)aasworld.faceindex + v6 + *((_DWORD *)v7 + 2));
-          v8 = (HIDWORD(v8) ^ v8) - HIDWORD(v8);
+          v8 = abs32(v8);
           v9 = 3 * v8;
           v10 = *((_DWORD *)aasworld.faces + 6 * v8 + 4);
           v11 = (char *)aasworld.faces + 8 * v9;
@@ -6510,7 +6510,7 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connected
   int v4; // ebx
   char *v5; // esi
   int result; // eax
-  __int64 v7; // rax
+  int v7; // rax (was __int64 — abs32 idiom)
   char *v8; // eax
   int v9; // edx
   int v10; // eax
@@ -6525,7 +6525,7 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connected
     do
     {
       v7 = *((int *)aasworld.faceindex + *((_DWORD *)v5 + 2) + v4);
-      v8 = (char *)aasworld.faces + 24 * ((HIDWORD(v7) ^ v7) - HIDWORD(v7));
+      v8 = (char *)aasworld.faces + 24 * (abs32(v7));
       if ( (v8[4] & 1) == 0 )
       {
         v9 = *((_DWORD *)v8 + 4);
@@ -6654,7 +6654,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   int v6; // ecx
   char *v7; // esi
   int v8; // eax
-  __int64 v9; // rax
+  int v9; // rax (was __int64 — abs32 idiom)
   int v10; // eax
   char *v11; // ecx
   int v12; // edx
@@ -6737,7 +6737,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
       do
       {
         v9 = *((int *)aasworld.faceindex + v8 + *((_DWORD *)v7 + 2));
-        v10 = (HIDWORD(v9) ^ v9) - HIDWORD(v9);
+        v10 = abs32(v9);
         v11 = (char *)aasworld.faces + 24 * v10;
         if ( (v11[4] & 1) == 0 )
         {
@@ -11615,7 +11615,7 @@ double __cdecl AAS_AreaVolume(int areanum)
   int v3i;
   int v4i;
   char *vp;
-  __int64 v5; // rax
+  int v5; // rax (was __int64 — abs32 idiom)
   _DWORD *v7; // [esp-4h] [ebp-1Ch]
   float v8; // [esp+8h] [ebp-10h]
   float v9; // [esp+Ch] [ebp-Ch]
@@ -11634,7 +11634,7 @@ double __cdecl AAS_AreaVolume(int areanum)
   for ( i = *(float *)(vp + 4); v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
   {
     v5 = *((int *)aasworld.faceindex + v2 + *((int *)v1 + 2));
-    v7 = (char *)aasworld.faces + 24 * ((HIDWORD(v5) ^ v5) - HIDWORD(v5));
+    v7 = (char *)aasworld.faces + 24 * (abs32(v5));
     v8 = -(v11 * *((float *)aasworld.planes + 5 * *v7 + 2)
          + i * *((float *)aasworld.planes + 5 * *v7 + 1)
          + v9 * *((float *)aasworld.planes + 5 * *v7)
@@ -11650,7 +11650,7 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum)
   float result; // st7
   int v2; // edi
   char *v3; // esi
-  __int64 v4; // rax
+  int v4; // rax (was __int64 — abs32 idiom)
   int v5; // edx
 
   result = 0.0f;
@@ -11661,7 +11661,7 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum)
     do
     {
       v4 = *((int *)aasworld.faceindex + v2 + *((int *)v3 + 2));
-      v5 = (HIDWORD(v4) ^ v4) - HIDWORD(v4);
+      v5 = abs32(v4);
       if ( (*((_BYTE *)aasworld.faces + 24 * v5 + 4) & 4) != 0 )
         result = AAS_FaceArea((char *)aasworld.faces + 24 * v5) + result;
       ++v2;
@@ -11965,11 +11965,11 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   float *v6; // ecx
   int v7; // eax
   int v8; // esi
-  __int64 v9; // rax
+  int v9; // rax (was __int64 — abs32 idiom)
   char *v10; // edi
   int v11; // eax
   int v12; // ecx
-  __int64 v13; // rax
+  int v13; // rax (was __int64 — abs32 idiom)
   _DWORD *v14; // esi
   int v15; // eax
   int v16; // eax
@@ -12063,7 +12063,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
             do
             {
               v9 = *((int *)aasworld.faceindex + *((_DWORD *)v4 + 2) + v8);
-              v10 = (char *)aasworld.faces + 24 * ((HIDWORD(v9) ^ v9) - HIDWORD(v9));
+              v10 = (char *)aasworld.faces + 24 * (abs32(v9));
               v51 = v10;
               if ( (v10[4] & 4) != 0 )
               {
@@ -12075,7 +12075,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                   do
                   {
                     v13 = *((int *)aasworld.faceindex + *((_DWORD *)v3 + 2) + v12);
-                    v14 = (char *)aasworld.faces + 24 * ((HIDWORD(v13) ^ v13) - HIDWORD(v13));
+                    v14 = (char *)aasworld.faces + 24 * (abs32(v13));
                     v59 = v14;
                     if ( (v14[1] & 4) != 0 )
                     {
@@ -14988,11 +14988,11 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   char *v2; // esi
   int v3; // ebx
   int v4; // ecx
-  __int64 v5; // rax
+  int v5; // rax (was __int64 — abs32 idiom)
   _DWORD *v6; // edx
   int v7; // edi
   int v8; // eax
-  __int64 v9; // rax
+  int v9; // rax (was __int64 — abs32 idiom)
   int v10; // edi
   char *v11; // esi
   int v12; // eax
@@ -15063,7 +15063,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
         while ( 1 )
         {
           v5 = *((int *)aasworld.faceindex + *((_DWORD *)v2 + 2) + v3);
-          result = 3 * ((HIDWORD(v5) ^ v5) - HIDWORD(v5));
+          result = 3 * (abs32(v5));
           v6 = (char *)aasworld.faces + 8 * result;
           v52 = v6;
           if ( (v6[1] & 4) != 0 )
@@ -15088,7 +15088,7 @@ LABEL_6:
           goto LABEL_44;
 LABEL_7:
         v9 = *((int *)aasworld.faceindex + *((_DWORD *)v2 + 2) + v8);
-        v10 = (HIDWORD(v9) ^ v9) - HIDWORD(v9);
+        v10 = abs32(v9);
         v48 = v10;
         v11 = (char *)aasworld.faces + 24 * v10;
         v54 = v11;
@@ -16543,7 +16543,7 @@ int __cdecl sub_1001A650(int a1)
   char *v1; // esi
   int v2; // ebx
   int result; // eax
-  __int64 v4; // rax
+  int v4; // rax (was __int64 — abs32 idiom)
   int v5; // edx
   int v6; // eax
 
@@ -16557,7 +16557,7 @@ int __cdecl sub_1001A650(int a1)
     do
     {
       v4 = *((int *)aasworld.faceindex + v2 + *((_DWORD *)v1 + 2));
-      v5 = 3 * ((HIDWORD(v4) ^ v4) - HIDWORD(v4));
+      v5 = 3 * (abs32(v4));
       if ( *((_DWORD *)aasworld.faces + 2 * v5 + 4) == a1 )
         v6 = *((_DWORD *)aasworld.faces + 2 * v5 + 5);
       else
