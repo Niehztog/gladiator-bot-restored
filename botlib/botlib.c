@@ -30650,7 +30650,7 @@ intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
   {
     EA_Command(*(_DWORD *)(a2 + 40), aHookoff, (char *)0);
     v4 = *(_DWORD *)(a2 + 96);
-    LOBYTE(v4) = v4 & 0xBF;
+    v4 = v4 & 0xBF;
     *(_DWORD *)(a2 + 96) = v4;
     goto LABEL_27;
   }
@@ -36837,38 +36837,38 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
   v3 = *v2;
   switch ( *v2 )
   {
-    case '"':
-      LOBYTE(v4) = 34;
-      break;
-    case '\'':
-      LOBYTE(v4) = 39;
-      break;
-    case '?':
-      LOBYTE(v4) = 63;
-      break;
     case '\\':
-      LOBYTE(v4) = 92;
-      break;
-    case 'a':
-      LOBYTE(v4) = 7;
-      break;
-    case 'b':
-      LOBYTE(v4) = 8;
-      break;
-    case 'f':
-      LOBYTE(v4) = 12;
+      v4 = 92;
       break;
     case 'n':
-      LOBYTE(v4) = 10;
+      v4 = 10;
       break;
     case 'r':
-      LOBYTE(v4) = 13;
+      v4 = 13;
       break;
     case 't':
-      LOBYTE(v4) = 9;
+      v4 = 9;
       break;
     case 'v':
-      LOBYTE(v4) = 11;
+      v4 = 11;
+      break;
+    case 'b':
+      v4 = 8;
+      break;
+    case 'f':
+      v4 = 12;
+      break;
+    case 'a':
+      v4 = 7;
+      break;
+    case '\'':
+      v4 = 39;
+      break;
+    case '"':
+      v4 = 34;
+      break;
+    case '?':
+      v4 = 63;
       break;
     case 'x':
       a1->script_p = v2 + 1;
@@ -36917,7 +36917,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       {
 LABEL_32:
         ScriptWarning(a1, aTooLargeValueI);
-        LOBYTE(v4) = -1;
+        v4 = -1;
       }
       break;
   }
