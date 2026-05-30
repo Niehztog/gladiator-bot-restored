@@ -21460,16 +21460,16 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
   const void *v7; // esi
   void *result; // eax
   __int16 v9; // ax
-  double v10; // st7
+  float v10; // st7
   int v11_unused; // ecx (was: int v11)
   bot_character_t *v11; // restored: holds BotCharacter pointer
   int v12; // edi
   int v13; // eax
-  double v14; // st7
+  float v14; // st7
   __int16 v15; // ax
   int v16; // eax
   int v17; // esi
-  double v18; // st7
+  float v18; // st7
   int v19; // edx
   bot_character_t *v20; // [esp-10h] [ebp-154h]
   float v21; // [esp+10h] [ebp-134h]
@@ -21519,7 +21519,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
   memset(v38, 0, sizeof(v38));
   v9 = rand();
   v20 = BotCharacter((bot_state_t *)a2);
-  v10 = (double)(v9 & 0x7FFF) * 0.000030518509;
+  v10 = (float)(v9 & 0x7FFF) * 0.000030518509f;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
    * `fstp [esp+...]` immediately after each call.  In C those become the
@@ -21551,9 +21551,9 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
-        if ( (double)LOWORD(v31) * 0.000030518509 >= v21 )
+        if ( (float)LOWORD(v31) * 0.000030518509f >= v21 )
         {
-          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (double)(rand() & 0x7FFF) * 0.000030518509 < v25 )
+          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
             *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0;
         }
         else
@@ -21594,10 +21594,10 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       if ( v27 > 0.7 )
       {
         v15 = rand();
-        v14 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * 0.1
+        v14 = ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < bs->attackstrafe_drift && (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9350000000000001 )
+      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001 )
       {
         v16 = *(_DWORD *)&bs->flags;
         *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -21617,7 +21617,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
-        if ( (double)(rand() & 0x7FFF) * 0.000030518509 > 0.9 )
+        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
           goto LABEL_35;
         if ( v26 <= 180.0 )
           break;
