@@ -11566,17 +11566,19 @@ int AAS_Optimize()
 
 int AAS_SetupReachabilityHeap()
 {
-  aas_reachabilitynode_t *pool;
+  int result;
   int i;
 
-  pool = (aas_reachabilitynode_t *)GetClearedMemory(
-      AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
-  reachabilityheap = (intptr_t)pool;
-  for ( i = 0; i < AAS_REACHABILITYHEAP_NODES - 1; ++i )
-    ((aas_reachabilitynode_t *)reachabilityheap)[i].next = &((aas_reachabilitynode_t *)reachabilityheap)[i + 1];
-  ((aas_reachabilitynode_t *)reachabilityheap)[AAS_REACHABILITYHEAP_NODES - 1].next = NULL;
+  result = (int)GetClearedMemory(AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
+  reachabilityheap = result;
+  for ( i = 0; i < (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t); i += (int)sizeof(aas_reachabilitynode_t) )
+  {
+    *(int *)(i + result + 44) = i + result + (int)sizeof(aas_reachabilitynode_t);
+    result = reachabilityheap;
+  }
+  *(int *)(reachabilityheap + (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t) + 44) = 0;
   nextreachability = reachabilityheap;
-  return (int)reachabilityheap;
+  return result;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 10066788: using guessed type int reachabilityheap;
