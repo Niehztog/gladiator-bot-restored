@@ -33015,16 +33015,15 @@ void __cdecl sub_10037770(void)
 //----- (100377E0) --------------------------------------------------------
 int __cdecl sub_100377E0(char *String1, __int16 a2)
 {
-  _WORD *v2; // eax
+  _WORD *v2;
 
   v2 = &unk_1005E678;
-  do
+  while ( (int)v2 < (int)&unk_1005E958 )
   {
-    if ( a2 == *v2 )
+    if ( (_WORD)a2 == *v2 )
       break;
     v2 += 4;
   }
-  while ( (int)v2 < (int)&unk_1005E958 );
   sub_100376B0(String1, a2);
   return 256;
 }
