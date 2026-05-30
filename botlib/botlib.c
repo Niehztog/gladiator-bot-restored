@@ -30276,7 +30276,7 @@ int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
     reach_dir[0] = a3[6] - a3[3];
     reach_dir[1] = a3[7] - a3[4];
     VectorNormalize(reach_dir);
-    if ( reach_dir[2] * dir[2] + reach_dir[1] * dir[1] + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0f )
+    if ( ((reach_dir[2] * dir[2]) + reach_dir[1] * dir[1]) + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0f )
     {
       EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
       v13[6] = *(int *)&dir[0];
