@@ -25316,8 +25316,8 @@ void __cdecl UnifyWhiteSpaces(void *Src)
 {
   char *v1; // ebx
   const char *i; // esi
-  char j; // al
-  char k; // al
+  int j; // al
+  int k; // al
 
   v1 = (char *)Src;
   for ( i = (const char *)Src; *i; v1 = (char *)i )
