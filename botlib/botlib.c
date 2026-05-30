@@ -21195,14 +21195,14 @@ BOOL __cdecl BotChat_Kill(int *a1)
 int __cdecl BotChat_Random(bot_state_t *bs)
 {
 
-  double v1; // st7
+  float v1; // st7
   int v3; // eax
   double v4; // st7
   float v6; // [esp+4h] [ebp-4h]
   float v7; // [esp+Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( v1 != 0.0f )
     return 0;
   v3 = bs->ltgtype;
   switch ( v3 )
@@ -21219,16 +21219,16 @@ int __cdecl BotChat_Random(bot_state_t *bs)
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every BotChat_Random into return 0 on the !fastchat branch). */
   v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0, 1.0);
-  if ( bs->thinktime * 0.1 < (double)(rand() & 0x7FFF) * 0.000030518509 )
+  if ( bs->thinktime * 0.1 < (float)(rand() & 0x7FFF) * 0.000030518509f )
     return 0;
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v6 || (double)(rand() & 0x7FFF) * 0.000030518509 > 0.25 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
       return 0;
   }
   if ( !BotValidChatPosition(bs) )
     return 0;
-  v4 = (double)(rand() & 0x7FFF) * 0.000030518509;
+  v4 = (float)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
    * probability); v7 should be the bfloat result, not a copy of v4. */
   v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0, 1.0);
