@@ -9420,15 +9420,15 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
 int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize)
 {
   long v5;
+  int *p; // ebx
+  int i;  // edi
 
+  p = Lumps;
+  i = a3;
   v5 = ftell(Stream);
-  /* original calls LittleLong (engine import) on each — identity on x86 LE */
-  Lumps[2 * a3 + 2] = (int)v5;
-  Lumps[2 * a3 + 3] = (int)ElementSize;
-  /* IDA mis-identified the CRT helper at 0x10044949 as fread; the inner
-   * workhorse (0x10044978) does memcpy(file->_ptr, caller_buf, n) — that's
-   * fwrite. The error string "error writing lump" confirms the direction. */
-  if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) )
+  p[2 * i + 2] = LittleLong((int)v5);
+  p[2 * i + 3] = LittleLong((int)ElementSize);
+  if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) >= 1 )
     return 1;
   bi_Print(3, "error writing lump %s\n", (const char *)(intptr_t)a3);
   fclose(Stream);
