@@ -30176,8 +30176,8 @@ int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
   VectorNormalize(dir);
   v4 = *((_DWORD *)a3 + 4);
   v5 = a3[5];
-  v27[0] = (int)a3[3];
-  v27[1] = v4;
+  v27[0] = a3[3];
+  *(_DWORD *)&v27[1] = v4;
   *(float *)&v27[2] = v5 + 1.0;
   VectorMA((float *)(a3 + 3), 80.0, dir, predpos);
   v12 = 0.0;
