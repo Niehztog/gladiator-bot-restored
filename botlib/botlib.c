@@ -28045,30 +28045,23 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 //----- (1002F1A0) --------------------------------------------------------
 int InitLevelItemHeap()
 {
-  levelitem_t *pool;
-  int total_bytes;
-  int n;
+  int v1;
   int i;
 
   if ( dword_10064358 )
     FreeMemory(dword_10064358);
+  v1 = (int)LibVarValue(aMaxLevelitems, (char *)a512);
+  dword_10064358 = (levelitem_t *)GetMemory(sizeof(levelitem_t) * v1);
+  if ( v1 - 2 > 0 )
   {
-    int _maxlevel = (int)(intptr_t)LibVarValue(aMaxLevelitems, (char *)a512);
-    total_bytes = sizeof(levelitem_t) * _maxlevel;
-    pool = (levelitem_t *)GetMemory(total_bytes);
-    n = _maxlevel - 1;
-  }
-  dword_10064358 = pool;
-  if ( n <= 0 )
-  {
-    pool[0].next = NULL;
-    dword_10064344 = pool;
+    for ( i = 0; i < v1 - 2; ++i )
+      dword_10064358[i].next = &dword_10064358[i + 1];
+    dword_10064358[v1 - 1].next = NULL;
+    dword_10064344 = dword_10064358;
   }
   else
   {
-    for ( i = 0; i < n; ++i )
-      pool[i].next = &pool[i + 1];
-    pool[n].next = NULL;
+    dword_10064358[v1 - 1].next = NULL;
     dword_10064344 = dword_10064358;
   }
   return (int)(intptr_t)dword_10064358;
