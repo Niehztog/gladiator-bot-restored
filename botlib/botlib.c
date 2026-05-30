@@ -20994,19 +20994,19 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 {
 
-  double v1; // st7
+  float v1; // st7
   BOOL result; // eax
   char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
   v1 = libvar_nochat->value;
-  if ( v1 != 0.0 )
+  if ( v1 != 0.0f )
     return 0;
   v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (double)(rand() & 0x7FFF) * 0.000030518509 > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
   result = BotValidChatPosition(bs);
