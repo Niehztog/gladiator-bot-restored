@@ -8151,39 +8151,19 @@ void __cdecl AAS_InvalidateEntities()
 //----- (1000B130) --------------------------------------------------------
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
 {
-  aas_link_t *v1; // esi
-  aas_link_t *result; // eax
+  aas_link_t *link;
 
-  v1 = areas;
-  if ( areas )
+  for ( link = areas; link; link = link->next_area )
   {
-    while ( !AAS_AreaGrounded(v1->areanum) && !AAS_AreaSwim(v1->areanum) )
-    {
-      v1 = v1->next_area;
-      if ( !v1 )
-        goto LABEL_5;
-    }
-    return v1->areanum;
+    if ( AAS_AreaGrounded(link->areanum) || AAS_AreaSwim(link->areanum) )
+      return link->areanum;
   }
-  else
+  for ( link = areas; link; link = link->next_area )
   {
-LABEL_5:
-    result = areas;
-    if ( areas )
-    {
-      while ( !result->areanum )
-      {
-        result = result->next_area;
-        if ( !result )
-          return 0;
-      }
-      return result->areanum;
-    }
-    else
-    {
-      return 0;
-    }
+    if ( link->areanum )
+      return link->areanum;
   }
+  return 0;
 }
 // 1000138E: using guessed type _DWORD __cdecl AAS_AreaSwim(_DWORD);
 // 1000144C: using guessed type _DWORD __cdecl AAS_AreaGrounded(_DWORD);
