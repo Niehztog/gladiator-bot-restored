@@ -8037,26 +8037,18 @@ int __cdecl AAS_EntityModelNum(int entnum)
 //----- (1000AE30) --------------------------------------------------------
 int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
 {
-  int v2; // ecx
-  _DWORD *i; // eax
+  int i;
+  _DWORD *ent;
 
-  v2 = 0;
-  if ( aasworld.numentities > 0 )
+  for ( i = 0; i < aasworld.numentities; i++ )
   {
-    i = (_DWORD *)aasworld.entities;
-    while ( 1 )
+    ent = (_DWORD *)aasworld.entities + 33 * i;
+    if ( ent[23] - 1 == modelnum )
     {
-      if ( i[23] - 1 == modelnum )
-      {
-        *origin = i[4];
-        origin[1] = i[5];
-        origin[2] = i[6];
-        return 1;
-      }
-      ++v2;
-      i += 33;
-      if ( v2 >= aasworld.numentities )
-        break;
+      *origin = ent[4];
+      origin[1] = ent[5];
+      origin[2] = ent[6];
+      return 1;
     }
   }
   return 0;
@@ -30697,15 +30689,12 @@ int __cdecl GrappleState(int ms, float *reach)
   }
   if ( v2->value == 0.0f && !dword_1006295C )
     dword_1006295C = IndexFromModel(aModelsWeaponsG);
-  v3 = AAS_NextBSPEntity(0);
-  if ( !v3 )
-    return 0;
-  while ( 1 )
+  for ( v3 = AAS_NextBSPEntity(0); v3; v3 = AAS_NextBSPEntity(v3) )
   {
     if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(v3) != dword_1006295C)
       && (libvar_laserhook->value == 0.0f || (AAS_EntityRenderFX(v3) & 0x80u) == 0) )
     {
-      goto LABEL_13;
+      continue;
     }
     qmemcpy(v6, AAS_EntityInfo(v7, v3), sizeof(v6));
     if ( !VectorCompare(&v6[4], &v6[13]) )
@@ -30713,13 +30702,10 @@ int __cdecl GrappleState(int ms, float *reach)
     v5[0] = v6[4] - reach[6];
     v5[1] = v6[5] - reach[7];
     v5[2] = v6[6] - reach[8];
-    if ( VectorLength(v5) < 32.0f )
+    if ( (float)VectorLength(v5) < 32.0f )
       return 2;
-LABEL_13:
-    v3 = AAS_NextBSPEntity(v3);
-    if ( !v3 )
-      return 0;
   }
+  return 0;
 }
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
