@@ -34521,7 +34521,6 @@ void __cdecl sub_10039EE0(source_t *source)
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4)
 {
   int v4;
-  int result;
   char *v6;
   char *v7;
   __time32_t Time;
@@ -34535,14 +34534,12 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       sprintf(Buffer.string, "%d", src->cachedtoken.line);
       *a3 = (char *)&Buffer;
       *a4 = (char *)&Buffer;
-      result = 1;
-      break;
+      return 1;
     case 1:
       strcpy(Buffer.string, src->scriptstack->filename);
       *a3 = (char *)&Buffer;
       *a4 = (char *)&Buffer;
-      result = 1;
-      break;
+      return 1;
     case 2:
       Time = time(0);
       v6 = ctime(&Time);
@@ -34550,29 +34547,25 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       strncat(Buffer.string, v6 + 4, 7u);
       strncat(&Buffer.string[7], v6 + 20, 4u);
       strcat(Buffer.string, word_1005F588);
-      /* free(ctime result) — identity, no-op */
+      free(v6);
       *a3 = (char *)&Buffer;
       *a4 = (char *)&Buffer;
-      result = 1;
-      break;
+      return 1;
     case 3:
       Time = time(0);
       v7 = ctime(&Time);
       strcpy(Buffer.string, "\"");
       strncat(Buffer.string, v7 + 11, 8u);
       strcat(Buffer.string, word_1005F588);
-      /* free(ctime result) — identity, no-op */
+      free(v7);
       *a3 = (char *)&Buffer;
       *a4 = (char *)&Buffer;
-      result = 1;
-      break;
+      return 1;
     default:
       *a3 = 0;
       *a4 = 0;
-      result = 1;
-      break;
+      return 1;
   }
-  return result;
 }
 
 //----- (1003A2D0) --------------------------------------------------------
