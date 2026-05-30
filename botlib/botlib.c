@@ -1019,7 +1019,7 @@ float *__cdecl CrossProduct(float *v1, float *v2, float *cross); /* CrossProduct
 double __cdecl VectorLength(float *v); /* VectorLength impl */
 float *__cdecl VectorNegate(float *v); /* VectorNegate impl */
 void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);  /* VectorScale impl */
-int __cdecl LittleFloat(int a1);
+float __cdecl LittleFloat(float a1);
 __int16 __cdecl LittleShort(__int16 a1);
 __int16 __cdecl BigShort(__int16 a1);
 int __cdecl BigFloat(int a1);
@@ -2040,7 +2040,7 @@ float flt_100631A0; // weak
 float flt_100631A8; // weak
 extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
 int dword_10063388; // weak
-int (__cdecl *dword_100637CC)(_DWORD); // weak
+int dword_100637CC; // weak — fn-ptr slot (LittleFloat); cast at use site
 int dword_100637D0; // weak
 int dword_100637D4; // weak
 int dword_100637D8; // weak
@@ -40336,15 +40336,15 @@ int __cdecl sub_10043870(int x)
  * (BigFloat impl).  See sub_10043810 banner.  Note the original disasm
  * uses `pop ecx` instead of `add esp,4` for stack cleanup — same
  * semantics, just shorter codegen MSVC chose for this one. */
-int __cdecl sub_10043890(int x)
+float __cdecl sub_10043890(float x)
 {
-  return ((int (__cdecl *)(int))dword_100637D0)(x);
+  return ((float (__cdecl *)(float))dword_100637D0)(x);
 }
 
 //----- (100438B0) --------------------------------------------------------
-int __cdecl LittleFloat(int a1)
+float __cdecl LittleFloat(float a1)
 {
-  return dword_100637CC(a1);
+  return ((float (__cdecl *)(float))dword_100637CC)(a1);
 }
 // 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
 
@@ -40415,7 +40415,7 @@ int Swap_Init()
   dword_100637E0 = (int)BigLong;                 /* BigLong dispatch slot = 32-bit byte swap */
   dword_100637D4 = (int)LittleLong;     /* LittleLong = int identity on LE */
   dword_100637D0 = (int)BigFloat;                 /* BigFloat dispatch slot — identity on LE */
-  dword_100637CC = (int (__cdecl *)(_DWORD))LittleLong; /* LittleFloat = float identity on LE */
+  dword_100637CC = (int)LittleLong; /* LittleFloat = float identity on LE */
   return result;
 }
 // 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
