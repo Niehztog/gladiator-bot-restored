@@ -23887,7 +23887,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
         if ( v3->type != 1 )
           goto LABEL_11;
         v12 = AAS_Time();
-        if ( v12 - ((double)(rand() & 0x7FFF) * 0.000030518509 + 1.0) < v3->time )
+        if ( v12 - ((float)(rand() & 0x7FFF) * 0.000030518509f + 1.0f) < v3->time )
           return;
       }
       if ( v3->type != 1 )
@@ -23923,11 +23923,11 @@ LABEL_11:
         if ( BotValidChatPosition(v1) )
         {
           Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
-          v13 = (double)(rand() & 0x7FFF) * 0.000030518509;
+          v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
           if ( 1.5 / (double)(NumBots() + 1) > v13 )
           {
             v11 = v7;
-            if ( (double)(rand() & 0x7FFF) * 0.000030518509 < v11 )
+            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
             {
               v8 = strstr(v3->message, asc_1005CB74);
               if ( v8 )
