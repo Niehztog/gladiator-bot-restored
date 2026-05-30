@@ -36246,23 +36246,17 @@ int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList)
 {
   char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+8h] [ebp-430h] BYREF
 
-  if ( PC_ReadTokenHandle(src, v3) )
-  {
-    if ( !strcmp(v3, ArgList) )
-    {
-      return 1;
-    }
-    else
-    {
-      SourceError(src, aExpectedSFound, ArgList);
-      return 0;
-    }
-  }
-  else
+  if ( !PC_ReadTokenHandle(src, v3) )
   {
     SourceError(src, aCouldnTFindExp, ArgList);
     return 0;
   }
+  if ( strcmp(v3, ArgList) )
+  {
+    SourceError(src, aExpectedSFound, ArgList, v3);
+    return 0;
+  }
+  return 1;
 }
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
 
