@@ -14998,7 +14998,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int v12; // eax
   int v13; // ecx
   unsigned int v14; // ebp
-  __int64 v15; // rax
+  int v15; // rax (was __int64 — abs32 idiom)
   int v16; // ecx
   char *v17; // eax
   int v18; // ecx
@@ -15104,7 +15104,7 @@ LABEL_7:
         while ( 1 )
         {
           v15 = *((int *)aasworld.edgeindex + v13 + *((_DWORD *)v11 + 3));
-          if ( v14 == (HIDWORD(v15) ^ (unsigned int)v15) - HIDWORD(v15) )
+          if ( v14 == abs32(v15) )
           {
             v16 = *((_DWORD *)v11 + 4);
             if ( v16 == areanum )
