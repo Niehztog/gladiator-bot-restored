@@ -11747,7 +11747,10 @@ float __cdecl AAS_MaxJumpDistance(float phys_jumpvel)
 //----- (100115D0) --------------------------------------------------------
 int __cdecl AAS_AreaCrouch(int areanum)
 {
-  return (unsigned __int8)(~(unsigned __int8)*((_DWORD *)aasworld.areasettings + 7 * areanum + 2) & 2) >> 1;
+  if ( !(*((_DWORD *)aasworld.areasettings + 7 * areanum + 2) & 2) )
+    return 1;
+  else
+    return 0;
 }
 
 //----- (10011610) --------------------------------------------------------
@@ -37026,10 +37029,10 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
   char v4; // al
 
   *(_DWORD *)(a2 + 1024) = 4;
-  *(_BYTE *)a2 = *(_BYTE *)((script_t *)a1)->script_p;
-  v2 = (char *)(((script_t *)a1)->script_p + 1);
+  *(_BYTE *)a2 = *(_BYTE *)a1->script_p;
+  v2 = (char *)(a1->script_p + 1);
   v3 = 1;
-  ((script_t *)a1)->script_p = v2;
+  a1->script_p = v2;
   while ( 1 )
   {
     v4 = *v2;
@@ -37037,8 +37040,8 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
       break;
     *(_BYTE *)(v3 + a2) = v4;
     ++v3;
-    v2 = (char *)(((script_t *)a1)->script_p + 1);
-    ((script_t *)a1)->script_p = v2;
+    v2 = (char *)(a1->script_p + 1);
+    a1->script_p = v2;
     if ( v3 >= 1024 )
     {
       ScriptError(a1, aNameLongerThan, 0);
