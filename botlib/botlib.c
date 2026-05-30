@@ -311,7 +311,27 @@ void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);
 weaponconfig_t *LoadWeaponConfig(char *Source);  /* fixed return type */
 void BotAimAtEnemy(bot_state_t *bs);  // fixed from weak _DWORD
 
-/* Windows API stubs for decompilation reference (WinDDE functions) */
+/* Windows API stubs for decompilation reference (WinDDE functions).
+ *
+ * Under MSVC (oracle byte-match build under Wine), we want the original
+ * DLL imports — calls go through the IAT (`call DWORD PTR ds:[__imp_X]`),
+ * matching the original gladiator.dll exactly.  Everywhere else (Linux,
+ * MinGW Windows build) we provide local stubs because the Gladiator bot
+ * never actually uses these Win32 ZIP/DDE codepaths at runtime; the
+ * Quake 2 game.dll loads the bot library, not the other way around. */
+#if defined(_MSC_VER) && !defined(__MINGW32__)
+/* Declare just the Win32 imports we use; avoid pulling in <windows.h>
+ * which has typedef collisions with our local types. */
+__declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
+__declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
+__declspec(dllimport) void * __stdcall GlobalFree(void *hMem);
+__declspec(dllimport) int    __stdcall GlobalUnlock(void *hMem);
+__declspec(dllimport) unsigned int __stdcall SearchPathA(const char *p, const char *f, const char *x, unsigned int n, char *b, char **lp);
+__declspec(dllimport) void * __stdcall LoadLibraryA(const char *f);
+__declspec(dllimport) void * __stdcall GetProcAddress(void *h, const char *name);
+__declspec(dllimport) int    __stdcall FreeLibrary(void *h);
+__declspec(dllimport) char * __stdcall lstrcpyA(char *d, const char *s);
+#else
 static void *GlobalAlloc(unsigned int flags, size_t size) { (void)flags; return malloc(size); }
 static void *GlobalLock(void *h) { return h; }
 static int GlobalFree(void *h) { free(h); return 0; }
@@ -323,6 +343,7 @@ static void *LoadLibraryA(const char *f) { (void)f; return NULL; }
 static void *GetProcAddress(void *h, const char *name) { (void)h; (void)name; return NULL; }
 static int FreeLibrary(void *h) { (void)h; return 1; }
 static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
+#endif
 
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
@@ -39418,8 +39439,15 @@ int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
 //----- (10042380) --------------------------------------------------------
 HGLOBAL sub_10042380()
 {
-  /* ZIP cleanup removed — no-op on non-Windows builds */
-  return 0;
+  HGLOBAL result; // eax
+
+  result = hMem;
+  if ( hMem )
+  {
+    GlobalUnlock(hMem);
+    return (HGLOBAL)(intptr_t)GlobalFree(hMem);
+  }
+  return result;
 }
 
 //----- (100423B0) --------------------------------------------------------
