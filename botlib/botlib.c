@@ -25680,7 +25680,7 @@ LABEL_43:
   if ( !strcmp(token.string, asc_1005C65C) )
   {
     sizeAccum += sizeof(bot_synonymlist_t);
-    if ( doWrite )
+    if ( pass )
     {
       syn = (bot_synonymlist_t *)ptr;
       ptr += sizeof(bot_synonymlist_t);
@@ -25706,7 +25706,7 @@ LABEL_43:
         goto LABEL_58;
       }
       sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
-      if ( doWrite )
+      if ( pass )
       {
         synonym = (bot_synonym_t *)ptr;
         stringStorage = (char *)(synonym + 1);
@@ -25727,7 +25727,7 @@ LABEL_43:
       {
         break;
       }
-      if ( doWrite )
+      if ( pass )
       {
         weightval = token.floatvalue;
         synonym->weight = token.floatvalue;
@@ -25876,7 +25876,6 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
   int sizeNeeded;
   int sizeAccum;
   int pass;
-  int doWrite;
   bot_fileref_t file_ref;
   token_t token;
 
@@ -25891,7 +25890,6 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
   sizeNeeded = 0;
   pass = 0;
   sizeAccum = 0;
-  doWrite = 0;
   head = NULL;
 
   while ( 1 )
@@ -25919,7 +25917,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
         return NULL;
       }
       sizeAccum += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
-      if ( doWrite )
+      if ( pass )
       {
         list = (bot_randomlist_t *)ptr;
         list->string = (char *)(ptr + sizeof(bot_randomlist_t));
@@ -25942,7 +25940,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
       {
         StripDoubleQuotes(token.string);
         sizeAccum += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
-        if ( doWrite )
+        if ( pass )
         {
           rs = (bot_randomstring_t *)ptr;
           rs->string = (char *)(ptr + sizeof(bot_randomstring_t));
@@ -25967,7 +25965,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 NEXT_PASS:
     FreeSource(source);
     ++pass;
-    doWrite = pass;
+    /* doWrite removed: was always equal to pass */
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
