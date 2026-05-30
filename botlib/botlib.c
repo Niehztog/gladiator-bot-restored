@@ -37525,86 +37525,54 @@ int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2)
  * sigs as the iterative crash loop reaches them. */
 int __cdecl PS_ReadToken(script_t *script, char *Destination)
 {
-
-  int result; // eax
-  int v3; // ecx
-  int v4; // eax
-  int v5; // eax
-  char *v6; // edi
-  char v7; // al
-  char v8; // cl
+  token_t *token = (token_t *)Destination;
 
   if ( script->tokenavailable )
   {
     script->tokenavailable = 0;
-    qmemcpy(Destination, &script->token, sizeof(token_t));
+    qmemcpy(token, &script->token, sizeof(token_t));
     return 1;
   }
-
-  v3 = script->line;
   script->lastscript_p = script->script_p;
-  script->lastline = v3;
-  memset(Destination, 0, 0x430u);
-  v4 = (int)script->script_p;
-  script->whitespace_p = (char *)(intptr_t)v4;
-  ((token_t *)Destination)->whitespace_p = (char *)(intptr_t)v4;
-
-  result = PS_ReadWhiteSpace(script);
-
-  if ( result )
+  script->lastline = script->line;
+  memset(token, 0, sizeof(token_t));
+  script->whitespace_p = script->script_p;
+  token->whitespace_p = script->script_p;
+  if ( !PS_ReadWhiteSpace(script) ) return 0;
+  script->endwhitespace_p = script->script_p;
+  token->endwhitespace_p = script->script_p;
+  token->line = script->line;
+  token->linescrossed = script->line - script->lastline;
+  if ( *script->script_p == '\"' )
   {
-    v5 = (int)script->script_p;
-    script->endwhitespace_p = (char *)(intptr_t)v5;
-    ((token_t *)Destination)->endwhitespace_p = (char *)(intptr_t)v5;
-    ((token_t *)Destination)->line = script->line;
-    ((token_t *)Destination)->linescrossed = script->line - script->lastline;
-
-    v6 = script->script_p;
-    v7 = *v6;
-    if ( *v6 == 34 )
-    {
-      result = PS_ReadString(script, (token_t *)Destination, 34);
-      if ( !result )
-        return result;
-      goto LABEL_28;
-    }
-    if ( v7 == 39 )
-    {
-      result = PS_ReadString(script, (token_t *)Destination, 39);
-      if ( result )
-        goto LABEL_28;
-    }
-    else if ( v7 >= 48 && v7 <= 57 || v7 == 46 && (v8 = v6[1], v8 >= 48) && v8 <= 57 )
-    {
-      result = PS_ReadNumber(script, (intptr_t)Destination);
-      if ( result )
-        goto LABEL_28;
-    }
-    else
-    {
-      if ( (*(unsigned char *)&script->flags & 0x10) != 0 )
-        return PS_ReadPrimitive(script, (intptr_t)Destination);
-      if ( (v7 < 97 || v7 > 122) && (v7 < 65 || v7 > 90) && v7 != 95 )
-      {
-
-        if ( !PS_ReadPunctuation(script, Destination) )
-        {
-
-          ScriptError((int)script, aCanTReadToken);
-          return 0;
-        }
-        goto LABEL_28;
-      }
-      result = PS_ReadName(script, (intptr_t)Destination);
-      if ( result )
-      {
-LABEL_28:
-        qmemcpy(&script->token, Destination, sizeof(token_t));
-        return 1;
-      }
-    }
+    if ( !PS_ReadString(script, token, '\"') ) return 0;
   }
-  return result;
+  else if ( *script->script_p == '\'' )
+  {
+    if ( !PS_ReadString(script, token, '\'') ) return 0;
+  }
+  else if ( (*script->script_p >= '0' && *script->script_p <= '9')
+       || (*script->script_p == '.' && (script->script_p[1] >= '0' && script->script_p[1] <= '9')) )
+  {
+    if ( !PS_ReadNumber(script, (intptr_t)token) ) return 0;
+  }
+  else if ( script->flags & 0x10 )
+  {
+    return PS_ReadPrimitive(script, (intptr_t)token);
+  }
+  else if ( (*script->script_p >= 'a' && *script->script_p <= 'z')
+       || (*script->script_p >= 'A' && *script->script_p <= 'Z')
+       || *script->script_p == '_' )
+  {
+    if ( !PS_ReadName(script, (intptr_t)token) ) return 0;
+  }
+  else if ( !PS_ReadPunctuation(script, Destination) )
+  {
+    ScriptError((int)script, aCanTReadToken);
+    return 0;
+  }
+  qmemcpy(&script->token, token, sizeof(token_t));
+  return 1;
 }
 // 1003F43B: variable 'v9' is possibly undefined
 
