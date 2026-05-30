@@ -6960,8 +6960,8 @@ int AAS_RemoveAllPortals()
     do
     {
       result += 28;
-      ++v1;
       *(_DWORD *)((char *)aasworld.areasettings + result - 28) &= ~8u;
+      ++v1;
     }
     while ( v1 < aasworld.numareas );
   }
