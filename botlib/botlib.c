@@ -32213,9 +32213,7 @@ qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *a2)
 // counterpart of ReadFuzzySeperators_r. Live in Q3.
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 {
-  int result; // eax
   _DWORD *v4; // edi
-  int v5; // ebx
   int v6; // eax
 
   if ( !fputc(Stream, a3) )
@@ -32223,64 +32221,52 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
   v4 = (_DWORD *)a2;
   if ( fprintf(Stream, "switch(%d)\n", *(_DWORD *)a2) < 0 )
     return 0;
-  result = fputc(Stream, a3);
-  if ( result )
+  if ( !fputc(Stream, a3) )
+    return 0;
+  if ( fprintf(Stream, "{\n") < 0 )
+    return 0;
+  ++a3;
+  if ( !fputc(Stream, a3) )
+    return 0;
+  while ( 1 )
   {
-    if ( fprintf(Stream, "{\n") >= 0 )
+    if ( v4[7] )
     {
-      v5 = a3 + 1;
-      if ( fputc(Stream, a3 + 1) )
-      {
-        while ( 1 )
-        {
-          if ( v4[7] )
-          {
-            if ( fprintf(Stream, "case %d:", v4[1]) < 0 )
-              return 0;
-          }
-          else if ( fprintf(Stream, "default:") < 0 )
-          {
-            return 0;
-          }
-          if ( v4[6] )
-          {
-            if ( fprintf(Stream, "\n") < 0
-              || !fputc(Stream, v5)
-              || fprintf(Stream, "{\n") < 0
-              || !WriteFuzzySeperators_r(Stream, v4[6], a3 + 2)
-              || !fputc(Stream, v5) )
-            {
-              return 0;
-            }
-            v6 = v4[7] ? fprintf(Stream, "} //end case\n") : fprintf(Stream, "} //end default\n");
-            if ( v6 < 0 )
-              return 0;
-          }
-            else if ( !WriteFuzzyWeight(Stream, (fuzzyseperator_t *)v4) )
-          {
-            return 0;
-          }
-          v4 = (_DWORD *)v4[7];
-          if ( !v4 )
-            break;
-          if ( !fputc(Stream, v5) )
-            return 0;
-        }
-        result = fputc(Stream, a3);
-        if ( result )
-          return fprintf(Stream, "} //end switch\n") >= 0;
-      }
-      else
-      {
+      if ( fprintf(Stream, "case %d:", v4[1]) < 0 )
         return 0;
-      }
     }
-    else
+    else if ( fprintf(Stream, "default:") < 0 )
     {
       return 0;
     }
+    if ( v4[6] )
+    {
+      if ( fprintf(Stream, "\n") < 0
+        || !fputc(Stream, a3)
+        || fprintf(Stream, "{\n") < 0
+        || !WriteFuzzySeperators_r(Stream, v4[6], a3 + 1)
+        || !fputc(Stream, a3) )
+      {
+        return 0;
+      }
+      v6 = v4[7] ? fprintf(Stream, "} //end case\n") : fprintf(Stream, "} //end default\n");
+      if ( v6 < 0 )
+        return 0;
+    }
+    else if ( !WriteFuzzyWeight(Stream, (fuzzyseperator_t *)v4) )
+    {
+      return 0;
+    }
+    v4 = (_DWORD *)v4[7];
+    if ( !v4 )
+      break;
+    if ( !fputc(Stream, a3) )
+      return 0;
   }
-  return result;
+  --a3;
+  if ( !fputc(Stream, a3) )
+    return 0;
+  return fprintf(Stream, "} //end switch\n") >= 0;
 }
 
 //----- (100368B0) --------------------------------------------------------
