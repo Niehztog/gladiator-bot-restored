@@ -25581,7 +25581,6 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   int sizeAccum;                  /* IDA v18 */
   int level;                      /* IDA v19 */
   int *ctxStackP;                 /* IDA v20 */
-  int doWrite;                    /* IDA v21 — nonzero on second pass */
   int numsynonyms;                /* IDA v22 */
   bot_synonymlist_t *lastsyn;     /* IDA v24 */
   bot_synonymlist_t *synlist;     /* IDA v26 — head, returned */
@@ -25598,7 +25597,6 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   sizeNeeded = 0;
   pass = 0;
   sizeAccum = 0;
-  doWrite = 0;
   while ( 1 )
   {
     if ( pass && sizeNeeded )
@@ -25623,7 +25621,7 @@ LABEL_45:
       SourceError(src, aMissing_0);
       return 0;
     }
-    doWrite = ++pass;
+    ++pass;
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
@@ -25671,7 +25669,6 @@ LABEL_42:
 LABEL_43:
     if ( !PC_ReadTokenHandle(src, token.string) )
     {
-      pass = doWrite;
       sizeNeeded = sizeAccum;
       goto LABEL_45;
     }
