@@ -39035,19 +39035,17 @@ LABEL_4:
 //----- (10041F60) --------------------------------------------------------
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 {
-  char *v2; // eax
-  char *v4; // eax
-  char *v5; // [esp-Ch] [ebp-14h]
-  char *v6; // [esp-Ch] [ebp-14h]
-
-  /* Original: sub_10001B81 thunk → sub_10041BA0 (path builder + pak search). */
-  v5 = (char *)LibVarGetString(aGamedir);
-  v2 = (char *)LibVarGetString(aBasedir);
-  if ( sub_10041BA0(v2, v5, a1, a2) )
+  if ( sub_10041BA0(
+         (char *)LibVarGetString(aBasedir),
+         (char *)LibVarGetString(aGamedir),
+         a1,
+         a2) )
     return 1;
-  v6 = (char *)LibVarGetString(aGamedir);
-  v4 = (char *)LibVarGetString(aCddir);
-  return sub_10041BA0(v4, v6, a1, a2) != 0;
+  return sub_10041BA0(
+           (char *)LibVarGetString(aCddir),
+           (char *)LibVarGetString(aGamedir),
+           a1,
+           a2) != 0;
 }
 
 //----- (10041FF0) --------------------------------------------------------
