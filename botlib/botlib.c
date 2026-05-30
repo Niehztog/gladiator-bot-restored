@@ -2758,26 +2758,26 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   float *i; // ecx
   int result; // eax
   int v15; // ecx
-  double v16; // st7
-  double v17; // st6
+  float v16; // st7
+  float v17; // st6
   int v18; // edi
   int v19; // edx
-  double v20; // st6
+  float v20; // st6
   unsigned __int8 v22; // c0
   unsigned __int8 v23; // c3
   int v24; // edx
-  double v25; // st6
+  float v25; // st6
   unsigned __int8 v27; // c0
   unsigned __int8 v28; // c3
   char *v29; // eax
   float *v30; // edx
   int v31; // esi
-  double v32; // st7
-  double v33; // st7
-  double v35; // st7
+  float v32; // st7
+  float v33; // st7
+  float v35; // st7
   unsigned __int8 v36; // c0
   unsigned __int8 v37; // c3
-  double v38; // st7
+  float v38; // st7
   float v39; // [esp+10h] [ebp-DCh]
   float v40[3]; // [esp+14h] [ebp-D8h] BYREF
   float v41[3]; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
@@ -14530,12 +14530,12 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   char *face2; // esi
   char *v; // rax (was __int64) — pointer to vertex (float[3])
   int vidx; // edge index value
-  double hordist; // st7
+  float hordist; // st7 (was double)
   int v11; // edi
   char *lreach; // eax
   char *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
-  double v14; // st7
-  double v15; // st7
+  float v14; // st7 (was double)
+  float v15; // st7 (was double)
   float v16; // edx
   float v17; // eax
   float v18; // ecx
