@@ -40340,14 +40340,20 @@ int Swap_Init()
   u.b[1] = 0;
   if ( u.s == 1 )
   {
-    /* little-endian: identity for Little*, swap for Big* */
+    /* little-endian: identity for Little*, swap for Big*.
+     * NOTE: dword_100637CC (LittleFloat impl slot) must point at the
+     * FPU-touching identity sub_100439D0 (`fld DWORD [esp+4]; ret`) so
+     * that callers expecting a float return value find the bits in st0.
+     * Pointing at LittleLong (eax-passthrough, ignored by FPU) silently
+     * corrupts floats on GCC/MinGW builds (caller's fildl/fistpq pair
+     * rounds via 24-bit mantissa). */
     dword_10063884 = 0;
     *(int *)0x100637DC = (int)BigShort;
     *(int *)0x100637D8 = (int)LittleShort;
     *(int *)0x100637E0 = (int)BigLong;
     *(int *)0x100637D4 = (int)LittleLong;
     *(int *)0x100637D0 = (int)BigFloat;
-    *(int *)0x100637CC = (int)LittleFloat;
+    *(int *)0x100637CC = (int)sub_100439D0;
   }
   else
   {
@@ -40357,7 +40363,7 @@ int Swap_Init()
     *(int *)0x100637D8 = (int)BigShort;
     *(int *)0x100637E0 = (int)LittleLong;
     *(int *)0x100637D4 = (int)BigLong;
-    *(int *)0x100637D0 = (int)LittleFloat;
+    *(int *)0x100637D0 = (int)sub_100439D0;
     *(int *)0x100637CC = (int)BigFloat;
   }
   return 1;
