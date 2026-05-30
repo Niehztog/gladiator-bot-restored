@@ -40347,17 +40347,33 @@ float __cdecl sub_100439D0(float f)
 //----- (100439F0) --------------------------------------------------------
 int Swap_Init()
 {
-  int result; // eax
+  union { short s; char b[2]; } u;
 
-  result = 1;
-  dword_10063884 = 0;
-  dword_100637DC = (int)BigShort;                 /* BigShort dispatch slot — identity on LE */
-  dword_100637D8 = (int)LittleShort;              /* LittleShort = short identity on LE */
-  dword_100637E0 = (int)BigLong;                 /* BigLong dispatch slot = 32-bit byte swap */
-  dword_100637D4 = (int)LittleLong;     /* LittleLong = int identity on LE */
-  dword_100637D0 = (int)BigFloat;                 /* BigFloat dispatch slot — identity on LE */
-  dword_100637CC = (int)LittleLong; /* LittleFloat = float identity on LE */
-  return result;
+  u.b[0] = 1;
+  u.b[1] = 0;
+  if ( u.s == 1 )
+  {
+    /* little-endian: identity for Little*, swap for Big* */
+    dword_10063884 = 0;
+    *(int *)0x100637DC = (int)BigShort;
+    *(int *)0x100637D8 = (int)LittleShort;
+    *(int *)0x100637E0 = (int)BigLong;
+    *(int *)0x100637D4 = (int)LittleLong;
+    *(int *)0x100637D0 = (int)BigFloat;
+    *(int *)0x100637CC = (int)LittleFloat;
+  }
+  else
+  {
+    /* big-endian: swap for Little*, identity for Big* */
+    dword_10063884 = 1;
+    *(int *)0x100637DC = (int)LittleShort;
+    *(int *)0x100637D8 = (int)BigShort;
+    *(int *)0x100637E0 = (int)LittleLong;
+    *(int *)0x100637D4 = (int)BigLong;
+    *(int *)0x100637D0 = (int)LittleFloat;
+    *(int *)0x100637CC = (int)BigFloat;
+  }
+  return 1;
 }
 // 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
 // 100637D0: using guessed type int dword_100637D0;
