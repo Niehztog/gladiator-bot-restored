@@ -2654,14 +2654,13 @@ int __cdecl sub_10003360(float *a1, int a2)
   v3 = *(_DWORD *)(48 * a2 + dword_100674C8 + 36);
   while ( v3 >= 0 )
   {
-    v4 = (_DWORD *)(dword_10067504 + 28 * v3);
-    if ( *(float *)(dword_100674F4 + 20 * *v4 + 4) * a1[1]
-       + *(float *)(dword_100674F4 + 20 * *v4 + 8) * a1[2]
-       + *(float *)(dword_100674F4 + 20 * *v4) * *a1
-       - *(float *)(dword_100674F4 + 20 * *v4 + 12) > 0.0f )
-      v3 = v4[1];
+    if ( *(float *)(dword_100674F4 + 20 * *(_DWORD *)(dword_10067504 + 28 * v3) + 4) * a1[1]
+       + *(float *)(dword_100674F4 + 20 * *(_DWORD *)(dword_10067504 + 28 * v3) + 8) * a1[2]
+       + *(float *)(dword_100674F4 + 20 * *(_DWORD *)(dword_10067504 + 28 * v3)) * a1[0]
+       - *(float *)(dword_100674F4 + 20 * *(_DWORD *)(dword_10067504 + 28 * v3) + 12) > 0.0f )
+      v3 = *(_DWORD *)(dword_10067504 + 28 * v3 + 4);
     else
-      v3 = v4[2];
+      v3 = *(_DWORD *)(dword_10067504 + 28 * v3 + 8);
   }
   return -1 - v3;
 }
