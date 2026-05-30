@@ -696,10 +696,10 @@ char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
 // int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
 bot_consolemessage_t *AllocConsoleMessage();
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
-int __cdecl sub_1002AA20(int client, bot_consolemessage_t *msg);
+int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg);
 int __cdecl BotQueueConsoleMessage(int client, int type, char *Source); // idb
-bot_consolemessage_t *__cdecl BotNextConsoleMessage(int client);
-int __cdecl BotNumConsoleMessages(int client);
+bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs);
+int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs);
 BOOL __cdecl IsWhiteSpace(char a1);
 void __cdecl UnifyWhiteSpaces(void *Src);
 int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
@@ -2249,6 +2249,8 @@ typedef struct chatmsg_links_s {
 #if BOTLIB_NEED_SIDEBAND
 chatmsg_links_t *botchatmsglinks;
 #define BotChatMsgLinks(client) (botchatmsglinks[(client)])
+#define BotChatMsgLinksCS(cs) \
+    (botchatmsglinks[((bot_state_t *)((char*)(cs) - offsetof(bot_state_t, chatstate))) - botstates])
 #else
 /* 32-bit: chatstate slots [43..45] (+172/+176/+180) are 4+4+4 = 12 bytes,
  * matching chatmsg_links_t natural layout on 32-bit pointers.  Aliasing
@@ -2256,6 +2258,8 @@ chatmsg_links_t *botchatmsglinks;
  * .count assignments. */
 #define BotChatMsgLinks(client) \
     (*(chatmsg_links_t *)&botstates[(client)].chatstate._slot_43)
+#define BotChatMsgLinksCS(cs) \
+    (*(chatmsg_links_t *)&(cs)->_slot_43)
 #endif
 
 /* Side-band for the AI node function pointer stored in BotAINode(bs).
@@ -24060,7 +24064,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
    * index.  Keep both as intptr_t to preserve the original cast sites. */
   intptr_t a1 = (intptr_t)bs;
   intptr_t v1; // edi (was int)
-  int v2; // ebp
+  bot_chatstate_t *v2; // ebp
   bot_consolemessage_t *v3;
   char *v4; // eax
   ptrdiff_t v5; // length in message
@@ -24074,9 +24078,9 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   float v14; // [esp+28h] [ebp+4h]
 
   v1 = a1;
-  v2 = bs->client;
+  v2 = &bs->chatstate;
   Str2 = (char *)ClientName(bs->client);
-  v3 = BotNextConsoleMessage(bs->client);
+  v3 = BotNextConsoleMessage(v2);
   if ( v3 )
   {
     while ( 1 )
@@ -25430,7 +25434,7 @@ int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 // 10064364: using guessed type int dword_10064364;
 
 //----- (1002AA20) --------------------------------------------------------
-int __cdecl sub_1002AA20(int client, bot_consolemessage_t *msg)
+int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg)
 {
   /* Faithful reconstruction of original 0x1002AA20 (sub_1002AA20).  The
    * disassembly tests msg+164 (next) first and msg+160 (prev) second; an
@@ -25442,7 +25446,7 @@ int __cdecl sub_1002AA20(int client, bot_consolemessage_t *msg)
    * authoritative offsets. */
   chatmsg_links_t *links;
 
-  links = &BotChatMsgLinks(client);
+  links = &BotChatMsgLinksCS(cs);
   if ( msg->next )
     msg->next->prev = msg->prev;
   else
@@ -25488,15 +25492,15 @@ int __cdecl BotQueueConsoleMessage(int client, int type, char *Source)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002AB90) --------------------------------------------------------
-bot_consolemessage_t *__cdecl BotNextConsoleMessage(int client)
+bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs)
 {
-  return BotChatMsgLinks(client).first;
+  return BotChatMsgLinksCS(cs).first;
 }
 
 //----- (1002ABB0) --------------------------------------------------------
-int __cdecl BotNumConsoleMessages(int client)
+int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs)
 {
-  return BotChatMsgLinks(client).count;
+  return BotChatMsgLinksCS(cs).count;
 }
 
 //----- (1002ABD0) --------------------------------------------------------
@@ -26715,7 +26719,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
   if ( variable < 0 || variable >= MAX_MATCHVARIABLES )
   {
     bi_Print(4, aBotmatchvariab);
-    *buf = '\0';
+    *buf = byte_1006294C;
     return buf;
   }
   if ( match->variables[variable].ptr )
@@ -26725,7 +26729,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
   }
   else
   {
-    *buf = '\0';
+    *buf = byte_1006294C;
   }
   return buf;
 }
@@ -27508,11 +27512,12 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client)
    * / sub_1002AA20 because the 32-bit binary stored the per-client console-
    * message linked list inline in the chatstate at +0xac/+0xb0/+0xb4.  In
    * the 64-bit port those head/tail/count slots cannot hold real pointers,
-   * so the list lives in side-band `botchatmsglinks[client]`; the caller
-   * (BotShutdownClient) threads its client index through. */
-  for ( msg = BotNextConsoleMessage(client); msg; msg = BotNextConsoleMessage(client) )
-    sub_1002AA20(client, msg);
-  return 0;
+   * so the list lives in side-band `botchatmsglinks[client]`; BotChatMsgLinksCS
+   * derives the client index from cs by computing the offset back into
+   * botstates[]. */
+  (void)client;
+  for ( msg = BotNextConsoleMessage(cs); msg; msg = BotNextConsoleMessage(cs) )
+    sub_1002AA20(cs, msg);
 }
 // 1000123F: using guessed type _DWORD __cdecl BotNextConsoleMessage(_DWORD);
 // 10001E65: using guessed type _DWORD __cdecl sub_1002AA20(_DWORD, _DWORD);
