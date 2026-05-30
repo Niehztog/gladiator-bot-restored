@@ -35137,6 +35137,7 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2)
 {
   define_t *def;
   token_t token;
+  int skip;
 
   if ( !PC_ReadLine(src, token.string) )
   {
@@ -35150,7 +35151,8 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2)
     return 0;
   }
   def = PC_FindHashedDefine(src->definehash, token.string);
-  PC_PushIndent(src, a2, (a2 == 8) == (def == NULL));
+  skip = (a2 == 8) == (def == NULL);
+  PC_PushIndent(src, a2, skip);
   return 1;
 }
 // 1003B6E6: variable 'v4' is possibly undefined
