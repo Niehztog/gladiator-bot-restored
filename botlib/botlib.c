@@ -33031,56 +33031,53 @@ int __cdecl sub_100376B0(char *String1, __int16 a2)
   scriptcrc_t *v6;
 
   v2 = dword_10063F2C;
-  if ( !dword_10063F2C )
+  if ( !v2 )
     goto LABEL_6;
   while ( 1 )
   {
     result = _strcmpi(String1, v2->name);
     if ( !result )
-      break;
+      return result;
     v2 = v2->next;
     if ( !v2 )
       goto LABEL_6;
   }
-  if ( !v2 )
-  {
 LABEL_6:
-    v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
-    result = 0;
-    v4->hash = a2;
-    strcpy(v4->name, String1);
-    v5 = dword_10063F2C;
-    v6 = NULL;
-    if ( dword_10063F2C )
+  v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
+  v4->hash = a2;
+  strcpy(v4->name, String1);
+  result = 0;
+  v6 = NULL;
+  v5 = dword_10063F2C;
+  if ( v5 )
+  {
+    while ( 1 )
     {
-      do
+      result = _strcmpi(v4->name, v5->name);
+      if ( result < 0 )
       {
-        result = _strcmpi(v4->name, v5->name);
-        if ( result < 0 )
-        {
-          v4->next = v5;
-          if ( v6 )
-            v6->next = v4;
-          else
-            dword_10063F2C = v4;
-          return result;
-        }
-        v6 = v5;
-        v5 = v5->next;
+        v4->next = v5;
+        if ( v6 )
+          v6->next = v4;
+        else
+          dword_10063F2C = v4;
+        return result;
       }
-      while ( v5 );
-      if ( !v6 )
-        goto LABEL_14;
-      v6->next = v4;
-      v4->next = NULL;
+      v6 = v5;
+      v5 = v5->next;
+      if ( !v5 )
+        break;
     }
-    else
-    {
-LABEL_14:
-      dword_10063F2C = v4;
-      v4->next = NULL;
-    }
+    if ( !v6 )
+      goto LABEL_14;
+    v6->next = v4;
   }
+  else
+  {
+LABEL_14:
+    dword_10063F2C = v4;
+  }
+  v4->next = NULL;
   return result;
 }
 
