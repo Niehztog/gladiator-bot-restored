@@ -27837,13 +27837,16 @@ unsigned int __cdecl BotChatLength(bot_chatstate_t *cs)
 //----- (1002EA80) --------------------------------------------------------
 char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
 {
+  char v;
   if ( strlen((const char *)cs + 20) )
   {
     if ( a3 == 1 )
       EA_SayTeam(a2, (char *)cs + 20);
     else
       EA_Say(a2, (char *)cs + 20);
-    return *((char *)cs + 20) = byte_1006294C;
+    v = byte_1006294C;
+    *((char *)cs + 20) = v;
+    return v;
   }
   return 0;
 }
