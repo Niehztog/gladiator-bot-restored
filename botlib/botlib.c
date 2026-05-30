@@ -519,8 +519,8 @@ double __cdecl AAS_FaceArea(char *face);
 double __cdecl AAS_AreaVolume(int areanum);
 double __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
-__int64 AAS_FallDamageDistance();
-double __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
+int AAS_FallDamageDistance();
+float __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
 float __cdecl AAS_MaxJumpDistance(float a1);
 int __cdecl AAS_AreaCrouch(int areanum);
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
@@ -11789,32 +11789,36 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 }
 
 //----- (10011520) --------------------------------------------------------
-__int64 AAS_FallDamageDistance()
+int AAS_FallDamageDistance()
 {
-  double v0; // st7
-  double grav; // st6
+  float maxzvelocity, gravity, t;
 
-  grav = libvar_sv_gravity->value;
-  v0 = sqrt(300000.0) / grav;
-  return (__int64)(grav * v0 * v0 * 0.5);
+  maxzvelocity = sqrt(30 * 10000);
+  gravity = libvar_sv_gravity->value;
+  t = maxzvelocity / gravity;
+  return 0.5 * gravity * t * t;
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 
 //----- (10011560) --------------------------------------------------------
-double __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
+float __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
 {
-  double v1; // st6
+  float phys_gravity;
 
-  v1 = phys_jumpvel / libvar_sv_gravity->value;
-  return libvar_sv_gravity->value * v1 * v1 * 0.5;
+  phys_gravity = libvar_sv_gravity->value;
+  return 0.5 * phys_gravity * (phys_jumpvel / phys_gravity) * (phys_jumpvel / phys_gravity);
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 
 //----- (10011590) --------------------------------------------------------
-float __cdecl AAS_MaxJumpDistance(float a1)
+float __cdecl AAS_MaxJumpDistance(float phys_jumpvel)
 {
-  float g = libvar_sv_gravity->value;
-  return (float)(sqrt(450.0 / (g * 0.5)) + a1 / g) * libvar_sv_maxvelocity->value;
+  float phys_gravity, phys_maxvelocity, t;
+
+  phys_gravity = libvar_sv_gravity->value;
+  phys_maxvelocity = libvar_sv_maxvelocity->value;
+  t = sqrt(450.0 / (0.5 * phys_gravity));
+  return phys_maxvelocity * (t + phys_jumpvel / phys_gravity);
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 // 10064044: using guessed type int libvar_sv_maxvelocity;
@@ -31370,10 +31374,10 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate)
 {
   _DWORD *result; // eax
 
-  result = movestate + 31;
-  movestate[29] = 0;
-  movestate[30] = 0;
-  movestate[31] = 0;
+  memset(&movestate[29], 0, sizeof(int));
+  memset(&movestate[30], 0, sizeof(int));
+  result = &movestate[31];
+  memset(&movestate[31], 0, sizeof(int));
   return result;
 }
 
@@ -38663,32 +38667,24 @@ int __cdecl WriteIndent(FILE *Stream, int def)
 }
 
 //----- (10040E80) --------------------------------------------------------
-int __cdecl WriteFloat(FILE *Stream, float a2)
+int __cdecl WriteFloat(FILE *fp, float value)
 {
-  unsigned int v2; // edx
-  unsigned int v3; // ecx
-  char v4; // al
-  int v5; // eax
-  char Buffer[128]; // [esp+Ch] [ebp-80h] BYREF
+  char buf[128];
+  int l;
 
-  sprintf(Buffer, "%f", a2);
-  v2 = strlen(Buffer);
-  v3 = v2 - 1;
-  if ( (int)v2 > 1 )
+  sprintf(buf, "%f", value);
+  l = strlen(buf);
+  while ( l-- > 1 )
   {
-    do
+    if ( buf[l] != '0' && buf[l] != '.' ) break;
+    if ( buf[l] == '.' )
     {
-      v4 = Buffer[v3];
-      if ( v4 != 48 && v4 != 46 )
-        break;
-      Buffer[v3] = 0;
-      if ( v4 == 46 )
-        break;
-      v5 = v3--;
+      buf[l] = 0;
+      break;
     }
-    while ( v5 > 1 );
+    buf[l] = 0;
   }
-  return fprintf(Stream, "%s", Buffer) >= 0;
+  return fprintf(fp, "%s", buf) >= 0;
 }
 // 10040E80: using guessed type char Buffer[128];
 
