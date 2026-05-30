@@ -32767,8 +32767,8 @@ int __cdecl EA_Command(int client, char *command, ...)
   va_end(ap);
   if ( n >= 10 )
     bi_Print(3, aEaCommandTooMa);
-  bi_BotClientCommand(client, args[0], args[1], args[2]);
-  return 0;
+  return bi_BotClientCommand(client, args[0], args[1], args[2], args[3], args[4],
+                              args[5], args[6], args[7], args[8], args[9], 0);
 }
 // 10037233: conditional instruction was optimized away because esi.4<A
 // 10063FE4: using guessed type int (__cdecl *bi_BotClientCommand)(_DWORD, _DWORD, _DWORD, _DWORD);
