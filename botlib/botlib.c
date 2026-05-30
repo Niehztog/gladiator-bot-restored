@@ -18266,18 +18266,12 @@ void __cdecl sub_1001CFA0(float a1)
   aas_soundpool_t *v4;
 
   v1 = aasworld.d_100669CC;
-  if ( v1 )
+  while ( v1 && *(float *)(v1->data + 4) <= a1 )
   {
-    do
-    {
-      if ( *(float *)(v1->data + 4) > (double)a1 )
-        break;
-      v2 = v1->next;
-      sub_1001CCC0(v1);
-      sub_1001CC10(v1);
-      v1 = v2;
-    }
-    while ( v2 );
+    v2 = v1->next;
+    sub_1001CCC0(v1);
+    sub_1001CC10(v1);
+    v1 = v2;
   }
   v3 = aasworld.d_100669D4;
   if ( v3 )
@@ -18285,7 +18279,7 @@ void __cdecl sub_1001CFA0(float a1)
     do
     {
       v4 = v3->next;
-      if ( *(float *)v3->data < (double)a1 )
+      if ( *(float *)v3->data < a1 )
       {
         sub_1001CD80(v3);
         sub_1001CDD0(*(int *)(v3->data + 24), *(int *)(v3->data + 32));
