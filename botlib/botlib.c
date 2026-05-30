@@ -28592,8 +28592,8 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
   int v9; // ebx
   iteminfo_t *v10; // edi (was _DWORD *) - 64-bit fix
   int v11; // eax
-  double v12; // st7
-  double v13; // st7
+  float v12; // st7 (was double)
+  float v13; // st7 (was double)
   levelitem_t *v14; // [esp+10h] [ebp-48h]
   int v15; // [esp+14h] [ebp-44h]
   itemconfig_t *v16; // [esp+18h] [ebp-40h]  - 64-bit fix (was int)
