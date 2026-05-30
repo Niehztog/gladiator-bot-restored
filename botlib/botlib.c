@@ -35238,7 +35238,6 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
   if ( floatvalue )
   {
     *floatvalue = 0;
-    floatvalue[1] = 0;
   }
   v9 = firsttoken;
   if ( !firsttoken )
