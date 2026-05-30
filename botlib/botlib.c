@@ -9903,10 +9903,10 @@ int AAS_Initialized()
 // This is the late-init announcer that *would* have been called from
 // AAS_ContinueInit's tail in earlier builds before the print/flag-set were
 // inlined; preserved by /INCREMENTAL.
-void __cdecl sub_1000DF00(void)
+int __cdecl sub_1000DF00(void)
 {
   aasworld.initialized = 1;
-  bi_Print(1, aAasInitialized);
+  return bi_Print(1, aAasInitialized);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
@@ -9936,8 +9936,7 @@ int AAS_ContinueInit(int a1)
             bi_Print(3, "couldn't write %s\n", aasworld.filename);
         }
         AAS_InitRouting();
-        aasworld.initialized = 1;
-        return bi_Print(1, aAasInitialized);
+        return sub_1000DF00();
       }
     }
   }
