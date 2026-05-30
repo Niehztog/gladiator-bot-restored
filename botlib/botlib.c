@@ -28027,13 +28027,13 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
     v6 = result;
     do
     {
-      v7 = FindFuzzyWeight(iwc, *(char **)((char *)ic->items + v5 + 0x50));
+      v7 = FindFuzzyWeight(iwc, (char *)ic->items + v5 + 0x50);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4, *(char **)((char *)ic->items + v5 + 0x50));
+        Log_Write(aItemInfoDSHasN, v4, (char *)ic->items + v5 + 0x50);
       ++v4;
-      v5 += 284;
       ++v6;
+      v5 += 284;
     }
     while ( v4 < ic->numitems );
     return v8;
