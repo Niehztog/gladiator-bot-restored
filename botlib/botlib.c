@@ -34400,16 +34400,12 @@ define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
 {
   define_t *v2;
 
-  v2 = a1[PC_NameHash(a2)];
-  if ( !v2 )
-    return NULL;
-  while ( strcmp(v2->name, a2) )
+  for ( v2 = a1[PC_NameHash(a2)]; v2; v2 = v2->hashnext )
   {
-    v2 = v2->hashnext;
-    if ( !v2 )
-      return NULL;
+    if ( !strcmp(v2->name, a2) )
+      return v2;
   }
-  return v2;
+  return NULL;
 }
 
 //----- (10039D70) --------------------------------------------------------
@@ -34418,18 +34414,14 @@ define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
  * caller is PC_RemoveGlobalDefine (sub_1003B4E0) walking globaldefines. */
 int __cdecl PC_FindDefine(define_t *a1, const char *a2)
 {
-  define_t *v2; // edi
+  define_t *v2;
 
-  v2 = a1;
-  if ( !a1 )
-    return 0;
-  while ( strcmp(v2->name, a2) )
+  for ( v2 = a1; v2; v2 = v2->next )
   {
-    v2 = v2->next;
-    if ( !v2 )
-      return 0;
+    if ( !strcmp(v2->name, a2) )
+      return (intptr_t)v2;
   }
-  return (intptr_t)v2;
+  return 0;
 }
 
 //----- (10039DF0) --------------------------------------------------------
