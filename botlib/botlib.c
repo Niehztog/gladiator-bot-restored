@@ -6353,7 +6353,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
     }
     else if ( v3 != ArgList )
     {
-      Log_Write(aClusterDTouche, ArgList);
+      Log_Write(aClusterDTouche, ArgList, v3, a1);
       return 0;
     }
     return 1;
