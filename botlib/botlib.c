@@ -11694,8 +11694,8 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
     do
     {
       v4i = *((int *)aasworld.edgeindex + v2 + *((_DWORD *)v3 + 3));
-      ++v2;
       v4 = (char *)aasworld.edges + 8 * abs32(v4i);
+      ++v2;
       *center = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4) + *center;
       center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 1) + center[1];
       center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 2) + center[2];
