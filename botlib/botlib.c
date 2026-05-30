@@ -2682,19 +2682,15 @@ char *__cdecl sub_10003420(float *a1, int a2)
 //----- (10003460) --------------------------------------------------------
 float *__cdecl sub_10003460(float *a1, float *a2)
 {
-  float *result; // eax
-  double v3; // st7
-  double v4; // st6
-  double v5; // st5
+  float v3, v4, v5;
 
-  result = a2;
-  v3 = *a1;
+  v3 = a1[0];
   v4 = a1[1];
   v5 = a1[2];
-  *a1 = v5 * a2[2] + v4 * a2[1] + v3 * *a2;
-  a1[1] = v5 * a2[5] + v4 * a2[4] + v3 * a2[3];
-  a1[2] = v5 * a2[8] + v4 * a2[7] + v3 * a2[6];
-  return result;
+  a1[0] = v3 * a2[0] + v4 * a2[1] + v5 * a2[2];
+  a1[1] = v3 * a2[3] + v4 * a2[4] + v5 * a2[5];
+  a1[2] = v3 * a2[6] + v4 * a2[7] + v5 * a2[8];
+  return a2;
 }
 
 //----- (100034D0) --------------------------------------------------------
@@ -38600,21 +38596,14 @@ LABEL_26:
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
 //----- (10040E30) --------------------------------------------------------
-int __cdecl WriteIndent(FILE *Stream, int def)
+int __cdecl WriteIndent(FILE *fp, int indent)
 {
-  int v2; // esi
-  int v3; // ecx
-
-  v2 = def - 1;
-  if ( def <= 0 )
-    return 1;
-  while ( fprintf(Stream, "\t") >= 0 )
+  while ( indent-- > 0 )
   {
-    v3 = v2--;
-    if ( v3 <= 0 )
-      return 1;
+    if ( fprintf(fp, "\t") < 0 )
+      return 0;
   }
-  return 0;
+  return 1;
 }
 
 //----- (10040E80) --------------------------------------------------------
@@ -40459,44 +40448,31 @@ int __cdecl sub_10043C10(char *String1, char *String2)
 }
 
 //----- (10043C40) --------------------------------------------------------
-int __cdecl Q_strncasecmp(char *a1, char *a2, int a3)
+int __cdecl Q_strncasecmp(char *s1, char *s2, int n)
 {
-  int v3; // eax
-  int v4; // ecx
-  char *v5; // edx
-  char *v6; // esi
-  int v7; // edi
+  int c1, c2;
 
-  v3 = *a1;
-  v4 = *a2;
-  v5 = a1 + 1;
-  v6 = a2 + 1;
-  v7 = a3 - 1;
-  if ( !a3 )
-    return 0;
-  while ( 1 )
+  do
   {
-    if ( v3 != v4 )
+    c1 = *s1++;
+    c2 = *s2++;
+
+    if ( !n-- )
+      return 0;
+
+    if ( c1 != c2 )
     {
-      if ( v3 >= 97 && v3 <= 122 )
-        v3 -= 32;
-      if ( v4 >= 97 && v4 <= 122 )
-        v4 -= 32;
-      if ( v3 != v4 )
-        break;
+      if ( c1 >= 'a' && c1 <= 'z' )
+        c1 -= ('a' - 'A');
+      if ( c2 >= 'a' && c2 <= 'z' )
+        c2 -= ('a' - 'A');
+      if ( c1 != c2 )
+        return -1;
     }
-    if ( v3 )
-    {
-      v3 = *v5;
-      v4 = *v6;
-      ++v5;
-      ++v6;
-      if ( v7-- )
-        continue;
-    }
-    return 0;
   }
-  return -1;
+  while ( c1 );
+
+  return 0;
 }
 
 //----- (10043CC0) --------------------------------------------------------
