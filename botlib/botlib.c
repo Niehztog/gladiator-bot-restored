@@ -9344,14 +9344,12 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
 int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize)
 {
   long v5;
-  int *p; // ebx
-  int i;  // edi
+  int *lump; // ebx
 
-  p = Lumps;
-  i = a3;
+  lump = &Lumps[2 * a3 + 2];
   v5 = ftell(Stream);
-  p[2 * i + 2] = LittleLong((int)v5);
-  p[2 * i + 3] = LittleLong((int)ElementSize);
+  lump[0] = LittleLong((int)v5);
+  lump[1] = LittleLong((int)ElementSize);
   if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) >= 1 )
     return 1;
   bi_Print(3, "error writing lump %s\n", (const char *)(intptr_t)a3);
