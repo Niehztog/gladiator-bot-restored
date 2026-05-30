@@ -10134,7 +10134,7 @@ int BotLibLoadMap(char *Source)
   strncat(Destination, aBsp, 144 - strlen(Destination));
   if ( sub_10041F60(Destination, &v7) )
   {
-    v2 = AAS_LoadBSPFile(v7.path, v7.fileofs);
+    v2 = AAS_LoadBSPFile(v7.path, v7.fileofs, v7.filelen);
     *_errno() = v2;
     if ( *_errno() )
     {
@@ -10191,7 +10191,7 @@ int BotLibLoadMap(char *Source)
           return 5;
         }
       }
-      v6 = AAS_LoadAASFile(v7.path, v7.fileofs);
+      v6 = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
       *_errno() = v6;
       if ( *_errno() )
         return *_errno();
