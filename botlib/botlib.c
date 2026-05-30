@@ -31313,24 +31313,23 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate)
 //----- (10034B20) --------------------------------------------------------
 void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 {
-  float v1; // st7
-  int v2; // edx
+  int i, latest;
+  float latesttime;
 
-  v1 = 0.0f;
-  if ( *(float *)(movestate + 120) <= 0.0f )
+  latesttime = 0;
+  for ( i = 0; i < 1; i++ )
   {
-    v2 = movestate;
+    if ( *(float *)(movestate + 120 + 4 * i) > latesttime )
+    {
+      latesttime = *(float *)(movestate + 120 + 4 * i);
+      latest = i;
+    }
   }
-  else
+  if ( latesttime != 0 )
   {
-    v1 = *(float *)(movestate + 120);
-    v2 = 0;
-  }
-  if ( v1 != 0.0f )
-  {
-    *(_DWORD *)(movestate + 4 * v2 + 120) = 0;
+    *(_DWORD *)(movestate + 120 + 4 * latest) = 0;
     if ( *(int *)(movestate + 128) > 0 )
-      --*(_DWORD *)(movestate + 4 * v2 + 124);
+      --*(_DWORD *)(movestate + 124 + 4 * latest);
   }
 }
 
