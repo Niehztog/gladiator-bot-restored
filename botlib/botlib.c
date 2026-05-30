@@ -14066,10 +14066,10 @@ int AAS_Reachability_Teleport()
 
   v0 = AAS_ParseBSPEntities();
   v1 = v0;
-  v26 = v0;
-  v25 = v0;
   if ( v0 )
   {
+    v26 = v0;
+    v25 = v0;
     while ( 1 )
     {
       v2 = (const char *)AAS_ValueForBSPEpairKey(v1, aClassname);
