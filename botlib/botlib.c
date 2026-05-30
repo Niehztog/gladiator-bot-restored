@@ -31837,51 +31837,36 @@ int __cdecl ReadValue(source_t *source, float *value)
 // Part of the runtime config reader chain.
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 {
-  int result; // eax
-  int *v3; // ebx
-  int v4; // eax
+  int *v3;
+  int v4;
 
-  if ( !PC_CheckTokenString(source, aBalance) )
+  if ( PC_CheckTokenString(source, aBalance) )
   {
-    v3 = (int *)&fs->weight;
-    fs->type = 0;
-    result = ReadValue(source, &fs->weight);
-    if ( !result )
-      return result;
-    v4 = *v3;
-    fs->minweight = *(float *)v3;
-    fs->maxweight = *(float *)&v4;
+    fs->type = 1;
+    if ( !PC_ExpectTokenString(source, asc_1005D334) )
+      return 0;
+    if ( !ReadValue(source, &fs->weight) )
+      return 0;
+    if ( !PC_ExpectTokenString(source, asc_1005D330) )
+      return 0;
+    if ( !ReadValue(source, &fs->minweight) )
+      return 0;
+    if ( !PC_ExpectTokenString(source, asc_1005D330) )
+      return 0;
+    if ( !ReadValue(source, &fs->maxweight) )
+      return 0;
+    if ( !PC_ExpectTokenString(source, asc_1005D32C) )
+      return 0;
     return PC_ExpectTokenString(source, Control) != 0;
   }
-  fs->type = 1;
-  result = PC_ExpectTokenString(source, asc_1005D334);
-  if ( result )
-  {
-    result = ReadValue(source, &fs->weight);
-    if ( result )
-    {
-      result = PC_ExpectTokenString(source, asc_1005D330);
-      if ( result )
-      {
-        result = ReadValue(source, &fs->minweight);
-        if ( result )
-        {
-          result = PC_ExpectTokenString(source, asc_1005D330);
-          if ( result )
-          {
-            result = ReadValue(source, &fs->maxweight);
-            if ( result )
-            {
-              result = PC_ExpectTokenString(source, asc_1005D32C);
-              if ( result )
-                return PC_ExpectTokenString(source, Control) != 0;
-            }
-          }
-        }
-      }
-    }
-  }
-  return result;
+  v3 = (int *)&fs->weight;
+  fs->type = 0;
+  if ( !ReadValue(source, &fs->weight) )
+    return 0;
+  v4 = *v3;
+  *(int *)&fs->minweight = v4;
+  fs->maxweight = fs->minweight;
+  return PC_ExpectTokenString(source, Control) != 0;
 }
 // 10001C17: using guessed type _DWORD __cdecl PC_CheckTokenString(_DWORD, _DWORD);
 
