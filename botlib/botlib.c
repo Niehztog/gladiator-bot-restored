@@ -20048,10 +20048,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
   int v2; // esi
-  float v3; // eax
-  float v4; // ecx
-  float v5; // eax
-  float v6; // ecx
+  int v3; // eax
+  int v4; // ecx
+  int v5; // eax
+  int v6; // ecx
   int v7; // eax
   int v8; // ecx
   int v9; // [esp+Ch] [ebp-B4h]
@@ -20077,7 +20077,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     return 0;
   }
   if ( !bs->enemy )
-    goto LABEL_8;
+  {
+    AIEnter_Seek_LTG(bs);
+    return 0;
+  }
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
   {
     BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -20093,7 +20096,6 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   {
     if ( !bs->lastenemyareanum )
     {
-LABEL_8:
       AIEnter_Seek_LTG(bs);
       return 0;
     }
@@ -20109,15 +20111,15 @@ LABEL_8:
       v2 |= 0x1000u;
       v9 = v2;
     }
-    v3 = *(float *)&bs->enemy;
-    v4 = *(float *)&bs->lastenemyareanum;
+    v3 = *(int *)&bs->enemy;
+    v4 = *(int *)&bs->lastenemyareanum;
     v12[0] = bs->lastenemyorigin[0];
-    v12[10] = v3;
-    v5 = bs->lastenemyorigin[1];
-    v12[3] = v4;
-    v6 = bs->lastenemyorigin[2];
-    v12[1] = v5;
-    v12[2] = v6;
+    *(int *)&v12[10] = v3;
+    v5 = *(int *)&bs->lastenemyorigin[1];
+    *(int *)&v12[3] = v4;
+    v6 = *(int *)&bs->lastenemyorigin[2];
+    *(int *)&v12[1] = v5;
+    *(int *)&v12[2] = v6;
     v12[4] = -8.0;
     v12[5] = -8.0;
     v12[6] = -8.0;
@@ -20129,10 +20131,10 @@ LABEL_8:
     if ( AAS_Time() <= bs->chase_time )
     {
       if ( AAS_Time() > bs->check_time
-        && (bs->check_time = AAS_Time() + 1.0,
+        && (bs->check_time = AAS_Time() + 1.0f,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
       {
-        bs->nbg_time = AAS_Time() + 5.0;
+        bs->nbg_time = AAS_Time() + 5.0f;
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         AIEnter_Battle_NBG(bs);
         return 0;
@@ -20170,7 +20172,7 @@ LABEL_8:
           {
             vectoangles(&v13[6], bs->ideal_viewangles);
           }
-          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5f;
         }
         if ( bs->areanum == bs->lastenemyareanum )
           *(int *)&bs->chase_time = 0;
