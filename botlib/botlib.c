@@ -8117,8 +8117,8 @@ int AAS_ResetEntityLinks()
     result = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.entities + result + 124) = 0;
-      *(_DWORD *)((char *)aasworld.entities + result + 128) = 0;
+      *(_DWORD *)(result + (char *)aasworld.entities + 124) = 0;
+      *(_DWORD *)(result + (char *)aasworld.entities + 128) = 0;
 #if BOTLIB_NEED_SIDEBAND
       if ( aasentity_arealinks )
         aasentity_arealinks[v1] = NULL;
@@ -25170,29 +25170,25 @@ int InitConsoleMessageHeap()
 {
   int v1;
   int i;
-  bot_consolemessage_t *pool;
-  bot_consolemessage_t *result;
 
   if ( dword_10064374 )
     FreeMemory(dword_10064374);
   v1 = (int)LibVarValue(aMaxMessages, (char *)a1024);
-  pool = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
-  dword_10064374 = pool;
-  pool[0].prev = NULL;
-  pool[0].next = &pool[1];
+  dword_10064374 = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
+  dword_10064374[0].prev = NULL;
+  dword_10064374[0].next = &dword_10064374[1];
   if ( v1 - 1 > 1 )
   {
     for ( i = 1; i < v1 - 1; ++i )
     {
-      pool[i].prev = &pool[i - 1];
-      pool[i].next = &pool[i + 1];
+      dword_10064374[i].prev = &dword_10064374[i - 1];
+      dword_10064374[i].next = &dword_10064374[i + 1];
     }
   }
-  pool[v1 - 1].prev = &pool[v1 - 2];
-  pool[v1 - 1].next = NULL;
-  result = pool;
-  dword_10064364 = pool;
-  return (int)(intptr_t)result;
+  dword_10064374[v1 - 1].prev = &dword_10064374[v1 - 2];
+  dword_10064374[v1 - 1].next = NULL;
+  dword_10064364 = dword_10064374;
+  return (int)(intptr_t)dword_10064374;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10001AB4: using guessed type _DWORD __cdecl GetMemory(_DWORD);
