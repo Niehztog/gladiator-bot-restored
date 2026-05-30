@@ -35322,15 +35322,15 @@ int __cdecl PC_OperatorPriority(int a1)
     case 6:
       result = 6;
       break;
+    case 9:
+    case 10:
+      result = 11;
+      break;
     case 7:
     case 8:
     case 37:
     case 38:
       result = 12;
-      break;
-    case 9:
-    case 10:
-      result = 11;
       break;
     case 21:
     case 22:
