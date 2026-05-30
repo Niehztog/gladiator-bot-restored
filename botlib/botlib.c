@@ -9450,16 +9450,13 @@ qboolean __cdecl AAS_WriteAASFile(char *FileName)
   int v2; // eax
   FILE *v3; // eax
   FILE *v4; // esi
-  int result; // eax
   int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
 
   bi_Print(1, "writing %s\n", FileName);
   AAS_SwapAASData();
   memset(Buffer, 0, sizeof(Buffer));
-  v1 = 0x53414145;
-  Buffer[0] = v1;
-  v2 = 3;
-  Buffer[1] = v2;
+  Buffer[0] = LittleLong(0x53414145);
+  Buffer[1] = LittleLong(3);
   v3 = fopen(FileName, Mode);
   v4 = v3;
   if ( !v3 )
@@ -9468,75 +9465,30 @@ qboolean __cdecl AAS_WriteAASFile(char *FileName)
     return 0;
   }
   /* fopen mode is "wb" — this is fwrite, not fread (see AAS_WriteAASLump note). */
-  if ( !fwrite(Buffer, 0x78u, 1u, v3) )
-    goto LABEL_4;
-  result = AAS_WriteAASLump(v4, Buffer, 0, Buffer, 32 * aasworld.numbboxes);
-  if ( result )
+  if ( fwrite(Buffer, 0x78u, 1u, v3) < 1u ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 0, Buffer, 32 * aasworld.numbboxes) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 2, aasworld.planes, 20 * aasworld.numplanes) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 3, aasworld.edges, 8 * aasworld.numedges) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 5, aasworld.faces, 24 * aasworld.numfaces) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 7, aasworld.areas, 48 * aasworld.numareas) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 11, aasworld.portals, 20 * aasworld.numportals) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize) ) goto LABEL_4;
+  if ( !AAS_WriteAASLump(v4, Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters) ) goto LABEL_4;
+  fseek(v4, 0, 0);
+  if ( fwrite(Buffer, 0x78u, 1u, v4) < 1u )
   {
-    result = AAS_WriteAASLump(v4, Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes);
-    if ( result )
-    {
-      result = AAS_WriteAASLump(v4, Buffer, 2, aasworld.planes, 20 * aasworld.numplanes);
-      if ( result )
-      {
-        result = AAS_WriteAASLump(v4, Buffer, 3, aasworld.edges, 8 * aasworld.numedges);
-        if ( result )
-        {
-          result = AAS_WriteAASLump(v4, Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize);
-          if ( result )
-          {
-            result = AAS_WriteAASLump(v4, Buffer, 5, aasworld.faces, 24 * aasworld.numfaces);
-            if ( result )
-            {
-              result = AAS_WriteAASLump(v4, Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize);
-              if ( result )
-              {
-                result = AAS_WriteAASLump(v4, Buffer, 7, aasworld.areas, 48 * aasworld.numareas);
-                if ( result )
-                {
-                  result = AAS_WriteAASLump(v4, Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings);
-                  if ( result )
-                  {
-                    result = AAS_WriteAASLump(v4, Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize);
-                    if ( result )
-                    {
-                      result = AAS_WriteAASLump(v4, Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes);
-                      if ( result )
-                      {
-                        result = AAS_WriteAASLump(v4, Buffer, 11, aasworld.portals, 20 * aasworld.numportals);
-                        if ( result )
-                        {
-                          result = AAS_WriteAASLump(v4, Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize);
-                          if ( result )
-                          {
-                            result = AAS_WriteAASLump(v4, Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters);
-                            if ( result )
-                            {
-                              fseek(v4, 0, 0);
-                              /* rewrite fixed-up header — fwrite, not fread. */
-                              if ( !fwrite(Buffer, 0x78u, 1u, v4) )
-                              {
 LABEL_4:
-                                fclose(v4);
-                                return 0;
-                              }
-                              fclose(v4);
-                              return 1;
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    fclose(v4);
+    return 0;
   }
-  return result;
+  fclose(v4);
+  return 1;
 }
 // 1000CF19: variable 'v1' is possibly undefined
 // 1000CF28: variable 'v2' is possibly undefined
