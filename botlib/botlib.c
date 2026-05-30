@@ -25402,13 +25402,13 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
   unsigned int v5; // kr04_4
   const char *v6; // edx
   unsigned int v7; // kr08_4
-  char i; // al
+  int i; // al
   const char *v9; // esi
   ptrdiff_t v10; // edi
   int v11; // ebp
   int v12; // eax
-  char v13; // al
-  char v14; // al
+  int v13; // al
+  int v14; // al
   int v16; // [esp+10h] [ebp-8h]
   int v17; // [esp+1Ch] [ebp+4h]
 
@@ -26527,11 +26527,11 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
 {
   const char *v2; // esi
   char *v3; // ebp
-  char v4; // al
-  char i; // al
-  char v7; // al
+  int v4; // al
+  int i; // al
+  int v7; // al
   int v8; // ecx
-  char v9; // al
+  int v9; // al
   bot_stringlist_t *node;
   char ArgList[152]; // [esp+8h] [ebp-98h] BYREF
 
