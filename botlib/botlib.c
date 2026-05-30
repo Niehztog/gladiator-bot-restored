@@ -36302,7 +36302,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
       strcpy(ArgList, "name");
     else if ( a2 == 5 )
       strcpy(ArgList, "punctuation");
-    SourceError(src, aExpectedASFoun, ArgList);
+    SourceError(src, aExpectedASFoun, ArgList, a4);
     return 0;
   }
   if ( v6 != 3 )
@@ -36359,7 +36359,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   }
   if ( (a3 & 0x1000) != 0 )
     strcat(ArgList, aInteger);
-  SourceError(v4, aExpectedSFound, ArgList);
+  SourceError(v4, aExpectedSFound, ArgList, a4);
   return 0;
 }
 // 1003D76A: variable 'v22' is possibly undefined
@@ -37569,7 +37569,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
         strcpy(ArgList, "punctuation");
         break;
     }
-    ScriptError(a1, aExpectedASFoun, ArgList);
+    ScriptError(a1, aExpectedASFoun, ArgList, a4);
     return 0;
   }
   if ( v6 != 3 )
@@ -37634,7 +37634,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
   }
   if ( (a3 & 0x1000) != 0 )
     strcat(ArgList, aInteger);
-  ScriptError(v4, aExpectedSFound, ArgList);
+  ScriptError(v4, aExpectedSFound, ArgList, a4);
   return 0;
 }
 // 1003F5EC: variable 'v22' is possibly undefined
