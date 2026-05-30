@@ -2110,7 +2110,7 @@ int dword_10063FC4; // weak
 int dword_10063FC8; // weak
 int dword_10063FCC; // weak
 void (__cdecl *dword_10063FE0)(int, ea_state_t *); // bi_BotInput — engine: void(int client, bot_input_t *bi); ea_state_t layout-matches bot_input_t (both 36 B)
-void (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak
+int (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak
 int (*bi_Print)(_DWORD, const char *, ...); // weak
 void *(__cdecl *bi_Trace)(void *retbuf, float *start, float *mins, float *maxs, float *end, int passent, int contentmask); // weak
 int (__cdecl *bi_PointContents)(float *point); // engine's BSP-level CONTENTS_* lookup (takes vec3)
