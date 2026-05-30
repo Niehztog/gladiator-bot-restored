@@ -38798,19 +38798,21 @@ char __cdecl sub_10041900(const char *a1, int a2)
   unsigned int v4; // esi
 
   v4 = strlen(a1);
-  if ( !strlen(a1) )
-    return 0;
-  if ( a2 - (int)v4 > 1 )
+  if ( strlen(a1) )
   {
-    result = a1[v4 - 1];
-    if ( result != '/' && result != '\\' )
+    if ( a2 - (int)v4 > 1 )
     {
-      ((char *)a1)[v4] = BOTLIB_PATHSEP;
-      ((char *)a1)[v4 + 1] = 0;
+      result = a1[v4 - 1];
+      if ( result != '/' && result != '\\' )
+      {
+        ((char *)a1)[v4] = BOTLIB_PATHSEP;
+        ((char *)a1)[v4 + 1] = 0;
+      }
+      return result;
     }
-    return result;
+    return a2 - v4;
   }
-  return a2 - v4;
+  return 0;
 }
 
 //----- (10041970) --------------------------------------------------------
