@@ -20081,7 +20081,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
           {
             vectoangles(&v13[6], bs->ideal_viewangles);
           }
-          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5f;
+          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
         }
         if ( bs->areanum == bs->lastenemyareanum )
           *(int *)&bs->chase_time = 0;
