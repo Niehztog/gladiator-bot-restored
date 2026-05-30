@@ -503,7 +503,7 @@ double __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime);
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
-int AAS_KeepEdge();
+int AAS_KeepEdge(char *edge);
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum);
 int __cdecl AAS_KeepFace(char *face);
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum);
@@ -11200,8 +11200,9 @@ int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, 
 // 10064044: using guessed type int libvar_sv_maxvelocity;
 
 //----- (10010860) --------------------------------------------------------
-int AAS_KeepEdge()
+int AAS_KeepEdge(char *edge)
 {
+  (void)edge;
   return 1;
 }
 
@@ -11223,7 +11224,7 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
   v2 = abs32(edgenum);
   v12 = v2;
   v3 = (char *)aasworld.edges + 8 * v2;
-  result = AAS_KeepEdge();
+  result = AAS_KeepEdge(v3);
   if ( result )
   {
     result = optimized->edgeremap[v2];
