@@ -10403,7 +10403,7 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   trace = AAS_TraceClientBBox(origin, (float *)v6, presencetype, passent);
   if ( trace.startsolid )
     return 0;
-  if ( trace.fraction >= 1.0f )
+  if ( trace.fraction >= 1.0 )
     return 0;
   if ( origin[2] - trace.endpos[2] > 2.0f )
     return 0;
