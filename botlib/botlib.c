@@ -741,7 +741,7 @@ int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
 void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
-int __cdecl BotCheckInitialChatIntegrety(int *chat);
+void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
@@ -26696,29 +26696,25 @@ void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CD60) --------------------------------------------------------
-int __cdecl BotCheckInitialChatIntegrety(int *chat)
+void __cdecl BotCheckInitialChatIntegrety(chatlist_t *chat)
 {
-  chatlist_t        *list = (chatlist_t *)chat;
   chattype_t        *t;
   chatline_t        *l;
-  bot_stringlist_t  *result;
-  bot_stringlist_t  *next;
+  bot_stringlist_t  *stringlist, *s, *nexts;
 
-  if ( !list )
-    return 0;
-  result = NULL;
-  for ( t = list->types; t; t = t->next )
+  stringlist = NULL;
+  for ( t = chat->types; t; t = t->next )
   {
     for ( l = t->firstline; l; l = l->next )
-      result = BotCheckChatMessageIntegrety(l->string, result);
+    {
+      stringlist = BotCheckChatMessageIntegrety(l->string, stringlist);
+    }
   }
-  while ( result )
+  for ( s = stringlist; s; s = nexts )
   {
-    next = result->next;
-    FreeMemory(result);
-    result = next;
+    nexts = s->next;
+    FreeMemory(s);
   }
-  return 0;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -28338,23 +28334,20 @@ int __cdecl BotResetAvoidGoals(void *goalstate)
 //----- (1002F730) --------------------------------------------------------
 void __cdecl BotDumpAvoidGoals(int *goalstate)
 {
-  float *v1; // esi
-  int v2; // ebx
-  float v3; // edi
+  int *p;
+  int n;
 
-  v1 = (float *)(goalstate + 460);
-  v2 = 64;
+  p = (int *)((char *)goalstate + 460);
+  n = 64;
   do
   {
-    if ( AAS_Time() <= v1[64] )
+    if ( *(float *)((char *)p + 256) >= AAS_Time() )
     {
-      v3 = *v1;
-      Log_Write(aAvoidGoalSNumb, BotGoalName(LODWORD(v3)), LODWORD(v3), v1[64] - AAS_Time());
+      Log_Write(aAvoidGoalSNumb, BotGoalName(*p), *p, *(float *)((char *)p + 256) - AAS_Time());
     }
-    ++v1;
-    --v2;
+    p++;
   }
-  while ( v2 );
+  while ( --n );
 }
 // 100016EF: using guessed type _DWORD __cdecl BotGoalName(_DWORD);
 
