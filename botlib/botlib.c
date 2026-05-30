@@ -36168,12 +36168,16 @@ int __cdecl PC_Directive_pragma(source_t *src)
 //----- (1003CDF0) --------------------------------------------------------
 int __cdecl UnreadSignToken(source_t *src)
 {
-  int v1; // eax
-  __int16 v3[512]; // [esp+0h] [ebp-430h] BYREF
+  token_t token;
 
-  v1 = (int)((source_t *)src)->scriptstack;
-  v3[0] = word_1005E498;
-  return PC_UnreadSourceToken(src, v3);
+  token.line = src->scriptstack->line;
+  token.whitespace_p = src->scriptstack->script_p;
+  token.endwhitespace_p = src->scriptstack->script_p;
+  token.linescrossed = 0;
+  *(__int16 *)token.string = word_1005E498;
+  token.type = 5;
+  token.subtype = 30;
+  return PC_UnreadSourceToken(src, &token);
 }
 // 1005E498: using guessed type __int16 word_1005E498;
 // 1003CDF0: using guessed type __int16 var_430[512];
