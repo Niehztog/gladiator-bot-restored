@@ -24231,12 +24231,12 @@ double BotChangeViewAngle(float a1, float a2, float a3)
  * bs->thinktime from the struct.  Leave `thinktime` unused on purpose. */
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
-  double v2; // st7
+  float v2; // st7 (was double)
   float *v3; // esi
   int v4; // ebx
-  double v5; // st7
-  double v6; // st6
-  double v7; // st6
+  float v5; // st7 (was double)
+  float v6; // st6 (was double)
+  float v7; // st6 (was double)
   float v9; // [esp+10h] [ebp-4h]
   float v10; // [esp+18h] [ebp+4h]
   float v11; // [esp+18h] [ebp+4h]
