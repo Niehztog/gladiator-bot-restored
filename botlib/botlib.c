@@ -7565,27 +7565,16 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
  */
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 {
-  int i; // edi
-  float v4; // ecx
-  float v5; // edx
-  double v6; // st7
-  float v8[3]; // [esp+Ch] [ebp-18h] BYREF
-  float v9[3]; // [esp+18h] [ebp-Ch] BYREF
+  int i;
+  vec3_t start, end;
 
-  for ( i = 0; i < 3; ++i )
+  for ( i = 0; i < 3; i++ )
   {
-    v4 = origin[1];
-    v5 = origin[2];
-    v9[0] = origin[0];
-    v9[1] = v4;
-    v9[2] = v5;
-    v6 = size + v9[i];
-    v8[0] = v9[0];
-    v8[1] = v4;
-    v8[2] = v5;
-    v9[i] = v6;
-    v8[i] -= size;
-    AAS_DebugLine(v9, v8, color);
+    start[0] = origin[0]; start[1] = origin[1]; start[2] = origin[2];
+    start[i] += size;
+    end[0] = origin[0]; end[1] = origin[1]; end[2] = origin[2];
+    end[i] -= size;
+    AAS_DebugLine(start, end, color);
   }
 }
 
