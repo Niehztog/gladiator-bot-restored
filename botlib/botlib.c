@@ -34295,29 +34295,19 @@ int __cdecl PC_StringizeTokens(token_t *Source, token_t *Destination)
 //----- (10039B50) --------------------------------------------------------
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
 {
-  const void *v4;
-  unsigned int v5;
-  int v6;
-
   if ( t1->type == 4 )
   {
     if ( t2->type == 4 || t2->type == 3 )
     {
-      v4 = t2->string;
-      v5 = strlen(t2->string) + 1;
-      v6 = strlen(t1->string) + 1;
-LABEL_5:
-      qmemcpy(&t1->string[v6 - 1], v4, v5);
+      strcat(t1->string, t2->string);
       return 1;
     }
   }
   if ( t1->type == 1 && t2->type == 1 )
   {
     t1->string[strlen(t1->string) - 1] = 0;
-    v4 = &t2->string[1];
-    v5 = strlen(&t2->string[1]) + 1;
-    v6 = strlen(t1->string) + 1;
-    goto LABEL_5;
+    strcat(t1->string, &t2->string[1]);
+    return 1;
   }
   return 0;
 }
