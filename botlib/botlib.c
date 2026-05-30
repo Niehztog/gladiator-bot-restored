@@ -8179,7 +8179,6 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   double v12; // st7
   float *v13; // ecx
   aas_link_t *v16; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
-  int v17; // edi
   /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
    * IDA split the start position into v18/v19/v20 (three separate floats)
    * but the original passes &v18 to AAS_PointAreaNum / AAS_TraceClientBBox
@@ -8284,9 +8283,9 @@ LABEL_21:
     v28[1] = a3[1] + *((float *)a1 + 1);
     v28[2] = a3[2] + *((float *)a1 + 2);
     v16 = AAS_AASLinkEntity(v27, v28, -1);
-    v17 = AAS_BestReachableLinkArea(v16);
+    result = AAS_BestReachableLinkArea(v16);
     AAS_UnlinkFromAreas(v16);
-    return v17;
+    return result;
   }
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -37551,24 +37550,16 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
   v6 = a4->type;
   if ( v6 != a2 )
   {
-    switch ( a2 )
-    {
-      case 1:
-        strcpy(ArgList, "string");
-        break;
-      case 2:
-        strcpy(ArgList, "literal");
-        break;
-      case 3:
-        strcpy(ArgList, "number");
-        break;
-      case 4:
-        strcpy(ArgList, "name");
-        break;
-      case 5:
-        strcpy(ArgList, "punctuation");
-        break;
-    }
+    if ( a2 == 1 )
+      strcpy(ArgList, "string");
+    else if ( a2 == 2 )
+      strcpy(ArgList, "literal");
+    else if ( a2 == 3 )
+      strcpy(ArgList, "number");
+    else if ( a2 == 4 )
+      strcpy(ArgList, "name");
+    else if ( a2 == 5 )
+      strcpy(ArgList, "punctuation");
     ScriptError(a1, aExpectedASFoun, ArgList, a4);
     return 0;
   }
@@ -37583,7 +37574,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
       }
       if ( a4->subtype != a3 )
       {
-        ScriptError(a1, aExpectedSFound, *(_DWORD *)(((script_t *)(intptr_t)a1)->punctuations + 12 * a3));
+        ScriptError(a1, aExpectedSFound, ((punctuation_t *)((script_t *)a1)->punctuations)[a3], a4);
         return 0;
       }
     }
