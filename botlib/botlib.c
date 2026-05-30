@@ -4245,7 +4245,6 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
   char *v3; // esi
   char *v4; // edx
   unsigned int v5; // ebx
-  char *v6; // edi
   int v8; // [esp+18h] [ebp+8h]
 
   result = a1;
@@ -4253,7 +4252,7 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
   {
     v3 = &byte_10067564;
     v4 = (char *)(dword_100674D0 + *(_DWORD *)(dword_100674D4 + 4 * (a2 + 2 * a1) + 4));
-    result = (*(_DWORD *)dword_100674D4 + 7) >> 3;
+    result = (*(int *)dword_100674D4 + 7) >> 3;
     v8 = result;
     do
     {
@@ -4264,13 +4263,11 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
       else
       {
         v5 = (unsigned __int8)v4[1];
-        if ( !v4[1] )
+        if ( !v5 )
           return AAS_Error(aAasDecompressv);
-        memset(v3, 0, 4 * (v5 >> 2));
-        v6 = &v3[4 * (v5 >> 2)];
+        memset(v3, 0, v5);
         v4 += 2;
         v3 += v5;
-        memset(v6, 0, v5 & 3);
         result = v8;
       }
     }
