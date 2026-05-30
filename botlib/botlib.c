@@ -34430,18 +34430,14 @@ int __cdecl PC_FindDefineParm(define_t *define, const char *a2)
   token_t *v2;
   int v3;
 
-  v2 = define->parms;
   v3 = 0;
-  if ( !v2 )
-    return -1;
-  while ( strcmp(v2->string, a2) )
+  for ( v2 = define->parms; v2; v2 = v2->next )
   {
-    v2 = v2->next;
+    if ( !strcmp(v2->string, a2) )
+      return v3;
     ++v3;
-    if ( !v2 )
-      return -1;
   }
-  return v3;
+  return -1;
 }
 
 //----- (10039E70) --------------------------------------------------------
