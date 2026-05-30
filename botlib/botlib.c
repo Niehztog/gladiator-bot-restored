@@ -30373,7 +30373,7 @@ int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
   BotClearMoveResult(v10);
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
-  pos[2] = 0.0f;
+  pos[2] = a3[8] - *(float *)(a2 + 8);
   BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v10);
   dir[0] = pos[0];
   dir[1] = pos[1];
@@ -33588,7 +33588,7 @@ double __cdecl LibVarStringValue(char *a1)
 
   v1 = a1;
   v2 = 0;
-  result = 0.0;
+  result = 0.0f;
   v4 = *a1;
   for ( i = 0; v4; v4 = *++v1 )
   {
@@ -33603,7 +33603,7 @@ double __cdecl LibVarStringValue(char *a1)
     else
     {
       if ( v2 || v4 != 46 )
-        return 0.0;
+        return 0.0f;
       v2 = 10;
       ++v1;
       i = 10;
