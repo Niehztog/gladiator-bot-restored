@@ -5465,17 +5465,14 @@ int __fastcall sub_10007460(void *a1)
     v4 = (_DWORD *)(dword_1006750C + v1);
     do
     {
-      *(_DWORD *)v4 = LittleFloat(*v4);
+      *(float *)v4 = LittleFloat(*(float *)v4);
       ++v4;
       --v2;
     }
     while ( v2 );
     *(_DWORD *)(v3 + 32) = LittleLong(*(int *)(v3 + 32));
-    v7 = *(int *)(v3 + 36);
-    v6 = *(void **)(v3 + 72);
-    *(_DWORD *)(v3 + 36) = v7;
-    v8 = (int)v6;
-    *(_DWORD *)(v3 + 72) = v8;
+    *(_DWORD *)(v3 + 36) = LittleLong(*(int *)(v3 + 36));
+    *(_DWORD *)(v3 + 72) = LittleLong(*(int *)(v3 + 72));
     HIWORD(a1) = HIWORD(dword_10067508);
     v1 += 76;
   }
@@ -5484,9 +5481,7 @@ int __fastcall sub_10007460(void *a1)
   v11 = 0;
   if ( dword_100674D4 )
   {
-    v12 = *(int *)dword_100674D4;
-    HIWORD(a1) = HIWORD(dword_100674D4);
-    *(_DWORD *)dword_100674D4 = v12;
+    *(_DWORD *)dword_100674D4 = LittleLong(*(int *)dword_100674D4);
     v9 = dword_100674D4;
     v11 = *(_DWORD *)dword_100674D4;
   }
@@ -5495,11 +5490,9 @@ int __fastcall sub_10007460(void *a1)
   {
     while ( 1 )
     {
-      v14 = *(int *)(v9 + 8 * v13 + 4);
-      *(_DWORD *)(dword_100674D4 + 8 * v13 + 4) = v14;
-      v15 = *(int *)(dword_100674D4 + 8 * v13 + 8);
-      HIWORD(a1) = HIWORD(dword_100674D4);
-      *(_DWORD *)(dword_100674D4 + 8 * v13++ + 8) = v15;
+      *(_DWORD *)(dword_100674D4 + 8 * v13 + 4) = LittleLong(*(int *)(dword_100674D4 + 8 * v13 + 4));
+      *(_DWORD *)(dword_100674D4 + 8 * v13 + 8) = LittleLong(*(int *)(dword_100674D4 + 8 * v13 + 8));
+      ++v13;
       if ( v13 >= v11 )
         break;
       v9 = dword_100674D4;
@@ -5512,16 +5505,13 @@ int __fastcall sub_10007460(void *a1)
     v18 = (_DWORD *)(dword_100674F4 + v10);
     do
     {
-      *(_DWORD *)v18 = LittleFloat(*v18);
+      *(float *)v18 = LittleFloat(*(float *)v18);
       ++v18;
       --v16;
     }
     while ( v16 );
-    v19 = LittleFloat(*(_DWORD *)(v17 + 12));
-    v20 = *(void **)(v17 + 16);
-    *(_DWORD *)(v17 + 12) = v19;
-    v21 = (int)v20;
-    *(_DWORD *)(v17 + 16) = v21;
+    *(float *)(v17 + 12) = LittleFloat(*(float *)(v17 + 12));
+    *(_DWORD *)(v17 + 16) = LittleLong(*(int *)(v17 + 16));
     HIWORD(a1) = HIWORD(dword_100674F0);
     v10 += 20;
   }
@@ -5529,31 +5519,21 @@ int __fastcall sub_10007460(void *a1)
   for ( k = 0; k < dword_10067500; ++k )
   {
     v23 = dword_10067504 + v22;
-    v25 = *(int *)(dword_10067504 + v22);
-    v24 = *(void **)(v23 + 4);
-    *(_DWORD *)v23 = v25;
-    v26 = (int)v24;
-    *(_DWORD *)(v23 + 4) = v26;
+    *(_DWORD *)v23 = LittleLong(*(int *)v23);
+    *(_DWORD *)(v23 + 4) = LittleLong(*(int *)(v23 + 4));
     *(_DWORD *)(v23 + 8) = LittleLong(*(int *)(v23 + 8));
     v29 = (_WORD *)(v23 + 18);
     v30 = 3;
     do
     {
-      LOWORD(v27) = *(v29 - 3);
-      v31 = (__int16)(intptr_t)v27;
-      *(v29 - 3) = v31;
-      LOWORD(v32) = *v29;
-      v33 = v32;
-      *v29++ = (_WORD)v33;
+      *(v29 - 3) = LittleShort(*(v29 - 3));
+      *v29 = LittleShort(*v29);
+      ++v29;
       --v30;
     }
     while ( v30 );
-    LOWORD(v33) = *(_WORD *)(v23 + 24);
-    v35 = (__int16)(intptr_t)v33;
-    LOWORD(v34) = *(_WORD *)(v23 + 26);
-    *(_WORD *)(v23 + 24) = v35;
-    v36 = (__int16)(intptr_t)v34;
-    *(_WORD *)(v23 + 26) = v36;
+    *(_WORD *)(v23 + 24) = LittleShort(*(_WORD *)(v23 + 24));
+    *(_WORD *)(v23 + 26) = LittleShort(*(_WORD *)(v23 + 26));
     HIWORD(a1) = HIWORD(dword_10067500);
     v22 += 28;
   }
@@ -5561,47 +5541,29 @@ int __fastcall sub_10007460(void *a1)
   for ( m = 0; m < dword_100674E8; ++m )
   {
     v38 = dword_100674EC + v37;
-    v40 = *(int *)(dword_100674EC + v37);
-    LOWORD(v39) = *(_WORD *)(v38 + 4);
-    *(_DWORD *)v38 = v40;
-    v42 = (__int16)(intptr_t)v39;
-    LOWORD(v41) = *(_WORD *)(v38 + 6);
-    *(_WORD *)(v38 + 4) = v42;
-    v43 = (void *)(intptr_t)(__int16)(intptr_t)v41;
-    *(_WORD *)(v38 + 6) = (_WORD)v43;
+    *(_DWORD *)v38 = LittleLong(*(int *)v38);
+    *(_WORD *)(v38 + 4) = LittleShort(*(_WORD *)(v38 + 4));
+    *(_WORD *)(v38 + 6) = LittleShort(*(_WORD *)(v38 + 6));
     v44 = (_WORD *)(v38 + 14);
     v45 = 3;
     do
     {
-      LOWORD(v43) = *(v44 - 3);
-      v46 = (__int16)(intptr_t)v43;
-      *(v44 - 3) = v46;
-      LOWORD(v47) = *v44;
-      v43 = v47;
-      *v44++ = (_WORD)v43;
+      *(v44 - 3) = LittleShort(*(v44 - 3));
+      *v44 = LittleShort(*v44);
+      ++v44;
       --v45;
     }
     while ( v45 );
-    LOWORD(v48) = *(_WORD *)(v38 + 20);
-    v49 = (__int16)(intptr_t)v48;
-    *(_WORD *)(v38 + 20) = v49;
-    LOWORD(v50) = *(_WORD *)(v38 + 22);
-    v52 = (__int16)(intptr_t)v50;
-    LOWORD(v51) = *(_WORD *)(v38 + 24);
-    *(_WORD *)(v38 + 22) = v52;
-    v54 = (__int16)(intptr_t)v51;
-    LOWORD(v53) = *(_WORD *)(v38 + 26);
-    *(_WORD *)(v38 + 24) = v54;
-    v55 = (__int16)(intptr_t)v53;
-    *(_WORD *)(v38 + 26) = v55;
+    *(_WORD *)(v38 + 20) = LittleShort(*(_WORD *)(v38 + 20));
+    *(_WORD *)(v38 + 22) = LittleShort(*(_WORD *)(v38 + 22));
+    *(_WORD *)(v38 + 24) = LittleShort(*(_WORD *)(v38 + 24));
+    *(_WORD *)(v38 + 26) = LittleShort(*(_WORD *)(v38 + 26));
     HIWORD(a1) = HIWORD(dword_100674E8);
     v37 += 28;
   }
   for ( n = 0; n < dword_10067528; ++n )
   {
-    LOWORD(a1) = *(_WORD *)(dword_1006752C + 2 * n);
-    v57 = (__int16)(int)(intptr_t)a1;
-    *(_WORD *)(dword_1006752C + 2 * n) = v57;
+    *(_WORD *)(dword_1006752C + 2 * n) = LittleShort(*(_WORD *)(dword_1006752C + 2 * n));
   }
   for ( ii = 0; ii < dword_10067540; ++ii )
   {
@@ -5623,12 +5585,8 @@ int __fastcall sub_10007460(void *a1)
      * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
      * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
      * the LittleShort round-trip (identity on little-endian). */
-    LOWORD(a1) = *(_WORD *)(dword_10067544 + 4 * ii);
-    v57 = (__int16)(int)(intptr_t)a1;
-    *(_WORD *)(dword_10067544 + 4 * ii) = v57;
-    LOWORD(v60) = *(_WORD *)(dword_10067544 + 4 * ii + 2);
-    v61 = (__int16)(intptr_t)v60;
-    *(_WORD *)(dword_10067544 + 4 * ii + 2) = v61;
+    *(_WORD *)(dword_10067544 + 4 * ii) = LittleShort(*(_WORD *)(dword_10067544 + 4 * ii));
+    *(_WORD *)(dword_10067544 + 4 * ii + 2) = LittleShort(*(_WORD *)(dword_10067544 + 4 * ii + 2));
   }
   v62 = 0;
   if ( dword_10067538 > 0 )
@@ -5638,9 +5596,8 @@ int __fastcall sub_10007460(void *a1)
     {
       *(_DWORD *)(v63 + dword_1006753C) = LittleLong(*(int *)(v63 + dword_1006753C));
       *(_DWORD *)(v63 + dword_1006753C + 4) = LittleLong(*(int *)(v63 + dword_1006753C + 4));
-      v66 = *(int *)(v63 + dword_1006753C + 8);
       ++v62;
-      *(_DWORD *)(v63 + dword_1006753C + 8) = v66;
+      *(_DWORD *)(v63 + dword_1006753C + 8) = LittleLong(*(int *)(v63 + dword_1006753C + 8));
       v63 += 12;
     }
     while ( v62 < dword_10067538 );
@@ -5653,19 +5610,16 @@ int __fastcall sub_10007460(void *a1)
     do
     {
       v70 = dword_100674C8 + v69;
-      v72 = *(int *)(dword_100674C8 + v69 + 40);
-      v71 = *(void **)(v70 + 44);
-      *(_DWORD *)(v70 + 40) = v72;
-      v73 = (int)v71;
-      *(_DWORD *)(v70 + 44) = v73;
+      *(_DWORD *)(v70 + 40) = LittleLong(*(int *)(v70 + 40));
+      *(_DWORD *)(v70 + 44) = LittleLong(*(int *)(v70 + 44));
       *(_DWORD *)(v70 + 36) = LittleLong(*(int *)(v70 + 36));
       v75 = (float *)(v70 + 24);
       v76 = 3;
       do
       {
-        *((_DWORD *)v75 - 6) = LittleFloat(*((_DWORD *)v75 - 6));
-        *((_DWORD *)v75 - 3) = LittleFloat(*((_DWORD *)v75 - 3));
-        *(_DWORD *)v75 = LittleFloat(*(_DWORD *)v75);
+        *((float *)v75 - 6) = LittleFloat(*((float *)v75 - 6));
+        *((float *)v75 - 3) = LittleFloat(*((float *)v75 - 3));
+        *v75 = LittleFloat(*v75);
         ++v75;
         --v76;
       }
