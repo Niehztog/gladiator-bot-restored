@@ -32332,10 +32332,10 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
     }
     else if ( fs->type == 1 )
     {
-      if ( (double)(rand() & 0x7FFF) * 0.000030518509 >= 0.01 )
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.01 )
       {
         v4 = rand();
-        v3 = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5)
+        v3 = ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)
            * (fs->maxweight - fs->minweight)
            * 0.5;
       }
