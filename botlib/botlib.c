@@ -14816,8 +14816,8 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   float *v3; // ecx
   int v4; // eax
   int v5; // esi
-  __int64 v6; // rax
-  double v7; // st7
+  int v6; // rax (was __int64; only low 32 bits used, abs32() idiom — see asm_matching/idioms)
+  float v7; // st7
   int v8; // ebp
   int v9; // edi
   int v10; // esi
@@ -14875,7 +14875,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   while ( 1 )
   {
     v6 = *((int *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2));
-    if ( (*((_BYTE *)aasworld.faces + 24 * ((HIDWORD(v6) ^ v6) - HIDWORD(v6)) + 4) & 4) != 0 )
+    if ( (*((_BYTE *)aasworld.faces + 24 * abs32(v6) + 4) & 4) != 0 )
     {
       AAS_FaceCenter(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), facecenter);
       v7 = groundedpos[2] + 64.0;
