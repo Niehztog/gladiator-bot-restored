@@ -7104,31 +7104,20 @@ int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 //----- (10009950) --------------------------------------------------------
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 {
-  int i; // edi
-  float v4; // ecx
-  float v5; // edx
-  double v6; // st7
-  int v7; // eax
-  int result; // eax
-  float v9[3]; // [esp+Ch] [ebp-18h] BYREF
-  float v10[3]; // [esp+18h] [ebp-Ch] BYREF
+  int i;
+  int v7;
+  int result;
+  vec3_t start, end;
 
-  for ( i = 0; i < 3; ++i )
+  for ( i = 0; i < 3; i++ )
   {
-    v4 = origin[1];
-    v5 = origin[2];
-    v10[0] = origin[0];
-    v10[1] = v4;
-    v10[2] = v5;
-    v6 = size + v10[i];
-    v9[0] = v10[0];
-    v9[1] = v4;
-    v9[2] = v5;
-    v10[i] = v6;
-    v9[i] -= size;
-    AAS_DebugLine(v10, v9, color);
+    start[0] = origin[0]; start[1] = origin[1]; start[2] = origin[2];
+    start[i] += size;
+    end[0] = origin[0]; end[1] = origin[1]; end[2] = origin[2];
+    end[i] -= size;
+    AAS_DebugLine(start, end, color);
     v7 = bi_DebugLineCreate();
-    result = bi_DebugLineShow(v7, v10, v9, color);
+    result = bi_DebugLineShow(v7, start, end, color);
   }
   return result;
 }
