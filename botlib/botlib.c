@@ -741,6 +741,7 @@ int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
 void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
+struct chatlist_s;
 void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat);
@@ -26696,7 +26697,7 @@ void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002CD60) --------------------------------------------------------
-void __cdecl BotCheckInitialChatIntegrety(chatlist_t *chat)
+void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat)
 {
   chattype_t        *t;
   chatline_t        *l;
@@ -27252,7 +27253,7 @@ type_done:
         bi_Print(1, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
       else
         bi_Print(1, "loaded %s from %s\n", a2, a1);
-      BotCheckInitialChatIntegrety((int *)list);
+      BotCheckInitialChatIntegrety((chatlist_t *)list);
       return (int *)list;
     }
     else
@@ -27286,7 +27287,7 @@ type_done:
     sub_1002DF70(list);
     return 0;
   }
-  BotCheckInitialChatIntegrety((int *)list);
+  BotCheckInitialChatIntegrety((chatlist_t *)list);
   return (int *)list;
 }
 // 1002D8E7: variable 'v14' is possibly undefined
