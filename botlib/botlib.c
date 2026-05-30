@@ -25335,7 +25335,7 @@ void __cdecl UnifyWhiteSpaces(void *Src)
       if ( v1 > (char *)Src && *i )
         *v1++ = 32;
       if ( i > v1 )
-        strcpy(v1, i);
+        memmove(v1, i, strlen(i) + 1);
     }
     for ( k = *i; k; k = *++i )
     {
