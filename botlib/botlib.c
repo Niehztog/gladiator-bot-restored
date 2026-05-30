@@ -11277,7 +11277,10 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 //----- (100109E0) --------------------------------------------------------
 int __cdecl AAS_KeepFace(char *face)
 {
-  return (face[4] & 2) >> 1;
+  if ( !(face[4] & 2) )
+    return 0;
+  else
+    return 1;
 }
 
 //----- (10010A00) --------------------------------------------------------
@@ -11752,7 +11755,7 @@ int __cdecl AAS_AreaCrouch(int areanum)
 //----- (10011610) --------------------------------------------------------
 int __cdecl AAS_AreaSwim(int areanum)
 {
-  return (*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
+  return (*((char *)aasworld.areasettings + 28 * areanum + 4) & 4u) >> 2;
 }
 
 //----- (10011640) --------------------------------------------------------
@@ -11764,7 +11767,7 @@ int __cdecl AAS_AreaSwim(int areanum)
  * of the same body; preserved by the linker. */
 int __cdecl sub_10011640(int areanum)
 {
-  return (*((_BYTE *)aasworld.areasettings + 28 * areanum + 4) & 4) >> 2;
+  return (*((char *)aasworld.areasettings + 28 * areanum + 4) & 4u) >> 2;
 }
 
 //----- (10011670) --------------------------------------------------------
