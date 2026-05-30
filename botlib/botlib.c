@@ -32520,7 +32520,7 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
   v8 = sep->value;
   v9 = facts[sep->index] - v8;
   v10 = sep->next->value - v8;
-  return v7 * (1.0 - (double)(v9 / v10)) + (double)(v9 / v10) * v12;
+  return v7 * (1.0f - (float)(v9 / v10)) + (float)(v9 / v10) * v12;
 }
 // 10001A73: using guessed type double __cdecl FuzzyWeight_r(_DWORD, _DWORD);
 
