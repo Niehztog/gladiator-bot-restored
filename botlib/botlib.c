@@ -8789,7 +8789,7 @@ int AAS_SwapAASData()
       }
       while ( v14 );
       *(float *)((char *)aasworld.planes + v12 + 12) = LittleFloat(*(float *)((char *)aasworld.planes + v12 + 12));
-      v15 = *(int *)((char *)aasworld.planes + v12 + 16);
+      v15 = LittleLong(*(int *)((char *)aasworld.planes + v12 + 16));
       ++v11;
       *(_DWORD *)((char *)aasworld.planes + v12 + 16) = v15;
       v12 += 20;
@@ -8888,9 +8888,9 @@ int AAS_SwapAASData()
         --v52;
       }
       while ( v52 );
-      v54 = (void *)(intptr_t)*(int *)((char *)aasworld.reachability + v48 + 36);
+      v54 = (void *)(intptr_t)LittleLong(*(int *)((char *)aasworld.reachability + v48 + 36));
       *(_DWORD *)((char *)aasworld.reachability + v48 + 36) = v54;
-      LOWORD(v54) = *(_WORD *)((char *)aasworld.reachability + v48 + 40);
+      LOWORD(v54) = LittleShort(*(_WORD *)((char *)aasworld.reachability + v48 + 40));
       v55 = (__int16)(intptr_t)v54;
       ++v47;
       *(_WORD *)((char *)aasworld.reachability + v48 + 40) = v55;
