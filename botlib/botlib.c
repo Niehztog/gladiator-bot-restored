@@ -996,8 +996,8 @@ int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
 int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4);
 int __cdecl PS_ExpectAnyToken(int a1, int a2);
-int __cdecl StripDoubleQuotes(char *string);
-int __cdecl StripSingleQuotes(char *string);
+void __cdecl StripDoubleQuotes(char *string);
+void __cdecl StripSingleQuotes(char *string);
 void __cdecl SetScriptFlags(script_t *script, int flags);
 BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *Stream); // idb
@@ -38034,33 +38034,34 @@ unsigned char __cdecl sub_1003FC70(void *ctx)
 }
 
 //----- (1003FCB0) --------------------------------------------------------
-int __cdecl StripDoubleQuotes(char *string)
+void __cdecl StripDoubleQuotes(char *string)
 {
-  size_t len;
-
-  /* IDA original used strcpy(string, string+1) for left-shift of one byte.
-   * On 32-bit MSVC this happened to byte-copy and worked.  On 64-bit
-   * glibc (aarch64 in particular) strcpy uses SIMD chunked loads that
-   * mangle overlapping copies — observed as `armor/body` -> `armorbodyy`
-   * etc., breaking IndexFromModel for every item.  memmove handles
-   * overlap correctly. */
-  while ( string[0] == '"' )
+  /* Gladiator-era source used strcpy() with overlapping src/dst — byte-
+   * copy on 32-bit MSVC, undefined on 64-bit glibc (aarch64 SIMD strcpy
+   * mangles overlapping copies, breaks IndexFromModel).  Use strcpy on
+   * MSVC oracle (byte fidelity), memmove elsewhere.  Outer 'while'
+   * (NOT Q3's single 'if') matches ref disasm loopback. */
+  while ( *string == '"' )
+#if defined(_MSC_VER)
+    strcpy(string, string + 1);
+#else
     memmove(string, string + 1, strlen(string));
-  while ( (len = strlen(string)) > 0 && string[len - 1] == '"' )
-    string[len - 1] = 0;
-  return 0;
+#endif
+  while ( string[strlen(string) - 1] == '"' )
+    string[strlen(string) - 1] = '\0';
 }
 
 //----- (1003FD40) --------------------------------------------------------
-int __cdecl StripSingleQuotes(char *string)
+void __cdecl StripSingleQuotes(char *string)
 {
-  size_t len;
-
-  while ( string[0] == '\'' )
+  while ( *string == '\'' )
+#if defined(_MSC_VER)
+    strcpy(string, string + 1);
+#else
     memmove(string, string + 1, strlen(string));
-  while ( (len = strlen(string)) > 0 && string[len - 1] == '\'' )
-    string[len - 1] = 0;
-  return 0;
+#endif
+  while ( string[strlen(string) - 1] == '\'' )
+    string[strlen(string) - 1] = '\0';
 }
 
 //----- (1003FDD0) --------------------------------------------------------
