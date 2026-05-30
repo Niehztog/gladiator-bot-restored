@@ -11333,21 +11333,19 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 //----- (10010B40) --------------------------------------------------------
 int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
-  _DWORD *v2; // edx
+  int *v2; // edx
   _DWORD *v3; // ebx
   int result; // eax
   int v5; // esi
   int v6; // eax
-  _DWORD *v7; // [esp+18h] [ebp+8h]
 
-  v2 = (_DWORD *)((char *)aasworld.areas + 48 * areanum);
+  v2 = (int *)((char *)aasworld.areas + 48 * areanum);
   v3 = (_DWORD *)((char *)optimized->areas + 48 * areanum);
   qmemcpy(v3, v2, 0x30u);
   v3[1] = 0;
   v3[2] = optimized->faceindexsize;
   result = v2[1];
   v5 = 0;
-  v7 = v2;
   if ( result > 0 )
   {
     while ( 1 )
@@ -11359,10 +11357,9 @@ int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
         ++v3[1];
         ++optimized->faceindexsize;
       }
-      result = (intptr_t)v7;
-      if ( ++v5 >= v7[1] )
+      result = (intptr_t)v2;
+      if ( ++v5 >= v2[1] )
         break;
-      v2 = v7;
     }
   }
   return result;
