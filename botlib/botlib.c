@@ -33280,15 +33280,7 @@ double __cdecl LibVarStringValue(char *a1)
   v4 = *a1;
   for ( i = 0; v4; v4 = *++v1 )
   {
-    if ( v4 >= 48 && v4 <= 57 )
-    {
-      if ( !v2 )
-      {
-        result = (double)(v4 - 48) + result * 10.0;
-        continue;
-      }
-    }
-    else
+    if ( v4 < 48 || v4 > 57 )
     {
       if ( v2 || v4 != 46 )
         return 0.0f;
@@ -33296,8 +33288,13 @@ double __cdecl LibVarStringValue(char *a1)
       ++v1;
       i = 10;
     }
-    v2 *= 10;
+    else if ( !v2 )
+    {
+      result = (double)(v4 - 48) + result * 10.0;
+      continue;
+    }
     v5 = (double)(*v1 - 48) / (double)i;
+    v2 *= 10;
     i = v2;
     result = result + v5;
   }
