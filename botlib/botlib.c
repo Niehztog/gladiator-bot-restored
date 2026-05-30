@@ -33333,22 +33333,13 @@ __int16 __cdecl CRC_Block(const unsigned char *a1, int a2)
 // scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
 // ebp=base — this is the classic IDA index-base swap and is equivalent to
 // data[i] for i in [0..len).
-void __cdecl sub_100386E0(unsigned __int16 *crc, const unsigned char *data, int len)
+void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
 {
   int i;
-  unsigned int idx;
-  unsigned int low_shifted;
-  unsigned __int16 c;
 
-  if ( len <= 0 )
-    return;
-  c = *crc;
-  for ( i = 0; i < len; ++i )
+  for ( i = 0; i < len; i++ )
   {
-    idx = ((c >> 8) ^ data[i]) & 0xFFFF;
-    low_shifted = (c & 0xFF) << 8;
-    c = (unsigned __int16)(low_shifted ^ word_1005EE70[idx]);
-    *crc = c;
+    *crc = (*crc << 8) ^ word_1005EE70[(*crc >> 8) ^ data[i]];
   }
 }
 // 1005EE70: using guessed type __int16 word_1005EE70[308];
