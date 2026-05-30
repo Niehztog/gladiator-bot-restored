@@ -24206,18 +24206,18 @@ void sub_10028E80(void) { /* empty body — original returns immediately */ }
 //----- (10028EA0) --------------------------------------------------------
 int __cdecl ClientFromName(const char *a1)
 {
-  int v1; // ebp
-  const char *i; // edi
+  int v1;
+  const char *i;
 
   v1 = 0;
   if ( maxclients <= 0 )
     return 0;
-  for ( i = dword_100643A8; strcmp(a1, i); i += 144 )
+  for ( i = dword_100643A8; v1 < maxclients; ++v1, i += 144 )
   {
-    if ( ++v1 >= maxclients )
-      return 0;
+    if ( !strcmp(a1, i) )
+      return v1;
   }
-  return v1;
+  return 0;
 }
 // 10064028: using guessed type int maxclients;
 // 100643A8: using guessed type int dword_100643A8;
