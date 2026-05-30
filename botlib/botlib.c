@@ -14229,10 +14229,10 @@ int AAS_Reachability_Elevator()
   int *v20; // eax
   int *v21; // esi
   int v22; // edx
-  double v23; // st7
+  float v23; // st7 (was double)
   int v24; // rax (was __int64)
-  double v25; // st7
-  double v26; // st7
+  float v25; // st7 (was double)
+  float v26; // st7 (was double)
   float v27; // eax
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays.  In the
    * original frame BSPModelMinsMaxs writes 12 bytes each to mins/maxs/origin
