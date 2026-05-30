@@ -21383,27 +21383,27 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
     endpos[0] = *(float *)v2;
     endpos[1] = v3;
     endpos[2] = v4;
-    v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
+    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     v25 = v5;
     if ( v5 < 0.8 )
     {
       v6 = rand();
       v24 = -1.0;
-      if ( (double)(v6 & 0x7FFF) * 0.000030518509 >= 0.5 )
+      if ( (float)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[0] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[0] + 50.0;
+      endpos[0] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[0] + 50.0;
     }
     if ( v25 > 0.2 )
     {
       v7 = rand();
       v24 = -1.0;
-      if ( (double)(v7 & 0x7FFF) * 0.000030518509 >= 0.5 )
+      if ( (float)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[1] = (double)(rand() & 0x7FFF) * 0.000030518509 * v24 * 700.0 + endpos[1] + 50.0;
+      endpos[1] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[1] + 50.0;
     }
     v20 = rand() & 0x7FFF;
     v18 = a1[2];
-    endpos[2] = (double)v20 * 0.000030518509 * 144.0 - 96.0 - 1.0 + endpos[2];
+    endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0 - 1.0 + endpos[2];
     v8 = AAS_Trace(v32, (float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     qmemcpy(v31, v8, sizeof(v31));
