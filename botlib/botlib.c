@@ -1014,8 +1014,8 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 int __stdcall sub_100415E0(int a1);
-// HGLOBAL sub_10041600();
-// LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
+HGLOBAL sub_10041600(void);
+LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
 int __cdecl vectoangles(float *a1, float *a2);
@@ -39016,10 +39016,103 @@ int __cdecl WriteStructure(FILE *Stream, int a2, int a3)
 //----- (10041240) --------------------------------------------------------
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 {
-  /* ZIP/BSPC support removed — Windows DLL loader not available on Linux.
-     AAS files must exist as plain files; packed map support is not supported. */
-  (void)a1; (void)a2; (void)a3;
-  return 0;
+  HGLOBAL v3; // eax
+  HGLOBAL v5; // eax
+  _DWORD *v6; // eax
+  HMODULE LibraryA; // eax
+  HGLOBAL v8; // ebp
+  HGLOBAL v9; // esi
+  char **v10; // ebx
+  char *v11; // edi
+  int v12; // esi
+  HGLOBAL hMem; // [esp+18h] [ebp-88h]
+  LPSTR FilePart; // [esp+1Ch] [ebp-84h] BYREF
+  CHAR Buffer[128]; // [esp+20h] [ebp-80h] BYREF
+
+  if ( !a1 )
+    return 0;
+  v3 = GlobalAlloc(0x40u, 0x44u);
+  dword_10062970 = v3;
+  if ( !v3 )
+    return 0;
+  dword_1006296C = (int)GlobalLock(v3);
+  if ( !dword_1006296C )
+  {
+    GlobalFree(dword_10062970);
+    return 0;
+  }
+  v5 = GlobalAlloc(0x40u, 0x28u);
+  dword_10062968 = v5;
+  if ( !v5 )
+  {
+    GlobalUnlock(dword_10062970);
+    GlobalFree(dword_10062970);
+    return 0;
+  }
+  v6 = GlobalLock(v5);
+  dword_100639F0 = (int)v6;
+  if ( !v6 )
+  {
+    GlobalUnlock(dword_10062970);
+    GlobalFree(dword_10062970);
+    GlobalFree(dword_10062968);
+    return 0;
+  }
+  v6[3] = (intptr_t)sub_10041740;
+  *(_DWORD *)dword_100639F0 = (intptr_t)sub_10041760;
+  *(_DWORD *)(dword_100639F0 + 4) = 0;
+  *(_DWORD *)(dword_100639F0 + 8) = (intptr_t)sub_100415E0;
+  *(_DWORD *)(dword_100639F0 + 16) = (intptr_t)sub_10041680;
+  if ( !SearchPathA(0, FileName, 0, 0x80u, Buffer, &FilePart)
+    || (LibraryA = LoadLibraryA(FileName), (hLibModule = LibraryA) == 0) )
+  {
+    sub_10041600();
+    return 0;
+  }
+  windll_unzip = (int (__stdcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD))GetProcAddress(
+                                                                                      LibraryA,
+                                                                                      aWindllUnzip);
+  *(_DWORD *)(dword_1006296C + 16) = 0;
+  *(_DWORD *)(dword_1006296C + 12) = 2;
+  *(_DWORD *)(dword_1006296C + 20) = 0;
+  *(_DWORD *)(dword_1006296C + 24) = 0;
+  *(_DWORD *)(dword_1006296C + 28) = 0;
+  *(_DWORD *)(dword_1006296C + 32) = 0;
+  *(_DWORD *)(dword_1006296C + 36) = 0;
+  *(_DWORD *)(dword_1006296C + 40) = 1;
+  *(_DWORD *)(dword_1006296C + 44) = 0;
+  *(_DWORD *)(dword_1006296C + 60) = a1;
+  *(_DWORD *)(dword_1006296C + 64) = a3;
+  *(_DWORD *)(dword_1006296C + 52) = 1;
+  v8 = GlobalAlloc(2u, 0x28u);
+  if ( !v8 )
+  {
+    sub_10041600();
+    FreeLibrary(hLibModule);
+    return 0;
+  }
+  v9 = GlobalAlloc(2u, 0x104u);
+  hMem = v9;
+  if ( !v9 )
+  {
+    sub_10041600();
+    FreeLibrary(hLibModule);
+    return 0;
+  }
+  v10 = (char **)GlobalLock(v8);
+  memset(v10, 0, 0x28u);
+  v11 = (char *)GlobalLock(v9);
+  *v10 = v11;
+  memset(v11, 0, 0x104u);
+  strcpy(*v10, a2);
+  v12 = windll_unzip(1, (intptr_t)v10, 0, 0, dword_1006296C, dword_100639F0);
+  GlobalUnlock(hMem);
+  GlobalFree(hMem);
+  GlobalUnlock(v8);
+  GlobalFree(v8);
+  sub_10041600();
+  FreeLibrary(hLibModule);
+  return v12 == 0;
 }
 // 100012A8: using guessed type int __stdcall sub_100415E0(int);
 // 100012D5: using guessed type int __stdcall sub_10041740(int, int, int, int);
@@ -39038,7 +39131,7 @@ int __stdcall sub_100415E0(int a1)
 }
 
 //----- (10041600) --------------------------------------------------------
-HGLOBAL sub_10041600()
+HGLOBAL sub_10041600(void)
 {
   HGLOBAL result; // eax
 
