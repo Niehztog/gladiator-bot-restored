@@ -4877,16 +4877,12 @@ char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
   bsp_epair_t *ep;
 
-  ep = ent->epairs;
-  if ( !ep )
-    return 0;
-  while ( strcmp(ep->key, key) )
+  for ( ep = ent->epairs; ep; ep = ep->next )
   {
-    ep = ep->next;
-    if ( !ep )
-      return 0;
+    if ( !strcmp(ep->key, key) )
+      return ep->value;
   }
-  return ep->value;
+  return 0;
 }
 
 //----- (100067E0) --------------------------------------------------------
@@ -38338,24 +38334,17 @@ void __cdecl FreeScript(script_t *script)
 //----- (100404B0) --------------------------------------------------------
 const char **__cdecl FindField(const char **a1, const char *a2)
 {
-  const char **v2; // edi
-  int v3; // ebp
-  const char *v4; // eax
+  const char **v2;
+  int v3;
 
-  v2 = a1;
   v3 = 0;
-  v4 = *a1;
-  if ( !*a1 )
-    return 0;
-  while ( strcmp(v4, a2) )
+  for ( v2 = a1; *v2; v2 += 7 )
   {
-    v4 = v2[7];
-    v2 += 7;
+    if ( !strcmp(*v2, a2) )
+      return &a1[7 * v3];
     ++v3;
-    if ( !v4 )
-      return 0;
   }
-  return &a1[7 * v3];
+  return 0;
 }
 
 /* Field-table slot helpers — field tables are emitted as char *[7] entries
