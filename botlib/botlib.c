@@ -34036,50 +34036,36 @@ void __cdecl PC_FreeToken(token_t *t)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (100394C0) --------------------------------------------------------
-int __cdecl PC_ReadSourceToken(source_t *src, token_t *token)
+int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
 {
-  struct token_s *t;
-  script_t *s;
-  indent_t *ind;
-  int t_dummy, s_dummy;
+  token_t *t;
+  script_t *script;
+  int type, skip;
 
-  if ( src->tokens )
+  while ( !source->tokens )
   {
-LABEL_9:
-    qmemcpy(token, src->tokens, sizeof(token_t));
-    t = src->tokens;
-    src->tokens = t->next;
-    PC_FreeToken(t);
-    return 1;
-  }
-  else
-  {
-    while ( 1 )
+    if ( PS_ReadToken(source->scriptstack, (char *)token) )
+      return 1;
+    if ( EndOfScript(source->scriptstack) )
     {
-      if ( PS_ReadToken(src->scriptstack, (char *)token) )
-        return 1;
-      if ( EndOfScript(src->scriptstack) )
+      while ( source->indentstack &&
+              source->indentstack->script == source->scriptstack )
       {
-        for ( ind = src->indentstack; ind; ind = src->indentstack )
-        {
-          if ( ind->script != src->scriptstack )
-            break;
-          SourceWarning(src, aMissingEndif);
-          PC_PopIndent(src, &t_dummy, &s_dummy);
-        }
+        SourceWarning(source, aMissingEndif);
+        PC_PopIndent(source, &type, &skip);
       }
-      s = src->scriptstack->next;
-      if ( !s )
-        return 0;
-      {
-        script_t *old = src->scriptstack;
-        src->scriptstack = s;
-        FreeScript(old);
-      }
-      if ( src->tokens )
-        goto LABEL_9;
     }
+    if ( !source->scriptstack->next )
+      return 0;
+    script = source->scriptstack;
+    source->scriptstack = source->scriptstack->next;
+    FreeScript(script);
   }
+  qmemcpy(token, source->tokens, sizeof(token_t));
+  t = source->tokens;
+  source->tokens = source->tokens->next;
+  PC_FreeToken(t);
+  return 1;
 }
 // 10039520: variable 'v9' is possibly undefined
 // 1000127B: using guessed type int __cdecl PS_ReadToken(_DWORD, _DWORD);
@@ -36898,75 +36884,50 @@ void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 /* Q3 l_script.c:602 PS_ReadWhiteSpace(script_t *script).  Retyped to a
  * proper pointer so PS_ReadToken's already-correct script_t* survives
  * the call on 64-bit instead of truncating through (int)script. */
-int __cdecl PS_ReadWhiteSpace(script_t *a1)
+int __cdecl PS_ReadWhiteSpace(script_t *script)
 {
-  _BYTE *v1; // eax
-  char *v2; // eax
-  _BYTE *v3; // eax
-  char v4; // dl
-  _BYTE *v5; // eax
-  _BYTE *v6; // eax
-
-LABEL_1:
-  if ( *((script_t *)a1)->script_p <= 32 )
+  while ( 1 )
   {
-    do
+    while ( *script->script_p <= ' ' )
     {
-      v1 = (_BYTE *)((script_t *)a1)->script_p;
-      if ( !*v1 )
-        return 0;
-      if ( *v1 == 10 )
-        ++((script_t *)a1)->line;
-      v2 = v1 + 1;
-      ((script_t *)a1)->script_p = v2;
+      if ( !*script->script_p ) return 0;
+      if ( *script->script_p == '\n' ) script->line++;
+      script->script_p++;
     }
-    while ( *v2 <= 32 );
-  }
-  v3 = (_BYTE *)((script_t *)a1)->script_p;
-  if ( *v3 == 47 )
-  {
-    v4 = v3[1];
-    v5 = v3 + 1;
-    if ( v4 == 47 )
+    if ( *script->script_p == '/' )
     {
-      ((script_t *)a1)->script_p = v5;
-      while ( 1 )
+      if ( *(script->script_p + 1) == '/' )
       {
-        ((script_t *)a1)->script_p = ++v5;
-        if ( !*v5 )
-          return 0;
-        if ( *v5 == 10 )
+        script->script_p++;
+        do
         {
-          ++((script_t *)a1)->line;
-          goto LABEL_12;
+          script->script_p++;
+          if ( !*script->script_p ) return 0;
         }
+        while ( *script->script_p != '\n' );
+        script->line++;
+        script->script_p++;
+        if ( !*script->script_p ) return 0;
+        continue;
+      }
+      else if ( *(script->script_p + 1) == '*' )
+      {
+        script->script_p++;
+        do
+        {
+          script->script_p++;
+          if ( !*script->script_p ) return 0;
+          if ( *script->script_p == '\n' ) script->line++;
+        }
+        while ( !(*script->script_p == '*' && *(script->script_p + 1) == '/') );
+        script->script_p++;
+        if ( !*script->script_p ) return 0;
+        script->script_p++;
+        if ( !*script->script_p ) return 0;
+        continue;
       }
     }
-    if ( v4 == 42 )
-    {
-      ((script_t *)a1)->script_p = v5;
-      while ( 1 )
-      {
-        ((script_t *)a1)->script_p = ++v5;
-        if ( !*v5 )
-          return 0;
-        if ( *v5 == 10 )
-          ++((script_t *)a1)->line;
-        if ( *v5 == 42 && v5[1] == 47 )
-        {
-          v5 = (_BYTE *)(((script_t *)a1)->script_p + 1);
-          ((script_t *)a1)->script_p = v5;
-          if ( !*v5 )
-            return 0;
-LABEL_12:
-          v6 = v5 + 1;
-          ((script_t *)a1)->script_p = v6;
-          if ( !*v6 )
-            return 0;
-          goto LABEL_1;
-        }
-      }
-    }
+    break;
   }
   return 1;
 }
