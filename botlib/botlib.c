@@ -30867,36 +30867,24 @@ int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
 //----- (10034170) --------------------------------------------------------
 int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
-  int result; // eax
-
   switch ( reach->traveltype )
   {
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 7:
-    case 8:
-    case 9:
-    case 0xA:
-      result = 5;
-      break;
-    case 6:
-    case 0xC:
-      result = 6;
-      break;
-    case 0xB:
-      result = 10;
-      break;
-    case 0xE:
-      goto LABEL_6;
+    case 2: return 5;
+    case 3: return 5;
+    case 4: return 5;
+    case 5: return 6;
+    case 6: return 5;
+    case 7: return 5;
+    case 8: return 5;
+    case 9: return 5;
+    case 10: return 5;
+    case 11: return 10;
+    case 13: return 6;
+    case 14: return 6;
     default:
       bi_Print(3, "travel type %d not implemented yet\n", reach->traveltype);
-LABEL_6:
-      result = 8;
-      break;
+      return 8;
   }
-  return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
