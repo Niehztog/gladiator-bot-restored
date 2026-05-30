@@ -728,7 +728,7 @@ const char *__cdecl StringContains(const char *str1, const char *str2, int cases
 const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive);
 const char *__cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
-const char *__cdecl BotReplaceSynonyms(const char *a1, int a2);
+void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
 void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2);
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *); // idb
 char *__cdecl RandomString(const char *name);
@@ -924,7 +924,7 @@ int SourceError(source_t *src, char *Format, ...);
 int SourceWarning(source_t *src, char *Format, ...);
 indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
-int __cdecl PC_PushScript(source_t *src, script_t *script);
+void __cdecl PC_PushScript(source_t *src, script_t *script);
 _DWORD *__cdecl AllocLevelItem(const void *a1);
 void __cdecl PC_FreeToken(token_t *t);
 int __cdecl PC_ReadSourceToken(source_t *src, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
@@ -943,7 +943,7 @@ define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2);
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4);
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken);
 int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define);
-_BYTE *__cdecl PC_ConvertPath(_BYTE *a1);
+void __cdecl PC_ConvertPath(char *path);
 int __cdecl PC_Directive_include(source_t *src);
 // int __cdecl PC_Directive_include: see definition
 BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *a1);
@@ -25824,25 +25824,19 @@ LABEL_58:
 /* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
  * traversal.  The original IDA expressed firstsynonym (+8) and next (+12)
  * as raw _DWORD offsets which truncate on 64-bit. */
-const char *__cdecl BotReplaceSynonyms(const char *a1, int a2)
+void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
 {
   bot_synonymlist_t *syn;
-  bot_synonym_t *firstsyn;
-  bot_synonym_t *s;
-  const char *result;
+  bot_synonym_t *synonym;
 
-  result = a1;
   for ( syn = dword_10064384; syn; syn = syn->next )
   {
-    if ( (a2 & syn->context) != 0 )
+    if ( !(syn->context & context) ) continue;
+    for ( synonym = syn->firstsynonym->next; synonym; synonym = synonym->next )
     {
-      firstsyn = syn->firstsynonym;
-      result = firstsyn->string;
-      for ( s = firstsyn->next; s; s = s->next )
-        result = StringReplaceWords(a1, s->string, firstsyn->string);
+      StringReplaceWords(string, synonym->string, syn->firstsynonym->string);
     }
   }
-  return result;
 }
 
 //----- (1002B830) --------------------------------------------------------
@@ -33988,29 +33982,20 @@ indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out)
 }
 
 //----- (100393E0) --------------------------------------------------------
-int __cdecl PC_PushScript(source_t *src, script_t *script)
+void __cdecl PC_PushScript(source_t *source, script_t *script)
 {
-  script_t *s = src->scriptstack;
-  int result;
+  script_t *s;
 
-  if ( s )
+  for ( s = source->scriptstack; s; s = s->next )
   {
-    while ( _strcmpi(s->filename, script->filename) )
+    if ( !Q_stricmp(s->filename, script->filename) )
     {
-      s = s->next;
-      if ( !s )
-        goto LABEL_4;
+      SourceError(source, aSRecursivelyIn, script->filename);
+      return;
     }
-    return SourceError(src, aSRecursivelyIn, script->filename);
   }
-  else
-  {
-LABEL_4:
-    result = (int)src->scriptstack;
-    script->next = src->scriptstack;
-    src->scriptstack = script;
-  }
-  return result;
+  script->next = source->scriptstack;
+  source->scriptstack = script;
 }
 
 //----- (10039460) --------------------------------------------------------
@@ -34607,31 +34592,32 @@ int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define)
 }
 
 //----- (1003A710) --------------------------------------------------------
-_BYTE *__cdecl PC_ConvertPath(_BYTE *a1)
+void __cdecl PC_ConvertPath(char *path)
 {
-  _BYTE *v1; // edx
-  char v2; // al
-  _BYTE *result; // eax
+  char *ptr;
 
-  v1 = a1;
-  while ( *v1 )
+  for ( ptr = path; *ptr; )
   {
-    if ( (*v1 == 92 || *v1 == 47) && ((v2 = v1[1], v2 == 92) || v2 == 47) )
-      memmove(v1, v1 + 1, strlen(v1));  /* was strcpy — UB on aarch64 */
-    else
-      ++v1;
-  }
-  result = a1;
-  if ( *a1 )
-  {
-    do
+    if ( (*ptr == '\\' || *ptr == '/') &&
+         (*(ptr + 1) == '\\' || *(ptr + 1) == '/') )
     {
-      if ( *result == 47 || *result == 92 )
-        *result = 92;
+#if defined(_MSC_VER)
+      strcpy(ptr, ptr + 1);
+#else
+      memmove(ptr, ptr + 1, strlen(ptr));
+#endif
     }
-    while ( *++result );
+    else
+    {
+      ptr++;
+    }
   }
-  return result;
+  for ( ptr = path; *ptr; )
+  {
+    if ( *ptr == '/' || *ptr == '\\' )
+      *ptr = '\\';
+    ptr++;
+  }
 }
 
 //----- (1003A7A0) --------------------------------------------------------
