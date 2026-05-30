@@ -37386,25 +37386,21 @@ int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination)
   const char *v4;
   size_t v5;
 
-  p = a1->punctuationtable[(unsigned char)*a1->script_p];
-  if ( !p )
-    return 0;
-  while ( 1 )
+  for ( p = a1->punctuationtable[*a1->script_p]; p; p = p->next )
   {
     v3 = p->p;
     v4 = (const char *)a1->script_p;
     v5 = strlen(v3);
-    if ( &v4[v5] <= (const char *)a1->end_p && !strncmp(v4, v3, v5) )
-      break;
-    p = p->next;
-    if ( !p )
-      return 0;
+    if ( v4 + v5 <= (const char *)a1->end_p && !strncmp(v4, v3, v5) )
+    {
+      strncpy(Destination, v3, 0x400u);
+      a1->script_p += v5;
+      *((_DWORD *)Destination + 256) = 5;
+      *((_DWORD *)Destination + 257) = p->n;
+      return 1;
+    }
   }
-  strncpy(Destination, v3, 0x400u);
-  a1->script_p += v5;
-  *((_DWORD *)Destination + 256) = 5;
-  *((_DWORD *)Destination + 257) = p->n;
-  return 1;
+  return 0;
 }
 
 //----- (1003F230) --------------------------------------------------------
