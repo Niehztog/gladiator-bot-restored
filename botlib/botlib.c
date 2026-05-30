@@ -28444,7 +28444,6 @@ float __cdecl BotAvoidGoalTime(int *goalstate, int number)
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
 {
   levelitem_t *li;
-  iteminfo_t *item;
 
   if ( !dword_1006435C )
     return -1;
@@ -28457,18 +28456,17 @@ int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
     if ( !li )
       return -1;
   }
-  item = &dword_1006435C->items[li->iteminfo];
   goal->areanum   = li->areanum;
   goal->origin[0] = li->goalorigin[0];
   goal->origin[1] = li->goalorigin[1];
   goal->origin[2] = li->goalorigin[2];
   goal->entitynum = li->entitynum;
-  goal->mins[0]   = item->mins[0];
-  goal->mins[1]   = item->mins[1];
-  goal->mins[2]   = item->mins[2];
-  goal->maxs[0]   = item->maxs[0];
-  goal->maxs[1]   = item->maxs[1];
-  goal->maxs[2]   = item->maxs[2];
+  goal->mins[0]   = dword_1006435C->items[li->iteminfo].mins[0];
+  goal->mins[1]   = dword_1006435C->items[li->iteminfo].mins[1];
+  goal->mins[2]   = dword_1006435C->items[li->iteminfo].mins[2];
+  goal->maxs[0]   = dword_1006435C->items[li->iteminfo].maxs[0];
+  goal->maxs[1]   = dword_1006435C->items[li->iteminfo].maxs[1];
+  goal->maxs[2]   = dword_1006435C->items[li->iteminfo].maxs[2];
   goal->number    = li->number;
   return li->number;
 }
