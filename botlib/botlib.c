@@ -39040,8 +39040,20 @@ int __stdcall sub_100415E0(int a1)
 //----- (10041600) --------------------------------------------------------
 HGLOBAL sub_10041600()
 {
-  /* GlobalFree stubs — removed Windows heap management */
-  return 0;
+  HGLOBAL result; // eax
+
+  if ( dword_10062970 )
+  {
+    GlobalUnlock(dword_10062970);
+    GlobalFree(dword_10062970);
+  }
+  result = dword_10062968;
+  if ( dword_10062968 )
+  {
+    GlobalUnlock(dword_10062968);
+    return (HGLOBAL)(intptr_t)GlobalFree(dword_10062968);
+  }
+  return result;
 }
 
 //----- (10041650) --------------------------------------------------------
