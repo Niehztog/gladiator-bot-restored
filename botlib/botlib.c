@@ -10314,25 +10314,22 @@ int AAS_Shutdown()
 //----- (1000EEB0) --------------------------------------------------------
 BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 {
-  int v3; // ecx
-  float v4; // st7
-  /* int[3]: raw bit copies for X/Y, float bit pattern at [2]. */
-  int v6[3]; // [esp+Ch] [ebp-30h] BYREF
   aas_trace_t trace;
+  vec3_t end;
+  aas_plane_t *plane;
 
-  v3 = *(_DWORD *)((char *)origin + 4);
-  v4 = origin[2];
-  v6[0] = *(_DWORD *)origin;
-  v6[1] = v3;
-  *(float *)&v6[2] = v4 - 4.0f;
-  trace = AAS_TraceClientBBox(origin, (float *)v6, presencetype, passent);
-  if ( trace.startsolid )
-    return 0;
-  if ( trace.fraction >= 1.0 )
-    return 0;
-  if ( origin[2] - trace.endpos[2] > 2.0f )
-    return 0;
-  return *(float *)(AAS_PlaneFromNum(trace.planenum) + 8) >= libvar_sv_maxsteepness->value;
+  end[0] = origin[0];
+  end[1] = origin[1];
+  end[2] = origin[2] - 4.0f;
+
+  trace = AAS_TraceClientBBox(origin, end, presencetype, passent);
+
+  if ( trace.startsolid ) return 0;
+  if ( trace.fraction >= 1.0 ) return 0;
+  if ( origin[2] - trace.endpos[2] > 2.0f ) return 0;
+  plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
+  if ( plane->normal[2] < libvar_sv_maxsteepness->value ) return 0;
+  return 1;
 }
 // 10001861: using guessed type _DWORD __cdecl AAS_DropToFloor(_DWORD, _DWORD, _DWORD);
 // 10001E74: using guessed type _DWORD __cdecl AAS_PlaneFromNum(_DWORD);
