@@ -36525,24 +36525,16 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   v6 = *(_DWORD *)(a4 + 1024);
   if ( v6 != a2 )
   {
-    switch ( a2 )
-    {
-      case 1:
-        strcpy(ArgList, "string");
-        break;
-      case 2:
-        strcpy(ArgList, "literal");
-        break;
-      case 3:
-        strcpy(ArgList, "number");
-        break;
-      case 4:
-        strcpy(ArgList, "name");
-        break;
-      case 5:
-        strcpy(ArgList, "punctuation");
-        break;
-    }
+    if ( a2 == 1 )
+      strcpy(ArgList, "string");
+    else if ( a2 == 2 )
+      strcpy(ArgList, "literal");
+    else if ( a2 == 3 )
+      strcpy(ArgList, "number");
+    else if ( a2 == 4 )
+      strcpy(ArgList, "name");
+    else if ( a2 == 5 )
+      strcpy(ArgList, "punctuation");
     SourceError(src, aExpectedASFoun, ArgList);
     return 0;
   }
