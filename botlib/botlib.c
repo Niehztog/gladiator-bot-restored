@@ -38078,15 +38078,15 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   int v7; // ebx
   int v8; // ecx
   int v9; // esi
-  __int64 v10; // rax
+  int v10; // rax
   double v11; // st7
   double v12; // st7
-  __int64 v13; // rax
+  int v13; // rax
   double v14; // st7
   char v15; // [esp+10h] [ebp-450h]
   int v16; // [esp+20h] [ebp-440h]
   int v17; // [esp+24h] [ebp-43Ch]
-  double v18; // [esp+28h] [ebp-438h]
+  float v18; // [esp+28h] [ebp-438h]
   int v19; // [esp+28h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
 
@@ -38152,14 +38152,14 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     if ( (v8 & 0x400) != 0 )
     {
       v9 = 0;
-      LODWORD(v10) = 255;
+      v10 = 255;
       v17 = 0;
       v16 = 255;
     }
     else
     {
       v9 = -128;
-      LODWORD(v10) = 127;
+      v10 = 127;
       v17 = -128;
       v16 = 127;
     }
@@ -38167,20 +38167,20 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   else
   {
     v9 = v17;
-    LODWORD(v10) = v16;
+    v10 = v16;
   }
   if ( (unsigned __int8)v8 == 2 )
   {
     if ( (v8 & 0x400) != 0 )
     {
       v9 = 0;
-      LODWORD(v10) = 0xFFFF;
+      v10 = 0xFFFF;
       v17 = 0;
     }
     else
     {
       v9 = -32768;
-      LODWORD(v10) = 0x7FFF;
+      v10 = 0x7FFF;
       v17 = -32768;
     }
     v16 = v10;
@@ -38203,16 +38203,16 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     v12 = (double)v17;
     if ( v12 <= fielddef_float(field, 4) )
       v12 = fielddef_float(field, 4);
-    v13 = (__int64)v12;
+    v13 = (int)v12;
     v14 = (double)v16;
     v9 = v13;
     if ( v14 >= fielddef_float(field, 5) )
       v14 = fielddef_float(field, 5);
-    v10 = (__int64)v14;
+    v10 = (int)v14;
   }
-  if ( v7 < v9 || v7 > (int)v10 )
+  if ( v7 < v9 || v7 > v10 )
   {
-    SourceError(src, aValueDOutOfRan_0, v7, v9, (int)v10);
+    SourceError(src, aValueDOutOfRan_0, v7, v9, v10);
     return 0;
   }
 LABEL_47:
