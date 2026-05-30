@@ -6999,9 +6999,9 @@ int AAS_TestPortals()
 //----- (100096E0) --------------------------------------------------------
 int AAS_InitClustering()
 {
-  __int64 v1; // rax
+  int v1; // rax (was __int64)
 
-  LODWORD(v1) = aasworld.loaded;
+  v1 = aasworld.loaded;
   if ( aasworld.loaded )
   {
     if ( aasworld.numclusters < 1
@@ -7034,7 +7034,7 @@ int AAS_InitClustering()
       while ( !AAS_TestPortals() );
       aasworld.savefile = 1;
       bi_Print(1, "\r%6d portals created\n", aasworld.numportals);
-      LODWORD(v1) = bi_Print(1, "\r%6d clusters created\n", aasworld.numclusters);
+      v1 = bi_Print(1, "\r%6d clusters created\n", aasworld.numclusters);
     }
   }
   return v1;
@@ -14230,7 +14230,7 @@ int AAS_Reachability_Elevator()
   int *v21; // esi
   int v22; // edx
   double v23; // st7
-  __int64 v24; // rax
+  int v24; // rax (was __int64)
   double v25; // st7
   double v26; // st7
   float v27; // eax
@@ -14448,7 +14448,7 @@ LABEL_30:
                 *v20 = v16;
                 v23 = v43;
                 v20[1] = v22;
-                v24 = (__int64)v23;
+                v24 = (int)v23;
                 v25 = v43 * 100.0;
                 v21[2] = v24;
                 *((float *)v21 + 3) = dirvec[0];
@@ -18670,7 +18670,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
   float *v17; // edi
   double v18; // st7
   char *v19; // eax
-  __int64 v20; // rax
+  int v20; // rax (was __int64)
   int v21; // eax
   int v22; // esi
   int v23; // ecx
@@ -18764,10 +18764,10 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
               if ( bs->thinktime * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509 )
               {
                 v45 = rand() & 0x7FFF;
-                v20 = (__int64)floor((double)v45 * 0.000030518509 * 2.9);
-                if ( (_DWORD)v20 )
+                v20 = (int)floor((double)v45 * 0.000030518509 * 2.9);
+                if ( v20 )
                 {
-                  if ( (_DWORD)v20 == 1 )
+                  if ( v20 == 1 )
                     sub_100371B0(bs->client, 2);
                   else
                     sub_100371B0(bs->client, 3);
@@ -27648,7 +27648,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
   BOOL v6; // eax
   bot_chatmessage_t *v7; // esi
   int v8; // edi
-  __int64 v9; // rax
+  int v9; // rax (was __int64)
   bot_chatmessage_t *v10; // esi
   int v11; // edi
   bot_chatmessage_t *v13; // [esp+10h] [ebp-100h]
@@ -27732,7 +27732,7 @@ LABEL_21:
         while ( v7 );
         v15 = v8;
       }
-      v9 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
+      v9 = (int)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
       v10 = v2->firstchatmessage;
       v11 = v9;
       if ( v10 )
