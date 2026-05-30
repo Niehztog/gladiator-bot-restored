@@ -39520,13 +39520,13 @@ void Com_DPrintf(const char *fmt, ...) { (void)fmt; /* empty body */ }
 float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3)
 {
   double v4; // st4
-  double v5; // st7
+  float v5; // st7
   float *result; // eax
   float v7; // [esp+0h] [ebp-Ch]
   float v8; // [esp+4h] [ebp-8h]
   float v9; // [esp+18h] [ebp+Ch]
 
-  v4 = 1.0 / (*a3 * *a3 + a3[1] * a3[1] + a3[2] * a3[2]);
+  v4 = 1.0f / (*a3 * *a3 + a3[1] * a3[1] + a3[2] * a3[2]);
   v9 = (a2[2] * a3[2] + a2[1] * a3[1] + *a2 * *a3) * v4;
   v7 = v4 * *a3;
   v8 = v4 * a3[1];
