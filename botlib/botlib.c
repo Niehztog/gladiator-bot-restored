@@ -25321,31 +25321,19 @@ BOOL __cdecl IsWhiteSpace(char a1)
 //----- (1002AC50) --------------------------------------------------------
 void __cdecl UnifyWhiteSpaces(void *Src)
 {
-  char *v1; // ebx
-  const char *i; // esi
-  int j; // al
-  int k; // al
+  char *ptr, *oldptr;
 
-  v1 = (char *)Src;
-  for ( i = (const char *)Src; *i; v1 = (char *)i )
+  for ( ptr = oldptr = (char *)Src; *ptr; oldptr = ptr )
   {
-    for ( j = *i; j; j = *++i )
+    while ( *ptr && IsWhiteSpace(*ptr) ) ptr++;
+    if ( ptr > oldptr )
     {
-      if ( !IsWhiteSpace(j) )
-        break;
+      if ( oldptr > (char *)Src && *ptr )
+        *oldptr++ = ' ';
+      if ( ptr > oldptr )
+        memmove(oldptr, ptr, strlen(ptr) + 1);
     }
-    if ( i > v1 )
-    {
-      if ( v1 > (char *)Src && *i )
-        *v1++ = 32;
-      if ( i > v1 )
-        memmove(v1, i, strlen(i) + 1);
-    }
-    for ( k = *i; k; k = *++i )
-    {
-      if ( IsWhiteSpace(k) )
-        break;
-    }
+    while ( *ptr && !IsWhiteSpace(*ptr) ) ptr++;
   }
 }
 
