@@ -21128,10 +21128,10 @@ int __cdecl sub_10022160(int *a1)
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
-    if ( v5 <= v8 )
-      BotInitialChat(a1 + 995, aDeathPraise, v7, (char *)0);
-    else
+    if ( v5 < v8 )
       BotInitialChat(a1 + 995, aDeathInsult, v7, (char *)0);
+    else
+      BotInitialChat(a1 + 995, aDeathPraise, v7, (char *)0);
   }
   return 1;
 }
@@ -21178,10 +21178,10 @@ BOOL __cdecl BotChat_Kill(int *a1)
       /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
        * Characteristic 15 is "praise vs insult" probability. */
       v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
-      if ( v5 <= v8 )
-        BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
-      else
+      if ( v5 < v8 )
         BotInitialChat(a1 + 995, aKillInsult, v7, (char *)0);
+      else
+        BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
     }
     return 1;
   }
