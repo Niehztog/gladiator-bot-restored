@@ -12267,23 +12267,23 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * at 80-bit. Promoted to long double + explicit operand casts at the
    * chain expressions to mirror the original FPU pipeline.
    * See `fpu_long_double_precision.md`. */
-  long double v25; // st7
-  long double v26; // st7
-  long double v27; // st7
-  long double v28; // st7
-  long double v29; // st7
+  float v25; // st7
+  float v26; // st7
+  float v27; // st7
+  float v28; // st7
+  float v29; // st7
   float v30; // ecx
   float v31; // edx
-  long double v32; // st7
-  long double v33; // st7
+  float v32; // st7
+  float v33; // st7
   float v34; // edx
   float v35; // eax
-  long double v36; // st7
+  float v36; // st7
   float v37; // eax
-  long double v38; // st7
-  long double v39; // st6
-  long double v40; // st6
-  long double v41; // st7
+  float v38; // st7
+  float v39; // st6
+  float v40; // st6
+  float v41; // st7
   int v42; // ecx
   int v43; // edx
   int *v44; // eax
