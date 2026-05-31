@@ -10536,7 +10536,8 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   dir[1] = origin[1] - bsptrace[4];
   dir[2] = origin[2] - bsptrace[5];
   VectorNormalize(dir);
-  v7 = *(float *)&v14 * 0.5f * 8.0f;
+  *(float *)&v14 = *(float *)&v14 * 0.5;
+  v7 = *(float *)&v14 * 8.0;
   VectorScale(dir, v7, kvel);
   return kvel[2] + libvar_sv_jumpvel->value;
 }
