@@ -551,7 +551,7 @@ unsigned short __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
 int AAS_CalculateAreaTravelTimes();
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 void __cdecl AAS_FreeRoutingCache(void *cache);
-int AAS_FreeAllClusterAreaCache();
+void AAS_FreeAllClusterAreaCache(void);
 int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
@@ -15695,38 +15695,29 @@ void __cdecl AAS_FreeRoutingCache(void *cache)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (10019280) --------------------------------------------------------
-int AAS_FreeAllClusterAreaCache()
+void AAS_FreeAllClusterAreaCache(void)
 {
-  /* Faithful transcription of 0x10019280 disasm.  Original 32-bit code
-   * walked aasworld.clusterareacache[cluster][areaInCluster] (a 2-D
-   * pointer table) and per-slot followed cache->next (+0x24) freeing
-   * each entry.  On 64-bit we use the typed array indexing and typed
-   * `next` field so 8-byte pointers survive.  Behaviour identical. */
-  int                  cluster, areaInCluster;
-  aas_cluster_t       *clusters;
-  aas_routingcache_t **row;
-  aas_routingcache_t  *entry, *next;
+  int i, j;
+  aas_routingcache_t *cache, *nextcache;
+  aas_cluster_t *cluster;
 
-  if ( aasworld.clusterareacache )
+  if ( !aasworld.clusterareacache )
+    return;
+  for ( i = 0; i < aasworld.numclusters; i++ )
   {
-    clusters = (aas_cluster_t *)aasworld.clusters;
-    for ( cluster = 0; cluster < aasworld.numclusters; ++cluster )
+    cluster = &((aas_cluster_t *)aasworld.clusters)[i];
+    for ( j = 0; j < cluster->numareas; j++ )
     {
-      row = aasworld.clusterareacache[cluster];
-      for ( areaInCluster = 0; areaInCluster < clusters[cluster].numareas; ++areaInCluster )
+      for ( cache = aasworld.clusterareacache[i][j]; cache; cache = nextcache )
       {
-        for ( entry = row[areaInCluster]; entry; entry = next )
-        {
-          next = entry->next;
-          AAS_FreeRoutingCache(entry);
-        }
-        row[areaInCluster] = NULL;
+        nextcache = cache->next;
+        AAS_FreeRoutingCache(cache);
       }
+      aasworld.clusterareacache[i][j] = NULL;
     }
-    FreeMemory(aasworld.clusterareacache);
-    aasworld.clusterareacache = NULL;
   }
-  return 0;
+  FreeMemory(aasworld.clusterareacache);
+  aasworld.clusterareacache = NULL;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10066A7C: using guessed type int aasworld.clusterareacache;
