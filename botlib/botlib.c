@@ -10116,8 +10116,7 @@ int BotLibLoadMap(char *Source)
           *_errno() = v5;
           if ( !*_errno() )
             return 0;
-          LibVarValue(aAutolaunchbspc, (char *)a0);
-          if ( 0 )  /* removed phantom a1 comparison */
+          if ( LibVarValue(aAutolaunchbspc, (char *)a0) != 0 )
           {
             sub_1000E140(Source);
             bi_Print(
