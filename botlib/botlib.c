@@ -425,7 +425,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList);
 int __cdecl AAS_FloodClusterReachabilities(int clusternum);
 void __cdecl AAS_NumberClusterPortals(int clusternum);
 int AAS_FindClusters();
-int AAS_CreatePortals();
+void AAS_CreatePortals();
 int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea);
 qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas);
 int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done);
@@ -6460,38 +6460,28 @@ LABEL_9:
 // 10066970: using guessed type int aasworld.portalindexsize;
 
 //----- (10008C80) --------------------------------------------------------
-int AAS_CreatePortals()
+void AAS_CreatePortals()
 {
-  int result; // eax
-  int v1; // esi
-  int v2; // ebx
-  int *v3; // eax
+  int i;
+  int *portal;
 
-  result = aasworld.numareas;
-  v1 = 1;
-  if ( aasworld.numareas > 1 )
+  for ( i = 1; i < aasworld.numareas; i++ )
   {
-    result = aasworld.numportals;
-    v2 = 28;
-    do
+    if ( (*((_BYTE *)aasworld.areasettings + 28 * i) & 8) != 0 )
     {
-      if ( (*((_BYTE *)aasworld.areasettings + v2) & 8) != 0 )
+      if ( aasworld.numportals >= 0x10000 )
       {
-        if ( result >= 0x10000 )
-          return AAS_Error(aAasMaxPortals);
-        v3 = (int *)((char *)aasworld.portals + 20 * result);
-        *v3 = v1;
-        v3[1] = 0;
-        v3[2] = 0;
-        Log_Write(aPortalDAreaD, aasworld.numportals, v1);
-        result = ++aasworld.numportals;
+        AAS_Error(aAasMaxPortals);
+        return;
       }
-      ++v1;
-      v2 += 28;
+      portal = (int *)((char *)aasworld.portals + 20 * aasworld.numportals);
+      portal[0] = i;
+      portal[1] = 0;
+      portal[2] = 0;
+      Log_Write(aPortalDAreaD, aasworld.numportals, i);
+      aasworld.numportals++;
     }
-    while ( v1 < aasworld.numareas );
   }
-  return result;
 }
 // 10008CFA: variable 'v4' is possibly undefined
 // 10066948: using guessed type int aasworld.numareas;
