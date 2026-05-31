@@ -28687,11 +28687,11 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
 //----- (10030600) --------------------------------------------------------
 int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
 {
-  double v3; // st7
+  float v3; // st7
   int v4; // edx
-  double v5; // st7
-  double v6; // st6
-  double v7; // st5
+  float v5; // st7
+  float v6; // st6
+  float v7; // st5
   vec3_t maxs; // [esp+14h] [ebp-24h] BYREF — inner-box upper bound (mover.maxs - bot.mins + origin - 4)
   vec3_t mins; // [esp+20h] [ebp-18h] BYREF — inner-box lower bound (mover.mins - bot.maxs + origin + 4)
   float v15[3]; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
@@ -28710,11 +28710,11 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
   v7 = maxs[0] + *a2;
   maxs[1] = maxs[1] + a2[1];
   maxs[2] = maxs[2] + a2[2];
-  maxs[0] = v7 - 4.0;
-  maxs[1] = maxs[1] - 4.0;
+  maxs[0] = v7 - 4.0f;
+  maxs[1] = maxs[1] - 4.0f;
   maxs[2] = maxs[2] - 10.0f;
-  mins[0] = v5 - -4.0;
-  mins[1] = mins[1] - -4.0;
+  mins[0] = v5 - -4.0f;
+  mins[1] = mins[1] - -4.0f;
   mins[2] = v6;
   for (v4 = 0; v4 < 3; v4++) {
     if (a1[v4] < mins[v4] || a1[v4] > maxs[v4])
