@@ -8977,22 +8977,16 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     fclose(Stream);
     return 0;
   }
-  else
+  v4 = (void *)GetClearedMemory(ElementCount);
+  if ( fread_locked(v4, 1u, ElementCount, Stream) != ElementCount )
   {
-    v4 = (void *)GetClearedMemory(ElementCount);
-    if ( fread_locked(v4, 1u, ElementCount, Stream) == ElementCount )
-    {
-      return v4;
-    }
-    else
-    {
-      AAS_Error(aCanTReadAasLum);
-      FreeMemory(v4);
-      AAS_DumpAASData();
-      fclose(Stream);
-      return 0;
-    }
+    AAS_Error(aCanTReadAasLum);
+    FreeMemory(v4);
+    AAS_DumpAASData();
+    fclose(Stream);
+    return 0;
   }
+  return v4;
 }
 // 1000C69E: variable 'v5' is possibly undefined
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
