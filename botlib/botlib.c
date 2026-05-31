@@ -21410,12 +21410,12 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
     v37[0] = v4;
     v37[1] = v5;
     v37[2] = v6;
-    v37[4] = -8.0;
-    v37[5] = -8.0;
-    v37[6] = -8.0;
-    v37[7] = 8.0;
-    v37[8] = 8.0;
-    v37[9] = 8.0;
+    v37[4] = -8.0f;
+    v37[5] = -8.0f;
+    v37[6] = -8.0f;
+    v37[7] = 8.0f;
+    v37[8] = 8.0f;
+    v37[9] = 8.0f;
     BotEntityInfo(a2, a2 + 2880);
     v7 = (const void *)BotMoveToGoal((intptr_t)v38, a2 + 2880, (intptr_t)v37, a3);
     result = a1;
@@ -21433,14 +21433,14 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
    * spurious `vN = v10;` assignments using the random number — which made
    * every probability gate trivially `random <= random` (always true) and
    * destroyed the BFloat gating throughout this AI helper. */
-  v25 = Characteristic_BFloat(v20, 48, 0.0, 1.0);
+  v25 = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
   if ( v10 <= v25 )
   {
-    v27 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 4, 0.0, 1.0);
+    v27 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 4, 0.0f, 1.0f);
     v11 = BotCharacter((bot_state_t *)a2);
-    v21 = Characteristic_BFloat(v11, 25, 0.0, 1.0);
-    v25 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 24, 0.0, 1.0);
-    if ( v27 >= 0.2 )
+    v21 = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
+    v25 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 24, 0.0f, 1.0f);
+    if ( v27 >= 0.2f )
     {
       BotEntityInfo(a2, a2 + 2880);
       qmemcpy(v39, AAS_EntityInfo(v39, *(_DWORD *)(a2 + 4196)), sizeof(v39));
@@ -21453,14 +21453,14 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       v32[1] = -*(float *)&v28[1];
       v32[2] = -v28[2];
       v12 = 1;
-      if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) )
+      if ( AAS_Time() - 1.0f > *(float *)(a2 + 2820) )
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
         if ( (float)LOWORD(v31) * 0.000030518509f >= v21 )
         {
-          if ( AAS_Time() - 1.0 > *(float *)(a2 + 2820) && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
-            *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0;
+          if ( AAS_Time() - 1.0f > *(float *)(a2 + 2820) && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
+            *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0f;
         }
         else
         {
@@ -21488,22 +21488,22 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
       {
         v12 = 2;
       }
-      if ( v27 <= 0.4 )
+      if ( v27 <= 0.4f )
       {
-        if ( (v26 <= 180.0 || !BotMoveInDirection(a2 + 2880, (intptr_t)v28, 400.0, v12)) && v26 < 100.0 )
-          BotMoveInDirection(a2 + 2880, (intptr_t)v32, 400.0, v12);
+        if ( (v26 <= 180.0f || !BotMoveInDirection(a2 + 2880, (intptr_t)v28, 400.0f, v12)) && v26 < 100.0f )
+          BotMoveInDirection(a2 + 2880, (intptr_t)v32, 400.0f, v12);
         goto LABEL_39;
       }
-      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
-      v14 = (1.0 - v27) * 0.2 + 0.4;
+      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1f;
+      v14 = (1.0f - v27) * 0.2f + 0.4f;
       v31 = v14;
-      if ( v27 > 0.7 )
+      if ( v27 > 0.7f )
       {
         v15 = rand();
-        v14 = ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5 + (float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
+        v14 = ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5f + (float)(v15 & 0x7FFF) * 0.000030518509f - 0.5f) * 0.1f
             + v31;
       }
-      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001 )
+      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001f )
       {
         v16 = *(_DWORD *)&bs->flags;
         *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -21523,9 +21523,9 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
-        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
+        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9f )
           goto LABEL_35;
-        if ( v26 <= 180.0 )
+        if ( v26 <= 180.0f )
           break;
         *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v28[0];
         v22[1] = v22[1] + *(float *)&v28[1];
@@ -21533,7 +21533,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
 LABEL_36:
         v22[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection(a2 + 2880, (intptr_t)v22, 400.0, v12) )
+        if ( !BotMoveInDirection(a2 + 2880, (intptr_t)v22, 400.0f, v12) )
         {
           v19 = *(_DWORD *)&bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -21544,7 +21544,7 @@ LABEL_37:
         }
         goto LABEL_39;
       }
-      if ( v26 >= 100.0 )
+      if ( v26 >= 100.0f )
         goto LABEL_37;
 LABEL_35:
       *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v32[0];
