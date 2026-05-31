@@ -25211,13 +25211,9 @@ const char *__cdecl StringContains(const char *str1, const char *str2, int cases
   ptrdiff_t v7;
   int v8;
   char v9;
-  bool v10;
 
   len = strlen(str1) - strlen(str2);
-  v12 = 0;
-  if ( len < 0 )
-    return 0;
-  while ( 1 )
+  for ( v12 = 0; v12 <= len; ++v12, ++str1 )
   {
     v13 = 0;
     if ( *str2 )
@@ -25244,11 +25240,8 @@ const char *__cdecl StringContains(const char *str1, const char *str2, int cases
     }
     if ( !str2[v13] )
       return str1;
-    v10 = ++v12 <= len;
-    ++str1;
-    if ( !v10 )
-      return 0;
   }
+  return 0;
 }
 
 //----- (1002AE00) --------------------------------------------------------
