@@ -21984,7 +21984,7 @@ void BotCheckAttack(bot_state_t *bs)
   void *v9; // esi
   int v10; // eax
   float v11; // [esp+10h] [ebp-1A4h]
-  int v12; // [esp+10h] [ebp-1A4h]
+  float v12; // [esp+10h] [ebp-1A4h]
   int v13; // [esp+14h] [ebp-1A0h] BYREF
   float v14; // [esp+18h] [ebp-19Ch]
   float v15; // [esp+1Ch] [ebp-198h]
@@ -22021,10 +22021,10 @@ void BotCheckAttack(bot_state_t *bs)
       v18[0] = v23[4] - bs->origin[0];
       v18[1] = v23[5] - bs->origin[1];
       v18[2] = v23[6] - bs->origin[2];
-      v12 = 1123024896;
-      if ( VectorLength(v18) >= 100.0 )
-        v12 = 1112014848;
-      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, *(float *)&v12, bs->enemy) )
+      v12 = 120.0f;
+      if ( VectorLength(v18) >= 100.0f )
+        v12 = 50.0f;
+      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v12, bs->enemy) )
       {
         v3 = (uintptr_t)sub_100354B0(BotWS(bs));
         if ( v3 )
