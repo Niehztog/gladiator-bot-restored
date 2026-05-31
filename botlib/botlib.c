@@ -16866,19 +16866,18 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   do
   {
     v3 = (char *)aasworld.nodes + 12 * v2;
-    if ( point[2] * *((float *)aasworld.planes + 5 * *v3 + 2)
+    if ( point[0] * *((float *)aasworld.planes + 5 * *v3)
        + point[1] * *((float *)aasworld.planes + 5 * *v3 + 1)
-       + *point * *((float *)aasworld.planes + 5 * *v3)
+       + point[2] * *((float *)aasworld.planes + 5 * *v3 + 2)
        - *((float *)aasworld.planes + 5 * *v3 + 3) > 0.0f )
       v2 = v3[1];
     else
       v2 = v3[2];
   }
   while ( v2 > 0 );
-  if ( v2 )
-    return -v2;
-  else
+  if ( !v2 )
     return 0;
+  return -v2;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E0: using guessed type int aasworld.loaded;
