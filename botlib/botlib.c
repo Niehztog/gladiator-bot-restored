@@ -35726,7 +35726,6 @@ LABEL_22:
 //----- (1003C900) --------------------------------------------------------
 int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
 {
-  source_t *v4; // esi
   token_t *v6; // ebp (firsttoken)
   token_t *v7; // edi
   token_t *v8; // eax
@@ -35746,7 +35745,6 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
   {
     *floatvalue = 0;
   }
-  v4 = src;
   if ( !PC_ReadSourceToken(src, &token) )
   {
     SourceError(src, aNoLeadingAfter);
@@ -35766,7 +35764,7 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
     {
       if ( token.type != 3 && token.type != 5 )
       {
-        SourceError(v4, aCanTEvaluateS, token.string);
+        SourceError(src, aCanTEvaluateS, token.string);
         return 0;
       }
       if ( token.string[0] == 40 )
@@ -35806,7 +35804,7 @@ LABEL_30:
       v16 = 1;
       v9 = PC_CopyToken(&token);
       v9->next = 0;
-      v4 = src;
+      src = src;
       if ( v7 )
         v7->next = v9;
       else
@@ -35815,7 +35813,7 @@ LABEL_30:
     }
     else
     {
-      v4 = src;
+      src = src;
       v10 = PC_FindHashedDefine(src->definehash, token.string);
       if ( !v10 )
       {
@@ -35826,8 +35824,8 @@ LABEL_30:
         return 0;
     }
   }
-  while ( PC_ReadSourceToken(v4, &token) );
-  if ( !PC_EvaluateTokens(v4, v6, intvalue, floatvalue, integer) )
+  while ( PC_ReadSourceToken(src, &token) );
+  if ( !PC_EvaluateTokens(src, v6, intvalue, floatvalue, integer) )
     return 0;
   v12 = v6;
   if ( v6 )
