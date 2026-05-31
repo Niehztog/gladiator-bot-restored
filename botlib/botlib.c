@@ -8306,38 +8306,38 @@ LABEL_21:
 int InFieldOfVision(float *a1, float a2, float *a3)
 {
   int v5; // edi
-  double delta; // st7 (originally IDA phantom a1@<st0>)
-  float v8; // [esp+10h] [ebp+4h]
-  float v9; // [esp+18h] [ebp+Ch]
+  float delta;
+  float v8;
+  float v9;
 
-  v5 = 0;
-  while ( 1 )
+  for ( v5 = 0; v5 < 2; v5++ )
   {
     v8 = AngleMod(a1[v5]);
     v9 = AngleMod(a3[v5]);
-    delta = v9 - v8;
     a3[v5] = v9;
-    if ( v9 <= (float)v8 )
+    delta = v9 - v8;
+    if ( v9 > (float)v8 )
+    {
+      if ( delta > 180.0 )
+        delta = delta - 360.0;
+    }
+    else
     {
       if ( delta < -180.0 )
         delta = delta + 360.0;
     }
-    else if ( delta > 180.0 )
+    if ( delta > 0.0f )
     {
-      delta = delta - 360.0;
+      if ( delta > a2 * 0.5 )
+        return 0;
     }
-    if ( delta <= 0.0 )
-      break;
-    if ( a2 * 0.5 < delta )
-      return 0;
-LABEL_11:
-    ++v5;
-    if ( v5 >= 2 )
-      return 1;
+    else
+    {
+      if ( delta < -a2 * 0.5 )
+        return 0;
+    }
   }
-  if ( -a2 * 0.5 <= delta )
-    goto LABEL_11;
-  return 0;
+  return 1;
 }
 
 //----- (1000B750) --------------------------------------------------------
