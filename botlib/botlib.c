@@ -899,7 +899,7 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message); // i
 _WORD *__cdecl CRC_Init(_WORD *a1);
 __int16 __cdecl CRC_Value(__int16 a1);
 __int16 __cdecl CRC_Block(const unsigned char *a1, int a2);
-double __cdecl LibVarStringValue(char *a1);
+float __cdecl LibVarStringValue(char *a1);
 libvar_t *__cdecl LibVarAlloc(const char *name);
 void      __cdecl LibVarDeAlloc(libvar_t *v);
 libvar_t *__cdecl LibVarGet(const char *name);
@@ -33243,40 +33243,34 @@ void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
 // 1005EE70: using guessed type __int16 word_1005EE70[308];
 
 //----- (10038750) --------------------------------------------------------
-double __cdecl LibVarStringValue(char *a1)
+float __cdecl LibVarStringValue(char *string)
 {
-  char *v1; // edx
-  int v2; // ecx
-  double result; // st7
-  double v5; // st6
-  char v4; // al
-  int i; // [esp+0h] [ebp-4h]
+  int dotfound;
+  float value;
 
-  v1 = a1;
-  v2 = 0;
-  result = 0.0f;
-  v4 = *a1;
-  for ( i = 0; v4; v4 = *++v1 )
+  dotfound = 0;
+  value = 0.0f;
+  while ( *string )
   {
-    if ( v4 < 48 || v4 > 57 )
+    if ( *string < '0' || *string > '9' )
     {
-      if ( v2 || v4 != 46 )
+      if ( dotfound || *string != '.' )
         return 0.0f;
-      v2 = 10;
-      ++v1;
-      i = 10;
+      dotfound = 10;
+      ++string;
     }
-    else if ( !v2 )
+    if ( dotfound )
     {
-      result = (float)(v4 - 48) + result * 10.0;
-      continue;
+      value = value + (float)(*string - '0') / (float)dotfound;
+      dotfound *= 10;
     }
-    v5 = (float)(*v1 - 48) / (float)i;
-    v2 *= 10;
-    i = v2;
-    result = result + v5;
+    else
+    {
+      value = value * 10.0 + (float)(*string - '0');
+    }
+    ++string;
   }
-  return result;
+  return value;
 }
 
 //----- (10038810) --------------------------------------------------------
@@ -35633,7 +35627,6 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
   define_t *v10;
   token_t *v11;
   token_t *v12;
-  char v13;
   int v14;
   token_t token;
 
