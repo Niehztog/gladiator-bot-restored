@@ -35945,21 +35945,19 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
  * to use source_t->skip and source_t->definehash struct fields. */
 int __cdecl PC_ReadTokenHandle(source_t *a1, _DWORD *a2)
 {
-  int v2; // eax
   define_t *v3;
 
   while ( 1 )
   {
     if ( !PC_ReadSourceToken(a1, (token_t *)a2) )
       return 0;
-    v2 = a2[256];
-    if ( v2 == 5 && ((token_t *)a2)->string[0] == '#' )
+    if ( ((token_t *)a2)->type == 5 && ((token_t *)a2)->string[0] == '#' )
     {
       if ( !PC_ReadDirective(a1) )
         return 0;
       continue;
     }
-    if ( v2 == 5 && ((token_t *)a2)->string[0] == '$' )
+    if ( ((token_t *)a2)->type == 5 && ((token_t *)a2)->string[0] == '$' )
     {
       if ( !PC_ReadDollarDirective(a1) )
         return 0;
@@ -35967,7 +35965,7 @@ int __cdecl PC_ReadTokenHandle(source_t *a1, _DWORD *a2)
     }
     if ( a1->skip )
       continue;
-    if ( v2 == 4 )
+    if ( ((token_t *)a2)->type == 4 )
     {
       v3 = PC_FindHashedDefine(a1->definehash, (const char *)a2);
       if ( v3 )
