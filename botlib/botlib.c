@@ -22832,7 +22832,8 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0f )
     {
       v4 = rand();
-      v8 = (float)(v4 & 0x7FFF) * 0.000030518509f + (float)(v4 & 0x7FFF) * 0.000030518509f;
+      v8 = (float)(v4 & 0x7FFF) * 0.000030518509f;
+      v8 = v8 + v8;
       bs->teammessage_time = AAS_Time() + v8;
       v5 = (rand() & 0x7FFF) * 0.000030518509f;
       if ( v5 < 0.33f && dword_1006442C && dword_100643EC )
