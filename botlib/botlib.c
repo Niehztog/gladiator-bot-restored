@@ -33193,32 +33193,20 @@ __int16 __cdecl CRC_Value(__int16 a1)
 }
 
 //----- (10038640) --------------------------------------------------------
-__int16 __cdecl CRC_Block(const unsigned char *a1, int a2)
+__int16 __cdecl CRC_Block(const unsigned char *data, int length)
 {
-  int v2; // esi
-  int v3; // ecx
-  int v4; // eax
-  __int16 v5; // dx
-  int v7; // [esp+8h] [ebp-4h] BYREF
+  unsigned __int16 crcvalue;
+  int i, ind;
 
-  CRC_Init(&v7);
-  v2 = 0;
-  if ( a2 <= 0 )
-    return CRC_Value(v7);
-  v3 = v7;
-  do
+  CRC_Init(&crcvalue);
+  for ( i = 0; i < length; i++ )
   {
-    v4 = BYTE1(v3) ^ a1[v2];
-    if ( v4 > 256 )
-      v4 = 0;
-    LOBYTE(v5) = 0;
-    HIBYTE(v5) = v3;
-    LOWORD(v3) = v5 ^ word_1005EE70[v4];
-    ++v2;
+    ind = (crcvalue >> 8) ^ data[i];
+    if ( ind < 0 || ind > 256 )
+      ind = 0;
+    crcvalue = (crcvalue << 8) ^ word_1005EE70[ind];
   }
-  while ( v2 < a2 );
-  v7 = v3;
-  return CRC_Value(v3);
+  return CRC_Value(crcvalue);
 }
 // 1005EE70: using guessed type __int16 word_1005EE70[308];
 
