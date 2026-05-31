@@ -30627,7 +30627,7 @@ intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
   {
     EA_Command(*(_DWORD *)(a2 + 40), aHookoff, (char *)0);
     v4 = *(_DWORD *)(a2 + 96);
-    v4 = v4 & 0xBF;
+    v4 &= ~0x40u;
     *(_DWORD *)(a2 + 96) = v4;
     goto LABEL_27;
   }
