@@ -23215,13 +23215,18 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   const char *v51; // eax
   char *v52; // eax
   void *v53; // esi (chatstate pointer)
-  int v54; // [esp+28h] [ebp-5C4h]
-  float v55; // [esp+28h] [ebp-5C4h]
-  float v56; // [esp+28h] [ebp-5C4h]
-  float v57; // [esp+28h] [ebp-5C4h]
-  float v58; // [esp+28h] [ebp-5C4h]
-  float v59; // [esp+28h] [ebp-5C4h]
-  float v60; // [esp+28h] [ebp-5C4h]
+  /* IDA split a single ebp-5C4h slot into v54 (int) + v55..v60 (float)
+   * across mutually-exclusive switch cases.  Original had ONE union
+   * member at this slot — restore it as a union so MSVC packs all
+   * assignments onto the same 4-byte slot (saves 8 bytes of frame). */
+  union { int i; float f; } u54;
+#define v54 u54.i
+#define v55 u54.f
+#define v56 u54.f
+#define v57 u54.f
+#define v58 u54.f
+#define v59 u54.f
+#define v60 u54.f
   vec3_t origin; // [esp+2Ch] [ebp-5C0h] BYREF — checkpoint origin parsed from chat (sscanf input to AAS_PointAreaNum)
   /* IDA decompiled the 240-byte match struct as a flat `char v64[4]` plus
    * separate `int v65/v66` and never recovered the variables[] capture
@@ -23698,6 +23703,13 @@ LABEL_64:
       return 1;
   }
 }
+#undef v54
+#undef v55
+#undef v56
+#undef v57
+#undef v58
+#undef v59
+#undef v60
 // 1000106E: using guessed type _DWORD __cdecl EA_SayTeam(_DWORD, _DWORD);
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
