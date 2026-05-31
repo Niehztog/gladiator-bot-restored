@@ -32060,17 +32060,17 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
   _DWORD *v4; // edi
   int v6; // eax
 
-  if ( !fputc(Stream, a3) )
+  if ( !WriteIndent(Stream, a3) )
     return 0;
   v4 = (_DWORD *)a2;
   if ( fprintf(Stream, "switch(%d)\n", *(_DWORD *)a2) < 0 )
     return 0;
-  if ( !fputc(Stream, a3) )
+  if ( !WriteIndent(Stream, a3) )
     return 0;
   if ( fprintf(Stream, "{\n") < 0 )
     return 0;
   ++a3;
-  if ( !fputc(Stream, a3) )
+  if ( !WriteIndent(Stream, a3) )
     return 0;
   while ( 1 )
   {
@@ -32086,10 +32086,10 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
     if ( v4[6] )
     {
       if ( fprintf(Stream, "\n") < 0
-        || !fputc(Stream, a3)
+        || !WriteIndent(Stream, a3)
         || fprintf(Stream, "{\n") < 0
         || !WriteFuzzySeperators_r(Stream, v4[6], a3 + 1)
-        || !fputc(Stream, a3) )
+        || !WriteIndent(Stream, a3) )
       {
         return 0;
       }
@@ -32104,11 +32104,11 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
     v4 = (_DWORD *)v4[7];
     if ( !v4 )
       break;
-    if ( !fputc(Stream, a3) )
+    if ( !WriteIndent(Stream, a3) )
       return 0;
   }
   --a3;
-  if ( !fputc(Stream, a3) )
+  if ( !WriteIndent(Stream, a3) )
     return 0;
   return fprintf(Stream, "} //end switch\n") >= 0;
 }
