@@ -21037,31 +21037,29 @@ BOOL __cdecl BotChat_Kill(int *a1)
       return 0;
   }
   result = BotValidChatPosition((bot_state_t *)a1);
-  if ( result )
+  if ( !result )
+    return result;
+  v4 = a1[1049];
+  if ( v4 )
+    EasyClientName(v4 - 1, v7);
+  else
+    v7[0] = byte_1006294C;
+  if ( a1[692] == 13 )
   {
-    v4 = a1[1049];
-    if ( v4 )
-      EasyClientName(v4 - 1, v7);
-    else
-      v7[0] = byte_1006294C;
-    if ( a1[692] == 13 )
-    {
-      BotInitialChat(a1 + 995, aKillTelefrag, v7, (char *)0);
-    }
-    else
-    {
-      v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-      /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
-       * Characteristic 15 is "praise vs insult" probability. */
-      v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
-      if ( v5 < v8 )
-        BotInitialChat(a1 + 995, aKillInsult, v7, (char *)0);
-      else
-        BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
-    }
-    return 1;
+    BotInitialChat(a1 + 995, aKillTelefrag, v7, (char *)0);
   }
-  return result;
+  else
+  {
+    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
+     * Characteristic 15 is "praise vs insult" probability. */
+    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
+    if ( v5 < v8 )
+      BotInitialChat(a1 + 995, aKillInsult, v7, (char *)0);
+    else
+      BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
+  }
+  return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
