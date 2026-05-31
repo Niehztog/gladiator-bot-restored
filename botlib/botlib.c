@@ -30121,13 +30121,13 @@ int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
 //----- (10032AE0) --------------------------------------------------------
 int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
 {
-  double v3; // st7
+  float v3; // st7
   int v4; // ecx
-  double v5; // st7
-  double v6; // st7
-  double v7; // st7
-  double v8; // st7
-  double v9; // st7
+  float v5; // st7
+  float v6; // st7
+  float v7; // st7
+  float v8; // st7
+  float v9; // st7
   int *result; // eax
   float v11; // [esp+0h] [ebp-90h]
   float v12; // [esp+10h] [ebp-80h]
@@ -30161,21 +30161,21 @@ int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
   v5 = a3[5];
   v27[0] = a3[3];
   *(_DWORD *)&v27[1] = v4;
-  *(float *)&v27[2] = v5 + 1.0;
-  VectorMA((float *)(a3 + 3), 80.0, dir, predpos);
-  v12 = 0.0;
+  *(float *)&v27[2] = v5 + 1.0f;
+  VectorMA((float *)(a3 + 3), 80.0f, dir, predpos);
+  v12 = 0.0f;
   while ( 1 )
   {
-    v14 = v12 + 10.0;
+    v14 = v12 + 10.0f;
     VectorMA((float *)v27, v14, dir, v28);
-    v28[2] = v28[2] + 1.0;
+    v28[2] = v28[2] + 1.0f;
     if ( AAS_PointAreaNum(v28) != *(_DWORD *)(a2 + 92) )
       break;
-    v12 = v12 + 10.0;
-    if ( v14 >= 80.0 )
+    v12 = v12 + 10.0f;
+    if ( v14 >= 80.0f )
       goto LABEL_7;
   }
-  if ( v12 < 80.0 )
+  if ( v12 < 80.0f )
     VectorMA((float *)(a3 + 3), v12, dir, predpos);
 LABEL_7:
   v6 = *(float *)a2 - a3[3];
@@ -30188,23 +30188,23 @@ LABEL_7:
   predd[0] = v7;
   predd[1] = *(float *)(a2 + 4) - predpos[1];
   v15 = VectorNormalize(predd);
-  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8 || v15 < 5.0 )
+  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8f || v15 < 5.0f )
   {
     v9 = a3[6] - *(float *)a2;
     dir[2] = 0.0f;
     dir[0] = v9;
     dir[1] = a3[7] - *(float *)(a2 + 4);
     VectorNormalize(dir);
-    if ( v13 >= 24.0 )
+    if ( v13 >= 24.0f )
     {
-      if ( v13 < 32.0 )
+      if ( v13 < 32.0f )
         EA_DelayedJump(*(_DWORD *)(a2 + 40));
     }
     else
     {
       EA_Jump(*(_DWORD *)(a2 + 40));
     }
-    EA_Move(*(_DWORD *)(a2 + 40), dir, 600.0);
+    EA_Move(*(_DWORD *)(a2 + 40), dir, 600.0f);
     *(_DWORD *)(a2 + 100) = *(_DWORD *)(a2 + 76);
   }
   else
@@ -30214,9 +30214,9 @@ LABEL_7:
     dir[0] = v8;
     dir[1] = predpos[1] - *(float *)(a2 + 4);
     VectorNormalize(dir);
-    if ( v15 > 80.0 )
-      v15 = 80.0;
-    v11 = 400.0 - (400.0 - v15 * 5.0);
+    if ( v15 > 80.0f )
+      v15 = 80.0f;
+    v11 = 400.0f - (400.0f - v15 * 5.0f);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v11);
   }
   v30[6] = *(int *)&dir[0];
