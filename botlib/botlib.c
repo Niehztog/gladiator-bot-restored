@@ -34498,84 +34498,76 @@ void __cdecl PC_ConvertPath(char *path)
 //----- (1003A7A0) --------------------------------------------------------
 int __cdecl PC_Directive_include(source_t *src)
 {
-  char *v2; // esi
-  int v3; // eax
-  char *v4; // eax
-  char Destination[260]; // [esp+10h] [ebp-5CCh] BYREF
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  /* Original: sub $0x5cc,%esp; token within that frame at [esp+1ACh].
-   * token.string[1024]+token.type+token.linescrossed were part of one contiguous token_t.
-   * Keep token.string as char[] so string operations (strcpy/strncat) compile unchanged;
-   * alias token.type/token.linescrossed via the struct overlay. */
-  token_t token; /* restored: original token_t local variable */
+  char *script;
+  char path[260]; // [esp+10h] [ebp-5CCh] BYREF
+  bot_fileref_t file;
+  token_t token;
 
-  if ( ((source_t *)src)->skip > 0 )
+  if ( src->skip > 0 )
     return 1;
   if ( !PC_ReadSourceToken(src, token.string) || token.linescrossed > 0 )
-    goto LABEL_28;
-  if ( token.type != 1 )
   {
-    if ( token.type == 5 && token.string[0] == 60 )
-    {
-      strcpy(Destination, ((source_t *)src)->includepath);
-      if ( PC_ReadSourceToken(src, token.string) )
-      {
-        while ( token.linescrossed <= 0 )
-        {
-          if ( token.type == 5 && token.string[0] == 62 )
-            goto LABEL_19;
-          strncat(Destination, token.string, 0x104u);
-          if ( !PC_ReadSourceToken(src, token.string) )
-            goto LABEL_17;
-        }
-        PC_UnreadSourceToken(src, token.string);
-      }
-LABEL_17:
-      if ( token.string[0] != 62 )
-        SourceWarning(src, aIncludeMissing);
-LABEL_19:
-      if ( strlen(Destination) )
-      {
-        PC_ConvertPath(Destination);
-        v3 = LoadScriptFile(Destination, 0, 0);
-        goto LABEL_22;
-      }
-      SourceError(src, aIncludeWithout);
-      return 0;
-    }
-LABEL_28:
     SourceError(src, aIncludeWithout_0);
     return 0;
   }
-  StripDoubleQuotes(token.string);
-  PC_ConvertPath(token.string);
-  v2 = (char *)LoadScriptFile(token.string, 0, 0);
-  if ( v2 )
+  if ( token.type == 1 )
   {
-LABEL_26:
-    PC_PushScript(src, v2);
-    return 1;
-  }
-  strcpy(Destination, ((source_t *)src)->includepath);
-  strcat(Destination, token.string);
-  v3 = LoadScriptFile(Destination, 0, 0);
-LABEL_22:
-  v2 = (char *)v3;
-  if ( v3 )
-    goto LABEL_26;
-  memset(&file_ref, 0, sizeof(file_ref));
-  if ( sub_10041F60(Destination, &file_ref) )
-  {
-    v4 = (char *)LoadScriptFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    v2 = v4;
-    if ( v4 )
+    StripDoubleQuotes(token.string);
+    PC_ConvertPath(token.string);
+    script = (char *)LoadScriptFile(token.string, 0, 0);
+    if ( !script )
     {
-      strncpy(v4, Destination, 0x104u);
-      goto LABEL_26;
+      strcpy(path, src->includepath);
+      strcat(path, token.string);
+      script = (char *)LoadScriptFile(path, 0, 0);
     }
   }
-  SourceError(src, aFileSNotFound, Destination);
-  return 0;
+  else if ( token.type == 5 && token.string[0] == 60 )
+  {
+    strcpy(path, src->includepath);
+    while ( PC_ReadSourceToken(src, token.string) )
+    {
+      if ( token.linescrossed > 0 )
+      {
+        PC_UnreadSourceToken(src, token.string);
+        break;
+      }
+      if ( token.type == 5 && token.string[0] == 62 )
+        break;
+      strncat(path, token.string, 0x104u);
+    }
+    if ( token.string[0] != 62 )
+      SourceWarning(src, aIncludeMissing);
+    if ( !strlen(path) )
+    {
+      SourceError(src, aIncludeWithout);
+      return 0;
+    }
+    PC_ConvertPath(path);
+    script = (char *)LoadScriptFile(path, 0, 0);
+  }
+  else
+  {
+    SourceError(src, aIncludeWithout_0);
+    return 0;
+  }
+  if ( !script )
+  {
+    memset(&file, 0, sizeof(file));
+    if ( sub_10041F60(path, &file) )
+    {
+      script = (char *)LoadScriptFile(file.path, file.fileofs, file.filelen);
+      if ( script )
+        strncpy(script, path, 0x104u);
+    }
+  }
+  if ( !script )
+  {
+    SourceError(src, aFileSNotFound, path);
+    return 0;
+  }
+  PC_PushScript(src, script);
+  return 1;
 }
 // 1003A965: variable 'v5' is possibly undefined
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
