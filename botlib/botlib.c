@@ -36305,36 +36305,18 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
     strcpy(ArgList, "binary");
   if ( (a3 & 0x2000) != 0 )
   {
-    v7 = strlen(aLong) + 1;
-    v8 = &ArgList[strlen(ArgList)];
-    qmemcpy(v8, aLong, 4 * (v7 >> 2));
-    v10 = &aLong[4 * (v7 >> 2)];
-    v9 = &v8[4 * (v7 >> 2)];
-    v11 = v7;
+    strcat(ArgList, aLong);
     v4 = src;
-    qmemcpy(v9, v10, v11 & 3);
   }
   if ( (a3 & 0x4000) != 0 )
   {
-    v12 = strlen(aUnsigned) + 1;
-    v13 = &ArgList[strlen(ArgList)];
-    qmemcpy(v13, aUnsigned, 4 * (v12 >> 2));
-    v15 = &aUnsigned[4 * (v12 >> 2)];
-    v14 = &v13[4 * (v12 >> 2)];
-    v16 = v12;
+    strcat(ArgList, aUnsigned);
     v4 = src;
-    qmemcpy(v14, v15, v16 & 3);
   }
   if ( (a3 & 0x800) != 0 )
   {
-    v17 = strlen(aFloat) + 1;
-    v18 = &ArgList[strlen(ArgList)];
-    qmemcpy(v18, aFloat, 4 * (v17 >> 2));
-    v20 = &aFloat[4 * (v17 >> 2)];
-    v19 = &v18[4 * (v17 >> 2)];
-    v21 = v17;
+    strcat(ArgList, aFloat);
     v4 = src;
-    qmemcpy(v19, v20, v21 & 3);
   }
   if ( (a3 & 0x1000) != 0 )
     strcat(ArgList, aInteger);
@@ -37572,36 +37554,18 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
     strcpy(ArgList, "binary");
   if ( (a3 & 0x2000) != 0 )
   {
-    v7 = strlen(aLong) + 1;
-    v8 = &ArgList[strlen(ArgList)];
-    qmemcpy(v8, aLong, 4 * (v7 >> 2));
-    v10 = &aLong[4 * (v7 >> 2)];
-    v9 = &v8[4 * (v7 >> 2)];
-    v11 = v7;
+    strcat(ArgList, aLong);
     v4 = a1;
-    qmemcpy(v9, v10, v11 & 3);
   }
   if ( (a3 & 0x4000) != 0 )
   {
-    v12 = strlen(aUnsigned) + 1;
-    v13 = &ArgList[strlen(ArgList)];
-    qmemcpy(v13, aUnsigned, 4 * (v12 >> 2));
-    v15 = &aUnsigned[4 * (v12 >> 2)];
-    v14 = &v13[4 * (v12 >> 2)];
-    v16 = v12;
+    strcat(ArgList, aUnsigned);
     v4 = a1;
-    qmemcpy(v14, v15, v16 & 3);
   }
   if ( (a3 & 0x800) != 0 )
   {
-    v17 = strlen(aFloat) + 1;
-    v18 = &ArgList[strlen(ArgList)];
-    qmemcpy(v18, aFloat, 4 * (v17 >> 2));
-    v20 = &aFloat[4 * (v17 >> 2)];
-    v19 = &v18[4 * (v17 >> 2)];
-    v21 = v17;
+    strcat(ArgList, aFloat);
     v4 = a1;
-    qmemcpy(v19, v20, v21 & 3);
   }
   if ( (a3 & 0x1000) != 0 )
     strcat(ArgList, aInteger);
