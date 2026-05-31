@@ -38442,52 +38442,49 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
     fclose(v4);
     return 0;
   }
-  v7 = LittleLong(Buffer[2]) >> 6;                    /* number of entries: dir_size / 64 */
-  v8 = (char *)GetMemory(LittleLong(Buffer[2]) >> 6 << 6); /* allocate nentries*64 bytes */
-  if ( fread_locked(v8, 0x40u, v7, v4) == v7 )
-  {
-    fclose(v4);
-    strcpy(v16, a2);
-    sub_100418D0(v16);
-    v10 = 0;
-    if ( v7 <= 0 )
-    {
-LABEL_11:
-      FreeMemory(v8);
-      return 0;
-    }
-    else
-    {
-      v11 = v8;
-      while ( 1 )
-      {
-        sub_100418D0(v11);
-        if ( !Q_stricmp(v11, v16) )
-          break;
-        ++v10;
-        v11 += 64;
-        if ( v10 >= v7 )
-          goto LABEL_11;
-      }
-      strcpy(a3->path, FileName);
-      /* PAK directory entry layout (64 bytes, identical on 32/64-bit):
-       *   char  name[56];
-       *   int32 filepos;     // byte offset 56
-       *   int32 filelen;     // byte offset 60
-       * IDA's `void *v12[14]/[15]` decompile is only correct on 32-bit
-       * (sizeof(void*) == 4).  Read the two ints directly. */
-      a3->fileofs = *(int32_t *)&v8[64 * v10 + 56];
-      a3->filelen = *(int32_t *)&v8[64 * v10 + 60];
-      (void)v12;
-      FreeMemory(v8);
-      return 1;
-    }
-  }
-  else
+  v7 = (unsigned int)LittleLong(Buffer[2]) >> 6;                    /* number of entries: dir_size / 64 */
+  v8 = (char *)GetMemory(v7 << 6); /* allocate nentries*64 bytes */
+  if ( fread_locked(v8, 0x40u, v7, v4) != v7 )
   {
     fclose(v4);
     FreeMemory(v8);
     return 0;
+  }
+  fclose(v4);
+  strcpy(v16, a2);
+  sub_100418D0(v16);
+  v10 = 0;
+  if ( v7 <= 0 )
+  {
+LABEL_11:
+    FreeMemory(v8);
+    return 0;
+  }
+  else
+  {
+    v11 = v8;
+    while ( 1 )
+    {
+      sub_100418D0(v11);
+      if ( !Q_stricmp(v11, v16) )
+        break;
+      ++v10;
+      v11 += 64;
+      if ( v10 >= v7 )
+        goto LABEL_11;
+    }
+    strcpy(a3->path, FileName);
+    /* PAK directory entry layout (64 bytes, identical on 32/64-bit):
+     *   char  name[56];
+     *   int32 filepos;     // byte offset 56
+     *   int32 filelen;     // byte offset 60
+     * IDA's `void *v12[14]/[15]` decompile is only correct on 32-bit
+     * (sizeof(void*) == 4).  Read the two ints directly. */
+    a3->fileofs = LittleLong(*(int32_t *)&v8[64 * v10 + 56]);
+    a3->filelen = LittleLong(*(int32_t *)&v8[64 * v10 + 60]);
+    (void)v12;
+    FreeMemory(v8);
+    return 1;
   }
 }
 // 100419D0: variable 'v5' is possibly undefined
