@@ -26539,9 +26539,7 @@ void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat)
 //----- (1002CDD0) --------------------------------------------------------
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
 {
-  const char *v3; // [esp-10h] [ebp-450h]
-  char *v4; // [esp-8h] [ebp-448h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   *chatmessagestring = 0;
   while ( 1 )
@@ -26553,27 +26551,21 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
       StripDoubleQuotes(token.string);
       strcat(chatmessagestring, token.string);
     }
+    else if ( token.type == 3 )
+    {
+      if ( (token.subtype & 0x1000) == 0 )
+        goto error;
+      sprintf(&chatmessagestring[strlen(chatmessagestring)], aCvDC, 1, (char *)(uintptr_t)token.intvalue, 1);
+    }
+    else if ( token.type == 4 )
+    {
+      sprintf(&chatmessagestring[strlen(chatmessagestring)], aCrSC, 1, token.string, 1);
+    }
     else
     {
-      if ( token.type == 3 )
-      {
-        if ( (token.subtype & 0x1000) == 0 )
-          goto LABEL_14;
-        v4 = ((char *)(uintptr_t)token.intvalue);
-        v3 = aCvDC;
-      }
-      else
-      {
-        if ( token.type != 4 )
-        {
-LABEL_14:
-          SourceError(source, aUnknownMessage, token.string);
-          return 0;
-        }
-        v4 = token.string;
-        v3 = aCrSC;
-      }
-      sprintf(&chatmessagestring[strlen(chatmessagestring)], v3, 1, v4, 1);
+error:
+      SourceError(source, aUnknownMessage, token.string);
+      return 0;
     }
     if ( PC_CheckTokenString(source, Control) )
       return 1;
