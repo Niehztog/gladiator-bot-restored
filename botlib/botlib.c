@@ -24334,35 +24334,32 @@ int __cdecl BotShutdownClient(int a1)
 
   bs = &botstates[a1];
   v1 = (_DWORD *)bs;
-  if ( *v1 )
-  {
-    if ( BotChat_ExitGame((int)(intptr_t)bs) )
-      BotEnterChat(&bs->chatstate, v1[1], 0);
-    BotFreeChatState(&bs->chatstate, v1[1]);
-    BotFreeWeaponWeights(BotWS(bs));
-#if BOTLIB_NEED_SIDEBAND
-    /* 64-bit only: free the heap-allocated weaponstate struct.  On 32-bit
-     * BotWS(bs) aliases inline bs->weaponweights[7] (no heap struct) and
-     * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
-    if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
-#endif
-    BotFreeItemWeights(&bs->goalstate[0]);
-    sub_1002A590(v1[418]);
-    BotFreeWaypoints(v1[1136]);
-    v3 = v1[1137];
-    v1[1136] = 0;
-    BotFreeWaypoints(v3);
-    v1[1137] = 0;
-    memset(v1, 0, 0x11D0u);
-    *v1 = 0;
-    --dword_10064388;
-    return 0;
-  }
-  else
+  if ( !*v1 )
   {
     bi_Print(3, "client %d already shutdown\n", a1);
     return 23;
   }
+  if ( BotChat_ExitGame((int)(intptr_t)bs) )
+    BotEnterChat(&bs->chatstate, v1[1], 0);
+  BotFreeChatState(&bs->chatstate, v1[1]);
+  BotFreeWeaponWeights(BotWS(bs));
+#if BOTLIB_NEED_SIDEBAND
+  /* 64-bit only: free the heap-allocated weaponstate struct.  On 32-bit
+   * BotWS(bs) aliases inline bs->weaponweights[7] (no heap struct) and
+   * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
+  if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
+#endif
+  BotFreeItemWeights(&bs->goalstate[0]);
+  sub_1002A590(v1[418]);
+  BotFreeWaypoints(v1[1136]);
+  v3 = v1[1137];
+  v1[1136] = 0;
+  BotFreeWaypoints(v3);
+  v1[1137] = 0;
+  memset(v1, 0, 0x11D0u);
+  *v1 = 0;
+  --dword_10064388;
+  return 0;
 }
 // 1000104B: using guessed type _DWORD __cdecl sub_1002A590(_DWORD);
 // 10001078: using guessed type _DWORD __cdecl BotFreeWeaponWeights(_DWORD);
