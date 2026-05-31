@@ -24138,7 +24138,7 @@ float __cdecl AngleDifference(float a1, float a2)
 //----- (10029040) --------------------------------------------------------
 double BotChangeViewAngle(float a1, float a2, float a3)
 {
-  double v5; // st7
+  float move;
   float v8; // [esp+8h] [ebp+4h]
   float v9; // [esp+Ch] [ebp+8h]
 
@@ -24146,26 +24146,28 @@ double BotChangeViewAngle(float a1, float a2, float a3)
   v9 = AngleMod(a2);
   if ( v8 == v9 )
     return v8;
-  v5 = v9 - v8;
-  if ( v9 <= (float)v8 )
+  move = v9 - v8;
+  if ( v9 > (float)v8 )
   {
-    if ( v5 < -180.0 )
-      v5 = v5 + 360.0;
+    if ( move > 180.0 )
+      move = move - 360.0;
   }
-  else if ( v5 > 180.0 )
+  else
   {
-    v5 = v5 - 360.0;
+    if ( move < -180.0 )
+      move = move + 360.0;
   }
-  if ( v5 <= 0.0 )
+  if ( move > 0.0f )
   {
-    if ( v5 < -a3 )
-      v5 = -a3;
+    if ( move > a3 )
+      move = a3;
   }
-  else if ( v5 > a3 )
+  else
   {
-    return AngleMod(a3 + v8);
+    if ( move < -a3 )
+      move = -a3;
   }
-  return AngleMod(v5 + v8);
+  return AngleMod(move + v8);
 }
 
 //----- (10029150) --------------------------------------------------------
