@@ -23160,6 +23160,9 @@ int __cdecl sub_10026E40(char *string, float *out)
 }
 
 //----- (10026F10) --------------------------------------------------------
+#ifdef _MSC_VER
+#pragma function(strlen)
+#endif
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
 {
 
@@ -23710,6 +23713,9 @@ LABEL_64:
 #undef v58
 #undef v59
 #undef v60
+#ifdef _MSC_VER
+#pragma intrinsic(strlen)
+#endif
 // 1000106E: using guessed type _DWORD __cdecl EA_SayTeam(_DWORD, _DWORD);
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
