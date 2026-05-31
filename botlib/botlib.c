@@ -6986,10 +6986,10 @@ int AAS_TestPortals()
       Log_Write(aPortalAreaDHas, *(i - 2));
       return 0;
     }
-    if ( ++v0 >= aasworld.numportals )
-      return 1;
     if ( !*i )
       break;
+    if ( ++v0 >= aasworld.numportals )
+      return 1;
   }
   *((_DWORD *)aasworld.areasettings + 7 * *(i - 2)) &= ~8u;
   Log_Write(aPortalAreaDHas_0, *(i - 2));
