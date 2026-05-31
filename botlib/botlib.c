@@ -4244,15 +4244,13 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
   char *v3; // esi
   char *v4; // edx
   unsigned int v5; // ebx
-  int v8; // [esp+18h] [ebp+8h]
 
-  result = a1;
   if ( a1 != dword_10069564 )
   {
     v3 = &byte_10067564;
     v4 = (char *)(dword_100674D0 + *(_DWORD *)(dword_100674D4 + 4 * (a2 + 2 * a1) + 4));
     result = (*(int *)dword_100674D4 + 7) >> 3;
-    v8 = result;
+    a2 = result;
     do
     {
       if ( *v4 )
@@ -4267,13 +4265,13 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
         memset(v3, 0, v5);
         v4 += 2;
         v3 += v5;
-        result = v8;
+        result = a2;
       }
     }
     while ( v3 - (char *)&byte_10067564 < result );
     dword_10069564 = a1;
   }
-  return result;
+  return a1;
 }
 // 10005AE4: variable 'v7' is possibly undefined
 // 100674D0: using guessed type int dword_100674D0;
