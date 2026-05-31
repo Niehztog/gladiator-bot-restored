@@ -17549,19 +17549,18 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   float v13; // [esp+1Ch] [ebp-1Ch]
   float v14[3]; // [esp+20h] [ebp-18h] BYREF
   float v15[3]; // [esp+2Ch] [ebp-Ch] BYREF
-  int v16; // [esp+3Ch] [ebp+4h]
   float v17; // [esp+40h] [ebp+8h]
 
   if ( !aasworld.loaded )
     return 0;
-  v16 = 0;
   v5 = (char *)aasworld.faces + 24 * facenum;
+  facenum = 0;
   v10 = (char *)aasworld.planes + 20 * *v5;
   if ( (int)v5[2] > 0 )
   {
     while ( 1 )
     {
-      eidx = *((int *)aasworld.edgeindex + v16 + v5[3]);
+      eidx = *((int *)aasworld.edgeindex + facenum + v5[3]);
       edge = (char *)aasworld.edges + 8 * abs32(eidx);
       v8 = eidx < 0;
       v7 = (char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * v8);
@@ -17576,7 +17575,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       v17 = -epsilon;
       if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
         break;
-      if ( ++v16 >= (int)v5[2] )
+      if ( ++facenum >= (int)v5[2] )
         return 1;
     }
     return 0;
