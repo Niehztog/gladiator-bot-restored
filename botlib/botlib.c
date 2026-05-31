@@ -6934,28 +6934,26 @@ int AAS_RemoveAllPortals()
 //----- (10009610) --------------------------------------------------------
 int AAS_TestPortals()
 {
-  int v0; // ecx
-  _DWORD *i; // eax
+  int i;
+  aas_portal_t *portal;
 
-  v0 = 1;
-  if ( aasworld.numportals <= 1 )
-    return 1;
-  for ( i = (char *)aasworld.portals + 28; ; i += 5 )
+  for ( i = 1; i < aasworld.numportals; i++ )
   {
-    if ( !*(i - 1) )
+    portal = &((aas_portal_t *)aasworld.portals)[i];
+    if ( !portal->frontcluster )
     {
-      *((_DWORD *)aasworld.areasettings + 7 * *(i - 2)) &= ~8u;
-      Log_Write(aPortalAreaDHas, *(i - 2));
+      ((aas_areasettings_t *)aasworld.areasettings)[portal->areanum].contents &= ~8u;
+      Log_Write(aPortalAreaDHas, portal->areanum);
       return 0;
     }
-    if ( !*i )
-      break;
-    if ( ++v0 >= aasworld.numportals )
-      return 1;
+    if ( !portal->backcluster )
+    {
+      ((aas_areasettings_t *)aasworld.areasettings)[portal->areanum].contents &= ~8u;
+      Log_Write(aPortalAreaDHas_0, portal->areanum);
+      return 0;
+    }
   }
-  *((_DWORD *)aasworld.areasettings + 7 * *(i - 2)) &= ~8u;
-  Log_Write(aPortalAreaDHas_0, *(i - 2));
-  return 0;
+  return 1;
 }
 
 //----- (100096E0) --------------------------------------------------------
