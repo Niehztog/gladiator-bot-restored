@@ -14777,14 +14777,9 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v35[20]; /* [BYREF] */
   int v36[20]; /* [BYREF] */
 
-  if ( !AAS_AreaGrounded(ArgList) )
-    return 0;
-  if ( AAS_AreaSwim(ArgList) )
-    return 0;
-  if ( !AAS_AreaGrounded(a2) )
-    return 0;
-  if ( (*((_DWORD *)aasworld.areasettings + 7 * a2 + 1) & 0x2000) == 0 )
-    return 0;
+  if ( !AAS_AreaGrounded(ArgList) || AAS_AreaSwim(ArgList) ) return 0;
+  if ( !AAS_AreaGrounded(a2) ) return 0;
+  if ( (*((_DWORD *)aasworld.areasettings + 7 * a2 + 1) & 0x2000) == 0 ) return 0;
   v2 = (char *)aasworld.areas + 48 * a2;
   v3 = (float *)((char *)aasworld.areas + 48 * ArgList);
   if ( *((float *)v2 + 8) < (float)v3[5] )
