@@ -31769,9 +31769,8 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   int v14; // [esp+1Ch] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
+  v11 = v12 = 0;
   v13 = 0;
-  v11 = 0;
-  v12 = 0;
   if ( !PC_ExpectTokenString(source, asc_1005D334) )
     return 0;
   if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
