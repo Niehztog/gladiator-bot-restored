@@ -36363,13 +36363,13 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
   {
     newp  = &punctuations[i];
     lastp = NULL;
-    for ( p = script->punctuationtable[(unsigned char)newp->p[0]]; p; p = p->next )
+    for ( p = script->punctuationtable[(unsigned int)newp->p[0]]; p; p = p->next )
     {
       if ( strlen(p->p) < strlen(newp->p) )
       {
         newp->next = p;
         if ( lastp ) lastp->next = newp;
-        else         script->punctuationtable[(unsigned char)newp->p[0]] = newp;
+        else         script->punctuationtable[(unsigned int)newp->p[0]] = newp;
         break;
       }
       lastp = p;
@@ -36378,7 +36378,7 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
     {
       newp->next = NULL;
       if ( lastp ) lastp->next = newp;
-      else         script->punctuationtable[(unsigned char)newp->p[0]] = newp;
+      else         script->punctuationtable[(unsigned int)newp->p[0]] = newp;
     }
   }
 }
