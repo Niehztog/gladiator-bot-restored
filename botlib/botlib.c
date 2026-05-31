@@ -6280,17 +6280,12 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
 //----- (100087E0) --------------------------------------------------------
 int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
 {
-  int v2; // edi
-  int v3; // ecx
-  int v5; // edx
   int v6; // ebp
   char *v7; // esi
-  int v8; // rax (was __int64 — abs32 idiom)
-  int v9; // ecx
+  int v8; // rax
   int v10; // eax
   char *v11; // ecx
   int v12; // ecx
-  char *v13; // ecx
   int v14; // esi
   int v15; // eax
 
@@ -6299,69 +6294,58 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
     AAS_Error(aAasFloodcluste);
     return 0;
   }
-  else
+  if ( (int)*((_DWORD *)aasworld.areasettings + 7 * a1 + 3) > 0 )
   {
-    v2 = 28 * a1;
-    v3 = *((_DWORD *)aasworld.areasettings + 7 * a1 + 3);
-    if ( v3 <= 0 )
+    if ( *((_DWORD *)aasworld.areasettings + 7 * a1 + 3) != ArgList )
     {
-      if ( (*((_BYTE *)aasworld.areasettings + v2) & 8) != 0 )
-        return AAS_UpdatePortal(a1, ArgList);
-      v5 = ArgList;
-      v6 = 0;
-      *((_DWORD *)aasworld.areasettings + 7 * a1 + 3) = ArgList;
-      *(_DWORD *)((char *)aasworld.areasettings + v2 + 16) = (*((_DWORD *)aasworld.clusters + 3 * ArgList))++;
-      v7 = (char *)aasworld.areas + 48 * a1;
-      if ( *((int *)v7 + 1) > 0 )
-      {
-        do
-        {
-          v8 = *((int *)aasworld.faceindex + v6 + *((_DWORD *)v7 + 2));
-          v8 = abs32(v8);
-          v9 = 3 * v8;
-          v10 = *((_DWORD *)aasworld.faces + 6 * v8 + 4);
-          v11 = (char *)aasworld.faces + 8 * v9;
-          if ( v10 == a1 )
-          {
-            v12 = *((_DWORD *)v11 + 5);
-            if ( v12 && !AAS_FloodClusterAreas_r(v12, ArgList) )
-              return 0;
-          }
-          else if ( v10 && !AAS_FloodClusterAreas_r(v10, ArgList) )
-          {
-            return 0;
-          }
-          ++v6;
-        }
-        while ( v6 < *((_DWORD *)v7 + 1) );
-        v5 = ArgList;
-      }
-      v13 = (char *)aasworld.areasettings;
-      v14 = 0;
-      if ( *(int *)((char *)aasworld.areasettings + v2 + 20) > 0 )
-      {
-        do
-        {
-          v15 = *((_DWORD *)aasworld.reachability + 11 * v14 + 11 * *(_DWORD *)&v13[v2 + 24]);
-          if ( v15 )
-          {
-            if ( !AAS_FloodClusterAreas_r(v15, v5) )
-              return 0;
-            v13 = (char *)aasworld.areasettings;
-            v5 = ArgList;
-          }
-          ++v14;
-        }
-        while ( v14 < *(_DWORD *)&v13[v2 + 20] );
-      }
-    }
-    else if ( v3 != ArgList )
-    {
-      Log_Write(aClusterDTouche, ArgList, v3, a1);
+      Log_Write(aClusterDTouche, ArgList, *((_DWORD *)aasworld.areasettings + 7 * a1 + 3), a1);
       return 0;
     }
-    return 1;
   }
+  else
+  {
+    if ( (*((_BYTE *)aasworld.areasettings + 28 * a1) & 8) != 0 )
+      return AAS_UpdatePortal(a1, ArgList);
+  *((_DWORD *)aasworld.areasettings + 7 * a1 + 3) = ArgList;
+  *(_DWORD *)((char *)aasworld.areasettings + 28 * a1 + 16) = (*((_DWORD *)aasworld.clusters + 3 * ArgList))++;
+  v7 = (char *)aasworld.areas + 48 * a1;
+  v6 = 0;
+  if ( *((int *)v7 + 1) > 0 )
+  {
+    do
+    {
+      v8 = *((int *)aasworld.faceindex + v6 + *((_DWORD *)v7 + 2));
+      v8 = abs32(v8);
+      v10 = *((_DWORD *)aasworld.faces + 6 * v8 + 4);
+      v11 = (char *)aasworld.faces + 24 * v8;
+      if ( v10 == a1 )
+      {
+        v12 = *((_DWORD *)v11 + 5);
+        if ( v12 && !AAS_FloodClusterAreas_r(v12, ArgList) )
+          return 0;
+      }
+      else if ( v10 && !AAS_FloodClusterAreas_r(v10, ArgList) )
+      {
+        return 0;
+      }
+      ++v6;
+    }
+    while ( v6 < *((int *)v7 + 1) );
+  }
+  v14 = 0;
+  if ( *((int *)aasworld.areasettings + 7 * a1 + 5) > 0 )
+  {
+    do
+    {
+      v15 = *((_DWORD *)aasworld.reachability + 11 * v14 + 11 * *((_DWORD *)aasworld.areasettings + 7 * a1 + 6));
+      if ( v15 && !AAS_FloodClusterAreas_r(v15, ArgList) )
+        return 0;
+      ++v14;
+    }
+    while ( v14 < *((int *)aasworld.areasettings + 7 * a1 + 5) );
+  }
+  }
+  return 1;
 }
 // 10008959: variable 'v16' is possibly undefined
 // 10001B3B: using guessed type int __cdecl AAS_FloodClusterAreas_r(_DWORD, _DWORD);
