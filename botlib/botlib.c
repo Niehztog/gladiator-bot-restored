@@ -462,7 +462,7 @@ int __cdecl AAS_NextBSPEntity(int ent);
 int AAS_SwapAASData();
 void *AAS_DumpAASData();
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
-int __cdecl AAS_LoadAASFile(char *FileName, int Offset);
+int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length);
 int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize); // idb
 qboolean __cdecl AAS_WriteAASFile(char *FileName); // idb
 bsp_pointlight_t *sub_1000D450();
@@ -5839,7 +5839,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (10007D30) --------------------------------------------------------
-int AAS_LoadBSPFile(char *FileName, int Offset)
+int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
 {
   FILE *v3; // eax
   FILE *v4; // esi
@@ -9039,7 +9039,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1000C730) --------------------------------------------------------
-int __cdecl AAS_LoadAASFile(char *FileName, int Offset)
+int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
 {
   FILE *v2; // eax
   FILE *v3; // esi
@@ -10090,7 +10090,7 @@ int __cdecl sub_1000E430(char *Source)
         Log_Write(aSearchingSInS, ArgList, Destination); /* "searching %s in %s" */
         if ( sub_10041240((int)Destination, ArgList, 0) )
         {
-          v7 = AAS_LoadAASFile(ArgList, 0);
+          v7 = AAS_LoadAASFile(ArgList, 0, 0);
           *_errno() = v7;
           if ( *_errno() )
             return *_errno();
