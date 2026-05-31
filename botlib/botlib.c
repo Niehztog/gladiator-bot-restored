@@ -744,7 +744,7 @@ void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
 struct chatlist_s;
 void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
-void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat);
+void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
 void *__cdecl BotDumpInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
@@ -768,7 +768,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2);
 unsigned int __cdecl BotChatLength(bot_chatstate_t *cs);
 char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3);
 // int __usercall BotSetupChatAI@<eax>(double a1@<st0>);
-_DWORD *BotShutdownChatAI();
+void BotShutdownChatAI();
 // int *__usercall LoadItemConfig@<eax>(double a1@<st0>, char *Source);
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
@@ -26714,12 +26714,14 @@ void __cdecl sub_1002CF40(bot_replychat_t *replychat)
 
 //----- (1002D1B0) --------------------------------------------------------
 // Q3 equivalent: BotFreeReplyChat.  Frees the entire reply-chat chain.
-void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat)
+void __cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 {
   bot_replychat_t *rc;
   bot_replychat_t *nextrc;
   bot_replychatkey_t *key;
   bot_replychatkey_t *nextkey;
+  bot_matchpiece_t *mp;
+  bot_matchpiece_t *nextmp;
   bot_chatmessage_t *cm;
   bot_chatmessage_t *nextcm;
 
@@ -26729,8 +26731,11 @@ void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat)
     for ( key = rc->keys; key; key = nextkey )
     {
       nextkey = key->next;
-      if ( key->match )
-        BotFreeMatchPieces(key->match);
+      for ( mp = key->match; mp; mp = nextmp )
+      {
+        nextmp = mp->next;
+        FreeMemory(mp);
+      }
       if ( key->string )
         FreeMemory(key->string);
       FreeMemory(key);
@@ -26742,7 +26747,6 @@ void *__cdecl BotFreeReplyChat(bot_replychat_t *replychat)
     }
     FreeMemory(rc);
   }
-  return NULL;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
@@ -27768,10 +27772,8 @@ int BotSetupChatAI()
 // 10064384: using guessed type int dword_10064384;
 
 //----- (1002EC80) --------------------------------------------------------
-_DWORD *BotShutdownChatAI()
+void BotShutdownChatAI()
 {
-  _DWORD *result; // eax
-
   if ( dword_10064374 )
     FreeMemory(dword_10064374);
   dword_10064374 = 0;
@@ -27783,12 +27785,10 @@ _DWORD *BotShutdownChatAI()
   dword_1006437C = 0;
   if ( dword_10064384 )
     FreeMemory(dword_10064384);
-  result = (_DWORD *)dword_10064380;
   dword_10064384 = 0;
   if ( dword_10064380 )
-    result = (_DWORD *)BotFreeReplyChat(dword_10064380);
+    BotFreeReplyChat((bot_replychat_t *)dword_10064380);
   dword_10064380 = 0;
-  return result;
 }
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 // 10064374: using guessed type int dword_10064374;
