@@ -20805,14 +20805,14 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 {
 
   int v2; // ecx
-  double v3; // st7
+  float v3; // st7
   char v4; // al
   int v5; // ecx
-  double v6; // st7
+  float v6; // st7
   char v7; // al
   int v8; // ecx
-  double v9; // st7
-  double v10; // st7
+  float v9; // st7
+  float v10; // st7
   /* v11/v12/v13 form the bi_PointContents test point: X/Y as raw int copies,
    * Z as float bit-pattern via v13.  IDA originally had all three as separate
    * locals; restored here so PointContents reads valid X/Y/Z (was reading
@@ -20832,7 +20832,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
   v2 = *(int *)&bs->origin[1];
-  v3 = bs->origin[2] - 24.0;
+  v3 = bs->origin[2] - 24.0f;
   v11 = *(int *)&bs->origin[0];
   v12 = v2;
   v13 = v3;
@@ -20842,7 +20842,7 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
   v5 = *(int *)&bs->origin[1];
-  v6 = bs->origin[2] + 32.0;
+  v6 = bs->origin[2] + 32.0f;
   v11 = *(int *)&bs->origin[0];
   v12 = v5;
   v13 = v6;
@@ -20850,12 +20850,12 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
   v8 = *(int *)&bs->origin[1];
-  v9 = bs->origin[2] + 1.0;
+  v9 = bs->origin[2] + 1.0f;
   v14[0] = *(int *)&bs->origin[0];
   v14[1] = v8;
   v15[0] = v14[0];
   *(float *)&v14[2] = v9;
-  v10 = bs->origin[2] - 100.0;
+  v10 = bs->origin[2] - 100.0f;
   v15[1] = v8;
   *(float *)&v15[2] = v10;
   AAS_PresenceTypeBoundingBox(4, (float *)v17, (float *)v16);
