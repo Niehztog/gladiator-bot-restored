@@ -6499,52 +6499,32 @@ int AAS_CreatePortals()
 //----- (10008D40) --------------------------------------------------------
 int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea)
 {
-  int v4; // ebx
-  char *v5; // esi
-  int result; // eax
-  int v7; // rax (was __int64 — abs32 idiom)
-  char *v8; // eax
-  int v9; // edx
-  int v10; // eax
-  _DWORD *v11; // ecx
+  int i, j, otherareanum, facenum;
+  char *area, *face;
 
   *(_DWORD *)(connectedareas + 4 * curarea) = 1;
-  v4 = 0;
-  v5 = (char *)aasworld.areas + 48 * areanums[curarea];
-  result = *((_DWORD *)v5 + 1);
-  if ( result > 0 )
+  area = (char *)aasworld.areas + 48 * areanums[curarea];
+  for ( i = 0; i < *((int *)area + 1); i++ )
   {
-    do
+    facenum = *((int *)aasworld.faceindex + *((_DWORD *)area + 2) + i);
+    face = (char *)aasworld.faces + 24 * abs32(facenum);
+    if ( (face[4] & 1) != 0 )
+      continue;
+    otherareanum = *((_DWORD *)face + 4);
+    if ( otherareanum == areanums[curarea] )
+      otherareanum = *((_DWORD *)face + 5);
+    for ( j = 0; j < numareas; j++ )
     {
-      v7 = *((int *)aasworld.faceindex + *((_DWORD *)v5 + 2) + v4);
-      v8 = (char *)aasworld.faces + 24 * (abs32(v7));
-      if ( (v8[4] & 1) == 0 )
-      {
-        v9 = *((_DWORD *)v8 + 4);
-        if ( v9 == areanums[curarea] )
-          v9 = *((_DWORD *)v8 + 5);
-        v10 = 0;
-        if ( numareas > 0 )
-        {
-          v11 = areanums;
-          do
-          {
-            if ( *v11 == v9 )
-              break;
-            ++v10;
-            ++v11;
-          }
-          while ( v10 < numareas );
-        }
-        if ( v10 != numareas && !*(_DWORD *)(connectedareas + 4 * v10) )
-          AAS_ConnectedAreas_r(areanums, numareas, connectedareas, v10);
-      }
-      result = *((_DWORD *)v5 + 1);
-      ++v4;
+      if ( areanums[j] == otherareanum )
+        break;
     }
-    while ( v4 < result );
+    if ( j == numareas )
+      continue;
+    if ( *(_DWORD *)(connectedareas + 4 * j) )
+      continue;
+    AAS_ConnectedAreas_r(areanums, numareas, connectedareas, j);
   }
-  return result;
+  return 0;
 }
 // 1000179E: using guessed type _DWORD __cdecl AAS_ConnectedAreas_r(_DWORD, _DWORD, _DWORD, _DWORD);
 
