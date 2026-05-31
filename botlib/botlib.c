@@ -12043,7 +12043,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
     v58 = v3;
     v5 = (float *)(v3 + 12);
     v6 = (float *)(v4 + 24);
-    while ( *(float *)((char *)v6 + (v3 - v4)) + 10.0 >= *(v6 - 3) && *v5 - 10.0 <= *v6 )
+    while ( *(float *)((char *)v6 + (v3 - v4)) + 10.0f >= *(v6 - 3) && *v5 - 10.0f <= *v6 )
     {
       ++v2;
       ++v6;
@@ -12052,14 +12052,14 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
       {
         if ( *((float *)v3 + 5) <= (float)*((float *)v4 + 8) )
         {
-          v54[0] = 0.0;
-          v54[1] = 0.0;
-          v54[2] = -1.0;
+          v54[0] = 0.0f;
+          v54[1] = 0.0f;
+          v54[2] = -1.0f;
           VectorNegate(v54);
           v7 = *((_DWORD *)v4 + 1);
           v8 = 0;
-          v43 = 99999.0;
-          v53 = 0.0;
+          v43 = 99999.0f;
+          v53 = 0.0f;
           v47 = 0;
           v52 = 0;
           if ( v7 > 0 )
@@ -12108,7 +12108,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                                 v38[2] = *((float *)aasworld.vertexes + 3 * v20[1] + 2)
                                        + *((float *)aasworld.vertexes + 3 * *v20 + 2);
                                 v48 = VectorLength(v38);
-                                VectorScale(v38, 0.5, v38);
+                                VectorScale(v38, 0.5f, v38);
                                 v44[0] = v38[0];
                                 v44[1] = v38[1];
                                 v44[2] = v38[2];
@@ -12123,13 +12123,13 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                                        - *((float *)aasworld.vertexes + 3 * *v21 + 2);
                                 CrossProduct(v71, (char *)aasworld.planes + 20 * *v59, v72);
                                 VectorNormalize(v72);
-                                VectorMA(v44, 5.0, v72, v44);
-                                VectorMA(v38, 0.1, v72, v38);
-                                v44[2] = v44[2] + 0.125;
+                                VectorMA(v44, 5.0f, v72, v44);
+                                VectorMA(v38, 0.1f, v72, v38);
+                                v44[2] = v44[2] + 0.125f;
                                 v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
                                 if ( !AAS_NearbySolidOrGap(v38, v44) )
-                                  v41 = v41 + 200.0;
-                                if ( v41 < (float)v43 || v43 + 1.0 > v41 && v48 > (float)v53 )
+                                  v41 = v41 + 200.0f;
+                                if ( v41 < (float)v43 || v43 + 1.0f > v41 && v48 > (float)v53 )
                                 {
                                   v60 = area2num;
                                   v43 = v41;
@@ -12213,7 +12213,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                  * source confirms this: be_aas_reach.c:1183 has the same
                  * `AAS_AreaGroundFaceArea(...) < 500` check, only commented
                  * out in the Q3 evolution. */
-                if ( AAS_AreaGroundFaceArea(*(_DWORD *)v27) < 500.0 )
+                if ( AAS_AreaGroundFaceArea(*(_DWORD *)v27) < 500.0f )
                   *(_WORD *)(v27 + 40) += 100;
                 ++reach_equalfloor;
                 return 1;
@@ -14314,7 +14314,7 @@ LABEL_58:
     v5 = FloatForKey(v1, aLip);
     v33 = v5;
     if ( v5 == 0 )
-      v33 = 8.0;
+      v33 = 8.0f;
     v6 = FloatForKey(v1, aHeight);
     v43 = v6;
     if ( v6 == 0 )
@@ -14322,25 +14322,25 @@ LABEL_58:
     v7 = FloatForKey(v1, aSpeed);
     v52 = v7;
     if ( v7 == 0 )
-      v52 = 200.0;
+      v52 = 200.0f;
     extent[2] = extent[2] - v43;
     sumvec[0] = maxs[0] + mins[0];
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
-    VectorMA(extent, 0.5, sumvec, toporg);
-    toporg[2] = maxs[2] - (v75 - extent[2]) + 2.0;
+    VectorMA(extent, 0.5f, sumvec, toporg);
+    toporg[2] = maxs[2] - (v75 - extent[2]) + 2.0f;
     sumvec[0] = maxs[0] + mins[0];
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
-    VectorMA(extent, 0.5, sumvec, btmorg);
-    btmorg[2] = maxs[2] + 2.0;
+    VectorMA(extent, 0.5f, sumvec, btmorg);
+    btmorg[2] = maxs[2] + 2.0f;
     mins[0] -= 1.0f; maxs[0] += 1.0f;
     mins[1] -= 1.0f; maxs[1] += 1.0f;
     mins[2] -= 1.0f; maxs[2] += 1.0f;
     sumvec[0] = maxs[0] + mins[0];
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
-    VectorScale(sumvec, 0.5, sumvec);
+    VectorScale(sumvec, 0.5f, sumvec);
     *(float *)&v71[0] = mins[0];
     *(float *)&v71[1] = sumvec[0];
     *(float *)&v71[3] = sumvec[0];
@@ -14370,13 +14370,13 @@ LABEL_58:
     {
       testpt[0] = btmorg[0];
       testpt[1] = btmorg[1];
-      testpt[2] = btmorg[2] + 24.0;
+      testpt[2] = btmorg[2] + 24.0f;
       v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
       if ( v33 != 0.0f )
       {
         testpt[0] = toporg[0];
         testpt[1] = toporg[1];
-        testpt[2] = toporg[2] + 24.0;
+        testpt[2] = toporg[2] + 24.0f;
 LABEL_30:
         for ( i = 0; i < 3; ++i )
         {
@@ -14404,7 +14404,7 @@ LABEL_30:
           {
             samplept[0] = origin[0] + *(float *)((char *)v74 + v15);
             samplept[1] = origin[1] + *(float *)((char *)v73 + v15);
-            samplept[2] = btmorg[2] + 16.0;
+            samplept[2] = btmorg[2] + 16.0f;
             v16 = AAS_PointAreaNum(samplept);
             v17 = 0;
             while ( 1 )
@@ -14414,14 +14414,14 @@ LABEL_30:
                 v68[0] = btmorg[0];
                 v68[1] = btmorg[1];
                 v70[0] = samplept[0];
-                v68[2] = btmorg[2] + 32.0;
+                v68[2] = btmorg[2] + 32.0f;
                 v70[1] = samplept[1];
-                v70[2] = samplept[2] + 1.0;
+                v70[2] = samplept[2] + 1.0f;
                 trace = AAS_TraceClientBBox(v68, v70, 4, -1);
-                if ( trace.fraction >= 1.0 )
+                if ( trace.fraction >= 1.0f )
                   break;
               }
-              samplept[2] = samplept[2] + 4.0;
+              samplept[2] = samplept[2] + 4.0f;
               ++v17;
               v16 = AAS_PointAreaNum(samplept);
               if ( v17 >= 16 )
@@ -14436,8 +14436,8 @@ LABEL_30:
               VectorNormalize(dirvec);
               dirvec[2] = testpt[2];
               v19 = 0;
-              dirvec[0] = dirvec[0] * 24.0 + testpt[0];
-              dirvec[1] = dirvec[1] * 24.0 + testpt[1];
+              dirvec[0] = dirvec[0] * 24.0f + testpt[0];
+              dirvec[1] = dirvec[1] * 24.0f + testpt[1];
               while ( mins[v19] + origin[v19] <= dirvec[v19]
                    && maxs[v19] + origin[v19] >= dirvec[v19] )
               {
@@ -14453,7 +14453,7 @@ LABEL_30:
                 v23 = v43;
                 v20[1] = v22;
                 v24 = (int)v23;
-                v25 = v43 * 100.0;
+                v25 = v43 * 100.0f;
                 v21[2] = v24;
                 *((float *)v21 + 3) = dirvec[0];
                 v26 = v25 / v52;
@@ -14491,13 +14491,13 @@ LABEL_56:
     }
     testpt[0] = origin[0] + *(float *)((char *)v71 + v10);
     testpt[1] = origin[1] + *(float *)((char *)v72 + v10);
-    testpt[2] = toporg[2] + 16.0;
+    testpt[2] = toporg[2] + 16.0f;
     v11 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
     v33 = v11;
     v12 = 0;
     while ( v11 == 0.0f || !AAS_AreaGrounded(LODWORD(v11)) && !AAS_AreaSwim(LODWORD(v11)) )
     {
-      testpt[2] = testpt[2] + 4.0;
+      testpt[2] = testpt[2] + 4.0f;
       ++v12;
       v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
       if ( v12 >= 16 )
@@ -14586,7 +14586,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
       Log_Write(aAreaDCenterFFF, area1num, start[0], start[1], start[2]);
     vmav[0] = start[0];
     vmav[1] = start[1];
-    vmav[2] = start[2] - 1000.0;
+    vmav[2] = start[2] - 1000.0f;
     trace = AAS_TraceClientBBox(start, vmav, 4, -1);
     if ( trace.startsolid )
       return 0;
@@ -14612,18 +14612,18 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
         dir[2] = *(float *)(v + 8) - areastart[2];
         if ( dir[2] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2)
            + dir[1] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 1)
-           + dir[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2) <= 0.0 )
+           + dir[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2) <= 0.0f )
         {
           AAS_FaceCenter(face2num, facecenter);
-          if ( areastart[2] + 64.0 <= facecenter[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2) * -1.0 >= 0.0 )
+          if ( areastart[2] + 64.0f <= facecenter[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2) * -1.0f >= 0.0f )
           {
-            dir[2] = 0.0;
+            dir[2] = 0.0f;
             dir[0] = facecenter[0] - areastart[0];
             dir[1] = facecenter[1] - areastart[1];
             v37 = facecenter[2] - areastart[2];
             hordist = VectorLength(dir);
             v36 = hordist;
-            if ( hordist != 0.0 && v36 <= 2000.0 && tan(0.2617993877991494) <= v37 / v36 )
+            if ( hordist != 0.0f && v36 <= 2000.0f && tan(0.2617993877991494f) <= v37 / v36 )
             {
               start[0] = facecenter[0];
               start[1] = facecenter[1];
@@ -14633,15 +14633,15 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                * advance 20 floats = 80 bytes per plane; the original disasm
                * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
                * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(facecenter, -500.0, (float *)aasworld.planes + 5 * *(_DWORD *)face2, vmav);
+              VectorMA(facecenter, -500.0f, (float *)aasworld.planes + 5 * *(_DWORD *)face2, vmav);
               qmemcpy(v41, AAS_Trace(v44, (float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(vmav), 0, 100663299), sizeof(v41));
-              if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0 < 32.0 )
+              if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0f < 32.0f )
               {
                 dir[0] = facecenter[0] - areastart[0];
                 dir[1] = facecenter[1] - areastart[1];
                 dir[2] = facecenter[2] - areastart[2];
                 VectorNormalize(dir);
-                VectorMA(areastart, 4.0, dir, start);
+                VectorMA(areastart, 4.0f, dir, start);
                 /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
                  * IDA dropped the middle assignment. */
                 vmav[0] = v41[3];
@@ -14651,7 +14651,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                 dir[0] = trace.endpos[0] - facecenter[0];
                 dir[1] = trace.endpos[1] - facecenter[1];
                 dir[2] = trace.endpos[2] - facecenter[2];
-                if ( VectorLength(dir) <= 24.0 )
+                if ( VectorLength(dir) <= 24.0f )
                 {
                   start[0] = trace.endpos[0];
                   start[1] = trace.endpos[1];
@@ -14664,7 +14664,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                   v37 = AAS_FallDamageDistance();
                   vmav[2] = vmav[2] - (float)v37;
                   trace = AAS_TraceClientBBox(start, vmav, 2, -1);
-                  if ( trace.fraction < 1.0 )
+                  if ( trace.fraction < 1.0f )
                   {
                     v11 = AAS_PointAreaNum(trace.endpos);
                     if ( (*((_BYTE *)aasworld.areasettings + 28 * v11) & 6) == 0
@@ -14694,7 +14694,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                       dir[0] = v15;
                       dir[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
                       dir[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
-                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(dir) * 0.25 + 500.0);
+                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(dir) * 0.25f + 500.0f);
                       ((aas_reachabilitynode_t *)v13)->next = areareachability[area1num];
                       areareachability[area1num] = (aas_reachabilitynode_t *)v13;
                       ++reach_grapple;
@@ -14864,7 +14864,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
     Log_Write(aAreaDCenterFFF, ArgList, centerorg[0], centerorg[1], centerorg[2]);
   v30[0] = centerorg[0];
   v30[1] = centerorg[1];
-  v30[2] = centerorg[2] - 1000.0;
+  v30[2] = centerorg[2] - 1000.0f;
   trace = AAS_TraceClientBBox(centerorg, v30, 4, -1);
   if ( trace.startsolid )
     return 0;
@@ -14882,7 +14882,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
     if ( (*((_BYTE *)aasworld.faces + 24 * abs32(v6) + 4) & 4) != 0 )
     {
       AAS_FaceCenter(*((_DWORD *)aasworld.faceindex + v5 + *((_DWORD *)v2 + 2)), facecenter);
-      v7 = groundedpos[2] + 64.0;
+      v7 = groundedpos[2] + 64.0f;
       if ( v7 <= facecenter[2] )
         break;
     }
@@ -14903,13 +14903,13 @@ LABEL_28:
     if ( AAS_HorizontalVelocityForJump(v15, groundedpos, facecenter, &v24) )
     {
       v7 = v24;
-      if ( v24 < 270.0 )
+      if ( v24 < 270.0f )
       {
         v28[2] = 0;
         v28[0] = facecenter[0] - groundedpos[0];
         v28[1] = facecenter[1] - groundedpos[1];
         v7 = VectorNormalize(v28);
-        if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
+        if ( facecenter[2] * 1.6f - groundedpos[2] > v7 )
         {
           VectorScale(v28, v24, v33);
           v29[2] = v15;
@@ -14917,7 +14917,7 @@ LABEL_28:
           v29[1] = 0;
           qmemcpy(
             v35,
-            AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1, 61, 0),
+            AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1f, 61, 0),
             sizeof(v35));
           if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
           {
@@ -14928,7 +14928,7 @@ LABEL_28:
             {
               v14 = (float)v16;
               VectorMA((float *)v35, v14, v28, predictpos);
-              v7 = predictpos[2] + 0.125;
+              v7 = predictpos[2] + 0.125f;
               predictpos[2] = v7;
               if ( AAS_PointAreaNum(predictpos) == a2 )
                 break;
@@ -19688,10 +19688,10 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     v10 = v2;
   }
   bs->enemy = 0;
-  if ( AAS_Time() - 5.0 < bs->killedenemy_time
+  if ( AAS_Time() - 5.0f < bs->killedenemy_time
     && (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5f )
       sub_100371B0(bs->client, 2);
     else
       sub_100371B0(bs->client, 0);
@@ -19708,12 +19708,12 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       v4 = AAS_Time();
       v5 = -(bs->ltgtype != 3);
-      bs->check_time = v4 + 0.5;
+      bs->check_time = v4 + 0.5f;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
       if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, v8) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
-        bs->nbg_time = AAS_Time() + 5.0;
+        bs->nbg_time = AAS_Time() + 5.0f;
         AIEnter_Seek_NBG(bs);
         return 0;
       }
@@ -19738,7 +19738,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     if ( (v18[5] & 4) != 0 )
     {
-      if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509f )
+      if ( bs->thinktime * 0.8f <= (float)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_41;
       BotRoamGoal((_DWORD *)bs, target);
       dir[0] = target[0] - bs->origin[0];
@@ -19757,7 +19757,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       vectoangles(&v18[6], bs->ideal_viewangles);
     }
-    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5f;
 LABEL_41:
     if ( (v18[5] & 8) != 0 )
       return 1;
@@ -22635,7 +22635,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
       *(float *)&v38 = v44 + v41;
       *(float *)&v39 = v45 + v42;
       *(float *)&v40 = v46 + v43;
-      VectorScale(v38_vec, 0.5, v38_vec);
+      VectorScale(v38_vec, 0.5f, v38_vec);
       v50[0] = v38 - bs->origin[0];
       v50[1] = v39 - bs->origin[1];
       v50[2] = v40 - bs->origin[2];
@@ -22667,8 +22667,8 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
     v59 = v44 + v41;
     v60 = v45 + v42;
     v61 = v46 + v43;
-    VectorScale(v59_vec, 0.5, v59_vec);
-    v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(v50[0]) * v69) * 0.5;
+    VectorScale(v59_vec, 0.5f, v59_vec);
+    v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(v50[0]) * v69) * 0.5f;
     if ( FloatForKey(v6, aHealth) != 0.0f )
     {
       v34 = -v65;
@@ -22685,7 +22685,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
     v9 = v65;
     for ( i = 0; i < 3; ++i )
     {
-      if ( v50[i] >= 0.0 )
+      if ( v50[i] >= 0.0f )
         v11 = *(float *)&v76[i];
       else
         v11 = *(float *)&v75[i];
@@ -22696,7 +22696,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
     VectorMA(v59_vec, v35, v50, v38_vec);
     v53 = v38;
     v53_vec[1] = v39; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
-    v55 = v40 + 24.0;
+    v55 = v40 + 24.0f;
     v66 = v38;
     v66_vec[1] = v39; /* IDA dropped middle end write; original mov [esp+0x98], eax at 0x10025954 */
     v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xAC] at 0x1002596B */
@@ -22720,15 +22720,15 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
     bs->activategoal.entitynum = v18;
     bs->activategoal.number = 0;
     bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v17 - 5.0;
-    bs->activategoal.mins[1] = v45 - v60 - 5.0;
-    bs->activategoal.mins[2] = v46 - v61 - 5.0;
-    bs->activategoal.maxs[0] = v41 - v59 + 5.0;
-    bs->activategoal.maxs[1] = v42 - v60 + 5.0;
-    bs->activategoal.maxs[2] = v43 - v61 + 5.0;
+    bs->activategoal.mins[0] = v17 - 5.0f;
+    bs->activategoal.mins[1] = v45 - v60 - 5.0f;
+    bs->activategoal.mins[2] = v46 - v61 - 5.0f;
+    bs->activategoal.maxs[0] = v41 - v59 + 5.0f;
+    bs->activategoal.maxs[1] = v42 - v60 + 5.0f;
+    bs->activategoal.maxs[2] = v43 - v61 + 5.0f;
     v19 = AAS_Time();
     v36 = bs->activategoal.areanum;
-    bs->activategoal_time = v19 + 10.0;
+    bs->activategoal_time = v19 + 10.0f;
     if ( !AAS_AreaReachability(v36) )
     {
       result = BotAINode(bs);
@@ -22759,13 +22759,13 @@ LABEL_37:
     v53_vec[1] = v32;
     v55 = v31;
     v55 = v31 + libvar_sv_step->value;
-    VectorMA(v53_vec, 5.0, v72, v66_vec);
-    v44 = -16.0;
-    v45 = -16.0;
-    v46 = -24.0;
-    v41 = 16.0;
-    v42 = 16.0;
-    v43 = 4.0;
+    VectorMA(v53_vec, 5.0f, v72, v66_vec);
+    v44 = -16.0f;
+    v45 = -16.0f;
+    v46 = -24.0f;
+    v41 = 16.0f;
+    v42 = 16.0f;
+    v43 = 4.0f;
     CrossProduct(v72, v73, v62);
     if ( (*(unsigned char *)&bs->flags & 0x10) != 0 )
     {
@@ -22773,14 +22773,14 @@ LABEL_37:
       v62[1] = -v62[1];
       v62[2] = -v62[2];
     }
-    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0, 1) )
+    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0f, 1) )
     {
       v62[0] = -v62[0];
       v33 = bs->flags;
       v62[1] = -v62[1];
       v62[2] = -v62[2];
       bs->flags = v33 ^ 0x10;
-      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0, 1);
+      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0f, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
@@ -22804,10 +22804,10 @@ LABEL_37:
   *(float *)&v47 = v44 + v41;
   v48 = v45 + v42;
   v49 = v46 + v43;
-  VectorScale(v47_vec, 0.5, v47_vec);
+  VectorScale(v47_vec, 0.5f, v47_vec);
   v53 = v47;
   v53_vec[1] = v48; /* IDA dropped middle start write; original mov [esp+0x70], edx at 0x10025BE5 */
-  v55 = v43 + 24.0;
+  v55 = v43 + 24.0f;
   v66 = v47;
   v66_vec[1] = v48; /* IDA dropped middle end write; original mov [esp+0xA8], ecx at 0x10025C09 */
   v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xBC] at 0x10025C20 */
@@ -22839,7 +22839,7 @@ LABEL_37:
     bs->activategoal.maxs[2] = v43 - v49;
     v27 = AAS_Time();
     v37 = bs->activategoal.areanum;
-    bs->activategoal_time = v27 + 10.0;
+    bs->activategoal_time = v27 + 10.0f;
     if ( !AAS_AreaReachability(v37) )
     {
       result = BotAINode(bs);
