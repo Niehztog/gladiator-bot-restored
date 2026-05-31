@@ -17571,7 +17571,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       v17 = -epsilon;
       if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
         break;
-      if ( ++v16 >= v5[2] )
+      if ( ++v16 >= (int)v5[2] )
         return 1;
     }
     return 0;
