@@ -25261,15 +25261,12 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
   int v17; // [esp+1Ch] [ebp+4h]
 
   v3 = str1;
-  v4 = 0;
   v5 = strlen(str1) + 1;
   v6 = str2;
-  v16 = 0;
   v7 = strlen(str2) + 1;
-  if ( (int)(v5 - v7) < 0 )
-    return 0;
-  while ( 1 )
+  for ( v16 = 0; v16 <= (int)(v5 - v7); ++v16, ++v3 )
   {
+    v4 = v16;
     if ( v4 )
     {
       for ( i = *v3; i; i = *++v3 )
@@ -25312,11 +25309,8 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
       if ( !v14 || v14 == 32 )
         return v3;
     }
-    v4 = v16 + 1;
-    ++v3;
-    if ( ++v16 > (int)(v5 - v7) )
-      return 0;
   }
+  return 0;
 }
 
 //----- (1002AF30) --------------------------------------------------------
