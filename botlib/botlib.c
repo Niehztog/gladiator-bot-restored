@@ -32223,59 +32223,33 @@ double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
 // LIVE: core of FuzzyWeightUndecided (used for smooth priority changes).
 double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
 {
-  int factvalue;
-  fuzzyseperator_t *next;
-  double v7;
-  double v9;
-  fuzzyseperator_t *v10;
-  int v11;
-  int v12;
-  int v13;
-  float v14;
+  float scale, w1, w2;
 
-  while ( 1 )
+  if ( facts[sep->index] < sep->value )
   {
-    while ( 1 )
+    if ( sep->child )
+      return FuzzyWeightUndecided_r(facts, sep->child);
+    else
+      return sep->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->maxweight - sep->minweight);
+  }
+  else if ( sep->next )
+  {
+    if ( facts[sep->index] < sep->next->value )
     {
-      factvalue = facts[sep->index];
-      if ( factvalue >= sep->value )
-        break;
-      if ( !sep->child )
-        return (rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight)
-             + sep->minweight;
-      sep = sep->child;
+      if ( sep->child )
+        w1 = FuzzyWeightUndecided_r(facts, sep->child);
+      else
+        w1 = sep->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->maxweight - sep->minweight);
+      if ( sep->next->child )
+        w2 = FuzzyWeight_r(facts, sep->next->child);
+      else
+        w2 = sep->next->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->next->maxweight - sep->next->minweight);
+      scale = (facts[sep->index] - sep->value) / (sep->next->value - sep->value);
+      return scale * w1 + (1.0f - scale) * w2;
     }
-    next = sep->next;
-    if ( !next )
-      return sep->weight;
-    if ( factvalue < next->value )
-      break;
-    sep = sep->next;
+    return FuzzyWeightUndecided_r(facts, sep->next);
   }
-  if ( sep->child )
-    v7 = FuzzyWeightUndecided_r(facts, sep->child);
-  else
-    v7 = (rand() & 0x7FFF) * 0.000030518509f * (sep->maxweight - sep->minweight) + sep->minweight;
-  v14 = v7;
-  if ( sep->next->child )
-  {
-    v9 = FuzzyWeight_r(facts, sep->next->child);
-  }
-  else
-  {
-    v10 = sep->next;
-    /* IDA decompiled the +minweight as `*(float *)(v10 + 16)` (byte arithmetic
-     * on raw int v10).  When v10 was retyped to fuzzyseperator_t *, the
-     * `+ 16` became 16 * sizeof(fuzzyseperator_t) = 512-byte stride, reading
-     * far past the struct and AV-ing.  Original asm at 0x10036bdf is
-     * `fadds 0x10(%edi)` — i.e. v10->minweight. */
-    v9 = (rand() & 0x7FFF) * 0.000030518509f * (v10->maxweight - v10->minweight)
-       + v10->minweight;
-  }
-  v11 = sep->value;
-  v12 = facts[sep->index] - v11;
-  v13 = sep->next->value - v11;
-  return v9 * (1.0f - (float)(v12 / v13)) + (float)(v12 / v13) * v14;
+  return sep->weight;
 }
 
 //----- (10036C70) --------------------------------------------------------
