@@ -35591,68 +35591,62 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
   v7 = 0;
   do
   {
-    if ( token.type != 4 )
+    if ( token.type == 4 )
     {
-      if ( token.type != 3 && token.type != 5 )
+      if ( v16 )
       {
-        SourceError(src, aCanTEvaluateS, token.string);
-        return 0;
+        v16 = 0;
+        v8 = PC_CopyToken(&token);
+        v8->next = 0;
+        if ( v7 )
+          v7->next = v8;
+        else
+          v6 = v8;
+        v7 = v8;
       }
-      if ( token.string[0] == 40 )
+      else if ( !strcmp(token.string, aDefined) )
       {
-        v11 = v15 + 1;
+        v16 = 1;
+        v9 = PC_CopyToken(&token);
+        v9->next = 0;
+        if ( v7 )
+          v7->next = v9;
+        else
+          v6 = v9;
+        v7 = v9;
       }
       else
       {
-        if ( token.string[0] != 41 )
+        v10 = PC_FindHashedDefine(src->definehash, token.string);
+        if ( !v10 )
         {
-LABEL_28:
-          if ( v15 <= 0 )
-            break;
-          v8 = PC_CopyToken(&token);
-          goto LABEL_30;
+          SourceError(src, aCanTEvaluateSN, token.string);
+          return 0;
         }
-        v11 = v15 - 1;
+        if ( !PC_ExpandDefineIntoSource(src, v10) )
+          return 0;
       }
-      v15 = v11;
-      goto LABEL_28;
     }
-    if ( v16 )
+    else if ( token.type == 3 || token.type == 5 )
     {
-      v16 = 0;
+      if ( token.string[0] == 40 )
+        ++v15;
+      else if ( token.string[0] == 41 )
+        --v15;
+      if ( v15 <= 0 )
+        break;
       v8 = PC_CopyToken(&token);
-LABEL_30:
       v8->next = 0;
       if ( v7 )
         v7->next = v8;
       else
         v6 = v8;
       v7 = v8;
-      continue;
-    }
-    if ( !strcmp(token.string, aDefined) )
-    {
-      v16 = 1;
-      v9 = PC_CopyToken(&token);
-      v9->next = 0;
-      src = src;
-      if ( v7 )
-        v7->next = v9;
-      else
-        v6 = v9;
-      v7 = v9;
     }
     else
     {
-      src = src;
-      v10 = PC_FindHashedDefine(src->definehash, token.string);
-      if ( !v10 )
-      {
-        SourceError(src, aCanTEvaluateSN, token.string);
-        return 0;
-      }
-      if ( !PC_ExpandDefineIntoSource(src, v10) )
-        return 0;
+      SourceError(src, aCanTEvaluateS, token.string);
+      return 0;
     }
   }
   while ( PC_ReadSourceToken(src, &token) );
