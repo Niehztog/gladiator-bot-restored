@@ -31487,40 +31487,24 @@ int sub_100356D0()
 //----- (10035700) --------------------------------------------------------
 int __cdecl ReadValue(source_t *source, float *value)
 {
-  int result; // eax
   char v3; // [esp+0h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_ExpectAnyToken(source, token.string);
-  if ( result )
+  if ( !PC_ExpectAnyToken(source, token.string) )
+    return 0;
+  if ( !strcmp(token.string, (const char *)&word_1005E498) )
   {
-    if ( strcmp(token.string, (const char *)&word_1005E498)
-      || (SourceWarning(source, aNegativeValueS), (result = PC_ExpectTokenType(source, 3, 0, token.string)) != 0) )
-    {
-      if ( token.type == 3 )
-      {
-        result = 1;
-        /* IDA emitted `*value = v6` where v6 was a separate `double` local at
-         * [esp+0x414] — the floatvalue field of `token` (offset 0x410 from
-         * token.string, original .text 0x100357b6 is `fld QWORD [esp+0x414]`).
-         * Treating v6 as a real local lets GCC put it in a fresh stack slot
-         * that is never written, so ReadValue always stored 0.0
-         * — which silently broke every `weight "X" { return N; }` rule:
-         * FuzzyWeight_r returned 0 for every weapon, so the bot never selected
-         * any weapon via the weight tree, weaponweights[5] stayed 0 (Blaster),
-         * BotCheckAttack always used Blaster's flags (=0) for the alternation
-         * gate, and a continuously-pressed attack while hand grenades were
-         * equipped (via game.dll auto-switch) primed them past the 3s timer. */
-        *value = (float)token.floatvalue;
-      }
-      else
-      {
-        SourceError(source, aInvalidReturnV, token.string);
-        return 0;
-      }
-    }
+    SourceWarning(source, aNegativeValueS);
+    if ( !PC_ExpectTokenType(source, 3, 0, token.string) )
+      return 0;
   }
-  return result;
+  if ( token.type != 3 )
+  {
+    SourceError(source, aInvalidReturnV, token.string);
+    return 0;
+  }
+  *value = (float)token.floatvalue;
+  return 1;
 }
 // 1003576C: variable 'v3' is possibly undefined
 // 10001582: using guessed type int __cdecl PC_ExpectAnyToken(_DWORD, _DWORD);
