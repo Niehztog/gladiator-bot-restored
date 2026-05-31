@@ -31979,7 +31979,9 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
   --a3;
   if ( !WriteIndent(Stream, a3) )
     return 0;
-  return fprintf(Stream, "} //end switch\n") >= 0;
+  if ( fprintf(Stream, "} //end switch\n") < 0 )
+    return 0;
+  return 1;
 }
 
 //----- (100368B0) --------------------------------------------------------
