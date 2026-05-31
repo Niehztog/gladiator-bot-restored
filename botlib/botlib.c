@@ -36122,50 +36122,31 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *src)
 //----- (1003D420) --------------------------------------------------------
 int __cdecl PC_ReadDollarDirective(source_t *src)
 {
-  const char *v2; // eax
-  int v3; // ebp
-  eval_type_t *v4; // edi
-  char v5; // [esp-8h] [ebp-448h]
-  char v6; // [esp+0h] [ebp-440h]
-  token_t token; /* restored: original token_t local variable */
+  int i;
+  token_t token;
 
-  if ( PC_ReadSourceToken(src, token.string) )
-  {
-    if ( token.linescrossed <= 0 )
-    {
-      if ( token.type == 4 && (v2 = eval_type_table[0].name, v3 = 0, eval_type_table[0].name) )
-      {
-        v4 = eval_type_table;
-        while ( strcmp(v2, token.string) )
-        {
-          ++v4;
-          v2 = v4->name;
-          ++v3;
-          if ( !v2 )
-            goto LABEL_10;
-        }
-        return v4->handler(src);
-      }
-      else
-      {
-LABEL_10:
-        PC_UnreadSourceToken(src, token.string);
-        SourceError(src, aUnknownPrecomp, token.string);
-        return 0;
-      }
-    }
-    else
-    {
-      PC_UnreadSourceToken(src, token.string);
-      SourceError(src, aFoundAtEndOfLi_0);
-      return 0;
-    }
-  }
-  else
+  if ( !PC_ReadSourceToken(src, token.string) )
   {
     SourceError(src, aFoundWithoutNa_0);
     return 0;
   }
+  if ( token.linescrossed > 0 )
+  {
+    PC_UnreadSourceToken(src, token.string);
+    SourceError(src, aFoundAtEndOfLi_0);
+    return 0;
+  }
+  if ( token.type == 4 )
+  {
+    for ( i = 0; eval_type_table[i].name; i++ )
+    {
+      if ( !strcmp(eval_type_table[i].name, token.string) )
+        return eval_type_table[i].handler(src);
+    }
+  }
+  PC_UnreadSourceToken(src, token.string);
+  SourceError(src, aUnknownPrecomp, token.string);
+  return 0;
 }
 // 1003D449: variable 'v6' is possibly undefined
 // 1003D47A: variable 'v5' is possibly undefined
