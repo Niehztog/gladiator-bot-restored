@@ -22027,15 +22027,15 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     v28 = 1.0 - v35;
     v13 = rand();
-    *(float *)&v32 = ((double)(v13 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v13 & 0x7FFF) * 0.000030518509 - 0.5)
+    *(float *)&v32 = (2 * ((double)(v13 & 0x7FFF) * 0.000030518509 - 0.5))
                    * v28
                    * 20.0
                    + *(float *)&v32;
     v14 = rand();
-    v33 = ((float)(v14 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v14 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 20.0
+    v33 = (2 * ((float)(v14 & 0x7FFF) * 0.000030518509 - 0.5)) * v28 * 20.0
         + v33;
     v15 = rand();
-    v34 = ((float)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 10.0
+    v34 = (2 * ((float)(v15 & 0x7FFF) * 0.000030518509 - 0.5)) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
@@ -22059,7 +22059,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     vectoangles(v29, bs->ideal_viewangles);
     v18 = rand();
-    v25 = ((float)(v18 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v18 & 0x7FFF) * 0.000030518509 - 0.5)
+    v25 = (2 * ((float)(v18 & 0x7FFF) * 0.000030518509 - 0.5))
         * (*(float *)(v3 + 264)
          * 6.0)
         * v28
@@ -22068,7 +22068,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v25 = AngleMod(v25);
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
-    v26 = ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v19 & 0x7FFF) * 0.000030518509 - 0.5)
+    v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5))
         * (*(float *)(v3 + 260)
          * 6.0)
         * v28
@@ -29945,7 +29945,7 @@ int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   dir[2] = v3;
   v10[0] = dir[0];
   v4 = rand();
-  dir[2] = ((float)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v4 & 0x7FFF) * 0.000030518509 - 0.5) * 40.0
+  dir[2] = (2 * ((float)(v4 & 0x7FFF) * 0.000030518509 - 0.5)) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
@@ -29999,15 +29999,15 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
       dir[1] = a3[7] - *(float *)(a2 + 4);
       dir[2] = a3[8] - *(float *)(a2 + 8);
       v6 = rand();
-      dir[0] = ((float)(v6 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v6 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509 - 0.5))
              * 10.0
              + dir[0];
       v7 = rand();
-      dir[1] = ((float)(v7 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v7 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509 - 0.5))
              * 10.0
              + dir[1];
       v8 = rand();
-      dir[2] = ((float)(v8 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v8 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509 - 0.5))
              * 10.0
              + dir[2]
              + 70.0;
