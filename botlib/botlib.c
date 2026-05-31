@@ -26378,9 +26378,10 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
       /* Walk the alternative-string list looking for any that's contained
        * in the remaining text.  Empty firststring is a special "match
        * anywhere" — fall through with newstrptr at its previous value. */
-      if ( mp->firststring )
+      ms = mp->firststring;
+      if ( ms )
       {
-        for ( ms = mp->firststring; ; ms = ms->next )
+        while ( 1 )
         {
           /* Original IDA decompilation called this "FindClientByName"
            * (synthetic name for the MSVC thunk 0x1000119A); the real body
@@ -26389,7 +26390,8 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
           newstrptr = (char *)StringContains(strptr, ms->string, 0);
           if ( newstrptr )
             break;
-          if ( !ms->next )
+          ms = ms->next;
+          if ( !ms )
             return 0;
         }
       }
