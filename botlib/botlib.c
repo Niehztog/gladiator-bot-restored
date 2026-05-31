@@ -20812,13 +20812,11 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   int v8; // ecx
   float v9; // st7
   float v10; // st7
-  /* v11/v12/v13 form the bi_PointContents test point: X/Y as raw int copies,
-   * Z as float bit-pattern via v13.  IDA originally had all three as separate
-   * locals; restored here so PointContents reads valid X/Y/Z (was reading
-   * stack garbage for Y/Z, missing lava/slime/water and breaking BotValidChatPosition). */
-  int v11; // [esp+4h] [ebp-90h] BYREF
-  int v12; // [esp+8h] [ebp-8Ch]
-  float v13; // [esp+Ch] [ebp-88h]
+  /* v11 is a vec3_t test point (X int copy, Y int copy, Z float). Original
+   * source likely declared as a vec3_t array — MSVC drops dead stores to v12/v13
+   * when they are separate locals (only v11 is BYREF), so we declare as an
+   * array to keep all three slots live across the call. */
+  int v11[3]; // [esp+4h] [ebp-90h] BYREF
   /* v14/v15 are int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v[2]. */
   int v14[3]; // [esp+10h] [ebp-84h] BYREF
   int v15[3]; // [esp+1Ch] [ebp-78h] BYREF
@@ -20830,22 +20828,18 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 1;
   if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
-  v2 = *(int *)&bs->origin[1];
   v3 = bs->origin[2] - 24.0f;
-  v11 = *(int *)&bs->origin[0];
-  v12 = v2;
-  v13 = v3;
-  /* IDA dropped the call: original was AAS_PointContents-equivalent via the
-   * engine's bi_PointContents callback (dword_10063FF0). */
-  v4 = (char)bi_PointContents((float *)&v11);
+  v11[0] = *(int *)&bs->origin[0];
+  v11[1] = *(int *)&bs->origin[1];
+  *(float *)&v11[2] = v3;
+  v4 = (char)sub_10003080((float *)v11);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
-  v5 = *(int *)&bs->origin[1];
   v6 = bs->origin[2] + 32.0f;
-  v11 = *(int *)&bs->origin[0];
-  v12 = v5;
-  v13 = v6;
-  v7 = (char)bi_PointContents((float *)&v11);
+  v11[0] = *(int *)&bs->origin[0];
+  v11[1] = *(int *)&bs->origin[1];
+  *(float *)&v11[2] = v6;
+  v7 = (char)sub_10003080((float *)v11);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
   v8 = *(int *)&bs->origin[1];
