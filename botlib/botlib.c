@@ -10532,9 +10532,9 @@ int __cdecl AAS_AgainstLadder(int *origin)
 //----- (1000F4D0) --------------------------------------------------------
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
-  float v2; // ecx
+  int v2; // ecx
   double v3; // st7
-  double points; // st7
+  float points; // st7
   float v7; // [esp+0h] [ebp-D0h]
   /* IDA-split vec3 trios v8/v9/v10 and v11/v12/v13 — both passed by address
    * to VectorMA / AAS_Trace / VectorLength which read 3 contiguous floats.
@@ -10550,10 +10550,10 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   float kvel[3]; /* BYREF — scaled direction */
   float bsptrace[21]; /* BYREF — trace result */
 
-  v2 = origin[1];
+  v2 = *(int *)&origin[1];
   v3 = origin[2] + 8.0f;
   start[0] = origin[0];
-  start[1] = v2;
+  *(int *)&start[1] = v2;
   start[2] = v3;
   /* 1119092736 = 0x42B40000 is the IEEE-754 BIT pattern of 90.0f.  IDA's
    * decomp emitted the raw int literal under the assumption v18 was int[3]
@@ -10564,9 +10564,9 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   viewangles[1] = 0;
   viewangles[2] = 0;
   AngleVectors(viewangles, forward, right, 0);
-  start[0] = (right[0] + forward[0]) * 8.0f + start[0];
-  start[1] = (right[1] + forward[1]) * 8.0f + start[1];
-  start[2] = (right[2] + forward[2]) * 8.0f + start[2] - 8.0f;
+  start[0] = (forward[0] + right[0]) * 8.0f + start[0];
+  start[1] = (forward[1] + right[1]) * 8.0f + start[1];
+  start[2] = (forward[2] + right[2]) * 8.0f + start[2] - 8.0f;
   VectorMA(start, 500.0f, forward, end);
   qmemcpy(bsptrace, AAS_Trace(bsptrace, (float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 1, 3), sizeof(bsptrace));
   v[0] = 0.0f;
