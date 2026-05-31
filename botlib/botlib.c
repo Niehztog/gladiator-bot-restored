@@ -25343,20 +25343,18 @@ void __cdecl UnifyWhiteSpaces(void *Src)
 //----- (1002ACF0) --------------------------------------------------------
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive)
 {
-  unsigned int v4; // kr04_4
-  unsigned int v5; // kr08_4
-  const char *v6; // esi
-  ptrdiff_t v7; // edi
-  int v8; // ebp
-  char v9; // al
-  bool v10; // cc
-  int v12; // [esp+10h] [ebp-8h]
-  int v13; // [esp+20h] [ebp+8h]
+  int len;
+  int v12;
+  int v13;
+  const char *v6;
+  ptrdiff_t v7;
+  int v8;
+  char v9;
+  bool v10;
 
-  v4 = strlen(str1) + 1;
-  v5 = strlen(str2) + 1;
+  len = strlen(str1) - strlen(str2);
   v12 = 0;
-  if ( (int)(v4 - v5) < 0 )
+  if ( len < 0 )
     return 0;
   while ( 1 )
   {
@@ -25385,7 +25383,7 @@ const char *__cdecl StringContains(const char *str1, const char *str2, int cases
     }
     if ( !str2[v13] )
       return str1;
-    v10 = ++v12 <= (int)(v4 - v5);
+    v10 = ++v12 <= len;
     ++str1;
     if ( !v10 )
       return 0;
