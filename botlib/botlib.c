@@ -29002,7 +29002,7 @@ double __cdecl AngleDiff(float ang1, float ang2)
 int __cdecl BotReachabilityArea(int *a1, int a2)
 {
   int v2; // ecx
-  double v4; // st7
+  float v4; // st7
   int v5; // eax
   int v6; // esi
   int dx; // ebp
@@ -29042,7 +29042,7 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
       v4 = ((float *)a1)[2];
       end[0] = ((float *)a1)[0];
       end[1] = ((float *)a1)[1];
-      end[2] = v4 - 800.0;
+      end[2] = v4 - 800.0f;
       trace = AAS_TraceClientBBox((float *)a1, end, 4, -1);
       if ( !trace.startsolid )
       {
