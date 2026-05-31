@@ -9941,7 +9941,6 @@ float AAS_Time()
 intptr_t __cdecl sub_1000E140(char *Source)
 {
   const char *v1; // eax
-  unsigned int v2; // kr0C_4
   const char *v3; // eax
   intptr_t result; // eax
   char FileName[144]; // [esp+8h] [ebp-240h] BYREF
@@ -9954,9 +9953,8 @@ intptr_t __cdecl sub_1000E140(char *Source)
   v1 = (const char *)LibVarGetString(aBasedir);
   strncpy(FileName, v1, 0x90u);
   sub_10041900(FileName, 144 - strlen(FileName));
-  v2 = strlen(FileName) + 1;
   v3 = (const char *)LibVarGetString(aGamedir);
-  strncat(FileName, v3, 144 - (v2 - 1));
+  strncat(FileName, v3, 144 - strlen(FileName));
   sub_10041900(FileName, 144 - strlen(FileName));
   strncpy(Arguments, FileName, 0x90u);
   strncat(FileName, aMaps_0, 144 - strlen(FileName));
@@ -11577,7 +11575,7 @@ double __cdecl AAS_AreaVolume(int areanum)
          - *((float *)aasworld.planes + 5 * *v7 + 3));
     ++v2;
   }
-  return v12 * 0.33333334;
+  return v12 * 0.33333334f;
 }
 
 //----- (10011360) --------------------------------------------------------
