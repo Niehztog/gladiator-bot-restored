@@ -29320,7 +29320,8 @@ int __cdecl BotCheckBarrierJump(intptr_t ms, intptr_t dir, float speed)
 
   v12[0] = *(float *)ms;
   v12[1] = *(float *)(ms + 4);
-  v12[2] = *(float *)(ms + 8) + libvar_sv_maxbarrier->value;
+  v12[2] = *(float *)(ms + 8);
+  v12[2] = v12[2] + libvar_sv_maxbarrier->value;
   trace = AAS_TraceClientBBox((float *)ms, v12, 2, *(_DWORD *)(ms + 36));
   if ( trace.startsolid )
     return 0;
