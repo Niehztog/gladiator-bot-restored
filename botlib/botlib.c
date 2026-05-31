@@ -34311,144 +34311,109 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
 //----- (1003A2D0) --------------------------------------------------------
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken)
 {
-  token_t *last;
-  int result;
-  token_t *t;
-  int parmidx;
-  token_t *pt;
-  token_t *newtok;
-  token_t *tlist;
-  token_t *tnext;
-  token_t *tafter;
-  int i;
-  token_t **psrc;
-  token_t *freep;
-  token_t *freenext;
-  char v19; // [esp+0h] [ebp-644h]
-  token_t *parmlist; // [esp+10h] [ebp-634h]
-  token_t *Source[128]; // [esp+14h] [ebp-630h] BYREF
-  token_t Destination __attribute__((aligned(8))); // [esp+214h] [ebp-430h] BYREF
+  token_t *parms[128]; // [esp+14h] [ebp-630h] BYREF
+  token_t *dt, *pt, *t;
+  token_t *t1, *t2, *first, *last, *nextpt;
+  token_t token; // [esp+214h] [ebp-430h] BYREF
+  int parmnum, i;
 
-  last = NULL;
   if ( define->builtin )
     return PC_ExpandBuiltinDefine(src, define, firsttoken, lasttoken);
-  if ( !define->numparms || (result = PC_ReadDefineParms(src, define, Source, 128)) != 0 )
+  if ( define->numparms )
   {
-    t = define->tokens;
-    parmlist = NULL;
-    if ( t )
+    if ( !PC_ReadDefineParms(src, define, parms, 128) )
+      return 0;
+  }
+  first = NULL;
+  last = NULL;
+  for ( dt = define->tokens; dt; dt = dt->next )
+  {
+    parmnum = -1;
+    if ( dt->type == 4 )
+      parmnum = PC_FindDefineParm(define, dt->string);
+    if ( parmnum >= 0 )
     {
-      while ( 1 )
+      for ( pt = parms[parmnum]; pt; pt = pt->next )
       {
-        if ( t->type == 4 )
-        {
-          parmidx = PC_FindDefineParm(define, t->string);
-          if ( parmidx >= 0 )
-          {
-            for ( pt = Source[parmidx]; pt; last = newtok )
-            {
-              newtok = PC_CopyToken(pt);
-              newtok->next = NULL;
-              if ( last )
-                last->next = newtok;
-              else
-                parmlist = newtok;
-              pt = pt->next;
-            }
-            goto LABEL_25;
-          }
-        }
-        if ( strcmp(t->string, asc_1005F630) )
-          break;
-        if ( t->next )
-        {
-          parmidx = PC_FindDefineParm(define, t->next->string);
-          if ( parmidx >= 0 )
-          {
-            t = t->next;
-            if ( !PC_StringizeTokens((char *)Source[parmidx], (char *)&Destination) )
-            {
-              SourceError(src, aCanTStringizeT);
-              return 0;
-            }
-            newtok = PC_CopyToken(&Destination);
-            goto LABEL_21;
-          }
-        }
-        SourceWarning(src, aStringizingOpe);
-LABEL_25:
-        t = t->next;
-        if ( !t )
-          goto LABEL_26;
+        t = PC_CopyToken(pt);
+        t->next = NULL;
+        if ( last )
+          last->next = t;
+        else
+          first = t;
+        last = t;
       }
-      newtok = PC_CopyToken(t);
-LABEL_21:
-      newtok->next = NULL;
-      if ( last )
-        last->next = newtok;
-      else
-        parmlist = newtok;
-      last = newtok;
-      goto LABEL_25;
     }
-LABEL_26:
-    tlist = parmlist;
-    if ( parmlist )
+    else
     {
-      while ( 1 )
+      if ( !strcmp(dt->string, asc_1005F630) )
       {
-        tnext = tlist->next;
-        if ( tnext && !strcmp(tlist->next->string, asc_1005F5F4) && (tafter = tnext->next) != NULL )
+        if ( dt->next )
+          parmnum = PC_FindDefineParm(define, dt->next->string);
+        else
+          parmnum = -1;
+        if ( parmnum >= 0 )
         {
-          if ( !PC_MergeTokens(tlist, tnext->next) )
+          dt = dt->next;
+          if ( !PC_StringizeTokens((char *)parms[parmnum], (char *)&token) )
           {
-            SourceError(src, aCanTMergeSWith, tlist->string, tnext->string);
+            SourceError(src, aCanTStringizeT);
             return 0;
           }
-          PC_FreeToken(tlist->next);
-          tlist->next = tafter->next;
-          if ( tafter == last )
-            last = tlist;
-          PC_FreeToken(tafter);
+          t = PC_CopyToken(&token);
         }
         else
         {
-          tlist = tlist->next;
-        }
-        if ( !tlist )
-        {
-          tlist = parmlist;
-          break;
+          SourceWarning(src, aStringizingOpe);
+          continue;
         }
       }
-    }
-    *firsttoken = (char *)tlist;
-    *lasttoken = (char *)last;
-    i = 0;
-    if ( define->numparms > 0 )
-    {
-      psrc = Source;
-      do
+      else
       {
-        freep = *psrc;
-        if ( *psrc )
-        {
-          do
-          {
-            freenext = freep->next;
-            PC_FreeToken(freep);
-            freep = freenext;
-          }
-          while ( freenext );
-        }
-        ++i;
-        ++psrc;
+        t = PC_CopyToken(dt);
       }
-      while ( i < define->numparms );
+      t->next = NULL;
+      if ( last )
+        last->next = t;
+      else
+        first = t;
+      last = t;
     }
-    return 1;
   }
-  return result;
+  for ( t = first; t; )
+  {
+    if ( t->next && !strcmp(t->next->string, asc_1005F5F4) )
+    {
+      t1 = t;
+      t2 = t->next->next;
+      if ( t2 )
+      {
+        if ( !PC_MergeTokens(t1, t2) )
+        {
+          SourceError(src, aCanTMergeSWith, t1->string, t2->string);
+          return 0;
+        }
+        PC_FreeToken(t1->next);
+        t1->next = t2->next;
+        if ( t2 == last )
+          last = t1;
+        PC_FreeToken(t2);
+        continue;
+      }
+    }
+    t = t->next;
+  }
+  *firsttoken = (char *)first;
+  *lasttoken = (char *)last;
+  for ( i = 0; i < define->numparms; i++ )
+  {
+    for ( pt = parms[i]; pt; pt = nextpt )
+    {
+      nextpt = pt->next;
+      PC_FreeToken(pt);
+    }
+  }
+  return 1;
 }
 // 1003A4E6: conditional instruction was optimized away because eax.4==0
 // 1003A43B: variable 'v19' is possibly undefined
