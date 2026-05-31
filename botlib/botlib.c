@@ -4585,22 +4585,27 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 {
   int    i, sides;
   vec3_t corner_front, corner_back;
+  float  dist1, dist2;
 
   for ( i = 0; i < 3; ++i )
   {
-    if ( plane[i] >= 0.0f )
-    {
-      corner_back[i]  = absmins[i];
-      corner_front[i] = absmaxs[i];
-    }
-    else
+    if ( plane[i] < 0.0f )
     {
       corner_front[i] = absmins[i];
       corner_back[i]  = absmaxs[i];
     }
+    else
+    {
+      corner_back[i]  = absmins[i];
+      corner_front[i] = absmaxs[i];
+    }
   }
-  sides = (corner_front[0] * plane[0] + corner_front[1] * plane[1] + corner_front[2] * plane[2] - plane[3]) >= 0.0f ? 1 : 0;
-  if ( corner_back[0] * plane[0] + corner_back[1] * plane[1] + corner_back[2] * plane[2] - plane[3] < 0.0f )
+  dist1 = corner_front[0] * plane[0] + corner_front[1] * plane[1] + corner_front[2] * plane[2] - plane[3];
+  dist2 = corner_back[0] * plane[0] + corner_back[1] * plane[1] + corner_back[2] * plane[2] - plane[3];
+  sides = 0;
+  if ( dist1 >= 0.0f )
+    sides = 1;
+  if ( dist2 < 0.0f )
     sides |= 2;
   return sides;
 }
