@@ -29879,9 +29879,9 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
 int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
 {
   float *v4; // ebx
-  double v5; // st7
-  double v6; // st7
-  double v7; // st7
+  float v5; // st7
+  float v6; // st7
+  float v7; // st7
   int *result; // eax
   float v9; // [esp+10h] [ebp-4Ch] BYREF
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
@@ -29894,37 +29894,41 @@ int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
   v4 = a3 + 6;
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
-  pos[2] = 0.0f;
+  pos[2] = a3[8] - *(float *)(a2 + 8);
   BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v16);
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
   v5 = VectorNormalize(dir);
   v17 = v5;
-  if ( v5 >= 60.0 )
-    goto LABEL_8;
-  v6 = *v4 - *(float *)a2;
-  dir[2] = 0.0f;
-  dir[0] = v6;
-  dir[1] = a3[7] - *(float *)(a2 + 4);
-  VectorNormalize(dir);
-  v7 = *v4 - a3[3];
-  pos[0] = v7;
-  pos[1] = a3[7] - a3[4];
-  if ( VectorLength(pos) < 15.0 )
+  if ( v5 < 60.0f )
   {
-    if ( v17 > 0.0 && v17 < 150.0 )
+    v6 = *v4 - *(float *)a2;
+    dir[2] = 0.0f;
+    dir[0] = v6;
+    dir[1] = a3[7] - *(float *)(a2 + 4);
+    VectorNormalize(dir);
+    v7 = *v4 - a3[3];
+    pos[0] = v7;
+    pos[1] = a3[7] - a3[4];
+    pos[2] = 0.0f;
+    if ( (float)VectorLength(pos) < 15.0f )
     {
-      v9 = 380.0 - (300.0 - (v17 + v17));
-      goto LABEL_9;
+      if ( v17 > 0.0f && v17 < 150.0f )
+        v9 = 380.0f - (300.0f - (v17 + v17));
+      else
+        v9 = 400.0f;
     }
-LABEL_8:
-    v9 = 400.0;
-    goto LABEL_9;
+    else
+    {
+      if ( !AAS_HorizontalVelocityForJump(0.0, (float *)(a3 + 3), v4, &v9) )
+        v9 = 200.0f;
+    }
   }
-  if ( !AAS_HorizontalVelocityForJump(0.0, (float *)(a3 + 3), v4, &v9) )
-    v9 = 200.0;
-LABEL_9:
+  else
+  {
+    v9 = 400.0f;
+  }
   BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v16);
   EA_Move(*(_DWORD *)(a2 + 40), dir, v9);
   v16[6] = *(int *)&dir[0];
