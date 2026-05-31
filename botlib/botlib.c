@@ -2839,26 +2839,26 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   if ( LODWORD(v47[12]) == 2 )
   {
     v12 = 0;
-    /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd 0.5; fcompp; test ah,1; je exit.
-     * fcompp with ST(0)=v41+0.5 and ST(1)=*i sets C0=1 iff v41+0.5 < *i. JE on C0=0
-     * exits when *i <= v41+0.5, so continue iff *i > v41+0.5. Same form for v44-0.5
-     * with test ah,0x41 (C0|C3) → continue iff *i < v44-0.5. The original IDA
-     * decompilation `v41[idx]+0.5 < *i && v44[idx]-0.5 > *i` was correct as-is. */
-    for ( i = (float *)start; v41[i-(float*)start] + 0.5 < *i && v44[i-(float*)start] - 0.5 > *i; ++i )
+    /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd 0.5f; fcompp; test ah,1; je exit.
+     * fcompp with ST(0)=v41+0.5f and ST(1)=*i sets C0=1 iff v41+0.5f < *i. JE on C0=0
+     * exits when *i <= v41+0.5f, so continue iff *i > v41+0.5f. Same form for v44-0.5f
+     * with test ah,0x41 (C0|C3) → continue iff *i < v44-0.5f. The original IDA
+     * decompilation `v41[idx]+0.5f < *i && v44[idx]-0.5f > *i` was correct as-is. */
+    for ( i = (float *)start; v41[i-(float*)start] + 0.5f < *i && v44[i-(float*)start] - 0.5f > *i; ++i )
     {
       if ( ++v12 >= 3 )
       {
         *((_DWORD *)trace + 20) = entnum;
         *((_DWORD *)trace + 1) = 1;
         *(_DWORD *)trace = 1;
-        trace[2] = 0.0;
-        trace[19] = 0.0;
+        trace[2] = 0.0f;
+        trace[19] = 0.0f;
         *((_DWORD *)trace + 12) = -1;
-        trace[6] = 0.0;
-        trace[7] = 0.0;
-        trace[8] = 0.0;
-        trace[9] = 0.0;
-        trace[10] = 0.0;
+        trace[6] = 0.0f;
+        trace[7] = 0.0f;
+        trace[8] = 0.0f;
+        trace[9] = 0.0f;
+        trace[10] = 0.0f;
         trace[3] = *(float *)start;
         trace[4] = *((float *)start + 1);
         trace[5] = *((float *)start + 2);
@@ -2872,7 +2872,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   v40[2] = end[2] - *((float *)start + 2);
   while ( 1 )
   {
-    if ( v40[v15] <= 0.0 )
+    if ( v40[v15] <= 0.0f )
       v16 = v44[v15];
     else
       v16 = v41[v15];
@@ -2918,12 +2918,12 @@ LABEL_40:
   }
   trace[2] = v39;
   *((_DWORD *)trace + 12) = -1;
-  trace[1] = 0.0;
-  *trace = 0.0;
+  trace[1] = 0.0f;
+  *trace = 0.0f;
   *((_DWORD *)trace + 20) = entnum;
   if ( boxmins && boxmaxs )
   {
-    if ( v40[v15] <= 0.0 )
+    if ( v40[v15] <= 0.0f )
       trace[11] = -boxmins[v15];
     else
       trace[11] = boxmaxs[v15];
@@ -2941,12 +2941,12 @@ LABEL_40:
   }
   while ( v31 );
   v33 = v40[v15];
-  trace[(v15 + 1) % 3 + 6] = 0.0;
-  trace[(v15 + 2) % 3 + 6] = 0.0;
-  if ( v33 <= 0.0 )
-    trace[v15 + 6] = 1.0;
+  trace[(v15 + 1) % 3 + 6] = 0.0f;
+  trace[(v15 + 2) % 3 + 6] = 0.0f;
+  if ( v33 <= 0.0f )
+    trace[v15 + 6] = 1.0f;
   else
-    trace[v15 + 6] = -1.0;
+    trace[v15 + 6] = -1.0f;
   v35 = trace[v15 + 3];
   if ( !(v36 | v37) )
     v35 = -v35;
@@ -8190,9 +8190,9 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
             v11 = ((float *)a1)[2];
             start[1] = ((float *)a1)[1];
             v25 = (float)i;
-            start[0] = (float)v24 * v25 * 4.0 + v10;
-            start[1] = (float)v23 * v25 * 4.0 + start[1];
-            start[2] = (float)v22 * 4.0 + v11;
+            start[0] = (float)v24 * v25 * 4.0f + v10;
+            start[1] = (float)v23 * v25 * 4.0f + start[1];
+            start[2] = (float)v22 * 4.0f + v11;
             ++v9;
             v7 = AAS_PointAreaNum(start);
             v23 = v9;
@@ -8215,8 +8215,8 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
     v12 = start[2];
     *(float *)v26 = start[0];
     *(float *)&v26[1] = start[1];
-    start[2] = start[2] + 0.25;
-    *(float *)&v26[2] = v12 - 50.0;
+    start[2] = start[2] + 0.25f;
+    *(float *)&v26[2] = v12 - 50.0f;
     trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
     if ( trace.startsolid )
     {
@@ -21121,12 +21121,12 @@ int __cdecl BotChat_Random(bot_state_t *bs)
    * probability"); v6 should be the bfloat result, not a copy of
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every BotChat_Random into return 0 on the !fastchat branch). */
-  v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0, 1.0);
-  if ( bs->thinktime * 0.1 < (float)(rand() & 0x7FFF) * 0.000030518509f )
+  v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
+  if ( bs->thinktime * 0.1f < (float)(rand() & 0x7FFF) * 0.000030518509f )
     return 0;
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25f )
       return 0;
   }
   if ( !BotValidChatPosition(bs) )
@@ -21134,7 +21134,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   v4 = (float)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
    * probability); v7 should be the bfloat result, not a copy of v4. */
-  v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0, 1.0);
+  v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f);
   if ( v4 <= v7 )
     BotInitialChat(&bs->chatstate, aRandomInsult, (char *)0, (char *)0);
   else
@@ -24148,9 +24148,9 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 
   (void)thinktime;
   v2 = bs->ideal_viewangles[0];
-  if ( v2 > 180.0 )
+  if ( v2 > 180.0f )
   {
-    v2 = bs->ideal_viewangles[0] - 360.0;
+    v2 = bs->ideal_viewangles[0] - 360.0f;
     bs->ideal_viewangles[0] = v2;
   }
   if ( bs->enemy )
@@ -24161,14 +24161,14 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
      * (#10) is left in ST(0) and consumed at the post-merge `fmul [edi+0x690];
      * fstp [esp+0x10]` (= `v9 = <BFloat#10> * bs->thinktime`).  In the C control
      * flow we recapture it into v2, which the else-branch already overwrites
-     * (= 150.0) and the post-merge `v5 = v2 * bs->thinktime;` then consumes. */
-    v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1, 1800.0);
-    v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1, 1800.0);
+     * (= 150.0f) and the post-merge `v5 = v2 * bs->thinktime;` then consumes. */
+    v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800.0f);
+    v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800.0f);
   }
   else
   {
-    v2 = 150.0;
-    v10 = 100.0;
+    v2 = 150.0f;
+    v10 = 100.0f;
   }
   v3 = bs->viewanglespeed;  /* was: (float *)&bs->_raw[1062]; offset +4248 = start of viewanglespeed[3].
                               * v3-6 (offset -24) → viewangles[i]; v3-3 (offset -12) → ideal_viewangles[i];
@@ -29875,7 +29875,7 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   if ( (*(_BYTE *)(a2 + 96) & 0x10) == 0 )
   {
     v3 = *(_DWORD *)(a2 + 4);
-    v4 = *(float *)(a2 + 8) - 32.0;
+    v4 = *(float *)(a2 + 8) - 32.0f;
     v14[0] = *(_DWORD *)a2;
     v14[1] = v3;
     *(float *)&v14[2] = v4;
@@ -29886,20 +29886,20 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
       dir[1] = a3[7] - *(float *)(a2 + 4);
       dir[2] = a3[8] - *(float *)(a2 + 8);
       v6 = rand();
-      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509 - 0.5))
-             * 10.0
+      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5f))
+             * 10.0f
              + dir[0];
       v7 = rand();
-      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509 - 0.5))
-             * 10.0
+      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5f))
+             * 10.0f
              + dir[1];
       v8 = rand();
-      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509 - 0.5))
-             * 10.0
+      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5f))
+             * 10.0f
              + dir[2]
-             + 70.0;
+             + 70.0f;
       VectorNormalize(dir);
-      EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
+      EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0f);
       vectoangles(dir, (float *)&v15[9]);
       v15[6] = *(int *)&dir[0];
       v15[7] = *(int *)&dir[1];
@@ -38390,24 +38390,24 @@ int __cdecl vectoangles(float *a1, float *a2)
   double v3; // st7
   double v4; // st6
 
-  if ( a1[1] == 0.0 && *a1 == 0.0 )
+  if ( a1[1] == 0.0f && *a1 == 0.0f )
   {
     result = a2;
-    if ( a1[2] <= 0.0 )
-      a2[0] = -270.0;
+    if ( a1[2] <= 0.0f )
+      a2[0] = -270.0f;
     else
-      a2[0] = -90.0;
+      a2[0] = -90.0f;
     *(int *)((char *)a2 + 8) = 0;
-    *(float *)((char *)a2 + 4) = 0.0;
+    *(float *)((char *)a2 + 4) = 0.0f;
   }
   else
   {
-    v3 = (float)(int)(__int64)(atan2(a1[1], *a1) * 57.29577951308232);
-    if ( v3 < 0.0 )
-      v3 = v3 + 360.0;
-    v4 = (float)(int)(__int64)(atan2(a1[2], sqrt(*a1 * *a1 + a1[1] * a1[1])) * 57.29577951308232);
-    if ( v4 < 0.0 )
-      v4 = v4 + 360.0;
+    v3 = (float)(int)(__int64)(atan2(a1[1], *a1) * 57.29577951308232f);
+    if ( v3 < 0.0f )
+      v3 = v3 + 360.0f;
+    v4 = (float)(int)(__int64)(atan2(a1[2], sqrt(*a1 * *a1 + a1[1] * a1[1])) * 57.29577951308232f);
+    if ( v4 < 0.0f )
+      v4 = v4 + 360.0f;
     result = a2;
     a2[0] = -v4;
     *(int *)((char *)a2 + 8) = 0;
