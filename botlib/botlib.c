@@ -32176,44 +32176,33 @@ int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2)
 // leaf weight. LIVE: core of FuzzyWeight.
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
 {
-  int factvalue;
-  fuzzyseperator_t *next;
-  double v7;
-  float v12;
-  int v8;
-  int v9;
-  int v10;
+  float scale, w1, w2;
 
-  while ( 1 )
+  if ( facts[sep->index] < sep->value )
   {
-    while ( 1 )
-    {
-      factvalue = facts[sep->index];
-      if ( factvalue >= sep->value )
-        break;
-      if ( !sep->child )
-        return sep->weight;
-      sep = sep->child;
-    }
-    next = sep->next;
-    if ( !next )
+    if ( sep->child )
+      return FuzzyWeight_r(facts, sep->child);
+    else
       return sep->weight;
-    if ( factvalue < next->value )
-      break;
-    sep = sep->next;
   }
-  if ( sep->child )
-    v12 = FuzzyWeight_r(facts, sep->child);
-  else
-    v12 = sep->weight;
-  if ( sep->next->child )
-    v7 = FuzzyWeight_r(facts, sep->next->child);
-  else
-    v7 = sep->next->weight;
-  v8 = sep->value;
-  v9 = facts[sep->index] - v8;
-  v10 = sep->next->value - v8;
-  return v7 * (1.0f - (float)(v9 / v10)) + (float)(v9 / v10) * v12;
+  else if ( sep->next )
+  {
+    if ( facts[sep->index] < sep->next->value )
+    {
+      if ( sep->child )
+        w1 = FuzzyWeight_r(facts, sep->child);
+      else
+        w1 = sep->weight;
+      if ( sep->next->child )
+        w2 = FuzzyWeight_r(facts, sep->next->child);
+      else
+        w2 = sep->next->weight;
+      scale = (facts[sep->index] - sep->value) / (sep->next->value - sep->value);
+      return scale * w1 + (1.0f - scale) * w2;
+    }
+    return FuzzyWeight_r(facts, sep->next);
+  }
+  return sep->weight;
 }
 // 10001A73: using guessed type double __cdecl FuzzyWeight_r(_DWORD, _DWORD);
 
