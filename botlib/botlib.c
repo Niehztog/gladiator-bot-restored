@@ -20873,7 +20873,6 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 
   float v1; // st7
   BOOL result; // eax
-  char *v3; // eax
   float v4; // [esp+4h] [ebp-24h]
   char v5[32]; // [esp+8h] [ebp-20h] BYREF
 
@@ -20887,13 +20886,10 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
       return 0;
   }
   result = BotValidChatPosition(bs);
-  if ( result )
-  {
-    v3 = EasyClientName(bs->client, v5);
-    BotInitialChat(&bs->chatstate, aEnterGame, v3, (char *)0);
-    return 1;
-  }
-  return result;
+  if ( !result )
+    return result;
+  BotInitialChat(&bs->chatstate, aEnterGame, EasyClientName(bs->client, v5), (char *)0);
+  return 1;
 }
 // 100012D0: using guessed type _DWORD __cdecl EasyClientName(_DWORD, _DWORD);
 // 10064474: using guessed type int libvar_nochat;
