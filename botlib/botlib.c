@@ -14272,7 +14272,9 @@ int AAS_Reachability_Elevator()
   float v75;
   aas_trace_t trace;
 
-  memset(v69, 0, sizeof(v69));
+  v69[0] = 0;
+  v69[1] = 0;
+  v69[2] = 0;
   v0 = AAS_ParseBSPEntities();
   v1 = v0;
   v67 = v0;
