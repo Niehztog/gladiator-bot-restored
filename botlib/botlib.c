@@ -5063,8 +5063,8 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v7; // edx
   float *v8; // eax
   float *v9; // ebp
-  double v10; // st7
-  double v11; // st6
+  float v10; // st7
+  float v11; // st6
   int v12; // edx
   double v13; // st7
   unsigned __int16 v14; // ax
@@ -5116,7 +5116,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v10 = a2[v7] - v8[3];
     v11 = a3[v7] - v8[3];
   }
-  if ( v10 >= 0.0 )
+  if ( v10 >= 0.0f )
   {
     v44 = 0;
     v12 = 0;
@@ -5126,7 +5126,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v12 = 1;
     v44 = 1;
   }
-  if ( v12 == v11 < 0.0 )
+  if ( v12 == v11 < 0.0f )
     return sub_10006D10(*(_DWORD *)(v6 + 4 * v12 + 4), a2, a3, a4, a5);
   v13 = v10 / (v10 - v11);
   mid[0] = (*a3 - *a2) * v13 + *a2;
