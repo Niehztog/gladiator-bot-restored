@@ -2900,14 +2900,14 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   }
   v47[v15 + 21] = v16;
 LABEL_40:
-  if ( v15 == 3 || v39 >= (double)trace[2] )
+  if ( v15 == 3 || v39 >= (float)trace[2] )
     return 0;
   if ( LODWORD(v47[12]) != 2 )
   {
     if ( LODWORD(v47[12]) == 3 )
     {
       qmemcpy(v47, (const void *)sub_100044F0(v48, LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask), 0x54u);
-      if ( v47[2] < (double)trace[2] )
+      if ( v47[2] < (float)trace[2] )
       {
         result = 1;
         qmemcpy(trace, v47, 0x54u);
@@ -3531,13 +3531,13 @@ float *__cdecl sub_100044F0(
   v128 = *(float *)a8 - *(float *)a5;
   v129 = *((float *)a8 + 1) - *(float *)(a5 + 4);
   v130 = *((float *)a8 + 2) - *(float *)(a5 + 8);
-  if ( v128 <= (double)v129 )
+  if ( v128 <= (float)v129 )
   {
     v12 = 1;
-    if ( v129 > (double)v130 )
+    if ( v129 > (float)v130 )
       goto LABEL_7;
   }
-  else if ( v128 > (double)v130 )
+  else if ( v128 > (float)v130 )
   {
     v12 = 0;
     goto LABEL_7;
@@ -3930,7 +3930,7 @@ LABEL_101:
               v24 = (int *)v62;
               goto LABEL_102;
             }
-            while ( *(float *)(v62 + 4 * v126) < (double)*(float *)&v70[v126] != v135 )
+            while ( *(float *)(v62 + 4 * v126) < (float)*(float *)&v70[v126] != v135 )
             {
               v64 = v70;
               v70 = (int *)TR_DEC(v70[9]);
@@ -3964,7 +3964,7 @@ LABEL_101:
             *(_DWORD *)(v62 + 24) = v69[v121 + 1];
             if ( !v24 )
               goto LABEL_101;
-            while ( *(float *)(v62 + 4 * v126) < (double)*(float *)&v70[v126] != v135 )
+            while ( *(float *)(v62 + 4 * v126) < (float)*(float *)&v70[v126] != v135 )
             {
               v64 = v70;
               v70 = (int *)TR_DEC(v70[9]);
@@ -4186,12 +4186,12 @@ LABEL_6:
     for ( i = dword_10069584[v6]; i; i = i->next_ent )
     {
       AAS_EntityBSPData(i->entnum, (intptr_t)v14);
-      if ( *a1 > (double)v16
-        && *a1 < (double)v19
-        && a1[1] > (double)v17
-        && a1[1] < (double)v20
-        && a1[2] > (double)v18
-        && a1[2] < (double)v21 )
+      if ( *a1 > (float)v16
+        && *a1 < (float)v19
+        && a1[1] > (float)v17
+        && a1[1] < (float)v20
+        && a1[2] > (float)v18
+        && a1[2] < (float)v21 )
       {
         if ( v22 == 2 )
         {
@@ -4639,9 +4639,9 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
       {
         v14 = AAS_BoxOnPlaneSide2(a1, a2, (float *)v12);
       }
-      else if ( *(float *)(v12 + 12) > (double)a1[v13] )
+      else if ( *(float *)(v12 + 12) > (float)a1[v13] )
       {
-        if ( *(float *)(v12 + 12) < (double)a2[v13] )
+        if ( *(float *)(v12 + 12) < (float)a2[v13] )
           v14 = 3;
         else
           v14 = 2;
@@ -8233,9 +8233,9 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
             v11 = ((float *)a1)[2];
             start[1] = ((float *)a1)[1];
             v25 = (float)i;
-            start[0] = (double)v24 * v25 * 4.0 + v10;
-            start[1] = (double)v23 * v25 * 4.0 + start[1];
-            start[2] = (double)v22 * 4.0 + v11;
+            start[0] = (float)v24 * v25 * 4.0 + v10;
+            start[1] = (float)v23 * v25 * 4.0 + start[1];
+            start[2] = (float)v22 * 4.0 + v11;
             ++v9;
             v7 = AAS_PointAreaNum(start);
             v23 = v9;
@@ -8314,7 +8314,7 @@ int InFieldOfVision(float *a1, float a2, float *a3)
     v9 = AngleMod(a3[v5]);
     delta = v9 - v8;
     a3[v5] = v9;
-    if ( v9 <= (double)v8 )
+    if ( v9 <= (float)v8 )
     {
       if ( delta < -180.0 )
         delta = delta + 360.0;
@@ -9604,11 +9604,11 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
     v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0 )
     {
-      v7 = (__int64)((double)i + v9);
+      v7 = (__int64)((float)i + v9);
       i = v7;
-      rs  = (__int64)((double)rs  + v8->color[0]);
-      gs  = (__int64)((double)gs  + v8->color[1]);
-      bs_ = (__int64)((double)bs_ + v8->color[2]);
+      rs  = (__int64)((float)rs  + v8->color[0]);
+      gs  = (__int64)((float)gs  + v8->color[1]);
+      bs_ = (__int64)((float)bs_ + v8->color[2]);
     }
   }
   if ( red )
@@ -11705,7 +11705,7 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
     }
     while ( v2 < *((int *)v3 + 2) );
   }
-  v6 = 0.5 / (double)*((int *)v3 + 2);
+  v6 = 0.5 / (float)*((int *)v3 + 2);
   VectorScale((float *)center, v6, (float *)center);
 }
 
@@ -12050,7 +12050,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
       ++v5;
       if ( v2 >= 2 )
       {
-        if ( *((float *)v3 + 5) <= (double)*((float *)v4 + 8) )
+        if ( *((float *)v3 + 5) <= (float)*((float *)v4 + 8) )
         {
           v54[0] = 0.0;
           v54[1] = 0.0;
@@ -12129,7 +12129,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                                 v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
                                 if ( !AAS_NearbySolidOrGap(v38, v44) )
                                   v41 = v41 + 200.0;
-                                if ( v41 < (double)v43 || v43 + 1.0 > v41 && v48 > (double)v53 )
+                                if ( v41 < (float)v43 || v43 + 1.0 > v41 && v48 > (float)v53 )
                                 {
                                   v60 = area2num;
                                   v43 = v41;
@@ -12493,13 +12493,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                             + (float)*(float *)&v79 * (float)v101[1]
                             + (float)v78 * (float)v101[0]
                             - (float)v65;
-                        if ( v25 >= -0.1L && v25 <= 0.1L )
+                        if ( v25 >= -0.1f && v25 <= 0.1f )
                         {
                           v26 = (float)v74 * (float)v101[2]
                               + (float)v73 * (float)v101[1]
                               + (float)v72 * (float)v101[0]
                               - (float)v65;
-                          if ( v26 >= -0.1L && v26 <= 0.1L )
+                          if ( v26 >= -0.1f && v26 <= 0.1f )
                           {
                             CrossProduct(up, v101, v97_vec);
                             v81 = v80;
@@ -12581,7 +12581,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                     *(float *)&v87 = v78;
                                     v88 = *(float *)&v79;
                                     {
-                                      long double tmp = (v62 - v61) * ((float)v90 - (float)v82)
+                                      float tmp = (v62 - v61) * ((float)v90 - (float)v82)
                                                       / (v59 - v61) + (float)v82;
                                       v66 = (float)tmp;
                                       v36 = (float)v81 - tmp;
@@ -13181,14 +13181,14 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v26 = (long double)v86 / (long double)v85;
-                          v27 = (long double)v3[1] - v26 * (long double)*v3;
-                          v28 = v27 * (long double)v86 + v26 * (long double)v85;
-                          v29 = ((long double)v85 * (long double)*v1 + (long double)v86 * (long double)v1[1] - v28) / (long double)v85;
+                          v26 = (float)v86 / (float)v85;
+                          v27 = (float)v3[1] - v26 * (float)*v3;
+                          v28 = v27 * (float)v86 + v26 * (float)v85;
+                          v29 = ((float)v85 * (float)*v1 + (float)v86 * (float)v1[1] - v28) / (float)v85;
                           v70_vec[0] = (float)v29;
                           v70_vec[1] = (float)(v29 * v26 + v27);
                           {
-                            long double tmp = ((long double)v86 * (long double)v2[1] + (long double)v85 * (long double)*v2 - v28) / (long double)v85;
+                            float tmp = ((float)v86 * (float)v2[1] + (float)v85 * (float)*v2 - v28) / (float)v85;
                             v76_vec[0] = (float)tmp;
                             v76_vec[1] = (float)(tmp * v26 + v27);
                           }
@@ -13202,14 +13202,14 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v30 = (long double)v84 / (long double)v83;
-                          v31 = (long double)v1[1] - v30 * (long double)*v1;
-                          v32 = v31 * (long double)v84 + v30 * (long double)v83;
-                          v33 = ((long double)v83 * (long double)*v3 + (long double)v84 * (long double)v3[1] - v32) / (long double)v83;
+                          v30 = (float)v84 / (float)v83;
+                          v31 = (float)v1[1] - v30 * (float)*v1;
+                          v32 = v31 * (float)v84 + v30 * (float)v83;
+                          v33 = ((float)v83 * (float)*v3 + (float)v84 * (float)v3[1] - v32) / (float)v83;
                           v80_vec[0] = (float)v33;
                           v80_vec[1] = (float)(v33 * v30 + v31);
                           {
-                            long double tmp = ((long double)v84 * (long double)v4[1] + (long double)v83 * (long double)*v4 - v32) / (long double)v83;
+                            float tmp = ((float)v84 * (float)v4[1] + (float)v83 * (float)*v4 - v32) / (float)v83;
                             v73_vec[0] = (float)tmp;
                             v73_vec[1] = (float)(tmp * v30 + v31);
                           }
@@ -13221,13 +13221,13 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v34 = 5 * *v67;
                         v35 = (float *)((char *)aasworld.planes + 20 * *v66);
                         v79 = 0;
-                        v36 = (long double)v70_vec[1] * (long double)*((float *)aasworld.planes + v34 + 1);
-                        v37 = (long double)v70_vec[0] * (long double)*((float *)aasworld.planes + v34);
+                        v36 = (float)v70_vec[1] * (float)*((float *)aasworld.planes + v34 + 1);
+                        v37 = (float)v70_vec[0] * (float)*((float *)aasworld.planes + v34);
                         v38 = (float *)((char *)aasworld.planes + 4 * v34);
-                        v70_vec[2] = (float)(((long double)v38[3] - (v36 + v37)) / (long double)v38[2]);
-                        v76_vec[2] = (float)(((long double)v38[3] - ((long double)v76_vec[1] * (long double)v38[1] + (long double)v76_vec[0] * (long double)*v38)) / (long double)v38[2]);
-                        v80_vec[2] = (float)(((long double)v35[3] - ((long double)v80_vec[0] * (long double)*v35 + (long double)v80_vec[1] * (long double)v35[1])) / (long double)v35[2]);
-                        v39 = ((long double)v35[3] - ((long double)v73_vec[0] * (long double)*v35 + (long double)v73_vec[1] * (long double)v35[1])) / (long double)v35[2];
+                        v70_vec[2] = (float)(((float)v38[3] - (v36 + v37)) / (float)v38[2]);
+                        v76_vec[2] = (float)(((float)v38[3] - ((float)v76_vec[1] * (float)v38[1] + (float)v76_vec[0] * (float)*v38)) / (float)v38[2]);
+                        v80_vec[2] = (float)(((float)v35[3] - ((float)v80_vec[0] * (float)*v35 + (float)v80_vec[1] * (float)v35[1])) / (float)v35[2]);
+                        v39 = ((float)v35[3] - ((float)v73_vec[0] * (float)*v35 + (float)v73_vec[1] * (float)v35[1])) / (float)v35[2];
                         v73_vec[2] = (float)v39;
                         /* Is the projection of v21 onto edge2's line (stored
                          * in v70_vec) between edge2's endpoints v24, v25? */
@@ -13404,11 +13404,11 @@ LABEL_62:
       if ( bestdist > 4.0 )
       {
 LABEL_67:
-        if ( bestdist < (double)maxjumpdistance )
+        if ( bestdist < (float)maxjumpdistance )
         {
           v90 = beststart[2] - bestend[2];
           v91 = (char *)AAS_FallDamageDistance();
-          if ( (double)(int)v91 >= v90 )
+          if ( (float)(int)v91 >= v90 )
           {
             if ( AAS_HorizontalVelocityForJump(0.0, beststart, bestend, &speed) )
             {
@@ -13751,7 +13751,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
                         }
                         v96 = AAS_FaceArea((char *)v83);
                         v18 = AAS_FaceArea((char *)v11);
-                        if ( v96 > (double)v98 && v18 > v90 )
+                        if ( v96 > (float)v98 && v18 > v90 )
                         {
                           v98 = v96;
                           v90 = v18;
@@ -13824,13 +13824,13 @@ LABEL_20:
             VectorNormalize(edgecross);
             VectorMA(mid, -32.0, edgecross, mid);
             VectorMA(mid2, 32.0, edgecross, mid2);
-            v66 = (double)(int)abs32((__int64)v28[2]) < 0.1;
-            v31 = (double)(int)abs32((__int64)v30[2]) < 0.1;
+            v66 = (float)(int)abs32((__int64)v28[2]) < 0.1;
+            v31 = (float)(int)abs32((__int64)v30[2]) < 0.1;
             if ( v66 )
             {
               if ( v31
                 && *v30 * *v28 + v30[2] * v28[2] + v30[1] * v28[1] > 0.7
-                && (double)(int)abs32((__int64)edgedir[2]) < 0.7 )
+                && (float)(int)abs32((__int64)edgedir[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 v33 = v32;
@@ -13935,7 +13935,7 @@ LABEL_20:
                   curmid[1] = v50 + vert1[1];
                   curmid[2] = v51 + vert1[2];
                   VectorScale(curmid, 0.5, curmid);
-                  if ( curmid[2] < (double)bestmid[2] )
+                  if ( curmid[2] < (float)bestmid[2] )
                   {
                     bestmid[0] = curmid[0];
                     bestmid[1] = curmid[1];
@@ -13963,7 +13963,7 @@ LABEL_20:
                   {
                     v58 = (char *)aasworld.faces + 24 * abs32(*v57);
                     if ( (v58[4] & 2) != 0
-                      && (double)(int)abs32((__int64)*((float *)aasworld.planes + 5 * *(_DWORD *)v58 + 2)) < 0.1 )
+                      && (float)(int)abs32((__int64)*((float *)aasworld.planes + 5 * *(_DWORD *)v58 + 2)) < 0.1 )
                     {
                       break;
                     }
@@ -14569,7 +14569,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   area2 = (char *)aasworld.areas + 48 * area2num;
   area1 = (char *)aasworld.areas + 48 * area1num;
   v39 = area2;
-  if ( *((float *)area2 + 8) < (double)*((float *)area1 + 5) )
+  if ( *((float *)area2 + 8) < (float)*((float *)area1 + 5) )
     return 0;
   start[0] = *((float *)area1 + 9);
   start[1] = *((float *)area1 + 10);
@@ -14662,7 +14662,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                   vmav[1] = trace.endpos[1];
                   vmav[2] = trace.endpos[2];
                   v37 = AAS_FallDamageDistance();
-                  vmav[2] = vmav[2] - (double)v37;
+                  vmav[2] = vmav[2] - (float)v37;
                   trace = AAS_TraceClientBBox(start, vmav, 2, -1);
                   if ( trace.fraction < 1.0 )
                   {
@@ -14855,7 +14855,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
     return 0;
   v2 = (char *)aasworld.areas + 48 * a2;
   v3 = (float *)((char *)aasworld.areas + 48 * ArgList);
-  if ( *((float *)v2 + 8) < (double)v3[5] )
+  if ( *((float *)v2 + 8) < (float)v3[5] )
     return 0;
   centerorg[0] = *((float *)v3 + 9);
   centerorg[1] = *((float *)v3 + 10);
@@ -15231,7 +15231,7 @@ LABEL_29:
             *(float *)(v34 + 28) = trace.endpos[1];
             *(float *)(v34 + 32) = trace.endpos[2];
             *(_DWORD *)(v34 + 36) = 7;
-            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (double)v46 >= v39) )
+            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
               *(_WORD *)(v35 + 40) = 100;
             else
               *(_WORD *)(v35 + 40) = 3000;
@@ -16488,7 +16488,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  v4 = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)aasworld.numareas);
+  v4 = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)aasworld.numareas);
   v5 = aasworld.numareas;
   v12 = 0;
   if ( aasworld.numareas <= 0 )
@@ -16705,13 +16705,13 @@ int __cdecl sub_1001A720(
             startareanum, areanum, travelflags);
         if ( travel_to_start )
         {
-          threshold = (double)(unsigned short)baseline_travel * 1.5;
-          if ( (double)(unsigned short)travel_to_start <= threshold )
+          threshold = (float)(unsigned short)baseline_travel * 1.5;
+          if ( (float)(unsigned short)travel_to_start <= threshold )
           {
             travel_to_goal = (short)AAS_AreaTravelTimeToGoalArea(
                 areanum, goalareanum, travelflags);
             if ( travel_to_goal
-              && (double)(unsigned short)travel_to_goal <= threshold )
+              && (float)(unsigned short)travel_to_goal <= threshold )
             {
               *(int   *)(flagtbl + 8 * areanum    ) = 1;
               *(short *)(flagtbl + 8 * areanum + 4) = travel_to_start;
@@ -16751,7 +16751,7 @@ int __cdecl sub_1001A720(
       centroid[1] += *(float *)(a + 0x28);
       centroid[2] += *(float *)(a + 0x2c);
     }
-    fcount = (float)(1.0 / (double)dword_10066730);
+    fcount = (float)(1.0 / (float)dword_10066730);
     VectorScale(centroid, fcount, centroid);
 
     best_dist = 1000000.0f;          /* 0x497423F0 */
@@ -17032,9 +17032,9 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
   {
     for ( i = 0; i < 3; i++ )
     {
-      if ( (double)normal[i] > 0.001 )
+      if ( (float)normal[i] > 0.001 )
         support[i] = maxs[i];
-      else if ( (double)normal[i] < -0.001 )
+      else if ( (float)normal[i] < -0.001 )
         support[i] = mins[i];
       else
         support[i] = 0.0f;
@@ -17044,9 +17044,9 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
   {
     for ( i = 0; i < 3; i++ )
     {
-      if ( (double)normal[i] > 0.001 )
+      if ( (float)normal[i] > 0.001 )
         support[i] = mins[i];
-      else if ( (double)normal[i] < -0.001 )
+      else if ( (float)normal[i] < -0.001 )
         support[i] = maxs[i];
       else
         support[i] = 0.0f;
@@ -17803,9 +17803,9 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
         {
           v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * *v11);
         }
-        else if ( *((float *)v12 + 3) > (double)a1[v13] )
+        else if ( *((float *)v12 + 3) > (float)a1[v13] )
         {
-          if ( *((float *)v12 + 3) < (double)a2[v13] )
+          if ( *((float *)v12 + 3) < (float)a2[v13] )
             v14 = 3;
           else
             v14 = 2;
@@ -18571,7 +18571,7 @@ static int sub_1001D420(bot_state_t *bs)
     vy = origin[1] - *(float *)(entinfo + 8);
     vz = origin[2] - *(float *)(entinfo + 12);
     delta[0] = vx; delta[1] = vy; delta[2] = vz;
-    if ( (long double)VectorLength(delta) > 0.1L )
+    if ( (float)VectorLength(delta) > 0.1f )
     {
       *(_DWORD *)((char *)bs + 0x1138) = *(_DWORD *)&vx;
       *(_DWORD *)((char *)bs + 0x113C) = *(_DWORD *)&vy;
@@ -18745,7 +18745,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509 )
               bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( AAS_Swimming(bs->origin) )
@@ -18762,10 +18762,10 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
             }
             else if ( AAS_Time() >= bs->attackcrouch_time )
             {
-              if ( bs->thinktime * 0.3 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+              if ( bs->thinktime * 0.3 > (float)(rand() & 0x7FFF) * 0.000030518509 )
               {
                 v45 = rand() & 0x7FFF;
-                v20 = (int)floor((double)v45 * 0.000030518509 * 2.9);
+                v20 = (int)floor((float)v45 * 0.000030518509 * 2.9);
                 if ( v20 )
                 {
                   if ( v20 == 1 )
@@ -18786,7 +18786,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int a2, int a3)
           }
           if ( AAS_Time() - 2.0 >= bs->arrive_time )
           {
-            if ( bs->thinktime * 0.8 <= (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509 )
             {
 LABEL_86:
               BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18867,7 +18867,7 @@ LABEL_86:
       if ( VectorLength(dir) < 70.0 )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
-        v46 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+        v46 = (float)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
         v30 = AAS_Time();
         result = bs->teamgoal.origin;
         bs->defendaway_time = v30 + v46 + 5.0;
@@ -18905,7 +18905,7 @@ LABEL_86:
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->arrive_time = AAS_Time();
           }
-          if ( bs->thinktime * 0.8 > (double)(rand() & 0x7FFF) * 0.000030518509 )
+          if ( bs->thinktime * 0.8 > (float)(rand() & 0x7FFF) * 0.000030518509 )
           {
             BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
             dir[0] = target[0] - bs->origin[0];
@@ -18920,7 +18920,7 @@ LABEL_86:
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (double)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509 )
               bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
           }
           if ( AAS_Time() < bs->attackcrouch_time )
@@ -19028,7 +19028,7 @@ LABEL_106:
         if ( BotCTFCarryingFlag(bs) )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
-          v47 = (double)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+          v47 = (float)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
           v43 = AAS_Time();
           result = v26;
           bs->rushbaseaway_time = v43 + v47 + 5.0;
@@ -20502,21 +20502,21 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
         if ( _strcmpi(v2, aPRebreather) )
         {
           if ( !_strcmpi(v2, aPEnvirosuit) )
-            bs->enviro_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
+            bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
         }
         else
         {
-          bs->rebreather_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
+          bs->rebreather_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
         }
       }
       else
       {
-        bs->invulnerability_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
+        bs->invulnerability_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
       }
     }
     else
     {
-      bs->quad_endtime = AAS_Time() + (double)bs->snapshot.stats[10];
+      bs->quad_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
     }
   }
   v3 = (__int64)(bs->quad_endtime - AAS_Time());
@@ -22032,10 +22032,10 @@ void BotAimAtEnemy(bot_state_t *bs)
                    * 20.0
                    + *(float *)&v32;
     v14 = rand();
-    v33 = ((double)(v14 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v14 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 20.0
+    v33 = ((float)(v14 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v14 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 20.0
         + v33;
     v15 = rand();
-    v34 = ((double)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 10.0
+    v34 = ((float)(v15 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v15 & 0x7FFF) * 0.000030518509 - 0.5) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
@@ -22059,7 +22059,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     vectoangles(v29, bs->ideal_viewangles);
     v18 = rand();
-    v25 = ((double)(v18 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v18 & 0x7FFF) * 0.000030518509 - 0.5)
+    v25 = ((float)(v18 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v18 & 0x7FFF) * 0.000030518509 - 0.5)
         * (*(float *)(v3 + 264)
          * 6.0)
         * v28
@@ -22068,7 +22068,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v25 = AngleMod(v25);
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
-    v26 = ((double)(v19 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v19 & 0x7FFF) * 0.000030518509 - 0.5)
+    v26 = ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v19 & 0x7FFF) * 0.000030518509 - 0.5)
         * (*(float *)(v3 + 260)
          * 6.0)
         * v28
@@ -22173,7 +22173,7 @@ void BotCheckAttack(bot_state_t *bs)
             || (SLODWORD(v22[20]) <= 0 || SLODWORD(v22[20]) > maxclients || !BotSameTeam(bs, SLODWORD(v22[20])))
             && ((v6 = (uintptr_t)((weaponinfo_t *)v3)->proj, (((projectileinfo_t *)v6)->damagetype & 2) == 0)
              || v22[2] * 1000.0 >= ((projectileinfo_t *)v6)->radius
-             || ((double)((projectileinfo_t *)v6)->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
+             || ((float)((projectileinfo_t *)v6)->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
           {
             if ( (LOBYTE(v22[19]) & 2) == 0
               || (v7 = AAS_EntityInfo(v24, bs->enemy),
@@ -23234,8 +23234,8 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
     }
     else
     {
-      v5 = (double)(rand() & 0x7FFF) * 0.000030518509;
-      if ( 1.0 / (double)(BotNumTeamMates(bs) - 1) < v5 )
+      v5 = (float)(rand() & 0x7FFF) * 0.000030518509;
+      if ( 1.0 / (float)(BotNumTeamMates(bs) - 1) < v5 )
         return 0;
     }
     return 1;
@@ -23473,7 +23473,7 @@ LABEL_32:
         bs->teammate = v4;
         bs->teammatevisible_time = AAS_Time();
         v10 = rand();
-        v55 = (double)(v10 & 0x7FFF) * 0.000030518509 + (double)(v10 & 0x7FFF) * 0.000030518509;
+        v55 = (float)(v10 & 0x7FFF) * 0.000030518509 + (float)(v10 & 0x7FFF) * 0.000030518509;
         bs->teammessage_time = AAS_Time() + v55;
         v11 = BotGetTime(&v64);
         v12 = v64.type;
@@ -23517,7 +23517,7 @@ LABEL_27:
       if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
         goto LABEL_27;
       v14 = rand();
-      v56 = (double)(v14 & 0x7FFF) * 0.000030518509 + (double)(v14 & 0x7FFF) * 0.000030518509;
+      v56 = (float)(v14 & 0x7FFF) * 0.000030518509 + (float)(v14 & 0x7FFF) * 0.000030518509;
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->teammessage_time = v15 + v56;
@@ -23531,7 +23531,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v38 = rand();
-      v60 = (double)(v38 & 0x7FFF) * 0.000030518509 + (double)(v38 & 0x7FFF) * 0.000030518509;
+      v60 = (float)(v38 & 0x7FFF) * 0.000030518509 + (float)(v38 & 0x7FFF) * 0.000030518509;
       v39 = AAS_Time();
       bs->ltgtype = 5;
       bs->teammessage_time = v39 + v60;
@@ -23544,7 +23544,7 @@ LABEL_27:
       if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
         return 1;
       v35 = rand();
-      v59 = (double)(v35 & 0x7FFF) * 0.000030518509 + (double)(v35 & 0x7FFF) * 0.000030518509;
+      v59 = (float)(v35 & 0x7FFF) * 0.000030518509 + (float)(v35 & 0x7FFF) * 0.000030518509;
       v36 = AAS_Time();
       bs->ltgtype = 4;
       bs->teammessage_time = v36 + v59;
@@ -23752,7 +23752,7 @@ LABEL_64:
         goto LABEL_64;
       }
       v24 = rand();
-      v57 = (double)(v24 & 0x7FFF) * 0.000030518509 + (double)(v24 & 0x7FFF) * 0.000030518509;
+      v57 = (float)(v24 & 0x7FFF) * 0.000030518509 + (float)(v24 & 0x7FFF) * 0.000030518509;
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->teammessage_time = v25 + v57;
@@ -23818,7 +23818,7 @@ LABEL_64:
       if ( !BotGetPatrolWaypoints(bs, &v64) )
         return 1;
       v31 = rand();
-      v58 = (double)(v31 & 0x7FFF) * 0.000030518509 + (double)(v31 & 0x7FFF) * 0.000030518509;
+      v58 = (float)(v31 & 0x7FFF) * 0.000030518509 + (float)(v31 & 0x7FFF) * 0.000030518509;
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->teammessage_time = v32 + v58;
@@ -23922,7 +23922,7 @@ LABEL_11:
         {
           Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
           v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-          if ( 1.5 / (double)(NumBots() + 1) > v13 )
+          if ( 1.5 / (float)(NumBots() + 1) > v13 )
           {
             v11 = v7;
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
@@ -24200,7 +24200,7 @@ double BotChangeViewAngle(float a1, float a2, float a3)
   if ( v8 == v9 )
     return v8;
   v5 = v9 - v8;
-  if ( v9 <= (double)v8 )
+  if ( v9 <= (float)v8 )
   {
     if ( v5 < -180.0 )
       v5 = v5 + 360.0;
@@ -24276,7 +24276,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   do
   {
     AngleDifference(*(v3 - 6), *(v3 - 3));
-    v5 = (double)(int)abs32((__int64)v5);
+    v5 = (float)(int)abs32((__int64)v5);
     if ( v5 <= *v3 )
     {
       if ( v5 < *v3 )
@@ -24831,7 +24831,7 @@ void __cdecl sub_10029E10(int *list)
       if ( type == 1 )
         Log_Write(" %4d %d", i, *(int *)p);
       else if ( type == 2 )
-        Log_Write(" %4d %f", i, (double)*(float *)p);
+        Log_Write(" %4d %f", i, (float)*(float *)p);
       else if ( type == 3 )
         Log_Write(" %4d %s", i, *(char **)p);
       p += 8;
@@ -25073,7 +25073,7 @@ float __cdecl Characteristic_Float(bot_character_t *a1, int a2)
   {
     v2 = (char)BC_PAIRS(a1)[a2].type;
     if ( v2 == 1 )
-      return (double)(int)BC_PAIRS(a1)[a2].value;
+      return (float)(int)BC_PAIRS(a1)[a2].value;
     if ( v2 == 2 )
       return *(float *)&BC_PAIRS(a1)[a2].value;
     bi_Print(3, "characteristic %d is not a float\n", a2);
@@ -25087,7 +25087,7 @@ double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, floa
 {
   double result; // st7
 
-  if ( a3 <= (double)a4 )
+  if ( a3 <= (float)a4 )
   {
     result = Characteristic_Float(a1, a2);
     if ( result >= a3 )
@@ -25530,7 +25530,7 @@ void __cdecl sub_1002B070(int *list)
     fprintf(fp, "%d : [", outer[0]);
     for ( item = (char *)outer[2]; item; item = *(char **)(item + 8) )
     {
-      fprintf(fp, "(\"%s\", %1.2f)", *(char **)item, (double)*(float *)(item + 4));
+      fprintf(fp, "(\"%s\", %1.2f)", *(char **)item, (float)*(float *)(item + 4));
       if ( *(int *)(item + 8) )
         fprintf(fp, ", ");
     }
@@ -27466,7 +27466,7 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
     best_ltime = 0.0f;
     for ( l = t->firstline; l; l = l->next )
     {
-      if ( best_ltime == 0.0f || l->ltime < (double)best_ltime )
+      if ( best_ltime == 0.0f || l->ltime < (float)best_ltime )
       {
         best       = l;
         best_ltime = l->ltime;
@@ -27477,7 +27477,7 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
     return 0;
   }
 
-  pick = (__int64)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)n);
+  pick = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)n);
   l    = t->firstline;
   if ( !l )
     return 0;
@@ -27705,7 +27705,7 @@ LABEL_21:
       v3 = v3->next;
     }
     while ( v3 );
-    if ( v4 && (double)v14 < v2->priority )
+    if ( v4 && (float)v14 < v2->priority )
     {
       v7 = v2->firstchatmessage;
       v8 = 0;
@@ -27721,7 +27721,7 @@ LABEL_21:
         while ( v7 );
         v15 = v8;
       }
-      v9 = (int)((double)(rand() & 0x7FFF) * 0.000030518509 * (double)v15);
+      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)v15);
       v10 = v2->firstchatmessage;
       v11 = v9;
       if ( v10 )
@@ -28637,7 +28637,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
                   if ( v17 )
                   {
                     v19 = v12;
-                    v13 = v19 / ((double)v17 * 0.01);
+                    v13 = v19 / ((float)v17 * 0.01);
                     if ( li->timeout != 0.0 )
                       v13 = v13 + 20.0;
                     if ( v13 > v20 )
@@ -28776,13 +28776,13 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
                   v21 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v20, v11, a4);
                   if ( v21 )
                   {
-                    v15 = (double)v21;
+                    v15 = (float)v21;
                     if ( v15 < a6 )
                     {
                       *(float *)&v24 = *(float *)&v23 / (v15 * 0.01);
                       if ( li->timeout != 0.0 )
                         *(float *)&v24 = *(float *)&v24 + 20.0;
-                      if ( *(float *)&v24 > (double)v17 )
+                      if ( *(float *)&v24 > (float)v17 )
                       {
                         v16 = 0;
                         if ( a5 )
@@ -29070,7 +29070,7 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
         {
           end[0] = fdz + start[0];
           end[1] = fdy + start[1];
-          end[2] = (double)v18 + start[2];
+          end[2] = (float)v18 + start[2];
           /* original IDA: sub_10001C8F (thunk -> 0x1001BA00 = AAS_TraceAreas).*/
           v8 = AAS_TraceAreas(start, end, (int *)v26, 10);
           if ( v8 > 0 )
@@ -29951,7 +29951,7 @@ int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   dir[2] = v3;
   v10[0] = dir[0];
   v4 = rand();
-  dir[2] = ((double)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v4 & 0x7FFF) * 0.000030518509 - 0.5) * 40.0
+  dir[2] = ((float)(v4 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v4 & 0x7FFF) * 0.000030518509 - 0.5) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
@@ -30005,15 +30005,15 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
       dir[1] = a3[7] - *(float *)(a2 + 4);
       dir[2] = a3[8] - *(float *)(a2 + 8);
       v6 = rand();
-      dir[0] = ((double)(v6 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v6 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[0] = ((float)(v6 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v6 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[0];
       v7 = rand();
-      dir[1] = ((double)(v7 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v7 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[1] = ((float)(v7 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v7 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[1];
       v8 = rand();
-      dir[2] = ((double)(v8 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v8 & 0x7FFF) * 0.000030518509 - 0.5)
+      dir[2] = ((float)(v8 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v8 & 0x7FFF) * 0.000030518509 - 0.5)
              * 10.0
              + dir[2]
              + 70.0;
@@ -30380,7 +30380,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
   BotClearMoveResult(v34);
   if ( BotOnMover(a2, *(_DWORD *)(a2 + 36), a3) )
   {
-    if ( (double)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) >= libvar_sv_maxbarrier->value )
+    if ( (float)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) >= libvar_sv_maxbarrier->value )
     {
       MoverBottomCenter((aas_reachability_t *)a3, telegoal);
       v5 = telegoal[0] - *(float *)a2;
@@ -32328,13 +32328,13 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
       else
       {
         v2 = rand();
-        v3 = ((double)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (double)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
+        v3 = ((float)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
            * (fs->maxweight - fs->minweight);
       }
       fs->weight = v3 + fs->weight;
-      if ( fs->weight >= (double)fs->minweight )
+      if ( fs->weight >= (float)fs->minweight )
       {
-        if ( fs->weight > (double)fs->maxweight )
+        if ( fs->weight > (float)fs->maxweight )
           fs->weight = fs->maxweight;
       }
       else
@@ -33276,10 +33276,10 @@ double __cdecl LibVarStringValue(char *a1)
     }
     else if ( !v2 )
     {
-      result = (double)(v4 - 48) + result * 10.0;
+      result = (float)(v4 - 48) + result * 10.0;
       continue;
     }
-    v5 = (double)(*v1 - 48) / (double)i;
+    v5 = (float)(*v1 - 48) / (float)i;
     v2 *= 10;
     i = v2;
     result = result + v5;
@@ -35444,7 +35444,7 @@ LABEL_88:
           v17->intvalue = v26;
           if ( v27 == 0.0 || (ArgLista = 1, v22->floatvalue == 0.0) )
             ArgLista = 0;
-          v17->floatvalue = (double)ArgLista;
+          v17->floatvalue = (float)ArgLista;
           goto LABEL_144;
         case 6:
           v28 = v17->intvalue || v22->intvalue;
@@ -35452,7 +35452,7 @@ LABEL_88:
           v17->intvalue = v28;
           if ( v29 != 0.0 || (ArgListb = 0, v22->floatvalue != 0.0) )
             ArgListb = 1;
-          v17->floatvalue = (double)ArgListb;
+          v17->floatvalue = (float)ArgListb;
           goto LABEL_144;
         case 7:
           ArgListc = 1;
@@ -35460,7 +35460,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue >= v22->intvalue;
           if ( v30 < v22->floatvalue )
             ArgListc = 0;
-          v17->floatvalue = (double)ArgListc;
+          v17->floatvalue = (float)ArgListc;
           goto LABEL_144;
         case 8:
           ArgListd = 1;
@@ -35468,7 +35468,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue <= v22->intvalue;
           if ( v31 > v22->floatvalue )
             ArgListd = 0;
-          v17->floatvalue = (double)ArgListd;
+          v17->floatvalue = (float)ArgListd;
           goto LABEL_144;
         case 9:
           ArgListe = 1;
@@ -35476,7 +35476,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue == v22->intvalue;
           if ( v32 != v22->floatvalue )
             ArgListe = 0;
-          v17->floatvalue = (double)ArgListe;
+          v17->floatvalue = (float)ArgListe;
           goto LABEL_144;
         case 10:
           ArgListf = 1;
@@ -35484,7 +35484,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue != v22->intvalue;
           if ( v33 == v22->floatvalue )
             ArgListf = 0;
-          v17->floatvalue = (double)ArgListf;
+          v17->floatvalue = (float)ArgListf;
           goto LABEL_144;
         case 21:
           v17->intvalue >>= v22->intvalue;
@@ -35528,7 +35528,7 @@ LABEL_88:
         case 36:
           v23 = v17->floatvalue;
           v17->intvalue = v17->intvalue == 0;
-          v17->floatvalue = (double)(v23 == 0.0);
+          v17->floatvalue = (float)(v23 == 0.0);
           goto LABEL_144;
         case 37:
           ArgListg = 1;
@@ -35536,7 +35536,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue > v22->intvalue;
           if ( v34 <= v22->floatvalue )
             ArgListg = 0;
-          v17->floatvalue = (double)ArgListg;
+          v17->floatvalue = (float)ArgListg;
           goto LABEL_144;
         case 38:
           ArgListh = 1;
@@ -35544,7 +35544,7 @@ LABEL_88:
           v17->intvalue = v17->intvalue < v22->intvalue;
           if ( v35 >= v22->floatvalue )
             ArgListh = 0;
-          v17->floatvalue = (double)ArgListh;
+          v17->floatvalue = (float)ArgListh;
           goto LABEL_144;
         case 42:
           if ( !v14 )
@@ -36082,7 +36082,7 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
   token.endwhitespace_p = v2->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%d", abs32(v3));
-  token.floatvalue = (double)v3;
+  token.floatvalue = (float)v3;
   token.type = 3;
   token.subtype = 12296;
   token.intvalue = v3;
@@ -38174,7 +38174,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   {
     if ( (unsigned __int8)v8 == 3 && (v8 & 0x200) != 0 )
     {
-      v11 = (double)v19;
+      v11 = (float)v19;
       if ( v11 < fielddef_float(field, 4) || v11 > fielddef_float(field, 5) )
       {
         SourceError(src, aValueDOutOfRan, v7, fielddef_float(field, 4), fielddef_float(field, 5));
@@ -38185,11 +38185,11 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   }
   if ( (v8 & 0x200) != 0 )
   {
-    v12 = (double)v17;
+    v12 = (float)v17;
     if ( v12 <= fielddef_float(field, 4) )
       v12 = fielddef_float(field, 4);
     v13 = (int)v12;
-    v14 = (double)v16;
+    v14 = (float)v16;
     v9 = v13;
     if ( v14 >= fielddef_float(field, 5) )
       v14 = fielddef_float(field, 5);
@@ -38735,10 +38735,10 @@ int __cdecl vectoangles(float *a1, float *a2)
   }
   else
   {
-    v3 = (double)(int)(__int64)(atan2(a1[1], *a1) * 57.29577951308232);
+    v3 = (float)(int)(__int64)(atan2(a1[1], *a1) * 57.29577951308232);
     if ( v3 < 0.0 )
       v3 = v3 + 360.0;
-    v4 = (double)(int)(__int64)(atan2(a1[2], sqrt(*a1 * *a1 + a1[1] * a1[1])) * 57.29577951308232);
+    v4 = (float)(int)(__int64)(atan2(a1[2], sqrt(*a1 * *a1 + a1[1] * a1[1])) * 57.29577951308232);
     if ( v4 < 0.0 )
       v4 = v4 + 360.0;
     result = a2;
@@ -39381,7 +39381,7 @@ float __cdecl sub_10042CD0(float from, float to, float frac)
 //----- (10042D40) --------------------------------------------------------
 float __cdecl AngleMod(float a1)
 {
-  return (double)(unsigned __int16)(__int64)(a1 * 182.0444444444445) * 0.0054931640625;
+  return (float)(unsigned __int16)(__int64)(a1 * 182.0444444444445) * 0.0054931640625;
 }
 
 //----- (10042D80) --------------------------------------------------------
