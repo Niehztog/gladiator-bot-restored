@@ -11112,41 +11112,31 @@ static void sub_10010690(int client, vec3_t origin, vec3_t move_dir)
 //----- (10010780) --------------------------------------------------------
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float *velocity)
 {
-  float v4; // st7
-  float v5; // st6
-  float v6; // st6
-  float v8; // st5
-  float v9; // st4
-  float v10; // st5
-  float v11; // [esp+0h] [ebp-4h]
-  float v12; // [esp+8h] [ebp+4h]
+  float phys_gravity, phys_maxvelocity;
+  float maxjump, height2fall, t, top;
+  vec3_t dir;
 
-  v4 = libvar_sv_maxvelocity->value;
-  v11 = libvar_sv_gravity->value;
-  v5 = zvel / v11;
-  v12 = v5;
-  v6 = v5 * (v11 * v5) * 0.5f + start[2] - end[2];
-  if ( v6 >= 0.0f )
+  phys_gravity = libvar_sv_gravity->value;
+  phys_maxvelocity = libvar_sv_maxvelocity->value;
+
+  maxjump = 0.5 * phys_gravity * (zvel / phys_gravity) * (zvel / phys_gravity);
+  top = start[2] + maxjump;
+  height2fall = top - end[2];
+  if ( height2fall < 0 )
   {
-    v8 = end[0] - start[0];
-    v9 = end[1] - start[1];
-    v10 = sqrt(v9 * v9 + v8 * v8) / (sqrt(v6 / (v11 * 0.5f)) + v12);
-    *velocity = v10;
-    if ( v10 <= v4 )
-    {
-      return 1;
-    }
-    else
-    {
-      *(float *)velocity = v4;
-      return 0;
-    }
-  }
-  else
-  {
-    *(float *)velocity = libvar_sv_maxvelocity->value;
+    *velocity = phys_maxvelocity;
     return 0;
   }
+  t = sqrt(height2fall / (0.5 * phys_gravity));
+  dir[0] = end[0] - start[0];
+  dir[1] = end[1] - start[1];
+  *velocity = sqrt(dir[0]*dir[0] + dir[1]*dir[1]) / (t + zvel / phys_gravity);
+  if ( *velocity > phys_maxvelocity )
+  {
+    *velocity = phys_maxvelocity;
+    return 0;
+  }
+  return 1;
 }
 // 10064038: using guessed type int libvar_sv_gravity;
 // 10064044: using guessed type int libvar_sv_maxvelocity;
