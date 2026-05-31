@@ -28126,6 +28126,7 @@ _DWORD * BotInitLevelItems()
    * adjacent, so y/z are read as garbage and AAS_BestReachableArea returns
    * 0 for nearly every item — leaving goal_areanum=0 and BotChooseLTGItem
    * unable to pick any goal. */
+  int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
   result = (_DWORD *)InitLevelItemHeap();
@@ -28136,7 +28137,7 @@ _DWORD * BotInitLevelItems()
   if ( dword_1006435C )
   {
     v4 = AAS_ParseBSPEntities();
-    LibVar(aNotspawnflags, (char *)a2048);
+    notspawnflags_mask = (int)LibVarValue(aNotspawnflags, (char *)a2048);
     for ( i = 0; i < v2->numitems; v3 += 284 )
     {
       *(_DWORD *)((char *)v2->items + v3 + 240) = IndexFromModel((char *)((char *)v2->items + v3 + 160));
@@ -28151,16 +28152,7 @@ _DWORD * BotInitLevelItems()
       do
       {
         ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
-        if ( ArgList && ((unsigned int)AAS_IntForBSPEpairKey(v11, aSpawnflags) & 0u) == 0 )
-        /* Original __usercall took `double a1@<st0>`; the body masks
-         * AAS_IntForBSPEpairKey against (__int64)a1.  No caller pushes
-         * an FPU value; the read is whatever happened to be in st(0)
-         * (and the slot at [esp+0x20] in the binary is never written
-         * before the AND at 0x1002f437).  In practice the FPU stack
-         * is empty/zero here, so the mask is 0 and the condition is
-         * always true — i.e. spawnflags filtering was a dead branch.
-         * Replacing with `& 0u` makes that explicit and avoids the
-         * IDA `a1`-global alias trap on 64-bit. */
+        if ( ArgList && (AAS_IntForBSPEpairKey(v11, aSpawnflags) & notspawnflags_mask) == 0 )
         {
           v7 = 0;
           if ( v2->numitems > 0 )
