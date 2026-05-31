@@ -36800,45 +36800,14 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       break;
     case 'x':
       a1->script_p = v2 + 1;
-      v4 = 0;
-      while ( 1 )
+      for ( i = 0, v4 = 0; ; ++i, ++a1->script_p )
       {
-        while ( 1 )
-        {
-          while ( 1 )
-          {
-            v5 = a1->script_p;
-            v6 = *v5;
-            if ( v6 < 48 || v6 > 57 )
-              break;
-            v4 = v6 - 48 + 16 * v4;
-            a1->script_p = v5 + 1;
-          }
-          if ( v6 < 65 || v6 > 90 )
-            break;
-          v4 = v6 - 55 + 16 * v4;
-          a1->script_p = v5 + 1;
-        }
-        if ( v6 < 97 || v6 > 122 )
-          break;
-        v4 = v6 - 87 + 16 * v4;
-        a1->script_p = v5 + 1;
-      }
-      --a1->script_p;
-      if ( v4 > 255 )
-        goto LABEL_32;
-      break;
-    default:
-      if ( v3 < 48 || v3 > 57 )
-        ScriptError(a1, aUnknownEscapeC);
-      v4 = 0;
-      for ( i = *a1->script_p; i >= 48; i = *v8 )
-      {
-        if ( i > 57 )
-          break;
-        v8 = (char *)(a1->script_p + 1);
-        v4 = i + 10 * v4 - 48;
-        a1->script_p = v8;
+        v6 = *a1->script_p;
+        if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
+        else if ( v6 >= 'A' && v6 <= 'Z' ) v6 = v6 - 'A' + 10;
+        else if ( v6 >= 'a' && v6 <= 'z' ) v6 = v6 - 'a' + 10;
+        else break;
+        v4 = (v4 << 4) + v6;
       }
       --a1->script_p;
       if ( v4 > 255 )
@@ -36847,6 +36816,20 @@ LABEL_32:
         ScriptWarning(a1, aTooLargeValueI);
         v4 = -1;
       }
+      break;
+    default:
+      if ( v3 < '0' || v3 > '9' )
+        ScriptError(a1, aUnknownEscapeC);
+      for ( i = 0, v4 = 0; ; ++i, ++a1->script_p )
+      {
+        v6 = *a1->script_p;
+        if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
+        else break;
+        v4 = v4 * 10 + v6;
+      }
+      --a1->script_p;
+      if ( v4 > 255 )
+        goto LABEL_32;
       break;
   }
   ++a1->script_p;
