@@ -18358,20 +18358,12 @@ void BotResetNodeSwitches()
 //----- (1001D2D0) --------------------------------------------------------
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 {
-  const char *v1; // eax
   int v2; // ebx
   const char *v3; // edx
-  double v5; // [esp+0h] [ebp-588h]
-  int v6; // [esp+8h] [ebp-580h]
   char Buffer[1400]; // [esp+10h] [ebp-578h] BYREF
 
-  /* The original asm reused AAS_Time's $0x32 arg (50) as the third sprintf
-   * arg — it was never popped before the double was fstpl'd into the same slot.
-   * IDA hid this clever stack reuse; restore the value explicitly. */
-  v6 = 50;
-  v5 = AAS_Time(50);
-  v1 = (const char *)ClientName(*(_DWORD *)((char *)bs + 4));
-  sprintf(Buffer, "%s at %1.1f switched more than %d AI nodes\n", v1, v5, v6);
+  sprintf(Buffer, "%s at %1.1f switched more than %d AI nodes\n",
+          (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), 50);
   v2 = dword_100644A0;
   if ( dword_100644A0 > 0 )
   {
