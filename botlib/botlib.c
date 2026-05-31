@@ -21230,7 +21230,7 @@ int __cdecl sub_10022970(int *a1)
 BOOL BotCanAndWantsToRocketJump(int *a1)
 {
   bot_state_t *bs = (bot_state_t *)a1;
-  int v3; // ecx
+  int v3;
 
   if ( a1[446] <= 0 )
     return 0;
@@ -21238,14 +21238,17 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
     return 0;
   if ( bs->quad_seconds )
     return 0;
-  if ( bs->invuln_seconds )
-    return 1;
-  v3 = bs->inventory_health;
-  if ( v3 < 60 )
-    return 0;
-  if ( v3 < 90 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
-    return 0;
-  return Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 26, 0.0, 1.0) >= 0.5;
+  if ( !bs->invuln_seconds )
+  {
+    v3 = bs->inventory_health;
+    if ( v3 < 60 )
+      return 0;
+    if ( v3 < 90 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
+      return 0;
+    if ( Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 26, 0.0, 1.0) < 0.5 )
+      return 0;
+  }
+  return 1;
 }
 
 //----- (10022A60) --------------------------------------------------------
