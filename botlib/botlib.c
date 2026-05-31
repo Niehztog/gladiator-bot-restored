@@ -17712,22 +17712,27 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
   int   i, sides;
   float v11[3]; /* point closer to plane normal */
   float v12[3]; /* point farther from plane normal */
+  float dist1, dist2;
 
   for ( i = 0; i < 3; ++i )
   {
-    if ( a3[i] >= 0.0f )
-    {
-      v12[i] = a1[i];
-      v11[i] = a2[i];
-    }
-    else
+    if ( a3[i] < 0.0f )
     {
       v11[i] = a1[i];
       v12[i] = a2[i];
     }
+    else
+    {
+      v12[i] = a1[i];
+      v11[i] = a2[i];
+    }
   }
-  sides = (v11[0]*a3[0] + v11[1]*a3[1] + v11[2]*a3[2] - a3[3] >= 0.0f) ? 1 : 0;
-  if ( v12[0]*a3[0] + v12[1]*a3[1] + v12[2]*a3[2] - a3[3] < 0.0f )
+  dist1 = v11[0]*a3[0] + v11[1]*a3[1] + v11[2]*a3[2] - a3[3];
+  dist2 = v12[0]*a3[0] + v12[1]*a3[1] + v12[2]*a3[2] - a3[3];
+  sides = 0;
+  if ( dist1 >= 0.0f )
+    sides = 1;
+  if ( dist2 < 0.0f )
     sides |= 2;
   return sides;
 }
