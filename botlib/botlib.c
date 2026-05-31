@@ -2850,7 +2850,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
         *(_DWORD *)trace = 1;
         trace[2] = 0.0;
         trace[19] = 0.0;
-        trace[12] = NAN;
+        *((_DWORD *)trace + 12) = -1;
         trace[6] = 0.0;
         trace[7] = 0.0;
         trace[8] = 0.0;
@@ -2914,7 +2914,7 @@ LABEL_40:
     return 0;
   }
   trace[2] = v39;
-  trace[12] = NAN;
+  *((_DWORD *)trace + 12) = -1;
   trace[1] = 0.0;
   *trace = 0.0;
   *((_DWORD *)trace + 20) = entnum;
