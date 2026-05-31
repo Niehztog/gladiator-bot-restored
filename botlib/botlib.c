@@ -19129,26 +19129,27 @@ int __cdecl AIEnter_Stand(bot_state_t *bs)
 int __cdecl AINode_Stand(bot_state_t *bs)
 {
 
-  double v2; // st7
-
   if ( BotFindEnemy(bs) )
   {
     AIEnter_Battle_Fight(bs);
     return 0;
   }
   BotChangeViewAngles(bs, bs->thinktime);
-  v2 = AAS_Time();
-  if ( v2 <= bs->stand_time )
-    return 1;
-  if ( LibVarGetValue(aSquatt) != 0.0f )
+  if ( AAS_Time() > bs->stand_time )
   {
-    EA_Say(bs->client, aINeverHackedYo);
-    EA_Command(bs->client, aRemovebot, ClientName(bs->client), (void *)0);
-    return 1;
+    if ( LibVarGetValue(aSquatt) != 0.0f )
+    {
+      EA_Say(bs->client, aINeverHackedYo);
+      EA_Command(bs->client, aRemovebot, ClientName(bs->client), (void *)0);
+    }
+    else
+    {
+      BotEnterChat(&bs->chatstate, bs->client, 0);
+      AIEnter_Seek_LTG(bs);
+      return 0;
+    }
   }
-  BotEnterChat(&bs->chatstate, bs->client, 0);
-  AIEnter_Seek_LTG(bs);
-  return 0;
+  return 1;
 }
 // 10001181: using guessed type _DWORD __cdecl BotChangeViewAngles(_DWORD, _DWORD);
 // 100011AE: using guessed type _DWORD __cdecl BotFindEnemy(_DWORD);
