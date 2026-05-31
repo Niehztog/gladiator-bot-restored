@@ -10387,7 +10387,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   float v15[3]; // [esp+20h] [ebp-5Ch] BYREF
   int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
 
-  v2 = (long double)reach->start[0] - (long double)reach->end[0];
+  v2 = (float)reach->start[0] - (float)reach->end[0];
   v14[2] = 0;
   *(float *)v14 = (float)v2;
   *(float *)&v14[1] = reach->start[1] - reach->end[1];
@@ -10395,8 +10395,8 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
   start_pos[2] = reach->start[2] + 1.0f;
-  VectorScale((float *)v14, 400.0, (float *)v15);
-  v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1, 124, 0);
+  VectorScale((float *)v14, 400.0f, (float *)v15);
+  v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1f, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
   *(float *)runstart = *(float *)v16;
   v7 = v16[1];
@@ -10553,7 +10553,7 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   float bsptrace[21]; /* BYREF — trace result */
 
   v2 = origin[1];
-  v3 = origin[2] + 8.0;
+  v3 = origin[2] + 8.0f;
   start[0] = origin[0];
   start[1] = v2;
   start[2] = v3;
@@ -10566,28 +10566,28 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   viewangles[1] = 0;
   viewangles[2] = 0;
   AngleVectors(viewangles, forward, right, 0);
-  start[0] = (right[0] + forward[0]) * 8.0 + start[0];
-  start[1] = (right[1] + forward[1]) * 8.0 + start[1];
-  start[2] = (right[2] + forward[2]) * 8.0 + start[2] - 8.0;
-  VectorMA(start, 500.0, forward, end);
+  start[0] = (right[0] + forward[0]) * 8.0f + start[0];
+  start[1] = (right[1] + forward[1]) * 8.0f + start[1];
+  start[2] = (right[2] + forward[2]) * 8.0f + start[2] - 8.0f;
+  VectorMA(start, 500.0f, forward, end);
   qmemcpy(bsptrace, AAS_Trace(bsptrace, (float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 1, 3), sizeof(bsptrace));
-  v[0] = 0.0;
-  v[1] = 0.0;
-  v[2] = 8.0;
-  VectorMA(origin, 0.5, v, v);
+  v[0] = 0.0f;
+  v[1] = 0.0f;
+  v[2] = 8.0f;
+  VectorMA(origin, 0.5f, v, v);
   v[0] = bsptrace[3] - v[0];
   v[1] = bsptrace[4] - v[1];
   v[2] = bsptrace[5] - v[2];
   v14 = radiusdamage;
-  points = v14 - 0.5 * VectorLength(v);
+  points = v14 - 0.5f * VectorLength(v);
   *(float *)&v14 = points;
-  if ( points < 0.0 )
+  if ( points < 0.0f )
     LODWORD(v14) = 0;
   dir[0] = origin[0] - bsptrace[3];
   dir[1] = origin[1] - bsptrace[4];
   dir[2] = origin[2] - bsptrace[5];
   VectorNormalize(dir);
-  v7 = *(float *)&v14 * 0.5 * 8.0;
+  v7 = *(float *)&v14 * 0.5f * 8.0f;
   VectorScale(dir, v7, kvel);
   return kvel[2] + libvar_sv_jumpvel->value;
 }
@@ -10721,22 +10721,22 @@ char *__cdecl AAS_ClientMovementPrediction(
   v13 = libvar_sv_waterfriction->value;
   v68 = libvar_sv_gravity->value;
   v66 = v13;
-  v14 = (long double)a10 * (long double)libvar_sv_maxwalkvelocity->value;
+  v14 = (float)a10 * (float)libvar_sv_maxwalkvelocity->value;
   v70 = libvar_sv_watergravity->value;
   v72 = (float)v14;
   v73 = a10 * libvar_sv_maxcrouchvelocity->value;
-  v15 = (long double)a10 * (long double)libvar_sv_maxswimvelocity->value;
+  v15 = (float)a10 * (float)libvar_sv_maxswimvelocity->value;
   v69 = libvar_sv_step->value;
   v78 = (float)v15;
   v16 = libvar_sv_maxsteepness->value;
   v58 = a10 * libvar_sv_maxaccelerate->value;
-  v17 = (long double)a10 * (long double)libvar_sv_jumpvel->value;
+  v17 = (float)a10 * (float)libvar_sv_jumpvel->value;
   v63 = v16;
   memset(v62, 0, sizeof(v62));
   v67 = (float)v17;
   memset(&v80, 0, sizeof(v80));
   v18 = *(int *)&a3[1];
-  v19 = (long double)a3[2] + 0.25L;
+  v19 = (float)a3[2] + 0.25f;
   *(int *)&org[0] = *(int *)a3;
   *(int *)&org[1] = v18;
   org[2] = (float)v19;
@@ -10751,11 +10751,11 @@ char *__cdecl AAS_ClientMovementPrediction(
     v22 = v21;
     v57 = v21;
     if ( v21 )
-      v23 = (long double)v70;
+      v23 = (float)v70;
     else
-      v23 = (long double)v68;
-    v50 = v23 * (long double)a10 * 0.1L;
-    frame_test_vel[2] = (float)((long double)frame_test_vel[2] - v50);
+      v23 = (float)v68;
+    v50 = v23 * (float)a10 * 0.1f;
+    frame_test_vel[2] = (float)((float)frame_test_vel[2] - v50);
     if ( a5 )
     {
       if ( v21 )
@@ -10769,9 +10769,9 @@ char *__cdecl AAS_ClientMovementPrediction(
         goto LABEL_12;
       v65 = v71;
     }
-    VectorScale(frame_test_vel, 10.0, frame_test_vel);
+    VectorScale(frame_test_vel, 10.0f, frame_test_vel);
     AAS_ApplyFriction(frame_test_vel, v65, v77, a10);
-    VectorScale(frame_test_vel, 0.1, frame_test_vel);
+    VectorScale(frame_test_vel, 0.1f, frame_test_vel);
 LABEL_12:
     v24 = 0;
     if ( v43 >= a8 )
@@ -10785,15 +10785,15 @@ LABEL_35:
     v26 = 0;
     if ( a5 )
     {
-      if ( a7[2] < -300.0 )
+      if ( a7[2] < -300.0f )
       {
         v25 = v73;
         v24 = 1;
       }
-      if ( !v22 && a7[2] > 1.0 )
+      if ( !v22 && a7[2] > 1.0f )
       {
         v64 = v43;
-        frame_test_vel[2] = (float)((long double)v67 - v50 + 5.0L);
+        frame_test_vel[2] = (float)((float)v67 - v50 + 5.0f);
       }
       v26 = 2;
     }
@@ -10810,22 +10810,22 @@ LABEL_35:
     v28 = v26;
     do
     {
-      v29 = (long double)a10 * (long double)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (long double)(*(float *)v27);
-      if ( v29 <= (long double)v58 )
+      v29 = (float)a10 * (float)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (float)(*(float *)v27);
+      if ( v29 <= (float)v58 )
       {
         *(float *)&v50 = -v58;
-        if ( v29 < (long double)(*(float *)&v50) )
-          v29 = (long double)(*(float *)&v50);
+        if ( v29 < (float)(*(float *)&v50) )
+          v29 = (float)(*(float *)&v50);
       }
       else
       {
-        v29 = (long double)v58;
+        v29 = (float)v58;
       }
-      *(float *)&v50 = (float)(v29 + (long double)(*(float *)v27));
+      *(float *)&v50 = (float)(v29 + (float)(*(float *)v27));
       *v27 = SLODWORD(v50);
-      if ( (long double)(*(float *)&v50) <= v25 )
+      if ( (float)(*(float *)&v50) <= v25 )
       {
-        if ( (long double)(*(float *)&v50) < -v25 )
+        if ( (float)(*(float *)&v50) < -v25 )
           *(float *)v27 = (float)(-v25);
       }
       else
@@ -10863,12 +10863,12 @@ LABEL_38:
       org[0] = v80.endpos[0];
       org[1] = v80.endpos[1];
       org[2] = v80.endpos[2];
-      if ( v80.fraction >= 1.0 )
+      if ( v80.fraction >= 1.0f )
         goto LABEL_66;
       v30 = (float *)AAS_PlaneFromNum(v80.planenum);
-      if ( v30[2] == 0.0 && (v64 < 0 || v43 - v64 > 2) )
+      if ( v30[2] == 0.0f && (v64 < 0 || v43 - v64 > 2) )
       {
-        VectorMA(org, -0.25, (float *)v30, start);
+        VectorMA(org, -0.25f, (float *)v30, start);
         v82[0] = start[0];
         v82[1] = start[1];
         v82[2] = start[2];
@@ -10877,13 +10877,13 @@ LABEL_38:
         if ( !v83.startsolid )
         {
           v31 = AAS_PlaneFromNum(v83.planenum);
-          if ( *(float *)(v31 + 8) > (double)v63 )
+          if ( *(float *)(v31 + 8) > (float)v63 )
           {
-            left_test_vel[2] = 0.0;
-            frame_test_vel[2] = 0.0;
+            left_test_vel[2] = 0.0f;
+            frame_test_vel[2] = 0.0f;
             left_test_vel[0] = end[0] - v83.endpos[0];
             left_test_vel[1] = end[1] - v83.endpos[1];
-            if ( a12 && v83.endpos[2] - org[2] > 0.125 )
+            if ( a12 && v83.endpos[2] - org[2] > 0.125f )
             {
               start[0] = org[0];
               start[1] = org[1];
@@ -10895,14 +10895,14 @@ LABEL_38:
           }
         }
       }
-      v41 = (float)(-((long double)left_test_vel[1] * (long double)v30[1] + (long double)left_test_vel[2] * (long double)v30[2] + (long double)left_test_vel[0] * (long double)*v30));
+      v41 = (float)(-((float)left_test_vel[1] * (float)v30[1] + (float)left_test_vel[2] * (float)v30[2] + (float)left_test_vel[0] * (float)*v30));
       VectorMA(left_test_vel, v41, (float *)v30, left_test_vel);
-      v32 = (long double)frame_test_vel[1] * (long double)v30[1];
-      v33 = (long double)frame_test_vel[2] * (long double)v30[2];
+      v32 = (float)frame_test_vel[1] * (float)v30[1];
+      v33 = (float)frame_test_vel[2] * (float)v30[2];
       v79 = frame_test_vel[2];
-      v42 = (float)(-(v32 + v33 + (long double)frame_test_vel[0] * (long double)*v30));
+      v42 = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*v30));
       VectorMA(frame_test_vel, v42, (float *)v30, frame_test_vel);
-      if ( v30[2] <= (double)v63 )
+      if ( v30[2] <= (float)v63 )
       {
         v34 = a5;
       }
@@ -10913,22 +10913,22 @@ LABEL_38:
       }
       if ( (a11 & 0x20) == 0 )
         goto LABEL_66;
-      if ( v79 >= 0.0 || (long double)frame_test_vel[2] <= (long double)v79 )
+      if ( v79 >= 0.0f || (float)frame_test_vel[2] <= (float)v79 )
       {
         if ( !v34 )
           goto LABEL_66;
 LABEL_62:
-        v35 = (long double)frame_test_vel[2] - (long double)v79;
+        v35 = (float)frame_test_vel[2] - (float)v79;
         goto LABEL_63;
       }
       if ( v34 )
         goto LABEL_62;
-      v35 = (long double)v79;
+      v35 = (float)v79;
 LABEL_63:
-      if ( v35 != 0.0L )
+      if ( v35 != 0.0f )
       {
-        v36 = v35 * 10.0L * (v35 * 10.0L) * 0.0001L;
-        if ( !v57 && v36 > 30.0L )
+        v36 = v35 * 10.0f * (v35 * 10.0f) * 0.0001f;
+        if ( !v57 && v36 > 30.0f )
         {
           v62[0] = *(int *)&org[0];
           v62[1] = *(int *)&org[1];
@@ -10946,12 +10946,12 @@ LABEL_66:
       if ( SLODWORD(v50) > 20 )
         goto LABEL_87;
     }
-    while ( v80.fraction < 1.0 );
-    if ( frame_test_vel[2] > 0.0 )
+    while ( v80.fraction < 1.0f );
+    if ( frame_test_vel[2] > 0.0f )
       goto LABEL_76;
     v81[0] = org[0];
     v81[1] = org[1];
-    v81[2] = org[2] - 22.0;
+    v81[2] = org[2] - 22.0f;
     v37 = bi_PointContents((float *)v81);   /* IDA-dropped: see 0x100100dd */
     v38 = 0;
     v57 = v37;
@@ -10972,7 +10972,7 @@ LABEL_66:
       *(float *)&v62[4] = frame_test_vel[1];
       v62[5] = *(int *)&frame_test_vel[2];
       v62[15] = a4;
-      *(float *)&v62[18] = (double)v43 * a10;
+      *(float *)&v62[18] = (float)v43 * a10;
       v62[19] = v43;
     }
     else
@@ -11010,7 +11010,7 @@ LABEL_86:
         v62[15] = a4;
         v62[17] = 1082130432;
         v62[19] = v43;
-        *(float *)&v62[18] = (double)v43 * a10;
+        *(float *)&v62[18] = (float)v43 * a10;
       }
       else if ( (a11 & 2) != 0 )
       {
@@ -11021,7 +11021,7 @@ LABEL_86:
         v62[3] = *(int *)&frame_test_vel[0];
         *(float *)&v62[4] = frame_test_vel[1];
         qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-        *(float *)&v62[18] = (double)v43 * a10;
+        *(float *)&v62[18] = (float)v43 * a10;
         v62[16] = 2;
         v62[15] = a4;
         v62[17] = 1082130432;
@@ -11037,11 +11037,11 @@ LABEL_86:
         start[2] = org[2];
         end[1] = org[1];
         end[2] = org[2];
-        end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0);
+        end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0f);
         v84 = AAS_TraceClientBBox(start, end, 4, -1);
         if ( v84.startsolid )
           goto LABEL_84;
-        if ( org[2] - libvar_sv_step->value - 1.0 <= v84.endpos[2] )
+        if ( org[2] - libvar_sv_step->value - 1.0f <= v84.endpos[2] )
           goto LABEL_84;
         v39 = bi_PointContents((float *)end);   /* IDA-dropped barrier-water check */
         if ( (v39 & 0x20) != 0 )
@@ -11053,7 +11053,7 @@ LABEL_86:
         v62[3] = *(int *)&frame_test_vel[0];
         v62[5] = *(int *)&frame_test_vel[2];
         qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-        *(float *)&v62[18] = (double)v43 * a10;
+        *(float *)&v62[18] = (float)v43 * a10;
         v62[16] = 64;
         v62[15] = a4;
         v62[17] = 1082130432;
