@@ -22999,13 +22999,7 @@ BOOL TeamPlayIsOn()
 //----- (10026700) --------------------------------------------------------
 BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal)
 {
-  int n;
-  /* MSVC -O2 left dead code at 0x1002672a-0x10026737: a second
-   * BotGetLevelItemGoal(n, String1, goal) call between `jg` and `jle`.
-   * Original source: short-circuit && that calls twice. */
-  return strlen(String1)
-      && (n = BotGetLevelItemGoal(-1, String1, goal)) > 0
-      && BotGetLevelItemGoal(n, String1, goal) > 0;
+  return strlen(String1) && BotGetLevelItemGoal(-1, String1, goal) > 0;
 }
 // 10026728: conditional instruction was optimized away because eax.4<1
 
