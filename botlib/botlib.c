@@ -12400,9 +12400,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v143[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
 
-  up[0] = 0.0;
-  up[1] = 0.0;
-  up[2] = 1.0;
+  up[0] = 0.0f;
+  up[1] = 0.0f;
+  up[2] = 1.0f;
   if ( (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
   {
     v2 = (char *)aasworld.areas + 48 * area1num;
@@ -12412,7 +12412,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     v4 = 0;
     v5 = (float *)(v115 + 12);
     v134 = v3;
-    for ( i = (float *)(v2 + 24); *(float *)((char *)i + (v115 - v2)) + 10.0 >= *(i - 3) && *v5 - 10.0 <= *i; ++i )
+    for ( i = (float *)(v2 + 24); *(float *)((char *)i + (v115 - v2)) + 10.0f >= *(i - 3) && *v5 - 10.0f <= *i; ++i )
     {
       ++v4;
       ++v5;
@@ -12420,11 +12420,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
       {
         v7 = *((_DWORD *)v2 + 1);
         v116 = 0;
-        v64 = 99999.0;
-        v124 = 0.0;
+        v64 = 99999.0f;
+        v124 = 0.0f;
         v118 = 0;
-        v100 = 99999.0;
-        v125 = 0.0;
+        v100 = 99999.0f;
+        v125 = 0.0f;
         v119 = 0;
         if ( v7 <= 0 )
           return 0;
@@ -12438,7 +12438,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             || v134
             && up[2] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0)) + 2)
              + up[1] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0)) + 1)
-             + up[0] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0))) >= 0.7 )
+             + up[0] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0))) >= 0.7f )
           {
             v10 = *((_DWORD *)v9 + 2);
             v117 = 0;
@@ -12489,39 +12489,39 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                         v72 = *(float *)v23p;
                         v74 = *(float *)(v23p + 8);
                         v73 = *(float *)(v23p + 4);
-                        v25 = (long double)v80 * (long double)v101[2]
-                            + (long double)*(float *)&v79 * (long double)v101[1]
-                            + (long double)v78 * (long double)v101[0]
-                            - (long double)v65;
+                        v25 = (float)v80 * (float)v101[2]
+                            + (float)*(float *)&v79 * (float)v101[1]
+                            + (float)v78 * (float)v101[0]
+                            - (float)v65;
                         if ( v25 >= -0.1L && v25 <= 0.1L )
                         {
-                          v26 = (long double)v74 * (long double)v101[2]
-                              + (long double)v73 * (long double)v101[1]
-                              + (long double)v72 * (long double)v101[0]
-                              - (long double)v65;
+                          v26 = (float)v74 * (float)v101[2]
+                              + (float)v73 * (float)v101[1]
+                              + (float)v72 * (float)v101[0]
+                              - (float)v65;
                           if ( v26 >= -0.1L && v26 <= 0.1L )
                           {
                             CrossProduct(up, v101, v97_vec);
                             v81 = v80;
                             v82 = *(float *)&v71;
                             v90 = v77;
-                            v27 = (long double)v99 * (long double)v99
-                                + (long double)v98 * (long double)v98
-                                + (long double)v97 * (long double)v97;
+                            v27 = (float)v99 * (float)v99
+                                + (float)v98 * (float)v98
+                                + (float)v97 * (float)v97;
                             v83 = v74;
-                            v61 = ((long double)v99 * (long double)*(float *)&v71
-                                 + (long double)v98 * (long double)*(float *)&v70
-                                 + (long double)v97 * (long double)v69) / v27;
-                            v59 = ((long double)v99 * (long double)v77
-                                 + (long double)v98 * (long double)v76
-                                 + (long double)v97 * (long double)v75) / v27;
-                            v62 = ((long double)v99 * (long double)v80
-                                 + (long double)v98 * (long double)*(float *)&v79
-                                 + (long double)v97 * (long double)v78) / v27;
-                            v63 = ((long double)v99 * (long double)v74
-                                 + (long double)v98 * (long double)v73
-                                 + (long double)v97 * (long double)v72) / v27;
-                            if ( v61 > (long double)v59 )
+                            v61 = ((float)v99 * (float)*(float *)&v71
+                                 + (float)v98 * (float)*(float *)&v70
+                                 + (float)v97 * (float)v69) / v27;
+                            v59 = ((float)v99 * (float)v77
+                                 + (float)v98 * (float)v76
+                                 + (float)v97 * (float)v75) / v27;
+                            v62 = ((float)v99 * (float)v80
+                                 + (float)v98 * (float)*(float *)&v79
+                                 + (float)v97 * (float)v78) / v27;
+                            v63 = ((float)v99 * (float)v74
+                                 + (float)v98 * (float)v73
+                                 + (float)v97 * (float)v72) / v27;
+                            if ( v61 > (float)v59 )
                             {
                               v28 = v61;
                               v61 = v59;
@@ -12538,7 +12538,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               v76 = v30;
                               v77 = v31;
                             }
-                            if ( v62 > (long double)v63 )
+                            if ( v62 > (float)v63 )
                             {
                               v32 = v62;
                               v62 = v63;
@@ -12555,23 +12555,23 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               v73 = v34;
                               v74 = v35;
                             }
-                            if ( v59 > (long double)v62 && v63 > (long double)v61 )
+                            if ( v59 > (float)v62 && v63 > (float)v61 )
                             {
-                              if ( v62 <= v61 - 0.5 || v59 + 0.5 <= v63 || v61 <= v62 - 0.5 || v63 + 0.5 <= v59 )
+                              if ( v62 <= v61 - 0.5f || v59 + 0.5f <= v63 || v61 <= v62 - 0.5f || v63 + 0.5f <= v59 )
                               {
-                                if ( v62 - 0.1 >= v61 || v62 + 0.1 <= v61 )
+                                if ( v62 - 0.1f >= v61 || v62 + 0.1f <= v61 )
                                 {
-                                  if ( v61 >= (long double)v62 )
+                                  if ( v61 >= (float)v62 )
                                   {
                                     v109 = *(float *)&v71;
                                     *(float *)&v107 = v69;
                                     v108 = *(float *)&v70;
                                     *(float *)&v87 = v69;
                                     v88 = *(float *)&v70;
-                                    v38 = (v61 - v62) * ((long double)v83 - (long double)v81)
-                                        / (v63 - v62) + (long double)v81;
+                                    v38 = (v61 - v62) * ((float)v83 - (float)v81)
+                                        / (v63 - v62) + (float)v81;
                                     v67 = v38;
-                                    v36 = v38 - (long double)v82;
+                                    v36 = v38 - (float)v82;
                                     v37 = v67;
                                   }
                                   else
@@ -12581,10 +12581,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                     *(float *)&v87 = v78;
                                     v88 = *(float *)&v79;
                                     {
-                                      long double tmp = (v62 - v61) * ((long double)v90 - (long double)v82)
-                                                      / (v59 - v61) + (long double)v82;
+                                      long double tmp = (v62 - v61) * ((float)v90 - (float)v82)
+                                                      / (v59 - v61) + (float)v82;
                                       v66 = (float)tmp;
-                                      v36 = (long double)v81 - tmp;
+                                      v36 = (float)v81 - tmp;
                                     }
                                     v109 = v66;
                                     v37 = v80;
@@ -12601,18 +12601,18 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   v88 = *(float *)&v79;
                                 }
                                 v89 = v37;
-                                if ( v63 - 0.1 >= v59 || v63 + 0.1 <= v59 )
+                                if ( v63 - 0.1f >= v59 || v63 + 0.1f <= v59 )
                                 {
-                                  if ( v59 >= (long double)v63 )
+                                  if ( v59 >= (float)v63 )
                                   {
                                     *(float *)&v104 = v72;
                                     v105 = v73;
                                     *(float *)&v84 = v72;
                                     v85 = v73;
                                     v86 = v74;
-                                    v40 = (v63 - v61) * ((long double)v90 - (long double)v82)
-                                        / (v59 - v61) + (long double)v82;
-                                    v60 = (long double)v83 - v40;
+                                    v40 = (v63 - v61) * ((float)v90 - (float)v82)
+                                        / (v59 - v61) + (float)v82;
+                                    v60 = (float)v83 - v40;
                                     v106 = v40;
                                   }
                                   else
@@ -12622,9 +12622,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                     v106 = v77;
                                     *(float *)&v84 = v75;
                                     v85 = v76;
-                                    v39 = (v59 - v62) * ((long double)v83 - (long double)v81)
-                                        / (v63 - v62) + (long double)v81;
-                                    v60 = v39 - (long double)v90;
+                                    v39 = (v59 - v62) * ((float)v83 - (float)v81)
+                                        / (v63 - v62) + (float)v81;
+                                    v60 = v39 - (float)v90;
                                     v86 = v39;
                                   }
                                 }
@@ -12656,7 +12656,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 v85 = v73;
                                 v86 = v74;
                               }
-                              if ( v36 <= v60 - 1.0 || v36 >= v60 + 1.0 )
+                              if ( v36 <= v60 - 1.0f || v36 >= v60 + 1.0f )
                               {
                                 if ( v36 >= v60 )
                                 {
@@ -12685,11 +12685,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 v91[0] = *(float *)&v104 + *(float *)&v107;
                                 v91[1] = v105 + v108;
                                 v91[2] = v106 + v109;
-                                VectorScale(v91, 0.5, v91);
+                                VectorScale(v91, 0.5f, v91);
                                 v94[0] = *(float *)&v84 + *(float *)&v87;
                                 v94[1] = v85 + v88;
                                 v94[2] = v86 + v89;
-                                VectorScale(v94, 0.5, v94);
+                                VectorScale(v94, 0.5f, v94);
                               }
                               v140[0] = *(float *)&v84 - *(float *)&v87;
                               v140[1] = v85 - v88;
@@ -12698,7 +12698,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               v41 = v65;
                               if ( (v126[4] & 4) != 0 )
                               {
-                                if ( v41 < v64 || v64 + 1.0 > v65 && v68 > (long double)v124 )
+                                if ( v41 < v64 || v64 + 1.0f > v65 && v68 > (float)v124 )
                                 {
                                   v64 = v65;
                                   v124 = v68;
@@ -12720,7 +12720,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   v110[2] = v94[2];
                                 }
                               }
-                              else if ( v41 < v100 || v100 + 1.0 > v65 && v68 > (long double)v125 )
+                              else if ( v41 < v100 || v100 + 1.0f > v65 && v68 > (float)v125 )
                               {
                                 v100 = v65;
                                 v125 = v68;
@@ -12758,7 +12758,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++v119;
         }
         while ( v119 < v43 );
-        if ( v116 && v64 >= 0.0 && v64 < (long double)libvar_sv_step->value )
+        if ( v116 && v64 >= 0.0f && v64 < (float)libvar_sv_step->value )
         {
           v44 = (int *)AAS_AllocReachability();
           v45 = v44;
@@ -12768,8 +12768,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *v44 = area2num;
           v44[1] = 0;
           v44[2] = v46;
-          VectorMA(v121, 0.1, (float *)v120, (float *)(v44 + 3));
-          VectorMA(v110, 5.0, (float *)v120, (float *)(v45 + 6));
+          VectorMA(v121, 0.1f, (float *)v120, (float *)(v44 + 3));
+          VectorMA(v110, 5.0f, (float *)v120, (float *)(v45 + 6));
           v45[9] = 2;
           *((_WORD *)v45 + 20) = 1;
           if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
@@ -12780,16 +12780,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             *((_WORD *)v45 + 20) += 400;
           /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
            * area sum, float), not to the real AAS_AreaReachability. */
-          if ( AAS_AreaGroundFaceArea(*v45) < 500.0 )
+          if ( AAS_AreaGroundFaceArea(*v45) < 500.0f )
             *((_WORD *)v45 + 20) += 400;
           ++reach_step;
           return 1;
         }
         if ( v118
-          && (VectorMA((float *)v138, -2.0, (float *)v139, v141),
+          && (VectorMA((float *)v138, -2.0f, (float *)v139, v141),
               v141[2] = v141[2] - libvar_sv_maxwaterjump->value,
               (*((_BYTE *)aasworld.areasettings + 28 * AAS_PointAreaNum(v141) + 4) & 4) != 0)
-          && libvar_sv_maxwaterjump->value + 24.0 > v100 )
+          && libvar_sv_maxwaterjump->value + 24.0f > v100 )
         {
           v48 = area1num;
           v49 = area2num;
@@ -12808,7 +12808,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             *(float *)(v50 + 20) = v53;
             *(_DWORD *)v50 = area2num;
             *(_DWORD *)(v50 + 4) = 0;
-            VectorMA((float *)v138, 15.0, (float *)v139, v50 + 24);
+            VectorMA((float *)v138, 15.0f, (float *)v139, v50 + 24);
             *(_DWORD *)(v50 + 36) = 9;
             *(_WORD *)(v50 + 40) = 700;
             ((aas_reachabilitynode_t *)v50)->next = areareachability[area1num];
@@ -12824,9 +12824,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         }
         if ( !v116 )
           return 0;
-        if ( v64 > 0.0
-          && v64 < (long double)libvar_sv_maxbarrier->value
-          && (!v118 || v64 - v100 < 16.0)
+        if ( v64 > 0.0f
+          && v64 < (float)libvar_sv_maxbarrier->value
+          && (!v118 || v64 - v100 < 16.0f)
           && !AAS_AreaCrouch(v48)
           && !AAS_AreaCrouch(v49) )
         {
@@ -12837,8 +12837,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v54[2] = v113;
           *v54 = v49;
           v54[1] = 0;
-          VectorMA(v121, 0.1, (float *)v120, (float *)(v54 + 3));
-          VectorMA(v110, 5.0, (float *)v120, (float *)(v55 + 6));
+          VectorMA(v121, 0.1f, (float *)v120, (float *)(v54 + 3));
+          VectorMA(v110, 5.0f, (float *)v120, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
           ((aas_reachabilitynode_t *)v55)->next = (aas_reachabilitynode_t *)areareachability[v48];
@@ -12846,7 +12846,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++reach_barrier;
           return 1;
         }
-        if ( v64 >= 0.0 )
+        if ( v64 >= 0.0f )
           return 0;
         if ( -libvar_sv_step->value < v64 )
         {
@@ -12856,8 +12856,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *(_DWORD *)(v56 + 8) = v113;
           *(_DWORD *)v56 = v49;
           *(_DWORD *)(v56 + 4) = 0;
-          VectorMA(v121, 0.1, (float *)v120, v56 + 12);
-          VectorMA(v110, 5.0, (float *)v120, v56 + 24);
+          VectorMA(v121, 0.1f, (float *)v120, v56 + 12);
+          VectorMA(v110, 5.0f, (float *)v120, v56 + 24);
           result = 1;
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
@@ -12867,17 +12867,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           return result;
         }
         v114 = -(int)AAS_FallDamageDistance();
-        if ( (long double)(int)v114 < v64 || AAS_AreaSwim(v49) )
+        if ( (float)(int)v114 < v64 || AAS_AreaSwim(v49) )
         {
-          VectorMA(v110, 2.0, (float *)v120, v110);
+          VectorMA(v110, 2.0f, (float *)v120, v110);
           v91[2] = v121[2];
           v91[0] = v110[0];
           v94[0] = v110[0];
           v91[1] = v110[1];
           v94[1] = v110[1];
-          v94[2] = v110[2] + 4.0;
+          v94[2] = v110[2] + 4.0f;
           trace = AAS_TraceClientBBox(v91, v94, 2, -1);
-          if ( !trace.startsolid && trace.fraction >= 1.0 )
+          if ( !trace.startsolid && trace.fraction >= 1.0f )
           {
             trace.endpos[2] = trace.endpos[2] + 1.0f;
             if ( AAS_PointAreaNum(trace.endpos) == v49 )
