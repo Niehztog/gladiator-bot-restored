@@ -38351,34 +38351,31 @@ int __stdcall sub_10041760(const char *a1, int a2)
 //----- (10041790) --------------------------------------------------------
 int __cdecl vectoangles(float *a1, float *a2)
 {
-  int result; // eax
-  double v3; // st7
-  double v4; // st6
+  float forward;
+  float yaw, pitch;
 
-  if ( a1[1] == 0.0f && *a1 == 0.0f )
+  if ( a1[1] == 0 && a1[0] == 0 )
   {
-    result = a2;
-    if ( a1[2] <= 0.0f )
-      a2[0] = -270.0f;
+    yaw = 0;
+    if ( a1[2] > 0 )
+      pitch = 90;
     else
-      a2[0] = -90.0f;
-    *(int *)((char *)a2 + 8) = 0;
-    *(float *)((char *)a2 + 4) = 0.0f;
+      pitch = 270;
   }
   else
   {
-    v3 = (float)(int)(__int64)(atan2(a1[1], *a1) * 57.29577951308232f);
-    if ( v3 < 0.0f )
-      v3 = v3 + 360.0f;
-    v4 = (float)(int)(__int64)(atan2(a1[2], sqrt(*a1 * *a1 + a1[1] * a1[1])) * 57.29577951308232f);
-    if ( v4 < 0.0f )
-      v4 = v4 + 360.0f;
-    result = a2;
-    a2[0] = -v4;
-    *(int *)((char *)a2 + 8) = 0;
-    *(float *)((char *)a2 + 4) = v3;
+    yaw = (float)(int)(atan2(a1[1], a1[0]) * 57.29577951308232);
+    if ( yaw < 0 )
+      yaw += 360;
+    forward = sqrt(a1[0]*a1[0] + a1[1]*a1[1]);
+    pitch = (float)(int)(atan2(a1[2], forward) * 57.29577951308232);
+    if ( pitch < 0 )
+      pitch += 360;
   }
-  return result;
+  a2[0] = -pitch;
+  a2[1] = yaw;
+  a2[2] = 0;
+  return (int)a2;
 }
 
 //----- (100418D0) --------------------------------------------------------
