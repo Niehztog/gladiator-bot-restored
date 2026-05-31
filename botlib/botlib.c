@@ -639,7 +639,7 @@ BOOL __cdecl BotIsObserver(bot_state_t *bs);
 BOOL __cdecl BotIntermission(bot_state_t *bs);
 BOOL __cdecl sub_10021710(_DWORD *a1);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
-_BYTE *__cdecl stristr(_BYTE *a1, char *a2);
+char *__cdecl stristr(char *a1, char *a2);
 char *__cdecl EasyClientName(int a1, char *a2);
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum);
 bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name);
@@ -20696,49 +20696,22 @@ BOOL __cdecl EntityIsShooting(intptr_t a1)
 }
 
 //----- (100217C0) --------------------------------------------------------
-_BYTE *__cdecl stristr(_BYTE *a1, char *a2)
+char *__cdecl stristr(char *a1, char *a2)
 {
-  _BYTE *v2; // edi
-  char *v3; // ecx
-  int v4; // ebx
-  char *v5; // esi
-  int v6; // edi
-  char v7; // al
-  int v8; // ebp
-  char v9; // al
+  int i;
 
-  v2 = a1;
-  if ( !*a1 )
-    return 0;
-  v3 = a2;
-  while ( 1 )
+  while ( *a1 )
   {
-    v4 = 0;
-    if ( *v3 )
+    for ( i = 0; a2[i] && a1[i]; i++ )
     {
-      v5 = v3;
-      v6 = (char *)v2 - v3;
-      while ( 1 )
-      {
-        v7 = v5[v6];
-        if ( !v7 )
-          break;
-        v8 = toupper(v7);
-        if ( toupper(*v5) != v8 || (v9 = v5[1], ++v4, ++v5, !v9) )
-        {
-          v3 = a2;
-          break;
-        }
-        v3 = a2;
-      }
+      if ( toupper(a2[i]) != toupper(a1[i]) )
+        break;
     }
-    if ( !v3[v4] )
+    if ( !a2[i] )
       return a1;
-    v2 = a1 + 1;
-    a1 = v2;
-    if ( !*v2 )
-      return 0;
+    a1++;
   }
+  return 0;
 }
 
 //----- (10021860) --------------------------------------------------------
@@ -23022,7 +22995,7 @@ LABEL_5:
     }
     else
     {
-      for ( i = 0; !stristr((_BYTE *)(i + dword_100643A8), String2); i += 144 )
+      for ( i = 0; !stristr((char *)(i + dword_100643A8), String2); i += 144 )
       {
         if ( ++v4 >= maxclients )
           return -1;
