@@ -21230,8 +21230,8 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
   float v3; // ecx
   float v4; // edx
   double v5; // st7
-  __int16 v6; // ax
-  __int16 v7; // ax
+  int v6; // ax
+  int v7; // ax
   void *v8; // eax
   double v9; // st7
   double v10; // st7
@@ -21259,11 +21259,9 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
   v2 = a1 + 421;
   do
   {
-    v3 = *((float *)a1 + 422);
-    v4 = *((float *)a1 + 423);
-    endpos[0] = *(float *)v2;
-    endpos[1] = v3;
-    endpos[2] = v4;
+    *(_DWORD *)&endpos[0] = *v2;
+    *(_DWORD *)&endpos[1] = a1[422];
+    *(_DWORD *)&endpos[2] = a1[423];
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     v25 = v5;
     if ( v5 < 0.8 )
