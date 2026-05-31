@@ -36063,40 +36063,36 @@ int __cdecl PC_ReadTokenHandle(source_t *a1, _DWORD *a2)
 
   while ( 1 )
   {
-    do
+    if ( !PC_ReadSourceToken(a1, (token_t *)a2) )
+      return 0;
+    v2 = a2[256];
+    if ( v2 == 5 && ((token_t *)a2)->string[0] == '#' )
     {
-      while ( 1 )
+      if ( !PC_ReadDirective(a1) )
+        return 0;
+      continue;
+    }
+    if ( v2 == 5 && ((token_t *)a2)->string[0] == '$' )
+    {
+      if ( !PC_ReadDollarDirective(a1) )
+        return 0;
+      continue;
+    }
+    if ( a1->skip )
+      continue;
+    if ( v2 == 4 )
+    {
+      v3 = PC_FindHashedDefine(a1->definehash, (const char *)a2);
+      if ( v3 )
       {
-        if ( !PC_ReadSourceToken(a1, (token_t *)a2) )  /* basic script token reader */
+        if ( !PC_ExpandDefineIntoSource(a1, v3) )
           return 0;
-        v2 = a2[256];
-        if ( v2 != 5 )
-          break;
-        if ( *(_BYTE *)a2 == 35 )
-        {
-          if ( !PC_ReadDirective(a1) )
-            return 0;
-        }
-        else
-        {
-          if ( *(_BYTE *)a2 != 36 )
-            break;
-          if ( !PC_ReadDollarDirective(a1) )
-            return 0;
-        }
+        continue;
       }
     }
-    while ( a1->skip );
-    if ( v2 != 4 )
-      break;
-    v3 = PC_FindHashedDefine(a1->definehash, (const char *)a2);
-    if ( !v3 )
-      break;
-    if ( !PC_ExpandDefineIntoSource(a1, v3) )
-      return 0;
+    qmemcpy(&a1->cachedtoken, a2, sizeof(token_t));
+    return 1;
   }
-  qmemcpy(&a1->cachedtoken, a2, sizeof(token_t));
-  return 1;
 }
 // 1003D5BA: conditional instruction was optimized away because eax.4==5
 
