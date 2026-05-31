@@ -11218,38 +11218,34 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   v2 = abs32(facenum);
   v3 = (char *)aasworld.faces + 24 * v2;
   v8 = v3;
-  result = AAS_KeepFace(v3);
+  if ( !AAS_KeepFace(v3) )
+    return 0;
+  result = optimized->faceremap[v2];
   if ( result )
   {
-    result = optimized->faceremap[v2];
-    if ( result )
+    if ( facenum <= 0 )
+      return -result;
+    return result;
+  }
+  v5 = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
+  qmemcpy(v5, v3, 0x18u);
+  v5[2] = 0;
+  v6 = 0;
+  for ( v5[3] = optimized->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
+  {
+    v7 = AAS_OptimizeEdge(optimized, *((_DWORD *)aasworld.edgeindex + v6 + *((_DWORD *)v8 + 3)));
+    if ( v7 )
     {
-      if ( facenum <= 0 )
-        return -result;
-    }
-    else
-    {
-      v5 = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
-      qmemcpy(v5, v3, 0x18u);
-      v5[2] = 0;
-      v6 = 0;
-      for ( v5[3] = optimized->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
-      {
-        v7 = AAS_OptimizeEdge(optimized, *((_DWORD *)aasworld.edgeindex + v6 + *((_DWORD *)v8 + 3)));
-        if ( v7 )
-        {
-          optimized->edgeindex[v5[2] + v5[3]] = v7;
-          ++v5[2];
-          ++optimized->edgeindexsize;
-        }
-      }
-      optimized->faceremap[v2] = optimized->numfaces;
-      result = optimized->numfaces;
-      optimized->numfaces = result + 1;
-      if ( facenum <= 0 )
-        return -result;
+      optimized->edgeindex[v5[2] + v5[3]] = v7;
+      ++v5[2];
+      ++optimized->edgeindexsize;
     }
   }
+  optimized->faceremap[v2] = optimized->numfaces;
+  result = optimized->numfaces;
+  optimized->numfaces = result + 1;
+  if ( facenum <= 0 )
+    return -result;
   return result;
 }
 
