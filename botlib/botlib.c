@@ -11217,67 +11217,48 @@ int AAS_KeepEdge(char *edge)
 //----- (10010880) --------------------------------------------------------
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 {
-  unsigned int v2; // ebx
-  char *v3; // edi
-  int result; // eax
-  int v6; // eax
-  char *v7; // edx — optimized->edges
-  int v8; // esi
-  _DWORD *v9; // eax
-  long v10; // esi — byte offset between source and destination edge slot
-  int v11; // edi
-  unsigned int v12; // [esp+Ch] [ebp-4h]
-  int v13; // [esp+14h] [ebp+4h]
+  int i, optedgenum;
+  char *edge;
+  _DWORD *optedge;
 
-  v2 = abs32(edgenum);
-  v12 = v2;
-  v3 = (char *)aasworld.edges + 8 * v2;
-  result = AAS_KeepEdge(v3);
-  if ( result )
+  edge = (char *)aasworld.edges + 8 * abs32(edgenum);
+  if ( !AAS_KeepEdge(edge) )
+    return 0;
+
+  optedgenum = optimized->edgeremap[abs32(edgenum)];
+  if ( optedgenum )
   {
-    result = optimized->edgeremap[v2];
-    if ( result )
+    if ( edgenum > 0 )
+      return optedgenum;
+    else
+      return -optedgenum;
+  }
+
+  optedge = (_DWORD *)((char *)optimized->edges + 8 * optimized->numedges);
+
+  for ( i = 0; i < 2; i++ )
+  {
+    if ( optimized->vertexremap[((_DWORD *)edge)[i]] )
     {
-      if ( edgenum <= 0 )
-        return -result;
+      optedge[i] = optimized->vertexremap[((_DWORD *)edge)[i]];
     }
     else
     {
-      v6 = optimized->numedges;
-      v7 = (char *)optimized->edges;
-      v13 = 2;
-      v8 = (int)(v7 + 8 * v6);
-      v9 = (_DWORD *)v3;
-      v10 = (v7 + 8 * v6) - v3;
-      do
-      {
-        v11 = optimized->vertexremap[*v9];
-        if ( v11 )
-        {
-          *(_DWORD *)((char *)v9 + v10) = v11;
-        }
-        else
-        {
-          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * *v9);
-          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 1);
-          *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * *v9 + 2);
-          *(_DWORD *)((char *)v9 + v10) = optimized->numvertexes;
-          optimized->vertexremap[*v9] = optimized->numvertexes;
-          v2 = v12;
-          ++optimized->numvertexes;
-        }
-        ++v9;
-        --v13;
-      }
-      while ( v13 );
-      optimized->edgeremap[v2] = optimized->numedges;
-      result = optimized->numedges;
-      optimized->numedges = result + 1;
-      if ( edgenum <= 0 )
-        return -result;
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i]);
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i] + 1);
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i] + 2);
+      optedge[i] = optimized->numvertexes;
+      optimized->vertexremap[((_DWORD *)edge)[i]] = optimized->numvertexes;
+      optimized->numvertexes++;
     }
   }
-  return result;
+  optimized->edgeremap[abs32(edgenum)] = optimized->numedges;
+  optedgenum = optimized->numedges;
+  optimized->numedges++;
+  if ( edgenum > 0 )
+    return optedgenum;
+  else
+    return -optedgenum;
 }
 
 //----- (100109E0) --------------------------------------------------------
