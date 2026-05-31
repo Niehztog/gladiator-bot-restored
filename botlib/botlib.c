@@ -5340,8 +5340,8 @@ int sub_100071E0()
       v11 = v19;
       for ( k = 0; k < 2; *(_WORD *)(v11 + dword_10067558 - 2) = 16 * (LOWORD(v24[k + 3]) - v15) )
       {
-        v13 = (__int64)floor(*(float *)&v23[k] * 0.0625);
-        X = *(float *)&v24[k] * 0.0625;
+        v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
+        X = *(float *)&v24[k] * 0.0625f;
         v24[k + 2] = v13;
         v15 = (__int64)ceil(X);
         v16 = dword_10067558;
