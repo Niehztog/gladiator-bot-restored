@@ -30376,7 +30376,20 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
   BotClearMoveResult(v34);
   if ( BotOnMover(a2, *(_DWORD *)(a2 + 36), a3) )
   {
-    if ( (float)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) >= libvar_sv_maxbarrier->value )
+    if ( (float)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) < libvar_sv_maxbarrier->value )
+    {
+      v4 = *(float *)(a3 + 24) - *(float *)a2;
+      dir[2] = 0.0f;
+      dir[0] = v4;
+      dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
+      VectorNormalize(dir);
+      if ( !BotCheckBarrierJump(a2, (intptr_t)dir, 100.0) )
+        EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
+      v34[6] = *(int *)&dir[0];
+      v34[7] = *(int *)&dir[1];
+      v34[8] = *(int *)&dir[2];
+    }
+    else
     {
       MoverBottomCenter((aas_reachability_t *)a3, telegoal);
       v5 = telegoal[0] - *(float *)a2;
@@ -30394,19 +30407,6 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
         v34[7] = *(int *)&dir[1];
         v34[8] = *(int *)&dir[2];
       }
-    }
-    else
-    {
-      v4 = *(float *)(a3 + 24) - *(float *)a2;
-      dir[2] = 0.0f;
-      dir[0] = v4;
-      dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
-      VectorNormalize(dir);
-      if ( !BotCheckBarrierJump(a2, (intptr_t)dir, 100.0) )
-        EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-      v34[6] = *(int *)&dir[0];
-      v34[7] = *(int *)&dir[1];
-      v34[8] = *(int *)&dir[2];
     }
   }
   else
