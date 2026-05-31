@@ -39992,7 +39992,7 @@ char __cdecl Info_RemoveKey(int a1, char *Str)
   char v6; // al
   char *i; // ecx
   char v9[512]; // [esp+10h] [ebp-400h] BYREF
-  char v10; // [esp+210h] [ebp-200h] BYREF
+  char v10[512]; // [esp+210h] [ebp-200h] BYREF
 
   v2 = strstr(Str, asc_1005F6C0);
   if ( !v2 )
@@ -40009,7 +40009,7 @@ char __cdecl Info_RemoveKey(int a1, char *Str)
 LABEL_7:
       v6 = *(_BYTE *)++a1;
       *v5 = 0;
-      for ( i = &v10; v6 != 92; ++a1 )
+      for ( i = v10; v6 != 92; ++a1 )
       {
         if ( !v6 )
           break;
