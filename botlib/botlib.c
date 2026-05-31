@@ -36584,9 +36584,8 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       --a1->script_p;
       if ( v4 > 255 )
       {
-LABEL_32:
         ScriptWarning(a1, aTooLargeValueI);
-        v4 = -1;
+        v4 = 255;
       }
       break;
     default:
@@ -36601,7 +36600,10 @@ LABEL_32:
       }
       --a1->script_p;
       if ( v4 > 255 )
-        goto LABEL_32;
+      {
+        ScriptWarning(a1, aTooLargeValueI);
+        v4 = 255;
+      }
       break;
   }
   ++a1->script_p;
