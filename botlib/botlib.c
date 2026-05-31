@@ -25036,24 +25036,16 @@ double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, floa
 {
   double result; // st7
 
-  if ( a3 <= (float)a4 )
-  {
-    result = Characteristic_Float(a1, a2);
-    if ( result >= a3 )
-    {
-      if ( result > a4 )
-        return a4;
-    }
-    else
-    {
-      return a3;
-    }
-  }
-  else
+  if ( a3 > (float)a4 )
   {
     bi_Print(3, "cannot bound characteristic %d between %f and %f\n", a2, a3, a4);
     return 0.0;
   }
+  result = Characteristic_Float(a1, a2);
+  if ( result < a3 )
+    return a3;
+  if ( result > a4 )
+    return a4;
   return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
