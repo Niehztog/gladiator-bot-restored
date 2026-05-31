@@ -397,7 +397,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
 float *__cdecl sub_100044F0(float *a1, int a2, float *a3, float *a4, intptr_t a5, int *a6, float *a7, int *a8, int a9, int a10);
 int __cdecl sub_100056D0(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
-int __cdecl AAS_DecompressVis(int a1, int a2);
+void __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
 qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
@@ -4238,7 +4238,7 @@ int __cdecl sub_10005A10(float *origin)
 }
 
 //----- (10005A60) --------------------------------------------------------
-int __cdecl AAS_DecompressVis(int a1, int a2)
+void __cdecl AAS_DecompressVis(int a1, int a2)
 {
   int result; // eax
   char *v3; // esi
@@ -4261,7 +4261,10 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
       {
         v5 = (unsigned __int8)v4[1];
         if ( !v5 )
-          return AAS_Error(aAasDecompressv);
+        {
+          AAS_Error(aAasDecompressv);
+          return;
+        }
         memset(v3, 0, v5);
         v4 += 2;
         v3 += v5;
@@ -4271,7 +4274,6 @@ int __cdecl AAS_DecompressVis(int a1, int a2)
     while ( v3 - (char *)&byte_10067564 < result );
     dword_10069564 = a1;
   }
-  return a1;
 }
 // 10005AE4: variable 'v7' is possibly undefined
 // 100674D0: using guessed type int dword_100674D0;
