@@ -36835,6 +36835,36 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
       BYTE1(v12) |= 1u;
       goto LABEL_40;
     }
+    v13 = v4[1];
+    if ( v13 == 98 || v13 == 66 )
+    {
+      *(_BYTE *)a2 = 48;
+      v14 = (_BYTE *)(((script_t *)a1)->script_p + 1);
+      ((script_t *)a1)->script_p = v14;
+      v3 = 2;
+      *(_BYTE *)(a2 + 1) = *v14;
+      v15 = (char *)(((script_t *)a1)->script_p + 1);
+      ((script_t *)a1)->script_p = v15;
+      while ( 1 )
+      {
+        v16 = *v15;
+        if ( v16 != 48 && v16 != 49 )
+          break;
+        *(_BYTE *)(v3 + a2) = v16;
+        ++v3;
+        v17 = ((script_t *)a1)->script_p + 1;
+        ((script_t *)a1)->script_p = v17;
+        v15 = (char *)v17;
+        if ( v3 >= 1024 )
+        {
+          ScriptError(a1, aBinaryNumberLo, 1024);
+          return 0;
+        }
+      }
+      v12 = *(_DWORD *)(a2 + 1028);
+      BYTE1(v12) |= 4u;
+      goto LABEL_40;
+    }
   }
   v18 = 0;
   v19 = 0;
