@@ -566,6 +566,23 @@ Marks the edict as free
 */
 void G_FreeEdict (edict_t *ed)
 {
+	/* CTF grapple stale-pointer guard.  A mover's blocked() callback can
+	 * reach this via T_Damage -> BecomeExplosion1 -> G_FreeEdict without
+	 * going through CTFResetGrapple, leaving owner->client->ctf_grapple
+	 * pointing at the about-to-be-zeroed edict.  Next frame's
+	 * CTFGrapplePull would then deref a NULL self->owner and crash.
+	 * Unfaithful to the 1999 binary, kept as a defensive fix. */
+#ifdef ZOID
+	if (ctf->value
+	    && ed && ed->classname && strcmp(ed->classname, "grapple") == 0
+	    && ed->owner && ed->owner->client
+	    && ed->owner->client->ctf_grapple == ed)
+	{
+		ed->owner->client->ctf_grapple = NULL;
+		ed->owner->client->ctf_grapplestate = CTF_GRAPPLE_STATE_FLY;
+	}
+#endif //ZOID
+
 	gi.unlinkentity (ed);		// unlink from world
 
 	if ((ed - g_edicts) <= (maxclients->value + BODY_QUEUE_SIZE))
