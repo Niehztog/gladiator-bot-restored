@@ -31434,8 +31434,11 @@ int __cdecl BotResetMoveState(bot_weaponstate_t *ws)
   weightconfig_t *v1; // esi
   int *v2; // ebx
 
-  /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it. */
+#if defined(__x86_64__) || defined(__aarch64__)
+  /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it.
+   * Gated to 64-bit so the Win32 path stays byte-identical to disasm@10035640. */
   if ( !ws ) return 0;
+#endif
   v1 = ws->weightconfig;
   v2 = ws->itemweights;
   memset(ws, 0, sizeof(*ws));
