@@ -384,6 +384,7 @@ void *__cdecl AAS_Trace(void *a1, float *start, float *mins, float *maxs, float 
 // int __usercall sub_100030A0@<eax>(double a1@<st0>);
 bsp_link_t *sub_100031F0(void);
 bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1);
+int __cdecl sub_10003080(vec3_t point);
 int sub_10003280();
 int sub_100032D0();
 int __cdecl sub_10003360(float *a1, int a2);
