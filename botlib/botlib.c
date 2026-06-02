@@ -54,7 +54,7 @@
  *                   AAS_AASLinkEntity, AAS_StartFrame,
  *                   AAS_AreaSwim, AAS_AreaGrounded, AAS_AreaLadder,
  *                   AAS_AllocReachability, AAS_Error
- * EA subsystem    : EA_Say, EA_SayTeam, EA_Use, EA_DropItem, sub_100371B0, EA_Command,
+ * EA subsystem    : EA_Say, EA_SayTeam, EA_UseItem, EA_DropItem, sub_100371B0, EA_Command,
  *                   EA_Move, EA_View, EA_Setup, EA_Shutdown
  * Vector math     : VectorNormalize, VectorMA, VectorLength, VectorScale,
  *                   CrossProduct, VectorNegate, vectoangles
@@ -870,7 +870,7 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2);
 void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
-void __cdecl EA_Use(int client, char *item);
+void __cdecl EA_UseItem(int client, char *item);
 void __cdecl EA_DropItem(int client, char *item);
 void __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
@@ -2046,7 +2046,7 @@ char aCddir[] = "cddir"; // idb
 _UNKNOWN unk_10061280; // weak
 _UNKNOWN unk_10061298; // weak
 char byte_1006294C = '\0'; // idb
-char byte_10062D90[8]; // sub_10043640 (IDA-missed) — COM_FileExtension static buffer
+char byte_10062D90[8]; // COM_FileExtension (IDA-missed) — COM_FileExtension static buffer
 libvar_t *libvar_framereachability; /* cached LibVar handle (was libvar_framereachability) */
 libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabilitydelay) */
 int dword_1006295C = 0; // weak
@@ -20554,31 +20554,31 @@ int __cdecl sub_100214E0(char *p)
 void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
-    EA_Use(bs->client, aSilencer);
+    EA_UseItem(bs->client, aSilencer);
   if ( (sub_10003080(bs->eye) & 0x38) != 0
        && !bs->rebreather_seconds
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
-    EA_Use(bs->client, aRebreather);
+    EA_UseItem(bs->client, aRebreather);
   if ( !bs->power_shield_active_cells && bs->inventory[6] > 0 )   /* +1752 */
-    EA_Use(bs->client, aPowerShield);
+    EA_UseItem(bs->client, aPowerShield);
   if ( !bs->power_screen_active_cells && bs->inventory[5] > 0 )   /* +1748 */
-    EA_Use(bs->client, aPowerScreen);
+    EA_UseItem(bs->client, aPowerScreen);
 }
 // 1002152F: variable 'v1' is possibly undefined
-// 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
+// 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
 
 //----- (100215E0) --------------------------------------------------------
 void __cdecl sub_100215E0(bot_state_t *bs)
 {
   if ( !bs->quad_seconds && bs->inventory[23] > 0 )   /* +1820 quad ammo */
   {
-    EA_Use(bs->client, aQuadDamage);
+    EA_UseItem(bs->client, aQuadDamage);
     return;
   }
   if ( !bs->invuln_seconds && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
-    EA_Use(bs->client, aInvulnerabilit);
+    EA_UseItem(bs->client, aInvulnerabilit);
 }
-// 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
+// 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
 
 //----- (10021650) --------------------------------------------------------
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
@@ -22506,7 +22506,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
       v29 = a2[5];
       LOBYTE(v29) = v29 | 1;
       a2[5] = v29;
-      EA_Use(bs->client, aBlaster);
+      EA_UseItem(bs->client, aBlaster);
       return (int (__cdecl *)(int))EA_Attack(bs->client);
     }
     return result;
@@ -22541,7 +22541,7 @@ ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
       v50[2] = v40 - bs->origin[2];
       vectoangles(v50, a2 + 9);
       a2[5] |= 1u;
-      EA_Use(bs->client, aBlaster);
+      EA_UseItem(bs->client, aBlaster);
       return (int (__cdecl *)(int))EA_Attack(bs->client);
     }
     AAS_PresenceTypeBoundingBox(4, v76, v75);
@@ -22737,7 +22737,7 @@ LABEL_37:
 #undef v40
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
-// 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
+// 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
 // 10001433: using guessed type int __cdecl AINode_Seek_LTG(bot_state_t *bs);
 // 1000149C: using guessed type int __cdecl AINode_Seek_NBG(bot_state_t *bs);
 // 10001627: using guessed type _DWORD __cdecl CrossProduct(_DWORD, _DWORD, _DWORD);
@@ -30634,7 +30634,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
   EA_View(v7, a2 + 52);
   v6 = *(_DWORD *)(a2 + 40);
   v12[5] |= 8u;
-  EA_Use(v6, aRocketLauncher);
+  EA_UseItem(v6, aRocketLauncher);
   v12[6] = *(int *)&dir[0];
   v12[7] = *(int *)&dir[1];
   v12[8] = *(int *)&dir[2];
@@ -30642,7 +30642,7 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
   qmemcpy(a1, v12, 0x30u);
   return result;
 }
-// 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
+// 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
 // 10001429: using guessed type _DWORD __cdecl EA_Jump(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 1000193D: using guessed type _DWORD __cdecl EA_View(_DWORD, _DWORD);
@@ -31414,7 +31414,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
           {
             if ( sub_10043C10(v2->model, ws->modelname) )
             {
-              EA_Use(ws->client, v2->name);
+              EA_UseItem(ws->client, v2->name);
               ws->nextthink = AAS_Time() + v1->weapons[v2->number].activate + 3.0f;
             }
             ws->modelname = v2->model;
@@ -31425,7 +31425,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
     }
   }
 }
-// 10001302: using guessed type _DWORD __cdecl EA_Use(_DWORD, _DWORD);
+// 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
 // 10001B95: using guessed type double __cdecl FuzzyWeight(_DWORD, _DWORD);
 // 10064080: using guessed type int dword_10064080;
 
@@ -31958,7 +31958,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 // not close fp — minor leak in the dead code, preserved).  DEAD in
 // Gladiator — /INCREMENTAL; live in Q3 as WriteWeightConfig.
 // Restored from objdump@100368B0.
-int __cdecl sub_100368B0(const char *filename, weightconfig_t *config)
+int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
 {
   FILE *fp;
   int i;
@@ -32165,7 +32165,7 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
  * Outer driver in the GA pipeline -- evolves a list of fuzzy-logic
  * subtrees (matching Q3's EvolveFuzzyNetwork over BotMutateGoalFuzzyLogic).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_10036DF0(int *arr)
+void __cdecl EvolveWeightConfig(int *arr)
 {
   int i;
   for ( i = 0; i < arr[0]; ++i )
@@ -32308,7 +32308,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
 // on every (a->weights[i].firstseperator, b->weights[i].firstseperator)
 // pair.  This is the public entry to the GA crossover used by the offline
 // bot-tuning pipeline — dead in Gladiator (live in Q3 InterbreedGoalFuzzyLogic).
-void __cdecl sub_10037020(weightconfig_t *a, weightconfig_t *b)
+void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
 {
   int i;
 
@@ -32335,7 +32335,7 @@ void __cdecl EA_SayTeam(int client, char *str)
 }
 
 //----- (100370F0) --------------------------------------------------------
-void __cdecl EA_Use(int client, char *item)
+void __cdecl EA_UseItem(int client, char *item)
 {
   bi_BotClientCommand(client, aUse, item, (char *)NULL);
 }
@@ -32351,7 +32351,7 @@ void __cdecl EA_DropItem(int client, char *item)
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
-// EA_Say/EA_SayTeam/EA_Use/EA_DropItem exactly.
+// EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
 void __cdecl sub_10037150(int client, char *item)
 {
   bi_BotClientCommand(client, aInvuse, item, (char *)NULL);
@@ -32417,14 +32417,14 @@ int __cdecl EA_Attack(int client)
 }
 
 //----- (100372F0) --------------------------------------------------------
-/* EA_Use — set ACTION_USE.  Restored IDA-missed dead-code stub.
+/* EA_UseItem — set ACTION_USE.  Restored IDA-missed dead-code stub.
  * Verified against objdump@100372F0: identical EA-template to EA_Attack
  * above but with `or [eax+0x20], 0x2` setting ACTION_USE (bit 0x02).
  * Sits in the EA family between EA_Attack (100372C0) and EA_Respawn
- * (10037320).  Matches Q3 be_ea.c::EA_Use.  Dead in Gladiator —
+ * (10037320).  Matches Q3 be_ea.c::EA_UseItem.  Dead in Gladiator —
  * Gladiator's mod never queues USE actions through the EA layer (it
  * uses bi_BotClientCommand "use" directly); preserved by /INCREMENTAL. */
-void __cdecl sub_100372F0(int client)
+void __cdecl EA_Use(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_USE;
@@ -32507,7 +32507,7 @@ int __cdecl EA_MoveUp(int client)
  * (10037400) and EA_MoveForward (10037460).  Dead in Gladiator — the
  * mod only ever calls EA_Crouch when it wants this bit set — but the
  * /INCREMENTAL thunk preserved the symbol. */
-void __cdecl sub_10037430(int client)
+void __cdecl EA_MoveDown(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEDOWN;
@@ -32528,7 +32528,7 @@ int __cdecl EA_MoveForward(int client)
 /* EA_MoveBack — set ACTION_MOVEBACK (bit 0x40).  Restored IDA-missed
  * dead-code stub.  Verified against objdump@10037490: same EA template
  * as EA_MoveForward with `or [eax+0x20], 0x40`.  Matches Q3 be_ea.c. */
-void __cdecl sub_10037490(int client)
+void __cdecl EA_MoveBack(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEBACK;
@@ -32538,7 +32538,7 @@ void __cdecl sub_10037490(int client)
 /* EA_MoveLeft — set ACTION_MOVELEFT (bit 0x80).  Restored IDA-missed
  * dead-code stub.  Verified against objdump@100374C0: same EA template
  * using `or cl, 0x80` (low byte of [eax+0x20] dword).  Q3 be_ea.c. */
-void __cdecl sub_100374C0(int client)
+void __cdecl EA_MoveLeft(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVELEFT;
@@ -32549,7 +32549,7 @@ void __cdecl sub_100374C0(int client)
  * dead-code stub.  Verified against objdump@100374F0: same EA template
  * using `or ch, 0x01` (high byte of low word of [eax+0x20] dword =
  * bit 8 = 0x100).  Q3 be_ea.c. */
-void __cdecl sub_100374F0(int client)
+void __cdecl EA_MoveRight(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVERIGHT;
@@ -33204,7 +33204,7 @@ void __cdecl LibVarSet(char *name, char *value)
  * if no such libvar exists.  Direct counterpart of Q3 botlib's
  * LibVarGetModified.  Dead in Gladiator — never reached via thunk
  * 0x10001C71; preserved by /INCREMENTAL. */
-int __cdecl sub_10038B80(const char *name)
+int __cdecl LibVarChanged(const char *name)
 {
   libvar_t *v;
 
@@ -36984,7 +36984,7 @@ LABEL_51:
  * token.subtype.  Matches the live PS_ReadString family in structure.
  * Strings at .rdata 0x10060304 / 0x10060334 inlined below.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1003F020(script_t *script, token_t *token)
+int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 {
   char *p;
 
@@ -37301,7 +37301,7 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
  * script->script_p from script->lastscript_p and return 0.
  * Sibling of PS_CheckTokenType (0x1003FAB0).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1003F9F0(script_t *script, const char *string)
+int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -37335,7 +37335,7 @@ int __cdecl sub_1003F9F0(script_t *script, const char *string)
  * otherwise restore script->script_p from script->lastscript_p and
  * return 0.  Sibling of PS_ExpectTokenType (0x1003F5C0).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t *out)
+int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *out)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -37371,7 +37371,7 @@ int __cdecl sub_1003FAB0(script_t *script, int type, int subtype, token_t *out)
  * for code-size; behaviour is identical to the source idiom.  Sibling
  * of PC_SkipUntilString (0x1003DC80, batch 23).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1003FB50(script_t *script, const char *string)
+int __cdecl PS_SkipUntilString(script_t *script, const char *string)
 {
   token_t token;
   while ( PS_ReadToken(script, (char *)&token) )
@@ -39279,7 +39279,7 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
  * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
  * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
  * the out-of-line copy was emitted by /INCREMENTAL. */
-double __cdecl sub_100433D0(const float *a, const float *b)
+double __cdecl _DotProduct(const float *a, const float *b)
 {
   return a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
 }
@@ -39319,7 +39319,7 @@ void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
  * function by /INCREMENTAL. Dead in Gladiator because every site uses
  * the macro form inlined directly; the thunk preserved one slot for
  * possible incremental relinking. */
-void __cdecl sub_10043480(const vec3_t src, vec3_t dst)
+void __cdecl _VectorCopy(const vec3_t src, vec3_t dst)
 {
   dst[0] = src[0];
   dst[1] = src[1];
@@ -39462,7 +39462,7 @@ void __cdecl sub_10043600(const char *in, char *out)
  * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
  * Gladiator (the engine handles file paths via its own COM_*); the
  * /INCREMENTAL thunk preserved this for incremental relinking. */
-char *__cdecl sub_10043640(const char *path)
+char *__cdecl COM_FileExtension(const char *path)
 {
   const char *p;
   int i;
@@ -39503,7 +39503,7 @@ char *__cdecl sub_10043640(const char *path)
  * basename character when there is no '/' in the path" behavior, which
  * is a known artifact of the Q2 implementation; Q3 fixed this).
  * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
-void __cdecl sub_100436B0(const char *in, char *out)
+void __cdecl COM_FileBase(const char *in, char *out)
 {
   const char *s, *s2;
 
@@ -39557,7 +39557,7 @@ void __cdecl sub_10043740(const char *in, char *out)
  *     or strcat'ing on '/' or reaching the start.
  * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
  * /Oi expansions of the obvious C source; restored as straight C. */
-void __cdecl sub_10043790(char *path, const char *ext)
+void __cdecl COM_DefaultExtension(char *path, const char *ext)
 {
   char *p;
 
@@ -40064,7 +40064,7 @@ LABEL_7:
  * key/value tokeniser).  Dead in Gladiator: no caller reaches the
  * info-validation path; only the /INCREMENTAL relink stub keeps it
  * alive. */
-int __cdecl sub_10043FC0(const char *s)
+int __cdecl Info_Validate(const char *s)
 {
   if ( strstr(s, "\"") )
     return 0;
