@@ -133,10 +133,19 @@
 #include <string.h>   // strlen, strcpy, strncpy, strcat, strncat, strcmp, strncmp, strstr, strchr
 #include <stdlib.h>   // atoi, atof, rand, srand, free, malloc, abs
 #include <ctype.h>    // toupper
-#include <stdbool.h>  // bool, true, false
 #include <time.h>     // time()
 #include <unistd.h>   // access(), chdir(), getcwd()
 
+/* Pull q_shared.h in first so its qboolean/vec3_t/cplane_t/pmtype_t/etc.
+ * become the canonical types (and forward decls for q_shared.c's helpers
+ * are visible everywhere below).  q_shared.h sets Q_SHARED_H, which makes
+ * botlib.h skip its local-stub Q2-type subset — no clash between the two. */
+#include "../game/q_shared.h"
+/* q_shared.h defines `VectorNegate(a,b)` as a 2-arg macro, but the
+ * original Gladiator botlib has a 1-arg in-place `VectorNegate(v)`
+ * function at 0x10043540 — Mr. Elusive's q_shared.h revision must have
+ * lacked the macro.  Drop the macro so our 1-arg function is callable. */
+#undef VectorNegate
 #include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
 #include "gladiator.dll.h"
 #include "ea_state.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
@@ -291,7 +300,6 @@ int AAS_FreeRoutingCaches(void);  /* sub_10019550 (was: AAS_FreeRoutingCaches th
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
 libvar_t *__cdecl LibVar(char *name, char *value);            /* register/lookup libvar */
 float     __cdecl LibVarValue(char *name, char *defvalue);    /* register, return value */
-void Com_DPrintf(const char *fmt, ...);  /* was: Com_DPrintf thunk */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane);  /* Q3 canonical name */
 void sub_1001D290(void);  /* was: sub_1001D290 thunk */
 /* AAS_PointLight: defined as sub_1000D770 at 0x1000D770. takes a vec3 origin and traces 4096
@@ -372,7 +380,6 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 unsigned int BotChatLength(bot_chatstate_t *cs);  // fixed from weak
 int __cdecl AAS_AgainstLadder(int *);
 int AAS_ResetEntityLinks();
-float *__cdecl ProjectPointOnPlane(float *, float *, float *);
 void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
 float __cdecl VectorDistance(vec3_t, vec3_t);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
@@ -1028,32 +1035,12 @@ int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *); // idb
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2);
 HGLOBAL sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
-float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4);
-float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3);
-void __cdecl PerpendicularVector(float *a1, float *a2);
-float *__cdecl sub_100429C0(float *a1, float *a2, float *a3);
-float __cdecl AngleMod(float a1);
-void __cdecl ClearBounds(vec3_t mins, vec3_t maxs);
-void __cdecl AddPointToBounds(vec3_t v, vec3_t mins, vec3_t maxs);
-BOOL __cdecl VectorCompare(float *a1, float *a2);
-double __cdecl VectorNormalize(float *v); /* VectorNormalize impl */
-void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);  /* VectorMA impl */
-float *__cdecl CrossProduct(float *v1, float *v2, float *cross); /* CrossProduct impl */
-double __cdecl VectorLength(float *v); /* VectorLength impl */
-float *__cdecl VectorNegate(float *v); /* VectorNegate impl */
-void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);  /* VectorScale impl */
-float __cdecl LittleFloat(float a1);
-__int16 __cdecl LittleShort(__int16 a1);
-__int16 __cdecl BigShort(__int16 a1);
-int __cdecl BigFloat(int a1);
-int __cdecl BigLong(int a1);
-int __cdecl LittleLong(int a1);
-int Swap_Init();
-int __cdecl sub_10043C10(char *String1, char *String2); // idb
-int __cdecl Q_strncasecmp(char *a1, char *a2, int a3);
-int __cdecl Q_stricmp(char *a1, char *a2);
-char *Com_sprintf(char *Destination, int a2, char *Format, ...);
-char __cdecl Info_RemoveKey(int a1, char *Str);
+/* Vector / COM_ / Q_ / byte-order / Info_ helpers from q_shared.c
+ * (compiled separately to q_shared.o) are prototyped in q_shared.h above.
+ * `bigendien` and the fn-ptr slots `_BigShort` etc. (formerly
+ * dword_100637CC..E0) likewise.  Only botlib.c-local helpers need
+ * explicit decls here. */
+float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this */
 // Removed: MSVC CRT function declarations statically compiled into the DLL.
 // All stdlib functions are provided by the standard headers included above.
 
@@ -2046,7 +2033,6 @@ char aCddir[] = "cddir"; // idb
 _UNKNOWN unk_10061280; // weak
 _UNKNOWN unk_10061298; // weak
 char byte_1006294C = '\0'; // idb
-char byte_10062D90[8]; // COM_FileExtension (IDA-missed) — COM_FileExtension static buffer
 libvar_t *libvar_framereachability; /* cached LibVar handle (was libvar_framereachability) */
 libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabilitydelay) */
 int dword_1006295C = 0; // weak
@@ -2063,13 +2049,9 @@ float flt_100631A0; // weak
 float flt_100631A8; // weak
 extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
 int dword_10063388; // weak
-intptr_t dword_100637CC; // weak — fn-ptr slot (LittleFloat); intptr_t to survive 64-bit
-intptr_t dword_100637D0; // weak — fn-ptr slot (BigFloat dispatch)
-intptr_t dword_100637D4; // weak — fn-ptr slot (LittleLong; dead write on Linux)
-intptr_t dword_100637D8; // weak — fn-ptr slot (LittleShort; dead write on Linux)
-intptr_t dword_100637DC; // weak — fn-ptr slot (BigShort; dead write on Linux)
-intptr_t dword_100637E0; // weak — fn-ptr slot (BigLong; dead write on Linux)
-int dword_10063884; // weak
+/* dword_100637CC..E0 (q_shared.c's _LittleFloat/_BigFloat/_LittleLong/_LittleShort
+ * /_BigShort/_BigLong fn-ptr slots at original 0x100637CC..E0) and `bigendien`
+ * (at original 0x10063884) live in game/q_shared.c — compiled separately to q_shared.o. */
 int dword_100639F0; // weak
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
@@ -2709,8 +2691,8 @@ float *__cdecl sub_10003460(float *a1, float *a2)
  *   yaw_m   = [[ cy, sy,0],[-sy,cy,0],[0,0,1]]   ; rotation around Z
  *   pitch_m = [[ cp, 0,-sp],[0, 1,0],[sp,0,cp]]  ; rotation around Y
  *   roll_m  = [[ 1, 0, 0],[0,cr,sr],[0,-sr,cr]]  ; rotation around X
- *   sub_100429C0(pitch_m, yaw_m, tmp)         ; tmp = pitch*yaw
- *   sub_100429C0(roll_m,  tmp,   axis_out)    ; axis = roll*tmp
+ *   R_ConcatRotations(pitch_m, yaw_m, tmp)         ; tmp = pitch*yaw
+ *   R_ConcatRotations(roll_m,  tmp,   axis_out)    ; axis = roll*tmp
  *
  * Precision: original uses an 80-bit FPU pipe with a 64-bit double
  * DEG2RAD constant at .rdata 0x10058008 (= π/180), truncating only at
@@ -2748,11 +2730,11 @@ void __cdecl AnglesToAxis(float *angles, float *axis_out)
   roll_m[6] = 0; roll_m[7] = -sr; roll_m[8] = cr;
 
   /* tmp = pitch_m * yaw_m, then output = roll_m * tmp */
-  sub_100429C0(pitch_m, yaw_m, tmp);
-  sub_100429C0(roll_m, tmp, axis_out);
+  R_ConcatRotations(pitch_m, yaw_m, tmp);
+  R_ConcatRotations(roll_m, tmp, axis_out);
   return;
 }
-// 10001A8C: using guessed type _DWORD __cdecl sub_100429C0(_DWORD, _DWORD, _DWORD);
+// 10001A8C: using guessed type _DWORD __cdecl R_ConcatRotations(_DWORD, _DWORD, _DWORD);
 
 //----- (10003680) --------------------------------------------------------
 qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace)
@@ -3239,7 +3221,7 @@ LABEL_43:
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
 {
   int v9; // ebp
-  bool v10; // zf
+  qboolean v10; // zf
   /* v11: BSP-leaf base pointer (`dword_100674EC + 28 * a1`).  Int→char* widening. */
   char *v11;
   /* v12: output-struct base pointer (caller passes `(intptr_t)v150` stack
@@ -3387,7 +3369,7 @@ float *__cdecl sub_100044F0(
   BOOL v49; // eax
   int *v50; // ecx
   BOOL v51; // eax
-  bool v52; // cc
+  qboolean v52; // cc
   int v53; // ecx
   int v54; // eax
   float v55; // eax
@@ -5082,7 +5064,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v20; // ecx
   int v21; // eax
   int v22; // ecx
-  bool v23; // cc
+  qboolean v23; // cc
   int v24; // esi
   int v25; // edx
   float v26; // ecx
@@ -5281,7 +5263,7 @@ int sub_100071E0()
   double X; // st7
   __int64 v15; // rax
   char *v16; // ecx
-  bool v17; // cc
+  qboolean v17; // cc
   int i; // [esp+1Ch] [ebp-34h]
   int v19; // [esp+20h] [ebp-30h]
   int v20; // [esp+24h] [ebp-2Ch]
@@ -8267,8 +8249,8 @@ int InFieldOfVision(float *a1, float a2, float *a3)
 
   for ( v5 = 0; v5 < 2; v5++ )
   {
-    v8 = AngleMod(a1[v5]);
-    v9 = AngleMod(a3[v5]);
+    v8 = anglemod(a1[v5]);
+    v9 = anglemod(a3[v5]);
     a3[v5] = v9;
     delta = v9 - v8;
     if ( v9 > (float)v8 )
@@ -14927,7 +14909,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int v23; // ecx
   int *v24; // esi
   int v25; // eax
-  bool v26; // cc
+  qboolean v26; // cc
   char *v27; // eax
   BOOL v28; // ecx
   float *v29; // esi
@@ -18287,7 +18269,7 @@ int *sub_1001D140()
         if ( aasworld.numsoundinfo > 0 )
         {
           v3 = 0;
-          while ( sub_10043C10((char *)((char *)(char *)aasworld.soundinfo + v3), aasworld.soundindex_table->indexes[v0]) )
+          while ( Q_stricmp((char *)((char *)(char *)aasworld.soundinfo + v3), aasworld.soundindex_table->indexes[v0]) )
           {
             ++v2;
             v3 += 176;
@@ -18481,7 +18463,7 @@ static int sub_1001D420(bot_state_t *bs)
   /* 6. Convert the stored velocity to angles, bias yaw by bs+0x1134, and
    *    wrap with AngleMod.  Pitch comes back through st0 → angles[2] slot. */
   vectoangles((float *)((char *)bs + 0x1138), angles);
-  angles[2] = AngleMod(angles[2] + *(float *)((char *)bs + 0x1134));
+  angles[2] = anglemod(angles[2] + *(float *)((char *)bs + 0x1134));
   angles[1] = 0.0f;
   /* 7. AngleVectors gives the forward unit vec; scale to 400 u/s.  Pitch
    *    is overwritten with 1.0 (ds:0x100580C4) to keep the prediction in
@@ -21928,7 +21910,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         * v28
         + bs->ideal_viewangles[0];
     bs->ideal_viewangles[0] = v25;
-    v25 = AngleMod(v25);
+    v25 = anglemod(v25);
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
     v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5))
@@ -21937,7 +21919,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         * v28
         + bs->ideal_viewangles[1];
     bs->ideal_viewangles[1] = v26;
-    v26 = AngleMod(v26);
+    v26 = anglemod(v26);
     bs->ideal_viewangles[1] = v26;
     BotChangeViewAngles(bs, bs->thinktime);
     if ( v35 > 0.8f )
@@ -22225,10 +22207,12 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
   }
   else
   {
-    return (int)(intptr_t)AngleVectors(angles, dir, NULL, NULL);
+    /* AngleVectors is void; IDA misread eax-on-return as its return value.
+     * Original asm leaves `dir` in eax after the call, hence the cast. */
+    AngleVectors(angles, dir, NULL, NULL);
+    return (int)(intptr_t)dir;
   }
 }
-// 10001B9F: using guessed type _DWORD __cdecl AngleVectors(_DWORD, _DWORD, _DWORD, _DWORD);
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
 // 1005C578: using guessed type float flt_1005C578;
 // 1005C57C: using guessed type int dword_1005C57C;
@@ -24077,8 +24061,8 @@ double BotChangeViewAngle(float a1, float a2, float a3)
   float v8; // [esp+8h] [ebp+4h]
   float v9; // [esp+Ch] [ebp+8h]
 
-  v8 = AngleMod(a1);
-  v9 = AngleMod(a2);
+  v8 = anglemod(a1);
+  v9 = anglemod(a2);
   if ( v8 == v9 )
     return v8;
   move = v9 - v8;
@@ -24102,7 +24086,7 @@ double BotChangeViewAngle(float a1, float a2, float a3)
     if ( move < -a3 )
       move = -a3;
   }
-  return AngleMod(move + v8);
+  return anglemod(move + v8);
 }
 
 //----- (10029150) --------------------------------------------------------
@@ -24429,7 +24413,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   v5 = 3;
   do
   {
-    v6 = AngleMod(*(v4 - 1044) + *v4);
+    v6 = anglemod(*(v4 - 1044) + *v4);
     *v4++ = v6;
     --v5;
   }
@@ -25415,9 +25399,9 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   int pass;                       /* IDA v4 */
   source_t *src;                  /* IDA v5 / v16 */
   source_t *v16;
-  bool tooMany;                   /* IDA v7 */
+  qboolean tooMany;                   /* IDA v7 */
   int *ctxStackTop;               /* IDA v8 = ctxStack[level-1] addr */
-  bool ctxNegative;               /* IDA v9 */
+  qboolean ctxNegative;               /* IDA v9 */
   bot_synonym_t *lastsynonym;     /* IDA v10 */
   bot_synonymlist_t *syn;         /* IDA v11/v25 */
   bot_synonym_t *synonym;         /* IDA v12/v23 */
@@ -30721,7 +30705,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 //----- (10034210) --------------------------------------------------------
 intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
 {
-  bool v4; // zf
+  qboolean v4; // zf
   double v5; // st7
   double v6; // st7
   double v7; // st7
@@ -31106,7 +31090,7 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
   source_t *v5;
   weaponconfig_t *cfg;
   int v9; // ecx
-  bool v10; // zf
+  qboolean v10; // zf
   char Destination[144]; // [esp+1Ch] [ebp-558h] BYREF
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char v22[sizeof(token_t)] __attribute__((aligned(8))); // [esp+144h] [ebp-430h] BYREF
@@ -31327,7 +31311,7 @@ int __cdecl sub_100353C0(const char *modelname)
   for ( i = 0; i < cfg->numweapons; i++ )
   {
     w = &cfg->weapons[i];
-    if ( !sub_10043C10(w->model, (char *)modelname) )
+    if ( !Q_stricmp(w->model, (char *)modelname) )
       return w->number;
   }
   return -1;
@@ -31353,7 +31337,7 @@ const char *__cdecl sub_10035430(const char *modelname)
   for ( i = 0; i < cfg->numweapons; i++ )
   {
     w = &cfg->weapons[i];
-    if ( !sub_10043C10(w->model, (char *)modelname) )
+    if ( !Q_stricmp(w->model, (char *)modelname) )
       return w->name;
   }
   return default_name;
@@ -31412,7 +31396,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
           while ( v4 < v1->numweapons );
           if ( v2 )
           {
-            if ( sub_10043C10(v2->model, ws->modelname) )
+            if ( Q_stricmp(v2->model, ws->modelname) )
             {
               EA_UseItem(ws->client, v2->name);
               ws->nextthink = AAS_Time() + v1->weapons[v2->number].activate + 3.0f;
@@ -32617,7 +32601,7 @@ void __cdecl EA_View(int client, vec3_t angles)
 int __cdecl EA_EndRegular(int client, float thinktime)
 {
   ea_state_t *ea = &ea_controls[client];
-  bool jumped_this_frame;
+  qboolean jumped_this_frame;
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
   dword_10063FE0(client, ea);
@@ -38072,7 +38056,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
   _DWORD *v6; // ebx
   int v7; // ebp
   float *v8; // esi
-  bool v9; // cc
+  qboolean v9; // cc
   int Streama; // [esp+14h] [ebp+4h]
   FILE *Streamb; // [esp+14h] [ebp+4h]
   int v12; // [esp+20h] [ebp+10h]
@@ -38734,94 +38718,8 @@ void __stdcall sub_100423F0(char *p)
   p[0] = 0;
 }
 
-//----- (10042430) --------------------------------------------------------
-/* sub_10042430 — RotatePointAroundVector.  Restored from
- * objdump@0x10042430 (142 lines).  Rotates `point` around the axis
- * `dir` by `degrees` and stores the result in `dst`.  Identical to
- * Q3's RotatePointAroundVector in q_math.c — same orthonormal-basis
- * change, same Z-rot trick:
- *
- *   vf  = dir
- *   vr  = PerpendicularVector(dir)
- *   vup = CrossProduct(vr, vf)
- *   m[*][0] = vr, m[*][1] = vup, m[*][2] = vf       (columns)
- *   im      = m^T                                   (inverse since
- *                                                    m is orthogonal)
- *   zrot    = standard 2D rotation around Z:
- *               [  cos(rad)  sin(rad)  0 ]
- *               [ -sin(rad)  cos(rad)  0 ]
- *               [    0          0      1 ]
- *   rot     = m * zrot * im
- *   dst[i]  = rot[i][0]*point[0] + rot[i][1]*point[1] + rot[i][2]*point[2]
- *
- * Thunks resolved:
- *   0x100014BA → 0x10042920 = PerpendicularVector
- *   0x10001627 → 0x100434B0 = CrossProduct
- *   0x10001A8C → 0x100429C0 = sub_100429C0 (3x3 MatrixMultiplier;
- *                              row-major, stride 12 floats)
- *   0x10045B50 = sinf
- *   0x10045C00 = cosf
- *
- * Constants:
- *   QWORD ds:0x10058418 = 3.141592653589793  (pi)
- *   QWORD ds:0x100580B8 = 180.0
- *   DWORD ds:0x3F800000 = 1.0f
- *
- * Locals layout (verified field-by-field from the .text writes):
- *   [ebp-0x0C] vec3 vr      [ebp-0x18] vec3 vf      [ebp-0x24] vec3 vup
- *   [ebp-0xB8] float m[3][3]    (column-stored basis)
- *   [ebp-0x48] float im[3][3]   (memcpy from m, then transposed in place)
- *   [ebp-0x70] float zrot[3][3] (rep-stos zeroed, identity init, then
- *                                trig fills [0][0], [0][1], [1][0], [1][1])
- *   [ebp-0x94] float tmpmat[3][3]
- *   [ebp-0xDC] float rot[3][3]
- *
- * DEAD in Gladiator — no live caller.  Live in Q3 as
- * RotatePointAroundVector; preserved here by /INCREMENTAL. */
-void __cdecl sub_10042430(float dst[3], const float dir[3],
-                                  const float point[3], float degrees)
-{
-  float m[3][3], im[3][3], zrot[3][3], tmpmat[3][3], rot[3][3];
-  float vr[3], vf[3], vup[3];
-  float rad;
-  int   i;
-
-  vf[0] = dir[0];
-  vf[1] = dir[1];
-  vf[2] = dir[2];
-
-  PerpendicularVector(vr, (float *)dir);
-  CrossProduct(vr, vf, vup);
-
-  /* m stores the basis as columns: m[row][col] = (col==0?vr : col==1?vup : vf)[row] */
-  m[0][0] = vr[0];  m[0][1] = vup[0]; m[0][2] = vf[0];
-  m[1][0] = vr[1];  m[1][1] = vup[1]; m[1][2] = vf[1];
-  m[2][0] = vr[2];  m[2][1] = vup[2]; m[2][2] = vf[2];
-
-  /* im = m, then transpose in place (m is orthonormal so im = m^-1) */
-  memcpy(im, m, sizeof(im));
-  im[0][1] = m[1][0]; im[0][2] = m[2][0];
-  im[1][0] = m[0][1]; im[1][2] = m[2][1];
-  im[2][0] = m[0][2]; im[2][1] = m[1][2];
-
-  memset(zrot, 0, sizeof(zrot));
-  zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0f;
-
-  rad = degrees * 3.141592653589793 / 180.0;
-  zrot[0][0] =  cos(rad);
-  zrot[0][1] =  sin(rad);
-  zrot[1][0] = -sin(rad);
-  zrot[1][1] =  cos(rad);
-
-  sub_100429C0((float *)m,      (float *)zrot, (float *)tmpmat);
-  sub_100429C0((float *)tmpmat, (float *)im,   (float *)rot);
-
-  for (i = 0; i < 3; i++)
-    dst[i] = rot[i][0]*point[0] + rot[i][1]*point[1] + rot[i][2]*point[2];
-}
-
 //----- (100426B0) --------------------------------------------------------
-/* AngleVectors — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* AngleVectors — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 // 10062984: using guessed type float flt_10062984;
 // 10062988: using guessed type float flt_10062988;
 // 1006298C: using guessed type float flt_1006298C;
@@ -38829,324 +38727,37 @@ void __cdecl sub_10042430(float dst[3], const float dir[3],
 // 100631A0: using guessed type float flt_100631A0;
 // 100631A8: using guessed type float flt_100631A8;
 
-//----- (10042410) --------------------------------------------------------
-/* Com_DPrintf — empty function (just `ret`).  Faithful transcription:
- *   ret
- * (IDA couldn't follow MSVC thunk at 0x100019AB).
- * Called from Com_sprintf's overflow path with a printf-style
- * argument list.  In Q3 botlib this is Com_DPrintf — a debug print that
- * is empty in release builds.  Body is empty here too. */
-void Com_DPrintf(const char *fmt, ...) { (void)fmt; /* empty body */ }
-
 //----- (10042860) --------------------------------------------------------
-/* ProjectPointOnPlane — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* ProjectPointOnPlane — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10042920) --------------------------------------------------------
-/* PerpendicularVector — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* PerpendicularVector — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
-
-//----- (100429C0) --------------------------------------------------------
-float *__cdecl sub_100429C0(float *a1, float *a2, float *a3)
-{
-  float *result; // eax
-
-  result = a1;
-  *a3 = *a1 * *a2 + a1[1] * a2[3] + a1[2] * a2[6];
-  a3[1] = a1[1] * a2[4] + a1[2] * a2[7] + *a1 * a2[1];
-  a3[2] = a1[1] * a2[5] + a1[2] * a2[8] + *a1 * a2[2];
-  a3[3] = a1[4] * a2[3] + a1[3] * *a2 + a1[5] * a2[6];
-  a3[4] = a1[5] * a2[7] + a1[4] * a2[4] + a1[3] * a2[1];
-  a3[5] = a1[5] * a2[8] + a1[4] * a2[5] + a1[3] * a2[2];
-  a3[6] = a1[6] * *a2 + a1[8] * a2[6] + a1[7] * a2[3];
-  a3[7] = a1[8] * a2[7] + a1[7] * a2[4] + a1[6] * a2[1];
-  a3[8] = a1[8] * a2[8] + a1[7] * a2[5] + a1[6] * a2[2];
-  return result;
-}
-
-//----- (10042AF0) --------------------------------------------------------
-// 3x4 affine matrix multiply: out = a * b.  Each matrix is laid out as
-// three rows of four floats (row-major, row stride 0x10); the implicit
-// fourth row is (0,0,0,1) so the translation column (c=3) gets the
-// row-3 column of A added on each output row.  Restored verbatim from
-// objdump@10042AF0; DEAD in Gladiator (preserved by /INCREMENTAL) —
-// live in Q3 as MatrixMultiply.  fld/fmul interleaving below matches
-// the binary order so the fuse-add operand reorderings (e.g. row 1
-// loads A[r][1]*B[1][c] before A[r][0]*B[0][c]) survive the rebuild.
-void __cdecl sub_10042AF0(const float a[3][4], const float b[3][4], float out[3][4])
-{
-  out[0][0] = a[0][0]*b[0][0] + a[0][1]*b[1][0] + a[0][2]*b[2][0];
-  out[0][1] = a[0][1]*b[1][1] + a[0][0]*b[0][1] + a[0][2]*b[2][1];
-  out[0][2] = a[0][1]*b[1][2] + a[0][0]*b[0][2] + a[0][2]*b[2][2];
-  out[0][3] = a[0][1]*b[1][3] + a[0][0]*b[0][3] + a[0][2]*b[2][3] + a[0][3];
-  out[1][0] = a[1][2]*b[2][0] + a[1][1]*b[1][0] + a[1][0]*b[0][0];
-  out[1][1] = a[1][2]*b[2][1] + a[1][1]*b[1][1] + a[1][0]*b[0][1];
-  out[1][2] = a[1][2]*b[2][2] + a[1][1]*b[1][2] + a[1][0]*b[0][2];
-  out[1][3] = b[2][3]*a[1][2] + a[1][1]*b[1][3] + a[1][0]*b[0][3] + a[1][3];
-  out[2][0] = a[2][2]*b[2][0] + a[2][1]*b[1][0] + b[0][0]*a[2][0];
-  out[2][1] = a[2][2]*b[2][1] + a[2][1]*b[1][1] + b[0][1]*a[2][0];
-  out[2][2] = a[2][2]*b[2][2] + a[2][1]*b[1][2] + b[0][2]*a[2][0];
-  out[2][3] = a[2][2]*b[2][3] + a[2][1]*b[1][3] + b[0][3]*a[2][0] + a[2][3];
-}
-
-//----- (10042C80) --------------------------------------------------------
-/* Q_fabs — restored IDA-missed dead-code stub.  Verified against
- * objdump@10042C80: masks the sign bit (and 0x7FFFFFFF) of the float
- * argument viewed as int, then reloads as float.  Q3 q_math.c::Q_fabs
- * verbatim.  Dead in Gladiator — code uses libm fabs(); preserved by
- * /INCREMENTAL. */
-float __cdecl sub_10042C80(float f)
-{
-  int tmp = *(int *)&f;
-  tmp &= 0x7FFFFFFF;
-  return *(float *)&tmp;
-}
-
-//----- (10042CB0) --------------------------------------------------------
-/* Q_ftol — restored IDA-missed dead-code stub.  Verified against
- * objdump@10042CB0: `fld DWORD [esp+4]; fistp DWORD ds:0x100631A4;
- * mov eax, ds:0x100631A4; ret`.  Converts float to int via FPU using
- * a static spill slot at 0x100631A4 (shared with AngleVectors result
- * area).  Q3-style ftol helper.  Dead in Gladiator. */
-#ifdef _MSC_VER
-__declspec(naked) int __cdecl sub_10042CB0(float f)
-{
-  static int tmp;  /* mirrors the static spill slot at ds:0x100631A4 */
-  __asm {
-    fld   DWORD PTR [esp+4]
-    fistp tmp
-    mov   eax, tmp
-    ret
-  }
-}
-#else
-int __cdecl sub_10042CB0(float f)
-{
-  static int tmp;
-  tmp = (int)f;
-  return tmp;
-}
-#endif
-
-//----- (10042CD0) --------------------------------------------------------
-/* LerpAngle — restored IDA-missed dead-code stub.  Verified against
- * objdump@10042CD0: normalises (to-from) into (-180, +180] via
- *   ds:0x100582d4 = 180.0,  ds:0x100582e4 = 360.0,
- *   ds:0x10058424 = -180.0,
- * then returns `from + frac * (to_norm - from)`.  Identical to Q3
- * q_math.c::LerpAngle.  Dead in Gladiator — live bot AI normalises
- * angles inline (BotChangeViewAngle); preserved by /INCREMENTAL. */
-float __cdecl sub_10042CD0(float from, float to, float frac)
-{
-  if (to - from > 180.0f)
-    to -= 360.0f;
-  if (to - from < -180.0f)
-    to += 360.0f;
-  return from + (to - from) * frac;
-}
-
-//----- (10042D40) --------------------------------------------------------
-float __cdecl AngleMod(float a1)
-{
-  return (float)(unsigned __int16)(__int64)(a1 * 182.0444444444445) * 0.0054931640625;
-}
-
-//----- (10042D80) --------------------------------------------------------
-/* BoxOnPlaneSide — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Canonical Quake-engine routine for testing an AABB
- * against a plane.  Verified against objdump@10042D80:
- *   - Builds the two extremal corners on stack ([esp+0x10..+0x1c] and
- *     [esp+0x1c..+0x28]):
- *         for each i in 0..2: if (normal[i] < 0) {
- *             corners_min[i] = emaxs[i];  // minimises normal·corner
- *             corners_max[i] = emins[i];
- *         } else {
- *             corners_min[i] = emins[i];
- *             corners_max[i] = emaxs[i];
- *         }
- *     The loop uses ebp = plane - emins as a relative offset trick so
- *     normal[i] can be reached as *(float*)(ecx + ebp) while ecx tracks
- *     emins; same trick for edi/edx pointing at the two corner buffers.
- *   - dist_max = DotProduct(normal, corners_max) - plane->dist
- *   - dist_min = DotProduct(normal, corners_min) - plane->dist
- *     (FPU stack: dist_min on top after compute, dist_max below.)
- *   - sides = 0;  if (dist_min >= 0) sides = 1;  if (dist_max < 0) sides |= 2;
- *
- * The 0.0f literal compared against is at .rdata 0x10058000 (already
- * known).  Plane layout used: normal[0..2] @ +0, dist @ +0xc — matches
- * aas_plane_t / cplane_t.  Dead in Gladiator: no caller; the actual
- * runtime BoxOnPlaneSide is the export AAS_BoxOnPlaneSide2 elsewhere.
- * Only the /INCREMENTAL relink stub keeps this copy live. */
-int __cdecl sub_10042D80(vec3_t emins, vec3_t emaxs, float *plane)
-{
-  float corners[2][3];
-  float dist_min, dist_max;
-  int sides, i;
-
-  for ( i = 0; i < 3; ++i )
-  {
-    if ( plane[i] < 0.0f )
-    {
-      corners[1][i] = emins[i];
-      corners[0][i] = emaxs[i];
-    }
-    else
-    {
-      corners[0][i] = emins[i];
-      corners[1][i] = emaxs[i];
-    }
-  }
-  dist_max = (corners[1][0] * plane[0] + corners[1][1] * plane[1] + corners[1][2] * plane[2]) - plane[3];
-  dist_min = (corners[0][0] * plane[0] + corners[0][1] * plane[1] + corners[0][2] * plane[2]) - plane[3];
-  sides = 0;
-  if ( dist_min >= 0.0f )
-    sides = 1;
-  if ( dist_max < 0.0f )
-    sides |= 2;
-  return sides;
-}
-
-//----- (10042E90) --------------------------------------------------------
-/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
- * from objdump@10042E90 (size 0x27D / 217 lines).  Identity: the canonical
- * id Tech FAST BoxOnPlaneSide — the optimized signbits-dispatched variant
- * from q_shared.c (Q2/Q3) using a lazy-initialized 8-entry function-pointer
- * table at ds:0x100631AC..C8 indexed by plane->signbits (the byte at
- * +0x11) to pick the correct {emins, emaxs} extremal combination for the
- * d1=DotProduct(n, far) / d2=DotProduct(n, near) computation.  The init
- * guard at ds:0x10062980 mirrors the static `inited` local of the macro
- * BOX_ON_PLANE_SIDE_EPSILON_EXPANSION expansion.
- *
- * In a pure-C restoration the function-pointer table is meaningless (the
- * compiler picks its own dispatch), so the 8 cases are inlined as a
- * switch.  Mapping: signbits bit k set ⇔ normal[k] < 0 ⇒ the far corner
- * uses emins[k] (because n[k]<0 makes emins[k]*n[k] the larger product)
- * and the near corner uses emaxs[k] — swap per axis.
- *
- *   plane layout (cplane_t, NOT the 20-byte aas_plane_t):
- *     +0x00..0x0B  normal[3]
- *     +0x0C        dist
- *     +0x10        type
- *     +0x11        signbits (precomputed by SetPlaneSignbits)
- *
- *   args: (vec3_t emins, vec3_t emaxs, cplane_t *plane) — ecx=emins,
- *   ebx=emaxs, edx=plane (verified via [esp+0x8/0xC/0x10] after push ebx).
- *
- *   return: 1 = box wholly on front, 2 = wholly on back, 3 = straddles.
- *           Original computes the two-bit result via fnstsw/and/xor/add
- *           gymnastics in the tail at 0x100430EA-0x10043107.
- *
- * DEAD in shipped Gladiator (no .text caller; AAS routes go through the
- * slower 10042D80 / AAS_BoxOnPlaneSide2 paths).  Kept by /INCREMENTAL
- * relink of the q_shared.obj from Q2's source — Mr. Elusive pulled in
- * the engine helper but never wired it up.  Original case 7 falls through
- * to the int3 trap at 0x1004310D for signbits>=8, preserved as 0-return. */
-int __cdecl sub_10042E90(vec3_t emins, vec3_t emaxs, float *plane)
-{
-  static int boxonplaneside_inited;     /* mirrors ds:0x10062980 */
-  float dist1, dist2;
-  int   sides;
-  unsigned char signbits;
-  const float *n = plane;
-  float pdist = plane[3];               /* +0x0C */
-
-  /* Lazy-init guard preserved verbatim from .text 10042E91-10042EF1.  The
-   * eight stores populated ds:0x100631AC[0..7] with case-handler addresses
-   * (10042F1D, 10042F58, …, 100430B4) — no-op in the C translation but the
-   * init flag toggle is kept so the static-trip semantics match. */
-  if ( !boxonplaneside_inited )
-    boxonplaneside_inited = 1;
-
-  signbits = ((unsigned char *)plane)[0x11];
-  if ( signbits >= 8 )
-    return 0;                           /* int3 trap in original */
-
-  switch ( signbits )
-  {
-  case 0:
-    dist1 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
-    dist2 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emins[2];
-    break;
-  case 1:
-    dist1 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
-    dist2 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emins[2];
-    break;
-  case 2:
-    dist1 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emaxs[2];
-    dist2 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emins[2];
-    break;
-  case 3:
-    dist1 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emaxs[2];
-    dist2 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emins[2];
-    break;
-  case 4:
-    dist1 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emins[2];
-    dist2 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emaxs[2];
-    break;
-  case 5:
-    dist1 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emins[2];
-    dist2 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emaxs[2];
-    break;
-  case 6:
-    dist1 = n[0]*emaxs[0] + n[1]*emins[1] + n[2]*emins[2];
-    dist2 = n[0]*emins[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
-    break;
-  default: /* 7 */
-    dist1 = n[0]*emins[0] + n[1]*emins[1] + n[2]*emins[2];
-    dist2 = n[0]*emaxs[0] + n[1]*emaxs[1] + n[2]*emaxs[2];
-    break;
-  }
-
-  sides = 0;
-  if ( dist1 >= pdist ) sides  = 1;
-  if ( dist2 <  pdist ) sides |= 2;
-  return sides;
-}
 
 //----- (100431B0) --------------------------------------------------------
 /* Q2 q_shared.c::ClearBounds — initialise mins to +99999, maxs to -99999.
  * IDA decompiled the writes as `_DWORD *` stores of the 32-bit float bit
  * patterns (0x47C35000 = 99999.0f, 0xC7C35000 = -99999.0f); restored to
  * the original `vec3_t` form. */
-/* ClearBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* ClearBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100431F0) --------------------------------------------------------
 /* Q2 q_shared.c::AddPointToBounds — extend the bbox to include point v.
  * IDA decompiled this with pointer-arithmetic offsets (v4 = a1 - a2)
  * because it didn't recognise the three vec3_t parameters; restored to
  * the original loop. */
-/* AddPointToBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* AddPointToBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043240) --------------------------------------------------------
-/* VectorCompare — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* VectorCompare — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043290) --------------------------------------------------------
-/* VectorNormalize — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
-
-//----- (10043300) --------------------------------------------------------
-/* VectorNormalize2 — normalize v into out, return original length.
- * Restored IDA-missed dead-code stub.  Verified against objdump@10043300:
- * computes len = sqrt(v[0]^2 + v[1]^2 + v[2]^2); if non-zero stores
- * v[i]/len into out[i]; returns len on FPU.  Matches Q3 q_math.c
- * VectorNormalize2 verbatim.  Dead in Gladiator — code only uses the
- * in-place VectorNormalize at 10043290; preserved by /INCREMENTAL. */
-double __cdecl sub_10043300(float *v, float *out)
-{
-  float length;
-
-  length = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-  if ( length != 0.0f )
-  {
-    out[0] = (float)(1.0f / length * v[0]);
-    out[1] = (float)(1.0f / length * v[1]);
-    out[2] = (float)(1.0f / length * v[2]);
-  }
-  return length;
-}
+/* VectorNormalize — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043380) --------------------------------------------------------
 /* Q2 q_shared.c::VectorMA — vecc = veca + scale * vecb.
  * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
-/* VectorMA — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* VectorMA — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100433D0) --------------------------------------------------------
 /* DotProduct — restored IDA-missed dead-code stub.  Verified against
@@ -39154,31 +38765,7 @@ double __cdecl sub_10043300(float *v, float *out)
  * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
  * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
  * the out-of-line copy was emitted by /INCREMENTAL. */
-/* _DotProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
-
-//----- (10043400) --------------------------------------------------------
-/* VectorSubtract — restored IDA-missed dead-code stub.  Verified against
- * objdump@10043400: three FPU `fld; fsub; fstp` triples writing
- *     out[i] = veca[i] - vecb[i]
- * for i in 0..2.  Q3 q_shared.h emitted as a function by /INCREMENTAL.
- * Dead in Gladiator — every site uses the macro form inlined. */
-void __cdecl sub_10043400(const vec3_t veca, const vec3_t vecb, vec3_t out)
-{
-  out[0] = veca[0] - vecb[0];
-  out[1] = veca[1] - vecb[1];
-  out[2] = veca[2] - vecb[2];
-}
-
-//----- (10043440) --------------------------------------------------------
-/* VectorAdd — restored IDA-missed dead-code stub.  Verified against
- * objdump@10043440: identical structure to sub_10043400 above but using
- * `fadd` instead of `fsub`.  Q3 q_shared.h emitted by /INCREMENTAL. */
-void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
-{
-  out[0] = veca[0] + vecb[0];
-  out[1] = veca[1] + vecb[1];
-  out[2] = veca[2] + vecb[2];
-}
+/* _DotProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043480) --------------------------------------------------------
 /* VectorCopy — restored IDA-missed dead-code stub.  Verified against
@@ -39191,13 +38778,13 @@ void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
  * function by /INCREMENTAL. Dead in Gladiator because every site uses
  * the macro form inlined directly; the thunk preserved one slot for
  * possible incremental relinking. */
-/* _VectorCopy — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* _VectorCopy — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100434B0) --------------------------------------------------------
-/* CrossProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* CrossProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043500) --------------------------------------------------------
-/* VectorLength — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* VectorLength — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043540) --------------------------------------------------------
 float *__cdecl VectorNegate(float *v)
@@ -39214,77 +38801,7 @@ float *__cdecl VectorNegate(float *v)
 //----- (10043570) --------------------------------------------------------
 /* Q2 q_shared.c::VectorScale — out = scale * v.
  * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
-/* VectorScale — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
-
-//----- (100435B0) --------------------------------------------------------
-/* Q_log2 / floor-log2 — restored IDA-missed dead-code stub.  Verified
- * against objdump@100435B0:
- *     int v = arg;
- *     int n = 0;
- *     v >>= 1;       // arithmetic right shift
- *     if (v == 0) return 0;
- *     do { n++; v >>= 1; } while (v != 0);
- *     return n;
- * which is the standard floor(log2(x)) for positive x.  Matches Q3
- * common.c::Q_log2.  Dead in Gladiator. */
-int __cdecl sub_100435B0(int x)
-{
-  int n;
-
-  n = 0;
-  x >>= 1;
-  if ( x == 0 )
-    return 0;
-  do
-  {
-    ++n;
-    x >>= 1;
-  }
-  while ( x );
-  return n;
-}
-
-//----- (100435D0) --------------------------------------------------------
-/* COM_SkipPath — restored IDA-missed dead-code stub.  Verified against
- * objdump@100435D0: walks string forward, tracking pointer to character
- * AFTER the last '/'.  Returns the input pointer if no '/' is present.
- * Matches Q3 q_shared.c::COM_SkipPath exactly. */
-char *__cdecl sub_100435D0(char *pathname)
-{
-  char *last;
-  char *p;
-
-  last = pathname;
-  p = pathname;
-  while ( *p )
-  {
-    if ( *p == '/' )
-      last = p + 1;
-    ++p;
-  }
-  return last;
-}
-
-//----- (10043600) --------------------------------------------------------
-/* COM_StripExtension — restored IDA-missed dead-code stub.  Verified
- * against objdump@10043600: copies `in` to `out` byte-by-byte until
- * either '\0' or '.' is hit, then null-terminates `out`.  Matches Q3
- * q_shared.c::COM_StripExtension. */
-void __cdecl sub_10043600(const char *in, char *out)
-{
-  char c;
-
-  c = *in;
-  if ( c )
-  {
-    while ( c && c != '.' )
-    {
-      *out++ = c;
-      c = *++in;
-    }
-  }
-  *out = '\0';
-}
+/* VectorScale — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043640) --------------------------------------------------------
 /* COM_FileExtension — restored IDA-missed dead-code stub.  Verified
@@ -39298,7 +38815,7 @@ void __cdecl sub_10043600(const char *in, char *out)
  * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
  * Gladiator (the engine handles file paths via its own COM_*); the
  * /INCREMENTAL thunk preserved this for incremental relinking. */
-/* COM_FileExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* COM_FileExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100436B0) --------------------------------------------------------
 /* COM_FileBase — restored IDA-missed dead-code stub (preserved by
@@ -39315,28 +38832,7 @@ void __cdecl sub_10043600(const char *in, char *out)
  * basename character when there is no '/' in the path" behavior, which
  * is a known artifact of the Q2 implementation; Q3 fixed this).
  * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
-/* COM_FileBase — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
-
-//----- (10043740) --------------------------------------------------------
-/* COM_FilePath — restored IDA-missed dead-code stub.  Verified against
- * objdump@10043740: computes the position of the last '/' in `in` (or
- * stays at start if no '/'), memcpy's that many bytes into `out`, and
- * null-terminates.  Matches Q3 q_shared.c::COM_FilePath exactly.  The
- * helper call at 0x10044DE0 is the static-linked MSVC memcpy.
- *
- * Disasm uses `repnz scas al, [edi]` to compute strlen, then walks
- * backward looking for '/'.  Restored using straight C — same
- * semantics.  Dead in Gladiator. */
-void __cdecl sub_10043740(const char *in, char *out)
-{
-  const char *s;
-
-  s = in + strlen(in) - 1;
-  while ( s != in && *s != '/' )
-    --s;
-  memcpy(out, in, s - in);
-  out[s - in] = '\0';
-}
+/* COM_FileBase — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043790) --------------------------------------------------------
 /* COM_DefaultExtension — restored IDA-missed dead-code stub (preserved by
@@ -39350,380 +38846,28 @@ void __cdecl sub_10043740(const char *in, char *out)
  *     or strcat'ing on '/' or reaching the start.
  * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
  * /Oi expansions of the obvious C source; restored as straight C. */
-/* COM_DefaultExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* COM_DefaultExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
-//----- (10043810) --------------------------------------------------------
-/* Public byte-order dispatcher #1 — calls through fn-ptr slot
- * dword_100637DC (set by Swap_Init to BigShort impl).  Restored
- * IDA-missed dead-code stub; verified against objdump@10043810:
- *     return ((short (*)(short))dword_100637DC)((short)x);
- * The /INCREMENTAL thunk preserved this 5-instruction wrapper even
- * though every caller in the binary uses the impl symbol directly.
- * Cannot be named `BigShort` here because that symbol is already
- * occupied by the no-swap LE identity impl at 100438D0. */
-short __cdecl sub_10043810(short x)
-{
-  return ((short (__cdecl *)(short))dword_100637DC)(x);
-}
-
-//----- (10043830) --------------------------------------------------------
-/* Public byte-order dispatcher #2 — calls slot dword_100637D8
- * (LittleShort impl).  See sub_10043810 banner. */
-short __cdecl sub_10043830(short x)
-{
-  return ((short (__cdecl *)(short))dword_100637D8)(x);
-}
-
-//----- (10043850) --------------------------------------------------------
-/* Public byte-order dispatcher #3 — calls slot dword_100637E0
- * (BigLong impl).  See sub_10043810 banner. */
-int __cdecl sub_10043850(int x)
-{
-  return ((int (__cdecl *)(int))dword_100637E0)(x);
-}
-
-//----- (10043870) --------------------------------------------------------
-/* Public byte-order dispatcher #4 — calls slot dword_100637D4
- * (LittleLong impl).  See sub_10043810 banner. */
-int __cdecl sub_10043870(int x)
-{
-  return ((int (__cdecl *)(int))dword_100637D4)(x);
-}
-
-//----- (10043890) --------------------------------------------------------
-/* Public byte-order dispatcher #5 — calls slot dword_100637D0
- * (BigFloat impl).  See sub_10043810 banner.  Note the original disasm
- * uses `pop ecx` instead of `add esp,4` for stack cleanup — same
- * semantics, just shorter codegen MSVC chose for this one. */
-float __cdecl sub_10043890(float x)
-{
-  return ((float (__cdecl *)(float))dword_100637D0)(x);
-}
-
-//----- (100438B0) --------------------------------------------------------
-float __cdecl LittleFloat(float a1)
-{
-  return ((float (__cdecl *)(float))dword_100637CC)(a1);
-}
-// 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
-
-//----- (10043900) --------------------------------------------------------
-__int16 __cdecl LittleShort(__int16 a1)
-{
-  return a1;
-}
-
-//----- (10043920) --------------------------------------------------------
-int __cdecl BigLong(int a1)
-{
-  unsigned char b1, b2, b3, b4;
-
-  b1 = a1 & 0xff;
-  b2 = (a1 >> 8) & 0xff;
-  b3 = (a1 >> 16) & 0xff;
-  b4 = (a1 >> 24) & 0xff;
-
-  return ((int)b1 << 24) + ((int)b2 << 16) + ((int)b3 << 8) + b4;
-}
-
-//----- (10043970) --------------------------------------------------------
-int __cdecl LittleLong(int a1)
-{
-  return a1;
-}
-
-/* BigShort: original at 0x100438D0 byte-swaps a 16-bit value. On LE x86
- * the dispatch table never invokes the swap path in practice (Swap_Init's
- * LE branch is what runs), so restore as identity for documentation
- * clarity — same shape as LittleShort. */
-__int16 __cdecl BigShort(__int16 a1)
-{
-  return a1;
-}
-
-/* BigFloat: original at 0x10043990 swaps a 32-bit float's byte order via
- * FPU. Never invoked on LE x86 in practice — restored as identity. */
-int __cdecl BigFloat(int a1)
-{
-  return a1;
-}
-
-//----- (100439D0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100439D0: `fld DWORD [esp+4]; ret`.  Loads its single
- * float argument onto ST(0) and returns it — a no-op pass-through
- * sitting next to the LittleFloat/BigFloat byte-order helpers.
- * Likely the abandoned `LittleFloat` slot (matches the identity
- * shape used for LittleShort/LittleLong/BigShort/BigFloat above).
- * Dead in Gladiator — Swap_Init never patches this slot;
- * preserved by /INCREMENTAL. */
-float __cdecl sub_100439D0(float f)
-{
-  return f;
-}
-
-//----- (100439F0) --------------------------------------------------------
-int Swap_Init()
-{
-  union { short s; char b[2]; } u;
-
-  u.b[0] = 1;
-  u.b[1] = 0;
-  if ( u.s == 1 )
-  {
-    /* little-endian: identity for Little*, swap for Big*.
-     * NOTE: dword_100637CC (LittleFloat impl slot) must point at the
-     * FPU-touching identity sub_100439D0 (`fld DWORD [esp+4]; ret`) so
-     * that callers expecting a float return value find the bits in st0.
-     * Pointing at LittleLong (eax-passthrough, ignored by FPU) silently
-     * corrupts floats on GCC/MinGW builds (caller's fildl/fistpq pair
-     * rounds via 24-bit mantissa). */
-    dword_10063884 = 0;
-    dword_100637DC = (intptr_t)BigShort;
-    dword_100637D8 = (intptr_t)LittleShort;
-    dword_100637E0 = (intptr_t)BigLong;
-    dword_100637D4 = (intptr_t)LittleLong;
-    dword_100637D0 = (intptr_t)BigFloat;
-    dword_100637CC = (intptr_t)sub_100439D0;
-  }
-  else
-  {
-    /* big-endian: swap for Little*, identity for Big* */
-    dword_10063884 = 1;
-    dword_100637DC = (intptr_t)LittleShort;
-    dword_100637D8 = (intptr_t)BigShort;
-    dword_100637E0 = (intptr_t)LittleLong;
-    dword_100637D4 = (intptr_t)BigLong;
-    dword_100637D0 = (intptr_t)sub_100439D0;
-    dword_100637CC = (intptr_t)BigFloat;
-  }
-  return 1;
-}
-// 100637CC: using guessed type int (__cdecl *dword_100637CC)(_DWORD);
-// 100637D0: using guessed type int dword_100637D0;
-// 100637D4: using guessed type int dword_100637D4;
-// 100637D8: using guessed type int dword_100637D8;
-// 100637DC: using guessed type int dword_100637DC;
-// 100637E0: using guessed type int dword_100637E0;
-// 10063884: using guessed type int dword_10063884;
-
-//----- (10043AC0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10043AC0:
- *   mov  ecx,[esp+4]                ; fmt
- *   lea  eax,[esp+8]                ; va_args
- *   push eax; push ecx
- *   push 0x10062990                 ; static scratch buffer
- *   call 0x10044c05                 ; vsprintf
- *   add  esp,0xc
- *   mov  eax,0x10062990
- *   ret
- * Classic Q2/Q3 `va(fmt, ...)`: formats into a fixed scratch buffer
- * and returns its address.  Dead in Gladiator — the live code uses
- * its own formatting paths; preserved by /INCREMENTAL. */
-char *__cdecl sub_10043AC0(const char *fmt, ...)
-{
-  static char buffer[1024]; /* mirrors ds:0x10062990 */
-  va_list ap;
-
-  va_start(ap, fmt);
-  vsprintf(buffer, fmt, ap);
-  va_end(ap);
-  return buffer;
-}
-
-//----- (10043AF0) --------------------------------------------------------
-/* COM_Parse — restored IDA-missed dead-code stub (preserved by /INCREMENTAL).
- * Dead in Gladiator: the bot's live parsers (PC_ReadToken, PS_ReadToken)
- * supersede it; only the thunk entry at 0x10001AFF keeps it linked.
- * Standard Q2/Q3 q_shared.c text tokenizer:
- *   - skips whitespace (and '//' line comments);
- *   - reads a "quoted string" up to the closing quote into com_token[];
- *   - else reads a bareword token up to the next whitespace;
- *   - returns pointer to the static com_token buffer.
- * Verified against objdump@10043AF0: the static buffer at ds:0x10063800 is
- * com_token[128]; the empty-string return at ds:0x1006294C is the literal "".
- * MAX_TOKEN_CHARS = 128 matches the bound check at 10043b58/10043b69. */
-static char com_token_10043AF0[128]; /* ds:0x10063800 (.bss) */
-char *__cdecl sub_10043AF0(char **data_p)
-{
-  int c;
-  int len;
-  char *data;
-
-  data = *data_p;
-  len = 0;
-  com_token_10043AF0[0] = 0;
-  if ( !data )
-  {
-    *data_p = NULL;
-    return "";
-  }
-skipwhite:
-  while ( (c = (unsigned char)*data) <= ' ' )
-  {
-    if ( c == 0 )
-    {
-      *data_p = NULL;
-      return "";
-    }
-    ++data;
-  }
-  if ( c == '/' && data[1] == '/' )
-  {
-    while ( *data && *data != '\n' )
-      ++data;
-    goto skipwhite;
-  }
-  if ( c == '"' )
-  {
-    ++data;
-    while ( 1 )
-    {
-      c = (unsigned char)*data++;
-      if ( c == '"' || !c )
-      {
-        com_token_10043AF0[len] = 0;
-        *data_p = data;
-        return com_token_10043AF0;
-      }
-      if ( len < 128 )
-        com_token_10043AF0[len++] = c;
-    }
-  }
-  do
-  {
-    if ( len < 128 )
-      com_token_10043AF0[len++] = c;
-    ++data;
-    c = (unsigned char)*data;
-  }
-  while ( c > ' ' );
-  if ( len == 128 )
-    len = 0;
-  com_token_10043AF0[len] = 0;
-  *data_p = data;
-  return com_token_10043AF0;
-}
-
-//----- (10043BD0) --------------------------------------------------------
-/* Com_TouchMemory — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Verified against objdump@10043BD0:
- *
- *     i = size - 1;
- *     if (i > 0) {
- *         acc = global_touch_sum;        // ds:0x10063880
- *         do {
- *             acc += ((byte *)buffer)[i];
- *             i  -= 0x1000;              // one byte per 4KB page
- *         } while (i > 0);
- *         global_touch_sum = acc;
- *     }
- *
- * Classic Quake "page-warm" idiom: touch one byte per 4 KB page so the
- * OS faults the whole range into RAM and the accumulated sum prevents
- * the optimiser from eliding the reads.  Q3's z_touchhash is the
- * direct lineal descendant.  Dead in Gladiator: no caller; only the
- * /INCREMENTAL relink stub keeps it live.  Global at 0x10063880 is
- * private to this dead helper. */
-static unsigned int dword_10063880;
-void __cdecl sub_10043BD0(const void *buffer, int size)
-{
-  unsigned int acc;
-  int i;
-
-  i = size - 1;
-  if ( i > 0 )
-  {
-    acc = dword_10063880;
-    do
-    {
-      acc += ((const unsigned char *)buffer)[i];
-      i -= 0x1000;
-    }
-    while ( i > 0 );
-    dword_10063880 = acc;
-  }
-}
-
-//----- (10043C10) --------------------------------------------------------
-int __cdecl sub_10043C10(char *String1, char *String2)
-{
-  return _strcmpi(String1, String2);
-}
+//----- (10043810..0x100439F0) ---------------------------------------------
+/* Byte-order subsystem (BigShort/LittleShort/BigLong/LittleLong/BigFloat/
+ * LittleFloat dispatchers + Short/Long/FloatSwap+NoSwap helpers + Swap_Init,
+ * originally at 0x10043810..0x100439F0 with fn-ptr slots dword_100637CC..E0
+ * and `bigendien`) is q_shared.c's.  Compiled separately to q_shared.o
+ * (Mr. Elusive's 1999 lcc.mak builds q_shared.obj as its own object);
+ * declarations in game/q_shared.h.  Previously duplicated here. */
 
 //----- (10043C40) --------------------------------------------------------
-/* Q_strncasecmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* Q_strncasecmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043CC0) --------------------------------------------------------
-/* Q_stricmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* Q_stricmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043CF0) --------------------------------------------------------
-/* Com_sprintf — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* Com_sprintf — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 // 100019AB: using guessed type int Com_DPrintf(const char *, ...);
 
-//----- (10043D80) --------------------------------------------------------
-/* Info_ValueForKey — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Verified against objdump@10043D80:
- *   - 512-byte on-stack `pkey` buffer at [esp+0x10..+0x210].
- *   - Globals:
- *       ds:0x10062D98  ->  static int valueindex   (toggle 0/1, XOR 1 each call)
- *       ds:0x10062D9C  ->  static char value[2][512]  (1024-byte buffer at base,
- *                                                       value[i] = base + i*512)
- *       ds:0x1006294C  ->  static const char empty[] = ""   (fail sentinel)
- *   - Per call: valueindex ^= 1;  o = value[valueindex];
- *   - Skip a leading '\\' if present, then for each "\\key\\value" pair:
- *       1. Copy chars up to the next '\\' into pkey.
- *       2. Copy chars up to the next '\\' (or end of string) into value[].
- *       3. Inline 2-byte strcmp(key, pkey) against the function's `key`
- *          argument (ebp).  On match -> return value[valueindex].
- *       4. If we hit '\\0' before a match -> return &empty (1006294C).
- *
- * Byte-for-byte Quake II q_shared.c::Info_ValueForKey — the
- * double-buffer toggle lets callers chain two Info_ValueForKey calls
- * without aliasing the returned pointer.  Dead in Gladiator: no
- * caller (info-string parsing is handled engine-side); preserved
- * only by the /INCREMENTAL relink stub. */
-static int dword_10062D98;
-static char byte_10062D9C[2][512];
-char *__cdecl sub_10043D80(const char *s, const char *key)
-{
-  char pkey[512];
-  char *o;
-  int idx;
-
-  idx = dword_10062D98 ^ 1;
-  dword_10062D98 = idx;
-
-  if ( *s == '\\' )
-    ++s;
-  while ( 1 )
-  {
-    o = pkey;
-    while ( *s != '\\' )
-    {
-      if ( !*s )
-        return &byte_1006294C;
-      *o++ = *s++;
-    }
-    *o = '\0';
-    ++s;
-
-    o = byte_10062D9C[idx];
-    while ( *s != '\\' && *s )
-      *o++ = *s++;
-    *o = '\0';
-
-    if ( !strcmp(key, pkey) )
-      return byte_10062D9C[idx];
-    if ( !*s )
-      return &byte_1006294C;
-    ++s;
-  }
-}
-
 //----- (10043EA0) --------------------------------------------------------
-/* Info_RemoveKey — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* Info_RemoveKey — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043FC0) --------------------------------------------------------
 /* Info_Validate — restored IDA-missed dead-code stub (preserved by
@@ -39742,7 +38886,7 @@ char *__cdecl sub_10043D80(const char *s, const char *key)
  * key/value tokeniser).  Dead in Gladiator: no caller reaches the
  * info-validation path; only the /INCREMENTAL relink stub keeps it
  * alive. */
-/* Info_Validate — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
+/* Info_Validate — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 // nfuncs=1767 queued=667 decompiled=667 lumina nreq=0 worse=0 better=0
 // Note: MSVC CRT functions that were statically compiled into the DLL have been removed
@@ -39751,3 +38895,12 @@ char *__cdecl sub_10043D80(const char *s, const char *key)
 // sub_1004C7A7, sub_1004C802, sub_1004D4BC, sub_1004EFD8, SpawnProcess.
 // These are provided by the standard C library via the headers included above.
 // 2 decompilation failures reported by IDA (see #error stubs above)
+
+/* Com_Printf @ original 0x10042410 — single-byte `ret` in the 1999 DLL.
+ * q_shared.c's Com_sprintf-overflow / Info_RemoveKey-backslash /
+ * Info_SetValueForKey-{semicolon,quote,length,overflow} diagnostics call
+ * this and silently drop.  Routing to bi_Print would be more chatty than
+ * the original; keep the empty body to preserve that fidelity.  Mr.
+ * Elusive's lcc.mak listed q_shared.obj as its own object file, so
+ * q_shared.c can't define this — it's a botlib-side stub. */
+void Com_Printf(char *fmt, ...) { (void)fmt; }

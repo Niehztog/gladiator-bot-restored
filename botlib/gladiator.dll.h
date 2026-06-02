@@ -169,7 +169,9 @@ typedef void *LPVOID;
 
 /* 18 */
 typedef int BOOL;
+#ifndef Q_SHARED_H  /* q_shared.h defines qboolean as an enum — skip our int alias when present */
 typedef int qboolean;  /* Q3-style boolean; matches game/botlib.h `typedef int qboolean` */
+#endif
 
 /* 16 */
 struct _SECURITY_ATTRIBUTES

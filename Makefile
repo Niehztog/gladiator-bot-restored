@@ -294,13 +294,23 @@ endif
 build/%.o: botlib/%.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DBOTLIB -o $@ $<
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DBOTLIB -DC_ONLY -o $@ $<
 
 
 build/%.o: game/%.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
 	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Igame/ -o $@ $<
+
+# Mr. Elusive's 1999 lcc.mak compiled q_shared.c to its own object file
+# (q_shared.obj) and linked it into gladiator.dll alongside the bot
+# sources.  Mirror that here: build game/q_shared.c with -DC_ONLY so its
+# MSVC __asm paths (id386 Q_ftol, BoxOnPlaneSide fast path) compile out
+# on gcc/MinGW.
+build/q_shared.o: game/q_shared.c
+	@echo "===> CC $<"
+	${Q}mkdir -p $(@D)
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DC_ONLY -Igame/ -o $@ $<
 
 build/game/%.o: game/%.c
 	@echo "===> CC $<"
@@ -309,12 +319,12 @@ build/game/%.o: game/%.c
 
 # ----------
 
-OBJS_ = \
+BOTLIB_OBJS_ = \
 	botlib.o \
 	botlib_exports.o \
 	botlib_debug.o \
 	botlib_structdefs.o \
-	qshared_shim.o
+	q_shared.o
 
 # ----------
 
@@ -405,13 +415,13 @@ GAME_OBJS_ = \
 # ----------
 
 # Rewrite pathes to our object directory
-OBJS = $(patsubst %,build/%,$(OBJS_))
+BOTLIB_OBJS = $(patsubst %,build/%,$(BOTLIB_OBJS_))
 GAME_OBJS = $(patsubst %,build/game/%,$(GAME_OBJS_))
 
 # ----------
 
 # Generate header dependencies
-DEPS= $(OBJS:.o=.d)
+DEPS= $(BOTLIB_OBJS:.o=.d)
 GAME_DEPS= $(GAME_OBJS:.o=.d)
 
 # ----------
@@ -423,17 +433,17 @@ GAME_DEPS= $(GAME_OBJS:.o=.d)
 # ----------
 
 ifeq ($(YQ2_OSTYPE), Windows)
-release/gladiator.dll : $(OBJS)
+release/gladiator.dll : $(BOTLIB_OBJS)
 	@echo "===> LD $@"
-	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS) -Wl,-Map,release/gladiator.map
+	${Q}$(CC) -o $@ $(BOTLIB_OBJS) $(LDFLAGS) -Wl,-Map,release/gladiator.map
 else ifeq ($(YQ2_OSTYPE), Darwin)
-release/gladiator.dylib : $(OBJS)
+release/gladiator.dylib : $(BOTLIB_OBJS)
 	@echo "===> LD $@"
-	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	${Q}$(CC) -o $@ $(BOTLIB_OBJS) $(LDFLAGS)
 else
-release/gladiator.so : $(OBJS)
+release/gladiator.so : $(BOTLIB_OBJS)
 	@echo "===> LD $@"
-	${Q}$(CC) -o $@ $(OBJS) $(LDFLAGS)
+	${Q}$(CC) -o $@ $(BOTLIB_OBJS) $(LDFLAGS)
 endif
 
 # ----------

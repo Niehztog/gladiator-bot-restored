@@ -60,7 +60,7 @@ extern int  maxclients;      /* @ 0x10064028 */
 extern int  maxentities;     /* @ 0x10064024 */
 
 /* Slot 1 helpers */
-extern int    Swap_Init(void);                            /* 0x100439F0 */
+extern void   Swap_Init(void);                            /* 0x100439F0 — game/q_shared.c, included at end of botlib.c */
 extern int    BotSetupLibrary(void);                      /* 0x10029C90 inner */
 extern float  LibVarValue(char *name, char *default_str); /* 0x10038A90 */
 extern int    BotSetupMoveAI(void);                       /* 0x10037A00 */
