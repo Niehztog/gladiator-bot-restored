@@ -38821,43 +38821,7 @@ void __cdecl sub_10042430(float dst[3], const float dir[3],
 }
 
 //----- (100426B0) --------------------------------------------------------
-float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
-{
-  long double v4; // st7
-  long double v5; // st7
-  long double v6; // st7
-  float *result; // eax
-
-  v4 = a1[1] * 0.0174532925199433;
-  flt_100631A8 = sin(v4);
-  flt_1006319C = cos(v4);
-  v5 = *a1 * 0.0174532925199433;
-  flt_1006298C = sin(v5);
-  flt_100631A0 = cos(v5);
-  v6 = a1[2] * 0.0174532925199433;
-  flt_10062984 = sin(v6);
-  flt_10062988 = cos(v6);
-  if ( a2 )
-  {
-    *a2 = flt_100631A0 * flt_1006319C;
-    a2[1] = flt_100631A0 * flt_100631A8;
-    a2[2] = -flt_1006298C;
-  }
-  if ( a3 )
-  {
-    *a3 = flt_10062988 * flt_100631A8 - flt_10062984 * flt_1006298C * flt_1006319C;
-    a3[1] = (flt_10062984 * flt_1006298C * flt_100631A8 + flt_10062988 * flt_1006319C) * -1.0f;
-    a3[2] = flt_10062984 * flt_100631A0 * -1.0f;
-  }
-  result = a4;
-  if ( a4 )
-  {
-    *a4 = flt_10062988 * flt_1006298C * flt_1006319C + flt_10062984 * flt_100631A8;
-    a4[1] = flt_10062988 * flt_1006298C * flt_100631A8 - flt_10062984 * flt_1006319C;
-    a4[2] = flt_10062988 * flt_100631A0;
-  }
-  return result;
-}
+/* AngleVectors — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 // 10062984: using guessed type float flt_10062984;
 // 10062988: using guessed type float flt_10062988;
 // 1006298C: using guessed type float flt_1006298C;
@@ -38875,60 +38839,10 @@ float *__cdecl AngleVectors(float *a1, float *a2, float *a3, float *a4)
 void Com_DPrintf(const char *fmt, ...) { (void)fmt; /* empty body */ }
 
 //----- (10042860) --------------------------------------------------------
-float *__cdecl ProjectPointOnPlane(float *a1, float *a2, float *a3)
-{
-  double v4; // st4
-  float v5; // st7
-  float *result; // eax
-  float v7; // [esp+0h] [ebp-Ch]
-  float v8; // [esp+4h] [ebp-8h]
-  float v9; // [esp+18h] [ebp+Ch]
-
-  v4 = 1.0f / (*a3 * *a3 + a3[1] * a3[1] + a3[2] * a3[2]);
-  v9 = (a2[2] * a3[2] + a2[1] * a3[1] + *a2 * *a3) * v4;
-  v7 = v4 * *a3;
-  v8 = v4 * a3[1];
-  v5 = v4 * a3[2];
-  result = a1;
-  *a1 = *a2 - v7 * v9;
-  a1[1] = a2[1] - v8 * v9;
-  a1[2] = a2[2] - v5 * v9;
-  return result;
-}
+/* ProjectPointOnPlane — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10042920) --------------------------------------------------------
-void __cdecl PerpendicularVector(float *a1, float *a2)
-{
-  int v2; // esi
-  int v3; // ecx
-  float *v4; // edx
-  long double v5; // st7
-  float v6; // [esp+8h] [ebp-10h]
-  float v7[3]; // [esp+Ch] [ebp-Ch] BYREF
-
-  v2 = 0;
-  v6 = 1.0;
-  v3 = 0;
-  v4 = a2;
-  do
-  {
-    v5 = fabs(*v4);
-    if ( v5 < v6 )
-    {
-      v6 = v5;
-      v2 = v3;
-    }
-    ++v3;
-    ++v4;
-  }
-  while ( v3 < 3 );
-  *(int *)&v7[2] = 0;
-  *(int *)&v7[1] = 0;
-  *(int *)&v7[0] = 0;
-  v7[v2] = 1.0;
-  ProjectPointOnPlane(a1, v7, a2);
-  VectorNormalize(a1);
-}
+/* PerpendicularVector — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100429C0) --------------------------------------------------------
@@ -39193,54 +39107,20 @@ int __cdecl sub_10042E90(vec3_t emins, vec3_t emaxs, float *plane)
  * IDA decompiled the writes as `_DWORD *` stores of the 32-bit float bit
  * patterns (0x47C35000 = 99999.0f, 0xC7C35000 = -99999.0f); restored to
  * the original `vec3_t` form. */
-void __cdecl ClearBounds(vec3_t mins, vec3_t maxs)
-{
-  mins[0] = mins[1] = mins[2] =  99999.0f;
-  maxs[0] = maxs[1] = maxs[2] = -99999.0f;
-}
+/* ClearBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (100431F0) --------------------------------------------------------
 /* Q2 q_shared.c::AddPointToBounds — extend the bbox to include point v.
  * IDA decompiled this with pointer-arithmetic offsets (v4 = a1 - a2)
  * because it didn't recognise the three vec3_t parameters; restored to
  * the original loop. */
-void __cdecl AddPointToBounds(vec3_t v, vec3_t mins, vec3_t maxs)
-{
-  int   i;
-  float val;
-
-  for ( i = 0; i < 3; ++i )
-  {
-    val = v[i];
-    if ( val < mins[i] ) mins[i] = val;
-    if ( val > maxs[i] ) maxs[i] = val;
-  }
-}
+/* AddPointToBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043240) --------------------------------------------------------
-BOOL __cdecl VectorCompare(float *a1, float *a2)
-{
-  return *a1 == *a2 && a1[1] == a2[1] && a1[2] == a2[2];
-}
+/* VectorCompare — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043290) --------------------------------------------------------
-double __cdecl VectorNormalize(float *v)
-{
-  float length; // st4
-  float result; // st7
-  float ilength;
-
-  length = sqrt(*v * *v + v[1] * v[1] + v[2] * v[2]);
-  result = length;
-  if ( length != 0.0f )
-  {
-    ilength = 1.0f / length;
-    *v = *v * ilength;
-    v[1] = v[1] * ilength;
-    v[2] = v[2] * ilength;
-  }
-  return result;
-}
+/* VectorNormalize — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043300) --------------------------------------------------------
 /* VectorNormalize2 — normalize v into out, return original length.
@@ -39266,12 +39146,7 @@ double __cdecl sub_10043300(float *v, float *out)
 //----- (10043380) --------------------------------------------------------
 /* Q2 q_shared.c::VectorMA — vecc = veca + scale * vecb.
  * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
-void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
-{
-  vecc[0] = veca[0] + scale * vecb[0];
-  vecc[1] = veca[1] + scale * vecb[1];
-  vecc[2] = veca[2] + scale * vecb[2];
-}
+/* VectorMA — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (100433D0) --------------------------------------------------------
 /* DotProduct — restored IDA-missed dead-code stub.  Verified against
@@ -39279,10 +39154,7 @@ void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
  * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
  * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
  * the out-of-line copy was emitted by /INCREMENTAL. */
-double __cdecl _DotProduct(const float *a, const float *b)
-{
-  return a[2] * b[2] + a[1] * b[1] + a[0] * b[0];
-}
+/* _DotProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043400) --------------------------------------------------------
 /* VectorSubtract — restored IDA-missed dead-code stub.  Verified against
@@ -39319,44 +39191,13 @@ void __cdecl sub_10043440(const vec3_t veca, const vec3_t vecb, vec3_t out)
  * function by /INCREMENTAL. Dead in Gladiator because every site uses
  * the macro form inlined directly; the thunk preserved one slot for
  * possible incremental relinking. */
-void __cdecl _VectorCopy(const vec3_t src, vec3_t dst)
-{
-  dst[0] = src[0];
-  dst[1] = src[1];
-  dst[2] = src[2];
-}
+/* _VectorCopy — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (100434B0) --------------------------------------------------------
-float *__cdecl CrossProduct(float *v1, float *v2, float *cross)
-{
-  float *result; // eax
-
-  result = v1;
-  *cross = v2[2] * v1[1] - v1[2] * v2[1];
-  cross[1] = v1[2] * *v2 - *v1 * v2[2];
-  cross[2] = *v1 * v2[1] - *v2 * v1[1];
-  return result;
-}
+/* CrossProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043500) --------------------------------------------------------
-double __cdecl VectorLength(float *v)
-{
-  float sq_sum; // st7
-  int count; // ecx
-  float t; // st5
-
-  sq_sum = 0.0f;
-  count = 3;
-  do
-  {
-    t = *v;
-    sq_sum = sq_sum + t * t;
-    ++v;
-    --count;
-  }
-  while ( count );
-  return sqrt(sq_sum);
-}
+/* VectorLength — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043540) --------------------------------------------------------
 float *__cdecl VectorNegate(float *v)
@@ -39373,12 +39214,7 @@ float *__cdecl VectorNegate(float *v)
 //----- (10043570) --------------------------------------------------------
 /* Q2 q_shared.c::VectorScale — out = scale * v.
  * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
-void __cdecl VectorScale(vec3_t v, float scale, vec3_t out)
-{
-  out[0] = scale * v[0];
-  out[1] = scale * v[1];
-  out[2] = scale * v[2];
-}
+/* VectorScale — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (100435B0) --------------------------------------------------------
 /* Q_log2 / floor-log2 — restored IDA-missed dead-code stub.  Verified
@@ -39462,31 +39298,7 @@ void __cdecl sub_10043600(const char *in, char *out)
  * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
  * Gladiator (the engine handles file paths via its own COM_*); the
  * /INCREMENTAL thunk preserved this for incremental relinking. */
-char *__cdecl COM_FileExtension(const char *path)
-{
-  const char *p;
-  int i;
-  char c;
-
-  p = path;
-  c = *p;
-  while ( c && c != '.' )
-  {
-    c = *++p;
-  }
-  if ( !*p )
-    return &byte_1006294C;
-  ++p;
-  for ( i = 0; i < 7; ++i )
-  {
-    c = *p++;
-    if ( !c )
-      break;
-    byte_10062D90[i] = c;
-  }
-  byte_10062D90[i] = '\0';
-  return byte_10062D90;
-}
+/* COM_FileExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (100436B0) --------------------------------------------------------
 /* COM_FileBase — restored IDA-missed dead-code stub (preserved by
@@ -39503,26 +39315,7 @@ char *__cdecl COM_FileExtension(const char *path)
  * basename character when there is no '/' in the path" behavior, which
  * is a known artifact of the Q2 implementation; Q3 fixed this).
  * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
-void __cdecl COM_FileBase(const char *in, char *out)
-{
-  const char *s, *s2;
-
-  s = in + strlen(in) - 1;
-  while ( s != in && *s != '.' )
-    --s;
-  for ( s2 = s; s2 != in && *s2 != '/'; --s2 )
-    ;
-  if ( s - s2 < 2 )
-  {
-    out[0] = '\0';
-  }
-  else
-  {
-    --s;
-    memcpy(out, s2 + 1, s - s2);
-    out[s - s2] = '\0';
-  }
-}
+/* COM_FileBase — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043740) --------------------------------------------------------
 /* COM_FilePath — restored IDA-missed dead-code stub.  Verified against
@@ -39557,26 +39350,7 @@ void __cdecl sub_10043740(const char *in, char *out)
  *     or strcat'ing on '/' or reaching the start.
  * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
  * /Oi expansions of the obvious C source; restored as straight C. */
-void __cdecl COM_DefaultExtension(char *path, const char *ext)
-{
-  char *p;
-
-  p = path + strlen(path) - 1;
-  if ( *p != '/' )
-  {
-    while ( 1 )
-    {
-      if ( p == path )
-        break;
-      if ( *p == '.' )
-        return;
-      --p;
-      if ( *p == '/' )
-        break;
-    }
-  }
-  strcat(path, ext);
-}
+/* COM_DefaultExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043810) --------------------------------------------------------
 /* Public byte-order dispatcher #1 — calls through fn-ptr slot
@@ -39879,52 +39653,13 @@ int __cdecl sub_10043C10(char *String1, char *String2)
 }
 
 //----- (10043C40) --------------------------------------------------------
-int __cdecl Q_strncasecmp(char *s1, char *s2, int n)
-{
-  int c1, c2;
-
-  do
-  {
-    c1 = *s1++;
-    c2 = *s2++;
-
-    if ( !n-- )
-      return 0;
-
-    if ( c1 != c2 )
-    {
-      if ( c1 >= 'a' && c1 <= 'z' )
-        c1 -= ('a' - 'A');
-      if ( c2 >= 'a' && c2 <= 'z' )
-        c2 -= ('a' - 'A');
-      if ( c1 != c2 )
-        return -1;
-    }
-  }
-  while ( c1 );
-
-  return 0;
-}
+/* Q_strncasecmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043CC0) --------------------------------------------------------
-int __cdecl Q_stricmp(char *a1, char *a2)
-{
-  return Q_strncasecmp(a1, a2, 99999);
-}
+/* Q_stricmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043CF0) --------------------------------------------------------
-char *Com_sprintf(char *Destination, int a2, char *Format, ...)
-{
-  int v3; // eax
-  char Buffer[65536]; // [esp+4h] [ebp-10000h] BYREF
-  va_list va; // [esp+10014h] [ebp+10h] BYREF
-
-  va_start(va, Format);
-  v3 = vsprintf(Buffer, Format, va);
-  if ( v3 >= a2 )
-    Com_DPrintf("Com_sprintf: overflow of %i in %i\n", v3, a2);
-  return strncpy(Destination, Buffer, a2 - 1);
-}
+/* Com_sprintf — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 // 100019AB: using guessed type int Com_DPrintf(const char *, ...);
 
 //----- (10043D80) --------------------------------------------------------
@@ -39988,64 +39723,7 @@ char *__cdecl sub_10043D80(const char *s, const char *key)
 }
 
 //----- (10043EA0) --------------------------------------------------------
-char __cdecl Info_RemoveKey(int a1, char *Str)
-{
-  char *v2; // eax
-  void *v4; // ebp
-  char *v5; // ecx
-  char v6; // al
-  char *i; // ecx
-  char ch; // al, byte temp
-  char v9[512]; // [esp+10h] [ebp-400h] BYREF
-  char v10[512]; // [esp+210h] [ebp-200h] BYREF
-
-  v2 = strstr(Str, asc_1005F6C0);
-  if ( !v2 )
-  {
-    while ( 1 )
-    {
-      v4 = (void *)a1;
-      if ( *(_BYTE *)a1 == 92 )
-        ++a1;
-      ch = *(_BYTE *)a1;
-      v5 = v9;
-      if ( *(_BYTE *)a1 != 92 )
-        break;
-LABEL_7:
-      v6 = *(_BYTE *)++a1;
-      *v5 = 0;
-      for ( i = v10; v6 != 92; ++a1 )
-      {
-        if ( !v6 )
-          break;
-        *i = v6;
-        v6 = *(_BYTE *)(a1 + 1);
-        ++i;
-      }
-      *i = 0;
-      v2 = (char *)strcmp(Str, v9);
-      if ( !v2 )
-      {
-        v2 = (char *)(strlen((const char *)a1) + 1);
-        qmemcpy(v4, (const void *)a1, (unsigned int)v2);
-        return (char)v2;
-      }
-      if ( !*(_BYTE *)a1 )
-        return (char)v2;
-    }
-    while ( ch )
-    {
-      *v5 = ch;
-      ch = *(_BYTE *)(a1 + 1);
-      ++v5;
-      ++a1;
-      if ( ch == 92 )
-        goto LABEL_7;
-    }
-    return ch;
-  }
-  return (char)v2;
-}
+/* Info_RemoveKey — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 //----- (10043FC0) --------------------------------------------------------
 /* Info_Validate — restored IDA-missed dead-code stub (preserved by
@@ -40064,12 +39742,7 @@ LABEL_7:
  * key/value tokeniser).  Dead in Gladiator: no caller reaches the
  * info-validation path; only the /INCREMENTAL relink stub keeps it
  * alive. */
-int __cdecl Info_Validate(const char *s)
-{
-  if ( strstr(s, "\"") )
-    return 0;
-  return strstr(s, ";") == NULL;
-}
+/* Info_Validate — pure Q2 q_shared.c helper; body lives in game/q_shared.c, brought into the botlib link via botlib/qshared_shim.c */
 
 // nfuncs=1767 queued=667 decompiled=667 lumina nreq=0 worse=0 better=0
 // Note: MSVC CRT functions that were statically compiled into the DLL have been removed

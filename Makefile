@@ -313,7 +313,8 @@ OBJS_ = \
 	botlib.o \
 	botlib_exports.o \
 	botlib_debug.o \
-	botlib_structdefs.o
+	botlib_structdefs.o \
+	qshared_shim.o
 
 # ----------
 
