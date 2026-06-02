@@ -265,7 +265,13 @@ typedef struct bot_import_s
 	//print messages from the bot library
 	void		(*Print)(int type, char *fmt, ...);
 	//remove trace and point contents, we don't use them anyway?
+#if defined(__x86_64__) || defined(__aarch64__)
+	/* On 64-bit the botlib passes retbuf as an explicit first argument
+	 * (Win32/MSVC sret convention) so match that here. */
+	void *(*Trace)(bsp_trace_t *retbuf, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
+#else
 	bsp_trace_t (*Trace)(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
+#endif
 	int		(*PointContents)(vec3_t point);
 	//memory allocation
 	void		*(*GetMemory)(int size);

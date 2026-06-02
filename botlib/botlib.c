@@ -2062,12 +2062,12 @@ float flt_100631A0; // weak
 float flt_100631A8; // weak
 extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
 int dword_10063388; // weak
-int dword_100637CC; // weak — fn-ptr slot (LittleFloat); cast at use site
-int dword_100637D0; // weak
-int dword_100637D4; // weak
-int dword_100637D8; // weak
-int dword_100637DC; // weak
-int dword_100637E0; // weak
+intptr_t dword_100637CC; // weak — fn-ptr slot (LittleFloat); intptr_t to survive 64-bit
+intptr_t dword_100637D0; // weak — fn-ptr slot (BigFloat dispatch)
+intptr_t dword_100637D4; // weak — fn-ptr slot (LittleLong; dead write on Linux)
+intptr_t dword_100637D8; // weak — fn-ptr slot (LittleShort; dead write on Linux)
+intptr_t dword_100637DC; // weak — fn-ptr slot (BigShort; dead write on Linux)
+intptr_t dword_100637E0; // weak — fn-ptr slot (BigLong; dead write on Linux)
 int dword_10063884; // weak
 int dword_100639F0; // weak
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
@@ -31434,6 +31434,8 @@ int __cdecl BotResetMoveState(bot_weaponstate_t *ws)
   weightconfig_t *v1; // esi
   int *v2; // ebx
 
+  /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it. */
+  if ( !ws ) return 0;
   v1 = ws->weightconfig;
   v2 = ws->itemweights;
   memset(ws, 0, sizeof(*ws));
@@ -39699,23 +39701,23 @@ int Swap_Init()
      * corrupts floats on GCC/MinGW builds (caller's fildl/fistpq pair
      * rounds via 24-bit mantissa). */
     dword_10063884 = 0;
-    *(int *)0x100637DC = (int)BigShort;
-    *(int *)0x100637D8 = (int)LittleShort;
-    *(int *)0x100637E0 = (int)BigLong;
-    *(int *)0x100637D4 = (int)LittleLong;
-    *(int *)0x100637D0 = (int)BigFloat;
-    *(int *)0x100637CC = (int)sub_100439D0;
+    dword_100637DC = (intptr_t)BigShort;
+    dword_100637D8 = (intptr_t)LittleShort;
+    dword_100637E0 = (intptr_t)BigLong;
+    dword_100637D4 = (intptr_t)LittleLong;
+    dword_100637D0 = (intptr_t)BigFloat;
+    dword_100637CC = (intptr_t)sub_100439D0;
   }
   else
   {
     /* big-endian: swap for Little*, identity for Big* */
     dword_10063884 = 1;
-    *(int *)0x100637DC = (int)LittleShort;
-    *(int *)0x100637D8 = (int)BigShort;
-    *(int *)0x100637E0 = (int)LittleLong;
-    *(int *)0x100637D4 = (int)BigLong;
-    *(int *)0x100637D0 = (int)sub_100439D0;
-    *(int *)0x100637CC = (int)BigFloat;
+    dword_100637DC = (intptr_t)LittleShort;
+    dword_100637D8 = (intptr_t)BigShort;
+    dword_100637E0 = (intptr_t)LittleLong;
+    dword_100637D4 = (intptr_t)BigLong;
+    dword_100637D0 = (intptr_t)sub_100439D0;
+    dword_100637CC = (intptr_t)BigFloat;
   }
   return 1;
 }
