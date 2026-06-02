@@ -8462,7 +8462,7 @@ int __cdecl sub_1000B1F0(float *ref, int target)
  * holds the entity's aas_link_t* chain head; this thin wrapper hands
  * that chain to AAS_BestReachableLinkArea and returns the result.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1000B1B0(int entitynum)
+int __cdecl AAS_BestReachableEntityArea(int entitynum)
 {
   /* aasworld.entities is exposed in botlib.c as `aasworld.entities`
    * (the 132-byte-stride aas_entity_t array); the +0x7c field is the
@@ -11041,13 +11041,13 @@ LABEL_87:
 // 1000F840: using guessed type char var_6C[36];
 
 //----- (10010690) --------------------------------------------------------
-/* sub_10010690 — DEAD movement-prediction debug helper.  Restored from
+/* AAS_TestMovementPrediction — DEAD movement-prediction debug helper.  Restored from
  * objdump@0x10010690 (68 lines).  Drives one AAS_ClientMovementPrediction
  * step with a forced +Z=224 jump impulse, then prints "leave ground\n"
  * via bi_Print if the prediction's result-flags byte sets bit 0x02.
  *
  * Signature (cdecl, 3 args):
- *   void sub_10010690(int client, vec3_t origin, vec3_t move_dir)
+ *   void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_dir)
  *
  *   1. If !AAS_Swimming(origin), move_dir[2] = 0 (flatten Z so the bot
  *      doesn't run into a ceiling).
@@ -11084,7 +11084,7 @@ LABEL_87:
  *
  * DEAD — Gladiator never references this; almost certainly a leftover
  * jump-prediction test harness from development. */
-static void sub_10010690(int client, vec3_t origin, vec3_t move_dir)
+static void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_dir)
 {
   char    result[80];        /* aas_clientmove_t — filled by prediction */
   vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
@@ -34019,7 +34019,7 @@ void __cdecl PC_FreeDefine(define_t *def)
  * Defines) — same author, same code, restored in the corresponding Q3
  * sources.  Dead in Gladiator: no caller; only kept live by the
  * /INCREMENTAL relink stub. */
-void __cdecl sub_10039EE0(source_t *source)
+void __cdecl PC_AddBuiltinDefines(source_t *source)
 {
   static const struct {
   char *name;
@@ -34620,7 +34620,7 @@ define_t *__cdecl PC_DefineFromString(const char *a1)
  * fresh define_t and links it into source->definehash; returns 1 on
  * success, 0 if parsing failed.  Dead in Gladiator -- preserved by
  * /INCREMENTAL. */
-int __cdecl sub_1003B460(source_t *source, const char *string)
+int __cdecl PC_AddDefine(source_t *source, const char *string)
 {
   define_t *def;
 
@@ -34687,7 +34687,7 @@ int __cdecl PC_RemoveGlobalDefine(const char *a1)
 // calling PC_FreeDefine on the popped node.  This is the shutdown path
 // for the preprocessor's global #define table; Q3 botlib exposes it as
 // PC_RemoveAllGlobalDefines.
-void __cdecl sub_1003B520(void)
+void __cdecl PC_RemoveAllGlobalDefines(void)
 {
   define_t *d;
 
@@ -36082,7 +36082,7 @@ int __cdecl PC_CheckTokenString(source_t *src, const char *a2)
  *
  * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
  * keeps it live.  Matches Q3 l_precomp.c::PC_ExpectTokenType. */
-int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t *out_token)
+int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *out_token)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
@@ -36112,7 +36112,7 @@ int __cdecl sub_1003DBE0(source_t *source, int type, int subtype, token_t *out_t
  *
  * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
  * keeps it live.  Matches Q3 l_precomp.c::PC_SkipUntilString. */
-int __cdecl sub_1003DC80(source_t *source, char *string)
+int __cdecl PC_SkipUntilString(source_t *source, char *string)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+10h] [ebp-430h] BYREF
 
@@ -36244,7 +36244,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
  * name buffer is verbatim from the binary (LoadSourceFile uses
  * strncpy; the memory variant uses raw memcpy).  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-source_t *__cdecl sub_1003DF30(const void *buf, unsigned int length, const char *name)
+source_t *__cdecl LoadSourceMemory(const void *buf, unsigned int length, const char *name)
 {
   script_t *script;
   source_t *src;
@@ -37158,7 +37158,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
  * expected %s") and 0x1005FD0C ("expected %s, found %s") -- already
  * declared in botlib.c as aCouldnTFindExp / aExpectedSFound.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_1003F4D0(script_t *script, const char *string)
+int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 {
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
@@ -37453,11 +37453,11 @@ void __cdecl StripSingleQuotes(char *string)
 // else require token.type == TT_NUMBER, ScriptError'ing on mismatch
 // with .rdata 0x100603c8 "expected float value, found %s\n".  Returns
 // token.floatvalue * sign as a double.
-// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of sub_1003FEC0
+// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedInt
 // (integer variant below).  Restored from objdump@1003FDD0; sign is
 // constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
 // 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
-double __cdecl sub_1003FDD0(int script)
+double __cdecl ReadSignedFloat(int script)
 {
   double sign;
   token_t token;
@@ -37483,9 +37483,9 @@ double __cdecl sub_1003FDD0(int script)
 // float subtype (0x800), ScriptError'ing on mismatch with .rdata
 // 0x100603f0 "expected integer value, found %s\n".  Returns
 // token.intvalue * sign as int.
-// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of sub_1003FDD0
+// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedFloat
 // (float variant above).  Restored from objdump@1003FEC0.
-int __cdecl sub_1003FEC0(int script)
+int __cdecl ReadSignedInt(int script)
 {
   int sign;
   token_t token;
