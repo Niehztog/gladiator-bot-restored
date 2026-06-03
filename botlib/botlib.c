@@ -27827,7 +27827,6 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 {
   int *result; // eax
   int v4; // ebx
-  int v5; // edi
   int *v6; // ebp
   int v7; // eax
   int *v8; // [esp+10h] [ebp+8h]
@@ -27837,17 +27836,15 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
   v8 = result;
   if ( ic->numitems > 0 )
   {
-    v5 = 0;
     v6 = result;
     do
     {
-      v7 = FindFuzzyWeight(iwc, (char *)ic->items + v5 + 0x50);
+      v7 = FindFuzzyWeight(iwc, ic->items[v4].dispname);
       *v6 = v7;
       if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4, (char *)ic->items + v5 + 0x50);
+        Log_Write(aItemInfoDSHasN, v4, ic->items[v4].dispname);
       ++v4;
       ++v6;
-      v5 += 284;
     }
     while ( v4 < ic->numitems );
     return v8;
@@ -27946,12 +27943,9 @@ _DWORD * BotInitLevelItems()
 {
   _DWORD *result; // eax
   itemconfig_t *v2; // ebx
-  int v3; // esi
   bsp_entity_t *v4; // ebp
   int i; // edi
-  char *v6; // eax
   int v7; // ebp
-  const char *v8; // edi
   const char *ArgList; // [esp+28h] [ebp-18h]
   bsp_entity_t *v11; // [esp+2Ch] [ebp-14h]
   /* IDA split the item-origin vec3 into three separate floats v12/v13/v14
@@ -27965,20 +27959,17 @@ _DWORD * BotInitLevelItems()
 
   result = (_DWORD *)InitLevelItemHeap();
   v2 = dword_1006435C;
-  v3 = 0;
   dword_10064360 = 0;
   dword_10064354 = 0;
   if ( dword_1006435C )
   {
     v4 = AAS_ParseBSPEntities();
     notspawnflags_mask = (int)LibVarValue(aNotspawnflags, (char *)a2048);
-    for ( i = 0; i < v2->numitems; v3 += 284 )
+    for ( i = 0; i < v2->numitems; ++i )
     {
-      *(_DWORD *)((char *)v2->items + v3 + 240) = IndexFromModel((char *)((char *)v2->items + v3 + 160));
-      v6 = (char *)v2->items + v3;
-      if ( !*(_DWORD *)(v6 + 240) )
-        Log_Write(aItemSHasModeli, v6 + 80);
-      ++i;
+      v2->items[i].modelindex = IndexFromModel(v2->items[i].model);
+      if ( !v2->items[i].modelindex )
+        Log_Write(aItemSHasModeli, v2->items[i].dispname);
     }
     v11 = v4;
     if ( v4 )
@@ -27991,11 +27982,9 @@ _DWORD * BotInitLevelItems()
           v7 = 0;
           if ( v2->numitems > 0 )
           {
-            v8 = (const char *)((char *)v2->items + 80);
-            while ( strcmp(ArgList, v8) )
+            while ( strcmp(ArgList, v2->items[v7].dispname) )
             {
               ++v7;
-              v8 += 284;
               if ( v7 >= v2->numitems )
                 goto LABEL_20;
             }
@@ -28008,7 +27997,7 @@ _DWORD * BotInitLevelItems()
               li->number = ++dword_10064354;
               li->timeout = 0.0f;
               li->entitynum = 0;
-              if ( !AAS_DropToFloor(origin, (float *)((char *)v2->items + 284 * v7 + 256), (float *)((char *)v2->items + 284 * v7 + 268)) )
+              if ( !AAS_DropToFloor(origin, v2->items[v7].mins, v2->items[v7].maxs) )
                 bi_Print(1, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
               li->iteminfo = v7;
               li->origin[0] = origin[0];
@@ -28016,8 +28005,8 @@ _DWORD * BotInitLevelItems()
               li->origin[2] = origin[2];
               li->areanum = AAS_BestReachableArea(
                                        (int *)origin,
-                                       (float *)((char *)v2->items + 284 * v7 + 256),
-                                       (float *)((char *)v2->items + 284 * v7 + 268),
+                                       v2->items[v7].mins,
+                                       v2->items[v7].maxs,
                                        li->goalorigin);
               AddLevelItemToList(li);
             }
@@ -28170,13 +28159,11 @@ int sub_1002FA20()
   int v3; // ebp
   int v4; // ebx
   levelitem_t *v5;
-  int *v6; // edi
   int v7; // eax
   float v8; // eax
   float v9; // ecx
   float v10; // edx
   int v11; // ecx
-  _DWORD *v12; // eax
   levelitem_t *v13;
   float v14; // ecx
   float v15; // edx
@@ -28226,8 +28213,7 @@ int sub_1002FA20()
       goto LABEL_24;
     while ( 1 )
     {
-      v6 = (int *)v18;
-      if ( *(_DWORD *)((char *)v18->items + 284 * v5->iteminfo + 240) != v20 )
+      if ( v18->items[v5->iteminfo].modelindex != v20 )
         goto LABEL_19;
       v7 = v5->entitynum;
       if ( !v7 )
@@ -28258,26 +28244,23 @@ LABEL_19:
     v5->origin[2] = v22[6];
     v5->areanum = AAS_BestReachableArea(
               (int *)v5->origin,
-              (float *)((char *)v18->items + 284 * v4 + 256),
-              (float *)((char *)v18->items + 284 * v4 + 268),
+              v18->items[v4].mins,
+              v18->items[v4].maxs,
               v5->goalorigin);
 LABEL_23:
     if ( !v5 )
     {
 LABEL_24:
-      v6 = (int *)v18;
 LABEL_25:
       v11 = v18->numitems;
       v4 = 0;
-      if ( *v6 > 0 )
+      if ( v18->numitems > 0 )
       {
-        v12 = (_DWORD *)((char *)v18->items + 240);
         do
         {
-          if ( *v12 == v20 )
+          if ( v18->items[v4].modelindex == v20 )
             break;
           ++v4;
-          v12 += 71;
         }
         while ( v4 < v11 );
       }
@@ -28296,8 +28279,8 @@ LABEL_25:
         v13->iteminfo = v4;
         v13->areanum = AAS_BestReachableArea(
                                   (int *)v13->origin,
-                                  (float *)((char *)v18->items + 284 * v4 + 256),
-                                  (float *)((char *)v18->items + 284 * v4 + 268),
+                                  v18->items[v4].mins,
+                                  v18->items[v4].maxs,
                                   v13->goalorigin);
         v13->timeout = AAS_Time() + 30.0;
         AddLevelItemToList(v13);

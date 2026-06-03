@@ -46,9 +46,10 @@ typedef struct soundinfo_s {
  * Trailing 8 bytes (0x118..0x11F) appear unused/reserved.
  * ------------------------------------------------------------------------- */
 typedef struct iteminfo_s {
-    char    name[80];        /* +0x000 — item classname (e.g. "item_health")  */
-    char    dispname[80];    /* +0x050 — display name (set by LoadItemConfig before sub_10040AD0) */
-    char    model[84];       /* +0x0A0 — model path; ends at 0xF4             */
+    char    name[80];        /* +0x000 — item config name (e.g. "Shotgun")    */
+    char    dispname[80];    /* +0x050 — spawn classname for BSP matching (set by LoadItemConfig) */
+    char    model[80];       /* +0x0A0 — model path                           */
+    int     modelindex;      /* +0x0F0 — engine model index, = IndexFromModel(model); filled by BotInitLevelItems */
     int     type;            /* +0x0F4 — item-type bitfield                   */
     int     index;           /* +0x0F8 — item index in inventory              */
     float   respawntime;     /* +0x0FC — respawn delay in seconds             */
