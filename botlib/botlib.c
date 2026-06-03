@@ -6246,7 +6246,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   {
     *((_DWORD *)aasworld.areasettings + 7 * ArgList + 3) = -v2;
     v8 = (char *)aasworld.clusters + 12 * a2;
-    *((_DWORD *)aasworld.portalindex + *((_DWORD *)v8 + 1) + *((_DWORD *)v8 + 2)) = v2;
+    aasworld.portalindex[*((_DWORD *)v8 + 1) + *((_DWORD *)v8 + 2)] = v2;
     ++aasworld.portalindexsize;
     ++*((_DWORD *)v8 + 1);
   }
@@ -6390,7 +6390,7 @@ void __cdecl AAS_NumberClusterPortals(int clusternum)
   cluster = (_DWORD *)((char *)aasworld.clusters + 12 * clusternum);
   for ( i = 0; i < (int)cluster[1]; i++ )
   {
-    portalnum = *((_DWORD *)aasworld.portalindex + cluster[2] + i);
+    portalnum = aasworld.portalindex[cluster[2] + i];
     portal = (_DWORD *)((char *)aasworld.portals + 20 * portalnum);
     if ( portal[1] == clusternum )
       portal[3] = cluster[0]++;
@@ -6959,7 +6959,7 @@ int AAS_InitClustering()
       aasworld.portals = (void *)GetClearedMemory(1310720);
       if ( aasworld.portalindex )
         FreeMemory(aasworld.portalindex);
-      aasworld.portalindex = (void *)GetClearedMemory(0x40000);
+      aasworld.portalindex = (int *)GetClearedMemory(0x40000);
       if ( aasworld.clusters )
         FreeMemory(aasworld.clusters);
       aasworld.clusters = (void *)GetClearedMemory(786432);
@@ -8796,7 +8796,7 @@ int AAS_SwapAASData()
   }
   for ( m = 0; m < aasworld.portalindexsize; ++m )
   {
-    *((_DWORD *)aasworld.portalindex + m) = LittleLong(*(int *)((int *)aasworld.portalindex + m));
+    aasworld.portalindex[m] = LittleLong(aasworld.portalindex[m]);
   }
   result = aasworld.numclusters;
   v71 = 0;
@@ -9211,7 +9211,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v69 = (size_t)LittleLong(aas_h.lumps[12].filelen);
   v70 = v69;
   v71 = AAS_LoadAASLump(v3, v68, v69);
-  aasworld.portalindex = v71;
+  aasworld.portalindex = (int *)v71;
   v70 >>= 2;
   aasworld.portalindexsize = v70;
   if ( v70 && !v71 )
@@ -16070,7 +16070,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
       int cluster_firstportal = ((int *)clust)[2];
       for ( i = 0; i < cluster_numportals; ++i )
       {
-        v10 = ((int *)aasworld.portalindex)[cluster_firstportal + i];
+        v10 = aasworld.portalindex[cluster_firstportal + i];
         v11 = portals[v10].areanum;
         if ( v11 != cur->areanum )
         {
@@ -16275,7 +16275,7 @@ LABEL_20:
     v19 = aasworld.portals;
     while ( 1 )
     {
-      v20 = *((_DWORD *)aasworld.portalindex + v16 + *((_DWORD *)v18 + 2));
+      v20 = aasworld.portalindex[v16 + *((_DWORD *)v18 + 2)];
       if ( ((unsigned short *)(v17 + 1))[v20] )   /* 64-bit fix: was `+ 2*v20 + 40` */
       {
         v21 = AAS_GetAreaRoutingCache(v6, v19[5 * v20], goalareanum);

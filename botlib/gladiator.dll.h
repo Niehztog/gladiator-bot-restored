@@ -455,7 +455,7 @@ typedef struct aas_world_s {
     int   numportals;               /* +0x188  (VA 0x10066968, was "dword_10066968")    */
     void *portals;                  /* +0x18C */
     int   portalindexsize;          /* +0x190 */
-    void *portalindex;              /* +0x194 */
+    int  *portalindex;              /* +0x194  flat int[] (portal numbers per cluster) */
     int   numclusters;              /* +0x198  (VA 0x10066978, was "ArgList")           */
     void *clusters;                 /* +0x19C */
     int   numreachabilityareas;     /* +0x1A0  (VA 0x10066980) */
