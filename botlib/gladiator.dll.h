@@ -471,7 +471,7 @@ typedef struct aas_world_s {
     int   portalindexsize;          /* +0x190 */
     int  *portalindex;              /* +0x194  flat int[] (portal numbers per cluster) */
     int   numclusters;              /* +0x198  (VA 0x10066978, was "ArgList")           */
-    void *clusters;                 /* +0x19C */
+    aas_cluster_t *clusters;        /* +0x19C */
     int   numreachabilityareas;     /* +0x1A0  (VA 0x10066980) */
     float reachabilitytime;         /* +0x1A4  (Q3-equivalent slot; binary leaves 4 B)  */
     struct aas_link_s  *linkheap;   /* +0x1A8  (VA 0x10066988) */
