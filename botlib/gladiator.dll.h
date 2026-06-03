@@ -472,7 +472,7 @@ typedef struct aas_world_s {
     struct indexlist_s *imageindex_table;  /* +0x1CC */
     int   indexes_loaded;           /* +0x1D0 */
     int   numsoundinfo;             /* +0x1D4  (VA 0x100669B4) sound entry count        */
-    void *soundinfo;                /* +0x1D8  (VA 0x100669B8) soundinfo_t array        */
+    struct soundinfo_s *soundinfo;  /* +0x1D8  (VA 0x100669B8) soundinfo_t array (fwd-decl; full def in botlib_structs.h) */
     int    d_100669BC;              /* +0x1DC */
     void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
     /* aas_world.d_100669C4..D8 are six pointers maintaining a 52-byte

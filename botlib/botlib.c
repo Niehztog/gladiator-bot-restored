@@ -17799,7 +17799,7 @@ void __cdecl sub_1001C6F0(void)
     fp = Log_FilePointer();
     if ( !fp )
       return;
-    WriteStructure(fp, (int)&unk_1005C138, (char *)aasworld.soundinfo + 176 * i);
+    WriteStructure(fp, (int)&unk_1005C138, (char *)&aasworld.soundinfo[i]);
     Log_Flush();
   }
 }
@@ -17823,7 +17823,7 @@ int sub_1001C760(char *Source)
   }
   if ( aasworld.soundinfo )
     FreeMemory(aasworld.soundinfo);
-  aasworld.soundinfo = GetClearedMemory(176 * v2);
+  aasworld.soundinfo = (soundinfo_t *)GetClearedMemory(sizeof(soundinfo_t) * v2);
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
   if ( sub_10041F60(Destination, &file_ref) )
@@ -17842,8 +17842,8 @@ int sub_1001C760(char *Source)
             SourceError(v5, aMoreThanDSound, v2);
             goto LABEL_21;
           }
-          memset((void *)((char *)aasworld.soundinfo + 176 * aasworld.numsoundinfo), 0, 0xB0u);
-          if ( !ReadStructure(v5, &unk_1005C138, (char *)aasworld.soundinfo + 176 * aasworld.numsoundinfo) )
+          memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
+          if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
           {
             FreeSource(v5);
             return 0;
@@ -18246,7 +18246,6 @@ int *sub_1001D140()
   int v0; // ebx
   int *result; // eax
   int v2; // esi
-  int v3; // edi
   int v4; // ecx
 
   if ( aasworld.d_100669C0 )
@@ -18268,16 +18267,14 @@ int *sub_1001D140()
         v2 = 0;
         if ( aasworld.numsoundinfo > 0 )
         {
-          v3 = 0;
-          while ( Q_stricmp((char *)((char *)(char *)aasworld.soundinfo + v3), aasworld.soundindex_table->indexes[v0]) )
+          while ( Q_stricmp(aasworld.soundinfo[v2].name, aasworld.soundindex_table->indexes[v0]) )
           {
             ++v2;
-            v3 += 176;
             result = (int *)aasworld.soundindex_table;
             if ( v2 >= aasworld.numsoundinfo )
               goto LABEL_11;
           }
-          aasworld.d_100669C0[v0] = (char *)(char *)aasworld.soundinfo + 176 * v2;
+          aasworld.d_100669C0[v0] = &aasworld.soundinfo[v2];
           result = (int *)aasworld.soundindex_table;
         }
       }
