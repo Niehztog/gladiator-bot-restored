@@ -461,7 +461,7 @@ typedef struct aas_world_s {
     int   numareas;                 /* +0x168 */
     void *areas;                    /* +0x16C */
     int   numareasettings;          /* +0x170 */
-    void *areasettings;             /* +0x174 */
+    aas_areasettings_t *areasettings; /* +0x174 */
     int   reachabilitysize;         /* +0x178 */
     void *reachability;             /* +0x17C */
     int   numnodes;                 /* +0x180 */
