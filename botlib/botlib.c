@@ -357,7 +357,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
 int __cdecl WriteFloat(FILE *Stream, float); // idb
-// sub_10025560: actual return type is function pointer - see definition
+// BotAIBlocked: actual return type is function pointer - see definition
 /* BotMoveInDirection: at 0x10031BE0 — public movement-dispatcher entry that
  * routes (movestate, dir, speed, type) to BotSwimInDirection when the bot's
  * origin is in liquid (LAVA|SLIME|WATER), otherwise to BotWalkInDirection.
@@ -675,7 +675,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs);
 // void BotCheckAttack(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
 int __cdecl BotSetMovedir(float *angles, float *dir);
-ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3);
+ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, _DWORD *a2, int a3);
 void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
@@ -19267,7 +19267,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, (_DWORD *)&v15, 1);
+  BotAIBlocked(bs, (_DWORD *)&v15, 1);
   if ( (v15.flags & 3) != 0 )
   {
     bs->ideal_viewangles[0] = v15.ideal_viewangles[0];
@@ -19406,7 +19406,7 @@ LABEL_18:
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, (_DWORD *)&v15, 1);
+  BotAIBlocked(bs, (_DWORD *)&v15, 1);
   if ( (v15.flags & 3) == 0 )
   {
     if ( (v15.flags & 4) != 0 )
@@ -19482,7 +19482,7 @@ LABEL_33:
 // 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
 // 10001DBB: using guessed type _DWORD __cdecl BotGetSecondGoal(_DWORD);
-// 10001DF7: using guessed type _DWORD __cdecl sub_10025560(_DWORD, _DWORD, _DWORD);
+// 10001DF7: using guessed type _DWORD __cdecl BotAIBlocked(_DWORD, _DWORD, _DWORD);
 // 10001E33: using guessed type _DWORD __cdecl BotRoamGoal(_DWORD, _DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
@@ -19609,7 +19609,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       BotResetAvoidReach((_DWORD *)bs->movestate);
       bs->ltg_time = 0.0f;
     }
-    sub_10025560(bs, (_DWORD *)&v18, 1);
+    BotAIBlocked(bs, (_DWORD *)&v18, 1);
     if ( (v18.flags & 3) != 0 )
     {
       v6 = LODWORD(v18.ideal_viewangles[1]);
@@ -19678,7 +19678,7 @@ LABEL_42:
 // 10001AD2: using guessed type _DWORD __cdecl sub_100371B0(_DWORD, _DWORD);
 // 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
 // 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
-// 10001DF7: using guessed type _DWORD __cdecl sub_10025560(_DWORD, _DWORD, _DWORD);
+// 10001DF7: using guessed type _DWORD __cdecl BotAIBlocked(_DWORD, _DWORD, _DWORD);
 // 10001E33: using guessed type _DWORD __cdecl BotRoamGoal(_DWORD, _DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
@@ -19783,7 +19783,7 @@ LABEL_9:
         BotResetAvoidReach((_DWORD *)bs->movestate);
         bs->ltg_time = 0.0f;
       }
-      sub_10025560(bs, v11, 0);
+      BotAIBlocked(bs, v11, 0);
       BotAimAtEnemy(bs);
       BotCheckAttack(bs);
       if ( BotWantsToRetreat((int *)bs) )
@@ -19821,7 +19821,7 @@ LABEL_9:
 // 10001C7B: using guessed type _DWORD __cdecl BotAimAtEnemy(_DWORD);
 // 10001CD0: using guessed type double __cdecl BotChatTime(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
-// 10001DF7: using guessed type _DWORD __cdecl sub_10025560(_DWORD, _DWORD, _DWORD);
+// 10001DF7: using guessed type _DWORD __cdecl BotAIBlocked(_DWORD, _DWORD, _DWORD);
 // 10001F73: using guessed type _DWORD __cdecl BotWantsToChase(_DWORD);
 // 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
 // 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
@@ -19946,7 +19946,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
           BotResetAvoidReach((_DWORD *)bs->movestate);
           bs->ltg_time = 0.0f;
         }
-        sub_10025560(bs, (_DWORD *)&v13, 0);
+        BotAIBlocked(bs, (_DWORD *)&v13, 0);
         if ( (v13.flags & 3) != 0 )
         {
           v7 = LODWORD(v13.ideal_viewangles[1]);
@@ -20002,7 +20002,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 // 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
 // 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
-// 10001DF7: using guessed type _DWORD __cdecl sub_10025560(_DWORD, _DWORD, _DWORD);
+// 10001DF7: using guessed type _DWORD __cdecl BotAIBlocked(_DWORD, _DWORD, _DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 10001F96: using guessed type _DWORD __cdecl BotWantsToRetreat(_DWORD);
 // 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
@@ -20111,7 +20111,7 @@ LABEL_10:
           BotResetAvoidReach((_DWORD *)bs->movestate);
           bs->ltg_time = 0.0f;
         }
-        sub_10025560(bs, (_DWORD *)&v10, 0);
+        BotAIBlocked(bs, (_DWORD *)&v10, 0);
         sub_10020FE0(bs, BotWS(bs));
         BotChooseBestFightWeapon(BotWS(bs));
         if ( (v10.flags & 1) != 0 )
@@ -20180,7 +20180,7 @@ LABEL_10:
 // 10001CF8: using guessed type _DWORD __cdecl BotResetLastAvoidReach(_DWORD);
 // 10001D02: using guessed type _DWORD __cdecl AIEnter_Battle_NBG(_DWORD);
 // 10001D61: using guessed type _DWORD __cdecl AIEnter_Seek_LTG(_DWORD);
-// 10001DF7: using guessed type _DWORD __cdecl sub_10025560(_DWORD, _DWORD, _DWORD);
+// 10001DF7: using guessed type _DWORD __cdecl BotAIBlocked(_DWORD, _DWORD, _DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 // 10001F73: using guessed type _DWORD __cdecl BotWantsToChase(_DWORD);
 // 10001FB4: using guessed type _DWORD __cdecl BotIsDead(_DWORD);
@@ -20282,7 +20282,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, (_DWORD *)&v15, 0);
+  BotAIBlocked(bs, (_DWORD *)&v15, 0);
   sub_10020FE0(bs, BotWS(bs));
   BotUpdateBattleInventory(bs, bs->enemy);
   BotChooseBestFightWeapon(BotWS(bs));
@@ -22224,7 +22224,7 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
 //----- (10025070) --------------------------------------------------------
 /* Debug visualizer for func_button entities.  Restored from disassembly
  * 0x10025070-0x1002545d.  IDA Pro skipped this function entirely (gap
- * between BotCheckAttack and sub_10025560); RetDec emitted it as
+ * between BotCheckAttack and BotAIBlocked); RetDec emitted it as
  * function_10025070 but in an unusable register-rewriting form.
  *
  * Walks the BSP entity linked list at dword_10064398, filters by
@@ -22372,7 +22372,7 @@ void __cdecl sub_10025070(void)
 // 10064398: using guessed type int dword_10064398;
 
 //----- (10025560) --------------------------------------------------------
-ai_node_fn_t __cdecl sub_10025560(bot_state_t *bs, _DWORD *a2, int a3)
+ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, _DWORD *a2, int a3)
 {
 
   _DWORD *v3; // ebx

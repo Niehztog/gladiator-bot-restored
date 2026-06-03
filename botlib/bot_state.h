@@ -176,7 +176,7 @@ typedef struct bot_state_s {
                 };
             };
             int    flags;                 /* +2752 several flags — bit 0x02 toggled in BotEntityVisible area,
-                                           * bit 0x10 XOR-toggled in sub_10025560 direction flip.
+                                           * bit 0x10 XOR-toggled in BotAIBlocked direction flip.
                                            * Q3 ancestor: bs->flags (ai_main.h:143). Byte- and dword-accessed. */
             int    _i2756;                /* +2756 no readers AND no writers in the original DLL disasm
                                            * (zero hits for `[reg+0xac4]`).  Truly vestigial slot — likely a
@@ -246,7 +246,7 @@ typedef struct bot_state_s {
                                            * `AAS_Time() - reaction >= enemysight_time` to gate firing.
                                            * Q3 ancestor: bs->enemysight_time (ai_main.h:181). */
             float  activategoal_time;     /* +2852 time the activategoal expires; set to AAS_Time()+10 when the
-                                           * activategoal is established in sub_10025560; reset to 0 on
+                                           * activategoal is established in BotAIBlocked; reset to 0 on
                                            * touching goal. No direct Q3 ancestor (Q3 uses a stack of
                                            * bot_activategoal_t instead of a scalar timer). */
             char   _pad_B1Ch[4];          /* +2856..+2859 */
