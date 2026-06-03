@@ -6197,8 +6197,8 @@ int AAS_RemoveClusterAreas()
 int __cdecl AAS_UpdatePortal(int ArgList, int a2)
 {
   int v2; // eax
-  _DWORD *v3; // ecx
-  char *v5; // edx
+  aas_portal_t *v3; // ecx
+  aas_portal_t *v5; // edx
   int v6; // edi
   int v7; // ebx
   aas_cluster_t *v8; // ecx
@@ -6206,13 +6206,13 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   v2 = 1;
   if ( aasworld.numportals > 1 )
   {
-    v3 = (char *)aasworld.portals + 20;
+    v3 = &aasworld.portals[1];
     do
     {
-      if ( *v3 == ArgList )
+      if ( v3->areanum == ArgList )
         break;
       ++v2;
-      v3 += 5;
+      ++v3;
     }
     while ( v2 < aasworld.numportals );
   }
@@ -6221,11 +6221,11 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
     AAS_Error(aNoPortalOfArea, ArgList);
     return 1;
   }
-  v5 = (char *)aasworld.portals + 20 * v2;
-  v6 = *((_DWORD *)v5 + 1);
+  v5 = &aasworld.portals[v2];
+  v6 = v5->frontcluster;
   if ( v6 == a2 )
     return 1;
-  v7 = *((_DWORD *)v5 + 2);
+  v7 = v5->backcluster;
   if ( v7 == a2 )
     return 1;
   if ( v6 )
@@ -6236,11 +6236,11 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
       aasworld.areasettings[ArgList].contents &= ~8u;
       return 0;
     }
-    *((_DWORD *)v5 + 2) = a2;
+    v5->backcluster = a2;
   }
   else
   {
-    *((_DWORD *)v5 + 1) = a2;
+    v5->frontcluster = a2;
   }
   if ( aasworld.portalindexsize < 0x10000 )
   {
@@ -6385,17 +6385,17 @@ void __cdecl AAS_NumberClusterPortals(int clusternum)
   int i;
   int portalnum;
   aas_cluster_t *cluster;
-  _DWORD *portal;
+  aas_portal_t *portal;
 
   cluster = &aasworld.clusters[clusternum];
   for ( i = 0; i < (int)cluster->numreachabilityareas; i++ )
   {
     portalnum = aasworld.portalindex[cluster->firstportal + i];
-    portal = (_DWORD *)((char *)aasworld.portals + 20 * portalnum);
-    if ( portal[1] == clusternum )
-      portal[3] = cluster->numareas++;
+    portal = &aasworld.portals[portalnum];
+    if ( portal->frontcluster == clusternum )
+      portal->clusterareanum[0] = cluster->numareas++;
     else
-      portal[4] = cluster->numareas++;
+      portal->clusterareanum[1] = cluster->numareas++;
   }
 }
 
@@ -6446,7 +6446,7 @@ LABEL_9:
 void AAS_CreatePortals()
 {
   int i;
-  int *portal;
+  aas_portal_t *portal;
 
   for ( i = 1; i < aasworld.numareas; i++ )
   {
@@ -6457,10 +6457,10 @@ void AAS_CreatePortals()
         AAS_Error(aAasMaxPortals);
         return;
       }
-      portal = (int *)((char *)aasworld.portals + 20 * aasworld.numportals);
-      portal[0] = i;
-      portal[1] = 0;
-      portal[2] = 0;
+      portal = &aasworld.portals[aasworld.numportals];
+      portal->areanum = i;
+      portal->frontcluster = 0;
+      portal->backcluster = 0;
       Log_Write(aPortalDAreaD, aasworld.numportals, i);
       aasworld.numportals++;
     }
@@ -15979,7 +15979,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
   if ( v5 > 0 )
     v10 = v4->clusterareanum;
   else
-    v10 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v5)[1] != a1) - 5 * v5 + 3);
+    v10 = aasworld.portals[-v5].clusterareanum[aasworld.portals[-v5].frontcluster != a1];
   head = aasworld.clusterareacache[a1][v10];
   cur  = head;
   while ( cur && cur->travelflags != a3 )
@@ -16167,12 +16167,12 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum)
 {
   __int16 result; // ax
-  _DWORD *v5; // ecx
+  aas_portal_t *v5; // ecx
   int v6; // edi
   int v7; // esi
   int v9; // eax
-  char *v10; // ecx
-  char *v11; // ecx
+  aas_portal_t *v10; // ecx
+  aas_portal_t *v11; // ecx
   aas_routingcache_t *v12; // 64-bit fix (was int)
   int v13; // edx
   int v14; // ebp
@@ -16180,7 +16180,7 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   int v16; // edx
   aas_routingcache_t *v17; // 64-bit fix (was int)
   aas_cluster_t *v18; // ecx
-  _DWORD *v19; // eax
+  aas_portal_t *v19; // eax
   int v20; // esi
   aas_routingcache_t *v21; // 64-bit fix (was int)
   int v22; // ecx
@@ -16214,8 +16214,8 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   v9 = aasworld.areasettings[a2].cluster;
   if ( v6 < 0 && v9 > 0 )
   {
-    v10 = (char *)aasworld.portals - 20 * v6;
-    if ( *((_DWORD *)v10 + 1) == v9 || *((_DWORD *)v10 + 2) == v9 )
+    v10 = &aasworld.portals[-v6];
+    if ( v10->frontcluster == v9 || v10->backcluster == v9 )
       v7 = aasworld.areasettings[a2].cluster;
     goto LABEL_19;
   }
@@ -16223,8 +16223,8 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   {
     if ( v9 >= 0 )
       goto LABEL_20;
-    v11 = (char *)aasworld.portals - 20 * v9;
-    if ( *((_DWORD *)v11 + 1) == v6 || *((_DWORD *)v11 + 2) == v6 )
+    v11 = &aasworld.portals[-v9];
+    if ( v11->frontcluster == v6 || v11->backcluster == v6 )
       v9 = aasworld.areasettings[areanum].cluster;
 LABEL_19:
     v5 = aasworld.portals;
@@ -16237,7 +16237,7 @@ LABEL_20:
       if ( v6 <= 0 )
       {
         v5 = aasworld.portals;
-        v13 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v6)[1] != v7) - 5 * v6 + 3);
+        v13 = aasworld.portals[-v6].clusterareanum[aasworld.portals[-v6].frontcluster != v7];
       }
       else
       {
@@ -16255,7 +16255,7 @@ LABEL_20:
   }
   v14 = aasworld.areasettings[a2].cluster;
   if ( v14 < 0 )
-    v14 = v5[-5 * v14 + 1];
+    v14 = v5[-v14].frontcluster;
   v15 = AAS_GetPortalRoutingCache(v14, a2, goalareanum);
   v16 = 0;
   v17 = v15;
@@ -16274,13 +16274,13 @@ LABEL_20:
       v20 = aasworld.portalindex[v16 + v18->firstportal];
       if ( ((unsigned short *)(v17 + 1))[v20] )   /* 64-bit fix: was `+ 2*v20 + 40` */
       {
-        v21 = AAS_GetAreaRoutingCache(v6, v19[5 * v20], goalareanum);
+        v21 = AAS_GetAreaRoutingCache(v6, v19[v20].areanum, goalareanum);
         v19 = aasworld.portals;
         v22 = aasworld.areasettings[areanum].cluster;
         if ( v22 <= 0 )
         {
           v19 = aasworld.portals;
-          v23 = *((_DWORD *)aasworld.portals + (((_DWORD *)aasworld.portals - 5 * v22)[1] != v6) - 5 * v22 + 3);
+          v23 = aasworld.portals[-v22].clusterareanum[aasworld.portals[-v22].frontcluster != v6];
         }
         else
         {
