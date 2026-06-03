@@ -423,6 +423,20 @@ typedef struct aas_routingupdate_s {
     struct aas_routingupdate_s    *next;             /* +32 fifo next              */
     struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
 } aas_routingupdate_t;
+/* Forward typedefs for the AAS element types (full defs in aas_world.h, which
+ * is included AFTER this header).  Tagged structs let the aas_world_t member
+ * arrays below be typed as element pointers instead of void*, so call sites can
+ * use aasworld.X[i].field instead of IDA byte-arithmetic.  Pointer fields only
+ * need the incomplete type here; the full layout arrives with aas_world.h. */
+typedef struct aas_plane_s        aas_plane_t;
+typedef struct aas_edge_s         aas_edge_t;
+typedef struct aas_face_s         aas_face_t;
+typedef struct aas_area_s         aas_area_t;
+typedef struct aas_areasettings_s aas_areasettings_t;
+typedef struct aas_reachability_s aas_reachability_t;
+typedef struct aas_node_s         aas_node_t;
+typedef struct aas_portal_s       aas_portal_t;
+typedef struct aas_cluster_s      aas_cluster_t;
 typedef struct aas_world_s {
     int   loaded;                   /* +0x000  (VA 0x100667E0) */
     int   initialized;              /* +0x004  (VA 0x100667E4) */
@@ -451,7 +465,7 @@ typedef struct aas_world_s {
     int   reachabilitysize;         /* +0x178 */
     void *reachability;             /* +0x17C */
     int   numnodes;                 /* +0x180 */
-    void *nodes;                    /* +0x184 */
+    aas_node_t *nodes;              /* +0x184 */
     int   numportals;               /* +0x188  (VA 0x10066968, was "dword_10066968")    */
     void *portals;                  /* +0x18C */
     int   portalindexsize;          /* +0x190 */

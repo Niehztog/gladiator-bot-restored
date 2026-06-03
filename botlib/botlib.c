@@ -16817,7 +16817,7 @@ void AAS_FreeAASLinkedEntities()
 int __cdecl AAS_PointAreaNum(vec3_t point)
 {
   int v2; // eax
-  _DWORD *v3; // ecx
+  aas_node_t *v3; // ecx
 
   if ( !aasworld.loaded )
   {
@@ -16827,14 +16827,14 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   v2 = 1;
   do
   {
-    v3 = (char *)aasworld.nodes + 12 * v2;
-    if ( point[0] * *((float *)aasworld.planes + 5 * *v3)
-       + point[1] * *((float *)aasworld.planes + 5 * *v3 + 1)
-       + point[2] * *((float *)aasworld.planes + 5 * *v3 + 2)
-       - *((float *)aasworld.planes + 5 * *v3 + 3) > 0.0f )
-      v2 = v3[1];
+    v3 = &aasworld.nodes[v2];
+    if ( point[0] * *((float *)aasworld.planes + 5 * v3->planenum)
+       + point[1] * *((float *)aasworld.planes + 5 * v3->planenum + 1)
+       + point[2] * *((float *)aasworld.planes + 5 * v3->planenum + 2)
+       - *((float *)aasworld.planes + 5 * v3->planenum + 3) > 0.0f )
+      v2 = v3->children[0];
     else
-      v2 = v3[2];
+      v2 = v3->children[1];
   }
   while ( v2 > 0 );
   if ( !v2 )
@@ -17657,7 +17657,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
   int v6; // esi
   aas_link_t *v7; // eax (newly allocated link)
   aas_link_t *v10; // existing head at arealinkedentities[-v6]
-  _DWORD *v11; // esi  (was char* in IDA — actually a 3-int node {planenum, child[0], child[1]})
+  aas_node_t *v11; // esi  (was char* in IDA — a 3-int node {planenum, child[0], child[1]})
   char *v12; // ecx
   int v13; // edx
   char v14; // al
@@ -17686,12 +17686,12 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
     {
       if ( *v5 )
       {
-        v11 = (_DWORD *)((char *)aasworld.nodes + 12 * v6);
-        v12 = (char *)aasworld.planes + 20 * *v11;
+        v11 = &aasworld.nodes[v6];
+        v12 = (char *)aasworld.planes + 20 * v11->planenum;
         v13 = *((_DWORD *)v12 + 4);
         if ( v13 >= 3 )
         {
-          v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * *v11);
+          v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * v11->planenum);
         }
         else if ( *((float *)v12 + 3) > (float)a1[v13] )
         {
@@ -17705,9 +17705,9 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
           v14 = 1;
         }
         if ( (v14 & 1) != 0 )
-          *v5++ = v11[1];
+          *v5++ = v11->children[0];
         if ( (v14 & 2) != 0 )
-          *v5++ = v11[2];
+          *v5++ = v11->children[1];
       }
     }
     else

@@ -19,8 +19,8 @@
  * --------------------------------------------------------------------- */
 typedef float  aas_vertex_t[3];
 
-typedef struct { float normal[3]; float dist; int type; }  aas_plane_t;
-typedef struct { int v[2]; }                               aas_edge_t;
+typedef struct aas_plane_s { float normal[3]; float dist; int type; }  aas_plane_t;
+typedef struct aas_edge_s  { int v[2]; }                               aas_edge_t;
 typedef int                                                aas_edgeindex_t;
 /* aas_face_t — 24-byte face record (verified by stride `24 * facenum` in
  * 10+ usages).  Field naming matches Q3 botlib (be_aas_def.h aas_face_t):
@@ -29,7 +29,7 @@ typedef int                                                aas_edgeindex_t;
  * Earlier reconstruction had `{planenum; areas[2]; edges[2]}` which yielded
  * 20 bytes and reversed the area-vs-edge order; nothing in the codebase
  * referenced those member names so the rename is safe. */
-typedef struct {
+typedef struct aas_face_s {
     int planenum;
     int faceflags;
     int numedges;
@@ -39,14 +39,14 @@ typedef struct {
 } aas_face_t;
 typedef int                                                aas_faceindex_t;
 
-typedef struct {
+typedef struct aas_area_s {
     float mins[3];
     float maxs[3];
     int   firstface;
     int   numfaces;
 } aas_area_t;                           /* 40 bytes  (offset stride = 40) */
 
-typedef struct {
+typedef struct aas_areasettings_s {
     int contents;
     int areaflags;
     int presencetype;
@@ -56,7 +56,7 @@ typedef struct {
     int firstreachablearea;
 } aas_areasettings_t;                   /* 28 bytes  (stride = 28) */
 
-typedef struct {
+typedef struct aas_reachability_s {
     int   areanum;       /* +0  destination area number              */
     int   facenum;       /* +4  face crossed by this reachability    */
     int   edgenum;       /* +8  edge crossed by this reachability    */
@@ -76,8 +76,8 @@ typedef struct aas_reachabilitynode_s {
     struct aas_reachabilitynode_s  *next;      /* +44 on 32-bit, +48 on 64-bit (padding) */
 } aas_reachabilitynode_t;
 
-typedef struct { int planenum; int children[2]; } aas_node_t;
-typedef struct {
+typedef struct aas_node_s { int planenum; int children[2]; } aas_node_t;
+typedef struct aas_portal_s {
     int areanum;             /* +0  area on the front side                  */
     int frontcluster;        /* +4  cluster on the front side               */
     int backcluster;         /* +8  cluster on the back side                */
@@ -106,7 +106,7 @@ typedef struct aas_trace_s {
     int   planenum;     /* number of the plane that was hit */
 } aas_trace_t;
 
-typedef struct {
+typedef struct aas_cluster_s {
     int   numareas;              /* +0  stride was 12 (3 ints) in 32-bit binary */
     int   numreachabilityareas;  /* +4  */
     int   firstportal;           /* +8  */
