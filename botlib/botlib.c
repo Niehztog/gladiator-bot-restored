@@ -19261,7 +19261,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)ent, v8);
+  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)ent, v8);
   if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -19276,7 +19276,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   else
   {
-    if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)ent, v8, (intptr_t)target) )
+    if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)ent, v8, (float *)(intptr_t)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
@@ -19400,7 +19400,7 @@ LABEL_18:
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)v4, v8);
+  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v4, v8);
   if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -19424,7 +19424,7 @@ LABEL_18:
       v7 = BotGetSecondGoal(bs->goalstate);
       if ( !v7 )
         BotGetTopGoal(bs->goalstate);
-      if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v7, v8, (intptr_t)target) )
+      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
       {
         dir[0] = target[0] - bs->origin[0];
         dir[1] = target[1] - bs->origin[1];
@@ -19603,7 +19603,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    v18 = *BotMoveToGoal(&v19, (intptr_t)bs->movestate, v3, v2);
+    v18 = *BotMoveToGoal(&v19, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v2);
     if ( v18.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -19629,7 +19629,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       dir[2] = target[2] - bs->origin[2];
       vectoangles(dir, bs->ideal_viewangles);
     }
-    else if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v17, v10, (intptr_t)target) )
+    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v17, v10, (float *)(intptr_t)target) )
     {
       dir[0] = target[0] - bs->origin[0];
       dir[1] = target[1] - bs->origin[1];
@@ -19940,7 +19940,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
         BotUpdateBattleInventory(bs, bs->enemy);
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        v13 = *BotMoveToGoal(&v14, (intptr_t)bs->movestate, (intptr_t)v12, v2);
+        v13 = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v2);
         if ( v13.failure )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -19957,7 +19957,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
         }
         else
         {
-          if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v12, v9, (intptr_t)v11) )
+          if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v9, (float *)(intptr_t)v11) )
           {
             v10[0] = v11[0] - bs->origin[0];
             v10[1] = v11[1] - bs->origin[1];
@@ -20105,7 +20105,7 @@ LABEL_10:
       {
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        v10 = *BotMoveToGoal(&v11, (intptr_t)bs->movestate, (intptr_t)v3, v2);
+        v10 = *BotMoveToGoal(&v11, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v2);
         if ( v10.failure )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -20131,7 +20131,7 @@ LABEL_10:
           v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
           if ( v4b <= 0.3 )
           {
-            if ( BotMovementViewTarget((intptr_t)bs->movestate, (intptr_t)v3, v7, (intptr_t)v9) )
+            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v7, (float *)(intptr_t)v9) )
             {
               v8[0] = v9[0] - bs->origin[0];
               v8[1] = v9[1] - bs->origin[1];
@@ -20276,7 +20276,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)topgoal, v8);
+  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)topgoal, v8);
   if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -21360,7 +21360,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
     v37[8] = 8.0f;
     v37[9] = 8.0f;
     BotEntityInfo(a2, a2 + 2880);
-    v7 = (const void *)BotMoveToGoal(&v38, a2 + 2880, (intptr_t)v37, a3);
+    v7 = (const void *)BotMoveToGoal(&v38, (bot_movestate_t *)(a2 + 2880), (bot_goal_t *)(intptr_t)v37, a3);
     result = a1;
     qmemcpy(a1, v7, 0x30u);
     return result;
@@ -21433,8 +21433,8 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       }
       if ( v27 <= 0.4f )
       {
-        if ( (v26 <= 180.0f || !BotMoveInDirection(a2 + 2880, (intptr_t)v28, 400.0f, v12)) && v26 < 100.0f )
-          BotMoveInDirection(a2 + 2880, (intptr_t)v32, 400.0f, v12);
+        if ( (v26 <= 180.0f || !BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v28, 400.0f, v12)) && v26 < 100.0f )
+          BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v32, 400.0f, v12);
         goto LABEL_39;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1f;
@@ -21476,7 +21476,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
 LABEL_36:
         v22[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection(a2 + 2880, (intptr_t)v22, 400.0f, v12) )
+        if ( !BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v22, 400.0f, v12) )
         {
           v19 = *(_DWORD *)&bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -22618,14 +22618,14 @@ LABEL_37:
       v62[1] = -v62[1];
       v62[2] = -v62[2];
     }
-    if ( !BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0f, 1) )
+    if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1) )
     {
       v62[0] = -v62[0];
       v33 = bs->flags;
       v62[1] = -v62[1];
       v62[2] = -v62[2];
       bs->flags = v33 ^ 0x10;
-      BotMoveInDirection((intptr_t)bs->movestate, (intptr_t)v62, 400.0f, 1);
+      BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
