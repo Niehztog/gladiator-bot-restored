@@ -439,11 +439,11 @@ typedef struct aas_world_s {
     int   numedges;                 /* +0x148 */
     void *edges;                    /* +0x14C */
     int   edgeindexsize;            /* +0x150 */
-    void *edgeindex;                /* +0x154 */
+    int  *edgeindex;                /* +0x154  flat int[] (edge numbers per face) */
     int   numfaces;                 /* +0x158 */
     void *faces;                    /* +0x15C */
     int   faceindexsize;            /* +0x160 */
-    void *faceindex;                /* +0x164 */
+    int  *faceindex;                /* +0x164  flat int[] (face numbers per area) */
     int   numareas;                 /* +0x168 */
     void *areas;                    /* +0x16C */
     int   numareasettings;          /* +0x170 */
