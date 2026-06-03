@@ -496,4 +496,44 @@ typedef struct bsp_entity_s {
     struct bsp_entity_s *next;
 } bsp_entity_t;
 
+/* -------------------------------------------------------------------------
+ * bot_moveresult_t — 48 bytes (0x30).  The result of one movement tick,
+ * filled by BotMoveToGoal / BotMoveInGoalArea / the BotTravel_* builders.
+ *
+ * Q3 equivalent: bot_moveresult_s in be_ai_move.h.  The Gladiator (1999)
+ * struct is the Q3 layout MINUS the `weapon` field that Q3 later inserted
+ * at +0x18 to support grapple-as-movement-weapon — so movedir sits at
+ * +0x18 (not +0x1C) and the whole struct is 48 bytes instead of Q3's 52.
+ *
+ * Layout verified byte-for-byte against the original DLL disassembly:
+ *   - BotClearMoveResult @ 0x10031e20 zeroes exactly the leading six
+ *     dwords [+0x00..+0x14] => failure,type,blocked,blockentity,
+ *     traveltype,flags.
+ *   - BotCheckBlocked @ 0x10031d10 writes blocked=1 at +0x08 and the
+ *     blocking entity number at +0x0C.
+ *   - BotFinishTravel_WeaponJump @ 0x100340b0 stores the normalized
+ *     movedir vec3 at [+0x18/+0x1C/+0x20] and rep-movs 0xC dwords
+ *     (48 bytes) into the caller's retbuf.
+ *   - BotTravel_Swim/Ladder/... call vectoangles(dir, &result+0x24),
+ *     placing ideal_viewangles at +0x24.
+ *
+ * IDA could not see the struct: every move builder reconstructed it as a
+ * bare `int v[12]` stack local plus an `int *`/`intptr_t` return value
+ * (MSVC's hidden struct-return pointer).  Restored here as the real type.
+ *
+ * flags bits (result->flags): 1=uses view for movement, 2=uses view for
+ *   swimming, 4=waiting for something, 8=view set by movement code.
+ * type values (result->type): 1=elevator up / wait-for-mover.
+ * ------------------------------------------------------------------------- */
+typedef struct bot_moveresult_s {
+    int    failure;             /* +0x00 movement failed all together        */
+    int    type;                /* +0x04 failure or blocked type             */
+    int    blocked;             /* +0x08 blocked by an entity                */
+    int    blockentity;         /* +0x0C entity number blocking the bot      */
+    int    traveltype;          /* +0x10 last executed AAS travel type       */
+    int    flags;               /* +0x14 result flags (see above)            */
+    vec3_t movedir;             /* +0x18 movement direction                  */
+    vec3_t ideal_viewangles;    /* +0x24 ideal view angles for the movement  */
+} bot_moveresult_t;             /* sizeof = 0x30 = 48 */
+
 #endif /* BOTLIB_STRUCTS_H */

@@ -46,6 +46,9 @@
 #endif
 
 _Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must remain 0x4CC bytes");
+/* bot_moveresult_t is pointer-free (6 ints + 2 vec3_t) so it is 48 bytes on
+ * every target — assert it unconditionally, including the native 64-bit build. */
+_Static_assert(sizeof(bot_moveresult_t)    == 48,   "bot_moveresult_t size (0x30, Q3 minus weapon field)");
 
 #if INTPTR_MAX == INT32_MAX
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");

@@ -264,7 +264,7 @@ void BotCheckAttack(bot_state_t *bs);  // fixed from weak _DWORD
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
 int __cdecl AAS_AreaLadder(int);
 /* AAS_VectorForBSPEpairKey: full decl with named args at line ~329 */
-intptr_t __cdecl BotMoveToGoal(intptr_t a1, intptr_t a2, intptr_t a3, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
+bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, intptr_t a2, intptr_t a3, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
 int AAS_InitReachability(); // weak
 itemconfig_t *LoadItemConfig(char *Source);
 int AAS_Optimize(void);
@@ -822,29 +822,29 @@ int __cdecl BotSwimInDirection(intptr_t, intptr_t, float); // idb
 int __cdecl BotWalkInDirection(intptr_t, intptr_t, float, int); // idb
 int __cdecl BotMoveInDirection(intptr_t, intptr_t, float, int); // idb
 int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3);
-_DWORD *__cdecl BotClearMoveResult(_DWORD *moveresult);
-intptr_t __cdecl BotTravel_Walk(intptr_t, intptr_t, intptr_t); // idb
-int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3);
-int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3);
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3);
-int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3);
-intptr_t __cdecl BotTravel_Elevator(intptr_t, intptr_t, intptr_t); // idb
-void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult);
+bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
 int __cdecl GrappleState(int ms, float *reach);
 void __cdecl BotResetGrapple(float *ms);
-intptr_t __cdecl BotTravel_Grapple(intptr_t, intptr_t, intptr_t); // idb
-int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3);
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
+bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, intptr_t a2, float *a3);
+bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
 int __cdecl BotReachabilityTime(aas_reachability_t* reach);
-intptr_t __cdecl BotMoveInGoalArea(intptr_t, intptr_t, intptr_t); // idb
+bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, intptr_t a2, intptr_t a3);
 int __cdecl BotMoveInDirection(intptr_t movestate, intptr_t dir, float speed, int type);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
@@ -19229,8 +19229,8 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   int v8;                 // [esp+0xc] — movement flags
   vec3_t target;          // [esp+0x14] BYREF — predicted move target
   vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to vectoangles
-  int v15[12];            // [esp+0x2c] BYREF — copy of BotMoveToGoal result
-  int v16[12];            // [esp+0x5c] BYREF — BotMoveToGoal output buffer
+  bot_moveresult_t v15;   // [esp+0x2c] BYREF — copy of BotMoveToGoal result
+  bot_moveresult_t v16;   // [esp+0x5c] BYREF — BotMoveToGoal output buffer
 
   if ( BotIsObserver(bs) )
   {
@@ -19261,18 +19261,18 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)ent, v8), sizeof(v15));
-  if ( v15[0] )
+  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)ent, v8);
+  if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, v15, 1);
-  if ( (v15[5] & 3) != 0 )
+  sub_10025560(bs, (_DWORD *)&v15, 1);
+  if ( (v15.flags & 3) != 0 )
   {
-    (*(int *)&bs->ideal_viewangles[0]) = v15[9];
-    (*(int *)&bs->ideal_viewangles[1]) = v15[10];
-    (*(int *)&bs->ideal_viewangles[2]) = v15[11];
+    bs->ideal_viewangles[0] = v15.ideal_viewangles[0];
+    bs->ideal_viewangles[1] = v15.ideal_viewangles[1];
+    bs->ideal_viewangles[2] = v15.ideal_viewangles[2];
   }
   else
   {
@@ -19285,7 +19285,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     }
     else
     {
-      vectoangles((float *)&v15[6], bs->ideal_viewangles);
+      vectoangles(v15.movedir, bs->ideal_viewangles);
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
   }
@@ -19348,8 +19348,8 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
   vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
-  int v15[12]; // [esp+2Ch] [ebp-60h] BYREF
-  int v16[12]; // [esp+5Ch] [ebp-30h] BYREF
+  bot_moveresult_t v15; // [esp+2Ch] [ebp-60h] BYREF
+  bot_moveresult_t v16; // [esp+5Ch] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -19400,16 +19400,16 @@ LABEL_18:
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)v4, v8), sizeof(v15));
-  if ( v15[0] )
+  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)v4, v8);
+  if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, v15, 1);
-  if ( (v15[5] & 3) == 0 )
+  sub_10025560(bs, (_DWORD *)&v15, 1);
+  if ( (v15.flags & 3) == 0 )
   {
-    if ( (v15[5] & 4) != 0 )
+    if ( (v15.flags & 4) != 0 )
     {
       if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_33;
@@ -19433,17 +19433,17 @@ LABEL_18:
       }
       else
       {
-        vectoangles(&v15[6], bs->ideal_viewangles);
+        vectoangles(v15.movedir, bs->ideal_viewangles);
       }
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     goto LABEL_33;
   }
-  v5 = v15[10];
-  v6 = v15[11];
-  (*(int *)&bs->ideal_viewangles[0]) = v15[9];
-  (*(int *)&bs->ideal_viewangles[1]) = v5;
-  (*(int *)&bs->ideal_viewangles[2]) = v6;
+  v5 = LODWORD(v15.ideal_viewangles[1]);
+  v6 = LODWORD(v15.ideal_viewangles[2]);
+  *(int *)&bs->ideal_viewangles[0] = LODWORD(v15.ideal_viewangles[0]);
+  *(int *)&bs->ideal_viewangles[1] = v5;
+  *(int *)&bs->ideal_viewangles[2] = v6;
 LABEL_33:
   if ( BotFindEnemy(bs) )
   {
@@ -19458,7 +19458,7 @@ LABEL_33:
       AIEnter_Battle_Fight(bs);
     }
   }
-  if ( (v15[5] & 8) == 0 )
+  if ( (v15.flags & 8) == 0 )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
@@ -19533,8 +19533,8 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
   bot_goal_t *v17; // 64-bit fix (was int) - alias of v3
-  int v18[12]; // [esp+34h] [ebp-60h] BYREF
-  int v19[12]; // [esp+64h] [ebp-30h] BYREF
+  bot_moveresult_t v18; // [esp+34h] [ebp-60h] BYREF
+  bot_moveresult_t v19; // [esp+64h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -19603,23 +19603,23 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    qmemcpy(v18, (const void *)BotMoveToGoal((intptr_t)v19, (intptr_t)bs->movestate, v3, v2), sizeof(v18));
-    if ( v18[0] )
+    v18 = *BotMoveToGoal(&v19, (intptr_t)bs->movestate, v3, v2);
+    if ( v18.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
       bs->ltg_time = 0.0f;
     }
-    sub_10025560(bs, v18, 1);
-    if ( (v18[5] & 3) != 0 )
+    sub_10025560(bs, (_DWORD *)&v18, 1);
+    if ( (v18.flags & 3) != 0 )
     {
-      v6 = v18[10];
-      v7 = v18[11];
-      (*(int *)&bs->ideal_viewangles[0]) = v18[9];
-      (*(int *)&bs->ideal_viewangles[1]) = v6;
-      (*(int *)&bs->ideal_viewangles[2]) = v7;
+      v6 = LODWORD(v18.ideal_viewangles[1]);
+      v7 = LODWORD(v18.ideal_viewangles[2]);
+      *(int *)&bs->ideal_viewangles[0] = LODWORD(v18.ideal_viewangles[0]);
+      *(int *)&bs->ideal_viewangles[1] = v6;
+      *(int *)&bs->ideal_viewangles[2] = v7;
       goto LABEL_41;
     }
-    if ( (v18[5] & 4) != 0 )
+    if ( (v18.flags & 4) != 0 )
     {
       if ( bs->thinktime * 0.8f <= (float)(rand() & 0x7FFF) * 0.000030518509f )
         goto LABEL_41;
@@ -19638,11 +19638,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     else
     {
-      vectoangles(&v18[6], bs->ideal_viewangles);
+      vectoangles(v18.movedir, bs->ideal_viewangles);
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5f;
 LABEL_41:
-    if ( (v18[5] & 8) != 0 )
+    if ( (v18.flags & 8) != 0 )
       return 1;
 LABEL_42:
     BotChangeViewAngles(bs, bs->thinktime);
@@ -19854,8 +19854,8 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   float v10[3]; // [esp+10h] [ebp-B0h] BYREF
   float v11[3]; // [esp+1Ch] [ebp-A4h] BYREF
   float v12[14]; // [esp+28h] [ebp-98h] BYREF
-  int v13[12]; // [esp+60h] [ebp-60h] BYREF
-  int v14[12]; // [esp+90h] [ebp-30h] BYREF
+  bot_moveresult_t v13; // [esp+60h] [ebp-60h] BYREF
+  bot_moveresult_t v14; // [esp+90h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -19940,20 +19940,20 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
         BotUpdateBattleInventory(bs, bs->enemy);
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        qmemcpy(v13, (const void *)BotMoveToGoal((intptr_t)v14, (intptr_t)bs->movestate, (intptr_t)v12, v2), sizeof(v13));
-        if ( v13[0] )
+        v13 = *BotMoveToGoal(&v14, (intptr_t)bs->movestate, (intptr_t)v12, v2);
+        if ( v13.failure )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
           bs->ltg_time = 0.0f;
         }
-        sub_10025560(bs, v13, 0);
-        if ( (v13[5] & 3) != 0 )
+        sub_10025560(bs, (_DWORD *)&v13, 0);
+        if ( (v13.flags & 3) != 0 )
         {
-          v7 = v13[10];
-          v8 = v13[11];
-          (*(int *)&bs->ideal_viewangles[0]) = v13[9];
-          (*(int *)&bs->ideal_viewangles[1]) = v7;
-          (*(int *)&bs->ideal_viewangles[2]) = v8;
+          v7 = LODWORD(v13.ideal_viewangles[1]);
+          v8 = LODWORD(v13.ideal_viewangles[2]);
+          *(int *)&bs->ideal_viewangles[0] = LODWORD(v13.ideal_viewangles[0]);
+          *(int *)&bs->ideal_viewangles[1] = v7;
+          *(int *)&bs->ideal_viewangles[2] = v8;
         }
         else
         {
@@ -19966,13 +19966,13 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
           }
           else
           {
-            vectoangles(&v13[6], bs->ideal_viewangles);
+            vectoangles(v13.movedir, bs->ideal_viewangles);
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
         }
         if ( bs->areanum == bs->lastenemyareanum )
           *(int *)&bs->chase_time = 0;
-        if ( (v13[5] & 8) == 0 )
+        if ( (v13.flags & 8) == 0 )
           BotChangeViewAngles(bs, bs->thinktime);
         if ( BotWantsToRetreat((int *)bs) )
           AIEnter_Battle_Retreat(bs);
@@ -20035,8 +20035,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   int v7; // [esp+Ch] [ebp-178h]
   float v8[3]; // [esp+14h] [ebp-170h] BYREF
   float v9[3]; // [esp+20h] [ebp-164h] BYREF
-  int v10[12]; // [esp+2Ch] [ebp-158h] BYREF
-  int v11[12]; // [esp+5Ch] [ebp-128h] BYREF
+  bot_moveresult_t v10; // [esp+2Ch] [ebp-158h] BYREF
+  bot_moveresult_t v11; // [esp+5Ch] [ebp-128h] BYREF
   char v12[124]; // [esp+8Ch] [ebp-F8h] BYREF
   char v13[124]; // [esp+108h] [ebp-7Ch] BYREF
 
@@ -20105,24 +20105,24 @@ LABEL_10:
       {
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        qmemcpy(v10, (const void *)BotMoveToGoal((intptr_t)v11, (intptr_t)bs->movestate, (intptr_t)v3, v2), sizeof(v10));
-        if ( v10[0] )
+        v10 = *BotMoveToGoal(&v11, (intptr_t)bs->movestate, (intptr_t)v3, v2);
+        if ( v10.failure )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
           bs->ltg_time = 0.0f;
         }
-        sub_10025560(bs, v10, 0);
+        sub_10025560(bs, (_DWORD *)&v10, 0);
         sub_10020FE0(bs, BotWS(bs));
         BotChooseBestFightWeapon(BotWS(bs));
-        if ( (v10[5] & 1) != 0 )
+        if ( (v10.flags & 1) != 0 )
         {
-          v5 = v10[10];
-          v6 = v10[11];
-          (*(int *)&bs->ideal_viewangles[0]) = v10[9];
-          (*(int *)&bs->ideal_viewangles[1]) = v5;
-          (*(int *)&bs->ideal_viewangles[2]) = v6;
+          v5 = LODWORD(v10.ideal_viewangles[1]);
+          v6 = LODWORD(v10.ideal_viewangles[2]);
+          *(int *)&bs->ideal_viewangles[0] = LODWORD(v10.ideal_viewangles[0]);
+          *(int *)&bs->ideal_viewangles[1] = v5;
+          *(int *)&bs->ideal_viewangles[2] = v6;
         }
-        else if ( (v10[5] & 8) == 0 )
+        else if ( (v10.flags & 8) == 0 )
         {
           /* IDA dropped fstps after BFloat; v4 here was AAS_Time from way
            * earlier, never reset since.  Disasm at 10020901..1002090c shows
@@ -20140,7 +20140,7 @@ LABEL_10:
             }
             else
             {
-              vectoangles(&v10[6], bs->ideal_viewangles);
+              vectoangles(v10.movedir, bs->ideal_viewangles);
             }
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
             BotChangeViewAngles(bs, bs->thinktime);
@@ -20207,8 +20207,8 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   int v8;                 // [esp+0x10] — movement flags
   int areanum;            // esi — AAS area number of enemy origin
   bot_goal_t *topgoal;    // esi — top goal pointer
-  int v15[12];            // BotMoveToGoal result copy
-  int v16[12];            // BotMoveToGoal output buffer
+  bot_moveresult_t v15;   // BotMoveToGoal result copy
+  bot_moveresult_t v16;   // BotMoveToGoal output buffer
   int entinfo[31];        // [esp+0x4c] BYREF — copy of AAS entity info for enemy
   char v14[124];          // [esp+0xf4] BYREF — temp buffer passed to AAS_EntityInfo
 
@@ -20276,28 +20276,28 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  qmemcpy(v15, (const void *)BotMoveToGoal((intptr_t)v16, (intptr_t)bs->movestate, (intptr_t)topgoal, v8), sizeof(v15));
-  if ( v15[0] )
+  v15 = *BotMoveToGoal(&v16, (intptr_t)bs->movestate, (intptr_t)topgoal, v8);
+  if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  sub_10025560(bs, v15, 0);
+  sub_10025560(bs, (_DWORD *)&v15, 0);
   sub_10020FE0(bs, BotWS(bs));
   BotUpdateBattleInventory(bs, bs->enemy);
   BotChooseBestFightWeapon(BotWS(bs));
-  if ( (v15[5] & 1) != 0 )
+  if ( (v15.flags & 1) != 0 )
   {
-    (*(int *)&bs->ideal_viewangles[0]) = v15[9];
-    (*(int *)&bs->ideal_viewangles[1]) = v15[10];
-    (*(int *)&bs->ideal_viewangles[2]) = v15[11];
+    bs->ideal_viewangles[0] = v15.ideal_viewangles[0];
+    bs->ideal_viewangles[1] = v15.ideal_viewangles[1];
+    bs->ideal_viewangles[2] = v15.ideal_viewangles[2];
   }
   else
   {
     BotAimAtEnemy(bs);
   }
   BotCheckAttack(bs);
-  if ( (v15[5] & 8) == 0 )
+  if ( (v15.flags & 8) == 0 )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
@@ -21360,7 +21360,7 @@ void *__cdecl BotAttackMove(void *a1, intptr_t a2, int a3)
     v37[8] = 8.0f;
     v37[9] = 8.0f;
     BotEntityInfo(a2, a2 + 2880);
-    v7 = (const void *)BotMoveToGoal((intptr_t)v38, a2 + 2880, (intptr_t)v37, a3);
+    v7 = (const void *)BotMoveToGoal((bot_moveresult_t *)v38, a2 + 2880, (intptr_t)v37, a3);
     result = a1;
     qmemcpy(a1, v7, 0x30u);
     return result;
@@ -29522,42 +29522,42 @@ int __cdecl BotCheckBlocked(intptr_t a1, intptr_t a2, intptr_t a3)
 // 10031D10: using guessed type _DWORD var_6C[2];
 
 //----- (10031E20) --------------------------------------------------------
-_DWORD *__cdecl BotClearMoveResult(_DWORD *moveresult)
+bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 {
-  _DWORD *result; // eax
+  bot_moveresult_t *result; // eax
 
   result = moveresult;
-  *moveresult = 0;
-  moveresult[1] = 0;
-  moveresult[2] = 0;
-  moveresult[3] = 0;
-  moveresult[4] = 0;
-  moveresult[5] = 0;
+  moveresult->failure = 0;
+  moveresult->type = 0;
+  moveresult->blocked = 0;
+  moveresult->blockentity = 0;
+  moveresult->traveltype = 0;
+  moveresult->flags = 0;
   return result;
 }
 
 //----- (10031E50) --------------------------------------------------------
-intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
   float v4; // st7
   float v5; // st7
-  intptr_t result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local into v7/v8/v9; original .text 0x10031e6b
    * stores the 3 floats at contiguous [esp+0xc/0x10/0x14].  GCC won't keep
    * three independent locals adjacent — VectorNormalize/EA_Move would then
    * read garbage as dir[2] and the bot sends near-vertical movement (z≈1.0),
    * which the game rejects as upmove since pitch=0.  Restored as float[3]. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
-  int v10[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float v11; // [esp+50h] [ebp+Ch]
   float v12; // [esp+50h] [ebp+Ch]
 
-  BotClearMoveResult(v10);
+  BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
   v11 = VectorNormalize(dir);
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   v4 = v11;
   if ( v11 < 10.0f )
   {
@@ -29587,11 +29587,11 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
   else
     v12 = 400.0f;
   EA_Move(*(_DWORD *)(a2 + 40), dir, v12);
-  v10[6] = *(int *)&dir[0];
-  v10[7] = *(int *)&dir[1];
-  v10[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy((void *)a1, v10, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
@@ -29612,11 +29612,11 @@ intptr_t __cdecl BotTravel_Walk(intptr_t a1, intptr_t a2, intptr_t a3)
 // /INCREMENTAL.  Restored from objdump@10031FE0.
 void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
 {
-  unsigned char mr[48];
+  bot_moveresult_t moveresult;
   vec3_t dir;
   double speed;
 
-  BotClearMoveResult((_DWORD *)mr);
+  BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = *(float *)((char *)ent + 0x18) - origin[0];
   dir[1] = *(float *)((char *)ent + 0x1C) - origin[1];
@@ -29629,55 +29629,55 @@ void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
    * 400 - (400 - 3*speed) == 3*speed, so the net effect is just
    * `speed *= 3`.  Coded as a single multiply here. */
   speed = speed * 3.0;
-  ((float *)mr)[6] = dir[0];   /* +0x18 */
-  ((float *)mr)[7] = 0.0f;     /* +0x1C */
-  ((float *)mr)[8] = dir[1];   /* +0x20 */
+  moveresult.movedir[0] = dir[0];   /* +0x18 */
+  moveresult.movedir[1] = 0.0f;     /* +0x1C */
+  moveresult.movedir[2] = dir[1];   /* +0x20 */
   EA_Move(*(int *)((char *)ent + 0x28), dir, (float)speed);
-  memcpy(out, mr, 48);
+  memcpy(out, &moveresult, 48);
 }
 
 //----- (100320C0) --------------------------------------------------------
-int *__cdecl BotTravel_Crouch(int *a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
-  int v7[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v7);
+  BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 24) - *(float *)a2;
   dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
   VectorNormalize(dir);
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v7);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   EA_Crouch(*(_DWORD *)(a2 + 40));
   EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-  v7[6] = *(int *)&dir[0];
-  v7[7] = *(int *)&dir[1];
-  v7[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v7, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001942: using guessed type _DWORD __cdecl EA_Crouch(_DWORD);
 
 //----- (10032190) --------------------------------------------------------
-int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   float v4; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
-  int v8[12]; // [esp+18h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
   float v9; // [esp+54h] [ebp+Ch]
 
-  BotClearMoveResult(v8);
+  BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = *(float *)(a3 + 12) - *(float *)a2;
   dir[1] = *(float *)(a3 + 16) - *(float *)(a2 + 4);
   v9 = VectorNormalize(dir);
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v8);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   if ( v9 < 7.0f )
   {
     EA_Jump(*(_DWORD *)(a2 + 40));
@@ -29689,89 +29689,89 @@ int *__cdecl BotTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
     v4 = 360.0f - (360.0f - v9 * 6.0f);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v4);
   }
-  v8[6] = *(int *)&dir[0];
-  v8[7] = *(int *)&dir[1];
-  v8[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v8, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 10001429: using guessed type _DWORD __cdecl EA_Jump(_DWORD);
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100322C0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_BarrierJump(int *a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   float v5; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
-  int v9[12]; // [esp+18h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
   float v10; // [esp+50h] [ebp+8h]
 
-  BotClearMoveResult(v9);
+  BotClearMoveResult(&moveresult);
   if ( *(float *)(a2 + 20) < 250.0f )
   {
     dir[2] = 0.0f;
     dir[0] = *(float *)(a3 + 24) - *(float *)a2;
     dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
     v10 = VectorNormalize(dir);
-    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v9);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
     if ( v10 > 60.0f )
       v10 = 60.0f;
     v5 = 400.0f - (400.0f - v10 * 6.0f);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v5);
-    v9[6] = *(int *)&dir[0];
-    v9[7] = *(int *)&dir[1];
-    v9[8] = *(int *)&dir[2];
+    moveresult.movedir[0] = dir[0];
+    moveresult.movedir[1] = dir[1];
+    moveresult.movedir[2] = dir[2];
   }
   result = a1;
-  qmemcpy(a1, v9, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (100323E0) --------------------------------------------------------
-int *__cdecl BotTravel_Swim(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
-  int v8[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v8);
+  BotClearMoveResult(&moveresult);
   dir[0] = a3[3] - *(float *)a2;
   dir[1] = a3[4] - *(float *)(a2 + 4);
   dir[2] = a3[5] - *(float *)(a2 + 8);
   VectorNormalize(dir);
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v8);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-  v8[6] = *(int *)&dir[0];
-  v8[7] = *(int *)&dir[1];
-  v8[8] = *(int *)&dir[2];
-  vectoangles(dir, (float *)&v8[9]);
-  v8[5] |= 2;
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
+  vectoangles(dir, moveresult.ideal_viewangles);
+  moveresult.flags |= 2;
   result = a1;
-  qmemcpy(a1, v8, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (100324C0) --------------------------------------------------------
-int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   double v3; // st6
   __int16 v4; // ax
   int v5; // eax
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   float v10[3]; // [esp+14h] [ebp-3Ch] BYREF
-  int v11[12]; // [esp+20h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
   float v12; // [esp+5Ch] [ebp+Ch]
 
-  BotClearMoveResult(v11);
+  BotClearMoveResult(&moveresult);
   v10[2] = 0.0;
   dir[0] = a3[6] - *(float *)a2;
   dir[1] = a3[7] - *(float *)(a2 + 4);
@@ -29788,13 +29788,13 @@ int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   EA_MoveForward(*(_DWORD *)(a2 + 40));
   if ( v12 < 40.0 )
     EA_MoveUp(*(_DWORD *)(a2 + 40));
-  vectoangles(dir, (float *)&v11[9]);
-  v11[6] = *(int *)&dir[0];
-  v11[7] = *(int *)&dir[1];
-  v11[8] = *(int *)&dir[2];
-  v11[5] |= 1;
+  vectoangles(dir, moveresult.ideal_viewangles);
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
+  moveresult.flags |= 1;
   result = a1;
-  qmemcpy(a1, v11, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100015B9: using guessed type _DWORD __cdecl EA_MoveUp(_DWORD);
@@ -29803,7 +29803,7 @@ int *__cdecl BotTravel_WaterJump(int *a1, intptr_t a2, float *a3)
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (10032620) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   int v3; // edx
   double v4; // st7
@@ -29812,14 +29812,14 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
   __int16 v7; // ax
   __int16 v8; // ax
   int v9; // eax
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   /* int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v14[2]. */
   int v14[3]; // [esp+14h] [ebp-3Ch] BYREF
-  int v15[12]; // [esp+20h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v15);
+  BotClearMoveResult(&moveresult);
   if ( (*(_BYTE *)(a2 + 96) & 0x10) == 0 )
   {
     v3 = *(_DWORD *)(a2 + 4);
@@ -29848,15 +29848,15 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
              + 70.0f;
       VectorNormalize(dir);
       EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0f);
-      vectoangles(dir, (float *)&v15[9]);
-      v15[6] = *(int *)&dir[0];
-      v15[7] = *(int *)&dir[1];
-      v15[8] = *(int *)&dir[2];
-      v15[5] |= 1;
+      vectoangles(dir, moveresult.ideal_viewangles);
+      moveresult.movedir[0] = dir[0];
+      moveresult.movedir[1] = dir[1];
+      moveresult.movedir[2] = dir[2];
+      moveresult.flags |= 1;
     }
   }
   result = a1;
-  qmemcpy(a1, v15, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 10032667: variable 'v5' is possibly undefined
@@ -29864,26 +29864,26 @@ int *__cdecl BotFinishTravel_WaterJump(int *a1, intptr_t a2, float *a3)
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (100327F0) --------------------------------------------------------
-int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   float *v4; // ebx
   float v5; // st7
   float v6; // st7
   float v7; // st7
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   float v9; // [esp+10h] [ebp-4Ch] BYREF
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
   vec3_t pos; // [esp+20h] [ebp-3Ch] BYREF (was v13/v14/<hole>)
-  int v16[12]; // [esp+2Ch] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
   float v17; // [esp+68h] [ebp+Ch]
 
-  BotClearMoveResult(v16);
+  BotClearMoveResult(&moveresult);
   v4 = a3 + 6;
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
   pos[2] = a3[8] - *(float *)(a2 + 8);
-  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v16);
+  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)&moveresult);
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
@@ -29917,48 +29917,48 @@ int *__cdecl BotTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
   {
     v9 = 400.0f;
   }
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v16);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   EA_Move(*(_DWORD *)(a2 + 40), dir, v9);
-  v16[6] = *(int *)&dir[0];
-  *(float *)&v16[7] = dir[1];
-  v16[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v16, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
 //----- (10032A00) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WalkOffLedge(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   vec3_t pos; // [esp+14h] [ebp-3Ch] BYREF (was v7/v8/<hole>)
-  int v10[12]; // [esp+20h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v10);
+  BotClearMoveResult(&moveresult);
   pos[0] = a3[6] - *(float *)a2;
   pos[1] = a3[7] - *(float *)(a2 + 4);
   pos[2] = a3[8] - *(float *)(a2 + 8);
-  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)v10);
+  BotCheckBlocked(a2, (intptr_t)pos, (intptr_t)&moveresult);
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
   VectorNormalize(dir);
   EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-  v10[6] = *(int *)&dir[0];
-  v10[7] = *(int *)&dir[1];
-  v10[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v10, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032AE0) --------------------------------------------------------
-int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   float v3; // st7
   int v4; // ecx
@@ -29967,7 +29967,7 @@ int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
   float v7; // st7
   float v8; // st7
   float v9; // st7
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   float v11; // [esp+0h] [ebp-90h]
   float v12; // [esp+10h] [ebp-80h]
   float v13; // [esp+10h] [ebp-80h]
@@ -29987,9 +29987,9 @@ int *__cdecl BotTravel_Jump(int *a1, intptr_t a2, float *a3)
    * `v29 += 1.0`, which only updates the same memory under MSVC's frame
    * layout.  Restore as proper vec3. */
   float v28[3]; // [esp+54h] [ebp-3Ch] BYREF
-  int v30[12]; // [esp+60h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+60h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v30);
+  BotClearMoveResult(&moveresult);
   AAS_JumpReachRunStart(a3, (intptr_t)predpos);
   v3 = predpos[0] - a3[3];
   dir[2] = 0.0f;
@@ -30058,11 +30058,11 @@ LABEL_7:
     v11 = 400.0f - (400.0f - v15 * 5.0f);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v11);
   }
-  v30[6] = *(int *)&dir[0];
-  v30[7] = *(int *)&dir[1];
-  v30[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v30, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -30072,17 +30072,17 @@ LABEL_7:
 // 10001E7E: using guessed type _DWORD __cdecl AAS_JumpReachRunStart(_DWORD, _DWORD);
 
 //----- (10032E80) --------------------------------------------------------
-int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   double v5; // unused
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
   vec3_t reach_dir; // [esp+14h] [ebp-3Ch] BYREF (was v10/v11/v12)
-  int v13[12]; // [esp+20h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
   float v14; // [esp+58h] [ebp+8h]
 
-  BotClearMoveResult(v13);
+  BotClearMoveResult(&moveresult);
   if ( *(_DWORD *)(a2 + 100) )
   {
     dir[2] = 0.0f;
@@ -30096,32 +30096,32 @@ int *__cdecl BotFinishTravel_Jump(int *a1, intptr_t a2, float *a3)
     if ( ((reach_dir[2] * dir[2]) + reach_dir[1] * dir[1]) + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0f )
     {
       EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
-      v13[6] = *(int *)&dir[0];
-      v13[7] = *(int *)&dir[1];
-      v13[8] = *(int *)&dir[2];
+      moveresult.movedir[0] = dir[0];
+      moveresult.movedir[1] = dir[1];
+      moveresult.movedir[2] = dir[2];
     }
   }
   result = a1;
-  qmemcpy(a1, v13, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10032FC0) --------------------------------------------------------
-int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   int v3; // eax
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   float v8[3]; // [esp+14h] [ebp-48h] BYREF
   float v9[3]; // [esp+20h] [ebp-3Ch] BYREF
-  int v10[12]; // [esp+2Ch] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
 
   v9[0] = 0.0f;
   v9[1] = 0.0f;
   v9[2] = 0.0f;
-  BotClearMoveResult(v10);
+  BotClearMoveResult(&moveresult);
   dir[0] = a3[6] - *(float *)a2;
   dir[1] = a3[7] - *(float *)(a2 + 4);
   dir[2] = a3[8] - *(float *)(a2 + 8);
@@ -30129,15 +30129,15 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
   v8[0] = dir[0];
   v8[1] = dir[1];
   v8[2] = dir[2] * 3.0f;
-  vectoangles(v8, (float *)&v10[9]);
+  vectoangles(v8, moveresult.ideal_viewangles);
   EA_Move(*(_DWORD *)(a2 + 40), v9, 0.0);
   EA_MoveForward(*(_DWORD *)(a2 + 40));
-  v10[5] |= 1;
-  v10[6] = *(int *)&dir[0];
-  v10[7] = *(int *)&dir[1];
-  v10[8] = *(int *)&dir[2];
+  moveresult.flags |= 1;
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v10, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
@@ -30145,16 +30145,16 @@ int *__cdecl BotTravel_Ladder(int *a1, intptr_t a2, float *a3)
 // 10001EBA: using guessed type _DWORD __cdecl EA_MoveForward(_DWORD);
 
 //----- (100330E0) --------------------------------------------------------
-int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   int v4; // ecx
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
-  int v10[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float v11; // [esp+4Ch] [ebp+8h]
 
-  BotClearMoveResult(v10);
+  BotClearMoveResult(&moveresult);
   v4 = *(_DWORD *)(a2 + 96);
   if ( (v4 & 0x20) == 0 )
   {
@@ -30164,25 +30164,25 @@ int *__cdecl BotTravel_Teleport(int *a1, intptr_t a2, float *a3)
     if ( (v4 & 4) == 0 )
       dir[2] = 0.0f;
     v11 = VectorNormalize(dir);
-    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v10);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
     if ( v11 < 30.0f )
       EA_Move(*(_DWORD *)(a2 + 40), dir, 200.0);
     else
       EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
     if ( (*(_BYTE *)(a2 + 96) & 4) != 0 )
-      v10[5] |= 2;
-    v10[6] = *(int *)&dir[0];
-    v10[7] = *(int *)&dir[1];
-    v10[8] = *(int *)&dir[2];
+      moveresult.flags |= 2;
+    moveresult.movedir[0] = dir[0];
+    moveresult.movedir[1] = dir[1];
+    moveresult.movedir[2] = dir[2];
   }
   result = a1;
-  qmemcpy(a1, v10, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 
 //----- (10033210) --------------------------------------------------------
-intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
   double v4; // st7
   double v5; // st7
@@ -30196,7 +30196,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
   float v13; // eax
   char v14; // al
   int v15; // eax
-  intptr_t result; // eax
+  bot_moveresult_t *result; // eax
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
   /* IDA split five vec3 stack locals — see BotTravel_Walk note. */
@@ -30205,12 +30205,12 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
   vec3_t reach; // [esp+28h] [ebp-54h] BYREF (was v25/v26/v27)
   vec3_t telegoaldir; // [esp+34h] [ebp-48h] BYREF (was v28/v29/v30)
   vec3_t telegoal; // [esp+40h] [ebp-3Ch] BYREF (was v31/v32/v33)
-  int v34[12]; // [esp+4Ch] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+4Ch] [ebp-30h] BYREF
   int v35; // [esp+84h] [ebp+8h]
   float v36; // [esp+88h] [ebp+Ch]
   float v37; // [esp+88h] [ebp+Ch]
 
-  BotClearMoveResult(v34);
+  BotClearMoveResult(&moveresult);
   if ( BotOnMover(a2, *(_DWORD *)(a2 + 36), a3) )
   {
     if ( (float)(int)abs32((__int64)(*(float *)(a2 + 8) - *(float *)(a3 + 32))) < libvar_sv_maxbarrier->value )
@@ -30222,9 +30222,9 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       VectorNormalize(dir);
       if ( !BotCheckBarrierJump(a2, (intptr_t)dir, 100.0) )
         EA_Move(*(_DWORD *)(a2 + 40), dir, 400.0);
-      v34[6] = *(int *)&dir[0];
-      v34[7] = *(int *)&dir[1];
-      v34[8] = *(int *)&dir[2];
+      moveresult.movedir[0] = dir[0];
+      moveresult.movedir[1] = dir[1];
+      moveresult.movedir[2] = dir[2];
     }
     else
     {
@@ -30240,9 +30240,9 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
           v6 = 100.0;
         v17 = 400.0 - (400.0 - v6 * 4.0);
         EA_Move(*(_DWORD *)(a2 + 40), dir, v17);
-        v34[6] = *(int *)&dir[0];
-        v34[7] = *(int *)&dir[1];
-        v34[8] = *(int *)&dir[2];
+        moveresult.movedir[0] = dir[0];
+        moveresult.movedir[1] = dir[1];
+        moveresult.movedir[2] = dir[2];
       }
     }
   }
@@ -30282,7 +30282,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
         final[1] = reach[1];
       }
       final[2] = v13;
-      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)v34);
+      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)&moveresult);
       if ( v37 > 60.0 )
         v37 = 60.0;
       if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (intptr_t)final, 50.0) )
@@ -30290,13 +30290,13 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
         v18 = 400.0 - (400.0 - v37 * 6.0);
         EA_Move(*(_DWORD *)(a2 + 40), final, v18);
       }
-      v34[6] = *(int *)&final[0];
+      moveresult.movedir[0] = final[0];
       v14 = *(_BYTE *)(a2 + 96);
-      *(float *)&v34[7] = final[1];
-      *(float *)&v34[8] = final[2];
+      moveresult.movedir[1] = final[1];
+      moveresult.movedir[2] = final[2];
       if ( (v14 & 4) != 0 )
       {
-        v34[5] |= 2;
+        moveresult.flags |= 2;
       }
     }
     else
@@ -30304,7 +30304,7 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       final[0] = reach[0];
       final[1] = reach[1];
       final[2] = reach[2];
-      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)v34);
+      BotCheckBlocked(a2, (intptr_t)final, (intptr_t)&moveresult);
       if ( *(float *)&v35 <= 60.0 )
         v8 = *(float *)&v35;
       else
@@ -30312,36 +30312,36 @@ intptr_t __cdecl BotTravel_Elevator(intptr_t a1, intptr_t a2, intptr_t a3)
       v36 = 360.0 - (360.0 - v8 * 6.0);
       if ( (*(_BYTE *)(a2 + 96) & 4) == 0 && !BotCheckBarrierJump(a2, (intptr_t)final, 50.0) && v36 > 5.0 )
         EA_Move(*(_DWORD *)(a2 + 40), final, v36);
-      *(float *)&v34[8] = final[2];
+      moveresult.movedir[2] = final[2];
       v9 = *(_BYTE *)(a2 + 96);
-      v34[6] = *(int *)&final[0];
-      *(float *)&v34[7] = final[1];
+      moveresult.movedir[0] = final[0];
+      moveresult.movedir[1] = final[1];
       if ( (v9 & 4) != 0 )
       {
-        v34[5] |= 2;
+        moveresult.flags |= 2;
       }
-      v34[1] = 1;
-      v34[5] |= 4u;
+      moveresult.type = 1;
+      moveresult.flags |= 4u;
     }
   }
   result = a1;
-  qmemcpy((void *)a1, v34, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
 // 10064060: using guessed type int libvar_sv_maxbarrier;
 
 //----- (10033790) --------------------------------------------------------
-void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
-  void *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
   vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
   vec3_t telegoal;    // [esp+20h] [ebp-3Ch] BYREF (was v8[3])
-  _DWORD v9[12];      // [esp+2Ch] [ebp-30h] BYREF
+  bot_moveresult_t moveresult;      // [esp+2Ch] [ebp-30h] BYREF
 
-  BotClearMoveResult(v9);
+  BotClearMoveResult(&moveresult);
   MoverBottomCenter((aas_reachability_t *)a3, telegoal);
   reachdir[0] = *(float *)(a3 + 24) - *(float *)a2;
   reachdir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
@@ -30360,7 +30360,7 @@ void *__cdecl BotFinishTravel_Elevator(void *a1, intptr_t a2, intptr_t a3)
     EA_Move(*(_DWORD *)(a2 + 40), telegoaldir, 300.0);
   }
   result = a1;
-  qmemcpy(a1, v9, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
@@ -30433,7 +30433,7 @@ void __cdecl BotResetGrapple(float *ms)
 // 100015AF: using guessed type _DWORD __cdecl EA_Command(_DWORD, _DWORD);
 
 //----- (10033B00) --------------------------------------------------------
-intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
   int v3; // eax
   int v4; // eax
@@ -30448,19 +30448,19 @@ intptr_t __cdecl BotTravel_Grapple(intptr_t a1, intptr_t a2, intptr_t a3)
   long double v13; // st7
   int v14; // eax
   int v15; // eax
-  intptr_t result; // eax
+  bot_moveresult_t *result; // eax
   double v17; // [esp+Ch] [ebp-54h]
   float v18; // [esp+10h] [ebp-50h]
   float v19; // [esp+14h] [ebp-4Ch]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
   float v23[3]; // [esp+24h] [ebp-3Ch] BYREF
-  int v24[12]; // [esp+30h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
   float v25; // [esp+6Ch] [ebp+Ch]
   float v26; // [esp+6Ch] [ebp+Ch]
   float v27; // [esp+6Ch] [ebp+Ch]
 
-  BotClearMoveResult(v24);
+  BotClearMoveResult(&moveresult);
   v3 = *(_DWORD *)(a2 + 96);
   if ( (v3 & 0x80u) != 0 )
   {
@@ -30529,8 +30529,8 @@ LABEL_26:
   v23[1] = *(float *)(a3 + 28) - v18;
   v23[2] = *(float *)(a3 + 32) - v19;
   v26 = VectorNormalize(dir);
-  vectoangles(v23, (float *)&v24[9]);
-  v24[5] |= 1;
+  vectoangles(v23, moveresult.ideal_viewangles);
+  moveresult.flags |= 1;
   /* IDA-dropped FPU-return pattern: the original asm at 0x10033cfb/0x10033d1b
    * does `call AngleDiff; fabs; fcomp 2.0` (the abs operates on the AngleDiff
    * result still in ST(0)). IDA dropped the captured return and left the
@@ -30540,18 +30540,18 @@ LABEL_26:
    * in the walk-toward branch and never fired the hookon command. See
    * .claude/memory/ida_dropped_results.md. */
   if ( v26 >= 5.0
-    || (v13 = fabs(AngleDiff(*(float *)&v24[9],  *(float *)(a2 + 52))), v13 >= 2.0)
-    || (v13 = fabs(AngleDiff(*(float *)&v24[10], *(float *)(a2 + 56))), v13 >= 2.0) )
+    || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], *(float *)(a2 + 52))), v13 >= 2.0)
+    || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], *(float *)(a2 + 56))), v13 >= 2.0) )
   {
     if ( v26 >= 70.0 )
       v27 = 400.0;
     else
       v27 = 300.0 - (300.0 - v26 * 4.0);
-    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v24);
+    BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
     EA_Move(*(_DWORD *)(a2 + 40), dir, v27);
-    v24[6] = *(int *)&dir[0];
-    v24[7] = *(int *)&dir[1];
-    *(float *)&v24[8] = dir[2];
+    moveresult.movedir[0] = dir[0];
+    moveresult.movedir[1] = dir[1];
+    moveresult.movedir[2] = dir[2];
   }
   else
   {
@@ -30566,7 +30566,7 @@ LABEL_26:
     goto LABEL_26;
 LABEL_27:
   result = a1;
-  qmemcpy((void *)a1, v24, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
@@ -30576,19 +30576,19 @@ LABEL_27:
 // 10001E9C: using guessed type _DWORD __cdecl vectoangles(_DWORD, _DWORD);
 
 //----- (10033EC0) --------------------------------------------------------
-int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
+bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, intptr_t a2, float *a3)
 {
   float v3; // st7
   float v4; // st7
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
   float v8; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF (was v9/v10/v11)
-  int v12[12]; // [esp+18h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v12);
+  BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = a3[3] - *(float *)a2;
   dir[1] = a3[4] - *(float *)(a2 + 4);
@@ -30617,13 +30617,13 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
   *(_DWORD *)(a2 + 52) = 1119092736;
   EA_View(v7, a2 + 52);
   v6 = *(_DWORD *)(a2 + 40);
-  v12[5] |= 8u;
+  moveresult.flags |= 8u;
   EA_UseItem(v6, aRocketLauncher);
-  v12[6] = *(int *)&dir[0];
-  v12[7] = *(int *)&dir[1];
-  v12[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   result = a1;
-  qmemcpy(a1, v12, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
@@ -30647,20 +30647,20 @@ int *__cdecl BotTravel_RocketJump(int *a1, intptr_t a2, float *a3)
  * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL. */
 void __cdecl sub_10034070(void *out)
 {
-  int local[12];
-  BotClearMoveResult((_DWORD *)local);
-  memcpy(out, local, 48);
+  bot_moveresult_t moveresult;
+  BotClearMoveResult(&moveresult);
+  memcpy(out, &moveresult, 48);
 }
 
 //----- (100340B0) --------------------------------------------------------
-int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
-  int *result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
-  int v7[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v7);
+  BotClearMoveResult(&moveresult);
   if ( *(_DWORD *)(a2 + 100) )
   {
     dir[2] = 0.0f;
@@ -30668,12 +30668,12 @@ int *__cdecl BotFinishTravel_WeaponJump(int *a1, intptr_t a2, intptr_t a3)
     dir[1] = *(float *)(a3 + 28) - *(float *)(a2 + 4);
     VectorNormalize(dir);
     EA_Move(*(_DWORD *)(a2 + 40), dir, 800.0);
-    v7[6] = *(int *)&dir[0];
-    v7[7] = *(int *)&dir[1];
-    v7[8] = *(int *)&dir[2];
+    moveresult.movedir[0] = dir[0];
+    moveresult.movedir[1] = dir[1];
+    moveresult.movedir[2] = dir[2];
   }
   result = a1;
-  qmemcpy(a1, v7, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
@@ -30703,7 +30703,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (10034210) --------------------------------------------------------
-intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
+bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, intptr_t a2, intptr_t a3)
 {
   qboolean v4; // zf
   double v5; // st7
@@ -30713,25 +30713,25 @@ intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
   int v9; // eax
   int v10; // ecx
   int v11; // edx
-  intptr_t result; // eax
+  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
-  int v16[12]; // [esp+14h] [ebp-30h] BYREF
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float v17; // [esp+50h] [ebp+Ch]
 
-  BotClearMoveResult(v16);
+  BotClearMoveResult(&moveresult);
   v4 = (*(_BYTE *)(a2 + 96) & 4) == 0;
   dir[0] = *(float *)a3 - *(float *)a2;
   dir[1] = *(float *)(a3 + 4) - *(float *)(a2 + 4);
   if ( v4 )
   {
     dir[2] = 0.0f;
-    v16[4] = 2;
+    moveresult.traveltype = 2;
   }
   else
   {
     v5 = *(float *)(a3 + 8) - *(float *)(a2 + 8);
-    v16[4] = 8;
+    moveresult.traveltype = 8;
     dir[2] = v5;
   }
   v6 = VectorNormalize(dir);
@@ -30741,16 +30741,16 @@ intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
   v17 = v7;
   if ( v7 < 10.0 )
     v17 = 0.0;
-  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)v16);
+  BotCheckBlocked(a2, (intptr_t)dir, (intptr_t)&moveresult);
   EA_Move(*(_DWORD *)(a2 + 40), dir, v17);
-  v16[6] = *(int *)&dir[0];
-  v16[7] = *(int *)&dir[1];
-  v16[8] = *(int *)&dir[2];
+  moveresult.movedir[0] = dir[0];
+  moveresult.movedir[1] = dir[1];
+  moveresult.movedir[2] = dir[2];
   v8 = *(_BYTE *)(a2 + 96);
   if ( (v8 & 4) != 0 )
   {
-    vectoangles(dir, (float *)&v16[9]);
-    v16[5] |= 2;
+    vectoangles(dir, moveresult.ideal_viewangles);
+    moveresult.flags |= 2;
   }
   v10 = *(_DWORD *)a2;
   v11 = *(_DWORD *)(a2 + 4);
@@ -30761,7 +30761,7 @@ intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
   result = a1;
   *(_DWORD *)(a2 + 80) = v10;
   *(_DWORD *)(a2 + 84) = v11;
-  qmemcpy((void *)a1, v16, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100018DE: using guessed type double __cdecl VectorNormalize(_DWORD);
@@ -30788,40 +30788,45 @@ intptr_t __cdecl BotMoveInGoalArea(intptr_t a1, intptr_t a2, intptr_t a3)
  * BotGapDistance have had their signatures corrected to plain `int`
  * to match the original — see float_vs_int_signature_bug.md.
  */
-intptr_t __cdecl BotMoveToGoal(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
+bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, intptr_t a2, intptr_t a3, int a4)
 {
   int v4; // edx
   int v5; // eax
   int v6; // eax
   int v7; // eax
   int v8; // eax
-  const void *v9; // esi
-  intptr_t result; // eax
+  bot_moveresult_t *v9; // esi
+  bot_moveresult_t *result; // eax
   int v11; // ebp
   int v12; // eax
   int v13; // ecx
   int v14; // ecx
   int v15; // eax
-  const void *v16; // eax
+  bot_moveresult_t *v16; // eax
   int v17; // ecx
   int v18; // edx
   float v19; // [esp+10h] [ebp-2A0h]
   float v20[11]; // [esp+14h] [ebp-29Ch] BYREF
-  int v21[12]; // [esp+40h] [ebp-270h] BYREF
+  bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
+  /* v22 is a single MSVC-coalesced stack slot reused as: AAS_ReachabilityFromNum
+   * scratch buffer (char*), reachability-data holder (v22[9]=traveltype), and a
+   * bot_moveresult_t output buffer for the BotMoveInGoalArea / BotTravel_Walk
+   * calls below.  Kept as a raw 48-byte int[12]; cast to bot_moveresult_t* at the
+   * move-result use sites. */
   int v22[12]; // [esp+70h] [ebp-240h] BYREF
-  int v23[12]; // [esp+A0h] [ebp-210h] BYREF
-  int v24[12]; // [esp+D0h] [ebp-1E0h] BYREF
-  int v25[12]; // [esp+100h] [ebp-1B0h] BYREF
-  int v26[12]; // [esp+130h] [ebp-180h] BYREF
-  int v27[12]; // [esp+160h] [ebp-150h] BYREF
-  int v28[12]; // [esp+190h] [ebp-120h] BYREF
-  int v29[12]; // [esp+1C0h] [ebp-F0h] BYREF
-  int v30[12]; // [esp+1F0h] [ebp-C0h] BYREF
-  int v31[12]; // [esp+220h] [ebp-90h] BYREF
-  int v32[12]; // [esp+250h] [ebp-60h] BYREF
-  int v33[12]; // [esp+280h] [ebp-30h] BYREF
+  bot_moveresult_t v23; // [esp+A0h] [ebp-210h] BYREF
+  bot_moveresult_t v24; // [esp+D0h] [ebp-1E0h] BYREF
+  bot_moveresult_t v25; // [esp+100h] [ebp-1B0h] BYREF
+  bot_moveresult_t v26; // [esp+130h] [ebp-180h] BYREF
+  bot_moveresult_t v27; // [esp+160h] [ebp-150h] BYREF
+  bot_moveresult_t v28; // [esp+190h] [ebp-120h] BYREF
+  bot_moveresult_t v29; // [esp+1C0h] [ebp-F0h] BYREF
+  bot_moveresult_t v30; // [esp+1F0h] [ebp-C0h] BYREF
+  bot_moveresult_t v31; // [esp+220h] [ebp-90h] BYREF
+  bot_moveresult_t v32; // [esp+250h] [ebp-60h] BYREF
+  bot_moveresult_t v33; // [esp+280h] [ebp-30h] BYREF
 
-  BotClearMoveResult(v21);
+  BotClearMoveResult(&moveresult);
   BotResetGrapple((float *)a2);
   if ( a3 )
   {
@@ -30850,44 +30855,44 @@ intptr_t __cdecl BotMoveToGoal(intptr_t a1, intptr_t a2, intptr_t a3, int a4)
       if ( *(_DWORD *)(a2 + 76) )
       {
         qmemcpy(v20, AAS_ReachabilityFromNum((char *)v22, *(_DWORD *)(a2 + 76)), sizeof(v20));
-        *(float *)&v21[4] = v20[9];
+        moveresult.traveltype = LODWORD(v20[9]);
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((intptr_t)v31, a2, (intptr_t)v20);
+            v16 = BotTravel_Walk(&v31, a2, (intptr_t)v20);
             goto LABEL_41;
           case 3:
           case 0xA:
             goto LABEL_56;
           case 4:
-            v16 = BotFinishTravel_BarrierJump(v32, a2, (intptr_t)v20);
+            v16 = BotFinishTravel_BarrierJump(&v32, a2, (intptr_t)v20);
             goto LABEL_41;
           case 5:
-            v16 = BotFinishTravel_Jump(v25, a2, v20);
+            v16 = BotFinishTravel_Jump(&v25, a2, v20);
             goto LABEL_41;
           case 6:
-            v16 = BotTravel_Ladder(v29, a2, v20);
+            v16 = BotTravel_Ladder(&v29, a2, v20);
             goto LABEL_41;
           case 7:
-            v16 = BotFinishTravel_WalkOffLedge(v27, a2, v20);
+            v16 = BotFinishTravel_WalkOffLedge(&v27, a2, v20);
             goto LABEL_41;
           case 8:
 LABEL_35:
-            v16 = BotTravel_Swim(v24, a2, v20);
+            v16 = BotTravel_Swim(&v24, a2, v20);
             goto LABEL_41;
           case 9:
-            v16 = BotFinishTravel_WaterJump(v28, a2, v20);
+            v16 = BotFinishTravel_WaterJump(&v28, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = BotFinishTravel_Elevator(v23, a2, (intptr_t)v20);
+            v16 = BotFinishTravel_Elevator(&v23, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xC:
-            v16 = BotFinishTravel_WeaponJump(v30, a2, (intptr_t)v20);
+            v16 = BotFinishTravel_WeaponJump(&v30, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((intptr_t)v26, a2, (intptr_t)v20);
+            v16 = BotTravel_Grapple(&v26, a2, (intptr_t)v20);
 LABEL_41:
-            qmemcpy(v21, v16, sizeof(v21));
+            moveresult = *v16;
             break;
           default:
             bi_Print(4, "(last) travel type %d not implemented yet\n", v20[9]);
@@ -30901,9 +30906,9 @@ LABEL_41:
     *(_DWORD *)(a2 + 64) = v8;
     if ( v8 == *(_DWORD *)(a3 + 12) )
     {
-      v9 = (const void *)BotMoveInGoalArea((intptr_t)v22, a2, a3);
+      v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, a2, a3);
       result = a1;
-      qmemcpy((void *)a1, v9, 0x30u);
+      *a1 = *v9;
       return result;
     }
     v11 = *(_DWORD *)(a2 + 76);
@@ -30925,43 +30930,43 @@ LABEL_27:
       if ( v11 )
       {
         qmemcpy(v20, AAS_ReachabilityFromNum((char *)v22, v11), sizeof(v20));
-        *(float *)&v21[4] = v20[9];
+        moveresult.traveltype = LODWORD(v20[9]);
         switch ( LODWORD(v20[9]) )
         {
           case 2:
-            v16 = (const void *)BotTravel_Walk((intptr_t)v22, a2, (intptr_t)v20);
+            v16 = BotTravel_Walk((bot_moveresult_t *)v22, a2, (intptr_t)v20);
             goto LABEL_41;
           case 3:
-            v16 = BotTravel_Crouch(v33, a2, (intptr_t)v20);
+            v16 = BotTravel_Crouch(&v33, a2, (intptr_t)v20);
             goto LABEL_41;
           case 4:
-            v16 = BotTravel_BarrierJump(v30, a2, (intptr_t)v20);
+            v16 = BotTravel_BarrierJump(&v30, a2, (intptr_t)v20);
             goto LABEL_41;
           case 5:
-            v16 = BotTravel_Jump(v28, a2, v20);
+            v16 = BotTravel_Jump(&v28, a2, v20);
             goto LABEL_41;
           case 6:
-            v16 = BotTravel_Ladder(v26, a2, v20);
+            v16 = BotTravel_Ladder(&v26, a2, v20);
             goto LABEL_41;
           case 7:
-            v16 = BotTravel_WalkOffLedge(v23, a2, v20);
+            v16 = BotTravel_WalkOffLedge(&v23, a2, v20);
             goto LABEL_41;
           case 8:
             goto LABEL_35;
           case 9:
-            v16 = BotTravel_WaterJump(v25, a2, v20);
+            v16 = BotTravel_WaterJump(&v25, a2, v20);
             goto LABEL_41;
           case 0xA:
-            v16 = BotTravel_Teleport(v27, a2, v20);
+            v16 = BotTravel_Teleport(&v27, a2, v20);
             goto LABEL_41;
           case 0xB:
-            v16 = (const void *)BotTravel_Elevator((intptr_t)v29, a2, (intptr_t)v20);
+            v16 = BotTravel_Elevator(&v29, a2, (intptr_t)v20);
             goto LABEL_41;
           case 0xC:
-            v16 = BotTravel_RocketJump(v31, a2, v20);
+            v16 = BotTravel_RocketJump(&v31, a2, v20);
             goto LABEL_41;
           case 0xE:
-            v16 = (const void *)BotTravel_Grapple((intptr_t)v32, a2, (intptr_t)v20);
+            v16 = BotTravel_Grapple(&v32, a2, (intptr_t)v20);
             goto LABEL_41;
           default:
             bi_Print(4, "travel type %d not implemented yet\n", v20[9]);
@@ -30970,10 +30975,10 @@ LABEL_27:
       }
       else
       {
-        v21[0] = 1;
+        moveresult.failure = 1;
       }
 LABEL_56:
-      if ( v21[2] )
+      if ( moveresult.blocked )
         *(float *)(a2 + 112) = *(float *)(a2 + 112) - *(float *)(a2 + 44) * 10.0;
       v17 = *(_DWORD *)(a2 + 4);
       v18 = *(_DWORD *)(a2 + 8);
@@ -31021,10 +31026,10 @@ LABEL_25:
     }
     goto LABEL_27;
   }
-  v21[0] = 1;
+  moveresult.failure = 1;
 LABEL_59:
   result = a1;
-  qmemcpy((void *)a1, v21, 0x30u);
+  *a1 = moveresult;
   return result;
 }
 // 100014B0: using guessed type _DWORD __cdecl BotReachabilityArea(_DWORD, _DWORD);
