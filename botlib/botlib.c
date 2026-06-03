@@ -7446,8 +7446,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = -202116623;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (float *)((char *)aasworld.vertexes + 12 * *v15),
-                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
+                   (float *)(&aasworld.vertexes[*v15]),
+                   (float *)(&aasworld.vertexes[v15[1]]),
                    -202116623);
       }
       else if ( v16 == -202116623 )
@@ -7455,8 +7455,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = -791555373;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (float *)((char *)aasworld.vertexes + 12 * *v15),
-                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
+                   (float *)(&aasworld.vertexes[*v15]),
+                   (float *)(&aasworld.vertexes[v15[1]]),
                    -791555373);
       }
       else
@@ -7464,8 +7464,8 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         v16 = v16 != -791555373 ? -218959632 : -589439265;
         result = bi_DebugLineShow(
                    dword_100670C0[v13],
-                   (float *)((char *)aasworld.vertexes + 12 * *v15),
-                   (float *)((char *)aasworld.vertexes + 12 * v15[1]),
+                   (float *)(&aasworld.vertexes[*v15]),
+                   (float *)(&aasworld.vertexes[v15[1]]),
                    v16);
       }
       ++v11;
@@ -11161,9 +11161,9 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
     }
     else
     {
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i]);
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i] + 1);
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *((_DWORD *)aasworld.vertexes + 3 * ((_DWORD *)edge)[i] + 2);
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = aasworld.vertexes[((_DWORD *)edge)[i]][0];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = aasworld.vertexes[((_DWORD *)edge)[i]][1];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = aasworld.vertexes[((_DWORD *)edge)[i]][2];
       optedge[i] = optimized->numvertexes;
       optimized->vertexremap[((_DWORD *)edge)[i]] = optimized->numvertexes;
       optimized->numvertexes++;
@@ -11479,9 +11479,7 @@ double __cdecl AAS_FaceArea(char *face)
   v3 = *(_DWORD *)(face + 12);
   v14 = 0.0;
   v4 = (float *)aasworld.vertexes;
-  v5 = (float *)((char *)aasworld.vertexes
-               + 12
-               * aasworld.edges[abs32(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]);
+  v5 = (float *)&aasworld.vertexes[aasworld.edges[abs32(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
   if ( *(_DWORD *)(face + 8) - 1 <= 1 )
     return 0.0;
   while ( 1 )
@@ -11529,7 +11527,7 @@ double __cdecl AAS_AreaVolume(int areanum)
   v12 = 0.0;
   v3i = aasworld.faceindex[*((_DWORD *)v1 + 2)];
   v4i = aasworld.edgeindex[*((_DWORD *)aasworld.faces + 6 * abs32(v3i) + 3)];
-  vp = (char *)aasworld.vertexes + 12 * aasworld.edges[abs32(v4i)].v[0];
+  vp = &aasworld.vertexes[aasworld.edges[abs32(v4i)].v[0]];
   v9 = *(float *)vp;
   v11 = *(float *)(vp + 8);
   for ( i = *(float *)(vp + 4); v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
@@ -11593,12 +11591,12 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
       v4i = aasworld.edgeindex[v2 + *((_DWORD *)v3 + 3)];
       v4 = &aasworld.edges[abs32(v4i)];
       ++v2;
-      *center = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4) + *center;
-      center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 1) + center[1];
-      center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)v4 + 2) + center[2];
-      *center = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4)) + *center;
-      center[1] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 1) + center[1];
-      center[2] = *((float *)aasworld.vertexes + 3 * *(_DWORD *)(v4 + 4) + 2) + center[2];
+      *center = aasworld.vertexes[*(_DWORD *)v4][0] + *center;
+      center[1] = aasworld.vertexes[*(_DWORD *)v4][1] + center[1];
+      center[2] = aasworld.vertexes[*(_DWORD *)v4][2] + center[2];
+      *center = aasworld.vertexes[*(_DWORD *)(v4 + 4)][0] + *center;
+      center[1] = aasworld.vertexes[*(_DWORD *)(v4 + 4)][1] + center[1];
+      center[2] = aasworld.vertexes[*(_DWORD *)(v4 + 4)][2] + center[2];
     }
     while ( v2 < *((int *)v3 + 2) );
   }
@@ -11879,7 +11877,6 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   BOOL v19; // edi
   _DWORD *v20; // esi
   _DWORD *v21; // ecx
-  int v22; // edx
   int v23; // eax
   int v24; // ecx
   int v25; // eax
@@ -11998,26 +11995,25 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                               {
                                 v19 = v18 < 0;
                                 v20 = &aasworld.edges[abs32(v18)];
-                                v38[0] = *((float *)aasworld.vertexes + 3 * v20[1])
-                                       + *((float *)aasworld.vertexes + 3 * *v20);
-                                v38[1] = *((float *)aasworld.vertexes + 3 * v20[1] + 1)
-                                       + *((float *)aasworld.vertexes + 3 * *v20 + 1);
-                                v38[2] = *((float *)aasworld.vertexes + 3 * v20[1] + 2)
-                                       + *((float *)aasworld.vertexes + 3 * *v20 + 2);
+                                v38[0] = aasworld.vertexes[v20[1]][0]
+                                       + aasworld.vertexes[*v20][0];
+                                v38[1] = aasworld.vertexes[v20[1]][1]
+                                       + aasworld.vertexes[*v20][1];
+                                v38[2] = aasworld.vertexes[v20[1]][2]
+                                       + aasworld.vertexes[*v20][2];
                                 v48 = VectorLength(v38);
                                 VectorScale(v38, 0.5f, v38);
                                 v44[0] = v38[0];
                                 v44[1] = v38[1];
                                 v44[2] = v38[2];
                                 v21 = &v20[!v19];
-                                v71[0] = *((float *)aasworld.vertexes + 3 * v20[v19])
-                                       - *((float *)aasworld.vertexes + 3 * *v21);
-                                v71[1] = *((float *)aasworld.vertexes + 3 * v20[v19] + 1)
-                                       - *((float *)aasworld.vertexes + 3 * *v21 + 1);
-                                v22 = 3 * v20[v19];
+                                v71[0] = aasworld.vertexes[v20[v19]][0]
+                                       - aasworld.vertexes[*v21][0];
+                                v71[1] = aasworld.vertexes[v20[v19]][1]
+                                       - aasworld.vertexes[*v21][1];
                                 v14 = v59;
-                                v71[2] = *((float *)aasworld.vertexes + v22 + 2)
-                                       - *((float *)aasworld.vertexes + 3 * *v21 + 2);
+                                v71[2] = aasworld.vertexes[v20[v19]][2]
+                                       - aasworld.vertexes[*v21][2];
                                 CrossProduct(v71, (char *)aasworld.planes + 20 * *v59, v72);
                                 VectorNormalize(v72);
                                 VectorMA(v44, 5.0f, v72, v44);
@@ -12349,11 +12345,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                   v12 = v12 == v128;
                 v13 = abs32(v11);
                 v14 = &aasworld.edges[v13];
-                v15 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v14[4 * (v12 == 0)]);
+                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&v14[4 * (v12 == 0)]]);
                 v69 = *v15;
                 v16 = v15[1];
                 v71 = *((int *)v15 + 2);
-                v17 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v14[4 * v12]);
+                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&v14[4 * v12]]);
                 *(float *)&v70 = v16;
                 v75 = *v17;
                 v76 = v17[1];
@@ -12378,11 +12374,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                       {
                         v23 = aasworld.edgeindex[j + *((_DWORD *)v21 + 3)];
                         v24 = &aasworld.edges[abs32(v23)];
-                        v23p = (char *)aasworld.vertexes + 12 * *v24;
+                        v23p = &aasworld.vertexes[*v24];
                         v78 = *(float *)v23p;
                         v79 = *(int *)(v23p + 4);
                         v80 = *(float *)(v23p + 8);
-                        v23p = (char *)aasworld.vertexes + 12 * v24[1];
+                        v23p = &aasworld.vertexes[v24[1]];
                         v72 = *(float *)v23p;
                         v74 = *(float *)(v23p + 8);
                         v73 = *(float *)(v23p + 4);
@@ -13059,13 +13055,13 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                       {
                         edge2num = aasworld.edgeindex[v87 + v67[3]];
                         edge2 = &aasworld.edges[((HIDWORD(edge2num) ^ edge2num) - HIDWORD(edge2num))];
-                        v1 = (float *)((char *)aasworld.vertexes + 12 * *edge1);
-                        v2 = (float *)((char *)aasworld.vertexes + 12 * edge1[1]);
+                        v1 = (float *)(&aasworld.vertexes[*edge1]);
+                        v2 = (float *)(&aasworld.vertexes[edge1[1]]);
                         HIDWORD(edge2num) = *edge2;
                         v23 = edge2[1];
                         v83 = *v2 - *v1;
-                        v3 = (float *)((char *)aasworld.vertexes + 12 * HIDWORD(edge2num));
-                        v4 = (float *)((char *)aasworld.vertexes + 12 * v23);
+                        v3 = (float *)(&aasworld.vertexes[HIDWORD(edge2num)]);
+                        v4 = (float *)(&aasworld.vertexes[v23]);
                         v84 = v2[1] - v1[1];
                         v85 = *v4 - *v3;
                         v86 = v4[1] - v3[1];
@@ -13694,12 +13690,12 @@ LABEL_20:
             v21 = abs32(v67);
             v22 = &aasworld.edges[v21];
             v23 = v67 < 0;
-            v24 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v22[4 * v23]);
+            v24 = (float *)(&aasworld.vertexes[*(_DWORD *)&v22[4 * v23]]);
             vert1[0] = *v24;
             v25 = v24[1];
             vert1[2] = v24[2];
             vert1[1] = v25;
-            v26 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v22[4 * !v23]);
+            v26 = (float *)(&aasworld.vertexes[*(_DWORD *)&v22[4 * !v23]]);
             vert2[0] = *v26;
             v27 = v26[2];
             vert2[1] = v26[1];
@@ -13818,11 +13814,11 @@ LABEL_20:
                 for ( i = 0; i < v7[2]; ++i )
                 {
                   v45 = abs32(aasworld.edgeindex[i + v7[3]]);
-                  v46 = *((float *)aasworld.vertexes + 3 * aasworld.edges[v45].v[0]);
-                  v47 = (float *)((char *)aasworld.vertexes + 12 * aasworld.edges[v45].v[0]);
+                  v46 = aasworld.vertexes[aasworld.edges[v45].v[0]][0];
+                  v47 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[0]]);
                   vert1[1] = v47[1];
                   vert1[2] = v47[2];
-                  v48 = (float *)((char *)aasworld.vertexes + 12 * aasworld.edges[v45].v[1]);
+                  v48 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[1]]);
                   v49 = *v48 + v46;
                   v50 = v48[1];
                   v51 = v48[2];
@@ -14505,7 +14501,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
       if ( (face2[4] & 1) != 0 )
       {
         vidx = aasworld.edgeindex[*((_DWORD *)face2 + 3)];
-        v = (char *)aasworld.vertexes + 12 * aasworld.edges[abs32(vidx)].v[0];
+        v = &aasworld.vertexes[aasworld.edges[abs32(vidx)].v[0]];
         dir[0] = *(float *)v - areastart[0];
         dir[1] = *(float *)(v + 4) - areastart[1];
         dir[2] = *(float *)(v + 8) - areastart[2];
@@ -15085,8 +15081,8 @@ LABEL_44:
 LABEL_29:
             v27 = &aasworld.edges[v14];
             v28 = v43 < 0;
-            v29 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v27[4 * v28]);
-            v30 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)&v27[4 * !v28]);
+            v29 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * v28]]);
+            v30 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * !v28]]);
             v31 = 5 * *v52;
             v56[0] = *v30 - *v29;
             v56[1] = v30[1] - v29[1];
@@ -17395,8 +17391,8 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
     eidx = aasworld.edgeindex[face->firstedge + v16];
     edge = &aasworld.edges[abs32(eidx)];
     v8 = eidx < 0;
-    v7 = (char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * v8);
-    v9 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * !v8));
+    v7 = &aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
+    v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
     v14[0] = *v9 - *(float *)v7;
     v14[1] = v9[1] - *(float *)(v7 + 4);
     v14[2] = v9[2] - *(float *)(v7 + 8);
@@ -17441,8 +17437,8 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       eidx = aasworld.edgeindex[facenum + v5[3]];
       edge = &aasworld.edges[abs32(eidx)];
       v8 = eidx < 0;
-      v7 = (char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * v8);
-      v9 = (float *)((char *)aasworld.vertexes + 12 * *(_DWORD *)(edge + 4 * !v8));
+      v7 = &aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
+      v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
       v14[0] = *v9 - *(float *)v7;
       v14[1] = v9[1] - *(float *)(v7 + 4);
       v14[2] = v9[2] - *(float *)(v7 + 8);
