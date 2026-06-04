@@ -39,12 +39,20 @@ typedef struct aas_face_s {
 } aas_face_t;
 typedef int                                                aas_faceindex_t;
 
+/* aas_area_t — 48-byte area record (stride verified as 48 == 12 dwords in
+ * 40+ usages, e.g. `(char*)aasworld.areas + 48*areanum`).  Layout matches Q3
+ * botlib aas_area_t exactly (be_aas_def.h): dword 1 = numfaces (loop count),
+ * dword 2 = firstface (faceindex base), dwords 9-11 = center/origin.  The
+ * earlier reconstruction here had a 32-byte {mins;maxs;firstface;numfaces}
+ * which was wrong on every count; nothing referenced those member names. */
 typedef struct aas_area_s {
-    float mins[3];
-    float maxs[3];
-    int   firstface;
-    int   numfaces;
-} aas_area_t;                           /* 40 bytes  (offset stride = 40) */
+    int   areanum;       /* +0   dword 0 */
+    int   numfaces;      /* +4   dword 1 */
+    int   firstface;     /* +8   dword 2 */
+    float mins[3];       /* +12  dwords 3-5 */
+    float maxs[3];       /* +24  dwords 6-8 */
+    float center[3];     /* +36  dwords 9-11 (the area 'origin') */
+} aas_area_t;                           /* 48 bytes  (offset stride = 48) */
 
 typedef struct aas_areasettings_s {
     int contents;

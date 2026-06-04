@@ -459,7 +459,7 @@ typedef struct aas_world_s {
     int   faceindexsize;            /* +0x160 */
     int  *faceindex;                /* +0x164  flat int[] (face numbers per area) */
     int   numareas;                 /* +0x168 */
-    void *areas;                    /* +0x16C */
+    aas_area_t *areas;              /* +0x16C */
     int   numareasettings;          /* +0x170 */
     aas_areasettings_t *areasettings; /* +0x174 */
     int   reachabilitysize;         /* +0x178 */

@@ -6291,7 +6291,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
       return AAS_UpdatePortal(a1, ArgList);
   aasworld.areasettings[a1].cluster = ArgList;
   aasworld.areasettings[a1].clusterareanum = (aasworld.clusters[ArgList].numareas)++;
-  v7 = (char *)aasworld.areas + 48 * a1;
+  v7 = &aasworld.areas[a1];
   v6 = 0;
   if ( *((int *)v7 + 1) > 0 )
   {
@@ -6476,7 +6476,7 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connected
   char *area, *face;
 
   *(_DWORD *)(connectedareas + 4 * curarea) = 1;
-  area = (char *)aasworld.areas + 48 * areanums[curarea];
+  area = &aasworld.areas[areanums[curarea]];
   for ( i = 0; i < *((int *)area + 1); i++ )
   {
     facenum = aasworld.faceindex[*((_DWORD *)area + 2) + i];
@@ -6539,7 +6539,7 @@ int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
   int v15; // [esp+1Ch] [ebp+Ch]
 
   areanum[cluster] = done;
-  v4 = (int *)((char *)aasworld.areas + 48 * done);
+  v4 = (int *)(&aasworld.areas[done]);
   v5 = cluster + 1;
   v6 = 0;
   v7 = aasworld.areasettings[done].presencetype;
@@ -6669,7 +6669,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   for ( i = 0; v6 < v5; i = v6 )
   {
     v47 = v52[v6];
-    v7 = (char *)aasworld.areas + 48 * v47;
+    v7 = &aasworld.areas[v47];
     v8 = 0;
     v36 = v7;
     v43 = 0;
@@ -7372,7 +7372,7 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
   v16 = 0;
   if ( areanum < 0 || areanum >= aasworld.numareas )
     return bi_Print(3, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
-  v4 = (char *)aasworld.areas + 48 * areanum;
+  v4 = &aasworld.areas[areanum];
   v17 = 0;
   for ( i = v4; v17 < *((_DWORD *)v4 + 1); ++v17 )
   {
@@ -10434,7 +10434,7 @@ int __cdecl AAS_AgainstLadder(int *origin)
     return 0;
   if ( (v4->presencetype & 2) == 0 )
     return 0;
-  v5 = (int *)((char *)aasworld.areas + 48 * v3);
+  v5 = (int *)(&aasworld.areas[v3]);
   v6 = 0;
   if ( v5[1] <= 0 )
     return 0;
@@ -11240,7 +11240,7 @@ int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
   int v5; // esi
   int v6; // eax
 
-  v2 = (int *)((char *)aasworld.areas + 48 * areanum);
+  v2 = (int *)(&aasworld.areas[areanum]);
   v3 = (_DWORD *)((char *)optimized->areas + 48 * areanum);
   qmemcpy(v3, v2, 0x30u);
   v3[1] = 0;
@@ -11521,7 +11521,7 @@ double __cdecl AAS_AreaVolume(int areanum)
   float v11; // [esp+14h] [ebp-4h]
   float v12; // [esp+1Ch] [ebp+4h]
 
-  v1 = (char *)aasworld.areas + 48 * areanum;
+  v1 = &aasworld.areas[areanum];
   v2 = 0;
   v12 = 0.0;
   v3i = aasworld.faceindex[*((_DWORD *)v1 + 2)];
@@ -11553,7 +11553,7 @@ double __cdecl AAS_AreaGroundFaceArea(int areanum)
 
   result = 0.0f;
   v2 = 0;
-  v3 = (char *)aasworld.areas + 48 * areanum;
+  v3 = &aasworld.areas[areanum];
   if ( *((int *)v3 + 1) > 0 )
   {
     do
@@ -11771,8 +11771,8 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (aasworld.areasettings[area2num].presencetype & 2) == 0 )
     return 0;
   v2 = 0;
-  v3 = (char *)aasworld.areas + 48 * area2num;
-  v4 = (char *)aasworld.areas + 48 * area1num;
+  v3 = &aasworld.areas[area2num];
+  v4 = &aasworld.areas[area1num];
   v5 = (float *)(v3 + 12);
   v6 = (float *)(v4 + 24);
   do
@@ -11930,8 +11930,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) )
   {
     v2 = 0;
-    v3 = (char *)aasworld.areas + 48 * area2num;
-    v4 = (char *)aasworld.areas + 48 * area1num;
+    v3 = &aasworld.areas[area2num];
+    v4 = &aasworld.areas[area1num];
     v57 = v4;
     v58 = v3;
     v5 = (float *)(v3 + 12);
@@ -12297,9 +12297,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   up[2] = 1.0f;
   if ( (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
   {
-    v2 = (char *)aasworld.areas + 48 * area1num;
+    v2 = &aasworld.areas[area1num];
     v127 = v2;
-    v115 = (char *)aasworld.areas + 48 * area2num;
+    v115 = &aasworld.areas[area2num];
     v3 = AAS_AreaSwim(area1num);
     v4 = 0;
     v5 = (float *)(v115 + 12);
@@ -12985,8 +12985,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) && !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
   {
-    area1 = (char *)aasworld.areas + 48 * area1num;
-    area2 = (char *)aasworld.areas + 48 * area2num;
+    area1 = &aasworld.areas[area1num];
+    area2 = &aasworld.areas[area2num];
     area1_save = area1;
     v91 = area2;
     /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
@@ -13587,8 +13587,8 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
        * AAS_MaxJumpHeight and stores the float result to v103.  IDA used a1
        * (the source area number) instead — breaks ladder-reachability filtering. */
       v103 = (float)AAS_MaxJumpHeight(libvar_sv_jumpvel->value);
-      v3 = (char *)aasworld.areas + 48 * area1num;
-      v4 = (char *)aasworld.areas + 48 * area2num;
+      v3 = &aasworld.areas[area1num];
+      v4 = &aasworld.areas[area2num];
       v5 = *((_DWORD *)v3 + 1);
       v6 = 0;
       v7 = 0;
@@ -13844,7 +13844,7 @@ LABEL_20:
                 trace.endpos[2] = trace.endpos[2] + 1.0f;
                 v53 = AAS_PointAreaNum(trace.endpos);
                 v54 = 0;
-                v55 = (char *)aasworld.areas + 48 * v53;
+                v55 = &aasworld.areas[v53];
                 v56 = *((_DWORD *)v55 + 1);
                 if ( v56 > 0 )
                 {
@@ -14458,8 +14458,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     return 0;
   if ( AAS_AreaSwim(area1num) )
     return 0;
-  area2 = (char *)aasworld.areas + 48 * area2num;
-  area1 = (char *)aasworld.areas + 48 * area1num;
+  area2 = &aasworld.areas[area2num];
+  area1 = &aasworld.areas[area1num];
   v39 = area2;
   if ( *((float *)area2 + 8) < (float)*((float *)area1 + 5) )
     return 0;
@@ -14740,8 +14740,8 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   if ( !AAS_AreaGrounded(ArgList) || AAS_AreaSwim(ArgList) ) return 0;
   if ( !AAS_AreaGrounded(a2) ) return 0;
   if ( (aasworld.areasettings[a2].areaflags & 0x2000) == 0 ) return 0;
-  v2 = (char *)aasworld.areas + 48 * a2;
-  v3 = (float *)((char *)aasworld.areas + 48 * ArgList);
+  v2 = &aasworld.areas[a2];
+  v3 = (float *)(&aasworld.areas[ArgList]);
   if ( *((float *)v2 + 8) < (float)v3[5] )
     return 0;
   centerorg[0] = *((float *)v3 + 9);
@@ -14943,7 +14943,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
     result = AAS_AreaSwim(areanum);
     if ( !result )
     {
-      v2 = (char *)aasworld.areas + 48 * areanum;
+      v2 = &aasworld.areas[areanum];
       v3 = 0;
       v53 = v2;
       v47 = 0;
@@ -14999,7 +14999,7 @@ LABEL_7:
             v16 = *((_DWORD *)v11 + 4);
             if ( v16 == areanum )
               v16 = *((_DWORD *)v11 + 5);
-            v17 = (char *)aasworld.areas + 48 * v16;
+            v17 = &aasworld.areas[v16];
             if ( (aasworld.areasettings[v16].areaflags & 1) != 0 )
             {
               v18 = *((_DWORD *)v17 + 1);
@@ -15979,9 +15979,9 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
         aasworld.clusters[a1].numareas);
     cur->cluster        = a1;
     cur->areanum        = a2;
-    cur->origin[0]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 9);
-    cur->origin[1]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 10);
-    cur->origin[2]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 11);
+    cur->origin[0]      = aasworld.areas[a2].center[0];
+    cur->origin[1]      = aasworld.areas[a2].center[1];
+    cur->origin[2]      = aasworld.areas[a2].center[2];
     cur->starttraveltime = 1.0f;
     cur->travelflags    = a3;
     cur->prev           = NULL;
@@ -16133,9 +16133,9 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
     cur = AAS_AllocRoutingCache(aasworld.numportals);
     cur->cluster        = a1;
     cur->areanum        = a2;
-    cur->origin[0]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 9);
-    cur->origin[1]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 10);
-    cur->origin[2]      = *(float *)((_DWORD *)aasworld.areas + 12 * a2 + 11);
+    cur->origin[0]      = aasworld.areas[a2].center[0];
+    cur->origin[1]      = aasworld.areas[a2].center[1];
+    cur->origin[2]      = aasworld.areas[a2].center[2];
     cur->starttraveltime = 1.0f;
     cur->travelflags    = a3;
     cur->prev           = NULL;
@@ -16373,7 +16373,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       v4 = 1;
     if ( AAS_AreaReachability(v4) && AAS_AreaTravelTimeToGoalArea(areanum, v4, travelflags) )
     {
-      v6 = (float *)((char *)aasworld.areas + 48 * v4);
+      v6 = (float *)(&aasworld.areas[v4]);
       center[0] = v6[9];
       center[1] = v6[10];
       center[2] = v6[11];
@@ -16425,7 +16425,7 @@ int __cdecl sub_1001A650(int a1)
 
   *(_DWORD *)(dword_10066744 + 4 * dword_10066730++) = a1;
   *(_DWORD *)(dword_10066740 + 8 * a1) = 0;
-  v1 = (char *)aasworld.areas + 48 * a1;
+  v1 = &aasworld.areas[a1];
   v2 = 0;
   result = *((_DWORD *)v1 + 1);
   if ( result > 0 )
@@ -16537,7 +16537,7 @@ int __cdecl sub_1001A720(
   int   count;
   int   best_area;
   char *as_byte;
-  char *areas_base;
+  aas_area_t *areas_base;
   char *flagtbl;             /* dword_10066740 as char* (8 bytes/area) */
   int  *visit_stack;
   vec3_t centroid;
@@ -16603,7 +16603,7 @@ int __cdecl sub_1001A720(
    * one alt-route goal per cluster (centroid → nearest member). */
   count = 0;
   out = altroutegoals;
-  areas_base  = (char *)aasworld.areas;
+  areas_base  = aasworld.areas;
 
   for ( ebp_area = 1; ebp_area < aasworld.numareas; ebp_area++ )
   {
@@ -16618,10 +16618,10 @@ int __cdecl sub_1001A720(
     centroid[2] = 0.0f;
     for ( i = 0; i < dword_10066730; i++ )
     {
-      char *a = areas_base + 48 * visit_stack[i];
-      centroid[0] += *(float *)(a + 0x24);
-      centroid[1] += *(float *)(a + 0x28);
-      centroid[2] += *(float *)(a + 0x2c);
+      aas_area_t *a = &areas_base[visit_stack[i]];
+      centroid[0] += a->center[0];
+      centroid[1] += a->center[1];
+      centroid[2] += a->center[2];
     }
     fcount = (float)(1.0 / (float)dword_10066730);
     VectorScale(centroid, fcount, centroid);
@@ -16630,11 +16630,11 @@ int __cdecl sub_1001A720(
     best_area = 0;
     for ( i = 0; i < dword_10066730; i++ )
     {
-      char *a = areas_base + 48 * visit_stack[i];
+      aas_area_t *a = &areas_base[visit_stack[i]];
       double d;
-      diff[0] = centroid[0] - *(float *)(a + 0x24);
-      diff[1] = centroid[1] - *(float *)(a + 0x28);
-      diff[2] = centroid[2] - *(float *)(a + 0x2c);
+      diff[0] = centroid[0] - a->center[0];
+      diff[1] = centroid[1] - a->center[1];
+      diff[2] = centroid[2] - a->center[2];
       d = VectorLength(diff);
       if ( (float)d < best_dist )
       {
@@ -16644,10 +16644,10 @@ int __cdecl sub_1001A720(
     }
 
     {
-      char *a = areas_base + 48 * best_area;
-      out->origin[0]         = *(float *)(a + 0x24);
-      out->origin[1]         = *(float *)(a + 0x28);
-      out->origin[2]         = *(float *)(a + 0x2c);
+      aas_area_t *a = &areas_base[best_area];
+      out->origin[0]         = a->center[0];
+      out->origin[1]         = a->center[1];
+      out->origin[2]         = a->center[2];
       out->areanum           = best_area;
       out->travel_to_start   = *(unsigned short *)(flagtbl + 8 * best_area + 4);
       out->travel_to_goal    = *(unsigned short *)(flagtbl + 8 * best_area + 6);
@@ -17478,7 +17478,7 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
 
   if ( !aasworld.loaded )
     return 0;
-  area = (char *)aasworld.areas + areanum * 48;
+  area = &aasworld.areas[areanum];
   numfaces = *(int *)(area + 4);
   if ( numfaces <= 0 )
     return 0;
@@ -17551,7 +17551,7 @@ void *__cdecl sub_1001C210(int *gate)
   if ( gate[0] != 0 )
     return 0;
   areanum = gate[6];                                  /* gate->_i18 */
-  area = (char *)aasworld.areas + areanum * 48;
+  area = &aasworld.areas[areanum];
   numfaces = *(int *)(area + 4);
   if ( numfaces <= 0 )
     return 0;
