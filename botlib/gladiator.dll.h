@@ -455,7 +455,7 @@ typedef struct aas_world_s {
     int   edgeindexsize;            /* +0x150 */
     int  *edgeindex;                /* +0x154  flat int[] (edge numbers per face) */
     int   numfaces;                 /* +0x158 */
-    void *faces;                    /* +0x15C */
+    aas_face_t *faces;              /* +0x15C */
     int   faceindexsize;            /* +0x160 */
     int  *faceindex;                /* +0x164  flat int[] (face numbers per area) */
     int   numareas;                 /* +0x168 */
