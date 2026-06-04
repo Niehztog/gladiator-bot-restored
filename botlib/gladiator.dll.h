@@ -449,7 +449,7 @@ typedef struct aas_world_s {
     int   numvertexes;              /* +0x138 */
     vec3_t *vertexes;               /* +0x13C  (float[3] per vertex) */
     int   numplanes;                /* +0x140 */
-    void *planes;                   /* +0x144 */
+    aas_plane_t *planes;            /* +0x144 */
     int   numedges;                 /* +0x148 */
     aas_edge_t *edges;              /* +0x14C */
     int   edgeindexsize;            /* +0x150 */

@@ -7298,7 +7298,6 @@ void __cdecl sub_10009ED0(int facenum)
   float *vertexes = (float *)aasworld.vertexes;
   aas_edge_t *edges = aasworld.edges;
   int   *edgeindex = (int *)aasworld.edgeindex;
-  char  *planes = (char *)aasworld.planes;
   int   planenum;
   float *normal;
   vec3_t first_vert;
@@ -7333,7 +7332,7 @@ void __cdecl sub_10009ED0(int facenum)
 
   /* draw 20-unit normal arrow from the first vertex of the first edge */
   planenum = *(int *)face;
-  normal = (float *)(planes + planenum * 20);
+  normal = aasworld.planes[planenum].normal;
   edge_idx = edgeindex[firstedge];
   if ( edge_idx < 0 )
     edge_idx = -edge_idx;
@@ -10446,10 +10445,10 @@ int __cdecl AAS_AgainstLadder(int *origin)
     if ( (v8[4] & 2) != 0 )
     {
       v9 = *(_DWORD *)v8 ^ (aasworld.faceindex[v6 + v5[2]] < 0);
-      if ( (int)abs32((__int64)(*((float *)aasworld.planes + 5 * v9 + 2) * *((float *)origin + 2)
-                              + *((float *)aasworld.planes + 5 * v9 + 1) * *((float *)origin + 1)
-                              + *((float *)aasworld.planes + 5 * v9) * *(float *)origin
-                              - *((float *)aasworld.planes + 5 * v9 + 3))) < 3 )
+      if ( (int)abs32((__int64)(aasworld.planes[v9].normal[2] * *((float *)origin + 2)
+                              + aasworld.planes[v9].normal[1] * *((float *)origin + 1)
+                              + aasworld.planes[v9].normal[0] * *(float *)origin
+                              - aasworld.planes[v9].dist)) < 3 )
       {
         if ( AAS_PointInsideFace(v7, (float *)origin, 0.1) )
           break;
@@ -11534,10 +11533,10 @@ double __cdecl AAS_AreaVolume(int areanum)
   {
     v5 = aasworld.faceindex[v2 + *((int *)v1 + 2)];
     v7 = (char *)aasworld.faces + 24 * (abs32(v5));
-    v8 = -(v11 * *((float *)aasworld.planes + 5 * *v7 + 2)
-         + i * *((float *)aasworld.planes + 5 * *v7 + 1)
-         + v9 * *((float *)aasworld.planes + 5 * *v7)
-         - *((float *)aasworld.planes + 5 * *v7 + 3));
+    v8 = -(v11 * aasworld.planes[*v7].normal[2]
+         + i * aasworld.planes[*v7].normal[1]
+         + v9 * aasworld.planes[*v7].normal[0]
+         - aasworld.planes[*v7].dist);
     ++v2;
   }
   return v12 * 0.33333334f;
@@ -11838,7 +11837,7 @@ LABEL_14:
    * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
    * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
    * numplanes/4 and the read crashed in VectorMA. */
-  VectorMA((float *)(lreach + 3), 2.0, (float *)((char *)aasworld.planes + 20 * (v18 ^ *v14)), (float *)(lreach + 6));
+  VectorMA((float *)(lreach + 3), 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), (float *)(lreach + 6));
   v16[9] = 8;
   *((_WORD *)v16 + 20) = 1;
   if ( AAS_AreaVolume(area2num) < 800.0 )
@@ -12014,7 +12013,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                                 v14 = v59;
                                 v71[2] = aasworld.vertexes[v20[v19]][2]
                                        - aasworld.vertexes[*v21][2];
-                                CrossProduct(v71, (char *)aasworld.planes + 20 * *v59, v72);
+                                CrossProduct(v71, &aasworld.planes[*v59], v72);
                                 VectorNormalize(v72);
                                 VectorMA(v44, 5.0f, v72, v44);
                                 VectorMA(v38, 0.1f, v72, v38);
@@ -12329,9 +12328,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v126 = v9;
           if ( (v9[4] & 4) != 0
             || v134
-            && up[2] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0)) + 2)
-             + up[1] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0)) + 1)
-             + up[0] * *((float *)aasworld.planes + 5 * (*(_DWORD *)v9 ^ (v8 >= 0))) >= 0.7f )
+            && up[2] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[2]
+             + up[1] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[1]
+             + up[0] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[0] >= 0.7f )
           {
             v10 = *((_DWORD *)v9 + 2);
             v117 = 0;
@@ -12921,7 +12920,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   long double v31; // st6
   long double v32; // st5
   long double v33; // st4
-  int v34; // ecx
   float *v35; // eax
   long double v36; // st7
   long double v37; // st6
@@ -13111,12 +13109,11 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v76_vec[2] = 0.0f;
                         v80_vec[2] = 0.0f;
                         v73_vec[2] = 0.0f;
-                        v34 = 5 * *v67;
-                        v35 = (float *)((char *)aasworld.planes + 20 * *v66);
+                        v35 = (float *)(&aasworld.planes[*v66]);
                         v79 = 0;
-                        v36 = (float)v70_vec[1] * (float)*((float *)aasworld.planes + v34 + 1);
-                        v37 = (float)v70_vec[0] * (float)*((float *)aasworld.planes + v34);
-                        v38 = (float *)((char *)aasworld.planes + 4 * v34);
+                        v36 = (float)v70_vec[1] * (float)aasworld.planes[*v67].normal[1];
+                        v37 = (float)v70_vec[0] * (float)aasworld.planes[*v67].normal[0];
+                        v38 = (float *)&aasworld.planes[*v67];
                         v70_vec[2] = (float)(((float)v38[3] - (v36 + v37)) / (float)v38[2]);
                         v76_vec[2] = (float)(((float)v38[3] - ((float)v76_vec[1] * (float)v38[1] + (float)v76_vec[0] * (float)*v38)) / (float)v38[2]);
                         v80_vec[2] = (float)(((float)v35[3] - ((float)v80_vec[0] * (float)*v35 + (float)v80_vec[1] * (float)v35[1])) / (float)v35[2]);
@@ -13338,7 +13335,7 @@ LABEL_67:
               trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
               if ( !trace.startsolid
                 && (trace.fraction >= 1.0
-                 || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
+                 || aasworld.planes[trace.planenum].normal[2] < 0.7
                  || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
                 VectorMA(bestend, -1.0, (float *)dir, teststart);
@@ -13348,7 +13345,7 @@ LABEL_67:
                 trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
                 if ( !trace.startsolid
                   && (trace.fraction >= 1.0
-                   || *((float *)aasworld.planes + 5 * trace.planenum + 2) < 0.7
+                   || aasworld.planes[trace.planenum].normal[2] < 0.7
                    || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
                 {
                   /* Horizontal velocity vector (Z explicitly zeroed):
@@ -13707,11 +13704,11 @@ LABEL_20:
             mid2[1] = mid[1];
             mid2[0] = mid[0];
             mid2[2] = mid[2];
-            v28 = (float *)((char *)aasworld.planes + 20 * (*v7 ^ (v71 < 0)));
+            v28 = (float *)(&aasworld.planes[(*v7 ^ (v71 < 0))]);
             v29 = *(_DWORD *)v75;
             edgedir[0] = vert2[0] - vert1[0];
             edgedir[1] = vert2[1] - vert1[1];
-            v30 = (float *)((char *)aasworld.planes + 20 * (v29 ^ (v84 < 0)));
+            v30 = (float *)(&aasworld.planes[(v29 ^ (v84 < 0))]);
             edgedir[2] = vert2[2] - vert1[2];
             CrossProduct(v28, edgedir, edgecross);
             VectorNormalize(edgecross);
@@ -13836,7 +13833,7 @@ LABEL_20:
                     v66 = v45;
                   }
                 }
-                v85 = (char *)aasworld.planes + 20 * *v7;
+                v85 = &aasworld.planes[*v7];
                 VectorMA(bestmid, 5.0, (float *)v85, tracestart);
                 v52 = tracestart[2];
                 traceend[0] = tracestart[0];
@@ -13856,7 +13853,7 @@ LABEL_20:
                   {
                     v58 = (char *)aasworld.faces + 24 * abs32(*v57);
                     if ( (v58[4] & 2) != 0
-                      && (float)(int)abs32((__int64)*((float *)aasworld.planes + 5 * *(_DWORD *)v58 + 2)) < 0.1 )
+                      && (float)(int)abs32((__int64)aasworld.planes[*(_DWORD *)v58].normal[2]) < 0.1 )
                     {
                       break;
                     }
@@ -14505,12 +14502,12 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
         dir[0] = *(float *)v - areastart[0];
         dir[1] = *(float *)(v + 4) - areastart[1];
         dir[2] = *(float *)(v + 8) - areastart[2];
-        if ( dir[2] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2)
-           + dir[1] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 1)
-           + dir[0] * *((float *)aasworld.planes + 5 * *(_DWORD *)face2) <= 0.0f )
+        if ( dir[2] * aasworld.planes[*(_DWORD *)face2].normal[2]
+           + dir[1] * aasworld.planes[*(_DWORD *)face2].normal[1]
+           + dir[0] * aasworld.planes[*(_DWORD *)face2].normal[0] <= 0.0f )
         {
           AAS_FaceCenter(face2num, facecenter);
-          if ( areastart[2] + 64.0f <= facecenter[2] && *((float *)aasworld.planes + 5 * *(_DWORD *)face2 + 2) * -1.0f >= 0.0f )
+          if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[*(_DWORD *)face2].normal[2] * -1.0f >= 0.0f )
           {
             dir[2] = 0.0f;
             dir[0] = facecenter[0] - areastart[0];
@@ -14528,7 +14525,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                * advance 20 floats = 80 bytes per plane; the original disasm
                * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
                * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(facecenter, -500.0f, (float *)aasworld.planes + 5 * *(_DWORD *)face2, vmav);
+              VectorMA(facecenter, -500.0f, aasworld.planes[*(_DWORD *)face2].normal, vmav);
               qmemcpy(v41, AAS_Trace(v44, (float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(vmav), 0, 100663299), sizeof(v41));
               if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0f < 32.0f )
               {
@@ -14908,7 +14905,6 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   BOOL v28; // ecx
   float *v29; // esi
   float *v30; // edi
-  int v31; // edx
   int v32; // eax
   int v33; // edi
   char *v34; // eax
@@ -15083,11 +15079,10 @@ LABEL_29:
             v28 = v43 < 0;
             v29 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * v28]]);
             v30 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * !v28]]);
-            v31 = 5 * *v52;
             v56[0] = *v30 - *v29;
             v56[1] = v30[1] - v29[1];
             v56[2] = v30[2] - v29[2];
-            CrossProduct((char *)aasworld.planes + 4 * v31, v56, v57);
+            CrossProduct(aasworld.planes[*v52].normal, v56, v57);
             VectorNormalize(v57);
             midorigin[0] = *v29 + *v30;
             midorigin[1] = v29[1] + v30[1];
@@ -16818,10 +16813,10 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   do
   {
     v3 = &aasworld.nodes[v2];
-    if ( point[0] * *((float *)aasworld.planes + 5 * v3->planenum)
-       + point[1] * *((float *)aasworld.planes + 5 * v3->planenum + 1)
-       + point[2] * *((float *)aasworld.planes + 5 * v3->planenum + 2)
-       - *((float *)aasworld.planes + 5 * v3->planenum + 3) > 0.0f )
+    if ( point[0] * aasworld.planes[v3->planenum].normal[0]
+       + point[1] * aasworld.planes[v3->planenum].normal[1]
+       + point[2] * aasworld.planes[v3->planenum].normal[2]
+       - aasworld.planes[v3->planenum].dist > 0.0f )
       v2 = v3->children[0];
     else
       v2 = v3->children[1];
@@ -17096,7 +17091,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
         trace.area      = 0;     /* hit solid leaf */
         trace.planenum  = tstack_p->planenum;
         /* always take the plane facing toward the trace start */
-        plane = (float *)aasworld.planes + 5 * trace.planenum;
+        plane = (float *)&aasworld.planes[trace.planenum];
         {
           float dx = end[0] - trace_start_pt[0];
           float dy = end[1] - trace_start_pt[1];
@@ -17114,7 +17109,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
       cur_end_x   = tstack_p->end[0];
       cur_end_y   = tstack_p->end[1];
       cur_end_z   = tstack_p->end[2];
-      plane = (float *)aasworld.planes + 5 * aasnode->planenum;
+      plane = (float *)&aasworld.planes[aasnode->planenum];
       front = cur_start_x * plane[0] + cur_start_y * plane[1] + cur_start_z * plane[2] - plane[3];
       back  = cur_end_x   * plane[0] + cur_end_y   * plane[1] + cur_end_z   * plane[2] - plane[3];
       if ( front <= -0.0005f || back <= -0.0005f )
@@ -17240,7 +17235,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
     float dx = end[0] - trace_start_pt[0];
     float dy = end[1] - trace_start_pt[1];
     float dz = end[2] - trace_start_pt[2];
-    plane = (float *)aasworld.planes + 5 * trace.planenum;
+    plane = (float *)&aasworld.planes[trace.planenum];
     if ( dz * plane[2] + dy * plane[1] + dx * plane[0] > 0.0f )
       trace.planenum ^= 1;
   }
@@ -17315,7 +17310,7 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     cur_end_x   = tstack_p->end[0];
     cur_end_y   = tstack_p->end[1];
     cur_end_z   = tstack_p->end[2];
-    plane = (float *)aasworld.planes + 5 * aasnode->planenum;
+    plane = (float *)&aasworld.planes[aasnode->planenum];
     front = cur_start_x * plane[0] + cur_start_y * plane[1] + cur_start_z * plane[2] - plane[3];
     back  = cur_end_x   * plane[0] + cur_end_y   * plane[1] + cur_end_z   * plane[2] - plane[3];
     if ( front > 0.0f && back > 0.0f )
@@ -17429,7 +17424,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
     return 0;
   v5 = (char *)aasworld.faces + 24 * facenum;
   facenum = 0;
-  v10 = (char *)aasworld.planes + 20 * *v5;
+  v10 = &aasworld.planes[*v5];
   if ( (int)v5[2] > 0 )
   {
     while ( 1 )
@@ -17496,7 +17491,7 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
     face = (char *)aasworld.faces + idx * 24;
     if ( !(*(unsigned char *)(face + 4) & 4) )
       continue;
-    plane_z = ((float *)((char *)aasworld.planes + *(int *)face * 20))[2];
+    plane_z = ((float *)(&aasworld.planes[*(int *)face]))[2];
     dir[0] = 0.0f;
     dir[1] = 0.0f;
     dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
@@ -17522,7 +17517,7 @@ void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dist)
   float *plane;
 
   plane_idx = ((int *)aasworld.faces)[face_idx * 6];
-  plane     = (float *)((char *)aasworld.planes + plane_idx * 20);
+  plane     = (float *)(&aasworld.planes[plane_idx]);
   out_normal[0] = plane[0];
   out_normal[1] = plane[1];
   out_normal[2] = plane[2];
@@ -17570,7 +17565,7 @@ void *__cdecl sub_1001C210(int *gate)
     planenum = *(int *)face;
     if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
-    plane = (char *)aasworld.planes + planenum * 20;
+    plane = &aasworld.planes[planenum];
     if ( AAS_InsideFace((aas_face_t *)face, (float *)plane, (float *)((char *)gate + 8), 0.01f) )
       return face;
   }
@@ -17677,11 +17672,11 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
       if ( *v5 )
       {
         v11 = &aasworld.nodes[v6];
-        v12 = (char *)aasworld.planes + 20 * v11->planenum;
+        v12 = &aasworld.planes[v11->planenum];
         v13 = *((_DWORD *)v12 + 4);
         if ( v13 >= 3 )
         {
-          v14 = sub_1001C2E0(a1, a2, (float *)aasworld.planes + 5 * v11->planenum);
+          v14 = sub_1001C2E0(a1, a2, aasworld.planes[v11->planenum].normal);
         }
         else if ( *((float *)v12 + 3) > (float)a1[v13] )
         {
@@ -17756,7 +17751,7 @@ char *__cdecl AAS_PlaneFromNum(int planenum)
 {
   if ( !aasworld.loaded )
     return 0;
-  return (char *)aasworld.planes + 20 * planenum;
+  return &aasworld.planes[planenum];
 }
 // 100667E0: using guessed type int aasworld.loaded;
 
