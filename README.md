@@ -25,6 +25,11 @@ function by function, line by line.  Once complete, the Gladiator Bot will
 be open, modifiable and portable — playable on Linux, macOS and modern
 Windows for as long as people want to play Quake II.
 
+> **Sister project:** If you're after a more advanced bot, see
+> **[q3a_bot_backport_for_q2](https://github.com/Niehztog/q3a_bot_backport_for_q2)**
+> — a Quake II adaptation of the Quake III Arena bot, the evolved successor to
+> the Gladiator Bot's navigation technology.
+
 ## What's in the box
 
 This repository bundles everything you need:

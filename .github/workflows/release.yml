@@ -51,7 +51,7 @@ jobs:
             archflags: ""
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install dependencies
         run: |
@@ -85,7 +85,7 @@ jobs:
           tar -czf "${PKG}.tar.gz" gladiator
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-${{ matrix.arch }}
           path: gladiator-linux-${{ matrix.arch }}.tar.gz
@@ -110,7 +110,7 @@ jobs:
             prefix: mingw-w64-i686
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -150,7 +150,7 @@ jobs:
           Compress-Archive -Path gladiator -DestinationPath "${pkg}.zip" -Force
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-${{ matrix.arch }}
           path: gladiator-windows-${{ matrix.arch }}.zip
@@ -174,7 +174,7 @@ jobs:
             runner: macos-14
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Build
         run: |
@@ -199,7 +199,7 @@ jobs:
           tar -czf "${PKG}.tar.gz" gladiator
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-${{ matrix.arch }}
           path: gladiator-macos-${{ matrix.arch }}.tar.gz
@@ -218,7 +218,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: artifacts
 
