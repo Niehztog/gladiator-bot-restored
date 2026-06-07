@@ -35,9 +35,6 @@ This repository bundles everything you need:
   that make Adrenaline Hunk *feel* like Adrenaline Hunk
 - **The map-prep tool** (`tools/`) — `bspc`, the utility that lets you
   teach the bots a new map
-- **Reverse-engineering reference** (`reference/`) — the decompiler output
-  used as a cross-check during reconstruction (not compiled, not the
-  finished work, kept for transparency)
 
 ## What you get
 
@@ -70,15 +67,13 @@ to the issue tracker.
 - **Squatt** and **Mr. Freeze** — original co-creators
 - The **Yamagi Quake II** team for keeping the engine alive
 
-## License
+## Licensing Rationale
 
-This project is distributed under the **original 1999 Gladiator Bot
-license** — the same terms Mr. Elusive set out when he released the bot
-as freeware: free to play, modify, share and tinker with; never to be
-sold.  Commercial use must be negotiated directly with the copyright
-holder.
+This project is a reconstruction of the original Gladiator Bot source code from the Quake II era. The original source code was never publicly released, and only binary distributions are known to exist.
 
-The full terms are quoted verbatim in [LICENSE](LICENSE), and the
-original 1999 readmes they came from are bundled in
-[`game/readme.txt`](game/readme.txt) and
-[`assets/readme.htm`](assets/readme.htm).
+A substantial portion of the Gladiator Bot technology and codebase was later incorporated into the Quake III Arena bot system. The Quake III Arena source code was subsequently released under the GNU General Public License version 2 (GPLv2), making many of the underlying bot components and algorithms available under GPLv2 terms.
+
+Based on the significant code lineage between the original Gladiator Bot and the later GPLv2-released Quake III Arena bot code, this reconstruction project is distributed under the GPL. Our intention is to preserve, study, and continue the development of this historically important software within the open-source community and in a manner consistent with the later GPLv2 release of related code.
+
+This project does not claim ownership of the original work. If additional information regarding copyright ownership, licensing history, or rights transfers becomes available, the project's licensing and distribution terms may be reviewed and updated accordingly.
+
