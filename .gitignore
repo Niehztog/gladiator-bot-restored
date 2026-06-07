@@ -19,18 +19,18 @@ release/
 
 # Runtime crash & engine logs
 *.log
-gladiator_debug.log
 
 # Editor & tool state
 .idea/
 .vscode/
-# .claude/
 
 # OS metadata
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# CLAUDE.md
 aas_results/
 tools/__pycache__/
+
+# Claude Code transient runtime lock (per-session pid/sessionId)
+.claude/scheduled_tasks.lock
