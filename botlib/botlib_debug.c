@@ -184,17 +184,33 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
 
         /* CPU registers at crash.  Cast DWORD (= long unsigned int) → unsigned
          * for %X to silence -Wformat= without changing the printed bits. */
+#if defined(_M_X64) || defined(__x86_64__)
+        fprintf(g_log, "  RAX=%016llX RBX=%016llX RCX=%016llX RDX=%016llX\n",
+            (unsigned long long)ctx->Rax,
+            (unsigned long long)ctx->Rbx,
+            (unsigned long long)ctx->Rcx,
+            (unsigned long long)ctx->Rdx);
+        fprintf(g_log, "  RSI=%016llX RDI=%016llX RSP=%016llX RBP=%016llX\n",
+            (unsigned long long)ctx->Rsi,
+            (unsigned long long)ctx->Rdi,
+            (unsigned long long)ctx->Rsp,
+            (unsigned long long)ctx->Rbp);
+        unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
+        unsigned *bp = (unsigned *)(intptr_t)ctx->Ebp;
+#else
         fprintf(g_log, "  EAX=0x%08X  EBX=0x%08X  ECX=0x%08X  EDX=0x%08X\n",
                 (unsigned)ctx->Eax, (unsigned)ctx->Ebx, (unsigned)ctx->Ecx, (unsigned)ctx->Edx);
         fprintf(g_log, "  ESI=0x%08X  EDI=0x%08X  ESP=0x%08X  EBP=0x%08X\n",
                 (unsigned)ctx->Esi, (unsigned)ctx->Edi, (unsigned)ctx->Esp, (unsigned)ctx->Ebp);
+        unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
+        unsigned *bp = (unsigned *)(intptr_t)ctx->Ebp;
+#endif
 
         /* Dump stack from ESP — show 64 entries to capture return address past local frame.
          * Annotate each slot with module!RVA if it points into a loaded image,
          * so call-chain reconstruction doesn't require manually probing every
          * address against the linker maps. */
         fprintf(g_log, "  Stack (ESP-relative):\n");
-        unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
         for (int i = 0; i < 64; i++) {
             if (IsBadReadPtr(sp + i, sizeof(unsigned)))
                 break;
@@ -205,7 +221,6 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         }
         /* Also dump EBP frame */
         fprintf(g_log, "  EBP frame:\n");
-        unsigned *bp = (unsigned *)(intptr_t)ctx->Ebp;
         for (int i = -4; i <= 8; i++) {
             unsigned *p = bp + i;
             if (IsBadReadPtr(p, sizeof(unsigned)))
