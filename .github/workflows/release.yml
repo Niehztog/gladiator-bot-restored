@@ -15,9 +15,40 @@ permissions:
   contents: write
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Linux — x86_64 (native) + 32-bit x86 (gcc-multilib -m32) + ARM cross
+  # builds for Raspberry Pi: arm64/aarch64 (Pi 3/4/5 on 64-bit Pi OS) and
+  # armhf (older boards / 32-bit Pi OS).  ARM targets are cross-compiled on
+  # the x86_64 runner, so no dependency on GitHub-hosted ARM runners.
+  # ---------------------------------------------------------------------------
   build-linux:
-    name: Build Linux
+    name: Build Linux ${{ matrix.arch }}
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            cc: gcc
+            toolchain: ""
+            yq2arch: x86_64
+            archflags: ""
+          - arch: x86
+            cc: gcc
+            toolchain: gcc-multilib
+            yq2arch: i386
+            archflags: "-m32"
+          - arch: arm64
+            cc: aarch64-linux-gnu-gcc
+            toolchain: gcc-aarch64-linux-gnu
+            yq2arch: aarch64
+            archflags: ""
+          - arch: armhf
+            cc: arm-linux-gnueabihf-gcc
+            toolchain: gcc-arm-linux-gnueabihf
+            yq2arch: arm
+            archflags: ""
 
     steps:
       - uses: actions/checkout@v4
@@ -25,50 +56,61 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc make zip
+          sudo apt-get install -y make zip gcc ${{ matrix.toolchain }}
 
       - name: Build
-        run: make clean && make
+        run: |
+          make clean
+          make \
+            CC=${{ matrix.cc }} \
+            YQ2_ARCH=${{ matrix.yq2arch }} \
+            CFLAGS="${{ matrix.archflags }} -Wall -pipe -fomit-frame-pointer" \
+            LDFLAGS="${{ matrix.archflags }}"
 
       - name: Create package
         run: |
-          PKG=gladiator-linux-x64
-
-          mkdir -p "$PKG"
-
-          #
-          # Copy generated binaries if they exist
-          #
-          find release -type f \( -name "*.so" -o -name "*.dll" \) \
-            -exec cp --parents {} "$PKG" \; || true
-
-          #
-          # Runtime assets
-          #
+          PKG=gladiator-linux-${{ matrix.arch }}
+          mkdir -p "$PKG/game"
+          cp release/gladiator.so "$PKG/"          2>/dev/null || true
+          cp release/game/game.so "$PKG/game/"     2>/dev/null || true
           cp -r assets "$PKG/"
-          cp -r tools "$PKG/"
-
-          tar -czf ${PKG}.tar.gz "$PKG"
+          cp -r tools  "$PKG/"
+          tar -czf "${PKG}.tar.gz" "$PKG"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: linux-x64
-          path: gladiator-linux-x64.tar.gz
+          name: linux-${{ matrix.arch }}
+          path: gladiator-linux-${{ matrix.arch }}.tar.gz
 
+  # ---------------------------------------------------------------------------
+  # Windows — MinGW64 (x64) and MinGW32 (x86, the canonical reconstruction
+  # target).  Native PE builds, no -m32 cross flags needed.
+  # ---------------------------------------------------------------------------
   build-windows:
-    name: Build Windows
+    name: Build Windows ${{ matrix.arch }}
     runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            msystem: MINGW64
+            prefix: mingw-w64-x86_64
+          - arch: x86
+            msystem: MINGW32
+            prefix: mingw-w64-i686
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: ${{ matrix.msystem }}
           update: true
           install: >-
-            mingw-w64-x86_64-gcc
+            ${{ matrix.prefix }}-gcc
             make
 
       - name: Build
@@ -80,43 +122,78 @@ jobs:
       - name: Create package
         shell: pwsh
         run: |
-          $pkg = "gladiator-windows-x64"
-
-          New-Item -ItemType Directory -Force -Path $pkg | Out-Null
-
-          #
-          # Built binaries
-          #
-          Copy-Item release\gladiator.dll $pkg -ErrorAction SilentlyContinue
-          Copy-Item release\gladiator.map $pkg -ErrorAction SilentlyContinue
+          $pkg = "gladiator-windows-${{ matrix.arch }}"
 
           New-Item -ItemType Directory -Force -Path "$pkg\game" | Out-Null
 
-          Copy-Item release\game\game.dll "$pkg\game" -ErrorAction SilentlyContinue
-          Copy-Item release\game\game.map "$pkg\game" -ErrorAction SilentlyContinue
+          Copy-Item release\gladiator.dll      $pkg        -ErrorAction SilentlyContinue
+          Copy-Item release\gladiator.map      $pkg        -ErrorAction SilentlyContinue
+          Copy-Item release\game\game.dll      "$pkg\game" -ErrorAction SilentlyContinue
+          Copy-Item release\game\game.map      "$pkg\game" -ErrorAction SilentlyContinue
 
-          #
-          # Assets and tools
-          #
           Copy-Item assets "$pkg" -Recurse
-          Copy-Item tools "$pkg" -Recurse
+          Copy-Item tools  "$pkg" -Recurse
 
-          Compress-Archive `
-            -Path "$pkg\*" `
-            -DestinationPath "${pkg}.zip"
+          Compress-Archive -Path "$pkg\*" -DestinationPath "${pkg}.zip"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-x64
-          path: gladiator-windows-x64.zip
+          name: windows-${{ matrix.arch }}
+          path: gladiator-windows-${{ matrix.arch }}.zip
 
+  # ---------------------------------------------------------------------------
+  # macOS — Intel x86_64 (macos-13) and Apple Silicon arm64 (macos-14).
+  # macOS has no 32-bit target (Apple dropped i386 in 10.15), so the two
+  # 64-bit architectures are the macOS pair in the 6-build set.
+  # ---------------------------------------------------------------------------
+  build-macos:
+    name: Build macOS ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: macos-13
+          - arch: arm64
+            runner: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          make clean
+          make
+
+      - name: Create package
+        run: |
+          PKG=gladiator-macos-${{ matrix.arch }}
+          mkdir -p "$PKG/game"
+          cp release/gladiator.dylib "$PKG/"        2>/dev/null || true
+          cp release/game/game.dylib "$PKG/game/"   2>/dev/null || true
+          cp -r assets "$PKG/"
+          cp -r tools  "$PKG/"
+          tar -czf "${PKG}.tar.gz" "$PKG"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: gladiator-macos-${{ matrix.arch }}.tar.gz
+
+  # ---------------------------------------------------------------------------
+  # Release — only on v* tags; gathers all 8 artifacts and publishes them.
+  # ---------------------------------------------------------------------------
   release:
     name: GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - build-linux
       - build-windows
+      - build-macos
 
     runs-on: ubuntu-latest
 
@@ -129,8 +206,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
+          echo "Release assets:"
+          echo "$files"
           gh release create "${{ github.ref_name }}" \
-            artifacts/linux-x64/gladiator-linux-x64.tar.gz \
-            artifacts/windows-x64/gladiator-windows-x64.zip \
+            $files \
             --title "Gladiator ${{ github.ref_name }}" \
             --generate-notes

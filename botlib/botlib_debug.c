@@ -105,11 +105,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
  * gladiator.dll.  Filters out non-image pages (heap, stack, free) by
  * requiring MEM_IMAGE.
  * --------------------------------------------------------------------- */
-static void blog_annotate_module(unsigned v, char *out, size_t outsz)
+static void blog_annotate_module(uintptr_t v, char *out, size_t outsz)
 {
     out[0] = '\0';
     MEMORY_BASIC_INFORMATION mbi;
-    if (VirtualQuery((LPCVOID)(intptr_t)v, &mbi, sizeof(mbi)) != sizeof(mbi))
+    if (VirtualQuery((LPCVOID)v, &mbi, sizeof(mbi)) != sizeof(mbi))
         return;
     if (mbi.State != MEM_COMMIT || mbi.Type != MEM_IMAGE || !mbi.AllocationBase)
         return;
@@ -118,7 +118,7 @@ static void blog_annotate_module(unsigned v, char *out, size_t outsz)
         return;
     const char *name = strrchr(path, '\\');
     name = name ? name + 1 : path;
-    unsigned rva = v - (unsigned)(intptr_t)mbi.AllocationBase;
+    unsigned rva = (unsigned)(v - (uintptr_t)mbi.AllocationBase);
     snprintf(out, outsz, "  (%s+0x%X)", name, rva);
 }
 
@@ -195,15 +195,15 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
             (unsigned long long)ctx->Rdi,
             (unsigned long long)ctx->Rsp,
             (unsigned long long)ctx->Rbp);
-        uintptr_t sp = (uintptr_t)ctx->Rsp;
-        uintptr_t bp = (uintptr_t)ctx->Rbp;
+        uintptr_t *sp = (uintptr_t *)(uintptr_t)ctx->Rsp;
+        uintptr_t *bp = (uintptr_t *)(uintptr_t)ctx->Rbp;
 #else
         fprintf(g_log, "  EAX=0x%08X  EBX=0x%08X  ECX=0x%08X  EDX=0x%08X\n",
                 (unsigned)ctx->Eax, (unsigned)ctx->Ebx, (unsigned)ctx->Ecx, (unsigned)ctx->Edx);
         fprintf(g_log, "  ESI=0x%08X  EDI=0x%08X  ESP=0x%08X  EBP=0x%08X\n",
                 (unsigned)ctx->Esi, (unsigned)ctx->Edi, (unsigned)ctx->Esp, (unsigned)ctx->Ebp);
-        unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
-        unsigned *bp = (unsigned *)(intptr_t)ctx->Ebp;
+        uintptr_t *sp = (uintptr_t *)(uintptr_t)ctx->Esp;
+        uintptr_t *bp = (uintptr_t *)(uintptr_t)ctx->Ebp;
 #endif
 
         /* Dump stack from ESP — show 64 entries to capture return address past local frame.
@@ -212,23 +212,27 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
          * address against the linker maps. */
         fprintf(g_log, "  Stack (ESP-relative):\n");
         for (int i = 0; i < 64; i++) {
-            if (IsBadReadPtr(sp + i, sizeof(unsigned)))
+            if (IsBadReadPtr(sp + i, sizeof(*sp)))
                 break;
-            unsigned v = sp[i];
+            uintptr_t v = sp[i];
             char ann[MAX_PATH + 32] = {0};
             blog_annotate_module(v, ann, sizeof(ann));
-            fprintf(g_log, "    [ESP+%03d] 0x%08X%s\n", i*4, v, ann);
+            fprintf(g_log, "    [ESP+%03d] 0x%0*llX%s\n",
+                    i * (int)sizeof(*sp), (int)(sizeof(*sp) * 2),
+                    (unsigned long long)v, ann);
         }
         /* Also dump EBP frame */
         fprintf(g_log, "  EBP frame:\n");
         for (int i = -4; i <= 8; i++) {
-            unsigned *p = bp + i;
-            if (IsBadReadPtr(p, sizeof(unsigned)))
+            uintptr_t *p = bp + i;
+            if (IsBadReadPtr(p, sizeof(*p)))
                 continue;
-            unsigned v = *p;
+            uintptr_t v = *p;
             char ann[MAX_PATH + 32] = {0};
             blog_annotate_module(v, ann, sizeof(ann));
-            fprintf(g_log, "    [EBP%+d] 0x%08X%s\n", i*4, v, ann);
+            fprintf(g_log, "    [EBP%+d] 0x%0*llX%s\n",
+                    i * (int)sizeof(*bp), (int)(sizeof(*bp) * 2),
+                    (unsigned long long)v, ann);
         }
         fflush(g_log);
     }
