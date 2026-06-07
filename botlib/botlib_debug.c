@@ -195,8 +195,8 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
             (unsigned long long)ctx->Rdi,
             (unsigned long long)ctx->Rsp,
             (unsigned long long)ctx->Rbp);
-        unsigned *sp = (unsigned *)(intptr_t)ctx->Esp;
-        unsigned *bp = (unsigned *)(intptr_t)ctx->Ebp;
+        uintptr_t sp = (uintptr_t)ctx->Rsp;
+        uintptr_t bp = (uintptr_t)ctx->Rbp;
 #else
         fprintf(g_log, "  EAX=0x%08X  EBX=0x%08X  ECX=0x%08X  EDX=0x%08X\n",
                 (unsigned)ctx->Eax, (unsigned)ctx->Ebx, (unsigned)ctx->Ecx, (unsigned)ctx->Edx);
