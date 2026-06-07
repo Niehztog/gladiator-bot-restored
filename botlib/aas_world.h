@@ -151,6 +151,31 @@ typedef struct aas_link_s {
     struct aas_link_s *prev_area;  /* +20 per-entity area chain (back)   */
 } aas_link_t;
 
+/* aas_entity_t — UNLIKE the other AAS element types, this is NOT a clean
+ * pure-data record and aasworld.entities is deliberately NOT typed/indexed.
+ *
+ * The real Gladiator runtime entity is a 132-byte (33-dword) 32-bit-PACKED
+ * struct (the disasm at 1000B1B0 confirms `arg*33` dword stride == 132 ==
+ * sizeof(aas_entity_t)).  Partially-mapped known offsets:
+ *   +12        entnum (AAS_LinkEntity writes the index here)
+ *   +16/+20/+24 origin[3]
+ *   +92, +120  ints (numbers/flags consumed by AAS_EntityModelindex etc.)
+ *   +124 (0x7c) aas_link_t *  area-chain head   ┐ inline POINTERS — 4 B on
+ *   +128        bsp_link_t *  BSP-leaf-chain head┘ 32-bit, do not fit on 64-bit
+ *
+ * Because of those two inline pointer slots the struct is ABI-specific: on
+ * 64-bit the link heads are mirrored out into the parallel sideband arrays
+ * aasentity_arealinks[]/aasentity_bsplinks[] (see BOTLIB_NEED_SIDEBAND in
+ * botlib.c) while the inline +124/+128 slots stay 4-byte.  A literal typed
+ * `aas_entity_t` with real pointer members would be 8-byte-wide on 64-bit and
+ * reintroduce the very bug the sideband fixes, so every aasworld.entities
+ * access stays as explicit `(char *)aasworld.entities + 132*entnum + K`
+ * byte-arithmetic, NOT aasworld.entities[entnum].field.
+ *
+ * The 56-byte Q3-shaped definition below is a vestigial placeholder kept only
+ * so the `aas_entity_t *entities` field declaration has a type; it is never
+ * used for indexing.  Fully reconstructing the 132-byte layout (the ~27
+ * still-unknown dwords) is a separate task — see the struct-usage backlog. */
 typedef struct aas_entity_s {
     float   origin[3];
     float   angles[3];
