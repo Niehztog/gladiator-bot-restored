@@ -6320,7 +6320,7 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
   {
     do
     {
-      v15 = *((_DWORD *)aasworld.reachability + 11 * v14 + 11 * aasworld.areasettings[a1].firstreachablearea);
+      v15 = aasworld.reachability[v14 + aasworld.areasettings[a1].firstreachablearea].areanum;
       if ( v15 && !AAS_FloodClusterAreas_r(v15, ArgList) )
         return 0;
       ++v14;
@@ -6342,7 +6342,7 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum)
   aas_areasettings_t *v3; // eax
   int v4; // esi
   int v5; // edx
-  _DWORD *v6; // ecx
+  aas_reachability_t *v6; // ecx
 
   v1 = 1;
   if ( aasworld.numareas <= 1 )
@@ -6359,11 +6359,11 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum)
     v5 = 0;
     if ( v4 <= 0 )
       goto LABEL_13;
-    v6 = (char *)aasworld.reachability + 44 * v3->firstreachablearea;
-    while ( (v2[*v6].contents & 8) != 0 || !v2[*v6].cluster )
+    v6 = &aasworld.reachability[v3->firstreachablearea];
+    while ( (v2[v6->areanum].contents & 8) != 0 || !v2[v6->areanum].cluster )
     {
       ++v5;
-      v6 += 11;
+      ++v6;
       if ( v5 >= v4 )
         goto LABEL_13;
     }
@@ -7731,7 +7731,7 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
   {
     firstreach = aasworld.areasettings[areanum].firstreachablearea; /* firstreachablearea */
     qmemcpy(showreach_reach,
-            (char *)aasworld.reachability + 44 * (firstreach + showreach_index),
+            &aasworld.reachability[firstreach + showreach_index],
             44);
     showreach_index++;
     showreach_lasttime = AAS_Time();
@@ -15173,7 +15173,7 @@ int AAS_StoreReachability()
       v4 = &v3[v2];
       for ( i = (char *)areareachability[v1]; i; i = (char *)((aas_reachabilitynode_t *)i)->next )
       {
-        v6 = (char *)aasworld.reachability + 44 * *((_DWORD *)v4 + 6) + 44 * *((_DWORD *)v4 + 5);
+        v6 = (char *)&aasworld.reachability[*((_DWORD *)v4 + 6) + *((_DWORD *)v4 + 5)];
         *(_DWORD *)v6 = *(_DWORD *)i;
         *((_DWORD *)v6 + 1) = *(_DWORD *)(i + 4);
         *((_DWORD *)v6 + 2) = *(_DWORD *)(i + 8);
@@ -16303,7 +16303,7 @@ char *__cdecl AAS_ReachabilityFromNum(char *num, int reach)
   if ( aasworld.initialized && reach >= 0 && reach <= aasworld.reachabilitysize )
   {
     result = num;
-    qmemcpy(num, (char *)aasworld.reachability + 44 * reach, 0x2Cu);
+    qmemcpy(num, &aasworld.reachability[reach], 0x2Cu);
   }
   else
   {
