@@ -240,6 +240,7 @@ jobs:
       - name: Create Release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
           echo "Release assets:"
