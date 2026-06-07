@@ -1,10 +1,12 @@
 # Gladiator Bot for Quake II — Restoration Project
 
-In 1999, a programmer known as **Mr. Elusive** released the **Gladiator Bot** —
-a free add-on that gave Quake II its first taste of intelligent
-computer-controlled opponents.  Suddenly, single-player Quake II felt like a
-LAN party.  Eighteen named bots with their own personalities, voices and play
-styles roamed the maps, fragging each other and trash-talking in chat.
+First released on **December 8, 1998**, the
+**[Gladiator Bot](https://mrelusive.com/oldprojects/gladiator/gladiator.html)** —
+created by the Dutch programmer **Jan Paul "Mr. Elusive" van Waveren** — gave
+Quake II its first taste of intelligent computer-controlled opponents.
+Suddenly, single-player Quake II felt like a LAN party.  Eighteen named bots
+with their own personalities, voices and play styles roamed the maps, fragging
+each other and trash-talking in chat.
 
 The Gladiator Bot was groundbreaking.  It was the first bot able to navigate
 *any* Quake II map automatically, without a level designer hand-placing

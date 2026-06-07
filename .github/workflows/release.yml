@@ -70,12 +70,19 @@ jobs:
       - name: Create package
         run: |
           PKG=gladiator-linux-${{ matrix.arch }}
-          mkdir -p "$PKG/game"
-          cp release/gladiator.so "$PKG/"          2>/dev/null || true
-          cp release/game/game.so "$PKG/game/"     2>/dev/null || true
-          cp -r assets "$PKG/"
-          cp -r tools  "$PKG/"
-          tar -czf "${PKG}.tar.gz" "$PKG"
+          # Single flat "gladiator" mod folder: binaries + loose assets +
+          # tools, all at top level. Only assets/default/ is kept as a
+          # subfolder; assets/maps/ and the .map linker files are omitted.
+          rm -rf gladiator
+          mkdir -p gladiator
+          cp release/gladiator.so gladiator/       2>/dev/null || true
+          cp release/game/game.so gladiator/       2>/dev/null || true
+          for f in assets/*; do
+            [ "$f" = "assets/maps" ] && continue
+            cp -r "$f" gladiator/
+          done
+          find tools -maxdepth 1 -type f -exec cp {} gladiator/ \;
+          tar -czf "${PKG}.tar.gz" gladiator
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -124,17 +131,23 @@ jobs:
         run: |
           $pkg = "gladiator-windows-${{ matrix.arch }}"
 
-          New-Item -ItemType Directory -Force -Path "$pkg\game" | Out-Null
+          # Single flat "gladiator" mod folder: binaries + loose assets +
+          # tools, all at top level. Only assets/default/ is kept as a
+          # subfolder; assets/maps/ and the .map linker files are omitted.
+          if (Test-Path gladiator) { Remove-Item gladiator -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path gladiator | Out-Null
 
-          Copy-Item release\gladiator.dll      $pkg        -ErrorAction SilentlyContinue
-          Copy-Item release\gladiator.map      $pkg        -ErrorAction SilentlyContinue
-          Copy-Item release\game\game.dll      "$pkg\game" -ErrorAction SilentlyContinue
-          Copy-Item release\game\game.map      "$pkg\game" -ErrorAction SilentlyContinue
+          Copy-Item release\gladiator.dll  gladiator -ErrorAction SilentlyContinue
+          Copy-Item release\game\game.dll  gladiator -ErrorAction SilentlyContinue
 
-          Copy-Item assets "$pkg" -Recurse
-          Copy-Item tools  "$pkg" -Recurse
+          Get-ChildItem assets -Force | Where-Object { $_.Name -ne 'maps' } | ForEach-Object {
+            Copy-Item $_.FullName -Destination gladiator -Recurse -Force
+          }
+          Get-ChildItem tools -File | ForEach-Object {
+            Copy-Item $_.FullName -Destination gladiator -Force
+          }
 
-          Compress-Archive -Path "$pkg\*" -DestinationPath "${pkg}.zip"
+          Compress-Archive -Path gladiator -DestinationPath "${pkg}.zip" -Force
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -171,12 +184,19 @@ jobs:
       - name: Create package
         run: |
           PKG=gladiator-macos-${{ matrix.arch }}
-          mkdir -p "$PKG/game"
-          cp release/gladiator.dylib "$PKG/"        2>/dev/null || true
-          cp release/game/game.dylib "$PKG/game/"   2>/dev/null || true
-          cp -r assets "$PKG/"
-          cp -r tools  "$PKG/"
-          tar -czf "${PKG}.tar.gz" "$PKG"
+          # Single flat "gladiator" mod folder: binaries + loose assets +
+          # tools, all at top level. Only assets/default/ is kept as a
+          # subfolder; assets/maps/ and the .map linker files are omitted.
+          rm -rf gladiator
+          mkdir -p gladiator
+          cp release/gladiator.dylib gladiator/    2>/dev/null || true
+          cp release/game/game.dylib gladiator/    2>/dev/null || true
+          for f in assets/*; do
+            [ "$f" = "assets/maps" ] && continue
+            cp -r "$f" gladiator/
+          done
+          find tools -maxdepth 1 -type f -exec cp {} gladiator/ \;
+          tar -czf "${PKG}.tar.gz" gladiator
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
