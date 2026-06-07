@@ -379,7 +379,7 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 
 unsigned int BotChatLength(bot_chatstate_t *cs);  // fixed from weak
 int __cdecl AAS_AgainstLadder(int *);
-int AAS_ResetEntityLinks();
+void AAS_ResetEntityLinks();
 void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
 float __cdecl VectorDistance(vec3_t, vec3_t);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
@@ -459,7 +459,7 @@ int __cdecl AAS_EntityModelNum(int entnum);
 int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin);
 int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
-int AAS_ResetEntityLinks();
+void AAS_ResetEntityLinks();
 void AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
 int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
@@ -718,7 +718,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2);
 void __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
 float __cdecl Characteristic_Float(bot_character_t *a1, int a2);
-double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
+float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
 int __cdecl Characteristic_Integer(bot_character_t *a1, int a2);
 int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4);
 char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
@@ -8010,7 +8010,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 }
 
 //----- (1000B090) --------------------------------------------------------
-int AAS_ResetEntityLinks()
+void AAS_ResetEntityLinks()
 {
   int i;
 
@@ -8024,7 +8024,6 @@ int AAS_ResetEntityLinks()
   }
   /* IDA inferred a return of the loop's 132*numentities byte accumulator;
    * the value is never consumed (Q3's AAS_ResetEntityLinks is void). */
-  return 0;
 }
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
@@ -11596,7 +11595,14 @@ int __cdecl AAS_AreaCrouch(int areanum)
 //----- (10011610) --------------------------------------------------------
 int __cdecl AAS_AreaSwim(int areanum)
 {
-  return (aasworld.areasettings[areanum].areaflags & 4u) >> 2;
+  /* if/else 0-or-1 return form (== Q3's `if (areaflags & AREA_LIQUID) return
+   * qtrue; else return qfalse;`). MSVC's bit-test→0/1 idiom emits the byte-
+   * narrowed `movsx eax,BYTE; and 4; shr 2` (disasm@0x10011610). An arithmetic
+   * `(x&4)>>2` instead gets reassociated to `(x>>2)&1` on a full DWORD load. */
+  if ( aasworld.areasettings[areanum].areaflags & 4 )
+    return 1;
+  else
+    return 0;
 }
 
 //----- (10011640) --------------------------------------------------------
@@ -11608,7 +11614,10 @@ int __cdecl AAS_AreaSwim(int areanum)
  * of the same body; preserved by the linker. */
 int __cdecl sub_10011640(int areanum)
 {
-  return (aasworld.areasettings[areanum].areaflags & 4u) >> 2;
+  if ( aasworld.areasettings[areanum].areaflags & 4 )
+    return 1;
+  else
+    return 0;
 }
 
 //----- (10011670) --------------------------------------------------------
@@ -16754,6 +16763,10 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   do
   {
     v3 = &aasworld.nodes[v2];
+    /* Residual 2-byte diff vs disasm@0x1001ae9f: the original schedules the
+     * inner two product terms descending (n2*p2 then n1*p1); MSVC6 emits them
+     * ascending here regardless of source term order (verified: reordering the
+     * C expression produces byte-identical output). Pure scheduler tie-break. */
     if ( point[0] * aasworld.planes[v3->planenum].normal[0]
        + point[1] * aasworld.planes[v3->planenum].normal[1]
        + point[2] * aasworld.planes[v3->planenum].normal[2]
@@ -24863,9 +24876,10 @@ float __cdecl Characteristic_Float(bot_character_t *a1, int a2)
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
 //----- (1002A690) --------------------------------------------------------
-double __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4)
+float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4)
 {
-  double result; // st7
+  float result; // st7 — returns float (disasm loads fld DWORD / fcom DWORD,
+                // not the double-promotion sequence); Q3's is float too.
 
   if ( a3 > (float)a4 )
   {
