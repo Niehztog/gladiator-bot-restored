@@ -61,6 +61,30 @@ spawn, fight and chat.  Some map features still trip them up, and rough
 edges remain.  If you'd like to help test, report bugs or contribute, head
 to the issue tracker.
 
+## A note on "version 0.96"
+
+Mr. Elusive shipped *two* builds under the same v0.96 label:
+
+- **Windows** (`gladiator.dll` + `gamex86.dll`) — released **1999-07-18**.
+- **Linux**  (`gladi386.so`  + `gamei386.so`)  — released **1999-08-02**,
+  about two weeks later.
+
+Despite the matching version number, the Linux build is the **more advanced
+botlib**.  In particular, the Linux `gladi386.so` contains a roughly 7 KB
+moving-brush reachability builder (`F149`, for `func_plat` / `func_train`
+movers) that has **no counterpart in the Windows DLL**, and overall calls
+**11** reach-type handlers vs. the Windows DLL's **6** — about **2.5×**
+more reach-handler code by byte count.  In effect the Linux drop is a
+quiet point-release that the Windows binary never received.
+
+The map-prep tool `bspc` is the exception: the version bundled with the
+Linux drop (`bspc-linux-x86`, **v1.2**, dated **1999-05-20**) is actually
+*older* than the Windows `bspc.exe` (**v1.4**, dated **1999-07-18**) — the
+opposite direction from the botlib.  This reconstruction is grounded in
+the **Windows** DLL per the project's fidelity rules, so the extra
+Linux-only botlib code is deliberately *out of scope* for the byte-level
+match, but it is occasionally a useful secondary reference.
+
 ## Credits
 
 - **Mr. Elusive** — original Gladiator Bot author (1999)
