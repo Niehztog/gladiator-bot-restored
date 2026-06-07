@@ -24,6 +24,7 @@
 #define PATHSEPERATOR_STR			"\\"
 #else
 #include <dlfcn.h>
+#include <unistd.h>		// access()
 #define PATHSEPERATOR_CHAR			'/'
 #define PATHSEPERATOR_STR			"/"
 #endif
