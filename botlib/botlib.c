@@ -357,7 +357,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
 int __cdecl WriteFloat(FILE *Stream, float); // idb
-// BotAIBlocked: actual return type is function pointer - see definition
+// BotAIBlocked: void; return value (eax) is never used by callers
 /* BotMoveInDirection: at 0x10031BE0 — public movement-dispatcher entry that
  * routes (movestate, dir, speed, type) to BotSwimInDirection when the bot's
  * origin is in liquid (LAVA|SLIME|WATER), otherwise to BotWalkInDirection.
@@ -675,7 +675,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs);
 // void BotCheckAttack(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
 int __cdecl BotSetMovedir(float *angles, float *dir);
-ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3);
+void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3);
 void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
@@ -22295,10 +22295,14 @@ void __cdecl sub_10025070(void)
 // 10064398: using guessed type int dword_10064398;
 
 //----- (10025560) --------------------------------------------------------
-ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
+/* Returns void: the original function leaves whatever is in eax (a call
+ * result, bs->ainode, or the trace pointer) on each exit path and the
+ * callers ignore it.  IDA invented an `ai_node_fn_t result` return; the
+ * shared epilogue at 0x1002600e confirms there is no meaningful return
+ * value.  Matches Q3's `void BotAIBlocked`. */
+void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
 {
 
-  bot_moveresult_t *v3; // ebx
   ai_node_fn_t result; // eax
   int *v5; // eax
   int *v6; // ebp
@@ -22312,17 +22316,13 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   float v14; // ecx
   float v15; // edx
   int v16; // eax
-  double v17; // st7
   int v18; // ecx
-  double v19; // st7
   char *v20; // esi
   int v21; // eax
   float v22; // edx
   float v23; // eax
   int v24; // eax
-  double v25; // st7
   int v26; // edx
-  double v27; // st7
   char *v28; // eax
   int v29; // eax
   float v31; // ecx
@@ -22330,8 +22330,6 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   int v33; // eax
   float v34; // [esp+0h] [ebp-174h]
   float v35; // [esp+0h] [ebp-174h]
-  int v36; // [esp+4h] [ebp-170h]
-  int v37; // [esp+4h] [ebp-170h]
   float v38_vec[3]; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
 #define v38 v38_vec[0]
 #define v39 v38_vec[1]
@@ -22375,13 +22373,12 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   float v76[3]; // [esp+ECh] [ebp-88h] BYREF
   int v77[31]; // [esp+F8h] [ebp-7Ch] BYREF
 
-  v3 = a2;
   result = (int (__cdecl *)(int))a2->blocked;
   v73[0] = 0;
   v73[1] = 0;
   v73[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
   if ( !result )
-    return result;
+    return;
   qmemcpy(v77, AAS_EntityInfo(v77, a2->blockentity), sizeof(v77));
   if ( v77[22] != 3 || !a3 )
     goto LABEL_37;
@@ -22413,16 +22410,17 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
       LOBYTE(v29) = v29 | 1;
       a2->flags = v29;
       EA_UseItem(bs->client, aBlaster);
-      return (int (__cdecl *)(int))EA_Attack(bs->client);
+      EA_Attack(bs->client);
+      return;
     }
-    return result;
+    return;
   }
   if ( !strcmp(v7, aFuncButton) )
   {
     v8 = (char *)AAS_ValueForBSPEpairKey(v6, aModel);
     result = (int (__cdecl *)(int))IndexFromModel(v8);
     if ( !result )
-      return result;
+      return;
     v56 = 0;
     v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x100256e3..0x100256fa */
     v56_vec[2] = 0;
@@ -22448,7 +22446,8 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
       vectoangles(v50, a2->ideal_viewangles);
       a2->flags |= 1u;
       EA_UseItem(bs->client, aBlaster);
-      return (int (__cdecl *)(int))EA_Attack(bs->client);
+      EA_Attack(bs->client);
+      return;
     }
     AAS_PresenceTypeBoundingBox(4, v76, v75);
     v9 = v65;
@@ -22483,42 +22482,39 @@ ai_node_fn_t __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
     bs->activategoal.origin[1] = v14;
     bs->activategoal.origin[2] = v15;
     v16 = AAS_PointAreaNum(v38_vec);
-    v17 = v44 - v59;
     v18 = v77[3];
     bs->activategoal.areanum = v16;
     bs->activategoal.entitynum = v18;
     bs->activategoal.number = 0;
     bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v17 - 5.0f;
+    bs->activategoal.mins[0] = v44 - v59 - 5.0f;
     bs->activategoal.mins[1] = v45 - v60 - 5.0f;
     bs->activategoal.mins[2] = v46 - v61 - 5.0f;
     bs->activategoal.maxs[0] = v41 - v59 + 5.0f;
     bs->activategoal.maxs[1] = v42 - v60 + 5.0f;
     bs->activategoal.maxs[2] = v43 - v61 + 5.0f;
-    v19 = AAS_Time();
-    v36 = bs->activategoal.areanum;
-    bs->activategoal_time = v19 + 10.0f;
-    if ( !AAS_AreaReachability(v36) )
+    bs->activategoal_time = AAS_Time() + 10.0f;
+    if ( !AAS_AreaReachability(bs->activategoal.areanum) )
     {
       result = BotAINode(bs);
       if ( result == AINode_Seek_NBG )
       {
         bs->nbg_time = 0.0f;
-        return result;
+        return;
       }
 LABEL_32:
       if ( result == AINode_Seek_LTG )
         v13->ltg_time = 0.0f;
-      return result;
+      return;
     }
-    return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
+    AIEnter_Seek_ActivateEntity(v13);
+    return;
   }
   if ( strcmp(v7, aTriggerMultipl) && strcmp(v7, aTriggerOnce) )
   {
-    v3 = a2;
 LABEL_37:
-    v72[0] = v3->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
-    v72[1] = v3->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
+    v72[0] = a2->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
+    v72[1] = a2->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
     v72[2] = 0;
     VectorNormalize(v72);
     v31 = bs->origin[2];
@@ -22559,7 +22555,7 @@ LABEL_37:
     {
       bs->ltg_time = 0.0f;
     }
-    return result;
+    return;
   }
   v20 = AAS_ValueForBSPEpairKey(v6, aModel);
   v21 = IndexFromModel(v20);
@@ -22593,34 +22589,32 @@ LABEL_37:
     bs->activategoal.origin[1] = v22;
     bs->activategoal.origin[2] = v23;
     v24 = AAS_PointAreaNum(v38_vec);
-    v25 = v44 - v47;
     v26 = v77[3];
     bs->activategoal.areanum = v24;
     bs->activategoal.entitynum = v26;
     bs->activategoal.number = 0;
     bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v25;
+    bs->activategoal.mins[0] = v44 - v47;
     bs->activategoal.mins[1] = v45 - v48;
     bs->activategoal.mins[2] = v46 - v49;
     bs->activategoal.maxs[0] = v41 - v47;
     bs->activategoal.maxs[1] = v42 - v48;
     bs->activategoal.maxs[2] = v43 - v49;
-    v27 = AAS_Time();
-    v37 = bs->activategoal.areanum;
-    bs->activategoal_time = v27 + 10.0f;
-    if ( !AAS_AreaReachability(v37) )
+    bs->activategoal_time = AAS_Time() + 10.0f;
+    if ( !AAS_AreaReachability(bs->activategoal.areanum) )
     {
       result = BotAINode(bs);
       if ( result == AINode_Seek_NBG )
       {
         bs->nbg_time = 0.0f;
-        return result;
+        return;
       }
       goto LABEL_32;
     }
-    return (int (__cdecl *)(int))AIEnter_Seek_ActivateEntity(v13);
+    AIEnter_Seek_ActivateEntity(v13);
+    return;
   }
-  return result;
+  return;
 #undef v66
 #undef v59
 #undef v60
