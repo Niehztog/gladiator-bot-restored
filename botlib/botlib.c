@@ -451,12 +451,12 @@ void __cdecl AAS_PrintTravelType(int traveltype);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach);
 void __cdecl AAS_ShowReachableAreas(int areanum);
-int __cdecl AAS_UpdateEntity(int entnum, float *state);
+int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state);
 void *__cdecl AAS_EntityInfo(void *info, int entnum);
 int __cdecl AAS_EntityModelindex(int entnum);
 int __cdecl AAS_EntityRenderFX(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
-int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin);
+int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin);
 int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int AAS_ResetEntityLinks();
@@ -2310,12 +2310,10 @@ bsp_link_t **aasentity_bsplinks;
 #define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
 #define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])
 #else
-/* 32-bit: aasworld.entities is a 132-byte stride; the two link-list heads
- * are inline ints at +124 (area chain) and +128 (BSP-leaf chain). */
-#define AAS_EntAreaLink(entnum) \
-    (*(aas_link_t **)((char *)aasworld.entities + (entnum) * 132 + 124))
-#define AAS_EntBspLink(entnum) \
-    (*(bsp_link_t **)((char *)aasworld.entities + (entnum) * 132 + 128))
+/* 32-bit: the link-list heads are real inline pointer members at +124
+ * (area chain) and +128 (BSP-leaf chain) of the 132-byte aas_entity_t. */
+#define AAS_EntAreaLink(entnum) (aasworld.entities[(entnum)].areas)
+#define AAS_EntBspLink(entnum)  (aasworld.entities[(entnum)].leaves)
 #endif
 
 
@@ -7742,94 +7740,68 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
 }
 
 //----- (1000A920) --------------------------------------------------------
-int __cdecl AAS_UpdateEntity(int entnum, float *state)
+int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 {
-  char *v4; // esi
-  double v5; // st7
-  int v6; // edx
-  int v7; // eax
-  int v8; // ecx
-  float *v9; // ebp
-  int v10; // eax
-  float v11[3]; // [esp+0h] [ebp-18h] BYREF
-  float v12[3]; // [esp+Ch] [ebp-Ch] BYREF
-  int v13; // [esp+1Ch] [ebp+4h]
+  aas_entityinfo_t *ent; // esi (entities[entnum].i)
+  int relink;            // [esp+1Ch] [ebp+4h]  (was v13)
+  float absmins[3];      // [esp+Ch]  [ebp-Ch] BYREF (was v12)
+  float absmaxs[3];      // [esp+0h]  [ebp-18h] BYREF (was v11)
 
   if ( !aasworld.loaded )
   {
     bi_Print(1, aAasUpdateentit);
     return 5;
   }
-  v4 = (char *)aasworld.entities + 132 * entnum;
-  *(float *)(v4 + 8) = AAS_Time() - *(float *)(v4 + 4);
-  v5 = AAS_Time();
-  v6 = *(_DWORD *)(v4 + 16);
-  v7 = *(_DWORD *)(v4 + 20);
-  v8 = *(_DWORD *)(v4 + 24);
-  *(float *)(v4 + 4) = v5;
-  v9 = (float *)(v4 + 16);
-  *(_DWORD *)(v4 + 52) = v6;
-  *(_DWORD *)(v4 + 56) = v7;
-  *(_DWORD *)(v4 + 60) = v8;
-  v13 = 0;
-  *(float *)(v4 + 40) = state[6];
-  *(float *)(v4 + 44) = state[7];
-  *(float *)(v4 + 48) = state[8];
-  *(float *)(v4 + 88) = state[15];
-  *(float *)(v4 + 92) = state[16];
-  *(float *)(v4 + 96) = state[17];
-  *(float *)(v4 + 100) = state[18];
-  *(float *)(v4 + 104) = state[19];
-  *(float *)(v4 + 108) = state[20];
-  *(float *)(v4 + 116) = state[22];
-  *(float *)(v4 + 120) = state[23];
-  v10 = *(_DWORD *)(v4 + 88);
-  *(_DWORD *)(v4 + 12) = entnum;
-  *(_DWORD *)v4 = 1;
-  if ( v10 == 3 )
+  ent = &aasworld.entities[entnum].i;
+  ent->update_time = AAS_Time() - ent->ltime;
+  ent->ltime = AAS_Time();
+  /* remember the previous origin before it is overwritten below */
+  VectorCopy(ent->origin, ent->lastvisorigin);
+  relink = 0;
+  VectorCopy(state->old_origin, ent->old_origin);
+  ent->solid = state->solid;
+  ent->modelindex = state->modelindex;
+  ent->modelindex2 = state->modelindex2;
+  ent->modelindex3 = state->modelindex3;
+  ent->modelindex4 = state->modelindex4;
+  ent->frame = state->frame;
+  ent->effects = state->effects;
+  ent->renderfx = state->renderfx;
+  ent->number = entnum;
+  ent->valid = 1;
+  if ( ent->solid == 3 )                 /* SOLID_BSP */
   {
-    if ( !VectorCompare(state + 3, v4 + 28) )
+    if ( !VectorCompare(state->angles, ent->angles) )
     {
-      v13 = 1;
-      *(float *)(v4 + 28) = state[3];
-      *(float *)(v4 + 32) = state[4];
-      *(float *)(v4 + 36) = state[5];
+      relink = 1;
+      VectorCopy(state->angles, ent->angles);
     }
-    AAS_BSPModelMinsMaxsOrigin(*(_DWORD *)(v4 + 92) - 1, (float *)(v4 + 28), (float *)(v4 + 64), (float *)(v4 + 76), NULL);
+    AAS_BSPModelMinsMaxsOrigin(ent->modelindex - 1, ent->angles, ent->mins, ent->maxs, NULL);
   }
-  else if ( v10 == 2 && (!VectorCompare(state + 9, v4 + 64) || !VectorCompare(state + 12, v4 + 76)) )
+  else if ( ent->solid == 2             /* SOLID_BBOX */
+            && (!VectorCompare(state->mins, ent->mins) || !VectorCompare(state->maxs, ent->maxs)) )
   {
-    v13 = 1;
-    *(float *)(v4 + 64) = state[9];
-    *(float *)(v4 + 68) = state[10];
-    *(float *)(v4 + 72) = state[11];
-    *(float *)(v4 + 76) = state[12];
-    *(float *)(v4 + 80) = state[13];
-    *(float *)(v4 + 84) = state[14];
+    relink = 1;
+    VectorCopy(state->mins, ent->mins);
+    VectorCopy(state->maxs, ent->maxs);
   }
-  if ( !VectorCompare(state, v4 + 16) )
+  if ( !VectorCompare(state->origin, ent->origin) )
   {
-    *v9 = *state;
-    *(float *)(v4 + 20) = state[1];
-    *(float *)(v4 + 24) = state[2];
-    goto LABEL_14;
+    VectorCopy(state->origin, ent->origin);
+    relink = 1;
   }
-  if ( v13 )
+  if ( relink && entnum > 0 )
   {
-LABEL_14:
-    if ( entnum > 0 )
-    {
-      *(float *)v12 = *(float *)(v4 + 64) + *v9;
-      *(float *)&v12[1] = *(float *)(v4 + 68) + *(float *)(v4 + 20);
-      *(float *)&v12[2] = *(float *)(v4 + 72) + *(float *)(v4 + 24);
-      v11[0] = *(float *)(v4 + 76) + *v9;
-      v11[1] = *(float *)(v4 + 80) + *(float *)(v4 + 20);
-      v11[2] = *(float *)(v4 + 84) + *(float *)(v4 + 24);
-      AAS_UnlinkFromAreas(AAS_EntAreaLink(entnum));
-      AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(v12, v11, entnum, 2);
-      AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
-      AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(v12, v11, entnum, 0);
-    }
+    absmins[0] = ent->mins[0] + ent->origin[0];
+    absmins[1] = ent->mins[1] + ent->origin[1];
+    absmins[2] = ent->mins[2] + ent->origin[2];
+    absmaxs[0] = ent->maxs[0] + ent->origin[0];
+    absmaxs[1] = ent->maxs[1] + ent->origin[1];
+    absmaxs[2] = ent->maxs[2] + ent->origin[2];
+    AAS_UnlinkFromAreas(AAS_EntAreaLink(entnum));
+    AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
+    AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
+    AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
   }
   return 0;
 }
@@ -7854,7 +7826,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
   else if ( entnum >= 0 && entnum < aasworld.numentities )
   {
     result = info;
-    qmemcpy(info, (const void *)((char *)aasworld.entities + 132 * entnum), 0x7Cu);
+    qmemcpy(info, &aasworld.entities[entnum].i, sizeof(aas_entityinfo_t));
     return result;
   }
   else
@@ -7881,9 +7853,7 @@ void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
 {
   if ( entnum >= 0 && entnum < aasworld.numentities )
   {
-    origin[0] = *(float *)((char *)aasworld.entities + 132 * entnum + 16);
-    origin[1] = *(float *)((char *)aasworld.entities + 132 * entnum + 20);
-    origin[2] = *(float *)((char *)aasworld.entities + 132 * entnum + 24);
+    VectorCopy(aasworld.entities[entnum].i.origin, origin);
     return;
   }
   bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
@@ -7899,7 +7869,7 @@ void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
 int __cdecl AAS_EntityModelindex(int entnum)
 {
   if ( entnum >= 0 && entnum < aasworld.numentities )
-    return *(_DWORD *)((char *)aasworld.entities + 132 * entnum + 92);
+    return aasworld.entities[entnum].i.modelindex;
   bi_Print(4, "AAS_EntityModelindex: entnum %d out of range\n", entnum);
   return 0;
 }
@@ -7913,7 +7883,7 @@ int __cdecl AAS_EntityRenderFX(int entnum)
   if ( aasworld.initialized )
   {
     if ( entnum >= 0 && entnum < aasworld.numentities )
-      return *(_DWORD *)((char *)aasworld.entities + 132 * entnum + 120);
+      return aasworld.entities[entnum].i.renderfx;
     bi_Print(4, "AAS_EntityRenderFX: entnum %d out of range\n", entnum);
   }
   return 0;
@@ -7929,7 +7899,7 @@ int __cdecl AAS_EntityModelNum(int entnum)
   if ( aasworld.initialized )
   {
     if ( entnum >= 0 && entnum < aasworld.numentities )
-      return *(_DWORD *)((char *)aasworld.entities + 132 * entnum + 92) - 1;
+      return aasworld.entities[entnum].i.modelindex - 1;
     bi_Print(4, "AAS_EntityModelNum: entnum %d out of range\n", entnum);
   }
   return 0;
@@ -7940,19 +7910,17 @@ int __cdecl AAS_EntityModelNum(int entnum)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AE30) --------------------------------------------------------
-int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
+int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
 {
   int i;
-  _DWORD *ent;
+  aas_entityinfo_t *ent;
 
   for ( i = 0; i < aasworld.numentities; i++ )
   {
-    ent = (_DWORD *)aasworld.entities + 33 * i;
-    if ( ent[23] - 1 == modelnum )
+    ent = &aasworld.entities[i].i;
+    if ( ent->modelindex - 1 == modelnum )
     {
-      *origin = ent[4];
-      origin[1] = ent[5];
-      origin[2] = ent[6];
+      VectorCopy(ent->origin, origin);
       return 1;
     }
   }
@@ -7971,7 +7939,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, _DWORD *origin)
 // disasm has no clear path on the OOR exit).
 void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
 {
-  char *v;
+  aas_entityinfo_t *ent;
 
   if ( !aasworld.initialized )
     return;
@@ -7980,13 +7948,9 @@ void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
     bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum);
     return;
   }
-  v = (char *)aasworld.entities + 132 * entnum;
-  mins[0] = *(float *)(v + 0x40);
-  mins[1] = *(float *)(v + 0x44);
-  mins[2] = *(float *)(v + 0x48);
-  maxs[0] = *(float *)(v + 0x4C);
-  maxs[1] = *(float *)(v + 0x50);
-  maxs[2] = *(float *)(v + 0x54);
+  ent = &aasworld.entities[entnum].i;
+  VectorCopy(ent->mins, mins);
+  VectorCopy(ent->maxs, maxs);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
@@ -7996,24 +7960,24 @@ void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
 //----- (1000AF30) --------------------------------------------------------
 int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata)
 {
-  char *v2; // eax
-  int result; // eax
+  aas_entityinfo_t *ent;
+  int result;
 
-  v2 = (char *)aasworld.entities + 132 * entnum;
-  *(_DWORD *)entdata = *(_DWORD *)(v2 + 16);
-  *(_DWORD *)(entdata + 4) = *(_DWORD *)(v2 + 20);
-  *(_DWORD *)(entdata + 8) = *(_DWORD *)(v2 + 24);
-  *(_DWORD *)(entdata + 12) = *(_DWORD *)(v2 + 28);
-  *(_DWORD *)(entdata + 16) = *(_DWORD *)(v2 + 32);
-  *(_DWORD *)(entdata + 20) = *(_DWORD *)(v2 + 36);
-  *(float *)(entdata + 24) = *(float *)(v2 + 64) + *(float *)(v2 + 16);
-  *(float *)(entdata + 28) = *(float *)(v2 + 68) + *(float *)(v2 + 20);
-  *(float *)(entdata + 32) = *(float *)(v2 + 72) + *(float *)(v2 + 24);
-  *(float *)(entdata + 36) = *(float *)(v2 + 76) + *(float *)(v2 + 16);
-  *(float *)(entdata + 40) = *(float *)(v2 + 80) + *(float *)(v2 + 20);
-  *(float *)(entdata + 44) = *(float *)(v2 + 84) + *(float *)(v2 + 24);
-  *(_DWORD *)(entdata + 48) = *(_DWORD *)(v2 + 88);
-  result = *(_DWORD *)(v2 + 92) - 1;
+  ent = &aasworld.entities[entnum].i;
+  *(float *)entdata        = ent->origin[0];
+  *(float *)(entdata + 4)  = ent->origin[1];
+  *(float *)(entdata + 8)  = ent->origin[2];
+  *(float *)(entdata + 12) = ent->angles[0];
+  *(float *)(entdata + 16) = ent->angles[1];
+  *(float *)(entdata + 20) = ent->angles[2];
+  *(float *)(entdata + 24) = ent->mins[0] + ent->origin[0];
+  *(float *)(entdata + 28) = ent->mins[1] + ent->origin[1];
+  *(float *)(entdata + 32) = ent->mins[2] + ent->origin[2];
+  *(float *)(entdata + 36) = ent->maxs[0] + ent->origin[0];
+  *(float *)(entdata + 40) = ent->maxs[1] + ent->origin[1];
+  *(float *)(entdata + 44) = ent->maxs[2] + ent->origin[2];
+  *(_DWORD *)(entdata + 48) = ent->solid;
+  result = ent->modelindex - 1;
   *(_DWORD *)(entdata + 52) = result;
   return result;
 }
@@ -8048,30 +8012,19 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 //----- (1000B090) --------------------------------------------------------
 int AAS_ResetEntityLinks()
 {
-  int result; // eax
-  int v1; // ecx
+  int i;
 
-  result = aasworld.numentities;
-  v1 = 0;
-  if ( aasworld.numentities > 0 )
+  /* On 32-bit the macros clear the inline +124/+128 link heads; on 64-bit
+   * they clear the parallel side-band arrays (the inert inline placeholders
+   * are already zero from GetClearedMemory and are never read). */
+  for ( i = 0; i < aasworld.numentities; i++ )
   {
-    result = 0;
-    do
-    {
-      *(_DWORD *)(result + (char *)aasworld.entities + 124) = 0;
-      *(_DWORD *)(result + (char *)aasworld.entities + 128) = 0;
-#if BOTLIB_NEED_SIDEBAND
-      if ( aasentity_arealinks )
-        aasentity_arealinks[v1] = NULL;
-      if ( aasentity_bsplinks )
-        aasentity_bsplinks[v1] = NULL;
-#endif
-      ++v1;
-      result += 132;
-    }
-    while ( v1 < aasworld.numentities );
+    AAS_EntAreaLink(i) = NULL;
+    AAS_EntBspLink(i) = NULL;
   }
-  return result;
+  /* IDA inferred a return of the loop's 132*numentities byte accumulator;
+   * the value is never consumed (Q3's AAS_ResetEntityLinks is void). */
+  return 0;
 }
 // 10066998: using guessed type int aasworld.numentities;
 // 100669A0: using guessed type int aasworld.entities;
@@ -8082,8 +8035,8 @@ void __cdecl AAS_InvalidateEntities()
   int i;
   for ( i = 0; i < aasworld.numentities; i++ )
   {
-    *(_DWORD *)((char *)aasworld.entities + 132 * i) = 0;
-    *(_DWORD *)((char *)aasworld.entities + 132 * i + 12) = i;
+    aasworld.entities[i].i.valid = 0;
+    aasworld.entities[i].i.number = i;
   }
 }
 // 10066998: using guessed type int aasworld.numentities;
@@ -8286,7 +8239,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   int v21;             // iteration counter
   int v22;             // passent
   int v23;             // hitent
-  float *v24;          // entity pointer
+  aas_entityinfo_t *ent; // entity info (was float *v24 byte-arith)
   vec3_t middle;       // [ebp-148h] BYREF — was v18+v19+v20 split locals
   vec3_t end;          // [ebp-12Ch] BYREF — was v25+v26+v27 split locals
   vec3_t start;        // [ebp-120h] BYREF — was v28+v29+v30 split locals
@@ -8297,14 +8250,14 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   char v35[84];        // [ebp-54h] BYREF — AAS_Trace return-slot 2
 
   v5 = a5;
-  v24 = (float *)((char *)aasworld.entities + 132 * a5);
-  middle[0] = v24[19] + v24[16];   // mins[0] + maxs[0]
-  middle[1] = v24[20] + v24[17];   // mins[1] + maxs[1]
-  middle[2] = v24[18] + v24[21];   // mins[2] + maxs[2]
+  ent = &aasworld.entities[a5].i;
+  middle[0] = ent->maxs[0] + ent->mins[0];
+  middle[1] = ent->maxs[1] + ent->mins[1];
+  middle[2] = ent->mins[2] + ent->maxs[2];
   VectorScale((float *)middle, 0.5, (float *)middle);
-  middle[0] += v24[4];             // origin[0]
-  middle[1] += v24[5];             // origin[1]
-  middle[2] += v24[6];             // origin[2]
+  middle[0] += ent->origin[0];
+  middle[1] += ent->origin[1];
+  middle[2] += ent->origin[2];
   dir[0] = middle[0] - ((float *)a2)[0];
   dir[1] = middle[1] - ((float *)a2)[1];
   dir[2] = middle[2] - ((float *)a2)[2];
@@ -8362,11 +8315,11 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     {
       if ( v21 != 1 )
         goto LABEL_21;
-      middle[2] = v24[21] - v24[18] + middle[2];
+      middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
     }
     else
     {
-      middle[2] = middle[2] + v24[18];
+      middle[2] = middle[2] + ent->mins[2];
     }
 LABEL_21:
     if ( ++v21 >= 3 )
@@ -8396,7 +8349,7 @@ int __cdecl sub_1000B1F0(float *ref, int target)
   int i;
   int best_index;
   float best_dist;
-  char *ents;
+  aas_entityinfo_t *ent;
   float dx, dy, dz;
   vec3_t delta;
   double d;
@@ -8405,14 +8358,14 @@ int __cdecl sub_1000B1F0(float *ref, int target)
   best_index = 0;
   if ( aasworld.numentities <= 0 )
     return 0;
-  ents = (char *)aasworld.entities;
-  for ( i = 0; i < aasworld.numentities; i++, ents += 132 )
+  for ( i = 0; i < aasworld.numentities; i++ )
   {
-    if ( *(int *)(ents + 0x5C) != target )
+    ent = &aasworld.entities[i].i;
+    if ( ent->modelindex != target )
       continue;
-    dx = *(float *)(ents + 0x10) - ref[0];
-    dy = *(float *)(ents + 0x14) - ref[1];
-    dz = *(float *)(ents + 0x18) - ref[2];
+    dx = ent->origin[0] - ref[0];
+    dy = ent->origin[1] - ref[1];
+    dz = ent->origin[2] - ref[2];
     if ( abs((int)dx) >= 40 )
       continue;
     if ( abs((int)dy) >= 40 )
@@ -8445,10 +8398,9 @@ int __cdecl sub_1000B1F0(float *ref, int target)
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
 int __cdecl AAS_BestReachableEntityArea(int entitynum)
 {
-  /* aasworld.entities is exposed in botlib.c as `aasworld.entities`
-   * (the 132-byte-stride aas_entity_t array); the +0x7c field is the
-   * entity's link_areas pointer. */
-  aas_link_t *links = *(aas_link_t **)((char *)aasworld.entities + entitynum * 132 + 0x7c);
+  /* +0x7c (124) is the entity's area-chain head (aas_entity_t::areas),
+   * accessed through the side-band-aware macro. */
+  aas_link_t *links = AAS_EntAreaLink(entitynum);
   return AAS_BestReachableLinkArea(links);
 }
 
@@ -8457,16 +8409,14 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 {
   int v6; // esi
   int v7; // edi
-  int v9; // ebp
 
   v6 = 1;
   v7 = 0;
   if ( aasworld.maxclients >= 1 )
   {
-    v9 = 132;
     do
     {
-      if ( *(_DWORD *)((char *)aasworld.entities + v9) )
+      if ( aasworld.entities[v6].i.valid )
       {
         if ( BotEntityVisible(a1, a2, a3, a4, v6) )
         {
@@ -8478,7 +8428,6 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
         }
       }
       ++v6;
-      v9 += 132;
     }
     while ( v6 <= aasworld.maxclients );
   }
@@ -8492,7 +8441,6 @@ int __cdecl AAS_NextBSPEntity(int ent)
 {
   int v1; // eax
   int result; // eax
-  _DWORD *i; // ecx
 
   if ( !aasworld.loaded )
     return 0;
@@ -8502,13 +8450,11 @@ int __cdecl AAS_NextBSPEntity(int ent)
   result = v1 + 1;
   if ( result >= aasworld.numentities )
     return 0;
-  i = (_DWORD *)((char *)aasworld.entities + 132 * result);
   while ( 1 )
   {
-    if ( *i )
+    if ( aasworld.entities[result].i.valid )
       return result;
     ++result;
-    i += 33;
     if ( result >= aasworld.numentities )
       return 0;
   }
@@ -10192,7 +10138,7 @@ int __cdecl sub_1000EDC0(int a1, int a2)
   aasworld.numentities = a1;
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
-  aasworld.entities = GetClearedMemory(132 * a1);
+  aasworld.entities = (aas_entity_t *)GetClearedMemory(sizeof(aas_entity_t) * a1);
 #if BOTLIB_NEED_SIDEBAND
   if ( aasentity_arealinks )
     FreeMemory(aasentity_arealinks);

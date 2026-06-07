@@ -96,7 +96,7 @@ extern int    BotMoveClient(int oldclnum, int newclnum);
 extern int    BotClientSettings(int client, const void *settings);  /* 0x10029920 */
 extern int    BotSettings(int client, const void *settings);        /* 0x100299D0 */
 extern int    BotUpdateClient(int client, const void *buc);
-extern int    AAS_UpdateEntity(int entnum, float *state);
+extern int    AAS_UpdateEntity(int entnum, bot_updateentity_t *state);
 extern int    sub_1001CE20(intptr_t origin, int ent, int channel, int soundindex,
                            int volume_bits, int attn_bits, float timeofs);
 extern int    BotAddPointLight(_DWORD *origin, int ent, int radius_bits,
@@ -433,7 +433,7 @@ int Export_BotUpdateEntity(int ent, void *bue)
 {
     if (!BotLibSetup("BotUpdateEntity")) return 1;
     if (!ValidEntityNumber(ent, "BotUpdateEntity")) return 4;
-    return AAS_UpdateEntity(ent, (float *)bue);
+    return AAS_UpdateEntity(ent, (bot_updateentity_t *)bue);
 }
 
 /* =========================================================================

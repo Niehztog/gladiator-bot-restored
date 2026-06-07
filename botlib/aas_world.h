@@ -151,39 +151,82 @@ typedef struct aas_link_s {
     struct aas_link_s *prev_area;  /* +20 per-entity area chain (back)   */
 } aas_link_t;
 
-/* aas_entity_t — UNLIKE the other AAS element types, this is NOT a clean
- * pure-data record and aasworld.entities is deliberately NOT typed/indexed.
+/* Forward declaration for the BSP-leaf link node; its full definition lives
+ * in botlib_structs.h (included after this header).  Only a pointer to it is
+ * needed below, so the struct tag alone is enough. */
+struct bsp_link_s;
+
+/* aas_entityinfo_t — per-frame snapshot of one engine entity, the "info" half
+ * of aas_entity_t.  AAS_UpdateEntity() fills it from the game side's
+ * bot_updateentity_t (game/botlib.h), and AAS_EntityInfo() hands back a
+ * 124-byte (0x7C) copy of exactly this block.
  *
- * The real Gladiator runtime entity is a 132-byte (33-dword) 32-bit-PACKED
- * struct (the disasm at 1000B1B0 confirms `arg*33` dword stride == 132 ==
- * sizeof(aas_entity_t)).  Partially-mapped known offsets:
- *   +12        entnum (AAS_LinkEntity writes the index here)
- *   +16/+20/+24 origin[3]
- *   +92, +120  ints (numbers/flags consumed by AAS_EntityModelindex etc.)
- *   +124 (0x7c) aas_link_t *  area-chain head   ┐ inline POINTERS — 4 B on
- *   +128        bsp_link_t *  BSP-leaf-chain head┘ 32-bit, do not fit on 64-bit
+ * This is the Q2/Gladiator flavour of Q3's aas_entityinfo_t: it predates the
+ * Q3 player-model fields (type/flags/groundent/weapon/legsAnim/torsoAnim) and
+ * instead mirrors the Q2 entity_state_t members (modelindex2..4, skinnum,
+ * effects, renderfx).  Field names follow Mr. Elusive's own bot_updateentity_t
+ * and Q3's aas_entityinfo_t where they coincide; the header fields (valid,
+ * ltime, update_time, number, lastvisorigin) use the Q3 names.
  *
- * Because of those two inline pointer slots the struct is ABI-specific: on
- * 64-bit the link heads are mirrored out into the parallel sideband arrays
- * aasentity_arealinks[]/aasentity_bsplinks[] (see BOTLIB_NEED_SIDEBAND in
- * botlib.c) while the inline +124/+128 slots stay 4-byte.  A literal typed
- * `aas_entity_t` with real pointer members would be 8-byte-wide on 64-bit and
- * reintroduce the very bug the sideband fixes, so every aasworld.entities
- * access stays as explicit `(char *)aasworld.entities + 132*entnum + K`
- * byte-arithmetic, NOT aasworld.entities[entnum].field.
+ * Offsets verified instruction-by-instruction against AAS_UpdateEntity
+ * @0x1000A920 (esi = entity base, edi = bot_updateentity_t) and the readers
+ * AAS_EntityModelindex/RenderFX/ModelNum/BSPData/Size. */
+typedef struct aas_entityinfo_s {
+    int    valid;          /* +0    true if updated this frame             */
+    float  ltime;          /* +4    local time of last update              */
+    float  update_time;    /* +8    time between last and current update   */
+    int    number;         /* +12   number of the entity                   */
+    vec3_t origin;         /* +16   origin of the entity                   */
+    vec3_t angles;         /* +28   angles of the model                    */
+    vec3_t old_origin;     /* +40   for lerping                            */
+    vec3_t lastvisorigin;  /* +52   last visible origin (prev-frame origin)*/
+    vec3_t mins;           /* +64   bounding box minimums                  */
+    vec3_t maxs;           /* +76   bounding box maximums                  */
+    int    solid;          /* +88   solid type (SOLID_BBOX=2 / SOLID_BSP=3)*/
+    int    modelindex;     /* +92   model used                            */
+    int    modelindex2;    /* +96   weapons, CTF flags, etc               */
+    int    modelindex3;    /* +100                                        */
+    int    modelindex4;    /* +104                                        */
+    int    frame;          /* +108  model frame number                    */
+    int    skinnum;        /* +112  skin number (carried, not set by Update)*/
+    int    effects;        /* +116  special effects                       */
+    int    renderfx;       /* +120  render fx flags                       */
+} aas_entityinfo_t;        /* 124 bytes (0x7C) */
+
+/* aas_entity_t — element type of aasworld.entities[], 132 bytes.  Mirrors
+ * Q3's  { aas_entityinfo_t i; aas_link_t *areas; bsp_link_t *leaves; }.
  *
- * The 56-byte Q3-shaped definition below is a vestigial placeholder kept only
- * so the `aas_entity_t *entities` field declaration has a type; it is never
- * used for indexing.  Fully reconstructing the 132-byte layout (the ~27
- * still-unknown dwords) is a separate task — see the struct-usage backlog. */
+ * The two link heads are inline 4-byte pointer slots in the original 32-bit
+ * DLL (area chain @+124, BSP-leaf chain @+128).  An 8-byte pointer cannot fit
+ * a 4-byte slot, so — exactly like the bot_state_t / bot_chatstate_t
+ * side-bands (see BOTLIB_NEED_SIDEBAND in botlib.c) — on 64-bit the real heads
+ * are mirrored into the parallel arrays aasentity_arealinks[] /
+ * aasentity_bsplinks[] and these slots degrade to inert 4-byte placeholders.
+ * Keeping them 4 bytes pins sizeof(aas_entity_t) at 132 on every target, so
+ * aasworld.entities[entnum] indexing and the heap stride stay ABI-correct.
+ *
+ * Always read/write the link heads through AAS_EntAreaLink()/AAS_EntBspLink()
+ * (botlib.c), never these fields directly — on 64-bit the fields are dead. */
 typedef struct aas_entity_s {
-    float   origin[3];
-    float   angles[3];
-    float   mins[3];
-    float   maxs[3];
-    int     presencetype;
-    int     modelindex;
-} aas_entity_t;
+    aas_entityinfo_t   i;          /* +0    entity info snapshot           */
+#if __SIZEOF_POINTER__ == 4
+    aas_link_t        *areas;      /* +124  links into the AAS areas       */
+    struct bsp_link_s *leaves;     /* +128  links into the BSP leaves      */
+#else
+    int                areas;      /* +124  inert; real head in side-band  */
+    int                leaves;     /* +128  inert; real head in side-band  */
+#endif
+} aas_entity_t;                    /* 132 bytes */
+
+_Static_assert(sizeof(aas_entityinfo_t)                  == 124, "aas_entityinfo_t size");
+_Static_assert(sizeof(aas_entity_t)                      == 132, "aas_entity_t size");
+_Static_assert(offsetof(aas_entityinfo_t, number)        == 12,  "ent.number");
+_Static_assert(offsetof(aas_entityinfo_t, origin)        == 16,  "ent.origin");
+_Static_assert(offsetof(aas_entityinfo_t, lastvisorigin) == 52,  "ent.lastvisorigin");
+_Static_assert(offsetof(aas_entityinfo_t, mins)          == 64,  "ent.mins");
+_Static_assert(offsetof(aas_entityinfo_t, solid)         == 88,  "ent.solid");
+_Static_assert(offsetof(aas_entityinfo_t, modelindex)    == 92,  "ent.modelindex");
+_Static_assert(offsetof(aas_entityinfo_t, renderfx)      == 120, "ent.renderfx");
 
 typedef struct aas_routingcache_s {
     /* Faithful Gladiator 32-bit layout (44-byte header + trailing
