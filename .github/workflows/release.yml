@@ -164,7 +164,7 @@ jobs:
           path: gladq2*_windows-${{ matrix.arch }}.zip
 
   # ---------------------------------------------------------------------------
-  # macOS — Intel x86_64 (macos-13) and Apple Silicon arm64 (macos-14).
+  # macOS — Intel x86_64 (macos-26-intel) and Apple Silicon arm64 (macos-26).
   # macOS has no 32-bit target (Apple dropped i386 in 10.15), so the two
   # 64-bit architectures are the macOS pair in the 6-build set.
   # ---------------------------------------------------------------------------
@@ -177,9 +177,9 @@ jobs:
       matrix:
         include:
           - arch: x64
-            runner: macos-13
+            runner: macos-26-intel
           - arch: arm64
-            runner: macos-14
+            runner: macos-26
 
     steps:
       - uses: actions/checkout@v5
