@@ -19843,8 +19843,8 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       v2 |= 0x1000u;
       v9 = v2;
     }
-    v3 = *(int *)&bs->enemy;
-    v4 = *(int *)&bs->lastenemyareanum;
+    v3 = bs->enemy;
+    v4 = bs->lastenemyareanum;
     v12[0] = bs->lastenemyorigin[0];
     *(int *)&v12[10] = v3;
     v5 = *(int *)&bs->lastenemyorigin[1];
@@ -21350,7 +21350,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       {
         if ( v12 == 4 )
         {
-          v13 = *(_DWORD *)&bs->flags;
+          v13 = bs->flags;
           if ( (v13 & 4) != 0 )
           {
             LOBYTE(v13) = v13 & 0xFB;
@@ -21360,7 +21360,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
           {
             LOBYTE(v13) = v13 | 4;
           }
-          *(_DWORD *)&bs->flags = v13;
+          bs->flags = v13;
         }
       }
       else
@@ -21384,9 +21384,9 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       }
       if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001f )
       {
-        v16 = *(_DWORD *)&bs->flags;
+        v16 = bs->flags;
         *(_DWORD *)&bs->attackstrafe_drift = 0;
-        *(_DWORD *)&bs->flags = v16 ^ 1;
+        bs->flags = v16 ^ 1;
       }
       v17 = 0;
       while ( 1 )
@@ -21414,10 +21414,10 @@ LABEL_36:
 LABEL_37:
         if ( !BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v22, 400.0f, v12) )
         {
-          v19 = *(_DWORD *)&bs->flags;
+          v19 = bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
           ++v17;
-          *(_DWORD *)&bs->flags = v19 ^ 1;
+          bs->flags = v19 ^ 1;
           if ( v17 < 2 )
             continue;
         }
