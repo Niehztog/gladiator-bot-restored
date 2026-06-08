@@ -22349,7 +22349,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   float v62[3]; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
   float v65; // [esp+88h] [ebp-ECh]
   float v66_vec[3]; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
-  float v69_vec[3];; // [esp+98h] [ebp-DCh], [esp+9Ch] [ebp-D8h], [esp+A0h] [ebp-D4h]
+  float v69_vec[3]; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
   float v72[3]; // [esp+A4h] [ebp-D0h] BYREF
   float v73[3]; // [esp+B0h] [ebp-C4h] BYREF
   aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
@@ -22489,6 +22489,7 @@ LABEL_37:
     v32 = bs->origin[1];
     v53_vec[0] = bs->origin[0];
     v53_vec[1] = v32;
+    v53_vec[2] = v31;   /* materialize origin[2] to the slot; original mov [esp+0x58],ecx then fld it back at 0x10025ec3 */
     v53_vec[2] = v31 + libvar_sv_step->value;
     VectorMA(v53_vec, 5.0f, v72, v66_vec);
     v44_vec[0] = -16.0f;
@@ -22507,9 +22508,9 @@ LABEL_37:
     if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1) )
     {
       v62[0] = -v62[0];
+      v33 = bs->flags;   /* original reads flags mid-negation: mov eax,[esi+0xac0] at 0x10025f9b */
       v62[1] = -v62[1];
       v62[2] = -v62[2];
-      v33 = bs->flags;
       bs->flags = v33 ^ 0x10;
       BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1);
     }
