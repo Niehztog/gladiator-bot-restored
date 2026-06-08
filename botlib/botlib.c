@@ -860,7 +860,7 @@ void *__cdecl BotGetSecondGoal(int *a1);
 int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
 int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6);
 int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4);
+BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot_goal_t *goal);
 int __cdecl BotLoadItemWeights(int *goalstate, char *a2);
 void __cdecl BotFreeItemWeights(int *goalstate);
 int __cdecl BotResetGoalState(void *goalstate);
@@ -18782,7 +18782,7 @@ LABEL_55:
         if ( libvar_runes->value != 0.0f )
           sub_100262C0((_DWORD *)bs, (intptr_t)v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
       }
-      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v26) )
+      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v26) )
       {
         goto LABEL_136;
       }
@@ -19231,7 +19231,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       if ( libvar_runes->value != 0.0f )
         sub_100262C0((_DWORD *)bs, (intptr_t)v4);
     }
-    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (intptr_t)v4) )
+    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v4) )
     {
       goto LABEL_18;
     }
@@ -28411,25 +28411,25 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
 }
 
 //----- (10030770) --------------------------------------------------------
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, intptr_t a4)
+BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot_goal_t *goal)
 {
   int v4; // ebx
   vec3_t origin; // [esp+Ch] [ebp-88h] BYREF — world-space goal center, passed to AAS_Trace and VectorScale
   int v9[31]; // [esp+18h] [ebp-7Ch] BYREF
 
-  if ( (*(_BYTE *)(a4 + 48) & 1) == 0 )
+  if ( (goal->flags & 1) == 0 )
     return 0;
-  origin[0] = *(float *)(a4 + 16) + *(float *)(a4 + 16);
-  origin[1] = *(float *)(a4 + 20) + *(float *)(a4 + 20);
-  origin[2] = *(float *)(a4 + 24) + *(float *)(a4 + 24);
+  origin[0] = goal->mins[0] + goal->mins[0];
+  origin[1] = goal->mins[1] + goal->mins[1];
+  origin[2] = goal->mins[2] + goal->mins[2];
   VectorScale((float *)origin, 0.5, (float *)origin);
-  origin[0] = origin[0] + *(float *)a4;
-  origin[1] = origin[1] + *(float *)(a4 + 4);
-  origin[2] = origin[2] + *(float *)(a4 + 8);
+  origin[0] = origin[0] + goal->origin[0];
+  origin[1] = origin[1] + goal->origin[1];
+  origin[2] = origin[2] + goal->origin[2];
   qmemcpy(v9, AAS_Trace(v9, (float*)a2, 0, 0, origin, a1, 3), 0x54u);
   if ( *(float *)&v9[2] < 1.0 )
     return 0;
-  v4 = *(_DWORD *)(a4 + 40);
+  v4 = goal->entitynum;
   if ( v4 <= 0 )
     return 1;
   qmemcpy(v9, AAS_EntityInfo(v9, v4), sizeof(v9));
