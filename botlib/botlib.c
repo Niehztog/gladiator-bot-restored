@@ -675,7 +675,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs);
 // void BotCheckAttack(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
 int __cdecl BotSetMovedir(float *angles, float *dir);
-void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3);
+void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate);
 void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
@@ -22313,9 +22313,8 @@ void __cdecl sub_10025070(void)
  * callers ignore it.  IDA invented an `ai_node_fn_t result` return; the
  * shared epilogue at 0x1002600e confirms there is no meaningful return
  * value.  Matches Q3's `void BotAIBlocked`. */
-void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
+void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate)
 {
-
   ai_node_fn_t result; // eax
   int *v5; // eax
   int *v6; // ebp
@@ -22332,10 +22331,6 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   int v18; // ecx
   char *v20; // esi
   int v21; // eax
-  float v22; // edx
-  float v23; // eax
-  int v24; // eax
-  int v26; // edx
   char *v28; // eax
   int v29; // eax
   float v31; // ecx
@@ -22344,41 +22339,17 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   float v34; // [esp+0h] [ebp-174h]
   float v35; // [esp+0h] [ebp-174h]
   float v38_vec[3]; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
-#define v38 v38_vec[0]
-#define v39 v38_vec[1]
-#define v40 v38_vec[2]
   float v41_vec[3]; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
-#define v41 v41_vec[0]
-#define v42 v41_vec[1]
-#define v43 v41_vec[2]
   float v44_vec[3]; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
-#define v44 v44_vec[0]
-#define v45 v44_vec[1]
-#define v46 v44_vec[2]
   float v47_vec[3]; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
-#define v47 v47_vec[0]
-#define v48 v47_vec[1]
-#define v49 v47_vec[2]
   float v50[3]; /* was v50,v51,v52 — vec3_t for activated area check */
-  /* v51/v52 subsumed into v50[1]/v50[2] */
   float v53_vec[3]; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
-#define v53 v53_vec[0]
-#define v55 v53_vec[2]
   float v56_vec[3]; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
-#define v56 v56_vec[0]
   float v59_vec[3]; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
-#define v59 v59_vec[0]
-#define v60 v59_vec[1]
-#define v61 v59_vec[2]
   float v62[3]; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
-  /* v63 subsumed into v62[1] */
-  /* v64 subsumed into v62[2] */
   float v65; // [esp+88h] [ebp-ECh]
   float v66_vec[3]; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
-#define v66 v66_vec[0]
-  float v69; // [esp+98h] [ebp-DCh]
-  float v70; // [esp+9Ch] [ebp-D8h]
-  float v71; // [esp+A0h] [ebp-D4h]
+  float v69_vec[3];; // [esp+98h] [ebp-DCh], [esp+9Ch] [ebp-D8h], [esp+A0h] [ebp-D4h]
   float v72[3]; // [esp+A4h] [ebp-D0h] BYREF
   float v73[3]; // [esp+B0h] [ebp-C4h] BYREF
   aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
@@ -22386,14 +22357,14 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   float v76[3]; // [esp+ECh] [ebp-88h] BYREF
   int v77[31]; // [esp+F8h] [ebp-7Ch] BYREF
 
-  result = (int (__cdecl *)(int))a2->blocked;
+  result = (int (__cdecl *)(int))moveresult->blocked;
   v73[0] = 0;
   v73[1] = 0;
   v73[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
   if ( !result )
     return;
-  qmemcpy(v77, AAS_EntityInfo(v77, a2->blockentity), sizeof(v77));
-  if ( v77[22] != 3 || !a3 )
+  qmemcpy(v77, AAS_EntityInfo(v77, moveresult->blockentity), sizeof(v77));
+  if ( v77[22] != 3 || !activate )
     goto LABEL_37;
   v5 = BotEntityToActivate(v77[3]);
   v6 = v5;
@@ -22403,25 +22374,19 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
     v7 = &byte_1006294C;
   if ( !strcmp(v7, aFuncDoorSecret) || !strcmp(v7, aFuncDoor) )
   {
-    v28 = (char *)AAS_ValueForBSPEpairKey(v6, aModel);
+    v28 = AAS_ValueForBSPEpairKey(v6, aModel);
     result = (int (__cdecl *)(int))IndexFromModel(v28);
     if ( result )
     {
-      v56 = 0;
-      v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x100256e3..0x100256fa */
-      v56_vec[2] = 0;
+      VectorClear(v56_vec);
       AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
-      *(float *)&v38 = v44 + v41;
-      *(float *)&v39 = v45 + v42;
-      *(float *)&v40 = v46 + v43;
+      VectorAdd(v44_vec, v41_vec, v38_vec);
       VectorScale(v38_vec, 0.5f, v38_vec);
-      v50[0] = v38 - bs->origin[0];
-      v50[1] = v39 - bs->origin[1];
-      v50[2] = v40 - bs->origin[2];
-      vectoangles(v50, a2->ideal_viewangles);
-      v29 = a2->flags;
+      VectorSubtract(v38_vec, bs->origin, v50);
+      vectoangles(v50, moveresult->ideal_viewangles);
+      v29 = moveresult->flags;
       LOBYTE(v29) = v29 | 1;
-      a2->flags = v29;
+      moveresult->flags = v29;
       EA_UseItem(bs->client, aBlaster);
       EA_Attack(bs->client);
       return;
@@ -22430,34 +22395,26 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
   }
   if ( !strcmp(v7, aFuncButton) )
   {
-    v8 = (char *)AAS_ValueForBSPEpairKey(v6, aModel);
+    v8 = AAS_ValueForBSPEpairKey(v6, aModel);
     result = (int (__cdecl *)(int))IndexFromModel(v8);
     if ( !result )
       return;
-    v56 = 0;
-    v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x100256e3..0x100256fa */
-    v56_vec[2] = 0;
+    VectorClear(v56_vec);
     AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, aLip);
-    v56 = 0;
+    v56_vec[0] = 0;
     BotSetMovedir(v56_vec, v50);
-    v69 = v41 - v44;
-    v70 = v42 - v45;
-    v71 = v43 - v46;
-    v59 = v44 + v41;
-    v60 = v45 + v42;
-    v61 = v46 + v43;
+    VectorSubtract(v41_vec, v44_vec, v69_vec);
+    VectorAdd(v44_vec, v41_vec, v59_vec);
     VectorScale(v59_vec, 0.5f, v59_vec);
-    v65 = (fabs(v50[2]) * v71 + fabs(v50[1]) * v70 + fabs(v50[0]) * v69) * 0.5f;
+    v65 = (fabs(v50[2]) * v69_vec[2] + fabs(v50[1]) * v69_vec[1] + fabs(v50[0]) * v69_vec[0]) * 0.5f;
     if ( FloatForKey(v6, aHealth) != 0.0f )
     {
       v34 = -v65;
       VectorMA(v59_vec, v34, v50, v38_vec);
-      v50[0] = v38 - bs->origin[0];
-      v50[1] = v39 - bs->origin[1];
-      v50[2] = v40 - bs->origin[2];
-      vectoangles(v50, a2->ideal_viewangles);
-      a2->flags |= 1u;
+      VectorSubtract(v38_vec, bs->origin, v50);
+      vectoangles(v50, moveresult->ideal_viewangles);
+      moveresult->flags |= 1u;
       EA_UseItem(bs->client, aBlaster);
       EA_Attack(bs->client);
       return;
@@ -22467,31 +22424,29 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
     for ( i = 0; i < 3; ++i )
     {
       if ( v50[i] >= 0.0f )
-        v11 = *(float *)&v76[i];
+        v11 = v76[i];
       else
-        v11 = *(float *)&v75[i];
+        v11 = v75[i];
       v12 = fabs(v11) * fabs(v50[i]);
       v9 = v12 + v9;
     }
     v35 = -v9;
     VectorMA(v59_vec, v35, v50, v38_vec);
-    v53 = v38;
-    v53_vec[1] = v39; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
-    v55 = v40 + 24.0f;
-    v66 = v38;
-    v66_vec[1] = v39; /* IDA dropped middle end write; original mov [esp+0x98], eax at 0x10025954 */
-    v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xAC] at 0x1002596B */
+    v53_vec[0] = v38_vec[0];
+    v53_vec[1] = v38_vec[1]; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
+    v53_vec[2] = v38_vec[2] + 24.0f;
+    v66_vec[0] = v38_vec[0];
+    v66_vec[1] = v38_vec[1]; /* IDA dropped middle end write; original mov [esp+0x98], eax at 0x10025954 */
+    v66_vec[2] = v53_vec[2] - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xAC] at 0x1002596B */
     trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
     if ( !trace.startsolid )
     {
-      v38 = trace.endpos[0];
-      v39 = trace.endpos[1];
-      v40 = trace.endpos[2];
+      VectorCopy(trace.endpos, v38_vec);
     }
     v13 = bs;
-    v14 = v60;
-    v15 = v61;
-    bs->activategoal.origin[0] = v59;
+    v14 = v59_vec[1];
+    v15 = v59_vec[2];
+    bs->activategoal.origin[0] = v59_vec[0];
     bs->activategoal.origin[1] = v14;
     bs->activategoal.origin[2] = v15;
     v16 = AAS_PointAreaNum(v38_vec);
@@ -22500,12 +22455,12 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *a2, int a3)
     bs->activategoal.entitynum = v18;
     bs->activategoal.number = 0;
     bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v44 - v59 - 5.0f;
-    bs->activategoal.mins[1] = v45 - v60 - 5.0f;
-    bs->activategoal.mins[2] = v46 - v61 - 5.0f;
-    bs->activategoal.maxs[0] = v41 - v59 + 5.0f;
-    bs->activategoal.maxs[1] = v42 - v60 + 5.0f;
-    bs->activategoal.maxs[2] = v43 - v61 + 5.0f;
+    bs->activategoal.mins[0] = v44_vec[0] - v59_vec[0] - 5.0f;
+    bs->activategoal.mins[1] = v44_vec[1] - v59_vec[1] - 5.0f;
+    bs->activategoal.mins[2] = v44_vec[2] - v59_vec[2] - 5.0f;
+    bs->activategoal.maxs[0] = v41_vec[0] - v59_vec[0] + 5.0f;
+    bs->activategoal.maxs[1] = v41_vec[1] - v59_vec[1] + 5.0f;
+    bs->activategoal.maxs[2] = v41_vec[2] - v59_vec[2] + 5.0f;
     bs->activategoal_time = AAS_Time() + 10.0f;
     if ( !AAS_AreaReachability(bs->activategoal.areanum) )
     {
@@ -22526,23 +22481,22 @@ LABEL_32:
   if ( strcmp(v7, aTriggerMultipl) && strcmp(v7, aTriggerOnce) )
   {
 LABEL_37:
-    v72[0] = a2->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
-    v72[1] = a2->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
+    v72[0] = moveresult->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
+    v72[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
     v72[2] = 0;
     VectorNormalize(v72);
     v31 = bs->origin[2];
     v32 = bs->origin[1];
-    v53 = bs->origin[0];
+    v53_vec[0] = bs->origin[0];
     v53_vec[1] = v32;
-    v55 = v31;
-    v55 = v31 + libvar_sv_step->value;
+    v53_vec[2] = v31 + libvar_sv_step->value;
     VectorMA(v53_vec, 5.0f, v72, v66_vec);
-    v44 = -16.0f;
-    v45 = -16.0f;
-    v46 = -24.0f;
-    v41 = 16.0f;
-    v42 = 16.0f;
-    v43 = 4.0f;
+    v44_vec[0] = -16.0f;
+    v44_vec[1] = -16.0f;
+    v44_vec[2] = -24.0f;
+    v41_vec[0] = 16.0f;
+    v41_vec[1] = 16.0f;
+    v41_vec[2] = 4.0f;
     CrossProduct(v72, v73, v62);
     if ( (*(unsigned char *)&bs->flags & 0x10) != 0 )
     {
@@ -22553,9 +22507,9 @@ LABEL_37:
     if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1) )
     {
       v62[0] = -v62[0];
-      v33 = bs->flags;
       v62[1] = -v62[1];
       v62[2] = -v62[2];
+      v33 = bs->flags;
       bs->flags = v33 ^ 0x10;
       BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1);
     }
@@ -22574,45 +22528,29 @@ LABEL_37:
   v21 = IndexFromModel(v20);
   if ( !v21 )
     v21 = atoi(v20 + 1);
-  v56 = 0;
-  v56_vec[1] = 0; /* original zeroes full origin vec3 at 0x10025b78..0x10025b8f/0x10025d9f..0x10025db7 */
-  v56_vec[2] = 0;
+  VectorClear(v56_vec);
   AAS_BSPModelMinsMaxsOrigin(v21 - 1, v56_vec, v44_vec, v41_vec, NULL);
-  *(float *)&v47 = v44 + v41;
-  v48 = v45 + v42;
-  v49 = v46 + v43;
+  VectorAdd(v44_vec, v41_vec, v47_vec);
   VectorScale(v47_vec, 0.5f, v47_vec);
-  v53 = v47;
-  v53_vec[1] = v48; /* IDA dropped middle start write; original mov [esp+0x70], edx at 0x10025BE5 */
-  v55 = v43 + 24.0f;
-  v66 = v47;
-  v66_vec[1] = v48; /* IDA dropped middle end write; original mov [esp+0xA8], ecx at 0x10025C09 */
-  v66_vec[2] = v55 - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xBC] at 0x10025C20 */
+  v53_vec[0] = v47_vec[0];
+  v53_vec[1] = v47_vec[1]; /* IDA dropped middle start write; original mov [esp+0x70], edx at 0x10025BE5 */
+  v53_vec[2] = v41_vec[2] + 24.0f;
+  v66_vec[0] = v47_vec[0];
+  v66_vec[1] = v47_vec[1]; /* IDA dropped middle end write; original mov [esp+0xA8], ecx at 0x10025C09 */
+  v66_vec[2] = v53_vec[2] - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xBC] at 0x10025C20 */
   /* Original IDA: sub_10001861 (thunk → 0x1001B260 = AAS_TraceClientBBox). */
   trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
   if ( !trace.startsolid )
   {
     v13 = bs;
-    v40 = trace.endpos[2];
-    v38 = trace.endpos[0];
-    v22 = v48;
-    v39 = trace.endpos[1];
-    v23 = v49;
-    bs->activategoal.origin[0] = v47;
-    bs->activategoal.origin[1] = v22;
-    bs->activategoal.origin[2] = v23;
-    v24 = AAS_PointAreaNum(v38_vec);
-    v26 = v77[3];
-    bs->activategoal.areanum = v24;
-    bs->activategoal.entitynum = v26;
+    VectorCopy(trace.endpos, v38_vec);
+    VectorCopy(v47_vec, bs->activategoal.origin);
+    bs->activategoal.areanum = AAS_PointAreaNum(v38_vec);
+    bs->activategoal.entitynum = v77[3];
     bs->activategoal.number = 0;
     bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v44 - v47;
-    bs->activategoal.mins[1] = v45 - v48;
-    bs->activategoal.mins[2] = v46 - v49;
-    bs->activategoal.maxs[0] = v41 - v47;
-    bs->activategoal.maxs[1] = v42 - v48;
-    bs->activategoal.maxs[2] = v43 - v49;
+    VectorSubtract(v44_vec, v47_vec, bs->activategoal.mins);
+    VectorSubtract(v41_vec, v47_vec, bs->activategoal.maxs);
     bs->activategoal_time = AAS_Time() + 10.0f;
     if ( !AAS_AreaReachability(bs->activategoal.areanum) )
     {
@@ -22628,25 +22566,6 @@ LABEL_37:
     return;
   }
   return;
-#undef v66
-#undef v59
-#undef v60
-#undef v61
-#undef v56
-#undef v53
-#undef v55
-#undef v47
-#undef v48
-#undef v49
-#undef v44
-#undef v45
-#undef v46
-#undef v41
-#undef v42
-#undef v43
-#undef v38
-#undef v39
-#undef v40
 }
 // 100012BC: using guessed type _DWORD __cdecl AAS_PointAreaNum(_DWORD);
 // 10001302: using guessed type _DWORD __cdecl EA_UseItem(_DWORD, _DWORD);
