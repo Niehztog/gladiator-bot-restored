@@ -457,7 +457,7 @@ int __cdecl AAS_EntityModelindex(int entnum);
 int __cdecl AAS_EntityRenderFX(int entnum);
 int __cdecl AAS_EntityModelNum(int entnum);
 int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin);
-int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata);
+int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 void AAS_ResetEntityLinks();
 void AAS_InvalidateEntities();
@@ -2775,7 +2775,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
 
   if ( !dword_100674C0 )
     return 0;
-  AAS_EntityBSPData(entnum, (intptr_t)v47);
+  AAS_EntityBSPData(entnum, (bsp_entdata_t *)v47);
   if ( LODWORD(v47[12]) != 2 && LODWORD(v47[12]) != 3 )
     return 0;
   if ( boxmaxs )
@@ -4166,7 +4166,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 LABEL_6:
     for ( i = dword_10069584[v6]; i; i = i->next_ent )
     {
-      AAS_EntityBSPData(i->entnum, (intptr_t)v14);
+      AAS_EntityBSPData(i->entnum, (bsp_entdata_t *)v14);
       if ( *a1 > (float)v16
         && *a1 < (float)v19
         && a1[1] > (float)v17
@@ -4768,7 +4768,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
       }
 
       if (j == count) {
-        AAS_EntityBSPData(entnum, (intptr_t)entdata);
+        AAS_EntityBSPData(entnum, (bsp_entdata_t *)entdata);
 
         /* MR. ELUSIVE BUG preserved verbatim: original .text uses
          * entdata[0x20] (absmin.Z) where absmin.X (entdata[0x18])
@@ -7958,27 +7958,27 @@ void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
 // 100669A0: using guessed type int aasworld.entities;
 
 //----- (1000AF30) --------------------------------------------------------
-int __cdecl AAS_EntityBSPData(int entnum, intptr_t entdata)
+int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata)
 {
   aas_entityinfo_t *ent;
   int result;
 
   ent = &aasworld.entities[entnum].i;
-  *(float *)entdata        = ent->origin[0];
-  *(float *)(entdata + 4)  = ent->origin[1];
-  *(float *)(entdata + 8)  = ent->origin[2];
-  *(float *)(entdata + 12) = ent->angles[0];
-  *(float *)(entdata + 16) = ent->angles[1];
-  *(float *)(entdata + 20) = ent->angles[2];
-  *(float *)(entdata + 24) = ent->mins[0] + ent->origin[0];
-  *(float *)(entdata + 28) = ent->mins[1] + ent->origin[1];
-  *(float *)(entdata + 32) = ent->mins[2] + ent->origin[2];
-  *(float *)(entdata + 36) = ent->maxs[0] + ent->origin[0];
-  *(float *)(entdata + 40) = ent->maxs[1] + ent->origin[1];
-  *(float *)(entdata + 44) = ent->maxs[2] + ent->origin[2];
-  *(_DWORD *)(entdata + 48) = ent->solid;
+  entdata->origin[0]  = ent->origin[0];
+  entdata->origin[1]  = ent->origin[1];
+  entdata->origin[2]  = ent->origin[2];
+  entdata->angles[0]  = ent->angles[0];
+  entdata->angles[1]  = ent->angles[1];
+  entdata->angles[2]  = ent->angles[2];
+  entdata->absmins[0] = ent->mins[0] + ent->origin[0];
+  entdata->absmins[1] = ent->mins[1] + ent->origin[1];
+  entdata->absmins[2] = ent->mins[2] + ent->origin[2];
+  entdata->absmaxs[0] = ent->maxs[0] + ent->origin[0];
+  entdata->absmaxs[1] = ent->maxs[1] + ent->origin[1];
+  entdata->absmaxs[2] = ent->maxs[2] + ent->origin[2];
+  entdata->solid      = ent->solid;
   result = ent->modelindex - 1;
-  *(_DWORD *)(entdata + 52) = result;
+  entdata->modelnum   = result;
   return result;
 }
 // 100669A0: using guessed type int aasworld.entities;

@@ -462,6 +462,24 @@ typedef struct bsp_link_s {
 } bsp_link_t;
 
 /* -------------------------------------------------------------------------
+ * bsp_entdata_t — entity bbox/solid snapshot filled by AAS_EntityBSPData,
+ * 56 bytes (pointer-free, so identical on 32- and 64-bit).
+ *
+ * Q3 equivalent: be_aas_def.h:78 (bsp_entdata_s, identical layout).  Field
+ * offsets confirmed from AAS_EntityBSPData disassembly @ 1000AF30:
+ *   +0  origin    +12 angles    +24 absmins    +36 absmaxs
+ *   +48 solid     +52 modelnum  (= entity modelindex - 1)
+ */
+typedef struct bsp_entdata_s {
+    vec3_t  origin;
+    vec3_t  angles;
+    vec3_t  absmins;
+    vec3_t  absmaxs;
+    int     solid;
+    int     modelnum;
+} bsp_entdata_t;
+
+/* -------------------------------------------------------------------------
  * indexlist_t — model/sound/image name lookup table.
  *
  * Used by aasworld.modelindex_table / soundindex_table / imageindex_table.
