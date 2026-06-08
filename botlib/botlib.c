@@ -15080,53 +15080,36 @@ LABEL_29:
 //----- (100187E0) --------------------------------------------------------
 int AAS_StoreReachability()
 {
-  int result; // eax
-  int v1; // esi
-  int v2; // edi
-  char *v3; // ecx
-  char *v4; // edx
-  char *i; // eax — was int, holds aas_reachabilitynode_t * pointer
-  char *v6; // ecx
+  int i;
+  aas_areasettings_t *areasettings;
+  aas_reachabilitynode_t *lreach;
+  aas_reachability_t *reach;
 
   if ( aasworld.reachability )
     FreeMemory(aasworld.reachability);
-  aasworld.reachability = (void *)GetClearedMemory(2883584);
-  result = 1;
-  v1 = 0;
+  aasworld.reachability = (aas_reachability_t *)GetClearedMemory(2883584);
   aasworld.reachabilitysize = 1;
-  if ( aasworld.numareas > 0 )
+  for ( i = 0; i < aasworld.numareas; i++ )
   {
-    v2 = 0;
-    do
+    areasettings = &aasworld.areasettings[i];
+    areasettings->firstreachablearea = aasworld.reachabilitysize;
+    areasettings->numreachableareas = 0;
+    for ( lreach = areareachability[i]; lreach; lreach = lreach->next )
     {
-      v3 = (char *)aasworld.areasettings;
-      *(_DWORD *)((char *)aasworld.areasettings + v2 + 24) = result;
-      *(_DWORD *)&v3[v2 + 20] = 0;
-      v4 = &v3[v2];
-      for ( i = (char *)areareachability[v1]; i; i = (char *)((aas_reachabilitynode_t *)i)->next )
-      {
-        v6 = (char *)&aasworld.reachability[*((_DWORD *)v4 + 6) + *((_DWORD *)v4 + 5)];
-        *(_DWORD *)v6 = *(_DWORD *)i;
-        *((_DWORD *)v6 + 1) = *(_DWORD *)(i + 4);
-        *((_DWORD *)v6 + 2) = *(_DWORD *)(i + 8);
-        *((_DWORD *)v6 + 3) = *(_DWORD *)(i + 12);
-        *((_DWORD *)v6 + 4) = *(_DWORD *)(i + 16);
-        *((_DWORD *)v6 + 5) = *(_DWORD *)(i + 20);
-        *((_DWORD *)v6 + 6) = *(_DWORD *)(i + 24);
-        *((_DWORD *)v6 + 7) = *(_DWORD *)(i + 28);
-        *((_DWORD *)v6 + 8) = *(_DWORD *)(i + 32);
-        *((_DWORD *)v6 + 9) = *(_DWORD *)(i + 36);
-        *((_WORD *)v6 + 20) = *(_WORD *)(i + 40);
-        ++*((_DWORD *)v4 + 5);
-      }
-      result = *((_DWORD *)v4 + 5) + aasworld.reachabilitysize;
-      ++v1;
-      v2 += 28;
-      aasworld.reachabilitysize = result;
+      reach = &aasworld.reachability[areasettings->firstreachablearea +
+                                      areasettings->numreachableareas];
+      reach->areanum = lreach->reach.areanum;
+      reach->facenum = lreach->reach.facenum;
+      reach->edgenum = lreach->reach.edgenum;
+      VectorCopy(lreach->reach.start, reach->start);
+      VectorCopy(lreach->reach.end, reach->end);
+      reach->traveltype = lreach->reach.traveltype;
+      reach->traveltime = lreach->reach.traveltime;
+      areasettings->numreachableareas++;
     }
-    while ( v1 < aasworld.numareas );
+    aasworld.reachabilitysize += areasettings->numreachableareas;
   }
-  return result;
+  return aasworld.reachabilitysize;
 }
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
