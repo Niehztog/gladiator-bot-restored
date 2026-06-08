@@ -21172,9 +21172,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   {
     v37.entitynum = bs->enemy;
     v37.areanum = bs->lastenemyareanum;
-    v37.origin[0] = bs->lastenemyorigin[0];
-    v37.origin[1] = bs->lastenemyorigin[1];
-    v37.origin[2] = bs->lastenemyorigin[2];
+    VectorCopy(bs->lastenemyorigin, v37.origin);
     v37.mins[0] = -8.0f;
     v37.mins[1] = -8.0f;
     v37.mins[2] = -8.0f;
@@ -28419,13 +28417,9 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot
 
   if ( (goal->flags & 1) == 0 )
     return 0;
-  origin[0] = goal->mins[0] + goal->mins[0];
-  origin[1] = goal->mins[1] + goal->mins[1];
-  origin[2] = goal->mins[2] + goal->mins[2];
+  VectorAdd(goal->mins, goal->mins, origin);
   VectorScale((float *)origin, 0.5, (float *)origin);
-  origin[0] = origin[0] + goal->origin[0];
-  origin[1] = origin[1] + goal->origin[1];
-  origin[2] = origin[2] + goal->origin[2];
+  VectorAdd(origin, goal->origin, origin);
   qmemcpy(v9, AAS_Trace(v9, (float*)a2, 0, 0, origin, a1, 3), 0x54u);
   if ( *(float *)&v9[2] < 1.0 )
     return 0;
