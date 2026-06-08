@@ -68,6 +68,24 @@ spawn, fight and chat.  Some map features still trip them up, and rough
 edges remain.  If you'd like to help test, report bugs or contribute, head
 to the issue tracker.
 
+## How close are we to the original?
+
+To measure progress objectively we run an *oracle check*: we recompile our
+reconstructed C source with the same 1999-era Microsoft Visual C++ 6
+compiler that built the original `gladiator.dll`, and then compare the
+resulting machine code against the bytes inside the real 1999 DLL — one
+small routine at a time.
+
+**Of the 696 routines in the original Gladiator Bot DLL, 516 (about
+74 %) currently come out byte-for-byte identical to Mr. Elusive's
+original.**
+
+The remaining 180 are close but not yet exact: most of them are off by
+just a handful of CPU instructions — usually a tiny source-level detail
+we haven't pinned down yet — and **none are missing** (every routine in
+the original is paired with one in our reconstruction). Each remaining
+gap is a concrete, measurable target for further work.
+
 ## A note on "version 0.96"
 
 Mr. Elusive shipped *two* builds under the same v0.96 label:
