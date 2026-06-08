@@ -353,6 +353,57 @@ static int FreeLibrary(void *h) { (void)h; return 1; }
 static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
 #endif
 
+/* ------------------------------------------------------------------------
+ * Info-ZIP UnZip windll SDK structures (windll/structs.h).
+ *
+ * sub_10041240 extracts the .aas file out of aasN.zip by loading
+ * UNZIP32.DLL and calling its "windll_unzip" entry point.  These are the
+ * option block (DCL) and callback table (USERFUNCTIONS) that entry point
+ * expects.  Field names are from Info-ZIP's UnZip windll header; the exact
+ * layout is the 1999-era UnZip 5.x one proved by the disassembly of
+ * sub_10041240:  DCL = 15 ints + 2 LPSTR = 0x44 bytes (no StructVersID and
+ * no B/D/U flags — those were added in UnZip 6.0); USERFUNCTIONS = 6
+ * callback slots + 3 size counters + a WORD comment length = 0x28 bytes.
+ *
+ * Every pointer-bearing field (the LPSTR names and the DLL* callbacks) is
+ * declared as a 4-byte `int` slot, exactly as the original 32-bit DLL laid
+ * them out, so the struct size and field offsets stay identical on the
+ * 64-bit Linux build too (the original byte image: 0x44 / 0x28).  Casting
+ * the callback addresses to (intptr_t) on assignment keeps that intent
+ * explicit. */
+typedef struct {
+  int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
+  int   SpaceToUnderscore;  /* +0x04  TRUE => convert spaces to underscores  */
+  int   PromptToOverwrite;  /* +0x08  TRUE => prompt before overwriting      */
+  int   fQuiet;             /* +0x0C  0=all msgs, 1=fewer, 2=none            */
+  int   ncflag;             /* +0x10  write to stdout if TRUE                */
+  int   ntflag;             /* +0x14  test archive                          */
+  int   nvflag;             /* +0x18  verbose listing                       */
+  int   nfflag;             /* +0x1C  "freshen" — replace only with newer    */
+  int   nzflag;             /* +0x20  display archive comment               */
+  int   ndflag;             /* +0x24  (sub)dir recreation control            */
+  int   noflag;             /* +0x28  always overwrite if TRUE              */
+  int   naflag;             /* +0x2C  do end-of-line translation            */
+  int   nZIflag;            /* +0x30  return ZipInfo if TRUE                 */
+  int   C_flag;             /* +0x34  case-insensitive match if TRUE        */
+  int   fPrivilege;         /* +0x38  1=restore ACLs, 2=use privileges       */
+  int   lpszZipFN;          /* +0x3C  LPSTR — archive file name (4-byte slot) */
+  int   lpszExtractDir;     /* +0x40  LPSTR — extract dir    (4-byte slot)   */
+} DCL, *LPDCL;               /* sizeof == 0x44 */
+
+typedef struct {
+  int            print;                  /* +0x00 DLLPRNT*    (4-byte fn-ptr slot) */
+  int            sound;                  /* +0x04 DLLSND*                          */
+  int            replace;                /* +0x08 DLLREPLACE*                      */
+  int            password;               /* +0x0C DLLPASSWORD*                     */
+  int            SendApplicationMessage; /* +0x10 DLLMESSAGE*                      */
+  int            ServCallBk;             /* +0x14 DLLSERVICE*                      */
+  unsigned int   TotalSizeComp;          /* +0x18 (statistics — unused here)       */
+  unsigned int   TotalSize;              /* +0x1C                                  */
+  unsigned int   NumMembers;             /* +0x20                                  */
+  unsigned short cchComment;             /* +0x24 WORD — struct padded to 0x28     */
+} USERFUNCTIONS, *LPUSERFUNCTIONS;        /* sizeof == 0x28 */
+
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
@@ -2038,7 +2089,7 @@ libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabi
 int dword_1006295C = 0; // weak
 libvar_t *libvar_laserhook; /* libvar handle */
 HGLOBAL dword_10062968 = NULL; // idb
-int dword_1006296C = 0; // weak
+LPDCL dword_1006296C = NULL; /* locked DCL option block (was IDA int) */
 HGLOBAL dword_10062970 = NULL; // idb
 HGLOBAL hMem = NULL; // idb
 float flt_10062984 = 0.0; // weak
@@ -2052,7 +2103,7 @@ int dword_10063388; // weak
 /* dword_100637CC..E0 (q_shared.c's _LittleFloat/_BigFloat/_LittleLong/_LittleShort
  * /_BigShort/_BigLong fn-ptr slots at original 0x100637CC..E0) and `bigendien`
  * (at original 0x10063884) live in game/q_shared.c — compiled separately to q_shared.o. */
-int dword_100639F0; // weak
+LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA int) */
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 /* dword_10063A10 was IDA's name for the globaldefines linked-list head.
@@ -38004,7 +38055,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 {
   HGLOBAL v3; // eax
   HGLOBAL v5; // eax
-  _DWORD *v6; // eax
+  USERFUNCTIONS *v6; // eax
   HMODULE LibraryA; // eax
   HGLOBAL v8; // ebp
   HGLOBAL v9; // esi
@@ -38021,7 +38072,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
   dword_10062970 = v3;
   if ( !v3 )
     return 0;
-  dword_1006296C = (int)GlobalLock(v3);
+  dword_1006296C = GlobalLock(v3);
   if ( !dword_1006296C )
   {
     GlobalFree(dword_10062970);
@@ -38036,7 +38087,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
     return 0;
   }
   v6 = GlobalLock(v5);
-  dword_100639F0 = (int)v6;
+  dword_100639F0 = v6;
   if ( !v6 )
   {
     GlobalUnlock(dword_10062970);
@@ -38044,11 +38095,11 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
     GlobalFree(dword_10062968);
     return 0;
   }
-  v6[3] = (intptr_t)sub_10041740;
-  *(_DWORD *)dword_100639F0 = (intptr_t)sub_10041760;
-  *(_DWORD *)(dword_100639F0 + 4) = 0;
-  *(_DWORD *)(dword_100639F0 + 8) = (intptr_t)sub_100415E0;
-  *(_DWORD *)(dword_100639F0 + 16) = (intptr_t)sub_10041680;
+  v6->password = (intptr_t)sub_10041740;
+  dword_100639F0->print = (intptr_t)sub_10041760;
+  dword_100639F0->sound = 0;
+  dword_100639F0->replace = (intptr_t)sub_100415E0;
+  dword_100639F0->SendApplicationMessage = (intptr_t)sub_10041680;
   if ( !SearchPathA(0, FileName, 0, 0x80u, Buffer, &FilePart)
     || (LibraryA = LoadLibraryA(FileName), (hLibModule = LibraryA) == 0) )
   {
@@ -38058,18 +38109,18 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
   windll_unzip = (int (__stdcall *)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD))GetProcAddress(
                                                                                       LibraryA,
                                                                                       aWindllUnzip);
-  *(_DWORD *)(dword_1006296C + 16) = 0;
-  *(_DWORD *)(dword_1006296C + 12) = 2;
-  *(_DWORD *)(dword_1006296C + 20) = 0;
-  *(_DWORD *)(dword_1006296C + 24) = 0;
-  *(_DWORD *)(dword_1006296C + 28) = 0;
-  *(_DWORD *)(dword_1006296C + 32) = 0;
-  *(_DWORD *)(dword_1006296C + 36) = 0;
-  *(_DWORD *)(dword_1006296C + 40) = 1;
-  *(_DWORD *)(dword_1006296C + 44) = 0;
-  *(_DWORD *)(dword_1006296C + 60) = a1;
-  *(_DWORD *)(dword_1006296C + 64) = a3;
-  *(_DWORD *)(dword_1006296C + 52) = 1;
+  dword_1006296C->ncflag = 0;
+  dword_1006296C->fQuiet = 2;
+  dword_1006296C->ntflag = 0;
+  dword_1006296C->nvflag = 0;
+  dword_1006296C->nfflag = 0;
+  dword_1006296C->nzflag = 0;
+  dword_1006296C->ndflag = 0;
+  dword_1006296C->noflag = 1;
+  dword_1006296C->naflag = 0;
+  dword_1006296C->lpszZipFN = a1;
+  dword_1006296C->lpszExtractDir = a3;
+  dword_1006296C->C_flag = 1;
   v8 = GlobalAlloc(2u, 0x28u);
   if ( !v8 )
   {
@@ -38091,7 +38142,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
   *v10 = v11;
   memset(v11, 0, 0x104u);
   strcpy(*v10, a2);
-  v12 = windll_unzip(1, (intptr_t)v10, 0, 0, dword_1006296C, dword_100639F0);
+  v12 = windll_unzip(1, (intptr_t)v10, 0, 0, (intptr_t)dword_1006296C, (intptr_t)dword_100639F0);
   GlobalUnlock(hMem);
   GlobalFree(hMem);
   GlobalUnlock(v8);
@@ -38105,8 +38156,8 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 // 10001361: using guessed type int __stdcall sub_10041680(int, int, int, int, int, int, int, int, int, int, int, int, int);
 // 10001771: using guessed type int __stdcall sub_10041760(int, int);
 // 10001CCB: using guessed type int sub_10041600(void);
-// 1006296C: using guessed type int dword_1006296C;
-// 100639F0: using guessed type int dword_100639F0;
+// 1006296C: resolved to LPDCL dword_1006296C (UnZip windll option block)
+// 100639F0: resolved to LPUSERFUNCTIONS dword_100639F0 (UnZip windll callback table)
 // 10063A08: using guessed type int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
 // 10041240: using guessed type CHAR Buffer[128];
 
