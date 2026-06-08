@@ -359,11 +359,19 @@ static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
  * sub_10041240 extracts the .aas file out of aasN.zip by loading
  * UNZIP32.DLL and calling its "windll_unzip" entry point.  These are the
  * option block (DCL) and callback table (USERFUNCTIONS) that entry point
- * expects.  Field names are from Info-ZIP's UnZip windll header; the exact
- * layout is the 1999-era UnZip 5.x one proved by the disassembly of
- * sub_10041240:  DCL = 15 ints + 2 LPSTR = 0x44 bytes (no StructVersID and
- * no B/D/U flags — those were added in UnZip 6.0); USERFUNCTIONS = 6
- * callback slots + 3 size counters + a WORD comment length = 0x28 bytes.
+ * expects.  Field names are copied verbatim from Info-ZIP's UnZip windll
+ * header, vendored at reference/unzip551/windll_structs.h (UnZip 5.51).
+ *
+ * The exact layout, however, is the 1999-era pre-5.5 one proved by the
+ * disassembly of sub_10041240, not 5.51's:
+ *   - DCL = 15 ints + 2 LPSTR = 0x44 bytes — identical to the 5.51 header
+ *     (no StructVersID and no B/D/U flags; those came in UnZip 6.0).
+ *   - USERFUNCTIONS = 6 callback slots + 2 size counters + NumMembers + a
+ *     WORD comment length = 0x28 bytes.  The 5.51 header is 0x2C because it
+ *     inserts a `CompFactor` field before NumMembers "for proper
+ *     alignment"; the GlobalAlloc(GMEM_ZEROINIT, 0x28) below proves
+ *     Gladiator linked the pre-CompFactor UnZip, so we omit it.  See
+ *     reference/unzip551/README.md.
  *
  * Every pointer-bearing field (the LPSTR names and the DLL* callbacks) is
  * declared as a 4-byte `int` slot, exactly as the original 32-bit DLL laid
