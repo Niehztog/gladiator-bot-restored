@@ -21132,10 +21132,6 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a3)
 {
   bot_state_t *bs = (bot_state_t *)a2;   /* restored: a2 is the bot state pointer (mirrors other __cdecl(int a) bot funcs) */
-  float v3; // ecx
-  float v4; // edx
-  float v5; // eax
-  float v6; // ecx
   const void *v7; // esi
   bot_moveresult_t *result; // eax
   __int16 v9; // ax
@@ -21165,7 +21161,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   vec3_t v32; // [esp+3Ch] [ebp-108h] BYREF
   float v35[3]; // [esp+48h] [ebp-FCh] BYREF
   float v36[3]; // [esp+54h] [ebp-F0h] BYREF
-  float v37[14]; // [esp+60h] [ebp-E4h] BYREF
+  bot_goal_t v37; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
   bot_moveresult_t v38; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
   float v39[31]; // [esp+C8h] [ebp-7Ch] BYREF
 
@@ -21174,30 +21170,26 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   v36[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v36 is float[3] */
   if ( AAS_Time() < bs->attackchase_time )
   {
-    v3 = *(float *)(a2 + 4200);
-    v4 = *(float *)(a2 + 4204);
-    v37[10] = *(float *)(a2 + 4196);
-    v5 = *(float *)(a2 + 4208);
-    v37[3] = v3;
-    v6 = *(float *)(a2 + 4212);
-    v37[0] = v4;
-    v37[1] = v5;
-    v37[2] = v6;
-    v37[4] = -8.0f;
-    v37[5] = -8.0f;
-    v37[6] = -8.0f;
-    v37[7] = 8.0f;
-    v37[8] = 8.0f;
-    v37[9] = 8.0f;
-    BotEntityInfo(a2, a2 + 2880);
-    v7 = (const void *)BotMoveToGoal(&v38, (bot_movestate_t *)(a2 + 2880), (bot_goal_t *)(intptr_t)v37, a3);
+    v37.entitynum = bs->enemy;
+    v37.areanum = bs->lastenemyareanum;
+    v37.origin[0] = bs->lastenemyorigin[0];
+    v37.origin[1] = bs->lastenemyorigin[1];
+    v37.origin[2] = bs->lastenemyorigin[2];
+    v37.mins[0] = -8.0f;
+    v37.mins[1] = -8.0f;
+    v37.mins[2] = -8.0f;
+    v37.maxs[0] = 8.0f;
+    v37.maxs[1] = 8.0f;
+    v37.maxs[2] = 8.0f;
+    BotEntityInfo(bs, (_DWORD *)bs->movestate);
+    v7 = (const void *)BotMoveToGoal(&v38, (bot_movestate_t *)bs->movestate, &v37, a3);
     result = a1;
     qmemcpy(a1, v7, 0x30u);
     return result;
   }
   memset(&v38, 0, sizeof(v38));
   v9 = rand();
-  v20 = BotCharacter((bot_state_t *)a2);
+  v20 = BotCharacter(bs);
   v10 = (float)(v9 & 0x7FFF) * 0.000030518509f;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
@@ -21209,38 +21201,38 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   v25 = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
   if ( v10 <= v25 )
   {
-    v27 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 4, 0.0f, 1.0f);
-    v11 = BotCharacter((bot_state_t *)a2);
+    v27 = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
+    v11 = BotCharacter(bs);
     v21 = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
-    v25 = Characteristic_BFloat(BotCharacter((bot_state_t *)a2), 24, 0.0f, 1.0f);
+    v25 = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
     if ( v27 >= 0.2f )
     {
-      BotEntityInfo(a2, a2 + 2880);
-      qmemcpy(v39, AAS_EntityInfo(v39, *(_DWORD *)(a2 + 4196)), sizeof(v39));
-      v28[0] = v39[4] - *(float *)(a2 + 1684);
-      v28[1] = v39[5] - *(float *)(a2 + 1688);
-      v28[2] = v39[6] - *(float *)(a2 + 1692);
+      BotEntityInfo(bs, (_DWORD *)bs->movestate);
+      qmemcpy(v39, AAS_EntityInfo(v39, bs->enemy), sizeof(v39));
+      v28[0] = v39[4] - bs->origin[0];
+      v28[1] = v39[5] - bs->origin[1];
+      v28[2] = v39[6] - bs->origin[2];
       v26 = VectorLength(v28);
       VectorNormalize(v28);
       v32[0] = -v28[0];
       v32[1] = -v28[1];
       v32[2] = -v28[2];
       v12 = 1;
-      if ( AAS_Time() - 1.0f > *(float *)(a2 + 2820) )
+      if ( AAS_Time() - 1.0f > bs->attackcrouch_time )
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
         if ( (float)LOWORD(v31) * 0.000030518509f >= v21 )
         {
-          if ( AAS_Time() - 1.0f > *(float *)(a2 + 2820) && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
-            *(float *)(a2 + 2820) = AAS_Time() + v25 * 5.0f;
+          if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
+            bs->attackcrouch_time = AAS_Time() + v25 * 5.0f;
         }
         else
         {
           v12 = 4;
         }
       }
-      if ( AAS_Time() >= *(float *)(a2 + 2820) )
+      if ( AAS_Time() >= bs->attackcrouch_time )
       {
         if ( v12 == 4 )
         {
@@ -21263,8 +21255,8 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       }
       if ( v27 <= 0.4f )
       {
-        if ( (v26 <= 180.0f || !BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v28, 400.0f, v12)) && v26 < 100.0f )
-          BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v32, 400.0f, v12);
+        if ( (v26 <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, v28, 400.0f, v12)) && v26 < 100.0f )
+          BotMoveInDirection((bot_movestate_t *)bs->movestate, v32, 400.0f, v12);
         goto LABEL_39;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1f;
@@ -21306,7 +21298,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
 LABEL_36:
         v22[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection((bot_movestate_t *)(a2 + 2880), (float *)(intptr_t)v22, 400.0f, v12) )
+        if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, v22, 400.0f, v12) )
         {
           v19 = bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
