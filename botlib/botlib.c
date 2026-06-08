@@ -12885,7 +12885,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int traveltype; // ebx
   int v46; // edi
   double v48; // st7
-  char *lreach; // esi
+  aas_reachabilitynode_t *lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
   float bestdist; // [esp+1Ch] [ebp-1B0h]
   /* beststart/bestend are vec3_t passed to AAS_HorizontalVelocityForJump and
@@ -13370,24 +13370,24 @@ LABEL_67:
                       lreach = AAS_AllocReachability();
                       if ( lreach )
                       {
-                        *(_DWORD *)lreach = area2num;
-                        *(_DWORD *)(lreach + 4) = 0;
-                        *(_DWORD *)(lreach + 8) = 0;
-                        *(float *)(lreach + 12) = beststart[0];
-                        *(float *)(lreach + 16) = beststart[1];
-                        *(float *)(lreach + 20) = beststart[2];
-                        *(float *)(lreach + 24) = bestend[0];
-                        *(float *)(lreach + 28) = bestend[1];
-                        *(float *)(lreach + 32) = bestend[2];
-                        *(_DWORD *)(lreach + 36) = traveltype;
+                        lreach->reach.areanum = area2num;
+                        lreach->reach.facenum = 0;
+                        lreach->reach.edgenum = 0;
+                        lreach->reach.start[0] = beststart[0];
+                        lreach->reach.start[1] = beststart[1];
+                        lreach->reach.start[2] = beststart[2];
+                        lreach->reach.end[0] = bestend[0];
+                        lreach->reach.end[1] = bestend[1];
+                        lreach->reach.end[2] = bestend[2];
+                        lreach->reach.traveltype = traveltype;
                         /* traveltime = dist * 240 / sv_maxwalkvelocity + 600.
                          * Original asm at 0x10014a6d calls VectorDistance and
                          * consumes ST(0) directly in the fmul.  Our C dropped
                          * the return and used v48 (probe-loop teststart.z), which
                          * is wrong — see ida_dropped_results.md. */
-                        *(_WORD *)(lreach + 40) = (__int64)(VectorDistance(bestend, beststart) * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
-                        ((aas_reachabilitynode_t *)lreach)->next = areareachability[area1num];
-                        areareachability[area1num] = (aas_reachabilitynode_t *)lreach;
+                        lreach->reach.traveltime = (__int64)(VectorDistance(bestend, beststart) * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
+                        lreach->next = areareachability[area1num];
+                        areareachability[area1num] = lreach;
                         ++reach_jump;
                       }
                     }
@@ -13467,16 +13467,16 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v29; // esi
   float *v30; // esi
   BOOL v31; // eax
-  char *v32; // eax
-  char *v33; // esi (was int — alloc'd reach slot pointer)
+  aas_reachabilitynode_t *v32; // eax
+  aas_reachabilitynode_t *v33; // esi (was int — alloc'd reach slot pointer)
   int v34; // edx
-  char *v35; // eax
-  char *v36; // esi (was int)
+  aas_reachabilitynode_t *v35; // eax
+  aas_reachabilitynode_t *v36; // esi (was int)
   int v37; // ecx
-  char *v39; // eax
-  char *v40; // esi (was int)
+  aas_reachabilitynode_t *v39; // eax
+  aas_reachabilitynode_t *v40; // esi (was int)
   int v41; // ecx
-  char *v42; // eax
+  aas_reachabilitynode_t *v42; // eax
   int v43; // ecx
   int i; // edi
   unsigned int v45; // esi
@@ -13493,9 +13493,9 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v56; // esi
   int *v57; // ebp
   char *v58; // eax
-  char *v59; // eax
+  aas_reachabilitynode_t *v59; // eax
   int v60; // ecx
-  char *lreach; // esi
+  aas_reachabilitynode_t *lreach; // esi
   int v62; // edx
   char *v63; // edx (was int — alias of v85 plane pointer)
   double v64; // st7
@@ -13678,34 +13678,34 @@ LABEL_20:
                 if ( v32 )
                 {
                   v34 = abs32(v71);
-                  *(_DWORD *)v32 = area2num;
-                  *(_DWORD *)(v32 + 4) = v34;
-                  *(_DWORD *)(v32 + 8) = v21;
-                  *(float *)(v32 + 12) = mid[0];
-                  *(float *)(v32 + 16) = mid[1];
-                  *(float *)(v32 + 20) = mid[2];
-                  VectorMA(mid2, -3.0, (float *)v28, (float *)(v32 + 24));
-                  *(_DWORD *)(v33 + 36) = 6;
-                  *(_WORD *)(v33 + 40) = 10;
-                  ((aas_reachabilitynode_t *)v33)->next = areareachability[area1num];
-                  areareachability[area1num] = (aas_reachabilitynode_t *)v33;
+                  v32->reach.areanum = area2num;
+                  v32->reach.facenum = v34;
+                  v32->reach.edgenum = v21;
+                  v32->reach.start[0] = mid[0];
+                  v32->reach.start[1] = mid[1];
+                  v32->reach.start[2] = mid[2];
+                  VectorMA(mid2, -3.0, (float *)v28, v32->reach.end);
+                  v33->reach.traveltype = 6;
+                  v33->reach.traveltime = 10;
+                  v33->next = areareachability[area1num];
+                  areareachability[area1num] = v33;
                   ++reach_ladder;
                   v35 = AAS_AllocReachability();
                   v36 = v35;
                   if ( v35 )
                   {
                     v37 = abs32(v84);
-                    *(_DWORD *)v35 = area1num;
-                    *(_DWORD *)(v35 + 4) = v37;
-                    *(_DWORD *)(v35 + 8) = v21;
-                    *(float *)(v35 + 12) = mid2[0];
-                    *(float *)(v35 + 16) = mid2[1];
-                    *(float *)(v35 + 20) = mid2[2];
-                    VectorMA(mid, -3.0, (float *)v28, (float *)(v35 + 24));
-                    *(_DWORD *)(v36 + 36) = 6;
-                    *(_WORD *)(v36 + 40) = 10;
-                    ((aas_reachabilitynode_t *)v36)->next = areareachability[area2num];
-                    areareachability[area2num] = (aas_reachabilitynode_t *)v36;
+                    v35->reach.areanum = area1num;
+                    v35->reach.facenum = v37;
+                    v35->reach.edgenum = v21;
+                    v35->reach.start[0] = mid2[0];
+                    v35->reach.start[1] = mid2[1];
+                    v35->reach.start[2] = mid2[2];
+                    VectorMA(mid, -3.0, (float *)v28, v35->reach.end);
+                    v36->reach.traveltype = 6;
+                    v36->reach.traveltime = 10;
+                    v36->next = areareachability[area2num];
+                    areareachability[area2num] = v36;
                     ++reach_ladder;
                     return 1;
                   }
@@ -13718,39 +13718,39 @@ LABEL_20:
                 if ( v39 )
                 {
                   v41 = abs32(v71);
-                  *(_DWORD *)v39 = area2num;
-                  *(_DWORD *)(v39 + 4) = v41;
-                  *(_DWORD *)(v39 + 8) = v21;
-                  *(float *)(v39 + 12) = mid[0];
-                  *(float *)(v39 + 16) = mid[1];
-                  *(float *)(v39 + 20) = mid[2];
-                  *(float *)(v39 + 24) = mid2[0];
-                  *(float *)(v39 + 28) = mid2[1];
-                  *(float *)(v39 + 32) = mid2[2];
-                  *(float *)(v39 + 32) = mid2[2] + 16.0;
-                  VectorMA((float *)(v39 + 24), -15.0, (float *)v28, (float *)(v39 + 24));
-                  *(_DWORD *)(v40 + 36) = 6;
-                  *(_WORD *)(v40 + 40) = 10;
-                  ((aas_reachabilitynode_t *)v40)->next = areareachability[area1num];
-                  areareachability[area1num] = (aas_reachabilitynode_t *)v40;
+                  v39->reach.areanum = area2num;
+                  v39->reach.facenum = v41;
+                  v39->reach.edgenum = v21;
+                  v39->reach.start[0] = mid[0];
+                  v39->reach.start[1] = mid[1];
+                  v39->reach.start[2] = mid[2];
+                  v39->reach.end[0] = mid2[0];
+                  v39->reach.end[1] = mid2[1];
+                  v39->reach.end[2] = mid2[2];
+                  v39->reach.end[2] = mid2[2] + 16.0;
+                  VectorMA(v39->reach.end, -15.0, (float *)v28, v39->reach.end);
+                  v40->reach.traveltype = 6;
+                  v40->reach.traveltime = 10;
+                  v40->next = areareachability[area1num];
+                  areareachability[area1num] = v40;
                   ++reach_ladder;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
                   {
                     v43 = abs32(v84);
-                    *(_DWORD *)v42 = area1num;
-                    *(_DWORD *)(v42 + 4) = v43;
-                    *(_DWORD *)(v42 + 8) = v21;
-                    *(float *)(v42 + 12) = mid2[0];
-                    *(float *)(v42 + 16) = mid2[1];
-                    *(float *)(v42 + 20) = mid2[2];
-                    *(float *)(v42 + 24) = mid[0];
-                    *(float *)(v42 + 28) = mid[1];
-                    *(float *)(v42 + 32) = mid[2];
-                    *(_DWORD *)(v42 + 36) = 7;
-                    *(_WORD *)(v42 + 40) = 10;
-                    ((aas_reachabilitynode_t *)v42)->next = areareachability[area2num];
-                    areareachability[area2num] = (aas_reachabilitynode_t *)v42;
+                    v42->reach.areanum = area1num;
+                    v42->reach.facenum = v43;
+                    v42->reach.edgenum = v21;
+                    v42->reach.start[0] = mid2[0];
+                    v42->reach.start[1] = mid2[1];
+                    v42->reach.start[2] = mid2[2];
+                    v42->reach.end[0] = mid[0];
+                    v42->reach.end[1] = mid[1];
+                    v42->reach.end[2] = mid[2];
+                    v42->reach.traveltype = 7;
+                    v42->reach.traveltime = 10;
+                    v42->next = areareachability[area2num];
+                    areareachability[area2num] = v42;
                     ++reach_walkoffledge;
                     return 1;
                   }
@@ -13823,38 +13823,38 @@ LABEL_20:
                   if ( v59 )
                   {
                     v60 = abs32(v71);
-                    *(_DWORD *)v59 = v53;
-                    *(_DWORD *)(v59 + 4) = v60;
-                    *(_DWORD *)(v59 + 8) = v66;
-                    *(float *)(v59 + 12) = bestmid[0];
-                    *(float *)(v59 + 16) = bestmid[1];
-                    *(float *)(v59 + 20) = bestmid[2];
-                    *(float *)(v59 + 24) = trace.endpos[0];
-                    *(float *)(v59 + 28) = trace.endpos[1];
-                    *(float *)(v59 + 32) = trace.endpos[2];
-                    *(_DWORD *)(v59 + 36) = 6;
-                    *(_WORD *)(v59 + 40) = 10;
-                    ((aas_reachabilitynode_t *)v59)->next = areareachability[area1num];
-                    areareachability[area1num] = (aas_reachabilitynode_t *)v59;
+                    v59->reach.areanum = v53;
+                    v59->reach.facenum = v60;
+                    v59->reach.edgenum = v66;
+                    v59->reach.start[0] = bestmid[0];
+                    v59->reach.start[1] = bestmid[1];
+                    v59->reach.start[2] = bestmid[2];
+                    v59->reach.end[0] = trace.endpos[0];
+                    v59->reach.end[1] = trace.endpos[1];
+                    v59->reach.end[2] = trace.endpos[2];
+                    v59->reach.traveltype = 6;
+                    v59->reach.traveltime = 10;
+                    v59->next = areareachability[area1num];
+                    areareachability[area1num] = v59;
                     ++reach_ladder;
                     lreach = AAS_AllocReachability();
                     if ( lreach )
                     {
                       v62 = abs32(v71);
-                      *(_DWORD *)lreach = area1num;
-                      *(_DWORD *)(lreach + 4) = v62;
-                      *(_DWORD *)(lreach + 8) = v66;
-                      *(float *)(lreach + 12) = trace.endpos[0];
-                      *(float *)(lreach + 16) = trace.endpos[1];
+                      lreach->reach.areanum = area1num;
+                      lreach->reach.facenum = v62;
+                      lreach->reach.edgenum = v66;
+                      lreach->reach.start[0] = trace.endpos[0];
+                      lreach->reach.start[1] = trace.endpos[1];
                       v63 = v85;
-                      *(float *)(lreach + 20) = trace.endpos[2];
-                      VectorMA(bestmid, -5.0, (float *)v63, (float *)(lreach + 24));
-                      v64 = *(float *)(lreach + 32) + 10.0;
-                      *(_DWORD *)(lreach + 36) = 5;
-                      *(_WORD *)(lreach + 40) = 10;
-                      *(float *)(lreach + 32) = v64;
-                      ((aas_reachabilitynode_t *)lreach)->next = areareachability[v53];
-                      areareachability[v53] = (aas_reachabilitynode_t *)lreach;
+                      lreach->reach.start[2] = trace.endpos[2];
+                      VectorMA(bestmid, -5.0, (float *)v63, lreach->reach.end);
+                      v64 = lreach->reach.end[2] + 10.0;
+                      lreach->reach.traveltype = 5;
+                      lreach->reach.traveltime = 10;
+                      lreach->reach.end[2] = v64;
+                      lreach->next = areareachability[v53];
+                      areareachability[v53] = lreach;
                       ++reach_jump;
                       return 1;
                     }
