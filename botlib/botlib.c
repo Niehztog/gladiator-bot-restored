@@ -8148,9 +8148,9 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
     }
     v12 = start[2];
     *(float *)v26 = start[0];
-    *(float *)&v26[1] = start[1];
+    v26[1] = start[1];
     start[2] = start[2] + 0.25f;
-    *(float *)&v26[2] = v12 - 50.0f;
+    v26[2] = v12 - 50.0f;
     trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
     if ( trace.startsolid )
     {
@@ -10265,7 +10265,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   v2 = (float)reach->start[0] - (float)reach->end[0];
   v14[2] = 0;
   *(float *)v14 = (float)v2;
-  *(float *)&v14[1] = reach->start[1] - reach->end[1];
+  v14[1] = reach->start[1] - reach->end[1];
   VectorNormalize(v14);
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
@@ -14645,8 +14645,8 @@ int AAS_SetWeaponJumpAreaFlags()
             "%s in solid at (%1.1f %1.1f %1.1f)\n",
             v3,
             *(float *)v7,
-            *(float *)&v7[1],
-            *(float *)&v7[2]);
+            v7[1],
+            v7[2]);
         v4 = AAS_BestReachableArea(v7, (float *)v9, (float *)v8, (float *)v7);
         aasworld.areasettings[v4].areaflags |= 0x2000u;
       }
@@ -21323,13 +21323,13 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
     {
       BotEntityInfo(a2, a2 + 2880);
       qmemcpy(v39, AAS_EntityInfo(v39, *(_DWORD *)(a2 + 4196)), sizeof(v39));
-      *(float *)&v28[0] = v39[4] - *(float *)(a2 + 1684);
-      *(float *)&v28[1] = v39[5] - *(float *)(a2 + 1688);
+      v28[0] = v39[4] - *(float *)(a2 + 1684);
+      v28[1] = v39[5] - *(float *)(a2 + 1688);
       v28[2] = v39[6] - *(float *)(a2 + 1692);
       v26 = VectorLength(v28);
       VectorNormalize(v28);
-      *(float *)&v32[0] = -*(float *)&v28[0];
-      v32[1] = -*(float *)&v28[1];
+      v32[0] = -v28[0];
+      v32[1] = -v28[1];
       v32[2] = -v28[2];
       v12 = 1;
       if ( AAS_Time() - 1.0f > *(float *)(a2 + 2820) )
@@ -21398,7 +21398,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
         CrossProduct(v35, v36, v22);
         if ( (*(unsigned char *)&bs->flags & 1) != 0 )
         {
-          *(float *)&v22[0] = -*(float *)&v22[0];
+          v22[0] = -v22[0];
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
@@ -21406,8 +21406,8 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
           goto LABEL_35;
         if ( v26 <= 180.0f )
           break;
-        *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v28[0];
-        v22[1] = v22[1] + *(float *)&v28[1];
+        v22[0] = v22[0] + v28[0];
+        v22[1] = v22[1] + v28[1];
         v18 = v22[2] + v28[2];
 LABEL_36:
         v22[2] = v18;
@@ -21426,7 +21426,7 @@ LABEL_37:
       if ( v26 >= 100.0f )
         goto LABEL_37;
 LABEL_35:
-      *(float *)&v22[0] = *(float *)&v22[0] + *(float *)&v32[0];
+      v22[0] = v22[0] + v32[0];
       v22[1] = v22[1] + v32[1];
       v18 = v22[2] + v32[2];
       goto LABEL_36;
@@ -21771,8 +21771,8 @@ void BotAimAtEnemy(bot_state_t *bs)
     if ( v27 > 0.6f && (((weaponinfo_t *)v3)->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
     {
       *(float *)v42 = v46[4];
-      *(float *)&v42[1] = v46[5];
-      *(float *)&v42[2] = v46[6] - 64.0f;
+      v42[1] = v46[5];
+      v42[2] = v46[6] - 64.0f;
       qmemcpy(v45, AAS_Trace(v47, (float*)(&v46[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(v42), SLODWORD(v46[3]), 100663299), sizeof(v45));
       v36 = v32;
       v37 = v33;
@@ -21942,8 +21942,8 @@ void BotCheckAttack(bot_state_t *bs)
           v14 = v4;
           AngleVectors(bs->viewangles, v16, v19, 0);
           *(float *)&v13 = v19[0] * *(float *)(v3 + 292) + *(float *)v16 * *(float *)(v3 + 288) + *(float *)&v13;
-          v14 = v19[1] * *(float *)(v3 + 292) + *(float *)&v16[1] * *(float *)(v3 + 288) + v14;
-          v15 = v19[2] * *(float *)(v3 + 292) + *(float *)&v16[2] * *(float *)(v3 + 288) + *(float *)(v3 + 296) + v15;
+          v14 = v19[1] * *(float *)(v3 + 292) + v16[1] * *(float *)(v3 + 288) + v14;
+          v15 = v19[2] * *(float *)(v3 + 292) + v16[2] * *(float *)(v3 + 288) + *(float *)(v3 + 296) + v15;
           VectorMA((float *)&v13, 1000.0, (float *)v16, (float *)v21);
           VectorMA((float *)&v13, -12.0, (float *)v16, (float *)&v13);
           qmemcpy(
@@ -29015,8 +29015,8 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
   {
     AAS_BSPModelMinsMaxsOrigin(reach->facenum, v3, v4, v5, (float *)v7);
     *(float *)v6 = v4[0] + v5[0];
-    *(float *)&v6[1] = v4[1] + v5[1];
-    *(float *)&v6[2] = v4[2] + v5[2];
+    v6[1] = v4[1] + v5[1];
+    v6[2] = v4[2] + v5[2];
     VectorMA((float *)v7, 0.5, (float *)v6, bottomcenter);
     bottomcenter[2] = reach->start[2];
   }
@@ -29833,7 +29833,7 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   v5 = reach->start[2];
   v27[0] = reach->start[0];
   *(_DWORD *)&v27[1] = v4;
-  *(float *)&v27[2] = v5 + 1.0f;
+  v27[2] = v5 + 1.0f;
   VectorMA(reach->start, 80.0f, dir, predpos);
   v12 = 0.0f;
   while ( 1 )
