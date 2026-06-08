@@ -2596,7 +2596,7 @@ void __cdecl sub_100031B0(char *name)
   count = 0;
   for ( node = dword_10069580; node; node = node->next_ent )
     ++count;
-  bi_Print(1, aDFreeBspLinks, count, name);
+  bi_Print(PRT_MESSAGE, aDFreeBspLinks, count, name);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10069580: using guessed type int dword_10069580;
@@ -2610,7 +2610,7 @@ bsp_link_t *sub_100031F0()  /* AllocBSPLink */
   result = dword_10069580;
   if ( !result )
   {
-    bi_Print(4, aEmptyBspLinkHe);
+    bi_Print(PRT_FATAL, aEmptyBspLinkHe);
     return NULL;
   }
   next = result->next_ent;
@@ -4072,7 +4072,7 @@ LABEL_111:
     }
   }
 LABEL_125:
-  bi_Print(3, aAasTracebspmod);
+  bi_Print(PRT_ERROR, aAasTracebspmod);
 LABEL_126:
   result = a1;
   qmemcpy(a1, v150, 0x54u);
@@ -4534,7 +4534,7 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
     return 0;
   if ( modelnum < 0 || modelnum >= dword_100674C4 )
   {
-    bi_Print(4, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, dword_100674C4);
+    bi_Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, dword_100674C4);
     if ( mins )   { mins[0]   = 0; mins[1]   = 0; mins[2]   = 0; }
     if ( maxs )   { maxs[0]   = 0; maxs[1]   = 0; maxs[2]   = 0; }
     if ( origin ) { origin[0] = 0; origin[1] = 0; origin[2] = 0; }
@@ -6033,7 +6033,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   else
   {
     dword_100674D0 = 0;
-    bi_Print(1, aWarngingBspHas);
+    bi_Print(PRT_MESSAGE, aWarngingBspHas);
     v24 = dword_100674D0;
   }
   dword_100674CC = v23;
@@ -6075,7 +6075,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   else
   {
     dword_100674DC = 0;
-    bi_Print(1, aWarningBspHasN);
+    bi_Print(PRT_MESSAGE, aWarningBspHasN);
   }
   dword_100674D8 = v40;
   v41 = LittleLong(bsp_h.lumps[8].fileofs);
@@ -6943,7 +6943,7 @@ int AAS_FindPossiblePortals()
   v0 = 1;
   for ( i = 0; v0 < aasworld.numareas; ++v0 )
     i += AAS_CheckAreaForPossiblePortals(v0);
-  return bi_Print(1, "\r%6d possible portals\n", i);
+  return bi_Print(PRT_MESSAGE, "\r%6d possible portals\n", i);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10066948: using guessed type int aasworld.numareas;
@@ -7033,8 +7033,8 @@ int AAS_InitClustering()
       }
       while ( !AAS_TestPortals() );
       aasworld.savefile = 1;
-      bi_Print(1, "\r%6d portals created\n", aasworld.numportals);
-      v1 = bi_Print(1, "\r%6d clusters created\n", aasworld.numclusters);
+      bi_Print(PRT_MESSAGE, "\r%6d portals created\n", aasworld.numportals);
+      v1 = bi_Print(PRT_MESSAGE, "\r%6d clusters created\n", aasworld.numclusters);
     }
   }
   return v1;
@@ -7333,7 +7333,7 @@ void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
  * fall-through branch — the algebra reduces to exactly the same 4-cycle.
  * Cleanest C expression is a 4-entry table and modulo step.
  *
- * Range warnings issued via bi_Print(3, msg, idx) for facenum or edgenum
+ * Range warnings issued via bi_Print(PRT_ERROR, msg, idx) for facenum or edgenum
  * out of range (.rdata strings 0x1005AFE8="facenum %d out of range\\n",
  * 0x1005AFC8="edgenum %d out of range\\n").
  *
@@ -7361,7 +7361,7 @@ void __cdecl sub_10009ED0(int facenum)
   vec3_t arrow_end;
 
   if ( facenum >= aasworld.numfaces )
-    bi_Print(3, "facenum %d out of range\n", facenum);
+    bi_Print(PRT_ERROR, "facenum %d out of range\n", facenum);
 
   face = &aasworld.faces[facenum];
   numedges = *(int *)(face + 8);
@@ -7375,7 +7375,7 @@ void __cdecl sub_10009ED0(int facenum)
     if ( edge_idx < 0 )
       edge_idx = -edge_idx;
     if ( edge_idx >= aasworld.numedges )
-      bi_Print(3, "edgenum %d out of range\n", edge_idx);
+      bi_Print(PRT_ERROR, "edgenum %d out of range\n", edge_idx);
 
     /* advance color cycle one step (state was 3 → 0 → 1 → 2 → 3 …) */
     color_state = (color_state + 1) & 3;
@@ -7428,14 +7428,14 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
   v3 = 0;
   v16 = 0;
   if ( areanum < 0 || areanum >= aasworld.numareas )
-    return bi_Print(3, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
+    return bi_Print(PRT_ERROR, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
   v4 = &aasworld.areas[areanum];
   v17 = 0;
   for ( i = v4; v17 < *((_DWORD *)v4 + 1); ++v17 )
   {
     v5 = abs32(aasworld.faceindex[*((_DWORD *)v4 + 2) + v17]);
     if ( v5 >= aasworld.numfaces )
-      bi_Print(3, "facenum %d out of range\n", v5);
+      bi_Print(PRT_ERROR, "facenum %d out of range\n", v5);
     v6 = &aasworld.faces[v5];
     if ( !groundfacesonly || (v6[4] & 6) != 0 )
     {
@@ -7447,7 +7447,7 @@ int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
         {
           v8 = abs32(aasworld.edgeindex[v7 + *((_DWORD *)v6 + 3)]);
           if ( v8 >= aasworld.numedges )
-            bi_Print(3, "edgenum %d out of range\n", v8);
+            bi_Print(PRT_ERROR, "edgenum %d out of range\n", v8);
           v9 = 0;
           if ( v3 > 0 )
           {
@@ -7791,7 +7791,7 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
     showreach_index++;
     showreach_lasttime = AAS_Time();
     AAS_PrintTravelType(showreach_reach[9]);                /* reach.traveltype at +36 */
-    bi_Print(1, "\n");
+    bi_Print(PRT_MESSAGE, "\n");
   }
   AAS_ShowReachability(showreach_reach);
 }
@@ -7806,7 +7806,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(1, aAasUpdateentit);
+    bi_Print(PRT_MESSAGE, aAasUpdateentit);
     return 5;
   }
   ent = &aasworld.entities[entnum].i;
@@ -7874,7 +7874,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 
   if ( !aasworld.initialized )
   {
-    bi_Print(4, aAasEntityinfoA);
+    bi_Print(PRT_FATAL, aAasEntityinfoA);
   }
   else if ( entnum >= 0 && entnum < aasworld.numentities )
   {
@@ -7884,7 +7884,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
   }
   else
   {
-    bi_Print(4, "AAS_EntityInfo: entnum %d out of range\n", entnum);
+    bi_Print(PRT_FATAL, "AAS_EntityInfo: entnum %d out of range\n", entnum);
   }
   memset(v3, 0, sizeof(v3));
   result = info;
@@ -7900,7 +7900,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@1000ACB0: bounds-checked copy of entities[entnum].origin
 // (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
-// prints via bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", ...)
+// prints via bi_Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", ...)
 // and zeroes the destination vec3.
 void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
 {
@@ -7909,7 +7909,7 @@ void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
     VectorCopy(aasworld.entities[entnum].i.origin, origin);
     return;
   }
-  bi_Print(4, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
+  bi_Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
   origin[2] = 0.0f;
   origin[1] = 0.0f;
   origin[0] = 0.0f;
@@ -7923,7 +7923,7 @@ int __cdecl AAS_EntityModelindex(int entnum)
 {
   if ( entnum >= 0 && entnum < aasworld.numentities )
     return aasworld.entities[entnum].i.modelindex;
-  bi_Print(4, "AAS_EntityModelindex: entnum %d out of range\n", entnum);
+  bi_Print(PRT_FATAL, "AAS_EntityModelindex: entnum %d out of range\n", entnum);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -7937,7 +7937,7 @@ int __cdecl AAS_EntityRenderFX(int entnum)
   {
     if ( entnum >= 0 && entnum < aasworld.numentities )
       return aasworld.entities[entnum].i.renderfx;
-    bi_Print(4, "AAS_EntityRenderFX: entnum %d out of range\n", entnum);
+    bi_Print(PRT_FATAL, "AAS_EntityRenderFX: entnum %d out of range\n", entnum);
   }
   return 0;
 }
@@ -7953,7 +7953,7 @@ int __cdecl AAS_EntityModelNum(int entnum)
   {
     if ( entnum >= 0 && entnum < aasworld.numentities )
       return aasworld.entities[entnum].i.modelindex - 1;
-    bi_Print(4, "AAS_EntityModelNum: entnum %d out of range\n", entnum);
+    bi_Print(PRT_FATAL, "AAS_EntityModelNum: entnum %d out of range\n", entnum);
   }
   return 0;
 }
@@ -7987,7 +7987,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
 // returns the bbox of entities[entnum] via two vec3 out-params (mins from
 // struct offsets +0x40..+0x48, maxs from +0x4C..+0x54).  Guards on
 // aasworld.initialized then bounds-checks entnum; on OOR prints via
-// bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum) and
+// bi_Print(PRT_FATAL, "AAS_EntitySize: entnum %d out of range\n", entnum) and
 // returns *without* writing to mins/maxs (matches the original — the
 // disasm has no clear path on the OOR exit).
 void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
@@ -7998,7 +7998,7 @@ void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
     return;
   if ( entnum < 0 || entnum >= aasworld.numentities )
   {
-    bi_Print(4, "AAS_EntitySize: entnum %d out of range\n", entnum);
+    bi_Print(PRT_FATAL, "AAS_EntitySize: entnum %d out of range\n", entnum);
     return;
   }
   ent = &aasworld.entities[entnum].i;
@@ -8138,7 +8138,7 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(3, aAasBestreachab);
+    bi_Print(PRT_ERROR, aAasBestreachab);
     return 0;
   }
   {
@@ -9059,7 +9059,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v6 = aas_h.version = LittleLong(aas_h.version);
   if ( v6 == 2 )
   {
-    bi_Print(2, aFoundAnOldAasF);
+    bi_Print(PRT_WARNING, aFoundAnOldAasF);
   }
   else if ( v6 != 3 )
   {
@@ -9261,7 +9261,7 @@ int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, siz
   lump[1] = LittleLong((int)ElementSize);
   if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) >= 1 )
     return 1;
-  bi_Print(3, "error writing lump %s\n", (const char *)(intptr_t)a3);
+  bi_Print(PRT_ERROR, "error writing lump %s\n", (const char *)(intptr_t)a3);
   fclose(Stream);
   return 0;
 }
@@ -9276,7 +9276,7 @@ qboolean __cdecl AAS_WriteAASFile(char *FileName)
   FILE *v4; // esi
   int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
 
-  bi_Print(1, "writing %s\n", FileName);
+  bi_Print(PRT_MESSAGE, "writing %s\n", FileName);
   AAS_SwapAASData();
   memset(Buffer, 0, sizeof(Buffer));
   Buffer[0] = LittleLong(0x53414145);
@@ -9285,7 +9285,7 @@ qboolean __cdecl AAS_WriteAASFile(char *FileName)
   v4 = v3;
   if ( !v3 )
   {
-    bi_Print(3, "error opening %s\n", FileName);
+    bi_Print(PRT_ERROR, "error opening %s\n", FileName);
     return 0;
   }
   /* fopen mode is "wb" — this is fwrite, not fread (see AAS_WriteAASLump note). */
@@ -9355,7 +9355,7 @@ static void sub_1000D340(void)
   max = (int)LibVarValue("max_aaslights", "128");
   if ( max < 0 || max > 0x10000 )
   {
-    bi_Print(3, "max_aaslights out of range [0, 65536]");
+    bi_Print(PRT_ERROR, "max_aaslights out of range [0, 65536]");
     max = 128;
   }
   pool = (bsp_pointlight_t *)GetMemory(max * 52);
@@ -9387,7 +9387,7 @@ bsp_pointlight_t *sub_1000D450()
       aasworld.oldestcache->prev = 0;
   }
   if ( !v0 )
-    bi_Print(1, aWarningEmptyLi);
+    bi_Print(PRT_MESSAGE, aWarningEmptyLi);
   return v0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -9556,7 +9556,7 @@ int AAS_Error(char *Format, ...)
 
   va_start(va, Format);
   vsprintf(Buffer, Format, va);
-  return bi_Print(4, Buffer);
+  return bi_Print(PRT_FATAL, Buffer);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 
@@ -9567,12 +9567,12 @@ char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3)
 
   if ( !aasworld.indexes_loaded )
   {
-    bi_Print(3, "%s: index %d not setup\n", a1, a3);
+    bi_Print(PRT_ERROR, "%s: index %d not setup\n", a1, a3);
     return &byte_1006294C;
   }
   if ( a3 < 0 || a3 >= a2->numindexes )
   {
-    bi_Print(3, "%s: index %d out of range\n", a1, a3);
+    bi_Print(PRT_ERROR, "%s: index %d out of range\n", a1, a3);
   }
   else
   {
@@ -9581,7 +9581,7 @@ char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3)
       return result;
     if ( a3 )
     {
-      bi_Print(3, "%s: reference to unused index %d\n", a1, a3);
+      bi_Print(PRT_ERROR, "%s: reference to unused index %d\n", a1, a3);
       return &byte_1006294C;
     }
   }
@@ -9598,7 +9598,7 @@ int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
 
   if ( !aasworld.indexes_loaded )
   {
-    bi_Print(3, "%s: index not setup \"%s\"\n", a1, String2);
+    bi_Print(PRT_ERROR, "%s: index not setup \"%s\"\n", a1, String2);
     return 0;
   }
   v4 = 0;
@@ -9779,7 +9779,7 @@ int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t ma
   else
   {
     if ( presencetype != 2 )
-      bi_Print(4, aAasPresencetyp);
+      bi_Print(PRT_FATAL, aAasPresencetyp);
     index = 2;
   }
   VectorCopy(boxmins[index], mins);
@@ -9806,7 +9806,7 @@ int AAS_Initialized()
 int __cdecl sub_1000DF00(void)
 {
   aasworld.initialized = 1;
-  return bi_Print(1, aAasInitialized);
+  return bi_Print(PRT_MESSAGE, aAasInitialized);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
@@ -9831,9 +9831,9 @@ int AAS_ContinueInit(int a1)
           if ( !(unsigned int)(int)LibVarGetValue(aNooptimize) )
             AAS_Optimize();
           if ( AAS_WriteAASFile(aasworld.filename) )
-            bi_Print(1, "%s written succesfully\n", aasworld.filename);
+            bi_Print(PRT_MESSAGE, "%s written succesfully\n", aasworld.filename);
           else
-            bi_Print(3, "couldn't write %s\n", aasworld.filename);
+            bi_Print(PRT_ERROR, "couldn't write %s\n", aasworld.filename);
         }
         AAS_InitRouting();
         return sub_1000DF00();
@@ -9919,7 +9919,7 @@ intptr_t __cdecl sub_1000E140(char *Source)
   sprintf(Buffer, "bsp2aas(%s,%s);", Destination, FileName);
   result = SpawnProcess(1, Arguments, Arguments);
   if ( result < 0 )
-    return bi_Print(3, aCanTExecuteWin);
+    return bi_Print(PRT_ERROR, aCanTExecuteWin);
   return result;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -9997,7 +9997,7 @@ int __cdecl sub_1000E430(char *Source)
           if ( *_errno() )
             return *_errno();
           remove_file(ArgList);
-          bi_Print(1, "loaded %s\\%s\n", Destination, ArgList);
+          bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", Destination, ArgList);
           Log_Write(aFoundSInS, ArgList, Destination); /* "found %s in %s" */
           _chdir(Path);
           return 0;
@@ -10045,9 +10045,9 @@ int BotLibLoadMap(char *Source)
     else
     {
       if ( v7.filelen )
-        bi_Print(1, "loaded %s\\%s\n", v7.path, Destination);
+        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, Destination);
       else
-        bi_Print(1, "loaded %s\n", Destination);
+        bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
       v4 = 0;
       memset(&v7, 0, sizeof(v7));
       while ( 1 )
@@ -10088,7 +10088,7 @@ int BotLibLoadMap(char *Source)
               Source,
               Source);
           }
-          bi_Print(4, aNoAasFileAvail);
+          bi_Print(PRT_FATAL, aNoAasFileAvail);
           return 5;
         }
       }
@@ -10097,9 +10097,9 @@ int BotLibLoadMap(char *Source)
       if ( *_errno() )
         return *_errno();
       if ( v7.fileofs )
-        bi_Print(1, "loaded %s\\%s\n", v7.path, v9);
+        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, v9);
       else
-        bi_Print(1, "loaded %s\n", v7.path);
+        bi_Print(PRT_MESSAGE, "loaded %s\n", v7.path);
       if ( v7.fileofs )
         strncpy(aasworld.filename, v9, 0x90u);
       else
@@ -10109,7 +10109,7 @@ int BotLibLoadMap(char *Source)
   }
   else
   {
-    bi_Print(4, "couldn't find the bsp file %s\n", Destination);
+    bi_Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
     return 12;
   }
 }
@@ -10195,7 +10195,7 @@ int AAS_Shutdown()
    * The two are identical at the binary level (0x2A4 == sizeof(aas_world_t)). */
   memset(&aasworld, 0, sizeof(aasworld));
   aasworld.initialized = 0;
-  return bi_Print(1, aAasShutdown);
+  return bi_Print(PRT_MESSAGE, aAasShutdown);
 }
 // 1000163B: using guessed type int AAS_FreeAASLinkHeap(void);
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
@@ -10756,7 +10756,7 @@ LABEL_38:
       if ( a12 )
       {
         if ( v80.startsolid )
-          bi_Print(1, aPredictmovemen);
+          bi_Print(PRT_MESSAGE, aPredictmovemen);
         AAS_DebugLine(org, v80.endpos, -218959632);
       }
       org[0] = v80.endpos[0];
@@ -11056,7 +11056,7 @@ static void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_di
                                0.1f, 1, 1);
 
   if (result[0] & 0x02)
-    bi_Print(1, "leave ground\n");
+    bi_Print(PRT_MESSAGE, "leave ground\n");
 }
 
 //----- (10010780) --------------------------------------------------------
@@ -11334,7 +11334,7 @@ int AAS_Optimize()
     while ( v1 < aasworld.reachabilitysize );
   }
   AAS_OptimizeStore(&v5);
-  return bi_Print(1, aAasDataOptimiz);
+  return bi_Print(PRT_MESSAGE, aAasDataOptimiz);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10066948: using guessed type int aasworld.numareas;
@@ -13956,7 +13956,7 @@ int AAS_Reachability_Teleport()
             if ( !v4 )
             {
 LABEL_18:
-              bi_Print(3, "teleporter without destination (%s)\n", v3);
+              bi_Print(PRT_ERROR, "teleporter without destination (%s)\n", v3);
               goto LABEL_29;
             }
             if ( AAS_VectorForBSPEpairKey(v4, aOrigin, destorigin) )
@@ -13968,7 +13968,7 @@ LABEL_18:
               trace = AAS_TraceClientBBox(destorigin, v28, 4, -1);
               if ( trace.startsolid )
               {
-                bi_Print(3, "teleporter destination (%s) in solid\n", v3);
+                bi_Print(PRT_ERROR, "teleporter destination (%s) in solid\n", v3);
               }
               else
               {
@@ -14015,17 +14015,17 @@ LABEL_18:
             }
             else
             {
-              bi_Print(3, "teleporter destination (%s) without origin\n", v3);
+              bi_Print(PRT_ERROR, "teleporter destination (%s) without origin\n", v3);
             }
           }
           else
           {
-            bi_Print(3, "teleporter at %1.0f %1.0f %1.0f without target\n", origin[0], origin[1], origin[2]);
+            bi_Print(PRT_ERROR, "teleporter at %1.0f %1.0f %1.0f without target\n", origin[0], origin[1], origin[2]);
           }
         }
         else
         {
-          bi_Print(3, "teleporter (%s) without origin\n", v27);
+          bi_Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
         }
       }
 LABEL_29:
@@ -14136,14 +14136,14 @@ LABEL_58:
     v3 = AAS_ValueForBSPEpairKey(v1, aModel);
     if ( !v3 )
     {
-      bi_Print(3, aFuncPlatWithou);
+      bi_Print(PRT_ERROR, aFuncPlatWithou);
       goto LABEL_58;
     }
     v4 = atoi(v3 + 1);
     v66 = v4;
     if ( v4 <= 0 )
     {
-      bi_Print(3, aFuncPlatWithIn);
+      bi_Print(PRT_ERROR, aFuncPlatWithIn);
       goto LABEL_58;
     }
     AAS_BSPModelMinsMaxsOrigin(v4, v69, mins, maxs, origin);
@@ -15226,14 +15226,14 @@ int AAS_ContinueInitReachability(int a1)
   if ( aasworld.numreachabilityareas < aasworld.numareas )
   {
     if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_reachabilitydelay->value) <= 1 )
-      bi_Print(1, aCalculatingRea);
+      bi_Print(PRT_MESSAGE, aCalculatingRea);
     if ( (int)(aasworld.numreachabilityareas + (__int64)libvar_reachabilitydelay->value) >= aasworld.numareas )
     {
-      bi_Print(1, "\r%6d%%%%", 100);
-      bi_Print(1, aPleaseWaitWhil);
+      bi_Print(PRT_MESSAGE, "\r%6d%%%%", 100);
+      bi_Print(PRT_MESSAGE, aPleaseWaitWhil);
       return 1;
     }
-    bi_Print(1, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
+    bi_Print(PRT_MESSAGE, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
   }
   else
   {
@@ -15244,7 +15244,7 @@ int AAS_ContinueInitReachability(int a1)
     AAS_StoreReachability();
     AAS_ShutDownReachabilityHeap();
     FreeMemory(areareachability); areareachability = NULL;
-    bi_Print(1, "calculating clusters...\n");
+    bi_Print(PRT_MESSAGE, "calculating clusters...\n");
   }
   return 1;
 }
@@ -16108,12 +16108,12 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
     return 1;
   if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
-    bi_Print(3, "AAS_AreaTravelTimeToGoalArea: areanum %d out of range\n", areanum);
+    bi_Print(PRT_ERROR, "AAS_AreaTravelTimeToGoalArea: areanum %d out of range\n", areanum);
     return 0;
   }
   if ( a2 <= 0 || a2 >= aasworld.numareas )
   {
-    bi_Print(3, "AAS_AreaTravelTimeToGoalArea: goalareanum %d out of range\n", a2);
+    bi_Print(PRT_ERROR, "AAS_AreaTravelTimeToGoalArea: goalareanum %d out of range\n", a2);
     return 0;
   }
   if ( aasworld.frameroutingupdates > 10 )
@@ -16249,7 +16249,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
     return 0;
   if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
-    bi_Print(3, "AAS_NextAreaReachability: areanum %d out of range\n", areanum);
+    bi_Print(PRT_ERROR, "AAS_NextAreaReachability: areanum %d out of range\n", areanum);
     return 0;
   }
   settings = (aas_areasettings_t *)(&aasworld.areasettings[areanum]);
@@ -16257,7 +16257,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
     return settings->firstreachablearea;
   if ( reachnum < settings->firstreachablearea )
   {
-    bi_Print(4, aAasNextarearea);
+    bi_Print(PRT_FATAL, aAasNextarearea);
     return 0;
   }
   reachnum++;
@@ -16325,8 +16325,8 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
 //----- (1001A610) --------------------------------------------------------
 int AAS_RoutingInfo()
 {
-  bi_Print(1, "%d area cache updates\n", numareacacheupdates);
-  return bi_Print(1, "%d portal cache updates\n", numportalcacheupdates);
+  bi_Print(PRT_MESSAGE, "%d area cache updates\n", numareacacheupdates);
+  return bi_Print(PRT_MESSAGE, "%d portal cache updates\n", numportalcacheupdates);
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 10066748: using guessed type int numportalcacheupdates;
@@ -16404,7 +16404,7 @@ int __cdecl sub_1001A650(int a1)
  *            u16    travel_to_goal   = dword_10066740[best]+6
  *            u16    extra_travel     = (start+goal) - baseline
  *        - Stop once count == maxaltroutegoals.
- *   6) bi_Print(1, "%d alternative route goals\n", count); return count.
+ *   6) bi_Print(PRT_MESSAGE, "%d alternative route goals\n", count); return count.
  *
  * Output struct (24 bytes, stride matches `add ebx,0x18`):
  *   +0..0xB  vec3 origin
@@ -16573,7 +16573,7 @@ int __cdecl sub_1001A720(
       break;
   }
 
-  bi_Print(1, "%d alternative route goals\n", count);
+  bi_Print(PRT_MESSAGE, "%d alternative route goals\n", count);
   return count;
 }
 // 10001168: using guessed type _DWORD __cdecl sub_1001A650(_DWORD);
@@ -16654,7 +16654,7 @@ aas_link_t *AAS_AllocAASLink()
   result = aasworld.freelinks;
   if ( !result )
   {
-    bi_Print(4, aEmptyAasLinkHe);
+    bi_Print(PRT_FATAL, aEmptyAasLinkHe);
     return NULL;
   }
   next = result->next_ent;
@@ -16719,7 +16719,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(3, aAasPointareanu);
+    bi_Print(PRT_ERROR, aAasPointareanu);
     return 0;
   }
   v2 = 1;
@@ -16758,7 +16758,7 @@ int __cdecl sub_1001AF00(int areanum)
 {
   if ( areanum > 0 && areanum < aasworld.numareas )
     return aasworld.areasettings[areanum].cluster;
-  bi_Print(3, aAasAreacluster);
+  bi_Print(PRT_ERROR, aAasAreacluster);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -16771,7 +16771,7 @@ int __cdecl AAS_AreaPresenceType(int areanum)
   {
     if ( areanum > 0 && areanum < aasworld.numareas )
       return aasworld.areasettings[areanum].presencetype;
-    bi_Print(3, aAasAreapresenc);
+    bi_Print(PRT_ERROR, aAasAreapresenc);
   }
   return 0;
 }
@@ -17545,7 +17545,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(3, aAasLinkentityA);
+    bi_Print(PRT_ERROR, aAasLinkentityA);
     return 0;
   }
   v4 = 0;
@@ -17689,7 +17689,7 @@ int sub_1001C760(char *Source)
   v2 = (int)LibVarValue(aMaxSoundinfo, (char *)a256);
   if ( v2 < 0 || v2 > 0xFFFF )
   {
-    bi_Print(3, aMaxSoundinfoOu);
+    bi_Print(PRT_ERROR, aMaxSoundinfoOu);
     v2 = 256;
     LibVarSet(aMaxSoundinfo, (char *)a256);
   }
@@ -17734,21 +17734,21 @@ LABEL_21:
 LABEL_15:
         FreeSource(v5);
         if ( file_ref.filelen )
-          bi_Print(1, "loaded %s\\%s\n", file_ref.path, Source);
+          bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
         else
-          bi_Print(1, "loaded %s\n", Destination);
+          bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
         return 1;
       }
     }
     else
     {
-      bi_Print(3, "counldn't load %s\n", Destination);
+      bi_Print(PRT_ERROR, "counldn't load %s\n", Destination);
       return 0;
     }
   }
   else
   {
-    bi_Print(3, "couldn't find %s\n", Destination);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
 }
@@ -17778,7 +17778,7 @@ int sub_1001CAB0()
   v1 = (int)LibVarValue(aMaxAassounds, (char *)a256);
   if ( v1 < 0 || v1 > 0x10000 )
   {
-    bi_Print(3, aMaxAassoundsOu);
+    bi_Print(PRT_ERROR, aMaxAassoundsOu);
     v1 = 256;
     LibVarSet(aMaxAassounds, (char *)a256);
   }
@@ -17965,14 +17965,14 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
 
   if ( a4 < 0 || a4 >= aasworld.soundindex_table->numindexes )
   {
-    bi_Print(4, "sound index %d out of range [0, %d]\n", a4, aasworld.soundindex_table->numindexes);
+    bi_Print(PRT_FATAL, "sound index %d out of range [0, %d]\n", a4, aasworld.soundindex_table->numindexes);
     return 32;
   }
   else
   {
     if ( !aasworld.d_100669C0 )
     {
-      bi_Print(1, aNoSoundindexTo);
+      bi_Print(PRT_MESSAGE, aNoSoundindexTo);
       return 0;
     }
     if ( a4 < aasworld.d_100669BC )
@@ -17987,7 +17987,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
       v10 = sub_1001CBE0();
       if ( !v10 )
       {
-        bi_Print(3, aEmptySoundHeap);
+        bi_Print(PRT_ERROR, aEmptySoundHeap);
         return 0;
       }
       *(float *)v10->data = AAS_Time() + a7;
@@ -18214,7 +18214,7 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
     }
     while ( v2 );
   }
-  return bi_Print(4, Buffer);
+  return bi_Print(PRT_FATAL, Buffer);
 }
 // 1001D302: variable 'v6' is possibly undefined
 // 10001820: using guessed type _DWORD __cdecl ClientName(_DWORD);
@@ -21934,7 +21934,7 @@ int *__cdecl BotEntityToActivate(int a1)
   if ( !v2 )
   {
 LABEL_5:
-    bi_Print(3, "BotEntityToActivate: no entity found with model %s\n", v3);
+    bi_Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", v3);
     return 0;
   }
   v5 = (const char *)AAS_ValueForBSPEpairKey(v2, aClassname);
@@ -21942,7 +21942,7 @@ LABEL_5:
   v15 = v5;
   if ( !v5 )
   {
-    bi_Print(3, "BotEntityToActivate: entity with model %s has no classname\n", v3);
+    bi_Print(PRT_ERROR, "BotEntityToActivate: entity with model %s has no classname\n", v3);
     return 0;
   }
   if ( !strcmp(v5, aFuncDoorSecret) )
@@ -21966,7 +21966,7 @@ LABEL_5:
     if ( v14 >= 10 )
     {
 LABEL_39:
-      bi_Print(3, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
+      bi_Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
       return 0;
     }
     v2 = *v10;
@@ -21989,7 +21989,7 @@ LABEL_39:
         break;
     }
 LABEL_26:
-    bi_Print(3, "BotEntityToActivate: no entity with target \"%s\"\n", *v11--);
+    bi_Print(PRT_ERROR, "BotEntityToActivate: no entity with target \"%s\"\n", *v11--);
     --v14;
     --v10;
 LABEL_38:
@@ -22000,7 +22000,7 @@ LABEL_38:
   v15 = v13;
   if ( !v13 )
   {
-    bi_Print(3, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
+    bi_Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
     return 0;
   }
   if ( strcmp(v13, aTriggerCounter) && strcmp(v15, aTriggerRelay) )
@@ -22028,7 +22028,7 @@ LABEL_38:
     *v10 = dword_10064398;
     goto LABEL_38;
   }
-  bi_Print(3, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
+  bi_Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -22849,7 +22849,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 
 //----- (10026E40) --------------------------------------------------------
 // Parse 3 space-separated signed decimal integers from a C string into
-// a float vec3, echoing each parsed value via bi_Print(1, "%d\n", val)
+// a float vec3, echoing each parsed value via bi_Print(PRT_MESSAGE, "%d\n", val)
 // (.rdata 0x1005ca18 = "%d\n").  Per component: skip leading spaces,
 // take an optional '-' sign, consume contiguous digits; a non-digit
 // terminator (other than NUL) is itself consumed (esi++) before moving
@@ -22891,7 +22891,7 @@ int __cdecl sub_10026E40(char *string, float *out)
       if ( c && (c < '0' || c > '9') )
         string++;
     }
-    bi_Print(1, "%d\n", sign * cur);
+    bi_Print(PRT_MESSAGE, "%d\n", sign * cur);
     out[n] = (float)(sign * cur);
   }
   return 1;
@@ -23440,7 +23440,7 @@ LABEL_64:
       bs->teamgoal_time = v34 + 300.0;
       return result;
     default:
-      bi_Print(1, aUnknownMatchTy);
+      bi_Print(PRT_MESSAGE, aUnknownMatchTy);
       return 1;
   }
 }
@@ -23697,9 +23697,9 @@ void BotSetupDeathmatchAI()
   if ( libvar_ctf->value != 0.0f )
   {
     if ( BotGetLevelItemGoal(-1, aRedFlag, &unk_10064420) < 0 )
-      bi_Print(2, aCtfWithoutRedF);
+      bi_Print(PRT_WARNING, aCtfWithoutRedF);
     if ( BotGetLevelItemGoal(-1, aBlueFlag, &unk_100643E0) < 0 )
-      bi_Print(2, aCtfWithoutBlue);
+      bi_Print(PRT_WARNING, aCtfWithoutBlue);
     dword_10064484 = IndexFromModel(aPlayersMaleFla);
     dword_1006448C = IndexFromModel(aPlayersMaleFla_0);
     dword_1006449C = IndexFromModel(aModelsCtfResis);
@@ -23763,7 +23763,7 @@ char *__cdecl ClientName(int client)
 {
   if ( client >= 0 && client < maxclients )
     return dword_100643A8 + 144 * client;
-  bi_Print(2, "ClientName: client %d out of range\n", client);
+  bi_Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
   return &byte_1006294C;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -23775,7 +23775,7 @@ char *__cdecl ClientSkin(int client)
 {
   if ( client >= 0 && client < maxclients )
     return (char *)(144 * client + dword_100643A8 + 16);
-  bi_Print(2, "ClientSkin: client %d out of range\n", client);
+  bi_Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
   return &byte_1006294C;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -23945,7 +23945,7 @@ int Export_BotAIFrame(int a1, float a2)
   {
     if ( !*(_DWORD *)(dword_100643A0 + 4560 * a1) )
     {
-      bi_Print(4, "client %d hasn't been setup\n", a1);
+      bi_Print(PRT_FATAL, "client %d hasn't been setup\n", a1);
       return 19;
     }
     BotDeathmatchAI(&botstates[a1], a2);
@@ -23978,17 +23978,17 @@ int Export_BotAIFrame(int a1, float a2)
 //   +0x1054 = weapon index handle
 static void sub_100293A0(bot_state_t *bs)
 {
-  bi_Print(1, "%6d bytes character\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes character\n",
            MemoryByteSize(*(void **)((char *)bs + 0x688)));
-  bi_Print(1, "%6d bytes item weights\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes item weights\n",
            MemoryByteSize(*(void **)((char *)bs + 0xbc0)));
-  bi_Print(1, "%6d bytes item index\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes item index\n",
            MemoryByteSize(*(void **)((char *)bs + 0xbc4)));
-  bi_Print(1, "%6d bytes weapon weights\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes weapon weights\n",
            MemoryByteSize(*(void **)((char *)bs + 0x1050)));
-  bi_Print(1, "%6d bytes weapon index\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes weapon index\n",
            MemoryByteSize(*(void **)((char *)bs + 0x1054)));
-  bi_Print(1, "%6d bytes chat file\n",
+  bi_Print(PRT_MESSAGE, "%6d bytes chat file\n",
            MemoryByteSize(*(void **)((char *)bs + 0x1044)));
   PrintUsedMemorySize();
 }
@@ -24007,14 +24007,14 @@ int __cdecl BotSetupClient(int a1, char *Source)
   bs = (bot_state_t *)(dword_100643A0 + 4560 * a1);
   if ( bs->inuse )
   {
-    bi_Print(4, "client %d already setup\n", a1);
+    bi_Print(PRT_FATAL, "client %d already setup\n", a1);
     return 0;
   }
   char_handle = BotLoadCharacter(Source, Source + 144);
   BotCharacter(bs) = char_handle;
   if ( !char_handle )
   {
-    bi_Print(4, "couldn't load bot character %s from %s\n", Source + 144, Source);
+    bi_Print(PRT_FATAL, "couldn't load bot character %s from %s\n", Source + 144, Source);
     return 0;
   }
   qmemcpy(bs->settings, Source, 0x1B0u);
@@ -24079,7 +24079,7 @@ int __cdecl BotShutdownClient(int a1)
   v1 = (_DWORD *)bs;
   if ( !*v1 )
   {
-    bi_Print(3, "client %d already shutdown\n", a1);
+    bi_Print(PRT_ERROR, "client %d already shutdown\n", a1);
     return 23;
   }
   if ( BotChat_ExitGame((int)(intptr_t)bs) )
@@ -24126,7 +24126,7 @@ int __cdecl BotMoveClient(int a1, int a2)
     v4 = (_DWORD *)(4560 * a2 + dword_100643A0);
     if ( *v4 )
     {
-      bi_Print(4, aTriedToMoveCli);
+      bi_Print(PRT_FATAL, aTriedToMoveCli);
       return 22;
     }
     else
@@ -24139,7 +24139,7 @@ int __cdecl BotMoveClient(int a1, int a2)
   }
   else
   {
-    bi_Print(4, aTriedToMoveIna);
+    bi_Print(PRT_FATAL, aTriedToMoveIna);
     return 21;
   }
   return result;
@@ -24158,7 +24158,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v2 )
   {
-    bi_Print(4, aTriedToUpdated);
+    bi_Print(PRT_FATAL, aTriedToUpdated);
     return 24;
   }
   qmemcpy(v2 + 3, a2, 0x4CCu);
@@ -24192,7 +24192,7 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   v3 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v3 )
   {
-    bi_Print(3, aRecievedConsol);
+    bi_Print(PRT_ERROR, aRecievedConsol);
     return 25;
   }
   BotQueueConsoleMessage((bot_chatstate_t *)((char *)v3 + 0xf8c), a2, Source);
@@ -24209,7 +24209,7 @@ int __cdecl BotSettings(int a1, const void *a2)
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v2 )
   {
-    bi_Print(4, aTriedToUpdateS);
+    bi_Print(PRT_FATAL, aTriedToUpdateS);
     return 26;
   }
   qmemcpy(v2 + 310, a2, 0x1B0u);
@@ -24487,7 +24487,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
   strncpy(Destination, Source, 0x104u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", Destination);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
   v4 = 0;
@@ -24499,7 +24499,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
       v13 = v5;
       if ( !v5 )
       {
-        bi_Print(3, "counldn't load %s\n", file_ref.path);
+        bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
         return 0;
       }
       v7 = 0;
@@ -24512,7 +24512,7 @@ LABEL_39:
       FreeSource(v6);
       if ( !v17 )
       {
-        bi_Print(3, "couldn't find character %s in %s\n", (const char *)a2, file_ref.path);
+        bi_Print(PRT_ERROR, "couldn't find character %s in %s\n", (const char *)a2, file_ref.path);
         return 0;
       }
       if ( !v4 )
@@ -24530,9 +24530,9 @@ LABEL_39:
       if ( v4 >= 2 )
       {
         if ( file_ref.filelen )
-          bi_Print(1, "loaded %s from %s\\%s\n", (const char *)a2, file_ref.path, Destination);
+          bi_Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", (const char *)a2, file_ref.path, Destination);
         else
-          bi_Print(1, "loaded %s from %s\n", (const char *)a2, Destination);
+          bi_Print(PRT_MESSAGE, "loaded %s from %s\n", (const char *)a2, Destination);
         return v2;
       }
     }
@@ -24672,12 +24672,12 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
   {
     if ( !(unsigned char)BC_PAIRS(a1)[a2].type )
     {
-      bi_Print(3, "characteristic %d is not initialized\n", a2);
+      bi_Print(PRT_ERROR, "characteristic %d is not initialized\n", a2);
       return 0;
     }
     return 1;
   }
-  bi_Print(3, "characteristic %d does not exist\n", a2);
+  bi_Print(PRT_ERROR, "characteristic %d does not exist\n", a2);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -24694,7 +24694,7 @@ float __cdecl Characteristic_Float(bot_character_t *a1, int a2)
       return (float)(int)BC_PAIRS(a1)[a2].value;
     if ( v2 == 2 )
       return *(float *)&BC_PAIRS(a1)[a2].value;
-    bi_Print(3, "characteristic %d is not a float\n", a2);
+    bi_Print(PRT_ERROR, "characteristic %d is not a float\n", a2);
   }
   return 0.0f;
 }
@@ -24708,7 +24708,7 @@ float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float
 
   if ( a3 > (float)a4 )
   {
-    bi_Print(3, "cannot bound characteristic %d between %f and %f\n", a2, a3, a4);
+    bi_Print(PRT_ERROR, "cannot bound characteristic %d between %f and %f\n", a2, a3, a4);
     return 0.0;
   }
   result = Characteristic_Float(a1, a2);
@@ -24733,7 +24733,7 @@ int __cdecl Characteristic_Integer(bot_character_t *a1, int a2)
     if ( v2 == 2 )
       return (__int64)*(float *)&BC_PAIRS(a1)[a2].value;
   }
-  bi_Print(3, "characteristic %d is not a integer\n", a2);
+  bi_Print(PRT_ERROR, "characteristic %d is not a integer\n", a2);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -24745,7 +24745,7 @@ int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4)
 
   if ( a3 > a4 )
   {
-    bi_Print(3, "cannot bound characteristic %d between %d and %d\n", a2, a3, a4);
+    bi_Print(PRT_ERROR, "cannot bound characteristic %d between %d and %d\n", a2, a3, a4);
     return 0;
   }
   result = Characteristic_Integer(a1, a2);
@@ -24764,7 +24764,7 @@ char *__cdecl Characteristic_String(bot_character_t *a1, int a2)
     return &byte_1006294C;
   if ( (unsigned char)BC_PAIRS(a1)[a2].type == 3 )
     return (char *)BC_PAIRS(a1)[a2].value;
-  bi_Print(3, "characteristic %d is not a string\n", a2);
+  bi_Print(PRT_ERROR, "characteristic %d is not a string\n", a2);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -24867,7 +24867,7 @@ int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
 
   msg = AllocConsoleMessage();
   if ( !msg )
-    return bi_Print(3, aEmptyConsoleMe);
+    return bi_Print(PRT_ERROR, aEmptyConsoleMe);
   msg->time = AAS_Time();
   msg->type = type;
   strncpy(msg->message, Source, 0x96u);
@@ -25175,7 +25175,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 
   if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", filename);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", filename);
     return 0;
   }
   ptr = NULL;
@@ -25190,7 +25190,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
     v16 = src;
     if ( !src )
     {
-      bi_Print(3, "counldn't load %s\n", file_ref.path);
+      bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
       return 0;
     }
     context = 0;
@@ -25210,9 +25210,9 @@ LABEL_45:
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
-        bi_Print(1, "loaded %s\\%s\n", file_ref.path, filename);
+        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
       else
-        bi_Print(1, "loaded %s\n", filename);
+        bi_Print(PRT_MESSAGE, "loaded %s\n", filename);
       return synlist;
     }
   }
@@ -25463,7 +25463,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 
   if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", filename);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", filename);
     return NULL;
   }
 
@@ -25481,7 +25481,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     if ( !source )
     {
-      bi_Print(3, "counldn't load %s\n", file_ref.path);
+      bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
       return NULL;
     }
     head = NULL;
@@ -25551,9 +25551,9 @@ NEXT_PASS:
     if ( pass >= 2 )
     {
       if ( file_ref.filelen )
-        bi_Print(1, "loaded %s\\%s\n", file_ref.path, filename);
+        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
       else
-        bi_Print(1, "loaded %s\n", filename);
+        bi_Print(PRT_MESSAGE, "loaded %s\n", filename);
       return head;
     }
     sizeNeeded = sizeAccum;
@@ -25853,13 +25853,13 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 
   if ( !sub_10041F60(matchfile, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", matchfile);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", matchfile);
     return NULL;
   }
   source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !source )
   {
-    bi_Print(3, "counldn't load %s\n", file_ref.path);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
     return NULL;
   }
 
@@ -25935,9 +25935,9 @@ FAIL_LOOP:
 DONE:
   FreeSource(source);
   if ( file_ref.filelen )
-    bi_Print(1, "loaded %s\\%s\n", file_ref.path, matchfile);
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, matchfile);
   else
-    bi_Print(1, "loaded %s\n", matchfile);
+    bi_Print(PRT_MESSAGE, "loaded %s\n", matchfile);
   return matches;
 }
 // 10001014: using guessed type _DWORD __cdecl PC_UnreadLastToken(_DWORD);
@@ -26073,7 +26073,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
 {
   if ( variable < 0 || variable >= MAX_MATCHVARIABLES )
   {
-    bi_Print(4, aBotmatchvariab);
+    bi_Print(PRT_FATAL, aBotmatchvariab);
     *buf = byte_1006294C;
     return buf;
   }
@@ -26165,7 +26165,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
       }
       if ( v4 == 118 )
         break;
-      bi_Print(4, "PC_HashString: message \"%s\" invalid escape char\n", v2);
+      bi_Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", v2);
 LABEL_11:
       if ( !*v3 )
         return a2;
@@ -26467,13 +26467,13 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
   v1 = filename;
   if ( !sub_10041F60(filename, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", filename);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", filename);
     return NULL;
   }
   v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !v4 )
   {
-    bi_Print(3, "counldn't load %s\n", file_ref.path);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
     return NULL;
   }
   replyhead = NULL;
@@ -26581,12 +26581,12 @@ NEXT_ENTRY:
 DONE:
   FreeSource(v4);
   if ( file_ref.filelen )
-    bi_Print(1, "loaded %s\\%s\n", file_ref.path, v1);
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, v1);
   else
-    bi_Print(1, "loaded %s\n", v1);
+    bi_Print(PRT_MESSAGE, "loaded %s\n", v1);
   BotCheckReplyChatIntegrety(replyhead);
   if ( !replyhead )
-    bi_Print(1, aNoRchats);
+    bi_Print(PRT_MESSAGE, aNoRchats);
   return replyhead;
 
 FAIL:
@@ -26669,14 +26669,14 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
 
   if ( !sub_10041F60(a1, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", a1);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", a1);
     return 0;
   }
 
   src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !src )
   {
-    bi_Print(3, "counldn't load %s\n", file_ref.path);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
     return 0;
   }
 
@@ -26760,14 +26760,14 @@ type_done:
       FreeSource(src);
       if ( !found )
       {
-        bi_Print(3, "couldn't find chat %s in %s\n", a2, file_ref.path);
+        bi_Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
         sub_1002DF70(list);
         return 0;
       }
       if ( file_ref.filelen )
-        bi_Print(1, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
+        bi_Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
       else
-        bi_Print(1, "loaded %s from %s\n", a2, a1);
+        bi_Print(PRT_MESSAGE, "loaded %s from %s\n", a2, a1);
       BotCheckInitialChatIntegrety((chatlist_t *)list);
       return (int *)list;
     }
@@ -26798,7 +26798,7 @@ type_done:
   FreeSource(src);
   if ( !found )
   {
-    bi_Print(3, "couldn't find chat %s in %s\n", a2, file_ref.path);
+    bi_Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
     sub_1002DF70(list);
     return 0;
   }
@@ -26879,7 +26879,7 @@ int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3)
   BotChatDumpSlot(cs) = v3;
   if ( !v3 )
   {
-    bi_Print(4, "couldn't load chat %s from %s\n", a3, a2);
+    bi_Print(PRT_FATAL, "couldn't load chat %s from %s\n", a3, a2);
     return 27;
   }
   return 0;
@@ -26939,12 +26939,12 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
       v20 = (const char *)RandomString(v23);
       if ( !v20 )
       {
-        bi_Print(3, "BotConstructChat: unknown random string %s\n", v23);
+        bi_Print(PRT_ERROR, "BotConstructChat: unknown random string %s\n", v23);
         return;
       }
       if ( v7 + strlen(v20) >= 0x96 )
       {
-        bi_Print(3, "BotConstructChat: message \"%s\" too long\n", a2);
+        bi_Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", a2);
         return;
       }
       v21 = (char *)&v6[v7];
@@ -26954,7 +26954,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
     }
     if ( v9 != 118 )
     {
-      bi_Print(4, "BotConstructChat: message \"%s\" invalid escape char\n", v5);
+      bi_Print(PRT_FATAL, "BotConstructChat: message \"%s\" invalid escape char\n", v5);
       goto LABEL_30;
     }
     v10 = *++v8;
@@ -26975,7 +26975,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
       ++v8;
     if ( v11 > 10 )
     {
-      bi_Print(3, "BotConstructChat: message %s variable %d out of range\n", v5, v11);
+      bi_Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", v5, v11);
       return;
     }
     v12 = vars[v11].str;
@@ -26996,7 +26996,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
       BotReplaceSynonyms(v23, a5);
       if ( v7 + strlen(v23) >= 0x96 )
       {
-        bi_Print(3, "BotConstructChat: message %s too long\n", a2);
+        bi_Print(PRT_ERROR, "BotConstructChat: message %s too long\n", a2);
         return;
       }
       strcpy((char *)&v6[v7], v23);
@@ -27013,7 +27013,7 @@ LABEL_30:
   ((char *)v6)[v7++] = *v8++;
   if ( v7 < 150 )
     goto LABEL_30;
-  bi_Print(3, "BotConstructChat: message \"%s\" too long\n", v5);
+  bi_Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", v5);
 LABEL_37:
   ((char *)v6)[v7] = 0;
   BotReplaceWeightedSynonyms(v6, a3);
@@ -27505,7 +27505,7 @@ itemconfig_t * LoadItemConfig(char *Source)
   max_iteminfo = (int)LibVarValue(aMaxIteminfo, (char *)a256);
   if ( max_iteminfo < 0 )
   {
-    bi_Print(3, "max_iteminfo = %d\n", max_iteminfo);
+    bi_Print(PRT_ERROR, "max_iteminfo = %d\n", max_iteminfo);
     max_iteminfo = 256;
     LibVarSet(aMaxIteminfo, (char *)a256);
   }
@@ -27513,13 +27513,13 @@ itemconfig_t * LoadItemConfig(char *Source)
   strncpy(Destination, Source, 0x90u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", Destination);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
   src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !src )
   {
-    bi_Print(3, "counldn't load %s\n", Destination);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", Destination);
     return 0;
   }
   cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
@@ -27562,11 +27562,11 @@ LABEL_22:
 LABEL_13:
   FreeSource(src);
   if ( !cfg->numitems )
-    bi_Print(2, aNoItemInfoLoad);
+    bi_Print(PRT_WARNING, aNoItemInfoLoad);
   if ( file_ref.filelen )
-    bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
   else
-    bi_Print(1, "loaded %s\n", Destination);
+    bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
 }
 // 100010A5: using guessed type _DWORD __cdecl PC_ReadTokenHandle(_DWORD, _DWORD);
@@ -27647,7 +27647,7 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
   result = dword_10064344;
   if ( !dword_10064344 )
   {
-    bi_Print(4, aOutOfLevelItem);
+    bi_Print(PRT_FATAL, aOutOfLevelItem);
     return 0;
   }
   dword_10064344 = result->next;
@@ -27754,7 +27754,7 @@ _DWORD * BotInitLevelItems()
               li->timeout = 0.0f;
               li->entitynum = 0;
               if ( !AAS_DropToFloor(origin, v2->items[v7].mins, v2->items[v7].maxs) )
-                bi_Print(1, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
+                bi_Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
               li->iteminfo = v7;
               VectorCopy(origin, li->origin);
               li->areanum = AAS_BestReachableArea(
@@ -27766,7 +27766,7 @@ _DWORD * BotInitLevelItems()
             }
             else
             {
-              bi_Print(3, "item %s without origin\n", ArgList);
+              bi_Print(PRT_ERROR, "item %s without origin\n", ArgList);
             }
           }
 LABEL_20:
@@ -27777,7 +27777,7 @@ LABEL_20:
       }
       while ( v11 );
     }
-    return (_DWORD *)bi_Print(1, "found %d level items\n", dword_10064354);
+    return (_DWORD *)bi_Print(PRT_MESSAGE, "found %d level items\n", dword_10064354);
   }
   return result;
 }
@@ -28078,7 +28078,7 @@ int __cdecl BotPushGoal(int *goalstate, const void *goal)
   v2 = *(_DWORD *)((char *)goalstate + 456);
   if ( v2 >= 7 )
   {
-    bi_Print(3, aGoalHeapOverfl);
+    bi_Print(PRT_ERROR, aGoalHeapOverfl);
     return ((int (__cdecl *)(int *))BotDumpGoalStack)(goalstate);
   }
   result = v2 + 1;
@@ -28470,7 +28470,7 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
   BotGoalHandleP0(goalstate) = v2;
   if ( !v2 )
   {
-    bi_Print(4, aCouldnTLoadWei);
+    bi_Print(PRT_FATAL, aCouldnTLoadWei);
     return 28;
   }
   if ( !dword_1006435C )
@@ -28512,7 +28512,7 @@ int BotSetupGoalAI()
   dword_1006435C = LoadItemConfig(v0);
   if ( !dword_1006435C )
   {
-    bi_Print(4, aCouldnTLoadIte);
+    bi_Print(PRT_FATAL, aCouldnTLoadIte);
     return 29;
   }
   return 0;
@@ -28756,7 +28756,7 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
   AAS_BSPModelMinsMaxsOrigin(reach->facenum, v2, (float *)v5, (float *)v4, (float *)v3);
   if ( !AAS_OriginOfMoverWithModelNum(reach->facenum, v3) )
   {
-    bi_Print(1, "no entity with model %d\n", reach->facenum);
+    bi_Print(PRT_MESSAGE, "no entity with model %d\n", reach->facenum);
     return 0;
   }
   return v3[2] + v4[2] < reach->start[2];
@@ -30359,7 +30359,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
     case 14:          // TRAVEL_GRAPPLEHOOK (silent)
       return 8;
     default:          // incl. 13 TRAVEL_BFGJUMP and out-of-range
-      bi_Print(3, "travel type %d not implemented yet\n", reach->traveltype);
+      bi_Print(PRT_ERROR, "travel type %d not implemented yet\n", reach->traveltype);
       return 8;
   }
 }
@@ -30556,7 +30556,7 @@ LABEL_41:
             moveresult = *v16;
             break;
           default:
-            bi_Print(4, "(last) travel type %d not implemented yet\n", v20.traveltype);
+            bi_Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", v20.traveltype);
             break;
         }
       }
@@ -30630,7 +30630,7 @@ LABEL_27:
             v16 = BotTravel_Grapple(&v32, ms, &v20);
             goto LABEL_41;
           default:
-            bi_Print(4, "travel type %d not implemented yet\n", v20.traveltype);
+            bi_Print(PRT_FATAL, "travel type %d not implemented yet\n", v20.traveltype);
             break;
         }
       }
@@ -30769,14 +30769,14 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
   max_weaponinfo = (int)LibVarValue(aMaxWeaponinfo, (char *)a32);
   if ( max_weaponinfo < 0 )
   {
-    bi_Print(3, "max_weaponinfo = %d\n", max_weaponinfo);
+    bi_Print(PRT_ERROR, "max_weaponinfo = %d\n", max_weaponinfo);
     max_weaponinfo = 32;
     LibVarSet(aMaxWeaponinfo, (char *)a32);
   }
   max_projectileinfo = (int)LibVarValue(aMaxProjectilei, (char *)a32);
   if ( max_projectileinfo < 0 )
   {
-    bi_Print(3, "max_projectileinfo = %d\n", max_projectileinfo);
+    bi_Print(PRT_ERROR, "max_projectileinfo = %d\n", max_projectileinfo);
     max_projectileinfo = 32;
     LibVarSet(aMaxProjectilei, (char *)a32);
   }
@@ -30784,13 +30784,13 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
   strncpy(Destination, Source, 0x90u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", Destination);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
   v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !v5 )
   {
-    bi_Print(3, "counldn't load %s\n", Destination);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", Destination);
     return 0;
   }
   cfg = (weaponconfig_t *)GetClearedMemory(
@@ -30808,7 +30808,7 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
     {
       if ( cfg->numweapons >= max_weaponinfo )
       {
-        bi_Print(3, "more than %d weapons defined in %s\n", max_weaponinfo, Destination);
+        bi_Print(PRT_ERROR, "more than %d weapons defined in %s\n", max_weaponinfo, Destination);
         FreeMemory(cfg);
         FreeSource(v5);
         return 0;
@@ -30827,14 +30827,14 @@ LABEL_26:
     {
       if ( strcmp(v22, aProjectileinfo) )
       {
-        bi_Print(3, "unknown definition %s in %s\n", v22, Destination);
+        bi_Print(PRT_ERROR, "unknown definition %s in %s\n", v22, Destination);
         FreeMemory(cfg);
         FreeSource(v5);
         return 0;
       }
       if ( cfg->numprojectiles >= max_projectileinfo )
       {
-        bi_Print(3, "more than %d projectiles defined in %s\n", max_projectileinfo, Destination);
+        bi_Print(PRT_ERROR, "more than %d projectiles defined in %s\n", max_projectileinfo, Destination);
         FreeMemory(cfg);
         FreeSource(v5);
         return 0;
@@ -30852,11 +30852,11 @@ LABEL_26:
   {
 LABEL_38:
     if ( v10 )
-      bi_Print(2, aNoWeaponInfoLo);
+      bi_Print(PRT_WARNING, aNoWeaponInfoLo);
     if ( file_ref.filelen )
-      bi_Print(1, "loaded %s\\%s\n", file_ref.path, Source);
+      bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
     else
-      bi_Print(1, "loaded %s\n", Destination);
+      bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
     return cfg;
   }
   else
@@ -30868,12 +30868,12 @@ LABEL_38:
       weap = &cfg->weapons[v9];
       if ( !weap->name[0] )
       {
-        bi_Print(3, "weapon %d has no name in %s\n", v9, Destination);
+        bi_Print(PRT_ERROR, "weapon %d has no name in %s\n", v9, Destination);
         goto LABEL_46;
       }
       if ( !weap->projectile[0] )
       {
-        bi_Print(3, "weapon %s has no projectile in %s\n", weap->name, Destination);
+        bi_Print(PRT_ERROR, "weapon %s has no projectile in %s\n", weap->name, Destination);
         goto LABEL_46;
       }
       for ( p = 0; p < cfg->numprojectiles; ++p )
@@ -30894,7 +30894,7 @@ LABEL_38:
         goto LABEL_38;
       }
     }
-    bi_Print(3, "weapon %s uses undefined projectile in %s\n", weap->name, Destination);
+    bi_Print(PRT_ERROR, "weapon %s uses undefined projectile in %s\n", weap->name, Destination);
 LABEL_46:
     FreeMemory(cfg);
     return 0;
@@ -30942,7 +30942,7 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2)
   ws->weightconfig = v2;
   if ( !v2 )
   {
-    bi_Print(4, "couldn't load weapon config %s\n", a2);
+    bi_Print(PRT_FATAL, "couldn't load weapon config %s\n", a2);
     return 30;
   }
   if ( !dword_10064080 )
@@ -31108,7 +31108,7 @@ int BotSetupWeaponAI()
   dword_10064080 = LoadWeaponConfig(v0);
   if ( !dword_10064080 )
   {
-    bi_Print(4, aCouldnTLoadThe);
+    bi_Print(PRT_FATAL, aCouldnTLoadThe);
     return 31;
   }
   return 0;
@@ -31394,13 +31394,13 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
   strncpy(Destination, Source, 0x90u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
-    bi_Print(3, "couldn't find %s\n", Destination);
+    bi_Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
   src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
   if ( !src )
   {
-    bi_Print(3, "counldn't load %s\n", Destination);
+    bi_Print(PRT_ERROR, "counldn't load %s\n", Destination);
     return 0;
   }
   cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
@@ -31479,9 +31479,9 @@ LABEL_31:
 LABEL_21:
   FreeSource(src);
   if ( file_ref.filelen )
-    bi_Print(1, "loaded %s\\%s\n", file_ref.path, Destination);
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
   else
-    bi_Print(1, "loaded %s\n", Destination);
+    bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
 }
 // 10036301: variable 'v6' is possibly undefined
@@ -31929,13 +31929,13 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
     {
       v5 = a2->child;
       if ( !v5 )
-        return bi_Print(3, aCanTMergeWeigh);
+        return bi_Print(PRT_ERROR, aCanTMergeWeigh);
       result = InterbreedFuzzySeperator_r(v5, a2->child);
     }
     else if ( a1->type == 1 )
     {
       if ( a2->type != 1 )
-        return bi_Print(3, aCanTMergeWeigh);
+        return bi_Print(PRT_ERROR, aCanTMergeWeigh);
       a1->weight = (a2->weight + a1->weight) * 0.5f;
     }
     a1 = a1->next;
@@ -31945,7 +31945,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
       break;
     a2 = 0;
   }
-  return bi_Print(3, aCanTMergeWeigh);
+  return bi_Print(PRT_ERROR, aCanTMergeWeigh);
 }
 // 10001271: using guessed type _DWORD __cdecl InterbreedFuzzySeperator_r(_DWORD, _DWORD);
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -31964,7 +31964,7 @@ void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
 
   if ( a->numweights != b->numweights )
   {
-    bi_Print(3, aCanTMergeWeigh);
+    bi_Print(PRT_ERROR, aCanTMergeWeigh);
     return;
   }
   for ( i = 0; i < a->numweights; ++i )
@@ -32045,7 +32045,7 @@ int __cdecl EA_Command(int client, char *command, ...)
   }
   va_end(ap);
   if ( n >= 10 )
-    bi_Print(3, aEaCommandTooMa);
+    bi_Print(PRT_ERROR, aEaCommandTooMa);
   return bi_BotClientCommand(client, args[0], args[1], args[2], args[3], args[4],
                               args[5], args[6], args[7], args[8], args[9], 0);
 }
@@ -32436,7 +32436,7 @@ qboolean __cdecl ValidClientNumber(int num, const char *str)
 {
   if ( num >= 0 && num <= maxclients )
     return 1;
-  bi_Print(3, "%s: invalid client number %d, [0, %d]\n", str, num, maxclients);
+  bi_Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, maxclients);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -32447,7 +32447,7 @@ qboolean __cdecl ValidEntityNumber(int num, const char *str)
 {
   if ( num >= 0 && num <= maxentities )
     return 1;
-  bi_Print(3, "%s: invalid entity number %d, [0, %d]\n", str, num, maxentities);
+  bi_Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, maxentities);
   return 0;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -32458,7 +32458,7 @@ qboolean __cdecl BotLibSetup(const char *str)
 {
   if ( !botlibsetup )
   {
-    bi_Print(3, "%s: bot library used before being setup\n", str);
+    bi_Print(PRT_ERROR, "%s: bot library used before being setup\n", str);
     return 0;
   }
   return 1;
@@ -32890,23 +32890,23 @@ void Log_Open(char *FileName)
   {
     if ( !FileName || !strlen(FileName) )
     {
-      bi_Print(1, aOpenlogFilenam);
+      bi_Print(PRT_MESSAGE, aOpenlogFilenam);
     }
     else if ( Stream )
     {
-      bi_Print(3, "log file %s is already opened\n", byte_10063A40);
+      bi_Print(PRT_ERROR, "log file %s is already opened\n", byte_10063A40);
     }
     else
     {
       Stream = fopen(FileName, Mode);          /* Mode = "wb" */
       if ( !Stream )
       {
-        bi_Print(3, "can't open the log file %s\n", FileName);
+        bi_Print(PRT_ERROR, "can't open the log file %s\n", FileName);
       }
       else
       {
         strncpy(byte_10063A40, FileName, 0x400u);
-        bi_Print(1, "Opened log %s\n", byte_10063A40);
+        bi_Print(PRT_MESSAGE, "Opened log %s\n", byte_10063A40);
       }
     }
   }
@@ -32920,11 +32920,11 @@ void Log_Open(char *FileName)
  *
  *     if (logfile = ds:0x10063E40) {
  *         if (fclose(logfile)) {
- *             bi_Print(3, "can't close log file %s\n", logfilename);
+ *             bi_Print(PRT_ERROR, "can't close log file %s\n", logfilename);
  *             return;                       // does NOT clear logfile on error
  *         }
  *         logfile = NULL;
- *         bi_Print(1, "Closed log %s\n", logfilename);
+ *         bi_Print(PRT_MESSAGE, "Closed log %s\n", logfilename);
  *     }
  *
  * Globals match the live Log_Close at 0x10038D60: Stream @ 0x10063E40
@@ -32946,12 +32946,12 @@ int __cdecl sub_10038CF0(void)
   {
     if ( fclose(Stream) )
     {
-      return bi_Print(3, "can't close log file %s\n", byte_10063A40);
+      return bi_Print(PRT_ERROR, "can't close log file %s\n", byte_10063A40);
     }
     else
     {
       Stream = 0;
-      result = bi_Print(1, "Closed log %s\n", byte_10063A40);
+      result = bi_Print(PRT_MESSAGE, "Closed log %s\n", byte_10063A40);
     }
   }
   return result;
@@ -33151,12 +33151,12 @@ static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
   block = (memoryblock_t *)((char *)ptr - sizeof(memoryblock_t));
   if ( block->id != MEM_ID )
   {
-    bi_Print(4, "%s: invalid memory block\n", str);
+    bi_Print(PRT_FATAL, "%s: invalid memory block\n", str);
     return NULL;
   }
   if ( block->ptr != ptr )
   {
-    bi_Print(4, "%s: memory block pointer invalid\n", str);
+    bi_Print(PRT_FATAL, "%s: memory block pointer invalid\n", str);
     return NULL;
   }
   return block;
@@ -33194,8 +33194,8 @@ int __cdecl MemoryByteSize(void *ptr)
 //----- (10039150) --------------------------------------------------------
 void PrintUsedMemorySize(void)
 {
-  bi_Print(1, "total botlib memory: %d KB\n", totalmemorysize >> 10);
-  bi_Print(1, "total memory blocks: %d\n", numblocks);
+  bi_Print(PRT_MESSAGE, "total botlib memory: %d KB\n", totalmemorysize >> 10);
+  bi_Print(PRT_MESSAGE, "total memory blocks: %d\n", numblocks);
 }
 
 //----- (10039190) --------------------------------------------------------
@@ -36039,7 +36039,7 @@ void ScriptError(int a1, char *Format, ...)
   if ( (*(unsigned char *)&((script_t *)a1)->flags & 1) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    bi_Print(3, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    bi_Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
   }
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -36054,7 +36054,7 @@ void ScriptWarning(int a1, char *Format, ...)
   if ( (*(unsigned char *)&((script_t *)a1)->flags & 2) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    bi_Print(2, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    bi_Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
   }
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
@@ -37291,7 +37291,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   if ( !sub_10037850(FileName, (const unsigned char *)script->buffer, script->length) )
   {
     LibVar(aSquatt, (char *)a1);
-    bi_Print(5, &v10[3]);
+    bi_Print(PRT_EXIT, &v10[3]);
   }
   return script;
 }
@@ -38015,7 +38015,7 @@ int __stdcall sub_10041740(int a1, int a2, int a3, int a4)
 //----- (10041760) --------------------------------------------------------
 int __stdcall sub_10041760(const char *a1, int a2)
 {
-  bi_Print(1, a1);
+  bi_Print(PRT_MESSAGE, a1);
   return a2;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
