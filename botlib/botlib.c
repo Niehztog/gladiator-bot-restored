@@ -11717,8 +11717,8 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   __int64 v11; // rax
   char v12; // al
   _DWORD *v14; // ebp
-  int *lreach; // eax
-  int *v16; // esi
+  aas_reachabilitynode_t *lreach; // eax
+  aas_reachabilitynode_t *v16; // esi
   int v17; // [esp+10h] [ebp-14h]
   BOOL v18; // [esp+14h] [ebp-10h]
   float v19[3]; // [esp+18h] [ebp-Ch] BYREF
@@ -11772,33 +11772,31 @@ LABEL_14:
     goto LABEL_14;
   }
   v14 = &aasworld.faces[v10];
-  lreach = (int *)AAS_AllocReachability();
+  lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
   v16 = lreach;
   if ( !lreach )
     return 0;
-  lreach[1] = v10;
-  *lreach = area2num;
-  lreach[2] = 0;
+  lreach->reach.facenum = v10;
+  lreach->reach.areanum = area2num;
+  lreach->reach.edgenum = 0;
   /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
-   * bits) into reach->start.x/y/z.  IDA's `lreach[i] = v19[i]` on an `int *`
-   * silently inserts a float→int truncation, which produces denormal-NaN
-   * float bits when the .aas is later re-read as floats. */
-  *(float *)(lreach + 3) = v19[0];
-  *(float *)(lreach + 4) = v19[1];
-  *(float *)(lreach + 5) = v19[2];
+   * bits) into reach->start.x/y/z. */
+  lreach->reach.start[0] = v19[0];
+  lreach->reach.start[1] = v19[1];
+  lreach->reach.start[2] = v19[2];
   /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
    * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
    * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
    * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
    * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
    * numplanes/4 and the read crashed in VectorMA. */
-  VectorMA((float *)(lreach + 3), 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), (float *)(lreach + 6));
-  v16[9] = 8;
-  *((_WORD *)v16 + 20) = 1;
+  VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), lreach->reach.end);
+  v16->reach.traveltype = 8;
+  v16->reach.traveltime = 1;
   if ( AAS_AreaVolume(area2num) < 800.0 )
-    *((_WORD *)v16 + 20) += 200;
-  ((aas_reachabilitynode_t *)v16)->next = (aas_reachabilitynode_t *)areareachability[area1num];
-  areareachability[area1num] = (aas_reachabilitynode_t *)v16;
+    v16->reach.traveltime += 200;
+  v16->next = areareachability[area1num];
+  areareachability[area1num] = v16;
   ++reach_swim;
   return 1;
 }
@@ -13898,7 +13896,7 @@ int AAS_Reachability_Teleport()
   aas_link_t *v8; // ebx
   aas_link_t *i; // edi
   int v10; // esi
-  char *v11; // eax
+  aas_reachabilitynode_t *v11; // eax
   vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
@@ -13998,19 +13996,19 @@ LABEL_18:
                     v11 = AAS_AllocReachability();
                     if ( !v11 )
                       break;
-                    *(_DWORD *)v11 = v7;
-                    *(_DWORD *)(v11 + 4) = 0;
-                    *(_DWORD *)(v11 + 8) = 0;
-                    *(float *)(v11 + 12) = origin[0];
-                    *(float *)(v11 + 16) = origin[1];
-                    *(float *)(v11 + 20) = origin[2];
-                    *(float *)(v11 + 24) = destorigin[0];
-                    *(float *)(v11 + 28) = destorigin[1];
-                    *(float *)(v11 + 32) = destorigin[2];
-                    *(_DWORD *)(v11 + 36) = 10;
-                    *(_WORD *)(v11 + 40) = 50;
-                    ((aas_reachabilitynode_t *)v11)->next = areareachability[v10];
-                    areareachability[v10] = (aas_reachabilitynode_t *)v11;
+                    v11->reach.areanum = v7;
+                    v11->reach.facenum = 0;
+                    v11->reach.edgenum = 0;
+                    v11->reach.start[0] = origin[0];
+                    v11->reach.start[1] = origin[1];
+                    v11->reach.start[2] = origin[2];
+                    v11->reach.end[0] = destorigin[0];
+                    v11->reach.end[1] = destorigin[1];
+                    v11->reach.end[2] = destorigin[2];
+                    v11->reach.traveltype = 10;
+                    v11->reach.traveltime = 50;
+                    v11->next = areareachability[v10];
+                    areareachability[v10] = v11;
                     ++reach_teleport;
                   }
                 }
@@ -14381,8 +14379,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   int vidx; // edge index value
   float hordist; // st7 (was double)
   int v11; // edi
-  char *lreach; // eax
-  char *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
+  aas_reachabilitynode_t *lreach; // eax
+  aas_reachabilitynode_t *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
   float v14; // st7 (was double)
   float v15; // st7 (was double)
   float v16; // edx
@@ -14522,26 +14520,26 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                       if ( !lreach )
                         return 0;
                       v14 = v41[3];
-                      *(_DWORD *)lreach = v11;
-                      *(_DWORD *)(lreach + 4) = face2num;
-                      *(_DWORD *)(lreach + 8) = 0;
-                      *(float *)(lreach + 12) = areastart[0];
-                      v15 = v14 - *(float *)(lreach + 12);
+                      lreach->reach.areanum = v11;
+                      lreach->reach.facenum = face2num;
+                      lreach->reach.edgenum = 0;
+                      lreach->reach.start[0] = areastart[0];
+                      v15 = v14 - lreach->reach.start[0];
                       v16 = v41[3];
-                      *(float *)(lreach + 16) = areastart[1];
+                      lreach->reach.start[1] = areastart[1];
                       v17 = v41[4];
-                      *(float *)(v13 + 20) = areastart[2];
+                      v13->reach.start[2] = areastart[2];
                       v18 = v41[5];
-                      *(float *)(v13 + 24) = v16;
-                      *(float *)(v13 + 28) = v17;
-                      *(float *)(v13 + 32) = v18;
-                      *(_DWORD *)(v13 + 36) = 14;
+                      v13->reach.end[0] = v16;
+                      v13->reach.end[1] = v17;
+                      v13->reach.end[2] = v18;
+                      v13->reach.traveltype = 14;
                       dir[0] = v15;
-                      dir[1] = *(float *)(v13 + 28) - *(float *)(v13 + 16);
-                      dir[2] = *(float *)(v13 + 32) - *(float *)(v13 + 20);
-                      *(_WORD *)(v13 + 40) = (__int64)(VectorLength(dir) * 0.25f + 500.0f);
-                      ((aas_reachabilitynode_t *)v13)->next = areareachability[area1num];
-                      areareachability[area1num] = (aas_reachabilitynode_t *)v13;
+                      dir[1] = v13->reach.end[1] - v13->reach.start[1];
+                      dir[2] = v13->reach.end[2] - v13->reach.start[2];
+                      v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25f + 500.0f);
+                      v13->next = areareachability[area1num];
+                      areareachability[area1num] = v13;
                       ++reach_grapple;
                     }
                   }
@@ -14671,7 +14669,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v9; // edi
   int v10; // esi
   int v11; // eax
-  char *v13; // eax
+  aas_reachabilitynode_t *v13; // eax
   float v14; // [esp+Ch] [ebp-14Ch]
   float v15; // [esp+28h] [ebp-130h]
   int v16; // [esp+28h] [ebp-130h]
@@ -14794,22 +14792,22 @@ LABEL_26:
   v13 = AAS_AllocReachability();
   if ( !v13 )
     return 0;
-  *(_DWORD *)(v13 + 4) = 0;
-  *(_DWORD *)v13 = a2;
-  *(_DWORD *)(v13 + 8) = 0;
-  *(float *)(v13 + 12) = groundedpos[0];
-  *(float *)(v13 + 16) = groundedpos[1];
-  *(float *)(v13 + 20) = groundedpos[2];
-  *(float *)(v13 + 24) = facecenter[0];
-  *(float *)(v13 + 28) = facecenter[1];
-  *(float *)(v13 + 32) = facecenter[2];
+  v13->reach.facenum = 0;
+  v13->reach.areanum = a2;
+  v13->reach.edgenum = 0;
+  v13->reach.start[0] = groundedpos[0];
+  v13->reach.start[1] = groundedpos[1];
+  v13->reach.start[2] = groundedpos[2];
+  v13->reach.end[0] = facecenter[0];
+  v13->reach.end[1] = facecenter[1];
+  v13->reach.end[2] = facecenter[2];
   if ( v8 )
-    *(_DWORD *)(v13 + 36) = 13;
+    v13->reach.traveltype = 13;
   else
-    *(_DWORD *)(v13 + 36) = 12;
-  *(_WORD *)(v13 + 40) = 500;
-  ((aas_reachabilitynode_t *)v13)->next = areareachability[ArgList];
-  areareachability[ArgList] = (aas_reachabilitynode_t *)v13;
+    v13->reach.traveltype = 12;
+  v13->reach.traveltime = 500;
+  v13->next = areareachability[ArgList];
+  areareachability[ArgList] = v13;
   ++reach_rocketjump;
   return 1;
 }
