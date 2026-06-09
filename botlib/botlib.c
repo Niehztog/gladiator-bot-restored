@@ -7869,8 +7869,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 //----- (1000ABE0) --------------------------------------------------------
 void *__cdecl AAS_EntityInfo(void *info, int entnum)
 {
-  void *result; // eax
-  char v3[124]; // [esp+8h] [ebp-7Ch] BYREF
+  aas_entityinfo_t entinfo; // [esp+8h] [ebp-7Ch] BYREF
 
   if ( !aasworld.initialized )
   {
@@ -7878,18 +7877,16 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
   }
   else if ( entnum >= 0 && entnum < aasworld.numentities )
   {
-    result = info;
     qmemcpy(info, &aasworld.entities[entnum].i, sizeof(aas_entityinfo_t));
-    return result;
+    return info;
   }
   else
   {
     bi_Print(PRT_FATAL, "AAS_EntityInfo: entnum %d out of range\n", entnum);
   }
-  memset(v3, 0, sizeof(v3));
-  result = info;
-  qmemcpy(info, v3, 0x7Cu);
-  return result;
+  memset(&entinfo, 0, sizeof(entinfo));
+  qmemcpy(info, &entinfo, 0x7Cu);
+  return info;
 }
 // 10063FE8: using guessed type int (*bi_Print)(_DWORD, const char *, ...);
 // 100667E4: using guessed type int aasworld.initialized;
