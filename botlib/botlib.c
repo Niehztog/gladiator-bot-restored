@@ -644,7 +644,7 @@ void AAS_FreeAASLinkedEntities();
 int __cdecl AAS_PointAreaNum(vec3_t point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 int __cdecl AAS_PointContents(vec3_t point);
-qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace);
+qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon);
@@ -1058,7 +1058,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2);
 int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3);
 int __cdecl PS_ReadName(script_t *a1, intptr_t a2);
 char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4);
-int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2);
+int __cdecl PS_ReadNumber(script_t *a1, token_t *a2);
 int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
 int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
@@ -16831,20 +16831,16 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
 }
 
 //----- (1001B130) --------------------------------------------------------
-qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, intptr_t trace)
+qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace)
 {
   aas_link_t *v6; // esi
-  float v7; // edx
-  float v8; // ecx
-  float v9; // edx
-  float v10; // ecx
   float v12[3]; // [esp+4h] [ebp-6Ch] BYREF
   float v13[3]; // [esp+10h] [ebp-60h] BYREF
-  float v14[21]; // [esp+1Ch] [ebp-54h] BYREF
+  bsp_trace_t v14; // [esp+1Ch] [ebp-54h] BYREF
   int v15; // [esp+80h] [ebp+10h]
 
   AAS_PresenceTypeBoundingBox(presencetype, v13, v12);
-  v14[2] = 1.0;
+  v14.fraction = 1.0;
   v6 = aasworld.arealinkedentities[areanum];
   v15 = 0;
   if ( !v6 )
@@ -16853,7 +16849,7 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   {
     if ( v6->entnum != passent )
     {
-      if ( AAS_EntityCollision(v6->entnum, start, v13, v12, end, 33619971, v14) )
+      if ( AAS_EntityCollision(v6->entnum, start, v13, v12, end, 33619971, (float *)&v14) )
         v15 = 1;
     }
     v6 = v6->next_ent;
@@ -16861,17 +16857,11 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   while ( v6 );
   if ( !v15 )
     return 0;
-  v7 = v14[20];
-  *(float *)trace = v14[1];
-  v8 = v14[3];
-  *(float *)(trace + 20) = v7;
-  v9 = v14[4];
-  *(float *)(trace + 8) = v8;
-  v10 = v14[5];
-  *(float *)(trace + 12) = v9;
-  *(float *)(trace + 16) = v10;
-  *(_DWORD *)(trace + 28) = 0;
-  *(_DWORD *)(trace + 32) = 0;
+  trace->startsolid = v14.startsolid;
+  trace->ent = v14.ent;
+  VectorCopy(v14.endpos, trace->endpos);
+  trace->area = 0;
+  trace->planenum = 0;
   return 1;
 }
 // 10066994: using guessed type int aasworld.arealinkedentities;
@@ -17069,7 +17059,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
        * thunk 0x10001B1D → AAS_AreaEntityCollision(0x1001B130) with 6 args. */
       if ( AAS_AreaEntityCollision(-nodenum, (char *)tstack_p,
                                    (float *)((char *)tstack_p + 12),
-                                   presencetype, passent, (intptr_t)&trace) )
+                                   presencetype, passent, &trace) )
       {
         if ( !trace.startsolid )
         {
@@ -21552,7 +21542,7 @@ void BotAimAtEnemy(bot_state_t *bs)
 {
 
   int v2; // eax
-  uintptr_t v3; // ebp
+  weaponinfo_t *v3; // ebp
   float v4; // ecx
   float v5; // edx
   double v6; // st7
@@ -21617,8 +21607,8 @@ void BotAimAtEnemy(bot_state_t *bs)
     v35 = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
     if ( v35 <= 0.0f )
       v35 = 0.000099999997f;
-    v3 = (uintptr_t)sub_100354B0(BotWS(bs));
-    if ( !_strcmpi((const char *)(v3 + 4), aRocketLauncher) )
+    v3 = sub_100354B0(BotWS(bs));
+    if ( !_strcmpi(v3->name, aRocketLauncher) )
       v35 = sqrt(v35);
     qmemcpy(v46, AAS_EntityInfo(v47, bs->enemy), sizeof(v46));
     v4 = bs->origin[0];
@@ -21632,11 +21622,11 @@ void BotAimAtEnemy(bot_state_t *bs)
     v8 = v6 + bs->snapshot.viewoffset[2];
     v40 = v5;
     v41 = v8;
-    v41 = v8 + *(float *)(v3 + 296);
+    v41 = v8 + v3->offset[2];
     qmemcpy(v45, AAS_Trace(v47, (float*)(&v39), (float*)v43, (float*)v44, (float*)(&v32), v7, 100663299), sizeof(v45));
     if ( *(float *)&v45[2] <= 1.0f && v45[20] != LODWORD(v46[3]) )
       v34 = v34 + 16.0f;
-    if ( *(float *)(v3 + 268) != 0.0f && v27 > 0.4f )
+    if ( v3->speed != 0.0f && v27 > 0.4f )
     {
       /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
        * at 0x10023a3a-0x10023a65 (three fld/fsub/fstp triples) and the second
@@ -21649,10 +21639,10 @@ void BotAimAtEnemy(bot_state_t *bs)
       v29[0] = v46[4] - v46[13];
       v29[1] = v46[5] - v46[14];
       v9 = VectorNormalize(v29);
-      v22 = v23 / *(float *)(v3 + 268) * (v9 / v46[2]);
+      v22 = v23 / v3->speed * (v9 / v46[2]);
       VectorMA((float *)&v46[4], v22, v29, (float *)&v32);
     }
-    if ( v27 > 0.6f && (((weaponinfo_t *)v3)->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
+    if ( v27 > 0.6f && (v3->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
     {
       *(float *)v42 = v46[4];
       v42[1] = v46[5];
@@ -21707,7 +21697,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v29[0] = *(float *)&v32 - bs->eye[0];
     v29[1] = v33 - bs->eye[1];
     v29[2] = v34 - bs->eye[2];
-    if ( !_strcmpi((const char *)(v3 + 4), aRailgun) )
+    if ( !_strcmpi(v3->name, aRailgun) )
     {
       VectorNormalize(v29);
       v16 = (int *)v29;
@@ -21725,7 +21715,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     vectoangles(v29, bs->ideal_viewangles);
     v18 = rand();
     v25 = (2 * ((float)(v18 & 0x7FFF) * 0.000030518509 - 0.5))
-        * (*(float *)(v3 + 264)
+        * (v3->vspread
          * 6.0)
         * v28
         + bs->ideal_viewangles[0];
@@ -21734,7 +21724,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
     v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5))
-        * (*(float *)(v3 + 260)
+        * (v3->hspread
          * 6.0)
         * v28
         + bs->ideal_viewangles[1];
@@ -36394,7 +36384,7 @@ char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4)
 }
 
 //----- (1003ECD0) --------------------------------------------------------
-int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
+int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
 {
   int v3; // ecx
   char *v4; // edi
@@ -36421,7 +36411,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
   int v26; // [esp+18h] [ebp+8h]
 
   v3 = 0;
-  *(_DWORD *)(a2 + 1024) = 3;
+  a2->type = 3;
   v4 = ((script_t *)a1)->script_p;
   v5 = *v4;
   if ( *v4 == 48 )
@@ -36429,10 +36419,10 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
     v6 = v4[1];
     if ( v6 == 120 || v6 == 88 )
     {
-      *(_BYTE *)a2 = 48;
+      a2->string[0] = 48;
       v7 = (_BYTE *)(((script_t *)a1)->script_p + 1);
       ((script_t *)a1)->script_p = v7;
-      *(_BYTE *)(a2 + 1) = *v7;
+      a2->string[1] = *v7;
       v8 = (char *)(((script_t *)a1)->script_p + 1);
       v3 = 2;
       ((script_t *)a1)->script_p = v8;
@@ -36441,7 +36431,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
         v9 = *v8;
         if ( (v9 < 48 || v9 > 57) && (v9 < 97 || v9 > 102) && (v9 < 65 || v9 > 65) )
           break;
-        *(_BYTE *)(v3 + a2) = v9;
+        a2->string[v3] = v9;
         ++v3;
         v10 = ((script_t *)a1)->script_p + 1;
         ((script_t *)a1)->script_p = v10;
@@ -36452,18 +36442,18 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
           return 0;
         }
       }
-      v12 = *(_DWORD *)(a2 + 1028);
+      v12 = a2->subtype;
       BYTE1(v12) |= 1u;
       goto LABEL_40;
     }
     v13 = v4[1];
     if ( v13 == 98 || v13 == 66 )
     {
-      *(_BYTE *)a2 = 48;
+      a2->string[0] = 48;
       v14 = (_BYTE *)(((script_t *)a1)->script_p + 1);
       ((script_t *)a1)->script_p = v14;
       v3 = 2;
-      *(_BYTE *)(a2 + 1) = *v14;
+      a2->string[1] = *v14;
       v15 = (char *)(((script_t *)a1)->script_p + 1);
       ((script_t *)a1)->script_p = v15;
       while ( 1 )
@@ -36471,7 +36461,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
         v16 = *v15;
         if ( v16 != 48 && v16 != 49 )
           break;
-        *(_BYTE *)(v3 + a2) = v16;
+        a2->string[v3] = v16;
         ++v3;
         v17 = ((script_t *)a1)->script_p + 1;
         ((script_t *)a1)->script_p = v17;
@@ -36482,7 +36472,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
           return 0;
         }
       }
-      v12 = *(_DWORD *)(a2 + 1028);
+      v12 = a2->subtype;
       BYTE1(v12) |= 4u;
       goto LABEL_40;
     }
@@ -36497,7 +36487,7 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
     {
       while ( 1 )
       {
-        *(_BYTE *)(++v3 + a2 - 1) = *(_BYTE *)((script_t *)a1)->script_p;
+        a2->string[++v3 - 1] = *(_BYTE *)((script_t *)a1)->script_p;
         v20 = (char *)(((script_t *)a1)->script_p + 1);
         ((script_t *)a1)->script_p = v20;
         if ( v3 >= 1024 )
@@ -36516,17 +36506,17 @@ int __cdecl PS_ReadNumber(script_t *a1, intptr_t a2)
     }
   }
   while ( v21 >= 48 && v21 <= 57 );
-  v12 = *(_DWORD *)(a2 + 1028);
+  v12 = a2->subtype;
   if ( v18 )
     BYTE1(v12) |= 2u;
   else
     v12 |= 8u;
-  *(_DWORD *)(a2 + 1028) = v12;
+  a2->subtype = v12;
   if ( !v19 )
     goto LABEL_41;
   BYTE1(v12) |= 8u;
 LABEL_40:
-  *(_DWORD *)(a2 + 1028) = v12;
+  a2->subtype = v12;
 LABEL_41:
   v26 = 2;
   do
@@ -36537,31 +36527,31 @@ LABEL_41:
     {
 LABEL_50:
       ((script_t *)a1)->script_p = v22 + 1;
-      v24 = *(_DWORD *)(a2 + 1028) | 0x2000;
+      v24 = a2->subtype | 0x2000;
       goto LABEL_51;
     }
     if ( v23 == 76 )
     {
-      if ( (*(_DWORD *)(a2 + 1028) & 0x2000) == 0 )
+      if ( (a2->subtype & 0x2000) == 0 )
         goto LABEL_50;
     }
-    else if ( v23 == 117 || v23 == 85 && (*(_DWORD *)(a2 + 1028) & 0x4800) == 0 )
+    else if ( v23 == 117 || v23 == 85 && (a2->subtype & 0x4800) == 0 )
     {
       ((script_t *)a1)->script_p = v22 + 1;
-      v24 = *(_DWORD *)(a2 + 1028) | 0x4000;
+      v24 = a2->subtype | 0x4000;
 LABEL_51:
-      *(_DWORD *)(a2 + 1028) = v24;
+      a2->subtype = v24;
     }
     --v26;
   }
   while ( v26 );
-  *(_BYTE *)(v3 + a2) = 0;
-  NumberValue((char *)a2, *(_DWORD *)(a2 + 1028), (int *)(a2 + 1032), (double *)(a2 + 1040));
-  v25 = *(_DWORD *)(a2 + 1028);
+  a2->string[v3] = 0;
+  NumberValue(a2->string, a2->subtype, (int *)&a2->intvalue, &a2->floatvalue);
+  v25 = a2->subtype;
   if ( (v25 & 0x800) == 0 )
   {
     BYTE1(v25) |= 0x10u;
-    *(_DWORD *)(a2 + 1028) = v25;
+    a2->subtype = v25;
   }
   return 1;
 }
@@ -36729,7 +36719,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
   else if ( (*script->script_p >= '0' && *script->script_p <= '9')
        || (*script->script_p == '.' && (script->script_p[1] >= '0' && script->script_p[1] <= '9')) )
   {
-    if ( !PS_ReadNumber(script, (intptr_t)token) ) return 0;
+    if ( !PS_ReadNumber(script, token) ) return 0;
   }
   else if ( script->flags & 0x10 )
   {
