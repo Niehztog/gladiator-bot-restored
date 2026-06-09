@@ -4115,8 +4115,8 @@ static void sub_10005640(
         int a5,
         int contentmask)
 {
-  float zero_vec[3];
-  float origin_slot[3];
+  vec3_t zero_vec;
+  vec3_t origin_slot;
   float *trace;
 
   zero_vec[0] = 0.0f;
@@ -4270,7 +4270,7 @@ LABEL_6:
  * /INCREMENTAL. */
 int __cdecl sub_10005A10(float *origin)
 {
-  float zero_vec[3];
+  vec3_t zero_vec;
   zero_vec[0] = 0.0f;
   zero_vec[1] = 0.0f;
   zero_vec[2] = 0.0f;
@@ -7254,7 +7254,7 @@ static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int
  *          dword_10066B14      = free counter
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
-void __cdecl sub_10009CB0(float origin[3], float maxs[3], float mins[3])
+void __cdecl sub_10009CB0(vec3_t origin, vec3_t maxs, vec3_t mins)
 {
   float corners[8][3];
   int   line_ids[3];
@@ -7599,9 +7599,9 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
    * contiguous floats; separate scalar decls let GCC reorder/pad them. */
   vec3_t v7;  // [esp+8h] [ebp-3Ch] BYREF
   vec3_t v10; // [esp+14h] [ebp-30h] BYREF
-  float v13[3]; // [esp+20h] [ebp-24h] BYREF
-  float v14[3]; // [esp+2Ch] [ebp-18h] BYREF
-  float v15[3]; // [esp+38h] [ebp-Ch] BYREF
+  vec3_t v13; // [esp+20h] [ebp-24h] BYREF
+  vec3_t v14; // [esp+2Ch] [ebp-18h] BYREF
+  vec3_t v15; // [esp+38h] [ebp-Ch] BYREF
 
   v4 = *end - *start;
   v10[0] = 0.0;
@@ -7684,9 +7684,9 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
   double v5; // st7
   float v6; // [esp+Ch] [ebp-7Ch] BYREF
   float v7; // [esp+10h] [ebp-78h]
-  float v8[3]; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
-  float v11[3]; // [esp+20h] [ebp-68h] BYREF
-  float v12[3]; // [esp+2Ch] [ebp-5Ch] BYREF
+  vec3_t v8; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
+  vec3_t v11; // [esp+20h] [ebp-68h] BYREF
+  vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
   int v13[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
   AAS_ShowArea(a1->areanum, 1);
@@ -7801,8 +7801,8 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 {
   aas_entityinfo_t *ent; // esi (entities[entnum].i)
   int relink;            // [esp+1Ch] [ebp+4h]  (was v13)
-  float absmins[3];      // [esp+Ch]  [ebp-Ch] BYREF (was v12)
-  float absmaxs[3];      // [esp+0h]  [ebp-18h] BYREF (was v11)
+  vec3_t absmins;      // [esp+Ch]  [ebp-Ch] BYREF (was v12)
+  vec3_t absmaxs;      // [esp+0h]  [ebp-18h] BYREF (was v11)
 
   if ( !aasworld.loaded )
   {
@@ -8131,9 +8131,9 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   int v23; // [esp+24h] [ebp-78h]
   int v24; // [esp+28h] [ebp-74h]
   float v25; // [esp+2Ch] [ebp-70h]
-  float v26[3]; // [esp+30h] [ebp-6Ch] BYREF
-  float v27[3]; // [esp+3Ch] [ebp-60h] BYREF
-  float v28[3]; // [esp+48h] [ebp-54h] BYREF
+  vec3_t v26; // [esp+30h] [ebp-6Ch] BYREF
+  vec3_t v27; // [esp+3Ch] [ebp-60h] BYREF
+  vec3_t v28; // [esp+48h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+54h] [ebp-48h] (was int v29[9] + char v30[36] hidden return buffer)
 
   if ( !aasworld.loaded )
@@ -9489,7 +9489,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   bsp_pointlight_t *v8; // esi
   double v9; // st7
   int i; // [esp+Ch] [ebp-10h]
-  float v12[3]; // [esp+10h] [ebp-Ch] BYREF
+  vec3_t v12; // [esp+10h] [ebp-Ch] BYREF
   /* On 64-bit, sub_10007150 writes RGB ints into local slots; we can't reuse
    * the (now intptr_t) parameter slots for that purpose like the IDA decomp
    * did on 32-bit.  Use dedicated int locals instead and feed them by name. */
@@ -10281,8 +10281,8 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
    * callee reads junk for start[1]/start[2].  Collapse into a proper
    * vec3_t to guarantee contiguous layout. */
   vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
-  float v14[3]; // [esp+14h] [ebp-68h] BYREF
-  float v15[3]; // [esp+20h] [ebp-5Ch] BYREF
+  vec3_t v14; // [esp+14h] [ebp-68h] BYREF
+  vec3_t v15; // [esp+20h] [ebp-5Ch] BYREF
   int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
 
   v2 = (float)reach->start[0] - (float)reach->end[0];
@@ -10442,12 +10442,12 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   vec3_t v;       /* was v8/v9/v10 — VectorMA scratch (origin - explosion mid) */
   vec3_t start;      /* was v11/v12/v13 — origin shifted forward 8u, passed to AAS_Trace */
   double v14;
-  float dir[3]; /* BYREF */
-  float forward[3]; /* BYREF — right vector from AngleVectors */
-  float right[3]; /* BYREF — up vector from AngleVectors */
-  float viewangles[3]; /* BYREF — angles (pitch=90, yaw=0, roll=0) */
-  float end[3]; /* BYREF — trace end (origin11 + 500*v16) */
-  float kvel[3]; /* BYREF — scaled direction */
+  vec3_t dir; /* BYREF */
+  vec3_t forward; /* BYREF — right vector from AngleVectors */
+  vec3_t right; /* BYREF — up vector from AngleVectors */
+  vec3_t viewangles; /* BYREF — angles (pitch=90, yaw=0, roll=0) */
+  vec3_t end; /* BYREF — trace end (origin11 + 500*v16) */
+  vec3_t kvel; /* BYREF — scaled direction */
   float bsptrace[21]; /* BYREF — trace result */
 
   v2 = *(int *)&origin[1];
@@ -11438,8 +11438,8 @@ double __cdecl AAS_FaceArea(char *face)
   BOOL v7; // edi
   char *v8; // eax
   char *v9; // eax
-  float v11[3]; // [esp+Ch] [ebp-24h] BYREF
-  float v12[3]; // [esp+18h] [ebp-18h] BYREF
+  vec3_t v11; // [esp+Ch] [ebp-24h] BYREF
+  vec3_t v12; // [esp+18h] [ebp-18h] BYREF
   char v13[12]; // [esp+24h] [ebp-Ch] BYREF
   float v14; // [esp+34h] [ebp+4h]
 
@@ -11702,8 +11702,8 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
    * AAS_PointAreaNum, making it look like a separate scalar to the decompiler.
    * Restoring as vec3_t so VectorMA writes/reads land in the same slot the
    * disassembly bumps by 16.0. */
-  float v5[3]; // [esp+4h] [ebp-18h] BYREF
-  float v7[3]; // [esp+10h] [ebp-Ch] BYREF
+  vec3_t v5; // [esp+4h] [ebp-18h] BYREF
+  vec3_t v7; // [esp+10h] [ebp-Ch] BYREF
 
   v7[2] = 0;
   v7[0] = *end - *start;
@@ -11745,7 +11745,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   aas_reachabilitynode_t *v16; // esi
   int v17; // [esp+10h] [ebp-14h]
   BOOL v18; // [esp+14h] [ebp-10h]
-  float v19[3]; // [esp+18h] [ebp-Ch] BYREF
+  vec3_t v19; // [esp+18h] [ebp-Ch] BYREF
 
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (aasworld.areasettings[area2num].presencetype & 2) == 0 )
     return 0;
@@ -12808,7 +12808,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
  * similar) immediately after — see `ida_dropped_results.md`. */
 float __cdecl VectorDistance(vec3_t a1, vec3_t a2)
 {
-  float v2[3]; // [esp+0h] [ebp-Ch] BYREF
+  vec3_t v2; // [esp+0h] [ebp-Ch] BYREF
 
   v2[0] = *a2 - *a1;
   v2[1] = a2[1] - a1[1];
@@ -13912,9 +13912,9 @@ int AAS_Reachability_Teleport()
   bsp_entity_t *v25; // [esp+58h] [ebp-78h]
   bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for AAS_FreeBSPEntities
   const char *v27; // [esp+60h] [ebp-70h]
-  float v28[3]; // [esp+64h] [ebp-6Ch] BYREF
-  float v29[3]; // [esp+70h] [ebp-60h] BYREF
-  float v30[3]; // [esp+7Ch] [ebp-54h] BYREF
+  vec3_t v28; // [esp+64h] [ebp-6Ch] BYREF
+  vec3_t v29; // [esp+70h] [ebp-60h] BYREF
+  vec3_t v30; // [esp+7Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
   v0 = AAS_ParseBSPEntities();
@@ -14567,9 +14567,9 @@ int AAS_SetWeaponJumpAreaFlags()
   const char *v3; // edi
   int v4; // eax
   int v5; // ecx
-  float v7[3]; // [esp+2Ch] [ebp-24h] BYREF
-  float v8[3]; // [esp+38h] [ebp-18h] BYREF
-  float v9[3]; // [esp+44h] [ebp-Ch] BYREF
+  vec3_t v7; // [esp+2Ch] [ebp-24h] BYREF
+  vec3_t v8; // [esp+38h] [ebp-18h] BYREF
+  vec3_t v9; // [esp+44h] [ebp-Ch] BYREF
 
   /* IDA emitted raw int bit-patterns: -1049624576 = 0xC1700000 = -15.0f,
    * 1097859072 = 0x41700000 = 15.0f.  When v8/v9 are float[3], C converts
@@ -14663,11 +14663,11 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v23;
   float v24;
   vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
-  float v28[3]; /* [BYREF] */
-  float v29[3]; /* [BYREF] */
-  float v30[3]; /* [BYREF] */
+  vec3_t v28; /* [BYREF] */
+  vec3_t v29; /* [BYREF] */
+  vec3_t v30; /* [BYREF] */
   vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
-  float v33[3]; /* [BYREF] */
+  vec3_t v33; /* [BYREF] */
   aas_trace_t trace;
   int v35[20]; /* [BYREF] */
   int v36[20]; /* [BYREF] */
@@ -15371,7 +15371,7 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
 {
   int intdist;
   float dist;
-  float dir[3];
+  vec3_t dir;
 
   VectorSubtract(start, end, dir);
   dist = VectorLength(dir);
@@ -15406,7 +15406,7 @@ int AAS_CalculateAreaTravelTimes(void)
   unsigned short     **mid;
   unsigned short      *row;
   aas_reversedlink_t  *link;
-  float                end[3];
+  vec3_t end;
 
   Sys_MilliSeconds();
   if ( aasworld.areatraveltimes )
@@ -16833,8 +16833,8 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace)
 {
   aas_link_t *v6; // esi
-  float v12[3]; // [esp+4h] [ebp-6Ch] BYREF
-  float v13[3]; // [esp+10h] [ebp-60h] BYREF
+  vec3_t v12; // [esp+4h] [ebp-6Ch] BYREF
+  vec3_t v13; // [esp+10h] [ebp-60h] BYREF
   bsp_trace_t v14; // [esp+1Ch] [ebp-54h] BYREF
   int v15; // [esp+80h] [ebp+10h]
 
@@ -17275,8 +17275,8 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   float v11; // [esp+14h] [ebp-24h]
   float v12; // [esp+18h] [ebp-20h]
   float v13; // [esp+1Ch] [ebp-1Ch]
-  float v14[3]; // [esp+20h] [ebp-18h] BYREF
-  float v15[3]; // [esp+2Ch] [ebp-Ch] BYREF
+  vec3_t v14; // [esp+20h] [ebp-18h] BYREF
+  vec3_t v15; // [esp+2Ch] [ebp-Ch] BYREF
   float v17; // [esp+40h] [ebp+8h]
 
   if ( !aasworld.loaded )
@@ -17431,8 +17431,8 @@ void *__cdecl sub_1001C210(int *gate)
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
 {
   int   i, sides;
-  float v11[3]; /* point closer to plane normal */
-  float v12[3]; /* point farther from plane normal */
+  vec3_t v11; /* point closer to plane normal */
+  vec3_t v12; /* point farther from plane normal */
   float dist1, dist2;
 
   for ( i = 0; i < 3; ++i )
@@ -17585,10 +17585,10 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
  * matches the disasm (2nd arg = mins-out, 3rd arg = maxs-out).           */
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype)
 {
-  float maxs[3]; // [esp+0h] [ebp-30h] BYREF
-  float mins[3]; // [esp+Ch] [ebp-24h] BYREF
-  float newabsmaxs[3]; // [esp+18h] [ebp-18h] BYREF
-  float newabsmins[3]; // [esp+24h] [ebp-Ch] BYREF
+  vec3_t maxs; // [esp+0h] [ebp-30h] BYREF
+  vec3_t mins; // [esp+Ch] [ebp-24h] BYREF
+  vec3_t newabsmaxs; // [esp+18h] [ebp-18h] BYREF
+  vec3_t newabsmins; // [esp+24h] [ebp-Ch] BYREF
 
   AAS_PresenceTypeBoundingBox(presencetype, mins, maxs);
   newabsmins[0] = *absmins - maxs[0];
@@ -19674,8 +19674,8 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   int v7; // eax
   int v8; // ecx
   int v9; // [esp+Ch] [ebp-B4h]
-  float v10[3]; // [esp+10h] [ebp-B0h] BYREF
-  float v11[3]; // [esp+1Ch] [ebp-A4h] BYREF
+  vec3_t v10; // [esp+10h] [ebp-B0h] BYREF
+  vec3_t v11; // [esp+1Ch] [ebp-A4h] BYREF
   float v12[14]; // [esp+28h] [ebp-98h] BYREF
   bot_moveresult_t v13; // [esp+60h] [ebp-60h] BYREF
   bot_moveresult_t v14; // [esp+90h] [ebp-30h] BYREF
@@ -19854,8 +19854,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   int v5; // eax
   int v6; // ecx
   int v7; // [esp+Ch] [ebp-178h]
-  float v8[3]; // [esp+14h] [ebp-170h] BYREF
-  float v9[3]; // [esp+20h] [ebp-164h] BYREF
+  vec3_t v8; // [esp+14h] [ebp-170h] BYREF
+  vec3_t v9; // [esp+20h] [ebp-164h] BYREF
   bot_moveresult_t v10; // [esp+2Ch] [ebp-158h] BYREF
   bot_moveresult_t v11; // [esp+5Ch] [ebp-128h] BYREF
   char v12[124]; // [esp+8Ch] [ebp-F8h] BYREF
@@ -20264,7 +20264,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   int v3; // edx
   int result; // eax
   char v5; // dh
-  float v6[3]; // [esp+8h] [ebp-88h] BYREF
+  vec3_t v6; // [esp+8h] [ebp-88h] BYREF
   float v7[31]; // [esp+14h] [ebp-7Ch] BYREF
 
   qmemcpy(v7, AAS_EntityInfo(v7, a2), sizeof(v7));
@@ -21036,7 +21036,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
   float v25; // [esp+2Ch] [ebp-11Ch]
   float v26; // [esp+30h] [ebp-118h]
   vec3_t dir; // [esp+34h] [ebp-114h] BYREF — direction vector (endpos - origin) for VectorNormalize/Scale
-  float v30[3]; // [esp+40h] [ebp-108h] BYREF
+  vec3_t v30; // [esp+40h] [ebp-108h] BYREF
   int v31[21]; // [esp+4Ch] [ebp-FCh] BYREF
   char v32[84]; // [esp+A0h] [ebp-A8h] BYREF
   char v33[84]; // [esp+F4h] [ebp-54h] BYREF
@@ -21145,8 +21145,8 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   vec3_t v28; // [esp+2Ch] [ebp-118h] BYREF
   float v31; // [esp+38h] [ebp-10Ch]
   vec3_t v32; // [esp+3Ch] [ebp-108h] BYREF
-  float v35[3]; // [esp+48h] [ebp-FCh] BYREF
-  float v36[3]; // [esp+54h] [ebp-F0h] BYREF
+  vec3_t v35; // [esp+48h] [ebp-FCh] BYREF
+  vec3_t v36; // [esp+54h] [ebp-F0h] BYREF
   bot_goal_t v37; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
   bot_moveresult_t v38; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
   float v39[31]; // [esp+C8h] [ebp-7Ch] BYREF
@@ -21458,7 +21458,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   int v14; // [esp+28h] [ebp-150h]
   int v15; // [esp+2Ch] [ebp-14Ch]
   BOOL v16; // [esp+30h] [ebp-148h]
-  float v17[3]; // [esp+34h] [ebp-144h] BYREF
+  vec3_t v17; // [esp+34h] [ebp-144h] BYREF
   int v18[31]; // [esp+40h] [ebp-138h] BYREF
   int v19[16]; // [esp+BCh] [ebp-BCh] BYREF
   char v20[124]; // [esp+FCh] [ebp-7Ch] BYREF
@@ -21575,9 +21575,9 @@ void BotAimAtEnemy(bot_state_t *bs)
   float v39; // [esp+4Ch] [ebp-17Ch] BYREF
   float v40; // [esp+50h] [ebp-178h]
   float v41; // [esp+54h] [ebp-174h]
-  float v42[3]; // [esp+58h] [ebp-170h] BYREF
-  float v43[3]; // [esp+64h] [ebp-164h] BYREF
-  float v44[3]; // [esp+70h] [ebp-158h] BYREF
+  vec3_t v42; // [esp+58h] [ebp-170h] BYREF
+  vec3_t v43; // [esp+64h] [ebp-164h] BYREF
+  vec3_t v44; // [esp+70h] [ebp-158h] BYREF
   int v45[21]; // [esp+7Ch] [ebp-14Ch] BYREF
   float v46[31]; // [esp+D0h] [ebp-F8h] BYREF
   char v47[124]; // [esp+14Ch] [ebp-7Ch] BYREF
@@ -21764,12 +21764,12 @@ void BotCheckAttack(bot_state_t *bs)
   int v13; // [esp+14h] [ebp-1A0h] BYREF
   float v14; // [esp+18h] [ebp-19Ch]
   float v15; // [esp+1Ch] [ebp-198h]
-  float v16[3]; // [esp+20h] [ebp-194h] BYREF
-  float v17[3]; // [esp+2Ch] [ebp-188h] BYREF
-  float v18[3]; // [esp+38h] [ebp-17Ch] BYREF
-  float v19[3]; // [esp+44h] [ebp-170h] BYREF
-  float v20[3]; // [esp+50h] [ebp-164h] BYREF
-  float v21[3]; // [esp+5Ch] [ebp-158h] BYREF
+  vec3_t v16; // [esp+20h] [ebp-194h] BYREF
+  vec3_t v17; // [esp+2Ch] [ebp-188h] BYREF
+  vec3_t v18; // [esp+38h] [ebp-17Ch] BYREF
+  vec3_t v19; // [esp+44h] [ebp-170h] BYREF
+  vec3_t v20; // [esp+50h] [ebp-164h] BYREF
+  vec3_t v21; // [esp+5Ch] [ebp-158h] BYREF
   float v22[21]; // [esp+68h] [ebp-14Ch] BYREF
   float v23[31]; // [esp+BCh] [ebp-F8h] BYREF
   char v24[124]; // [esp+138h] [ebp-7Ch] BYREF
@@ -22202,23 +22202,23 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   int v33; // eax
   float v34; // [esp+0h] [ebp-174h]
   float v35; // [esp+0h] [ebp-174h]
-  float v38_vec[3]; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
-  float v41_vec[3]; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
-  float v44_vec[3]; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
-  float v47_vec[3]; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
-  float v50[3]; /* was v50,v51,v52 — vec3_t for activated area check */
-  float v53_vec[3]; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
-  float v56_vec[3]; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
-  float v59_vec[3]; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
-  float v62[3]; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
+  vec3_t v38_vec; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
+  vec3_t v41_vec; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
+  vec3_t v44_vec; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
+  vec3_t v47_vec; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
+  vec3_t v50; /* was v50,v51,v52 — vec3_t for activated area check */
+  vec3_t v53_vec; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
+  vec3_t v56_vec; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
+  vec3_t v59_vec; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
+  vec3_t v62; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
   float v65; // [esp+88h] [ebp-ECh]
-  float v66_vec[3]; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
-  float v69_vec[3]; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
-  float v72[3]; // [esp+A4h] [ebp-D0h] BYREF
-  float v73[3]; // [esp+B0h] [ebp-C4h] BYREF
+  vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
+  vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
+  vec3_t v72; // [esp+A4h] [ebp-D0h] BYREF
+  vec3_t v73; // [esp+B0h] [ebp-C4h] BYREF
   aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
-  float v75[3]; // [esp+E0h] [ebp-94h] BYREF
-  float v76[3]; // [esp+ECh] [ebp-88h] BYREF
+  vec3_t v75; // [esp+E0h] [ebp-94h] BYREF
+  vec3_t v76; // [esp+ECh] [ebp-88h] BYREF
   int v77[31]; // [esp+F8h] [ebp-7Ch] BYREF
 
   result = (int (__cdecl *)(int))moveresult->blocked;
@@ -27886,7 +27886,7 @@ int sub_1002FA20()
   itemconfig_t *v18; // [esp+Ch] [ebp-10Ch]
   int v19; // [esp+10h] [ebp-108h]
   int v20; // [esp+10h] [ebp-108h]
-  float v21[3]; // [esp+14h] [ebp-104h] BYREF
+  vec3_t v21; // [esp+14h] [ebp-104h] BYREF
   float v22[31]; // [esp+20h] [ebp-F8h] BYREF
   char v23[124]; // [esp+9Ch] [ebp-7Ch] BYREF
 
@@ -28372,7 +28372,7 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
   float v7; // st5
   vec3_t maxs; // [esp+14h] [ebp-24h] BYREF — inner-box upper bound (mover.maxs - bot.mins + origin - 4)
   vec3_t mins; // [esp+20h] [ebp-18h] BYREF — inner-box lower bound (mover.mins - bot.maxs + origin + 4)
-  float v15[3]; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
+  vec3_t v15; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
 
   AAS_PresenceTypeBoundingBox(4, v15, maxs);
   v3 = a2[4] - maxs[0];
@@ -28650,7 +28650,7 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
    * (mins/maxs).  Retyping to float[3] silently injects int->float conversion
    * on the raw-copy stores. */
   int v10[3]; // [esp+10h] [ebp-B4h] BYREF
-  float v11[3]; // [esp+1Ch] [ebp-A8h] BYREF
+  vec3_t v11; // [esp+1Ch] [ebp-A8h] BYREF
   int v12[3]; // [esp+28h] [ebp-9Ch] BYREF
   int v13[3]; // [esp+34h] [ebp-90h] BYREF
   int v14[3]; // [esp+40h] [ebp-84h] BYREF
@@ -28705,10 +28705,10 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
 //----- (10030F10) --------------------------------------------------------
 BOOL __cdecl MoverDown(aas_reachability_t* reach)
 {
-  float v2[3]; // [esp+4h] [ebp-30h] BYREF
-  float v3[3]; // [esp+10h] [ebp-24h] BYREF
-  float v4[3]; // [esp+1Ch] [ebp-18h] BYREF
-  float v5[3]; // [esp+28h] [ebp-Ch] BYREF
+  vec3_t v2; // [esp+4h] [ebp-30h] BYREF
+  vec3_t v3; // [esp+10h] [ebp-24h] BYREF
+  vec3_t v4; // [esp+1Ch] [ebp-18h] BYREF
+  vec3_t v5; // [esp+28h] [ebp-Ch] BYREF
 
   v2[0] = 0;
   v2[1] = 0;
@@ -28851,11 +28851,11 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 //----- (10031380) --------------------------------------------------------
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 {
-  float v3[3]; // [esp+4h] [ebp-3Ch] BYREF
-  float v4[3]; // [esp+10h] [ebp-30h] BYREF
-  float v5[3]; // [esp+1Ch] [ebp-24h] BYREF
-  float v6[3]; // [esp+28h] [ebp-18h] BYREF
-  float v7[3]; // [esp+34h] [ebp-Ch] BYREF
+  vec3_t v3; // [esp+4h] [ebp-3Ch] BYREF
+  vec3_t v4; // [esp+10h] [ebp-30h] BYREF
+  vec3_t v5; // [esp+1Ch] [ebp-24h] BYREF
+  vec3_t v6; // [esp+28h] [ebp-18h] BYREF
+  vec3_t v7; // [esp+34h] [ebp-Ch] BYREF
 
   v3[0] = 0;
   v3[1] = 0;
@@ -28942,7 +28942,7 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
    * call (see bot_movement_split_vec3.md / ida_dropped_results.md). */
   vec3_t v12; // [esp+18h] [ebp-6Ch] BYREF
   vec3_t v15; // [esp+24h] [ebp-60h] BYREF
-  float v18[3]; // [esp+30h] [ebp-54h] BYREF
+  vec3_t v18; // [esp+30h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+3Ch] [ebp-48h] (was int v19[9] + char v20[36] hidden return buffer)
 
   VectorCopy(ms->origin, v12);
@@ -29023,7 +29023,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
    * [esp+0x10/+0x14/+0x18].  Renamed from 'dir' to 'hordir' (Q3 name) to free
    * the param name for the input direction. */
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
-  float v17[3]; // [esp+14h] [ebp-5Ch] BYREF
+  vec3_t v17; // [esp+14h] [ebp-5Ch] BYREF
   int v18[20]; // [esp+20h] [ebp-50h] BYREF
   int v19; // [esp+74h] [ebp+4h]
   float v20; // [esp+78h] [ebp+8h]
@@ -29429,7 +29429,7 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
-  float v10[3]; // [esp+14h] [ebp-3Ch] BYREF
+  vec3_t v10; // [esp+14h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
   float v12; // [esp+5Ch] [ebp+Ch]
 
@@ -29626,7 +29626,7 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   vec3_t predpos; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
   vec3_t predd; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
   vec3_t botd;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
-  float v27[3]; // [esp+48h] [ebp-48h] BYREF
+  vec3_t v27; // [esp+48h] [ebp-48h] BYREF
   /* Same vec3-split shape as AAS_NearbySolidOrGap: VectorMA at 0x10032b95 writes
    * three floats starting at [esp+0x4c], and disasm at 0x10032b9a/0x10032ba9
    * does `fld [esp+0x68]; fadd 1.0; fstp [esp+0x6c]` on that vec's z-slot
@@ -29634,7 +29634,7 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
    * 12-byte slot as `int v28[2] + float v29;` and rendered the z-bump as
    * `v29 += 1.0`, which only updates the same memory under MSVC's frame
    * layout.  Restore as proper vec3. */
-  float v28[3]; // [esp+54h] [ebp-3Ch] BYREF
+  vec3_t v28; // [esp+54h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+60h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
@@ -29758,8 +29758,8 @@ bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
-  float v8[3]; // [esp+14h] [ebp-48h] BYREF
-  float v9[3]; // [esp+20h] [ebp-3Ch] BYREF
+  vec3_t v8; // [esp+14h] [ebp-48h] BYREF
+  vec3_t v9; // [esp+20h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
 
   v9[0] = 0.0f;
@@ -29993,7 +29993,7 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   libvar_t *v2; // eax
   int v3; // ebx
-  float v5[3]; // [esp+0h] [ebp-104h] BYREF
+  vec3_t v5; // [esp+0h] [ebp-104h] BYREF
   float v6[31]; // [esp+Ch] [ebp-F8h] BYREF
   char v7[124]; // [esp+88h] [ebp-7Ch] BYREF
   (void)ms; /* movestate handle is unused by the entity scan */
@@ -30071,7 +30071,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   float v19; // [esp+14h] [ebp-4Ch]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
-  float v23[3]; // [esp+24h] [ebp-3Ch] BYREF
+  vec3_t v23; // [esp+24h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
   float v25; // [esp+6Ch] [ebp+Ch]
   float v26; // [esp+6Ch] [ebp+Ch]
