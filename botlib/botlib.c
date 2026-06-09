@@ -21755,10 +21755,10 @@ void BotCheckAttack(bot_state_t *bs)
 {
 
   int v2; // eax
-  uintptr_t v3; // ebx
+  weaponinfo_t *v3; // ebx
   float v4; // ecx
   double v5; // st7
-  uintptr_t v6; // ecx
+  projectileinfo_t *v6; // ecx
   void *v7; // esi
   int v8; // eax
   void *v9; // esi
@@ -21806,7 +21806,7 @@ void BotCheckAttack(bot_state_t *bs)
         v12 = 50.0f;
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v12, bs->enemy) )
       {
-        v3 = (uintptr_t)sub_100354B0(BotWS(bs));
+        v3 = sub_100354B0(BotWS(bs));
         if ( v3 )
         {
           v4 = bs->origin[1];
@@ -21815,9 +21815,9 @@ void BotCheckAttack(bot_state_t *bs)
           v15 = v5;
           v14 = v4;
           AngleVectors(bs->viewangles, v16, v19, 0);
-          *(float *)&v13 = v19[0] * *(float *)(v3 + 292) + *(float *)v16 * *(float *)(v3 + 288) + *(float *)&v13;
-          v14 = v19[1] * *(float *)(v3 + 292) + v16[1] * *(float *)(v3 + 288) + v14;
-          v15 = v19[2] * *(float *)(v3 + 292) + v16[2] * *(float *)(v3 + 288) + *(float *)(v3 + 296) + v15;
+          *(float *)&v13 = v19[0] * v3->offset[1] + *(float *)v16 * v3->offset[0] + *(float *)&v13;
+          v14 = v19[1] * v3->offset[1] + v16[1] * v3->offset[0] + v14;
+          v15 = v19[2] * v3->offset[1] + v16[2] * v3->offset[0] + v3->offset[2] + v15;
           VectorMA((float *)&v13, 1000.0, (float *)v16, (float *)v21);
           VectorMA((float *)&v13, -12.0, (float *)v16, (float *)&v13);
           qmemcpy(
@@ -21826,9 +21826,9 @@ void BotCheckAttack(bot_state_t *bs)
             sizeof(v22));
           if ( LODWORD(v22[20]) == bs->enemy
             || (SLODWORD(v22[20]) <= 0 || SLODWORD(v22[20]) > maxclients || !BotSameTeam(bs, SLODWORD(v22[20])))
-            && ((v6 = (uintptr_t)((weaponinfo_t *)v3)->proj, (((projectileinfo_t *)v6)->damagetype & 2) == 0)
-             || v22[2] * 1000.0 >= ((projectileinfo_t *)v6)->radius
-             || ((float)((projectileinfo_t *)v6)->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
+            && ((v6 = v3->proj, (v6->damagetype & 2) == 0)
+             || v22[2] * 1000.0 >= v6->radius
+             || ((float)v6->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
           {
             if ( (LOBYTE(v22[19]) & 2) == 0
               || (v7 = AAS_EntityInfo(v24, bs->enemy),
@@ -21839,7 +21839,7 @@ void BotCheckAttack(bot_state_t *bs)
                   qmemcpy(v22, v9, sizeof(v22)),
                   LODWORD(v22[20]) == v10) )
             {
-              if ( (*(_BYTE *)(v3 + 172) & 1) == 0 || (*(unsigned char *)&bs->flags & 2) != 0 )
+              if ( (v3->flags & 1) == 0 || (*(unsigned char *)&bs->flags & 2) != 0 )
                 EA_Attack(bs->client);
               bs->flags ^= 2u;
             }
@@ -25587,16 +25587,16 @@ char *__cdecl RandomString(const char *name)
 void __cdecl sub_1002BEA0(void *unused, void *templates)
 {
   FILE *log;
-  char *tmpl;
-  char *piece;
-  char *str;
+  bot_matchtemplate_t *tmpl;
+  bot_matchpiece_t *piece;
+  bot_matchstring_t *str;
   int   type;
   int   garbage;  /* Mr. Elusive bug: %8d arg never pushed; reads stack slop */
 
   log = Log_FilePointer();
   if ( !log )
     return;
-  tmpl = (char *)templates;
+  tmpl = (bot_matchtemplate_t *)templates;
   if ( !tmpl )
     return;
   while ( tmpl )
@@ -25604,31 +25604,31 @@ void __cdecl sub_1002BEA0(void *unused, void *templates)
     /* BUG: the original .text pushes only the format + FILE* here;
      * the %8d eats whatever 4 bytes follow on the caller stack. */
     fprintf(log, "%8d { ", garbage);
-    piece = *(char **)(tmpl + 0xC);
+    piece = tmpl->first;
     while ( piece )
     {
-      type = *(int *)piece;
+      type = piece->type;
       if ( type == 2 )
       {
-        str = *(char **)(piece + 4);
+        str = piece->firststring;
         while ( str )
         {
-          fprintf(log, "\"%s\"", *(char **)str);
-          if ( *(char **)(str + 4) )
+          fprintf(log, "\"%s\"", str->string);
+          if ( str->next )
             fprintf(log, "|");
-          str = *(char **)(str + 4);
+          str = str->next;
         }
       }
       else if ( type == 1 )
       {
-        fprintf(log, "%d", *(int *)(piece + 8));
+        fprintf(log, "%d", piece->variable);
       }
-      if ( *(char **)(piece + 0xC) )
+      if ( piece->next )
         fprintf(log, ", ");
-      piece = *(char **)(piece + 0xC);
+      piece = piece->next;
     }
-    fprintf(log, " = (%d, %d);}\n", *(int *)(tmpl + 4), *(int *)(tmpl + 8));
-    tmpl = *(char **)(tmpl + 0x10);
+    fprintf(log, " = (%d, %d);}\n", tmpl->type, tmpl->subtype);
+    tmpl = tmpl->next;
   }
 }
 
