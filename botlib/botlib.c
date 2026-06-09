@@ -868,7 +868,7 @@ int BotSetupGoalAI();
 int BotShutdownGoalAI();
 double __cdecl AngleDiff(float ang1, float ang2);
 int __cdecl BotReachabilityArea(int *a1, int a2);
-BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3);
+BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3);
 BOOL __cdecl MoverDown(aas_reachability_t* reach);
 BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
 void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
@@ -11481,7 +11481,7 @@ double __cdecl AAS_AreaVolume(int areanum)
   int v2; // edi
   int v3i;
   int v4i;
-  char *vp;
+  float *vp;
   int v5; // rax (was __int64 — abs32 idiom)
   _DWORD *v7; // [esp-4h] [ebp-1Ch]
   float v8; // [esp+8h] [ebp-10h]
@@ -11495,10 +11495,10 @@ double __cdecl AAS_AreaVolume(int areanum)
   v12 = 0.0;
   v3i = aasworld.faceindex[*((_DWORD *)v1 + 2)];
   v4i = aasworld.edgeindex[aasworld.faces[abs32(v3i)].firstedge];
-  vp = &aasworld.vertexes[aasworld.edges[abs32(v4i)].v[0]];
-  v9 = *(float *)vp;
-  v11 = *(float *)(vp + 8);
-  for ( i = *(float *)(vp + 4); v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
+  vp = (float *)&aasworld.vertexes[aasworld.edges[abs32(v4i)].v[0]];
+  v9 = vp[0];
+  v11 = vp[2];
+  for ( i = vp[1]; v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
   {
     v5 = aasworld.faceindex[v2 + *((int *)v1 + 2)];
     v7 = &aasworld.faces[(abs32(v5))];
@@ -17231,7 +17231,7 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
   int eidx;
   int v8;
   char *edge;
-  char *v7;
+  float *v7;
   float *v9;
   vec3_t v14;
   vec3_t v15;
@@ -17247,14 +17247,12 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
     eidx = aasworld.edgeindex[face->firstedge + v16];
     edge = &aasworld.edges[abs32(eidx)];
     v8 = eidx < 0;
-    v7 = &aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
+    v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
     v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
-    v14[0] = *v9 - *(float *)v7;
-    v14[1] = v9[1] - *(float *)(v7 + 4);
-    v14[2] = v9[2] - *(float *)(v7 + 8);
-    v11 = point[0] - *(float *)v7;
-    v12 = point[1] - *(float *)(v7 + 4);
-    v13 = point[2] - *(float *)(v7 + 8);
+    VectorSubtract(v9, v7, v14);
+    v11 = point[0] - v7[0];
+    v12 = point[1] - v7[1];
+    v13 = point[2] - v7[2];
     CrossProduct(v14, pnormal, v15);
     if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
       return 0;
@@ -17270,7 +17268,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   _DWORD *v5; // ebx
   int eidx;
   char *edge;
-  char *v7;
+  float *v7;
   BOOL v8; // esi
   float *v9; // ecx
   char *v10; // [esp+10h] [ebp-28h]
@@ -17293,14 +17291,12 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       eidx = aasworld.edgeindex[facenum + v5[3]];
       edge = &aasworld.edges[abs32(eidx)];
       v8 = eidx < 0;
-      v7 = &aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
+      v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
       v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
-      v14[0] = *v9 - *(float *)v7;
-      v14[1] = v9[1] - *(float *)(v7 + 4);
-      v14[2] = v9[2] - *(float *)(v7 + 8);
-      v11 = point[0] - *(float *)v7;
-      v12 = point[1] - *(float *)(v7 + 4);
-      v13 = point[2] - *(float *)(v7 + 8);
+      VectorSubtract(v9, v7, v14);
+      v11 = point[0] - v7[0];
+      v12 = point[1] - v7[1];
+      v13 = point[2] - v7[2];
       CrossProduct(v14, v10, v15);
       v17 = -epsilon;
       if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
@@ -28636,7 +28632,7 @@ LABEL_17:
 // 10030AA0: using guessed type int var_4C[10];
 
 //----- (10030D00) --------------------------------------------------------
-BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
+BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
 {
   /* a1 = origin vec3 pointer, a3 = reach_t pointer.  Originally typed
    * as int; on aarch64 the int parameter sign-truncated callers'
@@ -28681,20 +28677,20 @@ BOOL __cdecl BotOnMover(intptr_t a1, int a2, aas_reachability_t* a3)
      * original semantics of comparing a1[i] against
      * v15[i]+v16[i]+16 and v17[i]+v16[i]-16 for i=0..1. */
     v4 = 0;
-    while ( *(float *)((char *)v15 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) + 16.0f >= *(float *)(a1 + 4 * v4)
-         && *(float *)((char *)v17 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) - 16.0f <= *(float *)(a1 + 4 * v4) )
+    while ( *(float *)((char *)v15 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) + 16.0f >= a1[v4]
+         && *(float *)((char *)v17 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) - 16.0f <= a1[v4] )
     {
       ++v4;
       if ( v4 >= 2 )
       {
-        v7 = *(_DWORD *)(a1 + 4);
-        v8 = *(float *)(a1 + 8) + 24.0;
-        v10[0] = *(_DWORD *)a1;
+        v7 = *(_DWORD *)&a1[1];
+        v8 = a1[2] + 24.0;
+        v10[0] = *(_DWORD *)&a1[0];
         v14[0] = v10[0];
         v10[1] = v7;
         v14[1] = v7;
         *(float *)&v10[2] = v8;
-        *(float *)&v14[2] = *(float *)(a1 + 8) - 48.0;
+        *(float *)&v14[2] = a1[2] - 48.0;
         qmemcpy(v18, AAS_Trace(v18, (float*)(v10), (float*)v12, (float*)v13, (float*)(v14), a2, 33619971), sizeof(v18));
         return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == a3->facenum;
       }
@@ -29851,7 +29847,7 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   float v37; // [esp+88h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
-  if ( BotOnMover((intptr_t)ms, ms->entitynum, reach) )
+  if ( BotOnMover(ms->origin, ms->entitynum, reach) )
   {
     if ( (float)(int)abs32((__int64)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
     {
