@@ -7348,7 +7348,7 @@ void __cdecl sub_10009ED0(int facenum)
     0xDCDDDEDFu,  /* state 3 — original initial */
   };
   int   color_state;
-  char *face;
+  aas_face_t *face;
   int   numedges, firstedge;
   int   i;
   int   edge_idx, vert_a, vert_b;
@@ -7364,8 +7364,8 @@ void __cdecl sub_10009ED0(int facenum)
     bi_Print(PRT_ERROR, "facenum %d out of range\n", facenum);
 
   face = &aasworld.faces[facenum];
-  numedges = *(int *)(face + 8);
-  firstedge = *(int *)(face + 0xC);
+  numedges = face->numedges;
+  firstedge = face->firstedge;
 
   color_state = 3;          /* initial edi = 0xDCDDDEDF — slot 3 in our table */
 
@@ -7388,7 +7388,7 @@ void __cdecl sub_10009ED0(int facenum)
   }
 
   /* draw 20-unit normal arrow from the first vertex of the first edge */
-  planenum = *(int *)face;
+  planenum = face->planenum;
   normal = aasworld.planes[planenum].normal;
   edge_idx = edgeindex[firstedge];
   if ( edge_idx < 0 )
@@ -11429,6 +11429,7 @@ int __cdecl AAS_AreaReachability(int areanum)
 //----- (10011090) --------------------------------------------------------
 double __cdecl AAS_FaceArea(char *face)
 {
+  aas_face_t *f = (aas_face_t *)face;
   int v2; // ebp
   int v3; // eax
   float *v4; // ecx
@@ -11443,15 +11444,15 @@ double __cdecl AAS_FaceArea(char *face)
   float v14; // [esp+34h] [ebp+4h]
 
   v2 = 1;
-  v3 = *(_DWORD *)(face + 12);
+  v3 = f->firstedge;
   v14 = 0.0;
   v4 = (float *)aasworld.vertexes;
   v5 = (float *)&aasworld.vertexes[aasworld.edges[abs32(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
-  if ( *(_DWORD *)(face + 8) - 1 <= 1 )
+  if ( f->numedges - 1 <= 1 )
     return 0.0;
   while ( 1 )
   {
-    v6 = aasworld.edgeindex[*(_DWORD *)(face + 12) + v2];
+    v6 = aasworld.edgeindex[f->firstedge + v2];
     v7 = v6 < 0;
     v8 = &aasworld.edges[abs32(v6)];
     v12[0] = v4[3 * *(_DWORD *)&v8[4 * v7]] - *v5;
@@ -11464,7 +11465,7 @@ double __cdecl AAS_FaceArea(char *face)
     CrossProduct(v12, v11, v13);
     ++v2;
     v14 = VectorLength(v13) * 0.5 + v14;
-    if ( v2 >= *(_DWORD *)(face + 8) - 1 )
+    if ( v2 >= f->numedges - 1 )
       break;
     v4 = (float *)aasworld.vertexes;
   }
@@ -12850,9 +12851,9 @@ void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 //----- (10013CC0) --------------------------------------------------------
 int AAS_Reachability_Jump(int area1num, int area2num)
 {
-  char *area1; // ebx (was `float area1` IDA punned a pointer in float-typed slot — must be a real ptr on 64-bit)
-  char *area1_save; // backup of area1 across the inner face1 loop (was sharing v90's slot in IDA)
-  char *area2; // esi
+  aas_area_t *area1; // ebx (was `float area1` IDA punned a pointer in float-typed slot — must be a real ptr on 64-bit)
+  aas_area_t *area1_save; // backup of area1 across the inner face1 loop (was sharing v90's slot in IDA)
+  aas_area_t *area2; // esi
   int i; // edx
   float *v6; // edi
   float *v7; // ecx
@@ -12957,7 +12958,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     area1 = &aasworld.areas[area1num];
     area2 = &aasworld.areas[area2num];
     area1_save = area1;
-    v91 = area2;
+    v91 = (char *)area2;
     /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
      * `call AAS_MaxJumpDistance` / `call AAS_MaxJumpHeight`, each followed by
      * `fstp [esp+...]` storing into v89 / v68.  IDA emitted `vN = a1` instead
@@ -12967,19 +12968,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
 
-    v6 = (float *)(area2 + 12);
-    v7 = (float *)(area1 + 24);
+    v6 = area2->mins;
+    v7 = area1->maxs;
     for (i = 0; i < 2; i++)
     {
-      if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
+      if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - (char *)area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
       ++v7;
       ++v6;
     }
 
-    if ( *(float *)&maxjumpheight + *(float *)(area1 + 32) >= *((float *)area2 + 5) )
+    if ( *(float *)&maxjumpheight + area1->maxs[2] >= area2->mins[2] )
     {
-      v8 = *(_DWORD *)(area1 + 4);
+      v8 = area1->numfaces;
       v9 = 0;
       bestdist = 999999.0;
       *(float *)&maxjumpheight = 0.0;
@@ -12987,21 +12988,21 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         goto LABEL_67;
       do
       {
-        face1num = aasworld.faceindex[v9 + *(_DWORD *)(area1 + 8)];
+        face1num = aasworld.faceindex[v9 + area1->firstface];
         face1num = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
         face1 = &aasworld.faces[face1num];
         LOBYTE(face1num) = face1->faceflags;
         v66 = face1;
         if ( (face1num & 4) != 0 )
         {
-          v13 = *((_DWORD *)area2 + 1);
+          v13 = area2->numfaces;
           v14 = 0;
           v92 = 0;
           if ( v13 > 0 )
           {
             do
             {
-              face2num = aasworld.faceindex[v14 + *((_DWORD *)area2 + 2)];
+              face2num = aasworld.faceindex[v14 + area2->firstface];
               face2 = &aasworld.faces[((HIDWORD(face2num) ^ face2num) - HIDWORD(face2num))];
               v67 = face2;
               if ( (face2[1] & 4) != 0 )
@@ -13239,17 +13240,17 @@ LABEL_62:
                   }
                   v14 = v92;
                   area1 = area1_save;
-                  area2 = v91;
+                  area2 = (aas_area_t *)v91;
                   face1 = v66;
                 }
               }
-              v43 = *((_DWORD *)area2 + 1);
+              v43 = area2->numfaces;
               v92 = ++v14;
             }
             while ( v14 < v43 );
           }
         }
-        v44 = *(_DWORD *)(area1 + 4);
+        v44 = area1->numfaces;
         v9 = ++maxjumpheight;
       }
       while ( maxjumpheight < v44 );
@@ -25385,18 +25386,18 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
 void __cdecl sub_1002B900(int *list)
 {
   FILE *fp;
-  char *outer;
-  char *item;
+  bot_randomlist_t *rl;
+  bot_randomstring_t *rs;
   fp = Log_FilePointer();
   if ( !fp || !list )
     return;
-  for ( outer = (char *)list; outer; outer = *(char **)(outer + 0xc) )
+  for ( rl = (bot_randomlist_t *)list; rl; rl = rl->next )
   {
-    fprintf(fp, "%s = {", *(char **)outer);
-    for ( item = *(char **)(outer + 8); item; item = *(char **)(item + 4) )
+    fprintf(fp, "%s = {", rl->string);
+    for ( rs = rl->firstrandomstring; rs; rs = rs->next )
     {
-      fprintf(fp, "\"%s\"", *(char **)item);
-      fprintf(fp, *(int *)(item + 4) ? ", " : "}\n");
+      fprintf(fp, "\"%s\"", rs->string);
+      fprintf(fp, rs->next ? ", " : "}\n");
     }
   }
 }
@@ -36275,12 +36276,13 @@ LABEL_22:
 //----- (1003E9F0) --------------------------------------------------------
 int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
 {
+  token_t *token = (token_t *)a2;
   char *v2; // eax
   int v3; // edx
   char v4; // al
 
-  *(_DWORD *)(a2 + 1024) = 4;
-  *(_BYTE *)a2 = *(_BYTE *)a1->script_p;
+  token->type = 4;
+  token->string[0] = *a1->script_p;
   v2 = (char *)(a1->script_p + 1);
   v3 = 1;
   a1->script_p = v2;
@@ -36289,7 +36291,7 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
     v4 = *v2;
     if ( (v4 < 97 || v4 > 122) && (v4 < 65 || v4 > 90) && (v4 < 48 || v4 > 57) && v4 != 95 )
       break;
-    *(_BYTE *)(v3 + a2) = v4;
+    token->string[v3] = v4;
     ++v3;
     v2 = (char *)(a1->script_p + 1);
     a1->script_p = v2;
@@ -36299,8 +36301,8 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
       return 0;
     }
   }
-  *(_BYTE *)(v3 + a2) = 0;
-  *(_DWORD *)(a2 + 1028) = v3;
+  token->string[v3] = 0;
+  token->subtype = v3;
   return 1;
 }
 
