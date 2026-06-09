@@ -2799,7 +2799,6 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   int v7; // edi
   int v12; // edx
   float *i; // ecx
-  int result; // eax
   int v15; // ecx
   float v16; // st7
   float v17; // st6
@@ -2949,9 +2948,8 @@ LABEL_40:
       qmemcpy(v47, (const void *)sub_100044F0(v48, LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask), 0x54u);
       if ( v47[2] < (float)trace[2] )
       {
-        result = 1;
         qmemcpy(trace, v47, 0x54u);
-        return result;
+        return 1;
       }
     }
     return 0;
@@ -2992,9 +2990,8 @@ LABEL_40:
     v35 = -v35;
   v38 = v35 - trace[11];
   *((_BYTE *)trace + 40) = v15;
-  result = 1;
   trace[9] = v38;
-  return result;
+  return 1;
 }
 // 100037F3: conditional instruction was optimized away because edx.4<3
 // 100038CE: variable 'v22' is possibly undefined
@@ -5276,7 +5273,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
  * is unrecoverable — kept under the address name. */
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
 {
-  int result; // eax
   /* IDA decompiled this as `float v7[3]`, but the original asm does raw 4-byte
    * mov copies — sub_10006D10 writes the RGB lightmap samples here as INTs
    * (signature `int *a5`), and sub_10007150 stores them back to *red/*green/*blue
@@ -5291,9 +5287,8 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
     return 0;
   *red = v7[0];
   *green = v7[1];
-  result = 1;
   *blue = v7[2];
-  return result;
+  return 1;
 }
 // 100012E9: using guessed type _DWORD __cdecl sub_10006D10(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
 // 100674C0: using guessed type int dword_100674C0;
@@ -12153,7 +12148,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int *v44; // eax
   int *v45; // esi
   int v46; // ecx
-  int result; // eax
   int v48; // ebp
   int v49; // ebx
   char *v50; // esi
@@ -12722,13 +12716,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *(_DWORD *)(v56 + 4) = 0;
           VectorMA(v121, 0.1f, (float *)v120, v56 + 12);
           VectorMA(v110, 5.0f, (float *)v120, v56 + 24);
-          result = 1;
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
           ((aas_reachabilitynode_t *)v56)->next = areareachability[v48];
           areareachability[v48] = (aas_reachabilitynode_t *)v56;
           ++reach_walk;
-          return result;
+          return 1;
         }
         v114 = -(int)AAS_FallDamageDistance();
         if ( (float)(int)v114 < v64 || AAS_AreaSwim(v49) )
@@ -20259,7 +20252,6 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
 
   int v2; // eax
   int v3; // edx
-  int result; // eax
   char v5; // dh
   vec3_t v6; // [esp+8h] [ebp-88h] BYREF
   float v7[31]; // [esp+14h] [ebp-7Ch] BYREF
@@ -20284,7 +20276,6 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   bs->enemy_weapon_railgun = 0;
   bs->enemy_weapon_bfg = 0;
   bs->enemy_weapon_phalanx = 0;
-  result = 1;
   switch ( v3 )
   {
     case 0:
@@ -20330,7 +20321,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   bs->enemy_invulnerability = (LODWORD(v7[29]) & 0x10000) != 0;
   bs->enemy_quad = v5 < 0;
   bs->enemy_powerscreen = (v5 & 2) != 0;
-  return result;
+  return 1;
 }
 // 10001D75: using guessed type double __cdecl VectorLength(_DWORD);
 
@@ -20415,9 +20406,7 @@ BOOL __cdecl sub_10021710(_DWORD *a1)
 {
   int v1; // eax
   int v2; // ecx
-  BOOL result; // eax
 
-  result = 1;
   if ( (a1[29] & 0x4002) == 0 )
   {
     v1 = a1[3];
@@ -20428,7 +20417,7 @@ BOOL __cdecl sub_10021710(_DWORD *a1)
         return 0;
     }
   }
-  return result;
+  return 1;
 }
 // 10064028: using guessed type int maxclients;
 
@@ -36184,7 +36173,6 @@ int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
   char *v10; // ebp
   int v11; // ebx
   char *v12; // eax
-  int result; // eax
   int v14; // edi
   char *v16; // [esp+14h] [ebp+4h]
 
@@ -36221,12 +36209,11 @@ int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
           a1->line = v11;
           a1->script_p = v10;
 LABEL_22:
-          result = 1;
           token->string[v5] = a3;
           v14 = v5 + 1;
           token->string[v14] = 0;
           token->subtype = v14;
-          return result;
+          return 1;
         }
         v6 = v16;
         a1->script_p = v12 + 1;
@@ -37314,7 +37301,6 @@ static inline float fielddef_float(char **f, int slot) {
 int __cdecl ReadNumber(source_t *src, char **field, float *out)
 {
   int v3; // esi
-  int result; // eax
   int v5; // eax
   float v6; // st7
   int v7; // ebx
@@ -37460,7 +37446,6 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
 LABEL_47:
   if ( (unsigned __int8)v8 == 1 )
   {
-    result = 1;
     *(_BYTE *)out = v7;
   }
   else if ( (unsigned __int8)v8 == 2 )
@@ -37474,7 +37459,7 @@ LABEL_47:
       *out = (float)v19;
     return 1;
   }
-  return result;
+  return 1;
 }
 // 10040664: variable 'v15' is possibly undefined
 // 10040750: variable 'v17' is possibly undefined
@@ -37893,20 +37878,18 @@ int __stdcall sub_100415E0(int a1)
 //----- (10041600) --------------------------------------------------------
 HGLOBAL sub_10041600(void)
 {
-  HGLOBAL result; // eax
 
   if ( dword_10062970 )
   {
     GlobalUnlock(dword_10062970);
     GlobalFree(dword_10062970);
   }
-  result = dword_10062968;
   if ( dword_10062968 )
   {
     GlobalUnlock(dword_10062968);
     return (HGLOBAL)(intptr_t)GlobalFree(dword_10062968);
   }
-  return result;
+  return dword_10062968;
 }
 
 //----- (10041650) --------------------------------------------------------
@@ -38294,15 +38277,13 @@ int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
 //----- (10042380) --------------------------------------------------------
 HGLOBAL sub_10042380()
 {
-  HGLOBAL result; // eax
 
-  result = hMem;
   if ( hMem )
   {
     GlobalUnlock(hMem);
     return (HGLOBAL)(intptr_t)GlobalFree(hMem);
   }
-  return result;
+  return hMem;
 }
 
 //----- (100423B0) --------------------------------------------------------
