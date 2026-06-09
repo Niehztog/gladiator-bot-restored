@@ -14373,7 +14373,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   int v6; // eax
   int face2num; // ebp
   char *face2; // esi
-  char *v; // rax (was __int64) — pointer to vertex (float[3])
+  float *v; // rax (was __int64) — pointer to vertex (float[3])
   int vidx; // edge index value
   float hordist; // st7 (was double)
   int v11; // edi
@@ -14445,10 +14445,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
       if ( (face2[4] & 1) != 0 )
       {
         vidx = aasworld.edgeindex[*((_DWORD *)face2 + 3)];
-        v = &aasworld.vertexes[aasworld.edges[abs32(vidx)].v[0]];
-        dir[0] = *(float *)v - areastart[0];
-        dir[1] = *(float *)(v + 4) - areastart[1];
-        dir[2] = *(float *)(v + 8) - areastart[2];
+        v = aasworld.vertexes[aasworld.edges[abs32(vidx)].v[0]];
+        VectorSubtract(v, areastart, dir);
         if ( dir[2] * aasworld.planes[*(_DWORD *)face2].normal[2]
            + dir[1] * aasworld.planes[*(_DWORD *)face2].normal[1]
            + dir[0] * aasworld.planes[*(_DWORD *)face2].normal[0] <= 0.0f )
@@ -17403,9 +17401,9 @@ void *__cdecl sub_1001C210(int *gate)
   int    idx;
   int    areanum;
   int    planenum;
-  char  *face;
-  char  *area;
-  char  *plane;
+  aas_face_t  *face;
+  aas_area_t  *area;
+  aas_plane_t *plane;
 
   if ( !aasworld.loaded )
     return 0;
@@ -17413,17 +17411,17 @@ void *__cdecl sub_1001C210(int *gate)
     return 0;
   areanum = gate[6];                                  /* gate->_i18 */
   area = &aasworld.areas[areanum];
-  numfaces = *(int *)(area + 4);
+  numfaces = area->numfaces;
   if ( numfaces <= 0 )
     return 0;
-  firstface = *(int *)(area + 8);
+  firstface = area->firstface;
   for ( i = 0; i < numfaces; i++ )
   {
     idx = aasworld.faceindex[firstface + i];
     if ( idx < 0 )
       idx = -idx;
     face = &aasworld.faces[idx];
-    planenum = *(int *)face;
+    planenum = face->planenum;
     if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
     plane = &aasworld.planes[planenum];
@@ -25080,19 +25078,26 @@ LABEL_8:
  * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
 void __cdecl sub_1002B070(int *list)
 {
+  /* Inner item struct: { char *name; float val; struct item *next; } stride 12.
+   * Outer list:        { int key; pad; struct item *items; struct list *next; } stride 16. */
+  typedef struct namelist_item_s {
+    char *name;
+    float val;
+    struct namelist_item_s *next;
+  } namelist_item_t;
   FILE *fp;
   int  *outer;
-  char *item;
+  namelist_item_t *item;
   fp = Log_FilePointer();
   if ( !fp || !list )
     return;
   for ( outer = list; outer; outer = (int *)outer[3] )
   {
     fprintf(fp, "%d : [", outer[0]);
-    for ( item = (char *)outer[2]; item; item = *(char **)(item + 8) )
+    for ( item = (namelist_item_t *)outer[2]; item; item = item->next )
     {
-      fprintf(fp, "(\"%s\", %1.2f)", *(char **)item, (float)*(float *)(item + 4));
-      if ( *(int *)(item + 8) )
+      fprintf(fp, "(\"%s\", %1.2f)", item->name, (float)item->val);
+      if ( item->next )
         fprintf(fp, ", ");
     }
     fprintf(fp, "]\n");
