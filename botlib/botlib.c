@@ -4662,7 +4662,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
   bsp_link_t *v9; // eax
   bsp_link_t *v10; // ecx
   _DWORD *v11; // esi
-  char *v12; // ecx
+  aas_plane_t *v12; // ecx
   int v13; // edx
   char v14; // al
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
@@ -4678,15 +4678,15 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
     if ( v7 >= 0 )
     {
       v11 = (_DWORD *)(dword_10067504 + 28 * v7);
-      v12 = dword_100674F4 + 20 * *v11;
-      v13 = *(_DWORD *)(v12 + 16);
+      v12 = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
+      v13 = v12->type;
       if ( v13 >= 3 )
       {
         v14 = AAS_BoxOnPlaneSide2(a1, a2, (float *)v12);
       }
-      else if ( *(float *)(v12 + 12) > (float)a1[v13] )
+      else if ( v12->dist > (float)a1[v13] )
       {
-        if ( *(float *)(v12 + 12) < (float)a2[v13] )
+        if ( v12->dist < (float)a2[v13] )
           v14 = 3;
         else
           v14 = 2;
@@ -17335,17 +17335,17 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
   int    firstface;
   int    idx;
   char  *face;
-  char  *area;
+  aas_area_t *area;
   float  plane_z;
   vec3_t dir;
 
   if ( !aasworld.loaded )
     return 0;
   area = &aasworld.areas[areanum];
-  numfaces = *(int *)(area + 4);
+  numfaces = area->numfaces;
   if ( numfaces <= 0 )
     return 0;
-  firstface = *(int *)(area + 8);
+  firstface = area->firstface;
   for ( i = 0; i < numfaces; i++ )
   {
     idx = aasworld.faceindex[firstface + i];
@@ -20445,10 +20445,11 @@ BOOL __cdecl sub_10021710(_DWORD *a1)
 BOOL __cdecl EntityIsShooting(intptr_t a1)
 {
   int v1; // eax
+  aas_entityinfo_t *ent = (aas_entityinfo_t *)a1;
 
-  if ( *(_DWORD *)(a1 + 92) != 255 )
+  if ( ent->modelindex != 255 )
     return 0;
-  v1 = *(_DWORD *)(a1 + 108);
+  v1 = ent->frame;
   if ( v1 < 46 || v1 > 53 )
     return 0;
   return 1;
@@ -28731,39 +28732,33 @@ BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4)
 }
 
 //----- (10031010) --------------------------------------------------------
-void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime)
+void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
 {
-  int v3; // esi
-  _DWORD *v4; // eax
-  int v5; // esi
-  float *i; // ebx
+  int i;
+  bot_movestate_t *ms = (bot_movestate_t *)ms_;
 
-  v3 = 0;
-  v4 = (_DWORD *)(ms + 116);
-  do
+  for ( i = 0; i < 1; i++ )
   {
-    if ( *v4 == number )
+    if ( ms->avoidreach[i] == number )
     {
-      if ( AAS_Time() >= *(float *)(ms + 4 * v3 + 120) )
-        *(_DWORD *)(ms + 4 * v3 + 124) = 1;
+      if ( ms->avoidreachtimes[i] > AAS_Time() )
+        ++ms->avoidreachtries[i];
       else
-        ++*(_DWORD *)(ms + 4 * v3 + 124);
-      *(float *)(ms + 4 * v3 + 120) = AAS_Time() + avoidtime;
+        ms->avoidreachtries[i] = 1;
+      ms->avoidreachtimes[i] = AAS_Time() + avoidtime;
       return;
     }
-    ++v3;
-    ++v4;
   }
-  while ( v3 < 1 );
-  v5 = 0;
-  for ( i = (float *)(ms + 120); AAS_Time() <= *i; ++i )
+  for ( i = 0; i < 1; i++ )
   {
-    if ( ++v5 >= 1 )
+    if ( ms->avoidreachtimes[i] < AAS_Time() )
+    {
+      ms->avoidreach[i] = number;
+      ms->avoidreachtimes[i] = AAS_Time() + avoidtime;
+      ms->avoidreachtries[i] = 1;
       return;
+    }
   }
-  *(_DWORD *)(ms + 4 * v5 + 116) = number;
-  *(float *)(ms + 4 * v5 + 120) = AAS_Time() + avoidtime;
-  *(_DWORD *)(ms + 4 * v5 + 124) = 1;
 }
 
 //----- (100310E0) --------------------------------------------------------
@@ -35575,6 +35570,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   char v21; // cl
   char v22; // [esp+0h] [ebp-408h]
   char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
+  token_t *tok = (token_t *)a4;
 
   v4 = src;
   if ( !PC_ReadTokenHandle(src, a4) )
@@ -35582,7 +35578,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
     SourceError(src, aCouldnTReadExp);
     return 0;
   }
-  v6 = *(_DWORD *)(a4 + 1024);
+  v6 = tok->type;
   if ( v6 != a2 )
   {
     if ( a2 == 1 )
@@ -35600,14 +35596,14 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   }
   if ( v6 != 3 )
   {
-    if ( v6 == 5 && *(_DWORD *)(a4 + 1028) != a3 )
+    if ( v6 == 5 && tok->subtype != a3 )
     {
       SourceError(src, aFoundS, a4);
       return 0;
     }
     return 1;
   }
-  if ( (a3 & *(_DWORD *)(a4 + 1028)) == a3 )
+  if ( (a3 & tok->subtype) == a3 )
     return 1;
   if ( (a3 & 8) != 0 )
     strcpy(ArgList, "decimal");
