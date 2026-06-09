@@ -18225,7 +18225,7 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
  * &g645).  Restored verbatim — Mr. Elusive's behavior preserved including
  * the zero-velocity fall-through and the predicted-vs-current branch via
  * the 0x38 stopevent mask. */
-static int sub_1001D420(bot_state_t *bs)
+int sub_1001D420(bot_state_t *bs)
 {
   char entinfo[124];        /* [esp+0x4C] — current-frame target entityinfo  */
   char prevent[124];        /* [esp+0xC4] — wait, no: this is the scratch    *
