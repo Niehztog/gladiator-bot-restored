@@ -33934,7 +33934,6 @@ int __cdecl PC_Directive_include(source_t *src)
 // 10001140: using guessed type _DWORD __cdecl StripDoubleQuotes(_DWORD);
 
 //----- (1003AB10) --------------------------------------------------------
-//----- (1003AB30) --------------------------------------------------------
 /* Q3 l_precomp.c:1061: int PC_ReadLine(source_t *source, token_t *token).
  * Read tokens, skipping past line-continuation backslashes; stop and
  * unread when the next token is on a new line. */
@@ -35912,7 +35911,6 @@ void __cdecl FreeSource(source_t *src)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1003E120) --------------------------------------------------------
-//----- (1003E1C0) --------------------------------------------------------
 /* Q3 l_script.c: void PS_CreatePunctuationTable(script_t *, punctuation_t *).
  * Build a 256-entry perfect-hash table indexed by the first character of
  * each punctuation, with chains sorted longer-first.  IDA emitted this as
