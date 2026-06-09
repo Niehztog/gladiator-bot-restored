@@ -11730,8 +11730,8 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 {
   int v2; // edx
-  char *v3; // esi
-  char *v4; // ebx
+  aas_area_t *v3; // esi
+  aas_area_t *v4; // ebx
   float *v5; // edi
   float *v6; // ecx
   int *v7; // ecx
@@ -11752,11 +11752,11 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   v2 = 0;
   v3 = &aasworld.areas[area2num];
   v4 = &aasworld.areas[area1num];
-  v5 = (float *)(v3 + 12);
-  v6 = (float *)(v4 + 24);
+  v5 = v3->mins;
+  v6 = v4->maxs;
   do
   {
-    if ( *(float *)((char *)v6 + (v3 - v4)) + 10.0 < *(v6 - 3) || *v5 - 10.0 > *v6 )
+    if ( *(float *)((char *)v6 + ((char *)v3 - (char *)v4)) + 10.0 < *(v6 - 3) || *v5 - 10.0 > *v6 )
       return 0;
     ++v2;
     ++v6;
@@ -11764,28 +11764,28 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   }
   while ( v2 < 3 );
   v17 = 0;
-  if ( *((int *)v4 + 1) <= 0 )
+  if ( v4->numfaces <= 0 )
     return 0;
   v7 = (int *)aasworld.faceindex;
   while ( 1 )
   {
-    v8 = v7[*((_DWORD *)v4 + 2) + v17];
+    v8 = v7[v4->firstface + v17];
     v18 = v8 < 0;
     v9 = 0;
     v10 = abs32(v8);
-    if ( *((int *)v3 + 1) > 0 )
+    if ( v3->numfaces > 0 )
       break;
 LABEL_15:
-    if ( ++v17 >= *((_DWORD *)v4 + 1) )
+    if ( ++v17 >= v4->numfaces )
       return 0;
   }
   while ( 1 )
   {
-    v11 = v7[v9 + *((_DWORD *)v3 + 2)];
+    v11 = v7[v9 + v3->firstface];
     if ( v10 == (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
       break;
 LABEL_14:
-    if ( ++v9 >= *((_DWORD *)v3 + 1) )
+    if ( ++v9 >= v3->numfaces )
       goto LABEL_15;
   }
   AAS_FaceCenter(v10, (float *)v19);
@@ -17328,7 +17328,7 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
   int    numfaces;
   int    firstface;
   int    idx;
-  char  *face;
+  aas_face_t *face;
   aas_area_t *area;
   float  plane_z;
   vec3_t dir;
@@ -17346,13 +17346,13 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
     if ( idx < 0 )
       idx = -idx;
     face = &aasworld.faces[idx];
-    if ( !(*(unsigned char *)(face + 4) & 4) )
+    if ( !(face->faceflags & 4) )
       continue;
-    plane_z = ((float *)(&aasworld.planes[*(int *)face]))[2];
+    plane_z = aasworld.planes[face->planenum].normal[2];
     dir[0] = 0.0f;
     dir[1] = 0.0f;
     dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
-    if ( AAS_InsideFace((aas_face_t *)face, dir, (float *)predicate_arg, 0.01f) )
+    if ( AAS_InsideFace(face, dir, (float *)predicate_arg, 0.01f) )
       return face;
   }
   return 0;
