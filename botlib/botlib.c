@@ -20058,10 +20058,10 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
 {
   __int16 v1; // ax
   char *v2; // edi
-  __int64 v3; // rax
-  __int64 v4; // rax
-  __int64 v5; // rax
-  __int64 v6; // rax
+  int v3; // eax
+  int v4; // eax
+  int v5; // eax
+  int v6; // eax
   __int16 v7; // ax
   char *v8; // eax
   int v9; // eax
@@ -20072,45 +20072,30 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   if ( v1 )
   {
     v2 = sub_1000DA20(v1);
-    if ( _strcmpi(v2, aPQuad) )
-    {
-      if ( _strcmpi(v2, aPInvulnerabili) )
-      {
-        if ( _strcmpi(v2, aPRebreather) )
-        {
-          if ( !_strcmpi(v2, aPEnvirosuit) )
-            bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-        }
-        else
-        {
-          bs->rebreather_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-        }
-      }
-      else
-      {
-        bs->invulnerability_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-      }
-    }
-    else
-    {
+    if ( !_strcmpi(v2, aPQuad) )
       bs->quad_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    }
+    else if ( !_strcmpi(v2, aPInvulnerabili) )
+      bs->invulnerability_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
+    else if ( !_strcmpi(v2, aPRebreather) )
+      bs->rebreather_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
+    else if ( !_strcmpi(v2, aPEnvirosuit) )
+      bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
   }
-  v3 = (__int64)(bs->quad_endtime - AAS_Time());
+  v3 = (int)(bs->quad_endtime - AAS_Time());
   bs->quad_seconds = v3;
-  if ( (int)v3 <= 0 )
+  if ( v3 <= 0 )
     bs->quad_seconds = 0;
-  v4 = (__int64)(bs->invulnerability_endtime - AAS_Time());
+  v4 = (int)(bs->invulnerability_endtime - AAS_Time());
   bs->invuln_seconds = v4;
-  if ( (int)v4 <= 0 )
+  if ( v4 <= 0 )
     bs->invuln_seconds = 0;
-  v5 = (__int64)(bs->rebreather_endtime - AAS_Time());
+  v5 = (int)(bs->rebreather_endtime - AAS_Time());
   bs->rebreather_seconds = v5;
-  if ( (int)v5 <= 0 )
+  if ( v5 <= 0 )
     bs->rebreather_seconds = 0;
-  v6 = (__int64)(bs->enviro_endtime - AAS_Time());
+  v6 = (int)(bs->enviro_endtime - AAS_Time());
   bs->enviro_seconds = v6;
-  if ( (int)v6 <= 0 )
+  if ( v6 <= 0 )
     bs->enviro_seconds = 0;
   v7 = bs->snapshot.stats[4];
   if ( v7 )
@@ -20119,16 +20104,16 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
     if ( !_strcmpi(v8, aIPowershield) )
       bs->powerscreen_seen_time = AAS_Time();
     v10 = bs->powerscreen_seen_time;
-    if ( AAS_Time() - 0.9 >= v10 )
-    {
-      bs->power_screen_active_cells = 0;
-      bs->power_shield_active_cells = 0;
-    }
-    else
+    if ( AAS_Time() - 0.9 < v10 )
     {
       v9 = bs->inventory[20];  /* inventory[20] = power shield cells */
       bs->power_screen_active_cells = v9;
       bs->power_shield_active_cells = v9;
+    }
+    else
+    {
+      bs->power_screen_active_cells = 0;
+      bs->power_shield_active_cells = 0;
     }
   }
 }
@@ -25457,14 +25442,13 @@ char *__cdecl RandomString(const char *name)
 // the original — and the same UB on the value.
 //
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
-void __cdecl sub_1002BEA0(void *unused, void *templates)
+void __cdecl sub_1002BEA0(void *templates)  /* Q3: BotDumpMatchTemplates(bot_matchtemplate_t *) — single arg */
 {
   FILE *log;
   bot_matchtemplate_t *tmpl;
   bot_matchpiece_t *piece;
   bot_matchstring_t *str;
   int   type;
-  int   garbage;  /* Mr. Elusive bug: %8d arg never pushed; reads stack slop */
 
   log = Log_FilePointer();
   if ( !log )
@@ -25474,9 +25458,11 @@ void __cdecl sub_1002BEA0(void *unused, void *templates)
     return;
   while ( tmpl )
   {
-    /* BUG: the original .text pushes only the format + FILE* here;
-     * the %8d eats whatever 4 bytes follow on the caller stack. */
-    fprintf(log, "%8d { ", garbage);
+    /* Mr. Elusive bug, preserved verbatim: the original .text pushes only the
+     * format + FILE* here (no argument for %8d), so %8d reads whatever 4 bytes
+     * follow on the caller stack at runtime.  Do NOT add a third argument — it
+     * would emit an extra push the original binary does not have. */
+    fprintf(log, "%8d { ");
     piece = tmpl->first;
     while ( piece )
     {
