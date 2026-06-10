@@ -877,7 +877,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
 double __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed);
-int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed);
+int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult);
@@ -15555,20 +15555,25 @@ int AAS_FreeAllPortalCache(void)
   int i;
   aas_routingcache_t *entry, *next;
 
-  if ( !aasworld.portalcache )
-    return 0;
-  for ( i = 0; i < aasworld.numareas; ++i )
+  /* `if (portalcache) { ... }` with no return statement — the original is
+   * effectively void (the NULL path `je`s straight to the shared `ret` with
+   * eax = portalcache = 0; the work path leaves leftover eax).  An early
+   * `if (!portalcache) return 0;` would invert the branch and add an
+   * `xor eax,eax`.  Same idiom as FreeMemory (a verified byte-match). */
+  if ( aasworld.portalcache )
   {
-    for ( entry = aasworld.portalcache[i]; entry; entry = next )
+    for ( i = 0; i < aasworld.numareas; ++i )
     {
-      next = entry->next;
-      AAS_FreeRoutingCache(entry);
+      for ( entry = aasworld.portalcache[i]; entry; entry = next )
+      {
+        next = entry->next;
+        AAS_FreeRoutingCache(entry);
+      }
+      aasworld.portalcache[i] = NULL;
     }
-    aasworld.portalcache[i] = NULL;
+    FreeMemory(aasworld.portalcache);
+    aasworld.portalcache = NULL;
   }
-  FreeMemory(aasworld.portalcache);
-  aasworld.portalcache = NULL;
-  return 0;
 }
 
 //----- (10019470) --------------------------------------------------------
@@ -16812,7 +16817,10 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
     }
   }
   VectorCopy(normal, normal_local);
-  VectorNormalize(normal_local);
+  /* The original negates the normal in place (call 0x1000147E = VectorNegate,
+   * void/eax — NOT VectorNormalize, which would leave a float on ST0 and force
+   * an `fstp st(0)` the original never emits). */
+  VectorNegate(normal_local);
   return support[0] * normal_local[0]
        + support[1] * normal_local[1]
        + support[2] * normal_local[2];
@@ -28943,7 +28951,11 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 // 10064060: using guessed type int libvar_sv_maxbarrier;
 
 //----- (100318D0) --------------------------------------------------------
-int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed)
+/* `type` is declared but unused — the original BotMoveInDirection pushes the
+ * same 4 args (ms, dir, speed, type) to BOTH the swim and walk branches and
+ * shares the arg-push, so this __cdecl callee must accept 4 args even though
+ * the swim path ignores `type`. */
+int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
   int v3; // edx
   int v4; // eax
@@ -29069,13 +29081,13 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
  * Direct match for Q3 botlib's BotMoveInDirection at be_ai_move.c:1228
  * (which uses AAS_Swimming() instead of AAS_Swimming() — same intent;
  *
- * Note: Q2 drops the `type` arg in the swim branch — BotSwimInDirection
- * here takes only 3 args, matching the 1999 Q2-botlib swim impl.  The walk
- * branch keeps all 4 args, matching Q3. */
+ * Both branches receive the same 4 args (ms, dir, speed, type): the original
+ * pushes them once and `je`s to select the call target, so BotSwimInDirection
+ * is a 4-arg callee too (it just ignores `type`). */
 int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
   if ( AAS_Swimming(ms->origin) )
-    return BotSwimInDirection(ms, dir, speed);
+    return BotSwimInDirection(ms, dir, speed, type);
   else
     return BotWalkInDirection(ms, dir, speed, type);
 }
@@ -30217,12 +30229,14 @@ bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movesta
  * BotClearMoveResult to zero out the leading 6 dwords, then copies
  * the entire 48-byte buffer to the caller-supplied output via
  * rep movsd.  Equivalent to: bot_moveresult_t r; BotClearMoveResult(&r);
- * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_10034070(void *out)
+ * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL.
+ * Returns `out` (the original kept the memcpy dst in eax: ref loads the
+ * param into eax then `mov edi,eax`, vs a direct load into edi). */
+void *__cdecl sub_10034070(void *out)
 {
   bot_moveresult_t moveresult;
   BotClearMoveResult(&moveresult);
-  memcpy(out, &moveresult, 48);
+  return memcpy(out, &moveresult, 48);
 }
 
 //----- (100340B0) --------------------------------------------------------
@@ -37117,22 +37131,24 @@ int __cdecl sub_10040090(script_t *script)
  * skipping whitespace between probes, looking for an occurrence of
  * the target string anchored on its first byte.  Returns 1 if found,
  * 0 on EOF.  No canonical Q3 counterpart -- abandoned Mr. Elusive
- * helper.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl sub_100400C0(const char *string, script_t *script)
+ * helper.  Dead in Gladiator -- preserved by /INCREMENTAL.
+ * Param order is (script, string): the disasm strlen's the param at
+ * [orig+8] (the search string, into ebp) while operating script_p
+ * through [orig+4] (esi).  The single `while (PS_ReadWhiteSpace(...))`
+ * lets MSVC rotate the loop (top je / bottom jne / fall-through return 0)
+ * exactly as the original — a leading guard + while(1) emits an extra jmp. */
+int __cdecl sub_100400C0(script_t *script, const char *string)
 {
   size_t len = strlen(string);
   char   first = string[0];
-  if ( !PS_ReadWhiteSpace(script) )
-    return 0;
-  while ( 1 )
+  while ( PS_ReadWhiteSpace(script) )
   {
     if ( *script->script_p == first
       && strncmp(script->script_p, string, len) == 0 )
       return 1;
     script->script_p++;
-    if ( !PS_ReadWhiteSpace(script) )
-      return 0;
   }
+  return 0;
 }
 
 //----- (10040150) --------------------------------------------------------
