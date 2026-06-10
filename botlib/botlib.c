@@ -27416,31 +27416,17 @@ LABEL_13:
 //----- (1002F100) --------------------------------------------------------
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 {
-  int *result; // eax
-  int v4; // ebx
-  int *v6; // ebp
-  int v7; // eax
-  int *v8; // [esp+10h] [ebp+8h]
+  int *index; // eax / [esp+10h] [ebp+8h]
+  int i; // ebx
 
-  result = (int *)GetClearedMemory(4 * ic->numitems);
-  v4 = 0;
-  v8 = result;
-  if ( ic->numitems > 0 )
+  index = (int *)GetClearedMemory(4 * ic->numitems);
+  for ( i = 0; i < ic->numitems; ++i )
   {
-    v6 = result;
-    do
-    {
-      v7 = FindFuzzyWeight(iwc, ic->items[v4].dispname);
-      *v6 = v7;
-      if ( v7 < 0 )
-        Log_Write(aItemInfoDSHasN, v4, ic->items[v4].dispname);
-      ++v4;
-      ++v6;
-    }
-    while ( v4 < ic->numitems );
-    return v8;
+    index[i] = FindFuzzyWeight(iwc, ic->items[i].dispname);
+    if ( index[i] < 0 )
+      Log_Write(aItemInfoDSHasN, i, ic->items[i].dispname);
   }
-  return result;
+  return index;
 }
 // 1000132F: using guessed type _DWORD __cdecl FindFuzzyWeight(_DWORD, _DWORD);
 // 10001479: using guessed type _DWORD __cdecl GetClearedMemory(_DWORD);
@@ -29293,8 +29279,7 @@ bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, bot_movestate_t *
 //----- (100324C0) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  double v3; // st6
-  __int16 v4; // ax
+  int v4; // eax
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
@@ -29303,25 +29288,21 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
   float v12; // [esp+5Ch] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
+  VectorSubtract(reach->end, ms->origin, dir);
+  VectorCopy(dir, v10);
   v10[2] = 0.0;
-  dir[0] = reach->end[0] - ms->origin[0];
-  dir[1] = reach->end[1] - ms->origin[1];
-  v3 = reach->end[2] - ms->origin[2];
-  v10[1] = dir[1];
-  dir[2] = v3;
-  v10[0] = dir[0];
   v4 = rand();
-  dir[2] = (2 * ((float)(v4 & 0x7FFF) * 0.000030518509 - 0.5)) * 40.0
+  dir[2] = (2 * ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
   v12 = VectorNormalize(v10);
   EA_MoveForward(ms->client);
-  if ( v12 < 40.0 )
+  if ( v12 < 40.0f )
     EA_MoveUp(ms->client);
   vectoangles(dir, moveresult.ideal_viewangles);
-  VectorCopy(dir, moveresult.movedir);
   moveresult.flags |= 1;
+  VectorCopy(dir, moveresult.movedir);
   result = a1;
   *a1 = moveresult;
   return result;
@@ -29334,49 +29315,41 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
 //----- (10032620) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  int v3; // edx
-  double v4; // st7
-  char v5; // al
-  __int16 v6; // ax
-  __int16 v7; // ax
-  __int16 v8; // ax
+  int v6; // eax
+  int v7; // eax
+  int v8; // eax
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
-  /* int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v14[2]. */
-  int v14[3]; // [esp+14h] [ebp-3Ch] BYREF
+  vec3_t pnt; // [esp+14h] [ebp-3Ch] BYREF (was IDA int[3] v14)
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
   if ( (ms->moveflags & 0x10) == 0 )
   {
-    v3 = *(int *)&ms->origin[1];
-    v4 = ms->origin[2] - 32.0f;
-    v14[0] = *(int *)&ms->origin[0];
-    v14[1] = v3;
-    *(float *)&v14[2] = v4;
-    v5 = (char)bi_PointContents((float *)v14);   /* IDA-dropped: under-foot liquid check */
-    if ( (v5 & 0x38) != 0 )
+    VectorCopy(ms->origin, pnt);
+    pnt[2] -= 32.0f;
+    if ( (AAS_PointContents(pnt) & 0x38) != 0 )   /* IDA-dropped: under-foot liquid check */
     {
       VectorSubtract(reach->end, ms->origin, dir);
       v6 = rand();
-      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5f))
-             * 10.0f
+      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5))
+             * 10.0
              + dir[0];
       v7 = rand();
-      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5f))
-             * 10.0f
+      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5))
+             * 10.0
              + dir[1];
       v8 = rand();
-      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5f))
-             * 10.0f
+      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5))
+             * 10.0
              + dir[2]
-             + 70.0f;
+             + 70.0;
       VectorNormalize(dir);
       EA_Move(ms->client, dir, 400.0f);
       vectoangles(dir, moveresult.ideal_viewangles);
-      VectorCopy(dir, moveresult.movedir);
       moveresult.flags |= 1;
+      VectorCopy(dir, moveresult.movedir);
     }
   }
   result = a1;
@@ -29833,17 +29806,17 @@ bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, bot_mov
 
   BotClearMoveResult(&moveresult);
   MoverBottomCenter(reach, telegoal);
-  VectorSubtract(reach->end, ms->origin, reachdir);
   VectorSubtract(telegoal, ms->origin, telegoaldir);
-  if ( fabs(reachdir[2]) <= fabs(telegoaldir[2]) )
-  {
-    VectorNormalize(reachdir);
-    EA_Move(ms->client, reachdir, 300.0);
-  }
-  else
+  VectorSubtract(reach->end, ms->origin, reachdir);
+  if ( fabs(telegoaldir[2]) < fabs(reachdir[2]) )
   {
     VectorNormalize(telegoaldir);
     EA_Move(ms->client, telegoaldir, 300.0);
+  }
+  else
+  {
+    VectorNormalize(reachdir);
+    EA_Move(ms->client, reachdir, 300.0);
   }
   result = a1;
   *a1 = moveresult;
@@ -30189,13 +30162,8 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 //----- (10034210) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal)
 {
-  qboolean v4; // zf
-  double v5; // st7
-  double v6; // st7
-  double v7; // st7
-  char v8; // al
-  int v10; // ecx
-  int v11; // edx
+  float v6; // st7
+  float v7; // st7
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
@@ -30203,45 +30171,38 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
   float v17; // [esp+50h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
-  v4 = (ms->moveflags & 4) == 0;
   dir[0] = goal->origin[0] - ms->origin[0];
   dir[1] = goal->origin[1] - ms->origin[1];
-  if ( v4 )
+  if ( (ms->moveflags & 4) != 0 )
+  {
+    dir[2] = goal->origin[2] - ms->origin[2];
+    moveresult.traveltype = 8;
+  }
+  else
   {
     dir[2] = 0.0f;
     moveresult.traveltype = 2;
   }
-  else
-  {
-    v5 = goal->origin[2] - ms->origin[2];
-    moveresult.traveltype = 8;
-    dir[2] = v5;
-  }
   v6 = VectorNormalize(dir);
-  if ( v6 > 100.0 )
-    v6 = 100.0;
-  v7 = 400.0 - (400.0 - v6 * 4.0);
+  if ( v6 > 100.0f )
+    v6 = 100.0f;
+  v7 = 400.0f - (400.0f - v6 * 4.0f);
   v17 = v7;
-  if ( v7 < 10.0 )
-    v17 = 0.0;
+  if ( v7 < 10.0f )
+    v17 = 0.0f;
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Move(ms->client, dir, v17);
   VectorCopy(dir, moveresult.movedir);
-  v8 = ms->moveflags;
-  if ( (v8 & 4) != 0 )
+  if ( (ms->moveflags & 4) != 0 )
   {
     vectoangles(dir, moveresult.ideal_viewangles);
     moveresult.flags |= 2;
   }
-  v10 = *(int *)&ms->origin[0];
-  v11 = *(int *)&ms->origin[1];
   ms->lastreachnum = 0;
   ms->lastareanum = 0;
   ms->lastgoalareanum = goal->areanum;
-  *(int *)&ms->lastorigin[2] = *(int *)&ms->origin[2];
+  VectorCopy(ms->origin, ms->lastorigin);
   result = a1;
-  *(int *)&ms->lastorigin[0] = v10;
-  *(int *)&ms->lastorigin[1] = v11;
   *a1 = moveresult;
   return result;
 }
