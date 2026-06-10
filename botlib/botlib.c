@@ -11173,7 +11173,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   qmemcpy(v5, v3, 0x18u);
   v5[2] = 0;
   v6 = 0;
-  for ( v5[3] = optimized->edgeindexsize; v6 < *((_DWORD *)v8 + 2); ++v6 )
+  for ( v5[3] = optimized->edgeindexsize; v6 < *((int *)v8 + 2); ++v6 )
   {
     v7 = AAS_OptimizeEdge(optimized, aasworld.edgeindex[v6 + *((_DWORD *)v8 + 3)]);
     if ( v7 )
@@ -32180,11 +32180,9 @@ int __cdecl EA_EndRegular(int client, float thinktime)
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
   dword_10063FE0(client, ea);
-  jumped_this_frame = (ea->flags & ACTION_JUMP) != 0;
+  jumped_this_frame = ea->flags & ACTION_JUMP;
   ea->thinktime = 0.0f;
-  ea->dir[0]   = 0.0f;
-  ea->dir[1]   = 0.0f;
-  ea->dir[2]   = 0.0f;
+  ea->dir[0] = ea->dir[1] = ea->dir[2] = 0.0f;
   ea->speed    = 0.0f;
   ea->flags    = 0;
   if ( jumped_this_frame )
@@ -34205,13 +34203,11 @@ int __cdecl PC_AddGlobalDefine(const char *a1)
   define_t *define;
 
   define = PC_DefineFromString(a1);
-  if ( define )
-  {
-    define->next = globaldefines;
-    globaldefines = define;
-    return 1;
-  }
-  return 0;
+  if ( !define )
+    return 0;
+  define->next = globaldefines;
+  globaldefines = define;
+  return 1;
 }
 
 //----- (1003B4E0) --------------------------------------------------------
@@ -36543,8 +36539,6 @@ LABEL_51:
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
 int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 {
-  char *p;
-
   token->type = 2; /* TT_LITERAL */
   token->string[0] = *script->script_p;
   script->script_p++;
@@ -36566,12 +36560,10 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
   if ( *script->script_p != '\'' )
   {
     ScriptWarning((int)script, "too many characters in literal, ignored");
-    p = script->script_p;
-    while ( *p && *p != '\'' && *p != '\n' )
-      ++p;
-    if ( *p == '\'' )
-      ++p;
-    script->script_p = p;
+    while ( *script->script_p && *script->script_p != '\'' && *script->script_p != '\n' )
+      ++script->script_p;
+    if ( *script->script_p == '\'' )
+      ++script->script_p;
   }
   token->string[2] = *script->script_p;
   script->script_p++;
@@ -36968,9 +36960,9 @@ unsigned char __cdecl sub_1003FC70(void *ctx)
 {
   char **cursor = (char **)((char *)ctx + 0x114);
   char  *end    = *(char **)((char *)ctx + 0x118);
-  if ( *cursor == end )
-    return 0;
-  return *(*cursor)++;
+  if ( *cursor != end )
+    return *(*cursor)++;
+  return 0;
 }
 
 //----- (1003FCB0) --------------------------------------------------------
