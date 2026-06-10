@@ -2687,7 +2687,6 @@ int sub_100032D0()
 int __cdecl sub_10003360(float *a1, int a2)
 {
   int v3; // ecx
-  _DWORD *v4; // ecx
 
   if ( !dword_100674C0 )
     return 0;
@@ -5011,7 +5010,6 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   bsp_epair_t *v2; // ebx
   char *v3; // edx
   char *v4; // edx
-  char v6; // [esp+0h] [ebp-448h]
   bsp_entity_t *v7; // [esp+10h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
 
@@ -5413,75 +5411,29 @@ int __fastcall sub_10007460(void *a1)
   int v2; // ebx
   char *v3; // esi
   _DWORD *v4; // edi
-  int v5; // eax
-  void *v6; // ecx
-  int v7; // eax
-  int v8; // eax
   char *v9; // eax
   int v10; // ebp
   int v11; // edi
-  int v12; // eax
   int v13; // esi
-  int v14; // eax
-  int v15; // eax
   int v16; // ebx
   char *v17; // esi
   _DWORD *v18; // edi
-  int v19; // st7 -- IDA decompiled FPU temp as double; LittleFloat is int identity so plain int round-trips bit pattern
-  void *v20; // edx
-  int v21; // eax
   int v22; // ebp
   char *v23; // esi
-  void *v24; // edx
-  int v25; // eax
-  int v26; // eax
-  void *v27; // ecx
-  int v28; // eax
   _WORD *v29; // edi
   int v30; // ebx
-  __int16 v31; // ax
-  void *v32; // edx
-  void *v33; // eax
-  void *v34; // ecx
-  __int16 v35; // ax
-  __int16 v36; // ax
   int v37; // ebp
   char *v38; // esi
-  void *v39; // ecx
-  int v40; // eax
-  void *v41; // edx
-  __int16 v42; // ax
-  void *v43; // eax
   _WORD *v44; // edi
   int v45; // ebx
-  __int16 v46; // ax
-  void *v47; // ecx
-  void *v48; // edx
-  __int16 v49; // ax
-  void *v50; // eax
-  void *v51; // ecx
-  __int16 v52; // ax
-  void *v53; // edx
-  __int16 v54; // ax
-  __int16 v55; // ax
   int n; // esi
-  __int16 v57; // ax
   int ii; // esi
-  void *v60; // ecx
-  __int16 v61; // ax
   int v62; // edi
   int v63; // esi
-  int v64; // eax
-  int v65; // eax
-  int v66; // eax
   int result; // eax
   int v68; // ebp
   int v69; // ebx
   char *v70; // esi
-  void *v71; // edx
-  int v72; // eax
-  int v73; // eax
-  int v74; // eax
   float *v75; // esi
   int v76; // edi
   int i; // [esp+10h] [ebp-4h]
@@ -6587,7 +6539,6 @@ int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
   int v10; // eax
   int v11; // ecx
   _DWORD *v12; // edx
-  char v14; // [esp+0h] [ebp-10h]
   int v15; // [esp+1Ch] [ebp+Ch]
 
   areanum[cluster] = done;
@@ -8488,12 +8439,8 @@ int AAS_SwapAASData()
 {
   int v0; // ebp
   int v1; // edi
-  int v2; // eax
   int v3; // esi
   int v4; // ebx
-  int v5; // eax
-  int v6; // eax
-  int v7; // eax
   int v8; // ebx
   int v9; // esi
   int v10; // edi
@@ -8503,65 +8450,30 @@ int AAS_SwapAASData()
   int v14; // ebx
   int v15; // eax
   int i; // esi
-  int v17; // eax
-  int v18; // eax
   int j; // esi
-  int v20; // eax
   int v21; // edi
   int v22; // esi
-  int v23; // eax
-  int v24; // eax
-  int v25; // eax
-  int v26; // eax
-  int v27; // eax
-  int v28; // eax
   int k; // esi
-  int v30; // eax
   int v31; // ebp
   int v32; // edi
-  int v33; // eax
-  int v34; // eax
   int v35; // esi
   int v36; // ebx
-  int v37; // eax
   int v38; // edi
   int v39; // esi
-  int v40; // eax
-  int v41; // eax
-  int v42; // eax
-  int v43; // eax
-  int v44; // eax
-  int v45; // eax
-  int v46; // eax
   int v47; // ebp
   int v48; // esi
-  int v49; // eax
-  int v50; // eax
   int v51; // edi
   int v52; // ebx
-  int v53; // eax
   void *v54; // eax
   __int16 v55; // ax
   int v56; // edi
   int v57; // esi
-  int v58; // eax
-  int v59; // eax
-  int v60; // eax
   int v61; // edi
   int v62; // esi
-  int v63; // eax
-  int v64; // eax
-  int v65; // eax
-  int v66; // eax
-  int v67; // eax
   int m; // esi
-  int v69; // eax
   int result; // eax
   int v71; // edi
   int v72; // esi
-  int v73; // eax
-  int v74; // eax
-  int v75; // eax
 
   v0 = 0;
   if ( aasworld.numbboxes > 0 )
@@ -9262,8 +9174,6 @@ int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, siz
 //----- (1000CEE0) --------------------------------------------------------
 qboolean __cdecl AAS_WriteAASFile(char *FileName)
 {
-  int v1; // eax
-  int v2; // eax
   FILE *v3; // eax
   FILE *v4; // esi
   int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
@@ -14555,7 +14465,6 @@ int AAS_SetWeaponJumpAreaFlags()
   const char *v2; // eax
   const char *v3; // edi
   int v4; // eax
-  int v5; // ecx
   vec3_t v7; // [esp+2Ch] [ebp-24h] BYREF
   vec3_t v8; // [esp+38h] [ebp-18h] BYREF
   vec3_t v9; // [esp+44h] [ebp-Ch] BYREF
@@ -20566,10 +20475,8 @@ void __cdecl BotFreeWaypoints(bot_waypoint_t *head)
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 {
 
-  int v2; // ecx
   float v3; // st7
   char v4; // al
-  int v5; // ecx
   float v6; // st7
   char v7; // al
   int v8; // ecx
@@ -20977,8 +20884,6 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
 float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 {
   int *v2; // ebp
-  float v3; // ecx
-  float v4; // edx
   double v5; // st7
   int v6; // ax
   int v7; // ax
@@ -21086,7 +20991,6 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   bot_moveresult_t *result; // eax
   __int16 v9; // ax
   float v10; // st7
-  int v11_unused; // ecx (was: int v11)
   bot_character_t *v11; // restored: holds BotCharacter pointer
   int v12; // edi
   int v13; // eax
@@ -25091,7 +24995,6 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   bot_synonym_t *synonym;         /* IDA v12/v23 */
   char *stringStorage;            /* IDA v13 */
   double weightval;               /* IDA v14 */
-  char v15;
   int context;                    /* IDA v17 */
   int sizeAccum;                  /* IDA v18 */
   int level;                      /* IDA v19 */
@@ -25640,7 +25543,6 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
   bot_matchpiece_t *head;
   int haveVariable;
   int sawEmptyString;
-  char v9; // [esp+0h] [ebp-454h]
   token_t token;
 
   v2 = source;
@@ -28209,7 +28111,6 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
   int v16; // eax
   float v17; // [esp+Ch] [ebp-4Ch]
   levelitem_t *v18; // [esp+10h] [ebp-48h]
-  int v19_unused; // (was v19/dword_1006435C copy; replaced by typed v19p)
   itemconfig_t *v19p; // 64-bit fix - typed copy of dword_1006435C
   int v20; // [esp+18h] [ebp-40h]
   int v21; // [esp+1Ch] [ebp-3Ch]
@@ -28605,8 +28506,6 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
    * field. */
   int v3; // ecx
   int v4; // edi
-  float *v5; // ecx
-  char *v6; // esi
   int v7; // eax
   double v8; // st7
   /* v10/v12/v13/v14 are int[3] in IDA decomp; v10[0]/v10[1]/v14[0]/v14[1] are
@@ -29393,7 +29292,6 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
 {
   double v3; // st6
   __int16 v4; // ax
-  int v5; // eax
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
@@ -29439,7 +29337,6 @@ bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_mo
   __int16 v6; // ax
   __int16 v7; // ax
   __int16 v8; // ax
-  int v9; // eax
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
@@ -29688,7 +29585,6 @@ LABEL_7:
 //----- (10032E80) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  double v5; // unused
   bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
@@ -29722,7 +29618,6 @@ bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movesta
 //----- (10032FC0) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  int v3; // eax
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
@@ -29794,12 +29689,10 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   char v7; // al
   double v8; // st7
   char v9; // al
-  int v10; // eax
   char v11; // al
   double v12; // st7
   float v13; // eax
   char v14; // al
-  int v15; // eax
   bot_moveresult_t *result; // eax
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
@@ -30029,7 +29922,6 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   int v9; // eax
   double v10; // st7
   char v11; // cl
-  int v12; // eax
   long double v13; // st7
   int v14; // eax
   int v15; // eax
@@ -30299,7 +30191,6 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
   double v6; // st7
   double v7; // st7
   char v8; // al
-  int v9; // eax
   int v10; // ecx
   int v11; // edx
   bot_moveresult_t *result; // eax
@@ -31059,7 +30950,6 @@ int sub_100356D0()
 //----- (10035700) --------------------------------------------------------
 int __cdecl ReadValue(source_t *source, float *value)
 {
-  char v3; // [esp+0h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
   if ( !PC_ExpectAnyToken(source, token.string) )
@@ -31180,7 +31070,6 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   int v6; // edi
   fuzzyseperator_t *v7; // eax
   fuzzyseperator_t *v9; // eax
-  char v10; // [esp+0h] [ebp-450h]
   fuzzyseperator_t *v11; // [esp+10h] [ebp-440h]
   fuzzyseperator_t *v12; // [esp+14h] [ebp-43Ch]
   int v13; // [esp+18h] [ebp-438h]
@@ -31310,7 +31199,6 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
   source_t *src;
   weightconfig_t *cfg;
   fuzzyseperator_t *sep;
-  char v6; // [esp+0h] [ebp-570h]
   int has_balance;
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char Destination[144]; // [esp+B0h] [ebp-4C0h] BYREF
@@ -33318,7 +33206,6 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
   int gotparms;
   token_t **pslot;
   token_t *newtok;
-  char v14;
   token_t tok __attribute__((aligned(8))); // [esp+20h] [ebp-430h] BYREF
 
   if ( !PC_ReadSourceToken(src, &tok) )
@@ -33954,7 +33841,6 @@ int __cdecl PC_Directive_undef(source_t *src)
   define_t *prev;
   define_t *d;
   define_t **bucket;
-  char v7; // [esp+0h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
   if ( src->skip > 0 )
@@ -34589,7 +34475,7 @@ LABEL_71:
           goto LABEL_76;
         }
         v12 = GetClearedMemory(sizeof(value_t));
-        if ( PC_FindHashedDefine(((source_t *)src)->definehash, (const char *)v9) )
+        if ( PC_FindHashedDefine(src->definehash, (const char *)v9) )
         {
                     v12->intvalue = 1;
           v12->floatvalue = 1.0;
@@ -35015,7 +34901,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
       if ( v14 )
       {
         v14 = 0;
-        v8 = (token_t *)PC_CopyToken(&token);
+        v8 = PC_CopyToken(&token);
         v8->next = NULL;
         if ( v7 )
           v7->next = v8;
@@ -35026,7 +34912,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
       else if ( !strcmp(token.string, aDefined) )
       {
         v14 = 1;
-        v9 = (token_t *)PC_CopyToken(&token);
+        v9 = PC_CopyToken(&token);
         v9->next = NULL;
         if ( v7 )
           v7->next = v9;
@@ -35048,7 +34934,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
     }
     else if ( token.type == 3 || token.type == 5 )
     {
-      v8 = (token_t *)PC_CopyToken(&token);
+      v8 = PC_CopyToken(&token);
       v8->next = NULL;
       if ( v7 )
         v7->next = v8;
@@ -35088,7 +34974,6 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
   token_t *v8; // eax
   token_t *v9; // eax
   define_t *v10; // eax
-  int v11; // eax
   token_t *v12; // eax
   token_t *v13; // esi
   int v15; // [esp+10h] [ebp-438h]
@@ -35520,22 +35405,6 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
 {
   int v4; // ebp
   int v6; // eax
-  unsigned int v7; // ebp
-  char *v8; // edi
-  char *v9; // edi
-  char *v10; // esi
-  char v11; // cl
-  unsigned int v12; // ebp
-  char *v13; // edi
-  char *v14; // edi
-  char *v15; // esi
-  char v16; // cl
-  unsigned int v17; // ebp
-  char *v18; // edi
-  char *v19; // edi
-  char *v20; // esi
-  char v21; // cl
-  char v22; // [esp+0h] [ebp-408h]
   char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
   token_t *tok = (token_t *)a4;
 
@@ -36058,12 +35927,10 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
   char *v2; // ecx
   char v3; // al
   int v4; // ecx
-  char *v5; // edx
   int v6; // eax
   int i; // eax
-  char *v8; // edi
 
-  v2 = (char *)(a1->script_p + 1);
+  v2 = (a1->script_p + 1);
   a1->script_p = v2;
   v3 = *v2;
   switch ( *v2 )
@@ -36741,22 +36608,6 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
 {
   int v4; // ebp
   int v6; // eax
-  unsigned int v7; // ebp
-  char *v8; // edi
-  char *v9; // edi
-  char *v10; // esi
-  char v11; // cl
-  unsigned int v12; // ebp
-  char *v13; // edi
-  char *v14; // edi
-  char *v15; // esi
-  char v16; // cl
-  unsigned int v17; // ebp
-  char *v18; // edi
-  char *v19; // edi
-  char *v20; // esi
-  char v21; // cl
-  char v22; // [esp+0h] [ebp-410h]
   char ArgList[1024]; // [esp+10h] [ebp-400h] BYREF
 
   v4 = a1;
@@ -37289,7 +37140,6 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   float v12; // st7
   int v13; // rax
   float v14; // st7
-  char v15; // [esp+10h] [ebp-450h]
   int v16; // [esp+20h] [ebp-440h]
   int v17; // [esp+24h] [ebp-43Ch]
   float v18; // [esp+28h] [ebp-438h]
@@ -37497,7 +37347,6 @@ int __cdecl ReadStructure(source_t *src, structdef_t *def, void *dst)
   int v9; // esi
   const char *v10; // eax
   int v11; // eax
-  char v12; // [esp+0h] [ebp-444h]
   int v13; // [esp+10h] [ebp-434h]
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
