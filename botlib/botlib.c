@@ -815,7 +815,7 @@ void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
 void *__cdecl BotDumpInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
-int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client);
+int __cdecl BotFreeChatState(bot_chatstate_t *cs);
 int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3); // idb
 /* Initial-chat variable slot: caller passes up to 10 (char *) variables to
  * BotInitialChat, which records each as { str, len } pairs in a stack-local
@@ -21881,10 +21881,13 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
   }
   else
   {
-    /* AngleVectors is void; IDA misread eax-on-return as its return value.
-     * Original asm leaves `dir` in eax after the call, hence the cast. */
-    AngleVectors(angles, dir, NULL, NULL);
-    return (int)(intptr_t)dir;
+    /* AngleVectors is void; the original else-branch's return value is dead
+     * (both callers ignore it), so MSVC /O2 does NOT reload `dir` after the
+     * call — it returns whatever eax holds on AngleVectors' return. The
+     * cast-call reproduces that `call; ret` with eax flowing through, instead
+     * of forcing `dir` to be kept alive across the call (which would cost an
+     * extra callee-saved register push). */
+    return ((int (__cdecl *)(float *, float *, void *, void *))AngleVectors)(angles, dir, NULL, NULL);
   }
 }
 // 10001C2B: using guessed type _DWORD __cdecl VectorCompare(_DWORD, _DWORD);
@@ -23911,7 +23914,7 @@ int __cdecl BotShutdownClient(int a1)
   }
   if ( BotChat_ExitGame((int)(intptr_t)bs) )
     BotEnterChat(&bs->chatstate, v1[1], 0);
-  BotFreeChatState(&bs->chatstate, v1[1]);
+  BotFreeChatState(&bs->chatstate);
   BotFreeWeaponWeights(BotWS(bs));
 #if BOTLIB_NEED_SIDEBAND
   /* 64-bit only: free the heap-allocated weaponstate struct.  On 32-bit
@@ -26682,7 +26685,7 @@ int __cdecl BotFreeChatFile(bot_chatstate_t *cs)
 // 1000180C: using guessed type _DWORD __cdecl FreeMemory(_DWORD);
 
 //----- (1002DFB0) --------------------------------------------------------
-int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client)
+int __cdecl BotFreeChatState(bot_chatstate_t *cs)
 {
   bot_consolemessage_t *msg;
 
@@ -26693,8 +26696,8 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs, int client)
    * the 64-bit port those head/tail/count slots cannot hold real pointers,
    * so the list lives in side-band `botchatmsglinks[client]`; BotChatMsgLinksCS
    * derives the client index from cs by computing the offset back into
-   * botstates[]. */
-  (void)client;
+   * botstates[].  The original took only `cs` (one arg) — the client index is
+   * derived, never passed. */
   for ( msg = BotNextConsoleMessage(cs); msg; msg = BotNextConsoleMessage(cs) )
     sub_1002AA20(cs, msg);
 }
@@ -31352,56 +31355,60 @@ qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *a2)
 // counterpart of ReadFuzzySeperators_r. Live in Q3.
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
 {
-  _DWORD *v4; // edi
-  int v6; // eax
+  fuzzyseperator_t *fs;
 
   if ( !WriteIndent(Stream, a3) )
     return 0;
-  v4 = (_DWORD *)a2;
-  if ( fprintf(Stream, "switch(%d)\n", *(_DWORD *)a2) < 0 )
+  fs = (fuzzyseperator_t *)a2;
+  if ( fprintf(Stream, "switch(%d)\n", fs->index) < 0 )
     return 0;
   if ( !WriteIndent(Stream, a3) )
     return 0;
   if ( fprintf(Stream, "{\n") < 0 )
     return 0;
   ++a3;
-  if ( !WriteIndent(Stream, a3) )
-    return 0;
-  while ( 1 )
+  do
   {
-    if ( v4[7] )
+    if ( !WriteIndent(Stream, a3) )
+      return 0;
+    if ( fs->next )
     {
-      if ( fprintf(Stream, "case %d:", v4[1]) < 0 )
+      if ( fprintf(Stream, "case %d:", fs->value) < 0 )
         return 0;
     }
     else if ( fprintf(Stream, "default:") < 0 )
     {
       return 0;
     }
-    if ( v4[6] )
+    if ( fs->child )
     {
-      if ( fprintf(Stream, "\n") < 0
-        || !WriteIndent(Stream, a3)
-        || fprintf(Stream, "{\n") < 0
-        || !WriteFuzzySeperators_r(Stream, v4[6], a3 + 1)
-        || !WriteIndent(Stream, a3) )
+      if ( fprintf(Stream, "\n") < 0 )
+        return 0;
+      if ( !WriteIndent(Stream, a3) )
+        return 0;
+      if ( fprintf(Stream, "{\n") < 0 )
+        return 0;
+      if ( !WriteFuzzySeperators_r(Stream, (int)fs->child, a3 + 1) )
+        return 0;
+      if ( !WriteIndent(Stream, a3) )
+        return 0;
+      if ( fs->next )
+      {
+        if ( fprintf(Stream, "} //end case\n") < 0 )
+          return 0;
+      }
+      else if ( fprintf(Stream, "} //end default\n") < 0 )
       {
         return 0;
       }
-      v6 = v4[7] ? fprintf(Stream, "} //end case\n") : fprintf(Stream, "} //end default\n");
-      if ( v6 < 0 )
-        return 0;
     }
-    else if ( !WriteFuzzyWeight(Stream, (fuzzyseperator_t *)v4) )
+    else if ( !WriteFuzzyWeight(Stream, fs) )
     {
       return 0;
     }
-    v4 = (_DWORD *)v4[7];
-    if ( !v4 )
-      break;
-    if ( !WriteIndent(Stream, a3) )
-      return 0;
+    fs = fs->next;
   }
+  while ( fs );
   --a3;
   if ( !WriteIndent(Stream, a3) )
     return 0;
@@ -31431,13 +31438,14 @@ int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
   fp = fopen(filename, "wb");
   if ( !fp )
     return 0;
-  for ( i = 0, w = &config->weights[0]; i < config->numweights; i++, w++ )
+  for ( i = 0; i < config->numweights; i++ )
   {
+    w = &config->weights[i];
     if ( fprintf(fp, "\nweight \"%s\"\n", w->name) < 0 )
       return 0;
     if ( fprintf(fp, "{\n") < 0 )
       return 0;
-    if ( w->firstseperator->type > 0 )
+    if ( w->firstseperator->index > 0 )
     {
       if ( !WriteFuzzySeperators_r(fp, (int)w->firstseperator, 1) )
         return 0;
@@ -31572,9 +31580,7 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 {
-  __int16 v2; // ax
   double v3; // st7
-  __int16 v4; // ax
 
   do
   {
@@ -31584,29 +31590,26 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
     }
     else if ( fs->type == 1 )
     {
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.01 )
+      /* crandom() = 2.0 * (random() - 0.5); random() = (rand()&0x7FFF)*c.
+       * MSVC strength-reduces the `2.0 *` to `fadd st(0),st`.  Keeping the
+       * crandom() value as its own subexpression makes MSVC double it BEFORE
+       * the (maxweight-minweight) multiply, matching the original order. */
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
       {
-        v4 = rand();
-        v3 = ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5 + (float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)
+        v3 = (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+           * (fs->maxweight - fs->minweight);
+      }
+      else
+      {
+        v3 = (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
            * (fs->maxweight - fs->minweight)
            * 0.5;
       }
-      else
-      {
-        v2 = rand();
-        v3 = ((float)(v2 & 0x7FFF) * 0.000030518509 - 0.5 + (float)(v2 & 0x7FFF) * 0.000030518509 - 0.5)
-           * (fs->maxweight - fs->minweight);
-      }
       fs->weight = v3 + fs->weight;
-      if ( fs->weight >= (float)fs->minweight )
-      {
-        if ( fs->weight > (float)fs->maxweight )
-          fs->weight = fs->maxweight;
-      }
-      else
-      {
+      if ( fs->weight < fs->minweight )
         fs->weight = fs->minweight;
-      }
+      else if ( fs->weight > fs->maxweight )
+        fs->weight = fs->maxweight;
     }
     fs = fs->next;
   }
