@@ -10576,7 +10576,7 @@ char *__cdecl AAS_ClientMovementPrediction(
   int v43; // [esp+1Ch] [ebp-1DCh]
   vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
-  long double v50;       // [esp+38h] [ebp-1C0h]  long double to preserve 80-bit precision between assignments; original stack slot also aliased as int/float bit-storage which still works because alias reads use only the first 4 bytes
+  int v50;               // [esp+38h] [ebp-1C0h]  4-byte slot reused as int counter (LODWORD/SLODWORD) + float scratch (*(float*)&v50). The gravity *0.1 double value is NOT this slot — it's a separate compiler QWORD CSE temp, inlined below so it doesn't force an 8-byte declared local (which would add and esp,-8; orig is pure FPO).
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
   int v57;               // [esp+58h] [ebp-1A0h]
@@ -10645,8 +10645,7 @@ char *__cdecl AAS_ClientMovementPrediction(
       v23 = (float)v70;
     else
       v23 = (float)v68;
-    v50 = v23 * (float)a10 * 0.1f;
-    frame_test_vel[2] = (float)((float)frame_test_vel[2] - v50);
+    frame_test_vel[2] = (float)((float)frame_test_vel[2] - v23 * (float)a10 * 0.1);
     if ( a5 )
     {
       if ( v21 )
@@ -10684,7 +10683,7 @@ LABEL_35:
       if ( !v22 && a7[2] > 1.0f )
       {
         v64 = v43;
-        frame_test_vel[2] = (float)((float)v67 - v50 + 5.0f);
+        frame_test_vel[2] = (float)((float)v67 - v23 * (float)a10 * 0.1 + 5.0f);
       }
       v26 = 2;
     }
