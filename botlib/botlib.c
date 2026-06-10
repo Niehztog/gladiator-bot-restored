@@ -26855,55 +26855,55 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
   chattype_t *t;
   chatline_t *l, *best;
   int         n;
-  __int64     pick;
+  int         pick;
   float       best_ltime;
+  float       frnd;
 
-  if ( !list || !list->types )
-    return 0;
   for ( t = list->types; t; t = t->next )
   {
     if ( !_strcmpi(t->name, String2) )
-      break;
-  }
-  if ( !t )
-    return 0;
-
-  n = 0;
-  for ( l = t->firstline; l; l = l->next )
-  {
-    if ( AAS_Time() >= l->ltime )
-      ++n;
-  }
-
-  if ( n <= 0 )
-  {
-    best = NULL;
-    best_ltime = 0.0f;
-    for ( l = t->firstline; l; l = l->next )
     {
-      if ( best_ltime == 0.0f || l->ltime < (float)best_ltime )
+      n = 0;
+      for ( l = t->firstline; l; l = l->next )
       {
-        best       = l;
-        best_ltime = l->ltime;
+        if ( AAS_Time() >= l->ltime )
+          ++n;
       }
-    }
-    if ( best )
-      return best->string;
-    return 0;
-  }
-
-  pick = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)n);
-  l    = t->firstline;
-  if ( !l )
-    return 0;
-  while ( AAS_Time() < l->ltime || --pick >= 0 )
-  {
-    l = l->next;
-    if ( !l )
+      if ( n <= 0 )
+      {
+        best_ltime = 0.0f;
+        best = NULL;
+        for ( l = t->firstline; l; l = l->next )
+        {
+          if ( best_ltime == 0.0f || l->ltime < best_ltime )
+          {
+            best       = l;
+            best_ltime = l->ltime;
+          }
+        }
+        if ( best )
+          return best->string;
+      }
+      else
+      {
+        frnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
+        pick = (int)(frnd * n);
+        for ( l = t->firstline; l; l = l->next )
+        {
+          if ( AAS_Time() >= l->ltime )
+          {
+            if ( --pick < 0 )
+            {
+              l->ltime = AAS_Time() + 20.0f;
+              return l->string;
+            }
+          }
+        }
+      }
       return 0;
+    }
   }
-  l->ltime = AAS_Time() + 20.0f;
-  return l->string;
+  return 0;
 }
 
 //----- (1002E510) --------------------------------------------------------
