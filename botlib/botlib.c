@@ -475,7 +475,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void);
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
 /* sub_10007150 declared above as the AAS_LoadLump replacement */
 int sub_100071E0();
-int __fastcall sub_10007460(void *a1);
+int sub_10007460(void);
 int AAS_DumpBSPData();
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
 // int __usercall AAS_LoadBSPFile@<eax>(double a1@<st0>, char *FileName, int Offset);
@@ -5270,7 +5270,14 @@ int sub_100071E0()
 }
 
 //----- (10007460) --------------------------------------------------------
-int __fastcall sub_10007460(void *a1)
+/* No parameters: the ecx "a1" IDA invented is a phantom __fastcall arg — the
+ * prologue's `push ecx` only reserves a local slot, and the incoming ecx is
+ * overwritten at 1000746e (`mov [esp+0x10],ebp`) before any read. The sole
+ * caller (AAS_LoadBSPFile@10007d30, call@100083e9) sets up no ecx, leaving it
+ * leftover garbage — i.e. the original source called this with no argument.
+ * Dropping the phantom arg makes AAS_LoadBSPFile byte-identical (no spurious
+ * `mov ecx,[esp+...]` arg load at the call site). */
+int sub_10007460(void)
 {
   int v1; // ebp
   int v2; // ebx
@@ -5671,7 +5678,6 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   int v70; // ebx
   size_t v71; // eax
   size_t v72; // edi
-  void *v73; // ecx
   dBspHeader_t bsp_h; /* Q2 BSP header: ident+version+19 lumps = 0xA0 bytes */
 
   AAS_DumpBSPData();
@@ -5855,7 +5861,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   if ( !dword_10067544 )
     return 18;
   dword_10067540 = v72 >> 2;
-  sub_10007460(v73);
+  sub_10007460();
   dword_100674C0 = 1;
   fclose(v4);
   sub_100071E0();
