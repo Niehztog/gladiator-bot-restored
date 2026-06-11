@@ -621,7 +621,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int passent);
 int AAS_RoutingInfo();
-int __cdecl sub_1001A650(int a1);
+int __cdecl AAS_AltRoutingFloodCluster_r(int a1);
 int sub_1001AB80();
 // int __usercall AAS_InitAASLinkHeap@<eax>(double a1@<st0>);
 void AAS_FreeAASLinkHeap();
@@ -895,7 +895,7 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
 int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
-int __cdecl sub_10034B90(void *a1);
+int __cdecl BotResetMoveState(void *a1);
 // int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
 typedef struct bot_weaponstate_s bot_weaponstate_t;
@@ -903,7 +903,7 @@ void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2);
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws);
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
-int __cdecl BotResetMoveState(bot_weaponstate_t *ws);
+int __cdecl BotResetWeaponState(bot_weaponstate_t *ws);
 int BotSetupWeaponAI();
 int BotShutdownWeaponAI();
 int __cdecl ReadValue(source_t *source, float *value);
@@ -962,7 +962,7 @@ char     *__cdecl LibVarGetString(const char *name);
 float     __cdecl LibVarGetValue(const char *name);
 char     *__cdecl LibVarString(char *name, char *defvalue);   /* returns libvar->string */
 void Log_Open(char *FileName);  /* IDA's __usercall a1@<st0> was a phantom param */
-FILE *Log_Close();
+FILE *Log_Shutdown();
 FILE *Log_Write(char *Format, ...);
 FILE *Log_FilePointer();
 void Log_Flush();
@@ -14787,7 +14787,7 @@ int AAS_RoutingInfo()
 }
 
 //----- (1001A650) --------------------------------------------------------
-int __cdecl sub_1001A650(int a1)
+int __cdecl AAS_AltRoutingFloodCluster_r(int a1)
 {
   char *v1; // esi
   int v2; // ebx
@@ -14812,7 +14812,7 @@ int __cdecl sub_1001A650(int a1)
       if ( v6 )
       {
         if ( *(_DWORD *)(dword_10066740 + 8 * v6) )
-          sub_1001A650(v6);
+          AAS_AltRoutingFloodCluster_r(v6);
       }
       result = *((_DWORD *)v1 + 1);
       ++v2;
@@ -14840,7 +14840,7 @@ int __cdecl sub_1001A650(int a1)
  *        - travel(a→goal,  tf) ≤ 1.5 * baseline.
  *      Each marked area is logged via Log_Write("%d midrange area %d").
  *   5) For each ebp in 1..numareas where dword_10066740[ebp].flag!=0:
- *        - Recursively flood-fill via face neighbors (sub_1001A650)
+ *        - Recursively flood-fill via face neighbors (AAS_AltRoutingFloodCluster_r)
  *          which clears flags and accumulates the connected cluster's
  *          area indices into dword_10066744[0..dword_10066730-1].
  *        - Compute the cluster centroid as the average of each member
@@ -14889,7 +14889,7 @@ typedef struct aas_altroutegoal_s {
   unsigned short  pad;
 } aas_altroutegoal_t;
 
-int __cdecl sub_1001A720(
+int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
     aas_altroutegoal_t *altroutegoals, int maxaltroutegoals)
 {
@@ -14978,7 +14978,7 @@ int __cdecl sub_1001A720(
       continue;
 
     dword_10066730 = 0;
-    sub_1001A650(ebp_area);          /* fills visit_stack[0..N-1] */
+    AAS_AltRoutingFloodCluster_r(ebp_area);          /* fills visit_stack[0..N-1] */
 
     centroid[0] = 0.0f;
     centroid[1] = 0.0f;
@@ -17300,9 +17300,9 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   float v3; // [esp+10h] [ebp+4h]
 
   BotRecordNodeSwitch(bs, "respawn", &byte_1006294C);
-  sub_10034B90(bs->movestate);
+  BotResetMoveState(bs->movestate);
   BotResetGoalState(bs->goalstate);
-  BotResetMoveState(BotWS(bs));
+  BotResetWeaponState(BotWS(bs));
   BotResetAvoidGoals(bs->goalstate);
   BotResetAvoidReach((_DWORD *)bs->movestate);
   if ( BotChat_Death((int *)bs) )
@@ -22148,9 +22148,9 @@ int __cdecl BotResetState(int *a1)
   qmemcpy(a1 + 310, v12, 0x1B0u);
   a1[418] = v5;
   a1[1] = v7;
-  sub_10034B90(a1 + 720);
+  BotResetMoveState(a1 + 720);
   BotResetGoalState(a1 + 752);
-  BotResetMoveState(BotWS((bot_state_t *)a1));
+  BotResetWeaponState(BotWS((bot_state_t *)a1));
   BotResetAvoidGoals(a1 + 752);
   return BotResetAvoidReach(a1 + 720);
 }
@@ -28299,7 +28299,7 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 }
 
 //----- (10034B90) --------------------------------------------------------
-int __cdecl sub_10034B90(void *a1)
+int __cdecl BotResetMoveState(void *a1)
 {
   int result; // eax
 
@@ -28622,7 +28622,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 }
 
 //----- (10035640) --------------------------------------------------------
-int __cdecl BotResetMoveState(bot_weaponstate_t *ws)
+int __cdecl BotResetWeaponState(bot_weaponstate_t *ws)
 {
   weightconfig_t *v1; // esi
   int *v2; // ebx
@@ -30352,30 +30352,14 @@ void Log_Open(char *FileName)
 }
 
 //----- (10038CF0) --------------------------------------------------------
-/* Older /INCREMENTAL copy of Log_Close — IDA-missed dead-code stub
- * (preserved only by the /INCREMENTAL relink path).  Verified against
- * objdump@10038CF0:
- *
- *     if (logfile = ds:0x10063E40) {
- *         if (fclose(logfile)) {
- *             bi_Print(PRT_ERROR, "can't close log file %s\n", logfilename);
- *             return;                       // does NOT clear logfile on error
- *         }
- *         logfile = NULL;
- *         bi_Print(PRT_MESSAGE, "Closed log %s\n", logfilename);
- *     }
- *
- * Globals match the live Log_Close at 0x10038D60: Stream @ 0x10063E40
- * and byte_10063A40 holds the log filename.  fclose thunk 0x10044888
- * is the static-linked MSVC fclose.  Strings 0x1005F168 / 0x1005F154
- * are the same format strings used by the live copy.
- *
- * The two implementations differ only trivially (IDA renders the live
- * Log_Close with a redundant double `if (Stream)` check) which is
- * consistent with a pre-/INCREMENTAL relink leaving behind the
- * earlier object-file copy of the routine.  Dead in Gladiator: no
- * caller reaches 0x10038CF0; only the relink thunk keeps it live. */
-int __cdecl sub_10038CF0(void)
+/* Q3 l_log.c: void Log_Close(void).  Closes logfile.fp, clears it on
+ * success, and prints the close message (or an error if fclose fails).
+ * Verified against objdump@10038CF0; Stream @ 0x10063E40, log filename
+ * @ byte_10063A40, fclose thunk 0x10044888.  This is NOT a dead
+ * duplicate — Log_Shutdown@0x10038D60 tail-jumps here through an
+ * /INCREMENTAL thunk (the earlier "dead /INCREMENTAL copy" reading was
+ * wrong: 10038D60 is the guard wrapper, this is the real close body). */
+int __cdecl Log_Close(void)
 {
   int result; // eax
 
@@ -30396,13 +30380,16 @@ int __cdecl sub_10038CF0(void)
 }
 
 //----- (10038D60) --------------------------------------------------------
-FILE *Log_Close()
+/* Q3 l_log.c: void Log_Shutdown(void) { if (logfile.fp) Log_Close(); }
+ * The original tail-jumps (through an /INCREMENTAL thunk) to Log_Close
+ * at 0x10038CF0 — it is the guarded wrapper, not a duplicate. */
+FILE *Log_Shutdown()
 {
   FILE *result; // eax
 
   result = Stream;
   if ( Stream )
-    result = (FILE *)sub_10038CF0();
+    result = (FILE *)Log_Close();
   return result;
 }
 
@@ -30449,7 +30436,7 @@ FILE *Log_Write(char *Format, ...)
  * DEAD in Gladiator — /INCREMENTAL.
  */
 static int dword_10063E44; // log line counter @ .data 0x10063E44
-FILE *__cdecl sub_10038DD0(const char *Format, ...)
+FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
   va_list va;
   float t;
