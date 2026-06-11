@@ -112,6 +112,12 @@ ifeq ($(COMPILER), clang)
 	#  about totally valid 'vec3_t bla = {0}' constructs.
 	CFLAGS += -Wno-missing-braces
 else ifeq ($(COMPILER), gcc)
+	# -Wno-missing-braces for the same reason as the clang branch above:
+	# the id/mission-pack monster tables and 'vec3_t bla = {0}' constructs
+	# are valid C; GCC's -Wmissing-braces is a pedantic false positive here.
+	# (override: CFLAGS has override origin from line ~94, so a plain += here
+	# would be silently dropped by GNU Make.)
+	override CFLAGS += -Wno-missing-braces
 	# GCC 8.0 or higher.
 	ifeq ($(shell test $(COMPILERVER) -ge 80000; echo $$?),0)
 	    # -Wno-format-truncation and -Wno-format-overflow
@@ -315,7 +321,11 @@ build/q_shared.o: game/q_shared.c
 build/game/%.o: game/%.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -DZOID -DC_ONLY -Igame/ -o $@ $<
+	# ZOID is NOT defined here: g_local.h defines it unconditionally (it is
+	# the authoritative original definition), so a -DZOID on the command line
+	# is redundant and only triggers a "ZOID redefined" warning (the -D form
+	# expands to 1, g_local.h's to empty). Every game/*.c includes g_local.h.
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -DC_ONLY -Igame/ -o $@ $<
 
 # ----------
 
