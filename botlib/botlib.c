@@ -14342,7 +14342,7 @@ int AAS_InitReachability()
       aasworld.savefile = 1;
       aasworld.numreachabilityareas = 1;
       AAS_SetupReachabilityHeap();
-      areareachability = (aas_reachabilitynode_t **)GetClearedMemory(sizeof(aas_reachabilitynode_t *) * aasworld.numareas);
+      areareachability = (aas_reachabilitynode_t **)GetClearedMemory(aasworld.numareas * sizeof(aas_reachabilitynode_t *));
       return AAS_SetWeaponJumpAreaFlags();
     }
     else
