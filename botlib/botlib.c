@@ -8581,10 +8581,10 @@ int AAS_Initialized()
 //----- (1000DF00) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Verified against objdump@1000DF00:
 // sets aasworld.initialized = 1, then prints "AAS initialized.\n" at level 1.
-// This is the late-init announcer that *would* have been called from
-// AAS_ContinueInit's tail in earlier builds before the print/flag-set were
-// inlined; preserved by /INCREMENTAL.
-int __cdecl sub_1000DF00(void)
+// Q3 be_aas_main.c AAS_SetInitialized: sets aasworld.initialized and prints
+// "AAS initialized.\n". Called from AAS_ContinueInit's tail (see 1000DF30).
+// IDA kept the bi_Print return value (Q3 declares it void).
+int __cdecl AAS_SetInitialized(void)
 {
   aasworld.initialized = 1;
   return bi_Print(PRT_MESSAGE, "AAS initialized.\n");
@@ -8615,7 +8615,7 @@ int AAS_ContinueInit(int time)
             bi_Print(PRT_ERROR, "couldn't write %s\n", aasworld.filename);
         }
         AAS_InitRouting();
-        return sub_1000DF00();
+        return AAS_SetInitialized();
       }
     }
   }
