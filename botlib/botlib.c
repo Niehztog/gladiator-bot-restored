@@ -27382,7 +27382,7 @@ int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int
 // against p1 and p3 respectively, and the result is the rational
 // formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
 // /INCREMENTAL.  Restored from objdump@10031C30.
-int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, int *out)
+int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, float *out)
 {
   float d1x = p2[0] - p1[0];
   float d1y = p2[1] - p1[1];
@@ -27392,13 +27392,15 @@ int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, int *out)
   float c1;
   float c2;
 
-  if ( det == 0.0f )
-    return 0;
-  c1 = d1x * p1[1] - d1y * p1[0];
-  c2 = d2x * p3[1] - d2y * p3[0];
-  out[0] = (int)((c2 * d1x - c1 * d2x) / det);
-  out[1] = (int)((c2 * d1y - c1 * d2y) / det);
-  return 1;
+  if ( det != 0.0f )
+  {
+    c1 = d1x * p1[1] - d1y * p1[0];
+    c2 = d2x * p3[1] - d2y * p3[0];
+    out[0] = (int)((c2 * d1x - c1 * d2x) / det);
+    out[1] = (int)((c2 * d1y - c1 * d2y) / det);
+    return 1;
+  }
+  return 0;
 }
 
 //----- (10031D10) --------------------------------------------------------
@@ -27827,10 +27829,8 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   float v9; // st7
   bot_moveresult_t *result; // eax
   float v11; // [esp+0h] [ebp-90h]
-  float v12; // [esp+10h] [ebp-80h]
-  float v13; // [esp+10h] [ebp-80h]
-  float v14; // [esp+14h] [ebp-7Ch]
-  float v15; // [esp+14h] [ebp-7Ch]
+  float v12; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
+  float v14; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
   /* IDA split four vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
   vec3_t predpos; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
@@ -27879,22 +27879,22 @@ LABEL_7:
   botd[2] = 0.0f;
   botd[0] = v6;
   botd[1] = ms->origin[1] - reach->start[1];
-  v13 = VectorNormalize(botd);
+  v12 = VectorNormalize(botd);
   v7 = ms->origin[0] - predpos[0];
   predd[2] = 0.0f;
   predd[0] = v7;
   predd[1] = ms->origin[1] - predpos[1];
-  v15 = VectorNormalize(predd);
-  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8f || v15 < 5.0f )
+  v14 = VectorNormalize(predd);
+  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8f || v14 < 5.0f )
   {
     v9 = reach->end[0] - ms->origin[0];
     dir[2] = 0.0f;
     dir[0] = v9;
     dir[1] = reach->end[1] - ms->origin[1];
     VectorNormalize(dir);
-    if ( v13 >= 24.0f )
+    if ( v12 >= 24.0f )
     {
-      if ( v13 < 32.0f )
+      if ( v12 < 32.0f )
         EA_DelayedJump(ms->client);
     }
     else
@@ -27911,9 +27911,9 @@ LABEL_7:
     dir[0] = v8;
     dir[1] = predpos[1] - ms->origin[1];
     VectorNormalize(dir);
-    if ( v15 > 80.0f )
-      v15 = 80.0f;
-    v11 = 400.0f - (400.0f - v15 * 5.0f);
+    if ( v14 > 80.0f )
+      v14 = 80.0f;
+    v11 = 400.0f - (400.0f - v14 * 5.0f);
     EA_Move(ms->client, dir, v11);
   }
   VectorCopy(dir, moveresult.movedir);
