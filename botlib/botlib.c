@@ -9667,19 +9667,19 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
   areanum = AAS_PointAreaNum(org);
   if ( !areanum )
   {
-    org[0] += 1.0;
+    org[0] += 1;
     areanum = AAS_PointAreaNum(org);
     if ( !areanum )
     {
-      org[1] += 1.0;
+      org[1] += 1;
       areanum = AAS_PointAreaNum(org);
       if ( !areanum )
       {
-        org[0] -= 2.0;
+        org[0] -= 2;
         areanum = AAS_PointAreaNum(org);
         if ( !areanum )
         {
-          org[1] -= 2.0;
+          org[1] -= 2;
           areanum = AAS_PointAreaNum(org);
         }
       }
