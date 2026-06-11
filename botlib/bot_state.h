@@ -22,7 +22,12 @@
 #ifndef BOT_STATE_H
 #define BOT_STATE_H
 
-#include "../game/botlib.h"    /* bot_updateclient_t */
+/* game/botlib.h is the original Mr. Elusive 1999 header — it has no
+ * include guards.  Callers of bot_state.h MUST include ../game/botlib.h
+ * (after q_shared.h) before this header so that bot_updateclient_t is
+ * visible; we cannot re-include it here without redefinition errors.
+ * Both current includers (botlib.c, botlib_exports.c) already follow
+ * that order. */
 #include "botlib_structs.h"   /* bot_goal_t */
 #include "chat_state.h"       /* bot_chatstate_t */
 

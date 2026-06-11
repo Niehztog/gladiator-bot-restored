@@ -7,32 +7,6 @@
 // Tab Size:     3
 //===========================================================================
 
-#ifndef BOTLIB_H
-#define BOTLIB_H
-
-/* Minimum Q2 type definitions needed by the structs below.
- * When included from game code, q_shared.h is already included first
- * (via g_local.h) and defines Q_SHARED_H — so this block is skipped.
- * When included from botlib/ (which can't include q_shared.h without
- * conflicting with its own internal function signatures), we provide the
- * minimum subset here. */
-#ifndef Q_SHARED_H
-typedef float vec_t;
-typedef vec_t vec3_t[3];
-typedef unsigned char byte;
-typedef int qboolean;
-typedef struct cplane_s {
-    vec3_t  normal;
-    float   dist;
-    byte    type;
-    byte    signbits;
-    byte    pad[2];
-} cplane_t;
-typedef enum { PM_NORMAL, PM_SPECTATOR, PM_DEAD, PM_GIB, PM_FREEZE } pmtype_t;
-#define MAX_STATS  32
-#define MAX_ITEMS  256
-#endif /* !Q_SHARED_H */
-
 //debug line colors
 #define LINECOLOR_NONE			-1
 #define LINECOLOR_RED			0xf2f2f0f0L
@@ -265,13 +239,7 @@ typedef struct bot_import_s
 	//print messages from the bot library
 	void		(*Print)(int type, char *fmt, ...);
 	//remove trace and point contents, we don't use them anyway?
-#if defined(__x86_64__) || defined(__aarch64__)
-	/* On 64-bit the botlib passes retbuf as an explicit first argument
-	 * (Win32/MSVC sret convention) so match that here. */
-	void *(*Trace)(bsp_trace_t *retbuf, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
-#else
 	bsp_trace_t (*Trace)(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
-#endif
 	int		(*PointContents)(vec3_t point);
 	//memory allocation
 	void		*(*GetMemory)(int size);
@@ -353,6 +321,4 @@ name:							default:				module(s):				description:
 "fastchat"					"0"					be_ai2_dm.c				fast chatting for debugging
 
 */
-
-#endif /* BOTLIB_H */
 

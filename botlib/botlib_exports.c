@@ -38,7 +38,15 @@
 #include <stdint.h>
 #include <errno.h>
 
-#include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
+/* game/botlib.h is the original 1999 header — no include guards and it
+ * references Q2 types (vec3_t, MAX_ITEMS, ...) without including
+ * q_shared.h itself.  Pull q_shared.h in first so those types are in
+ * scope, then drop q_shared.h's 2-arg VectorNegate macro so the original
+ * 1-arg VectorNegate function in botlib stays callable (same pattern as
+ * botlib.c). */
+#include "../game/q_shared.h"
+#undef VectorNegate
+#include "../game/botlib.h"  /* bot_export_t, bot_import_t */
 #include "gladiator.dll.h"
 #include "bot_state.h"
 
