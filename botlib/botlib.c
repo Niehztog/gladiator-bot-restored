@@ -531,7 +531,7 @@ char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3);
 int __cdecl AAS_IndexFromString(const char *, indexlist_t *, char *String2); // idb
 char *__cdecl AAS_ModelFromIndex(int a1);
 int __cdecl IndexFromModel(char *String2); // idb
-char *__cdecl sub_1000DA20(int a1);
+char *__cdecl AAS_ImageFromIndex(int a1);
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
 int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
@@ -704,7 +704,7 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs);
 int __cdecl BotChat_ExitGame(bot_state_t *bs);
 int __cdecl BotChat_StartLevel(bot_state_t *bs);
 int __cdecl BotChat_EndLevel(bot_state_t *bs);
-int __cdecl sub_10022160(int *a1);
+int __cdecl BotChat_Death(int *a1);
 BOOL __cdecl BotChat_Kill(int *a1);
 int __cdecl BotChat_Random(bot_state_t *bs);
 double __cdecl BotChatTime(bot_state_t *bs);
@@ -838,7 +838,7 @@ void __cdecl BotDumpAvoidGoals(int *goalstate);
 void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
 float __cdecl BotAvoidGoalTime(int *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
-int sub_1002FA20();
+int BotUpdateEntityItems();
 void __cdecl BotDumpGoalStack(int *goalstate);
 int __cdecl BotPushGoal(int *goalstate, const void *goal);
 int __cdecl BotPopGoal(int *goalstate);
@@ -8422,7 +8422,7 @@ int __cdecl IndexFromModel(char *String2)
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@1000D9C0: pushes "SoundFromIndex" + aasworld.soundindex_table,
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
-char *__cdecl sub_1000D9C0(int a1)
+char *__cdecl AAS_SoundFromIndex(int a1)
 {
   return AAS_StringFromIndex("SoundFromIndex", aasworld.soundindex_table, a1);
 }
@@ -8430,14 +8430,14 @@ char *__cdecl sub_1000D9C0(int a1)
 //----- (1000D9F0) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
-int __cdecl sub_1000D9F0(char *String2)
+int __cdecl AAS_IndexFromSound(char *String2)
 {
   return AAS_IndexFromString("IndexFromSound", aasworld.soundindex_table,
                              String2);
 }
 
 //----- (1000DA20) --------------------------------------------------------
-char *__cdecl sub_1000DA20(int a1)
+char *__cdecl AAS_ImageFromIndex(int a1)
 {
   return AAS_StringFromIndex("ImageFromIndex", aasworld.imageindex_table, a1);
 }
@@ -8445,7 +8445,7 @@ char *__cdecl sub_1000DA20(int a1)
 //----- (1000DA50) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
-int __cdecl sub_1000DA50(char *String2)
+int __cdecl AAS_IndexFromImage(char *String2)
 {
   return AAS_IndexFromString("IndexFromImage", aasworld.imageindex_table,
                              String2);
@@ -17305,7 +17305,7 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   BotResetMoveState(BotWS(bs));
   BotResetAvoidGoals(bs->goalstate);
   BotResetAvoidReach((_DWORD *)bs->movestate);
-  if ( sub_10022160((int *)bs) )
+  if ( BotChat_Death((int *)bs) )
   {
     v3 = BotChatTime(bs);
     v2 = AAS_Time() + v3;
@@ -18353,7 +18353,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   v1 = bs->snapshot.stats[9];
   if ( v1 )
   {
-    v2 = sub_1000DA20(v1);
+    v2 = AAS_ImageFromIndex(v1);
     if ( !_strcmpi(v2, "p_quad") )
       bs->quad_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
     else if ( !_strcmpi(v2, "p_invulnerability") )
@@ -18382,7 +18382,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   v7 = bs->snapshot.stats[4];
   if ( v7 )
   {
-    v8 = sub_1000DA20(v7);
+    v8 = AAS_ImageFromIndex(v7);
     if ( !_strcmpi(v8, "i_powershield") )
       bs->powerscreen_seen_time = AAS_Time();
     v10 = bs->powerscreen_seen_time;
@@ -18870,7 +18870,7 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
 }
 
 //----- (10022160) --------------------------------------------------------
-int __cdecl sub_10022160(int *a1)
+int __cdecl BotChat_Death(int *a1)
 {
   float v1; // st7
   int v4; // eax
@@ -21850,7 +21850,7 @@ void sub_100292E0()
 {
   if ( AAS_Time() > flt_100643A4 )
   {
-    sub_1002FA20();
+    BotUpdateEntityItems();
     flt_100643A4 = AAS_Time() + 1.0f;
   }
 }
@@ -25618,7 +25618,7 @@ int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
 }
 
 //----- (1002FA20) --------------------------------------------------------
-int sub_1002FA20()
+int BotUpdateEntityItems()
 {
   levelitem_t *v0;
   levelitem_t *v1;
@@ -29502,15 +29502,15 @@ void __cdecl EA_DropItem(int client, char *item)
 // against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
-void __cdecl sub_10037150(int client, char *item)
+void __cdecl EA_UseInv(int client, char *item)
 {
   bi_BotClientCommand(client, "invuse", item, (char *)NULL);
 }
 
 //----- (10037180) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub).  Mirror of sub_10037150 with the
+// Restored (IDA-missed dead-code stub).  Mirror of EA_UseInv with the
 // "invdrop" command string (0x1005E63C).
-void __cdecl sub_10037180(int client, char *item)
+void __cdecl EA_DropInv(int client, char *item)
 {
   bi_BotClientCommand(client, "invdrop", item, (char *)NULL);
 }

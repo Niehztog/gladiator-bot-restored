@@ -352,8 +352,8 @@ typedef struct bot_goal_s {
  * Allocated as a fixed-size pool by InitLevelItemHeap (52 * max_levelitems).
  * Free list is singly linked via `next`; active list is doubly linked via
  * `prev`/`next` (AddLevelItemToList / sub_1002F320).
- * Field offsets confirmed from sub_1002FA20 (sub_1002FA20) and
- * BotGetLevelItemGoal (BotGetLevelItemGoal):
+ * Field offsets confirmed from BotUpdateEntityItems and
+ * BotGetLevelItemGoal:
  *   +0   number      — item number = entitynum + map base bias
  *   +4   iteminfo    — index into itemconfig->items[]
  *   +8   origin      — entity world position (vec3)
