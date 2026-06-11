@@ -19076,9 +19076,8 @@ BOOL __cdecl BotWantsToChase(int *a1)
  * decision-helper run.  Likely a placeholder for a feature toggle
  * (BotWantsToRetreat? BotShouldRetreat?) that ended up hard-coded to 1.
  * Dead in Gladiator; preserved by /INCREMENTAL. */
-int __cdecl sub_10022970(int *a1)
+int __cdecl BotWantsToHelp(bot_state_t *bs)
 {
-  (void)a1;
   return 1;
 }
 
@@ -22572,7 +22571,7 @@ float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float
   if ( a3 > (float)a4 )
   {
     bi_Print(PRT_ERROR, "cannot bound characteristic %d between %f and %f\n", a2, a3, a4);
-    return 0.0;
+    return 0.0f;
   }
   result = Characteristic_Float(a1, a2);
   if ( result < a3 )
