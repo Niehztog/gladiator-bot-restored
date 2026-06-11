@@ -9265,23 +9265,28 @@ int __cdecl sub_1000E430(char *Source)
   int v7; // esi
   /* Each of these char buffers is 144 bytes in the original binary;
    * IDA decomposed each as char[141] + __int16 + char (= 144 contiguous).
-   * Restored as char[144] so strncpy/strncat with bound 144 don't overrun.
-   * The trailing v9/v10/v14/v15/v17/v18/v21/v22 zero-inits become memset of
-   * the last 3 bytes of each buffer; v19/v20 collapse into a single buffer. */
+   * Restored as char[144] so strncpy/strncat with bound 144 don't overrun. */
   char Destination[144]; // [esp+10h] [ebp-360h] BYREF
   char ArgList[144]; // [esp+A0h] [ebp-2D0h] BYREF
   char Path[144]; // [esp+130h] [ebp-240h] BYREF
-  char v13[144]; // [esp+1C0h] [ebp-1B0h] BYREF
-  char v16[144]; // [esp+250h] [ebp-120h] BYREF
-  char v19_buf[144]; // [esp+2E0h] [ebp-90h] BYREF — was v19+v20+v21+v22
+  /* The three search-dir buffers are ONE contiguous char[3][144] array in the
+   * original (rows at [esp+1C0h]/[250h]/[2E0h], 0x90 apart): the loop walks a
+   * char* through it with `v4 += 144` (disasm `add ebx,0x90` @0x1000e6d9).  All
+   * three rows are zero-inited even though only dirs[0]=gamedir and dirs[1]=
+   * "baseq2" are populated/searched (the loop runs 2 iters); dirs[2] stays empty.
+   * It MUST be a real array, not three named locals: the array's escaping address
+   * keeps MSVC /O2 from dead-eliminating the unused dirs[2] (separate locals get
+   * elided, shrinking the frame 0x360->0x2d0).  A [3][144] array is contiguous by
+   * C semantics, so `v4 += 144` is portable on 64-bit too.  Was v13/v16/v19_buf. */
+  char dirs[3][144]; // [esp+1C0h] [ebp-1B0h] BYREF
 
-  v13[0] = byte_1006294C;
+  dirs[0][0] = byte_1006294C;
   Destination[0] = byte_1006294C;
-  memset(&v13[1], 0, 143);
-  v16[0] = byte_1006294C;
-  memset(&v16[1], 0, 143);
-  v19_buf[0] = byte_1006294C;
-  memset(&v19_buf[1], 0, 143);
+  memset(&dirs[0][1], 0, 143);
+  dirs[1][0] = byte_1006294C;
+  memset(&dirs[1][1], 0, 143);
+  dirs[2][0] = byte_1006294C;
+  memset(&dirs[2][1], 0, 143);
   memset(&Destination[1], 0, 143);
   v1 = (const char *)LibVarGetString(aBasedir);
   v2 = (const char *)LibVarGetString(aGamedir);
@@ -9298,13 +9303,13 @@ int __cdecl sub_1000E430(char *Source)
   getcwd_locked((int)Path, 144);
   _chdir(Destination);
   if ( v2 )
-    strncpy(v13, v2, 0x90u);
-  strncpy(v16, aBaseq2, 0x90u);
+    strncpy(dirs[0], v2, 0x90u);
+  strncpy(dirs[1], aBaseq2, 0x90u);
   strncpy(ArgList, Source, 144 - strlen(ArgList));
   strncat(ArgList, aAas, 144 - strlen(ArgList));
   v3 = 0;
-  v4 = v13;
-  while ( 2 )
+  v4 = dirs[0];
+  do
   {
     for ( i = 0; i < 10; ++i )
     {
@@ -9335,11 +9340,9 @@ int __cdecl sub_1000E430(char *Source)
       }
     }
     ++v3;
-    v4 = v16;   /* switch from gamedir (v13) to "baseq2" (v16); original v4+=144 relied on MSVC stack layout */
-    if ( v3 < 2 )
-      continue;
-    break;
+    v4 += 144;   /* walk to next dir row (gamedir -> "baseq2"); array contiguity makes this portable */
   }
+  while ( v3 < 2 );
   _chdir(Path);
   return 5;
 }
