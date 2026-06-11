@@ -33697,9 +33697,9 @@ int __cdecl PC_UnreadLastToken(source_t *src)
  * pass-through wrapper — likely the abandoned `PC_UnreadToken(src,
  * token)` external entry point that paralleled PC_UnreadLastToken.
  * Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl sub_1003DD70(source_t *src, const void *token)
+void __cdecl PC_UnreadToken(source_t *source, token_t *token)
 {
-  PC_UnreadSourceToken(src, token);
+  PC_UnreadSourceToken(source, token);
 }
 
 //----- (1003DDA0) --------------------------------------------------------
@@ -33726,9 +33726,9 @@ void __cdecl sub_1003DD70(source_t *src, const void *token)
  * strncpy) is verbatim from the binary — it reads past the source
  * string's nul, but the function is dead so it never executes.
  * Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl sub_1003DDA0(void *src, const char *path)
+void __cdecl PC_SetIncludePath(source_t *source, char *path)
 {
-  char  *dst = (char *)src + 0x104;
+  char  *dst = source->includepath;
   size_t len;
   memcpy(dst, path, 0x104);
   len = strlen(dst);
@@ -33748,7 +33748,7 @@ void __cdecl sub_1003DDA0(void *src, const char *path)
  * (lies inside source_t's reserved _pad_1 region between +312 and
  * +523, so the field carries no live name in the present
  * reconstruction).  Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl sub_1003DE40(void *p, int value)
+void __cdecl PC_SetPunctuations(void *p, int value)
 {
   *(int *)((char *)p + 0x208) = value;
 }
@@ -33920,7 +33920,7 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
  * punctuation string or a typo'd default.  Walks `script->punctuations`
  * as a contiguous punctuation_t[] terminated by a record with NULL p.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-char *__cdecl sub_1003E250(script_t *script, int num)
+char *__cdecl PunctuationFromNum(script_t *script, int num)
 {
   int i;
   for ( i = 0; script->punctuations[i].p; i++ )
@@ -34906,9 +34906,9 @@ int __cdecl PS_SkipUntilString(script_t *script, const char *string)
  * the same flag) and the bulk-load helper at 0x1003FC30 (which fills
  * the +0x138 macro table then sets the flag).  Dead in Gladiator —
  * preserved by /INCREMENTAL. */
-void __cdecl sub_1003FC10(void *ctx)
+void __cdecl PS_UnreadLastToken(script_t *script)
 {
-  *(int *)((char *)ctx + 0x128) = 1;
+  script->tokenavailable = 1;
 }
 
 //----- (1003FC70) --------------------------------------------------------
@@ -34922,12 +34922,10 @@ void __cdecl sub_1003FC10(void *ctx)
  * (+0x114 = cursor, +0x118 = end), advances the cursor, and returns
  * the byte; returns 0 at EOF.  Standalone getc-style reader.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-unsigned char __cdecl sub_1003FC70(void *ctx)
+char PS_NextWhiteSpaceChar(script_t *script)
 {
-  char **cursor = (char **)((char *)ctx + 0x114);
-  char  *end    = *(char **)((char *)ctx + 0x118);
-  if ( *cursor != end )
-    return *(*cursor)++;
+  if (script->whitespace_p != script->endwhitespace_p)
+    return *script->whitespace_p++;
   return 0;
 }
 
