@@ -6741,7 +6741,7 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
  * onto the plane.  Draws an X (the two diagonals of the projected
  * square) via bi_DebugLineShow using two line-IDs allocated from the
  * shared dword_100670C0/dword_10066CC0/dword_10066B14 slot table (same
- * pattern as sub_10009CB0).
+ * pattern as AAS_ShowBoundingBox).
  *
  *   arg0 = vec3 origin point (read 4 times into copies A/B/C/D)
  *   arg1 = vec3 plane normal (3 floats, indexed by {ecx,esi,edx} axis
@@ -6754,10 +6754,11 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
  *   A = origin + (-6,-6)   B = origin + (+6,+6)   line 1: A → B
  *   C = origin + (+6,-6)   D = origin + (-6,+6)   line 2: C → D
  *
- * DEAD in shipped Gladiator (no .text caller).  Probably the inner of an
- * AAS_DrawAreaPlane debug pair that was excised before ship — only the
- * sibling sub_10009CB0 (DrawDebugCube) made it into the call graph. */
-static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int color)
+ * Identity: Q3's AAS_DrawPlaneCross(point, normal, dist, type, color)
+ * (be_aas_debug.c) — the n0/n1/n2 = {type, type+1, type+2} % 3 axis
+ * permutation and the ±6 corner cross are a 1:1 structural match.
+ * DEAD in shipped Gladiator (no .text caller); preserved by /INCREMENTAL. */
+static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axis, int color)
 {
   vec3_t cA, cB, cC, cD;
   int    ix = axis % 3;           /* ecx */
@@ -6807,8 +6808,14 @@ static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int
 }
 
 //----- (10009CB0) --------------------------------------------------------
-/* sub_10009CB0 — DEAD debug-cube draw helper.  Restored from
- * objdump@0x10009CB0 (131 lines).  Draws an AABB at origin with
+/* AAS_ShowBoundingBox — DEAD debug-cube draw helper.  Restored from
+ * objdump@0x10009CB0 (131 lines).  Identity: Q3's AAS_ShowBoundingBox
+ * (be_aas_debug.c) — same 8-corner cube, 3-line-ID cycle, and
+ * top/bottom/vertical edge-draw loop.  NOTE: the .text reads the 2nd
+ * stack param for the top (maxs) corners and the 3rd for the bottom
+ * (mins) corners — the reverse of Q3's (origin, mins, maxs) prototype —
+ * so the param order here is kept as decompiled to stay byte-faithful.
+ * Draws an AABB at origin with
  * mins/maxs offsets as a wireframe cube of color 0xF2F2F0F0 using the
  * shared dword_100670C0 line-ID slot table — but only retains THREE
  * line IDs across all 12 edges, so the bottom-quad / top-quad /
@@ -6818,7 +6825,7 @@ static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int
  * debug view" toggle).
  *
  * Signature (cdecl, 3 vec3 args):
- *   void sub_10009CB0(vec3_t origin, vec3_t maxs_offset, vec3_t mins_offset)
+ *   void AAS_ShowBoundingBox(vec3_t origin, vec3_t maxs_offset, vec3_t mins_offset)
  *
  * Geometry (verified field-by-field from the .text FPU schedule):
  *   X1 = origin[0] + mins[0]   X4 = origin[0] + maxs[0]
@@ -6861,7 +6868,7 @@ static void sub_10009A10(vec3_t origin, vec3_t normal, float dist, int axis, int
  *          dword_10066B14      = free counter
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
-void __cdecl sub_10009CB0(vec3_t origin, vec3_t maxs, vec3_t mins)
+void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t maxs, vec3_t mins)
 {
   float corners[8][3];
   int   line_ids[3];
@@ -6946,7 +6953,7 @@ void __cdecl sub_10009CB0(vec3_t origin, vec3_t maxs, vec3_t mins)
  *
  * DEAD in shipped Gladiator (no .text caller; AAS_ShowArea draws
  * area-level wireframes via a different path).  Restored verbatim. */
-void __cdecl sub_10009ED0(int facenum)
+void __cdecl AAS_ShowFace(int facenum)
 {
   static const unsigned int edge_color_cycle[4] = {
     0xF2F2F0F0u,  /* state 0 (after first xform from initial 0xDCDDDEDF) */
@@ -7480,7 +7487,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 // (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
 // prints via bi_Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", ...)
 // and zeroes the destination vec3.
-void __cdecl sub_1000ACB0(int entnum, vec3_t origin)
+void __cdecl AAS_EntityOrigin(int entnum, vec3_t origin)
 {
   if ( entnum >= 0 && entnum < aasworld.numentities )
   {
@@ -7552,7 +7559,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
 // bi_Print(PRT_FATAL, "AAS_EntitySize: entnum %d out of range\n", entnum) and
 // returns *without* writing to mins/maxs (matches the original — the
 // disasm has no clear path on the OOR exit).
-void __cdecl sub_1000AEA0(int entnum, vec3_t mins, vec3_t maxs)
+void __cdecl AAS_EntitySize(int entnum, vec3_t mins, vec3_t maxs)
 {
   aas_entityinfo_t *ent;
 
@@ -10852,9 +10859,10 @@ int __cdecl AAS_AreaSwim(int areanum)
  * objdump@10011640: byte-identical duplicate of AAS_AreaSwim@10011610
  * (same `lea ecx,[eax*8]; sub ecx,eax; movsx eax,BYTE[edx+ecx*4+4];
  * and 4; shr 2` sequence reading areasettings[a].areaflags bit 2).
- * Either an alias (AAS_AreaWater?) or /INCREMENTAL's second emission
- * of the same body; preserved by the linker. */
-int __cdecl sub_10011640(int areanum)
+ * This is Q3's AAS_AreaLiquid — be_aas_reach.c has AAS_AreaSwim
+ * immediately followed by AAS_AreaLiquid, both with the identical body
+ * `if (areaflags & AREA_LIQUID) return qtrue; else return qfalse;`. */
+int __cdecl AAS_AreaLiquid(int areanum)
 {
   if ( aasworld.areasettings[areanum].areaflags & 4 )
     return 1;
@@ -15733,7 +15741,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 // trusts the bounds-check).  Uses `areanum > 0` (not `>= 0`) so area 0 is
 // treated as OOR.  On OOR prints "AAS_AreaCluster: invalid area number\n"
 // at level 3 and returns 0.
-int __cdecl sub_1001AF00(int areanum)
+int __cdecl AAS_AreaCluster(int areanum)
 {
   if ( areanum > 0 && areanum < aasworld.numareas )
     return aasworld.areasettings[areanum].cluster;
@@ -16304,7 +16312,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
-void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
+void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
 {
   int    i;
   int    numfaces;
@@ -16350,7 +16358,7 @@ void *__cdecl sub_1001C0B0(int areanum, void *predicate_arg)
  *   *out_dist        = plane[3]
  * Dead in Gladiator — live code (AAS_FaceOnSameSide etc.) walks
  * aasworld.planes/faces directly; preserved by /INCREMENTAL. */
-void __cdecl sub_1001C1C0(int face_idx, float *out_normal, float *out_dist)
+void __cdecl AAS_FacePlane(int face_idx, float *out_normal, float *out_dist)
 {
   int    plane_idx;
   float *plane;
@@ -24616,7 +24624,7 @@ error:
 }
 
 //----- (1002CF40) --------------------------------------------------------
-/* sub_1002CF40 — DEAD `BotDumpReplyChat`.  Restored from
+/* BotDumpReplyChat — DEAD.  Restored from
  * objdump@0x1002CF40 (~221 instructions).  String table contains
  * "BotDumpReplyChat:\n" @0x1005D54C (function-name banner header),
  * confirming the identity.
@@ -24659,7 +24667,7 @@ error:
  *         0x10045898               = fprintf.
  *
  * DEAD in Gladiator — no live caller. */
-void __cdecl sub_1002CF40(bot_replychat_t *replychat)
+void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
 {
   struct lhs_inner { int type; char **strptr_ptr; int intval; struct lhs_inner *next; };
   struct lhs_node  { int flags; char *strptr;    struct lhs_inner *inner; struct lhs_node *next; };
