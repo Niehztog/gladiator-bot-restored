@@ -1070,7 +1070,7 @@ const char **__cdecl FindField(const char **a1, const char *a2);
 int __cdecl ReadNumber(source_t *src, char **field, float *out);
 int __cdecl ReadChar(source_t *src, char **field, float *out);
 int __cdecl ReadString(source_t *, char **, char *Destination); // idb
-int __cdecl ReadStructure(source_t *src, structdef_t *def, void *dst);
+int __cdecl ReadStructure(source_t *source, structdef_t *def, void *structure);
 int __cdecl WriteIndent(FILE *Stream, int); // idb
 int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
@@ -1100,45 +1100,6 @@ float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this 
 //-------------------------------------------------------------------------
 // Data declarations
 
-/* BotDefine: slot  5 — set a C-style #define */
-// FIXED: _UNKNOWN Export_BotDefine; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* Test: slot 19 — debug/test hook */
-// FIXED: _UNKNOWN Export_Test; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// FIXED: _UNKNOWN BotStateBattleNBG; // weak — was a BSS data slot; replaced by reverse-engineered AINode_Battle_NBG below
-/* BotLibVarSet: slot  4 — set a library cvar */
-// FIXED: _UNKNOWN Export_BotLibVarSet; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotShutdownClient: slot  8 — destroy a bot client slot */
-// FIXED: _UNKNOWN Export_BotShutdownClient; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotSetupClient: slot  7 — create a bot client slot */
-// FIXED: _UNKNOWN Export_BotSetupClient; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotLoadMap: slot  6 — load map + model/sound/image indexes */
-// FIXED: _UNKNOWN Export_BotLoadMap; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotShutdownLibrary: slot  2 — shut down the botlib */
-// FIXED: _UNKNOWN Export_BotShutdownLibrary; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// FIXED: _UNKNOWN BotStateActivateEntity; // weak — was a BSS data slot; replaced by reverse-engineered AINode_Seek_ActivateEntity below
-/* BotSetupLibrary: slot  1 — initialise the botlib */
-// FIXED: _UNKNOWN Export_BotSetupLibrary; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotAddPointLight: slot 16 — notify bot of a light event */
-// FIXED: _UNKNOWN Export_BotAddPointLight; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// LittleFloat declared above as int __cdecl LittleFloat(int a1);
-/* BotSettings: slot 10 — update client settings (name/skin) */
-// FIXED: _UNKNOWN Export_BotClientSettings; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotAddSound: slot 15 — notify bot of a sound event */
-// FIXED: _UNKNOWN Export_BotAddSound; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotLibraryInitialized: slot  3 — returns non-zero if initialised */
-// FIXED: _UNKNOWN Export_BotLibraryInitialized; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotMoveClient: slot  9 — reassign bot to new client number */
-// FIXED: _UNKNOWN Export_BotMoveClient; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotSettings: slot 11 — update bot skill settings */
-// FIXED: _UNKNOWN Export_BotSettings; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotVersion: slot  0 — returns library version string */
-// FIXED: _UNKNOWN Export_BotVersion; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// FIXED: _UNKNOWN BigShort; // weak — was a BSS data slot; replaced by identity function below (definition near LittleShort).
-/* BotUpdateClient: slot 14 — update entity state for AAS */
-// FIXED: _UNKNOWN Export_BotUpdateEntity; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-/* BotMoveClient: slot 13 — feed bot perception data */
-// FIXED: _UNKNOWN Export_BotUpdateClient; // weak — was a BSS data slot; replaced by function in botlib_exports.c
-// FIXED: _UNKNOWN BigFloat; // weak — was a BSS data slot; replaced by identity function below (definition near LittleFloat).
 char aMaxBsplinks[] = "max_bsplinks"; // idb
 char a4096[5] = "4096"; // weak
 char aEmptyBspLinkHe[21] = "empty bsp link heap\n"; // weak
@@ -1574,7 +1535,7 @@ char a6[2] = "6"; // weak
 char aBotstartframe[14] = "BotStartFrame"; // weak
 char aBotai[6] = "BotAI"; // weak
 char aBotconsolemess[18] = "BotConsoleMessage"; // weak
-__int16 word_1005EE70[308] =
+__int16 crctable[308] =
 {
   0,
   4129,
@@ -30618,17 +30579,12 @@ _WORD *__cdecl CRC_Init(_WORD *a1)
 //----- (100385D0) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@100385D0: standard CCITT CRC-16 single-byte update
-// against the lookup table at word_1005EE70.  Mirrors Q3 CRC_ProcessByte.
+// against the lookup table at crctable.  Mirrors Q3 CRC_ProcessByte.
 // Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
 // preserved by the linker.
-void __cdecl sub_100385D0(unsigned __int16 *crc, int byte)
+void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 {
-  unsigned int idx;
-  unsigned int low_shifted;
-
-  idx = ((*crc >> 8) ^ (byte & 0xFF)) & 0xFFFF;
-  low_shifted = (*crc & 0xFF) << 8;
-  *crc = (unsigned __int16)(low_shifted ^ word_1005EE70[idx]);
+	 *crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data];
 }
 
 //----- (10038620) --------------------------------------------------------
@@ -30649,7 +30605,7 @@ __int16 __cdecl CRC_Block(const unsigned char *data, int length)
     ind = (crcvalue >> 8) ^ data[i];
     if ( ind < 0 || ind > 256 )
       ind = 0;
-    crcvalue = (crcvalue << 8) ^ word_1005EE70[ind];
+    crcvalue = (crcvalue << 8) ^ crctable[ind];
   }
   return CRC_Value(crcvalue);
 }
@@ -30657,7 +30613,7 @@ __int16 __cdecl CRC_Block(const unsigned char *data, int length)
 //----- (100386E0) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub). Verified against objdump@100386E0:
 // CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte
-// transform as sub_100385D0 in a tight loop and writing the result back
+// transform as CRC_ProcessByte in a tight loop and writing the result back
 // through `crc`.  Mirrors Q3 CRC_ProcessByteString — dead in Gladiator (the
 // equivalent loop is inlined in CRC_Block at 10038640).  Note the disasm
 // scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
@@ -30669,7 +30625,7 @@ void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
 
   for ( i = 0; i < len; i++ )
   {
-    *crc = (*crc << 8) ^ word_1005EE70[(*crc >> 8) ^ data[i]];
+    *crc = (*crc << 8) ^ crctable[(*crc >> 8) ^ data[i]];
   }
 }
 
@@ -35037,9 +34993,9 @@ void __cdecl SetScriptFlags(script_t *script, int flags)
  * lastscriptload-counter (+0x128) and the load-flag (+0x130);
  * the live API uses dedicated accessors (PS_GetScriptName etc.)
  * instead.  Dead in Gladiator — preserved by /INCREMENTAL. */
-int __cdecl sub_1003FFD0(script_t *script)
+int __cdecl GetScriptFlags(script_t *script)
 {
-  return *(int *)((char *)script + 0x12c);
+  return script->flags;
 }
 
 //----- (10040060) --------------------------------------------------------
@@ -35056,9 +35012,9 @@ BOOL __cdecl EndOfScript(script_t *script)
  * ScriptError/length accessor pattern: returns (current_token_offset -
  * something_offset).  Dead in Gladiator — never reached via thunk
  * 0x10001492; preserved by /INCREMENTAL. */
-int __cdecl sub_10040090(script_t *script)
+int __cdecl NumLinesCrossed(script_t *script)
 {
-  return *(int *)((char *)script + 0x120) - *(int *)((char *)script + 0x124);
+  return script->line - script->lastline;
 }
 
 //----- (100400C0) --------------------------------------------------------
@@ -35093,18 +35049,25 @@ int __cdecl sub_10040090(script_t *script)
  * through [orig+4] (esi).  The single `while (PS_ReadWhiteSpace(...))`
  * lets MSVC rotate the loop (top je / bottom jne / fall-through return 0)
  * exactly as the original — a leading guard + while(1) emits an extra jmp. */
-int __cdecl sub_100400C0(script_t *script, const char *string)
+int __cdecl ScriptSkipTo(script_t *script, char *value)
 {
-  size_t len = strlen(string);
-  char   first = string[0];
-  while ( PS_ReadWhiteSpace(script) )
+  int len;
+  char firstchar;
+
+  firstchar = *value;
+  len = strlen(value);
+  do
   {
-    if ( *script->script_p == first
-      && strncmp(script->script_p, string, len) == 0 )
-      return 1;
+    if (!PS_ReadWhiteSpace(script)) return 0;
+    if (*script->script_p == firstchar)
+    {
+      if (!strncmp(script->script_p, value, len))
+      {
+        return 1;
+      }
+    }
     script->script_p++;
-  }
-  return 0;
+  } while(1);
 }
 
 //----- (10040150) --------------------------------------------------------
@@ -35430,9 +35393,8 @@ int __cdecl ReadString(source_t *src, char **field, char *Destination)
 }
 
 //----- (10040AD0) --------------------------------------------------------
-int __cdecl ReadStructure(source_t *src, structdef_t *def, void *dst)
+int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
 {
-  int result; // eax
   const char **v4; // eax
   const char **v5; // ebp
   int v6; // esi
@@ -35444,13 +35406,11 @@ int __cdecl ReadStructure(source_t *src, structdef_t *def, void *dst)
   int v13; // [esp+10h] [ebp-434h]
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
-  result = PC_ExpectTokenString(src, asc_1005AB58);
-  if ( !result )
-    return result;
+  if ( !PC_ExpectTokenString(source, asc_1005AB58) ) return 0;
   do
   {
 LABEL_2:
-    if ( !PC_ExpectAnyToken(src, ArgList) )
+    if ( !PC_ExpectAnyToken(source, ArgList) )
       return 0;
     if ( !strcmp(ArgList, asc_1005AB54) )
       return 1;
@@ -35458,20 +35418,20 @@ LABEL_2:
     v5 = v4;
     if ( !v4 )
     {
-      SourceError(src, aUnknownStructu, ArgList);
+      SourceError(source, aUnknownStructu, ArgList);
       return 0;
     }
     if ( (((unsigned __int16)v4[2] >> 8) & 1) != 0 )
     {
       v6 = (int)v4[3];
-      if ( !PC_ExpectTokenString(src, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(source, asc_1005AB58) )
         return 0;
     }
     else
     {
       v6 = 1;
     }
-    v7 = (float *)((char *)dst + (intptr_t)v5[1]);
+    v7 = (float *)(structure + (intptr_t)v5[1]);
     v8 = v6;
     v9 = v6 - 1;
     v13 = v9;
@@ -35479,23 +35439,23 @@ LABEL_2:
   while ( v8 <= 0 );
   while ( 2 )
   {
-    if ( (((unsigned __int16)v5[2] >> 8) & 1) != 0 && PC_CheckTokenString(src, asc_1005AB54) )
+    if ( (((unsigned __int16)v5[2] >> 8) & 1) != 0 && PC_CheckTokenString(source, asc_1005AB54) )
       goto LABEL_2;
     switch ( (unsigned __int8)v5[2] )
     {
       case 1u:
-        if ( !ReadChar(src, (char **)v5, (float *)v7) )
+        if ( !ReadChar(source, v5, v7) )
           return 0;
         v7 = (float *)((char *)v7 + 1);
         goto LABEL_21;
       case 2u:
       case 3u:
-        if ( !ReadNumber(src, (char **)v5, v7) )
+        if ( !ReadNumber(source, v5, v7) )
           return 0;
         ++v7;
         goto LABEL_21;
       case 4u:
-        if ( !ReadString(src, (char **)v5, (char *)v7) )
+        if ( !ReadString(source, v5, (char *)v7) )
           return 0;
         v7 += 20;
         goto LABEL_21;
@@ -35503,15 +35463,15 @@ LABEL_2:
         v10 = v5[6];
         if ( !v10 )
         {
-          SourceError(src, aBugNoSubStruct);
+          SourceError(source, aBugNoSubStruct);
           return 0;
         }
-        ReadStructure(src, (structdef_t *)v10, (void *)v7);
+        ReadStructure(source, (structdef_t *)v10, (void *)v7);
         v7 = (float *)((char *)v7 + ((structdef_t *)v5[6])->size);
 LABEL_21:
         if ( (((unsigned __int16)v5[2] >> 8) & 1) == 0 )
           goto LABEL_26;
-        if ( !PC_ExpectAnyToken(src, ArgList) )
+        if ( !PC_ExpectAnyToken(source, ArgList) )
           return 0;
         if ( !strcmp(ArgList, asc_1005AB54) )
           goto LABEL_2;
@@ -35525,7 +35485,7 @@ LABEL_26:
             goto LABEL_2;
           continue;
         }
-        SourceError(src, aExpectedAComma, ArgList);
+        SourceError(source, aExpectedAComma, ArgList);
         return 0;
       default:
         goto LABEL_21;
