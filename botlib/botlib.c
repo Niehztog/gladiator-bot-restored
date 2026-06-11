@@ -36028,19 +36028,24 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
   char *v4; // ebp
   int v5; // esi
   int v7; // [esp+10h] [ebp-244h]
-  /* All four buffers were 144-byte char arrays in the original binary.
-   * IDA split FileName and v17_buf as char[141]+__int16+char (= 144 contiguous);
-   * restored as char[144] each.  Subdirs already restored as char[2][144]. */
+  /* FileName plus a char[3][144] subdir array, all 144-byte buffers in the original
+   * (IDA split FileName/the 3rd row as char[141]+__int16+char).  subdirs MUST be one
+   * [3][144] array, not [2][144]+a named v17_buf: the loop walks a char* through all
+   * three rows with `v4 += 144` but only rows [0]=subdir and [1]="baseq2" are
+   * populated/searched (2 iters), so a separate row-[2] local gets dead-eliminated by
+   * MSVC /O2 (frame 0x244->0x1b4 = -0x90).  The array's escaping address keeps it live.
+   * Each buffer is inited byte[0]=byte_1006294C ('\0') + memset(&[1],0,143) per the
+   * disasm — identical to a 144-byte zero-fill since the marker is NUL. */
   char FileName[144]; // [esp+14h] [ebp-240h] BYREF
-  char subdirs[2][144]; // [esp+A4h] corresponds to subdirs[0]+subdirs[1] in IDA
-  char v17_buf[144]; // [esp+1C4h] [ebp-90h] BYREF — was v17+v18+v19+v20
+  char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
 
-
-  memset(subdirs[0], 0, sizeof(subdirs[0]));
+  subdirs[0][0] = byte_1006294C;
   FileName[0] = byte_1006294C;
-  memset(subdirs[1], 0, sizeof(subdirs[1]));
-  v17_buf[0] = byte_1006294C;
-  memset(&v17_buf[1], 0, 143);
+  memset(&subdirs[0][1], 0, 143);
+  subdirs[1][0] = byte_1006294C;
+  memset(&subdirs[1][1], 0, 143);
+  subdirs[2][0] = byte_1006294C;
+  memset(&subdirs[2][1], 0, 143);
   memset(&FileName[1], 0, 143);
   if ( Source )
     strncpy(subdirs[0], Source, 0x90u);
