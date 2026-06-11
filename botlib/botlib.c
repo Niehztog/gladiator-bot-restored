@@ -29979,8 +29979,8 @@ int BotSetupMoveAI()
   libvar_sv_maxbarrier = LibVar("sv_maxbarrier", (char *)"50");
   libvar_sv_maxsteepness = LibVar("sv_maxsteepness", (char *)"0.7");
   libvar_sv_jumpvel = LibVar("sv_jumpvel", (char *)"224");
-  result = LibVar("sv_maxwaterjump", (char *)"21");
-  libvar_sv_maxwaterjump = result;
+  libvar_sv_maxwaterjump = LibVar("sv_maxwaterjump", (char *)"21");
+  result = libvar_sv_maxwaterjump;
   return (intptr_t)result;
 }
 
