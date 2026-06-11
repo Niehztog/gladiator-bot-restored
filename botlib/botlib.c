@@ -1070,7 +1070,7 @@ const char **__cdecl FindField(const char **a1, const char *a2);
 int __cdecl ReadNumber(source_t *src, char **field, float *out);
 int __cdecl ReadChar(source_t *src, char **field, float *out);
 int __cdecl ReadString(source_t *, char **, char *Destination); // idb
-int __cdecl ReadStructure(source_t *source, structdef_t *def, void *structure);
+int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure);
 int __cdecl WriteIndent(FILE *Stream, int); // idb
 int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
@@ -1100,204 +1100,7 @@ float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this 
 //-------------------------------------------------------------------------
 // Data declarations
 
-char aMaxBsplinks[] = "max_bsplinks"; // idb
-char a4096[5] = "4096"; // weak
-char aEmptyBspLinkHe[21] = "empty bsp link heap\n"; // weak
-char aDFreeBspLinks[23] = "%d free bsp links, %s\n"; // weak (restored: ref'd by sub_100031B0)
-char aAasTracebspmod[39] = "AAS_TraceBSPModel: out of trace lines\n"; // weak
-char aAasDecompressv[] = "AAS_DecompressVis: 0 repeat"; // idb
-char aMissing[] = "missing }\n"; // idb
-char aInvalidS[] = "invalid %s\n"; // idb
-char asc_1005AB54[] = "}"; // idb
-char asc_1005AB58[] = "{"; // idb
-char aEntdata[8] = "entdata"; // weak
-char aCanTReadBspLum[] = "can't read bsp lump %s\n"; // idb
-char aCanTSeekToBspL[] = "can't seek to bsp lump %s\n"; // idb
-char aOddSBspLumpSiz[] = "odd %s bsp lump size\n"; // idb
-char aBrushSides[12] = "brush sides"; // weak
-char aBrushes[8] = "brushes"; // weak
-char aModels[7] = "models"; // weak
-char aSurfedges[10] = "surfedges"; // weak
-char aEdges[6] = "edges"; // weak
-char aLeafBrushes[13] = "leaf brushes"; // weak
-char aLeafFaces[11] = "leaf faces"; // weak
-char aLeafs[6] = "leafs"; // weak
-char aWarningBspHasN[32] = "WARNING: bsp has no light data\n"; // weak
-char aLightning[10] = "lightning"; // weak
-char aFaces[6] = "faces"; // weak
-char aTexinfo[8] = "texinfo"; // weak
-char aNodes[6] = "nodes"; // weak
-char aWarngingBspHas[38] = "WARNGING: bsp has no visibility data\n"; // weak
-char aVisibility[11] = "visibility"; // weak
-char aVertexes[9] = "vertexes"; // weak
-char aPlanes[7] = "planes"; // weak
-char aEntity[7] = "entity"; // weak
-char aBspFileSIsVers[] = "bsp file %s is version %i, not %i\n"; // idb
-char aSIsNotAnBspFil[] = "%s is not an BSP file\n"; // idb
-char aCanTReadHeader_0[] = "can't read header of bsp file %s\n"; // idb
-char aCanTSeekToBspF[] = "can't seek to bsp file %s\n"; // idb
-char aCanTOpenBspFil[] = "can't open bsp file %s\n"; // idb
-char aRb[3] = "rb"; // idb
-char aPortalUsingAre[] = "portal using area %d is seperating more than two clusters"; // idb
-char aAasMaxPortalin[] = "AAS_MAX_PORTALINDEXSIZE"; // idb
-char aNoPortalOfArea[] = "no portal of area %d"; // idb
-char aAasFloodcluste[] = "AAS_FloodClusterAreas_r: areanum out of range"; // idb
-char aClusterDTouche[] = "cluster %d touched cluster %d at area %d"; // idb
-char aAasMaxClusters[] = "AAS_MAX_CLUSTERS"; // idb
-char aClusterDHasDAr[] = "cluster %d has %d areas"; // idb
-char aAasMaxPortals[] = "AAS_MAX_PORTALS"; // idb
-char aPortalDAreaD[] = "portal %d: area %d"; // idb
-char aMaxPortalareas[] = "MAX_PORTALAREAS"; // idb
-char aPossiblePortal[] = "possible portal: %d"; // idb
-char aPortalAreaDHas_0[] = "portal area %d has no back cluster\n"; // idb
-char aPortalAreaDHas[] = "portal area %d has no front cluster\n"; // idb
-char aForcereachabil[] = "forcereachability"; // idb
-char aForceclusterin[] = "forceclustering"; // idb
-char aAasUpdateentit[30] = "AAS_UpdateEntity: not loaded\n"; // weak
-char aAasEntityinfoA[42] = "AAS_EntityInfo: aasworld not initialized\n"; // weak
-char aAasBestreachab[39] = "AAS_BestReachableArea: aas not loaded\n"; // weak
-char aCanTReadAasLum[] = "can't read aas lump\n"; // idb
-char aCanTSeekToAasL[] = "can't seek to aas lump\n"; // idb
-char aAasFileSIsVers[] = "aas file %s is version %i, not %i\n"; // idb
-char aFoundAnOldAasF[46] = "found an old AAS file, create a new AAS file\n"; // weak
-char aSIsNotAnAasFil[] = "%s is not an AAS file\n"; // idb
-char aCanTReadHeader[] = "can't read header of file %s\n"; // idb
-char aCanTSeekToFile[] = "can't seek to file %s\n"; // idb
-char aCanTOpenS[] = "can't open %s\n"; // idb
-char Mode[] = "wb"; // idb
-char aWarningEmptyLi[27] = "WARNING: empty light heap\n"; // weak
-char aModelfromindex[15] = "ModelFromIndex"; // weak
-char aIndexfrommodel[15] = "IndexFromModel"; // weak
-char aSoundfromindex[15] = "SoundFromIndex"; // weak (restored: ref'd by sub_1000D9C0)
-char aIndexfromsound[15] = "IndexFromSound"; // weak (restored: ref'd by sub_1000D9F0)
-char aImagefromindex[15] = "ImageFromIndex"; // weak
-char aIndexfromimage[15] = "IndexFromImage"; // weak (restored: ref'd by sub_1000DA50)
-char aAasPresencetyp[52] = "AAS_PresenceTypeBoundingBox: unknown presence type\n"; // weak
-char aAasInitialized[18] = "AAS initialized.\n"; // weak
-char aNooptimize[] = "nooptimize"; // idb
-char aForcewrite[] = "forcewrite"; // idb
-char aMemorydump[] = "memorydump"; // idb
-char aShowmemoryusag[] = "showmemoryusage"; // idb
-char a0[2] = "0"; // weak
-char aShowcacheupdat[] = "showcacheupdates"; // idb
-char aCanTExecuteWin[23] = "can't execute WinBSPC\n"; // weak
-char aSpawningS[] = "spawning \"%s\""; // idb
-char aWinbspcExe[] = "winbspc.exe"; // idb
-char aAas[] = ".aas"; // idb
-char aMaps_0[] = "maps"; // idb
-char aGamedir[] = "gamedir"; // idb
-char aBasedir[] = "basedir"; // idb
-char aBsp[] = ".bsp"; // idb
-char aFoundSInS[] = "found %s in %s"; // idb
-char aCouldNotFindSI[] = "could not find %s in %s"; // idb
-char aSearchingSInS[] = "searching %s in %s"; // idb
-char aBaseq2[] = "baseq2"; // idb
-char aNoAasFileAvail[23] = "no AAS file available\n"; // weak
-char aAutolaunchbspc[] = "autolaunchbspc"; // idb
-char aMaps[] = "maps\\"; // idb
-char aAasShutdown[15] = "AAS shutdown.\n"; // weak
-char aPredictmovemen[30] = "PredictMovement: start solid\n"; // weak
-char aAasDataOptimiz[21] = "AAS data optimized.\n"; // weak
-char aAasAreareachab[] = "AAS_AreaReachability: areanum %d out of range"; // idb
-char aTargetname[11] = "targetname"; // weak
-char aMiscTeleporter_0[21] = "misc_teleporter_dest"; // weak
-char aTarget[7] = "target"; // weak
-char aOrigin[7] = "origin"; // weak
-char aMiscTeleporter[16] = "misc_teleporter"; // weak
-char aClassname[10] = "classname"; // weak
-char aSpeed[6] = "speed"; // weak
-char aHeight[7] = "height"; // weak
-char aLip[4] = "lip"; // weak
-char aFuncPlatWithIn[37] = "func_plat with invalid model number\n"; // weak
-char aFuncPlatWithou[25] = "func_plat without model\n"; // weak
-char aModel[6] = "model"; // weak
-char aFuncPlat[10] = "func_plat"; // weak
-char aAreaDCenterFFF[] = "area %d center %f %f %f in solid?"; // idb
-char aItemInvulnerab[21] = "item_invulnerability"; // weak
-char aItemQuad[10] = "item_quad"; // weak
-char aItemHealthMega[17] = "item_health_mega"; // weak
-char aDmTagToken[13] = "dm_tag_token"; // weak
-char aItemDopplegang[18] = "item_doppleganger"; // weak
-char aItemSphereDefe[21] = "item_sphere_defender"; // weak
-char aItemSphereHunt[19] = "item_sphere_hunter"; // weak
-char aItemSphereVeng[22] = "item_sphere_vengeance"; // weak
-char aItemCompass[13] = "item_compass"; // weak
-char aItemDouble[12] = "item_double"; // weak
-char aItemIrGoggles[16] = "item_ir_goggles"; // weak
-char aWeaponDisinteg[21] = "weapon_disintegrator"; // weak
-char aWeaponChainfis[17] = "weapon_chainfist"; // weak
-char aWeaponPlasmabe[18] = "weapon_plasmabeam"; // weak
-char aWeaponProxlaun[20] = "weapon_proxlauncher"; // weak
-char aWeaponEtfRifle[17] = "weapon_etf_rifle"; // weak
-char aItemQuadfire[14] = "item_quadfire"; // weak
-char aWeaponPhalanx[15] = "weapon_phalanx"; // weak
-char aWeaponBoomer[14] = "weapon_boomer"; // weak
-char aWeaponBfg[11] = "weapon_bfg"; // weak
-char aWeaponRailgun[15] = "weapon_railgun"; // weak
-char aWeaponHyperbla[20] = "weapon_hyperblaster"; // weak
-char aWeaponRocketla[22] = "weapon_rocketlauncher"; // weak
-char aWeaponGrenadel[23] = "weapon_grenadelauncher"; // weak
-char aItemPowerShiel[18] = "item_power_shield"; // weak
-char aItemPowerScree[18] = "item_power_screen"; // weak
-char aItemArmorComba[18] = "item_armor_combat"; // weak
-char aItemArmorBody[16] = "item_armor_body"; // weak
-char aPleaseWaitWhil[44] = "\nplease wait while storing reachability...\n"; // weak
-char aCalculatingRea[29] = "calculating reachability...\n"; // weak
-char aReachabilityDe[] = "reachability_delay"; // idb
-char a100[4] = "100"; // weak
-char aFramereachabil[] = "framereachability"; // idb
-char a20[3] = "20"; // weak
-char aAasNextarearea[65] = "AAS_NextAreaReachability: reachnum < settings->firstreachableara"; // weak
-char aMaxAaslinks[] = "max_aaslinks"; // idb
-char aEmptyAasLinkHe[21] = "empty aas link heap\n"; // weak
-char aAasPointareanu[34] = "AAS_PointAreaNum: aas not loaded\n"; // weak
-char aAasAreapresenc[43] = "AAS_AreaPresenceType: invalid area number\n"; // weak
-char aAasAreacluster[38] = "AAS_AreaCluster: invalid area number\n"; // weak (restored: ref'd by sub_1001AF00)
-char aAasLinkentityA[32] = "AAS_LinkEntity: aas not loaded\n"; /* original .data string at 0x5C048 in gladiator.dll_ — IDA mistranscribed as "AAS_AASLinkEntity" */
 extern structdef_t unk_1005C138; /* sound info structdef — defined in botlib_structdefs.c */
-char aType[5] = "type"; // weak
-char aName[5] = "name"; // weak
-char aUnknownDefinit[] = "unknown definition %s\n"; // idb
-char aMoreThanDSound[34] = "more than %d sound infos defined\n"; // weak
-char aSoundinfo[10] = "soundinfo"; // weak
-char aMaxSoundinfoOu[38] = "max_soundinfo out of range [0, 65535]"; // weak
-char aMaxSoundinfo[] = "max_soundinfo"; // idb
-char a256[4] = "256"; // weak
-char aMaxAassoundsOu[38] = "max_aassounds out of range [0, 65536]"; // weak
-char aMaxAassounds[] = "max_aassounds"; // idb
-char aEmptySoundHeap[18] = "empty sound heap\n"; // weak
-char aNoSoundindexTo[34] = "no soundindex to soundinfo table\n"; // weak
-char aSoundconfig[] = "soundconfig"; // idb
-char aSoundsC[9] = "sounds.c"; // weak
-char aCaptureflagSta[] = "captureflag_start"; // idb
-char aPatrolStop[] = "patrol_stop"; // idb
-char aPatrolStart[] = "patrol_start"; // idb
-char aTo[5] = " to "; // weak
-char aCampArrive[] = "camp_arrive"; // idb
-char aCampStop[] = "camp_stop"; // idb
-char aCampStart[] = "camp_start"; // idb
-char aDefendStop[] = "defend_stop"; // idb
-char aDefendStart[] = "defend_start"; // idb
-char aAccompanyCanno[] = "accompany_cannotfind"; // idb
-char aAccompanyArriv[] = "accompany_arrive"; // idb
-char aAccompanyStop[] = "accompany_stop"; // idb
-char aAccompanyStart[] = "accompany_start"; // idb
-char aHelpStart[] = "help_start"; // idb
-char aIntermission[13] = "intermission"; // weak
-char aObserver[9] = "observer"; // weak
-char aStand[6] = "stand"; // weak
-char aRemovebot[10] = "removebot"; // weak
-char aINeverHackedYo[30] = "I never hacked your brain...\n"; // weak
-char aSquatt[] = "__squatt"; // idb
-char aRespawn[8] = "respawn"; // weak
-char aActivateEntity[16] = "activate entity"; // weak
-char aNoGoal[8] = "no goal"; // weak
-char aSeekNbg[9] = "seek NBG"; // weak
-char aSeekLtg[9] = "seek LTG"; // weak
-char aBattleFight[13] = "battle fight"; // weak
-char aBattleChase[13] = "battle chase"; // weak
-char aBattleRetreat[15] = "battle retreat"; // weak
-char aBattleNbg[11] = "battle NBG"; // weak
 extern float unk_1005C56C[3]; /* vec3 {0,-1,0} — defined in botlib_structdefs.c */
 float flt_1005C578 = 0.0; // weak
 int dword_1005C57C = 0; // weak
@@ -1306,235 +1109,12 @@ extern float unk_1005C584[3]; /* vec3 {0,-2,0} — defined in botlib_structdefs.
 float flt_1005C590 = 0.0; // weak
 int dword_1005C594 = 0; // weak
 int dword_1005C598 = -1082130432; // weak
-char aIPowershield[] = "i_powershield"; // idb
-char aPEnvirosuit[] = "p_envirosuit"; // idb
-char aPRebreather[] = "p_rebreather"; // idb
-char aPInvulnerabili[] = "p_invulnerability"; // idb
-char aPQuad[] = "p_quad"; // idb
-char aPowerScreen[13] = "Power Screen"; // weak
-char aPowerShield[13] = "Power Shield"; // weak
-char aRebreather[11] = "Rebreather"; // weak
-char aSilencer[9] = "Silencer"; // weak
-char aInvulnerabilit[16] = "Invulnerability"; // weak
-char aQuadDamage[12] = "Quad Damage"; // weak
-char asc_1005C658[] = "]"; // idb
-char asc_1005C65C[2] = "["; // idb
-char SubStr[2] = " "; // idb
-char aEnterGame[] = "enter_game"; // idb
-char aExitGame[] = "exit_game"; // idb
-char aStartLevel[] = "start_level"; // idb
-char aEndLevel[] = "end_level"; // idb
-char aDeathPraise[] = "death_praise"; // idb
-char aDeathInsult[13] = "death_insult"; // weak
-char aDeathBfg[10] = "death_bfg"; // weak
-char aKillPraise[] = "kill_praise"; // idb
-char aKillInsult[12] = "kill_insult"; // weak
-char aKillTelefrag[14] = "kill_telefrag"; // weak
-char aRandomInsult[] = "random_insult"; // idb
-char aRandomMisc[] = "random_misc"; // idb
-char aCtfR[] = "ctf_r"; // idb
-char aRailgun[] = "Railgun"; // idb
-char aRocketLauncher[] = "Rocket Launcher"; // idb
-char aTriggerKey[12] = "trigger_key"; // weak
-char aFuncDoorRotati[19] = "func_door_rotating"; // weak
-char aTriggerOnce[13] = "trigger_once"; // weak
-char aTriggerMultipl[17] = "trigger_multiple"; // weak
-char aFuncButton[12] = "func_button"; // weak
-char aTriggerRelay[14] = "trigger_relay"; // weak
-char aTriggerCounter[16] = "trigger_counter"; // weak
-char aHealth[7] = "health"; // weak
-char aFuncDoor[10] = "func_door"; // weak
-char aSpawnflags[11] = "spawnflags"; // weak
-char aFuncDoorSecret[17] = "func_door_secret"; // weak
-char aAngle[6] = "angle"; // weak
-char aBlaster[8] = "Blaster"; // weak
-char aTech[5] = "tech"; // weak
-char aINeedMoreKeyPo[34] = "I need more key points to patrol\n"; // weak
-char aCannotfind[] = "cannotfind"; // idb
-char aWhatDoYouSay[17] = "what do you say?"; // weak
-char aUnknownMatchTy[20] = "unknown match type\n"; // weak
-char aRushingbase[] = "rushingbase"; // idb
-char aCapturingflag[14] = "capturingflag"; // weak
-char aPatrolling[11] = "patrolling"; // weak
-char aCamping[8] = "camping"; // weak
-char aDefending[] = "defending"; // idb
-char aAccompanying[] = "accompanying"; // idb
-char aHelping[] = "helping"; // idb
-char aThePartOfMyBra[59] = "the part of my brain to create formations has been damaged"; // weak
-char aCheckpointConf[] = "checkpoint_confirm"; // idb
-char aCheckpointInva[] = "checkpoint_invalid"; // idb
-char aLeftteam[] = "leftteam"; // idb
-char aJoinedteam[] = "joinedteam"; // idb
-char aWhereareyou[] = "whereareyou"; // idb
-char aWhereis[8] = "whereis"; // weak
-char aWhois[] = "whois"; // idb
-char asc_1005CB74[] = ":"; // idb
-char aAltnames[] = "altnames"; // idb
-char aGender[7] = "gender"; // weak
-char aModelsCtfRegen[] = "models/ctf/regeneration/tris.md2"; // idb
-char aModelsCtfHaste[] = "models/ctf/haste/tris.md2"; // idb
-char aModelsCtfStren[] = "models/ctf/strength/tris.md2"; // idb
-char aModelsCtfResis[] = "models/ctf/resistance/tris.md2"; // idb
-char aPlayersMaleFla_0[] = "players/male/flag2.md2"; // idb
-char aPlayersMaleFla[] = "players/male/flag1.md2"; // idb
-char aCtfWithoutBlue[23] = "CTF without Blue Flag\n"; // weak
-char aBlueFlag[] = "Blue Flag"; // idb
-char aCtfWithoutRedF[22] = "CTF without Red Flag\n"; // weak
-char aRedFlag[] = "Red Flag"; // idb
-char aAssimilation[] = "assimilation"; // idb
-char aTeamplayShell[] = "teamplay_shell"; // idb
-char aRunes[] = "runes"; // idb
-char aRocketjump[] = "rocketjump"; // idb
-char a1[2] = "1"; // weak
-char aUsehook[] = "usehook"; // idb
-char aTeamplay[] = "teamplay"; // idb
-char aNochat[] = "nochat"; // idb
-char aFastchat[] = "fastchat"; // idb
-char aRa[] = "ra"; // idb
-char aCh[] = "ch"; // idb
-char aCtf[] = "ctf"; // idb
-char aDmflags[] = "dmflags"; // idb
-char aTriedToMoveCli[39] = "tried to move client to active client\n"; // weak
-char aTriedToMoveIna[35] = "tried to move inactive bot client\n"; // weak
-char aTriedToUpdated[38] = "tried to updated inactive bot client\n"; // weak
-char aRecievedConsol[50] = "recieved console message for inactive bot client\n"; // weak
-char aTriedToUpdateS[45] = "tried to update settings of inactive client\n"; // weak
-char aGametype[] = "gametype"; // idb
-char aExpectedIntege_1[34] = "expected integer index, found %s\n"; // weak
-char aExpectedIntege_0[] = "expected integer, float or string, found %s\n"; // idb
-char aCharacteristic_4[39] = "characteristic %d already initialized\n"; // weak
-char aCharacter[10] = "character"; // weak
-char aMaxMessages[] = "max_messages"; // idb
-char a1024[5] = "1024"; // weak
-char aEmptyConsoleMe[28] = "empty console message heap\n"; // weak
-char aMissing_0[] = "missing }"; // idb
-char aUnexpectedS[] = "unexpected %s"; // idb
-char aSynonymMustHav[] = "synonym must have at least to entries\n"; // idb
-char aEmptyString[13] = "empty string"; // weak
-char aTooMany[] = "too many }"; // idb
-char aMoreThan32Cont[] = "more than 32 context levels"; // idb
-char asc_1005D32C[2] = ")"; // weak
-char asc_1005D330[2] = ","; // idb
-char asc_1005D334[2] = "("; // weak
-char aUnknownRandomS[] = "unknown random %s"; // idb
-char asc_1005D364[2] = "="; // weak
-char asc_1005D380[2] = "|"; // weak
-char aInvalidTokenS[] = "invalid token %s\n"; // idb
-char aCanTHaveMoreTh[] = "can't have more than %d match variables\n"; // idb
-char aNotAllowedToHa[] = "not allowed to have adjacent variables\n"; // idb
-char aExpectedIntege[] = "expected integer, found %s\n"; // idb
-char Control[2] = ";"; // idb
-char aBotmatchvariab[41] = "BotMatchVariable: variable out of range\n"; // weak
-char aSSMissingRando[] = "%s = {\"%s\"} //MISSING RANDOM"; // idb
-char aUnknownMessage[] = "unknown message component %s\n"; // idb
-char aCrSC[] = "%cr%s%c"; // idb
-char aCvDC[8] = "%cv%d%c"; // weak
-char aIt[3] = "it"; // weak
-char aMale[5] = "male"; // weak
-char aFemale[7] = "female"; // weak
-char asc_1005D544[2] = "!"; // weak
-char asc_1005D548[2] = "&"; // weak
-char aNoRchats[11] = "no rchats\n"; // weak
-char aExpectedFoundS[] = "expected [, found %s"; // idb
-char aExpectedTypeFo[24] = "expected type found %s\n"; // weak
-char aChat[5] = "chat"; // weak
-char aRchatfile[] = "rchatfile"; // idb
-char aRchatC[8] = "rchat.c"; // weak
-char aMatchfile[] = "matchfile"; // idb
-char aMatchC[8] = "match.c"; // weak
-char aRndfile[] = "rndfile"; // idb
-char aRndC[6] = "rnd.c"; // weak
-char aSynfile[] = "synfile"; // idb
-char aSynC[6] = "syn.c"; // weak
 extern structdef_t unk_1005D890; /* item/entity structdef — defined in botlib_structdefs.c */
-char aMoreThanDItemI[32] = "more than %d item info defined\n"; // weak
-char aNoItemInfoLoad[21] = "no item info loaded\n"; // weak
-char aIteminfo[9] = "iteminfo"; // weak
-char aMaxIteminfo[] = "max_iteminfo"; // idb
-char aItemInfoDSHasN[] = "item info %d \"%s\" has no fuzzy weight"; // idb
-char aMaxLevelitems[] = "max_levelitems"; // idb
-char a512[4] = "512"; // weak
-char aOutOfLevelItem[20] = "out of level items\n"; // weak
-char aEntitySUnkownI[] = "entity %s unkown item"; // idb
-char aItemSHasModeli[] = "item %s has modelindex 0"; // idb
-char aNotspawnflags[] = "notspawnflags"; // idb
-char a2048[5] = "2048"; // weak
-char aAvoidGoalSNumb[] = "avoid goal %s, number %d for %f seconds"; // idb
-char aDS[] = "%d: %s"; // idb
-char aGoalHeapOverfl[20] = "goal heap overflow\n"; // weak
-char aCouldnTLoadWei[23] = "couldn't load weights\n"; // weak
-char aCouldnTLoadIte[27] = "couldn't load item config\n"; // weak
-char aItemconfig[] = "itemconfig"; // idb
-char aItemsC[8] = "items.c"; // weak
-char aModelsWeaponsG[] = "models/weapons/grapple/hook/tris.md2"; // idb
-char aLaserhook[] = "laserhook"; // idb
-char aHookoff[8] = "hookoff"; // weak
-char aHookon[7] = "hookon"; // weak
 extern structdef_t unk_1005DFD8; /* weapon config structdef — defined in botlib_structdefs.c */
 extern structdef_t unk_1005DFE0; /* projectile config structdef — defined in botlib_structdefs.c */
-char aNoWeaponInfoLo[23] = "no weapon info loaded\n"; // weak
-char aProjectileinfo[15] = "projectileinfo"; // weak
-char aWeaponinfo[11] = "weaponinfo"; // weak
-char aMaxProjectilei[] = "max_projectileinfo"; // idb
-char aMaxWeaponinfo[] = "max_weaponinfo"; // idb
-char a32[3] = "32"; // weak
-char aCouldnTLoadThe[33] = "couldn't load the weapon config\n"; // weak
-char aWeaponconfig[] = "weaponconfig"; // idb
-char aWeaponsC[10] = "weapons.c"; // weak
-char aInvalidReturnV[] = "invalid return value %s\n"; // idb
-char aNegativeValueS[] = "negative value set to zero\n"; // idb
 __int16 word_1005E498 = 45; // weak
-char aBalance[8] = "balance"; // weak
-char aSwitchWithoutD[] = "switch without default\n"; // idb
-char aSwitchAlreadyH[] = "switch already has a default\n"; // idb
-char aInvalidNameS[] = "invalid name %s\n"; // idb
-char aSwitch[7] = "switch"; // weak
-char aReturn[7] = "return"; // weak
-char aCase[5] = "case"; // weak
-char aDefault[8] = "default"; // weak
-char aTooManyFuzzyWe[] = "too many fuzzy weights\n"; // idb
-char aWeight[7] = "weight"; // weak
-char aCanTMergeWeigh[28] = "can't merge weight configs\n"; // weak
-char aSay[4] = "say"; // weak
-char aSayTeam[9] = "say_team"; // weak
-char aUse[4] = "use"; // weak
-char aDrop[5] = "drop"; // weak
-char aInvuse[7] = "invuse"; // weak (restored: ref'd by sub_10037150)
-char aInvdrop[8] = "invdrop"; // weak (restored: ref'd by sub_10037180)
-char aWave[5] = "wave"; // weak
-char aEaCommandTooMa[31] = "EA_Command: too many arguments"; // weak
 extern int unk_1005E678[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
 extern int unk_1005E958;  /* end-of-table sentinel address — immediately after unk_1005E678 */
-char aSvMaxwaterjump[] = "sv_maxwaterjump"; // idb
-char a21[3] = "21"; // weak
-char aSvJumpvel[] = "sv_jumpvel"; // idb
-char a224[4] = "224"; // weak
-char aSvMaxsteepness[] = "sv_maxsteepness"; // idb
-char a07[4] = "0.7"; // weak
-char aSvMaxbarrier[] = "sv_maxbarrier"; // idb
-char a50[3] = "50"; // weak
-char aSvStep[] = "sv_step"; // idb
-char a18[3] = "18"; // weak
-char aSvAiraccelerat[] = "sv_airaccelerate"; // idb
-char aSvMaxaccelerat[] = "sv_maxacceleration"; // idb
-char a2200[5] = "2200"; // weak
-char aSvMaxswimveloc[] = "sv_maxswimvelocity"; // idb
-char a150[4] = "150"; // weak
-char aSvMaxcrouchvel[] = "sv_maxcrouchvelocity"; // idb
-char aSvMaxwalkveloc[] = "sv_maxwalkvelocity"; // idb
-char aSvMaxvelocity[] = "sv_maxvelocity"; // idb
-char a300[4] = "300"; // weak
-char aSvWatergravity[] = "sv_watergravity"; // idb
-char a400[4] = "400"; // weak
-char aSvWaterfrictio[] = "sv_waterfriction"; // idb
-char aSvGravity[] = "sv_gravity"; // idb
-char a800[4] = "800"; // weak
-char aSvStopspeed[] = "sv_stopspeed"; // idb
-char aSvFriction[] = "sv_friction"; // idb
-char a6[2] = "6"; // weak
-char aBotstartframe[14] = "BotStartFrame"; // weak
-char aBotai[6] = "BotAI"; // weak
-char aBotconsolemess[18] = "BotConsoleMessage"; // weak
 __int16 crctable[308] =
 {
   0,
@@ -1846,10 +1426,6 @@ __int16 crctable[308] =
   0,
   0
 }; // weak
-char aOpenlogFilenam[20] = "openlog <filename>\n"; // weak
-char aLog[] = "log"; // idb
-char aFreememory[11] = "FreeMemory"; // weak
-char aMemorybytesize[15] = "MemoryByteSize"; // weak
 /* Preprocessor directive table at VA 0x1005F260.
  * IDA captured only the first two fields (off_1005F260="if", off_1005F264=PC_Directive_if).
  * The full table was a {char*, int(*)(int)} array in .data — verified by disassembly.
@@ -1890,84 +1466,7 @@ static eval_type_t eval_type_table[] = {
 };
 char *off_1005F300 = "evalint";                        /* alias: first name field  */
 int (__cdecl *off_1005F304)(intptr_t) = &PC_DollarDirective_evalint; /* alias: first handler     */
-char aSRecursivelyIn[] = "%s recursively included"; // idb
-char aMissingEndif[] = "missing #endif"; // idb
-char aDefineSIncompl[] = "define %s incomplete"; // idb
-char aDefineSHasTooM[] = "define %s has too many parms"; // idb
-char aDefineSWithToo[] = "define %s with too many parms"; // idb
-char aTooFewDefinePa[] = "too few define parms"; // idb
-char aTooManyCommaS[] = "too many comma's"; // idb
-char aDefineWithMore[] = "define with more than %d parameters"; // idb
-char aDefineSMissing[] = "define %s missing parms"; // idb
 char word_1005F588[] = { '\"', '\0' }; // idb
-char aCanTMergeSWith[] = "can't merge %s with %s"; // idb
-char aCanTStringizeT[] = "can't stringize tokens"; // idb
-char asc_1005F5F4[3] = "##"; // weak
-char aStringizingOpe[] = "stringizing operator without define parameter"; // idb
-char asc_1005F630[2] = "#"; // weak
-char aIncludeWithout_0[] = "#include without file name"; // idb
-char aFileSNotFound[] = "file %s not found"; // idb
-char aIncludeWithout[39] = "#include without file name between < >"; // weak
-char aIncludeMissing[] = "#include missing trailing >"; // idb
-char asc_1005F6C0[2] = "\\"; // idb
-char aCanTUndefS[] = "can't undef %s"; // idb
-char aExpectedNameFo[] = "expected name, found %s"; // idb
-char aUndefWithoutNa[] = "undef without name"; // idb
-char aDefineWithMisp[] = "define with misplaced ##"; // idb
-char aDefineNotTermi[22] = "define not terminated"; // weak
-char aDefineParamete[33] = "define parameters not terminated"; // weak
-char aTwoTheSameDefi[31] = "two the same define parameters"; // weak
-char aInvalidDefineP[25] = "invalid define parameter"; // weak
-char aExpectedDefine[26] = "expected define parameter"; // weak
-char aRedefinitionOf[] = "redefinition of %s"; // idb
-char aCanTRedefineS[] = "can't redefine %s"; // idb
-char aExpectedNameAf_0[] = "expected name after #define, found %s"; // idb
-char aDefineWithoutN[21] = "#define without name"; // weak
-char aExtern[] = "*extern"; // idb
-char aExpectedNameAf[] = "expected name after #ifdef, found %s"; // idb
-char aIfdefWithoutNa[] = "#ifdef without name"; // idb
-char aElseAfterElse[] = "#else after #else"; // idb
-char aMisplacedElse[] = "misplaced #else"; // idb
-char aMisplacedEndif[] = "misplaced #endif"; // idb
-char aAfterInIfElif[] = "? after ? in #if/#elif"; // idb
-char aWithoutInIfEli[25] = ": without ? in #if/#elif"; // weak
-char aMisingValuesIn[27] = "mising values in #if/#elif"; // weak
-char aTooManyInIfEli[] = "too many ( in #if/#elif"; // idb
-char aTrailingOperat[31] = "trailing operator in #if/#elif"; // weak
-char aSyntaxErrorInI[26] = "syntax error in #if/#elif"; // weak
-char aDefinedWithout_0[34] = "defined without name in #if/#elif"; // weak
-char aDefinedWithout[31] = "defined without ) in #if/#elif"; // weak
-char aUndefinedNameS[] = "undefined name %s in #if/#elif"; // idb
-char aInvalidOperato[] = "invalid operator %s in #if/#elif"; // idb
-char aOperatorSAfter[] = "operator %s after operator in #if/#elif"; // idb
-char aOrAfterValueIn[32] = "! or ~ after value in #if/#elif"; // weak
-char aIlligalOperato[] = "illigal operator %s on floating point operands\n"; // idb
-char aTooManyInIfEls[25] = "too many ) in #if/#elsif"; // weak
-char aMisplacedMinus[34] = "misplaced minus sign in #if/#elif"; // weak
-char aUnknownSInIfEl[] = "unknown %s in #if/#elif"; // idb
-char aDefined[8] = "defined"; // weak
-char aCanTEvaluateS[] = "can't evaluate %s"; // idb
-char aCanTEvaluateSN[] = "can't evaluate %s, not defined"; // idb
-char aNoValueAfterIf[] = "no value after #if/#elif"; // idb
-char aNothingToEvalu[] = "nothing to evaluate"; // idb
-char aNoLeadingAfter[] = "no leading ( after $evalint/$evalfloat"; // idb
-char aMisplacedElif[] = "misplaced #elif"; // idb
-char aErrorDirective[] = "#error directive: %s"; // idb
-char aPragmaDirectiv[] = "#pragma directive not supported"; // idb
-char aUnknownPrecomp[] = "unknown precompiler directive %s"; // idb
-char aFoundAtEndOfLi[] = "found # at end of line"; // idb
-char aFoundWithoutNa[] = "found # without name"; // idb
-char aFoundAtEndOfLi_0[] = "found $ at end of line"; // idb
-char aFoundWithoutNa_0[] = "found $ without name"; // idb
-char aExpectedSFound[] = "expected %s, found %s"; // idb
-char aCouldnTFindExp[] = "couldn't find expected %s"; // idb
-char aFoundS[] = "found %s"; // idb
-char aInteger[9] = " integer"; // weak
-char aFloat[7] = " float"; // weak
-char aUnsigned[10] = " unsigned"; // weak
-char aLong[6] = " long"; // weak
-char aExpectedASFoun[] = "expected a %s, found %s"; // idb
-char aCouldnTReadExp[] = "couldn't read expected token"; // idb
 /* off_1005FE00 — in the original binary this was the 'p' field (char*) of the first
  * entry in a punctuation_t[] array stored at VA 0x1005FE00 in the .data section.
  * IDA captured only the first 4 bytes and named them char *off_1005FE00 = ">>=";
@@ -2017,33 +1516,9 @@ static punctuation_t default_punctuations[] = {
 
 /* Preserved declaration so any remaining &off_1005FE00 references compile. */
 char *off_1005FE00 = ">>="; // weak — original value; array now in default_punctuations
-char aTooLargeValueI[] = "too large value in escape character"; // idb
-char aUnknownEscapeC[] = "unknown escape char"; // idb
-char aNewlineInsideS[] = "newline inside string %s"; // idb
-char aMissingTrailin[] = "missing trailing quote"; // idb
-char aStringLongerTh[] = "string longer than MAX_TOKEN = %d"; // idb
-char aNameLongerThan[] = "name longer than MAX_TOKEN = %d"; // idb
-char aNumberLongerTh[] = "number longer than MAX_TOKEN = %d"; // idb
-char aBinaryNumberLo[] = "binary number longer than MAX_TOKEN = %d"; // idb
-char aHexadecimalNum[] = "hexadecimal number longer than MAX_TOKEN = %d"; // idb
-char aPrimitiveToken[] = "primitive token longer than MAX_TOKEN = %d"; // idb
-char aCanTReadToken[] = "can't read token"; // idb
-char aBugWrongPunctu[] = "BUG: wrong punctuation subtype"; // idb
 extern char unk_10060418[72]; /* 72-byte blob; &[3]="You are not allowed to..." — botlib_structdefs.c */
-char aValueDOutOfRan_0[] = "value %d out of range [%d, %d]"; // idb
-char aValueDOutOfRan[] = "value %d out of range [%f, %f]"; // idb
-char aFloatOutOfRang[] = "float out of range [%f, %f]"; // idb
-char aUnexpectedFloa[] = "unexpected float"; // idb
-char aExpectedNumber[] = "expected number, found %s"; // idb
-char aUnexpectedPunc[] = "unexpected punctuation %s"; // idb
-char aExpectedUnsign[] = "expected unsigned value, found %s"; // idb
-char aExpectedAComma[] = "expected a comma, found %s"; // idb
-char aBugNoSubStruct[] = "BUG: no sub structure defined"; // idb
-char aUnknownStructu[] = "unknown structure field %s"; // idb
 CHAR aWindllUnzip[] = "windll_unzip"; // idb
 CHAR FileName[] = "UNZIP32.DLL"; // idb
-char aAccessingS[] = "accessing %s"; // idb
-char aCddir[] = "cddir"; // idb
 _UNKNOWN unk_10061280; // weak
 _UNKNOWN unk_10061298; // weak
 char byte_1006294C = '\0'; // idb
@@ -2510,7 +1985,7 @@ int sub_100030A0()  /* InitBSPLinkHeap */
 
   if ( !dword_10069578 )
   {
-    count = (int)(intptr_t)LibVarValue(aMaxBsplinks, (char *)a4096);
+    count = (int)(intptr_t)LibVarValue("max_bsplinks", (char *)"4096");
     if ( count < 0 )
       count = 0;
     dword_1006957C = count;
@@ -2545,7 +2020,7 @@ void __cdecl sub_100031B0(char *name)
   count = 0;
   for ( node = dword_10069580; node; node = node->next_ent )
     ++count;
-  bi_Print(PRT_MESSAGE, aDFreeBspLinks, count, name);
+  bi_Print(PRT_MESSAGE, "%d free bsp links, %s\n", count, name);
 }
 
 //----- (100031F0) --------------------------------------------------------
@@ -2557,7 +2032,7 @@ bsp_link_t *sub_100031F0()  /* AllocBSPLink */
   result = dword_10069580;
   if ( !result )
   {
-    bi_Print(PRT_FATAL, aEmptyBspLinkHe);
+    bi_Print(PRT_FATAL, "empty bsp link heap\n");
     return NULL;
   }
   next = result->next_ent;
@@ -3969,7 +3444,7 @@ LABEL_111:
     }
   }
 LABEL_125:
-  bi_Print(PRT_ERROR, aAasTracebspmod);
+  bi_Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
 LABEL_126:
   result = a1;
   qmemcpy(a1, v150, 0x54u);
@@ -4178,7 +3653,7 @@ void __cdecl AAS_DecompressVis(int a1, int a2)
         v5 = (unsigned __int8)v4[1];
         if ( !v5 )
         {
-          AAS_Error(aAasDecompressv);
+          AAS_Error("AAS_DecompressVis: 0 repeat");
           return;
         }
         memset(v3, 0, v5);
@@ -4867,25 +4342,25 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   bsp_entity_t *v7; // [esp+10h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
 
-  v0 = LoadScriptMemory(dword_100674E4, dword_100674E0, aEntdata);
+  v0 = LoadScriptMemory(dword_100674E4, dword_100674E0, "entdata");
   SetScriptFlags(v0, 12);
   v1 = 0;
   if ( PS_ReadToken(v0, token.string) )
   {
-    while ( !strcmp(token.string, asc_1005AB58) )
+    while ( !strcmp(token.string, "{") )
     {
       v7 = (bsp_entity_t *)GetClearedMemory(sizeof(bsp_entity_t));
       v7->next = v1;
       if ( PS_ReadToken(v0, token.string) )
       {
-        while ( strcmp(token.string, asc_1005AB54) )
+        while ( strcmp(token.string, "}") )
         {
           v2 = (bsp_epair_t *)GetClearedMemory(sizeof(bsp_epair_t));
           v2->next = v7->epairs;
           v7->epairs = v2;
           if ( token.type != 1 )
           {
-            ScriptError(v0, aInvalidS, token.string);
+            ScriptError(v0, "invalid %s\n", token.string);
             AAS_FreeBSPEntities(v7);
             goto LABEL_13;
           }
@@ -4903,7 +4378,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
            * need scriptstack semantics, e.g. weapon config loader). */
           if ( !PS_ReadToken(v0, token.string) || token.type != 1 )
           {
-            ScriptError(v0, aCouldnTReadExp);
+            ScriptError(v0, "couldn't read expected token");
             AAS_FreeBSPEntities(v7);
             FreeScript(v0);
             return 0;
@@ -4916,9 +4391,9 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
             break;
         }
       }
-      if ( strcmp(token.string, asc_1005AB54) )
+      if ( strcmp(token.string, "}") )
       {
-        ScriptError(v0, aMissing);
+        ScriptError(v0, "missing }\n");
         AAS_FreeBSPEntities(v7);
         FreeScript(v0);
         return 0;
@@ -4927,7 +4402,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       if ( !PS_ReadToken(v0, token.string) )
         goto LABEL_10;
     }
-    ScriptError(v0, aInvalidS, token.string);
+    ScriptError(v0, "invalid %s\n", token.string);
     AAS_FreeBSPEntities(v1);
 LABEL_13:
     FreeScript(v0);
@@ -5273,6 +4748,7 @@ int sub_10007460(void)
   int j; // [esp+10h] [ebp-4h]
   int k; // [esp+10h] [ebp-4h]
   int m; // [esp+10h] [ebp-4h]
+  int a1; // [esp+10h] dead HIWORD scratch (IDA mislabeled stack slot, never read)
 
   v1 = 0;
   for ( i = 0; i < dword_10067508; ++i )
@@ -5543,14 +5019,14 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
 
   if ( (int)ElementSize % a4 )
   {
-    AAS_Error(aOddSBspLumpSiz, ArgList);
+    AAS_Error("odd %s bsp lump size\n", ArgList);
     AAS_DumpBSPData();
     fclose(Stream);
     return 0;
   }
   if ( fseek(Stream, Offset, 0) )
   {
-    AAS_Error(aCanTSeekToBspL, ArgList);
+    AAS_Error("can't seek to bsp lump %s\n", ArgList);
     AAS_DumpBSPData();
     fclose(Stream);
     return 0;
@@ -5558,7 +5034,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
   v6 = (void *)GetClearedMemory(ElementSize);
   if ( fread_locked(v6, ElementSize, 1u, Stream) != 1 )
   {
-    AAS_Error(aCanTReadBspLum, ArgList);
+    AAS_Error("can't read bsp lump %s\n", ArgList);
     FreeMemory(v6);
     AAS_DumpBSPData();
     fclose(Stream);
@@ -5642,36 +5118,36 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   dBspHeader_t bsp_h; /* Q2 BSP header: ident+version+19 lumps = 0xA0 bytes */
 
   AAS_DumpBSPData();
-  v3 = fopen(FileName, aRb);
+  v3 = fopen(FileName, "rb");
   v4 = v3;
   if ( !v3 )
   {
-    AAS_Error(aCanTOpenBspFil, FileName);
+    AAS_Error("can't open bsp file %s\n", FileName);
     return 13;
   }
   if ( fseek(v3, Offset, 0) )
   {
-    AAS_Error(aCanTSeekToBspF);
+    AAS_Error("can't seek to bsp file %s\n");
     fclose(v4);
     return 14;
   }
   if ( fread_locked(&bsp_h, 0xA0u, 1u, v4) != 1 )
   {
-    AAS_Error(aCanTReadHeader_0, FileName);
+    AAS_Error("can't read header of bsp file %s\n", FileName);
     fclose(v4);
     return 15;
   }
   v6 = bsp_h.ident = LittleLong(bsp_h.ident);
   if ( v6 != 1347633737 )
   {
-    AAS_Error(aSIsNotAnBspFil, FileName);
+    AAS_Error("%s is not an BSP file\n", FileName);
     fclose(v4);
     return 16;
   }
   v7 = bsp_h.version = LittleLong(bsp_h.version);
   if ( v7 != 38 )
   {
-    AAS_Error(aBspFileSIsVers, FileName, v7, 38);
+    AAS_Error("bsp file %s is version %i, not %i\n", FileName, v7, 38);
     fclose(v4);
     return 17;
   }
@@ -5679,7 +5155,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v9 = Offset + v8;
   v10 = (size_t)LittleLong(bsp_h.lumps[0].filelen);
   v11 = v10;
-  dword_100674E4 = sub_10007C40(v4, v9, v10, 1, aEntity);
+  dword_100674E4 = sub_10007C40(v4, v9, v10, 1, "entity");
   if ( !dword_100674E4 )
     return 18;
   dword_100674E0 = v11;
@@ -5687,7 +5163,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v13 = Offset + v12;
   v14 = (size_t)LittleLong(bsp_h.lumps[1].filelen);
   v15 = v14;
-  dword_100674F4 = sub_10007C40(v4, v13, v14, 20, aPlanes);
+  dword_100674F4 = sub_10007C40(v4, v13, v14, 20, "planes");
   if ( !dword_100674F4 )
     return 18;
   dword_100674F0 = v15 / 0x14;
@@ -5695,7 +5171,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v17 = Offset + v16;
   v18 = (size_t)LittleLong(bsp_h.lumps[2].filelen);
   v19 = v18;
-  dword_100674FC = sub_10007C40(v4, v17, v18, 12, aVertexes);
+  dword_100674FC = sub_10007C40(v4, v17, v18, 12, "vertexes");
   if ( !dword_100674FC )
     return 18;
   dword_100674F8 = v19 / 0xC;
@@ -5705,7 +5181,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v23 = v22;
   if ( v22 )
   {
-    v24 = sub_10007C40(v4, v21, v22, 1, aVisibility);
+    v24 = sub_10007C40(v4, v21, v22, 1, "visibility");
     dword_100674D0 = v24;
     if ( !v24 )
       return 18;
@@ -5713,7 +5189,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   else
   {
     dword_100674D0 = 0;
-    bi_Print(PRT_MESSAGE, aWarngingBspHas);
+    bi_Print(PRT_MESSAGE, "WARNGING: bsp has no visibility data\n");
     v24 = dword_100674D0;
   }
   dword_100674CC = v23;
@@ -5722,7 +5198,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v26 = Offset + v25;
   v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
   v28 = v27;
-  dword_10067504 = sub_10007C40(v4, v26, v27, 28, aNodes);
+  dword_10067504 = sub_10007C40(v4, v26, v27, 28, "nodes");
   if ( !dword_10067504 )
     return 18;
   dword_10067500 = v28 / 0x1C;
@@ -5730,7 +5206,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v30 = Offset + v29;
   v31 = (size_t)LittleLong(bsp_h.lumps[5].filelen);
   v32 = v31;
-  dword_1006750C = sub_10007C40(v4, v30, v31, 76, aTexinfo);
+  dword_1006750C = sub_10007C40(v4, v30, v31, 76, "texinfo");
   if ( !dword_1006750C )
     return 18;
   dword_10067508 = v32 / 0x4C;
@@ -5738,7 +5214,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v34 = Offset + v33;
   v35 = (size_t)LittleLong(bsp_h.lumps[6].filelen);
   v36 = v35;
-  dword_10067514 = sub_10007C40(v4, v34, v35, 20, aFaces);
+  dword_10067514 = sub_10007C40(v4, v34, v35, 20, "faces");
   if ( !dword_10067514 )
     return 18;
   dword_10067510 = v36 / 0x14;
@@ -5748,21 +5224,21 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v40 = v39;
   if ( v39 )
   {
-    dword_100674DC = sub_10007C40(v4, v38, v39, 1, aLightning);
+    dword_100674DC = sub_10007C40(v4, v38, v39, 1, "lightning");
     if ( !dword_100674DC )
       return 18;
   }
   else
   {
     dword_100674DC = 0;
-    bi_Print(PRT_MESSAGE, aWarningBspHasN);
+    bi_Print(PRT_MESSAGE, "WARNING: bsp has no light data\n");
   }
   dword_100674D8 = v40;
   v41 = LittleLong(bsp_h.lumps[8].fileofs);
   v42 = Offset + v41;
   v43 = (size_t)LittleLong(bsp_h.lumps[8].filelen);
   v44 = v43;
-  dword_100674EC = sub_10007C40(v4, v42, v43, 28, aLeafs);
+  dword_100674EC = sub_10007C40(v4, v42, v43, 28, "leafs");
   if ( !dword_100674EC )
     return 18;
   dword_100674E8 = v44 / 0x1C;
@@ -5770,7 +5246,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v46 = Offset + v45;
   v47 = (size_t)LittleLong(bsp_h.lumps[9].filelen);
   v48 = v47;
-  dword_10067524 = sub_10007C40(v4, v46, v47, 2, aLeafFaces);
+  dword_10067524 = sub_10007C40(v4, v46, v47, 2, "leaf faces");
   if ( !dword_10067524 )
     return 18;
   dword_10067520 = v48 >> 1;
@@ -5778,7 +5254,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v50 = Offset + v49;
   v51 = (size_t)LittleLong(bsp_h.lumps[10].filelen);
   v52 = v51;
-  dword_1006752C = sub_10007C40(v4, v50, v51, 2, aLeafBrushes);
+  dword_1006752C = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
   if ( !dword_1006752C )
     return 18;
   dword_10067528 = v52 >> 1;
@@ -5786,7 +5262,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v54 = Offset + v53;
   v55 = (size_t)LittleLong(bsp_h.lumps[11].filelen);
   v56 = v55;
-  dword_1006751C = sub_10007C40(v4, v54, v55, 4, aEdges);
+  dword_1006751C = sub_10007C40(v4, v54, v55, 4, "edges");
   if ( !dword_1006751C )
     return 18;
   dword_10067518 = v56 >> 2;
@@ -5794,7 +5270,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v58 = Offset + v57;
   v59 = (size_t)LittleLong(bsp_h.lumps[12].filelen);
   v60 = v59;
-  dword_10067534 = sub_10007C40(v4, v58, v59, 4, aSurfedges);
+  dword_10067534 = sub_10007C40(v4, v58, v59, 4, "surfedges");
   if ( !dword_10067534 )
     return 18;
   dword_10067530 = v60 >> 2;
@@ -5802,7 +5278,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v62 = Offset + v61;
   v63 = (size_t)LittleLong(bsp_h.lumps[13].filelen);
   v64 = v63;
-  dword_100674C8 = sub_10007C40(v4, v62, v63, 48, aModels);
+  dword_100674C8 = sub_10007C40(v4, v62, v63, 48, "models");
   if ( !dword_100674C8 )
     return 18;
   dword_100674C4 = v64 / 0x30;
@@ -5810,7 +5286,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v66 = Offset + v65;
   v67 = (size_t)LittleLong(bsp_h.lumps[14].filelen);
   v68 = v67;
-  dword_1006753C = sub_10007C40(v4, v66, v67, 12, aBrushes);
+  dword_1006753C = sub_10007C40(v4, v66, v67, 12, "brushes");
   if ( !dword_1006753C )
     return 18;
   dword_10067538 = v68 / 0xC;
@@ -5818,7 +5294,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v70 = Offset + v69;
   v71 = (size_t)LittleLong(bsp_h.lumps[15].filelen);
   v72 = v71;
-  dword_10067544 = sub_10007C40(v4, v70, v71, 4, aBrushSides);
+  dword_10067544 = sub_10007C40(v4, v70, v71, 4, "brush sides");
   if ( !dword_10067544 )
     return 18;
   dword_10067540 = v72 >> 2;
@@ -5885,7 +5361,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   }
   if ( v2 == aasworld.numportals )
   {
-    AAS_Error(aNoPortalOfArea, ArgList);
+    AAS_Error("no portal of area %d", ArgList);
     return 1;
   }
   v5 = &aasworld.portals[v2];
@@ -5899,7 +5375,8 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   {
     if ( v7 )
     {
-      Log_Write(aPortalUsingAre, ArgList);
+      Log_Write("portal using area %d is seperating more than two clusters",
+                ArgList);
       aasworld.areasettings[ArgList].contents &= ~8u;
       return 0;
     }
@@ -5919,7 +5396,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
   }
   else
   {
-    AAS_Error(aAasMaxPortalin);
+    AAS_Error("AAS_MAX_PORTALINDEXSIZE");
   }
   return 1;
 }
@@ -5938,14 +5415,15 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
 
   if ( a1 <= 0 || a1 >= aasworld.numareas )
   {
-    AAS_Error(aAasFloodcluste);
+    AAS_Error("AAS_FloodClusterAreas_r: areanum out of range");
     return 0;
   }
   if ( (int)aasworld.areasettings[a1].cluster > 0 )
   {
     if ( aasworld.areasettings[a1].cluster != ArgList )
     {
-      Log_Write(aClusterDTouche, ArgList, aasworld.areasettings[a1].cluster, a1);
+      Log_Write("cluster %d touched cluster %d at area %d", ArgList,
+                aasworld.areasettings[a1].cluster, a1);
       return 0;
     }
   }
@@ -6086,14 +5564,14 @@ int AAS_FindClusters()
     if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
       return 0;
     AAS_NumberClusterPortals(aasworld.numclusters);
-    Log_Write(aClusterDHasDAr, aasworld.numclusters, v4->numareas);
+    Log_Write("cluster %d has %d areas", aasworld.numclusters, v4->numareas);
     v2 = aasworld.areasettings;
     v1 = ++aasworld.numclusters;
 LABEL_9:
     if ( ++v0 >= aasworld.numareas )
       return 1;
   }
-  AAS_Error(aAasMaxClusters);
+  AAS_Error("AAS_MAX_CLUSTERS");
   return 0;
 }
 
@@ -6109,14 +5587,14 @@ void AAS_CreatePortals()
     {
       if ( aasworld.numportals >= 0x10000 )
       {
-        AAS_Error(aAasMaxPortals);
+        AAS_Error("AAS_MAX_PORTALS");
         return;
       }
       portal = &aasworld.portals[aasworld.numportals];
       portal->areanum = i;
       portal->frontcluster = 0;
       portal->backcluster = 0;
-      Log_Write(aPortalDAreaD, aasworld.numportals, i);
+      Log_Write("portal %d: area %d", aasworld.numportals, i);
       aasworld.numportals++;
     }
   }
@@ -6231,7 +5709,7 @@ LABEL_15:
       if ( v15 >= v4[1] )
         return v5;
     }
-    AAS_Error(aMaxPortalareas);
+    AAS_Error("MAX_PORTALAREAS");
   }
   return v5;
 }
@@ -6510,7 +5988,7 @@ LABEL_45:
         {
           aasworld.areasettings[*v33].contents |= 8u;
           aasworld.areasettings[*v33].contents |= 0x20u;
-          Log_Write(aPossiblePortal, *v33++);
+          Log_Write("possible portal: %d", *v33++);
           --v32;
         }
         while ( v32 );
@@ -6567,13 +6045,13 @@ int AAS_TestPortals()
     if ( !portal->frontcluster )
     {
       ((aas_areasettings_t *)aasworld.areasettings)[portal->areanum].contents &= ~8u;
-      Log_Write(aPortalAreaDHas, portal->areanum);
+      Log_Write("portal area %d has no front cluster\n", portal->areanum);
       return 0;
     }
     if ( !portal->backcluster )
     {
       ((aas_areasettings_t *)aasworld.areasettings)[portal->areanum].contents &= ~8u;
-      Log_Write(aPortalAreaDHas_0, portal->areanum);
+      Log_Write("portal area %d has no back cluster\n", portal->areanum);
       return 0;
     }
   }
@@ -6589,8 +6067,8 @@ int AAS_InitClustering()
   if ( aasworld.loaded )
   {
     if ( aasworld.numclusters < 1
-      || (unsigned int)(int)LibVarGetValue(aForceclusterin)
-      || (v1 = (int)LibVarGetValue(aForcereachabil), (unsigned int)v1) )
+      || (unsigned int)(int)LibVarGetValue("forceclustering")
+      || (v1 = (int)LibVarGetValue("forcereachability"), (unsigned int)v1) )
     {
       AAS_RemoveAllPortals();
       AAS_RemoveClusterAreas();
@@ -7366,7 +6844,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(PRT_MESSAGE, aAasUpdateentit);
+    bi_Print(PRT_MESSAGE, "AAS_UpdateEntity: not loaded\n");
     return 5;
   }
   ent = &aasworld.entities[entnum].i;
@@ -7426,7 +6904,7 @@ void *__cdecl AAS_EntityInfo(void *info, int entnum)
 
   if ( !aasworld.initialized )
   {
-    bi_Print(PRT_FATAL, aAasEntityinfoA);
+    bi_Print(PRT_FATAL, "AAS_EntityInfo: aasworld not initialized\n");
   }
   else if ( entnum >= 0 && entnum < aasworld.numentities )
   {
@@ -7657,7 +7135,7 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(PRT_ERROR, aAasBestreachab);
+    bi_Print(PRT_ERROR, "AAS_BestReachableArea: aas not loaded\n");
     return 0;
   }
   {
@@ -8319,7 +7797,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     return 0;
   if ( fseek(Stream, Offset, 0) )
   {
-    AAS_Error(aCanTSeekToAasL);
+    AAS_Error("can't seek to aas lump\n");
     AAS_DumpAASData();
     fclose(Stream);
     return 0;
@@ -8327,7 +7805,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
   v4 = (void *)GetClearedMemory(ElementCount);
   if ( fread_locked(v4, 1u, ElementCount, Stream) != ElementCount )
   {
-    AAS_Error(aCanTReadAasLum);
+    AAS_Error("can't read aas lump\n");
     FreeMemory(v4);
     AAS_DumpAASData();
     fclose(Stream);
@@ -8418,40 +7896,40 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aas_header_t aas_h; /* Gladiator AAS header: ident+version+14 lumps = 0x78 bytes */
 
   AAS_DumpAASData();
-  v2 = fopen(FileName, aRb);
+  v2 = fopen(FileName, "rb");
   v3 = v2;
   if ( !v2 )
   {
-    AAS_Error(aCanTOpenS, FileName);
+    AAS_Error("can't open %s\n", FileName);
     return 6;
   }
   if ( fseek(v2, Offset, 0) )
   {
-    AAS_Error(aCanTSeekToFile);
+    AAS_Error("can't seek to file %s\n");
     fclose(v3);
     return 7;
   }
   if ( fread_locked(&aas_h, 0x78u, 1u, v3) != 1 )
   {
-    AAS_Error(aCanTReadHeader, FileName);
+    AAS_Error("can't read header of file %s\n", FileName);
     fclose(v3);
     return 8;
   }
   v5 = aas_h.ident = LittleLong(aas_h.ident);
   if ( v5 != 1396785477 )
   {
-    AAS_Error(aSIsNotAnAasFil, FileName);
+    AAS_Error("%s is not an AAS file\n", FileName);
     fclose(v3);
     return 9;
   }
   v6 = aas_h.version = LittleLong(aas_h.version);
   if ( v6 == 2 )
   {
-    bi_Print(PRT_WARNING, aFoundAnOldAasF);
+    bi_Print(PRT_WARNING, "found an old AAS file, create a new AAS file\n");
   }
   else if ( v6 != 3 )
   {
-    AAS_Error(aAasFileSIsVers, FileName, v6, 3);
+    AAS_Error("aas file %s is version %i, not %i\n", FileName, v6, 3);
     fclose(v3);
     return 10;
   }
@@ -8621,7 +8099,7 @@ qboolean __cdecl AAS_WriteAASFile(char *FileName)
   memset(Buffer, 0, sizeof(Buffer));
   Buffer[0] = LittleLong(0x53414145);
   Buffer[1] = LittleLong(3);
-  v3 = fopen(FileName, Mode);
+  v3 = fopen(FileName, "wb");
   v4 = v3;
   if ( !v3 )
   {
@@ -8712,7 +8190,7 @@ bsp_pointlight_t *sub_1000D450()
       aasworld.oldestcache->prev = 0;
   }
   if ( !v0 )
-    bi_Print(PRT_MESSAGE, aWarningEmptyLi);
+    bi_Print(PRT_MESSAGE, "WARNING: empty light heap\n");
   return v0;
 }
 
@@ -8936,13 +8414,14 @@ int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
 //----- (1000D960) --------------------------------------------------------
 char *__cdecl AAS_ModelFromIndex(int a1)
 {
-  return AAS_StringFromIndex(aModelfromindex, aasworld.modelindex_table, a1);
+  return AAS_StringFromIndex("ModelFromIndex", aasworld.modelindex_table, a1);
 }
 
 //----- (1000D990) --------------------------------------------------------
 int __cdecl IndexFromModel(char *String2)
 {
-  return AAS_IndexFromString(aIndexfrommodel, aasworld.modelindex_table, String2);
+  return AAS_IndexFromString("IndexFromModel", aasworld.modelindex_table,
+                             String2);
 }
 
 //----- (1000D9C0) --------------------------------------------------------
@@ -8951,7 +8430,7 @@ int __cdecl IndexFromModel(char *String2)
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
 char *__cdecl sub_1000D9C0(int a1)
 {
-  return AAS_StringFromIndex(aSoundfromindex, aasworld.soundindex_table, a1);
+  return AAS_StringFromIndex("SoundFromIndex", aasworld.soundindex_table, a1);
 }
 
 //----- (1000D9F0) --------------------------------------------------------
@@ -8959,13 +8438,14 @@ char *__cdecl sub_1000D9C0(int a1)
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl sub_1000D9F0(char *String2)
 {
-  return AAS_IndexFromString(aIndexfromsound, aasworld.soundindex_table, String2);
+  return AAS_IndexFromString("IndexFromSound", aasworld.soundindex_table,
+                             String2);
 }
 
 //----- (1000DA20) --------------------------------------------------------
 char *__cdecl sub_1000DA20(int a1)
 {
-  return AAS_StringFromIndex(aImagefromindex, aasworld.imageindex_table, a1);
+  return AAS_StringFromIndex("ImageFromIndex", aasworld.imageindex_table, a1);
 }
 
 //----- (1000DA50) --------------------------------------------------------
@@ -8973,7 +8453,8 @@ char *__cdecl sub_1000DA20(int a1)
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl sub_1000DA50(char *String2)
 {
-  return AAS_IndexFromString(aIndexfromimage, aasworld.imageindex_table, String2);
+  return AAS_IndexFromString("IndexFromImage", aasworld.imageindex_table,
+                             String2);
 }
 
 //----- (1000DA80) --------------------------------------------------------
@@ -9086,7 +8567,8 @@ int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t ma
   else
   {
     if ( presencetype != 2 )
-      bi_Print(PRT_FATAL, aAasPresencetyp);
+      bi_Print(PRT_FATAL,
+               "AAS_PresenceTypeBoundingBox: unknown presence type\n");
     index = 2;
   }
   VectorCopy(boxmins[index], mins);
@@ -9111,7 +8593,7 @@ int AAS_Initialized()
 int __cdecl sub_1000DF00(void)
 {
   aasworld.initialized = 1;
-  return bi_Print(PRT_MESSAGE, aAasInitialized);
+  return bi_Print(PRT_MESSAGE, "AAS initialized.\n");
 }
 
 //----- (1000DF30) --------------------------------------------------------
@@ -9129,9 +8611,9 @@ int AAS_ContinueInit(int a1)
       if ( !result )
       {
         AAS_InitClustering();
-        if ( aasworld.savefile || (unsigned int)(int)LibVarGetValue(aForcewrite) )
+        if ( aasworld.savefile || (unsigned int)(int)LibVarGetValue("forcewrite") )
         {
-          if ( !(unsigned int)(int)LibVarGetValue(aNooptimize) )
+          if ( !(unsigned int)(int)LibVarGetValue("nooptimize") )
             AAS_Optimize();
           if ( AAS_WriteAASFile(aasworld.filename) )
             bi_Print(PRT_MESSAGE, "%s written succesfully\n", aasworld.filename);
@@ -9155,20 +8637,20 @@ int AAS_StartFrame(float time)
   sub_1000D4E0(time);
   AAS_ContinueInit(SLODWORD(time));
   aasworld.frameroutingupdates = 0;
-  if ( LibVarGetValue(aShowcacheupdat) != 0.0f )
+  if ( LibVarGetValue("showcacheupdates") != 0.0f )
   {
     AAS_RoutingInfo();
-    LibVarSet(aShowcacheupdat, (char *)a0);
+    LibVarSet("showcacheupdates", (char *)"0");
   }
-  if ( LibVarGetValue(aShowmemoryusag) != 0.0f )
+  if ( LibVarGetValue("showmemoryusage") != 0.0f )
   {
     PrintUsedMemorySize();
-    LibVarSet(aShowmemoryusag, (char *)a0);
+    LibVarSet("showmemoryusage", (char *)"0");
   }
-  if ( LibVarGetValue(aMemorydump) != 0.0f )
+  if ( LibVarGetValue("memorydump") != 0.0f )
   {
     PrintMemoryLabels();
-    LibVarSet(aMemorydump, (char *)a0);
+    LibVarSet("memorydump", (char *)"0");
   }
   return 0;
 }
@@ -9191,27 +8673,27 @@ intptr_t __cdecl sub_1000E140(char *Source)
   char Buffer[144]; // [esp+1B8h] [ebp-90h] BYREF
 
   strncpy(Destination, Source, 0x90u);
-  strncat(Destination, aBsp, 144 - strlen(Destination));
-  v1 = (const char *)LibVarGetString(aBasedir);
+  strncat(Destination, ".bsp", 144 - strlen(Destination));
+  v1 = (const char *)LibVarGetString("basedir");
   strncpy(FileName, v1, 0x90u);
   sub_10041900(FileName, 144 - strlen(FileName));
-  v3 = (const char *)LibVarGetString(aGamedir);
+  v3 = (const char *)LibVarGetString("gamedir");
   strncat(FileName, v3, 144 - strlen(FileName));
   sub_10041900(FileName, 144 - strlen(FileName));
   strncpy(Arguments, FileName, 0x90u);
-  strncat(FileName, aMaps_0, 144 - strlen(FileName));
+  strncat(FileName, "maps", 144 - strlen(FileName));
   if ( _access(FileName, 4) )
     FileName[strlen(FileName)] = 0;  /* original: v5[strlen(FileName)]=0 with v5 = &FileName (BYREF arg) */
   else
     sub_10041900(FileName, 144 - strlen(FileName));
   strncat(FileName, Source, 144 - strlen(FileName));
-  strncat(FileName, aAas, 144 - strlen(FileName));
-  strncat(Arguments, aWinbspcExe, 144 - strlen(Arguments));
-  Log_Write(aSpawningS, Arguments);
+  strncat(FileName, ".aas", 144 - strlen(FileName));
+  strncat(Arguments, "winbspc.exe", 144 - strlen(Arguments));
+  Log_Write("spawning \"%s\"", Arguments);
   sprintf(Buffer, "bsp2aas(%s,%s);", Destination, FileName);
   result = SpawnProcess(1, Arguments, Arguments);
   if ( result < 0 )
-    return bi_Print(PRT_ERROR, aCanTExecuteWin);
+    return bi_Print(PRT_ERROR, "can't execute WinBSPC\n");
   return result;
 }
 
@@ -9249,8 +8731,8 @@ int __cdecl sub_1000E430(char *Source)
   dirs[2][0] = byte_1006294C;
   memset(&dirs[2][1], 0, 143);
   memset(&Destination[1], 0, 143);
-  v1 = (const char *)LibVarGetString(aBasedir);
-  v2 = (const char *)LibVarGetString(aGamedir);
+  v1 = (const char *)LibVarGetString("basedir");
+  v2 = (const char *)LibVarGetString("gamedir");
   if ( v1 && strlen(v1) )
   {
     strncat(Destination, v1, 0x90u);
@@ -9265,9 +8747,9 @@ int __cdecl sub_1000E430(char *Source)
   _chdir(Destination);
   if ( v2 )
     strncpy(dirs[0], v2, 0x90u);
-  strncpy(dirs[1], aBaseq2, 0x90u);
+  strncpy(dirs[1], "baseq2", 0x90u);
   strncpy(ArgList, Source, 144 - strlen(ArgList));
-  strncat(ArgList, aAas, 144 - strlen(ArgList));
+  strncat(ArgList, ".aas", 144 - strlen(ArgList));
   v3 = 0;
   v4 = dirs[0];
   do
@@ -9284,7 +8766,7 @@ int __cdecl sub_1000E430(char *Source)
       sprintf(&Destination[strlen(Destination)], "aas%d.zip", i);
       if ( !_access(Destination, 4) )
       {
-        Log_Write(aSearchingSInS, ArgList, Destination); /* "searching %s in %s" */
+        Log_Write("searching %s in %s", ArgList, Destination); /* "searching %s in %s" */
         if ( sub_10041240((int)Destination, ArgList, 0) )
         {
           v7 = AAS_LoadAASFile(ArgList, 0, 0);
@@ -9293,11 +8775,11 @@ int __cdecl sub_1000E430(char *Source)
             return *_errno();
           remove_file(ArgList);
           bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", Destination, ArgList);
-          Log_Write(aFoundSInS, ArgList, Destination); /* "found %s in %s" */
+          Log_Write("found %s in %s", ArgList, Destination); /* "found %s in %s" */
           _chdir(Path);
           return 0;
         }
-        Log_Write(aCouldNotFindSI, ArgList, Destination); /* "could not find %s in %s" */
+        Log_Write("could not find %s in %s", ArgList, Destination); /* "could not find %s in %s" */
       }
     }
     ++v3;
@@ -9322,9 +8804,9 @@ int BotLibLoadMap(char *Source)
   strcpy(aasworld.mapname, Source);
   AAS_ResetEntityLinks();
   memset(&v7, 0, sizeof(v7));
-  strncpy(Destination, aMaps, 0x90u);
+  strncpy(Destination, "maps\\", 0x90u);
   strncat(Destination, Source, 144 - strlen(Destination));
-  strncat(Destination, aBsp, 144 - strlen(Destination));
+  strncat(Destination, ".bsp", 144 - strlen(Destination));
   if ( sub_10041F60(Destination, &v7) )
   {
     v2 = AAS_LoadBSPFile(v7.path, v7.fileofs, v7.filelen);
@@ -9344,11 +8826,11 @@ int BotLibLoadMap(char *Source)
       while ( 1 )
       {
         if ( v4 )
-          strncpy(v9, aMaps, 0x90u);
+          strncpy(v9, "maps\\", 0x90u);
         else
           strncpy(v9, &byte_1006294C, 0x90u);
         strncat(v9, Source, 144 - strlen(v9));
-        strncat(v9, aAas, 144 - strlen(v9));
+        strncat(v9, ".aas", 144 - strlen(v9));
         if ( sub_10041F60(v9, &v7) )
           break;
         if ( ++v4 >= 2 )
@@ -9357,7 +8839,7 @@ int BotLibLoadMap(char *Source)
           *_errno() = v5;
           if ( !*_errno() )
             return 0;
-          if ( LibVarValue(aAutolaunchbspc, (char *)a0) != 0 )
+          if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
           {
             sub_1000E140(Source);
             bi_Print(
@@ -9379,7 +8861,7 @@ int BotLibLoadMap(char *Source)
               Source,
               Source);
           }
-          bi_Print(PRT_FATAL, aNoAasFileAvail);
+          bi_Print(PRT_FATAL, "no AAS file available\n");
           return 5;
         }
       }
@@ -9470,7 +8952,7 @@ int AAS_Shutdown()
    * The two are identical at the binary level (0x2A4 == sizeof(aas_world_t)). */
   memset(&aasworld, 0, sizeof(aasworld));
   aasworld.initialized = 0;
-  return bi_Print(PRT_MESSAGE, aAasShutdown);
+  return bi_Print(PRT_MESSAGE, "AAS shutdown.\n");
 }
 
 //----- (1000EEB0) --------------------------------------------------------
@@ -9992,7 +9474,7 @@ LABEL_38:
       if ( a12 )
       {
         if ( v80.startsolid )
-          bi_Print(PRT_MESSAGE, aPredictmovemen);
+          bi_Print(PRT_MESSAGE, "PredictMovement: start solid\n");
         AAS_DebugLine(org, v80.endpos, -218959632);
       }
       org[0] = v80.endpos[0];
@@ -10532,7 +10014,7 @@ int AAS_Optimize()
     while ( v1 < aasworld.reachabilitysize );
   }
   AAS_OptimizeStore(&v5);
-  return bi_Print(PRT_MESSAGE, aAasDataOptimiz);
+  return bi_Print(PRT_MESSAGE, "AAS data optimized.\n");
 }
 
 //----- (10010F60) --------------------------------------------------------
@@ -10611,7 +10093,7 @@ int __cdecl AAS_AreaReachability(int areanum)
 {
   if ( areanum >= 0 && areanum < aasworld.numareas )
     return aasworld.areasettings[areanum].numreachableareas;
-  AAS_Error(aAasAreareachab, areanum);
+  AAS_Error("AAS_AreaReachability: areanum %d out of range", areanum);
   return 0;
 }
 
@@ -13046,24 +12528,24 @@ int AAS_Reachability_Teleport()
     v25 = v0;
     while ( 1 )
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, aClassname);
-      if ( v2 && !strcmp(v2, aMiscTeleporter) )
+      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
+      if ( v2 && !strcmp(v2, "misc_teleporter") )
       {
-        if ( AAS_VectorForBSPEpairKey(v1, aOrigin, origin) )
+        if ( AAS_VectorForBSPEpairKey(v1, "origin", origin) )
         {
-          v3 = (const char *)AAS_ValueForBSPEpairKey(v1, aTarget);
+          v3 = (const char *)AAS_ValueForBSPEpairKey(v1, "target");
           v27 = v3;
           if ( v3 )
           {
             v4 = v26;
             while ( 1 )
             {
-              v5 = (const char *)AAS_ValueForBSPEpairKey(v4, aClassname);
+              v5 = (const char *)AAS_ValueForBSPEpairKey(v4, "classname");
               if ( v5 )
               {
-                if ( !strcmp(v5, aMiscTeleporter_0) )
+                if ( !strcmp(v5, "misc_teleporter_dest") )
                 {
-                  v6 = (const char *)AAS_ValueForBSPEpairKey(v4, aTargetname);
+                  v6 = (const char *)AAS_ValueForBSPEpairKey(v4, "targetname");
                   if ( v6 )
                   {
                     if ( !strcmp(v6, v3) )
@@ -13081,7 +12563,7 @@ LABEL_18:
               bi_Print(PRT_ERROR, "teleporter without destination (%s)\n", v3);
               goto LABEL_29;
             }
-            if ( AAS_VectorForBSPEpairKey(v4, aOrigin, destorigin) )
+            if ( AAS_VectorForBSPEpairKey(v4, "origin", destorigin) )
             {
               v28[0] = destorigin[0];
               v28[1] = destorigin[1];
@@ -13233,10 +12715,10 @@ int AAS_Reachability_Elevator()
   {
     while ( 1 )
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, aClassname);
+      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
       if ( v2 )
       {
-        if ( !strcmp(v2, aFuncPlat) )
+        if ( !strcmp(v2, "func_plat") )
           break;
       }
 LABEL_58:
@@ -13245,17 +12727,17 @@ LABEL_58:
         return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
       v1 = v50;
     }
-    v3 = AAS_ValueForBSPEpairKey(v1, aModel);
+    v3 = AAS_ValueForBSPEpairKey(v1, "model");
     if ( !v3 )
     {
-      bi_Print(PRT_ERROR, aFuncPlatWithou);
+      bi_Print(PRT_ERROR, "func_plat without model\n");
       goto LABEL_58;
     }
     v4 = atoi(v3 + 1);
     v66 = v4;
     if ( v4 <= 0 )
     {
-      bi_Print(PRT_ERROR, aFuncPlatWithIn);
+      bi_Print(PRT_ERROR, "func_plat with invalid model number\n");
       goto LABEL_58;
     }
     AAS_BSPModelMinsMaxsOrigin(v4, v69, mins, maxs, origin);
@@ -13263,15 +12745,15 @@ LABEL_58:
     extent[0] = origin[0];
     extent[1] = origin[1];
     extent[2] = origin[2];
-    v5 = FloatForKey(v1, aLip);
+    v5 = FloatForKey(v1, "lip");
     v33 = v5;
     if ( v5 == 0 )
       v33 = 8.0f;
-    v6 = FloatForKey(v1, aHeight);
+    v6 = FloatForKey(v1, "height");
     v43 = v6;
     if ( v6 == 0 )
       v43 = maxs[2] - mins[2] - v33;
-    v7 = FloatForKey(v1, aSpeed);
+    v7 = FloatForKey(v1, "speed");
     v52 = v7;
     if ( v7 == 0 )
       v52 = 200.0f;
@@ -13525,7 +13007,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   else
   {
     if ( !AAS_PointAreaNum(start) )
-      Log_Write(aAreaDCenterFFF, area1num, start[0], start[1], start[2]);
+      Log_Write("area %d center %f %f %f in solid?", area1num, start[0],
+                start[1], start[2]);
     vmav[0] = start[0];
     vmav[1] = start[1];
     vmav[2] = start[2] - 1000.0f;
@@ -13673,39 +13156,39 @@ int AAS_SetWeaponJumpAreaFlags()
   {
     do
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, aClassname);
+      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
       v3 = v2;
       if ( v2
-        && (!strcmp(v2, aItemArmorBody)
-         || !strcmp(v3, aItemArmorComba)
-         || !strcmp(v3, aItemPowerScree)
-         || !strcmp(v3, aItemPowerShiel)
-         || !strcmp(v3, aWeaponGrenadel)
-         || !strcmp(v3, aWeaponRocketla)
-         || !strcmp(v3, aWeaponHyperbla)
-         || !strcmp(v3, aWeaponRailgun)
-         || !strcmp(v3, aWeaponBfg)
-         || !strcmp(v3, aWeaponBoomer)
-         || !strcmp(v3, aWeaponPhalanx)
-         || !strcmp(v3, aItemQuadfire)
-         || !strcmp(v3, aWeaponEtfRifle)
-         || !strcmp(v3, aWeaponProxlaun)
-         || !strcmp(v3, aWeaponPlasmabe)
-         || !strcmp(v3, aWeaponChainfis)
-         || !strcmp(v3, aWeaponDisinteg)
-         || !strcmp(v3, aItemIrGoggles)
-         || !strcmp(v3, aItemDouble)
-         || !strcmp(v3, aItemCompass)
-         || !strcmp(v3, aItemSphereVeng)
-         || !strcmp(v3, aItemSphereHunt)
-         || !strcmp(v3, aItemSphereDefe)
-         || !strcmp(v3, aItemDopplegang)
-         || !strcmp(v3, aDmTagToken)
-         || !strcmp(v3, aDmTagToken)
-         || !strcmp(v3, aItemHealthMega)
-         || !strcmp(v3, aItemQuad)
-         || !strcmp(v3, aItemInvulnerab))
-        && AAS_VectorForBSPEpairKey(v1, aOrigin, (float *)v7) )
+        && (!strcmp(v2, "item_armor_body")
+            || !strcmp(v3, "item_armor_combat")
+            || !strcmp(v3, "item_power_screen")
+            || !strcmp(v3, "item_power_shield")
+            || !strcmp(v3, "weapon_grenadelauncher")
+            || !strcmp(v3, "weapon_rocketlauncher")
+            || !strcmp(v3, "weapon_hyperblaster")
+            || !strcmp(v3, "weapon_railgun")
+            || !strcmp(v3, "weapon_bfg")
+            || !strcmp(v3, "weapon_boomer")
+            || !strcmp(v3, "weapon_phalanx")
+            || !strcmp(v3, "item_quadfire")
+            || !strcmp(v3, "weapon_etf_rifle")
+            || !strcmp(v3, "weapon_proxlauncher")
+            || !strcmp(v3, "weapon_plasmabeam")
+            || !strcmp(v3, "weapon_chainfist")
+            || !strcmp(v3, "weapon_disintegrator")
+            || !strcmp(v3, "item_ir_goggles")
+            || !strcmp(v3, "item_double")
+            || !strcmp(v3, "item_compass")
+            || !strcmp(v3, "item_sphere_vengeance")
+            || !strcmp(v3, "item_sphere_hunter")
+            || !strcmp(v3, "item_sphere_defender")
+            || !strcmp(v3, "item_doppleganger")
+            || !strcmp(v3, "dm_tag_token")
+            || !strcmp(v3, "dm_tag_token")
+            || !strcmp(v3, "item_health_mega")
+            || !strcmp(v3, "item_quad")
+            || !strcmp(v3, "item_invulnerability"))
+        && AAS_VectorForBSPEpairKey(v1, "origin", (float *)v7) )
       {
         if ( !AAS_DropToFloor((float *)v7, (float *)v9, (float *)v8) )
           bi_Print(
@@ -13768,7 +13251,8 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   centerorg[1] = *((float *)v3 + 10);
   centerorg[2] = v3[11];
   if ( !AAS_PointAreaNum(centerorg) )
-    Log_Write(aAreaDCenterFFF, ArgList, centerorg[0], centerorg[1], centerorg[2]);
+    Log_Write("area %d center %f %f %f in solid?", ArgList, centerorg[0],
+              centerorg[1], centerorg[2]);
   v30[0] = centerorg[0];
   v30[1] = centerorg[1];
   v30[2] = centerorg[2] - 1000.0f;
@@ -14200,7 +13684,7 @@ int AAS_ContinueInitReachability(int a1)
   v1 = libvar_reachabilitydelay;
   if ( !libvar_reachabilitydelay )
   {
-    v1 = LibVar(aFramereachabil, (char *)a20);
+    v1 = LibVar("framereachability", (char *)"20");
     libvar_reachabilitydelay = v1;
     if ( v1->value <= 0.0f )
     {
@@ -14212,7 +13696,7 @@ int AAS_ContinueInitReachability(int a1)
   v3 = aasworld.numreachabilityareas + (__int64)v2;
   if ( !libvar_framereachability )
   {
-    v4 = LibVar(aReachabilityDe, (char *)a100);
+    v4 = LibVar("reachability_delay", (char *)"100");
     libvar_framereachability = v4;
     v2 = v4->value;
     if ( v2 <= 0.0 )
@@ -14267,11 +13751,11 @@ int AAS_ContinueInitReachability(int a1)
   if ( aasworld.numreachabilityareas < aasworld.numareas )
   {
     if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_reachabilitydelay->value) <= 1 )
-      bi_Print(PRT_MESSAGE, aCalculatingRea);
+      bi_Print(PRT_MESSAGE, "calculating reachability...\n");
     if ( (int)(aasworld.numreachabilityareas + (__int64)libvar_reachabilitydelay->value) >= aasworld.numareas )
     {
       bi_Print(PRT_MESSAGE, "\r%6d%%%%", 100);
-      bi_Print(PRT_MESSAGE, aPleaseWaitWhil);
+      bi_Print(PRT_MESSAGE, "\nplease wait while storing reachability...\n");
       return 1;
     }
     bi_Print(PRT_MESSAGE, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
@@ -14298,7 +13782,7 @@ int AAS_InitReachability()
   result = aasworld.loaded;
   if ( aasworld.loaded )
   {
-    if ( !aasworld.reachabilitysize || (unsigned int)(int)LibVarGetValue(aForcereachabil) )
+    if ( !aasworld.reachabilitysize || (unsigned int)(int)LibVarGetValue("forcereachability") )
     {
       aasworld.savefile = 1;
       aasworld.numreachabilityareas = 1;
@@ -15241,7 +14725,8 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
     return settings->firstreachablearea;
   if ( reachnum < settings->firstreachablearea )
   {
-    bi_Print(PRT_FATAL, aAasNextarearea);
+    bi_Print(PRT_FATAL,
+             "AAS_NextAreaReachability: reachnum < settings->firstreachableara");
     return 0;
   }
   reachnum++;
@@ -15280,7 +14765,8 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       center[1] = v6[10];
       center[2] = v6[11];
       if ( !AAS_PointAreaNum(center) )
-        Log_Write(aAreaDCenterFFF, v4, center[0], center[1], center[2]);
+        Log_Write("area %d center %f %f %f in solid?", v4, center[0],
+                  center[1], center[2]);
       end[0] = center[0];
       end[1] = center[1];
       end[2] = center[2] - 300.0f;
@@ -15570,7 +15056,7 @@ int AAS_InitAASLinkHeap()
 
   if ( !aasworld.linkheap )
   {
-    count = (int)(intptr_t)LibVarValue(aMaxAaslinks, (char *)a4096);
+    count = (int)(intptr_t)LibVarValue("max_aaslinks", (char *)"4096");
     if ( count < 0 )
       count = 0;
     aasworld.linkheapsize = count;
@@ -15611,7 +15097,7 @@ aas_link_t *AAS_AllocAASLink()
   result = aasworld.freelinks;
   if ( !result )
   {
-    bi_Print(PRT_FATAL, aEmptyAasLinkHe);
+    bi_Print(PRT_FATAL, "empty aas link heap\n");
     return NULL;
   }
   next = result->next_ent;
@@ -15666,7 +15152,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(PRT_ERROR, aAasPointareanu);
+    bi_Print(PRT_ERROR, "AAS_PointAreaNum: aas not loaded\n");
     return 0;
   }
   v2 = 1;
@@ -15703,7 +15189,7 @@ int __cdecl AAS_AreaCluster(int areanum)
 {
   if ( areanum > 0 && areanum < aasworld.numareas )
     return aasworld.areasettings[areanum].cluster;
-  bi_Print(PRT_ERROR, aAasAreacluster);
+  bi_Print(PRT_ERROR, "AAS_AreaCluster: invalid area number\n");
   return 0;
 }
 
@@ -15714,7 +15200,7 @@ int __cdecl AAS_AreaPresenceType(int areanum)
   {
     if ( areanum > 0 && areanum < aasworld.numareas )
       return aasworld.areasettings[areanum].presencetype;
-    bi_Print(PRT_ERROR, aAasAreapresenc);
+    bi_Print(PRT_ERROR, "AAS_AreaPresenceType: invalid area number\n");
   }
   return 0;
 }
@@ -16460,7 +15946,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
 
   if ( !aasworld.loaded )
   {
-    bi_Print(PRT_ERROR, aAasLinkentityA);
+    bi_Print(PRT_ERROR, "AAS_LinkEntity: aas not loaded\n");
     return 0;
   }
   v4 = 0;
@@ -16596,12 +16082,12 @@ int sub_1001C760(char *Source)
   char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+138h] [ebp-430h] BYREF
 
-  v2 = (int)LibVarValue(aMaxSoundinfo, (char *)a256);
+  v2 = (int)LibVarValue("max_soundinfo", (char *)"256");
   if ( v2 < 0 || v2 > 0xFFFF )
   {
-    bi_Print(PRT_ERROR, aMaxSoundinfoOu);
+    bi_Print(PRT_ERROR, "max_soundinfo out of range [0, 65535]");
     v2 = 256;
-    LibVarSet(aMaxSoundinfo, (char *)a256);
+    LibVarSet("max_soundinfo", (char *)"256");
   }
   if ( aasworld.soundinfo )
     FreeMemory(aasworld.soundinfo);
@@ -16617,11 +16103,11 @@ int sub_1001C760(char *Source)
       aasworld.numsoundinfo = 0;
       if ( PC_ReadTokenHandle(v4, ArgList) )
       {
-        while ( !strcmp(ArgList, aSoundinfo) )
+        while ( !strcmp(ArgList, "soundinfo") )
         {
           if ( aasworld.numsoundinfo >= v2 )
           {
-            SourceError(v5, aMoreThanDSound, v2);
+            SourceError(v5, "more than %d sound infos defined\n", v2);
             goto LABEL_21;
           }
           memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
@@ -16634,7 +16120,7 @@ int sub_1001C760(char *Source)
           if ( !PC_ReadTokenHandle(v5, ArgList) )
             goto LABEL_15;
         }
-        SourceError(v5, aUnknownDefinit, ArgList);
+        SourceError(v5, "unknown definition %s\n", ArgList);
 LABEL_21:
         FreeSource(v5);
         return 0;
@@ -16677,12 +16163,12 @@ int sub_1001CAB0()
   int v1;
   int i;
 
-  v1 = (int)LibVarValue(aMaxAassounds, (char *)a256);
+  v1 = (int)LibVarValue("max_aassounds", (char *)"256");
   if ( v1 < 0 || v1 > 0x10000 )
   {
-    bi_Print(PRT_ERROR, aMaxAassoundsOu);
+    bi_Print(PRT_ERROR, "max_aassounds out of range [0, 65536]");
     v1 = 256;
-    LibVarSet(aMaxAassounds, (char *)a256);
+    LibVarSet("max_aassounds", (char *)"256");
   }
   if ( aasworld.d_100669C4 )
     FreeMemory(aasworld.d_100669C4);
@@ -16869,7 +16355,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
   {
     if ( !aasworld.d_100669C0 )
     {
-      bi_Print(PRT_MESSAGE, aNoSoundindexTo);
+      bi_Print(PRT_MESSAGE, "no soundindex to soundinfo table\n");
       return 0;
     }
     if ( a4 < aasworld.d_100669BC )
@@ -16884,7 +16370,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
       v10 = sub_1001CBE0();
       if ( !v10 )
       {
-        bi_Print(PRT_ERROR, aEmptySoundHeap);
+        bi_Print(PRT_ERROR, "empty sound heap\n");
         return 0;
       }
       *(float *)v10->data = AAS_Time() + a7;
@@ -17056,7 +16542,7 @@ int sub_1001D260()
   char *v1; // eax
 
   sub_1001CAB0();
-  v1 = LibVarString(aSoundconfig, (char *)aSoundsC);
+  v1 = LibVarString("soundconfig", (char *)"sounds.c");
   return sub_1001C760(v1);
 }
 
@@ -17327,13 +16813,13 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
     {
       if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
       {
-        BotInitialChat(&bs->chatstate, aAccompanyStart, EasyClientName(bs->teammate - 1, v56), (char *)0);
+        BotInitialChat(&bs->chatstate, "accompany_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->teammessage_time = 0.0f;
       }
       if ( AAS_Time() > bs->teamgoal_time )
       {
-        BotInitialChat(&bs->chatstate, aAccompanyStop, EasyClientName(bs->teammate - 1, v56), (char *)0);
+        BotInitialChat(&bs->chatstate, "accompany_stop", EasyClientName(bs->teammate - 1, v56), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
@@ -17364,7 +16850,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             if ( bs->arrive_time == 0.0 )
             {
               sub_100371B0(bs->client, 1);
-              BotInitialChat(&bs->chatstate, aAccompanyArriv, EasyClientName(bs->teammate - 1, v56), (char *)0);
+              BotInitialChat(&bs->chatstate, "accompany_arrive", EasyClientName(bs->teammate - 1, v56), (char *)0);
               BotEnterChat(&bs->chatstate, bs->client, 1);
               bs->arrive_time = AAS_Time();
             }
@@ -17443,7 +16929,7 @@ LABEL_86:
       if ( AAS_Time() - 60.0 > bs->teammatevisible_time )
       {
         v27 = EasyClientName(bs->teammate - 1, v56);
-        BotInitialChat(&bs->chatstate, aAccompanyCanno, v27, (char *)0);
+        BotInitialChat(&bs->chatstate, "accompany_cannotfind", v27, (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         goto LABEL_55;
       }
@@ -17453,14 +16939,14 @@ LABEL_86:
     {
       if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
       {
-        BotInitialChat(&bs->chatstate, aDefendStart, BotGoalName(bs->teamgoal.number), (char *)0);
+        BotInitialChat(&bs->chatstate, "defend_start", BotGoalName(bs->teamgoal.number), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->teammessage_time = 0.0f;
       }
       v26 = bs->teamgoal.origin;
       if ( AAS_Time() > bs->teamgoal_time )
       {
-        BotInitialChat(&bs->chatstate, aDefendStop, BotGoalName(bs->teamgoal.number), (char *)0);
+        BotInitialChat(&bs->chatstate, "defend_stop", BotGoalName(bs->teamgoal.number), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
@@ -17484,14 +16970,14 @@ LABEL_86:
       case 6:
         if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
         {
-          BotInitialChat(&bs->chatstate, aCampStart, EasyClientName(bs->teammate - 1, v56), (char *)0);
+          BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
         v26 = bs->teamgoal.origin;
         if ( AAS_Time() > bs->teamgoal_time )
         {
-          BotInitialChat(&bs->chatstate, aCampStop, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "camp_stop", (char *)0, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->ltgtype = 0;
         }
@@ -17502,7 +16988,7 @@ LABEL_86:
         {
           if ( bs->arrive_time == 0.0 )
           {
-            BotInitialChat(&bs->chatstate, aCampArrive, EasyClientName(bs->teammate - 1, v56), (char *)0);
+            BotInitialChat(&bs->chatstate, "camp_arrive", EasyClientName(bs->teammate - 1, v56), (char *)0);
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->arrive_time = AAS_Time();
           }
@@ -17530,7 +17016,7 @@ LABEL_86:
             bs->attackcrouch_time = AAS_Time() - 1.0;
           if ( (bi_PointContents((float *)bs->eye) & 0x38) != 0 )
           {
-            BotInitialChat(&bs->chatstate, aCampStop, (char *)0, (char *)0);
+            BotInitialChat(&bs->chatstate, "camp_stop", (char *)0, (char *)0);
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->ltgtype = 0;
           }
@@ -17545,9 +17031,9 @@ LABEL_86:
           {
             strcat(v57, i->name);
             if ( i->next )
-              strcat(v57, aTo);
+              strcat(v57, " to ");
           }
-          BotInitialChat(&bs->chatstate, aPatrolStart, v57, (char *)0);
+          BotInitialChat(&bs->chatstate, "patrol_start", v57, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
@@ -17570,7 +17056,7 @@ LABEL_86:
 LABEL_106:
             if ( AAS_Time() > bs->teamgoal_time )
             {
-              BotInitialChat(&bs->chatstate, aPatrolStop, 0, (char *)0);
+              BotInitialChat(&bs->chatstate, "patrol_stop", 0, (char *)0);
               BotEnterChat(&bs->chatstate, bs->client, 1);
               bs->ltgtype = 0;
             }
@@ -17599,7 +17085,7 @@ LABEL_106:
       case 4:
         if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
         {
-          BotInitialChat(&bs->chatstate, aCaptureflagSta, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
@@ -17672,7 +17158,7 @@ LABEL_136:
   }
   if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
   {
-    BotInitialChat(&bs->chatstate, aHelpStart, EasyClientName(bs->teammate - 1, v56), (char *)0);
+    BotInitialChat(&bs->chatstate, "help_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
     BotEnterChat(&bs->chatstate, bs->client, 1);
     bs->teammessage_time = 0.0f;
   }
@@ -17724,7 +17210,7 @@ LABEL_136:
 void __cdecl AIEnter_Intermission(bot_state_t *bs)
 {
 
-  BotRecordNodeSwitch(bs, aIntermission, &byte_1006294C);
+  BotRecordNodeSwitch(bs, "intermission", &byte_1006294C);
   BotResetState((int *)bs);
   if ( BotChat_EndLevel(bs) )
     BotEnterChat(&bs->chatstate, bs->client, 0);
@@ -17760,7 +17246,7 @@ int __cdecl AIEnter_Observer(bot_state_t *bs)
 
   int result; // eax
 
-  BotRecordNodeSwitch(bs, aObserver, &byte_1006294C);
+  BotRecordNodeSwitch(bs, "observer", &byte_1006294C);
   result = BotResetState((int *)bs);
   BotAINode(bs) = AINode_Observer;
   return result;
@@ -17780,7 +17266,7 @@ int __cdecl AIEnter_Stand(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, aStand, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, "stand", &byte_1006294C);
   BotAINode(bs) = AINode_Stand;
   return result;
 }
@@ -17797,10 +17283,10 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   BotChangeViewAngles(bs, bs->thinktime);
   if ( AAS_Time() > bs->stand_time )
   {
-    if ( LibVarGetValue(aSquatt) != 0.0f )
+    if ( LibVarGetValue("__squatt") != 0.0f )
     {
-      EA_Say(bs->client, aINeverHackedYo);
-      EA_Command(bs->client, aRemovebot, ClientName(bs->client), (void *)0);
+      EA_Say(bs->client, "I never hacked your brain...\n");
+      EA_Command(bs->client, "removebot", ClientName(bs->client), (void *)0);
     }
     else
     {
@@ -17819,7 +17305,7 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   double v2; // st7
   float v3; // [esp+10h] [ebp+4h]
 
-  BotRecordNodeSwitch(bs, aRespawn, &byte_1006294C);
+  BotRecordNodeSwitch(bs, "respawn", &byte_1006294C);
   sub_10034B90(bs->movestate);
   BotResetGoalState(bs->goalstate);
   BotResetMoveState(BotWS(bs));
@@ -17873,7 +17359,7 @@ int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, aActivateEntity, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, "activate entity", &byte_1006294C);
   BotAINode(bs) = AINode_Seek_ActivateEntity;
   return result;
 }
@@ -17971,11 +17457,11 @@ int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
   if ( v1 )
   {
     v2 = (const char *)BotGoalName(v1->number);
-    result = BotRecordNodeSwitch(bs, aSeekNbg, v2);
+    result = BotRecordNodeSwitch(bs, "seek NBG", v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, aSeekNbg, aNoGoal);
+    result = BotRecordNodeSwitch(bs, "seek NBG", "no goal");
   }
   BotAINode(bs) = AINode_Seek_NBG;
   return result;
@@ -18121,11 +17607,11 @@ int __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
   if ( v1 )
   {
     v2 = (const char *)BotGoalName(v1->number);
-    result = BotRecordNodeSwitch(bs, aSeekLtg, v2);
+    result = BotRecordNodeSwitch(bs, "seek LTG", v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, aSeekLtg, aNoGoal);
+    result = BotRecordNodeSwitch(bs, "seek LTG", "no goal");
   }
   BotAINode(bs) = AINode_Seek_LTG;
   return result;
@@ -18277,7 +17763,7 @@ int __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, aBattleFight, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, "battle fight", &byte_1006294C);
   BotAINode(bs) = AINode_Battle_Fight;
   return result;
 }
@@ -18387,7 +17873,7 @@ LABEL_9:
 //----- (10020050) --------------------------------------------------------
 void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 {
-  BotRecordNodeSwitch(bs, aBattleChase, &byte_1006294C);
+  BotRecordNodeSwitch(bs, "battle chase", &byte_1006294C);
   bs->chase_time = AAS_Time() + 10.0f;
   BotAINode(bs) = AINode_Battle_Chase;
 }
@@ -18544,7 +18030,7 @@ int __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, aBattleRetreat, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, "battle retreat", &byte_1006294C);
   BotAINode(bs) = AINode_Battle_Retreat;
   return result;
 }
@@ -18693,7 +18179,7 @@ int __cdecl AIEnter_Battle_NBG(bot_state_t *bs)
 
   int result; // eax
 
-  result = BotRecordNodeSwitch(bs, aBattleNbg, &byte_1006294C);
+  result = BotRecordNodeSwitch(bs, "battle NBG", &byte_1006294C);
   BotAINode(bs) = AINode_Battle_NBG;
   return result;
 }
@@ -18874,13 +18360,13 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   if ( v1 )
   {
     v2 = sub_1000DA20(v1);
-    if ( !_strcmpi(v2, aPQuad) )
+    if ( !_strcmpi(v2, "p_quad") )
       bs->quad_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, aPInvulnerabili) )
+    else if ( !_strcmpi(v2, "p_invulnerability") )
       bs->invulnerability_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, aPRebreather) )
+    else if ( !_strcmpi(v2, "p_rebreather") )
       bs->rebreather_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, aPEnvirosuit) )
+    else if ( !_strcmpi(v2, "p_envirosuit") )
       bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
   }
   v3 = (int)(bs->quad_endtime - AAS_Time());
@@ -18903,7 +18389,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   if ( v7 )
   {
     v8 = sub_1000DA20(v7);
-    if ( !_strcmpi(v8, aIPowershield) )
+    if ( !_strcmpi(v8, "i_powershield") )
       bs->powerscreen_seen_time = AAS_Time();
     v10 = bs->powerscreen_seen_time;
     if ( AAS_Time() - 0.9 < v10 )
@@ -19014,15 +18500,15 @@ int __cdecl sub_100214E0(char *p)
 void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
-    EA_UseItem(bs->client, aSilencer);
+    EA_UseItem(bs->client, "Silencer");
   if ( (sub_10003080(bs->eye) & 0x38) != 0
        && !bs->rebreather_seconds
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
-    EA_UseItem(bs->client, aRebreather);
+    EA_UseItem(bs->client, "Rebreather");
   if ( !bs->power_shield_active_cells && bs->inventory[6] > 0 )   /* +1752 */
-    EA_UseItem(bs->client, aPowerShield);
+    EA_UseItem(bs->client, "Power Shield");
   if ( !bs->power_screen_active_cells && bs->inventory[5] > 0 )   /* +1748 */
-    EA_UseItem(bs->client, aPowerScreen);
+    EA_UseItem(bs->client, "Power Screen");
 }
 
 //----- (100215E0) --------------------------------------------------------
@@ -19030,11 +18516,11 @@ void __cdecl sub_100215E0(bot_state_t *bs)
 {
   if ( !bs->quad_seconds && bs->inventory[23] > 0 )   /* +1820 quad ammo */
   {
-    EA_UseItem(bs->client, aQuadDamage);
+    EA_UseItem(bs->client, "Quad Damage");
     return;
   }
   if ( !bs->invuln_seconds && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
-    EA_UseItem(bs->client, aInvulnerabilit);
+    EA_UseItem(bs->client, "Invulnerability");
 }
 
 //----- (10021650) --------------------------------------------------------
@@ -19150,10 +18636,10 @@ char *__cdecl EasyClientName(int a1, char *a2)
     }
     while ( v2 );
   }
-  for ( i = strstr(Str, SubStr); i; i = strstr(Str, SubStr) )
+  for ( i = strstr(Str, " "); i; i = strstr(Str, " ") )
     memmove(i, i + 1, strlen(i));  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
-  v5 = strstr(Str, asc_1005C65C);
-  v6 = strstr(Str, asc_1005C658);
+  v5 = strstr(Str, "[");
+  v6 = strstr(Str, "]");
   if ( v5 && v6 )
   {
     /* overlapping shift-left: use memmove (was strcpy — UB on aarch64) */
@@ -19324,7 +18810,8 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
   result = BotValidChatPosition(bs);
   if ( !result )
     return result;
-  BotInitialChat(&bs->chatstate, aEnterGame, EasyClientName(bs->client, v5), (char *)0);
+  BotInitialChat(&bs->chatstate, "enter_game", EasyClientName(bs->client, v5),
+                 (char *)0);
   return 1;
 }
 
@@ -19343,7 +18830,8 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  BotInitialChat(&bs->chatstate, aExitGame, EasyClientName(bs->client, v5), (char *)0);
+  BotInitialChat(&bs->chatstate, "exit_game", EasyClientName(bs->client, v5),
+                 (char *)0);
   return 1;
 }
 
@@ -19362,7 +18850,8 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  BotInitialChat(&bs->chatstate, aStartLevel, EasyClientName(bs->client, v5), (char *)0);
+  BotInitialChat(&bs->chatstate, "start_level",
+                 EasyClientName(bs->client, v5), (char *)0);
   return 1;
 }
 
@@ -19381,7 +18870,8 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
       return 0;
   }
-  BotInitialChat(&bs->chatstate, aEndLevel, EasyClientName(bs->client, v5), (char *)0);
+  BotInitialChat(&bs->chatstate, "end_level", EasyClientName(bs->client, v5),
+                 (char *)0);
   return 1;
 }
 
@@ -19411,7 +18901,7 @@ int __cdecl sub_10022160(int *a1)
     v7[0] = byte_1006294C;
   if ( a1[693] == 12 )
   {
-    BotInitialChat(a1 + 995, aDeathBfg, v7, (char *)0);
+    BotInitialChat(a1 + 995, "death_bfg", v7, (char *)0);
   }
   else
   {
@@ -19421,9 +18911,9 @@ int __cdecl sub_10022160(int *a1)
      * Characteristic 15 is "praise vs insult" probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
     if ( v5 < v8 )
-      BotInitialChat(a1 + 995, aDeathInsult, v7, (char *)0);
+      BotInitialChat(a1 + 995, "death_insult", v7, (char *)0);
     else
-      BotInitialChat(a1 + 995, aDeathPraise, v7, (char *)0);
+      BotInitialChat(a1 + 995, "death_praise", v7, (char *)0);
   }
   return 1;
 }
@@ -19458,7 +18948,7 @@ BOOL __cdecl BotChat_Kill(int *a1)
     v7[0] = byte_1006294C;
   if ( a1[692] == 13 )
   {
-    BotInitialChat(a1 + 995, aKillTelefrag, v7, (char *)0);
+    BotInitialChat(a1 + 995, "kill_telefrag", v7, (char *)0);
   }
   else
   {
@@ -19467,9 +18957,9 @@ BOOL __cdecl BotChat_Kill(int *a1)
      * Characteristic 15 is "praise vs insult" probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
     if ( v5 < v8 )
-      BotInitialChat(a1 + 995, aKillInsult, v7, (char *)0);
+      BotInitialChat(a1 + 995, "kill_insult", v7, (char *)0);
     else
-      BotInitialChat(a1 + 995, aKillPraise, v7, (char *)0);
+      BotInitialChat(a1 + 995, "kill_praise", v7, (char *)0);
   }
   return 1;
 }
@@ -19516,9 +19006,9 @@ int __cdecl BotChat_Random(bot_state_t *bs)
    * probability); v7 should be the bfloat result, not a copy of v4. */
   v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f);
   if ( v4 <= v7 )
-    BotInitialChat(&bs->chatstate, aRandomInsult, (char *)0, (char *)0);
+    BotInitialChat(&bs->chatstate, "random_insult", (char *)0, (char *)0);
   else
-    BotInitialChat(&bs->chatstate, aRandomMisc, (char *)0, (char *)0);
+    BotInitialChat(&bs->chatstate, "random_misc", (char *)0, (char *)0);
   return 1;
 }
 
@@ -19921,7 +19411,7 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
   const char *v1; // eax
 
   v1 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-  if ( strstr(v1, aCtfR) )
+  if ( strstr(v1, "ctf_r") )
     return 1;
   return 2;
 }
@@ -20191,7 +19681,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     if ( v35 <= 0.0f )
       v35 = 0.000099999997f;
     v3 = sub_100354B0(BotWS(bs));
-    if ( !_strcmpi(v3->name, aRocketLauncher) )
+    if ( !_strcmpi(v3->name, "Rocket Launcher") )
       v35 = sqrt(v35);
     qmemcpy(v46, AAS_EntityInfo(v47, bs->enemy), sizeof(v46));
     v4 = bs->origin[0];
@@ -20280,7 +19770,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v29[0] = *(float *)&v32 - bs->eye[0];
     v29[1] = v33 - bs->eye[1];
     v29[2] = v34 - bs->eye[2];
-    if ( !_strcmpi(v3->name, aRailgun) )
+    if ( !_strcmpi(v3->name, "Railgun") )
     {
       VectorNormalize(v29);
       v16 = (int *)v29;
@@ -20456,7 +19946,7 @@ int *__cdecl BotEntityToActivate(int a1)
     goto LABEL_5;
   while ( 1 )
   {
-    v4 = (const char *)AAS_ValueForBSPEpairKey(v2, aModel);
+    v4 = (const char *)AAS_ValueForBSPEpairKey(v2, "model");
     if ( v4 )
     {
       if ( !strcmp(v3, v4) )
@@ -20472,7 +19962,7 @@ LABEL_5:
     bi_Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", v3);
     return 0;
   }
-  v5 = (const char *)AAS_ValueForBSPEpairKey(v2, aClassname);
+  v5 = (const char *)AAS_ValueForBSPEpairKey(v2, "classname");
   v6 = v5;
   v15 = v5;
   if ( !v5 )
@@ -20480,16 +19970,16 @@ LABEL_5:
     bi_Print(PRT_ERROR, "BotEntityToActivate: entity with model %s has no classname\n", v3);
     return 0;
   }
-  if ( !strcmp(v5, aFuncDoorSecret) )
+  if ( !strcmp(v5, "func_door_secret") )
   {
-    v7 = AAS_ValueForBSPEpairKey(v2, aTargetname);
-    v8 = (const char *)AAS_ValueForBSPEpairKey(v2, aSpawnflags);
+    v7 = AAS_ValueForBSPEpairKey(v2, "targetname");
+    v8 = (const char *)AAS_ValueForBSPEpairKey(v2, "spawnflags");
     if ( !v7 || (atoi(v8) & 1) != 0 )
       return (int *)v2;
   }
-  if ( !strcmp(v6, aFuncDoor) && FloatForKey(v2, aHealth) != 0.0f )
+  if ( !strcmp(v6, "func_door") && FloatForKey(v2, "health") != 0.0f )
     return (int *)v2;
-  v16[0] = (const char *)AAS_ValueForBSPEpairKey(v2, aTargetname);
+  v16[0] = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
   if ( !v16[0] )
     return 0;
   v14 = 0;
@@ -20509,7 +19999,7 @@ LABEL_39:
     {
       while ( 1 )
       {
-        v12 = (const char *)AAS_ValueForBSPEpairKey(v2, aTarget);
+        v12 = (const char *)AAS_ValueForBSPEpairKey(v2, "target");
         if ( v12 )
         {
           if ( !strcmp(*v11, v12) )
@@ -20531,23 +20021,23 @@ LABEL_38:
     if ( v14 < 0 )
       goto LABEL_39;
   }
-  v13 = (const char *)AAS_ValueForBSPEpairKey(v2, aClassname);
+  v13 = (const char *)AAS_ValueForBSPEpairKey(v2, "classname");
   v15 = v13;
   if ( !v13 )
   {
     bi_Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
     return 0;
   }
-  if ( strcmp(v13, aTriggerCounter) && strcmp(v15, aTriggerRelay) )
+  if ( strcmp(v13, "trigger_counter") && strcmp(v15, "trigger_relay") )
   {
-    if ( !strcmp(v15, aFuncButton)
-      || !strcmp(v15, aTriggerMultipl)
-      || !strcmp(v15, aTriggerOnce)
-      || !strcmp(v15, aFuncDoorRotati) )
+    if ( !strcmp(v15, "func_button")
+        || !strcmp(v15, "trigger_multiple")
+        || !strcmp(v15, "trigger_once")
+        || !strcmp(v15, "func_door_rotating") )
     {
       return (int *)v2;
     }
-    if ( !strcmp(v15, aTriggerKey) )
+    if ( !strcmp(v15, "trigger_key") )
       return 0;
     --v11;
     --v10;
@@ -20559,7 +20049,7 @@ LABEL_38:
     ++v14;
     ++v11;
     ++v10;
-    *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, aTargetname);
+    *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
     *v10 = dword_10064398;
     goto LABEL_38;
   }
@@ -20650,11 +20140,11 @@ void __cdecl sub_10025070(void)
 
   do
   {
-    classname = (const char *)AAS_ValueForBSPEpairKey(ent, aClassname);
-    if ( classname && !strcmp(classname, aFuncButton) )
+    classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+    if ( classname && !strcmp(classname, "func_button") )
     {
       /* Resolve "*N" model reference to a BSP model index. */
-      model_str = (const char *)AAS_ValueForBSPEpairKey(ent, aModel);
+      model_str = (const char *)AAS_ValueForBSPEpairKey(ent, "model");
       modelnum  = IndexFromModel((char *)model_str);
       if ( !modelnum )
         modelnum = atoi(model_str + 1);
@@ -20665,8 +20155,8 @@ void __cdecl sub_10025070(void)
       AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
 
       /* Original calls FloatForKey for "lip" and discards the result. */
-      FloatForKey(ent, aLip);
-      angle_yaw = FloatForKey(ent, aAngle);
+      FloatForKey(ent, "lip");
+      angle_yaw = FloatForKey(ent, "angle");
       angles[0] = 0.0f;
       angles[1] = (float)angle_yaw;
       angles[2] = 0.0f;
@@ -20680,7 +20170,7 @@ void __cdecl sub_10025070(void)
                          + (float)fabs(forward[1]) * (maxs[1] - mins[1])
                          + (float)fabs(forward[2]) * (maxs[2] - mins[2]) );
 
-      health = FloatForKey(ent, aHealth);
+      health = FloatForKey(ent, "health");
       if ( health == 0.0 )
       {
         /* Instant-fire button: pull the marker back from the face. */
@@ -20800,12 +20290,12 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   v5 = BotEntityToActivate(v77[3]);
   v6 = v5;
   if ( v5 )
-    v7 = (const char *)AAS_ValueForBSPEpairKey(v5, aClassname);
+    v7 = (const char *)AAS_ValueForBSPEpairKey(v5, "classname");
   else
     v7 = &byte_1006294C;
-  if ( !strcmp(v7, aFuncDoorSecret) || !strcmp(v7, aFuncDoor) )
+  if ( !strcmp(v7, "func_door_secret") || !strcmp(v7, "func_door") )
   {
-    v28 = AAS_ValueForBSPEpairKey(v6, aModel);
+    v28 = AAS_ValueForBSPEpairKey(v6, "model");
     result = (int (__cdecl *)(int))IndexFromModel(v28);
     if ( result )
     {
@@ -20818,35 +20308,35 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       v29 = moveresult->flags;
       LOBYTE(v29) = v29 | 1;
       moveresult->flags = v29;
-      EA_UseItem(bs->client, aBlaster);
+      EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
     }
     return;
   }
-  if ( !strcmp(v7, aFuncButton) )
+  if ( !strcmp(v7, "func_button") )
   {
-    v8 = AAS_ValueForBSPEpairKey(v6, aModel);
+    v8 = AAS_ValueForBSPEpairKey(v6, "model");
     result = (int (__cdecl *)(int))IndexFromModel(v8);
     if ( !result )
       return;
     VectorClear(v56_vec);
     AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
-    FloatForKey(v6, aLip);
+    FloatForKey(v6, "lip");
     v56_vec[0] = 0;
     BotSetMovedir(v56_vec, v50);
     VectorSubtract(v41_vec, v44_vec, v69_vec);
     VectorAdd(v44_vec, v41_vec, v59_vec);
     VectorScale(v59_vec, 0.5f, v59_vec);
     v65 = (fabs(v50[2]) * v69_vec[2] + fabs(v50[1]) * v69_vec[1] + fabs(v50[0]) * v69_vec[0]) * 0.5f;
-    if ( FloatForKey(v6, aHealth) != 0.0f )
+    if ( FloatForKey(v6, "health") != 0.0f )
     {
       v34 = -v65;
       VectorMA(v59_vec, v34, v50, v38_vec);
       VectorSubtract(v38_vec, bs->origin, v50);
       vectoangles(v50, moveresult->ideal_viewangles);
       moveresult->flags |= 1u;
-      EA_UseItem(bs->client, aBlaster);
+      EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
     }
@@ -20909,7 +20399,7 @@ LABEL_32:
     AIEnter_Seek_ActivateEntity(v13);
     return;
   }
-  if ( strcmp(v7, aTriggerMultipl) && strcmp(v7, aTriggerOnce) )
+  if ( strcmp(v7, "trigger_multiple") && strcmp(v7, "trigger_once") )
   {
 LABEL_37:
     v72[0] = moveresult->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
@@ -20956,7 +20446,7 @@ LABEL_37:
     }
     return;
   }
-  v20 = AAS_ValueForBSPEpairKey(v6, aModel);
+  v20 = AAS_ValueForBSPEpairKey(v6, "model");
   v21 = IndexFromModel(v20);
   if ( !v21 )
     v21 = atoi(v20 + 1);
@@ -21016,7 +20506,7 @@ void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2)
          || (int)a1[479] > 0 && v2[23] != dword_10064494
          || (int)a1[480] > 0 && v2[23] != dword_10064494) )
       {
-        EA_DropItem(a1[1], aTech);
+        EA_DropItem(a1[1], "tech");
       }
     }
   }
@@ -21221,7 +20711,7 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
   {
     if ( !BotFindMatch(Destination, &v9, 64) )
     {
-      EA_SayTeam(bs->client, aWhatDoYouSay);
+      EA_SayTeam(bs->client, "what do you say?");
       BotFreeWaypoints(v2);
       BotPatrolpoints(bs) = NULL;
       return 0;
@@ -21229,7 +20719,7 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
     BotMatchVariable(&v9, 4, Destination);
     if ( !BotGetMessageTeamGoal(bs, Destination, &v7) )
     {
-      BotInitialChat(&bs->chatstate, aCannotfind, Destination, (char *)0);
+      BotInitialChat(&bs->chatstate, "cannotfind", Destination, (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
       BotFreeWaypoints(v2);
       BotPatrolpoints(bs) = NULL;
@@ -21279,7 +20769,7 @@ LABEL_18:
   }
   else
   {
-    EA_SayTeam(bs->client, aINeedMoreKeyPo);
+    EA_SayTeam(bs->client, "I need more key points to patrol\n");
     BotFreeWaypoints(v2);
     return 0;
   }
@@ -21527,9 +21017,9 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
       if ( !v4 )
       {
         if ( v5 )
-          BotInitialChat(&bs->chatstate, aWhois, Source, (char *)0);
+          BotInitialChat(&bs->chatstate, "whois", Source, (char *)0);
         else
-          BotInitialChat(&bs->chatstate, aWhois, Destination, (char *)0);
+          BotInitialChat(&bs->chatstate, "whois", Destination, (char *)0);
 LABEL_19:
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
@@ -21567,9 +21057,10 @@ LABEL_19:
         if ( !bs->teamgoal.entitynum )
         {
           if ( v54 )
-            BotInitialChat(&bs->chatstate, aWhereis, Source, (char *)0);
+            BotInitialChat(&bs->chatstate, "whereis", Source, (char *)0);
           else
-            BotInitialChat(&bs->chatstate, aWhereareyou, Destination, (char *)0);
+            BotInitialChat(&bs->chatstate, "whereareyou", Destination,
+                           (char *)0);
           goto LABEL_19;
         }
 LABEL_32:
@@ -21608,7 +21099,7 @@ LABEL_32:
       else
       {
 LABEL_27:
-        BotInitialChat(&bs->chatstate, aCannotfind, String2, (char *)0);
+        BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -21698,35 +21189,37 @@ LABEL_27:
         case 1:
           BotMatchVariable(&v64, 0, Destination);
           EasyClientName(bs->teammate - 1, Destination);
-          BotInitialChat(&bs->chatstate, aHelping, Destination, (char *)0);
+          BotInitialChat(&bs->chatstate, "helping", Destination, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 2:
           BotMatchVariable(&v64, 0, Destination);
           EasyClientName(bs->teammate - 1, Destination);
-          BotInitialChat(&bs->chatstate, aAccompanying, Destination, (char *)0);
+          BotInitialChat(&bs->chatstate, "accompanying", Destination,
+                         (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 3:
           v52 = BotGoalName(bs->teamgoal.number);
-          BotInitialChat(&bs->chatstate, aDefending, v52, (char *)0);
+          BotInitialChat(&bs->chatstate, "defending", v52, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 4:
           v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, aCapturingflag, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "capturingflag", (char *)0,
+                         (char *)0);
           goto LABEL_139;
         case 5:
           v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, aRushingbase, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "rushingbase", (char *)0, (char *)0);
           goto LABEL_139;
         case 6:
           v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, aCamping, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "camping", (char *)0, (char *)0);
           goto LABEL_139;
         case 7:
           v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, aPatrolling, (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "patrolling", (char *)0, (char *)0);
 LABEL_139:
           BotEnterChat(v53, bs->client, 1);
           result = 1;
@@ -21741,20 +21234,22 @@ LABEL_139:
       BotMatchVariable(&v64, 3, Source);
       strncpy(bs->teamleader, Source, 0x20u);
       bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
-      BotInitialChat(&bs->chatstate, aJoinedteam, Source, (char *)0);
+      BotInitialChat(&bs->chatstate, "joinedteam", Source, (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
       return 1;
     case 13:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       if ( strlen(bs->teamleader) )
-        BotInitialChat(&bs->chatstate, aLeftteam, (char *)bs + 4352, (char *)0);
+        BotInitialChat(&bs->chatstate, "leftteam", (char *)bs + 4352,
+                       (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
       bs->teamleader[0] = byte_1006294C;
       return 1;
     case 14:
     case 15:
-      EA_SayTeam(bs->client, aThePartOfMyBra);
+      EA_SayTeam(bs->client,
+                 "the part of my brain to create formations has been damaged");
       return 1;
     case 16:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
@@ -21787,7 +21282,7 @@ LABEL_139:
       if ( v17 == -1 )
       {
         v19 = &bs->chatstate;
-        BotInitialChat(&bs->chatstate, aWhois, Destination, (char *)0);
+        BotInitialChat(&bs->chatstate, "whois", Destination, (char *)0);
 LABEL_64:
         BotEnterChat(v19, bs->client, 1);
         return 1;
@@ -21843,7 +21338,8 @@ LABEL_64:
         }
         if ( !bs->teamgoal.entitynum )
         {
-          BotInitialChat(&bs->chatstate, aWhereareyou, Destination, (char *)0);
+          BotInitialChat(&bs->chatstate, "whereareyou", Destination,
+                         (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         }
@@ -21851,7 +21347,7 @@ LABEL_64:
       else if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
       {
         v19 = &bs->chatstate;
-        BotInitialChat(&bs->chatstate, aCannotfind, String2, (char *)0);
+        BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
         goto LABEL_64;
       }
       v24 = rand();
@@ -21880,7 +21376,8 @@ LABEL_64:
       {
         if ( !BotAddressedToBot(bs, &v64) )
           return 1;
-        BotInitialChat(&bs->chatstate, aCheckpointInva, (char *)0, (char *)0);
+        BotInitialChat(&bs->chatstate, "checkpoint_invalid", (char *)0,
+                       (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -21908,7 +21405,8 @@ LABEL_64:
       if ( BotAddressedToBot(bs, &v64) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", v45->goal.origin[0], v45->goal.origin[1], v45->goal.origin[2]);
-        BotInitialChat(&bs->chatstate, aCheckpointConf, v45->name, (char *)0);
+        BotInitialChat(&bs->chatstate, "checkpoint_confirm", v45->name,
+                       (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -21934,7 +21432,7 @@ LABEL_64:
       bs->teamgoal_time = v34 + 300.0;
       return result;
     default:
-      bi_Print(PRT_MESSAGE, aUnknownMatchTy);
+      bi_Print(PRT_MESSAGE, "unknown match type\n");
       return 1;
   }
 }
@@ -21988,7 +21486,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       }
       if ( v3->type != 1 )
         goto LABEL_11;
-      v4 = strstr(v3->message, asc_1005CB74);
+      v4 = strstr(v3->message, ":");
       if ( !v4 )
         goto LABEL_23;
       v5 = v4 - v3->message;
@@ -22025,7 +21523,7 @@ LABEL_11:
             v11 = v7;
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
             {
-              v8 = strstr(v3->message, asc_1005CB74);
+              v8 = strstr(v3->message, ":");
               if ( v8 )
               {
                 strcpy(v3->message, v8 + 1);
@@ -22098,11 +21596,11 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
     dword_1006446C = 0;
   if ( bs->inuse_marker )
   {
-    EA_Command(bs->client, aGender,
+    EA_Command(bs->client, "gender",
                (char *)Characteristic_String(BotCharacter(bs), 3), (char *)0);
-    if ( LibVarValue(aAltnames, (char *)a0) != 0.0 )
+    if ( LibVarValue("altnames", (char *)"0") != 0.0 )
     {
-      EA_Command(bs->client, aName,
+      EA_Command(bs->client, "name",
                  (char *)Characteristic_String(BotCharacter(bs), 1), (char *)0);
     }
     bs->inuse_marker = 0;
@@ -22139,30 +21637,30 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
 //----- (10028C30) --------------------------------------------------------
 void BotSetupDeathmatchAI()
 {
-  libvar_dmflags = LibVar(aDmflags, (char *)a0);
-  libvar_ctf = LibVar(aCtf, (char *)a0);
-  libvar_ch = LibVar(aCh, (char *)a0);
-  libvar_ra = LibVar(aRa, (char *)a0);
-  libvar_fastchat = LibVar(aFastchat, (char *)a0);
-  libvar_nochat = LibVar(aNochat, (char *)a0);
-  libvar_teamplay = LibVar(aTeamplay, (char *)a0);
-  libvar_usehook = LibVar(aUsehook, (char *)a0);
-  libvar_rocketjump = LibVar(aRocketjump, (char *)a1);
-  libvar_runes = LibVar(aRunes, (char *)a0);
-  libvar_teamplay_shell = LibVar(aTeamplayShell, (char *)a0);
-  libvar_assimilation = LibVar(aAssimilation, (char *)a0);
+  libvar_dmflags = LibVar("dmflags", (char *)"0");
+  libvar_ctf = LibVar("ctf", (char *)"0");
+  libvar_ch = LibVar("ch", (char *)"0");
+  libvar_ra = LibVar("ra", (char *)"0");
+  libvar_fastchat = LibVar("fastchat", (char *)"0");
+  libvar_nochat = LibVar("nochat", (char *)"0");
+  libvar_teamplay = LibVar("teamplay", (char *)"0");
+  libvar_usehook = LibVar("usehook", (char *)"0");
+  libvar_rocketjump = LibVar("rocketjump", (char *)"1");
+  libvar_runes = LibVar("runes", (char *)"0");
+  libvar_teamplay_shell = LibVar("teamplay_shell", (char *)"0");
+  libvar_assimilation = LibVar("assimilation", (char *)"0");
   if ( libvar_ctf->value != 0.0f )
   {
-    if ( BotGetLevelItemGoal(-1, aRedFlag, &unk_10064420) < 0 )
-      bi_Print(PRT_WARNING, aCtfWithoutRedF);
-    if ( BotGetLevelItemGoal(-1, aBlueFlag, &unk_100643E0) < 0 )
-      bi_Print(PRT_WARNING, aCtfWithoutBlue);
-    dword_10064484 = IndexFromModel(aPlayersMaleFla);
-    dword_1006448C = IndexFromModel(aPlayersMaleFla_0);
-    dword_1006449C = IndexFromModel(aModelsCtfResis);
-    dword_10064498 = IndexFromModel(aModelsCtfStren);
-    dword_10064494 = IndexFromModel(aModelsCtfHaste);
-    dword_10064490 = IndexFromModel(aModelsCtfRegen);
+    if ( BotGetLevelItemGoal(-1, "Red Flag", &unk_10064420) < 0 )
+      bi_Print(PRT_WARNING, "CTF without Red Flag\n");
+    if ( BotGetLevelItemGoal(-1, "Blue Flag", &unk_100643E0) < 0 )
+      bi_Print(PRT_WARNING, "CTF without Blue Flag\n");
+    dword_10064484 = IndexFromModel("players/male/flag1.md2");
+    dword_1006448C = IndexFromModel("players/male/flag2.md2");
+    dword_1006449C = IndexFromModel("models/ctf/resistance/tris.md2");
+    dword_10064498 = IndexFromModel("models/ctf/strength/tris.md2");
+    dword_10064494 = IndexFromModel("models/ctf/haste/tris.md2");
+    dword_10064490 = IndexFromModel("models/ctf/regeneration/tris.md2");
   }
   dword_1006446C = 1;
 }
@@ -22533,7 +22031,7 @@ int __cdecl BotMoveClient(int a1, int a2)
     v4 = (_DWORD *)(4560 * a2 + dword_100643A0);
     if ( *v4 )
     {
-      bi_Print(PRT_FATAL, aTriedToMoveCli);
+      bi_Print(PRT_FATAL, "tried to move client to active client\n");
       return 22;
     }
     else
@@ -22546,7 +22044,7 @@ int __cdecl BotMoveClient(int a1, int a2)
   }
   else
   {
-    bi_Print(PRT_FATAL, aTriedToMoveIna);
+    bi_Print(PRT_FATAL, "tried to move inactive bot client\n");
     return 21;
   }
   return result;
@@ -22563,7 +22061,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v2 )
   {
-    bi_Print(PRT_FATAL, aTriedToUpdated);
+    bi_Print(PRT_FATAL, "tried to updated inactive bot client\n");
     return 24;
   }
   qmemcpy(v2 + 3, a2, 0x4CCu);
@@ -22594,7 +22092,7 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   v3 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v3 )
   {
-    bi_Print(PRT_ERROR, aRecievedConsol);
+    bi_Print(PRT_ERROR, "recieved console message for inactive bot client\n");
     return 25;
   }
   BotQueueConsoleMessage((bot_chatstate_t *)((char *)v3 + 0xf8c), a2, Source);
@@ -22609,7 +22107,7 @@ int __cdecl BotSettings(int a1, const void *a2)
   v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
   if ( !*v2 )
   {
-    bi_Print(PRT_FATAL, aTriedToUpdateS);
+    bi_Print(PRT_FATAL, "tried to update settings of inactive client\n");
     return 26;
   }
   qmemcpy(v2 + 310, a2, 0x1B0u);
@@ -22726,7 +22224,7 @@ int BotSetupLibrary()
   botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * maxclients);
 #endif
   dword_100643A8 = GetClearedMemory(144 * maxclients);
-  dword_1006439C = (int)LibVarValue(aGametype, (char *)a0);
+  dword_1006439C = (int)LibVarValue("gametype", (char *)"0");
   return 0;
 }
 
@@ -22916,13 +22414,13 @@ LABEL_39:
         return v2;
       }
     }
-    while ( !strcmp(token.string, aCharacter) )
+    while ( !strcmp(token.string, "character") )
     {
       v8 = v13;
       if ( !PC_ExpectTokenType(v13, 1, 0, token.string) )
         goto LABEL_52;
       StripDoubleQuotes(token.string);
-      if ( !PC_ExpectTokenString(v13, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(v13, "{") )
         goto LABEL_52;
       if ( strcmp(token.string, (const char *)a2) )
       {
@@ -22932,11 +22430,11 @@ LABEL_39:
           v8 = v13;
           if ( !PC_ExpectAnyToken(v13, token.string) )
             break;
-          if ( !strcmp(token.string, asc_1005AB58) )
+          if ( !strcmp(token.string, "{") )
           {
             ++v10;
           }
-          else if ( !strcmp(token.string, asc_1005AB54) )
+          else if ( !strcmp(token.string, "}") )
           {
             --v10;
           }
@@ -22950,12 +22448,12 @@ LABEL_52:
       v17 = 1;
       if ( PC_ExpectAnyToken(v13, token.string) )
       {
-        while ( strcmp(token.string, asc_1005AB54) )
+        while ( strcmp(token.string, "}") )
         {
           if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
           {
             v12 = token.string;
-            v11 = aExpectedIntege_1;
+            v11 = "expected integer index, found %s\n";
             goto LABEL_54;
           }
           v9 = token.intvalue;
@@ -22964,7 +22462,7 @@ LABEL_52:
           if ( v16 && (unsigned char)pairs[token.intvalue].type )
           {
             LOBYTE(v12) = token.intvalue;
-            v11 = aCharacteristic_4;
+            v11 = "characteristic %d already initialized\n";
             goto LABEL_54;
           }
           if ( !PC_ExpectAnyToken(v13, token.string) )
@@ -22992,7 +22490,9 @@ LABEL_52:
           {
             if ( token.type != 1 )
             {
-              SourceError(v13, aExpectedIntege_0, token.string);
+              SourceError(v13,
+                          "expected integer, float or string, found %s\n",
+                          token.string);
               FreeSource(v13);
               return 0;
             }
@@ -23023,7 +22523,7 @@ LABEL_37:
       }
     }
     v12 = token.string;
-    v11 = aUnknownDefinit;
+    v11 = "unknown definition %s\n";
 LABEL_54:
     SourceError(v13, v11, v12);
     FreeSource(v13);
@@ -23147,7 +22647,7 @@ int InitConsoleMessageHeap()
 
   if ( dword_10064374 )
     FreeMemory(dword_10064374);
-  v1 = (int)LibVarValue(aMaxMessages, (char *)a1024);
+  v1 = (int)LibVarValue("max_messages", (char *)"1024");
   dword_10064374 = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
   dword_10064374[0].prev = NULL;
   dword_10064374[0].next = &dword_10064374[1];
@@ -23226,7 +22726,7 @@ int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
 
   msg = AllocConsoleMessage();
   if ( !msg )
-    return bi_Print(PRT_ERROR, aEmptyConsoleMe);
+    return bi_Print(PRT_ERROR, "empty console message heap\n");
   msg->time = AAS_Time();
   msg->type = type;
   strncpy(msg->message, Source, 0x96u);
@@ -23567,7 +23067,7 @@ LABEL_45:
     FreeSource(src);
     if ( level > 0 )
     {
-      SourceError(src, aMissing_0);
+      SourceError(src, "missing }");
       return 0;
     }
     ++pass;
@@ -23591,24 +23091,24 @@ LABEL_45:
       ++ctxStackP;
       if ( !tooMany )
       {
-        SourceError(src, aMoreThan32Cont);
+        SourceError(src, "more than 32 context levels");
         FreeSource(src);
         return 0;
       }
-      if ( !PC_ExpectTokenString(src, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(src, "{") )
         goto LABEL_52;
       goto LABEL_43;
     }
     if ( token.type != 5 )
       goto LABEL_43;
-    if ( strcmp(token.string, asc_1005AB54) )
+    if ( strcmp(token.string, "}") )
       break;
     ctxStackTop = ctxStackP - 1;
     ctxNegative = --level < 0;
     --ctxStackP;
     if ( ctxNegative )
     {
-      SourceError(v16, aTooMany);
+      SourceError(v16, "too many }");
       FreeSource(v16);
       return 0;
     }
@@ -23623,7 +23123,7 @@ LABEL_43:
     }
   }
   lastsynonym = NULL;
-  if ( !strcmp(token.string, asc_1005C65C) )
+  if ( !strcmp(token.string, "[") )
   {
     sizeAccum += sizeof(bot_synonymlist_t);
     if ( pass )
@@ -23643,12 +23143,12 @@ LABEL_43:
     do
     {
       src = v16;
-      if ( !PC_ExpectTokenString(v16, asc_1005D334) || !PC_ExpectTokenType(v16, 1, 0, token.string) )
+      if ( !PC_ExpectTokenString(v16, "(") || !PC_ExpectTokenType(v16, 1, 0, token.string) )
         break;
       StripDoubleQuotes(token.string);
       if ( !strlen(token.string) )
       {
-        SourceError(v16, aEmptyString, token.string);
+        SourceError(v16, "empty string", token.string);
         goto LABEL_58;
       }
       sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
@@ -23667,9 +23167,9 @@ LABEL_43:
         lastsynonym = synonym;
       }
       ++numsynonyms;
-      if ( !PC_ExpectTokenString(src, asc_1005D330)
-        || !PC_ExpectTokenType(src, 3, 0, token.string)
-        || !PC_ExpectTokenString(src, asc_1005D32C) )
+      if ( !PC_ExpectTokenString(src, ",")
+          || !PC_ExpectTokenType(src, 3, 0, token.string)
+          || !PC_ExpectTokenString(src, ")") )
       {
         break;
       }
@@ -23679,22 +23179,22 @@ LABEL_43:
         synonym->weight = token.floatvalue;
         syn->totalweight = (float)(weightval + syn->totalweight);
       }
-      if ( PC_CheckTokenString(src, asc_1005C658) )
+      if ( PC_CheckTokenString(src, "]") )
       {
         if ( numsynonyms >= 2 )
           goto LABEL_42;
-        SourceError(v16, aSynonymMustHav);
+        SourceError(v16, "synonym must have at least to entries\n");
         FreeSource(v16);
         return 0;
       }
     }
-    while ( PC_ExpectTokenString(src, asc_1005D330) );
+    while ( PC_ExpectTokenString(src, ",") );
 LABEL_52:
     FreeSource(src);
     return 0;
   }
   src = v16;
-  SourceError(v16, aUnexpectedS, token.string);
+  SourceError(v16, "unexpected %s", token.string);
 LABEL_58:
   FreeSource(src);
   return 0;
@@ -23848,7 +23348,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     {
       if ( token.type != 4 )
       {
-        SourceError(source, aUnknownRandomS, token.string);
+        SourceError(source, "unknown random %s", token.string);
         FreeSource(source);
         return NULL;
       }
@@ -23867,7 +23367,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
           head = list;
         lastlist = list;
       }
-      if ( !PC_ExpectTokenString(source, asc_1005D364) || !PC_ExpectTokenString(source, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(source, "=") || !PC_ExpectTokenString(source, "{") )
       {
         FreeSource(source);
         return NULL;
@@ -23886,9 +23386,9 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
           list->firstrandomstring = rs;
           ++list->numstrings;
         }
-        if ( PC_CheckTokenString(source, asc_1005AB54) )
+        if ( PC_CheckTokenString(source, "}") )
           break;
-        if ( !PC_ExpectTokenString(source, asc_1005D330) )
+        if ( !PC_ExpectTokenString(source, ",") )
         {
           FreeSource(source);
           return NULL;
@@ -24071,14 +23571,14 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
       goto LABEL_37;
     if ( token.intvalue >= 0xA )
     {
-      SourceError(v2, aCanTHaveMoreTh, 10);
+      SourceError(v2, "can't have more than %d match variables\n", 10);
       FreeSource(v2);
       BotFreeMatchPieces(head);
       return NULL;
     }
     if ( haveVariable )
     {
-      SourceError(v2, aNotAllowedToHa);
+      SourceError(v2, "not allowed to have adjacent variables\n");
       FreeSource(v2);
       BotFreeMatchPieces(head);
       return NULL;
@@ -24096,7 +23596,7 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
 LABEL_29:
     if ( PC_CheckTokenString(v2, endtoken) )
       return head;
-    if ( !PC_ExpectTokenString(v2, asc_1005D330) )
+    if ( !PC_ExpectTokenString(v2, ",") )
       goto LABEL_35;
     if ( !PC_ReadTokenHandle(v2, token.string) )
       return head;
@@ -24132,7 +23632,7 @@ LABEL_29:
       else
         mp->firststring = ms;
       lastms = ms;
-      if ( !PC_CheckTokenString(source, asc_1005D380) )
+      if ( !PC_CheckTokenString(source, "|") )
       {
         if ( !sawEmptyString )
           haveVariable = 0;
@@ -24148,7 +23648,7 @@ LABEL_35:
   }
 
 LABEL_37:
-  SourceError(v2, aInvalidTokenS, token.string);
+  SourceError(v2, "invalid token %s\n", token.string);
   FreeSource(v2);
   BotFreeMatchPieces(head);
   return NULL;
@@ -24209,7 +23709,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
   {
     context = token.intvalue;
-    if ( !PC_ExpectTokenString(source, asc_1005AB58) )
+    if ( !PC_ExpectTokenString(source, "{") )
     {
       BotFreeMatchTemplates(matches);
       FreeSource(source);
@@ -24220,7 +23720,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 
     while ( 1 )
     {
-      if ( !strcmp(token.string, asc_1005AB54) )
+      if ( !strcmp(token.string, "}") )
       {
         matches = pendinghead;
         break;
@@ -24229,23 +23729,23 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
       match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
       match->context = context;
       match->next = NULL;
-      match->first = BotLoadMatchPieces(source, asc_1005D364);
+      match->first = BotLoadMatchPieces(source, "=");
       if ( lastmatch )
         lastmatch->next = match;
       else
         pendinghead = match;
       lastmatch = match;
-      if ( !PC_ExpectTokenString(source, asc_1005D334) )
+      if ( !PC_ExpectTokenString(source, "(") )
         goto FAIL_LOOP;
       if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
         goto FAIL_LOOP;
       match->type = token.intvalue;
-      if ( !PC_ExpectTokenString(source, asc_1005D330) )
+      if ( !PC_ExpectTokenString(source, ",") )
         goto FAIL_LOOP;
       if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
         goto FAIL_LOOP;
       match->subtype = token.intvalue;
-      if ( !PC_ExpectTokenString(source, asc_1005D32C) || !PC_ExpectTokenString(source, Control) )
+      if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
         goto FAIL_LOOP;
       if ( !PC_ReadTokenHandle(source, token.string) )
       {
@@ -24258,7 +23758,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
       goto DONE;
   }
 
-  SourceError(source, aExpectedIntege, token.string);
+  SourceError(source, "expected integer, found %s\n", token.string);
   BotFreeMatchTemplates(matches);
   FreeSource(source);
   return NULL;
@@ -24401,7 +23901,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
 {
   if ( variable < 0 || variable >= MAX_MATCHVARIABLES )
   {
-    bi_Print(PRT_FATAL, aBotmatchvariab);
+    bi_Print(PRT_FATAL, "BotMatchVariable: variable out of range\n");
     *buf = byte_1006294C;
     return buf;
   }
@@ -24473,7 +23973,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
             ++msgptr;
           if ( !RandomString(ArgList) && !BotFindStringInList(a2, ArgList) )
           {
-            Log_Write(aSSMissingRando, ArgList, ArgList); /* "%s = {\"%s\"}: no value found — both %s = var name (Q3 passes temp twice) */
+            Log_Write("%s = {\"%s\"} //MISSING RANDOM", ArgList, ArgList); /* "%s = {\"%s\"}: no value found — both %s = var name (Q3 passes temp twice) */
             node = (bot_stringlist_t *)GetClearedMemory(sizeof(bot_stringlist_t) + strlen(ArgList) + 1);
             node->string = (char *)(node + 1);
             strcpy(node->string, ArgList);
@@ -24562,21 +24062,23 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
     {
       if ( (token.subtype & 0x1000) == 0 )
         goto error;
-      sprintf(&chatmessagestring[strlen(chatmessagestring)], aCvDC, 1, (char *)(uintptr_t)token.intvalue, 1);
+      sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cv%d%c", 1,
+              (char *)(uintptr_t)token.intvalue, 1);
     }
     else if ( token.type == 4 )
     {
-      sprintf(&chatmessagestring[strlen(chatmessagestring)], aCrSC, 1, token.string, 1);
+      sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cr%s%c", 1,
+              token.string, 1);
     }
     else
     {
 error:
-      SourceError(source, aUnknownMessage, token.string);
+      SourceError(source, "unknown message component %s\n", token.string);
       return 0;
     }
-    if ( PC_CheckTokenString(source, Control) )
+    if ( PC_CheckTokenString(source, ";") )
       return 1;
-    if ( !PC_ExpectTokenString(source, asc_1005D330) )
+    if ( !PC_ExpectTokenString(source, ",") )
       return 0;
   }
 }
@@ -24783,9 +24285,9 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
 
   while ( 1 )
   {
-    if ( strcmp(token.string, asc_1005C65C) )
+    if ( strcmp(token.string, "[") )
     {
-      SourceError(v4, aExpectedFoundS, token.string);
+      SourceError(v4, "expected [, found %s", token.string);
       BotFreeReplyChat(replyhead);
       FreeSource(v4);
       return NULL;
@@ -24801,32 +24303,32 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       key->match = NULL;
       key->next = rc->keys;
       rc->keys = key;
-      if ( PC_CheckTokenString(v4, asc_1005D548) )
+      if ( PC_CheckTokenString(v4, "&") )
       {
         key->flags |= 1;
       }
-      else if ( PC_CheckTokenString(v4, asc_1005D544) )
+      else if ( PC_CheckTokenString(v4, "!") )
       {
         key->flags |= 2;
       }
 
-      if ( PC_CheckTokenString(v4, aName) )
+      if ( PC_CheckTokenString(v4, "name") )
       {
         key->flags |= 4;
       }
-      else if ( PC_CheckTokenString(v4, aFemale) )
+      else if ( PC_CheckTokenString(v4, "female") )
       {
         key->flags |= 0x20;
       }
-      else if ( PC_CheckTokenString(v4, aMale) )
+      else if ( PC_CheckTokenString(v4, "male") )
       {
         key->flags |= 0x40;
       }
-      else if ( PC_CheckTokenString(v4, aIt) )
+      else if ( PC_CheckTokenString(v4, "it") )
       {
         key->flags |= 0x80;
       }
-      else if ( !PC_CheckTokenString(v4, asc_1005D334) )
+      else if ( !PC_CheckTokenString(v4, "(") )
       {
         key->flags |= 8;
         if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
@@ -24839,23 +24341,23 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       else
       {
         key->flags |= 0x10;
-        key->match = BotLoadMatchPieces(v4, asc_1005D32C);
+        key->match = BotLoadMatchPieces(v4, ")");
       }
-      PC_CheckTokenString(v4, asc_1005D330);
+      PC_CheckTokenString(v4, ",");
     }
-    while ( !PC_CheckTokenString(v4, asc_1005C658) );
+    while ( !PC_CheckTokenString(v4, "]") );
 
-    if ( !PC_ExpectTokenString(v4, asc_1005D364)
-      || !PC_ExpectTokenType(v4, 3, 0, token.string) )
+    if ( !PC_ExpectTokenString(v4, "=")
+        || !PC_ExpectTokenType(v4, 3, 0, token.string) )
     {
       goto FAIL;
     }
     rc->priority = (float)token.intvalue;
-    if ( !PC_ExpectTokenString(v4, asc_1005AB58) )
+    if ( !PC_ExpectTokenString(v4, "{") )
       goto FAIL;
     rc->numchatmessages = 0;
     rc->firstchatmessage = NULL;
-    if ( !PC_CheckTokenString(v4, asc_1005AB54) )
+    if ( !PC_CheckTokenString(v4, "}") )
     {
       while ( BotLoadChatMessage(v4, v21) )
       {
@@ -24866,7 +24368,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
         cm->next = rc->firstchatmessage;
         rc->firstchatmessage = cm;
         rc->numchatmessages++;
-        if ( PC_CheckTokenString(v4, asc_1005AB54) )
+        if ( PC_CheckTokenString(v4, "}") )
           goto NEXT_ENTRY;
       }
       goto FAIL;
@@ -24887,7 +24389,7 @@ DONE:
     bi_Print(PRT_MESSAGE, "loaded %s\n", v1);
   BotCheckReplyChatIntegrety(replyhead);
   if ( !replyhead )
-    bi_Print(PRT_MESSAGE, aNoRchats);
+    bi_Print(PRT_MESSAGE, "no rchats\n");
   return replyhead;
 
 FAIL:
@@ -24980,9 +24482,9 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
 
   while ( PC_ReadTokenHandle(src, token) )
   {
-    if ( strcmp(token, aChat) )
+    if ( strcmp(token, "chat") )
     {
-      SourceError(src, aUnknownDefinit, token);
+      SourceError(src, "unknown definition %s\n", token);
       FreeSource(src);
       sub_1002DF70(list);   /* free partial list */
       return 0;
@@ -24994,7 +24496,7 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
       return 0;
     }
     StripDoubleQuotes(token);
-    if ( !PC_ExpectTokenString(src, asc_1005AB58) )
+    if ( !PC_ExpectTokenString(src, "{") )
     {
       FreeSource(src);
       sub_1002DF70(list);
@@ -25005,16 +24507,16 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
       found = 1;
       while ( PC_ExpectAnyToken(src, (intptr_t)token) )
       {
-        if ( !strcmp(token, asc_1005AB54) )
+        if ( !strcmp(token, "}") )
           goto type_done;
-        if ( strcmp(token, aType) )
+        if ( strcmp(token, "type") )
         {
-          SourceError(src, aExpectedTypeFo, token);
+          SourceError(src, "expected type found %s\n", token);
           FreeSource(src);
           sub_1002DF70(list);
           return 0;
         }
-        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, asc_1005AB58) )
+        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
         {
           FreeSource(src);
           sub_1002DF70(list);
@@ -25025,7 +24527,7 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
         strncpy(cur_type->name, token, sizeof(cur_type->name));
         cur_type->next = list->types;
         list->types    = cur_type;
-        if ( !PC_CheckTokenString(src, asc_1005AB54) )
+        if ( !PC_CheckTokenString(src, "}") )
         {
           while ( 1 )
           {
@@ -25045,7 +24547,7 @@ void *__cdecl BotDumpInitialChat(char *a1, char *a2)
             strcpy(line->buf, buf);
             cur_type->firstline = line;
             ++cur_type->numlines;
-            if ( PC_CheckTokenString(src, asc_1005AB54) )
+            if ( PC_CheckTokenString(src, "}") )
               break;
           }
         }
@@ -25071,9 +24573,9 @@ type_done:
       v11 = 1;
       while ( PC_ExpectAnyToken(src, (intptr_t)token) )
       {
-        if ( !strcmp(token, asc_1005AB58) )
+        if ( !strcmp(token, "{") )
           ++v11;
-        else if ( !strcmp(token, asc_1005AB54) )
+        else if ( !strcmp(token, "}") )
           --v11;
         if ( !v11 )
           break;
@@ -25719,15 +25221,15 @@ int BotSetupChatAI()
   char *v3; // eax
   char *v4; // eax
 
-  v1 = LibVarString(aSynfile, (char *)aSynC);
+  v1 = LibVarString("synfile", (char *)"syn.c");
   dword_10064384 = BotLoadSynonyms(v1);
-  v2 = LibVarString(aRndfile, (char *)aRndC);
+  v2 = LibVarString("rndfile", (char *)"rnd.c");
   dword_1006437C = BotLoadRandomStrings(v2);
-  v3 = LibVarString(aMatchfile, (char *)aMatchC);
+  v3 = LibVarString("matchfile", (char *)"match.c");
   dword_10064378 = BotLoadMatchTemplates(v3);
-  if ( LibVarValue(aNochat, (char *)a0) == 0.0f )
+  if ( LibVarValue("nochat", (char *)"0") == 0.0f )
   {
-    v4 = LibVarString(aRchatfile, (char *)aRchatC);
+    v4 = LibVarString("rchatfile", (char *)"rchat.c");
     dword_10064380 = BotLoadReplyChat(v4);
   }
   InitConsoleMessageHeap();
@@ -25765,12 +25267,12 @@ itemconfig_t * LoadItemConfig(char *Source)
   char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+13Ch] [ebp-430h] BYREF
 
-  max_iteminfo = (int)LibVarValue(aMaxIteminfo, (char *)a256);
+  max_iteminfo = (int)LibVarValue("max_iteminfo", (char *)"256");
   if ( max_iteminfo < 0 )
   {
     bi_Print(PRT_ERROR, "max_iteminfo = %d\n", max_iteminfo);
     max_iteminfo = 256;
-    LibVarSet(aMaxIteminfo, (char *)a256);
+    LibVarSet("max_iteminfo", (char *)"256");
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
@@ -25790,11 +25292,11 @@ itemconfig_t * LoadItemConfig(char *Source)
   cfg->items    = (iteminfo_t *)(cfg + 1);
   if ( !PC_ReadTokenHandle(src, ArgList) )
     goto LABEL_13;
-  while ( !strcmp(ArgList, aIteminfo) )
+  while ( !strcmp(ArgList, "iteminfo") )
   {
     if ( cfg->numitems >= max_iteminfo )
     {
-      SourceError(src, aMoreThanDItemI, max_iteminfo);
+      SourceError(src, "more than %d item info defined\n", max_iteminfo);
       goto LABEL_22;
     }
     item = &cfg->items[cfg->numitems];
@@ -25817,7 +25319,7 @@ itemconfig_t * LoadItemConfig(char *Source)
     if ( !PC_ReadTokenHandle(src, ArgList) )
       goto LABEL_13;
   }
-  SourceError(src, aUnknownDefinit, ArgList);
+  SourceError(src, "unknown definition %s\n", ArgList);
 LABEL_22:
   FreeMemory(cfg);
   FreeSource(src);
@@ -25825,7 +25327,7 @@ LABEL_22:
 LABEL_13:
   FreeSource(src);
   if ( !cfg->numitems )
-    bi_Print(PRT_WARNING, aNoItemInfoLoad);
+    bi_Print(PRT_WARNING, "no item info loaded\n");
   if ( file_ref.filelen )
     bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
   else
@@ -25844,7 +25346,8 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
   {
     index[i] = FindFuzzyWeight(iwc, ic->items[i].dispname);
     if ( index[i] < 0 )
-      Log_Write(aItemInfoDSHasN, i, ic->items[i].dispname);
+      Log_Write("item info %d \"%s\" has no fuzzy weight", i,
+                ic->items[i].dispname);
   }
   return index;
 }
@@ -25857,7 +25360,7 @@ int InitLevelItemHeap()
 
   if ( dword_10064358 )
     FreeMemory(dword_10064358);
-  v1 = (int)LibVarValue(aMaxLevelitems, (char *)a512);
+  v1 = (int)LibVarValue("max_levelitems", (char *)"512");
   dword_10064358 = (levelitem_t *)GetMemory(sizeof(levelitem_t) * v1);
   if ( v1 - 2 > 0 )
   {
@@ -25882,7 +25385,7 @@ _DWORD *__cdecl AllocLevelItem(const void *a1)
   result = dword_10064344;
   if ( !dword_10064344 )
   {
-    bi_Print(PRT_FATAL, aOutOfLevelItem);
+    bi_Print(PRT_FATAL, "out of level items\n");
     return 0;
   }
   dword_10064344 = result->next;
@@ -25950,20 +25453,20 @@ _DWORD * BotInitLevelItems()
   if ( dword_1006435C )
   {
     v4 = AAS_ParseBSPEntities();
-    notspawnflags_mask = (int)LibVarValue(aNotspawnflags, (char *)a2048);
+    notspawnflags_mask = (int)LibVarValue("notspawnflags", (char *)"2048");
     for ( i = 0; i < v2->numitems; ++i )
     {
       v2->items[i].modelindex = IndexFromModel(v2->items[i].model);
       if ( !v2->items[i].modelindex )
-        Log_Write(aItemSHasModeli, v2->items[i].dispname);
+        Log_Write("item %s has modelindex 0", v2->items[i].dispname);
     }
     v11 = v4;
     if ( v4 )
     {
       do
       {
-        ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, aClassname);
-        if ( ArgList && (AAS_IntForBSPEpairKey(v11, aSpawnflags) & notspawnflags_mask) == 0 )
+        ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, "classname");
+        if ( ArgList && (AAS_IntForBSPEpairKey(v11, "spawnflags") & notspawnflags_mask) == 0 )
         {
           v7 = 0;
           if ( v2->numitems > 0 )
@@ -25974,7 +25477,7 @@ _DWORD * BotInitLevelItems()
               if ( v7 >= v2->numitems )
                 goto LABEL_20;
             }
-            if ( AAS_VectorForBSPEpairKey(v11, aOrigin, origin) )
+            if ( AAS_VectorForBSPEpairKey(v11, "origin", origin) )
             {
               levelitem_t *li = (levelitem_t *)AllocLevelItem(0);
               result = (_DWORD *)li;
@@ -26001,7 +25504,7 @@ _DWORD * BotInitLevelItems()
           }
 LABEL_20:
           if ( v7 >= v2->numitems )
-            Log_Write(aEntitySUnkownI, ArgList);
+            Log_Write("entity %s unkown item", ArgList);
         }
         v11 = v11->next;
       }
@@ -26050,7 +25553,8 @@ void __cdecl BotDumpAvoidGoals(int *goalstate)
   {
     if ( *(float *)((char *)p + 256) >= AAS_Time() )
     {
-      Log_Write(aAvoidGoalSNumb, BotGoalName(*p), *p, *(float *)((char *)p + 256) - AAS_Time());
+      Log_Write("avoid goal %s, number %d for %f seconds", BotGoalName(*p),
+                *p, *(float *)((char *)p + 256) - AAS_Time());
     }
     p++;
   }
@@ -26275,7 +25779,7 @@ void __cdecl BotDumpGoalStack(int *goalstate)
     v2 = (_DWORD *)((char *)goalstate + 108);
     do
     {
-      Log_Write(aDS, v1, BotGoalName(*v2));
+      Log_Write("%d: %s", v1, BotGoalName(*v2));
       ++v1;
       v2 += 14;
     }
@@ -26292,7 +25796,7 @@ int __cdecl BotPushGoal(int *goalstate, const void *goal)
   v2 = *(_DWORD *)((char *)goalstate + 456);
   if ( v2 >= 7 )
   {
-    bi_Print(PRT_ERROR, aGoalHeapOverfl);
+    bi_Print(PRT_ERROR, "goal heap overflow\n");
     return ((int (__cdecl *)(int *))BotDumpGoalStack)(goalstate);
   }
   result = v2 + 1;
@@ -26669,7 +26173,7 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
   BotGoalHandleP0(goalstate) = v2;
   if ( !v2 )
   {
-    bi_Print(PRT_FATAL, aCouldnTLoadWei);
+    bi_Print(PRT_FATAL, "couldn't load weights\n");
     return 28;
   }
   if ( !dword_1006435C )
@@ -26701,11 +26205,11 @@ int BotSetupGoalAI()
 
   char *v0; // eax
 
-  v0 = LibVarString(aItemconfig, (char *)aItemsC);
+  v0 = LibVarString("itemconfig", (char *)"items.c");
   dword_1006435C = LoadItemConfig(v0);
   if ( !dword_1006435C )
   {
-    bi_Print(PRT_FATAL, aCouldnTLoadIte);
+    bi_Print(PRT_FATAL, "couldn't load item config\n");
     return 29;
   }
   return 0;
@@ -28149,11 +27653,11 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
   v2 = libvar_laserhook;
   if ( !libvar_laserhook )
   {
-    v2 = LibVar(aLaserhook, (char *)a0);
+    v2 = LibVar("laserhook", (char *)"0");
     libvar_laserhook = v2;
   }
   if ( v2->value == 0.0f && !dword_1006295C )
-    dword_1006295C = IndexFromModel(aModelsWeaponsG);
+    dword_1006295C = IndexFromModel("models/weapons/grapple/hook/tris.md2");
   for ( v3 = AAS_NextBSPEntity(0); v3; v3 = AAS_NextBSPEntity(v3) )
   {
     if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(v3) != dword_1006295C)
@@ -28185,7 +27689,7 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
    * conversion that truncated bit 0x40 to 0 — see float_array_int_bitpattern. */
   if ( v2[9] != 14 && ((ms->moveflags & 0x40) != 0 || ms->grapplevisible_time != 0.0f) )
   {
-    EA_Command(ms->client, aHookoff, (char *)0);
+    EA_Command(ms->client, "hookoff", (char *)0);
     ms->moveflags &= 0xFFFFFFBFu;
     ms->grapplevisible_time = 0.0f;
   }
@@ -28222,7 +27726,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   v3 = ms->moveflags;
   if ( (v3 & 0x80u) != 0 )
   {
-    EA_Command(ms->client, aHookoff, (char *)0);
+    EA_Command(ms->client, "hookoff", (char *)0);
     v4 = ms->moveflags;
     v4 &= ~0x40u;
     ms->moveflags = v4;
@@ -28243,7 +27747,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
       {
         if ( ms->lastgrappledist - v25 < 1.0 )
         {
-          EA_Command(ms->client, aHookoff, (char *)0);
+          EA_Command(ms->client, "hookoff", (char *)0);
           v8 = ms->moveflags & 0xFFFFFFBF;
           ms->reachability_time = 0;
           LOBYTE(v8) = v8 | 0x80;
@@ -28265,7 +27769,7 @@ LABEL_8:
       ms->lastgrappledist = v25;
       goto LABEL_27;
     }
-    EA_Command(ms->client, aHookoff, (char *)0);
+    EA_Command(ms->client, "hookoff", (char *)0);
     v9 = ms->moveflags;
     LOBYTE(v9) = v9 & 0x3F | 0x80;
     ms->moveflags = v9;
@@ -28309,7 +27813,7 @@ LABEL_26:
   }
   else
   {
-    EA_Command(ms->client, aHookon, (char *)0);
+    EA_Command(ms->client, "hookon", (char *)0);
     v14 = ms->moveflags;
     LOBYTE(v14) = v14 | 0x40;
     /* int bit-pattern store: original `mov DWORD [ebx+0x6c],0x4969FFB0`
@@ -28373,7 +27877,7 @@ bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movesta
   EA_View(v7, ms->viewangles);
   v6 = ms->client;
   moveresult.flags |= 8u;
-  EA_UseItem(v6, aRocketLauncher);
+  EA_UseItem(v6, "Rocket Launcher");
   VectorCopy(dir, moveresult.movedir);
   result = a1;
   *a1 = moveresult;
@@ -28828,19 +28332,19 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
    * lost the return value; we capture it directly here. The previous LibVar
    * (libvar_t*) name was a deobfuscation mislabel — using the pointer as a
    * count blew up GetClearedMemory below. */
-  max_weaponinfo = (int)LibVarValue(aMaxWeaponinfo, (char *)a32);
+  max_weaponinfo = (int)LibVarValue("max_weaponinfo", (char *)"32");
   if ( max_weaponinfo < 0 )
   {
     bi_Print(PRT_ERROR, "max_weaponinfo = %d\n", max_weaponinfo);
     max_weaponinfo = 32;
-    LibVarSet(aMaxWeaponinfo, (char *)a32);
+    LibVarSet("max_weaponinfo", (char *)"32");
   }
-  max_projectileinfo = (int)LibVarValue(aMaxProjectilei, (char *)a32);
+  max_projectileinfo = (int)LibVarValue("max_projectileinfo", (char *)"32");
   if ( max_projectileinfo < 0 )
   {
     bi_Print(PRT_ERROR, "max_projectileinfo = %d\n", max_projectileinfo);
     max_projectileinfo = 32;
-    LibVarSet(aMaxProjectilei, (char *)a32);
+    LibVarSet("max_projectileinfo", (char *)"32");
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
@@ -28866,7 +28370,7 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
 
   while ( PC_ReadTokenHandle(v5, v22) )
   {
-    if ( !strcmp(v22, aWeaponinfo) )
+    if ( !strcmp(v22, "weaponinfo") )
     {
       if ( cfg->numweapons >= max_weaponinfo )
       {
@@ -28887,7 +28391,7 @@ LABEL_26:
     }
     else
     {
-      if ( strcmp(v22, aProjectileinfo) )
+      if ( strcmp(v22, "projectileinfo") )
       {
         bi_Print(PRT_ERROR, "unknown definition %s in %s\n", v22, Destination);
         FreeMemory(cfg);
@@ -28914,7 +28418,7 @@ LABEL_26:
   {
 LABEL_38:
     if ( v10 )
-      bi_Print(PRT_WARNING, aNoWeaponInfoLo);
+      bi_Print(PRT_WARNING, "no weapon info loaded\n");
     if ( file_ref.filelen )
       bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
     else
@@ -29148,11 +28652,11 @@ int BotSetupWeaponAI()
 
   char *v0; // eax
 
-  v0 = LibVarString(aWeaponconfig, (char *)aWeaponsC);
+  v0 = LibVarString("weaponconfig", (char *)"weapons.c");
   dword_10064080 = LoadWeaponConfig(v0);
   if ( !dword_10064080 )
   {
-    bi_Print(PRT_FATAL, aCouldnTLoadThe);
+    bi_Print(PRT_FATAL, "couldn't load the weapon config\n");
     return 31;
   }
   return 0;
@@ -29179,13 +28683,13 @@ int __cdecl ReadValue(source_t *source, float *value)
     return 0;
   if ( !strcmp(token.string, (const char *)&word_1005E498) )
   {
-    SourceWarning(source, aNegativeValueS);
+    SourceWarning(source, "negative value set to zero\n");
     if ( !PC_ExpectTokenType(source, 3, 0, token.string) )
       return 0;
   }
   if ( token.type != 3 )
   {
-    SourceError(source, aInvalidReturnV, token.string);
+    SourceError(source, "invalid return value %s\n", token.string);
     return 0;
   }
   *value = (float)token.floatvalue;
@@ -29201,24 +28705,24 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
   int *v3;
   int v4;
 
-  if ( PC_CheckTokenString(source, aBalance) )
+  if ( PC_CheckTokenString(source, "balance") )
   {
     fs->type = 1;
-    if ( !PC_ExpectTokenString(source, asc_1005D334) )
+    if ( !PC_ExpectTokenString(source, "(") )
       return 0;
     if ( !ReadValue(source, &fs->weight) )
       return 0;
-    if ( !PC_ExpectTokenString(source, asc_1005D330) )
+    if ( !PC_ExpectTokenString(source, ",") )
       return 0;
     if ( !ReadValue(source, &fs->minweight) )
       return 0;
-    if ( !PC_ExpectTokenString(source, asc_1005D330) )
+    if ( !PC_ExpectTokenString(source, ",") )
       return 0;
     if ( !ReadValue(source, &fs->maxweight) )
       return 0;
-    if ( !PC_ExpectTokenString(source, asc_1005D32C) )
+    if ( !PC_ExpectTokenString(source, ")") )
       return 0;
-    return PC_ExpectTokenString(source, Control) != 0;
+    return PC_ExpectTokenString(source, ";") != 0;
   }
   v3 = (int *)&fs->weight;
   fs->type = 0;
@@ -29227,7 +28731,7 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
   v4 = *v3;
   *(int *)&fs->minweight = v4;
   fs->maxweight = fs->minweight;
-  return PC_ExpectTokenString(source, Control) != 0;
+  return PC_ExpectTokenString(source, ";") != 0;
 }
 
 //----- (10035960) --------------------------------------------------------
@@ -29292,21 +28796,21 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 
   v11 = v12 = 0;
   v13 = 0;
-  if ( !PC_ExpectTokenString(source, asc_1005D334) )
+  if ( !PC_ExpectTokenString(source, "(") )
     return 0;
   if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
     return 0;
   v14 = token.intvalue;
-  if ( !PC_ExpectTokenString(source, asc_1005D32C) || !PC_ExpectTokenString(source, asc_1005AB58) || !PC_ExpectAnyToken(source, token.string) )
+  if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, "{") || !PC_ExpectAnyToken(source, token.string) )
     return 0;
   do
   {
-    v1 = strcmp(token.string, aDefault);
+    v1 = strcmp(token.string, "default");
     v2 = v1 == 0;
-    if ( v1 && strcmp(token.string, aCase) )
+    if ( v1 && strcmp(token.string, "case") )
     {
       FreeFuzzySeperators_r(v11);
-      SourceError(source, aInvalidNameS, token.string);
+      SourceError(source, "invalid name %s\n", token.string);
       return 0;
     }
     v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
@@ -29326,7 +28830,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
     {
       if ( v13 )
       {
-        SourceError(source, aSwitchAlreadyH);
+        SourceError(source, "switch already has a default\n");
         FreeFuzzySeperators_r(v4);
         return 0;
       }
@@ -29341,29 +28845,29 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
         goto LABEL_41;
       v3->value = token.intvalue;
     }
-    if ( !PC_ExpectTokenString(v5, asc_1005CB74) || !PC_ExpectAnyToken(v5, token.string) )
+    if ( !PC_ExpectTokenString(v5, ":") || !PC_ExpectAnyToken(v5, token.string) )
     {
 LABEL_41:
       FreeFuzzySeperators_r(v4);
       return 0;
     }
     v6 = 0;
-    if ( !strcmp(token.string, asc_1005AB58) )
+    if ( !strcmp(token.string, "{") )
     {
       v6 = 1;
       if ( !PC_ExpectAnyToken(source, token.string) )
         goto LABEL_32;
     }
-    if ( !strcmp(token.string, aReturn) )
+    if ( !strcmp(token.string, "return") )
     {
       if ( !ReadFuzzyWeight(source, v3) )
         goto LABEL_32;
     }
     else
     {
-      if ( strcmp(token.string, aSwitch) )
+      if ( strcmp(token.string, "switch") )
       {
-        SourceError(source, aInvalidNameS, token.string);
+        SourceError(source, "invalid name %s\n", token.string);
         return 0;
       }
       v7 = ReadFuzzySeperators_r(source);
@@ -29371,17 +28875,17 @@ LABEL_41:
       if ( !v7 )
         goto LABEL_32;
     }
-    if ( v6 && !PC_ExpectTokenString(source, asc_1005AB54) || !PC_ExpectAnyToken(source, token.string) )
+    if ( v6 && !PC_ExpectTokenString(source, "}") || !PC_ExpectAnyToken(source, token.string) )
     {
 LABEL_32:
       FreeFuzzySeperators_r(v11);
       return 0;
     }
   }
-  while ( strcmp(token.string, asc_1005AB54) );
+  while ( strcmp(token.string, "}") );
   if ( !v13 )
   {
-    SourceWarning(source, aSwitchWithoutD);
+    SourceWarning(source, "switch without default\n");
     v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
     v9->index = v14;
     v9->value = 999999;
@@ -29429,11 +28933,11 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
   cfg->numweights = 0;
   if ( PC_ReadTokenHandle(src, token.string) )
   {
-    while ( !strcmp(token.string, aWeight) )
+    while ( !strcmp(token.string, "weight") )
     {
       if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
       {
-        SourceWarning(src, aTooManyFuzzyWe);
+        SourceWarning(src, "too many fuzzy weights\n");
         goto LABEL_21;
       }
       if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
@@ -29447,13 +28951,13 @@ LABEL_25:
       cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
       strcpy(cfg->weights[cfg->numweights].name, token.string);
       if ( !PC_ExpectAnyToken(src, token.string)
-        || (has_balance = 0, !strcmp(token.string, asc_1005AB58)) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
+        || (has_balance = 0, !strcmp(token.string, "{")) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
       {
         FreeWeightConfig2(cfg);
         FreeSource(src);
         return 0;
       }
-      if ( !strcmp(token.string, aSwitch) )
+      if ( !strcmp(token.string, "switch") )
       {
         sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
         if ( !sep )
@@ -29466,9 +28970,9 @@ LABEL_25:
       }
       else
       {
-        if ( strcmp(token.string, aReturn) )
+        if ( strcmp(token.string, "return") )
         {
-          SourceError(src, aInvalidNameS, token.string);
+          SourceError(src, "invalid name %s\n", token.string);
           FreeWeightConfig2(cfg);
           goto LABEL_31;
         }
@@ -29486,13 +28990,13 @@ LABEL_25:
         }
         cfg->weights[cfg->numweights].firstseperator = sep;
       }
-      if ( has_balance && !PC_ExpectTokenString(src, asc_1005AB54) )
+      if ( has_balance && !PC_ExpectTokenString(src, "}") )
         goto LABEL_25;
       ++cfg->numweights;
       if ( !PC_ReadTokenHandle(src, token.string) )
         goto LABEL_21;
     }
-    SourceError(src, aInvalidNameS, token.string);
+    SourceError(src, "invalid name %s\n", token.string);
     FreeWeightConfig2(cfg);
 LABEL_31:
     FreeSource(src);
@@ -29935,13 +29439,13 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
     {
       v5 = a2->child;
       if ( !v5 )
-        return bi_Print(PRT_ERROR, aCanTMergeWeigh);
+        return bi_Print(PRT_ERROR, "can't merge weight configs\n");
       result = InterbreedFuzzySeperator_r(v5, a2->child);
     }
     else if ( a1->type == 1 )
     {
       if ( a2->type != 1 )
-        return bi_Print(PRT_ERROR, aCanTMergeWeigh);
+        return bi_Print(PRT_ERROR, "can't merge weight configs\n");
       a1->weight = (a2->weight + a1->weight) * 0.5f;
     }
     a1 = a1->next;
@@ -29951,7 +29455,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a
       break;
     a2 = 0;
   }
-  return bi_Print(PRT_ERROR, aCanTMergeWeigh);
+  return bi_Print(PRT_ERROR, "can't merge weight configs\n");
 }
 
 //----- (10037020) --------------------------------------------------------
@@ -29968,7 +29472,7 @@ void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
 
   if ( a->numweights != b->numweights )
   {
-    bi_Print(PRT_ERROR, aCanTMergeWeigh);
+    bi_Print(PRT_ERROR, "can't merge weight configs\n");
     return;
   }
   for ( i = 0; i < a->numweights; ++i )
@@ -29978,25 +29482,25 @@ void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
 //----- (10037090) --------------------------------------------------------
 void __cdecl EA_Say(int client, char *str)
 {
-  bi_BotClientCommand(client, aSay, str, (char *)NULL);
+  bi_BotClientCommand(client, "say", str, (char *)NULL);
 }
 
 //----- (100370C0) --------------------------------------------------------
 void __cdecl EA_SayTeam(int client, char *str)
 {
-  bi_BotClientCommand(client, aSayTeam, str, (char *)NULL);
+  bi_BotClientCommand(client, "say_team", str, (char *)NULL);
 }
 
 //----- (100370F0) --------------------------------------------------------
 void __cdecl EA_UseItem(int client, char *item)
 {
-  bi_BotClientCommand(client, aUse, item, (char *)NULL);
+  bi_BotClientCommand(client, "use", item, (char *)NULL);
 }
 
 //----- (10037120) --------------------------------------------------------
 void __cdecl EA_DropItem(int client, char *item)
 {
-  bi_BotClientCommand(client, aDrop, item, (char *)NULL);
+  bi_BotClientCommand(client, "drop", item, (char *)NULL);
 }
 
 //----- (10037150) --------------------------------------------------------
@@ -30006,7 +29510,7 @@ void __cdecl EA_DropItem(int client, char *item)
 // EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
 void __cdecl sub_10037150(int client, char *item)
 {
-  bi_BotClientCommand(client, aInvuse, item, (char *)NULL);
+  bi_BotClientCommand(client, "invuse", item, (char *)NULL);
 }
 
 //----- (10037180) --------------------------------------------------------
@@ -30014,7 +29518,7 @@ void __cdecl sub_10037150(int client, char *item)
 // "invdrop" command string (0x1005E63C).
 void __cdecl sub_10037180(int client, char *item)
 {
-  bi_BotClientCommand(client, aInvdrop, item, (char *)NULL);
+  bi_BotClientCommand(client, "invdrop", item, (char *)NULL);
 }
 
 //----- (100371B0) --------------------------------------------------------
@@ -30023,7 +29527,7 @@ void __cdecl sub_100371B0(int client, int sequence)
   char Buffer[128]; // [esp+0h] [ebp-80h] BYREF
 
   sprintf(Buffer, "%d", sequence);
-  bi_BotClientCommand(client, aWave, Buffer, (char *)NULL);
+  bi_BotClientCommand(client, "wave", Buffer, (char *)NULL);
 }
 
 //----- (10037200) --------------------------------------------------------
@@ -30045,7 +29549,7 @@ int __cdecl EA_Command(int client, char *command, ...)
   }
   va_end(ap);
   if ( n >= 10 )
-    bi_Print(PRT_ERROR, aEaCommandTooMa);
+    bi_Print(PRT_ERROR, "EA_Command: too many arguments");
   return bi_BotClientCommand(client, args[0], args[1], args[2], args[3], args[4],
                               args[5], args[6], args[7], args[8], args[9], 0);
 }
@@ -30460,22 +29964,22 @@ int BotSetupMoveAI()
 {
   libvar_t *result;
 
-  libvar_sv_friction = LibVar(aSvFriction, (char *)a6);
-  libvar_sv_stopspeed = LibVar(aSvStopspeed, (char *)a100);
-  libvar_sv_gravity = LibVar(aSvGravity, (char *)a800);
-  libvar_sv_waterfriction = LibVar(aSvWaterfrictio, (char *)a1);
-  libvar_sv_watergravity = LibVar(aSvWatergravity, (char *)a400);
-  libvar_sv_maxvelocity = LibVar(aSvMaxvelocity, (char *)a300);
-  libvar_sv_maxwalkvelocity = LibVar(aSvMaxwalkveloc, (char *)a300);
-  libvar_sv_maxcrouchvelocity = LibVar(aSvMaxcrouchvel, (char *)a100);
-  libvar_sv_maxswimvelocity = LibVar(aSvMaxswimveloc, (char *)a150);
-  libvar_sv_maxaccelerate = LibVar(aSvMaxaccelerat, (char *)a2200);
-  libvar_sv_airaccelerate = LibVar(aSvAiraccelerat, (char *)a0);
-  libvar_sv_step = LibVar(aSvStep, (char *)a18);
-  libvar_sv_maxbarrier = LibVar(aSvMaxbarrier, (char *)a50);
-  libvar_sv_maxsteepness = LibVar(aSvMaxsteepness, (char *)a07);
-  libvar_sv_jumpvel = LibVar(aSvJumpvel, (char *)a224);
-  result = LibVar(aSvMaxwaterjump, (char *)a21);
+  libvar_sv_friction = LibVar("sv_friction", (char *)"6");
+  libvar_sv_stopspeed = LibVar("sv_stopspeed", (char *)"100");
+  libvar_sv_gravity = LibVar("sv_gravity", (char *)"800");
+  libvar_sv_waterfriction = LibVar("sv_waterfriction", (char *)"1");
+  libvar_sv_watergravity = LibVar("sv_watergravity", (char *)"400");
+  libvar_sv_maxvelocity = LibVar("sv_maxvelocity", (char *)"300");
+  libvar_sv_maxwalkvelocity = LibVar("sv_maxwalkvelocity", (char *)"300");
+  libvar_sv_maxcrouchvelocity = LibVar("sv_maxcrouchvelocity", (char *)"100");
+  libvar_sv_maxswimvelocity = LibVar("sv_maxswimvelocity", (char *)"150");
+  libvar_sv_maxaccelerate = LibVar("sv_maxacceleration", (char *)"2200");
+  libvar_sv_airaccelerate = LibVar("sv_airaccelerate", (char *)"0");
+  libvar_sv_step = LibVar("sv_step", (char *)"18");
+  libvar_sv_maxbarrier = LibVar("sv_maxbarrier", (char *)"50");
+  libvar_sv_maxsteepness = LibVar("sv_maxsteepness", (char *)"0.7");
+  libvar_sv_jumpvel = LibVar("sv_jumpvel", (char *)"224");
+  result = LibVar("sv_maxwaterjump", (char *)"21");
   libvar_sv_maxwaterjump = result;
   return (intptr_t)result;
 }
@@ -30483,7 +29987,7 @@ int BotSetupMoveAI()
 //----- (10038150) --------------------------------------------------------
 int __cdecl Export_BotLibStartFrame(float time)
 {
-  if ( !BotLibSetup(aBotstartframe) )
+  if ( !BotLibSetup("BotStartFrame") )
     return 1;
   *(float *)&dword_1006402C = time;
   return AAS_StartFrame(time);
@@ -30492,9 +29996,9 @@ int __cdecl Export_BotLibStartFrame(float time)
 //----- (10038380) --------------------------------------------------------
 int Export_BotLibAI(int a1, float a2)
 {
-  if ( !BotLibSetup(aBotai) )
+  if ( !BotLibSetup("BotAI") )
     return 1;
-  if ( !ValidClientNumber(a1, aBotai) )
+  if ( !ValidClientNumber(a1, "BotAI") )
     return 3;
   return Export_BotAIFrame(a1, a2);
 }
@@ -30502,9 +30006,9 @@ int Export_BotLibAI(int a1, float a2)
 //----- (100383F0) --------------------------------------------------------
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 {
-  if ( !BotLibSetup(aBotconsolemess) )
+  if ( !BotLibSetup("BotConsoleMessage") )
     return 1;
-  if ( !ValidClientNumber(client, aBotconsolemess) )
+  if ( !ValidClientNumber(client, "BotConsoleMessage") )
     return 3;
   return BotConsoleMessage(client, a2, message);
 }
@@ -30827,11 +30331,11 @@ void __cdecl sub_10038BB0(const char *name)
  * the libvar value is read internally. */
 void Log_Open(char *FileName)
 {
-  if ( LibVarValue(aLog, (char *)a0) != 0.0f )      /* "log" libvar enabled (default "0") */
+  if ( LibVarValue("log", (char *)"0") != 0.0f )      /* "log" libvar enabled (default "0") */
   {
     if ( !FileName || !strlen(FileName) )
     {
-      bi_Print(PRT_MESSAGE, aOpenlogFilenam);
+      bi_Print(PRT_MESSAGE, "openlog <filename>\n");
     }
     else if ( Stream )
     {
@@ -30839,7 +30343,7 @@ void Log_Open(char *FileName)
     }
     else
     {
-      Stream = fopen(FileName, Mode);          /* Mode = "wb" */
+      Stream = fopen(FileName, "wb");          /* Mode = "wb" */
       if ( !Stream )
       {
         bi_Print(PRT_ERROR, "can't open the log file %s\n", FileName);
@@ -31111,7 +30615,7 @@ static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
  * function is faithfulness-audited. */
 int __cdecl FreeMemory(void *ptr)
 {
-  memoryblock_t *block = BlockFromPointer(ptr, aFreememory);
+  memoryblock_t *block = BlockFromPointer(ptr, "FreeMemory");
   if ( block )
   {
     UnlinkMemoryBlock(block);
@@ -31124,7 +30628,7 @@ int __cdecl FreeMemory(void *ptr)
 //----- (10039120) --------------------------------------------------------
 int __cdecl MemoryByteSize(void *ptr)
 {
-  memoryblock_t *block = BlockFromPointer(ptr, aMemorybytesize);
+  memoryblock_t *block = BlockFromPointer(ptr, "MemoryByteSize");
   if ( !block )
     return 0;
   return block->size;
@@ -31238,7 +30742,7 @@ void __cdecl PC_PushScript(source_t *source, script_t *script)
   {
     if ( !Q_stricmp(s->filename, script->filename) )
     {
-      SourceError(source, aSRecursivelyIn, script->filename);
+      SourceError(source, "%s recursively included", script->filename);
       return;
     }
   }
@@ -31283,7 +30787,7 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
       while ( source->indentstack &&
               source->indentstack->script == source->scriptstack )
       {
-        SourceWarning(source, aMissingEndif);
+        SourceWarning(source, "missing #endif");
         PC_PopIndent(source, &type, &skip);
       }
     }
@@ -31330,12 +30834,12 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
 
   if ( !PC_ReadSourceToken(src, &tok) )
   {
-    SourceError(src, aDefineSMissing, define->name);
+    SourceError(src, "define %s missing parms", define->name);
     return 0;
   }
   if ( define->numparms > maxparms )
   {
-    SourceError(src, aDefineWithMore, maxparms);
+    SourceError(src, "define with more than %d parameters", maxparms);
     return 0;
   }
   i = 0;
@@ -31348,10 +30852,10 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
     }
     while ( i < define->numparms );
   }
-  if ( strcmp(tok.string, asc_1005D334) )
+  if ( strcmp(tok.string, "(") )
   {
     PC_UnreadSourceToken(src, &tok);
-    SourceError(src, aDefineSMissing, define->name);
+    SourceError(src, "define %s missing parms", define->name);
     return 0;
   }
   parmidx = 0;
@@ -31362,12 +30866,12 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
   {
     if ( parmidx >= maxparms )
     {
-      SourceError(src, aDefineSWithToo, define->name);
+      SourceError(src, "define %s with too many parms", define->name);
       return 0;
     }
     if ( parmidx >= define->numparms )
     {
-      SourceWarning(src, aDefineSHasTooM, define->name);
+      SourceWarning(src, "define %s has too many parms", define->name);
       return 0;
     }
     last = NULL;
@@ -31377,22 +30881,22 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
     {
       if ( !PC_ReadSourceToken(src, &tok) )
       {
-        SourceError(src, aDefineSIncompl, define->name);
+        SourceError(src, "define %s incomplete", define->name);
         return 0;
       }
-      if ( !strcmp(tok.string, asc_1005D330) && indent <= 0 )
+      if ( !strcmp(tok.string, ",") && indent <= 0 )
         break;
       needcomma = 0;
-      if ( !strcmp(tok.string, asc_1005D334) )
+      if ( !strcmp(tok.string, "(") )
       {
         ++indent;
       }
       else
       {
-        if ( !strcmp(tok.string, asc_1005D32C) && --indent <= 0 )
+        if ( !strcmp(tok.string, ")") && --indent <= 0 )
         {
           if ( !parms[define->numparms - 1] )
-            SourceWarning(src, aTooFewDefinePa);
+            SourceWarning(src, "too few define parms");
           gotparms = 1;
           goto LABEL_31;
         }
@@ -31414,7 +30918,7 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
       }
     }
     if ( needcomma )
-      SourceWarning(src, aTooManyCommaS);
+      SourceWarning(src, "too many comma's");
 LABEL_31:
     ++parmidx;
     ++pslot;
@@ -31711,7 +31215,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
     }
     else
     {
-      if ( !strcmp(dt->string, asc_1005F630) )
+      if ( !strcmp(dt->string, "#") )
       {
         if ( dt->next )
           parmnum = PC_FindDefineParm(define, dt->next->string);
@@ -31722,14 +31226,14 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
           dt = dt->next;
           if ( !PC_StringizeTokens((char *)parms[parmnum], (char *)&token) )
           {
-            SourceError(src, aCanTStringizeT);
+            SourceError(src, "can't stringize tokens");
             return 0;
           }
           t = PC_CopyToken(&token);
         }
         else
         {
-          SourceWarning(src, aStringizingOpe);
+          SourceWarning(src, "stringizing operator without define parameter");
           continue;
         }
       }
@@ -31747,7 +31251,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
   }
   for ( t = first; t; )
   {
-    if ( t->next && !strcmp(t->next->string, asc_1005F5F4) )
+    if ( t->next && !strcmp(t->next->string, "##") )
     {
       t1 = t;
       t2 = t->next->next;
@@ -31755,7 +31259,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
       {
         if ( !PC_MergeTokens(t1, t2) )
         {
-          SourceError(src, aCanTMergeSWith, t1->string, t2->string);
+          SourceError(src, "can't merge %s with %s", t1->string, t2->string);
           return 0;
         }
         PC_FreeToken(t1->next);
@@ -31836,7 +31340,7 @@ int __cdecl PC_Directive_include(source_t *src)
     return 1;
   if ( !PC_ReadSourceToken(src, token.string) || token.linescrossed > 0 )
   {
-    SourceError(src, aIncludeWithout_0);
+    SourceError(src, "#include without file name");
     return 0;
   }
   if ( token.type == 1 )
@@ -31866,10 +31370,10 @@ int __cdecl PC_Directive_include(source_t *src)
       strncat(path, token.string, 0x104u);
     }
     if ( token.string[0] != 62 )
-      SourceWarning(src, aIncludeMissing);
+      SourceWarning(src, "#include missing trailing >");
     if ( !strlen(path) )
     {
-      SourceError(src, aIncludeWithout);
+      SourceError(src, "#include without file name between < >");
       return 0;
     }
     PC_ConvertPath(path);
@@ -31877,7 +31381,7 @@ int __cdecl PC_Directive_include(source_t *src)
   }
   else
   {
-    SourceError(src, aIncludeWithout_0);
+    SourceError(src, "#include without file name");
     return 0;
   }
   if ( !script )
@@ -31892,7 +31396,7 @@ int __cdecl PC_Directive_include(source_t *src)
   }
   if ( !script )
   {
-    SourceError(src, aFileSNotFound, path);
+    SourceError(src, "file %s not found", path);
     return 0;
   }
   PC_PushScript(src, script);
@@ -31919,7 +31423,7 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
     }
     crossline = 1;
   }
-  while ( !strcmp(token->string, asc_1005F6C0) );
+  while ( !strcmp(token->string, "\\") );
   return 1;
 }
 
@@ -31962,13 +31466,13 @@ int __cdecl PC_Directive_undef(source_t *src)
     return 1;
   if ( !PC_ReadLine(src, token.string) )
   {
-    SourceError(src, aUndefWithoutNa);
+    SourceError(src, "undef without name");
     return 0;
   }
   if ( token.type != 4 )
   {
     PC_UnreadSourceToken(src, token.string);
-    SourceError(src, aExpectedNameFo, token.string);
+    SourceError(src, "expected name, found %s", token.string);
     return 0;
   }
   hash = PC_NameHash(token.string);
@@ -31986,7 +31490,7 @@ int __cdecl PC_Directive_undef(source_t *src)
     }
     if ( (d->flags & 1) != 0 )
     {
-      SourceWarning(src, aCanTUndefS, token.string);
+      SourceWarning(src, "can't undef %s", token.string);
       return 1;
     }
     if ( prev )
@@ -32020,13 +31524,13 @@ int __cdecl PC_Directive_define(source_t *source)
     return 1;
   if ( !PC_ReadLine(source, &token) )
   {
-    SourceError(source, aDefineWithoutN, 0);
+    SourceError(source, "#define without name", 0);
     return 0;
   }
   if ( token.type != 4 )
   {
     PC_UnreadSourceToken(source, &token);
-    SourceError(source, aExpectedNameAf_0, token.string);
+    SourceError(source, "expected name after #define, found %s", token.string);
     return 0;
   }
   define = PC_FindHashedDefine(source->definehash, token.string);
@@ -32034,10 +31538,10 @@ int __cdecl PC_Directive_define(source_t *source)
   {
     if ( define->flags & 1 )
     {
-      SourceError(source, aCanTRedefineS, token.string);
+      SourceError(source, "can't redefine %s", token.string);
       return 0;
     }
-    SourceWarning(source, aRedefinitionOf, token.string);
+    SourceWarning(source, "redefinition of %s", token.string);
     PC_UnreadSourceToken(source, &token);
     if ( !PC_Directive_undef(source) )
       return 0;
@@ -32050,26 +31554,26 @@ int __cdecl PC_Directive_define(source_t *source)
   PC_AddDefineToHash(define, source->definehash);
   if ( !PC_ReadLine(source, &token) )
     return 1;
-  if ( !PC_WhiteSpaceBeforeToken(&token) && !strcmp(token.string, asc_1005D334) )
+  if ( !PC_WhiteSpaceBeforeToken(&token) && !strcmp(token.string, "(") )
   {
     last = NULL;
-    if ( !PC_CheckTokenString(source, asc_1005D32C) )
+    if ( !PC_CheckTokenString(source, ")") )
     {
       while ( 1 )
       {
         if ( !PC_ReadLine(source, &token) )
         {
-          SourceError(source, aExpectedDefine, 0);
+          SourceError(source, "expected define parameter", 0);
           return 0;
         }
         if ( token.type != 4 )
         {
-          SourceError(source, aInvalidDefineP, 0);
+          SourceError(source, "invalid define parameter", 0);
           return 0;
         }
         if ( PC_FindDefineParm(define, token.string) >= 0 )
         {
-          SourceError(source, aTwoTheSameDefi, 0);
+          SourceError(source, "two the same define parameters", 0);
           return 0;
         }
         t = (token_t *)PC_CopyToken(&token);
@@ -32083,14 +31587,14 @@ int __cdecl PC_Directive_define(source_t *source)
         define->numparms++;
         if ( !PC_ReadLine(source, &token) )
         {
-          SourceError(source, aDefineParamete, 0);
+          SourceError(source, "define parameters not terminated", 0);
           return 0;
         }
-        if ( !strcmp(token.string, asc_1005D32C) )
+        if ( !strcmp(token.string, ")") )
           break;
-        if ( strcmp(token.string, asc_1005D330) )
+        if ( strcmp(token.string, ",") )
         {
-          SourceError(source, aDefineNotTermi, 0);
+          SourceError(source, "define not terminated", 0);
           return 0;
         }
       }
@@ -32111,9 +31615,9 @@ int __cdecl PC_Directive_define(source_t *source)
     last = t;
   }
   while ( PC_ReadLine(source, &token) );
-  if ( last && (!strcmp(define->tokens->string, asc_1005F5F4) || !strcmp(last->string, asc_1005F5F4)) )
+  if ( last && (!strcmp(define->tokens->string, "##") || !strcmp(last->string, "##")) )
   {
-    SourceError(source, aDefineWithMisp, 0);
+    SourceError(source, "define with misplaced ##", 0);
     return 0;
   }
   return 1;
@@ -32137,9 +31641,9 @@ define_t *__cdecl PC_DefineFromString(const char *a1)
   define_t *def;
   source_t src; // [esp+Ch] [ebp-658h]
 
-  script = LoadScriptMemory(a1, strlen(a1), aExtern);
+  script = LoadScriptMemory(a1, strlen(a1), "*extern");
   memset(&src, 0, sizeof(src));
-  strncpy(src.filename, aExtern, 0x104u);
+  strncpy(src.filename, "*extern", 0x104u);
   src.scriptstack = script;
   src.definehash = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
   res = PC_Directive_define(&src);
@@ -32338,13 +31842,13 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2)
 
   if ( !PC_ReadLine(src, token.string) )
   {
-    SourceError(src, aIfdefWithoutNa);
+    SourceError(src, "#ifdef without name");
     return 0;
   }
   if ( token.type != 4 )
   {
     PC_UnreadSourceToken(src, token.string);
-    SourceError(src, aExpectedNameAf, token.string);
+    SourceError(src, "expected name after #ifdef, found %s", token.string);
     return 0;
   }
   def = PC_FindHashedDefine(src->definehash, token.string);
@@ -32362,12 +31866,12 @@ int __cdecl PC_Directive_else(source_t *src)
   PC_PopIndent(src, &type, &skip);
   if ( !type )
   {
-    SourceError(src, aMisplacedElse);
+    SourceError(src, "misplaced #else");
     return 0;
   }
   if ( type == 2 )
   {
-    SourceError(src, aElseAfterElse);
+    SourceError(src, "#else after #else");
     return 0;
   }
   PC_PushIndent(src, 2, skip == 0);
@@ -32383,7 +31887,7 @@ int __cdecl PC_Directive_endif(source_t *src)
   PC_PopIndent(src, &type, &skip);
   if ( !type )
   {
-    SourceError(src, aMisplacedEndif);
+    SourceError(src, "misplaced #endif");
     return 0;
   }
   return 1;
@@ -32560,23 +32064,23 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
         if ( v6 || v7 )
         {
 LABEL_71:
-          SourceError(src, aSyntaxErrorInI, v45);
+          SourceError(src, "syntax error in #if/#elif", v45);
           goto LABEL_76;
         }
-        if ( strcmp((const char *)v9, aDefined) )
+        if ( strcmp((const char *)v9, "defined") )
         {
-          SourceError(src, aUndefinedNameS, v9);
+          SourceError(src, "undefined name %s in #if/#elif", v9);
           goto LABEL_76;
         }
         v9 = v9->next;
-        if ( !strcmp((const char *)v9, asc_1005D334) )
+        if ( !strcmp((const char *)v9, "(") )
         {
           v9 = v9->next;
           v5 = 1;
         }
         if ( !v9 || v9->type != 4 )
         {
-          SourceError(src, aDefinedWithout_0, v45);
+          SourceError(src, "defined without name in #if/#elif", v45);
           goto LABEL_76;
         }
         v12 = GetClearedMemory(sizeof(value_t));
@@ -32601,9 +32105,9 @@ LABEL_71:
         if ( v5 )
         {
           v9 = v9->next;
-          if ( !v9 || strcmp((const char *)v9, asc_1005D32C) )
+          if ( !v9 || strcmp((const char *)v9, ")") )
           {
-            SourceError(src, aDefinedWithout, v45);
+            SourceError(src, "defined without ) in #if/#elif", v45);
             goto LABEL_76;
           }
         }
@@ -32613,7 +32117,7 @@ LABEL_71:
       case 5:
         if ( v7 )
         {
-          SourceError(src, aMisplacedMinus, v45);
+          SourceError(src, "misplaced minus sign in #if/#elif", v45);
           goto LABEL_76;
         }
         v10 = v9->subtype;
@@ -32625,7 +32129,7 @@ LABEL_71:
         {
           if ( --v47 < 0 )
           {
-            SourceError(src, aTooManyInIfEls, v45);
+            SourceError(src, "too many ) in #if/#elsif", v45);
             goto LABEL_76;
           }
         }
@@ -32633,7 +32137,9 @@ LABEL_71:
         {
           if ( !integer && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
           {
-            SourceError(src, aIlligalOperato, v9);
+            SourceError(src,
+                        "illigal operator %s on floating point operands\n",
+                        v9);
             goto LABEL_76;
           }
           switch ( v10 )
@@ -32659,7 +32165,7 @@ LABEL_71:
             case 43:
               if ( v6 )
                 goto LABEL_29;
-              SourceError(src, aOperatorSAfter, v9);
+              SourceError(src, "operator %s after operator in #if/#elif", v9);
               goto LABEL_76;
             case 30:
               if ( !v6 )
@@ -32669,7 +32175,7 @@ LABEL_71:
             case 36:
               if ( v6 )
               {
-                SourceError(src, aOrAfterValueIn, v45);
+                SourceError(src, "! or ~ after value in #if/#elif", v45);
                 goto LABEL_76;
               }
 LABEL_29:
@@ -32690,13 +32196,13 @@ LABEL_29:
               }
               break;
             default:
-              SourceError(src, aInvalidOperato, v9);
+              SourceError(src, "invalid operator %s in #if/#elif", v9);
               goto LABEL_76;
           }
         }
         break;
       default:
-        SourceError(src, aUnknownSInIfEl, v9);
+        SourceError(src, "unknown %s in #if/#elif", v9);
         goto LABEL_76;
     }
     v9 = v9->next;
@@ -32708,12 +32214,12 @@ LABEL_29:
   {
     if ( !v47 )
       goto LABEL_77;
-    SourceError(src, aTooManyInIfEli);
+    SourceError(src, "too many ( in #if/#elif");
   }
   else
   {
 LABEL_73:
-    SourceError(src, aTrailingOperat, v45);
+    SourceError(src, "trailing operator in #if/#elif", v45);
   }
 LABEL_76:
   v46 = 1;
@@ -32848,7 +32354,7 @@ LABEL_88:
         case 42:
           if ( !v14 )
           {
-            SourceError(src, aWithoutInIfEli, v45);
+            SourceError(src, ": without ? in #if/#elif", v45);
             goto LABEL_163;
           }
           if ( integer )
@@ -32869,7 +32375,7 @@ LABEL_88:
         case 43:
           if ( v14 )
           {
-            SourceError(src, aAfterInIfElif);
+            SourceError(src, "? after ? in #if/#elif");
             goto LABEL_163;
           }
           v15 = v17->intvalue;
@@ -32920,7 +32426,7 @@ LABEL_144:
       if ( !v19 )
         goto LABEL_88;
     }
-    SourceError(src, aMisingValuesIn, v45);
+    SourceError(src, "mising values in #if/#elif", v45);
 LABEL_163:
     v46 = 1;
   }
@@ -32990,7 +32496,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
   }
   if ( !PC_ReadLine(src, &token) )
   {
-    SourceError(src, aNoValueAfterIf);
+    SourceError(src, "no value after #if/#elif");
     return 0;
   }
   v6 = NULL;
@@ -33010,7 +32516,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
           v6 = v8;
         v7 = v8;
       }
-      else if ( !strcmp(token.string, aDefined) )
+      else if ( !strcmp(token.string, "defined") )
       {
         v14 = 1;
         v9 = PC_CopyToken(&token);
@@ -33026,7 +32532,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
         v10 = PC_FindHashedDefine(src->definehash, token.string);
         if ( !v10 )
         {
-          SourceError(src, aCanTEvaluateSN, token.string);
+          SourceError(src, "can't evaluate %s, not defined", token.string);
           return 0;
         }
         if ( !PC_ExpandDefineIntoSource(src, v10) )
@@ -33045,7 +32551,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
     }
     else
     {
-      SourceError(src, aCanTEvaluateS, token.string);
+      SourceError(src, "can't evaluate %s", token.string);
       return 0;
     }
   }
@@ -33089,12 +32595,12 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
   }
   if ( !PC_ReadSourceToken(src, &token) )
   {
-    SourceError(src, aNoLeadingAfter);
+    SourceError(src, "no leading ( after $evalint/$evalfloat");
     return 0;
   }
   if ( !PC_ReadSourceToken(src, &token) )
   {
-    SourceError(src, aNothingToEvalu);
+    SourceError(src, "nothing to evaluate");
     return 0;
   }
   v6 = 0;
@@ -33115,7 +32621,7 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
           v6 = v8;
         v7 = v8;
       }
-      else if ( !strcmp(token.string, aDefined) )
+      else if ( !strcmp(token.string, "defined") )
       {
         v16 = 1;
         v9 = PC_CopyToken(&token);
@@ -33131,7 +32637,7 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
         v10 = PC_FindHashedDefine(src->definehash, token.string);
         if ( !v10 )
         {
-          SourceError(src, aCanTEvaluateSN, token.string);
+          SourceError(src, "can't evaluate %s, not defined", token.string);
           return 0;
         }
         if ( !PC_ExpandDefineIntoSource(src, v10) )
@@ -33156,7 +32662,7 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
     }
     else
     {
-      SourceError(src, aCanTEvaluateS, token.string);
+      SourceError(src, "can't evaluate %s", token.string);
       return 0;
     }
   }
@@ -33187,7 +32693,7 @@ int __cdecl PC_Directive_elif(source_t *src)
   PC_PopIndent(src, &type, &skip);
   if ( !type || type == 2 )
   {
-    SourceError(src, aMisplacedElif);
+    SourceError(src, "misplaced #elif");
   }
   else if ( PC_Evaluate(src, &value, 0, 1) )
   {
@@ -33227,7 +32733,7 @@ int __cdecl PC_Directive_error(source_t *src)
 
   token.string[0] = byte_1006294C;
   PC_ReadSourceToken(src, token.string);
-  SourceError(src, aErrorDirective, token.string);
+  SourceError(src, "#error directive: %s", token.string);
   return 0;
 }
 
@@ -33236,7 +32742,7 @@ int __cdecl PC_Directive_pragma(source_t *src)
 {
   _DWORD v3[268]; // [esp+0h] [ebp-430h] BYREF
 
-  SourceWarning(src, aPragmaDirectiv);
+  SourceWarning(src, "#pragma directive not supported");
   while ( PC_ReadLine(src, v3) )
     ;
   return 1;
@@ -33318,13 +32824,13 @@ int __cdecl PC_ReadDirective(source_t *src)
 
   if ( !PC_ReadSourceToken(src, token.string) )
   {
-    SourceError(src, aFoundWithoutNa);
+    SourceError(src, "found # without name");
     return 0;
   }
   if ( token.linescrossed > 0 )
   {
     PC_UnreadSourceToken(src, token.string);
-    SourceError(src, aFoundAtEndOfLi);
+    SourceError(src, "found # at end of line");
     return 0;
   }
   if ( token.type == 4 )
@@ -33339,7 +32845,7 @@ int __cdecl PC_ReadDirective(source_t *src)
         return preproc_directives[i].handler(src);
     }
   }
-  SourceError(src, aUnknownPrecomp, token.string);
+  SourceError(src, "unknown precompiler directive %s", token.string);
   return 0;
 }
 
@@ -33405,13 +32911,13 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
 
   if ( !PC_ReadSourceToken(src, token.string) )
   {
-    SourceError(src, aFoundWithoutNa_0);
+    SourceError(src, "found $ without name");
     return 0;
   }
   if ( token.linescrossed > 0 )
   {
     PC_UnreadSourceToken(src, token.string);
-    SourceError(src, aFoundAtEndOfLi_0);
+    SourceError(src, "found $ at end of line");
     return 0;
   }
   if ( token.type == 4 )
@@ -33423,7 +32929,7 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
     }
   }
   PC_UnreadSourceToken(src, token.string);
-  SourceError(src, aUnknownPrecomp, token.string);
+  SourceError(src, "unknown precompiler directive %s", token.string);
   return 0;
 }
 
@@ -33476,12 +32982,12 @@ int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList)
 
   if ( !PC_ReadTokenHandle(src, v3) )
   {
-    SourceError(src, aCouldnTFindExp, ArgList);
+    SourceError(src, "couldn't find expected %s", ArgList);
     return 0;
   }
   if ( strcmp(v3, ArgList) )
   {
-    SourceError(src, aExpectedSFound, ArgList, v3);
+    SourceError(src, "expected %s, found %s", ArgList, v3);
     return 0;
   }
   return 1;
@@ -33498,7 +33004,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
   v4 = src;
   if ( !PC_ReadTokenHandle(src, a4) )
   {
-    SourceError(src, aCouldnTReadExp);
+    SourceError(src, "couldn't read expected token");
     return 0;
   }
   v6 = tok->type;
@@ -33514,14 +33020,14 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
       strcpy(ArgList, "name");
     else if ( a2 == 5 )
       strcpy(ArgList, "punctuation");
-    SourceError(src, aExpectedASFoun, ArgList, a4);
+    SourceError(src, "expected a %s, found %s", ArgList, a4);
     return 0;
   }
   if ( v6 != 3 )
   {
     if ( v6 == 5 && tok->subtype != a3 )
     {
-      SourceError(src, aFoundS, a4);
+      SourceError(src, "found %s", a4);
       return 0;
     }
     return 1;
@@ -33538,22 +33044,22 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
     strcpy(ArgList, "binary");
   if ( (a3 & 0x2000) != 0 )
   {
-    strcat(ArgList, aLong);
+    strcat(ArgList, " long");
     v4 = src;
   }
   if ( (a3 & 0x4000) != 0 )
   {
-    strcat(ArgList, aUnsigned);
+    strcat(ArgList, " unsigned");
     v4 = src;
   }
   if ( (a3 & 0x800) != 0 )
   {
-    strcat(ArgList, aFloat);
+    strcat(ArgList, " float");
     v4 = src;
   }
   if ( (a3 & 0x1000) != 0 )
-    strcat(ArgList, aInteger);
-  SourceError(v4, aExpectedSFound, ArgList, a4);
+    strcat(ArgList, " integer");
+  SourceError(v4, "expected %s, found %s", ArgList, a4);
   return 0;
 }
 
@@ -33562,7 +33068,7 @@ int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t a2)
 {
   if ( !PC_ReadTokenHandle(src, a2) )
   {
-    SourceError(src, aCouldnTReadExp);
+    SourceError(src, "couldn't read expected token");
     return 0;
   }
   return 1;
@@ -34052,13 +33558,13 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       --a1->script_p;
       if ( v4 > 255 )
       {
-        ScriptWarning(a1, aTooLargeValueI);
+        ScriptWarning(a1, "too large value in escape character");
         v4 = 255;
       }
       break;
     default:
       if ( v3 < '0' || v3 > '9' )
-        ScriptError(a1, aUnknownEscapeC);
+        ScriptError(a1, "unknown escape char");
       for ( i = 0, v4 = 0; ; ++i, ++a1->script_p )
       {
         v6 = *a1->script_p;
@@ -34069,7 +33575,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       --a1->script_p;
       if ( v4 > 255 )
       {
-        ScriptWarning(a1, aTooLargeValueI);
+        ScriptWarning(a1, "too large value in escape character");
         v4 = 255;
       }
       break;
@@ -34106,7 +33612,7 @@ int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
     {
       if ( v5 >= 1022 )
       {
-        ScriptError(a1, aStringLongerTh, 1024);
+        ScriptError(a1, "string longer than MAX_TOKEN = %d", 1024);
         return 0;
       }
       v7 = a1->script_p;
@@ -34139,13 +33645,13 @@ LABEL_22:
         if ( !v8 )
         {
           token->string[v5] = 0;
-          ScriptError(a1, aMissingTrailin);
+          ScriptError(a1, "missing trailing quote");
           return 0;
         }
         if ( v8 == 10 )
         {
           token->string[v5] = 0;
-          ScriptError(a1, aNewlineInsideS, 0);
+          ScriptError(a1, "newline inside string %s", 0);
           return 0;
         }
         *v6 = v8;
@@ -34190,7 +33696,7 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
     a1->script_p = v2;
     if ( v3 >= 1024 )
     {
-      ScriptError(a1, aNameLongerThan, 1024);
+      ScriptError(a1, "name longer than MAX_TOKEN = %d", 1024);
       return 0;
     }
   }
@@ -34333,7 +33839,8 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
         v8 = (char *)v10;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aHexadecimalNum, 1024);
+          ScriptError(a1, "hexadecimal number longer than MAX_TOKEN = %d",
+                      1024);
           return 0;
         }
       }
@@ -34363,7 +33870,7 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
         v15 = (char *)v17;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aBinaryNumberLo, 1024);
+          ScriptError(a1, "binary number longer than MAX_TOKEN = %d", 1024);
           return 0;
         }
       }
@@ -34387,7 +33894,7 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
         ((script_t *)a1)->script_p = v20;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, aNumberLongerTh, 1024);
+          ScriptError(a1, "number longer than MAX_TOKEN = %d", 1024);
           return 0;
         }
         v21 = *v20;
@@ -34562,7 +34069,7 @@ int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2)
       break;
     if ( v2 >= 1024 )
     {
-      ScriptError(a1, aPrimitiveToken, 0x400);
+      ScriptError(a1, "primitive token longer than MAX_TOKEN = %d", 0x400);
       return 0;
     }
     ((char *)a2)[v2++] = v3;
@@ -34624,7 +34131,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
   }
   else if ( !PS_ReadPunctuation(script, Destination) )
   {
-    ScriptError((int)script, aCanTReadToken);
+    ScriptError((int)script, "can't read token");
     return 0;
   }
   qmemcpy(&script->token, token, sizeof(token_t));
@@ -34658,12 +34165,12 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
   {
-    ScriptError((int)script, aCouldnTFindExp, string);
+    ScriptError((int)script, "couldn't find expected %s", string);
     return 0;
   }
   if ( strcmp(token.string, string) != 0 )
   {
-    ScriptError((int)script, aExpectedSFound, string, token.string);
+    ScriptError((int)script, "expected %s, found %s", string, token.string);
     return 0;
   }
   return 1;
@@ -34679,7 +34186,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
   v4 = a1;
   if ( !PS_ReadToken((script_t *)(intptr_t)a1, (char *)a4) )
   {
-    ScriptError(a1, aCouldnTReadExp);
+    ScriptError(a1, "couldn't read expected token");
     return 0;
   }
   v6 = a4->type;
@@ -34695,7 +34202,7 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
       strcpy(ArgList, "name");
     else if ( a2 == 5 )
       strcpy(ArgList, "punctuation");
-    ScriptError(a1, aExpectedASFoun, ArgList, a4);
+    ScriptError(a1, "expected a %s, found %s", ArgList, a4);
     return 0;
   }
   if ( v6 != 3 )
@@ -34704,12 +34211,13 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
     {
       if ( a3 < 0 )
       {
-        ScriptError(a1, aBugWrongPunctu);
+        ScriptError(a1, "BUG: wrong punctuation subtype");
         return 0;
       }
       if ( a4->subtype != a3 )
       {
-        ScriptError(a1, aExpectedSFound, ((punctuation_t *)((script_t *)a1)->punctuations)[a3], a4);
+        ScriptError(a1, "expected %s, found %s",
+                    ((punctuation_t *)((script_t *)a1)->punctuations)[a3], a4);
         return 0;
       }
     }
@@ -34727,22 +34235,22 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
     strcpy(ArgList, "binary");
   if ( (a3 & 0x2000) != 0 )
   {
-    strcat(ArgList, aLong);
+    strcat(ArgList, " long");
     v4 = a1;
   }
   if ( (a3 & 0x4000) != 0 )
   {
-    strcat(ArgList, aUnsigned);
+    strcat(ArgList, " unsigned");
     v4 = a1;
   }
   if ( (a3 & 0x800) != 0 )
   {
-    strcat(ArgList, aFloat);
+    strcat(ArgList, " float");
     v4 = a1;
   }
   if ( (a3 & 0x1000) != 0 )
-    strcat(ArgList, aInteger);
-  ScriptError(v4, aExpectedSFound, ArgList, a4);
+    strcat(ArgList, " integer");
+  ScriptError(v4, "expected %s, found %s", ArgList, a4);
   return 0;
 }
 
@@ -34751,7 +34259,7 @@ int __cdecl PS_ExpectAnyToken(int a1, int a2)
 {
   if ( !PS_ReadToken(a1, a2) )
   {
-    ScriptError(a1, aCouldnTReadExp);
+    ScriptError(a1, "couldn't read expected token");
     return 0;
   }
   return 1;
@@ -35095,7 +34603,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   script_t *script;
   char v10[144]; // [esp+Ch] [ebp-90h] BYREF
 
-  fp = fopen(FileName, aRb);
+  fp = fopen(FileName, "rb");
   if ( !fp )
     return NULL;
   if ( Offset )
@@ -35127,7 +34635,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   memset(&v10[72], 0, 0x48u);
   if ( !sub_10037850(FileName, (const unsigned char *)script->buffer, script->length) )
   {
-    LibVar(aSquatt, (char *)a1);
+    LibVar("__squatt", (char *)"1");
     bi_Print(PRT_EXIT, &v10[3]);
   }
   return script;
@@ -35220,12 +34728,12 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   {
     if ( (fielddef_flags(field) & 0x400) != 0 )
     {
-      SourceError(src, aExpectedUnsign, token.string);
+      SourceError(src, "expected unsigned value, found %s", token.string);
       return 0;
     }
     if ( strcmp(token.string, (const char *)&word_1005E498) )
     {
-      SourceError(src, aUnexpectedPunc, token.string);
+      SourceError(src, "unexpected punctuation %s", token.string);
       return 0;
     }
     v3 = 1;
@@ -35234,7 +34742,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   }
   if ( token.type != 3 )
   {
-    SourceError(src, aExpectedNumber, token.string);
+    SourceError(src, "expected number, found %s", token.string);
     return 0;
   }
   if ( (token.subtype & 0x800) != 0 )
@@ -35247,7 +34755,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
         v6 = -token.floatvalue;
       if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(field, 4), v6 < v18) || v6 > fielddef_float(field, 5)) )
       {
-        SourceError(src, aFloatOutOfRang, v18, fielddef_float(field, 5));
+        SourceError(src, "float out of range [%f, %f]", v18, fielddef_float(field, 5));
         return 0;
       }
       else
@@ -35258,7 +34766,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     }
     else
     {
-      SourceError(src, aUnexpectedFloa);
+      SourceError(src, "unexpected float");
       return 0;
     }
   }
@@ -35315,7 +34823,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       v11 = (float)v19;
       if ( v11 < fielddef_float(field, 4) || v11 > fielddef_float(field, 5) )
       {
-        SourceError(src, aValueDOutOfRan, v7, fielddef_float(field, 4), fielddef_float(field, 5));
+        SourceError(src, "value %d out of range [%f, %f]", v7, fielddef_float(field, 4), fielddef_float(field, 5));
         return 0;
       }
     }
@@ -35335,7 +34843,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   }
   if ( v7 < v9 || v7 > v10 )
   {
-    SourceError(src, aValueDOutOfRan_0, v7, v9, v10);
+    SourceError(src, "value %d out of range [%d, %d]", v7, v9, v10);
     return 0;
   }
 LABEL_47:
@@ -35406,25 +34914,25 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
   int v13; // [esp+10h] [ebp-434h]
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
-  if ( !PC_ExpectTokenString(source, asc_1005AB58) ) return 0;
+  if ( !PC_ExpectTokenString(source, "{") ) return 0;
   do
   {
 LABEL_2:
     if ( !PC_ExpectAnyToken(source, ArgList) )
       return 0;
-    if ( !strcmp(ArgList, asc_1005AB54) )
+    if ( !strcmp(ArgList, "}") )
       return 1;
     v4 = FindField(def->fields, ArgList);
     v5 = v4;
     if ( !v4 )
     {
-      SourceError(source, aUnknownStructu, ArgList);
+      SourceError(source, "unknown structure field %s", ArgList);
       return 0;
     }
     if ( (((unsigned __int16)v4[2] >> 8) & 1) != 0 )
     {
       v6 = (int)v4[3];
-      if ( !PC_ExpectTokenString(source, asc_1005AB58) )
+      if ( !PC_ExpectTokenString(source, "{") )
         return 0;
     }
     else
@@ -35439,7 +34947,7 @@ LABEL_2:
   while ( v8 <= 0 );
   while ( 2 )
   {
-    if ( (((unsigned __int16)v5[2] >> 8) & 1) != 0 && PC_CheckTokenString(source, asc_1005AB54) )
+    if ( (((unsigned __int16)v5[2] >> 8) & 1) != 0 && PC_CheckTokenString(source, "}") )
       goto LABEL_2;
     switch ( (unsigned __int8)v5[2] )
     {
@@ -35463,7 +34971,7 @@ LABEL_2:
         v10 = v5[6];
         if ( !v10 )
         {
-          SourceError(source, aBugNoSubStruct);
+          SourceError(source, "BUG: no sub structure defined");
           return 0;
         }
         ReadStructure(source, (structdef_t *)v10, (void *)v7);
@@ -35473,9 +34981,9 @@ LABEL_21:
           goto LABEL_26;
         if ( !PC_ExpectAnyToken(source, ArgList) )
           return 0;
-        if ( !strcmp(ArgList, asc_1005AB54) )
+        if ( !strcmp(ArgList, "}") )
           goto LABEL_2;
-        if ( !strcmp(ArgList, asc_1005D330) )
+        if ( !strcmp(ArgList, ",") )
         {
           v9 = v13;
 LABEL_26:
@@ -35485,7 +34993,7 @@ LABEL_26:
             goto LABEL_2;
           continue;
         }
-        SourceError(source, aExpectedAComma, ArgList);
+        SourceError(source, "expected a comma, found %s", ArgList);
         return 0;
       default:
         goto LABEL_21;
@@ -35918,7 +35426,7 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
   int Buffer[3]; // [esp+14h] [ebp-9Ch] BYREF
   char v16[144]; // [esp+20h] [ebp-90h] BYREF
 
-  v3 = fopen(FileName, aRb);
+  v3 = fopen(FileName, "rb");
   v4 = v3;
   if ( !v3 ) { return 0; }
   /* Read 12-byte PAK header: magic(4), dir_offset(4), dir_size(4).
@@ -36009,7 +35517,7 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
   memset(&FileName[1], 0, 143);
   if ( Source )
     strncpy(subdirs[0], Source, 0x90u);
-  strncpy(subdirs[1], aBaseq2, 0x90u);
+  strncpy(subdirs[1], "baseq2", 0x90u);
   v7 = 0;
   v4 = subdirs[0];
 LABEL_4:
@@ -36026,7 +35534,7 @@ LABEL_4:
   }
   strncat(FileName, a3, 144 - strlen(FileName));
   sub_100418D0(FileName);
-  Log_Write(aAccessingS, FileName);
+  Log_Write("accessing %s", FileName);
   if ( _access(FileName, 4) )
   {
     v5 = 0;
@@ -36046,7 +35554,7 @@ LABEL_4:
       sprintf(&FileName[strlen(FileName)], "pak%d.pak", v5);
       if ( !_access(FileName, 4) )
       {
-        Log_Write(aSearchingSInS, a3, FileName); /* "searching %s in %s": file, pak */
+        Log_Write("searching %s in %s", a3, FileName); /* "searching %s in %s": file, pak */
         if ( sub_10041970(FileName, a3, a4) )
           break;
       }
@@ -36074,14 +35582,14 @@ LABEL_4:
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 {
   if ( sub_10041BA0(
-         (char *)LibVarGetString(aBasedir),
-         (char *)LibVarGetString(aGamedir),
+         (char *)LibVarGetString("basedir"),
+         (char *)LibVarGetString("gamedir"),
          a1,
          a2) )
     return 1;
   return sub_10041BA0(
-           (char *)LibVarGetString(aCddir),
-           (char *)LibVarGetString(aGamedir),
+           (char *)LibVarGetString("cddir"),
+           (char *)LibVarGetString("gamedir"),
            a1,
            a2) != 0;
 }
