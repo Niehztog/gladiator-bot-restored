@@ -24473,74 +24473,57 @@ bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *
  * list of undefined variable nodes (accumulating into a2); returns updated list. */
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2)
 {
-  const char *v2; // esi
-  char *v3; // ebp
-  int v4; // al
-  int i; // al
-  int v7; // al
-  int v8; // ecx
-  int v9; // al
+  /* Canonical Q3 be_ai_chat.c:1513 structure (while + switch over the escape
+   * char), reading the message pointer as `char` so MSVC emits `mov al`/`cmp al`
+   * rather than the `int`-promoted `movsx` the IDA decompile produced.  Strings
+   * and the node-alloc block are the ORIGINAL Gladiator forms (aSSMissingRando,
+   * the "PC_HashString:" FATAL prefix), not the Q3 message text. */
+  int i;
+  const char *msgptr;
   bot_stringlist_t *node;
   char ArgList[152]; // [esp+8h] [ebp-98h] BYREF
 
-  v2 = a1;
-  v3 = (char *)a1;
-  if ( *a1 )
+  msgptr = a1;
+  while ( *msgptr )
   {
-    while ( 1 )
+    if ( *msgptr == 1 )
     {
-      if ( *v3 != 1 )
-        goto LABEL_10;
-      v4 = *++v3;
-      if ( v4 == 114 )
+      ++msgptr;
+      switch ( *msgptr )
       {
-        v7 = *++v3;
-        v8 = 0;
-        if ( v7 )
-        {
-          do
+        case 'v':
+          ++msgptr;
+          while ( *msgptr && *msgptr != 1 )
+            ++msgptr;
+          if ( *msgptr )
+            ++msgptr;
+          break;
+        case 'r':
+          ++msgptr;
+          for ( i = 0; *msgptr && *msgptr != 1; ++i )
+            ArgList[i] = *msgptr++;
+          ArgList[i] = 0;
+          if ( *msgptr )
+            ++msgptr;
+          if ( !RandomString(ArgList) && !BotFindStringInList(a2, ArgList) )
           {
-            if ( v7 == 1 )
-              break;
-            ++v3;
-            ArgList[v8++] = v7;
-            v7 = *v3;
+            Log_Write(aSSMissingRando, ArgList, ArgList); /* "%s = {\"%s\"}: no value found — both %s = var name (Q3 passes temp twice) */
+            node = (bot_stringlist_t *)GetClearedMemory(sizeof(bot_stringlist_t) + strlen(ArgList) + 1);
+            node->string = (char *)(node + 1);
+            strcpy(node->string, ArgList);
+            node->next = a2;
+            a2 = node;
           }
-          while ( *v3 );
-        }
-        v9 = *v3;
-        ArgList[v8] = 0;
-        if ( v9 )
-          ++v3;
-        if ( !RandomString(ArgList) && !BotFindStringInList(a2, ArgList) )
-        {
-          Log_Write(aSSMissingRando, ArgList, ""); /* "%s = {\"%s\"}: no value found */
-          node = (bot_stringlist_t *)GetClearedMemory(sizeof(bot_stringlist_t) + strlen(ArgList) + 1);
-          node->string = (char *)(node + 1);
-          strcpy(node->string, ArgList);
-          v2 = a1;
-          node->next = a2;
-          a2 = node;
-        }
-        goto LABEL_11;
+          break;
+        default:
+          bi_Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", a1);
+          break;
       }
-      if ( v4 == 118 )
-        break;
-      bi_Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", v2);
-LABEL_11:
-      if ( !*v3 )
-        return a2;
     }
-    for ( i = *++v3; i; i = *++v3 )
+    else
     {
-      if ( i == 1 )
-        break;
+      ++msgptr;
     }
-    if ( !*v3 )
-      return a2;
-LABEL_10:
-    ++v3;
-    goto LABEL_11;
   }
   return a2;
 }
