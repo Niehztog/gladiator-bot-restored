@@ -778,7 +778,7 @@ char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
 // int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
 bot_consolemessage_t *AllocConsoleMessage();
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
-int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg);
+int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *msg);
 int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source); // idb
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs);
 int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs);
@@ -807,7 +807,7 @@ void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
-void *__cdecl BotDumpInitialChat(char *a1, char *a2);
+void *__cdecl BotLoadInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
 int __cdecl BotFreeChatState(bot_chatstate_t *cs);
 int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3); // idb
@@ -911,7 +911,7 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws);
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
 int __cdecl BotResetMoveState(bot_weaponstate_t *ws);
 int BotSetupWeaponAI();
-int sub_100356D0();
+int BotShutdownWeaponAI();
 int __cdecl ReadValue(source_t *source, float *value);
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
 void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
@@ -1716,7 +1716,7 @@ bot_weaponstate_t **botweaponstates;
 #define BotWS(bs) ((bot_weaponstate_t *)&(bs)->weaponweights[0])
 #endif
 
-/* Side-band for the pointer slot at chatstate+184 (BotDumpInitialChat
+/* Side-band for the pointer slot at chatstate+184 (BotLoadInitialChat
  * result).  On 32-bit Windows this slot lives inline at chatstate[46];
  * on 64-bit we route reads/writes through this parallel array indexed by
  * client number, derived from the chatstate pointer's distance from the
@@ -1806,14 +1806,14 @@ bsp_link_t **aasentity_bsplinks;
 #endif
 
 
-/* Initial-chat dump structures.  In the 32-bit original BotDumpInitialChat
+/* Initial-chat dump structures.  In the 32-bit original BotLoadInitialChat
  * built a single contiguous heap buffer with inline 4-byte pointer slots
  * (chat-type at +0..+43 with 32-byte name, numlines@+32, head@+36, next@+40;
  * chat-line at +0..+11 with string*@+0, ltime@+4, next@+8, then inline
  * string buffer).  On 64-bit those 4-byte slots can't hold pointers, so we
  * allocate proper structs per chat-type / chat-line node and chain via real
  * pointer fields.  The dump root is a single 'chatlist_t' cell whose
- * address is what BotDumpInitialChat returns and what gets stored in the
+ * address is what BotLoadInitialChat returns and what gets stored in the
  * chatstate dump side-band slot. */
 typedef struct chatline_s {
     char              *string;       /* +0  pointer to inline string buffer */
@@ -21495,7 +21495,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
         if ( strncmp(v3->message + 1, Str2, v5 - 10) )
           break;
       }
-      sub_1002AA20(v2, v3);
+      BotRemoveConsoleMessage(v2, v3);
       v1 = a1;
 LABEL_24:
       v3 = BotNextConsoleMessage(v2);
@@ -21530,7 +21530,7 @@ LABEL_11:
                 UnifyWhiteSpaces(v3->message);
                 if ( BotReplyChat(&bs->chatstate, v3->message) )
                 {
-                  sub_1002AA20(v2, v3);
+                  BotRemoveConsoleMessage(v2, v3);
                   v14 = BotChatTime(a1);
                   bs->stand_time = AAS_Time() + v14;
                   AIEnter_Stand(a1);
@@ -21544,7 +21544,7 @@ LABEL_11:
       }
     }
 LABEL_23:
-    sub_1002AA20(v2, v3);
+    BotRemoveConsoleMessage(v2, v3);
     goto LABEL_24;
   }
 }
@@ -22236,7 +22236,7 @@ int BotShutdownLibrary()
   sub_10028E80();
   BotShutdownChatAI();
   BotShutdownGoalAI();
-  sub_100356D0();
+  BotShutdownWeaponAI();
   if ( dword_100643A8 )
     FreeMemory(dword_100643A8);
   result = (int)(intptr_t)botstates;
@@ -22304,7 +22304,7 @@ int BotShutdownLibrary()
  * the named-value list printers at 1002B070/1002B900.  Type tags 1=int,
  * 2=float (printed via promotion to double), 3=string.  Dead in
  * Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_10029E10(int *list)
+void __cdecl BotDumpCharacter(int *list)
 {
   int   i;
   char *p;
@@ -22692,15 +22692,15 @@ int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 }
 
 //----- (1002AA20) --------------------------------------------------------
-int __cdecl sub_1002AA20(bot_chatstate_t *cs, bot_consolemessage_t *msg)
+int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *msg)
 {
-  /* Faithful reconstruction of original 0x1002AA20 (sub_1002AA20).  The
+  /* Faithful reconstruction of original 0x1002AA20 (BotRemoveConsoleMessage).  The
    * disassembly tests msg+164 (next) first and msg+160 (prev) second; an
    * earlier port of this function had the two conditions swapped, which
    * left links->first pointing at a freed message and made
    * BotCheckConsoleMessages busy-loop on the same node forever (visible
    * via gdb backtraces all in BotCheckConsoleMessages within seconds of
-   * bots joining).  See gladiator.dll.c sub_1002AA20 disassembly for
+   * bots joining).  See gladiator.dll.c BotRemoveConsoleMessage disassembly for
    * authoritative offsets. */
   chatmsg_links_t *links;
 
@@ -22971,7 +22971,7 @@ LABEL_8:
  * Inner item = { char *name; float val; struct item *next; } stride 12.
  * Companion to the named-list dumper at 1002B900 (which uses %s-only
  * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_1002B070(int *list)
+void __cdecl BotDumpSynonymList(int *list)
 {
   /* Inner item struct: { char *name; float val; struct item *next; } stride 12.
    * Outer list:        { int key; pad; struct item *items; struct list *next; } stride 16. */
@@ -23271,9 +23271,9 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
  * The outer block's closing "}\n" is emitted by the LAST inner item;
  * an empty inner list leaves the block unterminated -- abandoned/buggy
  * Mr. Elusive helper, no canonical Q3 counterpart.  Sibling of the
- * named-float dumper at sub_1002B070.  Dead in Gladiator --
+ * named-float dumper at BotDumpSynonymList.  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-void __cdecl sub_1002B900(int *list)
+void __cdecl BotDumpRandomStringList(int *list)
 {
   FILE *fp;
   bot_randomlist_t *rl;
@@ -23466,7 +23466,7 @@ char *__cdecl RandomString(const char *name)
 // the original — and the same UB on the value.
 //
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
-void __cdecl sub_1002BEA0(void *templates)  /* Q3: BotDumpMatchTemplates(bot_matchtemplate_t *) — single arg */
+void __cdecl BotDumpMatchTemplates(void *templates)
 {
   FILE *log;
   bot_matchtemplate_t *tmpl;
@@ -24418,13 +24418,13 @@ static void sub_1002DF70(chatlist_t *list);
  *     push 0x1005d590(" }"); call Log_Write
  *     edi = [edi+0x28]; if (edi) goto outer
  *   tail: push 0x1005ab54("}"); call Log_Write; ret
- * Twin of the live BotDumpInitialChat at 1002D8A0: this is the loaded-
- * chat-tree pretty-printer that BotDumpInitialChat would call after
+ * Twin of the live BotLoadInitialChat at 1002D8A0: this is the loaded-
+ * chat-tree pretty-printer that BotLoadInitialChat would call after
  * parsing if dumping were enabled.  Walks chatlist_t->types (chattype_t
  * chain) and per-type chattype_t->messages (chatmessage_t chain),
- * matching the chat-config grammar that BotDumpInitialChat parses
+ * matching the chat-config grammar that BotLoadInitialChat parses
  * just below.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_1002D7E0(chatlist_t *list)
+void __cdecl BotDumpInitialChat(chatlist_t *list)
 {
   chattype_t *t;
   chatline_t *msg;
@@ -24448,7 +24448,7 @@ void __cdecl sub_1002D7E0(chatlist_t *list)
 }
 
 //----- (1002D8A0) --------------------------------------------------------
-void *__cdecl BotDumpInitialChat(char *a1, char *a2)
+void *__cdecl BotLoadInitialChat(char *a1, char *a2)
 {
   /* 64-bit-safe rewrite: instead of building a single contiguous heap
    * buffer with truncating 4-byte pointer slots, allocate one struct per
@@ -24604,7 +24604,7 @@ type_done:
 
 //----- (1002DF70) --------------------------------------------------------
 /* Direct free of a chat-dump structure (used during partial-build error
- * paths in BotDumpInitialChat).  Walks all chat-types and chat-lines and
+ * paths in BotLoadInitialChat).  Walks all chat-types and chat-lines and
  * releases the whole chain. */
 static void sub_1002DF70(chatlist_t *list)
 {
@@ -24642,7 +24642,7 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
 
   BotFreeChatFile(cs);
   /* Original 0x1002DFB0 passes the chatstate pointer to BotNextConsoleMessage
-   * / sub_1002AA20 because the 32-bit binary stored the per-client console-
+   * / BotRemoveConsoleMessage because the 32-bit binary stored the per-client console-
    * message linked list inline in the chatstate at +0xac/+0xb0/+0xb4.  In
    * the 64-bit port those head/tail/count slots cannot hold real pointers,
    * so the list lives in side-band `botchatmsglinks[client]`; BotChatMsgLinksCS
@@ -24650,7 +24650,7 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
    * botstates[].  The original took only `cs` (one arg) — the client index is
    * derived, never passed. */
   for ( msg = BotNextConsoleMessage(cs); msg; msg = BotNextConsoleMessage(cs) )
-    sub_1002AA20(cs, msg);
+    BotRemoveConsoleMessage(cs, msg);
 }
 
 //----- (1002DFF0) --------------------------------------------------------
@@ -24659,7 +24659,7 @@ int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3)
   void *v3; // eax
 
   BotFreeChatFile(cs);
-  v3 = BotDumpInitialChat(a2, a3);
+  v3 = BotLoadInitialChat(a2, a3);
   BotChatDumpSlot(cs) = v3;
   if ( !v3 )
   {
@@ -28663,7 +28663,7 @@ int BotSetupWeaponAI()
 }
 
 //----- (100356D0) --------------------------------------------------------
-int sub_100356D0()
+int BotShutdownWeaponAI()
 {
   int result; // eax
 
