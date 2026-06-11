@@ -7867,10 +7867,10 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
      * (the engine import). Without the calls, eyecontents/fromcontents stay
      * uninitialized and the trace direction never swaps when one endpoint is
      * underwater, so visibility checks across water surfaces silently fail. */
-    eyecontents = bi_PointContents((float *)middle);
+    eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       v10 = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
-    fromcontents = bi_PointContents((float *)a2);
+    fromcontents = sub_10003080((float *)a2);
     if ( (fromcontents & 0x38) != 0 )
     {
       if ( (v10 & 0x38) == 0 )
@@ -7887,19 +7887,13 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     /* if trace hit a translucent water/slime surface, retrace through it */
     if ( (LOBYTE(v33[19]) & 0x38) != 0 && (LOBYTE(v33[17]) & 0x30) != 0 )
       qmemcpy(v33, AAS_Trace(v35, (float*)(&v33[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), v22, v10 & 0xFFFFFFC7), sizeof(v33));
-    if ( v33[2] >= 1.0 || LODWORD(v33[20]) == v23 )
+    if ( v33[2] >= 1.0f || LODWORD(v33[20]) == v23 )
       return 1;
     /* try alternate z-positions: foot, then head */
-    if ( v21 )
-    {
-      if ( v21 != 1 )
-        goto LABEL_21;
-      middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
-    }
-    else
-    {
+    if ( !v21 )
       middle[2] = middle[2] + ent->mins[2];
-    }
+    else if ( v21 == 1 )
+      middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
 LABEL_21:
     if ( ++v21 >= 3 )
       return 0;
@@ -10129,7 +10123,7 @@ LABEL_66:
     v81[0] = org[0];
     v81[1] = org[1];
     v81[2] = org[2] - 22.0f;
-    v37 = bi_PointContents((float *)v81);   /* IDA-dropped: see 0x100100dd */
+    v37 = sub_10003080((float *)v81);   /* IDA-dropped: see 0x100100dd */
     v38 = 0;
     v57 = v37;
     if ( (v37 & 8) != 0 )
@@ -10220,7 +10214,7 @@ LABEL_86:
           goto LABEL_84;
         if ( org[2] - libvar_sv_step->value - 1.0f <= v84.endpos[2] )
           goto LABEL_84;
-        v39 = bi_PointContents((float *)end);   /* IDA-dropped barrier-water check */
+        v39 = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
         if ( (v39 & 0x20) != 0 )
           goto LABEL_84;
         v62[1] = v75;
@@ -27883,7 +27877,7 @@ LABEL_7:
   predd[0] = v7;
   predd[1] = ms->origin[1] - predpos[1];
   v14 = VectorNormalize(predd);
-  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8f || v14 < 5.0f )
+  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8 || v14 < 5.0f )
   {
     v9 = reach->end[0] - ms->origin[0];
     dir[2] = 0.0f;
