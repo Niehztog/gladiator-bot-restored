@@ -22842,25 +22842,32 @@ int BotShutdownLibrary()
  * Gladiator -- preserved by /INCREMENTAL. */
 void __cdecl sub_10029E10(int *list)
 {
-  int   count;
   int   i;
   char *p;
   Log_Write("{");
-  count = *list;
-  if ( count > 0 )
+  i = 0;
+  if ( *list > 0 )
   {
     p = (char *)list + 8;
-    for ( i = 0; i < count; ++i )
+    do
     {
       int type = (signed char)*(p - 4);
-      if ( type == 1 )
-        Log_Write(" %4d %d", i, *(int *)p);
-      else if ( type == 2 )
-        Log_Write(" %4d %f", i, (float)*(float *)p);
-      else if ( type == 3 )
-        Log_Write(" %4d %s", i, *(char **)p);
+      switch ( type )
+      {
+        case 1:
+          Log_Write(" %4d %d", i, *(int *)p);
+          break;
+        case 2:
+          Log_Write(" %4d %f", i, (float)*(float *)p);
+          break;
+        case 3:
+          Log_Write(" %4d %s", i, *(char **)p);
+          break;
+      }
+      ++i;
       p += 8;
     }
+    while ( i < *list );
   }
   Log_Write("}");
 }
@@ -33363,7 +33370,7 @@ int __cdecl PC_ReadDirective(source_t *src)
    * — entire 1072-byte token_t allocated as one block, pointer passed to
    * sub_10001BBD.  token.string kept as char[] so all string ops compile unchanged. */
   token_t token; /* restored: original token_t local variable */
-  preproc_directive_t *pd;
+  int i;
 
   if ( !PC_ReadSourceToken(src, token.string) )
   {
@@ -33376,15 +33383,17 @@ int __cdecl PC_ReadDirective(source_t *src)
     SourceError(src, aFoundAtEndOfLi);
     return 0;
   }
-  if ( token.type == 4 && preproc_directives[0].name )
+  if ( token.type == 4 )
   {
     /* Original used &off_1005F260 as start of {name,handler} array — restored
-     * as preproc_directives[].  Advance by one entry per iteration. */
-    pd = preproc_directives;
-    while ( pd->name && strcmp(pd->name, token.string) )
-      ++pd;
-    if ( pd->name )
-      return pd->handler(src);
+     * as preproc_directives[].  Indexed scan (Q3 l_precomp.c:2531): the index
+     * is reused at the call site (`directives[i].func`), so MSVC keeps both the
+     * strength-reduced name pointer AND the index counter. */
+    for ( i = 0; preproc_directives[i].name; i++ )
+    {
+      if ( !strcmp(preproc_directives[i].name, token.string) )
+        return preproc_directives[i].handler(src);
+    }
   }
   SourceError(src, aUnknownPrecomp, token.string);
   return 0;
@@ -33930,20 +33939,13 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
 char *__cdecl sub_1003E250(script_t *script, int num)
 {
-  punctuation_t *base = script->punctuations;
-  punctuation_t *p;
-  int            idx;
-  if ( !base->p )
-    return "unkown punctuation";
-  p = base;
-  for ( idx = 0; ; ++idx )
+  int i;
+  for ( i = 0; script->punctuations[i].p; i++ )
   {
-    if ( p->n == num )
-      return base[idx].p;
-    if ( !(p + 1)->p )
-      return "unkown punctuation";
-    ++p;
+    if ( script->punctuations[i].n == num )
+      return script->punctuations[i].p;
   }
+  return "unkown punctuation";
 }
 
 //----- (1003E2C0) --------------------------------------------------------
