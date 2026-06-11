@@ -241,7 +241,7 @@ typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 
 
 // AAS_Update: __usercall cleaned (original: double@<st0>, int -> int only)
-int __cdecl AAS_ContinueInit(int time_int);
+int __cdecl AAS_ContinueInit(int time);
 /* Forward declarations for functions whose address-names were resolved: */
 int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
@@ -8591,7 +8591,7 @@ int __cdecl sub_1000DF00(void)
 }
 
 //----- (1000DF30) --------------------------------------------------------
-int AAS_ContinueInit(int a1)
+int AAS_ContinueInit(int time)
 {
   int result; // eax
 
@@ -8601,7 +8601,7 @@ int AAS_ContinueInit(int a1)
     result = aasworld.initialized;
     if ( !aasworld.initialized )
     {
-      result = AAS_ContinueInitReachability(a1);
+      result = AAS_ContinueInitReachability(time);
       if ( !result )
       {
         AAS_InitClustering();

@@ -34,3 +34,4 @@ tools/__pycache__/
 
 # Claude Code transient runtime lock (per-session pid/sessionId)
 .claude/scheduled_tasks.lock
+/CMakeLists.txt
