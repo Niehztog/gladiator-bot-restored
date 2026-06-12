@@ -10451,7 +10451,7 @@ LABEL_14:
       goto LABEL_15;
   }
   AAS_FaceCenter(v10, (float *)v19);
-  v12 = bi_PointContents((float *)v19);   /* IDA-dropped: water-edge contents check */
+  v12 = sub_10003080((float *)v19);   /* IDA-dropped: water-edge contents check */
   if ( (v12 & 0x38) == 0 )
   {
     v7 = (int *)aasworld.faceindex;
@@ -10561,19 +10561,19 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) )
   {
-    v2 = 0;
     v3 = &aasworld.areas[area2num];
     v4 = &aasworld.areas[area1num];
     v57 = v4;
     v58 = v3;
-    v5 = (float *)(v3 + 12);
-    v6 = (float *)(v4 + 24);
-    while ( *(float *)((char *)v6 + (v3 - v4)) + 10.0f >= *(v6 - 3) && *v5 - 10.0f <= *v6 )
+    /* if the areas are not near anough in the x-y direction */
+    for ( v2 = 0; v2 < 2; ++v2 )
     {
-      ++v2;
-      ++v6;
-      ++v5;
-      if ( v2 >= 2 )
+      if ( *(float *)(v4 + 4 * v2 + 12) > *(float *)(v3 + 4 * v2 + 24) + 10.0f )
+        return 0;
+      if ( *(float *)(v4 + 4 * v2 + 24) < *(float *)(v3 + 4 * v2 + 12) - 10.0f )
+        return 0;
+    }
+    {
       {
         if ( *((float *)v3 + 5) <= (float)*((float *)v4 + 8) )
         {
@@ -10649,7 +10649,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
                                 VectorNormalize(v72);
                                 VectorMA(v44, 5.0f, v72, v44);
                                 VectorMA(v38, 0.1f, v72, v38);
-                                v44[2] = v44[2] + 0.125f;
+                                v44[2] = v44[2] + 0.125;
                                 v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
                                 if ( !AAS_NearbySolidOrGap(v38, v44) )
                                   v41 = v41 + 200.0f;
@@ -11655,7 +11655,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v84 = v2[1] - v1[1];
                         v85 = *v4 - *v3;
                         v86 = v4[1] - v3[1];
-                        if ( v85 == 0.0 )
+                        if ( v85 == 0 )
                         {
                           v70_vec[0] = *v3;
                           v70_vec[1] = v1[1];
@@ -11676,7 +11676,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             v76_vec[1] = (float)(tmp * v26 + v27);
                           }
                         }
-                        if ( v83 == 0.0 )
+                        if ( v83 == 0 )
                         {
                           v80_vec[0] = *v1;
                           v80_vec[1] = v3[1];
@@ -11877,7 +11877,7 @@ LABEL_62:
         v9 = ++maxjumpheight;
       }
       while ( maxjumpheight < v44 );
-      if ( bestdist > 4.0 )
+      if ( bestdist > 4 )
       {
 LABEL_67:
         if ( bestdist < (float)maxjumpdistance )
@@ -11903,7 +11903,7 @@ LABEL_67:
             *(float *)&dir[2] = 0.0f;
             *(float *)&dir[0] = bestend[0] - beststart[0];
             *(float *)&dir[1] = bestend[1] - beststart[1];
-            if ( VectorLength((float *)dir) >= 10.0 )
+            if ( VectorLength((float *)dir) >= 10 )
             {
               /* Full 3-component direction vector for the actual barrier trace:
                * .text 0x1001470d-0x10014736 — three fld/fsub/fstp pairs. */
@@ -11920,7 +11920,7 @@ LABEL_67:
               testend[2] = teststart[2] - 100.0f;
               trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
               if ( !trace.startsolid
-                && (trace.fraction >= 1.0
+                && (trace.fraction >= 1
                  || aasworld.planes[trace.planenum].normal[2] < 0.7
                  || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
@@ -11930,7 +11930,7 @@ LABEL_67:
                 testend[2] = teststart[2] - 100.0f;
                 trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
                 if ( !trace.startsolid
-                  && (trace.fraction >= 1.0
+                  && (trace.fraction >= 1
                    || aasworld.planes[trace.planenum].normal[2] < 0.7
                    || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
                 {
@@ -12016,7 +12016,7 @@ LABEL_67:
                          * consumes ST(0) directly in the fmul.  Our C dropped
                          * the return and used v48 (probe-loop teststart.z), which
                          * is wrong — see ida_dropped_results.md. */
-                        lreach->reach.traveltime = (__int64)(VectorDistance(bestend, beststart) * 240.0 / libvar_sv_maxwalkvelocity->value + 600.0);
+                        lreach->reach.traveltime = (__int64)(VectorDistance(bestend, beststart) * 240 / libvar_sv_maxwalkvelocity->value + 600);
                         lreach->next = areareachability[area1num];
                         areareachability[area1num] = lreach;
                         ++reach_jump;
@@ -12105,7 +12105,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   double v49; // st6
   float v50; // edx
   float v51; // eax
-  double v52; // st7
+  float v52; // st7
   int v53; // edi
   int v54; // ebx
   char *v55; // eax
@@ -12346,7 +12346,7 @@ LABEL_20:
                   v39->reach.end[0] = mid2[0];
                   v39->reach.end[1] = mid2[1];
                   v39->reach.end[2] = mid2[2];
-                  v39->reach.end[2] = mid2[2] + 16.0;
+                  v39->reach.end[2] = mid2[2] + 16;
                   VectorMA(v39->reach.end, -15.0, (float *)v28, v39->reach.end);
                   v40->reach.traveltype = 6;
                   v40->reach.traveltime = 10;
@@ -12408,8 +12408,8 @@ LABEL_20:
                 v52 = tracestart[2];
                 traceend[0] = tracestart[0];
                 traceend[1] = tracestart[1];
-                tracestart[2] = tracestart[2] + 5.0;
-                traceend[2] = v52 - 100.0;
+                tracestart[2] = tracestart[2] + 5;
+                traceend[2] = v52 - 100;
                 trace = AAS_TraceClientBBox(tracestart, traceend, 2, -1);
                 trace.endpos[2] = trace.endpos[2] + 1.0f;
                 v53 = AAS_PointAreaNum(trace.endpos);
@@ -12468,7 +12468,7 @@ LABEL_20:
                       v63 = v85;
                       lreach->reach.start[2] = trace.endpos[2];
                       VectorMA(bestmid, -5.0, (float *)v63, lreach->reach.end);
-                      v64 = lreach->reach.end[2] + 10.0;
+                      v64 = lreach->reach.end[2] + 10;
                       lreach->reach.traveltype = 5;
                       lreach->reach.traveltime = 10;
                       lreach->reach.end[2] = v64;
@@ -12563,8 +12563,8 @@ LABEL_18:
             {
               v28[0] = destorigin[0];
               v28[1] = destorigin[1];
-              destorigin[2] = destorigin[2] + 24.0;
-              v28[2] = destorigin[2] - 100.0;
+              destorigin[2] = destorigin[2] + 24;
+              v28[2] = destorigin[2] - 100;
               trace = AAS_TraceClientBBox(destorigin, v28, 4, -1);
               if ( trace.startsolid )
               {
@@ -12996,7 +12996,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   start[2] = *((float *)area1 + 11);
   if ( AAS_AreaSwim(area1num) )
   {
-    v4 = bi_PointContents((float *)start);   /* IDA-dropped: swim-area liquid check */
+    v4 = sub_10003080((float *)start);   /* IDA-dropped: swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
@@ -16775,14 +16775,14 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   int v11; // edx
   float *result; // eax
   float *v17; // edi
-  double v18; // st7
+  float v18; // st7
   int v20; // rax (was __int64)
   int v21; // eax
   int v22; // esi
   float *v26; // esi
   char *v27; // eax
-  double v30; // st7
-  double v34; // st7
+  float v30; // st7
+  float v34; // st7
   bot_waypoint_t *i; // edx
   bot_waypoint_t *v37; // eax
   int v38; // eax
@@ -16790,7 +16790,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   bot_waypoint_t *v40; // edx
   bot_waypoint_t *v41; // edx
   bot_waypoint_t *v42; // eax
-  double v43; // st7
+  float v43; // st7
   float *v44; // eax
   int v45; // [esp+18h] [ebp-230h]
   float v46; // [esp+18h] [ebp-230h]
@@ -16807,7 +16807,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   {
     if ( bs->ltgtype == 2 && !retreat )
     {
-      if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+      if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
       {
         BotInitialChat(&bs->chatstate, "accompany_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -16829,21 +16829,21 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         dir[2] = *(float *)&v55[6] - bs->origin[2];
         if ( VectorLength(dir) < bs->formation_dist )
         {
-          v18 = AAS_Time() - 5.0;
+          v18 = AAS_Time() - 5;
           if ( v18 > bs->attackcrouch_time )
           {
             /* IDA dropped fstps after BFloat; v51 is the bfloat result, not v18.
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509 )
-              bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
+            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509f )
+              bs->attackcrouch_time = AAS_Time() + v51 * 15 + 5;
           }
           if ( AAS_Swimming(bs->origin) )
-            bs->attackcrouch_time = AAS_Time() - 1.0;
-          if ( AAS_Time() - 2.0 > bs->arrive_time )
+            bs->attackcrouch_time = AAS_Time() - 1;
+          if ( AAS_Time() - 2 > bs->arrive_time )
           {
-            if ( bs->arrive_time == 0.0 )
+            if ( bs->arrive_time == 0 )
             {
               sub_100371B0(bs->client, 1);
               BotInitialChat(&bs->chatstate, "accompany_arrive", EasyClientName(bs->teammate - 1, v56), (char *)0);
@@ -16852,10 +16852,10 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             }
             else if ( AAS_Time() >= bs->attackcrouch_time )
             {
-              if ( bs->thinktime * 0.3 > (float)(rand() & 0x7FFF) * 0.000030518509 )
+              if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.3 )
               {
                 v45 = rand() & 0x7FFF;
-                v20 = (int)floor((float)v45 * 0.000030518509 * 2.9);
+                v20 = (int)floor((float)v45 * 0.000030518509f * 2.9);
                 if ( v20 )
                 {
                   if ( v20 == 1 )
@@ -16874,9 +16874,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
               EA_Crouch(bs->client);
             }
           }
-          if ( AAS_Time() - 2.0 >= bs->arrive_time )
+          if ( AAS_Time() - 2 >= bs->arrive_time )
           {
-            if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509 )
+            if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
             {
 LABEL_86:
               BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -16922,7 +16922,7 @@ LABEL_86:
         }
       }
       v26 = bs->teamgoal.origin;
-      if ( AAS_Time() - 60.0 > bs->teammatevisible_time )
+      if ( AAS_Time() - 60 > bs->teammatevisible_time )
       {
         v27 = EasyClientName(bs->teammate - 1, v56);
         BotInitialChat(&bs->chatstate, "accompany_cannotfind", v27, (char *)0);
@@ -16933,7 +16933,7 @@ LABEL_86:
     }
     if ( bs->ltgtype == 3 && AAS_Time() > bs->defendaway_time && !retreat )
     {
-      if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+      if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
       {
         BotInitialChat(&bs->chatstate, "defend_start", BotGoalName(bs->teamgoal.number), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -16949,13 +16949,13 @@ LABEL_86:
       dir[0] = *v26 - bs->origin[0];
       dir[1] = bs->teamgoal.origin[1] - bs->origin[1];
       dir[2] = bs->teamgoal.origin[2] - bs->origin[2];
-      if ( VectorLength(dir) < 70.0 )
+      if ( VectorLength(dir) < 70 )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
-        v46 = (float)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+        v46 = (float)(rand() & 0x7FFF) * 0.000030518509f * 10;
         v30 = AAS_Time();
         result = bs->teamgoal.origin;
-        bs->defendaway_time = v30 + v46 + 5.0;
+        bs->defendaway_time = v30 + v46 + 5;
         return result;
       }
       return v26;
@@ -16964,7 +16964,7 @@ LABEL_86:
     switch ( bs->ltgtype )
     {
       case 6:
-        if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -16980,15 +16980,15 @@ LABEL_86:
         dir[0] = *v26 - bs->origin[0];
         dir[1] = bs->teamgoal.origin[1] - bs->origin[1];
         dir[2] = bs->teamgoal.origin[2] - bs->origin[2];
-        if ( VectorLength(dir) < 40.0 )
+        if ( VectorLength(dir) < 40 )
         {
-          if ( bs->arrive_time == 0.0 )
+          if ( bs->arrive_time == 0 )
           {
             BotInitialChat(&bs->chatstate, "camp_arrive", EasyClientName(bs->teammate - 1, v56), (char *)0);
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->arrive_time = AAS_Time();
           }
-          if ( bs->thinktime * 0.8 > (float)(rand() & 0x7FFF) * 0.000030518509 )
+          if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
           {
             BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
             dir[0] = target[0] - bs->origin[0];
@@ -16997,20 +16997,20 @@ LABEL_86:
             vectoangles(dir, bs->ideal_viewangles);
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
           }
-          v34 = AAS_Time() - 5.0;
+          v34 = AAS_Time() - 5;
           if ( v34 > bs->attackcrouch_time )
           {
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509 )
-              bs->attackcrouch_time = AAS_Time() + v51 * 15.0 + 5.0;
+            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509f )
+              bs->attackcrouch_time = AAS_Time() + v51 * 15 + 5;
           }
           if ( AAS_Time() < bs->attackcrouch_time )
             EA_Crouch(bs->client);
           if ( AAS_Swimming(bs->origin) )
-            bs->attackcrouch_time = AAS_Time() - 1.0;
-          if ( (bi_PointContents((float *)bs->eye) & 0x38) != 0 )
+            bs->attackcrouch_time = AAS_Time() - 1;
+          if ( (sub_10003080((float *)bs->eye) & 0x38) != 0 )
           {
             BotInitialChat(&bs->chatstate, "camp_stop", (char *)0, (char *)0);
             BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -17020,7 +17020,7 @@ LABEL_86:
         }
         return v26;
       case 7:
-        if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           v57[0] = byte_1006294C;
           for ( i = BotPatrolpoints(bs); i; i = i->next )
@@ -17079,7 +17079,7 @@ LABEL_106:
         bs->patrolflags = v38;
         goto LABEL_106;
       case 4:
-        if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -17109,9 +17109,9 @@ LABEL_106:
         if ( BotCTFCarryingFlag(bs) )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
-          v47 = (float)(rand() & 0x7FFF) * 0.000030518509 * 10.0;
+          v47 = (float)(rand() & 0x7FFF) * 0.000030518509f * 10;
           v43 = AAS_Time();
-          bs->rushbaseaway_time = v43 + v47 + 5.0;
+          bs->rushbaseaway_time = v43 + v47 + 5;
           return v26;
         }
 LABEL_55:
@@ -17141,7 +17141,7 @@ LABEL_136:
       BotPopGoal(bs->goalstate);
       if ( BotChooseLTGItem(bs->goalstate, bs->origin, bs->inventory, tfl) )
       {
-        bs->ltg_time = AAS_Time() + 20.0;
+        bs->ltg_time = AAS_Time() + 20;
       }
       else
       {
@@ -17152,7 +17152,7 @@ LABEL_136:
     }
     return v26;
   }
-  if ( bs->teammessage_time != 0.0 && AAS_Time() > bs->teammessage_time )
+  if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
   {
     BotInitialChat(&bs->chatstate, "help_start", EasyClientName(bs->teammate - 1, v56), (char *)0);
     BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -17160,7 +17160,7 @@ LABEL_136:
   }
   if ( AAS_Time() > bs->teamgoal_time )
     bs->ltgtype = 0;
-  if ( AAS_Time() - 10.0 > bs->teammatevisible_time )
+  if ( AAS_Time() - 10 > bs->teammatevisible_time )
     bs->ltgtype = 0;
   qmemcpy(v55, AAS_EntityInfo(v58, bs->teammate), sizeof(v55));
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
@@ -17168,7 +17168,7 @@ LABEL_136:
     dir[0] = *(float *)&v55[4] - bs->origin[0];
     dir[1] = *(float *)&v55[5] - bs->origin[1];
     dir[2] = *(float *)&v55[6] - bs->origin[2];
-    if ( VectorLength(dir) < 100.0 )
+    if ( VectorLength(dir) < 100 )
       goto LABEL_86;
   }
   else
@@ -17670,7 +17670,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   if ( AAS_Time() - 5.0f < bs->killedenemy_time
     && (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5f )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
       sub_100371B0(bs->client, 2);
     else
       sub_100371B0(bs->client, 0);
@@ -17687,7 +17687,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       v4 = AAS_Time();
       v5 = -(bs->ltgtype != 3);
-      bs->check_time = v4 + 0.5f;
+      bs->check_time = v4 + 0.5;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
       if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, v8) )
       {
@@ -17717,7 +17717,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     if ( (v18.flags & 4) != 0 )
     {
-      if ( bs->thinktime * 0.8f <= (float)(rand() & 0x7FFF) * 0.000030518509f )
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
         goto LABEL_41;
       BotRoamGoal((_DWORD *)bs, target);
       VectorSubtract(target, bs->origin, dir);
@@ -17732,7 +17732,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       vectoangles(v18.movedir, bs->ideal_viewangles);
     }
-    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5f;
+    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
 LABEL_41:
     if ( (v18.flags & 8) != 0 )
       return 1;
@@ -19189,7 +19189,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       if ( !v31[1] )
       {
         *(float *)&v31[5] = *(float *)&v31[5] + 1.0;
-        v12 = bi_PointContents((float *)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
+        v12 = sub_10003080((float *)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
         if ( (v12 & 0x18) == 0 )
           break;
       }
@@ -19281,7 +19281,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
     v11 = BotCharacter(bs);
     v21 = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
     v25 = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
-    if ( v27 >= 0.2f )
+    if ( v27 >= 0.2 )
     {
       BotEntityInfo(bs, (_DWORD *)bs->movestate);
       qmemcpy(v39, AAS_EntityInfo(v39, bs->enemy), sizeof(v39));
@@ -19329,22 +19329,22 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       {
         v12 = 2;
       }
-      if ( v27 <= 0.4f )
+      if ( v27 <= 0.4 )
       {
         if ( (v26 <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, v28, 400.0f, v12)) && v26 < 100.0f )
           BotMoveInDirection((bot_movestate_t *)bs->movestate, v32, 400.0f, v12);
         goto LABEL_39;
       }
-      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1f;
-      v14 = (1.0f - v27) * 0.2f + 0.4f;
+      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
+      v14 = (1.0f - v27) * 0.2 + 0.4;
       v31 = v14;
-      if ( v27 > 0.7f )
+      if ( v27 > 0.7 )
       {
         v15 = rand();
-        v14 = ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5f + (float)(v15 & 0x7FFF) * 0.000030518509f - 0.5f) * 0.1f
+        v14 = 2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9350000000000001f )
+      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
       {
         v16 = bs->flags;
         *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -19364,7 +19364,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
           v22[1] = -v22[1];
           v22[2] = -v22[2];
         }
-        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9f )
+        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
           goto LABEL_35;
         if ( v26 <= 180.0f )
           break;
@@ -20877,9 +20877,6 @@ int __cdecl sub_10026E40(char *string, float *out)
 }
 
 //----- (10026F10) --------------------------------------------------------
-#ifdef _MSC_VER
-#pragma function(strlen)
-#endif
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
 {
 
@@ -20891,13 +20888,13 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   int v7; // esi
   int v8; // ecx
   int v9; // edx
-  __int16 v10; // ax
-  double v11; // st7
+  int v10; // ax
+  float v11; // st7
   int v12; // eax
-  double v13; // st7
-  __int16 v14; // ax
+  float v13; // st7
+  int v14; // ax
   double v15; // st7
-  double v16; // st7
+  float v16; // st7
   int v17; // eax
   int v18; // ebx
   void *v19; // edi (chatstate pointer)
@@ -20905,30 +20902,30 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   int v21; // edx
   int v22; // eax
   int v23; // ecx
-  __int16 v24; // ax
+  int v24; // ax
   double v25; // st7
-  double v26; // st7
+  float v26; // st7
   int v27; // eax
   int v28; // esi
   int v29; // ecx
   int v30; // edx
-  __int16 v31; // ax
+  int v31; // ax
   double v32; // st7
-  double v33; // st7
-  double v34; // st7
-  __int16 v35; // ax
+  float v33; // st7
+  float v34; // st7
+  int v35; // ax
   double v36; // st7
-  double v37; // st7
-  __int16 v38; // ax
+  float v37; // st7
+  int v38; // ax
   double v39; // st7
-  double v40; // st7
+  float v40; // st7
   int v41; // ebx
   bot_waypoint_t *v42; // eax
   bot_waypoint_t *v43; // ecx
   bot_waypoint_t *v44; // ecx
   bot_waypoint_t *v45; // esi
   bot_waypoint_t *v46; // eax
-  double v47; // st7
+  float v47; // st7
   int v48; // eax
   int v49; // eax
   int v50; // eax
@@ -21003,7 +21000,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
       }
       else
       {
-        v4 = strlen(Source) + 1;
+        v4 = FindClientByName(Source) + 1;
         if ( v4 == bs->entitynum )
           return 1;
         v5 = 1;
@@ -21015,7 +21012,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
           BotInitialChat(&bs->chatstate, "whois", Source, (char *)0);
         else
           BotInitialChat(&bs->chatstate, "whois", Destination, (char *)0);
-LABEL_19:
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -21056,13 +21052,14 @@ LABEL_19:
           else
             BotInitialChat(&bs->chatstate, "whereareyou", Destination,
                            (char *)0);
-          goto LABEL_19;
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
         }
 LABEL_32:
         bs->teammate = v4;
         bs->teammatevisible_time = AAS_Time();
         v10 = rand();
-        v55 = (float)(v10 & 0x7FFF) * 0.000030518509 + (float)(v10 & 0x7FFF) * 0.000030518509;
+        v55 = 2 * ((float)(v10 & 0x7FFF) * 0.000030518509f);
         bs->teammessage_time = AAS_Time() + v55;
         v11 = BotGetTime(&v64);
         v12 = v64.type;
@@ -21070,22 +21067,18 @@ LABEL_32:
         if ( v12 == 3 )
         {
           bs->ltgtype = 1;
-          if ( v11 == 0.0 )
+          if ( v11 == 0 )
           {
             v13 = AAS_Time();
-            result = 1;
-            bs->teamgoal_time = v13 + 60.0;
+            bs->teamgoal_time = v13 + 60;
           }
-          else
-          {
-            return 1;
-          }
+          return 1;
         }
         else
         {
           bs->ltgtype = 2;
-          if ( v11 == 0.0 )
-            bs->teamgoal_time = AAS_Time() + 240.0;
+          if ( v11 == 0 )
+            bs->teamgoal_time = AAS_Time() + 240;
           bs->formation_dist = 100.0f;
           *(int *)&bs->arrive_time = 0;
           return 1;
@@ -21093,186 +21086,36 @@ LABEL_32:
       }
       else
       {
-LABEL_27:
         BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
-      return result;
     case 5:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 4, String2);
       if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
-        goto LABEL_27;
+      {
+        BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
+        BotEnterChat(&bs->chatstate, bs->client, 1);
+        return 1;
+      }
       v14 = rand();
-      v56 = (float)(v14 & 0x7FFF) * 0.000030518509 + (float)(v14 & 0x7FFF) * 0.000030518509;
+      v56 = 2 * ((float)(v14 & 0x7FFF) * 0.000030518509f);
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->teammessage_time = v15 + v56;
       v16 = BotGetTime(&v64);
       bs->teamgoal_time = v16;
-      if ( v16 == 0.0 )
-        bs->teamgoal_time = AAS_Time() + 120.0;
+      if ( v16 == 0 )
+        bs->teamgoal_time = AAS_Time() + 120;
       *(int *)&bs->defendaway_time = 0;
-      return 1;
-    case 6:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
-        return 1;
-      v38 = rand();
-      v60 = (float)(v38 & 0x7FFF) * 0.000030518509 + (float)(v38 & 0x7FFF) * 0.000030518509;
-      v39 = AAS_Time();
-      bs->ltgtype = 5;
-      bs->teammessage_time = v39 + v60;
-      v40 = AAS_Time();
-      *(int *)&bs->rushbaseaway_time = 0;
-      result = 1;
-      bs->teamgoal_time = v40 + 120.0;
-      return result;
-    case 7:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
-        return 1;
-      v35 = rand();
-      v59 = (float)(v35 & 0x7FFF) * 0.000030518509 + (float)(v35 & 0x7FFF) * 0.000030518509;
-      v36 = AAS_Time();
-      bs->ltgtype = 4;
-      bs->teammessage_time = v36 + v59;
-      v37 = AAS_Time();
-      result = 1;
-      bs->teamgoal_time = v37 + 180.0;
-      return result;
-    case 8:
-      if ( !TeamPlayIsOn() )
-        return 1;
-      BotMatchVariable(&v64, 3, Source);
-      if ( (v64.subtype & 0x80u) != 0 )
-      {
-        strncpy(bs->formation_teammate, Source, 0x10u);
-        bs->formation_teammate[15] = 0;
-        return 1;
-      }
-      v49 = strlen(Source);
-      if ( v49 < 0 )
-        return 1;
-      strcpy(bs->formation_teammate, (const char *)ClientName(v49));
-      return 1;
-    case 9:
-      if ( !TeamPlayIsOn() )
-        return 1;
-      BotMatchVariable(&v64, 3, Source);
-      if ( (v64.subtype & 0x80u) == 0 )
-      {
-        v50 = strlen(Source);
-      }
-      else
-      {
-        BotMatchVariable(&v64, 0, Destination);
-        v50 = strlen(Destination);
-      }
-      if ( v50 < 0 )
-        return 1;
-      v51 = (const char *)ClientName(v50);
-      if ( _strcmpi(bs->formation_teammate, v51) )
-        return 1;
-      bs->formation_teammate[0] = 0;
-      return 1;
-    case 11:
-      if ( !BotAddressedToBot(bs, &v64) )
-        return 1;
-      switch ( bs->ltgtype )
-      {
-        case 1:
-          BotMatchVariable(&v64, 0, Destination);
-          EasyClientName(bs->teammate - 1, Destination);
-          BotInitialChat(&bs->chatstate, "helping", Destination, (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
-        case 2:
-          BotMatchVariable(&v64, 0, Destination);
-          EasyClientName(bs->teammate - 1, Destination);
-          BotInitialChat(&bs->chatstate, "accompanying", Destination,
-                         (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
-        case 3:
-          v52 = BotGoalName(bs->teamgoal.number);
-          BotInitialChat(&bs->chatstate, "defending", v52, (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
-        case 4:
-          v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, "capturingflag", (char *)0,
-                         (char *)0);
-          goto LABEL_139;
-        case 5:
-          v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, "rushingbase", (char *)0, (char *)0);
-          goto LABEL_139;
-        case 6:
-          v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, "camping", (char *)0, (char *)0);
-          goto LABEL_139;
-        case 7:
-          v53 = &bs->chatstate;
-          BotInitialChat(&bs->chatstate, "patrolling", (char *)0, (char *)0);
-LABEL_139:
-          BotEnterChat(v53, bs->client, 1);
-          result = 1;
-          break;
-        default:
-          return 0;
-      }
-      return result;
-    case 12:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
-        return 1;
-      BotMatchVariable(&v64, 3, Source);
-      strncpy(bs->teamleader, Source, 0x20u);
-      bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
-      BotInitialChat(&bs->chatstate, "joinedteam", Source, (char *)0);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
-      return 1;
-    case 13:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
-        return 1;
-      if ( strlen(bs->teamleader) )
-        BotInitialChat(&bs->chatstate, "leftteam", (char *)bs + 4352,
-                       (char *)0);
-      BotEnterChat(&bs->chatstate, bs->client, 1);
-      bs->teamleader[0] = byte_1006294C;
-      return 1;
-    case 14:
-    case 15:
-      EA_SayTeam(bs->client,
-                 "the part of my brain to create formations has been damaged");
-      return 1;
-    case 16:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
-        return 1;
-      BotMatchVariable(&v64, 4, Buffer);
-      if ( (v64.subtype & 8) != 0 )
-        v47 = atof(Buffer) * 9.7536;
-      else
-        v47 = atof(Buffer) * 32.0;
-      if ( v47 < 48.0 || v47 > 500.0 )
-        v47 = 100.0;
-      bs->formation_dist = v47;
-      return 1;
-    case 18:
-      if ( !TeamPlayIsOn() )
-        return 1;
-      if ( !BotAddressedToBot(bs, &v64) )
-        return 1;
-      v48 = bs->ltgtype;
-      if ( v48 != 2 && v48 != 1 )
-        return 1;
-      bs->ltgtype = 0;
       return 1;
     case 19:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
         return 1;
       BotMatchVariable(&v64, 0, Destination);
-      v17 = strlen(Destination);
+      v17 = FindClientByName(Destination);
       v18 = v17 + 1;
       if ( v17 == -1 )
       {
@@ -21346,16 +21189,76 @@ LABEL_64:
         goto LABEL_64;
       }
       v24 = rand();
-      v57 = (float)(v24 & 0x7FFF) * 0.000030518509 + (float)(v24 & 0x7FFF) * 0.000030518509;
+      v57 = 2 * ((float)(v24 & 0x7FFF) * 0.000030518509f);
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->teammessage_time = v25 + v57;
       v26 = BotGetTime(&v64);
       bs->teamgoal_time = v26;
-      if ( v26 == 0.0 )
-        bs->teamgoal_time = AAS_Time() + 300.0;
+      if ( v26 == 0 )
+        bs->teamgoal_time = AAS_Time() + 300;
       bs->teammate = v18;
       *(int *)&bs->arrive_time = 0;
+      return 1;
+    case 21:
+      if ( !TeamPlayIsOn() )
+        return 1;
+      if ( !BotAddressedToBot(bs, &v64) )
+        return 1;
+      if ( !BotGetPatrolWaypoints(bs, &v64) )
+        return 1;
+      v31 = rand();
+      v58 = 2 * ((float)(v31 & 0x7FFF) * 0.000030518509f);
+      v32 = AAS_Time();
+      bs->ltgtype = 7;
+      bs->teammessage_time = v32 + v58;
+      v33 = BotGetTime(&v64);
+      bs->teamgoal_time = v33;
+      if ( v33 != 0 )
+        return 1;
+      v34 = AAS_Time();
+      bs->teamgoal_time = v34 + 300;
+      return 1;
+    case 7:
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+        return 1;
+      v35 = rand();
+      v59 = 2 * ((float)(v35 & 0x7FFF) * 0.000030518509f);
+      v36 = AAS_Time();
+      bs->ltgtype = 4;
+      bs->teammessage_time = v36 + v59;
+      v37 = AAS_Time();
+      bs->teamgoal_time = v37 + 180;
+      return 1;
+    case 6:
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+        return 1;
+      v38 = rand();
+      v60 = 2 * ((float)(v38 & 0x7FFF) * 0.000030518509f);
+      v39 = AAS_Time();
+      bs->ltgtype = 5;
+      bs->teammessage_time = v39 + v60;
+      v40 = AAS_Time();
+      *(int *)&bs->rushbaseaway_time = 0;
+      bs->teamgoal_time = v40 + 120;
+      return 1;
+    case 12:
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+        return 1;
+      BotMatchVariable(&v64, 3, Source);
+      strncpy(bs->teamleader, Source, 0x20u);
+      bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
+      BotInitialChat(&bs->chatstate, "joinedteam", Source, (char *)0);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      return 1;
+    case 13:
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+        return 1;
+      if ( bs->teamleader[0] )
+        BotInitialChat(&bs->chatstate, "leftteam", (char *)bs + 4352,
+                       (char *)0);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teamleader[0] = byte_1006294C;
       return 1;
     case 20:
       if ( !TeamPlayIsOn() )
@@ -21406,26 +21309,114 @@ LABEL_64:
         return 1;
       }
       return 1;
-    case 21:
+    case 14:
+      EA_SayTeam(bs->client,
+                 "the part of my brain to create formations has been damaged");
+      return 1;
+    case 15:
+      EA_SayTeam(bs->client,
+                 "the part of my brain to create formations has been damaged");
+      return 1;
+    case 16:
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+        return 1;
+      BotMatchVariable(&v64, 4, Buffer);
+      if ( (v64.subtype & 8) != 0 )
+        v47 = atof(Buffer) * 9.7536;
+      else
+        v47 = atof(Buffer) * 32.0;
+      if ( v47 < 48 || v47 > 500 )
+        v47 = 100;
+      bs->formation_dist = v47;
+      return 1;
+    case 18:
       if ( !TeamPlayIsOn() )
         return 1;
       if ( !BotAddressedToBot(bs, &v64) )
         return 1;
-      if ( !BotGetPatrolWaypoints(bs, &v64) )
+      v48 = bs->ltgtype;
+      if ( v48 != 2 && v48 != 1 )
         return 1;
-      v31 = rand();
-      v58 = (float)(v31 & 0x7FFF) * 0.000030518509 + (float)(v31 & 0x7FFF) * 0.000030518509;
-      v32 = AAS_Time();
-      bs->ltgtype = 7;
-      bs->teammessage_time = v32 + v58;
-      v33 = BotGetTime(&v64);
-      bs->teamgoal_time = v33;
-      if ( v33 != 0.0 )
+      bs->ltgtype = 0;
+      return 1;
+    case 8:
+      if ( !TeamPlayIsOn() )
         return 1;
-      v34 = AAS_Time();
-      result = 1;
-      bs->teamgoal_time = v34 + 300.0;
-      return result;
+      BotMatchVariable(&v64, 3, Source);
+      if ( (v64.subtype & 0x80u) != 0 )
+      {
+        strncpy(bs->formation_teammate, Source, 0x10u);
+        bs->formation_teammate[15] = 0;
+        return 1;
+      }
+      v49 = FindClientByName(Source);
+      if ( v49 < 0 )
+        return 1;
+      strcpy(bs->formation_teammate, (const char *)ClientName(v49));
+      return 1;
+    case 9:
+      if ( !TeamPlayIsOn() )
+        return 1;
+      BotMatchVariable(&v64, 3, Source);
+      if ( (v64.subtype & 0x80u) == 0 )
+      {
+        v50 = FindClientByName(Source);
+      }
+      else
+      {
+        BotMatchVariable(&v64, 0, Destination);
+        v50 = FindClientByName(Destination);
+      }
+      if ( v50 < 0 )
+        return 1;
+      v51 = (const char *)ClientName(v50);
+      if ( _strcmpi(bs->formation_teammate, v51) )
+        return 1;
+      bs->formation_teammate[0] = 0;
+      return 1;
+    case 11:
+      if ( !BotAddressedToBot(bs, &v64) )
+        return 1;
+      switch ( bs->ltgtype )
+      {
+        case 1:
+          BotMatchVariable(&v64, 0, Destination);
+          EasyClientName(bs->teammate - 1, Destination);
+          BotInitialChat(&bs->chatstate, "helping", Destination, (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 2:
+          BotMatchVariable(&v64, 0, Destination);
+          EasyClientName(bs->teammate - 1, Destination);
+          BotInitialChat(&bs->chatstate, "accompanying", Destination,
+                         (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 3:
+          v52 = BotGoalName(bs->teamgoal.number);
+          BotInitialChat(&bs->chatstate, "defending", v52, (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 6:
+          BotInitialChat(&bs->chatstate, "camping", (char *)0, (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 7:
+          BotInitialChat(&bs->chatstate, "patrolling", (char *)0, (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 4:
+          BotInitialChat(&bs->chatstate, "capturingflag", (char *)0,
+                         (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        case 5:
+          BotInitialChat(&bs->chatstate, "rushingbase", (char *)0, (char *)0);
+          BotEnterChat(&bs->chatstate, bs->client, 1);
+          return 1;
+        default:
+          return 0;
+      }
     default:
       bi_Print(PRT_MESSAGE, "unknown match type\n");
       return 1;
@@ -21438,9 +21429,6 @@ LABEL_64:
 #undef v58
 #undef v59
 #undef v60
-#ifdef _MSC_VER
-#pragma intrinsic(strlen)
-#endif
 
 //----- (10028650) --------------------------------------------------------
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
