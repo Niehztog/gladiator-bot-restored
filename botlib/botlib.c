@@ -16542,11 +16542,11 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
   v2 = dword_100644A0;
   if ( dword_100644A0 > 0 )
   {
-    v3 = (const char *)&unk_10064420;
+    v3 = (const char *)byte_10064A80;
     do
     {
-      v3 += 144;
       strcat(Buffer, v3);
+      v3 += 144;
       --v2;
     }
     while ( v2 );
