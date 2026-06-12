@@ -1050,7 +1050,7 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2);
 int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
 int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
-int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4);
+int __cdecl PS_ExpectTokenType(script_t *a1, int a2, int a3, token_t *a4);
 int __cdecl PS_ExpectAnyToken(int a1, int a2);
 void __cdecl StripDoubleQuotes(char *string);
 void __cdecl StripSingleQuotes(char *string);
@@ -4328,88 +4328,66 @@ void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
 //----- (100069A0) --------------------------------------------------------
 bsp_entity_t *AAS_ParseBSPEntities(void)
 {
-  script_t *v0; // ebp
-  bsp_entity_t *v1; // edi (head of entity list)
-  bsp_epair_t *v2; // ebx
-  char *v3; // edx
-  char *v4; // edx
-  bsp_entity_t *v7; // [esp+10h] [ebp-438h]
-  token_t token; /* restored: original token_t local variable */
+  script_t *script; // ebp
+  token_t token;
+  bsp_entity_t *entities; // edi
+  bsp_entity_t *ent; // [esp+10h]
+  bsp_epair_t *epair; // ebx
 
-  v0 = LoadScriptMemory(dword_100674E4, dword_100674E0, "entdata");
-  SetScriptFlags(v0, 12);
-  v1 = 0;
-  if ( PS_ReadToken(v0, token.string) )
+  script = LoadScriptMemory(dword_100674E4, dword_100674E0, "entdata");
+  SetScriptFlags(script, 12);
+  entities = 0;
+  while ( PS_ReadToken(script, token.string) )
   {
-    while ( !strcmp(token.string, "{") )
+    if ( strcmp(token.string, "{") )
     {
-      v7 = (bsp_entity_t *)GetClearedMemory(sizeof(bsp_entity_t));
-      v7->next = v1;
-      if ( PS_ReadToken(v0, token.string) )
+      ScriptError(script, "invalid %s\n", token.string);
+      AAS_FreeBSPEntities(entities);
+      FreeScript(script);
+      return 0;
+    }
+    ent = (bsp_entity_t *)GetClearedMemory(sizeof(bsp_entity_t));
+    ent->next = entities;
+    entities = ent;
+    while ( PS_ReadToken(script, token.string) )
+    {
+      if ( !strcmp(token.string, "}") )
+        break;
+      epair = (bsp_epair_t *)GetClearedMemory(sizeof(bsp_epair_t));
+      epair->next = ent->epairs;
+      ent->epairs = epair;
+      if ( token.type != 1 )
       {
-        while ( strcmp(token.string, "}") )
-        {
-          v2 = (bsp_epair_t *)GetClearedMemory(sizeof(bsp_epair_t));
-          v2->next = v7->epairs;
-          v7->epairs = v2;
-          if ( token.type != 1 )
-          {
-            ScriptError(v0, "invalid %s\n", token.string);
-            AAS_FreeBSPEntities(v7);
-            goto LABEL_13;
-          }
-          StripDoubleQuotes(token.string);
-          v3 = (char *)GetMemory(strlen(token.string) + 1);
-          v2->key = v3;
-          strcpy(v3, token.string);
-          /* Original calls sub_10001C30(v0, 1, 0, token.string) (0x1003F5C0):
-           * a script-level expect that uses PS_ReadToken directly and checks
-           * the token's type field, NOT a source-level expect that goes
-           * through PC_ReadTokenHandle.  v0 here is from
-           * LoadScriptMemory where scriptstack=0, so the source-level
-           * path would deref NULL.  Inlined to avoid renaming the existing
-           * source-level PC_ExpectTokenType (used by other callers that DO
-           * need scriptstack semantics, e.g. weapon config loader). */
-          if ( !PS_ReadToken(v0, token.string) || token.type != 1 )
-          {
-            ScriptError(v0, "couldn't read expected token");
-            AAS_FreeBSPEntities(v7);
-            FreeScript(v0);
-            return 0;
-          }
-          StripDoubleQuotes(token.string);
-          v4 = (char *)GetMemory(strlen(token.string) + 1);
-          v2->value = v4;
-          strcpy(v4, token.string);
-          if ( !PS_ReadToken(v0, token.string) )
-            break;
-        }
-      }
-      if ( strcmp(token.string, "}") )
-      {
-        ScriptError(v0, "missing }\n");
-        AAS_FreeBSPEntities(v7);
-        FreeScript(v0);
+        ScriptError(script, "invalid %s\n", token.string);
+        AAS_FreeBSPEntities(ent);
+        FreeScript(script);
         return 0;
       }
-      v1 = v7;
-      if ( !PS_ReadToken(v0, token.string) )
-        goto LABEL_10;
+      StripDoubleQuotes(token.string);
+      epair->key = (char *)GetMemory(strlen(token.string) + 1);
+      strcpy(epair->key, token.string);
+      if ( !PS_ExpectTokenType(script, 1, 0, &token) )
+      {
+        AAS_FreeBSPEntities(ent);
+        FreeScript(script);
+        return 0;
+      }
+      StripDoubleQuotes(token.string);
+      epair->value = (char *)GetMemory(strlen(token.string) + 1);
+      strcpy(epair->value, token.string);
     }
-    ScriptError(v0, "invalid %s\n", token.string);
-    AAS_FreeBSPEntities(v1);
-LABEL_13:
-    FreeScript(v0);
-    return 0;
+    if ( strcmp(token.string, "}") )
+    {
+      ScriptError(script, "missing }\n");
+      AAS_FreeBSPEntities(ent);
+      FreeScript(script);
+      return 0;
+    }
   }
-  else
-  {
-LABEL_10:
-    FreeScript(v0);
-    return v1;
-  }
+  FreeScript(script);
+  return entities;
 }
-// 10001C30: thunk -> 0x1003F5C0 = PC_ExpectAnyToken (was mislabel of 4-arg "PC_ExpectAnyToken")
+// 10001C30: thunk -> 0x1003F5C0 = PS_ExpectTokenType (script-level expect)
 
 //----- (10006D10) --------------------------------------------------------
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
@@ -19818,18 +19796,13 @@ void BotCheckAttack(bot_state_t *bs)
 
   int v2; // eax
   weaponinfo_t *v3; // ebx
-  float v4; // ecx
-  double v5; // st7
   projectileinfo_t *v6; // ecx
-  void *v7; // esi
-  int v8; // eax
-  void *v9; // esi
-  int v10; // eax
-  float v11; // [esp+10h] [ebp-1A4h]
-  float v12; // [esp+10h] [ebp-1A4h]
-  int v13; // [esp+14h] [ebp-1A0h] BYREF
-  float v14; // [esp+18h] [ebp-19Ch]
-  float v15; // [esp+1Ch] [ebp-198h]
+  float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
+  float v11; // [esp+10h] [ebp-1A4h] — one local reused (IDA split into v11/v12)
+  vec3_t v13; // [esp+14h] [ebp-1A0h] BYREF — restored vec3 trace start; IDA split
+                // it into int v13 + float v14/v15, whose stores were dead-store-
+                // eliminated (nothing read them by name), so VectorMA/AAS_Trace
+                // saw garbage in [1]/[2]
   vec3_t v16; // [esp+20h] [ebp-194h] BYREF
   vec3_t v17; // [esp+2Ch] [ebp-188h] BYREF
   vec3_t v18; // [esp+38h] [ebp-17Ch] BYREF
@@ -19863,43 +19836,42 @@ void BotCheckAttack(bot_state_t *bs)
       v18[0] = v23[4] - bs->origin[0];
       v18[1] = v23[5] - bs->origin[1];
       v18[2] = v23[6] - bs->origin[2];
-      v12 = 120.0f;
+      v11 = 120.0f;
       if ( VectorLength(v18) >= 100.0f )
-        v12 = 50.0f;
-      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v12, bs->enemy) )
+        v11 = 50.0f;
+      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v11, bs->enemy) )
       {
         v3 = sub_100354B0(BotWS(bs));
         if ( v3 )
         {
-          v4 = bs->origin[1];
-          v5 = bs->origin[2] + bs->snapshot.viewoffset[2];
-          v13 = *(int *)bs->origin;
-          v15 = v5;
-          v14 = v4;
+          VectorCopy(bs->origin, v13);
+          v13[2] += bs->snapshot.viewoffset[2];
           AngleVectors(bs->viewangles, v16, v19, 0);
-          *(float *)&v13 = v19[0] * v3->offset[1] + *(float *)v16 * v3->offset[0] + *(float *)&v13;
-          v14 = v19[1] * v3->offset[1] + v16[1] * v3->offset[0] + v14;
-          v15 = v19[2] * v3->offset[1] + v16[2] * v3->offset[0] + v3->offset[2] + v15;
-          VectorMA((float *)&v13, 1000.0, (float *)v16, (float *)v21);
-          VectorMA((float *)&v13, -12.0, (float *)v16, (float *)&v13);
+          /* ref evaluates the offset[1] (right) term first; MSVC6 reorders the
+           * FPU terms either way (offset[0]-term first) — fmul term-order tie,
+           * not source-controllable */
+          v13[0] = v19[0] * v3->offset[1] + v16[0] * v3->offset[0] + v13[0];
+          v13[1] = v19[1] * v3->offset[1] + v16[1] * v3->offset[0] + v13[1];
+          v13[2] = v19[2] * v3->offset[1] + v16[2] * v3->offset[0] + v3->offset[2] + v13[2];
+          VectorMA(v13, 1000.0, v16, v21);
+          VectorMA(v13, -12.0, v16, v13);
           qmemcpy(
             v22,
-            AAS_Trace(v24, (float*)(&v13), (float*)v20, (float*)v17, (float*)(v21), bs->entitynum, 100663299),
+            AAS_Trace(v24, v13, (float*)v20, (float*)v17, (float*)(v21), bs->entitynum, 100663299),
             sizeof(v22));
           if ( LODWORD(v22[20]) == bs->enemy
             || (SLODWORD(v22[20]) <= 0 || SLODWORD(v22[20]) > maxclients || !BotSameTeam(bs, SLODWORD(v22[20])))
             && ((v6 = v3->proj, (v6->damagetype & 2) == 0)
-             || v22[2] * 1000.0 >= v6->radius
-             || ((float)v6->damage - v22[2] * 500.0) * 0.5 <= 0.0) )
+             || v22[2] * 1000.0f >= v6->radius
+             || (points = ((float)v6->damage - v22[2] * 500.0) * 0.5, points <= 0)) )
           {
             if ( (LOBYTE(v22[19]) & 2) == 0
-              || (v7 = AAS_EntityInfo(v24, bs->enemy),
-                  v8 = bs->entitynum,
-                  qmemcpy(v23, v7, sizeof(v23)),
-                  v9 = AAS_Trace(v24, (float*)(&v22[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v23[4]), v8, 100663299),
-                  v10 = bs->enemy,
-                  qmemcpy(v22, v9, sizeof(v22)),
-                  LODWORD(v22[20]) == v10) )
+              || (qmemcpy(v23, AAS_EntityInfo(v24, bs->enemy), sizeof(v23)),
+                  qmemcpy(v22,
+                          AAS_Trace(v24, (float*)(&v22[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
+                                    (float*)(&v23[4]), bs->entitynum, 100663299),
+                          sizeof(v22)),
+                  LODWORD(v22[20]) == bs->enemy) )
             {
               if ( (v3->flags & 1) == 0 || (*(unsigned char *)&bs->flags & 2) != 0 )
                 EA_Attack(bs->client);
@@ -28300,12 +28272,11 @@ int __cdecl BotResetMoveState(void *a1)
 //----- (10034BB0) --------------------------------------------------------
 weaponconfig_t * LoadWeaponConfig(char *Source)
 {
-  int max_weaponinfo;
   int max_projectileinfo;
+  int max_weaponinfo;
   source_t *v5;
   weaponconfig_t *cfg;
   int v9; // ecx
-  qboolean v10; // zf
   char Destination[144]; // [esp+1Ch] [ebp-558h] BYREF
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char v22[sizeof(token_t)] __attribute__((aligned(8))); // [esp+144h] [ebp-430h] BYREF
@@ -28347,9 +28318,9 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
           + sizeof(weaponinfo_t)     * max_weaponinfo
           + sizeof(projectileinfo_t) * max_projectileinfo );
   cfg->numweapons      = 0;
-  cfg->numprojectiles  = 0;
   cfg->weapons         = (weaponinfo_t *)(cfg + 1);
   cfg->projectiles     = (projectileinfo_t *)(cfg->weapons + max_weaponinfo);
+  cfg->numprojectiles  = 0;
 
   while ( PC_ReadTokenHandle(v5, v22) )
   {
@@ -28395,35 +28366,23 @@ LABEL_26:
     }
   }
   FreeSource(v5);
-  v9 = 0;
-  v10 = cfg->numweapons == 0;
-  if ( cfg->numweapons <= 0 )
-  {
-LABEL_38:
-    if ( v10 )
-      bi_Print(PRT_WARNING, "no weapon info loaded\n");
-    if ( file_ref.filelen )
-      bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
-    else
-      bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
-    return cfg;
-  }
-  else
   {
     weaponinfo_t *weap;
     int p;
-    while ( 1 )
+    for ( v9 = 0; v9 < cfg->numweapons; ++v9 )
     {
       weap = &cfg->weapons[v9];
       if ( !weap->name[0] )
       {
         bi_Print(PRT_ERROR, "weapon %d has no name in %s\n", v9, Destination);
-        goto LABEL_46;
+        FreeMemory(cfg);
+        return 0;
       }
       if ( !weap->projectile[0] )
       {
         bi_Print(PRT_ERROR, "weapon %s has no projectile in %s\n", weap->name, Destination);
-        goto LABEL_46;
+        FreeMemory(cfg);
+        return 0;
       }
       for ( p = 0; p < cfg->numprojectiles; ++p )
       {
@@ -28434,20 +28393,21 @@ LABEL_38:
         }
       }
       if ( p == cfg->numprojectiles )
-        break;
-      weap->number = v9;
-      ++v9;
-      if ( v9 >= cfg->numweapons )
       {
-        v10 = cfg->numweapons == 0;
-        goto LABEL_38;
+        bi_Print(PRT_ERROR, "weapon %s uses undefined projectile in %s\n", weap->name, Destination);
+        FreeMemory(cfg);
+        return 0;
       }
+      weap->number = v9;
     }
-    bi_Print(PRT_ERROR, "weapon %s uses undefined projectile in %s\n", weap->name, Destination);
-LABEL_46:
-    FreeMemory(cfg);
-    return 0;
   }
+  if ( !cfg->numweapons )
+    bi_Print(PRT_WARNING, "no weapon info loaded\n");
+  if ( file_ref.filelen )
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+  else
+    bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
+  return cfg;
 }
 
 //----- (10035280) --------------------------------------------------------
@@ -29783,60 +29743,46 @@ void EA_Shutdown()
  * hash+name, and inserts it in alphabetical order. */
 int __cdecl sub_100376B0(char *String1, __int16 a2)
 {
-  scriptcrc_t *v2;
+  scriptcrc_t *v2; // esi
+  scriptcrc_t *v6; // edi (prev)
+  scriptcrc_t *v4; // ebx (new record)
   int result;
-  scriptcrc_t *v4;
-  scriptcrc_t *v5;
-  scriptcrc_t *v6;
 
-  v2 = dword_10063F2C;
-  if ( !v2 )
-    goto LABEL_6;
-  while ( 1 )
+  for ( v2 = dword_10063F2C; v2; v2 = v2->next )
   {
     result = _strcmpi(String1, v2->name);
     if ( !result )
-      return result;
-    v2 = v2->next;
-    if ( !v2 )
-      goto LABEL_6;
+      break;
   }
-LABEL_6:
+  if ( v2 )
+    return result;
   v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
   v4->hash = a2;
   strcpy(v4->name, String1);
   result = 0;
-  v6 = NULL;
-  v5 = dword_10063F2C;
-  if ( v5 )
+  for ( v2 = dword_10063F2C, v6 = NULL; v2; v6 = v2, v2 = v2->next )
   {
-    while ( 1 )
+    result = _strcmpi(v4->name, v2->name);
+    if ( result < 0 )
     {
-      result = _strcmpi(v4->name, v5->name);
-      if ( result < 0 )
-      {
-        v4->next = v5;
-        if ( v6 )
-          v6->next = v4;
-        else
-          dword_10063F2C = v4;
-        return result;
-      }
-      v6 = v5;
-      v5 = v5->next;
-      if ( !v5 )
-        break;
+      v4->next = v2;
+      if ( v6 )
+        v6->next = v4;
+      else
+        dword_10063F2C = v4;
+      return result;
     }
-    if ( !v6 )
-      goto LABEL_14;
+  }
+  if ( v6 )
+  {
     v6->next = v4;
+    v4->next = v2;
   }
   else
   {
-LABEL_14:
     dword_10063F2C = v4;
+    v4->next = NULL;
   }
-  v4->next = NULL;
   return result;
 }
 
@@ -31494,7 +31440,7 @@ int __cdecl PC_Directive_define(source_t *source)
     return 1;
   if ( !PC_ReadLine(source, &token) )
   {
-    SourceError(source, "#define without name", 0);
+    SourceError(source, "#define without name");
     return 0;
   }
   if ( token.type != 4 )
@@ -31533,17 +31479,17 @@ int __cdecl PC_Directive_define(source_t *source)
       {
         if ( !PC_ReadLine(source, &token) )
         {
-          SourceError(source, "expected define parameter", 0);
+          SourceError(source, "expected define parameter");
           return 0;
         }
         if ( token.type != 4 )
         {
-          SourceError(source, "invalid define parameter", 0);
+          SourceError(source, "invalid define parameter");
           return 0;
         }
         if ( PC_FindDefineParm(define, token.string) >= 0 )
         {
-          SourceError(source, "two the same define parameters", 0);
+          SourceError(source, "two the same define parameters");
           return 0;
         }
         t = (token_t *)PC_CopyToken(&token);
@@ -31557,14 +31503,14 @@ int __cdecl PC_Directive_define(source_t *source)
         define->numparms++;
         if ( !PC_ReadLine(source, &token) )
         {
-          SourceError(source, "define parameters not terminated", 0);
+          SourceError(source, "define parameters not terminated");
           return 0;
         }
         if ( !strcmp(token.string, ")") )
           break;
         if ( strcmp(token.string, ",") )
         {
-          SourceError(source, "define not terminated", 0);
+          SourceError(source, "define not terminated");
           return 0;
         }
       }
@@ -31587,7 +31533,7 @@ int __cdecl PC_Directive_define(source_t *source)
   while ( PC_ReadLine(source, &token) );
   if ( last && (!strcmp(define->tokens->string, "##") || !strcmp(last->string, "##")) )
   {
-    SourceError(source, "define with misplaced ##", 0);
+    SourceError(source, "define with misplaced ##");
     return 0;
   }
   return 1;
@@ -34147,14 +34093,12 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 }
 
 //----- (1003F5C0) --------------------------------------------------------
-int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
+int __cdecl PS_ExpectTokenType(script_t *a1, int a2, int a3, token_t *a4)
 {
-  int v4; // ebp
   int v6; // eax
   char ArgList[1024]; // [esp+10h] [ebp-400h] BYREF
 
-  v4 = a1;
-  if ( !PS_ReadToken((script_t *)(intptr_t)a1, (char *)a4) )
+  if ( !PS_ReadToken(a1, (char *)a4) )
   {
     ScriptError(a1, "couldn't read expected token");
     return 0;
@@ -34175,53 +34119,45 @@ int __cdecl PS_ExpectTokenType(int a1, int a2, int a3, token_t *a4)
     ScriptError(a1, "expected a %s, found %s", ArgList, a4);
     return 0;
   }
-  if ( v6 != 3 )
+  if ( v6 == 3 )
   {
-    if ( v6 == 5 )
+    if ( (a4->subtype & a3) != a3 )
     {
-      if ( a3 < 0 )
-      {
-        ScriptError(a1, "BUG: wrong punctuation subtype");
-        return 0;
-      }
-      if ( a4->subtype != a3 )
-      {
-        ScriptError(a1, "expected %s, found %s",
-                    ((punctuation_t *)((script_t *)a1)->punctuations)[a3], a4);
-        return 0;
-      }
+      if ( (a3 & 8) != 0 )
+        strcpy(ArgList, "decimal");
+      if ( (a3 & 0x100) != 0 )
+        strcpy(ArgList, "hex");
+      if ( (a3 & 0x200) != 0 )
+        strcpy(ArgList, "octal");
+      if ( (a3 & 0x400) != 0 )
+        strcpy(ArgList, "binary");
+      if ( (a3 & 0x2000) != 0 )
+        strcat(ArgList, " long");
+      if ( (a3 & 0x4000) != 0 )
+        strcat(ArgList, " unsigned");
+      if ( (a3 & 0x800) != 0 )
+        strcat(ArgList, " float");
+      if ( (a3 & 0x1000) != 0 )
+        strcat(ArgList, " integer");
+      ScriptError(a1, "expected %s, found %s", ArgList, a4);
+      return 0;
     }
-    return 1;
   }
-  if ( (a3 & a4->subtype) == a3 )
-    return 1;
-  if ( (a3 & 8) != 0 )
-    strcpy(ArgList, "decimal");
-  if ( (a3 & 0x100) != 0 )
-    strcpy(ArgList, "hex");
-  if ( (a3 & 0x200) != 0 )
-    strcpy(ArgList, "octal");
-  if ( (a3 & 0x400) != 0 )
-    strcpy(ArgList, "binary");
-  if ( (a3 & 0x2000) != 0 )
+  else if ( v6 == 5 )
   {
-    strcat(ArgList, " long");
-    v4 = a1;
+    if ( a3 < 0 )
+    {
+      ScriptError(a1, "BUG: wrong punctuation subtype");
+      return 0;
+    }
+    if ( a4->subtype != a3 )
+    {
+      ScriptError(a1, "expected %s, found %s",
+                  ((punctuation_t *)a1->punctuations)[a3], a4);
+      return 0;
+    }
   }
-  if ( (a3 & 0x4000) != 0 )
-  {
-    strcat(ArgList, " unsigned");
-    v4 = a1;
-  }
-  if ( (a3 & 0x800) != 0 )
-  {
-    strcat(ArgList, " float");
-    v4 = a1;
-  }
-  if ( (a3 & 0x1000) != 0 )
-    strcat(ArgList, " integer");
-  ScriptError(v4, "expected %s, found %s", ArgList, a4);
-  return 0;
+  return 1;
 }
 
 //----- (1003F9B0) --------------------------------------------------------
@@ -34671,6 +34607,19 @@ static inline float fielddef_float(char **f, int slot) {
     return r;
 }
 
+/* fielddef_t — Q3 l_struct.h field descriptor, overlaid on the char *[7]
+ * table entries.  Members are pointer-sized (intptr_t) so the struct lines
+ * up with the slot layout on both 32-bit (int) and 64-bit (8-byte slots). */
+typedef struct fielddef_s {
+    const char *name;            /* slot 0 */
+    intptr_t    offset;          /* slot 1 */
+    intptr_t    type;            /* slot 2 — low byte FT_*, 0x100 = FT_ARRAY */
+    intptr_t    maxarray;        /* slot 3 */
+    intptr_t    floatmin;        /* slot 4 — float bits */
+    intptr_t    floatmax;        /* slot 5 — float bits */
+    structdef_t *substruct;      /* slot 6 */
+} fielddef_t;
+
 //----- (10040540) --------------------------------------------------------
 int __cdecl ReadNumber(source_t *src, char **field, float *out)
 {
@@ -34873,102 +34822,90 @@ int __cdecl ReadString(source_t *src, char **field, char *Destination)
 //----- (10040AD0) --------------------------------------------------------
 int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
 {
-  const char **v4; // eax
-  const char **v5; // ebp
-  int v6; // esi
-  float *v7; // edi
-  int v8; // eax
-  int v9; // esi
-  const char *v10; // eax
-  int v11; // eax
-  int v13; // [esp+10h] [ebp-434h]
-  char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
+  token_t token;
+  fielddef_t *fd; // ebp
+  char *p; // edi
+  int num; // [esp+10h] [ebp-434h]
 
-  if ( !PC_ExpectTokenString(source, "{") ) return 0;
-  do
+  if ( !PC_ExpectTokenString(source, "{") )
+    return 0;
+  while ( 1 )
   {
-LABEL_2:
-    if ( !PC_ExpectAnyToken(source, ArgList) )
+    if ( !PC_ExpectAnyToken(source, token.string) )
       return 0;
-    if ( !strcmp(ArgList, "}") )
-      return 1;
-    v4 = FindField(def->fields, ArgList);
-    v5 = v4;
-    if ( !v4 )
+    if ( !strcmp(token.string, "}") )
+      break;
+    fd = (fielddef_t *)FindField(def->fields, token.string);
+    if ( !fd )
     {
-      SourceError(source, "unknown structure field %s", ArgList);
+      SourceError(source, "unknown structure field %s", token.string);
       return 0;
     }
-    if ( (((unsigned __int16)v4[2] >> 8) & 1) != 0 )
+    if ( (fd->type & 0x100) != 0 )
     {
-      v6 = (int)v4[3];
+      num = (int)fd->maxarray;
       if ( !PC_ExpectTokenString(source, "{") )
         return 0;
     }
     else
     {
-      v6 = 1;
+      num = 1;
     }
-    v7 = (float *)(structure + (intptr_t)v5[1]);
-    v8 = v6;
-    v9 = v6 - 1;
-    v13 = v9;
-  }
-  while ( v8 <= 0 );
-  while ( 2 )
-  {
-    if ( (((unsigned __int16)v5[2] >> 8) & 1) != 0 && PC_CheckTokenString(source, "}") )
-      goto LABEL_2;
-    switch ( (unsigned __int8)v5[2] )
+    p = structure + fd->offset;
+    while ( num-- > 0 )
     {
-      case 1u:
-        if ( !ReadChar(source, v5, v7) )
+      if ( (fd->type & 0x100) != 0 )
+      {
+        if ( PC_CheckTokenString(source, "}") )
+          break;
+      }
+      switch ( fd->type & 0xFF )
+      {
+        case 1:
+          if ( !ReadChar(source, (char **)fd, (float *)p) )
+            return 0;
+          p += sizeof(char);
+          break;
+        case 2:
+          if ( !ReadNumber(source, (char **)fd, (float *)p) )
+            return 0;
+          p += sizeof(int);
+          break;
+        case 3:
+          if ( !ReadNumber(source, (char **)fd, (float *)p) )
+            return 0;
+          p += sizeof(float);
+          break;
+        case 4:
+          if ( !ReadString(source, (char **)fd, p) )
+            return 0;
+          p += 80;
+          break;
+        case 6:
+          if ( !fd->substruct )
+          {
+            SourceError(source, "BUG: no sub structure defined");
+            return 0;
+          }
+          ReadStructure(source, fd->substruct, p);
+          p += fd->substruct->size;
+          break;
+      }
+      if ( (fd->type & 0x100) != 0 )
+      {
+        if ( !PC_ExpectAnyToken(source, token.string) )
           return 0;
-        v7 = (float *)((char *)v7 + 1);
-        goto LABEL_21;
-      case 2u:
-      case 3u:
-        if ( !ReadNumber(source, v5, v7) )
-          return 0;
-        ++v7;
-        goto LABEL_21;
-      case 4u:
-        if ( !ReadString(source, v5, (char *)v7) )
-          return 0;
-        v7 += 20;
-        goto LABEL_21;
-      case 6u:
-        v10 = v5[6];
-        if ( !v10 )
+        if ( !strcmp(token.string, "}") )
+          break;
+        if ( strcmp(token.string, ",") )
         {
-          SourceError(source, "BUG: no sub structure defined");
+          SourceError(source, "expected a comma, found %s", token.string);
           return 0;
         }
-        ReadStructure(source, (structdef_t *)v10, (void *)v7);
-        v7 = (float *)((char *)v7 + ((structdef_t *)v5[6])->size);
-LABEL_21:
-        if ( (((unsigned __int16)v5[2] >> 8) & 1) == 0 )
-          goto LABEL_26;
-        if ( !PC_ExpectAnyToken(source, ArgList) )
-          return 0;
-        if ( !strcmp(ArgList, "}") )
-          goto LABEL_2;
-        if ( !strcmp(ArgList, ",") )
-        {
-          v9 = v13;
-LABEL_26:
-          v11 = v9--;
-          v13 = v9;
-          if ( v11 <= 0 )
-            goto LABEL_2;
-          continue;
-        }
-        SourceError(source, "expected a comma, found %s", ArgList);
-        return 0;
-      default:
-        goto LABEL_21;
+      }
     }
   }
+  return 1;
 }
 
 //----- (10040E30) --------------------------------------------------------

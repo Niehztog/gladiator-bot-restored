@@ -119,7 +119,10 @@ typedef struct weaponinfo_s {
  *   bouncestop(f,0xCC)
  * ------------------------------------------------------------------------- */
 struct projectileinfo_s {
-    char    name[80];        /* +0x00 — projectile symbolic name              */
+    char    name[84];        /* +0x00 — projectile symbolic name (84, not 80:
+                                descriptor places model at +0x54; name[80] put
+                                every later field 4 low vs the parse-side field
+                                table and made sizeof 204 ≠ descriptor 208)    */
     char    model[76];       /* +0x54 — projectile model path; ends at 0xA0   */
     int     flags;           /* +0xA0 — projectile flags                      */
     float   gravity;         /* +0xA4 — gravity multiplier                    */
