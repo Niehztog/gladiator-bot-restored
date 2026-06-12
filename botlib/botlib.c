@@ -572,7 +572,7 @@ _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(char *face);
 float __cdecl AAS_AreaVolume(int areanum);
-double __cdecl AAS_AreaGroundFaceArea(int areanum);
+float __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 int AAS_FallDamageDistance();
 float __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
@@ -2734,14 +2734,14 @@ float *__cdecl sub_100044F0(
   float v10; // edx
   float v11; // ecx
   int v12; // eax
-  double v13; // st7
+  float v13; // st7
   /* v14: originally `int v14` in IDA — was used as `char*` base via
    * `v14 = dword_100674C8 + 48*a2` then `*(float*)(v14+24)`.  On aarch64
    * the int storage truncated dword_100674C8's heap address producing
    * a SIGSEGV in AAS_OnGround → AAS_TraceClientBBox → AAS_EntityCollision
    * → here.  Widened to `char *`. */
   char *v14;
-  double v15; // st7
+  float v15; // st7
   int *v16; // eax
   int v17; // edx
   int v18; // eax
@@ -2781,14 +2781,14 @@ float *__cdecl sub_100044F0(
    * 4 bytes of v38 nets to zero net change within the same code path). */
   char *v38;
   int v39; // ecx
-  double v40; // st7
-  double v41; // st6
-  double v42; // st7
-  double v44; // st6
-  double v45; // st5
-  double v46; // st4
+  float v40; // st7
+  float v41; // st6
+  float v42; // st7
+  float v44; // st6
+  float v45; // st5
+  float v46; // st4
   int v47; // eax
-  double v48; // st6
+  float v48; // st6
   BOOL v49; // eax
   int *v50; // ecx
   BOOL v51; // eax
@@ -2800,7 +2800,7 @@ float *__cdecl sub_100044F0(
   int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset)
   float v58; // ebp
   int v59; // edx
-  double v60; // st7
+  float v60; // st7
   float v61; // edx
   char *v62; // ecx — AArch64: was `int`; trace-stack frame pointer (see v19)
   int *v63; // ebp  — AArch64: was `int**`
@@ -2823,7 +2823,7 @@ float *__cdecl sub_100044F0(
   int *v80; // ecx  — AArch64: was `int**`
   float v81; // esi
   int v82; // edx
-  double v83; // st7
+  float v83; // st7
   float v84; // ecx
   float v85; // eax
   float v86; // ecx
@@ -2838,7 +2838,7 @@ float *__cdecl sub_100044F0(
   float v95; // ecx
   int v96; // eax
   int v97; // ecx
-  double v98; // st7
+  float v98; // st7
   float v99; // edi
   char *v100; // eax — AArch64: was `int`; trace-stack frame pointer (see v19)
   int v101; // ecx
@@ -2952,8 +2952,8 @@ float *__cdecl sub_100044F0(
 LABEL_7:
   v13 = *(&v128 + v12);
   v126 = v12;
-  v135 = v13 > 0.0;
-  if ( *a4 == 0.0 && a4[1] == 0.0 && a4[2] == 0.0 )
+  v135 = v13 > 0;
+  if ( *a4 == 0 && a4[1] == 0 && a4[2] == 0 )
   {
     v144 = 0;
   }
@@ -2967,7 +2967,7 @@ LABEL_7:
   v136 = v15;
   v137 = *(float *)(v14 + 28) + a3[1];
   v138 = *(float *)(v14 + 32) + a3[2];
-  if ( v15 != 0.0 || v137 != 0.0 || (v142 = 0, v138 != 0.0) )
+  if ( v15 != 0 || v137 != 0 || (v142 = 0, v138 != 0) )
     v142 = 1;
   v16 = v153;
   v17 = 127;
@@ -3088,7 +3088,7 @@ LABEL_7:
               v123 = (v111 - v106) * v98 + v106;
               v124 = (v112 - v107) * v98 + v107;
               v125 = (v113 - v108) * v98 + v108;
-              if ( v109 >= 0.0 )
+              if ( v109 >= 0 )
                 v110 = 0.0;
               v99 = v110;
               *(float *)v25 = v123;
@@ -3171,7 +3171,7 @@ LABEL_7:
           v121 = 1;
           v109 = v114[2] * v108 + v114[1] * v107 + v114[0] * v106 - v40;
           v42 = v114[2] * v113 + v114[1] * v112 + v114[0] * v111 - v40;
-          if ( v114[2] * v130 + v114[1] * v129 + v114[0] * v128 >= 0.0 )
+          if ( v114[2] * v130 + v114[1] * v129 + v114[0] * v128 >= 0 )
             v121 = 0;
           /* Original: 3-component loop selecting between a7[i] and a6[i] based
            * on sign of v114[i], storing to v148[i] and v149[i].
@@ -3203,7 +3203,7 @@ LABEL_7:
           v121 = 1;
           v109 = v41;
           v42 = *(&v111 + v39) - v40;
-          if ( *(&v128 + v39) >= 0.0 )
+          if ( *(&v128 + v39) >= 0 )
             v121 = 0;
           v133[0] = -*(float *)&a6[v39];
           v133[1] = -a7[v39];
@@ -3299,13 +3299,13 @@ LABEL_71:
           v140 = (v112 - v107) * v60 + v107;
           v141 = (v113 - v108) * v60 + v108;
         }
-        if ( v118 >= 0.0 || v60 >= 0.0 )
+        if ( v118 >= 0 || v60 >= 0 )
         {
           if ( v132[v53 - 1] || v132[v53 + 1] )
             goto LABEL_103;
-          if ( v118 < 0.0 )
+          if ( v118 < 0 )
           {
-            if ( v60 < 0.0 )
+            if ( v60 < 0 )
               goto LABEL_103;
             if ( !v19 )
               break;
@@ -3395,7 +3395,7 @@ LABEL_103:
           v78 = v109;
           if ( !v132[(int)LODWORD(v109) - 1] && !v132[(int)LODWORD(v109) + 1] )
           {
-            if ( v60 >= 0.0 )
+            if ( v60 >= 0 )
             {
               if ( !v19 )
                 break;
@@ -3410,7 +3410,7 @@ LABEL_103:
               v81 = v141;
               goto LABEL_111;
             }
-            if ( v118 >= 0.0 )
+            if ( v118 >= 0 )
             {
               if ( !v19 )
                 break;
@@ -10182,7 +10182,7 @@ float __cdecl AAS_AreaVolume(int areanum)
 }
 
 //----- (10011360) --------------------------------------------------------
-double __cdecl AAS_AreaGroundFaceArea(int areanum)
+float __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
   float result; // st7
   int v2; // edi
@@ -10924,14 +10924,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     v127 = v2;
     v115 = &aasworld.areas[area2num];
     v3 = AAS_AreaSwim(area1num);
-    v4 = 0;
-    v5 = (float *)(v115 + 12);
     v134 = v3;
-    for ( i = (float *)(v2 + 24); *(float *)((char *)i + (v115 - v2)) + 10.0f >= *(i - 3) && *v5 - 10.0f <= *i; ++i )
+    /* if the areas are not near anough in the x-y direction */
+    for ( v4 = 0; v4 < 2; ++v4 )
     {
-      ++v4;
-      ++v5;
-      if ( v4 >= 2 )
+      if ( *(float *)(v2 + 4 * v4 + 12) > *(float *)(v115 + 4 * v4 + 24) + 10.0f )
+        return 0;
+      if ( *(float *)(v2 + 4 * v4 + 24) < *(float *)(v115 + 4 * v4 + 12) - 10.0f )
+        return 0;
+    }
+    {
       {
         v7 = *((_DWORD *)v2 + 1);
         v116 = 0;
@@ -10953,7 +10955,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             || v134
             && up[2] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[2]
              + up[1] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[1]
-             + up[0] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[0] >= 0.7f )
+             + up[0] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[0] >= 0.7 )
           {
             v10 = *((_DWORD *)v9 + 2);
             v117 = 0;
@@ -11008,13 +11010,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                             + (float)*(float *)&v79 * (float)v101[1]
                             + (float)v78 * (float)v101[0]
                             - (float)v65;
-                        if ( v25 >= -0.1f && v25 <= 0.1f )
+                        if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
                           v26 = (float)v74 * (float)v101[2]
                               + (float)v73 * (float)v101[1]
                               + (float)v72 * (float)v101[0]
                               - (float)v65;
-                          if ( v26 >= -0.1f && v26 <= 0.1f )
+                          if ( v26 >= -0.1 && v26 <= 0.1 )
                           {
                             CrossProduct(up, v101, v97_vec);
                             v81 = v80;
@@ -11072,92 +11074,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                             }
                             if ( v59 > (float)v62 && v63 > (float)v61 )
                             {
-                              if ( v62 <= v61 - 0.5f || v59 + 0.5f <= v63 || v61 <= v62 - 0.5f || v63 + 0.5f <= v59 )
+                              /* if the two lines fully overlap */
+                              if ( (v61 - 0.5 < v62 && v63 < v59 + 0.5)
+                                  && (v62 - 0.5 < v61 && v59 < v63 + 0.5) )
                               {
-                                if ( v62 - 0.1f >= v61 || v62 + 0.1f <= v61 )
-                                {
-                                  if ( v61 >= (float)v62 )
-                                  {
-                                    v109 = *(float *)&v71;
-                                    *(float *)&v107 = v69;
-                                    v108 = *(float *)&v70;
-                                    *(float *)&v87 = v69;
-                                    v88 = *(float *)&v70;
-                                    v38 = (v61 - v62) * ((float)v83 - (float)v81)
-                                        / (v63 - v62) + (float)v81;
-                                    v67 = v38;
-                                    v36 = v38 - (float)v82;
-                                    v37 = v67;
-                                  }
-                                  else
-                                  {
-                                    *(float *)&v107 = v78;
-                                    v108 = *(float *)&v79;
-                                    *(float *)&v87 = v78;
-                                    v88 = *(float *)&v79;
-                                    {
-                                      float tmp = (v62 - v61) * ((float)v90 - (float)v82)
-                                                      / (v59 - v61) + (float)v82;
-                                      v66 = (float)tmp;
-                                      v36 = (float)v81 - tmp;
-                                    }
-                                    v109 = v66;
-                                    v37 = v80;
-                                  }
-                                }
-                                else
-                                {
-                                  *(float *)&v107 = v69;
-                                  v108 = *(float *)&v70;
-                                  v109 = *(float *)&v71;
-                                  v36 = v81 - v82;
-                                  v37 = v80;
-                                  *(float *)&v87 = v78;
-                                  v88 = *(float *)&v79;
-                                }
-                                v89 = v37;
-                                if ( v63 - 0.1f >= v59 || v63 + 0.1f <= v59 )
-                                {
-                                  if ( v59 >= (float)v63 )
-                                  {
-                                    *(float *)&v104 = v72;
-                                    v105 = v73;
-                                    *(float *)&v84 = v72;
-                                    v85 = v73;
-                                    v86 = v74;
-                                    v40 = (v63 - v61) * ((float)v90 - (float)v82)
-                                        / (v59 - v61) + (float)v82;
-                                    v60 = (float)v83 - v40;
-                                    v106 = v40;
-                                  }
-                                  else
-                                  {
-                                    *(float *)&v104 = v75;
-                                    v105 = v76;
-                                    v106 = v77;
-                                    *(float *)&v84 = v75;
-                                    v85 = v76;
-                                    v39 = (v59 - v62) * ((float)v83 - (float)v81)
-                                        / (v63 - v62) + (float)v81;
-                                    v60 = v39 - (float)v90;
-                                    v86 = v39;
-                                  }
-                                }
-                                else
-                                {
-                                  *(float *)&v104 = v75;
-                                  v105 = v76;
-                                  v106 = v77;
-                                  *(float *)&v84 = v72;
-                                  v60 = v83 - v90;
-                                  v85 = v73;
-                                  v86 = v74;
-                                }
-                              }
-                              else
-                              {
-                                *(float *)&v107 = v69;
                                 v36 = v81 - v82;
+                                v60 = v83 - v90;
+                                *(float *)&v107 = v69;
                                 v108 = *(float *)&v70;
                                 v109 = *(float *)&v71;
                                 *(float *)&v104 = v75;
@@ -11167,34 +11090,86 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 v88 = *(float *)&v79;
                                 v89 = v80;
                                 *(float *)&v84 = v72;
-                                v60 = v83 - v90;
                                 v85 = v73;
                                 v86 = v74;
                               }
-                              if ( v36 <= v60 - 1.0f || v36 >= v60 + 1.0f )
+                              else
                               {
-                                if ( v36 >= v60 )
+                                /* if the points are equal */
+                                if ( v61 > v62 - 0.1 && v61 < v62 + 0.1 )
                                 {
-                                  v65 = v60;
-                                  *(int *)&v91[0] = v104;
-                                  v91[1] = v105;
-                                  v91[2] = v106;
-                                  *(int *)&v94[0] = v84;
-                                  v94[1] = v85;
-                                  v94[2] = v86;
+                                  v36 = v81 - v82;
+                                  *(float *)&v107 = v69;
+                                  v108 = *(float *)&v70;
+                                  v109 = *(float *)&v71;
+                                  *(float *)&v87 = v78;
+                                  v88 = *(float *)&v79;
+                                  v89 = v80;
+                                }
+                                else if ( v61 < (float)v62 )
+                                {
+                                  v66 = (v62 - v61) * ((float)v90 - (float)v82)
+                                      / (v59 - v61) + (float)v82;
+                                  v36 = (float)v81 - v66;
+                                  *(float *)&v107 = v78;
+                                  v108 = *(float *)&v79;
+                                  v109 = v66;
+                                  *(float *)&v87 = v78;
+                                  v88 = *(float *)&v79;
+                                  v89 = v80;
                                 }
                                 else
                                 {
-                                  *(int *)&v91[0] = v107;
-                                  v91[1] = v108;
-                                  v91[2] = v109;
-                                  *(int *)&v94[0] = v87;
-                                  v65 = v36;
-                                  v94[1] = v88;
-                                  v94[2] = v89;
+                                  v38 = (v61 - v62) * ((float)v83 - (float)v81)
+                                      / (v63 - v62) + (float)v81;
+                                  v67 = v38;
+                                  v36 = v38 - (float)v82;
+                                  *(float *)&v107 = v69;
+                                  v108 = *(float *)&v70;
+                                  v109 = *(float *)&v71;
+                                  *(float *)&v87 = v69;
+                                  v88 = *(float *)&v70;
+                                  v89 = v67;
+                                }
+                                /* if the points are equal */
+                                if ( v59 > v63 - 0.1 && v59 < v63 + 0.1 )
+                                {
+                                  v60 = v83 - v90;
+                                  *(float *)&v104 = v75;
+                                  v105 = v76;
+                                  v106 = v77;
+                                  *(float *)&v84 = v72;
+                                  v85 = v73;
+                                  v86 = v74;
+                                }
+                                else if ( v59 < (float)v63 )
+                                {
+                                  v39 = (v59 - v62) * ((float)v83 - (float)v81)
+                                      / (v63 - v62) + (float)v81;
+                                  v60 = v39 - (float)v90;
+                                  *(float *)&v104 = v75;
+                                  v105 = v76;
+                                  v106 = v77;
+                                  *(float *)&v84 = v75;
+                                  v85 = v76;
+                                  v86 = v39;
+                                }
+                                else
+                                {
+                                  v40 = (v63 - v61) * ((float)v90 - (float)v82)
+                                      / (v59 - v61) + (float)v82;
+                                  v60 = (float)v83 - v40;
+                                  *(float *)&v104 = v72;
+                                  v105 = v73;
+                                  v106 = v40;
+                                  *(float *)&v84 = v72;
+                                  v85 = v73;
+                                  v86 = v74;
                                 }
                               }
-                              else
+                              /* if both distances are pretty much equal
+                               * then we take the middle of the points */
+                              if ( v36 > v60 - 1 && v36 < v60 + 1 )
                               {
                                 v65 = v36;
                                 v91[0] = *(float *)&v104 + *(float *)&v107;
@@ -11205,6 +11180,26 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 v94[1] = v85 + v88;
                                 v94[2] = v86 + v89;
                                 VectorScale(v94, 0.5f, v94);
+                              }
+                              else if ( v36 < (float)v60 )
+                              {
+                                v65 = v36;
+                                *(int *)&v91[0] = v107;
+                                v91[1] = v108;
+                                v91[2] = v109;
+                                *(int *)&v94[0] = v87;
+                                v94[1] = v88;
+                                v94[2] = v89;
+                              }
+                              else
+                              {
+                                v65 = v60;
+                                *(int *)&v91[0] = v104;
+                                v91[1] = v105;
+                                v91[2] = v106;
+                                *(int *)&v94[0] = v84;
+                                v94[1] = v85;
+                                v94[2] = v86;
                               }
                               v140[0] = *(float *)&v84 - *(float *)&v87;
                               v140[1] = v85 - v88;
@@ -11391,7 +11386,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v94[1] = v110[1];
           v94[2] = v110[2] + 4.0f;
           trace = AAS_TraceClientBBox(v91, v94, 2, -1);
-          if ( !trace.startsolid && trace.fraction >= 1.0f )
+          if ( !trace.startsolid && trace.fraction >= 1.0 )
           {
             trace.endpos[2] = trace.endpos[2] + 1.0f;
             if ( AAS_PointAreaNum(trace.endpos) == v49 )
