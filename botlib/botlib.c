@@ -7318,7 +7318,7 @@ LABEL_21:
 // origin is within 40 units of the caller's reference point in both
 // the x and y axes (integer-truncated abs(dx) < 40 && abs(dy) < 40).
 // Of all candidates passing the gate, return the index whose 3D
-// straight-line distance to ref is smallest (initial best = 100000.0,
+// straight-line distance to ref is smallest (initial best = 99999.0,
 // .rdata literal 0x47C34F80).  Result index lives in eax; best
 // distance is dropped on return.  When numentities <= 0 the function
 // short-circuits to eax = 0 without touching arg1.
@@ -7332,29 +7332,25 @@ int __cdecl sub_1000B1F0(float *ref, int target)
   int best_index;
   float best_dist;
   aas_entityinfo_t *ent;
-  float dx, dy, dz;
   vec3_t delta;
-  double d;
+  float d;
 
-  best_dist  = 100000.0f;
+  best_dist  = 99999.0f;
   best_index = 0;
   if ( aasworld.numentities <= 0 )
-    return 0;
+    return best_index;
   for ( i = 0; i < aasworld.numentities; i++ )
   {
     ent = &aasworld.entities[i].i;
     if ( ent->modelindex != target )
       continue;
-    dx = ent->origin[0] - ref[0];
-    dy = ent->origin[1] - ref[1];
-    dz = ent->origin[2] - ref[2];
-    if ( abs((int)dx) >= 40 )
+    delta[0] = ent->origin[0] - ref[0];
+    delta[1] = ent->origin[1] - ref[1];
+    delta[2] = ent->origin[2] - ref[2];
+    if ( abs((int)delta[0]) >= 40 )
       continue;
-    if ( abs((int)dy) >= 40 )
+    if ( abs((int)delta[1]) >= 40 )
       continue;
-    delta[0] = dx;
-    delta[1] = dy;
-    delta[2] = dz;
     d = VectorLength(delta);
     if ( d < best_dist )
     {
@@ -21553,7 +21549,7 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
   {
     EA_Command(bs->client, "gender",
                (char *)Characteristic_String(BotCharacter(bs), 3), (char *)0);
-    if ( LibVarValue("altnames", (char *)"0") != 0.0 )
+    if ( LibVarValue("altnames", (char *)"0") != 0.0f )
     {
       EA_Command(bs->client, "name",
                  (char *)Characteristic_String(BotCharacter(bs), 1), (char *)0);
@@ -21564,7 +21560,7 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
   BotCheckConsoleMessages(bs);
   if ( !BotAINode(bs) )
     AIEnter_Seek_LTG(bs);
-  if ( AAS_Time() - 8.0 < bs->setup_time && BotChat_EnterGame(bs) )
+  if ( AAS_Time() - 8.0f < bs->setup_time && BotChat_EnterGame(bs) )
   {
     v6 = BotChatTime(bs);
     bs->stand_time = AAS_Time() + v6;
@@ -25049,7 +25045,7 @@ LABEL_21:
         while ( v7 );
         v15 = v8;
       }
-      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)v15);
+      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
       v10 = v2->firstchatmessage;
       v11 = v9;
       if ( v10 )
@@ -25071,7 +25067,7 @@ LABEL_34:
   while ( v2 );
   if ( v13 )
   {
-    v13->time = AAS_Time() + 20.0;
+    v13->time = AAS_Time() + 20.0f;
     BotConstructChatMessage(cs, v13->chatmessage, 0, (bot_chatvar_t *)v16.variables, 16);
     return 1;
   }
@@ -25610,7 +25606,7 @@ int BotUpdateEntityItems()
     do
     {
       v1 = v0->next;
-      if ( v0->timeout != 0.0 && AAS_Time() > v0->timeout )
+      if ( v0->timeout != 0.0f && AAS_Time() > v0->timeout )
       {
         RemoveLevelItemFromList(v0);
         FreeLevelItem(v0);
@@ -25663,7 +25659,7 @@ LABEL_19:
     v21[0] = v5->origin[0] - v22[4];
     v21[1] = v5->origin[1] - v22[5];
     v21[2] = v5->origin[2] - v22[6];
-    if ( VectorLength(v21) >= 20.0 )
+    if ( VectorLength(v21) >= 20.0f )
       goto LABEL_19;
     v10 = v22[4];
     v5->origin[1] = v22[5];
@@ -25710,7 +25706,7 @@ LABEL_25:
                                   v18->items[v4].mins,
                                   v18->items[v4].maxs,
                                   v13->goalorigin);
-        v13->timeout = AAS_Time() + 30.0;
+        v13->timeout = AAS_Time() + 30.0f;
         AddLevelItemToList(v13);
       }
     }
@@ -26110,7 +26106,7 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot
   VectorScale((float *)origin, 0.5, (float *)origin);
   VectorAdd(origin, goal->origin, origin);
   qmemcpy(v9, AAS_Trace(v9, (float*)a2, 0, 0, origin, a1, 3), 0x54u);
-  if ( *(float *)&v9[2] < 1.0 )
+  if ( *(float *)&v9[2] < 1.0f )
     return 0;
   v4 = goal->entitynum;
   if ( v4 <= 0 )
@@ -26517,7 +26513,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
     return 0;
   qmemcpy(v6, AAS_ReachabilityFromNum(v7, v4), sizeof(v6));
   target[0] = *(float *)&v6[6];
-  target[2] = *(float *)&v6[8] - 15.0;
+  target[2] = *(float *)&v6[8] - 15.0f;
   *(int *)&target[1] = v6[7];
   return 1;
 }
@@ -26682,10 +26678,10 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   int v5; // eax
   char v6; // bl
   int v7; // edi
-  double v9; // st7
-  double v10; // st7
+  float v9; // st7
+  float v10; // st7
   int v11; // ebx
-  double v13; // st7
+  float v13; // st7
   /* IDA split a vec3 stack local — see BotTravel_Walk note. Original
    * .text 0x10031995/0x1003199a/0x1003199e stores the 3 floats at contiguous
    * [esp+0x10/+0x14/+0x18].  Renamed from 'dir' to 'hordir' (Q3 name) to free
@@ -26711,7 +26707,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       if ( (type & 4) == 0 )
       {
         BotGapDistance(ms, hordir);
-        if ( v9 > 0.0 )
+        if ( v9 > 0.0f )
         {
           v6 = type | 4;
           LOBYTE(type) = type | 4;
@@ -26721,13 +26717,13 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       v19 = v6 & 4;
       if ( (v6 & 4) != 0 )
       {
-        v10 = 3.0;
+        v10 = 3.0f;
         v20 = ms->thinktime;
         v17[2] = libvar_sv_jumpvel->value;
       }
       else
       {
-        v10 = 2.0;
+        v10 = 2.0f;
         v20 = ms->thinktime;
       }
       v11 = (__int64)(v10 / v20);
@@ -26753,7 +26749,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         return 0;
       v13 = *(float *)v18 - ms->origin[0];
       hordir[0] = v13;
-      if ( speed * ms->thinktime * 0.5 > VectorLength(hordir) )
+      if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
         return 0;
       if ( v19 )
         EA_Jump(ms->client);
@@ -26762,7 +26758,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       EA_Move(ms->client, hordir, speed);
     }
   }
-  else if ( (v5 & 1) != 0 && ms->velocity[2] < 50.0 )
+  else if ( (v5 & 1) != 0 && ms->velocity[2] < 50.0f )
   {
     EA_Move(ms->client, dir, speed);
   }
