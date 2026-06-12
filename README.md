@@ -76,11 +76,11 @@ compiler that built the original `gladiator.dll`, and then compare the
 resulting machine code against the bytes inside the real 1999 DLL — one
 small routine at a time.
 
-**Of the 696 routines in the original Gladiator Bot DLL, 516 (about
-74 %) currently come out byte-for-byte identical to Mr. Elusive's
+**Of the 787 routines in the original Gladiator Bot DLL, 591 (about
+75 %) currently come out byte-for-byte identical to Mr. Elusive's
 original.**
 
-The remaining 180 are close but not yet exact: most of them are off by
+The remaining 196 are close but not yet exact: most of them are off by
 just a handful of CPU instructions — usually a tiny source-level detail
 we haven't pinned down yet — and **none are missing** (every routine in
 the original is paired with one in our reconstruction). Each remaining
