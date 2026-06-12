@@ -17517,7 +17517,11 @@ LABEL_18:
   {
     if ( (v15.flags & 4) != 0 )
     {
-      if ( bs->thinktime * 0.8 <= (float)(rand() & 0x7FFF) * 0.000030518509f )
+      /* Operand order matches the original: the rand() side is evaluated
+       * FIRST so the double product (thinktime*0.8) is not spilled to a
+       * QWORD stack slot across the call (ref 1001f48d-1001f4a3:
+       * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
         goto LABEL_33;
       BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
       VectorSubtract(target, bs->origin, dir);
@@ -18011,7 +18015,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
 
   int v2; // edi
   bot_goal_t *v3; // esi (was int — holds BotLongTermGoal pointer)
-  double v4; // st7
+  float v4; // st7
   float v4b; // captured BFloat dodge probability (IDA dropped the fstps)
   int v5; // eax
   int v6; // ecx
@@ -18075,12 +18079,12 @@ LABEL_10:
     {
       v4 = AAS_Time();
       if ( v4 > bs->check_time
-        && (v4 = AAS_Time() + 1.0,
+        && (v4 = AAS_Time() + 1.0f,
             bs->check_time = v4,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
-        bs->nbg_time = AAS_Time() + 5.0;
+        bs->nbg_time = AAS_Time() + 5.0f;
         AIEnter_Battle_NBG(bs);
         return 0;
       }
@@ -19086,15 +19090,15 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
 float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
 {
   int *v2; // ebp
-  double v5; // st7
+  float v5; // st7
   int v6; // ax
   int v7; // ax
   void *v8; // eax
-  double v9; // st7
-  double v10; // st7
-  double v11; // st6
+  float v9; // st7
+  float v10; // st7
+  float v11; // st6
   char v12; // al
-  double v13; // st7
+  float v13; // st7
   float *result; // eax
   float v15; // ecx
   float v16; // edx
@@ -19127,7 +19131,7 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       v24 = -1.0;
       if ( (float)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[0] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[0] + 50.0;
+      endpos[0] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[0] + 50.0f;
     }
     if ( v25 > 0.2 )
     {
@@ -19135,11 +19139,11 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       v24 = -1.0;
       if ( (float)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[1] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[1] + 50.0;
+      endpos[1] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[1] + 50.0f;
     }
     v20 = rand() & 0x7FFF;
     v18 = a1[2];
-    endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0 - 1.0 + endpos[2];
+    endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0f - 1.0f + endpos[2];
     v8 = AAS_Trace(v32, (float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     qmemcpy(v31, v8, sizeof(v31));
@@ -19147,9 +19151,9 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
     dir[1] = endpos[1] - *((float *)a1 + 422);
     dir[2] = endpos[2] - *((float *)a1 + 423);
     v10 = VectorNormalize(dir);
-    if ( v10 > 100.0 )
+    if ( v10 > 100.0f )
     {
-      v19 = *(float *)&v31[2] * v10 - 40.0;
+      v19 = *(float *)&v31[2] * v10 - 40.0f;
       VectorScale((float *)dir, v19, (float *)dir);
       v17 = a1[2];
       endpos[0] = dir[0] + *(float *)v2;
@@ -19158,20 +19162,20 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       v30[1] = endpos[1];
       endpos[2] = v11;
       v30[0] = endpos[0];
-      v30[2] = endpos[2] - 800.0;
+      v30[2] = endpos[2] - 800.0f;
       qmemcpy(v31, AAS_Trace(v33, (float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(v30), v17, 3), sizeof(v31));
       if ( !v31[1] )
       {
-        *(float *)&v31[5] = *(float *)&v31[5] + 1.0;
+        *(float *)&v31[5] = *(float *)&v31[5] + 1.0f;
         v12 = sub_10003080((float *)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
         if ( (v12 & 0x18) == 0 )
           break;
       }
     }
-    v13 = v26 + 1.0;
+    v13 = v26 + 1.0f;
     v26 = v13;
   }
-  while ( v13 < 10.0 );
+  while ( v13 < 10.0f );
   result = a2;
   v15 = endpos[1];
   v16 = endpos[2];
@@ -20785,8 +20789,8 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
     }
     else
     {
-      v5 = (float)(rand() & 0x7FFF) * 0.000030518509;
-      if ( 1.0 / (float)(BotNumTeamMates(bs) - 1) < v5 )
+      v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+      if ( 1.0f / (float)(BotNumTeamMates(bs) - 1) < v5 )
         return 0;
     }
     return 1;
@@ -21411,7 +21415,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   char *v4; // eax
   ptrdiff_t v5; // length in message
   int v6; // ecx
-  double v7; // st7
+  float v7; // st7
   char *v8; // eax
   char *Str2; // [esp+10h] [ebp-14h]
   float v11; // [esp+14h] [ebp-10h]
@@ -21463,7 +21467,7 @@ LABEL_11:
     if ( !BotMatchMessage(v1, v3->message) && v3->type == 1 )
     {
       v7 = libvar_nochat->value;
-      if ( v7 == 0.0 && BotAINode((bot_state_t *)v1) != AINode_Stand )
+      if ( v7 == 0.0f && BotAINode((bot_state_t *)v1) != AINode_Stand )
       {
         if ( BotValidChatPosition(v1) )
         {
@@ -25845,7 +25849,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
       {
         do
         {
-          if ( BotAvoidGoalTime(a1, li->number) <= 0.0 )
+          if ( BotAvoidGoalTime(a1, li->number) <= 0.0f )
           {
             v9 = li->areanum;
             if ( v9 )
@@ -25855,15 +25859,15 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
               if ( v11 >= 0 )
               {
                 v12 = FuzzyWeightUndecided(a3, &p0->weights[v11]);
-                if ( v12 > 0.0 )
+                if ( v12 > 0.0f )
                 {
                   v17 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v15, v9, a4);
                   if ( v17 )
                   {
                     v19 = v12;
                     v13 = v19 / ((float)v17 * 0.01);
-                    if ( li->timeout != 0.0 )
-                      v13 = v13 + 20.0;
+                    if ( li->timeout != 0.0f )
+                      v13 = v13 + 20.0f;
                     if ( v13 > v20 )
                     {
                       v14 = li;
@@ -25894,8 +25898,8 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
         if ( v14 )
         {
           v21 = v16->items[v14->iteminfo].respawntime;
-          if ( v21 == 0.0 )
-            v21 = 30.0;
+          if ( v21 == 0.0f )
+            v21 = 30.0f;
           BotAddToAvoidGoals(a1, v14->number, v21);
           BotPushGoal(a1, v18);
           return 1;
@@ -25937,8 +25941,8 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
   int v11; // ebx
   iteminfo_t *v12; // edi (was _DWORD *) - 64-bit fix
   int v13; // eax
-  double v14; // st7
-  double v15; // st7
+  float v14; // st7
+  float v15; // st7
   int v16; // eax
   float v17; // [esp+Ch] [ebp-4Ch]
   levelitem_t *v18; // [esp+10h] [ebp-48h]
@@ -25979,7 +25983,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
           return 0;
         do
         {
-          if ( BotAvoidGoalTime(a1, li->number) <= 0.0 )
+          if ( BotAvoidGoalTime(a1, li->number) <= 0.0f )
           {
             v11 = li->areanum;
             if ( v11 )
@@ -25990,7 +25994,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
               {
                 v14 = FuzzyWeightUndecided(a3, &p0->weights[v13]);
                 *(float *)&v23 = v14;
-                if ( v14 > 0.0 )
+                if ( v14 > 0.0f )
                 {
                   v21 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v20, v11, a4);
                   if ( v21 )
@@ -25999,8 +26003,8 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
                     if ( v15 < a6 )
                     {
                       *(float *)&v24 = *(float *)&v23 / (v15 * 0.01);
-                      if ( li->timeout != 0.0 )
-                        *(float *)&v24 = *(float *)&v24 + 20.0;
+                      if ( li->timeout != 0.0f )
+                        *(float *)&v24 = *(float *)&v24 + 20.0f;
                       if ( *(float *)&v24 > (float)v17 )
                       {
                         v16 = 0;
@@ -26038,8 +26042,8 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
         if ( v18 )
         {
           v26 = v19p->items[v18->iteminfo].respawntime;
-          if ( v26 == 0.0 )
-            v26 = 30.0;
+          if ( v26 == 0.0f )
+            v26 = 30.0f;
           BotAddToAvoidGoals(a1, v18->number, v26);
           BotPushGoal(a1, v22);
           return 1;
@@ -26320,7 +26324,7 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
   int v3; // ecx
   int v4; // edi
   int v7; // eax
-  double v8; // st7
+  float v8; // st7
   /* v10/v12/v13/v14 are int[3] in IDA decomp; v10[0]/v10[1]/v14[0]/v14[1] are
    * raw 32-bit copies of float coords.  v12/v13 hold float bit patterns
    * (mins/maxs).  Retyping to float[3] silently injects int->float conversion
@@ -26360,13 +26364,13 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
       if ( v4 >= 2 )
       {
         v7 = *(_DWORD *)&a1[1];
-        v8 = a1[2] + 24.0;
+        v8 = a1[2] + 24.0f;
         v10[0] = *(_DWORD *)&a1[0];
         v14[0] = v10[0];
         v10[1] = v7;
         v14[1] = v7;
         *(float *)&v10[2] = v8;
-        *(float *)&v14[2] = a1[2] - 48.0;
+        *(float *)&v14[2] = a1[2] - 48.0f;
         qmemcpy(v18, AAS_Trace(v18, (float*)(v10), (float*)v12, (float*)v13, (float*)(v14), a2, 33619971), sizeof(v18));
         return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == a3->facenum;
       }
@@ -26941,25 +26945,25 @@ void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
 {
   bot_moveresult_t moveresult;
   vec3_t dir;
-  double speed;
+  float speed;
 
   BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = *(float *)((char *)ent + 0x18) - origin[0];
   dir[1] = *(float *)((char *)ent + 0x1C) - origin[1];
   speed = VectorNormalize(dir);
-  if ( speed < 100.0 )
-    speed = 100.0;
-  /* Mr. Elusive bug preserved verbatim: the .text at 10032042 /
-   * 10032048 contains two consecutive `fsubr DWORD [0x10058384]`
-   * (= 400.0) instructions.  Algebraically they cancel:
-   * 400 - (400 - 3*speed) == 3*speed, so the net effect is just
-   * `speed *= 3`.  Coded as a single multiply here. */
-  speed = speed * 3.0;
+  if ( speed < 100.0f )
+    speed = 100.0f;
   moveresult.movedir[0] = dir[0];   /* +0x18 */
   moveresult.movedir[1] = 0.0f;     /* +0x1C */
   moveresult.movedir[2] = dir[1];   /* +0x20 */
-  EA_Move(*(int *)((char *)ent + 0x28), dir, (float)speed);
+  /* Mr. Elusive bug preserved verbatim: the .text at 10032042 /
+   * 10032048 emits two consecutive `fsubr DWORD [0x10058384]`
+   * (= 400.0) after `fmul DWORD [0x10058380]` (= 3.0).  Algebraically
+   * 400 - (400 - 3*speed) == 3*speed, but the original source wrote it
+   * out as the nested subtraction, so reproduce the literal form to
+   * match the two fsubr instructions (all float / DWORD ops). */
+  EA_Move(*(int *)((char *)ent + 0x28), dir, 400.0f - (400.0f - speed * 3.0f));
   memcpy(out, &moveresult, 48);
 }
 
