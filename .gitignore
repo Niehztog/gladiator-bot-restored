@@ -35,3 +35,11 @@ tools/__pycache__/
 # Claude Code transient runtime lock (per-session pid/sessionId)
 .claude/scheduled_tasks.lock
 /CMakeLists.txt
+
+# Regenerable campaign intermediates (tools/gen_inline_strings.py,
+# tools/extract_eax_returnslot_vars.py) — committed history of the applied
+# 2026-06 campaigns lives at commits 619810ad / f0729075.
+tools/inline_strings.cocci
+tools/inline_strings_decls.txt
+tools/inline_strings_map.tsv
+tools/eax_candidates.json

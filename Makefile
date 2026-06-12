@@ -264,6 +264,10 @@ verify scan:
 	-${Q}python3 tools/scan_float_where_int_sig.py
 	@echo "===> tools/scan_vec3_splits.py"
 	${Q}python3 tools/scan_vec3_splits.py
+	@echo "===> tools/scan_fpu_temp_saturation.py (informational; non-zero allowed)"
+	-${Q}python3 tools/scan_fpu_temp_saturation.py
+	@echo "===> tools/scan_aarch64_ptr_trunc.py (skips when release/gladiator.so absent)"
+	${Q}python3 tools/scan_aarch64_ptr_trunc.py
 	@echo "===> tools/check_struct_sizes.py"
 	${Q}python3 tools/check_struct_sizes.py
 	@echo "===> verify OK"

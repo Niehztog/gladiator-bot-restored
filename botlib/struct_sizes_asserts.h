@@ -49,6 +49,10 @@ _Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must rem
 /* bot_moveresult_t is pointer-free (6 ints + 2 vec3_t) so it is 48 bytes on
  * every target — assert it unconditionally, including the native 64-bit build. */
 _Static_assert(sizeof(bot_moveresult_t)    == 48,   "bot_moveresult_t size (0x30, Q3 minus weapon field)");
+/* bot_movestate_t (vec3/int/float only) and bot_chatstate_t (int/char union)
+ * are pointer-free as well — same size on every target. */
+_Static_assert(sizeof(bot_movestate_t)     == 128,  "bot_movestate_t size (bs+2880..+3007 inline block)");
+_Static_assert(sizeof(bot_chatstate_t)     == 188,  "bot_chatstate_t size (47 ints, bs+3980 inline block)");
 
 #if INTPTR_MAX == INT32_MAX
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
@@ -86,6 +90,20 @@ _Static_assert(sizeof(bot_matchpiece_t)    == 16,   "bot_matchpiece_t size");
 _Static_assert(sizeof(bot_matchtemplate_t) == 20,   "bot_matchtemplate_t size");
 _Static_assert(sizeof(bot_matchvariable_t) == 8,    "bot_matchvariable_t size");
 _Static_assert(sizeof(bot_match_t)         == 240,  "bot_match_t size");
+_Static_assert(sizeof(bot_chatmessage_t)   == 12,   "bot_chatmessage_t size (12 on 32-bit)");
+_Static_assert(sizeof(bot_replychatkey_t)  == 16,   "bot_replychatkey_t size (16 on 32-bit)");
+_Static_assert(sizeof(bot_replychat_t)     == 20,   "bot_replychat_t size (20 on 32-bit)");
+_Static_assert(sizeof(bot_stringlist_t)    == 8,    "bot_stringlist_t size (8 on 32-bit)");
+_Static_assert(sizeof(bot_consolemessage_t) == 168, "bot_consolemessage_t size (168 on 32-bit)");
+
+/* -- Synonyms / random strings --------------------------------------- */
+_Static_assert(sizeof(bot_synonym_t)       == 12,   "bot_synonym_t size (12 on 32-bit)");
+_Static_assert(sizeof(bot_synonymlist_t)   == 16,   "bot_synonymlist_t size (16 on 32-bit)");
+_Static_assert(sizeof(bot_randomstring_t)  == 8,    "bot_randomstring_t size (8 on 32-bit)");
+_Static_assert(sizeof(bot_randomlist_t)    == 16,   "bot_randomlist_t size (16 on 32-bit)");
+
+/* -- Script CRC cache ------------------------------------------------ */
+_Static_assert(sizeof(scriptcrc_t)         == 152,  "scriptcrc_t size (152 on 32-bit)");
 
 /* -- Bot state ------------------------------------------------------- */
 _Static_assert(sizeof(ea_state_t)          == 36,   "ea_state_t size");
