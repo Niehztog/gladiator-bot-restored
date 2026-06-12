@@ -571,7 +571,7 @@ void AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
 double __cdecl AAS_FaceArea(char *face);
-double __cdecl AAS_AreaVolume(int areanum);
+float __cdecl AAS_AreaVolume(int areanum);
 double __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 int AAS_FallDamageDistance();
@@ -10012,25 +10012,32 @@ int AAS_Optimize()
 }
 
 //----- (10010F60) --------------------------------------------------------
-/* 32-bit DLL allocated 65536 fixed-size nodes (48 B each, next-ptr at
- * +44) for the reach free-list.  The +44 next slot can't hold a 64-bit
- * pointer, so retype the heap/free-head to aas_reachabilitynode_t* and
- * size the pool via sizeof() so the stride is correct on both word widths. */
+/* 32-bit DLL allocated 65536 fixed-size nodes (48 B each, next-ptr at +44)
+ * for the reach free-list.  On 64-bit the node is 56 B and the next-ptr sits
+ * at +48, and that slot must hold a full 64-bit pointer.  Keep the original
+ * byte-offset walk verbatim (so MSVC6 still emits the identical +44 /
+ * stride-48 code and the function stays byte-identical) but address the link
+ * slot via offsetof(..,next) and store through intptr_t* — so on aarch64 the
+ * stride (56), the link offset (48) and the stored pointer width (8) are all
+ * correct.  Was: int result + hardcoded +44 + *(int*), which truncated both
+ * the heap base and the stored link AND wrote the link at +44 while
+ * AAS_AllocReachability reads ->next at +48, leaving the free-list empty so
+ * the very first AAS_AllocReachability raised AAS_MAX_REACHABILITYSIZE. */
 #define AAS_REACHABILITYHEAP_NODES 65536
 
 int AAS_SetupReachabilityHeap()
 {
-  int result;
+  intptr_t result;
   int i;
 
-  result = (int)GetClearedMemory(AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
+  result = (intptr_t)GetClearedMemory(AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
   reachabilityheap = result;
   for ( i = 0; i < (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t); i += (int)sizeof(aas_reachabilitynode_t) )
   {
-    *(int *)(i + result + 44) = i + result + (int)sizeof(aas_reachabilitynode_t);
+    *(intptr_t *)(i + result + offsetof(aas_reachabilitynode_t, next)) = i + result + (int)sizeof(aas_reachabilitynode_t);
     result = reachabilityheap;
   }
-  *(int *)(reachabilityheap + (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t) + 44) = 0;
+  *(intptr_t *)(reachabilityheap + (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t) + offsetof(aas_reachabilitynode_t, next)) = 0;
   nextreachability = reachabilityheap;
   return result;
 }
@@ -10138,7 +10145,7 @@ double __cdecl AAS_FaceArea(char *face)
 }
 
 //----- (10011220) --------------------------------------------------------
-double __cdecl AAS_AreaVolume(int areanum)
+float __cdecl AAS_AreaVolume(int areanum)
 {
   char *v1; // esi
   int v2; // edi
@@ -10411,7 +10418,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   v6 = v4->maxs;
   do
   {
-    if ( *(float *)((char *)v6 + ((char *)v3 - (char *)v4)) + 10.0 < *(v6 - 3) || *v5 - 10.0 > *v6 )
+    if ( *(float *)((char *)v6 + ((char *)v3 - (char *)v4)) + 10.0f < *(v6 - 3) || *v5 - 10.0f > *v6 )
       return 0;
     ++v2;
     ++v6;
@@ -10470,7 +10477,7 @@ LABEL_14:
   VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), lreach->reach.end);
   v16->reach.traveltype = 8;
   v16->reach.traveltime = 1;
-  if ( AAS_AreaVolume(area2num) < 800.0 )
+  if ( AAS_AreaVolume(area2num) < 800.0f )
     v16->reach.traveltime += 200;
   v16->next = areareachability[area1num];
   areareachability[area1num] = v16;
