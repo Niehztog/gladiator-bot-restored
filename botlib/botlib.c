@@ -863,7 +863,7 @@ void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
 int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10);
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target);
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
-double __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
+float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed);
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
@@ -2431,16 +2431,16 @@ int __cdecl sub_10003C90(
    * On aarch64 the int truncated dword_100674F4's heap address.  Widened to char *. */
   char *v16;
   int v17; // ecx
-  double v18; // st7
-  double v19; // st7
-  double v20; // st6
-  double v22; // st5
+  float v18; // st7
+  float v19; // st7
+  float v20; // st6
+  float v22; // st5
   unsigned __int8 v23; // c0
   unsigned __int8 v24; // c3
-  double v25; // st5
-  double v29; // st7
-  double v30; // st7
-  double v31; // st7
+  float v25; // st5
+  float v29; // st7
+  float v30; // st7
+  float v31; // st7
   float v32; // ecx
   float v33; // edx
   float v35; // [esp+10h] [ebp-7Ch]
@@ -2459,7 +2459,7 @@ int __cdecl sub_10003C90(
   vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
   float v59[9]; // [esp+68h] [ebp-24h] BYREF
 
-  if ( *a3 == 0.0 && a3[1] == 0.0 && a3[2] == 0.0 )
+  if ( *a3 == 0.0f && a3[1] == 0.0f && a3[2] == 0.0f )
   {
     v11 = 0;
     v39 = 0;
@@ -2471,7 +2471,7 @@ int __cdecl sub_10003C90(
     v11 = 0;
   }
   v12 = a2;
-  if ( *a2 != 0.0 || a2[1] != 0.0 || (v40 = 0, a2[2] != 0.0) )
+  if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
     v40 = 1;
   v13 = (float *)a4;
   v14 = a1;
@@ -2513,7 +2513,7 @@ int __cdecl sub_10003C90(
         }
         else
         {
-          if ( normal[v17] <= 0.0 )
+          if ( normal[v17] <= 0.0f )
             v18 = *(float *)(v16 + 12) - v12[v17];
           else
             v18 = v12[v17] + *(float *)(v16 + 12);
@@ -2558,7 +2558,7 @@ int __cdecl sub_10003C90(
       {
         if ( a6 )
         {
-          if ( normal[v17] <= 0.0 )
+          if ( normal[v17] <= 0.0f )
           {
             v19 = *(float *)(a6 + 4 * v17);
             v12 = a2;
@@ -19507,7 +19507,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   int v3; // eax
   int *i; // ebp
   BOOL v5; // esi
-  double v6; // st7
+  float v6; // st7
   float v8; // [esp+10h] [ebp-168h]
   float v9; // [esp+14h] [ebp-164h]
   int v10; // [esp+18h] [ebp-160h]
@@ -19526,7 +19526,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v3 = bs->inventory_health;
   bs->lasthealth = v3;
   v16 = v2 > v3;
-  v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0, 16, v19);
+  v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
   v10 = 0;
   if ( v14 <= 0 )
     return 0;
@@ -19539,26 +19539,26 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
       dir[1] = *(float *)&v18[5] - bs->origin[1];
       dir[2] = *(float *)&v18[6] - bs->origin[2];
       v8 = VectorLength(dir);
-      if ( v15 || v8 <= 900.0 )
+      if ( v15 || v8 <= 900.0f )
       {
         v5 = v16;
         if ( v16 )
         {
-          v9 = 360.0;
+          v9 = 360.0f;
         }
         else
         {
-          v6 = v8 <= 810.0 ? v8 : 810.0;
-          v9 = 360.0 - (270.0 - v6 * 0.33333334);
+          v6 = v8 <= 810.0f ? v8 : 810.0f;
+          v9 = 360.0f - (270.0f - v6 * 0.33333334f);
         }
         vectoangles(dir, (float *)v17);
         if ( InFieldOfVision(bs->viewangles, v9, v17) && !BotSameTeam(bs, *i) )
         {
-          if ( v5 && v8 <= 300.0 )
+          if ( v5 && v8 <= 300.0f )
             break;
           if ( AAS_PointLight((float *)&v18[4], 0, 0, 0) >= 5 )
           {
-            if ( v8 <= 300.0 )
+            if ( v8 <= 300.0f )
               break;
             if ( EntityIsShooting((intptr_t)v18) )
               break;
@@ -19566,7 +19566,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
             dir[1] = bs->origin[1] - *(float *)&v18[5];
             dir[2] = bs->origin[2] - *(float *)&v18[6];
             vectoangles(dir, (float *)v17);
-            if ( InFieldOfVision((float *)&v18[7], 160.0, v17) )
+            if ( InFieldOfVision((float *)&v18[7], 160.0f, v17) )
               break;
             BotUpdateBattleInventory(bs, *i);
             if ( !BotWantsToRetreat((int *)bs) )
@@ -26546,9 +26546,9 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 }
 
 //----- (10031450) --------------------------------------------------------
-double __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
+float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
-  double v6; // st7
+  float v6; // st7
   char v8; // al
   float v9; // [esp+10h] [ebp-64h]
   /* IDA split two vec3 stack locals (v10, v13) into single ints / floats and
@@ -26585,7 +26585,7 @@ LABEL_5:
     v6 = v18 + 8.0f;
     v18 = v6;
     if ( v6 > 100.0f )
-      return 0.0;
+      return 0.0f;
   }
   if ( v9 - libvar_sv_step->value - 8.0f <= trace.endpos[2] )
   {
@@ -26597,7 +26597,7 @@ LABEL_5:
   v10[2] = trace.endpos[2] - 20.0f;
   v8 = bi_PointContents((float *)v10);   /* IDA-dropped: barrier-jump under-water check */
   if ( (v8 & 0x20) != 0 )
-    return 0.0;
+    return 0.0f;
   return v18;
 }
 
@@ -27433,14 +27433,14 @@ bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate
 //----- (10033210) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  double v4; // st7
-  double v5; // st7
-  double v6; // st7
+  float v4; // st7
+  float v5; // st7
+  float v6; // st7
   char v7; // al
-  double v8; // st7
+  float v8; // st7
   char v9; // al
   char v11; // al
-  double v12; // st7
+  float v12; // st7
   float v13; // eax
   char v14; // al
   bot_moveresult_t *result; // eax
@@ -27467,8 +27467,8 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       dir[0] = v4;
       dir[1] = reach->end[1] - ms->origin[1];
       VectorNormalize(dir);
-      if ( !BotCheckBarrierJump(ms, dir, 100.0) )
-        EA_Move(ms->client, dir, 400.0);
+      if ( !BotCheckBarrierJump(ms, dir, 100.0f) )
+        EA_Move(ms->client, dir, 400.0f);
       VectorCopy(dir, moveresult.movedir);
     }
     else
@@ -27479,11 +27479,11 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       dir[0] = v5;
       dir[1] = telegoal[1] - ms->origin[1];
       v6 = VectorNormalize(dir);
-      if ( v6 > 5.0 )
+      if ( v6 > 5.0f )
       {
-        if ( v6 > 100.0 )
-          v6 = 100.0;
-        v17 = 400.0 - (400.0 - v6 * 4.0);
+        if ( v6 > 100.0f )
+          v6 = 100.0f;
+        v17 = 400.0f - (400.0f - v6 * 4.0f);
         EA_Move(ms->client, dir, v17);
         VectorCopy(dir, moveresult.movedir);
       }
@@ -27504,9 +27504,9 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       if ( (v11 & 4) == 0 )
         telegoaldir[2] = 0.0f;
       v12 = VectorNormalize(telegoaldir);
-      if ( *(float *)&v35 < 20.0
+      if ( *(float *)&v35 < 20.0f
         || v12 < *(float *)&v35
-        || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0 )
+        || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
       {
         v37 = v12;
         v13 = telegoaldir[2];
@@ -27522,11 +27522,11 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       }
       final[2] = v13;
       BotCheckBlocked(ms, final, &moveresult);
-      if ( v37 > 60.0 )
-        v37 = 60.0;
-      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0) )
+      if ( v37 > 60.0f )
+        v37 = 60.0f;
+      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) )
       {
-        v18 = 400.0 - (400.0 - v37 * 6.0);
+        v18 = 400.0f - (400.0f - v37 * 6.0f);
         EA_Move(ms->client, final, v18);
       }
       moveresult.movedir[0] = final[0];
@@ -27542,12 +27542,12 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
     {
       VectorCopy(reachdir, final);
       BotCheckBlocked(ms, final, &moveresult);
-      if ( *(float *)&v35 <= 60.0 )
+      if ( *(float *)&v35 <= 60.0f )
         v8 = *(float *)&v35;
       else
-        v8 = 60.0;
-      v36 = 360.0 - (360.0 - v8 * 6.0);
-      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0) && v36 > 5.0 )
+        v8 = 60.0f;
+      v36 = 360.0f - (360.0f - v8 * 6.0f);
+      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) && v36 > 5.0f )
         EA_Move(ms->client, final, v36);
       moveresult.movedir[2] = final[2];
       v9 = ms->moveflags;
