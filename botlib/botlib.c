@@ -35771,7 +35771,12 @@ float *__cdecl VectorNegate(float *v)
  * key/value tokeniser).  Dead in Gladiator: no caller reaches the
  * info-validation path; only the /INCREMENTAL relink stub keeps it
  * alive. */
-/* Info_Validate — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
+/* Info_Validate's body lives in game/q_shared.c (q_shared.o).  This forward
+ * declaration exists only so the oracle funcmap parser attributes 0x10043FC0
+ * to Info_Validate; without a real line here the `//----- (10043FC0)` marker
+ * would leak onto the trailing Com_Printf stub (which folds with Com_DPrintf
+ * @0x10042410 and has no distinct original address of its own). */
+qboolean Info_Validate(char *s);
 
 // nfuncs=1767 queued=667 decompiled=667 lumina nreq=0 worse=0 better=0
 // Note: MSVC CRT functions that were statically compiled into the DLL have been removed
