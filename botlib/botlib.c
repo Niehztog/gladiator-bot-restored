@@ -2155,15 +2155,20 @@ float *__cdecl sub_10003460(float *a1, float *a2)
  * fixed [ebp-...] offsets); fixed by using real `float[9]` arrays. */
 void __cdecl AnglesToAxis(float *angles, float *axis_out)
 {
-  /* DEG2RAD constant: 64-bit double matching .rdata 0x10058008 */
+  /* DEG2RAD constant: 64-bit double matching .rdata 0x10058008.  The radian
+     products are inlined into the sin/cos calls (not stored to named double
+     locals) so MSVC6 /O2 keeps each `angles[i]*DEG2RAD` live on the x87 stack
+     and CSEs it between sin and cos (fld st(0); fsin; ... fcos) — matching ref,
+     which has only the three `fmul QWORD DEG2RAD` and no double spill slots. */
   static const double DEG2RAD = 0.017453292519943295;
-  double yaw_rad   = angles[1] * DEG2RAD;
-  double pitch_rad = angles[0] * DEG2RAD;
-  double roll_rad  = angles[2] * DEG2RAD;
-  float sy = (float)sin(yaw_rad),   cy = (float)cos(yaw_rad);
-  float sp = (float)sin(pitch_rad), cp = (float)cos(pitch_rad);
-  float sr = (float)sin(roll_rad),  cr = (float)cos(roll_rad);
-  float yaw_m[9], pitch_m[9], roll_m[9], tmp[9];
+  float sy = (float)sin(angles[1] * DEG2RAD), cy = (float)cos(angles[1] * DEG2RAD);
+  float sp = (float)sin(angles[0] * DEG2RAD), cp = (float)cos(angles[0] * DEG2RAD);
+  float sr, cr;
+  /* Only THREE matrix buffers: `m` holds the pitch matrix for the first
+     concat, then is rebuilt in place as the roll matrix for the second (it is
+     arg1 of both calls).  ref's 0x6c frame is exactly 3*9 floats — it reuses
+     the buffer rather than carrying a separate roll_m. */
+  float m[9], yaw_m[9], tmp[9];
 
   /* yaw matrix (rotation around Z) */
   yaw_m[0] =  cy; yaw_m[1] =  sy; yaw_m[2] = 0;
@@ -2171,18 +2176,23 @@ void __cdecl AnglesToAxis(float *angles, float *axis_out)
   yaw_m[6] = 0;   yaw_m[7] = 0;   yaw_m[8] = 1;
 
   /* pitch matrix (rotation around Y) */
-  pitch_m[0] =  cp; pitch_m[1] = 0; pitch_m[2] = -sp;
-  pitch_m[3] =  0;  pitch_m[4] = 1; pitch_m[5] =  0;
-  pitch_m[6] =  sp; pitch_m[7] = 0; pitch_m[8] =  cp;
+  m[0] =  cp; m[1] = 0; m[2] = -sp;
+  m[3] =  0;  m[4] = 1; m[5] =  0;
+  m[6] =  sp; m[7] = 0; m[8] =  cp;
 
-  /* roll matrix (rotation around X) */
-  roll_m[0] = 1; roll_m[1] =  0;  roll_m[2] = 0;
-  roll_m[3] = 0; roll_m[4] =  cr; roll_m[5] = sr;
-  roll_m[6] = 0; roll_m[7] = -sr; roll_m[8] = cr;
+  /* tmp = pitch_m * yaw_m.  ref computes the roll angle and roll matrix only
+     AFTER this call (3rd fmul DEG2RAD at 0x10003599 follows the call at
+     0x10003594), so the roll matrix reuses the now-dead pitch buffer. */
+  R_ConcatRotations(m, yaw_m, tmp);
 
-  /* tmp = pitch_m * yaw_m, then output = roll_m * tmp */
-  R_ConcatRotations(pitch_m, yaw_m, tmp);
-  R_ConcatRotations(roll_m, tmp, axis_out);
+  sr = (float)sin(angles[2] * DEG2RAD); cr = (float)cos(angles[2] * DEG2RAD);
+  /* roll matrix (rotation around X), rebuilt in `m` */
+  m[0] = 1; m[1] =  0;  m[2] = 0;
+  m[3] = 0; m[4] =  cr; m[5] = sr;
+  m[6] = 0; m[7] = -sr; m[8] = cr;
+
+  /* output = roll_m * tmp */
+  R_ConcatRotations(m, tmp, axis_out);
   return;
 }
 
