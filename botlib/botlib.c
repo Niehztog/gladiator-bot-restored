@@ -3989,7 +3989,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
   _DWORD *v11; // esi
   aas_plane_t *v12; // ecx
   int v13; // edx
-  char v14; // al
+  int v14; // eax
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !dword_100674C0 )
@@ -3997,35 +3997,18 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
   v5 = 0;
   v6 = &v15[1];
   v15[0] = *(_DWORD *)(48 * a4 + dword_100674C8 + 36);
-  while ( --v6 >= &v15[0] )
+  /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
+   * un-rotated top-test loop.  Because v6 starts at &v15[1], MSVC6 can
+   * prove the first --v6>=&v15[0] always holds and removes the entry
+   * guard, rotating to a bottom-test loop (OUR-1).  The infinite-loop +
+   * internal break form has no entry guard to remove, so the test stays
+   * at the top exactly as in the ref binary.  Don't "simplify" it back. */
+  while ( 1 )
   {
+    if ( --v6 < &v15[0] )
+      break;
     v7 = *v6;
-    if ( v7 >= 0 )
-    {
-      v11 = (_DWORD *)(dword_10067504 + 28 * v7);
-      v12 = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
-      v13 = v12->type;
-      if ( v13 >= 3 )
-      {
-        v14 = AAS_BoxOnPlaneSide2(a1, a2, (float *)v12);
-      }
-      else if ( v12->dist > (float)a1[v13] )
-      {
-        if ( v12->dist < (float)a2[v13] )
-          v14 = 3;
-        else
-          v14 = 2;
-      }
-      else
-      {
-        v14 = 1;
-      }
-      if ( (v14 & 1) != 0 )
-        *v6++ = v11[1];
-      if ( (v14 & 2) != 0 )
-        *v6++ = v11[2];
-    }
-    else
+    if ( v7 < 0 )
     {
       v8 = -1 - v7;
       v9 = sub_100031F0();
@@ -4045,6 +4028,29 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
       if ( v10 )
         v10->prev_ent = v9;
       dword_10069584[v8] = v9;
+    }
+    else
+    {
+      v11 = (_DWORD *)(dword_10067504 + 28 * v7);
+      v12 = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
+      v13 = v12->type;
+      if ( v13 < 3 )
+      {
+        if ( v12->dist <= (float)a1[v13] )
+          v14 = 1;
+        else if ( v12->dist >= (float)a2[v13] )
+          v14 = 2;
+        else
+          v14 = 3;
+      }
+      else
+      {
+        v14 = AAS_BoxOnPlaneSide2(a1, a2, (float *)v12);
+      }
+      if ( (v14 & 1) != 0 )
+        *v6++ = v11[1];
+      if ( (v14 & 2) != 0 )
+        *v6++ = v11[2];
     }
   }
   return v5;
