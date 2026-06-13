@@ -27714,9 +27714,9 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     v25 = VectorLength(dir);
     if ( v7 )
     {
-      if ( v25 < 48.0 )
+      if ( v25 < 48.0f )
       {
-        if ( ms->lastgrappledist - v25 < 1.0 )
+        if ( ms->lastgrappledist - v25 < 1.0f )
         {
           EA_Command(ms->client, "hookoff", (char *)0);
           v8 = ms->moveflags & 0xFFFFFFBF;
@@ -27726,7 +27726,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
         }
         goto LABEL_8;
       }
-      if ( v7 != 2 || ms->lastgrappledist - 2.0 >= v25 )
+      if ( v7 != 2 || ms->lastgrappledist - 2.0f >= v25 )
       {
         ms->grapplevisible_time = AAS_Time();
         ms->lastgrappledist = v25;
@@ -27770,14 +27770,14 @@ LABEL_26:
    * "length < 2.0", which on a far hookable surface kept the bot perpetually
    * in the walk-toward branch and never fired the hookon command. See
    * .claude/memory/ida_dropped_results.md. */
-  if ( v26 >= 5.0
+  if ( v26 >= 5.0f
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], ms->viewangles[0])), v13 >= 2.0)
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
   {
-    if ( v26 >= 70.0 )
-      v27 = 400.0;
+    if ( v26 >= 70.0f )
+      v27 = 400.0f;
     else
-      v27 = 300.0 - (300.0 - v26 * 4.0);
+      v27 = 300.0f - (300.0f - v26 * 4.0f);
     BotCheckBlocked(ms, dir, &moveresult);
     EA_Move(ms->client, dir, v27);
     VectorCopy(dir, moveresult.movedir);
@@ -31032,7 +31032,7 @@ void __cdecl PC_FreeDefine(define_t *def)
  * /INCREMENTAL relink stub. */
 void __cdecl PC_AddBuiltinDefines(source_t *source)
 {
-  static const struct {
+  struct {
   char *name;
   int   value;
   } builtin[] = {
@@ -31043,15 +31043,14 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
   { NULL,       0 },
   };
   define_t *def;
-  int i, len;
+  int i;
 
   for ( i = 0; builtin[i].name; ++i )
   {
-  len = strlen(builtin[i].name);
-  def = (define_t *)GetMemory(len + 0x21);
+  def = (define_t *)GetMemory(strlen(builtin[i].name) + 0x21);
   memset(def, 0, sizeof(define_t));
   def->name = (char *)def + sizeof(define_t);
-  memcpy(def->name, builtin[i].name, len + 1);
+  strcpy(def->name, builtin[i].name);
   def->flags |= 1;
   def->builtin = builtin[i].value;
   PC_AddDefineToHash(def, source->definehash);
