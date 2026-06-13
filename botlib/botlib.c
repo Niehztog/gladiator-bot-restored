@@ -8998,9 +8998,7 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
  */
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
-  double v2; // st7
   const void *v5; // esi
-  int v7; // edx
   char v8; // cl
   /* IDA split a vec3 stack local (origin+1z) into three adjacent locals
    * v11/v12/v13 at [ebp-74h]/[ebp-70h]/[ebp-6Ch]; passed as a vec3 via
@@ -9013,10 +9011,9 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   vec3_t v15; // [esp+20h] [ebp-5Ch] BYREF
   int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
 
-  v2 = (float)reach->start[0] - (float)reach->end[0];
-  v14[2] = 0;
-  *(float *)v14 = (float)v2;
+  v14[0] = reach->start[0] - reach->end[0];
   v14[1] = reach->start[1] - reach->end[1];
+  v14[2] = 0;
   VectorNormalize(v14);
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
@@ -9025,10 +9022,9 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1f, 124, 0);
   qmemcpy(v16, v5, sizeof(v16));
   *(float *)runstart = *(float *)v16;
-  v7 = v16[1];
   *(_DWORD *)(runstart + 8) = v16[2];
   v8 = v16[16];
-  *(_DWORD *)(runstart + 4) = v7;
+  *(_DWORD *)(runstart + 4) = v16[1];
   if ( (v8 & 0x38) != 0 )
   {
     *(float *)runstart       = start_pos[0];
@@ -9184,7 +9180,7 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   v[1] = bsptrace[4] - v[1];
   v[2] = bsptrace[5] - v[2];
   v14 = radiusdamage;
-  points = v14 - 0.5f * VectorLength(v);
+  points = v14 - 0.5 * VectorLength(v);
   *(float *)&v14 = points;
   if ( points < 0.0f )
     LODWORD(v14) = 0;
@@ -13684,8 +13680,7 @@ int AAS_ContinueInitReachability(int a1)
   {
     v4 = LibVar("reachability_delay", (char *)"100");
     libvar_framereachability = v4;
-    v2 = v4->value;
-    if ( v2 <= 0.0 )
+    if ( v4->value <= 0.0f )
       v4->value = 200.0f;
   }
   v5 = Sys_MilliSeconds();
