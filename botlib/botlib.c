@@ -19688,7 +19688,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     qmemcpy(v45, AAS_Trace(v47, (float*)(&v39), (float*)v43, (float*)v44, (float*)(&v32), v7, 100663299), sizeof(v45));
     if ( *(float *)&v45[2] <= 1.0f && v45[20] != LODWORD(v46[3]) )
       v34 = v34 + 16.0f;
-    if ( v3->speed != 0.0f && v27 > 0.4f )
+    if ( v3->speed != 0.0f && v27 > 0.4 )
     {
       /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
        * at 0x10023a3a-0x10023a65 (three fld/fsub/fstp triples) and the second
@@ -19704,7 +19704,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       v22 = v23 / v3->speed * (v9 / v46[2]);
       VectorMA((float *)&v46[4], v22, v29, (float *)&v32);
     }
-    if ( v27 > 0.6f && (v3->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
+    if ( v27 > 0.6 && (v3->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
     {
       *(float *)v42 = v46[4];
       v42[1] = v46[5];
@@ -19717,7 +19717,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       v38 = v10;
       qmemcpy(v45, AAS_Trace(v47, (float*)(&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299), sizeof(v45));
       v12 = *(float *)&v45[5] - v38;
-      if ( fabs(v12) < 50.0f )
+      if ( fabs(v12) < 50.0 )
       {
         /* IDA dropped Y/Z component stores; restored from disasm 0x100240a0-0x100240c0 */
         v29[0] = *(float *)&v45[3] - *(float *)&v36;
@@ -19744,15 +19744,15 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     v28 = 1.0f - v35;
     v13 = rand();
-    *(float *)&v32 = (2 * ((double)(v13 & 0x7FFF) * 0.000030518509 - 0.5))
+    *(float *)&v32 = (2 * ((float)(v13 & 0x7FFF) * 0.000030518509f - 0.5))
                    * v28
                    * 20.0
                    + *(float *)&v32;
     v14 = rand();
-    v33 = (2 * ((float)(v14 & 0x7FFF) * 0.000030518509 - 0.5)) * v28 * 20.0
+    v33 = (2 * ((float)(v14 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 20.0
         + v33;
     v15 = rand();
-    v34 = (2 * ((float)(v15 & 0x7FFF) * 0.000030518509 - 0.5)) * v28 * 10.0
+    v34 = (2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 10.0
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
@@ -19769,32 +19769,32 @@ void BotAimAtEnemy(bot_state_t *bs)
         ++v16;
         v24 = rand() & 0x7FFF;
         --v17;
-        *((float *)v16 - 1) = ((double)v24 * 0.000030518509 - 0.5 + (double)v24 * 0.000030518509 - 0.5) * v28 * 0.3
+        *((float *)v16 - 1) = (2 * ((float)v24 * 0.000030518509f - 0.5)) * v28 * 0.3
                             + *((float *)v16 - 1);
       }
       while ( v17 );
     }
     vectoangles(v29, bs->ideal_viewangles);
     v18 = rand();
-    v25 = (2 * ((float)(v18 & 0x7FFF) * 0.000030518509 - 0.5))
+    v25 = (2 * ((float)(v18 & 0x7FFF) * 0.000030518509f - 0.5))
         * (v3->vspread
-         * 6.0)
+         * 6.0f)
         * v28
         + bs->ideal_viewangles[0];
     bs->ideal_viewangles[0] = v25;
     v25 = anglemod(v25);
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
-    v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509 - 0.5))
+    v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509f - 0.5))
         * (v3->hspread
-         * 6.0)
+         * 6.0f)
         * v28
         + bs->ideal_viewangles[1];
     bs->ideal_viewangles[1] = v26;
     v26 = anglemod(v26);
     bs->ideal_viewangles[1] = v26;
     BotChangeViewAngles(bs, bs->thinktime);
-    if ( v35 > 0.8f )
+    if ( v35 > 0.8 )
     {
       v20 = (*(int *)&bs->ideal_viewangles[0]);
       *(int *)&bs->viewangles[1] = (*(int *)&bs->ideal_viewangles[1]);
