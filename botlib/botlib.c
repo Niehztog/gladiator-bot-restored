@@ -9802,9 +9802,9 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
     }
     else
     {
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = aasworld.vertexes[((_DWORD *)edge)[i]][0];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = aasworld.vertexes[((_DWORD *)edge)[i]][1];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = aasworld.vertexes[((_DWORD *)edge)[i]][2];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][0];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][1];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][2];
       optedge[i] = optimized->numvertexes;
       optimized->vertexremap[((_DWORD *)edge)[i]] = optimized->numvertexes;
       optimized->numvertexes++;
