@@ -20627,45 +20627,20 @@ LABEL_8:
 //----- (100268D0) --------------------------------------------------------
 int __cdecl FindClientByName(char *String2)
 {
-  int v1; // eax
-  int v2; // esi
-  int v3; // edi
-  int v4; // edi
-  int i; // esi
+  int i;
+  int offset;
 
-  v1 = maxclients;
-  v2 = 0;
-  if ( maxclients <= 0 )
+  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
   {
-LABEL_5:
-    v4 = 0;
-    if ( v1 <= 0 )
-    {
-      return -1;
-    }
-    else
-    {
-      for ( i = 0; !stristr((char *)(i + dword_100643A8), String2); i += 144 )
-      {
-        if ( ++v4 >= maxclients )
-          return -1;
-      }
-      return v4;
-    }
+    if ( !_strcmpi(offset + dword_100643A8, String2) )
+      return i;
   }
-  else
+  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
   {
-    v3 = 0;
-    while ( _strcmpi(v3 + dword_100643A8, String2) )
-    {
-      v1 = maxclients;
-      ++v2;
-      v3 += 144;
-      if ( v2 >= maxclients )
-        goto LABEL_5;
-    }
-    return v2;
+    if ( stristr((char *)(offset + dword_100643A8), String2) )
+      return i;
   }
+  return -1;
 }
 
 //----- (10026990) --------------------------------------------------------
