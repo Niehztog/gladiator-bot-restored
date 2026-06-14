@@ -20810,52 +20810,43 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 }
 
 //----- (10026E40) --------------------------------------------------------
-// Parse 3 space-separated signed decimal integers from a C string into
-// a float vec3, echoing each parsed value via bi_Print(PRT_MESSAGE, "%d\n", val)
-// (.rdata 0x1005ca18 = "%d\n").  Per component: skip leading spaces,
-// take an optional '-' sign, consume contiguous digits; a non-digit
-// terminator (other than NUL) is itself consumed (esi++) before moving
-// on — matches the binary's quirk.  Stores (float)(sign*cur) into
-// out[0..2]; returns 1.  DEAD in Gladiator — /INCREMENTAL.  Restored
-// from objdump@10026E40.
+// Q3's later BotGPSToPosition; the 1999 DLL keeps the earlier indexed/countdown
+// form shown in the ref disasm at 0x10026E40.  DEAD in Gladiator — /INCREMENTAL.
 int __cdecl sub_10026E40(char *string, float *out)
 {
-  int n;
-  int sign;
+  int i = 0;
+  int count = 3;
   int cur;
-  unsigned char c;
+  int sign;
 
-  for ( n = 0; n < 3; n++ )
+  do
   {
     cur = 0;
-    while ( *string == ' ' )
-      string++;
-    if ( *string == '-' )
+    while ( string[i] == ' ' )
+      i++;
+    if ( string[i] == '-' )
     {
-      string++;
+      i++;
       sign = -1;
     }
     else
     {
       sign = 1;
     }
-    c = (unsigned char)*string;
-    if ( c )
+    while ( string[i] )
     {
-      while ( c >= '0' && c <= '9' )
+      if ( string[i] < '0' || string[i] > '9' )
       {
-        cur = cur * 10 + (c - '0');
-        string++;
-        c = (unsigned char)*string;
-        if ( !c )
-          break;
+        i++;
+        break;
       }
-      if ( c && (c < '0' || c > '9') )
-        string++;
+      cur = cur * 10 + string[i] - '0';
+      i++;
     }
     bi_Print(PRT_MESSAGE, "%d\n", sign * cur);
-    out[n] = (float)(sign * cur);
+    *out++ = (float)sign * cur;
   }
+  while ( --count );
   return 1;
 }
 
@@ -26941,41 +26932,36 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
 }
 
 //----- (10031FE0) --------------------------------------------------------
-// 2D-direction "travel toward target" helper.  Clears a local
-// bot_moveresult_t, builds the planar (XY) delta from origin to
-// target (target = ent->_f18,_f1C; .z forced to 0), normalizes it in
-// place, then issues EA_Move(ent->_i28, dir, speed) where the speed
-// is clamped to min 100 (.rdata 0x1005807c) and then mapped through
-// the duplicate `fsubr DWORD [0x10058384] = 400.0` pair preserved
-// verbatim from the original DLL — those two reverse-subtracts
-// cancel, leaving speed = 3.0f * max(100.0f, |delta_xy|).  The
-// (cleared + dx/dy-tagged at offsets +0x18/+0x1C/+0x20) movestate is
-// then copied to *out via a 12-dword rep movs.  DEAD in Gladiator —
-// /INCREMENTAL.  Restored from objdump@10031FE0.
-void __cdecl sub_10031FE0(void *out, float *origin, void *ent)
+// 2D-direction "finish travel walk" helper.  Q3's sibling is
+// BotFinishTravel_Walk: walk straight to reach->end with speed capped
+// at 100 units before the preserved `400 - (400 - 3*dist)` form.
+// DEAD in Gladiator — only kept because /INCREMENTAL left it in the
+// original DLL.  Restored from objdump@10031FE0 + Q3 be_ai_move.c.
+bot_moveresult_t *__cdecl sub_10031FE0(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t moveresult;
-  vec3_t dir;
+  vec3_t hordir;
+  float dist;
   float speed;
 
   BotClearMoveResult(&moveresult);
-  dir[2] = 0.0f;
-  dir[0] = *(float *)((char *)ent + 0x18) - origin[0];
-  dir[1] = *(float *)((char *)ent + 0x1C) - origin[1];
-  speed = VectorNormalize(dir);
-  if ( speed < 100.0f )
-    speed = 100.0f;
-  moveresult.movedir[0] = dir[0];   /* +0x18 */
-  moveresult.movedir[1] = 0.0f;     /* +0x1C */
-  moveresult.movedir[2] = dir[1];   /* +0x20 */
+  hordir[0] = reach->end[0] - ms->origin[0];
+  hordir[1] = reach->end[1] - ms->origin[1];
+  hordir[2] = 0.0f;
+  dist = VectorNormalize(hordir);
+  if ( dist > 100.0f )
+    dist = 100.0f;
   /* Mr. Elusive bug preserved verbatim: the .text at 10032042 /
    * 10032048 emits two consecutive `fsubr DWORD [0x10058384]`
    * (= 400.0) after `fmul DWORD [0x10058380]` (= 3.0).  Algebraically
-   * 400 - (400 - 3*speed) == 3*speed, but the original source wrote it
+   * 400 - (400 - 3*dist) == 3*dist, but the original source wrote it
    * out as the nested subtraction, so reproduce the literal form to
    * match the two fsubr instructions (all float / DWORD ops). */
-  EA_Move(*(int *)((char *)ent + 0x28), dir, 400.0f - (400.0f - speed * 3.0f));
-  memcpy(out, &moveresult, 48);
+  speed = 400.0f - (400.0f - 3.0f * dist);
+  EA_Move(ms->client, hordir, speed);
+  VectorCopy(hordir, moveresult.movedir);
+  *result = moveresult;
+  return result;
 }
 
 //----- (100320C0) --------------------------------------------------------
