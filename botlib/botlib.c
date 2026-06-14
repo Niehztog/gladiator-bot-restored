@@ -33133,12 +33133,12 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
  * (0x1003DE60):
  *   push args; call LoadScriptMemory@0x10040380 via thunk 0x100015A0
  *   mov ebx,eax; xor ebp,ebp
- *   test ebx,ebx; je return_null
+ *   cmp ebx,ebp; je return_null
  *   mov [ebx+0x568],ebp                      ;; script->next = NULL
  *   push 0x658; call GetMemory@0x10039040 via thunk 0x10001AB4
  *   mov esi,eax; mov ecx,0x196; xor eax,eax; rep stosd  ;; memset(src,0,0x658)
  *   push 0x104; push arg3(name); push esi
- *   call memcpy@0x10044DE0                   ;; memcpy(src->filename, name, 0x104)
+ *   call 0x10044DE0                          ;; strncpy(src->filename, name, 0x104)
  *   mov [esi+0x20C],ebx                      ;; src->scriptstack = script
  *   mov [esi+0x210],ebp                      ;; src->tokens      = NULL
  *   mov [esi+0x214],ebp                      ;; src->defines     = NULL
@@ -33150,22 +33150,20 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
  *   mov eax,esi; ret
  * Canonical Q3 LoadSourceMemory(char *ptr, int length, char *name): same
  * structure as LoadSourceFile above but uses LoadScriptMemory to wrap
- * an already-in-memory script buffer.  The 0x104-byte memcpy of the
- * name buffer is verbatim from the binary (LoadSourceFile uses
- * strncpy; the memory variant uses raw memcpy).  Dead in Gladiator --
- * preserved by /INCREMENTAL. */
-source_t *__cdecl LoadSourceMemory(const void *buf, unsigned int length, const char *name)
+ * an already-in-memory script buffer. Dead in Gladiator -- preserved by
+ * /INCREMENTAL. */
+source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
 {
   script_t *script;
   source_t *src;
 
-  script = LoadScriptMemory(buf, length, name);
+  script = LoadScriptMemory(ptr, length, name);
   if ( !script )
     return NULL;
   script->next = NULL;
   src = (source_t *)GetMemory(sizeof(source_t));
   memset(src, 0, sizeof(source_t));
-  memcpy(src->filename, name, 0x104);
+  strncpy(src->filename, name, 0x104u);
   src->scriptstack  = script;
   src->tokens       = NULL;
   src->defines      = NULL;
