@@ -10118,38 +10118,35 @@ double __cdecl AAS_FaceArea(char *face)
 //----- (10011220) --------------------------------------------------------
 float __cdecl AAS_AreaVolume(int areanum)
 {
-  char *v1; // esi
-  int v2; // edi
-  int v3i;
-  int v4i;
-  float *vp;
-  int v5; // rax (was __int64 — abs32 idiom)
-  _DWORD *v7; // [esp-4h] [ebp-1Ch]
-  float v8; // [esp+8h] [ebp-10h]
-  float v9; // [esp+Ch] [ebp-Ch]
-  float i; // [esp+10h] [ebp-8h]
-  float v11; // [esp+14h] [ebp-4h]
-  float v12; // [esp+1Ch] [ebp+4h]
+  aas_area_t *area;
+  aas_face_t *face;
+  aas_edge_t *edge;
+  int i;
+  int facenum;
+  int edgenum;
+  float d;
+  float a;
+  vec3_t corner;
+  float volume;
 
-  v1 = &aasworld.areas[areanum];
-  v2 = 0;
-  v12 = 0.0;
-  v3i = aasworld.faceindex[*((_DWORD *)v1 + 2)];
-  v4i = aasworld.edgeindex[aasworld.faces[abs(v3i)].firstedge];
-  vp = (float *)&aasworld.vertexes[aasworld.edges[abs(v4i)].v[0]];
-  v9 = vp[0];
-  v11 = vp[2];
-  for ( i = vp[1]; v2 < *((int *)v1 + 1); v12 = AAS_FaceArea((char *)v7) * v8 + v12 )
+  area = &aasworld.areas[areanum];
+  volume = 0.0f;
+  facenum = aasworld.faceindex[area->firstface];
+  edgenum = aasworld.edgeindex[aasworld.faces[abs(facenum)].firstedge];
+  edge = &aasworld.edges[abs(edgenum)];
+  VectorCopy(aasworld.vertexes[edge->v[0]], corner);
+  for ( i = 0; i < area->numfaces; ++i )
   {
-    v5 = aasworld.faceindex[v2 + *((int *)v1 + 2)];
-    v7 = &aasworld.faces[(abs(v5))];
-    v8 = -(v11 * aasworld.planes[*v7].normal[2]
-         + i * aasworld.planes[*v7].normal[1]
-         + v9 * aasworld.planes[*v7].normal[0]
-         - aasworld.planes[*v7].dist);
-    ++v2;
+    facenum = aasworld.faceindex[area->firstface + i];
+    face = &aasworld.faces[abs(facenum)];
+    d = -(corner[2] * aasworld.planes[face->planenum].normal[2]
+        + corner[1] * aasworld.planes[face->planenum].normal[1]
+        + corner[0] * aasworld.planes[face->planenum].normal[0]
+        - aasworld.planes[face->planenum].dist);
+    a = AAS_FaceArea((char *)face);
+    volume += d * a;
   }
-  return v12 * 0.33333334f;
+  return volume * 0.33333334f;
 }
 
 //----- (10011360) --------------------------------------------------------
