@@ -33121,16 +33121,12 @@ void __cdecl PC_UnreadToken(source_t *source, token_t *token)
  * Dead in Gladiator — preserved by /INCREMENTAL. */
 void __cdecl PC_SetIncludePath(source_t *source, char *path)
 {
-  char  *dst = source->includepath;
-  size_t len;
-  memcpy(dst, path, 0x104);
-  len = strlen(dst);
-  if ( len && dst[len - 1] == '\\' )
-    return;
-  len = strlen(dst);
-  if ( len && dst[len - 1] == '/' )
-    return;
-  strcat(dst, "\\");
+  strncpy(source->includepath, path, 0x104);
+  if ( source->includepath[strlen(source->includepath) - 1] != '\\'
+    && source->includepath[strlen(source->includepath) - 1] != '/' )
+  {
+    strcat(source->includepath, "\\");
+  }
 }
 
 //----- (1003DE40) --------------------------------------------------------
