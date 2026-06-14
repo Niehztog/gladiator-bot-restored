@@ -16821,7 +16821,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
              * Disasm at 1001daf9 stores bfloat result and reuses it for both
              * the rand check and the *15.0 jump-time factor below. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509f )
+            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v51 * bs->thinktime )
               bs->attackcrouch_time = AAS_Time() + v51 * 15 + 5;
           }
           if ( AAS_Swimming(bs->origin) )
@@ -16988,7 +16988,7 @@ LABEL_86:
             /* IDA dropped fstps after BFloat; v51 is the bfloat result.
              * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
             v51 = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( v51 * bs->thinktime > (float)(rand() & 0x7FFF) * 0.000030518509f )
+            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v51 * bs->thinktime )
               bs->attackcrouch_time = AAS_Time() + v51 * 15 + 5;
           }
           if ( AAS_Time() < bs->attackcrouch_time )
@@ -23081,7 +23081,7 @@ LABEL_43:
       StripDoubleQuotes(token.string);
       if ( !strlen(token.string) )
       {
-        SourceError(v16, "empty string", token.string);
+        SourceError(v16, "empty string");
         goto LABEL_58;
       }
       sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
@@ -31952,7 +31952,7 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
         if ( v6 || v7 )
         {
 LABEL_71:
-          SourceError(src, "syntax error in #if/#elif", v45);
+          SourceError(src, "syntax error in #if/#elif");
           goto LABEL_76;
         }
         if ( strcmp((const char *)v9, "defined") )
@@ -31968,7 +31968,7 @@ LABEL_71:
         }
         if ( !v9 || v9->type != 4 )
         {
-          SourceError(src, "defined without name in #if/#elif", v45);
+          SourceError(src, "defined without name in #if/#elif");
           goto LABEL_76;
         }
         v12 = GetClearedMemory(sizeof(value_t));
@@ -31995,7 +31995,7 @@ LABEL_71:
           v9 = v9->next;
           if ( !v9 || strcmp((const char *)v9, ")") )
           {
-            SourceError(src, "defined without ) in #if/#elif", v45);
+            SourceError(src, "defined without ) in #if/#elif");
             goto LABEL_76;
           }
         }
@@ -32005,7 +32005,7 @@ LABEL_71:
       case 5:
         if ( v7 )
         {
-          SourceError(src, "misplaced minus sign in #if/#elif", v45);
+          SourceError(src, "misplaced minus sign in #if/#elif");
           goto LABEL_76;
         }
         v10 = v9->subtype;
@@ -32017,7 +32017,7 @@ LABEL_71:
         {
           if ( --v47 < 0 )
           {
-            SourceError(src, "too many ) in #if/#elsif", v45);
+            SourceError(src, "too many ) in #if/#elsif");
             goto LABEL_76;
           }
         }
@@ -32063,7 +32063,7 @@ LABEL_71:
             case 36:
               if ( v6 )
               {
-                SourceError(src, "! or ~ after value in #if/#elif", v45);
+                SourceError(src, "! or ~ after value in #if/#elif");
                 goto LABEL_76;
               }
 LABEL_29:
@@ -32107,7 +32107,7 @@ LABEL_29:
   else
   {
 LABEL_73:
-    SourceError(src, "trailing operator in #if/#elif", v45);
+    SourceError(src, "trailing operator in #if/#elif");
   }
 LABEL_76:
   v46 = 1;
@@ -32242,7 +32242,7 @@ LABEL_88:
         case 42:
           if ( !v14 )
           {
-            SourceError(src, ": without ? in #if/#elif", v45);
+            SourceError(src, ": without ? in #if/#elif");
             goto LABEL_163;
           }
           if ( integer )
@@ -32314,7 +32314,7 @@ LABEL_144:
       if ( !v19 )
         goto LABEL_88;
     }
-    SourceError(src, "mising values in #if/#elif", v45);
+    SourceError(src, "mising values in #if/#elif");
 LABEL_163:
     v46 = 1;
   }
