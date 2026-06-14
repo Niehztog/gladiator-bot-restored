@@ -692,7 +692,7 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs);
 BOOL __cdecl BotIsDead(bot_state_t *bs);
 BOOL __cdecl BotIsObserver(bot_state_t *bs);
 BOOL __cdecl BotIntermission(bot_state_t *bs);
-BOOL __cdecl sub_10021710(_DWORD *a1);
+BOOL __cdecl sub_10021710(int *a1);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
 char *__cdecl stristr(char *a1, char *a2);
 char *__cdecl EasyClientName(int a1, char *a2);
@@ -18542,21 +18542,14 @@ BOOL __cdecl BotIntermission(bot_state_t *bs)
 }
 
 //----- (10021710) --------------------------------------------------------
-BOOL __cdecl sub_10021710(_DWORD *a1)
+BOOL __cdecl sub_10021710(int *a1)
 {
-  int v1; // eax
-  int v2; // ecx
-
-  if ( (a1[29] & 0x4002) == 0 )
-  {
-    v1 = a1[3];
-    if ( v1 >= 1 && v1 <= maxclients && a1[23] == 255 )
-    {
-      v2 = a1[27];
-      if ( v2 < 173 || v2 > 197 )
-        return 0;
-    }
-  }
+  if ( (a1[29] & 0x4002) != 0 )
+    return 1;
+  if ( a1[3] < 1 || a1[3] > maxclients || a1[23] != 255 )
+    return 1;
+  if ( a1[27] < 173 || a1[27] > 197 )
+    return 0;
   return 1;
 }
 
