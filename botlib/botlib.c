@@ -781,7 +781,7 @@ void __cdecl UnifyWhiteSpaces(void *Src);
 int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);  /* 0x1002ACF0 — substring search */
 const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive);
-const char *__cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
+void __cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
 void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
 void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2);
@@ -15014,31 +15014,31 @@ int sub_1001AB80()
 //----- (1001AC00) --------------------------------------------------------
 int AAS_InitAASLinkHeap()
 {
+  aas_link_t *heap;
   int i;
   int count;
 
-  if ( !aasworld.linkheap )
+  count = aasworld.linkheapsize;
+  heap = aasworld.linkheap;
+  if ( !heap )
   {
     count = (int)(intptr_t)LibVarValue("max_aaslinks", (char *)"4096");
     if ( count < 0 )
       count = 0;
     aasworld.linkheapsize = count;
-    aasworld.linkheap = (aas_link_t *)GetMemory(sizeof(aas_link_t) * count);
+    heap = (aas_link_t *)GetMemory(sizeof(aas_link_t) * count);
+    aasworld.linkheap = heap;
   }
-  count = aasworld.linkheapsize;
-  aasworld.linkheap[0].prev_ent = NULL;
-  aasworld.linkheap[0].next_ent = (count > 1) ? &aasworld.linkheap[1] : NULL;
+  heap[0].prev_ent = NULL;
+  heap[0].next_ent = &heap[1];
   for ( i = 1; i < count - 1; ++i )
   {
-    aasworld.linkheap[i].prev_ent = &aasworld.linkheap[i - 1];
-    aasworld.linkheap[i].next_ent = &aasworld.linkheap[i + 1];
+    heap[i].prev_ent = &heap[i - 1];
+    heap[i].next_ent = &heap[i + 1];
   }
-  if ( count > 1 )
-  {
-    aasworld.linkheap[count - 1].prev_ent = &aasworld.linkheap[count - 2];
-    aasworld.linkheap[count - 1].next_ent = NULL;
-  }
-  aasworld.freelinks = aasworld.linkheap;
+  heap[count - 1].prev_ent = &heap[count - 2];
+  heap[count - 1].next_ent = NULL;
+  aasworld.freelinks = heap;
   return count;
 }
 
@@ -20603,17 +20603,17 @@ LABEL_8:
 //----- (100268D0) --------------------------------------------------------
 int __cdecl FindClientByName(char *String2)
 {
+  char *name;
   int i;
-  int offset;
 
-  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
+  for ( i = 0, name = dword_100643A8; i < maxclients; i++, name += 144 )
   {
-    if ( !_strcmpi(offset + dword_100643A8, String2) )
+    if ( !_strcmpi(name, String2) )
       return i;
   }
-  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
+  for ( i = 0, name = dword_100643A8; i < maxclients; i++, name += 144 )
   {
-    if ( stristr((char *)(offset + dword_100643A8), String2) )
+    if ( stristr(name, String2) )
       return i;
   }
   return -1;
@@ -22049,9 +22049,9 @@ int __cdecl BotResetState(int *a1)
   v2 = a1[2];
   qmemcpy(v9, a1 + 1042, sizeof(v9));
   v8 = v1;
+  qmemcpy(v11, a1 + 995, sizeof(v11));
   v3 = a1[418];
   v6 = v2;
-  qmemcpy(v11, a1 + 995, sizeof(v11));
   v5 = v3;
   BotFreeWaypoints(a1[1136]);
   BotFreeWaypoints(a1[1137]);
@@ -22757,106 +22757,62 @@ const char *__cdecl StringContains(const char *str1, const char *str2, int cases
 //----- (1002AE00) --------------------------------------------------------
 const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive)
 {
-  const char *v3; // ebx
-  int v4; // eax
-  unsigned int v5; // kr04_4
-  const char *v6; // edx
-  unsigned int v7; // kr08_4
-  int i; // al
-  const char *v9; // esi
-  ptrdiff_t v10; // edi
-  int v11; // ebp
-  int v12; // eax
-  int v13; // al
-  int v14; // al
-  int v16; // [esp+10h] [ebp-8h]
-  int v17; // [esp+1Ch] [ebp+4h]
+  int len;
+  int i;
+  int j;
 
-  v3 = str1;
-  v5 = strlen(str1) + 1;
-  v6 = str2;
-  v7 = strlen(str2) + 1;
-  for ( v16 = 0; v16 <= (int)(v5 - v7); ++v16, ++v3 )
+  len = strlen(str1) - strlen(str2);
+  for ( i = 0; i <= len; i++, str1++ )
   {
-    v4 = v16;
-    if ( v4 )
+    if ( i )
     {
-      for ( i = *v3; i; i = *++v3 )
+      while ( *str1 && *str1 != ' ' )
+        str1++;
+      if ( !*str1 )
+        return 0;
+      str1++;
+    }
+    for ( j = 0; str2[j]; j++ )
+    {
+      if ( casesensitive )
       {
-        if ( i == 32 )
+        if ( str1[j] != str2[j] )
           break;
       }
-      if ( !*v3 )
-        return 0;
-      ++v3;
-    }
-    v17 = 0;
-    if ( *v6 )
-    {
-      v9 = v6;
-      v10 = v3 - v6;
-      do
+      else if ( toupper(str1[j]) != toupper(str2[j]) )
       {
-        if ( casesensitive )
-        {
-          if ( v9[v10] != *v9 )
-            break;
-        }
-        else
-        {
-          v11 = toupper(v9[v10]);
-          v12 = toupper(*v9);
-          v6 = str2;
-          if ( v11 != v12 )
-            break;
-        }
-        v13 = *++v9;
-        ++v17;
+        break;
       }
-      while ( v13 );
     }
-    if ( !v6[v17] )
-    {
-      v14 = v3[v17];
-      if ( !v14 || v14 == 32 )
-        return v3;
-    }
+    if ( !str2[j] && (!str1[j] || str1[j] == ' ') )
+      return str1;
   }
   return 0;
 }
 
 //----- (1002AF30) --------------------------------------------------------
-const char *__cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement)
+void __cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement)
 {
-  const char *v3; // esi
-  const char *result; // eax
-  char *i; // ebx
-  const char *v6; // edx
+  char *str;
+  char *str2;
 
-  v3 = synonym;
-  result = StringContainsWord(string, synonym, 0);
-  for ( i = (char *)result; result; i = (char *)result )
+  str = (char *)StringContainsWord(string, synonym, 0);
+  while ( str )
   {
-    v6 = StringContainsWord(string, replacement, 0);
-    if ( v6 )
-    {
-      while ( v6 > i || i >= &v6[strlen(replacement)] )
-      {
-        v6 = StringContainsWord(v6 + 1, replacement, 0);
-        if ( !v6 )
-          goto LABEL_8;
-      }
-    }
-    else
-    {
-LABEL_8:
-      memcpy(&i[strlen(replacement)], &i[strlen(v3)], strlen(&i[strlen(v3)]));
-      qmemcpy(i, replacement, strlen(replacement));
-      v3 = synonym;
-    }
-    result = StringContainsWord(&i[strlen(replacement)], v3, 0);
+str2 = (char *)StringContainsWord(string, replacement, 0);
+while ( str2 )
+{
+  if ( str2 <= str && str < str2 + strlen(replacement) )
+    break;
+  str2 = (char *)StringContainsWord(str2 + 1, replacement, 0);
+}
+if ( !str2 )
+{
+  memmove(str + strlen(replacement), str + strlen(synonym), strlen(str + strlen(synonym)) + 1);
+  qmemcpy(str, replacement, strlen(replacement));
+}
+str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
   }
-  return result;
 }
 // 1002AF99: conditional instruction was optimized away because edx.4!=0
 
@@ -26453,9 +26409,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
   int v6[11]; // [esp+10h] [ebp-58h] BYREF
   char v7[44]; // [esp+3Ch] [ebp-2Ch] BYREF
 
-  if ( !ms->lastreachnum )
-    return 0;
-  if ( !goal )
+  if ( !ms->lastreachnum || !goal )
     return 0;
   qmemcpy(v6, AAS_ReachabilityFromNum(v7, ms->lastreachnum), sizeof(v6));
   v4 = BotGetReachabilityToGoal(
@@ -30690,12 +30644,11 @@ int __cdecl PC_UnreadSourceToken(source_t *src, const void *token)
 int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms)
 {
   int i;
+  int done;
+  int lastcomma;
+  int numparms;
   token_t *last;
   int indent;
-  int needcomma;
-  int parmidx;
-  int gotparms;
-  token_t **pslot;
   token_t *newtok;
   token_t tok __attribute__((aligned(8))); // [esp+20h] [ebp-430h] BYREF
 
@@ -30720,78 +30673,77 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
     while ( i < define->numparms );
   }
   if ( strcmp(tok.string, "(") )
+{
+  PC_UnreadSourceToken(src, &tok);
+  SourceError(src, "define %s missing parms", define->name);
+  return 0;
+}
+for ( done = 0, numparms = 0, indent = 0; !done; )
+{
+  if ( numparms >= maxparms )
   {
-    PC_UnreadSourceToken(src, &tok);
-    SourceError(src, "define %s missing parms", define->name);
+    SourceError(src, "define %s with too many parms", define->name);
     return 0;
   }
-  parmidx = 0;
-  gotparms = 0;
-  indent = 0;
-  pslot = parms;
-  while ( 1 )
+  if ( numparms >= define->numparms )
   {
-    if ( parmidx >= maxparms )
+    SourceWarning(src, "define %s has too many parms", define->name);
+    return 0;
+  }
+  parms[numparms] = NULL;
+  lastcomma = 1;
+  last = NULL;
+  while ( !done )
+  {
+    if ( !PC_ReadSourceToken(src, &tok) )
     {
-      SourceError(src, "define %s with too many parms", define->name);
+      SourceError(src, "define %s incomplete", define->name);
       return 0;
     }
-    if ( parmidx >= define->numparms )
+    if ( !strcmp(tok.string, ",") )
     {
-      SourceWarning(src, "define %s has too many parms", define->name);
-      return 0;
-    }
-    last = NULL;
-    needcomma = 1;
-    *pslot = NULL;
-    while ( 1 )
-    {
-      if ( !PC_ReadSourceToken(src, &tok) )
+      if ( indent <= 0 )
       {
-        SourceError(src, "define %s incomplete", define->name);
-        return 0;
-      }
-      if ( !strcmp(tok.string, ",") && indent <= 0 )
+        if ( lastcomma )
+          SourceWarning(src, "too many comma's");
+        lastcomma = 1;
         break;
-      needcomma = 0;
-      if ( !strcmp(tok.string, "(") )
+      }
+    }
+    lastcomma = 0;
+    if ( !strcmp(tok.string, "(") )
+    {
+      ++indent;
+      continue;
+    }
+    else if ( !strcmp(tok.string, ")") )
+    {
+      if ( --indent <= 0 )
       {
-        ++indent;
+        if ( !parms[define->numparms - 1] )
+          SourceWarning(src, "too few define parms");
+        done = 1;
+        break;
+      }
+    }
+    if ( numparms < define->numparms )
+    {
+      newtok = PC_CopyToken(&tok);
+      newtok->next = NULL;
+      if ( last )
+      {
+        last->next = newtok;
       }
       else
       {
-        if ( !strcmp(tok.string, ")") && --indent <= 0 )
-        {
-          if ( !parms[define->numparms - 1] )
-            SourceWarning(src, "too few define parms");
-          gotparms = 1;
-          goto LABEL_31;
-        }
-        if ( parmidx < define->numparms )
-        {
-          newtok = PC_CopyToken(&tok);
-          newtok->next = NULL;
-          if ( last )
-          {
-            last->next = newtok;
-            last = newtok;
-          }
-          else
-          {
-            last = newtok;
-            *pslot = newtok;
-          }
-        }
+        parms[numparms] = newtok;
       }
+      last = newtok;
     }
-    if ( needcomma )
-      SourceWarning(src, "too many comma's");
-LABEL_31:
-    ++parmidx;
-    ++pslot;
-    if ( gotparms )
-      return 1;
   }
+  ++numparms;
+}
+return 1;
 }
 // 10039776: conditional instruction was optimized away because ecx.4==0
 
@@ -30834,23 +30786,19 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
 //----- (10039C30) --------------------------------------------------------
 unsigned int __cdecl PC_NameHash(const char *a1)
 {
-  unsigned int v2; // ecx
-  int v4 = 0; // [esp+4h] [ebp-4h] BYREF
+ unsigned int v2; // ecx
+ int v4; // [esp+4h] [ebp-4h] BYREF
 
-  if ( a1 )
-  {
-    v2 = strlen(a1);
-    if ( (int)v2 > 4 )
-    {
-      v2 = 4;
-LABEL_5:
-      qmemcpy(&v4, a1, v2);
-      return abs(v4) & 0x3FF;
-    }
-    if ( v2 )
-      goto LABEL_5;
-  }
-  return abs(v4) & 0x3FF;
+ v4 = 0;
+ if ( a1 )
+ {
+   v2 = strlen(a1);
+   if ( (int)v2 > 4 )
+     v2 = 4;
+   if ( v2 )
+     qmemcpy(&v4, a1, v2);
+ }
+ return abs(v4) & 0x3FF;
 }
 
 //----- (10039CB0) --------------------------------------------------------
@@ -32889,44 +32837,47 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
     SourceError(src, "expected a %s, found %s", ArgList, a4);
     return 0;
   }
-  if ( v6 != 3 )
+  if ( v6 == 3 )
   {
-    if ( v6 == 5 && tok->subtype != a3 )
+    if ( (a3 & tok->subtype) == a3 )
+      return 1;
+    if ( (a3 & 8) != 0 )
+      strcpy(ArgList, "decimal");
+    if ( (a3 & 0x100) != 0 )
+      strcpy(ArgList, "hex");
+    if ( (a3 & 0x200) != 0 )
+      strcpy(ArgList, "octal");
+    if ( (a3 & 0x400) != 0 )
+      strcpy(ArgList, "binary");
+    if ( (a3 & 0x2000) != 0 )
+    {
+      strcat(ArgList, " long");
+      v4 = src;
+    }
+    if ( (a3 & 0x4000) != 0 )
+    {
+      strcat(ArgList, " unsigned");
+      v4 = src;
+    }
+    if ( (a3 & 0x800) != 0 )
+    {
+      strcat(ArgList, " float");
+      v4 = src;
+    }
+    if ( (a3 & 0x1000) != 0 )
+      strcat(ArgList, " integer");
+    SourceError(v4, "expected %s, found %s", ArgList, a4);
+    return 0;
+  }
+  else if ( v6 == 5 )
+  {
+    if ( tok->subtype != a3 )
     {
       SourceError(src, "found %s", a4);
       return 0;
     }
-    return 1;
   }
-  if ( (a3 & tok->subtype) == a3 )
-    return 1;
-  if ( (a3 & 8) != 0 )
-    strcpy(ArgList, "decimal");
-  if ( (a3 & 0x100) != 0 )
-    strcpy(ArgList, "hex");
-  if ( (a3 & 0x200) != 0 )
-    strcpy(ArgList, "octal");
-  if ( (a3 & 0x400) != 0 )
-    strcpy(ArgList, "binary");
-  if ( (a3 & 0x2000) != 0 )
-  {
-    strcat(ArgList, " long");
-    v4 = src;
-  }
-  if ( (a3 & 0x4000) != 0 )
-  {
-    strcat(ArgList, " unsigned");
-    v4 = src;
-  }
-  if ( (a3 & 0x800) != 0 )
-  {
-    strcat(ArgList, " float");
-    v4 = src;
-  }
-  if ( (a3 & 0x1000) != 0 )
-    strcat(ArgList, " integer");
-  SourceError(v4, "expected %s, found %s", ArgList, a4);
-  return 0;
+  return 1;
 }
 
 //----- (1003DAE0) --------------------------------------------------------
