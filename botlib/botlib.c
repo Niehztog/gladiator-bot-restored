@@ -20761,43 +20761,46 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 }
 
 //----- (10026E40) --------------------------------------------------------
-// Q3's later BotGPSToPosition; the 1999 DLL keeps the earlier indexed/countdown
-// form shown in the ref disasm at 0x10026E40.  DEAD in Gladiator — /INCREMENTAL.
-int __cdecl sub_10026E40(char *string, float *out)
+// BotGPSToPosition — the Q3 cognate; this source form compiles to the ref DLL
+// at 0x10026E40 here.
+// DEAD in Gladiator — /INCREMENTAL.
+int __cdecl BotGPSToPosition(char *string, float *out)
 {
-  int i = 0;
-  int count = 3;
-  int cur;
+  int i;
+  int j = 0;
+  int num;
   int sign;
 
-  do
+  for ( i = 0; i < 3; i++ )
   {
-    cur = 0;
-    while ( string[i] == ' ' )
-      i++;
-    if ( string[i] == '-' )
+    num = 0;
+    while ( string[j] == ' ' )
+      j++;
+    if ( string[j] == '-' )
     {
-      i++;
+      j++;
       sign = -1;
     }
     else
     {
       sign = 1;
     }
-    while ( string[i] )
+    while ( string[j] )
     {
-      if ( string[i] < '0' || string[i] > '9' )
+      if ( string[j] >= '0' && string[j] <= '9' )
       {
-        i++;
+        num = num * 10 + string[j] - '0';
+        j++;
+      }
+      else
+      {
+        j++;
         break;
       }
-      cur = cur * 10 + string[i] - '0';
-      i++;
     }
-    bi_Print(PRT_MESSAGE, "%d\n", sign * cur);
-    *out++ = (float)sign * cur;
+    bi_Print(PRT_MESSAGE, "%d\n", sign * num);
+    out[i] = (float)sign * num;
   }
-  while ( --count );
   return 1;
 }
 
