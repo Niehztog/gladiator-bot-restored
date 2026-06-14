@@ -20515,7 +20515,6 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
   int v3; // eax
   int v4; // ax
   double v5; // st7
-  const void *v6; // esi
   float v8; // [esp+8h] [ebp+4h]
 
   if ( BotCTFCarryingFlag(bs) )
@@ -20544,8 +20543,10 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       }
       else if ( v5 < 0.66 && dword_1006442C && dword_100643EC )
       {
-        v6 = BotCTFTeam(bs) == 1 ? &unk_10064420 : &unk_100643E0;
-        qmemcpy(&bs->teamgoal, v6, 0x38u);
+        if ( BotCTFTeam(bs) == 1 )
+          qmemcpy(&bs->teamgoal, &unk_10064420, 0x38u);
+        else
+          qmemcpy(&bs->teamgoal, &unk_100643E0, 0x38u);
         bs->ltgtype = 3;
         bs->teamgoal_time = AAS_Time() + 120.0f;
         *(int *)&bs->defendaway_time = 0;
