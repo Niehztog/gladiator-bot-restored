@@ -5328,24 +5328,13 @@ int AAS_RemoveClusterAreas()
 int __cdecl AAS_UpdatePortal(int ArgList, int a2)
 {
   int v2; // eax
-  aas_portal_t *v3; // ecx
   aas_portal_t *v5; // edx
-  int v6; // edi
-  int v7; // ebx
   aas_cluster_t *v8; // ecx
 
-  v2 = 1;
-  if ( aasworld.numportals > 1 )
+  for ( v2 = 1; v2 < aasworld.numportals; ++v2 )
   {
-    v3 = &aasworld.portals[1];
-    do
-    {
-      if ( v3->areanum == ArgList )
-        break;
-      ++v2;
-      ++v3;
-    }
-    while ( v2 < aasworld.numportals );
+    if ( aasworld.portals[v2].areanum == ArgList )
+      break;
   }
   if ( v2 == aasworld.numportals )
   {
@@ -5353,39 +5342,35 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
     return 1;
   }
   v5 = &aasworld.portals[v2];
-  v6 = v5->frontcluster;
-  if ( v6 == a2 )
+  if ( v5->frontcluster == a2 )
     return 1;
-  v7 = v5->backcluster;
-  if ( v7 == a2 )
+  if ( v5->backcluster == a2 )
     return 1;
-  if ( v6 )
+  if ( !v5->frontcluster )
   {
-    if ( v7 )
-    {
-      Log_Write("portal using area %d is seperating more than two clusters",
-                ArgList);
-      aasworld.areasettings[ArgList].contents &= ~8u;
-      return 0;
-    }
+    v5->frontcluster = a2;
+  }
+  else if ( !v5->backcluster )
+  {
     v5->backcluster = a2;
   }
   else
   {
-    v5->frontcluster = a2;
+    Log_Write("portal using area %d is seperating more than two clusters",
+              ArgList);
+    aasworld.areasettings[ArgList].contents &= ~8u;
+    return 0;
   }
-  if ( aasworld.portalindexsize < 0x10000 )
-  {
-    aasworld.areasettings[ArgList].cluster = -v2;
-    v8 = &aasworld.clusters[a2];
-    aasworld.portalindex[v8->numreachabilityareas + v8->firstportal] = v2;
-    ++aasworld.portalindexsize;
-    ++v8->numreachabilityareas;
-  }
-  else
+  if ( aasworld.portalindexsize >= 0x10000 )
   {
     AAS_Error("AAS_MAX_PORTALINDEXSIZE");
+    return 1;
   }
+  aasworld.areasettings[ArgList].cluster = -v2;
+  v8 = &aasworld.clusters[a2];
+  aasworld.portalindex[v8->firstportal + v8->numreachabilityareas] = v2;
+  ++aasworld.portalindexsize;
+  ++v8->numreachabilityareas;
   return 1;
 }
 
