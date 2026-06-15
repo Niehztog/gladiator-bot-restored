@@ -6692,8 +6692,6 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
  */
 void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
 {
-  float *v1; // ebx
-  float *v2; // edi
   int traveltype; // eax
   double v4; // st7
   double v5; // st7
@@ -6705,15 +6703,15 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
   int v13[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
   AAS_ShowArea(a1->areanum, 1);
-  v1 = a1->end;
-  v2 = a1->start;
   AAS_DrawArrow(a1->start, a1->end, -202116623, -589439265);
   traveltype = a1->traveltype;
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
     AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, a1->start, a1->end, &v6);
-    v5 = *v1 - *v2;
+    v5 = a1->end[0] - a1->start[0];
+    v8[2] = 0.0f;
     v8[0] = v5;
+    v8[1] = a1->end[1] - a1->start[1];
     VectorNormalize(v8);
     VectorScale(v8, v6, (float *)v11);
     v11[2] = libvar_sv_jumpvel->value;
@@ -6728,8 +6726,10 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
   {
     v7 = AAS_RocketJumpZVelocity(a1->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
     AAS_HorizontalVelocityForJump(v7, a1->start, a1->end, &v6);
-    v4 = *v1 - *v2;
+    v4 = a1->end[0] - a1->start[0];
+    v8[2] = 0.0f;
     v8[0] = v4;
+    v8[1] = a1->end[1] - a1->start[1];
     VectorNormalize(v8);
     VectorScale(v8, v6, (float *)v11);
     v12[2] = v7;
@@ -18380,6 +18380,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   int v2; // eax
   int v3; // edx
   char v5; // dh
+  int v8; // eax
   vec3_t v6; // [esp+8h] [ebp-88h] BYREF
   float v7[31]; // [esp+14h] [ebp-7Ch] BYREF
 
@@ -18444,10 +18445,20 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
     default:
       break;
   }
+  v8 = LODWORD(v7[29]);
   v5 = BYTE1(v7[29]);
-  bs->enemy_invulnerability = (LODWORD(v7[29]) & 0x10000) != 0;
-  bs->enemy_quad = v5 < 0;
-  bs->enemy_powerscreen = (v5 & 2) != 0;
+  if ( (v8 & 0x10000) != 0 )
+    bs->enemy_invulnerability = 1;
+  else
+    bs->enemy_invulnerability = 0;
+  if ( v5 < 0 )
+    bs->enemy_quad = 1;
+  else
+    bs->enemy_quad = 0;
+  if ( (v5 & 2) != 0 )
+    bs->enemy_powerscreen = 1;
+  else
+    bs->enemy_powerscreen = 0;
   return 1;
 }
 
@@ -22808,7 +22819,7 @@ while ( str2 )
 }
 if ( !str2 )
 {
-  memmove(str + strlen(replacement), str + strlen(synonym), strlen(str + strlen(synonym)) + 1);
+  memmove(str + strlen(replacement), str + strlen(synonym), strlen(str + strlen(synonym)));
   qmemcpy(str, replacement, strlen(replacement));
 }
 str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
@@ -26617,14 +26628,13 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       hordir[0] = dir[0];
       hordir[1] = dir[1];
       hordir[2] = 0.0f;
-      v9 = VectorNormalize(hordir);
+      VectorNormalize(hordir);
       if ( (type & 4) == 0 )
       {
-        BotGapDistance(ms, hordir);
-        if ( v9 > 0.0f )
+        if ( BotGapDistance(ms, hordir) > 0.0f )
         {
           v6 = type | 4;
-          LOBYTE(type) = type | 4;
+          type |= 4;
         }
       }
       VectorScale(hordir, speed, (float *)v17);
