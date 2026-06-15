@@ -26716,7 +26716,7 @@ int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int
 // against p1 and p3 respectively, and the result is the rational
 // formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
 // /INCREMENTAL.  Restored from objdump@10031C30.
-int __cdecl sub_10031C30(float *p1, float *p2, float *p3, float *p4, float *out)
+int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
 {
   float d1x = p2[0] - p1[0];
   float d1y = p2[1] - p1[1];
