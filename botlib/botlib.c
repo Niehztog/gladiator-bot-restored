@@ -26854,7 +26854,7 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
 // at 100 units before the preserved `400 - (400 - 3*dist)` form.
 // DEAD in Gladiator — only kept because /INCREMENTAL left it in the
 // original DLL.  Restored from objdump@10031FE0 + Q3 be_ai_move.c.
-bot_moveresult_t *__cdecl sub_10031FE0(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t *__cdecl BotFinishTravel_Walk(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t moveresult;
   vec3_t hordir;
