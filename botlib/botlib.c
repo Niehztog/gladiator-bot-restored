@@ -481,9 +481,9 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum);
 void __cdecl AAS_NumberClusterPortals(int clusternum);
 int AAS_FindClusters();
 void AAS_CreatePortals();
-int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea);
+void __cdecl AAS_ConnectedAreas_r(int *areanums, int numareas, int *connectedareas, int curarea);
 qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas);
-int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done);
+int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done);
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);
 int AAS_FindPossiblePortals();
 int AAS_RemoveAllPortals();
@@ -492,7 +492,7 @@ int AAS_TestPortals();
 int AAS_ClearShownDebugLines();
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
 int __cdecl AAS_DrawPermanentCross(vec3_t, float, int); // idb
-int __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
+void __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
@@ -5574,22 +5574,24 @@ void AAS_CreatePortals()
 }
 
 //----- (10008D40) --------------------------------------------------------
-int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connectedareas, int curarea)
+void __cdecl AAS_ConnectedAreas_r(int *areanums, int numareas, int *connectedareas, int curarea)
 {
   int i, j, otherareanum, facenum;
-  char *area, *face;
+  aas_area_t *area;
+  aas_face_t *face;
 
-  *(_DWORD *)(connectedareas + 4 * curarea) = 1;
+  connectedareas[curarea] = 1;
   area = &aasworld.areas[areanums[curarea]];
-  for ( i = 0; i < *((int *)area + 1); i++ )
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    facenum = aasworld.faceindex[*((_DWORD *)area + 2) + i];
-    face = &aasworld.faces[abs(facenum)];
-    if ( (face[4] & 1) != 0 )
+    facenum = abs(aasworld.faceindex[area->firstface + i]);
+    face = &aasworld.faces[facenum];
+    if ( (face->faceflags & 1) != 0 )
       continue;
-    otherareanum = *((_DWORD *)face + 4);
-    if ( otherareanum == areanums[curarea] )
-      otherareanum = *((_DWORD *)face + 5);
+    if ( face->frontarea != areanums[curarea] )
+      otherareanum = face->frontarea;
+    else
+      otherareanum = face->backarea;
     for ( j = 0; j < numareas; j++ )
     {
       if ( areanums[j] == otherareanum )
@@ -5597,11 +5599,10 @@ int __cdecl AAS_ConnectedAreas_r(_DWORD *areanums, int numareas, char *connected
     }
     if ( j == numareas )
       continue;
-    if ( *(_DWORD *)(connectedareas + 4 * j) )
+    if ( connectedareas[j] )
       continue;
     AAS_ConnectedAreas_r(areanums, numareas, connectedareas, j);
   }
-  return 0;
 }
 
 //----- (10008E20) --------------------------------------------------------
@@ -5626,65 +5627,46 @@ qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas)
 // 10008E6A: conditional instruction was optimized away because %arg_4.4>=2
 
 //----- (10008EB0) --------------------------------------------------------
-int __cdecl AAS_FloodAreas_r(_DWORD *areanum, int cluster, int done)
+int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
 {
-  int *v4; // edi
-  int v5; // esi
-  int v6; // eax
-  int v7; // ebx
-  int v8; // rax (was __int64)
-  char *v9; // eax
-  int v10; // eax
-  int v11; // ecx
-  _DWORD *v12; // edx
-  int v15; // [esp+1Ch] [ebp+Ch]
+  aas_area_t *area;
+  aas_face_t *face;
+  int presencetype;
+  int i, j, nextareanum;
 
   areanum[cluster] = done;
-  v4 = (int *)(&aasworld.areas[done]);
-  v5 = cluster + 1;
-  v6 = 0;
-  v7 = aasworld.areasettings[done].presencetype;
-  v15 = 0;
-  if ( v4[1] > 0 )
+  area = (aas_area_t *)((char *)aasworld.areas + 48 * done);
+  cluster++;
+  presencetype = aasworld.areasettings[done].presencetype;
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    while ( 1 )
+    face = &aasworld.faces[abs(aasworld.faceindex[area->firstface + i])];
+    if ( (face->faceflags & 1) != 0 )
+      continue;
+    if ( face->frontarea != done )
+      nextareanum = face->frontarea;
+    else
+      nextareanum = face->backarea;
+    if ( (~aasworld.areasettings[nextareanum].presencetype & presencetype) == 0
+      || (~presencetype & aasworld.areasettings[nextareanum].presencetype) != 0 )
     {
-      v8 = aasworld.faceindex[v6 + v4[2]];
-      v9 = &aasworld.faces[abs(v8)];
-      if ( (v9[4] & 1) != 0 )
-        goto LABEL_15;
-      v10 = *((_DWORD *)v9 + 4) == done ? *((_DWORD *)v9 + 5) : *((_DWORD *)v9 + 4);
-      if ( (~aasworld.areasettings[v10].presencetype & v7) == 0
-        || (~v7 & aasworld.areasettings[v10].presencetype) != 0 )
-      {
-        goto LABEL_15;
-      }
-      v11 = 0;
-      if ( v5 > 0 )
-      {
-        v12 = areanum;
-        do
-        {
-          if ( v10 == *v12 )
-            break;
-          ++v11;
-          ++v12;
-        }
-        while ( v11 < v5 );
-      }
-      if ( v11 != v5 )
-        goto LABEL_15;
-      if ( v5 >= 128 )
-        break;
-      v5 = AAS_FloodAreas_r(areanum, v5, v10);
-LABEL_15:
-      v6 = ++v15;
-      if ( v15 >= v4[1] )
-        return v5;
+      continue;
     }
-    AAS_Error("MAX_PORTALAREAS");
+    for ( j = 0; j < cluster; j++ )
+    {
+      if ( nextareanum == areanum[j] )
+        break;
+    }
+    if ( j != cluster )
+      continue;
+    if ( cluster >= 128 )
+    {
+      AAS_Error("MAX_PORTALAREAS");
+      break;
+    }
+    cluster = AAS_FloodAreas_r(areanum, cluster, nextareanum);
   }
-  return v5;
+  return cluster;
 }
 
 //----- (10008FF0) --------------------------------------------------------
@@ -6237,7 +6219,7 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
  * debug view" toggle).
  *
  * Signature (cdecl, 3 vec3 args):
- *   void AAS_ShowBoundingBox(vec3_t origin, vec3_t maxs_offset, vec3_t mins_offset)
+ *   void AAS_ShowBoundingBox(vec3_t origin, vec3_t mins_offset, vec3_t maxs_offset)
  *
  * Geometry (verified field-by-field from the .text FPU schedule):
  *   X1 = origin[0] + mins[0]   X4 = origin[0] + maxs[0]
@@ -6280,57 +6262,47 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
  *          dword_10066B14      = free counter
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
-void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t maxs, vec3_t mins)
+void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
-  float corners[8][3];
-  int   line_ids[3];
-  int   collected, slot, i;
-  int   prev_idx, next_idx;
-  float X1, X2, X3, X4, X5, X6;
+  vec3_t bboxcorners[8];
+  int lines[3];
+  int i, j, line;
 
-  X1 = origin[0] + mins[0];
-  X2 = origin[1] + mins[1];
-  X3 = origin[2] + mins[2];
-  X4 = origin[0] + maxs[0];
-  X5 = origin[1] + maxs[1];
-  X6 = origin[2] + maxs[2];
-
-  /* bottom quad (z = X3) */
-  corners[0][0] = X1; corners[0][1] = X2; corners[0][2] = X3;
-  corners[1][0] = X4; corners[1][1] = X2; corners[1][2] = X3;
-  corners[2][0] = X4; corners[2][1] = X5; corners[2][2] = X3;
-  corners[3][0] = X1; corners[3][1] = X5; corners[3][2] = X3;
-  /* top quad (memcpy from bottom, then z patched to X6) */
-  memcpy(&corners[4], &corners[0], 4 * 3 * sizeof(float));
-  corners[4][2] = X6;
-  corners[5][2] = X6;
-  corners[6][2] = X6;
-  corners[7][2] = X6;
-
-  /* Collect 3 free line-IDs from the shared slot table.  Inlined
-   * AAS_DebugLine-style scan; bails after collecting 3 even if the
-   * table has more free slots. */
-  collected = 0;
-  for (slot = 0; slot < 256 && collected < 3; slot++) {
-    if (!dword_100670C0[slot]) {
-      dword_100670C0[slot]  = bi_DebugLineCreate();
-      dword_10066CC0[slot]  = 1;
-      dword_10066B14       += 1;
-      line_ids[collected++] = dword_100670C0[slot];
-    } else if (!dword_10066CC0[slot]) {
-      dword_10066CC0[slot]  = 1;
-      line_ids[collected++] = dword_100670C0[slot];
+  bboxcorners[0][0] = origin[0] + maxs[0];
+  bboxcorners[0][1] = origin[1] + maxs[1];
+  bboxcorners[0][2] = origin[2] + maxs[2];
+  bboxcorners[1][0] = origin[0] + mins[0];
+  bboxcorners[1][1] = origin[1] + maxs[1];
+  bboxcorners[1][2] = origin[2] + maxs[2];
+  bboxcorners[2][0] = origin[0] + mins[0];
+  bboxcorners[2][1] = origin[1] + mins[1];
+  bboxcorners[2][2] = origin[2] + maxs[2];
+  bboxcorners[3][0] = origin[0] + maxs[0];
+  bboxcorners[3][1] = origin[1] + mins[1];
+  bboxcorners[3][2] = origin[2] + maxs[2];
+  memcpy(bboxcorners[4], bboxcorners[0], sizeof(vec3_t) * 4);
+  for ( i = 0; i < 4; i++ )
+    bboxcorners[4 + i][2] = origin[2] + mins[2];
+  for ( i = 0; i < 4; i++ )
+  {
+    for ( j = 0, line = 0; j < 3 && line < 256; line++ )
+    {
+      if ( !dword_100670C0[line] )
+      {
+        dword_100670C0[line] = bi_DebugLineCreate();
+        lines[j++] = dword_100670C0[line];
+        dword_10066CC0[line] = 1;
+        dword_10066B14++;
+      }
+      else if ( !dword_10066CC0[line] )
+      {
+        lines[j++] = dword_100670C0[line];
+        dword_10066CC0[line] = 1;
+      }
     }
-  }
-
-  /* Draw 12 edges across i=1..4; each edge connects corner i-1 to
-   * corner (i & 3), so the 4th iteration wraps and closes the loop. */
-  for (i = 1; i <= 4; i++) {
-    prev_idx = i - 1;
-    next_idx = i & 3;
-    bi_DebugLineShow(line_ids[0], corners[prev_idx],     corners[next_idx],     0xF2F2F0F0);
-    bi_DebugLineShow(line_ids[1], corners[4 + prev_idx], corners[4 + next_idx], 0xF2F2F0F0);
-    bi_DebugLineShow(line_ids[2], corners[prev_idx],     corners[4 + prev_idx], 0xF2F2F0F0);
+    bi_DebugLineShow(lines[0], bboxcorners[i], bboxcorners[(i + 1) & 3], 0xF2F2F0F0);
+    bi_DebugLineShow(lines[1], bboxcorners[4 + i], bboxcorners[4 + ((i + 1) & 3)], 0xF2F2F0F0);
+    bi_DebugLineShow(lines[2], bboxcorners[i], bboxcorners[4 + i], 0xF2F2F0F0);
   }
 }
 
@@ -6367,196 +6339,114 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t maxs, vec3_t mins)
  * area-level wireframes via a different path).  Restored verbatim. */
 void __cdecl AAS_ShowFace(int facenum)
 {
-  static const unsigned int edge_color_cycle[4] = {
-    0xF2F2F0F0u,  /* state 0 (after first xform from initial 0xDCDDDEDF) */
-    0xD0D1D2D3u,  /* state 1 */
-    0xF3F3F1F1u,  /* state 2 */
-    0xDCDDDEDFu,  /* state 3 — original initial */
-  };
-  int   color_state;
+  int i, color, edgenum;
+  aas_edge_t *edge;
   aas_face_t *face;
-  int   numedges, firstedge;
-  int   i;
-  int   edge_idx, vert_a, vert_b;
-  float *vertexes = (float *)aasworld.vertexes;
-  aas_edge_t *edges = aasworld.edges;
-  int   *edgeindex = (int *)aasworld.edgeindex;
-  int   planenum;
-  float *normal;
-  vec3_t first_vert;
-  vec3_t arrow_end;
+  aas_plane_t *plane;
+  vec3_t start, end;
 
+  color = LINECOLOR_YELLOW;
   if ( facenum >= aasworld.numfaces )
     bi_Print(PRT_ERROR, "facenum %d out of range\n", facenum);
-
   face = &aasworld.faces[facenum];
-  numedges = face->numedges;
-  firstedge = face->firstedge;
-
-  color_state = 3;          /* initial edi = 0xDCDDDEDF — slot 3 in our table */
-
-  for ( i = 0; i < numedges; ++i )
+  for ( i = 0; i < face->numedges; i++ )
   {
-    edge_idx = edgeindex[firstedge + i];
-    if ( edge_idx < 0 )
-      edge_idx = -edge_idx;
-    if ( edge_idx >= aasworld.numedges )
-      bi_Print(PRT_ERROR, "edgenum %d out of range\n", edge_idx);
-
-    /* advance color cycle one step (state was 3 → 0 → 1 → 2 → 3 …) */
-    color_state = (color_state + 1) & 3;
-
-    vert_a = edges[edge_idx].v[0];
-    vert_b = edges[edge_idx].v[1];
-    AAS_DebugLine(&vertexes[vert_a * 3],
-                  &vertexes[vert_b * 3],
-                  (int)edge_color_cycle[color_state]);
+    edgenum = abs(aasworld.edgeindex[face->firstedge + i]);
+    if ( edgenum >= aasworld.numedges )
+      bi_Print(PRT_ERROR, "edgenum %d out of range\n", edgenum);
+    edge = &aasworld.edges[edgenum];
+    if ( color == LINECOLOR_RED )
+      color = LINECOLOR_GREEN;
+    else if ( color == LINECOLOR_GREEN )
+      color = LINECOLOR_BLUE;
+    else if ( color == LINECOLOR_BLUE )
+      color = LINECOLOR_YELLOW;
+    else
+      color = LINECOLOR_RED;
+    AAS_DebugLine(aasworld.vertexes[edge->v[0]], aasworld.vertexes[edge->v[1]], color);
   }
-
-  /* draw 20-unit normal arrow from the first vertex of the first edge */
-  planenum = face->planenum;
-  normal = aasworld.planes[planenum].normal;
-  edge_idx = edgeindex[firstedge];
-  if ( edge_idx < 0 )
-    edge_idx = -edge_idx;
-  vert_a = edges[edge_idx].v[0];
-  first_vert[0] = vertexes[vert_a * 3 + 0];
-  first_vert[1] = vertexes[vert_a * 3 + 1];
-  first_vert[2] = vertexes[vert_a * 3 + 2];
-  VectorMA(first_vert, 20.0f, normal, arrow_end);
-  AAS_DebugLine(first_vert, arrow_end, 0xF2F2F0F0);
+  plane = &aasworld.planes[face->planenum];
+  edgenum = abs(aasworld.edgeindex[face->firstedge]);
+  edge = &aasworld.edges[edgenum];
+  VectorCopy(aasworld.vertexes[edge->v[0]], start);
+  VectorMA(start, 20.0f, plane->normal, end);
+  AAS_DebugLine(start, end, LINECOLOR_RED);
 }
 
 //----- (1000A0A0) --------------------------------------------------------
-int __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
+void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 {
-  int result; // eax
-  int v3; // ebp
-  char *v4; // ebx
-  signed int v5; // esi
-  char *v6; // edi
-  int v7; // ebx
-  signed int v8; // esi
-  int v9; // eax
-  _DWORD *v10; // ecx
-  int v11; // edi
-  _DWORD *v12; // ebx
-  int v13; // esi
-  int v14; // eax
-  _DWORD *v15; // edx
-  int v16; // [esp+10h] [ebp-410h]
-  int v17; // [esp+14h] [ebp-40Ch]
-  signed int *v18; // [esp+18h] [ebp-408h]
-  char *i; // [esp+1Ch] [ebp-404h]
-  _DWORD v20[256]; // [esp+20h] [ebp-400h] BYREF
+  int areaedges[256];
+  int numareaedges, i, j, n, color, line;
+  int facenum, edgenum;
+  aas_area_t *area;
+  aas_face_t *face;
+  aas_edge_t *edge;
 
-  result = areanum;
-  v3 = 0;
-  v16 = 0;
+  numareaedges = 0;
+  color = 0;
   if ( areanum < 0 || areanum >= aasworld.numareas )
-    return bi_Print(PRT_ERROR, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
-  v4 = &aasworld.areas[areanum];
-  v17 = 0;
-  for ( i = v4; v17 < *((_DWORD *)v4 + 1); ++v17 )
   {
-    v5 = abs(aasworld.faceindex[*((_DWORD *)v4 + 2) + v17]);
-    if ( v5 >= aasworld.numfaces )
-      bi_Print(PRT_ERROR, "facenum %d out of range\n", v5);
-    v6 = &aasworld.faces[v5];
-    if ( !groundfacesonly || (v6[4] & 6) != 0 )
-    {
-      v7 = 0;
-      if ( *((int *)v6 + 2) > 0 )
-      {
-        v18 = &v20[v3];
-        do
-        {
-          v8 = abs(aasworld.edgeindex[v7 + *((_DWORD *)v6 + 3)]);
-          if ( v8 >= aasworld.numedges )
-            bi_Print(PRT_ERROR, "edgenum %d out of range\n", v8);
-          v9 = 0;
-          if ( v3 > 0 )
-          {
-            v10 = v20;
-            do
-            {
-              if ( *v10 == v8 )
-                break;
-              ++v9;
-              ++v10;
-            }
-            while ( v9 < v3 );
-          }
-          if ( v9 == v3 && v3 < 256 )
-          {
-            ++v3;
-            *v18++ = v8;
-          }
-          ++v7;
-        }
-        while ( v7 < *((_DWORD *)v6 + 2) );
-      }
-      v4 = i;
-    }
-    result = v17 + 1;
+    bi_Print(PRT_ERROR, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
+    return;
   }
-  v11 = 0;
-  if ( v3 > 0 )
+  area = &aasworld.areas[areanum];
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    v12 = v20;
-    do
+    facenum = abs(aasworld.faceindex[area->firstface + i]);
+    if ( facenum >= aasworld.numfaces )
+      bi_Print(PRT_ERROR, "facenum %d out of range\n", facenum);
+    face = &aasworld.faces[facenum];
+    if ( groundfacesonly )
     {
-      v13 = 0;
-      while ( 1 )
+      if ( (face->faceflags & 6) == 0 )
+        continue;
+    }
+    for ( j = 0; j < face->numedges; j++ )
+    {
+      edgenum = abs(aasworld.edgeindex[face->firstedge + j]);
+      if ( edgenum >= aasworld.numedges )
+        bi_Print(PRT_ERROR, "edgenum %d out of range\n", edgenum);
+      for ( n = 0; n < numareaedges; n++ )
       {
-        if ( !dword_100670C0[v13] )
-        {
-          dword_100670C0[v13] = bi_DebugLineCreate();
-          v14 = dword_10066B14 + 1;
-          dword_10066CC0[v13] = 0;
-          dword_10066B14 = v14;
-        }
-        result = dword_10066CC0[v13];
-        if ( !result )
+        if ( areaedges[n] == edgenum )
           break;
-        if ( ++v13 >= 256 )
-          return result;
       }
-      v15 = &aasworld.edges[*v12];
-      if ( v16 == -218959632 )
-      {
-        v16 = -202116623;
-        result = bi_DebugLineShow(
-                   dword_100670C0[v13],
-                   (float *)(&aasworld.vertexes[*v15]),
-                   (float *)(&aasworld.vertexes[v15[1]]),
-                   -202116623);
-      }
-      else if ( v16 == -202116623 )
-      {
-        v16 = -791555373;
-        result = bi_DebugLineShow(
-                   dword_100670C0[v13],
-                   (float *)(&aasworld.vertexes[*v15]),
-                   (float *)(&aasworld.vertexes[v15[1]]),
-                   -791555373);
-      }
-      else
-      {
-        v16 = v16 != -791555373 ? -218959632 : -589439265;
-        result = bi_DebugLineShow(
-                   dword_100670C0[v13],
-                   (float *)(&aasworld.vertexes[*v15]),
-                   (float *)(&aasworld.vertexes[v15[1]]),
-                   v16);
-      }
-      ++v11;
-      ++v12;
-      dword_10066CC0[v13] = 1;
+      if ( n == numareaedges && numareaedges < 256 )
+        areaedges[numareaedges++] = edgenum;
     }
-    while ( v11 < v3 );
   }
-  return result;
+  for ( n = 0; n < numareaedges; n++ )
+  {
+    for ( line = 0; line < 256; line++ )
+    {
+      if ( !dword_100670C0[line] )
+      {
+        dword_100670C0[line] = bi_DebugLineCreate();
+        dword_10066CC0[line] = 0;
+        dword_10066B14++;
+      }
+      if ( !dword_10066CC0[line] )
+        break;
+    }
+    if ( line >= 256 )
+      return;
+    edge = &aasworld.edges[areaedges[n]];
+    if ( color == LINECOLOR_RED )
+      color = LINECOLOR_BLUE;
+    else if ( color == LINECOLOR_BLUE )
+      color = LINECOLOR_GREEN;
+    else if ( color == LINECOLOR_GREEN )
+      color = LINECOLOR_YELLOW;
+    else
+      color = LINECOLOR_RED;
+    bi_DebugLineShow(
+      dword_100670C0[line],
+      aasworld.vertexes[edge->v[0]],
+      aasworld.vertexes[edge->v[1]],
+      color);
+    dword_10066CC0[line] = 1;
+  }
 }
 // 1000A228: conditional instruction was optimized away because esi.4<100
 
@@ -15621,33 +15511,25 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // (0x1000119f → 1001BD40) from sub_1001C0B0 and sub_1001C210.
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon)
 {
-  int eidx;
-  int v8;
-  char *edge;
-  float *v7;
-  float *v9;
-  vec3_t v14;
-  vec3_t v15;
-  float v11, v12, v13;
-  float v17;
-  int v16;
+  int i, firstvertex, edgenum;
+  vec3_t v0;
+  vec3_t edgevec, pointvec, sepnormal;
+  aas_edge_t *edge;
 
   if ( !aasworld.loaded )
     return 0;
-  v17 = -epsilon;
-  for ( v16 = 0; v16 < face->numedges; v16++ )
+  for ( i = 0; i < face->numedges; i++ )
   {
-    eidx = aasworld.edgeindex[face->firstedge + v16];
-    edge = &aasworld.edges[abs(eidx)];
-    v8 = eidx < 0;
-    v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
-    v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
-    VectorSubtract(v9, v7, v14);
-    v11 = point[0] - v7[0];
-    v12 = point[1] - v7[1];
-    v13 = point[2] - v7[2];
-    CrossProduct(v14, pnormal, v15);
-    if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
+    edgenum = aasworld.edgeindex[face->firstedge + i];
+    edge = &aasworld.edges[abs(edgenum)];
+    firstvertex = edgenum < 0;
+    VectorCopy(aasworld.vertexes[edge->v[firstvertex]], v0);
+    VectorSubtract(aasworld.vertexes[edge->v[!firstvertex]], v0, edgevec);
+    VectorSubtract(point, v0, pointvec);
+    sepnormal[0] = edgevec[1] * pnormal[2] - edgevec[2] * pnormal[1];
+    sepnormal[1] = edgevec[2] * pnormal[0] - edgevec[0] * pnormal[2];
+    sepnormal[2] = edgevec[0] * pnormal[1] - edgevec[1] * pnormal[0];
+    if ( DotProduct(pointvec, sepnormal) < -epsilon )
       return 0;
   }
   return 1;
@@ -15880,15 +15762,14 @@ aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
 //----- (1001C460) --------------------------------------------------------
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
 {
-  aas_link_t *v4; // edi  (areas chain head)
-  int *v5; // ebx
-  int v6; // esi
-  aas_link_t *v7; // eax (newly allocated link)
-  aas_link_t *v10; // existing head at arealinkedentities[-v6]
-  aas_node_t *v11; // esi  (was char* in IDA — a 3-int node {planenum, child[0], child[1]})
-  char *v12; // ecx
-  int v13; // edx
-  char v14; // al
+  aas_link_t *areas;
+  aas_link_t *link;
+  aas_link_t *next;
+  aas_node_t *aasnode;
+  int *lstack_p;
+  int nodenum;
+  int type;
+  int side;
   /* IDA decompiled the 256-byte stack-based BSP traversal queue as a single
    * int + char.  GCC honored that literally — only ~8 bytes — so when the
    * asm pushed multiple children (`*v5++ = child1; *v5++ = child2;`) it ran
@@ -15897,68 +15778,65 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
    * AAS_AASLinkEntity, which mis-traversed and returned garbage, so 82
    * of 83 q2dm1 items got goal_areanum=0 and the bot couldn't pursue items.
    * Original frame: sub $0x100,%esp = 256 bytes = 64 int slots. */
-  int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
+  int linkstack[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !aasworld.loaded )
   {
     bi_Print(PRT_ERROR, "AAS_LinkEntity: aas not loaded\n");
     return 0;
   }
-  v4 = 0;
-  v15[0] = 1;
-  v5 = &v15[1];
-  while ( --v5 >= &v15[0] )
+  areas = 0;
+  linkstack[0] = 1;
+  lstack_p = &linkstack[1];
+  while ( 1 )
   {
-    v6 = *v5;
-    if ( *v5 >= 0 )
+    --lstack_p;
+    if ( lstack_p < &linkstack[0] )
+      break;
+    nodenum = *lstack_p;
+    if ( nodenum < 0 )
     {
-      if ( *v5 )
-      {
-        v11 = &aasworld.nodes[v6];
-        v12 = &aasworld.planes[v11->planenum];
-        v13 = *((_DWORD *)v12 + 4);
-        if ( v13 >= 3 )
-        {
-          v14 = sub_1001C2E0(a1, a2, aasworld.planes[v11->planenum].normal);
-        }
-        else if ( *((float *)v12 + 3) > (float)a1[v13] )
-        {
-          if ( *((float *)v12 + 3) < (float)a2[v13] )
-            v14 = 3;
-          else
-            v14 = 2;
-        }
-        else
-        {
-          v14 = 1;
-        }
-        if ( (v14 & 1) != 0 )
-          *v5++ = v11->children[0];
-        if ( (v14 & 2) != 0 )
-          *v5++ = v11->children[1];
-      }
+      link = AAS_AllocAASLink();
+      if ( !link )
+        return areas;
+      link->prev_area = NULL;
+      link->entnum = a3;
+      link->areanum = -nodenum;
+      link->next_area = areas;
+      if ( areas )
+        areas->prev_area = link;
+      link->prev_ent = NULL;
+      areas = link;
+      link->next_ent = ((aas_link_t **)aasworld.arealinkedentities)[-nodenum];
+      next = ((aas_link_t **)aasworld.arealinkedentities)[-nodenum];
+      if ( next )
+        next->prev_ent = link;
+      ((aas_link_t **)aasworld.arealinkedentities)[-nodenum] = link;
+      continue;
+    }
+    if ( !nodenum )
+      continue;
+    aasnode = &aasworld.nodes[nodenum];
+    type = aasworld.planes[aasnode->planenum].type;
+    if ( type < 3 )
+    {
+      if ( aasworld.planes[aasnode->planenum].dist > (float)a1[type] )
+        side = 1;
+      else if ( aasworld.planes[aasnode->planenum].dist < (float)a2[type] )
+        side = 3;
+      else
+        side = 2;
     }
     else
     {
-      v7 = AAS_AllocAASLink();
-      if ( !v7 )
-        return v4;
-      v7->prev_area = NULL;
-      v7->entnum    = a3;
-      v7->areanum   = -v6;
-      v7->next_area = v4;
-      if ( v4 )
-        v4->prev_area = v7;
-      v7->prev_ent  = NULL;
-      v4 = v7;
-      v10 = ((aas_link_t **)aasworld.arealinkedentities)[-v6];
-      v7->next_ent  = v10;
-      if ( v10 )
-        v10->prev_ent = v7;
-      ((aas_link_t **)aasworld.arealinkedentities)[-v6] = v7;
+      side = sub_1001C2E0(a1, a2, aasworld.planes[aasnode->planenum].normal);
     }
+    if ( (side & 1) != 0 )
+      *lstack_p++ = aasnode->children[0];
+    if ( (side & 2) != 0 )
+      *lstack_p++ = aasnode->children[1];
   }
-  return v4;
+  return areas;
 }
 
 //----- (1001C620) --------------------------------------------------------
@@ -21462,29 +21340,23 @@ LABEL_23:
 //----- (100289A0) --------------------------------------------------------
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
-  float *result; // eax
-  float v3; // st7
   int v4; // edx
-  float v5; // st7
+  int v5; // ecx
   int v6; // edx
-  float v7; // st7
 
-  result = (float *)bs;
-  v3 = a2 + bs->ltime;
-  v4 = (*(int *)&bs->snapshot.origin[0]);
+  bs->ltime += a2;
   bs->thinktime = a2;
-  *(int *)&bs->origin[1] = (*(int *)&bs->snapshot.origin[1]);
-  bs->ltime = v3;
-  v5 = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
+  v4 = *(int *)&bs->snapshot.origin[0];
+  v5 = *(int *)&bs->snapshot.origin[1];
+  *(int *)&bs->origin[1] = v5;
   *(int *)&bs->origin[0] = v4;
+  bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   v6 = (*(int *)&bs->snapshot.origin[2]);
-  bs->eye[0] = v5;
-  v7 = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
   qmemcpy(bs->inventory, bs->inventory_src, 0x400u);
-  bs->eye[1] = v7;
+  bs->eye[1] = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
   bs->eye[2] = bs->snapshot.viewoffset[2] + *(float *)&(*(int *)&bs->snapshot.origin[2]);
   *(int *)&bs->origin[2] = v6;
-  return result;
+  return (float *)bs;
 }
 
 //----- (10028A40) --------------------------------------------------------
@@ -22027,48 +21899,44 @@ int __cdecl BotSettings(int a1, const void *a2)
 //----- (10029A40) --------------------------------------------------------
 int __cdecl BotResetState(int *a1)
 {
-  int v1; // eax
-  int v2; // edx
-  int v3; // eax
-  int v5; // [esp+18h] [ebp-6E4h]
-  int v6; // [esp+1Ch] [ebp-6E0h]
-  int v7; // [esp+20h] [ebp-6DCh]
-  int v8; // [esp+24h] [ebp-6D8h]
-  char v9[28]; // [esp+28h] [ebp-6D4h] BYREF
-  char v10[128]; // [esp+44h] [ebp-6B8h] BYREF
-  char v11[188]; // [esp+C4h] [ebp-638h] BYREF
-  char v12[432]; // [esp+180h] [ebp-57Ch] BYREF
-  char v13[972]; // [esp+330h] [ebp-3CCh] BYREF
+  bot_state_t *bs;
+  int client;
+  int entitynum;
+  int inuse;
+  int character;
+  int weaponstate[7];
+  char movestate[128];
+  bot_chatstate_t chatstate;
+  char settings[432];
+  int goalstate[243];
 
-  qmemcpy(v12, a1 + 310, sizeof(v12));
-  v7 = a1[1];
-  qmemcpy(v10, a1 + 720, sizeof(v10));
-  qmemcpy(v13, a1 + 752, sizeof(v13));
-  v1 = *a1;
-  v2 = a1[2];
-  qmemcpy(v9, a1 + 1042, sizeof(v9));
-  v8 = v1;
-  qmemcpy(v11, a1 + 995, sizeof(v11));
-  v3 = a1[418];
-  v6 = v2;
-  v5 = v3;
-  BotFreeWaypoints(a1[1136]);
-  BotFreeWaypoints(a1[1137]);
-  memset(a1, 0, 0x11D0u);
-  qmemcpy(a1 + 720, v10, 0x80u);
-  qmemcpy(a1 + 752, v13, 0x3CCu);
-  qmemcpy(a1 + 1042, v9, 0x1Cu);
-  *a1 = v8;
-  qmemcpy(a1 + 995, v11, 0xBCu);
-  a1[2] = v6;
-  qmemcpy(a1 + 310, v12, 0x1B0u);
-  a1[418] = v5;
-  a1[1] = v7;
-  BotResetMoveState(a1 + 720);
-  BotResetGoalState(a1 + 752);
-  BotResetWeaponState(BotWS((bot_state_t *)a1));
-  BotResetAvoidGoals(a1 + 752);
-  return BotResetAvoidReach(a1 + 720);
+  bs = (bot_state_t *)a1;
+  qmemcpy(settings, bs->settings, sizeof(settings));
+  client = bs->client;
+  qmemcpy(movestate, &bs->ms, sizeof(movestate));
+  qmemcpy(goalstate, bs->goalstate, sizeof(goalstate));
+  inuse = bs->inuse;
+  entitynum = bs->entitynum;
+  qmemcpy(weaponstate, bs->weaponweights, sizeof(weaponstate));
+  qmemcpy(&chatstate, &bs->chatstate, sizeof(chatstate));
+  character = bs->character;
+  BotFreeWaypoints(BotCheckpoints(bs));
+  BotFreeWaypoints(BotPatrolpoints(bs));
+  memset(bs, 0, sizeof(*bs));
+  qmemcpy(&bs->ms, movestate, sizeof(movestate));
+  qmemcpy(bs->goalstate, goalstate, sizeof(goalstate));
+  qmemcpy(bs->weaponweights, weaponstate, sizeof(weaponstate));
+  bs->inuse = inuse;
+  qmemcpy(&bs->chatstate, &chatstate, sizeof(chatstate));
+  bs->entitynum = entitynum;
+  qmemcpy(bs->settings, settings, sizeof(settings));
+  bs->character = character;
+  bs->client = client;
+  BotResetMoveState((int *)&bs->ms);
+  BotResetGoalState(bs->goalstate);
+  BotResetWeaponState(BotWS(bs));
+  BotResetAvoidGoals(bs->goalstate);
+  return BotResetAvoidReach((int *)&bs->ms);
 }
 
 //----- (10029C10) --------------------------------------------------------
