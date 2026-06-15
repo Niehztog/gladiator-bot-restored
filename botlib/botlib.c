@@ -20615,16 +20615,15 @@ LABEL_8:
 int __cdecl FindClientByName(char *String2)
 {
   int i;
-  int offset;
 
-  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
+  for ( i = 0; i < maxclients; i++ )
   {
-    if ( !_strcmpi(offset + dword_100643A8, String2) )
+    if ( !_strcmpi(144 * i + dword_100643A8, String2) )
       return i;
   }
-  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
+  for ( i = 0; i < maxclients; i++ )
   {
-    if ( stristr((char *)(offset + dword_100643A8), String2) )
+    if ( stristr((char *)(144 * i + dword_100643A8), String2) )
       return i;
   }
   return -1;
@@ -26855,7 +26854,7 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
 // at 100 units before the preserved `400 - (400 - 3*dist)` form.
 // DEAD in Gladiator — only kept because /INCREMENTAL left it in the
 // original DLL.  Restored from objdump@10031FE0 + Q3 be_ai_move.c.
-bot_moveresult_t *__cdecl BotFinishTravel_Walk(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t *__cdecl sub_10031FE0(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t moveresult;
   vec3_t hordir;
@@ -30803,14 +30802,11 @@ unsigned int __cdecl PC_NameHash(const char *a1)
   {
     v2 = strlen(a1);
     if ( (int)v2 > 4 )
-    {
       v2 = 4;
-LABEL_5:
-      qmemcpy(&v4, a1, v2);
+    else if ( !v2 )
       return abs(v4) & 0x3FF;
-    }
-    if ( v2 )
-      goto LABEL_5;
+    qmemcpy(&v4, a1, v2);
+    return abs(v4) & 0x3FF;
   }
   return abs(v4) & 0x3FF;
 }
