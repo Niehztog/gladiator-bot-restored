@@ -19473,22 +19473,19 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
 {
   int v1; // ebp
   int v2; // esi
-  int v3; // ebx
 
   v1 = 0;
   v2 = 0;
   if ( maxclients > 0 )
   {
-    v3 = 0;
     do
     {
-      if ( strlen(v3 + dword_100643A8) )
+      if ( strlen(144 * v2 + dword_100643A8) )
       {
         if ( BotSameTeam(bs, v2 + 1) )
           ++v1;
       }
       ++v2;
-      v3 += 144;
     }
     while ( v2 < maxclients );
   }
@@ -22085,21 +22082,10 @@ int __cdecl BotResetState(int *a1)
 //----- (10029C10) --------------------------------------------------------
 int sub_10029C10()
 {
-  int v0; // edi
-  int v1; // esi
+  int i;
 
-  v0 = 0;
-  if ( maxclients > 0 )
-  {
-    v1 = 0;
-    do
-    {
-      BotResetState(v1 + dword_100643A0);
-      ++v0;
-      v1 += 4560;
-    }
-    while ( v0 < maxclients );
-  }
+  for ( i = 0; i < maxclients; i++ )
+    BotResetState(4560 * i + dword_100643A0);
   BotInitLevelItems();
   if ( dword_10064398 )
     AAS_FreeBSPEntities(dword_10064398);
