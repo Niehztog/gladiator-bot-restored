@@ -20614,17 +20614,17 @@ LABEL_8:
 //----- (100268D0) --------------------------------------------------------
 int __cdecl FindClientByName(char *String2)
 {
-  char *name;
   int i;
+  int offset;
 
-  for ( i = 0, name = dword_100643A8; i < maxclients; i++, name += 144 )
+  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
   {
-    if ( !_strcmpi(name, String2) )
+    if ( !_strcmpi(offset + dword_100643A8, String2) )
       return i;
   }
-  for ( i = 0, name = dword_100643A8; i < maxclients; i++, name += 144 )
+  for ( i = 0, offset = 0; i < maxclients; i++, offset += 144 )
   {
-    if ( stristr(name, String2) )
+    if ( stristr((char *)(offset + dword_100643A8), String2) )
       return i;
   }
   return -1;
@@ -30796,19 +30796,23 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
 //----- (10039C30) --------------------------------------------------------
 unsigned int __cdecl PC_NameHash(const char *a1)
 {
- unsigned int v2; // ecx
- int v4; // [esp+4h] [ebp-4h] BYREF
+  unsigned int v2; // ecx
+  int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
- v4 = 0;
- if ( a1 )
- {
-   v2 = strlen(a1);
-   if ( (int)v2 > 4 )
-     v2 = 4;
-   if ( v2 )
-     qmemcpy(&v4, a1, v2);
- }
- return abs(v4) & 0x3FF;
+  if ( a1 )
+  {
+    v2 = strlen(a1);
+    if ( (int)v2 > 4 )
+    {
+      v2 = 4;
+LABEL_5:
+      qmemcpy(&v4, a1, v2);
+      return abs(v4) & 0x3FF;
+    }
+    if ( v2 )
+      goto LABEL_5;
+  }
+  return abs(v4) & 0x3FF;
 }
 
 //----- (10039CB0) --------------------------------------------------------
