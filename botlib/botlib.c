@@ -570,7 +570,7 @@ int AAS_SetupReachabilityHeap();
 void AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
 int __cdecl AAS_AreaReachability(int areanum);
-double __cdecl AAS_FaceArea(char *face);
+float __cdecl AAS_FaceArea(char *face);
 float __cdecl AAS_AreaVolume(int areanum);
 float __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
@@ -10070,7 +10070,7 @@ int __cdecl AAS_AreaReachability(int areanum)
 }
 
 //----- (10011090) --------------------------------------------------------
-double __cdecl AAS_FaceArea(char *face)
+float __cdecl AAS_FaceArea(char *face)
 {
   aas_face_t *f = (aas_face_t *)face;
   int v2; // ebp
@@ -10086,15 +10086,12 @@ double __cdecl AAS_FaceArea(char *face)
   char v13[12]; // [esp+24h] [ebp-Ch] BYREF
   float v14; // [esp+34h] [ebp+4h]
 
-  v2 = 1;
   v3 = f->firstedge;
-  v14 = 0.0;
-  v4 = (float *)aasworld.vertexes;
+  v14 = 0.0f;
   v5 = (float *)&aasworld.vertexes[aasworld.edges[abs(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
-  if ( f->numedges - 1 <= 1 )
-    return 0.0;
-  while ( 1 )
+  for ( v2 = 1; v2 < f->numedges - 1; ++v2 )
   {
+    v4 = (float *)aasworld.vertexes;
     v6 = aasworld.edgeindex[f->firstedge + v2];
     v7 = v6 < 0;
     v8 = &aasworld.edges[abs(v6)];
@@ -10106,11 +10103,7 @@ double __cdecl AAS_FaceArea(char *face)
     v11[1] = v4[3 * *(_DWORD *)v9 + 1] - v5[1];
     v11[2] = v4[3 * *(_DWORD *)v9 + 2] - v5[2];
     CrossProduct(v12, v11, v13);
-    ++v2;
     v14 = VectorLength(v13) * 0.5 + v14;
-    if ( v2 >= f->numedges - 1 )
-      break;
-    v4 = (float *)aasworld.vertexes;
   }
   return v14;
 }
@@ -21471,11 +21464,11 @@ LABEL_23:
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
   float *result; // eax
-  double v3; // st7
+  float v3; // st7
   int v4; // edx
-  double v5; // st7
+  float v5; // st7
   int v6; // edx
-  double v7; // st7
+  float v7; // st7
 
   result = (float *)bs;
   v3 = a2 + bs->ltime;
