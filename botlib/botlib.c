@@ -416,7 +416,7 @@ int __cdecl WriteFloat(FILE *Stream, float); // idb
  * swapped in their naming.  See body at ~line 27056. */
 /* sub_10038990 → LibVarGetValue: see decl above (1-arg, returns float). */
 // AAS_LoadBSPFile: see declaration in second block
-int AAS_InitAASLinkHeap(); // weak
+void AAS_InitAASLinkHeap(); // weak
 /* PC_ExpectTokenString: defined as sub_1003D650 at 0x1003D650 */
 /* AAS_Time: decl already present below */
 /* sub_10007150: BSP-only static-light helper for AAS_BSPTraceLight.  Recursive
@@ -15005,7 +15005,7 @@ int sub_1001AB80()
 }
 
 //----- (1001AC00) --------------------------------------------------------
-int AAS_InitAASLinkHeap()
+void AAS_InitAASLinkHeap()
 {
   aas_link_t *heap;
   int i;
@@ -15022,17 +15022,16 @@ int AAS_InitAASLinkHeap()
     heap = (aas_link_t *)GetMemory(sizeof(aas_link_t) * count);
     aasworld.linkheap = heap;
   }
-  heap[0].prev_ent = NULL;
-  heap[0].next_ent = &heap[1];
+  aasworld.linkheap[0].prev_ent = NULL;
+  aasworld.linkheap[0].next_ent = &aasworld.linkheap[1];
   for ( i = 1; i < count - 1; ++i )
   {
-    heap[i].prev_ent = &heap[i - 1];
-    heap[i].next_ent = &heap[i + 1];
+    aasworld.linkheap[i].prev_ent = &aasworld.linkheap[i - 1];
+    aasworld.linkheap[i].next_ent = &aasworld.linkheap[i + 1];
   }
-  heap[count - 1].prev_ent = &heap[count - 2];
-  heap[count - 1].next_ent = NULL;
-  aasworld.freelinks = heap;
-  return count;
+  aasworld.linkheap[count - 1].prev_ent = &aasworld.linkheap[count - 2];
+  aasworld.linkheap[count - 1].next_ent = NULL;
+  aasworld.freelinks = aasworld.linkheap;
 }
 
 //----- (1001AD10) --------------------------------------------------------
