@@ -15820,12 +15820,22 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
     type = aasworld.planes[aasnode->planenum].type;
     if ( type < 3 )
     {
-      if ( aasworld.planes[aasnode->planenum].dist > (float)a1[type] )
+      /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined.  side&1 = descend
+       * front child[0], side&2 = descend back child[1].  IDA had decompiled
+       * this with all three comparisons/branches inverted (dist > absmins ->
+       * side 1, dist < absmaxs -> side 3, else side 2), which is not just a
+       * codegen mismatch but a real behavioural bug: a box straddling the
+       * plane (absmins < dist < absmaxs) was classified side=1 (front only)
+       * instead of side=3 (both children), so straddling entities were
+       * mis-linked into too few areas.  The original (objdump 1001c54a-c578:
+       * je on dist<=absmins, jne on dist<absmaxs) is the canonical form below,
+       * matching Q3 AAS_BoxOnPlaneSide2's dist1>=0->front / dist2<0->back. */
+      if ( aasworld.planes[aasnode->planenum].dist <= (float)a1[type] )
         side = 1;
-      else if ( aasworld.planes[aasnode->planenum].dist < (float)a2[type] )
-        side = 3;
-      else
+      else if ( aasworld.planes[aasnode->planenum].dist >= (float)a2[type] )
         side = 2;
+      else
+        side = 3;
     }
     else
     {
