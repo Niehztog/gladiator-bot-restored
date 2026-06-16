@@ -27793,7 +27793,13 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
 
   BotClearMoveResult(&moveresult);
   BotResetGrapple(ms);
-  if ( goal )
+  if ( !goal )
+  {
+    moveresult.failure = 1;
+    result = a1;
+    *a1 = moveresult;
+    return result;
+  }
   {
     v4 = ms->presencetype;
     ms->moveflags &= 0xFFFFFFF3;
@@ -27803,185 +27809,184 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
       ms->moveflags |= 4;
     if ( AAS_AgainstLadder((int *)ms->origin) )
       ms->moveflags |= 8;
-    if ( (ms->moveflags & 0xE) == 0 )
-    {
-      if ( ms->lastreachnum )
-      {
-        qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
-        moveresult.traveltype = v20.traveltype;
-        switch ( v20.traveltype )
-        {
-          case 2:
-            v16 = BotTravel_Walk(&v31, ms, &v20);
-            goto LABEL_41;
-          case 3:
-          case 0xA:
-            goto LABEL_56;
-          case 4:
-            v16 = BotFinishTravel_BarrierJump(&v32, ms, &v20);
-            goto LABEL_41;
-          case 5:
-            v16 = BotFinishTravel_Jump(&v25, ms, &v20);
-            goto LABEL_41;
-          case 6:
-            v16 = BotTravel_Ladder(&v29, ms, &v20);
-            goto LABEL_41;
-          case 7:
-            v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &v20);
-            goto LABEL_41;
-          case 8:
+   if ( (ms->moveflags & 0xE) == 0 )
+   {
+     if ( ms->lastreachnum )
+     {
+       qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
+       moveresult.traveltype = v20.traveltype;
+       switch ( v20.traveltype )
+       {
+        case 2:
+          v16 = BotTravel_Walk(&v31, ms, &v20);
+           goto LABEL_41;
+        case 3:
+        case 0xA:
+          goto LABEL_56;
+        case 4:
+          v16 = BotFinishTravel_BarrierJump(&v32, ms, &v20);
+           goto LABEL_41;
+        case 5:
+          v16 = BotFinishTravel_Jump(&v25, ms, &v20);
+           goto LABEL_41;
+        case 6:
+          v16 = BotTravel_Ladder(&v29, ms, &v20);
+          goto LABEL_41;
+        case 7:
+          v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &v20);
+          goto LABEL_41;
+        case 8:
 LABEL_35:
-            v16 = BotTravel_Swim(&v24, ms, &v20);
-            goto LABEL_41;
-          case 9:
-            v16 = BotFinishTravel_WaterJump(&v28, ms, &v20);
-            goto LABEL_41;
-          case 0xB:
-            v16 = BotFinishTravel_Elevator(&v23, ms, &v20);
-            goto LABEL_41;
-          case 0xC:
-            v16 = BotFinishTravel_WeaponJump(&v30, ms, &v20);
-            goto LABEL_41;
-          case 0xE:
-            v16 = BotTravel_Grapple(&v26, ms, &v20);
+          v16 = BotTravel_Swim(&v24, ms, &v20);
+           goto LABEL_41;
+        case 9:
+          v16 = BotFinishTravel_WaterJump(&v28, ms, &v20);
+           goto LABEL_41;
+        case 0xB:
+          v16 = BotFinishTravel_Elevator(&v23, ms, &v20);
+          goto LABEL_41;
+        case 0xC:
+          v16 = BotFinishTravel_WeaponJump(&v30, ms, &v20);
+          goto LABEL_41;
+        case 0xE:
+          v16 = BotTravel_Grapple(&v26, ms, &v20);
 LABEL_41:
-            moveresult = *v16;
-            break;
-          default:
-            bi_Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", v20.traveltype);
-            break;
-        }
-      }
-      goto LABEL_56;
-    }
-    qmemcpy(v22, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), 0x2Cu);
-    v8 = BotReachabilityArea((int *)ms, v22[9] != 11);
-    ms->areanum = v8;
-    if ( v8 == goal->areanum )
-    {
-      v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, ms, goal);
-      result = a1;
-      *a1 = *v9;
-      return result;
-    }
-    v11 = ms->lastreachnum;
-    if ( !v11 )
-      goto LABEL_25;
-    qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
-    if ( (a4 & AAS_TravelFlagForType(v20.traveltype)) == 0 )
-      goto LABEL_25;
-    if ( v20.traveltype == 14 )
-    {
-      if ( AAS_Time() > ms->reachability_time || (char)ms->moveflags < 0 )
-        goto LABEL_25;
+          moveresult = *v16;
+          break;
+        default:
+          bi_Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", v20.traveltype);
+          break;
+       }
+     }
+     goto LABEL_56;
+   }
+   qmemcpy(v22, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), 0x2Cu);
+   v8 = BotReachabilityArea((int *)ms, v22[9] != 11);
+   ms->areanum = v8;
+   if ( v8 == goal->areanum )
+   {
+     v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, ms, goal);
+     result = a1;
+     *a1 = *v9;
+     return result;
+   }
+   v11 = ms->lastreachnum;
+   if ( !v11 )
+     goto LABEL_25;
+   qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
+   if ( (a4 & AAS_TravelFlagForType(v20.traveltype)) == 0 )
+     goto LABEL_25;
+   if ( v20.traveltype == 14 )
+   {
+     if ( AAS_Time() > ms->reachability_time || (ms->moveflags & 0x80) != 0 )
+       goto LABEL_25;
 LABEL_27:
-      v14 = ms->areanum;
-      ms->lastreachnum = v11;
-      v15 = goal->areanum;
-      ms->lastareanum = v14;
-      ms->lastgoalareanum = v15;
-      if ( v11 )
-      {
-        qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v11), sizeof(v20));
-        moveresult.traveltype = v20.traveltype;
-        switch ( v20.traveltype )
-        {
-          case 2:
-            v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &v20);
+     v14 = ms->areanum;
+     ms->lastreachnum = v11;
+     v15 = goal->areanum;
+     ms->lastareanum = v14;
+     ms->lastgoalareanum = v15;
+     if ( v11 )
+     {
+       qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v11), sizeof(v20));
+       moveresult.traveltype = v20.traveltype;
+       switch ( v20.traveltype )
+       {
+         case 2:
+           v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &v20);
             goto LABEL_41;
-          case 3:
-            v16 = BotTravel_Crouch(&v33, ms, &v20);
+         case 3:
+           v16 = BotTravel_Crouch(&v33, ms, &v20);
             goto LABEL_41;
-          case 4:
-            v16 = BotTravel_BarrierJump(&v30, ms, &v20);
+         case 4:
+           v16 = BotTravel_BarrierJump(&v30, ms, &v20);
             goto LABEL_41;
-          case 5:
-            v16 = BotTravel_Jump(&v28, ms, &v20);
+         case 5:
+           v16 = BotTravel_Jump(&v28, ms, &v20);
             goto LABEL_41;
-          case 6:
-            v16 = BotTravel_Ladder(&v26, ms, &v20);
+         case 6:
+           v16 = BotTravel_Ladder(&v26, ms, &v20);
+           goto LABEL_41;
+         case 7:
+           v16 = BotTravel_WalkOffLedge(&v23, ms, &v20);
+           goto LABEL_41;
+         case 8:
+           goto LABEL_35;
+         case 9:
+           v16 = BotTravel_WaterJump(&v25, ms, &v20);
             goto LABEL_41;
-          case 7:
-            v16 = BotTravel_WalkOffLedge(&v23, ms, &v20);
+         case 0xA:
+           v16 = BotTravel_Teleport(&v27, ms, &v20);
             goto LABEL_41;
-          case 8:
-            goto LABEL_35;
-          case 9:
-            v16 = BotTravel_WaterJump(&v25, ms, &v20);
+         case 0xB:
+           v16 = BotTravel_Elevator(&v29, ms, &v20);
             goto LABEL_41;
-          case 0xA:
-            v16 = BotTravel_Teleport(&v27, ms, &v20);
-            goto LABEL_41;
-          case 0xB:
-            v16 = BotTravel_Elevator(&v29, ms, &v20);
-            goto LABEL_41;
-          case 0xC:
-            v16 = BotTravel_RocketJump(&v31, ms, &v20);
-            goto LABEL_41;
-          case 0xE:
-            v16 = BotTravel_Grapple(&v32, ms, &v20);
-            goto LABEL_41;
-          default:
-            bi_Print(PRT_FATAL, "travel type %d not implemented yet\n", v20.traveltype);
-            break;
-        }
-      }
-      else
-      {
-        moveresult.failure = 1;
-      }
+         case 0xC:
+           v16 = BotTravel_RocketJump(&v31, ms, &v20);
+           goto LABEL_41;
+         case 0xE:
+           v16 = BotTravel_Grapple(&v32, ms, &v20);
+           goto LABEL_41;
+         default:
+           bi_Print(PRT_FATAL, "travel type %d not implemented yet\n", v20.traveltype);
+           break;
+       }
+     }
+     else
+     {
+       moveresult.failure = 1;
+     }
 LABEL_56:
-      if ( moveresult.blocked )
-        ms->reachability_time = ms->reachability_time - ms->thinktime * 10.0f;
-      v17 = *(int *)&ms->origin[1];
-      v18 = *(int *)&ms->origin[2];
-      *(int *)&ms->lastorigin[0] = *(int *)&ms->origin[0];
-      *(int *)&ms->lastorigin[1] = v17;
-      *(int *)&ms->lastorigin[2] = v18;
-      goto LABEL_59;
+     if ( moveresult.blocked )
+       ms->reachability_time = ms->reachability_time - ms->thinktime * 10.0f;
+     v17 = *(int *)&ms->origin[1];
+     v18 = *(int *)&ms->origin[2];
+     *(int *)&ms->lastorigin[0] = *(int *)&ms->origin[0];
+     *(int *)&ms->lastorigin[1] = v17;
+     *(int *)&ms->lastorigin[2] = v18;
+     goto LABEL_59;
+   }
+   if ( v20.traveltype == 11 )
+   {
+     if ( ms->areanum != v20.areanum && AAS_Time() <= ms->reachability_time )
+       goto LABEL_27;
     }
-    if ( v20.traveltype == 11 )
-    {
-      if ( ms->areanum != v20.areanum && AAS_Time() <= ms->reachability_time )
-        goto LABEL_27;
-    }
-    else if ( ms->lastgoalareanum == goal->areanum
-           && AAS_Time() <= ms->reachability_time
-           && ms->lastareanum == ms->areanum )
-    {
-      goto LABEL_27;
-    }
+   else if ( ms->lastgoalareanum == goal->areanum
+          && AAS_Time() <= ms->reachability_time
+          && ms->lastareanum == ms->areanum )
+   {
+     goto LABEL_27;
+   }
 LABEL_25:
-    AAS_AreaReachability(ms->areanum);
-    v12 = BotGetReachabilityToGoal(
-            (intptr_t)ms->origin,
-            ms->areanum,
-            ms->lastgoalareanum,
-            ms->lastareanum,
-            ms->entitynum,
-            (intptr_t)ms->avoidreach,
-            ms->avoidreachtimes,
-            (intptr_t)ms->avoidreachtries,
-            (intptr_t)goal,
-            a4);
-    v11 = v12;
-    ms->moveflags &= 0xFFFFFF7F;
-    ms->reachareanum = ms->areanum;
-    ms->jumpreach = 0;
-    if ( v12 )
-    {
-      qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
-      v19 = (float)BotReachabilityTime(&v20);
-      ms->reachability_time = AAS_Time() + v19;
-      BotAddToAvoidReach((intptr_t)ms, v11, 6.0);
-    }
-    goto LABEL_27;
-  }
-  moveresult.failure = 1;
+   AAS_AreaReachability(ms->areanum);
+   v12 = BotGetReachabilityToGoal(
+           (intptr_t)ms->origin,
+           ms->areanum,
+           ms->lastgoalareanum,
+           ms->lastareanum,
+           ms->entitynum,
+           (intptr_t)ms->avoidreach,
+           ms->avoidreachtimes,
+           (intptr_t)ms->avoidreachtries,
+           (intptr_t)goal,
+           a4);
+   v11 = v12;
+   ms->moveflags &= 0xFFFFFF7F;
+   ms->reachareanum = ms->areanum;
+   ms->jumpreach = 0;
+   if ( v12 )
+   {
+     qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
+     v19 = (float)BotReachabilityTime(&v20);
+     ms->reachability_time = AAS_Time() + v19;
+     BotAddToAvoidReach((intptr_t)ms, v11, 6.0);
+   }
+   goto LABEL_27;
+ }
 LABEL_59:
-  result = a1;
-  *a1 = moveresult;
-  return result;
+ result = a1;
+ *a1 = moveresult;
+ return result;
 }
 
 //----- (10034AF0) --------------------------------------------------------
