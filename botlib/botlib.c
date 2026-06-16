@@ -12952,7 +12952,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                       dir[0] = v15;
                       dir[1] = v13->reach.end[1] - v13->reach.start[1];
                       dir[2] = v13->reach.end[2] - v13->reach.start[2];
-                      v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25f + 500.0f);
+                      v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25 + 500.0);
                       v13->next = areareachability[area1num];
                       areareachability[area1num] = v13;
                       ++reach_grapple;
@@ -13145,7 +13145,7 @@ LABEL_28:
         v28[0] = facecenter[0] - groundedpos[0];
         v28[1] = facecenter[1] - groundedpos[1];
         v7 = VectorNormalize(v28);
-        if ( facecenter[2] * 1.6f - groundedpos[2] > v7 )
+        if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
         {
           VectorScale(v28, v24, v33);
           v29[2] = v15;
@@ -13164,7 +13164,7 @@ LABEL_28:
             {
               v14 = (float)v16;
               VectorMA((float *)v35, v14, v28, predictpos);
-              v7 = predictpos[2] + 0.125f;
+              v7 = predictpos[2] + 0.125;
               predictpos[2] = v7;
               if ( AAS_PointAreaNum(predictpos) == a2 )
                 break;
