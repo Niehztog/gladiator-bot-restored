@@ -27760,15 +27760,11 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal, int a4)
 {
   int v4; // edx
-  int v5; // eax
-  int v6; // eax
-  int v7; // eax
   int v8; // eax
   bot_moveresult_t *v9; // esi
   bot_moveresult_t *result; // eax
   int v11; // ebp
   int v12; // eax
-  int v13; // ecx
   int v14; // ecx
   int v15; // eax
   bot_moveresult_t *v16; // eax
@@ -27802,23 +27798,11 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
     v4 = ms->presencetype;
     ms->moveflags &= 0xFFFFFFF3;
     if ( AAS_OnGround(ms->origin, v4, ms->entitynum) )
-    {
-      v5 = ms->moveflags;
-      LOBYTE(v5) = v5 | 2;
-      ms->moveflags = v5;
-    }
+      ms->moveflags |= 2;
     if ( AAS_Swimming(ms->origin) )
-    {
-      v6 = ms->moveflags;
-      LOBYTE(v6) = v6 | 4;
-      ms->moveflags = v6;
-    }
+      ms->moveflags |= 4;
     if ( AAS_AgainstLadder((int *)ms->origin) )
-    {
-      v7 = ms->moveflags;
-      LOBYTE(v7) = v7 | 8;
-      ms->moveflags = v7;
-    }
+      ms->moveflags |= 8;
     if ( (ms->moveflags & 0xE) == 0 )
     {
       if ( ms->lastreachnum )
@@ -27948,7 +27932,7 @@ LABEL_27:
       }
 LABEL_56:
       if ( moveresult.blocked )
-        ms->reachability_time = ms->reachability_time - ms->thinktime * 10.0;
+        ms->reachability_time = ms->reachability_time - ms->thinktime * 10.0f;
       v17 = *(int *)&ms->origin[1];
       v18 = *(int *)&ms->origin[2];
       *(int *)&ms->lastorigin[0] = *(int *)&ms->origin[0];
@@ -27980,12 +27964,10 @@ LABEL_25:
             (intptr_t)ms->avoidreachtries,
             (intptr_t)goal,
             a4);
-    v13 = ms->moveflags;
     v11 = v12;
-    LOBYTE(v13) = v13 & 0x7F;
+    ms->moveflags &= 0xFFFFFF7F;
     ms->reachareanum = ms->areanum;
     ms->jumpreach = 0;
-    ms->moveflags = v13;
     if ( v12 )
     {
       qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
