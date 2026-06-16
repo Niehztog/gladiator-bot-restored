@@ -9147,8 +9147,8 @@ char *__cdecl AAS_ClientMovementPrediction(
   long double v32; // st7
   long double v33; // st6
   int v34; // ecx
-  long double v35; // st7
-  long double v36; // st7
+  float v35; // st7  (NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads)
+  float v36; // st7
   int v37; // eax
   int v38; // ecx
   char v39; // al
@@ -9209,7 +9209,7 @@ char *__cdecl AAS_ClientMovementPrediction(
   v67 = (float)v17;
   memset(&v80, 0, sizeof(v80));
   v18 = *(int *)&a3[1];
-  v19 = (float)a3[2] + 0.25f;
+  v19 = (float)a3[2] + 0.25;
   *(int *)&org[0] = *(int *)a3;
   *(int *)&org[1] = v18;
   org[2] = (float)v19;
@@ -9335,7 +9335,7 @@ LABEL_38:
       org[0] = v80.endpos[0];
       org[1] = v80.endpos[1];
       org[2] = v80.endpos[2];
-      if ( v80.fraction >= 1.0f )
+      if ( v80.fraction >= 1.0 )
         goto LABEL_66;
       v30 = (float *)AAS_PlaneFromNum(v80.planenum);
       if ( v30[2] == 0.0f && (v64 < 0 || v43 - v64 > 2) )
@@ -9355,7 +9355,7 @@ LABEL_38:
             frame_test_vel[2] = 0.0f;
             left_test_vel[0] = end[0] - v83.endpos[0];
             left_test_vel[1] = end[1] - v83.endpos[1];
-            if ( a12 && v83.endpos[2] - org[2] > 0.125f )
+            if ( a12 && v83.endpos[2] - org[2] > 0.125 )
             {
               start[0] = org[0];
               start[1] = org[1];
@@ -9399,7 +9399,7 @@ LABEL_62:
 LABEL_63:
       if ( v35 != 0.0f )
       {
-        v36 = v35 * 10.0f * (v35 * 10.0f) * 0.0001f;
+        v36 = v35 * 10.0f * (v35 * 10.0f) * 0.0001;
         if ( !v57 && v36 > 30.0f )
         {
           v62[0] = *(int *)&org[0];
@@ -9418,7 +9418,7 @@ LABEL_66:
       if ( SLODWORD(v50) > 20 )
         goto LABEL_87;
     }
-    while ( v80.fraction < 1.0f );
+    while ( v80.fraction < 1.0 );
     if ( frame_test_vel[2] > 0.0f )
       goto LABEL_76;
     v81[0] = org[0];
