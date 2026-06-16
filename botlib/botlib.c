@@ -358,19 +358,27 @@ static int lstrlenA(const char *s) { return (int)strlen(s); }
  * UnZip 5.33, dated 10 Dec 1997 ("Windows Info-ZIP UnZip32 DLL by Mike
  * White"; PE TimeDateStamp Sat Dec 13 1997; MSVC linker 5.0).  See
  * release_/gladiator/unzip32.dll and [[unzip32_dll_provenance]].  Field
- * names match Info-ZIP's UnZip windll header; the 5.51 copy vendored at
- * reference/unzip551/windll_structs.h is structurally identical to the 5.33
- * layout for these two structs, so we keep it as the readable reference.
+ * names match Info-ZIP's UnZip windll header; the closest authentic source
+ * is the UnZip 5.32 windll SDK (unz532d.zip, Nov 1997 — the release
+ * immediately preceding the 5.33 DLL), vendored verbatim at
+ * reference/unzip532/structs.h.  The later 5.51 copy at
+ * reference/unzip551/windll_structs.h is kept as a secondary reference.
  *
  * The exact byte layout is proved by the disassembly of sub_10041240:
- *   - DCL = 15 ints + 2 LPSTR = 0x44 bytes — identical to the 5.51 header
- *     (no StructVersID and no B/D/U flags; those came in UnZip 6.0).
- *   - USERFUNCTIONS = 6 callback slots + 2 size counters + NumMembers + a
- *     WORD comment length = 0x28 bytes.  The 5.51 header is 0x2C because it
- *     inserts a `CompFactor` field before NumMembers "for proper
- *     alignment"; the GlobalAlloc(GMEM_ZEROINIT, 0x28) below proves
- *     Gladiator linked the pre-CompFactor UnZip, consistent with 5.33, so we
- *     omit it.  See reference/unzip551/README.md.
+ *   - DCL = 15 ints + 2 LPSTR = 0x44 bytes — matches the 5.32 header (C_flag
+ *     at +0x34, lpszZipFN/lpszExtractDir at +0x3C/+0x40).  The disasm writes
+ *     a pointer at +0x40 and C_flag=1, which only the 5.32+ DCL has; UnZip
+ *     5.31's DCL (Overwrite/ZipInfoVerbose + a single pointer) does not fit.
+ *     No StructVersID / B,D,U flags; those came in UnZip 6.0.
+ *   - USERFUNCTIONS: the disasm proves only the size (GlobalAlloc(
+ *     GMEM_ZEROINIT, 0x28)) and the five callback pointers written at
+ *     +0x00..+0x10; everything from +0x14 on is zero-init and never written,
+ *     so the binary does not constrain the tail.  We use the 5.32 layout: 5
+ *     callbacks + WORD cchComment (+0x14) + TotalSizeComp + TotalSize +
+ *     CompFactor + NumMembers = 0x28.  NB CompFactor is present in 5.32 too
+ *     — 5.51 is 0x2C not because it "adds CompFactor" but because it adds a
+ *     6th callback (ServCallBk/DLLSERVICE) at +0x14 and moves cchComment to
+ *     the tail.  See reference/unzip532/README.md.
  *
  * Every pointer-bearing field (the LPSTR names and the DLL* callbacks) is
  * declared as a 4-byte `int` slot, exactly as the original 32-bit DLL laid
@@ -404,11 +412,11 @@ typedef struct {
   int            replace;                /* +0x08 DLLREPLACE*                      */
   int            password;               /* +0x0C DLLPASSWORD*                     */
   int            SendApplicationMessage; /* +0x10 DLLMESSAGE*                      */
-  int            ServCallBk;             /* +0x14 DLLSERVICE*                      */
+  unsigned short cchComment;             /* +0x14 WORD comment length; +0x16 pad   */
   unsigned int   TotalSizeComp;          /* +0x18 (statistics — unused here)       */
   unsigned int   TotalSize;              /* +0x1C                                  */
-  unsigned int   NumMembers;             /* +0x20                                  */
-  unsigned short cchComment;             /* +0x24 WORD — struct padded to 0x28     */
+  int            CompFactor;             /* +0x20 (present in 5.32; unused here)    */
+  unsigned int   NumMembers;             /* +0x24                                  */
 } USERFUNCTIONS, *LPUSERFUNCTIONS;        /* sizeof == 0x28 */
 
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
