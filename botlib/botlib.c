@@ -330,6 +330,7 @@ __declspec(dllimport) void * __stdcall LoadLibraryA(const char *f);
 __declspec(dllimport) void * __stdcall GetProcAddress(void *h, const char *name);
 __declspec(dllimport) int    __stdcall FreeLibrary(void *h);
 __declspec(dllimport) char * __stdcall lstrcpyA(char *d, const char *s);
+__declspec(dllimport) int    __stdcall lstrlenA(const char *s);
 #else
 static void *GlobalAlloc(unsigned int flags, size_t size) { (void)flags; return malloc(size); }
 static void *GlobalLock(void *h) { return h; }
@@ -342,6 +343,7 @@ static void *LoadLibraryA(const char *f) { (void)f; return NULL; }
 static void *GetProcAddress(void *h, const char *name) { (void)h; (void)name; return NULL; }
 static int FreeLibrary(void *h) { (void)h; return 1; }
 static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
+static int lstrlenA(const char *s) { return (int)strlen(s); }
 #endif
 
 /* ------------------------------------------------------------------------
@@ -350,19 +352,25 @@ static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
  * sub_10041240 extracts the .aas file out of aasN.zip by loading
  * UNZIP32.DLL and calling its "windll_unzip" entry point.  These are the
  * option block (DCL) and callback table (USERFUNCTIONS) that entry point
- * expects.  Field names are copied verbatim from Info-ZIP's UnZip windll
- * header, vendored at reference/unzip551/windll_structs.h (UnZip 5.51).
+ * expects.
  *
- * The exact layout, however, is the 1999-era pre-5.5 one proved by the
- * disassembly of sub_10041240, not 5.51's:
+ * The shipped DLL is identified (VS_VERSION_INFO + banner) as Info-ZIP
+ * UnZip 5.33, dated 10 Dec 1997 ("Windows Info-ZIP UnZip32 DLL by Mike
+ * White"; PE TimeDateStamp Sat Dec 13 1997; MSVC linker 5.0).  See
+ * release_/gladiator/unzip32.dll and [[unzip32_dll_provenance]].  Field
+ * names match Info-ZIP's UnZip windll header; the 5.51 copy vendored at
+ * reference/unzip551/windll_structs.h is structurally identical to the 5.33
+ * layout for these two structs, so we keep it as the readable reference.
+ *
+ * The exact byte layout is proved by the disassembly of sub_10041240:
  *   - DCL = 15 ints + 2 LPSTR = 0x44 bytes — identical to the 5.51 header
  *     (no StructVersID and no B/D/U flags; those came in UnZip 6.0).
  *   - USERFUNCTIONS = 6 callback slots + 2 size counters + NumMembers + a
  *     WORD comment length = 0x28 bytes.  The 5.51 header is 0x2C because it
  *     inserts a `CompFactor` field before NumMembers "for proper
  *     alignment"; the GlobalAlloc(GMEM_ZEROINIT, 0x28) below proves
- *     Gladiator linked the pre-CompFactor UnZip, so we omit it.  See
- *     reference/unzip551/README.md.
+ *     Gladiator linked the pre-CompFactor UnZip, consistent with 5.33, so we
+ *     omit it.  See reference/unzip551/README.md.
  *
  * Every pointer-bearing field (the LPSTR names and the DLL* callbacks) is
  * declared as a 4-byte `int` slot, exactly as the original 32-bit DLL laid
@@ -34978,13 +34986,32 @@ LPSTR __stdcall sub_10041680(
         int a12,
         int a13)
 {
-  /* Progress callback — Windows lstrcpyA removed, using sprintf */
+#ifdef _WIN32
+  /* Faithful Win32 reconstruction (IDA sub_10041680): two stack-local
+   * format buffers init'd from .rdata literals, then lstrcpyA / sprintf. */
+  CHAR String2[8]; // [esp+0h] [ebp-1Ch] BYREF
+  char Format[8]; // [esp+8h] [ebp-14h] BYREF
+  CHAR String1[12]; // [esp+10h] [ebp-Ch] BYREF
+  char sign;
+
+  strcpy(Format, "%c%d%%");
+  strcpy(String2, "100%%");
+  sign = a1 < a2 ? 45 : 32;
+  if ( a3 == 100 )
+    return lstrcpyA(String1, String2);
+  else
+    return (LPSTR)sprintf(String1, Format, sign, a3);
+#else
+  /* Progress callback — Windows lstrcpyA unavailable, using sprintf into a
+   * static buffer (String1 in the original is a stack local; safe here as
+   * this callback is unreachable in the Linux build). */
   static CHAR buf[16];
   if (a3 == 100)
     strcpy(buf, "100%%");
   else
     sprintf(buf, "%c%d%%", a1 < a2 ? 45 : 32, a3);
   return buf;
+#endif
 }
 
 //----- (10041740) --------------------------------------------------------
@@ -35263,58 +35290,145 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 }
 
 //----- (10041FF0) --------------------------------------------------------
-/* sub_10041FF0 — DEAD `BotArchiveZip` / `Log_ArchiveToZip`-style
- * helper using Info-ZIP's ZIP32.DLL (Win32-only).  Restored from
- * objdump@0x10041FF0 (~198 lines).  Cross-checked against the RetDec
- * decompilation (function_10041ff0, lines 77237-77378 in
- * reference/retdec/gladiator.dll_retdec.c) which makes the Win32
- * imports legible.
+/* sub_10041FF0 — `BotArchiveZip`-style helper that adds one file to a zip
+ * archive by dynamically loading Info-ZIP's ZIP32.DLL and driving its
+ * ZpInit / ZpSetOptions / ZpArchive entry points.  Reconstructed from
+ * objdump@0x10041FF0 (191 insns) cross-checked with RetDec
+ * (function_10041ff0).  Mirrors the structure of the already-MATCHing
+ * UnZip sibling sub_10041240 above: the Win32 calls are shimmed on Linux
+ * (SearchPathA returns 0, so the body bails before touching any DLL), so
+ * this compiles and is harmlessly inert off-Windows while the MSVC6 oracle
+ * sees the original Win32 code.
  *
- * Original (Win32) flow:
- *   1. cdecl args: (zipfile_name, file_to_archive); reject NULLs.
- *   2. GlobalAlloc(GMEM_FIXED, 12) a 3-pointer ZIP-callback table
- *      [0] = 0x100013AC  ("print"  callback thunk)
- *      [4] = 0x10001F55  ("comment" thunk)
- *      [8] = 0x100014A6  ("password"/service thunk)
- *      Saved at ds:0x1006297C (handle) / ds:0x100639DC (locked ptr).
- *   3. SearchPathA(NULL, "ZIP32.DLL", NULL, 128, buf, &filepart).
- *      Bail (and call sub_10042380 cleanup) if not found.
- *   4. LoadLibraryA("ZIP32.DLL") → ds:0x100639E0.
- *   5. GetProcAddress for "ZpArchive" (→ ds:0x100639E4),
- *      "ZpSetOptions" (→ ds:0x100639E8),
- *      "ZpInit"       (→ ds:0x100639EC).
- *      Any failure → FreeLibrary + sub_10042380 + return 0.
- *   6. Zero out a global ZPOPT struct at ds:0x100638E0…ds:0x1006393C,
- *      setting fNoDirEntries (g325) = 1 and fUpdate (g328) = 1.
- *      sub_1004501E(&g341, 260) → blank the zipfile-name buffer.
- *   7. Call ZpInit(&zpopt).
- *   8. argc = 1, argv = &fname; copy the ZPOPT block (62 dwords =
- *      248 B) onto the stack via `rep movsd`.
- *   9. Call ZpSetOptions(&zpopt_copy).
- *  10. Call ZpArchive(argc, argv, dst, &zpopt_copy, &cb_vtable).
- *  11. On non-zero return → bi_Print(PRT_ERROR,
- *      "Error during archiving.\nUnable to create \"%s\"\n", dst).
- *  12. GlobalUnlock + GlobalFree the callback table, sub_10042380
- *      cleanup, FreeLibrary(zip32), return (rc == 0).
+ * The two ZIP32 structures are passed BY VALUE: ZPOPT is exactly 248 bytes
+ * (proved by ds:0x100639d8 − ds:0x100638e0 and the rep-movs of 62 dwords)
+ * and ZCL is 12 bytes.  Pointer fields are 4-byte int slots, like the UnZip
+ * DCL/USERFUNCTIONS above, so the byte image is identical on 64-bit.  Field
+ * names are offset-derived: only the two TRUE flags (+0x24, +0x30) and the
+ * embedded getcwd buffer (+0x76, ds:0x10063956) carry meaning here.
  *
- * The companion sub_10042380 is already restored in this file as a
- * Linux no-op; we mirror that policy here.  bspc/yquake2 builds run
- * on Linux as well as Windows and never re-link ZIP32.DLL; the only
- * caller of this routine in the original binary was an unreachable
- * debug menu entry, so a clean no-op preserves semantics for the
- * live build.  Win32-fidelity restoration is intentionally skipped.
+ * Strings (.rdata): "ZIP32.DLL" @0x10060694, "ZpArchive" @0x10060688,
+ *   "ZpSetOptions" @0x10060678, "ZpInit" @0x10060670, error fmt @0x10060638.
+ * Callback thunks: print=sub_100423D0, password=sub_100423F0 (empty pw),
+ *   comment=sub_100423B0.  Companion cleanup = sub_10042380.
  *
- * Strings (.rdata, verified): "ZIP32.DLL" @0x10060694,
- *   "ZpArchive" @0x10060688, "ZpSetOptions" @0x10060678,
- *   "ZpInit" @0x10060670, error fmt @0x10060638.
- *
- * DEAD in Gladiator — no live caller. */
+ * DEAD in Gladiator — only caller was an unreachable debug menu entry. */
+typedef struct {
+  int  o00, o04, o08, o0c, o10, o14;  /* +0x00..+0x14                     */
+  int  o18, o1c;                      /* +0x18,+0x1c  (never set -> 0)    */
+  int  o20, o24, o28, o2c, o30, o34;  /* +0x20..+0x34 (o24,o30 = TRUE)    */
+  int  o38, o3c, o40, o44, o48, o4c;  /* +0x38..+0x4c                     */
+  int  o50, o54, o58, o5c;            /* +0x50..+0x5c                     */
+  char c60[13];                       /* +0x60..+0x6c                     */
+  char c6d;                           /* +0x6d                            */
+  char c6e[8];                        /* +0x6e..+0x75                     */
+  char rootdir[130];                  /* +0x76..+0xf7  (getcwd target)    */
+} ZPOPT;                              /* sizeof == 0xf8 (248)             */
+
+typedef struct {
+  int argc;       /* +0x00  number of file names                          */
+  int lpszZipFN;  /* +0x04  LPSTR — archive name (4-byte slot)            */
+  int FNV;        /* +0x08  char ** — file-name vector (4-byte slot)      */
+} ZCL;                                /* sizeof == 0xc (12)               */
+
+typedef struct {
+  int print;      /* +0x00  DLLPRNT*    -> sub_100423D0                    */
+  int password;   /* +0x04  DLLPASSWORD*-> sub_100423F0                    */
+  int comment;    /* +0x08  DLLCOMMENT* -> sub_100423B0                    */
+} ZIPUSERFUNCTIONS;                   /* sizeof == 0xc (12)               */
+
+typedef int (__stdcall *ZpArchive_t)(ZCL);
+typedef int (__stdcall *ZpSetOptions_t)(ZPOPT);
+typedef int (__stdcall *ZpInit_t)(void *);
+
+int __cdecl sub_100423D0(int a1, int a2);
+void __stdcall sub_100423F0(char *p);
+
+static ZPOPT zopt;                    /* ds:0x100638e0 */
+static ZCL  zcl;                      /* ds:0x10063890 */
+static HGLOBAL FNV_handle;            /* ds:0x100639d8 */
+static ZIPUSERFUNCTIONS *cbtable;     /* ds:0x100639dc */
+static void *zip32_module;            /* ds:0x100639e0 */
+static ZpArchive_t   ZpArchive;       /* ds:0x100639e4 */
+static ZpSetOptions_t ZpSetOptions;   /* ds:0x100639e8 */
+static ZpInit_t      ZpInit;          /* ds:0x100639ec */
+
 int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
 {
-  (void)zipfile;
-  (void)file_to_archive;
-  /* Win32 ZIP32.DLL invocation removed — see banner. */
-  return 0;
+  char **FNV;          // esi
+  char *fname;         // edi
+  int rc;              // esi
+  LPSTR FilePart;      // [esp+10h] BYREF
+  CHAR Buffer[128];    // [esp+14h] BYREF
+
+  if ( !file_to_archive || !zipfile )
+    return 0;
+  hMem = GlobalAlloc(0x40u, 0xcu);
+  if ( !hMem )
+    return 0;
+  cbtable = (ZIPUSERFUNCTIONS *)GlobalLock(hMem);
+  if ( !cbtable )
+  {
+    GlobalFree(hMem);
+    return 0;
+  }
+  cbtable->print = (intptr_t)sub_100423D0;
+  cbtable->comment = (intptr_t)sub_100423B0;
+  cbtable->password = (intptr_t)sub_100423F0;
+  if ( !SearchPathA(0, "ZIP32.DLL", 0, 0x80u, Buffer, &FilePart)
+    || (zip32_module = LoadLibraryA("ZIP32.DLL")) == 0 )
+  {
+    sub_10042380();
+    return 0;
+  }
+  ZpArchive = (ZpArchive_t)GetProcAddress(zip32_module, "ZpArchive");
+  ZpSetOptions = (ZpSetOptions_t)GetProcAddress(zip32_module, "ZpSetOptions");
+  if ( !ZpArchive || !ZpSetOptions )
+  {
+    sub_10042380();
+    return 0;
+  }
+  ZpInit = (ZpInit_t)GetProcAddress(zip32_module, "ZpInit");
+  if ( !ZpInit )
+  {
+    FreeLibrary(zip32_module);
+    sub_10042380();
+    return 0;
+  }
+  if ( !ZpInit(cbtable) )
+  {
+    FreeLibrary(zip32_module);
+    sub_10042380();
+    return 0;
+  }
+  zopt.o00 = 0; zopt.o04 = 0; zopt.o08 = 0; zopt.o0c = 0; zopt.o10 = 0; zopt.o14 = 0;
+  zopt.o20 = 0; zopt.o24 = 1; zopt.o28 = 0; zopt.o2c = 0; zopt.o30 = 1; zopt.o34 = 0;
+  zopt.o38 = 0; zopt.o3c = 0; zopt.o40 = 0;
+  zopt.o48 = 0; zopt.o4c = 0; zopt.o50 = 0; zopt.o54 = 0; zopt.o58 = 0; zopt.o5c = 0;
+  zopt.o44 = 0;
+  zopt.c6d = 0;
+  getcwd_locked(zopt.rootdir, 0x104);
+  zcl.argc = 1;
+  zcl.lpszZipFN = (intptr_t)zipfile;
+  FNV_handle = GlobalAlloc(0x40u, 0x10000u);
+  if ( FNV_handle )
+    FNV = (char **)GlobalLock(FNV_handle);
+  else
+    FNV = (char **)FilePart;
+  fname = (char *)&FNV[zcl.argc];
+  lstrlenA(file_to_archive);
+  lstrcpyA(fname, file_to_archive);
+  FNV[0] = fname;
+  zcl.FNV = (intptr_t)FNV;
+  ZpSetOptions(zopt);
+  rc = ZpArchive(zcl);
+  if ( rc )
+    bi_Print(PRT_ERROR, "Error during archiving.\nUnable to create \"%s\"\n", zipfile);
+  GlobalUnlock(FNV_handle);
+  GlobalFree(FNV_handle);
+  sub_10042380();
+  FreeLibrary(zip32_module);
+  return rc == 0;
 }
 
 //----- (10042380) --------------------------------------------------------
