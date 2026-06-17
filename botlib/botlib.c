@@ -195,11 +195,16 @@ int Export_Test(int parm0, char *parm1, float *parm2, float *parm3);
 /* Stubs for MSVC CRT functions removed from this file but still called in bot code.
    These were statically linked in the original Windows DLL. */
 static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fread(buf, sz, n, f); }
+#ifdef _WIN32
+/* Used only by the Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430,
+ * sub_10041FF0) — gated out on Linux, whose botlib (gladi386.so) imports neither
+ * a process-spawn nor a chdir-for-bspc path. */
 static int    remove_file(const char *path) { return remove(path); }
 static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
 static intptr_t SpawnProcess(int mode, char *file, char *args) { (void)mode; (void)file; (void)args; return -1; }
 /* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
 static int    _chdir(const char *path) { return chdir(path); }
+#endif /* _WIN32 */
 
 #ifndef _WIN32
 /* POSIX equivalents for Windows CRT functions used in the decompiled code.
@@ -310,17 +315,16 @@ void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);
 weaponconfig_t *LoadWeaponConfig(char *Source);  /* fixed return type */
 void BotAimAtEnemy(bot_state_t *bs);  // fixed from weak _DWORD
 
-/* Windows API stubs for decompilation reference (WinDDE functions).
+/* Win32 imports used by the UnZip/ZIP32 windll path (gated Windows-only below).
  *
- * Under MSVC (oracle byte-match build under Wine), we want the original
- * DLL imports — calls go through the IAT (`call DWORD PTR ds:[__imp_X]`),
- * matching the original gladiator.dll exactly.  Everywhere else (Linux,
- * MinGW Windows build) we provide local stubs because the Gladiator bot
- * never actually uses these Win32 ZIP/DDE codepaths at runtime; the
- * Quake 2 game.dll loads the bot library, not the other way around. */
-#if defined(_MSC_VER) && !defined(__MINGW32__)
-/* Declare just the Win32 imports we use; avoid pulling in <windows.h>
- * which has typedef collisions with our local types. */
+ * Both Windows toolchains use the real kernel32 imports: the MSVC oracle emits
+ * IAT-indirect calls (`call DWORD PTR ds:[__imp_X]`) that byte-match the
+ * original gladiator.dll, and the MinGW32 build links the same kernel32
+ * imports, so it faithfully exercises the same code path.  We declare only the
+ * handful we use and avoid <windows.h> (its typedefs collide with our local
+ * ones).  The Linux build gates the whole unzip/zip subsystem out (gladi386.so
+ * had no such code), so none of these are referenced there. */
+#ifdef _WIN32
 __declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
 __declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
 __declspec(dllimport) void * __stdcall GlobalFree(void *hMem);
@@ -331,19 +335,6 @@ __declspec(dllimport) void * __stdcall GetProcAddress(void *h, const char *name)
 __declspec(dllimport) int    __stdcall FreeLibrary(void *h);
 __declspec(dllimport) char * __stdcall lstrcpyA(char *d, const char *s);
 __declspec(dllimport) int    __stdcall lstrlenA(const char *s);
-#else
-static void *GlobalAlloc(unsigned int flags, size_t size) { (void)flags; return malloc(size); }
-static void *GlobalLock(void *h) { return h; }
-static int GlobalFree(void *h) { free(h); return 0; }
-static int GlobalUnlock(void *h) { (void)h; return 1; }
-static int SearchPathA(const char *p, const char *f, const char *x, int n, char *b, char **lp) { (void)p;(void)f;(void)x;(void)n;(void)b;(void)lp; return 0; }
-static void *LoadLibraryA(const char *f) { (void)f; return NULL; }
-
-/* Windows API stubs for the DDE/dynamic library loading code */
-static void *GetProcAddress(void *h, const char *name) { (void)h; (void)name; return NULL; }
-static int FreeLibrary(void *h) { (void)h; return 1; }
-static char *lstrcpyA(char *d, const char *s) { return strcpy(d, s); }
-static int lstrlenA(const char *s) { return (int)strlen(s); }
 #endif
 
 /* ------------------------------------------------------------------------
@@ -385,7 +376,13 @@ static int lstrlenA(const char *s) { return (int)strlen(s); }
  * them out, so the struct size and field offsets stay identical on the
  * 64-bit Linux build too (the original byte image: 0x44 / 0x28).  Casting
  * the callback addresses to (intptr_t) on assignment keeps that intent
- * explicit. */
+ * explicit.
+ *
+ * Windows-only: these structs exist solely for sub_10041240 (the UNZIP32.DLL
+ * windll path).  The Linux botlib (gladi386.so) has no unzip support at all —
+ * it loads .aas files directly (see BotLibLoadMap) — so the whole subsystem,
+ * and therefore these structs, is gated out off-Windows. */
+#ifdef _WIN32
 typedef struct {
   int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
   int   SpaceToUnderscore;  /* +0x04  TRUE => convert spaces to underscores  */
@@ -418,6 +415,7 @@ typedef struct {
   int            CompFactor;             /* +0x20 (present in 5.32; unused here)    */
   unsigned int   NumMembers;             /* +0x24                                  */
 } USERFUNCTIONS, *LPUSERFUNCTIONS;        /* sizeof == 0x28 */
+#endif /* _WIN32 — UnZip windll DCL/USERFUNCTIONS */
 
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
@@ -1537,7 +1535,9 @@ libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabi
 int dword_1006295C = 0; // weak
 libvar_t *libvar_laserhook; /* libvar handle */
 HGLOBAL dword_10062968 = NULL; // idb
-LPDCL dword_1006296C = NULL; /* locked DCL option block (was IDA int) */
+#ifdef _WIN32
+LPDCL dword_1006296C = NULL; /* locked DCL option block (was IDA int) — UnZip windll, Windows-only */
+#endif
 HGLOBAL dword_10062970 = NULL; // idb
 HGLOBAL hMem = NULL; // idb
 float flt_10062984 = 0.0; // weak
@@ -1551,7 +1551,9 @@ int dword_10063388; // weak
 /* dword_100637CC..E0 (q_shared.c's _LittleFloat/_BigFloat/_LittleLong/_LittleShort
  * /_BigShort/_BigLong fn-ptr slots at original 0x100637CC..E0) and `bigendien`
  * (at original 0x10063884) live in game/q_shared.c — compiled separately to q_shared.o. */
-LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA int) */
+#ifdef _WIN32
+LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA int) — UnZip windll, Windows-only */
+#endif
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 /* dword_10063A10 was IDA's name for the globaldefines linked-list head.
@@ -8536,6 +8538,9 @@ float AAS_Time()
   return aasworld.time;
 }
 
+#ifdef _WIN32  /* ---- winbspc spawn (sub_1000E140) + aasN.zip search (sub_1000E430): Windows-only ----
+                * The Linux botlib has neither: BotLibLoadMap loads .aas directly and, on
+                * failure, just reports "no AAS file available" (see its #else give-up path). */
 //----- (1000E140) --------------------------------------------------------
 intptr_t __cdecl sub_1000E140(char *Source)
 {
@@ -8665,12 +8670,16 @@ int __cdecl sub_1000E430(char *Source)
   return 5;
 }
 
+#endif /* _WIN32 — winbspc spawn + aasN.zip search */
+
 //----- (1000E880) --------------------------------------------------------
 int BotLibLoadMap(char *Source)
 {
   int v2; // esi
   int v4; // esi
-  int v5; // esi
+#ifdef _WIN32
+  int v5; // esi  (holds sub_1000E430 result — Windows-only aasN.zip fallback)
+#endif
   int v6; // esi
   bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF — was "int v7[38]" in IDA
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
@@ -8710,6 +8719,7 @@ int BotLibLoadMap(char *Source)
           break;
         if ( ++v4 >= 2 )
         {
+#ifdef _WIN32
           v5 = sub_1000E430(Source);
           *_errno() = v5;
           if ( !*_errno() )
@@ -8736,6 +8746,16 @@ int BotLibLoadMap(char *Source)
               Source,
               Source);
           }
+#else
+          /* Faithful Linux give-up path (objdump@gladi386.so:F185 ~0x1b4ac).
+           * The original Linux botlib has no UNZIP32/ZIP32 windll and no
+           * winbspc spawn (gladi386.so imports neither dlopen nor exec), so it
+           * never calls the aasN.zip fallback: it sets errno=5 directly and the
+           * autolaunchbspc branch only reports that BSPC is a Win32 program. */
+          *_errno() = 5;
+          if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
+            bi_Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
+#endif
           bi_Print(PRT_FATAL, "no AAS file available\n");
           return 5;
         }
@@ -34813,6 +34833,9 @@ int __cdecl WriteStructure(FILE *Stream, int a2, int a3)
   return WriteStructWithIndent(Stream, (structdef_t *)a2, a3, 0);
 }
 
+#ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
+                * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and
+                * no zlib); .aas files are loaded directly by BotLibLoadMap. */
 //----- (10041240) --------------------------------------------------------
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 {
@@ -35021,6 +35044,8 @@ int __stdcall sub_10041760(const char *a1, int a2)
   bi_Print(PRT_MESSAGE, a1);
   return a2;
 }
+
+#endif /* _WIN32 — UnZip windll path */
 
 //----- (10041790) --------------------------------------------------------
 int __cdecl vectoangles(float *a1, float *a2)
@@ -35284,6 +35309,8 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
            a2) != 0;
 }
 
+#ifdef _WIN32  /* ---- ZIP32 windll archive path (ZIP32.DLL): sub_10041FF0 + helpers/callbacks ----
+                * Windows-only, and dead even there (no live caller).  Absent on Linux. */
 //----- (10041FF0) --------------------------------------------------------
 /* sub_10041FF0 — `BotArchiveZip`-style helper that adds one file to a zip
  * archive by dynamically loading Info-ZIP's ZIP32.DLL and driving its
@@ -35465,6 +35492,8 @@ void __stdcall sub_100423F0(char *p)
 {
   p[0] = 0;
 }
+
+#endif /* _WIN32 — ZIP32 windll archive path */
 
 //----- (100426B0) --------------------------------------------------------
 /* AngleVectors — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
