@@ -20446,7 +20446,21 @@ BOOL TeamPlayIsOn()
 //----- (10026700) --------------------------------------------------------
 BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal)
 {
-  return strlen(String1) && BotGetLevelItemGoal(-1, String1, goal) > 0;
+  int i;
+
+  if ( !strlen(String1) )
+    return 0;
+  i = -1;
+  /* Keep the original do/while shape; the DLL still carries the second
+   * iteration path even though a positive first result returns immediately. */
+  do
+  {
+    i = BotGetLevelItemGoal(i, String1, goal);
+    if ( i > 0 )
+      return 1;
+  }
+  while ( i > 0 );
+  return 0;
 }
 // 10026728: conditional instruction was optimized away because eax.4<1
 
