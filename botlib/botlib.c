@@ -19750,8 +19750,15 @@ void BotCheckAttack(bot_state_t *bs)
                           sizeof(v22)),
                   LODWORD(v22[20]) == bs->enemy) )
             {
-              if ( (v3->flags & 1) == 0 || (*(unsigned char *)&bs->flags & 2) != 0 )
+              if ( (v3->flags & 1) != 0 )
+              {
+                if ( (*(unsigned char *)&bs->flags & 2) != 0 )
+                  EA_Attack(bs->client);
+              }
+              else
+              {
                 EA_Attack(bs->client);
+              }
               bs->flags ^= 2u;
             }
           }
