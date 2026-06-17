@@ -33279,88 +33279,74 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
 //----- (1003E7F0) --------------------------------------------------------
 int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
 {
-  int v5; // edi
-  char *v6; // ebp
-  char *v7; // ecx
-  char v8; // al
-  char *v10; // ebp
-  int v11; // ebx
-  char *v12; // eax
-  int v14; // edi
-  char *v16; // [esp+14h] [ebp+4h]
+  int len;
+  int tmpline;
+  char *tmpscript_p;
 
   if ( a3 == 34 )
     token->type = 1;
   else
     token->type = 2;
-  v5 = 1;
-  v6 = &token->string[1];
-  token->string[0] = *a1->script_p++;
-  while ( 2 )
+  len = 0;
+  token->string[len++] = *a1->script_p++;
+  while ( 1 )
   {
-    v16 = v6;
-    while ( 1 )
+    if ( len >= 1022 )
     {
-      if ( v5 >= 1022 )
+      ScriptError(a1, "string longer than MAX_TOKEN = %d", 1024);
+      return 0;
+    }
+    if ( *a1->script_p == 92 && (a1->flags & 8) == 0 )
+    {
+      if ( !PS_ReadEscapeCharacter(a1, &token->string[len]) )
       {
-        ScriptError(a1, "string longer than MAX_TOKEN = %d", 1024);
+        token->string[len] = 0;
         return 0;
       }
-      v7 = a1->script_p;
-      v8 = *v7;
-      if ( *v7 == 92 && (a1->flags & 8) == 0 )
-        break;
-      if ( v8 == a3 )
-      {
-        v10 = v7 + 1;
-        a1->script_p = v7 + 1;
-        if ( (a1->flags & 4) != 0 )
-          goto LABEL_22;
-        v11 = a1->line;
-        if ( !PS_ReadWhiteSpace(a1) || (v12 = a1->script_p, *v12 != a3) )
-        {
-          a1->line = v11;
-          a1->script_p = v10;
-LABEL_22:
-          token->string[v5] = a3;
-          v14 = v5 + 1;
-          token->string[v14] = 0;
-          token->subtype = v14;
-          return 1;
-        }
-        v6 = v16;
-        a1->script_p = v12 + 1;
-      }
-      else
-      {
-        if ( !v8 )
-        {
-          token->string[v5] = 0;
-          ScriptError(a1, "missing trailing quote");
-          return 0;
-        }
-        if ( v8 == 10 )
-        {
-          token->string[v5] = 0;
-          ScriptError(a1, "newline inside string %s", 0);
-          return 0;
-        }
-        *v6 = v8;
-        ++v5;
-        v16 = ++v6;
-        ++a1->script_p;
-      }
+      len++;
     }
-    if ( PS_ReadEscapeCharacter(a1, v6) )
+    else if ( *a1->script_p == a3 )
     {
-      ++v5;
-      ++v6;
-      continue;
+      ++a1->script_p;
+      if ( (a1->flags & 4) != 0 )
+        break;
+      tmpscript_p = a1->script_p;
+      tmpline = a1->line;
+      if ( !PS_ReadWhiteSpace(a1) )
+      {
+        a1->script_p = tmpscript_p;
+        a1->line = tmpline;
+        break;
+      }
+      if ( *a1->script_p != a3 )
+      {
+        a1->script_p = tmpscript_p;
+        a1->line = tmpline;
+        break;
+      }
+      ++a1->script_p;
     }
-    break;
+    else
+    {
+      if ( !*a1->script_p )
+      {
+        token->string[len] = 0;
+        ScriptError(a1, "missing trailing quote");
+        return 0;
+      }
+      if ( *a1->script_p == 10 )
+      {
+        token->string[len] = 0;
+        ScriptError(a1, "newline inside string %s", token->string);
+        return 0;
+      }
+      token->string[len++] = *a1->script_p++;
+    }
   }
-  token->string[v5] = 0;
-  return 0;
+  token->string[len++] = a3;
+  token->string[len] = 0;
+  token->subtype = len;
+  return 1;
 }
 
 //----- (1003E9F0) --------------------------------------------------------
