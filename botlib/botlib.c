@@ -2913,7 +2913,11 @@ float *__cdecl sub_100044F0(
    * aarch64 reorders locals so those OOB accesses crash.  Fold v131+v132+v133
    * into one backing array and expose v132/v133 as pointer aliases. */
   float _v131_v133_buf[6];
-  float *const v132 = &_v131_v133_buf[1];   /* v132[-1..4] -> buf[0..5] */
+  /* v132 holds int booleans (the v48/v110 sign flags) in buf[0..3]; the
+   * original tests them with `mov; test eax,eax`, so it must be int* (a float
+   * alias would emit fld/fcomp at every test).  v133 aliases the same buffer's
+   * float distance slots buf[4..5]. */
+  int *const v132 = (int *)&_v131_v133_buf[1];   /* v132[-1..2] -> buf[0..3] (int) */
   float *const v133 = &_v131_v133_buf[4];   /* v133[0..1]  -> buf[4..5] */
   BOOL v135; // [esp+8Ch] [ebp-14CCh]
   float v136; // [esp+90h] [ebp-14C8h] BYREF
@@ -3253,7 +3257,7 @@ LABEL_7:
           v133[0] = -*(float *)&a6[v39];
           v133[1] = -a7[v39];
         }
-        v122 = (int *)v132;
+        v122 = v132;
         v47 = 0;
         v117 = 0;
         do
