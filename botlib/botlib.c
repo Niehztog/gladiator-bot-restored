@@ -617,14 +617,14 @@ int AAS_ContinueInitReachability(int a1);
 int __cdecl AAS_TravelFlagForType(int traveltype);
 int AAS_CreateReversedReachability();
 unsigned short __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
-int AAS_CalculateAreaTravelTimes();
+void AAS_CalculateAreaTravelTimes(void);
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 void __cdecl AAS_FreeRoutingCache(void *cache);
 void AAS_FreeAllClusterAreaCache(void);
 int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
-int AAS_InitRouting();
+void AAS_InitRouting(void);
 aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
 int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *a1);
@@ -13811,69 +13811,67 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
 }
 
 //----- (10019010) --------------------------------------------------------
-/* 64-bit-safe restoration of the original three-level traveltime table:
+/* 64-bit-safe restoration of the original packed pointer-walk.  The 32-bit
+ * DLL/Q3 source builds one contiguous blob:
  *   areatraveltimes[area][reachidx][linkidx] -> unsigned short
- * The 32-bit original packed all three levels into one contiguous blob
- * with byte arithmetic that assumed 4-byte pointers.  Layout preserved:
- * one head row of `unsigned short **` per area, followed per area by a
- * row of `unsigned short *` (one per outgoing reachability), followed
- * per area by the unsigned short cells (numreach * numincominglinks). */
-int AAS_CalculateAreaTravelTimes(void)
+ * using a single advancing byte pointer.  Keep that source shape so the
+ * MSVC6 oracle sees the original loop/carried-pointer codegen while the
+ * allocation still scales with widened pointer sizes on 64-bit. */
+void AAS_CalculateAreaTravelTimes(void)
 {
-  int                  total, i, j, k;
-  aas_areasettings_t  *settings_base, *as;
-  aas_reachability_t  *reach_base, *r_out, *r_in;
-  unsigned char       *blob;
-  unsigned short     **mid;
-  unsigned short      *row;
-  aas_reversedlink_t  *link;
+  int i, l, n, size;
+  int *numreachptr;
+  char *ptr;
   vec3_t end;
+  aas_reversedreach_t *revreach;
+  aas_reversedlink_t *revlink;
+  aas_reachability_t *reach;
+  aas_areasettings_t *settings;
 
   Sys_MilliSeconds();
   if ( aasworld.areatraveltimes )
     FreeMemory(aasworld.areatraveltimes);
 
-  settings_base = (aas_areasettings_t *)aasworld.areasettings;
-  reach_base    = (aas_reachability_t *)aasworld.reachability;
-
-  total = aasworld.numareas * (int)sizeof(unsigned short **);
-  for ( i = 0; i < aasworld.numareas; ++i )
+  size = aasworld.numareas * (int)sizeof(unsigned short **);
+  if ( aasworld.numareas > 0 )
   {
-    int nr = settings_base[i].numreachableareas;
-    int nl = aasworld.reversedreachability[i].numlinks;
-    total += nr * (int)sizeof(unsigned short *);
-    if ( nr > 0 )
-      total += nr * nl * (int)sizeof(unsigned short);
-  }
-
-  blob = (unsigned char *)GetClearedMemory(total);
-  aasworld.areatraveltimes = (unsigned short ***)blob;
-  mid = (unsigned short **)(blob + aasworld.numareas * sizeof(unsigned short **));
-
-  for ( i = 0; i < aasworld.numareas; ++i )
-  {
-    as = &settings_base[i];
-    aasworld.areatraveltimes[i] = mid;
-    row = (unsigned short *)(mid + as->numreachableareas);
-    for ( j = 0; j < as->numreachableareas; ++j )
+    revreach = aasworld.reversedreachability;
+    numreachptr = &((aas_areasettings_t *)aasworld.areasettings)->numreachableareas;
+    i = aasworld.numareas;
+    do
     {
-      aasworld.areatraveltimes[i][j] = row;
-      r_out = &reach_base[as->firstreachablearea + j];
-      link = aasworld.reversedreachability[i].first;
-      k = 0;
-      while ( link )
-      {
-        r_in   = &reach_base[link->linknum];
-        VectorCopy(r_in->end, end);
-        aasworld.areatraveltimes[i][j][k] = AAS_AreaTravelTime(i, r_out->start, end);
-        ++k;
-        link = link->next;
-      }
-      row += aasworld.reversedreachability[i].numlinks;
+      l = *numreachptr;
+      size += l * (int)sizeof(unsigned short *);
+      if ( l > 0 )
+        size += l * revreach->numlinks * (int)sizeof(unsigned short);
+      ++revreach;
+      numreachptr += 7;
+      --i;
     }
-    mid = (unsigned short **)row;
+    while ( i );
   }
-  return total;
+
+  ptr = (char *)GetClearedMemory(size);
+  aasworld.areatraveltimes = (unsigned short ***)ptr;
+  ptr += aasworld.numareas * sizeof(unsigned short **);
+  for ( i = 0; i < aasworld.numareas; ++i )
+  {
+    revreach = &aasworld.reversedreachability[i];
+    settings = &((aas_areasettings_t *)aasworld.areasettings)[i];
+    aasworld.areatraveltimes[i] = (unsigned short **)ptr;
+    ptr += settings->numreachableareas * sizeof(unsigned short *);
+    for ( l = 0; l < settings->numreachableareas; ++l )
+    {
+      aasworld.areatraveltimes[i][l] = (unsigned short *)ptr;
+      ptr += revreach->numlinks * sizeof(unsigned short);
+      reach = &((aas_reachability_t *)aasworld.reachability)[settings->firstreachablearea + l];
+      for ( n = 0, revlink = revreach->first; revlink; revlink = revlink->next, ++n )
+      {
+        VectorCopy(((aas_reachability_t *)aasworld.reachability)[revlink->linknum].end, end);
+        aasworld.areatraveltimes[i][l][n] = AAS_AreaTravelTime(i, reach->start, end);
+      }
+    }
+  }
 }
 
 //----- (10019230) --------------------------------------------------------
@@ -14022,14 +14020,14 @@ int AAS_InitRoutingUpdate()
 }
 
 //----- (10019520) --------------------------------------------------------
-int AAS_InitRouting()
+void AAS_InitRouting(void)
 {
   AAS_InitTravelFlagFromType();
   AAS_InitRoutingUpdate();
   AAS_CreateReversedReachability();
   AAS_InitClusterAreaCache();
   AAS_InitPortalCache();
-  return AAS_CalculateAreaTravelTimes();
+  AAS_CalculateAreaTravelTimes();
 }
 // 1000105F: thunk → 0x10018D00 = AAS_InitTravelFlagFromType
 
