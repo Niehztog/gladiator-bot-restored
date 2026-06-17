@@ -19799,7 +19799,10 @@ int *__cdecl BotEntityToActivate(int a1)
     }
     v2 = v2->next;
     if ( !v2 )
-      goto LABEL_5;
+    {
+      bi_Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", v3);
+      return 0;
+    }
   }
   if ( !v2 )
   {
