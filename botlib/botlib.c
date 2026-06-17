@@ -13745,11 +13745,10 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
 int AAS_CreateReversedReachability(void)
 {
   aas_reversedlink_t *links;
-  int                 i, j, n;
+  int                 i, j;
   aas_areasettings_t *settings;
   aas_reachability_t *reach;
   aas_reversedlink_t *cur;
-  int                 destarea;
 
   if ( aasworld.reversedreachability )
     FreeMemory(aasworld.reversedreachability);
@@ -13761,17 +13760,15 @@ int AAS_CreateReversedReachability(void)
   for ( i = 1; i < aasworld.numareas; ++i )
   {
     settings = &((aas_areasettings_t *)aasworld.areasettings)[i];
-    n = settings->numreachableareas;
-    for ( j = 0; j < n; ++j )
+    for ( j = 0; j < settings->numreachableareas; ++j )
     {
       reach = &((aas_reachability_t *)aasworld.reachability)[settings->firstreachablearea + j];
       cur = links++;
-      cur->linknum  = settings->firstreachablearea + j;
       cur->areanum  = i;
-      destarea      = reach->areanum;
-      cur->next     = aasworld.reversedreachability[destarea].first;
-      aasworld.reversedreachability[destarea].first = cur;
-      ++aasworld.reversedreachability[destarea].numlinks;
+      cur->linknum  = settings->firstreachablearea + j;
+      cur->next     = aasworld.reversedreachability[reach->areanum].first;
+      aasworld.reversedreachability[reach->areanum].first = cur;
+      ++aasworld.reversedreachability[reach->areanum].numlinks;
     }
   }
   return (int)(intptr_t)aasworld.reversedreachability;
