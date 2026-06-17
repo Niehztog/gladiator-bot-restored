@@ -18306,7 +18306,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   bs->enemy_height = (int)(v7[6] - bs->origin[2]);
   v6[2] = 0.0;
   bs->enemy_horizontal_dist = (int)VectorLength(v6);
-  v2 = BYTE1(v7[28]);
+  v2 = (SLODWORD(v7[28]) >> 8) & 0xFF;
   bs->enemy_weapon_blaster = 0;
   bs->enemy_weapon_shotgun = 0;
   v3 = v2 - 1;
@@ -18367,7 +18367,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
     bs->enemy_invulnerability = 1;
   else
     bs->enemy_invulnerability = 0;
-  if ( v5 < 0 )
+  if ( (v5 & 0x80) != 0 )
     bs->enemy_quad = 1;
   else
     bs->enemy_quad = 0;
