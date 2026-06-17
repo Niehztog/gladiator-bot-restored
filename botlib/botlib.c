@@ -2949,13 +2949,24 @@ float *__cdecl sub_100044F0(
   int trace_buf[1280];   // = 9 (v152) + 1271 (v153); BYREF
   int *v152 = trace_buf;
   int *v153 = trace_buf + 9;
-  /* AArch64: the trace-stack free/active linked-lists store "next-pointer"
-   * in 4-byte int slots (at byte offset +36 of each 40-byte frame, plus
-   * v153[0] as the free-list head).  On 32-bit Windows pointers fit; on
-   * aarch64 they don't.  Encode each link as a 32-bit byte offset into
-   * trace_buf (value 0 reserved for NULL; stored value = offset + 1). */
+  /* The trace-stack free/active linked-lists store a "next-pointer" in 4-byte
+   * int slots (at byte offset +36 of each 40-byte frame, plus v153[0] as the
+   * free-list head).  On 32-bit (the original Windows DLL, the MSVC6 oracle,
+   * MinGW32, gcc-i386) a pointer fits in the slot, so the ORIGINAL stored the
+   * raw pointer — TR_ENC/TR_DEC are the identity, which is what the disasm
+   * shows (plain lea/mov, no offset arithmetic).  On 64-bit (aarch64 .so) a
+   * pointer does NOT fit, so each link is encoded as a 32-bit byte offset into
+   * trace_buf (value 0 reserved for NULL; stored value = offset + 1).
+   * MSVC6 does NOT define __SIZEOF_POINTER__, so the `!defined` clause routes
+   * the oracle to the faithful 32-bit form (a bare `== 4` would wrongly pick
+   * the 64-bit branch and keep the OUR+252 offset-encoding sideband). */
+#if !defined(__SIZEOF_POINTER__) || __SIZEOF_POINTER__ == 4
+  #define TR_ENC(p) ((int)(intptr_t)(p))
+  #define TR_DEC(i) ((char *)(intptr_t)(i))
+#else
   #define TR_ENC(p) ((p) ? (int)((intptr_t)((char *)(p) - (char *)trace_buf) + 1) : 0)
   #define TR_DEC(i) ((i) ? (char *)trace_buf + ((unsigned int)(i) - 1u) : (char *)0)
+#endif
 
   v10 = *((float *)a8 + 2);
   memset(v150, 0, sizeof(v150));
