@@ -31148,9 +31148,8 @@ token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *a1)
 int __cdecl PC_Directive_undef(source_t *src)
 {
   unsigned int hash;
-  define_t *prev;
-  define_t *d;
-  define_t **bucket;
+  define_t *lastdefine;
+  define_t *define;
   token_t token; /* restored: original token_t local variable */
 
   if ( src->skip > 0 )
@@ -31167,28 +31166,25 @@ int __cdecl PC_Directive_undef(source_t *src)
     return 0;
   }
   hash = PC_NameHash(token.string);
-  bucket = &src->definehash[hash];
-  prev = NULL;
-  d = *bucket;
-  if ( d )
+  for ( lastdefine = NULL, define = src->definehash[hash]; define; define = define->hashnext )
   {
-    while ( strcmp(d->name, token.string) )
+    if ( !strcmp(define->name, token.string) )
     {
-      prev = d;
-      d = d->hashnext;
-      if ( !d )
-        return 1;
+      if ( (define->flags & 1) != 0 )
+      {
+        SourceWarning(src, "can't undef %s", token.string);
+      }
+      else
+      {
+        if ( lastdefine )
+          lastdefine->hashnext = define->hashnext;
+        else
+          src->definehash[hash] = define->hashnext;
+        PC_FreeDefine(define);
+      }
+      break;
     }
-    if ( (d->flags & 1) != 0 )
-    {
-      SourceWarning(src, "can't undef %s", token.string);
-      return 1;
-    }
-    if ( prev )
-      prev->hashnext = d->hashnext;
-    else
-      *bucket = d->hashnext;
-    PC_FreeDefine(d);
+    lastdefine = define;
   }
   return 1;
 }
