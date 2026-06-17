@@ -391,7 +391,7 @@ typedef struct {
   int   ncflag;             /* +0x10  write to stdout if TRUE                */
   int   ntflag;             /* +0x14  test archive                          */
   int   nvflag;             /* +0x18  verbose listing                       */
-  int   nfflag;             /* +0x1C  "freshen" — replace only with newer    */
+  int   nUflag;             /* +0x1C  5.32 windll header name (5.5x renamed this slot nfflag); zero-filled, so immaterial */
   int   nzflag;             /* +0x20  display archive comment               */
   int   ndflag;             /* +0x24  (sub)dir recreation control            */
   int   noflag;             /* +0x28  always overwrite if TRUE              */
@@ -34899,7 +34899,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
   dword_1006296C->fQuiet = 2;
   dword_1006296C->ntflag = 0;
   dword_1006296C->nvflag = 0;
-  dword_1006296C->nfflag = 0;
+  dword_1006296C->nUflag = 0;
   dword_1006296C->nzflag = 0;
   dword_1006296C->ndflag = 0;
   dword_1006296C->noflag = 1;
