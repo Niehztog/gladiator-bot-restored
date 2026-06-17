@@ -2299,11 +2299,17 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   if ( LODWORD(v47[12]) == 2 )
   {
     v12 = 0;
-    /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd 0.5f; fcompp; test ah,1; je exit.
-     * fcompp with ST(0)=v41+0.5f and ST(1)=*i sets C0=1 iff v41+0.5f < *i. JE on C0=0
-     * exits when *i <= v41+0.5f, so continue iff *i > v41+0.5f. Same form for v44-0.5f
-     * with test ah,0x41 (C0|C3) → continue iff *i < v44-0.5f. The original IDA
-     * decompilation `v41[idx]+0.5f < *i && v44[idx]-0.5f > *i` was correct as-is. */
+    /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd QWORD 0.5; fcompp; test ah,1; je exit.
+     * The ref's 0.5 const is actually a DOUBLE (fadd/fsub QWORD ds:0x10058018, decoded
+     * = 0.5).  fcompp with ST(0)=v41+0.5 and ST(1)=*i sets C0=1 iff v41+0.5 < *i; JE on
+     * C0=0 exits when *i <= v41+0.5, so continue iff *i > v41+0.5.  Same form for v44-0.5
+     * (test ah,0x41 = C0|C3 → continue iff *i < v44-0.5).
+     * NB on the literal: writing `0.5` (double) is the disasm-faithful precision but in
+     * THIS function it overshoots — the reg/FPU cascade spills the double intermediate to
+     * a 3rd QWORD slot (ref has 2 QWORD ops, our build then has 3) and pushes insns
+     * OUR+11→OUR+14.  Since 0.5 is exact in float and double the VALUE is identical, so we
+     * keep `0.5f` (the lower-divergence form, QWORD 0 vs ref 2) per the cascade-trap rule
+     * — this fn is reg-alloc-cascade-dominated and never MATCHes regardless. */
     for ( i = (float *)start; v41[i-(float*)start] + 0.5f < *i && v44[i-(float*)start] - 0.5f > *i; ++i )
     {
       if ( ++v12 >= 3 )
@@ -2684,8 +2690,6 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
    * array via a9).  IDA typed it `int v12` which truncates on aarch64. */
   char *v12;
   _DWORD *v13; // edi
-  float v14; // ecx
-  float v15; // eax
   int v16; // ecx
   /* v17: BSP plane-pointer base (`dword_100674F4 + 20 * plane_index`).
    * Same int→char* widening as the rest of the BSP-base fixes. */
@@ -2727,12 +2731,14 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
     *(_DWORD *)v12 = 0;
     *(_DWORD *)(v12 + 4) = 0;
   }
-  v14 = endpos[1];
-  *(float *)(v12 + 12) = endpos[0];
-  v15 = endpos[2];
-  *(float *)(v12 + 16) = v14;
+  /* VectorCopy(endpos -> result[+12]) as a raw 32-bit bit-copy: ref emits three
+   * integer `mov` (mov reg,[endpos]; mov [v12+N],reg), NOT fld/fstp.  Routing the
+   * copy through `float` locals (v14/v15) forced fld/fstp at [v12+16]/[v12+20]
+   * (deviation-J class — float copy through a wrong-typed intermediate). */
+  *(_DWORD *)(v12 + 12) = *(_DWORD *)&endpos[0];
+  *(_DWORD *)(v12 + 16) = *(_DWORD *)&endpos[1];
   v16 = a9;
-  *(float *)(v12 + 20) = v15;
+  *(_DWORD *)(v12 + 20) = *(_DWORD *)&endpos[2];
   *(_DWORD *)(v12 + 48) = v16;
   v17 = dword_100674F4 + 20 * *(unsigned __int16 *)(dword_10067544 + 4 * v16);
   *(_DWORD *)(v12 + 24) = *(_DWORD *)v17;
