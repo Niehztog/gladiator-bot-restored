@@ -19774,6 +19774,7 @@ int *__cdecl BotEntityToActivate(int a1)
   const char *v6; // ebx
   int v7; // esi
   const char *v8; // eax
+  const char *v9; // eax
   bsp_entity_t **v10; // ebx — pointer into stack-resident heads array
   const char **v11; // ebp
   const char *v12; // eax
@@ -19788,7 +19789,7 @@ int *__cdecl BotEntityToActivate(int a1)
   v1 = AAS_ModelFromIndex(v18[23]);
   v2 = dword_10064398;
   v3 = v1;
-  if ( !dword_10064398 )
+  if ( !v2 )
     goto LABEL_5;
   while ( 1 )
   {
@@ -19860,8 +19861,10 @@ LABEL_39:
         break;
     }
 LABEL_26:
-    bi_Print(PRT_ERROR, "BotEntityToActivate: no entity with target \"%s\"\n", *v11--);
+    v9 = *v11;
+    bi_Print(PRT_ERROR, "BotEntityToActivate: no entity with target \"%s\"\n", v9);
     --v14;
+    --v11;
     --v10;
 LABEL_38:
     if ( v14 < 0 )
@@ -19885,9 +19888,9 @@ LABEL_38:
     }
     if ( !strcmp(v15, "trigger_key") )
       return 0;
+    --v14;
     --v11;
     --v10;
-    --v14;
     goto LABEL_38;
   }
   if ( v14 < 9 )
@@ -21832,33 +21835,25 @@ int __cdecl BotShutdownClient(int a1)
 //----- (100297B0) --------------------------------------------------------
 int __cdecl BotMoveClient(int a1, int a2)
 {
-  int v2; // edx
-  int result; // eax
-  _DWORD *v4; // edi
+  bot_state_t *oldbs;
+  bot_state_t *newbs;
 
-  v2 = 4560 * a1;
-  if ( *(_DWORD *)(4560 * a1 + dword_100643A0) )
-  {
-    v4 = (_DWORD *)(4560 * a2 + dword_100643A0);
-    if ( *v4 )
-    {
-      bi_Print(PRT_FATAL, "tried to move client to active client\n");
-      return 22;
-    }
-    else
-    {
-      result = 0;
-      qmemcpy(v4, (const void *)(4560 * a1 + dword_100643A0), 0x11D0u);
-      memset((void *)(v2 + dword_100643A0), 0, 0x11D0u);
-      *(_DWORD *)(v2 + dword_100643A0) = 0;
-    }
-  }
-  else
+  oldbs = &botstates[a1];
+  if ( !oldbs->inuse )
   {
     bi_Print(PRT_FATAL, "tried to move inactive bot client\n");
     return 21;
   }
-  return result;
+  newbs = &botstates[a2];
+  if ( newbs->inuse )
+  {
+    bi_Print(PRT_FATAL, "tried to move client to active client\n");
+    return 22;
+  }
+  qmemcpy(newbs, oldbs, sizeof(bot_state_t));
+  memset(oldbs, 0, sizeof(bot_state_t));
+  oldbs->inuse = 0;
+  return 0;
 }
 
 //----- (10029880) --------------------------------------------------------
@@ -23043,17 +23038,13 @@ void __cdecl BotDumpRandomStringList(int *list)
 // correctly under both ABIs.
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 {
-  char *ptr;                /* IDA v2/v3: current write cursor in scratch  */
-  bot_randomlist_t *list;   /* IDA v3 reinterpreted: current randomlist     */
-  bot_randomstring_t *rs;   /* IDA v8 reinterpreted: current random string  */
+  int pass, size;
+  char *ptr;
   source_t *source;
-  bot_randomlist_t *head;
-  bot_randomlist_t *lastlist;
-  int sizeNeeded;
-  int sizeAccum;
-  int pass;
-  bot_fileref_t file_ref;
   token_t token;
+  bot_randomlist_t *randomlist, *lastrandom, *random;
+  bot_randomstring_t *randomstring;
+  bot_fileref_t file_ref;
 
   if ( !sub_10041F60(filename, &file_ref) )
   {
@@ -23062,29 +23053,22 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
   }
 
   ptr = NULL;
-  list = NULL;
-  sizeNeeded = 0;
-  pass = 0;
-  sizeAccum = 0;
-  head = NULL;
-
-  while ( 1 )
+  size = 0;
+  randomlist = NULL;
+  random = NULL;
+  for ( pass = 0; pass < 2; ++pass )
   {
-    if ( pass && sizeNeeded )
-      ptr = (char *)GetClearedMemory(sizeNeeded);
+    if ( pass && size )
+      ptr = (char *)GetClearedMemory(size);
     source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     if ( !source )
     {
       bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
       return NULL;
     }
-    head = NULL;
-    lastlist = NULL;
-
-    if ( !PC_ReadTokenHandle(source, token.string) )
-      goto NEXT_PASS;
-
-    while ( 1 )
+    randomlist = NULL;
+    lastrandom = NULL;
+    while ( PC_ReadTokenHandle(source, token.string) )
     {
       if ( token.type != 4 )
       {
@@ -23092,66 +23076,55 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
         FreeSource(source);
         return NULL;
       }
-      sizeAccum += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
+      size += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
       if ( pass )
       {
-        list = (bot_randomlist_t *)ptr;
-        list->string = (char *)(ptr + sizeof(bot_randomlist_t));
-        ptr += sizeof(bot_randomlist_t) + strlen(token.string) + 1;
-        strcpy(list->string, token.string);
-        list->firstrandomstring = NULL;
-        list->numstrings = 0;
-        if ( lastlist )
-          lastlist->next = list;
+        random = (bot_randomlist_t *)ptr;
+        ptr += sizeof(bot_randomlist_t);
+        random->string = ptr;
+        ptr += strlen(token.string) + 1;
+        strcpy(random->string, token.string);
+        random->firstrandomstring = NULL;
+        random->numstrings = 0;
+        if ( lastrandom )
+          lastrandom->next = random;
         else
-          head = list;
-        lastlist = list;
+          randomlist = random;
+        lastrandom = random;
       }
       if ( !PC_ExpectTokenString(source, "=") || !PC_ExpectTokenString(source, "{") )
       {
         FreeSource(source);
         return NULL;
       }
-      while ( PC_ExpectTokenType(source, 1, 0, token.string) )
+      while ( !PC_CheckTokenString(source, "}") )
       {
-        StripDoubleQuotes(token.string);
-        sizeAccum += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
-        if ( pass )
-        {
-          rs = (bot_randomstring_t *)ptr;
-          rs->string = (char *)(ptr + sizeof(bot_randomstring_t));
-          ptr += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
-          strcpy(rs->string, token.string);
-          rs->next = list->firstrandomstring;
-          list->firstrandomstring = rs;
-          ++list->numstrings;
-        }
-        if ( PC_CheckTokenString(source, "}") )
-          break;
-        if ( !PC_ExpectTokenString(source, ",") )
+        if ( !BotLoadChatMessage(source, token.string) )
         {
           FreeSource(source);
           return NULL;
         }
+        size += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
+        if ( pass )
+        {
+          randomstring = (bot_randomstring_t *)ptr;
+          ptr += sizeof(bot_randomstring_t);
+          randomstring->string = ptr;
+          ptr += strlen(token.string) + 1;
+          strcpy(randomstring->string, token.string);
+          ++random->numstrings;
+          randomstring->next = random->firstrandomstring;
+          random->firstrandomstring = randomstring;
+        }
       }
-      if ( !PC_ReadTokenHandle(source, token.string) )
-        break;
     }
-
-NEXT_PASS:
     FreeSource(source);
-    ++pass;
-    /* doWrite removed: was always equal to pass */
-    if ( pass >= 2 )
-    {
-      if ( file_ref.filelen )
-        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
-      else
-        bi_Print(PRT_MESSAGE, "loaded %s\n", filename);
-      return head;
-    }
-    sizeNeeded = sizeAccum;
   }
+  if ( file_ref.filelen )
+    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
+  else
+    bi_Print(PRT_MESSAGE, "loaded %s\n", filename);
+  return randomlist;
 }
 
 //----- (1002BDD0) --------------------------------------------------------
