@@ -15983,14 +15983,15 @@ int sub_1001C760(char *Source)
     if ( v4 )
     {
       aasworld.numsoundinfo = 0;
-      if ( PC_ReadTokenHandle(v4, ArgList) )
+      while ( PC_ReadTokenHandle(v5, ArgList) )
       {
-        while ( !strcmp(ArgList, "soundinfo") )
+        if ( !strcmp(ArgList, "soundinfo") )
         {
           if ( aasworld.numsoundinfo >= v2 )
           {
             SourceError(v5, "more than %d sound infos defined\n", v2);
-            goto LABEL_21;
+            FreeSource(v5);
+            return 0;
           }
           memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
           if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
@@ -15999,24 +16000,20 @@ int sub_1001C760(char *Source)
             return 0;
           }
           ++aasworld.numsoundinfo;
-          if ( !PC_ReadTokenHandle(v5, ArgList) )
-            goto LABEL_15;
         }
-        SourceError(v5, "unknown definition %s\n", ArgList);
-LABEL_21:
-        FreeSource(v5);
-        return 0;
-      }
-      else
-      {
-LABEL_15:
-        FreeSource(v5);
-        if ( file_ref.filelen )
-          bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
         else
-          bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
-        return 1;
+        {
+          SourceError(v5, "unknown definition %s\n", ArgList);
+          FreeSource(v5);
+          return 0;
+        }
       }
+      FreeSource(v5);
+      if ( file_ref.filelen )
+        bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+      else
+        bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
+      return 1;
     }
     else
     {
@@ -16372,50 +16369,29 @@ float __cdecl sub_1001D0A0(float *listener, void *emitter)
 //----- (1001D140) --------------------------------------------------------
 int *sub_1001D140()
 {
-  int v0; // ebx
-  int *result; // eax
-  int v2; // esi
-  int v4; // ecx
+  int i;
+  int j;
 
   if ( aasworld.d_100669C0 )
     FreeMemory(aasworld.d_100669C0);
   aasworld.d_100669C0 = (void **)GetMemory(sizeof(void *) * aasworld.soundindex_table->numindexes);
-  v0 = 0;
   memset(aasworld.d_100669C0, 0, sizeof(void *) * aasworld.soundindex_table->numindexes);
-  result = (int *)aasworld.soundindex_table;
-  if ( aasworld.soundindex_table->numindexes <= 0 )
+  for ( i = 0; i < aasworld.soundindex_table->numindexes; i++ )
   {
-    aasworld.d_100669BC = aasworld.soundindex_table->numindexes;
-  }
-  else
-  {
-    do
+    if ( aasworld.soundindex_table->indexes[i] )
     {
-      if ( aasworld.soundindex_table->indexes[v0] )
+      for ( j = 0; j < aasworld.numsoundinfo; j++ )
       {
-        v2 = 0;
-        if ( aasworld.numsoundinfo > 0 )
+        if ( !Q_stricmp(aasworld.soundinfo[j].name, aasworld.soundindex_table->indexes[i]) )
         {
-          while ( Q_stricmp(aasworld.soundinfo[v2].name, aasworld.soundindex_table->indexes[v0]) )
-          {
-            ++v2;
-            result = (int *)aasworld.soundindex_table;
-            if ( v2 >= aasworld.numsoundinfo )
-              goto LABEL_11;
-          }
-          aasworld.d_100669C0[v0] = &aasworld.soundinfo[v2];
-          result = (int *)aasworld.soundindex_table;
+          aasworld.d_100669C0[i] = &aasworld.soundinfo[j];
+          break;
         }
       }
-LABEL_11:
-      v4 = *result;
-      ++v0;
     }
-    while ( v0 < *result );
-    result = (int *)*result;
-    aasworld.d_100669BC = v4;
   }
-  return result;
+  aasworld.d_100669BC = aasworld.soundindex_table->numindexes;
+  return (int *)(intptr_t)aasworld.soundindex_table->numindexes;
 }
 
 //----- (1001D260) --------------------------------------------------------
