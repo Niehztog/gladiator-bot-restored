@@ -15635,9 +15635,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
 {
   int    i;
-  int    numfaces;
-  int    firstface;
-  int    idx;
+  int    facenum;
   aas_face_t *face;
   aas_area_t *area;
   float  plane_z;
@@ -15646,16 +15644,10 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
   if ( !aasworld.loaded )
     return 0;
   area = &aasworld.areas[areanum];
-  numfaces = area->numfaces;
-  if ( numfaces <= 0 )
-    return 0;
-  firstface = area->firstface;
-  for ( i = 0; i < numfaces; i++ )
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    idx = aasworld.faceindex[firstface + i];
-    if ( idx < 0 )
-      idx = -idx;
-    face = &aasworld.faces[idx];
+    facenum = aasworld.faceindex[area->firstface + i];
+    face = &aasworld.faces[abs(facenum)];
     if ( !(face->faceflags & 4) )
       continue;
     plane_z = aasworld.planes[face->planenum].normal[2];
@@ -15702,10 +15694,7 @@ void __cdecl AAS_FacePlane(int face_idx, float *out_normal, float *out_dist)
 void *__cdecl sub_1001C210(int *gate)
 {
   int    i;
-  int    numfaces;
-  int    firstface;
-  int    idx;
-  int    areanum;
+  int    facenum;
   int    planenum;
   aas_face_t  *face;
   aas_area_t  *area;
@@ -15715,18 +15704,11 @@ void *__cdecl sub_1001C210(int *gate)
     return 0;
   if ( gate[0] != 0 )
     return 0;
-  areanum = gate[6];                                  /* gate->_i18 */
-  area = &aasworld.areas[areanum];
-  numfaces = area->numfaces;
-  if ( numfaces <= 0 )
-    return 0;
-  firstface = area->firstface;
-  for ( i = 0; i < numfaces; i++ )
+  area = &aasworld.areas[gate[6]];                    /* gate->_i18 */
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    idx = aasworld.faceindex[firstface + i];
-    if ( idx < 0 )
-      idx = -idx;
-    face = &aasworld.faces[idx];
+    facenum = aasworld.faceindex[area->firstface + i];
+    face = &aasworld.faces[abs(facenum)];
     planenum = face->planenum;
     if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
