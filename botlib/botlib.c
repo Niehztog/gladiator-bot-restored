@@ -15328,18 +15328,18 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
       plane = (float *)&aasworld.planes[aasnode->planenum];
       front = cur_start_x * plane[0] + cur_start_y * plane[1] + cur_start_z * plane[2] - plane[3];
       back  = cur_end_x   * plane[0] + cur_end_y   * plane[1] + cur_end_z   * plane[2] - plane[3];
-      if ( front <= -0.0005f || back <= -0.0005f )
+      if ( front <= -0.0005 || back <= -0.0005 )
       {
-        if ( front >= 0.0005f || back >= 0.0005f )
+        if ( front >= 0.0005 || back >= 0.0005 )
         {
           /* split: trace crosses this plane.  Push the second half first,
            * then push the first half so it pops next. */
           tmpplanenum = tstack_p->planenum;
           /* TRACEPLANE_EPSILON nudge toward the near side */
           if ( front < 0.0f )
-            side_offset = front + 0.125f;
+            side_offset = front + 0.125;
           else
-            side_offset = front - 0.125f;
+            side_offset = front - 0.125;
           frac = side_offset / (front - back);
           if ( frac >= 0.0f )
           {
