@@ -14695,37 +14695,30 @@ int AAS_RoutingInfo()
 //----- (1001A650) --------------------------------------------------------
 int __cdecl AAS_AltRoutingFloodCluster_r(int a1)
 {
-  char *v1; // esi
-  int v2; // ebx
-  int result; // eax
-  int v4; // rax (was __int64 — abs32 idiom)
-  int v6; // eax
+  int i;
+  int otherareanum;
+  aas_area_t *area;
+  aas_face_t *face;
 
-  *(_DWORD *)(dword_10066744 + 4 * dword_10066730++) = a1;
+  ((int *)(intptr_t)dword_10066744)[dword_10066730] = a1;
+  dword_10066730++;
   *(_DWORD *)(dword_10066740 + 8 * a1) = 0;
-  v1 = &aasworld.areas[a1];
-  v2 = 0;
-  result = *((_DWORD *)v1 + 1);
-  if ( result > 0 )
+  area = &aasworld.areas[a1];
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    do
-    {
-      v4 = aasworld.faceindex[v2 + *((_DWORD *)v1 + 2)];
-      if ( aasworld.faces[abs(v4)].frontarea == a1 )
-        v6 = aasworld.faces[abs(v4)].backarea;
-      else
-        v6 = aasworld.faces[abs(v4)].frontarea;
-      if ( v6 )
-      {
-        if ( *(_DWORD *)(dword_10066740 + 8 * v6) )
-          AAS_AltRoutingFloodCluster_r(v6);
-      }
-      result = *((_DWORD *)v1 + 1);
-      ++v2;
-    }
-    while ( v2 < result );
+    face = &aasworld.faces[abs(aasworld.faceindex[area->firstface + i])];
+    if ( face->frontarea == a1 )
+      otherareanum = face->backarea;
+    else
+      otherareanum = face->frontarea;
+    if ( !otherareanum )
+      continue;
+    if ( !*(_DWORD *)(dword_10066740 + 8 * otherareanum) )
+      continue;
+    AAS_AltRoutingFloodCluster_r(otherareanum);
   }
-  return result;
+  /* Original 32-bit DLL falls through here with eax already holding the final
+   * area->numfaces load from the loop condition; the return value is unused. */
 }
 
 //----- (1001A720) --------------------------------------------------------
