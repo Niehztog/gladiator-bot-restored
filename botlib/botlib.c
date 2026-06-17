@@ -22623,40 +22623,25 @@ void __cdecl UnifyWhiteSpaces(void *Src)
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive)
 {
   int len;
-  int v12;
-  int v13;
-  const char *v6;
-  ptrdiff_t v7;
-  int v8;
-  char v9;
+  int i;
+  int j;
 
   len = strlen(str1) - strlen(str2);
-  for ( v12 = 0; v12 <= len; ++v12, ++str1 )
+  for ( i = 0; i <= len; i++, str1++ )
   {
-    v13 = 0;
-    if ( *str2 )
+    for ( j = 0; str2[j]; j++ )
     {
-      v6 = str2;
-      v7 = str1 - str2;
-      do
+      if ( casesensitive )
       {
-        if ( casesensitive )
-        {
-          if ( v6[v7] != *v6 )
-            break;
-        }
-        else
-        {
-          v8 = toupper(v6[v7]);
-          if ( v8 != toupper(*v6) )
-            break;
-        }
-        v9 = *++v6;
-        ++v13;
+        if ( str1[j] != str2[j] )
+          break;
       }
-      while ( v9 );
+      else if ( toupper(str1[j]) != toupper(str2[j]) )
+      {
+        break;
+      }
     }
-    if ( !str2[v13] )
+    if ( !str2[j] )
       return str1;
   }
   return 0;
