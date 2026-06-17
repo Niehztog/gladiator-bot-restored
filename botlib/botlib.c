@@ -23017,7 +23017,10 @@ void __cdecl BotDumpRandomStringList(int *list)
     for ( rs = rl->firstrandomstring; rs; rs = rs->next )
     {
       fprintf(fp, "\"%s\"", rs->string);
-      fprintf(fp, rs->next ? ", " : "}\n");
+      if ( rs->next )
+        fprintf(fp, ", ");
+      else
+        fprintf(fp, "}\n");
     }
   }
 }
