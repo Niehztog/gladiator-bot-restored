@@ -16381,8 +16381,7 @@ int *sub_1001D140()
       }
     }
   }
-  aasworld.d_100669BC = aasworld.soundindex_table->numindexes;
-  return (int *)(intptr_t)aasworld.soundindex_table->numindexes;
+  return (int *)(intptr_t)(aasworld.d_100669BC = aasworld.soundindex_table->numindexes);
 }
 
 //----- (1001D260) --------------------------------------------------------
@@ -19956,13 +19955,12 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
  * classname == "func_button", reads the brush's BSP model AABB and the
  * entity's "angle"/"health" keys, then draws permanent debug crosses.
  *
- *  - health == 0 (instant-fire buttons): one cross showing the resting
- *    position, pulled in from the brush face by half the brush's own
- *    extent along the press direction.
- *  - health != 0 (held/pressed buttons): four crosses showing the
- *    player-stand position in front of the button, the result of a
- *    100-unit downward trace from there (the floor the bot would stand
- *    on), plus two derived corner markers.
+ *  - health != 0 (shootable buttons): one cross at the shoot point
+ *    pulled back from the face by half the brush's own extent along the
+ *    move direction.
+ *  - health == 0 (touch/use buttons): three crosses showing the bot's
+ *    standing position in front of the button plus two derived corner
+ *    markers based on the brush AABB recentered around that stand spot.
  *
  * Capped at the first 6 matching buttons (loop counter > 5 exits).
  *
@@ -19973,25 +19971,26 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
  * axis-aligned local-space AABB rather than a world-rotated one. */
 void __cdecl sub_10025070(void)
 {
-  bsp_entity_t *ent;        // ebp — current entity in linked list
-  int         drawn;        // ebx — drawn-button counter
-  const char *classname;
-  const char *model_str;
-  int         modelnum;
-  double      angle_yaw;
-  double      health;
-  int         i;
-  float       half_self;
-  float       half_player;
-  vec3_t      mins, maxs;
-  vec3_t      midpoint;
-  vec3_t      angles;
-  vec3_t      forward;
-  vec3_t      pre_press;
-  vec3_t      player_mins, player_maxs;
-  vec3_t      start, end;
-  aas_trace_t trace;
-  vec3_t      cross_a, cross_b;
+  bsp_entity_t *ent;
+  int drawn;
+  char *classname;
+  char *model_str;
+  int modelnum;
+  struct {
+    vec3_t origin;
+    vec3_t mins;
+    vec3_t maxs;
+    vec3_t start;
+    vec3_t goalorigin;
+    vec3_t movedir;
+    float dist;
+    vec3_t angles;
+    vec3_t size;
+    vec3_t end;
+    vec3_t bboxmins;
+    vec3_t bboxmaxs;
+    aas_trace_t trace;
+  } l;
 
   drawn = 0;
   ent   = dword_10064398;
@@ -20001,83 +20000,76 @@ void __cdecl sub_10025070(void)
   do
   {
     classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
-    if ( classname && !strcmp(classname, "func_button") )
+    if ( !strcmp(classname, "func_button") )
     {
-      /* Resolve "*N" model reference to a BSP model index. */
       model_str = (const char *)AAS_ValueForBSPEpairKey(ent, "model");
       modelnum  = IndexFromModel((char *)model_str);
       if ( !modelnum )
         modelnum = atoi(model_str + 1);
 
-      angles[0] = 0.0f;
-      angles[1] = 0.0f;
-      angles[2] = 0.0f;
-      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
+      l.angles[2] = 0.0f;
+      l.angles[1] = 0.0f;
+      l.angles[0] = 0.0f;
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, l.angles, l.mins, l.maxs, NULL);
 
-      /* Original calls FloatForKey for "lip" and discards the result. */
       FloatForKey(ent, "lip");
-      angle_yaw = FloatForKey(ent, "angle");
-      angles[0] = 0.0f;
-      angles[1] = (float)angle_yaw;
-      angles[2] = 0.0f;
-      BotSetMovedir(angles, forward);
+      l.angles[0] = 0.0f;
+      l.angles[1] = FloatForKey(ent, "angle");
+      l.angles[2] = 0.0f;
+      BotSetMovedir(l.angles, l.movedir);
 
-      /* Midpoint and "self" half-extent projected onto the press axis. */
-      midpoint[0] = (mins[0] + maxs[0]) * 0.5f;
-      midpoint[1] = (mins[1] + maxs[1]) * 0.5f;
-      midpoint[2] = (mins[2] + maxs[2]) * 0.5f;
-      half_self = 0.5f * ( (float)fabs(forward[0]) * (maxs[0] - mins[0])
-                         + (float)fabs(forward[1]) * (maxs[1] - mins[1])
-                         + (float)fabs(forward[2]) * (maxs[2] - mins[2]) );
+      VectorSubtract(l.maxs, l.mins, l.size);
+      VectorAdd(l.mins, l.maxs, l.origin);
+      VectorScale(l.origin, 0.5f, l.origin);
+      l.dist = fabs(l.movedir[2]) * l.size[2]
+             + fabs(l.movedir[1]) * l.size[1]
+             + fabs(l.movedir[0]) * l.size[0];
+      l.dist *= 0.5;
 
-      health = FloatForKey(ent, "health");
-      if ( health == 0.0 )
+      if ( FloatForKey(ent, "health") )
       {
-        /* Instant-fire button: pull the marker back from the face. */
-        VectorMA(midpoint, -half_self, forward, pre_press);
-        AAS_DrawPermanentCross(pre_press, 4.0f, (int)0xf3f3f1f1);
+        VectorMA(l.origin, -l.dist, l.movedir, l.goalorigin);
+        AAS_DrawPermanentCross(l.goalorigin, 4.0f, (int)0xf3f3f1f1);
       }
       else
       {
-        /* Held button: project the player bbox onto the press axis and
-         * trace 100 units down to find the bot's standing position. */
-        AAS_PresenceTypeBoundingBox(4, player_mins, player_maxs);
-        half_player = 0.0f;
-        for ( i = 0; i < 3; ++i )
+        float accum;
+        int offset;
+
+        AAS_PresenceTypeBoundingBox(4, l.bboxmins, l.bboxmaxs);
+        offset = 0;
+        accum = l.dist;
+        do
         {
-          float side = forward[i] < 0.0f ? player_maxs[i] : player_mins[i];
-          half_player += (float)fabs(forward[i]) * (float)fabs(side);
+          float side;
+
+          if ( *(float *)((char *)l.movedir + offset) < 0.0f )
+            side = *(float *)((char *)l.bboxmaxs + offset);
+          else
+            side = *(float *)((char *)l.bboxmins + offset);
+          accum += fabs(*(float *)((char *)l.movedir + offset)) * fabs(side);
+          offset += 4;
         }
-        VectorMA(midpoint, -half_player, forward, pre_press);
+        while ( offset < 12 );
+        VectorMA(l.origin, -accum, l.movedir, l.goalorigin);
 
-        start[0] = pre_press[0];
-        start[1] = pre_press[1];
-        start[2] = pre_press[2] + 24.0f;
-        end[0]   = start[0];
-        end[1]   = start[1];
-        end[2]   = start[2] - 100.0f;
-        trace = AAS_TraceClientBBox(start, end, 4, -1);
+        VectorCopy(l.goalorigin, l.start);
+        l.start[2] += 24.0f;
+        VectorCopy(l.start, l.end);
+        l.end[2] -= 100.0f;
+        l.trace = AAS_TraceClientBBox(l.start, l.end, 4, -1);
+        if ( !l.trace.startsolid )
+          VectorCopy(l.trace.endpos, l.goalorigin);
+        AAS_DrawPermanentCross(l.goalorigin, 4.0f, (int)0xdcdddedf);
 
-        /* If the down-trace started in solid we keep `pre_press`; otherwise
-         * we move the marker to where the trace stopped (= floor). */
-        if ( !trace.startsolid )
-        {
-          VectorCopy(trace.endpos, pre_press);
-        }
-        AAS_DrawPermanentCross(pre_press, 4.0f, (int)0xdcdddedf);
+        VectorSubtract(l.mins, l.origin, l.mins);
+        VectorSubtract(l.maxs, l.origin, l.maxs);
 
-        /* The remaining two crosses mark the brush AABB corners after
-         * recentering on `midpoint`: (mins - midpoint) added back to the
-         * standing position, and (maxs - midpoint) added back.  The
-         * original computes these in-place on the mins/maxs slots. */
-        mins[0] -= midpoint[0]; mins[1] -= midpoint[1]; mins[2] -= midpoint[2];
-        maxs[0] -= midpoint[0]; maxs[1] -= midpoint[1]; maxs[2] -= midpoint[2];
+        VectorAdd(l.origin, l.mins, l.start);
+        AAS_DrawPermanentCross(l.start, 4.0f, (int)0xf3f3f1f1);
 
-        VectorAdd(midpoint, mins, cross_a);
-        AAS_DrawPermanentCross(cross_a, 4.0f, (int)0xf3f3f1f1);
-
-        VectorAdd(midpoint, maxs, cross_b);
-        AAS_DrawPermanentCross(cross_b, 4.0f, (int)0xf3f3f1f1);
+        VectorAdd(l.origin, l.maxs, l.start);
+        AAS_DrawPermanentCross(l.start, 4.0f, (int)0xf3f3f1f1);
       }
 
       if ( ++drawn > 5 )
