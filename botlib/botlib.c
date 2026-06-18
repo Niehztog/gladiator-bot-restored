@@ -3614,43 +3614,35 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   sub_10003460(v11, v13);
   v6 = sub_10003360(v11, a2);
   v7 = dword_100674EC + 28 * v6;
-  if ( *(_WORD *)(v7 + 26) )
+  while ( v4 < *(unsigned __int16 *)(v7 + 26) )
   {
-    while ( 1 )
-    {
-      v10 = (_DWORD *)(dword_1006753C
-                     + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
-      if ( sub_100056D0(v10, v11) )
-        return v10[2];
-      if ( ++v4 >= *(unsigned __int16 *)(v7 + 26) )
-        goto LABEL_6;
-    }
+    v10 = (_DWORD *)(dword_1006753C
+                   + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
+    if ( sub_100056D0(v10, v11) )
+      return v10[2];
+    ++v4;
   }
-  else
+  for ( i = dword_10069584[v6]; i; i = i->next_ent )
   {
-LABEL_6:
-    for ( i = dword_10069584[v6]; i; i = i->next_ent )
+    AAS_EntityBSPData(i->entnum, (bsp_entdata_t *)v14);
+    if ( *a1 > (float)v16
+      && *a1 < (float)v19
+      && a1[1] > (float)v17
+      && a1[1] < (float)v20
+      && a1[2] > (float)v18
+      && a1[2] < (float)v21 )
     {
-      AAS_EntityBSPData(i->entnum, (bsp_entdata_t *)v14);
-      if ( *a1 > (float)v16
-        && *a1 < (float)v19
-        && a1[1] > (float)v17
-        && a1[1] < (float)v20
-        && a1[2] > (float)v18
-        && a1[2] < (float)v21 )
+      if ( v22 == 2 )
       {
-        if ( v22 == 2 )
-        {
-          v9 |= 0x2000000u;
-        }
-        else if ( v22 == 3 )
-        {
-          v9 |= sub_100057A0(a1, v23, v14, v15);
-        }
+        v9 |= 0x2000000u;
+      }
+      else if ( v22 == 3 )
+      {
+        v9 |= sub_100057A0(a1, v23, v14, v15);
       }
     }
-    return v9;
   }
+  return v9;
 }
 
 //----- (10005A10) --------------------------------------------------------
@@ -5498,21 +5490,20 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum)
   int v5; // edx
   aas_reachability_t *v6; // ecx
 
-  v1 = 1;
   if ( aasworld.numareas <= 1 )
     return 1;
   v2 = aasworld.areasettings;
-  while ( 1 )
+  for ( v1 = 1; v1 < aasworld.numareas; ++v1 )
   {
     v3 = &v2[v1];
     if ( v3->cluster )
-      goto LABEL_13;
+      continue;
     if ( (v3->contents & 8) != 0 )
-      goto LABEL_13;
+      continue;
     v4 = v3->numreachableareas;
     v5 = 0;
     if ( v4 <= 0 )
-      goto LABEL_13;
+      continue;
     v6 = &aasworld.reachability[v3->firstreachablearea];
     while ( (v2[v6->areanum].contents & 8) != 0 || !v2[v6->areanum].cluster )
     {
@@ -5525,10 +5516,9 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum)
       return 0;
     v2 = aasworld.areasettings;
     v1 = 0;
-LABEL_13:
-    if ( ++v1 >= aasworld.numareas )
-      return 1;
+LABEL_13:;
   }
+  return 1;
 }
 
 //----- (10008AC0) --------------------------------------------------------
@@ -5568,21 +5558,21 @@ int AAS_FindClusters()
   v2 = aasworld.areasettings;
   for ( i = 28; ; i += 28 )
   {
-    if ( *(_DWORD *)&v2[i + 12] || (v2[i] & 8) != 0 )
-      goto LABEL_9;
-    if ( v1 >= 0x10000 )
-      break;
-    v4 = &aasworld.clusters[v1];
-    v4->numareas = 0;
-    v4->firstportal = aasworld.portalindexsize;
-    v4->numreachabilityareas = 0;
-    if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
-      return 0;
-    AAS_NumberClusterPortals(aasworld.numclusters);
-    Log_Write("cluster %d has %d areas", aasworld.numclusters, v4->numareas);
-    v2 = aasworld.areasettings;
-    v1 = ++aasworld.numclusters;
-LABEL_9:
+    if ( *(_DWORD *)&v2[i + 12] == 0 && (v2[i] & 8) == 0 )
+    {
+      if ( v1 >= 0x10000 )
+        break;
+      v4 = &aasworld.clusters[v1];
+      v4->numareas = 0;
+      v4->firstportal = aasworld.portalindexsize;
+      v4->numreachabilityareas = 0;
+      if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
+        return 0;
+      AAS_NumberClusterPortals(aasworld.numclusters);
+      Log_Write("cluster %d has %d areas", aasworld.numclusters, v4->numareas);
+      v2 = aasworld.areasettings;
+      v1 = ++aasworld.numclusters;
+    }
     if ( ++v0 >= aasworld.numareas )
       return 1;
   }
@@ -5893,17 +5883,14 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
     }
     ++v6;
   }
-  v21 = 0;
   if ( v5 > 0 )
   {
-    while ( v53[v21] && v55[v21] )
+    for ( v21 = 0; v21 < v5; ++v21 )
     {
-      if ( ++v21 >= v5 )
-        goto LABEL_45;
+      if ( !v53[v21] || !v55[v21] )
+        return 0;
     }
-    return 0;
   }
-LABEL_45:
   result = AAS_ConnectedAreas(v56, v4);
   if ( result )
   {
@@ -7198,8 +7185,8 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   v21 = 0;
   while ( 1 )
   {
-    if ( !AAS_inPVS((float *)a2, middle) )
-      goto LABEL_21;
+    if ( AAS_inPVS((float *)a2, middle) )
+    {
     /* default: trace from viewer (a2) to entity middle */
     VectorCopy(((float *)a2), start);
     VectorCopy(middle, end);
@@ -7238,7 +7225,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
       middle[2] = middle[2] + ent->mins[2];
     else if ( v21 == 1 )
       middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
-LABEL_21:
+    }
     if ( ++v21 >= 3 )
       return 0;
     v5 = a5;
@@ -12444,8 +12431,7 @@ int AAS_Reachability_Teleport()
           v27 = v3;
           if ( v3 )
           {
-            v4 = v26;
-            while ( 1 )
+            for ( v4 = v26; v4; v4 = v4->next )
             {
               v5 = (const char *)AAS_ValueForBSPEpairKey(v4, "classname");
               if ( v5 )
@@ -12460,13 +12446,9 @@ int AAS_Reachability_Teleport()
                   }
                 }
               }
-              v4 = v4->next;
-              if ( !v4 )
-                goto LABEL_18;
             }
             if ( !v4 )
             {
-LABEL_18:
               bi_Print(PRT_ERROR, "teleporter without destination (%s)\n", v3);
               goto LABEL_29;
             }
@@ -20499,15 +20481,13 @@ float __cdecl BotGetTime(bot_match_t *match)
   if ( Destination.type == 105 )
   {
     v1 = atof(String) * 60.0;
+    v3 = v1;
   }
-  else
+  else if ( Destination.type == 106 )
   {
-    if ( Destination.type != 106 )
-      goto LABEL_8;
     v1 = atof(String);
+    v3 = v1;
   }
-  v3 = v1;
-LABEL_8:
   if ( v3 > 0.0f )
     return AAS_Time() + v3;
   return 0.0f;
@@ -20573,19 +20553,24 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
     v4->next = NULL;
     v5 = v2;
     if ( !v2 )
-      goto LABEL_8;
-    while ( v5->next )
-      v5 = v5->next;
-    if ( v5 )
     {
-      v5->next = v4;
-      v4->prev = v5;
+      v2 = v4;
+      v4->prev = NULL;
     }
     else
     {
-LABEL_8:
-      v2 = v4;
-      v4->prev = NULL;
+      while ( v5->next )
+        v5 = v5->next;
+      if ( v5 )
+      {
+        v5->next = v4;
+        v4->prev = v5;
+      }
+      else
+      {
+        v2 = v4;
+        v4->prev = NULL;
+      }
     }
     if ( (v9.subtype & 0x200) != 0 )
     {
@@ -24825,8 +24810,8 @@ void __cdecl sub_1002E5D0(void *arg)
   bi_Print(PRT_MESSAGE, "[");
 
   edi = *(struct lhs_node **)arg;
-  if (!edi)
-    goto done;
+  if (edi)
+  {
 
   do {
     flags = edi->flags;
@@ -24873,7 +24858,7 @@ void __cdecl sub_1002E5D0(void *arg)
     edi = edi->next;
   } while (edi);
 
-done:
+  }
   bi_Print(PRT_MESSAGE, "{\n");
 }
 
@@ -26209,18 +26194,13 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
             v9 = 0;
             if ( v8 > 0 )
             {
-              v10 = v26;
-              while ( !AAS_AreaReachability(*v10) )
+              for ( v10 = v26; v9 < v8; ++v9, ++v10 )
               {
-                ++v9;
-                ++v10;
-                if ( v9 >= v8 )
-                  goto LABEL_17;
+                if ( AAS_AreaReachability(*v10) )
+                  return v26[v9];
               }
-              return v26[v9];
             }
           }
-LABEL_17:
           dx -= 5;
           v18 = dx;
         }
@@ -26506,17 +26486,15 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
     v10[2] = v9 - libvar_sv_maxbarrier->value - 24.0f;
     trace = AAS_TraceClientBBox(v13, v10, 4, -1);
     if ( !trace.startsolid )
-      break;
-LABEL_5:
+    {
+      if ( v9 - libvar_sv_step->value - 8.0f > trace.endpos[2] )
+        break;
+      v9 = trace.endpos[2];
+    }
     v6 = v18 + 8.0f;
     v18 = v6;
     if ( v6 > 100.0f )
       return 0.0f;
-  }
-  if ( v9 - libvar_sv_step->value - 8.0f <= trace.endpos[2] )
-  {
-    v9 = trace.endpos[2];
-    goto LABEL_5;
   }
   v10[0] = trace.endpos[0];
   v10[1] = trace.endpos[1];
@@ -27195,21 +27173,16 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   *(_DWORD *)&v27[1] = v4;
   v27[2] = v5 + 1.0f;
   VectorMA(reach->start, 80.0f, dir, predpos);
-  v12 = 0.0f;
-  while ( 1 )
+  for ( v12 = 0.0f; v12 < 80.0f; v12 = v12 + 10.0f )
   {
     v14 = v12 + 10.0f;
     VectorMA((float *)v27, v14, dir, v28);
     v28[2] = v28[2] + 1.0f;
     if ( AAS_PointAreaNum(v28) != ms->reachareanum )
       break;
-    v12 = v12 + 10.0f;
-    if ( v14 >= 80.0f )
-      goto LABEL_7;
   }
   if ( v12 < 80.0f )
     VectorMA(reach->start, v12, dir, predpos);
-LABEL_7:
   v6 = ms->origin[0] - reach->start[0];
   botd[2] = 0.0f;
   botd[0] = v6;
@@ -28243,7 +28216,6 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
       memset(&cfg->weapons[cfg->numweapons], 0, sizeof(weaponinfo_t));
       if ( !ReadStructure(v5, &unk_1005DFD8, &cfg->weapons[cfg->numweapons]) )
       {
-LABEL_26:
         FreeMemory(cfg);
         FreeSource(v5);
         return 0;
@@ -28268,7 +28240,11 @@ LABEL_26:
       }
       memset(&cfg->projectiles[cfg->numprojectiles], 0, sizeof(projectileinfo_t));
       if ( !ReadStructure(v5, &unk_1005DFE0, &cfg->projectiles[cfg->numprojectiles]) )
-        goto LABEL_26;
+      {
+        FreeMemory(cfg);
+        FreeSource(v5);
+        return 0;
+      }
       ++cfg->numprojectiles;
     }
   }
@@ -34626,8 +34602,9 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
         return 0;
       }
     }
-    goto LABEL_47;
   }
+  else
+  {
   if ( (v8 & 0x200) != 0 )
   {
     v12 = (float)v17;
@@ -34645,7 +34622,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     SourceError(src, "value %d out of range [%d, %d]", v7, v9, v10);
     return 0;
   }
-LABEL_47:
+  }
   if ( (unsigned __int8)v8 == 1 )
   {
     *(_BYTE *)out = v7;
@@ -34677,12 +34654,13 @@ int __cdecl ReadChar(source_t *src, char **field, float *out)
   {
     StripSingleQuotes(token.string);
     *(_BYTE *)out = token.string[0];
-    goto LABEL_ret1;
   }
-  PC_UnreadLastToken(src);
-  if ( !ReadNumber(src, field, out) )
-    return 0;
-LABEL_ret1:
+  else
+  {
+    PC_UnreadLastToken(src);
+    if ( !ReadNumber(src, field, out) )
+      return 0;
+  }
   return 1;
 }
 
@@ -35289,7 +35267,12 @@ LABEL_11:
      *   int32 filepos;     // byte offset 56
      *   int32 filelen;     // byte offset 60
      * IDA's `void *v12[14]/[15]` decompile is only correct on 32-bit
-     * (sizeof(void*) == 4).  Read the two ints directly. */
+     * (sizeof(void*) == 4).  Read the two ints directly.
+     * NOTE: this lone goto is load-bearing — the shared FreeMemory/return-0
+     * tail plus the v8 stack-spill (edi is the strcpy rep-movs scratch) is
+     * only reproduced by this form.  Every structured equivalent (for/while
+     * with success-inside or success-after) makes MSVC6 cache v8 in edi,
+     * regressing the byte match (reg-alloc tie). */
     a3->fileofs = LittleLong(*(int32_t *)&v8[64 * v10 + 56]);
     a3->filelen = LittleLong(*(int32_t *)&v8[64 * v10 + 60]);
     (void)v12;
@@ -35331,62 +35314,62 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
   strncpy(subdirs[1], "baseq2", 0x90u);
   v7 = 0;
   v4 = subdirs[0];
-LABEL_4:
-  FileName[0] = 0;
-  if ( a1 && strlen(a1) )
+  do
   {
-    strncpy(FileName, a1, 0x90u);
-    sub_10041900(FileName, 144);
-  }
-  if ( strlen(v4) )
-  {
-    strncat(FileName, v4, 144 - strlen(FileName));
-    sub_10041900(FileName, 144);
-  }
-  strncat(FileName, a3, 144 - strlen(FileName));
-  sub_100418D0(FileName);
-  Log_Write("accessing %s", FileName);
-  if ( _access(FileName, 4) )
-  {
-    v5 = 0;
-    while ( 1 )
+    FileName[0] = 0;
+    if ( a1 && strlen(a1) )
     {
-      FileName[0] = 0;
-      if ( a1 && strlen(a1) )
+      strncpy(FileName, a1, 0x90u);
+      sub_10041900(FileName, 144);
+    }
+    if ( strlen(v4) )
+    {
+      strncat(FileName, v4, 144 - strlen(FileName));
+      sub_10041900(FileName, 144);
+    }
+    strncat(FileName, a3, 144 - strlen(FileName));
+    sub_100418D0(FileName);
+    Log_Write("accessing %s", FileName);
+    if ( _access(FileName, 4) )
+    {
+      v5 = 0;
+      while ( 1 )
       {
-        strncpy(FileName, a1, 0x90u);
-        sub_10041900(FileName, 144);
-      }
-      if ( strlen(v4) )
-      {
-        strncat(FileName, v4, 144 - strlen(FileName));
-        sub_10041900(FileName, 144);
-      }
-      sprintf(&FileName[strlen(FileName)], "pak%d.pak", v5);
-      if ( !_access(FileName, 4) )
-      {
-        Log_Write("searching %s in %s", a3, FileName); /* "searching %s in %s": file, pak */
-        if ( sub_10041970(FileName, a3, a4) )
+        FileName[0] = 0;
+        if ( a1 && strlen(a1) )
+        {
+          strncpy(FileName, a1, 0x90u);
+          sub_10041900(FileName, 144);
+        }
+        if ( strlen(v4) )
+        {
+          strncat(FileName, v4, 144 - strlen(FileName));
+          sub_10041900(FileName, 144);
+        }
+        sprintf(&FileName[strlen(FileName)], "pak%d.pak", v5);
+        if ( !_access(FileName, 4) )
+        {
+          Log_Write("searching %s in %s", a3, FileName); /* "searching %s in %s": file, pak */
+          if ( sub_10041970(FileName, a3, a4) )
+            return 1;
+        }
+        if ( ++v5 >= 10 )
           break;
       }
-      if ( ++v5 >= 10 )
-      {
-        v4 += 144;  /* step from subdirs[0] to subdirs[1]; array guarantees 144-byte stride */
-        if ( ++v7 < 2 )
-          goto LABEL_4;
-        a4->fileofs = 0;
-        a4->filelen = 0;
-        return 0;
-      }
+      v4 += 144;  /* step from subdirs[0] to subdirs[1]; array guarantees 144-byte stride */
+    }
+    else
+    {
+      strcpy(a4->path, FileName);
+      a4->filelen = 0;
+      a4->fileofs = 0;
+      return 1;
     }
   }
-  else
-  {
-    strcpy(a4->path, FileName);
-    a4->filelen = 0;
-    a4->fileofs = 0;
-  }
-  return 1;
+  while ( ++v7 < 2 );
+  a4->fileofs = 0;
+  a4->filelen = 0;
+  return 0;
 }
 
 //----- (10041F60) --------------------------------------------------------
