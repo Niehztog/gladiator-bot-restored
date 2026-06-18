@@ -25012,8 +25012,20 @@ itemconfig_t * LoadItemConfig(char *Source)
   cfg->items    = (iteminfo_t *)(cfg + 1);
   if ( !PC_ReadTokenHandle(src, ArgList) )
     goto LABEL_13;
-  while ( !strcmp(ArgList, "iteminfo") )
+  /* Disasm-faithful loop shape: the read drives the back-edge (ref ends the
+   * body with `call PC_ReadTokenHandle; jne LOOP_TOP`, read-fail falling
+   * through to LABEL_13), and the "iteminfo" mismatch is a forward branch to
+   * the unknown-definition cold block.  The IDA `read; while(!strcmp){...;
+   * if(!read)goto}` rewrite places the mismatch as the loop fall-through and
+   * the read as an internal goto, which diverges.  (MSVC still peels one extra
+   * strcmp copy regardless of form — a loop-rotation tie, see notes.) */
+  do
   {
+    if ( strcmp(ArgList, "iteminfo") )
+    {
+      SourceError(src, "unknown definition %s\n", ArgList);
+      goto LABEL_22;
+    }
     if ( cfg->numitems >= max_iteminfo )
     {
       SourceError(src, "more than %d item info defined\n", max_iteminfo);
@@ -25036,14 +25048,8 @@ itemconfig_t * LoadItemConfig(char *Source)
       return 0;
     }
     item->number = cfg->numitems++;
-    if ( !PC_ReadTokenHandle(src, ArgList) )
-      goto LABEL_13;
   }
-  SourceError(src, "unknown definition %s\n", ArgList);
-LABEL_22:
-  FreeMemory(cfg);
-  FreeSource(src);
-  return 0;
+  while ( PC_ReadTokenHandle(src, ArgList) );
 LABEL_13:
   FreeSource(src);
   if ( !cfg->numitems )
@@ -25053,6 +25059,10 @@ LABEL_13:
   else
     bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
+LABEL_22:
+  FreeMemory(cfg);
+  FreeSource(src);
+  return 0;
 }
 
 //----- (1002F100) --------------------------------------------------------
