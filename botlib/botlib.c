@@ -24049,7 +24049,12 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       {
         key->flags |= 0x80;
       }
-      else if ( !PC_CheckTokenString(v4, "(") )
+      else if ( PC_CheckTokenString(v4, "(") )
+      {
+        key->flags |= 0x10;
+        key->match = BotLoadMatchPieces(v4, ")");
+      }
+      else
       {
         key->flags |= 8;
         if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
@@ -24058,11 +24063,6 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
         namestr = (char *)GetClearedMemory(strlen(token.string) + 1);
         key->string = namestr;
         strcpy(namestr, token.string);
-      }
-      else
-      {
-        key->flags |= 0x10;
-        key->match = BotLoadMatchPieces(v4, ")");
       }
       PC_CheckTokenString(v4, ",");
     }
@@ -24077,7 +24077,6 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     if ( !PC_ExpectTokenString(v4, "{") )
       goto FAIL;
     rc->numchatmessages = 0;
-    rc->firstchatmessage = NULL;
     if ( !PC_CheckTokenString(v4, "}") )
     {
       while ( BotLoadChatMessage(v4, v21) )
