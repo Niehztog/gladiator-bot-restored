@@ -841,7 +841,7 @@ void BotShutdownChatAI();
 // int *__usercall LoadItemConfig@<eax>(double a1@<st0>, char *Source);
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 // int __usercall InitLevelItemHeap@<eax>(double a1@<st0>);
-_DWORD *__cdecl AllocLevelItem(const void *a1);
+_DWORD *__cdecl AllocLevelItem(void);
 void __cdecl FreeLevelItem(levelitem_t *item);
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
@@ -995,7 +995,7 @@ int SourceWarning(source_t *src, char *Format, ...);
 indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
 void __cdecl PC_PushScript(source_t *src, script_t *script);
-_DWORD *__cdecl AllocLevelItem(const void *a1);
+_DWORD *__cdecl AllocLevelItem(void);
 void __cdecl PC_FreeToken(token_t *t);
 int __cdecl PC_ReadSourceToken(source_t *src, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
@@ -25098,7 +25098,7 @@ int InitLevelItemHeap()
 }
 
 //----- (1002F270) --------------------------------------------------------
-_DWORD *__cdecl AllocLevelItem(const void *a1)
+_DWORD *__cdecl AllocLevelItem(void)
 {
   levelitem_t *result;
 
@@ -25170,7 +25170,7 @@ _DWORD * BotInitLevelItems()
   v2 = dword_1006435C;
   dword_10064360 = 0;
   dword_10064354 = 0;
-  if ( dword_1006435C )
+  if ( v2 )
   {
     v4 = AAS_ParseBSPEntities();
     notspawnflags_mask = (int)LibVarValue("notspawnflags", (char *)"2048");
@@ -25188,41 +25188,37 @@ _DWORD * BotInitLevelItems()
         ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, "classname");
         if ( ArgList && (AAS_IntForBSPEpairKey(v11, "spawnflags") & notspawnflags_mask) == 0 )
         {
-          v7 = 0;
-          if ( v2->numitems > 0 )
+          for ( v7 = 0; v7 < v2->numitems; ++v7 )
           {
-            while ( strcmp(ArgList, v2->items[v7].dispname) )
+            if ( !strcmp(ArgList, v2->items[v7].dispname) )
             {
-              ++v7;
-              if ( v7 >= v2->numitems )
-                goto LABEL_20;
-            }
-            if ( AAS_VectorForBSPEpairKey(v11, "origin", origin) )
-            {
-              levelitem_t *li = (levelitem_t *)AllocLevelItem(0);
-              result = (_DWORD *)li;
-              if ( !li )
-                return result;
-              li->number = ++dword_10064354;
-              li->timeout = 0.0f;
-              li->entitynum = 0;
-              if ( !AAS_DropToFloor(origin, v2->items[v7].mins, v2->items[v7].maxs) )
-                bi_Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
-              li->iteminfo = v7;
-              VectorCopy(origin, li->origin);
-              li->areanum = AAS_BestReachableArea(
-                                       (int *)origin,
-                                       v2->items[v7].mins,
-                                       v2->items[v7].maxs,
-                                       li->goalorigin);
-              AddLevelItemToList(li);
-            }
-            else
-            {
-              bi_Print(PRT_ERROR, "item %s without origin\n", ArgList);
+              if ( AAS_VectorForBSPEpairKey(v11, "origin", origin) )
+              {
+                levelitem_t *li = (levelitem_t *)AllocLevelItem();
+                result = (_DWORD *)li;
+                if ( !li )
+                  return result;
+                li->number = ++dword_10064354;
+                li->timeout = 0.0f;
+                li->entitynum = 0;
+                if ( !AAS_DropToFloor(origin, v2->items[v7].mins, v2->items[v7].maxs) )
+                  bi_Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
+                li->iteminfo = v7;
+                VectorCopy(origin, li->origin);
+                li->areanum = AAS_BestReachableArea(
+                                         (int *)origin,
+                                         v2->items[v7].mins,
+                                         v2->items[v7].maxs,
+                                         li->goalorigin);
+                AddLevelItemToList(li);
+              }
+              else
+              {
+                bi_Print(PRT_ERROR, "item %s without origin\n", ArgList);
+              }
+              break;
             }
           }
-LABEL_20:
           if ( v7 >= v2->numitems )
             Log_Write("entity %s unkown item", ArgList);
         }
@@ -25459,7 +25455,7 @@ LABEL_25:
       }
       if ( v4 < v11 )
       {
-        v13 = (levelitem_t *)AllocLevelItem(0);
+        v13 = (levelitem_t *)AllocLevelItem();
         v14 = v22[4];
         v15 = v22[5];
         v13->entitynum = v3;
