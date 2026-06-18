@@ -1818,20 +1818,23 @@ bsp_link_t **aasentity_bsplinks;
 #endif
 
 
-/* Initial-chat dump structures.  In the 32-bit original BotLoadInitialChat
- * built a single contiguous heap buffer with inline 4-byte pointer slots
- * (chat-type at +0..+43 with 32-byte name, numlines@+32, head@+36, next@+40;
- * chat-line at +0..+11 with string*@+0, ltime@+4, next@+8, then inline
- * string buffer).  On 64-bit those 4-byte slots can't hold pointers, so we
- * allocate proper structs per chat-type / chat-line node and chain via real
- * pointer fields.  The dump root is a single 'chatlist_t' cell whose
- * address is what BotLoadInitialChat returns and what gets stored in the
- * chatstate dump side-band slot. */
+/* Initial-chat dump structures.  On 32-bit they are the original inline
+ * layouts that BotLoadInitialChat packs into one contiguous heap buffer:
+ *   chatlist_t   @ +0  -> types
+ *   chattype_t   @ +0..+43  (name[32], numlines, firstline, next)
+ *   chatline_t   @ +0..+11  (string, ltime, next)
+ * followed by the inline chat string bytes.
+ *
+ * On 64-bit those 4-byte pointer slots cannot hold real pointers, so the
+ * side-band path allocates one heap node per chat-type / chat-line and keeps
+ * the string inline behind the 64-bit chatline_t node. */
 typedef struct chatline_s {
     char              *string;       /* +0  pointer to inline string buffer */
     float              ltime;        /* +4  last-time gate (AAS_Time) */
     struct chatline_s *next;         /* +8  next chat-line in this type */
+#if BOTLIB_NEED_SIDEBAND
     char               buf[1];       /* +12 inline string follows (allocated) */
+#endif
 } chatline_t;
 
 typedef struct chattype_s {
@@ -24114,7 +24117,9 @@ FAIL:
   return NULL;
 }
 
-static void sub_1002DF70(chatlist_t *list);
+#if BOTLIB_NEED_SIDEBAND
+static void BotFreeChatTree(chatlist_t *list);
+#endif
 
 //----- (1002D7E0) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
@@ -24166,6 +24171,7 @@ void __cdecl BotDumpInitialChat(chatlist_t *list)
 //----- (1002D8A0) --------------------------------------------------------
 void *__cdecl BotLoadInitialChat(char *a1, char *a2)
 {
+#if BOTLIB_NEED_SIDEBAND
   /* 64-bit-safe rewrite: instead of building a single contiguous heap
    * buffer with truncating 4-byte pointer slots, allocate one struct per
    * chat-type and one struct per chat-line, chained via real pointers.
@@ -24202,20 +24208,20 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
     {
       SourceError(src, "unknown definition %s\n", token);
       FreeSource(src);
-      sub_1002DF70(list);   /* free partial list */
+      BotFreeChatTree(list);   /* free partial list */
       return 0;
     }
     if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
     {
       FreeSource(src);
-      sub_1002DF70(list);
+      BotFreeChatTree(list);
       return 0;
     }
     StripDoubleQuotes(token);
     if ( !PC_ExpectTokenString(src, "{") )
     {
       FreeSource(src);
-      sub_1002DF70(list);
+      BotFreeChatTree(list);
       return 0;
     }
     if ( !strcmp(token, a2) )
@@ -24229,13 +24235,13 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
         {
           SourceError(src, "expected type found %s\n", token);
           FreeSource(src);
-          sub_1002DF70(list);
+          BotFreeChatTree(list);
           return 0;
         }
         if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
         {
           FreeSource(src);
-          sub_1002DF70(list);
+          BotFreeChatTree(list);
           return 0;
         }
         StripDoubleQuotes(token);
@@ -24252,7 +24258,7 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
             if ( !BotLoadChatMessage(src, buf) )
             {
               FreeSource(src);
-              sub_1002DF70(list);
+              BotFreeChatTree(list);
               return 0;
             }
             slen = strlen(buf);
@@ -24273,7 +24279,7 @@ type_done:
       if ( !found )
       {
         bi_Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
-        sub_1002DF70(list);
+        BotFreeChatTree(list);
         return 0;
       }
       if ( file_ref.filelen )
@@ -24300,7 +24306,7 @@ type_done:
       {
         /* unterminated block — bail */
         FreeSource(src);
-        sub_1002DF70(list);
+        BotFreeChatTree(list);
         return 0;
       }
     }
@@ -24311,18 +24317,169 @@ type_done:
   if ( !found )
   {
     bi_Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
-    sub_1002DF70(list);
+    BotFreeChatTree(list);
     return 0;
   }
   BotCheckInitialChatIntegrety((chatlist_t *)list);
   return (int *)list;
+#else
+  source_t      *src;
+  bot_fileref_t  file_ref;
+  chatlist_t    *list;
+  chattype_t    *cur_type;
+  chatline_t    *line;
+  char          *ptr;
+  int            found;
+  int            indent;
+  int            pass;
+  int            size;
+  char           buf[152];
+  char           token[sizeof(token_t)];
+
+  ptr   = 0;
+  list  = 0;
+  found = 0;
+  if ( !sub_10041F60(a1, &file_ref) )
+  {
+    bi_Print(PRT_ERROR, "couldn't find %s\n", a1);
+    return 0;
+  }
+  size = 0;
+  for ( pass = 0; pass < 2; ++pass )
+  {
+    if ( pass && size )
+      ptr = (char *)GetClearedMemory(size);
+    src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+    if ( !src )
+    {
+      bi_Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
+      return 0;
+    }
+    if ( pass )
+    {
+      list = (chatlist_t *)ptr;
+      ptr += sizeof(chatlist_t);
+    }
+    size = sizeof(chatlist_t);
+    while ( 1 )
+    {
+      if ( !PC_ReadTokenHandle(src, token) )
+        break;
+LABEL_32BIT_NEXT_TOKEN:
+      if ( strcmp(token, "chat") )
+      {
+        SourceError(src, "unknown definition %s\n", token);
+        FreeSource(src);
+        return 0;
+      }
+      if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
+      {
+        FreeSource(src);
+        return 0;
+      }
+      StripDoubleQuotes(token);
+      if ( !PC_ExpectTokenString(src, "{") )
+      {
+        FreeSource(src);
+        return 0;
+      }
+      if ( !strcmp(token, a2) )
+      {
+        found = 1;
+LABEL_32BIT_TYPE:
+        while ( PC_ExpectAnyToken(src, (intptr_t)token) )
+        {
+          if ( !strcmp(token, "}") )
+            goto LABEL_32BIT_CHAT_DONE;
+          if ( strcmp(token, "type") )
+          {
+            SourceError(src, "expected type found %s\n", token);
+            FreeSource(src);
+            return 0;
+          }
+          if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
+            break;
+          StripDoubleQuotes(token);
+          if ( pass )
+          {
+            cur_type = (chattype_t *)ptr;
+            strncpy(cur_type->name, token, sizeof(cur_type->name));
+            cur_type->firstline = 0;
+            cur_type->next = list->types;
+            list->types = cur_type;
+            ptr += sizeof(chattype_t);
+          }
+          size += sizeof(chattype_t);
+          if ( !PC_CheckTokenString(src, "}") )
+          {
+            while ( 1 )
+            {
+              if ( !BotLoadChatMessage(src, buf) )
+              {
+                FreeSource(src);
+                return 0;
+              }
+              if ( pass )
+              {
+                line = (chatline_t *)ptr;
+                line->ltime = -40.0f;
+                line->next = cur_type->firstline;
+                cur_type->firstline = line;
+                ptr += sizeof(chatline_t);
+                line->string = ptr;
+                strcpy(ptr, buf);
+                ++cur_type->numlines;
+                ptr += strlen(buf) + 1;
+              }
+              size += sizeof(chatline_t) + (int)strlen(buf) + 1;
+              if ( PC_CheckTokenString(src, "}") )
+                goto LABEL_32BIT_TYPE;
+            }
+          }
+        }
+        FreeSource(src);
+        return 0;
+      }
+      indent = 1;
+      while ( 1 )
+      {
+        if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
+        {
+          FreeSource(src);
+          return 0;
+        }
+        if ( !strcmp(token, "{") )
+          ++indent;
+        else if ( !strcmp(token, "}") )
+          --indent;
+        if ( !indent )
+          break;
+      }
+LABEL_32BIT_CHAT_DONE:
+      if ( PC_ReadTokenHandle(src, token) )
+        goto LABEL_32BIT_NEXT_TOKEN;
+      break;
+    }
+    FreeSource(src);
+    if ( !found )
+    {
+      bi_Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
+      return 0;
+    }
+  }
+  if ( file_ref.filelen )
+    bi_Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
+  else
+    bi_Print(PRT_MESSAGE, "loaded %s from %s\n", a2, a1);
+  BotCheckInitialChatIntegrety(list);
+  return list;
+#endif
 }
 
-//----- (1002DF70) --------------------------------------------------------
-/* Direct free of a chat-dump structure (used during partial-build error
- * paths in BotLoadInitialChat).  Walks all chat-types and chat-lines and
- * releases the whole chain. */
-static void sub_1002DF70(chatlist_t *list)
+#if BOTLIB_NEED_SIDEBAND
+/* 64-bit-only helper for the side-banded chat-tree representation.  The
+ * original 32-bit DLL freed the whole chat dump with one FreeMemory call. */
+static void BotFreeChatTree(chatlist_t *list)
 {
   chattype_t *t, *tn;
   chatline_t *l, *ln;
@@ -24340,15 +24497,27 @@ static void sub_1002DF70(chatlist_t *list)
   }
   FreeMemory(list);
 }
+#endif
 
+//----- (1002DF70) --------------------------------------------------------
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs)
 {
-  chatlist_t *list = (chatlist_t *)BotChatDumpSlot(cs);
-  if ( !list )
-    return 0;
-  sub_1002DF70(list);
+  chatlist_t *list;
+#if BOTLIB_NEED_SIDEBAND
+  list = (chatlist_t *)BotChatDumpSlot(cs);
+  if ( list )
+    BotFreeChatTree(list);
   BotChatDumpSlot(cs) = 0;
   return 0;
+#else
+  int result;
+  list = (chatlist_t *)BotChatDumpSlot(cs);
+  result = (int)(intptr_t)list;
+  if ( result )
+    result = FreeMemory(list);
+  BotChatDumpSlot(cs) = 0;
+  return result;
+#endif
 }
 
 //----- (1002DFB0) --------------------------------------------------------
