@@ -21646,21 +21646,18 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   {
     AngleDifference(*(v3 - 6), *(v3 - 3));
     v5 = (float)(int)abs((__int64)v5);
-    if ( v5 <= *v3 )
-    {
-      if ( v5 < *v3 )
-      {
-        v7 = *v3 - v9;
-        *v3 = v7;
-        if ( v7 < v5 )
-          *v3 = v5;
-      }
-    }
-    else
+    if ( v5 > *v3 )
     {
       v6 = v11 + *v3;
       *v3 = v6;
       if ( v6 > v5 )
+        *v3 = v5;
+    }
+    else if ( v5 < *v3 )
+    {
+      v7 = *v3 - v9;
+      *v3 = v7;
+      if ( v7 < v5 )
         *v3 = v5;
     }
     v5 = BotChangeViewAngle(*(v3 - 6), *(v3 - 3), *v3);
@@ -21670,7 +21667,6 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   }
   while ( v4 );
   EA_View(bs->client, bs->viewangles);
-  return 0;
 }
 
 //----- (100292E0) --------------------------------------------------------
