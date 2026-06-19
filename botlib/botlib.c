@@ -28789,7 +28789,8 @@ LABEL_25:
         {
           SourceError(src, "invalid name %s\n", token.string);
           FreeWeightConfig2(cfg);
-          goto LABEL_31;
+          FreeSource(src);
+          return 0;
         }
         sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
         sep->index = 0;
@@ -28813,7 +28814,6 @@ LABEL_25:
     }
     SourceError(src, "invalid name %s\n", token.string);
     FreeWeightConfig2(cfg);
-LABEL_31:
     FreeSource(src);
     return 0;
   }
