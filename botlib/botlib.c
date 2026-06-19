@@ -7020,8 +7020,6 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   int i; // [esp+1Ch] [ebp-80h]
   int v22; // [esp+20h] [ebp-7Ch]
-  int v23; // [esp+24h] [ebp-78h]
-  int v24; // [esp+28h] [ebp-74h]
   float v25; // [esp+2Ch] [ebp-70h]
   vec3_t v26; // [esp+30h] [ebp-6Ch] BYREF
   vec3_t v27; // [esp+3Ch] [ebp-60h] BYREF
@@ -10360,8 +10358,6 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   int v2; // edx
   char *v3; // ebx
   char *v4; // ebp
-  float *v5; // esi
-  float *v6; // ecx
   int v7; // eax
   int v8; // esi
   int v9; // rax (was __int64 — abs32 idiom)
@@ -10627,8 +10623,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   char *v2; // ebp
   int v3; // eax
   int v4; // edx
-  float *v5; // esi
-  float *i; // ecx
   int v7; // eax
   int v8; // eax
   char *v9; // ebp
@@ -10664,7 +10658,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v34; // edx
   float v35; // eax
   float v36; // st7
-  float v37; // eax
   float v38; // st7
   float v39; // st6
   float v40; // st6
@@ -20674,8 +20667,6 @@ int __cdecl BotGPSToPosition(char *string, float *out)
 //----- (10026F10) --------------------------------------------------------
 int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
 {
-
-  int result; // eax
   int v3; // eax
   int v4; // ebx
   int v5; // eax
@@ -20726,7 +20717,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   int v50; // eax
   const char *v51; // eax
   char *v52; // eax
-  void *v53; // esi (chatstate pointer)
   /* IDA split a single ebp-5C4h slot into v54 (int) + v55..v60 (float)
    * across mutually-exclusive switch cases.  Original had ONE union
    * member at this slot — restore it as a union so MSVC packs all
@@ -26564,7 +26554,6 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   int v5; // eax
   char v6; // bl
   int v7; // edi
-  float v9; // st7
   float v10; // st7
   int v11; // ebx
   float v13; // st7
@@ -31772,7 +31761,6 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
   operator_t *v41;
   value_t *v42;
   value_t *v43;
-  char v45; // [esp+0h] [ebp-2Ch]
   int v46; // [esp+10h] [ebp-1Ch]
   int v47; // [esp+14h] [ebp-18h]
   operator_t *v48;
