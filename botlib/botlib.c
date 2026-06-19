@@ -14449,47 +14449,42 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   v5 = aasworld.portals;
   v6 = aasworld.areasettings[areanum].cluster;
   v7 = v6;
-  v9 = aasworld.areasettings[a2].cluster;
-  if ( v6 < 0 && v9 > 0 )
+  if ( v6 < 0 )
   {
     v10 = &aasworld.portals[-v6];
-    if ( v10->frontcluster == v9 || v10->backcluster == v9 )
+    if ( v10->frontcluster == aasworld.areasettings[a2].cluster || v10->backcluster == aasworld.areasettings[a2].cluster )
       v7 = aasworld.areasettings[a2].cluster;
-    goto LABEL_19;
   }
-  if ( v6 > 0 )
+  v9 = aasworld.areasettings[a2].cluster;
+  if ( v9 < 0 )
   {
-    if ( v9 >= 0 )
-      goto LABEL_20;
     v11 = &aasworld.portals[-v9];
     if ( v11->frontcluster == v6 || v11->backcluster == v6 )
       v9 = aasworld.areasettings[areanum].cluster;
-LABEL_19:
+  }
+  v5 = aasworld.portals;
+  if ( v7 > 0 && v9 > 0 && v7 == v9 )
+  {
+    v12 = AAS_GetAreaRoutingCache(v7, a2, goalareanum);
     v5 = aasworld.portals;
-LABEL_20:
-    if ( v7 > 0 && v9 > 0 && v7 == v9 )
+    v6 = aasworld.areasettings[areanum].cluster;
+    if ( v6 <= 0 )
     {
-      v12 = AAS_GetAreaRoutingCache(v7, a2, goalareanum);
       v5 = aasworld.portals;
-      v6 = aasworld.areasettings[areanum].cluster;
-      if ( v6 <= 0 )
-      {
-        v5 = aasworld.portals;
-        v13 = aasworld.portals[-v6].clusterareanum[aasworld.portals[-v6].frontcluster != v7];
-      }
-      else
-      {
-        v13 = aasworld.areasettings[areanum].clusterareanum;
-      }
-      /* 64-bit fix: the original `+ 40` hard-coded the 32-bit aas_routingcache_t
-       * header size.  On aarch64 the header grows to 48 bytes (8-byte prev/next),
-       * so the byte-arithmetic form read into the `next` pointer instead of
-       * traveltimes[].  Use `((unsigned short *)(cache + 1))[idx]` which is
-       * sizeof-correct on both ABIs. */
-      result = ((unsigned short *)(v12 + 1))[v13];
-      if ( result )
-        return result;
+      v13 = aasworld.portals[-v6].clusterareanum[aasworld.portals[-v6].frontcluster != v7];
     }
+    else
+    {
+      v13 = aasworld.areasettings[areanum].clusterareanum;
+    }
+    /* 64-bit fix: the original `+ 40` hard-coded the 32-bit aas_routingcache_t
+     * header size.  On aarch64 the header grows to 48 bytes (8-byte prev/next),
+     * so the byte-arithmetic form read into the `next` pointer instead of
+     * traveltimes[].  Use `((unsigned short *)(cache + 1))[idx]` which is
+     * sizeof-correct on both ABIs. */
+    result = ((unsigned short *)(v12 + 1))[v13];
+    if ( result )
+      return result;
   }
   v14 = aasworld.areasettings[a2].cluster;
   if ( v14 < 0 )
