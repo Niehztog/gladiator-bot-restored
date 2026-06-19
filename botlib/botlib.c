@@ -28639,12 +28639,14 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
     {
       v5 = source;
       if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-        goto LABEL_41;
+      {
+        FreeFuzzySeperators_r(v4);
+        return 0;
+      }
       v3->value = token.intvalue;
     }
     if ( !PC_ExpectTokenString(v5, ":") || !PC_ExpectAnyToken(v5, token.string) )
     {
-LABEL_41:
       FreeFuzzySeperators_r(v4);
       return 0;
     }
@@ -28653,12 +28655,18 @@ LABEL_41:
     {
       v6 = 1;
       if ( !PC_ExpectAnyToken(source, token.string) )
-        goto LABEL_32;
+      {
+        FreeFuzzySeperators_r(v11);
+        return 0;
+      }
     }
     if ( !strcmp(token.string, "return") )
     {
       if ( !ReadFuzzyWeight(source, v3) )
-        goto LABEL_32;
+      {
+        FreeFuzzySeperators_r(v11);
+        return 0;
+      }
     }
     else
     {
@@ -28670,11 +28678,13 @@ LABEL_41:
       v7 = ReadFuzzySeperators_r(source);
       v3->child = v7;
       if ( !v7 )
-        goto LABEL_32;
+      {
+        FreeFuzzySeperators_r(v11);
+        return 0;
+      }
     }
     if ( v6 && !PC_ExpectTokenString(source, "}") || !PC_ExpectAnyToken(source, token.string) )
     {
-LABEL_32:
       FreeFuzzySeperators_r(v11);
       return 0;
     }
