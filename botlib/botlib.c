@@ -25123,8 +25123,8 @@ itemconfig_t * LoadItemConfig(char *Source)
   cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
   cfg->numitems = 0;
   cfg->items    = (iteminfo_t *)(cfg + 1);
-  if ( !PC_ReadTokenHandle(src, ArgList) )
-    goto LABEL_13;
+  if ( PC_ReadTokenHandle(src, ArgList) )
+  {
   /* Disasm-faithful loop shape: the read drives the back-edge (ref ends the
    * body with `call PC_ReadTokenHandle; jne LOOP_TOP`, read-fail falling
    * through to LABEL_13), and the "iteminfo" mismatch is a forward branch to
@@ -25163,7 +25163,7 @@ itemconfig_t * LoadItemConfig(char *Source)
     item->number = cfg->numitems++;
   }
   while ( PC_ReadTokenHandle(src, ArgList) );
-LABEL_13:
+  }
   FreeSource(src);
   if ( !cfg->numitems )
     bi_Print(PRT_WARNING, "no item info loaded\n");
