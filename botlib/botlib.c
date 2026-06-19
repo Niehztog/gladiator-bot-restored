@@ -23956,8 +23956,8 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     return NULL;
   }
   replyhead = NULL;
-  if ( !PC_ReadTokenHandle(v4, token.string) )
-    goto DONE;
+  if ( PC_ReadTokenHandle(v4, token.string) )
+  {
 
   while ( 1 )
   {
@@ -24056,7 +24056,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
   }
 
   v1 = filename;
-DONE:
+  }
   FreeSource(v4);
   if ( file_ref.filelen )
     bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, v1);
