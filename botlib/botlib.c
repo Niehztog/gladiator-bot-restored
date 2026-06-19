@@ -19944,6 +19944,13 @@ void __cdecl sub_10025070(void)
 
   do
   {
+    /* The two (const char *) casts below trip -Wdiscarded-qualifiers
+     * (AAS_ValueForBSPEpairKey returns char *, the locals are char *), but do
+     * NOT remove them.  They are codegen-neutral for this function, yet
+     * dropping them perturbs MSVC6's whole-TU instruction scheduler enough to
+     * flip an independent-load tie-break in PC_ReadDefineParms, demoting that
+     * function from byte-MATCH to a 2-instruction reorder.  Verified against
+     * the MSVC6 oracle 2026-06-19 — keeping the casts preserves the match. */
     classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
     if ( !strcmp(classname, "func_button") )
     {
@@ -23727,7 +23734,7 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
       if ( (token.subtype & 0x1000) == 0 )
         goto error;
       sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cv%d%c", 1,
-              (char *)(uintptr_t)token.intvalue, 1);
+              token.intvalue, 1);
     }
     else if ( token.type == 4 )
     {
@@ -33778,7 +33785,11 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 /* Original gladiator function at 0x1003F160 — try to read a punctuation
  * token from the script's current position.  IDA decompile used
  * `(int)punctuationtable[c]` which truncated the bucket pointer; restored
- * to use punctuation_t * directly. */
+ * to use punctuation_t * directly.
+ * NB: the table index `*a1->script_p` is a *signed* char on purpose —
+ * 0x1003F174 emits `movsx ecx, byte [eax]` (sign-extend).  Q3 later changed
+ * this to `(unsigned int)` (movzx); do NOT "fix" the -Wchar-subscripts here
+ * to unsigned char — that would diverge from the original DLL. */
 int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination)
 {
   punctuation_t *p;
