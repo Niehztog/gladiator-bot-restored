@@ -11477,8 +11477,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
       v9 = 0;
       bestdist = 999999.0;
       *(float *)&maxjumpheight = 0.0;
-      if ( v8 <= 0 )
-        goto LABEL_67;
+      if ( v8 > 0 )
+      {
       do
       {
         face1num = aasworld.faceindex[v9 + area1->firstface];
@@ -11747,9 +11747,9 @@ LABEL_62:
         v9 = ++maxjumpheight;
       }
       while ( maxjumpheight < v44 );
+      }
       if ( bestdist > 4 )
       {
-LABEL_67:
         if ( bestdist < (float)maxjumpdistance )
         {
           v90 = beststart[2] - bestend[2];
