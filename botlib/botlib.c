@@ -16928,14 +16928,17 @@ LABEL_55:
       {
         if ( libvar_runes->value != 0.0f )
           sub_100262C0((_DWORD *)bs, (intptr_t)v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
+        bs->ltg_time = 0.0f;
       }
-      else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v26) )
+      else if ( BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v26) )
       {
-        goto LABEL_136;
+        bs->ltg_time = 0.0f;
       }
     }
-    bs->ltg_time = 0.0f;
-LABEL_136:
+    else
+    {
+      bs->ltg_time = 0.0f;
+    }
     if ( AAS_Time() > bs->ltg_time )
     {
       BotPopGoal(bs->goalstate);
@@ -17316,14 +17319,17 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     {
       if ( libvar_runes->value != 0.0f )
         sub_100262C0((_DWORD *)bs, (intptr_t)v4);
+      bs->nbg_time = 0.0f;
     }
-    else if ( !BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v4) )
+    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v4) )
     {
-      goto LABEL_18;
+      bs->nbg_time = 0.0f;
     }
   }
-  bs->nbg_time = 0.0f;
-LABEL_18:
+  else
+  {
+    bs->nbg_time = 0.0f;
+  }
   if ( AAS_Time() > bs->nbg_time )
   {
     BotPopGoal(bs->goalstate);
