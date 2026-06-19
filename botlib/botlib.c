@@ -10290,64 +10290,55 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
     ++v5;
   }
   while ( v2 < 3 );
-  v17 = 0;
   if ( v4->numfaces <= 0 )
     return 0;
   v7 = (int *)aasworld.faceindex;
-  while ( 1 )
+  for ( v17 = 0; v17 < v4->numfaces; ++v17 )
   {
     v8 = v7[v4->firstface + v17];
     v18 = v8 < 0;
-    v9 = 0;
     v10 = abs(v8);
-    if ( v3->numfaces > 0 )
-      break;
-LABEL_15:
-    if ( ++v17 >= v4->numfaces )
-      return 0;
+    for ( v9 = 0; v9 < v3->numfaces; ++v9 )
+    {
+      v11 = v7[v9 + v3->firstface];
+      if ( v10 != (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
+        continue;
+      AAS_FaceCenter(v10, (float *)v19);
+      v12 = sub_10003080((float *)v19);   /* IDA-dropped: water-edge contents check */
+      if ( (v12 & 0x38) == 0 )
+      {
+        v7 = (int *)aasworld.faceindex;
+        continue;
+      }
+      v14 = &aasworld.faces[v10];
+      lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
+      v16 = lreach;
+      if ( !lreach )
+        return 0;
+      lreach->reach.facenum = v10;
+      lreach->reach.areanum = area2num;
+      lreach->reach.edgenum = 0;
+      /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
+       * bits) into reach->start.x/y/z. */
+      VectorCopy(v19, lreach->reach.start);
+      /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
+       * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
+       * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
+       * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
+       * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
+       * numplanes/4 and the read crashed in VectorMA. */
+      VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), lreach->reach.end);
+      v16->reach.traveltype = 8;
+      v16->reach.traveltime = 1;
+      if ( AAS_AreaVolume(area2num) < 800.0f )
+        v16->reach.traveltime += 200;
+      v16->next = areareachability[area1num];
+      areareachability[area1num] = v16;
+      ++reach_swim;
+      return 1;
+    }
   }
-  while ( 1 )
-  {
-    v11 = v7[v9 + v3->firstface];
-    if ( v10 == (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
-      break;
-LABEL_14:
-    if ( ++v9 >= v3->numfaces )
-      goto LABEL_15;
-  }
-  AAS_FaceCenter(v10, (float *)v19);
-  v12 = sub_10003080((float *)v19);   /* IDA-dropped: water-edge contents check */
-  if ( (v12 & 0x38) == 0 )
-  {
-    v7 = (int *)aasworld.faceindex;
-    goto LABEL_14;
-  }
-  v14 = &aasworld.faces[v10];
-  lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
-  v16 = lreach;
-  if ( !lreach )
-    return 0;
-  lreach->reach.facenum = v10;
-  lreach->reach.areanum = area2num;
-  lreach->reach.edgenum = 0;
-  /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
-   * bits) into reach->start.x/y/z. */
-  VectorCopy(v19, lreach->reach.start);
-  /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
-   * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
-   * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
-   * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
-   * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
-   * numplanes/4 and the read crashed in VectorMA. */
-  VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), lreach->reach.end);
-  v16->reach.traveltype = 8;
-  v16->reach.traveltime = 1;
-  if ( AAS_AreaVolume(area2num) < 800.0f )
-    v16->reach.traveltime += 200;
-  v16->next = areareachability[area1num];
-  areareachability[area1num] = v16;
-  ++reach_swim;
-  return 1;
+  return 0;
 }
 
 //----- (10011AE0) --------------------------------------------------------
