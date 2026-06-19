@@ -2561,7 +2561,42 @@ int __cdecl sub_10003C90(
       {
         v38 = *(float *)(v16 + 12);
       }
-      if ( v17 >= 3 )
+      if ( v17 < 3 )
+      {
+        if ( a5 )
+        {
+          if ( a6 )
+          {
+            if ( normal[v17] <= 0.0f )
+            {
+              v19 = *(float *)(a6 + 4 * v17);
+              v12 = a2;
+            }
+            else
+            {
+              v12 = a2;
+              v19 = -*(float *)&a5[v17];
+            }
+            goto LABEL_30;
+          }
+          v12 = a2;
+        }
+        v19 = 0.0;
+LABEL_30:
+        v20 = v19 + v38;
+        v22 = startp[v17];
+        if ( v23 | v24 )
+        {
+          v35 = -v22 - v20;
+          v25 = -endp[v17];
+        }
+        else
+        {
+          v35 = v22 - v20;
+          v25 = endp[v17];
+        }
+      }
+      else
       {
         if ( a5 && a6 )
         {
@@ -2589,39 +2624,6 @@ int __cdecl sub_10003C90(
         v20 = v19 + v38;
         v35 = normal[2] * startp[2] + normal[1] * startp[1] + normal[0] * startp[0] - v20;
         v25 = normal[2] * endp[2] + normal[1] * endp[1] + normal[0] * endp[0];
-        goto LABEL_43;
-      }
-      if ( a5 )
-      {
-        if ( a6 )
-        {
-          if ( normal[v17] <= 0.0f )
-          {
-            v19 = *(float *)(a6 + 4 * v17);
-            v12 = a2;
-          }
-          else
-          {
-            v12 = a2;
-            v19 = -*(float *)&a5[v17];
-          }
-          goto LABEL_30;
-        }
-        v12 = a2;
-      }
-      v19 = 0.0;
-LABEL_30:
-      v20 = v19 + v38;
-      v22 = startp[v17];
-      if ( v23 | v24 )
-      {
-        v35 = -v22 - v20;
-        v25 = -endp[v17];
-      }
-      else
-      {
-        v35 = v22 - v20;
-        v25 = endp[v17];
       }
 LABEL_43:
       v37 = v25 - v20;
@@ -2991,17 +2993,19 @@ float *__cdecl sub_100044F0(
   v130 = *((float *)a8 + 2) - *(float *)(a5 + 8);
   if ( v128 <= (float)v129 )
   {
-    v12 = 1;
     if ( v129 > (float)v130 )
-      goto LABEL_7;
+      v12 = 1;
+    else
+      v12 = 2;
   }
   else if ( v128 > (float)v130 )
   {
     v12 = 0;
-    goto LABEL_7;
   }
-  v12 = 2;
-LABEL_7:
+  else
+  {
+    v12 = 2;
+  }
   v13 = *(&v128 + v12);
   v126 = v12;
   v135 = v13 > 0;
@@ -7033,68 +7037,49 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
   {
     VectorCopy(((float *)a1), start);
     v7 = AAS_PointAreaNum(start);
-    v22 = 0;
-    while ( !v7 )
+    for ( v22 = 0; v22 < 5 && !v7; ++v22 )
     {
-      for ( i = 0; i < 5; ++i )
+      for ( i = 0; i < 5 && !v7; ++i )
       {
-        if ( v7 )
-          break;
-        v8 = -1;
-        v24 = -1;
-        do
+        v25 = (float)i;
+        for ( v8 = -1; v8 <= 1 && !v7; ++v8 )
         {
-          if ( v7 )
-            break;
-          v9 = -1;
-          v23 = -1;
-          do
+          for ( v9 = -1; v9 <= 1 && !v7; ++v9 )
           {
-            if ( v7 )
-              break;
             v10 = ((float *)a1)[0];
             v11 = ((float *)a1)[2];
             start[1] = ((float *)a1)[1];
-            v25 = (float)i;
-            start[0] = (float)v24 * v25 * 4.0f + v10;
-            start[1] = (float)v23 * v25 * 4.0f + start[1];
+            start[0] = (float)v8 * v25 * 4.0f + v10;
+            start[1] = (float)v9 * v25 * 4.0f + start[1];
             start[2] = (float)v22 * 4.0f + v11;
-            ++v9;
             v7 = AAS_PointAreaNum(start);
-            v23 = v9;
           }
-          while ( v9 <= 1 );
-          v24 = ++v8;
         }
-        while ( v8 <= 1 );
-      }
-      if ( ++v22 >= 5 )
-      {
-        if ( !v7 )
-        {
-          v13 = outgoal;
-          goto LABEL_21;
-        }
-        break;
       }
     }
-    v12 = start[2];
-    *(float *)v26 = start[0];
-    v26[1] = start[1];
-    start[2] = start[2] + 0.25f;
-    v26[2] = v12 - 50.0f;
-    trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
-    if ( trace.startsolid )
+    if ( v7 )
     {
-      VectorCopy(start, outgoal);
-      return v7;
+      v12 = start[2];
+      *(float *)v26 = start[0];
+      v26[1] = start[1];
+      start[2] = start[2] + 0.25f;
+      v26[2] = v12 - 50.0f;
+      trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
+      if ( trace.startsolid )
+      {
+        VectorCopy(start, outgoal);
+        return v7;
+      }
+      result = AAS_PointAreaNum(trace.endpos);
+      v13 = outgoal;
+      VectorCopy(trace.endpos, outgoal);
+      if ( result )
+        return result;
     }
-    result = AAS_PointAreaNum(trace.endpos);
-    v13 = outgoal;
-    VectorCopy(trace.endpos, outgoal);
-    if ( result )
-      return result;
-LABEL_21:
+    else
+    {
+      v13 = outgoal;
+    }
     *(int *)&v13[0] = *a1;
     *(int *)&v13[1] = a1[1];
     *(int *)&v13[2] = a1[2];
@@ -9275,91 +9260,78 @@ char *__cdecl AAS_ClientMovementPrediction(
     else
       v23 = (float)v68;
     frame_test_vel[2] = (float)((float)frame_test_vel[2] - v23 * (float)a10 * 0.1);
-    if ( a5 )
+    if ( a5 || v21 )
     {
       if ( v21 )
         v65 = v71;
       else
         v65 = v66;
+      VectorScale(frame_test_vel, 10.0f, frame_test_vel);
+      AAS_ApplyFriction(frame_test_vel, v65, v77, a10);
+      VectorScale(frame_test_vel, 0.1f, frame_test_vel);
     }
-    else
-    {
-      if ( !v21 )
-        goto LABEL_12;
-      v65 = v71;
-    }
-    VectorScale(frame_test_vel, 10.0f, frame_test_vel);
-    AAS_ApplyFriction(frame_test_vel, v65, v77, a10);
-    VectorScale(frame_test_vel, 0.1f, frame_test_vel);
-LABEL_12:
     v24 = 0;
-    if ( v43 >= a8 )
+    if ( v43 < a8 )
     {
-LABEL_35:
-      if ( a4 == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
-        a4 = 2;
-      goto LABEL_38;
+      v25 = v72;
+      v26 = 0;
+      if ( a5 )
+      {
+        if ( a7[2] < -300.0f )
+        {
+          v25 = v73;
+          v24 = 1;
+        }
+        if ( !v22 && a7[2] > 1.0f )
+        {
+          v64 = v43;
+          frame_test_vel[2] = (float)((float)v67 - v23 * (float)a10 * 0.1 + 5.0f);
+        }
+        v26 = 2;
+      }
+      if ( v22 )
+      {
+        v25 = v78;
+        v26 = 3;
+      }
+      if ( v22 || v26 > 0 )
+      {
+        v27 = (int *)frame_test_vel;
+        v28 = v26;
+        do
+        {
+          v29 = (float)a10 * (float)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (float)(*(float *)v27);
+          if ( v29 <= (float)v58 )
+          {
+            *(float *)&v50 = -v58;
+            if ( v29 < (float)(*(float *)&v50) )
+              v29 = (float)(*(float *)&v50);
+          }
+          else
+          {
+            v29 = (float)v58;
+          }
+          *(float *)&v50 = (float)(v29 + (float)(*(float *)v27));
+          *v27 = SLODWORD(v50);
+          if ( (float)(*(float *)&v50) <= v25 )
+          {
+            if ( (float)(*(float *)&v50) < -v25 )
+              *(float *)v27 = (float)(-v25);
+          }
+          else
+          {
+            *(float *)v27 = (float)v25;
+          }
+          ++v27;
+          --v28;
+        }
+        while ( v28 );
+      }
     }
-    v25 = v72;
-    v26 = 0;
-    if ( a5 )
-    {
-      if ( a7[2] < -300.0f )
-      {
-        v25 = v73;
-        v24 = 1;
-      }
-      if ( !v22 && a7[2] > 1.0f )
-      {
-        v64 = v43;
-        frame_test_vel[2] = (float)((float)v67 - v23 * (float)a10 * 0.1 + 5.0f);
-      }
-      v26 = 2;
-    }
-    if ( v22 )
-    {
-      v25 = v78;
-      v26 = 3;
-    }
-    else if ( v26 <= 0 )
-    {
-      goto LABEL_33;
-    }
-    v27 = (int *)frame_test_vel;
-    v28 = v26;
-    do
-    {
-      v29 = (float)a10 * (float)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (float)(*(float *)v27);
-      if ( v29 <= (float)v58 )
-      {
-        *(float *)&v50 = -v58;
-        if ( v29 < (float)(*(float *)&v50) )
-          v29 = (float)(*(float *)&v50);
-      }
-      else
-      {
-        v29 = (float)v58;
-      }
-      *(float *)&v50 = (float)(v29 + (float)(*(float *)v27));
-      *v27 = SLODWORD(v50);
-      if ( (float)(*(float *)&v50) <= v25 )
-      {
-        if ( (float)(*(float *)&v50) < -v25 )
-          *(float *)v27 = (float)(-v25);
-      }
-      else
-      {
-        *(float *)v27 = (float)v25;
-      }
-      ++v27;
-      --v28;
-    }
-    while ( v28 );
-LABEL_33:
-    if ( !v24 )
-      goto LABEL_35;
-    a4 = 4;
-LABEL_38:
+    if ( v24 )
+      a4 = 4;
+    else if ( a4 == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
+      a4 = 2;
     v74 = *(int *)&org[0];
     v75 = *(int *)&org[1];
     v76 = *(int *)&org[2];
@@ -12087,55 +12059,55 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
                 v11 = &aasworld.faces[abs(v101)];
                 if ( (v11[4] & 2) != 0 )
                 {
-                  v12 = *((_DWORD *)v8 + 2);
-                  v13 = 0;
-                  v97 = 0;
-                  if ( v12 > 0 )
-                  {
-                    while ( 1 )
-                    {
-                      v14 = *((_DWORD *)v11 + 2);
-                      v15 = aasworld.edgeindex[v13 + *((_DWORD *)v8 + 3)];
-                      v82 = 0;
-                      if ( v14 > 0 )
-                      {
-                        v16 = abs(v15);
-                        v17 = &aasworld.edgeindex[*((_DWORD *)v11 + 3)];
-                        while ( v16 != abs(*v17) )
-                        {
-                          ++v17;
-                          if ( ++v82 >= v14 )
-                            goto LABEL_16;
-                        }
-                        v96 = AAS_FaceArea((char *)v83);
-                        v18 = AAS_FaceArea((char *)v11);
-                        if ( v96 > (float)v98 && v18 > v90 )
-                        {
-                          v98 = v96;
-                          v90 = v18;
-                          v95 = v83;
-                          v75 = v11;
-                          v71 = v102;
-                          v84 = v101;
-                          v67 = v15;
-                        }
-                      }
+v12 = *((_DWORD *)v8 + 2);
+v13 = 0;
+v97 = 0;
+if ( v12 > 0 )
+{
+while ( 1 )
+{
+  v14 = *((_DWORD *)v11 + 2);
+  v15 = aasworld.edgeindex[v13 + *((_DWORD *)v8 + 3)];
+  v82 = 0;
+  if ( v14 > 0 )
+  {
+    v16 = abs(v15);
+    v17 = &aasworld.edgeindex[*((_DWORD *)v11 + 3)];
+    while ( v16 != abs(*v17) )
+    {
+      ++v17;
+      if ( ++v82 >= v14 )
+        goto LABEL_16;
+    }
+    v96 = AAS_FaceArea((char *)v83);
+    v18 = AAS_FaceArea((char *)v11);
+    if ( v96 > (float)v98 && v18 > v90 )
+    {
+      v98 = v96;
+      v90 = v18;
+      v95 = v83;
+      v75 = v11;
+      v71 = v102;
+      v84 = v101;
+      v67 = v15;
+    }
+  }
 LABEL_16:
-                      if ( v82 != *((_DWORD *)v11 + 2) )
-                        break;
-                      v8 = v83;
-                      v13 = v97 + 1;
-                      v19 = *((_DWORD *)v83 + 2);
-                      v97 = v13;
-                      if ( v13 >= v19 )
-                        goto LABEL_20;
-                    }
-                    v8 = v83;
+  if ( v82 != *((_DWORD *)v11 + 2) )
+    break;
+  v8 = v83;
+  v13 = v97 + 1;
+  v19 = *((_DWORD *)v83 + 2);
+  v97 = v13;
+  if ( v13 >= v19 )
+    goto LABEL_20;
+}
+v8 = v83;
 LABEL_20:
-                    v7 = v95;
-                    v10 = v89;
-                    v4 = v85;
-                  }
+v7 = v95;
+v10 = v89;
+v4 = v85;
+}
                 }
                 v20 = *((_DWORD *)v4 + 1);
                 v89 = ++v10;
@@ -12450,9 +12422,8 @@ int AAS_Reachability_Teleport()
             if ( !v4 )
             {
               bi_Print(PRT_ERROR, "teleporter without destination (%s)\n", v3);
-              goto LABEL_29;
             }
-            if ( AAS_VectorForBSPEpairKey(v4, "origin", destorigin) )
+            else if ( AAS_VectorForBSPEpairKey(v4, "origin", destorigin) )
             {
               v28[0] = destorigin[0];
               v28[1] = destorigin[1];
@@ -34819,8 +34790,10 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
   if ( *v6 )
   {
     v7 = 0;
-    while ( fputc(Stream, v12) && fprintf(Stream, "%s\t", (const char *)v6[v7]) >= 0 )
+    do
     {
+      if ( !fputc(Stream, v12) || fprintf(Stream, "%s\t", (const char *)v6[v7]) < 0 )
+        return 0;
       v8 = (float *)(a3 + v6[v7 + 1]);
       if ( (v6[v7 + 2] & 0x100) != 0 )
       {
@@ -34883,13 +34856,11 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
         v9 = (int)Streamb <= 0;
       }
       if ( fprintf(Stream, "\r\n") < 0 )
-        break;
+        return 0;
       v7 += 7;
       v6 = (_DWORD *)a2->fields;
-      if ( !v6[v7] )
-        goto LABEL_33;
     }
-    return 0;
+    while ( v6[v7] );
   }
 LABEL_33:
   result = fputc(Stream, v12 - 1);
