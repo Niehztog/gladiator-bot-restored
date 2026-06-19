@@ -2625,7 +2625,6 @@ LABEL_30:
         v35 = normal[2] * startp[2] + normal[1] * startp[1] + normal[0] * startp[0] - v20;
         v25 = normal[2] * endp[2] + normal[1] * endp[1] + normal[0] * endp[0];
       }
-LABEL_43:
       v37 = v25 - v20;
       if ( v35 > -0.005 && v37 > -0.005 )
         return 0;
@@ -12492,7 +12491,6 @@ int AAS_Reachability_Teleport()
           bi_Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
         }
       }
-LABEL_29:
       v25 = v1->next;
       if ( !v25 )
         break;
@@ -23379,65 +23377,65 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   pendinghead = NULL;
   lastmatch = NULL;
 
-  if ( !PC_ReadTokenHandle(source, token.string) )
-    goto DONE;
-
-  while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
+  if ( PC_ReadTokenHandle(source, token.string) )
   {
-    context = token.intvalue;
-    if ( !PC_ExpectTokenString(source, "{") )
+    while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
     {
-      BotFreeMatchTemplates(matches);
-      FreeSource(source);
-      return NULL;
-    }
-    if ( !PC_ReadTokenHandle(source, token.string) )
-      goto DONE;
-
-    while ( 1 )
-    {
-      if ( !strcmp(token.string, "}") )
+      context = token.intvalue;
+      if ( !PC_ExpectTokenString(source, "{") )
       {
-        matches = pendinghead;
-        break;
+        BotFreeMatchTemplates(matches);
+        FreeSource(source);
+        return NULL;
       }
-      PC_UnreadLastToken(source);
-      match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
-      match->context = context;
-      match->next = NULL;
-      match->first = BotLoadMatchPieces(source, "=");
-      if ( lastmatch )
-        lastmatch->next = match;
-      else
-        pendinghead = match;
-      lastmatch = match;
-      if ( !PC_ExpectTokenString(source, "(") )
-        goto FAIL_LOOP;
-      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-        goto FAIL_LOOP;
-      match->type = token.intvalue;
-      if ( !PC_ExpectTokenString(source, ",") )
-        goto FAIL_LOOP;
-      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-        goto FAIL_LOOP;
-      match->subtype = token.intvalue;
-      if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
-        goto FAIL_LOOP;
       if ( !PC_ReadTokenHandle(source, token.string) )
-      {
-        matches = pendinghead;
         goto DONE;
+
+      while ( 1 )
+      {
+        if ( !strcmp(token.string, "}") )
+        {
+          matches = pendinghead;
+          break;
+        }
+        PC_UnreadLastToken(source);
+        match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
+        match->context = context;
+        match->next = NULL;
+        match->first = BotLoadMatchPieces(source, "=");
+        if ( lastmatch )
+          lastmatch->next = match;
+        else
+          pendinghead = match;
+        lastmatch = match;
+        if ( !PC_ExpectTokenString(source, "(") )
+          goto FAIL_LOOP;
+        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+          goto FAIL_LOOP;
+        match->type = token.intvalue;
+        if ( !PC_ExpectTokenString(source, ",") )
+          goto FAIL_LOOP;
+        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+          goto FAIL_LOOP;
+        match->subtype = token.intvalue;
+        if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
+          goto FAIL_LOOP;
+        if ( !PC_ReadTokenHandle(source, token.string) )
+        {
+          matches = pendinghead;
+          goto DONE;
+        }
       }
+
+      if ( !PC_ReadTokenHandle(source, token.string) )
+        goto DONE;
     }
 
-    if ( !PC_ReadTokenHandle(source, token.string) )
-      goto DONE;
+    SourceError(source, "expected integer, found %s\n", token.string);
+    BotFreeMatchTemplates(matches);
+    FreeSource(source);
+    return NULL;
   }
-
-  SourceError(source, "expected integer, found %s\n", token.string);
-  BotFreeMatchTemplates(matches);
-  FreeSource(source);
-  return NULL;
 
 FAIL_LOOP:
   BotFreeMatchTemplates(pendinghead);
@@ -24186,7 +24184,7 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
       while ( PC_ExpectAnyToken(src, (intptr_t)token) )
       {
         if ( !strcmp(token, "}") )
-          goto type_done;
+          break;
         if ( strcmp(token, "type") )
         {
           SourceError(src, "expected type found %s\n", token);
@@ -24230,7 +24228,6 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
           }
         }
       }
-type_done:
       FreeSource(src);
       if ( !found )
       {
@@ -24342,7 +24339,6 @@ LABEL_32BIT_NEXT_TOKEN:
       if ( !strcmp(token, a2) )
       {
         found = 1;
-LABEL_32BIT_TYPE:
         while ( PC_ExpectAnyToken(src, (intptr_t)token) )
         {
           if ( !strcmp(token, "}") )
@@ -24389,27 +24385,30 @@ LABEL_32BIT_TYPE:
               }
               size += sizeof(chatline_t) + (int)strlen(buf) + 1;
               if ( PC_CheckTokenString(src, "}") )
-                goto LABEL_32BIT_TYPE;
+                continue;
             }
           }
         }
         FreeSource(src);
         return 0;
       }
-      indent = 1;
-      while ( 1 )
+      else
       {
-        if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
+        indent = 1;
+        while ( 1 )
         {
-          FreeSource(src);
-          return 0;
+          if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
+          {
+            FreeSource(src);
+            return 0;
+          }
+          if ( !strcmp(token, "{") )
+            ++indent;
+          else if ( !strcmp(token, "}") )
+            --indent;
+          if ( !indent )
+            break;
         }
-        if ( !strcmp(token, "{") )
-          ++indent;
-        else if ( !strcmp(token, "}") )
-          --indent;
-        if ( !indent )
-          break;
       }
 LABEL_32BIT_CHAT_DONE:
       if ( PC_ReadTokenHandle(src, token) )
@@ -34880,7 +34879,6 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
     }
     while ( v6[v7] );
   }
-LABEL_33:
   result = fputc(Stream, v12 - 1);
   if ( result )
     return fprintf(Stream, "}\r\n") >= 0;
