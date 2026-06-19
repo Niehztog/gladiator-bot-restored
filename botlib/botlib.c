@@ -13061,6 +13061,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v9; // edi
   int v10; // esi
   int v11; // eax
+  int reached;
   aas_reachabilitynode_t *v13; // eax
   float v14; // [esp+Ch] [ebp-14Ch]
   float v15; // [esp+28h] [ebp-130h]
@@ -13153,6 +13154,7 @@ LABEL_28:
             v9 = 0;
             v10 = 0;
             v16 = 0;
+            reached = 0;
             while ( 1 )
             {
               v14 = (float)v16;
@@ -13160,20 +13162,22 @@ LABEL_28:
               v7 = predictpos[2] + 0.125;
               predictpos[2] = v7;
               if ( AAS_PointAreaNum(predictpos) == a2 )
+              {
+                reached = 1;
                 break;
+              }
               v10 -= 8;
               v9 += 8;
               v16 = v10;
               if ( v10 < -32 )
-                goto LABEL_26;
+                break;
             }
-            if ( v9 <= 32 )
+            if ( reached && v9 <= 32 )
               break;
           }
         }
       }
     }
-LABEL_26:
     if ( ++v8 >= 1 )
     {
       v5 = v23;
