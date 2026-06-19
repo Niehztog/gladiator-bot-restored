@@ -2986,7 +2986,7 @@ float *__cdecl sub_100044F0(
   v150[1] = 0.0;
   v150[2] = 1.0;
   if ( !dword_100674C0 )
-    goto LABEL_126;
+    { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
   v128 = *(float *)a8 - *(float *)a5;
   v129 = *((float *)a8 + 1) - *(float *)(a5 + 4);
   v130 = *((float *)a8 + 2) - *(float *)(a5 + 8);
@@ -3063,13 +3063,13 @@ float *__cdecl sub_100044F0(
           {
             v25 = v24;
             if ( !v24 )
-              goto LABEL_126;
+              { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
             v26 = v24[7];
             v27 = v24 + 9;
             v24 = (int *)TR_DEC(v24[9]);
             v119 = v25[7];
             if ( v26 < 0 )
-              goto LABEL_126;
+              { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
             v28 = v25[6];
             if ( v28 >= 0 )
               break;
@@ -3494,7 +3494,6 @@ LABEL_111:
   }
 LABEL_125:
   bi_Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
-LABEL_126:
   result = a1;
   qmemcpy(a1, v150, 0x54u);
   return result;
@@ -9432,7 +9431,7 @@ LABEL_63:
 LABEL_66:
       ++LODWORD(v50);
       if ( SLODWORD(v50) > 20 )
-        goto LABEL_87;
+        { result = a1; qmemcpy(a1, v62, 0x50u); return result; }
     }
     while ( v80.fraction < 1.0 );
     if ( frame_test_vel[2] > 0.0f )
@@ -9550,7 +9549,6 @@ LABEL_86:
     }
     break;
   }
-LABEL_87:
   result = a1;
   qmemcpy(a1, v62, 0x50u);
   return result;
@@ -15182,7 +15180,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
 
   memset(&trace, 0, sizeof(trace));
   if ( !aasworld.loaded )
-    goto LABEL_42;
+    return trace;
 
   trace_start_pt = start;
   /* push the whole line as the initial frame */
@@ -15207,7 +15205,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
         trace.ent        = 0;
         trace.area       = 0;
         trace.planenum   = 0;
-        goto LABEL_42;
+        return trace;
       }
       nodenum = tstack_p->nodenum;
       if ( nodenum < 0 )
@@ -15248,7 +15246,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
           if ( dz * plane[2] + dy * plane[1] + dx * plane[0] > 0.0f )
             trace.planenum ^= 1;
         }
-        goto LABEL_42;
+        return trace;
       }
       /* interior node — split the trace by the node's plane */
       aasnode = (aas_node_t *)((char *)aasworld.nodes + 12 * nodenum);
@@ -15341,7 +15339,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
           VectorSubtract(trace.endpos, start, seg);
           trace.fraction = VectorLength(seg) / VectorLength(dir);
         }
-        goto LABEL_42;
+        return trace;
       }
       trace_start_pt = start;
     }
@@ -15378,7 +15376,6 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
     if ( dz * plane[2] + dy * plane[1] + dx * plane[0] > 0.0f )
       trace.planenum ^= 1;
   }
-LABEL_42:
   return trace;
 }
 
@@ -16669,7 +16666,6 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           {
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
             {
-LABEL_86:
               BotResetAvoidReach((_DWORD *)bs->movestate);
               return 0;
             }
@@ -16687,7 +16683,7 @@ LABEL_86:
             vectoangles(dir, bs->ideal_viewangles);
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-          goto LABEL_86;
+          { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
         }
       }
       if ( v55[0] )
@@ -16807,7 +16803,7 @@ LABEL_86:
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->ltgtype = 0;
           }
-          goto LABEL_86;
+          { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
         }
         return v26;
       case 7:
@@ -16963,7 +16959,7 @@ LABEL_55:
     dir[1] = *(float *)&v55[5] - bs->origin[1];
     dir[2] = *(float *)&v55[6] - bs->origin[2];
     if ( VectorLength(dir) < 100 )
-      goto LABEL_86;
+      { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
   }
   else
   {
@@ -27493,7 +27489,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     v4 = ms->moveflags;
     v4 &= ~0x40u;
     ms->moveflags = v4;
-    goto LABEL_27;
+    { result = a1; *a1 = moveresult; return result; }
   }
   if ( (v3 & 0x40) != 0 )
   {
@@ -27522,7 +27518,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
       {
         ms->grapplevisible_time = AAS_Time();
         ms->lastgrappledist = v25;
-        goto LABEL_27;
+        { result = a1; *a1 = moveresult; return result; }
       }
     }
     v17 = ms->grapplevisible_time;
@@ -27530,7 +27526,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     {
 LABEL_8:
       ms->lastgrappledist = v25;
-      goto LABEL_27;
+      { result = a1; *a1 = moveresult; return result; }
     }
     EA_Command(ms->client, "hookoff", (char *)0);
     v9 = ms->moveflags;
@@ -27538,7 +27534,7 @@ LABEL_8:
     ms->moveflags = v9;
 LABEL_26:
     ms->reachability_time = 0;
-    goto LABEL_27;
+    { result = a1; *a1 = moveresult; return result; }
   }
   v10 = AAS_Time();
   v11 = ms->moveflags;
@@ -27588,7 +27584,6 @@ LABEL_26:
   v15 = AAS_PointAreaNum(ms->origin);
   if ( v15 && v15 != ms->reachareanum )
     goto LABEL_26;
-LABEL_27:
   result = a1;
   *a1 = moveresult;
   return result;
@@ -27974,7 +27969,7 @@ LABEL_56:
      *(int *)&ms->lastorigin[0] = *(int *)&ms->origin[0];
      *(int *)&ms->lastorigin[1] = v17;
      *(int *)&ms->lastorigin[2] = v18;
-     goto LABEL_59;
+     { result = a1; *a1 = moveresult; return result; }
    }
    if ( v20.traveltype == 11 )
    {
@@ -28013,7 +28008,6 @@ LABEL_25:
    }
    goto LABEL_27;
  }
-LABEL_59:
  result = a1;
  *a1 = moveresult;
  return result;
