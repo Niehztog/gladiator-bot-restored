@@ -17491,8 +17491,8 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       BotCTFSeekGoals(bs);
     v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
     v17 = v3;
-    if ( !v3 )
-      goto LABEL_42;
+    if ( v3 )
+    {
     if ( AAS_Time() > bs->check_time )
     {
       v4 = AAS_Time();
@@ -17546,7 +17546,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 LABEL_41:
     if ( (v18.flags & 8) != 0 )
       return 1;
-LABEL_42:
+    }
     BotChangeViewAngles(bs, bs->thinktime);
     return 1;
   }
@@ -24034,8 +24034,10 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     rc->numchatmessages = 0;
     if ( !PC_CheckTokenString(v4, "}") )
     {
-      while ( BotLoadChatMessage(v4, v21) )
+      while ( 1 )
       {
+        if ( !BotLoadChatMessage(v4, v21) )
+          goto FAIL;
         cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(v21) + 1);
         cm->chatmessage = (char *)(cm + 1);
         strcpy(cm->chatmessage, v21);
@@ -24044,11 +24046,9 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
         rc->firstchatmessage = cm;
         rc->numchatmessages++;
         if ( PC_CheckTokenString(v4, "}") )
-          goto NEXT_ENTRY;
+          break;
       }
-      goto FAIL;
     }
-NEXT_ENTRY:
     replyhead = rc;
     if ( PC_ReadTokenHandle(v4, token.string) )
       continue;
