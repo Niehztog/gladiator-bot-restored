@@ -20545,16 +20545,22 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
     if ( (v9.subtype & 0x200) != 0 )
     {
       v3 = 1;
-      goto LABEL_18;
-    }
-    if ( (v9.subtype & 0x400) != 0 )
       break;
-    if ( (v9.subtype & 0x100) == 0 )
-      goto LABEL_18;
-    BotMatchVariable(&v9, 5, Destination);
+    }
+    else if ( (v9.subtype & 0x400) != 0 )
+    {
+      v3 = 2;
+      break;
+    }
+    else if ( (v9.subtype & 0x100) != 0 )
+    {
+      BotMatchVariable(&v9, 5, Destination);
+    }
+    else
+    {
+      break;
+    }
   }
-  v3 = 2;
-LABEL_18:
   if ( v2 && v2->next )
   {
     BotFreeWaypoints(BotPatrolpoints(bs));
@@ -21246,39 +21252,31 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   v1 = a1;
   v2 = &bs->chatstate;
   Str2 = (char *)ClientName(bs->client);
-  v3 = BotNextConsoleMessage(v2);
-  if ( v3 )
+  while ( 1 )
   {
-    while ( 1 )
+    v3 = BotNextConsoleMessage(v2);
+    if ( !v3 )
+      return;
+    if ( BotNumConsoleMessages(v2) < 10 && v3->type == 1 )
     {
-      if ( BotNumConsoleMessages(v2) < 10 )
-      {
-        if ( v3->type != 1 )
-          goto LABEL_11;
-        v12 = AAS_Time();
-        if ( v12 - ((float)(rand() & 0x7FFF) * 0.000030518509f + 1.0f) < v3->time )
-          return;
-      }
-      if ( v3->type != 1 )
-        goto LABEL_11;
-      v4 = strstr(v3->message, ":");
-      if ( !v4 )
-        goto LABEL_23;
-      v5 = v4 - v3->message;
-      if ( strncmp(v3->message, Str2, v5 - 8) )
-      {
-        if ( strncmp(v3->message + 1, Str2, v5 - 10) )
-          break;
-      }
-      BotRemoveConsoleMessage(v2, v3);
-      v1 = a1;
-LABEL_24:
-      v3 = BotNextConsoleMessage(v2);
-      if ( !v3 )
+      v12 = AAS_Time();
+      if ( v12 - ((float)(rand() & 0x7FFF) * 0.000030518509f + 1.0f) < v3->time )
         return;
     }
-    v1 = a1;
-LABEL_11:
+    if ( v3->type == 1 )
+    {
+      v4 = strstr(v3->message, ":");
+      if ( v4 )
+      {
+        v5 = v4 - v3->message;
+        if ( !strncmp(v3->message, Str2, v5 - 8) || !strncmp(v3->message + 1, Str2, v5 - 10) )
+        {
+          BotRemoveConsoleMessage(v2, v3);
+          v1 = a1;
+          continue;
+        }
+      }
+    }
     UnifyWhiteSpaces(v3->message);
     v6 = 3;
     if ( libvar_ctf->value != 0.0f )
@@ -21315,13 +21313,11 @@ LABEL_11:
               }
             }
           }
-        }
-      }
-    }
-LABEL_23:
-    BotRemoveConsoleMessage(v2, v3);
-    goto LABEL_24;
-  }
+       }
+     }
+   }
+   BotRemoveConsoleMessage(v2, v3);
+ }
 }
 
 //----- (100289A0) --------------------------------------------------------
@@ -23374,72 +23370,60 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   pendinghead = NULL;
   lastmatch = NULL;
 
-  if ( PC_ReadTokenHandle(source, token.string) )
+  while ( PC_ReadTokenHandle(source, token.string) )
   {
-    while ( token.type == 3 && (token.subtype & 0x1000) != 0 )
+    if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
     {
-      context = token.intvalue;
-      if ( !PC_ExpectTokenString(source, "{") )
+      SourceError(source, "expected integer, found %s\n", token.string);
+      BotFreeMatchTemplates(matches);
+      FreeSource(source);
+      return NULL;
+    }
+    context = token.intvalue;
+    if ( !PC_ExpectTokenString(source, "{") )
+    {
+      BotFreeMatchTemplates(matches);
+      FreeSource(source);
+      return NULL;
+    }
+    while ( PC_ReadTokenHandle(source, token.string) )
+    {
+      if ( !strcmp(token.string, "}") )
+        break;
+      PC_UnreadLastToken(source);
+      match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
+      match->context = context;
+      match->next = NULL;
+      match->first = BotLoadMatchPieces(source, "=");
+      if ( lastmatch )
+        lastmatch->next = match;
+      else
+        pendinghead = match;
+      lastmatch = match;
+      if ( !PC_ExpectTokenString(source, "(") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
       {
-        BotFreeMatchTemplates(matches);
+        BotFreeMatchTemplates(pendinghead);
         FreeSource(source);
         return NULL;
       }
-      if ( !PC_ReadTokenHandle(source, token.string) )
-        goto DONE;
-
-      while ( 1 )
+      match->type = token.intvalue;
+      if ( !PC_ExpectTokenString(source, ",") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
       {
-        if ( !strcmp(token.string, "}") )
-        {
-          matches = pendinghead;
-          break;
-        }
-        PC_UnreadLastToken(source);
-        match = (bot_matchtemplate_t *)GetMemory(sizeof(bot_matchtemplate_t));
-        match->context = context;
-        match->next = NULL;
-        match->first = BotLoadMatchPieces(source, "=");
-        if ( lastmatch )
-          lastmatch->next = match;
-        else
-          pendinghead = match;
-        lastmatch = match;
-        if ( !PC_ExpectTokenString(source, "(") )
-          goto FAIL_LOOP;
-        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-          goto FAIL_LOOP;
-        match->type = token.intvalue;
-        if ( !PC_ExpectTokenString(source, ",") )
-          goto FAIL_LOOP;
-        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-          goto FAIL_LOOP;
-        match->subtype = token.intvalue;
-        if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
-          goto FAIL_LOOP;
-        if ( !PC_ReadTokenHandle(source, token.string) )
-        {
-          matches = pendinghead;
-          goto DONE;
-        }
+        BotFreeMatchTemplates(pendinghead);
+        FreeSource(source);
+        return NULL;
       }
-
-      if ( !PC_ReadTokenHandle(source, token.string) )
-        goto DONE;
+      match->subtype = token.intvalue;
+      if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
+      {
+        BotFreeMatchTemplates(pendinghead);
+        FreeSource(source);
+        return NULL;
+      }
     }
-
-    SourceError(source, "expected integer, found %s\n", token.string);
-    BotFreeMatchTemplates(matches);
-    FreeSource(source);
-    return NULL;
+    matches = pendinghead;
   }
 
-FAIL_LOOP:
-  BotFreeMatchTemplates(pendinghead);
-  FreeSource(source);
-  return NULL;
-
-DONE:
   FreeSource(source);
   if ( file_ref.filelen )
     bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, matchfile);
@@ -23729,10 +23713,8 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
       StripDoubleQuotes(token.string);
       strcat(chatmessagestring, token.string);
     }
-    else if ( token.type == 3 )
+    else if ( token.type == 3 && (token.subtype & 0x1000) != 0 )
     {
-      if ( (token.subtype & 0x1000) == 0 )
-        goto error;
       sprintf(&chatmessagestring[strlen(chatmessagestring)], "%cv%d%c", 1,
               token.intvalue, 1);
     }
@@ -23743,15 +23725,15 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
     }
     else
     {
-error:
       SourceError(source, "unknown message component %s\n", token.string);
       return 0;
     }
     if ( PC_CheckTokenString(source, ";") )
-      return 1;
+      break;
     if ( !PC_ExpectTokenString(source, ",") )
       return 0;
   }
+  return 1;
 }
 
 //----- (1002CF40) --------------------------------------------------------
@@ -24008,7 +23990,11 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       {
         key->flags |= 8;
         if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
-          goto FAIL;
+        {
+          BotShutdownChatAI();
+          FreeSource(v4);
+          return NULL;
+        }
         StripDoubleQuotes(token.string);
         namestr = (char *)GetClearedMemory(strlen(token.string) + 1);
         key->string = namestr;
@@ -24021,18 +24007,28 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     if ( !PC_ExpectTokenString(v4, "=")
         || !PC_ExpectTokenType(v4, 3, 0, token.string) )
     {
-      goto FAIL;
+      BotShutdownChatAI();
+      FreeSource(v4);
+      return NULL;
     }
     rc->priority = (float)token.intvalue;
     if ( !PC_ExpectTokenString(v4, "{") )
-      goto FAIL;
+    {
+      BotShutdownChatAI();
+      FreeSource(v4);
+      return NULL;
+    }
     rc->numchatmessages = 0;
     if ( !PC_CheckTokenString(v4, "}") )
     {
       while ( 1 )
       {
         if ( !BotLoadChatMessage(v4, v21) )
-          goto FAIL;
+        {
+          BotShutdownChatAI();
+          FreeSource(v4);
+          return NULL;
+        }
         cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(v21) + 1);
         cm->chatmessage = (char *)(cm + 1);
         strcpy(cm->chatmessage, v21);
@@ -24061,11 +24057,6 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
   if ( !replyhead )
     bi_Print(PRT_MESSAGE, "no rchats\n");
   return replyhead;
-
-FAIL:
-  BotShutdownChatAI();
-  FreeSource(v4);
-  return NULL;
 }
 
 #if BOTLIB_NEED_SIDEBAND
@@ -24311,107 +24302,102 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
       ptr += sizeof(chatlist_t);
     }
     size = sizeof(chatlist_t);
-    while ( 1 )
+while ( PC_ReadTokenHandle(src, token) )
+{
+  if ( !strcmp(token, "chat") )
+  {
+    if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
     {
-      if ( !PC_ReadTokenHandle(src, token) )
-        break;
-LABEL_32BIT_NEXT_TOKEN:
-      if ( strcmp(token, "chat") )
+      FreeSource(src);
+      return 0;
+    }
+    StripDoubleQuotes(token);
+    if ( !PC_ExpectTokenString(src, "{") )
+    {
+      FreeSource(src);
+      return 0;
+    }
+    if ( !strcmp(token, a2) )
+    {
+      found = 1;
+      while ( 1 )
       {
-        SourceError(src, "unknown definition %s\n", token);
-        FreeSource(src);
-        return 0;
-      }
-      if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) )
-      {
-        FreeSource(src);
-        return 0;
-      }
-      StripDoubleQuotes(token);
-      if ( !PC_ExpectTokenString(src, "{") )
-      {
-        FreeSource(src);
-        return 0;
-      }
-      if ( !strcmp(token, a2) )
-      {
-        found = 1;
-        while ( PC_ExpectAnyToken(src, (intptr_t)token) )
+        if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
         {
-          if ( !strcmp(token, "}") )
-            goto LABEL_32BIT_CHAT_DONE;
-          if ( strcmp(token, "type") )
+          FreeSource(src);
+          return 0;
+        }
+        if ( !strcmp(token, "}") )
+          break;
+        if ( strcmp(token, "type") )
+        {
+          SourceError(src, "expected type found %s\n", token);
+          FreeSource(src);
+          return 0;
+        }
+        if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
+        {
+          FreeSource(src);
+          return 0;
+        }
+        StripDoubleQuotes(token);
+        if ( pass )
+        {
+          cur_type = (chattype_t *)ptr;
+          strncpy(cur_type->name, token, sizeof(cur_type->name));
+          cur_type->firstline = 0;
+          cur_type->next = list->types;
+          list->types = cur_type;
+          ptr += sizeof(chattype_t);
+        }
+        size += sizeof(chattype_t);
+        while ( !PC_CheckTokenString(src, "}") )
+        {
+          if ( !BotLoadChatMessage(src, buf) )
           {
-            SourceError(src, "expected type found %s\n", token);
             FreeSource(src);
             return 0;
           }
-          if ( !PC_ExpectTokenType(src, 1, 0, (intptr_t)token) || !PC_ExpectTokenString(src, "{") )
-            break;
-          StripDoubleQuotes(token);
           if ( pass )
           {
-            cur_type = (chattype_t *)ptr;
-            strncpy(cur_type->name, token, sizeof(cur_type->name));
-            cur_type->firstline = 0;
-            cur_type->next = list->types;
-            list->types = cur_type;
-            ptr += sizeof(chattype_t);
+            line = (chatline_t *)ptr;
+            line->ltime = -40.0f;
+            line->next = cur_type->firstline;
+            cur_type->firstline = line;
+            ptr += sizeof(chatline_t);
+            line->string = ptr;
+            strcpy(ptr, buf);
+            ++cur_type->numlines;
+            ptr += strlen(buf) + 1;
           }
-          size += sizeof(chattype_t);
-          if ( !PC_CheckTokenString(src, "}") )
-          {
-            while ( 1 )
-            {
-              if ( !BotLoadChatMessage(src, buf) )
-              {
-                FreeSource(src);
-                return 0;
-              }
-              if ( pass )
-              {
-                line = (chatline_t *)ptr;
-                line->ltime = -40.0f;
-                line->next = cur_type->firstline;
-                cur_type->firstline = line;
-                ptr += sizeof(chatline_t);
-                line->string = ptr;
-                strcpy(ptr, buf);
-                ++cur_type->numlines;
-                ptr += strlen(buf) + 1;
-              }
-              size += sizeof(chatline_t) + (int)strlen(buf) + 1;
-              if ( PC_CheckTokenString(src, "}") )
-                continue;
-            }
-          }
-        }
-        FreeSource(src);
-        return 0;
-      }
-      else
-      {
-        indent = 1;
-        while ( 1 )
-        {
-          if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
-          {
-            FreeSource(src);
-            return 0;
-          }
-          if ( !strcmp(token, "{") )
-            ++indent;
-          else if ( !strcmp(token, "}") )
-            --indent;
-          if ( !indent )
-            break;
+          size += sizeof(chatline_t) + (int)strlen(buf) + 1;
         }
       }
-LABEL_32BIT_CHAT_DONE:
-      if ( PC_ReadTokenHandle(src, token) )
-        goto LABEL_32BIT_NEXT_TOKEN;
-      break;
     }
+    else
+    {
+      indent = 1;
+      while ( indent )
+      {
+        if ( !PC_ExpectAnyToken(src, (intptr_t)token) )
+        {
+          FreeSource(src);
+          return 0;
+        }
+        if ( !strcmp(token, "{") )
+          ++indent;
+        else if ( !strcmp(token, "}") )
+          --indent;
+      }
+    }
+  }
+  else
+  {
+    SourceError(src, "unknown definition %s\n", token);
+    FreeSource(src);
+    return 0;
+  }
+}
     FreeSource(src);
     if ( !found )
     {
@@ -24509,134 +24495,89 @@ int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3)
 //----- (1002E060) --------------------------------------------------------
 void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5)
 {
-  const char *v5; // edx
-  const char *v6; // esi
-  int v7; // ebx
-  char *v8; // ebp
-  char v9; // al
-  char v10; // cl
-  int v11; // eax
-  char *v12; // edi  (was int — pointer to caller string)
-  int v14; // ecx
-  int v15; // edx
-  const char *v16; // edi
-  char v17; // al
-  int v18; // ecx
-  char v19; // al
-  const char *v20; // eax
-  char *v21; // esi
-  char v23[152]; // [esp+18h] [ebp-98h] BYREF
+  int num;
+  int len;
+  int i;
+  char *outputbuf;
+  char *msgptr;
+  char *ptr;
+  char temp[152];
 
-  v5 = a2;
-  v6 = (const char *)cs + 20;
-  v7 = 0;
-  v8 = (char *)a2;
-  if ( !*a2 )
-    goto LABEL_37;
-  while ( *v8 == 1 )
+  msgptr = (char *)a2;
+  outputbuf = (char *)cs + 20;
+  len = 0;
+  while ( *msgptr )
   {
-    v9 = *++v8;
-    if ( v9 == 114 )
+    if ( *msgptr == 1 )
     {
-      v17 = *++v8;
-      v18 = 0;
-      if ( v17 )
+      ++msgptr;
+      switch ( *msgptr )
       {
-        do
-        {
-          if ( v17 == 1 )
-            break;
-          ++v8;
-          v23[v18++] = v17;
-          v17 = *v8;
-        }
-        while ( *v8 );
+        case 'v':
+          ++msgptr;
+          num = 0;
+          while ( *msgptr && *msgptr != 1 )
+            num = num * 10 + (*msgptr++) - '0';
+          if ( *msgptr )
+            ++msgptr;
+          if ( num > 10 )
+          {
+            bi_Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", a2, num);
+            return;
+          }
+          if ( vars[num].str )
+          {
+            for ( i = 0; i < vars[num].len; ++i )
+              temp[i] = vars[num].str[i];
+            temp[i] = 0;
+            BotReplaceSynonyms(temp, a5);
+            if ( len + strlen(temp) >= 150 )
+            {
+              bi_Print(PRT_ERROR, "BotConstructChat: message %s too long\n", a2);
+              return;
+            }
+            strcpy(&outputbuf[len], temp);
+            len += strlen(temp);
+          }
+          break;
+        case 'r':
+          ++msgptr;
+          for ( i = 0; *msgptr && *msgptr != 1; ++i )
+            temp[i] = *msgptr++;
+          temp[i] = 0;
+          if ( *msgptr )
+            ++msgptr;
+          ptr = RandomString(temp);
+          if ( !ptr )
+          {
+            bi_Print(PRT_ERROR, "BotConstructChat: unknown random string %s\n", temp);
+            return;
+          }
+          if ( len + strlen(ptr) >= 150 )
+          {
+            bi_Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", a2);
+            return;
+          }
+          strcpy(&outputbuf[len], ptr);
+          len += strlen(ptr);
+          break;
+        default:
+          bi_Print(PRT_FATAL, "BotConstructChat: message \"%s\" invalid escape char\n", a2);
+          break;
       }
-      v19 = *v8;
-      v23[v18] = 0;
-      if ( v19 )
-        ++v8;
-      v20 = (const char *)RandomString(v23);
-      if ( !v20 )
-      {
-        bi_Print(PRT_ERROR, "BotConstructChat: unknown random string %s\n", v23);
-        return;
-      }
-      if ( v7 + strlen(v20) >= 0x96 )
+    }
+    else
+    {
+      outputbuf[len++] = *msgptr++;
+      if ( len >= 150 )
       {
         bi_Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", a2);
-        return;
+        break;
       }
-      v21 = (char *)&v6[v7];
-      strcpy(v21, v20);
-      v16 = v20;
-      goto LABEL_20;
     }
-    if ( v9 != 118 )
-    {
-      bi_Print(PRT_FATAL, "BotConstructChat: message \"%s\" invalid escape char\n", v5);
-      goto LABEL_30;
-    }
-    v10 = *++v8;
-    v11 = 0;
-    if ( v10 )
-    {
-      do
-      {
-        if ( v10 == 1 )
-          break;
-        ++v8;
-        v11 = v10 + 10 * v11 - 48;
-        v10 = *v8;
-      }
-      while ( *v8 );
-    }
-    if ( *v8 )
-      ++v8;
-    if ( v11 > 10 )
-    {
-      bi_Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", v5, v11);
-      return;
-    }
-    v12 = vars[v11].str;
-    if ( v12 )
-    {
-      v14 = 0;
-      if ( vars[v11].len > 0 )
-      {
-        do
-        {
-          v15 = v14++;
-          v23[v15] = v12[v15];
-        }
-        while ( v14 < vars[v11].len );
-        v6 = (const char *)cs + 20;
-      }
-      v23[v14] = 0;
-      BotReplaceSynonyms(v23, a5);
-      if ( v7 + strlen(v23) >= 0x96 )
-      {
-        bi_Print(PRT_ERROR, "BotConstructChat: message %s too long\n", a2);
-        return;
-      }
-      strcpy((char *)&v6[v7], v23);
-      v16 = v23;
-LABEL_20:
-      v6 = (const char *)cs + 20;
-      v7 += strlen(v16);
-    }
-LABEL_30:
-    if ( !*v8 )
-      goto LABEL_37;
-    v5 = a2;
   }
-  ((char *)v6)[v7++] = *v8++;
-  if ( v7 < 150 )
-    goto LABEL_30;
-  bi_Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", v5);
-LABEL_37:
-  ((char *)v6)[v7] = 0;
-  BotReplaceWeightedSynonyms(v6, a3);
+  outputbuf[len] = 0;
+  BotReplaceWeightedSynonyms(outputbuf, a3);
 }
 
 //----- (1002E3B0) --------------------------------------------------------
@@ -24840,124 +24781,124 @@ void __cdecl sub_1002E5D0(void *arg)
 //----- (1002E7D0) --------------------------------------------------------
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
 {
-  bot_replychat_t *v2; // ebx
-  bot_replychatkey_t *v3; // esi
-  int v4; // edi
-  int v5; // ecx
-  BOOL v6; // eax
-  bot_chatmessage_t *v7; // esi
-  int v8; // edi
-  int v9; // rax (was __int64)
-  bot_chatmessage_t *v10; // esi
-  int v11; // edi
-  bot_chatmessage_t *v13; // [esp+10h] [ebp-100h]
-  int v14; // [esp+14h] [ebp-FCh]
-  int v15; // [esp+18h] [ebp-F8h]
-  bot_match_t v16; // [esp+20h] [ebp-F0h] BYREF
+ bot_replychat_t *v2; // ebx
+ bot_replychatkey_t *v3; // esi
+ int v4; // edi
+ int v5; // ecx
+ BOOL v6; // eax
+ bot_chatmessage_t *v7; // esi
+ int v8; // edi
+ int v9; // rax (was __int64)
+ bot_chatmessage_t *v10; // esi
+ int v11; // edi
+ bot_chatmessage_t *v13; // [esp+10h] [ebp-100h]
+ int v14; // [esp+14h] [ebp-FCh]
+ int v15; // [esp+18h] [ebp-F8h]
+ bot_match_t v16; // [esp+20h] [ebp-F0h] BYREF
 
-  memset(&v16, 0, sizeof(v16));
-  v2 = dword_10064380;
-  v14 = 0;
-  strcpy(v16.string, a2);
-  v13 = 0;
-  if ( !v2 )
-    return 0;
-  do
-  {
-    v3 = v2->keys;
-    v4 = 0;
-    if ( !v2->keys )
-      goto LABEL_34;
-    do
-    {
-      v5 = v3->flags;
-      v6 = 0;
-      if ( (v3->flags & 0x20) != 0 )
-      {
-        LOBYTE(v6) = *(_DWORD *)cs == 1;
-      }
-      else if ( (v5 & 0x40) != 0 )
-      {
-        v6 = *(_DWORD *)cs == 2;
-      }
-      else if ( (v5 & 0x80u) == 0 )
-      {
-        if ( (v5 & 0x10) != 0 )
-        {
-          v6 = StringsMatch(v3->match, &v16);
-        }
-        else if ( (v5 & 8) != 0 )
-        {
-          v6 = StringContains(a2, v3->string, 0) != 0;
-        }
-      }
-      else
-      {
-        v6 = *(_DWORD *)cs == 0;
-      }
-      if ( (v3->flags & 1) != 0 )
-      {
-        if ( !v6 )
-          goto LABEL_34;
+ memset(&v16, 0, sizeof(v16));
+ v2 = dword_10064380;
+ v14 = 0;
+ strcpy(v16.string, a2);
+ v13 = 0;
+ if ( !v2 )
+   return 0;
+ do
+ {
+   v3 = v2->keys;
+   v4 = 0;
+   if ( !v2->keys )
+     goto LABEL_34;
+   do
+   {
+     v5 = v3->flags;
+     v6 = 0;
+     if ( (v3->flags & 0x20) != 0 )
+     {
+       LOBYTE(v6) = *(_DWORD *)cs == 1;
+     }
+     else if ( (v5 & 0x40) != 0 )
+     {
+       v6 = *(_DWORD *)cs == 2;
+     }
+     else if ( (v5 & 0x80u) == 0 )
+     {
+       if ( (v5 & 0x10) != 0 )
+       {
+         v6 = StringsMatch(v3->match, &v16);
+       }
+       else if ( (v5 & 8) != 0 )
+       {
+         v6 = StringContains(a2, v3->string, 0) != 0;
+       }
+     }
+     else
+     {
+       v6 = *(_DWORD *)cs == 0;
+     }
+     if ( (v3->flags & 1) != 0 )
+     {
+       if ( !v6 )
+         goto LABEL_34;
 LABEL_20:
-        v4 = 1;
-        goto LABEL_21;
-      }
-      if ( (v3->flags & 2) == 0 )
-      {
-        if ( !v6 )
-          goto LABEL_21;
-        goto LABEL_20;
-      }
-      if ( v6 )
-        goto LABEL_34;
+       v4 = 1;
+       goto LABEL_21;
+     }
+     if ( (v3->flags & 2) == 0 )
+     {
+       if ( !v6 )
+         goto LABEL_21;
+       goto LABEL_20;
+     }
+     if ( v6 )
+       goto LABEL_34;
 LABEL_21:
-      v3 = v3->next;
-    }
-    while ( v3 );
-    if ( v4 && (float)v14 < v2->priority )
-    {
-      v7 = v2->firstchatmessage;
-      v8 = 0;
-      v15 = 0;
-      if ( v7 )
-      {
-        do
-        {
-          if ( AAS_Time() >= v7->time )
-            ++v8;
-          v7 = v7->next;
-        }
-        while ( v7 );
-        v15 = v8;
-      }
-      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
-      v10 = v2->firstchatmessage;
-      v11 = v9;
-      if ( v10 )
-      {
-        while ( --v11 >= 0 )
-        {
-          AAS_Time();
-          v10 = v10->next;
-          if ( !v10 )
-            goto LABEL_34;
-        }
-        v13 = v10;
-        v14 = (__int64)v2->priority;
-      }
-    }
+     v3 = v3->next;
+   }
+   while ( v3 );
+   if ( v4 && (float)v14 < v2->priority )
+   {
+     v7 = v2->firstchatmessage;
+     v8 = 0;
+     v15 = 0;
+     if ( v7 )
+     {
+       do
+       {
+         if ( AAS_Time() >= v7->time )
+           ++v8;
+         v7 = v7->next;
+       }
+       while ( v7 );
+       v15 = v8;
+     }
+     v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
+     v10 = v2->firstchatmessage;
+     v11 = v9;
+     if ( v10 )
+     {
+       while ( --v11 >= 0 )
+       {
+         AAS_Time();
+         v10 = v10->next;
+         if ( !v10 )
+           goto LABEL_34;
+       }
+       v13 = v10;
+       v14 = (__int64)v2->priority;
+     }
+   }
 LABEL_34:
-    v2 = v2->next;
-  }
-  while ( v2 );
-  if ( v13 )
-  {
-    v13->time = AAS_Time() + 20.0f;
-    BotConstructChatMessage(cs, v13->chatmessage, 0, (bot_chatvar_t *)v16.variables, 16);
-    return 1;
-  }
-  return 0;
+   v2 = v2->next;
+ }
+ while ( v2 );
+ if ( v13 )
+ {
+   v13->time = AAS_Time() + 20.0f;
+   BotConstructChatMessage(cs, v13->chatmessage, 0, (bot_chatvar_t *)v16.variables, 16);
+   return 1;
+ }
+ return 0;
 }
 // 1002E95D: conditional instruction was optimized away because esi.4!=0
 
@@ -28739,85 +28680,85 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
     bi_Print(PRT_ERROR, "counldn't load %s\n", Destination);
     return 0;
   }
-  cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
-  cfg->numweights = 0;
-  if ( PC_ReadTokenHandle(src, token.string) )
-  {
-    while ( !strcmp(token.string, "weight") )
-    {
-      if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
-      {
-        SourceWarning(src, "too many fuzzy weights\n");
-        goto LABEL_21;
-      }
-      if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
-      {
+ cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
+ cfg->numweights = 0;
+ if ( PC_ReadTokenHandle(src, token.string) )
+ {
+   while ( !strcmp(token.string, "weight") )
+   {
+     if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
+     {
+       SourceWarning(src, "too many fuzzy weights\n");
+       goto LABEL_21;
+     }
+     if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
+     {
 LABEL_25:
-        FreeWeightConfig2(cfg);
-        FreeSource(src);
-        return 0;
-      }
-      StripDoubleQuotes(token.string);
-      cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
-      strcpy(cfg->weights[cfg->numweights].name, token.string);
-      if ( !PC_ExpectAnyToken(src, token.string)
-        || (has_balance = 0, !strcmp(token.string, "{")) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
-      {
-        FreeWeightConfig2(cfg);
-        FreeSource(src);
-        return 0;
-      }
-      if ( !strcmp(token.string, "switch") )
-      {
-        sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
-        if ( !sep )
-        {
-          FreeWeightConfig2(cfg);
-          FreeSource(src);
-          return 0;
-        }
-        cfg->weights[cfg->numweights].firstseperator = sep;
-      }
-      else
-      {
-        if ( strcmp(token.string, "return") )
-        {
-          SourceError(src, "invalid name %s\n", token.string);
-          FreeWeightConfig2(cfg);
-          FreeSource(src);
-          return 0;
-        }
-        sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-        sep->index = 0;
-        sep->value = 999999;
-        sep->next  = 0;
-        sep->child = 0;
-        if ( !ReadFuzzyWeight(src, sep) )
-        {
-          FreeMemory(sep);
-          FreeWeightConfig2(cfg);
-          FreeSource(src);
-          return 0;
-        }
-        cfg->weights[cfg->numweights].firstseperator = sep;
-      }
-      if ( has_balance && !PC_ExpectTokenString(src, "}") )
-        goto LABEL_25;
-      ++cfg->numweights;
-      if ( !PC_ReadTokenHandle(src, token.string) )
-        goto LABEL_21;
-    }
-    SourceError(src, "invalid name %s\n", token.string);
-    FreeWeightConfig2(cfg);
-    FreeSource(src);
-    return 0;
-  }
+       FreeWeightConfig2(cfg);
+       FreeSource(src);
+       return 0;
+     }
+     StripDoubleQuotes(token.string);
+     cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
+     strcpy(cfg->weights[cfg->numweights].name, token.string);
+     if ( !PC_ExpectAnyToken(src, token.string)
+       || (has_balance = 0, !strcmp(token.string, "{")) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
+     {
+       FreeWeightConfig2(cfg);
+       FreeSource(src);
+       return 0;
+     }
+     if ( !strcmp(token.string, "switch") )
+     {
+       sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
+       if ( !sep )
+       {
+         FreeWeightConfig2(cfg);
+         FreeSource(src);
+         return 0;
+       }
+       cfg->weights[cfg->numweights].firstseperator = sep;
+     }
+     else
+     {
+       if ( strcmp(token.string, "return") )
+       {
+         SourceError(src, "invalid name %s\n", token.string);
+         FreeWeightConfig2(cfg);
+         FreeSource(src);
+         return 0;
+       }
+       sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+       sep->index = 0;
+       sep->value = 999999;
+       sep->next  = 0;
+       sep->child = 0;
+       if ( !ReadFuzzyWeight(src, sep) )
+       {
+         FreeMemory(sep);
+         FreeWeightConfig2(cfg);
+         FreeSource(src);
+         return 0;
+       }
+       cfg->weights[cfg->numweights].firstseperator = sep;
+     }
+     if ( has_balance && !PC_ExpectTokenString(src, "}") )
+       goto LABEL_25;
+     ++cfg->numweights;
+     if ( !PC_ReadTokenHandle(src, token.string) )
+       goto LABEL_21;
+   }
+   SourceError(src, "invalid name %s\n", token.string);
+   FreeWeightConfig2(cfg);
+   FreeSource(src);
+   return 0;
+ }
 LABEL_21:
-  FreeSource(src);
-  if ( file_ref.filelen )
-    bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
-  else
-    bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
+ FreeSource(src);
+ if ( file_ref.filelen )
+   bi_Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
+ else
+   bi_Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
 }
 
