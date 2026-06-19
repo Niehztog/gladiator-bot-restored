@@ -23231,7 +23231,12 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
   while ( token.type == 3 )
   {
     if ( (token.subtype & 0x1000) == 0 )
-      goto LABEL_37;
+    {
+      SourceError(v2, "invalid token %s\n", token.string);
+      FreeSource(v2);
+      BotFreeMatchPieces(head);
+      return NULL;
+    }
     if ( token.intvalue >= 0xA )
     {
       SourceError(v2, "can't have more than %d match variables\n", 10);
@@ -23260,7 +23265,11 @@ LABEL_29:
     if ( PC_CheckTokenString(v2, endtoken) )
       return head;
     if ( !PC_ExpectTokenString(v2, ",") )
-      goto LABEL_35;
+    {
+      FreeSource(v2);
+      BotFreeMatchPieces(head);
+      return NULL;
+    }
     if ( !PC_ReadTokenHandle(v2, token.string) )
       return head;
     last = lastvar;
@@ -23304,13 +23313,11 @@ LABEL_29:
       }
       v2 = source;
     }
-LABEL_35:
     FreeSource(v2);
     BotFreeMatchPieces(head);
     return NULL;
   }
 
-LABEL_37:
   SourceError(v2, "invalid token %s\n", token.string);
   FreeSource(v2);
   BotFreeMatchPieces(head);
