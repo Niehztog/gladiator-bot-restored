@@ -17335,11 +17335,13 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
        * FIRST so the double product (thinktime*0.8) is not spilled to a
        * QWORD stack slot across the call (ref 1001f48d-1001f4a3:
        * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
-        goto LABEL_33;
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
+      {
       BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+      }
     }
     else
     {
@@ -17350,13 +17352,14 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       {
         VectorSubtract(target, bs->origin, dir);
         vectoangles(dir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
       else
       {
         vectoangles(v15.movedir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
     }
-    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
   }
   else
   {
@@ -17512,22 +17515,25 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
     if ( (v18.flags & 4) != 0 )
     {
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
-        goto LABEL_41;
+      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
+      {
       BotRoamGoal((_DWORD *)bs, target);
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+      }
     }
     else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v17, v10, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
     else
     {
       vectoangles(v18.movedir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
-    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
 LABEL_41:
     if ( (v18.flags & 8) != 0 )
