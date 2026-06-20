@@ -24831,19 +24831,17 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
      {
        if ( !v6 )
          goto LABEL_34;
-LABEL_20:
        v4 = 1;
-       goto LABEL_21;
      }
-     if ( (v3->flags & 2) == 0 )
+     else if ( (v3->flags & 2) == 0 )
      {
-       if ( !v6 )
-         goto LABEL_21;
-       goto LABEL_20;
+       if ( v6 )
+         v4 = 1;
      }
-     if ( v6 )
+     else if ( v6 )
+     {
        goto LABEL_34;
-LABEL_21:
+     }
      v3 = v3->next;
    }
    while ( v3 );
