@@ -17357,13 +17357,15 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       }
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-    goto LABEL_33;
   }
+  else
+  {
   v5 = LODWORD(v15.ideal_viewangles[1]);
   v6 = LODWORD(v15.ideal_viewangles[2]);
   *(int *)&bs->ideal_viewangles[0] = LODWORD(v15.ideal_viewangles[0]);
   *(int *)&bs->ideal_viewangles[1] = v5;
   *(int *)&bs->ideal_viewangles[2] = v6;
+  }
 LABEL_33:
   if ( BotFindEnemy(bs) )
   {
@@ -17505,8 +17507,9 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       *(int *)&bs->ideal_viewangles[0] = LODWORD(v18.ideal_viewangles[0]);
       *(int *)&bs->ideal_viewangles[1] = v6;
       *(int *)&bs->ideal_viewangles[2] = v7;
-      goto LABEL_41;
     }
+    else
+    {
     if ( (v18.flags & 4) != 0 )
     {
       if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
@@ -17525,6 +17528,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       vectoangles(v18.movedir, bs->ideal_viewangles);
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+    }
 LABEL_41:
     if ( (v18.flags & 8) != 0 )
       return 1;
@@ -33597,12 +33601,12 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
   else
     v12 |= 8u;
   a2->subtype = v12;
-  if ( !v19 )
-    goto LABEL_41;
-  BYTE1(v12) |= 8u;
+  if ( v19 )
+  {
+    BYTE1(v12) |= 8u;
 LABEL_40:
-  a2->subtype = v12;
-LABEL_41:
+    a2->subtype = v12;
+  }
   v26 = 2;
   do
   {
