@@ -13062,6 +13062,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int v10; // esi
   int v11; // eax
   int reached;
+  int reached_face;
   aas_reachabilitynode_t *v13; // eax
   float v14; // [esp+Ch] [ebp-14Ch]
   float v15; // [esp+28h] [ebp-130h]
@@ -13114,75 +13115,78 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
       AAS_FaceCenter(aasworld.faceindex[v5 + *((_DWORD *)v2 + 2)], facecenter);
       v7 = groundedpos[2] + 64.0f;
       if ( v7 <= facecenter[2] )
-        break;
+      {
+        v8 = 0;
+        reached_face = 0;
+        while ( 1 )
+        {
+          if ( v8 )
+            AAS_BFGJumpZVelocity(groundedpos);
+          else
+            v7 = AAS_RocketJumpZVelocity(groundedpos);
+          v15 = v7;
+          if ( AAS_HorizontalVelocityForJump(v15, groundedpos, facecenter, &v24) )
+          {
+            v7 = v24;
+            if ( v24 < 270.0f )
+            {
+              v28[2] = 0;
+              v28[0] = facecenter[0] - groundedpos[0];
+              v28[1] = facecenter[1] - groundedpos[1];
+              v7 = VectorNormalize(v28);
+              if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
+              {
+                VectorScale(v28, v24, v33);
+                v29[2] = v15;
+                v29[0] = 0;
+                v29[1] = 0;
+                qmemcpy(
+                  v35,
+                  AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1f, 61, 0),
+                  sizeof(v35));
+                if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
+                {
+                  v9 = 0;
+                  v10 = 0;
+                  v16 = 0;
+                  reached = 0;
+                  while ( 1 )
+                  {
+                    v14 = (float)v16;
+                    VectorMA((float *)v35, v14, v28, predictpos);
+                    v7 = predictpos[2] + 0.125;
+                    predictpos[2] = v7;
+                    if ( AAS_PointAreaNum(predictpos) == a2 )
+                    {
+                      reached = 1;
+                      break;
+                    }
+                    v10 -= 8;
+                    v9 += 8;
+                    v16 = v10;
+                    if ( v10 < -32 )
+                      break;
+                  }
+                  if ( reached && v9 <= 32 )
+                  {
+                    reached_face = 1;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+          if ( ++v8 >= 1 )
+            break;
+        }
+        if ( reached_face )
+          break;
+      }
     }
-LABEL_28:
     v11 = *((_DWORD *)v2 + 1);
     v23 = ++v5;
     if ( v5 >= v11 )
       return 0;
-  }
-  v8 = 0;
-  while ( 1 )
-  {
-    if ( v8 )
-      AAS_BFGJumpZVelocity(groundedpos);
-    else
-      v7 = AAS_RocketJumpZVelocity(groundedpos);
-    v15 = v7;
-    if ( AAS_HorizontalVelocityForJump(v15, groundedpos, facecenter, &v24) )
-    {
-      v7 = v24;
-      if ( v24 < 270.0f )
-      {
-        v28[2] = 0;
-        v28[0] = facecenter[0] - groundedpos[0];
-        v28[1] = facecenter[1] - groundedpos[1];
-        v7 = VectorNormalize(v28);
-        if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
-        {
-          VectorScale(v28, v24, v33);
-          v29[2] = v15;
-          v29[0] = 0;
-          v29[1] = 0;
-          qmemcpy(
-            v35,
-            AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1f, 61, 0),
-            sizeof(v35));
-          if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
-          {
-            v9 = 0;
-            v10 = 0;
-            v16 = 0;
-            reached = 0;
-            while ( 1 )
-            {
-              v14 = (float)v16;
-              VectorMA((float *)v35, v14, v28, predictpos);
-              v7 = predictpos[2] + 0.125;
-              predictpos[2] = v7;
-              if ( AAS_PointAreaNum(predictpos) == a2 )
-              {
-                reached = 1;
-                break;
-              }
-              v10 -= 8;
-              v9 += 8;
-              v16 = v10;
-              if ( v10 < -32 )
-                break;
-            }
-            if ( reached && v9 <= 32 )
-              break;
-          }
-        }
-      }
-    }
-    if ( ++v8 >= 1 )
-    {
-      v5 = v23;
-      goto LABEL_28;
-    }
   }
   v13 = AAS_AllocReachability();
   if ( !v13 )
