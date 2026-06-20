@@ -27847,38 +27847,37 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
        {
         case 2:
           v16 = BotTravel_Walk(&v31, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
         case 3:
         case 0xA:
           goto LABEL_56;
         case 4:
           v16 = BotFinishTravel_BarrierJump(&v32, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
         case 5:
           v16 = BotFinishTravel_Jump(&v25, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
         case 6:
           v16 = BotTravel_Ladder(&v29, ms, &v20);
-          goto LABEL_41;
+          moveresult = *v16; break;
         case 7:
           v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &v20);
-          goto LABEL_41;
+          moveresult = *v16; break;
         case 8:
 LABEL_35:
           v16 = BotTravel_Swim(&v24, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
         case 9:
           v16 = BotFinishTravel_WaterJump(&v28, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
         case 0xB:
           v16 = BotFinishTravel_Elevator(&v23, ms, &v20);
-          goto LABEL_41;
+          moveresult = *v16; break;
         case 0xC:
           v16 = BotFinishTravel_WeaponJump(&v30, ms, &v20);
-          goto LABEL_41;
+          moveresult = *v16; break;
         case 0xE:
           v16 = BotTravel_Grapple(&v26, ms, &v20);
-LABEL_41:
           moveresult = *v16;
           break;
         default:
@@ -27922,39 +27921,39 @@ LABEL_27:
        {
          case 2:
            v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 3:
            v16 = BotTravel_Crouch(&v33, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 4:
            v16 = BotTravel_BarrierJump(&v30, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 5:
            v16 = BotTravel_Jump(&v28, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 6:
            v16 = BotTravel_Ladder(&v26, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
          case 7:
            v16 = BotTravel_WalkOffLedge(&v23, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
          case 8:
            goto LABEL_35;
          case 9:
            v16 = BotTravel_WaterJump(&v25, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 0xA:
            v16 = BotTravel_Teleport(&v27, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 0xB:
            v16 = BotTravel_Elevator(&v29, ms, &v20);
-            goto LABEL_41;
+            moveresult = *v16; break;
          case 0xC:
            v16 = BotTravel_RocketJump(&v31, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
          case 0xE:
            v16 = BotTravel_Grapple(&v32, ms, &v20);
-           goto LABEL_41;
+           moveresult = *v16; break;
          default:
            bi_Print(PRT_FATAL, "travel type %d not implemented yet\n", v20.traveltype);
            break;
