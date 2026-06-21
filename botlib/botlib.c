@@ -7277,7 +7277,12 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 int __cdecl AAS_BestReachableEntityArea(int entitynum)
 {
   /* +0x7c (124) is the entity's area-chain head (aas_entity_t::areas),
-   * accessed through the side-band-aware macro. */
+   * accessed through the side-band-aware macro.  Ref has ONE extra (dead)
+   * `lea eax,&entities[entnum]` before the .areas load — the Q3 form
+   * `ent = &aasworld.entities[entnum]; ent->areas` — but MSVC6 /O2 in our
+   * build folds ent->areas into the indexed load and eliminates that lea even
+   * with the explicit address-of (tested 2026-06-21, 32-bit-gated). The dead
+   * lea is an un-reproducible MSVC6 micro-quirk; OUR-1 / 1 differing line. */
   aas_link_t *links = AAS_EntAreaLink(entitynum);
   return AAS_BestReachableLinkArea(links);
 }
@@ -29519,13 +29524,26 @@ int __cdecl EA_EndRegular(int client, float thinktime)
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
   dword_10063FE0(client, ea);
-  jumped_this_frame = ea->flags & ACTION_JUMP;
+  /* Clear the non-flag fields first so MSVC6 materialises the shared zero
+   * (`xor eax,eax`) BEFORE the `ea->flags & ACTION_JUMP` mask — the mask then
+   * sets the ZF that the trailing `if` consumes, and the field stores (which
+   * don't touch flags) preserve it.  Reading `jumped_this_frame` after these
+   * clears is value-identical (they don't write ea->flags).  Doing the mask
+   * first instead forces a flag-safe `mov eax,0` for the clears plus a second
+   * `xor eax,eax` for the return (the OUR+1). */
   ea->thinktime = 0.0f;
   ea->dir[0] = ea->dir[1] = ea->dir[2] = 0.0f;
   ea->speed    = 0.0f;
+  jumped_this_frame = ea->flags & ACTION_JUMP;
   ea->flags    = 0;
   if ( jumped_this_frame )
     ea->flags = EA_JUMPEDLASTFRAME;
+  /* Residual: ref reuses the live eax=0 from the field clears for this
+   * `return 0`; MSVC6 here re-materialises it (`xor eax,eax` at the if-merge)
+   * = the lone OUR+1.  Can't void-ify (Q3's `void EA_EndRegular`) — the only
+   * caller sub_10028A40 forwards the result (`return EA_EndRegular(...)`,
+   * MATCH as call+ret) and needs the int; a convergent-exit `result` var
+   * doesn't move it.  A genuine cl.exe return-constant-reuse tie. */
   return 0;
 }
 
