@@ -54,25 +54,21 @@
  * Forward declarations for implementations in botlib.c
  * --------------------------------------------------------------------- */
 
+/* The three interface blocks (botimport/botstate/bot_exports) + the field
+ * aliases bi_Print, botlibsetup, maxclients, maxentities, libvar_sv_*, … */
+#include "botlib_state.h"
+
 /* Validation helpers (real ones; they print on failure) */
 extern int  BotLibSetup(const char *str);                /* 0x100379A0 */
 extern int  ValidClientNumber(int num, const char *str); /* 0x10037900 */
 extern int  ValidEntityNumber(int num, const char *str); /* 0x10037950 */
-
-/* Engine import pointer (bi_Print) */
-extern int (*bi_Print)(int type, const char *fmt, ...);  /* @ 0x10063FE8 */
-
-/* Globals */
-extern int  botlibsetup;     /* @ 0x10064020 */
-extern int  maxclients;      /* @ 0x10064028 */
-extern int  maxentities;     /* @ 0x10064024 */
 
 /* Slot 1 helpers */
 extern void   Swap_Init(void);                            /* 0x100439F0 — game/q_shared.c, included at end of botlib.c */
 extern int    BotSetupLibrary(void);                      /* 0x10029C90 inner */
 extern float  LibVarValue(char *name, char *default_str); /* 0x10038A90 */
 extern int    BotSetupMoveAI(void);                       /* 0x10037A00 */
-extern int    sub_1000EDC0(int maxentities, int maxclients);
+extern int    sub_1000EDC0(int numentities, int numclients);  /* params renamed: maxclients/maxentities are now botlib_state.h macros */
 extern int    EA_Setup(void);                             /* 0x10037660 */
 extern void   Log_Open(char *filename);                   /* 0x10038BE0 */
 
@@ -200,20 +196,6 @@ int Export_BotSetupLibrary(void)
  * calls will then take the "not setup" path.  Other globals are also
  * zeroed for faithfulness.
  * ========================================================================= */
-extern void *bi_BotClientCommand, *bi_Trace, *bi_PointContents,
-            *bi_GetMemory, *bi_FreeMemory, *bi_DebugLineCreate,
-            *bi_DebugLineShow;
-extern int dword_10063FE0;  /* imp->BotInput pointer */
-extern int dword_1006402C;  /* bottime */
-extern struct libvar_s *libvar_sv_friction, *libvar_sv_stopspeed,
-                       *libvar_sv_gravity, *libvar_sv_waterfriction,
-                       *libvar_sv_watergravity, *libvar_sv_maxvelocity,
-                       *libvar_sv_maxwalkvelocity, *libvar_sv_maxcrouchvelocity,
-                       *libvar_sv_maxswimvelocity, *libvar_sv_maxaccelerate,
-                       *libvar_sv_airaccelerate, *libvar_sv_step,
-                       *libvar_sv_maxbarrier, *libvar_sv_maxsteepness,
-                       *libvar_sv_jumpvel, *libvar_sv_maxwaterjump;
-
 //----- (10037CF0) --------------------------------------------------------
 int Export_BotShutdownLibrary(void)
 {
@@ -228,46 +210,16 @@ int Export_BotShutdownLibrary(void)
     Log_Close();
     DumpMemory();
 
-    /* Zero the globals at 0x10064020..0x1006406C (20 dwords).  In the
-     * original these are addressed as a contiguous block, but the linker
-     * makes no such guarantee in our reconstruction — clear each by name. */
+    /* Clear the three interface blocks as whole aggregates — the original
+     * emits three rep stos (20 / 10 / 20 dwords) over the contiguous blocks
+     * at 0x10064020 (botstate), 0x10063FE0 (botimport) and 0x10063F80
+     * (bot_exports), then a final scalar botlibsetup = 0.  sizeof keeps the
+     * clears 64-bit-correct (the libvar/import/export pointers are 8 B each on
+     * aarch64).  See botlib_state.h for the block layout + field aliases. */
+    memset(&botstate,    0, sizeof(botstate));     /* block 1 @0x10064020, 20 dwords */
+    memset(&botimport,   0, sizeof(botimport));    /* block 2 @0x10063FE0, 10 dwords */
+    memset(&bot_exports, 0, sizeof(bot_exports));  /* block 3 @0x10063F80, 20 dwords */
     botlibsetup = 0;
-    maxentities = 0;
-    maxclients  = 0;
-    dword_1006402C = 0;
-    libvar_sv_friction         = NULL;
-    libvar_sv_stopspeed        = NULL;
-    libvar_sv_gravity          = NULL;
-    libvar_sv_waterfriction    = NULL;
-    libvar_sv_watergravity     = NULL;
-    libvar_sv_maxvelocity      = NULL;
-    libvar_sv_maxwalkvelocity  = NULL;
-    libvar_sv_maxcrouchvelocity= NULL;
-    libvar_sv_maxswimvelocity  = NULL;
-    libvar_sv_maxaccelerate    = NULL;
-    libvar_sv_airaccelerate    = NULL;
-    libvar_sv_step             = NULL;
-    libvar_sv_maxbarrier       = NULL;
-    libvar_sv_maxsteepness     = NULL;
-    libvar_sv_jumpvel          = NULL;
-    libvar_sv_maxwaterjump     = NULL;
-
-    /* Zero the bot_import_t globals at 0x10063FE0..0x10064007 (10 dwords) */
-    dword_10063FE0 = 0;
-    bi_BotClientCommand = NULL;
-    bi_Print            = NULL;
-    bi_Trace            = NULL;
-    bi_PointContents    = NULL;
-    bi_GetMemory        = NULL;
-    bi_FreeMemory       = NULL;
-    bi_DebugLineCreate  = NULL;
-    /* DebugLineDelete slot — not stored in a named global */
-    bi_DebugLineShow    = NULL;
-
-    /* The bot_export_t table is a static inside GetBotAPI; it is not
-     * directly addressable here.  The engine holds a pointer to it but
-     * after shutdown should not dispatch into it (botlibsetup=0 makes
-     * every wrapper return 1).  Skipping the explicit memset is safe. */
 
     return 0;
 }

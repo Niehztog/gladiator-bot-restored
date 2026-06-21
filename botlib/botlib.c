@@ -101,7 +101,7 @@
  *              aasworld.numreachabilityareas,
  *              aasworld.linkheap, aasworld.linkheapsize, aasworld.freelinks,
  *              aasworld.arealinkedentities,
- *              aasworld.numentities, aasworld.maxclients, aasworld.entities,
+ *              aasworld.numentities, aasworld.aas_maxclients, aasworld.entities,
  *              aasworld.frameroutingupdates,
  *              aasworld.oldestcache, aasworld.newestcache,
  *              aasworld.travelflagfortype[32],
@@ -148,6 +148,9 @@
 #include "bot_state.h"   /* bot_state_t, BOT_* offset constants (reconstructed) */
 #include "chat_state.h"  /* bot_match_t, bot_matchpiece_t etc. */
 #include "libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "botlib_state.h"   /* botimport / botstate / bot_exports blocks +
+                               the bi_Print, maxclients, libvar_sv_* … field
+                               aliases (must precede any use of those names) */
 #include "botlib_structs.h" /* weaponinfo_t, projectileinfo_t, iteminfo_t,
                                soundinfo_t, script_t, source_t, define_t,
                                indent_t, punctuation_t, fuzzyseperator_t,
@@ -1574,55 +1577,20 @@ libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) 
  * Used only by sub_100376B0 / sub_100377E0 (script CRC registration). */
 struct scriptcrc_s;
 struct scriptcrc_s *dword_10063F2C; // weak
-int dword_10063F80; // weak
-int dword_10063F84; // weak
-int dword_10063F88; // weak
-int dword_10063F8C; // weak
-int dword_10063F90; // weak
-int dword_10063F94; // weak
-int dword_10063F98; // weak
-int dword_10063F9C; // weak
-int dword_10063FA0; // weak
-int dword_10063FA4; // weak
-int dword_10063FA8; // weak
-int dword_10063FAC; // weak
-int dword_10063FB0; // weak
-int dword_10063FB4; // weak
-int dword_10063FB8; // weak
-int dword_10063FBC; // weak
-int dword_10063FC0; // weak
-int dword_10063FC4; // weak
-int dword_10063FC8; // weak
-int dword_10063FCC; // weak
-void (__cdecl *dword_10063FE0)(int, ea_state_t *); // bi_BotInput — engine: void(int client, bot_input_t *bi); ea_state_t layout-matches bot_input_t (both 36 B)
-int (__cdecl *bi_BotClientCommand)(int client, char *str, ...); // weak
-int (*bi_Print)(_DWORD, const char *, ...); // weak
-void *(__cdecl *bi_Trace)(void *retbuf, float *start, float *mins, float *maxs, float *end, int passent, int contentmask); // weak
-int (__cdecl *bi_PointContents)(float *point); // engine's BSP-level CONTENTS_* lookup (takes vec3)
-void *(__cdecl *bi_GetMemory)(int); // weak — engine malloc; returns real pointer (was IDA-typed as int)
-void  (__cdecl *bi_FreeMemory)(void *); // weak — engine free
-int (*bi_DebugLineCreate)(void); // weak
-int (__cdecl *bi_DebugLineShow)(int, float *, float *, int); // engine: void(int, vec3_t, vec3_t, int) — vec3_t decays to float* across the ABI boundary
-int botlibsetup; // weak
-int maxentities; // weak
-int maxclients; // weak
-int dword_1006402C; // weak
-libvar_t *libvar_sv_friction; /* libvar handle */
-libvar_t *libvar_sv_stopspeed; /* libvar handle */
-libvar_t *libvar_sv_gravity; /* libvar handle */
-libvar_t *libvar_sv_waterfriction; /* libvar handle */
-libvar_t *libvar_sv_watergravity; /* libvar handle */
-libvar_t *libvar_sv_maxvelocity; /* libvar handle */
-libvar_t *libvar_sv_maxwalkvelocity; /* libvar handle */
-libvar_t *libvar_sv_maxcrouchvelocity; /* libvar handle */
-libvar_t *libvar_sv_maxswimvelocity; /* libvar handle */
-libvar_t *libvar_sv_maxaccelerate; /* libvar handle */
-libvar_t *libvar_sv_airaccelerate; /* libvar handle */
-libvar_t *libvar_sv_step; /* libvar handle */
-libvar_t *libvar_sv_maxbarrier; /* libvar handle */
-libvar_t *libvar_sv_maxsteepness; /* libvar handle */
-libvar_t *libvar_sv_jumpvel; /* libvar handle */
-libvar_t *libvar_sv_maxwaterjump; /* libvar handle */
+/* The three interface blocks live in botlib_state.h as typed aggregates so
+ * GetBotAPI's import copy and Export_BotShutdownLibrary's clears reproduce the
+ * original rep movs / rep stos (the IDA per-field dword_/bi_ symbols scattered
+ * across .bss and defeated the bulk ops).  Storage is defined here; the field
+ * aliases (bi_Print, maxclients, libvar_sv_*, …) are in the header.
+ *
+ * NB: the 20 IDA "globals" dword_10063F80..dword_10063FCC were the export
+ * table seen field-by-field — they ARE bot_exports (block 3, @0x10063F80) and
+ * are dropped here as dead duplicates (each had zero real uses).  bi_BotInput
+ * was dword_10063FE0; the previously-missing DebugLineDelete slot is restored
+ * inside botimport so the block spans the full 10 import dwords. */
+botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callbacks */
+botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
+bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
 ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
 weaponconfig_t *dword_10064080; /* current weapon config (was dword_10064080) */
 levelitem_t *dword_10064344; // levelitem free-list head
@@ -7300,7 +7268,7 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 
   v6 = 1;
   v7 = 0;
-  if ( aasworld.maxclients >= 1 )
+  if ( aasworld.aas_maxclients >= 1 )
   {
     do
     {
@@ -7317,7 +7285,7 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
       }
       ++v6;
     }
-    while ( v6 <= aasworld.maxclients );
+    while ( v6 <= aasworld.aas_maxclients );
   }
   return v7;
 }
@@ -8815,7 +8783,7 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
 //----- (1000EDC0) --------------------------------------------------------
 int __cdecl sub_1000EDC0(int a1, int a2)
 {
-  aasworld.maxclients = a2;
+  aasworld.aas_maxclients = a2;
   aasworld.numentities = a1;
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
@@ -29779,31 +29747,15 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
  * original binary. */
 bot_export_t *GetBotAPI(bot_import_t *a1)
 {
-  extern void botlib_install_exception_handler(void);
-  /* bot_export_t from game/botlib.h: properly typed function pointers,
-   * pointer-sized on all platforms (fixes the 32-bit int truncation that
-   * corrupted every slot on 64-bit Linux). */
-  static bot_export_t bot_exports;
-  bot_import_t *imp = a1;
-
-  botlib_install_exception_handler();
-
-  /* Store each import callback in its named global. The original source had a
-   * single 'bot_import_t bi' global; IDA decompiled each field as a separate
-   * dword_XXXXXXXX / bi_xxx symbol and the struct copy as qmemcpy.  In GCC
-   * those symbols are independent (non-contiguous), so qmemcpy to
-   * &dword_10063FE0 never reaches bi_GetMemory.  Named field access is the
-   * correct reconstruction of the original assignment. */
-  dword_10063FE0      = imp->BotInput;
-  bi_BotClientCommand = imp->BotClientCommand;
-  bi_Print            = imp->Print;
-  bi_Trace            = imp->Trace;
-  bi_PointContents    = imp->PointContents;  /* used by BotValidChatPosition's lava/slime/water check */
-  bi_GetMemory        = imp->GetMemory;
-  bi_FreeMemory       = imp->FreeMemory;
-  bi_DebugLineCreate  = imp->DebugLineCreate;
-  /* imp->DebugLineDelete (offset 32) — same, not called; no bi_ global. */
-  bi_DebugLineShow      = imp->DebugLineShow;
+  /* Copy the engine import table into the contiguous botimport block in one
+   * shot.  botimport_block_t is exactly the 10 import callbacks, so the
+   * original emits `rep movs` of 10 dwords here (the IDA per-field bi_Print,
+   * dword_10063FE0, … symbols scattered across .bss and turned this into 9
+   * separate field stores).  sizeof keeps it 64-bit-correct (10 pointers).
+   * NB: the original GetBotAPI makes no other call — the SEH crash-handler
+   * install was moved to botlib_debug.c's DllMain (where the 1999 DLL
+   * installed it), so it no longer appears as a spurious leading call here. */
+  memcpy(&botimport, a1, sizeof(botimport));
 
   bot_exports.BotVersion           = Export_BotVersion;
   bot_exports.BotSetupLibrary      = Export_BotSetupLibrary;

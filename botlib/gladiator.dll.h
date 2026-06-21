@@ -479,7 +479,8 @@ typedef struct aas_world_s {
     struct aas_link_s  *freelinks;  /* +0x1B0 */
     struct aas_link_s **arealinkedentities; /* +0x1B4 */
     int   numentities;              /* +0x1B8 */
-    int   maxclients;               /* +0x1BC */
+    int   aas_maxclients;           /* +0x1BC  (renamed from `maxclients` to avoid
+                                       the botlib_state.h `maxclients` global alias) */
     aas_entity_t *entities;         /* +0x1C0  (pointer; 32-bit binary stored as int) */
     struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
     struct indexlist_s *soundindex_table;  /* +0x1C8 */

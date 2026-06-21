@@ -67,6 +67,8 @@ static void blog_open(void)
 /* -----------------------------------------------------------------------
  * DllMain — called by Windows when the DLL is loaded/unloaded
  * --------------------------------------------------------------------- */
+void botlib_install_exception_handler(void);  /* defined below */
+
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
     (void)hinstDLL; (void)lpReserved;
@@ -77,6 +79,10 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
         blog_open();
         botlib_log("DllMain: DLL_PROCESS_ATTACH — gladiator.dll loaded");
         botlib_log("  Base address: 0x%08X", (unsigned)hinstDLL);
+        /* Install the SEH crash filter at load time — the faithful location
+         * (the original 1999 DLL installed it here, not from GetBotAPI, which
+         * makes no such call).  Inert on Linux (no DllMain / no SEH). */
+        botlib_install_exception_handler();
         break;
 
     case DLL_PROCESS_DETACH:
