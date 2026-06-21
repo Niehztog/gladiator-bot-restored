@@ -15120,8 +15120,15 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   v14.fraction = 1.0;
   v6 = aasworld.arealinkedentities[areanum];
   v15 = 0;
+  /* Both failure guards reach ONE shared `return 0` (goto fail) — the ref DLL
+   * shares that return-0 block (both guards `je` to it), giving 71=71 insns
+   * (INSN_COUNT_MATCH).  Separate `return 0` statements compile to two inlined
+   * epilogues (OUR+4).  LOAD-BEARING: do not de-goto.  (Residual: MSVC6 still
+   * inlines the 2nd guard's copy and uses an immediate 0 where ref reuses the
+   * loop-terminator esi=NULL for trace->area/planenum — cl.exe cross-jump +
+   * register-held-zero ties.) */
   if ( !v6 )
-    return 0;
+    goto fail;
   do
   {
     if ( v6->entnum != passent )
@@ -15133,13 +15140,15 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   }
   while ( v6 );
   if ( !v15 )
-    return 0;
+    goto fail;
   trace->startsolid = v14.startsolid;
   trace->ent = v14.ent;
   VectorCopy(v14.endpos, trace->endpos);
   trace->area = 0;
   trace->planenum = 0;
   return 1;
+fail:
+  return 0;
 }
 
 //----- (1001B260) --------------------------------------------------------
