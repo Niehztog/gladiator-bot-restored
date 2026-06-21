@@ -24809,7 +24809,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
      v6 = 0;
      if ( (v3->flags & 0x20) != 0 )
      {
-       LOBYTE(v6) = *(_DWORD *)cs == 1;
+       v6 = *(_DWORD *)cs == 1;
      }
      else if ( (v5 & 0x40) != 0 )
      {
