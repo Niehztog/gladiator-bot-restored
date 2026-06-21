@@ -11445,9 +11445,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         face1num = aasworld.faceindex[v9 + area1->firstface];
         face1num = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
         face1 = &aasworld.faces[face1num];
-        LOBYTE(face1num) = face1->faceflags;
         v66 = face1;
-        if ( (face1num & 4) != 0 )
+        if ( (face1->faceflags & 4) != 0 )
         {
           v13 = area2->numfaces;
           v14 = 0;
@@ -16837,7 +16836,7 @@ LABEL_106:
             bs->ltgtype = 0;
             return 0;
           }
-          LOBYTE(v38) = v38 & 0xFB;
+          v38 &= 0xFFFFFFFB;
           BotCurPatrolPoint(bs) = v39->next;
         }
         else
@@ -16848,7 +16847,7 @@ LABEL_106:
             BotCurPatrolPoint(bs) = v41;
             goto LABEL_106;
           }
-          LOBYTE(v38) = v38 | 4;
+          v38 |= 4;
           BotCurPatrolPoint(bs) = v39->prev;
         }
         bs->patrolflags = v38;
@@ -19114,12 +19113,12 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
           v13 = bs->flags;
           if ( (v13 & 4) != 0 )
           {
-            LOBYTE(v13) = v13 & 0xFB;
+            v13 &= 0xFFFFFFFB;
             v12 = 1;
           }
           else
           {
-            LOBYTE(v13) = v13 | 4;
+            v13 |= 4;
           }
           bs->flags = v13;
         }
@@ -22193,7 +22192,7 @@ LABEL_52:
             v14 = token.intvalue;
           if ( v16 && (unsigned char)pairs[token.intvalue].type )
           {
-            LOBYTE(v12) = token.intvalue;
+            v12 = token.intvalue;
             v11 = "characteristic %d already initialized\n";
             goto LABEL_54;
           }
