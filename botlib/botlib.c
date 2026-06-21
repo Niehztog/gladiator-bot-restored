@@ -4240,7 +4240,7 @@ void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
       FreeMemory(ep->value);
       vlen = strlen(value) + 1;
       ep->value = (char *)GetMemory(vlen);
-      memcpy(ep->value, value, vlen);
+      strcpy(ep->value, value);
       return;
     }
   }
@@ -4249,10 +4249,10 @@ void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
   *head    = ep;
   klen = strlen(key) + 1;
   ep->key = (char *)GetMemory(klen);
-  memcpy(ep->key, key, klen);
+  strcpy(ep->key, key);
   vlen = strlen(value) + 1;
   ep->value = (char *)GetMemory(vlen);
-  memcpy(ep->value, value, vlen);
+  strcpy(ep->value, value);
 }
 
 //----- (10006760) --------------------------------------------------------
