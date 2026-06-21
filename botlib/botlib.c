@@ -7235,10 +7235,15 @@ int __cdecl sub_1000B1F0(float *ref, int target)
   vec3_t delta;
   float d;
 
-  best_dist  = 99999.0f;
   best_index = 0;
-  if ( aasworld.numentities <= 0 )
-    return best_index;
+  best_dist  = 99999.0f;
+  /* No explicit `if (numentities <= 0) return` guard: the for-loop's own
+   * entry test (i < numentities) skips the body when numentities <= 0, and
+   * the single `return best_index` tail returns 0 for that path.  The
+   * original shares one return epilogue between the empty and normal exits
+   * (ref: `mov ecx,numentities; test ecx,ecx; jle <tail>`, loop warm) — an
+   * explicit early `return best_index;` instead emits a second inline
+   * epilogue (OUR+3). */
   for ( i = 0; i < aasworld.numentities; i++ )
   {
     ent = &aasworld.entities[i].i;
