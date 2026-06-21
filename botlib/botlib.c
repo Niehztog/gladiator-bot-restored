@@ -25443,11 +25443,11 @@ int BotUpdateEntityItems()
   result = (int)(intptr_t)dword_1006435C;
   v18 = dword_1006435C;
   if ( !dword_1006435C )
-    return result;
+    goto done;
   result = AAS_NextBSPEntity(0);
   v3 = result;
   if ( !result )
-    return result;
+    goto done;
   v4 = v19;
   do
   {
@@ -25469,11 +25469,9 @@ int BotUpdateEntityItems()
         break;
       if ( v7 == v3 )
       {
-        v8 = v22[5];
-        v9 = v22[6];
         v5->origin[0] = v22[4];
-        v5->origin[1] = v8;
-        v5->origin[2] = v9;
+        v5->origin[1] = v22[5];
+        v5->origin[2] = v22[6];
         goto LABEL_23;
       }
 LABEL_19:
@@ -25486,10 +25484,9 @@ LABEL_19:
     v21[2] = v5->origin[2] - v22[6];
     if ( VectorLength(v21) >= 20.0f )
       goto LABEL_19;
-    v10 = v22[4];
     v5->origin[1] = v22[5];
     v5->entitynum = v3;
-    v5->origin[0] = v10;
+    v5->origin[0] = v22[4];
     v5->origin[2] = v22[6];
     v5->areanum = AAS_BestReachableArea(
               (int *)v5->origin,
@@ -25516,15 +25513,12 @@ LABEL_25:
       if ( v4 < v11 )
       {
         v13 = (levelitem_t *)AllocLevelItem();
-        v14 = v22[4];
-        v15 = v22[5];
         v13->entitynum = v3;
         v16 = v3 + dword_10064354;
-        v13->origin[0] = v14;
-        v17 = v22[6];
+        v13->origin[0] = v22[4];
         v13->number = v16;
-        v13->origin[1] = v15;
-        v13->origin[2] = v17;
+        v13->origin[1] = v22[5];
+        v13->origin[2] = v22[6];
         v13->iteminfo = v4;
         v13->areanum = AAS_BestReachableArea(
                                   (int *)v13->origin,
@@ -25540,6 +25534,10 @@ LABEL_31:
     v3 = result;
   }
   while ( result );
+done:
+  /* The two pre-loop guards (no itemconfig / no first entity) share this single
+   * return tail in the original (ref: je → here); inlining `return result;` at
+   * each emits two epilogue copies. */
   return result;
 }
 
