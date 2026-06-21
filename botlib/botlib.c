@@ -1062,7 +1062,7 @@ int __cdecl PS_ReadWhiteSpace(script_t *a1);
 int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2);
 int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3);
 int __cdecl PS_ReadName(script_t *a1, intptr_t a2);
-char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4);
+void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4);
 int __cdecl PS_ReadNumber(script_t *a1, token_t *a2);
 int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
 int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
@@ -33383,33 +33383,34 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
  * flow, arithmetic, and disassembled instruction order are preserved 1:1.
  * Subtype flags match the original: 0x800=float 0x8=decimal 0x100=hex
  * 0x200=octal 0x400=binary. */
-char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4)
+void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4)
 {
   char *p;
-  unsigned int dotfound;
+  unsigned int dotfound = 0;
   char i;
 
   *a3 = 0;
   *a4 = 0.0;
   if ( (a2 & 0x800) != 0 )
   {
-    dotfound = 0;
     for ( p = a1; (i = *p) != 0; ++p )
     {
       if ( i == 46 )
       {
         if ( dotfound )
-          return (char)dotfound;
+          return;
         dotfound = 10;
-        continue;
+        ++p;
       }
-      if ( !dotfound )
+      if ( dotfound )
+      {
+        *a4 = (double)((char)*p - 48) / (double)dotfound + *a4;
+        dotfound *= 10;
+      }
+      else
       {
         *a4 = (double)(i - 48) + *a4 * 10.0;
-        continue;
       }
-      *a4 = (double)((char)*p - 48) / (double)dotfound + *a4;
-      dotfound *= 10;
     }
     *a3 = (int)*a4;
   }
@@ -33421,20 +33422,15 @@ char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4)
   }
   else if ( (a2 & 0x100) != 0 )
   {
-    p = a1 + 2;
-    while ( *p )
+    for ( p = a1 + 2; *p; ++p )
     {
-      int v = 16 * *a3;
-      char c = *p;
-      int add;
-      if ( c >= 'a' && c <= 'f' )
-        add = c - 87;
-      else if ( c >= 'A' && c <= 'F' )
-        add = c - 55;
+      *a3 <<= 4;
+      if ( *p >= 'a' && *p <= 'f' )
+        *a3 += *p - 'a' + 10;
+      else if ( *p >= 'A' && *p <= 'F' )
+        *a3 += *p - 'A' + 10;
       else
-        add = c - 48;
-      *a3 = v + add;
-      ++p;
+        *a3 += *p - '0';
     }
     *a4 = (double)(unsigned int)*a3;
   }
@@ -33450,7 +33446,6 @@ char __cdecl NumberValue(char *a1, __int16 a2, int *a3, double *a4)
       *a3 = *p + 2 * *a3 - 48;
     *a4 = (double)(unsigned int)*a3;
   }
-  return 0;
 }
 
 //----- (1003ECD0) --------------------------------------------------------
