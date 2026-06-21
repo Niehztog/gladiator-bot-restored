@@ -3546,22 +3546,19 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
    * Original `int v5` truncated `dword_100674F4 + 20 * *i` on aarch64. */
   char *v5;
   int v6; // edx
-  double v8; // st7
+  float v8; // st7
   int v12; // [esp+14h] [ebp+4h]
 
   v3 = 0;
   v12 = a1[1];
   if ( v12 <= 0 )
     return 1;
-  for ( i = (unsigned __int16 *)(dword_10067544 + 4 * *a1); ; i += 2 )
+  i = (unsigned __int16 *)(dword_10067544 + 4 * *a1);
+  for ( ; v3 < v12; ++v3, i += 2 )
   {
     v5 = dword_100674F4 + 20 * *i;
     v6 = *(_DWORD *)(v5 + 16);
-    if ( v6 >= 3 )
-    {
-      v8 = *(float *)(v5 + 8) * a2[2] + *(float *)(v5 + 4) * a2[1] + *(float *)v5 * *a2;
-    }
-    else
+    if ( v6 < 3 )
     {
       /* axial plane shortcut: signbits of normal[v6] determine sign of a2[v6].
        * Original asm uses fcomps result (C0|C3 = "<= 0") to decide negation. */
@@ -3569,12 +3566,14 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
       if ( *(float *)(v5 + 4 * v6) <= 0.0f )
         v8 = -v8;
     }
+    else
+    {
+      v8 = *(float *)(v5 + 8) * a2[2] + *(float *)(v5 + 4) * a2[1] + *(float *)v5 * *a2;
+    }
     if ( v8 - *(float *)(v5 + 12) > 0.005 )
-      break;
-    if ( ++v3 >= v12 )
-      return 1;
+      return 0;
   }
-  return 0;
+  return 1;
 }
 
 //----- (100057A0) --------------------------------------------------------
