@@ -2655,73 +2655,76 @@ LABEL_30:
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
 {
   int v9; // ebp
-  qboolean v10; // zf
   /* v11: BSP-leaf base pointer (`dword_100674EC + 28 * a1`).  Int→char* widening. */
   char *v11;
-  /* v12: output-struct base pointer (caller passes `(intptr_t)v150` stack
-   * array via a9).  IDA typed it `int v12` which truncates on aarch64. */
-  char *v12;
   _DWORD *v13; // edi
   int v16; // ecx
-  /* v17: BSP plane-pointer base (`dword_100674F4 + 20 * plane_index`).
-   * Same int→char* widening as the rest of the BSP-base fixes. */
+  /* v17: BSP plane-pointer base (`dword_100674F4 + 20 * plane_index`).  Stays a
+   * char* into the do-not-retype BSP plane lump; fields read positionally. */
   char *v17;
-  int v18; // ecx
-  int v20; // [esp+10h] [ebp-10h] BYREF
+  bsp_trace_t *trace;  /* the caller's output struct (param a9), was `char *v12` */
+  float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by sub_10003C90
   vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by sub_10003C90 via a11
   _DWORD *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
-  v10 = *(_WORD *)(dword_100674EC + 28 * a1 + 26) == 0;
   v11 = dword_100674EC + 28 * a1;
   v24 = 0;
-  if ( v10 )
-    return 0;
-  v12 = (char *)a9;
+  /* First guard reuses the loop counter v9 (=0) as the compare operand, so the
+   * leaf brush-count word compares as `numbrushes <= v9` → ref's `cmp WORD,bp;
+   * jbe` (not `... ; je` from a literal `== 0`).  Same skip-when-empty result. */
+  if ( *(unsigned __int16 *)(v11 + 26) <= (unsigned int)v9 )
+    goto fail;
+  trace = (bsp_trace_t *)a9;
   do
   {
     v13 = (_DWORD *)(dword_1006753C
                    + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v9 + *(unsigned __int16 *)(v11 + 24))));
     if ( (v13[2] & a8) != 0
-      && sub_10003C90(v13, a2, a3, (int *)a4, a5, a6, a7, (float *)(v12 + 8), (_DWORD *)&a9, (float *)&v20, endpos) )
+      && sub_10003C90(v13, a2, a3, (int *)a4, a5, a6, a7, &trace->fraction, (_DWORD *)&a9, &v20, endpos) )
     {
       v24 = v13;
     }
     ++v9;
   }
   while ( v9 < *(unsigned __int16 *)(v11 + 26) );
-  if ( !v24 )
-    return 0;
+  /* Wrap the success path in `if (v24)` (rather than `if (!v24) goto fail`) so
+   * the fill code is the warm fall-through and the shared return-0 stays a COLD
+   * tail block — ref reaches it via je/jbe from both guards (cl.exe otherwise
+   * inlines the short return-0 warm here).  Bare-brace wrap = no re-indent. */
+  if ( v24 )
+  {
   if ( endpos[0] == *(float *)a4 && endpos[1] == *(float *)(a4 + 4) && endpos[2] == *(float *)(a4 + 8) )
   {
-    *(_DWORD *)v12 = 1;
-    *(_DWORD *)(v12 + 4) = 1;
-    *(_DWORD *)(v12 + 8) = 0;
+    trace->allsolid   = 1;
+    trace->startsolid = 1;
+    trace->fraction   = 0;
   }
   else
   {
-    *(_DWORD *)v12 = 0;
-    *(_DWORD *)(v12 + 4) = 0;
+    trace->allsolid   = 0;
+    trace->startsolid = 0;
   }
-  /* VectorCopy(endpos -> result[+12]) as a raw 32-bit bit-copy: ref emits three
-   * integer `mov` (mov reg,[endpos]; mov [v12+N],reg), NOT fld/fstp.  Routing the
-   * copy through `float` locals (v14/v15) forced fld/fstp at [v12+16]/[v12+20]
-   * (deviation-J class — float copy through a wrong-typed intermediate). */
-  *(_DWORD *)(v12 + 12) = *(_DWORD *)&endpos[0];
-  *(_DWORD *)(v12 + 16) = *(_DWORD *)&endpos[1];
+  trace->endpos[0] = endpos[0];
+  trace->endpos[1] = endpos[1];
   v16 = a9;
-  *(_DWORD *)(v12 + 20) = *(_DWORD *)&endpos[2];
-  *(_DWORD *)(v12 + 48) = v16;
+  trace->endpos[2] = endpos[2];
+  trace->sidenum = v16;
   v17 = dword_100674F4 + 20 * *(unsigned __int16 *)(dword_10067544 + 4 * v16);
-  *(_DWORD *)(v12 + 24) = *(_DWORD *)v17;
-  *(_DWORD *)(v12 + 28) = *(_DWORD *)(v17 + 4);
-  *(_DWORD *)(v12 + 32) = *(_DWORD *)(v17 + 8);
-  *(_DWORD *)(v12 + 36) = *(_DWORD *)(v17 + 12);
-  v18 = v20;
-  *(_BYTE *)(v12 + 40) = *(_BYTE *)(v17 + 16);
-  *(_DWORD *)(v12 + 44) = v18;
-  *(_DWORD *)(v12 + 76) = v24[2];
+  trace->plane.normal[0] = *(float *)v17;
+  trace->plane.normal[1] = *(float *)(v17 + 4);
+  trace->plane.normal[2] = *(float *)(v17 + 8);
+  trace->plane.dist      = *(float *)(v17 + 12);
+  trace->plane.type      = *(v17 + 16);
+  trace->exp_dist = v20;
+  trace->contents = v24[2];
   return 1;
+  }
+fail:
+  /* Both early-out guards (no brushes / no hit) share ONE return-0 epilogue in
+   * the original — ref reaches it via jbe/je; inlining a `return 0;` at each
+   * guard emits two copies (OUR+7).  goto-to-shared-tail restores the share. */
+  return 0;
 }
 
 //----- (100044F0) --------------------------------------------------------
