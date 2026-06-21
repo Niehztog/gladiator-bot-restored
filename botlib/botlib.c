@@ -29620,16 +29620,6 @@ int __cdecl sub_100376B0(char *String1, __int16 a2)
   return result;
 }
 
-//----- (10037770) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10037770: single-byte function body — `c3 (ret)`.  Empty
- * no-op cdecl void function.  Reachable through thunk 0x10001Bxx;
- * dead in Gladiator (no live call path ever invokes the no-op).
- * Likely a placeholder/abandoned hook left over by /INCREMENTAL. */
-void __cdecl sub_10037770(void)
-{
-}
-
 //----- (100377E0) --------------------------------------------------------
 int __cdecl sub_100377E0(char *String1, __int16 a2)
 {
