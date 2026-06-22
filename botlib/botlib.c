@@ -633,7 +633,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
 int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *a1);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
-char *__cdecl AAS_ReachabilityFromNum(char *num, int reach);
+aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int passent);
@@ -14519,23 +14519,22 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
 }
 
 //----- (1001A2E0) --------------------------------------------------------
-char *__cdecl AAS_ReachabilityFromNum(char *num, int reach)
+/* AAS_ReachabilityFromNum — return reachability record `num` by value.  Like
+ * AAS_EntityInfo, the binary takes the return buffer as a hidden first argument
+ * (MSVC __cdecl struct-return ABI) and returns it in eax; the disasm at
+ * 0x1001a2e0 is `return aasworld.reachability[num]` on the valid path and
+ * `return reach` (a zeroed local) otherwise — each a single rep-movs into the
+ * caller's return buffer.  Arg order differs from Q3's
+ * `void AAS_ReachabilityFromNum(int num, aas_reachability_t *reach)`
+ * (be_aas_route.c:1919): Gladiator returns the struct by value. */
+aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num)
 {
-  char *result; // eax
-  char v3[44]; // [esp+8h] [ebp-2Ch] BYREF
+  aas_reachability_t reach;
 
-  if ( aasworld.initialized && reach >= 0 && reach <= aasworld.reachabilitysize )
-  {
-    result = num;
-    qmemcpy(num, &aasworld.reachability[reach], 0x2Cu);
-  }
-  else
-  {
-    memset(v3, 0, sizeof(v3));
-    result = num;
-    qmemcpy(num, v3, 0x2Cu);
-  }
-  return result;
+  if ( aasworld.initialized && num >= 0 && num <= aasworld.reachabilitysize )
+    return aasworld.reachability[num];
+  memset(&reach, 0, sizeof(reach));
+  return reach;
 }
 
 //----- (1001A370) --------------------------------------------------------
@@ -26260,7 +26259,6 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
   int v16; // [esp+8h] [ebp-60h]
   int v17; // [esp+Ch] [ebp-5Ch]
   int v18[11]; // [esp+10h] [ebp-58h] BYREF
-  char v19[44]; // [esp+3Ch] [ebp-2Ch] BYREF
 
   v16 = 0;
   v17 = 0;
@@ -26278,7 +26276,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
     }
     if ( i == 1 || *(int *)(a8 + 4 * i) <= 4 )
     {
-      qmemcpy(v18, AAS_ReachabilityFromNum(v19, v10), sizeof(v18));
+      *(aas_reachability_t *)v18 = AAS_ReachabilityFromNum(v10);
       if ( a3 != *(_DWORD *)(a9 + 12) || v18[0] != a4 )
       {
         if ( BotValidTravel(a1, a5, (intptr_t)v18, a10) )
@@ -26307,11 +26305,10 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 {
   int v4; // eax
   int v6[11]; // [esp+10h] [ebp-58h] BYREF
-  char v7[44]; // [esp+3Ch] [ebp-2Ch] BYREF
 
   if ( !ms->lastreachnum || !goal )
     return 0;
-  qmemcpy(v6, AAS_ReachabilityFromNum(v7, ms->lastreachnum), sizeof(v6));
+  *(aas_reachability_t *)v6 = AAS_ReachabilityFromNum(ms->lastreachnum);
   v4 = BotGetReachabilityToGoal(
          (int)&v6[6],
          v6[0],
@@ -26325,7 +26322,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
          travelflags);
   if ( !v4 )
     return 0;
-  qmemcpy(v6, AAS_ReachabilityFromNum(v7, v4), sizeof(v6));
+  *(aas_reachability_t *)v6 = AAS_ReachabilityFromNum(v4);
   target[0] = *(float *)&v6[6];
   target[2] = *(float *)&v6[8] - 15.0f;
   *(int *)&target[1] = v6[7];
@@ -27432,7 +27429,7 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
 {
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF — reach buffer
 
-  qmemcpy(v2, AAS_ReachabilityFromNum((char *)v2, ms->lastreachnum), sizeof(v2));
+  *(aas_reachability_t *)v2 = AAS_ReachabilityFromNum(ms->lastreachnum);
   /* moveflags is a real int field now, so the bit test `& 0x40` reads the
    * integer flags directly (disasm @ 0x10033a9f: `test BYTE [ebx+0x60],0x40`).
    * Previously, with `ms` as float*, IDA's `(_BYTE)ms[24]` was a float→byte
@@ -27829,7 +27826,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
    {
      if ( ms->lastreachnum )
      {
-       qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
+       v20 = AAS_ReachabilityFromNum(ms->lastreachnum);
        moveresult.traveltype = v20.traveltype;
        switch ( v20.traveltype )
        {
@@ -27875,7 +27872,7 @@ LABEL_35:
      }
      goto LABEL_56;
    }
-   qmemcpy(v22, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), 0x2Cu);
+   *(aas_reachability_t *)v22 = AAS_ReachabilityFromNum(ms->lastreachnum);
    v8 = BotReachabilityArea((int *)ms, v22[9] != 11);
    ms->areanum = v8;
    if ( v8 == goal->areanum )
@@ -27888,7 +27885,7 @@ LABEL_35:
    v11 = ms->lastreachnum;
    if ( !v11 )
      goto LABEL_25;
-   qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, ms->lastreachnum), sizeof(v20));
+   v20 = AAS_ReachabilityFromNum(ms->lastreachnum);
    if ( (a4 & AAS_TravelFlagForType(v20.traveltype)) == 0 )
      goto LABEL_25;
    if ( v20.traveltype == 14 )
@@ -27903,7 +27900,7 @@ LABEL_27:
      ms->lastgoalareanum = v15;
      if ( v11 )
      {
-       qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v11), sizeof(v20));
+       v20 = AAS_ReachabilityFromNum(v11);
        moveresult.traveltype = v20.traveltype;
        switch ( v20.traveltype )
        {
@@ -27991,7 +27988,7 @@ LABEL_25:
    ms->jumpreach = 0;
    if ( v12 )
    {
-     qmemcpy(&v20, AAS_ReachabilityFromNum((char *)v22, v12), sizeof(v20));
+     v20 = AAS_ReachabilityFromNum(v12);
      v19 = (float)BotReachabilityTime(&v20);
      ms->reachability_time = AAS_Time() + v19;
      BotAddToAvoidReach((intptr_t)ms, v11, 6.0);
