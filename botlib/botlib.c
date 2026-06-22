@@ -865,7 +865,7 @@ void *__cdecl BotGetSecondGoal(int *a1);
 int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
 int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6);
 int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot_goal_t *goal);
+BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal);
 int __cdecl BotLoadItemWeights(int *goalstate, char *a2);
 void __cdecl BotFreeItemWeights(int *goalstate);
 int __cdecl BotResetGoalState(void *goalstate);
@@ -16915,7 +16915,7 @@ LABEL_55:
           sub_100262C0((_DWORD *)bs, (intptr_t)v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
         bs->ltg_time = 0.0f;
       }
-      else if ( BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v26) )
+      else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)v26) )
       {
         bs->ltg_time = 0.0f;
       }
@@ -17303,7 +17303,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
         sub_100262C0((_DWORD *)bs, (intptr_t)v4);
       bs->nbg_time = 0.0f;
     }
-    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, (intptr_t)bs->eye, (intptr_t)bs->viewangles, (bot_goal_t *)v4) )
+    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)v4) )
     {
       bs->nbg_time = 0.0f;
     }
@@ -25906,28 +25906,41 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
 }
 
 //----- (10030770) --------------------------------------------------------
-BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot_goal_t *goal)
+/* BotItemGoalInVisButNotVisible — true when the goal item's bounding-box centre
+ * is visible from the bot's eye, yet the goal entity itself is not currently
+ * being updated by the engine.  Restored to the Q3 source shape (be_ai_goal.c
+ * :1637) with named typed locals: `trace` and `entinfo` have non-overlapping
+ * lifetimes so MSVC6 coalesces them into one 0x7C stack slot (frame 0x88),
+ * reused after the fraction test — exactly as the binary at 0x10030770.
+ *
+ * Three Gladiator-vs-Q3 divergences are kept faithful to that binary:
+ *   - `entitynum <= 0` returns 1 here, where Q3 returns qfalse.
+ *   - the "not updated" test is the older `if (!entinfo.valid) return qtrue`,
+ *     which survives verbatim as the commented-out line in Q3 (be_ai_goal.c
+ *     :1662); Q3's live code evolved it to `entinfo.ltime < AAS_Time() - 0.5`.
+ *   - the second VectorAdd keeps the binary's `middle + goal->origin` operand
+ *     order (Q3 has `goal->origin + middle`), and contentmask is the literal 3.
+ * `viewangles` is unused (present only to match the engine call signature). */
+BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal)
 {
-  int v4; // ebx
-  vec3_t origin; // [esp+Ch] [ebp-88h] BYREF — world-space goal center, passed to AAS_Trace and VectorScale
-  int v9[31]; // [esp+18h] [ebp-7Ch] BYREF
+  aas_entityinfo_t entinfo; // [ebp-7Ch] BYREF — coalesced with `trace`
+  bsp_trace_t trace;        // [ebp-7Ch] BYREF
+  vec3_t middle;            // [ebp-88h] world-space goal centre
 
-  if ( (goal->flags & 1) == 0 )
-    goto ret0;
-  VectorAdd(goal->mins, goal->mins, origin);
-  VectorScale((float *)origin, 0.5, (float *)origin);
-  VectorAdd(origin, goal->origin, origin);
-  *(bsp_trace_t *)v9 = AAS_Trace((float*)a2, 0, 0, origin, a1, 3);
-  if ( *(float *)&v9[2] < 1.0f )
-    goto ret0;
-  v4 = goal->entitynum;
-  if ( v4 <= 0 )
-    return 1;
-  *(aas_entityinfo_t *)v9 = AAS_EntityInfo(v4);
-  if ( v9[0] )
-    goto ret0;
-  return 1;
-ret0:
+  if ( !(goal->flags & 1) )
+    return 0;
+  VectorAdd(goal->mins, goal->mins, middle);
+  VectorScale(middle, 0.5, middle);
+  VectorAdd(middle, goal->origin, middle);
+  trace = AAS_Trace(eye, NULL, NULL, middle, viewer, 3);
+  if ( trace.fraction >= 1.0f )
+  {
+    if ( goal->entitynum <= 0 )
+      return 1;
+    entinfo = AAS_EntityInfo(goal->entitynum);
+    if ( !entinfo.valid )
+      return 1;
+  }
   return 0;
 }
 
