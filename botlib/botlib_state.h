@@ -41,8 +41,8 @@ typedef struct botimport_block_s {
     void  (__cdecl *BotInput)(int, ea_state_t *);
     int   (__cdecl *BotClientCommand)(int client, char *str, ...);
     int   (*Print)(_DWORD, const char *, ...);
-    void *(__cdecl *Trace)(void *retbuf, float *start, float *mins, float *maxs,
-                           float *end, int passent, int contentmask);
+    bsp_trace_t *(__cdecl *Trace)(bsp_trace_t *retbuf, vec3_t start, vec3_t mins,
+                                  vec3_t maxs, vec3_t end, int passent, int contentmask);
     int   (__cdecl *PointContents)(float *point);
     void *(__cdecl *GetMemory)(int);
     void  (__cdecl *FreeMemory)(void *);
