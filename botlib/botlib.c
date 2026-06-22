@@ -929,7 +929,7 @@ void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
-qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *); // idb
+qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *); // idb
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
 int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2);
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
@@ -28751,34 +28751,25 @@ LABEL_21:
 // config file. DEAD in Gladiator (no callers); part of the GA-tuning
 // pipeline that writes evolved weights back to bots/*_i.c / *_w.c.
 // Live in Q3 via WriteWeightConfig wrapper.
-qboolean __cdecl WriteFuzzyWeight(FILE *Stream, fuzzyseperator_t *a2)
+qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 {
-  int v2; // eax
-  int result; // eax
-
-  if ( a2->type == 1 )
+  if ( fs->type == 1 )
   {
-    if ( fprintf(Stream, " return balance(") < 0
-      || !WriteFloat(Stream, a2->weight)
-      || fprintf(Stream, ",") < 0
-      || !WriteFloat(Stream, a2->minweight)
-      || fprintf(Stream, ",") < 0
-      || !WriteFloat(Stream, a2->maxweight) )
-    {
-      return 0;
-    }
-    v2 = fprintf(Stream, ");\n");
+    if ( fprintf(fp, " return balance(") < 0) return 0;
+    if ( !WriteFloat(fp, fs->weight)) return 0;
+    if ( fprintf(fp, ",") < 0) return 0;
+    if ( !WriteFloat(fp, fs->minweight)) return 0;
+    if ( fprintf(fp, ",") < 0) return 0;
+    if ( !WriteFloat(fp, fs->maxweight) ) return 0;
+    if (fprintf(fp, ");\n") < 0) return 0;
   }
   else
   {
-    if ( fprintf(Stream, " return ") < 0 )
-      return 0;
-    result = WriteFloat(Stream, a2->weight);
-    if ( !result )
-      return result;
-    v2 = fprintf(Stream, ";\n");
+    if ( fprintf(fp, " return ") < 0 ) return 0;
+    if ( !WriteFloat(fp, fs->weight) ) return 0;
+    if ( fprintf(fp, ";\n") < 0) return 0;
   }
-  return v2 >= 0;
+  return 1;
 }
 
 //----- (10036690) --------------------------------------------------------
