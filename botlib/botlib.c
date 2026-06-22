@@ -17255,7 +17255,6 @@ int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 int __cdecl AINode_Seek_NBG(bot_state_t *bs)
 {
 
-  int v2; // eax
   /* v3/v4 are int (goal pointer) in the original binary — held in esi
    * throughout (.text 0x1001f35e-0x1001f410, no FPU touch).  IDA mistyped
    * them as float because BotGetTopGoal's return is later compared to 0.0f
@@ -17291,9 +17290,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     v8 = 118718;
   if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
   {
-    v2 = v8;
-    BYTE1(v2) = BYTE1(v8) | 0x10;
-    v8 = v2;
+    v8 |= 0x1000;
   }
   bs->enemy = 0;
   v3 = BotGetTopGoal(bs->goalstate);
@@ -27449,12 +27446,9 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   int v5; // eax
   double v6; // st7
   int v7; // ebx
-  unsigned int v8; // ecx
-  int v9; // eax
   double v10; // st7
   char v11; // cl
   long double v13; // st7
-  int v14; // eax
   int v15; // eax
   bot_moveresult_t *result; // eax
   double v17; // [esp+Ch] [ebp-54h]
@@ -27494,10 +27488,8 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
         if ( ms->lastgrappledist - v25 < 1.0f )
         {
           EA_Command(ms->client, "hookoff", (char *)0);
-          v8 = ms->moveflags & 0xFFFFFFBF;
           ms->reachability_time = 0;
-          LOBYTE(v8) = v8 | 0x80;
-          ms->moveflags = v8;
+          ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
         }
         goto LABEL_8;
       }
@@ -27516,9 +27508,7 @@ LABEL_8:
       { result = a1; *a1 = moveresult; return result; }
     }
     EA_Command(ms->client, "hookoff", (char *)0);
-    v9 = ms->moveflags;
-    LOBYTE(v9) = v9 & 0x3F | 0x80;
-    ms->moveflags = v9;
+    ms->moveflags = ms->moveflags & 0xFFFFFF3F | 0x80;
 LABEL_26:
     ms->reachability_time = 0;
     { result = a1; *a1 = moveresult; return result; }
@@ -27560,13 +27550,11 @@ LABEL_26:
   else
   {
     EA_Command(ms->client, "hookon", (char *)0);
-    v14 = ms->moveflags;
-    LOBYTE(v14) = v14 | 0x40;
     /* int bit-pattern store: original `mov DWORD [ebx+0x6c],0x4969FFB0`
      * writes the raw float bits (~956415.0f) into lastgrappledist; go
      * through the int lens so we don't int->float convert. */
     *(int *)&ms->lastgrappledist = 1232348144;
-    ms->moveflags = v14;
+    ms->moveflags |= 0x40;
   }
   v15 = AAS_PointAreaNum(ms->origin);
   if ( v15 && v15 != ms->reachareanum )
