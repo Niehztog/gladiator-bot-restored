@@ -466,7 +466,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
 int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9);
-float *__cdecl sub_100044F0(float *a1, int a2, float *a3, float *a4, intptr_t a5, int *a6, float *a7, int *a8, int a9, int a10);
+bsp_trace_t __cdecl AAS_TraceBSPModel(int a2, float *a3, float *a4, intptr_t a5, int *a6, float *a7, int *a8, int a9, int a10);
 int __cdecl sub_100056D0(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 void __cdecl AAS_DecompressVis(int a1, int a2);
@@ -2231,7 +2231,6 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   /* v45 subsumed into v44[1] */
   /* v46 subsumed into v44[2] */
   float v47[24]; // [esp+38h] [ebp-B4h] BYREF
-  char v48[84]; // [esp+98h] [ebp-54h] BYREF
 
   if ( !dword_100674C0 )
     return 0;
@@ -2353,7 +2352,7 @@ LABEL_40:
   {
     if ( LODWORD(v47[12]) == 3 )
     {
-      qmemcpy(v47, (const void *)sub_100044F0(v48, LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask), 0x54u);
+      *(bsp_trace_t *)v47 = AAS_TraceBSPModel(LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask);
       if ( v47[2] < (float)trace[2] )
       {
         qmemcpy(trace, v47, 0x54u);
@@ -2738,8 +2737,14 @@ fail:
 }
 
 //----- (100044F0) --------------------------------------------------------
-float *__cdecl sub_100044F0(
-        float *a1,
+/* AAS_TraceBSPModel (sub_100044F0) — sweep a box (boxmins/boxmaxs) from start to
+ * end through BSP model `a2` and return the resulting bsp_trace_t.  Gladiator's
+ * own Q2-era BSP-model collision (no Q3-release cognate — Q3 delegates BSP traces
+ * to the engine).  Self-named by its "AAS_TraceBSPModel: out of trace lines"
+ * error below.  Returns by value via MSVC's hidden-retbuf ABI: the body fills the
+ * local v150 trace (incl. via the recursive node/brush helpers) and each return
+ * copies it into the caller's buffer. */
+bsp_trace_t __cdecl AAS_TraceBSPModel(
         int a2,
         float *a3,
         float *a4,
@@ -2863,7 +2868,6 @@ float *__cdecl sub_100044F0(
   int v101; // ecx
   float v102; // ebx
   int v103; // edx
-  float *result; // eax
   int v105; // [esp+0h] [ebp-1558h] BYREF
   float v106; // [esp+10h] [ebp-1548h]
   float v107; // [esp+14h] [ebp-1544h]
@@ -2967,7 +2971,7 @@ float *__cdecl sub_100044F0(
   v150[1] = 0.0;
   v150[2] = 1.0;
   if ( !dword_100674C0 )
-    { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
+    return *(bsp_trace_t *)v150;
   v128 = *(float *)a8 - *(float *)a5;
   v129 = *((float *)a8 + 1) - *(float *)(a5 + 4);
   v130 = *((float *)a8 + 2) - *(float *)(a5 + 8);
@@ -3044,13 +3048,13 @@ float *__cdecl sub_100044F0(
           {
             v25 = v24;
             if ( !v24 )
-              { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
+              return *(bsp_trace_t *)v150;
             v26 = v24[7];
             v27 = v24 + 9;
             v24 = (int *)TR_DEC(v24[9]);
             v119 = v25[7];
             if ( v26 < 0 )
-              { result = a1; qmemcpy(a1, v150, 0x54u); return result; }
+              return *(bsp_trace_t *)v150;
             v28 = v25[6];
             if ( v28 >= 0 )
               break;
@@ -3475,9 +3479,7 @@ LABEL_111:
   }
 LABEL_125:
   bi_Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
-  result = a1;
-  qmemcpy(a1, v150, 0x54u);
-  return result;
+  return *(bsp_trace_t *)v150;
 }
 
 //----- (10005640) --------------------------------------------------------
@@ -3507,15 +3509,12 @@ static void sub_10005640(
         int contentmask)
 {
   vec3_t zero_vec;
-  vec3_t origin_slot;
-  float *trace;
 
   zero_vec[0] = 0.0f;
   zero_vec[1] = 0.0f;
   zero_vec[2] = 0.0f;
-  trace = sub_100044F0(origin_slot, 0, zero_vec, zero_vec,
-                       (intptr_t)start, boxmins, boxmaxs, end, a5, contentmask);
-  qmemcpy(out, trace, 0x54u);
+  *(bsp_trace_t *)out = AAS_TraceBSPModel(0, zero_vec, zero_vec,
+                                          (intptr_t)start, boxmins, boxmaxs, end, a5, contentmask);
 }
 
 //----- (100056D0) --------------------------------------------------------
