@@ -25246,7 +25246,7 @@ _DWORD * BotInitLevelItems()
                 levelitem_t *li = (levelitem_t *)AllocLevelItem();
                 result = (_DWORD *)li;
                 if ( !li )
-                  return result;
+                  goto done;
                 li->number = ++dword_10064354;
                 li->timeout = 0.0f;
                 li->entitynum = 0;
@@ -25275,8 +25275,13 @@ _DWORD * BotInitLevelItems()
       }
       while ( v11 );
     }
-    return (_DWORD *)bi_Print(PRT_MESSAGE, "found %d level items\n", dword_10064354);
+    result = (_DWORD *)bi_Print(PRT_MESSAGE, "found %d level items\n", dword_10064354);
   }
+  // Single shared exit: all three return paths arrange `result` (eax) and
+  // converge here — !itemconfig → InitLevelItemHeap result, alloc-fail → li(=0)
+  // via `goto done`, normal → bi_Print return.  The 1999 goto-fail style; the
+  // separate `return`s let MSVC split the alloc-fail epilogue (was OUR+9).
+done:
   return result;
 }
 
