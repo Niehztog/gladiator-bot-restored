@@ -24962,10 +24962,10 @@ void __cdecl sub_1002EB30(void *target, const char *src)
  *   }
  *   ret
  * Walks the global reply-chat list and clears the last-used timestamp on
- * every chatmessage in every entry.  Matches Q3's BotResetReplyChat /
- * BotInitChatMessage usage-throttle reset.  Dead in Gladiator --
- * preserved by /INCREMENTAL. */
-void __cdecl sub_1002EB70(void)
+ * every chatmessage in every entry.  Q3 cognate is BotResetChatAI
+ * (be_ai_chat.c): identical nested loop over replychats -> firstchatmessage
+ * setting m->time = 0.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+void __cdecl BotResetChatAI(void)
 {
   bot_replychat_t   *rc;
   bot_chatmessage_t *cm;
@@ -29897,7 +29897,7 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
 // libvarlist = NULL is redundant after the loop but is present in the
 // disasm (a literal "mov DWORD PTR ds:0x10063F20, 0").  This is the
 // shutdown path that Q3 botlib exposes as LibVarDeAllocAll.
-void __cdecl sub_100388D0(void)
+void __cdecl LibVarDeAllocAll(void)
 {
   libvar_t *v;
 
@@ -30015,9 +30015,10 @@ int __cdecl LibVarChanged(const char *name)
  *   add esp,4; test eax,eax; je _ret;
  *   mov DWORD[eax+0xc],0; _ret: ret
  * Clears the `modified` flag on the libvar with the given name (no-op
- * if it doesn't exist).  Direct counterpart of Q3 botlib's
- * LibVarClearModified.  Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl sub_10038BB0(const char *name)
+ * if it doesn't exist).  Q3 botlib cognate is LibVarSetNotModified
+ * (l_libvar.c) — `v = LibVarGet(name); if (v) v->modified = qfalse;`.
+ * Dead in Gladiator — preserved by /INCREMENTAL. */
+void __cdecl LibVarSetNotModified(const char *name)
 {
   libvar_t *v;
 
