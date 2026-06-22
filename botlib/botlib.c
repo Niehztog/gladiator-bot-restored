@@ -25923,18 +25923,22 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int a1, intptr_t a2, intptr_t a3, bot
   int v9[31]; // [esp+18h] [ebp-7Ch] BYREF
 
   if ( (goal->flags & 1) == 0 )
-    return 0;
+    goto ret0;
   VectorAdd(goal->mins, goal->mins, origin);
   VectorScale((float *)origin, 0.5, (float *)origin);
   VectorAdd(origin, goal->origin, origin);
   qmemcpy(v9, AAS_Trace(v9, (float*)a2, 0, 0, origin, a1, 3), 0x54u);
   if ( *(float *)&v9[2] < 1.0f )
-    return 0;
+    goto ret0;
   v4 = goal->entitynum;
   if ( v4 <= 0 )
     return 1;
   qmemcpy(v9, AAS_EntityInfo(v9, v4), sizeof(v9));
-  return !v9[0];
+  if ( v9[0] )
+    goto ret0;
+  return 1;
+ret0:
+  return 0;
 }
 
 //----- (100308D0) --------------------------------------------------------
