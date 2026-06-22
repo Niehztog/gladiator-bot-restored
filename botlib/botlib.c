@@ -28507,11 +28507,8 @@ void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
 // (child = yes-branch, next = sibling case). LIVE.
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 {
-  int v1; // eax
-  BOOL v2; // edi
+  int v2; // edi
   fuzzyseperator_t *v3; // ebp
-  fuzzyseperator_t *v4; // esi
-  source_t *v5; // edi
   int v6; // edi
   fuzzyseperator_t *v7; // eax
   fuzzyseperator_t *v9; // eax
@@ -28532,88 +28529,90 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
     return 0;
   do
   {
-    v1 = strcmp(token.string, "default");
-    v2 = v1 == 0;
-    if ( v1 && strcmp(token.string, "case") )
+    v2 = strcmp(token.string, "default") == 0;
+    if ( v2 || !strcmp(token.string, "case") )
+    {
+      v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+      v3->index = v14;
+      if ( v12 )
+        v12->next = v3;
+      else
+        v11 = v3;
+      v12 = v3;
+      if ( v2 )
+      {
+        if ( v13 )
+        {
+          SourceError(source, "switch already has a default\n");
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+        v3->value = 999999;
+        v13 = 1;
+      }
+      else
+      {
+        if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
+        {
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+        v3->value = token.intvalue;
+      }
+      if ( !PC_ExpectTokenString(source, ":") || !PC_ExpectAnyToken(source, token.string) )
+      {
+        FreeFuzzySeperators_r(v11);
+        return 0;
+      }
+      v6 = 0;
+      if ( !strcmp(token.string, "{") )
+      {
+        v6 = 1;
+        if ( !PC_ExpectAnyToken(source, token.string) )
+        {
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+      }
+      if ( !strcmp(token.string, "return") )
+      {
+        if ( !ReadFuzzyWeight(source, v3) )
+        {
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+      }
+      else
+      {
+        if ( strcmp(token.string, "switch") )
+        {
+          SourceError(source, "invalid name %s\n", token.string);
+          return 0;
+        }
+        v7 = ReadFuzzySeperators_r(source);
+        v3->child = v7;
+        if ( !v7 )
+        {
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+      }
+      if ( v6 )
+      {
+        if ( !PC_ExpectTokenString(source, "}") )
+        {
+          FreeFuzzySeperators_r(v11);
+          return 0;
+        }
+      }
+    }
+    else
     {
       FreeFuzzySeperators_r(v11);
       SourceError(source, "invalid name %s\n", token.string);
       return 0;
     }
-    v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-    v3->index = v14;
-    if ( v12 )
-    {
-      v4 = v11;
-      v12->next = v3;
-    }
-    else
-    {
-      v4 = v3;
-      v11 = v3;
-    }
-    v12 = v3;
-    if ( v2 )
-    {
-      if ( v13 )
-      {
-        SourceError(source, "switch already has a default\n");
-        FreeFuzzySeperators_r(v4);
-        return 0;
-      }
-      v5 = source;
-      v3->value = 999999;
-      v13 = 1;
-    }
-    else
-    {
-      v5 = source;
-      if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
-      {
-        FreeFuzzySeperators_r(v4);
-        return 0;
-      }
-      v3->value = token.intvalue;
-    }
-    if ( !PC_ExpectTokenString(v5, ":") || !PC_ExpectAnyToken(v5, token.string) )
-    {
-      FreeFuzzySeperators_r(v4);
-      return 0;
-    }
-    v6 = 0;
-    if ( !strcmp(token.string, "{") )
-    {
-      v6 = 1;
-      if ( !PC_ExpectAnyToken(source, token.string) )
-      {
-        FreeFuzzySeperators_r(v11);
-        return 0;
-      }
-    }
-    if ( !strcmp(token.string, "return") )
-    {
-      if ( !ReadFuzzyWeight(source, v3) )
-      {
-        FreeFuzzySeperators_r(v11);
-        return 0;
-      }
-    }
-    else
-    {
-      if ( strcmp(token.string, "switch") )
-      {
-        SourceError(source, "invalid name %s\n", token.string);
-        return 0;
-      }
-      v7 = ReadFuzzySeperators_r(source);
-      v3->child = v7;
-      if ( !v7 )
-      {
-        FreeFuzzySeperators_r(v11);
-        return 0;
-      }
-    }
-    if ( v6 && !PC_ExpectTokenString(source, "}") || !PC_ExpectAnyToken(source, token.string) )
+    if ( !PC_ExpectAnyToken(source, token.string) )
     {
       FreeFuzzySeperators_r(v11);
       return 0;
