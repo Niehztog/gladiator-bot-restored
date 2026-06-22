@@ -17719,105 +17719,104 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     AIEnter_Battle_Fight(bs);
     return 0;
   }
-  else if ( BotFindEnemy(bs) )
+  if ( BotFindEnemy(bs) )
   {
     AIEnter_Battle_Fight(bs);
     return 0;
   }
+  if ( !bs->lastenemyareanum )
+  {
+    AIEnter_Seek_LTG(bs);
+    return 0;
+  }
+  v2 = 102334;
+  v9 = 102334;
+  if ( libvar_usehook->value != 0.0f )
+  {
+    v9 = 118718;
+    v2 = 118718;
+  }
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+  {
+    v2 |= 0x1000u;
+    v9 = v2;
+  }
+  v3 = bs->enemy;
+  v4 = bs->lastenemyareanum;
+  v12[0] = bs->lastenemyorigin[0];
+  *(int *)&v12[10] = v3;
+  v5 = *(int *)&bs->lastenemyorigin[1];
+  *(int *)&v12[3] = v4;
+  v6 = *(int *)&bs->lastenemyorigin[2];
+  *(int *)&v12[1] = v5;
+  *(int *)&v12[2] = v6;
+  v12[4] = -8.0;
+  v12[5] = -8.0;
+  v12[6] = -8.0;
+  v12[7] = 8.0;
+  v12[8] = 8.0;
+  v12[9] = 8.0;
+  if ( BotTouchingGoal(bs->origin, v12) )
+    *(int *)&bs->chase_time = 0;
+  // Gladiator inverts Q3's `if (chase_time expired) { seek; return }` guard: the
+  // binary tests `AAS_Time() <= chase_time` (chase still valid) and falls through
+  // to the seek-LTG exit otherwise.  Written as an early-return on the inverted
+  // condition so the three AIEnter_Seek_LTG exits stay flat/inline (ref keeps them
+  // separate; the IDA if/else nesting made MSVC cross-jump-merge them — OUR-18).
+  if ( AAS_Time() > bs->chase_time )
+  {
+    AIEnter_Seek_LTG(bs);
+    return 0;
+  }
+  if ( AAS_Time() > bs->check_time
+    && (bs->check_time = AAS_Time() + 1.0f,
+        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
+  {
+    bs->nbg_time = AAS_Time() + 5.0f;
+    BotResetLastAvoidReach((intptr_t)bs->movestate);
+    AIEnter_Battle_NBG(bs);
+    return 0;
+  }
   else
   {
-    if ( !bs->lastenemyareanum )
+    BotUpdateBattleInventory(bs, bs->enemy);
+    BotBattleUseItems(bs);
+    BotEntityInfo(bs, (_DWORD *)bs->movestate);
+    v13 = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v2);
+    if ( v13.failure )
     {
-      AIEnter_Seek_LTG(bs);
-      return 0;
+      BotResetAvoidReach((_DWORD *)bs->movestate);
+      bs->ltg_time = 0.0f;
     }
-    v2 = 102334;
-    v9 = 102334;
-    if ( libvar_usehook->value != 0.0f )
+    BotAIBlocked(bs, &v13, 0);
+    if ( (v13.flags & 3) != 0 )
     {
-      v9 = 118718;
-      v2 = 118718;
-    }
-    if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
-    {
-      v2 |= 0x1000u;
-      v9 = v2;
-    }
-    v3 = bs->enemy;
-    v4 = bs->lastenemyareanum;
-    v12[0] = bs->lastenemyorigin[0];
-    *(int *)&v12[10] = v3;
-    v5 = *(int *)&bs->lastenemyorigin[1];
-    *(int *)&v12[3] = v4;
-    v6 = *(int *)&bs->lastenemyorigin[2];
-    *(int *)&v12[1] = v5;
-    *(int *)&v12[2] = v6;
-    v12[4] = -8.0;
-    v12[5] = -8.0;
-    v12[6] = -8.0;
-    v12[7] = 8.0;
-    v12[8] = 8.0;
-    v12[9] = 8.0;
-    if ( BotTouchingGoal(bs->origin, v12) )
-      *(int *)&bs->chase_time = 0;
-    if ( AAS_Time() <= bs->chase_time )
-    {
-      if ( AAS_Time() > bs->check_time
-        && (bs->check_time = AAS_Time() + 1.0f,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
-      {
-        bs->nbg_time = AAS_Time() + 5.0f;
-        BotResetLastAvoidReach((intptr_t)bs->movestate);
-        AIEnter_Battle_NBG(bs);
-        return 0;
-      }
-      else
-      {
-        BotUpdateBattleInventory(bs, bs->enemy);
-        BotBattleUseItems(bs);
-        BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        v13 = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v2);
-        if ( v13.failure )
-        {
-          BotResetAvoidReach((_DWORD *)bs->movestate);
-          bs->ltg_time = 0.0f;
-        }
-        BotAIBlocked(bs, &v13, 0);
-        if ( (v13.flags & 3) != 0 )
-        {
-          v7 = LODWORD(v13.ideal_viewangles[1]);
-          v8 = LODWORD(v13.ideal_viewangles[2]);
-          *(int *)&bs->ideal_viewangles[0] = LODWORD(v13.ideal_viewangles[0]);
-          *(int *)&bs->ideal_viewangles[1] = v7;
-          *(int *)&bs->ideal_viewangles[2] = v8;
-        }
-        else
-        {
-          if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v9, (float *)(intptr_t)v11) )
-          {
-            VectorSubtract(v11, bs->origin, v10);
-            vectoangles(v10, bs->ideal_viewangles);
-          }
-          else
-          {
-            vectoangles(v13.movedir, bs->ideal_viewangles);
-          }
-          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-        }
-        if ( bs->areanum == bs->lastenemyareanum )
-          *(int *)&bs->chase_time = 0;
-        if ( (v13.flags & 8) == 0 )
-          BotChangeViewAngles(bs, bs->thinktime);
-        if ( BotWantsToRetreat((int *)bs) )
-          AIEnter_Battle_Retreat(bs);
-        return 1;
-      }
+      v7 = LODWORD(v13.ideal_viewangles[1]);
+      v8 = LODWORD(v13.ideal_viewangles[2]);
+      *(int *)&bs->ideal_viewangles[0] = LODWORD(v13.ideal_viewangles[0]);
+      *(int *)&bs->ideal_viewangles[1] = v7;
+      *(int *)&bs->ideal_viewangles[2] = v8;
     }
     else
     {
-      AIEnter_Seek_LTG(bs);
-      return 0;
+      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v9, (float *)(intptr_t)v11) )
+      {
+        VectorSubtract(v11, bs->origin, v10);
+        vectoangles(v10, bs->ideal_viewangles);
+      }
+      else
+      {
+        vectoangles(v13.movedir, bs->ideal_viewangles);
+      }
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
+    if ( bs->areanum == bs->lastenemyareanum )
+      *(int *)&bs->chase_time = 0;
+    if ( (v13.flags & 8) == 0 )
+      BotChangeViewAngles(bs, bs->thinktime);
+    if ( BotWantsToRetreat((int *)bs) )
+      AIEnter_Battle_Retreat(bs);
+    return 1;
   }
 }
 
