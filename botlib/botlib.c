@@ -9785,32 +9785,32 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 //----- (10010B40) --------------------------------------------------------
 int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
-  int *v2; // edx
-  _DWORD *v3; // ebx
+  int *area; // edx
+  _DWORD *optarea; // ebx
   int result; // eax
-  int v5; // esi
-  int v6; // eax
+  int i; // esi
+  int optfacenum; // eax
 
-  v2 = (int *)(&aasworld.areas[areanum]);
-  v3 = (_DWORD *)((char *)optimized->areas + 48 * areanum);
-  qmemcpy(v3, v2, 0x30u);
-  v3[1] = 0;
-  v3[2] = optimized->faceindexsize;
-  result = v2[1];
-  v5 = 0;
+  area = (int *)(&aasworld.areas[areanum]);
+  optarea = (_DWORD *)((char *)optimized->areas + 48 * areanum);
+  qmemcpy(optarea, area, 0x30u);
+  optarea[1] = 0;
+  optarea[2] = optimized->faceindexsize;
+  result = area[1];
+  i = 0;
   if ( result > 0 )
   {
     while ( 1 )
     {
-      v6 = AAS_OptimizeFace(optimized, aasworld.faceindex[v5 + v2[2]]);
-      if ( v6 )
+      optfacenum = AAS_OptimizeFace(optimized, aasworld.faceindex[i + area[2]]);
+      if ( optfacenum )
       {
-        optimized->faceindex[v3[1] + v3[2]] = v6;
-        ++v3[1];
+        optimized->faceindex[optarea[1] + optarea[2]] = optfacenum;
+        ++optarea[1];
         ++optimized->faceindexsize;
       }
-      result = (intptr_t)v2;
-      if ( ++v5 >= v2[1] )
+      result = (intptr_t)area;
+      if ( ++i >= area[1] )
         break;
     }
   }
@@ -10245,32 +10245,32 @@ qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
 //----- (10011740) --------------------------------------------------------
 BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 {
-  int v3; // eax
+  int areanum; // eax
   int v4; // esi
-  /* Original MSVC frame: vec3_t v5 at [ebp-18h] (12 bytes) and vec3_t v7 at [ebp-Ch].
-   * IDA split v5 into `int v5[2] + float v6` because the .z slot at [ebp-10h]
+  /* Original MSVC frame: vec3_t point at [ebp-18h] (12 bytes) and vec3_t dir at [ebp-Ch].
+   * IDA split point into `int point[2] + float v6` because the .z slot at [ebp-10h]
    * was assigned via `fadd 16.0; fstp [ebp-10h]` only after the first
    * AAS_PointAreaNum, making it look like a separate scalar to the decompiler.
    * Restoring as vec3_t so VectorMA writes/reads land in the same slot the
    * disassembly bumps by 16.0. */
-  vec3_t v5; // [esp+4h] [ebp-18h] BYREF
-  vec3_t v7; // [esp+10h] [ebp-Ch] BYREF
+  vec3_t point; // [esp+4h] [ebp-18h] BYREF
+  vec3_t dir; // [esp+10h] [ebp-Ch] BYREF
 
-  v7[2] = 0;
-  v7[0] = *end - *start;
-  v7[1] = end[1] - start[1];
-  VectorNormalize(v7);
-  VectorMA(end, 48.0f, v7, v5);
-  if ( !AAS_PointAreaNum(v5) )
+  dir[2] = 0;
+  dir[0] = *end - *start;
+  dir[1] = end[1] - start[1];
+  VectorNormalize(dir);
+  VectorMA(end, 48.0f, dir, point);
+  if ( !AAS_PointAreaNum(point) )
   {
-    v5[2] = v5[2] + 16.0f;
-    if ( !AAS_PointAreaNum(v5) )
+    point[2] = point[2] + 16.0f;
+    if ( !AAS_PointAreaNum(point) )
       return 1;
   }
-  VectorMA(end, 64.0, v7, v5);
-  v3 = AAS_PointAreaNum(v5);
-  v4 = v3;
-  return v3 && !AAS_AreaSwim(v3) && !AAS_AreaGrounded(v4);
+  VectorMA(end, 64.0, dir, point);
+  areanum = AAS_PointAreaNum(point);
+  v4 = areanum;
+  return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(v4);
 }
 
 //----- (10011860) --------------------------------------------------------
@@ -27427,9 +27427,9 @@ bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, bot_mov
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   libvar_t *v2; // eax
-  int v3; // ebx
+  int i; // ebx
   vec3_t v5; // [esp+0h] [ebp-104h] BYREF
-  float v6[31]; // [esp+Ch] [ebp-F8h] BYREF
+  float entinfo[31]; // [esp+Ch] [ebp-F8h] BYREF
   (void)ms; /* movestate handle is unused by the entity scan */
 
   v2 = libvar_laserhook;
@@ -27440,19 +27440,19 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
   }
   if ( v2->value == 0.0f && !dword_1006295C )
     dword_1006295C = IndexFromModel("models/weapons/grapple/hook/tris.md2");
-  for ( v3 = AAS_NextBSPEntity(0); v3; v3 = AAS_NextBSPEntity(v3) )
+  for ( i = AAS_NextBSPEntity(0); i; i = AAS_NextBSPEntity(i) )
   {
-    if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(v3) != dword_1006295C)
-      && (libvar_laserhook->value == 0.0f || (AAS_EntityRenderFX(v3) & 0x80u) == 0) )
+    if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(i) != dword_1006295C)
+      && (libvar_laserhook->value == 0.0f || (AAS_EntityRenderFX(i) & 0x80u) == 0) )
     {
       continue;
     }
-    *(aas_entityinfo_t *)v6 = AAS_EntityInfo(v3);
-    if ( !VectorCompare(&v6[4], &v6[13]) )
+    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(i);
+    if ( !VectorCompare(&entinfo[4], &entinfo[13]) )
       return 1;
-    v5[0] = v6[4] - reach->end[0];
-    v5[1] = v6[5] - reach->end[1];
-    v5[2] = v6[6] - reach->end[2];
+    v5[0] = entinfo[4] - reach->end[0];
+    v5[1] = entinfo[5] - reach->end[1];
+    v5[2] = entinfo[6] - reach->end[2];
     if ( (float)VectorLength(v5) < 32.0f )
       return 2;
   }
