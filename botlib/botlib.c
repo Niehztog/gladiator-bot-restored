@@ -27203,21 +27203,21 @@ bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
-  vec3_t v8; // [esp+14h] [ebp-48h] BYREF
-  vec3_t v9; // [esp+20h] [ebp-3Ch] BYREF
+  vec3_t viewdir; // [esp+14h] [ebp-48h] BYREF
+  vec3_t origin; // [esp+20h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
 
-  v9[0] = 0.0f;
-  v9[1] = 0.0f;
-  v9[2] = 0.0f;
+  origin[0] = 0.0f;
+  origin[1] = 0.0f;
+  origin[2] = 0.0f;
   BotClearMoveResult(&moveresult);
   VectorSubtract(reach->end, ms->origin, dir);
   VectorNormalize(dir);
-  v8[0] = dir[0];
-  v8[1] = dir[1];
-  v8[2] = dir[2] * 3.0f;
-  vectoangles(v8, moveresult.ideal_viewangles);
-  EA_Move(ms->client, v9, 0.0);
+  viewdir[0] = dir[0];
+  viewdir[1] = dir[1];
+  viewdir[2] = dir[2] * 3.0f;
+  vectoangles(viewdir, moveresult.ideal_viewangles);
+  EA_Move(ms->client, origin, 0.0);
   EA_MoveForward(ms->client);
   moveresult.flags |= 1;
   VectorCopy(dir, moveresult.movedir);
@@ -27730,8 +27730,8 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 //----- (10034210) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal)
 {
-  float v6; // st7
-  float v7; // st7
+  float dist; // st7
+  float speed; // st7
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
@@ -27751,12 +27751,12 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
     dir[2] = 0.0f;
     moveresult.traveltype = 2;
   }
-  v6 = VectorNormalize(dir);
-  if ( v6 > 100.0f )
-    v6 = 100.0f;
-  v7 = 400.0f - (400.0f - v6 * 4.0f);
-  v17 = v7;
-  if ( v7 < 10.0f )
+  dist = VectorNormalize(dir);
+  if ( dist > 100.0f )
+    dist = 100.0f;
+  speed = 400.0f - (400.0f - dist * 4.0f);
+  v17 = speed;
+  if ( speed < 10.0f )
     v17 = 0.0f;
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Move(ms->client, dir, v17);
@@ -28324,49 +28324,49 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
 //----- (10035500) --------------------------------------------------------
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 {
-  weaponconfig_t *v1; // ebp
-  weaponinfo_t *v2; // edi
-  int v4; // ebx
-  int v5; // eax
-  float v6; // st7
-  float v7; // [esp+10h] [ebp-4h]
+  weaponconfig_t *wc; // ebp
+  weaponinfo_t *bestweaponinfo; // edi
+  int i; // ebx
+  int index; // eax
+  float weight; // st7
+  float bestweight; // [esp+10h] [ebp-4h]
 
-  v1 = (weaponconfig_t *)dword_10064080;
-  v7 = 0.0f;
-  v2 = 0;
+  wc = (weaponconfig_t *)dword_10064080;
+  bestweight = 0.0f;
+  bestweaponinfo = 0;
   if ( dword_10064080 )
   {
     if ( AAS_Time() >= ws->nextthink )
     {
       if ( ws->weightconfig )
       {
-        v4 = 0;
-        if ( v1->numweapons > 0 )
+        i = 0;
+        if ( wc->numweapons > 0 )
         {
           do
           {
-            v5 = ws->itemweights[v4];
-            if ( v5 >= 0 )
+            index = ws->itemweights[i];
+            if ( index >= 0 )
             {
-              v6 = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[v5]);
-              if ( v6 > v7 )
+              weight = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[index]);
+              if ( weight > bestweight )
               {
-                v7 = v6;
-                v2 = &v1->weaponinfo[v4];
+                bestweight = weight;
+                bestweaponinfo = &wc->weaponinfo[i];
               }
             }
-            ++v4;
+            ++i;
           }
-          while ( v4 < v1->numweapons );
-          if ( v2 )
+          while ( i < wc->numweapons );
+          if ( bestweaponinfo )
           {
-            if ( Q_stricmp(v2->model, ws->modelname) )
+            if ( Q_stricmp(bestweaponinfo->model, ws->modelname) )
             {
-              EA_UseItem(ws->client, v2->name);
-              ws->nextthink = AAS_Time() + v1->weaponinfo[v2->number].activate + 3.0f;
+              EA_UseItem(ws->client, bestweaponinfo->name);
+              ws->nextthink = AAS_Time() + wc->weaponinfo[bestweaponinfo->number].activate + 3.0f;
             }
-            ws->modelname = v2->model;
-            ws->weaponindex = v2->number;
+            ws->modelname = bestweaponinfo->model;
+            ws->weaponindex = bestweaponinfo->number;
           }
         }
       }
