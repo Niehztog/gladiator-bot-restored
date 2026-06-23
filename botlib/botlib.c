@@ -22082,7 +22082,7 @@ void __cdecl BotDumpCharacter(int *list)
 //----- (10029EB0) --------------------------------------------------------
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 {
-  bot_character_t *v2; // ebx
+  bot_character_t *ch; // ebx
   bot_characteristic_t *pairs; // (pairs base)
   int v4; // ebp
   source_t *v5; // eax
@@ -22093,7 +22093,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   int v10; // edi
   char *v11; // [esp-8h] [ebp-5FCh]
   char *v12; // [esp-4h] [ebp-5F8h]
-  source_t *v13; // [esp+10h] [ebp-5E4h]
+  source_t *source; // [esp+10h] [ebp-5E4h]
   int v14; // [esp+14h] [ebp-5E0h]
   int v15; // [esp+18h] [ebp-5DCh]
   int v16; // [esp+1Ch] [ebp-5D8h]
@@ -22103,7 +22103,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   token_t token;
   char Destination[260];
 
-  v2 = 0;
+  ch = 0;
   pairs = 0;
   strncpy(Destination, charfile, 0x104u);
   if ( !sub_10041F60(Destination, &file_ref) )
@@ -22117,7 +22117,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   {
     v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
       v6 = v5;
-      v13 = v5;
+      source = v5;
       if ( !v5 )
       {
         botimport.Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
@@ -22142,9 +22142,9 @@ LABEL_39:
          * `GetClearedMemory(v15 + 8 * v7 + 12)` reserved v7+1 pair
          * slots: 4 (numchars) + 8*(v7+1) + v15. */
         size_t header = ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1));
-        v2 = (bot_character_t *)GetClearedMemory(header + sizeof(bot_characteristic_t) * (v7 + 1) + v15);
-        v2->numcharacteristics = v7;
-        pairs = BC_PAIRS(v2);
+        ch = (bot_character_t *)GetClearedMemory(header + sizeof(bot_characteristic_t) * (v7 + 1) + v15);
+        ch->numcharacteristics = v7;
+        pairs = BC_PAIRS(ch);
         v18 = (char *)&pairs[v7 + 1];
       }
       v16 = ++v4;
@@ -22154,24 +22154,24 @@ LABEL_39:
           botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", (const char *)a2, file_ref.path, Destination);
         else
           botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", (const char *)a2, Destination);
-        return v2;
+        return ch;
       }
     }
     while ( !strcmp(token.string, "character") )
     {
-      v8 = v13;
-      if ( !PC_ExpectTokenType(v13, 1, 0, token.string) )
+      v8 = source;
+      if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
         goto LABEL_52;
       StripDoubleQuotes(token.string);
-      if ( !PC_ExpectTokenString(v13, "{") )
+      if ( !PC_ExpectTokenString(source, "{") )
         goto LABEL_52;
       if ( strcmp(token.string, (const char *)a2) )
       {
         v10 = 1;
         while ( 1 )
         {
-          v8 = v13;
-          if ( !PC_ExpectAnyToken(v13, token.string) )
+          v8 = source;
+          if ( !PC_ExpectAnyToken(source, token.string) )
             break;
           if ( !strcmp(token.string, "{") )
           {
@@ -22189,7 +22189,7 @@ LABEL_52:
         return 0;
       }
       v17 = 1;
-      if ( PC_ExpectAnyToken(v13, token.string) )
+      if ( PC_ExpectAnyToken(source, token.string) )
       {
         while ( strcmp(token.string, "}") )
         {
@@ -22208,9 +22208,9 @@ LABEL_52:
             v11 = "characteristic %d already initialized\n";
             goto LABEL_54;
           }
-          if ( !PC_ExpectAnyToken(v13, token.string) )
+          if ( !PC_ExpectAnyToken(source, token.string) )
           {
-            FreeSource(v13);
+            FreeSource(source);
             return 0;
           }
           if ( token.type == 3 )
@@ -22233,10 +22233,10 @@ LABEL_52:
           {
             if ( token.type != 1 )
             {
-              SourceError(v13,
+              SourceError(source,
                           "expected integer, float or string, found %s\n",
                           token.string);
-              FreeSource(v13);
+              FreeSource(source);
               return 0;
             }
             StripDoubleQuotes(token.string);
@@ -22252,13 +22252,13 @@ LABEL_52:
               v15 += strlen(token.string) + 1;
             }
           }
-          if ( !PC_ExpectAnyToken(v13, token.string) )
+          if ( !PC_ExpectAnyToken(source, token.string) )
             break;
         }
       }
 LABEL_37:
-      v6 = v13;
-      if ( !PC_ReadTokenHandle(v13, token.string) )
+      v6 = source;
+      if ( !PC_ReadTokenHandle(source, token.string) )
       {
         v7 = v14;
         v4 = v16;
@@ -22268,8 +22268,8 @@ LABEL_37:
     v12 = token.string;
     v11 = "unknown definition %s\n";
 LABEL_54:
-    SourceError(v13, v11, v12);
-    FreeSource(v13);
+    SourceError(source, v11, v12);
+    FreeSource(source);
     return 0;
 }
 
