@@ -25222,12 +25222,12 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item)
 _DWORD * BotInitLevelItems()
 {
   _DWORD *result; // eax
-  itemconfig_t *v2; // ebx
+  itemconfig_t *ic; // ebx
   bsp_entity_t *v4; // ebp
   int i; // edi
   int v7; // ebp
-  const char *ArgList; // [esp+28h] [ebp-18h]
-  bsp_entity_t *v11; // [esp+2Ch] [ebp-14h]
+  const char *classname; // [esp+28h] [ebp-18h]
+  bsp_entity_t *ent; // [esp+2Ch] [ebp-14h]
   /* IDA split the item-origin vec3 into three separate floats v12/v13/v14
    * but the original passes &v12 as vec3 to AAS_VectorForBSPEpairKey,
    * AAS_DropToFloor, and AAS_BestReachableArea.  GCC won't keep the locals
@@ -25238,32 +25238,32 @@ _DWORD * BotInitLevelItems()
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
   result = (_DWORD *)InitLevelItemHeap();
-  v2 = dword_1006435C;
+  ic = dword_1006435C;
   dword_10064360 = 0;
   dword_10064354 = 0;
-  if ( v2 )
+  if ( ic )
   {
     v4 = AAS_ParseBSPEntities();
     notspawnflags_mask = (int)LibVarValue("notspawnflags", (char *)"2048");
-    for ( i = 0; i < v2->numitems; ++i )
+    for ( i = 0; i < ic->numitems; ++i )
     {
-      v2->items[i].modelindex = IndexFromModel(v2->items[i].model);
-      if ( !v2->items[i].modelindex )
-        Log_Write("item %s has modelindex 0", v2->items[i].dispname);
+      ic->items[i].modelindex = IndexFromModel(ic->items[i].model);
+      if ( !ic->items[i].modelindex )
+        Log_Write("item %s has modelindex 0", ic->items[i].dispname);
     }
-    v11 = v4;
+    ent = v4;
     if ( v4 )
     {
       do
       {
-        ArgList = (const char *)AAS_ValueForBSPEpairKey(v11, "classname");
-        if ( ArgList && (AAS_IntForBSPEpairKey(v11, "spawnflags") & notspawnflags_mask) == 0 )
+        classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+        if ( classname && (AAS_IntForBSPEpairKey(ent, "spawnflags") & notspawnflags_mask) == 0 )
         {
-          for ( v7 = 0; v7 < v2->numitems; ++v7 )
+          for ( v7 = 0; v7 < ic->numitems; ++v7 )
           {
-            if ( !strcmp(ArgList, v2->items[v7].dispname) )
+            if ( !strcmp(classname, ic->items[v7].dispname) )
             {
-              if ( AAS_VectorForBSPEpairKey(v11, "origin", origin) )
+              if ( AAS_VectorForBSPEpairKey(ent, "origin", origin) )
               {
                 levelitem_t *li = (levelitem_t *)AllocLevelItem();
                 result = (_DWORD *)li;
@@ -25272,30 +25272,30 @@ _DWORD * BotInitLevelItems()
                 li->number = ++dword_10064354;
                 li->timeout = 0.0f;
                 li->entitynum = 0;
-                if ( !AAS_DropToFloor(origin, v2->items[v7].mins, v2->items[v7].maxs) )
-                  botimport.Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", ArgList, origin[0], origin[1], origin[2]);
+                if ( !AAS_DropToFloor(origin, ic->items[v7].mins, ic->items[v7].maxs) )
+                  botimport.Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", classname, origin[0], origin[1], origin[2]);
                 li->iteminfo = v7;
                 VectorCopy(origin, li->origin);
                 li->areanum = AAS_BestReachableArea(
                                          (int *)origin,
-                                         v2->items[v7].mins,
-                                         v2->items[v7].maxs,
+                                         ic->items[v7].mins,
+                                         ic->items[v7].maxs,
                                          li->goalorigin);
                 AddLevelItemToList(li);
               }
               else
               {
-                botimport.Print(PRT_ERROR, "item %s without origin\n", ArgList);
+                botimport.Print(PRT_ERROR, "item %s without origin\n", classname);
               }
               break;
             }
           }
-          if ( v7 >= v2->numitems )
-            Log_Write("entity %s unkown item", ArgList);
+          if ( v7 >= ic->numitems )
+            Log_Write("entity %s unkown item", classname);
         }
-        v11 = v11->next;
+        ent = ent->next;
       }
-      while ( v11 );
+      while ( ent );
     }
     result = (_DWORD *)botimport.Print(PRT_MESSAGE, "found %d level items\n", dword_10064354);
   }
@@ -32174,17 +32174,17 @@ LABEL_165:
 //----- (1003C650) --------------------------------------------------------
 int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
 {
-  token_t *v6;
-  token_t *v7;
+  token_t *firsttoken;
+  token_t *lasttoken;
   token_t *v8;
   token_t *v9;
-  define_t *v10;
+  define_t *define;
   token_t *v11;
   token_t *v12;
-  int v14;
+  int defined;
   token_t token;
 
-  v14 = 0;
+  defined = 0;
   if ( intvalue )
     *intvalue = 0;
   if ( floatvalue )
@@ -32196,43 +32196,43 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
     SourceError(src, "no value after #if/#elif");
     return 0;
   }
-  v6 = NULL;
-  v7 = NULL;
+  firsttoken = NULL;
+  lasttoken = NULL;
   do
   {
     if ( token.type == 4 )
     {
-      if ( v14 )
+      if ( defined )
       {
-        v14 = 0;
+        defined = 0;
         v8 = PC_CopyToken(&token);
         v8->next = NULL;
-        if ( v7 )
-          v7->next = v8;
+        if ( lasttoken )
+          lasttoken->next = v8;
         else
-          v6 = v8;
-        v7 = v8;
+          firsttoken = v8;
+        lasttoken = v8;
       }
       else if ( !strcmp(token.string, "defined") )
       {
-        v14 = 1;
+        defined = 1;
         v9 = PC_CopyToken(&token);
         v9->next = NULL;
-        if ( v7 )
-          v7->next = v9;
+        if ( lasttoken )
+          lasttoken->next = v9;
         else
-          v6 = v9;
-        v7 = v9;
+          firsttoken = v9;
+        lasttoken = v9;
       }
       else
       {
-        v10 = PC_FindHashedDefine(src->definehash, token.string);
-        if ( !v10 )
+        define = PC_FindHashedDefine(src->definehash, token.string);
+        if ( !define )
         {
           SourceError(src, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(src, v10) )
+        if ( !PC_ExpandDefineIntoSource(src, define) )
           return 0;
       }
     }
@@ -32240,11 +32240,11 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
     {
       v8 = PC_CopyToken(&token);
       v8->next = NULL;
-      if ( v7 )
-        v7->next = v8;
+      if ( lasttoken )
+        lasttoken->next = v8;
       else
-        v6 = v8;
-      v7 = v8;
+        firsttoken = v8;
+      lasttoken = v8;
     }
     else
     {
@@ -32253,10 +32253,10 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
     }
   }
   while ( PC_ReadLine(src, &token) );
-  if ( !PC_EvaluateTokens(src, (intptr_t)v6, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
+  if ( !PC_EvaluateTokens(src, (intptr_t)firsttoken, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
     return 0;
-  v11 = v6;
-  if ( v6 )
+  v11 = firsttoken;
+  if ( firsttoken )
   {
     do
     {
