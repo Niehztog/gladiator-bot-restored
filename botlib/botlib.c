@@ -5688,19 +5688,19 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
 {
   aas_areasettings_t *v1; // eax
   int result; // eax
-  int v3; // ebx
-  int v4; // ebp
-  int v5; // edi
+  int numbackareas; // ebx
+  int numfrontareas; // ebp
+  int numareas; // edi
   int v6; // ecx
-  char *v7; // esi
+  char *area; // esi
   int v8; // eax
   int v9; // rax (was __int64 — abs32 idiom)
-  int v10; // eax
-  char *v11; // ecx
+  int facenum; // eax
+  char *face; // ecx
   int v12; // edx
   int *v13; // edi
-  int v14; // edx
-  unsigned int v15; // ecx
+  int otherareanum; // edx
+  unsigned int faceplanenum; // ecx
   int v16; // eax
   _DWORD *v17; // ecx
   int *v18; // eax
@@ -5709,9 +5709,9 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   int v21; // eax
   int v22; // edx
   int v23; // esi
-  char *v24; // eax
+  char *frontface; // eax
   int v25; // ecx
-  unsigned int v26; // ebp
+  unsigned int frontedgenum; // ebp
   int v27; // edx
   _DWORD *v28; // ebx
   int v29; // esi
@@ -5723,69 +5723,69 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   int v35; // [esp+10h] [ebp-E34h]
   char *v36; // [esp+14h] [ebp-E30h]
   int *v37; // [esp+14h] [ebp-E30h]
-  int v38; // [esp+18h] [ebp-E2Ch]
-  int v39; // [esp+1Ch] [ebp-E28h]
+  int numfrontfaces; // [esp+18h] [ebp-E2Ch]
+  int numbackfaces; // [esp+1Ch] [ebp-E28h]
   int v40; // [esp+20h] [ebp-E24h]
-  int v41; // [esp+24h] [ebp-E20h]
+  int backplanenum; // [esp+24h] [ebp-E20h]
   _DWORD *v42; // [esp+24h] [ebp-E20h]
   int v43; // [esp+28h] [ebp-E1Ch]
   int v44; // [esp+28h] [ebp-E1Ch]
   _DWORD *v45; // [esp+2Ch] [ebp-E18h]
   int v46; // [esp+2Ch] [ebp-E18h]
   int v47; // [esp+30h] [ebp-E14h]
-  int v48; // [esp+34h] [ebp-E10h]
+  int frontplanenum; // [esp+34h] [ebp-E10h]
   _DWORD *v49; // [esp+38h] [ebp-E0Ch]
   _DWORD *v50; // [esp+3Ch] [ebp-E08h]
   _DWORD *v51; // [esp+40h] [ebp-E04h]
-  int v52[128]; // [esp+44h] [ebp-E00h] BYREF
-  int v53[128]; // [esp+244h] [ebp-C00h] BYREF
-  _DWORD v54[128]; // [esp+444h] [ebp-A00h] BYREF
-  int v55[128]; // [esp+644h] [ebp-800h] BYREF
-  _DWORD v56[128]; // [esp+844h] [ebp-600h] BYREF
-  _DWORD v57[128]; // [esp+A44h] [ebp-400h] BYREF
-  _DWORD v58[128]; // [esp+C44h] [ebp-200h] BYREF
+  int areanums[128]; // [esp+44h] [ebp-E00h] BYREF
+  int numareafrontfaces[128]; // [esp+244h] [ebp-C00h] BYREF
+  _DWORD backareanums[128]; // [esp+444h] [ebp-A00h] BYREF
+  int numareabackfaces[128]; // [esp+644h] [ebp-800h] BYREF
+  _DWORD frontareanums[128]; // [esp+844h] [ebp-600h] BYREF
+  _DWORD frontfacenums[128]; // [esp+A44h] [ebp-400h] BYREF
+  _DWORD backfacenums[128]; // [esp+C44h] [ebp-200h] BYREF
 
   v1 = &aasworld.areasettings[areanum];
   if ( (v1->contents & 8) != 0 )
     return 0;
   if ( (v1->areaflags & 1) == 0 )
     return 0;
-  v3 = 0;
-  memset(v53, 0, sizeof(v53));
-  memset(v55, 0, sizeof(v55));
-  v39 = 0;
-  v38 = 0;
-  v4 = 0;
-  v41 = -1;
-  v48 = -1;
-  v5 = AAS_FloodAreas_r(v52, 0, areanum);
+  numbackareas = 0;
+  memset(numareafrontfaces, 0, sizeof(numareafrontfaces));
+  memset(numareabackfaces, 0, sizeof(numareabackfaces));
+  numbackfaces = 0;
+  numfrontfaces = 0;
+  numfrontareas = 0;
+  backplanenum = -1;
+  frontplanenum = -1;
+  numareas = AAS_FloodAreas_r(areanums, 0, areanum);
   v6 = 0;
-  v40 = v5;
-  for ( i = 0; v6 < v5; i = v6 )
+  v40 = numareas;
+  for ( i = 0; v6 < numareas; i = v6 )
   {
-    v47 = v52[v6];
-    v7 = &aasworld.areas[v47];
+    v47 = areanums[v6];
+    area = &aasworld.areas[v47];
     v8 = 0;
-    v36 = v7;
+    v36 = area;
     v43 = 0;
-    if ( *((int *)v7 + 1) > 0 )
+    if ( *((int *)area + 1) > 0 )
     {
-      v45 = &v56[v4];
-      v51 = &v57[v38];
-      v49 = &v54[v3];
-      v50 = &v58[v39];
+      v45 = &frontareanums[numfrontareas];
+      v51 = &frontfacenums[numfrontfaces];
+      v49 = &backareanums[numbackareas];
+      v50 = &backfacenums[numbackfaces];
       do
       {
-        v9 = aasworld.faceindex[v8 + *((_DWORD *)v7 + 2)];
-        v10 = abs(v9);
-        v11 = &aasworld.faces[v10];
-        if ( (v11[4] & 1) == 0 )
+        v9 = aasworld.faceindex[v8 + *((_DWORD *)area + 2)];
+        facenum = abs(v9);
+        face = &aasworld.faces[facenum];
+        if ( (face[4] & 1) == 0 )
         {
           v12 = 0;
-          v13 = v52;
+          v13 = areanums;
           do
           {
-            if ( v12 != i && (*((_DWORD *)v11 + 4) == *v13 || *((_DWORD *)v11 + 5) == *v13) )
+            if ( v12 != i && (*((_DWORD *)face + 4) == *v13 || *((_DWORD *)face + 5) == *v13) )
               break;
             ++v12;
             ++v13;
@@ -5793,114 +5793,114 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
           while ( v12 < v40 );
           if ( v12 == v40 )
           {
-            v14 = *((_DWORD *)v11 + 4);
-            if ( v14 == v47 )
-              v14 = *((_DWORD *)v11 + 5);
-            if ( (aasworld.areasettings[v14].contents & 8) != 0 )
+            otherareanum = *((_DWORD *)face + 4);
+            if ( otherareanum == v47 )
+              otherareanum = *((_DWORD *)face + 5);
+            if ( (aasworld.areasettings[otherareanum].contents & 8) != 0 )
               return 0;
-            v15 = *(_DWORD *)v11 & 0xFFFFFFFE;
-            if ( v48 < 0 || v15 == v48 )
+            faceplanenum = *(_DWORD *)face & 0xFFFFFFFE;
+            if ( frontplanenum < 0 || faceplanenum == frontplanenum )
             {
-              v48 = v15;
-              ++v38;
-              *v51 = v10;
+              frontplanenum = faceplanenum;
+              ++numfrontfaces;
+              *v51 = facenum;
               v19 = 0;
               ++v51;
-              if ( v4 > 0 )
+              if ( numfrontareas > 0 )
               {
-                v20 = v56;
+                v20 = frontareanums;
                 do
                 {
-                  if ( *v20 == v14 )
+                  if ( *v20 == otherareanum )
                     break;
                   ++v19;
                   ++v20;
                 }
-                while ( v19 < v4 );
+                while ( v19 < numfrontareas );
               }
-              if ( v19 == v4 )
+              if ( v19 == numfrontareas )
               {
-                ++v4;
-                *v45++ = v14;
+                ++numfrontareas;
+                *v45++ = otherareanum;
               }
-              v18 = &v53[i];
+              v18 = &numareafrontfaces[i];
             }
             else
             {
-              if ( v41 >= 0 && v15 != v41 )
+              if ( backplanenum >= 0 && faceplanenum != backplanenum )
                 return 0;
-              v41 = v15;
-              ++v39;
-              *v50 = v10;
+              backplanenum = faceplanenum;
+              ++numbackfaces;
+              *v50 = facenum;
               v16 = 0;
               ++v50;
-              if ( v3 > 0 )
+              if ( numbackareas > 0 )
               {
-                v17 = v54;
+                v17 = backareanums;
                 do
                 {
-                  if ( *v17 == v14 )
+                  if ( *v17 == otherareanum )
                     break;
                   ++v16;
                   ++v17;
                 }
-                while ( v16 < v3 );
+                while ( v16 < numbackareas );
               }
-              if ( v16 == v3 )
+              if ( v16 == numbackareas )
               {
-                ++v3;
-                *v49++ = v14;
+                ++numbackareas;
+                *v49++ = otherareanum;
               }
-              v18 = &v55[i];
+              v18 = &numareabackfaces[i];
             }
             ++*v18;
           }
-          v7 = v36;
+          area = v36;
         }
         v8 = ++v43;
       }
-      while ( v43 < *((_DWORD *)v7 + 1) );
+      while ( v43 < *((_DWORD *)area + 1) );
       v6 = i;
-      v5 = v40;
+      numareas = v40;
     }
     ++v6;
   }
-  if ( v5 > 0 )
+  if ( numareas > 0 )
   {
-    for ( v21 = 0; v21 < v5; ++v21 )
+    for ( v21 = 0; v21 < numareas; ++v21 )
     {
-      if ( !v53[v21] || !v55[v21] )
+      if ( !numareafrontfaces[v21] || !numareabackfaces[v21] )
         return 0;
     }
   }
-  result = AAS_ConnectedAreas(v56, v4);
+  result = AAS_ConnectedAreas(frontareanums, numfrontareas);
   if ( result )
   {
-    result = AAS_ConnectedAreas(v54, v3);
+    result = AAS_ConnectedAreas(backareanums, numbackareas);
     if ( result )
     {
       v22 = 0;
       v35 = 0;
-      if ( v38 > 0 )
+      if ( numfrontfaces > 0 )
       {
-        v42 = v57;
+        v42 = frontfacenums;
         do
         {
           v23 = 0;
           v46 = 0;
-          v24 = &aasworld.faces[*v42];
-          v25 = *((_DWORD *)v24 + 2);
+          frontface = &aasworld.faces[*v42];
+          v25 = *((_DWORD *)frontface + 2);
           if ( v25 > 0 )
           {
-            v37 = &aasworld.edgeindex[*((_DWORD *)v24 + 3)];
+            v37 = &aasworld.edgeindex[*((_DWORD *)frontface + 3)];
             do
             {
-              v26 = abs(*v37);
+              frontedgenum = abs(*v37);
               v27 = 0;
               v44 = 0;
-              if ( v39 > 0 )
+              if ( numbackfaces > 0 )
               {
-                v28 = v58;
+                v28 = backfacenums;
                 do
                 {
                   v29 = aasworld.faces[*v28].numedges;
@@ -5910,7 +5910,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
                     v31 = &aasworld.edgeindex[aasworld.faces[*v28].firstedge];
                     do
                     {
-                      if ( v26 == abs(*v31) )
+                      if ( frontedgenum == abs(*v31) )
                         break;
                       ++v30;
                       ++v31;
@@ -5924,17 +5924,17 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
                   ++v28;
                   v44 = v27;
                 }
-                while ( v27 < v39 );
-                v25 = *((_DWORD *)v24 + 2);
+                while ( v27 < numbackfaces );
+                v25 = *((_DWORD *)frontface + 2);
                 v23 = v46;
               }
-              if ( v27 != v39 )
+              if ( v27 != numbackfaces )
                 break;
               v46 = ++v23;
               ++v37;
             }
             while ( v23 < v25 );
-            v5 = v40;
+            numareas = v40;
             v22 = v35;
           }
           if ( v23 != v25 )
@@ -5942,14 +5942,14 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
           v35 = ++v22;
           ++v42;
         }
-        while ( v22 < v38 );
+        while ( v22 < numfrontfaces );
       }
-      if ( v22 != v38 )
+      if ( v22 != numfrontfaces )
         return 0;
-      if ( v5 > 0 )
+      if ( numareas > 0 )
       {
         v32 = v40;
-        v33 = v52;
+        v33 = areanums;
         do
         {
           aasworld.areasettings[*v33].contents |= 8u;
@@ -8667,10 +8667,10 @@ int BotLibLoadMap(char *Source)
 #ifdef _WIN32
   int v5; // esi  (holds sub_1000E430 result — Windows-only aasN.zip fallback)
 #endif
-  int v6; // esi
+  int errnum; // esi
   bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF — was "int v7[38]" in IDA
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
-  char v9[144]; // [esp+134h] [ebp-90h] BYREF
+  char aasfile[144]; // [esp+134h] [ebp-90h] BYREF
 
   strcpy(aasworld.mapname, Source);
   AAS_ResetEntityLinks();
@@ -8697,12 +8697,12 @@ int BotLibLoadMap(char *Source)
       while ( 1 )
       {
         if ( v4 )
-          strncpy(v9, "maps\\", 0x90u);
+          strncpy(aasfile, "maps\\", 0x90u);
         else
-          strncpy(v9, &byte_1006294C, 0x90u);
-        strncat(v9, Source, 144 - strlen(v9));
-        strncat(v9, ".aas", 144 - strlen(v9));
-        if ( sub_10041F60(v9, &v7) )
+          strncpy(aasfile, &byte_1006294C, 0x90u);
+        strncat(aasfile, Source, 144 - strlen(aasfile));
+        strncat(aasfile, ".aas", 144 - strlen(aasfile));
+        if ( sub_10041F60(aasfile, &v7) )
           break;
         if ( ++v4 >= 2 )
         {
@@ -8747,16 +8747,16 @@ int BotLibLoadMap(char *Source)
           return 5;
         }
       }
-      v6 = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
-      *_errno() = v6;
+      errnum = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
+      *_errno() = errnum;
       if ( *_errno() )
         return *_errno();
       if ( v7.fileofs )
-        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, v9);
+        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, aasfile);
       else
         botimport.Print(PRT_MESSAGE, "loaded %s\n", v7.path);
       if ( v7.fileofs )
-        strncpy(aasworld.filename, v9, 0x90u);
+        strncpy(aasworld.filename, aasfile, 0x90u);
       else
         strncpy(aasworld.filename, v7.path, 0x90u);
       return 0;
@@ -14412,7 +14412,7 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
 {
   __int16 result; // ax
   aas_portal_t *v5; // ecx
-  int v6; // edi
+  int clusternum; // edi
   int v7; // esi
   int v9; // eax
   aas_portal_t *v10; // ecx
@@ -14420,21 +14420,21 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   aas_routingcache_t *v12; // 64-bit fix (was int)
   int v13; // edx
   int v14; // ebp
-  aas_routingcache_t *v15; // 64-bit fix (was int)
+  aas_routingcache_t *portalcache; // 64-bit fix (was int)
   int v16; // edx
   aas_routingcache_t *v17; // 64-bit fix (was int)
-  aas_cluster_t *v18; // ecx
+  aas_cluster_t *cluster; // ecx
   aas_portal_t *v19; // eax
-  int v20; // esi
+  int portalnum; // esi
   aas_routingcache_t *v21; // 64-bit fix (was int)
   int v22; // ecx
   int v23; // edx
-  __int16 v24; // cx
+  __int16 t; // cx
   unsigned __int16 v25; // si
   aas_cluster_t *v26; // [esp+10h] [ebp-8h]
   int v27; // [esp+14h] [ebp-4h]
   aas_routingcache_t *v28; // 64-bit fix (was int)
-  unsigned __int16 v29; // [esp+20h] [ebp+8h]
+  unsigned __int16 besttime; // [esp+20h] [ebp+8h]
 
   if ( !aasworld.initialized )
     return 0;
@@ -14453,11 +14453,11 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   if ( aasworld.frameroutingupdates > 10 )
     return 0;
   v5 = aasworld.portals;
-  v6 = aasworld.areasettings[areanum].cluster;
-  v7 = v6;
-  if ( v6 < 0 )
+  clusternum = aasworld.areasettings[areanum].cluster;
+  v7 = clusternum;
+  if ( clusternum < 0 )
   {
-    v10 = &aasworld.portals[-v6];
+    v10 = &aasworld.portals[-clusternum];
     if ( v10->frontcluster == aasworld.areasettings[a2].cluster || v10->backcluster == aasworld.areasettings[a2].cluster )
       v7 = aasworld.areasettings[a2].cluster;
   }
@@ -14465,7 +14465,7 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   if ( v9 < 0 )
   {
     v11 = &aasworld.portals[-v9];
-    if ( v11->frontcluster == v6 || v11->backcluster == v6 )
+    if ( v11->frontcluster == clusternum || v11->backcluster == clusternum )
       v9 = aasworld.areasettings[areanum].cluster;
   }
   v5 = aasworld.portals;
@@ -14473,11 +14473,11 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   {
     v12 = AAS_GetAreaRoutingCache(v7, a2, goalareanum);
     v5 = aasworld.portals;
-    v6 = aasworld.areasettings[areanum].cluster;
-    if ( v6 <= 0 )
+    clusternum = aasworld.areasettings[areanum].cluster;
+    if ( clusternum <= 0 )
     {
       v5 = aasworld.portals;
-      v13 = aasworld.portals[-v6].clusterareanum[aasworld.portals[-v6].frontcluster != v7];
+      v13 = aasworld.portals[-clusternum].clusterareanum[aasworld.portals[-clusternum].frontcluster != v7];
     }
     else
     {
@@ -14495,52 +14495,52 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   v14 = aasworld.areasettings[a2].cluster;
   if ( v14 < 0 )
     v14 = v5[-v14].frontcluster;
-  v15 = AAS_GetPortalRoutingCache(v14, a2, goalareanum);
+  portalcache = AAS_GetPortalRoutingCache(v14, a2, goalareanum);
   v16 = 0;
-  v17 = v15;
-  v28 = v15;
-  if ( v6 < 0 )
-    return ((unsigned short *)(v15 + 1))[-v6];   /* 64-bit fix: was `+ 2*(20-v6)` */
-  v29 = 0;
+  v17 = portalcache;
+  v28 = portalcache;
+  if ( clusternum < 0 )
+    return ((unsigned short *)(portalcache + 1))[-clusternum];   /* 64-bit fix: was `+ 2*(20-v6)` */
+  besttime = 0;
   v27 = 0;
-  v18 = &aasworld.clusters[v6];
-  v26 = v18;
-  if ( v18->numreachabilityareas > 0 )
+  cluster = &aasworld.clusters[clusternum];
+  v26 = cluster;
+  if ( cluster->numreachabilityareas > 0 )
   {
     v19 = aasworld.portals;
     while ( 1 )
     {
-      v20 = aasworld.portalindex[v16 + v18->firstportal];
-      if ( ((unsigned short *)(v17 + 1))[v20] )   /* 64-bit fix: was `+ 2*v20 + 40` */
+      portalnum = aasworld.portalindex[v16 + cluster->firstportal];
+      if ( ((unsigned short *)(v17 + 1))[portalnum] )   /* 64-bit fix: was `+ 2*v20 + 40` */
       {
-        v21 = AAS_GetAreaRoutingCache(v6, v19[v20].areanum, goalareanum);
+        v21 = AAS_GetAreaRoutingCache(clusternum, v19[portalnum].areanum, goalareanum);
         v19 = aasworld.portals;
         v22 = aasworld.areasettings[areanum].cluster;
         if ( v22 <= 0 )
         {
           v19 = aasworld.portals;
-          v23 = aasworld.portals[-v22].clusterareanum[aasworld.portals[-v22].frontcluster != v6];
+          v23 = aasworld.portals[-v22].clusterareanum[aasworld.portals[-v22].frontcluster != clusternum];
         }
         else
         {
           v23 = aasworld.areasettings[areanum].clusterareanum;
         }
-        v24 = ((unsigned short *)(v21 + 1))[v23];   /* 64-bit fix: was `+ 2*v23 + 40` */
-        if ( v24 )
+        t = ((unsigned short *)(v21 + 1))[v23];   /* 64-bit fix: was `+ 2*v23 + 40` */
+        if ( t )
         {
-          v25 = v24 + ((unsigned short *)(v28 + 1))[v20];   /* 64-bit fix: was `+ 2*v20 + 40` */
-          if ( !v29 || v25 < v29 )
-            v29 = v25;
+          v25 = t + ((unsigned short *)(v28 + 1))[portalnum];   /* 64-bit fix: was `+ 2*v20 + 40` */
+          if ( !besttime || v25 < besttime )
+            besttime = v25;
         }
-        v18 = v26;
+        cluster = v26;
       }
       v16 = ++v27;
-      if ( v27 >= v18->numreachabilityareas )
+      if ( v27 >= cluster->numreachabilityareas )
         break;
       v17 = v28;
     }
   }
-  return v29;
+  return besttime;
 }
 
 //----- (1001A2E0) --------------------------------------------------------
