@@ -6089,28 +6089,28 @@ int AAS_ClearShownDebugLines()
 //----- (100098B0) --------------------------------------------------------
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 {
-  int v3; // esi
+  int line; // esi
   int v4; // eax
   int result; // eax
 
-  v3 = 0;
+  line = 0;
   while ( 1 )
   {
-    if ( !dword_100670C0[v3] )
+    if ( !dword_100670C0[line] )
     {
-      dword_100670C0[v3] = botimport.DebugLineCreate();
+      dword_100670C0[line] = botimport.DebugLineCreate();
       v4 = dword_10066B14 + 1;
-      dword_10066CC0[v3] = 0;
+      dword_10066CC0[line] = 0;
       dword_10066B14 = v4;
     }
-    result = dword_10066CC0[v3];
+    result = dword_10066CC0[line];
     if ( !result )
       break;
-    if ( ++v3 >= 256 )
+    if ( ++line >= 256 )
       return result;
   }
-  result = botimport.DebugLineShow(dword_100670C0[v3], start, end, color);
-  dword_10066CC0[v3] = 1;
+  result = botimport.DebugLineShow(dword_100670C0[line], start, end, color);
+  dword_10066CC0[line] = 1;
   return result;
 }
 
@@ -25559,20 +25559,20 @@ done:
 //----- (1002FD40) --------------------------------------------------------
 void __cdecl BotDumpGoalStack(int *goalstate)
 {
-  int v1; // esi
+  int i; // esi
   _DWORD *v2; // edi
 
-  v1 = 1;
+  i = 1;
   if ( *(int *)((char *)goalstate + 456) >= 1 )
   {
     v2 = (_DWORD *)((char *)goalstate + 108);
     do
     {
-      Log_Write("%d: %s", v1, BotGoalName(*v2));
-      ++v1;
+      Log_Write("%d: %s", i, BotGoalName(*v2));
+      ++i;
       v2 += 14;
     }
-    while ( v1 <= *(int *)((char *)goalstate + 456) );
+    while ( i <= *(int *)((char *)goalstate + 456) );
   }
 }
 
@@ -26912,22 +26912,22 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
-  vec3_t v10; // [esp+14h] [ebp-3Ch] BYREF
+  vec3_t hordir; // [esp+14h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
-  float v12; // [esp+5Ch] [ebp+Ch]
+  float dist; // [esp+5Ch] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   VectorSubtract(reach->end, ms->origin, dir);
-  VectorCopy(dir, v10);
-  v10[2] = 0.0;
+  VectorCopy(dir, hordir);
+  hordir[2] = 0.0;
   v4 = rand();
   dir[2] = (2 * ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)) * 40.0
          + dir[2]
          + 15.0;
   VectorNormalize(dir);
-  v12 = VectorNormalize(v10);
+  dist = VectorNormalize(hordir);
   EA_MoveForward(ms->client);
-  if ( v12 < 40.0f )
+  if ( dist < 40.0f )
     EA_MoveUp(ms->client);
   vectoangles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
@@ -28377,19 +28377,19 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 //----- (10035640) --------------------------------------------------------
 int __cdecl BotResetWeaponState(bot_weaponstate_t *ws)
 {
-  weightconfig_t *v1; // esi
-  int *v2; // ebx
+  weightconfig_t *weightconfig; // esi
+  int *itemweights; // ebx
 
 #if defined(__x86_64__) || defined(__aarch64__)
   /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it.
    * Gated to 64-bit so the Win32 path stays byte-identical to disasm@10035640. */
   if ( !ws ) return 0;
 #endif
-  v1 = ws->weightconfig;
-  v2 = ws->itemweights;
+  weightconfig = ws->weightconfig;
+  itemweights = ws->itemweights;
   memset(ws, 0, sizeof(*ws));
-  ws->weightconfig = v1;
-  ws->itemweights = v2;
+  ws->weightconfig = weightconfig;
+  ws->itemweights = itemweights;
   return 0;
 }
 
@@ -30750,15 +30750,15 @@ int __cdecl PC_FindDefine(define_t *defines, const char *name)
 //----- (10039DF0) --------------------------------------------------------
 int __cdecl PC_FindDefineParm(define_t *define, const char *name)
 {
-  token_t *v2;
-  int v3;
+  token_t *p;
+  int i;
 
-  v3 = 0;
-  for ( v2 = define->parms; v2; v2 = v2->next )
+  i = 0;
+  for ( p = define->parms; p; p = p->next )
   {
-    if ( !strcmp(v2->string, name) )
-      return v3;
-    ++v3;
+    if ( !strcmp(p->string, name) )
+      return i;
+    ++i;
   }
   return -1;
 }
@@ -34341,17 +34341,17 @@ void __cdecl FreeScript(script_t *script)
 }
 
 //----- (100404B0) --------------------------------------------------------
-const char **__cdecl FindField(const char **a1, const char *a2)
+const char **__cdecl FindField(const char **defs, const char *name)
 {
   const char **v2;
-  int v3;
+  int i;
 
-  v3 = 0;
-  for ( v2 = a1; *v2; v2 += 7 )
+  i = 0;
+  for ( v2 = defs; *v2; v2 += 7 )
   {
-    if ( !strcmp(*v2, a2) )
-      return &a1[7 * v3];
-    ++v3;
+    if ( !strcmp(*v2, name) )
+      return &defs[7 * i];
+    ++i;
   }
   return 0;
 }
