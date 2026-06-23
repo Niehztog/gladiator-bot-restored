@@ -8905,24 +8905,24 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
    * callee reads junk for start[1]/start[2].  Collapse into a proper
    * vec3_t to guarantee contiguous layout. */
   vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
-  vec3_t v14; // [esp+14h] [ebp-68h] BYREF
-  vec3_t v15; // [esp+20h] [ebp-5Ch] BYREF
-  int v16[20]; // [esp+2Ch] [ebp-50h] BYREF
+  vec3_t hordir; // [esp+14h] [ebp-68h] BYREF
+  vec3_t cmdmove; // [esp+20h] [ebp-5Ch] BYREF
+  int move[20]; // [esp+2Ch] [ebp-50h] BYREF
 
-  v14[0] = reach->start[0] - reach->end[0];
-  v14[1] = reach->start[1] - reach->end[1];
-  v14[2] = 0;
-  VectorNormalize(v14);
+  hordir[0] = reach->start[0] - reach->end[0];
+  hordir[1] = reach->start[1] - reach->end[1];
+  hordir[2] = 0;
+  VectorNormalize(hordir);
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
   start_pos[2] = reach->start[2] + 1.0f;
-  VectorScale((float *)v14, 400.0f, (float *)v15);
-  v5 = (const void *)AAS_ClientMovementPrediction((char *)v16, -1, start_pos, 2, 1, velocity, v15, 1, 2, 0.1f, 124, 0);
-  qmemcpy(v16, v5, sizeof(v16));
-  *(float *)runstart = *(float *)v16;
-  *(_DWORD *)(runstart + 8) = v16[2];
-  v8 = v16[16];
-  *(_DWORD *)(runstart + 4) = v16[1];
+  VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
+  v5 = (const void *)AAS_ClientMovementPrediction((char *)move, -1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
+  qmemcpy(move, v5, sizeof(move));
+  *(float *)runstart = *(float *)move;
+  *(_DWORD *)(runstart + 8) = move[2];
+  v8 = move[16];
+  *(_DWORD *)(runstart + 4) = move[1];
   if ( (v8 & 0x38) != 0 )
   {
     *(float *)runstart       = start_pos[0];
@@ -9741,17 +9741,17 @@ int __cdecl AAS_KeepFace(char *face)
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 {
   unsigned int v2; // edi
-  char *v3; // esi
+  char *face; // esi
   int result; // eax
-  _DWORD *v5; // ebp
-  int v6; // esi
+  _DWORD *optface; // ebp
+  int i; // esi
   int v7; // eax
   char *v8; // [esp+10h] [ebp-8h]
 
   v2 = abs(facenum);
-  v3 = &aasworld.faces[v2];
-  v8 = v3;
-  if ( !AAS_KeepFace(v3) )
+  face = &aasworld.faces[v2];
+  v8 = face;
+  if ( !AAS_KeepFace(face) )
     return 0;
   result = optimized->faceremap[v2];
   if ( result )
@@ -9760,17 +9760,17 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
       return -result;
     return result;
   }
-  v5 = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
-  qmemcpy(v5, v3, 0x18u);
-  v5[2] = 0;
-  v6 = 0;
-  for ( v5[3] = optimized->edgeindexsize; v6 < *((int *)v8 + 2); ++v6 )
+  optface = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
+  qmemcpy(optface, face, 0x18u);
+  optface[2] = 0;
+  i = 0;
+  for ( optface[3] = optimized->edgeindexsize; i < *((int *)v8 + 2); ++i )
   {
-    v7 = AAS_OptimizeEdge(optimized, aasworld.edgeindex[v6 + *((_DWORD *)v8 + 3)]);
+    v7 = AAS_OptimizeEdge(optimized, aasworld.edgeindex[i + *((_DWORD *)v8 + 3)]);
     if ( v7 )
     {
-      optimized->edgeindex[v5[2] + v5[3]] = v7;
-      ++v5[2];
+      optimized->edgeindex[optface[2] + optface[3]] = v7;
+      ++optface[2];
       ++optimized->edgeindexsize;
     }
   }
