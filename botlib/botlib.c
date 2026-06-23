@@ -4279,46 +4279,46 @@ char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
 }
 
 //----- (100067E0) --------------------------------------------------------
-int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3)
+int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t v)
 {
-  char *result; // eax
-  double v4; // [esp+0h] [ebp-18h] BYREF
-  double v5; // [esp+8h] [ebp-10h] BYREF
-  double v6; // [esp+10h] [ebp-8h] BYREF
+  char *value; // eax
+  double v1; // [esp+0h] [ebp-18h] BYREF
+  double v2; // [esp+8h] [ebp-10h] BYREF
+  double v3; // [esp+10h] [ebp-8h] BYREF
 
-  result = AAS_ValueForBSPEpairKey(a1, a2);
-  if ( !result )
-    return (int)(intptr_t)result;
-  v6 = 0.0;
-  v5 = 0.0;
-  v4 = 0.0;
-  sscanf(result, "%lf %lf %lf", &v4, &v5, &v6);
-  *a3 = v4;
-  a3[1] = v5;
-  a3[2] = v6;
+  value = AAS_ValueForBSPEpairKey(ent, key);
+  if ( !value )
+    return (int)(intptr_t)value;
+  v3 = 0.0;
+  v2 = 0.0;
+  v1 = 0.0;
+  sscanf(value, "%lf %lf %lf", &v1, &v2, &v3);
+  *v = v1;
+  v[1] = v2;
+  v[2] = v3;
   return 1;
 }
 
 //----- (100068A0) --------------------------------------------------------
-float __cdecl FloatForKey(bsp_entity_t *a1, const char *a2)
+float __cdecl FloatForKey(bsp_entity_t *ent, const char *key)
 {
-  const char *v2; // eax
+  const char *value; // eax
 
-  v2 = (const char *)AAS_ValueForBSPEpairKey(a1, a2);
-  if ( !v2 )
+  value = (const char *)AAS_ValueForBSPEpairKey(ent, key);
+  if ( !value )
     return 0.0f;
-  return atof(v2);
+  return atof(value);
 }
 
 //----- (100068E0) --------------------------------------------------------
-int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2)
+int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
-  const char *result; // eax
+  const char *value; // eax
 
-  result = (const char *)AAS_ValueForBSPEpairKey(a1, a2);
-  if ( !result )
-    return (int)result;
-  return atoi(result);
+  value = (const char *)AAS_ValueForBSPEpairKey(ent, key);
+  if ( !value )
+    return (int)value;
+  return atoi(value);
 }
 
 //----- (10006920) --------------------------------------------------------
@@ -11301,14 +11301,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
  * leaves on ST(0).  IDA decompiled this as `void` because the body looks
  * like a fire-and-forget call; that broke every caller that read v39 (or
  * similar) immediately after — see `ida_dropped_results.md`. */
-float __cdecl VectorDistance(vec3_t a1, vec3_t a2)
+float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 {
-  vec3_t v2; // [esp+0h] [ebp-Ch] BYREF
+  vec3_t dir; // [esp+0h] [ebp-Ch] BYREF
 
-  v2[0] = *a2 - *a1;
-  v2[1] = a2[1] - a1[1];
-  v2[2] = a2[2] - a1[2];
-  return VectorLength(v2);
+  dir[0] = *v2 - *v1;
+  dir[1] = v2[1] - v1[1];
+  dir[2] = v2[2] - v1[2];
+  return VectorLength(dir);
 }
 
 //----- (10013BF0) --------------------------------------------------------
