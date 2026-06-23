@@ -286,7 +286,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int);
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
 int __cdecl sub_1001C760(char *Source); // idb
-BOOL BotCanAndWantsToRocketJump(int *a1);  // fixed from weak
+BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);  // fixed from weak
 void __cdecl PC_FreeToken(token_t *t);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 /* AAS_DropToFloor: full decl at line ~374 — body at 0x1000AFD0 actually drops
@@ -725,7 +725,7 @@ int __cdecl BotChat_Death(int *a1);
 BOOL __cdecl BotChat_Kill(int *a1);
 int __cdecl BotChat_Random(bot_state_t *bs);
 double __cdecl BotChatTime(bot_state_t *bs);
-float __cdecl BotAggression(int *a1);
+float __cdecl BotAggression(bot_state_t *bs);
 BOOL __cdecl BotWantsToRetreat(int *a1);
 BOOL __cdecl BotWantsToChase(int *a1);
 // BOOL __usercall BotCanAndWantsToRocketJump@<eax>(double a1@<st0>, int *a2);
@@ -774,7 +774,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2);
 int __cdecl BotClientSettings(int a1, const void *a2);
 int __cdecl BotConsoleMessage(int, int, char *Source); // idb
 int __cdecl BotSettings(int a1, const void *a2);
-int __cdecl BotResetState(int *a1);
+int __cdecl BotResetState(bot_state_t *bs);
 int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
@@ -17021,7 +17021,7 @@ void __cdecl AIEnter_Intermission(bot_state_t *bs)
 {
 
   BotRecordNodeSwitch(bs, "intermission", &byte_1006294C);
-  BotResetState((int *)bs);
+  BotResetState(bs);
   if ( BotChat_EndLevel(bs) )
     BotEnterChat(&bs->chatstate, bs->client, 0);
   BotAINode(bs) = AINode_Intermission;
@@ -17057,7 +17057,7 @@ int __cdecl AIEnter_Observer(bot_state_t *bs)
   int result; // eax
 
   BotRecordNodeSwitch(bs, "observer", &byte_1006294C);
-  result = BotResetState((int *)bs);
+  result = BotResetState(bs);
   BotAINode(bs) = AINode_Observer;
   return result;
 }
@@ -17314,7 +17314,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v8 |= 0x1000;
   }
@@ -17484,7 +17484,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     v10 = 118718;
     v2 = 118718;
   }
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v2 |= 0x1000u;
     v10 = v2;
@@ -17662,7 +17662,7 @@ LABEL_9:
       v8 = 102334;
       if ( libvar_usehook->value != 0.0f )
         v8 = 118718;
-      if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+      if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
         v8 |= 0x1000u;
       sub_10020FE0(bs, BotWS(bs));
       BotChooseBestFightWeapon(BotWS(bs));
@@ -17762,7 +17762,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     v9 = 118718;
     v2 = 118718;
   }
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v2 |= 0x1000u;
     v9 = v2;
@@ -18045,7 +18045,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   v8 = 102334;
   if ( libvar_usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump((int *)bs) )
+  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
     v8 |= 0x1000u;
   areanum = AAS_PointAreaNum((float *)&entinfo[4]);
   if ( areanum && AAS_AreaReachability(areanum) )
@@ -18847,37 +18847,36 @@ double __cdecl BotChatTime(bot_state_t *bs)
 }
 
 //----- (100226C0) --------------------------------------------------------
-float __cdecl BotAggression(int *a1)
+float __cdecl BotAggression(bot_state_t *bs)
 {
-  bot_state_t *bs = (bot_state_t *)a1;
   int v2; // ecx
 
   if ( bs->invuln_seconds )
     return 100.0f;
   if ( bs->enemy_invulnerability || bs->enemy_quad && !bs->quad_seconds )
     return 0.0f;
-  if ( bs->enemy_powerscreen && (!bs->power_screen_active_cells || a1[452] < 50) )
+  if ( bs->enemy_powerscreen && (!bs->power_screen_active_cells || ((int *)bs)[452] < 50) )
     return 0.0f;
   if ( bs->enemy_height > 200 )
     return 0.0f;
   v2 = bs->inventory_health;
-  if ( v2 < 40 || v2 < 70 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
+  if ( v2 < 40 || v2 < 70 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
     return 0.0f;
-  if ( a1[449] > 0 && a1[452] > 50 )
+  if ( ((int *)bs)[449] > 0 && ((int *)bs)[452] > 50 )
     return 100.0f;
-  if ( a1[448] > 0 && a1[454] > 5 )
+  if ( ((int *)bs)[448] > 0 && ((int *)bs)[454] > 5 )
     return 100.0f;
-  if ( a1[447] > 0 && a1[452] > 50 )
+  if ( ((int *)bs)[447] > 0 && ((int *)bs)[452] > 50 )
     return 100.0f;
-  if ( a1[446] > 0 && a1[453] > 5 )
+  if ( ((int *)bs)[446] > 0 && ((int *)bs)[453] > 5 )
     return 100.0f;
-  if ( a1[445] > 0 && a1[444] > 10 )
+  if ( ((int *)bs)[445] > 0 && ((int *)bs)[444] > 10 )
     return 100.0f;
-  if ( a1[443] > 0 && a1[451] > 100 )
+  if ( ((int *)bs)[443] > 0 && ((int *)bs)[451] > 100 )
     return 100.0f;
-  if ( a1[442] > 0 && a1[451] > 75 )
+  if ( ((int *)bs)[442] > 0 && ((int *)bs)[451] > 75 )
     return 100.0f;
-  if ( a1[441] <= 0 || a1[450] <= 20 )
+  if ( ((int *)bs)[441] <= 0 || ((int *)bs)[450] <= 20 )
     return 0.0f;
   else
     return 100.0f;
@@ -18890,13 +18889,13 @@ BOOL __cdecl BotWantsToRetreat(int *bs)
     return 1;
   if ( bs[1065] == 4 )
     return 1;
-  return BotAggression(bs) < 50.0f;
+  return BotAggression((bot_state_t *)bs) < 50.0f;
 }
 
 //----- (10022930) --------------------------------------------------------
 BOOL __cdecl BotWantsToChase(int *bs)
 {
-  return BotAggression(bs) > 50.0f;
+  return BotAggression((bot_state_t *)bs) > 50.0f;
 }
 
 //----- (10022970) --------------------------------------------------------
@@ -18912,14 +18911,13 @@ int __cdecl BotWantsToHelp(bot_state_t *bs)
 }
 
 //----- (10022990) --------------------------------------------------------
-BOOL BotCanAndWantsToRocketJump(int *a1)
+BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
 {
-  bot_state_t *bs = (bot_state_t *)a1;
   int v3;
 
-  if ( a1[446] <= 0 )
+  if ( ((int *)bs)[446] <= 0 )
     return 0;
-  if ( a1[453] < 3 )
+  if ( ((int *)bs)[453] < 3 )
     return 0;
   if ( bs->quad_seconds )
     return 0;
@@ -18928,9 +18926,9 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
     v3 = bs->inventory_health;
     if ( v3 < 60 )
       return 0;
-    if ( v3 < 90 && a1[433] < 40 && a1[434] < 50 && a1[435] < 60 )
+    if ( v3 < 90 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
       return 0;
-    if ( Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 26, 0.0, 1.0) < 0.5 )
+    if ( Characteristic_BFloat(BotCharacter(bs), 26, 0.0, 1.0) < 0.5 )
       return 0;
   }
   return 1;
@@ -20366,7 +20364,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
   else if ( AAS_Time() >= bs->ctfroam_time )
   {
     v3 = bs->ltgtype;
-    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression((int *)bs) >= 50.0f )
+    if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression(bs) >= 50.0f )
     {
       v4 = rand();
       v8 = (float)(v4 & 0x7FFF) * 0.000030518509f;
@@ -21877,9 +21875,8 @@ int __cdecl BotSettings(int a1, const void *a2)
 }
 
 //----- (10029A40) --------------------------------------------------------
-int __cdecl BotResetState(int *a1)
+int __cdecl BotResetState(bot_state_t *bs)
 {
-  bot_state_t *bs;
   int client;
   int entitynum;
   int inuse;
@@ -21890,7 +21887,6 @@ int __cdecl BotResetState(int *a1)
   char settings[432];
   int goalstate[243];
 
-  bs = (bot_state_t *)a1;
   qmemcpy(settings, bs->settings, sizeof(settings));
   client = bs->client;
   qmemcpy(movestate, &bs->ms, sizeof(movestate));
@@ -21925,7 +21921,7 @@ int sub_10029C10()
   int i;
 
   for ( i = 0; i < botstate.num_clients; i++ )
-    BotResetState(4560 * i + dword_100643A0);
+    BotResetState((bot_state_t *)(4560 * i + dword_100643A0));
   BotInitLevelItems();
   if ( dword_10064398 )
     AAS_FreeBSPEntities(dword_10064398);
