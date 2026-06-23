@@ -6988,14 +6988,14 @@ int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
 int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
 {
   int result; // eax
-  int v7; // ebp
-  int v8; // edi
-  int v9; // esi
+  int areanum; // ebp
+  int k; // edi
+  int l; // esi
   double v10; // st7
   float v11; // edx
   double v12; // st7
   float *v13; // ecx
-  aas_link_t *v16; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
+  aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
   /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
    * IDA split the start position into v18/v19/v20 (three separate floats)
    * but the original passes &v18 to AAS_PointAreaNum / AAS_TraceClientBBox
@@ -7004,12 +7004,12 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
    * goal_areanum=0 in the goal-item list and BotChooseLTGItem's weight loop
    * unable to pick any item. */
   vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
-  int i; // [esp+1Ch] [ebp-80h]
-  int v22; // [esp+20h] [ebp-7Ch]
+  int j; // [esp+1Ch] [ebp-80h]
+  int i; // [esp+20h] [ebp-7Ch]
   float v25; // [esp+2Ch] [ebp-70h]
-  vec3_t v26; // [esp+30h] [ebp-6Ch] BYREF
-  vec3_t v27; // [esp+3Ch] [ebp-60h] BYREF
-  vec3_t v28; // [esp+48h] [ebp-54h] BYREF
+  vec3_t end; // [esp+30h] [ebp-6Ch] BYREF
+  vec3_t absmins; // [esp+3Ch] [ebp-60h] BYREF
+  vec3_t absmaxs; // [esp+48h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+54h] [ebp-48h] (was int v29[9] + char v30[36] hidden return buffer)
 
   if ( !aasworld.loaded )
@@ -7019,39 +7019,39 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   }
   {
     VectorCopy(((float *)origin), start);
-    v7 = AAS_PointAreaNum(start);
-    for ( v22 = 0; v22 < 5 && !v7; ++v22 )
+    areanum = AAS_PointAreaNum(start);
+    for ( i = 0; i < 5 && !areanum; ++i )
     {
-      for ( i = 0; i < 5 && !v7; ++i )
+      for ( j = 0; j < 5 && !areanum; ++j )
       {
-        v25 = (float)i;
-        for ( v8 = -1; v8 <= 1 && !v7; ++v8 )
+        v25 = (float)j;
+        for ( k = -1; k <= 1 && !areanum; ++k )
         {
-          for ( v9 = -1; v9 <= 1 && !v7; ++v9 )
+          for ( l = -1; l <= 1 && !areanum; ++l )
           {
             v10 = ((float *)origin)[0];
             v11 = ((float *)origin)[2];
             start[1] = ((float *)origin)[1];
-            start[0] = (float)v8 * v25 * 4.0f + v10;
-            start[1] = (float)v9 * v25 * 4.0f + start[1];
-            start[2] = (float)v22 * 4.0f + v11;
-            v7 = AAS_PointAreaNum(start);
+            start[0] = (float)k * v25 * 4.0f + v10;
+            start[1] = (float)l * v25 * 4.0f + start[1];
+            start[2] = (float)i * 4.0f + v11;
+            areanum = AAS_PointAreaNum(start);
           }
         }
       }
     }
-    if ( v7 )
+    if ( areanum )
     {
       v12 = start[2];
-      *(float *)v26 = start[0];
-      v26[1] = start[1];
+      *(float *)end = start[0];
+      end[1] = start[1];
       start[2] = start[2] + 0.25f;
-      v26[2] = v12 - 50.0f;
-      trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
+      end[2] = v12 - 50.0f;
+      trace = AAS_TraceClientBBox(start, (float *)end, 4, -1);
       if ( trace.startsolid )
       {
         VectorCopy(start, goalorigin);
-        return v7;
+        return areanum;
       }
       result = AAS_PointAreaNum(trace.endpos);
       v13 = goalorigin;
@@ -7066,15 +7066,15 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
     *(int *)&v13[0] = *origin;
     *(int *)&v13[1] = origin[1];
     *(int *)&v13[2] = origin[2];
-    v27[0] = *(float *)origin + *mins;
-    v27[1] = mins[1] + *((float *)origin + 1);
-    v27[2] = mins[2] + *((float *)origin + 2);
-    v28[0] = *(float *)origin + *maxs;
-    v28[1] = maxs[1] + *((float *)origin + 1);
-    v28[2] = maxs[2] + *((float *)origin + 2);
-    v16 = AAS_AASLinkEntity(v27, v28, -1);
-    result = AAS_BestReachableLinkArea(v16);
-    AAS_UnlinkFromAreas(v16);
+    absmins[0] = *(float *)origin + *mins;
+    absmins[1] = mins[1] + *((float *)origin + 1);
+    absmins[2] = mins[2] + *((float *)origin + 2);
+    absmaxs[0] = *(float *)origin + *maxs;
+    absmaxs[1] = maxs[1] + *((float *)origin + 1);
+    absmaxs[2] = maxs[2] + *((float *)origin + 2);
+    areas = AAS_AASLinkEntity(absmins, absmaxs, -1);
+    result = AAS_BestReachableLinkArea(areas);
+    AAS_UnlinkFromAreas(areas);
     return result;
   }
 }
