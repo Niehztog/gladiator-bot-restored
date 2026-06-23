@@ -22911,7 +22911,7 @@ void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
 /* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
  * traversal.  Selects a synonym by weighted random pick and rewrites all
  * other occurrences in the string. */
-void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
+void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
 {
   bot_synonymlist_t *syn;
   bot_synonym_t *synonym, *replacement;
@@ -22920,7 +22920,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
 
   for ( syn = dword_10064384; syn; syn = syn->next )
   {
-    if ( !(syn->context & a2) ) continue;
+    if ( !(syn->context & context) ) continue;
     r = rand() & 0x7FFF;
     weight = ((float)r * 0.000030518509f) * syn->totalweight;
     curweight = 0.0;
@@ -22932,7 +22932,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2)
     for ( synonym = syn->firstsynonym; synonym; synonym = synonym->next )
     {
       if ( synonym == replacement ) continue;
-      StringReplaceWords(a1, synonym->string, replacement->string);
+      StringReplaceWords(string, synonym->string, replacement->string);
     }
   }
 }
@@ -25638,7 +25638,7 @@ void *__cdecl BotGetSecondGoal(int *goalstate)
 }
 
 //----- (1002FEB0) --------------------------------------------------------
-int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
+int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags)
 {
   int result; // eax
   BOOL v6; // eax
@@ -25661,14 +25661,14 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
    * On 64-bit they live in the sideband BotGoalP0/BotGoalP1 maxclients arrays.
    * Recover bs from the goalstate pointer (goalstate is at +3008 inside bot_state_t)
    * and read the typed pointers from the sideband. */
-  bot_state_t *bs = (bot_state_t *)((char *)a1 - offsetof(bot_state_t, goalstate));
+  bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
 
   if ( !p0 )
     return 0;
-  v6 = AAS_Swimming(a2);
-  result = BotReachabilityArea(a2, !v6);
+  v6 = AAS_Swimming(origin);
+  result = BotReachabilityArea(origin, !v6);
   v7 = result;
   v15 = result;
   if ( result )
@@ -25687,7 +25687,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
       {
         do
         {
-          if ( BotAvoidGoalTime(a1, li->number) <= 0.0f )
+          if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
           {
             v9 = li->areanum;
             if ( v9 )
@@ -25696,10 +25696,10 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
               v11 = p1[v10->number];
               if ( v11 >= 0 )
               {
-                v12 = FuzzyWeightUndecided(a3, &p0->weights[v11]);
+                v12 = FuzzyWeightUndecided(inventory, &p0->weights[v11]);
                 if ( v12 > 0.0f )
                 {
-                  v17 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v15, v9, a4);
+                  v17 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v15, v9, travelflags);
                   if ( v17 )
                   {
                     v19 = v12;
@@ -25738,8 +25738,8 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
           v21 = v16->items[v14->iteminfo].respawntime;
           if ( v21 == 0.0f )
             v21 = 30.0f;
-          BotAddToAvoidGoals(a1, v14->number, v21);
-          BotPushGoal(a1, v18);
+          BotAddToAvoidGoals(goalstate, v14->number, v21);
+          BotPushGoal(goalstate, v18);
           return 1;
         }
         v7 = v15;
@@ -25750,7 +25750,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
        * mapping passed v7 (= some pointer) into BotFindWayPoint where it
        * gets walked as a chat-node list, faulting on a corrupt next ptr
        * (= 0x5).  Restored to the correct function with all 4 args. */
-      if ( !AAS_RandomGoalArea(v7, a4, (_DWORD *)&v18[3], (float *)v18) )
+      if ( !AAS_RandomGoalArea(v7, travelflags, (_DWORD *)&v18[3], (float *)v18) )
         return 0;
       v18[4] = -1049624576;
       v18[5] = -1049624576;
@@ -25762,7 +25762,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
       v18[11] = 0;
       v18[12] = 2;
       v18[13] = 0;
-      BotPushGoal(a1, v18);
+      BotPushGoal(goalstate, v18);
       return 1;
     }
   }
@@ -25770,7 +25770,7 @@ int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4)
 }
 
 //----- (10030260) --------------------------------------------------------
-int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6)
+int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
   int result; // eax
   BOOL v8; // eax
@@ -25793,14 +25793,14 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
   int v25; // [esp+60h] [ebp+8h]
   float v26; // [esp+68h] [ebp+10h]
   /* 64-bit fix: see BotChooseLTGItem — goalstate[0]/[1] live in sideband. */
-  bot_state_t *bs = (bot_state_t *)((char *)a1 - offsetof(bot_state_t, goalstate));
+  bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
 
   if ( !p0 )
     return 0;
-  v8 = AAS_Swimming(a2);
-  result = BotReachabilityArea(a2, !v8);
+  v8 = AAS_Swimming(origin);
+  result = BotReachabilityArea(origin, !v8);
   v9 = result;
   v20 = result;
   if ( result )
@@ -25808,7 +25808,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
     result = AAS_AreaReachability(result);
     if ( result )
     {
-      v25 = a5 ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, a5->areanum, a4) : 99999;
+      v25 = ltg ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags) : 99999;
       v19p = dword_1006435C;
       result = (int)(intptr_t)dword_1006435C;
       if ( v19p )
@@ -25821,7 +25821,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
           return 0;
         do
         {
-          if ( BotAvoidGoalTime(a1, li->number) <= 0.0f )
+          if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
           {
             v11 = li->areanum;
             if ( v11 )
@@ -25830,15 +25830,15 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
               v13 = p1[v12->number];
               if ( v13 >= 0 )
               {
-                v14 = FuzzyWeightUndecided(a3, &p0->weights[v13]);
+                v14 = FuzzyWeightUndecided(inventory, &p0->weights[v13]);
                 *(float *)&v23 = v14;
                 if ( v14 > 0.0f )
                 {
-                  v21 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v20, v11, a4);
+                  v21 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v20, v11, travelflags);
                   if ( v21 )
                   {
                     v15 = (float)v21;
-                    if ( v15 < a6 )
+                    if ( v15 < maxtime )
                     {
                       *(float *)&v24 = *(float *)&v23 / (v15 * 0.01);
                       if ( li->timeout != 0.0f )
@@ -25846,8 +25846,8 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
                       if ( *(float *)&v24 > (float)v17 )
                       {
                         v16 = 0;
-                        if ( a5 )
-                          v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, a5->areanum, a4);
+                        if ( ltg )
+                          v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, ltg->areanum, travelflags);
                         if ( v16 <= v25 )
                         {
                           v22[0] = *(int *)&li->goalorigin[0];
@@ -25882,8 +25882,8 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
           v26 = v19p->items[v18->iteminfo].respawntime;
           if ( v26 == 0.0f )
             v26 = 30.0f;
-          BotAddToAvoidGoals(a1, v18->number, v26);
-          BotPushGoal(a1, v22);
+          BotAddToAvoidGoals(goalstate, v18->number, v26);
+          BotPushGoal(goalstate, v22);
           return 1;
         }
         else
@@ -25975,11 +25975,11 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
 }
 
 //----- (100308D0) --------------------------------------------------------
-int __cdecl BotLoadItemWeights(int *goalstate, char *a2)
+int __cdecl BotLoadItemWeights(int *goalstate, char *filename)
 {
   weightconfig_t *v2;
 
-  v2 = ReadWeightConfig(a2);
+  v2 = ReadWeightConfig(filename);
   BotGoalHandleP0(goalstate) = v2;
   if ( !v2 )
   {
@@ -26288,7 +26288,7 @@ void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
 }
 
 //----- (100310E0) --------------------------------------------------------
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10)
+int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, intptr_t avoidreach, float *avoidreachtimes, intptr_t avoidreachtries, intptr_t goal, int travelflags)
 {
   int v10; // ebp
   float *v11; // edi
@@ -26301,26 +26301,26 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
 
   v16 = 0;
   v17 = 0;
-  v10 = AAS_NextAreaReachability(a2, 0);
+  v10 = AAS_NextAreaReachability(areanum, 0);
   if ( !v10 )
     return 0;
   do
   {
-    v11 = a7;
+    v11 = avoidreachtimes;
     for ( i = 0; i < 1; ++i )
     {
-      if ( *(_DWORD *)((char *)v11 + (a6 - (intptr_t)a7)) == v10 && AAS_Time() <= *v11 )
+      if ( *(_DWORD *)((char *)v11 + (avoidreach - (intptr_t)avoidreachtimes)) == v10 && AAS_Time() <= *v11 )
         break;
       ++v11;
     }
-    if ( i == 1 || *(int *)(a8 + 4 * i) <= 4 )
+    if ( i == 1 || *(int *)(avoidreachtries + 4 * i) <= 4 )
     {
       *(aas_reachability_t *)v18 = AAS_ReachabilityFromNum(v10);
-      if ( a3 != *(_DWORD *)(a9 + 12) || v18[0] != a4 )
+      if ( entnum != *(_DWORD *)(goal + 12) || v18[0] != lastgoalareanum )
       {
-        if ( BotValidTravel(a1, a5, (intptr_t)v18, a10) )
+        if ( BotValidTravel(origin, lastareanum, (intptr_t)v18, travelflags) )
         {
-          v13 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v18[0], *(_DWORD *)(a9 + 12), a10);
+          v13 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v18[0], *(_DWORD *)(goal + 12), travelflags);
           if ( v13 )
           {
             v14 = LOWORD(v18[10]) + v13;
@@ -26333,7 +26333,7 @@ int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, int
         }
       }
     }
-    v10 = AAS_NextAreaReachability(a2, v10);
+    v10 = AAS_NextAreaReachability(areanum, v10);
   }
   while ( v10 );
   return v17;
@@ -28240,16 +28240,16 @@ void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws)
 }
 
 //----- (10035340) --------------------------------------------------------
-int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2)
+int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
 {
   weightconfig_t *v2; // eax
 
   BotFreeWeaponWeights(ws);
-  v2 = (weightconfig_t *)ReadWeightConfig((char *)a2);
+  v2 = (weightconfig_t *)ReadWeightConfig((char *)filename);
   ws->weightconfig = v2;
   if ( !v2 )
   {
-    botimport.Print(PRT_FATAL, "couldn't load weapon config %s\n", a2);
+    botimport.Print(PRT_FATAL, "couldn't load weapon config %s\n", filename);
     return 30;
   }
   if ( !dword_10064080 )
@@ -29178,33 +29178,33 @@ static void sub_10036EB0(int *table, const char *name, float scale)
 // recursively averaging seperator thresholds and leaf weights.
 // DEAD in Gladiator. Live in Q3 via InterbreedingGoalFuzzyLogic.
 // Together with Evolve* and Write* forms the offline bot-tuning pipeline.
-int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2)
+int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2)
 {
   int result; // eax
   fuzzyseperator_t *v5; // eax
 
   while ( 1 )
   {
-    result = (int)a1->child;
+    result = (int)fs1->child;
     if ( result )
     {
-      v5 = a2->child;
+      v5 = fs2->child;
       if ( !v5 )
         return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
-      result = InterbreedFuzzySeperator_r(v5, a2->child);
+      result = InterbreedFuzzySeperator_r(v5, fs2->child);
     }
-    else if ( a1->type == 1 )
+    else if ( fs1->type == 1 )
     {
-      if ( a2->type != 1 )
+      if ( fs2->type != 1 )
         return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
-      a1->weight = (a2->weight + a1->weight) * 0.5f;
+      fs1->weight = (fs2->weight + fs1->weight) * 0.5f;
     }
-    a1 = a1->next;
-    if ( !a1 )
+    fs1 = fs1->next;
+    if ( !fs1 )
       return result;
-    if ( a2->next )
+    if ( fs2->next )
       break;
-    a2 = 0;
+    fs2 = 0;
   }
   return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
 }
@@ -33398,17 +33398,17 @@ int __cdecl PS_ReadName(script_t *script, intptr_t a2)
  * flow, arithmetic, and disassembled instruction order are preserved 1:1.
  * Subtype flags match the original: 0x800=float 0x8=decimal 0x100=hex
  * 0x200=octal 0x400=binary. */
-void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4)
+void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue)
 {
   char *p;
   unsigned int dotfound = 0;
   char i;
 
-  *a3 = 0;
-  *a4 = 0.0;
-  if ( (a2 & 0x800) != 0 )
+  *intvalue = 0;
+  *floatvalue = 0.0;
+  if ( (subtype & 0x800) != 0 )
   {
-    for ( p = a1; (i = *p) != 0; ++p )
+    for ( p = string; (i = *p) != 0; ++p )
     {
       if ( i == 46 )
       {
@@ -33419,47 +33419,47 @@ void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4)
       }
       if ( dotfound )
       {
-        *a4 = (double)((char)*p - 48) / (double)dotfound + *a4;
+        *floatvalue = (double)((char)*p - 48) / (double)dotfound + *floatvalue;
         dotfound *= 10;
       }
       else
       {
-        *a4 = (double)(i - 48) + *a4 * 10.0;
+        *floatvalue = (double)(i - 48) + *floatvalue * 10.0;
       }
     }
-    *a3 = (int)*a4;
+    *intvalue = (int)*floatvalue;
   }
-  else if ( (a2 & 8) != 0 )
+  else if ( (subtype & 8) != 0 )
   {
-    for ( p = a1; *p; ++p )
-      *a3 = *p + 10 * *a3 - 48;
-    *a4 = (double)(unsigned int)*a3;
+    for ( p = string; *p; ++p )
+      *intvalue = *p + 10 * *intvalue - 48;
+    *floatvalue = (double)(unsigned int)*intvalue;
   }
-  else if ( (a2 & 0x100) != 0 )
+  else if ( (subtype & 0x100) != 0 )
   {
-    for ( p = a1 + 2; *p; ++p )
+    for ( p = string + 2; *p; ++p )
     {
-      *a3 <<= 4;
+      *intvalue <<= 4;
       if ( *p >= 'a' && *p <= 'f' )
-        *a3 += *p - 'a' + 10;
+        *intvalue += *p - 'a' + 10;
       else if ( *p >= 'A' && *p <= 'F' )
-        *a3 += *p - 'A' + 10;
+        *intvalue += *p - 'A' + 10;
       else
-        *a3 += *p - '0';
+        *intvalue += *p - '0';
     }
-    *a4 = (double)(unsigned int)*a3;
+    *floatvalue = (double)(unsigned int)*intvalue;
   }
-  else if ( (a2 & 0x200) != 0 )
+  else if ( (subtype & 0x200) != 0 )
   {
-    for ( p = a1 + 1; *p; ++p )
-      *a3 = *p + 8 * *a3 - 48;
-    *a4 = (double)(unsigned int)*a3;
+    for ( p = string + 1; *p; ++p )
+      *intvalue = *p + 8 * *intvalue - 48;
+    *floatvalue = (double)(unsigned int)*intvalue;
   }
-  else if ( (a2 & 0x400) != 0 )
+  else if ( (subtype & 0x400) != 0 )
   {
-    for ( p = a1 + 2; *p; ++p )
-      *a3 = *p + 2 * *a3 - 48;
-    *a4 = (double)(unsigned int)*a3;
+    for ( p = string + 2; *p; ++p )
+      *intvalue = *p + 2 * *intvalue - 48;
+    *floatvalue = (double)(unsigned int)*intvalue;
   }
 }
 
@@ -34710,7 +34710,7 @@ int __cdecl WriteFloat(FILE *fp, float value)
 }
 
 //----- (10040F20) --------------------------------------------------------
-int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
+int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure, int indent)
 {
   int result; // eax
   _DWORD *v6; // ebx
@@ -34721,12 +34721,12 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
   FILE *Streamb; // [esp+14h] [ebp+4h]
   int v12; // [esp+20h] [ebp+10h]
 
-  if ( !fputc(Stream, a4) )
+  if ( !fputc(Stream, indent) )
     return 0;
   if ( fprintf(Stream, "{\r\n") < 0 )
     return 0;
-  v12 = a4 + 1;
-  v6 = (_DWORD *)a2->fields;
+  v12 = indent + 1;
+  v6 = (_DWORD *)def->fields;
   if ( *v6 )
   {
     v7 = 0;
@@ -34734,7 +34734,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
     {
       if ( !fputc(Stream, v12) || fprintf(Stream, "%s\t", (const char *)v6[v7]) < 0 )
         return 0;
-      v8 = (float *)(a3 + v6[v7 + 1]);
+      v8 = (float *)(structure + v6[v7 + 1]);
       if ( (v6[v7 + 2] & 0x100) != 0 )
       {
         Streama = v6[v7 + 3];
@@ -34774,7 +34774,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
             /* Nested struct case: recursive call. The original binary thunked
              * via 0x10001500 → WriteStructWithIndent (0x10040F20). The earlier
              * PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-            if ( !WriteStructWithIndent(Stream, (structdef_t *)v6[v7 + 6], a3, v12) )
+            if ( !WriteStructWithIndent(Stream, (structdef_t *)v6[v7 + 6], structure, v12) )
               return 0;
             v8 = (float *)((char *)v8 + *(_DWORD *)v6[v7 + 6]);
             break;
@@ -34798,7 +34798,7 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
       if ( fprintf(Stream, "\r\n") < 0 )
         return 0;
       v7 += 7;
-      v6 = (_DWORD *)a2->fields;
+      v6 = (_DWORD *)def->fields;
     }
     while ( v6[v7] );
   }
