@@ -30467,12 +30467,12 @@ void __cdecl PC_PushScript(source_t *source, script_t *script)
  * IDA's `result[266] = 0` indexes by 4 bytes (32-bit pointer width) to
  * reach token_t.next at +0x428.  On 64-bit that offset moves with the
  * pointer-field expansion, so we must zero via the struct member. */
-token_t *__cdecl PC_CopyToken(const token_t *a1)
+token_t *__cdecl PC_CopyToken(const token_t *token)
 {
   token_t *result;
 
   result = (token_t *)GetMemory(sizeof(token_t));
-  qmemcpy(result, a1, sizeof(token_t));
+  qmemcpy(result, token, sizeof(token_t));
   result->next = NULL;
   return result;
 }
@@ -30723,13 +30723,13 @@ unsigned int __cdecl PC_AddDefineToHash(define_t *a1, define_t **a2)
  * (int, const char*) to (define_t**, const char*) so the bucket-array
  * pointer doesn't truncate on 64-bit and the chain walk uses
  * define_t.hashnext directly. */
-define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
+define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
 {
   define_t *v2;
 
-  for ( v2 = a1[PC_NameHash(a2)]; v2; v2 = v2->hashnext )
+  for ( v2 = definehash[PC_NameHash(name)]; v2; v2 = v2->hashnext )
   {
-    if ( !strcmp(v2->name, a2) )
+    if ( !strcmp(v2->name, name) )
       return v2;
   }
   return NULL;
@@ -30739,20 +30739,20 @@ define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2)
 /* PC_FindDefine: linear search of a define_t linked list (next at offset 24).
  * Q3 botlib has the same function in l_precomp.c.  In Gladiator the only
  * caller is PC_RemoveGlobalDefine (sub_1003B4E0) walking globaldefines. */
-int __cdecl PC_FindDefine(define_t *a1, const char *a2)
+int __cdecl PC_FindDefine(define_t *defines, const char *name)
 {
   define_t *v2;
 
-  for ( v2 = a1; v2; v2 = v2->next )
+  for ( v2 = defines; v2; v2 = v2->next )
   {
-    if ( !strcmp(v2->name, a2) )
+    if ( !strcmp(v2->name, name) )
       return (intptr_t)v2;
   }
   return 0;
 }
 
 //----- (10039DF0) --------------------------------------------------------
-int __cdecl PC_FindDefineParm(define_t *define, const char *a2)
+int __cdecl PC_FindDefineParm(define_t *define, const char *name)
 {
   token_t *v2;
   int v3;
@@ -30760,7 +30760,7 @@ int __cdecl PC_FindDefineParm(define_t *define, const char *a2)
   v3 = 0;
   for ( v2 = define->parms; v2; v2 = v2->next )
   {
-    if ( !strcmp(v2->string, a2) )
+    if ( !strcmp(v2->string, name) )
       return v3;
     ++v3;
   }
@@ -31139,11 +31139,11 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
  * Retyped from `int a1` to `token_t *a1` so the byte offsets +1048/+1052
  * (whitespace_p / endwhitespace_p on 32-bit) become proper field access
  * and don't drift when token_t's pointer fields grow on 64-bit. */
-BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *a1)
+BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token)
 {
   int diff;
 
-  diff = a1->endwhitespace_p - a1->whitespace_p;
+  diff = token->endwhitespace_p - token->whitespace_p;
   return diff > 0;
 }
 
@@ -31151,12 +31151,12 @@ BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *a1)
 /* Original gladiator helper at 0x1003AC00 — PC_ClearTokenWhiteSpace.
  * Disassembly zeroes token offsets +1048, +1052, +1060 = whitespace_p,
  * endwhitespace_p, linescrossed.  Same restoration as above. */
-token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *a1)
+token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token)
 {
-  a1->whitespace_p = NULL;
-  a1->endwhitespace_p = NULL;
-  a1->linescrossed = 0;
-  return a1;
+  token->whitespace_p = NULL;
+  token->endwhitespace_p = NULL;
+  token->linescrossed = 0;
+  return token;
 }
 
 //----- (1003AC30) --------------------------------------------------------
@@ -31334,7 +31334,7 @@ int __cdecl PC_Directive_define(source_t *source)
  * through PC_Directive_define, copy out the single resulting define
  * from the local definehash, free the source's scratch buffers, and
  * return it. */
-define_t *__cdecl PC_DefineFromString(const char *a1)
+define_t *__cdecl PC_DefineFromString(const char *string)
 {
   script_t *script;
   int res;
@@ -31343,7 +31343,7 @@ define_t *__cdecl PC_DefineFromString(const char *a1)
   define_t *def;
   source_t src; // [esp+Ch] [ebp-658h]
 
-  script = LoadScriptMemory(a1, strlen(a1), "*extern");
+  script = LoadScriptMemory(string, strlen(string), "*extern");
   memset(&src, 0, sizeof(src));
   strncpy(src.filename, "*extern", 0x104u);
   src.scriptstack = script;
@@ -31410,11 +31410,11 @@ int __cdecl PC_AddDefine(source_t *source, const char *string)
  *   mov  [globaldefines],eax
  *   return 1
  * Restored with struct-field access so the +24 offset survives on 64-bit. */
-int __cdecl PC_AddGlobalDefine(const char *a1)
+int __cdecl PC_AddGlobalDefine(const char *string)
 {
   define_t *define;
 
-  define = PC_DefineFromString(a1);
+  define = PC_DefineFromString(string);
   if ( !define )
     return 0;
   define->next = globaldefines;
@@ -31430,13 +31430,13 @@ int __cdecl PC_AddGlobalDefine(const char *a1)
  * which nothing invokes, and the DLL exports only GetBotAPI).  Restored
  * by hand from the binary at 0x1003B4E0 to preserve byte-for-byte
  * fidelity with the compiled .text section. */
-int __cdecl PC_RemoveGlobalDefine(const char *a1)
+int __cdecl PC_RemoveGlobalDefine(const char *name)
 {
   int define;
 
   /* PC_FindDefine still takes int — explicit cast documents the truncation;
    * will be lifted when PC_FindDefine is retyped to (define_t *, char *). */
-  define = PC_FindDefine((int)globaldefines, a1);
+  define = PC_FindDefine((int)globaldefines, name);
   if ( define )
   {
     PC_FreeDefine((define_t *)define);
@@ -31472,26 +31472,26 @@ void __cdecl PC_RemoveAllGlobalDefines(void)
  * 56, so the literal "+33" in IDA must become "+sizeof(define_t)+1".
  * IDA's `v[266]` indexing on token_t is 32-bit-only; restored to use
  * token->next directly. */
-define_t *__cdecl PC_CopyDefine(define_t *a1)
+define_t *__cdecl PC_CopyDefine(define_t *define)
 {
   define_t *def;
   token_t *tok;
   token_t *prev;
   token_t *src;
 
-  def = (define_t *)GetMemory(sizeof(define_t) + strlen(a1->name) + 1);
+  def = (define_t *)GetMemory(sizeof(define_t) + strlen(define->name) + 1);
   def->name = (char *)def + sizeof(define_t);
-  strcpy(def->name, a1->name);
-  def->flags    = a1->flags;
-  def->builtin  = a1->builtin;
-  def->numparms = a1->numparms;
+  strcpy(def->name, define->name);
+  def->flags    = define->flags;
+  def->builtin  = define->builtin;
+  def->numparms = define->numparms;
   def->next     = NULL;
   def->hashnext = NULL;
 
   /* Copy tokens list (define_t.tokens @+20). */
   def->tokens = NULL;
   prev = NULL;
-  for ( src = a1->tokens; src; src = src->next )
+  for ( src = define->tokens; src; src = src->next )
   {
     tok = PC_CopyToken(src);
     tok->next = NULL;
@@ -31505,7 +31505,7 @@ define_t *__cdecl PC_CopyDefine(define_t *a1)
   /* Copy parms list (define_t.parms @+16). */
   def->parms = NULL;
   prev = NULL;
-  for ( src = a1->parms; src; src = src->next )
+  for ( src = define->parms; src; src = src->next )
   {
     tok = PC_CopyToken(src);
     tok->next = NULL;
@@ -31523,7 +31523,7 @@ define_t *__cdecl PC_CopyDefine(define_t *a1)
  * (chained via define_t.next at +24 on 32-bit) and copies each into the
  * passed source's definehash table via PC_CopyDefine + PC_AddDefineToHash.
  * Body restored to struct-field walk; semantics identical to disasm. */
-void __cdecl PC_AddGlobalDefinesToSource(source_t *a1)
+void __cdecl PC_AddGlobalDefinesToSource(source_t *source)
 {
   define_t *def;
   define_t *copy;
@@ -31531,12 +31531,12 @@ void __cdecl PC_AddGlobalDefinesToSource(source_t *a1)
   for ( def = globaldefines; def; def = def->next )
   {
     copy = PC_CopyDefine(def);
-    PC_AddDefineToHash(copy, a1->definehash);
+    PC_AddDefineToHash(copy, source->definehash);
   }
 }
 
 //----- (1003B6C0) --------------------------------------------------------
-int __cdecl PC_Directive_ifdef(source_t *src, int a2)
+int __cdecl PC_Directive_ifdef(source_t *src, int type)
 {
   define_t *def;
   token_t token;
@@ -31554,8 +31554,8 @@ int __cdecl PC_Directive_ifdef(source_t *src, int a2)
     return 0;
   }
   def = PC_FindHashedDefine(src->definehash, token.string);
-  skip = (a2 == 8) == (def == NULL);
-  PC_PushIndent(src, a2, skip);
+  skip = (type == 8) == (def == NULL);
+  PC_PushIndent(src, type, skip);
   return 1;
 }
 
@@ -31596,11 +31596,11 @@ int __cdecl PC_Directive_endif(source_t *src)
 }
 
 //----- (1003B8D0) --------------------------------------------------------
-int __cdecl PC_OperatorPriority(int a1)
+int __cdecl PC_OperatorPriority(int op)
 {
   int result; // eax
 
-  switch ( a1 )
+  switch ( op )
   {
     case 5:
       result = 7;
@@ -32176,7 +32176,7 @@ LABEL_165:
 }
 
 //----- (1003C650) --------------------------------------------------------
-int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
+int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
 {
   token_t *v6;
   token_t *v7;
@@ -32189,11 +32189,11 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
   token_t token;
 
   v14 = 0;
-  if ( a2 )
-    *a2 = 0;
-  if ( a3 )
+  if ( intvalue )
+    *intvalue = 0;
+  if ( floatvalue )
   {
-    *a3 = 0;
+    *floatvalue = 0;
   }
   if ( !PC_ReadLine(src, &token) )
   {
@@ -32257,7 +32257,7 @@ int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4)
     }
   }
   while ( PC_ReadLine(src, &token) );
-  if ( !PC_EvaluateTokens(src, (intptr_t)v6, (_DWORD *)a2, (_DWORD *)a3, a4) )
+  if ( !PC_EvaluateTokens(src, (intptr_t)v6, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
     return 0;
   v11 = v6;
   if ( v6 )
@@ -32638,39 +32638,39 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
 /* Original gladiator function at 0x1003D580.  IDA decompile used
  * a1[136] / a1[134] indexing relying on 32-bit pointer width; restored
  * to use source_t->skip and source_t->definehash struct fields. */
-int __cdecl PC_ReadTokenHandle(source_t *a1, _DWORD *a2)
+int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token)
 {
   define_t *v3;
 
   while ( 1 )
   {
-    if ( !PC_ReadSourceToken(a1, (token_t *)a2) )
+    if ( !PC_ReadSourceToken(source, (token_t *)token) )
       return 0;
-    if ( ((token_t *)a2)->type == 5 && ((token_t *)a2)->string[0] == '#' )
+    if ( ((token_t *)token)->type == 5 && ((token_t *)token)->string[0] == '#' )
     {
-      if ( !PC_ReadDirective(a1) )
+      if ( !PC_ReadDirective(source) )
         return 0;
       continue;
     }
-    if ( ((token_t *)a2)->type == 5 && ((token_t *)a2)->string[0] == '$' )
+    if ( ((token_t *)token)->type == 5 && ((token_t *)token)->string[0] == '$' )
     {
-      if ( !PC_ReadDollarDirective(a1) )
+      if ( !PC_ReadDollarDirective(source) )
         return 0;
       continue;
     }
-    if ( a1->skip )
+    if ( source->skip )
       continue;
-    if ( ((token_t *)a2)->type == 4 )
+    if ( ((token_t *)token)->type == 4 )
     {
-      v3 = PC_FindHashedDefine(a1->definehash, (const char *)a2);
+      v3 = PC_FindHashedDefine(source->definehash, (const char *)token);
       if ( v3 )
       {
-        if ( !PC_ExpandDefineIntoSource(a1, v3) )
+        if ( !PC_ExpandDefineIntoSource(source, v3) )
           return 0;
         continue;
       }
     }
-    qmemcpy(&a1->cachedtoken, a2, sizeof(token_t));
+    qmemcpy(&source->cachedtoken, token, sizeof(token_t));
     return 1;
   }
 }
@@ -32695,72 +32695,72 @@ int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList)
 }
 
 //----- (1003D740) --------------------------------------------------------
-int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
+int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t token)
 {
   int v4; // ebp
   int v6; // eax
   char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
-  token_t *tok = (token_t *)a4;
+  token_t *tok = (token_t *)token;
 
   v4 = src;
-  if ( !PC_ReadTokenHandle(src, a4) )
+  if ( !PC_ReadTokenHandle(src, token) )
   {
     SourceError(src, "couldn't read expected token");
     return 0;
   }
   v6 = tok->type;
-  if ( v6 != a2 )
+  if ( v6 != type )
   {
-    if ( a2 == 1 )
+    if ( type == 1 )
       strcpy(ArgList, "string");
-    else if ( a2 == 2 )
+    else if ( type == 2 )
       strcpy(ArgList, "literal");
-    else if ( a2 == 3 )
+    else if ( type == 3 )
       strcpy(ArgList, "number");
-    else if ( a2 == 4 )
+    else if ( type == 4 )
       strcpy(ArgList, "name");
-    else if ( a2 == 5 )
+    else if ( type == 5 )
       strcpy(ArgList, "punctuation");
-    SourceError(src, "expected a %s, found %s", ArgList, a4);
+    SourceError(src, "expected a %s, found %s", ArgList, token);
     return 0;
   }
   if ( v6 == 3 )
   {
-    if ( (a3 & tok->subtype) == a3 )
+    if ( (subtype & tok->subtype) == subtype )
       return 1;
-    if ( (a3 & 8) != 0 )
+    if ( (subtype & 8) != 0 )
       strcpy(ArgList, "decimal");
-    if ( (a3 & 0x100) != 0 )
+    if ( (subtype & 0x100) != 0 )
       strcpy(ArgList, "hex");
-    if ( (a3 & 0x200) != 0 )
+    if ( (subtype & 0x200) != 0 )
       strcpy(ArgList, "octal");
-    if ( (a3 & 0x400) != 0 )
+    if ( (subtype & 0x400) != 0 )
       strcpy(ArgList, "binary");
-    if ( (a3 & 0x2000) != 0 )
+    if ( (subtype & 0x2000) != 0 )
     {
       strcat(ArgList, " long");
       v4 = src;
     }
-    if ( (a3 & 0x4000) != 0 )
+    if ( (subtype & 0x4000) != 0 )
     {
       strcat(ArgList, " unsigned");
       v4 = src;
     }
-    if ( (a3 & 0x800) != 0 )
+    if ( (subtype & 0x800) != 0 )
     {
       strcat(ArgList, " float");
       v4 = src;
     }
-    if ( (a3 & 0x1000) != 0 )
+    if ( (subtype & 0x1000) != 0 )
       strcat(ArgList, " integer");
-    SourceError(v4, "expected %s, found %s", ArgList, a4);
+    SourceError(v4, "expected %s, found %s", ArgList, token);
     return 0;
   }
   else if ( v6 == 5 )
   {
-    if ( tok->subtype != a3 )
+    if ( tok->subtype != subtype )
     {
-      SourceError(src, "found %s", a4);
+      SourceError(src, "found %s", token);
       return 0;
     }
   }
@@ -32768,9 +32768,9 @@ int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4)
 }
 
 //----- (1003DAE0) --------------------------------------------------------
-int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t a2)
+int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t token)
 {
-  if ( !PC_ReadTokenHandle(src, a2) )
+  if ( !PC_ReadTokenHandle(src, token) )
   {
     SourceError(src, "couldn't read expected token");
     return 0;
@@ -32779,13 +32779,13 @@ int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t a2)
 }
 
 //----- (1003DB20) --------------------------------------------------------
-int __cdecl PC_CheckTokenString(source_t *src, const char *a2)
+int __cdecl PC_CheckTokenString(source_t *src, const char *string)
 {
   char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
 
   if ( PC_ReadTokenHandle(src, v3) )
   {
-    if ( !strcmp(v3, a2) )
+    if ( !strcmp(v3, string) )
       return 1;
     PC_UnreadSourceToken(src, v3);
   }
@@ -33196,7 +33196,7 @@ int __cdecl PS_ReadWhiteSpace(script_t *script)
 }
 
 //----- (1003E520) --------------------------------------------------------
-int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
+int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
 {
   char *v2; // ecx
   char v3; // al
@@ -33204,8 +33204,8 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
   int v6; // eax
   int i; // eax
 
-  v2 = (a1->script_p + 1);
-  a1->script_p = v2;
+  v2 = (script->script_p + 1);
+  script->script_p = v2;
   v3 = *v2;
   switch ( *v2 )
   {
@@ -33243,121 +33243,121 @@ int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2)
       v4 = 63;
       break;
     case 'x':
-      a1->script_p = v2 + 1;
-      for ( i = 0, v4 = 0; ; ++i, ++a1->script_p )
+      script->script_p = v2 + 1;
+      for ( i = 0, v4 = 0; ; ++i, ++script->script_p )
       {
-        v6 = *a1->script_p;
+        v6 = *script->script_p;
         if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
         else if ( v6 >= 'A' && v6 <= 'Z' ) v6 = v6 - 'A' + 10;
         else if ( v6 >= 'a' && v6 <= 'z' ) v6 = v6 - 'a' + 10;
         else break;
         v4 = (v4 << 4) + v6;
       }
-      --a1->script_p;
+      --script->script_p;
       if ( v4 > 255 )
       {
-        ScriptWarning(a1, "too large value in escape character");
+        ScriptWarning(script, "too large value in escape character");
         v4 = 255;
       }
       break;
     default:
       if ( v3 < '0' || v3 > '9' )
-        ScriptError(a1, "unknown escape char");
-      for ( i = 0, v4 = 0; ; ++i, ++a1->script_p )
+        ScriptError(script, "unknown escape char");
+      for ( i = 0, v4 = 0; ; ++i, ++script->script_p )
       {
-        v6 = *a1->script_p;
+        v6 = *script->script_p;
         if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
         else break;
         v4 = v4 * 10 + v6;
       }
-      --a1->script_p;
+      --script->script_p;
       if ( v4 > 255 )
       {
-        ScriptWarning(a1, "too large value in escape character");
+        ScriptWarning(script, "too large value in escape character");
         v4 = 255;
       }
       break;
   }
-  ++a1->script_p;
-  *a2 = v4;
+  ++script->script_p;
+  *ch = v4;
   return 1;
 }
 
 //----- (1003E7F0) --------------------------------------------------------
-int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3)
+int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
 {
   int len;
   int tmpline;
   char *tmpscript_p;
 
-  if ( a3 == 34 )
+  if ( quote == 34 )
     token->type = 1;
   else
     token->type = 2;
   len = 0;
-  token->string[len++] = *a1->script_p++;
+  token->string[len++] = *script->script_p++;
   while ( 1 )
   {
     if ( len >= 1022 )
     {
-      ScriptError(a1, "string longer than MAX_TOKEN = %d", 1024);
+      ScriptError(script, "string longer than MAX_TOKEN = %d", 1024);
       return 0;
     }
-    if ( *a1->script_p == 92 && (a1->flags & 8) == 0 )
+    if ( *script->script_p == 92 && (script->flags & 8) == 0 )
     {
-      if ( !PS_ReadEscapeCharacter(a1, &token->string[len]) )
+      if ( !PS_ReadEscapeCharacter(script, &token->string[len]) )
       {
         token->string[len] = 0;
         return 0;
       }
       len++;
     }
-    else if ( *a1->script_p == a3 )
+    else if ( *script->script_p == quote )
     {
-      ++a1->script_p;
-      if ( (a1->flags & 4) != 0 )
+      ++script->script_p;
+      if ( (script->flags & 4) != 0 )
         break;
-      tmpscript_p = a1->script_p;
-      tmpline = a1->line;
-      if ( !PS_ReadWhiteSpace(a1) )
+      tmpscript_p = script->script_p;
+      tmpline = script->line;
+      if ( !PS_ReadWhiteSpace(script) )
       {
-        a1->script_p = tmpscript_p;
-        a1->line = tmpline;
+        script->script_p = tmpscript_p;
+        script->line = tmpline;
         break;
       }
-      if ( *a1->script_p != a3 )
+      if ( *script->script_p != quote )
       {
-        a1->script_p = tmpscript_p;
-        a1->line = tmpline;
+        script->script_p = tmpscript_p;
+        script->line = tmpline;
         break;
       }
-      ++a1->script_p;
+      ++script->script_p;
     }
     else
     {
-      if ( !*a1->script_p )
+      if ( !*script->script_p )
       {
         token->string[len] = 0;
-        ScriptError(a1, "missing trailing quote");
+        ScriptError(script, "missing trailing quote");
         return 0;
       }
-      if ( *a1->script_p == 10 )
+      if ( *script->script_p == 10 )
       {
         token->string[len] = 0;
-        ScriptError(a1, "newline inside string %s", token->string);
+        ScriptError(script, "newline inside string %s", token->string);
         return 0;
       }
-      token->string[len++] = *a1->script_p++;
+      token->string[len++] = *script->script_p++;
     }
   }
-  token->string[len++] = a3;
+  token->string[len++] = quote;
   token->string[len] = 0;
   token->subtype = len;
   return 1;
 }
 
 //----- (1003E9F0) --------------------------------------------------------
-int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
+int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 {
   token_t *token = (token_t *)a2;
   char *v2; // eax
@@ -33365,10 +33365,10 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
   char v4; // al
 
   token->type = 4;
-  token->string[0] = *a1->script_p;
-  v2 = (char *)(a1->script_p + 1);
+  token->string[0] = *script->script_p;
+  v2 = (char *)(script->script_p + 1);
   v3 = 1;
-  a1->script_p = v2;
+  script->script_p = v2;
   while ( 1 )
   {
     v4 = *v2;
@@ -33376,11 +33376,11 @@ int __cdecl PS_ReadName(script_t *a1, intptr_t a2)
       break;
     token->string[v3] = v4;
     ++v3;
-    v2 = (char *)(a1->script_p + 1);
-    a1->script_p = v2;
+    v2 = (char *)(script->script_p + 1);
+    script->script_p = v2;
     if ( v3 >= 1024 )
     {
-      ScriptError(a1, "name longer than MAX_TOKEN = %d", 1024);
+      ScriptError(script, "name longer than MAX_TOKEN = %d", 1024);
       return 0;
     }
   }
@@ -33464,7 +33464,7 @@ void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4)
 }
 
 //----- (1003ECD0) --------------------------------------------------------
-int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
+int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 {
   int v3; // ecx
   char *v4; // edi
@@ -33491,69 +33491,69 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
   int v26; // [esp+18h] [ebp+8h]
 
   v3 = 0;
-  a2->type = 3;
-  v4 = ((script_t *)a1)->script_p;
+  token->type = 3;
+  v4 = ((script_t *)script)->script_p;
   v5 = *v4;
   if ( *v4 == 48 )
   {
     v6 = v4[1];
     if ( v6 == 120 || v6 == 88 )
     {
-      a2->string[0] = 48;
-      v7 = (_BYTE *)(((script_t *)a1)->script_p + 1);
-      ((script_t *)a1)->script_p = v7;
-      a2->string[1] = *v7;
-      v8 = (char *)(((script_t *)a1)->script_p + 1);
+      token->string[0] = 48;
+      v7 = (_BYTE *)(((script_t *)script)->script_p + 1);
+      ((script_t *)script)->script_p = v7;
+      token->string[1] = *v7;
+      v8 = (char *)(((script_t *)script)->script_p + 1);
       v3 = 2;
-      ((script_t *)a1)->script_p = v8;
+      ((script_t *)script)->script_p = v8;
       while ( 1 )
       {
         v9 = *v8;
         if ( (v9 < 48 || v9 > 57) && (v9 < 97 || v9 > 102) && (v9 < 65 || v9 > 65) )
           break;
-        a2->string[v3] = v9;
+        token->string[v3] = v9;
         ++v3;
-        v10 = ((script_t *)a1)->script_p + 1;
-        ((script_t *)a1)->script_p = v10;
+        v10 = ((script_t *)script)->script_p + 1;
+        ((script_t *)script)->script_p = v10;
         v8 = (char *)v10;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, "hexadecimal number longer than MAX_TOKEN = %d",
+          ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
                       1024);
           return 0;
         }
       }
-      v12 = a2->subtype;
+      v12 = token->subtype;
       BYTE1(v12) |= 1u;
       goto LABEL_40;
     }
     v13 = v4[1];
     if ( v13 == 98 || v13 == 66 )
     {
-      a2->string[0] = 48;
-      v14 = (_BYTE *)(((script_t *)a1)->script_p + 1);
-      ((script_t *)a1)->script_p = v14;
+      token->string[0] = 48;
+      v14 = (_BYTE *)(((script_t *)script)->script_p + 1);
+      ((script_t *)script)->script_p = v14;
       v3 = 2;
-      a2->string[1] = *v14;
-      v15 = (char *)(((script_t *)a1)->script_p + 1);
-      ((script_t *)a1)->script_p = v15;
+      token->string[1] = *v14;
+      v15 = (char *)(((script_t *)script)->script_p + 1);
+      ((script_t *)script)->script_p = v15;
       while ( 1 )
       {
         v16 = *v15;
         if ( v16 != 48 && v16 != 49 )
           break;
-        a2->string[v3] = v16;
+        token->string[v3] = v16;
         ++v3;
-        v17 = ((script_t *)a1)->script_p + 1;
-        ((script_t *)a1)->script_p = v17;
+        v17 = ((script_t *)script)->script_p + 1;
+        ((script_t *)script)->script_p = v17;
         v15 = (char *)v17;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, "binary number longer than MAX_TOKEN = %d", 1024);
+          ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
           return 0;
         }
       }
-      v12 = a2->subtype;
+      v12 = token->subtype;
       BYTE1(v12) |= 4u;
       goto LABEL_40;
     }
@@ -33568,12 +33568,12 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
     {
       while ( 1 )
       {
-        a2->string[++v3 - 1] = *(_BYTE *)((script_t *)a1)->script_p;
-        v20 = (char *)(((script_t *)a1)->script_p + 1);
-        ((script_t *)a1)->script_p = v20;
+        token->string[++v3 - 1] = *(_BYTE *)((script_t *)script)->script_p;
+        v20 = (char *)(((script_t *)script)->script_p + 1);
+        ((script_t *)script)->script_p = v20;
         if ( v3 >= 1024 )
         {
-          ScriptError(a1, "number longer than MAX_TOKEN = %d", 1024);
+          ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
           return 0;
         }
         v21 = *v20;
@@ -33587,52 +33587,52 @@ int __cdecl PS_ReadNumber(script_t *a1, token_t *a2)
     }
   }
   while ( v21 >= 48 && v21 <= 57 );
-  v12 = a2->subtype;
+  v12 = token->subtype;
   if ( v18 )
     BYTE1(v12) |= 2u;
   else
     v12 |= 8u;
-  a2->subtype = v12;
+  token->subtype = v12;
   if ( v19 )
   {
     BYTE1(v12) |= 8u;
 LABEL_40:
-    a2->subtype = v12;
+    token->subtype = v12;
   }
   v26 = 2;
   do
   {
-    v22 = ((script_t *)a1)->script_p;
+    v22 = ((script_t *)script)->script_p;
     v23 = *v22;
     if ( *v22 == 108 )
     {
 LABEL_50:
-      ((script_t *)a1)->script_p = v22 + 1;
-      v24 = a2->subtype | 0x2000;
+      ((script_t *)script)->script_p = v22 + 1;
+      v24 = token->subtype | 0x2000;
       goto LABEL_51;
     }
     if ( v23 == 76 )
     {
-      if ( (a2->subtype & 0x2000) == 0 )
+      if ( (token->subtype & 0x2000) == 0 )
         goto LABEL_50;
     }
-    else if ( v23 == 117 || v23 == 85 && (a2->subtype & 0x4800) == 0 )
+    else if ( v23 == 117 || v23 == 85 && (token->subtype & 0x4800) == 0 )
     {
-      ((script_t *)a1)->script_p = v22 + 1;
-      v24 = a2->subtype | 0x4000;
+      ((script_t *)script)->script_p = v22 + 1;
+      v24 = token->subtype | 0x4000;
 LABEL_51:
-      a2->subtype = v24;
+      token->subtype = v24;
     }
     --v26;
   }
   while ( v26 );
-  a2->string[v3] = 0;
-  NumberValue(a2->string, a2->subtype, (int *)&a2->intvalue, &a2->floatvalue);
-  v25 = a2->subtype;
+  token->string[v3] = 0;
+  NumberValue(token->string, token->subtype, (int *)&token->intvalue, &token->floatvalue);
+  v25 = token->subtype;
   if ( (v25 & 0x800) == 0 )
   {
     BYTE1(v25) |= 0x10u;
-    a2->subtype = v25;
+    token->subtype = v25;
   }
   return 1;
 }
@@ -33714,22 +33714,22 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
  * 0x1003F174 emits `movsx ecx, byte [eax]` (sign-extend).  Q3 later changed
  * this to `(unsigned int)` (movzx); do NOT "fix" the -Wchar-subscripts here
  * to unsigned char — that would diverge from the original DLL. */
-int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination)
+int __cdecl PS_ReadPunctuation(script_t *script, char *Destination)
 {
   punctuation_t *p;
   const char *v3;
   const char *v4;
   size_t v5;
 
-  for ( p = a1->punctuationtable[*a1->script_p]; p; p = p->next )
+  for ( p = script->punctuationtable[*script->script_p]; p; p = p->next )
   {
     v3 = p->p;
-    v4 = (const char *)a1->script_p;
+    v4 = (const char *)script->script_p;
     v5 = strlen(v3);
-    if ( v4 + v5 <= (const char *)a1->end_p && !strncmp(v4, v3, v5) )
+    if ( v4 + v5 <= (const char *)script->end_p && !strncmp(v4, v3, v5) )
     {
       strncpy(Destination, v3, 0x400u);
-      a1->script_p += v5;
+      script->script_p += v5;
       *((_DWORD *)Destination + 256) = 5;
       *((_DWORD *)Destination + 257) = p->n;
       return 1;
@@ -33739,27 +33739,27 @@ int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination)
 }
 
 //----- (1003F230) --------------------------------------------------------
-int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2)
+int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
 {
   int v2; // ecx
   char v3; // dl
 
   v2 = 0;
-  while ( *((script_t *)a1)->script_p > 32 )
+  while ( *((script_t *)script)->script_p > 32 )
   {
-    v3 = *(_BYTE *)((script_t *)a1)->script_p;
+    v3 = *(_BYTE *)((script_t *)script)->script_p;
     if ( v3 == 59 )
       break;
     if ( v2 >= 1024 )
     {
-      ScriptError(a1, "primitive token longer than MAX_TOKEN = %d", 0x400);
+      ScriptError(script, "primitive token longer than MAX_TOKEN = %d", 0x400);
       return 0;
     }
-    ((char *)a2)[v2++] = v3;
-    ((script_t *)a1)->script_p = (intptr_t)((char *)((script_t *)a1)->script_p + 1);
+    ((char *)token)[v2++] = v3;
+    ((script_t *)script)->script_p = (intptr_t)((char *)((script_t *)script)->script_p + 1);
   }
-  ((char *)a2)[v2] = 0;
-  qmemcpy(&((script_t *)a1)->token, (void *)a2, 0x430u);
+  ((char *)token)[v2] = 0;
+  qmemcpy(&((script_t *)script)->token, (void *)token, 0x430u);
   return 1;
 }
 
@@ -33860,67 +33860,67 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 }
 
 //----- (1003F5C0) --------------------------------------------------------
-int __cdecl PS_ExpectTokenType(script_t *a1, int a2, int a3, token_t *a4)
+int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token)
 {
   int v6; // eax
   char ArgList[1024]; // [esp+10h] [ebp-400h] BYREF
 
-  if ( !PS_ReadToken(a1, (char *)a4) )
+  if ( !PS_ReadToken(script, (char *)token) )
   {
-    ScriptError(a1, "couldn't read expected token");
+    ScriptError(script, "couldn't read expected token");
     return 0;
   }
-  v6 = a4->type;
-  if ( v6 != a2 )
+  v6 = token->type;
+  if ( v6 != type )
   {
-    if ( a2 == 1 )
+    if ( type == 1 )
       strcpy(ArgList, "string");
-    else if ( a2 == 2 )
+    else if ( type == 2 )
       strcpy(ArgList, "literal");
-    else if ( a2 == 3 )
+    else if ( type == 3 )
       strcpy(ArgList, "number");
-    else if ( a2 == 4 )
+    else if ( type == 4 )
       strcpy(ArgList, "name");
-    else if ( a2 == 5 )
+    else if ( type == 5 )
       strcpy(ArgList, "punctuation");
-    ScriptError(a1, "expected a %s, found %s", ArgList, a4);
+    ScriptError(script, "expected a %s, found %s", ArgList, token);
     return 0;
   }
   if ( v6 == 3 )
   {
-    if ( (a4->subtype & a3) != a3 )
+    if ( (token->subtype & subtype) != subtype )
     {
-      if ( (a3 & 8) != 0 )
+      if ( (subtype & 8) != 0 )
         strcpy(ArgList, "decimal");
-      if ( (a3 & 0x100) != 0 )
+      if ( (subtype & 0x100) != 0 )
         strcpy(ArgList, "hex");
-      if ( (a3 & 0x200) != 0 )
+      if ( (subtype & 0x200) != 0 )
         strcpy(ArgList, "octal");
-      if ( (a3 & 0x400) != 0 )
+      if ( (subtype & 0x400) != 0 )
         strcpy(ArgList, "binary");
-      if ( (a3 & 0x2000) != 0 )
+      if ( (subtype & 0x2000) != 0 )
         strcat(ArgList, " long");
-      if ( (a3 & 0x4000) != 0 )
+      if ( (subtype & 0x4000) != 0 )
         strcat(ArgList, " unsigned");
-      if ( (a3 & 0x800) != 0 )
+      if ( (subtype & 0x800) != 0 )
         strcat(ArgList, " float");
-      if ( (a3 & 0x1000) != 0 )
+      if ( (subtype & 0x1000) != 0 )
         strcat(ArgList, " integer");
-      ScriptError(a1, "expected %s, found %s", ArgList, a4);
+      ScriptError(script, "expected %s, found %s", ArgList, token);
       return 0;
     }
   }
   else if ( v6 == 5 )
   {
-    if ( a3 < 0 )
+    if ( subtype < 0 )
     {
-      ScriptError(a1, "BUG: wrong punctuation subtype");
+      ScriptError(script, "BUG: wrong punctuation subtype");
       return 0;
     }
-    if ( a4->subtype != a3 )
+    if ( token->subtype != subtype )
     {
-      ScriptError(a1, "expected %s, found %s",
-                  ((punctuation_t *)a1->punctuations)[a3], a4);
+      ScriptError(script, "expected %s, found %s",
+                  ((punctuation_t *)script->punctuations)[subtype], token);
       return 0;
     }
   }
@@ -33928,11 +33928,11 @@ int __cdecl PS_ExpectTokenType(script_t *a1, int a2, int a3, token_t *a4)
 }
 
 //----- (1003F9B0) --------------------------------------------------------
-int __cdecl PS_ExpectAnyToken(int a1, int a2)
+int __cdecl PS_ExpectAnyToken(int script, int token)
 {
-  if ( !PS_ReadToken(a1, a2) )
+  if ( !PS_ReadToken(script, token) )
   {
-    ScriptError(a1, "couldn't read expected token");
+    ScriptError(script, "couldn't read expected token");
     return 0;
   }
   return 1;
