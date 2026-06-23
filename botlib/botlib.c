@@ -14220,43 +14220,43 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cach
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags)
 {
   /* Faithful 64-bit-safe transcription of 0x10019A90.
-   * Per-area chain head lives at aasworld.clusterareacache[cluster][areaInCluster];
+   * Per-area chain clustercache lives at aasworld.clusterareacache[cluster][areaInCluster];
    * each entry's prev/next pointers must hold full 64-bit pointers, so we
    * use the typed aas_routingcache_t struct fields instead of the original
    * raw *(_DWORD *)(p + 0x20/0x24) byte accesses. */
-  aas_areasettings_t *v4; // ecx
-  int v5; // eax
-  aas_routingcache_t *head, *cur;
-  int v10; // [esp+18h] [ebp+8h]
+  aas_areasettings_t *areasettings; // ecx
+  int areacluster; // eax
+  aas_routingcache_t *clustercache, *cache;
+  int clusterareanum; // [esp+18h] [ebp+8h]
 
-  v4 = &aasworld.areasettings[areanum];
-  v5 = v4->cluster;
-  if ( v5 > 0 )
-    v10 = v4->clusterareanum;
+  areasettings = &aasworld.areasettings[areanum];
+  areacluster = areasettings->cluster;
+  if ( areacluster > 0 )
+    clusterareanum = areasettings->clusterareanum;
   else
-    v10 = aasworld.portals[-v5].clusterareanum[aasworld.portals[-v5].frontcluster != clusternum];
-  head = aasworld.clusterareacache[clusternum][v10];
-  cur  = head;
-  while ( cur && cur->travelflags != travelflags )
-    cur = cur->next;
-  if ( !cur )
+    clusterareanum = aasworld.portals[-areacluster].clusterareanum[aasworld.portals[-areacluster].frontcluster != clusternum];
+  clustercache = aasworld.clusterareacache[clusternum][clusterareanum];
+  cache  = clustercache;
+  while ( cache && cache->travelflags != travelflags )
+    cache = cache->next;
+  if ( !cache )
   {
-    cur = AAS_AllocRoutingCache(
+    cache = AAS_AllocRoutingCache(
         aasworld.clusters[clusternum].numareas);
-    cur->cluster        = clusternum;
-    cur->areanum        = areanum;
-    VectorCopy(aasworld.areas[areanum].center, cur->origin);
-    cur->starttraveltime = 1.0f;
-    cur->travelflags    = travelflags;
-    cur->prev           = NULL;
-    cur->next           = head;
-    if ( head )
-      head->prev = cur;
-    aasworld.clusterareacache[clusternum][v10] = cur;
-    AAS_UpdateAreaRoutingCache(cur);
+    cache->cluster        = clusternum;
+    cache->areanum        = areanum;
+    VectorCopy(aasworld.areas[areanum].center, cache->origin);
+    cache->starttraveltime = 1.0f;
+    cache->travelflags    = travelflags;
+    cache->prev           = NULL;
+    cache->next           = clustercache;
+    if ( clustercache )
+      clustercache->prev = cache;
+    aasworld.clusterareacache[clusternum][clusterareanum] = cache;
+    AAS_UpdateAreaRoutingCache(cache);
   }
-  cur->time = AAS_Time();
-  return cur;
+  cache->time = AAS_Time();
+  return cache;
 }
 
 //----- (10019C00) --------------------------------------------------------
@@ -14378,32 +14378,32 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanu
   /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
    * chain head lives at aasworld.portalcache[area]; entries link via
    * prev/next which must hold full 64-bit pointers. */
-  aas_routingcache_t *cur;
+  aas_routingcache_t *cache;
 
-  cur = aasworld.portalcache[areanum];
-  while ( cur )
+  cache = aasworld.portalcache[areanum];
+  while ( cache )
   {
-    if ( cur->travelflags == travelflags )
+    if ( cache->travelflags == travelflags )
       break;
-    cur = cur->next;
+    cache = cache->next;
   }
-  if ( !cur )
+  if ( !cache )
   {
-    cur = AAS_AllocRoutingCache(aasworld.numportals);
-    cur->cluster        = clusternum;
-    cur->areanum        = areanum;
-    VectorCopy(aasworld.areas[areanum].center, cur->origin);
-    cur->starttraveltime = 1.0f;
-    cur->travelflags    = travelflags;
-    cur->prev           = NULL;
-    cur->next           = aasworld.portalcache[areanum];
+    cache = AAS_AllocRoutingCache(aasworld.numportals);
+    cache->cluster        = clusternum;
+    cache->areanum        = areanum;
+    VectorCopy(aasworld.areas[areanum].center, cache->origin);
+    cache->starttraveltime = 1.0f;
+    cache->travelflags    = travelflags;
+    cache->prev           = NULL;
+    cache->next           = aasworld.portalcache[areanum];
     if ( aasworld.portalcache[areanum] )
-      aasworld.portalcache[areanum]->prev = cur;
-    aasworld.portalcache[areanum] = cur;
-    AAS_UpdatePortalRoutingCache(cur);
+      aasworld.portalcache[areanum]->prev = cache;
+    aasworld.portalcache[areanum] = cache;
+    AAS_UpdatePortalRoutingCache(cache);
   }
-  cur->time = AAS_Time();
-  return cur;
+  cache->time = AAS_Time();
+  return cache;
 }
 // 10019ED7: conditional instruction was optimized away because esi.4!=0
 
@@ -15054,14 +15054,14 @@ int __cdecl AAS_AreaPresenceType(int areanum)
 //----- (1001AFA0) --------------------------------------------------------
 int __cdecl AAS_PointContents(vec3_t point)
 {
-  int v2; // eax
+  int areanum; // eax
 
   if ( !aasworld.loaded )
     return 0;
-  v2 = AAS_PointAreaNum(point);
-  if ( !v2 )
+  areanum = AAS_PointAreaNum(point);
+  if ( !areanum )
     return 1;
-  return aasworld.areasettings[v2].presencetype;
+  return aasworld.areasettings[areanum].presencetype;
 }
 
 //----- (1001AFF0) --------------------------------------------------------
@@ -26338,15 +26338,15 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
 //----- (10031270) --------------------------------------------------------
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target)
 {
-  int v4; // eax
-  int v6[11]; // [esp+10h] [ebp-58h] BYREF
+  int reachnum; // eax
+  int reach[11]; // [esp+10h] [ebp-58h] BYREF
 
   if ( !ms->lastreachnum || !goal )
     return 0;
-  *(aas_reachability_t *)v6 = AAS_ReachabilityFromNum(ms->lastreachnum);
-  v4 = BotGetReachabilityToGoal(
-         (int)&v6[6],
-         v6[0],
+  *(aas_reachability_t *)reach = AAS_ReachabilityFromNum(ms->lastreachnum);
+  reachnum = BotGetReachabilityToGoal(
+         (int)&reach[6],
+         reach[0],
          ms->lastgoalareanum,
          ms->lastareanum,
          ms->entitynum,
@@ -26355,12 +26355,12 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
          (intptr_t)ms->avoidreachtries,
          (intptr_t)goal,
          travelflags);
-  if ( !v4 )
+  if ( !reachnum )
     return 0;
-  *(aas_reachability_t *)v6 = AAS_ReachabilityFromNum(v4);
-  target[0] = *(float *)&v6[6];
-  target[2] = *(float *)&v6[8] - 15.0f;
-  *(int *)&target[1] = v6[7];
+  *(aas_reachability_t *)reach = AAS_ReachabilityFromNum(reachnum);
+  target[0] = *(float *)&reach[6];
+  target[2] = *(float *)&reach[8] - 15.0f;
+  *(int *)&target[1] = reach[7];
   return 1;
 }
 
