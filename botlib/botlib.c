@@ -18700,7 +18700,7 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
 }
 
 //----- (10022160) --------------------------------------------------------
-int __cdecl BotChat_Death(int *a1)
+int __cdecl BotChat_Death(int *bs)
 {
   float v1; // st7
   int v4; // eax
@@ -18712,20 +18712,20 @@ int __cdecl BotChat_Death(int *a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0f )
     return 0;
-  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 20, 0.0, 1.0);
+  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 20, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
-  v4 = a1[1049];
+  v4 = bs[1049];
   if ( v4 )
     EasyClientName(v4 - 1, v7);
   else
     v7[0] = byte_1006294C;
-  if ( a1[693] == 12 )
+  if ( bs[693] == 12 )
   {
-    BotInitialChat(a1 + 995, "death_bfg", v7, (char *)0);
+    BotInitialChat(bs + 995, "death_bfg", v7, (char *)0);
   }
   else
   {
@@ -18733,17 +18733,17 @@ int __cdecl BotChat_Death(int *a1)
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
      * a copy of v5 (which would make the rand check always true).
      * Characteristic 15 is "praise vs insult" probability. */
-    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
+    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
-      BotInitialChat(a1 + 995, "death_insult", v7, (char *)0);
+      BotInitialChat(bs + 995, "death_insult", v7, (char *)0);
     else
-      BotInitialChat(a1 + 995, "death_praise", v7, (char *)0);
+      BotInitialChat(bs + 995, "death_praise", v7, (char *)0);
   }
   return 1;
 }
 
 //----- (100222E0) --------------------------------------------------------
-BOOL __cdecl BotChat_Kill(int *a1)
+BOOL __cdecl BotChat_Kill(int *bs)
 {
   float v1; // st7
   BOOL result; // eax
@@ -18756,34 +18756,34 @@ BOOL __cdecl BotChat_Kill(int *a1)
   v1 = libvar_nochat->value;
   if ( v1 != 0.0f )
     return 0;
-  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 19, 0.0, 1.0);
+  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
   }
-  result = BotValidChatPosition((bot_state_t *)a1);
+  result = BotValidChatPosition((bot_state_t *)bs);
   if ( !result )
     return result;
-  v4 = a1[1049];
+  v4 = bs[1049];
   if ( v4 )
     EasyClientName(v4 - 1, v7);
   else
     v7[0] = byte_1006294C;
-  if ( a1[692] == 13 )
+  if ( bs[692] == 13 )
   {
-    BotInitialChat(a1 + 995, "kill_telefrag", v7, (char *)0);
+    BotInitialChat(bs + 995, "kill_telefrag", v7, (char *)0);
   }
   else
   {
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
      * Characteristic 15 is "praise vs insult" probability. */
-    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)a1), 15, 0.0, 1.0);
+    v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
-      BotInitialChat(a1 + 995, "kill_insult", v7, (char *)0);
+      BotInitialChat(bs + 995, "kill_insult", v7, (char *)0);
     else
-      BotInitialChat(a1 + 995, "kill_praise", v7, (char *)0);
+      BotInitialChat(bs + 995, "kill_praise", v7, (char *)0);
   }
   return 1;
 }
@@ -24916,15 +24916,15 @@ unsigned int __cdecl BotChatLength(bot_chatstate_t *cs)
 }
 
 //----- (1002EA80) --------------------------------------------------------
-char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3)
+char __cdecl BotEnterChat(bot_chatstate_t *cs, int clientto, int sendto)
 {
   char v;
   if ( strlen((const char *)cs + 20) )
   {
-    if ( a3 == 1 )
-      EA_SayTeam(a2, (char *)cs + 20);
+    if ( sendto == 1 )
+      EA_SayTeam(clientto, (char *)cs + 20);
     else
-      EA_Say(a2, (char *)cs + 20);
+      EA_Say(clientto, (char *)cs + 20);
     v = byte_1006294C;
     *((char *)cs + 20) = v;
     return v;
@@ -26056,7 +26056,7 @@ double __cdecl AngleDiff(float ang1, float ang2)
 }
 
 //----- (10030AA0) --------------------------------------------------------
-int __cdecl BotReachabilityArea(int *a1, int a2)
+int __cdecl BotReachabilityArea(int *origin, int client)
 {
   int v2; // ecx
   float v4; // st7
@@ -26091,14 +26091,14 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
   v19 = 0;
   while ( 1 )
   {
-    VectorCopy(((float *)a1), start);
+    VectorCopy(((float *)origin), start);
     if ( v2 > 0 )
     {
-      v4 = ((float *)a1)[2];
-      end[0] = ((float *)a1)[0];
-      end[1] = ((float *)a1)[1];
+      v4 = ((float *)origin)[2];
+      end[0] = ((float *)origin)[0];
+      end[1] = ((float *)origin)[1];
       end[2] = v4 - 800.0f;
-      trace = AAS_TraceClientBBox((float *)a1, end, 4, -1);
+      trace = AAS_TraceClientBBox((float *)origin, end, 4, -1);
       if ( !trace.startsolid )
       {
         VectorCopy(trace.endpos, start);
@@ -26153,7 +26153,7 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
         break;
       }
     }
-    if ( a2 )
+    if ( client )
     {
       v2 = ++v19;
       if ( v19 < 2 )
@@ -26164,12 +26164,12 @@ int __cdecl BotReachabilityArea(int *a1, int a2)
 }
 
 //----- (10030D00) --------------------------------------------------------
-BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
+BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 {
-  /* a1 = origin vec3 pointer, a3 = reach_t pointer.  Originally typed
+  /* origin = origin vec3 pointer, reach = reach_t pointer.  Originally typed
    * as int; on aarch64 the int parameter sign-truncated callers'
-   * pointers (BotTravel_Elevator passes intptr_t a3) and crashed at
-   * the first deref `*(_DWORD *)(a3 + 36)` reading the traveltype
+   * pointers (BotTravel_Elevator passes intptr_t reach) and crashed at
+   * the first deref `*(_DWORD *)(reach + 36)` reading the traveltype
    * field. */
   int v3; // ecx
   int v4; // edi
@@ -26189,7 +26189,7 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
   _DWORD v17[3]; // [esp+64h] [ebp-60h] BYREF
   int v18[21]; // [esp+70h] [ebp-54h] BYREF
 
-  v3 = a3->traveltype;
+  v3 = reach->traveltype;
   memset(v11, 0, sizeof(v11));
   v12[0] = -1048576000;
   v12[1] = -1048576000;
@@ -26199,30 +26199,30 @@ BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3)
   v13[2] = 1090519040;
   if ( v3 == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(a3->facenum, v11, (float *)v17, (float *)v15, (float *)v16);
-    /* Original used pointer arithmetic `v6 = (char *)v16 - a1` then
+    AAS_BSPModelMinsMaxsOrigin(reach->facenum, v11, (float *)v17, (float *)v15, (float *)v16);
+    /* Original used pointer arithmetic `v6 = (char *)v16 - origin` then
      * `*(float *)((char *)v5 + (_DWORD)v6)` — the (_DWORD) cast
      * truncates the pointer difference to 32 bits and breaks on
      * 64-bit.  Rewritten with explicit array indexing; preserves the
-     * original semantics of comparing a1[i] against
+     * original semantics of comparing origin[i] against
      * v15[i]+v16[i]+16 and v17[i]+v16[i]-16 for i=0..1. */
     v4 = 0;
-    while ( *(float *)((char *)v15 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) + 16.0f >= a1[v4]
-         && *(float *)((char *)v17 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) - 16.0f <= a1[v4] )
+    while ( *(float *)((char *)v15 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) + 16.0f >= origin[v4]
+         && *(float *)((char *)v17 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) - 16.0f <= origin[v4] )
     {
       ++v4;
       if ( v4 >= 2 )
       {
-        v7 = *(_DWORD *)&a1[1];
-        v8 = a1[2] + 24.0f;
-        v10[0] = *(_DWORD *)&a1[0];
+        v7 = *(_DWORD *)&origin[1];
+        v8 = origin[2] + 24.0f;
+        v10[0] = *(_DWORD *)&origin[0];
         v14[0] = v10[0];
         v10[1] = v7;
         v14[1] = v7;
         *(float *)&v10[2] = v8;
-        *(float *)&v14[2] = a1[2] - 48.0f;
-        *(bsp_trace_t *)v18 = AAS_Trace((float*)(v10), (float*)v12, (float*)v13, (float*)(v14), a2, 33619971);
-        return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == a3->facenum;
+        *(float *)&v14[2] = origin[2] - 48.0f;
+        *(bsp_trace_t *)v18 = AAS_Trace((float*)(v10), (float*)v12, (float*)v13, (float*)(v14), entnum, 33619971);
+        return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == reach->facenum;
       }
     }
   }
@@ -28066,12 +28066,12 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 }
 
 //----- (10034B90) --------------------------------------------------------
-int __cdecl BotResetMoveState(void *a1)
+int __cdecl BotResetMoveState(void *movestate)
 {
   int result; // eax
 
   result = 0;
-  memset(a1, 0, 0x80u);
+  memset(movestate, 0, 0x80u);
   return result;
 }
 
