@@ -19355,9 +19355,9 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   vec3_t dir; // [ebp-15Ch] BYREF — was split v11/v12/v13 (X/Y/Z); IDA dropped v12/v13 stores
   int v14; // [esp+28h] [ebp-150h]
   int v15; // [esp+2Ch] [ebp-14Ch]
-  BOOL v16; // [esp+30h] [ebp-148h]
-  vec3_t v17; // [esp+34h] [ebp-144h] BYREF
-  int v18[31]; // [esp+40h] [ebp-138h] BYREF
+  BOOL healthdecrease; // [esp+30h] [ebp-148h]
+  vec3_t angles; // [esp+34h] [ebp-144h] BYREF
+  int entinfo[31]; // [esp+40h] [ebp-138h] BYREF
   int v19[16]; // [esp+BCh] [ebp-BCh] BYREF
 
   v1 = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
@@ -19365,24 +19365,24 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v15 = v1;
   v3 = bs->inventory_health;
   bs->lasthealth = v3;
-  v16 = v2 > v3;
+  healthdecrease = v2 > v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
   v10 = 0;
   if ( v14 <= 0 )
     return 0;
   for ( i = v19; ; ++i )
   {
-    *(aas_entityinfo_t *)v18 = AAS_EntityInfo(*i);
-    if ( !sub_10021710(v18) && v18[3] != bs->entitynum )
+    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(*i);
+    if ( !sub_10021710(entinfo) && entinfo[3] != bs->entitynum )
     {
-      dir[0] = *(float *)&v18[4] - bs->origin[0];
-      dir[1] = *(float *)&v18[5] - bs->origin[1];
-      dir[2] = *(float *)&v18[6] - bs->origin[2];
+      dir[0] = *(float *)&entinfo[4] - bs->origin[0];
+      dir[1] = *(float *)&entinfo[5] - bs->origin[1];
+      dir[2] = *(float *)&entinfo[6] - bs->origin[2];
       v8 = VectorLength(dir);
       if ( v15 || v8 <= 900.0f )
       {
-        v5 = v16;
-        if ( v16 )
+        v5 = healthdecrease;
+        if ( healthdecrease )
         {
           v9 = 360.0f;
         }
@@ -19391,22 +19391,22 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
           v6 = v8 <= 810.0f ? v8 : 810.0f;
           v9 = 360.0f - (270.0f - v6 * 0.33333334f);
         }
-        vectoangles(dir, (float *)v17);
-        if ( InFieldOfVision(bs->viewangles, v9, v17) && !BotSameTeam(bs, *i) )
+        vectoangles(dir, (float *)angles);
+        if ( InFieldOfVision(bs->viewangles, v9, angles) && !BotSameTeam(bs, *i) )
         {
           if ( v5 && v8 <= 300.0f )
             break;
-          if ( AAS_PointLight((float *)&v18[4], 0, 0, 0) >= 5 )
+          if ( AAS_PointLight((float *)&entinfo[4], 0, 0, 0) >= 5 )
           {
             if ( v8 <= 300.0f )
               break;
-            if ( EntityIsShooting((intptr_t)v18) )
+            if ( EntityIsShooting((intptr_t)entinfo) )
               break;
-            dir[0] = bs->origin[0] - *(float *)&v18[4];
-            dir[1] = bs->origin[1] - *(float *)&v18[5];
-            dir[2] = bs->origin[2] - *(float *)&v18[6];
-            vectoangles(dir, (float *)v17);
-            if ( InFieldOfVision((float *)&v18[7], 160.0f, v17) )
+            dir[0] = bs->origin[0] - *(float *)&entinfo[4];
+            dir[1] = bs->origin[1] - *(float *)&entinfo[5];
+            dir[2] = bs->origin[2] - *(float *)&entinfo[6];
+            vectoangles(dir, (float *)angles);
+            if ( InFieldOfVision((float *)&entinfo[7], 160.0f, angles) )
               break;
             BotUpdateBattleInventory(bs, *i);
             if ( !BotWantsToRetreat((int *)bs) )
@@ -19418,7 +19418,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
     if ( ++v10 >= v14 )
       return 0;
   }
-  bs->enemy = v18[3];
+  bs->enemy = entinfo[3];
   bs->enemysight_time = AAS_Time();
   return 1;
 }
@@ -24786,82 +24786,82 @@ void __cdecl sub_1002E5D0(void *arg)
 //----- (1002E7D0) --------------------------------------------------------
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
 {
- bot_replychat_t *v2; // ebx
- bot_replychatkey_t *v3; // esi
- int v4; // edi
+ bot_replychat_t *rchat; // ebx
+ bot_replychatkey_t *key; // esi
+ int found; // edi
  int v5; // ecx
- BOOL v6; // eax
+ BOOL res; // eax
  bot_chatmessage_t *v7; // esi
  int v8; // edi
  int v9; // rax (was __int64)
  bot_chatmessage_t *v10; // esi
  int v11; // edi
- bot_chatmessage_t *v13; // [esp+10h] [ebp-100h]
+ bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
  int v14; // [esp+14h] [ebp-FCh]
  int v15; // [esp+18h] [ebp-F8h]
- bot_match_t v16; // [esp+20h] [ebp-F0h] BYREF
+ bot_match_t match; // [esp+20h] [ebp-F0h] BYREF
 
- memset(&v16, 0, sizeof(v16));
- v2 = dword_10064380;
+ memset(&match, 0, sizeof(match));
+ rchat = dword_10064380;
  v14 = 0;
- strcpy(v16.string, message);
- v13 = 0;
- if ( !v2 )
+ strcpy(match.string, message);
+ bestchatmessage = 0;
+ if ( !rchat )
    return 0;
  do
  {
-   v3 = v2->keys;
-   v4 = 0;
-   if ( !v2->keys )
+   key = rchat->keys;
+   found = 0;
+   if ( !rchat->keys )
      goto LABEL_34;
    do
    {
-     v5 = v3->flags;
-     v6 = 0;
-     if ( (v3->flags & 0x20) != 0 )
+     v5 = key->flags;
+     res = 0;
+     if ( (key->flags & 0x20) != 0 )
      {
-       v6 = *(_DWORD *)cs == 1;
+       res = *(_DWORD *)cs == 1;
      }
      else if ( (v5 & 0x40) != 0 )
      {
-       v6 = *(_DWORD *)cs == 2;
+       res = *(_DWORD *)cs == 2;
      }
      else if ( (v5 & 0x80u) == 0 )
      {
        if ( (v5 & 0x10) != 0 )
        {
-         v6 = StringsMatch(v3->match, &v16);
+         res = StringsMatch(key->match, &match);
        }
        else if ( (v5 & 8) != 0 )
        {
-         v6 = StringContains(message, v3->string, 0) != 0;
+         res = StringContains(message, key->string, 0) != 0;
        }
      }
      else
      {
-       v6 = *(_DWORD *)cs == 0;
+       res = *(_DWORD *)cs == 0;
      }
-     if ( (v3->flags & 1) != 0 )
+     if ( (key->flags & 1) != 0 )
      {
-       if ( !v6 )
+       if ( !res )
          goto LABEL_34;
-       v4 = 1;
+       found = 1;
      }
-     else if ( (v3->flags & 2) == 0 )
+     else if ( (key->flags & 2) == 0 )
      {
-       if ( v6 )
-         v4 = 1;
+       if ( res )
+         found = 1;
      }
-     else if ( v6 )
+     else if ( res )
      {
        goto LABEL_34;
      }
-     v3 = v3->next;
+     key = key->next;
    }
-   while ( v3 );
-   if ( v4 && (float)v14 < v2->priority )
+   while ( key );
+   if ( found && (float)v14 < rchat->priority )
    {
-     v7 = v2->firstchatmessage;
+     v7 = rchat->firstchatmessage;
      v8 = 0;
      v15 = 0;
      if ( v7 )
@@ -24876,7 +24876,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
        v15 = v8;
      }
      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
-     v10 = v2->firstchatmessage;
+     v10 = rchat->firstchatmessage;
      v11 = v9;
      if ( v10 )
      {
@@ -24887,18 +24887,18 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
          if ( !v10 )
            goto LABEL_34;
        }
-       v13 = v10;
-       v14 = (__int64)v2->priority;
+       bestchatmessage = v10;
+       v14 = (__int64)rchat->priority;
      }
    }
 LABEL_34:
-   v2 = v2->next;
+   rchat = rchat->next;
  }
- while ( v2 );
- if ( v13 )
+ while ( rchat );
+ if ( bestchatmessage )
  {
-   v13->time = AAS_Time() + 20.0f;
-   BotConstructChatMessage(cs, v13->chatmessage, 0, (bot_chatvar_t *)v16.variables, 16);
+   bestchatmessage->time = AAS_Time() + 20.0f;
+   BotConstructChatMessage(cs, bestchatmessage->chatmessage, 0, (bot_chatvar_t *)match.variables, 16);
    return 1;
  }
  return 0;
