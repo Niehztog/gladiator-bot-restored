@@ -12506,10 +12506,10 @@ int AAS_Reachability_Teleport()
 int AAS_Reachability_Elevator()
 {
   bsp_entity_t *v0; // edi
-  bsp_entity_t *v1; // ebp — current entity walk
-  const char *v2; // eax
-  char *v3; // eax — AAS_ValueForBSPEpairKey return
-  int v4; // eax
+  bsp_entity_t *ent; // ebp — current entity walk
+  const char *classname; // eax
+  char *model; // eax — AAS_ValueForBSPEpairKey return
+  int modelnum; // eax
   float v5; // st7
   float v6; // st7
   float v7; // st7
@@ -12539,12 +12539,12 @@ int AAS_Reachability_Elevator()
   vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
   vec3_t sumvec;        /* was v37/v38 (+missing v39) — mins+maxs sum for VectorMA */
   vec3_t testpt;        /* was v40/v41/v42 — point for AAS_PointAreaNum */
-  float v43;
+  float height;
   vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
   vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
   bsp_entity_t *v50;
   int i;
-  float v52;
+  float speed;
   vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
   int k;
   vec3_t toporg;        /* was v57/v58/v59 — VectorMA midpoint output (top) */
@@ -12567,56 +12567,56 @@ int AAS_Reachability_Elevator()
   v69[1] = 0;
   v69[2] = 0;
   v0 = AAS_ParseBSPEntities();
-  v1 = v0;
+  ent = v0;
   v67 = v0;
   v50 = v0;
   if ( v0 )
   {
     while ( 1 )
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
-      if ( v2 )
+      classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+      if ( classname )
       {
-        if ( !strcmp(v2, "func_plat") )
+        if ( !strcmp(classname, "func_plat") )
           break;
       }
 LABEL_58:
-      v50 = v1->next;
+      v50 = ent->next;
       if ( !v50 )
         return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
-      v1 = v50;
+      ent = v50;
     }
-    v3 = AAS_ValueForBSPEpairKey(v1, "model");
-    if ( !v3 )
+    model = AAS_ValueForBSPEpairKey(ent, "model");
+    if ( !model )
     {
       botimport.Print(PRT_ERROR, "func_plat without model\n");
       goto LABEL_58;
     }
-    v4 = atoi(v3 + 1);
-    v66 = v4;
-    if ( v4 <= 0 )
+    modelnum = atoi(model + 1);
+    v66 = modelnum;
+    if ( modelnum <= 0 )
     {
       botimport.Print(PRT_ERROR, "func_plat with invalid model number\n");
       goto LABEL_58;
     }
-    AAS_BSPModelMinsMaxsOrigin(v4, v69, mins, maxs, origin);
+    AAS_BSPModelMinsMaxsOrigin(modelnum, v69, mins, maxs, origin);
     v75 = origin[2];
     extent[0] = origin[0];
     extent[1] = origin[1];
     extent[2] = origin[2];
-    v5 = FloatForKey(v1, "lip");
+    v5 = FloatForKey(ent, "lip");
     v33 = v5;
     if ( v5 == 0 )
       v33 = 8.0f;
-    v6 = FloatForKey(v1, "height");
-    v43 = v6;
+    v6 = FloatForKey(ent, "height");
+    height = v6;
     if ( v6 == 0 )
-      v43 = maxs[2] - mins[2] - v33;
-    v7 = FloatForKey(v1, "speed");
-    v52 = v7;
+      height = maxs[2] - mins[2] - v33;
+    v7 = FloatForKey(ent, "speed");
+    speed = v7;
     if ( v7 == 0 )
-      v52 = 200.0f;
-    extent[2] = extent[2] - v43;
+      speed = 200.0f;
+    extent[2] = extent[2] - height;
     sumvec[0] = maxs[0] + mins[0];
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
@@ -12743,13 +12743,13 @@ LABEL_30:
               {
                 v22 = v66;
                 *v20 = v16;
-                v23 = v43;
+                v23 = height;
                 v20[1] = v22;
                 v24 = (int)v23;
-                v25 = v43 * 100.0f;
+                v25 = height * 100.0f;
                 v21[2] = v24;
                 *((float *)v21 + 3) = dirvec[0];
-                v26 = v25 / v52;
+                v26 = v25 / speed;
                 *((float *)v21 + 4) = dirvec[1];
                 *((float *)v21 + 5) = dirvec[2];
                 *((float *)v21 + 6) = samplept[0];
@@ -12771,7 +12771,7 @@ LABEL_53:
           }
         }
         v10 = v60;
-        v1 = v50;
+        ent = v50;
       }
 LABEL_56:
       v10 += 4;
@@ -33462,7 +33462,7 @@ void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *float
 //----- (1003ECD0) --------------------------------------------------------
 int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 {
-  int v3; // ecx
+  int len; // ecx
   char *v4; // edi
   char v5; // dl
   char v6; // bl
@@ -33476,17 +33476,17 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
   char *v15; // edx
   char v16; // dl
   int v17; // ebx
-  int v18; // edi
-  int v19; // ebp
+  int octal; // edi
+  int dot; // ebp
   char *v20; // edx
   char v21; // dl
   char *v22; // edi
   char v23; // dl
   int v24; // edx
   int v25; // eax
-  int v26; // [esp+18h] [ebp+8h]
+  int i; // [esp+18h] [ebp+8h]
 
-  v3 = 0;
+  len = 0;
   token->type = 3;
   v4 = ((script_t *)script)->script_p;
   v5 = *v4;
@@ -33500,19 +33500,19 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
       ((script_t *)script)->script_p = v7;
       token->string[1] = *v7;
       v8 = (char *)(((script_t *)script)->script_p + 1);
-      v3 = 2;
+      len = 2;
       ((script_t *)script)->script_p = v8;
       while ( 1 )
       {
         v9 = *v8;
         if ( (v9 < 48 || v9 > 57) && (v9 < 97 || v9 > 102) && (v9 < 65 || v9 > 65) )
           break;
-        token->string[v3] = v9;
-        ++v3;
+        token->string[len] = v9;
+        ++len;
         v10 = ((script_t *)script)->script_p + 1;
         ((script_t *)script)->script_p = v10;
         v8 = (char *)v10;
-        if ( v3 >= 1024 )
+        if ( len >= 1024 )
         {
           ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
                       1024);
@@ -33529,7 +33529,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
       token->string[0] = 48;
       v14 = (_BYTE *)(((script_t *)script)->script_p + 1);
       ((script_t *)script)->script_p = v14;
-      v3 = 2;
+      len = 2;
       token->string[1] = *v14;
       v15 = (char *)(((script_t *)script)->script_p + 1);
       ((script_t *)script)->script_p = v15;
@@ -33538,12 +33538,12 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
         v16 = *v15;
         if ( v16 != 48 && v16 != 49 )
           break;
-        token->string[v3] = v16;
-        ++v3;
+        token->string[len] = v16;
+        ++len;
         v17 = ((script_t *)script)->script_p + 1;
         ((script_t *)script)->script_p = v17;
         v15 = (char *)v17;
-        if ( v3 >= 1024 )
+        if ( len >= 1024 )
         {
           ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
           return 0;
@@ -33554,20 +33554,20 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
       goto LABEL_40;
     }
   }
-  v18 = 0;
-  v19 = 0;
+  octal = 0;
+  dot = 0;
   if ( v5 == 48 )
-    v18 = 1;
+    octal = 1;
   do
   {
     while ( 1 )
     {
       while ( 1 )
       {
-        token->string[++v3 - 1] = *(_BYTE *)((script_t *)script)->script_p;
+        token->string[++len - 1] = *(_BYTE *)((script_t *)script)->script_p;
         v20 = (char *)(((script_t *)script)->script_p + 1);
         ((script_t *)script)->script_p = v20;
-        if ( v3 >= 1024 )
+        if ( len >= 1024 )
         {
           ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
           return 0;
@@ -33575,27 +33575,27 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
         v21 = *v20;
         if ( v21 != 46 )
           break;
-        v19 = 1;
+        dot = 1;
       }
       if ( v21 != 56 && v21 != 57 )
         break;
-      v18 = 0;
+      octal = 0;
     }
   }
   while ( v21 >= 48 && v21 <= 57 );
   v12 = token->subtype;
-  if ( v18 )
+  if ( octal )
     BYTE1(v12) |= 2u;
   else
     v12 |= 8u;
   token->subtype = v12;
-  if ( v19 )
+  if ( dot )
   {
     BYTE1(v12) |= 8u;
 LABEL_40:
     token->subtype = v12;
   }
-  v26 = 2;
+  i = 2;
   do
   {
     v22 = ((script_t *)script)->script_p;
@@ -33619,10 +33619,10 @@ LABEL_50:
 LABEL_51:
       token->subtype = v24;
     }
-    --v26;
+    --i;
   }
-  while ( v26 );
-  token->string[v3] = 0;
+  while ( i );
+  token->string[len] = 0;
   NumberValue(token->string, token->subtype, (int *)&token->intvalue, &token->floatvalue);
   v25 = token->subtype;
   if ( (v25 & 0x800) == 0 )
