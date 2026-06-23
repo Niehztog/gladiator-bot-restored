@@ -25312,7 +25312,7 @@ done:
 }
 
 //----- (1002F6A0) --------------------------------------------------------
-char *__cdecl BotGoalName(int a1)
+char *__cdecl BotGoalName(int number)
 {
   levelitem_t *v1;
 
@@ -25320,7 +25320,7 @@ char *__cdecl BotGoalName(int a1)
     return &byte_1006294C;
   for ( v1 = (levelitem_t *)dword_10064360; v1; v1 = v1->next )
   {
-    if ( v1->number == a1 )
+    if ( v1->number == number )
       return (char *)&dword_1006435C->items[v1->iteminfo];
   }
   return &byte_1006294C;
@@ -25395,7 +25395,7 @@ float __cdecl BotAvoidGoalTime(int *goalstate, int number)
 }
 
 //----- (1002F890) --------------------------------------------------------
-int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
+int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 {
   levelitem_t *li;
 
@@ -25404,7 +25404,7 @@ int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal)
   li = (levelitem_t *)dword_10064360;
   if ( !li )
     return -1;
-  while ( li->number <= a1 || _strcmpi(name, dword_1006435C->items[li->iteminfo].name) )
+  while ( li->number <= index || _strcmpi(name, dword_1006435C->items[li->iteminfo].name) )
   {
     li = li->next;
     if ( !li )
@@ -25616,25 +25616,25 @@ void __cdecl BotEmptyGoalStack(int *goalstate)
 }
 
 //----- (1002FE50) --------------------------------------------------------
-void *__cdecl BotGetTopGoal(int *a1)
+void *__cdecl BotGetTopGoal(int *goalstate)
 {
   int result; // eax
 
-  result = *(_DWORD *)((char *)a1 + 456);
+  result = *(_DWORD *)((char *)goalstate + 456);
   if ( !result )
     return (void *)result;
-  return (char *)a1 + 56 * result + 8;
+  return (char *)goalstate + 56 * result + 8;
 }
 
 //----- (1002FE80) --------------------------------------------------------
-void *__cdecl BotGetSecondGoal(int *a1)
+void *__cdecl BotGetSecondGoal(int *goalstate)
 {
   int v1; // eax
 
-  v1 = *(_DWORD *)((char *)a1 + 456);
+  v1 = *(_DWORD *)((char *)goalstate + 456);
   if ( v1 <= 1 )
     return 0;
-  return (char *)a1 + 56 * v1 - 48;
+  return (char *)goalstate + 56 * v1 - 48;
 }
 
 //----- (1002FEB0) --------------------------------------------------------
@@ -25897,7 +25897,7 @@ int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a
 }
 
 //----- (10030600) --------------------------------------------------------
-int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
+int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 {
   float v3; // st7
   int v4; // edx
@@ -25909,19 +25909,19 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
   vec3_t v15; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
 
   AAS_PresenceTypeBoundingBox(4, v15, maxs);
-  v3 = a2[4] - maxs[0];
+  v3 = goal[4] - maxs[0];
   v4 = 0;
-  mins[1] = a2[5] - maxs[1];
-  mins[2] = a2[6] - maxs[2];
-  maxs[0] = a2[7] - v15[0];
-  maxs[1] = a2[8] - v15[1];
-  maxs[2] = a2[9] - v15[2];
-  v5 = v3 + *a2;
-  mins[1] = mins[1] + a2[1];
-  v6 = mins[2] + a2[2];
-  v7 = maxs[0] + *a2;
-  maxs[1] = maxs[1] + a2[1];
-  maxs[2] = maxs[2] + a2[2];
+  mins[1] = goal[5] - maxs[1];
+  mins[2] = goal[6] - maxs[2];
+  maxs[0] = goal[7] - v15[0];
+  maxs[1] = goal[8] - v15[1];
+  maxs[2] = goal[9] - v15[2];
+  v5 = v3 + *goal;
+  mins[1] = mins[1] + goal[1];
+  v6 = mins[2] + goal[2];
+  v7 = maxs[0] + *goal;
+  maxs[1] = maxs[1] + goal[1];
+  maxs[2] = maxs[2] + goal[2];
   maxs[0] = v7 - 4.0f;
   maxs[1] = maxs[1] - 4.0f;
   maxs[2] = maxs[2] - 10.0f;
@@ -25929,7 +25929,7 @@ int __cdecl BotTouchingGoal(vec3_t a1, float *a2)
   mins[1] = mins[1] - -4.0f;
   mins[2] = v6;
   for (v4 = 0; v4 < 3; v4++) {
-    if (a1[v4] < mins[v4] || a1[v4] > maxs[v4])
+    if (origin[v4] < mins[v4] || origin[v4] > maxs[v4])
       return 0;
   }
   return 1;
@@ -28915,13 +28915,13 @@ int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
 //----- (100369C0) --------------------------------------------------------
 // Linear lookup of a weight_t* in a weightconfig_t by item/weapon name.
 // LIVE: called by the goal AI before each FuzzyWeight evaluation.
-int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2)
+int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name)
 {
   int i;
 
-  for ( i = 0; i < a1->numweights; ++i )
+  for ( i = 0; i < wc->numweights; ++i )
   {
-    if ( !strcmp(a1->weights[i].name, a2) )
+    if ( !strcmp(wc->weights[i].name, name) )
       return i;
   }
   return -1;
@@ -33097,30 +33097,30 @@ char *__cdecl PunctuationFromNum(script_t *script, int num)
 }
 
 //----- (1003E2C0) --------------------------------------------------------
-void ScriptError(int a1, char *Format, ...)
+void ScriptError(int script, char *Format, ...)
 {
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
   va_start(va, Format);
-  if ( (*(unsigned char *)&((script_t *)a1)->flags & 1) == 0 )
+  if ( (*(unsigned char *)&((script_t *)script)->flags & 1) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
   }
 }
 
 //----- (1003E340) --------------------------------------------------------
-void ScriptWarning(int a1, char *Format, ...)
+void ScriptWarning(int script, char *Format, ...)
 {
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
   va_start(va, Format);
-  if ( (*(unsigned char *)&((script_t *)a1)->flags & 2) == 0 )
+  if ( (*(unsigned char *)&((script_t *)script)->flags & 2) == 0 )
   {
     vsprintf(Buffer, Format, va);
-    botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)a1, ((script_t *)a1)->line, Buffer);
+    botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
   }
 }
 
@@ -34809,12 +34809,12 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *a2, int a3, int a4)
 }
 
 //----- (10041210) --------------------------------------------------------
-int __cdecl WriteStructure(FILE *Stream, int a2, int a3)
+int __cdecl WriteStructure(FILE *Stream, int def, int structure)
 {
   /* WriteStructure is a thin entry point that just calls WriteStructWithIndent
    * with indent=0. Original binary used the 0x10001500 thunk → 0x10040F20. The
    * earlier PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-  return WriteStructWithIndent(Stream, (structdef_t *)a2, a3, 0);
+  return WriteStructWithIndent(Stream, (structdef_t *)def, structure, 0);
 }
 
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
