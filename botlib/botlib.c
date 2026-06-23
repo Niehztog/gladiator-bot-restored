@@ -12990,78 +12990,78 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 int AAS_SetWeaponJumpAreaFlags()
 {
   bsp_entity_t *v0; // ebx — entity list head
-  bsp_entity_t *v1; // ebp — current entity
+  bsp_entity_t *ent; // ebp — current entity
   const char *v2; // eax
-  const char *v3; // edi
-  int v4; // eax
-  vec3_t v7; // [esp+2Ch] [ebp-24h] BYREF
-  vec3_t v8; // [esp+38h] [ebp-18h] BYREF
-  vec3_t v9; // [esp+44h] [ebp-Ch] BYREF
+  const char *classname; // edi
+  int areanum; // eax
+  vec3_t origin; // [esp+2Ch] [ebp-24h] BYREF
+  vec3_t maxs; // [esp+38h] [ebp-18h] BYREF
+  vec3_t mins; // [esp+44h] [ebp-Ch] BYREF
 
   /* IDA emitted raw int bit-patterns: -1049624576 = 0xC1700000 = -15.0f,
-   * 1097859072 = 0x41700000 = 15.0f.  When v8/v9 are float[3], C converts
+   * 1097859072 = 0x41700000 = 15.0f.  When maxs/mins are float[3], C converts
    * the literals to ~±1.097e9 (NOT the intended ±15).  Bounds become
    * essentially unbounded and AAS_BestReachableArea flags wrong areas. */
-  v9[0] = -15.0f;
-  v9[1] = -15.0f;
-  v9[2] = -15.0f;
-  v8[0] = 15.0f;
-  v8[1] = 15.0f;
-  v8[2] = 15.0f;
+  mins[0] = -15.0f;
+  mins[1] = -15.0f;
+  mins[2] = -15.0f;
+  maxs[0] = 15.0f;
+  maxs[1] = 15.0f;
+  maxs[2] = 15.0f;
   v0 = AAS_ParseBSPEntities();
-  v1 = v0;
+  ent = v0;
   if ( v0 )
   {
     do
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
-      v3 = v2;
+      v2 = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+      classname = v2;
       if ( v2
         && (!strcmp(v2, "item_armor_body")
-            || !strcmp(v3, "item_armor_combat")
-            || !strcmp(v3, "item_power_screen")
-            || !strcmp(v3, "item_power_shield")
-            || !strcmp(v3, "weapon_grenadelauncher")
-            || !strcmp(v3, "weapon_rocketlauncher")
-            || !strcmp(v3, "weapon_hyperblaster")
-            || !strcmp(v3, "weapon_railgun")
-            || !strcmp(v3, "weapon_bfg")
-            || !strcmp(v3, "weapon_boomer")
-            || !strcmp(v3, "weapon_phalanx")
-            || !strcmp(v3, "item_quadfire")
-            || !strcmp(v3, "weapon_etf_rifle")
-            || !strcmp(v3, "weapon_proxlauncher")
-            || !strcmp(v3, "weapon_plasmabeam")
-            || !strcmp(v3, "weapon_chainfist")
-            || !strcmp(v3, "weapon_disintegrator")
-            || !strcmp(v3, "item_ir_goggles")
-            || !strcmp(v3, "item_double")
-            || !strcmp(v3, "item_compass")
-            || !strcmp(v3, "item_sphere_vengeance")
-            || !strcmp(v3, "item_sphere_hunter")
-            || !strcmp(v3, "item_sphere_defender")
-            || !strcmp(v3, "item_doppleganger")
-            || !strcmp(v3, "dm_tag_token")
-            || !strcmp(v3, "dm_tag_token")
-            || !strcmp(v3, "item_health_mega")
-            || !strcmp(v3, "item_quad")
-            || !strcmp(v3, "item_invulnerability"))
-        && AAS_VectorForBSPEpairKey(v1, "origin", (float *)v7) )
+            || !strcmp(classname, "item_armor_combat")
+            || !strcmp(classname, "item_power_screen")
+            || !strcmp(classname, "item_power_shield")
+            || !strcmp(classname, "weapon_grenadelauncher")
+            || !strcmp(classname, "weapon_rocketlauncher")
+            || !strcmp(classname, "weapon_hyperblaster")
+            || !strcmp(classname, "weapon_railgun")
+            || !strcmp(classname, "weapon_bfg")
+            || !strcmp(classname, "weapon_boomer")
+            || !strcmp(classname, "weapon_phalanx")
+            || !strcmp(classname, "item_quadfire")
+            || !strcmp(classname, "weapon_etf_rifle")
+            || !strcmp(classname, "weapon_proxlauncher")
+            || !strcmp(classname, "weapon_plasmabeam")
+            || !strcmp(classname, "weapon_chainfist")
+            || !strcmp(classname, "weapon_disintegrator")
+            || !strcmp(classname, "item_ir_goggles")
+            || !strcmp(classname, "item_double")
+            || !strcmp(classname, "item_compass")
+            || !strcmp(classname, "item_sphere_vengeance")
+            || !strcmp(classname, "item_sphere_hunter")
+            || !strcmp(classname, "item_sphere_defender")
+            || !strcmp(classname, "item_doppleganger")
+            || !strcmp(classname, "dm_tag_token")
+            || !strcmp(classname, "dm_tag_token")
+            || !strcmp(classname, "item_health_mega")
+            || !strcmp(classname, "item_quad")
+            || !strcmp(classname, "item_invulnerability"))
+        && AAS_VectorForBSPEpairKey(ent, "origin", (float *)origin) )
       {
-        if ( !AAS_DropToFloor((float *)v7, (float *)v9, (float *)v8) )
+        if ( !AAS_DropToFloor((float *)origin, (float *)mins, (float *)maxs) )
           botimport.Print(
             1,
             "%s in solid at (%1.1f %1.1f %1.1f)\n",
-            v3,
-            *(float *)v7,
-            v7[1],
-            v7[2]);
-        v4 = AAS_BestReachableArea(v7, (float *)v9, (float *)v8, (float *)v7);
-        aasworld.areasettings[v4].areaflags |= 0x2000u;
+            classname,
+            *(float *)origin,
+            origin[1],
+            origin[2]);
+        areanum = AAS_BestReachableArea(origin, (float *)mins, (float *)maxs, (float *)origin);
+        aasworld.areasettings[areanum].areaflags |= 0x2000u;
       }
-      v1 = v1->next;
+      ent = ent->next;
     }
-    while ( v1 );
+    while ( ent );
   }
   return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
