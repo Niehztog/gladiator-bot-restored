@@ -21247,7 +21247,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   bot_consolemessage_t *v3;
   char *v4; // eax
   ptrdiff_t v5; // length in message
-  int v6; // ecx
+  int context; // ecx
   float v7; // st7
   char *v8; // eax
   char *Str2; // [esp+10h] [ebp-14h]
@@ -21285,10 +21285,10 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       }
     }
     UnifyWhiteSpaces(v3->message);
-    v6 = 3;
+    context = 3;
     if ( libvar_ctf->value != 0.0f )
-      v6 = BotCTFTeam(v1) != 1 ? 11 : 7;
-    BotReplaceSynonyms(v3->message, v6);
+      context = BotCTFTeam(v1) != 1 ? 11 : 7;
+    BotReplaceSynonyms(v3->message, context);
     if ( !BotMatchMessage(v1, v3->message) && v3->type == 1 )
     {
       v7 = libvar_nochat->value;
@@ -28527,78 +28527,78 @@ void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
 // (child = yes-branch, next = sibling case). LIVE.
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 {
-  int v2; // edi
-  fuzzyseperator_t *v3; // ebp
-  int v6; // edi
+  int def; // edi
+  fuzzyseperator_t *fs; // ebp
+  int newindent; // edi
   fuzzyseperator_t *v7; // eax
   fuzzyseperator_t *v9; // eax
-  fuzzyseperator_t *v11; // [esp+10h] [ebp-440h]
-  fuzzyseperator_t *v12; // [esp+14h] [ebp-43Ch]
-  int v13; // [esp+18h] [ebp-438h]
-  int v14; // [esp+1Ch] [ebp-434h]
+  fuzzyseperator_t *firstfs; // [esp+10h] [ebp-440h]
+  fuzzyseperator_t *lastfs; // [esp+14h] [ebp-43Ch]
+  int founddefault; // [esp+18h] [ebp-438h]
+  int index; // [esp+1Ch] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  v11 = v12 = 0;
-  v13 = 0;
+  firstfs = lastfs = 0;
+  founddefault = 0;
   if ( !PC_ExpectTokenString(source, "(") )
     return 0;
   if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
     return 0;
-  v14 = token.intvalue;
+  index = token.intvalue;
   if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, "{") || !PC_ExpectAnyToken(source, token.string) )
     return 0;
   do
   {
-    v2 = strcmp(token.string, "default") == 0;
-    if ( v2 || !strcmp(token.string, "case") )
+    def = strcmp(token.string, "default") == 0;
+    if ( def || !strcmp(token.string, "case") )
     {
-      v3 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-      v3->index = v14;
-      if ( v12 )
-        v12->next = v3;
+      fs = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+      fs->index = index;
+      if ( lastfs )
+        lastfs->next = fs;
       else
-        v11 = v3;
-      v12 = v3;
-      if ( v2 )
+        firstfs = fs;
+      lastfs = fs;
+      if ( def )
       {
-        if ( v13 )
+        if ( founddefault )
         {
           SourceError(source, "switch already has a default\n");
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
-        v3->value = 999999;
-        v13 = 1;
+        fs->value = 999999;
+        founddefault = 1;
       }
       else
       {
         if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
         {
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
-        v3->value = token.intvalue;
+        fs->value = token.intvalue;
       }
       if ( !PC_ExpectTokenString(source, ":") || !PC_ExpectAnyToken(source, token.string) )
       {
-        FreeFuzzySeperators_r(v11);
+        FreeFuzzySeperators_r(firstfs);
         return 0;
       }
-      v6 = 0;
+      newindent = 0;
       if ( !strcmp(token.string, "{") )
       {
-        v6 = 1;
+        newindent = 1;
         if ( !PC_ExpectAnyToken(source, token.string) )
         {
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
       }
       if ( !strcmp(token.string, "return") )
       {
-        if ( !ReadFuzzyWeight(source, v3) )
+        if ( !ReadFuzzyWeight(source, fs) )
         {
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
       }
@@ -28610,52 +28610,52 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
           return 0;
         }
         v7 = ReadFuzzySeperators_r(source);
-        v3->child = v7;
+        fs->child = v7;
         if ( !v7 )
         {
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
       }
-      if ( v6 )
+      if ( newindent )
       {
         if ( !PC_ExpectTokenString(source, "}") )
         {
-          FreeFuzzySeperators_r(v11);
+          FreeFuzzySeperators_r(firstfs);
           return 0;
         }
       }
     }
     else
     {
-      FreeFuzzySeperators_r(v11);
+      FreeFuzzySeperators_r(firstfs);
       SourceError(source, "invalid name %s\n", token.string);
       return 0;
     }
     if ( !PC_ExpectAnyToken(source, token.string) )
     {
-      FreeFuzzySeperators_r(v11);
+      FreeFuzzySeperators_r(firstfs);
       return 0;
     }
   }
   while ( strcmp(token.string, "}") );
-  if ( !v13 )
+  if ( !founddefault )
   {
     SourceWarning(source, "switch without default\n");
     v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-    v9->index = v14;
+    v9->index = index;
     v9->value = 999999;
     v9->weight = 0;
     v9->next = 0;
     v9->child = 0;
-    if ( v3 )
+    if ( fs )
     {
-      v3->next = v9;
-      return v11;
+      fs->next = v9;
+      return firstfs;
     }
     return v9;
   }
-  return v11;
+  return firstfs;
 }
 
 //----- (10035FA0) --------------------------------------------------------
@@ -34386,13 +34386,13 @@ typedef struct fielddef_s {
 //----- (10040540) --------------------------------------------------------
 int __cdecl ReadNumber(source_t *src, char **field, float *out)
 {
-  int v3; // esi
+  int negative; // esi
   int v5; // eax
-  float v6; // st7
-  int v7; // ebx
+  float floatval; // st7
+  int intval; // ebx
   int v8; // ecx
-  int v9; // esi
-  int v10; // rax
+  int intmin; // esi
+  int intmax; // rax
   float v11; // st7
   float v12; // st7
   int v13; // rax
@@ -34403,7 +34403,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   int v19; // [esp+28h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
 
-  v3 = 0;
+  negative = 0;
   if ( !PC_ExpectAnyToken(src, token.string) )
     return 0;
   if ( token.type == 5 )
@@ -34418,7 +34418,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       SourceError(src, "unexpected punctuation %s", token.string);
       return 0;
     }
-    v3 = 1;
+    negative = 1;
     if ( !PC_ExpectAnyToken(src, token.string) )
       return 0;
   }
@@ -34432,17 +34432,17 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     v5 = fielddef_flags(field);
     if ( (_BYTE)v5 == 3 )
     {
-      v6 = token.floatvalue;
-      if ( v3 )
-        v6 = -token.floatvalue;
-      if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(field, 4), v6 < v18) || v6 > fielddef_float(field, 5)) )
+      floatval = token.floatvalue;
+      if ( negative )
+        floatval = -token.floatvalue;
+      if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(field, 4), floatval < v18) || floatval > fielddef_float(field, 5)) )
       {
         SourceError(src, "float out of range [%f, %f]", v18, fielddef_float(field, 5));
         return 0;
       }
       else
       {
-        *out = v6;
+        *out = floatval;
         return 1;
       }
     }
@@ -34452,11 +34452,11 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       return 0;
     }
   }
-  v7 = token.intvalue;
+  intval = token.intvalue;
   v19 = token.intvalue;
-  if ( v3 )
+  if ( negative )
   {
-    v7 = -token.intvalue;
+    intval = -token.intvalue;
     v19 = -token.intvalue;
   }
   v8 = fielddef_flags(field);
@@ -34464,39 +34464,39 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   {
     if ( (v8 & 0x400) != 0 )
     {
-      v9 = 0;
-      v10 = 255;
+      intmin = 0;
+      intmax = 255;
       v17 = 0;
       v16 = 255;
     }
     else
     {
-      v9 = -128;
-      v10 = 127;
+      intmin = -128;
+      intmax = 127;
       v17 = -128;
       v16 = 127;
     }
   }
   else
   {
-    v9 = v17;
-    v10 = v16;
+    intmin = v17;
+    intmax = v16;
   }
   if ( (unsigned __int8)v8 == 2 )
   {
     if ( (v8 & 0x400) != 0 )
     {
-      v9 = 0;
-      v10 = 0xFFFF;
+      intmin = 0;
+      intmax = 0xFFFF;
       v17 = 0;
     }
     else
     {
-      v9 = -32768;
-      v10 = 0x7FFF;
+      intmin = -32768;
+      intmax = 0x7FFF;
       v17 = -32768;
     }
-    v16 = v10;
+    v16 = intmax;
   }
   if ( (unsigned __int8)v8 != 1 && (unsigned __int8)v8 != 2 )
   {
@@ -34505,7 +34505,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       v11 = (float)v19;
       if ( v11 < fielddef_float(field, 4) || v11 > fielddef_float(field, 5) )
       {
-        SourceError(src, "value %d out of range [%f, %f]", v7, fielddef_float(field, 4), fielddef_float(field, 5));
+        SourceError(src, "value %d out of range [%f, %f]", intval, fielddef_float(field, 4), fielddef_float(field, 5));
         return 0;
       }
     }
@@ -34519,24 +34519,24 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
       v12 = fielddef_float(field, 4);
     v13 = (int)v12;
     v14 = (float)v16;
-    v9 = v13;
+    intmin = v13;
     if ( v14 >= fielddef_float(field, 5) )
       v14 = fielddef_float(field, 5);
-    v10 = (int)v14;
+    intmax = (int)v14;
   }
-  if ( v7 < v9 || v7 > v10 )
+  if ( intval < intmin || intval > intmax )
   {
-    SourceError(src, "value %d out of range [%d, %d]", v7, v9, v10);
+    SourceError(src, "value %d out of range [%d, %d]", intval, intmin, intmax);
     return 0;
   }
   }
   if ( (unsigned __int8)v8 == 1 )
   {
-    *(_BYTE *)out = v7;
+    *(_BYTE *)out = intval;
   }
   else if ( (unsigned __int8)v8 == 2 )
   {
-    *(_DWORD *)out = v7;
+    *(_DWORD *)out = intval;
     return 1;
   }
   else
