@@ -1553,11 +1553,18 @@ LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA 
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 define_t *globaldefines;
-/* dword_10063A1C/A2C/A30 are now `totalmemorysize`, `numblocks`, `memory`
- * — matching the Q3 l_memory.c names.  Defined alongside memoryblock_t
- * below.  The old IDA spellings still resolve via #define aliases. */
-char byte_10063A40[1024]; // idb
-FILE *Stream; // idb
+/* l_memory.c block tracker: original dword_10063A1C/A2C/A30 are fully renamed
+ * to `totalmemorysize`, `numblocks`, `memory` (Q3 l_memory.c names) at their
+ * definitions alongside memoryblock_t below — no IDA spellings remain. */
+/* l_log.c logfile state @ original VA 0x10063A40.  filename[1024]@0x10063A40,
+ * fp@0x10063E40, numwrites@0x10063E44 are contiguous in .data — a single
+ * logfile_t struct, matching Q3 l_log.c::logfile_t (same author) exactly. */
+typedef struct logfile_s {
+    char  filename[1024];   /* 0x10063A40  (was byte_10063A40)               */
+    FILE *fp;               /* 0x10063E40  (was the IDA-named global Stream) */
+    int   numwrites;        /* 0x10063E44  (was dword_10063E44)              */
+} logfile_t;
+logfile_t logfile;
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
 /* dword_10063F2C — head of a singly-linked list of 152-byte "known
  * script CRC" records, sorted alphabetically by filename.  Original DLL
@@ -1583,12 +1590,12 @@ botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + 
 bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
 ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
 weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */
-levelitem_t *dword_10064344; // levelitem free-list head
-int dword_10064354; // weak
-levelitem_t *dword_10064358; // levelitem pool base
+levelitem_t *freelevelitems; // 0x10064344 free-list head    (be_ai_goal.c; was dword_10064344)
+int numlevelitems;           // 0x10064354 active item count  (be_ai_goal.c; was dword_10064354)
+levelitem_t *levelitemheap;  // 0x10064358 pool base          (be_ai_goal.c; was dword_10064358)
 itemconfig_t *itemconfig; /* current item config (was dword_1006435C) */
-levelitem_t *dword_10064360; // levelitem active-list head
-bot_consolemessage_t *dword_10064364; // freelist head (used freelist returns to pool)
+levelitem_t *levelitems;     // 0x10064360 active-list head   (be_ai_goal.c; was dword_10064360)
+bot_consolemessage_t *freeconsolemessages; // 0x10064364 free-list head (be_ai_chat.c; was dword_10064364)
 bot_consolemessage_t *consolemessageheap; // pool base (initial bulk allocation)
 bot_matchtemplate_t *matchtemplates; // weak
 bot_randomlist_t *randomstrings; // weak
@@ -1812,8 +1819,8 @@ libvar_t *libvar_ctf; /* libvar handle */
  * original DLL reserved 56 bytes per slot in .bss to match Q3's bot_goal_t
  * size (Q3 has flags+iteminfo trailing fields that Gladiator omits).  The
  * `areanum` field doubles as "flag found" flag — 0 means not located yet. */
-bot_goal_t unk_100643E0; /* blue flag goal */
-bot_goal_t unk_10064420; /* red flag goal  */
+bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
+bot_goal_t ctf_redflag;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
 libvar_t *libvar_usehook; /* libvar handle */
 libvar_t *libvar_ch; /* libvar handle */
 libvar_t *libvar_teamplay; /* libvar handle */
@@ -1832,11 +1839,14 @@ int dword_10064490; // weak
 int dword_10064494; // weak
 int dword_10064498; // weak
 int dword_1006449C; // weak
-int dword_100644A0; // weak
-char byte_10064A80[7344]; // weak
-int dword_10066730; // weak
-int dword_10066740; // weak
-int dword_10066744; // weak
+int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
+char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
+/* be_aas_routealt.c globals (AAS_AlternativeRouteGoals / AAS_AltRoutingFloodCluster_r).
+ * midrangeareas/clusterareas keep the 32-bit original `int` type (they hold a heap
+ * address accessed via explicit (intptr_t)/(char*) casts at the call sites). */
+int numclusterareas;     // 0x10066730 (was dword_10066730)
+int midrangeareas;       // 0x10066740 midrangearea_t* (8 B/area: valid,starttime,goaltime) (was dword_10066740)
+int clusterareas;        // 0x10066744 int* area-index list (was dword_10066744)
 int numportalcacheupdates; // weak
 int numareacacheupdates; // weak
 aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
@@ -1871,47 +1881,61 @@ int reach_walk; // weak
 
 aas_world_t aasworld;
 
-int dword_10066B14; // weak
-int dword_10066CC0[256]; // weak
-int dword_100670C0[256]; // weak
-int dword_100674C0; // weak
-int dword_100674C4; // weak (models count)
-char *dword_100674C8; // BSP lump pointer (models)
-int dword_100674CC; // weak (visibility size)
-char *dword_100674D0; // BSP lump pointer (visibility)
-char *dword_100674D4; // BSP lump pointer
-int dword_100674D8; // weak (lightning size)
-char *dword_100674DC; // BSP lump pointer (lightning)
-int dword_100674E0; // idb (entdata length)
-unsigned char *dword_100674E4; // idb (entdata pointer; was int in 32-bit binary)
-int dword_100674E8; // weak (leafs count)
-char *dword_100674EC; // BSP lump pointer (leafs)
-int dword_100674F0; // weak (planes count)
-char *dword_100674F4; // BSP lump pointer (planes)
-int dword_100674F8; // weak (vertexes count)
-char *dword_100674FC; // BSP lump pointer (vertexes)
-int dword_10067500; // weak (nodes count)
-char *dword_10067504; // BSP lump pointer (nodes)
-int dword_10067508; // weak (texinfo count)
-char *dword_1006750C; // BSP lump pointer (texinfo)
-int dword_10067510; // weak (faces count)
-char *dword_10067514; // BSP lump pointer (faces)
-int dword_10067518; // weak (edges count)
-char *dword_1006751C; // BSP lump pointer (edges)
-int dword_10067520; // weak (leaffaces count)
-char *dword_10067524; // BSP lump pointer (leaffaces)
-int dword_10067528; // weak (leafbrushes count)
-char *dword_1006752C; // BSP lump pointer (leafbrushes)
-int dword_10067530; // weak (surfedges count)
-char *dword_10067534; // BSP lump pointer (surfedges)
-int dword_10067538; // weak (brushes count)
-char *dword_1006753C; // BSP lump pointer (brushes)
-int dword_10067540; // weak (brushsides count)
-char *dword_10067544; // BSP lump pointer (brushsides)
-int dword_10067548; // weak (count)
-char *dword_1006754C; // pointer (was int)
-int dword_10067550; // weak (count)
-char *dword_10067554; // pointer
+/* be_aas_debug.c debug-line state (MAX_DEBUGLINES=256). Verified against Q3
+ * AAS_DebugLine/AAS_ClearShownDebugLines: debuglines[] holds DebugLineCreate
+ * handles passed to DebugLineShow; debuglinevisible[] is the 0/1 shown flag. */
+int numdebuglines;          // 0x10066B14 (was dword_10066B14)
+int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)
+int debuglines[256];        // 0x100670C0 (was dword_100670C0)
+int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
+/* ---------------------------------------------------------------------------
+ * Q2 BSP lump globals @ original VA 0x100674C4..0x10067554.
+ * Names + declaration order match Mr. Elusive's own Q2 BSP loader
+ * bspc/l_bsp_q2.c (count/pointer pairs, plus the `dvis` alias of `dvisdata`)
+ * 1:1 — the same author who wrote this botlib.  Pointer slots keep the
+ * reconstruction's `char *`/`unsigned char *` typing for 64-bit pointer +
+ * byte-offset-arithmetic safety; only the identifiers were restored.
+ * ------------------------------------------------------------------------- */
+int nummodels;            // 0x100674C4  (was dword_100674C4)
+char *dmodels;            // 0x100674C8  (was dword_100674C8)
+int visdatasize;          // 0x100674CC  (was dword_100674CC)
+char *dvisdata;           // 0x100674D0  (was dword_100674D0)
+char *dvis;               // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
+int lightdatasize;        // 0x100674D8  (was dword_100674D8)
+char *dlightdata;         // 0x100674DC  (was dword_100674DC)
+int entdatasize;          // 0x100674E0  (was dword_100674E0)
+unsigned char *dentdata;  // 0x100674E4  (was dword_100674E4; was int in 32-bit binary)
+int numleafs;             // 0x100674E8  (was dword_100674E8)
+char *dleafs;             // 0x100674EC  (was dword_100674EC)
+int numplanes;            // 0x100674F0  (was dword_100674F0)
+char *dplanes;            // 0x100674F4  (was dword_100674F4)
+int numvertexes;          // 0x100674F8  (was dword_100674F8)
+char *dvertexes;          // 0x100674FC  (was dword_100674FC)
+int numnodes;             // 0x10067500  (was dword_10067500)
+char *dnodes;             // 0x10067504  (was dword_10067504)
+int numtexinfo;           // 0x10067508  (was dword_10067508)
+char *texinfo;            // 0x1006750C  (was dword_1006750C)
+int numfaces;             // 0x10067510  (was dword_10067510)
+char *dfaces;             // 0x10067514  (was dword_10067514)
+int numedges;             // 0x10067518  (was dword_10067518)
+char *dedges;             // 0x1006751C  (was dword_1006751C)
+int numleaffaces;         // 0x10067520  (was dword_10067520)
+char *dleaffaces;         // 0x10067524  (was dword_10067524)
+int numleafbrushes;       // 0x10067528  (was dword_10067528)
+char *dleafbrushes;       // 0x1006752C  (was dword_1006752C)
+int numsurfedges;         // 0x10067530  (was dword_10067530)
+char *dsurfedges;         // 0x10067534  (was dword_10067534)
+int numbrushes;           // 0x10067538  (was dword_10067538)
+char *dbrushes;           // 0x1006753C  (was dword_1006753C)
+int numbrushsides;        // 0x10067540  (was dword_10067540)
+char *dbrushsides;        // 0x10067544  (was dword_10067544)
+int numareas;             // 0x10067548  (was dword_10067548)
+char *dareas;             // 0x1006754C  (was dword_1006754C)
+int numareaportals;       // 0x10067550  (was dword_10067550)
+char *dareaportals;       // 0x10067554  (was dword_10067554)
+/* 0x10067558..0x10067560 — three pointers AFTER the standard Q2 lumps; not
+ * present in l_bsp_q2.c (Gladiator-specific AAS precompute, e.g. per-face PVS
+ * table allocated by GetClearedMemory). No clean cognate → left unnamed. */
 char *dword_10067558; // pointer (per-face PVS table, allocated by GetClearedMemory)
 char *dword_1006755C; // pointer
 char *dword_10067560; // pointer
@@ -2045,7 +2069,7 @@ int sub_10003280()  /* InitBSPLinkedEntities */
   {
     if ( dword_10069584 )
       FreeMemory(dword_10069584);
-    dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * dword_100674E8);
+    dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * numleafs);
     result = (int)(intptr_t)dword_10069584;
   }
   return result;
@@ -2061,10 +2085,10 @@ int sub_100032D0()
   {
     if ( dword_1006755C )
       FreeMemory(dword_1006755C);
-    dword_1006755C = GetClearedMemory(4 * dword_10067550);
+    dword_1006755C = GetClearedMemory(4 * numareaportals);
     if ( dword_10067560 )
       FreeMemory(dword_10067560);
-    result = GetClearedMemory(4 * dword_10067548 * dword_10067548);
+    result = GetClearedMemory(4 * numareas * numareas);
     dword_10067560 = result;
   }
   return result;
@@ -2077,18 +2101,18 @@ int __cdecl sub_10003360(float *a1, int a2)
 
   if ( !dword_100674C0 )
     return 0;
-  v3 = *(_DWORD *)(48 * a2 + dword_100674C8 + 36);
+  v3 = *(_DWORD *)(48 * a2 + dmodels + 36);
   while ( v3 >= 0 )
   {
     {
-    float *plane = (float *)(dword_100674F4 + 20 * *(_DWORD *)(dword_10067504 + 28 * v3));
+    float *plane = (float *)(dplanes + 20 * *(_DWORD *)(dnodes + 28 * v3));
     if ( plane[1] * a1[1]
        + plane[2] * a1[2]
        + plane[0] * a1[0]
        - plane[3] > 0.0f )
-      v3 = *(_DWORD *)(dword_10067504 + 28 * v3 + 4);
+      v3 = *(_DWORD *)(dnodes + 28 * v3 + 4);
     else
-      v3 = *(_DWORD *)(dword_10067504 + 28 * v3 + 8);
+      v3 = *(_DWORD *)(dnodes + 28 * v3 + 8);
     }
   }
   return -1 - v3;
@@ -2099,7 +2123,7 @@ char *__cdecl sub_10003420(float *a1, int a2)
 {
   if ( !dword_100674C0 )
     return 0;
-  return dword_100674EC + 28 * sub_10003360(a1, a2);
+  return dleafs + 28 * sub_10003360(a1, a2);
 }
 
 //----- (10003460) --------------------------------------------------------
@@ -2429,7 +2453,7 @@ int __cdecl sub_10003C90(
   _DWORD *v14; // ebx
   float *v15; // ecx
   /* v16: BSP plane-pointer base; was `int v16` in IDA, used as `*(float*)(v16+N)`.
-   * On aarch64 the int truncated dword_100674F4's heap address.  Widened to char *. */
+   * On aarch64 the int truncated dplanes's heap address.  Widened to char *. */
   char *v16;
   int v17; // ecx
   float v18; // st7
@@ -2489,7 +2513,7 @@ int __cdecl sub_10003C90(
   {
     while ( 1 )
     {
-      v16 = dword_100674F4 + 20 * *(unsigned __int16 *)(dword_10067544 + 4 * (v11 + *v14));
+      v16 = dplanes + 20 * *(unsigned __int16 *)(dbrushsides + 4 * (v11 + *v14));
       if ( v39 )
       {
         normal[0] = *(float *)v16;
@@ -2651,11 +2675,11 @@ LABEL_30:
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
 {
   int v9; // ebp
-  /* v11: BSP-leaf base pointer (`dword_100674EC + 28 * a1`).  Int→char* widening. */
+  /* v11: BSP-leaf base pointer (`dleafs + 28 * a1`).  Int→char* widening. */
   char *v11;
   _DWORD *v13; // edi
   int v16; // ecx
-  /* v17: BSP plane-pointer base (`dword_100674F4 + 20 * plane_index`).  Stays a
+  /* v17: BSP plane-pointer base (`dplanes + 20 * plane_index`).  Stays a
    * char* into the do-not-retype BSP plane lump; fields read positionally. */
   char *v17;
   bsp_trace_t *trace;  /* the caller's output struct (param a9), was `char *v12` */
@@ -2664,7 +2688,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   _DWORD *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
-  v11 = dword_100674EC + 28 * a1;
+  v11 = dleafs + 28 * a1;
   v24 = 0;
   /* First guard reuses the loop counter v9 (=0) as the compare operand, so the
    * leaf brush-count word compares as `numbrushes <= v9` → ref's `cmp WORD,bp;
@@ -2674,8 +2698,8 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   trace = (bsp_trace_t *)a9;
   do
   {
-    v13 = (_DWORD *)(dword_1006753C
-                   + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v9 + *(unsigned __int16 *)(v11 + 24))));
+    v13 = (_DWORD *)(dbrushes
+                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + *(unsigned __int16 *)(v11 + 24))));
     if ( (v13[2] & a8) != 0
       && sub_10003C90(v13, a2, a3, (int *)a4, a5, a6, a7, &trace->fraction, (_DWORD *)&a9, &v20, endpos) )
     {
@@ -2706,7 +2730,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   v16 = a9;
   trace->endpos[2] = endpos[2];
   trace->sidenum = v16;
-  v17 = dword_100674F4 + 20 * *(unsigned __int16 *)(dword_10067544 + 4 * v16);
+  v17 = dplanes + 20 * *(unsigned __int16 *)(dbrushsides + 4 * v16);
   trace->plane.normal[0] = *(float *)v17;
   trace->plane.normal[1] = *(float *)(v17 + 4);
   trace->plane.normal[2] = *(float *)(v17 + 8);
@@ -2747,8 +2771,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v12; // eax
   float v13; // st7
   /* v14: originally `int v14` in IDA — was used as `char*` base via
-   * `v14 = dword_100674C8 + 48*a2` then `*(float*)(v14+24)`.  On aarch64
-   * the int storage truncated dword_100674C8's heap address producing
+   * `v14 = dmodels + 48*a2` then `*(float*)(v14+24)`.  On aarch64
+   * the int storage truncated dmodels's heap address producing
    * a SIGSEGV in AAS_OnGround → AAS_TraceClientBBox → AAS_EntityCollision
    * → here.  Widened to `char *`. */
   char *v14;
@@ -2784,7 +2808,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v36; // ecx
   int v37; // eax
   /* v38: same bug class as v14 above — set to
-   * `dword_100674F4 + 20*v37` (BSP plane base + 20 *plane_index).  On
+   * `dplanes + 20*v37` (BSP plane base + 20 *plane_index).  On
    * aarch64 the int storage truncated the pointer, so later
    * `*(float*)(v38+N)` reads crashed in AAS_OnGround chain.  Widened
    * to char *.  The IDA-spilled `v110 = *(float*)&v38; ...; *(float*)&v38 = v110;`
@@ -2989,7 +3013,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v144 = 1;
     AnglesToAxis(a4, (float *)v151);
   }
-  v14 = dword_100674C8 + 48 * a2;
+  v14 = dmodels + 48 * a2;
   v15 = *(float *)(v14 + 24) + *a3;
   v136 = v15;
   v137 = *(float *)(v14 + 28) + a3[1];
@@ -3046,14 +3070,14 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             if ( v28 >= 0 )
               break;
             v29 = -1 - v28;
-            v30 = (_DWORD *)(dword_100674EC + 28 * (-1 - v28));
-            if ( *(_WORD *)(dword_100674EC + 28 * v29 + 26) && (*v30 & a10) != 0 )
+            v30 = (_DWORD *)(dleafs + 28 * (-1 - v28));
+            if ( *(_WORD *)(dleafs + 28 * v29 + 26) && (*v30 & a10) != 0 )
               sub_10004310(v29, &v136, a4, a5, a6, (intptr_t)a7, a8, a10, (intptr_t)v150);
             if ( dword_10069584[v29] )
               sub_10003BF0(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
           }
           v106 = *(float *)v25;
-          v31 = (int *)(dword_10067504 + 28 * v28);
+          v31 = (int *)(dnodes + 28 * v28);
           v32 = *((float *)v25 + 1);
           v108 = *((float *)v25 + 2);
           v33 = *((float *)v25 + 4);
@@ -3069,7 +3093,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v113 = v36;
           v120 = v31;
           v19 = (char *)v25;
-          v38 = dword_100674F4 + 20 * v37;
+          v38 = dplanes + 20 * v37;
           v110 = *(float *)&v38;
           if ( v144 )
           {
@@ -3510,7 +3534,7 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
   int v3; // ebx
   unsigned __int16 *i; // edi
   /* v5: same BSP-plane-pointer-truncation bug class as sub_100044F0:v14/v38.
-   * Original `int v5` truncated `dword_100674F4 + 20 * *i` on aarch64. */
+   * Original `int v5` truncated `dplanes + 20 * *i` on aarch64. */
   char *v5;
   int v6; // edx
   float v8; // st7
@@ -3520,10 +3544,10 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
   v12 = a1[1];
   if ( v12 <= 0 )
     return 1;
-  i = (unsigned __int16 *)(dword_10067544 + 4 * *a1);
+  i = (unsigned __int16 *)(dbrushsides + 4 * *a1);
   for ( ; v3 < v12; ++v3, i += 2 )
   {
-    v5 = dword_100674F4 + 20 * *i;
+    v5 = dplanes + 20 * *i;
     v6 = *(_DWORD *)(v5 + 16);
     if ( v6 < 3 )
     {
@@ -3548,7 +3572,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 {
   int v4; // edi
   int v6; // ebp
-  /* v7: BSP node base (`dword_100674EC + 28 * leafnum`).  IDA's
+  /* v7: BSP node base (`dleafs + 28 * leafnum`).  IDA's
    * `int v7` truncates the heap pointer on aarch64. */
   char *v7;
   bsp_link_t *i; // ebp
@@ -3581,11 +3605,11 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   AnglesToAxis(v12, (float *)v13);
   sub_10003460(v11, v13);
   v6 = sub_10003360(v11, a2);
-  v7 = dword_100674EC + 28 * v6;
+  v7 = dleafs + 28 * v6;
   while ( v4 < *(unsigned __int16 *)(v7 + 26) )
   {
-    v10 = (_DWORD *)(dword_1006753C
-                   + 12 * *(unsigned __int16 *)(dword_1006752C + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
+    v10 = (_DWORD *)(dbrushes
+                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
     if ( sub_100056D0(v10, v11) )
       return v10[2];
     ++v4;
@@ -3645,8 +3669,8 @@ void __cdecl AAS_DecompressVis(int a1, int a2)
   if ( a1 != dword_10069564 )
   {
     out = &byte_10067564;
-    in = (char *)(dword_100674D0 + *(_DWORD *)(dword_100674D4 + 4 * (a2 + 2 * a1) + 4));
-    row = (*(int *)dword_100674D4 + 7) >> 3;
+    in = (char *)(dvisdata + *(_DWORD *)(dvis + 4 * (a2 + 2 * a1) + 4));
+    row = (*(int *)dvis + 7) >> 3;
     a2 = row;
     do
     {
@@ -3683,7 +3707,7 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 
   if ( !dword_100674C0 )
     return 1;
-  if ( !dword_100674CC )
+  if ( !visdatasize )
     return 1;
   if ( flt_1006956C == *a1 && flt_10069570 == a1[1] && flt_10069574 == a1[2] )
   {
@@ -3739,7 +3763,7 @@ int __cdecl sub_10005CC0(int a, int b)
  * objdump@0x10005CF0 (95 lines).  Three-phase node-flag propagation
  * over the cluster-routing matrix (dword_10067560, treated as int**:
  * a leading int[N] row-pointer table followed by N row buffers) and a
- * 1-D row vector (dword_1006755C, int[dword_10067550]).
+ * 1-D row vector (dword_1006755C, int[numareaportals]).
  *
  * Args (cdecl, 2 args):
  *   row_index (= ecx = [esp+4])   — index into the 1-D flag row
@@ -3747,10 +3771,10 @@ int __cdecl sub_10005CC0(int a, int b)
  *
  * Globals (already declared above; see sub_100032D0 at 0x100032D0 for
  * the allocator side):
- *   dword_10067548 = N (count, sub_100032D0 sizes the matrix as N*N)
- *   dword_10067550 = M (sub_100032D0 sizes the 1-D flag row as M)
- *   dword_1006754C = edge-pair table, stride 8: (count, first_index)
- *   dword_10067554 = edge-data  table, stride 8 (2nd dword = link idx)
+ *   numareas = N (count, sub_100032D0 sizes the matrix as N*N)
+ *   numareaportals = M (sub_100032D0 sizes the 1-D flag row as M)
+ *   dareas = edge-pair table, stride 8: (count, first_index)
+ *   dareaportals = edge-data  table, stride 8 (2nd dword = link idx)
  *   dword_1006755C = flag row, int[M]
  *   dword_10067560 = matrix, int**[N], rows are int[N]
  *
@@ -3805,13 +3829,13 @@ void __cdecl sub_10005CF0(int row_index, int value)
 
   flag_row   = (int *) dword_1006755C;
   matrix     = (int **)dword_10067560;
-  edge_pairs = (int *) dword_1006754C;
-  edge_data  = (int *) dword_10067554;
+  edge_pairs = (int *) dareas;
+  edge_data  = (int *) dareaportals;
 
   /* Phase A */
   flag_row[row_index] = value;
 
-  N = dword_10067548;
+  N = numareas;
   if (N <= 0)
     return;
 
@@ -3847,7 +3871,7 @@ void __cdecl sub_10005CF0(int row_index, int value)
           matrix[0][i] = 1;
         }
         eax++;
-        /* the original .text reloads N here from dword_10067548 — same
+        /* the original .text reloads N here from numareas — same
          * value, so this never frees us from the loop. */
         break;                              /* restoration-only: prevent
                                              * actual infinite loop at run
@@ -3864,7 +3888,7 @@ void __cdecl sub_10005CF0(int row_index, int value)
  * the rotation work done locally instead of delegating to a botimport callback.
  *
  * Each Q2 dmodel_t entry is 48 bytes: mins[3], maxs[3], origin[3], headnode,
- * firstface, numfaces.  `dword_100674C8` is the model array, `dword_100674C4`
+ * firstface, numfaces.  `dmodels` is the model array, `nummodels`
  * the count, `dword_100674C0` the loaded flag. */
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
@@ -3877,9 +3901,9 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
 
   if ( !dword_100674C0 )
     return 0;
-  if ( modelnum < 0 || modelnum >= dword_100674C4 )
+  if ( modelnum < 0 || modelnum >= nummodels )
   {
-    botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, dword_100674C4);
+    botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, nummodels);
     if ( mins )   { mins[0]   = 0; mins[1]   = 0; mins[2]   = 0; }
     if ( maxs )   { maxs[0]   = 0; maxs[1]   = 0; maxs[2]   = 0; }
     if ( origin ) { origin[0] = 0; origin[1] = 0; origin[2] = 0; }
@@ -3887,12 +3911,12 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
   }
 
   model_offset = 48 * modelnum;
-  local_mins[0] = *(float *)(model_offset + dword_100674C8 +  0);
-  local_mins[1] = *(float *)(model_offset + dword_100674C8 +  4);
-  local_mins[2] = *(float *)(model_offset + dword_100674C8 +  8);
-  local_maxs[0] = *(float *)(model_offset + dword_100674C8 + 12);
-  local_maxs[1] = *(float *)(model_offset + dword_100674C8 + 16);
-  local_maxs[2] = *(float *)(model_offset + dword_100674C8 + 20);
+  local_mins[0] = *(float *)(model_offset + dmodels +  0);
+  local_mins[1] = *(float *)(model_offset + dmodels +  4);
+  local_mins[2] = *(float *)(model_offset + dmodels +  8);
+  local_maxs[0] = *(float *)(model_offset + dmodels + 12);
+  local_maxs[1] = *(float *)(model_offset + dmodels + 16);
+  local_maxs[2] = *(float *)(model_offset + dmodels + 20);
 
   AnglesToAxis(angles, (float *)axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
@@ -3914,9 +3938,9 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
   if ( maxs ) { VectorCopy(bb_maxs, maxs); }
   if ( origin )
   {
-    origin[0] = *(float *)(model_offset + dword_100674C8 + 24);
-    origin[1] = *(float *)(model_offset + dword_100674C8 + 28);
-    origin[2] = *(float *)(model_offset + dword_100674C8 + 32);
+    origin[0] = *(float *)(model_offset + dmodels + 24);
+    origin[1] = *(float *)(model_offset + dmodels + 28);
+    origin[2] = *(float *)(model_offset + dmodels + 32);
   }
   return (int)origin;
 }
@@ -4008,7 +4032,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     return 0;
   link = 0;
   v6 = &v15[1];
-  v15[0] = *(_DWORD *)(48 * modelnum + dword_100674C8 + 36);
+  v15[0] = *(_DWORD *)(48 * modelnum + dmodels + 36);
   /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
    * un-rotated top-test loop.  Because v6 starts at &v15[1], MSVC6 can
    * prove the first --v6>=&v15[0] always holds and removes the entry
@@ -4043,8 +4067,8 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     }
     else
     {
-      v11 = (_DWORD *)(dword_10067504 + 28 * nodenum);
-      plane = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
+      v11 = (_DWORD *)(dnodes + 28 * nodenum);
+      plane = (aas_plane_t *)(dplanes + 20 * *v11);
       v13 = plane->type;
       if ( v13 < 3 )
       {
@@ -4108,7 +4132,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
  *             * solid == 3 (SOLID_BSP movable brush): re-call
  *               AAS_BSPLinkEntity(mins, maxs, 0, ent->entnum) to get
  *               THIS entity's own leaf chain, then scan it for any
- *               leaf whose word @ dword_100674EC[leafnum*28 + 26]
+ *               leaf whose word @ dleafs[leafnum*28 + 26]
  *               is non-zero (= "this leaf carries an AAS area
  *               marker"); if found, add the entnum.  Always
  *               AAS_UnlinkFromBSPLeaves(temp) before continuing.
@@ -4186,7 +4210,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entnum);
             if (brush_links) {
               for (brush_iter = brush_links; brush_iter; brush_iter = (bsp_link_t *)*(int *)((char *)brush_iter + 0x10)) {
-                if (*(unsigned short *)(dword_100674EC + brush_iter->leafnum * 28 + 26)) {
+                if (*(unsigned short *)(dleafs + brush_iter->leafnum * 28 + 26)) {
                   *out++ = entnum;
                   count++;
                   break;
@@ -4352,7 +4376,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   bsp_entity_t *ent; // [esp+10h]
   bsp_epair_t *epair; // ebx
 
-  script = LoadScriptMemory(dword_100674E4, dword_100674E0, "entdata");
+  script = LoadScriptMemory(dentdata, entdatasize, "entdata");
   SetScriptFlags(script, 12);
   entities = 0;
   while ( PS_ReadToken(script, token.string) )
@@ -4452,10 +4476,10 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
 
   if ( a1 < 0 )
     return 0;
-  v6 = dword_10067504 + 28 * a1;
+  v6 = dnodes + 28 * a1;
   v40 = v6;
-  v7 = *(_DWORD *)(dword_100674F4 + 20 * *(_DWORD *)v6 + 16);
-  v8 = (float *)(dword_100674F4 + 20 * *(_DWORD *)v6);
+  v7 = *(_DWORD *)(dplanes + 20 * *(_DWORD *)v6 + 16);
+  v8 = (float *)(dplanes + 20 * *(_DWORD *)v6);
   v9 = a3;
   if ( v7 >= 3 )
   {
@@ -4488,13 +4512,13 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v14 = *(_WORD *)(v6 + 24);
   v39 = 0;
   v15 = *(unsigned __int16 *)(v6 + 26);
-  v45 = dword_10067514 + 20 * v14;
+  v45 = dfaces + 20 * v14;
   v16 = (__int16 *)(dword_10067558 + 8 * v14);
   if ( !(_WORD)v15 )
     return sub_10006D10(*(_DWORD *)(v6 + 4 * (v44 == 0) + 4), mid, v9, a4, a5);
   while ( 1 )
   {
-    v17 = (float *)(dword_1006750C + 76 * *(__int16 *)(v45 + 10));
+    v17 = (float *)(texinfo + 76 * *(__int16 *)(v45 + 10));
     v18 = (__int64)(mid[2] * v17[2] + mid[1] * v17[1] + mid[0] * *v17 + v17[3]);
     v19 = (__int64)(mid[2] * v17[6] + mid[1] * v17[5] + mid[0] * v17[4] + v17[7]);
     v20 = *v16;
@@ -4527,7 +4551,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v29 = (v16[2] >> 4) + 1;
     v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
     v32 = 0;
-    v33 = (unsigned __int8 *)(dword_100674DC + v31);
+    v33 = (unsigned __int8 *)(dlightdata + v31);
     v34 = 0;
     for ( i = 0; i < 4; ++i )
     {
@@ -4585,7 +4609,7 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
    * sub_10006D10 signature. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  if ( !dword_100674C0 || !dword_100674DC || !sub_10006D10(*(_DWORD *)(dword_100674C8 + 36), (float *)start, (float *)end, (float *)endpos, v7) )
+  if ( !dword_100674C0 || !dlightdata || !sub_10006D10(*(_DWORD *)(dmodels + 36), (float *)start, (float *)end, (float *)endpos, v7) )
     return 0;
   *red = v7[0];
   *green = v7[1];
@@ -4624,10 +4648,10 @@ int sub_100071E0()
 
   if ( dword_10067558 )
     FreeMemory(dword_10067558);
-  dword_10067558 = GetClearedMemory(8 * dword_10067510);
-  result = dword_10067510;
+  dword_10067558 = GetClearedMemory(8 * numfaces);
+  result = numfaces;
   v21 = 0;
-  if ( dword_10067510 > 0 )
+  if ( numfaces > 0 )
   {
     v1 = 0;
     v19 = 4;
@@ -4636,15 +4660,15 @@ int sub_100071E0()
       v23[1] = 1203982208;
       v23[0] = 1203982208;
       v24[1] = -943501440;
-      v2 = *(__int16 *)(v1 + dword_10067514 + 10);
+      v2 = *(__int16 *)(v1 + dfaces + 10);
       v24[0] = -943501440;
-      v22 = dword_1006750C + 76 * v2;
-      if ( *(__int16 *)(v1 + dword_10067514 + 8) > 0 )
+      v22 = texinfo + 76 * v2;
+      if ( *(__int16 *)(v1 + dfaces + 8) > 0 )
       {
-        v3 = dword_1006751C;
-        v4 = dword_100674FC;
-        v5 = (int *)(dword_10067534 + 4 * *(_DWORD *)(v1 + dword_10067514 + 4));
-        v20 = *(__int16 *)(v1 + dword_10067514 + 8);
+        v3 = dedges;
+        v4 = dvertexes;
+        v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(v1 + dfaces + 4));
+        v20 = *(__int16 *)(v1 + dfaces + 8);
         do
         {
           v6 = *v5;
@@ -4685,7 +4709,7 @@ int sub_100071E0()
         *(_WORD *)(v11 + v16 - 6) = 16 * v15;
       }
       result = v21 + 1;
-      v17 = ++v21 < dword_10067510;
+      v17 = ++v21 < numfaces;
       i += 20;
       v19 += 8;
       if ( !v17 )
@@ -4741,11 +4765,11 @@ int sub_10007460(void)
   int a1; // [esp+10h] dead HIWORD scratch (IDA mislabeled stack slot, never read)
 
   v1 = 0;
-  for ( i = 0; i < dword_10067508; ++i )
+  for ( i = 0; i < numtexinfo; ++i )
   {
     v2 = 8;
-    v3 = dword_1006750C + v1;
-    v4 = (_DWORD *)(dword_1006750C + v1);
+    v3 = texinfo + v1;
+    v4 = (_DWORD *)(texinfo + v1);
     do
     {
       *(float *)v4 = LittleFloat(*(float *)v4);
@@ -4756,36 +4780,36 @@ int sub_10007460(void)
     *(_DWORD *)(v3 + 32) = LittleLong(*(int *)(v3 + 32));
     *(_DWORD *)(v3 + 36) = LittleLong(*(int *)(v3 + 36));
     *(_DWORD *)(v3 + 72) = LittleLong(*(int *)(v3 + 72));
-    HIWORD(a1) = HIWORD(dword_10067508);
+    HIWORD(a1) = HIWORD(numtexinfo);
     v1 += 76;
   }
-  v9 = dword_100674D4;
+  v9 = dvis;
   v10 = 0;
   v11 = 0;
-  if ( dword_100674D4 )
+  if ( dvis )
   {
-    *(_DWORD *)dword_100674D4 = LittleLong(*(int *)dword_100674D4);
-    v9 = dword_100674D4;
-    v11 = *(_DWORD *)dword_100674D4;
+    *(_DWORD *)dvis = LittleLong(*(int *)dvis);
+    v9 = dvis;
+    v11 = *(_DWORD *)dvis;
   }
   v13 = 0;
   if ( v11 > 0 )
   {
     while ( 1 )
     {
-      *(_DWORD *)(dword_100674D4 + 8 * v13 + 4) = LittleLong(*(int *)(dword_100674D4 + 8 * v13 + 4));
-      *(_DWORD *)(dword_100674D4 + 8 * v13 + 8) = LittleLong(*(int *)(dword_100674D4 + 8 * v13 + 8));
+      *(_DWORD *)(dvis + 8 * v13 + 4) = LittleLong(*(int *)(dvis + 8 * v13 + 4));
+      *(_DWORD *)(dvis + 8 * v13 + 8) = LittleLong(*(int *)(dvis + 8 * v13 + 8));
       ++v13;
       if ( v13 >= v11 )
         break;
-      v9 = dword_100674D4;
+      v9 = dvis;
     }
   }
-  for ( j = 0; j < dword_100674F0; ++j )
+  for ( j = 0; j < numplanes; ++j )
   {
     v16 = 3;
-    v17 = dword_100674F4 + v10;
-    v18 = (_DWORD *)(dword_100674F4 + v10);
+    v17 = dplanes + v10;
+    v18 = (_DWORD *)(dplanes + v10);
     do
     {
       *(float *)v18 = LittleFloat(*(float *)v18);
@@ -4795,13 +4819,13 @@ int sub_10007460(void)
     while ( v16 );
     *(float *)(v17 + 12) = LittleFloat(*(float *)(v17 + 12));
     *(_DWORD *)(v17 + 16) = LittleLong(*(int *)(v17 + 16));
-    HIWORD(a1) = HIWORD(dword_100674F0);
+    HIWORD(a1) = HIWORD(numplanes);
     v10 += 20;
   }
   v22 = 0;
-  for ( k = 0; k < dword_10067500; ++k )
+  for ( k = 0; k < numnodes; ++k )
   {
-    v23 = dword_10067504 + v22;
+    v23 = dnodes + v22;
     *(_DWORD *)v23 = LittleLong(*(int *)v23);
     *(_DWORD *)(v23 + 4) = LittleLong(*(int *)(v23 + 4));
     *(_DWORD *)(v23 + 8) = LittleLong(*(int *)(v23 + 8));
@@ -4817,13 +4841,13 @@ int sub_10007460(void)
     while ( v30 );
     *(_WORD *)(v23 + 24) = LittleShort(*(_WORD *)(v23 + 24));
     *(_WORD *)(v23 + 26) = LittleShort(*(_WORD *)(v23 + 26));
-    HIWORD(a1) = HIWORD(dword_10067500);
+    HIWORD(a1) = HIWORD(numnodes);
     v22 += 28;
   }
   v37 = 0;
-  for ( m = 0; m < dword_100674E8; ++m )
+  for ( m = 0; m < numleafs; ++m )
   {
-    v38 = dword_100674EC + v37;
+    v38 = dleafs + v37;
     *(_DWORD *)v38 = LittleLong(*(int *)v38);
     *(_WORD *)(v38 + 4) = LittleShort(*(_WORD *)(v38 + 4));
     *(_WORD *)(v38 + 6) = LittleShort(*(_WORD *)(v38 + 6));
@@ -4841,14 +4865,14 @@ int sub_10007460(void)
     *(_WORD *)(v38 + 22) = LittleShort(*(_WORD *)(v38 + 22));
     *(_WORD *)(v38 + 24) = LittleShort(*(_WORD *)(v38 + 24));
     *(_WORD *)(v38 + 26) = LittleShort(*(_WORD *)(v38 + 26));
-    HIWORD(a1) = HIWORD(dword_100674E8);
+    HIWORD(a1) = HIWORD(numleafs);
     v37 += 28;
   }
-  for ( n = 0; n < dword_10067528; ++n )
+  for ( n = 0; n < numleafbrushes; ++n )
   {
-    *(_WORD *)(dword_1006752C + 2 * n) = LittleShort(*(_WORD *)(dword_1006752C + 2 * n));
+    *(_WORD *)(dleafbrushes + 2 * n) = LittleShort(*(_WORD *)(dleafbrushes + 2 * n));
   }
-  for ( ii = 0; ii < dword_10067540; ++ii )
+  for ( ii = 0; ii < numbrushsides; ++ii )
   {
     /* Original disasm (10007745..10007777):
      *   mov   cx, [brushsides + 4*ii]      ; planenum
@@ -4868,31 +4892,31 @@ int sub_10007460(void)
      * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
      * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
      * the LittleShort round-trip (identity on little-endian). */
-    *(_WORD *)(dword_10067544 + 4 * ii) = LittleShort(*(_WORD *)(dword_10067544 + 4 * ii));
-    *(_WORD *)(dword_10067544 + 4 * ii + 2) = LittleShort(*(_WORD *)(dword_10067544 + 4 * ii + 2));
+    *(_WORD *)(dbrushsides + 4 * ii) = LittleShort(*(_WORD *)(dbrushsides + 4 * ii));
+    *(_WORD *)(dbrushsides + 4 * ii + 2) = LittleShort(*(_WORD *)(dbrushsides + 4 * ii + 2));
   }
   v62 = 0;
-  if ( dword_10067538 > 0 )
+  if ( numbrushes > 0 )
   {
     v63 = 0;
     do
     {
-      *(_DWORD *)(v63 + dword_1006753C) = LittleLong(*(int *)(v63 + dword_1006753C));
-      *(_DWORD *)(v63 + dword_1006753C + 4) = LittleLong(*(int *)(v63 + dword_1006753C + 4));
+      *(_DWORD *)(v63 + dbrushes) = LittleLong(*(int *)(v63 + dbrushes));
+      *(_DWORD *)(v63 + dbrushes + 4) = LittleLong(*(int *)(v63 + dbrushes + 4));
       ++v62;
-      *(_DWORD *)(v63 + dword_1006753C + 8) = LittleLong(*(int *)(v63 + dword_1006753C + 8));
+      *(_DWORD *)(v63 + dbrushes + 8) = LittleLong(*(int *)(v63 + dbrushes + 8));
       v63 += 12;
     }
-    while ( v62 < dword_10067538 );
+    while ( v62 < numbrushes );
   }
-  result = dword_100674C4;
+  result = nummodels;
   v68 = 0;
-  if ( dword_100674C4 > 0 )
+  if ( nummodels > 0 )
   {
     v69 = 0;
     do
     {
-      v70 = dword_100674C8 + v69;
+      v70 = dmodels + v69;
       *(_DWORD *)(v70 + 40) = LittleLong(*(int *)(v70 + 40));
       *(_DWORD *)(v70 + 44) = LittleLong(*(int *)(v70 + 44));
       *(_DWORD *)(v70 + 36) = LittleLong(*(int *)(v70 + 36));
@@ -4907,11 +4931,11 @@ int sub_10007460(void)
         --v76;
       }
       while ( v76 );
-      result = dword_100674C4;
+      result = nummodels;
       ++v68;
       v69 += 48;
     }
-    while ( v68 < dword_100674C4 );
+    while ( v68 < nummodels );
   }
   return result;
 }
@@ -4924,80 +4948,80 @@ int AAS_DumpBSPData()
 {
   int result; // eax
 
-  dword_100674C4 = 0;
-  if ( dword_100674C8 )
-    FreeMemory(dword_100674C8);
-  dword_100674C8 = 0;
-  dword_100674CC = 0;
-  if ( dword_100674D0 )
-    FreeMemory(dword_100674D0);
-  dword_100674D0 = 0;
-  dword_100674D4 = 0;
-  dword_100674D8 = 0;
-  if ( dword_100674DC )
-    FreeMemory(dword_100674DC);
-  dword_100674DC = 0;
-  dword_100674E0 = 0;
-  if ( dword_100674E4 )
-    FreeMemory(dword_100674E4);
-  dword_100674E4 = 0;
-  dword_100674E8 = 0;
-  if ( dword_100674EC )
-    FreeMemory(dword_100674EC);
-  dword_100674EC = 0;
-  dword_100674F0 = 0;
-  if ( dword_100674F4 )
-    FreeMemory(dword_100674F4);
-  dword_100674F4 = 0;
-  dword_100674F8 = 0;
-  if ( dword_100674FC )
-    FreeMemory(dword_100674FC);
-  dword_100674FC = 0;
-  dword_10067500 = 0;
-  if ( dword_10067504 )
-    FreeMemory(dword_10067504);
-  dword_10067504 = 0;
-  dword_10067508 = 0;
-  if ( dword_1006750C )
-    FreeMemory(dword_1006750C);
-  dword_1006750C = 0;
-  dword_10067510 = 0;
-  if ( dword_10067514 )
-    FreeMemory(dword_10067514);
-  dword_10067514 = 0;
-  dword_10067518 = 0;
-  if ( dword_1006751C )
-    FreeMemory(dword_1006751C);
-  dword_1006751C = 0;
-  dword_10067520 = 0;
-  if ( dword_10067524 )
-    FreeMemory(dword_10067524);
-  dword_10067524 = 0;
-  dword_10067528 = 0;
-  if ( dword_1006752C )
-    FreeMemory(dword_1006752C);
-  dword_1006752C = 0;
-  dword_10067530 = 0;
-  if ( dword_10067534 )
-    FreeMemory(dword_10067534);
-  dword_10067534 = 0;
-  dword_10067538 = 0;
-  if ( dword_1006753C )
-    FreeMemory(dword_1006753C);
-  dword_1006753C = 0;
-  dword_10067540 = 0;
-  if ( dword_10067544 )
-    FreeMemory(dword_10067544);
-  dword_10067544 = 0;
-  dword_10067548 = 0;
-  if ( dword_1006754C )
-    FreeMemory(dword_1006754C);
-  result = dword_10067554;
-  dword_1006754C = 0;
-  dword_10067550 = 0;
-  if ( dword_10067554 )
-    result = FreeMemory(dword_10067554);
-  dword_10067554 = 0;
+  nummodels = 0;
+  if ( dmodels )
+    FreeMemory(dmodels);
+  dmodels = 0;
+  visdatasize = 0;
+  if ( dvisdata )
+    FreeMemory(dvisdata);
+  dvisdata = 0;
+  dvis = 0;
+  lightdatasize = 0;
+  if ( dlightdata )
+    FreeMemory(dlightdata);
+  dlightdata = 0;
+  entdatasize = 0;
+  if ( dentdata )
+    FreeMemory(dentdata);
+  dentdata = 0;
+  numleafs = 0;
+  if ( dleafs )
+    FreeMemory(dleafs);
+  dleafs = 0;
+  numplanes = 0;
+  if ( dplanes )
+    FreeMemory(dplanes);
+  dplanes = 0;
+  numvertexes = 0;
+  if ( dvertexes )
+    FreeMemory(dvertexes);
+  dvertexes = 0;
+  numnodes = 0;
+  if ( dnodes )
+    FreeMemory(dnodes);
+  dnodes = 0;
+  numtexinfo = 0;
+  if ( texinfo )
+    FreeMemory(texinfo);
+  texinfo = 0;
+  numfaces = 0;
+  if ( dfaces )
+    FreeMemory(dfaces);
+  dfaces = 0;
+  numedges = 0;
+  if ( dedges )
+    FreeMemory(dedges);
+  dedges = 0;
+  numleaffaces = 0;
+  if ( dleaffaces )
+    FreeMemory(dleaffaces);
+  dleaffaces = 0;
+  numleafbrushes = 0;
+  if ( dleafbrushes )
+    FreeMemory(dleafbrushes);
+  dleafbrushes = 0;
+  numsurfedges = 0;
+  if ( dsurfedges )
+    FreeMemory(dsurfedges);
+  dsurfedges = 0;
+  numbrushes = 0;
+  if ( dbrushes )
+    FreeMemory(dbrushes);
+  dbrushes = 0;
+  numbrushsides = 0;
+  if ( dbrushsides )
+    FreeMemory(dbrushsides);
+  dbrushsides = 0;
+  numareas = 0;
+  if ( dareas )
+    FreeMemory(dareas);
+  result = dareaportals;
+  dareas = 0;
+  numareaportals = 0;
+  if ( dareaportals )
+    result = FreeMemory(dareaportals);
+  dareaportals = 0;
   dword_100674C0 = 0;
   return result;
 }
@@ -5145,26 +5169,26 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v9 = Offset + v8;
   v10 = (size_t)LittleLong(bsp_h.lumps[0].filelen);
   v11 = v10;
-  dword_100674E4 = sub_10007C40(v4, v9, v10, 1, "entity");
-  if ( !dword_100674E4 )
+  dentdata = sub_10007C40(v4, v9, v10, 1, "entity");
+  if ( !dentdata )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_100674E0 = v11;
+  entdatasize = v11;
   v12 = LittleLong(bsp_h.lumps[1].fileofs);
   v13 = Offset + v12;
   v14 = (size_t)LittleLong(bsp_h.lumps[1].filelen);
   v15 = v14;
-  dword_100674F4 = sub_10007C40(v4, v13, v14, 20, "planes");
-  if ( !dword_100674F4 )
+  dplanes = sub_10007C40(v4, v13, v14, 20, "planes");
+  if ( !dplanes )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_100674F0 = v15 / 0x14;
+  numplanes = v15 / 0x14;
   v16 = LittleLong(bsp_h.lumps[2].fileofs);
   v17 = Offset + v16;
   v18 = (size_t)LittleLong(bsp_h.lumps[2].filelen);
   v19 = v18;
-  dword_100674FC = sub_10007C40(v4, v17, v18, 12, "vertexes");
-  if ( !dword_100674FC )
+  dvertexes = sub_10007C40(v4, v17, v18, 12, "vertexes");
+  if ( !dvertexes )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_100674F8 = v19 / 0xC;
+  numvertexes = v19 / 0xC;
   v20 = LittleLong(bsp_h.lumps[3].fileofs);
   v21 = Offset + v20;
   v22 = (size_t)LittleLong(bsp_h.lumps[3].filelen);
@@ -5172,122 +5196,122 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   if ( v22 )
   {
     v24 = sub_10007C40(v4, v21, v22, 1, "visibility");
-    dword_100674D0 = v24;
+    dvisdata = v24;
     if ( !v24 )
       return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
-    dword_100674D0 = 0;
+    dvisdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNGING: bsp has no visibility data\n");
-    v24 = dword_100674D0;
+    v24 = dvisdata;
   }
-  dword_100674CC = v23;
-  dword_100674D4 = v24;
+  visdatasize = v23;
+  dvis = v24;
   v25 = LittleLong(bsp_h.lumps[4].fileofs);
   v26 = Offset + v25;
   v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
   v28 = v27;
-  dword_10067504 = sub_10007C40(v4, v26, v27, 28, "nodes");
-  if ( !dword_10067504 )
+  dnodes = sub_10007C40(v4, v26, v27, 28, "nodes");
+  if ( !dnodes )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067500 = v28 / 0x1C;
+  numnodes = v28 / 0x1C;
   v29 = LittleLong(bsp_h.lumps[5].fileofs);
   v30 = Offset + v29;
   v31 = (size_t)LittleLong(bsp_h.lumps[5].filelen);
   v32 = v31;
-  dword_1006750C = sub_10007C40(v4, v30, v31, 76, "texinfo");
-  if ( !dword_1006750C )
+  texinfo = sub_10007C40(v4, v30, v31, 76, "texinfo");
+  if ( !texinfo )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067508 = v32 / 0x4C;
+  numtexinfo = v32 / 0x4C;
   v33 = LittleLong(bsp_h.lumps[6].fileofs);
   v34 = Offset + v33;
   v35 = (size_t)LittleLong(bsp_h.lumps[6].filelen);
   v36 = v35;
-  dword_10067514 = sub_10007C40(v4, v34, v35, 20, "faces");
-  if ( !dword_10067514 )
+  dfaces = sub_10007C40(v4, v34, v35, 20, "faces");
+  if ( !dfaces )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067510 = v36 / 0x14;
+  numfaces = v36 / 0x14;
   v37 = LittleLong(bsp_h.lumps[7].fileofs);
   v38 = Offset + v37;
   v39 = (size_t)LittleLong(bsp_h.lumps[7].filelen);
   v40 = v39;
   if ( v39 )
   {
-    dword_100674DC = sub_10007C40(v4, v38, v39, 1, "lightning");
-    if ( !dword_100674DC )
+    dlightdata = sub_10007C40(v4, v38, v39, 1, "lightning");
+    if ( !dlightdata )
       return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
-    dword_100674DC = 0;
+    dlightdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNING: bsp has no light data\n");
   }
-  dword_100674D8 = v40;
+  lightdatasize = v40;
   v41 = LittleLong(bsp_h.lumps[8].fileofs);
   v42 = Offset + v41;
   v43 = (size_t)LittleLong(bsp_h.lumps[8].filelen);
   v44 = v43;
-  dword_100674EC = sub_10007C40(v4, v42, v43, 28, "leafs");
-  if ( !dword_100674EC )
+  dleafs = sub_10007C40(v4, v42, v43, 28, "leafs");
+  if ( !dleafs )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_100674E8 = v44 / 0x1C;
+  numleafs = v44 / 0x1C;
   v45 = LittleLong(bsp_h.lumps[9].fileofs);
   v46 = Offset + v45;
   v47 = (size_t)LittleLong(bsp_h.lumps[9].filelen);
   v48 = v47;
-  dword_10067524 = sub_10007C40(v4, v46, v47, 2, "leaf faces");
-  if ( !dword_10067524 )
+  dleaffaces = sub_10007C40(v4, v46, v47, 2, "leaf faces");
+  if ( !dleaffaces )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067520 = v48 >> 1;
+  numleaffaces = v48 >> 1;
   v49 = LittleLong(bsp_h.lumps[10].fileofs);
   v50 = Offset + v49;
   v51 = (size_t)LittleLong(bsp_h.lumps[10].filelen);
   v52 = v51;
-  dword_1006752C = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
-  if ( !dword_1006752C )
+  dleafbrushes = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
+  if ( !dleafbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067528 = v52 >> 1;
+  numleafbrushes = v52 >> 1;
   v53 = LittleLong(bsp_h.lumps[11].fileofs);
   v54 = Offset + v53;
   v55 = (size_t)LittleLong(bsp_h.lumps[11].filelen);
   v56 = v55;
-  dword_1006751C = sub_10007C40(v4, v54, v55, 4, "edges");
-  if ( !dword_1006751C )
+  dedges = sub_10007C40(v4, v54, v55, 4, "edges");
+  if ( !dedges )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067518 = v56 >> 2;
+  numedges = v56 >> 2;
   v57 = LittleLong(bsp_h.lumps[12].fileofs);
   v58 = Offset + v57;
   v59 = (size_t)LittleLong(bsp_h.lumps[12].filelen);
   v60 = v59;
-  dword_10067534 = sub_10007C40(v4, v58, v59, 4, "surfedges");
-  if ( !dword_10067534 )
+  dsurfedges = sub_10007C40(v4, v58, v59, 4, "surfedges");
+  if ( !dsurfedges )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067530 = v60 >> 2;
+  numsurfedges = v60 >> 2;
   v61 = LittleLong(bsp_h.lumps[13].fileofs);
   v62 = Offset + v61;
   v63 = (size_t)LittleLong(bsp_h.lumps[13].filelen);
   v64 = v63;
-  dword_100674C8 = sub_10007C40(v4, v62, v63, 48, "models");
-  if ( !dword_100674C8 )
+  dmodels = sub_10007C40(v4, v62, v63, 48, "models");
+  if ( !dmodels )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_100674C4 = v64 / 0x30;
+  nummodels = v64 / 0x30;
   v65 = LittleLong(bsp_h.lumps[14].fileofs);
   v66 = Offset + v65;
   v67 = (size_t)LittleLong(bsp_h.lumps[14].filelen);
   v68 = v67;
-  dword_1006753C = sub_10007C40(v4, v66, v67, 12, "brushes");
-  if ( !dword_1006753C )
+  dbrushes = sub_10007C40(v4, v66, v67, 12, "brushes");
+  if ( !dbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067538 = v68 / 0xC;
+  numbrushes = v68 / 0xC;
   v69 = LittleLong(bsp_h.lumps[15].fileofs);
   v70 = Offset + v69;
   v71 = (size_t)LittleLong(bsp_h.lumps[15].filelen);
   v72 = v71;
-  dword_10067544 = sub_10007C40(v4, v70, v71, 4, "brush sides");
-  if ( !dword_10067544 )
+  dbrushsides = sub_10007C40(v4, v70, v71, 4, "brush sides");
+  if ( !dbrushsides )
     return BLERR_CANNOTREADBSPLUMP;
-  dword_10067540 = v72 >> 2;
+  numbrushsides = v72 >> 2;
   sub_10007460();
   dword_100674C0 = 1;
   fclose(v4);
@@ -5301,7 +5325,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
 //----- (100085F0) --------------------------------------------------------
 int sub_100085F0()
 {
-  return sub_10037850(aasworld.mapname, dword_100674E4, dword_100674E0);
+  return sub_10037850(aasworld.mapname, dentdata, entdatasize);
 }
 
 //----- (10008620) --------------------------------------------------------
@@ -6062,11 +6086,11 @@ int AAS_ClearShownDebugLines()
 
   for ( i = 0; i < 256; ++i )
   {
-    result = dword_100670C0[i];
+    result = debuglines[i];
     if ( result )
     {
       result = botimport.DebugLineShow(result, 0, 0, -1);
-      dword_10066CC0[i] = 0;
+      debuglinevisible[i] = 0;
     }
   }
   return result;
@@ -6082,21 +6106,21 @@ int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
   line = 0;
   while ( 1 )
   {
-    if ( !dword_100670C0[line] )
+    if ( !debuglines[line] )
     {
-      dword_100670C0[line] = botimport.DebugLineCreate();
-      v4 = dword_10066B14 + 1;
-      dword_10066CC0[line] = 0;
-      dword_10066B14 = v4;
+      debuglines[line] = botimport.DebugLineCreate();
+      v4 = numdebuglines + 1;
+      debuglinevisible[line] = 0;
+      numdebuglines = v4;
     }
-    result = dword_10066CC0[line];
+    result = debuglinevisible[line];
     if ( !result )
       break;
     if ( ++line >= 256 )
       return result;
   }
-  result = botimport.DebugLineShow(dword_100670C0[line], start, end, color);
-  dword_10066CC0[line] = 1;
+  result = botimport.DebugLineShow(debuglines[line], start, end, color);
+  debuglinevisible[line] = 1;
   return result;
 }
 
@@ -6131,7 +6155,7 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
  * equation `dot(n, p) = d` for the chosen axis to project the corner
  * onto the plane.  Draws an X (the two diagonals of the projected
  * square) via bi_DebugLineShow using two line-IDs allocated from the
- * shared dword_100670C0/dword_10066CC0/dword_10066B14 slot table (same
+ * shared debuglines/debuglinevisible/numdebuglines slot table (same
  * pattern as AAS_ShowBoundingBox).
  *
  *   arg0 = vec3 origin point (read 4 times into copies A/B/C/D)
@@ -6180,17 +6204,17 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
   found = 0;
   for ( i = 0; i < 256 && found < 2; i++ )
   {
-    if ( !dword_100670C0[i] )
+    if ( !debuglines[i] )
     {
-      dword_100670C0[i] = botimport.DebugLineCreate();
-      line_id[found++] = dword_100670C0[i];
-      dword_10066B14++;
-      dword_10066CC0[i] = 1;
+      debuglines[i] = botimport.DebugLineCreate();
+      line_id[found++] = debuglines[i];
+      numdebuglines++;
+      debuglinevisible[i] = 1;
     }
-    else if ( !dword_10066CC0[i] )
+    else if ( !debuglinevisible[i] )
     {
-      line_id[found++] = dword_100670C0[i];
-      dword_10066CC0[i] = 1;
+      line_id[found++] = debuglines[i];
+      debuglinevisible[i] = 1;
     }
   }
 
@@ -6208,7 +6232,7 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
  * so the param order here is kept as decompiled to stay byte-faithful.
  * Draws an AABB at origin with
  * mins/maxs offsets as a wireframe cube of color 0xF2F2F0F0 using the
- * shared dword_100670C0 line-ID slot table — but only retains THREE
+ * shared debuglines line-ID slot table — but only retains THREE
  * line IDs across all 12 edges, so the bottom-quad / top-quad /
  * vertical edges visible at any moment cycle through which 3 of the
  * 12 are present.  Almost certainly a development-time visualization
@@ -6241,10 +6265,10 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
  *     3 line IDs cycled (each ID's last assignment wins on screen).
  *
  * Line-ID allocation (front of function) inlines a private copy of
- * AAS_DebugLine's slot scan: it walks dword_100670C0[0..255] looking
+ * AAS_DebugLine's slot scan: it walks debuglines[0..255] looking
  * for either an empty slot (calls bi_DebugLineCreate, bumps
- * dword_10066B14 free counter) or an existing-but-unused slot,
- * markes it in-use via dword_10066CC0[slot] = 1, and stashes 3 IDs
+ * numdebuglines free counter) or an existing-but-unused slot,
+ * markes it in-use via debuglinevisible[slot] = 1, and stashes 3 IDs
  * into a local int[3].
  *
  * NOTE: The .text writes the outer-loop counter `i` to scratch slot
@@ -6254,9 +6278,9 @@ static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axi
  *
  * Thunks: ds:0x10063FFC = bi_DebugLineCreate
  *         ds:0x10064004 = bi_DebugLineShow
- * Globals: dword_100670C0[256] = line-ID slot table
- *          dword_10066CC0[256] = per-slot in-use flag
- *          dword_10066B14      = free counter
+ * Globals: debuglines[256] = line-ID slot table
+ *          debuglinevisible[256] = per-slot in-use flag
+ *          numdebuglines      = free counter
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
 void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
@@ -6284,17 +6308,17 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
   {
     for ( j = 0, line = 0; j < 3 && line < 256; line++ )
     {
-      if ( !dword_100670C0[line] )
+      if ( !debuglines[line] )
       {
-        dword_100670C0[line] = botimport.DebugLineCreate();
-        lines[j++] = dword_100670C0[line];
-        dword_10066CC0[line] = 1;
-        dword_10066B14++;
+        debuglines[line] = botimport.DebugLineCreate();
+        lines[j++] = debuglines[line];
+        debuglinevisible[line] = 1;
+        numdebuglines++;
       }
-      else if ( !dword_10066CC0[line] )
+      else if ( !debuglinevisible[line] )
       {
-        lines[j++] = dword_100670C0[line];
-        dword_10066CC0[line] = 1;
+        lines[j++] = debuglines[line];
+        debuglinevisible[line] = 1;
       }
     }
     botimport.DebugLineShow(lines[0], bboxcorners[i], bboxcorners[(i + 1) & 3], 0xF2F2F0F0);
@@ -6417,13 +6441,13 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
   {
     for ( line = 0; line < 256; line++ )
     {
-      if ( !dword_100670C0[line] )
+      if ( !debuglines[line] )
       {
-        dword_100670C0[line] = botimport.DebugLineCreate();
-        dword_10066CC0[line] = 0;
-        dword_10066B14++;
+        debuglines[line] = botimport.DebugLineCreate();
+        debuglinevisible[line] = 0;
+        numdebuglines++;
       }
-      if ( !dword_10066CC0[line] )
+      if ( !debuglinevisible[line] )
         break;
     }
     if ( line >= 256 )
@@ -6438,11 +6462,11 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
     else
       color = LINECOLOR_RED;
     botimport.DebugLineShow(
-      dword_100670C0[line],
+      debuglines[line],
       aasworld.vertexes[edge->v[0]],
       aasworld.vertexes[edge->v[1]],
       color);
-    dword_10066CC0[line] = 1;
+    debuglinevisible[line] = 1;
   }
 }
 // 1000A228: conditional instruction was optimized away because esi.4<100
@@ -9954,7 +9978,7 @@ void AAS_ShutDownReachabilityHeap()
  * Note this is a DIFFERENT free list from the entity-link one at
  * aasworld.freelinks (0x10066990, 16-byte stride, link at +8). */
 extern intptr_t nextreachability;          /* head of AAS-link free chain */
-int dword_1006677C;                  /* AAS-link allocation counter */
+int numreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
 
 void *AAS_AllocReachability(void)
 {
@@ -9966,7 +9990,7 @@ void *AAS_AllocReachability(void)
   /* Original re-reads head here in case AAS_Error trashed eax. */
   head = (aas_reachabilitynode_t *)nextreachability;
   nextreachability = (intptr_t)head->next;
-  ++dword_1006677C;
+  ++numreachabilities;
   return head;
 }
 
@@ -14640,9 +14664,9 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
   aas_area_t *area;
   aas_face_t *face;
 
-  ((int *)(intptr_t)dword_10066744)[dword_10066730] = areanum;
-  dword_10066730++;
-  *(_DWORD *)(dword_10066740 + 8 * areanum) = 0;
+  ((int *)(intptr_t)clusterareas)[numclusterareas] = areanum;
+  numclusterareas++;
+  *(_DWORD *)(midrangeareas + 8 * areanum) = 0;
   area = &aasworld.areas[areanum];
   for ( i = 0; i < area->numfaces; i++ )
   {
@@ -14653,7 +14677,7 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
       otherareanum = face->frontarea;
     if ( !otherareanum )
       continue;
-    if ( !*(_DWORD *)(dword_10066740 + 8 * otherareanum) )
+    if ( !*(_DWORD *)(midrangeareas + 8 * otherareanum) )
       continue;
     AAS_AltRoutingFloodCluster_r(otherareanum);
   }
@@ -14669,8 +14693,8 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
  * Algorithm:
  *   1) Resolve start/goal to areas via AAS_PointAreaNum.
  *   2) Baseline travel = AAS_AreaTravelTimeToGoalArea(start, goal, tf).
- *   3) Zero the candidate-flag table dword_10066740 (8 bytes/area).
- *   4) For each area a in 1..numareas, mark dword_10066740[a].flag=1
+ *   3) Zero the candidate-flag table midrangeareas (8 bytes/area).
+ *   4) For each area a in 1..numareas, mark midrangeareas[a].flag=1
  *      and record travel_to_start/travel_to_goal as words iff:
  *        - contents byte at areasettings[a]+0 has bit 0x20 set
  *          (AREACONTENTS_JUMPPAD), AND
@@ -14678,10 +14702,10 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
  *        - travel(start→a, tf) ≤ 1.5 * baseline, AND
  *        - travel(a→goal,  tf) ≤ 1.5 * baseline.
  *      Each marked area is logged via Log_Write("%d midrange area %d").
- *   5) For each ebp in 1..numareas where dword_10066740[ebp].flag!=0:
+ *   5) For each ebp in 1..numareas where midrangeareas[ebp].flag!=0:
  *        - Recursively flood-fill via face neighbors (AAS_AltRoutingFloodCluster_r)
  *          which clears flags and accumulates the connected cluster's
- *          area indices into dword_10066744[0..dword_10066730-1].
+ *          area indices into clusterareas[0..numclusterareas-1].
  *        - Compute the cluster centroid as the average of each member
  *          area's center (aasworld.areas[i]+0x24).
  *        - Within the cluster, find the area whose center is closest
@@ -14689,8 +14713,8 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
  *        - Emit one aas_altroutegoal_t entry:
  *            vec3   origin = areas[best].center
  *            int    areanum = best
- *            u16    travel_to_start  = dword_10066740[best]+4
- *            u16    travel_to_goal   = dword_10066740[best]+6
+ *            u16    travel_to_start  = midrangeareas[best]+4
+ *            u16    travel_to_goal   = midrangeareas[best]+6
  *            u16    extra_travel     = (start+goal) - baseline
  *        - Stop once count == maxaltroutegoals.
  *   6) bi_Print(PRT_MESSAGE, "%d alternative route goals\n", count); return count.
@@ -14744,7 +14768,7 @@ int __cdecl AAS_AlternativeRouteGoals(
   int   best_area;
   char *as_byte;
   aas_area_t *areas_base;
-  char *flagtbl;             /* dword_10066740 as char* (8 bytes/area) */
+  char *flagtbl;             /* midrangeareas as char* (8 bytes/area) */
   int  *visit_stack;
   vec3_t centroid;
   vec3_t diff;
@@ -14763,8 +14787,8 @@ int __cdecl AAS_AlternativeRouteGoals(
   baseline_travel = (unsigned short)AAS_AreaTravelTimeToGoalArea(
       startareanum, goalareanum, travelflags);
 
-  flagtbl     = (char *)(intptr_t)dword_10066740;
-  visit_stack = (int  *)(intptr_t)dword_10066744;
+  flagtbl     = (char *)(intptr_t)midrangeareas;
+  visit_stack = (int  *)(intptr_t)clusterareas;
 
   /* Zero candidate flag table: 8 bytes per area. */
   memset(flagtbl, 0, 8 * aasworld.numareas);
@@ -14816,25 +14840,25 @@ int __cdecl AAS_AlternativeRouteGoals(
     if ( !*(int *)(flagtbl + 8 * ebp_area) )
       continue;
 
-    dword_10066730 = 0;
+    numclusterareas = 0;
     AAS_AltRoutingFloodCluster_r(ebp_area);          /* fills visit_stack[0..N-1] */
 
     centroid[0] = 0.0f;
     centroid[1] = 0.0f;
     centroid[2] = 0.0f;
-    for ( i = 0; i < dword_10066730; i++ )
+    for ( i = 0; i < numclusterareas; i++ )
     {
       aas_area_t *a = &areas_base[visit_stack[i]];
       centroid[0] += a->center[0];
       centroid[1] += a->center[1];
       centroid[2] += a->center[2];
     }
-    fcount = (float)(1.0 / (float)dword_10066730);
+    fcount = (float)(1.0 / (float)numclusterareas);
     VectorScale(centroid, fcount, centroid);
 
     best_dist = 1000000.0f;          /* 0x497423F0 */
     best_area = 0;
-    for ( i = 0; i < dword_10066730; i++ )
+    for ( i = 0; i < numclusterareas; i++ )
     {
       aas_area_t *a = &areas_base[visit_stack[i]];
       double d;
@@ -14871,13 +14895,13 @@ int sub_1001AB80()
 {
   int result; // eax
 
-  if ( dword_10066740 )
-    FreeMemory(dword_10066740);
-  dword_10066740 = GetMemory(8 * aasworld.numareas);
-  if ( dword_10066744 )
-    FreeMemory(dword_10066744);
+  if ( midrangeareas )
+    FreeMemory(midrangeareas);
+  midrangeareas = GetMemory(8 * aasworld.numareas);
+  if ( clusterareas )
+    FreeMemory(clusterareas);
   result = GetMemory(4 * aasworld.numareas);
-  dword_10066744 = result;
+  clusterareas = result;
   return result;
 }
 
@@ -16352,7 +16376,7 @@ void sub_1001D290(void) { /* empty body */ }
 //----- (1001D2B0) --------------------------------------------------------
 void BotResetNodeSwitches()
 {
-  dword_100644A0 = 0;
+  numnodeswitches = 0;
 }
 
 //----- (1001D2D0) --------------------------------------------------------
@@ -16364,10 +16388,10 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 
   sprintf(Buffer, "%s at %1.1f switched more than %d AI nodes\n",
           (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), 50);
-  v2 = dword_100644A0;
-  if ( dword_100644A0 > 0 )
+  v2 = numnodeswitches;
+  if ( numnodeswitches > 0 )
   {
-    v3 = (const char *)byte_10064A80;
+    v3 = (const char *)nodeswitch;
     do
     {
       strcat(Buffer, v3);
@@ -16391,9 +16415,9 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *s
    * sprintf's strlen() segfault.  Restore the original semantics: node is
    * the state name string. */
 
-  sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n",
+  sprintf(&nodeswitch[144 * numnodeswitches], "%s at %2.1f entered %s: %s\n",
           (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), node, str);
-  return ++dword_100644A0;
+  return ++numnodeswitches;
 }
 
 //----- (1001D420) --------------------------------------------------------
@@ -16882,9 +16906,9 @@ LABEL_106:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
-        v26 = (float *)&unk_10064420;
+        v26 = (float *)&ctf_redflag;
         if ( BotCTFTeam(bs) == 1 )
-          v26 = (float *)&unk_100643E0;
+          v26 = (float *)&ctf_blueflag;
         if ( BotTouchingGoal(bs->origin, v26) )
           bs->ltgtype = 0;
         if ( AAS_Time() > bs->teamgoal_time )
@@ -16896,9 +16920,9 @@ LABEL_106:
     }
     if ( bs->ltgtype == 5 && AAS_Time() > bs->rushbaseaway_time )
     {
-      v26 = (float *)&unk_100643E0;
+      v26 = (float *)&ctf_blueflag;
       if ( BotCTFTeam(bs) == 1 )
-        v26 = (float *)&unk_10064420;
+        v26 = (float *)&ctf_redflag;
       if ( AAS_Time() > bs->teamgoal_time )
         bs->ltgtype = 0;
       if ( BotTouchingGoal(bs->origin, v26) )
@@ -20355,17 +20379,17 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       v8 = v8 + v8;
       bs->teammessage_time = AAS_Time() + v8;
       v5 = (rand() & 0x7FFF) * 0.000030518509f;
-      if ( v5 < 0.33f && unk_10064420.areanum && unk_100643E0.areanum )
+      if ( v5 < 0.33f && ctf_redflag.areanum && ctf_blueflag.areanum )
       {
         bs->ltgtype = 4;
         bs->teamgoal_time = AAS_Time() + 180.0f;
       }
-      else if ( v5 < 0.66 && unk_10064420.areanum && unk_100643E0.areanum )
+      else if ( v5 < 0.66 && ctf_redflag.areanum && ctf_blueflag.areanum )
       {
         if ( BotCTFTeam(bs) == 1 )
-          memcpy(&bs->teamgoal, &unk_10064420, 0x38u);
+          memcpy(&bs->teamgoal, &ctf_redflag, 0x38u);
         else
-          memcpy(&bs->teamgoal, &unk_100643E0, 0x38u);
+          memcpy(&bs->teamgoal, &ctf_blueflag, 0x38u);
         bs->ltgtype = 3;
         bs->teamgoal_time = AAS_Time() + 120.0f;
         *(int *)&bs->defendaway_time = 0;
@@ -21009,7 +21033,7 @@ LABEL_64:
       bs->teamgoal_time = v34 + 300;
       return 1;
     case 7:
-      if ( libvar_ctf->value == 0.0f || !unk_10064420.areanum || !unk_100643E0.areanum || !BotAddressedToBot(bs, &match) )
+      if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v35 = rand();
       v59 = 2 * ((float)(v35 & 0x7FFF) * 0.000030518509f);
@@ -21020,7 +21044,7 @@ LABEL_64:
       bs->teamgoal_time = v37 + 180;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0f || !unk_10064420.areanum || !unk_100643E0.areanum || !BotAddressedToBot(bs, &match) )
+      if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v38 = rand();
       v60 = 2 * ((float)(v38 & 0x7FFF) * 0.000030518509f);
@@ -21407,9 +21431,9 @@ void BotSetupDeathmatchAI()
   libvar_assimilation = LibVar("assimilation", (char *)"0");
   if ( libvar_ctf->value != 0.0f )
   {
-    if ( BotGetLevelItemGoal(-1, "Red Flag", &unk_10064420) < 0 )
+    if ( BotGetLevelItemGoal(-1, "Red Flag", &ctf_redflag) < 0 )
       botimport.Print(PRT_WARNING, "CTF without Red Flag\n");
-    if ( BotGetLevelItemGoal(-1, "Blue Flag", &unk_100643E0) < 0 )
+    if ( BotGetLevelItemGoal(-1, "Blue Flag", &ctf_blueflag) < 0 )
       botimport.Print(PRT_WARNING, "CTF without Blue Flag\n");
     dword_10064484 = IndexFromModel("players/male/flag1.md2");
     dword_1006448C = IndexFromModel("players/male/flag2.md2");
@@ -22378,7 +22402,7 @@ int InitConsoleMessageHeap()
   }
   consolemessageheap[v1 - 1].prev = &consolemessageheap[v1 - 2];
   consolemessageheap[v1 - 1].next = NULL;
-  dword_10064364 = consolemessageheap;
+  freeconsolemessages = consolemessageheap;
   return (int)(intptr_t)consolemessageheap;
 }
 
@@ -22387,12 +22411,12 @@ bot_consolemessage_t *AllocConsoleMessage()
 {
   bot_consolemessage_t *result;
 
-  result = dword_10064364;
+  result = freeconsolemessages;
   if ( result )
   {
-    dword_10064364 = result->next;
-    if ( dword_10064364 )
-      dword_10064364->prev = NULL;
+    freeconsolemessages = result->next;
+    if ( freeconsolemessages )
+      freeconsolemessages->prev = NULL;
   }
   return result;
 }
@@ -22400,11 +22424,11 @@ bot_consolemessage_t *AllocConsoleMessage()
 //----- (1002A9E0) --------------------------------------------------------
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 {
-  if ( dword_10064364 )
-    dword_10064364->prev = message;
+  if ( freeconsolemessages )
+    freeconsolemessages->prev = message;
   message->prev = NULL;
-  message->next = dword_10064364;
-  dword_10064364 = message;
+  message->next = freeconsolemessages;
+  freeconsolemessages = message;
   return (int)(intptr_t)message;
 }
 
@@ -25119,23 +25143,23 @@ int InitLevelItemHeap()
   int max_levelitems;
   int i;
 
-  if ( dword_10064358 )
-    FreeMemory(dword_10064358);
+  if ( levelitemheap )
+    FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
-  dword_10064358 = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
+  levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
   if ( max_levelitems - 2 > 0 )
   {
     for ( i = 0; i < max_levelitems - 2; ++i )
-      dword_10064358[i].next = &dword_10064358[i + 1];
-    dword_10064358[max_levelitems - 1].next = NULL;
-    dword_10064344 = dword_10064358;
+      levelitemheap[i].next = &levelitemheap[i + 1];
+    levelitemheap[max_levelitems - 1].next = NULL;
+    freelevelitems = levelitemheap;
   }
   else
   {
-    dword_10064358[max_levelitems - 1].next = NULL;
-    dword_10064344 = dword_10064358;
+    levelitemheap[max_levelitems - 1].next = NULL;
+    freelevelitems = levelitemheap;
   }
-  return (int)(intptr_t)dword_10064358;
+  return (int)(intptr_t)levelitemheap;
 }
 
 //----- (1002F270) --------------------------------------------------------
@@ -25143,31 +25167,31 @@ _DWORD *__cdecl AllocLevelItem(void)
 {
   levelitem_t *result;
 
-  result = dword_10064344;
-  if ( !dword_10064344 )
+  result = freelevelitems;
+  if ( !freelevelitems )
   {
     botimport.Print(PRT_FATAL, "out of level items\n");
     return 0;
   }
-  dword_10064344 = result->next;
+  freelevelitems = result->next;
   return (_DWORD *)result;
 }
 
 //----- (1002F2B0) --------------------------------------------------------
 void __cdecl FreeLevelItem(levelitem_t *item)
 {
-  item->next = dword_10064344;
-  dword_10064344 = item;
+  item->next = freelevelitems;
+  freelevelitems = item;
 }
 
 //----- (1002F2E0) --------------------------------------------------------
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item)
 {
-  if ( dword_10064360 )
-    dword_10064360->prev = item;
+  if ( levelitems )
+    levelitems->prev = item;
   item->prev = 0;
-  item->next = dword_10064360;
-  dword_10064360 = item;
+  item->next = levelitems;
+  levelitems = item;
   return item;
 }
 
@@ -25181,7 +25205,7 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item)
   if ( prev )
     prev->next = item->next;
   else
-    dword_10064360 = item->next;
+    levelitems = item->next;
   next = item->next;
   if ( next )
     next->prev = item->prev;
@@ -25209,8 +25233,8 @@ _DWORD * BotInitLevelItems()
 
   result = (_DWORD *)InitLevelItemHeap();
   ic = itemconfig;
-  dword_10064360 = 0;
-  dword_10064354 = 0;
+  levelitems = 0;
+  numlevelitems = 0;
   if ( ic )
   {
     v4 = AAS_ParseBSPEntities();
@@ -25239,7 +25263,7 @@ _DWORD * BotInitLevelItems()
                 result = (_DWORD *)li;
                 if ( !li )
                   goto done;
-                li->number = ++dword_10064354;
+                li->number = ++numlevelitems;
                 li->timeout = 0.0f;
                 li->entitynum = 0;
                 if ( !AAS_DropToFloor(origin, ic->items[v7].mins, ic->items[v7].maxs) )
@@ -25267,7 +25291,7 @@ _DWORD * BotInitLevelItems()
       }
       while ( ent );
     }
-    result = (_DWORD *)botimport.Print(PRT_MESSAGE, "found %d level items\n", dword_10064354);
+    result = (_DWORD *)botimport.Print(PRT_MESSAGE, "found %d level items\n", numlevelitems);
   }
   // Single shared exit: all three return paths arrange `result` (eax) and
   // converge here — !itemconfig → InitLevelItemHeap result, alloc-fail → li(=0)
@@ -25284,7 +25308,7 @@ char *__cdecl BotGoalName(int number)
 
   if ( !itemconfig )
     return &byte_1006294C;
-  for ( v1 = (levelitem_t *)dword_10064360; v1; v1 = v1->next )
+  for ( v1 = (levelitem_t *)levelitems; v1; v1 = v1->next )
   {
     if ( v1->number == number )
       return (char *)&itemconfig->items[v1->iteminfo];
@@ -25367,7 +25391,7 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 
   if ( !itemconfig )
     return -1;
-  li = (levelitem_t *)dword_10064360;
+  li = (levelitem_t *)levelitems;
   if ( !li )
     return -1;
   while ( li->number <= index || _strcmpi(name, itemconfig->items[li->iteminfo].name) )
@@ -25404,7 +25428,7 @@ int BotUpdateEntityItems()
   vec3_t v21; // [esp+14h] [ebp-104h] BYREF
   float v22[31]; // [esp+20h] [ebp-F8h] BYREF
 
-  v0 = (levelitem_t *)dword_10064360;
+  v0 = (levelitem_t *)levelitems;
   if ( v0 )
   {
     do
@@ -25436,7 +25460,7 @@ int BotUpdateEntityItems()
     *(aas_entityinfo_t *)v22 = AAS_EntityInfo(v3);
     if ( v22[4] != v22[13] || v22[5] != v22[14] || v22[6] != v22[15] )
       goto LABEL_31;
-    v5 = (levelitem_t *)dword_10064360;
+    v5 = (levelitem_t *)levelitems;
     if ( !v5 )
       goto LABEL_24;
     while ( 1 )
@@ -25493,7 +25517,7 @@ LABEL_25:
       {
         v13 = (levelitem_t *)AllocLevelItem();
         v13->entitynum = v3;
-        v16 = v3 + dword_10064354;
+        v16 = v3 + numlevelitems;
         v13->origin[0] = v22[4];
         v13->number = v16;
         v13->origin[1] = v22[5];
@@ -25639,7 +25663,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
       ic = itemconfig;
       if ( !itemconfig )
         return 0;
-      li = (levelitem_t *)dword_10064360;
+      li = (levelitem_t *)levelitems;
       bestweight = 0.0;
       bestitem = 0;
       memset(goal, 0, sizeof(goal));
@@ -25773,7 +25797,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
       result = (int)(intptr_t)itemconfig;
       if ( ic )
       {
-        li = (levelitem_t *)dword_10064360;
+        li = (levelitem_t *)levelitems;
         bestweight = 0.0;
         bestitem = 0;
         memset(goal, 0, sizeof(goal));
@@ -30020,21 +30044,21 @@ void Log_Open(char *FileName)
     {
       botimport.Print(PRT_MESSAGE, "openlog <filename>\n");
     }
-    else if ( Stream )
+    else if ( logfile.fp )
     {
-      botimport.Print(PRT_ERROR, "log file %s is already opened\n", byte_10063A40);
+      botimport.Print(PRT_ERROR, "log file %s is already opened\n", logfile.filename);
     }
     else
     {
-      Stream = fopen(FileName, "wb");          /* Mode = "wb" */
-      if ( !Stream )
+      logfile.fp = fopen(FileName, "wb");          /* Mode = "wb" */
+      if ( !logfile.fp )
       {
         botimport.Print(PRT_ERROR, "can't open the log file %s\n", FileName);
       }
       else
       {
-        strncpy(byte_10063A40, FileName, 0x400u);
-        botimport.Print(PRT_MESSAGE, "Opened log %s\n", byte_10063A40);
+        strncpy(logfile.filename, FileName, 0x400u);
+        botimport.Print(PRT_MESSAGE, "Opened log %s\n", logfile.filename);
       }
     }
   }
@@ -30043,8 +30067,8 @@ void Log_Open(char *FileName)
 //----- (10038CF0) --------------------------------------------------------
 /* Q3 l_log.c: void Log_Close(void).  Closes logfile.fp, clears it on
  * success, and prints the close message (or an error if fclose fails).
- * Verified against objdump@10038CF0; Stream @ 0x10063E40, log filename
- * @ byte_10063A40, fclose thunk 0x10044888.  This is NOT a dead
+ * Verified against objdump@10038CF0; logfile.fp @ 0x10063E40, log filename
+ * @ logfile.filename, fclose thunk 0x10044888.  This is NOT a dead
  * duplicate — Log_Shutdown@0x10038D60 tail-jumps here through an
  * /INCREMENTAL thunk (the earlier "dead /INCREMENTAL copy" reading was
  * wrong: 10038D60 is the guard wrapper, this is the real close body). */
@@ -30052,17 +30076,17 @@ int __cdecl Log_Close(void)
 {
   int result; // eax
 
-  result = (int)Stream;
-  if ( Stream )
+  result = (int)logfile.fp;
+  if ( logfile.fp )
   {
-    if ( fclose(Stream) )
+    if ( fclose(logfile.fp) )
     {
-      return botimport.Print(PRT_ERROR, "can't close log file %s\n", byte_10063A40);
+      return botimport.Print(PRT_ERROR, "can't close log file %s\n", logfile.filename);
     }
     else
     {
-      Stream = 0;
-      result = botimport.Print(PRT_MESSAGE, "Closed log %s\n", byte_10063A40);
+      logfile.fp = 0;
+      result = botimport.Print(PRT_MESSAGE, "Closed log %s\n", logfile.filename);
     }
   }
   return result;
@@ -30076,8 +30100,8 @@ FILE *Log_Shutdown()
 {
   FILE *result; // eax
 
-  result = Stream;
-  if ( Stream )
+  result = logfile.fp;
+  if ( logfile.fp )
     result = (FILE *)Log_Close();
   return result;
 }
@@ -30089,12 +30113,12 @@ FILE *Log_Write(char *Format, ...)
   va_list va; // [esp+8h] [ebp+8h] BYREF
 
   va_start(va, Format);
-  result = Stream;
-  if ( Stream )
+  result = logfile.fp;
+  if ( logfile.fp )
   {
-    vfprintf(Stream, Format, va);
-    fprintf(Stream, "\r\n");
-    return (FILE *)fflush(Stream);
+    vfprintf(logfile.fp, Format, va);
+    fprintf(logfile.fp, "\r\n");
+    return (FILE *)fflush(logfile.fp);
   }
   return result;
 }
@@ -30105,12 +30129,12 @@ FILE *Log_Write(char *Format, ...)
  * every log entry.  /INCREMENTAL preserved it alongside the live
  * minimal Log_Write@10038D80.  Restored from objdump@10038DD0:
  *
- *   fprintf(Stream, "%d   %02d:%02d:%02d:%02d   ", counter, hour, min,
+ *   fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ", counter, hour, min,
  *           sec_total, hund);
- *   vfprintf(Stream, Format, va);
+ *   vfprintf(logfile.fp, Format, va);
  *   counter++;
- *   fprintf(Stream, "\r\n");
- *   fflush(Stream);
+ *   fprintf(logfile.fp, "\r\n");
+ *   fflush(logfile.fp);
  *
  * Time decomposition (with `t` = dword_1006402C, the live cached
  * floattime):  sec_total = (int)t; hund = -100*sec_total -
@@ -30124,7 +30148,6 @@ FILE *Log_Write(char *Format, ...)
  * is a real Mr. Elusive bug in the dead path, preserved verbatim.
  * DEAD in Gladiator — /INCREMENTAL.
  */
-static int dword_10063E44; // log line counter @ .data 0x10063E44
 FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
   va_list va;
@@ -30134,34 +30157,34 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
   int min;
   int hour;
 
-  if ( !Stream )
-    return Stream;
+  if ( !logfile.fp )
+    return logfile.fp;
   t = *(float *)&botstate.bottime;
   sec_total = (int)t;
   hund      = -100 * sec_total - (int)(t * -100.0f);
   min       = (int)(t * 0.01666666753590107f);
   hour      = (int)(t * 0.00027777778450399637f);
-  fprintf(Stream, "%d   %02d:%02d:%02d:%02d   ",
-          dword_10063E44, hour, min, sec_total, hund);
+  fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
+          logfile.numwrites, hour, min, sec_total, hund);
   va_start(va, Format);
-  vfprintf(Stream, Format, va);
+  vfprintf(logfile.fp, Format, va);
   va_end(va);
-  dword_10063E44++;
-  fprintf(Stream, "\r\n");
-  return (FILE *)fflush(Stream);
+  logfile.numwrites++;
+  fprintf(logfile.fp, "\r\n");
+  return (FILE *)fflush(logfile.fp);
 }
 
 //----- (10038EC0) --------------------------------------------------------
 FILE *Log_FilePointer()
 {
-  return Stream;
+  return logfile.fp;
 }
 
 //----- (10038EE0) --------------------------------------------------------
 void Log_Flush()
 {
-  if ( Stream )
-    fflush(Stream);
+  if ( logfile.fp )
+    fflush(logfile.fp);
 }
 
 //----- (10038F10) --------------------------------------------------------
