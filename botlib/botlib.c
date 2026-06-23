@@ -7121,19 +7121,19 @@ int InFieldOfVision(float *a1, float a2, float *a3)
 int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
 {
   int v5;
-  int v10;             // contentmask
+  int contents_mask;             // contentmask
   int eyecontents;     // PointContents(eye) — was IDA-dropped, manifested as undefined v11
   int fromcontents;    // PointContents(viewer) — was IDA-dropped, manifested as undefined v12
-  int v21;             // iteration counter
-  int v22;             // passent
-  int v23;             // hitent
+  int i;             // iteration counter
+  int passent;             // passent
+  int hitent;             // hitent
   aas_entityinfo_t *ent; // entity info (was float *v24 byte-arith)
   vec3_t middle;       // [ebp-148h] BYREF — was v18+v19+v20 split locals
   vec3_t end;          // [ebp-12Ch] BYREF — was v25+v26+v27 split locals
   vec3_t start;        // [ebp-120h] BYREF — was v28+v29+v30 split locals
   vec3_t dir;          // [ebp-114h] BYREF — was v31[3]
   vec3_t entangles;    // [ebp-108h] BYREF — was v32[3]
-  float v33[21];       // [ebp-FCh] BYREF — aas_trace_t result (84 bytes)
+  float trace[21];       // [ebp-FCh] BYREF — aas_trace_t result (84 bytes)
 
   v5 = a5;
   ent = &aasworld.entities[a5].i;
@@ -7148,7 +7148,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   vectoangles(dir, (float *)entangles);
   if ( !InFieldOfVision(a3, a4, entangles) )
     return 0;
-  v21 = 0;
+  i = 0;
   while ( 1 )
   {
     if ( AAS_inPVS((float *)a2, middle) )
@@ -7156,9 +7156,9 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     /* default: trace from viewer (a2) to entity middle */
     VectorCopy(((float *)a2), start);
     VectorCopy(middle, end);
-    v10 = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
-    v22 = a1;
-    v23 = v5;
+    contents_mask = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
+    passent = a1;
+    hitent = v5;
     /* IDA dropped both PointContents() calls here — see 0x1000b893 / 0x1000b8a5
      * in the binary. They forward via wrapper sub_10003080 to bi_PointContents
      * (the engine import). Without the calls, eyecontents/fromcontents stay
@@ -7166,33 +7166,33 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
      * underwater, so visibility checks across water surfaces silently fail. */
     eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
-      v10 = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
+      contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
     fromcontents = sub_10003080((float *)a2);
     if ( (fromcontents & 0x38) != 0 )
     {
-      if ( (v10 & 0x38) == 0 )
+      if ( (contents_mask & 0x38) == 0 )
       {
         /* swap: trace from entity middle to viewer instead */
         VectorCopy(middle, start);
         VectorCopy(((float *)a2), end);
-        v22 = v5;
-        v23 = a1;
+        passent = v5;
+        hitent = a1;
       }
-      v10 ^= 0x38u;
+      contents_mask ^= 0x38u;
     }
-    *(bsp_trace_t *)v33 = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), v22, v10);
+    *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     /* if trace hit a translucent water/slime surface, retrace through it */
-    if ( (LOBYTE(v33[19]) & 0x38) != 0 && (LOBYTE(v33[17]) & 0x30) != 0 )
-      *(bsp_trace_t *)v33 = AAS_Trace((float*)(&v33[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), v22, v10 & 0xFFFFFFC7);
-    if ( v33[2] >= 1.0f || LODWORD(v33[20]) == v23 )
+    if ( (LOBYTE(trace[19]) & 0x38) != 0 && (LOBYTE(trace[17]) & 0x30) != 0 )
+      *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
+    if ( trace[2] >= 1.0f || LODWORD(trace[20]) == hitent )
       return 1;
     /* try alternate z-positions: foot, then head */
-    if ( !v21 )
+    if ( !i )
       middle[2] = middle[2] + ent->mins[2];
-    else if ( v21 == 1 )
+    else if ( i == 1 )
       middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
     }
-    if ( ++v21 >= 3 )
+    if ( ++i >= 3 )
       return 0;
     v5 = a5;
   }
@@ -17281,19 +17281,19 @@ int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 int __cdecl AINode_Seek_NBG(bot_state_t *bs)
 {
 
-  /* v3/v4 are int (goal pointer) in the original binary — held in esi
+  /* v3/goal are int (goal pointer) in the original binary — held in esi
    * throughout (.text 0x1001f35e-0x1001f410, no FPU touch).  IDA mistyped
    * them as float because BotGetTopGoal's return is later compared to 0.0f
    * in a sibling function, but here they stay integer. */
   void *v3; // eax
-  void *v4; // esi
+  void *goal; // esi
   int v5; // edx
   int v6; // eax
   void *v7; // edi
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
   vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
-  bot_moveresult_t v15; // [esp+2Ch] [ebp-60h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-60h] BYREF
   bot_moveresult_t v16; // [esp+5Ch] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
@@ -17320,16 +17320,16 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   bs->enemy = 0;
   v3 = BotGetTopGoal(bs->goalstate);
-  v4 = v3;
+  goal = v3;
   if ( v3 )
   {
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
       if ( libvar_runes->value != 0.0f )
-        sub_100262C0((_DWORD *)bs, (intptr_t)v4);
+        sub_100262C0((_DWORD *)bs, (intptr_t)goal);
       bs->nbg_time = 0.0f;
     }
-    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)v4) )
+    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)goal) )
     {
       bs->nbg_time = 0.0f;
     }
@@ -17346,16 +17346,16 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v4, v8);
-  if ( v15.failure )
+  moveresult = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v8);
+  if ( moveresult.failure )
   {
     BotResetAvoidReach((_DWORD *)bs->movestate);
     bs->nbg_time = 0.0f;
   }
-  BotAIBlocked(bs, &v15, 1);
-  if ( (v15.flags & 3) == 0 )
+  BotAIBlocked(bs, &moveresult, 1);
+  if ( (moveresult.flags & 3) == 0 )
   {
-    if ( (v15.flags & 4) != 0 )
+    if ( (moveresult.flags & 4) != 0 )
     {
       /* Operand order matches the original: the rand() side is evaluated
        * FIRST so the double product (thinktime*0.8) is not spilled to a
@@ -17382,16 +17382,16 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       }
       else
       {
-        vectoangles(v15.movedir, bs->ideal_viewangles);
+        vectoangles(moveresult.movedir, bs->ideal_viewangles);
         bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
     }
   }
   else
   {
-  v5 = LODWORD(v15.ideal_viewangles[1]);
-  v6 = LODWORD(v15.ideal_viewangles[2]);
-  *(int *)&bs->ideal_viewangles[0] = LODWORD(v15.ideal_viewangles[0]);
+  v5 = LODWORD(moveresult.ideal_viewangles[1]);
+  v6 = LODWORD(moveresult.ideal_viewangles[2]);
+  *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
   *(int *)&bs->ideal_viewangles[1] = v5;
   *(int *)&bs->ideal_viewangles[2] = v6;
   }
@@ -17409,7 +17409,7 @@ LABEL_33:
       AIEnter_Battle_Fight(bs);
     }
   }
-  if ( (v15.flags & 8) == 0 )
+  if ( (moveresult.flags & 8) == 0 )
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
@@ -26521,7 +26521,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
 {
   int v5; // eax
   char v6; // bl
-  int v7; // edi
+  int presencetype; // edi
   float v10; // st7
   int v11; // ebx
   float v13; // st7
@@ -26530,8 +26530,8 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
    * [esp+0x10/+0x14/+0x18].  Renamed from 'dir' to 'hordir' (Q3 name) to free
    * the param name for the input direction. */
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
-  vec3_t v17; // [esp+14h] [ebp-5Ch] BYREF
-  int v18[20]; // [esp+20h] [ebp-50h] BYREF
+  vec3_t cmdmove; // [esp+14h] [ebp-5Ch] BYREF
+  int move[20]; // [esp+20h] [ebp-50h] BYREF
   int v19; // [esp+74h] [ebp+4h]
   float v20; // [esp+78h] [ebp+8h]
 
@@ -26541,8 +26541,8 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
     if ( !BotCheckBarrierJump(ms, dir, speed) )
     {
       v6 = type;
-      if ( (type & 2) == 0 || (v7 = 4, (type & 4) != 0) )
-        v7 = 2;
+      if ( (type & 2) == 0 || (presencetype = 4, (type & 4) != 0) )
+        presencetype = 2;
       hordir[0] = dir[0];
       hordir[1] = dir[1];
       hordir[2] = 0.0f;
@@ -26555,13 +26555,13 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
           type |= 4;
         }
       }
-      VectorScale(hordir, speed, (float *)v17);
+      VectorScale(hordir, speed, (float *)cmdmove);
       v19 = v6 & 4;
       if ( (v6 & 4) != 0 )
       {
         v10 = 3.0f;
         v20 = ms->thinktime;
-        v17[2] = libvar_sv_jumpvel->value;
+        cmdmove[2] = libvar_sv_jumpvel->value;
       }
       else
       {
@@ -26570,26 +26570,26 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       }
       v11 = (__int64)(v10 / v20);
       qmemcpy(
-        v18,
+        move,
         AAS_ClientMovementPrediction(
-                        (char *)v18,
+                        (char *)move,
                         ms->entitynum,
                         ms->origin,
-                        v7,
+                        presencetype,
                         1,
                         ms->velocity,
-                        v17,
+                        cmdmove,
                         v11,
                         v11,
                         v20,
                         61,
                         0),
-        sizeof(v18));
-      if ( v18[19] >= v11 )
+        sizeof(move));
+      if ( move[19] >= v11 )
         return 0;
-      if ( (v18[16] & 0x38) != 0 )
+      if ( (move[16] & 0x38) != 0 )
         return 0;
-      v13 = *(float *)v18 - ms->origin[0];
+      v13 = *(float *)move - ms->origin[0];
       hordir[0] = v13;
       if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
         return 0;
