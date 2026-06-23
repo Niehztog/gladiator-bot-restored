@@ -19428,7 +19428,7 @@ void BotAimAtEnemy(bot_state_t *bs)
 {
 
   int v2; // eax
-  weaponinfo_t *v3; // ebp
+  weaponinfo_t *wi; // ebp
   float v4; // ecx
   float v5; // edx
   double v6; // st7
@@ -19448,38 +19448,38 @@ void BotAimAtEnemy(bot_state_t *bs)
   int v20; // ecx
   int v21; // edx
   float v22; // [esp+0h] [ebp-1C8h]
-  float v23; // [esp+1Ch] [ebp-1ACh]
+  float dist; // [esp+1Ch] [ebp-1ACh]
   int v24; // [esp+1Ch] [ebp-1ACh]
   float v25; // [esp+1Ch] [ebp-1ACh]
   float v26; // [esp+1Ch] [ebp-1ACh]
-  float v27; // [esp+20h] [ebp-1A8h]
+  float aim_skill; // [esp+20h] [ebp-1A8h]
   float v28; // [esp+20h] [ebp-1A8h]
-  vec3_t v29; // [ebp-1A4h] BYREF — was split v29/v30/v31 (X/Y/Z); IDA dropped Y/Z stores in some sites
+  vec3_t dir; // [ebp-1A4h] BYREF — was split v29/v30/v31 (X/Y/Z); IDA dropped Y/Z stores in some sites
   int v32; // [esp+30h] [ebp-198h] BYREF
   float v33; // [esp+34h] [ebp-194h]
   float v34; // [esp+38h] [ebp-190h]
-  float v35; // [esp+3Ch] [ebp-18Ch]
+  float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
   int v36; // [esp+40h] [ebp-188h] BYREF
   float v37; // [esp+44h] [ebp-184h]
   float v38; // [esp+48h] [ebp-180h]
   float v39; // [esp+4Ch] [ebp-17Ch] BYREF
   float v40; // [esp+50h] [ebp-178h]
   float v41; // [esp+54h] [ebp-174h]
-  vec3_t v42; // [esp+58h] [ebp-170h] BYREF
-  vec3_t v43; // [esp+64h] [ebp-164h] BYREF
-  vec3_t v44; // [esp+70h] [ebp-158h] BYREF
-  int v45[21]; // [esp+7Ch] [ebp-14Ch] BYREF
-  float v46[31]; // [esp+D0h] [ebp-F8h] BYREF
+  vec3_t end; // [esp+58h] [ebp-170h] BYREF
+  vec3_t mins; // [esp+64h] [ebp-164h] BYREF
+  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
+  int trace[21]; // [esp+7Ch] [ebp-14Ch] BYREF
+  float entinfo[31]; // [esp+D0h] [ebp-F8h] BYREF
 
   /* 0xc0800000 = -4.0f; 0x40800000 = 4.0f.
-   * v43, v44 are float[3] — use float literals to avoid int→float conversion. */
-  v43[0] = -4.0f;
+   * mins, maxs are float[3] — use float literals to avoid int→float conversion. */
+  mins[0] = -4.0f;
   v2 = bs->enemy;
-  v43[1] = -4.0f;
-  v43[2] = -4.0f;
-  v44[0] = 4.0f;
-  v44[1] = 4.0f;
-  v44[2] = 4.0f;
+  mins[1] = -4.0f;
+  mins[2] = -4.0f;
+  maxs[0] = 4.0f;
+  maxs[1] = 4.0f;
+  maxs[2] = 4.0f;
   if ( v2 )
   {
     /* IDA dropped FPU returns: v27 and v35 hold the FPU-returned values from
@@ -19488,74 +19488,74 @@ void BotAimAtEnemy(bot_state_t *bs)
      * then fcomp 0.0 jumps if v35 > 0; else clamps to 0.000099999997f.
      * IDA emitted v27 = a1 / v35 = a1 because it confused the FPU register
      * for the eax return register. */
-    v27 = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
-    v35 = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
-    if ( v35 <= 0.0f )
-      v35 = 0.000099999997f;
-    v3 = sub_100354B0(BotWS(bs));
-    if ( !_strcmpi(v3->name, "Rocket Launcher") )
-      v35 = sqrt(v35);
-    *(aas_entityinfo_t *)v46 = AAS_EntityInfo(bs->enemy);
+    aim_skill = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
+    aim_accuracy = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
+    if ( aim_accuracy <= 0.0f )
+      aim_accuracy = 0.000099999997f;
+    wi = sub_100354B0(BotWS(bs));
+    if ( !_strcmpi(wi->name, "Rocket Launcher") )
+      aim_accuracy = sqrt(aim_accuracy);
+    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
     v4 = bs->origin[0];
-    v32 = SLODWORD(v46[4]);
+    v32 = SLODWORD(entinfo[4]);
     v5 = bs->origin[1];
-    v33 = v46[5];
-    v34 = v46[6] + 8.0f;
+    v33 = entinfo[5];
+    v34 = entinfo[6] + 8.0f;
     v6 = bs->origin[2];
     v7 = bs->entitynum;
     v39 = v4;
     v8 = v6 + bs->snapshot.viewoffset[2];
     v40 = v5;
     v41 = v8;
-    v41 = v8 + v3->offset[2];
-    *(bsp_trace_t *)v45 = AAS_Trace((float*)(&v39), (float*)v43, (float*)v44, (float*)(&v32), v7, 100663299);
-    if ( *(float *)&v45[2] <= 1.0f && v45[20] != LODWORD(v46[3]) )
+    v41 = v8 + wi->offset[2];
+    *(bsp_trace_t *)trace = AAS_Trace((float*)(&v39), (float*)mins, (float*)maxs, (float*)(&v32), v7, 100663299);
+    if ( *(float *)&trace[2] <= 1.0f && trace[20] != LODWORD(entinfo[3]) )
       v34 = v34 + 16.0f;
-    if ( v3->speed != 0.0f && v27 > 0.4 )
+    if ( wi->speed != 0.0f && aim_skill > 0.4 )
     {
       /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
        * at 0x10023a3a-0x10023a65 (three fld/fsub/fstp triples) and the second
        * VectorNormalize block at 0x10023a... — see binary */
-      v29[0] = v46[4] - bs->origin[0];
-      v29[1] = v46[5] - bs->origin[1];
-      v29[2] = v46[6] - bs->origin[2];
-      v23 = VectorLength(v29);
-      v29[2] = 0.0f;
-      v29[0] = v46[4] - v46[13];
-      v29[1] = v46[5] - v46[14];
-      v9 = VectorNormalize(v29);
-      v22 = v23 / v3->speed * (v9 / v46[2]);
-      VectorMA((float *)&v46[4], v22, v29, (float *)&v32);
+      dir[0] = entinfo[4] - bs->origin[0];
+      dir[1] = entinfo[5] - bs->origin[1];
+      dir[2] = entinfo[6] - bs->origin[2];
+      dist = VectorLength(dir);
+      dir[2] = 0.0f;
+      dir[0] = entinfo[4] - entinfo[13];
+      dir[1] = entinfo[5] - entinfo[14];
+      v9 = VectorNormalize(dir);
+      v22 = dist / wi->speed * (v9 / entinfo[2]);
+      VectorMA((float *)&entinfo[4], v22, dir, (float *)&v32);
     }
-    if ( v27 > 0.6 && (v3->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > v46[6] )
+    if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > entinfo[6] )
     {
-      *(float *)v42 = v46[4];
-      v42[1] = v46[5];
-      v42[2] = v46[6] - 64.0f;
-      *(bsp_trace_t *)v45 = AAS_Trace((float*)(&v46[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(v42), SLODWORD(v46[3]), 100663299);
+      *(float *)end = entinfo[4];
+      end[1] = entinfo[5];
+      end[2] = entinfo[6] - 64.0f;
+      *(bsp_trace_t *)trace = AAS_Trace((float*)(&entinfo[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), SLODWORD(entinfo[3]), 100663299);
       v36 = v32;
       v37 = v33;
-      v10 = v45[1] ? v46[6] - 16.0f : *(float *)&v45[5] - 8.0f;
+      v10 = trace[1] ? entinfo[6] - 16.0f : *(float *)&trace[5] - 8.0f;
       v11 = bs->entitynum;
       v38 = v10;
-      *(bsp_trace_t *)v45 = AAS_Trace((float*)(&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299);
-      v12 = *(float *)&v45[5] - v38;
+      *(bsp_trace_t *)trace = AAS_Trace((float*)(&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299);
+      v12 = *(float *)&trace[5] - v38;
       if ( fabs(v12) < 50.0 )
       {
         /* IDA dropped Y/Z component stores; restored from disasm 0x100240a0-0x100240c0 */
-        v29[0] = *(float *)&v45[3] - *(float *)&v36;
-        v29[1] = *(float *)&v45[4] - v37;
-        v29[2] = v12;
-        if ( VectorLength(v29) < 60.0f )
+        dir[0] = *(float *)&trace[3] - *(float *)&v36;
+        dir[1] = *(float *)&trace[4] - v37;
+        dir[2] = v12;
+        if ( VectorLength(dir) < 60.0f )
         {
           /* IDA dropped Y/Z component stores; restored from disasm 0x100240dd-0x10024108 */
-          v29[0] = *(float *)&v45[3] - v39;
-          v29[1] = *(float *)&v45[4] - v40;
-          v29[2] = *(float *)&v45[5] - v41;
-          if ( VectorLength(v29) > 150.0f )
+          dir[0] = *(float *)&trace[3] - v39;
+          dir[1] = *(float *)&trace[4] - v40;
+          dir[2] = *(float *)&trace[5] - v41;
+          if ( VectorLength(dir) > 150.0f )
           {
-            *(bsp_trace_t *)v45 = AAS_Trace((float*)(&v45[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v46[4]), SLODWORD(v46[3]), 100663299);
-            if ( *(float *)&v45[2] >= 1.0f )
+            *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&entinfo[4]), SLODWORD(entinfo[3]), 100663299);
+            if ( *(float *)&trace[2] >= 1.0f )
             {
               v32 = v36;
               v33 = v37;
@@ -19565,7 +19565,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         }
       }
     }
-    v28 = 1.0f - v35;
+    v28 = 1.0f - aim_accuracy;
     v13 = rand();
     *(float *)&v32 = (2 * ((float)(v13 & 0x7FFF) * 0.000030518509f - 0.5))
                    * v28
@@ -19579,13 +19579,13 @@ void BotAimAtEnemy(bot_state_t *bs)
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
-    v29[0] = *(float *)&v32 - bs->eye[0];
-    v29[1] = v33 - bs->eye[1];
-    v29[2] = v34 - bs->eye[2];
-    if ( !_strcmpi(v3->name, "Railgun") )
+    dir[0] = *(float *)&v32 - bs->eye[0];
+    dir[1] = v33 - bs->eye[1];
+    dir[2] = v34 - bs->eye[2];
+    if ( !_strcmpi(wi->name, "Railgun") )
     {
-      VectorNormalize(v29);
-      v16 = (int *)v29;
+      VectorNormalize(dir);
+      v16 = (int *)dir;
       v17 = 3;
       do
       {
@@ -19597,10 +19597,10 @@ void BotAimAtEnemy(bot_state_t *bs)
       }
       while ( v17 );
     }
-    vectoangles(v29, bs->ideal_viewangles);
+    vectoangles(dir, bs->ideal_viewangles);
     v18 = rand();
     v25 = (2 * ((float)(v18 & 0x7FFF) * 0.000030518509f - 0.5))
-        * (v3->vspread
+        * (wi->vspread
          * 6.0f)
         * v28
         + bs->ideal_viewangles[0];
@@ -19609,7 +19609,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     bs->ideal_viewangles[0] = v25;
     v19 = rand();
     v26 = (2 * ((float)(v19 & 0x7FFF) * 0.000030518509f - 0.5))
-        * (v3->hspread
+        * (wi->hspread
          * 6.0f)
         * v28
         + bs->ideal_viewangles[1];
@@ -19617,7 +19617,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v26 = anglemod(v26);
     bs->ideal_viewangles[1] = v26;
     BotChangeViewAngles(bs, bs->thinktime);
-    if ( v35 > 0.8 )
+    if ( aim_accuracy > 0.8 )
     {
       v20 = (*(int *)&bs->ideal_viewangles[0]);
       *(int *)&bs->viewangles[1] = (*(int *)&bs->ideal_viewangles[1]);
