@@ -9416,20 +9416,15 @@ char *__cdecl AAS_ClientMovementPrediction(
         landed = 1;
         onground = 1;
       }
-      if ( (stopevent & 0x20) == 0 )
+      if ( (stopevent & 0x20) == 0 )    // !SE_HITGROUNDDAMAGE
         goto LABEL_66;
-      if ( old_velz >= 0.0f || (float)frame_test_vel[2] <= (float)old_velz )
-      {
-        if ( !landed )
-          goto LABEL_66;
-LABEL_62:
-        delta = (float)frame_test_vel[2] - (float)old_velz;
-        goto LABEL_63;
-      }
-      if ( landed )
-        goto LABEL_62;
-      delta = (float)old_velz;
-LABEL_63:
+      // Q3 be_aas_move.c:836 landing-damage delta (was IDA goto LABEL_62/63):
+      if ( old_velz < 0.0f && (float)frame_test_vel[2] > (float)old_velz && !landed )
+        delta = (float)old_velz;                              // still falling
+      else if ( landed )
+        delta = (float)frame_test_vel[2] - (float)old_velz;   // landed this frame
+      else
+        goto LABEL_66;                                        // neither -> no fall damage
       if ( delta != 0.0f )
       {
         damage = delta * 10.0f * (delta * 10.0f) * 0.0001;
@@ -9452,41 +9447,43 @@ LABEL_66:
         { result = move; qmemcpy(move, move_buf, 0x50u); return result; }
     }
     while ( trace.fraction < 1.0 );
-    if ( frame_test_vel[2] > 0.0f )
-      goto LABEL_76;
-    feet[0] = org[0];
-    feet[1] = org[1];
-    feet[2] = org[2] - 22.0f;
-    pc = sub_10003080((float *)feet);   /* IDA-dropped: see 0x100100dd */
-    event = 0;
-    v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
-    // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3 be_aas_move.c:888):
-    //   CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10) -> SE_ENTERSLIME(8).
-    //   NB CONTENTS_WATER(0x20) also maps to bit 8 here, not SE_ENTERWATER(4) —
-    //   faithful to the original DLL; Q3 later split water out to SE_ENTERWATER.
-    if ( (pc & 8) != 0 )
-      event = 16;
-    if ( (pc & 0x10) != 0 )
-      event |= 8u;
-    if ( (pc & 0x20) != 0 )
-      event |= 8u;
-    if ( (event & stopevent) != 0 )
+    // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
+    // check below then runs unconditionally (was IDA `if(vel>0) goto LABEL_76`).
+    if ( frame_test_vel[2] <= 0.0f )
     {
-      move_buf[0] = *(int *)&org[0];
-      move_buf[1] = *(int *)&org[1];
-      *(float *)&move_buf[17] = (float)v57;
-      move_buf[2] = *(int *)&org[2];
-      move_buf[16] = stopevent & event;
-      move_buf[3] = *(int *)&frame_test_vel[0];
-      *(float *)&move_buf[4] = frame_test_vel[1];
-      move_buf[5] = *(int *)&frame_test_vel[2];
-      move_buf[15] = presencetype;
-      *(float *)&move_buf[18] = (float)n * frametime;
-      move_buf[19] = n;
+      feet[0] = org[0];
+      feet[1] = org[1];
+      feet[2] = org[2] - 22.0f;
+      pc = sub_10003080((float *)feet);   /* IDA-dropped: see 0x100100dd */
+      event = 0;
+      v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
+      // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3 be_aas_move.c:888):
+      //   CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10) -> SE_ENTERSLIME(8).
+      //   NB CONTENTS_WATER(0x20) also maps to bit 8 here, not SE_ENTERWATER(4) —
+      //   faithful to the original DLL; Q3 later split water out to SE_ENTERWATER.
+      if ( (pc & 8) != 0 )
+        event = 16;
+      if ( (pc & 0x10) != 0 )
+        event |= 8u;
+      if ( (pc & 0x20) != 0 )
+        event |= 8u;
+      if ( (event & stopevent) != 0 )
+      {
+        move_buf[0] = *(int *)&org[0];
+        move_buf[1] = *(int *)&org[1];
+        *(float *)&move_buf[17] = (float)v57;
+        move_buf[2] = *(int *)&org[2];
+        move_buf[16] = stopevent & event;
+        move_buf[3] = *(int *)&frame_test_vel[0];
+        *(float *)&move_buf[4] = frame_test_vel[1];
+        move_buf[5] = *(int *)&frame_test_vel[2];
+        move_buf[15] = presencetype;
+        *(float *)&move_buf[18] = (float)n * frametime;
+        move_buf[19] = n;
+        break;
+      }
     }
-    else
     {
-LABEL_76:
       onground = AAS_OnGround(org, presencetype, entnum);
       if ( onground )
       {
