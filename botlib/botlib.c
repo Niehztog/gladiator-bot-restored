@@ -821,7 +821,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
 void *__cdecl BotLoadInitialChat(char *a1, char *a2);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
 int __cdecl BotFreeChatState(bot_chatstate_t *cs);
-int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3); // idb
+int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname); // idb
 /* Initial-chat variable slot: caller passes up to 10 (char *) variables to
  * BotInitialChat, which records each as { str, len } pairs in a stack-local
  * array and forwards a pointer to that array to BotConstructChatMessage for
@@ -16394,19 +16394,19 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 }
 
 //----- (1001D3A0) --------------------------------------------------------
-int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3)
+int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str)
 {
-  /* Original asm at .text 0x1001d3a0 reuses the function's own `a2` argument
+  /* Original asm at .text 0x1001d3a0 reuses the function's own `node` argument
    * (the state name pointer) as the 3rd %s in sprintf — it was already on
    * the stack from the function entry, and the caller passed string
    * literals like aSeekLtg/aSeekNbg cast to int.  IDA misread this as
    * "v6 uninitialised" and invented a separate local.  On 64-bit, the
    * `(int)aSeekLtg` casts at call sites truncated the pointer and made
-   * sprintf's strlen() segfault.  Restore the original semantics: a2 is
+   * sprintf's strlen() segfault.  Restore the original semantics: node is
    * the state name string. */
 
   sprintf(&byte_10064A80[144 * dword_100644A0], "%s at %2.1f entered %s: %s\n",
-          (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), a2, a3);
+          (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), node, str);
   return ++dword_100644A0;
 }
 
@@ -20689,7 +20689,7 @@ int __cdecl BotGPSToPosition(char *string, float *out)
 }
 
 //----- (10026F10) --------------------------------------------------------
-int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
+int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
 {
   int v3; // eax
   int v4; // ebx
@@ -20771,7 +20771,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *a2)
   bot_match_t v74; // [esp+4FCh] [ebp-F0h] BYREF
 
   v64.type = 0;
-  if ( !BotFindMatch(a2, &v64, 7) )
+  if ( !BotFindMatch(message, &v64, 7) )
     return 0;
   switch ( v64.type )
   {
@@ -22084,7 +22084,7 @@ void __cdecl BotDumpCharacter(int *list)
 }
 
 //----- (10029EB0) --------------------------------------------------------
-bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
+bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 {
   bot_character_t *v2; // ebx
   bot_characteristic_t *pairs; // (pairs base)
@@ -22109,7 +22109,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2)
 
   v2 = 0;
   pairs = 0;
-  strncpy(Destination, Source, 0x104u);
+  strncpy(Destination, charfile, 0x104u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
@@ -24120,7 +24120,7 @@ void __cdecl BotDumpInitialChat(chatlist_t *list)
 }
 
 //----- (1002D8A0) --------------------------------------------------------
-void *__cdecl BotLoadInitialChat(char *a1, char *a2)
+void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
 {
 #if BOTLIB_NEED_SIDEBAND
   /* 64-bit-safe rewrite: instead of building a single contiguous heap
@@ -24136,9 +24136,9 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
   int            found;
   int            v11;
 
-  if ( !sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(chatfile, &file_ref) )
   {
-    botimport.Print(PRT_ERROR, "couldn't find %s\n", a1);
+    botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
   }
 
@@ -24175,7 +24175,7 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
       BotFreeChatTree(list);
       return 0;
     }
-    if ( !strcmp(token, a2) )
+    if ( !strcmp(token, chatname) )
     {
       found = 1;
       while ( PC_ExpectAnyToken(src, (intptr_t)token) )
@@ -24228,14 +24228,14 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
       FreeSource(src);
       if ( !found )
       {
-        botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
+        botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", chatname, file_ref.path);
         BotFreeChatTree(list);
         return 0;
       }
       if ( file_ref.filelen )
-        botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
+        botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", chatname, file_ref.path, chatfile);
       else
-        botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, a1);
+        botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", chatname, chatfile);
       BotCheckInitialChatIntegrety((chatlist_t *)list);
       return (int *)list;
     }
@@ -24266,7 +24266,7 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
   FreeSource(src);
   if ( !found )
   {
-    botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
+    botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", chatname, file_ref.path);
     BotFreeChatTree(list);
     return 0;
   }
@@ -24289,9 +24289,9 @@ void *__cdecl BotLoadInitialChat(char *a1, char *a2)
   ptr   = 0;
   list  = 0;
   found = 0;
-  if ( !sub_10041F60(a1, &file_ref) )
+  if ( !sub_10041F60(chatfile, &file_ref) )
   {
-    botimport.Print(PRT_ERROR, "couldn't find %s\n", a1);
+    botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
   }
   size = 0;
@@ -24326,7 +24326,7 @@ while ( PC_ReadTokenHandle(src, token) )
       FreeSource(src);
       return 0;
     }
-    if ( !strcmp(token, a2) )
+    if ( !strcmp(token, chatname) )
     {
       found = 1;
       while ( 1 )
@@ -24410,14 +24410,14 @@ while ( PC_ReadTokenHandle(src, token) )
     FreeSource(src);
     if ( !found )
     {
-      botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", a2, file_ref.path);
+      botimport.Print(PRT_ERROR, "couldn't find chat %s in %s\n", chatname, file_ref.path);
       return 0;
     }
   }
   if ( file_ref.filelen )
-    botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, a1);
+    botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", chatname, file_ref.path, chatfile);
   else
-    botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, a1);
+    botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", chatname, chatfile);
   BotCheckInitialChatIntegrety(list);
   return list;
 #endif
@@ -24486,23 +24486,23 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
 }
 
 //----- (1002DFF0) --------------------------------------------------------
-int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *a2, char *a3)
+int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname)
 {
   void *v3; // eax
 
   BotFreeChatFile(cs);
-  v3 = BotLoadInitialChat(a2, a3);
+  v3 = BotLoadInitialChat(chatfile, chatname);
   BotChatDumpSlot(cs) = v3;
   if ( !v3 )
   {
-    botimport.Print(PRT_FATAL, "couldn't load chat %s from %s\n", a3, a2);
+    botimport.Print(PRT_FATAL, "couldn't load chat %s from %s\n", chatname, chatfile);
     return 27;
   }
   return 0;
 }
 
 //----- (1002E060) --------------------------------------------------------
-void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5)
+void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, int mcontext, bot_chatvar_t *vars, int vcontext)
 {
   int num;
   int len;
@@ -24512,7 +24512,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
   char *ptr;
   char temp[152];
 
-  msgptr = (char *)a2;
+  msgptr = (char *)message;
   outputbuf = (char *)cs + 20;
   len = 0;
   while ( *msgptr )
@@ -24531,7 +24531,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
             ++msgptr;
           if ( num > 10 )
           {
-            botimport.Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", a2, num);
+            botimport.Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", message, num);
             return;
           }
           if ( vars[num].str )
@@ -24539,10 +24539,10 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
             for ( i = 0; i < vars[num].len; ++i )
               temp[i] = vars[num].str[i];
             temp[i] = 0;
-            BotReplaceSynonyms(temp, a5);
+            BotReplaceSynonyms(temp, vcontext);
             if ( len + strlen(temp) >= 150 )
             {
-              botimport.Print(PRT_ERROR, "BotConstructChat: message %s too long\n", a2);
+              botimport.Print(PRT_ERROR, "BotConstructChat: message %s too long\n", message);
               return;
             }
             strcpy(&outputbuf[len], temp);
@@ -24564,14 +24564,14 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
           }
           if ( len + strlen(ptr) >= 150 )
           {
-            botimport.Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", a2);
+            botimport.Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", message);
             return;
           }
           strcpy(&outputbuf[len], ptr);
           len += strlen(ptr);
           break;
         default:
-          botimport.Print(PRT_FATAL, "BotConstructChat: message \"%s\" invalid escape char\n", a2);
+          botimport.Print(PRT_FATAL, "BotConstructChat: message \"%s\" invalid escape char\n", message);
           break;
       }
     }
@@ -24580,13 +24580,13 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3
       outputbuf[len++] = *msgptr++;
       if ( len >= 150 )
       {
-        botimport.Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", a2);
+        botimport.Print(PRT_ERROR, "BotConstructChat: message \"%s\" too long\n", message);
         break;
       }
     }
   }
   outputbuf[len] = 0;
-  BotReplaceWeightedSynonyms(outputbuf, a3);
+  BotReplaceWeightedSynonyms(outputbuf, mcontext);
 }
 
 //----- (1002E3B0) --------------------------------------------------------
