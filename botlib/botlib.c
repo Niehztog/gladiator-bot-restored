@@ -4006,21 +4006,21 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 //----- (10006210) --------------------------------------------------------
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum)
 {
-  bsp_link_t *v5; // edi
+  bsp_link_t *link; // edi
   int *v6; // ebx
-  int v7; // eax
-  int v8; // esi
-  bsp_link_t *v9; // eax
+  int nodenum; // eax
+  int leafnum; // esi
+  bsp_link_t *newlink; // eax
   bsp_link_t *v10; // ecx
   _DWORD *v11; // esi
-  aas_plane_t *v12; // ecx
+  aas_plane_t *plane; // ecx
   int v13; // edx
   int v14; // eax
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !dword_100674C0 )
     return 0;
-  v5 = 0;
+  link = 0;
   v6 = &v15[1];
   v15[0] = *(_DWORD *)(48 * modelnum + dword_100674C8 + 36);
   /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
@@ -4033,45 +4033,45 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   {
     if ( --v6 < &v15[0] )
       break;
-    v7 = *v6;
-    if ( v7 < 0 )
+    nodenum = *v6;
+    if ( nodenum < 0 )
     {
-      v8 = -1 - v7;
-      v9 = sub_100031F0();
-      if ( !v9 )
-        return v5;
-      v9->entnum    = entnum;
-      v9->leafnum   = v8;
-      v9->prev_leaf = 0;
-      v9->next_leaf = v5;
-      if ( v5 )
-        v5->prev_leaf = v9;
-      v9->prev_ent  = 0;
-      v9->next_ent  = 0;
-      v5 = v9;
-      v9->next_ent  = dword_10069584[v8];
-      v10 = dword_10069584[v8];
+      leafnum = -1 - nodenum;
+      newlink = sub_100031F0();
+      if ( !newlink )
+        return link;
+      newlink->entnum    = entnum;
+      newlink->leafnum   = leafnum;
+      newlink->prev_leaf = 0;
+      newlink->next_leaf = link;
+      if ( link )
+        link->prev_leaf = newlink;
+      newlink->prev_ent  = 0;
+      newlink->next_ent  = 0;
+      link = newlink;
+      newlink->next_ent  = dword_10069584[leafnum];
+      v10 = dword_10069584[leafnum];
       if ( v10 )
-        v10->prev_ent = v9;
-      dword_10069584[v8] = v9;
+        v10->prev_ent = newlink;
+      dword_10069584[leafnum] = newlink;
     }
     else
     {
-      v11 = (_DWORD *)(dword_10067504 + 28 * v7);
-      v12 = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
-      v13 = v12->type;
+      v11 = (_DWORD *)(dword_10067504 + 28 * nodenum);
+      plane = (aas_plane_t *)(dword_100674F4 + 20 * *v11);
+      v13 = plane->type;
       if ( v13 < 3 )
       {
-        if ( v12->dist <= (float)absmins[v13] )
+        if ( plane->dist <= (float)absmins[v13] )
           v14 = 1;
-        else if ( v12->dist >= (float)absmaxs[v13] )
+        else if ( plane->dist >= (float)absmaxs[v13] )
           v14 = 2;
         else
           v14 = 3;
       }
       else
       {
-        v14 = AAS_BoxOnPlaneSide2(absmins, absmaxs, (float *)v12);
+        v14 = AAS_BoxOnPlaneSide2(absmins, absmaxs, (float *)plane);
       }
       if ( (v14 & 1) != 0 )
         *v6++ = v11[1];
@@ -4079,7 +4079,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
         *v6++ = v11[2];
     }
   }
-  return v5;
+  return link;
 }
 
 //----- (100063D0) --------------------------------------------------------
@@ -9114,22 +9114,22 @@ double __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 //----- (1000F7B0) --------------------------------------------------------
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime)
 {
-  float v4; // st5
-  float v5; // st6
-  float v6; // st6
+  float speed; // st5
+  float control; // st6
+  float newspeed; // st6
 
-  v4 = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
-  if ( v4 != 0.0f )
+  speed = sqrt(vel[0] * vel[0] + vel[1] * vel[1]);
+  if ( speed != 0.0f )
   {
-    if ( v4 < stopspeed )
-      v5 = stopspeed;
+    if ( speed < stopspeed )
+      control = stopspeed;
     else
-      v5 = v4;
-    v6 = v4 - v5 * friction * frametime;
-    if ( v6 < 0.0f )
-      v6 = 0.0f;
-    vel[0] = v6 / v4 * vel[0];
-    vel[1] = v6 / v4 * vel[1];
+      control = speed;
+    newspeed = speed - control * friction * frametime;
+    if ( newspeed < 0.0f )
+      newspeed = 0.0f;
+    vel[0] = newspeed / speed * vel[0];
+    vel[1] = newspeed / speed * vel[1];
   }
 }
 
