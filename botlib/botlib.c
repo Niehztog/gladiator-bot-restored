@@ -10661,7 +10661,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v33; // st7
   float v34; // edx
   float v35; // eax
-  float v36; // st7
+  float dist1; // st7
   float v38; // st7
   float v39; // st6
   float v40; // st6
@@ -10682,16 +10682,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   char *v56; // esi
   char *v57; // eax
   int v58; // edx
-  float v59; // [esp+10h] [ebp-1C0h]
-  float v60; // [esp+10h] [ebp-1C0h]
-  float v61; // [esp+14h] [ebp-1BCh]
-  float v62; // [esp+18h] [ebp-1B8h]
-  float v63; // [esp+1Ch] [ebp-1B4h]
-  float v64; // [esp+20h] [ebp-1B0h]
-  float v65; // [esp+24h] [ebp-1ACh]
+  float x2; // [esp+10h] [ebp-1C0h]
+  float dist2; // [esp+10h] [ebp-1C0h]
+  float x1; // [esp+14h] [ebp-1BCh]
+  float x3; // [esp+18h] [ebp-1B8h]
+  float x4; // [esp+1Ch] [ebp-1B4h]
+  float ground_bestdist; // [esp+20h] [ebp-1B0h]
+  float dist; // [esp+24h] [ebp-1ACh]
   float v66; // [esp+28h] [ebp-1A8h]
   float v67; // [esp+28h] [ebp-1A8h]
-  float v68; // [esp+28h] [ebp-1A8h]
+  float length; // [esp+28h] [ebp-1A8h]
   float v69; // [esp+2Ch] [ebp-1A4h]
   int v70; // [esp+30h] [ebp-1A0h]
   int v71; // [esp+34h] [ebp-19Ch]
@@ -10704,34 +10704,34 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v78; // [esp+50h] [ebp-180h]
   int v79; // [esp+54h] [ebp-17Ch]
   float v80; // [esp+58h] [ebp-178h]
-  float v81; // [esp+5Ch] [ebp-174h]
-  float v82; // [esp+60h] [ebp-170h]
-  float v83; // [esp+64h] [ebp-16Ch]
+  float y3; // [esp+5Ch] [ebp-174h]
+  float y1; // [esp+60h] [ebp-170h]
+  float y4; // [esp+64h] [ebp-16Ch]
   int v84; // [esp+68h] [ebp-168h]
   float v85; // [esp+6Ch] [ebp-164h]
   float v86; // [esp+70h] [ebp-160h]
   int v87; // [esp+74h] [ebp-15Ch]
   float v88; // [esp+78h] [ebp-158h]
   float v89; // [esp+7Ch] [ebp-154h]
-  float v90; // [esp+80h] [ebp-150h]
-  /* Collapsed from {int v91, int v92, int v93} — passed by reference to
+  float y2; // [esp+80h] [ebp-150h]
+  /* Collapsed from {int start, int v92, int v93} — passed by reference to
    * VectorScale, which writes 3 floats.  GCC was laying these three ints out
-   * in REVERSE order (v91 at +0x120, v92 at +0x11c, v93 at +0x118 in our
+   * in REVERSE order (start at +0x120, v92 at +0x11c, v93 at +0x118 in our
    * compiled disasm), so VectorScale read garbage for v92/v93 and wrote back
    * to unrelated stack slots.  Collapse to vec3_t. */
-  vec3_t v91; // [esp+84h] [ebp-14Ch] BYREF — was v91/v92/v93 int triplet
-  /* Same root cause as v91/v92/v93 — VectorScale destination. */
-  vec3_t v94; // [esp+90h] [ebp-140h] BYREF — was v94/v95/v96 int triplet
-  /* Collapsed from {float v97, v98, v99} — same root cause as v91/v94/v101:
+  vec3_t start; // [esp+84h] [ebp-14Ch] BYREF — was start/v92/v93 int triplet
+  /* Same root cause as start/v92/v93 — VectorScale destination. */
+  vec3_t end; // [esp+90h] [ebp-140h] BYREF — was end/v95/v96 int triplet
+  /* Collapsed from {float v97, v98, v99} — same root cause as start/end/v101:
    * CrossProduct(up, v101, &v97) writes 3 floats expecting a contiguous vec3.
    * GCC may insert padding between separate float BYREF locals, so the writes
    * land in different stack slots from the reads, yielding garbage values
    * (e.g. v98 = 1.84e27). Collapse into a vec3_t to enforce contiguity. */
-  vec3_t v97_vec; // [esp+9Ch] [ebp-134h] BYREF
-#define v97 v97_vec[0]
-#define v98 v97_vec[1]
-#define v99 v97_vec[2]
-  float v100; // [esp+A8h] [ebp-128h]
+  vec3_t ort; // [esp+9Ch] [ebp-134h] BYREF
+#define v97 ort[0]
+#define v98 ort[1]
+#define v99 ort[2]
+  float water_bestdist; // [esp+A8h] [ebp-128h]
   /* Collapsed from {float v101, int v102, int v103} per uninit-read root-cause
    * analysis: GCC may insert padding between mixed-type BYREF locals,
    * breaking the vec3 contract for CrossProduct(v143, up, &v101). */
@@ -10742,24 +10742,24 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int v107; // [esp+C4h] [ebp-10Ch]
   float v108; // [esp+C8h] [ebp-108h]
   float v109; // [esp+CCh] [ebp-104h]
-  /* Collapsed from {int v110, float v111, float v112} per uninit-read root-cause
-   * analysis: v110 is passed by reference to VectorMA which writes 3 floats.
+  /* Collapsed from {int ground_bestend, float v111, float v112} per uninit-read root-cause
+   * analysis: ground_bestend is passed by reference to VectorMA which writes 3 floats.
    * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
-  vec3_t v110; // [esp+D0h] [ebp-100h] BYREF — was v110/v111/v112 mixed triplet
+  vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
   int v113; // [esp+DCh] [ebp-F4h]
   unsigned int v114; // [esp+E0h] [ebp-F0h]
   char *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
-  int v116; // [esp+E8h] [ebp-E8h]
+  int ground_foundreach; // [esp+E8h] [ebp-E8h]
   int k; // [esp+ECh] [ebp-E4h]
-  int v118; // [esp+F0h] [ebp-E0h]
+  int water_foundreach; // [esp+F0h] [ebp-E0h]
   int i; // [esp+F4h] [ebp-DCh]
-  float v120[3]; // [esp+F8h] [ebp-D8h] BYREF
-  /* Collapsed from {int v121, int v122, float v123} per uninit-read root-cause
-   * analysis: v121 is passed by reference to VectorMA which writes 3 floats.
+  float ground_bestnormal[3]; // [esp+F8h] [ebp-D8h] BYREF
+  /* Collapsed from {int ground_beststart, int v122, float v123} per uninit-read root-cause
+   * analysis: ground_beststart is passed by reference to VectorMA which writes 3 floats.
    * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
-  vec3_t v121; // [esp+104h] [ebp-CCh] BYREF — was v121/v122/v123 mixed triplet
-  float v124; // [esp+110h] [ebp-C0h]
-  float v125; // [esp+114h] [ebp-BCh]
+  vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
+  float ground_bestlength; // [esp+110h] [ebp-C0h]
+  float water_bestlength; // [esp+114h] [ebp-BCh]
   char *v126; // [esp+118h] [ebp-B8h]
   char *v127; // [esp+11Ch] [ebp-B4h]
   int v128; // [esp+120h] [ebp-B0h]
@@ -10768,16 +10768,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int v135; // [esp+140h] [ebp-90h]
   float v136; // [esp+144h] [ebp-8Ch]
   float v137; // [esp+148h] [ebp-88h]
-  float v138[3]; // [esp+14Ch] [ebp-84h] BYREF
-  float v139[3]; // [esp+158h] [ebp-78h] BYREF
-  float v140[3]; // [esp+164h] [ebp-6Ch] BYREF
-  /* Original MSVC layout: int v141[2] @ ebp-60h + float v142 @ ebp-58h were a
+  float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
+  float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
+  float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
+  /* Original MSVC layout: int testpoint[2] @ ebp-60h + float v142 @ ebp-58h were a
    * contiguous vec3 used as VectorMA destination and trace point for
    * AAS_PointAreaNum.  GCC won't pack int[2] adjacent to a separate float, so
-   * VectorMA's third write overruns v141 into stack padding, v142 is read
+   * VectorMA's third write overruns testpoint into stack padding, v142 is read
    * uninitialized, and the z decrement has no effect on the trace point.
    * Collapsed to a vec3_t. */
-  vec3_t v141; // [esp+170h] [ebp-60h] BYREF — was int v141[2] + float v142
+  vec3_t testpoint; // [esp+170h] [ebp-60h] BYREF — was int testpoint[2] + float v142
   float edgevec[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
 
@@ -10802,12 +10802,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     {
       {
         v7 = *((_DWORD *)area1 + 1);
-        v116 = 0;
-        v64 = 99999.0f;
-        v124 = 0.0f;
-        v118 = 0;
-        v100 = 99999.0f;
-        v125 = 0.0f;
+        ground_foundreach = 0;
+        ground_bestdist = 99999.0f;
+        ground_bestlength = 0.0f;
+        water_foundreach = 0;
+        water_bestdist = 99999.0f;
+        water_bestlength = 0.0f;
         i = 0;
         if ( v7 <= 0 )
           return 0;
@@ -10850,7 +10850,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                 CrossProduct(edgevec, up, normal);
                 VectorNormalize(normal);
                 v18 = 0;
-                v65 = normal[2] * *(float *)&v71 + normal[1] * *(float *)&v70 + normal[0] * v69;
+                dist = normal[2] * *(float *)&v71 + normal[1] * *(float *)&v70 + normal[0] * v69;
                 if ( *(int *)(area2 + 4) > 0 )
                 {
                   v19 = area2;
@@ -10875,43 +10875,43 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                         v25 = (float)v80 * (float)normal[2]
                             + (float)*(float *)&v79 * (float)normal[1]
                             + (float)v78 * (float)normal[0]
-                            - (float)v65;
+                            - (float)dist;
                         if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
                           v26 = (float)v74 * (float)normal[2]
                               + (float)v73 * (float)normal[1]
                               + (float)v72 * (float)normal[0]
-                              - (float)v65;
+                              - (float)dist;
                           if ( v26 >= -0.1 && v26 <= 0.1 )
                           {
-                            CrossProduct(up, normal, v97_vec);
-                            v81 = v80;
-                            v82 = *(float *)&v71;
-                            v90 = v77;
+                            CrossProduct(up, normal, ort);
+                            y3 = v80;
+                            y1 = *(float *)&v71;
+                            y2 = v77;
                             v27 = (float)v99 * (float)v99
                                 + (float)v98 * (float)v98
                                 + (float)v97 * (float)v97;
-                            v83 = v74;
-                            v61 = ((float)v99 * (float)*(float *)&v71
+                            y4 = v74;
+                            x1 = ((float)v99 * (float)*(float *)&v71
                                  + (float)v98 * (float)*(float *)&v70
                                  + (float)v97 * (float)v69) / v27;
-                            v59 = ((float)v99 * (float)v77
+                            x2 = ((float)v99 * (float)v77
                                  + (float)v98 * (float)v76
                                  + (float)v97 * (float)v75) / v27;
-                            v62 = ((float)v99 * (float)v80
+                            x3 = ((float)v99 * (float)v80
                                  + (float)v98 * (float)*(float *)&v79
                                  + (float)v97 * (float)v78) / v27;
-                            v63 = ((float)v99 * (float)v74
+                            x4 = ((float)v99 * (float)v74
                                  + (float)v98 * (float)v73
                                  + (float)v97 * (float)v72) / v27;
-                            if ( v61 > (float)v59 )
+                            if ( x1 > (float)x2 )
                             {
-                              v28 = v61;
-                              v61 = v59;
-                              v82 = v77;
-                              v59 = v28;
+                              v28 = x1;
+                              x1 = x2;
+                              y1 = v77;
+                              x2 = v28;
                               v29 = v69;
-                              v90 = *(float *)&v71;
+                              y2 = *(float *)&v71;
                               v69 = v75;
                               v30 = *(float *)&v70;
                               *(float *)&v70 = v76;
@@ -10921,14 +10921,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               v76 = v30;
                               v77 = v31;
                             }
-                            if ( v62 > (float)v63 )
+                            if ( x3 > (float)x4 )
                             {
-                              v32 = v62;
-                              v62 = v63;
-                              v81 = v74;
-                              v63 = v32;
+                              v32 = x3;
+                              x3 = x4;
+                              y3 = v74;
+                              x4 = v32;
                               v33 = v78;
-                              v83 = v80;
+                              y4 = v80;
                               v78 = v72;
                               v34 = *(float *)&v79;
                               *(float *)&v79 = v73;
@@ -10938,14 +10938,14 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               v73 = v34;
                               v74 = v35;
                             }
-                            if ( v59 > (float)v62 && v63 > (float)v61 )
+                            if ( x2 > (float)x3 && x4 > (float)x1 )
                             {
                               /* if the two lines fully overlap */
-                              if ( (v61 - 0.5 < v62 && v63 < v59 + 0.5)
-                                  && (v62 - 0.5 < v61 && v59 < v63 + 0.5) )
+                              if ( (x1 - 0.5 < x3 && x4 < x2 + 0.5)
+                                  && (x3 - 0.5 < x1 && x2 < x4 + 0.5) )
                               {
-                                v36 = v81 - v82;
-                                v60 = v83 - v90;
+                                dist1 = y3 - y1;
+                                dist2 = y4 - y2;
                                 *(float *)&v107 = v69;
                                 v108 = *(float *)&v70;
                                 v109 = *(float *)&v71;
@@ -10962,9 +10962,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               else
                               {
                                 /* if the points are equal */
-                                if ( v61 > v62 - 0.1 && v61 < v62 + 0.1 )
+                                if ( x1 > x3 - 0.1 && x1 < x3 + 0.1 )
                                 {
-                                  v36 = v81 - v82;
+                                  dist1 = y3 - y1;
                                   *(float *)&v107 = v69;
                                   v108 = *(float *)&v70;
                                   v109 = *(float *)&v71;
@@ -10972,11 +10972,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   v88 = *(float *)&v79;
                                   v89 = v80;
                                 }
-                                else if ( v61 < (float)v62 )
+                                else if ( x1 < (float)x3 )
                                 {
-                                  v66 = (v62 - v61) * ((float)v90 - (float)v82)
-                                      / (v59 - v61) + (float)v82;
-                                  v36 = (float)v81 - v66;
+                                  v66 = (x3 - x1) * ((float)y2 - (float)y1)
+                                      / (x2 - x1) + (float)y1;
+                                  dist1 = (float)y3 - v66;
                                   *(float *)&v107 = v78;
                                   v108 = *(float *)&v79;
                                   v109 = v66;
@@ -10986,10 +10986,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 }
                                 else
                                 {
-                                  v38 = (v61 - v62) * ((float)v83 - (float)v81)
-                                      / (v63 - v62) + (float)v81;
+                                  v38 = (x1 - x3) * ((float)y4 - (float)y3)
+                                      / (x4 - x3) + (float)y3;
                                   v67 = v38;
-                                  v36 = v38 - (float)v82;
+                                  dist1 = v38 - (float)y1;
                                   *(float *)&v107 = v69;
                                   v108 = *(float *)&v70;
                                   v109 = *(float *)&v71;
@@ -10998,9 +10998,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   v89 = v67;
                                 }
                                 /* if the points are equal */
-                                if ( v59 > v63 - 0.1 && v59 < v63 + 0.1 )
+                                if ( x2 > x4 - 0.1 && x2 < x4 + 0.1 )
                                 {
-                                  v60 = v83 - v90;
+                                  dist2 = y4 - y2;
                                   *(float *)&v104 = v75;
                                   v105 = v76;
                                   v106 = v77;
@@ -11008,11 +11008,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   v85 = v73;
                                   v86 = v74;
                                 }
-                                else if ( v59 < (float)v63 )
+                                else if ( x2 < (float)x4 )
                                 {
-                                  v39 = (v59 - v62) * ((float)v83 - (float)v81)
-                                      / (v63 - v62) + (float)v81;
-                                  v60 = v39 - (float)v90;
+                                  v39 = (x2 - x3) * ((float)y4 - (float)y3)
+                                      / (x4 - x3) + (float)y3;
+                                  dist2 = v39 - (float)y2;
                                   *(float *)&v104 = v75;
                                   v105 = v76;
                                   v106 = v77;
@@ -11022,9 +11022,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 }
                                 else
                                 {
-                                  v40 = (v63 - v61) * ((float)v90 - (float)v82)
-                                      / (v59 - v61) + (float)v82;
-                                  v60 = (float)v83 - v40;
+                                  v40 = (x4 - x1) * ((float)y2 - (float)y1)
+                                      / (x2 - x1) + (float)y1;
+                                  dist2 = (float)y4 - v40;
                                   *(float *)&v104 = v72;
                                   v105 = v73;
                                   v106 = v40;
@@ -11035,83 +11035,83 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               }
                               /* if both distances are pretty much equal
                                * then we take the middle of the points */
-                              if ( v36 > v60 - 1 && v36 < v60 + 1 )
+                              if ( dist1 > dist2 - 1 && dist1 < dist2 + 1 )
                               {
-                                v65 = v36;
-                                v91[0] = *(float *)&v104 + *(float *)&v107;
-                                v91[1] = v105 + v108;
-                                v91[2] = v106 + v109;
-                                VectorScale(v91, 0.5f, v91);
-                                v94[0] = *(float *)&v84 + *(float *)&v87;
-                                v94[1] = v85 + v88;
-                                v94[2] = v86 + v89;
-                                VectorScale(v94, 0.5f, v94);
+                                dist = dist1;
+                                start[0] = *(float *)&v104 + *(float *)&v107;
+                                start[1] = v105 + v108;
+                                start[2] = v106 + v109;
+                                VectorScale(start, 0.5f, start);
+                                end[0] = *(float *)&v84 + *(float *)&v87;
+                                end[1] = v85 + v88;
+                                end[2] = v86 + v89;
+                                VectorScale(end, 0.5f, end);
                               }
-                              else if ( v36 < (float)v60 )
+                              else if ( dist1 < (float)dist2 )
                               {
-                                v65 = v36;
-                                *(int *)&v91[0] = v107;
-                                v91[1] = v108;
-                                v91[2] = v109;
-                                *(int *)&v94[0] = v87;
-                                v94[1] = v88;
-                                v94[2] = v89;
+                                dist = dist1;
+                                *(int *)&start[0] = v107;
+                                start[1] = v108;
+                                start[2] = v109;
+                                *(int *)&end[0] = v87;
+                                end[1] = v88;
+                                end[2] = v89;
                               }
                               else
                               {
-                                v65 = v60;
-                                *(int *)&v91[0] = v104;
-                                v91[1] = v105;
-                                v91[2] = v106;
-                                *(int *)&v94[0] = v84;
-                                v94[1] = v85;
-                                v94[2] = v86;
+                                dist = dist2;
+                                *(int *)&start[0] = v104;
+                                start[1] = v105;
+                                start[2] = v106;
+                                *(int *)&end[0] = v84;
+                                end[1] = v85;
+                                end[2] = v86;
                               }
-                              v140[0] = *(float *)&v84 - *(float *)&v87;
-                              v140[1] = v85 - v88;
-                              v140[2] = v86 - v89;
-                              v68 = VectorLength(v140);
-                              v41 = v65;
+                              dir[0] = *(float *)&v84 - *(float *)&v87;
+                              dir[1] = v85 - v88;
+                              dir[2] = v86 - v89;
+                              length = VectorLength(dir);
+                              v41 = dist;
                               if ( (v126[4] & 4) != 0 )
                               {
-                                if ( v41 < v64 || v64 + 1.0f > v65 && v68 > (float)v124 )
+                                if ( v41 < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
                                 {
-                                  v64 = v65;
-                                  v124 = v68;
-                                  *(int *)&v121[0] = *(int *)&v91[0];
-                                  *(int *)&v121[1] = *(int *)&v91[1];
-                                  v121[2] = v91[2];
+                                  ground_bestdist = dist;
+                                  ground_bestlength = length;
+                                  *(int *)&ground_beststart[0] = *(int *)&start[0];
+                                  *(int *)&ground_beststart[1] = *(int *)&start[1];
+                                  ground_beststart[2] = start[2];
                                   /* Original asm uses integer movs to copy bit patterns from
                                    * normal/v102/v103 (int slots holding cross-product float bits)
-                                   * into v120[0..2].  IDA's `v120[1] = v102` decompile would
+                                   * into ground_bestnormal[0..2].  IDA's `ground_bestnormal[1] = v102` decompile would
                                    * become an int→float conversion (fild) in GCC, corrupting
                                    * the float.  Bit-cast explicitly. */
-                                  *(int *)v120 = *(int *)&normal[0];
-                                  *(int *)&v120[1] = *(int *)&normal[1];
-                                  *(int *)&v120[2] = *(int *)&normal[2];
-                                  v116 = 1;
+                                  *(int *)ground_bestnormal = *(int *)&normal[0];
+                                  *(int *)&ground_bestnormal[1] = *(int *)&normal[1];
+                                  *(int *)&ground_bestnormal[2] = *(int *)&normal[2];
+                                  ground_foundreach = 1;
                                   v113 = v13;
-                                  *(int *)&v110[0] = *(int *)&v94[0];
-                                  v110[1] = v94[1];
-                                  v110[2] = v94[2];
+                                  *(int *)&ground_bestend[0] = *(int *)&end[0];
+                                  ground_bestend[1] = end[1];
+                                  ground_bestend[2] = end[2];
                                 }
                               }
-                              else if ( v41 < v100 || v100 + 1.0f > v65 && v68 > (float)v125 )
+                              else if ( v41 < water_bestdist || water_bestdist + 1.0f > dist && length > (float)water_bestlength )
                               {
-                                v100 = v65;
-                                v125 = v68;
-                                v135 = *(int *)&v91[0];
-                                v136 = v91[1];
-                                v137 = v91[2];
-                                /* Same bit-pattern preservation as v120 above. */
-                                *(int *)v139 = *(int *)&normal[0];
-                                *(int *)&v139[1] = *(int *)&normal[1];
-                                *(int *)&v139[2] = *(int *)&normal[2];
-                                v118 = 1;
+                                water_bestdist = dist;
+                                water_bestlength = length;
+                                v135 = *(int *)&start[0];
+                                v136 = start[1];
+                                v137 = start[2];
+                                /* Same bit-pattern preservation as ground_bestnormal above. */
+                                *(int *)water_bestnormal = *(int *)&normal[0];
+                                *(int *)&water_bestnormal[1] = *(int *)&normal[1];
+                                *(int *)&water_bestnormal[2] = *(int *)&normal[2];
+                                water_foundreach = 1;
                                 v114 = v13;
-                                *(int *)v138 = *(int *)&v94[0];
-                                *(int *)&v138[1] = *(int *)&v94[1];
-                                *(int *)&v138[2] = *(int *)&v94[2];
+                                *(int *)water_bestend = *(int *)&end[0];
+                                *(int *)&water_bestend[1] = *(int *)&end[1];
+                                *(int *)&water_bestend[2] = *(int *)&end[2];
                               }
                             }
                           }
@@ -11134,7 +11134,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++i;
         }
         while ( i < v43 );
-        if ( v116 && v64 >= 0.0f && v64 < (float)libvar_sv_step->value )
+        if ( ground_foundreach && ground_bestdist >= 0.0f && ground_bestdist < (float)libvar_sv_step->value )
         {
           v44 = (int *)AAS_AllocReachability();
           v45 = v44;
@@ -11144,8 +11144,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *v44 = area2num;
           v44[1] = 0;
           v44[2] = v46;
-          VectorMA(v121, 0.1f, (float *)v120, (float *)(v44 + 3));
-          VectorMA(v110, 5.0f, (float *)v120, (float *)(v45 + 6));
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v44 + 3));
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v45 + 6));
           v45[9] = 2;
           *((_WORD *)v45 + 20) = 1;
           if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
@@ -11161,11 +11161,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++reach_step;
           return 1;
         }
-        if ( v118
-          && (VectorMA((float *)v138, -2.0f, (float *)v139, v141),
-              v141[2] = v141[2] - libvar_sv_maxwaterjump->value,
-              (aasworld.areasettings[AAS_PointAreaNum(v141)].areaflags & 4) != 0)
-          && libvar_sv_maxwaterjump->value + 24.0f > v100 )
+        if ( water_foundreach
+          && (VectorMA((float *)water_bestend, -2.0f, (float *)water_bestnormal, testpoint),
+              testpoint[2] = testpoint[2] - libvar_sv_maxwaterjump->value,
+              (aasworld.areasettings[AAS_PointAreaNum(testpoint)].areaflags & 4) != 0)
+          && libvar_sv_maxwaterjump->value + 24.0f > water_bestdist )
         {
           v48 = area1num;
           v49 = area2num;
@@ -11184,7 +11184,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             *(float *)(v50 + 20) = v53;
             *(_DWORD *)v50 = area2num;
             *(_DWORD *)(v50 + 4) = 0;
-            VectorMA((float *)v138, 15.0f, (float *)v139, v50 + 24);
+            VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50 + 24);
             *(_DWORD *)(v50 + 36) = 9;
             *(_WORD *)(v50 + 40) = 700;
             ((aas_reachabilitynode_t *)v50)->next = areareachability[area1num];
@@ -11198,11 +11198,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v49 = area2num;
           v48 = area1num;
         }
-        if ( !v116 )
+        if ( !ground_foundreach )
           return 0;
-        if ( v64 > 0.0f
-          && v64 < (float)libvar_sv_maxbarrier->value
-          && (!v118 || v64 - v100 < 16.0f)
+        if ( ground_bestdist > 0.0f
+          && ground_bestdist < (float)libvar_sv_maxbarrier->value
+          && (!water_foundreach || ground_bestdist - water_bestdist < 16.0f)
           && !AAS_AreaCrouch(v48)
           && !AAS_AreaCrouch(v49) )
         {
@@ -11213,8 +11213,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v54[2] = v113;
           *v54 = v49;
           v54[1] = 0;
-          VectorMA(v121, 0.1f, (float *)v120, (float *)(v54 + 3));
-          VectorMA(v110, 5.0f, (float *)v120, (float *)(v55 + 6));
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v54 + 3));
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
           ((aas_reachabilitynode_t *)v55)->next = (aas_reachabilitynode_t *)areareachability[v48];
@@ -11222,9 +11222,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++reach_barrier;
           return 1;
         }
-        if ( v64 >= 0.0f )
+        if ( ground_bestdist >= 0.0f )
           return 0;
-        if ( -libvar_sv_step->value < v64 )
+        if ( -libvar_sv_step->value < ground_bestdist )
         {
           v56 = AAS_AllocReachability();
           if ( !v56 )
@@ -11232,8 +11232,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *(_DWORD *)(v56 + 8) = v113;
           *(_DWORD *)v56 = v49;
           *(_DWORD *)(v56 + 4) = 0;
-          VectorMA(v121, 0.1f, (float *)v120, v56 + 12);
-          VectorMA(v110, 5.0f, (float *)v120, v56 + 24);
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56 + 12);
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56 + 24);
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
           ((aas_reachabilitynode_t *)v56)->next = areareachability[v48];
@@ -11242,16 +11242,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           return 1;
         }
         v114 = -(int)AAS_FallDamageDistance();
-        if ( (float)(int)v114 < v64 || AAS_AreaSwim(v49) )
+        if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(v49) )
         {
-          VectorMA(v110, 2.0f, (float *)v120, v110);
-          v91[2] = v121[2];
-          v91[0] = v110[0];
-          v94[0] = v110[0];
-          v91[1] = v110[1];
-          v94[1] = v110[1];
-          v94[2] = v110[2] + 4.0f;
-          trace = AAS_TraceClientBBox(v91, v94, 2, -1);
+          VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
+          start[2] = ground_beststart[2];
+          start[0] = ground_bestend[0];
+          end[0] = ground_bestend[0];
+          start[1] = ground_bestend[1];
+          end[1] = ground_bestend[1];
+          end[2] = ground_bestend[2] + 4.0f;
+          trace = AAS_TraceClientBBox(start, end, 2, -1);
           if ( !trace.startsolid && trace.fraction >= 1.0 )
           {
             trace.endpos[2] = trace.endpos[2] + 1.0f;
@@ -11264,12 +11264,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                 *(_DWORD *)v57 = v49;
                 *(_DWORD *)(v57 + 4) = 0;
                 *(_DWORD *)(v57 + 8) = v58;
-                *(float *)(v57 + 12) = v121[0];
-                *(float *)(v57 + 16) = v121[1];
-                *(float *)(v57 + 20) = v121[2];
-                *(float *)(v57 + 24) = v110[0];
-                *(float *)(v57 + 28) = v110[1];
-                *(float *)(v57 + 32) = v110[2];
+                *(float *)(v57 + 12) = ground_beststart[0];
+                *(float *)(v57 + 16) = ground_beststart[1];
+                *(float *)(v57 + 20) = ground_beststart[2];
+                *(float *)(v57 + 24) = ground_bestend[0];
+                *(float *)(v57 + 28) = ground_bestend[1];
+                *(float *)(v57 + 32) = ground_bestend[2];
                 *(_DWORD *)(v57 + 36) = 7;
                 *(_WORD *)(v57 + 40) = 100;
                 ((aas_reachabilitynode_t *)v57)->next = areareachability[v48];
