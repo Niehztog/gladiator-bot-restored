@@ -17598,15 +17598,15 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 
   int v2; // eax
   int v3; // eax
-  int v4; // esi
+  int areanum; // esi
   int v5; // ecx
   int v6; // edx
   int v7; // eax
   int v8; // edi
   bot_state_t *v9; // [esp-4h] [ebp-16Ch]
   float v10; // [esp+Ch] [ebp-15Ch]
-  bot_moveresult_t v11; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
-  int v12[31]; // [esp+40h] [ebp-128h] BYREF
+  bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
+  int entinfo[31]; // [esp+40h] [ebp-128h] BYREF
   bot_moveresult_t v13; // [esp+BCh] [ebp-ACh] BYREF (was char[48]; BotAttackMove output buffer)
 
   if ( BotIsObserver(bs) )
@@ -17631,8 +17631,8 @@ LABEL_9:
     AIEnter_Seek_LTG(v9);
     return 0;
   }
-  *(aas_entityinfo_t *)v12 = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710(v12) )
+  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
+  if ( sub_10021710(entinfo) )
   {
     v2 = BotChat_Kill((int *)bs);
     v9 = bs;
@@ -17645,16 +17645,16 @@ LABEL_9:
   }
   else
   {
-    v3 = AAS_PointAreaNum(&v12[4]);
-    v4 = v3;
+    v3 = AAS_PointAreaNum(&entinfo[4]);
+    areanum = v3;
     if ( v3 && AAS_AreaReachability(v3) )
     {
-      v5 = v12[5];
-      v6 = v12[6];
-      (*(int *)&bs->lastenemyorigin[0]) = v12[4];
+      v5 = entinfo[5];
+      v6 = entinfo[6];
+      (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
       (*(int *)&bs->lastenemyorigin[1]) = v5;
       (*(int *)&bs->lastenemyorigin[2]) = v6;
-      bs->lastenemyareanum = v4;
+      bs->lastenemyareanum = areanum;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
     if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
@@ -17668,13 +17668,13 @@ LABEL_9:
       BotChooseBestFightWeapon(BotWS(bs));
       sub_100215E0(bs);
       BotBattleUseItems(bs);
-      v11 = *BotAttackMove(&v13, (intptr_t)bs, v8);
-      if ( v11.failure )
+      moveresult = *BotAttackMove(&v13, (intptr_t)bs, v8);
+      if ( moveresult.failure )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
         bs->ltg_time = 0.0f;
       }
-      BotAIBlocked(bs, &v11, 0);
+      BotAIBlocked(bs, &moveresult, 0);
       BotAimAtEnemy(bs);
       BotCheckAttack(bs);
       if ( BotWantsToRetreat((int *)bs) )
@@ -17713,10 +17713,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   int v7; // eax
   int v8; // ecx
   int v9; // [esp+Ch] [ebp-B4h]
-  vec3_t v10; // [esp+10h] [ebp-B0h] BYREF
-  vec3_t v11; // [esp+1Ch] [ebp-A4h] BYREF
-  float v12[14]; // [esp+28h] [ebp-98h] BYREF
-  bot_moveresult_t v13; // [esp+60h] [ebp-60h] BYREF
+  vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
+  vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
+  float goal[14]; // [esp+28h] [ebp-98h] BYREF
+  bot_moveresult_t moveresult; // [esp+60h] [ebp-60h] BYREF
   bot_moveresult_t v14; // [esp+90h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
@@ -17769,20 +17769,20 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   v3 = bs->enemy;
   v4 = bs->lastenemyareanum;
-  v12[0] = bs->lastenemyorigin[0];
-  *(int *)&v12[10] = v3;
+  goal[0] = bs->lastenemyorigin[0];
+  *(int *)&goal[10] = v3;
   v5 = *(int *)&bs->lastenemyorigin[1];
-  *(int *)&v12[3] = v4;
+  *(int *)&goal[3] = v4;
   v6 = *(int *)&bs->lastenemyorigin[2];
-  *(int *)&v12[1] = v5;
-  *(int *)&v12[2] = v6;
-  v12[4] = -8.0;
-  v12[5] = -8.0;
-  v12[6] = -8.0;
-  v12[7] = 8.0;
-  v12[8] = 8.0;
-  v12[9] = 8.0;
-  if ( BotTouchingGoal(bs->origin, v12) )
+  *(int *)&goal[1] = v5;
+  *(int *)&goal[2] = v6;
+  goal[4] = -8.0;
+  goal[5] = -8.0;
+  goal[6] = -8.0;
+  goal[7] = 8.0;
+  goal[8] = 8.0;
+  goal[9] = 8.0;
+  if ( BotTouchingGoal(bs->origin, goal) )
     *(int *)&bs->chase_time = 0;
   // Gladiator inverts Q3's `if (chase_time expired) { seek; return }` guard: the
   // binary tests `AAS_Time() <= chase_time` (chase still valid) and falls through
@@ -17796,7 +17796,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->check_time
     && (bs->check_time = AAS_Time() + 1.0f,
-        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)v12, 500.0)) )
+        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
     BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -17808,37 +17808,37 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     BotUpdateBattleInventory(bs, bs->enemy);
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    v13 = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v2);
-    if ( v13.failure )
+    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+    if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
       bs->ltg_time = 0.0f;
     }
-    BotAIBlocked(bs, &v13, 0);
-    if ( (v13.flags & 3) != 0 )
+    BotAIBlocked(bs, &moveresult, 0);
+    if ( (moveresult.flags & 3) != 0 )
     {
-      v7 = LODWORD(v13.ideal_viewangles[1]);
-      v8 = LODWORD(v13.ideal_viewangles[2]);
-      *(int *)&bs->ideal_viewangles[0] = LODWORD(v13.ideal_viewangles[0]);
+      v7 = LODWORD(moveresult.ideal_viewangles[1]);
+      v8 = LODWORD(moveresult.ideal_viewangles[2]);
+      *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
       *(int *)&bs->ideal_viewangles[1] = v7;
       *(int *)&bs->ideal_viewangles[2] = v8;
     }
     else
     {
-      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v12, v9, (float *)(intptr_t)v11) )
+      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v9, (float *)(intptr_t)target) )
       {
-        VectorSubtract(v11, bs->origin, v10);
-        vectoangles(v10, bs->ideal_viewangles);
+        VectorSubtract(target, bs->origin, dir);
+        vectoangles(dir, bs->ideal_viewangles);
       }
       else
       {
-        vectoangles(v13.movedir, bs->ideal_viewangles);
+        vectoangles(moveresult.movedir, bs->ideal_viewangles);
       }
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
     if ( bs->areanum == bs->lastenemyareanum )
       *(int *)&bs->chase_time = 0;
-    if ( (v13.flags & 8) == 0 )
+    if ( (moveresult.flags & 8) == 0 )
       BotChangeViewAngles(bs, bs->thinktime);
     if ( BotWantsToRetreat((int *)bs) )
       AIEnter_Battle_Retreat(bs);
@@ -26168,57 +26168,57 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
    * the first deref `*(_DWORD *)(reach + 36)` reading the traveltype
    * field. */
   int v3; // ecx
-  int v4; // edi
+  int i; // edi
   int v7; // eax
   float v8; // st7
-  /* v10/v12/v13/v14 are int[3] in IDA decomp; v10[0]/v10[1]/v14[0]/v14[1] are
-   * raw 32-bit copies of float coords.  v12/v13 hold float bit patterns
+  /* org/boxmins/boxmaxs/end are int[3] in IDA decomp; org[0]/org[1]/end[0]/end[1] are
+   * raw 32-bit copies of float coords.  boxmins/boxmaxs hold float bit patterns
    * (mins/maxs).  Retyping to float[3] silently injects int->float conversion
    * on the raw-copy stores. */
-  int v10[3]; // [esp+10h] [ebp-B4h] BYREF
-  vec3_t v11; // [esp+1Ch] [ebp-A8h] BYREF
-  int v12[3]; // [esp+28h] [ebp-9Ch] BYREF
-  int v13[3]; // [esp+34h] [ebp-90h] BYREF
-  int v14[3]; // [esp+40h] [ebp-84h] BYREF
-  _DWORD v15[3]; // [esp+4Ch] [ebp-78h] BYREF
-  _DWORD v16[3]; // [esp+58h] [ebp-6Ch] BYREF
-  _DWORD v17[3]; // [esp+64h] [ebp-60h] BYREF
-  int v18[21]; // [esp+70h] [ebp-54h] BYREF
+  int org[3]; // [esp+10h] [ebp-B4h] BYREF
+  vec3_t angles; // [esp+1Ch] [ebp-A8h] BYREF
+  int boxmins[3]; // [esp+28h] [ebp-9Ch] BYREF
+  int boxmaxs[3]; // [esp+34h] [ebp-90h] BYREF
+  int end[3]; // [esp+40h] [ebp-84h] BYREF
+  _DWORD maxs[3]; // [esp+4Ch] [ebp-78h] BYREF
+  _DWORD modelorigin[3]; // [esp+58h] [ebp-6Ch] BYREF
+  _DWORD mins[3]; // [esp+64h] [ebp-60h] BYREF
+  int trace[21]; // [esp+70h] [ebp-54h] BYREF
 
   v3 = reach->traveltype;
-  memset(v11, 0, sizeof(v11));
-  v12[0] = -1048576000;
-  v12[1] = -1048576000;
-  v12[2] = -1056964608;
-  v13[0] = 1098907648;
-  v13[1] = 1098907648;
-  v13[2] = 1090519040;
+  memset(angles, 0, sizeof(angles));
+  boxmins[0] = -1048576000;
+  boxmins[1] = -1048576000;
+  boxmins[2] = -1056964608;
+  boxmaxs[0] = 1098907648;
+  boxmaxs[1] = 1098907648;
+  boxmaxs[2] = 1090519040;
   if ( v3 == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(reach->facenum, v11, (float *)v17, (float *)v15, (float *)v16);
-    /* Original used pointer arithmetic `v6 = (char *)v16 - origin` then
+    AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, (float *)mins, (float *)maxs, (float *)modelorigin);
+    /* Original used pointer arithmetic `v6 = (char *)modelorigin - origin` then
      * `*(float *)((char *)v5 + (_DWORD)v6)` — the (_DWORD) cast
      * truncates the pointer difference to 32 bits and breaks on
      * 64-bit.  Rewritten with explicit array indexing; preserves the
      * original semantics of comparing origin[i] against
-     * v15[i]+v16[i]+16 and v17[i]+v16[i]-16 for i=0..1. */
-    v4 = 0;
-    while ( *(float *)((char *)v15 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) + 16.0f >= origin[v4]
-         && *(float *)((char *)v17 + 4 * v4) + *(float *)((char *)v16 + 4 * v4) - 16.0f <= origin[v4] )
+     * maxs[i]+modelorigin[i]+16 and mins[i]+modelorigin[i]-16 for i=0..1. */
+    i = 0;
+    while ( *(float *)((char *)maxs + 4 * i) + *(float *)((char *)modelorigin + 4 * i) + 16.0f >= origin[i]
+         && *(float *)((char *)mins + 4 * i) + *(float *)((char *)modelorigin + 4 * i) - 16.0f <= origin[i] )
     {
-      ++v4;
-      if ( v4 >= 2 )
+      ++i;
+      if ( i >= 2 )
       {
         v7 = *(_DWORD *)&origin[1];
         v8 = origin[2] + 24.0f;
-        v10[0] = *(_DWORD *)&origin[0];
-        v14[0] = v10[0];
-        v10[1] = v7;
-        v14[1] = v7;
-        *(float *)&v10[2] = v8;
-        *(float *)&v14[2] = origin[2] - 48.0f;
-        *(bsp_trace_t *)v18 = AAS_Trace((float*)(v10), (float*)v12, (float*)v13, (float*)(v14), entnum, 33619971);
-        return !v18[1] && !v18[0] && v18[20] && AAS_EntityModelNum(v18[20]) == reach->facenum;
+        org[0] = *(_DWORD *)&origin[0];
+        end[0] = org[0];
+        org[1] = v7;
+        end[1] = v7;
+        *(float *)&org[2] = v8;
+        *(float *)&end[2] = origin[2] - 48.0f;
+        *(bsp_trace_t *)trace = AAS_Trace((float*)(org), (float*)boxmins, (float*)boxmaxs, (float*)(end), entnum, 33619971);
+        return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
       }
     }
   }
