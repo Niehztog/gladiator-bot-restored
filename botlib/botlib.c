@@ -26500,19 +26500,19 @@ int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int
 {
   int v3; // edx
   int v4; // eax
-  /* v6 is int[3] in the original IDA decomp; the raw 32-bit copies preserve the
+  /* normdir is int[3] in the original IDA decomp; the raw 32-bit copies preserve the
    * float bit pattern from dir.  Retyping to float[3] silently injects int→float
-   * conversions on the v6[i] = v3/v4/*(_DWORD*) stores, corrupting the swim
+   * conversions on the normdir[i] = v3/v4/*(_DWORD*) stores, corrupting the swim
    * direction (e.g. 0.5f -> ~1.06e9 swim speed).  Verified at .text 0x100318D0. */
-  int v6[3]; // [esp+0h] [ebp-Ch] BYREF
+  int normdir[3]; // [esp+0h] [ebp-Ch] BYREF
 
   v3 = *(int *)&dir[1];
   v4 = *(int *)&dir[2];
-  v6[0] = *(int *)&dir[0];
-  v6[1] = v3;
-  v6[2] = v4;
-  VectorNormalize((float *)v6);
-  EA_Move(ms->client, (float *)v6, speed);
+  normdir[0] = *(int *)&dir[0];
+  normdir[1] = v3;
+  normdir[2] = v4;
+  VectorNormalize((float *)normdir);
+  EA_Move(ms->client, (float *)normdir, speed);
   return 1;
 }
 
@@ -26826,28 +26826,28 @@ bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, bot_movestate_t
 bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t *result; // eax
-  float v4; // [esp+0h] [ebp-48h]
+  float speed; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
-  float v9; // [esp+54h] [ebp+Ch]
+  float dist; // [esp+54h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
-  v9 = VectorNormalize(dir);
+  dist = VectorNormalize(dir);
   BotCheckBlocked(ms, dir, &moveresult);
-  if ( v9 < 7.0f )
+  if ( dist < 7.0f )
   {
     EA_Jump(ms->client);
   }
   else
   {
-    if ( v9 > 60.0f )
-      v9 = 60.0f;
-    v4 = 360.0f - (360.0f - v9 * 6.0f);
-    EA_Move(ms->client, dir, v4);
+    if ( dist > 60.0f )
+      dist = 60.0f;
+    speed = 360.0f - (360.0f - dist * 6.0f);
+    EA_Move(ms->client, dir, speed);
   }
   VectorCopy(dir, moveresult.movedir);
   result = a1;
@@ -26863,7 +26863,7 @@ bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, bot_
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
-  float v10; // [esp+50h] [ebp+8h]
+  float dist; // [esp+50h] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
   if ( ms->velocity[2] < 250.0f )
@@ -26871,11 +26871,11 @@ bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, bot_
     dir[2] = 0.0f;
     dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
-    v10 = VectorNormalize(dir);
+    dist = VectorNormalize(dir);
     BotCheckBlocked(ms, dir, &moveresult);
-    if ( v10 > 60.0f )
-      v10 = 60.0f;
-    v5 = 400.0f - (400.0f - v10 * 6.0f);
+    if ( dist > 60.0f )
+      dist = 60.0f;
+    v5 = 400.0f - (400.0f - dist * 6.0f);
     EA_Move(ms->client, dir, v5);
     VectorCopy(dir, moveresult.movedir);
   }
@@ -27234,7 +27234,7 @@ bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
-  float v11; // [esp+4Ch] [ebp+8h]
+  float dist; // [esp+4Ch] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
   v4 = ms->moveflags;
@@ -27243,9 +27243,9 @@ bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate
     VectorSubtract(reach->start, ms->origin, dir);
     if ( (v4 & 4) == 0 )
       dir[2] = 0.0f;
-    v11 = VectorNormalize(dir);
+    dist = VectorNormalize(dir);
     BotCheckBlocked(ms, dir, &moveresult);
-    if ( v11 < 30.0f )
+    if ( dist < 30.0f )
       EA_Move(ms->client, dir, 200.0);
     else
       EA_Move(ms->client, dir, 400.0);
