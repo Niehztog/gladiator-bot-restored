@@ -5341,7 +5341,7 @@ int AAS_RemoveClusterAreas()
 }
 
 //----- (10008660) --------------------------------------------------------
-int __cdecl AAS_UpdatePortal(int ArgList, int a2)
+int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
 {
   int v2; // eax
   aas_portal_t *v5; // edx
@@ -5349,32 +5349,32 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
 
   for ( v2 = 1; v2 < aasworld.numportals; ++v2 )
   {
-    if ( aasworld.portals[v2].areanum == ArgList )
+    if ( aasworld.portals[v2].areanum == areanum )
       break;
   }
   if ( v2 == aasworld.numportals )
   {
-    AAS_Error("no portal of area %d", ArgList);
+    AAS_Error("no portal of area %d", areanum);
     return 1;
   }
   v5 = &aasworld.portals[v2];
-  if ( v5->frontcluster == a2 )
+  if ( v5->frontcluster == clusternum )
     return 1;
-  if ( v5->backcluster == a2 )
+  if ( v5->backcluster == clusternum )
     return 1;
   if ( !v5->frontcluster )
   {
-    v5->frontcluster = a2;
+    v5->frontcluster = clusternum;
   }
   else if ( !v5->backcluster )
   {
-    v5->backcluster = a2;
+    v5->backcluster = clusternum;
   }
   else
   {
     Log_Write("portal using area %d is seperating more than two clusters",
-              ArgList);
-    aasworld.areasettings[ArgList].contents &= ~8u;
+              areanum);
+    aasworld.areasettings[areanum].contents &= ~8u;
     return 0;
   }
   if ( aasworld.portalindexsize >= 0x10000 )
@@ -5382,8 +5382,8 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
     AAS_Error("AAS_MAX_PORTALINDEXSIZE");
     return 1;
   }
-  aasworld.areasettings[ArgList].cluster = -v2;
-  v8 = &aasworld.clusters[a2];
+  aasworld.areasettings[areanum].cluster = -v2;
+  v8 = &aasworld.clusters[clusternum];
   aasworld.portalindex[v8->firstportal + v8->numreachabilityareas] = v2;
   ++aasworld.portalindexsize;
   ++v8->numreachabilityareas;
@@ -5391,7 +5391,7 @@ int __cdecl AAS_UpdatePortal(int ArgList, int a2)
 }
 
 //----- (100087E0) --------------------------------------------------------
-int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
+int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 {
   int v6; // ebp
   char *v7; // esi
@@ -5402,27 +5402,27 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
   int v14; // esi
   int v15; // eax
 
-  if ( a1 <= 0 || a1 >= aasworld.numareas )
+  if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
     AAS_Error("AAS_FloodClusterAreas_r: areanum out of range");
     return 0;
   }
-  if ( (int)aasworld.areasettings[a1].cluster > 0 )
+  if ( (int)aasworld.areasettings[areanum].cluster > 0 )
   {
-    if ( aasworld.areasettings[a1].cluster != ArgList )
+    if ( aasworld.areasettings[areanum].cluster != clusternum )
     {
-      Log_Write("cluster %d touched cluster %d at area %d", ArgList,
-                aasworld.areasettings[a1].cluster, a1);
+      Log_Write("cluster %d touched cluster %d at area %d", clusternum,
+                aasworld.areasettings[areanum].cluster, areanum);
       return 0;
     }
   }
   else
   {
-    if ( (aasworld.areasettings[a1].contents & 8) != 0 )
-      return AAS_UpdatePortal(a1, ArgList);
-  aasworld.areasettings[a1].cluster = ArgList;
-  aasworld.areasettings[a1].clusterareanum = (aasworld.clusters[ArgList].numareas)++;
-  v7 = &aasworld.areas[a1];
+    if ( (aasworld.areasettings[areanum].contents & 8) != 0 )
+      return AAS_UpdatePortal(areanum, clusternum);
+  aasworld.areasettings[areanum].cluster = clusternum;
+  aasworld.areasettings[areanum].clusterareanum = (aasworld.clusters[clusternum].numareas)++;
+  v7 = &aasworld.areas[areanum];
   v6 = 0;
   if ( *((int *)v7 + 1) > 0 )
   {
@@ -5432,13 +5432,13 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
       v8 = abs(v8);
       v10 = aasworld.faces[v8].frontarea;
       v11 = &aasworld.faces[v8];
-      if ( v10 == a1 )
+      if ( v10 == areanum )
       {
         v12 = *((_DWORD *)v11 + 5);
-        if ( v12 && !AAS_FloodClusterAreas_r(v12, ArgList) )
+        if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
           return 0;
       }
-      else if ( v10 && !AAS_FloodClusterAreas_r(v10, ArgList) )
+      else if ( v10 && !AAS_FloodClusterAreas_r(v10, clusternum) )
       {
         return 0;
       }
@@ -5447,16 +5447,16 @@ int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList)
     while ( v6 < *((int *)v7 + 1) );
   }
   v14 = 0;
-  if ( aasworld.areasettings[a1].numreachableareas > 0 )
+  if ( aasworld.areasettings[areanum].numreachableareas > 0 )
   {
     do
     {
-      v15 = aasworld.reachability[v14 + aasworld.areasettings[a1].firstreachablearea].areanum;
-      if ( v15 && !AAS_FloodClusterAreas_r(v15, ArgList) )
+      v15 = aasworld.reachability[v14 + aasworld.areasettings[areanum].firstreachablearea].areanum;
+      if ( v15 && !AAS_FloodClusterAreas_r(v15, clusternum) )
         return 0;
       ++v14;
     }
-    while ( v14 < aasworld.areasettings[a1].numreachableareas );
+    while ( v14 < aasworld.areasettings[areanum].numreachableareas );
   }
   }
   return 1;
@@ -14217,7 +14217,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cach
 }
 
 //----- (10019A90) --------------------------------------------------------
-aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
+aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags)
 {
   /* Faithful 64-bit-safe transcription of 0x10019A90.
    * Per-area chain head lives at aasworld.clusterareacache[cluster][areaInCluster];
@@ -14229,30 +14229,30 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3)
   aas_routingcache_t *head, *cur;
   int v10; // [esp+18h] [ebp+8h]
 
-  v4 = &aasworld.areasettings[a2];
+  v4 = &aasworld.areasettings[areanum];
   v5 = v4->cluster;
   if ( v5 > 0 )
     v10 = v4->clusterareanum;
   else
-    v10 = aasworld.portals[-v5].clusterareanum[aasworld.portals[-v5].frontcluster != a1];
-  head = aasworld.clusterareacache[a1][v10];
+    v10 = aasworld.portals[-v5].clusterareanum[aasworld.portals[-v5].frontcluster != clusternum];
+  head = aasworld.clusterareacache[clusternum][v10];
   cur  = head;
-  while ( cur && cur->travelflags != a3 )
+  while ( cur && cur->travelflags != travelflags )
     cur = cur->next;
   if ( !cur )
   {
     cur = AAS_AllocRoutingCache(
-        aasworld.clusters[a1].numareas);
-    cur->cluster        = a1;
-    cur->areanum        = a2;
-    VectorCopy(aasworld.areas[a2].center, cur->origin);
+        aasworld.clusters[clusternum].numareas);
+    cur->cluster        = clusternum;
+    cur->areanum        = areanum;
+    VectorCopy(aasworld.areas[areanum].center, cur->origin);
     cur->starttraveltime = 1.0f;
-    cur->travelflags    = a3;
+    cur->travelflags    = travelflags;
     cur->prev           = NULL;
     cur->next           = head;
     if ( head )
       head->prev = cur;
-    aasworld.clusterareacache[a1][v10] = cur;
+    aasworld.clusterareacache[clusternum][v10] = cur;
     AAS_UpdateAreaRoutingCache(cur);
   }
   cur->time = AAS_Time();
@@ -14373,33 +14373,33 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
 }
 
 //----- (10019EB0) --------------------------------------------------------
-aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3)
+aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags)
 {
   /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
    * chain head lives at aasworld.portalcache[area]; entries link via
    * prev/next which must hold full 64-bit pointers. */
   aas_routingcache_t *cur;
 
-  cur = aasworld.portalcache[a2];
+  cur = aasworld.portalcache[areanum];
   while ( cur )
   {
-    if ( cur->travelflags == a3 )
+    if ( cur->travelflags == travelflags )
       break;
     cur = cur->next;
   }
   if ( !cur )
   {
     cur = AAS_AllocRoutingCache(aasworld.numportals);
-    cur->cluster        = a1;
-    cur->areanum        = a2;
-    VectorCopy(aasworld.areas[a2].center, cur->origin);
+    cur->cluster        = clusternum;
+    cur->areanum        = areanum;
+    VectorCopy(aasworld.areas[areanum].center, cur->origin);
     cur->starttraveltime = 1.0f;
-    cur->travelflags    = a3;
+    cur->travelflags    = travelflags;
     cur->prev           = NULL;
-    cur->next           = aasworld.portalcache[a2];
-    if ( aasworld.portalcache[a2] )
-      aasworld.portalcache[a2]->prev = cur;
-    aasworld.portalcache[a2] = cur;
+    cur->next           = aasworld.portalcache[areanum];
+    if ( aasworld.portalcache[areanum] )
+      aasworld.portalcache[areanum]->prev = cur;
+    aasworld.portalcache[areanum] = cur;
     AAS_UpdatePortalRoutingCache(cur);
   }
   cur->time = AAS_Time();
@@ -14647,21 +14647,21 @@ int AAS_RoutingInfo()
 }
 
 //----- (1001A650) --------------------------------------------------------
-int __cdecl AAS_AltRoutingFloodCluster_r(int a1)
+int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
 {
   int i;
   int otherareanum;
   aas_area_t *area;
   aas_face_t *face;
 
-  ((int *)(intptr_t)dword_10066744)[dword_10066730] = a1;
+  ((int *)(intptr_t)dword_10066744)[dword_10066730] = areanum;
   dword_10066730++;
-  *(_DWORD *)(dword_10066740 + 8 * a1) = 0;
-  area = &aasworld.areas[a1];
+  *(_DWORD *)(dword_10066740 + 8 * areanum) = 0;
+  area = &aasworld.areas[areanum];
   for ( i = 0; i < area->numfaces; i++ )
   {
     face = &aasworld.faces[abs(aasworld.faceindex[area->firstface + i])];
-    if ( face->frontarea == a1 )
+    if ( face->frontarea == areanum )
       otherareanum = face->backarea;
     else
       otherareanum = face->frontarea;
