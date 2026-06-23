@@ -8897,7 +8897,7 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
   const void *v5; // esi
-  char v8; // cl
+  char stopevent; // cl
   /* IDA split a vec3 stack local (origin+1z) into three adjacent locals
    * v11/v12/v13 at [ebp-74h]/[ebp-70h]/[ebp-6Ch]; passed as a vec3 via
    * &v11 to AAS_ClientMovementPrediction.  GCC will not preserve that adjacency
@@ -8921,9 +8921,9 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   qmemcpy(move, v5, sizeof(move));
   *(float *)runstart = *(float *)move;
   *(_DWORD *)(runstart + 8) = move[2];
-  v8 = move[16];
+  stopevent = move[16];
   *(_DWORD *)(runstart + 4) = move[1];
-  if ( (v8 & 0x38) != 0 )
+  if ( (stopevent & 0x38) != 0 )
   {
     *(float *)runstart       = start_pos[0];
     *(float *)(runstart + 4) = start_pos[1];
@@ -9745,7 +9745,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   int result; // eax
   _DWORD *optface; // ebp
   int i; // esi
-  int v7; // eax
+  int optedgenum; // eax
   char *v8; // [esp+10h] [ebp-8h]
 
   v2 = abs(facenum);
@@ -9766,10 +9766,10 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   i = 0;
   for ( optface[3] = optimized->edgeindexsize; i < *((int *)v8 + 2); ++i )
   {
-    v7 = AAS_OptimizeEdge(optimized, aasworld.edgeindex[i + *((_DWORD *)v8 + 3)]);
-    if ( v7 )
+    optedgenum = AAS_OptimizeEdge(optimized, aasworld.edgeindex[i + *((_DWORD *)v8 + 3)]);
+    if ( optedgenum )
     {
-      optimized->edgeindex[optface[2] + optface[3]] = v7;
+      optimized->edgeindex[optface[2] + optface[3]] = optedgenum;
       ++optface[2];
       ++optimized->edgeindexsize;
     }
@@ -25896,22 +25896,22 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 {
   float v3; // st7
-  int v4; // edx
+  int i; // edx
   float v5; // st7
   float v6; // st6
   float v7; // st5
   vec3_t maxs; // [esp+14h] [ebp-24h] BYREF — inner-box upper bound (mover.maxs - bot.mins + origin - 4)
   vec3_t mins; // [esp+20h] [ebp-18h] BYREF — inner-box lower bound (mover.mins - bot.maxs + origin + 4)
-  vec3_t v15; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
+  vec3_t boxmins; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
 
-  AAS_PresenceTypeBoundingBox(4, v15, maxs);
+  AAS_PresenceTypeBoundingBox(4, boxmins, maxs);
   v3 = goal[4] - maxs[0];
-  v4 = 0;
+  i = 0;
   mins[1] = goal[5] - maxs[1];
   mins[2] = goal[6] - maxs[2];
-  maxs[0] = goal[7] - v15[0];
-  maxs[1] = goal[8] - v15[1];
-  maxs[2] = goal[9] - v15[2];
+  maxs[0] = goal[7] - boxmins[0];
+  maxs[1] = goal[8] - boxmins[1];
+  maxs[2] = goal[9] - boxmins[2];
   v5 = v3 + *goal;
   mins[1] = mins[1] + goal[1];
   v6 = mins[2] + goal[2];
@@ -25924,8 +25924,8 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
   mins[0] = v5 - -4.0f;
   mins[1] = mins[1] - -4.0f;
   mins[2] = v6;
-  for (v4 = 0; v4 < 3; v4++) {
-    if (origin[v4] < mins[v4] || origin[v4] > maxs[v4])
+  for (i = 0; i < 3; i++) {
+    if (origin[i] < mins[i] || origin[i] > maxs[i])
       return 0;
   }
   return 1;
