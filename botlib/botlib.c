@@ -5465,39 +5465,39 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 //----- (100089E0) --------------------------------------------------------
 int __cdecl AAS_FloodClusterReachabilities(int clusternum)
 {
-  int v1; // edi
+  int i; // edi
   aas_areasettings_t *v2; // ebx
-  aas_areasettings_t *v3; // eax
+  aas_areasettings_t *settings; // eax
   int v4; // esi
-  int v5; // edx
-  aas_reachability_t *v6; // ecx
+  int j; // edx
+  aas_reachability_t *reach; // ecx
 
   if ( aasworld.numareas <= 1 )
     return 1;
   v2 = aasworld.areasettings;
-  for ( v1 = 1; v1 < aasworld.numareas; ++v1 )
+  for ( i = 1; i < aasworld.numareas; ++i )
   {
-    v3 = &v2[v1];
-    if ( v3->cluster )
+    settings = &v2[i];
+    if ( settings->cluster )
       continue;
-    if ( (v3->contents & 8) != 0 )
+    if ( (settings->contents & 8) != 0 )
       continue;
-    v4 = v3->numreachableareas;
-    v5 = 0;
+    v4 = settings->numreachableareas;
+    j = 0;
     if ( v4 <= 0 )
       continue;
-    v6 = &aasworld.reachability[v3->firstreachablearea];
-    while ( (v2[v6->areanum].contents & 8) != 0 || !v2[v6->areanum].cluster )
+    reach = &aasworld.reachability[settings->firstreachablearea];
+    while ( (v2[reach->areanum].contents & 8) != 0 || !v2[reach->areanum].cluster )
     {
-      ++v5;
-      ++v6;
-      if ( v5 >= v4 )
+      ++j;
+      ++reach;
+      if ( j >= v4 )
         goto LABEL_13;
     }
-    if ( !AAS_FloodClusterAreas_r(v1, clusternum) )
+    if ( !AAS_FloodClusterAreas_r(i, clusternum) )
       return 0;
     v2 = aasworld.areasettings;
-    v1 = 0;
+    i = 0;
 LABEL_13:;
   }
   return 1;
@@ -5530,7 +5530,7 @@ int AAS_FindClusters()
   int v1; // eax
   _BYTE *v2; // ecx
   int i; // ebx
-  aas_cluster_t *v4; // esi
+  aas_cluster_t *cluster; // esi
 
   AAS_RemoveClusterAreas();
   v0 = 1;
@@ -5544,14 +5544,14 @@ int AAS_FindClusters()
     {
       if ( v1 >= 0x10000 )
         break;
-      v4 = &aasworld.clusters[v1];
-      v4->numareas = 0;
-      v4->firstportal = aasworld.portalindexsize;
-      v4->numreachabilityareas = 0;
+      cluster = &aasworld.clusters[v1];
+      cluster->numareas = 0;
+      cluster->firstportal = aasworld.portalindexsize;
+      cluster->numreachabilityareas = 0;
       if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
         return 0;
       AAS_NumberClusterPortals(aasworld.numclusters);
-      Log_Write("cluster %d has %d areas", aasworld.numclusters, v4->numareas);
+      Log_Write("cluster %d has %d areas", aasworld.numclusters, cluster->numareas);
       v2 = aasworld.areasettings;
       v1 = ++aasworld.numclusters;
     }
@@ -33196,8 +33196,8 @@ int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
 {
   char *v2; // ecx
   char v3; // al
-  int v4; // ecx
-  int v6; // eax
+  int c; // ecx
+  int val; // eax
   int i; // eax
 
   v2 = (script->script_p + 1);
@@ -33206,76 +33206,76 @@ int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
   switch ( *v2 )
   {
     case '\\':
-      v4 = 92;
+      c = 92;
       break;
     case 'n':
-      v4 = 10;
+      c = 10;
       break;
     case 'r':
-      v4 = 13;
+      c = 13;
       break;
     case 't':
-      v4 = 9;
+      c = 9;
       break;
     case 'v':
-      v4 = 11;
+      c = 11;
       break;
     case 'b':
-      v4 = 8;
+      c = 8;
       break;
     case 'f':
-      v4 = 12;
+      c = 12;
       break;
     case 'a':
-      v4 = 7;
+      c = 7;
       break;
     case '\'':
-      v4 = 39;
+      c = 39;
       break;
     case '"':
-      v4 = 34;
+      c = 34;
       break;
     case '?':
-      v4 = 63;
+      c = 63;
       break;
     case 'x':
       script->script_p = v2 + 1;
-      for ( i = 0, v4 = 0; ; ++i, ++script->script_p )
+      for ( i = 0, c = 0; ; ++i, ++script->script_p )
       {
-        v6 = *script->script_p;
-        if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
-        else if ( v6 >= 'A' && v6 <= 'Z' ) v6 = v6 - 'A' + 10;
-        else if ( v6 >= 'a' && v6 <= 'z' ) v6 = v6 - 'a' + 10;
+        val = *script->script_p;
+        if ( val >= '0' && val <= '9' ) val = val - '0';
+        else if ( val >= 'A' && val <= 'Z' ) val = val - 'A' + 10;
+        else if ( val >= 'a' && val <= 'z' ) val = val - 'a' + 10;
         else break;
-        v4 = (v4 << 4) + v6;
+        c = (c << 4) + val;
       }
       --script->script_p;
-      if ( v4 > 255 )
+      if ( c > 255 )
       {
         ScriptWarning(script, "too large value in escape character");
-        v4 = 255;
+        c = 255;
       }
       break;
     default:
       if ( v3 < '0' || v3 > '9' )
         ScriptError(script, "unknown escape char");
-      for ( i = 0, v4 = 0; ; ++i, ++script->script_p )
+      for ( i = 0, c = 0; ; ++i, ++script->script_p )
       {
-        v6 = *script->script_p;
-        if ( v6 >= '0' && v6 <= '9' ) v6 = v6 - '0';
+        val = *script->script_p;
+        if ( val >= '0' && val <= '9' ) val = val - '0';
         else break;
-        v4 = v4 * 10 + v6;
+        c = c * 10 + val;
       }
       --script->script_p;
-      if ( v4 > 255 )
+      if ( c > 255 )
       {
         ScriptWarning(script, "too large value in escape character");
-        v4 = 255;
+        c = 255;
       }
       break;
   }
   ++script->script_p;
-  *ch = v4;
+  *ch = c;
   return 1;
 }
 
