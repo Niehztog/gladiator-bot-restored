@@ -6511,43 +6511,43 @@ void __cdecl AAS_PrintTravelType(int traveltype)
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor)
 {
   double v4; // st7
-  double v5; // st7
-  /* Collapsed v7/v8/v9 (int+float+float) and v10/v11/v12 (float×3) into
+  double dot; // st7
+  /* Collapsed dir/v8/v9 (int+float+float) and up/v11/v12 (float×3) into
    * vec3_t locals.  CrossProduct/VectorNormalize/VectorMA require 3
    * contiguous floats; separate scalar decls let GCC reorder/pad them. */
-  vec3_t v7;  // [esp+8h] [ebp-3Ch] BYREF
-  vec3_t v10; // [esp+14h] [ebp-30h] BYREF
-  vec3_t v13; // [esp+20h] [ebp-24h] BYREF
-  vec3_t v14; // [esp+2Ch] [ebp-18h] BYREF
-  vec3_t v15; // [esp+38h] [ebp-Ch] BYREF
+  vec3_t dir;  // [esp+8h] [ebp-3Ch] BYREF
+  vec3_t up; // [esp+14h] [ebp-30h] BYREF
+  vec3_t p1; // [esp+20h] [ebp-24h] BYREF
+  vec3_t cross; // [esp+2Ch] [ebp-18h] BYREF
+  vec3_t p2; // [esp+38h] [ebp-Ch] BYREF
 
   v4 = *end - *start;
-  v10[0] = 0.0;
-  v10[1] = 0.0;
-  v10[2] = 1.0;
-  v7[0] = v4;
-  v7[1] = end[1] - start[1];
-  v7[2] = end[2] - start[2];
-  VectorNormalize(v7);
-  v5 = v7[2] * v10[2] + v7[1] * v10[1] + v7[0] * v10[0];
-  if ( v5 > 0.99 || v5 < -0.99 )
+  up[0] = 0.0;
+  up[1] = 0.0;
+  up[2] = 1.0;
+  dir[0] = v4;
+  dir[1] = end[1] - start[1];
+  dir[2] = end[2] - start[2];
+  VectorNormalize(dir);
+  dot = dir[2] * up[2] + dir[1] * up[1] + dir[0] * up[0];
+  if ( dot > 0.99 || dot < -0.99 )
   {
-    v14[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;
-                       v14 is float[3] so use the float literal */
-    v14[1] = 0;
-    v14[2] = 0;
+    cross[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;
+                       cross is float[3] so use the float literal */
+    cross[1] = 0;
+    cross[2] = 0;
   }
   else
   {
-    CrossProduct(v7, v10, v14);
+    CrossProduct(dir, up, cross);
   }
-  VectorMA((float *)end, -6.0, v7, (float *)v13);
-  VectorCopy(v13, v15);
-  VectorMA((float *)v13, 6.0, (float *)v14, (float *)v13);
-  VectorMA((float *)v15, -6.0, (float *)v14, (float *)v15);
+  VectorMA((float *)end, -6.0, dir, (float *)p1);
+  VectorCopy(p1, p2);
+  VectorMA((float *)p1, 6.0, (float *)cross, (float *)p1);
+  VectorMA((float *)p2, -6.0, (float *)cross, (float *)p2);
   AAS_DebugLine(start, end, linecolor);
-  AAS_DebugLine(v13, end, arrowcolor);
-  AAS_DebugLine(v15, end, arrowcolor);
+  AAS_DebugLine(p1, end, arrowcolor);
+  AAS_DebugLine(p2, end, arrowcolor);
 }
 
 //----- (1000A5E0) --------------------------------------------------------
@@ -26392,53 +26392,53 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
   float v6; // st7
   char v8; // al
-  float v9; // [esp+10h] [ebp-64h]
-  /* IDA split two vec3 stack locals (v10, v13) into single ints / floats and
-   * dropped the per-component stores for v10.  Asm at .text 0x10031450 sets
+  float startz; // [esp+10h] [ebp-64h]
+  /* IDA split two vec3 stack locals (end, start) into single ints / floats and
+   * dropped the per-component stores for end.  Asm at .text 0x10031450 sets
    * all three components of both vectors before every AAS_TraceClientBBox /
-   * bi_PointContents call.  Without the missing v10[1]/v10[2] stores the
+   * bi_PointContents call.  Without the missing end[1]/end[2] stores the
    * trace's end vector contains uninitialized stack garbage — the trace
-   * returns a near-random v18, BotTravel_Walk then issues
-   * `speed = 2 * v18`, so the bot crawls at 16 u/s and hitches every couple
+   * returns a near-random dist, BotTravel_Walk then issues
+   * `speed = 2 * dist`, so the bot crawls at 16 u/s and hitches every couple
    * of seconds.  Restored as float[3]; see bot_movement_split_vec3.md. */
-  vec3_t v10; // [esp+14h] [ebp-60h] BYREF — trace end vector
-  vec3_t v13; // [esp+20h] [ebp-54h] BYREF — trace start vector (was v13/v14/v15)
+  vec3_t end; // [esp+14h] [ebp-60h] BYREF — trace end vector
+  vec3_t start; // [esp+20h] [ebp-54h] BYREF — trace start vector (was start/v14/v15)
   aas_trace_t trace; // [esp+2Ch] [ebp-48h] (was int v16[9] + char v17[36] hidden return buffer)
-  float v18; // [esp+78h] [ebp+4h]
+  float dist; // [esp+78h] [ebp+4h]
 
-  VectorCopy(ms->origin, v13);
-  v10[0] = v13[0];
-  v10[1] = v13[1];
-  v10[2] = v13[2] - 60.0f;
-  trace = AAS_TraceClientBBox(v13, v10, 4, -1);
-  v9 = trace.endpos[2] + 1.0f;
-  v18 = 8.0f;
+  VectorCopy(ms->origin, start);
+  end[0] = start[0];
+  end[1] = start[1];
+  end[2] = start[2] - 60.0f;
+  trace = AAS_TraceClientBBox(start, end, 4, -1);
+  startz = trace.endpos[2] + 1.0f;
+  dist = 8.0f;
   while ( 1 )
   {
-    VectorMA(ms->origin, v18, dir, v13);
-    v10[0] = v13[0];
-    v10[1] = v13[1];
-    v13[2] = v9 + 24.0f;
-    v10[2] = v9 - libvar_sv_maxbarrier->value - 24.0f;
-    trace = AAS_TraceClientBBox(v13, v10, 4, -1);
+    VectorMA(ms->origin, dist, dir, start);
+    end[0] = start[0];
+    end[1] = start[1];
+    start[2] = startz + 24.0f;
+    end[2] = startz - libvar_sv_maxbarrier->value - 24.0f;
+    trace = AAS_TraceClientBBox(start, end, 4, -1);
     if ( !trace.startsolid )
     {
-      if ( v9 - libvar_sv_step->value - 8.0f > trace.endpos[2] )
+      if ( startz - libvar_sv_step->value - 8.0f > trace.endpos[2] )
         break;
-      v9 = trace.endpos[2];
+      startz = trace.endpos[2];
     }
-    v6 = v18 + 8.0f;
-    v18 = v6;
+    v6 = dist + 8.0f;
+    dist = v6;
     if ( v6 > 100.0f )
       return 0.0f;
   }
-  v10[0] = trace.endpos[0];
-  v10[1] = trace.endpos[1];
-  v10[2] = trace.endpos[2] - 20.0f;
-  v8 = botimport.PointContents((float *)v10);   /* IDA-dropped: barrier-jump under-water check */
+  end[0] = trace.endpos[0];
+  end[1] = trace.endpos[1];
+  end[2] = trace.endpos[2] - 20.0f;
+  v8 = botimport.PointContents((float *)end);   /* IDA-dropped: barrier-jump under-water check */
   if ( (v8 & 0x20) != 0 )
     return 0.0f;
-  return v18;
+  return dist;
 }
 
 //----- (10031650) --------------------------------------------------------
