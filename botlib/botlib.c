@@ -10070,25 +10070,25 @@ float __cdecl AAS_AreaVolume(int areanum)
 float __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
   float result; // st7
-  int v2; // edi
-  char *v3; // esi
+  int i; // edi
+  char *area; // esi
   int v4; // rax (was __int64 — abs32 idiom)
   int v5; // edx
 
   result = 0.0f;
-  v2 = 0;
-  v3 = &aasworld.areas[areanum];
-  if ( *((int *)v3 + 1) > 0 )
+  i = 0;
+  area = &aasworld.areas[areanum];
+  if ( *((int *)area + 1) > 0 )
   {
     do
     {
-      v4 = aasworld.faceindex[v2 + *((int *)v3 + 2)];
+      v4 = aasworld.faceindex[i + *((int *)area + 2)];
       v5 = abs(v4);
       if ( (aasworld.faces[v5].faceflags & 4) != 0 )
         result = AAS_FaceArea(&aasworld.faces[v5]) + result;
-      ++v2;
+      ++i;
     }
-    while ( v2 < *((int *)v3 + 1) );
+    while ( i < *((int *)area + 1) );
   }
   return result;
 }
@@ -10096,35 +10096,35 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
 //----- (100113F0) --------------------------------------------------------
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
-  int v2; // esi
-  char *v3; // edi
+  int i; // esi
+  char *face; // edi
   int v4i;
-  char *v4;
-  float v6; // [esp+0h] [ebp-10h]
+  char *edge;
+  float scale; // [esp+0h] [ebp-10h]
 
-  v2 = 0;
-  v3 = &aasworld.faces[facenum];
+  i = 0;
+  face = &aasworld.faces[facenum];
   center[2] = 0.0;
   center[1] = 0.0;
   *center = 0.0;
-  if ( *((int *)v3 + 2) > 0 )
+  if ( *((int *)face + 2) > 0 )
   {
     do
     {
-      v4i = aasworld.edgeindex[v2 + *((_DWORD *)v3 + 3)];
-      v4 = &aasworld.edges[abs(v4i)];
-      ++v2;
-      *center = aasworld.vertexes[*(_DWORD *)v4][0] + *center;
-      center[1] = aasworld.vertexes[*(_DWORD *)v4][1] + center[1];
-      center[2] = aasworld.vertexes[*(_DWORD *)v4][2] + center[2];
-      *center = aasworld.vertexes[*(_DWORD *)(v4 + 4)][0] + *center;
-      center[1] = aasworld.vertexes[*(_DWORD *)(v4 + 4)][1] + center[1];
-      center[2] = aasworld.vertexes[*(_DWORD *)(v4 + 4)][2] + center[2];
+      v4i = aasworld.edgeindex[i + *((_DWORD *)face + 3)];
+      edge = &aasworld.edges[abs(v4i)];
+      ++i;
+      *center = aasworld.vertexes[*(_DWORD *)edge][0] + *center;
+      center[1] = aasworld.vertexes[*(_DWORD *)edge][1] + center[1];
+      center[2] = aasworld.vertexes[*(_DWORD *)edge][2] + center[2];
+      *center = aasworld.vertexes[*(_DWORD *)(edge + 4)][0] + *center;
+      center[1] = aasworld.vertexes[*(_DWORD *)(edge + 4)][1] + center[1];
+      center[2] = aasworld.vertexes[*(_DWORD *)(edge + 4)][2] + center[2];
     }
-    while ( v2 < *((int *)v3 + 2) );
+    while ( i < *((int *)face + 2) );
   }
-  v6 = 0.5 / (float)*((int *)v3 + 2);
-  VectorScale((float *)center, v6, (float *)center);
+  scale = 0.5 / (float)*((int *)face + 2);
+  VectorScale((float *)center, scale, (float *)center);
 }
 
 //----- (10011520) --------------------------------------------------------
@@ -26228,23 +26228,23 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 //----- (10030F10) --------------------------------------------------------
 BOOL __cdecl MoverDown(aas_reachability_t* reach)
 {
-  vec3_t v2; // [esp+4h] [ebp-30h] BYREF
-  vec3_t v3; // [esp+10h] [ebp-24h] BYREF
-  vec3_t v4; // [esp+1Ch] [ebp-18h] BYREF
-  vec3_t v5; // [esp+28h] [ebp-Ch] BYREF
+  vec3_t angles; // [esp+4h] [ebp-30h] BYREF
+  vec3_t origin; // [esp+10h] [ebp-24h] BYREF
+  vec3_t maxs; // [esp+1Ch] [ebp-18h] BYREF
+  vec3_t mins; // [esp+28h] [ebp-Ch] BYREF
 
-  v2[0] = 0;
-  v2[1] = 0;
-  v2[2] = 0;
+  angles[0] = 0;
+  angles[1] = 0;
+  angles[2] = 0;
   if ( reach->traveltype != 11 )
     return 0;
-  AAS_BSPModelMinsMaxsOrigin(reach->facenum, v2, (float *)v5, (float *)v4, (float *)v3);
-  if ( !AAS_OriginOfMoverWithModelNum(reach->facenum, v3) )
+  AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, (float *)mins, (float *)maxs, (float *)origin);
+  if ( !AAS_OriginOfMoverWithModelNum(reach->facenum, origin) )
   {
     botimport.Print(PRT_MESSAGE, "no entity with model %d\n", reach->facenum);
     return 0;
   }
-  return v3[2] + v4[2] < reach->start[2];
+  return origin[2] + maxs[2] < reach->start[2];
 }
 
 //----- (10030FE0) --------------------------------------------------------
@@ -26367,22 +26367,22 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 //----- (10031380) --------------------------------------------------------
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 {
-  vec3_t v3; // [esp+4h] [ebp-3Ch] BYREF
-  vec3_t v4; // [esp+10h] [ebp-30h] BYREF
-  vec3_t v5; // [esp+1Ch] [ebp-24h] BYREF
-  vec3_t v6; // [esp+28h] [ebp-18h] BYREF
-  vec3_t v7; // [esp+34h] [ebp-Ch] BYREF
+  vec3_t angles; // [esp+4h] [ebp-3Ch] BYREF
+  vec3_t mins; // [esp+10h] [ebp-30h] BYREF
+  vec3_t maxs; // [esp+1Ch] [ebp-24h] BYREF
+  vec3_t mids; // [esp+28h] [ebp-18h] BYREF
+  vec3_t origin; // [esp+34h] [ebp-Ch] BYREF
 
-  v3[0] = 0;
-  v3[1] = 0;
-  v3[2] = 0;
+  angles[0] = 0;
+  angles[1] = 0;
+  angles[2] = 0;
   if ( reach->traveltype == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(reach->facenum, v3, v4, v5, (float *)v7);
-    *(float *)v6 = v4[0] + v5[0];
-    v6[1] = v4[1] + v5[1];
-    v6[2] = v4[2] + v5[2];
-    VectorMA((float *)v7, 0.5, (float *)v6, bottomcenter);
+    AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, (float *)origin);
+    *(float *)mids = mins[0] + maxs[0];
+    mids[1] = mins[1] + maxs[1];
+    mids[2] = mins[2] + maxs[2];
+    VectorMA((float *)origin, 0.5, (float *)mids, bottomcenter);
     bottomcenter[2] = reach->start[2];
   }
 }
