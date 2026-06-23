@@ -20757,35 +20757,35 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
    * array.  Restored as the proper bot_match_t (chat_state.h) — same byte
    * layout (sizeof=240) but with named fields so the BotFindMatch /
    * StringsMatch / BotMatchVariable interfaces type-check properly. */
-  bot_match_t v64; // [esp+38h] [ebp-5B4h] -- the entire match struct
+  bot_match_t match; // [esp+38h] [ebp-5B4h] -- the entire match struct
   char Destination[152]; // [esp+128h] [ebp-4C4h] BYREF
-  int v68[31]; // [esp+1C0h] [ebp-42Ch] BYREF
+  int entinfo[31]; // [esp+1C0h] [ebp-42Ch] BYREF
   char Source[152]; // [esp+23Ch] [ebp-3B0h] BYREF
   char Buffer[152]; // [esp+2D4h] [ebp-318h] BYREF
   char String2[152]; // [esp+36Ch] [ebp-280h] BYREF
   /* IDA split bot_match_t (240 B) into `char v74[152]` + phantom `int v75`
    * at offset +152 (= match.type).  The original calls sub_10001267 =
    * BotFindMatch, not strncmp.  See chat_state.h. */
-  bot_match_t v74; // [esp+4FCh] [ebp-F0h] BYREF
+  bot_match_t teammatematch; // [esp+4FCh] [ebp-F0h] BYREF
 
-  v64.type = 0;
-  if ( !BotFindMatch(message, &v64, 7) )
+  match.type = 0;
+  if ( !BotFindMatch(message, &match, 7) )
     return 0;
-  switch ( v64.type )
+  switch ( match.type )
   {
     case 1:
-      BotMatchVariable(&v64, 0, Buffer);
+      BotMatchVariable(&match, 0, Buffer);
       v3 = ClientFromName(Buffer);
       if ( v3 == bs->client )
       {
-        bs->botdeathtype = v64.subtype;
+        bs->botdeathtype = match.subtype;
         return 1;
       }
       else
       {
         if ( v3 + 1 != bs->enemy )
           return 1;
-        bs->enemydeathtype = v64.subtype;
+        bs->enemydeathtype = match.subtype;
         bs->killedenemy_time = AAS_Time();
         return 1;
       }
@@ -20794,12 +20794,12 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
       return 1;
     case 3:
     case 4:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      BotMatchVariable(&v64, 3, Source);
-      if ( BotFindMatch(Source, &v74, 16) && v74.type == 100 )
+      BotMatchVariable(&match, 3, Source);
+      if ( BotFindMatch(Source, &teammatematch, 16) && teammatematch.type == 100 )
       {
-        BotMatchVariable(&v64, 0, Destination);
+        BotMatchVariable(&match, 0, Destination);
         v4 = ClientFromName(Destination) + 1;
         v5 = 0;
       }
@@ -20821,18 +20821,18 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
         return 1;
       }
       bs->teamgoal.entitynum = 0;
-      *(aas_entityinfo_t *)v68 = AAS_EntityInfo(v4);
-      if ( v68[0] )
+      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(v4);
+      if ( entinfo[0] )
       {
-        v6 = AAS_PointAreaNum(&v68[4]);
+        v6 = AAS_PointAreaNum(&entinfo[4]);
         v7 = v6;
         if ( v6 )
         {
           if ( AAS_AreaReachability(v6) )
           {
-            v8 = v68[4];
-            v9 = v68[5];
-            bs->teamgoal.origin[2] = *(float *)&v68[6];
+            v8 = entinfo[4];
+            v9 = entinfo[5];
+            bs->teamgoal.origin[2] = *(float *)&entinfo[6];
             bs->teamgoal.entitynum = v4;
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
@@ -20848,7 +20848,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
       }
       if ( bs->teamgoal.entitynum )
         goto LABEL_32;
-      if ( (v64.subtype & 1) == 0 || (BotMatchVariable(&v64, 2, String2), BotGetMessageTeamGoal(bs, String2, &bs->teamgoal)) )
+      if ( (match.subtype & 1) == 0 || (BotMatchVariable(&match, 2, String2), BotGetMessageTeamGoal(bs, String2, &bs->teamgoal)) )
       {
         if ( !bs->teamgoal.entitynum )
         {
@@ -20866,8 +20866,8 @@ LABEL_32:
         v10 = rand();
         v55 = 2 * ((float)(v10 & 0x7FFF) * 0.000030518509f);
         bs->teammessage_time = AAS_Time() + v55;
-        v11 = BotGetTime(&v64);
-        v12 = v64.type;
+        v11 = BotGetTime(&match);
+        v12 = match.type;
         bs->teamgoal_time = v11;
         if ( v12 == 3 )
         {
@@ -20896,9 +20896,9 @@ LABEL_32:
         return 1;
       }
     case 5:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      BotMatchVariable(&v64, 4, String2);
+      BotMatchVariable(&match, 4, String2);
       if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
       {
         BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
@@ -20910,16 +20910,16 @@ LABEL_32:
       v15 = AAS_Time();
       bs->ltgtype = 3;
       bs->teammessage_time = v15 + v56;
-      v16 = BotGetTime(&v64);
+      v16 = BotGetTime(&match);
       bs->teamgoal_time = v16;
       if ( v16 == 0 )
         bs->teamgoal_time = AAS_Time() + 120;
       *(int *)&bs->defendaway_time = 0;
       return 1;
     case 19:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      BotMatchVariable(&v64, 0, Destination);
+      BotMatchVariable(&match, 0, Destination);
       v17 = FindClientByName(Destination);
       v18 = v17 + 1;
       if ( v17 == -1 )
@@ -20930,8 +20930,8 @@ LABEL_64:
         BotEnterChat(v19, bs->client, 1);
         return 1;
       }
-      BotMatchVariable(&v64, 4, String2);
-      if ( (v64.subtype & 0x40) != 0 )
+      BotMatchVariable(&match, 4, String2);
+      if ( (match.subtype & 0x40) != 0 )
       {
         v20 = bs->areanum;
         v21 = *(int *)&bs->origin[0];
@@ -20949,23 +20949,23 @@ LABEL_64:
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
       }
-      else if ( (v64.subtype & 0x20) != 0 )
+      else if ( (match.subtype & 0x20) != 0 )
       {
         if ( v18 == bs->entitynum )
           return 1;
         bs->teamgoal.entitynum = 0;
-        *(aas_entityinfo_t *)v68 = AAS_EntityInfo(v18);
-        if ( v68[0] )
+        *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(v18);
+        if ( entinfo[0] )
         {
-          v27 = AAS_PointAreaNum(&v68[4]);
+          v27 = AAS_PointAreaNum(&entinfo[4]);
           v28 = v27;
           if ( v27 )
           {
             if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v18) )
             {
-              v29 = v68[4];
-              v30 = v68[5];
-              bs->teamgoal.origin[2] = *(float *)&v68[6];
+              v29 = entinfo[4];
+              v30 = entinfo[5];
+              bs->teamgoal.origin[2] = *(float *)&entinfo[6];
               bs->teamgoal.entitynum = v18;
               bs->teamgoal.mins[0] = -8.0f;
               bs->teamgoal.mins[1] = -8.0f;
@@ -20998,7 +20998,7 @@ LABEL_64:
       v25 = AAS_Time();
       bs->ltgtype = 6;
       bs->teammessage_time = v25 + v57;
-      v26 = BotGetTime(&v64);
+      v26 = BotGetTime(&match);
       bs->teamgoal_time = v26;
       if ( v26 == 0 )
         bs->teamgoal_time = AAS_Time() + 300;
@@ -21008,16 +21008,16 @@ LABEL_64:
     case 21:
       if ( !TeamPlayIsOn() )
         return 1;
-      if ( !BotAddressedToBot(bs, &v64) )
+      if ( !BotAddressedToBot(bs, &match) )
         return 1;
-      if ( !BotGetPatrolWaypoints(bs, &v64) )
+      if ( !BotGetPatrolWaypoints(bs, &match) )
         return 1;
       v31 = rand();
       v58 = 2 * ((float)(v31 & 0x7FFF) * 0.000030518509f);
       v32 = AAS_Time();
       bs->ltgtype = 7;
       bs->teammessage_time = v32 + v58;
-      v33 = BotGetTime(&v64);
+      v33 = BotGetTime(&match);
       bs->teamgoal_time = v33;
       if ( v33 != 0 )
         return 1;
@@ -21025,7 +21025,7 @@ LABEL_64:
       bs->teamgoal_time = v34 + 300;
       return 1;
     case 7:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &match) )
         return 1;
       v35 = rand();
       v59 = 2 * ((float)(v35 & 0x7FFF) * 0.000030518509f);
@@ -21036,7 +21036,7 @@ LABEL_64:
       bs->teamgoal_time = v37 + 180;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &v64) )
+      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &match) )
         return 1;
       v38 = rand();
       v60 = 2 * ((float)(v38 & 0x7FFF) * 0.000030518509f);
@@ -21048,16 +21048,16 @@ LABEL_64:
       bs->teamgoal_time = v40 + 120;
       return 1;
     case 12:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      BotMatchVariable(&v64, 3, Source);
+      BotMatchVariable(&match, 3, Source);
       strncpy(bs->teamleader, Source, 0x20u);
       bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
       BotInitialChat(&bs->chatstate, "joinedteam", Source, (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
       return 1;
     case 13:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
       if ( bs->teamleader[0] )
         BotInitialChat(&bs->chatstate, "leftteam", (char *)bs + 4352,
@@ -21068,7 +21068,7 @@ LABEL_64:
     case 20:
       if ( !TeamPlayIsOn() )
         return 1;
-      BotMatchVariable(&v64, 4, Buffer);
+      BotMatchVariable(&match, 4, Buffer);
       origin[2] = 0.0;
       origin[1] = 0.0;
       origin[0] = 0.0;
@@ -21077,14 +21077,14 @@ LABEL_64:
       v41 = AAS_PointAreaNum(origin);
       if ( !v41 )
       {
-        if ( !BotAddressedToBot(bs, &v64) )
+        if ( !BotAddressedToBot(bs, &match) )
           return 1;
         BotInitialChat(&bs->chatstate, "checkpoint_invalid", (char *)0,
                        (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
-      BotMatchVariable(&v64, 5, Buffer);
+      BotMatchVariable(&match, 5, Buffer);
       v42 = BotFindWayPoint(BotCheckpoints(bs), Buffer);
       if ( v42 )
       {
@@ -21105,7 +21105,7 @@ LABEL_64:
       if ( v46 )
         v46->prev = v45;
       BotCheckpoints(bs) = v45;
-      if ( BotAddressedToBot(bs, &v64) )
+      if ( BotAddressedToBot(bs, &match) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", v45->goal.origin[0], v45->goal.origin[1], v45->goal.origin[2]);
         BotInitialChat(&bs->chatstate, "checkpoint_confirm", v45->name,
@@ -21123,10 +21123,10 @@ LABEL_64:
                  "the part of my brain to create formations has been damaged");
       return 1;
     case 16:
-      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &v64) )
+      if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      BotMatchVariable(&v64, 4, Buffer);
-      if ( (v64.subtype & 8) != 0 )
+      BotMatchVariable(&match, 4, Buffer);
+      if ( (match.subtype & 8) != 0 )
         v47 = atof(Buffer) * 9.7536;
       else
         v47 = atof(Buffer) * 32.0;
@@ -21137,7 +21137,7 @@ LABEL_64:
     case 18:
       if ( !TeamPlayIsOn() )
         return 1;
-      if ( !BotAddressedToBot(bs, &v64) )
+      if ( !BotAddressedToBot(bs, &match) )
         return 1;
       v48 = bs->ltgtype;
       if ( v48 != 2 && v48 != 1 )
@@ -21147,8 +21147,8 @@ LABEL_64:
     case 8:
       if ( !TeamPlayIsOn() )
         return 1;
-      BotMatchVariable(&v64, 3, Source);
-      if ( (v64.subtype & 0x80u) != 0 )
+      BotMatchVariable(&match, 3, Source);
+      if ( (match.subtype & 0x80u) != 0 )
       {
         strncpy(bs->formation_teammate, Source, 0x10u);
         bs->formation_teammate[15] = 0;
@@ -21162,14 +21162,14 @@ LABEL_64:
     case 9:
       if ( !TeamPlayIsOn() )
         return 1;
-      BotMatchVariable(&v64, 3, Source);
-      if ( (v64.subtype & 0x80u) == 0 )
+      BotMatchVariable(&match, 3, Source);
+      if ( (match.subtype & 0x80u) == 0 )
       {
         v50 = FindClientByName(Source);
       }
       else
       {
-        BotMatchVariable(&v64, 0, Destination);
+        BotMatchVariable(&match, 0, Destination);
         v50 = FindClientByName(Destination);
       }
       if ( v50 < 0 )
@@ -21180,18 +21180,18 @@ LABEL_64:
       bs->formation_teammate[0] = 0;
       return 1;
     case 11:
-      if ( !BotAddressedToBot(bs, &v64) )
+      if ( !BotAddressedToBot(bs, &match) )
         return 1;
       switch ( bs->ltgtype )
       {
         case 1:
-          BotMatchVariable(&v64, 0, Destination);
+          BotMatchVariable(&match, 0, Destination);
           EasyClientName(bs->teammate - 1, Destination);
           BotInitialChat(&bs->chatstate, "helping", Destination, (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 2:
-          BotMatchVariable(&v64, 0, Destination);
+          BotMatchVariable(&match, 0, Destination);
           EasyClientName(bs->teammate - 1, Destination);
           BotInitialChat(&bs->chatstate, "accompanying", Destination,
                          (char *)0);
