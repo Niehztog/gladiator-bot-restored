@@ -8686,6 +8686,8 @@ int BotLibLoadMap(char *Source)
     {
       return *_errno();
     }
+    else
+    {
       if ( v7.filelen )
         botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, Destination);
       else
@@ -8758,10 +8760,13 @@ int BotLibLoadMap(char *Source)
       else
         strncpy(aasworld.filename, v7.path, 0x90u);
       return BLERR_NOERROR;
+    }
   }
-
-  botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
-  return BLERR_NOBSPFILE;
+  else
+  {
+    botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
+    return BLERR_NOBSPFILE;
+  }
 }
 
 //----- (1000ECD0) --------------------------------------------------------
