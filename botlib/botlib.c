@@ -31654,24 +31654,24 @@ int __cdecl PC_OperatorPriority(int op)
 //----- (1003B9E0) --------------------------------------------------------
 int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer)
 {
-  int v5; // ebx
-  int v6; // ecx
+  int brace; // ebx
+  int lastwasvalue; // ecx
   int v7; // edx
-  value_t *v8;
-  token_t *v9;
+  value_t *lastvalue;
+  token_t *t;
   int v10; // eax
   operator_t *v11;
   value_t *v12;
   value_t *v13;
-  int v14; // ebp
-  int v15; // ebx
+  int gotquestmarkvalue; // ebp
+  int questmarkintvalue; // ebx
   operator_t *v16;
-  value_t *v17;
-  operator_t *v18;
+  value_t *v;
+  operator_t *o;
   operator_t *v19;
   int v20; // ecx
   int v21; // edx
-  value_t *v22;
+  value_t *v2;
   double v23; // st7
   double v24; // st7
   double v25; // st7
@@ -31693,13 +31693,13 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
   operator_t *v41;
   value_t *v42;
   value_t *v43;
-  int v46; // [esp+10h] [ebp-1Ch]
-  int v47; // [esp+14h] [ebp-18h]
-  operator_t *v48;
-  value_t *v49;
-  int v50; // [esp+20h] [ebp-Ch]
-  operator_t *v51;
-  double v52; // [esp+24h] [ebp-8h]
+  int error; // [esp+10h] [ebp-1Ch]
+  int parentheses; // [esp+14h] [ebp-18h]
+  operator_t *firstoperator;
+  value_t *firstvalue;
+  int negativevalue; // [esp+20h] [ebp-Ch]
+  operator_t *lastoperator;
+  double questmarkfloatvalue; // [esp+24h] [ebp-8h]
   int ArgLista; // [esp+34h] [ebp+8h]
   int ArgListb; // [esp+34h] [ebp+8h]
   int ArgListc; // [esp+34h] [ebp+8h]
@@ -31709,79 +31709,79 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
   int ArgListg; // [esp+34h] [ebp+8h]
   int ArgListh; // [esp+34h] [ebp+8h]
 
-  v5 = 0;
-  v6 = 0;
+  brace = 0;
+  lastwasvalue = 0;
   v7 = 0;
-  v8 = 0;
-  v47 = 0;
-  v46 = 0;
-  v50 = 0;
-  v51 = 0;
-  v48 = 0;
-  v49 = 0;
+  lastvalue = 0;
+  parentheses = 0;
+  error = 0;
+  negativevalue = 0;
+  lastoperator = 0;
+  firstoperator = 0;
+  firstvalue = 0;
   if ( intvalue )
     *intvalue = 0;
   if ( floatvalue )
   {
     *floatvalue = 0;
   }
-  v9 = firsttoken;
+  t = firsttoken;
   if ( !firsttoken )
     goto LABEL_73;
   while ( 1 )
   {
-    switch ( v9->type )
+    switch ( t->type )
     {
       case 3:
-        if ( v6 )
+        if ( lastwasvalue )
           goto LABEL_71;
         v13 = GetClearedMemory(sizeof(value_t));
-        if ( v50 )
+        if ( negativevalue )
         {
-          v13->intvalue = -(int)v9->intvalue;
-          v13->floatvalue = -v9->floatvalue;
+          v13->intvalue = -(int)t->intvalue;
+          v13->floatvalue = -t->floatvalue;
         }
         else
         {
-          v13->intvalue = (int)v9->intvalue;
-          v13->floatvalue = v9->floatvalue;
+          v13->intvalue = (int)t->intvalue;
+          v13->floatvalue = t->floatvalue;
         }
-        v13->parentheses = v47;
+        v13->parentheses = parentheses;
         v13->next = 0;
-        v13->prev = v8;
-        if ( v8 )
-          v8->next = v13;
+        v13->prev = lastvalue;
+        if ( lastvalue )
+          lastvalue->next = v13;
         else
-          v49 = v13;
-        v8 = v13;
-        v6 = 1;
-        v50 = 0;
+          firstvalue = v13;
+        lastvalue = v13;
+        lastwasvalue = 1;
+        negativevalue = 0;
         break;
       case 4:
-        if ( v6 || v7 )
+        if ( lastwasvalue || v7 )
         {
 LABEL_71:
           SourceError(src, "syntax error in #if/#elif");
           goto LABEL_76;
         }
-        if ( strcmp((const char *)v9, "defined") )
+        if ( strcmp((const char *)t, "defined") )
         {
-          SourceError(src, "undefined name %s in #if/#elif", v9);
+          SourceError(src, "undefined name %s in #if/#elif", t);
           goto LABEL_76;
         }
-        v9 = v9->next;
-        if ( !strcmp((const char *)v9, "(") )
+        t = t->next;
+        if ( !strcmp((const char *)t, "(") )
         {
-          v9 = v9->next;
-          v5 = 1;
+          t = t->next;
+          brace = 1;
         }
-        if ( !v9 || v9->type != 4 )
+        if ( !t || t->type != 4 )
         {
           SourceError(src, "defined without name in #if/#elif");
           goto LABEL_76;
         }
         v12 = GetClearedMemory(sizeof(value_t));
-        if ( PC_FindHashedDefine(src->definehash, (const char *)v9) )
+        if ( PC_FindHashedDefine(src->definehash, (const char *)t) )
         {
                     v12->intvalue = 1;
           v12->floatvalue = 1.0;
@@ -31792,24 +31792,24 @@ LABEL_71:
           v12->floatvalue = 0.0;
         }
         v12->next = 0;
-        v12->parentheses = v47;
-        v12->prev = v8;
-        if ( v8 )
-          v8->next = v12;
+        v12->parentheses = parentheses;
+        v12->prev = lastvalue;
+        if ( lastvalue )
+          lastvalue->next = v12;
         else
-          v49 = v12;
-        v8 = v12;
-        if ( v5 )
+          firstvalue = v12;
+        lastvalue = v12;
+        if ( brace )
         {
-          v9 = v9->next;
-          if ( !v9 || strcmp((const char *)v9, ")") )
+          t = t->next;
+          if ( !t || strcmp((const char *)t, ")") )
           {
             SourceError(src, "defined without ) in #if/#elif");
             goto LABEL_76;
           }
         }
-        v5 = 0;
-        v6 = 1;
+        brace = 0;
+        lastwasvalue = 1;
         break;
       case 5:
         if ( v7 )
@@ -31817,14 +31817,14 @@ LABEL_71:
           SourceError(src, "misplaced minus sign in #if/#elif");
           goto LABEL_76;
         }
-        v10 = v9->subtype;
+        v10 = t->subtype;
         if ( v10 == 44 )
         {
-          ++v47;
+          ++parentheses;
         }
         else if ( v10 == 45 )
         {
-          if ( --v47 < 0 )
+          if ( --parentheses < 0 )
           {
             SourceError(src, "too many ) in #if/#elsif");
             goto LABEL_76;
@@ -31836,7 +31836,7 @@ LABEL_71:
           {
             SourceError(src,
                         "illigal operator %s on floating point operands\n",
-                        v9);
+                        t);
             goto LABEL_76;
           }
           switch ( v10 )
@@ -31860,56 +31860,56 @@ LABEL_71:
             case 38:
             case 42:
             case 43:
-              if ( v6 )
+              if ( lastwasvalue )
                 goto LABEL_29;
-              SourceError(src, "operator %s after operator in #if/#elif", v9);
+              SourceError(src, "operator %s after operator in #if/#elif", t);
               goto LABEL_76;
             case 30:
-              if ( !v6 )
-                v50 = 1;
+              if ( !lastwasvalue )
+                negativevalue = 1;
               goto LABEL_29;
             case 35:
             case 36:
-              if ( v6 )
+              if ( lastwasvalue )
               {
                 SourceError(src, "! or ~ after value in #if/#elif");
                 goto LABEL_76;
               }
 LABEL_29:
-              if ( !v50 )
+              if ( !negativevalue )
               {
                 v11 = GetClearedMemory(sizeof(operator_t));
-                v11->op = v9->subtype;
-                v11->priority = PC_OperatorPriority(v9->subtype);
-                v11->parentheses = v47;
+                v11->op = t->subtype;
+                v11->priority = PC_OperatorPriority(t->subtype);
+                v11->parentheses = parentheses;
                 v11->next = 0;
-                v11->prev = v51;
-                if ( v51 )
-                  v51->next = v11;
+                v11->prev = lastoperator;
+                if ( lastoperator )
+                  lastoperator->next = v11;
                 else
-                  v48 = v11;
-                v51 = v11;
-                v6 = 0;
+                  firstoperator = v11;
+                lastoperator = v11;
+                lastwasvalue = 0;
               }
               break;
             default:
-              SourceError(src, "invalid operator %s in #if/#elif", v9);
+              SourceError(src, "invalid operator %s in #if/#elif", t);
               goto LABEL_76;
           }
         }
         break;
       default:
-        SourceError(src, "unknown %s in #if/#elif", v9);
+        SourceError(src, "unknown %s in #if/#elif", t);
         goto LABEL_76;
     }
-    v9 = v9->next;
-    if ( !v9 )
+    t = t->next;
+    if ( !t )
       break;
-    v7 = v50;
+    v7 = negativevalue;
   }
-  if ( v6 )
+  if ( lastwasvalue )
   {
-    if ( !v47 )
+    if ( !parentheses )
       goto LABEL_77;
     SourceError(src, "too many ( in #if/#elif");
   }
@@ -31919,190 +31919,190 @@ LABEL_73:
     SourceError(src, "trailing operator in #if/#elif");
   }
 LABEL_76:
-  v46 = 1;
+  error = 1;
 LABEL_77:
-  v14 = 0;
-  v15 = 0;
-  v52 = 0.0;
-  if ( !v46 )
+  gotquestmarkvalue = 0;
+  questmarkintvalue = 0;
+  questmarkfloatvalue = 0.0;
+  if ( !error )
   {
     while ( 1 )
     {
-      v16 = v48;
-      if ( !v48 )
+      v16 = firstoperator;
+      if ( !firstoperator )
         goto LABEL_165;
-      v17 = v49;
-      v18 = v48;
-      v19 = v48->next;
+      v = firstvalue;
+      o = firstoperator;
+      v19 = firstoperator->next;
       if ( v19 )
         break;
 LABEL_88:
-      v22 = v17->next;
-      switch ( v18->op )
+      v2 = v->next;
+      switch ( o->op )
       {
         case 5:
-          v26 = v17->intvalue && v22->intvalue;
-          v27 = v17->floatvalue;
-          v17->intvalue = v26;
-          if ( v27 == 0.0 || (ArgLista = 1, v22->floatvalue == 0.0) )
+          v26 = v->intvalue && v2->intvalue;
+          v27 = v->floatvalue;
+          v->intvalue = v26;
+          if ( v27 == 0.0 || (ArgLista = 1, v2->floatvalue == 0.0) )
             ArgLista = 0;
-          v17->floatvalue = (float)ArgLista;
+          v->floatvalue = (float)ArgLista;
           goto LABEL_144;
         case 6:
-          v28 = v17->intvalue || v22->intvalue;
-          v29 = v17->floatvalue;
-          v17->intvalue = v28;
-          if ( v29 != 0.0 || (ArgListb = 0, v22->floatvalue != 0.0) )
+          v28 = v->intvalue || v2->intvalue;
+          v29 = v->floatvalue;
+          v->intvalue = v28;
+          if ( v29 != 0.0 || (ArgListb = 0, v2->floatvalue != 0.0) )
             ArgListb = 1;
-          v17->floatvalue = (float)ArgListb;
+          v->floatvalue = (float)ArgListb;
           goto LABEL_144;
         case 7:
           ArgListc = 1;
-          v30 = v17->floatvalue;
-          v17->intvalue = v17->intvalue >= v22->intvalue;
-          if ( v30 < v22->floatvalue )
+          v30 = v->floatvalue;
+          v->intvalue = v->intvalue >= v2->intvalue;
+          if ( v30 < v2->floatvalue )
             ArgListc = 0;
-          v17->floatvalue = (float)ArgListc;
+          v->floatvalue = (float)ArgListc;
           goto LABEL_144;
         case 8:
           ArgListd = 1;
-          v31 = v17->floatvalue;
-          v17->intvalue = v17->intvalue <= v22->intvalue;
-          if ( v31 > v22->floatvalue )
+          v31 = v->floatvalue;
+          v->intvalue = v->intvalue <= v2->intvalue;
+          if ( v31 > v2->floatvalue )
             ArgListd = 0;
-          v17->floatvalue = (float)ArgListd;
+          v->floatvalue = (float)ArgListd;
           goto LABEL_144;
         case 9:
           ArgListe = 1;
-          v32 = v17->floatvalue;
-          v17->intvalue = v17->intvalue == v22->intvalue;
-          if ( v32 != v22->floatvalue )
+          v32 = v->floatvalue;
+          v->intvalue = v->intvalue == v2->intvalue;
+          if ( v32 != v2->floatvalue )
             ArgListe = 0;
-          v17->floatvalue = (float)ArgListe;
+          v->floatvalue = (float)ArgListe;
           goto LABEL_144;
         case 10:
           ArgListf = 1;
-          v33 = v17->floatvalue;
-          v17->intvalue = v17->intvalue != v22->intvalue;
-          if ( v33 == v22->floatvalue )
+          v33 = v->floatvalue;
+          v->intvalue = v->intvalue != v2->intvalue;
+          if ( v33 == v2->floatvalue )
             ArgListf = 0;
-          v17->floatvalue = (float)ArgListf;
+          v->floatvalue = (float)ArgListf;
           goto LABEL_144;
         case 21:
-          v17->intvalue >>= v22->intvalue;
+          v->intvalue >>= v2->intvalue;
           goto LABEL_144;
         case 22:
-          v17->intvalue <<= v22->intvalue;
+          v->intvalue <<= v2->intvalue;
           goto LABEL_144;
         case 26:
-          v17->intvalue *= v22->intvalue;
-          v17->floatvalue = v22->floatvalue * v17->floatvalue;
+          v->intvalue *= v2->intvalue;
+          v->floatvalue = v2->floatvalue * v->floatvalue;
           goto LABEL_144;
         case 27:
-          v24 = v17->floatvalue;
-          v17->intvalue /= v22->intvalue;
-          v17->floatvalue = v24 / v22->floatvalue;
+          v24 = v->floatvalue;
+          v->intvalue /= v2->intvalue;
+          v->floatvalue = v24 / v2->floatvalue;
           goto LABEL_144;
         case 28:
-          v17->intvalue %= v22->intvalue;
+          v->intvalue %= v2->intvalue;
           goto LABEL_144;
         case 29:
-          v17->intvalue += v22->intvalue;
-          v17->floatvalue = v22->floatvalue + v17->floatvalue;
+          v->intvalue += v2->intvalue;
+          v->floatvalue = v2->floatvalue + v->floatvalue;
           goto LABEL_144;
         case 30:
-          v25 = v17->floatvalue;
-          v17->intvalue -= v22->intvalue;
-          v17->floatvalue = v25 - v22->floatvalue;
+          v25 = v->floatvalue;
+          v->intvalue -= v2->intvalue;
+          v->floatvalue = v25 - v2->floatvalue;
           goto LABEL_144;
         case 32:
-          v17->intvalue &= v22->intvalue;
+          v->intvalue &= v2->intvalue;
           goto LABEL_144;
         case 33:
-          v17->intvalue |= v22->intvalue;
+          v->intvalue |= v2->intvalue;
           goto LABEL_144;
         case 34:
-          v17->intvalue ^= v22->intvalue;
+          v->intvalue ^= v2->intvalue;
           goto LABEL_144;
         case 35:
-          v17->intvalue = ~v17->intvalue;
+          v->intvalue = ~v->intvalue;
           goto LABEL_144;
         case 36:
-          v23 = v17->floatvalue;
-          v17->intvalue = v17->intvalue == 0;
-          v17->floatvalue = (float)(v23 == 0.0);
+          v23 = v->floatvalue;
+          v->intvalue = v->intvalue == 0;
+          v->floatvalue = (float)(v23 == 0.0);
           goto LABEL_144;
         case 37:
           ArgListg = 1;
-          v34 = v17->floatvalue;
-          v17->intvalue = v17->intvalue > v22->intvalue;
-          if ( v34 <= v22->floatvalue )
+          v34 = v->floatvalue;
+          v->intvalue = v->intvalue > v2->intvalue;
+          if ( v34 <= v2->floatvalue )
             ArgListg = 0;
-          v17->floatvalue = (float)ArgListg;
+          v->floatvalue = (float)ArgListg;
           goto LABEL_144;
         case 38:
           ArgListh = 1;
-          v35 = v17->floatvalue;
-          v17->intvalue = v17->intvalue < v22->intvalue;
-          if ( v35 >= v22->floatvalue )
+          v35 = v->floatvalue;
+          v->intvalue = v->intvalue < v2->intvalue;
+          if ( v35 >= v2->floatvalue )
             ArgListh = 0;
-          v17->floatvalue = (float)ArgListh;
+          v->floatvalue = (float)ArgListh;
           goto LABEL_144;
         case 42:
-          if ( !v14 )
+          if ( !gotquestmarkvalue )
           {
             SourceError(src, ": without ? in #if/#elif");
             goto LABEL_163;
           }
           if ( integer )
           {
-            if ( !v15 )
+            if ( !questmarkintvalue )
             {
-              v14 = 0;
-              v17->intvalue = v22->intvalue;
+              gotquestmarkvalue = 0;
+              v->intvalue = v2->intvalue;
               goto LABEL_144;
             }
           }
-          else if ( v52 == 0.0 )
+          else if ( questmarkfloatvalue == 0.0 )
           {
-            v17->floatvalue = v22->floatvalue;
+            v->floatvalue = v2->floatvalue;
           }
-          v14 = 0;
+          gotquestmarkvalue = 0;
           goto LABEL_144;
         case 43:
-          if ( v14 )
+          if ( gotquestmarkvalue )
           {
             SourceError(src, "? after ? in #if/#elif");
             goto LABEL_163;
           }
-          v15 = v17->intvalue;
-          v52 = v17->floatvalue;
-          v14 = 1;
+          questmarkintvalue = v->intvalue;
+          questmarkfloatvalue = v->floatvalue;
+          gotquestmarkvalue = 1;
 LABEL_144:
-          v36 = v18->op;
-          if ( v18->op != 36 && v36 != 35 )
+          v36 = o->op;
+          if ( o->op != 36 && v36 != 35 )
           {
             if ( v36 != 43 )
-              v17 = v17->next;
-            v37 = v17->prev;
+              v = v->next;
+            v37 = v->prev;
             if ( v37 )
-              v37->next = v17->next;
+              v37->next = v->next;
             else
-              v49 = v17->next;
-            v38 = v17->next;
+              firstvalue = v->next;
+            v38 = v->next;
             if ( v38 )
-              v38->prev = v17->prev;
-            FreeMemory(v17);
+              v38->prev = v->prev;
+            FreeMemory(v);
           }
-          v39 = v18->prev;
+          v39 = o->prev;
           if ( v39 )
-            v39->next = v18->next;
+            v39->next = o->next;
           else
-            v48 = v18->next;
-          v40 = v18->next;
+            firstoperator = o->next;
+          v40 = o->next;
           if ( v40 )
-            v40->prev = v18->prev;
-          FreeMemory(v18);
+            v40->prev = o->prev;
+          FreeMemory(o);
           break;
         default:
           goto LABEL_144;
@@ -32110,32 +32110,32 @@ LABEL_144:
     }
     while ( 1 )
     {
-      v20 = v18->parentheses;
+      v20 = o->parentheses;
       v21 = v19->parentheses;
-      if ( v20 > v21 || v20 == v21 && v18->priority >= v19->priority )
+      if ( v20 > v21 || v20 == v21 && o->priority >= v19->priority )
         goto LABEL_88;
-      if ( v18->op != 36 && v18->op != 35 )
-        v17 = v17->next;
-      if ( !v17 )
+      if ( o->op != 36 && o->op != 35 )
+        v = v->next;
+      if ( !v )
         break;
-      v18 = v19;
+      o = v19;
       v19 = v19->next;
       if ( !v19 )
         goto LABEL_88;
     }
     SourceError(src, "mising values in #if/#elif");
 LABEL_163:
-    v46 = 1;
+    error = 1;
   }
-  v16 = v48;
+  v16 = firstoperator;
 LABEL_165:
-  if ( v49 )
+  if ( firstvalue )
   {
     if ( intvalue )
-      *intvalue = v49->intvalue;
+      *intvalue = firstvalue->intvalue;
     if ( floatvalue )
     {
-      *floatvalue = v49->floatvalue;
+      *floatvalue = firstvalue->floatvalue;
     }
   }
   if ( v16 )
@@ -32148,8 +32148,8 @@ LABEL_165:
     }
     while ( v41 );
   }
-  v42 = v49;
-  if ( v49 )
+  v42 = firstvalue;
+  if ( firstvalue )
   {
     do
     {
@@ -32159,7 +32159,7 @@ LABEL_165:
     }
     while ( v43 );
   }
-  if ( !v46 )
+  if ( !error )
     return 1;
   if ( intvalue )
     *intvalue = 0;
