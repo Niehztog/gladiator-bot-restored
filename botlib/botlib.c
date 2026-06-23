@@ -10365,28 +10365,28 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 {
   int v2; // edx
-  char *v3; // ebx
-  char *v4; // ebp
+  char *area2; // ebx
+  char *area1; // ebp
   int v7; // eax
-  int v8; // esi
+  int i; // esi
   int v9; // rax (was __int64 — abs32 idiom)
-  char *v10; // edi
+  char *face1; // edi
   int v11; // eax
-  int v12; // ecx
+  int j; // ecx
   int v13; // rax (was __int64 — abs32 idiom)
-  _DWORD *v14; // esi
+  _DWORD *face2; // esi
   int v15; // eax
   int v16; // eax
-  int v17; // ecx
-  int v18; // ebp
-  BOOL v19; // edi
-  _DWORD *v20; // esi
+  int edgenum2; // ecx
+  int edgenum; // ebp
+  BOOL side; // edi
+  _DWORD *edge; // esi
   _DWORD *v21; // ecx
   int v23; // eax
   int v24; // ecx
   int v25; // eax
   int v26; // eax
-  char *v27; // esi
+  char *lreach; // esi
   int v28; // edx
   int v29; // eax
   int v30; // ecx
@@ -10396,26 +10396,26 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   int v34; // edx
   float v35; // eax
   int v36; // ecx
-  /* Original MSVC layout: int v38 + float v39 + float v40 were a contiguous
+  /* Original MSVC layout: int start + float v39 + float v40 were a contiguous
    * vec3 (inner edge midpoint) passed by-address to VectorLength/VectorScale/
    * VectorMA/AAS_NearbySolidOrGap.  GCC won't pack int adjacent to float, so collapse. */
-  vec3_t v38; // [esp+10h] [ebp-A0h] BYREF — was int v38 + float v39 + float v40
-  float v41; // [esp+1Ch] [ebp-94h]
-  int v42; // [esp+20h] [ebp-90h]
-  float v43; // [esp+24h] [ebp-8Ch]
-  /* Same pattern: int v44 + int v45 + float v46 were contiguous vec3 (outer
+  vec3_t start; // [esp+10h] [ebp-A0h] BYREF — was int start + float v39 + float v40
+  float height; // [esp+1Ch] [ebp-94h]
+  int edgenum1; // [esp+20h] [ebp-90h]
+  float bestheight; // [esp+24h] [ebp-8Ch]
+  /* Same pattern: int end + int v45 + float v46 were contiguous vec3 (outer
    * edge point) passed by-address to VectorMA / AAS_NearbySolidOrGap. */
-  vec3_t v44; // [esp+28h] [ebp-88h] BYREF — was int v44 + int v45 + float v46
-  int v47; // [esp+34h] [ebp-7Ch]
-  float v48; // [esp+38h] [ebp-78h]
+  vec3_t end; // [esp+28h] [ebp-88h] BYREF — was int end + int v45 + float v46
+  int foundreach; // [esp+34h] [ebp-7Ch]
+  float length; // [esp+38h] [ebp-78h]
   int v49; // [esp+3Ch] [ebp-74h]
   int v50; // [esp+40h] [ebp-70h]
   char *v51; // [esp+44h] [ebp-6Ch]
   int v52; // [esp+48h] [ebp-68h]
-  float v53; // [esp+4Ch] [ebp-64h]
-  /* Collapsed v54/v55/v56 (3× float) into a single vec3_t.  VectorNegate
+  float bestlength; // [esp+4Ch] [ebp-64h]
+  /* Collapsed invgravity/v55/v56 (3× float) into a single vec3_t.  VectorNegate
    * writes 3 contiguous floats; separate float decls let GCC reorder/pad. */
-  vec3_t v54; // [esp+50h] [ebp-60h] BYREF
+  vec3_t invgravity; // [esp+50h] [ebp-60h] BYREF
   char *v57; // [esp+5Ch] [ebp-54h]
   char *v58; // [esp+60h] [ebp-50h]
   _DWORD *v59; // [esp+64h] [ebp-4Ch]
@@ -10430,189 +10430,189 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   float v68; // [esp+88h] [ebp-28h]
   int v69; // [esp+8Ch] [ebp-24h]
   __int16 v70; // [esp+90h] [ebp-20h]
-  float v71[3]; // [esp+98h] [ebp-18h] BYREF
-  float v72[3]; // [esp+A4h] [ebp-Ch] BYREF
+  float edgevec[3]; // [esp+98h] [ebp-18h] BYREF
+  float normal[3]; // [esp+A4h] [ebp-Ch] BYREF
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) )
   {
-    v3 = &aasworld.areas[area2num];
-    v4 = &aasworld.areas[area1num];
-    v57 = v4;
-    v58 = v3;
+    area2 = &aasworld.areas[area2num];
+    area1 = &aasworld.areas[area1num];
+    v57 = area1;
+    v58 = area2;
     /* if the areas are not near anough in the x-y direction */
     for ( v2 = 0; v2 < 2; ++v2 )
     {
-      if ( *(float *)(v4 + 4 * v2 + 12) > *(float *)(v3 + 4 * v2 + 24) + 10.0f )
+      if ( *(float *)(area1 + 4 * v2 + 12) > *(float *)(area2 + 4 * v2 + 24) + 10.0f )
         return 0;
-      if ( *(float *)(v4 + 4 * v2 + 24) < *(float *)(v3 + 4 * v2 + 12) - 10.0f )
+      if ( *(float *)(area1 + 4 * v2 + 24) < *(float *)(area2 + 4 * v2 + 12) - 10.0f )
         return 0;
     }
     {
       {
-        if ( *((float *)v3 + 5) <= (float)*((float *)v4 + 8) )
+        if ( *((float *)area2 + 5) <= (float)*((float *)area1 + 8) )
         {
-          v54[0] = 0.0f;
-          v54[1] = 0.0f;
-          v54[2] = -1.0f;
-          VectorNegate(v54);
-          v7 = *((_DWORD *)v4 + 1);
-          v8 = 0;
-          v43 = 99999.0f;
-          v53 = 0.0f;
-          v47 = 0;
+          invgravity[0] = 0.0f;
+          invgravity[1] = 0.0f;
+          invgravity[2] = -1.0f;
+          VectorNegate(invgravity);
+          v7 = *((_DWORD *)area1 + 1);
+          i = 0;
+          bestheight = 99999.0f;
+          bestlength = 0.0f;
+          foundreach = 0;
           v52 = 0;
           if ( v7 > 0 )
           {
             do
             {
-              v9 = aasworld.faceindex[*((_DWORD *)v4 + 2) + v8];
-              v10 = &aasworld.faces[(abs(v9))];
-              v51 = v10;
-              if ( (v10[4] & 4) != 0 )
+              v9 = aasworld.faceindex[*((_DWORD *)area1 + 2) + i];
+              face1 = &aasworld.faces[(abs(v9))];
+              v51 = face1;
+              if ( (face1[4] & 4) != 0 )
               {
-                v11 = *((_DWORD *)v3 + 1);
-                v12 = 0;
+                v11 = *((_DWORD *)area2 + 1);
+                j = 0;
                 v49 = 0;
                 if ( v11 > 0 )
                 {
                   do
                   {
-                    v13 = aasworld.faceindex[*((_DWORD *)v3 + 2) + v12];
-                    v14 = &aasworld.faces[(abs(v13))];
-                    v59 = v14;
-                    if ( (v14[1] & 4) != 0 )
+                    v13 = aasworld.faceindex[*((_DWORD *)area2 + 2) + j];
+                    face2 = &aasworld.faces[(abs(v13))];
+                    v59 = face2;
+                    if ( (face2[1] & 4) != 0 )
                     {
-                      v15 = *((_DWORD *)v10 + 2);
-                      v42 = 0;
+                      v15 = *((_DWORD *)face1 + 2);
+                      edgenum1 = 0;
                       if ( v15 > 0 )
                       {
                         do
                         {
-                          v16 = v14[2];
-                          v17 = 0;
+                          v16 = face2[2];
+                          edgenum2 = 0;
                           v50 = 0;
                           if ( v16 > 0 )
                           {
                             while ( 1 )
                             {
-                              v18 = aasworld.edgeindex[v42 + *((_DWORD *)v10 + 3)];
-                              if ( abs(v18) == abs(aasworld.edgeindex[v14[3] + v17]) )
+                              edgenum = aasworld.edgeindex[edgenum1 + *((_DWORD *)face1 + 3)];
+                              if ( abs(edgenum) == abs(aasworld.edgeindex[face2[3] + edgenum2]) )
                               {
-                                v19 = v18 < 0;
-                                v20 = &aasworld.edges[abs(v18)];
-                                v38[0] = aasworld.vertexes[v20[1]][0]
-                                       + aasworld.vertexes[*v20][0];
-                                v38[1] = aasworld.vertexes[v20[1]][1]
-                                       + aasworld.vertexes[*v20][1];
-                                v38[2] = aasworld.vertexes[v20[1]][2]
-                                       + aasworld.vertexes[*v20][2];
-                                v48 = VectorLength(v38);
-                                VectorScale(v38, 0.5f, v38);
-                                v44[0] = v38[0];
-                                v44[1] = v38[1];
-                                v44[2] = v38[2];
-                                v21 = &v20[!v19];
-                                v71[0] = aasworld.vertexes[v20[v19]][0]
+                                side = edgenum < 0;
+                                edge = &aasworld.edges[abs(edgenum)];
+                                start[0] = aasworld.vertexes[edge[1]][0]
+                                       + aasworld.vertexes[*edge][0];
+                                start[1] = aasworld.vertexes[edge[1]][1]
+                                       + aasworld.vertexes[*edge][1];
+                                start[2] = aasworld.vertexes[edge[1]][2]
+                                       + aasworld.vertexes[*edge][2];
+                                length = VectorLength(start);
+                                VectorScale(start, 0.5f, start);
+                                end[0] = start[0];
+                                end[1] = start[1];
+                                end[2] = start[2];
+                                v21 = &edge[!side];
+                                edgevec[0] = aasworld.vertexes[edge[side]][0]
                                        - aasworld.vertexes[*v21][0];
-                                v71[1] = aasworld.vertexes[v20[v19]][1]
+                                edgevec[1] = aasworld.vertexes[edge[side]][1]
                                        - aasworld.vertexes[*v21][1];
-                                v14 = v59;
-                                v71[2] = aasworld.vertexes[v20[v19]][2]
+                                face2 = v59;
+                                edgevec[2] = aasworld.vertexes[edge[side]][2]
                                        - aasworld.vertexes[*v21][2];
-                                CrossProduct(v71, &aasworld.planes[*v59], v72);
-                                VectorNormalize(v72);
-                                VectorMA(v44, 5.0f, v72, v44);
-                                VectorMA(v38, 0.1f, v72, v38);
-                                v44[2] = v44[2] + 0.125;
-                                v41 = v38[2] * v54[2] + v38[1] * v54[1] + v38[0] * v54[0];
-                                if ( !AAS_NearbySolidOrGap(v38, v44) )
-                                  v41 = v41 + 200.0f;
-                                if ( v41 < (float)v43 || v43 + 1.0f > v41 && v48 > (float)v53 )
+                                CrossProduct(edgevec, &aasworld.planes[*v59], normal);
+                                VectorNormalize(normal);
+                                VectorMA(end, 5.0f, normal, end);
+                                VectorMA(start, 0.1f, normal, start);
+                                end[2] = end[2] + 0.125;
+                                height = start[2] * invgravity[2] + start[1] * invgravity[1] + start[0] * invgravity[0];
+                                if ( !AAS_NearbySolidOrGap(start, end) )
+                                  height = height + 200.0f;
+                                if ( height < (float)bestheight || bestheight + 1.0f > height && length > (float)bestlength )
                                 {
                                   v60 = area2num;
-                                  v43 = v41;
-                                  v53 = v48;
-                                  v65 = v38[2];
-                                  v63 = *(int *)v38;
-                                  v64 = v38[1];
-                                  v68 = v44[2];
+                                  bestheight = height;
+                                  bestlength = length;
+                                  v65 = start[2];
+                                  v63 = *(int *)start;
+                                  v64 = start[1];
+                                  v68 = end[2];
                                   v61 = 0;
-                                  v62 = v18;
-                                  v66 = *(int *)v44;
-                                  v67 = *(int *)&v44[1];
+                                  v62 = edgenum;
+                                  v66 = *(int *)end;
+                                  v67 = *(int *)&end[1];
                                   v69 = 2;
                                   v70 = 1;
-                                  v47 = 1;
+                                  foundreach = 1;
                                 }
                               }
-                              v23 = v14[2];
-                              v17 = ++v50;
+                              v23 = face2[2];
+                              edgenum2 = ++v50;
                               if ( v50 >= v23 )
                                 break;
-                              v10 = v51;
+                              face1 = v51;
                             }
-                            v3 = v58;
-                            v10 = v51;
-                            v4 = v57;
+                            area2 = v58;
+                            face1 = v51;
+                            area1 = v57;
                           }
-                          v24 = *((_DWORD *)v10 + 2);
-                          ++v42;
+                          v24 = *((_DWORD *)face1 + 2);
+                          ++edgenum1;
                         }
-                        while ( v42 < v24 );
-                        v12 = v49;
+                        while ( edgenum1 < v24 );
+                        j = v49;
                       }
                     }
-                    v25 = *((_DWORD *)v3 + 1);
-                    v49 = ++v12;
+                    v25 = *((_DWORD *)area2 + 1);
+                    v49 = ++j;
                   }
-                  while ( v12 < v25 );
-                  v8 = v52;
+                  while ( j < v25 );
+                  i = v52;
                 }
               }
-              v26 = *((_DWORD *)v4 + 1);
-              v52 = ++v8;
+              v26 = *((_DWORD *)area1 + 1);
+              v52 = ++i;
             }
-            while ( v8 < v26 );
-            if ( v47 )
+            while ( i < v26 );
+            if ( foundreach )
             {
-              v27 = AAS_AllocReachability();
-              if ( v27 )
+              lreach = AAS_AllocReachability();
+              if ( lreach )
               {
                 v28 = v61;
                 v29 = v62;
-                *(_DWORD *)v27 = v60;
+                *(_DWORD *)lreach = v60;
                 v30 = v63;
-                *(_DWORD *)(v27 + 4) = v28;
+                *(_DWORD *)(lreach + 4) = v28;
                 v31 = v64;
-                *(_DWORD *)(v27 + 8) = v29;
+                *(_DWORD *)(lreach + 8) = v29;
                 v32 = v65;
-                *(_DWORD *)(v27 + 12) = v30;
+                *(_DWORD *)(lreach + 12) = v30;
                 v33 = v66;
-                *(float *)(v27 + 16) = v31;
+                *(float *)(lreach + 16) = v31;
                 v34 = v67;
-                *(float *)(v27 + 20) = v32;
+                *(float *)(lreach + 20) = v32;
                 v35 = v68;
-                *(_DWORD *)(v27 + 28) = v34;
+                *(_DWORD *)(lreach + 28) = v34;
                 LOWORD(v34) = v70;
-                *(_DWORD *)(v27 + 24) = v33;
+                *(_DWORD *)(lreach + 24) = v33;
                 v36 = v69;
-                *(float *)(v27 + 32) = v35;
-                *(_DWORD *)(v27 + 36) = v36;
-                *(_WORD *)(v27 + 40) = v34;
-                ((aas_reachabilitynode_t *)v27)->next = areareachability[area1num];
-                areareachability[area1num] = (aas_reachabilitynode_t *)v27;
+                *(float *)(lreach + 32) = v35;
+                *(_DWORD *)(lreach + 36) = v36;
+                *(_WORD *)(lreach + 40) = v34;
+                ((aas_reachabilitynode_t *)lreach)->next = areareachability[area1num];
+                areareachability[area1num] = (aas_reachabilitynode_t *)lreach;
                 if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
-                  *(_WORD *)(v27 + 40) += 300;
-                if ( !AAS_NearbySolidOrGap((float *)(v27 + 12), (float *)(v27 + 24)) )
-                  *(_WORD *)(v27 + 40) += 100;
+                  *(_WORD *)(lreach + 40) += 300;
+                if ( !AAS_NearbySolidOrGap((float *)(lreach + 12), (float *)(lreach + 24)) )
+                  *(_WORD *)(lreach + 40) += 100;
                 /* IDA confused the thunk at 0x10001be0 (jumps to 0x10011360
                  * = AAS_AreaGroundFaceArea, returns float) with the real
                  * AAS_AreaReachability (at 0x10011040, returns int).  Q3
                  * source confirms this: be_aas_reach.c:1183 has the same
                  * `AAS_AreaGroundFaceArea(...) < 500` check, only commented
                  * out in the Q3 evolution. */
-                if ( AAS_AreaGroundFaceArea(*(_DWORD *)v27) < 500.0f )
-                  *(_WORD *)(v27 + 40) += 100;
+                if ( AAS_AreaGroundFaceArea(*(_DWORD *)lreach) < 500.0f )
+                  *(_WORD *)(lreach + 40) += 100;
                 ++reach_equalfloor;
                 return 1;
               }
