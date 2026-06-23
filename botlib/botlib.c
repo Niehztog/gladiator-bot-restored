@@ -12363,17 +12363,17 @@ v4 = v85;
 int AAS_Reachability_Teleport()
 {
   bsp_entity_t *v0; // eax — entity list head
-  bsp_entity_t *v1; // ebx — current entrance entity
-  const char *v2; // eax
-  const char *v3; // ebp
-  bsp_entity_t *v4; // edi — current destination-search entity
+  bsp_entity_t *ent; // ebx — current entrance entity
+  const char *classname; // eax
+  const char *target; // ebp
+  bsp_entity_t *dest; // edi — current destination-search entity
   const char *v5; // eax
-  const char *v6; // eax
-  int v7; // ebp
-  aas_link_t *v8; // ebx
+  const char *targetname; // eax
+  int area2num; // ebp
+  aas_link_t *areas; // ebx
   aas_link_t *i; // edi
-  int v10; // esi
-  aas_reachabilitynode_t *v11; // eax
+  int area1num; // esi
+  aas_reachabilitynode_t *lreach; // eax
   vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
@@ -12381,63 +12381,63 @@ int AAS_Reachability_Teleport()
   bsp_entity_t *v25; // [esp+58h] [ebp-78h]
   bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for AAS_FreeBSPEntities
   const char *v27; // [esp+60h] [ebp-70h]
-  vec3_t v28; // [esp+64h] [ebp-6Ch] BYREF
+  vec3_t end; // [esp+64h] [ebp-6Ch] BYREF
   vec3_t v29; // [esp+70h] [ebp-60h] BYREF
   vec3_t v30; // [esp+7Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
   v0 = AAS_ParseBSPEntities();
-  v1 = v0;
+  ent = v0;
   if ( v0 )
   {
     v26 = v0;
     v25 = v0;
     while ( 1 )
     {
-      v2 = (const char *)AAS_ValueForBSPEpairKey(v1, "classname");
-      if ( v2 && !strcmp(v2, "misc_teleporter") )
+      classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+      if ( classname && !strcmp(classname, "misc_teleporter") )
       {
-        if ( AAS_VectorForBSPEpairKey(v1, "origin", origin) )
+        if ( AAS_VectorForBSPEpairKey(ent, "origin", origin) )
         {
-          v3 = (const char *)AAS_ValueForBSPEpairKey(v1, "target");
-          v27 = v3;
-          if ( v3 )
+          target = (const char *)AAS_ValueForBSPEpairKey(ent, "target");
+          v27 = target;
+          if ( target )
           {
-            for ( v4 = v26; v4; v4 = v4->next )
+            for ( dest = v26; dest; dest = dest->next )
             {
-              v5 = (const char *)AAS_ValueForBSPEpairKey(v4, "classname");
+              v5 = (const char *)AAS_ValueForBSPEpairKey(dest, "classname");
               if ( v5 )
               {
                 if ( !strcmp(v5, "misc_teleporter_dest") )
                 {
-                  v6 = (const char *)AAS_ValueForBSPEpairKey(v4, "targetname");
-                  if ( v6 )
+                  targetname = (const char *)AAS_ValueForBSPEpairKey(dest, "targetname");
+                  if ( targetname )
                   {
-                    if ( !strcmp(v6, v3) )
+                    if ( !strcmp(targetname, target) )
                       break;
                   }
                 }
               }
             }
-            if ( !v4 )
+            if ( !dest )
             {
-              botimport.Print(PRT_ERROR, "teleporter without destination (%s)\n", v3);
+              botimport.Print(PRT_ERROR, "teleporter without destination (%s)\n", target);
             }
-            else if ( AAS_VectorForBSPEpairKey(v4, "origin", destorigin) )
+            else if ( AAS_VectorForBSPEpairKey(dest, "origin", destorigin) )
             {
-              v28[0] = destorigin[0];
-              v28[1] = destorigin[1];
+              end[0] = destorigin[0];
+              end[1] = destorigin[1];
               destorigin[2] = destorigin[2] + 24;
-              v28[2] = destorigin[2] - 100;
-              trace = AAS_TraceClientBBox(destorigin, v28, 4, -1);
+              end[2] = destorigin[2] - 100;
+              trace = AAS_TraceClientBBox(destorigin, end, 4, -1);
               if ( trace.startsolid )
               {
-                botimport.Print(PRT_ERROR, "teleporter destination (%s) in solid\n", v3);
+                botimport.Print(PRT_ERROR, "teleporter destination (%s) in solid\n", target);
               }
               else
               {
                 VectorCopy(trace.endpos, destorigin);
-                v7 = AAS_PointAreaNum(destorigin);
+                area2num = AAS_PointAreaNum(destorigin);
                 mins[0] = -8.0;
                 mins[1] = -8.0;
                 mins[2] = 8.0;
@@ -12452,34 +12452,34 @@ int AAS_Reachability_Teleport()
                 mins[1] = mins[1] - v30[1];
                 mins[2] = mins[2] - v30[2];
                 VectorSubtract(maxs, v29, maxs);
-                v8 = AAS_AASLinkEntity(mins, maxs, -1);
-                for ( i = v8; i; i = i->next_area )
+                areas = AAS_AASLinkEntity(mins, maxs, -1);
+                for ( i = areas; i; i = i->next_area )
                 {
                   if ( AAS_AreaGrounded(i->areanum) )
                   {
-                    v10 = i->areanum;
-                    v11 = AAS_AllocReachability();
-                    if ( !v11 )
+                    area1num = i->areanum;
+                    lreach = AAS_AllocReachability();
+                    if ( !lreach )
                       break;
-                    v11->reach.areanum = v7;
-                    v11->reach.facenum = 0;
-                    v11->reach.edgenum = 0;
-                    VectorCopy(origin, v11->reach.start);
-                    VectorCopy(destorigin, v11->reach.end);
-                    v11->reach.traveltype = 10;
-                    v11->reach.traveltime = 50;
-                    v11->next = areareachability[v10];
-                    areareachability[v10] = v11;
+                    lreach->reach.areanum = area2num;
+                    lreach->reach.facenum = 0;
+                    lreach->reach.edgenum = 0;
+                    VectorCopy(origin, lreach->reach.start);
+                    VectorCopy(destorigin, lreach->reach.end);
+                    lreach->reach.traveltype = 10;
+                    lreach->reach.traveltime = 50;
+                    lreach->next = areareachability[area1num];
+                    areareachability[area1num] = lreach;
                     ++reach_teleport;
                   }
                 }
-                AAS_UnlinkFromAreas(v8);
-                v1 = v25;
+                AAS_UnlinkFromAreas(areas);
+                ent = v25;
               }
             }
             else
             {
-              botimport.Print(PRT_ERROR, "teleporter destination (%s) without origin\n", v3);
+              botimport.Print(PRT_ERROR, "teleporter destination (%s) without origin\n", target);
             }
           }
           else
@@ -12492,10 +12492,10 @@ int AAS_Reachability_Teleport()
           botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
         }
       }
-      v25 = v1->next;
+      v25 = ent->next;
       if ( !v25 )
         break;
-      v1 = v25;
+      ent = v25;
     }
     v0 = v26;
   }
@@ -13069,100 +13069,100 @@ int AAS_SetWeaponJumpAreaFlags()
 //----- (10017CA0) --------------------------------------------------------
 int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
 {
-  char *v2; // ebx
-  float *v3; // ecx
+  char *area2; // ebx
+  float *area1; // ecx
   int v4; // eax
-  int v5; // esi
-  int v6; // rax (was __int64; only low 32 bits used, abs() idiom — see asm_matching/idioms)
+  int i; // esi
+  int face2num; // rax (was __int64; only low 32 bits used, abs() idiom — see asm_matching/idioms)
   float v7; // st7
-  int v8; // ebp
+  int n; // ebp
   int v9; // edi
   int v10; // esi
   int v11; // eax
   int reached;
   int reached_face;
-  aas_reachabilitynode_t *v13; // eax
+  aas_reachabilitynode_t *lreach; // eax
   float v14; // [esp+Ch] [ebp-14Ch]
-  float v15; // [esp+28h] [ebp-130h]
+  float zvel; // [esp+28h] [ebp-130h]
   int v16; // [esp+28h] [ebp-130h]
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays. */
   vec3_t groundedpos;   /* was v17/v18/v19 — origin dropped onto floor */
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
   int v23;
-  float v24;
+  float speed;
   vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
-  vec3_t v28; /* [BYREF] */
-  vec3_t v29; /* [BYREF] */
-  vec3_t v30; /* [BYREF] */
+  vec3_t dir; /* [BYREF] */
+  vec3_t velocity; /* [BYREF] */
+  vec3_t end; /* [BYREF] */
   vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
-  vec3_t v33; /* [BYREF] */
+  vec3_t cmdmove; /* [BYREF] */
   aas_trace_t trace;
-  int v35[20]; /* [BYREF] */
+  int move[20]; /* [BYREF] */
   int v36[20]; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(ArgList) || AAS_AreaSwim(ArgList) ) return 0;
   if ( !AAS_AreaGrounded(a2) ) return 0;
   if ( (aasworld.areasettings[a2].areaflags & 0x2000) == 0 ) return 0;
-  v2 = &aasworld.areas[a2];
-  v3 = (float *)(&aasworld.areas[ArgList]);
-  if ( *((float *)v2 + 8) < (float)v3[5] )
+  area2 = &aasworld.areas[a2];
+  area1 = (float *)(&aasworld.areas[ArgList]);
+  if ( *((float *)area2 + 8) < (float)area1[5] )
     return 0;
-  centerorg[0] = *((float *)v3 + 9);
-  centerorg[1] = *((float *)v3 + 10);
-  centerorg[2] = v3[11];
+  centerorg[0] = *((float *)area1 + 9);
+  centerorg[1] = *((float *)area1 + 10);
+  centerorg[2] = area1[11];
   if ( !AAS_PointAreaNum(centerorg) )
     Log_Write("area %d center %f %f %f in solid?", ArgList, centerorg[0],
               centerorg[1], centerorg[2]);
-  v30[0] = centerorg[0];
-  v30[1] = centerorg[1];
-  v30[2] = centerorg[2] - 1000.0f;
-  trace = AAS_TraceClientBBox(centerorg, v30, 4, -1);
+  end[0] = centerorg[0];
+  end[1] = centerorg[1];
+  end[2] = centerorg[2] - 1000.0f;
+  trace = AAS_TraceClientBBox(centerorg, end, 4, -1);
   if ( trace.startsolid )
     return 0;
   VectorCopy(trace.endpos, groundedpos);
-  v4 = *((_DWORD *)v2 + 1);
-  v5 = 0;
+  v4 = *((_DWORD *)area2 + 1);
+  i = 0;
   v23 = 0;
   if ( v4 <= 0 )
     return 0;
   while ( 1 )
   {
-    v6 = aasworld.faceindex[v5 + *((_DWORD *)v2 + 2)];
-    if ( (aasworld.faces[abs(v6)].faceflags & 4) != 0 )
+    face2num = aasworld.faceindex[i + *((_DWORD *)area2 + 2)];
+    if ( (aasworld.faces[abs(face2num)].faceflags & 4) != 0 )
     {
-      AAS_FaceCenter(aasworld.faceindex[v5 + *((_DWORD *)v2 + 2)], facecenter);
+      AAS_FaceCenter(aasworld.faceindex[i + *((_DWORD *)area2 + 2)], facecenter);
       v7 = groundedpos[2] + 64.0f;
       if ( v7 <= facecenter[2] )
       {
-        v8 = 0;
+        n = 0;
         reached_face = 0;
         while ( 1 )
         {
-          if ( v8 )
+          if ( n )
             AAS_BFGJumpZVelocity(groundedpos);
           else
             v7 = AAS_RocketJumpZVelocity(groundedpos);
-          v15 = v7;
-          if ( AAS_HorizontalVelocityForJump(v15, groundedpos, facecenter, &v24) )
+          zvel = v7;
+          if ( AAS_HorizontalVelocityForJump(zvel, groundedpos, facecenter, &speed) )
           {
-            v7 = v24;
-            if ( v24 < 270.0f )
+            v7 = speed;
+            if ( speed < 270.0f )
             {
-              v28[2] = 0;
-              v28[0] = facecenter[0] - groundedpos[0];
-              v28[1] = facecenter[1] - groundedpos[1];
-              v7 = VectorNormalize(v28);
+              dir[2] = 0;
+              dir[0] = facecenter[0] - groundedpos[0];
+              dir[1] = facecenter[1] - groundedpos[1];
+              v7 = VectorNormalize(dir);
               if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
               {
-                VectorScale(v28, v24, v33);
-                v29[2] = v15;
-                v29[0] = 0;
-                v29[1] = 0;
+                VectorScale(dir, speed, cmdmove);
+                velocity[2] = zvel;
+                velocity[0] = 0;
+                velocity[1] = 0;
                 qmemcpy(
-                  v35,
-                  AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, v29, v33, 3, 30, 0.1f, 61, 0),
-                  sizeof(v35));
-                if ( v35[19] < 30 && (v35[16] & 0x38) == 0 )
+                  move,
+                  AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0),
+                  sizeof(move));
+                if ( move[19] < 30 && (move[16] & 0x38) == 0 )
                 {
                   v9 = 0;
                   v10 = 0;
@@ -13171,7 +13171,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
                   while ( 1 )
                   {
                     v14 = (float)v16;
-                    VectorMA((float *)v35, v14, v28, predictpos);
+                    VectorMA((float *)move, v14, dir, predictpos);
                     v7 = predictpos[2] + 0.125;
                     predictpos[2] = v7;
                     if ( AAS_PointAreaNum(predictpos) == a2 )
@@ -13194,33 +13194,33 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
               }
             }
           }
-          if ( ++v8 >= 1 )
+          if ( ++n >= 1 )
             break;
         }
         if ( reached_face )
           break;
       }
     }
-    v11 = *((_DWORD *)v2 + 1);
-    v23 = ++v5;
-    if ( v5 >= v11 )
+    v11 = *((_DWORD *)area2 + 1);
+    v23 = ++i;
+    if ( i >= v11 )
       return 0;
   }
-  v13 = AAS_AllocReachability();
-  if ( !v13 )
+  lreach = AAS_AllocReachability();
+  if ( !lreach )
     return 0;
-  v13->reach.facenum = 0;
-  v13->reach.areanum = a2;
-  v13->reach.edgenum = 0;
-  VectorCopy(groundedpos, v13->reach.start);
-  VectorCopy(facecenter, v13->reach.end);
-  if ( v8 )
-    v13->reach.traveltype = 13;
+  lreach->reach.facenum = 0;
+  lreach->reach.areanum = a2;
+  lreach->reach.edgenum = 0;
+  VectorCopy(groundedpos, lreach->reach.start);
+  VectorCopy(facecenter, lreach->reach.end);
+  if ( n )
+    lreach->reach.traveltype = 13;
   else
-    v13->reach.traveltype = 12;
-  v13->reach.traveltime = 500;
-  v13->next = areareachability[ArgList];
-  areareachability[ArgList] = v13;
+    lreach->reach.traveltype = 12;
+  lreach->reach.traveltime = 500;
+  lreach->next = areareachability[ArgList];
+  areareachability[ArgList] = lreach;
   ++reach_rocketjump;
   return 1;
 }
