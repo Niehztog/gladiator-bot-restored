@@ -276,7 +276,7 @@ float __cdecl Characteristic_Float(bot_character_t *, int);
 int __cdecl BotReachabilityTime(aas_reachability_t*);
 void PrintUsedMemorySize(void);
 int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
-int __cdecl AAS_UpdatePortal(int ArgList, int);
+int __cdecl AAS_UpdatePortal(int areanum, int);
 /* AAS_AASLinkEntity: see full declaration at line ~500 below */
 char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
@@ -309,7 +309,7 @@ int __cdecl Characteristic_Integer(bot_character_t *, int);
 /* LoadScriptFile: full decl at line ~914 (returns FILE*). */
 int __cdecl AAS_StartFrame(float time);  // fixed from 0-param idb decl
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
-void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);
+void __cdecl VectorScale(vec3_t in, float scale, vec3_t out);
 weaponconfig_t *LoadWeaponConfig(char *filename);  /* fixed return type */
 void BotAimAtEnemy(bot_state_t *bs);  // fixed from weak _DWORD
 
@@ -418,7 +418,7 @@ typedef struct {
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
-int __cdecl WriteFloat(FILE *Stream, float); // idb
+int __cdecl WriteFloat(FILE *fp, float); // idb
 // BotAIBlocked: void; return value (eax) is never used by callers
 /* BotMoveInDirection: at 0x10031BE0 — public movement-dispatcher entry that
  * routes (movestate, dir, speed, type) to BotSwimInDirection when the bot's
@@ -471,11 +471,11 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2);
 int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
-bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4);
+bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
-int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *a1, const char *a2, vec3_t a3);
-float __cdecl FloatForKey(bsp_entity_t *a1, const char *a2);
-int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *a1, const char *a2);
+int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t v);
+float __cdecl FloatForKey(bsp_entity_t *ent, const char *key);
+int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
@@ -487,8 +487,8 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
 // int __usercall AAS_LoadBSPFile@<eax>(double a1@<st0>, char *FileName, int Offset);
 int sub_100085F0();
 int AAS_RemoveClusterAreas();
-int __cdecl AAS_UpdatePortal(int ArgList, int a2);
-int __cdecl AAS_FloodClusterAreas_r(int a1, int ArgList);
+int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
+int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum);
 int __cdecl AAS_FloodClusterReachabilities(int clusternum);
 void __cdecl AAS_NumberClusterPortals(int clusternum);
 int AAS_FindClusters();
@@ -521,7 +521,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-para
 void AAS_ResetEntityLinks();
 void AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
-int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal);
+int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *); // idb
@@ -539,11 +539,11 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
-char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3);
+char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index);
 int __cdecl AAS_IndexFromString(const char *, indexlist_t *, char *String2); // idb
-char *__cdecl AAS_ModelFromIndex(int a1);
+char *__cdecl AAS_ModelFromIndex(int index);
 int __cdecl IndexFromModel(char *String2); // idb
-char *__cdecl AAS_ImageFromIndex(int a1);
+char *__cdecl AAS_ImageFromIndex(int index);
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
 int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
@@ -588,7 +588,7 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 int AAS_FallDamageDistance();
 float __cdecl AAS_MaxJumpHeight(float phys_jumpvel);
-float __cdecl AAS_MaxJumpDistance(float a1);
+float __cdecl AAS_MaxJumpDistance(float phys_jumpvel);
 int __cdecl AAS_AreaCrouch(int areanum);
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
@@ -598,7 +598,7 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end);
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
-float __cdecl VectorDistance(vec3_t a1, vec3_t a2);
+float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
@@ -614,7 +614,7 @@ int AAS_ContinueInitReachability(int a1);
 // int __usercall AAS_InitReachability@<eax>(double a1@<st0>);
 int __cdecl AAS_TravelFlagForType(int traveltype);
 int AAS_CreateReversedReachability();
-unsigned short __cdecl AAS_AreaTravelTime(int a1, float *a2, float *a3);
+unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end);
 void AAS_CalculateAreaTravelTimes(void);
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 void __cdecl AAS_FreeRoutingCache(void *cache);
@@ -624,21 +624,21 @@ int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
 void AAS_InitRouting(void);
 aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache);
-aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int a1, int a2, int a3);
-int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *a1);
-aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int a1, int a2, int a3);
+aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
+int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache);
+aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end, int presencetype, int passent);
 int AAS_RoutingInfo();
-int __cdecl AAS_AltRoutingFloodCluster_r(int a1);
+int __cdecl AAS_AltRoutingFloodCluster_r(int areanum);
 int sub_1001AB80();
 // int __usercall AAS_InitAASLinkHeap@<eax>(double a1@<st0>);
 void AAS_FreeAASLinkHeap();
 aas_link_t *AAS_AllocAASLink(void);
-aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1);
+aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *link);
 int AAS_InitAASLinkedEntities();
 void AAS_FreeAASLinkedEntities();
 int __cdecl AAS_PointAreaNum(vec3_t point);
@@ -651,7 +651,7 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
 qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
-aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3);
+aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum);
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype);
 char *__cdecl AAS_PlaneFromNum(int planenum);
 // int __usercall sub_1001C760@<eax>(double a1@<st0>, char *Source);
@@ -669,7 +669,7 @@ int *sub_1001D140();
 // int __usercall sub_1001D260@<eax>(double a1@<st0>);
 void BotResetNodeSwitches();
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs);
-int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *a2, const char *a3);
+int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str);
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat);
 void __cdecl AIEnter_Intermission(bot_state_t *bs);
 int __cdecl AINode_Intermission(bot_state_t *bs);
@@ -693,11 +693,11 @@ int __cdecl AIEnter_Battle_Retreat(bot_state_t *bs);
 int __cdecl AINode_Battle_Retreat(bot_state_t *bs);
 int __cdecl AIEnter_Battle_NBG(bot_state_t *bs);
 int __cdecl AINode_Battle_NBG(bot_state_t *bs);
-_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2);
+_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info);
 typedef struct bot_weaponstate_s bot_weaponstate_t;
 char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws);
 void __cdecl BotUpdateInventory(bot_state_t *bs);
-int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2);
+int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy);
 void __cdecl BotBattleUseItems(bot_state_t *bs);
 void __cdecl sub_100215E0(bot_state_t *bs);
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs);
@@ -707,7 +707,7 @@ BOOL __cdecl BotIntermission(bot_state_t *bs);
 BOOL __cdecl sub_10021710(int *a1);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
 char *__cdecl stristr(char *a1, char *a2);
-char *__cdecl EasyClientName(int a1, char *a2);
+char *__cdecl EasyClientName(int client, char *buf);
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum);
 bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name);
 void            __cdecl BotFreeWaypoints(bot_waypoint_t *head);
@@ -716,18 +716,18 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs);
 int __cdecl BotChat_ExitGame(bot_state_t *bs);
 int __cdecl BotChat_StartLevel(bot_state_t *bs);
 int __cdecl BotChat_EndLevel(bot_state_t *bs);
-int __cdecl BotChat_Death(int *a1);
-BOOL __cdecl BotChat_Kill(int *a1);
+int __cdecl BotChat_Death(int *bs);
+BOOL __cdecl BotChat_Kill(int *bs);
 int __cdecl BotChat_Random(bot_state_t *bs);
 double __cdecl BotChatTime(bot_state_t *bs);
 float __cdecl BotAggression(bot_state_t *bs);
-BOOL __cdecl BotWantsToRetreat(int *a1);
-BOOL __cdecl BotWantsToChase(int *a1);
+BOOL __cdecl BotWantsToRetreat(int *bs);
+BOOL __cdecl BotWantsToChase(int *bs);
 // BOOL __usercall BotCanAndWantsToRocketJump@<eax>(double a1@<st0>, int *a2);
-float *__cdecl BotRoamGoal(_DWORD *a1, float *a2);
+float *__cdecl BotRoamGoal(_DWORD *bs, float *goal);
 bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a3);
 int __cdecl BotCTFTeam(bot_state_t *bs);
-BOOL __cdecl BotSameTeam(bot_state_t *bs, int a2);
+BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
 int __cdecl BotFindEnemy(bot_state_t *bs);
 // void BotAimAtEnemy(bot_state_t *bs);
@@ -745,7 +745,7 @@ float __cdecl BotGetTime(bot_match_t *match);
 // int __cdecl FindClientByName (1-param idb decl): see 3-param definition at ~L20657
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
-int __cdecl BotMatchMessage(bot_state_t *bs, char *a2);
+int __cdecl BotMatchMessage(bot_state_t *bs, char *message);
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
 // ...
@@ -757,7 +757,7 @@ int __cdecl ClientFromName(const char *a1);
 char *__cdecl ClientName(int client);
 char *__cdecl ClientSkin(int client);
 int NumBots();
-float __cdecl AngleDifference(float a1, float a2);
+float __cdecl AngleDifference(float ang1, float ang2);
 // double __usercall BotChangeViewAngle@<st0>(double a1@<st0>, float a2, float a3, float a4);
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);
 void sub_100292E0();
@@ -773,14 +773,14 @@ int __cdecl BotResetState(bot_state_t *bs);
 int sub_10029C10();
 // int __usercall BotSetupLibrary@<eax>(double a1@<st0>);
 int BotShutdownLibrary();
-bot_character_t *__cdecl BotLoadCharacter(char *Source, const char *a2);
+bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2);
 void __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
-float __cdecl Characteristic_Float(bot_character_t *a1, int a2);
-float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4);
-int __cdecl Characteristic_Integer(bot_character_t *a1, int a2);
-int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4);
-char *__cdecl Characteristic_String(bot_character_t *a1, int a2);
+float __cdecl Characteristic_Float(bot_character_t *character, int index);
+float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float min, float max);
+int __cdecl Characteristic_Integer(bot_character_t *character, int index);
+int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int min, int max);
+char *__cdecl Characteristic_String(bot_character_t *character, int index);
 // int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
 bot_consolemessage_t *AllocConsoleMessage();
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
@@ -796,7 +796,7 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
 void __cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
 void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
-void __cdecl BotReplaceWeightedSynonyms(const char *a1, int a2);
+void __cdecl BotReplaceWeightedSynonyms(const char *string, int context);
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *); // idb
 char *__cdecl RandomString(const char *name);
 void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces);
@@ -813,7 +813,7 @@ void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
-void *__cdecl BotLoadInitialChat(char *a1, char *a2);
+void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname);
 int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
 int __cdecl BotFreeChatState(bot_chatstate_t *cs);
 int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname); // idb
@@ -828,12 +828,12 @@ typedef struct bot_chatvar_s {
     int   len;
 } bot_chatvar_t;
 struct chatlist_s; typedef struct chatlist_s chatlist_t;
-void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *a2, int a3, bot_chatvar_t *vars, int a5);
+void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, int mcontext, bot_chatvar_t *vars, int vcontext);
 char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2);
-void __cdecl BotInitialChat(bot_chatstate_t *cs, char *String2, ...);
-int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2);
+void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...);
+int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message);
 unsigned int __cdecl BotChatLength(bot_chatstate_t *cs);
-char __cdecl BotEnterChat(bot_chatstate_t *cs, int a2, int a3);
+char __cdecl BotEnterChat(bot_chatstate_t *cs, int clientto, int sendto);
 // int __usercall BotSetupChatAI@<eax>(double a1@<st0>);
 void BotShutdownChatAI();
 // int *__usercall LoadItemConfig@<eax>(double a1@<st0>, char *Source);
@@ -844,35 +844,35 @@ void __cdecl FreeLevelItem(levelitem_t *item);
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
 // _DWORD *__usercall BotInitLevelItems@<eax>(double a1@<st0>);
-char *__cdecl BotGoalName(int a1);
+char *__cdecl BotGoalName(int number);
 int __cdecl BotResetAvoidGoals(void *goalstate);
 void __cdecl BotDumpAvoidGoals(int *goalstate);
 void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
 float __cdecl BotAvoidGoalTime(int *goalstate, int number);
-int __cdecl BotGetLevelItemGoal(int a1, char *name, bot_goal_t *goal);
+int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal);
 int BotUpdateEntityItems();
 void __cdecl BotDumpGoalStack(int *goalstate);
 int __cdecl BotPushGoal(int *goalstate, const void *goal);
 int __cdecl BotPopGoal(int *goalstate);
 void __cdecl BotEmptyGoalStack(int *goalstate);
-void *__cdecl BotGetTopGoal(int *a1);
-void *__cdecl BotGetSecondGoal(int *a1);
-int __cdecl BotChooseLTGItem(int *a1, vec3_t a2, char *a3, int a4);
-int __cdecl BotChooseNBGItem(int *a1, vec3_t a2, char *a3, int a4, bot_goal_t *a5, float a6);
-int __cdecl BotTouchingGoal(vec3_t a1, float *a2);
+void *__cdecl BotGetTopGoal(int *goalstate);
+void *__cdecl BotGetSecondGoal(int *goalstate);
+int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags);
+int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime);
+int __cdecl BotTouchingGoal(vec3_t origin, float *goal);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal);
-int __cdecl BotLoadItemWeights(int *goalstate, char *a2);
+int __cdecl BotLoadItemWeights(int *goalstate, char *filename);
 void __cdecl BotFreeItemWeights(int *goalstate);
 int __cdecl BotResetGoalState(void *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
 double __cdecl AngleDiff(float ang1, float ang2);
-int __cdecl BotReachabilityArea(int *a1, int a2);
-BOOL __cdecl BotOnMover(float *a1, int a2, aas_reachability_t* a3);
+int __cdecl BotReachabilityArea(int *origin, int client);
+BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach);
 BOOL __cdecl MoverDown(aas_reachability_t* reach);
 BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
 void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
-int __cdecl BotGetReachabilityToGoal(int a1, int a2, int a3, int a4, int a5, intptr_t a6, float *a7, intptr_t a8, intptr_t a9, int a10);
+int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, intptr_t avoidreach, float *avoidreachtimes, intptr_t avoidreachtries, intptr_t goal, int travelflags);
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target);
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
@@ -907,12 +907,12 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
 int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
-int __cdecl BotResetMoveState(void *a1);
+int __cdecl BotResetMoveState(void *movestate);
 // int *__usercall LoadWeaponConfig@<eax>(double a1@<st0>, char *Source);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
 typedef struct bot_weaponstate_s bot_weaponstate_t;
 void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
-int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *a2);
+int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename);
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws);
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
 int __cdecl BotResetWeaponState(bot_weaponstate_t *ws);
@@ -926,30 +926,30 @@ void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *); // idb
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
-int __cdecl FindFuzzyWeight(weightconfig_t *a1, const char *a2);
+int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep);
 double __cdecl FuzzyWeight(int *facts, weight_t *w);
 double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
-int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *a1, fuzzyseperator_t *a2);
+int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
 void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
 void __cdecl EA_UseItem(int client, char *item);
 void __cdecl EA_DropItem(int client, char *item);
 void __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
-int __cdecl EA_Attack(int a1);
-int __cdecl EA_Respawn(int a1);
-char __cdecl EA_Jump(int a1);
-int __cdecl EA_DelayedJump(int a1);
-int __cdecl EA_Crouch(int a1);
-int __cdecl EA_MoveUp(int a1);
-int __cdecl EA_MoveForward(int a1);
+int __cdecl EA_Attack(int client);
+int __cdecl EA_Respawn(int client);
+char __cdecl EA_Jump(int client);
+int __cdecl EA_DelayedJump(int client);
+int __cdecl EA_Crouch(int client);
+int __cdecl EA_MoveUp(int client);
+int __cdecl EA_MoveForward(int client);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t angles); /* EA_View impl */
-int __cdecl EA_EndRegular(int a1, float a2);
+int __cdecl EA_EndRegular(int client, float thinktime);
 int EA_Setup();
 void EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16); // idb
@@ -966,7 +966,7 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message); // i
 _WORD *__cdecl CRC_Init(_WORD *a1);
 __int16 __cdecl CRC_Value(__int16 a1);
 __int16 __cdecl CRC_Block(const unsigned char *a1, int a2);
-float __cdecl LibVarStringValue(char *a1);
+float __cdecl LibVarStringValue(char *string);
 libvar_t *__cdecl LibVarAlloc(const char *name);
 void      __cdecl LibVarDeAlloc(libvar_t *v);
 libvar_t *__cdecl LibVarGet(const char *name);
@@ -992,10 +992,10 @@ int SourceError(source_t *src, char *Format, ...);
 int SourceWarning(source_t *src, char *Format, ...);
 indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
-void __cdecl PC_PushScript(source_t *src, script_t *script);
+void __cdecl PC_PushScript(source_t *source, script_t *script);
 _DWORD *__cdecl AllocLevelItem(void);
 void __cdecl PC_FreeToken(token_t *t);
-int __cdecl PC_ReadSourceToken(source_t *src, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
+int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
 int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms);
 /* PC_ExpandDefine forward decl below (signature matches impl) */
@@ -1003,31 +1003,31 @@ int __cdecl PC_StringizeTokens(token_t *Source, token_t *Destination);
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
 unsigned int __cdecl PC_NameHash(const char *a1);
 unsigned int __cdecl PC_AddDefineToHash(define_t *a1, define_t **a2);
-bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *a2);
-int __cdecl PC_FindDefine(define_t *a1, const char *a2);
-int __cdecl PC_FindDefineParm(define_t *define, const char *a2);
+bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char *string);
+int __cdecl PC_FindDefine(define_t *defines, const char *name);
+int __cdecl PC_FindDefineParm(define_t *define, const char *name);
 void __cdecl PC_FreeDefine(define_t *def);
-define_t *__cdecl PC_FindHashedDefine(define_t **a1, const char *a2);
+define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name);
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4);
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken);
 int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define);
 void __cdecl PC_ConvertPath(char *path);
 int __cdecl PC_Directive_include(source_t *src);
 // int __cdecl PC_Directive_include: see definition
-BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *a1);
-token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *a1);
+BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token);
+token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token);
 int __cdecl PC_Directive_undef(source_t *src);
 int __cdecl PC_Directive_define(source_t *source);
-define_t *__cdecl PC_DefineFromString(const char *a1);
-int __cdecl PC_AddGlobalDefine(const char *a1);
-define_t *__cdecl PC_CopyDefine(define_t *a1);
-void __cdecl PC_AddGlobalDefinesToSource(source_t *a1);
-int __cdecl PC_Directive_ifdef(source_t *src, int a2);
+define_t *__cdecl PC_DefineFromString(const char *string);
+int __cdecl PC_AddGlobalDefine(const char *string);
+define_t *__cdecl PC_CopyDefine(define_t *define);
+void __cdecl PC_AddGlobalDefinesToSource(source_t *source);
+int __cdecl PC_Directive_ifdef(source_t *src, int type);
 int __cdecl PC_Directive_else(source_t *src);
 int __cdecl PC_Directive_endif(source_t *src);
-int __cdecl PC_OperatorPriority(int a1);
+int __cdecl PC_OperatorPriority(int op);
 int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer);
-int __cdecl PC_Evaluate(source_t *src, int *a2, double *a3, int a4);
+int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int integer);
 // int __cdecl PC_ReadSourceToken: see definition
 int __cdecl PC_Directive_elif(source_t *src);
 int __cdecl PC_Directive_if(source_t *src);
@@ -1041,29 +1041,29 @@ int __cdecl PC_ReadDirective(source_t *src);
 int __cdecl PC_DollarDirective_evalint(source_t *src);
 int __cdecl PC_DollarDirective_evalfloat(source_t *src);
 int __cdecl PC_ReadDollarDirective(source_t *src);
-int __cdecl PC_ReadTokenHandle(source_t *a1, _DWORD *a2);
+int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token);
 int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList);
-int __cdecl PC_ExpectTokenType(source_t *src, int a2, int a3, intptr_t a4);
-int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t a2);
-int __cdecl PC_CheckTokenString(source_t *src, const char *a2);
+int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t token);
+int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t token);
+int __cdecl PC_CheckTokenString(source_t *src, const char *string);
 int __cdecl PC_UnreadLastToken(source_t *src);
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
 void      __cdecl FreeSource(source_t *src);
 void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations);
-void ScriptError(int a1, char *Format, ...);
-void ScriptWarning(int a1, char *Format, ...);
+void ScriptError(int script, char *Format, ...);
+void ScriptWarning(int script, char *Format, ...);
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
-int __cdecl PS_ReadWhiteSpace(script_t *a1);
-int __cdecl PS_ReadEscapeCharacter(script_t *a1, _BYTE *a2);
-int __cdecl PS_ReadString(script_t *a1, token_t *token, int a3);
-int __cdecl PS_ReadName(script_t *a1, intptr_t a2);
-void __cdecl NumberValue(char *a1, int a2, int *a3, double *a4);
-int __cdecl PS_ReadNumber(script_t *a1, token_t *a2);
-int __cdecl PS_ReadPunctuation(script_t *a1, char *Destination);
-int __cdecl PS_ReadPrimitive(script_t *a1, intptr_t a2);
+int __cdecl PS_ReadWhiteSpace(script_t *script);
+int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch);
+int __cdecl PS_ReadString(script_t *script, token_t *token, int quote);
+int __cdecl PS_ReadName(script_t *script, intptr_t a2);
+void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue);
+int __cdecl PS_ReadNumber(script_t *script, token_t *token);
+int __cdecl PS_ReadPunctuation(script_t *script, char *Destination);
+int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
-int __cdecl PS_ExpectTokenType(script_t *a1, int a2, int a3, token_t *a4);
-int __cdecl PS_ExpectAnyToken(int a1, int a2);
+int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token);
+int __cdecl PS_ExpectAnyToken(int script, int token);
 void __cdecl StripDoubleQuotes(char *string);
 void __cdecl StripSingleQuotes(char *string);
 void __cdecl SetScriptFlags(script_t *script, int flags);
@@ -1072,12 +1072,12 @@ int __cdecl FileLength(FILE *Stream); // idb
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize);
 script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const char *name);
 void      __cdecl FreeScript(script_t *script);
-const char **__cdecl FindField(const char **a1, const char *a2);
+const char **__cdecl FindField(const char **defs, const char *name);
 int __cdecl ReadNumber(source_t *src, char **field, float *out);
 int __cdecl ReadChar(source_t *src, char **field, float *out);
 int __cdecl ReadString(source_t *, char **, char *Destination); // idb
 int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure);
-int __cdecl WriteIndent(FILE *Stream, int); // idb
+int __cdecl WriteIndent(FILE *fp, int); // idb
 int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
 int __cdecl WriteStructure(FILE *Stream, int, int); // idb
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
