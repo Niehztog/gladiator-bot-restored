@@ -5127,33 +5127,33 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   if ( !v3 )
   {
     AAS_Error("can't open bsp file %s\n", FileName);
-    return 13;
+    return BLERR_CANNOTOPENBSPFILE;
   }
   if ( fseek(v3, Offset, 0) )
   {
     AAS_Error("can't seek to bsp file %s\n");
     fclose(v4);
-    return 14;
+    return BLERR_CANNOTSEEKTOBSPFILE;
   }
   if ( fread_locked(&bsp_h, 0xA0u, 1u, v4) != 1 )
   {
     AAS_Error("can't read header of bsp file %s\n", FileName);
     fclose(v4);
-    return 15;
+    return BLERR_CANNOTREADBSPHEADER;
   }
   v6 = bsp_h.ident = LittleLong(bsp_h.ident);
   if ( v6 != 1347633737 )
   {
     AAS_Error("%s is not an BSP file\n", FileName);
     fclose(v4);
-    return 16;
+    return BLERR_WRONGBSPFILEID;
   }
   v7 = bsp_h.version = LittleLong(bsp_h.version);
   if ( v7 != 38 )
   {
     AAS_Error("bsp file %s is version %i, not %i\n", FileName, v7, 38);
     fclose(v4);
-    return 17;
+    return BLERR_WRONGBSPFILEVERSION;
   }
   v8 = LittleLong(bsp_h.lumps[0].fileofs);
   v9 = Offset + v8;
@@ -5161,7 +5161,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v11 = v10;
   dword_100674E4 = sub_10007C40(v4, v9, v10, 1, "entity");
   if ( !dword_100674E4 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_100674E0 = v11;
   v12 = LittleLong(bsp_h.lumps[1].fileofs);
   v13 = Offset + v12;
@@ -5169,7 +5169,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v15 = v14;
   dword_100674F4 = sub_10007C40(v4, v13, v14, 20, "planes");
   if ( !dword_100674F4 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_100674F0 = v15 / 0x14;
   v16 = LittleLong(bsp_h.lumps[2].fileofs);
   v17 = Offset + v16;
@@ -5177,7 +5177,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v19 = v18;
   dword_100674FC = sub_10007C40(v4, v17, v18, 12, "vertexes");
   if ( !dword_100674FC )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_100674F8 = v19 / 0xC;
   v20 = LittleLong(bsp_h.lumps[3].fileofs);
   v21 = Offset + v20;
@@ -5188,7 +5188,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
     v24 = sub_10007C40(v4, v21, v22, 1, "visibility");
     dword_100674D0 = v24;
     if ( !v24 )
-      return 18;
+      return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
@@ -5204,7 +5204,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v28 = v27;
   dword_10067504 = sub_10007C40(v4, v26, v27, 28, "nodes");
   if ( !dword_10067504 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067500 = v28 / 0x1C;
   v29 = LittleLong(bsp_h.lumps[5].fileofs);
   v30 = Offset + v29;
@@ -5212,7 +5212,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v32 = v31;
   dword_1006750C = sub_10007C40(v4, v30, v31, 76, "texinfo");
   if ( !dword_1006750C )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067508 = v32 / 0x4C;
   v33 = LittleLong(bsp_h.lumps[6].fileofs);
   v34 = Offset + v33;
@@ -5220,7 +5220,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v36 = v35;
   dword_10067514 = sub_10007C40(v4, v34, v35, 20, "faces");
   if ( !dword_10067514 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067510 = v36 / 0x14;
   v37 = LittleLong(bsp_h.lumps[7].fileofs);
   v38 = Offset + v37;
@@ -5230,7 +5230,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   {
     dword_100674DC = sub_10007C40(v4, v38, v39, 1, "lightning");
     if ( !dword_100674DC )
-      return 18;
+      return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
@@ -5244,7 +5244,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v44 = v43;
   dword_100674EC = sub_10007C40(v4, v42, v43, 28, "leafs");
   if ( !dword_100674EC )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_100674E8 = v44 / 0x1C;
   v45 = LittleLong(bsp_h.lumps[9].fileofs);
   v46 = Offset + v45;
@@ -5252,7 +5252,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v48 = v47;
   dword_10067524 = sub_10007C40(v4, v46, v47, 2, "leaf faces");
   if ( !dword_10067524 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067520 = v48 >> 1;
   v49 = LittleLong(bsp_h.lumps[10].fileofs);
   v50 = Offset + v49;
@@ -5260,7 +5260,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v52 = v51;
   dword_1006752C = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
   if ( !dword_1006752C )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067528 = v52 >> 1;
   v53 = LittleLong(bsp_h.lumps[11].fileofs);
   v54 = Offset + v53;
@@ -5268,7 +5268,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v56 = v55;
   dword_1006751C = sub_10007C40(v4, v54, v55, 4, "edges");
   if ( !dword_1006751C )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067518 = v56 >> 2;
   v57 = LittleLong(bsp_h.lumps[12].fileofs);
   v58 = Offset + v57;
@@ -5276,7 +5276,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v60 = v59;
   dword_10067534 = sub_10007C40(v4, v58, v59, 4, "surfedges");
   if ( !dword_10067534 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067530 = v60 >> 2;
   v61 = LittleLong(bsp_h.lumps[13].fileofs);
   v62 = Offset + v61;
@@ -5284,7 +5284,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v64 = v63;
   dword_100674C8 = sub_10007C40(v4, v62, v63, 48, "models");
   if ( !dword_100674C8 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_100674C4 = v64 / 0x30;
   v65 = LittleLong(bsp_h.lumps[14].fileofs);
   v66 = Offset + v65;
@@ -5292,7 +5292,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v68 = v67;
   dword_1006753C = sub_10007C40(v4, v66, v67, 12, "brushes");
   if ( !dword_1006753C )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067538 = v68 / 0xC;
   v69 = LittleLong(bsp_h.lumps[15].fileofs);
   v70 = Offset + v69;
@@ -5300,7 +5300,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v72 = v71;
   dword_10067544 = sub_10007C40(v4, v70, v71, 4, "brush sides");
   if ( !dword_10067544 )
-    return 18;
+    return BLERR_CANNOTREADBSPLUMP;
   dword_10067540 = v72 >> 2;
   sub_10007460();
   dword_100674C0 = 1;
@@ -5309,7 +5309,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   sub_100030A0();
   sub_10003280();
   sub_100032D0();
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (100085F0) --------------------------------------------------------
@@ -7765,26 +7765,26 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   if ( !v2 )
   {
     AAS_Error("can't open %s\n", FileName);
-    return 6;
+    return BLERR_CANNOTOPENAASFILE;
   }
   if ( fseek(v2, Offset, 0) )
   {
     AAS_Error("can't seek to file %s\n");
     fclose(v3);
-    return 7;
+    return BLERR_CANNOTSEEKTOAASFILE;
   }
   if ( fread_locked(&aas_h, 0x78u, 1u, v3) != 1 )
   {
     AAS_Error("can't read header of file %s\n", FileName);
     fclose(v3);
-    return 8;
+    return BLERR_CANNOTREADAASHEADER;
   }
   v5 = aas_h.ident = LittleLong(aas_h.ident);
   if ( v5 != 1396785477 )
   {
     AAS_Error("%s is not an AAS file\n", FileName);
     fclose(v3);
-    return 9;
+    return BLERR_WRONGAASFILEID;
   }
   v6 = aas_h.version = LittleLong(aas_h.version);
   if ( v6 == 2 )
@@ -7795,7 +7795,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   {
     AAS_Error("aas file %s is version %i, not %i\n", FileName, v6, 3);
     fclose(v3);
-    return 10;
+    return BLERR_WRONGAASFILEVERSION;
   }
   v7 = LittleLong(aas_h.lumps[0].fileofs);
   v8 = Offset + v7;
@@ -7806,7 +7806,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v10 >>= 5;
   aasworld.numbboxes = v10;
   if ( v10 && !v11 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v12 = LittleLong(aas_h.lumps[1].fileofs);
   v13 = Offset + v12;
   v14 = (size_t)LittleLong(aas_h.lumps[1].filelen);
@@ -7815,7 +7815,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.vertexes = v16;
   aasworld.numvertexes = v15 / 0xC;
   if ( v15 / 0xC && !v16 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v17 = LittleLong(aas_h.lumps[2].fileofs);
   v18 = Offset + v17;
   v19 = (size_t)LittleLong(aas_h.lumps[2].filelen);
@@ -7824,7 +7824,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.planes = v21;
   aasworld.numplanes = v20 / 0x14;
   if ( v20 / 0x14 && !v21 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v22 = LittleLong(aas_h.lumps[3].fileofs);
   v23 = Offset + v22;
   v24 = (size_t)LittleLong(aas_h.lumps[3].filelen);
@@ -7834,7 +7834,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v25 >>= 3;
   aasworld.numedges = v25;
   if ( v25 && !v26 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v27 = LittleLong(aas_h.lumps[4].fileofs);
   v28 = Offset + v27;
   v29 = (size_t)LittleLong(aas_h.lumps[4].filelen);
@@ -7844,7 +7844,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v30 >>= 2;
   aasworld.edgeindexsize = v30;
   if ( v30 && !v31 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v32 = LittleLong(aas_h.lumps[5].fileofs);
   v33 = Offset + v32;
   v34 = (size_t)LittleLong(aas_h.lumps[5].filelen);
@@ -7853,7 +7853,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.faces = v36;
   aasworld.numfaces = v35 / 0x18;
   if ( v35 / 0x18 && !v36 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v37 = LittleLong(aas_h.lumps[6].fileofs);
   v38 = Offset + v37;
   v39 = (size_t)LittleLong(aas_h.lumps[6].filelen);
@@ -7863,7 +7863,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v40 >>= 2;
   aasworld.faceindexsize = v40;
   if ( v40 && !v41 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v42 = LittleLong(aas_h.lumps[7].fileofs);
   v43 = Offset + v42;
   v44 = (size_t)LittleLong(aas_h.lumps[7].filelen);
@@ -7872,7 +7872,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.areas = v46;
   aasworld.numareas = v45 / 0x30;
   if ( v45 / 0x30 && !v46 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v47 = LittleLong(aas_h.lumps[8].fileofs);
   v48 = Offset + v47;
   v49 = (size_t)LittleLong(aas_h.lumps[8].filelen);
@@ -7881,7 +7881,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.areasettings = v51;
   aasworld.numareasettings = v50 / 0x1C;
   if ( v50 / 0x1C && !v51 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v52 = LittleLong(aas_h.lumps[9].fileofs);
   v53 = Offset + v52;
   v54 = (size_t)LittleLong(aas_h.lumps[9].filelen);
@@ -7890,7 +7890,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.reachability = v56;
   aasworld.reachabilitysize = v55 / 0x2C;
   if ( v55 / 0x2C && !v56 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v57 = LittleLong(aas_h.lumps[10].fileofs);
   v58 = Offset + v57;
   v59 = (size_t)LittleLong(aas_h.lumps[10].filelen);
@@ -7899,7 +7899,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.nodes = v61;
   aasworld.numnodes = v60 / 0xC;
   if ( v60 / 0xC && !v61 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v62 = LittleLong(aas_h.lumps[11].fileofs);
   v63 = Offset + v62;
   v64 = (size_t)LittleLong(aas_h.lumps[11].filelen);
@@ -7908,7 +7908,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.portals = v66;
   aasworld.numportals = v65 / 0x14;
   if ( v65 / 0x14 && !v66 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v67 = LittleLong(aas_h.lumps[12].fileofs);
   v68 = Offset + v67;
   v69 = (size_t)LittleLong(aas_h.lumps[12].filelen);
@@ -7918,7 +7918,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v70 >>= 2;
   aasworld.portalindexsize = v70;
   if ( v70 && !v71 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   v72 = LittleLong(aas_h.lumps[13].fileofs);
   v73 = Offset + v72;
   v74 = (size_t)LittleLong(aas_h.lumps[13].filelen);
@@ -7927,11 +7927,11 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   aasworld.clusters = v76;
   aasworld.numclusters = v75 / 0xC;
   if ( v75 / 0xC && !v76 )
-    return 11;
+    return BLERR_CANNOTREADAASLUMP;
   AAS_SwapAASData();
   aasworld.loaded = 1;
   fclose(v3);
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (1000CE40) --------------------------------------------------------
@@ -8686,8 +8686,6 @@ int BotLibLoadMap(char *Source)
     {
       return *_errno();
     }
-    else
-    {
       if ( v7.filelen )
         botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, Destination);
       else
@@ -8710,7 +8708,7 @@ int BotLibLoadMap(char *Source)
           v5 = sub_1000E430(Source);
           *_errno() = v5;
           if ( !*_errno() )
-            return 0;
+            return BLERR_NOERROR;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
           {
             sub_1000E140(Source);
@@ -8759,14 +8757,11 @@ int BotLibLoadMap(char *Source)
         strncpy(aasworld.filename, aasfile, 0x90u);
       else
         strncpy(aasworld.filename, v7.path, 0x90u);
-      return 0;
-    }
+      return BLERR_NOERROR;
   }
-  else
-  {
-    botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
-    return 12;
-  }
+
+  botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
+  return BLERR_NOBSPFILE;
 }
 
 //----- (1000ECD0) --------------------------------------------------------
@@ -16180,7 +16175,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
   if ( a4 < 0 || a4 >= aasworld.soundindex_table->numindexes )
   {
     botimport.Print(PRT_FATAL, "sound index %d out of range [0, %d]\n", a4, aasworld.soundindex_table->numindexes);
-    return 32;
+    return BLERR_INVALIDSOUNDINDEX;
   }
   else
   {
@@ -21635,12 +21630,12 @@ int Export_BotAIFrame(int a1, float a2)
     if ( !*(_DWORD *)(dword_100643A0 + 4560 * a1) )
     {
       botimport.Print(PRT_FATAL, "client %d hasn't been setup\n", a1);
-      return 19;
+      return BLERR_AICLIENTNOTSETUP;
     }
     BotDeathmatchAI(&botstates[a1], a2);
     sub_100292E0();
   }
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (100293A0) --------------------------------------------------------
@@ -21759,7 +21754,7 @@ int __cdecl BotShutdownClient(int a1)
   if ( !*v1 )
   {
     botimport.Print(PRT_ERROR, "client %d already shutdown\n", a1);
-    return 23;
+    return BLERR_AICLIENTALREADYSHUTDOWN;
   }
   if ( BotChat_ExitGame((int)(intptr_t)bs) )
     BotEnterChat(&bs->chatstate, v1[1], 0);
@@ -21781,7 +21776,7 @@ int __cdecl BotShutdownClient(int a1)
   memset(v1, 0, 0x11D0u);
   *v1 = 0;
   --dword_10064388;
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (100297B0) --------------------------------------------------------
@@ -21794,18 +21789,18 @@ int __cdecl BotMoveClient(int a1, int a2)
   if ( !oldbs->inuse )
   {
     botimport.Print(PRT_FATAL, "tried to move inactive bot client\n");
-    return 21;
+    return BLERR_AIMOVEINACTIVECLIENT;
   }
   newbs = &botstates[a2];
   if ( newbs->inuse )
   {
     botimport.Print(PRT_FATAL, "tried to move client to active client\n");
-    return 22;
+    return BLERR_AIMOVETOACTIVECLIENT;
   }
   qmemcpy(newbs, oldbs, sizeof(bot_state_t));
   memset(oldbs, 0, sizeof(bot_state_t));
   oldbs->inuse = 0;
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10029880) --------------------------------------------------------
@@ -21820,7 +21815,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   if ( !*v2 )
   {
     botimport.Print(PRT_FATAL, "tried to updated inactive bot client\n");
-    return 24;
+    return BLERR_AIUPDATEINACTIVECLIENT;
   }
   qmemcpy(v2 + 3, a2, 0x4CCu);
   v4 = (float *)(v2 + 1056);
@@ -21832,7 +21827,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     --v5;
   }
   while ( v5 );
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10029920) --------------------------------------------------------
@@ -21851,10 +21846,10 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   if ( !*v3 )
   {
     botimport.Print(PRT_ERROR, "recieved console message for inactive bot client\n");
-    return 25;
+    return BLERR_AICMFORINACTIVECLIENT;
   }
   BotQueueConsoleMessage((bot_chatstate_t *)((char *)v3 + 0xf8c), a2, Source);
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (100299D0) --------------------------------------------------------
@@ -21866,10 +21861,10 @@ int __cdecl BotSettings(int a1, const void *a2)
   if ( !*v2 )
   {
     botimport.Print(PRT_FATAL, "tried to update settings of inactive client\n");
-    return 26;
+    return BLERR_SETTINGSINACTIVECLIENT;
   }
   qmemcpy(v2 + 310, a2, 0x1B0u);
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10029A40) --------------------------------------------------------
@@ -24480,9 +24475,9 @@ int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname)
   if ( !v3 )
   {
     botimport.Print(PRT_FATAL, "couldn't load chat %s from %s\n", chatname, chatfile);
-    return 27;
+    return BLERR_CANNOTLOADICHAT;
   }
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (1002E060) --------------------------------------------------------
@@ -25958,12 +25953,12 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *filename)
   if ( !v2 )
   {
     botimport.Print(PRT_FATAL, "couldn't load weights\n");
-    return 28;
+    return BLERR_CANNOTLOADITEMWEIGHTS;
   }
   if ( !itemconfig )
-    return 28;
+    return BLERR_CANNOTLOADITEMWEIGHTS;
   BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, itemconfig);
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10030950) --------------------------------------------------------
@@ -29709,9 +29704,9 @@ int __cdecl Export_BotLibStartFrame(float time)
 int Export_BotLibAI(int a1, float a2)
 {
   if ( !BotLibSetup("BotAI") )
-    return 1;
+    return BLERR_LIBRARYNOTSETUP;
   if ( !ValidClientNumber(a1, "BotAI") )
-    return 3;
+    return BLERR_INVALIDCLIENTNUMBER;
   return Export_BotAIFrame(a1, a2);
 }
 
@@ -29719,9 +29714,9 @@ int Export_BotLibAI(int a1, float a2)
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 {
   if ( !BotLibSetup("BotConsoleMessage") )
-    return 1;
+    return BLERR_LIBRARYNOTSETUP;
   if ( !ValidClientNumber(client, "BotConsoleMessage") )
-    return 3;
+    return BLERR_INVALIDCLIENTNUMBER;
   return BotConsoleMessage(client, a2, message);
 }
 
