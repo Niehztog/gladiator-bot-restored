@@ -1593,18 +1593,18 @@ botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callback
 botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
 bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
 ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
-weaponconfig_t *dword_10064080; /* current weapon config (was dword_10064080) */
+weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */
 levelitem_t *dword_10064344; // levelitem free-list head
 int dword_10064354; // weak
 levelitem_t *dword_10064358; // levelitem pool base
-itemconfig_t *dword_1006435C; /* current item config (was dword_1006435C) */
+itemconfig_t *itemconfig; /* current item config (was dword_1006435C) */
 levelitem_t *dword_10064360; // levelitem active-list head
 bot_consolemessage_t *dword_10064364; // freelist head (used freelist returns to pool)
-bot_consolemessage_t *dword_10064374; // pool base (initial bulk allocation)
-bot_matchtemplate_t *dword_10064378; // weak
-bot_randomlist_t *dword_1006437C; // weak
-bot_replychat_t *dword_10064380; // weak
-bot_synonymlist_t *dword_10064384; /* synonyms head, set by BotLoadSynonyms */
+bot_consolemessage_t *consolemessageheap; // pool base (initial bulk allocation)
+bot_matchtemplate_t *matchtemplates; // weak
+bot_randomlist_t *randomstrings; // weak
+bot_replychat_t *replychats; // weak
+bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
 int dword_10064388; // weak
 bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
 int dword_1006439C; // weak
@@ -6719,7 +6719,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   if ( !aasworld.loaded )
   {
     botimport.Print(PRT_MESSAGE, "AAS_UpdateEntity: not loaded\n");
-    return 5;
+    return BLERR_NOAASFILE;
   }
   ent = &aasworld.entities[entnum].i;
   ent->update_time = AAS_Time() - ent->ltime;
@@ -8654,7 +8654,7 @@ int __cdecl sub_1000E430(char *Source)
   }
   while ( v3 < 2 );
   _chdir(Path);
-  return 5;
+  return BLERR_NOAASFILE;
 }
 
 #endif /* _WIN32 — winbspc spawn + aasN.zip search */
@@ -8744,7 +8744,7 @@ int BotLibLoadMap(char *Source)
             botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
 #endif
           botimport.Print(PRT_FATAL, "no AAS file available\n");
-          return 5;
+          return BLERR_NOAASFILE;
         }
       }
       errnum = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
@@ -8778,7 +8778,7 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   if ( !Source )
   {
     sub_1000DCC0(a2, a3, a4, a5, a6, a7);
-    return 0;
+    return BLERR_NOERROR;
   }
   aasworld.initialized = 0;
   sub_1000DC20(a2, a3, a4, a5, a6, a7);
@@ -8795,7 +8795,7 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   AAS_InitReachability();
   sub_1001D140();
   sub_1001AB80();
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (1000EDC0) --------------------------------------------------------
@@ -21931,24 +21931,14 @@ int sub_10029C10()
 //----- (10029C90) --------------------------------------------------------
 int BotSetupLibrary()
 {
-
-  unsigned int v1; // eax
-  int v2; // esi
-  int v3; // esi
-  int v4; // esi
-
-  v1 = time(0);
-  srand(v1);
-  v2 = BotSetupWeaponAI();
-  *_errno() = v2;
+  srand(time(0));
+  *_errno() = BotSetupWeaponAI();
   if ( *_errno() )
     return *_errno();
-  v3 = BotSetupGoalAI();
-  *_errno() = v3;
+  *_errno() = BotSetupGoalAI();
   if ( *_errno() )
     return *_errno();
-  v4 = BotSetupChatAI();
-  *_errno() = v4;
+  *_errno() = BotSetupChatAI();
   if ( *_errno() )
     return *_errno();
   botstates = (bot_state_t *)GetClearedMemory(4560 * botstate.num_clients);
@@ -21966,7 +21956,7 @@ int BotSetupLibrary()
 #endif
   dword_100643A8 = GetClearedMemory(144 * botstate.num_clients);
   dword_1006439C = (int)LibVarValue("gametype", (char *)"0");
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10029DA0) --------------------------------------------------------
@@ -22386,24 +22376,24 @@ int InitConsoleMessageHeap()
   int v1;
   int i;
 
-  if ( dword_10064374 )
-    FreeMemory(dword_10064374);
+  if ( consolemessageheap )
+    FreeMemory(consolemessageheap);
   v1 = (int)LibVarValue("max_messages", (char *)"1024");
-  dword_10064374 = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
-  dword_10064374[0].prev = NULL;
-  dword_10064374[0].next = &dword_10064374[1];
+  consolemessageheap = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
+  consolemessageheap[0].prev = NULL;
+  consolemessageheap[0].next = &consolemessageheap[1];
   if ( v1 - 1 > 1 )
   {
     for ( i = 1; i < v1 - 1; ++i )
     {
-      dword_10064374[i].prev = &dword_10064374[i - 1];
-      dword_10064374[i].next = &dword_10064374[i + 1];
+      consolemessageheap[i].prev = &consolemessageheap[i - 1];
+      consolemessageheap[i].next = &consolemessageheap[i + 1];
     }
   }
-  dword_10064374[v1 - 1].prev = &dword_10064374[v1 - 2];
-  dword_10064374[v1 - 1].next = NULL;
-  dword_10064364 = dword_10064374;
-  return (int)(intptr_t)dword_10064374;
+  consolemessageheap[v1 - 1].prev = &consolemessageheap[v1 - 2];
+  consolemessageheap[v1 - 1].next = NULL;
+  dword_10064364 = consolemessageheap;
+  return (int)(intptr_t)consolemessageheap;
 }
 
 //----- (1002A9A0) --------------------------------------------------------
@@ -22891,7 +22881,7 @@ void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
   bot_synonymlist_t *syn;
   bot_synonym_t *synonym;
 
-  for ( syn = dword_10064384; syn; syn = syn->next )
+  for ( syn = synonyms; syn; syn = syn->next )
   {
     if ( !(syn->context & context) ) continue;
     for ( synonym = syn->firstsynonym->next; synonym; synonym = synonym->next )
@@ -22912,7 +22902,7 @@ void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
   float weight, curweight;
   int r;
 
-  for ( syn = dword_10064384; syn; syn = syn->next )
+  for ( syn = synonyms; syn; syn = syn->next )
   {
     if ( !(syn->context & context) ) continue;
     r = rand() & 0x7FFF;
@@ -23087,7 +23077,7 @@ char *__cdecl RandomString(const char *name)
   bot_randomstring_t *rs;
   int n;
 
-  for ( list = dword_1006437C; list; list = list->next )
+  for ( list = randomstrings; list; list = list->next )
   {
     if ( !strcmp(list->string, name) )
     {
@@ -23520,7 +23510,7 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 
 //----- (1002C930) --------------------------------------------------------
 /* Restored from disassembly + Q3 reference.  Walks the chat-pattern template
- * list (head at dword_10064378), filtered by `context` bitmask; for each
+ * list (head at matchtemplates), filtered by `context` bitmask; for each
  * matching template runs StringsMatch.  On success fills match->type and
  * match->subtype from the template. */
 int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
@@ -23533,7 +23523,7 @@ int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
   while ( strlen(match->string) && match->string[strlen(match->string) - 1] == '\n' )
     match->string[strlen(match->string) - 1] = 0;
 
-  for ( ms = dword_10064378; ms; ms = ms->next )
+  for ( ms = matchtemplates; ms; ms = ms->next )
   {
     if ( !(context & ms->context) )
       continue;
@@ -24800,7 +24790,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
  bot_match_t match; // [esp+20h] [ebp-F0h] BYREF
 
  memset(&match, 0, sizeof(match));
- rchat = dword_10064380;
+ rchat = replychats;
  v14 = 0;
  strcpy(match.string, message);
  bestchatmessage = 0;
@@ -24966,7 +24956,7 @@ void __cdecl sub_1002EB30(void *target, const char *src)
 //----- (1002EB70) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
  * objdump@1002EB70:
- *   ecx = ds:0x10064380   (= bot_replychat_t * head: dword_10064380)
+ *   ecx = ds:0x10064380   (= bot_replychat_t * head: replychats)
  *   xor edx,edx
  *   while ( ecx ) {
  *     eax = [ecx+0xc]     (firstchatmessage)
@@ -24986,7 +24976,7 @@ void __cdecl BotResetChatAI(void)
   bot_replychat_t   *rc;
   bot_chatmessage_t *cm;
 
-  for ( rc = dword_10064380; rc; rc = rc->next )
+  for ( rc = replychats; rc; rc = rc->next )
     for ( cm = rc->firstchatmessage; cm; cm = cm->next )
       cm->time = 0;
 }
@@ -24994,45 +24984,41 @@ void __cdecl BotResetChatAI(void)
 //----- (1002EBB0) --------------------------------------------------------
 int BotSetupChatAI()
 {
+  char *file;
 
-  char *v1; // eax
-  char *v2; // eax
-  char *v3; // eax
-  char *v4; // eax
-
-  v1 = LibVarString("synfile", (char *)"syn.c");
-  dword_10064384 = BotLoadSynonyms(v1);
-  v2 = LibVarString("rndfile", (char *)"rnd.c");
-  dword_1006437C = BotLoadRandomStrings(v2);
-  v3 = LibVarString("matchfile", (char *)"match.c");
-  dword_10064378 = BotLoadMatchTemplates(v3);
-  if ( LibVarValue("nochat", (char *)"0") == 0.0f )
+  file = LibVarString("synfile", "syn.c");
+  synonyms = BotLoadSynonyms(file);
+  file = LibVarString("rndfile", "rnd.c");
+  randomstrings = BotLoadRandomStrings(file);
+  file = LibVarString("matchfile", "match.c");
+  matchtemplates = BotLoadMatchTemplates(file);
+  if ( !LibVarValue("nochat", "0") )
   {
-    v4 = LibVarString("rchatfile", (char *)"rchat.c");
-    dword_10064380 = BotLoadReplyChat(v4);
+    file = LibVarString("rchatfile", "rchat.c");
+    replychats = BotLoadReplyChat(file);
   }
   InitConsoleMessageHeap();
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (1002EC80) --------------------------------------------------------
 void BotShutdownChatAI()
 {
-  if ( dword_10064374 )
-    FreeMemory(dword_10064374);
-  dword_10064374 = 0;
-  if ( dword_10064378 )
-    BotFreeMatchTemplates(dword_10064378);
-  dword_10064378 = 0;
-  if ( dword_1006437C )
-    FreeMemory(dword_1006437C);
-  dword_1006437C = 0;
-  if ( dword_10064384 )
-    FreeMemory(dword_10064384);
-  dword_10064384 = 0;
-  if ( dword_10064380 )
-    BotFreeReplyChat((bot_replychat_t *)dword_10064380);
-  dword_10064380 = 0;
+  if ( consolemessageheap )
+    FreeMemory(consolemessageheap);
+  consolemessageheap = 0;
+  if ( matchtemplates )
+    BotFreeMatchTemplates(matchtemplates);
+  matchtemplates = 0;
+  if ( randomstrings )
+    FreeMemory(randomstrings);
+  randomstrings = 0;
+  if ( synonyms )
+    FreeMemory(synonyms);
+  synonyms = 0;
+  if ( replychats )
+    BotFreeReplyChat((bot_replychat_t *)replychats);
+  replychats = 0;
 }
 
 //----- (1002ED20) --------------------------------------------------------
@@ -25236,7 +25222,7 @@ _DWORD * BotInitLevelItems()
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
   result = (_DWORD *)InitLevelItemHeap();
-  ic = dword_1006435C;
+  ic = itemconfig;
   dword_10064360 = 0;
   dword_10064354 = 0;
   if ( ic )
@@ -25310,12 +25296,12 @@ char *__cdecl BotGoalName(int number)
 {
   levelitem_t *v1;
 
-  if ( !dword_1006435C )
+  if ( !itemconfig )
     return &byte_1006294C;
   for ( v1 = (levelitem_t *)dword_10064360; v1; v1 = v1->next )
   {
     if ( v1->number == number )
-      return (char *)&dword_1006435C->items[v1->iteminfo];
+      return (char *)&itemconfig->items[v1->iteminfo];
   }
   return &byte_1006294C;
 }
@@ -25393,12 +25379,12 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 {
   levelitem_t *li;
 
-  if ( !dword_1006435C )
+  if ( !itemconfig )
     return -1;
   li = (levelitem_t *)dword_10064360;
   if ( !li )
     return -1;
-  while ( li->number <= index || _strcmpi(name, dword_1006435C->items[li->iteminfo].name) )
+  while ( li->number <= index || _strcmpi(name, itemconfig->items[li->iteminfo].name) )
   {
     li = li->next;
     if ( !li )
@@ -25407,8 +25393,8 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
   goal->areanum   = li->areanum;
   VectorCopy(li->goalorigin, goal->origin);
   goal->entitynum = li->entitynum;
-  VectorCopy(dword_1006435C->items[li->iteminfo].mins, goal->mins);
-  VectorCopy(dword_1006435C->items[li->iteminfo].maxs, goal->maxs);
+  VectorCopy(itemconfig->items[li->iteminfo].mins, goal->mins);
+  VectorCopy(itemconfig->items[li->iteminfo].maxs, goal->maxs);
   goal->number    = li->number;
   return li->number;
 }
@@ -25447,9 +25433,9 @@ int BotUpdateEntityItems()
     }
     while ( v1 );
   }
-  result = (int)(intptr_t)dword_1006435C;
-  v18 = dword_1006435C;
-  if ( !dword_1006435C )
+  result = (int)(intptr_t)itemconfig;
+  v18 = itemconfig;
+  if ( !itemconfig )
     goto done;
   result = AAS_NextBSPEntity(0);
   v3 = result;
@@ -25664,8 +25650,8 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
     result = AAS_AreaReachability(result);
     if ( result )
     {
-      ic = dword_1006435C;
-      if ( !dword_1006435C )
+      ic = itemconfig;
+      if ( !itemconfig )
         return 0;
       li = (levelitem_t *)dword_10064360;
       bestweight = 0.0;
@@ -25772,7 +25758,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
   int v16; // eax
   float bestweight; // [esp+Ch] [ebp-4Ch]
   levelitem_t *bestitem; // [esp+10h] [ebp-48h]
-  itemconfig_t *ic; // 64-bit fix - typed copy of dword_1006435C
+  itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
   int areanum; // [esp+18h] [ebp-40h]
   int t; // [esp+1Ch] [ebp-3Ch]
   int goal[14]; // [esp+20h] [ebp-38h] BYREF
@@ -25797,8 +25783,8 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
     if ( result )
     {
       ltg_time = ltg ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags) : 99999;
-      ic = dword_1006435C;
-      result = (int)(intptr_t)dword_1006435C;
+      ic = itemconfig;
+      result = (int)(intptr_t)itemconfig;
       if ( ic )
       {
         li = (levelitem_t *)dword_10064360;
@@ -25974,9 +25960,9 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *filename)
     botimport.Print(PRT_FATAL, "couldn't load weights\n");
     return 28;
   }
-  if ( !dword_1006435C )
+  if ( !itemconfig )
     return 28;
-  BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, dword_1006435C);
+  BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, itemconfig);
   return 0;
 }
 
@@ -26000,17 +25986,16 @@ int __cdecl BotResetGoalState(void *goalstate)
 //----- (100309D0) --------------------------------------------------------
 int BotSetupGoalAI()
 {
+  char *filename; // eax
 
-  char *v0; // eax
-
-  v0 = LibVarString("itemconfig", (char *)"items.c");
-  dword_1006435C = LoadItemConfig(v0);
-  if ( !dword_1006435C )
+  filename = LibVarString("itemconfig", (char *)"items.c");
+  itemconfig = LoadItemConfig(filename);
+  if ( !itemconfig )
   {
     botimport.Print(PRT_FATAL, "couldn't load item config\n");
-    return 29;
+    return BLERR_CANNOTLOADITEMCONFIG;
   }
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (10030A20) --------------------------------------------------------
@@ -26018,10 +26003,10 @@ int BotShutdownGoalAI()
 {
   int result; // eax
 
-  result = dword_1006435C;
-  if ( dword_1006435C )
-    result = FreeMemory(dword_1006435C);
-  dword_1006435C = 0;
+  result = itemconfig;
+  if ( itemconfig )
+    result = FreeMemory(itemconfig);
+  itemconfig = 0;
   return result;
 }
 
@@ -28237,17 +28222,17 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
   if ( !v2 )
   {
     botimport.Print(PRT_FATAL, "couldn't load weapon config %s\n", filename);
-    return 30;
+    return BLERR_CANNOTLOADWEAPONWEIGHTS;
   }
-  if ( !dword_10064080 )
-    return 31;
-  ws->itemweights = WeaponWeightIndex(v2, (weaponconfig_t *)dword_10064080);
+  if ( !weaponconfig )
+    return BLERR_CANNOTLOADWEAPONCONFIG;
+  ws->itemweights = WeaponWeightIndex(v2, (weaponconfig_t *)weaponconfig);
   return 0;
 }
 
 //----- (100353C0) --------------------------------------------------------
 /* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100353C0: iterates the active weaponconfig (dword_10064080)
+ * objdump@100353C0: iterates the active weaponconfig
  * over `weapons[0..numweapons-1]` (stride 0x158 = sizeof(weaponinfo_t),
  * model field at +0x54), calls sub_10043C10 (= Q_stricmp) against arg2,
  * and on first case-insensitive match returns weapons[i].number
@@ -28261,7 +28246,7 @@ int __cdecl sub_100353C0(const char *modelname)
   weaponinfo_t   *w;
   int             i;
 
-  cfg = (weaponconfig_t *)dword_10064080;
+  cfg = (weaponconfig_t *)weaponconfig;
   if ( !cfg )
     return -1;
   for ( i = 0; i < cfg->numweapons; i++ )
@@ -28287,7 +28272,7 @@ const char *__cdecl sub_10035430(const char *modelname)
   weaponinfo_t   *w;
   int             i;
 
-  cfg = (weaponconfig_t *)dword_10064080;
+  cfg = (weaponconfig_t *)weaponconfig;
   if ( !cfg )
     return default_name;
   for ( i = 0; i < cfg->numweapons; i++ )
@@ -28307,9 +28292,9 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
   v1 = ws->weaponindex;
   if ( v1 < 0 )
     return 0;
-  if ( !dword_10064080 )
+  if ( !weaponconfig )
     return 0;
-  return &dword_10064080->weaponinfo[v1];
+  return &weaponconfig->weaponinfo[v1];
 }
 
 //----- (10035500) --------------------------------------------------------
@@ -28322,10 +28307,10 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
   float weight; // st7
   float bestweight; // [esp+10h] [ebp-4h]
 
-  wc = (weaponconfig_t *)dword_10064080;
+  wc = (weaponconfig_t *)weaponconfig;
   bestweight = 0.0f;
   bestweaponinfo = 0;
-  if ( dword_10064080 )
+  if ( weaponconfig )
   {
     if ( AAS_Time() >= ws->nextthink )
     {
@@ -28388,16 +28373,16 @@ int __cdecl BotResetWeaponState(bot_weaponstate_t *ws)
 int BotSetupWeaponAI()
 {
 
-  char *v0; // eax
+  char *file; // eax
 
-  v0 = LibVarString("weaponconfig", (char *)"weapons.c");
-  dword_10064080 = LoadWeaponConfig(v0);
-  if ( !dword_10064080 )
+  file = LibVarString("weaponconfig", "weapons.c");
+  weaponconfig = LoadWeaponConfig(file);
+  if ( !weaponconfig )
   {
     botimport.Print(PRT_FATAL, "couldn't load the weapon config\n");
-    return 31;
+    return BLERR_CANNOTLOADWEAPONCONFIG;
   }
-  return 0;
+  return BLERR_NOERROR;
 }
 
 //----- (100356D0) --------------------------------------------------------
@@ -28405,10 +28390,10 @@ int BotShutdownWeaponAI()
 {
   int result; // eax
 
-  result = dword_10064080;
-  if ( dword_10064080 )
-    result = FreeMemory(dword_10064080);
-  dword_10064080 = 0;
+  result = weaponconfig;
+  if ( weaponconfig )
+    result = FreeMemory(weaponconfig);
+  weaponconfig = 0;
   return result;
 }
 
