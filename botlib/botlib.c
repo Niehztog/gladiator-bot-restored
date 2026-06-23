@@ -17441,7 +17441,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 {
 
   int v2; // edi
-  bot_goal_t *v3; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
+  bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
   double v4; // st7
   int v5; // edx
   int v6; // ecx
@@ -17451,8 +17451,8 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
-  bot_goal_t *v17; // 64-bit fix (was int) - alias of v3
-  bot_moveresult_t v18; // [esp+34h] [ebp-60h] BYREF
+  bot_goal_t *v17; // 64-bit fix (was int) - alias of goal
+  bot_moveresult_t moveresult; // [esp+34h] [ebp-60h] BYREF
   bot_moveresult_t v19; // [esp+64h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
@@ -17502,9 +17502,9 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   {
     if ( libvar_ctf->value != 0.0f )
       BotCTFSeekGoals(bs);
-    v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
-    v17 = v3;
-    if ( v3 )
+    goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
+    v17 = goal;
+    if ( goal )
     {
     if ( AAS_Time() > bs->check_time )
     {
@@ -17512,7 +17512,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       v5 = -(bs->ltgtype != 3);
       bs->check_time = v4 + 0.5;
       v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
-      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, v8) )
+      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, v8) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0f;
@@ -17522,24 +17522,24 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    v18 = *BotMoveToGoal(&v19, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v2);
-    if ( v18.failure )
+    moveresult = *BotMoveToGoal(&v19, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+    if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
       bs->ltg_time = 0.0f;
     }
-    BotAIBlocked(bs, &v18, 1);
-    if ( (v18.flags & 3) != 0 )
+    BotAIBlocked(bs, &moveresult, 1);
+    if ( (moveresult.flags & 3) != 0 )
     {
-      v6 = LODWORD(v18.ideal_viewangles[1]);
-      v7 = LODWORD(v18.ideal_viewangles[2]);
-      *(int *)&bs->ideal_viewangles[0] = LODWORD(v18.ideal_viewangles[0]);
+      v6 = LODWORD(moveresult.ideal_viewangles[1]);
+      v7 = LODWORD(moveresult.ideal_viewangles[2]);
+      *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
       *(int *)&bs->ideal_viewangles[1] = v6;
       *(int *)&bs->ideal_viewangles[2] = v7;
     }
     else
     {
-    if ( (v18.flags & 4) != 0 )
+    if ( (moveresult.flags & 4) != 0 )
     {
       if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
       {
@@ -17557,12 +17557,12 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     else
     {
-      vectoangles(v18.movedir, bs->ideal_viewangles);
+      vectoangles(moveresult.movedir, bs->ideal_viewangles);
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
     }
 LABEL_41:
-    if ( (v18.flags & 8) != 0 )
+    if ( (moveresult.flags & 8) != 0 )
       return 1;
     }
     BotChangeViewAngles(bs, bs->thinktime);
@@ -17862,17 +17862,17 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
 {
 
   int v2; // edi
-  bot_goal_t *v3; // esi (was int — holds BotLongTermGoal pointer)
+  bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
   float v4; // st7
   float v4b; // captured BFloat dodge probability (IDA dropped the fstps)
   int v5; // eax
   int v6; // ecx
   int v7; // [esp+Ch] [ebp-178h]
-  vec3_t v8; // [esp+14h] [ebp-170h] BYREF
-  vec3_t v9; // [esp+20h] [ebp-164h] BYREF
-  bot_moveresult_t v10; // [esp+2Ch] [ebp-158h] BYREF
+  vec3_t dir; // [esp+14h] [ebp-170h] BYREF
+  vec3_t target; // [esp+20h] [ebp-164h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
   bot_moveresult_t v11; // [esp+5Ch] [ebp-128h] BYREF
-  char v12[124]; // [esp+8Ch] [ebp-F8h] BYREF
+  char entinfo[124]; // [esp+8Ch] [ebp-F8h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -17894,8 +17894,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  *(aas_entityinfo_t *)v12 = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710(v12) )
+  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
+  if ( sub_10021710(entinfo) )
     goto LABEL_10;
   v2 = 102334;
   v7 = 102334;
@@ -17921,14 +17921,14 @@ LABEL_10:
     }
     if ( libvar_ctf->value != 0.0f )
       BotCTFRetreatGoals(bs);
-    v3 = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
-    if ( v3 )
+    goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
+    if ( goal )
     {
       v4 = AAS_Time();
       if ( v4 > bs->check_time
         && (v4 = AAS_Time() + 1.0f,
             bs->check_time = v4,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, v3, 500.0)) )
+            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0f;
@@ -17939,24 +17939,24 @@ LABEL_10:
       {
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        v10 = *BotMoveToGoal(&v11, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v2);
-        if ( v10.failure )
+        moveresult = *BotMoveToGoal(&v11, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+        if ( moveresult.failure )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
           bs->ltg_time = 0.0f;
         }
-        BotAIBlocked(bs, &v10, 0);
+        BotAIBlocked(bs, &moveresult, 0);
         sub_10020FE0(bs, BotWS(bs));
         BotChooseBestFightWeapon(BotWS(bs));
-        if ( (v10.flags & 1) != 0 )
+        if ( (moveresult.flags & 1) != 0 )
         {
-          v5 = LODWORD(v10.ideal_viewangles[1]);
-          v6 = LODWORD(v10.ideal_viewangles[2]);
-          *(int *)&bs->ideal_viewangles[0] = LODWORD(v10.ideal_viewangles[0]);
+          v5 = LODWORD(moveresult.ideal_viewangles[1]);
+          v6 = LODWORD(moveresult.ideal_viewangles[2]);
+          *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
           *(int *)&bs->ideal_viewangles[1] = v5;
           *(int *)&bs->ideal_viewangles[2] = v6;
         }
-        else if ( (v10.flags & 8) == 0 )
+        else if ( (moveresult.flags & 8) == 0 )
         {
           /* IDA dropped fstps after BFloat; v4 here was AAS_Time from way
            * earlier, never reset since.  Disasm at 10020901..1002090c shows
@@ -17965,14 +17965,14 @@ LABEL_10:
           v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
           if ( v4b <= 0.3 )
           {
-            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v3, v7, (float *)(intptr_t)v9) )
+            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v7, (float *)(intptr_t)target) )
             {
-              VectorSubtract(v9, bs->origin, v8);
-              vectoangles(v8, bs->ideal_viewangles);
+              VectorSubtract(target, bs->origin, dir);
+              vectoangles(dir, bs->ideal_viewangles);
             }
             else
             {
-              vectoangles(v10.movedir, bs->ideal_viewangles);
+              vectoangles(moveresult.movedir, bs->ideal_viewangles);
             }
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
             BotChangeViewAngles(bs, bs->thinktime);
