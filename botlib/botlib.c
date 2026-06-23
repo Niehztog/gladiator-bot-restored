@@ -1520,8 +1520,6 @@ static punctuation_t default_punctuations[] = {
     {NULL,  0,  NULL}  /* sentinel */
 };
 
-/* Preserved declaration so any remaining &off_1005FE00 references compile. */
-char *off_1005FE00 = ">>="; // weak — original value; array now in default_punctuations
 extern char unk_10060418[72]; /* 72-byte blob; &[3]="You are not allowed to..." — botlib_structdefs.c */
 CHAR aWindllUnzip[] = "windll_unzip"; // idb
 CHAR FileName[] = "UNZIP32.DLL"; // idb
@@ -1554,11 +1552,7 @@ LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA 
 #endif
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
-/* dword_10063A10 was IDA's name for the globaldefines linked-list head.
- * Restored to the Q3-faithful name with the proper type so the head is
- * 8 bytes wide on 64-bit and the +24 byte offsets become ->next. */
 define_t *globaldefines;
-#define dword_10063A10 globaldefines
 /* dword_10063A1C/A2C/A30 are now `totalmemorysize`, `numblocks`, `memory`
  * — matching the Q3 l_memory.c names.  Defined alongside memoryblock_t
  * below.  The old IDA spellings still resolve via #define aliases. */
@@ -1619,7 +1613,6 @@ typedef struct bot_character_s {
 #define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
     ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
 bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
-#define dword_100643A0 ((char *)botstates)
 /* Side-band tables — see BOTLIB_NEED_SIDEBAND gate above.  On 64-bit the
  * parallel arrays declared here back each helper macro; on 32-bit the
  * arrays are not declared and the macros resolve to direct casts of the
@@ -1821,8 +1814,6 @@ libvar_t *libvar_ctf; /* libvar handle */
  * `areanum` field doubles as "flag found" flag — 0 means not located yet. */
 bot_goal_t unk_100643E0; /* blue flag goal */
 bot_goal_t unk_10064420; /* red flag goal  */
-#define dword_100643EC unk_100643E0.areanum   /* offset +12 — used as "found" flag */
-#define dword_1006442C unk_10064420.areanum
 libvar_t *libvar_usehook; /* libvar handle */
 libvar_t *libvar_ch; /* libvar handle */
 libvar_t *libvar_teamplay; /* libvar handle */
@@ -20364,12 +20355,12 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       v8 = v8 + v8;
       bs->teammessage_time = AAS_Time() + v8;
       v5 = (rand() & 0x7FFF) * 0.000030518509f;
-      if ( v5 < 0.33f && dword_1006442C && dword_100643EC )
+      if ( v5 < 0.33f && unk_10064420.areanum && unk_100643E0.areanum )
       {
         bs->ltgtype = 4;
         bs->teamgoal_time = AAS_Time() + 180.0f;
       }
-      else if ( v5 < 0.66 && dword_1006442C && dword_100643EC )
+      else if ( v5 < 0.66 && unk_10064420.areanum && unk_100643E0.areanum )
       {
         if ( BotCTFTeam(bs) == 1 )
           memcpy(&bs->teamgoal, &unk_10064420, 0x38u);
@@ -21018,7 +21009,7 @@ LABEL_64:
       bs->teamgoal_time = v34 + 300;
       return 1;
     case 7:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &match) )
+      if ( libvar_ctf->value == 0.0f || !unk_10064420.areanum || !unk_100643E0.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v35 = rand();
       v59 = 2 * ((float)(v35 & 0x7FFF) * 0.000030518509f);
@@ -21029,7 +21020,7 @@ LABEL_64:
       bs->teamgoal_time = v37 + 180;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0f || !dword_1006442C || !dword_100643EC || !BotAddressedToBot(bs, &match) )
+      if ( libvar_ctf->value == 0.0f || !unk_10064420.areanum || !unk_100643E0.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v38 = rand();
       v60 = 2 * ((float)(v38 & 0x7FFF) * 0.000030518509f);
@@ -21627,7 +21618,7 @@ int Export_BotAIFrame(int a1, float a2)
 {
   if ( AAS_Initialized() )
   {
-    if ( !*(_DWORD *)(dword_100643A0 + 4560 * a1) )
+    if ( !*(_DWORD *)(((char *)botstates) + 4560 * a1) )
     {
       botimport.Print(PRT_FATAL, "client %d hasn't been setup\n", a1);
       return BLERR_AICLIENTNOTSETUP;
@@ -21686,7 +21677,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   _DWORD *chat_state_ptr;
   char gender;
 
-  bs = (bot_state_t *)(dword_100643A0 + 4560 * a1);
+  bs = (bot_state_t *)(((char *)botstates) + 4560 * a1);
   if ( bs->inuse )
   {
     botimport.Print(PRT_FATAL, "client %d already setup\n", a1);
@@ -21811,7 +21802,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
   int v5; // edi
   double v6; // st7
 
-  v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
+  v2 = (_DWORD *)(((char *)botstates) + 4560 * a1);
   if ( !*v2 )
   {
     botimport.Print(PRT_FATAL, "tried to updated inactive bot client\n");
@@ -21842,7 +21833,7 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
 {
   _DWORD *v3; // eax
 
-  v3 = (_DWORD *)(dword_100643A0 + 4560 * a1);
+  v3 = (_DWORD *)(((char *)botstates) + 4560 * a1);
   if ( !*v3 )
   {
     botimport.Print(PRT_ERROR, "recieved console message for inactive bot client\n");
@@ -21857,7 +21848,7 @@ int __cdecl BotSettings(int a1, const void *a2)
 {
   _DWORD *v2; // eax
 
-  v2 = (_DWORD *)(dword_100643A0 + 4560 * a1);
+  v2 = (_DWORD *)(((char *)botstates) + 4560 * a1);
   if ( !*v2 )
   {
     botimport.Print(PRT_FATAL, "tried to update settings of inactive client\n");
@@ -21914,7 +21905,7 @@ int sub_10029C10()
   int i;
 
   for ( i = 0; i < botstate.num_clients; i++ )
-    BotResetState((bot_state_t *)(4560 * i + dword_100643A0));
+    BotResetState((bot_state_t *)(4560 * i + ((char *)botstates)));
   BotInitLevelItems();
   if ( dword_10064398 )
     AAS_FreeBSPEntities(dword_10064398);
@@ -30208,12 +30199,6 @@ typedef struct memoryblock_s {
 memoryblock_t *memory;          /* list head    (was dword_10063A30) */
 int            totalmemorysize; /* bytes alloc  (was dword_10063A1C) */
 int            numblocks;       /* block count  (was dword_10063A2C) */
-
-/* Legacy IDA names retained as aliases so any code that still spells them
- * the old way continues to resolve to the same storage. */
-#define dword_10063A30 memory
-#define dword_10063A1C totalmemorysize
-#define dword_10063A2C numblocks
 
 //----- (10038F10) --------------------------------------------------------
 void LinkMemoryBlock(memoryblock_t *block)
