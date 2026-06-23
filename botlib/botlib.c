@@ -14592,34 +14592,34 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 //----- (1001A410) --------------------------------------------------------
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin)
 {
-  int v4; // ebx
+  int n; // ebx
   int v5; // eax
   float *v6; // eax
   int v8; // eax
-  int v12; // [esp+24h] [ebp-64h]
+  int i; // [esp+24h] [ebp-64h]
   vec3_t center; // [esp+28h] [ebp-60h] BYREF — area center, passed to AAS_PointAreaNum/AAS_TraceClientBBox
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  v4 = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)aasworld.numareas);
+  n = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)aasworld.numareas);
   v5 = aasworld.numareas;
-  v12 = 0;
+  i = 0;
   if ( aasworld.numareas <= 0 )
     return 0;
   while ( 1 )
   {
-    if ( v4 <= 0 )
-      v4 = 1;
-    if ( v4 >= v5 )
-      v4 = 1;
-    if ( AAS_AreaReachability(v4) && AAS_AreaTravelTimeToGoalArea(areanum, v4, travelflags) )
+    if ( n <= 0 )
+      n = 1;
+    if ( n >= v5 )
+      n = 1;
+    if ( AAS_AreaReachability(n) && AAS_AreaTravelTimeToGoalArea(areanum, n, travelflags) )
     {
-      v6 = (float *)(&aasworld.areas[v4]);
+      v6 = (float *)(&aasworld.areas[n]);
       center[0] = v6[9];
       center[1] = v6[10];
       center[2] = v6[11];
       if ( !AAS_PointAreaNum(center) )
-        Log_Write("area %d center %f %f %f in solid?", v4, center[0],
+        Log_Write("area %d center %f %f %f in solid?", n, center[0],
                   center[1], center[2]);
       end[0] = center[0];
       end[1] = center[1];
@@ -14629,8 +14629,8 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
         break;
     }
     v5 = aasworld.numareas;
-    ++v4;
-    if ( ++v12 >= aasworld.numareas )
+    ++n;
+    if ( ++i >= aasworld.numareas )
       return 0;
   }
   v8 = AAS_PointAreaNum(trace.endpos);
@@ -18438,12 +18438,12 @@ char *__cdecl EasyClientName(int client, char *buf)
   char v2; // cl
   char *p_Str; // eax
   char *i; // edx
-  char *v5; // esi
-  char *v6; // eax
+  char *str1; // esi
+  char *str2; // eax
   char v7; // al
-  char *v8; // esi
+  char *ptr; // esi
   const char *v9; // ebx
-  char v10; // al
+  char c; // al
   /* Binary at 0x10021864 does `sub esp, 0x80` — a single 128-byte stack buffer.
    * IDA decompiled it as Str (1 byte) + Str[1] (1 byte) + (&Str[2])[126]; restored as Str[128]. */
   char Str[128]; // [esp+8h] [ebp-80h] BYREF
@@ -18462,15 +18462,15 @@ char *__cdecl EasyClientName(int client, char *buf)
   }
   for ( i = strstr(Str, " "); i; i = strstr(Str, " ") )
     memmove(i, i + 1, strlen(i));  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
-  v5 = strstr(Str, "[");
-  v6 = strstr(Str, "]");
-  if ( v5 && v6 )
+  str1 = strstr(Str, "[");
+  str2 = strstr(Str, "]");
+  if ( str1 && str2 )
   {
     /* overlapping shift-left: use memmove (was strcpy — UB on aarch64) */
-    if ( v6 <= v5 )
-      memmove(v6, v5 + 1, strlen(v5 + 1) + 1);
+    if ( str2 <= str1 )
+      memmove(str2, str1 + 1, strlen(str1 + 1) + 1);
     else
-      memmove(v5, v6 + 1, strlen(v6 + 1) + 1);
+      memmove(str1, str2 + 1, strlen(str2 + 1) + 1);
   }
   v7 = Str[0];
   if ( (Str[0] == 109 || Str[0] == 77) && (Str[1] == 114 || Str[1] == 82) )
@@ -18478,29 +18478,29 @@ char *__cdecl EasyClientName(int client, char *buf)
     memmove(Str, &Str[2], strlen(&Str[2]) + 1);  /* was strcpy — UB on aarch64 */
     v7 = Str[0];
   }
-  v8 = Str;
+  ptr = Str;
   if ( v7 )
   {
     v9 = &Str[1];
     do
     {
-      v10 = *v8;
-      if ( *v8 >= 97 && v10 <= 122 || v10 >= 48 && v10 <= 57 || v10 == 95 )
+      c = *ptr;
+      if ( *ptr >= 97 && c <= 122 || c >= 48 && c <= 57 || c == 95 )
       {
-        ++v8;
+        ++ptr;
         ++v9;
       }
-      else if ( v10 < 65 || v10 > 90 )
+      else if ( c < 65 || c > 90 )
       {
-        strcpy(v8, v9);
+        strcpy(ptr, v9);
       }
       else
       {
-        *v8++ = v10 + 32;
+        *ptr++ = c + 32;
         ++v9;
       }
     }
-    while ( *v8 );
+    while ( *ptr );
   }
   return strcpy(buf, Str);
 }
@@ -18569,48 +18569,48 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   int v8; // ecx
   float v9; // st7
   float v10; // st7
-  /* v11 is a vec3_t test point (X int copy, Y int copy, Z float). Original
+  /* point is a vec3_t test point (X int copy, Y int copy, Z float). Original
    * source likely declared as a vec3_t array — MSVC drops dead stores to v12/v13
-   * when they are separate locals (only v11 is BYREF), so we declare as an
+   * when they are separate locals (only point is BYREF), so we declare as an
    * array to keep all three slots live across the call. */
-  int v11[3]; // [esp+4h] [ebp-90h] BYREF
-  /* v14/v15 are int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v[2]. */
-  int v14[3]; // [esp+10h] [ebp-84h] BYREF
-  int v15[3]; // [esp+1Ch] [ebp-78h] BYREF
-  _DWORD v16[3]; // [esp+28h] [ebp-6Ch] BYREF
-  _DWORD v17[3]; // [esp+34h] [ebp-60h] BYREF
-  int v18[21]; // [esp+40h] [ebp-54h] BYREF
+  int point[3]; // [esp+4h] [ebp-90h] BYREF
+  /* start/end are int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v[2]. */
+  int start[3]; // [esp+10h] [ebp-84h] BYREF
+  int end[3]; // [esp+1Ch] [ebp-78h] BYREF
+  _DWORD maxs[3]; // [esp+28h] [ebp-6Ch] BYREF
+  _DWORD mins[3]; // [esp+34h] [ebp-60h] BYREF
+  int trace[21]; // [esp+40h] [ebp-54h] BYREF
 
   if ( BotIsDead(bs) )
     return 1;
   if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
   v3 = bs->origin[2] - 24.0f;
-  v11[0] = *(int *)&bs->origin[0];
-  v11[1] = *(int *)&bs->origin[1];
-  *(float *)&v11[2] = v3;
-  v4 = (char)sub_10003080((float *)v11);
+  point[0] = *(int *)&bs->origin[0];
+  point[1] = *(int *)&bs->origin[1];
+  *(float *)&point[2] = v3;
+  v4 = (char)sub_10003080((float *)point);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
   v6 = bs->origin[2] + 32.0f;
-  v11[0] = *(int *)&bs->origin[0];
-  v11[1] = *(int *)&bs->origin[1];
-  *(float *)&v11[2] = v6;
-  v7 = (char)sub_10003080((float *)v11);
+  point[0] = *(int *)&bs->origin[0];
+  point[1] = *(int *)&bs->origin[1];
+  *(float *)&point[2] = v6;
+  v7 = (char)sub_10003080((float *)point);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
   v8 = *(int *)&bs->origin[1];
   v9 = bs->origin[2] + 1.0f;
-  v14[0] = *(int *)&bs->origin[0];
-  v14[1] = v8;
-  v15[0] = v14[0];
-  *(float *)&v14[2] = v9;
+  start[0] = *(int *)&bs->origin[0];
+  start[1] = v8;
+  end[0] = start[0];
+  *(float *)&start[2] = v9;
   v10 = bs->origin[2] - 100.0f;
-  v15[1] = v8;
-  *(float *)&v15[2] = v10;
-  AAS_PresenceTypeBoundingBox(4, (float *)v17, (float *)v16);
-  *(bsp_trace_t *)v18 = AAS_Trace((float*)(v14), (float*)v17, (float*)v16, (float*)(v15), 4, bs->client);
-  return v18[20] == 0;
+  end[1] = v8;
+  *(float *)&end[2] = v10;
+  AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
+  *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)mins, (float*)maxs, (float*)(end), 4, bs->client);
+  return trace[20] == 0;
 }
 
 //----- (10021D80) --------------------------------------------------------
@@ -18795,7 +18795,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   float v1; // st7
   int v3; // eax
   double v4; // st7
-  float v6; // [esp+4h] [ebp-4h]
+  float rnd; // [esp+4h] [ebp-4h]
   float v7; // [esp+Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
@@ -18812,15 +18812,15 @@ int __cdecl BotChat_Random(bot_state_t *bs)
       return 0;
   }
   /* IDA dropped fstps after BFloat (characteristic 21 = "random chat
-   * probability"); v6 should be the bfloat result, not a copy of
+   * probability"); rnd should be the bfloat result, not a copy of
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every BotChat_Random into return 0 on the !fastchat branch). */
-  v6 = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
+  rnd = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
   if ( bs->thinktime * 0.1f < (float)(rand() & 0x7FFF) * 0.000030518509f )
     return 0;
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25f )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25f )
       return 0;
   }
   if ( !BotValidChatPosition(bs) )
