@@ -24649,36 +24649,36 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
 }
 
 //----- (1002E510) --------------------------------------------------------
-void __cdecl BotInitialChat(bot_chatstate_t *cs, char *String2, ...)
+void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
 {
-  chatlist_t *v3; // chat list
-  const char *v4; // ebp
+  chatlist_t *list; // chat list
+  const char *message; // ebp
   const char *v5; // edi
-  int v6; // ebx
+  int i; // ebx
   va_list ap;
-  bot_chatvar_t v10[10]; // BYREF
+  bot_chatvar_t vars[10]; // BYREF
 
-  v3 = (chatlist_t *)BotChatDumpSlot(cs);
-  if ( v3 )
+  list = (chatlist_t *)BotChatDumpSlot(cs);
+  if ( list )
   {
-    v4 = BotChooseInitialChatMessage(v3, String2);
-    if ( v4 )
+    message = BotChooseInitialChatMessage(list, type);
+    if ( message )
     {
-      memset(v10, 0, sizeof(v10));
-      va_start(ap, String2);
+      memset(vars, 0, sizeof(vars));
+      va_start(ap, type);
       v5 = va_arg(ap, const char *);
-      v6 = 0;
-      while ( v6 < 10 )
+      i = 0;
+      while ( i < 10 )
       {
         if ( !v5 )
           break;
-        v10[v6].str = (char *)v5;
-        v10[v6].len = (int)strlen(v5);
+        vars[i].str = (char *)v5;
+        vars[i].len = (int)strlen(v5);
         v5 = va_arg(ap, const char *);
-        ++v6;
+        ++i;
       }
       va_end(ap);
-      BotConstructChatMessage(cs, v4, 0, v10, 0);
+      BotConstructChatMessage(cs, message, 0, vars, 0);
     }
   }
 }
@@ -26986,11 +26986,11 @@ bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_mo
 bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float *v4; // ebx
-  float v5; // st7
+  float dist; // st7
   float v6; // st7
   float v7; // st7
   bot_moveresult_t *result; // eax
-  float v9; // [esp+10h] [ebp-4Ch] BYREF
+  float speed; // [esp+10h] [ebp-4Ch] BYREF
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
   vec3_t pos; // [esp+20h] [ebp-3Ch] BYREF (was v13/v14/<hole>)
@@ -27004,9 +27004,9 @@ bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_moves
   dir[0] = pos[0];
   dir[1] = pos[1];
   dir[2] = 0.0f;
-  v5 = VectorNormalize(dir);
-  v17 = v5;
-  if ( v5 < 60.0f )
+  dist = VectorNormalize(dir);
+  v17 = dist;
+  if ( dist < 60.0f )
   {
     v6 = *v4 - ms->origin[0];
     dir[2] = 0.0f;
@@ -27020,22 +27020,22 @@ bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_moves
     if ( (float)VectorLength(pos) < 15.0f )
     {
       if ( v17 > 0.0f && v17 < 150.0f )
-        v9 = 380.0f - (300.0f - (v17 + v17));
+        speed = 380.0f - (300.0f - (v17 + v17));
       else
-        v9 = 400.0f;
+        speed = 400.0f;
     }
     else
     {
-      if ( !AAS_HorizontalVelocityForJump(0.0, reach->start, v4, &v9) )
-        v9 = 200.0f;
+      if ( !AAS_HorizontalVelocityForJump(0.0, reach->start, v4, &speed) )
+        speed = 200.0f;
     }
   }
   else
   {
-    v9 = 400.0f;
+    speed = 400.0f;
   }
   BotCheckBlocked(ms, dir, &moveresult);
-  EA_Move(ms->client, dir, v9);
+  EA_Move(ms->client, dir, speed);
   VectorCopy(dir, moveresult.movedir);
   result = a1;
   *a1 = moveresult;
@@ -27606,12 +27606,12 @@ LABEL_26:
 //----- (10033EC0) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  float v3; // st7
+  float dist; // st7
   float v4; // st7
   bot_moveresult_t *result; // eax
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
-  float v8; // [esp+0h] [ebp-48h]
+  float speed; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF (was v9/v10/v11)
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
@@ -27620,8 +27620,8 @@ bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movesta
   dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
-  v3 = VectorNormalize(dir);
-  if ( v3 < 5.0f )
+  dist = VectorNormalize(dir);
+  if ( dist < 5.0f )
   {
     v4 = reach->end[0] - ms->origin[0];
     dir[2] = 0.0f;
@@ -27635,10 +27635,10 @@ bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movesta
   }
   else
   {
-    if ( v3 > 80.0f )
-      v3 = 80.0f;
-    v8 = 400.0f - (400.0f - v3 * 5.0f);
-    EA_Move(ms->client, dir, v8);
+    if ( dist > 80.0f )
+      dist = 80.0f;
+    speed = 400.0f - (400.0f - dist * 5.0f);
+    EA_Move(ms->client, dir, speed);
   }
   vectoangles(dir, ms->viewangles);
   v7 = ms->client;
