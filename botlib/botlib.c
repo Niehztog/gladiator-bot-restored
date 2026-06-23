@@ -15550,9 +15550,9 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   _DWORD *face; // ebx
   int eidx;
   char *edge;
-  float *v7;
+  float *v1;
   BOOL firstvertex; // esi
-  float *v9; // ecx
+  float *v2; // ecx
   char *plane; // [esp+10h] [ebp-28h]
   float v11; // [esp+14h] [ebp-24h]
   float v12; // [esp+18h] [ebp-20h]
@@ -15573,12 +15573,12 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       eidx = aasworld.edgeindex[facenum + face[3]];
       edge = &aasworld.edges[abs(eidx)];
       firstvertex = eidx < 0;
-      v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * firstvertex)];
-      v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !firstvertex)]);
-      VectorSubtract(v9, v7, edgevec);
-      v11 = point[0] - v7[0];
-      v12 = point[1] - v7[1];
-      v13 = point[2] - v7[2];
+      v1 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * firstvertex)];
+      v2 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !firstvertex)]);
+      VectorSubtract(v2, v1, edgevec);
+      v11 = point[0] - v1[0];
+      v12 = point[1] - v1[1];
+      v13 = point[2] - v1[2];
       CrossProduct(edgevec, plane, sepnormal);
       v17 = -epsilon;
       if ( sepnormal[2] * v13 + sepnormal[1] * v12 + sepnormal[0] * v11 < v17 )
