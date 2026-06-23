@@ -10629,28 +10629,28 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 //----- (10012200) --------------------------------------------------------
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num)
 {
-  char *v2; // ebp
+  char *area1; // ebp
   int v3; // eax
   int v4; // edx
   int v7; // eax
   int v8; // eax
-  char *v9; // ebp
+  char *groundface1; // ebp
   int v10; // eax
   int v11; // eax
   int v12; // edi
   unsigned int v13; // esi
-  char *v14; // ecx
+  char *edge1; // ecx
   float *v15; // eax
   float v16; // ebx
   float *v17; // eax
   int v18; // ebx
-  char *v19; // eax — base pointer alias of v115 (was int, must hold 64-bit ptr)
+  char *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
   int v20; // rax — IDA decompiled as __int64; restored to int + abs() — see asm_matching/idioms
-  char *v21; // edi
+  char *groundface2; // edi
   int j; // ebp
   int v23; // rax — IDA decompiled as __int64; restored to int + abs()
   char *v23p; // alias: char* pointer reuse of the v23 slot in IDA
-  _DWORD *v24; // ecx
+  _DWORD *edge2; // ecx
   /* IDA-decompiled // stN locals — original MSVC kept these on the x87 stack
    * at 80-bit. Promoted to long double + explicit operand casts at the
    * chain expressions to mirror the original FPU pipeline.
@@ -10740,7 +10740,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   /* Collapsed from {float v101, int v102, int v103} per uninit-read root-cause
    * analysis: GCC may insert padding between mixed-type BYREF locals,
    * breaking the vec3 contract for CrossProduct(v143, up, &v101). */
-  vec3_t v101; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
+  vec3_t normal; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
   int v104; // [esp+B8h] [ebp-118h]
   float v105; // [esp+BCh] [ebp-114h]
   float v106; // [esp+C0h] [ebp-110h]
@@ -10753,11 +10753,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t v110; // [esp+D0h] [ebp-100h] BYREF — was v110/v111/v112 mixed triplet
   int v113; // [esp+DCh] [ebp-F4h]
   unsigned int v114; // [esp+E0h] [ebp-F0h]
-  char *v115; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
+  char *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
   int v116; // [esp+E8h] [ebp-E8h]
-  int v117; // [esp+ECh] [ebp-E4h]
+  int k; // [esp+ECh] [ebp-E4h]
   int v118; // [esp+F0h] [ebp-E0h]
-  int v119; // [esp+F4h] [ebp-DCh]
+  int i; // [esp+F4h] [ebp-DCh]
   float v120[3]; // [esp+F8h] [ebp-D8h] BYREF
   /* Collapsed from {int v121, int v122, float v123} per uninit-read root-cause
    * analysis: v121 is passed by reference to VectorMA which writes 3 floats.
@@ -10783,7 +10783,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * uninitialized, and the z decrement has no effect on the trace point.
    * Collapsed to a vec3_t. */
   vec3_t v141; // [esp+170h] [ebp-60h] BYREF — was int v141[2] + float v142
-  float v143[3]; // [esp+17Ch] [ebp-54h] BYREF
+  float edgevec[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
 
   up[0] = 0.0f;
@@ -10791,105 +10791,105 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   up[2] = 1.0f;
   if ( (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
   {
-    v2 = &aasworld.areas[area1num];
-    v127 = v2;
-    v115 = &aasworld.areas[area2num];
+    area1 = &aasworld.areas[area1num];
+    v127 = area1;
+    area2 = &aasworld.areas[area2num];
     v3 = AAS_AreaSwim(area1num);
     v134 = v3;
     /* if the areas are not near anough in the x-y direction */
     for ( v4 = 0; v4 < 2; ++v4 )
     {
-      if ( *(float *)(v2 + 4 * v4 + 12) > *(float *)(v115 + 4 * v4 + 24) + 10.0f )
+      if ( *(float *)(area1 + 4 * v4 + 12) > *(float *)(area2 + 4 * v4 + 24) + 10.0f )
         return 0;
-      if ( *(float *)(v2 + 4 * v4 + 24) < *(float *)(v115 + 4 * v4 + 12) - 10.0f )
+      if ( *(float *)(area1 + 4 * v4 + 24) < *(float *)(area2 + 4 * v4 + 12) - 10.0f )
         return 0;
     }
     {
       {
-        v7 = *((_DWORD *)v2 + 1);
+        v7 = *((_DWORD *)area1 + 1);
         v116 = 0;
         v64 = 99999.0f;
         v124 = 0.0f;
         v118 = 0;
         v100 = 99999.0f;
         v125 = 0.0f;
-        v119 = 0;
+        i = 0;
         if ( v7 <= 0 )
           return 0;
         do
         {
-          v8 = aasworld.faceindex[v119 + *((_DWORD *)v127 + 2)];
+          v8 = aasworld.faceindex[i + *((_DWORD *)v127 + 2)];
           v128 = v8 < 0;
-          v9 = &aasworld.faces[abs(v8)];
-          v126 = v9;
-          if ( (v9[4] & 4) != 0
+          groundface1 = &aasworld.faces[abs(v8)];
+          v126 = groundface1;
+          if ( (groundface1[4] & 4) != 0
             || v134
-            && up[2] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[2]
-             + up[1] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[1]
-             + up[0] * aasworld.planes[(*(_DWORD *)v9 ^ (v8 >= 0))].normal[0] >= 0.7 )
+            && up[2] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[2]
+             + up[1] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[1]
+             + up[0] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[0] >= 0.7 )
           {
-            v10 = *((_DWORD *)v9 + 2);
-            v117 = 0;
+            v10 = *((_DWORD *)groundface1 + 2);
+            k = 0;
             if ( v10 > 0 )
             {
               do
               {
-                v11 = aasworld.edgeindex[v117 + *((_DWORD *)v9 + 3)];
+                v11 = aasworld.edgeindex[k + *((_DWORD *)groundface1 + 3)];
                 v12 = v11 < 0;
-                if ( (v9[4] & 4) == 0 )
+                if ( (groundface1[4] & 4) == 0 )
                   v12 = v12 == v128;
                 v13 = abs(v11);
-                v14 = &aasworld.edges[v13];
-                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&v14[4 * (v12 == 0)]]);
+                edge1 = &aasworld.edges[v13];
+                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * (v12 == 0)]]);
                 v69 = *v15;
                 v16 = v15[1];
                 v71 = *((int *)v15 + 2);
-                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&v14[4 * v12]]);
+                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * v12]]);
                 *(float *)&v70 = v16;
                 v75 = *v17;
                 v76 = v17[1];
                 v77 = v17[2];
-                v143[0] = *v17 - v69;
-                v143[1] = v76 - v16;
-                v143[2] = v77 - *(float *)&v71;
-                CrossProduct(v143, up, v101);
-                VectorNormalize(v101);
+                edgevec[0] = *v17 - v69;
+                edgevec[1] = v76 - v16;
+                edgevec[2] = v77 - *(float *)&v71;
+                CrossProduct(edgevec, up, normal);
+                VectorNormalize(normal);
                 v18 = 0;
-                v65 = v101[2] * *(float *)&v71 + v101[1] * *(float *)&v70 + v101[0] * v69;
-                if ( *(int *)(v115 + 4) > 0 )
+                v65 = normal[2] * *(float *)&v71 + normal[1] * *(float *)&v70 + normal[0] * v69;
+                if ( *(int *)(area2 + 4) > 0 )
                 {
-                  v19 = v115;
+                  v19 = area2;
                   do
                   {
                     v20 = aasworld.faceindex[v18 + *(_DWORD *)(v19 + 8)];
-                    v21 = &aasworld.faces[abs(v20)];
-                    if ( (v21[4] & 4) != 0 )
+                    groundface2 = &aasworld.faces[abs(v20)];
+                    if ( (groundface2[4] & 4) != 0 )
                     {
-                      for ( j = 0; j < *((_DWORD *)v21 + 2); ++j )
+                      for ( j = 0; j < *((_DWORD *)groundface2 + 2); ++j )
                       {
-                        v23 = aasworld.edgeindex[j + *((_DWORD *)v21 + 3)];
-                        v24 = &aasworld.edges[abs(v23)];
-                        v23p = &aasworld.vertexes[*v24];
+                        v23 = aasworld.edgeindex[j + *((_DWORD *)groundface2 + 3)];
+                        edge2 = &aasworld.edges[abs(v23)];
+                        v23p = &aasworld.vertexes[*edge2];
                         v78 = *(float *)v23p;
                         v79 = *(int *)(v23p + 4);
                         v80 = *(float *)(v23p + 8);
-                        v23p = &aasworld.vertexes[v24[1]];
+                        v23p = &aasworld.vertexes[edge2[1]];
                         v72 = *(float *)v23p;
                         v74 = *(float *)(v23p + 8);
                         v73 = *(float *)(v23p + 4);
-                        v25 = (float)v80 * (float)v101[2]
-                            + (float)*(float *)&v79 * (float)v101[1]
-                            + (float)v78 * (float)v101[0]
+                        v25 = (float)v80 * (float)normal[2]
+                            + (float)*(float *)&v79 * (float)normal[1]
+                            + (float)v78 * (float)normal[0]
                             - (float)v65;
                         if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
-                          v26 = (float)v74 * (float)v101[2]
-                              + (float)v73 * (float)v101[1]
-                              + (float)v72 * (float)v101[0]
+                          v26 = (float)v74 * (float)normal[2]
+                              + (float)v73 * (float)normal[1]
+                              + (float)v72 * (float)normal[0]
                               - (float)v65;
                           if ( v26 >= -0.1 && v26 <= 0.1 )
                           {
-                            CrossProduct(up, v101, v97_vec);
+                            CrossProduct(up, normal, v97_vec);
                             v81 = v80;
                             v82 = *(float *)&v71;
                             v90 = v77;
@@ -11087,13 +11087,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   *(int *)&v121[1] = *(int *)&v91[1];
                                   v121[2] = v91[2];
                                   /* Original asm uses integer movs to copy bit patterns from
-                                   * v101/v102/v103 (int slots holding cross-product float bits)
+                                   * normal/v102/v103 (int slots holding cross-product float bits)
                                    * into v120[0..2].  IDA's `v120[1] = v102` decompile would
                                    * become an int→float conversion (fild) in GCC, corrupting
                                    * the float.  Bit-cast explicitly. */
-                                  *(int *)v120 = *(int *)&v101[0];
-                                  *(int *)&v120[1] = *(int *)&v101[1];
-                                  *(int *)&v120[2] = *(int *)&v101[2];
+                                  *(int *)v120 = *(int *)&normal[0];
+                                  *(int *)&v120[1] = *(int *)&normal[1];
+                                  *(int *)&v120[2] = *(int *)&normal[2];
                                   v116 = 1;
                                   v113 = v13;
                                   *(int *)&v110[0] = *(int *)&v94[0];
@@ -11109,9 +11109,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 v136 = v91[1];
                                 v137 = v91[2];
                                 /* Same bit-pattern preservation as v120 above. */
-                                *(int *)v139 = *(int *)&v101[0];
-                                *(int *)&v139[1] = *(int *)&v101[1];
-                                *(int *)&v139[2] = *(int *)&v101[2];
+                                *(int *)v139 = *(int *)&normal[0];
+                                *(int *)&v139[1] = *(int *)&normal[1];
+                                *(int *)&v139[2] = *(int *)&normal[2];
                                 v118 = 1;
                                 v114 = v13;
                                 *(int *)v138 = *(int *)&v94[0];
@@ -11123,22 +11123,22 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                         }
                       }
                     }
-                    v19 = v115;
+                    v19 = area2;
                     ++v18;
                   }
-                  while ( v18 < *(_DWORD *)(v115 + 4) );
-                  v9 = v126;
+                  while ( v18 < *(_DWORD *)(area2 + 4) );
+                  groundface1 = v126;
                 }
-                v42 = *((_DWORD *)v9 + 2);
-                ++v117;
+                v42 = *((_DWORD *)groundface1 + 2);
+                ++k;
               }
-              while ( v117 < v42 );
+              while ( k < v42 );
             }
           }
           v43 = *((_DWORD *)v127 + 1);
-          ++v119;
+          ++i;
         }
-        while ( v119 < v43 );
+        while ( i < v43 );
         if ( v116 && v64 >= 0.0f && v64 < (float)libvar_sv_step->value )
         {
           v44 = (int *)AAS_AllocReachability();
