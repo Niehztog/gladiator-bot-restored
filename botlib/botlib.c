@@ -20493,95 +20493,95 @@ int __cdecl FindClientByName(char *String2)
 //----- (10026990) --------------------------------------------------------
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 {
-  bot_waypoint_t *v2; // esi (head of new patrol list)
-  int v3; // edi (patrol flags accumulator)
-  bot_waypoint_t *v4; // eax (newly-allocated node)
-  bot_waypoint_t *v5; // ecx (tail walker)
-  bot_goal_t v7; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
+  bot_waypoint_t *newpatrolpoints; // esi (head of new patrol list)
+  int patrolflags; // edi (patrol flags accumulator)
+  bot_waypoint_t *newwp; // eax (newly-allocated node)
+  bot_waypoint_t *wp; // ecx (tail walker)
+  bot_goal_t goal; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
   char Destination[152]; // [esp+48h] [ebp-188h] BYREF
-  /* IDA split bot_match_t (240 B) into `char v9[4]` + phantom `int v10` at
+  /* IDA split bot_match_t (240 B) into `char keyareamatch[4]` + phantom `int v10` at
    * offset +156 (= match.subtype).  The original calls sub_10001267 =
    * BotFindMatch, not strncmp.  See chat_state.h. */
-  bot_match_t v9; // [esp+E0h] [ebp-F0h] BYREF
+  bot_match_t keyareamatch; // [esp+E0h] [ebp-F0h] BYREF
 
-  v2 = NULL;
-  v3 = 0;
+  newpatrolpoints = NULL;
+  patrolflags = 0;
   BotMatchVariable(match, 4, Destination);
   while ( 1 )
   {
-    if ( !BotFindMatch(Destination, &v9, 64) )
+    if ( !BotFindMatch(Destination, &keyareamatch, 64) )
     {
       EA_SayTeam(bs->client, "what do you say?");
-      BotFreeWaypoints(v2);
+      BotFreeWaypoints(newpatrolpoints);
       BotPatrolpoints(bs) = NULL;
       return 0;
     }
-    BotMatchVariable(&v9, 4, Destination);
-    if ( !BotGetMessageTeamGoal(bs, Destination, &v7) )
+    BotMatchVariable(&keyareamatch, 4, Destination);
+    if ( !BotGetMessageTeamGoal(bs, Destination, &goal) )
     {
       BotInitialChat(&bs->chatstate, "cannotfind", Destination, (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
-      BotFreeWaypoints(v2);
+      BotFreeWaypoints(newpatrolpoints);
       BotPatrolpoints(bs) = NULL;
       return 0;
     }
     /* IDA mis-named the thunk at 0x10001401 (which jumps to BotCreateWayPoint
      * at 0x10021A90) as BotResetState; the real call is BotCreateWayPoint
      * with (name, &goal.origin, areanum). */
-    v4 = BotCreateWayPoint(Destination, v7.origin, v7.areanum);
-    v4->next = NULL;
-    v5 = v2;
-    if ( !v2 )
+    newwp = BotCreateWayPoint(Destination, goal.origin, goal.areanum);
+    newwp->next = NULL;
+    wp = newpatrolpoints;
+    if ( !newpatrolpoints )
     {
-      v2 = v4;
-      v4->prev = NULL;
+      newpatrolpoints = newwp;
+      newwp->prev = NULL;
     }
     else
     {
-      while ( v5->next )
-        v5 = v5->next;
-      if ( v5 )
+      while ( wp->next )
+        wp = wp->next;
+      if ( wp )
       {
-        v5->next = v4;
-        v4->prev = v5;
+        wp->next = newwp;
+        newwp->prev = wp;
       }
       else
       {
-        v2 = v4;
-        v4->prev = NULL;
+        newpatrolpoints = newwp;
+        newwp->prev = NULL;
       }
     }
-    if ( (v9.subtype & 0x200) != 0 )
+    if ( (keyareamatch.subtype & 0x200) != 0 )
     {
-      v3 = 1;
+      patrolflags = 1;
       break;
     }
-    else if ( (v9.subtype & 0x400) != 0 )
+    else if ( (keyareamatch.subtype & 0x400) != 0 )
     {
-      v3 = 2;
+      patrolflags = 2;
       break;
     }
-    else if ( (v9.subtype & 0x100) != 0 )
+    else if ( (keyareamatch.subtype & 0x100) != 0 )
     {
-      BotMatchVariable(&v9, 5, Destination);
+      BotMatchVariable(&keyareamatch, 5, Destination);
     }
     else
     {
       break;
     }
   }
-  if ( v2 && v2->next )
+  if ( newpatrolpoints && newpatrolpoints->next )
   {
     BotFreeWaypoints(BotPatrolpoints(bs));
-    bs->patrolflags = v3;
-    BotPatrolpoints(bs) = v2;
-    BotCurPatrolPoint(bs) = v2;
+    bs->patrolflags = patrolflags;
+    BotPatrolpoints(bs) = newpatrolpoints;
+    BotCurPatrolPoint(bs) = newpatrolpoints;
     return 1;
   }
   else
   {
     EA_SayTeam(bs->client, "I need more key points to patrol\n");
-    BotFreeWaypoints(v2);
+    BotFreeWaypoints(newpatrolpoints);
     return 0;
   }
 }
@@ -26286,53 +26286,53 @@ void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
 //----- (100310E0) --------------------------------------------------------
 int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, intptr_t avoidreach, float *avoidreachtimes, intptr_t avoidreachtries, intptr_t goal, int travelflags)
 {
-  int v10; // ebp
+  int reachnum; // ebp
   float *v11; // edi
   int i; // esi
-  int v13; // eax
+  int t; // eax
   int v14; // eax
-  int v16; // [esp+8h] [ebp-60h]
-  int v17; // [esp+Ch] [ebp-5Ch]
-  int v18[11]; // [esp+10h] [ebp-58h] BYREF
+  int besttime; // [esp+8h] [ebp-60h]
+  int bestreachnum; // [esp+Ch] [ebp-5Ch]
+  int reach[11]; // [esp+10h] [ebp-58h] BYREF
 
-  v16 = 0;
-  v17 = 0;
-  v10 = AAS_NextAreaReachability(areanum, 0);
-  if ( !v10 )
+  besttime = 0;
+  bestreachnum = 0;
+  reachnum = AAS_NextAreaReachability(areanum, 0);
+  if ( !reachnum )
     return 0;
   do
   {
     v11 = avoidreachtimes;
     for ( i = 0; i < 1; ++i )
     {
-      if ( *(_DWORD *)((char *)v11 + (avoidreach - (intptr_t)avoidreachtimes)) == v10 && AAS_Time() <= *v11 )
+      if ( *(_DWORD *)((char *)v11 + (avoidreach - (intptr_t)avoidreachtimes)) == reachnum && AAS_Time() <= *v11 )
         break;
       ++v11;
     }
     if ( i == 1 || *(int *)(avoidreachtries + 4 * i) <= 4 )
     {
-      *(aas_reachability_t *)v18 = AAS_ReachabilityFromNum(v10);
-      if ( entnum != *(_DWORD *)(goal + 12) || v18[0] != lastgoalareanum )
+      *(aas_reachability_t *)reach = AAS_ReachabilityFromNum(reachnum);
+      if ( entnum != *(_DWORD *)(goal + 12) || reach[0] != lastgoalareanum )
       {
-        if ( BotValidTravel(origin, lastareanum, (intptr_t)v18, travelflags) )
+        if ( BotValidTravel(origin, lastareanum, (intptr_t)reach, travelflags) )
         {
-          v13 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v18[0], *(_DWORD *)(goal + 12), travelflags);
-          if ( v13 )
+          t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(reach[0], *(_DWORD *)(goal + 12), travelflags);
+          if ( t )
           {
-            v14 = LOWORD(v18[10]) + v13;
-            if ( !v16 || v14 < v16 )
+            v14 = LOWORD(reach[10]) + t;
+            if ( !besttime || v14 < besttime )
             {
-              v16 = v14;
-              v17 = v10;
+              besttime = v14;
+              bestreachnum = reachnum;
             }
           }
         }
       }
     }
-    v10 = AAS_NextAreaReachability(areanum, v10);
+    reachnum = AAS_NextAreaReachability(areanum, reachnum);
   }
-  while ( v10 );
-  return v17;
+  while ( reachnum );
+  return bestreachnum;
 }
 
 //----- (10031270) --------------------------------------------------------
