@@ -13229,42 +13229,42 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
 int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
   int result; // eax
-  char *v2; // esi
-  int v3; // ebx
+  char *area; // esi
+  int i; // ebx
   int v4; // ecx
-  int v5; // rax (was __int64 — abs32 idiom)
-  aas_face_t *v6; // edx
-  int v7; // edi
-  int v8; // eax
-  int v9; // rax (was __int64 — abs32 idiom)
+  int face1num; // rax (was __int64 — abs32 idiom)
+  aas_face_t *face1; // edx
+  int k; // edi
+  int j; // eax
+  int face2num; // rax (was __int64 — abs32 idiom)
   int v10; // edi
-  char *v11; // esi
+  char *face2; // esi
   int v12; // eax
-  int v13; // ecx
+  int l; // ecx
   unsigned int v14; // ebp
-  int v15; // rax (was __int64 — abs32 idiom)
-  int v16; // ecx
-  char *v17; // eax
+  int edge2num; // rax (was __int64 — abs32 idiom)
+  int otherareanum; // ecx
+  char *area2; // eax
   int v18; // ecx
-  int v19; // ebx
+  int gap; // ebx
   unsigned int v20; // eax
   int v21; // edi
-  char *v22; // ebp
-  int v23; // ecx
+  char *face3; // ebp
+  int m; // ecx
   int *v24; // esi
   int v25; // eax
   qboolean v26; // cc
-  char *v27; // eax
-  BOOL v28; // ecx
+  char *edge; // eax
+  BOOL side; // ecx
   float *v29; // esi
   float *v30; // edi
-  int v32; // eax
+  int reachareanum; // eax
   int v33; // edi
-  char *v34; // eax
+  char *lreach; // eax
   char *v35; // esi (was int) — alias of lreach (aas_reachabilitynode_t *)
   int v36; // edx
   int v37; // eax
-  int v38; // [esp+8h] [ebp-ACh]
+  int n; // [esp+8h] [ebp-ACh]
   float v39; // [esp+8h] [ebp-ACh]
   /* midorigin: edge midpoint, lifted off the floor by 8 units along edgecross.
    * Passed by-address to VectorScale / VectorMA / AAS_TraceClientBBox and copied
@@ -13273,7 +13273,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
    * adjacent, which made the trace fire from a garbage origin and silently
    * rejected ~97% of WALKOFFLEDGE candidates on q2ctf2 (23/755). */
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
-  int v43; // [esp+18h] [ebp-9Ch]
+  int edge1num; // [esp+18h] [ebp-9Ch]
   int *v44; // [esp+1Ch] [ebp-98h]
   unsigned int v45; // [esp+20h] [ebp-94h]
   int v46; // [esp+24h] [ebp-90h]
@@ -13285,9 +13285,9 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   aas_face_t *v52; // [esp+3Ch] [ebp-78h]
   char *v53; // [esp+40h] [ebp-74h]
   char *v54; // [esp+44h] [ebp-70h]
-  float v55[3]; // [esp+48h] [ebp-6Ch] BYREF
-  float v56[3]; // [esp+54h] [ebp-60h] BYREF
-  float v57[3]; // [esp+60h] [ebp-54h] BYREF
+  float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
+  float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
+  float dir[3]; // [esp+60h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+6Ch] [ebp-48h] (was int v58[9] + char v59[36] hidden return buffer)
 
   result = AAS_AreaGrounded(areanum);
@@ -13296,78 +13296,78 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
     result = AAS_AreaSwim(areanum);
     if ( !result )
     {
-      v2 = &aasworld.areas[areanum];
-      v3 = 0;
-      v53 = v2;
+      area = &aasworld.areas[areanum];
+      i = 0;
+      v53 = area;
       v47 = 0;
-      v4 = *((_DWORD *)v2 + 1);
+      v4 = *((_DWORD *)area + 1);
       if ( v4 > 0 )
       {
         while ( 1 )
         {
-          v5 = aasworld.faceindex[*((_DWORD *)v2 + 2) + v3];
-          v6 = &aasworld.faces[abs(v5)];
-          v52 = v6;
-          if ( (v6->faceflags & 4) != 0 )
+          face1num = aasworld.faceindex[*((_DWORD *)area + 2) + i];
+          face1 = &aasworld.faces[abs(face1num)];
+          v52 = face1;
+          if ( (face1->faceflags & 4) != 0 )
           {
-            result = v6->numedges;
-            v7 = 0;
+            result = face1->numedges;
+            k = 0;
             v51 = 0;
             if ( result > 0 )
               break;
           }
 LABEL_46:
-          v4 = *((_DWORD *)v2 + 1);
-          v47 = ++v3;
-          if ( v3 >= v4 )
+          v4 = *((_DWORD *)area + 1);
+          v47 = ++i;
+          if ( i >= v4 )
             return result;
         }
 LABEL_6:
-        v43 = aasworld.edgeindex[v6->firstedge + v7];
-        v8 = 0;
+        edge1num = aasworld.edgeindex[face1->firstedge + k];
+        j = 0;
         v49 = 0;
         if ( v4 <= 0 )
           goto LABEL_44;
 LABEL_7:
-        v9 = aasworld.faceindex[*((_DWORD *)v2 + 2) + v8];
-        v10 = abs(v9);
+        face2num = aasworld.faceindex[*((_DWORD *)area + 2) + j];
+        v10 = abs(face2num);
         v48 = v10;
-        v11 = &aasworld.faces[v10];
-        v54 = v11;
-        if ( (v11[4] & 4) != 0 )
+        face2 = &aasworld.faces[v10];
+        v54 = face2;
+        if ( (face2[4] & 4) != 0 )
           goto LABEL_42;
-        v12 = *((_DWORD *)v11 + 2);
-        v13 = 0;
+        v12 = *((_DWORD *)face2 + 2);
+        l = 0;
         v50 = 0;
         if ( v12 <= 0 )
           goto LABEL_42;
-        v14 = abs(v43);
+        v14 = abs(edge1num);
         v45 = v14;
         while ( 1 )
         {
-          v15 = aasworld.edgeindex[v13 + *((_DWORD *)v11 + 3)];
-          if ( v14 == abs(v15) )
+          edge2num = aasworld.edgeindex[l + *((_DWORD *)face2 + 3)];
+          if ( v14 == abs(edge2num) )
           {
-            v16 = *((_DWORD *)v11 + 4);
-            if ( v16 == areanum )
-              v16 = *((_DWORD *)v11 + 5);
-            v17 = &aasworld.areas[v16];
-            if ( (aasworld.areasettings[v16].areaflags & 1) != 0 )
+            otherareanum = *((_DWORD *)face2 + 4);
+            if ( otherareanum == areanum )
+              otherareanum = *((_DWORD *)face2 + 5);
+            area2 = &aasworld.areas[otherareanum];
+            if ( (aasworld.areasettings[otherareanum].areaflags & 1) != 0 )
             {
-              v18 = *((_DWORD *)v17 + 1);
-              v19 = 0;
-              v38 = 0;
+              v18 = *((_DWORD *)area2 + 1);
+              gap = 0;
+              n = 0;
               v46 = v18;
               if ( v18 <= 0 )
                 goto LABEL_42;
-              v44 = &aasworld.faceindex[*((_DWORD *)v17 + 2)];
+              v44 = &aasworld.faceindex[*((_DWORD *)area2 + 2)];
               while ( 2 )
               {
                 v20 = abs(*v44);
                 if ( v20 == v10 )
                 {
 LABEL_27:
-                  v26 = ++v38 < v18;
+                  v26 = ++n < v18;
                   ++v44;
                   if ( !v26 )
                     goto LABEL_28;
@@ -13376,50 +13376,50 @@ LABEL_27:
                 break;
               }
               v21 = aasworld.faces[v20].numedges;
-              v22 = &aasworld.faces[v20];
-              v23 = 0;
+              face3 = &aasworld.faces[v20];
+              m = 0;
               if ( v21 > 0 )
               {
-                v24 = &aasworld.edgeindex[*((_DWORD *)v22 + 3)];
+                v24 = &aasworld.edgeindex[*((_DWORD *)face3 + 3)];
                 while ( abs(*v24) != v45 )
                 {
-                  ++v23;
+                  ++m;
                   ++v24;
-                  if ( v23 >= v21 )
+                  if ( m >= v21 )
                     goto LABEL_25;
                 }
-                v25 = *((_DWORD *)v22 + 1);
+                v25 = *((_DWORD *)face3 + 1);
                 if ( (v25 & 1) != 0 )
-                  v19 = (unsigned __int8)(~(_BYTE)v25 & 4) >> 2;
+                  gap = (unsigned __int8)(~(_BYTE)v25 & 4) >> 2;
                 else
-                  v19 = 1;
+                  gap = 1;
               }
 LABEL_25:
               v14 = v45;
-              if ( v23 >= v21 )
+              if ( m >= v21 )
               {
                 v10 = v48;
                 v18 = v46;
                 goto LABEL_27;
               }
 LABEL_28:
-              if ( v19 )
+              if ( gap )
                 goto LABEL_29;
 LABEL_42:
-              v2 = v53;
-              v8 = v49 + 1;
+              area = v53;
+              j = v49 + 1;
               v4 = *((_DWORD *)v53 + 1);
-              v49 = v8;
-              if ( v8 >= v4 )
+              v49 = j;
+              if ( j >= v4 )
               {
-                v6 = v52;
-                v7 = v51;
+                face1 = v52;
+                k = v51;
 LABEL_44:
-                result = v6->numedges;
-                v51 = ++v7;
-                if ( v7 >= result )
+                result = face1->numedges;
+                v51 = ++k;
+                if ( k >= result )
                 {
-                  v3 = v47;
+                  i = v47;
                   goto LABEL_46;
                 }
                 goto LABEL_6;
@@ -13427,61 +13427,61 @@ LABEL_44:
               goto LABEL_7;
             }
 LABEL_29:
-            v27 = &aasworld.edges[v14];
-            v28 = v43 < 0;
-            v29 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * v28]]);
-            v30 = (float *)(&aasworld.vertexes[*(_DWORD *)&v27[4 * !v28]]);
-            v56[0] = *v30 - *v29;
-            v56[1] = v30[1] - v29[1];
-            v56[2] = v30[2] - v29[2];
-            CrossProduct(aasworld.planes[v52->planenum].normal, v56, v57);
-            VectorNormalize(v57);
+            edge = &aasworld.edges[v14];
+            side = edge1num < 0;
+            v29 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge[4 * side]]);
+            v30 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge[4 * !side]]);
+            sharededgevec[0] = *v30 - *v29;
+            sharededgevec[1] = v30[1] - v29[1];
+            sharededgevec[2] = v30[2] - v29[2];
+            CrossProduct(aasworld.planes[v52->planenum].normal, sharededgevec, dir);
+            VectorNormalize(dir);
             midorigin[0] = *v29 + *v30;
             midorigin[1] = v29[1] + v30[1];
             midorigin[2] = v30[2] + v29[2];
             VectorScale(midorigin, 0.5, midorigin);
-            VectorMA(midorigin, 8.0, (float *)v57, midorigin);
-            v55[0] = midorigin[0];
-            v55[1] = midorigin[1];
-            v55[2] = midorigin[2] - 1000.0f;
-            trace = AAS_TraceClientBBox(midorigin, (float *)v55, 4, -1);
+            VectorMA(midorigin, 8.0, (float *)dir, midorigin);
+            testend[0] = midorigin[0];
+            testend[1] = midorigin[1];
+            testend[2] = midorigin[2] - 1000.0f;
+            trace = AAS_TraceClientBBox(midorigin, (float *)testend, 4, -1);
             if ( trace.startsolid )
               goto LABEL_42;
-            v32 = AAS_PointAreaNum(trace.endpos);
-            v33 = v32;
-            if ( v32 == areanum || AAS_ReachabilityExists(areanum, v32) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
+            reachareanum = AAS_PointAreaNum(trace.endpos);
+            v33 = reachareanum;
+            if ( reachareanum == areanum || AAS_ReachabilityExists(areanum, reachareanum) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
               goto LABEL_42;
             if ( (aasworld.areasettings[v33].contents & 6) != 0 )
               goto LABEL_42;
-            v34 = AAS_AllocReachability();
-            v35 = v34;
-            if ( !v34 )
+            lreach = AAS_AllocReachability();
+            v35 = lreach;
+            if ( !lreach )
               goto LABEL_42;
-            v36 = v43;
-            *(_DWORD *)v34 = v33;
-            *(_DWORD *)(v34 + 4) = 0;
-            *(_DWORD *)(v34 + 8) = v36;
-            *(float *)(v34 + 12) = midorigin[0];
-            *(float *)(v34 + 16) = midorigin[1];
-            *(float *)(v34 + 20) = midorigin[2];
-            *(float *)(v34 + 24) = trace.endpos[0];
-            *(float *)(v34 + 28) = trace.endpos[1];
-            *(float *)(v34 + 32) = trace.endpos[2];
-            *(_DWORD *)(v34 + 36) = 7;
+            v36 = edge1num;
+            *(_DWORD *)lreach = v33;
+            *(_DWORD *)(lreach + 4) = 0;
+            *(_DWORD *)(lreach + 8) = v36;
+            *(float *)(lreach + 12) = midorigin[0];
+            *(float *)(lreach + 16) = midorigin[1];
+            *(float *)(lreach + 20) = midorigin[2];
+            *(float *)(lreach + 24) = trace.endpos[0];
+            *(float *)(lreach + 28) = trace.endpos[1];
+            *(float *)(lreach + 32) = trace.endpos[2];
+            *(_DWORD *)(lreach + 36) = 7;
             if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
               *(_WORD *)(v35 + 40) = 100;
             else
               *(_WORD *)(v35 + 40) = 3000;
             v10 = v48;
             ((aas_reachabilitynode_t *)v35)->next = areareachability[areanum];
-            v13 = v50;
+            l = v50;
             areareachability[areanum] = (aas_reachabilitynode_t *)v35;
-            v11 = v54;
+            face2 = v54;
             ++reach_walkoffledge;
           }
-          v37 = *((_DWORD *)v11 + 2);
-          v50 = ++v13;
-          if ( v13 >= v37 )
+          v37 = *((_DWORD *)face2 + 2);
+          v50 = ++l;
+          if ( l >= v37 )
             goto LABEL_42;
         }
       }
@@ -27802,7 +27802,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
   int v8; // eax
   bot_moveresult_t *v9; // esi
   bot_moveresult_t *result; // eax
-  int v11; // ebp
+  int reachnum; // ebp
   int v12; // eax
   int v14; // ecx
   int v15; // eax
@@ -27810,7 +27810,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
   int v17; // ecx
   int v18; // edx
   float v19; // [esp+10h] [ebp-2A0h]
-  aas_reachability_t v20; // [esp+14h] [ebp-29Ch] BYREF (was float[11]; restored to the real reach struct)
+  aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF (was float[11]; restored to the real reach struct)
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
   /* v22 is a single MSVC-coalesced stack slot reused as: AAS_ReachabilityFromNum
    * scratch buffer (char*), reachability-data holder (v22[9]=traveltype), and a
@@ -27852,47 +27852,47 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
    {
      if ( ms->lastreachnum )
      {
-       v20 = AAS_ReachabilityFromNum(ms->lastreachnum);
-       moveresult.traveltype = v20.traveltype;
-       switch ( v20.traveltype )
+       reach = AAS_ReachabilityFromNum(ms->lastreachnum);
+       moveresult.traveltype = reach.traveltype;
+       switch ( reach.traveltype )
        {
         case 2:
-          v16 = BotTravel_Walk(&v31, ms, &v20);
+          v16 = BotTravel_Walk(&v31, ms, &reach);
            moveresult = *v16; break;
         case 3:
         case 0xA:
           goto LABEL_56;
         case 4:
-          v16 = BotFinishTravel_BarrierJump(&v32, ms, &v20);
+          v16 = BotFinishTravel_BarrierJump(&v32, ms, &reach);
            moveresult = *v16; break;
         case 5:
-          v16 = BotFinishTravel_Jump(&v25, ms, &v20);
+          v16 = BotFinishTravel_Jump(&v25, ms, &reach);
            moveresult = *v16; break;
         case 6:
-          v16 = BotTravel_Ladder(&v29, ms, &v20);
+          v16 = BotTravel_Ladder(&v29, ms, &reach);
           moveresult = *v16; break;
         case 7:
-          v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &v20);
+          v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &reach);
           moveresult = *v16; break;
         case 8:
 LABEL_35:
-          v16 = BotTravel_Swim(&v24, ms, &v20);
+          v16 = BotTravel_Swim(&v24, ms, &reach);
            moveresult = *v16; break;
         case 9:
-          v16 = BotFinishTravel_WaterJump(&v28, ms, &v20);
+          v16 = BotFinishTravel_WaterJump(&v28, ms, &reach);
            moveresult = *v16; break;
         case 0xB:
-          v16 = BotFinishTravel_Elevator(&v23, ms, &v20);
+          v16 = BotFinishTravel_Elevator(&v23, ms, &reach);
           moveresult = *v16; break;
         case 0xC:
-          v16 = BotFinishTravel_WeaponJump(&v30, ms, &v20);
+          v16 = BotFinishTravel_WeaponJump(&v30, ms, &reach);
           moveresult = *v16; break;
         case 0xE:
-          v16 = BotTravel_Grapple(&v26, ms, &v20);
+          v16 = BotTravel_Grapple(&v26, ms, &reach);
           moveresult = *v16;
           break;
         default:
-          botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", v20.traveltype);
+          botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", reach.traveltype);
           break;
        }
      }
@@ -27908,65 +27908,65 @@ LABEL_35:
      *a1 = *v9;
      return result;
    }
-   v11 = ms->lastreachnum;
-   if ( !v11 )
+   reachnum = ms->lastreachnum;
+   if ( !reachnum )
      goto LABEL_25;
-   v20 = AAS_ReachabilityFromNum(ms->lastreachnum);
-   if ( (a4 & AAS_TravelFlagForType(v20.traveltype)) == 0 )
+   reach = AAS_ReachabilityFromNum(ms->lastreachnum);
+   if ( (a4 & AAS_TravelFlagForType(reach.traveltype)) == 0 )
      goto LABEL_25;
-   if ( v20.traveltype == 14 )
+   if ( reach.traveltype == 14 )
    {
      if ( AAS_Time() > ms->reachability_time || (ms->moveflags & 0x80) != 0 )
        goto LABEL_25;
 LABEL_27:
      v14 = ms->areanum;
-     ms->lastreachnum = v11;
+     ms->lastreachnum = reachnum;
      v15 = goal->areanum;
      ms->lastareanum = v14;
      ms->lastgoalareanum = v15;
-     if ( v11 )
+     if ( reachnum )
      {
-       v20 = AAS_ReachabilityFromNum(v11);
-       moveresult.traveltype = v20.traveltype;
-       switch ( v20.traveltype )
+       reach = AAS_ReachabilityFromNum(reachnum);
+       moveresult.traveltype = reach.traveltype;
+       switch ( reach.traveltype )
        {
          case 2:
-           v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &v20);
+           v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &reach);
             moveresult = *v16; break;
          case 3:
-           v16 = BotTravel_Crouch(&v33, ms, &v20);
+           v16 = BotTravel_Crouch(&v33, ms, &reach);
             moveresult = *v16; break;
          case 4:
-           v16 = BotTravel_BarrierJump(&v30, ms, &v20);
+           v16 = BotTravel_BarrierJump(&v30, ms, &reach);
             moveresult = *v16; break;
          case 5:
-           v16 = BotTravel_Jump(&v28, ms, &v20);
+           v16 = BotTravel_Jump(&v28, ms, &reach);
             moveresult = *v16; break;
          case 6:
-           v16 = BotTravel_Ladder(&v26, ms, &v20);
+           v16 = BotTravel_Ladder(&v26, ms, &reach);
            moveresult = *v16; break;
          case 7:
-           v16 = BotTravel_WalkOffLedge(&v23, ms, &v20);
+           v16 = BotTravel_WalkOffLedge(&v23, ms, &reach);
            moveresult = *v16; break;
          case 8:
            goto LABEL_35;
          case 9:
-           v16 = BotTravel_WaterJump(&v25, ms, &v20);
+           v16 = BotTravel_WaterJump(&v25, ms, &reach);
             moveresult = *v16; break;
          case 0xA:
-           v16 = BotTravel_Teleport(&v27, ms, &v20);
+           v16 = BotTravel_Teleport(&v27, ms, &reach);
             moveresult = *v16; break;
          case 0xB:
-           v16 = BotTravel_Elevator(&v29, ms, &v20);
+           v16 = BotTravel_Elevator(&v29, ms, &reach);
             moveresult = *v16; break;
          case 0xC:
-           v16 = BotTravel_RocketJump(&v31, ms, &v20);
+           v16 = BotTravel_RocketJump(&v31, ms, &reach);
            moveresult = *v16; break;
          case 0xE:
-           v16 = BotTravel_Grapple(&v32, ms, &v20);
+           v16 = BotTravel_Grapple(&v32, ms, &reach);
            moveresult = *v16; break;
          default:
-           botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", v20.traveltype);
+           botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", reach.traveltype);
            break;
        }
      }
@@ -27984,9 +27984,9 @@ LABEL_56:
      *(int *)&ms->lastorigin[2] = v18;
      { result = a1; *a1 = moveresult; return result; }
    }
-   if ( v20.traveltype == 11 )
+   if ( reach.traveltype == 11 )
    {
-     if ( ms->areanum != v20.areanum && AAS_Time() <= ms->reachability_time )
+     if ( ms->areanum != reach.areanum && AAS_Time() <= ms->reachability_time )
        goto LABEL_27;
     }
    else if ( ms->lastgoalareanum == goal->areanum
@@ -28008,16 +28008,16 @@ LABEL_25:
            (intptr_t)ms->avoidreachtries,
            (intptr_t)goal,
            a4);
-   v11 = v12;
+   reachnum = v12;
    ms->moveflags &= 0xFFFFFF7F;
    ms->reachareanum = ms->areanum;
    ms->jumpreach = 0;
    if ( v12 )
    {
-     v20 = AAS_ReachabilityFromNum(v12);
-     v19 = (float)BotReachabilityTime(&v20);
+     reach = AAS_ReachabilityFromNum(v12);
+     v19 = (float)BotReachabilityTime(&reach);
      ms->reachability_time = AAS_Time() + v19;
-     BotAddToAvoidReach((intptr_t)ms, v11, 6.0);
+     BotAddToAvoidReach((intptr_t)ms, reachnum, 6.0);
    }
    goto LABEL_27;
  }
