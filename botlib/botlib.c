@@ -9133,19 +9133,36 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
 }
 
 //----- (1000F840) --------------------------------------------------------
+/*
+ * AAS_ClientMovementPrediction — predict client movement up to 'maxframes'
+ * frames ahead (cf. Q3 be_aas_move.c:505).  This is the OLDER Gladiator form;
+ * it diverges from Q3 by design — do NOT "upgrade" it to the Q3 algorithm:
+ *   - physics are read from libvar_sv_* handles, not the aassettings struct;
+ *   - acceleration is the inline per-axis velchange/clamp loop below (the block
+ *     Q3 later replaced with AAS_Accelerate + wishdir/wishspeed and left as a
+ *     comment at be_aas_move.c:619-631);
+ *   - maxwalk/crouch/swim velocities are pre-scaled by frametime here;
+ *   - only SE_HITGROUND(1)/SE_LEAVEGROUND(2)/SE_ENTER{LAVA,SLIME,WATER}/
+ *     SE_HITGROUNDDAMAGE(0x20)/SE_GAP(0x40) stop-events exist — no SE_ENTERAREA/
+ *     jumppad/teleporter/SE_HITBOUNDINGBOX, hence no mins/maxs/stopareanum
+ *     params and no AAS_TraceAreas scan.
+ * The result is built in the move_buf[] scratch and copied to 'move' at the
+ * tail.  Names/types below are mapped onto Q3's for readability only — the
+ * codegen is byte-identical to the original DLL (verified vs the MSVC6 oracle).
+ */
 char *__cdecl AAS_ClientMovementPrediction(
-        char *a1,
-        int a2,
-        float *a3,
-        int a4,
-        int a5,
-        float *a6,
-        float *a7,
-        int a8,
-        int a9,
-        float a10,
-        int a11,
-        int a12)
+        char *move,           // a1: aas_clientmove_t output buffer (built in move_buf, copied at tail)
+        int entnum,           // a2
+        float *origin,        // a3: vec3_t start origin
+        int presencetype,     // a4
+        int onground,         // a5
+        float *velocity,      // a6: vec3_t initial velocity
+        float *cmdmove,       // a7: vec3_t client command movement
+        int cmdframes,        // a8: number of frames cmdmove is valid for
+        int maxframes,        // a9: maximum frames to predict
+        float frametime,      // a10
+        int stopevent,        // a11: SE_* stop-event mask
+        int visualize)        // a12: draw AAS debug lines
 {
   float v12; // eax
   float v13; // ecx
@@ -9155,176 +9172,183 @@ char *__cdecl AAS_ClientMovementPrediction(
   long double v17; // st7
   int v18; // edx
   long double v19; // st7
-  BOOL v21; // eax
-  BOOL v22; // esi
-  long double v23; // st7
-  int v24; // edi
-  long double v25; // st7
-  int v26; // eax
-  int *v27; // ecx
-  int v28; // esi
-  long double v29; // st6
-  float *v30; // ebp
-  char *v31; // eax
+  BOOL swimming_ret; // eax
+  BOOL swimming; // esi
+  long double gravity; // st7
+  int crouch; // edi
+  long double maxvel; // st7
+  int ax; // eax
+  int *velp; // ecx
+  int naxes; // esi
+  long double velchange; // st6
+  float *plane; // ebp
+  char *plane2; // eax
   long double v32; // st7
   long double v33; // st6
-  int v34; // ecx
-  float v35; // st7  (NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads)
-  float v36; // st7
-  int v37; // eax
-  int v38; // ecx
-  char v39; // al
+  int landed; // ecx
+  float delta; // st7  (NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads)
+  float damage; // st7
+  int pc; // eax
+  int event; // ecx
+  char gap_pc; // al
   char *result; // eax
-  float v41; // [esp+0h] [ebp-1F8h]
-  float v42; // [esp+0h] [ebp-1F8h]
-  int v43; // [esp+1Ch] [ebp-1DCh]
+  float backoff_left; // [esp+0h] [ebp-1F8h]
+  float backoff_frame; // [esp+0h] [ebp-1F8h]
+  int n; // [esp+1Ch] [ebp-1DCh]
   vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
   int v50;               // [esp+38h] [ebp-1C0h]  4-byte slot reused as int counter (LODWORD/SLODWORD) + float scratch (*(float*)&v50). The gravity *0.1 double value is NOT this slot — it's a separate compiler QWORD CSE temp, inlined below so it doesn't force an 8-byte declared local (which would add and esp,-8; orig is pure FPO).
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
-  int v57;               // [esp+58h] [ebp-1A0h]
-  float v58;             // [esp+5Ch] [ebp-19Ch]
+  int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot
+  float phys_maxacceleration;             // [esp+5Ch] [ebp-19Ch]
   vec3_t end;            // [esp+60h] [ebp-198h] BYREF
-  int v62[20]; // [esp+6Ch] [ebp-18Ch] BYREF
-  float v63; // [esp+BCh] [ebp-13Ch]
-  int v64; // [esp+C0h] [ebp-138h]
-  float v65; // [esp+C4h] [ebp-134h]
-  float v66; // [esp+C8h] [ebp-130h]
-  float v67; // [esp+CCh] [ebp-12Ch]
-  float v68; // [esp+D0h] [ebp-128h]
-  float v69; // [esp+D4h] [ebp-124h]
-  float v70; // [esp+D8h] [ebp-120h]
-  float v71; // [esp+DCh] [ebp-11Ch]
-  float v72; // [esp+E0h] [ebp-118h]
-  float v73; // [esp+E4h] [ebp-114h]
-  int v74; // [esp+E8h] [ebp-110h]
-  int v75; // [esp+ECh] [ebp-10Ch]
-  int v76; // [esp+F0h] [ebp-108h]
-  float v77; // [esp+F4h] [ebp-104h]
-  float v78; // [esp+F8h] [ebp-100h]
-  float v79; // [esp+104h] [ebp-F4h]
-  aas_trace_t v80; // [esp+108h] [ebp-F0h] (was int v80[9] + char v87[36] hidden return buffer)
-  float v81[3]; // [esp+12Ch] [ebp-CCh] BYREF
-  float v82[3]; // [esp+138h] [ebp-C0h] BYREF
-  aas_trace_t v83; // [esp+144h] [ebp-B4h] (was int v83[9] + char v86[36] hidden return buffer)
-  aas_trace_t v84; // [esp+168h] [ebp-90h] (was int v84[9] + char v85[36] hidden return buffer)
+  /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
+   * differs from Q3's aas_clientmove_t (no 'endarea'; a float at +0x44 where Q3
+   * has int 'endcontents'), so it stays a raw int[20] — DON'T retype to Q3's.
+   * dword index: [0..2]=endpos  [3..5]=velocity  [6..14]=trace(aas_trace_t)
+   *   [15]=presencetype  [16]=stopevent  [17]=float@0x44 (normally 4.0f bits
+   *   =1082130432; =(float)pc on the liquid path)  [18]=time(=n*frametime)
+   *   [19]=frames(=n). */
+  int move_buf[20]; // [esp+6Ch] [ebp-18Ch] BYREF
+  float phys_maxsteepness; // [esp+BCh] [ebp-13Ch]
+  int jump_frame; // [esp+C0h] [ebp-138h]
+  float friction; // [esp+C4h] [ebp-134h]
+  float phys_waterfriction; // [esp+C8h] [ebp-130h]
+  float phys_jumpvel; // [esp+CCh] [ebp-12Ch]
+  float phys_gravity; // [esp+D0h] [ebp-128h]
+  float phys_maxstep; // [esp+D4h] [ebp-124h]
+  float phys_watergravity; // [esp+D8h] [ebp-120h]
+  float phys_friction; // [esp+DCh] [ebp-11Ch]
+  float phys_maxwalkvelocity; // [esp+E0h] [ebp-118h]
+  float phys_maxcrouchvelocity; // [esp+E4h] [ebp-114h]
+  int lastorg0; // [esp+E8h] [ebp-110h]
+  int lastorg1; // [esp+ECh] [ebp-10Ch]
+  int lastorg2; // [esp+F0h] [ebp-108h]
+  float phys_stopspeed; // [esp+F4h] [ebp-104h]
+  float phys_maxswimvelocity; // [esp+F8h] [ebp-100h]
+  float old_velz; // [esp+104h] [ebp-F4h]
+  aas_trace_t trace; // [esp+108h] [ebp-F0h] (was IDA int v80[9] + char v87[36] hidden return buffer)
+  float feet[3]; // [esp+12Ch] [ebp-CCh] BYREF
+  float stepend[3]; // [esp+138h] [ebp-C0h] BYREF
+  aas_trace_t steptrace; // [esp+144h] [ebp-B4h] (was IDA int v83[9] + char v86[36] hidden return buffer)
+  aas_trace_t gaptrace; // [esp+168h] [ebp-90h] (was IDA int v84[9] + char v85[36] hidden return buffer)
 
   v12 = libvar_sv_stopspeed->value;
-  v71 = libvar_sv_friction->value;
-  v77 = v12;
+  phys_friction = libvar_sv_friction->value;
+  phys_stopspeed = v12;
   v13 = libvar_sv_waterfriction->value;
-  v68 = libvar_sv_gravity->value;
-  v66 = v13;
-  v14 = (float)a10 * (float)libvar_sv_maxwalkvelocity->value;
-  v70 = libvar_sv_watergravity->value;
-  v72 = (float)v14;
-  v73 = a10 * libvar_sv_maxcrouchvelocity->value;
-  v15 = (float)a10 * (float)libvar_sv_maxswimvelocity->value;
-  v69 = libvar_sv_step->value;
-  v78 = (float)v15;
+  phys_gravity = libvar_sv_gravity->value;
+  phys_waterfriction = v13;
+  v14 = (float)frametime * (float)libvar_sv_maxwalkvelocity->value;
+  phys_watergravity = libvar_sv_watergravity->value;
+  phys_maxwalkvelocity = (float)v14;
+  phys_maxcrouchvelocity = frametime * libvar_sv_maxcrouchvelocity->value;
+  v15 = (float)frametime * (float)libvar_sv_maxswimvelocity->value;
+  phys_maxstep = libvar_sv_step->value;
+  phys_maxswimvelocity = (float)v15;
   v16 = libvar_sv_maxsteepness->value;
-  v58 = a10 * libvar_sv_maxaccelerate->value;
-  v17 = (float)a10 * (float)libvar_sv_jumpvel->value;
-  v63 = v16;
-  memset(v62, 0, sizeof(v62));
-  v67 = (float)v17;
-  memset(&v80, 0, sizeof(v80));
-  v18 = *(int *)&a3[1];
-  v19 = (float)a3[2] + 0.25;
-  *(int *)&org[0] = *(int *)a3;
+  phys_maxacceleration = frametime * libvar_sv_maxaccelerate->value;
+  v17 = (float)frametime * (float)libvar_sv_jumpvel->value;
+  phys_maxsteepness = v16;
+  memset(move_buf, 0, sizeof(move_buf));
+  phys_jumpvel = (float)v17;
+  memset(&trace, 0, sizeof(trace));
+  v18 = *(int *)&origin[1];
+  v19 = (float)origin[2] + 0.25;
+  *(int *)&org[0] = *(int *)origin;
   *(int *)&org[1] = v18;
   org[2] = (float)v19;
-  VectorScale(a6, a10, frame_test_vel);
-  v64 = -1;
-  v43 = 0;
-  if ( a9 <= 0 )
+  VectorScale(velocity, frametime, frame_test_vel);
+  jump_frame = -1;
+  n = 0;
+  if ( maxframes <= 0 )
     goto LABEL_85;
   while ( 2 )
   {
-    v21 = AAS_Swimming(org);
-    v22 = v21;
-    v57 = v21;
-    if ( v21 )
-      v23 = (float)v70;
+    swimming_ret = AAS_Swimming(org);
+    swimming = swimming_ret;
+    v57 = swimming_ret;
+    if ( swimming_ret )
+      gravity = (float)phys_watergravity;
     else
-      v23 = (float)v68;
-    frame_test_vel[2] = (float)((float)frame_test_vel[2] - v23 * (float)a10 * 0.1);
-    if ( a5 || v21 )
+      gravity = (float)phys_gravity;
+    frame_test_vel[2] = (float)((float)frame_test_vel[2] - gravity * (float)frametime * 0.1);
+    if ( onground || swimming_ret )
     {
-      if ( v21 )
-        v65 = v71;
+      if ( swimming_ret )
+        friction = phys_friction;
       else
-        v65 = v66;
+        friction = phys_waterfriction;
       VectorScale(frame_test_vel, 10.0f, frame_test_vel);
-      AAS_ApplyFriction(frame_test_vel, v65, v77, a10);
+      AAS_ApplyFriction(frame_test_vel, friction, phys_stopspeed, frametime);
       VectorScale(frame_test_vel, 0.1f, frame_test_vel);
     }
-    v24 = 0;
-    if ( v43 < a8 )
+    crouch = 0;
+    if ( n < cmdframes )
     {
-      v25 = v72;
-      v26 = 0;
-      if ( a5 )
+      maxvel = phys_maxwalkvelocity;
+      ax = 0;
+      if ( onground )
       {
-        if ( a7[2] < -300.0f )
+        if ( cmdmove[2] < -300.0f )
         {
-          v25 = v73;
-          v24 = 1;
+          maxvel = phys_maxcrouchvelocity;
+          crouch = 1;
         }
-        if ( !v22 && a7[2] > 1.0f )
+        if ( !swimming && cmdmove[2] > 1.0f )
         {
-          v64 = v43;
-          frame_test_vel[2] = (float)((float)v67 - v23 * (float)a10 * 0.1 + 5.0f);
+          jump_frame = n;
+          frame_test_vel[2] = (float)((float)phys_jumpvel - gravity * (float)frametime * 0.1 + 5.0f);
         }
-        v26 = 2;
+        ax = 2;
       }
-      if ( v22 )
+      if ( swimming )
       {
-        v25 = v78;
-        v26 = 3;
+        maxvel = phys_maxswimvelocity;
+        ax = 3;
       }
-      if ( v22 || v26 > 0 )
+      if ( swimming || ax > 0 )
       {
-        v27 = (int *)frame_test_vel;
-        v28 = v26;
+        velp = (int *)frame_test_vel;
+        naxes = ax;
         do
         {
-          v29 = (float)a10 * (float)(*(float *)((char *)a7 + ((char *)v27 - (char *)frame_test_vel))) - (float)(*(float *)v27);
-          if ( v29 <= (float)v58 )
+          velchange = (float)frametime * (float)(*(float *)((char *)cmdmove + ((char *)velp - (char *)frame_test_vel))) - (float)(*(float *)velp);
+          if ( velchange <= (float)phys_maxacceleration )
           {
-            *(float *)&v50 = -v58;
-            if ( v29 < (float)(*(float *)&v50) )
-              v29 = (float)(*(float *)&v50);
+            *(float *)&v50 = -phys_maxacceleration;
+            if ( velchange < (float)(*(float *)&v50) )
+              velchange = (float)(*(float *)&v50);
           }
           else
           {
-            v29 = (float)v58;
+            velchange = (float)phys_maxacceleration;
           }
-          *(float *)&v50 = (float)(v29 + (float)(*(float *)v27));
-          *v27 = SLODWORD(v50);
-          if ( (float)(*(float *)&v50) <= v25 )
+          *(float *)&v50 = (float)(velchange + (float)(*(float *)velp));
+          *velp = SLODWORD(v50);
+          if ( (float)(*(float *)&v50) <= maxvel )
           {
-            if ( (float)(*(float *)&v50) < -v25 )
-              *(float *)v27 = (float)(-v25);
+            if ( (float)(*(float *)&v50) < -maxvel )
+              *(float *)velp = (float)(-maxvel);
           }
           else
           {
-            *(float *)v27 = (float)v25;
+            *(float *)velp = (float)maxvel;
           }
-          ++v27;
-          --v28;
+          ++velp;
+          --naxes;
         }
-        while ( v28 );
+        while ( naxes );
       }
     }
-    if ( v24 )
-      a4 = 4;
-    else if ( a4 == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
-      a4 = 2;
-    v74 = *(int *)&org[0];
-    v75 = *(int *)&org[1];
-    v76 = *(int *)&org[2];
+    if ( crouch )
+      presencetype = 4;
+    else if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
+      presencetype = 2;
+    lastorg0 = *(int *)&org[0];
+    lastorg1 = *(int *)&org[1];
+    lastorg2 = *(int *)&org[2];
     left_test_vel[0] = frame_test_vel[0];
     left_test_vel[1] = frame_test_vel[1];
     left_test_vel[2] = frame_test_vel[2];
@@ -9334,183 +9358,187 @@ char *__cdecl AAS_ClientMovementPrediction(
       end[0] = left_test_vel[0] + org[0];
       end[1] = left_test_vel[1] + org[1];
       end[2] = left_test_vel[2] + org[2];
-      v80 = AAS_TraceClientBBox(org, end, a4, a2);
-      if ( a12 )
+      trace = AAS_TraceClientBBox(org, end, presencetype, entnum);
+      if ( visualize )
       {
-        if ( v80.startsolid )
+        if ( trace.startsolid )
           bi_Print(PRT_MESSAGE, "PredictMovement: start solid\n");
-        AAS_DebugLine(org, v80.endpos, -218959632);
+        AAS_DebugLine(org, trace.endpos, -218959632);
       }
-      org[0] = v80.endpos[0];
-      org[1] = v80.endpos[1];
-      org[2] = v80.endpos[2];
-      if ( v80.fraction >= 1.0 )
+      org[0] = trace.endpos[0];
+      org[1] = trace.endpos[1];
+      org[2] = trace.endpos[2];
+      if ( trace.fraction >= 1.0 )
         goto LABEL_66;
-      v30 = (float *)AAS_PlaneFromNum(v80.planenum);
-      if ( v30[2] == 0.0f && (v64 < 0 || v43 - v64 > 2) )
+      plane = (float *)AAS_PlaneFromNum(trace.planenum);
+      if ( plane[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
       {
-        VectorMA(org, -0.25f, (float *)v30, start);
-        v82[0] = start[0];
-        v82[1] = start[1];
-        v82[2] = start[2];
-        start[2] = start[2] + v69;
-        v83 = AAS_TraceClientBBox(start, v82, a4, a2);
-        if ( !v83.startsolid )
+        VectorMA(org, -0.25f, (float *)plane, start);
+        stepend[0] = start[0];
+        stepend[1] = start[1];
+        stepend[2] = start[2];
+        start[2] = start[2] + phys_maxstep;
+        steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
+        if ( !steptrace.startsolid )
         {
-          v31 = AAS_PlaneFromNum(v83.planenum);
-          if ( *(float *)(v31 + 8) > (float)v63 )
+          plane2 = AAS_PlaneFromNum(steptrace.planenum);
+          if ( *(float *)(plane2 + 8) > (float)phys_maxsteepness )
           {
             left_test_vel[2] = 0.0f;
             frame_test_vel[2] = 0.0f;
-            left_test_vel[0] = end[0] - v83.endpos[0];
-            left_test_vel[1] = end[1] - v83.endpos[1];
-            if ( a12 && v83.endpos[2] - org[2] > 0.125 )
+            left_test_vel[0] = end[0] - steptrace.endpos[0];
+            left_test_vel[1] = end[1] - steptrace.endpos[1];
+            if ( visualize && steptrace.endpos[2] - org[2] > 0.125 )
             {
               start[0] = org[0];
               start[1] = org[1];
-              start[2] = v83.endpos[2];
+              start[2] = steptrace.endpos[2];
               AAS_DebugLine(org, start, -202116623);
             }
-            org[2] = v83.endpos[2];
+            org[2] = steptrace.endpos[2];
             goto LABEL_66;
           }
         }
       }
-      v41 = (float)(-((float)left_test_vel[1] * (float)v30[1] + (float)left_test_vel[2] * (float)v30[2] + (float)left_test_vel[0] * (float)*v30));
-      VectorMA(left_test_vel, v41, (float *)v30, left_test_vel);
-      v32 = (float)frame_test_vel[1] * (float)v30[1];
-      v33 = (float)frame_test_vel[2] * (float)v30[2];
-      v79 = frame_test_vel[2];
-      v42 = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*v30));
-      VectorMA(frame_test_vel, v42, (float *)v30, frame_test_vel);
-      if ( v30[2] <= (float)v63 )
+      backoff_left = (float)(-((float)left_test_vel[1] * (float)plane[1] + (float)left_test_vel[2] * (float)plane[2] + (float)left_test_vel[0] * (float)*plane));
+      VectorMA(left_test_vel, backoff_left, (float *)plane, left_test_vel);
+      v32 = (float)frame_test_vel[1] * (float)plane[1];
+      v33 = (float)frame_test_vel[2] * (float)plane[2];
+      old_velz = frame_test_vel[2];
+      backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*plane));
+      VectorMA(frame_test_vel, backoff_frame, (float *)plane, frame_test_vel);
+      if ( plane[2] <= (float)phys_maxsteepness )
       {
-        v34 = a5;
+        landed = onground;
       }
       else
       {
-        v34 = 1;
-        a5 = 1;
+        landed = 1;
+        onground = 1;
       }
-      if ( (a11 & 0x20) == 0 )
+      if ( (stopevent & 0x20) == 0 )
         goto LABEL_66;
-      if ( v79 >= 0.0f || (float)frame_test_vel[2] <= (float)v79 )
+      if ( old_velz >= 0.0f || (float)frame_test_vel[2] <= (float)old_velz )
       {
-        if ( !v34 )
+        if ( !landed )
           goto LABEL_66;
 LABEL_62:
-        v35 = (float)frame_test_vel[2] - (float)v79;
+        delta = (float)frame_test_vel[2] - (float)old_velz;
         goto LABEL_63;
       }
-      if ( v34 )
+      if ( landed )
         goto LABEL_62;
-      v35 = (float)v79;
+      delta = (float)old_velz;
 LABEL_63:
-      if ( v35 != 0.0f )
+      if ( delta != 0.0f )
       {
-        v36 = v35 * 10.0f * (v35 * 10.0f) * 0.0001;
-        if ( !v57 && v36 > 30.0f )
+        damage = delta * 10.0f * (delta * 10.0f) * 0.0001;
+        if ( !v57 && damage > 30.0f )
         {
-          v62[0] = *(int *)&org[0];
-          v62[1] = *(int *)&org[1];
-          v62[2] = *(int *)&org[2];
-          v62[3] = *(int *)&frame_test_vel[0];
-          *(float *)&v62[4] = frame_test_vel[1];
-          v62[5] = *(int *)&frame_test_vel[2];
-          qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-          v62[16] = 32;
+          move_buf[0] = *(int *)&org[0];
+          move_buf[1] = *(int *)&org[1];
+          move_buf[2] = *(int *)&org[2];
+          move_buf[3] = *(int *)&frame_test_vel[0];
+          *(float *)&move_buf[4] = frame_test_vel[1];
+          move_buf[5] = *(int *)&frame_test_vel[2];
+          qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+          move_buf[16] = 32;
           goto LABEL_86;
         }
       }
 LABEL_66:
       ++LODWORD(v50);
       if ( SLODWORD(v50) > 20 )
-        { result = a1; qmemcpy(a1, v62, 0x50u); return result; }
+        { result = move; qmemcpy(move, move_buf, 0x50u); return result; }
     }
-    while ( v80.fraction < 1.0 );
+    while ( trace.fraction < 1.0 );
     if ( frame_test_vel[2] > 0.0f )
       goto LABEL_76;
-    v81[0] = org[0];
-    v81[1] = org[1];
-    v81[2] = org[2] - 22.0f;
-    v37 = sub_10003080((float *)v81);   /* IDA-dropped: see 0x100100dd */
-    v38 = 0;
-    v57 = v37;
-    if ( (v37 & 8) != 0 )
-      v38 = 16;
-    if ( (v37 & 0x10) != 0 )
-      v38 |= 8u;
-    if ( (v37 & 0x20) != 0 )
-      v38 |= 8u;
-    if ( (v38 & a11) != 0 )
+    feet[0] = org[0];
+    feet[1] = org[1];
+    feet[2] = org[2] - 22.0f;
+    pc = sub_10003080((float *)feet);   /* IDA-dropped: see 0x100100dd */
+    event = 0;
+    v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
+    // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3 be_aas_move.c:888):
+    //   CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10) -> SE_ENTERSLIME(8).
+    //   NB CONTENTS_WATER(0x20) also maps to bit 8 here, not SE_ENTERWATER(4) —
+    //   faithful to the original DLL; Q3 later split water out to SE_ENTERWATER.
+    if ( (pc & 8) != 0 )
+      event = 16;
+    if ( (pc & 0x10) != 0 )
+      event |= 8u;
+    if ( (pc & 0x20) != 0 )
+      event |= 8u;
+    if ( (event & stopevent) != 0 )
     {
-      v62[0] = *(int *)&org[0];
-      v62[1] = *(int *)&org[1];
-      *(float *)&v62[17] = (float)v57;
-      v62[2] = *(int *)&org[2];
-      v62[16] = a11 & v38;
-      v62[3] = *(int *)&frame_test_vel[0];
-      *(float *)&v62[4] = frame_test_vel[1];
-      v62[5] = *(int *)&frame_test_vel[2];
-      v62[15] = a4;
-      *(float *)&v62[18] = (float)v43 * a10;
-      v62[19] = v43;
+      move_buf[0] = *(int *)&org[0];
+      move_buf[1] = *(int *)&org[1];
+      *(float *)&move_buf[17] = (float)v57;
+      move_buf[2] = *(int *)&org[2];
+      move_buf[16] = stopevent & event;
+      move_buf[3] = *(int *)&frame_test_vel[0];
+      *(float *)&move_buf[4] = frame_test_vel[1];
+      move_buf[5] = *(int *)&frame_test_vel[2];
+      move_buf[15] = presencetype;
+      *(float *)&move_buf[18] = (float)n * frametime;
+      move_buf[19] = n;
     }
     else
     {
 LABEL_76:
-      a5 = AAS_OnGround(org, a4, a2);
-      if ( a5 )
+      onground = AAS_OnGround(org, presencetype, entnum);
+      if ( onground )
       {
-        if ( (a11 & 1) != 0 )
+        if ( (stopevent & 1) != 0 )
         {
-          v62[0] = *(int *)&org[0];
-          v62[1] = *(int *)&org[1];
-          v62[2] = *(int *)&org[2];
-          v62[3] = *(int *)&frame_test_vel[0];
-          *(float *)&v62[4] = frame_test_vel[1];
-          v62[5] = *(int *)&frame_test_vel[2];
-          qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-          v62[16] = 1;
+          move_buf[0] = *(int *)&org[0];
+          move_buf[1] = *(int *)&org[1];
+          move_buf[2] = *(int *)&org[2];
+          move_buf[3] = *(int *)&frame_test_vel[0];
+          *(float *)&move_buf[4] = frame_test_vel[1];
+          move_buf[5] = *(int *)&frame_test_vel[2];
+          qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+          move_buf[16] = 1;
         }
         else
         {
 LABEL_84:
-          if ( ++v43 < a9 )
+          if ( ++n < maxframes )
             continue;
 LABEL_85:
-          v62[0] = *(int *)&org[0];
-          v62[1] = *(int *)&org[1];
-          v62[2] = *(int *)&org[2];
-          v62[3] = *(int *)&frame_test_vel[0];
-          *(float *)&v62[4] = frame_test_vel[1];
-          v62[5] = *(int *)&frame_test_vel[2];
-          v62[16] = 0;
+          move_buf[0] = *(int *)&org[0];
+          move_buf[1] = *(int *)&org[1];
+          move_buf[2] = *(int *)&org[2];
+          move_buf[3] = *(int *)&frame_test_vel[0];
+          *(float *)&move_buf[4] = frame_test_vel[1];
+          move_buf[5] = *(int *)&frame_test_vel[2];
+          move_buf[16] = 0;
         }
 LABEL_86:
-        v62[15] = a4;
-        v62[17] = 1082130432;
-        v62[19] = v43;
-        *(float *)&v62[18] = (float)v43 * a10;
+        move_buf[15] = presencetype;
+        move_buf[17] = 1082130432;
+        move_buf[19] = n;
+        *(float *)&move_buf[18] = (float)n * frametime;
       }
-      else if ( (a11 & 2) != 0 )
+      else if ( (stopevent & 2) != 0 )
       {
-        v62[2] = *(int *)&org[2];
-        v62[0] = *(int *)&org[0];
-        v62[1] = *(int *)&org[1];
-        v62[5] = *(int *)&frame_test_vel[2];
-        v62[3] = *(int *)&frame_test_vel[0];
-        *(float *)&v62[4] = frame_test_vel[1];
-        qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-        *(float *)&v62[18] = (float)v43 * a10;
-        v62[16] = 2;
-        v62[15] = a4;
-        v62[17] = 1082130432;
-        v62[19] = v43;
+        move_buf[2] = *(int *)&org[2];
+        move_buf[0] = *(int *)&org[0];
+        move_buf[1] = *(int *)&org[1];
+        move_buf[5] = *(int *)&frame_test_vel[2];
+        move_buf[3] = *(int *)&frame_test_vel[0];
+        *(float *)&move_buf[4] = frame_test_vel[1];
+        qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+        *(float *)&move_buf[18] = (float)n * frametime;
+        move_buf[16] = 2;
+        move_buf[15] = presencetype;
+        move_buf[17] = 1082130432;
+        move_buf[19] = n;
       }
       else
       {
-        if ( (a11 & 0x40) == 0 )
+        if ( (stopevent & 0x40) == 0 )
           goto LABEL_84;
         start[0] = org[0];
         end[0] = org[0];
@@ -9519,32 +9547,32 @@ LABEL_86:
         end[1] = org[1];
         end[2] = org[2];
         end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0f);
-        v84 = AAS_TraceClientBBox(start, end, 4, -1);
-        if ( v84.startsolid )
+        gaptrace = AAS_TraceClientBBox(start, end, 4, -1);
+        if ( gaptrace.startsolid )
           goto LABEL_84;
-        if ( org[2] - libvar_sv_step->value - 1.0f <= v84.endpos[2] )
+        if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
           goto LABEL_84;
-        v39 = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
-        if ( (v39 & 0x20) != 0 )
+        gap_pc = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
+        if ( (gap_pc & 0x20) != 0 )
           goto LABEL_84;
-        v62[1] = v75;
-        v62[0] = v74;
-        v62[2] = v76;
-        *(float *)&v62[4] = frame_test_vel[1];
-        v62[3] = *(int *)&frame_test_vel[0];
-        v62[5] = *(int *)&frame_test_vel[2];
-        qmemcpy(&v62[6], &v80, sizeof(aas_trace_t));
-        *(float *)&v62[18] = (float)v43 * a10;
-        v62[16] = 64;
-        v62[15] = a4;
-        v62[17] = 1082130432;
-        v62[19] = v43;
+        move_buf[1] = lastorg1;
+        move_buf[0] = lastorg0;
+        move_buf[2] = lastorg2;
+        *(float *)&move_buf[4] = frame_test_vel[1];
+        move_buf[3] = *(int *)&frame_test_vel[0];
+        move_buf[5] = *(int *)&frame_test_vel[2];
+        qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+        *(float *)&move_buf[18] = (float)n * frametime;
+        move_buf[16] = 64;
+        move_buf[15] = presencetype;
+        move_buf[17] = 1082130432;
+        move_buf[19] = n;
       }
     }
     break;
   }
-  result = a1;
-  qmemcpy(a1, v62, 0x50u);
+  result = move;
+  qmemcpy(move, move_buf, 0x50u);
   return result;
 }
 
