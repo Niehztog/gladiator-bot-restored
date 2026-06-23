@@ -1842,11 +1842,21 @@ int dword_1006449C; // weak
 int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
 char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
 /* be_aas_routealt.c globals (AAS_AlternativeRouteGoals / AAS_AltRoutingFloodCluster_r).
- * midrangeareas/clusterareas keep the 32-bit original `int` type (they hold a heap
- * address accessed via explicit (intptr_t)/(char*) casts at the call sites). */
-int numclusterareas;     // 0x10066730 (was dword_10066730)
-int midrangeareas;       // 0x10066740 midrangearea_t* (8 B/area: valid,starttime,goaltime) (was dword_10066740)
-int clusterareas;        // 0x10066744 int* area-index list (was dword_10066744)
+ * midrangeareas (midrangearea_t*, 8 B/area) and clusterareas (int* area-index list)
+ * are heap pointers the original 32-bit DLL stored in 4-byte .data dwords and reached
+ * via explicit (intptr_t)/(char*) casts + byte arithmetic (`base + 8*areanum`).  On
+ * 64-bit those slots must hold a full 8-byte address, so under BOTLIB_NEED_SIDEBAND
+ * they widen to intptr_t — keeping the raw byte-arithmetic access sites unchanged
+ * (a typed pointer would mis-scale `+ 8*areanum`).  The 32-bit build keeps the literal
+ * `int` slots, so its .data image and codegen stay byte-identical to the original. */
+int numclusterareas;     // 0x10066730 area count — stays int (was dword_10066730)
+#if BOTLIB_NEED_SIDEBAND
+intptr_t midrangeareas;  // 0x10066740 holds midrangearea_t* (was dword_10066740)
+intptr_t clusterareas;   // 0x10066744 holds int* area-index list (was dword_10066744)
+#else
+int midrangeareas;       // 0x10066740 (was dword_10066740)
+int clusterareas;        // 0x10066744 (was dword_10066744)
+#endif
 int numportalcacheupdates; // weak
 int numareacacheupdates; // weak
 aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
@@ -14893,7 +14903,11 @@ int __cdecl AAS_AlternativeRouteGoals(
 //----- (1001AB80) --------------------------------------------------------
 int sub_1001AB80()
 {
+#if BOTLIB_NEED_SIDEBAND
+  intptr_t result;  /* 64-bit: hold the full GetMemory() pointer that feeds clusterareas */
+#else
   int result; // eax
+#endif
 
   if ( midrangeareas )
     FreeMemory(midrangeareas);
