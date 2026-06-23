@@ -17395,7 +17395,6 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   *(int *)&bs->ideal_viewangles[1] = v5;
   *(int *)&bs->ideal_viewangles[2] = v6;
   }
-LABEL_33:
   if ( BotFindEnemy(bs) )
   {
     if ( BotWantsToRetreat((int *)bs) )
@@ -17561,7 +17560,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
     }
-LABEL_41:
     if ( (moveresult.flags & 8) != 0 )
       return 1;
     }
@@ -25425,15 +25423,9 @@ int BotUpdateEntityItems()
   int v4; // ebx
   levelitem_t *v5;
   int v7; // eax
-  float v8; // eax
-  float v9; // ecx
-  float v10; // edx
   int v11; // ecx
   levelitem_t *v13;
-  float v14; // ecx
-  float v15; // edx
   int v16; // eax
-  float v17; // ecx
   itemconfig_t *v18; // [esp+Ch] [ebp-10Ch]
   int v19; // [esp+10h] [ebp-108h]
   int v20; // [esp+10h] [ebp-108h]
@@ -28089,19 +28081,19 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
    * lost the return value; we capture it directly here. The previous LibVar
    * (libvar_t*) name was a deobfuscation mislabel — using the pointer as a
    * count blew up GetClearedMemory below. */
-  max_weaponinfo = (int)LibVarValue("max_weaponinfo", (char *)"32");
+  max_weaponinfo = (int)LibVarValue("max_weaponinfo", "32");
   if ( max_weaponinfo < 0 )
   {
     botimport.Print(PRT_ERROR, "max_weaponinfo = %d\n", max_weaponinfo);
     max_weaponinfo = 32;
-    LibVarSet("max_weaponinfo", (char *)"32");
+    LibVarSet("max_weaponinfo", "32");
   }
-  max_projectileinfo = (int)LibVarValue("max_projectileinfo", (char *)"32");
+  max_projectileinfo = (int)LibVarValue("max_projectileinfo", "32");
   if ( max_projectileinfo < 0 )
   {
     botimport.Print(PRT_ERROR, "max_projectileinfo = %d\n", max_projectileinfo);
     max_projectileinfo = 32;
-    LibVarSet("max_projectileinfo", (char *)"32");
+    LibVarSet("max_projectileinfo", "32");
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(path, filename, 144u);
@@ -28117,10 +28109,9 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
     return 0;
   }
   //initialize weapon config
-  wc = (weaponconfig_t *)GetClearedMemory(
-            sizeof(weaponconfig_t)
-          + sizeof(weaponinfo_t)     * max_weaponinfo
-          + sizeof(projectileinfo_t) * max_projectileinfo );
+  wc = (weaponconfig_t *)GetClearedMemory(sizeof(weaponconfig_t) +
+                                          max_weaponinfo * sizeof(weaponinfo_t) +
+                                          max_projectileinfo * sizeof(projectileinfo_t));
   wc->numweapons      = 0;
   wc->weaponinfo      = (weaponinfo_t *)(wc + 1);
   wc->projectileinfo  = (projectileinfo_t *)(wc->weaponinfo + max_weaponinfo);
