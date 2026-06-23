@@ -153,10 +153,10 @@ struct projectileinfo_s {
  * libvars at runtime.
  * ------------------------------------------------------------------------- */
 typedef struct weaponconfig_s {
-    int                numweapons;       /* +0  populated count of weapons[]      */
-    int                numprojectiles;   /* +4  populated count of projectiles[]  */
-    projectileinfo_t  *projectiles;      /* +8  → base + 16 + 344*numweapons      */
-    weaponinfo_t      *weapons;          /* +12 → base + 16                       */
+    int                numweapons;       /* +0  populated count of weaponinfo[]     */
+    int                numprojectiles;   /* +4  populated count of projectileinfo[] */
+    projectileinfo_t  *projectileinfo;   /* +8  → base + 16 + 344*numweapons        */
+    weaponinfo_t      *weaponinfo;       /* +12 → base + 16                         */
 } weaponconfig_t;                        /* sizeof = 16 (header only) */
 
 /* -------------------------------------------------------------------------

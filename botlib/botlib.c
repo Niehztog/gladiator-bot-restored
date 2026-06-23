@@ -315,7 +315,7 @@ int __cdecl Characteristic_Integer(bot_character_t *, int);
 int __cdecl AAS_StartFrame(float time);  // fixed from 0-param idb decl
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
 void __cdecl VectorScale(vec3_t v, float scale, vec3_t out);
-weaponconfig_t *LoadWeaponConfig(char *Source);  /* fixed return type */
+weaponconfig_t *LoadWeaponConfig(char *filename);  /* fixed return type */
 void BotAimAtEnemy(bot_state_t *bs);  // fixed from weak _DWORD
 
 /* Win32 imports used by the UnZip/ZIP32 windll path (gated Windows-only below).
@@ -28076,16 +28076,17 @@ int __cdecl BotResetMoveState(void *a1)
 }
 
 //----- (10034BB0) --------------------------------------------------------
-weaponconfig_t * LoadWeaponConfig(char *Source)
+weaponconfig_t * LoadWeaponConfig(char *filename)
 {
-  int max_projectileinfo;
-  int max_weaponinfo;
-  source_t *v5;
-  weaponconfig_t *cfg;
-  int v9; // ecx
-  char Destination[144]; // [esp+1Ch] [ebp-558h] BYREF
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
-  char v22[sizeof(token_t)] __attribute__((aligned(8))); // [esp+144h] [ebp-430h] BYREF
+  int max_weaponinfo, max_projectileinfo;
+  token_t token;
+  char path[144];                 /* MAX_PATH (144); literal kept — MAX_PATH macro not visible in this TU */
+  int i, j;
+  source_t *source;
+  weaponconfig_t *wc;
+  /* Gladiator-specific: Q2 locates the config inside a pak, so the file is
+   * described by a (path, offset, length) triple rather than a bare name. */
+  bot_fileref_t file_ref;
 
   /* __usercall fixup: original binary thunk 0x10001AAF -> 0x10038A90 is
    * LibVarValue (2-arg, returns float via x87 ST0).  IDA's "v2 = (__int64)a1@<st0>"
@@ -28107,116 +28108,114 @@ weaponconfig_t * LoadWeaponConfig(char *Source)
     LibVarSet("max_projectileinfo", (char *)"32");
   }
   memset(&file_ref, 0, sizeof(file_ref));
-  strncpy(Destination, Source, 0x90u);
-  if ( !sub_10041F60(Destination, &file_ref) )
+  strncpy(path, filename, 144u);
+  if ( !sub_10041F60(path, &file_ref) )
   {
-    botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
+    botimport.Print(PRT_ERROR, "couldn't find %s\n", path);
     return 0;
   }
-  v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-  if ( !v5 )
+  source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !source )
   {
-    botimport.Print(PRT_ERROR, "counldn't load %s\n", Destination);
+    botimport.Print(PRT_ERROR, "counldn't load %s\n", path);
     return 0;
   }
-  cfg = (weaponconfig_t *)GetClearedMemory(
+  //initialize weapon config
+  wc = (weaponconfig_t *)GetClearedMemory(
             sizeof(weaponconfig_t)
           + sizeof(weaponinfo_t)     * max_weaponinfo
           + sizeof(projectileinfo_t) * max_projectileinfo );
-  cfg->numweapons      = 0;
-  cfg->weapons         = (weaponinfo_t *)(cfg + 1);
-  cfg->projectiles     = (projectileinfo_t *)(cfg->weapons + max_weaponinfo);
-  cfg->numprojectiles  = 0;
-
-  while ( PC_ReadTokenHandle(v5, v22) )
+  wc->numweapons      = 0;
+  wc->weaponinfo      = (weaponinfo_t *)(wc + 1);
+  wc->projectileinfo  = (projectileinfo_t *)(wc->weaponinfo + max_weaponinfo);
+  wc->numprojectiles  = 0;
+  //parse the source file
+  while ( PC_ReadTokenHandle(source, token.string) )
   {
-    if ( !strcmp(v22, "weaponinfo") )
+    if ( !strcmp(token.string, "weaponinfo") )
     {
-      if ( cfg->numweapons >= max_weaponinfo )
+      if ( wc->numweapons >= max_weaponinfo )
       {
-        botimport.Print(PRT_ERROR, "more than %d weapons defined in %s\n", max_weaponinfo, Destination);
-        FreeMemory(cfg);
-        FreeSource(v5);
+        botimport.Print(PRT_ERROR, "more than %d weapons defined in %s\n", max_weaponinfo, path);
+        FreeMemory(wc);
+        FreeSource(source);
         return 0;
       }
-      memset(&cfg->weapons[cfg->numweapons], 0, sizeof(weaponinfo_t));
-      if ( !ReadStructure(v5, &unk_1005DFD8, &cfg->weapons[cfg->numweapons]) )
+      memset(&wc->weaponinfo[wc->numweapons], 0, sizeof(weaponinfo_t));
+      if ( !ReadStructure(source, &unk_1005DFD8, &wc->weaponinfo[wc->numweapons]) )
       {
-        FreeMemory(cfg);
-        FreeSource(v5);
+        FreeMemory(wc);
+        FreeSource(source);
         return 0;
       }
-      ++cfg->numweapons;
+      ++wc->numweapons;
     }
     else
     {
-      if ( strcmp(v22, "projectileinfo") )
+      if ( strcmp(token.string, "projectileinfo") )
       {
-        botimport.Print(PRT_ERROR, "unknown definition %s in %s\n", v22, Destination);
-        FreeMemory(cfg);
-        FreeSource(v5);
+        botimport.Print(PRT_ERROR, "unknown definition %s in %s\n", token.string, path);
+        FreeMemory(wc);
+        FreeSource(source);
         return 0;
       }
-      if ( cfg->numprojectiles >= max_projectileinfo )
+      if ( wc->numprojectiles >= max_projectileinfo )
       {
-        botimport.Print(PRT_ERROR, "more than %d projectiles defined in %s\n", max_projectileinfo, Destination);
-        FreeMemory(cfg);
-        FreeSource(v5);
+        botimport.Print(PRT_ERROR, "more than %d projectiles defined in %s\n", max_projectileinfo, path);
+        FreeMemory(wc);
+        FreeSource(source);
         return 0;
       }
-      memset(&cfg->projectiles[cfg->numprojectiles], 0, sizeof(projectileinfo_t));
-      if ( !ReadStructure(v5, &unk_1005DFE0, &cfg->projectiles[cfg->numprojectiles]) )
+      memset(&wc->projectileinfo[wc->numprojectiles], 0, sizeof(projectileinfo_t));
+      if ( !ReadStructure(source, &unk_1005DFE0, &wc->projectileinfo[wc->numprojectiles]) )
       {
-        FreeMemory(cfg);
-        FreeSource(v5);
+        FreeMemory(wc);
+        FreeSource(source);
         return 0;
       }
-      ++cfg->numprojectiles;
+      ++wc->numprojectiles;
     }
   }
-  FreeSource(v5);
+  FreeSource(source);
+  //fix up weapons
+  for ( i = 0; i < wc->numweapons; ++i )
   {
-    weaponinfo_t *weap;
-    int p;
-    for ( v9 = 0; v9 < cfg->numweapons; ++v9 )
+    if ( !wc->weaponinfo[i].name[0] )
     {
-      weap = &cfg->weapons[v9];
-      if ( !weap->name[0] )
-      {
-        botimport.Print(PRT_ERROR, "weapon %d has no name in %s\n", v9, Destination);
-        FreeMemory(cfg);
-        return 0;
-      }
-      if ( !weap->projectile[0] )
-      {
-        botimport.Print(PRT_ERROR, "weapon %s has no projectile in %s\n", weap->name, Destination);
-        FreeMemory(cfg);
-        return 0;
-      }
-      for ( p = 0; p < cfg->numprojectiles; ++p )
-      {
-        if ( !strcmp(cfg->projectiles[p].name, weap->projectile) )
-        {
-          weap->proj = &cfg->projectiles[p];
-          break;
-        }
-      }
-      if ( p == cfg->numprojectiles )
-      {
-        botimport.Print(PRT_ERROR, "weapon %s uses undefined projectile in %s\n", weap->name, Destination);
-        FreeMemory(cfg);
-        return 0;
-      }
-      weap->number = v9;
+      botimport.Print(PRT_ERROR, "weapon %d has no name in %s\n", i, path);
+      FreeMemory(wc);
+      return 0;
     }
+    if ( !wc->weaponinfo[i].projectile[0] )
+    {
+      botimport.Print(PRT_ERROR, "weapon %s has no projectile in %s\n", wc->weaponinfo[i].name, path);
+      FreeMemory(wc);
+      return 0;
+    }
+    //find the projectile info and store a pointer to it in the weapon info
+    for ( j = 0; j < wc->numprojectiles; ++j )
+    {
+      if ( !strcmp(wc->projectileinfo[j].name, wc->weaponinfo[i].projectile) )
+      {
+        wc->weaponinfo[i].proj = &wc->projectileinfo[j];
+        break;
+      }
+    }
+    if ( j == wc->numprojectiles )
+    {
+      botimport.Print(PRT_ERROR, "weapon %s uses undefined projectile in %s\n", wc->weaponinfo[i].name, path);
+      FreeMemory(wc);
+      return 0;
+    }
+    wc->weaponinfo[i].number = i;
   }
-  if ( !cfg->numweapons )
+  if ( !wc->numweapons )
     botimport.Print(PRT_WARNING, "no weapon info loaded\n");
   if ( file_ref.filelen )
-    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
   else
-    botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-  return cfg;
+    botimport.Print(PRT_MESSAGE, "loaded %s\n", path);
+  return wc;
 }
 
 //----- (10035280) --------------------------------------------------------
@@ -28227,7 +28226,7 @@ _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 
   result = (_DWORD *)GetClearedMemory(4 * wc->numweapons);
   for ( i = 0; i < wc->numweapons; ++i )
-    result[i] = FindFuzzyWeight(wwc, wc->weapons[i].name);
+    result[i] = FindFuzzyWeight(wwc, wc->weaponinfo[i].name);
   return result;
 }
 
@@ -28280,7 +28279,7 @@ int __cdecl sub_100353C0(const char *modelname)
     return -1;
   for ( i = 0; i < cfg->numweapons; i++ )
   {
-    w = &cfg->weapons[i];
+    w = &cfg->weaponinfo[i];
     if ( !Q_stricmp(w->model, (char *)modelname) )
       return w->number;
   }
@@ -28306,7 +28305,7 @@ const char *__cdecl sub_10035430(const char *modelname)
     return default_name;
   for ( i = 0; i < cfg->numweapons; i++ )
   {
-    w = &cfg->weapons[i];
+    w = &cfg->weaponinfo[i];
     if ( !Q_stricmp(w->model, (char *)modelname) )
       return w->name;
   }
@@ -28323,7 +28322,7 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
     return 0;
   if ( !dword_10064080 )
     return 0;
-  return &dword_10064080->weapons[v1];
+  return &dword_10064080->weaponinfo[v1];
 }
 
 //----- (10035500) --------------------------------------------------------
@@ -28357,7 +28356,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
               if ( v6 > v7 )
               {
                 v7 = v6;
-                v2 = &v1->weapons[v4];
+                v2 = &v1->weaponinfo[v4];
               }
             }
             ++v4;
@@ -28368,7 +28367,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
             if ( Q_stricmp(v2->model, ws->modelname) )
             {
               EA_UseItem(ws->client, v2->name);
-              ws->nextthink = AAS_Time() + v1->weapons[v2->number].activate + 3.0f;
+              ws->nextthink = AAS_Time() + v1->weaponinfo[v2->number].activate + 3.0f;
             }
             ws->modelname = v2->model;
             ws->weaponindex = v2->number;
