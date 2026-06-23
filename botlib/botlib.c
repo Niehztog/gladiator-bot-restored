@@ -3651,38 +3651,38 @@ int __cdecl sub_10005A10(float *origin)
 //----- (10005A60) --------------------------------------------------------
 void __cdecl AAS_DecompressVis(int a1, int a2)
 {
-  int result; // eax
-  char *v3; // esi
-  char *v4; // edx
-  unsigned int v5; // ebx
+  int row; // eax
+  char *out; // esi
+  char *in; // edx
+  unsigned int c; // ebx
 
   if ( a1 != dword_10069564 )
   {
-    v3 = &byte_10067564;
-    v4 = (char *)(dword_100674D0 + *(_DWORD *)(dword_100674D4 + 4 * (a2 + 2 * a1) + 4));
-    result = (*(int *)dword_100674D4 + 7) >> 3;
-    a2 = result;
+    out = &byte_10067564;
+    in = (char *)(dword_100674D0 + *(_DWORD *)(dword_100674D4 + 4 * (a2 + 2 * a1) + 4));
+    row = (*(int *)dword_100674D4 + 7) >> 3;
+    a2 = row;
     do
     {
-      if ( *v4 )
+      if ( *in )
       {
-        *v3++ = *v4++;
+        *out++ = *in++;
       }
       else
       {
-        v5 = (unsigned __int8)v4[1];
-        if ( !v5 )
+        c = (unsigned __int8)in[1];
+        if ( !c )
         {
           AAS_Error("AAS_DecompressVis: 0 repeat");
           return;
         }
-        memset(v3, 0, v5);
-        v4 += 2;
-        v3 += v5;
-        result = a2;
+        memset(out, 0, c);
+        in += 2;
+        out += c;
+        row = a2;
       }
     }
-    while ( v3 - (char *)&byte_10067564 < result );
+    while ( out - (char *)&byte_10067564 < row );
     dword_10069564 = a1;
   }
 }
@@ -5981,10 +5981,10 @@ int AAS_FindPossiblePortals()
 int AAS_RemoveAllPortals()
 {
   int result; // eax
-  int v1; // ecx
+  int i; // ecx
 
   result = aasworld.numareas;
-  v1 = 1;
+  i = 1;
   if ( aasworld.numareas > 1 )
   {
     result = 28;
@@ -5992,9 +5992,9 @@ int AAS_RemoveAllPortals()
     {
       result += 28;
       *(_DWORD *)((char *)aasworld.areasettings + result - 28) &= ~8u;
-      ++v1;
+      ++i;
     }
-    while ( v1 < aasworld.numareas );
+    while ( i < aasworld.numareas );
   }
   return result;
 }
@@ -14993,34 +14993,34 @@ void AAS_FreeAASLinkedEntities()
 //----- (1001AE60) --------------------------------------------------------
 int __cdecl AAS_PointAreaNum(vec3_t point)
 {
-  int v2; // eax
-  aas_node_t *v3; // ecx
+  int nodenum; // eax
+  aas_node_t *node; // ecx
 
   if ( !aasworld.loaded )
   {
     botimport.Print(PRT_ERROR, "AAS_PointAreaNum: aas not loaded\n");
     return 0;
   }
-  v2 = 1;
+  nodenum = 1;
   do
   {
-    v3 = &aasworld.nodes[v2];
+    node = &aasworld.nodes[nodenum];
     /* Residual 2-byte diff vs disasm@0x1001ae9f: the original schedules the
      * inner two product terms descending (n2*p2 then n1*p1); MSVC6 emits them
      * ascending here regardless of source term order (verified: reordering the
      * C expression produces byte-identical output). Pure scheduler tie-break. */
-    if ( point[0] * aasworld.planes[v3->planenum].normal[0]
-       + point[1] * aasworld.planes[v3->planenum].normal[1]
-       + point[2] * aasworld.planes[v3->planenum].normal[2]
-       - aasworld.planes[v3->planenum].dist > 0.0f )
-      v2 = v3->children[0];
+    if ( point[0] * aasworld.planes[node->planenum].normal[0]
+       + point[1] * aasworld.planes[node->planenum].normal[1]
+       + point[2] * aasworld.planes[node->planenum].normal[2]
+       - aasworld.planes[node->planenum].dist > 0.0f )
+      nodenum = node->children[0];
     else
-      v2 = v3->children[1];
+      nodenum = node->children[1];
   }
-  while ( v2 > 0 );
-  if ( !v2 )
+  while ( nodenum > 0 );
+  if ( !nodenum )
     return 0;
-  return -v2;
+  return -nodenum;
 }
 
 //----- (1001AF00) --------------------------------------------------------
@@ -15547,43 +15547,43 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
 //----- (1001BF00) --------------------------------------------------------
 qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 {
-  _DWORD *v5; // ebx
+  _DWORD *face; // ebx
   int eidx;
   char *edge;
   float *v7;
-  BOOL v8; // esi
+  BOOL firstvertex; // esi
   float *v9; // ecx
-  char *v10; // [esp+10h] [ebp-28h]
+  char *plane; // [esp+10h] [ebp-28h]
   float v11; // [esp+14h] [ebp-24h]
   float v12; // [esp+18h] [ebp-20h]
   float v13; // [esp+1Ch] [ebp-1Ch]
-  vec3_t v14; // [esp+20h] [ebp-18h] BYREF
-  vec3_t v15; // [esp+2Ch] [ebp-Ch] BYREF
+  vec3_t edgevec; // [esp+20h] [ebp-18h] BYREF
+  vec3_t sepnormal; // [esp+2Ch] [ebp-Ch] BYREF
   float v17; // [esp+40h] [ebp+8h]
 
   if ( !aasworld.loaded )
     return 0;
-  v5 = &aasworld.faces[facenum];
+  face = &aasworld.faces[facenum];
   facenum = 0;
-  v10 = &aasworld.planes[*v5];
-  if ( (int)v5[2] > 0 )
+  plane = &aasworld.planes[*face];
+  if ( (int)face[2] > 0 )
   {
     while ( 1 )
     {
-      eidx = aasworld.edgeindex[facenum + v5[3]];
+      eidx = aasworld.edgeindex[facenum + face[3]];
       edge = &aasworld.edges[abs(eidx)];
-      v8 = eidx < 0;
-      v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * v8)];
-      v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !v8)]);
-      VectorSubtract(v9, v7, v14);
+      firstvertex = eidx < 0;
+      v7 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * firstvertex)];
+      v9 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !firstvertex)]);
+      VectorSubtract(v9, v7, edgevec);
       v11 = point[0] - v7[0];
       v12 = point[1] - v7[1];
       v13 = point[2] - v7[2];
-      CrossProduct(v14, v10, v15);
+      CrossProduct(edgevec, plane, sepnormal);
       v17 = -epsilon;
-      if ( v15[2] * v13 + v15[1] * v12 + v15[0] * v11 < v17 )
+      if ( sepnormal[2] * v13 + sepnormal[1] * v12 + sepnormal[0] * v11 < v17 )
         break;
-      if ( ++facenum >= (int)v5[2] )
+      if ( ++facenum >= (int)face[2] )
         return 1;
     }
     return 0;
@@ -25146,23 +25146,23 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 //----- (1002F1A0) --------------------------------------------------------
 int InitLevelItemHeap()
 {
-  int v1;
+  int max_levelitems;
   int i;
 
   if ( dword_10064358 )
     FreeMemory(dword_10064358);
-  v1 = (int)LibVarValue("max_levelitems", (char *)"512");
-  dword_10064358 = (levelitem_t *)GetMemory(sizeof(levelitem_t) * v1);
-  if ( v1 - 2 > 0 )
+  max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
+  dword_10064358 = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
+  if ( max_levelitems - 2 > 0 )
   {
-    for ( i = 0; i < v1 - 2; ++i )
+    for ( i = 0; i < max_levelitems - 2; ++i )
       dword_10064358[i].next = &dword_10064358[i + 1];
-    dword_10064358[v1 - 1].next = NULL;
+    dword_10064358[max_levelitems - 1].next = NULL;
     dword_10064344 = dword_10064358;
   }
   else
   {
-    dword_10064358[v1 - 1].next = NULL;
+    dword_10064358[max_levelitems - 1].next = NULL;
     dword_10064344 = dword_10064358;
   }
   return (int)(intptr_t)dword_10064358;
@@ -33357,31 +33357,31 @@ int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 {
   token_t *token = (token_t *)a2;
   char *v2; // eax
-  int v3; // edx
-  char v4; // al
+  int len; // edx
+  char c; // al
 
   token->type = 4;
   token->string[0] = *script->script_p;
   v2 = (char *)(script->script_p + 1);
-  v3 = 1;
+  len = 1;
   script->script_p = v2;
   while ( 1 )
   {
-    v4 = *v2;
-    if ( (v4 < 97 || v4 > 122) && (v4 < 65 || v4 > 90) && (v4 < 48 || v4 > 57) && v4 != 95 )
+    c = *v2;
+    if ( (c < 97 || c > 122) && (c < 65 || c > 90) && (c < 48 || c > 57) && c != 95 )
       break;
-    token->string[v3] = v4;
-    ++v3;
+    token->string[len] = c;
+    ++len;
     v2 = (char *)(script->script_p + 1);
     script->script_p = v2;
-    if ( v3 >= 1024 )
+    if ( len >= 1024 )
     {
       ScriptError(script, "name longer than MAX_TOKEN = %d", 1024);
       return 0;
     }
   }
-  token->string[v3] = 0;
-  token->subtype = v3;
+  token->string[len] = 0;
+  token->subtype = len;
   return 1;
 }
 
@@ -33712,22 +33712,22 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
  * to unsigned char — that would diverge from the original DLL. */
 int __cdecl PS_ReadPunctuation(script_t *script, char *Destination)
 {
-  punctuation_t *p;
-  const char *v3;
+  punctuation_t *punc;
+  const char *p;
   const char *v4;
-  size_t v5;
+  size_t len;
 
-  for ( p = script->punctuationtable[*script->script_p]; p; p = p->next )
+  for ( punc = script->punctuationtable[*script->script_p]; punc; punc = punc->next )
   {
-    v3 = p->p;
+    p = punc->p;
     v4 = (const char *)script->script_p;
-    v5 = strlen(v3);
-    if ( v4 + v5 <= (const char *)script->end_p && !strncmp(v4, v3, v5) )
+    len = strlen(p);
+    if ( v4 + len <= (const char *)script->end_p && !strncmp(v4, p, len) )
     {
-      strncpy(Destination, v3, 0x400u);
-      script->script_p += v5;
+      strncpy(Destination, p, 0x400u);
+      script->script_p += len;
       *((_DWORD *)Destination + 256) = 5;
-      *((_DWORD *)Destination + 257) = p->n;
+      *((_DWORD *)Destination + 257) = punc->n;
       return 1;
     }
   }
