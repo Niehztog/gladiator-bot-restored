@@ -256,7 +256,7 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /
 void sub_10028E80(void);  /* was: sub_10028E80 thunk */
 void BotCheckAttack(bot_state_t *bs);  // fixed from weak _DWORD
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
-int __cdecl AAS_AreaLadder(int);
+int __cdecl AAS_AreaLadder(int areanum);
 /* AAS_VectorForBSPEpairKey: full decl with named args at line ~329 */
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
 int AAS_InitReachability(); // weak
@@ -271,14 +271,14 @@ int sub_1001D260(); // weak
 /* bot_character internal layout (defined later); forward typedef needed
  * here for Characteristic_* prototypes. */
 typedef struct bot_character_s bot_character_t;
-float __cdecl Characteristic_Float(bot_character_t *, int);
+float __cdecl Characteristic_Float(bot_character_t * character, int index);
 /* AAS_Reachability_Teleport: full body at line ~12766 (thunk 0x10001456 → 0x10015BB0). */
-int __cdecl BotReachabilityTime(aas_reachability_t*);
+int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 void PrintUsedMemorySize(void);
-int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
-int __cdecl AAS_UpdatePortal(int areanum, int);
+int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float * velocity); // idb
+int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
 /* AAS_AASLinkEntity: see full declaration at line ~500 below */
-char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
+char *__cdecl AAS_ClientMovementPrediction(char * move, int entnum, float * origin, int presencetype, int onground, float * velocity, float * cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int visualize); // idb
 int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
 int __cdecl sub_1001C760(char *Source); // idb
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);  // fixed from weak
@@ -304,12 +304,11 @@ void sub_1001D290(void);  /* was: sub_1001D290 thunk */
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 /* AAS_Error: real implementation as AAS_Error (renamed from sub_1000D7E0, 0x1000D7E0) */
 /* AAS_FloodClusterAreas_r: full decl with named args at line ~344 */
-int __cdecl Characteristic_Integer(bot_character_t *, int);
+int __cdecl Characteristic_Integer(bot_character_t * character, int index);
 /* BotCheckChatMessageIntegrety: defined as BotCheckChatMessageIntegrety at 0x1002CB40 — accumulates undefined-variable list */
 /* LoadScriptFile: full decl at line ~914 (returns FILE*). */
 int __cdecl AAS_StartFrame(float time);  // fixed from 0-param idb decl
 int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
-void __cdecl VectorScale(vec3_t in, float scale, vec3_t out);
 weaponconfig_t *LoadWeaponConfig(char *filename);  /* fixed return type */
 void BotAimAtEnemy(bot_state_t *bs);  // fixed from weak _DWORD
 
@@ -416,9 +415,8 @@ typedef struct {
 #endif /* _WIN32 — UnZip windll DCL/USERFUNCTIONS */
 
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
-void __cdecl VectorMA(vec3_t veca, float scale, vec3_t vecb, vec3_t vecc);
 int InFieldOfVision(float *, float, float *); // idb
-int __cdecl WriteFloat(FILE *fp, float); // idb
+int __cdecl WriteFloat(FILE *fp, float value); // idb
 // BotAIBlocked: void; return value (eax) is never used by callers
 /* BotMoveInDirection: at 0x10031BE0 — public movement-dispatcher entry that
  * routes (movestate, dir, speed, type) to BotSwimInDirection when the bot's
@@ -440,15 +438,14 @@ void AAS_InitAASLinkHeap(); // weak
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
 
 void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
-float __cdecl VectorDistance(vec3_t, vec3_t);
+float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 bsp_link_t *sub_100031F0(void);
-int __cdecl AAS_BestReachableArea(int *, vec3_t, vec3_t, vec3_t);
+int __cdecl AAS_BestReachableArea(int * origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 int AAS_TestPortals();
 void __cdecl EA_DropItem(int client, char *item);  // fixed from weak
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
 // int __usercall sub_100030A0@<eax>(double a1@<st0>);
-bsp_link_t *sub_100031F0(void);
 bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1);
 int __cdecl sub_10003080(vec3_t point);
 int sub_10003280();
@@ -487,7 +484,6 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
 // int __usercall AAS_LoadBSPFile@<eax>(double a1@<st0>, char *FileName, int Offset);
 int sub_100085F0();
 int AAS_RemoveClusterAreas();
-int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
 int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum);
 int __cdecl AAS_FloodClusterReachabilities(int clusternum);
 void __cdecl AAS_NumberClusterPortals(int clusternum);
@@ -499,11 +495,10 @@ int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done);
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);
 int AAS_FindPossiblePortals();
 int AAS_RemoveAllPortals();
-int AAS_TestPortals();
 // int __usercall AAS_InitClustering@<eax>(double a1@<st0>);
 int AAS_ClearShownDebugLines();
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
-int __cdecl AAS_DrawPermanentCross(vec3_t, float, int); // idb
+int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color); // idb
 void __cdecl AAS_ShowArea(int areanum, int groundfacesonly);
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color);
 void __cdecl AAS_PrintTravelType(int traveltype);
@@ -521,9 +516,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-para
 void AAS_ResetEntityLinks();
 void AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
-int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 // int __usercall InFieldOfVision@<eax>(double a1@<st0>, int a2, float a3, int a4);
-int __cdecl BotEntityVisible(int, float *, float *, float, int); // idb
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *); // idb
 int __cdecl AAS_NextBSPEntity(int ent);
 int AAS_SwapAASData();
@@ -536,11 +529,10 @@ bsp_pointlight_t *sub_1000D450();
 bsp_pointlight_t *__cdecl sub_1000D4A0(bsp_pointlight_t *a1);
 void __cdecl sub_1000D4E0(float a1);
 int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, float g, float b, float time, float decay);
-int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int AAS_Error(char *Format, ...);
 char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index);
-int __cdecl AAS_IndexFromString(const char *, indexlist_t *, char *String2); // idb
+int __cdecl AAS_IndexFromString(const char * indexname, indexlist_t * list, char *String2); // idb
 char *__cdecl AAS_ModelFromIndex(int index);
 int __cdecl IndexFromModel(char *String2); // idb
 char *__cdecl AAS_ImageFromIndex(int index);
@@ -568,8 +560,6 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
 double __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime);
-char *__cdecl AAS_ClientMovementPrediction(char *, int, float *, int, int, float *, float *, int, int, float, int, int); // idb
-int __cdecl AAS_HorizontalVelocityForJump(float, vec3_t, vec3_t, float *); // idb
 int AAS_KeepEdge(char *edge);
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum);
 int __cdecl AAS_KeepFace(char *face);
@@ -577,7 +567,6 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum);
 int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum);
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized);
 int __cdecl AAS_OptimizeStore(optimized_t *optimized);
-int AAS_Optimize();
 int AAS_SetupReachabilityHeap();
 void AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0(); // weak
@@ -592,13 +581,11 @@ float __cdecl AAS_MaxJumpDistance(float phys_jumpvel);
 int __cdecl AAS_AreaCrouch(int areanum);
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
-int __cdecl AAS_AreaLadder(int areanum);
 qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num);
 BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end);
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
-float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 // int __usercall AAS_Reachability_Jump@<eax>(double a1@<st0>, int a2, int a3);
@@ -610,7 +597,6 @@ int AAS_SetWeaponJumpAreaFlags();
 int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2);
 int __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int AAS_StoreReachability();
-int AAS_ContinueInitReachability(int a1);
 // int __usercall AAS_InitReachability@<eax>(double a1@<st0>);
 int __cdecl AAS_TravelFlagForType(int traveltype);
 int AAS_CreateReversedReachability();
@@ -645,10 +631,9 @@ int __cdecl AAS_PointAreaNum(vec3_t point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 int __cdecl AAS_PointContents(vec3_t point);
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace);
-int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas);
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon);
-qboolean __cdecl AAS_PointInsideFace(int, vec3_t, float); // idb
+qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon); // idb
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3);
 aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas);
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum);
@@ -679,7 +664,6 @@ int __cdecl AIEnter_Stand(bot_state_t *bs);
 int __cdecl AINode_Stand(bot_state_t *bs);
 void __cdecl AIEnter_Respawn(bot_state_t *bs);
 int __cdecl AINode_Respawn(bot_state_t *bs);
-int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs);
 int __cdecl AIEnter_Seek_NBG(bot_state_t *bs);
 int __cdecl AINode_Seek_NBG(bot_state_t *bs);
@@ -776,9 +760,7 @@ int BotShutdownLibrary();
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2);
 void __cdecl sub_1002A590(int a1);
 int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
-float __cdecl Characteristic_Float(bot_character_t *character, int index);
 float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float min, float max);
-int __cdecl Characteristic_Integer(bot_character_t *character, int index);
 int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int min, int max);
 char *__cdecl Characteristic_String(bot_character_t *character, int index);
 // int __usercall InitConsoleMessageHeap@<eax>(double a1@<st0>);
@@ -797,12 +779,12 @@ void __cdecl StringReplaceWords(const char *string, const char *synonym, const c
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
 void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
 void __cdecl BotReplaceWeightedSynonyms(const char *string, int context);
-bot_randomlist_t *__cdecl BotLoadRandomStrings(char *); // idb
+bot_randomlist_t *__cdecl BotLoadRandomStrings(char * filename); // idb
 char *__cdecl RandomString(const char *name);
 void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces);
 bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken);
 void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
-bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *); // idb
+bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char * matchfile); // idb
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
 int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
@@ -902,9 +884,7 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms);
 bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
 bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
 bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal);
-int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type);  // fixed
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
 int __cdecl BotResetMoveState(void *movestate);
@@ -924,7 +904,7 @@ void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
 weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
-qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *); // idb
+qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs); // idb
 qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int); // idb
 int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);
 double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
@@ -937,7 +917,6 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *
 void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
 void __cdecl EA_UseItem(int client, char *item);
-void __cdecl EA_DropItem(int client, char *item);
 void __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Attack(int client);
@@ -960,7 +939,7 @@ qboolean __cdecl ValidClientNumber(int num, const char *str);
 qboolean __cdecl ValidEntityNumber(int num, const char *str);
 qboolean __cdecl BotLibSetup(const char *str);
 int BotSetupMoveAI();
-int __cdecl Export_BotLibStartFrame(float); // idb
+int __cdecl Export_BotLibStartFrame(float time); // idb
 // int __usercall Export_BotLibAI@<eax>(double a1@<st0>, int a2, int a3);
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message); // idb
 _WORD *__cdecl CRC_Init(_WORD *a1);
@@ -985,7 +964,6 @@ void *__cdecl GetMemory(int size);
 void *__cdecl GetClearedMemory(unsigned int size);
 int __cdecl FreeMemory(void *ptr);  /* dummy `int` return; see definition */
 int __cdecl MemoryByteSize(void *ptr);
-void PrintUsedMemorySize(void);
 void PrintMemoryLabels(void);
 void DumpMemory(void);
 int SourceError(source_t *src, char *Format, ...);
@@ -993,8 +971,6 @@ int SourceWarning(source_t *src, char *Format, ...);
 indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
 indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
 void __cdecl PC_PushScript(source_t *source, script_t *script);
-_DWORD *__cdecl AllocLevelItem(void);
-void __cdecl PC_FreeToken(token_t *t);
 int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
 int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms);
@@ -1031,7 +1007,7 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
 // int __cdecl PC_ReadSourceToken: see definition
 int __cdecl PC_Directive_elif(source_t *src);
 int __cdecl PC_Directive_if(source_t *src);
-int __cdecl PC_Directive_line(source_t *); /* #line handler — restored from disassembly + Q3 reference at line ~32900 */
+int __cdecl PC_Directive_line(source_t * src); /* #line handler — restored from disassembly + Q3 reference at line ~32900 */
 int __cdecl PC_Directive_error(source_t *src);
 int __cdecl PC_Directive_pragma(source_t *src);
 int __cdecl UnreadSignToken(source_t *src);
@@ -1075,11 +1051,11 @@ void      __cdecl FreeScript(script_t *script);
 const char **__cdecl FindField(const char **defs, const char *name);
 int __cdecl ReadNumber(source_t *src, char **field, float *out);
 int __cdecl ReadChar(source_t *src, char **field, float *out);
-int __cdecl ReadString(source_t *, char **, char *Destination); // idb
+int __cdecl ReadString(source_t * src, char ** field, char *Destination); // idb
 int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure);
-int __cdecl WriteIndent(FILE *fp, int); // idb
-int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *, int, int); // idb
-int __cdecl WriteStructure(FILE *Stream, int, int); // idb
+int __cdecl WriteIndent(FILE *fp, int indent); // idb
+int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t * def, int structure, int indent); // idb
+int __cdecl WriteStructure(FILE *Stream, int def, int structure); // idb
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 int __stdcall sub_100415E0(int a1);
 HGLOBAL sub_10041600(void);
@@ -9987,7 +9963,6 @@ void AAS_ShutDownReachabilityHeap()
  *
  * Note this is a DIFFERENT free list from the entity-link one at
  * aasworld.freelinks (0x10066990, 16-byte stride, link at +8). */
-extern intptr_t nextreachability;          /* head of AAS-link free chain */
 int numreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
 
 void *AAS_AllocReachability(void)
