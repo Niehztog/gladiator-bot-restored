@@ -54,8 +54,9 @@
  * Forward declarations for implementations in botlib.c
  * --------------------------------------------------------------------- */
 
-/* The three interface blocks (botimport/botstate/bot_exports) + the field
- * aliases bi_Print, botlibsetup, maxclients, maxentities, libvar_sv_*, … */
+/* The three interface blocks (botimport/botstate/bot_exports) and the
+ * libvar_sv_* field aliases.  Call sites use botimport.* / botstate.* members
+ * directly. */
 #include "botlib_state.h"
 
 /* Validation helpers (real ones; they print on failure) */
@@ -68,7 +69,7 @@ extern void   Swap_Init(void);                            /* 0x100439F0 — game
 extern int    BotSetupLibrary(void);                      /* 0x10029C90 inner */
 extern float  LibVarValue(char *name, char *default_str); /* 0x10038A90 */
 extern int    BotSetupMoveAI(void);                       /* 0x10037A00 */
-extern int    sub_1000EDC0(int numentities, int numclients);  /* params renamed: maxclients/maxentities are now botlib_state.h macros */
+extern int    sub_1000EDC0(int numentities, int numclients);  /* params named to avoid the former maxclients/maxentities macros (now inlined to botstate.*) */
 extern int    EA_Setup(void);                             /* 0x10037660 */
 extern void   Log_Open(char *filename);                   /* 0x10038BE0 */
 
@@ -141,24 +142,24 @@ char *Export_BotVersion(void)
 //----- (10037BB0) --------------------------------------------------------
 int Export_BotSetupLibrary(void)
 {
-    if (botlibsetup) {
-        bi_Print(3, "bot library already setup\n");
+    if (botstate.setup) {
+        botimport.Print(3, "bot library already setup\n");
         return 2;
     }
 
     Log_Open("botlib.log");
-    bi_Print(1, "------- BotLib Initialization -------\n");
-    bi_Print(1, "BotLib v0.96\n");
+    botimport.Print(1, "------- BotLib Initialization -------\n");
+    botimport.Print(1, "BotLib v0.96\n");
 
     Swap_Init();
-    botlibsetup = 1;
+    botstate.setup = 1;
 
-    maxclients  = (int)LibVarValue("maxclients",  "4");
-    maxentities = (int)LibVarValue("maxentities", "1024");
+    botstate.num_clients  = (int)LibVarValue("maxclients",  "4");
+    botstate.num_entities = (int)LibVarValue("maxentities", "1024");
 
     BotSetupMoveAI();
 
-    errno = sub_1000EDC0(maxentities, maxclients);
+    errno = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
     if (errno) return errno;
 
     errno = BotSetupLibrary();
@@ -166,7 +167,7 @@ int Export_BotSetupLibrary(void)
 
     EA_Setup();
 
-    bi_Print(1, "-------------------------------------\n");
+    botimport.Print(1, "-------------------------------------\n");
     return 0;
 }
 
@@ -199,8 +200,8 @@ int Export_BotSetupLibrary(void)
 //----- (10037CF0) --------------------------------------------------------
 int Export_BotShutdownLibrary(void)
 {
-    if (!botlibsetup) {
-        bi_Print(3, "library not setup\n");
+    if (!botstate.setup) {
+        botimport.Print(3, "library not setup\n");
         return 1;
     }
 
@@ -219,7 +220,7 @@ int Export_BotShutdownLibrary(void)
     memset(&botstate,    0, sizeof(botstate));     /* block 1 @0x10064020, 20 dwords */
     memset(&botimport,   0, sizeof(botimport));    /* block 2 @0x10063FE0, 10 dwords */
     memset(&bot_exports, 0, sizeof(bot_exports));  /* block 3 @0x10063F80, 20 dwords */
-    botlibsetup = 0;
+    botstate.setup = 0;
 
     return 0;
 }
@@ -257,7 +258,7 @@ int Export_BotLibVarSet(char *var_name, char *value)
 int Export_BotDefine(char *string)
 {
     if (!PC_AddGlobalDefine(string))
-        bi_Print(3, "couldn't add define %s\n", string);
+        botimport.Print(3, "couldn't add define %s\n", string);
     return 0;
 }
 
@@ -290,7 +291,7 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
                           imageindexes, imageindex);
     }
 
-    bi_Print(1, "------------ Map Loading ------------\n");
+    botimport.Print(1, "------------ Map Loading ------------\n");
 
     errno = BotLoadMap(mapname, modelindexes, modelindex,
                        soundindexes, soundindex,
@@ -298,7 +299,7 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
     if (errno) return errno;
 
     sub_10029C10();
-    bi_Print(1, "-------------------------------------\n");
+    botimport.Print(1, "-------------------------------------\n");
     return 0;
 }
 

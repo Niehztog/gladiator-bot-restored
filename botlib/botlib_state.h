@@ -17,9 +17,10 @@
  * mov stores instead of the original rep movs / rep stos.  Restoring them as
  * the original aggregates reproduces the bulk copy/clear AND is 64-bit-correct
  * (the copy/clear is sizeof-based, so the 8-byte pointers on aarch64 are
- * handled automatically — no #if split needed).  The #define field aliases
- * keep every existing IDA-era call site (bi_Print, maxclients, …) unchanged;
- * struct members are lvalues, so both reads and writes work verbatim.
+ * handled automatically — no #if split needed).  Call sites use the
+ * botimport.* / botstate.* struct members directly; members are lvalues, so
+ * both reads and writes work verbatim.  (Only the 16 movement-libvar handles
+ * keep #define aliases, below.)
  *
  * Shared by botlib.c (defines the storage) and botlib_exports.c.
  * ========================================================================= */
@@ -66,21 +67,10 @@ extern botimport_block_t botimport;
 extern botstate_block_t  botstate;
 extern bot_export_t      bot_exports;  /* block 3 @0x10063F80 */
 
-/* ---- field aliases: keep IDA-era call sites byte-for-byte unchanged ------ */
-#define dword_10063FE0       botimport.BotInput
-#define bi_BotClientCommand  botimport.BotClientCommand
-#define bi_Print             botimport.Print
-#define bi_Trace             botimport.Trace
-#define bi_PointContents     botimport.PointContents
-#define bi_GetMemory         botimport.GetMemory
-#define bi_FreeMemory        botimport.FreeMemory
-#define bi_DebugLineCreate   botimport.DebugLineCreate
-#define bi_DebugLineShow     botimport.DebugLineShow
-
-#define botlibsetup          botstate.setup
-#define maxentities          botstate.num_entities
-#define maxclients           botstate.num_clients
-#define dword_1006402C       botstate.bottime
+/* ---- libvar handle aliases ----------------------------------------------
+ * The botimport.* / botstate.* scalar call sites (bi_Print, botlibsetup,
+ * maxclients, dword_1006402C, …) were inlined to their struct members
+ * directly.  Only the 16 movement-libvar handles keep aliases, for brevity. */
 #define libvar_sv_friction          botstate.libvars[0]
 #define libvar_sv_stopspeed         botstate.libvars[1]
 #define libvar_sv_gravity           botstate.libvars[2]
