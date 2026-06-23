@@ -18105,7 +18105,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
 }
 
 //----- (10020ED0) --------------------------------------------------------
-_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2)
+_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
 {
 
   _DWORD *result; // eax
@@ -18113,38 +18113,38 @@ _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *a2)
   unsigned int v4; // edx
   unsigned int v5; // edx
 
-  result = a2;
-  *a2 = (*(int *)&bs->snapshot.origin[0]);
-  a2[1] = (*(int *)&bs->snapshot.origin[1]);
-  a2[2] = (*(int *)&bs->snapshot.origin[2]);
-  a2[3] = (*(int *)&bs->snapshot.velocity[0]);
-  a2[4] = (*(int *)&bs->snapshot.velocity[1]);
-  a2[5] = (*(int *)&bs->snapshot.velocity[2]);
-  a2[6] = (*(int *)&bs->snapshot.viewoffset[0]);
-  a2[7] = (*(int *)&bs->snapshot.viewoffset[1]);
-  a2[8] = (*(int *)&bs->snapshot.viewoffset[2]);
-  a2[9] = bs->entitynum;
-  a2[10] = bs->client;
-  a2[11] = *(int *)&bs->thinktime;
-  v3 = a2[24] & 0xFFFFFFFD;
-  a2[24] = v3;
+  result = info;
+  *info = (*(int *)&bs->snapshot.origin[0]);
+  info[1] = (*(int *)&bs->snapshot.origin[1]);
+  info[2] = (*(int *)&bs->snapshot.origin[2]);
+  info[3] = (*(int *)&bs->snapshot.velocity[0]);
+  info[4] = (*(int *)&bs->snapshot.velocity[1]);
+  info[5] = (*(int *)&bs->snapshot.velocity[2]);
+  info[6] = (*(int *)&bs->snapshot.viewoffset[0]);
+  info[7] = (*(int *)&bs->snapshot.viewoffset[1]);
+  info[8] = (*(int *)&bs->snapshot.viewoffset[2]);
+  info[9] = bs->entitynum;
+  info[10] = bs->client;
+  info[11] = *(int *)&bs->thinktime;
+  v3 = info[24] & 0xFFFFFFFD;
+  info[24] = v3;
   if ( (bs->snapshot.pm_flags & 4) != 0 )
-    a2[24] = v3 | 2;
-  v4 = a2[24] & 0xFFFFFFDF;
-  a2[24] = v4;
+    info[24] = v3 | 2;
+  v4 = info[24] & 0xFFFFFFDF;
+  info[24] = v4;
   if ( (bs->snapshot.pm_flags & 0x20) != 0 && bs->snapshot.pm_time > 0 )
-    a2[24] = v4 | 0x20;
-  v5 = a2[24] & 0xFFFFFFEF;
-  a2[24] = v5;
+    info[24] = v4 | 0x20;
+  v5 = info[24] & 0xFFFFFFEF;
+  info[24] = v5;
   if ( (bs->snapshot.pm_flags & 8) != 0 && bs->snapshot.pm_time > 0 )
-    a2[24] = v5 | 0x10;
+    info[24] = v5 | 0x10;
   if ( (bs->snapshot.pm_flags & 1) != 0 )
-    a2[12] = 4;
+    info[12] = 4;
   else
-    a2[12] = 2;
-  a2[13] = *(int *)&bs->viewangles[0];
-  a2[14] = *(int *)&bs->viewangles[1];
-  a2[15] = *(int *)&bs->viewangles[2];
+    info[12] = 2;
+  info[13] = *(int *)&bs->viewangles[0];
+  info[14] = *(int *)&bs->viewangles[1];
+  info[15] = *(int *)&bs->viewangles[2];
   return result;
 }
 
@@ -18227,7 +18227,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
 }
 
 //----- (10021290) --------------------------------------------------------
-int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
+int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
 {
 
   int v2; // eax
@@ -18237,7 +18237,7 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int a2)
   vec3_t v6; // [esp+8h] [ebp-88h] BYREF
   float v7[31]; // [esp+14h] [ebp-7Ch] BYREF
 
-  *(aas_entityinfo_t *)v7 = AAS_EntityInfo(a2);
+  *(aas_entityinfo_t *)v7 = AAS_EntityInfo(enemy);
   v6[0] = v7[4] - bs->origin[0];
   v6[1] = v7[5] - bs->origin[1];
   bs->enemy_height = (int)(v7[6] - bs->origin[2]);
@@ -18433,7 +18433,7 @@ char *__cdecl stristr(char *a1, char *a2)
 }
 
 //----- (10021860) --------------------------------------------------------
-char *__cdecl EasyClientName(int a1, char *a2)
+char *__cdecl EasyClientName(int client, char *buf)
 {
   char v2; // cl
   char *p_Str; // eax
@@ -18448,7 +18448,7 @@ char *__cdecl EasyClientName(int a1, char *a2)
    * IDA decompiled it as Str (1 byte) + Str[1] (1 byte) + (&Str[2])[126]; restored as Str[128]. */
   char Str[128]; // [esp+8h] [ebp-80h] BYREF
 
-  strcpy(Str, (const char *)ClientName(a1));
+  strcpy(Str, (const char *)ClientName(client));
   v2 = Str[0];
   if ( Str[0] )
   {
@@ -18502,7 +18502,7 @@ char *__cdecl EasyClientName(int a1, char *a2)
     }
     while ( *v8 );
   }
-  return strcpy(a2, Str);
+  return strcpy(buf, Str);
 }
 
 //----- (10021A90) --------------------------------------------------------
@@ -18884,19 +18884,19 @@ float __cdecl BotAggression(int *a1)
 }
 
 //----- (100228C0) --------------------------------------------------------
-BOOL __cdecl BotWantsToRetreat(int *a1)
+BOOL __cdecl BotWantsToRetreat(int *bs)
 {
-  if ( BotCTFCarryingFlag(a1) )
+  if ( BotCTFCarryingFlag(bs) )
     return 1;
-  if ( a1[1065] == 4 )
+  if ( bs[1065] == 4 )
     return 1;
-  return BotAggression(a1) < 50.0f;
+  return BotAggression(bs) < 50.0f;
 }
 
 //----- (10022930) --------------------------------------------------------
-BOOL __cdecl BotWantsToChase(int *a1)
+BOOL __cdecl BotWantsToChase(int *bs)
 {
-  return BotAggression(a1) > 50.0f;
+  return BotAggression(bs) > 50.0f;
 }
 
 //----- (10022970) --------------------------------------------------------
@@ -18937,7 +18937,7 @@ BOOL BotCanAndWantsToRocketJump(int *a1)
 }
 
 //----- (10022A60) --------------------------------------------------------
-float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
+float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
 {
   int *v2; // ebp
   float v5; // st7
@@ -18964,12 +18964,12 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
   int v31[21]; // [esp+4Ch] [ebp-FCh] BYREF
 
   v26 = 0.0;
-  v2 = a1 + 421;
+  v2 = bs + 421;
   do
   {
     *(_DWORD *)&endpos[0] = *v2;
-    *(_DWORD *)&endpos[1] = a1[422];
-    *(_DWORD *)&endpos[2] = a1[423];
+    *(_DWORD *)&endpos[1] = bs[422];
+    *(_DWORD *)&endpos[2] = bs[423];
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     v25 = v5;
     if ( v5 < 0.8 )
@@ -18989,22 +18989,22 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
       endpos[1] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[1] + 50.0f;
     }
     v20 = rand() & 0x7FFF;
-    v18 = a1[2];
+    v18 = bs[2];
     endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0f - 1.0f + endpos[2];
     *(bsp_trace_t *)v31 = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     dir[0] = v9;
-    dir[1] = endpos[1] - *((float *)a1 + 422);
-    dir[2] = endpos[2] - *((float *)a1 + 423);
+    dir[1] = endpos[1] - *((float *)bs + 422);
+    dir[2] = endpos[2] - *((float *)bs + 423);
     v10 = VectorNormalize(dir);
     if ( v10 > 100.0f )
     {
       v19 = *(float *)&v31[2] * v10 - 40.0f;
       VectorScale((float *)dir, v19, (float *)dir);
-      v17 = a1[2];
+      v17 = bs[2];
       endpos[0] = dir[0] + *(float *)v2;
-      endpos[1] = dir[1] + *((float *)a1 + 422);
-      v11 = dir[2] + *((float *)a1 + 423);
+      endpos[1] = dir[1] + *((float *)bs + 422);
+      v11 = dir[2] + *((float *)bs + 423);
       v30[1] = endpos[1];
       endpos[2] = v11;
       v30[0] = endpos[0];
@@ -19022,12 +19022,12 @@ float *__cdecl BotRoamGoal(_DWORD *a1, float *a2)
     v26 = v13;
   }
   while ( v13 < 10.0f );
-  result = a2;
+  result = goal;
   v15 = endpos[1];
   v16 = endpos[2];
-  *a2 = endpos[0];
-  a2[1] = v15;
-  a2[2] = v16;
+  *goal = endpos[0];
+  goal[1] = v15;
+  goal[2] = v16;
   return result;
 }
 
@@ -19236,7 +19236,7 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
 }
 
 //----- (10023550) --------------------------------------------------------
-BOOL __cdecl BotSameTeam(bot_state_t *bs, int a2)
+BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
 {
   int v2; // ebx
   const char *v4; // eax
@@ -19258,7 +19258,7 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int a2)
   int v20[31]; // [esp+14h] [ebp-F8h] BYREF
   int v21[31]; // [esp+90h] [ebp-7Ch] BYREF
 
-  *(aas_entityinfo_t *)v21 = AAS_EntityInfo(a2);
+  *(aas_entityinfo_t *)v21 = AAS_EntityInfo(entnum);
   v2 = v21[3];
   if ( v21[3] )
   {
@@ -21490,12 +21490,12 @@ int NumBots()
 }
 
 //----- (10028FF0) --------------------------------------------------------
-float __cdecl AngleDifference(float a1, float a2)
+float __cdecl AngleDifference(float ang1, float ang2)
 {
   double result; // st7
 
-  result = a1 - a2;
-  if ( a1 > a2 )
+  result = ang1 - ang2;
+  if ( ang1 > ang2 )
   {
     if ( result > 180.0 )
       return result - 360.0;
@@ -21508,14 +21508,14 @@ float __cdecl AngleDifference(float a1, float a2)
 }
 
 //----- (10029040) --------------------------------------------------------
-double BotChangeViewAngle(float a1, float a2, float a3)
+double BotChangeViewAngle(float angle, float ideal_angle, float speed)
 {
   float move;
   float v8; // [esp+8h] [ebp+4h]
   float v9; // [esp+Ch] [ebp+8h]
 
-  v8 = anglemod(a1);
-  v9 = anglemod(a2);
+  v8 = anglemod(angle);
+  v9 = anglemod(ideal_angle);
   if ( v8 == v9 )
     return v8;
   move = v9 - v8;
@@ -21531,13 +21531,13 @@ double BotChangeViewAngle(float a1, float a2, float a3)
   }
   if ( move > 0.0f )
   {
-    if ( move > a3 )
-      move = a3;
+    if ( move > speed )
+      move = speed;
   }
   else
   {
-    if ( move < -a3 )
-      move = -a3;
+    if ( move < -speed )
+      move = -speed;
   }
   return anglemod(move + v8);
 }
@@ -22300,84 +22300,84 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
 }
 
 //----- (1002A620) --------------------------------------------------------
-float __cdecl Characteristic_Float(bot_character_t *a1, int a2)
+float __cdecl Characteristic_Float(bot_character_t *character, int index)
 {
   char v2; // al
 
-  if ( CheckCharacteristicIndex(a1, a2) )
+  if ( CheckCharacteristicIndex(character, index) )
   {
-    v2 = (char)BC_PAIRS(a1)[a2].type;
+    v2 = (char)BC_PAIRS(character)[index].type;
     if ( v2 == 1 )
-      return (float)(int)BC_PAIRS(a1)[a2].value;
+      return (float)(int)BC_PAIRS(character)[index].value;
     if ( v2 == 2 )
-      return *(float *)&BC_PAIRS(a1)[a2].value;
-    botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", a2);
+      return *(float *)&BC_PAIRS(character)[index].value;
+    botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
   }
   return 0.0f;
 }
 
 //----- (1002A690) --------------------------------------------------------
-float __cdecl Characteristic_BFloat(bot_character_t *a1, int a2, float a3, float a4)
+float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float min, float max)
 {
   float result; // st7 — returns float (disasm loads fld DWORD / fcom DWORD,
                 // not the double-promotion sequence); Q3's is float too.
 
-  if ( a3 > (float)a4 )
+  if ( min > (float)max )
   {
-    botimport.Print(PRT_ERROR, "cannot bound characteristic %d between %f and %f\n", a2, a3, a4);
+    botimport.Print(PRT_ERROR, "cannot bound characteristic %d between %f and %f\n", index, min, max);
     return 0.0f;
   }
-  result = Characteristic_Float(a1, a2);
-  if ( result < a3 )
-    return a3;
-  if ( result > a4 )
-    return a4;
+  result = Characteristic_Float(character, index);
+  if ( result < min )
+    return min;
+  if ( result > max )
+    return max;
   return result;
 }
 
 //----- (1002A730) --------------------------------------------------------
-int __cdecl Characteristic_Integer(bot_character_t *a1, int a2)
+int __cdecl Characteristic_Integer(bot_character_t *character, int index)
 {
   char v2; // al
 
-  if ( CheckCharacteristicIndex(a1, a2) )
+  if ( CheckCharacteristicIndex(character, index) )
   {
-    v2 = (char)BC_PAIRS(a1)[a2].type;
+    v2 = (char)BC_PAIRS(character)[index].type;
     if ( v2 == 1 )
-      return (int)BC_PAIRS(a1)[a2].value;
+      return (int)BC_PAIRS(character)[index].value;
     if ( v2 == 2 )
-      return (__int64)*(float *)&BC_PAIRS(a1)[a2].value;
+      return (__int64)*(float *)&BC_PAIRS(character)[index].value;
   }
-  botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", a2);
+  botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   return 0;
 }
 
 //----- (1002A7A0) --------------------------------------------------------
-int __cdecl Characteristic_BInteger(bot_character_t *a1, int a2, int a3, int a4)
+int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int min, int max)
 {
   int result; // eax
 
-  if ( a3 > a4 )
+  if ( min > max )
   {
-    botimport.Print(PRT_ERROR, "cannot bound characteristic %d between %d and %d\n", a2, a3, a4);
+    botimport.Print(PRT_ERROR, "cannot bound characteristic %d between %d and %d\n", index, min, max);
     return 0;
   }
-  result = Characteristic_Integer(a1, a2);
-  if ( result < a3 )
-    return a3;
-  if ( result > a4 )
-    return a4;
+  result = Characteristic_Integer(character, index);
+  if ( result < min )
+    return min;
+  if ( result > max )
+    return max;
   return result;
 }
 
 //----- (1002A810) --------------------------------------------------------
-char *__cdecl Characteristic_String(bot_character_t *a1, int a2)
+char *__cdecl Characteristic_String(bot_character_t *character, int index)
 {
-  if ( !CheckCharacteristicIndex(a1, a2) )
+  if ( !CheckCharacteristicIndex(character, index) )
     return &byte_1006294C;
-  if ( (unsigned char)BC_PAIRS(a1)[a2].type == 3 )
-    return (char *)BC_PAIRS(a1)[a2].value;
-  botimport.Print(PRT_ERROR, "characteristic %d is not a string\n", a2);
+  if ( (unsigned char)BC_PAIRS(character)[index].type == 3 )
+    return (char *)BC_PAIRS(character)[index].value;
+  botimport.Print(PRT_ERROR, "characteristic %d is not a string\n", index);
   return 0;
 }
 
@@ -23586,13 +23586,13 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
  * Q3 botlib has the same function in be_ai_chat.c (offset 0 = char *string,
  * offset 4 = next).  Used by BotCheckChatMessageIntegrety to
  * deduplicate the missing-random-key list. */
-bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *a1, const char *a2)
+bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char *string)
 {
   bot_stringlist_t *n;
 
-  for ( n = a1; n; n = n->next )
+  for ( n = list; n; n = n->next )
   {
-    if ( !strcmp(n->string, a2) )
+    if ( !strcmp(n->string, string) )
       return n;
   }
   return NULL;
@@ -24788,7 +24788,7 @@ void __cdecl sub_1002E5D0(void *arg)
 }
 
 //----- (1002E7D0) --------------------------------------------------------
-int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
+int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
 {
  bot_replychat_t *v2; // ebx
  bot_replychatkey_t *v3; // esi
@@ -24808,7 +24808,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
  memset(&v16, 0, sizeof(v16));
  v2 = dword_10064380;
  v14 = 0;
- strcpy(v16.string, a2);
+ strcpy(v16.string, message);
  v13 = 0;
  if ( !v2 )
    return 0;
@@ -24838,7 +24838,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *a2)
        }
        else if ( (v5 & 8) != 0 )
        {
-         v6 = StringContains(a2, v3->string, 0) != 0;
+         v6 = StringContains(message, v3->string, 0) != 0;
        }
      }
      else
