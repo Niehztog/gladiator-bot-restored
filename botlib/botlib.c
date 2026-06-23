@@ -5393,11 +5393,11 @@ int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
 //----- (100087E0) --------------------------------------------------------
 int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 {
-  int v6; // ebp
-  char *v7; // esi
-  int v8; // rax
+  int i; // ebp
+  char *area; // esi
+  int facenum; // rax
   int v10; // eax
-  char *v11; // ecx
+  char *face; // ecx
   int v12; // ecx
   int v14; // esi
   int v15; // eax
@@ -5422,19 +5422,19 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
       return AAS_UpdatePortal(areanum, clusternum);
   aasworld.areasettings[areanum].cluster = clusternum;
   aasworld.areasettings[areanum].clusterareanum = (aasworld.clusters[clusternum].numareas)++;
-  v7 = &aasworld.areas[areanum];
-  v6 = 0;
-  if ( *((int *)v7 + 1) > 0 )
+  area = &aasworld.areas[areanum];
+  i = 0;
+  if ( *((int *)area + 1) > 0 )
   {
     do
     {
-      v8 = aasworld.faceindex[v6 + *((_DWORD *)v7 + 2)];
-      v8 = abs(v8);
-      v10 = aasworld.faces[v8].frontarea;
-      v11 = &aasworld.faces[v8];
+      facenum = aasworld.faceindex[i + *((_DWORD *)area + 2)];
+      facenum = abs(facenum);
+      v10 = aasworld.faces[facenum].frontarea;
+      face = &aasworld.faces[facenum];
       if ( v10 == areanum )
       {
-        v12 = *((_DWORD *)v11 + 5);
+        v12 = *((_DWORD *)face + 5);
         if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
           return 0;
       }
@@ -5442,9 +5442,9 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
       {
         return 0;
       }
-      ++v6;
+      ++i;
     }
-    while ( v6 < *((int *)v7 + 1) );
+    while ( i < *((int *)area + 1) );
   }
   v14 = 0;
   if ( aasworld.areasettings[areanum].numreachableareas > 0 )
@@ -27173,7 +27173,7 @@ bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movesta
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
   vec3_t reach_dir; // [esp+14h] [ebp-3Ch] BYREF (was v10/v11/v12)
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
-  float v14; // [esp+58h] [ebp+8h]
+  float dist; // [esp+58h] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
   if ( ms->jumpreach )
@@ -27181,12 +27181,12 @@ bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movesta
     dir[2] = 0.0f;
     dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
-    v14 = VectorNormalize(dir);
+    dist = VectorNormalize(dir);
     reach_dir[2] = 0.0f;
     reach_dir[0] = reach->end[0] - reach->start[0];
     reach_dir[1] = reach->end[1] - reach->start[1];
     VectorNormalize(reach_dir);
-    if ( ((reach_dir[2] * dir[2]) + reach_dir[1] * dir[1]) + reach_dir[0] * dir[0] >= -0.5 || v14 >= 24.0f )
+    if ( ((reach_dir[2] * dir[2]) + reach_dir[1] * dir[1]) + reach_dir[0] * dir[0] >= -0.5 || dist >= 24.0f )
     {
       EA_Move(ms->client, dir, 800.0);
       VectorCopy(dir, moveresult.movedir);
