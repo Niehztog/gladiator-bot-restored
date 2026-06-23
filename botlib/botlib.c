@@ -6596,47 +6596,47 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
   int traveltype; // eax
   double v4; // st7
   double v5; // st7
-  float v6; // [esp+Ch] [ebp-7Ch] BYREF
-  float v7; // [esp+10h] [ebp-78h]
-  vec3_t v8; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
-  vec3_t v11; // [esp+20h] [ebp-68h] BYREF
+  float speed; // [esp+Ch] [ebp-7Ch] BYREF
+  float zvel; // [esp+10h] [ebp-78h]
+  vec3_t dir; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
+  vec3_t cmdmove; // [esp+20h] [ebp-68h] BYREF
   vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
-  int v13[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
+  int move[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
   AAS_ShowArea(reach->areanum, 1);
   AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
   traveltype = reach->traveltype;
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
-    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &v6);
+    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &speed);
     v5 = reach->end[0] - reach->start[0];
-    v8[2] = 0.0f;
-    v8[0] = v5;
-    v8[1] = reach->end[1] - reach->start[1];
-    VectorNormalize(v8);
-    VectorScale(v8, v6, (float *)v11);
-    v11[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((char *)v13, -1, reach->start, 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
+    dir[2] = 0.0f;
+    dir[0] = v5;
+    dir[1] = reach->end[1] - reach->start[1];
+    VectorNormalize(dir);
+    VectorScale(dir, speed, (float *)cmdmove);
+    cmdmove[2] = libvar_sv_jumpvel->value;
+    AAS_ClientMovementPrediction((char *)move, -1, reach->start, 2, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
     if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
-      AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)v8);
-      AAS_DrawCross(v8, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
+      AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
+      AAS_DrawCross(dir, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
   else if ( traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
   {
-    v7 = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
-    AAS_HorizontalVelocityForJump(v7, reach->start, reach->end, &v6);
+    zvel = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
+    AAS_HorizontalVelocityForJump(zvel, reach->start, reach->end, &speed);
     v4 = reach->end[0] - reach->start[0];
-    v8[2] = 0.0f;
-    v8[0] = v4;
-    v8[1] = reach->end[1] - reach->start[1];
-    VectorNormalize(v8);
-    VectorScale(v8, v6, (float *)v11);
-    v12[2] = v7;
+    dir[2] = 0.0f;
+    dir[0] = v4;
+    dir[1] = reach->end[1] - reach->start[1];
+    VectorNormalize(dir);
+    VectorScale(dir, speed, (float *)cmdmove);
+    v12[2] = zvel;
     v12[0] = 0;
     v12[1] = 0;
-    AAS_ClientMovementPrediction((char *)v13, -1, reach->start, 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((char *)move, -1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
 
@@ -9880,11 +9880,11 @@ int AAS_Optimize()
   int v1; // edx
   char *v2; // eax
   int v3; // ecx
-  optimized_t v5; // [esp+4h] [ebp-3Ch] BYREF (was int[15])
+  optimized_t optimized; // [esp+4h] [ebp-3Ch] BYREF (was int[15])
 
-  AAS_OptimizeAlloc(&v5);
+  AAS_OptimizeAlloc(&optimized);
   for ( i = 1; i < aasworld.numareas; ++i )
-    AAS_OptimizeArea(&v5, i);
+    AAS_OptimizeArea(&optimized, i);
   v1 = 0;
   if ( aasworld.reachabilitysize > 0 )
   {
@@ -9894,7 +9894,7 @@ int AAS_Optimize()
     {
       if ( *(_DWORD *)&v2[v3 + 36] != 11 )
       {
-        *(_DWORD *)&v2[v3 + 4] = v5.faceremap[*(_DWORD *)&v2[v3 + 4]];
+        *(_DWORD *)&v2[v3 + 4] = optimized.faceremap[*(_DWORD *)&v2[v3 + 4]];
         v2 = (char *)aasworld.reachability;
       }
       ++v1;
@@ -9902,7 +9902,7 @@ int AAS_Optimize()
     }
     while ( v1 < aasworld.reachabilitysize );
   }
-  AAS_OptimizeStore(&v5);
+  AAS_OptimizeStore(&optimized);
   return botimport.Print(PRT_MESSAGE, "AAS data optimized.\n");
 }
 
@@ -9997,39 +9997,39 @@ int __cdecl AAS_AreaReachability(int areanum)
 float __cdecl AAS_FaceArea(char *face)
 {
   aas_face_t *f = (aas_face_t *)face;
-  int v2; // ebp
+  int i; // ebp
   int v3; // eax
   float *v4; // ecx
-  float *v5; // esi
-  int v6; // eax
-  BOOL v7; // edi
-  char *v8; // eax
+  float *v; // esi
+  int edgenum; // eax
+  BOOL side; // edi
+  char *edge; // eax
   char *v9; // eax
-  vec3_t v11; // [esp+Ch] [ebp-24h] BYREF
-  vec3_t v12; // [esp+18h] [ebp-18h] BYREF
-  char v13[12]; // [esp+24h] [ebp-Ch] BYREF
-  float v14; // [esp+34h] [ebp+4h]
+  vec3_t d2; // [esp+Ch] [ebp-24h] BYREF
+  vec3_t d1; // [esp+18h] [ebp-18h] BYREF
+  char cross[12]; // [esp+24h] [ebp-Ch] BYREF
+  float total; // [esp+34h] [ebp+4h]
 
   v3 = f->firstedge;
-  v14 = 0.0f;
-  v5 = (float *)&aasworld.vertexes[aasworld.edges[abs(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
-  for ( v2 = 1; v2 < f->numedges - 1; ++v2 )
+  total = 0.0f;
+  v = (float *)&aasworld.vertexes[aasworld.edges[abs(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
+  for ( i = 1; i < f->numedges - 1; ++i )
   {
     v4 = (float *)aasworld.vertexes;
-    v6 = aasworld.edgeindex[f->firstedge + v2];
-    v7 = v6 < 0;
-    v8 = &aasworld.edges[abs(v6)];
-    v12[0] = v4[3 * *(_DWORD *)&v8[4 * v7]] - *v5;
-    v12[1] = v4[3 * *(_DWORD *)&v8[4 * v7] + 1] - v5[1];
-    v12[2] = v4[3 * *(_DWORD *)&v8[4 * v7] + 2] - v5[2];
-    v9 = &v8[4 * !v7];
-    v11[0] = v4[3 * *(_DWORD *)v9] - *v5;
-    v11[1] = v4[3 * *(_DWORD *)v9 + 1] - v5[1];
-    v11[2] = v4[3 * *(_DWORD *)v9 + 2] - v5[2];
-    CrossProduct(v12, v11, v13);
-    v14 = VectorLength(v13) * 0.5 + v14;
+    edgenum = aasworld.edgeindex[f->firstedge + i];
+    side = edgenum < 0;
+    edge = &aasworld.edges[abs(edgenum)];
+    d1[0] = v4[3 * *(_DWORD *)&edge[4 * side]] - *v;
+    d1[1] = v4[3 * *(_DWORD *)&edge[4 * side] + 1] - v[1];
+    d1[2] = v4[3 * *(_DWORD *)&edge[4 * side] + 2] - v[2];
+    v9 = &edge[4 * !side];
+    d2[0] = v4[3 * *(_DWORD *)v9] - *v;
+    d2[1] = v4[3 * *(_DWORD *)v9 + 1] - v[1];
+    d2[2] = v4[3 * *(_DWORD *)v9 + 2] - v[2];
+    CrossProduct(d1, d2, cross);
+    total = VectorLength(cross) * 0.5 + total;
   }
-  return v14;
+  return total;
 }
 
 //----- (10011220) --------------------------------------------------------
@@ -15123,16 +15123,16 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
 //----- (1001B130) --------------------------------------------------------
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace)
 {
-  aas_link_t *v6; // esi
-  vec3_t v12; // [esp+4h] [ebp-6Ch] BYREF
-  vec3_t v13; // [esp+10h] [ebp-60h] BYREF
-  bsp_trace_t v14; // [esp+1Ch] [ebp-54h] BYREF
-  int v15; // [esp+80h] [ebp+10h]
+  aas_link_t *link; // esi
+  vec3_t boxmaxs; // [esp+4h] [ebp-6Ch] BYREF
+  vec3_t boxmins; // [esp+10h] [ebp-60h] BYREF
+  bsp_trace_t bsptrace; // [esp+1Ch] [ebp-54h] BYREF
+  int collision; // [esp+80h] [ebp+10h]
 
-  AAS_PresenceTypeBoundingBox(presencetype, v13, v12);
-  v14.fraction = 1.0;
-  v6 = aasworld.arealinkedentities[areanum];
-  v15 = 0;
+  AAS_PresenceTypeBoundingBox(presencetype, boxmins, boxmaxs);
+  bsptrace.fraction = 1.0;
+  link = aasworld.arealinkedentities[areanum];
+  collision = 0;
   /* Both failure guards reach ONE shared `return 0` (goto fail) — the ref DLL
    * shares that return-0 block (both guards `je` to it), giving 71=71 insns
    * (INSN_COUNT_MATCH).  Separate `return 0` statements compile to two inlined
@@ -15140,23 +15140,23 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
    * inlines the 2nd guard's copy and uses an immediate 0 where ref reuses the
    * loop-terminator esi=NULL for trace->area/planenum — cl.exe cross-jump +
    * register-held-zero ties.) */
-  if ( !v6 )
+  if ( !link )
     goto fail;
   do
   {
-    if ( v6->entnum != passent )
+    if ( link->entnum != passent )
     {
-      if ( AAS_EntityCollision(v6->entnum, start, v13, v12, end, 33619971, (float *)&v14) )
-        v15 = 1;
+      if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, 33619971, (float *)&bsptrace) )
+        collision = 1;
     }
-    v6 = v6->next_ent;
+    link = link->next_ent;
   }
-  while ( v6 );
-  if ( !v15 )
+  while ( link );
+  if ( !collision )
     goto fail;
-  trace->startsolid = v14.startsolid;
-  trace->ent = v14.ent;
-  VectorCopy(v14.endpos, trace->endpos);
+  trace->startsolid = bsptrace.startsolid;
+  trace->ent = bsptrace.ent;
+  VectorCopy(bsptrace.endpos, trace->endpos);
   trace->area = 0;
   trace->planenum = 0;
   return 1;
@@ -19633,34 +19633,34 @@ void BotAimAtEnemy(bot_state_t *bs)
 void BotCheckAttack(bot_state_t *bs)
 {
 
-  int v2; // eax
-  weaponinfo_t *v3; // ebx
+  int attackentity; // eax
+  weaponinfo_t *wi; // ebx
   projectileinfo_t *v6; // ecx
   float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
   float v11; // [esp+10h] [ebp-1A4h] — one local reused (IDA split into v11/v12)
-  vec3_t v13; // [esp+14h] [ebp-1A0h] BYREF — restored vec3 trace start; IDA split
-                // it into int v13 + float v14/v15, whose stores were dead-store-
+  vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — restored vec3 trace start; IDA split
+                // it into int start + float v14/v15, whose stores were dead-store-
                 // eliminated (nothing read them by name), so VectorMA/AAS_Trace
                 // saw garbage in [1]/[2]
-  vec3_t v16; // [esp+20h] [ebp-194h] BYREF
-  vec3_t v17; // [esp+2Ch] [ebp-188h] BYREF
-  vec3_t v18; // [esp+38h] [ebp-17Ch] BYREF
-  vec3_t v19; // [esp+44h] [ebp-170h] BYREF
-  vec3_t v20; // [esp+50h] [ebp-164h] BYREF
-  vec3_t v21; // [esp+5Ch] [ebp-158h] BYREF
-  float v22[21]; // [esp+68h] [ebp-14Ch] BYREF
-  float v23[31]; // [esp+BCh] [ebp-F8h] BYREF
+  vec3_t forward; // [esp+20h] [ebp-194h] BYREF
+  vec3_t maxs; // [esp+2Ch] [ebp-188h] BYREF
+  vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
+  vec3_t right; // [esp+44h] [ebp-170h] BYREF
+  vec3_t mins; // [esp+50h] [ebp-164h] BYREF
+  vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
+  float trace[21]; // [esp+68h] [ebp-14Ch] BYREF
+  float entinfo[31]; // [esp+BCh] [ebp-F8h] BYREF
 
   /* -1056964608 = 0xC1000000 = -8.0f; 1090519040 = 0x41000000 = 8.0f.
-   * v17, v20 are float[3] — use float literals. */
-  v20[0] = -8.0f;
-  v2 = bs->enemy;
-  v20[1] = -8.0f;
-  v20[2] = -8.0f;
-  v17[0] = 8.0f;
-  v17[1] = 8.0f;
-  v17[2] = 8.0f;
-  if ( v2 )
+   * maxs, mins are float[3] — use float literals. */
+  mins[0] = -8.0f;
+  attackentity = bs->enemy;
+  mins[1] = -8.0f;
+  mins[2] = -8.0f;
+  maxs[0] = 8.0f;
+  maxs[1] = 8.0f;
+  maxs[2] = 8.0f;
+  if ( attackentity )
   {
     /* IDA dropped FPU return: original .text 0x100245ef is `call Char..._BFloat`
      * followed by `fstp [esp+0x20]` (= v11).  IDA emitted v11 = a1 instead
@@ -19670,43 +19670,43 @@ void BotCheckAttack(bot_state_t *bs)
     v11 = (float)Characteristic_BFloat(BotCharacter(bs), 11, 0.0, 1.0);
     if ( AAS_Time() - v11 >= bs->enemysight_time )
     {
-      *(aas_entityinfo_t *)v23 = AAS_EntityInfo(bs->enemy);
-      v18[0] = v23[4] - bs->origin[0];
-      v18[1] = v23[5] - bs->origin[1];
-      v18[2] = v23[6] - bs->origin[2];
+      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
+      dir[0] = entinfo[4] - bs->origin[0];
+      dir[1] = entinfo[5] - bs->origin[1];
+      dir[2] = entinfo[6] - bs->origin[2];
       v11 = 120.0f;
-      if ( VectorLength(v18) >= 100.0f )
+      if ( VectorLength(dir) >= 100.0f )
         v11 = 50.0f;
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v11, bs->enemy) )
       {
-        v3 = sub_100354B0(BotWS(bs));
-        if ( v3 )
+        wi = sub_100354B0(BotWS(bs));
+        if ( wi )
         {
-          VectorCopy(bs->origin, v13);
-          v13[2] += bs->snapshot.viewoffset[2];
-          AngleVectors(bs->viewangles, v16, v19, 0);
+          VectorCopy(bs->origin, start);
+          start[2] += bs->snapshot.viewoffset[2];
+          AngleVectors(bs->viewangles, forward, right, 0);
           /* ref evaluates the offset[1] (right) term first; MSVC6 reorders the
            * FPU terms either way (offset[0]-term first) — fmul term-order tie,
            * not source-controllable */
-          v13[0] = v19[0] * v3->offset[1] + v16[0] * v3->offset[0] + v13[0];
-          v13[1] = v19[1] * v3->offset[1] + v16[1] * v3->offset[0] + v13[1];
-          v13[2] = v19[2] * v3->offset[1] + v16[2] * v3->offset[0] + v3->offset[2] + v13[2];
-          VectorMA(v13, 1000.0, v16, v21);
-          VectorMA(v13, -12.0, v16, v13);
-          *(bsp_trace_t *)v22 = AAS_Trace(v13, (float*)v20, (float*)v17, (float*)(v21), bs->entitynum, 100663299);
-          if ( LODWORD(v22[20]) == bs->enemy
-            || (SLODWORD(v22[20]) <= 0 || SLODWORD(v22[20]) > botstate.num_clients || !BotSameTeam(bs, SLODWORD(v22[20])))
-            && ((v6 = v3->proj, (v6->damagetype & 2) == 0)
-             || v22[2] * 1000.0f >= v6->radius
-             || (points = ((float)v6->damage - v22[2] * 500.0) * 0.5, points <= 0)) )
+          start[0] = right[0] * wi->offset[1] + forward[0] * wi->offset[0] + start[0];
+          start[1] = right[1] * wi->offset[1] + forward[1] * wi->offset[0] + start[1];
+          start[2] = right[2] * wi->offset[1] + forward[2] * wi->offset[0] + wi->offset[2] + start[2];
+          VectorMA(start, 1000.0, forward, end);
+          VectorMA(start, -12.0, forward, start);
+          *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(end), bs->entitynum, 100663299);
+          if ( LODWORD(trace[20]) == bs->enemy
+            || (SLODWORD(trace[20]) <= 0 || SLODWORD(trace[20]) > botstate.num_clients || !BotSameTeam(bs, SLODWORD(trace[20])))
+            && ((v6 = wi->proj, (v6->damagetype & 2) == 0)
+             || trace[2] * 1000.0f >= v6->radius
+             || (points = ((float)v6->damage - trace[2] * 500.0) * 0.5, points <= 0)) )
           {
-            if ( (LOBYTE(v22[19]) & 2) == 0
-              || (*(aas_entityinfo_t *)v23 = AAS_EntityInfo(bs->enemy),
-                  *(bsp_trace_t *)v22 = AAS_Trace((float*)(&v22[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
-                                    (float*)(&v23[4]), bs->entitynum, 100663299),
-                  LODWORD(v22[20]) == bs->enemy) )
+            if ( (LOBYTE(trace[19]) & 2) == 0
+              || (*(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy),
+                  *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
+                                    (float*)(&entinfo[4]), bs->entitynum, 100663299),
+                  LODWORD(trace[20]) == bs->enemy) )
             {
-              if ( (v3->flags & 1) != 0 )
+              if ( (wi->flags & 1) != 0 )
               {
                 if ( (*(unsigned char *)&bs->flags & 2) != 0 )
                   EA_Attack(bs->client);
