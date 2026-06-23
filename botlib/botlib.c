@@ -19038,54 +19038,54 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   __int16 v9; // ax
   float v10; // st7
   bot_character_t *v11; // restored: holds BotCharacter pointer
-  int v12; // edi
+  int movetype; // edi
   int v13; // eax
   float v14; // st7
   __int16 v15; // ax
   int v16; // eax
-  int v17; // esi
+  int i; // esi
   float v18; // st7
   int v19; // edx
   bot_character_t *v20; // [esp-10h] [ebp-154h]
-  float v21; // [esp+10h] [ebp-134h]
+  float jumper; // [esp+10h] [ebp-134h]
   /* Collapsed vec3 triplets v22/v23/v24, v28/v29/v30, v32/v33/v34 — each
    * passed by-address to CrossProduct / VectorNormalize / VectorLength /
    * BotMoveInDirection which expect 3 contiguous floats.  Separate scalar
    * decls let GCC reorder/pad them and corrupt the vec3 contract. */
-  vec3_t v22; // [esp+14h] [ebp-130h] BYREF
+  vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
   float v25; // [esp+20h] [ebp-124h]
-  float v26; // [esp+24h] [ebp-120h]
-  float v27; // [esp+28h] [ebp-11Ch]
-  vec3_t v28; // [esp+2Ch] [ebp-118h] BYREF
+  float dist; // [esp+24h] [ebp-120h]
+  float attack_skill; // [esp+28h] [ebp-11Ch]
+  vec3_t forward; // [esp+2Ch] [ebp-118h] BYREF
   float v31; // [esp+38h] [ebp-10Ch]
-  vec3_t v32; // [esp+3Ch] [ebp-108h] BYREF
-  vec3_t v35; // [esp+48h] [ebp-FCh] BYREF
-  vec3_t v36; // [esp+54h] [ebp-F0h] BYREF
-  bot_goal_t v37; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
-  bot_moveresult_t v38; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
-  float v39[31]; // [esp+C8h] [ebp-7Ch] BYREF
+  vec3_t backward; // [esp+3Ch] [ebp-108h] BYREF
+  vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
+  vec3_t up; // [esp+54h] [ebp-F0h] BYREF
+  bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
+  bot_moveresult_t moveresult; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
+  float entinfo[31]; // [esp+C8h] [ebp-7Ch] BYREF
 
-  v36[0] = 0;
-  v36[1] = 0;
-  v36[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v36 is float[3] */
+  up[0] = 0;
+  up[1] = 0;
+  up[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; up is float[3] */
   if ( AAS_Time() < bs->attackchase_time )
   {
-    v37.entitynum = bs->enemy;
-    v37.areanum = bs->lastenemyareanum;
-    VectorCopy(bs->lastenemyorigin, v37.origin);
-    v37.mins[0] = -8.0f;
-    v37.mins[1] = -8.0f;
-    v37.mins[2] = -8.0f;
-    v37.maxs[0] = 8.0f;
-    v37.maxs[1] = 8.0f;
-    v37.maxs[2] = 8.0f;
+    goal.entitynum = bs->enemy;
+    goal.areanum = bs->lastenemyareanum;
+    VectorCopy(bs->lastenemyorigin, goal.origin);
+    goal.mins[0] = -8.0f;
+    goal.mins[1] = -8.0f;
+    goal.mins[2] = -8.0f;
+    goal.maxs[0] = 8.0f;
+    goal.maxs[1] = 8.0f;
+    goal.maxs[2] = 8.0f;
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    v7 = (const void *)BotMoveToGoal(&v38, (bot_movestate_t *)bs->movestate, &v37, a3);
+    v7 = (const void *)BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
     result = a1;
     qmemcpy(a1, v7, 0x30u);
     return result;
   }
-  memset(&v38, 0, sizeof(v38));
+  memset(&moveresult, 0, sizeof(moveresult));
   v9 = rand();
   v20 = BotCharacter(bs);
   v10 = (float)(v9 & 0x7FFF) * 0.000030518509f;
@@ -19099,46 +19099,46 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   v25 = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
   if ( v10 <= v25 )
   {
-    v27 = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
+    attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
     v11 = BotCharacter(bs);
-    v21 = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
+    jumper = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
     v25 = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
-    if ( v27 >= 0.2 )
+    if ( attack_skill >= 0.2 )
     {
       BotEntityInfo(bs, (_DWORD *)bs->movestate);
-      *(aas_entityinfo_t *)v39 = AAS_EntityInfo(bs->enemy);
-      v28[0] = v39[4] - bs->origin[0];
-      v28[1] = v39[5] - bs->origin[1];
-      v28[2] = v39[6] - bs->origin[2];
-      v26 = VectorLength(v28);
-      VectorNormalize(v28);
-      v32[0] = -v28[0];
-      v32[1] = -v28[1];
-      v32[2] = -v28[2];
-      v12 = 1;
+      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
+      forward[0] = entinfo[4] - bs->origin[0];
+      forward[1] = entinfo[5] - bs->origin[1];
+      forward[2] = entinfo[6] - bs->origin[2];
+      dist = VectorLength(forward);
+      VectorNormalize(forward);
+      backward[0] = -forward[0];
+      backward[1] = -forward[1];
+      backward[2] = -forward[2];
+      movetype = 1;
       if ( AAS_Time() - 1.0f > bs->attackcrouch_time )
       {
         LOWORD(v31) = rand() & 0x7FFF;
         LODWORD(v31) = LOWORD(v31);
-        if ( (float)LOWORD(v31) * 0.000030518509f >= v21 )
+        if ( (float)LOWORD(v31) * 0.000030518509f >= jumper )
         {
           if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
             bs->attackcrouch_time = AAS_Time() + v25 * 5.0f;
         }
         else
         {
-          v12 = 4;
+          movetype = 4;
         }
       }
       if ( AAS_Time() >= bs->attackcrouch_time )
       {
-        if ( v12 == 4 )
+        if ( movetype == 4 )
         {
           v13 = bs->flags;
           if ( (v13 & 4) != 0 )
           {
             v13 &= 0xFFFFFFFB;
-            v12 = 1;
+            movetype = 1;
           }
           else
           {
@@ -19149,18 +19149,18 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
       }
       else
       {
-        v12 = 2;
+        movetype = 2;
       }
-      if ( v27 <= 0.4 )
+      if ( attack_skill <= 0.4 )
       {
-        if ( (v26 <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, v28, 400.0f, v12)) && v26 < 100.0f )
-          BotMoveInDirection((bot_movestate_t *)bs->movestate, v32, 400.0f, v12);
+        if ( (dist <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, forward, 400.0f, movetype)) && dist < 100.0f )
+          BotMoveInDirection((bot_movestate_t *)bs->movestate, backward, 400.0f, movetype);
         goto LABEL_39;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
-      v14 = (1.0f - v27) * 0.2 + 0.4;
+      v14 = (1.0f - attack_skill) * 0.2 + 0.4;
       v31 = v14;
-      if ( v27 > 0.7 )
+      if ( attack_skill > 0.7 )
       {
         v15 = rand();
         v14 = 2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
@@ -19172,53 +19172,53 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
         *(_DWORD *)&bs->attackstrafe_drift = 0;
         bs->flags = v16 ^ 1;
       }
-      v17 = 0;
+      i = 0;
       while ( 1 )
       {
-        v35[0] = v28[0];
-        v35[1] = v28[1];
-        v35[2] = 0;
-        VectorNormalize(v35);
-        CrossProduct(v35, v36, v22);
+        hordir[0] = forward[0];
+        hordir[1] = forward[1];
+        hordir[2] = 0;
+        VectorNormalize(hordir);
+        CrossProduct(hordir, up, sideward);
         if ( (*(unsigned char *)&bs->flags & 1) != 0 )
         {
-          v22[0] = -v22[0];
-          v22[1] = -v22[1];
-          v22[2] = -v22[2];
+          sideward[0] = -sideward[0];
+          sideward[1] = -sideward[1];
+          sideward[2] = -sideward[2];
         }
         if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
           goto LABEL_35;
-        if ( v26 <= 180.0f )
+        if ( dist <= 180.0f )
           break;
-        v22[0] = v22[0] + v28[0];
-        v22[1] = v22[1] + v28[1];
-        v18 = v22[2] + v28[2];
+        sideward[0] = sideward[0] + forward[0];
+        sideward[1] = sideward[1] + forward[1];
+        v18 = sideward[2] + forward[2];
 LABEL_36:
-        v22[2] = v18;
+        sideward[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, v22, 400.0f, v12) )
+        if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, sideward, 400.0f, movetype) )
         {
           v19 = bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
-          ++v17;
+          ++i;
           bs->flags = v19 ^ 1;
-          if ( v17 < 2 )
+          if ( i < 2 )
             continue;
         }
         goto LABEL_39;
       }
-      if ( v26 >= 100.0f )
+      if ( dist >= 100.0f )
         goto LABEL_37;
 LABEL_35:
-      v22[0] = v22[0] + v32[0];
-      v22[1] = v22[1] + v32[1];
-      v18 = v22[2] + v32[2];
+      sideward[0] = sideward[0] + backward[0];
+      sideward[1] = sideward[1] + backward[1];
+      v18 = sideward[2] + backward[2];
       goto LABEL_36;
     }
   }
 LABEL_39:
   result = a1;
-  qmemcpy(a1, &v38, 0x30u);
+  qmemcpy(a1, &moveresult, 0x30u);
   return result;
 }
 
