@@ -29755,7 +29755,7 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
  * function pointer as WINAPI.  The header `game/botlib.h` matches with a
  * plain prototype; we stick with __cdecl here to stay faithful to the
  * original binary. */
-bot_export_t *GetBotAPI(bot_import_t *a1)
+bot_export_t *GetBotAPI(bot_import_t *import)
 {
   /* Copy the engine import table into the contiguous botimport block in one
    * shot.  botimport_block_t is exactly the 10 import callbacks, so the
@@ -29765,7 +29765,7 @@ bot_export_t *GetBotAPI(bot_import_t *a1)
    * NB: the original GetBotAPI makes no other call — the SEH crash-handler
    * install was moved to botlib_debug.c's DllMain (where the 1999 DLL
    * installed it), so it no longer appears as a spurious leading call here. */
-  memcpy(&botimport, a1, sizeof(botimport));
+  memcpy(&botimport, import, sizeof(botimport));
 
   bot_exports.BotVersion           = Export_BotVersion;
   bot_exports.BotSetupLibrary      = Export_BotSetupLibrary;
@@ -35655,4 +35655,4 @@ qboolean Info_Validate(char *s);
  * the original; keep the empty body to preserve that fidelity.  Mr.
  * Elusive's lcc.mak listed q_shared.obj as its own object file, so
  * q_shared.c can't define this — it's a botlib-side stub. */
-void Com_Printf(char *fmt, ...) { (void)fmt; }
+void Com_Printf(char *msg, ...) { (void)msg; }
