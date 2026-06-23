@@ -21359,7 +21359,7 @@ int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 //----- (10028A70) --------------------------------------------------------
 int BotDeathmatchAI(bot_state_t *bs, float a2)
 {
-  int v4; // edi
+  int i; // edi
   int result; // eax
   float v6; // [esp+10h] [ebp+8h]
 
@@ -21388,10 +21388,10 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
     AIEnter_Stand(bs);
   }
   BotResetNodeSwitches();
-  v4 = 0;
+  i = 0;
   while ( !(BotAINode(bs))(bs) )
   {
-    if ( ++v4 >= 50 )
+    if ( ++i >= 50 )
     {
       BotDumpGoalStack(bs->goalstate);
       BotDumpAvoidGoals(bs->goalstate);
@@ -23915,14 +23915,14 @@ void __cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
 {
   char *v1;
-  source_t *v4;
+  source_t *source;
   bot_replychat_t *replyhead;
   bot_replychat_t *rc;
   bot_replychatkey_t *key;
   bot_chatmessage_t *cm;
   char *namestr;
   bot_fileref_t file_ref;
-  char v21[152]; // BotLoadChatMessage output buffer
+  char chatmessagestring[152]; // BotLoadChatMessage output buffer
   token_t token;
 
   v1 = filename;
@@ -23931,23 +23931,23 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
     return NULL;
   }
-  v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-  if ( !v4 )
+  source = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !source )
   {
     botimport.Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
     return NULL;
   }
   replyhead = NULL;
-  if ( PC_ReadTokenHandle(v4, token.string) )
+  if ( PC_ReadTokenHandle(source, token.string) )
   {
 
   while ( 1 )
   {
     if ( strcmp(token.string, "[") )
     {
-      SourceError(v4, "expected [, found %s", token.string);
+      SourceError(source, "expected [, found %s", token.string);
       BotFreeReplyChat(replyhead);
-      FreeSource(v4);
+      FreeSource(source);
       return NULL;
     }
     rc = (bot_replychat_t *)GetClearedMemory(sizeof(bot_replychat_t));
@@ -23961,43 +23961,43 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       key->match = NULL;
       key->next = rc->keys;
       rc->keys = key;
-      if ( PC_CheckTokenString(v4, "&") )
+      if ( PC_CheckTokenString(source, "&") )
       {
         key->flags |= 1;
       }
-      else if ( PC_CheckTokenString(v4, "!") )
+      else if ( PC_CheckTokenString(source, "!") )
       {
         key->flags |= 2;
       }
 
-      if ( PC_CheckTokenString(v4, "name") )
+      if ( PC_CheckTokenString(source, "name") )
       {
         key->flags |= 4;
       }
-      else if ( PC_CheckTokenString(v4, "female") )
+      else if ( PC_CheckTokenString(source, "female") )
       {
         key->flags |= 0x20;
       }
-      else if ( PC_CheckTokenString(v4, "male") )
+      else if ( PC_CheckTokenString(source, "male") )
       {
         key->flags |= 0x40;
       }
-      else if ( PC_CheckTokenString(v4, "it") )
+      else if ( PC_CheckTokenString(source, "it") )
       {
         key->flags |= 0x80;
       }
-      else if ( PC_CheckTokenString(v4, "(") )
+      else if ( PC_CheckTokenString(source, "(") )
       {
         key->flags |= 0x10;
-        key->match = BotLoadMatchPieces(v4, ")");
+        key->match = BotLoadMatchPieces(source, ")");
       }
       else
       {
         key->flags |= 8;
-        if ( !PC_ExpectTokenType(v4, 1, 0, token.string) )
+        if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
         {
           BotShutdownChatAI();
-          FreeSource(v4);
+          FreeSource(source);
           return NULL;
         }
         StripDoubleQuotes(token.string);
@@ -24005,55 +24005,55 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
         key->string = namestr;
         strcpy(namestr, token.string);
       }
-      PC_CheckTokenString(v4, ",");
+      PC_CheckTokenString(source, ",");
     }
-    while ( !PC_CheckTokenString(v4, "]") );
+    while ( !PC_CheckTokenString(source, "]") );
 
-    if ( !PC_ExpectTokenString(v4, "=")
-        || !PC_ExpectTokenType(v4, 3, 0, token.string) )
+    if ( !PC_ExpectTokenString(source, "=")
+        || !PC_ExpectTokenType(source, 3, 0, token.string) )
     {
       BotShutdownChatAI();
-      FreeSource(v4);
+      FreeSource(source);
       return NULL;
     }
     rc->priority = (float)token.intvalue;
-    if ( !PC_ExpectTokenString(v4, "{") )
+    if ( !PC_ExpectTokenString(source, "{") )
     {
       BotShutdownChatAI();
-      FreeSource(v4);
+      FreeSource(source);
       return NULL;
     }
     rc->numchatmessages = 0;
-    if ( !PC_CheckTokenString(v4, "}") )
+    if ( !PC_CheckTokenString(source, "}") )
     {
       while ( 1 )
       {
-        if ( !BotLoadChatMessage(v4, v21) )
+        if ( !BotLoadChatMessage(source, chatmessagestring) )
         {
           BotShutdownChatAI();
-          FreeSource(v4);
+          FreeSource(source);
           return NULL;
         }
-        cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(v21) + 1);
+        cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(chatmessagestring) + 1);
         cm->chatmessage = (char *)(cm + 1);
-        strcpy(cm->chatmessage, v21);
+        strcpy(cm->chatmessage, chatmessagestring);
         cm->time = -40.0f;
         cm->next = rc->firstchatmessage;
         rc->firstchatmessage = cm;
         rc->numchatmessages++;
-        if ( PC_CheckTokenString(v4, "}") )
+        if ( PC_CheckTokenString(source, "}") )
           break;
       }
     }
     replyhead = rc;
-    if ( PC_ReadTokenHandle(v4, token.string) )
+    if ( PC_ReadTokenHandle(source, token.string) )
       continue;
     break;
   }
 
   v1 = filename;
   }
-  FreeSource(v4);
+  FreeSource(source);
   if ( file_ref.filelen )
     botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, v1);
   else
@@ -24130,7 +24130,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
   char           buf[152];
   char           token[sizeof(token_t)] __attribute__((aligned(8)));
   int            found;
-  int            v11;
+  int            indent;
 
   if ( !sub_10041F60(chatfile, &file_ref) )
   {
@@ -24238,17 +24238,17 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
     else
     {
       /* skip a non-matching chat block */
-      v11 = 1;
+      indent = 1;
       while ( PC_ExpectAnyToken(src, (intptr_t)token) )
       {
         if ( !strcmp(token, "{") )
-          ++v11;
+          ++indent;
         else if ( !strcmp(token, "}") )
-          --v11;
-        if ( !v11 )
+          --indent;
+        if ( !indent )
           break;
       }
-      if ( v11 )
+      if ( indent )
       {
         /* unterminated block — bail */
         FreeSource(src);
