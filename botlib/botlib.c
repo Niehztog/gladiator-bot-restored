@@ -10277,77 +10277,77 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 {
   int v2; // edx
-  aas_area_t *v3; // esi
-  aas_area_t *v4; // ebx
+  aas_area_t *area2; // esi
+  aas_area_t *area1; // ebx
   float *v5; // edi
   float *v6; // ecx
   int *v7; // ecx
   int v8; // eax
-  int v9; // ebp
-  int v10; // edi
+  int j; // ebp
+  int face1num; // edi
   __int64 v11; // rax
   char v12; // al
-  _DWORD *v14; // ebp
+  _DWORD *face1; // ebp
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v16; // esi
-  int v17; // [esp+10h] [ebp-14h]
-  BOOL v18; // [esp+14h] [ebp-10h]
-  vec3_t v19; // [esp+18h] [ebp-Ch] BYREF
+  int i; // [esp+10h] [ebp-14h]
+  BOOL side1; // [esp+14h] [ebp-10h]
+  vec3_t start; // [esp+18h] [ebp-Ch] BYREF
 
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (aasworld.areasettings[area2num].presencetype & 2) == 0 )
     return 0;
   v2 = 0;
-  v3 = &aasworld.areas[area2num];
-  v4 = &aasworld.areas[area1num];
-  v5 = v3->mins;
-  v6 = v4->maxs;
+  area2 = &aasworld.areas[area2num];
+  area1 = &aasworld.areas[area1num];
+  v5 = area2->mins;
+  v6 = area1->maxs;
   do
   {
-    if ( *(float *)((char *)v6 + ((char *)v3 - (char *)v4)) + 10.0f < *(v6 - 3) || *v5 - 10.0f > *v6 )
+    if ( *(float *)((char *)v6 + ((char *)area2 - (char *)area1)) + 10.0f < *(v6 - 3) || *v5 - 10.0f > *v6 )
       return 0;
     ++v2;
     ++v6;
     ++v5;
   }
   while ( v2 < 3 );
-  if ( v4->numfaces <= 0 )
+  if ( area1->numfaces <= 0 )
     return 0;
   v7 = (int *)aasworld.faceindex;
-  for ( v17 = 0; v17 < v4->numfaces; ++v17 )
+  for ( i = 0; i < area1->numfaces; ++i )
   {
-    v8 = v7[v4->firstface + v17];
-    v18 = v8 < 0;
-    v10 = abs(v8);
-    for ( v9 = 0; v9 < v3->numfaces; ++v9 )
+    v8 = v7[area1->firstface + i];
+    side1 = v8 < 0;
+    face1num = abs(v8);
+    for ( j = 0; j < area2->numfaces; ++j )
     {
-      v11 = v7[v9 + v3->firstface];
-      if ( v10 != (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
+      v11 = v7[j + area2->firstface];
+      if ( face1num != (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
         continue;
-      AAS_FaceCenter(v10, (float *)v19);
-      v12 = sub_10003080((float *)v19);   /* IDA-dropped: water-edge contents check */
+      AAS_FaceCenter(face1num, (float *)start);
+      v12 = sub_10003080((float *)start);   /* IDA-dropped: water-edge contents check */
       if ( (v12 & 0x38) == 0 )
       {
         v7 = (int *)aasworld.faceindex;
         continue;
       }
-      v14 = &aasworld.faces[v10];
+      face1 = &aasworld.faces[face1num];
       lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
       v16 = lreach;
       if ( !lreach )
         return 0;
-      lreach->reach.facenum = v10;
+      lreach->reach.facenum = face1num;
       lreach->reach.areanum = area2num;
       lreach->reach.edgenum = 0;
-      /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of v19[0..2] (float
+      /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of start[0..2] (float
        * bits) into reach->start.x/y/z. */
-      VectorCopy(v19, lreach->reach.start);
+      VectorCopy(start, lreach->reach.start);
       /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
        * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
        * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
        * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
        * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
        * numplanes/4 and the read crashed in VectorMA. */
-      VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(v18 ^ *v14)]), lreach->reach.end);
+      VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(side1 ^ *face1)]), lreach->reach.end);
       v16->reach.traveltype = 8;
       v16->reach.traveltime = 1;
       if ( AAS_AreaVolume(area2num) < 800.0f )
@@ -20590,43 +20590,43 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 //----- (10026BE0) --------------------------------------------------------
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 {
-  int v2; // eax
+  int client; // eax
   int result; // eax
-  const char *v4; // esi (Q2 ClientName returns char*)
+  const char *botname; // esi (Q2 ClientName returns char*)
   float v5; // [esp+Ch] [ebp-2BCh]
-  char v6[152]; // [esp+10h] [ebp-2B8h] BYREF
+  char name[152]; // [esp+10h] [ebp-2B8h] BYREF
   char Source[152]; // [esp+A8h] [ebp-220h] BYREF
-  /* IDA split bot_match_t (240 B) into `char v8[4]` + phantom `int v9` at
+  /* IDA split bot_match_t (240 B) into `char addresseematch[4]` + phantom `int v9` at
    * offset +152 (= match.type).  The original calls sub_10001267 =
    * BotFindMatch, not strncmp.  See chat_state.h. */
-  bot_match_t v8; // [esp+140h] [ebp-188h] BYREF
+  bot_match_t addresseematch; // [esp+140h] [ebp-188h] BYREF
   char Destination[152]; // [esp+230h] [ebp-98h] BYREF
 
   BotMatchVariable(match, 0, Destination);
-  v2 = ClientFromName(Destination);
-  if ( v2 < 0 )
+  client = ClientFromName(Destination);
+  if ( client < 0 )
     return 0;
-  result = BotSameTeam(bs, v2 + 1);
+  result = BotSameTeam(bs, client + 1);
   if ( result )
   {
     if ( (match->subtype & 2) != 0 )
     {
       BotMatchVariable(match, 1, Source);
-      v4 = ClientName(*(_DWORD *)((char *)bs + 4));
-      if ( !BotFindMatch(Source, &v8, 32) )
+      botname = ClientName(*(_DWORD *)((char *)bs + 4));
+      if ( !BotFindMatch(Source, &addresseematch, 32) )
         return 0;
-      while ( v8.type != 101 )
+      while ( addresseematch.type != 101 )
       {
-        if ( v8.type != 102 )
+        if ( addresseematch.type != 102 )
         {
-          BotMatchVariable(&v8, 3, v6);
-          return StringContains(v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0);
+          BotMatchVariable(&addresseematch, 3, name);
+          return StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0);
         }
-        BotMatchVariable(&v8, 3, v6);
-        if ( StringContains(v4, v6, 0) || StringContains((const char *)((char *)bs + 4352), v6, 0) )
+        BotMatchVariable(&addresseematch, 3, name);
+        if ( StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0) )
           return 1;
-        BotMatchVariable(&v8, 5, Source);
-        result = BotFindMatch(Source, &v8, 32);
+        BotMatchVariable(&addresseematch, 5, Source);
+        result = BotFindMatch(Source, &addresseematch, 32);
         if ( !result )
           return result;
       }
