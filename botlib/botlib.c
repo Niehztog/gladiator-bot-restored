@@ -32465,10 +32465,10 @@ int __cdecl PC_Directive_eval(source_t *src)
 {
   int result; // eax
   int v2; // eax
-  int v3; // [esp+4h] [ebp-434h] BYREF
+  int value; // [esp+4h] [ebp-434h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_Evaluate(src, &v3, 0, 1);
+  result = PC_Evaluate(src, &value, 0, 1);
   if ( !result )
     return result;
   v2 = (int)((source_t *)src)->scriptstack;
@@ -32476,11 +32476,11 @@ int __cdecl PC_Directive_eval(source_t *src)
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
   token.linescrossed = 0;
-  sprintf(token.string, "%d", abs(v3));
+  sprintf(token.string, "%d", abs(value));
   token.type = 3;
   token.subtype = 12296;
   PC_UnreadSourceToken(src, token.string);
-  if ( v3 < 0 )
+  if ( value < 0 )
     UnreadSignToken(src);
   return 1;
 }
@@ -32490,10 +32490,10 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
 {
   int result; // eax
   int v2; // eax
-  double v3; // [esp+Ch] [ebp-438h] BYREF
+  double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_Evaluate(src, 0, &v3, 0);
+  result = PC_Evaluate(src, 0, &value, 0);
   if ( !result )
     return result;
   v2 = (int)((source_t *)src)->scriptstack;
@@ -32501,11 +32501,11 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
   token.linescrossed = 0;
-  sprintf(token.string, "%1.2f", fabs(v3));
+  sprintf(token.string, "%1.2f", fabs(value));
   token.type = 3;
   token.subtype = 10248;
   PC_UnreadSourceToken(src, token.string);
-  if ( v3 < 0.0 )
+  if ( value < 0.0 )
     UnreadSignToken(src);
   return 1;
 }
@@ -32551,10 +32551,10 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
 {
   int result; // eax
   script_t *v2; // eax
-  int v3; // [esp+4h] [ebp-434h] BYREF
+  int value; // [esp+4h] [ebp-434h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_DollarEvaluate(src, &v3, 0, 1);
+  result = PC_DollarEvaluate(src, &value, 0, 1);
   if ( !result )
     return result;
   v2 = src->scriptstack;
@@ -32562,13 +32562,13 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
   token.whitespace_p = v2->script_p;
   token.endwhitespace_p = v2->script_p;
   token.linescrossed = 0;
-  sprintf(token.string, "%d", abs(v3));
-  token.floatvalue = (float)v3;
+  sprintf(token.string, "%d", abs(value));
+  token.floatvalue = (float)value;
   token.type = 3;
   token.subtype = 12296;
-  token.intvalue = v3;
+  token.intvalue = value;
   PC_UnreadSourceToken(src, token.string);
-  if ( v3 < 0 )
+  if ( value < 0 )
     UnreadSignToken(src);
   return 1;
 }
@@ -32578,10 +32578,10 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *src)
 {
   int result; // eax
   script_t *v2; // eax
-  double v3; // [esp+Ch] [ebp-438h] BYREF
+  double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_DollarEvaluate(src, 0, &v3, 0);
+  result = PC_DollarEvaluate(src, 0, &value, 0);
   if ( !result )
     return result;
   v2 = src->scriptstack;
@@ -32589,13 +32589,13 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *src)
   token.whitespace_p = v2->script_p;
   token.endwhitespace_p = v2->script_p;
   token.linescrossed = 0;
-  sprintf(token.string, "%1.2f", fabs(v3));
+  sprintf(token.string, "%1.2f", fabs(value));
   token.type = 3;
   token.subtype = 10248;
-  token.intvalue = (__int64)v3;
-  token.floatvalue = v3;
+  token.intvalue = (__int64)value;
+  token.floatvalue = value;
   PC_UnreadSourceToken(src, token.string);
-  if ( v3 < 0.0 )
+  if ( value < 0.0 )
     UnreadSignToken(src);
   return 1;
 }
@@ -33737,24 +33737,24 @@ int __cdecl PS_ReadPunctuation(script_t *script, char *Destination)
 //----- (1003F230) --------------------------------------------------------
 int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
 {
-  int v2; // ecx
+  int len; // ecx
   char v3; // dl
 
-  v2 = 0;
+  len = 0;
   while ( *((script_t *)script)->script_p > 32 )
   {
     v3 = *(_BYTE *)((script_t *)script)->script_p;
     if ( v3 == 59 )
       break;
-    if ( v2 >= 1024 )
+    if ( len >= 1024 )
     {
       ScriptError(script, "primitive token longer than MAX_TOKEN = %d", 0x400);
       return 0;
     }
-    ((char *)token)[v2++] = v3;
+    ((char *)token)[len++] = v3;
     ((script_t *)script)->script_p = (intptr_t)((char *)((script_t *)script)->script_p + 1);
   }
-  ((char *)token)[v2] = 0;
+  ((char *)token)[len] = 0;
   qmemcpy(&((script_t *)script)->token, (void *)token, 0x430u);
   return 1;
 }
