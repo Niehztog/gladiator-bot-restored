@@ -4004,7 +4004,7 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 }
 
 //----- (10006210) --------------------------------------------------------
-bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
+bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum)
 {
   bsp_link_t *v5; // edi
   int *v6; // ebx
@@ -4022,7 +4022,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
     return 0;
   v5 = 0;
   v6 = &v15[1];
-  v15[0] = *(_DWORD *)(48 * a4 + dword_100674C8 + 36);
+  v15[0] = *(_DWORD *)(48 * modelnum + dword_100674C8 + 36);
   /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
    * un-rotated top-test loop.  Because v6 starts at &v15[1], MSVC6 can
    * prove the first --v6>=&v15[0] always holds and removes the entry
@@ -4040,7 +4040,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
       v9 = sub_100031F0();
       if ( !v9 )
         return v5;
-      v9->entnum    = a3;
+      v9->entnum    = entnum;
       v9->leafnum   = v8;
       v9->prev_leaf = 0;
       v9->next_leaf = v5;
@@ -4062,16 +4062,16 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t a1, vec3_t a2, int a3, int a4)
       v13 = v12->type;
       if ( v13 < 3 )
       {
-        if ( v12->dist <= (float)a1[v13] )
+        if ( v12->dist <= (float)absmins[v13] )
           v14 = 1;
-        else if ( v12->dist >= (float)a2[v13] )
+        else if ( v12->dist >= (float)absmaxs[v13] )
           v14 = 2;
         else
           v14 = 3;
       }
       else
       {
-        v14 = AAS_BoxOnPlaneSide2(a1, a2, (float *)v12);
+        v14 = AAS_BoxOnPlaneSide2(absmins, absmaxs, (float *)v12);
       }
       if ( (v14 & 1) != 0 )
         *v6++ = v11[1];
@@ -6591,7 +6591,7 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
  *                                          AAS_WeaponJumpZVelocity(origin,120)
  *                                          — matches ioq3 be_aas_move.c:341
  */
-void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
+void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 {
   int traveltype; // eax
   double v4; // st7
@@ -6603,40 +6603,40 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *a1)
   vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
   int v13[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
-  AAS_ShowArea(a1->areanum, 1);
-  AAS_DrawArrow(a1->start, a1->end, -202116623, -589439265);
-  traveltype = a1->traveltype;
+  AAS_ShowArea(reach->areanum, 1);
+  AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
+  traveltype = reach->traveltype;
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
-    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, a1->start, a1->end, &v6);
-    v5 = a1->end[0] - a1->start[0];
+    AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &v6);
+    v5 = reach->end[0] - reach->start[0];
     v8[2] = 0.0f;
     v8[0] = v5;
-    v8[1] = a1->end[1] - a1->start[1];
+    v8[1] = reach->end[1] - reach->start[1];
     VectorNormalize(v8);
     VectorScale(v8, v6, (float *)v11);
     v11[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((char *)v13, -1, a1->start, 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
-    if ( a1->traveltype == 5 ) /* TRAVEL_JUMP only */
+    AAS_ClientMovementPrediction((char *)v13, -1, reach->start, 2, 1, velocity, v11, 3, 30, 0.1, 61, 1);
+    if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
-      AAS_JumpReachRunStart((intptr_t)a1, (intptr_t)v8);
+      AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)v8);
       AAS_DrawCross(v8, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
   else if ( traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
   {
-    v7 = AAS_RocketJumpZVelocity(a1->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
-    AAS_HorizontalVelocityForJump(v7, a1->start, a1->end, &v6);
-    v4 = a1->end[0] - a1->start[0];
+    v7 = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
+    AAS_HorizontalVelocityForJump(v7, reach->start, reach->end, &v6);
+    v4 = reach->end[0] - reach->start[0];
     v8[2] = 0.0f;
     v8[0] = v4;
-    v8[1] = a1->end[1] - a1->start[1];
+    v8[1] = reach->end[1] - reach->start[1];
     VectorNormalize(v8);
     VectorScale(v8, v6, (float *)v11);
     v12[2] = v7;
     v12[0] = 0;
     v12[1] = 0;
-    AAS_ClientMovementPrediction((char *)v13, -1, a1->start, 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction((char *)v13, -1, reach->start, 2, 1, v12, v11, 3, 30, 0.1, 61, 1);
   }
 }
 
@@ -6985,7 +6985,7 @@ int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
 }
 
 //----- (1000B300) --------------------------------------------------------
-int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
+int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
 {
   int result; // eax
   int v7; // ebp
@@ -7018,7 +7018,7 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
     return 0;
   }
   {
-    VectorCopy(((float *)a1), start);
+    VectorCopy(((float *)origin), start);
     v7 = AAS_PointAreaNum(start);
     for ( v22 = 0; v22 < 5 && !v7; ++v22 )
     {
@@ -7029,9 +7029,9 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
         {
           for ( v9 = -1; v9 <= 1 && !v7; ++v9 )
           {
-            v10 = ((float *)a1)[0];
-            v11 = ((float *)a1)[2];
-            start[1] = ((float *)a1)[1];
+            v10 = ((float *)origin)[0];
+            v11 = ((float *)origin)[2];
+            start[1] = ((float *)origin)[1];
             start[0] = (float)v8 * v25 * 4.0f + v10;
             start[1] = (float)v9 * v25 * 4.0f + start[1];
             start[2] = (float)v22 * 4.0f + v11;
@@ -7050,28 +7050,28 @@ int __cdecl AAS_BestReachableArea(int *a1, vec3_t a2, vec3_t a3, vec3_t outgoal)
       trace = AAS_TraceClientBBox(start, (float *)v26, 4, -1);
       if ( trace.startsolid )
       {
-        VectorCopy(start, outgoal);
+        VectorCopy(start, goalorigin);
         return v7;
       }
       result = AAS_PointAreaNum(trace.endpos);
-      v13 = outgoal;
-      VectorCopy(trace.endpos, outgoal);
+      v13 = goalorigin;
+      VectorCopy(trace.endpos, goalorigin);
       if ( result )
         return result;
     }
     else
     {
-      v13 = outgoal;
+      v13 = goalorigin;
     }
-    *(int *)&v13[0] = *a1;
-    *(int *)&v13[1] = a1[1];
-    *(int *)&v13[2] = a1[2];
-    v27[0] = *(float *)a1 + *a2;
-    v27[1] = a2[1] + *((float *)a1 + 1);
-    v27[2] = a2[2] + *((float *)a1 + 2);
-    v28[0] = *(float *)a1 + *a3;
-    v28[1] = a3[1] + *((float *)a1 + 1);
-    v28[2] = a3[2] + *((float *)a1 + 2);
+    *(int *)&v13[0] = *origin;
+    *(int *)&v13[1] = origin[1];
+    *(int *)&v13[2] = origin[2];
+    v27[0] = *(float *)origin + *mins;
+    v27[1] = mins[1] + *((float *)origin + 1);
+    v27[2] = mins[2] + *((float *)origin + 2);
+    v28[0] = *(float *)origin + *maxs;
+    v28[1] = maxs[1] + *((float *)origin + 1);
+    v28[2] = maxs[2] + *((float *)origin + 2);
     v16 = AAS_AASLinkEntity(v27, v28, -1);
     result = AAS_BestReachableLinkArea(v16);
     AAS_UnlinkFromAreas(v16);
@@ -8218,27 +8218,27 @@ int AAS_Error(char *Format, ...)
 }
 
 //----- (1000D830) --------------------------------------------------------
-char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3)
+char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index)
 {
   char *result; // eax
 
   if ( !aasworld.indexes_loaded )
   {
-    botimport.Print(PRT_ERROR, "%s: index %d not setup\n", a1, a3);
+    botimport.Print(PRT_ERROR, "%s: index %d not setup\n", indexname, index);
     return &byte_1006294C;
   }
-  if ( a3 < 0 || a3 >= a2->numindexes )
+  if ( index < 0 || index >= list->numindexes )
   {
-    botimport.Print(PRT_ERROR, "%s: index %d out of range\n", a1, a3);
+    botimport.Print(PRT_ERROR, "%s: index %d out of range\n", indexname, index);
   }
   else
   {
-    result = a2->indexes[a3];
+    result = list->indexes[index];
     if ( result )
       return result;
-    if ( a3 )
+    if ( index )
     {
-      botimport.Print(PRT_ERROR, "%s: reference to unused index %d\n", a1, a3);
+      botimport.Print(PRT_ERROR, "%s: reference to unused index %d\n", indexname, index);
       return &byte_1006294C;
     }
   }
@@ -8246,28 +8246,28 @@ char *__cdecl AAS_StringFromIndex(const char *a1, indexlist_t *a2, int a3)
 }
 
 //----- (1000D8D0) --------------------------------------------------------
-int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
+int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *String2)
 {
   int v4; // esi
   const char *v5; // eax
 
   if ( !aasworld.indexes_loaded )
   {
-    botimport.Print(PRT_ERROR, "%s: index not setup \"%s\"\n", a1, String2);
+    botimport.Print(PRT_ERROR, "%s: index not setup \"%s\"\n", indexname, String2);
     return 0;
   }
   v4 = 0;
-  if ( a2->numindexes > 0 )
+  if ( list->numindexes > 0 )
   {
     while ( 1 )
     {
-      v5 = a2->indexes[v4];
+      v5 = list->indexes[v4];
       if ( v5 )
       {
         if ( !_strcmpi(v5, String2) )
           break;
       }
-      if ( ++v4 >= a2->numindexes )
+      if ( ++v4 >= list->numindexes )
         return 0;
     }
     return v4;
@@ -8276,9 +8276,9 @@ int __cdecl AAS_IndexFromString(const char *a1, indexlist_t *a2, char *String2)
 }
 
 //----- (1000D960) --------------------------------------------------------
-char *__cdecl AAS_ModelFromIndex(int a1)
+char *__cdecl AAS_ModelFromIndex(int index)
 {
-  return AAS_StringFromIndex("ModelFromIndex", aasworld.modelindex_table, a1);
+  return AAS_StringFromIndex("ModelFromIndex", aasworld.modelindex_table, index);
 }
 
 //----- (1000D990) --------------------------------------------------------
@@ -8292,9 +8292,9 @@ int __cdecl IndexFromModel(char *String2)
 // Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
 // against objdump@1000D9C0: pushes "SoundFromIndex" + aasworld.soundindex_table,
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
-char *__cdecl AAS_SoundFromIndex(int a1)
+char *__cdecl AAS_SoundFromIndex(int index)
 {
-  return AAS_StringFromIndex("SoundFromIndex", aasworld.soundindex_table, a1);
+  return AAS_StringFromIndex("SoundFromIndex", aasworld.soundindex_table, index);
 }
 
 //----- (1000D9F0) --------------------------------------------------------
@@ -8307,9 +8307,9 @@ int __cdecl AAS_IndexFromSound(char *String2)
 }
 
 //----- (1000DA20) --------------------------------------------------------
-char *__cdecl AAS_ImageFromIndex(int a1)
+char *__cdecl AAS_ImageFromIndex(int index)
 {
-  return AAS_StringFromIndex("ImageFromIndex", aasworld.imageindex_table, a1);
+  return AAS_StringFromIndex("ImageFromIndex", aasworld.imageindex_table, index);
 }
 
 //----- (1000DA50) --------------------------------------------------------
@@ -14954,16 +14954,16 @@ aas_link_t *AAS_AllocAASLink()
 }
 
 //----- (1001ADA0) --------------------------------------------------------
-aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *a1)
+aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *link)
 {
   if ( aasworld.freelinks )
-    aasworld.freelinks->prev_ent = a1;
-  a1->prev_ent = NULL;
-  a1->next_ent = aasworld.freelinks;
-  a1->prev_area = NULL;
-  a1->next_area = NULL;
-  aasworld.freelinks = a1;
-  return a1;
+    aasworld.freelinks->prev_ent = link;
+  link->prev_ent = NULL;
+  link->next_ent = aasworld.freelinks;
+  link->prev_area = NULL;
+  link->next_area = NULL;
+  aasworld.freelinks = link;
+  return link;
 }
 
 //----- (1001ADE0) --------------------------------------------------------
@@ -15751,7 +15751,7 @@ aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
 }
 
 //----- (1001C460) --------------------------------------------------------
-aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
+aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum)
 {
   aas_link_t *areas;
   aas_link_t *link;
@@ -15791,7 +15791,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
       if ( !link )
         return areas;
       link->prev_area = NULL;
-      link->entnum = a3;
+      link->entnum = entnum;
       link->areanum = -nodenum;
       link->next_area = areas;
       if ( areas )
@@ -15821,16 +15821,16 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t a1, vec3_t a2, int a3)
        * mis-linked into too few areas.  The original (objdump 1001c54a-c578:
        * je on dist<=absmins, jne on dist<absmaxs) is the canonical form below,
        * matching Q3 AAS_BoxOnPlaneSide2's dist1>=0->front / dist2<0->back. */
-      if ( aasworld.planes[aasnode->planenum].dist <= (float)a1[type] )
+      if ( aasworld.planes[aasnode->planenum].dist <= (float)absmins[type] )
         side = 1;
-      else if ( aasworld.planes[aasnode->planenum].dist >= (float)a2[type] )
+      else if ( aasworld.planes[aasnode->planenum].dist >= (float)absmaxs[type] )
         side = 2;
       else
         side = 3;
     }
     else
     {
-      side = sub_1001C2E0(a1, a2, aasworld.planes[aasnode->planenum].normal);
+      side = sub_1001C2E0(absmins, absmaxs, aasworld.planes[aasnode->planenum].normal);
     }
     if ( (side & 1) != 0 )
       *lstack_p++ = aasnode->children[0];
