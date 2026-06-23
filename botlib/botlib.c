@@ -13530,11 +13530,11 @@ int AAS_ContinueInitReachability(int a1)
 {
   libvar_t *v1;
   double v2; // st7
-  int v3; // ebx
+  int todo; // ebx
   libvar_t *v4;
   int v5; // eax
-  int v6; // esi
-  int i; // ebp
+  int i; // esi
+  int start_time; // ebp
   int v8; // eax
   int v9; // edi
   int v10; // edi
@@ -13559,7 +13559,7 @@ int AAS_ContinueInitReachability(int a1)
     }
   }
   v2 = v1->value;
-  v3 = aasworld.numreachabilityareas + (__int64)v2;
+  todo = aasworld.numreachabilityareas + (__int64)v2;
   if ( !libvar_framereachability )
   {
     v4 = LibVar("reachability_delay", (char *)"100");
@@ -13568,10 +13568,10 @@ int AAS_ContinueInitReachability(int a1)
       v4->value = 200.0f;
   }
   v5 = Sys_MilliSeconds();
-  v6 = aasworld.numreachabilityareas;
-  for ( i = v5; v6 < aasworld.numareas; ++v6 )
+  i = aasworld.numreachabilityareas;
+  for ( start_time = v5; i < aasworld.numareas; ++i )
   {
-    if ( v6 >= v3 )
+    if ( i >= todo )
       break;
     v8 = aasworld.numareas;
     v9 = 1;
@@ -13580,14 +13580,14 @@ int AAS_ContinueInitReachability(int a1)
     {
       do
       {
-        if ( v6 != v9
-          && !AAS_ReachabilityExists(v6, v9)
-          && !AAS_Reachability_Swim(v6, v9)
-          && !AAS_Reachability_EqualFloorHeight(v6, v9)
-          && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(v6, v9)
-          && !AAS_Reachability_Ladder(v6, v9) )
+        if ( i != v9
+          && !AAS_ReachabilityExists(i, v9)
+          && !AAS_Reachability_Swim(i, v9)
+          && !AAS_Reachability_EqualFloorHeight(i, v9)
+          && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, v9)
+          && !AAS_Reachability_Ladder(i, v9) )
         {
-          AAS_Reachability_Jump(v6, v9);
+          AAS_Reachability_Jump(i, v9);
         }
         v8 = aasworld.numareas;
         ++v9;
@@ -13599,10 +13599,10 @@ int AAS_ContinueInitReachability(int a1)
     {
       do
       {
-        if ( v6 != v10 && !AAS_ReachabilityExists(v6, v10) )
+        if ( i != v10 && !AAS_ReachabilityExists(i, v10) )
         {
-          AAS_Reachability_Grapple(v6, v10);
-          AAS_Reachability_WeaponJump(v6, v10);
+          AAS_Reachability_Grapple(i, v10);
+          AAS_Reachability_WeaponJump(i, v10);
         }
         ++v10;
       }
@@ -13610,7 +13610,7 @@ int AAS_ContinueInitReachability(int a1)
     }
     v11 = Sys_MilliSeconds();
     v2 = libvar_framereachability->value;
-    if ( v11 - i > (int)(__int64)v2 )
+    if ( v11 - start_time > (int)(__int64)v2 )
       break;
   }
   if ( aasworld.numreachabilityareas < aasworld.numareas )
@@ -18942,9 +18942,9 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   int v6; // ax
   int v7; // ax
   float v9; // st7
-  float v10; // st7
+  float len; // st7
   float v11; // st6
-  char v12; // al
+  char pc; // al
   float v13; // st7
   float *result; // eax
   float v15; // ecx
@@ -18955,11 +18955,11 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   int v20; // [esp+18h] [ebp-130h]
   vec3_t endpos; // [esp+1Ch] [ebp-12Ch] BYREF — randomized trace endpoint, refined to predicted path destination
   float v24; // [esp+28h] [ebp-120h]
-  float v25; // [esp+2Ch] [ebp-11Ch]
+  float rnd; // [esp+2Ch] [ebp-11Ch]
   float v26; // [esp+30h] [ebp-118h]
   vec3_t dir; // [esp+34h] [ebp-114h] BYREF — direction vector (endpos - origin) for VectorNormalize/Scale
-  vec3_t v30; // [esp+40h] [ebp-108h] BYREF
-  int v31[21]; // [esp+4Ch] [ebp-FCh] BYREF
+  vec3_t belowbestorg; // [esp+40h] [ebp-108h] BYREF
+  int trace[21]; // [esp+4Ch] [ebp-FCh] BYREF
 
   v26 = 0.0;
   v2 = bs + 421;
@@ -18969,7 +18969,7 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
     *(_DWORD *)&endpos[1] = bs[422];
     *(_DWORD *)&endpos[2] = bs[423];
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-    v25 = v5;
+    rnd = v5;
     if ( v5 < 0.8 )
     {
       v6 = rand();
@@ -18978,7 +18978,7 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
         v24 = 1.0;
       endpos[0] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[0] + 50.0f;
     }
-    if ( v25 > 0.2 )
+    if ( rnd > 0.2 )
     {
       v7 = rand();
       v24 = -1.0;
@@ -18989,30 +18989,30 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
     v20 = rand() & 0x7FFF;
     v18 = bs[2];
     endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0f - 1.0f + endpos[2];
-    *(bsp_trace_t *)v31 = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
+    *(bsp_trace_t *)trace = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     dir[0] = v9;
     dir[1] = endpos[1] - *((float *)bs + 422);
     dir[2] = endpos[2] - *((float *)bs + 423);
-    v10 = VectorNormalize(dir);
-    if ( v10 > 100.0f )
+    len = VectorNormalize(dir);
+    if ( len > 100.0f )
     {
-      v19 = *(float *)&v31[2] * v10 - 40.0f;
+      v19 = *(float *)&trace[2] * len - 40.0f;
       VectorScale((float *)dir, v19, (float *)dir);
       v17 = bs[2];
       endpos[0] = dir[0] + *(float *)v2;
       endpos[1] = dir[1] + *((float *)bs + 422);
       v11 = dir[2] + *((float *)bs + 423);
-      v30[1] = endpos[1];
+      belowbestorg[1] = endpos[1];
       endpos[2] = v11;
-      v30[0] = endpos[0];
-      v30[2] = endpos[2] - 800.0f;
-      *(bsp_trace_t *)v31 = AAS_Trace((float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(v30), v17, 3);
-      if ( !v31[1] )
+      belowbestorg[0] = endpos[0];
+      belowbestorg[2] = endpos[2] - 800.0f;
+      *(bsp_trace_t *)trace = AAS_Trace((float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(belowbestorg), v17, 3);
+      if ( !trace[1] )
       {
-        *(float *)&v31[5] = *(float *)&v31[5] + 1.0f;
-        v12 = sub_10003080((float *)&v31[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
-        if ( (v12 & 0x18) == 0 )
+        *(float *)&trace[5] = *(float *)&trace[5] + 1.0f;
+        pc = sub_10003080((float *)&trace[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
+        if ( (pc & 0x18) == 0 )
           break;
       }
     }
@@ -27484,22 +27484,22 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   int v4; // eax
   int v5; // eax
   double v6; // st7
-  int v7; // ebx
+  int state; // ebx
   double v10; // st7
   char v11; // cl
   long double v13; // st7
-  int v15; // eax
+  int areanum; // eax
   bot_moveresult_t *result; // eax
   double v17; // [esp+Ch] [ebp-54h]
   float v18; // [esp+10h] [ebp-50h]
   float v19; // [esp+14h] [ebp-4Ch]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
-  vec3_t v23; // [esp+24h] [ebp-3Ch] BYREF
+  vec3_t viewdir; // [esp+24h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
-  float v25; // [esp+6Ch] [ebp+Ch]
+  float dist; // [esp+6Ch] [ebp+Ch]
   float v26; // [esp+6Ch] [ebp+Ch]
-  float v27; // [esp+6Ch] [ebp+Ch]
+  float speed; // [esp+6Ch] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   v3 = ms->moveflags;
@@ -27515,16 +27515,16 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   {
     v5 = GrappleState(ms, reach);
     v6 = reach->end[0] - ms->origin[0];
-    v7 = v5;
+    state = v5;
     dir[2] = 0.0f;
     dir[0] = v6;
     dir[1] = reach->end[1] - ms->origin[1];
-    v25 = VectorLength(dir);
-    if ( v7 )
+    dist = VectorLength(dir);
+    if ( state )
     {
-      if ( v25 < 48.0f )
+      if ( dist < 48.0f )
       {
-        if ( ms->lastgrappledist - v25 < 1.0f )
+        if ( ms->lastgrappledist - dist < 1.0f )
         {
           EA_Command(ms->client, "hookoff", (char *)0);
           ms->reachability_time = 0;
@@ -27532,10 +27532,10 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
         }
         goto LABEL_8;
       }
-      if ( v7 != 2 || ms->lastgrappledist - 2.0f >= v25 )
+      if ( state != 2 || ms->lastgrappledist - 2.0f >= dist )
       {
         ms->grapplevisible_time = AAS_Time();
-        ms->lastgrappledist = v25;
+        ms->lastgrappledist = dist;
         { result = a1; *a1 = moveresult; return result; }
       }
     }
@@ -27543,7 +27543,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     if ( AAS_Time() - 0.4 <= v17 )
     {
 LABEL_8:
-      ms->lastgrappledist = v25;
+      ms->lastgrappledist = dist;
       { result = a1; *a1 = moveresult; return result; }
     }
     EA_Command(ms->client, "hookoff", (char *)0);
@@ -27560,11 +27560,11 @@ LABEL_26:
     dir[2] = 0.0f;
   v18 = ms->viewoffset[1] + ms->origin[1];
   v19 = ms->viewoffset[2] + ms->origin[2];
-  v23[0] = reach->end[0] - (ms->viewoffset[0] + ms->origin[0]);
-  v23[1] = reach->end[1] - v18;
-  v23[2] = reach->end[2] - v19;
+  viewdir[0] = reach->end[0] - (ms->viewoffset[0] + ms->origin[0]);
+  viewdir[1] = reach->end[1] - v18;
+  viewdir[2] = reach->end[2] - v19;
   v26 = VectorNormalize(dir);
-  vectoangles(v23, moveresult.ideal_viewangles);
+  vectoangles(viewdir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
   /* IDA-dropped FPU-return pattern: the original asm at 0x10033cfb/0x10033d1b
    * does `call AngleDiff; fabs; fcomp 2.0` (the abs operates on the AngleDiff
@@ -27579,11 +27579,11 @@ LABEL_26:
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
   {
     if ( v26 >= 70.0f )
-      v27 = 400.0f;
+      speed = 400.0f;
     else
-      v27 = 300.0f - (300.0f - v26 * 4.0f);
+      speed = 300.0f - (300.0f - v26 * 4.0f);
     BotCheckBlocked(ms, dir, &moveresult);
-    EA_Move(ms->client, dir, v27);
+    EA_Move(ms->client, dir, speed);
     VectorCopy(dir, moveresult.movedir);
   }
   else
@@ -27595,8 +27595,8 @@ LABEL_26:
     *(int *)&ms->lastgrappledist = 1232348144;
     ms->moveflags |= 0x40;
   }
-  v15 = AAS_PointAreaNum(ms->origin);
-  if ( v15 && v15 != ms->reachareanum )
+  areanum = AAS_PointAreaNum(ms->origin);
+  if ( areanum && areanum != ms->reachareanum )
     goto LABEL_26;
   result = a1;
   *a1 = moveresult;
