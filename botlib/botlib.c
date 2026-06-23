@@ -26446,38 +26446,38 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 {
   int result; // eax
   float v11; // [esp+0h] [ebp-84h]
-  /* IDA split two vec3 stack locals (v12, v15) into single ints and dropped
+  /* IDA split two vec3 stack locals (end, start) into single ints and dropped
    * most of the per-component stores.  Asm at .text 0x10031650 sets all three
    * components of each vector before every AAS_TraceClientBBox / VectorMA
    * call (see bot_movement_split_vec3.md / ida_dropped_results.md). */
-  vec3_t v12; // [esp+18h] [ebp-6Ch] BYREF
-  vec3_t v15; // [esp+24h] [ebp-60h] BYREF
-  vec3_t v18; // [esp+30h] [ebp-54h] BYREF
+  vec3_t end; // [esp+18h] [ebp-6Ch] BYREF
+  vec3_t start; // [esp+24h] [ebp-60h] BYREF
+  vec3_t hordir; // [esp+30h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+3Ch] [ebp-48h] (was int v19[9] + char v20[36] hidden return buffer)
 
-  VectorCopy(ms->origin, v12);
-  v12[2] = v12[2] + libvar_sv_maxbarrier->value;
-  trace = AAS_TraceClientBBox(ms->origin, v12, 2, ms->entitynum);
+  VectorCopy(ms->origin, end);
+  end[2] = end[2] + libvar_sv_maxbarrier->value;
+  trace = AAS_TraceClientBBox(ms->origin, end, 2, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   if ( trace.endpos[2] - ms->origin[2] < libvar_sv_step->value )
     return 0;
-  v18[0] = dir[0];
-  v18[1] = dir[1];
-  v18[2] = 0;
-  VectorNormalize(v18);
+  hordir[0] = dir[0];
+  hordir[1] = dir[1];
+  hordir[2] = 0;
+  VectorNormalize(hordir);
   v11 = speed * ms->thinktime * 0.5;
-  VectorMA(ms->origin, v11, v18, v12);
-  VectorCopy(trace.endpos, v15);
-  v12[2] = trace.endpos[2];
-  trace = AAS_TraceClientBBox(v15, v12, 2, ms->entitynum);
+  VectorMA(ms->origin, v11, hordir, end);
+  VectorCopy(trace.endpos, start);
+  end[2] = trace.endpos[2];
+  trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
   if ( trace.startsolid )
     return 0;
-  VectorCopy(trace.endpos, v15);
-  v12[0] = trace.endpos[0];
-  v12[1] = trace.endpos[1];
-  v12[2] = ms->origin[2];
-  trace = AAS_TraceClientBBox(v15, v12, 2, ms->entitynum);
+  VectorCopy(trace.endpos, start);
+  end[0] = trace.endpos[0];
+  end[1] = trace.endpos[1];
+  end[2] = ms->origin[2];
+  trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   if ( trace.fraction >= 1.0 )
@@ -26485,7 +26485,7 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
   if ( trace.endpos[2] - ms->origin[2] < libvar_sv_step->value )
     return 0;
   EA_Jump(ms->client);
-  EA_Move(ms->client, v18, speed);
+  EA_Move(ms->client, hordir, speed);
   result = 1;
   ms->moveflags |= 1u;
   return result;
@@ -26671,7 +26671,7 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
   vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
   vec3_t mins; // [esp+14h] [ebp-6Ch] BYREF (was _DWORD v7[2] + float v8)
   vec3_t end;  // [esp+20h] [ebp-60h] BYREF (was float v9[3])
-  int v10[21]; // [esp+2Ch] [ebp-54h] BYREF
+  int trace[21]; // [esp+2Ch] [ebp-54h] BYREF
 
   AAS_PresenceTypeBoundingBox(ms->presencetype, mins, maxs);
   if ( fabs(dir[2]) < 0.7f )
@@ -26680,12 +26680,12 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
     maxs[2] = maxs[2] - 10.0f;
   }
   VectorMA(ms->origin, 3.0f, dir, end);
-  *(bsp_trace_t *)v10 = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
-  result = v10[1];
-  if ( !v10[1] )
+  *(bsp_trace_t *)trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
+  result = trace[1];
+  if ( !trace[1] )
   {
-    v4 = v10[20];
-    if ( v10[20] )
+    v4 = trace[20];
+    if ( trace[20] )
     {
       result = (int)(intptr_t)moveresult;
       moveresult->blocked = 1;
@@ -26723,28 +26723,28 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
    * which the game rejects as upmove since pitch=0.  Restored as float[3]. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
-  float v11; // [esp+50h] [ebp+Ch]
-  float v12; // [esp+50h] [ebp+Ch]
+  float dist; // [esp+50h] [ebp+Ch]
+  float speed; // [esp+50h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
-  v11 = VectorNormalize(dir);
+  dist = VectorNormalize(dir);
   BotCheckBlocked(ms, dir, &moveresult);
-  v4 = v11;
-  if ( v11 < 10.0f )
+  v4 = dist;
+  if ( dist < 10.0f )
   {
     v5 = reach->end[0] - ms->origin[0];
     dir[2] = 0.0f;
     dir[0] = v5;
     dir[1] = reach->end[1] - ms->origin[1];
     v4 = VectorNormalize(dir);
-    v11 = v4;
+    dist = v4;
   }
   if ( (AAS_AreaPresenceType(reach->areanum) & 2) == 0 )
   {
-    if ( v11 < 20.0f )
+    if ( dist < 20.0f )
       EA_Crouch(ms->client);
   }
   /* IDA dropped FPU return: at .text 0x10031f12 the call to BotGapDistance
@@ -26757,10 +26757,10 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
    * before the goal flips).  Capture the real return.  See ida_dropped_results.md. */
   v4 = BotGapDistance(ms, dir);
   if ( v4 > 0.0f )
-    v12 = 300.0f - (300.0f - (v4 + v4));
+    speed = 300.0f - (300.0f - (v4 + v4));
   else
-    v12 = 400.0f;
-  EA_Move(ms->client, dir, v12);
+    speed = 400.0f;
+  EA_Move(ms->client, dir, speed);
   VectorCopy(dir, moveresult.movedir);
   result = a1;
   *a1 = moveresult;
