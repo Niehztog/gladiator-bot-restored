@@ -250,7 +250,7 @@ typedef struct source_s {
     indent_t              *indentstack;        /* +540  conditional-compile indent stack    */
     int                    skip;               /* +544  > 0 skipping #if/#else block        */
     int                    _pad_after_skip;    /* +548  unused / padding                    */
-    struct token_s         cachedtoken;        /* +552  last-read token (qmemcpy'd by PC_ReadTokenHandle) */
+    struct token_s         cachedtoken;        /* +552  last-read token (memcpy'd by PC_ReadTokenHandle) */
 } source_t;                                    /* sizeof = 1624 on 32-bit */
 
 /* -------------------------------------------------------------------------
@@ -335,7 +335,7 @@ typedef struct bot_randomlist_s {
  *   a3+40      = entitynum
  *   a3+44      = number (item number from levelitem)
  * The trailing `flags` and `iteminfo` fields are present in the layout (the
- * CTF-flag .bss slots are 56 bytes, and qmemcpy at sub_10027240 copies 0x38u
+ * CTF-flag .bss slots are 56 bytes, and memcpy at sub_10027240 copies 0x38u
  * = 56 bytes when transferring a goal) but Gladiator never writes to them —
  * BotGetLevelItemGoal fills 48 bytes; the trailing 8 stay zero from .bss.
  * ------------------------------------------------------------------------- */

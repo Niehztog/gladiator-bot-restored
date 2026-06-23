@@ -160,11 +160,6 @@
 #include "struct_sizes_asserts.h" /* compile-time guard: every reconstructed
                                      struct must match original binary layout */
 
-
-
-#define qmemcpy memcpy   // IDA Pro emits qmemcpy for inlined memcpy calls
-
-
 /* -----------------------------------------------------------------------
  * Export function declarations — defined in botlib_exports.c
  * These replace the _UNKNOWN Export_* data slot declarations that caused
@@ -2356,7 +2351,7 @@ LABEL_40:
       *(bsp_trace_t *)v47 = AAS_TraceBSPModel(LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask);
       if ( v47[2] < (float)trace[2] )
       {
-        qmemcpy(trace, v47, 0x54u);
+        memcpy(trace, v47, 0x54u);
         return 1;
       }
     }
@@ -6697,7 +6692,7 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
   if ( AAS_Time() - showreach_lasttime > 1.5 )
   {
     firstreach = aasworld.areasettings[areanum].firstreachablearea; /* firstreachablearea */
-    qmemcpy(showreach_reach,
+    memcpy(showreach_reach,
             &aasworld.reachability[firstreach + showreach_index],
             44);
     showreach_index++;
@@ -8918,7 +8913,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[2] = reach->start[2] + 1.0f;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
   v5 = (const void *)AAS_ClientMovementPrediction((char *)move, -1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
-  qmemcpy(move, v5, sizeof(move));
+  memcpy(move, v5, sizeof(move));
   *(float *)runstart = *(float *)move;
   *(_DWORD *)(runstart + 8) = move[2];
   stopevent = move[16];
@@ -9437,7 +9432,7 @@ char *__cdecl AAS_ClientMovementPrediction(
           move_buf[3] = *(int *)&frame_test_vel[0];
           *(float *)&move_buf[4] = frame_test_vel[1];
           move_buf[5] = *(int *)&frame_test_vel[2];
-          qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+          memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
           move_buf[16] = 32;
           goto LABEL_86;
         }
@@ -9445,7 +9440,7 @@ char *__cdecl AAS_ClientMovementPrediction(
 LABEL_66:
       ++LODWORD(v50);
       if ( SLODWORD(v50) > 20 )
-        { result = move; qmemcpy(move, move_buf, 0x50u); return result; }
+        { result = move; memcpy(move, move_buf, 0x50u); return result; }
     }
     while ( trace.fraction < 1.0 );
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
@@ -9496,7 +9491,7 @@ LABEL_66:
           move_buf[3] = *(int *)&frame_test_vel[0];
           *(float *)&move_buf[4] = frame_test_vel[1];
           move_buf[5] = *(int *)&frame_test_vel[2];
-          qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+          memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
           move_buf[16] = 1;
         }
         else
@@ -9527,7 +9522,7 @@ LABEL_86:
         move_buf[5] = *(int *)&frame_test_vel[2];
         move_buf[3] = *(int *)&frame_test_vel[0];
         *(float *)&move_buf[4] = frame_test_vel[1];
-        qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+        memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
         *(float *)&move_buf[18] = (float)n * frametime;
         move_buf[16] = 2;
         move_buf[15] = presencetype;
@@ -9559,7 +9554,7 @@ LABEL_86:
         *(float *)&move_buf[4] = frame_test_vel[1];
         move_buf[3] = *(int *)&frame_test_vel[0];
         move_buf[5] = *(int *)&frame_test_vel[2];
-        qmemcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+        memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
         *(float *)&move_buf[18] = (float)n * frametime;
         move_buf[16] = 64;
         move_buf[15] = presencetype;
@@ -9570,7 +9565,7 @@ LABEL_86:
     break;
   }
   result = move;
-  qmemcpy(move, move_buf, 0x50u);
+  memcpy(move, move_buf, 0x50u);
   return result;
 }
 
@@ -9761,7 +9756,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
     return result;
   }
   optface = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
-  qmemcpy(optface, face, 0x18u);
+  memcpy(optface, face, 0x18u);
   optface[2] = 0;
   i = 0;
   for ( optface[3] = optimized->edgeindexsize; i < *((int *)v8 + 2); ++i )
@@ -9793,7 +9788,7 @@ int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 
   area = (int *)(&aasworld.areas[areanum]);
   optarea = (_DWORD *)((char *)optimized->areas + 48 * areanum);
-  qmemcpy(optarea, area, 0x30u);
+  memcpy(optarea, area, 0x30u);
   optarea[1] = 0;
   optarea[2] = optimized->faceindexsize;
   result = area[1];
@@ -11819,7 +11814,7 @@ LABEL_62:
                    * landing point misses area2num in the probe loop and all
                    * 89 JUMP reaches on q2ctf2 are lost. */
                   cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
-                  qmemcpy(
+                  memcpy(
                     move2,
                     AAS_ClientMovementPrediction(
                                     (char *)move,
@@ -13158,7 +13153,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
                 velocity[2] = zvel;
                 velocity[0] = 0;
                 velocity[1] = 0;
-                qmemcpy(
+                memcpy(
                   move,
                   AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0),
                   sizeof(move));
@@ -16522,7 +16517,7 @@ int sub_1001D420(bot_state_t *bs)
    *    passed in AND read back from — the original copies 80 bytes from the
    *    returned ptr onto itself (the prediction returns its input buffer,
    *    so the copy is a no-op but emitted verbatim). */
-  qmemcpy(scratch,
+  memcpy(scratch,
           AAS_ClientMovementPrediction(scratch, -1, start,
                                        2, 1, velocity, scaled,
                                        1, 2, 0.1f, 124, 0),
@@ -19080,7 +19075,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
     v7 = (const void *)BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
     result = a1;
-    qmemcpy(a1, v7, 0x30u);
+    memcpy(a1, v7, 0x30u);
     return result;
   }
   memset(&moveresult, 0, sizeof(moveresult));
@@ -19216,7 +19211,7 @@ LABEL_35:
   }
 LABEL_39:
   result = a1;
-  qmemcpy(a1, &moveresult, 0x30u);
+  memcpy(a1, &moveresult, 0x30u);
   return result;
 }
 
@@ -20377,9 +20372,9 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
       else if ( v5 < 0.66 && dword_1006442C && dword_100643EC )
       {
         if ( BotCTFTeam(bs) == 1 )
-          qmemcpy(&bs->teamgoal, &unk_10064420, 0x38u);
+          memcpy(&bs->teamgoal, &unk_10064420, 0x38u);
         else
-          qmemcpy(&bs->teamgoal, &unk_100643E0, 0x38u);
+          memcpy(&bs->teamgoal, &unk_100643E0, 0x38u);
         bs->ltgtype = 3;
         bs->teamgoal_time = AAS_Time() + 120.0f;
         *(int *)&bs->defendaway_time = 0;
@@ -20432,7 +20427,7 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *go
   v4 = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), String2);
   if ( v4 )
   {
-    qmemcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
+    memcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
     return 1;
   }
   return 0;
@@ -21340,7 +21335,7 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
   *(int *)&bs->origin[0] = v4;
   bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   v6 = (*(int *)&bs->snapshot.origin[2]);
-  qmemcpy(bs->inventory, bs->inventory_src, 0x400u);
+  memcpy(bs->inventory, bs->inventory_src, 0x400u);
   bs->eye[1] = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
   bs->eye[2] = bs->snapshot.viewoffset[2] + *(float *)&(*(int *)&bs->snapshot.origin[2]);
   *(int *)&bs->origin[2] = v6;
@@ -21704,7 +21699,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
     botimport.Print(PRT_FATAL, "couldn't load bot character %s from %s\n", Source + 144, Source);
     return 0;
   }
-  qmemcpy(bs->settings, Source, 0x1B0u);
+  memcpy(bs->settings, Source, 0x1B0u);
   weights_handle = Characteristic_String(char_handle, 28);
   if ( BotLoadItemWeights(&bs->goalstate[0], weights_handle) )
     return 0;
@@ -21802,7 +21797,7 @@ int __cdecl BotMoveClient(int a1, int a2)
     botimport.Print(PRT_FATAL, "tried to move client to active client\n");
     return BLERR_AIMOVETOACTIVECLIENT;
   }
-  qmemcpy(newbs, oldbs, sizeof(bot_state_t));
+  memcpy(newbs, oldbs, sizeof(bot_state_t));
   memset(oldbs, 0, sizeof(bot_state_t));
   oldbs->inuse = 0;
   return BLERR_NOERROR;
@@ -21822,7 +21817,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     botimport.Print(PRT_FATAL, "tried to updated inactive bot client\n");
     return BLERR_AIUPDATEINACTIVECLIENT;
   }
-  qmemcpy(v2 + 3, a2, 0x4CCu);
+  memcpy(v2 + 3, a2, 0x4CCu);
   v4 = (float *)(v2 + 1056);
   v5 = 3;
   do
@@ -21838,7 +21833,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
 //----- (10029920) --------------------------------------------------------
 int __cdecl BotClientSettings(int a1, const void *a2)
 {
-  qmemcpy(dword_100643A8 + 144 * a1, a2, 0x90u);
+  memcpy(dword_100643A8 + 144 * a1, a2, 0x90u);
   return 0;
 }
 
@@ -21868,7 +21863,7 @@ int __cdecl BotSettings(int a1, const void *a2)
     botimport.Print(PRT_FATAL, "tried to update settings of inactive client\n");
     return BLERR_SETTINGSINACTIVECLIENT;
   }
-  qmemcpy(v2 + 310, a2, 0x1B0u);
+  memcpy(v2 + 310, a2, 0x1B0u);
   return BLERR_NOERROR;
 }
 
@@ -21885,25 +21880,25 @@ int __cdecl BotResetState(bot_state_t *bs)
   char settings[432];
   int goalstate[243];
 
-  qmemcpy(settings, bs->settings, sizeof(settings));
+  memcpy(settings, bs->settings, sizeof(settings));
   client = bs->client;
-  qmemcpy(movestate, &bs->ms, sizeof(movestate));
-  qmemcpy(goalstate, bs->goalstate, sizeof(goalstate));
+  memcpy(movestate, &bs->ms, sizeof(movestate));
+  memcpy(goalstate, bs->goalstate, sizeof(goalstate));
   inuse = bs->inuse;
   entitynum = bs->entitynum;
-  qmemcpy(weaponstate, bs->weaponweights, sizeof(weaponstate));
-  qmemcpy(&chatstate, &bs->chatstate, sizeof(chatstate));
+  memcpy(weaponstate, bs->weaponweights, sizeof(weaponstate));
+  memcpy(&chatstate, &bs->chatstate, sizeof(chatstate));
   character = bs->character;
   BotFreeWaypoints(BotCheckpoints(bs));
   BotFreeWaypoints(BotPatrolpoints(bs));
   memset(bs, 0, sizeof(*bs));
-  qmemcpy(&bs->ms, movestate, sizeof(movestate));
-  qmemcpy(bs->goalstate, goalstate, sizeof(goalstate));
-  qmemcpy(bs->weaponweights, weaponstate, sizeof(weaponstate));
+  memcpy(&bs->ms, movestate, sizeof(movestate));
+  memcpy(bs->goalstate, goalstate, sizeof(goalstate));
+  memcpy(bs->weaponweights, weaponstate, sizeof(weaponstate));
   bs->inuse = inuse;
-  qmemcpy(&bs->chatstate, &chatstate, sizeof(chatstate));
+  memcpy(&bs->chatstate, &chatstate, sizeof(chatstate));
   bs->entitynum = entitynum;
-  qmemcpy(bs->settings, settings, sizeof(settings));
+  memcpy(bs->settings, settings, sizeof(settings));
   bs->character = character;
   bs->client = client;
   BotResetMoveState((int *)&bs->ms);
@@ -22614,7 +22609,7 @@ while ( str2 )
 if ( !str2 )
 {
   memmove(str + strlen(replacement), str + strlen(synonym), strlen(str + strlen(synonym)));
-  qmemcpy(str, replacement, strlen(replacement));
+  memcpy(str, replacement, strlen(replacement));
 }
 str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
   }
@@ -25568,7 +25563,7 @@ int __cdecl BotPushGoal(int *goalstate, const void *goal)
   }
   result = v2 + 1;
   *(_DWORD *)((char *)goalstate + 456) = result;
-  qmemcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
+  memcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
   return result;
 }
 
@@ -26546,7 +26541,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         v20 = ms->thinktime;
       }
       v11 = (__int64)(v10 / v20);
-      qmemcpy(
+      memcpy(
         move,
         AAS_ClientMovementPrediction(
                         (char *)move,
@@ -30444,7 +30439,7 @@ token_t *__cdecl PC_CopyToken(const token_t *token)
   token_t *result;
 
   result = (token_t *)GetMemory(sizeof(token_t));
-  qmemcpy(result, token, sizeof(token_t));
+  memcpy(result, token, sizeof(token_t));
   result->next = NULL;
   return result;
 }
@@ -30481,7 +30476,7 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
     source->scriptstack = source->scriptstack->next;
     FreeScript(script);
   }
-  qmemcpy(token, source->tokens, sizeof(token_t));
+  memcpy(token, source->tokens, sizeof(token_t));
   t = source->tokens;
   source->tokens = source->tokens->next;
   PC_FreeToken(t);
@@ -30659,7 +30654,7 @@ unsigned int __cdecl PC_NameHash(const char *a1)
       v2 = 4;
     else if ( !v2 )
       return abs(v4) & 0x3FF;
-    qmemcpy(&v4, a1, v2);
+    memcpy(&v4, a1, v2);
     return abs(v4) & 0x3FF;
   }
   return abs(v4) & 0x3FF;
@@ -30814,7 +30809,7 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
   token_t Buffer __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
   v4 = define->builtin - 1;
-  qmemcpy(&Buffer, &src->cachedtoken, sizeof(Buffer));
+  memcpy(&Buffer, &src->cachedtoken, sizeof(Buffer));
   switch ( v4 )
   {
     case 0:
@@ -32642,7 +32637,7 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token)
         continue;
       }
     }
-    qmemcpy(&source->cachedtoken, token, sizeof(token_t));
+    memcpy(&source->cachedtoken, token, sizeof(token_t));
     return 1;
   }
 }
@@ -33731,7 +33726,7 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
     ((script_t *)script)->script_p = (intptr_t)((char *)((script_t *)script)->script_p + 1);
   }
   ((char *)token)[len] = 0;
-  qmemcpy(&((script_t *)script)->token, (void *)token, 0x430u);
+  memcpy(&((script_t *)script)->token, (void *)token, 0x430u);
   return 1;
 }
 
@@ -33748,7 +33743,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
   if ( script->tokenavailable )
   {
     script->tokenavailable = 0;
-    qmemcpy(token, &script->token, sizeof(token_t));
+    memcpy(token, &script->token, sizeof(token_t));
     return 1;
   }
   script->lastscript_p = script->script_p;
@@ -33789,7 +33784,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
     ScriptError((int)script, "can't read token");
     return 0;
   }
-  qmemcpy(&script->token, token, sizeof(token_t));
+  memcpy(&script->token, token, sizeof(token_t));
   return 1;
 }
 
@@ -34276,7 +34271,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
     return NULL;
   }
   fclose(fp);
-  qmemcpy(v10, &unk_10060418, 0x48u);
+  memcpy(v10, &unk_10060418, 0x48u);
   memset(&v10[72], 0, 0x48u);
   if ( !sub_10037850(FileName, (const unsigned char *)script->buffer, script->length) )
   {
@@ -34304,7 +34299,7 @@ script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const c
   script->line         = 1;
   script->lastline     = 1;
   SetScriptPunctuations(script, NULL);
-  qmemcpy(script->buffer, buf, length);
+  memcpy(script->buffer, buf, length);
   return script;
 }
 

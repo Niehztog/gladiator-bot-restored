@@ -132,9 +132,9 @@ typedef struct bot_state_s {
              * `sub_10021020(bs)` (own-inventory & powerup fields).  Only the
              * verified offsets get named fields; the remainder stays padding.
              * Wrapped in an inner union so legacy `bs->chat_lines` (the
-             * 1024-byte qmemcpy buffer at +1728) and the typed view share
+             * 1024-byte memcpy buffer at +1728) and the typed view share
              * storage. */
-            /* +1728..+2751: 1024-byte inventory mirror.  qmemcpy'd each
+            /* +1728..+2751: 1024-byte inventory mirror.  memcpy'd each
              * frame from `inventory_src` (+216).  BotUpdateInventory and
              * BotUpdateBattleInventory overlay derived powerup/battle
              * snapshot fields onto this region at offsets that don't
