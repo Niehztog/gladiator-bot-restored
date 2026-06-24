@@ -973,7 +973,7 @@ indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
 void __cdecl PC_PushScript(source_t *source, script_t *script);
 int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 /* PC_UnreadSourceToken declared at line 239 */
-int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms);
+int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **parms, int maxparms);
 /* PC_ExpandDefine forward decl below (signature matches impl) */
 int __cdecl PC_StringizeTokens(token_t *Source, token_t *Destination);
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
@@ -30496,7 +30496,7 @@ int __cdecl PC_UnreadSourceToken(source_t *src, const void *token)
  * function-style macro at a call site. Q3 botlib has the same function
  * with signature (source, define, parms[], maxparms). Renamed from
  * PC_ExpandDefine — the prior collision was a rename-pass artefact. */
-int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms, int maxparms)
+int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **parms, int maxparms)
 {
   int i;
   int done;
@@ -30504,101 +30504,87 @@ int __cdecl PC_ReadDefineParms(source_t *src, define_t *define, token_t **parms,
   int numparms;
   token_t *last;
   int indent;
-  token_t *newtok;
-  token_t tok __attribute__((aligned(8))); // [esp+20h] [ebp-430h] BYREF
+  token_t *t;
+  token_t token __attribute__((aligned(8))); // [esp+20h] [ebp-430h] BYREF
 
-  if ( !PC_ReadSourceToken(src, &tok) )
+  if ( !PC_ReadSourceToken(source, &token) )
   {
-    SourceError(src, "define %s missing parms", define->name);
+    SourceError(source, "define %s missing parms", define->name);
     return 0;
   }
   if ( define->numparms > maxparms )
   {
-    SourceError(src, "define with more than %d parameters", maxparms);
+    SourceError(source, "define with more than %d parameters", maxparms);
     return 0;
   }
-  i = 0;
-  if ( define->numparms > 0 )
+  for (i = 0; i < define->numparms; i++) parms[i] = NULL;
+  if ( strcmp(token.string, "(") )
   {
-    do
+    PC_UnreadSourceToken(source, &token);
+    SourceError(source, "define %s missing parms", define->name);
+    return 0;
+  }
+  for ( done = 0, numparms = 0, indent = 0; !done; )
+  {
+    if ( numparms >= maxparms )
     {
-      parms[i] = NULL;
-      ++i;
-    }
-    while ( i < define->numparms );
-  }
-  if ( strcmp(tok.string, "(") )
-{
-  PC_UnreadSourceToken(src, &tok);
-  SourceError(src, "define %s missing parms", define->name);
-  return 0;
-}
-for ( done = 0, numparms = 0, indent = 0; !done; )
-{
-  if ( numparms >= maxparms )
-  {
-    SourceError(src, "define %s with too many parms", define->name);
-    return 0;
-  }
-  if ( numparms >= define->numparms )
-  {
-    SourceWarning(src, "define %s has too many parms", define->name);
-    return 0;
-  }
-  parms[numparms] = NULL;
-  lastcomma = 1;
-  last = NULL;
-  while ( !done )
-  {
-    if ( !PC_ReadSourceToken(src, &tok) )
-    {
-      SourceError(src, "define %s incomplete", define->name);
+      SourceError(source, "define %s with too many parms", define->name);
       return 0;
     }
-    if ( !strcmp(tok.string, ",") )
+    if ( numparms >= define->numparms )
     {
-      if ( indent <= 0 )
+      SourceWarning(source, "define %s has too many parms", define->name);
+      return 0;
+    }
+    parms[numparms] = NULL;
+    lastcomma = 1;
+    last = NULL;
+    while ( !done )
+    {
+      if ( !PC_ReadSourceToken(source, &token) )
       {
-        if ( lastcomma )
-          SourceWarning(src, "too many comma's");
-        lastcomma = 1;
-        break;
+        SourceError(source, "define %s incomplete", define->name);
+        return 0;
+      }
+      if ( !strcmp(token.string, ",") )
+      {
+        if ( indent <= 0 )
+        {
+          if ( lastcomma ) SourceWarning(source, "too many comma's");
+          lastcomma = 1;
+          break;
+        }
+      }
+      lastcomma = 0;
+      if ( !strcmp(token.string, "(") )
+      {
+        indent++;
+        continue;
+      }
+      else if ( !strcmp(token.string, ")") )
+      {
+        if ( --indent <= 0 )
+        {
+          if ( !parms[define->numparms - 1] )
+          {
+            SourceWarning(source, "too few define parms");
+          }
+          done = 1;
+          break;
+        }
+      }
+      if ( numparms < define->numparms )
+      {
+        t = PC_CopyToken(&token);
+        t->next = NULL;
+        if ( last ) last->next = t;
+        else parms[numparms] = t;
+        last = t;
       }
     }
-    lastcomma = 0;
-    if ( !strcmp(tok.string, "(") )
-    {
-      ++indent;
-      continue;
-    }
-    else if ( !strcmp(tok.string, ")") )
-    {
-      if ( --indent <= 0 )
-      {
-        if ( !parms[define->numparms - 1] )
-          SourceWarning(src, "too few define parms");
-        done = 1;
-        break;
-      }
-    }
-    if ( numparms < define->numparms )
-    {
-      newtok = PC_CopyToken(&tok);
-      newtok->next = NULL;
-      if ( last )
-      {
-        last->next = newtok;
-      }
-      else
-      {
-        parms[numparms] = newtok;
-      }
-      last = newtok;
-    }
+    numparms++;
   }
-  ++numparms;
-}
-return 1;
+  return 1;
 }
 // 10039776: conditional instruction was optimized away because ecx.4==0
 
