@@ -5510,40 +5510,31 @@ void __cdecl AAS_NumberClusterPortals(int clusternum)
 //----- (10008B40) --------------------------------------------------------
 int AAS_FindClusters()
 {
-  int v0; // edi
-  int v1; // eax
-  _BYTE *v2; // ecx
   int i; // ebx
   aas_cluster_t *cluster; // esi
 
   AAS_RemoveClusterAreas();
-  v0 = 1;
-  if ( aasworld.numareas <= 1 )
-    return 1;
-  v1 = aasworld.numclusters;
-  v2 = aasworld.areasettings;
-  for ( i = 28; ; i += 28 )
+  for ( i = 1; i < aasworld.numareas; i++ )
   {
-    if ( *(_DWORD *)&v2[i + 12] == 0 && (v2[i] & 8) == 0 )
+    if ( aasworld.areasettings[i].cluster == 0 && (aasworld.areasettings[i].contents & 8) == 0 )
     {
-      if ( v1 >= 0x10000 )
-        break;
-      cluster = &aasworld.clusters[v1];
+      if ( aasworld.numclusters >= 0x10000 )
+      {
+        AAS_Error("AAS_MAX_CLUSTERS");
+        return 0;
+      }
+      cluster = &aasworld.clusters[aasworld.numclusters];
       cluster->numareas = 0;
       cluster->firstportal = aasworld.portalindexsize;
       cluster->numreachabilityareas = 0;
-      if ( !AAS_FloodClusterAreas_r(v0, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
+      if ( !AAS_FloodClusterAreas_r(i, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
         return 0;
       AAS_NumberClusterPortals(aasworld.numclusters);
       Log_Write("cluster %d has %d areas", aasworld.numclusters, cluster->numareas);
-      v2 = aasworld.areasettings;
-      v1 = ++aasworld.numclusters;
+      aasworld.numclusters++;
     }
-    if ( ++v0 >= aasworld.numareas )
-      return 1;
   }
-  AAS_Error("AAS_MAX_CLUSTERS");
-  return 0;
+  return 1;
 }
 
 //----- (10008C80) --------------------------------------------------------
@@ -6747,10 +6738,20 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   {
     VectorAdd(ent->mins, ent->origin, absmins);
     VectorAdd(ent->maxs, ent->origin, absmaxs);
+#if BOTLIB_NEED_SIDEBAND
     AAS_UnlinkFromAreas(AAS_EntAreaLink(entnum));
     AAS_EntAreaLink(entnum) = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
     AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
     AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
+#else
+    /* 32-bit/oracle: reach the link heads through the already-cached `ent`
+     * pointer (= &aasworld.entities[entnum], since .i is at offset 0) so MSVC
+     * reuses esi for [esi+0x7c]/[esi+0x80] instead of recomputing the index. */
+    AAS_UnlinkFromAreas(((aas_entity_t *)ent)->areas);
+    ((aas_entity_t *)ent)->areas = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
+    AAS_UnlinkFromBSPLeaves(((aas_entity_t *)ent)->leaves);
+    ((aas_entity_t *)ent)->leaves = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
+#endif
   }
   return 0;
 }
@@ -7013,12 +7014,12 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
         {
           for ( l = -1; l <= 1 && !areanum; ++l )
           {
-            v10 = ((float *)origin)[0];
-            v11 = ((float *)origin)[2];
+            start[0] = ((float *)origin)[0];
             start[1] = ((float *)origin)[1];
-            start[0] = (float)k * v25 * 4.0f + v10;
+            start[2] = ((float *)origin)[2];
+            start[0] = (float)k * v25 * 4.0f + start[0];
             start[1] = (float)l * v25 * 4.0f + start[1];
-            start[2] = (float)i * 4.0f + v11;
+            start[2] = (float)i * 4.0f + start[2];
             areanum = AAS_PointAreaNum(start);
           }
         }
@@ -10264,20 +10265,15 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (aasworld.areasettings[area2num].presencetype & 2) == 0 )
     return 0;
-  v2 = 0;
   area2 = &aasworld.areas[area2num];
   area1 = &aasworld.areas[area1num];
-  v5 = area2->mins;
-  v6 = area1->maxs;
-  do
+  for ( v2 = 0; v2 < 3; v2++ )
   {
-    if ( *(float *)((char *)v6 + ((char *)area2 - (char *)area1)) + 10.0f < *(v6 - 3) || *v5 - 10.0f > *v6 )
+    if ( area2->maxs[v2] + 10.0f < area1->mins[v2] )
       return 0;
-    ++v2;
-    ++v6;
-    ++v5;
+    if ( area2->mins[v2] - 10.0f > area1->maxs[v2] )
+      return 0;
   }
-  while ( v2 < 3 );
   if ( area1->numfaces <= 0 )
     return 0;
   v7 = aasworld.faceindex;
@@ -15448,6 +15444,7 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     }
     else
     {
+      int side;
       /* split: trace crosses this plane */
       tmpplanenum = tstack_p->planenum;
       frac = front / (front - back);
@@ -15458,22 +15455,24 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
       cur_mid_x = (cur_end_x - cur_start_x) * frac + cur_start_x;
       cur_mid_y = (cur_end_y - cur_start_y) * frac + cur_start_y;
       cur_mid_z = (cur_end_z - cur_start_z) * frac + cur_start_z;
+      side = front < 0.0f;
       /* push the back half: start = mid, end stays, planenum = node's plane */
       tstack_p->start[0] = cur_mid_x;
       tstack_p->start[1] = cur_mid_y;
       tstack_p->start[2] = cur_mid_z;
       tstack_p->planenum = aasnode->planenum;
-      tstack_p->nodenum  = aasnode->children[front >= 0.0f ? 1 : 0];
+      tstack_p->nodenum  = aasnode->children[!side];
+      tstack_p++;
       /* push the front half: start preserved, end = mid, planenum preserved */
-      tstack_p[1].start[0] = cur_start_x;
-      tstack_p[1].start[1] = cur_start_y;
-      tstack_p[1].start[2] = cur_start_z;
-      tstack_p[1].end[0]   = cur_mid_x;
-      tstack_p[1].end[1]   = cur_mid_y;
-      tstack_p[1].end[2]   = cur_mid_z;
-      tstack_p[1].planenum = tmpplanenum;
-      tstack_p[1].nodenum  = aasnode->children[front < 0.0f ? 1 : 0];
-      tstack_p += 2;     /* outer loop tstack_p-- pops front half first */
+      tstack_p->start[0] = cur_start_x;
+      tstack_p->start[1] = cur_start_y;
+      tstack_p->start[2] = cur_start_z;
+      tstack_p->end[0]   = cur_mid_x;
+      tstack_p->end[1]   = cur_mid_y;
+      tstack_p->end[2]   = cur_mid_z;
+      tstack_p->planenum = tmpplanenum;
+      tstack_p->nodenum  = aasnode->children[side];
+      tstack_p++;
     }
   }
 }
@@ -16438,13 +16437,13 @@ int sub_1001D420(bot_state_t *bs)
   entnum = ClientFromName((const char *)((char *)bs + 0x1124)) + 1;
   *(&entinfo) = AAS_EntityInfo(entnum);
   if ( !entinfo.valid )
-    return (int)((char *)bs + 0x1150);
+    goto fail;
   /* 2. Validate the entity sits in a reachable AAS area (origin @ +0x10). */
   areanum = AAS_PointAreaNum(entinfo.origin);
   if ( !areanum )
-    return (int)((char *)bs + 0x1150);
+    goto fail;
   if ( !AAS_AreaReachability(areanum) )
-    return (int)((char *)bs + 0x1150);
+    goto fail;
   /* 3. Save current target origin to bs+0x1144..0x114C. */
   *(int *)((char *)bs + 0x1144) = *(int *)&entinfo.origin[0];
   *(int *)((char *)bs + 0x1148) = *(int *)&entinfo.origin[1];
@@ -16521,6 +16520,7 @@ int sub_1001D420(bot_state_t *bs)
   *(float *)((char *)bs + 0x1170) = 8.0f;
   *(float *)((char *)bs + 0x1174) = 8.0f;
   *(int   *)((char *)bs + 0x1150) = *(int *)&angles[0];
+fail:
   return (int)((char *)bs + 0x1150);
 }
 
@@ -19400,13 +19400,13 @@ void BotAimAtEnemy(bot_state_t *bs)
   double v10; // st7
   int v11; // eax
   float v12; // st7
-  __int16 v13; // ax
-  __int16 v14; // ax
-  __int16 v15; // ax
+  int v13; // ax
+  int v14; // ax
+  int v15; // ax
   int *v16; // esi
   int v17; // edi
-  __int16 v18; // ax
-  __int16 v19; // ax
+  int v18; // ax
+  int v19; // ax
   int v20; // ecx
   int v21; // edx
   float v22; // [esp+0h] [ebp-1C8h]
@@ -20492,26 +20492,17 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
      * with (name, &goal.origin, areanum). */
     newwp = BotCreateWayPoint(Destination, goal.origin, goal.areanum);
     newwp->next = NULL;
-    wp = newpatrolpoints;
-    if ( !newpatrolpoints )
+    for ( wp = newpatrolpoints; wp && wp->next; wp = wp->next )
+      ;
+    if ( !wp )
     {
       newpatrolpoints = newwp;
       newwp->prev = NULL;
     }
     else
     {
-      while ( wp->next )
-        wp = wp->next;
-      if ( wp )
-      {
-        wp->next = newwp;
-        newwp->prev = wp;
-      }
-      else
-      {
-        newpatrolpoints = newwp;
-        newwp->prev = NULL;
-      }
+      wp->next = newwp;
+      newwp->prev = wp;
     }
     if ( (keyareamatch.subtype & 0x200) != 0 )
     {
@@ -21268,7 +21259,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
               v8 = strstr(v3->message, ":");
               if ( v8 )
               {
-                strcpy(v3->message, v8 + 1);
+                memcpy(v3->message, v8 + 1, strlen(v8 + 1) + 1);
                 UnifyWhiteSpaces(v3->message);
                 if ( BotReplyChat(&bs->chatstate, v3->message) )
                 {
@@ -23474,12 +23465,13 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
     }
   }
 
-  if ( lastvariable >= 0 )
+  if ( lastvariable >= 0 || !strlen(strptr) )
   {
-    match->variables[lastvariable].length = strlen(match->variables[lastvariable].ptr);
+    if ( lastvariable >= 0 )
+      match->variables[lastvariable].length = strlen(match->variables[lastvariable].ptr);
     return 1;
   }
-  return !*strptr;   /* full pattern consumed: succeed iff no leftover text */
+  return 0;
 }
 // 1002C8BB: conditional instruction was optimized away because ebx.4<0
 
@@ -24495,8 +24487,9 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
           }
           if ( vars[num].str )
           {
+            ptr = vars[num].str;
             for ( i = 0; i < vars[num].len; ++i )
-              temp[i] = vars[num].str[i];
+              temp[i] = ptr[i];
             temp[i] = 0;
             BotReplaceSynonyms(temp, vcontext);
             if ( len + strlen(temp) >= 150 )
@@ -25848,35 +25841,30 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
 //----- (10030600) --------------------------------------------------------
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 {
-  float v3; // st7
   int i; // edx
-  float v5; // st7
-  float v6; // st6
-  float v7; // st5
   vec3_t maxs; // [esp+14h] [ebp-24h] BYREF — inner-box upper bound (mover.maxs - bot.mins + origin - 4)
   vec3_t mins; // [esp+20h] [ebp-18h] BYREF — inner-box lower bound (mover.mins - bot.maxs + origin + 4)
   vec3_t boxmins; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
 
   AAS_PresenceTypeBoundingBox(4, boxmins, maxs);
-  v3 = goal[4] - maxs[0];
+  mins[0] = goal[4] - maxs[0];
   i = 0;
   mins[1] = goal[5] - maxs[1];
   mins[2] = goal[6] - maxs[2];
   maxs[0] = goal[7] - boxmins[0];
   maxs[1] = goal[8] - boxmins[1];
   maxs[2] = goal[9] - boxmins[2];
-  v5 = v3 + *goal;
+  mins[0] = mins[0] + *goal;
   mins[1] = mins[1] + goal[1];
-  v6 = mins[2] + goal[2];
-  v7 = maxs[0] + *goal;
+  mins[2] = mins[2] + goal[2];
+  maxs[0] = maxs[0] + *goal;
   maxs[1] = maxs[1] + goal[1];
   maxs[2] = maxs[2] + goal[2];
-  maxs[0] = v7 - 4.0f;
+  maxs[0] = maxs[0] - 4.0f;
   maxs[1] = maxs[1] - 4.0f;
   maxs[2] = maxs[2] - 10.0f;
-  mins[0] = v5 - -4.0f;
+  mins[0] = mins[0] - -4.0f;
   mins[1] = mins[1] - -4.0f;
-  mins[2] = v6;
   for (i = 0; i < 3; i++) {
     if (origin[i] < mins[i] || origin[i] > maxs[i])
       return 0;
@@ -26542,6 +26530,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         return 0;
       v13 = *(float *)move - ms->origin[0];
       hordir[0] = v13;
+      hordir[2] = 0.0f;
       hordir[1] = *((float *)move + 1) - ms->origin[1];
       if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
         return 0;
@@ -28496,7 +28485,11 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
     return 0;
   index = token.intvalue;
-  if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, "{") || !PC_ExpectAnyToken(source, token.string) )
+  if ( !PC_ExpectTokenString(source, ")") )
+    return 0;
+  if ( !PC_ExpectTokenString(source, "{") )
+    return 0;
+  if ( !PC_ExpectAnyToken(source, token.string) )
     return 0;
   do
   {
@@ -28989,16 +28982,15 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
        * the (maxweight-minweight) multiply, matching the original order. */
       if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
       {
-        v3 = (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-           * (fs->maxweight - fs->minweight);
+        fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+                    * (fs->maxweight - fs->minweight);
       }
       else
       {
-        v3 = (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-           * (fs->maxweight - fs->minweight)
-           * 0.5;
+        fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+                    * (fs->maxweight - fs->minweight)
+                    * 0.5;
       }
-      fs->weight = v3 + fs->weight;
       if ( fs->weight < fs->minweight )
         fs->weight = fs->minweight;
       else if ( fs->weight > fs->maxweight )
@@ -32092,10 +32084,7 @@ LABEL_165:
   if ( intvalue )
     *intvalue = 0;
   if ( floatvalue )
-  {
     *floatvalue = 0;
-    floatvalue[1] = 0;
-  }
   return 0;
 }
 
