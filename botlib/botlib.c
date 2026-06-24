@@ -17861,7 +17861,10 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   }
   *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
   if ( sub_10021710(entinfo) )
-    goto LABEL_10;
+  {
+    AIEnter_Seek_LTG(bs);
+    return 0;
+  }
   v2 = 102334;
   v7 = 102334;
   if ( libvar_usehook->value != 0.0f )
@@ -17880,14 +17883,17 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   {
     if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
-LABEL_10:
       AIEnter_Seek_LTG(bs);
       return 0;
     }
     if ( libvar_ctf->value != 0.0f )
       BotCTFRetreatGoals(bs);
     goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
-    if ( goal )
+    if ( !goal )
+    {
+      BotChangeViewAngles(bs, bs->thinktime);
+      return 1;
+    }
     {
       v4 = AAS_Time();
       if ( v4 > bs->check_time
@@ -17928,7 +17934,11 @@ LABEL_10:
            * the bfloat result is compared directly with 0.3 (characteristic 4
            * is "aggression": >0.3 attack, <=0.3 dodge). */
           v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
-          if ( v4b <= 0.3 )
+          if ( v4b > 0.3 )
+          {
+            BotAimAtEnemy(bs);
+          }
+          else
           {
             if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v7, (float *)(intptr_t)target) )
             {
@@ -17942,19 +17952,10 @@ LABEL_10:
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
             BotChangeViewAngles(bs, bs->thinktime);
           }
-          else
-          {
-            BotAimAtEnemy(bs);
-          }
         }
         BotCheckAttack(bs);
         return 1;
       }
-    }
-    else
-    {
-      BotChangeViewAngles(bs, bs->thinktime);
-      return 1;
     }
   }
 }
