@@ -23001,13 +23001,17 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
         FreeSource(source);
         return NULL;
       }
-      while ( !PC_CheckTokenString(source, "}") )
+      /* Each random-string list element is a SINGLE quoted string, comma-
+       * separated, brace-terminated.  The original Gladiator reads them with
+       * PC_ExpectTokenType(TT_STRING)+StripDoubleQuotes (NOT BotLoadChatMessage,
+       * which is the Q3 form — Q3 diverges here).  BotLoadChatMessage treats the
+       * commas as message-piece separators and concatenates the whole list,
+       * then fails at '}' ("expected ,, found }").  Restored from objdump
+       * @0x1002BB06 (PC_ExpectTokenType / PC_CheckTokenString("}") /
+       * PC_ExpectTokenString(",")). */
+      while ( PC_ExpectTokenType(source, 1, 0, token.string) )
       {
-        if ( !BotLoadChatMessage(source, token.string) )
-        {
-          FreeSource(source);
-          return NULL;
-        }
+        StripDoubleQuotes(token.string);
         size += sizeof(bot_randomstring_t) + strlen(token.string) + 1;
         if ( pass )
         {
@@ -23019,6 +23023,13 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
           ++random->numstrings;
           randomstring->next = random->firstrandomstring;
           random->firstrandomstring = randomstring;
+        }
+        if ( PC_CheckTokenString(source, "}") )
+          break;
+        if ( !PC_ExpectTokenString(source, ",") )
+        {
+          FreeSource(source);
+          return NULL;
         }
       }
     }
@@ -32354,10 +32365,15 @@ int __cdecl PC_Directive_error(source_t *src)
 //----- (1003CD80) --------------------------------------------------------
 int __cdecl PC_Directive_pragma(source_t *src)
 {
-  _DWORD v3[268]; // [esp+0h] [ebp-430h] BYREF
+  /* IDA rendered the on-stack token_t as `_DWORD v3[268]` (= 1072 bytes, the
+   * 32-bit sizeof(token_t)).  PC_ReadLine writes a full token_t into it, which
+   * is 1088 bytes on 64-bit — a 16-byte stack overflow.  Use the real type so
+   * the buffer grows with the pointer fields (byte-neutral on the 32-bit
+   * oracle: sizeof(token_t)==1072 there). */
+  token_t v3; // [esp+0h] [ebp-430h] BYREF
 
   SourceWarning(src, "#pragma directive not supported");
-  while ( PC_ReadLine(src, v3) )
+  while ( PC_ReadLine(src, &v3) )
     ;
   return 1;
 }
