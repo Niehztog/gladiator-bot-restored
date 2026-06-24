@@ -14564,11 +14564,11 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  n = (__int64)((float)(rand() & 0x7FFF) * 0.000030518509 * (float)aasworld.numareas);
+  n = (__int64)(aasworld.numareas * ((float)(rand() & 0x7FFF) * 0.000030518509f));
   v5 = aasworld.numareas;
   i = 0;
   if ( aasworld.numareas <= 0 )
-    return 0;
+    goto fail;
   while ( 1 )
   {
     if ( n <= 0 )
@@ -14594,12 +14594,14 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
     v5 = aasworld.numareas;
     ++n;
     if ( ++i >= aasworld.numareas )
-      return 0;
+      goto fail;
   }
   v8 = AAS_PointAreaNum(trace.endpos);
   *goalareanum = v8;
   VectorCopy(trace.endpos, goalorigin);
   return 1;
+fail:
+  return 0;
 }
 
 //----- (1001A610) --------------------------------------------------------
