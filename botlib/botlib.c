@@ -6977,7 +6977,7 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   int l; // esi
   double v10; // st7
   float v11; // edx
-  double v12; // st7
+  float v12; // st7
   float *v13; // ecx
   aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
   /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
@@ -7029,7 +7029,7 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
       v12 = start[2];
       *(float *)end = start[0];
       end[1] = start[1];
-      start[2] = start[2] + 0.25f;
+      start[2] = start[2] + 0.25;
       end[2] = v12 - 50.0f;
       trace = AAS_TraceClientBBox(start, (float *)end, 4, -1);
       if ( trace.startsolid )
@@ -26371,15 +26371,17 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
     v6 = dist + 8.0f;
     dist = v6;
     if ( v6 > 100.0f )
-      return 0.0f;
+      goto fail;
   }
   end[0] = trace.endpos[0];
   end[1] = trace.endpos[1];
   end[2] = trace.endpos[2] - 20.0f;
-  v8 = botimport.PointContents((float *)end);   /* IDA-dropped: barrier-jump under-water check */
+  v8 = sub_10003080((float *)end);   /* IDA-dropped: barrier-jump under-water check; direct PointContents-wrapper call */
   if ( (v8 & 0x20) != 0 )
-    return 0.0f;
+    goto fail;
   return dist;
+fail:
+  return 0.0f;
 }
 
 //----- (10031650) --------------------------------------------------------
@@ -26461,7 +26463,6 @@ int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int
 int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
   int v5; // eax
-  char v6; // bl
   int presencetype; // edi
   float v10; // st7
   int v11; // ebx
@@ -26481,7 +26482,6 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   {
     if ( !BotCheckBarrierJump(ms, dir, speed) )
     {
-      v6 = type;
       if ( (type & 2) == 0 || (presencetype = 4, (type & 4) != 0) )
         presencetype = 2;
       hordir[0] = dir[0];
@@ -26492,13 +26492,12 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       {
         if ( BotGapDistance(ms, hordir) > 0.0f )
         {
-          v6 = type | 4;
           type |= 4;
         }
       }
       VectorScale(hordir, speed, (float *)cmdmove);
-      v19 = v6 & 4;
-      if ( (v6 & 4) != 0 )
+      v19 = type & 4;
+      if ( (type & 4) != 0 )
       {
         v10 = 3.0f;
         v20 = ms->thinktime;
@@ -26532,6 +26531,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         return 0;
       v13 = *(float *)move - ms->origin[0];
       hordir[0] = v13;
+      hordir[1] = *((float *)move + 1) - ms->origin[1];
       if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
         return 0;
       if ( v19 )
@@ -30105,7 +30105,6 @@ FILE *Log_Write(char *Format, ...)
 FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
   va_list va;
-  float t;
   int sec_total;
   int hund;
   int min;
@@ -30113,11 +30112,10 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 
   if ( !logfile.fp )
     return logfile.fp;
-  t = *(float *)&botstate.bottime;
-  sec_total = (int)t;
-  hund      = -100 * sec_total - (int)(t * -100.0f);
-  min       = (int)(t * 0.01666666753590107f);
-  hour      = (int)(t * 0.00027777778450399637f);
+  sec_total = (int)*(float *)&botstate.bottime;
+  hund      = -100 * sec_total - (int)(*(float *)&botstate.bottime * -100.0f);
+  min       = (int)(*(float *)&botstate.bottime * 0.01666666753590107f);
+  hour      = (int)(*(float *)&botstate.bottime * 0.00027777778450399637f);
   fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
           logfile.numwrites, hour, min, sec_total, hund);
   va_start(va, Format);
