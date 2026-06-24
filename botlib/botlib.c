@@ -34626,96 +34626,85 @@ int __cdecl WriteFloat(FILE *fp, float value)
 int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure, int indent)
 {
   int result; // eax
-  _DWORD *v6; // ebx
-  int v7; // ebp
-  float *v8; // esi
-  qboolean v9; // cc
-  int Streama; // [esp+14h] [ebp+4h]
-  FILE *Streamb; // [esp+14h] [ebp+4h]
-  int v12; // [esp+20h] [ebp+10h]
+  int i; // ebp (strength-reduced to a byte offset)
+  int num; // reuses the dead Stream param slot [esp+14h]
+  char *p; // esi
+  fielddef_t *fd; // ebx + ebp
 
-  if ( !fputc(Stream, indent) )
+  /* The 0x10001ac3 thunk used at these three sites resolves to WriteIndent
+   * (0x10040E30), not fputc — IDA mislabelled the indirect call. */
+  if ( !WriteIndent(Stream, indent) )
     return 0;
   if ( fprintf(Stream, "{\r\n") < 0 )
     return 0;
-  v12 = indent + 1;
-  v6 = (_DWORD *)def->fields;
-  if ( *v6 )
+  ++indent;
+  for ( i = 0; ((fielddef_t *)def->fields)[i].name; i++ )
   {
-    v7 = 0;
-    do
+    fd = &((fielddef_t *)def->fields)[i];
+    if ( !WriteIndent(Stream, indent) )
+      return 0;
+    if ( fprintf(Stream, "%s\t", fd->name) < 0 )
+      return 0;
+    p = (char *)(structure + fd->offset);
+    if ( (fd->type & 0x100) != 0 )
     {
-      if ( !fputc(Stream, v12) || fprintf(Stream, "%s\t", (const char *)v6[v7]) < 0 )
+      num = fd->maxarray;
+      if ( fprintf(Stream, "{") < 0 )
         return 0;
-      v8 = (float *)(structure + v6[v7 + 1]);
-      if ( (v6[v7 + 2] & 0x100) != 0 )
-      {
-        Streama = v6[v7 + 3];
-        if ( fprintf(Stream, "{") < 0 )
-          return 0;
-      }
-      else
-      {
-        Streama = 1;
-      }
-      v9 = Streama <= 0;
-      for ( Streamb = (FILE *)(Streama - 1); !v9; Streamb = (FILE *)((char *)Streamb - 1) )
-      {
-        switch ( (unsigned __int8)v6[v7 + 2] )
-        {
-          case 1u:
-            if ( fprintf(Stream, "%d", *(char *)v8) < 0 )
-              return 0;
-            v8 = (float *)((char *)v8 + 1);
-            break;
-          case 2u:
-            if ( fprintf(Stream, "%d", *(_DWORD *)v8) < 0 )
-              return 0;
-            ++v8;
-            break;
-          case 3u:
-            if ( !WriteFloat(Stream, *v8) )
-              return 0;
-            ++v8;
-            break;
-          case 4u:
-            if ( fprintf(Stream, "\"%s\"", (const char *)v8) < 0 )
-              return 0;
-            v8 += 20;
-            break;
-          case 6u:
-            /* Nested struct case: recursive call. The original binary thunked
-             * via 0x10001500 → WriteStructWithIndent (0x10040F20). The earlier
-             * PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-            if ( !WriteStructWithIndent(Stream, (structdef_t *)v6[v7 + 6], structure, v12) )
-              return 0;
-            v8 = (float *)((char *)v8 + *(_DWORD *)v6[v7 + 6]);
-            break;
-          default:
-            break;
-        }
-        if ( (v6[v7 + 2] & 0x100) != 0 )
-        {
-          if ( (int)Streamb <= 0 )
-          {
-            if ( fprintf(Stream, "}") < 0 )
-              return 0;
-          }
-          else if ( fprintf(Stream, ",") < 0 )
-          {
-            return 0;
-          }
-        }
-        v9 = (int)Streamb <= 0;
-      }
-      if ( fprintf(Stream, "\r\n") < 0 )
-        return 0;
-      v7 += 7;
-      v6 = (_DWORD *)def->fields;
     }
-    while ( v6[v7] );
+    else
+    {
+      num = 1;
+    }
+    while ( num-- > 0 )
+    {
+      switch ( fd->type & 0xFF )
+      {
+        case 1:
+          if ( fprintf(Stream, "%d", *(char *)p) < 0 )
+            return 0;
+          p += 1;
+          break;
+        case 2:
+          if ( fprintf(Stream, "%d", *(int *)p) < 0 )
+            return 0;
+          p += 4;
+          break;
+        case 3:
+          if ( !WriteFloat(Stream, *(float *)p) )
+            return 0;
+          p += 4;
+          break;
+        case 4:
+          if ( fprintf(Stream, "\"%s\"", p) < 0 )
+            return 0;
+          p += 80;
+          break;
+        case 6:
+          /* Nested struct case: recursive call. The original binary thunked
+           * via 0x10001500 → WriteStructWithIndent (0x10040F20). */
+          if ( !WriteStructWithIndent(Stream, fd->substruct, structure, indent) )
+            return 0;
+          p += fd->substruct->size;
+          break;
+      }
+      if ( (fd->type & 0x100) != 0 )
+      {
+        if ( num > 0 )
+        {
+          if ( fprintf(Stream, ",") < 0 )
+            return 0;
+        }
+        else if ( fprintf(Stream, "}") < 0 )
+        {
+          return 0;
+        }
+      }
+    }
+    if ( fprintf(Stream, "\r\n") < 0 )
+      return 0;
   }
-  result = fputc(Stream, v12 - 1);
+  result = WriteIndent(Stream, indent - 1);
   if ( result )
     return fprintf(Stream, "}\r\n") >= 0;
   return result;
