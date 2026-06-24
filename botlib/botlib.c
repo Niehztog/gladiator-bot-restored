@@ -8128,13 +8128,21 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   float *v6; // ebx
   int v7; // edi
   bsp_pointlight_t *v8; // esi
-  double v9; // st7
+  float v9; // st7
   int i; // [esp+Ch] [ebp-10h]
   vec3_t v12; // [esp+10h] [ebp-Ch] BYREF
   /* On 64-bit, sub_10007150 writes RGB ints into local slots; we can't reuse
    * the (now intptr_t) parameter slots for that purpose like the IDA decomp
-   * did on 32-bit.  Use dedicated int locals instead and feed them by name. */
+   * did on 32-bit.  Use dedicated int locals instead and feed them by name.
+   * The original (and the 32-bit oracle) does NOT pre-zero them — they are
+   * write-only outputs of sub_10007150.  sub_10007150 leaves them unwritten on
+   * its false return (no BSP light data), so on 64-bit we zero-init for safety;
+   * on 32-bit we match the original's no-init form (recovers OUR+3). */
+#if BOTLIB_NEED_SIDEBAND
   int rs = 0, gs = 0, bs_ = 0;
+#else
+  int rs, gs, bs_;
+#endif
 
   v6 = (float *)endpos;
   if ( sub_10007150(start, end, endpos, (_DWORD *)&rs, (_DWORD *)&gs, (_DWORD *)&bs_) )
@@ -8148,7 +8156,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
     v12[1] = v6[1] - v8->origin[1];
     v12[2] = v6[2] - v8->origin[2];
     v9 = v8->radius - VectorLength(v12);
-    if ( v9 > 0.0 )
+    if ( v9 > 0.0f )
     {
       v7 = (__int64)((float)i + v9);
       i = v7;
