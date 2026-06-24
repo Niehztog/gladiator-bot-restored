@@ -6254,9 +6254,7 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
   int lines[3];
   int i, j, line;
 
-  bboxcorners[0][0] = origin[0] + maxs[0];
-  bboxcorners[0][1] = origin[1] + maxs[1];
-  bboxcorners[0][2] = origin[2] + maxs[2];
+  VectorAdd(origin, maxs, bboxcorners[0]);
   bboxcorners[1][0] = origin[0] + mins[0];
   bboxcorners[1][1] = origin[1] + maxs[1];
   bboxcorners[1][2] = origin[2] + maxs[2];
@@ -7014,9 +7012,7 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
         {
           for ( l = -1; l <= 1 && !areanum; ++l )
           {
-            start[0] = ((float *)origin)[0];
-            start[1] = ((float *)origin)[1];
-            start[2] = ((float *)origin)[2];
+            VectorCopy(((float *)origin), start);
             start[0] = (float)k * v25 * 4.0f + start[0];
             start[1] = (float)l * v25 * 4.0f + start[1];
             start[2] = (float)i * 4.0f + start[2];
@@ -7220,9 +7216,7 @@ int __cdecl sub_1000B1F0(float *ref, int target)
     ent = &aasworld.entities[i].i;
     if ( ent->modelindex != target )
       continue;
-    delta[0] = ent->origin[0] - ref[0];
-    delta[1] = ent->origin[1] - ref[1];
-    delta[2] = ent->origin[2] - ref[2];
+    VectorSubtract(ent->origin, ref, delta);
     if ( abs((int)delta[0]) >= 40 )
       continue;
     if ( abs((int)delta[1]) >= 40 )
@@ -16466,9 +16460,7 @@ int sub_1001D420(bot_state_t *bs)
    *    prior entinfo's origin).  Threshold is 0.1 as a double @ds:0x10058130. */
   if ( entinfo.valid )
   {
-    forward[0] = entinfo.origin[0] - entinfo.old_origin[0];
-    forward[1] = entinfo.origin[1] - entinfo.old_origin[1];
-    forward[2] = entinfo.origin[2] - entinfo.old_origin[2];
+    VectorSubtract(entinfo.origin, entinfo.old_origin, forward);
     if ( VectorLength(forward) > 0.1 )
     {
       *(int *)((char *)bs + 0x1138) = *(int *)&forward[0];
@@ -16779,9 +16771,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
           {
             BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
-            dir[0] = target[0] - bs->origin[0];
-            dir[1] = target[1] - bs->origin[1];
-            dir[2] = target[2] - bs->origin[2];
+            VectorSubtract(target, bs->origin, dir);
             vectoangles(dir, bs->ideal_viewangles);
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
           }
@@ -19406,7 +19396,7 @@ void BotAimAtEnemy(bot_state_t *bs)
   double v8; // st7
   double v9; // st7
   double v10; // st7
-  int v11; // eax
+  int passent; // eax
   float v12; // st7
   int v13; // ax
   int v14; // ax
@@ -19506,9 +19496,9 @@ void BotAimAtEnemy(bot_state_t *bs)
       v36 = v32;
       v37 = v33;
       v10 = trace[1] ? entinfo[6] - 16.0f : *(float *)&trace[5] - 8.0f;
-      v11 = bs->entitynum;
+      passent = bs->entitynum;
       v38 = v10;
-      *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299);
+      *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), passent, 100663299);
       v12 = *(float *)&trace[5] - v38;
       if ( fabs(v12) < 50.0 )
       {
