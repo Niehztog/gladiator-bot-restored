@@ -5419,40 +5419,28 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
   aasworld.areasettings[areanum].cluster = clusternum;
   aasworld.areasettings[areanum].clusterareanum = (aasworld.clusters[clusternum].numareas)++;
   area = &aasworld.areas[areanum];
-  i = 0;
-  if ( *((int *)area + 1) > 0 )
+  for ( i = 0; i < *((int *)area + 1); i++ )
   {
-    do
+    facenum = aasworld.faceindex[i + *((_DWORD *)area + 2)];
+    facenum = abs(facenum);
+    v10 = aasworld.faces[facenum].frontarea;
+    face = &aasworld.faces[facenum];
+    if ( v10 == areanum )
     {
-      facenum = aasworld.faceindex[i + *((_DWORD *)area + 2)];
-      facenum = abs(facenum);
-      v10 = aasworld.faces[facenum].frontarea;
-      face = &aasworld.faces[facenum];
-      if ( v10 == areanum )
-      {
-        v12 = *((_DWORD *)face + 5);
-        if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
-          return 0;
-      }
-      else if ( v10 && !AAS_FloodClusterAreas_r(v10, clusternum) )
-      {
+      v12 = *((_DWORD *)face + 5);
+      if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
         return 0;
-      }
-      ++i;
     }
-    while ( i < *((int *)area + 1) );
+    else if ( v10 && !AAS_FloodClusterAreas_r(v10, clusternum) )
+    {
+      return 0;
+    }
   }
-  v14 = 0;
-  if ( aasworld.areasettings[areanum].numreachableareas > 0 )
+  for ( v14 = 0; v14 < aasworld.areasettings[areanum].numreachableareas; v14++ )
   {
-    do
-    {
-      v15 = aasworld.reachability[v14 + aasworld.areasettings[areanum].firstreachablearea].areanum;
-      if ( v15 && !AAS_FloodClusterAreas_r(v15, clusternum) )
-        return 0;
-      ++v14;
-    }
-    while ( v14 < aasworld.areasettings[areanum].numreachableareas );
+    v15 = aasworld.reachability[v14 + aasworld.areasettings[areanum].firstreachablearea].areanum;
+    if ( v15 && !AAS_FloodClusterAreas_r(v15, clusternum) )
+      return 0;
   }
   }
   return 1;
@@ -7282,24 +7270,19 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 
   v6 = 1;
   v7 = 0;
-  if ( aasworld.aas_maxclients >= 1 )
+  for ( ; v6 <= aasworld.aas_maxclients; v6++ )
   {
-    do
+    if ( aasworld.entities[v6].i.valid )
     {
-      if ( aasworld.entities[v6].i.valid )
+      if ( BotEntityVisible(a1, a2, a3, a4, v6) )
       {
-        if ( BotEntityVisible(a1, a2, a3, a4, v6) )
-        {
-          *a6 = v6;
-          ++v7;
-          a6++;
-          if ( v7 >= a5 )
-            break;
-        }
+        *a6 = v6;
+        ++v7;
+        a6++;
+        if ( v7 >= a5 )
+          break;
       }
-      ++v6;
     }
-    while ( v6 <= aasworld.aas_maxclients );
   }
   return v7;
 }
@@ -10073,17 +10056,12 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
   result = 0.0f;
   i = 0;
   area = &aasworld.areas[areanum];
-  if ( *((int *)area + 1) > 0 )
+  for ( ; i < *((int *)area + 1); i++ )
   {
-    do
-    {
-      v4 = aasworld.faceindex[i + *((int *)area + 2)];
-      v5 = abs(v4);
-      if ( (aasworld.faces[v5].faceflags & 4) != 0 )
-        result = AAS_FaceArea(&aasworld.faces[v5]) + result;
-      ++i;
-    }
-    while ( i < *((int *)area + 1) );
+    v4 = aasworld.faceindex[i + *((int *)area + 2)];
+    v5 = abs(v4);
+    if ( (aasworld.faces[v5].faceflags & 4) != 0 )
+      result = AAS_FaceArea(&aasworld.faces[v5]) + result;
   }
   return result;
 }
@@ -10102,21 +10080,16 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
   center[2] = 0.0;
   center[1] = 0.0;
   *center = 0.0;
-  if ( *((int *)face + 2) > 0 )
+  for ( ; i < *((int *)face + 2); i++ )
   {
-    do
-    {
-      v4i = aasworld.edgeindex[i + *((_DWORD *)face + 3)];
-      edge = &aasworld.edges[abs(v4i)];
-      ++i;
-      *center = aasworld.vertexes[*(_DWORD *)edge][0] + *center;
-      center[1] = aasworld.vertexes[*(_DWORD *)edge][1] + center[1];
-      center[2] = aasworld.vertexes[*(_DWORD *)edge][2] + center[2];
-      *center = aasworld.vertexes[*(_DWORD *)(edge + 4)][0] + *center;
-      center[1] = aasworld.vertexes[*(_DWORD *)(edge + 4)][1] + center[1];
-      center[2] = aasworld.vertexes[*(_DWORD *)(edge + 4)][2] + center[2];
-    }
-    while ( i < *((int *)face + 2) );
+    v4i = aasworld.edgeindex[i + *((_DWORD *)face + 3)];
+    edge = &aasworld.edges[abs(v4i)];
+    *center = aasworld.vertexes[*(_DWORD *)edge][0] + *center;
+    center[1] = aasworld.vertexes[*(_DWORD *)edge][1] + center[1];
+    center[2] = aasworld.vertexes[*(_DWORD *)edge][2] + center[2];
+    *center = aasworld.vertexes[*(_DWORD *)(edge + 4)][0] + *center;
+    center[1] = aasworld.vertexes[*(_DWORD *)(edge + 4)][1] + center[1];
+    center[2] = aasworld.vertexes[*(_DWORD *)(edge + 4)][2] + center[2];
   }
   scale = 0.5 / (float)*((int *)face + 2);
   VectorScale((float *)center, scale, (float *)center);
@@ -13571,23 +13544,18 @@ int AAS_ContinueInitReachability(int a1)
     v8 = aasworld.numareas;
     v9 = 1;
     ++aasworld.numreachabilityareas;
-    if ( aasworld.numareas > 1 )
+    for ( ; v9 < aasworld.numareas; v9++ )
     {
-      do
+      if ( i != v9
+        && !AAS_ReachabilityExists(i, v9)
+        && !AAS_Reachability_Swim(i, v9)
+        && !AAS_Reachability_EqualFloorHeight(i, v9)
+        && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, v9)
+        && !AAS_Reachability_Ladder(i, v9) )
       {
-        if ( i != v9
-          && !AAS_ReachabilityExists(i, v9)
-          && !AAS_Reachability_Swim(i, v9)
-          && !AAS_Reachability_EqualFloorHeight(i, v9)
-          && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, v9)
-          && !AAS_Reachability_Ladder(i, v9) )
-        {
-          AAS_Reachability_Jump(i, v9);
-        }
-        v8 = aasworld.numareas;
-        ++v9;
+        AAS_Reachability_Jump(i, v9);
       }
-      while ( v9 < aasworld.numareas );
+      v8 = aasworld.numareas;
     }
     v10 = 1;
     if ( v8 > 1 )
@@ -19319,19 +19287,13 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
   int v2; // esi
 
   v1 = 0;
-  v2 = 0;
-  if ( botstate.num_clients > 0 )
+  for ( v2 = 0; v2 < botstate.num_clients; v2++ )
   {
-    do
+    if ( strlen(144 * v2 + dword_100643A8) )
     {
-      if ( strlen(144 * v2 + dword_100643A8) )
-      {
-        if ( BotSameTeam(bs, v2 + 1) )
-          ++v1;
-      }
-      ++v2;
+      if ( BotSameTeam(bs, v2 + 1) )
+        ++v1;
     }
-    while ( v2 < botstate.num_clients );
   }
   return v1;
 }
@@ -25786,7 +25748,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
       result = (int)(intptr_t)itemconfig;
       if ( ic )
       {
-        li = (levelitem_t *)levelitems;
+        li = levelitems;
         bestweight = 0.0;
         bestitem = 0;
         memset(goal, 0, sizeof(goal));
@@ -27264,7 +27226,7 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   BotClearMoveResult(&moveresult);
   if ( BotOnMover(ms->origin, ms->entitynum, reach) )
   {
-    if ( (float)(int)abs((__int64)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
+    if ( (float)abs((__int64)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
     {
       v4 = reach->end[0] - ms->origin[0];
       dir[2] = 0.0f;
@@ -28216,7 +28178,7 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
   weightconfig_t *v2; // eax
 
   BotFreeWeaponWeights(ws);
-  v2 = (weightconfig_t *)ReadWeightConfig((char *)filename);
+  v2 = ReadWeightConfig((char *)filename);
   ws->weightconfig = v2;
   if ( !v2 )
   {
@@ -28225,7 +28187,7 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
   }
   if ( !weaponconfig )
     return BLERR_CANNOTLOADWEAPONCONFIG;
-  ws->itemweights = WeaponWeightIndex(v2, (weaponconfig_t *)weaponconfig);
+  ws->itemweights = WeaponWeightIndex(v2, weaponconfig);
   return 0;
 }
 
@@ -28245,7 +28207,7 @@ int __cdecl sub_100353C0(const char *modelname)
   weaponinfo_t   *w;
   int             i;
 
-  cfg = (weaponconfig_t *)weaponconfig;
+  cfg = weaponconfig;
   if ( !cfg )
     return -1;
   for ( i = 0; i < cfg->numweapons; i++ )
@@ -28271,7 +28233,7 @@ const char *__cdecl sub_10035430(const char *modelname)
   weaponinfo_t   *w;
   int             i;
 
-  cfg = (weaponconfig_t *)weaponconfig;
+  cfg = weaponconfig;
   if ( !cfg )
     return default_name;
   for ( i = 0; i < cfg->numweapons; i++ )
@@ -28306,7 +28268,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
   float weight; // st7
   float bestweight; // [esp+10h] [ebp-4h]
 
-  wc = (weaponconfig_t *)weaponconfig;
+  wc = weaponconfig;
   bestweight = 0.0f;
   bestweaponinfo = 0;
   if ( weaponconfig )
@@ -28690,7 +28652,7 @@ LABEL_25:
      }
      if ( !strcmp(token.string, "switch") )
      {
-       sep = (fuzzyseperator_t *)ReadFuzzySeperators_r(src);
+       sep = ReadFuzzySeperators_r(src);
        if ( !sep )
        {
          FreeWeightConfig2(cfg);
@@ -31228,7 +31190,7 @@ int __cdecl PC_Directive_define(source_t *source)
           SourceError(source, "two the same define parameters");
           return 0;
         }
-        t = (token_t *)PC_CopyToken(&token);
+        t = PC_CopyToken(&token);
         PC_ClearTokenWhiteSpace(t);
         t->next = NULL;
         if ( last )
@@ -31257,7 +31219,7 @@ int __cdecl PC_Directive_define(source_t *source)
   last = NULL;
   do
   {
-    t = (token_t *)PC_CopyToken(&token);
+    t = PC_CopyToken(&token);
     PC_ClearTokenWhiteSpace(t);
     t->next = NULL;
     if ( last )
