@@ -3215,7 +3215,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
            * v114[3] is plane normal (was v114/v115/v116), v148/v149 are BSP extents. */
           {
             float *_a6 = (float *)a6;
-            float *_a7 = (float *)a7;
+            float *_a7 = a7;
             int _j;
             for (_j = 0; _j < 3; _j++) {
               if (v114[_j] <= 0.0f) {
@@ -4154,7 +4154,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
     return 0;
 
   for (link = linkhead; link && count < maxcount; link = (bsp_link_t *)*(int *)((char *)link + 0x10)) {
-    ent_link = (bsp_link_t *)dword_10069584[link->leafnum];
+    ent_link = dword_10069584[link->leafnum];
     if (!ent_link)
       continue;
     out = &list[count];
@@ -4910,8 +4910,8 @@ int sub_10007460(void)
       v76 = 3;
       do
       {
-        *((float *)v75 - 6) = LittleFloat(*((float *)v75 - 6));
-        *((float *)v75 - 3) = LittleFloat(*((float *)v75 - 3));
+        *(v75 - 6) = LittleFloat(*(v75 - 6));
+        *(v75 - 3) = LittleFloat(*(v75 - 3));
         *v75 = LittleFloat(*v75);
         ++v75;
         --v76;
@@ -5031,7 +5031,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
     fclose(Stream);
     return 0;
   }
-  v6 = (void *)GetClearedMemory(ElementSize);
+  v6 = GetClearedMemory(ElementSize);
   if ( fread_locked(v6, ElementSize, 1u, Stream) != 1 )
   {
     AAS_Error("can't read bsp lump %s\n", ArgList);
@@ -5403,7 +5403,7 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
     AAS_Error("AAS_FloodClusterAreas_r: areanum out of range");
     return 0;
   }
-  if ( (int)aasworld.areasettings[areanum].cluster > 0 )
+  if ( aasworld.areasettings[areanum].cluster > 0 )
   {
     if ( aasworld.areasettings[areanum].cluster != clusternum )
     {
@@ -5508,7 +5508,7 @@ void __cdecl AAS_NumberClusterPortals(int clusternum)
   aas_portal_t *portal;
 
   cluster = &aasworld.clusters[clusternum];
-  for ( i = 0; i < (int)cluster->numreachabilityareas; i++ )
+  for ( i = 0; i < cluster->numreachabilityareas; i++ )
   {
     portalnum = aasworld.portalindex[cluster->firstportal + i];
     portal = &aasworld.portals[portalnum];
@@ -6037,13 +6037,13 @@ int AAS_InitClustering()
       AAS_FindPossiblePortals();
       if ( aasworld.portals )
         FreeMemory(aasworld.portals);
-      aasworld.portals = (void *)GetClearedMemory(1310720);
+      aasworld.portals = GetClearedMemory(1310720);
       if ( aasworld.portalindex )
         FreeMemory(aasworld.portalindex);
       aasworld.portalindex = (int *)GetClearedMemory(0x40000);
       if ( aasworld.clusters )
         FreeMemory(aasworld.clusters);
-      aasworld.clusters = (void *)GetClearedMemory(786432);
+      aasworld.clusters = GetClearedMemory(786432);
       do
       {
         do
@@ -7147,7 +7147,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   i = 0;
   while ( 1 )
   {
-    if ( AAS_inPVS((float *)a2, middle) )
+    if ( AAS_inPVS(a2, middle) )
     {
     /* default: trace from viewer (a2) to entity middle */
     VectorCopy(((float *)a2), start);
@@ -7163,7 +7163,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
-    fromcontents = sub_10003080((float *)a2);
+    fromcontents = sub_10003080(a2);
     if ( (fromcontents & 0x38) != 0 )
     {
       if ( (contents_mask & 0x38) == 0 )
@@ -7179,7 +7179,7 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     /* if trace hit a translucent water/slime surface, retrace through it */
     if ( (LOBYTE(trace[19]) & 0x38) != 0 && (LOBYTE(trace[17]) & 0x30) != 0 )
-      *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
+      *(bsp_trace_t *)trace = AAS_Trace((&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
     if ( trace[2] >= 1.0f || LODWORD(trace[20]) == hitent )
       return 1;
     /* try alternate z-positions: foot, then head */
@@ -7662,7 +7662,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     fclose(Stream);
     return 0;
   }
-  v4 = (void *)GetClearedMemory(ElementCount);
+  v4 = GetClearedMemory(ElementCount);
   if ( fread_locked(v4, 1u, ElementCount, Stream) != ElementCount )
   {
     AAS_Error("can't read aas lump\n");
@@ -9370,7 +9370,7 @@ char *__cdecl AAS_ClientMovementPrediction(
       plane = (float *)AAS_PlaneFromNum(trace.planenum);
       if ( plane[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
       {
-        VectorMA(org, -0.25f, (float *)plane, start);
+        VectorMA(org, -0.25f, plane, start);
         stepend[0] = start[0];
         stepend[1] = start[1];
         stepend[2] = start[2];
@@ -9398,12 +9398,12 @@ char *__cdecl AAS_ClientMovementPrediction(
         }
       }
       backoff_left = (float)(-((float)left_test_vel[1] * (float)plane[1] + (float)left_test_vel[2] * (float)plane[2] + (float)left_test_vel[0] * (float)*plane));
-      VectorMA(left_test_vel, backoff_left, (float *)plane, left_test_vel);
+      VectorMA(left_test_vel, backoff_left, plane, left_test_vel);
       v32 = (float)frame_test_vel[1] * (float)plane[1];
       v33 = (float)frame_test_vel[2] * (float)plane[2];
       old_velz = frame_test_vel[2];
       backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*plane));
-      VectorMA(frame_test_vel, backoff_frame, (float *)plane, frame_test_vel);
+      VectorMA(frame_test_vel, backoff_frame, plane, frame_test_vel);
       if ( plane[2] <= (float)phys_maxsteepness )
       {
         landed = onground;
@@ -10307,7 +10307,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   while ( v2 < 3 );
   if ( area1->numfaces <= 0 )
     return 0;
-  v7 = (int *)aasworld.faceindex;
+  v7 = aasworld.faceindex;
   for ( i = 0; i < area1->numfaces; ++i )
   {
     v8 = v7[area1->firstface + i];
@@ -10322,7 +10322,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
       v12 = sub_10003080((float *)start);   /* IDA-dropped: water-edge contents check */
       if ( (v12 & 0x38) == 0 )
       {
-        v7 = (int *)aasworld.faceindex;
+        v7 = aasworld.faceindex;
         continue;
       }
       face1 = &aasworld.faces[face1num];
@@ -11150,7 +11150,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           *((_WORD *)v45 + 20) = 1;
           if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
             *((_WORD *)v45 + 20) += 300;
-          ((aas_reachabilitynode_t *)v45)->next = (aas_reachabilitynode_t *)areareachability[area1num];
+          ((aas_reachabilitynode_t *)v45)->next = areareachability[area1num];
           areareachability[area1num] = (aas_reachabilitynode_t *)v45;
           if ( !AAS_NearbySolidOrGap((float *)v45 + 3, (float *)v45 + 6) )
             *((_WORD *)v45 + 20) += 400;
@@ -11217,7 +11217,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
-          ((aas_reachabilitynode_t *)v55)->next = (aas_reachabilitynode_t *)areareachability[v48];
+          ((aas_reachabilitynode_t *)v55)->next = areareachability[v48];
           areareachability[v48] = (aas_reachabilitynode_t *)v55;
           ++reach_barrier;
           return 1;
@@ -11241,7 +11241,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++reach_walk;
           return 1;
         }
-        v114 = -(int)AAS_FallDamageDistance();
+        v114 = -AAS_FallDamageDistance();
         if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(v49) )
         {
           VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
@@ -11585,7 +11585,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart[0] = *(float *)v1;
+                              beststart[0] = *v1;
                               beststart[1] = v1[1];
                               bestdist = v39;
                               beststart[2] = v1[2];
@@ -11608,7 +11608,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart[0] = *(float *)v2;
+                              beststart[0] = *v2;
                               beststart[1] = v2[1];
                               bestdist = v39;
                               beststart[2] = v2[2];
@@ -11633,7 +11633,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             {
                               VectorCopy(v80_vec, beststart);
                               bestdist = v39;
-                              bestend[0] = *(float *)v3;
+                              bestend[0] = *v3;
                               bestend[1] = v3[1];
                               bestend[2] = v3[2];
                             }
@@ -11660,7 +11660,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             beststart[1] = v73_vec[1];
 LABEL_60:
                             beststart[2] = v40;
-                            bestend[0] = *(float *)v4;
+                            bestend[0] = *v4;
                             bestend[1] = v4[1];
                             bestend[2] = v4[2];
                           }
@@ -11680,33 +11680,33 @@ LABEL_61:
                       v39 = VectorDistance(v1, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *(float *)v1;
+                        beststart[0] = *v1;
                         beststart[1] = v1[1];
                         beststart[2] = v1[2];
                         bestdist = v39;
-                        bestend[0] = *(float *)v3;
+                        bestend[0] = *v3;
                         bestend[1] = v3[1];
                         bestend[2] = v3[2];
                       }
                       v39 = VectorDistance(v1, v4);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *(float *)v1;
+                        beststart[0] = *v1;
                         beststart[1] = v1[1];
                         beststart[2] = v1[2];
                         bestdist = v39;
-                        bestend[0] = *(float *)v4;
+                        bestend[0] = *v4;
                         bestend[1] = v4[1];
                         bestend[2] = v4[2];
                       }
                       v39 = VectorDistance(v2, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *(float *)v2;
+                        beststart[0] = *v2;
                         beststart[1] = v2[1];
                         beststart[2] = v2[2];
                         bestdist = v39;
-                        bestend[0] = *(float *)v3;
+                        bestend[0] = *v3;
                         bestend[1] = v3[1];
                         bestend[2] = v3[2];
                       }
@@ -11714,7 +11714,7 @@ LABEL_61:
                       if ( v39 >= bestdist )
                         goto LABEL_61;
                       bestdist = v39;
-                      beststart[0] = *(float *)v2;
+                      beststart[0] = *v2;
                       beststart[1] = v2[1];
                       v40 = v2[2];
                       goto LABEL_60;
@@ -12074,8 +12074,8 @@ while ( 1 )
       if ( ++l >= v14 )
         goto LABEL_16;
     }
-    face1area = AAS_FaceArea((char *)v83);
-    face2area = AAS_FaceArea((char *)face2);
+    face1area = AAS_FaceArea(v83);
+    face2area = AAS_FaceArea(face2);
     if ( face1area > (float)bestface1area && face2area > bestface2area )
     {
       bestface1area = face1area;
@@ -12149,13 +12149,13 @@ area2 = v85;
             VectorNormalize(edgecross);
             VectorMA(mid, -32.0, edgecross, mid);
             VectorMA(mid2, 32.0, edgecross, mid2);
-            v66 = (float)(int)abs((__int64)plane1[2]) < 0.1;
-            ladderface2vertical = (float)(int)abs((__int64)plane2[2]) < 0.1;
+            v66 = (float)abs((__int64)plane1[2]) < 0.1;
+            ladderface2vertical = (float)abs((__int64)plane2[2]) < 0.1;
             if ( v66 )
             {
               if ( ladderface2vertical
                 && *plane2 * *plane1 + plane2[2] * plane1[2] + plane2[1] * plane1[1] > 0.7
-                && (float)(int)abs((__int64)edgedir[2]) < 0.7 )
+                && (float)abs((__int64)edgedir[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 v33 = v32;
@@ -12168,7 +12168,7 @@ area2 = v85;
                   v32->reach.start[0] = mid[0];
                   v32->reach.start[1] = mid[1];
                   v32->reach.start[2] = mid[2];
-                  VectorMA(mid2, -3.0, (float *)plane1, v32->reach.end);
+                  VectorMA(mid2, -3.0, plane1, v32->reach.end);
                   v33->reach.traveltype = 6;
                   v33->reach.traveltime = 10;
                   v33->next = areareachability[area1num];
@@ -12185,7 +12185,7 @@ area2 = v85;
                     v35->reach.start[0] = mid2[0];
                     v35->reach.start[1] = mid2[1];
                     v35->reach.start[2] = mid2[2];
-                    VectorMA(mid, -3.0, (float *)plane1, v35->reach.end);
+                    VectorMA(mid, -3.0, plane1, v35->reach.end);
                     v36->reach.traveltype = 6;
                     v36->reach.traveltime = 10;
                     v36->next = areareachability[area2num];
@@ -12212,7 +12212,7 @@ area2 = v85;
                   v39->reach.end[1] = mid2[1];
                   v39->reach.end[2] = mid2[2];
                   v39->reach.end[2] = mid2[2] + 16;
-                  VectorMA(v39->reach.end, -15.0, (float *)plane1, v39->reach.end);
+                  VectorMA(v39->reach.end, -15.0, plane1, v39->reach.end);
                   v40->reach.traveltype = 6;
                   v40->reach.traveltime = 10;
                   v40->next = areareachability[area1num];
@@ -12288,7 +12288,7 @@ area2 = v85;
                   {
                     v58 = &aasworld.faces[abs(*v57)];
                     if ( (v58[4] & 2) != 0
-                      && (float)(int)abs((__int64)aasworld.planes[*(_DWORD *)v58].normal[2]) < 0.1 )
+                      && (float)abs((__int64)aasworld.planes[*(_DWORD *)v58].normal[2]) < 0.1 )
                     {
                       break;
                     }
@@ -12756,7 +12756,7 @@ LABEL_30:
                   *((_WORD *)v21 + 20) = 50;
                 v27 = v33;
                 i = 9999;
-                ((aas_reachabilitynode_t *)v21)->next = (aas_reachabilitynode_t *)areareachability[LODWORD(v33)];
+                ((aas_reachabilitynode_t *)v21)->next = areareachability[LODWORD(v33)];
                 areareachability[LODWORD(v27)] = (aas_reachabilitynode_t *)v21;
                 ++reach_elevator;
               }
@@ -13102,8 +13102,8 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   area1 = (float *)(&aasworld.areas[ArgList]);
   if ( *((float *)area2 + 8) < (float)area1[5] )
     return 0;
-  centerorg[0] = *((float *)area1 + 9);
-  centerorg[1] = *((float *)area1 + 10);
+  centerorg[0] = *(area1 + 9);
+  centerorg[1] = *(area1 + 10);
   centerorg[2] = area1[11];
   if ( !AAS_PointAreaNum(centerorg) )
     Log_Write("area %d center %f %f %f in solid?", ArgList, centerorg[0],
@@ -14649,7 +14649,7 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
   aas_area_t *area;
   aas_face_t *face;
 
-  ((int *)(intptr_t)clusterareas)[numclusterareas] = areanum;
+  ((int *)clusterareas)[numclusterareas] = areanum;
   numclusterareas++;
   *(_DWORD *)(midrangeareas + 8 * areanum) = 0;
   area = &aasworld.areas[areanum];
@@ -14772,8 +14772,8 @@ int __cdecl AAS_AlternativeRouteGoals(
   baseline_travel = (unsigned short)AAS_AreaTravelTimeToGoalArea(
       startareanum, goalareanum, travelflags);
 
-  flagtbl     = (char *)(intptr_t)midrangeareas;
-  visit_stack = (int  *)(intptr_t)clusterareas;
+  flagtbl     = (char *)midrangeareas;
+  visit_stack = (int  *)clusterareas;
 
   /* Zero candidate flag table: 8 bytes per area. */
   memset(flagtbl, 0, 8 * aasworld.numareas);
@@ -14788,14 +14788,14 @@ int __cdecl AAS_AlternativeRouteGoals(
       if ( (as_byte[0] & 0x20)
         && AAS_AreaReachability(areanum) )
       {
-        travel_to_start = (short)AAS_AreaTravelTimeToGoalArea(
+        travel_to_start = AAS_AreaTravelTimeToGoalArea(
             startareanum, areanum, travelflags);
         if ( travel_to_start )
         {
           threshold = (float)(unsigned short)baseline_travel * 1.5;
           if ( (float)(unsigned short)travel_to_start <= threshold )
           {
-            travel_to_goal = (short)AAS_AreaTravelTimeToGoalArea(
+            travel_to_goal = AAS_AreaTravelTimeToGoalArea(
                 areanum, goalareanum, travelflags);
             if ( travel_to_goal
               && (float)(unsigned short)travel_to_goal <= threshold )
@@ -15682,7 +15682,7 @@ void *__cdecl sub_1001C210(int *gate)
     if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
     plane = &aasworld.planes[planenum];
-    if ( AAS_InsideFace((aas_face_t *)face, (float *)plane, (float *)((char *)gate + 8), 0.01f) )
+    if ( AAS_InsideFace(face, (float *)plane, (float *)((char *)gate + 8), 0.01f) )
       return face;
   }
   return 0;
@@ -16466,7 +16466,7 @@ int sub_1001D420(bot_state_t *bs)
   /* 1. Look up target name → entnum.  AAS_EntityInfo writes scratch and
    *    returns a pointer to copy from. */
   entnum = ClientFromName((const char *)((char *)bs + 0x1124)) + 1;
-  *(aas_entityinfo_t *)&entinfo = AAS_EntityInfo(entnum);
+  *(&entinfo) = AAS_EntityInfo(entnum);
   if ( !entinfo.valid )
     return (int)((char *)bs + 0x1150);
   /* 2. Validate the entity sits in a reachable AAS area (origin @ +0x10). */
@@ -16483,7 +16483,7 @@ int sub_1001D420(bot_state_t *bs)
    *    second AAS_EntityInfo OVERWRITES the same `entinfo` block — current
    *    origin has already been saved to bs+0x1144 by step 3. */
   prevent_entnum = ClientFromName((const char *)((char *)bs + 0x10F0)) + 1;
-  *(aas_entityinfo_t *)&entinfo = AAS_EntityInfo(prevent_entnum);
+  *(&entinfo) = AAS_EntityInfo(prevent_entnum);
   /* 5. Velocity = (entinfo.origin - entinfo.old_origin) of the second target.
    *    Both operands come from the SAME snapshot (NOT current_origin minus a
    *    prior entinfo's origin).  Threshold is 0.1 as a double @ds:0x10058130. */
@@ -19276,11 +19276,11 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
         v13 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
         v14 = strchr(v13, 47);
         if ( !v14 )
-          v14 = (char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
+          v14 = ClientSkin(*(_DWORD *)((char *)bs + 4));
         v15 = (const char *)ClientSkin(v2 - 1);
         v16 = strchr(v15, 47);
         if ( !v16 )
-          v16 = (char *)ClientSkin(v2 - 1);
+          v16 = ClientSkin(v2 - 1);
         if ( !_strcmpi(v14, v16) )
           return 1;
       }
@@ -19505,7 +19505,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v40 = v5;
     v41 = v8;
     v41 = v8 + wi->offset[2];
-    *(bsp_trace_t *)trace = AAS_Trace((float*)(&v39), (float*)mins, (float*)maxs, (float*)(&v32), v7, 100663299);
+    *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)mins, (float*)maxs, (float*)(&v32), v7, 100663299);
     if ( *(float *)&trace[2] <= 1.0f && trace[20] != LODWORD(entinfo[3]) )
       v34 = v34 + 16.0f;
     if ( wi->speed != 0.0f && aim_skill > 0.4 )
@@ -19522,20 +19522,20 @@ void BotAimAtEnemy(bot_state_t *bs)
       dir[1] = entinfo[5] - entinfo[14];
       v9 = VectorNormalize(dir);
       v22 = dist / wi->speed * (v9 / entinfo[2]);
-      VectorMA((float *)&entinfo[4], v22, dir, (float *)&v32);
+      VectorMA((&entinfo[4]), v22, dir, (float *)&v32);
     }
     if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > entinfo[6] )
     {
       *(float *)end = entinfo[4];
       end[1] = entinfo[5];
       end[2] = entinfo[6] - 64.0f;
-      *(bsp_trace_t *)trace = AAS_Trace((float*)(&entinfo[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), SLODWORD(entinfo[3]), 100663299);
+      *(bsp_trace_t *)trace = AAS_Trace((&entinfo[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), SLODWORD(entinfo[3]), 100663299);
       v36 = v32;
       v37 = v33;
       v10 = trace[1] ? entinfo[6] - 16.0f : *(float *)&trace[5] - 8.0f;
       v11 = bs->entitynum;
       v38 = v10;
-      *(bsp_trace_t *)trace = AAS_Trace((float*)(&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299);
+      *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), v11, 100663299);
       v12 = *(float *)&trace[5] - v38;
       if ( fabs(v12) < 50.0 )
       {
@@ -19551,7 +19551,7 @@ void BotAimAtEnemy(bot_state_t *bs)
           dir[2] = *(float *)&trace[5] - v41;
           if ( VectorLength(dir) > 150.0f )
           {
-            *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&entinfo[4]), SLODWORD(entinfo[3]), 100663299);
+            *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (&entinfo[4]), SLODWORD(entinfo[3]), 100663299);
             if ( *(float *)&trace[2] >= 1.0f )
             {
               v32 = v36;
@@ -19699,8 +19699,8 @@ void BotCheckAttack(bot_state_t *bs)
           {
             if ( (LOBYTE(trace[19]) & 2) == 0
               || (*(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy),
-                  *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
-                                    (float*)(&entinfo[4]), bs->entitynum, 100663299),
+                  *(bsp_trace_t *)trace = AAS_Trace((&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
+                                    (&entinfo[4]), bs->entitynum, 100663299),
                   LODWORD(trace[20]) == bs->enemy) )
             {
               if ( (wi->flags & 1) != 0 )
@@ -19961,7 +19961,7 @@ void __cdecl sub_10025070(void)
     if ( !strcmp(classname, "func_button") )
     {
       model_str = (const char *)AAS_ValueForBSPEpairKey(ent, "model");
-      modelnum  = IndexFromModel((char *)model_str);
+      modelnum  = IndexFromModel(model_str);
       if ( !modelnum )
         modelnum = atoi(model_str + 1);
 
@@ -21255,7 +21255,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 
   v1 = a1;
   v2 = &bs->chatstate;
-  Str2 = (char *)ClientName(bs->client);
+  Str2 = ClientName(bs->client);
   while ( 1 )
   {
     v3 = BotNextConsoleMessage(v2);
@@ -21366,11 +21366,11 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
   if ( bs->inuse_marker )
   {
     EA_Command(bs->client, "gender",
-               (char *)Characteristic_String(BotCharacter(bs), 3), (char *)0);
+               Characteristic_String(BotCharacter(bs), 3), (char *)0);
     if ( LibVarValue("altnames", (char *)"0") != 0.0f )
     {
       EA_Command(bs->client, "name",
-                 (char *)Characteristic_String(BotCharacter(bs), 1), (char *)0);
+                 Characteristic_String(BotCharacter(bs), 1), (char *)0);
     }
     bs->inuse_marker = 0;
   }
@@ -21592,7 +21592,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   do
   {
     AngleDifference(*(v3 - 6), *(v3 - 3));
-    v5 = (float)(int)abs((__int64)v5);
+    v5 = (float)abs((__int64)v5);
     if ( v5 > *v3 )
     {
       v6 = v11 + *v3;
@@ -22120,7 +22120,7 @@ LABEL_39:
       FreeSource(v6);
       if ( !v17 )
       {
-        botimport.Print(PRT_ERROR, "couldn't find character %s in %s\n", (const char *)a2, file_ref.path);
+        botimport.Print(PRT_ERROR, "couldn't find character %s in %s\n", a2, file_ref.path);
         return 0;
       }
       if ( !v4 )
@@ -22138,9 +22138,9 @@ LABEL_39:
       if ( v4 >= 2 )
       {
         if ( file_ref.filelen )
-          botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", (const char *)a2, file_ref.path, Destination);
+          botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, Destination);
         else
-          botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", (const char *)a2, Destination);
+          botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
         return ch;
       }
     }
@@ -22152,7 +22152,7 @@ LABEL_39:
       StripDoubleQuotes(token.string);
       if ( !PC_ExpectTokenString(source, "{") )
         goto LABEL_52;
-      if ( strcmp(token.string, (const char *)a2) )
+      if ( strcmp(token.string, a2) )
       {
         v10 = 1;
         while ( 1 )
@@ -24219,7 +24219,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
         botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", chatname, file_ref.path, chatfile);
       else
         botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", chatname, chatfile);
-      BotCheckInitialChatIntegrety((chatlist_t *)list);
+      BotCheckInitialChatIntegrety(list);
       return (int *)list;
     }
     else
@@ -24253,7 +24253,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
     BotFreeChatTree(list);
     return 0;
   }
-  BotCheckInitialChatIntegrety((chatlist_t *)list);
+  BotCheckInitialChatIntegrety(list);
   return (int *)list;
 #else
   source_t      *src;
@@ -25016,7 +25016,7 @@ void BotShutdownChatAI()
     FreeMemory(synonyms);
   synonyms = 0;
   if ( replychats )
-    BotFreeReplyChat((bot_replychat_t *)replychats);
+    BotFreeReplyChat(replychats);
   replychats = 0;
 }
 
@@ -25297,7 +25297,7 @@ char *__cdecl BotGoalName(int number)
 
   if ( !itemconfig )
     return &byte_1006294C;
-  for ( v1 = (levelitem_t *)levelitems; v1; v1 = v1->next )
+  for ( v1 = levelitems; v1; v1 = v1->next )
   {
     if ( v1->number == number )
       return (char *)&itemconfig->items[v1->iteminfo];
@@ -25380,7 +25380,7 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 
   if ( !itemconfig )
     return -1;
-  li = (levelitem_t *)levelitems;
+  li = levelitems;
   if ( !li )
     return -1;
   while ( li->number <= index || _strcmpi(name, itemconfig->items[li->iteminfo].name) )
@@ -25417,7 +25417,7 @@ int BotUpdateEntityItems()
   vec3_t v21; // [esp+14h] [ebp-104h] BYREF
   float v22[31]; // [esp+20h] [ebp-F8h] BYREF
 
-  v0 = (levelitem_t *)levelitems;
+  v0 = levelitems;
   if ( v0 )
   {
     do
@@ -25449,7 +25449,7 @@ int BotUpdateEntityItems()
     *(aas_entityinfo_t *)v22 = AAS_EntityInfo(v3);
     if ( v22[4] != v22[13] || v22[5] != v22[14] || v22[6] != v22[15] )
       goto LABEL_31;
-    v5 = (levelitem_t *)levelitems;
+    v5 = levelitems;
     if ( !v5 )
       goto LABEL_24;
     while ( 1 )
@@ -25652,7 +25652,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
       ic = itemconfig;
       if ( !itemconfig )
         return 0;
-      li = (levelitem_t *)levelitems;
+      li = levelitems;
       bestweight = 0.0;
       bestitem = 0;
       memset(goal, 0, sizeof(goal));
@@ -32425,7 +32425,7 @@ int __cdecl PC_Directive_eval(source_t *src)
   result = PC_Evaluate(src, &value, 0, 1);
   if ( !result )
     return result;
-  v2 = (int)((source_t *)src)->scriptstack;
+  v2 = (int)(src)->scriptstack;
   token.line = ((script_t *)v2)->line;
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
@@ -32450,7 +32450,7 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
   result = PC_Evaluate(src, 0, &value, 0);
   if ( !result )
     return result;
-  v2 = (int)((source_t *)src)->scriptstack;
+  v2 = (int)(src)->scriptstack;
   token.line = ((script_t *)v2)->line;
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
@@ -33369,7 +33369,7 @@ void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *float
       }
       if ( dotfound )
       {
-        *floatvalue = (double)((char)*p - 48) / (double)dotfound + *floatvalue;
+        *floatvalue = (double)((*p) - 48) / (double)dotfound + *floatvalue;
         dotfound *= 10;
       }
       else
@@ -33442,7 +33442,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 
   len = 0;
   token->type = 3;
-  v4 = ((script_t *)script)->script_p;
+  v4 = (script)->script_p;
   v5 = *v4;
   if ( *v4 == 48 )
   {
@@ -33450,12 +33450,12 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     if ( v6 == 120 || v6 == 88 )
     {
       token->string[0] = 48;
-      v7 = (_BYTE *)(((script_t *)script)->script_p + 1);
-      ((script_t *)script)->script_p = v7;
+      v7 = (_BYTE *)((script)->script_p + 1);
+      (script)->script_p = v7;
       token->string[1] = *v7;
-      v8 = (char *)(((script_t *)script)->script_p + 1);
+      v8 = (char *)((script)->script_p + 1);
       len = 2;
-      ((script_t *)script)->script_p = v8;
+      (script)->script_p = v8;
       while ( 1 )
       {
         v9 = *v8;
@@ -33463,8 +33463,8 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
           break;
         token->string[len] = v9;
         ++len;
-        v10 = ((script_t *)script)->script_p + 1;
-        ((script_t *)script)->script_p = v10;
+        v10 = (script)->script_p + 1;
+        (script)->script_p = v10;
         v8 = (char *)v10;
         if ( len >= 1024 )
         {
@@ -33481,12 +33481,12 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     if ( v13 == 98 || v13 == 66 )
     {
       token->string[0] = 48;
-      v14 = (_BYTE *)(((script_t *)script)->script_p + 1);
-      ((script_t *)script)->script_p = v14;
+      v14 = (_BYTE *)((script)->script_p + 1);
+      (script)->script_p = v14;
       len = 2;
       token->string[1] = *v14;
-      v15 = (char *)(((script_t *)script)->script_p + 1);
-      ((script_t *)script)->script_p = v15;
+      v15 = (char *)((script)->script_p + 1);
+      (script)->script_p = v15;
       while ( 1 )
       {
         v16 = *v15;
@@ -33494,8 +33494,8 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
           break;
         token->string[len] = v16;
         ++len;
-        v17 = ((script_t *)script)->script_p + 1;
-        ((script_t *)script)->script_p = v17;
+        v17 = (script)->script_p + 1;
+        (script)->script_p = v17;
         v15 = (char *)v17;
         if ( len >= 1024 )
         {
@@ -33518,9 +33518,9 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     {
       while ( 1 )
       {
-        token->string[++len - 1] = *(_BYTE *)((script_t *)script)->script_p;
-        v20 = (char *)(((script_t *)script)->script_p + 1);
-        ((script_t *)script)->script_p = v20;
+        token->string[++len - 1] = *(_BYTE *)(script)->script_p;
+        v20 = (char *)((script)->script_p + 1);
+        (script)->script_p = v20;
         if ( len >= 1024 )
         {
           ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
@@ -33552,12 +33552,12 @@ LABEL_40:
   i = 2;
   do
   {
-    v22 = ((script_t *)script)->script_p;
+    v22 = (script)->script_p;
     v23 = *v22;
     if ( *v22 == 108 )
     {
 LABEL_50:
-      ((script_t *)script)->script_p = v22 + 1;
+      (script)->script_p = v22 + 1;
       v24 = token->subtype | 0x2000;
       goto LABEL_51;
     }
@@ -33568,7 +33568,7 @@ LABEL_50:
     }
     else if ( v23 == 117 || v23 == 85 && (token->subtype & 0x4800) == 0 )
     {
-      ((script_t *)script)->script_p = v22 + 1;
+      (script)->script_p = v22 + 1;
       v24 = token->subtype | 0x4000;
 LABEL_51:
       token->subtype = v24;
@@ -33695,9 +33695,9 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
   char v3; // dl
 
   len = 0;
-  while ( *((script_t *)script)->script_p > 32 )
+  while ( *(script)->script_p > 32 )
   {
-    v3 = *(_BYTE *)((script_t *)script)->script_p;
+    v3 = *(_BYTE *)(script)->script_p;
     if ( v3 == 59 )
       break;
     if ( len >= 1024 )
@@ -33706,10 +33706,10 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
       return 0;
     }
     ((char *)token)[len++] = v3;
-    ((script_t *)script)->script_p = (intptr_t)((char *)((script_t *)script)->script_p + 1);
+    (script)->script_p = (intptr_t)((script)->script_p + 1);
   }
   ((char *)token)[len] = 0;
-  memcpy(&((script_t *)script)->token, (void *)token, 0x430u);
+  memcpy(&(script)->token, (void *)token, 0x430u);
   return 1;
 }
 
@@ -33870,7 +33870,7 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
     if ( token->subtype != subtype )
     {
       ScriptError(script, "expected %s, found %s",
-                  ((punctuation_t *)script->punctuations)[subtype], token);
+                  (script->punctuations)[subtype], token);
       return 0;
     }
   }
@@ -35236,14 +35236,14 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 {
   if ( sub_10041BA0(
-         (char *)LibVarGetString("basedir"),
-         (char *)LibVarGetString("gamedir"),
+         LibVarGetString("basedir"),
+         LibVarGetString("gamedir"),
          a1,
          a2) )
     return 1;
   return sub_10041BA0(
-           (char *)LibVarGetString("cddir"),
-           (char *)LibVarGetString("gamedir"),
+           LibVarGetString("cddir"),
+           LibVarGetString("gamedir"),
            a1,
            a2) != 0;
 }
