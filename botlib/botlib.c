@@ -6772,8 +6772,6 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   int areanum; // ebp
   int k; // edi
   int l; // esi
-  double v10; // st7
-  float v11; // edx
   float v12; // st7
   float *v13; // ecx
   aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
@@ -10048,8 +10046,6 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   int v2; // edx
   aas_area_t *area2; // esi
   aas_area_t *area1; // ebx
-  float *v5; // edi
-  float *v6; // ecx
   int *v7; // ecx
   int v8; // eax
   int j; // ebp
