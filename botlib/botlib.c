@@ -4119,30 +4119,30 @@ int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key)
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
 {
   bsp_entity_t *v1; // ebx
-  bsp_epair_t  *v2; // esi
+  bsp_epair_t  *epair; // esi
   bsp_entity_t *v3; // ebp
-  bsp_epair_t  *v4; // edi
+  bsp_epair_t  *nextepair; // edi
 
   v1 = a1;
   if ( a1 )
   {
     do
     {
-      v2 = v1->epairs;
+      epair = v1->epairs;
       v3 = v1->next;
       if ( v1->epairs )
       {
         do
         {
-          v4 = v2->next;
-          if ( v2->key )
-            FreeMemory(v2->key);
-          if ( v2->value )
-            FreeMemory(v2->value);
-          FreeMemory(v2);
-          v2 = v4;
+          nextepair = epair->next;
+          if ( epair->key )
+            FreeMemory(epair->key);
+          if ( epair->value )
+            FreeMemory(epair->value);
+          FreeMemory(epair);
+          epair = nextepair;
         }
-        while ( v4 );
+        while ( nextepair );
       }
       FreeMemory(v1);
       v1 = v3;
@@ -5116,20 +5116,20 @@ int sub_100085F0()
 int AAS_RemoveClusterAreas()
 {
   int result; // eax
-  int v1; // ecx
+  int i; // ecx
 
   result = aasworld.numareas;
-  v1 = 1;
+  i = 1;
   if ( aasworld.numareas > 1 )
   {
     result = 28;
     do
     {
-      ++v1;
+      ++i;
       *(_DWORD *)((char *)aasworld.areasettings + result + 12) = 0;
       result += 28;
     }
-    while ( v1 < aasworld.numareas );
+    while ( i < aasworld.numareas );
   }
   return result;
 }
@@ -5137,32 +5137,32 @@ int AAS_RemoveClusterAreas()
 //----- (10008660) --------------------------------------------------------
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
 {
-  int v2; // eax
-  aas_portal_t *v5; // edx
-  aas_cluster_t *v8; // ecx
+  int portalnum; // eax
+  aas_portal_t *portal; // edx
+  aas_cluster_t *cluster; // ecx
 
-  for ( v2 = 1; v2 < aasworld.numportals; ++v2 )
+  for ( portalnum = 1; portalnum < aasworld.numportals; ++portalnum )
   {
-    if ( aasworld.portals[v2].areanum == areanum )
+    if ( aasworld.portals[portalnum].areanum == areanum )
       break;
   }
-  if ( v2 == aasworld.numportals )
+  if ( portalnum == aasworld.numportals )
   {
     AAS_Error("no portal of area %d", areanum);
     return 1;
   }
-  v5 = &aasworld.portals[v2];
-  if ( v5->frontcluster == clusternum )
+  portal = &aasworld.portals[portalnum];
+  if ( portal->frontcluster == clusternum )
     return 1;
-  if ( v5->backcluster == clusternum )
+  if ( portal->backcluster == clusternum )
     return 1;
-  if ( !v5->frontcluster )
+  if ( !portal->frontcluster )
   {
-    v5->frontcluster = clusternum;
+    portal->frontcluster = clusternum;
   }
-  else if ( !v5->backcluster )
+  else if ( !portal->backcluster )
   {
-    v5->backcluster = clusternum;
+    portal->backcluster = clusternum;
   }
   else
   {
@@ -5176,11 +5176,11 @@ int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
     AAS_Error("AAS_MAX_PORTALINDEXSIZE");
     return 1;
   }
-  aasworld.areasettings[areanum].cluster = -v2;
-  v8 = &aasworld.clusters[clusternum];
-  aasworld.portalindex[v8->firstportal + v8->numreachabilityareas] = v2;
+  aasworld.areasettings[areanum].cluster = -portalnum;
+  cluster = &aasworld.clusters[clusternum];
+  aasworld.portalindex[cluster->firstportal + cluster->numreachabilityareas] = portalnum;
   ++aasworld.portalindexsize;
-  ++v8->numreachabilityareas;
+  ++cluster->numreachabilityareas;
   return 1;
 }
 
@@ -5470,7 +5470,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   int v9; // rax (was __int64 — abs32 idiom)
   int facenum; // eax
   char *face; // ecx
-  int v12; // edx
+  int k; // edx
   int *v13; // edi
   int otherareanum; // edx
   unsigned int faceplanenum; // ecx
@@ -5481,14 +5481,14 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   _DWORD *v20; // ecx
   int v21; // eax
   int v22; // edx
-  int v23; // esi
+  int fen; // esi
   char *frontface; // eax
   int v25; // ecx
   unsigned int frontedgenum; // ebp
   int v27; // edx
   _DWORD *v28; // ebx
   int v29; // esi
-  int v30; // ecx
+  int ben; // ecx
   int *v31; // edi
   int v32; // edi
   int *v33; // esi
@@ -5501,7 +5501,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   int v40; // [esp+20h] [ebp-E24h]
   int backplanenum; // [esp+24h] [ebp-E20h]
   _DWORD *v42; // [esp+24h] [ebp-E20h]
-  int v43; // [esp+28h] [ebp-E1Ch]
+  int j; // [esp+28h] [ebp-E1Ch]
   int v44; // [esp+28h] [ebp-E1Ch]
   _DWORD *v45; // [esp+2Ch] [ebp-E18h]
   int v46; // [esp+2Ch] [ebp-E18h]
@@ -5540,7 +5540,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
     area = &aasworld.areas[v47];
     v8 = 0;
     v36 = area;
-    v43 = 0;
+    j = 0;
     if ( *((int *)area + 1) > 0 )
     {
       v45 = &frontareanums[numfrontareas];
@@ -5554,17 +5554,17 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
         face = &aasworld.faces[facenum];
         if ( (face[4] & 1) == 0 )
         {
-          v12 = 0;
+          k = 0;
           v13 = areanums;
           do
           {
-            if ( v12 != i && (*((_DWORD *)face + 4) == *v13 || *((_DWORD *)face + 5) == *v13) )
+            if ( k != i && (*((_DWORD *)face + 4) == *v13 || *((_DWORD *)face + 5) == *v13) )
               break;
-            ++v12;
+            ++k;
             ++v13;
           }
-          while ( v12 < v40 );
-          if ( v12 == v40 )
+          while ( k < v40 );
+          if ( k == v40 )
           {
             otherareanum = *((_DWORD *)face + 4);
             if ( otherareanum == v47 )
@@ -5630,9 +5630,9 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
           }
           area = v36;
         }
-        v8 = ++v43;
+        v8 = ++j;
       }
-      while ( v43 < *((_DWORD *)area + 1) );
+      while ( j < *((_DWORD *)area + 1) );
       v6 = i;
       numareas = v40;
     }
@@ -5659,7 +5659,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
         v42 = frontfacenums;
         do
         {
-          v23 = 0;
+          fen = 0;
           v46 = 0;
           frontface = &aasworld.faces[*v42];
           v25 = *((_DWORD *)frontface + 2);
@@ -5677,7 +5677,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
                 do
                 {
                   v29 = aasworld.faces[*v28].numedges;
-                  v30 = 0;
+                  ben = 0;
                   if ( v29 > 0 )
                   {
                     v31 = &aasworld.edgeindex[aasworld.faces[*v28].firstedge];
@@ -5685,13 +5685,13 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
                     {
                       if ( frontedgenum == abs(*v31) )
                         break;
-                      ++v30;
+                      ++ben;
                       ++v31;
                     }
-                    while ( v30 < v29 );
+                    while ( ben < v29 );
                     v27 = v44;
                   }
-                  if ( v30 != v29 )
+                  if ( ben != v29 )
                     break;
                   ++v27;
                   ++v28;
@@ -5699,18 +5699,18 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
                 }
                 while ( v27 < numbackfaces );
                 v25 = *((_DWORD *)frontface + 2);
-                v23 = v46;
+                fen = v46;
               }
               if ( v27 != numbackfaces )
                 break;
-              v46 = ++v23;
+              v46 = ++fen;
               ++v37;
             }
-            while ( v23 < v25 );
+            while ( fen < v25 );
             numareas = v40;
             v22 = v35;
           }
-          if ( v23 != v25 )
+          if ( fen != v25 )
             break;
           v35 = ++v22;
           ++v42;
@@ -5741,13 +5741,13 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
 //----- (10009570) --------------------------------------------------------
 int AAS_FindPossiblePortals()
 {
-  int v0; // esi
-  int i; // edi
+  int i; // esi
+  int numpossibleportals; // edi
 
-  v0 = 1;
-  for ( i = 0; v0 < aasworld.numareas; ++v0 )
-    i += AAS_CheckAreaForPossiblePortals(v0);
-  return botimport.Print(PRT_MESSAGE, "\r%6d possible portals\n", i);
+  i = 1;
+  for ( numpossibleportals = 0; i < aasworld.numareas; ++i )
+    numpossibleportals += AAS_CheckAreaForPossiblePortals(i);
+  return botimport.Print(PRT_MESSAGE, "\r%6d possible portals\n", numpossibleportals);
 }
 
 //----- (100095C0) --------------------------------------------------------
@@ -5891,7 +5891,7 @@ int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 {
   int i;
-  int v7;
+  int debugline;
   int result;
   vec3_t start, end;
 
@@ -5902,8 +5902,8 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
     VectorCopy(origin, end);
     end[i] -= size;
     AAS_DebugLine(start, end, color);
-    v7 = botimport.DebugLineCreate();
-    result = botimport.DebugLineShow(v7, start, end, color);
+    debugline = botimport.DebugLineCreate();
+    result = botimport.DebugLineShow(debugline, start, end, color);
   }
   return result;
 }
@@ -7412,7 +7412,7 @@ void *AAS_DumpAASData()
 //----- (1000C670) --------------------------------------------------------
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
 {
-  void *v4; // edi
+  void *buf; // edi
 
   if ( !ElementCount )
     return 0;
@@ -7423,23 +7423,23 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     fclose(Stream);
     return 0;
   }
-  v4 = GetClearedMemory(ElementCount);
-  if ( fread_locked(v4, 1u, ElementCount, Stream) != ElementCount )
+  buf = GetClearedMemory(ElementCount);
+  if ( fread_locked(buf, 1u, ElementCount, Stream) != ElementCount )
   {
     AAS_Error("can't read aas lump\n");
-    FreeMemory(v4);
+    FreeMemory(buf);
     AAS_DumpAASData();
     fclose(Stream);
     return 0;
   }
-  return v4;
+  return buf;
 }
 
 //----- (1000C730) --------------------------------------------------------
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
 {
   FILE *v2; // eax
-  FILE *v3; // esi
+  FILE *fp; // esi
   int v5; // eax
   int v6; // eax
   int v7; // eax
@@ -7518,7 +7518,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
 
   AAS_DumpAASData();
   v2 = fopen(FileName, "rb");
-  v3 = v2;
+  fp = v2;
   if ( !v2 )
   {
     AAS_Error("can't open %s\n", FileName);
@@ -7527,20 +7527,20 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   if ( fseek(v2, Offset, 0) )
   {
     AAS_Error("can't seek to file %s\n");
-    fclose(v3);
+    fclose(fp);
     return BLERR_CANNOTSEEKTOAASFILE;
   }
-  if ( fread_locked(&aas_h, 0x78u, 1u, v3) != 1 )
+  if ( fread_locked(&aas_h, 0x78u, 1u, fp) != 1 )
   {
     AAS_Error("can't read header of file %s\n", FileName);
-    fclose(v3);
+    fclose(fp);
     return BLERR_CANNOTREADAASHEADER;
   }
   v5 = aas_h.ident = LittleLong(aas_h.ident);
   if ( v5 != 1396785477 )
   {
     AAS_Error("%s is not an AAS file\n", FileName);
-    fclose(v3);
+    fclose(fp);
     return BLERR_WRONGAASFILEID;
   }
   v6 = aas_h.version = LittleLong(aas_h.version);
@@ -7551,14 +7551,14 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   else if ( v6 != 3 )
   {
     AAS_Error("aas file %s is version %i, not %i\n", FileName, v6, 3);
-    fclose(v3);
+    fclose(fp);
     return BLERR_WRONGAASFILEVERSION;
   }
   v7 = LittleLong(aas_h.lumps[0].fileofs);
   v8 = Offset + v7;
   v9 = (size_t)LittleLong(aas_h.lumps[0].filelen);
   v10 = v9;
-  v11 = AAS_LoadAASLump(v3, v8, v9);
+  v11 = AAS_LoadAASLump(fp, v8, v9);
   aasworld.bboxes = v11;
   v10 >>= 5;
   aasworld.numbboxes = v10;
@@ -7568,7 +7568,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v13 = Offset + v12;
   v14 = (size_t)LittleLong(aas_h.lumps[1].filelen);
   v15 = v14;
-  v16 = AAS_LoadAASLump(v3, v13, v14);
+  v16 = AAS_LoadAASLump(fp, v13, v14);
   aasworld.vertexes = v16;
   aasworld.numvertexes = v15 / 0xC;
   if ( v15 / 0xC && !v16 )
@@ -7577,7 +7577,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v18 = Offset + v17;
   v19 = (size_t)LittleLong(aas_h.lumps[2].filelen);
   v20 = v19;
-  v21 = AAS_LoadAASLump(v3, v18, v19);
+  v21 = AAS_LoadAASLump(fp, v18, v19);
   aasworld.planes = v21;
   aasworld.numplanes = v20 / 0x14;
   if ( v20 / 0x14 && !v21 )
@@ -7586,7 +7586,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v23 = Offset + v22;
   v24 = (size_t)LittleLong(aas_h.lumps[3].filelen);
   v25 = v24;
-  v26 = AAS_LoadAASLump(v3, v23, v24);
+  v26 = AAS_LoadAASLump(fp, v23, v24);
   aasworld.edges = v26;
   v25 >>= 3;
   aasworld.numedges = v25;
@@ -7596,7 +7596,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v28 = Offset + v27;
   v29 = (size_t)LittleLong(aas_h.lumps[4].filelen);
   v30 = v29;
-  v31 = AAS_LoadAASLump(v3, v28, v29);
+  v31 = AAS_LoadAASLump(fp, v28, v29);
   aasworld.edgeindex = v31;
   v30 >>= 2;
   aasworld.edgeindexsize = v30;
@@ -7606,7 +7606,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v33 = Offset + v32;
   v34 = (size_t)LittleLong(aas_h.lumps[5].filelen);
   v35 = v34;
-  v36 = AAS_LoadAASLump(v3, v33, v34);
+  v36 = AAS_LoadAASLump(fp, v33, v34);
   aasworld.faces = v36;
   aasworld.numfaces = v35 / 0x18;
   if ( v35 / 0x18 && !v36 )
@@ -7615,7 +7615,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v38 = Offset + v37;
   v39 = (size_t)LittleLong(aas_h.lumps[6].filelen);
   v40 = v39;
-  v41 = AAS_LoadAASLump(v3, v38, v39);
+  v41 = AAS_LoadAASLump(fp, v38, v39);
   aasworld.faceindex = v41;
   v40 >>= 2;
   aasworld.faceindexsize = v40;
@@ -7625,7 +7625,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v43 = Offset + v42;
   v44 = (size_t)LittleLong(aas_h.lumps[7].filelen);
   v45 = v44;
-  v46 = AAS_LoadAASLump(v3, v43, v44);
+  v46 = AAS_LoadAASLump(fp, v43, v44);
   aasworld.areas = v46;
   aasworld.numareas = v45 / 0x30;
   if ( v45 / 0x30 && !v46 )
@@ -7634,7 +7634,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v48 = Offset + v47;
   v49 = (size_t)LittleLong(aas_h.lumps[8].filelen);
   v50 = v49;
-  v51 = AAS_LoadAASLump(v3, v48, v49);
+  v51 = AAS_LoadAASLump(fp, v48, v49);
   aasworld.areasettings = v51;
   aasworld.numareasettings = v50 / 0x1C;
   if ( v50 / 0x1C && !v51 )
@@ -7643,7 +7643,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v53 = Offset + v52;
   v54 = (size_t)LittleLong(aas_h.lumps[9].filelen);
   v55 = v54;
-  v56 = AAS_LoadAASLump(v3, v53, v54);
+  v56 = AAS_LoadAASLump(fp, v53, v54);
   aasworld.reachability = v56;
   aasworld.reachabilitysize = v55 / 0x2C;
   if ( v55 / 0x2C && !v56 )
@@ -7652,7 +7652,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v58 = Offset + v57;
   v59 = (size_t)LittleLong(aas_h.lumps[10].filelen);
   v60 = v59;
-  v61 = AAS_LoadAASLump(v3, v58, v59);
+  v61 = AAS_LoadAASLump(fp, v58, v59);
   aasworld.nodes = v61;
   aasworld.numnodes = v60 / 0xC;
   if ( v60 / 0xC && !v61 )
@@ -7661,7 +7661,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v63 = Offset + v62;
   v64 = (size_t)LittleLong(aas_h.lumps[11].filelen);
   v65 = v64;
-  v66 = AAS_LoadAASLump(v3, v63, v64);
+  v66 = AAS_LoadAASLump(fp, v63, v64);
   aasworld.portals = v66;
   aasworld.numportals = v65 / 0x14;
   if ( v65 / 0x14 && !v66 )
@@ -7670,7 +7670,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v68 = Offset + v67;
   v69 = (size_t)LittleLong(aas_h.lumps[12].filelen);
   v70 = v69;
-  v71 = AAS_LoadAASLump(v3, v68, v69);
+  v71 = AAS_LoadAASLump(fp, v68, v69);
   aasworld.portalindex = (int *)v71;
   v70 >>= 2;
   aasworld.portalindexsize = v70;
@@ -7680,14 +7680,14 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   v73 = Offset + v72;
   v74 = (size_t)LittleLong(aas_h.lumps[13].filelen);
   v75 = v74;
-  v76 = AAS_LoadAASLump(v3, v73, v74);
+  v76 = AAS_LoadAASLump(fp, v73, v74);
   aasworld.clusters = v76;
   aasworld.numclusters = v75 / 0xC;
   if ( v75 / 0xC && !v76 )
     return BLERR_CANNOTREADAASLUMP;
   AAS_SwapAASData();
   aasworld.loaded = 1;
-  fclose(v3);
+  fclose(fp);
   return BLERR_NOERROR;
 }
 
@@ -7712,48 +7712,48 @@ int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t l
 qboolean __cdecl AAS_WriteAASFile(char *filename)
 {
   FILE *v3; // eax
-  FILE *v4; // esi
-  int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
+  FILE *fp; // esi
+  int header[30]; // [esp+Ch] [ebp-78h] BYREF
 
   botimport.Print(PRT_MESSAGE, "writing %s\n", filename);
   AAS_SwapAASData();
-  memset(Buffer, 0, sizeof(Buffer));
-  Buffer[0] = LittleLong(0x53414145);
-  Buffer[1] = LittleLong(3);
+  memset(header, 0, sizeof(header));
+  header[0] = LittleLong(0x53414145);
+  header[1] = LittleLong(3);
   v3 = fopen(filename, "wb");
-  v4 = v3;
+  fp = v3;
   if ( !v3 )
   {
     botimport.Print(PRT_ERROR, "error opening %s\n", filename);
     return 0;
   }
   /* fopen mode is "wb" — this is fwrite, not fread (see AAS_WriteAASLump note). */
-  if ( fwrite(Buffer, 0x78u, 1u, v3) < 1u )
+  if ( fwrite(header, 0x78u, 1u, v3) < 1u )
   {
-    fclose(v4);
+    fclose(fp);
     return 0;
   }
-  if ( !AAS_WriteAASLump(v4, Buffer, 0, aasworld.bboxes, 32 * aasworld.numbboxes) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 1, aasworld.vertexes, 12 * aasworld.numvertexes) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 2, aasworld.planes, 20 * aasworld.numplanes) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 3, aasworld.edges, 8 * aasworld.numedges) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 5, aasworld.faces, 24 * aasworld.numfaces) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 6, aasworld.faceindex, 4 * aasworld.faceindexsize) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 7, aasworld.areas, 48 * aasworld.numareas) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 8, aasworld.areasettings, 28 * aasworld.numareasettings) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 9, aasworld.reachability, 44 * aasworld.reachabilitysize) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 10, aasworld.nodes, 12 * aasworld.numnodes) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 11, aasworld.portals, 20 * aasworld.numportals) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 12, aasworld.portalindex, 4 * aasworld.portalindexsize) ) return 0;
-  if ( !AAS_WriteAASLump(v4, Buffer, 13, aasworld.clusters, 12 * aasworld.numclusters) ) return 0;
-  fseek(v4, 0, 0);
-  if ( fwrite(Buffer, 0x78u, 1u, v4) < 1u )
+  if ( !AAS_WriteAASLump(fp, header, 0, aasworld.bboxes, 32 * aasworld.numbboxes) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 1, aasworld.vertexes, 12 * aasworld.numvertexes) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 2, aasworld.planes, 20 * aasworld.numplanes) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 3, aasworld.edges, 8 * aasworld.numedges) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 4, aasworld.edgeindex, 4 * aasworld.edgeindexsize) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 5, aasworld.faces, 24 * aasworld.numfaces) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 6, aasworld.faceindex, 4 * aasworld.faceindexsize) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 7, aasworld.areas, 48 * aasworld.numareas) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 8, aasworld.areasettings, 28 * aasworld.numareasettings) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 9, aasworld.reachability, 44 * aasworld.reachabilitysize) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 10, aasworld.nodes, 12 * aasworld.numnodes) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 11, aasworld.portals, 20 * aasworld.numportals) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 12, aasworld.portalindex, 4 * aasworld.portalindexsize) ) return 0;
+  if ( !AAS_WriteAASLump(fp, header, 13, aasworld.clusters, 12 * aasworld.numclusters) ) return 0;
+  fseek(fp, 0, 0);
+  if ( fwrite(header, 0x78u, 1u, fp) < 1u )
   {
-    fclose(v4);
+    fclose(fp);
     return 0;
   }
-  fclose(v4);
+  fclose(fp);
   return 1;
 }
 
@@ -8013,7 +8013,7 @@ char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int 
 //----- (1000D8D0) --------------------------------------------------------
 int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *String2)
 {
-  int v4; // esi
+  int i; // esi
   const char *v5; // eax
 
   if ( !aasworld.indexes_loaded )
@@ -8021,21 +8021,21 @@ int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *
     botimport.Print(PRT_ERROR, "%s: index not setup \"%s\"\n", indexname, String2);
     return 0;
   }
-  v4 = 0;
+  i = 0;
   if ( list->numindexes > 0 )
   {
     while ( 1 )
     {
-      v5 = list->indexes[v4];
+      v5 = list->indexes[i];
       if ( v5 )
       {
         if ( !_strcmpi(v5, String2) )
           break;
       }
-      if ( ++v4 >= list->numindexes )
+      if ( ++i >= list->numindexes )
         return 0;
     }
-    return v4;
+    return i;
   }
   return 0;
 }
@@ -8637,14 +8637,14 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
    * cvtsi2ss on the first two stores, garbling X/Y of the test point and
    * making bi_PointContents always miss water — bots in water never enter
    * the swim branch and get stuck. */
-  int v5[3]; // [esp+0h] [ebp-Ch] BYREF
+  int testorg[3]; // [esp+0h] [ebp-Ch] BYREF
   float z; // st7
 
   z = ((float *)origin)[2];
-  v5[0] = *(_DWORD *)origin;
-  v5[1] = *(_DWORD *)((char *)origin + 4);
-  *(float *)&v5[2] = z - 2.0f;
-  return (sub_10003080((float *)v5) & 0x38) != 0;
+  testorg[0] = *(_DWORD *)origin;
+  testorg[1] = *(_DWORD *)((char *)origin + 4);
+  *(float *)&testorg[2] = z - 2.0f;
+  return (sub_10003080((float *)testorg) & 0x38) != 0;
 }
 
 //----- (1000F010) --------------------------------------------------------
@@ -9507,7 +9507,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 {
   unsigned int v2; // edi
   char *face; // esi
-  int result; // eax
+  int optfacenum; // eax
   _DWORD *optface; // ebp
   int i; // esi
   int optedgenum; // eax
@@ -9518,12 +9518,12 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   v8 = face;
   if ( !AAS_KeepFace(face) )
     return 0;
-  result = optimized->faceremap[v2];
-  if ( result )
+  optfacenum = optimized->faceremap[v2];
+  if ( optfacenum )
   {
     if ( facenum <= 0 )
-      return -result;
-    return result;
+      return -optfacenum;
+    return optfacenum;
   }
   optface = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
   memcpy(optface, face, 0x18u);
@@ -9540,11 +9540,11 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
     }
   }
   optimized->faceremap[v2] = optimized->numfaces;
-  result = optimized->numfaces;
-  optimized->numfaces = result + 1;
+  optfacenum = optimized->numfaces;
+  optimized->numfaces = optfacenum + 1;
   if ( facenum <= 0 )
-    return -result;
-  return result;
+    return -optfacenum;
+  return optfacenum;
 }
 
 //----- (10010B40) --------------------------------------------------------
@@ -9833,13 +9833,13 @@ float __cdecl AAS_AreaVolume(int areanum)
 //----- (10011360) --------------------------------------------------------
 float __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
-  float result; // st7
+  float total; // st7
   int i; // edi
   char *area; // esi
   int v4; // rax (was __int64 — abs32 idiom)
   int v5; // edx
 
-  result = 0.0f;
+  total = 0.0f;
   i = 0;
   area = &aasworld.areas[areanum];
   for ( ; i < *((int *)area + 1); i++ )
@@ -9847,9 +9847,9 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
     v4 = aasworld.faceindex[i + *((int *)area + 2)];
     v5 = abs(v4);
     if ( (aasworld.faces[v5].faceflags & 4) != 0 )
-      result = AAS_FaceArea(&aasworld.faces[v5]) + result;
+      total = AAS_FaceArea(&aasworld.faces[v5]) + total;
   }
-  return result;
+  return total;
 }
 
 //----- (100113F0) --------------------------------------------------------
@@ -9984,14 +9984,14 @@ int __cdecl sub_100116D0(void)
 //----- (10011700) --------------------------------------------------------
 qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
 {
-  aas_reachabilitynode_t *v2;
+  aas_reachabilitynode_t *r;
 
-  v2 = areareachability[area1num];
-  while ( v2 )
+  r = areareachability[area1num];
+  while ( r )
   {
-    if ( *(_DWORD *)v2 == area2num )
+    if ( *(_DWORD *)r == area2num )
       return 1;
-    v2 = v2->next;
+    r = r->next;
   }
   return 0;
 }
@@ -10007,22 +10007,22 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
    * AAS_PointAreaNum, making it look like a separate scalar to the decompiler.
    * Restoring as vec3_t so VectorMA writes/reads land in the same slot the
    * disassembly bumps by 16.0. */
-  vec3_t point; // [esp+4h] [ebp-18h] BYREF
+  vec3_t testpoint; // [esp+4h] [ebp-18h] BYREF
   vec3_t dir; // [esp+10h] [ebp-Ch] BYREF
 
   dir[2] = 0;
   dir[0] = *end - *start;
   dir[1] = end[1] - start[1];
   VectorNormalize(dir);
-  VectorMA(end, 48.0f, dir, point);
-  if ( !AAS_PointAreaNum(point) )
+  VectorMA(end, 48.0f, dir, testpoint);
+  if ( !AAS_PointAreaNum(testpoint) )
   {
-    point[2] = point[2] + 16.0f;
-    if ( !AAS_PointAreaNum(point) )
+    testpoint[2] = testpoint[2] + 16.0f;
+    if ( !AAS_PointAreaNum(testpoint) )
       return 1;
   }
-  VectorMA(end, 64.0, dir, point);
-  areanum = AAS_PointAreaNum(point);
+  VectorMA(end, 64.0, dir, testpoint);
+  areanum = AAS_PointAreaNum(testpoint);
   v4 = areanum;
   return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(v4);
 }
@@ -10037,7 +10037,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   int v8; // eax
   int j; // ebp
   int face1num; // edi
-  __int64 v11; // rax
+  __int64 face2num; // rax
   char v12; // al
   _DWORD *face1; // ebp
   aas_reachabilitynode_t *lreach; // eax
@@ -10067,8 +10067,8 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
     face1num = abs(v8);
     for ( j = 0; j < area2->numfaces; ++j )
     {
-      v11 = v7[j + area2->firstface];
-      if ( face1num != (HIDWORD(v11) ^ (unsigned int)v11) - HIDWORD(v11) )
+      face2num = v7[j + area2->firstface];
+      if ( face1num != (HIDWORD(face2num) ^ (unsigned int)face2num) - HIDWORD(face2num) )
         continue;
       AAS_FaceCenter(face1num, (float *)start);
       v12 = sub_10003080((float *)start);   /* IDA-dropped: water-edge contents check */
@@ -10380,11 +10380,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int v3; // eax
   int v4; // edx
   int v7; // eax
-  int v8; // eax
+  int groundface1num; // eax
   char *groundface1; // ebp
   int v10; // eax
-  int v11; // eax
-  int v12; // edi
+  int edge1num; // eax
+  int side1; // edi
   unsigned int v13; // esi
   char *edge1; // ecx
   float *v15; // eax
@@ -10395,7 +10395,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int v20; // rax — IDA decompiled as __int64; restored to int + abs() — see asm_matching/idioms
   char *groundface2; // edi
   int j; // ebp
-  int v23; // rax — IDA decompiled as __int64; restored to int + abs()
+  int edge2num; // rax — IDA decompiled as __int64; restored to int + abs()
   char *v23p; // alias: char* pointer reuse of the v23 slot in IDA
   _DWORD *edge2; // ecx
   /* IDA-decompiled // stN locals — original MSVC kept these on the x87 stack
@@ -10404,7 +10404,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * See `fpu_long_double_precision.md`. */
   float v25; // st7
   float v26; // st7
-  float v27; // st7
+  float ortdot; // st7
   float v28; // st7
   float v29; // st7
   float v30; // ecx
@@ -10498,7 +10498,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * analysis: ground_bestend is passed by reference to VectorMA which writes 3 floats.
    * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
   vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
-  int v113; // [esp+DCh] [ebp-F4h]
+  int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
   unsigned int v114; // [esp+E0h] [ebp-F0h]
   char *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
   int ground_foundreach; // [esp+E8h] [ebp-E8h]
@@ -10514,9 +10514,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float water_bestlength; // [esp+114h] [ebp-BCh]
   char *v126; // [esp+118h] [ebp-B8h]
   char *v127; // [esp+11Ch] [ebp-B4h]
-  int v128; // [esp+120h] [ebp-B0h]
+  int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
-  int v134; // [esp+13Ch] [ebp-94h]
+  int area1swim; // [esp+13Ch] [ebp-94h]
   int v135; // [esp+140h] [ebp-90h]
   float v136; // [esp+144h] [ebp-8Ch]
   float v137; // [esp+148h] [ebp-88h]
@@ -10542,7 +10542,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     v127 = area1;
     area2 = &aasworld.areas[area2num];
     v3 = AAS_AreaSwim(area1num);
-    v134 = v3;
+    area1swim = v3;
     /* if the areas are not near anough in the x-y direction */
     for ( v4 = 0; v4 < 2; ++v4 )
     {
@@ -10565,15 +10565,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           return 0;
         do
         {
-          v8 = aasworld.faceindex[i + *((_DWORD *)v127 + 2)];
-          v128 = v8 < 0;
-          groundface1 = &aasworld.faces[abs(v8)];
+          groundface1num = aasworld.faceindex[i + *((_DWORD *)v127 + 2)];
+          faceside1 = groundface1num < 0;
+          groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
           if ( (groundface1[4] & 4) != 0
-            || v134
-            && up[2] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[2]
-             + up[1] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[1]
-             + up[0] * aasworld.planes[(*(_DWORD *)groundface1 ^ (v8 >= 0))].normal[0] >= 0.7 )
+            || area1swim
+            && up[2] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[2]
+             + up[1] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[1]
+             + up[0] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[0] >= 0.7 )
           {
             v10 = *((_DWORD *)groundface1 + 2);
             k = 0;
@@ -10581,17 +10581,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             {
               do
               {
-                v11 = aasworld.edgeindex[k + *((_DWORD *)groundface1 + 3)];
-                v12 = v11 < 0;
+                edge1num = aasworld.edgeindex[k + *((_DWORD *)groundface1 + 3)];
+                side1 = edge1num < 0;
                 if ( (groundface1[4] & 4) == 0 )
-                  v12 = v12 == v128;
-                v13 = abs(v11);
+                  side1 = side1 == faceside1;
+                v13 = abs(edge1num);
                 edge1 = &aasworld.edges[v13];
-                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * (v12 == 0)]]);
+                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * (side1 == 0)]]);
                 v69 = *v15;
                 v16 = v15[1];
                 v71 = *((int *)v15 + 2);
-                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * v12]]);
+                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * side1]]);
                 *(float *)&v70 = v16;
                 v75 = *v17;
                 v76 = v17[1];
@@ -10614,8 +10614,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                     {
                       for ( j = 0; j < *((_DWORD *)groundface2 + 2); ++j )
                       {
-                        v23 = aasworld.edgeindex[j + *((_DWORD *)groundface2 + 3)];
-                        edge2 = &aasworld.edges[abs(v23)];
+                        edge2num = aasworld.edgeindex[j + *((_DWORD *)groundface2 + 3)];
+                        edge2 = &aasworld.edges[abs(edge2num)];
                         v23p = &aasworld.vertexes[*edge2];
                         v78 = *(float *)v23p;
                         v79 = *(int *)(v23p + 4);
@@ -10640,22 +10640,22 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                             y3 = v80;
                             y1 = *(float *)&v71;
                             y2 = v77;
-                            v27 = (float)v99 * (float)v99
+                            ortdot = (float)v99 * (float)v99
                                 + (float)v98 * (float)v98
                                 + (float)v97 * (float)v97;
                             y4 = v74;
                             x1 = ((float)v99 * (float)*(float *)&v71
                                  + (float)v98 * (float)*(float *)&v70
-                                 + (float)v97 * (float)v69) / v27;
+                                 + (float)v97 * (float)v69) / ortdot;
                             x2 = ((float)v99 * (float)v77
                                  + (float)v98 * (float)v76
-                                 + (float)v97 * (float)v75) / v27;
+                                 + (float)v97 * (float)v75) / ortdot;
                             x3 = ((float)v99 * (float)v80
                                  + (float)v98 * (float)*(float *)&v79
-                                 + (float)v97 * (float)v78) / v27;
+                                 + (float)v97 * (float)v78) / ortdot;
                             x4 = ((float)v99 * (float)v74
                                  + (float)v98 * (float)v73
-                                 + (float)v97 * (float)v72) / v27;
+                                 + (float)v97 * (float)v72) / ortdot;
                             if ( x1 > (float)x2 )
                             {
                               v28 = x1;
@@ -10842,7 +10842,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   *(int *)&ground_bestnormal[1] = *(int *)&normal[1];
                                   *(int *)&ground_bestnormal[2] = *(int *)&normal[2];
                                   ground_foundreach = 1;
-                                  v113 = v13;
+                                  ground_bestarea2groundedgenum = v13;
                                   *(int *)&ground_bestend[0] = *(int *)&end[0];
                                   ground_bestend[1] = end[1];
                                   ground_bestend[2] = end[2];
@@ -10892,7 +10892,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v45 = v44;
           if ( !v44 )
             return 0;
-          v46 = v113;
+          v46 = ground_bestarea2groundedgenum;
           *v44 = area2num;
           v44[1] = 0;
           v44[2] = v46;
@@ -10962,7 +10962,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v55 = v54;
           if ( !v54 )
             return 0;
-          v54[2] = v113;
+          v54[2] = ground_bestarea2groundedgenum;
           *v54 = v49;
           v54[1] = 0;
           VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v54 + 3));
@@ -10981,7 +10981,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v56 = AAS_AllocReachability();
           if ( !v56 )
             return 0;
-          *(_DWORD *)(v56 + 8) = v113;
+          *(_DWORD *)(v56 + 8) = ground_bestarea2groundedgenum;
           *(_DWORD *)v56 = v49;
           *(_DWORD *)(v56 + 4) = 0;
           VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56 + 12);
@@ -11012,7 +11012,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
               v57 = AAS_AllocReachability();
               if ( v57 )
               {
-                v58 = v113;
+                v58 = ground_bestarea2groundedgenum;
                 *(_DWORD *)v57 = v49;
                 *(_DWORD *)(v57 + 4) = 0;
                 *(_DWORD *)(v57 + 8) = v58;
@@ -11738,32 +11738,32 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v65; // [esp+10h] [ebp-108h]
   BOOL v66; // [esp+10h] [ebp-108h]
   int sharededgenum; // [esp+14h] [ebp-104h]
-  vec3_t mid; // [esp+18h] [ebp-100h] BYREF — v68/v69/v70 collapsed
+  vec3_t area1point; // [esp+18h] [ebp-100h] BYREF — v68/v69/v70 collapsed
   int ladderface1num; // [esp+24h] [ebp-F4h]
-  vec3_t mid2; // [esp+28h] [ebp-F0h] BYREF — v72/v73/v74 collapsed
+  vec3_t area2point; // [esp+28h] [ebp-F0h] BYREF — v72/v73/v74 collapsed
   char *ladderface2; // [esp+34h] [ebp-E4h]
-  vec3_t vert1; // [esp+38h] [ebp-E0h] — v76/v77/v78 collapsed (first edge vertex)
-  vec3_t vert2; // [esp+44h] [ebp-D4h] — v79/v80/v81 collapsed (second edge vertex)
+  vec3_t v1; // [esp+38h] [ebp-E0h] — v76/v77/v78 collapsed (first edge vertex)
+  vec3_t v2; // [esp+44h] [ebp-D4h] — v79/v80/v81 collapsed (second edge vertex)
   int l; // [esp+50h] [ebp-C8h]
   char *v83; // [esp+54h] [ebp-C4h]
   int ladderface2num; // [esp+58h] [ebp-C0h]
   char *v85; // [esp+5Ch] [ebp-BCh] (was int — aas_area_t * stash)
-  vec3_t bestmid; // [esp+60h] [ebp-B8h] BYREF — v86/v87/v88 collapsed
+  vec3_t lowestpoint; // [esp+60h] [ebp-B8h] BYREF — v86/v87/v88 collapsed
   int v89; // [esp+6Ch] [ebp-ACh]
   float bestface2area; // [esp+70h] [ebp-A8h]
-  vec3_t curmid; // [esp+74h] [ebp-A4h] BYREF — v91/v92/v93 collapsed
+  vec3_t mid; // [esp+74h] [ebp-A4h] BYREF — v91/v92/v93 collapsed
   char *v94; // [esp+80h] [ebp-98h]
   _DWORD *v95; // [esp+84h] [ebp-94h]
   float face1area; // [esp+88h] [ebp-90h]
   int v97; // [esp+8Ch] [ebp-8Ch]
   float bestface1area; // [esp+90h] [ebp-88h]
-  vec3_t tracestart; // [esp+94h] [ebp-84h] BYREF — v99[2]+v100 collapsed
+  vec3_t start; // [esp+94h] [ebp-84h] BYREF — v99[2]+v100 collapsed
   int face2num; // [esp+A0h] [ebp-78h]
   int face1num; // [esp+A4h] [ebp-74h]
-  float v103; // [esp+A8h] [ebp-70h]
-  vec3_t edgedir; // [esp+ACh] [ebp-6Ch] BYREF — v104[2]+v105 collapsed
-  vec3_t edgecross; // [esp+B8h] [ebp-60h] BYREF — v106
-  vec3_t traceend; // [esp+C4h] [ebp-54h] BYREF — v107
+  float maxjumpheight; // [esp+A8h] [ebp-70h]
+  vec3_t sharededgevec; // [esp+ACh] [ebp-6Ch] BYREF — v104[2]+v105 collapsed
+  vec3_t dir; // [esp+B8h] [ebp-60h] BYREF — v106
+  vec3_t end; // [esp+C4h] [ebp-54h] BYREF — v107
   aas_trace_t trace; // [esp+D0h] [ebp-48h] (was int v108[9] + char v109[36] hidden return buffer)
 
   if ( AAS_AreaLadder(area1num) )
@@ -11773,7 +11773,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       /* IDA dropped FPU return: original at AAS_Reachability_Ladder entry calls
        * AAS_MaxJumpHeight and stores the float result to v103.  IDA used a1
        * (the source area number) instead — breaks ladder-reachability filtering. */
-      v103 = (float)AAS_MaxJumpHeight(libvar_sv_jumpvel->value);
+      maxjumpheight = (float)AAS_MaxJumpHeight(libvar_sv_jumpvel->value);
       area1 = &aasworld.areas[area1num];
       area2 = &aasworld.areas[area2num];
       v5 = *((_DWORD *)area1 + 1);
@@ -11875,39 +11875,39 @@ area2 = v85;
             sharededge = &aasworld.edges[v21];
             firstv = sharededgenum < 0;
             v24 = (float *)(&aasworld.vertexes[*(_DWORD *)&sharededge[4 * firstv]]);
-            vert1[0] = *v24;
+            v1[0] = *v24;
             v25 = v24[1];
-            vert1[2] = v24[2];
-            vert1[1] = v25;
+            v1[2] = v24[2];
+            v1[1] = v25;
             v26 = (float *)(&aasworld.vertexes[*(_DWORD *)&sharededge[4 * !firstv]]);
-            vert2[0] = *v26;
+            v2[0] = *v26;
             v27 = v26[2];
-            vert2[1] = v26[1];
-            vert2[2] = v27;
-            mid[0] = vert2[0] + vert1[0];
-            mid[1] = vert2[1] + v25;
-            mid[2] = v27 + vert1[2];
-            VectorScale(mid, 0.5, mid);
-            mid2[1] = mid[1];
-            mid2[0] = mid[0];
-            mid2[2] = mid[2];
+            v2[1] = v26[1];
+            v2[2] = v27;
+            area1point[0] = v2[0] + v1[0];
+            area1point[1] = v2[1] + v25;
+            area1point[2] = v27 + v1[2];
+            VectorScale(area1point, 0.5, area1point);
+            area2point[1] = area1point[1];
+            area2point[0] = area1point[0];
+            area2point[2] = area1point[2];
             plane1 = (float *)(&aasworld.planes[(*ladderface1 ^ (ladderface1num < 0))]);
             v29 = *(_DWORD *)ladderface2;
-            edgedir[0] = vert2[0] - vert1[0];
-            edgedir[1] = vert2[1] - vert1[1];
+            sharededgevec[0] = v2[0] - v1[0];
+            sharededgevec[1] = v2[1] - v1[1];
             plane2 = (float *)(&aasworld.planes[(v29 ^ (ladderface2num < 0))]);
-            edgedir[2] = vert2[2] - vert1[2];
-            CrossProduct(plane1, edgedir, edgecross);
-            VectorNormalize(edgecross);
-            VectorMA(mid, -32.0, edgecross, mid);
-            VectorMA(mid2, 32.0, edgecross, mid2);
+            sharededgevec[2] = v2[2] - v1[2];
+            CrossProduct(plane1, sharededgevec, dir);
+            VectorNormalize(dir);
+            VectorMA(area1point, -32.0, dir, area1point);
+            VectorMA(area2point, 32.0, dir, area2point);
             v66 = (float)abs((__int64)plane1[2]) < 0.1;
             ladderface2vertical = (float)abs((__int64)plane2[2]) < 0.1;
             if ( v66 )
             {
               if ( ladderface2vertical
                 && *plane2 * *plane1 + plane2[2] * plane1[2] + plane2[1] * plane1[1] > 0.7
-                && (float)abs((__int64)edgedir[2]) < 0.7 )
+                && (float)abs((__int64)sharededgevec[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 v33 = v32;
@@ -11917,10 +11917,10 @@ area2 = v85;
                   v32->reach.areanum = area2num;
                   v32->reach.facenum = v34;
                   v32->reach.edgenum = v21;
-                  v32->reach.start[0] = mid[0];
-                  v32->reach.start[1] = mid[1];
-                  v32->reach.start[2] = mid[2];
-                  VectorMA(mid2, -3.0, plane1, v32->reach.end);
+                  v32->reach.start[0] = area1point[0];
+                  v32->reach.start[1] = area1point[1];
+                  v32->reach.start[2] = area1point[2];
+                  VectorMA(area2point, -3.0, plane1, v32->reach.end);
                   v33->reach.traveltype = 6;
                   v33->reach.traveltime = 10;
                   v33->next = areareachability[area1num];
@@ -11934,10 +11934,10 @@ area2 = v85;
                     v35->reach.areanum = area1num;
                     v35->reach.facenum = v37;
                     v35->reach.edgenum = v21;
-                    v35->reach.start[0] = mid2[0];
-                    v35->reach.start[1] = mid2[1];
-                    v35->reach.start[2] = mid2[2];
-                    VectorMA(mid, -3.0, plane1, v35->reach.end);
+                    v35->reach.start[0] = area2point[0];
+                    v35->reach.start[1] = area2point[1];
+                    v35->reach.start[2] = area2point[2];
+                    VectorMA(area1point, -3.0, plane1, v35->reach.end);
                     v36->reach.traveltype = 6;
                     v36->reach.traveltime = 10;
                     v36->next = areareachability[area2num];
@@ -11957,13 +11957,13 @@ area2 = v85;
                   v39->reach.areanum = area2num;
                   v39->reach.facenum = v41;
                   v39->reach.edgenum = v21;
-                  v39->reach.start[0] = mid[0];
-                  v39->reach.start[1] = mid[1];
-                  v39->reach.start[2] = mid[2];
-                  v39->reach.end[0] = mid2[0];
-                  v39->reach.end[1] = mid2[1];
-                  v39->reach.end[2] = mid2[2];
-                  v39->reach.end[2] = mid2[2] + 16;
+                  v39->reach.start[0] = area1point[0];
+                  v39->reach.start[1] = area1point[1];
+                  v39->reach.start[2] = area1point[2];
+                  v39->reach.end[0] = area2point[0];
+                  v39->reach.end[1] = area2point[1];
+                  v39->reach.end[2] = area2point[2];
+                  v39->reach.end[2] = area2point[2] + 16;
                   VectorMA(v39->reach.end, -15.0, plane1, v39->reach.end);
                   v40->reach.traveltype = 6;
                   v40->reach.traveltime = 10;
@@ -11977,12 +11977,12 @@ area2 = v85;
                     v42->reach.areanum = area1num;
                     v42->reach.facenum = v43;
                     v42->reach.edgenum = v21;
-                    v42->reach.start[0] = mid2[0];
-                    v42->reach.start[1] = mid2[1];
-                    v42->reach.start[2] = mid2[2];
-                    v42->reach.end[0] = mid[0];
-                    v42->reach.end[1] = mid[1];
-                    v42->reach.end[2] = mid[2];
+                    v42->reach.start[0] = area2point[0];
+                    v42->reach.start[1] = area2point[1];
+                    v42->reach.start[2] = area2point[2];
+                    v42->reach.end[0] = area1point[0];
+                    v42->reach.end[1] = area1point[1];
+                    v42->reach.end[2] = area1point[2];
                     v42->reach.traveltype = 7;
                     v42->reach.traveltime = 10;
                     v42->next = areareachability[area2num];
@@ -11994,40 +11994,40 @@ area2 = v85;
               }
               else
               {
-                bestmid[2] = 99999.0;
+                lowestpoint[2] = 99999.0;
                 for ( i = 0; i < ladderface1[2]; ++i )
                 {
                   v45 = abs(aasworld.edgeindex[i + ladderface1[3]]);
                   v46 = aasworld.vertexes[aasworld.edges[v45].v[0]][0];
                   v47 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[0]]);
-                  vert1[1] = v47[1];
-                  vert1[2] = v47[2];
+                  v1[1] = v47[1];
+                  v1[2] = v47[2];
                   v48 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[1]]);
                   v49 = *v48 + v46;
                   v50 = v48[1];
                   v51 = v48[2];
-                  vert2[1] = v50;
-                  vert2[2] = v51;
-                  curmid[0] = v49;
-                  curmid[1] = v50 + vert1[1];
-                  curmid[2] = v51 + vert1[2];
-                  VectorScale(curmid, 0.5, curmid);
-                  if ( curmid[2] < (float)bestmid[2] )
+                  v2[1] = v50;
+                  v2[2] = v51;
+                  mid[0] = v49;
+                  mid[1] = v50 + v1[1];
+                  mid[2] = v51 + v1[2];
+                  VectorScale(mid, 0.5, mid);
+                  if ( mid[2] < (float)lowestpoint[2] )
                   {
-                    bestmid[0] = curmid[0];
-                    bestmid[1] = curmid[1];
-                    bestmid[2] = curmid[2];
+                    lowestpoint[0] = mid[0];
+                    lowestpoint[1] = mid[1];
+                    lowestpoint[2] = mid[2];
                     v66 = v45;
                   }
                 }
                 v85 = &aasworld.planes[*ladderface1];
-                VectorMA(bestmid, 5.0, (float *)v85, tracestart);
-                v52 = tracestart[2];
-                traceend[0] = tracestart[0];
-                traceend[1] = tracestart[1];
-                tracestart[2] = tracestart[2] + 5;
-                traceend[2] = v52 - 100;
-                trace = AAS_TraceClientBBox(tracestart, traceend, 2, -1);
+                VectorMA(lowestpoint, 5.0, (float *)v85, start);
+                v52 = start[2];
+                end[0] = start[0];
+                end[1] = start[1];
+                start[2] = start[2] + 5;
+                end[2] = v52 - 100;
+                trace = AAS_TraceClientBBox(start, end, 2, -1);
                 trace.endpos[2] = trace.endpos[2] + 1.0f;
                 v53 = AAS_PointAreaNum(trace.endpos);
                 v54 = 0;
@@ -12053,7 +12053,7 @@ area2 = v85;
                   && v53 != area1num
                   && !AAS_ReachabilityExists(area1num, v53)
                   && !AAS_ReachabilityExists(v53, area1num)
-                  && tracestart[2] - trace.endpos[2] < v103 )
+                  && start[2] - trace.endpos[2] < maxjumpheight )
                 {
                   v59 = AAS_AllocReachability();
                   if ( v59 )
@@ -12062,9 +12062,9 @@ area2 = v85;
                     v59->reach.areanum = v53;
                     v59->reach.facenum = v60;
                     v59->reach.edgenum = v66;
-                    v59->reach.start[0] = bestmid[0];
-                    v59->reach.start[1] = bestmid[1];
-                    v59->reach.start[2] = bestmid[2];
+                    v59->reach.start[0] = lowestpoint[0];
+                    v59->reach.start[1] = lowestpoint[1];
+                    v59->reach.start[2] = lowestpoint[2];
                     v59->reach.end[0] = trace.endpos[0];
                     v59->reach.end[1] = trace.endpos[1];
                     v59->reach.end[2] = trace.endpos[2];
@@ -12084,7 +12084,7 @@ area2 = v85;
                       lreach->reach.start[1] = trace.endpos[1];
                       v63 = v85;
                       lreach->reach.start[2] = trace.endpos[2];
-                      VectorMA(bestmid, -5.0, (float *)v63, lreach->reach.end);
+                      VectorMA(lowestpoint, -5.0, (float *)v63, lreach->reach.end);
                       v64 = lreach->reach.end[2] + 10;
                       lreach->reach.traveltype = 5;
                       lreach->reach.traveltime = 10;
@@ -12261,15 +12261,15 @@ int AAS_Reachability_Elevator()
   float v6; // st7
   float v7; // st7
   int v10; // ebx
-  float v11; // edi
+  float area1num; // edi
   int v12; // esi
   int v15; // eax
-  int v16; // ebx
-  int v17; // ebp
+  int area2num; // ebx
+  int l; // ebp
   int v18; // esi
-  int v19; // ecx
+  int p; // ecx
   int *v20; // eax
-  int *v21; // esi
+  int *lreach; // esi
   int v22; // edx
   float v23; // st7 (was double)
   int v24; // rax (was __int64)
@@ -12300,19 +12300,19 @@ int AAS_Reachability_Elevator()
   vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
   int v66;
   bsp_entity_t *v67;
-  float v68[3];         /* [BYREF] */
-  float v69[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
-  float v70[3];         /* [BYREF] */
-  int v71[8];           /* offsets table (holds float bits) */
-  int v72[8];
-  int v73[8];
-  int v74[10];
+  float start[3];         /* [BYREF] */
+  float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
+  float end[3];         /* [BYREF] */
+  int xvals[8];           /* offsets table (holds float bits) */
+  int yvals[8];
+  int yvals_top[8];
+  int xvals_top[10];
   float v75;
   aas_trace_t trace;
 
-  v69[0] = 0;
-  v69[1] = 0;
-  v69[2] = 0;
+  angles[0] = 0;
+  angles[1] = 0;
+  angles[2] = 0;
   v0 = AAS_ParseBSPEntities();
   ent = v0;
   v67 = v0;
@@ -12346,7 +12346,7 @@ LABEL_58:
       botimport.Print(PRT_ERROR, "func_plat with invalid model number\n");
       goto LABEL_58;
     }
-    AAS_BSPModelMinsMaxsOrigin(modelnum, v69, mins, maxs, origin);
+    AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
     v75 = origin[2];
     extent[0] = origin[0];
     extent[1] = origin[1];
@@ -12381,23 +12381,23 @@ LABEL_58:
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
     VectorScale(sumvec, 0.5f, sumvec);
-    *(float *)&v71[0] = mins[0];
-    *(float *)&v71[1] = sumvec[0];
-    *(float *)&v71[3] = sumvec[0];
-    *(float *)&v71[2] = maxs[0];
-    *(float *)v72 = sumvec[1];
-    *(float *)&v72[2] = sumvec[1];
-    *(float *)&v72[1] = maxs[1];
-    *(float *)&v72[3] = mins[1];
-    *(float *)&v71[5] = maxs[0];
-    *(float *)&v71[4] = mins[0];
-    *(float *)&v71[7] = mins[0];
-    *(float *)&v71[6] = maxs[0];
-    *(float *)&v72[4] = maxs[1];
+    *(float *)&xvals[0] = mins[0];
+    *(float *)&xvals[1] = sumvec[0];
+    *(float *)&xvals[3] = sumvec[0];
+    *(float *)&xvals[2] = maxs[0];
+    *(float *)yvals = sumvec[1];
+    *(float *)&yvals[2] = sumvec[1];
+    *(float *)&yvals[1] = maxs[1];
+    *(float *)&yvals[3] = mins[1];
+    *(float *)&xvals[5] = maxs[0];
+    *(float *)&xvals[4] = mins[0];
+    *(float *)&xvals[7] = mins[0];
+    *(float *)&xvals[6] = maxs[0];
+    *(float *)&yvals[4] = maxs[1];
     v10 = 0;
-    *(float *)&v72[5] = maxs[1];
-    *(float *)&v72[6] = mins[1];
-    *(float *)&v72[7] = mins[1];
+    *(float *)&yvals[5] = maxs[1];
+    *(float *)&yvals[6] = mins[1];
+    *(float *)&yvals[7] = mins[1];
     v60 = 0;
     /* IDA's `while (v10 >= 32)` IS correct.  Disasm at 0x10016470 is
      * `cmp v10,0x20; jge 0x10016513`: at v10 < 32 fall through runs the
@@ -12423,93 +12423,93 @@ LABEL_30:
           mins[0] -= 4.0f; maxs[0] += 4.0f;
           mins[1] -= 4.0f; maxs[1] += 4.0f;
           mins[2] -= 4.0f; maxs[2] += 4.0f;
-          *(float *)&v74[0] = mins[0];
-          *(float *)&v74[1] = sumvec[0];
-          *(float *)&v74[3] = sumvec[0];
-          *(float *)v73 = sumvec[1];
-          *(float *)&v74[2] = maxs[0];
-          *(float *)&v73[2] = sumvec[1];
-          *(float *)&v73[3] = mins[1];
-          *(float *)&v73[1] = maxs[1];
-          *(float *)&v74[5] = maxs[0];
-          *(float *)&v74[6] = maxs[0];
-          *(float *)&v74[4] = mins[0];
-          *(float *)&v74[7] = mins[0];
-          *(float *)&v73[4] = maxs[1];
-          *(float *)&v73[5] = maxs[1];
+          *(float *)&xvals_top[0] = mins[0];
+          *(float *)&xvals_top[1] = sumvec[0];
+          *(float *)&xvals_top[3] = sumvec[0];
+          *(float *)yvals_top = sumvec[1];
+          *(float *)&xvals_top[2] = maxs[0];
+          *(float *)&yvals_top[2] = sumvec[1];
+          *(float *)&yvals_top[3] = mins[1];
+          *(float *)&yvals_top[1] = maxs[1];
+          *(float *)&xvals_top[5] = maxs[0];
+          *(float *)&xvals_top[6] = maxs[0];
+          *(float *)&xvals_top[4] = mins[0];
+          *(float *)&xvals_top[7] = mins[0];
+          *(float *)&yvals_top[4] = maxs[1];
+          *(float *)&yvals_top[5] = maxs[1];
           v15 = 0;
-          *(float *)&v73[6] = mins[1];
-          *(float *)&v73[7] = mins[1];
+          *(float *)&yvals_top[6] = mins[1];
+          *(float *)&yvals_top[7] = mins[1];
           for ( k = 0; k < 32; k += 4 )
           {
-            samplept[0] = origin[0] + *(float *)((char *)v74 + v15);
-            samplept[1] = origin[1] + *(float *)((char *)v73 + v15);
+            samplept[0] = origin[0] + *(float *)((char *)xvals_top + v15);
+            samplept[1] = origin[1] + *(float *)((char *)yvals_top + v15);
             samplept[2] = btmorg[2] + 16.0f;
-            v16 = AAS_PointAreaNum(samplept);
-            v17 = 0;
+            area2num = AAS_PointAreaNum(samplept);
+            l = 0;
             while ( 1 )
             {
-              if ( v16 && (AAS_AreaGrounded(v16) || AAS_AreaSwim(v16)) )
+              if ( area2num && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
               {
-                v68[0] = btmorg[0];
-                v68[1] = btmorg[1];
-                v70[0] = samplept[0];
-                v68[2] = btmorg[2] + 32.0f;
-                v70[1] = samplept[1];
-                v70[2] = samplept[2] + 1.0f;
-                trace = AAS_TraceClientBBox(v68, v70, 4, -1);
+                start[0] = btmorg[0];
+                start[1] = btmorg[1];
+                end[0] = samplept[0];
+                start[2] = btmorg[2] + 32.0f;
+                end[1] = samplept[1];
+                end[2] = samplept[2] + 1.0f;
+                trace = AAS_TraceClientBBox(start, end, 4, -1);
                 if ( trace.fraction >= 1.0f )
                   break;
               }
               samplept[2] = samplept[2] + 4.0f;
-              ++v17;
-              v16 = AAS_PointAreaNum(samplept);
-              if ( v17 >= 16 )
+              ++l;
+              area2num = AAS_PointAreaNum(samplept);
+              if ( l >= 16 )
                 goto LABEL_53;
             }
             v18 = LODWORD(v33);
-            if ( v16 != LODWORD(v33) && AAS_AreaGrounded(v16) && !AAS_ReachabilityExists(v18, v16) )
+            if ( area2num != LODWORD(v33) && AAS_AreaGrounded(area2num) && !AAS_ReachabilityExists(v18, area2num) )
             {
               dirvec[0] = testpt[0] - toporg[0];
               dirvec[1] = testpt[1] - toporg[1];
               dirvec[2] = testpt[2] - toporg[2];
               VectorNormalize(dirvec);
               dirvec[2] = testpt[2];
-              v19 = 0;
+              p = 0;
               dirvec[0] = dirvec[0] * 24.0f + testpt[0];
               dirvec[1] = dirvec[1] * 24.0f + testpt[1];
-              while ( mins[v19] + origin[v19] <= dirvec[v19]
-                   && maxs[v19] + origin[v19] >= dirvec[v19] )
+              while ( mins[p] + origin[p] <= dirvec[p]
+                   && maxs[p] + origin[p] >= dirvec[p] )
               {
-                if ( ++v19 >= 3 )
+                if ( ++p >= 3 )
                   goto LABEL_53;
               }
               v20 = (int *)AAS_AllocReachability();
-              v21 = v20;
+              lreach = v20;
               if ( v20 )
               {
                 v22 = v66;
-                *v20 = v16;
+                *v20 = area2num;
                 v23 = height;
                 v20[1] = v22;
                 v24 = (int)v23;
                 v25 = height * 100.0f;
-                v21[2] = v24;
-                *((float *)v21 + 3) = dirvec[0];
+                lreach[2] = v24;
+                *((float *)lreach + 3) = dirvec[0];
                 v26 = v25 / speed;
-                *((float *)v21 + 4) = dirvec[1];
-                *((float *)v21 + 5) = dirvec[2];
-                *((float *)v21 + 6) = samplept[0];
-                *((float *)v21 + 7) = samplept[1];
-                *((float *)v21 + 8) = samplept[2];
-                v21[9] = 11;
-                *((_WORD *)v21 + 20) = (__int64)v26;
+                *((float *)lreach + 4) = dirvec[1];
+                *((float *)lreach + 5) = dirvec[2];
+                *((float *)lreach + 6) = samplept[0];
+                *((float *)lreach + 7) = samplept[1];
+                *((float *)lreach + 8) = samplept[2];
+                lreach[9] = 11;
+                *((_WORD *)lreach + 20) = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
-                  *((_WORD *)v21 + 20) = 50;
+                  *((_WORD *)lreach + 20) = 50;
                 v27 = v33;
                 i = 9999;
-                ((aas_reachabilitynode_t *)v21)->next = areareachability[LODWORD(v33)];
-                areareachability[LODWORD(v27)] = (aas_reachabilitynode_t *)v21;
+                ((aas_reachabilitynode_t *)lreach)->next = areareachability[LODWORD(v33)];
+                areareachability[LODWORD(v27)] = (aas_reachabilitynode_t *)lreach;
                 ++reach_elevator;
               }
             }
@@ -12529,20 +12529,20 @@ LABEL_56:
         goto LABEL_58;
       }
     }
-    testpt[0] = origin[0] + *(float *)((char *)v71 + v10);
-    testpt[1] = origin[1] + *(float *)((char *)v72 + v10);
+    testpt[0] = origin[0] + *(float *)((char *)xvals + v10);
+    testpt[1] = origin[1] + *(float *)((char *)yvals + v10);
     testpt[2] = toporg[2] + 16.0f;
-    v11 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
-    v33 = v11;
+    area1num = COERCE_FLOAT(AAS_PointAreaNum(testpt));
+    v33 = area1num;
     v12 = 0;
-    while ( v11 == 0.0f || !AAS_AreaGrounded(LODWORD(v11)) && !AAS_AreaSwim(LODWORD(v11)) )
+    while ( area1num == 0.0f || !AAS_AreaGrounded(LODWORD(area1num)) && !AAS_AreaSwim(LODWORD(area1num)) )
     {
       testpt[2] = testpt[2] + 4.0f;
       ++v12;
       v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
       if ( v12 >= 16 )
         goto LABEL_56;
-      v11 = v33;
+      area1num = v33;
     }
     goto LABEL_30;
   }
@@ -12580,14 +12580,14 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   vec3_t dir;       /* was v21/v22/v23 — vertex - origin delta vec */
   vec3_t start;   /* was v24/v25/v26 — center origin (trace start) */
   vec3_t areastart;    /* was v27/v28/v29 — origin dropped onto floor */
-  vec3_t vmav;        /* was v30/(v31)/v32 — VectorMA output (v31 elided by IDA) */
+  vec3_t end;        /* was v30/(v31)/v32 — VectorMA output (v31 elided by IDA) */
   vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
   int v38;
   char *v39;
   aas_trace_t trace;
-  float v41[21]; /* [BYREF] */
+  float bsptrace[21]; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
     return 0;
@@ -12614,10 +12614,10 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     if ( !AAS_PointAreaNum(start) )
       Log_Write("area %d center %f %f %f in solid?", area1num, start[0],
                 start[1], start[2]);
-    vmav[0] = start[0];
-    vmav[1] = start[1];
-    vmav[2] = start[2] - 1000.0f;
-    trace = AAS_TraceClientBBox(start, vmav, 4, -1);
+    end[0] = start[0];
+    end[1] = start[1];
+    end[2] = start[2] - 1000.0f;
+    trace = AAS_TraceClientBBox(start, end, 4, -1);
     if ( trace.startsolid )
       return 0;
     VectorCopy(trace.endpos, areastart);
@@ -12657,29 +12657,29 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                * advance 20 floats = 80 bytes per plane; the original disasm
                * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
                * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(facecenter, -500.0f, aasworld.planes[*(_DWORD *)face2].normal, vmav);
-              *(bsp_trace_t *)v41 = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(vmav), 0, 100663299);
-              if ( (LOBYTE(v41[17]) & 4) == 0 && v41[2] * 500.0f < 32.0f )
+              VectorMA(facecenter, -500.0f, aasworld.planes[*(_DWORD *)face2].normal, end);
+              *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
+              if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
               {
                 VectorSubtract(facecenter, areastart, dir);
                 VectorNormalize(dir);
                 VectorMA(areastart, 4.0f, dir, start);
                 /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
                  * IDA dropped the middle assignment. */
-                vmav[0] = v41[3];
-                vmav[1] = v41[4];
-                vmav[2] = v41[5];
-                trace = AAS_TraceClientBBox(start, vmav, 2, -1);
+                end[0] = bsptrace[3];
+                end[1] = bsptrace[4];
+                end[2] = bsptrace[5];
+                trace = AAS_TraceClientBBox(start, end, 2, -1);
                 VectorSubtract(trace.endpos, facecenter, dir);
                 if ( VectorLength(dir) <= 24.0f )
                 {
                   VectorCopy(trace.endpos, start);
                   /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
                    * from trace.endpos; IDA dropped the middle assignment. */
-                  VectorCopy(trace.endpos, vmav);
+                  VectorCopy(trace.endpos, end);
                   v37 = AAS_FallDamageDistance();
-                  vmav[2] = vmav[2] - (float)v37;
-                  trace = AAS_TraceClientBBox(start, vmav, 2, -1);
+                  end[2] = end[2] - (float)v37;
+                  trace = AAS_TraceClientBBox(start, end, 2, -1);
                   if ( trace.fraction < 1.0f )
                   {
                     areanum = AAS_PointAreaNum(trace.endpos);
@@ -12692,17 +12692,17 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                       v13 = lreach;
                       if ( !lreach )
                         return 0;
-                      v14 = v41[3];
+                      v14 = bsptrace[3];
                       lreach->reach.areanum = areanum;
                       lreach->reach.facenum = face2num;
                       lreach->reach.edgenum = 0;
                       lreach->reach.start[0] = areastart[0];
                       v15 = v14 - lreach->reach.start[0];
-                      v16 = v41[3];
+                      v16 = bsptrace[3];
                       lreach->reach.start[1] = areastart[1];
-                      v17 = v41[4];
+                      v17 = bsptrace[4];
                       v13->reach.start[2] = areastart[2];
-                      v18 = v41[5];
+                      v18 = bsptrace[5];
                       v13->reach.end[0] = v16;
                       v13->reach.end[1] = v17;
                       v13->reach.end[2] = v18;
@@ -14016,8 +14016,8 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   aas_cluster_t       *clusters = (aas_cluster_t *)aasworld.clusters;
   unsigned short      *cache_traveltimes;
   unsigned short      *other_traveltimes;
-  int v4, v7, v10, v11, v14, v15, v20;
-  unsigned short v16, v17, v18;
+  int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
+  unsigned short t, v17, v18;
   aas_cluster_t *clust;
   int i;
 
@@ -14031,9 +14031,9 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   cur->cluster       = portalcache->cluster;
   cur->areanum       = portalcache->areanum;
   cur->tmptraveltime = (unsigned short)(__int64)portalcache->starttraveltime;
-  v4 = settings_base[portalcache->areanum].cluster;
-  if ( v4 < 0 )
-    cache_traveltimes[-v4] = (unsigned short)(__int64)portalcache->starttraveltime;
+  clusternum = settings_base[portalcache->areanum].cluster;
+  if ( clusternum < 0 )
+    cache_traveltimes[-clusternum] = (unsigned short)(__int64)portalcache->starttraveltime;
   cur->inlist = 0;
   cur->next   = NULL;
   cur->prev   = NULL;
@@ -14063,33 +14063,33 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
       int cluster_firstportal = ((int *)clust)[2];
       for ( i = 0; i < cluster_numportals; ++i )
       {
-        v10 = aasworld.portalindex[cluster_firstportal + i];
-        v11 = portals[v10].areanum;
+        portalnum = aasworld.portalindex[cluster_firstportal + i];
+        v11 = portals[portalnum].areanum;
         if ( v11 != cur->areanum )
         {
           v14 = settings_base[v11].cluster;
           if ( v14 <= 0 )
           {
-            v15 = portals[-v14].clusterareanum[portals[-v14].frontcluster != cur->cluster];
+            clusterareanum = portals[-v14].clusterareanum[portals[-v14].frontcluster != cur->cluster];
           }
           else
           {
-            v15 = settings_base[v11].clusterareanum;
+            clusterareanum = settings_base[v11].clusterareanum;
           }
-          v16 = other_traveltimes[v15];
-          if ( v16 )
+          t = other_traveltimes[clusterareanum];
+          if ( t )
           {
-            v17 = cur->tmptraveltime + v16;
-            v18 = cache_traveltimes[v10];
+            v17 = cur->tmptraveltime + t;
+            v18 = cache_traveltimes[portalnum];
             if ( !v18 || v18 > v17 )
             {
-              cache_traveltimes[v10] = v17;
-              upd = &portalupdate[portals[v10].areanum];
-              v20 = portals[v10].frontcluster;
+              cache_traveltimes[portalnum] = v17;
+              upd = &portalupdate[portals[portalnum].areanum];
+              v20 = portals[portalnum].frontcluster;
               if ( v20 == cur->cluster )
-                v20 = portals[v10].backcluster;
+                v20 = portals[portalnum].backcluster;
               upd->cluster = v20;
-              upd->areanum = portals[v10].areanum;
+              upd->areanum = portals[portalnum].areanum;
               upd->tmptraveltime = v17;
               if ( !upd->inlist )
               {
@@ -15301,7 +15301,7 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
 qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 {
   _DWORD *face; // ebx
-  int eidx;
+  int edgenum;
   char *edge;
   float *v1;
   BOOL firstvertex; // esi
@@ -15323,9 +15323,9 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   {
     while ( 1 )
     {
-      eidx = aasworld.edgeindex[facenum + face[3]];
-      edge = &aasworld.edges[abs(eidx)];
-      firstvertex = eidx < 0;
+      edgenum = aasworld.edgeindex[facenum + face[3]];
+      edge = &aasworld.edges[abs(edgenum)];
+      firstvertex = edgenum < 0;
       v1 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * firstvertex)];
       v2 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !firstvertex)]);
       VectorSubtract(v2, v1, edgevec);
@@ -16125,13 +16125,13 @@ void BotResetNodeSwitches()
 //----- (1001D2D0) --------------------------------------------------------
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 {
-  int v2; // ebx
+  int i; // ebx
   const char *v3; // edx
   char Buffer[1400]; // [esp+10h] [ebp-578h] BYREF
 
   sprintf(Buffer, "%s at %1.1f switched more than %d AI nodes\n",
           (const char *)ClientName(*(_DWORD *)((char *)bs + 4)), AAS_Time(), 50);
-  v2 = numnodeswitches;
+  i = numnodeswitches;
   if ( numnodeswitches > 0 )
   {
     v3 = (const char *)nodeswitch;
@@ -16139,9 +16139,9 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
     {
       strcat(Buffer, v3);
       v3 += 144;
-      --v2;
+      --i;
     }
-    while ( v2 );
+    while ( i );
   }
   return botimport.Print(PRT_FATAL, Buffer);
 }
@@ -17009,14 +17009,14 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
 int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 {
 
-  bot_goal_t *v1; // eax
+  bot_goal_t *goal; // eax
   const char *v2; // eax
   int result; // eax
 
-  v1 = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
-  if ( v1 )
+  goal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
+  if ( goal )
   {
-    v2 = (const char *)BotGoalName(v1->number);
+    v2 = (const char *)BotGoalName(goal->number);
     result = BotRecordNodeSwitch(bs, "seek NBG", v2);
   }
   else
@@ -17167,14 +17167,14 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
 int __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 {
 
-  bot_goal_t *v1; // eax
+  bot_goal_t *goal; // eax
   const char *v2; // eax
   int result; // eax
 
-  v1 = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
-  if ( v1 )
+  goal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
+  if ( goal )
   {
-    v2 = (const char *)BotGoalName(v1->number);
+    v2 = (const char *)BotGoalName(goal->number);
     result = BotRecordNodeSwitch(bs, "seek LTG", v2);
   }
   else
@@ -17195,7 +17195,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   int v5; // edx
   int v6; // ecx
   int v7; // edx
-  float v8; // [esp+0h] [ebp-94h]
+  float range; // [esp+0h] [ebp-94h]
   float v9; // [esp+14h] [ebp-80h]
   int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
@@ -17260,8 +17260,8 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       v4 = AAS_Time();
       v5 = -(bs->ltgtype != 3);
       bs->check_time = v4 + 0.5;
-      v8 = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
-      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, v8) )
+      range = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
+      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0f;
@@ -17612,7 +17612,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   int v2; // edi
   bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
   float v4; // st7
-  float v4b; // captured BFloat dodge probability (IDA dropped the fstps)
+  float attack_skill; // captured BFloat dodge probability (IDA dropped the fstps)
   int v5; // eax
   int v6; // ecx
   int v7; // [esp+Ch] [ebp-178h]
@@ -17716,8 +17716,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
            * earlier, never reset since.  Disasm at 10020901..1002090c shows
            * the bfloat result is compared directly with 0.3 (characteristic 4
            * is "aggression": >0.3 attack, <=0.3 dodge). */
-          v4b = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
-          if ( v4b > 0.3 )
+          attack_skill = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
+          if ( attack_skill > 0.3 )
           {
             BotAimAtEnemy(bs);
           }
@@ -17983,16 +17983,16 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   int v3; // edx
   char v5; // dh
   int v8; // eax
-  vec3_t v6; // [esp+8h] [ebp-88h] BYREF
-  float v7[31]; // [esp+14h] [ebp-7Ch] BYREF
+  vec3_t dir; // [esp+8h] [ebp-88h] BYREF
+  float entinfo[31]; // [esp+14h] [ebp-7Ch] BYREF
 
-  *(aas_entityinfo_t *)v7 = AAS_EntityInfo(enemy);
-  v6[0] = v7[4] - bs->origin[0];
-  v6[1] = v7[5] - bs->origin[1];
-  bs->enemy_height = (int)(v7[6] - bs->origin[2]);
-  v6[2] = 0.0;
-  bs->enemy_horizontal_dist = (int)VectorLength(v6);
-  v2 = (SLODWORD(v7[28]) >> 8) & 0xFF;
+  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(enemy);
+  dir[0] = entinfo[4] - bs->origin[0];
+  dir[1] = entinfo[5] - bs->origin[1];
+  bs->enemy_height = (int)(entinfo[6] - bs->origin[2]);
+  dir[2] = 0.0;
+  bs->enemy_horizontal_dist = (int)VectorLength(dir);
+  v2 = (SLODWORD(entinfo[28]) >> 8) & 0xFF;
   bs->enemy_weapon_blaster = 0;
   bs->enemy_weapon_shotgun = 0;
   v3 = v2 - 1;
@@ -18047,8 +18047,8 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
     default:
       break;
   }
-  v8 = LODWORD(v7[29]);
-  v5 = BYTE1(v7[29]);
+  v8 = LODWORD(entinfo[29]);
+  v5 = BYTE1(entinfo[29]);
   if ( (v8 & 0x10000) != 0 )
     bs->enemy_invulnerability = 1;
   else
@@ -18368,22 +18368,22 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 
   float v1; // st7
   BOOL result; // eax
-  float v4; // [esp+4h] [ebp-24h]
-  char v5[32]; // [esp+8h] [ebp-20h] BYREF
+  float rnd; // [esp+4h] [ebp-24h]
+  char name[32]; // [esp+8h] [ebp-20h] BYREF
 
   v1 = libvar_nochat->value;
   if ( v1 != 0.0f )
     return 0;
-  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
+  rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
   }
   result = BotValidChatPosition(bs);
   if ( !result )
     return result;
-  BotInitialChat(&bs->chatstate, "enter_game", EasyClientName(bs->client, v5),
+  BotInitialChat(&bs->chatstate, "enter_game", EasyClientName(bs->client, name),
                  (char *)0);
   return 1;
 }
@@ -18392,18 +18392,18 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 int __cdecl BotChat_ExitGame(bot_state_t *bs)
 {
 
-  float v4; // [esp+4h] [ebp-24h]
-  char v5[32]; // [esp+8h] [ebp-20h] BYREF
+  float rnd; // [esp+4h] [ebp-24h]
+  char name[32]; // [esp+8h] [ebp-20h] BYREF
 
   if ( libvar_nochat->value != 0.0f )
     return 0;
-  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
+  rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
   }
-  BotInitialChat(&bs->chatstate, "exit_game", EasyClientName(bs->client, v5),
+  BotInitialChat(&bs->chatstate, "exit_game", EasyClientName(bs->client, name),
                  (char *)0);
   return 1;
 }
@@ -18412,19 +18412,19 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
 int __cdecl BotChat_StartLevel(bot_state_t *bs)
 {
 
-  float v4; // [esp+4h] [ebp-24h]
-  char v5[32]; // [esp+8h] [ebp-20h] BYREF
+  float rnd; // [esp+4h] [ebp-24h]
+  char name[32]; // [esp+8h] [ebp-20h] BYREF
 
   if ( libvar_nochat->value != 0.0f )
     return 0;
-  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
+  rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
   }
   BotInitialChat(&bs->chatstate, "start_level",
-                 EasyClientName(bs->client, v5), (char *)0);
+                 EasyClientName(bs->client, name), (char *)0);
   return 1;
 }
 
@@ -18432,18 +18432,18 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
 int __cdecl BotChat_EndLevel(bot_state_t *bs)
 {
 
-  float v4; // [esp+4h] [ebp-24h]
-  char v5[32]; // [esp+8h] [ebp-20h] BYREF
+  float rnd; // [esp+4h] [ebp-24h]
+  char name[32]; // [esp+8h] [ebp-20h] BYREF
 
   if ( libvar_nochat->value != 0.0f )
     return 0;
-  v4 = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
+  rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v4 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
   }
-  BotInitialChat(&bs->chatstate, "end_level", EasyClientName(bs->client, v5),
+  BotInitialChat(&bs->chatstate, "end_level", EasyClientName(bs->client, name),
                  (char *)0);
   return 1;
 }
@@ -18498,17 +18498,17 @@ BOOL __cdecl BotChat_Kill(int *bs)
   BOOL result; // eax
   int v4; // eax
   float v5; // st7
-  float v6; // [esp+4h] [ebp-24h]
-  _BYTE v7[32]; // [esp+8h] [ebp-20h] BYREF
+  float rnd; // [esp+4h] [ebp-24h]
+  _BYTE name[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
   if ( v1 != 0.0f )
     return 0;
-  v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 19, 0.0, 1.0);
+  rnd = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 19, 0.0, 1.0);
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
   }
   result = BotValidChatPosition((bot_state_t *)bs);
@@ -18516,12 +18516,12 @@ BOOL __cdecl BotChat_Kill(int *bs)
     return result;
   v4 = bs[1049];
   if ( v4 )
-    EasyClientName(v4 - 1, v7);
+    EasyClientName(v4 - 1, name);
   else
-    v7[0] = byte_1006294C;
+    name[0] = byte_1006294C;
   if ( bs[692] == 13 )
   {
-    BotInitialChat(bs + 995, "kill_telefrag", v7, (char *)0);
+    BotInitialChat(bs + 995, "kill_telefrag", name, (char *)0);
   }
   else
   {
@@ -18530,9 +18530,9 @@ BOOL __cdecl BotChat_Kill(int *bs)
      * Characteristic 15 is "praise vs insult" probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
-      BotInitialChat(bs + 995, "kill_insult", v7, (char *)0);
+      BotInitialChat(bs + 995, "kill_insult", name, (char *)0);
     else
-      BotInitialChat(bs + 995, "kill_praise", v7, (char *)0);
+      BotInitialChat(bs + 995, "kill_praise", name, (char *)0);
   }
   return 1;
 }
@@ -18589,10 +18589,10 @@ int __cdecl BotChat_Random(bot_state_t *bs)
 double __cdecl BotChatTime(bot_state_t *bs)
 {
 
-  int v2; // [esp+4h] [ebp-4h]
+  int cpm; // [esp+4h] [ebp-4h]
 
-  v2 = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
-  return (int)BotChatLength(&bs->chatstate) * 30.0f / v2;
+  cpm = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
+  return (int)BotChatLength(&bs->chatstate) * 30.0f / cpm;
 }
 
 //----- (100226C0) --------------------------------------------------------
@@ -18705,12 +18705,12 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   vec3_t endpos; // [esp+1Ch] [ebp-12Ch] BYREF — randomized trace endpoint, refined to predicted path destination
   float v24; // [esp+28h] [ebp-120h]
   float rnd; // [esp+2Ch] [ebp-11Ch]
-  float v26; // [esp+30h] [ebp-118h]
+  float i; // [esp+30h] [ebp-118h]
   vec3_t dir; // [esp+34h] [ebp-114h] BYREF — direction vector (endpos - origin) for VectorNormalize/Scale
   vec3_t belowbestorg; // [esp+40h] [ebp-108h] BYREF
   int trace[21]; // [esp+4Ch] [ebp-FCh] BYREF
 
-  v26 = 0.0;
+  i = 0.0;
   v2 = bs + 421;
   do
   {
@@ -18765,8 +18765,8 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
           break;
       }
     }
-    v13 = v26 + 1.0f;
-    v26 = v13;
+    v13 = i + 1.0f;
+    i = v13;
   }
   while ( v13 < 10.0f );
   result = goal;
@@ -18789,7 +18789,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
   bot_character_t *v11; // restored: holds BotCharacter pointer
   int movetype; // edi
   int v13; // eax
-  float v14; // st7
+  float strafechange_time; // st7
   __int16 v15; // ax
   int v16; // eax
   int i; // esi
@@ -18802,7 +18802,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
    * BotMoveInDirection which expect 3 contiguous floats.  Separate scalar
    * decls let GCC reorder/pad them and corrupt the vec3 contract. */
   vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
-  float v25; // [esp+20h] [ebp-124h]
+  float croucher; // [esp+20h] [ebp-124h]
   float dist; // [esp+24h] [ebp-120h]
   float attack_skill; // [esp+28h] [ebp-11Ch]
   vec3_t forward; // [esp+2Ch] [ebp-118h] BYREF
@@ -18845,13 +18845,13 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
    * spurious `vN = v10;` assignments using the random number — which made
    * every probability gate trivially `random <= random` (always true) and
    * destroyed the BFloat gating throughout this AI helper. */
-  v25 = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
-  if ( v10 <= v25 )
+  croucher = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
+  if ( v10 <= croucher )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
     v11 = BotCharacter(bs);
     jumper = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
-    v25 = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
+    croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
     if ( attack_skill >= 0.2 )
     {
       BotEntityInfo(bs, (_DWORD *)bs->movestate);
@@ -18871,8 +18871,8 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
         LODWORD(v31) = LOWORD(v31);
         if ( (float)LOWORD(v31) * 0.000030518509f >= jumper )
         {
-          if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < v25 )
-            bs->attackcrouch_time = AAS_Time() + v25 * 5.0f;
+          if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < croucher )
+            bs->attackcrouch_time = AAS_Time() + croucher * 5.0f;
         }
         else
         {
@@ -18907,15 +18907,15 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
         goto LABEL_39;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
-      v14 = (1.0f - attack_skill) * 0.2 + 0.4;
-      v31 = v14;
+      strafechange_time = (1.0f - attack_skill) * 0.2 + 0.4;
+      v31 = strafechange_time;
       if ( attack_skill > 0.7 )
       {
         v15 = rand();
-        v14 = 2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
+        strafechange_time = 2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
             + v31;
       }
-      if ( v14 < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
+      if ( strafechange_time < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
       {
         v16 = bs->flags;
         *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -19067,19 +19067,19 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
 //----- (100238F0) --------------------------------------------------------
 int __cdecl BotNumTeamMates(bot_state_t *bs)
 {
-  int v1; // ebp
-  int v2; // esi
+  int numplayers; // ebp
+  int i; // esi
 
-  v1 = 0;
-  for ( v2 = 0; v2 < botstate.num_clients; v2++ )
+  numplayers = 0;
+  for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( strlen(144 * v2 + dword_100643A8) )
+    if ( strlen(144 * i + dword_100643A8) )
     {
-      if ( BotSameTeam(bs, v2 + 1) )
-        ++v1;
+      if ( BotSameTeam(bs, i + 1) )
+        ++numplayers;
     }
   }
-  return v1;
+  return numplayers;
 }
 
 //----- (10023970) --------------------------------------------------------
@@ -19185,7 +19185,7 @@ void BotAimAtEnemy(bot_state_t *bs)
   int v14; // ax
   int v15; // ax
   int *v16; // esi
-  int v17; // edi
+  int i; // edi
   int v18; // ax
   int v19; // ax
   int v20; // ecx
@@ -19198,14 +19198,14 @@ void BotAimAtEnemy(bot_state_t *bs)
   float aim_skill; // [esp+20h] [ebp-1A8h]
   float v28; // [esp+20h] [ebp-1A8h]
   vec3_t dir; // [ebp-1A4h] BYREF — was split v29/v30/v31 (X/Y/Z); IDA dropped Y/Z stores in some sites
-  int v32; // [esp+30h] [ebp-198h] BYREF
+  int bestorigin; // [esp+30h] [ebp-198h] BYREF
   float v33; // [esp+34h] [ebp-194h]
   float v34; // [esp+38h] [ebp-190h]
   float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
-  int v36; // [esp+40h] [ebp-188h] BYREF
+  int groundtarget; // [esp+40h] [ebp-188h] BYREF
   float v37; // [esp+44h] [ebp-184h]
   float v38; // [esp+48h] [ebp-180h]
-  float v39; // [esp+4Ch] [ebp-17Ch] BYREF
+  float start; // [esp+4Ch] [ebp-17Ch] BYREF
   float v40; // [esp+50h] [ebp-178h]
   float v41; // [esp+54h] [ebp-174h]
   vec3_t end; // [esp+58h] [ebp-170h] BYREF
@@ -19240,18 +19240,18 @@ void BotAimAtEnemy(bot_state_t *bs)
       aim_accuracy = sqrt(aim_accuracy);
     *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
     v4 = bs->origin[0];
-    v32 = SLODWORD(entinfo[4]);
+    bestorigin = SLODWORD(entinfo[4]);
     v5 = bs->origin[1];
     v33 = entinfo[5];
     v34 = entinfo[6] + 8.0f;
     v6 = bs->origin[2];
     v7 = bs->entitynum;
-    v39 = v4;
+    start = v4;
     v8 = v6 + bs->snapshot.viewoffset[2];
     v40 = v5;
     v41 = v8;
     v41 = v8 + wi->offset[2];
-    *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)mins, (float*)maxs, (float*)(&v32), v7, 100663299);
+    *(bsp_trace_t *)trace = AAS_Trace((&start), (float*)mins, (float*)maxs, (float*)(&bestorigin), v7, 100663299);
     if ( *(float *)&trace[2] <= 1.0f && trace[20] != LODWORD(entinfo[3]) )
       v34 = v34 + 16.0f;
     if ( wi->speed != 0.0f && aim_skill > 0.4 )
@@ -19268,7 +19268,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       dir[1] = entinfo[5] - entinfo[14];
       v9 = VectorNormalize(dir);
       v22 = dist / wi->speed * (v9 / entinfo[2]);
-      VectorMA((&entinfo[4]), v22, dir, (float *)&v32);
+      VectorMA((&entinfo[4]), v22, dir, (float *)&bestorigin);
     }
     if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > entinfo[6] )
     {
@@ -19276,23 +19276,23 @@ void BotAimAtEnemy(bot_state_t *bs)
       end[1] = entinfo[5];
       end[2] = entinfo[6] - 64.0f;
       *(bsp_trace_t *)trace = AAS_Trace((&entinfo[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), SLODWORD(entinfo[3]), 100663299);
-      v36 = v32;
+      groundtarget = bestorigin;
       v37 = v33;
       v10 = trace[1] ? entinfo[6] - 16.0f : *(float *)&trace[5] - 8.0f;
       passent = bs->entitynum;
       v38 = v10;
-      *(bsp_trace_t *)trace = AAS_Trace((&v39), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&v36), passent, 100663299);
+      *(bsp_trace_t *)trace = AAS_Trace((&start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(&groundtarget), passent, 100663299);
       v12 = *(float *)&trace[5] - v38;
       if ( fabs(v12) < 50.0 )
       {
         /* IDA dropped Y/Z component stores; restored from disasm 0x100240a0-0x100240c0 */
-        dir[0] = *(float *)&trace[3] - *(float *)&v36;
+        dir[0] = *(float *)&trace[3] - *(float *)&groundtarget;
         dir[1] = *(float *)&trace[4] - v37;
         dir[2] = v12;
         if ( VectorLength(dir) < 60.0f )
         {
           /* IDA dropped Y/Z component stores; restored from disasm 0x100240dd-0x10024108 */
-          dir[0] = *(float *)&trace[3] - v39;
+          dir[0] = *(float *)&trace[3] - start;
           dir[1] = *(float *)&trace[4] - v40;
           dir[2] = *(float *)&trace[5] - v41;
           if ( VectorLength(dir) > 150.0f )
@@ -19300,7 +19300,7 @@ void BotAimAtEnemy(bot_state_t *bs)
             *(bsp_trace_t *)trace = AAS_Trace((float*)(&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (&entinfo[4]), SLODWORD(entinfo[3]), 100663299);
             if ( *(float *)&trace[2] >= 1.0f )
             {
-              v32 = v36;
+              bestorigin = groundtarget;
               v33 = v37;
               v34 = v38;
             }
@@ -19310,10 +19310,10 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     v28 = 1.0f - aim_accuracy;
     v13 = rand();
-    *(float *)&v32 = (2 * ((float)(v13 & 0x7FFF) * 0.000030518509f - 0.5))
+    *(float *)&bestorigin = (2 * ((float)(v13 & 0x7FFF) * 0.000030518509f - 0.5))
                    * v28
                    * 20.0
-                   + *(float *)&v32;
+                   + *(float *)&bestorigin;
     v14 = rand();
     v33 = (2 * ((float)(v14 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 20.0
         + v33;
@@ -19322,23 +19322,23 @@ void BotAimAtEnemy(bot_state_t *bs)
         + v34;
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
-    dir[0] = *(float *)&v32 - bs->eye[0];
+    dir[0] = *(float *)&bestorigin - bs->eye[0];
     dir[1] = v33 - bs->eye[1];
     dir[2] = v34 - bs->eye[2];
     if ( !_strcmpi(wi->name, "Railgun") )
     {
       VectorNormalize(dir);
       v16 = (int *)dir;
-      v17 = 3;
+      i = 3;
       do
       {
         ++v16;
         v24 = rand() & 0x7FFF;
-        --v17;
+        --i;
         *((float *)v16 - 1) = (2 * ((float)v24 * 0.000030518509f - 0.5)) * v28 * 0.3
                             + *((float *)v16 - 1);
       }
-      while ( v17 );
+      while ( i );
     }
     vectoangles(dir, bs->ideal_viewangles);
     v18 = rand();
@@ -19823,21 +19823,21 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   vec3_t v53_vec; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
   vec3_t v56_vec; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
   vec3_t v59_vec; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
-  vec3_t v62; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
+  vec3_t sideward; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
   float v65; // [esp+88h] [ebp-ECh]
   vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
   vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
-  vec3_t v72; // [esp+A4h] [ebp-D0h] BYREF
-  vec3_t v73; // [esp+B0h] [ebp-C4h] BYREF
+  vec3_t hordir; // [esp+A4h] [ebp-D0h] BYREF
+  vec3_t up; // [esp+B0h] [ebp-C4h] BYREF
   aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
   vec3_t v75; // [esp+E0h] [ebp-94h] BYREF
   vec3_t v76; // [esp+ECh] [ebp-88h] BYREF
   int v77[31]; // [esp+F8h] [ebp-7Ch] BYREF
 
   result = (int (__cdecl *)(int))moveresult->blocked;
-  v73[0] = 0;
-  v73[1] = 0;
-  v73[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
+  up[0] = 0;
+  up[1] = 0;
+  up[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
   if ( !result )
     return;
   *(aas_entityinfo_t *)v77 = AAS_EntityInfo(moveresult->blockentity);
@@ -19958,38 +19958,38 @@ LABEL_32:
   if ( strcmp(v7, "trigger_multiple") && strcmp(v7, "trigger_once") )
   {
 LABEL_37:
-    v72[0] = moveresult->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
-    v72[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
-    v72[2] = 0;
-    VectorNormalize(v72);
+    hordir[0] = moveresult->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
+    hordir[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
+    hordir[2] = 0;
+    VectorNormalize(hordir);
     v31 = bs->origin[2];
     v32 = bs->origin[1];
     v53_vec[0] = bs->origin[0];
     v53_vec[1] = v32;
     v53_vec[2] = v31;   /* materialize origin[2] to the slot; original mov [esp+0x58],ecx then fld it back at 0x10025ec3 */
     v53_vec[2] = v31 + libvar_sv_step->value;
-    VectorMA(v53_vec, 5.0f, v72, v66_vec);
+    VectorMA(v53_vec, 5.0f, hordir, v66_vec);
     v44_vec[0] = -16.0f;
     v44_vec[1] = -16.0f;
     v44_vec[2] = -24.0f;
     v41_vec[0] = 16.0f;
     v41_vec[1] = 16.0f;
     v41_vec[2] = 4.0f;
-    CrossProduct(v72, v73, v62);
+    CrossProduct(hordir, up, sideward);
     if ( (*(unsigned char *)&bs->flags & 0x10) != 0 )
     {
-      v62[0] = -v62[0];
-      v62[1] = -v62[1];
-      v62[2] = -v62[2];
+      sideward[0] = -sideward[0];
+      sideward[1] = -sideward[1];
+      sideward[2] = -sideward[2];
     }
-    if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1) )
+    if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)sideward, 400.0f, 1) )
     {
-      v62[0] = -v62[0];
+      sideward[0] = -sideward[0];
       v33 = bs->flags;   /* original reads flags mid-negation: mov eax,[esi+0xac0] at 0x10025f9b */
-      v62[1] = -v62[1];
-      v62[2] = -v62[2];
+      sideward[1] = -sideward[1];
+      sideward[2] = -sideward[2];
       bs->flags = v33 ^ 0x10;
-      BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)v62, 400.0f, 1);
+      BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)sideward, 400.0f, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
@@ -20170,14 +20170,14 @@ BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
 //----- (10026770) --------------------------------------------------------
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal)
 {
-  int v4; // eax
+  int cp; // eax
 
   if ( BotGetItemTeamGoal(goalname, goal) )
     return 1;
-  v4 = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), goalname);
-  if ( v4 )
+  cp = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), goalname);
+  if ( cp )
   {
-    memcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
+    memcpy((void *)goal, (const void *)(cp + 4), 0x38u);
     return 1;
   }
   return 0;
@@ -20187,31 +20187,31 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *g
 float __cdecl BotGetTime(bot_match_t *match)
 {
   float v1; // st7
-  float v3; // [esp+0h] [ebp-18Ch]
-  char String[152]; // [esp+4h] [ebp-188h] BYREF
+  float t; // [esp+0h] [ebp-18Ch]
+  char timestring[152]; // [esp+4h] [ebp-188h] BYREF
   /* IDA split bot_match_t (240 B) into `char Destination[4]` + a phantom
    * `int v6` at offset +152 (= match.type).  The original calls
    * sub_10001267 = BotFindMatch, not strncmp.  See chat_state.h. */
-  bot_match_t Destination; // [esp+9Ch] [ebp-F0h] BYREF
+  bot_match_t timematch; // [esp+9Ch] [ebp-F0h] BYREF
 
   if ( (match->subtype & 0x10) == 0 )
     return 0.0f;
-  BotMatchVariable(match, 5, String);
-  if ( !BotFindMatch(String, &Destination, 8) )
+  BotMatchVariable(match, 5, timestring);
+  if ( !BotFindMatch(timestring, &timematch, 8) )
     return 0.0f;
-  BotMatchVariable(&Destination, 5, String);
-  if ( Destination.type == 105 )
+  BotMatchVariable(&timematch, 5, timestring);
+  if ( timematch.type == 105 )
   {
-    v1 = atof(String) * 60.0;
-    v3 = v1;
+    v1 = atof(timestring) * 60.0;
+    t = v1;
   }
-  else if ( Destination.type == 106 )
+  else if ( timematch.type == 106 )
   {
-    v1 = atof(String);
-    v3 = v1;
+    v1 = atof(timestring);
+    t = v1;
   }
-  if ( v3 > 0.0f )
-    return AAS_Time() + v3;
+  if ( t > 0.0f )
+    return AAS_Time() + t;
   return 0.0f;
 }
 
@@ -20329,15 +20329,15 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   const char *botname; // esi (Q2 ClientName returns char*)
   float v5; // [esp+Ch] [ebp-2BCh]
   char name[152]; // [esp+10h] [ebp-2B8h] BYREF
-  char Source[152]; // [esp+A8h] [ebp-220h] BYREF
+  char addressedto[152]; // [esp+A8h] [ebp-220h] BYREF
   /* IDA split bot_match_t (240 B) into `char addresseematch[4]` + phantom `int v9` at
    * offset +152 (= match.type).  The original calls sub_10001267 =
    * BotFindMatch, not strncmp.  See chat_state.h. */
   bot_match_t addresseematch; // [esp+140h] [ebp-188h] BYREF
-  char Destination[152]; // [esp+230h] [ebp-98h] BYREF
+  char netname[152]; // [esp+230h] [ebp-98h] BYREF
 
-  BotMatchVariable(match, 0, Destination);
-  client = ClientFromName(Destination);
+  BotMatchVariable(match, 0, netname);
+  client = ClientFromName(netname);
   if ( client < 0 )
     return 0;
   result = BotSameTeam(bs, client + 1);
@@ -20345,9 +20345,9 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   {
     if ( (match->subtype & 2) != 0 )
     {
-      BotMatchVariable(match, 1, Source);
+      BotMatchVariable(match, 1, addressedto);
       botname = ClientName(*(_DWORD *)((char *)bs + 4));
-      if ( !BotFindMatch(Source, &addresseematch, 32) )
+      if ( !BotFindMatch(addressedto, &addresseematch, 32) )
         return 0;
       while ( addresseematch.type != 101 )
       {
@@ -20359,8 +20359,8 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
         BotMatchVariable(&addresseematch, 3, name);
         if ( StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0) )
           return 1;
-        BotMatchVariable(&addresseematch, 5, Source);
-        result = BotFindMatch(Source, &addresseematch, 32);
+        BotMatchVariable(&addresseematch, 5, addressedto);
+        result = BotFindMatch(addressedto, &addresseematch, 32);
         if ( !result )
           return result;
       }
@@ -20984,7 +20984,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   int context; // ecx
   float v7; // st7
   char *v8; // eax
-  char *Str2; // [esp+10h] [ebp-14h]
+  char *botname; // [esp+10h] [ebp-14h]
   float v11; // [esp+14h] [ebp-10h]
   float v12; // [esp+18h] [ebp-Ch]
   double v13; // [esp+1Ch] [ebp-8h]
@@ -20992,7 +20992,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 
   v1 = a1;
   v2 = &bs->chatstate;
-  Str2 = ClientName(bs->client);
+  botname = ClientName(bs->client);
   while ( 1 )
   {
     v3 = BotNextConsoleMessage(v2);
@@ -21010,7 +21010,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       if ( v4 )
       {
         v5 = v4 - v3->message;
-        if ( !strncmp(v3->message, Str2, v5 - 8) || !strncmp(v3->message + 1, Str2, v5 - 10) )
+        if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
         {
           BotRemoveConsoleMessage(v2, v3);
           v1 = a1;
@@ -25140,101 +25140,101 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 int BotUpdateEntityItems()
 {
   levelitem_t *v0;
-  levelitem_t *v1;
+  levelitem_t *nextli;
   int result; // eax
-  int v3; // ebp
+  int ent; // ebp
   int v4; // ebx
-  levelitem_t *v5;
+  levelitem_t *li;
   int v7; // eax
   int v11; // ecx
   levelitem_t *v13;
   int v16; // eax
-  itemconfig_t *v18; // [esp+Ch] [ebp-10Ch]
+  itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
   int v19; // [esp+10h] [ebp-108h]
-  int v20; // [esp+10h] [ebp-108h]
-  vec3_t v21; // [esp+14h] [ebp-104h] BYREF
-  float v22[31]; // [esp+20h] [ebp-F8h] BYREF
+  int modelindex; // [esp+10h] [ebp-108h]
+  vec3_t dir; // [esp+14h] [ebp-104h] BYREF
+  float entinfo[31]; // [esp+20h] [ebp-F8h] BYREF
 
   v0 = levelitems;
   if ( v0 )
   {
     do
     {
-      v1 = v0->next;
+      nextli = v0->next;
       if ( v0->timeout != 0.0f && AAS_Time() > v0->timeout )
       {
         RemoveLevelItemFromList(v0);
         FreeLevelItem(v0);
       }
-      v0 = v1;
+      v0 = nextli;
     }
-    while ( v1 );
+    while ( nextli );
   }
   result = (int)(intptr_t)itemconfig;
-  v18 = itemconfig;
+  ic = itemconfig;
   if ( !itemconfig )
     goto done;
   result = AAS_NextBSPEntity(0);
-  v3 = result;
+  ent = result;
   if ( !result )
     goto done;
   v4 = v19;
   do
   {
-    v20 = AAS_EntityModelindex(v3);
-    if ( !v20 )
+    modelindex = AAS_EntityModelindex(ent);
+    if ( !modelindex )
       goto LABEL_31;
-    *(aas_entityinfo_t *)v22 = AAS_EntityInfo(v3);
-    if ( v22[4] != v22[13] || v22[5] != v22[14] || v22[6] != v22[15] )
+    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(ent);
+    if ( entinfo[4] != entinfo[13] || entinfo[5] != entinfo[14] || entinfo[6] != entinfo[15] )
       goto LABEL_31;
-    v5 = levelitems;
-    if ( !v5 )
+    li = levelitems;
+    if ( !li )
       goto LABEL_24;
     while ( 1 )
     {
-      if ( v18->items[v5->iteminfo].modelindex != v20 )
+      if ( ic->items[li->iteminfo].modelindex != modelindex )
         goto LABEL_19;
-      v7 = v5->entitynum;
+      v7 = li->entitynum;
       if ( !v7 )
         break;
-      if ( v7 == v3 )
+      if ( v7 == ent )
       {
-        v5->origin[0] = v22[4];
-        v5->origin[1] = v22[5];
-        v5->origin[2] = v22[6];
+        li->origin[0] = entinfo[4];
+        li->origin[1] = entinfo[5];
+        li->origin[2] = entinfo[6];
         goto LABEL_23;
       }
 LABEL_19:
-      v5 = v5->next;
-      if ( !v5 )
+      li = li->next;
+      if ( !li )
         goto LABEL_25;
     }
-    v21[0] = v5->origin[0] - v22[4];
-    v21[1] = v5->origin[1] - v22[5];
-    v21[2] = v5->origin[2] - v22[6];
-    if ( VectorLength(v21) >= 20.0f )
+    dir[0] = li->origin[0] - entinfo[4];
+    dir[1] = li->origin[1] - entinfo[5];
+    dir[2] = li->origin[2] - entinfo[6];
+    if ( VectorLength(dir) >= 20.0f )
       goto LABEL_19;
-    v5->origin[1] = v22[5];
-    v5->entitynum = v3;
-    v5->origin[0] = v22[4];
-    v5->origin[2] = v22[6];
-    v5->areanum = AAS_BestReachableArea(
-              (int *)v5->origin,
-              v18->items[v4].mins,
-              v18->items[v4].maxs,
-              v5->goalorigin);
+    li->origin[1] = entinfo[5];
+    li->entitynum = ent;
+    li->origin[0] = entinfo[4];
+    li->origin[2] = entinfo[6];
+    li->areanum = AAS_BestReachableArea(
+              (int *)li->origin,
+              ic->items[v4].mins,
+              ic->items[v4].maxs,
+              li->goalorigin);
 LABEL_23:
-    if ( !v5 )
+    if ( !li )
     {
 LABEL_24:
 LABEL_25:
-      v11 = v18->numitems;
+      v11 = ic->numitems;
       v4 = 0;
-      if ( v18->numitems > 0 )
+      if ( ic->numitems > 0 )
       {
         do
         {
-          if ( v18->items[v4].modelindex == v20 )
+          if ( ic->items[v4].modelindex == modelindex )
             break;
           ++v4;
         }
@@ -25243,25 +25243,25 @@ LABEL_25:
       if ( v4 < v11 )
       {
         v13 = (levelitem_t *)AllocLevelItem();
-        v13->entitynum = v3;
-        v16 = v3 + numlevelitems;
-        v13->origin[0] = v22[4];
+        v13->entitynum = ent;
+        v16 = ent + numlevelitems;
+        v13->origin[0] = entinfo[4];
         v13->number = v16;
-        v13->origin[1] = v22[5];
-        v13->origin[2] = v22[6];
+        v13->origin[1] = entinfo[5];
+        v13->origin[2] = entinfo[6];
         v13->iteminfo = v4;
         v13->areanum = AAS_BestReachableArea(
                                   (int *)v13->origin,
-                                  v18->items[v4].mins,
-                                  v18->items[v4].maxs,
+                                  ic->items[v4].mins,
+                                  ic->items[v4].maxs,
                                   v13->goalorigin);
         v13->timeout = AAS_Time() + 30.0f;
         AddLevelItemToList(v13);
       }
     }
 LABEL_31:
-    result = AAS_NextBSPEntity(v3);
-    v3 = result;
+    result = AAS_NextBSPEntity(ent);
+    ent = result;
   }
   while ( result );
 done:
@@ -26233,7 +26233,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   int v5; // eax
   int presencetype; // edi
   float v10; // st7
-  int v11; // ebx
+  int maxframes; // ebx
   float v13; // st7
   /* IDA split a vec3 stack local — see BotTravel_Walk note. Original
    * .text 0x10031995/0x1003199a/0x1003199e stores the 3 floats at contiguous
@@ -26276,7 +26276,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         v10 = 2.0f;
         v20 = ms->thinktime;
       }
-      v11 = (__int64)(v10 / v20);
+      maxframes = (__int64)(v10 / v20);
       memcpy(
         move,
         AAS_ClientMovementPrediction(
@@ -26287,13 +26287,13 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
                         1,
                         ms->velocity,
                         cmdmove,
-                        v11,
-                        v11,
+                        maxframes,
+                        maxframes,
                         v20,
                         61,
                         0),
         sizeof(move));
-      if ( move[19] >= v11 )
+      if ( move[19] >= maxframes )
         return 0;
       if ( (move[16] & 0x38) != 0 )
         return 0;
@@ -26786,15 +26786,15 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   float v8; // st7
   float v9; // st7
   bot_moveresult_t *result; // eax
-  float v11; // [esp+0h] [ebp-90h]
-  float v12; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
-  float v14; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
+  float speed; // [esp+0h] [ebp-90h]
+  float dist1; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
+  float dist2; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
   /* IDA split four vec3 stack locals — see BotTravel_Walk note. */
-  vec3_t dir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
-  vec3_t predpos; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
-  vec3_t predd; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
-  vec3_t botd;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
-  vec3_t v27; // [esp+48h] [ebp-48h] BYREF
+  vec3_t hordir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
+  vec3_t runstart; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
+  vec3_t dir2; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
+  vec3_t dir1;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
+  vec3_t start; // [esp+48h] [ebp-48h] BYREF
   /* Same vec3-split shape as AAS_NearbySolidOrGap: VectorMA at 0x10032b95 writes
    * three floats starting at [esp+0x4c], and disasm at 0x10032b9a/0x10032ba9
    * does `fld [esp+0x68]; fadd 1.0; fstp [esp+0x6c]` on that vec's z-slot
@@ -26802,74 +26802,74 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
    * 12-byte slot as `int v28[2] + float v29;` and rendered the z-bump as
    * `v29 += 1.0`, which only updates the same memory under MSVC's frame
    * layout.  Restore as proper vec3. */
-  vec3_t v28; // [esp+54h] [ebp-3Ch] BYREF
+  vec3_t end; // [esp+54h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+60h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  AAS_JumpReachRunStart(reach, (intptr_t)predpos);
-  v3 = predpos[0] - reach->start[0];
-  dir[2] = 0.0f;
-  dir[0] = v3;
-  dir[1] = predpos[1] - reach->start[1];
-  VectorNormalize(dir);
+  AAS_JumpReachRunStart(reach, (intptr_t)runstart);
+  v3 = runstart[0] - reach->start[0];
+  hordir[2] = 0.0f;
+  hordir[0] = v3;
+  hordir[1] = runstart[1] - reach->start[1];
+  VectorNormalize(hordir);
   v4 = *(int *)&reach->start[1];
   v5 = reach->start[2];
-  v27[0] = reach->start[0];
-  *(_DWORD *)&v27[1] = v4;
-  v27[2] = v5 + 1.0f;
-  VectorMA(reach->start, 80.0f, dir, predpos);
-  for ( v12 = 0.0f; v12 < 80.0f; v12 = v12 + 10.0f )
+  start[0] = reach->start[0];
+  *(_DWORD *)&start[1] = v4;
+  start[2] = v5 + 1.0f;
+  VectorMA(reach->start, 80.0f, hordir, runstart);
+  for ( dist1 = 0.0f; dist1 < 80.0f; dist1 = dist1 + 10.0f )
   {
-    v14 = v12 + 10.0f;
-    VectorMA((float *)v27, v14, dir, v28);
-    v28[2] = v28[2] + 1.0f;
-    if ( AAS_PointAreaNum(v28) != ms->reachareanum )
+    dist2 = dist1 + 10.0f;
+    VectorMA((float *)start, dist2, hordir, end);
+    end[2] = end[2] + 1.0f;
+    if ( AAS_PointAreaNum(end) != ms->reachareanum )
       break;
   }
-  if ( v12 < 80.0f )
-    VectorMA(reach->start, v12, dir, predpos);
+  if ( dist1 < 80.0f )
+    VectorMA(reach->start, dist1, hordir, runstart);
   v6 = ms->origin[0] - reach->start[0];
-  botd[2] = 0.0f;
-  botd[0] = v6;
-  botd[1] = ms->origin[1] - reach->start[1];
-  v12 = VectorNormalize(botd);
-  v7 = ms->origin[0] - predpos[0];
-  predd[2] = 0.0f;
-  predd[0] = v7;
-  predd[1] = ms->origin[1] - predpos[1];
-  v14 = VectorNormalize(predd);
-  if ( predd[2] * botd[2] + predd[1] * botd[1] + predd[0] * botd[0] < -0.8 || v14 < 5.0f )
+  dir1[2] = 0.0f;
+  dir1[0] = v6;
+  dir1[1] = ms->origin[1] - reach->start[1];
+  dist1 = VectorNormalize(dir1);
+  v7 = ms->origin[0] - runstart[0];
+  dir2[2] = 0.0f;
+  dir2[0] = v7;
+  dir2[1] = ms->origin[1] - runstart[1];
+  dist2 = VectorNormalize(dir2);
+  if ( dir2[2] * dir1[2] + dir2[1] * dir1[1] + dir2[0] * dir1[0] < -0.8 || dist2 < 5.0f )
   {
     v9 = reach->end[0] - ms->origin[0];
-    dir[2] = 0.0f;
-    dir[0] = v9;
-    dir[1] = reach->end[1] - ms->origin[1];
-    VectorNormalize(dir);
-    if ( v12 >= 24.0f )
+    hordir[2] = 0.0f;
+    hordir[0] = v9;
+    hordir[1] = reach->end[1] - ms->origin[1];
+    VectorNormalize(hordir);
+    if ( dist1 >= 24.0f )
     {
-      if ( v12 < 32.0f )
+      if ( dist1 < 32.0f )
         EA_DelayedJump(ms->client);
     }
     else
     {
       EA_Jump(ms->client);
     }
-    EA_Move(ms->client, dir, 600.0f);
+    EA_Move(ms->client, hordir, 600.0f);
     ms->jumpreach = ms->lastreachnum;
   }
   else
   {
-    v8 = predpos[0] - ms->origin[0];
-    dir[2] = 0.0f;
-    dir[0] = v8;
-    dir[1] = predpos[1] - ms->origin[1];
-    VectorNormalize(dir);
-    if ( v14 > 80.0f )
-      v14 = 80.0f;
-    v11 = 400.0f - (400.0f - v14 * 5.0f);
-    EA_Move(ms->client, dir, v11);
+    v8 = runstart[0] - ms->origin[0];
+    hordir[2] = 0.0f;
+    hordir[0] = v8;
+    hordir[1] = runstart[1] - ms->origin[1];
+    VectorNormalize(hordir);
+    if ( dist2 > 80.0f )
+      dist2 = 80.0f;
+    speed = 400.0f - (400.0f - dist2 * 5.0f);
+    EA_Move(ms->client, hordir, speed);
   }
-  VectorCopy(dir, moveresult.movedir);
+  VectorCopy(hordir, moveresult.movedir);
   result = a1;
   *a1 = moveresult;
   return result;
@@ -26978,7 +26978,7 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   float v8; // st7
   char v9; // al
   char v11; // al
-  float v12; // st7
+  float dist2; // st7
   float v13; // eax
   char v14; // al
   bot_moveresult_t *result; // eax
@@ -26991,9 +26991,9 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   vec3_t telegoaldir; // [esp+34h] [ebp-48h] BYREF (was v28/v29/v30)
   vec3_t telegoal; // [esp+40h] [ebp-3Ch] BYREF (was v31/v32/v33)
   bot_moveresult_t moveresult; // [esp+4Ch] [ebp-30h] BYREF
-  int v35; // [esp+84h] [ebp+8h]
+  int dist1; // [esp+84h] [ebp+8h]
   float v36; // [esp+88h] [ebp+Ch]
-  float v37; // [esp+88h] [ebp+Ch]
+  float dist; // [esp+88h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   if ( BotOnMover(ms->origin, ms->entitynum, reach) )
@@ -27033,7 +27033,7 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
     VectorSubtract(reach->start, ms->origin, reachdir);
     if ( (v7 & 4) == 0 )
       reachdir[2] = 0.0f;
-    *(float *)&v35 = VectorNormalize(reachdir);
+    *(float *)&dist1 = VectorNormalize(reachdir);
     if ( MoverDown(reach) )
     {
       MoverBottomCenter(reach, telegoal);
@@ -27041,30 +27041,30 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       VectorSubtract(telegoal, ms->origin, telegoaldir);
       if ( (v11 & 4) == 0 )
         telegoaldir[2] = 0.0f;
-      v12 = VectorNormalize(telegoaldir);
-      if ( *(float *)&v35 < 20.0f
-        || v12 < *(float *)&v35
+      dist2 = VectorNormalize(telegoaldir);
+      if ( *(float *)&dist1 < 20.0f
+        || dist2 < *(float *)&dist1
         || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
       {
-        v37 = v12;
+        dist = dist2;
         v13 = telegoaldir[2];
         final[0] = telegoaldir[0];
         final[1] = telegoaldir[1];
       }
       else
       {
-        v37 = *(float *)&v35;
+        dist = *(float *)&dist1;
         v13 = reachdir[2];
         final[0] = reachdir[0];
         final[1] = reachdir[1];
       }
       final[2] = v13;
       BotCheckBlocked(ms, final, &moveresult);
-      if ( v37 > 60.0f )
-        v37 = 60.0f;
+      if ( dist > 60.0f )
+        dist = 60.0f;
       if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) )
       {
-        v18 = 400.0f - (400.0f - v37 * 6.0f);
+        v18 = 400.0f - (400.0f - dist * 6.0f);
         EA_Move(ms->client, final, v18);
       }
       moveresult.movedir[0] = final[0];
@@ -27080,8 +27080,8 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
     {
       VectorCopy(reachdir, final);
       BotCheckBlocked(ms, final, &moveresult);
-      if ( *(float *)&v35 <= 60.0f )
-        v8 = *(float *)&v35;
+      if ( *(float *)&dist1 <= 60.0f )
+        v8 = *(float *)&dist1;
       else
         v8 = 60.0f;
       v36 = 360.0f - (360.0f - v8 * 6.0f);
@@ -27392,18 +27392,18 @@ bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, bot_m
 {
   bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
-  vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
+  vec3_t hordir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
   if ( ms->jumpreach )
   {
-    dir[2] = 0.0f;
-    dir[0] = reach->end[0] - ms->origin[0];
-    dir[1] = reach->end[1] - ms->origin[1];
-    VectorNormalize(dir);
-    EA_Move(ms->client, dir, 800.0);
-    VectorCopy(dir, moveresult.movedir);
+    hordir[2] = 0.0f;
+    hordir[0] = reach->end[0] - ms->origin[0];
+    hordir[1] = reach->end[1] - ms->origin[1];
+    VectorNormalize(hordir);
+    EA_Move(ms->client, hordir, 800.0);
+    VectorCopy(hordir, moveresult.movedir);
   }
   result = a1;
   *a1 = moveresult;
@@ -30521,45 +30521,45 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4)
 {
   int v4;
-  char *v6;
+  char *curtime;
   char *v7;
-  __time32_t Time;
-  token_t Buffer __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
+  __time32_t t;
+  token_t token __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
   v4 = define->builtin - 1;
-  memcpy(&Buffer, &src->cachedtoken, sizeof(Buffer));
+  memcpy(&token, &src->cachedtoken, sizeof(token));
   switch ( v4 )
   {
     case 0:
-      sprintf(Buffer.string, "%d", src->cachedtoken.line);
-      *a3 = (char *)&Buffer;
-      *a4 = (char *)&Buffer;
+      sprintf(token.string, "%d", src->cachedtoken.line);
+      *a3 = (char *)&token;
+      *a4 = (char *)&token;
       return 1;
     case 1:
-      strcpy(Buffer.string, src->scriptstack->filename);
-      *a3 = (char *)&Buffer;
-      *a4 = (char *)&Buffer;
+      strcpy(token.string, src->scriptstack->filename);
+      *a3 = (char *)&token;
+      *a4 = (char *)&token;
       return 1;
     case 2:
-      Time = time(0);
-      v6 = ctime(&Time);
-      strcpy(Buffer.string, "\"");
-      strncat(Buffer.string, v6 + 4, 7u);
-      strncat(&Buffer.string[7], v6 + 20, 4u);
-      strcat(Buffer.string, word_1005F588);
-      free(v6);
-      *a3 = (char *)&Buffer;
-      *a4 = (char *)&Buffer;
+      t = time(0);
+      curtime = ctime(&t);
+      strcpy(token.string, "\"");
+      strncat(token.string, curtime + 4, 7u);
+      strncat(&token.string[7], curtime + 20, 4u);
+      strcat(token.string, word_1005F588);
+      free(curtime);
+      *a3 = (char *)&token;
+      *a4 = (char *)&token;
       return 1;
     case 3:
-      Time = time(0);
-      v7 = ctime(&Time);
-      strcpy(Buffer.string, "\"");
-      strncat(Buffer.string, v7 + 11, 8u);
-      strcat(Buffer.string, word_1005F588);
+      t = time(0);
+      v7 = ctime(&t);
+      strcpy(token.string, "\"");
+      strncat(token.string, v7 + 11, 8u);
+      strcat(token.string, word_1005F588);
       free(v7);
-      *a3 = (char *)&Buffer;
-      *a4 = (char *)&Buffer;
+      *a3 = (char *)&token;
+      *a4 = (char *)&token;
       return 1;
     default:
       *a3 = 0;
@@ -31862,11 +31862,11 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
 {
   token_t *firsttoken;
   token_t *lasttoken;
-  token_t *v8;
+  token_t *t;
   token_t *v9;
   define_t *define;
   token_t *v11;
-  token_t *v12;
+  token_t *nexttoken;
   int defined;
   token_t token;
 
@@ -31891,13 +31891,13 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
       if ( defined )
       {
         defined = 0;
-        v8 = PC_CopyToken(&token);
-        v8->next = NULL;
+        t = PC_CopyToken(&token);
+        t->next = NULL;
         if ( lasttoken )
-          lasttoken->next = v8;
+          lasttoken->next = t;
         else
-          firsttoken = v8;
-        lasttoken = v8;
+          firsttoken = t;
+        lasttoken = t;
       }
       else if ( !strcmp(token.string, "defined") )
       {
@@ -31924,13 +31924,13 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
     }
     else if ( token.type == 3 || token.type == 5 )
     {
-      v8 = PC_CopyToken(&token);
-      v8->next = NULL;
+      t = PC_CopyToken(&token);
+      t->next = NULL;
       if ( lasttoken )
-        lasttoken->next = v8;
+        lasttoken->next = t;
       else
-        firsttoken = v8;
-      lasttoken = v8;
+        firsttoken = t;
+      lasttoken = t;
     }
     else
     {
@@ -31946,11 +31946,11 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
   {
     do
     {
-      v12 = v11->next;
+      nexttoken = v11->next;
       PC_FreeToken(v11);
-      v11 = v12;
+      v11 = nexttoken;
     }
-    while ( v12 );
+    while ( nexttoken );
   }
   return 1;
 }
@@ -31958,18 +31958,18 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
 //----- (1003C900) --------------------------------------------------------
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
-  token_t *v6; // ebp (firsttoken)
-  token_t *v7; // edi
-  token_t *v8; // eax
+  token_t *firsttoken; // ebp (firsttoken)
+  token_t *lasttoken; // edi
+  token_t *t; // eax
   token_t *v9; // eax
-  define_t *v10; // eax
+  define_t *define; // eax
   token_t *v12; // eax
-  token_t *v13; // esi
-  int v15; // [esp+10h] [ebp-438h]
-  int v16; // [esp+14h] [ebp-434h]
+  token_t *nexttoken; // esi
+  int indent; // [esp+10h] [ebp-438h]
+  int defined; // [esp+14h] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  v16 = 0;
+  defined = 0;
   if ( intvalue )
     *intvalue = 0;
   if ( floatvalue )
@@ -31986,62 +31986,62 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
     SourceError(source, "nothing to evaluate");
     return 0;
   }
-  v6 = 0;
-  v15 = 1;
-  v7 = 0;
+  firsttoken = 0;
+  indent = 1;
+  lasttoken = 0;
   do
   {
     if ( token.type == 4 )
     {
-      if ( v16 )
+      if ( defined )
       {
-        v16 = 0;
-        v8 = PC_CopyToken(&token);
-        v8->next = 0;
-        if ( v7 )
-          v7->next = v8;
+        defined = 0;
+        t = PC_CopyToken(&token);
+        t->next = 0;
+        if ( lasttoken )
+          lasttoken->next = t;
         else
-          v6 = v8;
-        v7 = v8;
+          firsttoken = t;
+        lasttoken = t;
       }
       else if ( !strcmp(token.string, "defined") )
       {
-        v16 = 1;
+        defined = 1;
         v9 = PC_CopyToken(&token);
         v9->next = 0;
-        if ( v7 )
-          v7->next = v9;
+        if ( lasttoken )
+          lasttoken->next = v9;
         else
-          v6 = v9;
-        v7 = v9;
+          firsttoken = v9;
+        lasttoken = v9;
       }
       else
       {
-        v10 = PC_FindHashedDefine(source->definehash, token.string);
-        if ( !v10 )
+        define = PC_FindHashedDefine(source->definehash, token.string);
+        if ( !define )
         {
           SourceError(source, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(source, v10) )
+        if ( !PC_ExpandDefineIntoSource(source, define) )
           return 0;
       }
     }
     else if ( token.type == 3 || token.type == 5 )
     {
       if ( token.string[0] == 40 )
-        ++v15;
+        ++indent;
       else if ( token.string[0] == 41 )
-        --v15;
-      if ( v15 <= 0 )
+        --indent;
+      if ( indent <= 0 )
         break;
-      v8 = PC_CopyToken(&token);
-      v8->next = 0;
-      if ( v7 )
-        v7->next = v8;
+      t = PC_CopyToken(&token);
+      t->next = 0;
+      if ( lasttoken )
+        lasttoken->next = t;
       else
-        v6 = v8;
-      v7 = v8;
+        firsttoken = t;
+      lasttoken = t;
     }
     else
     {
@@ -32050,18 +32050,18 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
     }
   }
   while ( PC_ReadSourceToken(source, &token) );
-  if ( !PC_EvaluateTokens(source, v6, intvalue, floatvalue, integer) )
+  if ( !PC_EvaluateTokens(source, firsttoken, intvalue, floatvalue, integer) )
     return 0;
-  v12 = v6;
-  if ( v6 )
+  v12 = firsttoken;
+  if ( firsttoken )
   {
     do
     {
-      v13 = v12->next;
+      nexttoken = v12->next;
       PC_FreeToken(v12);
-      v12 = v13;
+      v12 = nexttoken;
     }
-    while ( v13 );
+    while ( nexttoken );
   }
   return 1;
 }
@@ -32366,16 +32366,16 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
 //----- (1003D650) --------------------------------------------------------
 int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
 {
-  char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+8h] [ebp-430h] BYREF
+  char token[sizeof(token_t)] __attribute__((aligned(8))); // [esp+8h] [ebp-430h] BYREF
 
-  if ( !PC_ReadTokenHandle(source, v3) )
+  if ( !PC_ReadTokenHandle(source, token) )
   {
     SourceError(source, "couldn't find expected %s", string);
     return 0;
   }
-  if ( strcmp(v3, string) )
+  if ( strcmp(token, string) )
   {
-    SourceError(source, "expected %s, found %s", string, v3);
+    SourceError(source, "expected %s, found %s", string, token);
     return 0;
   }
   return 1;
@@ -32386,7 +32386,7 @@ int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t
 {
   int v4; // ebp
   int v6; // eax
-  char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
+  char str[1024]; // [esp+8h] [ebp-400h] BYREF
   token_t *tok = (token_t *)token;
 
   v4 = source;
@@ -32399,16 +32399,16 @@ int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t
   if ( v6 != type )
   {
     if ( type == 1 )
-      strcpy(ArgList, "string");
+      strcpy(str, "string");
     else if ( type == 2 )
-      strcpy(ArgList, "literal");
+      strcpy(str, "literal");
     else if ( type == 3 )
-      strcpy(ArgList, "number");
+      strcpy(str, "number");
     else if ( type == 4 )
-      strcpy(ArgList, "name");
+      strcpy(str, "name");
     else if ( type == 5 )
-      strcpy(ArgList, "punctuation");
-    SourceError(source, "expected a %s, found %s", ArgList, token);
+      strcpy(str, "punctuation");
+    SourceError(source, "expected a %s, found %s", str, token);
     return 0;
   }
   if ( v6 == 3 )
@@ -32416,31 +32416,31 @@ int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t
     if ( (subtype & tok->subtype) == subtype )
       return 1;
     if ( (subtype & 8) != 0 )
-      strcpy(ArgList, "decimal");
+      strcpy(str, "decimal");
     if ( (subtype & 0x100) != 0 )
-      strcpy(ArgList, "hex");
+      strcpy(str, "hex");
     if ( (subtype & 0x200) != 0 )
-      strcpy(ArgList, "octal");
+      strcpy(str, "octal");
     if ( (subtype & 0x400) != 0 )
-      strcpy(ArgList, "binary");
+      strcpy(str, "binary");
     if ( (subtype & 0x2000) != 0 )
     {
-      strcat(ArgList, " long");
+      strcat(str, " long");
       v4 = source;
     }
     if ( (subtype & 0x4000) != 0 )
     {
-      strcat(ArgList, " unsigned");
+      strcat(str, " unsigned");
       v4 = source;
     }
     if ( (subtype & 0x800) != 0 )
     {
-      strcat(ArgList, " float");
+      strcat(str, " float");
       v4 = source;
     }
     if ( (subtype & 0x1000) != 0 )
-      strcat(ArgList, " integer");
-    SourceError(v4, "expected %s, found %s", ArgList, token);
+      strcat(str, " integer");
+    SourceError(v4, "expected %s, found %s", str, token);
     return 0;
   }
   else if ( v6 == 5 )
@@ -32468,13 +32468,13 @@ int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token)
 //----- (1003DB20) --------------------------------------------------------
 int __cdecl PC_CheckTokenString(source_t *source, const char *string)
 {
-  char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
+  char tok[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
 
-  if ( PC_ReadTokenHandle(source, v3) )
+  if ( PC_ReadTokenHandle(source, tok) )
   {
-    if ( !strcmp(v3, string) )
+    if ( !strcmp(tok, string) )
       return 1;
-    PC_UnreadSourceToken(source, v3);
+    PC_UnreadSourceToken(source, tok);
   }
   return 0;
 }
@@ -33550,7 +33550,7 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token)
 {
   int v6; // eax
-  char ArgList[1024]; // [esp+10h] [ebp-400h] BYREF
+  char str[1024]; // [esp+10h] [ebp-400h] BYREF
 
   if ( !PS_ReadToken(script, (char *)token) )
   {
@@ -33561,16 +33561,16 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
   if ( v6 != type )
   {
     if ( type == 1 )
-      strcpy(ArgList, "string");
+      strcpy(str, "string");
     else if ( type == 2 )
-      strcpy(ArgList, "literal");
+      strcpy(str, "literal");
     else if ( type == 3 )
-      strcpy(ArgList, "number");
+      strcpy(str, "number");
     else if ( type == 4 )
-      strcpy(ArgList, "name");
+      strcpy(str, "name");
     else if ( type == 5 )
-      strcpy(ArgList, "punctuation");
-    ScriptError(script, "expected a %s, found %s", ArgList, token);
+      strcpy(str, "punctuation");
+    ScriptError(script, "expected a %s, found %s", str, token);
     return 0;
   }
   if ( v6 == 3 )
@@ -33578,22 +33578,22 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
     if ( (token->subtype & subtype) != subtype )
     {
       if ( (subtype & 8) != 0 )
-        strcpy(ArgList, "decimal");
+        strcpy(str, "decimal");
       if ( (subtype & 0x100) != 0 )
-        strcpy(ArgList, "hex");
+        strcpy(str, "hex");
       if ( (subtype & 0x200) != 0 )
-        strcpy(ArgList, "octal");
+        strcpy(str, "octal");
       if ( (subtype & 0x400) != 0 )
-        strcpy(ArgList, "binary");
+        strcpy(str, "binary");
       if ( (subtype & 0x2000) != 0 )
-        strcat(ArgList, " long");
+        strcat(str, " long");
       if ( (subtype & 0x4000) != 0 )
-        strcat(ArgList, " unsigned");
+        strcat(str, " unsigned");
       if ( (subtype & 0x800) != 0 )
-        strcat(ArgList, " float");
+        strcat(str, " float");
       if ( (subtype & 0x1000) != 0 )
-        strcat(ArgList, " integer");
-      ScriptError(script, "expected %s, found %s", ArgList, token);
+        strcat(str, " integer");
+      ScriptError(script, "expected %s, found %s", str, token);
       return 0;
     }
   }
