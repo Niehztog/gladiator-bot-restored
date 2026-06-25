@@ -34667,7 +34667,11 @@ LPSTR __stdcall sub_10041680(
   CHAR String1[12]; // [esp+10h] [ebp-Ch] BYREF
   char sign;
 
-  if ( (sign = a1 < a2 ? 45 : 32, a3 == 100) )
+  if ( a1 < a2 )
+    sign = 45;
+  else
+    sign = 32;
+  if ( a3 == 100 )
     return lstrcpyA(String1, String2);
   else
     return (LPSTR)sprintf(String1, Format, sign, a3);
