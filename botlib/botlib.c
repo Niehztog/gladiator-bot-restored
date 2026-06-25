@@ -17238,15 +17238,27 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   if ( AAS_Time() - 5.0f < bs->killedenemy_time
     && (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= 0.5 )
-      sub_100371B0(bs->client, 2);
-    else
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.5 )
       sub_100371B0(bs->client, 0);
+    else
+      sub_100371B0(bs->client, 2);
   }
-  if ( !BotFindEnemy(bs) )
+  if ( BotFindEnemy(bs) )
   {
-    if ( libvar_ctf->value != 0.0f )
-      BotCTFSeekGoals(bs);
+    if ( BotWantsToRetreat((int *)bs) )
+    {
+      AIEnter_Battle_Retreat(bs);
+    }
+    else
+    {
+      BotResetLastAvoidReach((intptr_t)bs->movestate);
+      BotEmptyGoalStack(bs->goalstate);
+      AIEnter_Battle_Fight(bs);
+    }
+    return 0;
+  }
+  if ( libvar_ctf->value != 0.0f )
+    BotCTFSeekGoals(bs);
     goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
     v17 = goal;
     if ( goal )
@@ -17311,18 +17323,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     BotChangeViewAngles(bs, bs->thinktime);
     return 1;
-  }
-  if ( BotWantsToRetreat((int *)bs) )
-  {
-    AIEnter_Battle_Retreat(bs);
-  }
-  else
-  {
-    BotResetLastAvoidReach((intptr_t)bs->movestate);
-    BotEmptyGoalStack(bs->goalstate);
-    AIEnter_Battle_Fight(bs);
-  }
-  return 0;
 }
 
 //----- (1001FCF0) --------------------------------------------------------
@@ -26098,8 +26098,6 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 //----- (10031450) --------------------------------------------------------
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
-  float v6; // st7
-  char v8; // al
   float startz; // [esp+10h] [ebp-64h]
   /* IDA split two vec3 stack locals (end, start) into single ints / floats and
    * dropped the per-component stores for end.  Asm at .text 0x10031450 sets
