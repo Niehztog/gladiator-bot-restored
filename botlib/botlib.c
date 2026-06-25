@@ -14531,39 +14531,38 @@ int __cdecl AAS_AlternativeRouteGoals(
   memset(flagtbl, 0, 8 * aasworld.numareas);
   count = 0;
 
-  /* Phase 1: mark candidate jumppad areas within 1.5x baseline. */
-  if ( aasworld.numareas > 1 )
+  /* Phase 1: mark candidate jumppad areas within 1.5x baseline.  No explicit
+   * numareas>1 wrapper: the for-loop entry guard already emits the single
+   * `cmp numareas,1; jle` the original has (an outer `if` duplicated it). */
+  as_byte = (char *)aasworld.areasettings + 0x1c; /* areasettings[1] */
+  for ( areanum = 1; areanum < aasworld.numareas; areanum++ )
   {
-    as_byte = (char *)aasworld.areasettings + 0x1c; /* areasettings[1] */
-    for ( areanum = 1; areanum < aasworld.numareas; areanum++ )
+    if ( (as_byte[0] & 0x20)
+      && AAS_AreaReachability(areanum) )
     {
-      if ( (as_byte[0] & 0x20)
-        && AAS_AreaReachability(areanum) )
+      travel_to_start = AAS_AreaTravelTimeToGoalArea(
+          startareanum, areanum, travelflags);
+      if ( travel_to_start )
       {
-        travel_to_start = AAS_AreaTravelTimeToGoalArea(
-            startareanum, areanum, travelflags);
-        if ( travel_to_start )
+        threshold = (float)(unsigned short)baseline_travel * 1.5;
+        if ( (float)(unsigned short)travel_to_start <= threshold )
         {
-          threshold = (float)(unsigned short)baseline_travel * 1.5;
-          if ( (float)(unsigned short)travel_to_start <= threshold )
+          travel_to_goal = AAS_AreaTravelTimeToGoalArea(
+              areanum, goalareanum, travelflags);
+          if ( travel_to_goal
+            && (float)(unsigned short)travel_to_goal <= threshold )
           {
-            travel_to_goal = AAS_AreaTravelTimeToGoalArea(
-                areanum, goalareanum, travelflags);
-            if ( travel_to_goal
-              && (float)(unsigned short)travel_to_goal <= threshold )
-            {
-              *(int   *)(flagtbl + 8 * areanum    ) = 1;
-              *(short *)(flagtbl + 8 * areanum + 4) = travel_to_start;
-              *(short *)(flagtbl + 8 * areanum + 6) = travel_to_goal;
-              /* Log_Write("%d midrange area %d", count_pre_inc, areanum) */
-              Log_Write("%d midrange area %d", count, areanum);
-              count++;
-            }
+            *(int   *)(flagtbl + 8 * areanum    ) = 1;
+            *(short *)(flagtbl + 8 * areanum + 4) = travel_to_start;
+            *(short *)(flagtbl + 8 * areanum + 6) = travel_to_goal;
+            /* Log_Write("%d midrange area %d", count_pre_inc, areanum) */
+            Log_Write("%d midrange area %d", count, areanum);
+            count++;
           }
         }
       }
-      as_byte += 0x1c;
     }
+    as_byte += 0x1c;
   }
 
   /* Phase 2: flood-fill each remaining candidate cluster and emit
@@ -14598,12 +14597,12 @@ int __cdecl AAS_AlternativeRouteGoals(
     for ( i = 0; i < numclusterareas; i++ )
     {
       aas_area_t *a = &areas_base[visit_stack[i]];
-      double d;
+      float d;
       VectorSubtract(centroid, a->center, diff);
       d = VectorLength(diff);
-      if ( (float)d < best_dist )
+      if ( d < best_dist )
       {
-        best_dist = (float)d;
+        best_dist = d;
         best_area = visit_stack[i];
       }
     }
