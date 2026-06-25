@@ -259,14 +259,14 @@ int Export_Test(int parm0, char *parm1, float *parm2, float *parm3);
  * names.  Address/provenance notes are retained; IDA "idb"/"weak" tags are not.
  * --------------------------------------------------------------------- */
 int __cdecl AAS_ContinueInit(int time);
-int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
+int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 void sub_10028E80(void);  /* was: sub_10028E80 thunk */
 void BotCheckAttack(bot_state_t *bs);
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
 int __cdecl AAS_AreaLadder(int areanum);
-bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal, int a4); /* 0x100343A0: build bot_moveresult_t for current goal */
+bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
 int AAS_InitReachability();
 itemconfig_t *LoadItemConfig(char *Source);
 int AAS_Optimize(void);
@@ -278,18 +278,18 @@ void PrintUsedMemorySize(void);
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float * velocity);
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
 char *__cdecl AAS_ClientMovementPrediction(char * move, int entnum, float * origin, int presencetype, int onground, float * velocity, float * cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int visualize);
-int __cdecl PC_UnreadSourceToken(source_t *src, const void *token);
+int __cdecl PC_UnreadSourceToken(source_t *source, const void *token);
 int __cdecl sub_1001C760(char *Source);
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);
-void __cdecl PC_FreeToken(token_t *t);
+void __cdecl PC_FreeToken(token_t *token);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 _DWORD *BotInitLevelItems(void);
 int __cdecl BotLibLoadMap(char *Source);
 int AAS_FreeRoutingCaches(void);  /* sub_10019550 (was: AAS_FreeRoutingCaches thunk) */
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
-libvar_t *__cdecl LibVar(char *name, char *value);            /* register/lookup libvar */
-float     __cdecl LibVarValue(char *name, char *defvalue);    /* register, return value */
-int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane);  /* Q3 canonical name */
+libvar_t *__cdecl LibVar(char *var_name, char *value);            /* register/lookup libvar */
+float     __cdecl LibVarValue(char *var_name, char *value);    /* register, return value */
+int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
 void sub_1001D290(void);  /* was: sub_1001D290 thunk */
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 int __cdecl Characteristic_Integer(bot_character_t * character, int index);
@@ -302,13 +302,13 @@ int InFieldOfVision(float *, float, float *);
 int __cdecl WriteFloat(FILE *fp, float value);
 void AAS_InitAASLinkHeap();
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
-void __cdecl LibVarSet(char *name, char *value);  /* body at ~30304 */
+void __cdecl LibVarSet(char *var_name, char *value);  /* body at ~30304 */
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs);
 bsp_link_t *sub_100031F0(void);
 int __cdecl AAS_BestReachableArea(int * origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 int AAS_TestPortals();
-void __cdecl EA_DropItem(int client, char *item);
+void __cdecl EA_DropItem(int client, char *it);
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
 bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1);
 int __cdecl sub_10003080(vec3_t point);
@@ -317,7 +317,7 @@ int sub_100032D0();
 int __cdecl sub_10003360(float *a1, int a2);
 char *__cdecl sub_10003420(float *a1, int a2);
 float *__cdecl sub_10003460(float *a1, float *a2);
-void __cdecl AnglesToAxis(float *angles, float *axis_out);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
+void __cdecl AnglesToAxis(float *angles, float *axis);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace);
 int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
@@ -383,8 +383,8 @@ int AAS_SwapAASData();
 void *AAS_DumpAASData();
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length);
-int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize);
-qboolean __cdecl AAS_WriteAASFile(char *FileName);
+int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t length);
+qboolean __cdecl AAS_WriteAASFile(char *filename);
 bsp_pointlight_t *sub_1000D450();
 bsp_pointlight_t *__cdecl sub_1000D4A0(bsp_pointlight_t *a1);
 void __cdecl sub_1000D4E0(float a1);
@@ -443,13 +443,13 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end);
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
-int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c);
+int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 int AAS_Reachability_Teleport();
 int AAS_Reachability_Elevator();
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
-int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2);
+int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
 int __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int AAS_StoreReachability();
 int __cdecl AAS_TravelFlagForType(int traveltype);
@@ -463,11 +463,11 @@ int AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
 void AAS_InitRouting(void);
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache);
+aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
-int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache);
+int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
-__int16 __cdecl AAS_AreaTravelTimeToGoalArea(int a1, int a2, int a3);
+__int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum);
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);
@@ -539,11 +539,11 @@ BOOL __cdecl BotIsObserver(bot_state_t *bs);
 BOOL __cdecl BotIntermission(bot_state_t *bs);
 BOOL __cdecl sub_10021710(int *a1);
 BOOL __cdecl EntityIsShooting(intptr_t a1);
-char *__cdecl stristr(char *a1, char *a2);
+char *__cdecl stristr(char *str, char *charset);
 char *__cdecl EasyClientName(int client, char *buf);
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum);
-bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name);
-void            __cdecl BotFreeWaypoints(bot_waypoint_t *head);
+bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *waypoints, char *name);
+void            __cdecl BotFreeWaypoints(bot_waypoint_t *wp);
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs);
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs);
 int __cdecl BotChat_ExitGame(bot_state_t *bs);
@@ -563,14 +563,14 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
 int __cdecl BotFindEnemy(bot_state_t *bs);
 int *__cdecl BotEntityToActivate(int a1);
-int __cdecl BotSetMovedir(float *angles, float *dir);
+int __cdecl BotSetMovedir(float *angles, float *movedir);
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate);
 void __cdecl sub_100262C0(_DWORD *a1, intptr_t a2);
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
 BOOL TeamPlayIsOn();
-BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal);
-int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *goal);
+BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal);
+int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal);
 float __cdecl BotGetTime(bot_match_t *match);
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
@@ -580,7 +580,7 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
 int BotDeathmatchAI(bot_state_t *bs, float a2);
 int __cdecl sub_10028A40(bot_state_t *bs, float a2);
 void BotSetupDeathmatchAI();
-int __cdecl ClientFromName(const char *a1);
+int __cdecl ClientFromName(const char *name);
 char *__cdecl ClientName(int client);
 char *__cdecl ClientSkin(int client);
 int NumBots();
@@ -599,19 +599,19 @@ int sub_10029C10();
 int BotShutdownLibrary();
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2);
 void __cdecl sub_1002A590(int a1);
-int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2);
+int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index);
 float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float min, float max);
 int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int min, int max);
 char *__cdecl Characteristic_String(bot_character_t *character, int index);
 bot_consolemessage_t *AllocConsoleMessage();
 int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
-int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *msg);
-int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source);
+int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg);
+int __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message);
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs);
-int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs);
-BOOL __cdecl IsWhiteSpace(char a1);
-void __cdecl UnifyWhiteSpaces(void *Src);
-int __cdecl FindClientByName(char *String2);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
+int __cdecl BotNumConsoleMessages(bot_chatstate_t *chatstate);
+BOOL __cdecl IsWhiteSpace(char c);
+void __cdecl UnifyWhiteSpaces(void *string);
+int __cdecl FindClientByName(char *name);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);  /* 0x1002ACF0 — substring search */
 const char *__cdecl StringContainsWord(const char *str1, const char *str2, int casesensitive);
 void __cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
@@ -625,30 +625,30 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
 void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
 bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char * matchfile);
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
-int  __cdecl BotFindMatch(char *Source, bot_match_t *match, int context);
+int  __cdecl BotFindMatch(char *str, bot_match_t *match, int context);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
-bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2);
+bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist);
 void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
 void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
 int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
 void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
 void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname);
-int __cdecl BotFreeChatFile(bot_chatstate_t *cs);
+int __cdecl BotFreeChatFile(bot_chatstate_t *chatstate);
 int __cdecl BotFreeChatState(bot_chatstate_t *cs);
-int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname);
+int __cdecl BotLoadChatFile(bot_chatstate_t *chatstate, char *chatfile, char *chatname);
 void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, int mcontext, bot_chatvar_t *vars, int vcontext);
-char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2);
+char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type);
 void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...);
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message);
-unsigned int __cdecl BotChatLength(bot_chatstate_t *cs);
-char __cdecl BotEnterChat(bot_chatstate_t *cs, int clientto, int sendto);
+unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate);
+char __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto);
 void BotShutdownChatAI();
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 _DWORD *__cdecl AllocLevelItem(void);
-void __cdecl FreeLevelItem(levelitem_t *item);
-levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item);
-levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item);
+void __cdecl FreeLevelItem(levelitem_t *li);
+levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li);
+levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li);
 char *__cdecl BotGoalName(int number);
 int __cdecl BotResetAvoidGoals(void *goalstate);
 void __cdecl BotDumpAvoidGoals(int *goalstate);
@@ -676,7 +676,7 @@ int __cdecl BotReachabilityArea(int *origin, int client);
 BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach);
 BOOL __cdecl MoverDown(aas_reachability_t* reach);
 BOOL __cdecl BotValidTravel(int a1, int a2, intptr_t a3, int a4);
-void __cdecl BotAddToAvoidReach(intptr_t ms, int number, float avoidtime);
+void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime);
 int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, intptr_t avoidreach, float *avoidreachtimes, intptr_t avoidreachtries, intptr_t goal, int travelflags);
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target);
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter);
@@ -684,7 +684,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed);
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
-int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
+int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type);
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult);
 bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult);
 bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
@@ -712,24 +712,24 @@ _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
 int __cdecl BotResetMoveState(void *movestate);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
-void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws);
-int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename);
+void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate);
+int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename);
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws);
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
-int __cdecl BotResetWeaponState(bot_weaponstate_t *ws);
+int __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate);
 int BotSetupWeaponAI();
 int BotShutdownWeaponAI();
 int __cdecl ReadValue(source_t *source, float *value);
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
 void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
-void              __cdecl FreeWeightConfig2(weightconfig_t *cfg);
-weightconfig_t   *__cdecl ReadWeightConfig(char *Source);
+void              __cdecl FreeWeightConfig2(weightconfig_t *config);
+weightconfig_t   *__cdecl ReadWeightConfig(char *filename);
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs);
-qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int, int);
+qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int, int);
 int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);
-double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep);
-double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep);
+double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs);
+double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs);
 double __cdecl FuzzyWeight(int *facts, weight_t *w);
 double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
@@ -737,7 +737,7 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
 void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
-void __cdecl EA_UseItem(int client, char *item);
+void __cdecl EA_UseItem(int client, char *it);
 void __cdecl sub_100371B0(int client, int sequence);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Attack(int client);
@@ -748,7 +748,7 @@ int __cdecl EA_Crouch(int client);
 int __cdecl EA_MoveUp(int client);
 int __cdecl EA_MoveForward(int client);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
-void __cdecl EA_View(int client, vec3_t angles); /* EA_View impl */
+void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
 int __cdecl EA_EndRegular(int client, float thinktime);
 int EA_Setup();
 void EA_Shutdown();
@@ -762,16 +762,16 @@ qboolean __cdecl BotLibSetup(const char *str);
 int BotSetupMoveAI();
 int __cdecl Export_BotLibStartFrame(float time);
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message);
-_WORD *__cdecl CRC_Init(_WORD *a1);
-__int16 __cdecl CRC_Value(__int16 a1);
-__int16 __cdecl CRC_Block(const unsigned char *a1, int a2);
+_WORD *__cdecl CRC_Init(_WORD *crcvalue);
+__int16 __cdecl CRC_Value(__int16 crcvalue);
+__int16 __cdecl CRC_Block(const unsigned char *data, int length);
 float __cdecl LibVarStringValue(char *string);
-libvar_t *__cdecl LibVarAlloc(const char *name);
+libvar_t *__cdecl LibVarAlloc(const char *var_name);
 void      __cdecl LibVarDeAlloc(libvar_t *v);
-libvar_t *__cdecl LibVarGet(const char *name);
-char     *__cdecl LibVarGetString(const char *name);
-float     __cdecl LibVarGetValue(const char *name);
-char     *__cdecl LibVarString(char *name, char *defvalue);   /* returns libvar->string */
+libvar_t *__cdecl LibVarGet(const char *var_name);
+char     *__cdecl LibVarGetString(const char *var_name);
+float     __cdecl LibVarGetValue(const char *var_name);
+char     *__cdecl LibVarString(char *var_name, char *value);   /* returns libvar->string */
 void Log_Open(char *FileName);  /* IDA's __usercall a1@<st0> was a phantom param */
 FILE *Log_Shutdown();
 FILE *Log_Write(char *Format, ...);
@@ -785,59 +785,59 @@ void PrintMemoryLabels(void);
 void DumpMemory(void);
 int SourceError(source_t *src, char *Format, ...);
 int SourceWarning(source_t *src, char *Format, ...);
-indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip);
-indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out);
+indent_t *__cdecl PC_PushIndent(source_t *source, int type, int skip);
+indent_t *__cdecl PC_PopIndent(source_t *source, int *type, int *skip);
 void __cdecl PC_PushScript(source_t *source, script_t *script);
 int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
 int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **parms, int maxparms);
-int __cdecl PC_StringizeTokens(token_t *Source, token_t *Destination);
+int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token);
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
-unsigned int __cdecl PC_NameHash(const char *a1);
-unsigned int __cdecl PC_AddDefineToHash(define_t *a1, define_t **a2);
+unsigned int __cdecl PC_NameHash(const char *name);
+unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash);
 bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char *string);
 int __cdecl PC_FindDefine(define_t *defines, const char *name);
 int __cdecl PC_FindDefineParm(define_t *define, const char *name);
-void __cdecl PC_FreeDefine(define_t *def);
+void __cdecl PC_FreeDefine(define_t *define);
 define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name);
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4);
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken);
 int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define);
 void __cdecl PC_ConvertPath(char *path);
-int __cdecl PC_Directive_include(source_t *src);
+int __cdecl PC_Directive_include(source_t *source);
 BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token);
 token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token);
-int __cdecl PC_Directive_undef(source_t *src);
+int __cdecl PC_Directive_undef(source_t *source);
 int __cdecl PC_Directive_define(source_t *source);
 define_t *__cdecl PC_DefineFromString(const char *string);
 int __cdecl PC_AddGlobalDefine(const char *string);
 define_t *__cdecl PC_CopyDefine(define_t *define);
 void __cdecl PC_AddGlobalDefinesToSource(source_t *source);
 int __cdecl PC_Directive_ifdef(source_t *src, int type);
-int __cdecl PC_Directive_else(source_t *src);
-int __cdecl PC_Directive_endif(source_t *src);
+int __cdecl PC_Directive_else(source_t *source);
+int __cdecl PC_Directive_endif(source_t *source);
 int __cdecl PC_OperatorPriority(int op);
-int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer);
-int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int integer);
-int __cdecl PC_Directive_elif(source_t *src);
-int __cdecl PC_Directive_if(source_t *src);
-int __cdecl PC_Directive_line(source_t * src); /* #line handler — restored from disassembly + Q3 reference at line ~32900 */
-int __cdecl PC_Directive_error(source_t *src);
-int __cdecl PC_Directive_pragma(source_t *src);
-int __cdecl UnreadSignToken(source_t *src);
-int __cdecl PC_Directive_eval(source_t *src);
-int __cdecl PC_Directive_evalfloat(source_t *src);
-int __cdecl PC_ReadDirective(source_t *src);
-int __cdecl PC_DollarDirective_evalint(source_t *src);
-int __cdecl PC_DollarDirective_evalfloat(source_t *src);
-int __cdecl PC_ReadDollarDirective(source_t *src);
-int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token);
-int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList);
-int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t token);
-int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t token);
-int __cdecl PC_CheckTokenString(source_t *src, const char *string);
-int __cdecl PC_UnreadLastToken(source_t *src);
+int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, double *floatvalue, int integer);
+int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int integer);
+int __cdecl PC_Directive_elif(source_t *source);
+int __cdecl PC_Directive_if(source_t *source);
+int __cdecl PC_Directive_line(source_t * source); /* #line handler — restored from disassembly + Q3 reference at line ~32900 */
+int __cdecl PC_Directive_error(source_t *source);
+int __cdecl PC_Directive_pragma(source_t *source);
+int __cdecl UnreadSignToken(source_t *source);
+int __cdecl PC_Directive_eval(source_t *source);
+int __cdecl PC_Directive_evalfloat(source_t *source);
+int __cdecl PC_ReadDirective(source_t *source);
+int __cdecl PC_DollarDirective_evalint(source_t *source);
+int __cdecl PC_DollarDirective_evalfloat(source_t *source);
+int __cdecl PC_ReadDollarDirective(source_t *source);
+int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token);
+int __cdecl PC_ExpectTokenString(source_t *source, const char *string);
+int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token);
+int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token);
+int __cdecl PC_CheckTokenString(source_t *source, const char *string);
+int __cdecl PC_UnreadLastToken(source_t *source);
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
-void      __cdecl FreeSource(source_t *src);
+void      __cdecl FreeSource(source_t *source);
 void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations);
 void ScriptError(int script, char *Format, ...);
 void ScriptWarning(int script, char *Format, ...);
@@ -848,7 +848,7 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote);
 int __cdecl PS_ReadName(script_t *script, intptr_t a2);
 void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue);
 int __cdecl PS_ReadNumber(script_t *script, token_t *token);
-int __cdecl PS_ReadPunctuation(script_t *script, char *Destination);
+int __cdecl PS_ReadPunctuation(script_t *script, char *token);
 int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
 int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token);
@@ -857,25 +857,25 @@ void __cdecl StripDoubleQuotes(char *string);
 void __cdecl StripSingleQuotes(char *string);
 void __cdecl SetScriptFlags(script_t *script, int flags);
 BOOL __cdecl EndOfScript(script_t *script);
-int __cdecl FileLength(FILE *Stream);
+int __cdecl FileLength(FILE *fp);
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize);
-script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const char *name);
+script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const char *name);
 void      __cdecl FreeScript(script_t *script);
 const char **__cdecl FindField(const char **defs, const char *name);
-int __cdecl ReadNumber(source_t *src, char **field, float *out);
-int __cdecl ReadChar(source_t *src, char **field, float *out);
-int __cdecl ReadString(source_t * src, char ** field, char *Destination);
+int __cdecl ReadNumber(source_t *source, char **fd, float *p);
+int __cdecl ReadChar(source_t *source, char **fd, float *p);
+int __cdecl ReadString(source_t * source, char ** fd, char *p);
 int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure);
 int __cdecl WriteIndent(FILE *fp, int indent);
-int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t * def, int structure, int indent);
-int __cdecl WriteStructure(FILE *Stream, int def, int structure);
+int __cdecl WriteStructWithIndent(FILE *fp, structdef_t * def, int structure, int indent);
+int __cdecl WriteStructure(FILE *fp, int def, int structure);
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 int __stdcall sub_100415E0(int a1);
 HGLOBAL sub_10041600(void);
 LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
-int __cdecl vectoangles(float *a1, float *a2);
+int __cdecl vectoangles(float *value1, float *angles);
 char __cdecl sub_100418D0(_BYTE *a1);
 char __cdecl sub_10041900(const char *a1, int a2);
 int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *);
@@ -1947,7 +1947,7 @@ float *__cdecl sub_10003460(float *a1, float *a2)
  * angle.  GCC couldn't reproduce the original's stack-aliased 3x3
  * layout (locals v8/v12/v19..v22 aliasing into a contiguous matrix at
  * fixed [ebp-...] offsets); fixed by using real `float[9]` arrays. */
-void __cdecl AnglesToAxis(float *angles, float *axis_out)
+void __cdecl AnglesToAxis(float *angles, float *axis)
 {
   /* DEG2RAD constant: 64-bit double matching .rdata 0x10058008.  The radian
      products are inlined into the sin/cos calls (not stored to named double
@@ -1986,7 +1986,7 @@ void __cdecl AnglesToAxis(float *angles, float *axis_out)
   m[6] = 0; m[7] = -sr; m[8] = cr;
 
   /* output = roll_m * tmp */
-  R_ConcatRotations(m, tmp, axis_out);
+  R_ConcatRotations(m, tmp, axis);
   return;
 }
 
@@ -3768,7 +3768,7 @@ bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
  * IDA decompiled this as pointer-arithmetic via `v4 = a3 - a1` etc.; the
  * original C source iterated 3 components selecting the appropriate corner
  * from absmins/absmaxs based on the plane normal's sign. */
-int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
+int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
 {
   int    i, sides;
   vec3_t corner_front, corner_back;
@@ -3776,7 +3776,7 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
 
   for ( i = 0; i < 3; ++i )
   {
-    if ( plane[i] < 0.0f )
+    if ( p[i] < 0.0f )
     {
       corner_front[i] = absmins[i];
       corner_back[i]  = absmaxs[i];
@@ -3787,8 +3787,8 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *plane)
       corner_front[i] = absmaxs[i];
     }
   }
-  dist1 = corner_front[0] * plane[0] + corner_front[1] * plane[1] + corner_front[2] * plane[2] - plane[3];
-  dist2 = corner_back[0] * plane[0] + corner_back[1] * plane[1] + corner_back[2] * plane[2] - plane[3];
+  dist1 = corner_front[0] * p[0] + corner_front[1] * p[1] + corner_front[2] * p[2] - p[3];
+  dist2 = corner_back[0] * p[0] + corner_back[1] * p[1] + corner_back[2] * p[2] - p[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;
@@ -6844,7 +6844,7 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
 }
 
 //----- (1000B640) --------------------------------------------------------
-int InFieldOfVision(float *a1, float a2, float *a3)
+int InFieldOfVision(float *viewangles, float fov, float *angles)
 {
   int v5; // edi
   float delta;
@@ -6853,9 +6853,9 @@ int InFieldOfVision(float *a1, float a2, float *a3)
 
   for ( v5 = 0; v5 < 2; v5++ )
   {
-    v8 = anglemod(a1[v5]);
-    v9 = anglemod(a3[v5]);
-    a3[v5] = v9;
+    v8 = anglemod(viewangles[v5]);
+    v9 = anglemod(angles[v5]);
+    angles[v5] = v9;
     delta = v9 - v8;
     if ( v9 > (float)v8 )
     {
@@ -6869,12 +6869,12 @@ int InFieldOfVision(float *a1, float a2, float *a3)
     }
     if ( delta > 0.0f )
     {
-      if ( delta > a2 * 0.5 )
+      if ( delta > fov * 0.5 )
         return 0;
     }
     else
     {
-      if ( delta < -a2 * 0.5 )
+      if ( delta < -fov * 0.5 )
         return 0;
     }
   }
@@ -6882,7 +6882,7 @@ int InFieldOfVision(float *a1, float a2, float *a3)
 }
 
 //----- (1000B750) --------------------------------------------------------
-int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
+int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fov, int a5)
 {
   int v5;
   int contents_mask;             // contentmask
@@ -6908,20 +6908,20 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
   middle[0] += ent->origin[0];
   middle[1] += ent->origin[1];
   middle[2] += ent->origin[2];
-  VectorSubtract(middle, ((float *)a2), dir);
+  VectorSubtract(middle, ((float *)eye), dir);
   vectoangles(dir, (float *)entangles);
-  if ( !InFieldOfVision(a3, a4, entangles) )
+  if ( !InFieldOfVision(viewangles, fov, entangles) )
     return 0;
   i = 0;
   while ( 1 )
   {
-    if ( AAS_inPVS(a2, middle) )
+    if ( AAS_inPVS(eye, middle) )
     {
     /* default: trace from viewer (a2) to entity middle */
-    VectorCopy(((float *)a2), start);
+    VectorCopy(((float *)eye), start);
     VectorCopy(middle, end);
     contents_mask = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
-    passent = a1;
+    passent = viewer;
     hitent = v5;
     /* IDA dropped both PointContents() calls here — see 0x1000b893 / 0x1000b8a5
      * in the binary. They forward via wrapper sub_10003080 to bi_PointContents
@@ -6931,16 +6931,16 @@ int __cdecl BotEntityVisible(int a1, float *a2, float *a3, float a4, int a5)
     eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
-    fromcontents = sub_10003080(a2);
+    fromcontents = sub_10003080(eye);
     if ( (fromcontents & 0x38) != 0 )
     {
       if ( (contents_mask & 0x38) == 0 )
       {
         /* swap: trace from entity middle to viewer instead */
         VectorCopy(middle, start);
-        VectorCopy(((float *)a2), end);
+        VectorCopy(((float *)eye), end);
         passent = v5;
-        hitent = a1;
+        hitent = viewer;
       }
       contents_mask ^= 0x38u;
     }
@@ -7027,7 +7027,7 @@ int __cdecl sub_1000B1F0(float *ref, int target)
  * holds the entity's aas_link_t* chain head; this thin wrapper hands
  * that chain to AAS_BestReachableLinkArea and returns the result.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-int __cdecl AAS_BestReachableEntityArea(int entitynum)
+int __cdecl AAS_BestReachableEntityArea(int entnum)
 {
   /* +0x7c (124) is the entity's area-chain head (aas_entity_t::areas),
    * accessed through the side-band-aware macro.  Ref has ONE extra (dead)
@@ -7036,7 +7036,7 @@ int __cdecl AAS_BestReachableEntityArea(int entitynum)
    * build folds ent->areas into the indexed load and eliminates that lea even
    * with the explicit address-of (tested 2026-06-21, 32-bit-gated). The dead
    * lea is an un-reproducible MSVC6 micro-quirk; OUR-1 / 1 differing line. */
-  aas_link_t *links = AAS_EntAreaLink(entitynum);
+  aas_link_t *links = AAS_EntAreaLink(entnum);
   return AAS_BestReachableLinkArea(links);
 }
 
@@ -7692,39 +7692,39 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
 }
 
 //----- (1000CE40) --------------------------------------------------------
-int __cdecl AAS_WriteAASLump(FILE *Stream, int *Lumps, int a3, void *Buffer, size_t ElementSize)
+int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t length)
 {
   long v5;
   int *lump; // ebx
 
-  lump = &Lumps[2 * a3 + 2];
-  v5 = ftell(Stream);
+  lump = &h[2 * lumpnum + 2];
+  v5 = ftell(fp);
   lump[0] = LittleLong((int)v5);
-  lump[1] = LittleLong((int)ElementSize);
-  if ( (int)ElementSize <= 0 || fwrite(Buffer, ElementSize, 1u, Stream) >= 1 )
+  lump[1] = LittleLong((int)length);
+  if ( (int)length <= 0 || fwrite(data, length, 1u, fp) >= 1 )
     return 1;
-  botimport.Print(PRT_ERROR, "error writing lump %s\n", (const char *)(intptr_t)a3);
-  fclose(Stream);
+  botimport.Print(PRT_ERROR, "error writing lump %s\n", (const char *)(intptr_t)lumpnum);
+  fclose(fp);
   return 0;
 }
 
 //----- (1000CEE0) --------------------------------------------------------
-qboolean __cdecl AAS_WriteAASFile(char *FileName)
+qboolean __cdecl AAS_WriteAASFile(char *filename)
 {
   FILE *v3; // eax
   FILE *v4; // esi
   int Buffer[30]; // [esp+Ch] [ebp-78h] BYREF
 
-  botimport.Print(PRT_MESSAGE, "writing %s\n", FileName);
+  botimport.Print(PRT_MESSAGE, "writing %s\n", filename);
   AAS_SwapAASData();
   memset(Buffer, 0, sizeof(Buffer));
   Buffer[0] = LittleLong(0x53414145);
   Buffer[1] = LittleLong(3);
-  v3 = fopen(FileName, "wb");
+  v3 = fopen(filename, "wb");
   v4 = v3;
   if ( !v3 )
   {
-    botimport.Print(PRT_ERROR, "error opening %s\n", FileName);
+    botimport.Print(PRT_ERROR, "error opening %s\n", filename);
     return 0;
   }
   /* fopen mode is "wb" — this is fwrite, not fread (see AAS_WriteAASLump note). */
@@ -9383,7 +9383,7 @@ LABEL_86:
  *
  * DEAD — Gladiator never references this; almost certainly a leftover
  * jump-prediction test harness from development. */
-static void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_dir)
+static void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
   char    result[80];        /* aas_clientmove_t — filled by prediction */
   vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
@@ -9394,14 +9394,14 @@ static void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_di
   /* velocity[2] left uninitialized — original DLL bug, preserved. */
 
   if (!AAS_Swimming(origin))
-    move_dir[2] = 0.0f;
+    dir[2] = 0.0f;
 
-  VectorNormalize(move_dir);
-  VectorScale(move_dir, 400.0f, cmd_move);
+  VectorNormalize(dir);
+  VectorScale(dir, 400.0f, cmd_move);
   cmd_move[2] = 224.0f;
 
   AAS_ClearShownDebugLines();
-  AAS_ClientMovementPrediction(result, client, origin, 2, 1,
+  AAS_ClientMovementPrediction(result, entnum, origin, 2, 1,
                                velocity, cmd_move, 13, 13,
                                0.1f, 1, 1);
 
@@ -11071,12 +11071,12 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
  * AAS_Reachability_Jump (asm at 0x1001417b, 0x1001423c, 0x10014300, 0x100143d0)
  * push (a, b, c) right-to-left immediately before the call; matching them to
  * the C decomp gives args of the form (projection, edge_v0, edge_v1). */
-int __cdecl VectorBetweenVectors(vec3_t a, vec3_t b, vec3_t c)
+int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
 {
   float ab[3], ac[3];
 
-  VectorSubtract(a, b, ab);
-  VectorSubtract(a, c, ac);
+  VectorSubtract(v, v1, ab);
+  VectorSubtract(v, v2, ac);
   return DotProduct(ab, ac) <= 0.0f;
 }
 
@@ -12814,7 +12814,7 @@ int AAS_SetWeaponJumpAreaFlags()
 }
 
 //----- (10017CA0) --------------------------------------------------------
-int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
+int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 {
   char *area2; // ebx
   float *area1; // ecx
@@ -12847,18 +12847,18 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   int move[20]; /* [BYREF] */
   int v36[20]; /* [BYREF] */
 
-  if ( !AAS_AreaGrounded(ArgList) || AAS_AreaSwim(ArgList) ) return 0;
-  if ( !AAS_AreaGrounded(a2) ) return 0;
-  if ( (aasworld.areasettings[a2].areaflags & 0x2000) == 0 ) return 0;
-  area2 = &aasworld.areas[a2];
-  area1 = (float *)(&aasworld.areas[ArgList]);
+  if ( !AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num) ) return 0;
+  if ( !AAS_AreaGrounded(area2num) ) return 0;
+  if ( (aasworld.areasettings[area2num].areaflags & 0x2000) == 0 ) return 0;
+  area2 = &aasworld.areas[area2num];
+  area1 = (float *)(&aasworld.areas[area1num]);
   if ( *((float *)area2 + 8) < (float)area1[5] )
     return 0;
   centerorg[0] = *(area1 + 9);
   centerorg[1] = *(area1 + 10);
   centerorg[2] = area1[11];
   if ( !AAS_PointAreaNum(centerorg) )
-    Log_Write("area %d center %f %f %f in solid?", ArgList, centerorg[0],
+    Log_Write("area %d center %f %f %f in solid?", area1num, centerorg[0],
               centerorg[1], centerorg[2]);
   end[0] = centerorg[0];
   end[1] = centerorg[1];
@@ -12921,7 +12921,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
                     VectorMA((float *)move, v14, dir, predictpos);
                     v7 = predictpos[2] + 0.125;
                     predictpos[2] = v7;
-                    if ( AAS_PointAreaNum(predictpos) == a2 )
+                    if ( AAS_PointAreaNum(predictpos) == area2num )
                     {
                       reached = 1;
                       break;
@@ -12957,7 +12957,7 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   if ( !lreach )
     return 0;
   lreach->reach.facenum = 0;
-  lreach->reach.areanum = a2;
+  lreach->reach.areanum = area2num;
   lreach->reach.edgenum = 0;
   VectorCopy(groundedpos, lreach->reach.start);
   VectorCopy(facecenter, lreach->reach.end);
@@ -12966,8 +12966,8 @@ int __cdecl AAS_Reachability_WeaponJump(int ArgList, int a2)
   else
     lreach->reach.traveltype = 12;
   lreach->reach.traveltime = 500;
-  lreach->next = areareachability[ArgList];
-  areareachability[ArgList] = lreach;
+  lreach->next = areareachability[area1num];
+  areareachability[area1num] = lreach;
   ++reach_rocketjump;
   return 1;
 }
@@ -13273,7 +13273,7 @@ int AAS_StoreReachability()
 }
 
 //----- (10018920) --------------------------------------------------------
-int AAS_ContinueInitReachability(int a1)
+int AAS_ContinueInitReachability(int time)
 {
   libvar_t *v1;
   double v2; // st7
@@ -13288,7 +13288,7 @@ int AAS_ContinueInitReachability(int a1)
   int v11; // eax
   int j; // esi
 
-  (void)a1; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
+  (void)time; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
 
   if ( !aasworld.loaded )
     return 0;
@@ -13827,7 +13827,7 @@ static void sub_10019570(void)
  * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
  * everything with byte arithmetic on the int-typed globals.  Field
  * accesses now go through the typed structs; semantics preserved. */
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cache)
+aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 {
   /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
   int                  travelmask;       /* v26 */
@@ -13858,11 +13858,11 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *cach
   settings_base   = (aas_areasettings_t *)aasworld.areasettings;
   reach_base      = (aas_reachability_t *)aasworld.reachability;
 
-  travelmask        = ~cache->travelflags;
-  cache_cluster     = cache->cluster;
-  cache_starttt     = cache->starttraveltime;
-  cache_areanum     = cache->areanum;
-  cache_traveltimes = (unsigned short *)(cache + 1);
+  travelmask        = ~areacache->travelflags;
+  cache_cluster     = areacache->cluster;
+  cache_starttt     = areacache->starttraveltime;
+  cache_areanum     = areacache->areanum;
+  cache_traveltimes = (unsigned short *)(areacache + 1);
 
   startareanum     = cache_areanum;
   cur              = &aasworld.areaupdate[startareanum];
@@ -14002,7 +14002,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
 }
 
 //----- (10019C00) --------------------------------------------------------
-int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
+int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 {
   /* Faithful 64-bit-safe transcription of 0x10019C00.  The original
    * decompilation walked aasworld.portalupdate via raw 40-byte byte
@@ -14025,15 +14025,15 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
   memset((void *)aasworld.portalupdate, 0,
          sizeof(aas_routingupdate_t) * aasworld.numareas);
 
-  cache_traveltimes = (unsigned short *)(cache + 1);
+  cache_traveltimes = (unsigned short *)(portalcache + 1);
 
-  cur = &portalupdate[cache->areanum];
-  cur->cluster       = cache->cluster;
-  cur->areanum       = cache->areanum;
-  cur->tmptraveltime = (unsigned short)(__int64)cache->starttraveltime;
-  v4 = settings_base[cache->areanum].cluster;
+  cur = &portalupdate[portalcache->areanum];
+  cur->cluster       = portalcache->cluster;
+  cur->areanum       = portalcache->areanum;
+  cur->tmptraveltime = (unsigned short)(__int64)portalcache->starttraveltime;
+  v4 = settings_base[portalcache->areanum].cluster;
   if ( v4 < 0 )
-    cache_traveltimes[-v4] = (unsigned short)(__int64)cache->starttraveltime;
+    cache_traveltimes[-v4] = (unsigned short)(__int64)portalcache->starttraveltime;
   cur->inlist = 0;
   cur->next   = NULL;
   cur->prev   = NULL;
@@ -14053,7 +14053,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *cache)
     clust = &clusters[v7];
     {
       aas_routingcache_t *entry =
-          AAS_GetAreaRoutingCache(v7, cur->areanum, cache->travelflags);
+          AAS_GetAreaRoutingCache(v7, cur->areanum, portalcache->travelflags);
       other_traveltimes = (unsigned short *)(entry + 1);
     }
 
@@ -15355,7 +15355,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
-void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
+void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
 {
   int    i;
   int    facenum;
@@ -15377,7 +15377,7 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
     dir[0] = 0.0f;
     dir[1] = 0.0f;
     dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
-    if ( AAS_InsideFace(face, dir, (float *)predicate_arg, 0.01f) )
+    if ( AAS_InsideFace(face, dir, (float *)point, 0.01f) )
       return face;
   }
   return 0;
@@ -15393,15 +15393,15 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *predicate_arg)
  *   *out_dist        = plane[3]
  * Dead in Gladiator — live code (AAS_FaceOnSameSide etc.) walks
  * aasworld.planes/faces directly; preserved by /INCREMENTAL. */
-void __cdecl AAS_FacePlane(int face_idx, float *out_normal, float *out_dist)
+void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
 {
   int    plane_idx;
   float *plane;
 
-  plane_idx = aasworld.faces[face_idx].planenum;
+  plane_idx = aasworld.faces[facenum].planenum;
   plane     = (float *)&aasworld.planes[plane_idx];
-  VectorCopy(plane, out_normal);
-  *out_dist     = plane[3];
+  VectorCopy(plane, normal);
+  *dist     = plane[3];
 }
 
 //----- (1001C210) --------------------------------------------------------
@@ -18163,20 +18163,20 @@ BOOL __cdecl EntityIsShooting(intptr_t a1)
 }
 
 //----- (100217C0) --------------------------------------------------------
-char *__cdecl stristr(char *a1, char *a2)
+char *__cdecl stristr(char *str, char *charset)
 {
   int i;
 
-  while ( *a1 )
+  while ( *str )
   {
-    for ( i = 0; a2[i] && a1[i]; i++ )
+    for ( i = 0; charset[i] && str[i]; i++ )
     {
-      if ( toupper(a2[i]) != toupper(a1[i]) )
+      if ( toupper(charset[i]) != toupper(str[i]) )
         break;
     }
-    if ( !a2[i] )
-      return a1;
-    a1++;
+    if ( !charset[i] )
+      return str;
+    str++;
   }
   return 0;
 }
@@ -18282,11 +18282,11 @@ bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int a
 }
 
 //----- (10021B50) --------------------------------------------------------
-bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name)
+bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *waypoints, char *name)
 {
   bot_waypoint_t *wp;
 
-  for ( wp = head; wp; wp = wp->next )
+  for ( wp = waypoints; wp; wp = wp->next )
   {
     if ( !_strcmpi(wp->name, name) )
       return wp;
@@ -18295,15 +18295,15 @@ bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *head, char *name)
 }
 
 //----- (10021B90) --------------------------------------------------------
-void __cdecl BotFreeWaypoints(bot_waypoint_t *head)
+void __cdecl BotFreeWaypoints(bot_waypoint_t *wp)
 {
   bot_waypoint_t *next;
 
-  while ( head )
+  while ( wp )
   {
-    next = head->next;
-    FreeMemory(head);
-    head = next;
+    next = wp->next;
+    FreeMemory(wp);
+    wp = next;
   }
 }
 
@@ -19614,21 +19614,21 @@ LABEL_38:
 }
 
 //----- (10024FD0) --------------------------------------------------------
-int __cdecl BotSetMovedir(float *angles, float *dir)
+int __cdecl BotSetMovedir(float *angles, float *movedir)
 {
   if ( VectorCompare(angles, (float *)&unk_1005C56C) )
   {
-    dir[0] = flt_1005C578;
-    *(_DWORD *)&dir[1] = dword_1005C57C;
-    *(_DWORD *)&dir[2] = dword_1005C580;
-    return (int)(intptr_t)dir;
+    movedir[0] = flt_1005C578;
+    *(_DWORD *)&movedir[1] = dword_1005C57C;
+    *(_DWORD *)&movedir[2] = dword_1005C580;
+    return (int)(intptr_t)movedir;
   }
   else if ( VectorCompare(angles, (float *)&unk_1005C584) )
   {
-    dir[0] = flt_1005C590;
-    *(_DWORD *)&dir[1] = dword_1005C594;
-    *(_DWORD *)&dir[2] = dword_1005C598;
-    return (int)(intptr_t)dir;
+    movedir[0] = flt_1005C590;
+    *(_DWORD *)&movedir[1] = dword_1005C594;
+    *(_DWORD *)&movedir[2] = dword_1005C598;
+    return (int)(intptr_t)movedir;
   }
   else
   {
@@ -19638,7 +19638,7 @@ int __cdecl BotSetMovedir(float *angles, float *dir)
      * cast-call reproduces that `call; ret` with eax flowing through, instead
      * of forcing `dir` to be kept alive across the call (which would cost an
      * extra callee-saved register push). */
-    return ((int (__cdecl *)(float *, float *, void *, void *))AngleVectors)(angles, dir, NULL, NULL);
+    return ((int (__cdecl *)(float *, float *, void *, void *))AngleVectors)(angles, movedir, NULL, NULL);
   }
 }
 
@@ -20147,18 +20147,18 @@ BOOL TeamPlayIsOn()
 }
 
 //----- (10026700) --------------------------------------------------------
-BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal)
+BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
 {
   int i;
 
-  if ( !strlen(String1) )
+  if ( !strlen(goalname) )
     return 0;
   i = -1;
   /* Keep the original do/while shape; the DLL still carries the second
    * iteration path even though a positive first result returns immediately. */
   do
   {
-    i = BotGetLevelItemGoal(i, String1, goal);
+    i = BotGetLevelItemGoal(i, goalname, goal);
     if ( i > 0 )
       return 1;
   }
@@ -20168,13 +20168,13 @@ BOOL __cdecl BotGetItemTeamGoal(char *String1, bot_goal_t *goal)
 // 10026728: conditional instruction was optimized away because eax.4<1
 
 //----- (10026770) --------------------------------------------------------
-int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *String2, bot_goal_t *goal)
+int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal)
 {
   int v4; // eax
 
-  if ( BotGetItemTeamGoal(String2, goal) )
+  if ( BotGetItemTeamGoal(goalname, goal) )
     return 1;
-  v4 = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), String2);
+  v4 = BotFindWayPoint(*(_DWORD *)((char *)bs + 4544), goalname);
   if ( v4 )
   {
     memcpy((void *)goal, (const void *)(v4 + 4), 0x38u);
@@ -20216,18 +20216,18 @@ float __cdecl BotGetTime(bot_match_t *match)
 }
 
 //----- (100268D0) --------------------------------------------------------
-int __cdecl FindClientByName(char *String2)
+int __cdecl FindClientByName(char *name)
 {
   int i;
 
   for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( !_strcmpi(144 * i + dword_100643A8, String2) )
+    if ( !_strcmpi(144 * i + dword_100643A8, name) )
       return i;
   }
   for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( stristr((char *)(144 * i + dword_100643A8), String2) )
+    if ( stristr((char *)(144 * i + dword_100643A8), name) )
       return i;
   }
   return -1;
@@ -20380,7 +20380,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 // BotGPSToPosition — the Q3 cognate; this source form compiles to the ref DLL
 // at 0x10026E40 here.
 // DEAD in Gladiator — /INCREMENTAL.
-int __cdecl BotGPSToPosition(char *string, float *out)
+int __cdecl BotGPSToPosition(char *buf, float *position)
 {
   int i;
   int j = 0;
@@ -20390,9 +20390,9 @@ int __cdecl BotGPSToPosition(char *string, float *out)
   for ( i = 0; i < 3; i++ )
   {
     num = 0;
-    while ( string[j] == ' ' )
+    while ( buf[j] == ' ' )
       j++;
-    if ( string[j] == '-' )
+    if ( buf[j] == '-' )
     {
       j++;
       sign = -1;
@@ -20401,11 +20401,11 @@ int __cdecl BotGPSToPosition(char *string, float *out)
     {
       sign = 1;
     }
-    while ( string[j] )
+    while ( buf[j] )
     {
-      if ( string[j] >= '0' && string[j] <= '9' )
+      if ( buf[j] >= '0' && buf[j] <= '9' )
       {
-        num = num * 10 + string[j] - '0';
+        num = num * 10 + buf[j] - '0';
         j++;
       }
       else
@@ -20415,7 +20415,7 @@ int __cdecl BotGPSToPosition(char *string, float *out)
       }
     }
     botimport.Print(PRT_MESSAGE, "%d\n", sign * num);
-    out[i] = (float)sign * num;
+    position[i] = (float)sign * num;
   }
   return 1;
 }
@@ -21091,13 +21091,13 @@ int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 }
 
 //----- (10028A70) --------------------------------------------------------
-int BotDeathmatchAI(bot_state_t *bs, float a2)
+int BotDeathmatchAI(bot_state_t *bs, float thinktime)
 {
   int i; // edi
   int result; // eax
   float v6; // [esp+10h] [ebp+8h]
 
-  sub_100289A0(bs, a2);
+  sub_100289A0(bs, thinktime);
   if ( dword_1006446C && AAS_Initialized() )
     dword_1006446C = 0;
   if ( bs->inuse_marker )
@@ -21135,7 +21135,7 @@ int BotDeathmatchAI(bot_state_t *bs, float a2)
   }
   result = *(_DWORD *)bs;
   if ( *(_DWORD *)bs )
-    return sub_10028A40(bs, a2);
+    return sub_10028A40(bs, thinktime);
   return result;
 }
 // 10028B9E: conditional instruction was optimized away because edi.4<32
@@ -21181,7 +21181,7 @@ void BotSetupDeathmatchAI()
 void sub_10028E80(void) { /* empty body — original returns immediately */ }
 
 //----- (10028EA0) --------------------------------------------------------
-int __cdecl ClientFromName(const char *a1)
+int __cdecl ClientFromName(const char *name)
 {
   int v1;
   const char *i;
@@ -21191,7 +21191,7 @@ int __cdecl ClientFromName(const char *a1)
     return 0;
   for ( i = dword_100643A8; v1 < botstate.num_clients; ++v1, i += 144 )
   {
-    if ( !strcmp(a1, i) )
+    if ( !strcmp(name, i) )
       return v1;
   }
   return 0;
@@ -21771,15 +21771,15 @@ int BotShutdownLibrary()
  * the named-value list printers at 1002B070/1002B900.  Type tags 1=int,
  * 2=float (printed via promotion to double), 3=string.  Dead in
  * Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl BotDumpCharacter(int *list)
+void __cdecl BotDumpCharacter(int *ch)
 {
   int   i;
   char *p;
   Log_Write("{");
   i = 0;
-  if ( *list > 0 )
+  if ( *ch > 0 )
   {
-    p = (char *)list + 8;
+    p = (char *)ch + 8;
     do
     {
       int type = (signed char)*(p - 4);
@@ -21798,7 +21798,7 @@ void __cdecl BotDumpCharacter(int *list)
       ++i;
       p += 8;
     }
-    while ( i < *list );
+    while ( i < *ch );
   }
   Log_Write("}");
 }
@@ -22004,18 +22004,18 @@ void __cdecl sub_1002A590(int a1)
 }
 
 //----- (1002A5B0) --------------------------------------------------------
-int __cdecl CheckCharacteristicIndex(bot_character_t *a1, int a2)
+int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
 {
-  if ( a2 >= 0 && a2 < a1->numcharacteristics )
+  if ( index >= 0 && index < character->numcharacteristics )
   {
-    if ( !(unsigned char)BC_PAIRS(a1)[a2].type )
+    if ( !(unsigned char)BC_PAIRS(character)[index].type )
     {
-      botimport.Print(PRT_ERROR, "characteristic %d is not initialized\n", a2);
+      botimport.Print(PRT_ERROR, "characteristic %d is not initialized\n", index);
       return 0;
     }
     return 1;
   }
-  botimport.Print(PRT_ERROR, "characteristic %d does not exist\n", a2);
+  botimport.Print(PRT_ERROR, "characteristic %d does not exist\n", index);
   return 0;
 }
 
@@ -22159,7 +22159,7 @@ int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 }
 
 //----- (1002AA20) --------------------------------------------------------
-int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *msg)
+int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg)
 {
   /* Faithful reconstruction of original 0x1002AA20 (BotRemoveConsoleMessage).  The
    * disassembly tests msg+164 (next) first and msg+160 (prev) second; an
@@ -22171,7 +22171,7 @@ int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *m
    * authoritative offsets. */
   chatmsg_links_t *links;
 
-  links = &BotChatMsgLinksCS(cs);
+  links = &BotChatMsgLinksCS(chatstate);
   if ( msg->next )
     msg->next->prev = msg->prev;
   else
@@ -22186,7 +22186,7 @@ int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *cs, bot_consolemessage_t *m
 }
 
 //----- (1002AAB0) --------------------------------------------------------
-int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
+int __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message)
 {
   bot_consolemessage_t *msg;
   chatmsg_links_t      *links;
@@ -22196,8 +22196,8 @@ int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
     return botimport.Print(PRT_ERROR, "empty console message heap\n");
   msg->time = AAS_Time();
   msg->type = type;
-  strncpy(msg->message, Source, 0x96u);
-  links = &BotChatMsgLinksCS(cs);
+  strncpy(msg->message, message, 0x96u);
+  links = &BotChatMsgLinksCS(chatstate);
   msg->next = NULL;
   if ( links->last )
   {
@@ -22205,7 +22205,7 @@ int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
     msg->prev = links->last;
     links->last = msg;
     ++links->count;
-    return (intptr_t)cs;
+    return (intptr_t)chatstate;
   }
   else
   {
@@ -22213,7 +22213,7 @@ int __cdecl BotQueueConsoleMessage(bot_chatstate_t *cs, int type, char *Source)
     links->first = msg;
     msg->prev    = NULL;
     ++links->count;
-    return (intptr_t)cs;
+    return (intptr_t)chatstate;
   }
 }
 
@@ -22224,41 +22224,41 @@ bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs)
 }
 
 //----- (1002ABB0) --------------------------------------------------------
-int __cdecl BotNumConsoleMessages(bot_chatstate_t *cs)
+int __cdecl BotNumConsoleMessages(bot_chatstate_t *chatstate)
 {
-  return BotChatMsgLinksCS(cs).count;
+  return BotChatMsgLinksCS(chatstate).count;
 }
 
 //----- (1002ABD0) --------------------------------------------------------
-BOOL __cdecl IsWhiteSpace(char a1)
+BOOL __cdecl IsWhiteSpace(char c)
 {
-  return (a1 < 97 || a1 > 122)
-      && (a1 < 65 || a1 > 90)
-      && (a1 < 48 || a1 > 57)
-      && a1 != 40
-      && a1 != 41
-      && a1 != 63
-      && a1 != 39
-      && a1 != 58
-      && a1 != 91
-      && a1 != 93
-      && a1 != 45
-      && a1 != 95
-      && a1 != 43
-      && a1 != 61;
+  return (c < 97 || c > 122)
+      && (c < 65 || c > 90)
+      && (c < 48 || c > 57)
+      && c != 40
+      && c != 41
+      && c != 63
+      && c != 39
+      && c != 58
+      && c != 91
+      && c != 93
+      && c != 45
+      && c != 95
+      && c != 43
+      && c != 61;
 }
 
 //----- (1002AC50) --------------------------------------------------------
-void __cdecl UnifyWhiteSpaces(void *Src)
+void __cdecl UnifyWhiteSpaces(void *string)
 {
   char *ptr, *oldptr;
 
-  for ( ptr = oldptr = (char *)Src; *ptr; oldptr = ptr )
+  for ( ptr = oldptr = (char *)string; *ptr; oldptr = ptr )
   {
     while ( *ptr && IsWhiteSpace(*ptr) ) ptr++;
     if ( ptr > oldptr )
     {
-      if ( oldptr > (char *)Src && *ptr )
+      if ( oldptr > (char *)string && *ptr )
         *oldptr++ = ' ';
       if ( ptr > oldptr )
         memmove(oldptr, ptr, strlen(ptr) + 1);
@@ -22379,7 +22379,7 @@ str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
  * Inner item = { char *name; float val; struct item *next; } stride 12.
  * Companion to the named-list dumper at 1002B900 (which uses %s-only
  * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl BotDumpSynonymList(int *list)
+void __cdecl BotDumpSynonymList(int *synlist)
 {
   /* Inner item struct: { char *name; float val; struct item *next; } stride 12.
    * Outer list:        { int key; pad; struct item *items; struct list *next; } stride 16. */
@@ -22392,9 +22392,9 @@ void __cdecl BotDumpSynonymList(int *list)
   int  *outer;
   namelist_item_t *item;
   fp = Log_FilePointer();
-  if ( !fp || !list )
+  if ( !fp || !synlist )
     return;
-  for ( outer = list; outer; outer = (int *)outer[3] )
+  for ( outer = synlist; outer; outer = (int *)outer[3] )
   {
     fprintf(fp, "%d : [", outer[0]);
     for ( item = (namelist_item_t *)outer[2]; item; item = item->next )
@@ -22681,15 +22681,15 @@ void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
  * Mr. Elusive helper, no canonical Q3 counterpart.  Sibling of the
  * named-float dumper at BotDumpSynonymList.  Dead in Gladiator --
  * preserved by /INCREMENTAL. */
-void __cdecl BotDumpRandomStringList(int *list)
+void __cdecl BotDumpRandomStringList(int *randomlist)
 {
   FILE *fp;
   bot_randomlist_t *rl;
   bot_randomstring_t *rs;
   fp = Log_FilePointer();
-  if ( !fp || !list )
+  if ( !fp || !randomlist )
     return;
-  for ( rl = (bot_randomlist_t *)list; rl; rl = rl->next )
+  for ( rl = (bot_randomlist_t *)randomlist; rl; rl = rl->next )
   {
     fprintf(fp, "%s = {", rl->string);
     for ( rs = rl->firstrandomstring; rs; rs = rs->next )
@@ -22866,7 +22866,7 @@ char *__cdecl RandomString(const char *name)
 // the original — and the same UB on the value.
 //
 // DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
-void __cdecl BotDumpMatchTemplates(void *templates)
+void __cdecl BotDumpMatchTemplates(void *matches)
 {
   FILE *log;
   bot_matchtemplate_t *tmpl;
@@ -22877,7 +22877,7 @@ void __cdecl BotDumpMatchTemplates(void *templates)
   log = Log_FilePointer();
   if ( !log )
     return;
-  tmpl = (bot_matchtemplate_t *)templates;
+  tmpl = (bot_matchtemplate_t *)matches;
   if ( !tmpl )
     return;
   while ( tmpl )
@@ -23249,12 +23249,12 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
  * list (head at matchtemplates), filtered by `context` bitmask; for each
  * matching template runs StringsMatch.  On success fills match->type and
  * match->subtype from the template. */
-int __cdecl BotFindMatch(char *Source, bot_match_t *match, int context)
+int __cdecl BotFindMatch(char *str, bot_match_t *match, int context)
 {
   bot_matchtemplate_t *ms;
   int                  i;
 
-  strncpy(match->string, Source, MAX_MESSAGE_SIZE);
+  strncpy(match->string, str, MAX_MESSAGE_SIZE);
   /* strip trailing '\n's */
   while ( strlen(match->string) && match->string[strlen(match->string) - 1] == '\n' )
     match->string[strlen(match->string) - 1] = 0;
@@ -23321,7 +23321,7 @@ bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char
 //----- (1002CB40) --------------------------------------------------------
 /* BotCheckChatMessageIntegrety scans a chat message for \001r<var> references; builds a linked
  * list of undefined variable nodes (accumulating into a2); returns updated list. */
-bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_stringlist_t *a2)
+bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist)
 {
   /* Canonical Q3 be_ai_chat.c:1513 structure (while + switch over the escape
    * char), reading the message pointer as `char` so MSVC emits `mov al`/`cmp al`
@@ -23333,7 +23333,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
   bot_stringlist_t *node;
   char ArgList[152]; // [esp+8h] [ebp-98h] BYREF
 
-  msgptr = a1;
+  msgptr = message;
   while ( *msgptr )
   {
     if ( *msgptr == 1 )
@@ -23355,18 +23355,18 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
           ArgList[i] = 0;
           if ( *msgptr )
             ++msgptr;
-          if ( !RandomString(ArgList) && !BotFindStringInList(a2, ArgList) )
+          if ( !RandomString(ArgList) && !BotFindStringInList(stringlist, ArgList) )
           {
             Log_Write("%s = {\"%s\"} //MISSING RANDOM", ArgList, ArgList); /* "%s = {\"%s\"}: no value found — both %s = var name (Q3 passes temp twice) */
             node = (bot_stringlist_t *)GetClearedMemory(sizeof(bot_stringlist_t) + strlen(ArgList) + 1);
             node->string = (char *)(node + 1);
             strcpy(node->string, ArgList);
-            node->next = a2;
-            a2 = node;
+            node->next = stringlist;
+            stringlist = node;
           }
           break;
         default:
-          botimport.Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", a1);
+          botimport.Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", message);
           break;
       }
     }
@@ -23375,7 +23375,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *a1, bot_strin
       ++msgptr;
     }
   }
-  return a2;
+  return stringlist;
 }
 
 //----- (1002CCF0) --------------------------------------------------------
@@ -23816,12 +23816,12 @@ static void BotFreeChatTree(chatlist_t *list);
  * chain) and per-type chattype_t->messages (chatmessage_t chain),
  * matching the chat-config grammar that BotLoadInitialChat parses
  * just below.  Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl BotDumpInitialChat(chatlist_t *list)
+void __cdecl BotDumpInitialChat(chatlist_t *chat)
 {
   chattype_t *t;
   chatline_t *msg;
   Log_Write("{");
-  t = list->types;
+  t = chat->types;
   while ( t )
   {
     Log_Write(" type \"%s\"", t->name);
@@ -24167,22 +24167,22 @@ static void BotFreeChatTree(chatlist_t *list)
 #endif
 
 //----- (1002DF70) --------------------------------------------------------
-int __cdecl BotFreeChatFile(bot_chatstate_t *cs)
+int __cdecl BotFreeChatFile(bot_chatstate_t *chatstate)
 {
   chatlist_t *list;
 #if BOTLIB_NEED_SIDEBAND
-  list = (chatlist_t *)BotChatDumpSlot(cs);
+  list = (chatlist_t *)BotChatDumpSlot(chatstate);
   if ( list )
     BotFreeChatTree(list);
-  BotChatDumpSlot(cs) = 0;
+  BotChatDumpSlot(chatstate) = 0;
   return 0;
 #else
   int result;
-  list = (chatlist_t *)BotChatDumpSlot(cs);
+  list = (chatlist_t *)BotChatDumpSlot(chatstate);
   result = (int)(intptr_t)list;
   if ( result )
     result = FreeMemory(list);
-  BotChatDumpSlot(cs) = 0;
+  BotChatDumpSlot(chatstate) = 0;
   return result;
 #endif
 }
@@ -24206,13 +24206,13 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
 }
 
 //----- (1002DFF0) --------------------------------------------------------
-int __cdecl BotLoadChatFile(bot_chatstate_t *cs, char *chatfile, char *chatname)
+int __cdecl BotLoadChatFile(bot_chatstate_t *chatstate, char *chatfile, char *chatname)
 {
   void *v3; // eax
 
-  BotFreeChatFile(cs);
+  BotFreeChatFile(chatstate);
   v3 = BotLoadInitialChat(chatfile, chatname);
-  BotChatDumpSlot(cs) = v3;
+  BotChatDumpSlot(chatstate) = v3;
   if ( !v3 )
   {
     botimport.Print(PRT_FATAL, "couldn't load chat %s from %s\n", chatname, chatfile);
@@ -24317,7 +24317,7 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
  * name at offset 0, chat-line list head at offset 36, and next at offset 40.
  * Returns the chosen chat line's chat-string pointer (chat_line[0]).
  * Q3 botlib has the same function with this name in be_ai_chat.c. */
-char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
+char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
 {
   chattype_t *t;
   chatline_t *l, *best;
@@ -24326,9 +24326,9 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *list, char *String2)
   float       best_ltime;
   float       frnd;
 
-  for ( t = list->types; t; t = t->next )
+  for ( t = cs->types; t; t = t->next )
   {
-    if ( !_strcmpi(t->name, String2) )
+    if ( !_strcmpi(t->name, type) )
     {
       n = 0;
       for ( l = t->firstline; l; l = l->next )
@@ -24631,23 +24631,23 @@ LABEL_34:
 // 1002E95D: conditional instruction was optimized away because esi.4!=0
 
 //----- (1002EA50) --------------------------------------------------------
-unsigned int __cdecl BotChatLength(bot_chatstate_t *cs)
+unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate)
 {
-  return strlen((const char *)cs + 20);
+  return strlen((const char *)chatstate + 20);
 }
 
 //----- (1002EA80) --------------------------------------------------------
-char __cdecl BotEnterChat(bot_chatstate_t *cs, int clientto, int sendto)
+char __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 {
   char v;
-  if ( strlen((const char *)cs + 20) )
+  if ( strlen((const char *)chatstate + 20) )
   {
     if ( sendto == 1 )
-      EA_SayTeam(clientto, (char *)cs + 20);
+      EA_SayTeam(clientto, (char *)chatstate + 20);
     else
-      EA_Say(clientto, (char *)cs + 20);
+      EA_Say(clientto, (char *)chatstate + 20);
     v = byte_1006294C;
-    *((char *)cs + 20) = v;
+    *((char *)chatstate + 20) = v;
     return v;
   }
   return 0;
@@ -24759,7 +24759,7 @@ void BotShutdownChatAI()
 }
 
 //----- (1002ED20) --------------------------------------------------------
-itemconfig_t * LoadItemConfig(char *Source)
+itemconfig_t * LoadItemConfig(char *filename)
 {
   int max_iteminfo;
   source_t *src;
@@ -24777,7 +24777,7 @@ itemconfig_t * LoadItemConfig(char *Source)
     LibVarSet("max_iteminfo", (char *)"256");
   }
   memset(&file_ref, 0, sizeof(file_ref));
-  strncpy(Destination, Source, 0x90u);
+  strncpy(Destination, filename, 0x90u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
@@ -24905,38 +24905,38 @@ _DWORD *__cdecl AllocLevelItem(void)
 }
 
 //----- (1002F2B0) --------------------------------------------------------
-void __cdecl FreeLevelItem(levelitem_t *item)
+void __cdecl FreeLevelItem(levelitem_t *li)
 {
-  item->next = freelevelitems;
-  freelevelitems = item;
+  li->next = freelevelitems;
+  freelevelitems = li;
 }
 
 //----- (1002F2E0) --------------------------------------------------------
-levelitem_t *__cdecl AddLevelItemToList(levelitem_t *item)
+levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li)
 {
   if ( levelitems )
-    levelitems->prev = item;
-  item->prev = 0;
-  item->next = levelitems;
-  levelitems = item;
-  return item;
+    levelitems->prev = li;
+  li->prev = 0;
+  li->next = levelitems;
+  levelitems = li;
+  return li;
 }
 
 //----- (1002F320) --------------------------------------------------------
-levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *item)
+levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
 {
   levelitem_t *prev;
   levelitem_t *next;
 
-  prev = item->prev;
+  prev = li->prev;
   if ( prev )
-    prev->next = item->next;
+    prev->next = li->next;
   else
-    levelitems = item->next;
-  next = item->next;
+    levelitems = li->next;
+  next = li->next;
   if ( next )
-    next->prev = item->prev;
-  return item;
+    next->prev = li->prev;
+  return li;
 }
 
 //----- (1002F360) --------------------------------------------------------
@@ -26327,12 +26327,12 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
  * Both branches receive the same 4 args (ms, dir, speed, type): the original
  * pushes them once and `je`s to select the call target, so BotSwimInDirection
  * is a 4-arg callee too (it just ignores `type`). */
-int __cdecl BotMoveInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
+int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type)
 {
-  if ( AAS_Swimming(ms->origin) )
-    return BotSwimInDirection(ms, dir, speed, type);
+  if ( AAS_Swimming(movestate->origin) )
+    return BotSwimInDirection(movestate, dir, speed, type);
   else
-    return BotWalkInDirection(ms, dir, speed, type);
+    return BotWalkInDirection(movestate, dir, speed, type);
 }
 
 //----- (10031C30) --------------------------------------------------------
@@ -27506,7 +27506,7 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
  * BotGapDistance have had their signatures corrected to plain `int`
  * to match the original — see float_vs_int_signature_bug.md.
  */
-bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal, int a4)
+bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
   int v4; // edx
   int v8; // eax
@@ -27541,7 +27541,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
   bot_moveresult_t v33; // [esp+280h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  BotResetGrapple(ms);
+  BotResetGrapple(movestate);
   if ( !goal )
   {
     moveresult.failure = 1;
@@ -27550,55 +27550,55 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
     return result;
   }
   {
-    v4 = ms->presencetype;
-    ms->moveflags &= 0xFFFFFFF3;
-    if ( AAS_OnGround(ms->origin, v4, ms->entitynum) )
-      ms->moveflags |= 2;
-    if ( AAS_Swimming(ms->origin) )
-      ms->moveflags |= 4;
-    if ( AAS_AgainstLadder((int *)ms->origin) )
-      ms->moveflags |= 8;
-   if ( (ms->moveflags & 0xE) == 0 )
+    v4 = movestate->presencetype;
+    movestate->moveflags &= 0xFFFFFFF3;
+    if ( AAS_OnGround(movestate->origin, v4, movestate->entitynum) )
+      movestate->moveflags |= 2;
+    if ( AAS_Swimming(movestate->origin) )
+      movestate->moveflags |= 4;
+    if ( AAS_AgainstLadder((int *)movestate->origin) )
+      movestate->moveflags |= 8;
+   if ( (movestate->moveflags & 0xE) == 0 )
    {
-     if ( ms->lastreachnum )
+     if ( movestate->lastreachnum )
      {
-       reach = AAS_ReachabilityFromNum(ms->lastreachnum);
+       reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
        moveresult.traveltype = reach.traveltype;
        switch ( reach.traveltype )
        {
         case 2:
-          v16 = BotTravel_Walk(&v31, ms, &reach);
+          v16 = BotTravel_Walk(&v31, movestate, &reach);
            moveresult = *v16; break;
         case 3:
         case 0xA:
           goto LABEL_56;
         case 4:
-          v16 = BotFinishTravel_BarrierJump(&v32, ms, &reach);
+          v16 = BotFinishTravel_BarrierJump(&v32, movestate, &reach);
            moveresult = *v16; break;
         case 5:
-          v16 = BotFinishTravel_Jump(&v25, ms, &reach);
+          v16 = BotFinishTravel_Jump(&v25, movestate, &reach);
            moveresult = *v16; break;
         case 6:
-          v16 = BotTravel_Ladder(&v29, ms, &reach);
+          v16 = BotTravel_Ladder(&v29, movestate, &reach);
           moveresult = *v16; break;
         case 7:
-          v16 = BotFinishTravel_WalkOffLedge(&v27, ms, &reach);
+          v16 = BotFinishTravel_WalkOffLedge(&v27, movestate, &reach);
           moveresult = *v16; break;
         case 8:
 LABEL_35:
-          v16 = BotTravel_Swim(&v24, ms, &reach);
+          v16 = BotTravel_Swim(&v24, movestate, &reach);
            moveresult = *v16; break;
         case 9:
-          v16 = BotFinishTravel_WaterJump(&v28, ms, &reach);
+          v16 = BotFinishTravel_WaterJump(&v28, movestate, &reach);
            moveresult = *v16; break;
         case 0xB:
-          v16 = BotFinishTravel_Elevator(&v23, ms, &reach);
+          v16 = BotFinishTravel_Elevator(&v23, movestate, &reach);
           moveresult = *v16; break;
         case 0xC:
-          v16 = BotFinishTravel_WeaponJump(&v30, ms, &reach);
+          v16 = BotFinishTravel_WeaponJump(&v30, movestate, &reach);
           moveresult = *v16; break;
         case 0xE:
-          v16 = BotTravel_Grapple(&v26, ms, &reach);
+          v16 = BotTravel_Grapple(&v26, movestate, &reach);
           moveresult = *v16;
           break;
         default:
@@ -27608,32 +27608,32 @@ LABEL_35:
      }
      goto LABEL_56;
    }
-   *(aas_reachability_t *)v22 = AAS_ReachabilityFromNum(ms->lastreachnum);
-   v8 = BotReachabilityArea((int *)ms, v22[9] != 11);
-   ms->areanum = v8;
+   *(aas_reachability_t *)v22 = AAS_ReachabilityFromNum(movestate->lastreachnum);
+   v8 = BotReachabilityArea((int *)movestate, v22[9] != 11);
+   movestate->areanum = v8;
    if ( v8 == goal->areanum )
    {
-     v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, ms, goal);
+     v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, movestate, goal);
      result = a1;
      *a1 = *v9;
      return result;
    }
-   reachnum = ms->lastreachnum;
+   reachnum = movestate->lastreachnum;
    if ( !reachnum )
      goto LABEL_25;
-   reach = AAS_ReachabilityFromNum(ms->lastreachnum);
-   if ( (a4 & AAS_TravelFlagForType(reach.traveltype)) == 0 )
+   reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
+   if ( (travelflags & AAS_TravelFlagForType(reach.traveltype)) == 0 )
      goto LABEL_25;
    if ( reach.traveltype == 14 )
    {
-     if ( AAS_Time() > ms->reachability_time || (ms->moveflags & 0x80) != 0 )
+     if ( AAS_Time() > movestate->reachability_time || (movestate->moveflags & 0x80) != 0 )
        goto LABEL_25;
 LABEL_27:
-     v14 = ms->areanum;
-     ms->lastreachnum = reachnum;
+     v14 = movestate->areanum;
+     movestate->lastreachnum = reachnum;
      v15 = goal->areanum;
-     ms->lastareanum = v14;
-     ms->lastgoalareanum = v15;
+     movestate->lastareanum = v14;
+     movestate->lastgoalareanum = v15;
      if ( reachnum )
      {
        reach = AAS_ReachabilityFromNum(reachnum);
@@ -27641,39 +27641,39 @@ LABEL_27:
        switch ( reach.traveltype )
        {
          case 2:
-           v16 = BotTravel_Walk((bot_moveresult_t *)v22, ms, &reach);
+           v16 = BotTravel_Walk((bot_moveresult_t *)v22, movestate, &reach);
             moveresult = *v16; break;
          case 3:
-           v16 = BotTravel_Crouch(&v33, ms, &reach);
+           v16 = BotTravel_Crouch(&v33, movestate, &reach);
             moveresult = *v16; break;
          case 4:
-           v16 = BotTravel_BarrierJump(&v30, ms, &reach);
+           v16 = BotTravel_BarrierJump(&v30, movestate, &reach);
             moveresult = *v16; break;
          case 5:
-           v16 = BotTravel_Jump(&v28, ms, &reach);
+           v16 = BotTravel_Jump(&v28, movestate, &reach);
             moveresult = *v16; break;
          case 6:
-           v16 = BotTravel_Ladder(&v26, ms, &reach);
+           v16 = BotTravel_Ladder(&v26, movestate, &reach);
            moveresult = *v16; break;
          case 7:
-           v16 = BotTravel_WalkOffLedge(&v23, ms, &reach);
+           v16 = BotTravel_WalkOffLedge(&v23, movestate, &reach);
            moveresult = *v16; break;
          case 8:
            goto LABEL_35;
          case 9:
-           v16 = BotTravel_WaterJump(&v25, ms, &reach);
+           v16 = BotTravel_WaterJump(&v25, movestate, &reach);
             moveresult = *v16; break;
          case 0xA:
-           v16 = BotTravel_Teleport(&v27, ms, &reach);
+           v16 = BotTravel_Teleport(&v27, movestate, &reach);
             moveresult = *v16; break;
          case 0xB:
-           v16 = BotTravel_Elevator(&v29, ms, &reach);
+           v16 = BotTravel_Elevator(&v29, movestate, &reach);
             moveresult = *v16; break;
          case 0xC:
-           v16 = BotTravel_RocketJump(&v31, ms, &reach);
+           v16 = BotTravel_RocketJump(&v31, movestate, &reach);
            moveresult = *v16; break;
          case 0xE:
-           v16 = BotTravel_Grapple(&v32, ms, &reach);
+           v16 = BotTravel_Grapple(&v32, movestate, &reach);
            moveresult = *v16; break;
          default:
            botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", reach.traveltype);
@@ -27686,48 +27686,48 @@ LABEL_27:
      }
 LABEL_56:
      if ( moveresult.blocked )
-       ms->reachability_time = ms->reachability_time - ms->thinktime * 10.0f;
-     v17 = *(int *)&ms->origin[1];
-     v18 = *(int *)&ms->origin[2];
-     *(int *)&ms->lastorigin[0] = *(int *)&ms->origin[0];
-     *(int *)&ms->lastorigin[1] = v17;
-     *(int *)&ms->lastorigin[2] = v18;
+       movestate->reachability_time = movestate->reachability_time - movestate->thinktime * 10.0f;
+     v17 = *(int *)&movestate->origin[1];
+     v18 = *(int *)&movestate->origin[2];
+     *(int *)&movestate->lastorigin[0] = *(int *)&movestate->origin[0];
+     *(int *)&movestate->lastorigin[1] = v17;
+     *(int *)&movestate->lastorigin[2] = v18;
      { result = a1; *a1 = moveresult; return result; }
    }
    if ( reach.traveltype == 11 )
    {
-     if ( ms->areanum != reach.areanum && AAS_Time() <= ms->reachability_time )
+     if ( movestate->areanum != reach.areanum && AAS_Time() <= movestate->reachability_time )
        goto LABEL_27;
     }
-   else if ( ms->lastgoalareanum == goal->areanum
-          && AAS_Time() <= ms->reachability_time
-          && ms->lastareanum == ms->areanum )
+   else if ( movestate->lastgoalareanum == goal->areanum
+          && AAS_Time() <= movestate->reachability_time
+          && movestate->lastareanum == movestate->areanum )
    {
      goto LABEL_27;
    }
 LABEL_25:
-   AAS_AreaReachability(ms->areanum);
+   AAS_AreaReachability(movestate->areanum);
    v12 = BotGetReachabilityToGoal(
-           (intptr_t)ms->origin,
-           ms->areanum,
-           ms->lastgoalareanum,
-           ms->lastareanum,
-           ms->entitynum,
-           (intptr_t)ms->avoidreach,
-           ms->avoidreachtimes,
-           (intptr_t)ms->avoidreachtries,
+           (intptr_t)movestate->origin,
+           movestate->areanum,
+           movestate->lastgoalareanum,
+           movestate->lastareanum,
+           movestate->entitynum,
+           (intptr_t)movestate->avoidreach,
+           movestate->avoidreachtimes,
+           (intptr_t)movestate->avoidreachtries,
            (intptr_t)goal,
-           a4);
+           travelflags);
    reachnum = v12;
-   ms->moveflags &= 0xFFFFFF7F;
-   ms->reachareanum = ms->areanum;
-   ms->jumpreach = 0;
+   movestate->moveflags &= 0xFFFFFF7F;
+   movestate->reachareanum = movestate->areanum;
+   movestate->jumpreach = 0;
    if ( v12 )
    {
      reach = AAS_ReachabilityFromNum(v12);
      v19 = (float)BotReachabilityTime(&reach);
-     ms->reachability_time = AAS_Time() + v19;
-     BotAddToAvoidReach((intptr_t)ms, reachnum, 6.0);
+     movestate->reachability_time = AAS_Time() + v19;
+     BotAddToAvoidReach((intptr_t)movestate, reachnum, 6.0);
    }
    goto LABEL_27;
  }
@@ -27936,22 +27936,22 @@ _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 }
 
 //----- (10035300) --------------------------------------------------------
-void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *ws)
+void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate)
 {
-  if ( ws->weightconfig )
-    FreeWeightConfig2((int)(intptr_t)ws->weightconfig);
-  if ( ws->itemweights )
-    FreeMemory(ws->itemweights);
+  if ( weaponstate->weightconfig )
+    FreeWeightConfig2((int)(intptr_t)weaponstate->weightconfig);
+  if ( weaponstate->itemweights )
+    FreeMemory(weaponstate->itemweights);
 }
 
 //----- (10035340) --------------------------------------------------------
-int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
+int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename)
 {
   weightconfig_t *v2; // eax
 
-  BotFreeWeaponWeights(ws);
+  BotFreeWeaponWeights(weaponstate);
   v2 = ReadWeightConfig((char *)filename);
-  ws->weightconfig = v2;
+  weaponstate->weightconfig = v2;
   if ( !v2 )
   {
     botimport.Print(PRT_FATAL, "couldn't load weapon config %s\n", filename);
@@ -27959,7 +27959,7 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *ws, const char *filename)
   }
   if ( !weaponconfig )
     return BLERR_CANNOTLOADWEAPONCONFIG;
-  ws->itemweights = WeaponWeightIndex(v2, weaponconfig);
+  weaponstate->itemweights = WeaponWeightIndex(v2, weaponconfig);
   return 0;
 }
 
@@ -28084,7 +28084,7 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 }
 
 //----- (10035640) --------------------------------------------------------
-int __cdecl BotResetWeaponState(bot_weaponstate_t *ws)
+int __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
 {
   weightconfig_t *weightconfig; // esi
   int *itemweights; // ebx
@@ -28092,13 +28092,13 @@ int __cdecl BotResetWeaponState(bot_weaponstate_t *ws)
 #if defined(__x86_64__) || defined(__aarch64__)
   /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it.
    * Gated to 64-bit so the Win32 path stays byte-identical to disasm@10035640. */
-  if ( !ws ) return 0;
+  if ( !weaponstate ) return 0;
 #endif
-  weightconfig = ws->weightconfig;
-  itemweights = ws->itemweights;
-  memset(ws, 0, sizeof(*ws));
-  ws->weightconfig = weightconfig;
-  ws->itemweights = itemweights;
+  weightconfig = weaponstate->weightconfig;
+  itemweights = weaponstate->itemweights;
+  memset(weaponstate, 0, sizeof(*weaponstate));
+  weaponstate->weightconfig = weightconfig;
+  weaponstate->itemweights = itemweights;
   return 0;
 }
 
@@ -28217,17 +28217,17 @@ void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
 //----- (100359B0) --------------------------------------------------------
 // Free a full weightconfig_t (all weight_t entries + their trees + name
 // strings + the container). LIVE: called when releasing a bot.
-void __cdecl FreeWeightConfig2(weightconfig_t *cfg)
+void __cdecl FreeWeightConfig2(weightconfig_t *config)
 {
   int i;
 
-  for ( i = 0; i < cfg->numweights; ++i )
+  for ( i = 0; i < config->numweights; ++i )
   {
-    FreeFuzzySeperators_r(cfg->weights[i].firstseperator);
-    if ( cfg->weights[i].name )
-      FreeMemory(cfg->weights[i].name);
+    FreeFuzzySeperators_r(config->weights[i].firstseperator);
+    if ( config->weights[i].name )
+      FreeMemory(config->weights[i].name);
   }
-  FreeMemory(cfg);
+  FreeMemory(config);
 }
 
 //----- (10035A20) --------------------------------------------------------
@@ -28375,7 +28375,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 // Top-level loader: opens a bot's _i.c (items) or _w.c (weapons) config,
 // parses each `weight "name" { ... }` block, returns a populated
 // weightconfig_t. LIVE: entry point for item & weapon priority data.
-weightconfig_t *__cdecl ReadWeightConfig(char *Source)
+weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 {
   source_t *src;
   weightconfig_t *cfg;
@@ -28386,7 +28386,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *Source)
   token_t token; // [esp+140h] [ebp-430h] BYREF
 
   memset(&file_ref, 0, sizeof(file_ref));
-  strncpy(Destination, Source, 0x90u);
+  strncpy(Destination, filename, 0x90u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
@@ -28510,66 +28510,66 @@ qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 // Recursively serialise a decision-tree subtree as nested `switch`/`case`
 // blocks. DEAD in Gladiator (only self-recursive callers); GA-pipeline
 // counterpart of ReadFuzzySeperators_r. Live in Q3.
-qboolean __cdecl WriteFuzzySeperators_r(FILE *Stream, int a2, int a3)
+qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int a2, int indent)
 {
   fuzzyseperator_t *fs;
 
-  if ( !WriteIndent(Stream, a3) )
+  if ( !WriteIndent(fp, indent) )
     return 0;
   fs = (fuzzyseperator_t *)a2;
-  if ( fprintf(Stream, "switch(%d)\n", fs->index) < 0 )
+  if ( fprintf(fp, "switch(%d)\n", fs->index) < 0 )
     return 0;
-  if ( !WriteIndent(Stream, a3) )
+  if ( !WriteIndent(fp, indent) )
     return 0;
-  if ( fprintf(Stream, "{\n") < 0 )
+  if ( fprintf(fp, "{\n") < 0 )
     return 0;
-  ++a3;
+  ++indent;
   do
   {
-    if ( !WriteIndent(Stream, a3) )
+    if ( !WriteIndent(fp, indent) )
       return 0;
     if ( fs->next )
     {
-      if ( fprintf(Stream, "case %d:", fs->value) < 0 )
+      if ( fprintf(fp, "case %d:", fs->value) < 0 )
         return 0;
     }
-    else if ( fprintf(Stream, "default:") < 0 )
+    else if ( fprintf(fp, "default:") < 0 )
     {
       return 0;
     }
     if ( fs->child )
     {
-      if ( fprintf(Stream, "\n") < 0 )
+      if ( fprintf(fp, "\n") < 0 )
         return 0;
-      if ( !WriteIndent(Stream, a3) )
+      if ( !WriteIndent(fp, indent) )
         return 0;
-      if ( fprintf(Stream, "{\n") < 0 )
+      if ( fprintf(fp, "{\n") < 0 )
         return 0;
-      if ( !WriteFuzzySeperators_r(Stream, (int)fs->child, a3 + 1) )
+      if ( !WriteFuzzySeperators_r(fp, (int)fs->child, indent + 1) )
         return 0;
-      if ( !WriteIndent(Stream, a3) )
+      if ( !WriteIndent(fp, indent) )
         return 0;
       if ( fs->next )
       {
-        if ( fprintf(Stream, "} //end case\n") < 0 )
+        if ( fprintf(fp, "} //end case\n") < 0 )
           return 0;
       }
-      else if ( fprintf(Stream, "} //end default\n") < 0 )
+      else if ( fprintf(fp, "} //end default\n") < 0 )
       {
         return 0;
       }
     }
-    else if ( !WriteFuzzyWeight(Stream, fs) )
+    else if ( !WriteFuzzyWeight(fp, fs) )
     {
       return 0;
     }
     fs = fs->next;
   }
   while ( fs );
-  --a3;
-  if ( !WriteIndent(Stream, a3) )
+  --indent;
+  if ( !WriteIndent(fp, indent) )
     return 0;
-  if ( fprintf(Stream, "} //end switch\n") < 0 )
+  if ( fprintf(fp, "} //end switch\n") < 0 )
     return 0;
   return 1;
 }
@@ -28640,70 +28640,70 @@ int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name)
 // Recursive tree walk for the discrete case: tests `facts[index]` against
 // each seperator's threshold, descends the matching branch, returns the
 // leaf weight. LIVE: core of FuzzyWeight.
-double __cdecl FuzzyWeight_r(int *facts, fuzzyseperator_t *sep)
+double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
 
-  if ( facts[sep->index] < sep->value )
+  if ( inventory[fs->index] < fs->value )
   {
-    if ( sep->child )
-      return FuzzyWeight_r(facts, sep->child);
+    if ( fs->child )
+      return FuzzyWeight_r(inventory, fs->child);
     else
-      return sep->weight;
+      return fs->weight;
   }
-  else if ( sep->next )
+  else if ( fs->next )
   {
-    if ( facts[sep->index] < sep->next->value )
+    if ( inventory[fs->index] < fs->next->value )
     {
-      if ( sep->child )
-        w1 = FuzzyWeight_r(facts, sep->child);
+      if ( fs->child )
+        w1 = FuzzyWeight_r(inventory, fs->child);
       else
-        w1 = sep->weight;
-      if ( sep->next->child )
-        w2 = FuzzyWeight_r(facts, sep->next->child);
+        w1 = fs->weight;
+      if ( fs->next->child )
+        w2 = FuzzyWeight_r(inventory, fs->next->child);
       else
-        w2 = sep->next->weight;
-      scale = (facts[sep->index] - sep->value) / (sep->next->value - sep->value);
+        w2 = fs->next->weight;
+      scale = (inventory[fs->index] - fs->value) / (fs->next->value - fs->value);
       return scale * w1 + (1.0f - scale) * w2;
     }
-    return FuzzyWeight_r(facts, sep->next);
+    return FuzzyWeight_r(inventory, fs->next);
   }
-  return sep->weight;
+  return fs->weight;
 }
 
 //----- (10036B10) --------------------------------------------------------
 // Recursive tree walk with fuzzy interpolation: when a fact straddles a
 // seperator threshold, blends the two branch weights instead of snapping.
 // LIVE: core of FuzzyWeightUndecided (used for smooth priority changes).
-double __cdecl FuzzyWeightUndecided_r(int *facts, fuzzyseperator_t *sep)
+double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
 
-  if ( facts[sep->index] < sep->value )
+  if ( inventory[fs->index] < fs->value )
   {
-    if ( sep->child )
-      return FuzzyWeightUndecided_r(facts, sep->child);
+    if ( fs->child )
+      return FuzzyWeightUndecided_r(inventory, fs->child);
     else
-      return sep->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->maxweight - sep->minweight);
+      return fs->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->maxweight - fs->minweight);
   }
-  else if ( sep->next )
+  else if ( fs->next )
   {
-    if ( facts[sep->index] < sep->next->value )
+    if ( inventory[fs->index] < fs->next->value )
     {
-      if ( sep->child )
-        w1 = FuzzyWeightUndecided_r(facts, sep->child);
+      if ( fs->child )
+        w1 = FuzzyWeightUndecided_r(inventory, fs->child);
       else
-        w1 = sep->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->maxweight - sep->minweight);
-      if ( sep->next->child )
-        w2 = FuzzyWeight_r(facts, sep->next->child);
+        w1 = fs->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->maxweight - fs->minweight);
+      if ( fs->next->child )
+        w2 = FuzzyWeight_r(inventory, fs->next->child);
       else
-        w2 = sep->next->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (sep->next->maxweight - sep->next->minweight);
-      scale = (facts[sep->index] - sep->value) / (sep->next->value - sep->value);
+        w2 = fs->next->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->next->maxweight - fs->next->minweight);
+      scale = (inventory[fs->index] - fs->value) / (fs->next->value - fs->value);
       return scale * w1 + (1.0f - scale) * w2;
     }
-    return FuzzyWeightUndecided_r(facts, sep->next);
+    return FuzzyWeightUndecided_r(inventory, fs->next);
   }
-  return sep->weight;
+  return fs->weight;
 }
 
 //----- (10036C70) --------------------------------------------------------
@@ -28785,11 +28785,11 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
  * Outer driver in the GA pipeline -- evolves a list of fuzzy-logic
  * subtrees (matching Q3's EvolveFuzzyNetwork over BotMutateGoalFuzzyLogic).
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl EvolveWeightConfig(int *arr)
+void __cdecl EvolveWeightConfig(int *config)
 {
   int i;
-  for ( i = 0; i < arr[0]; ++i )
-    EvolveFuzzySeperator_r((fuzzyseperator_t *)((int *)(arr + 2))[i * 2]);
+  for ( i = 0; i < config[0]; ++i )
+    EvolveFuzzySeperator_r((fuzzyseperator_t *)((int *)(config + 2))[i * 2]);
 }
 
 //----- (10036E30) --------------------------------------------------------
@@ -28951,15 +28951,15 @@ void __cdecl EA_SayTeam(int client, char *str)
 }
 
 //----- (100370F0) --------------------------------------------------------
-void __cdecl EA_UseItem(int client, char *item)
+void __cdecl EA_UseItem(int client, char *it)
 {
-  botimport.BotClientCommand(client, "use", item, (char *)NULL);
+  botimport.BotClientCommand(client, "use", it, (char *)NULL);
 }
 
 //----- (10037120) --------------------------------------------------------
-void __cdecl EA_DropItem(int client, char *item)
+void __cdecl EA_DropItem(int client, char *it)
 {
-  botimport.BotClientCommand(client, "drop", item, (char *)NULL);
+  botimport.BotClientCommand(client, "drop", it, (char *)NULL);
 }
 
 //----- (10037150) --------------------------------------------------------
@@ -28967,17 +28967,17 @@ void __cdecl EA_DropItem(int client, char *item)
 // against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
-void __cdecl EA_UseInv(int client, char *item)
+void __cdecl EA_UseInv(int client, char *inv)
 {
-  botimport.BotClientCommand(client, "invuse", item, (char *)NULL);
+  botimport.BotClientCommand(client, "invuse", inv, (char *)NULL);
 }
 
 //----- (10037180) --------------------------------------------------------
 // Restored (IDA-missed dead-code stub).  Mirror of EA_UseInv with the
 // "invdrop" command string (0x1005E63C).
-void __cdecl EA_DropInv(int client, char *item)
+void __cdecl EA_DropInv(int client, char *inv)
 {
-  botimport.BotClientCommand(client, "invdrop", item, (char *)NULL);
+  botimport.BotClientCommand(client, "invdrop", inv, (char *)NULL);
 }
 
 //----- (100371B0) --------------------------------------------------------
@@ -29185,10 +29185,10 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
 }
 
 //----- (100375A0) --------------------------------------------------------
-void __cdecl EA_View(int client, vec3_t angles)
+void __cdecl EA_View(int client, vec3_t viewangles)
 {
   ea_state_t *ea = &ea_controls[client];
-  VectorCopy(angles, ea->angles);
+  VectorCopy(viewangles, ea->angles);
 }
 
 //----- (100375E0) --------------------------------------------------------
@@ -29503,12 +29503,12 @@ bot_export_t *GetBotAPI(bot_import_t *import)
 }
 
 //----- (100385B0) --------------------------------------------------------
-_WORD *__cdecl CRC_Init(_WORD *a1)
+_WORD *__cdecl CRC_Init(_WORD *crcvalue)
 {
   _WORD *result; // eax
 
-  result = a1;
-  *a1 = -1;
+  result = crcvalue;
+  *crcvalue = -1;
   return result;
 }
 
@@ -29524,9 +29524,9 @@ void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 }
 
 //----- (10038620) --------------------------------------------------------
-__int16 __cdecl CRC_Value(__int16 a1)
+__int16 __cdecl CRC_Value(__int16 crcvalue)
 {
-  return a1;
+  return crcvalue;
 }
 
 //----- (10038640) --------------------------------------------------------
@@ -29597,14 +29597,14 @@ float __cdecl LibVarStringValue(char *string)
 }
 
 //----- (10038810) --------------------------------------------------------
-libvar_t *__cdecl LibVarAlloc(const char *name)
+libvar_t *__cdecl LibVarAlloc(const char *var_name)
 {
   libvar_t *v;
 
-  v = (libvar_t *)GetMemory(strlen(name) + sizeof(libvar_t) + 1);
+  v = (libvar_t *)GetMemory(strlen(var_name) + sizeof(libvar_t) + 1);
   memset(v, 0, sizeof(libvar_t));
   v->name = (char *)v + sizeof(libvar_t);
-  strcpy(v->name, name);
+  strcpy(v->name, var_name);
   v->next = libvarlist;
   libvarlist = v;
   return v;
@@ -29639,43 +29639,43 @@ void __cdecl LibVarDeAllocAll(void)
 }
 
 //----- (10038910) --------------------------------------------------------
-libvar_t *__cdecl LibVarGet(const char *name)
+libvar_t *__cdecl LibVarGet(const char *var_name)
 {
   libvar_t *v;
 
   for ( v = libvarlist; v; v = v->next )
   {
-    if ( !_strcmpi(v->name, name) )
+    if ( !_strcmpi(v->name, var_name) )
       return v;
   }
   return NULL;
 }
 
 //----- (10038960) --------------------------------------------------------
-char *__cdecl LibVarGetString(const char *name)
+char *__cdecl LibVarGetString(const char *var_name)
 {
-  libvar_t *v = LibVarGet(name);
+  libvar_t *v = LibVarGet(var_name);
   if ( v )
     return v->string;
   return &byte_1006294C;
 }
 
 //----- (10038990) --------------------------------------------------------
-float __cdecl LibVarGetValue(const char *name)
+float __cdecl LibVarGetValue(const char *var_name)
 {
-  libvar_t *v = LibVarGet(name);
+  libvar_t *v = LibVarGet(var_name);
   if ( v )
     return v->value;
   return 0.0f;
 }
 
 //----- (100389C0) --------------------------------------------------------
-libvar_t *__cdecl LibVar(char *name, char *value)
+libvar_t *__cdecl LibVar(char *var_name, char *value)
 {
-  libvar_t *v = LibVarGet(name);
+  libvar_t *v = LibVarGet(var_name);
   if ( !v )
   {
-    v = LibVarAlloc(name);
+    v = LibVarAlloc(var_name);
     v->string = (char *)GetMemory(strlen(value) + 1);
     strcpy(v->string, value);
     v->value = LibVarStringValue(v->string);
@@ -29685,31 +29685,31 @@ libvar_t *__cdecl LibVar(char *name, char *value)
 }
 
 //----- (10038A60) --------------------------------------------------------
-char *__cdecl LibVarString(char *name, char *defvalue)
+char *__cdecl LibVarString(char *var_name, char *value)
 {
   /* Returns the string value of a libvar (libvar->string).
    * In the original binary this was sub_10038A60; the thunk sub_100013BB
    * forwarded all file-path lookups here — not to LibVar (sub_100389C0). */
-  return LibVar(name, defvalue)->string;
+  return LibVar(var_name, value)->string;
 }
 
 //----- (10038A90) --------------------------------------------------------
-float __cdecl LibVarValue(char *name, char *defvalue)
+float __cdecl LibVarValue(char *var_name, char *value)
 {
   /* l_libvar.c: LibVarValue(name, default) — registers the libvar if missing
    * (forwarding to LibVar) and returns the numeric value field.
    * Q3 signature: float LibVarValue(const char *var_name, const char *value). */
-  return LibVar(name, defvalue)->value;
+  return LibVar(var_name, value)->value;
 }
 
 //----- (10038AC0) --------------------------------------------------------
-void __cdecl LibVarSet(char *name, char *value)
+void __cdecl LibVarSet(char *var_name, char *value)
 {
-  libvar_t *v = LibVarGet(name);
+  libvar_t *v = LibVarGet(var_name);
   if ( v )
     FreeMemory(v->string);
   else
-    v = LibVarAlloc(name);
+    v = LibVarAlloc(var_name);
   v->string = (char *)GetMemory(strlen(value) + 1);
   strcpy(v->string, value);
   v->value = LibVarStringValue(v->string);
@@ -29727,11 +29727,11 @@ void __cdecl LibVarSet(char *name, char *value)
  * if no such libvar exists.  Direct counterpart of Q3 botlib's
  * LibVarGetModified.  Dead in Gladiator — never reached via thunk
  * 0x10001C71; preserved by /INCREMENTAL. */
-int __cdecl LibVarChanged(const char *name)
+int __cdecl LibVarChanged(const char *var_name)
 {
   libvar_t *v;
 
-  v = LibVarGet(name);
+  v = LibVarGet(var_name);
   if ( v )
     return v->modified;
   return 0;
@@ -29747,11 +29747,11 @@ int __cdecl LibVarChanged(const char *name)
  * if it doesn't exist).  Q3 botlib cognate is LibVarSetNotModified
  * (l_libvar.c) — `v = LibVarGet(name); if (v) v->modified = qfalse;`.
  * Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl LibVarSetNotModified(const char *name)
+void __cdecl LibVarSetNotModified(const char *var_name)
 {
   libvar_t *v;
 
-  v = LibVarGet(name);
+  v = LibVarGet(var_name);
   if ( v )
     v->modified = 0;
 }
@@ -29762,11 +29762,11 @@ void __cdecl LibVarSetNotModified(const char *name)
  * begins by leaving a float on st0 (from an internal LibVarValue call) and
  * then fcomps it.  Original C source has only ONE parameter (the filename);
  * the libvar value is read internally. */
-void Log_Open(char *FileName)
+void Log_Open(char *filename)
 {
   if ( LibVarValue("log", (char *)"0") != 0.0f )      /* "log" libvar enabled (default "0") */
   {
-    if ( !FileName || !strlen(FileName) )
+    if ( !filename || !strlen(filename) )
     {
       botimport.Print(PRT_MESSAGE, "openlog <filename>\n");
     }
@@ -29776,14 +29776,14 @@ void Log_Open(char *FileName)
     }
     else
     {
-      logfile.fp = fopen(FileName, "wb");          /* Mode = "wb" */
+      logfile.fp = fopen(filename, "wb");          /* Mode = "wb" */
       if ( !logfile.fp )
       {
-        botimport.Print(PRT_ERROR, "can't open the log file %s\n", FileName);
+        botimport.Print(PRT_ERROR, "can't open the log file %s\n", filename);
       }
       else
       {
-        strncpy(logfile.filename, FileName, 0x400u);
+        strncpy(logfile.filename, filename, 0x400u);
         botimport.Print(PRT_MESSAGE, "Opened log %s\n", logfile.filename);
       }
     }
@@ -30107,36 +30107,36 @@ int SourceWarning(source_t *src, char *Format, ...)
 }
 
 //----- (100392E0) --------------------------------------------------------
-indent_t *__cdecl PC_PushIndent(source_t *src, int type, int skip)
+indent_t *__cdecl PC_PushIndent(source_t *source, int type, int skip)
 {
   indent_t *ind;
 
   ind = (indent_t *)GetMemory(sizeof(indent_t));
   ind->type   = type;
-  ind->script = src->scriptstack;
+  ind->script = source->scriptstack;
   ind->skip   = (skip != 0);
-  src->skip  += ind->skip;
-  ind->next   = src->indentstack;
-  src->indentstack = ind;
+  source->skip  += ind->skip;
+  ind->next   = source->indentstack;
+  source->indentstack = ind;
   return ind;
 }
 
 //----- (10039350) --------------------------------------------------------
-indent_t *__cdecl PC_PopIndent(source_t *src, int *type_out, int *skip_out)
+indent_t *__cdecl PC_PopIndent(source_t *source, int *type, int *skip)
 {
   indent_t *ind;
 
-  *type_out = 0;
-  *skip_out = 0;
-  ind = src->indentstack;
+  *type = 0;
+  *skip = 0;
+  ind = source->indentstack;
   if ( ind )
   {
-    if ( ind->script == src->scriptstack )
+    if ( ind->script == source->scriptstack )
     {
-      *type_out = ind->type;
-      *skip_out = ind->skip;
-      src->indentstack = src->indentstack->next;
-      src->skip       -= ind->skip;
+      *type = ind->type;
+      *skip = ind->skip;
+      source->indentstack = source->indentstack->next;
+      source->skip       -= ind->skip;
       /* Asm leaves FreeMemory's return value in eax — preserve that here. */
       return (indent_t *)(uintptr_t)FreeMemory(ind);
     }
@@ -30177,9 +30177,9 @@ token_t *__cdecl PC_CopyToken(const token_t *token)
 }
 
 //----- (100394A0) --------------------------------------------------------
-void __cdecl PC_FreeToken(token_t *t)
+void __cdecl PC_FreeToken(token_t *token)
 {
-  FreeMemory(t);
+  FreeMemory(token);
 }
 
 //----- (100394C0) --------------------------------------------------------
@@ -30216,13 +30216,13 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
 }
 
 //----- (100395F0) --------------------------------------------------------
-int __cdecl PC_UnreadSourceToken(source_t *src, const void *token)
+int __cdecl PC_UnreadSourceToken(source_t *source, const void *token)
 {
   struct token_s *copy;
 
   copy = (struct token_s *)PC_CopyToken(token);  /* allocate 1072-byte copy */
-  copy->next = src->tokens;
-  src->tokens = copy;
+  copy->next = source->tokens;
+  source->tokens = copy;
   return 1;
 }
 
@@ -30324,18 +30324,18 @@ int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **par
 // 10039776: conditional instruction was optimized away because ecx.4==0
 
 //----- (10039A70) --------------------------------------------------------
-int __cdecl PC_StringizeTokens(token_t *Source, token_t *Destination)
+int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
 {
   token_t *i;
 
-  Destination->type = 1;
-  Destination->whitespace_p = NULL;
-  Destination->endwhitespace_p = NULL;
-  Destination->string[0] = 0;
-  strcat(Destination->string, word_1005F588);
-  for ( i = Source; i; i = i->next )
-    strncat(Destination->string, i->string, 1024 - strlen(Destination->string));
-  strncat(Destination->string, word_1005F588, 1024 - strlen(Destination->string));
+  token->type = 1;
+  token->whitespace_p = NULL;
+  token->endwhitespace_p = NULL;
+  token->string[0] = 0;
+  strcat(token->string, word_1005F588);
+  for ( i = tokens; i; i = i->next )
+    strncat(token->string, i->string, 1024 - strlen(token->string));
+  strncat(token->string, word_1005F588, 1024 - strlen(token->string));
   return 1;
 }
 
@@ -30360,19 +30360,19 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
 }
 
 //----- (10039C30) --------------------------------------------------------
-unsigned int __cdecl PC_NameHash(const char *a1)
+unsigned int __cdecl PC_NameHash(const char *name)
 {
   unsigned int v2; // ecx
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
-  if ( a1 )
+  if ( name )
   {
-    v2 = strlen(a1);
+    v2 = strlen(name);
     if ( (int)v2 > 4 )
       v2 = 4;
     else if ( !v2 )
       return abs(v4) & 0x3FF;
-    memcpy(&v4, a1, v2);
+    memcpy(&v4, name, v2);
     return abs(v4) & 0x3FF;
   }
   return abs(v4) & 0x3FF;
@@ -30390,13 +30390,13 @@ unsigned int __cdecl PC_NameHash(const char *a1)
  * Retyped from int/int to (define_t*, define_t**) so the pointers don't
  * truncate on 64-bit; the body now uses struct-field access (same
  * semantics, but the +28 byte offset is define_t.hashnext only on 32-bit). */
-unsigned int __cdecl PC_AddDefineToHash(define_t *a1, define_t **a2)
+unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
 {
   unsigned int result;
 
-  result = PC_NameHash(a1->name);
-  a1->hashnext = a2[result];
-  a2[result] = a1;
+  result = PC_NameHash(define->name);
+  define->hashnext = definehash[result];
+  definehash[result] = define;
   return result;
 }
 
@@ -30453,21 +30453,21 @@ int __cdecl PC_FindDefineParm(define_t *define, const char *name)
 }
 
 //----- (10039E70) --------------------------------------------------------
-void __cdecl PC_FreeDefine(define_t *def)
+void __cdecl PC_FreeDefine(define_t *define)
 {
   struct token_s *t, *next;
 
-  for ( t = def->parms; t; t = next )
+  for ( t = define->parms; t; t = next )
   {
     next = t->next;
     PC_FreeToken(t);
   }
-  for ( t = def->tokens; t; t = next )
+  for ( t = define->tokens; t; t = next )
   {
     next = t->next;
     PC_FreeToken(t);
   }
-  FreeMemory(def);
+  FreeMemory(define);
 }
 
 //----- (10039EE0) --------------------------------------------------------
@@ -30720,18 +30720,18 @@ void __cdecl PC_ConvertPath(char *path)
 }
 
 //----- (1003A7A0) --------------------------------------------------------
-int __cdecl PC_Directive_include(source_t *src)
+int __cdecl PC_Directive_include(source_t *source)
 {
   char *script;
   char path[260]; // [esp+10h] [ebp-5CCh] BYREF
   bot_fileref_t file;
   token_t token;
 
-  if ( src->skip > 0 )
+  if ( source->skip > 0 )
     return 1;
-  if ( !PC_ReadSourceToken(src, token.string) || token.linescrossed > 0 )
+  if ( !PC_ReadSourceToken(source, token.string) || token.linescrossed > 0 )
   {
-    SourceError(src, "#include without file name");
+    SourceError(source, "#include without file name");
     return 0;
   }
   if ( token.type == 1 )
@@ -30741,19 +30741,19 @@ int __cdecl PC_Directive_include(source_t *src)
     script = (char *)LoadScriptFile(token.string, 0, 0);
     if ( !script )
     {
-      strcpy(path, src->includepath);
+      strcpy(path, source->includepath);
       strcat(path, token.string);
       script = (char *)LoadScriptFile(path, 0, 0);
     }
   }
   else if ( token.type == 5 && token.string[0] == 60 )
   {
-    strcpy(path, src->includepath);
-    while ( PC_ReadSourceToken(src, token.string) )
+    strcpy(path, source->includepath);
+    while ( PC_ReadSourceToken(source, token.string) )
     {
       if ( token.linescrossed > 0 )
       {
-        PC_UnreadSourceToken(src, token.string);
+        PC_UnreadSourceToken(source, token.string);
         break;
       }
       if ( token.type == 5 && token.string[0] == 62 )
@@ -30761,10 +30761,10 @@ int __cdecl PC_Directive_include(source_t *src)
       strncat(path, token.string, 0x104u);
     }
     if ( token.string[0] != 62 )
-      SourceWarning(src, "#include missing trailing >");
+      SourceWarning(source, "#include missing trailing >");
     if ( !strlen(path) )
     {
-      SourceError(src, "#include without file name between < >");
+      SourceError(source, "#include without file name between < >");
       return 0;
     }
     PC_ConvertPath(path);
@@ -30772,7 +30772,7 @@ int __cdecl PC_Directive_include(source_t *src)
   }
   else
   {
-    SourceError(src, "#include without file name");
+    SourceError(source, "#include without file name");
     return 0;
   }
   if ( !script )
@@ -30787,10 +30787,10 @@ int __cdecl PC_Directive_include(source_t *src)
   }
   if ( !script )
   {
-    SourceError(src, "file %s not found", path);
+    SourceError(source, "file %s not found", path);
     return 0;
   }
-  PC_PushScript(src, script);
+  PC_PushScript(source, script);
   return 1;
 }
 
@@ -30845,41 +30845,41 @@ token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token)
 }
 
 //----- (1003AC30) --------------------------------------------------------
-int __cdecl PC_Directive_undef(source_t *src)
+int __cdecl PC_Directive_undef(source_t *source)
 {
   unsigned int hash;
   define_t *lastdefine;
   define_t *define;
   token_t token; /* restored: original token_t local variable */
 
-  if ( src->skip > 0 )
+  if ( source->skip > 0 )
     return 1;
-  if ( !PC_ReadLine(src, token.string) )
+  if ( !PC_ReadLine(source, token.string) )
   {
-    SourceError(src, "undef without name");
+    SourceError(source, "undef without name");
     return 0;
   }
   if ( token.type != 4 )
   {
-    PC_UnreadSourceToken(src, token.string);
-    SourceError(src, "expected name, found %s", token.string);
+    PC_UnreadSourceToken(source, token.string);
+    SourceError(source, "expected name, found %s", token.string);
     return 0;
   }
   hash = PC_NameHash(token.string);
-  for ( lastdefine = NULL, define = src->definehash[hash]; define; define = define->hashnext )
+  for ( lastdefine = NULL, define = source->definehash[hash]; define; define = define->hashnext )
   {
     if ( !strcmp(define->name, token.string) )
     {
       if ( (define->flags & 1) != 0 )
       {
-        SourceWarning(src, "can't undef %s", token.string);
+        SourceWarning(source, "can't undef %s", token.string);
       }
       else
       {
         if ( lastdefine )
           lastdefine->hashnext = define->hashnext;
         else
-          src->definehash[hash] = define->hashnext;
+          source->definehash[hash] = define->hashnext;
         PC_FreeDefine(define);
       }
       break;
@@ -31245,36 +31245,36 @@ int __cdecl PC_Directive_ifdef(source_t *src, int type)
 }
 
 //----- (1003B7F0) --------------------------------------------------------
-int __cdecl PC_Directive_else(source_t *src)
+int __cdecl PC_Directive_else(source_t *source)
 {
   int type; // [esp+4h] [ebp-4h] BYREF
   int skip;
 
-  PC_PopIndent(src, &type, &skip);
+  PC_PopIndent(source, &type, &skip);
   if ( !type )
   {
-    SourceError(src, "misplaced #else");
+    SourceError(source, "misplaced #else");
     return 0;
   }
   if ( type == 2 )
   {
-    SourceError(src, "#else after #else");
+    SourceError(source, "#else after #else");
     return 0;
   }
-  PC_PushIndent(src, 2, skip == 0);
+  PC_PushIndent(source, 2, skip == 0);
   return 1;
 }
 
 //----- (1003B880) --------------------------------------------------------
-int __cdecl PC_Directive_endif(source_t *src)
+int __cdecl PC_Directive_endif(source_t *source)
 {
   int type; // BYREF
   int skip;
 
-  PC_PopIndent(src, &type, &skip);
+  PC_PopIndent(source, &type, &skip);
   if ( !type )
   {
-    SourceError(src, "misplaced #endif");
+    SourceError(source, "misplaced #endif");
     return 0;
   }
   return 1;
@@ -31341,7 +31341,7 @@ int __cdecl PC_OperatorPriority(int op)
 }
 
 //----- (1003B9E0) --------------------------------------------------------
-int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue, double *floatvalue, int integer)
+int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, double *floatvalue, int integer)
 {
   int brace; // ebx
   int lastwasvalue; // ecx
@@ -31414,8 +31414,8 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
   {
     *floatvalue = 0;
   }
-  t = firsttoken;
-  if ( !firsttoken )
+  t = tokens;
+  if ( !tokens )
     goto LABEL_73;
   while ( 1 )
   {
@@ -31450,12 +31450,12 @@ int __cdecl PC_EvaluateTokens(source_t *src, token_t *firsttoken, int *intvalue,
         if ( lastwasvalue || v7 )
         {
 LABEL_71:
-          SourceError(src, "syntax error in #if/#elif");
+          SourceError(source, "syntax error in #if/#elif");
           goto LABEL_76;
         }
         if ( strcmp((const char *)t, "defined") )
         {
-          SourceError(src, "undefined name %s in #if/#elif", t);
+          SourceError(source, "undefined name %s in #if/#elif", t);
           goto LABEL_76;
         }
         t = t->next;
@@ -31466,11 +31466,11 @@ LABEL_71:
         }
         if ( !t || t->type != 4 )
         {
-          SourceError(src, "defined without name in #if/#elif");
+          SourceError(source, "defined without name in #if/#elif");
           goto LABEL_76;
         }
         v12 = GetClearedMemory(sizeof(value_t));
-        if ( PC_FindHashedDefine(src->definehash, (const char *)t) )
+        if ( PC_FindHashedDefine(source->definehash, (const char *)t) )
         {
                     v12->intvalue = 1;
           v12->floatvalue = 1.0;
@@ -31493,7 +31493,7 @@ LABEL_71:
           t = t->next;
           if ( !t || strcmp((const char *)t, ")") )
           {
-            SourceError(src, "defined without ) in #if/#elif");
+            SourceError(source, "defined without ) in #if/#elif");
             goto LABEL_76;
           }
         }
@@ -31503,7 +31503,7 @@ LABEL_71:
       case 5:
         if ( v7 )
         {
-          SourceError(src, "misplaced minus sign in #if/#elif");
+          SourceError(source, "misplaced minus sign in #if/#elif");
           goto LABEL_76;
         }
         v10 = t->subtype;
@@ -31515,7 +31515,7 @@ LABEL_71:
         {
           if ( --parentheses < 0 )
           {
-            SourceError(src, "too many ) in #if/#elsif");
+            SourceError(source, "too many ) in #if/#elsif");
             goto LABEL_76;
           }
         }
@@ -31523,7 +31523,7 @@ LABEL_71:
         {
           if ( !integer && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
           {
-            SourceError(src,
+            SourceError(source,
                         "illigal operator %s on floating point operands\n",
                         t);
             goto LABEL_76;
@@ -31551,7 +31551,7 @@ LABEL_71:
             case 43:
               if ( lastwasvalue )
                 goto LABEL_29;
-              SourceError(src, "operator %s after operator in #if/#elif", t);
+              SourceError(source, "operator %s after operator in #if/#elif", t);
               goto LABEL_76;
             case 30:
               if ( !lastwasvalue )
@@ -31561,7 +31561,7 @@ LABEL_71:
             case 36:
               if ( lastwasvalue )
               {
-                SourceError(src, "! or ~ after value in #if/#elif");
+                SourceError(source, "! or ~ after value in #if/#elif");
                 goto LABEL_76;
               }
 LABEL_29:
@@ -31582,13 +31582,13 @@ LABEL_29:
               }
               break;
             default:
-              SourceError(src, "invalid operator %s in #if/#elif", t);
+              SourceError(source, "invalid operator %s in #if/#elif", t);
               goto LABEL_76;
           }
         }
         break;
       default:
-        SourceError(src, "unknown %s in #if/#elif", t);
+        SourceError(source, "unknown %s in #if/#elif", t);
         goto LABEL_76;
     }
     t = t->next;
@@ -31600,12 +31600,12 @@ LABEL_29:
   {
     if ( !parentheses )
       goto LABEL_77;
-    SourceError(src, "too many ( in #if/#elif");
+    SourceError(source, "too many ( in #if/#elif");
   }
   else
   {
 LABEL_73:
-    SourceError(src, "trailing operator in #if/#elif");
+    SourceError(source, "trailing operator in #if/#elif");
   }
 LABEL_76:
   error = 1;
@@ -31740,7 +31740,7 @@ LABEL_88:
         case 42:
           if ( !gotquestmarkvalue )
           {
-            SourceError(src, ": without ? in #if/#elif");
+            SourceError(source, ": without ? in #if/#elif");
             goto LABEL_163;
           }
           if ( integer )
@@ -31761,7 +31761,7 @@ LABEL_88:
         case 43:
           if ( gotquestmarkvalue )
           {
-            SourceError(src, "? after ? in #if/#elif");
+            SourceError(source, "? after ? in #if/#elif");
             goto LABEL_163;
           }
           questmarkintvalue = v->intvalue;
@@ -31812,7 +31812,7 @@ LABEL_144:
       if ( !v19 )
         goto LABEL_88;
     }
-    SourceError(src, "mising values in #if/#elif");
+    SourceError(source, "mising values in #if/#elif");
 LABEL_163:
     error = 1;
   }
@@ -31858,7 +31858,7 @@ LABEL_165:
 }
 
 //----- (1003C650) --------------------------------------------------------
-int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
+int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
   token_t *firsttoken;
   token_t *lasttoken;
@@ -31877,9 +31877,9 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
   {
     *floatvalue = 0;
   }
-  if ( !PC_ReadLine(src, &token) )
+  if ( !PC_ReadLine(source, &token) )
   {
-    SourceError(src, "no value after #if/#elif");
+    SourceError(source, "no value after #if/#elif");
     return 0;
   }
   firsttoken = NULL;
@@ -31912,13 +31912,13 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
       }
       else
       {
-        define = PC_FindHashedDefine(src->definehash, token.string);
+        define = PC_FindHashedDefine(source->definehash, token.string);
         if ( !define )
         {
-          SourceError(src, "can't evaluate %s, not defined", token.string);
+          SourceError(source, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(src, define) )
+        if ( !PC_ExpandDefineIntoSource(source, define) )
           return 0;
       }
     }
@@ -31934,12 +31934,12 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
     }
     else
     {
-      SourceError(src, "can't evaluate %s", token.string);
+      SourceError(source, "can't evaluate %s", token.string);
       return 0;
     }
   }
-  while ( PC_ReadLine(src, &token) );
-  if ( !PC_EvaluateTokens(src, (intptr_t)firsttoken, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
+  while ( PC_ReadLine(source, &token) );
+  if ( !PC_EvaluateTokens(source, (intptr_t)firsttoken, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
     return 0;
   v11 = firsttoken;
   if ( firsttoken )
@@ -31956,7 +31956,7 @@ int __cdecl PC_Evaluate(source_t *src, int *intvalue, double *floatvalue, int in
 }
 
 //----- (1003C900) --------------------------------------------------------
-int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, int integer)
+int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
   token_t *v6; // ebp (firsttoken)
   token_t *v7; // edi
@@ -31976,14 +31976,14 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
   {
     *floatvalue = 0;
   }
-  if ( !PC_ReadSourceToken(src, &token) )
+  if ( !PC_ReadSourceToken(source, &token) )
   {
-    SourceError(src, "no leading ( after $evalint/$evalfloat");
+    SourceError(source, "no leading ( after $evalint/$evalfloat");
     return 0;
   }
-  if ( !PC_ReadSourceToken(src, &token) )
+  if ( !PC_ReadSourceToken(source, &token) )
   {
-    SourceError(src, "nothing to evaluate");
+    SourceError(source, "nothing to evaluate");
     return 0;
   }
   v6 = 0;
@@ -32017,13 +32017,13 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
       }
       else
       {
-        v10 = PC_FindHashedDefine(src->definehash, token.string);
+        v10 = PC_FindHashedDefine(source->definehash, token.string);
         if ( !v10 )
         {
-          SourceError(src, "can't evaluate %s, not defined", token.string);
+          SourceError(source, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(src, v10) )
+        if ( !PC_ExpandDefineIntoSource(source, v10) )
           return 0;
       }
     }
@@ -32045,12 +32045,12 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
     }
     else
     {
-      SourceError(src, "can't evaluate %s", token.string);
+      SourceError(source, "can't evaluate %s", token.string);
       return 0;
     }
   }
-  while ( PC_ReadSourceToken(src, &token) );
-  if ( !PC_EvaluateTokens(src, v6, intvalue, floatvalue, integer) )
+  while ( PC_ReadSourceToken(source, &token) );
+  if ( !PC_EvaluateTokens(source, v6, intvalue, floatvalue, integer) )
     return 0;
   v12 = v6;
   if ( v6 )
@@ -32067,34 +32067,34 @@ int __cdecl PC_DollarEvaluate(source_t *src, int *intvalue, double *floatvalue, 
 }
 
 //----- (1003CC10) --------------------------------------------------------
-int __cdecl PC_Directive_elif(source_t *src)
+int __cdecl PC_Directive_elif(source_t *source)
 {
   int value; // [esp+4h] [ebp-8h] BYREF
   int type; // [esp+8h] [ebp-4h] BYREF
   int skip;
 
-  PC_PopIndent(src, &type, &skip);
+  PC_PopIndent(source, &type, &skip);
   if ( !type || type == 2 )
   {
-    SourceError(src, "misplaced #elif");
+    SourceError(source, "misplaced #elif");
   }
-  else if ( PC_Evaluate(src, &value, 0, 1) )
+  else if ( PC_Evaluate(source, &value, 0, 1) )
   {
     skip = value == 0;
-    PC_PushIndent(src, 4, skip);
+    PC_PushIndent(source, 4, skip);
     return 1;
   }
   return 0;
 }
 
 //----- (1003CCB0) --------------------------------------------------------
-int __cdecl PC_Directive_if(source_t *src)
+int __cdecl PC_Directive_if(source_t *source)
 {
   int value;
 
-  if ( !PC_Evaluate(src, &value, 0, 1) )
+  if ( !PC_Evaluate(source, &value, 0, 1) )
     return 0;
-  PC_PushIndent(src, 1, value == 0);
+  PC_PushIndent(source, 1, value == 0);
   return 1;
 }
 
@@ -32103,25 +32103,25 @@ int __cdecl PC_Directive_if(source_t *src)
  * Restored from disassembly of the original binary and confirmed against Q3A's
  * PC_Directive_line (l_precomp.c): both report "#line directive not supported"
  * via the source error reporter and return false (0). */
-int __cdecl PC_Directive_line(source_t *src)
+int __cdecl PC_Directive_line(source_t *source)
 {
-  SourceError(src, "#line directive not supported");
+  SourceError(source, "#line directive not supported");
   return 0;
 }
 
 //----- (1003CD30) --------------------------------------------------------
-int __cdecl PC_Directive_error(source_t *src)
+int __cdecl PC_Directive_error(source_t *source)
 {
   token_t token; // [esp+4h] [ebp-430h] BYREF
 
   token.string[0] = byte_1006294C;
-  PC_ReadSourceToken(src, token.string);
-  SourceError(src, "#error directive: %s", token.string);
+  PC_ReadSourceToken(source, token.string);
+  SourceError(source, "#error directive: %s", token.string);
   return 0;
 }
 
 //----- (1003CD80) --------------------------------------------------------
-int __cdecl PC_Directive_pragma(source_t *src)
+int __cdecl PC_Directive_pragma(source_t *source)
 {
   /* IDA rendered the on-stack token_t as `_DWORD v3[268]` (= 1072 bytes, the
    * 32-bit sizeof(token_t)).  PC_ReadLine writes a full token_t into it, which
@@ -32130,39 +32130,39 @@ int __cdecl PC_Directive_pragma(source_t *src)
    * oracle: sizeof(token_t)==1072 there). */
   token_t v3; // [esp+0h] [ebp-430h] BYREF
 
-  SourceWarning(src, "#pragma directive not supported");
-  while ( PC_ReadLine(src, &v3) )
+  SourceWarning(source, "#pragma directive not supported");
+  while ( PC_ReadLine(source, &v3) )
     ;
   return 1;
 }
 
 //----- (1003CDF0) --------------------------------------------------------
-int __cdecl UnreadSignToken(source_t *src)
+int __cdecl UnreadSignToken(source_t *source)
 {
   token_t token;
 
-  token.line = src->scriptstack->line;
-  token.whitespace_p = src->scriptstack->script_p;
-  token.endwhitespace_p = src->scriptstack->script_p;
+  token.line = source->scriptstack->line;
+  token.whitespace_p = source->scriptstack->script_p;
+  token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   *(__int16 *)token.string = word_1005E498;
   token.type = 5;
   token.subtype = 30;
-  return PC_UnreadSourceToken(src, &token);
+  return PC_UnreadSourceToken(source, &token);
 }
 
 //----- (1003CE90) --------------------------------------------------------
-int __cdecl PC_Directive_eval(source_t *src)
+int __cdecl PC_Directive_eval(source_t *source)
 {
   int result; // eax
   int v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_Evaluate(src, &value, 0, 1);
+  result = PC_Evaluate(source, &value, 0, 1);
   if ( !result )
     return result;
-  v2 = (int)(src)->scriptstack;
+  v2 = (int)(source)->scriptstack;
   token.line = ((script_t *)v2)->line;
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
@@ -32170,24 +32170,24 @@ int __cdecl PC_Directive_eval(source_t *src)
   sprintf(token.string, "%d", abs(value));
   token.type = 3;
   token.subtype = 12296;
-  PC_UnreadSourceToken(src, token.string);
+  PC_UnreadSourceToken(source, token.string);
   if ( value < 0 )
-    UnreadSignToken(src);
+    UnreadSignToken(source);
   return 1;
 }
 
 //----- (1003CF80) --------------------------------------------------------
-int __cdecl PC_Directive_evalfloat(source_t *src)
+int __cdecl PC_Directive_evalfloat(source_t *source)
 {
   int result; // eax
   int v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_Evaluate(src, 0, &value, 0);
+  result = PC_Evaluate(source, 0, &value, 0);
   if ( !result )
     return result;
-  v2 = (int)(src)->scriptstack;
+  v2 = (int)(source)->scriptstack;
   token.line = ((script_t *)v2)->line;
   token.whitespace_p = ((script_t *)v2)->script_p;
   token.endwhitespace_p = ((script_t *)v2)->script_p;
@@ -32195,14 +32195,14 @@ int __cdecl PC_Directive_evalfloat(source_t *src)
   sprintf(token.string, "%1.2f", fabs(value));
   token.type = 3;
   token.subtype = 10248;
-  PC_UnreadSourceToken(src, token.string);
+  PC_UnreadSourceToken(source, token.string);
   if ( value < 0.0 )
-    UnreadSignToken(src);
+    UnreadSignToken(source);
   return 1;
 }
 
 //----- (1003D090) --------------------------------------------------------
-int __cdecl PC_ReadDirective(source_t *src)
+int __cdecl PC_ReadDirective(source_t *source)
 {
   /* Original binary: sub $0x430,%esp / lea 0x0(%esp),%eax / push %eax
    * — entire 1072-byte token_t allocated as one block, pointer passed to
@@ -32210,15 +32210,15 @@ int __cdecl PC_ReadDirective(source_t *src)
   token_t token; /* restored: original token_t local variable */
   int i;
 
-  if ( !PC_ReadSourceToken(src, token.string) )
+  if ( !PC_ReadSourceToken(source, token.string) )
   {
-    SourceError(src, "found # without name");
+    SourceError(source, "found # without name");
     return 0;
   }
   if ( token.linescrossed > 0 )
   {
-    PC_UnreadSourceToken(src, token.string);
-    SourceError(src, "found # at end of line");
+    PC_UnreadSourceToken(source, token.string);
+    SourceError(source, "found # at end of line");
     return 0;
   }
   if ( token.type == 4 )
@@ -32230,25 +32230,25 @@ int __cdecl PC_ReadDirective(source_t *src)
     for ( i = 0; preproc_directives[i].name; i++ )
     {
       if ( !strcmp(preproc_directives[i].name, token.string) )
-        return preproc_directives[i].handler(src);
+        return preproc_directives[i].handler(source);
     }
   }
-  SourceError(src, "unknown precompiler directive %s", token.string);
+  SourceError(source, "unknown precompiler directive %s", token.string);
   return 0;
 }
 
 //----- (1003D1D0) --------------------------------------------------------
-int __cdecl PC_DollarDirective_evalint(source_t *src)
+int __cdecl PC_DollarDirective_evalint(source_t *source)
 {
   int result; // eax
   script_t *v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_DollarEvaluate(src, &value, 0, 1);
+  result = PC_DollarEvaluate(source, &value, 0, 1);
   if ( !result )
     return result;
-  v2 = src->scriptstack;
+  v2 = source->scriptstack;
   token.line = v2->line;
   token.whitespace_p = v2->script_p;
   token.endwhitespace_p = v2->script_p;
@@ -32258,24 +32258,24 @@ int __cdecl PC_DollarDirective_evalint(source_t *src)
   token.type = 3;
   token.subtype = 12296;
   token.intvalue = value;
-  PC_UnreadSourceToken(src, token.string);
+  PC_UnreadSourceToken(source, token.string);
   if ( value < 0 )
-    UnreadSignToken(src);
+    UnreadSignToken(source);
   return 1;
 }
 
 //----- (1003D2F0) --------------------------------------------------------
-int __cdecl PC_DollarDirective_evalfloat(source_t *src)
+int __cdecl PC_DollarDirective_evalfloat(source_t *source)
 {
   int result; // eax
   script_t *v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_DollarEvaluate(src, 0, &value, 0);
+  result = PC_DollarEvaluate(source, 0, &value, 0);
   if ( !result )
     return result;
-  v2 = src->scriptstack;
+  v2 = source->scriptstack;
   token.line = v2->line;
   token.whitespace_p = v2->script_p;
   token.endwhitespace_p = v2->script_p;
@@ -32285,27 +32285,27 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *src)
   token.subtype = 10248;
   token.intvalue = (__int64)value;
   token.floatvalue = value;
-  PC_UnreadSourceToken(src, token.string);
+  PC_UnreadSourceToken(source, token.string);
   if ( value < 0.0 )
-    UnreadSignToken(src);
+    UnreadSignToken(source);
   return 1;
 }
 
 //----- (1003D420) --------------------------------------------------------
-int __cdecl PC_ReadDollarDirective(source_t *src)
+int __cdecl PC_ReadDollarDirective(source_t *source)
 {
   int i;
   token_t token;
 
-  if ( !PC_ReadSourceToken(src, token.string) )
+  if ( !PC_ReadSourceToken(source, token.string) )
   {
-    SourceError(src, "found $ without name");
+    SourceError(source, "found $ without name");
     return 0;
   }
   if ( token.linescrossed > 0 )
   {
-    PC_UnreadSourceToken(src, token.string);
-    SourceError(src, "found $ at end of line");
+    PC_UnreadSourceToken(source, token.string);
+    SourceError(source, "found $ at end of line");
     return 0;
   }
   if ( token.type == 4 )
@@ -32313,11 +32313,11 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
     for ( i = 0; eval_type_table[i].name; i++ )
     {
       if ( !strcmp(eval_type_table[i].name, token.string) )
-        return eval_type_table[i].handler(src);
+        return eval_type_table[i].handler(source);
     }
   }
-  PC_UnreadSourceToken(src, token.string);
-  SourceError(src, "unknown precompiler directive %s", token.string);
+  PC_UnreadSourceToken(source, token.string);
+  SourceError(source, "unknown precompiler directive %s", token.string);
   return 0;
 }
 
@@ -32325,21 +32325,21 @@ int __cdecl PC_ReadDollarDirective(source_t *src)
 /* Original gladiator function at 0x1003D580.  IDA decompile used
  * a1[136] / a1[134] indexing relying on 32-bit pointer width; restored
  * to use source_t->skip and source_t->definehash struct fields. */
-int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token)
+int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
 {
   define_t *v3;
 
   while ( 1 )
   {
-    if ( !PC_ReadSourceToken(source, (token_t *)token) )
+    if ( !PC_ReadSourceToken(source, (token_t *)pc_token) )
       return 0;
-    if ( ((token_t *)token)->type == 5 && ((token_t *)token)->string[0] == '#' )
+    if ( ((token_t *)pc_token)->type == 5 && ((token_t *)pc_token)->string[0] == '#' )
     {
       if ( !PC_ReadDirective(source) )
         return 0;
       continue;
     }
-    if ( ((token_t *)token)->type == 5 && ((token_t *)token)->string[0] == '$' )
+    if ( ((token_t *)pc_token)->type == 5 && ((token_t *)pc_token)->string[0] == '$' )
     {
       if ( !PC_ReadDollarDirective(source) )
         return 0;
@@ -32347,9 +32347,9 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token)
     }
     if ( source->skip )
       continue;
-    if ( ((token_t *)token)->type == 4 )
+    if ( ((token_t *)pc_token)->type == 4 )
     {
-      v3 = PC_FindHashedDefine(source->definehash, (const char *)token);
+      v3 = PC_FindHashedDefine(source->definehash, (const char *)pc_token);
       if ( v3 )
       {
         if ( !PC_ExpandDefineIntoSource(source, v3) )
@@ -32357,42 +32357,42 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *token)
         continue;
       }
     }
-    memcpy(&source->cachedtoken, token, sizeof(token_t));
+    memcpy(&source->cachedtoken, pc_token, sizeof(token_t));
     return 1;
   }
 }
 // 1003D5BA: conditional instruction was optimized away because eax.4==5
 
 //----- (1003D650) --------------------------------------------------------
-int __cdecl PC_ExpectTokenString(source_t *src, const char *ArgList)
+int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
 {
   char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+8h] [ebp-430h] BYREF
 
-  if ( !PC_ReadTokenHandle(src, v3) )
+  if ( !PC_ReadTokenHandle(source, v3) )
   {
-    SourceError(src, "couldn't find expected %s", ArgList);
+    SourceError(source, "couldn't find expected %s", string);
     return 0;
   }
-  if ( strcmp(v3, ArgList) )
+  if ( strcmp(v3, string) )
   {
-    SourceError(src, "expected %s, found %s", ArgList, v3);
+    SourceError(source, "expected %s, found %s", string, v3);
     return 0;
   }
   return 1;
 }
 
 //----- (1003D740) --------------------------------------------------------
-int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t token)
+int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token)
 {
   int v4; // ebp
   int v6; // eax
   char ArgList[1024]; // [esp+8h] [ebp-400h] BYREF
   token_t *tok = (token_t *)token;
 
-  v4 = src;
-  if ( !PC_ReadTokenHandle(src, token) )
+  v4 = source;
+  if ( !PC_ReadTokenHandle(source, token) )
   {
-    SourceError(src, "couldn't read expected token");
+    SourceError(source, "couldn't read expected token");
     return 0;
   }
   v6 = tok->type;
@@ -32408,7 +32408,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t to
       strcpy(ArgList, "name");
     else if ( type == 5 )
       strcpy(ArgList, "punctuation");
-    SourceError(src, "expected a %s, found %s", ArgList, token);
+    SourceError(source, "expected a %s, found %s", ArgList, token);
     return 0;
   }
   if ( v6 == 3 )
@@ -32426,17 +32426,17 @@ int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t to
     if ( (subtype & 0x2000) != 0 )
     {
       strcat(ArgList, " long");
-      v4 = src;
+      v4 = source;
     }
     if ( (subtype & 0x4000) != 0 )
     {
       strcat(ArgList, " unsigned");
-      v4 = src;
+      v4 = source;
     }
     if ( (subtype & 0x800) != 0 )
     {
       strcat(ArgList, " float");
-      v4 = src;
+      v4 = source;
     }
     if ( (subtype & 0x1000) != 0 )
       strcat(ArgList, " integer");
@@ -32447,7 +32447,7 @@ int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t to
   {
     if ( tok->subtype != subtype )
     {
-      SourceError(src, "found %s", token);
+      SourceError(source, "found %s", token);
       return 0;
     }
   }
@@ -32455,26 +32455,26 @@ int __cdecl PC_ExpectTokenType(source_t *src, int type, int subtype, intptr_t to
 }
 
 //----- (1003DAE0) --------------------------------------------------------
-int __cdecl PC_ExpectAnyToken(source_t *src, intptr_t token)
+int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token)
 {
-  if ( !PC_ReadTokenHandle(src, token) )
+  if ( !PC_ReadTokenHandle(source, token) )
   {
-    SourceError(src, "couldn't read expected token");
+    SourceError(source, "couldn't read expected token");
     return 0;
   }
   return 1;
 }
 
 //----- (1003DB20) --------------------------------------------------------
-int __cdecl PC_CheckTokenString(source_t *src, const char *string)
+int __cdecl PC_CheckTokenString(source_t *source, const char *string)
 {
   char v3[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
 
-  if ( PC_ReadTokenHandle(src, v3) )
+  if ( PC_ReadTokenHandle(source, v3) )
   {
     if ( !strcmp(v3, string) )
       return 1;
-    PC_UnreadSourceToken(src, v3);
+    PC_UnreadSourceToken(source, v3);
   }
   return 0;
 }
@@ -32499,7 +32499,7 @@ int __cdecl PC_CheckTokenString(source_t *src, const char *string)
  *
  * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
  * keeps it live.  Matches Q3 l_precomp.c::PC_ExpectTokenType. */
-int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *out_token)
+int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *token)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
@@ -32507,7 +32507,7 @@ int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *
     return 0;
   if ( Buffer.type == type && (Buffer.subtype & subtype) == subtype )
   {
-    memcpy(out_token, &Buffer, sizeof(token_t));
+    memcpy(token, &Buffer, sizeof(token_t));
     return 1;
   }
   PC_UnreadSourceToken(source, &Buffer);
@@ -32542,9 +32542,9 @@ int __cdecl PC_SkipUntilString(source_t *source, char *string)
 }
 
 //----- (1003DD40) --------------------------------------------------------
-int __cdecl PC_UnreadLastToken(source_t *src)
+int __cdecl PC_UnreadLastToken(source_t *source)
 {
-  return PC_UnreadSourceToken(src, &src->cachedtoken);
+  return PC_UnreadSourceToken(source, &source->cachedtoken);
 }
 
 //----- (1003DD70) --------------------------------------------------------
@@ -32602,9 +32602,9 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
  * (lies inside source_t's reserved _pad_1 region between +312 and
  * +523, so the field carries no live name in the present
  * reconstruction).  Dead in Gladiator — preserved by /INCREMENTAL. */
-void __cdecl PC_SetPunctuations(void *p, int value)
+void __cdecl PC_SetPunctuations(void *source, int p)
 {
-  *(int *)((char *)p + 0x208) = value;
+  *(int *)((char *)source + 0x208) = p;
 }
 
 //----- (1003DE60) --------------------------------------------------------
@@ -32678,7 +32678,7 @@ source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
 }
 
 //----- (1003E000) --------------------------------------------------------
-void __cdecl FreeSource(source_t *src)
+void __cdecl FreeSource(source_t *source)
 {
   script_t *s;
   struct token_s *tok;
@@ -32686,32 +32686,32 @@ void __cdecl FreeSource(source_t *src)
   indent_t *ind;
   int k;
 
-  while ( (s = src->scriptstack) )
+  while ( (s = source->scriptstack) )
   {
-    src->scriptstack = s->next;
+    source->scriptstack = s->next;
     FreeScript(s);
   }
-  while ( (tok = src->tokens) )
+  while ( (tok = source->tokens) )
   {
-    src->tokens = tok->next;
+    source->tokens = tok->next;
     PC_FreeToken(tok);
   }
   for ( k = 0; k < 1024; k++ )
   {
-    while ( (d = src->definehash[k]) )
+    while ( (d = source->definehash[k]) )
     {
-      src->definehash[k] = d->hashnext;
+      source->definehash[k] = d->hashnext;
       PC_FreeDefine(d);
     }
   }
-  while ( (ind = src->indentstack) )
+  while ( (ind = source->indentstack) )
   {
-    src->indentstack = ind->next;
+    source->indentstack = ind->next;
     FreeMemory(ind);
   }
-  if ( src->definehash )
-    FreeMemory(src->definehash);
-  FreeMemory(src);
+  if ( source->definehash )
+    FreeMemory(source->definehash);
+  FreeMemory(source);
 }
 
 //----- (1003E120) --------------------------------------------------------
@@ -33401,7 +33401,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
  * 0x1003F174 emits `movsx ecx, byte [eax]` (sign-extend).  Q3 later changed
  * this to `(unsigned int)` (movzx); do NOT "fix" the -Wchar-subscripts here
  * to unsigned char — that would diverge from the original DLL. */
-int __cdecl PS_ReadPunctuation(script_t *script, char *Destination)
+int __cdecl PS_ReadPunctuation(script_t *script, char *token)
 {
   punctuation_t *punc;
   const char *p;
@@ -33415,10 +33415,10 @@ int __cdecl PS_ReadPunctuation(script_t *script, char *Destination)
     len = strlen(p);
     if ( v4 + len <= (const char *)script->end_p && !strncmp(v4, p, len) )
     {
-      strncpy(Destination, p, 0x400u);
+      strncpy(token, p, 0x400u);
       script->script_p += len;
-      *((_DWORD *)Destination + 256) = 5;
-      *((_DWORD *)Destination + 257) = punc->n;
+      *((_DWORD *)token + 256) = 5;
+      *((_DWORD *)token + 257) = punc->n;
       return 1;
     }
   }
@@ -33939,15 +33939,15 @@ int __cdecl ScriptSkipTo(script_t *script, char *value)
 }
 
 //----- (10040150) --------------------------------------------------------
-int __cdecl FileLength(FILE *Stream)
+int __cdecl FileLength(FILE *fp)
 {
   int v1; // edi
   int v2; // ebx
 
-  v1 = ftell(Stream);
-  fseek(Stream, 0, 2);
-  v2 = ftell(Stream);
-  fseek(Stream, v1, 0);
+  v1 = ftell(fp);
+  fseek(fp, 0, 2);
+  v2 = ftell(fp);
+  fseek(fp, v1, 0);
   return v2;
 }
 
@@ -34002,7 +34002,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
 }
 
 //----- (10040380) --------------------------------------------------------
-script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const char *name)
+script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const char *name)
 {
   script_t *script;
 
@@ -34019,7 +34019,7 @@ script_t *__cdecl LoadScriptMemory(const void *buf, unsigned int length, const c
   script->line         = 1;
   script->lastline     = 1;
   SetScriptPunctuations(script, NULL);
-  memcpy(script->buffer, buf, length);
+  memcpy(script->buffer, ptr, length);
   return script;
 }
 
@@ -34075,7 +34075,7 @@ typedef struct fielddef_s {
 } fielddef_t;
 
 //----- (10040540) --------------------------------------------------------
-int __cdecl ReadNumber(source_t *src, char **field, float *out)
+int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 {
   int negative; // esi
   int v5; // eax
@@ -34095,51 +34095,51 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   token_t token; /* restored: original token_t local variable */
 
   negative = 0;
-  if ( !PC_ExpectAnyToken(src, token.string) )
+  if ( !PC_ExpectAnyToken(source, token.string) )
     return 0;
   if ( token.type == 5 )
   {
-    if ( (fielddef_flags(field) & 0x400) != 0 )
+    if ( (fielddef_flags(fd) & 0x400) != 0 )
     {
-      SourceError(src, "expected unsigned value, found %s", token.string);
+      SourceError(source, "expected unsigned value, found %s", token.string);
       return 0;
     }
     if ( strcmp(token.string, (const char *)&word_1005E498) )
     {
-      SourceError(src, "unexpected punctuation %s", token.string);
+      SourceError(source, "unexpected punctuation %s", token.string);
       return 0;
     }
     negative = 1;
-    if ( !PC_ExpectAnyToken(src, token.string) )
+    if ( !PC_ExpectAnyToken(source, token.string) )
       return 0;
   }
   if ( token.type != 3 )
   {
-    SourceError(src, "expected number, found %s", token.string);
+    SourceError(source, "expected number, found %s", token.string);
     return 0;
   }
   if ( (token.subtype & 0x800) != 0 )
   {
-    v5 = fielddef_flags(field);
+    v5 = fielddef_flags(fd);
     if ( (_BYTE)v5 == 3 )
     {
       floatval = token.floatvalue;
       if ( negative )
         floatval = -token.floatvalue;
-      if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(field, 4), floatval < v18) || floatval > fielddef_float(field, 5)) )
+      if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(fd, 4), floatval < v18) || floatval > fielddef_float(fd, 5)) )
       {
-        SourceError(src, "float out of range [%f, %f]", v18, fielddef_float(field, 5));
+        SourceError(source, "float out of range [%f, %f]", v18, fielddef_float(fd, 5));
         return 0;
       }
       else
       {
-        *out = floatval;
+        *p = floatval;
         return 1;
       }
     }
     else
     {
-      SourceError(src, "unexpected float");
+      SourceError(source, "unexpected float");
       return 0;
     }
   }
@@ -34150,7 +34150,7 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     intval = -token.intvalue;
     v19 = -token.intvalue;
   }
-  v8 = fielddef_flags(field);
+  v8 = fielddef_flags(fd);
   if ( (unsigned __int8)v8 == 1 )
   {
     if ( (v8 & 0x400) != 0 )
@@ -34194,9 +34194,9 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
     if ( (unsigned __int8)v8 == 3 && (v8 & 0x200) != 0 )
     {
       v11 = (float)v19;
-      if ( v11 < fielddef_float(field, 4) || v11 > fielddef_float(field, 5) )
+      if ( v11 < fielddef_float(fd, 4) || v11 > fielddef_float(fd, 5) )
       {
-        SourceError(src, "value %d out of range [%f, %f]", intval, fielddef_float(field, 4), fielddef_float(field, 5));
+        SourceError(source, "value %d out of range [%f, %f]", intval, fielddef_float(fd, 4), fielddef_float(fd, 5));
         return 0;
       }
     }
@@ -34206,72 +34206,72 @@ int __cdecl ReadNumber(source_t *src, char **field, float *out)
   if ( (v8 & 0x200) != 0 )
   {
     v12 = (float)v17;
-    if ( v12 <= fielddef_float(field, 4) )
-      v12 = fielddef_float(field, 4);
+    if ( v12 <= fielddef_float(fd, 4) )
+      v12 = fielddef_float(fd, 4);
     v13 = (int)v12;
     v14 = (float)v16;
     intmin = v13;
-    if ( v14 >= fielddef_float(field, 5) )
-      v14 = fielddef_float(field, 5);
+    if ( v14 >= fielddef_float(fd, 5) )
+      v14 = fielddef_float(fd, 5);
     intmax = (int)v14;
   }
   if ( intval < intmin || intval > intmax )
   {
-    SourceError(src, "value %d out of range [%d, %d]", intval, intmin, intmax);
+    SourceError(source, "value %d out of range [%d, %d]", intval, intmin, intmax);
     return 0;
   }
   }
   if ( (unsigned __int8)v8 == 1 )
   {
-    *(_BYTE *)out = intval;
+    *(_BYTE *)p = intval;
   }
   else if ( (unsigned __int8)v8 == 2 )
   {
-    *(_DWORD *)out = intval;
+    *(_DWORD *)p = intval;
     return 1;
   }
   else
   {
     if ( (unsigned __int8)v8 == 3 )
-      *out = (float)v19;
+      *p = (float)v19;
     return 1;
   }
   return 1;
 }
 
 //----- (10040990) --------------------------------------------------------
-int __cdecl ReadChar(source_t *src, char **field, float *out)
+int __cdecl ReadChar(source_t *source, char **fd, float *p)
 {
   int result; // eax
   token_t token; /* restored: original token_t local variable */
 
-  result = PC_ExpectAnyToken(src, token.string);
+  result = PC_ExpectAnyToken(source, token.string);
   if ( !result )
     return result;
   if ( token.type == 2 )
   {
     StripSingleQuotes(token.string);
-    *(_BYTE *)out = token.string[0];
+    *(_BYTE *)p = token.string[0];
   }
   else
   {
-    PC_UnreadLastToken(src);
-    if ( !ReadNumber(src, field, out) )
+    PC_UnreadLastToken(source);
+    if ( !ReadNumber(source, fd, p) )
       return 0;
   }
   return 1;
 }
 
 //----- (10040A50) --------------------------------------------------------
-int __cdecl ReadString(source_t *src, char **field, char *Destination)
+int __cdecl ReadString(source_t *source, char **fd, char *p)
 {
   char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
 
-  if ( !PC_ExpectTokenType(src, 1, 0, Source) )
+  if ( !PC_ExpectTokenType(source, 1, 0, Source) )
     return 0;
   StripDoubleQuotes(Source);
-  strncpy(Destination, Source, 0x50u);
-  Destination[79] = 0;
+  strncpy(p, Source, 0x50u);
+  p[79] = 0;
   return 1;
 }
 
@@ -34397,7 +34397,7 @@ int __cdecl WriteFloat(FILE *fp, float value)
 }
 
 //----- (10040F20) --------------------------------------------------------
-int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure, int indent)
+int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int indent)
 {
   int result; // eax
   int i; // ebp (strength-reduced to a byte offset)
@@ -34407,23 +34407,23 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure,
 
   /* The 0x10001ac3 thunk used at these three sites resolves to WriteIndent
    * (0x10040E30), not fputc — IDA mislabelled the indirect call. */
-  if ( !WriteIndent(Stream, indent) )
+  if ( !WriteIndent(fp, indent) )
     return 0;
-  if ( fprintf(Stream, "{\r\n") < 0 )
+  if ( fprintf(fp, "{\r\n") < 0 )
     return 0;
   ++indent;
   for ( i = 0; ((fielddef_t *)def->fields)[i].name; i++ )
   {
     fd = &((fielddef_t *)def->fields)[i];
-    if ( !WriteIndent(Stream, indent) )
+    if ( !WriteIndent(fp, indent) )
       return 0;
-    if ( fprintf(Stream, "%s\t", fd->name) < 0 )
+    if ( fprintf(fp, "%s\t", fd->name) < 0 )
       return 0;
     p = (char *)(structure + fd->offset);
     if ( (fd->type & 0x100) != 0 )
     {
       num = fd->maxarray;
-      if ( fprintf(Stream, "{") < 0 )
+      if ( fprintf(fp, "{") < 0 )
         return 0;
     }
     else
@@ -34435,29 +34435,29 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure,
       switch ( fd->type & 0xFF )
       {
         case 1:
-          if ( fprintf(Stream, "%d", *(char *)p) < 0 )
+          if ( fprintf(fp, "%d", *(char *)p) < 0 )
             return 0;
           p += 1;
           break;
         case 2:
-          if ( fprintf(Stream, "%d", *(int *)p) < 0 )
+          if ( fprintf(fp, "%d", *(int *)p) < 0 )
             return 0;
           p += 4;
           break;
         case 3:
-          if ( !WriteFloat(Stream, *(float *)p) )
+          if ( !WriteFloat(fp, *(float *)p) )
             return 0;
           p += 4;
           break;
         case 4:
-          if ( fprintf(Stream, "\"%s\"", p) < 0 )
+          if ( fprintf(fp, "\"%s\"", p) < 0 )
             return 0;
           p += 80;
           break;
         case 6:
           /* Nested struct case: recursive call. The original binary thunked
            * via 0x10001500 → WriteStructWithIndent (0x10040F20). */
-          if ( !WriteStructWithIndent(Stream, fd->substruct, structure, indent) )
+          if ( !WriteStructWithIndent(fp, fd->substruct, structure, indent) )
             return 0;
           p += fd->substruct->size;
           break;
@@ -34466,31 +34466,31 @@ int __cdecl WriteStructWithIndent(FILE *Stream, structdef_t *def, int structure,
       {
         if ( num > 0 )
         {
-          if ( fprintf(Stream, ",") < 0 )
+          if ( fprintf(fp, ",") < 0 )
             return 0;
         }
-        else if ( fprintf(Stream, "}") < 0 )
+        else if ( fprintf(fp, "}") < 0 )
         {
           return 0;
         }
       }
     }
-    if ( fprintf(Stream, "\r\n") < 0 )
+    if ( fprintf(fp, "\r\n") < 0 )
       return 0;
   }
-  result = WriteIndent(Stream, indent - 1);
+  result = WriteIndent(fp, indent - 1);
   if ( result )
-    return fprintf(Stream, "}\r\n") >= 0;
+    return fprintf(fp, "}\r\n") >= 0;
   return result;
 }
 
 //----- (10041210) --------------------------------------------------------
-int __cdecl WriteStructure(FILE *Stream, int def, int structure)
+int __cdecl WriteStructure(FILE *fp, int def, int structure)
 {
   /* WriteStructure is a thin entry point that just calls WriteStructWithIndent
    * with indent=0. Original binary used the 0x10001500 thunk → 0x10040F20. The
    * earlier PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
-  return WriteStructWithIndent(Stream, (structdef_t *)def, structure, 0);
+  return WriteStructWithIndent(fp, (structdef_t *)def, structure, 0);
 }
 
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
@@ -34708,33 +34708,33 @@ int __stdcall sub_10041760(const char *a1, int a2)
 #endif /* _WIN32 — UnZip windll path */
 
 //----- (10041790) --------------------------------------------------------
-int __cdecl vectoangles(float *a1, float *a2)
+int __cdecl vectoangles(float *value1, float *angles)
 {
   float forward;
   float yaw, pitch;
 
-  if ( a1[1] == 0 && a1[0] == 0 )
+  if ( value1[1] == 0 && value1[0] == 0 )
   {
     yaw = 0;
-    if ( a1[2] > 0 )
+    if ( value1[2] > 0 )
       pitch = 90;
     else
       pitch = 270;
   }
   else
   {
-    yaw = (float)(int)(atan2(a1[1], a1[0]) * 57.29577951308232);
+    yaw = (float)(int)(atan2(value1[1], value1[0]) * 57.29577951308232);
     if ( yaw < 0 )
       yaw += 360;
-    forward = sqrt(a1[0]*a1[0] + a1[1]*a1[1]);
-    pitch = (float)(int)(atan2(a1[2], forward) * 57.29577951308232);
+    forward = sqrt(value1[0]*value1[0] + value1[1]*value1[1]);
+    pitch = (float)(int)(atan2(value1[2], forward) * 57.29577951308232);
     if ( pitch < 0 )
       pitch += 360;
   }
-  a2[0] = -pitch;
-  a2[1] = yaw;
-  a2[2] = 0;
-  return (int)a2;
+  angles[0] = -pitch;
+  angles[1] = yaw;
+  angles[2] = 0;
+  return (int)angles;
 }
 
 //----- (100418D0) --------------------------------------------------------
