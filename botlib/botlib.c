@@ -5248,39 +5248,38 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 int __cdecl AAS_FloodClusterReachabilities(int clusternum)
 {
   int i; // edi
-  aas_areasettings_t *v2; // ebx
   aas_areasettings_t *settings; // eax
-  int v4; // esi
+  int numreachableareas; // esi
   int j; // edx
+  int areanum; // eax
   aas_reachability_t *reach; // ecx
 
   if ( aasworld.numareas <= 1 )
     return 1;
-  v2 = aasworld.areasettings;
   for ( i = 1; i < aasworld.numareas; ++i )
   {
-    settings = &v2[i];
+    settings = &aasworld.areasettings[i];
     if ( settings->cluster )
       continue;
     if ( (settings->contents & 8) != 0 )
       continue;
-    v4 = settings->numreachableareas;
     j = 0;
-    if ( v4 <= 0 )
+    numreachableareas = settings->numreachableareas;
+    if ( numreachableareas <= 0 )
       continue;
     reach = &aasworld.reachability[settings->firstreachablearea];
-    while ( (v2[reach->areanum].contents & 8) != 0 || !v2[reach->areanum].cluster )
+    for ( ; j < numreachableareas; ++j, ++reach )
     {
-      ++j;
-      ++reach;
-      if ( j >= v4 )
-        goto LABEL_13;
+      areanum = reach->areanum;
+      if ( (aasworld.areasettings[areanum].contents & 8) != 0 )
+        continue;
+      if ( !aasworld.areasettings[areanum].cluster )
+        continue;
+      if ( !AAS_FloodClusterAreas_r(i, clusternum) )
+        return 0;
+      i = 0;
+      break;
     }
-    if ( !AAS_FloodClusterAreas_r(i, clusternum) )
-      return 0;
-    v2 = aasworld.areasettings;
-    i = 0;
-LABEL_13:;
   }
   return 1;
 }
@@ -10029,77 +10028,61 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 //----- (10011860) --------------------------------------------------------
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 {
-  int v2; // edx
-  aas_area_t *area2; // esi
-  aas_area_t *area1; // ebx
-  int *v7; // ecx
-  int v8; // eax
-  int j; // ebp
-  int face1num; // edi
-  __int64 face2num; // rax
-  char v12; // al
-  _DWORD *face1; // ebp
-  aas_reachabilitynode_t *lreach; // eax
-  aas_reachabilitynode_t *v16; // esi
-  int i; // [esp+10h] [ebp-14h]
-  BOOL side1; // [esp+14h] [ebp-10h]
-  vec3_t start; // [esp+18h] [ebp-Ch] BYREF
+  int i;
+  int j;
+  int face1num;
+  int face2num;
+  int side1;
+  aas_area_t *area1;
+  aas_area_t *area2;
+  aas_face_t *face1;
+  aas_plane_t *plane;
+  aas_reachabilitynode_t *lreach;
+  vec3_t start;
 
-  if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) || (aasworld.areasettings[area2num].presencetype & 2) == 0 )
+  if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) )
     return 0;
-  area2 = &aasworld.areas[area2num];
+  if ( (aasworld.areasettings[area2num].presencetype & 2) == 0 )
+    return 0;
   area1 = &aasworld.areas[area1num];
-  for ( v2 = 0; v2 < 3; v2++ )
+  area2 = &aasworld.areas[area2num];
+  for ( i = 0; i < 3; ++i )
   {
-    if ( area2->maxs[v2] + 10.0f < area1->mins[v2] )
+    if ( area1->mins[i] > area2->maxs[i] + 10.0f )
       return 0;
-    if ( area2->mins[v2] - 10.0f > area1->maxs[v2] )
+    if ( area1->maxs[i] < area2->mins[i] - 10.0f )
       return 0;
   }
-  if ( area1->numfaces <= 0 )
-    return 0;
-  v7 = aasworld.faceindex;
   for ( i = 0; i < area1->numfaces; ++i )
   {
-    v8 = v7[area1->firstface + i];
-    side1 = v8 < 0;
-    face1num = abs(v8);
+    face1num = aasworld.faceindex[area1->firstface + i];
+    side1 = face1num < 0;
+    face1num = abs(face1num);
     for ( j = 0; j < area2->numfaces; ++j )
     {
-      face2num = v7[j + area2->firstface];
-      if ( face1num != (HIDWORD(face2num) ^ (unsigned int)face2num) - HIDWORD(face2num) )
+      face2num = abs(aasworld.faceindex[area2->firstface + j]);
+      if ( face1num != face2num )
         continue;
-      AAS_FaceCenter(face1num, (float *)start);
-      v12 = sub_10003080((float *)start);   /* IDA-dropped: water-edge contents check */
-      if ( (v12 & 0x38) == 0 )
-      {
-        v7 = aasworld.faceindex;
+      AAS_FaceCenter(face1num, start);
+      if ( (sub_10003080(start) & 0x38) == 0 )   /* IDA-dropped: water-edge contents check */
         continue;
-      }
       face1 = &aasworld.faces[face1num];
       lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
-      v16 = lreach;
       if ( !lreach )
         return 0;
       lreach->reach.facenum = face1num;
       lreach->reach.areanum = area2num;
       lreach->reach.edgenum = 0;
-      /* Disasm 0x100119bc-0x100119d3 does raw 32-bit `mov`s of start[0..2] (float
-       * bits) into reach->start.x/y/z. */
       VectorCopy(start, lreach->reach.start);
-      /* Disasm 0x100119e0-0x100119e8: `lea edx,[eax+eax*4]; lea edx,[planes+edx*4]`
-       * produces `planes + X*20` BYTES (aas_plane_t stride is 20 = 12 normal + 4 dist + 4 type).
-       * IDA decompiled this as `(float *)planes + 20 * X` which is `planes + 80*X` bytes
-       * (since float is 4 bytes) — 4x too far.  For small planenum X it stayed within the
-       * planes lump and only produced garbage; for q2ctf3 (large numplanes) X exceeded
-       * numplanes/4 and the read crashed in VectorMA. */
-      VectorMA(lreach->reach.start, 2.0, (float *)(&aasworld.planes[(side1 ^ *face1)]), lreach->reach.end);
-      v16->reach.traveltype = 8;
-      v16->reach.traveltime = 1;
+      /* IDA decompiled this as float* arithmetic and lost the 20-byte aas_plane_t stride. */
+      plane = &aasworld.planes[face1->planenum ^ side1];
+      VectorMA(lreach->reach.start, 2.0f, plane->normal, lreach->reach.end);
+      lreach->reach.traveltype = 8;
+      lreach->reach.traveltime = 1;
       if ( AAS_AreaVolume(area2num) < 800.0f )
-        v16->reach.traveltime += 200;
-      v16->next = areareachability[area1num];
-      areareachability[area1num] = v16;
+        lreach->reach.traveltime += 200;
+      lreach->next = areareachability[area1num];
+      areareachability[area1num] = lreach;
       ++reach_swim;
       return 1;
     }
@@ -24010,15 +23993,16 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
   char           buf[152];
   char           token[sizeof(token_t)];
 
-  ptr   = 0;
   list  = 0;
-  found = 0;
+  cur_type = 0;
   if ( !sub_10041F60(chatfile, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
   }
-  size = 0;
+  ptr = 0;
+  found = 0;
+  /* Original MSVC6 code relies on pass==0 short-circuiting before size is used. */
   for ( pass = 0; pass < 2; ++pass )
   {
     if ( pass && size )
@@ -24099,9 +24083,9 @@ while ( PC_ReadTokenHandle(src, token) )
             cur_type->firstline = line;
             ptr += sizeof(chatline_t);
             line->string = ptr;
-            strcpy(ptr, buf);
-            ++cur_type->numlines;
+            strcpy(line->string, buf);
             ptr += strlen(buf) + 1;
+            ++cur_type->numlines;
           }
           size += sizeof(chatline_t) + (int)strlen(buf) + 1;
         }
