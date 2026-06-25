@@ -453,7 +453,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
 int __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int AAS_StoreReachability();
 int __cdecl AAS_TravelFlagForType(int traveltype);
-int AAS_CreateReversedReachability();
+void AAS_CreateReversedReachability(void);
 unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end);
 void AAS_CalculateAreaTravelTimes(void);
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
@@ -13461,36 +13461,36 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
  * arithmetic in bytes.  Here we keep the contiguous blob but type it as
  * `aas_reversedreach_t[]` followed by `aas_reversedlink_t[]`, so the
  * inline `next` pointer slots are the correct width on both ABIs. */
-int AAS_CreateReversedReachability(void)
+void AAS_CreateReversedReachability(void)
 {
-  aas_reversedlink_t *links;
-  int                 i, j;
+  int i, n;
+  char *ptr;
   aas_areasettings_t *settings;
   aas_reachability_t *reach;
-  aas_reversedlink_t *cur;
+  aas_reversedlink_t *revlink;
 
   if ( aasworld.reversedreachability )
     FreeMemory(aasworld.reversedreachability);
-  aasworld.reversedreachability = (aas_reversedreach_t *)GetClearedMemory(
+  ptr = (char *)GetClearedMemory(
       sizeof(aas_reversedreach_t) * aasworld.numareas
       + sizeof(aas_reversedlink_t) * aasworld.reachabilitysize);
-  links = (aas_reversedlink_t *)(aasworld.reversedreachability + aasworld.numareas);
-
+  aasworld.reversedreachability = (aas_reversedreach_t *)ptr;
+  ptr += sizeof(aas_reversedreach_t) * aasworld.numareas;
   for ( i = 1; i < aasworld.numareas; ++i )
   {
     settings = &((aas_areasettings_t *)aasworld.areasettings)[i];
-    for ( j = 0; j < settings->numreachableareas; ++j )
+    for ( n = 0; n < settings->numreachableareas; ++n )
     {
-      reach = &((aas_reachability_t *)aasworld.reachability)[settings->firstreachablearea + j];
-      cur = links++;
-      cur->areanum  = i;
-      cur->linknum  = settings->firstreachablearea + j;
-      cur->next     = aasworld.reversedreachability[reach->areanum].first;
-      aasworld.reversedreachability[reach->areanum].first = cur;
+      reach = &((aas_reachability_t *)aasworld.reachability)[settings->firstreachablearea + n];
+      revlink = (aas_reversedlink_t *)ptr;
+      ptr += sizeof(aas_reversedlink_t);
+      revlink->areanum = i;
+      revlink->linknum = settings->firstreachablearea + n;
+      revlink->next = aasworld.reversedreachability[reach->areanum].first;
+      aasworld.reversedreachability[reach->areanum].first = revlink;
       ++aasworld.reversedreachability[reach->areanum].numlinks;
     }
   }
-  return (int)(intptr_t)aasworld.reversedreachability;
 }
 
 //----- (10018F50) --------------------------------------------------------
@@ -34669,16 +34669,13 @@ LPSTR __stdcall sub_10041680(
 {
 #ifdef _WIN32
   /* Faithful Win32 reconstruction (IDA sub_10041680): two stack-local
-   * format buffers init'd from .rdata literals, then lstrcpyA / sprintf. */
-  CHAR String2[8]; // [esp+0h] [ebp-1Ch] BYREF
-  char Format[8]; // [esp+8h] [ebp-14h] BYREF
+   * string buffers initialized from .rdata literals, then lstrcpyA / sprintf. */
+  char Format[] = "%c%d%%"; // [esp+8h] [ebp-14h] BYREF
+  CHAR String2[] = "100%%"; // [esp+0h] [ebp-1Ch] BYREF
   CHAR String1[12]; // [esp+10h] [ebp-Ch] BYREF
   char sign;
 
-  strcpy(Format, "%c%d%%");
-  strcpy(String2, "100%%");
-  sign = a1 < a2 ? 45 : 32;
-  if ( a3 == 100 )
+  if ( (sign = a1 < a2 ? 45 : 32, a3 == 100) )
     return lstrcpyA(String1, String2);
   else
     return (LPSTR)sprintf(String1, Format, sign, a3);
