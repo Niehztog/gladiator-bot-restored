@@ -14337,6 +14337,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   int v5; // eax
   float *v6; // eax
   int v8; // eax
+  unsigned __int16 t; // travel time, tested as unsigned -> jbe (was &&-folded -> je)
   int i; // [esp+24h] [ebp-64h]
   vec3_t center; // [esp+28h] [ebp-60h] BYREF — area center, passed to AAS_PointAreaNum/AAS_TraceClientBBox
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
@@ -14353,8 +14354,11 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       n = 1;
     if ( n >= v5 )
       n = 1;
-    if ( AAS_AreaReachability(n) && AAS_AreaTravelTimeToGoalArea(areanum, n, travelflags) )
+    if ( AAS_AreaReachability(n) )
     {
+      t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, n, travelflags);
+      if ( t > 0 )
+      {
       v6 = (float *)(&aasworld.areas[n]);
       center[0] = v6[9];
       center[1] = v6[10];
@@ -14368,6 +14372,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       trace = AAS_TraceClientBBox(center, end, 4, -1);
       if ( !trace.startsolid )
         break;
+      }
     }
     v5 = aasworld.numareas;
     ++n;
