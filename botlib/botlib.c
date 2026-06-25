@@ -5909,80 +5909,67 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 }
 
 //----- (10009A10) --------------------------------------------------------
-/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
- * from objdump@10009A10 (size 0x208 / 168 lines).  Identity: plane-
- * projection debug-X visualizer.  Given a 3D point, a plane (normal,
- * dist) and a target axis index in {0,1,2}, construct four corners of a
- * 12x12 square around the point in the two transverse axes (±6 from
- * .rdata 0x1005804c = 6.0f), then for each corner solve the plane
- * equation `dot(n, p) = d` for the chosen axis to project the corner
- * onto the plane.  Draws an X (the two diagonals of the projected
- * square) via bi_DebugLineShow using two line-IDs allocated from the
- * shared debuglines/debuglinevisible/numdebuglines slot table (same
- * pattern as AAS_ShowBoundingBox).
+/* AAS_DrawPlaneCross — plane-projection debug "X" visualiser (Q3
+ * be_aas_debug.c, verbatim).  Builds four corners of a 12x12 square around the
+ * hit point in the two transverse axes (±6; the 6.0 float is .rdata 0x1005804c),
+ * projects each onto the plane along axis n0=type%3, then draws the two
+ * diagonals via botimport.DebugLineShow using line-IDs from the shared
+ * debuglines/debuglinevisible/numdebuglines pool.
  *
- *   arg0 = vec3 origin point (read 4 times into copies A/B/C/D)
- *   arg1 = vec3 plane normal (3 floats, indexed by {ecx,esi,edx} axis
- *          permutation = {axis, (axis+1)%3, (axis+2)%3})
- *   arg2 = float plane distance d
- *   arg3 = int axis (selects which coord gets projected)
- *   arg4 = int color (passed to bi_DebugLineShow)
+ * This is the EXACT Q3 source form; byte-identical to the original at 0x10009A10
+ * under the MSVC6 oracle (a prior reconstruction had the projection operands and
+ * loop guard reordered, which diverged — see the asmdiff_workflow "restore the
+ * Q3 form" lever).
  *
- * Corners (in (esi,edx) plane indices, projected on ecx axis to plane):
- *   A = origin + (-6,-6)   B = origin + (+6,+6)   line 1: A → B
- *   C = origin + (+6,-6)   D = origin + (-6,+6)   line 2: C → D
- *
- * Identity: Q3's AAS_DrawPlaneCross(point, normal, dist, type, color)
- * (be_aas_debug.c) — the n0/n1/n2 = {type, type+1, type+2} % 3 axis
- * permutation and the ±6 corner cross are a 1:1 structural match.
- * DEAD in shipped Gladiator (no .text caller); preserved by /INCREMENTAL. */
-static void AAS_DrawPlaneCross(vec3_t origin, vec3_t normal, float dist, int axis, int color)
+ * DEAD in shipped Gladiator (no .text caller); preserved by /INCREMENTAL.
+ * External linkage (NOT static): cl /O2 drops an unreferenced static, but the
+ * original emitted this as a file-scope function that /INCREMENTAL then kept —
+ * so external linkage is the faithful form and lets the oracle audit it. */
+void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int color)
 {
-  vec3_t cA, cB, cC, cD;
-  int    ix = axis % 3;           /* ecx */
-  int    iy = (axis + 1) % 3;     /* esi */
-  int    iz = (axis + 2) % 3;     /* edx */
-  int    line_id[2];
-  int    i, found;
+  int    n0, n1, n2, j, line, lines[2];
+  vec3_t start1, end1, start2, end2;
 
-  VectorCopy(origin, cA);
-  VectorCopy(origin, cB);
-  VectorCopy(origin, cC);
-  VectorCopy(origin, cD);
+  //make a cross in the hit plane at the hit point
+  VectorCopy(point, start1);
+  VectorCopy(point, end1);
+  VectorCopy(point, start2);
+  VectorCopy(point, end2);
 
-  /* perturb iy/iz axes by ±6 to form four corners */
-  cA[iy] -= 6.0f;  cA[iz] -= 6.0f;
-  cB[iy] += 6.0f;  cB[iz] += 6.0f;
-  cC[iy] += 6.0f;  cC[iz] -= 6.0f;
-  cD[iy] -= 6.0f;  cD[iz] += 6.0f;
+  n0 = type % 3;
+  n1 = (type + 1) % 3;
+  n2 = (type + 2) % 3;
+  start1[n1] -= 6;
+  start1[n2] -= 6;
+  end1[n1] += 6;
+  end1[n2] += 6;
+  start2[n1] += 6;
+  start2[n2] -= 6;
+  end2[n1] -= 6;
+  end2[n2] += 6;
 
-  /* project each corner onto plane: corner[ix] = (d - n[iy]*c[iy] - n[iz]*c[iz]) / n[ix] */
-  cA[ix] = (dist - normal[iy] * cA[iy] - normal[iz] * cA[iz]) / normal[ix];
-  cB[ix] = (dist - normal[iy] * cB[iy] - normal[iz] * cB[iz]) / normal[ix];
-  cC[ix] = (dist - normal[iy] * cC[iy] - normal[iz] * cC[iz]) / normal[ix];
-  cD[ix] = (dist - normal[iy] * cD[iy] - normal[iz] * cD[iz]) / normal[ix];
+  start1[n0] = (dist - (start1[n1] * normal[n1] + start1[n2] * normal[n2])) / normal[n0];
+  end1[n0]   = (dist - (end1[n1] * normal[n1] + end1[n2] * normal[n2])) / normal[n0];
+  start2[n0] = (dist - (start2[n1] * normal[n1] + start2[n2] * normal[n2])) / normal[n0];
+  end2[n0]   = (dist - (end2[n1] * normal[n1] + end2[n2] * normal[n2])) / normal[n0];
 
-  /* allocate up to 2 debug-line slot IDs from the global pool */
-  line_id[0] = 0; line_id[1] = 0;
-  found = 0;
-  for ( i = 0; i < 256 && found < 2; i++ )
+  for (j = 0, line = 0; j < 2 && line < 256; line++)
   {
-    if ( !debuglines[i] )
+    if (!debuglines[line])
     {
-      debuglines[i] = botimport.DebugLineCreate();
-      line_id[found++] = debuglines[i];
+      debuglines[line] = botimport.DebugLineCreate();
+      lines[j++] = debuglines[line];
+      debuglinevisible[line] = 1;
       numdebuglines++;
-      debuglinevisible[i] = 1;
     }
-    else if ( !debuglinevisible[i] )
+    else if (!debuglinevisible[line])
     {
-      line_id[found++] = debuglines[i];
-      debuglinevisible[i] = 1;
+      lines[j++] = debuglines[line];
+      debuglinevisible[line] = 1;
     }
   }
-
-  botimport.DebugLineShow(line_id[0], cA, cB, color);
-  botimport.DebugLineShow(line_id[1], cC, cD, color);
+  botimport.DebugLineShow(lines[0], start1, end1, color);
+  botimport.DebugLineShow(lines[1], start2, end2, color);
 }
 
 //----- (10009CB0) --------------------------------------------------------
@@ -14432,6 +14419,18 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
    * area->numfaces load from the loop condition; the return value is unused. */
 }
 
+/* Output entry for AAS_AlternativeRouteGoals (24 bytes; stride matches the
+ * disasm's `add ebx,0x18`).  Declared ahead of the docblock marker so the
+ * ref-funcmap generator attributes 0x1001A720 to the function, not this type. */
+typedef struct aas_altroutegoal_s {
+  vec3_t          origin;
+  int             areanum;
+  unsigned short  travel_to_start;
+  unsigned short  travel_to_goal;
+  unsigned short  extra_travel_time;
+  unsigned short  pad;
+} aas_altroutegoal_t;
+
 //----- (1001A720) --------------------------------------------------------
 /* AAS_AlternativeRouteGoals — find clusters of "midrange" jumppad
  * areas that lie within a 1.5x detour budget of the direct
@@ -14490,15 +14489,6 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
  * so the printed counter lags by one (0 for the first match, etc.).
  * Preserved verbatim.
  */
-typedef struct aas_altroutegoal_s {
-  vec3_t          origin;
-  int             areanum;
-  unsigned short  travel_to_start;
-  unsigned short  travel_to_goal;
-  unsigned short  extra_travel_time;
-  unsigned short  pad;
-} aas_altroutegoal_t;
-
 int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
     aas_altroutegoal_t *altroutegoals, int maxaltroutegoals)
