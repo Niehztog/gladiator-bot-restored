@@ -2316,17 +2316,17 @@ int __cdecl sub_10003C90(
       }
       if ( v40 )
       {
-        if ( v17 >= 3 )
-        {
-          v38 = normal[2] * v12[2] + normal[1] * v12[1] + normal[0] * *v12 + *(float *)(v16 + 12);
-        }
-        else
+        if ( v17 < 3 )
         {
           if ( normal[v17] <= 0.0f )
             v18 = *(float *)(v16 + 12) - v12[v17];
           else
             v18 = v12[v17] + *(float *)(v16 + 12);
           v38 = v18;
+        }
+        else
+        {
+          v38 = normal[2] * v12[2] + normal[1] * v12[1] + normal[0] * *v12 + *(float *)(v16 + 12);
         }
       }
       else
@@ -2426,7 +2426,7 @@ LABEL_30:
         }
       }
       v36 = ++v11;
-      if ( v11 >= v14[1] )
+      if ( v11 >= (int)v14[1] )
       {
         v15 = (float *)a7;
         v13 = (float *)a4;
@@ -4265,15 +4265,15 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v7 = *(_DWORD *)(dplanes + 20 * *(_DWORD *)v6 + 16);
   v8 = (float *)(dplanes + 20 * *(_DWORD *)v6);
   v9 = a3;
-  if ( v7 >= 3 )
-  {
-    v10 = a2[2] * v8[2] + a2[1] * v8[1] + *v8 * *a2 - v8[3];
-    v11 = a3[2] * v8[2] + a3[1] * v8[1] + *v8 * *a3 - v8[3];
-  }
-  else
+  if ( v7 < 3 )
   {
     v10 = a2[v7] - v8[3];
     v11 = a3[v7] - v8[3];
+  }
+  else
+  {
+    v10 = a2[2] * v8[2] + a2[1] * v8[1] + *v8 * *a2 - v8[3];
+    v11 = a3[2] * v8[2] + a3[1] * v8[1] + *v8 * *a3 - v8[3];
   }
   if ( v10 >= 0.0f )
   {
@@ -19036,7 +19036,7 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
         if ( !_strcmpi(v14, v16) )
           return 1;
       }
-      else if ( v5 < 0 )
+      else if ( (v5 & 0x80) != 0 )
       {
         v6 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
         v7 = strchr(v6, 47);
