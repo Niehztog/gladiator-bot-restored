@@ -6772,7 +6772,6 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   int j; // [esp+1Ch] [ebp-80h]
   int i; // [esp+20h] [ebp-7Ch]
-  float v25; // [esp+2Ch] [ebp-70h]
   vec3_t end; // [esp+30h] [ebp-6Ch] BYREF
   vec3_t absmins; // [esp+3Ch] [ebp-60h] BYREF
   vec3_t absmaxs; // [esp+48h] [ebp-54h] BYREF
@@ -6790,14 +6789,13 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
     {
       for ( j = 0; j < 5 && !areanum; ++j )
       {
-        v25 = (float)j;
         for ( k = -1; k <= 1 && !areanum; ++k )
         {
           for ( l = -1; l <= 1 && !areanum; ++l )
           {
             VectorCopy(((float *)origin), start);
-            start[0] = (float)k * v25 * 4.0f + start[0];
-            start[1] = (float)l * v25 * 4.0f + start[1];
+            start[0] = (float)j * 4.0f * (float)k + start[0];
+            start[1] = (float)j * 4.0f * (float)l + start[1];
             start[2] = (float)i * 4.0f + start[2];
             areanum = AAS_PointAreaNum(start);
           }
@@ -6812,16 +6810,19 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
       start[2] = start[2] + 0.25;
       end[2] = v12 - 50.0f;
       trace = AAS_TraceClientBBox(start, (float *)end, 4, -1);
-      if ( trace.startsolid )
+      if ( !trace.startsolid )
+      {
+        result = AAS_PointAreaNum(trace.endpos);
+        v13 = goalorigin;
+        VectorCopy(trace.endpos, goalorigin);
+        if ( result )
+          return result;
+      }
+      else
       {
         VectorCopy(start, goalorigin);
         return areanum;
       }
-      result = AAS_PointAreaNum(trace.endpos);
-      v13 = goalorigin;
-      VectorCopy(trace.endpos, goalorigin);
-      if ( result )
-        return result;
     }
     else
     {
