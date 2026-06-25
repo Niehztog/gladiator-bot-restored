@@ -22946,95 +22946,98 @@ void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces)
 // firststring/next pointers grow from 4 to 8 bytes.
 bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken)
 {
-  bot_matchpiece_t *last;
-  bot_matchpiece_t *mp;
-  bot_matchstring_t *ms;
-  bot_matchstring_t *lastms;
-  bot_matchpiece_t *head;
-  int haveVariable;
-  int sawEmptyString;
+  int lastwasvariable;
+  int emptystring;
   token_t token;
+  bot_matchpiece_t *matchpiece;
+  bot_matchpiece_t *firstpiece;
+  bot_matchpiece_t *lastpiece;
+  bot_matchstring_t *matchstring;
+  bot_matchstring_t *lastmatchstring;
 
-  head = NULL;
-  last = NULL;
-  haveVariable = 0;
+  firstpiece = NULL;
+  lastpiece = NULL;
+  lastwasvariable = 0;
 
   while ( PC_ReadTokenHandle(source, token.string) )
   {
     if ( token.type == 3 && (token.subtype & 0x1000) != 0 )
     {
-      if ( token.intvalue >= 0xA )
+      if ( token.intvalue < 0xA )
+      {
+        if ( lastwasvariable )
+        {
+          SourceError(source, "not allowed to have adjacent variables\n");
+          FreeSource(source);
+          BotFreeMatchPieces(firstpiece);
+          return NULL;
+        }
+        lastwasvariable = 1;
+        matchpiece = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
+        matchpiece->type = MT_VARIABLE;
+        matchpiece->variable = token.intvalue;
+        matchpiece->next = NULL;
+        if ( lastpiece )
+          lastpiece->next = matchpiece;
+        else
+          firstpiece = matchpiece;
+        lastpiece = matchpiece;
+      }
+      else
       {
         SourceError(source, "can't have more than %d match variables\n", 10);
         FreeSource(source);
-        BotFreeMatchPieces(head);
+        BotFreeMatchPieces(firstpiece);
         return NULL;
       }
-      if ( haveVariable )
-      {
-        SourceError(source, "not allowed to have adjacent variables\n");
-        FreeSource(source);
-        BotFreeMatchPieces(head);
-        return NULL;
-      }
-      haveVariable = 1;
-      mp = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
-      mp->type = MT_VARIABLE;
-      mp->variable = token.intvalue;
-      mp->next = NULL;
-      if ( last )
-        last->next = mp;
-      else
-        head = mp;
-      last = mp;
     }
     else if ( token.type == 1 )
     {
-      mp = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
-      mp->firststring = NULL;
-      mp->type = MT_STRING;
-      mp->variable = 0;
-      mp->next = NULL;
-      if ( last )
-        last->next = mp;
+      matchpiece = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
+      matchpiece->firststring = NULL;
+      matchpiece->type = MT_STRING;
+      matchpiece->variable = 0;
+      matchpiece->next = NULL;
+      if ( lastpiece )
+        lastpiece->next = matchpiece;
       else
-        head = mp;
-      last = mp;
-      lastms = NULL;
-      sawEmptyString = 0;
+        firstpiece = matchpiece;
+      lastpiece = matchpiece;
+      lastmatchstring = NULL;
+      emptystring = 0;
       do
       {
-        if ( mp->firststring )
+        if ( matchpiece->firststring )
         {
           if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
           {
             FreeSource(source);
-            BotFreeMatchPieces(head);
+            BotFreeMatchPieces(firstpiece);
             return NULL;
           }
         }
         StripDoubleQuotes(token.string);
-        ms = (bot_matchstring_t *)GetMemory(sizeof(bot_matchstring_t) + strlen(token.string) + 1);
-        ms->string = (char *)(ms + 1);
-        strcpy(ms->string, token.string);
+        matchstring = (bot_matchstring_t *)GetMemory(sizeof(bot_matchstring_t) + strlen(token.string) + 1);
+        matchstring->string = (char *)(matchstring + 1);
+        strcpy(matchstring->string, token.string);
         if ( !strlen(token.string) )
-          sawEmptyString = 1;
-        ms->next = NULL;
-        if ( lastms )
-          lastms->next = ms;
+          emptystring = 1;
+        matchstring->next = NULL;
+        if ( lastmatchstring )
+          lastmatchstring->next = matchstring;
         else
-          mp->firststring = ms;
-        lastms = ms;
+          matchpiece->firststring = matchstring;
+        lastmatchstring = matchstring;
       }
       while ( PC_CheckTokenString(source, "|") );
-      if ( !sawEmptyString )
-        haveVariable = 0;
+      if ( !emptystring )
+        lastwasvariable = 0;
     }
     else
     {
       SourceError(source, "invalid token %s\n", token.string);
       FreeSource(source);
-      BotFreeMatchPieces(head);
+      BotFreeMatchPieces(firstpiece);
       return NULL;
     }
     if ( PC_CheckTokenString(source, endtoken) )
@@ -23042,11 +23045,11 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
     if ( !PC_ExpectTokenString(source, ",") )
     {
       FreeSource(source);
-      BotFreeMatchPieces(head);
+      BotFreeMatchPieces(firstpiece);
       return NULL;
     }
   }
-  return head;
+  return firstpiece;
 }
 
 //----- (1002C3D0) --------------------------------------------------------
