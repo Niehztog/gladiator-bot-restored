@@ -6913,9 +6913,9 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   vectoangles(dir, (float *)entangles);
   if ( !InFieldOfVision(viewangles, fov, entangles) )
     return 0;
-  i = 0;
-  while ( 1 )
+  for ( i = 0; i < 3; i++ )
   {
+    v5 = a5;
     if ( AAS_inPVS(eye, middle) )
     {
     /* default: trace from viewer (a2) to entity middle */
@@ -6957,10 +6957,8 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     else if ( i == 1 )
       middle[2] = ent->maxs[2] - ent->mins[2] + middle[2];
     }
-    if ( ++i >= 3 )
-      return 0;
-    v5 = a5;
   }
+  return 0;
 }
 
 //----- (1000B1F0) --------------------------------------------------------
@@ -14884,13 +14882,12 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   bsptrace.fraction = 1.0;
   link = aasworld.arealinkedentities[areanum];
   collision = 0;
-  /* Both failure guards reach ONE shared `return 0` (goto fail) — the ref DLL
-   * shares that return-0 block (both guards `je` to it), giving 71=71 insns
-   * (INSN_COUNT_MATCH).  Separate `return 0` statements compile to two inlined
-   * epilogues (OUR+4).  LOAD-BEARING: do not de-goto.  (Residual: MSVC6 still
-   * inlines the 2nd guard's copy and uses an immediate 0 where ref reuses the
-   * loop-terminator esi=NULL for trace->area/planenum — cl.exe cross-jump +
-   * register-held-zero ties.) */
+  /* The empty-list guard reaches the function's `return 0` tail via `goto fail`
+   * (ref shares that block: `je` to it).  The post-loop test is Q3's positive
+   * `if (collision) { ...; return 1; }` so the success block is the warm
+   * fall-through and `return 0` the cold tail — matching ref's `je <cold ret0>`
+   * (was IDA's inverted `if(!collision) goto fail`, which made MSVC place the
+   * success block cold and the bytes diverge — restored 2026-06-25). */
   if ( !link )
     goto fail;
   do
@@ -14903,14 +14900,15 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
     link = link->next_ent;
   }
   while ( link );
-  if ( !collision )
-    goto fail;
-  trace->startsolid = bsptrace.startsolid;
-  trace->ent = bsptrace.ent;
-  VectorCopy(bsptrace.endpos, trace->endpos);
-  trace->area = 0;
-  trace->planenum = 0;
-  return 1;
+  if ( collision )
+  {
+    trace->startsolid = bsptrace.startsolid;
+    trace->ent = bsptrace.ent;
+    VectorCopy(bsptrace.endpos, trace->endpos);
+    trace->area = 0;
+    trace->planenum = 0;
+    return 1;
+  }
 fail:
   return 0;
 }
@@ -17104,47 +17102,44 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &moveresult, 1);
-  if ( (moveresult.flags & 3) == 0 )
-  {
-    if ( (moveresult.flags & 4) != 0 )
-    {
-      /* Operand order matches the original: the rand() side is evaluated
-       * FIRST so the double product (thinktime*0.8) is not spilled to a
-       * QWORD stack slot across the call (ref 1001f48d-1001f4a3:
-       * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
-      {
-      BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
-      VectorSubtract(target, bs->origin, dir);
-      vectoangles(dir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-      }
-    }
-    else
-    {
-      v7 = BotGetSecondGoal(bs->goalstate);
-      if ( !v7 )
-        BotGetTopGoal(bs->goalstate);
-      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
-      {
-        VectorSubtract(target, bs->origin, dir);
-        vectoangles(dir, bs->ideal_viewangles);
-        bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-      }
-      else
-      {
-        vectoangles(moveresult.movedir, bs->ideal_viewangles);
-        bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-      }
-    }
-  }
-  else
+  if ( (moveresult.flags & 3) != 0 )
   {
   v5 = LODWORD(moveresult.ideal_viewangles[1]);
   v6 = LODWORD(moveresult.ideal_viewangles[2]);
   *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
   *(int *)&bs->ideal_viewangles[1] = v5;
   *(int *)&bs->ideal_viewangles[2] = v6;
+  }
+  else if ( (moveresult.flags & 4) != 0 )
+  {
+    /* Operand order matches the original: the rand() side is evaluated
+     * FIRST so the double product (thinktime*0.8) is not spilled to a
+     * QWORD stack slot across the call (ref 1001f48d-1001f4a3:
+     * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
+    {
+    BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
+    VectorSubtract(target, bs->origin, dir);
+    vectoangles(dir, bs->ideal_viewangles);
+    bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+    }
+  }
+  else
+  {
+    v7 = BotGetSecondGoal(bs->goalstate);
+    if ( !v7 )
+      BotGetTopGoal(bs->goalstate);
+    if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
+    {
+      VectorSubtract(target, bs->origin, dir);
+      vectoangles(dir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+    }
+    else
+    {
+      vectoangles(moveresult.movedir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+    }
   }
   if ( BotFindEnemy(bs) )
   {
@@ -26120,39 +26115,32 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
   float dist; // [esp+78h] [ebp+4h]
 
   VectorCopy(ms->origin, start);
-  end[0] = start[0];
-  end[1] = start[1];
-  end[2] = start[2] - 60.0f;
+  VectorCopy(ms->origin, end);
+  end[2] -= 60.0f;
   trace = AAS_TraceClientBBox(start, end, 4, -1);
   startz = trace.endpos[2] + 1.0f;
-  dist = 8.0f;
-  while ( 1 )
+  for ( dist = 8.0f; dist <= 100.0f; dist += 8.0f )
   {
     VectorMA(ms->origin, dist, dir, start);
-    end[0] = start[0];
-    end[1] = start[1];
     start[2] = startz + 24.0f;
-    end[2] = startz - libvar_sv_maxbarrier->value - 24.0f;
+    VectorCopy(start, end);
+    end[2] -= 48.0f + libvar_sv_maxbarrier->value;
     trace = AAS_TraceClientBBox(start, end, 4, -1);
     if ( !trace.startsolid )
     {
-      if ( startz - libvar_sv_step->value - 8.0f > trace.endpos[2] )
-        break;
+      //if it is a gap
+      if ( trace.endpos[2] < startz - libvar_sv_step->value - 8.0f )
+      {
+        VectorCopy(trace.endpos, end);
+        end[2] -= 20.0f;
+        /* IDA-dropped: barrier-jump under-water check; direct PointContents-wrapper call */
+        if ( (sub_10003080((float *)end) & 0x20) != 0 )
+          break;
+        return dist;
+      }
       startz = trace.endpos[2];
     }
-    v6 = dist + 8.0f;
-    dist = v6;
-    if ( v6 > 100.0f )
-      goto fail;
   }
-  end[0] = trace.endpos[0];
-  end[1] = trace.endpos[1];
-  end[2] = trace.endpos[2] - 20.0f;
-  v8 = sub_10003080((float *)end);   /* IDA-dropped: barrier-jump under-water check; direct PointContents-wrapper call */
-  if ( (v8 & 0x20) != 0 )
-    goto fail;
-  return dist;
-fail:
   return 0.0f;
 }
 
