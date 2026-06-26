@@ -29834,20 +29834,30 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
   int min;
   int hour;
 
-  if ( !logfile.fp )
-    return logfile.fp;
-  sec_total = (int)*(float *)&botstate.bottime;
-  hund      = -100 * sec_total - (int)(*(float *)&botstate.bottime * -100.0f);
-  min       = (int)(*(float *)&botstate.bottime * 0.01666666753590107f);
-  hour      = (int)(*(float *)&botstate.bottime * 0.00027777778450399637f);
-  fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
-          logfile.numwrites, hour, min, sec_total, hund);
-  va_start(va, Format);
-  vfprintf(logfile.fp, Format, va);
-  va_end(va);
-  logfile.numwrites++;
-  fprintf(logfile.fp, "\r\n");
-  return (FILE *)fflush(logfile.fp);
+  /* Guard as `if (fp) { body } return fp;` so MSVC places the body as the warm
+   * fall-through and the NULL-return as the cold forward-`je` target (ref shape),
+   * not an inline early-return.  numwrites++ follows the "\r\n" fprintf to match
+   * the original's schedule (the inc interleaves with the fflush call setup). */
+  if ( logfile.fp )
+  {
+    sec_total = (int)*(float *)&botstate.bottime;
+    hund      = -100 * sec_total - (int)(*(float *)&botstate.bottime * -100.0f);
+    min       = (int)(*(float *)&botstate.bottime * 0.01666666753590107f);
+    hour      = (int)(*(float *)&botstate.bottime * 0.00027777778450399637f);
+    fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
+            logfile.numwrites, hour, min, sec_total, hund);
+    va_start(va, Format);
+    vfprintf(logfile.fp, Format, va);
+    va_end(va);
+    fprintf(logfile.fp, "\r\n");
+    logfile.numwrites++;
+    return (FILE *)fflush(logfile.fp);
+  }
+  /* No explicit return on the !fp path: ref shares the main `pop edi; ret`
+   * epilogue via `je 0x10038e8a` (skipping `pop esi`, which is only pushed
+   * inside the body) and leaves eax undefined.  An explicit `return logfile.fp`
+   * forces a separate `xor eax,eax; pop edi; ret` block (OUR+3).  Faithful: the
+   * function is dead (/INCREMENTAL) so the undefined return is never observed. */
 }
 
 //----- (10038EC0) --------------------------------------------------------
