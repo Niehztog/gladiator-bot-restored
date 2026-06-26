@@ -21492,24 +21492,19 @@ int __cdecl BotShutdownClient(int a1)
 //----- (100297B0) --------------------------------------------------------
 int __cdecl BotMoveClient(int a1, int a2)
 {
-  bot_state_t *oldbs;
-  bot_state_t *newbs;
-
-  oldbs = &botstates[a1];
-  if ( !oldbs->inuse )
+  if ( !botstates[a1].inuse )
   {
     botimport.Print(PRT_FATAL, "tried to move inactive bot client\n");
     return BLERR_AIMOVEINACTIVECLIENT;
   }
-  newbs = &botstates[a2];
-  if ( newbs->inuse )
+  if ( botstates[a2].inuse )
   {
     botimport.Print(PRT_FATAL, "tried to move client to active client\n");
     return BLERR_AIMOVETOACTIVECLIENT;
   }
-  memcpy(newbs, oldbs, sizeof(bot_state_t));
-  memset(oldbs, 0, sizeof(bot_state_t));
-  oldbs->inuse = 0;
+  memcpy(&botstates[a2], &botstates[a1], sizeof(bot_state_t));
+  memset(&botstates[a1], 0, sizeof(bot_state_t));
+  botstates[a1].inuse = 0;
   return BLERR_NOERROR;
 }
 
