@@ -12567,32 +12567,29 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     return 0;
   if ( AAS_AreaSwim(area1num) )
     return 0;
-  area2 = &aasworld.areas[area2num];
   area1 = &aasworld.areas[area1num];
+  area2 = &aasworld.areas[area2num];
   v39 = area2;
   if ( *((float *)area2 + 8) < (float)*((float *)area1 + 5) )
     return 0;
-  start[0] = *((float *)area1 + 9);
-  start[1] = *((float *)area1 + 10);
-  start[2] = *((float *)area1 + 11);
-  if ( AAS_AreaSwim(area1num) )
-  {
-    v4 = sub_10003080((float *)start);   /* IDA-dropped: swim-area liquid check */
-    if ( (v4 & 0x38) == 0 )
-      return 0;
-  }
-  else
+  VectorCopy(((aas_area_t *)area1)->center, start);
+  if ( !AAS_AreaSwim(area1num) )
   {
     if ( !AAS_PointAreaNum(start) )
       Log_Write("area %d center %f %f %f in solid?", area1num, start[0],
                 start[1], start[2]);
-    end[0] = start[0];
-    end[1] = start[1];
+    VectorCopy(start, end);
     end[2] = start[2] - 1000.0f;
     trace = AAS_TraceClientBBox(start, end, 4, -1);
     if ( trace.startsolid )
       return 0;
     VectorCopy(trace.endpos, areastart);
+  }
+  else
+  {
+    v4 = sub_10003080((float *)start);   /* IDA-dropped: swim-area liquid check */
+    if ( (v4 & 0x38) == 0 )
+      return 0;
   }
   v5 = *((_DWORD *)area2 + 1);
   i = 0;
@@ -19361,7 +19358,7 @@ void BotCheckAttack(bot_state_t *bs)
   vec3_t mins; // [esp+50h] [ebp-164h] BYREF
   vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
   float trace[21]; // [esp+68h] [ebp-14Ch] BYREF
-  float entinfo[31]; // [esp+BCh] [ebp-F8h] BYREF
+  aas_entityinfo_t entinfo; // [esp+BCh] [ebp-7Ch] BYREF
 
   /* -1056964608 = 0xC1000000 = -8.0f; 1090519040 = 0x41000000 = 8.0f.
    * maxs, mins are float[3] — use float literals. */
@@ -19382,12 +19379,13 @@ void BotCheckAttack(bot_state_t *bs)
     v11 = (float)Characteristic_BFloat(BotCharacter(bs), 11, 0.0, 1.0);
     if ( AAS_Time() - v11 >= bs->enemysight_time )
     {
-      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
-      dir[0] = entinfo[4] - bs->origin[0];
-      dir[1] = entinfo[5] - bs->origin[1];
-      dir[2] = entinfo[6] - bs->origin[2];
-      v11 = 120.0f;
-      if ( VectorLength(dir) >= 100.0f )
+      entinfo = AAS_EntityInfo(bs->enemy);
+      dir[0] = entinfo.origin[0] - bs->origin[0];
+      dir[1] = entinfo.origin[1] - bs->origin[1];
+      dir[2] = entinfo.origin[2] - bs->origin[2];
+      if ( VectorLength(dir) < 100.0f )
+        v11 = 120.0f;
+      else
         v11 = 50.0f;
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, v11, bs->enemy) )
       {
@@ -19412,23 +19410,24 @@ void BotCheckAttack(bot_state_t *bs)
              || trace[2] * 1000.0f >= v6->radius
              || (points = ((float)v6->damage - trace[2] * 500.0) * 0.5, points <= 0)) )
           {
-            if ( (LOBYTE(trace[19]) & 2) == 0
-              || (*(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy),
-                  *(bsp_trace_t *)trace = AAS_Trace((&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
-                                    (&entinfo[4]), bs->entitynum, 100663299),
-                  LODWORD(trace[20]) == bs->enemy) )
+            if ( (LOBYTE(trace[19]) & 2) != 0 )
             {
-              if ( (wi->flags & 1) != 0 )
-              {
-                if ( (*(unsigned char *)&bs->flags & 2) != 0 )
-                  EA_Attack(bs->client);
-              }
-              else
-              {
-                EA_Attack(bs->client);
-              }
-              bs->flags ^= 2u;
+              entinfo = AAS_EntityInfo(bs->enemy);
+              *(bsp_trace_t *)trace = AAS_Trace((&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0),
+                                entinfo.origin, bs->entitynum, 100663299);
+              if ( LODWORD(trace[20]) != bs->enemy )
+                return;
             }
+            if ( (wi->flags & 1) != 0 )
+            {
+              if ( (*(unsigned char *)&bs->flags & 2) != 0 )
+                EA_Attack(bs->client);
+            }
+            else
+            {
+              EA_Attack(bs->client);
+            }
+            bs->flags ^= 2u;
           }
         }
       }
