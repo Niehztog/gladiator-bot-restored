@@ -14726,8 +14726,10 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
     node = &aasworld.nodes[nodenum];
     /* Residual 2-byte diff vs disasm@0x1001ae9f: the original schedules the
      * inner two product terms descending (n2*p2 then n1*p1); MSVC6 emits them
-     * ascending here regardless of source term order (verified: reordering the
-     * C expression produces byte-identical output). Pure scheduler tie-break. */
+     * ascending here regardless of source term order (verified 3x: reordering
+     * the C expression is byte-identical — MSVC6 /O2 freely REASSOCIATES 3+-term
+     * FP sums, so the 2-term sum-of-products term-order lever does NOT apply to
+     * dot products; pairs the last two summed products + adds the first last). */
     if ( point[0] * aasworld.planes[node->planenum].normal[0]
        + point[1] * aasworld.planes[node->planenum].normal[1]
        + point[2] * aasworld.planes[node->planenum].normal[2]
@@ -23182,13 +23184,12 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
         return 0;
       }
 
-      /* Advance strptr past the matched substring.  When firststring was
-       * NULL we keep strptr where it is — Q3 does the same via the
-       * "match anywhere" alternative. */
-      if ( mp->firststring && ms->string )
-        strptr = newstrptr + strlen(ms->string);
-      else
-        strptr = newstrptr;
+      /* Advance strptr past the matched substring.  The original computes
+       * this unconditionally (1002c876: mov edi,[esi]; repnz scasb; add
+       * edi,edx) with esi still holding the matched alternative `ms`; it does
+       * not re-guard mp->firststring / ms->string (which never occur NULL for
+       * a real MT_STRING piece). The guarded form emitted 3 extra branches. */
+      strptr = newstrptr + strlen(ms->string);
     }
     else if ( mp->type == MT_VARIABLE )
     {
@@ -25727,7 +25728,6 @@ double __cdecl AngleDiff(float ang1, float ang2)
 //----- (10030AA0) --------------------------------------------------------
 int __cdecl BotReachabilityArea(int *origin, int client)
 {
-  int v2; // ecx
   float v4; // st7
   int v5; // eax
   int v6; // esi
@@ -25756,12 +25756,10 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   aas_trace_t trace; // [esp+44h] [ebp-70h] (was int v25[9] + char v27[36] hidden return buffer)
   int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
 
-  v2 = 0;
-  v19 = 0;
-  while ( 1 )
+  for ( v19 = 0; v19 < 2; v19++ )
   {
     VectorCopy(((float *)origin), start);
-    if ( v2 > 0 )
+    if ( v19 > 0 )
     {
       v4 = ((float *)origin)[2];
       end[0] = ((float *)origin)[0];
@@ -25822,14 +25820,10 @@ int __cdecl BotReachabilityArea(int *origin, int client)
         break;
       }
     }
-    if ( client )
-    {
-      v2 = ++v19;
-      if ( v19 < 2 )
-        continue;
-    }
-    return v12;
+    if ( !client )
+      break;
   }
+  return v12;
 }
 
 //----- (10030D00) --------------------------------------------------------
