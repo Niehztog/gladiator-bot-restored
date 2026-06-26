@@ -10025,9 +10025,10 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   int side1;
   aas_area_t *area1;
   aas_area_t *area2;
+  aas_areasettings_t *areasettings;
+  aas_reachabilitynode_t *lreach;
   aas_face_t *face1;
   aas_plane_t *plane;
-  aas_reachabilitynode_t *lreach;
   vec3_t start;
 
   if ( !AAS_AreaSwim(area1num) || !AAS_AreaSwim(area2num) )
@@ -10051,30 +10052,33 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
     for ( j = 0; j < area2->numfaces; ++j )
     {
       face2num = abs(aasworld.faceindex[area2->firstface + j]);
-      if ( face1num != face2num )
-        continue;
-      AAS_FaceCenter(face1num, start);
-      if ( (sub_10003080(start) & 0x38) == 0 )   /* IDA-dropped: water-edge contents check */
-        continue;
-      face1 = &aasworld.faces[face1num];
-      lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
-      if ( !lreach )
-        return 0;
-      lreach->reach.facenum = face1num;
-      lreach->reach.areanum = area2num;
-      lreach->reach.edgenum = 0;
-      VectorCopy(start, lreach->reach.start);
-      /* IDA decompiled this as float* arithmetic and lost the 20-byte aas_plane_t stride. */
-      plane = &aasworld.planes[face1->planenum ^ side1];
-      VectorMA(lreach->reach.start, 2.0f, plane->normal, lreach->reach.end);
-      lreach->reach.traveltype = 8;
-      lreach->reach.traveltime = 1;
-      if ( AAS_AreaVolume(area2num) < 800.0f )
-        lreach->reach.traveltime += 200;
-      lreach->next = areareachability[area1num];
-      areareachability[area1num] = lreach;
-      ++reach_swim;
-      return 1;
+      if ( face1num == face2num )
+      {
+        AAS_FaceCenter(face1num, start);
+        if ( sub_10003080(start) & 0x38 )   /* IDA-dropped: water-edge contents check */
+        {
+          face1 = &aasworld.faces[face1num];
+          areasettings = &aasworld.areasettings[area1num];
+          lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
+          if ( !lreach )
+            return 0;
+          lreach->reach.areanum = area2num;
+          lreach->reach.facenum = face1num;
+          lreach->reach.edgenum = 0;
+          VectorCopy(start, lreach->reach.start);
+          /* IDA decompiled this as float* arithmetic and lost the 20-byte aas_plane_t stride. */
+          plane = &aasworld.planes[face1->planenum ^ side1];
+          VectorMA(lreach->reach.start, 2.0f, plane->normal, lreach->reach.end);
+          lreach->reach.traveltype = 8;
+          lreach->reach.traveltime = 1;
+          if ( AAS_AreaVolume(area2num) < 800.0f )
+            lreach->reach.traveltime += 200;
+          lreach->next = areareachability[area1num];
+          areareachability[area1num] = lreach;
+          ++reach_swim;
+          return 1;
+        }
+      }
     }
   }
   return 0;
