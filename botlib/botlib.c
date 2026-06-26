@@ -5247,38 +5247,28 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 //----- (100089E0) --------------------------------------------------------
 int __cdecl AAS_FloodClusterReachabilities(int clusternum)
 {
-  int i; // edi
-  aas_areasettings_t *settings; // eax
-  int numreachableareas; // esi
-  int j; // edx
-  int areanum; // eax
-  aas_reachability_t *reach; // ecx
+  int i;
+  int j;
+  int areanum;
 
-  if ( aasworld.numareas <= 1 )
-    return 1;
   for ( i = 1; i < aasworld.numareas; ++i )
   {
-    settings = &aasworld.areasettings[i];
-    if ( settings->cluster )
+    if ( aasworld.areasettings[i].cluster )
       continue;
-    if ( (settings->contents & 8) != 0 )
+    if ( aasworld.areasettings[i].contents & 8 )
       continue;
-    j = 0;
-    numreachableareas = settings->numreachableareas;
-    if ( numreachableareas <= 0 )
-      continue;
-    reach = &aasworld.reachability[settings->firstreachablearea];
-    for ( ; j < numreachableareas; ++j, ++reach )
+    for ( j = 0; j < aasworld.areasettings[i].numreachableareas; ++j )
     {
-      areanum = reach->areanum;
-      if ( (aasworld.areasettings[areanum].contents & 8) != 0 )
+      areanum = aasworld.reachability[aasworld.areasettings[i].firstreachablearea + j].areanum;
+      if ( aasworld.areasettings[areanum].contents & 8 )
         continue;
-      if ( !aasworld.areasettings[areanum].cluster )
-        continue;
-      if ( !AAS_FloodClusterAreas_r(i, clusternum) )
-        return 0;
-      i = 0;
-      break;
+      if ( aasworld.areasettings[areanum].cluster )
+      {
+        if ( !AAS_FloodClusterAreas_r(i, clusternum) )
+          return 0;
+        i = 0;
+        break;
+      }
     }
   }
   return 1;
@@ -14318,7 +14308,6 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
 {
   int n; // ebx
   int v5; // eax
-  float *v6; // eax
   int v8; // eax
   unsigned __int16 t; // travel time, tested as unsigned -> jbe (was &&-folded -> je)
   int i; // [esp+24h] [ebp-64h]
@@ -14342,19 +14331,15 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
       t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, n, travelflags);
       if ( t > 0 )
       {
-      v6 = (float *)(&aasworld.areas[n]);
-      center[0] = v6[9];
-      center[1] = v6[10];
-      center[2] = v6[11];
-      if ( !AAS_PointAreaNum(center) )
-        Log_Write("area %d center %f %f %f in solid?", n, center[0],
-                  center[1], center[2]);
-      end[0] = center[0];
-      end[1] = center[1];
-      end[2] = center[2] - 300.0f;
-      trace = AAS_TraceClientBBox(center, end, 4, -1);
-      if ( !trace.startsolid )
-        break;
+        VectorCopy(aasworld.areas[n].center, center);
+        if ( !AAS_PointAreaNum(center) )
+          Log_Write("area %d center %f %f %f in solid?", n, center[0],
+                    center[1], center[2]);
+        VectorCopy(center, end);
+        end[2] = end[2] - 300.0f;
+        trace = AAS_TraceClientBBox(center, end, 4, -1);
+        if ( !trace.startsolid )
+          break;
       }
     }
     v5 = aasworld.numareas;
