@@ -22690,10 +22690,14 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     return NULL;
   }
 
-  ptr = NULL;
+  /* Original omits ptr/random inits: ptr is read only under the `pass && size`
+   * guard (pass 0 short-circuits) and random is written before read on pass 1,
+   * so both are write-before-read safe and the original leaves them to leftover
+   * register values (ref: `mov ebx,[slot]; mov ebp,[slot]`).  Only size (live
+   * for pass-0 accumulation) and randomlist (the returned head) are zeroed.
+   * Faithful match of the BotLoadInitialChat invented-init lever. */
   size = 0;
   randomlist = NULL;
-  random = NULL;
   for ( pass = 0; pass < 2; ++pass )
   {
     if ( pass && size )
