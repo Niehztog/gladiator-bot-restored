@@ -23977,9 +23977,8 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
     botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
   }
-  ptr = 0;
   found = 0;
-  /* Original MSVC6 code relies on pass==0 short-circuiting before size is used. */
+  /* Original MSVC6 code relies on pass==0 short-circuiting before ptr/size are used. */
   for ( pass = 0; pass < 2; ++pass )
   {
     if ( pass && size )
