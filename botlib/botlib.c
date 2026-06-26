@@ -19395,12 +19395,9 @@ void BotCheckAttack(bot_state_t *bs)
           VectorCopy(bs->origin, start);
           start[2] += bs->snapshot.viewoffset[2];
           AngleVectors(bs->viewangles, forward, right, 0);
-          /* ref evaluates the offset[1] (right) term first; MSVC6 reorders the
-           * FPU terms either way (offset[0]-term first) — fmul term-order tie,
-           * not source-controllable */
-          start[0] = right[0] * wi->offset[1] + forward[0] * wi->offset[0] + start[0];
-          start[1] = right[1] * wi->offset[1] + forward[1] * wi->offset[0] + start[1];
-          start[2] = right[2] * wi->offset[1] + forward[2] * wi->offset[0] + wi->offset[2] + start[2];
+          start[0] += forward[0] * wi->offset[0] + right[0] * wi->offset[1];
+          start[1] += forward[1] * wi->offset[0] + right[1] * wi->offset[1];
+          start[2] += forward[2] * wi->offset[0] + right[2] * wi->offset[1] + wi->offset[2];
           VectorMA(start, 1000.0, forward, end);
           VectorMA(start, -12.0, forward, start);
           *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(end), bs->entitynum, 100663299);
