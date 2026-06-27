@@ -33090,22 +33090,25 @@ void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *float
   }
   else if ( (subtype & 0x100) != 0 )
   {
-    for ( p = string + 2; *p; ++p )
+    string += 2;
+    while ( *string )
     {
       *intvalue <<= 4;
-      if ( *p >= 'a' && *p <= 'f' )
-        *intvalue += *p - 'a' + 10;
-      else if ( *p >= 'A' && *p <= 'F' )
-        *intvalue += *p - 'A' + 10;
+      if ( *string >= 'a' && *string <= 'f' )
+        *intvalue += *string - 'a' + 10;
+      else if ( *string >= 'A' && *string <= 'F' )
+        *intvalue += *string - 'A' + 10;
       else
-        *intvalue += *p - '0';
+        *intvalue += *string - '0';
+      ++string;
     }
     *floatvalue = (double)(unsigned int)*intvalue;
   }
   else if ( (subtype & 0x200) != 0 )
   {
-    for ( p = string + 1; *p; ++p )
-      *intvalue = *p + 8 * *intvalue - 48;
+    ++string;
+    while ( *string )
+      *intvalue = (*intvalue << 3) + (*string++ - '0');
     *floatvalue = (double)(unsigned int)*intvalue;
   }
   else if ( (subtype & 0x400) != 0 )
