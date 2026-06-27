@@ -3769,24 +3769,24 @@ bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
 {
   int    i, sides;
-  vec3_t corner_front, corner_back;
+  vec3_t corners[2];
   float  dist1, dist2;
 
   for ( i = 0; i < 3; ++i )
   {
     if ( p[i] < 0.0f )
     {
-      corner_front[i] = absmins[i];
-      corner_back[i]  = absmaxs[i];
+      corners[0][i] = absmins[i];
+      corners[1][i] = absmaxs[i];
     }
     else
     {
-      corner_back[i]  = absmins[i];
-      corner_front[i] = absmaxs[i];
+      corners[1][i] = absmins[i];
+      corners[0][i] = absmaxs[i];
     }
   }
-  dist1 = corner_front[0] * p[0] + corner_front[1] * p[1] + corner_front[2] * p[2] - p[3];
-  dist2 = corner_back[0] * p[0] + corner_back[1] * p[1] + corner_back[2] * p[2] - p[3];
+  dist1 = corners[0][0] * p[0] + corners[0][1] * p[1] + corners[0][2] * p[2] - p[3];
+  dist2 = corners[1][0] * p[0] + corners[1][1] * p[1] + corners[1][2] * p[2] - p[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;
@@ -15415,25 +15415,24 @@ void *__cdecl sub_1001C210(int *gate)
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
 {
   int   i, sides;
-  vec3_t v11; /* point closer to plane normal */
-  vec3_t v12; /* point farther from plane normal */
+  vec3_t corners[2]; /* [0]=closer to plane normal, [1]=farther */
   float dist1, dist2;
 
   for ( i = 0; i < 3; ++i )
   {
     if ( a3[i] < 0.0f )
     {
-      v11[i] = a1[i];
-      v12[i] = a2[i];
+      corners[0][i] = a1[i];
+      corners[1][i] = a2[i];
     }
     else
     {
-      v12[i] = a1[i];
-      v11[i] = a2[i];
+      corners[1][i] = a1[i];
+      corners[0][i] = a2[i];
     }
   }
-  dist1 = v11[0]*a3[0] + v11[1]*a3[1] + v11[2]*a3[2] - a3[3];
-  dist2 = v12[0]*a3[0] + v12[1]*a3[1] + v12[2]*a3[2] - a3[3];
+  dist1 = corners[0][0]*a3[0] + corners[0][1]*a3[1] + corners[0][2]*a3[2] - a3[3];
+  dist2 = corners[1][0]*a3[0] + corners[1][1]*a3[1] + corners[1][2]*a3[2] - a3[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;
@@ -21288,12 +21287,15 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
                               * *v3 → viewanglespeed[i].  The ++v3 walk advances all three in lockstep. */
   v4 = 2;
   v11 = v10 * bs->thinktime;
-  v5 = v2 * bs->thinktime;
-  v9 = v5;
+  v9 = v2 * bs->thinktime;
   do
   {
-    AngleDifference(*(v3 - 6), *(v3 - 3));
-    v5 = (float)abs((__int64)v5);
+    /* IDA dropped the FPU return of AngleDifference: the original fed its
+     * ST(0) result straight into __ftol + cdq/xor/sub abs (.text 100291fb→
+     * 1002920b), i.e. v5 = abs((int)AngleDifference(viewangles[i],
+     * ideal_viewangles[i])).  Our prior form discarded the call and abs'd a
+     * stale v5 — both an asm divergence and a behaviour bug. */
+    v5 = (float)abs((__int64)AngleDifference(*(v3 - 6), *(v3 - 3)));
     if ( v5 > *v3 )
     {
       v6 = v11 + *v3;
