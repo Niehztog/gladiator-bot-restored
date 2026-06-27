@@ -2509,10 +2509,8 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
     trace->allsolid   = 0;
     trace->startsolid = 0;
   }
-  trace->endpos[0] = endpos[0];
-  trace->endpos[1] = endpos[1];
   v16 = a9;
-  trace->endpos[2] = endpos[2];
+  VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
   v17 = dplanes + 20 * *(unsigned __int16 *)(dbrushsides + 4 * v16);
   trace->plane.normal[0] = *(float *)v17;
