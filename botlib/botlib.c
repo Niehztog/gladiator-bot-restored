@@ -18507,46 +18507,33 @@ int __cdecl BotChat_Random(bot_state_t *bs)
 {
 
   float v1; // st7
-  int v3; // eax
-  double v4; // st7
   float rnd; // [esp+4h] [ebp-4h]
-  float v7; // [esp+Ch] [ebp+4h]
 
   v1 = libvar_nochat->value;
   if ( v1 != 0.0f )
     return 0;
-  v3 = bs->ltgtype;
-  switch ( v3 )
-  {
-    case 1:
-      return 0;
-    case 2:
-      return 0;
-    case 5:
-      return 0;
-  }
+  if ( bs->ltgtype == 1 || bs->ltgtype == 2 || bs->ltgtype == 5 )
+    return 0;
   /* IDA dropped fstps after BFloat (characteristic 21 = "random chat
    * probability"); rnd should be the bfloat result, not a copy of
    * libvar_nochat (which is 0 — making the rand check always true and
    * turning every BotChat_Random into return 0 on the !fastchat branch). */
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
-  if ( bs->thinktime * 0.1f < (float)(rand() & 0x7FFF) * 0.000030518509f )
+  if ( (float)(rand() & 0x7FFF) * 0.000030518509f > bs->thinktime * 0.1 )
     return 0;
   if ( libvar_fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25f )
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
       return 0;
   }
   if ( !BotValidChatPosition(bs) )
     return 0;
-  v4 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-  /* IDA dropped fstps after BFloat (characteristic 16 = "insult vs misc"
-   * probability); v7 should be the bfloat result, not a copy of v4. */
-  v7 = (float)Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f);
-  if ( v4 <= v7 )
-    BotInitialChat(&bs->chatstate, "random_insult", (char *)0, (char *)0);
-  else
-    BotInitialChat(&bs->chatstate, "random_misc", (char *)0, (char *)0);
+  if ( (float)(rand() & 0x7FFF) * 0.000030518509f < Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f) )
+  {
+    BotInitialChat(&bs->chatstate, "random_misc", (char *)0);
+    return 1;
+  }
+  BotInitialChat(&bs->chatstate, "random_insult", (char *)0);
   return 1;
 }
 
