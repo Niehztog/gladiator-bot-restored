@@ -7015,15 +7015,15 @@ int __cdecl sub_1000B1F0(float *ref, int target)
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
 int __cdecl AAS_BestReachableEntityArea(int entnum)
 {
-  /* +0x7c (124) is the entity's area-chain head (aas_entity_t::areas),
-   * accessed through the side-band-aware macro.  Ref has ONE extra (dead)
-   * `lea eax,&entities[entnum]` before the .areas load — the Q3 form
-   * `ent = &aasworld.entities[entnum]; ent->areas` — but MSVC6 /O2 in our
-   * build folds ent->areas into the indexed load and eliminates that lea even
-   * with the explicit address-of (tested 2026-06-21, 32-bit-gated). The dead
-   * lea is an un-reproducible MSVC6 micro-quirk; OUR-1 / 1 differing line. */
+#if BOTLIB_NEED_SIDEBAND
   aas_link_t *links = AAS_EntAreaLink(entnum);
   return AAS_BestReachableLinkArea(links);
+#else
+  aas_entity_t *ent;
+
+  ent = &aasworld.entities[entnum];
+  return AAS_BestReachableLinkArea(ent->areas);
+#endif
 }
 
 //----- (1000BAA0) --------------------------------------------------------
