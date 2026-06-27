@@ -15391,10 +15391,8 @@ void *__cdecl sub_1001C210(int *gate)
 {
   int    i;
   int    facenum;
-  int    planenum;
   aas_face_t  *face;
   aas_area_t  *area;
-  aas_plane_t *plane;
 
   if ( !aasworld.loaded )
     return 0;
@@ -15405,11 +15403,9 @@ void *__cdecl sub_1001C210(int *gate)
   {
     facenum = aasworld.faceindex[area->firstface + i];
     face = &aasworld.faces[abs(facenum)];
-    planenum = face->planenum;
-    if ( ((planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
+    if ( ((face->planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
       continue;
-    plane = &aasworld.planes[planenum];
-    if ( AAS_InsideFace(face, (float *)plane, (float *)((char *)gate + 8), 0.01f) )
+    if ( AAS_InsideFace(face, (float *)&aasworld.planes[face->planenum], (float *)(gate + 2), 0.01f) )
       return face;
   }
   return 0;
