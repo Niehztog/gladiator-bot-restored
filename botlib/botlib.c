@@ -19730,8 +19730,7 @@ void __cdecl sub_10025070(void)
 
         VectorCopy(l.goalorigin, l.start);
         l.start[2] += 24.0f;
-        VectorCopy(l.start, l.end);
-        l.end[2] -= 100.0f;
+        VectorSet(l.end, l.start[0], l.start[1], l.start[2] - 100.0f);
         l.trace = AAS_TraceClientBBox(l.start, l.end, 4, -1);
         if ( !l.trace.startsolid )
           VectorCopy(l.trace.endpos, l.goalorigin);
