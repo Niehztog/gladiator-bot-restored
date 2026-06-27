@@ -16504,7 +16504,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         v26 = bs->teamgoal.origin;
         if ( AAS_Time() > bs->teamgoal_time )
         {
-          BotInitialChat(&bs->chatstate, "camp_stop", (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "camp_stop", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->ltgtype = 0;
         }
@@ -16541,7 +16541,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             bs->attackcrouch_time = AAS_Time() - 1;
           if ( (sub_10003080((float *)bs->eye) & 0x38) != 0 )
           {
-            BotInitialChat(&bs->chatstate, "camp_stop", (char *)0, (char *)0);
+            BotInitialChat(&bs->chatstate, "camp_stop", (char *)0);
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->ltgtype = 0;
           }
@@ -16610,7 +16610,7 @@ LABEL_106:
       case 4:
         if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
-          BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
@@ -20887,11 +20887,11 @@ LABEL_64:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 6:
-          BotInitialChat(&bs->chatstate, "camping", (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "camping", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 7:
-          BotInitialChat(&bs->chatstate, "patrolling", (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "patrolling", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 4:
@@ -20900,7 +20900,7 @@ LABEL_64:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 5:
-          BotInitialChat(&bs->chatstate, "rushingbase", (char *)0, (char *)0);
+          BotInitialChat(&bs->chatstate, "rushingbase", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         default:
