@@ -15649,56 +15649,50 @@ int sub_1001C760(char *Source)
   aasworld.soundinfo = (soundinfo_t *)GetClearedMemory(sizeof(soundinfo_t) * v2);
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( sub_10041F60(Destination, &file_ref) )
-  {
-    v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    v5 = v4;
-    if ( v4 )
-    {
-      aasworld.numsoundinfo = 0;
-      while ( PC_ReadTokenHandle(v5, ArgList) )
-      {
-        if ( !strcmp(ArgList, "soundinfo") )
-        {
-          if ( aasworld.numsoundinfo >= v2 )
-          {
-            SourceError(v5, "more than %d sound infos defined\n", v2);
-            FreeSource(v5);
-            return 0;
-          }
-          memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
-          if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
-          {
-            FreeSource(v5);
-            return 0;
-          }
-          ++aasworld.numsoundinfo;
-        }
-        else
-        {
-          SourceError(v5, "unknown definition %s\n", ArgList);
-          FreeSource(v5);
-          return 0;
-        }
-      }
-      FreeSource(v5);
-      if ( file_ref.filelen )
-        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
-      else
-        botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-      return 1;
-    }
-    else
-    {
-      botimport.Print(PRT_ERROR, "counldn't load %s\n", Destination);
-      return 0;
-    }
-  }
-  else
+  if ( !sub_10041F60(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
+  v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  v5 = v4;
+  if ( !v4 )
+  {
+    botimport.Print(PRT_ERROR, "counldn't load %s\n", Destination);
+    return 0;
+  }
+  aasworld.numsoundinfo = 0;
+  if ( PC_ReadTokenHandle(v5, ArgList) )
+  {
+    while ( !strcmp(ArgList, "soundinfo") )
+    {
+      if ( aasworld.numsoundinfo >= v2 )
+      {
+        SourceError(v5, "more than %d sound infos defined\n", v2);
+        FreeSource(v5);
+        return 0;
+      }
+      memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
+      if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
+      {
+        FreeSource(v5);
+        return 0;
+      }
+      ++aasworld.numsoundinfo;
+      if ( !PC_ReadTokenHandle(v5, ArgList) )
+        goto LABEL_15;
+    }
+    SourceError(v5, "unknown definition %s\n", ArgList);
+    FreeSource(v5);
+    return 0;
+  }
+LABEL_15:
+  FreeSource(v5);
+  if ( file_ref.filelen )
+    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+  else
+    botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
+  return 1;
 }
 
 //----- (1001CAB0) --------------------------------------------------------
