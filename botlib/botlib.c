@@ -28665,8 +28665,6 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 {
-  double v3; // st7
-
   do
   {
     if ( fs->child )
