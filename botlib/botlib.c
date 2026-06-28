@@ -1392,13 +1392,14 @@ bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEnt
 int dword_1006439C; // weak
 /* bot_character layout (private to botlib; not shared with engine):
  *   { int numcharacteristics; bot_characteristic_t pairs[N]; char strings[]; }
- * The original 32-bit DLL stored pairs as raw int[2] (type@+0 byte, value@+4).
- * Restored as a typed struct so the value slot is naturally pointer-sized
- * (4 bytes on 32-bit, 8 on 64-bit), eliminating the truncation that
- * decompiled `(char *)a1[2*i+2]` would produce on 64-bit. */
+ * The original 32-bit DLL stored each pair as raw int[2]: a byte-sized type
+ * in the first dword (offset +0, with padding) and the value in the second
+ * dword (offset +4).  Keep that byte field explicit so MSVC6 emits the same
+ * byte loads/stores on 32-bit, while intptr_t preserves the pointer-sized
+ * value slot needed by the 64-bit port. */
 typedef struct bot_characteristic_s {
-    intptr_t type;   /* low byte: 0=unset, 1=int, 2=float, 3=string */
-    intptr_t value;  /* int, float (via *(float*)&value), or char * */
+    unsigned char type; /* 0=unset, 1=int, 2=float, 3=string */
+    intptr_t      value; /* int, float (via *(float*)&value), or char * */
 } bot_characteristic_t;
 typedef struct bot_character_s {
     int numcharacteristics;
@@ -21734,7 +21735,6 @@ void __cdecl BotDumpCharacter(int *ch)
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 {
   bot_character_t *ch; // ebx
-  bot_characteristic_t *pairs; // (pairs base)
   int v4; // ebp
   source_t *v5; // eax
   source_t *v6; // edi
@@ -21755,7 +21755,6 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   char Destination[260];
 
   ch = 0;
-  pairs = 0;
   strncpy(Destination, charfile, 0x104u);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
@@ -21787,141 +21786,143 @@ LABEL_39:
         botimport.Print(PRT_ERROR, "couldn't find character %s in %s\n", a2, file_ref.path);
         return 0;
       }
-      if ( !v4 )
-      {
-        /* header + (v7+1) pair slots + string area.  The original
-         * `GetClearedMemory(v15 + 8 * v7 + 12)` reserved v7+1 pair
-         * slots: 4 (numchars) + 8*(v7+1) + v15. */
-        size_t header = ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1));
-        ch = (bot_character_t *)GetClearedMemory(header + sizeof(bot_characteristic_t) * (v7 + 1) + v15);
-        ch->numcharacteristics = v7;
-        pairs = BC_PAIRS(ch);
-        v18 = (char *)&pairs[v7 + 1];
-      }
-      v16 = ++v4;
-      if ( v4 >= 2 )
-      {
-        if ( file_ref.filelen )
-          botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, Destination);
-        else
-          botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
-        return ch;
-      }
-    }
-    while ( !strcmp(token.string, "character") )
+  if ( !v4 )
+  {
+    /* Original allocates `12 + 8 * numchars + strings` on 32-bit:
+     * 4-byte count, one extra pair slot, then the string tail.  This
+     * expression preserves that layout on 32-bit while scaling the pair
+     * storage correctly for the 64-bit port. */
+    ch = (bot_character_t *)GetClearedMemory(
+      v15
+      + sizeof(bot_characteristic_t) * v7
+      + ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))
+      + sizeof(bot_characteristic_t));
+    ch->numcharacteristics = v7;
+    v18 = (char *)&BC_PAIRS(ch)[v7 + 1];
+  }
+  v16 = ++v4;
+  if ( v4 < 2 )
+    continue;
+  if ( file_ref.filelen )
+    botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, Destination);
+  else
+    botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
+  return ch;
+  }
+  while ( !strcmp(token.string, "character") )
+  {
+  v8 = source;
+  if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
+    goto LABEL_52;
+  StripDoubleQuotes(token.string);
+  if ( !PC_ExpectTokenString(source, "{") )
+    goto LABEL_52;
+  if ( strcmp(token.string, a2) )
+  {
+    v10 = 1;
+    while ( 1 )
     {
       v8 = source;
-      if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
-        goto LABEL_52;
-      StripDoubleQuotes(token.string);
-      if ( !PC_ExpectTokenString(source, "{") )
-        goto LABEL_52;
-      if ( strcmp(token.string, a2) )
+      if ( !PC_ExpectAnyToken(source, token.string) )
+        break;
+      if ( !strcmp(token.string, "{") )
       {
-        v10 = 1;
-        while ( 1 )
-        {
-          v8 = source;
-          if ( !PC_ExpectAnyToken(source, token.string) )
-            break;
-          if ( !strcmp(token.string, "{") )
-          {
-            ++v10;
-          }
-          else if ( !strcmp(token.string, "}") )
-          {
-            --v10;
-          }
-          if ( !v10 )
-            goto LABEL_37;
-        }
+        ++v10;
+      }
+      else if ( !strcmp(token.string, "}") )
+      {
+        --v10;
+      }
+      if ( !v10 )
+        goto LABEL_37;
+    }
 LABEL_52:
-        FreeSource(v8);
+    FreeSource(v8);
+    return 0;
+  }
+  v17 = 1;
+  if ( PC_ExpectAnyToken(source, token.string) )
+  {
+    while ( strcmp(token.string, "}") )
+    {
+      if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
+      {
+        v12 = token.string;
+        v11 = "expected integer index, found %s\n";
+        goto LABEL_54;
+      }
+      v9 = token.intvalue;
+      if ( v9 > v14 )
+        v14 = v9;
+      if ( v16 && BC_PAIRS(ch)[token.intvalue].type )
+      {
+        v12 = token.intvalue;
+        v11 = "characteristic %d already initialized\n";
+        goto LABEL_54;
+      }
+      if ( !PC_ExpectAnyToken(source, token.string) )
+      {
+        FreeSource(source);
         return 0;
       }
-      v17 = 1;
-      if ( PC_ExpectAnyToken(source, token.string) )
+      if ( token.type == 3 )
       {
-        while ( strcmp(token.string, "}") )
+        if ( v16 )
         {
-          if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
+          if ( (token.subtype & 0x800) != 0 )
           {
-            v12 = token.string;
-            v11 = "expected integer index, found %s\n";
-            goto LABEL_54;
-          }
-          v9 = token.intvalue;
-          if ( token.intvalue > v14 )
-            v14 = token.intvalue;
-          if ( v16 && (unsigned char)pairs[token.intvalue].type )
-          {
-            v12 = token.intvalue;
-            v11 = "characteristic %d already initialized\n";
-            goto LABEL_54;
-          }
-          if ( !PC_ExpectAnyToken(source, token.string) )
-          {
-            FreeSource(source);
-            return 0;
-          }
-          if ( token.type == 3 )
-          {
-            if ( v16 )
-            {
-              if ( (token.subtype & 0x800) != 0 )
-              {
-                *(float *)&pairs[v9].value = token.floatvalue;
-                pairs[v9].type = 2;
-              }
-              else
-              {
-                pairs[v9].value = (intptr_t)token.intvalue;
-                pairs[v9].type = 1;
-              }
-            }
+            *(float *)&BC_PAIRS(ch)[v9].value = token.floatvalue;
+            BC_PAIRS(ch)[v9].type = 2;
           }
           else
           {
-            if ( token.type != 1 )
-            {
-              SourceError(source,
-                          "expected integer, float or string, found %s\n",
-                          token.string);
-              FreeSource(source);
-              return 0;
-            }
-            StripDoubleQuotes(token.string);
-            if ( v16 )
-            {
-              strcpy(v18, token.string);
-              pairs[v9].value = (intptr_t)v18;
-              pairs[v9].type = 3;
-              v18 += strlen(token.string) + 1;
-            }
-            else
-            {
-              v15 += strlen(token.string) + 1;
-            }
+            BC_PAIRS(ch)[v9].value = (intptr_t)token.intvalue;
+            BC_PAIRS(ch)[v9].type = 1;
           }
-          if ( !PC_ExpectAnyToken(source, token.string) )
-            break;
         }
       }
-LABEL_37:
-      v6 = source;
-      if ( !PC_ReadTokenHandle(source, token.string) )
+      else
       {
-        v7 = v14;
-        v4 = v16;
-        goto LABEL_39;
+        if ( token.type != 1 )
+        {
+          SourceError(source,
+                      "expected integer, float or string, found %s\n",
+                      token.string);
+          FreeSource(source);
+          return 0;
+        }
+        StripDoubleQuotes(token.string);
+        if ( v16 )
+        {
+          strcpy(v18, token.string);
+          BC_PAIRS(ch)[v9].value = (intptr_t)v18;
+          BC_PAIRS(ch)[v9].type = 3;
+          v18 += strlen(token.string) + 1;
+        }
+        else
+        {
+          v15 += strlen(token.string) + 1;
+        }
       }
+      if ( !PC_ExpectAnyToken(source, token.string) )
+        break;
     }
-    v12 = token.string;
-    v11 = "unknown definition %s\n";
+  }
+LABEL_37:
+  v6 = source;
+  if ( !PC_ReadTokenHandle(source, token.string) )
+  {
+    v7 = v14;
+    v4 = v16;
+    goto LABEL_39;
+  }
+  }
+  v12 = token.string;
+  v11 = "unknown definition %s\n";
 LABEL_54:
-    SourceError(source, v11, v12);
-    FreeSource(source);
-    return 0;
+  SourceError(source, v11, v12);
+  FreeSource(source);
+  return 0;
 }
 
 //----- (1002A590) --------------------------------------------------------
