@@ -749,7 +749,7 @@ int __cdecl EA_MoveUp(int client);
 int __cdecl EA_MoveForward(int client);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
-int __cdecl EA_EndRegular(int client, float thinktime);
+void __cdecl EA_EndRegular(int client, float thinktime);
 int EA_Setup();
 void EA_Shutdown();
 int __cdecl sub_100376B0(char *String1, __int16);
@@ -21036,8 +21036,7 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 //----- (10028A40) --------------------------------------------------------
 int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 {
-
-  return EA_EndRegular(bs->client, a2);
+  return ((int (__cdecl *)(int, float))EA_EndRegular)(bs->client, a2);
 }
 
 //----- (10028A70) --------------------------------------------------------
@@ -21052,12 +21051,14 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
     dword_1006446C = 0;
   if ( bs->inuse_marker )
   {
-    EA_Command(bs->client, "gender",
-               Characteristic_String(BotCharacter(bs), 3), (char *)0);
+    char *characteristic_string;
+
+    characteristic_string = Characteristic_String(BotCharacter(bs), 3);
+    EA_Command(bs->client, "gender", characteristic_string, (char *)0);
     if ( LibVarValue("altnames", (char *)"0") != 0.0f )
     {
-      EA_Command(bs->client, "name",
-                 Characteristic_String(BotCharacter(bs), 1), (char *)0);
+      characteristic_string = Characteristic_String(BotCharacter(bs), 1);
+      EA_Command(bs->client, "name", characteristic_string, (char *)0);
     }
     bs->inuse_marker = 0;
   }
@@ -21073,15 +21074,19 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
   }
   BotResetNodeSwitches();
   i = 0;
-  while ( !(BotAINode(bs))(bs) )
+  while ( 1 )
   {
-    if ( ++i >= 50 )
-    {
-      BotDumpGoalStack(bs->goalstate);
-      BotDumpAvoidGoals(bs->goalstate);
-      BotDumpNodeSwitches(bs);
+    if ( (BotAINode(bs))(bs) )
       break;
-    }
+    if ( ++i < 50 )
+      continue;
+    break;
+  }
+  if ( i >= 50 )
+  {
+    BotDumpGoalStack(bs->goalstate);
+    BotDumpAvoidGoals(bs->goalstate);
+    BotDumpNodeSwitches(bs);
   }
   result = *(_DWORD *)bs;
   if ( *(_DWORD *)bs )
@@ -25099,6 +25104,7 @@ int BotUpdateEntityItems()
   levelitem_t *li;
   int v7; // eax
   int v11; // ecx
+  iteminfo_t *item;
   levelitem_t *v13;
   int v16; // eax
   itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
@@ -25184,13 +25190,17 @@ LABEL_25:
       v4 = 0;
       if ( ic->numitems > 0 )
       {
-        do
+        item = ic->items;
+        while ( 1 )
         {
-          if ( ic->items[v4].modelindex == modelindex )
+          if ( item->modelindex == modelindex )
             break;
           ++v4;
+          ++item;
+          if ( v4 < v11 )
+            continue;
+          break;
         }
-        while ( v4 < v11 );
       }
       if ( v4 < v11 )
       {
@@ -29165,7 +29175,7 @@ void __cdecl EA_View(int client, vec3_t viewangles)
  * jumped this frame) latch EA_JUMPEDLASTFRAME so the next call to
  * EA_Jump emits a key release.  This is the same press/release latch
  * pattern Q3's botlib uses around ACTION_JUMPEDLASTFRAME. */
-int __cdecl EA_EndRegular(int client, float thinktime)
+void __cdecl EA_EndRegular(int client, float thinktime)
 {
   ea_state_t *ea = &ea_controls[client];
   qboolean jumped_this_frame;
@@ -29186,13 +29196,6 @@ int __cdecl EA_EndRegular(int client, float thinktime)
   ea->flags    = 0;
   if ( jumped_this_frame )
     ea->flags = EA_JUMPEDLASTFRAME;
-  /* Residual: ref reuses the live eax=0 from the field clears for this
-   * `return 0`; MSVC6 here re-materialises it (`xor eax,eax` at the if-merge)
-   * = the lone OUR+1.  Can't void-ify (Q3's `void EA_EndRegular`) — the only
-   * caller sub_10028A40 forwards the result (`return EA_EndRegular(...)`,
-   * MATCH as call+ret) and needs the int; a convergent-exit `result` var
-   * doesn't move it.  A genuine cl.exe return-constant-reuse tie. */
-  return 0;
 }
 
 //----- (10037660) --------------------------------------------------------
@@ -29217,45 +29220,59 @@ void EA_Shutdown()
 int __cdecl sub_100376B0(char *String1, __int16 a2)
 {
   scriptcrc_t *v2; // esi
+  scriptcrc_t *v5;
   scriptcrc_t *v6; // edi (prev)
   scriptcrc_t *v4; // ebx (new record)
   int result;
 
-  for ( v2 = dword_10063F2C; v2; v2 = v2->next )
+  v2 = dword_10063F2C;
+  if ( !v2 )
+    goto LABEL_6;
+  while ( 1 )
   {
     result = _strcmpi(String1, v2->name);
     if ( !result )
-      break;
+      return result;
+    v2 = v2->next;
+    if ( !v2 )
+      goto LABEL_6;
   }
-  if ( v2 )
-    return result;
+LABEL_6:
   v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
   v4->hash = a2;
   strcpy(v4->name, String1);
   result = 0;
-  for ( v2 = dword_10063F2C, v6 = NULL; v2; v6 = v2, v2 = v2->next )
+  v6 = NULL;
+  v5 = dword_10063F2C;
+  if ( v5 )
   {
-    result = _strcmpi(v4->name, v2->name);
-    if ( result < 0 )
+    while ( 1 )
     {
-      v4->next = v2;
-      if ( v6 )
-        v6->next = v4;
-      else
-        dword_10063F2C = v4;
-      return result;
+      result = _strcmpi(v4->name, v5->name);
+      if ( result < 0 )
+      {
+        v4->next = v5;
+        if ( v6 )
+          v6->next = v4;
+        else
+          dword_10063F2C = v4;
+        return result;
+      }
+      v6 = v5;
+      v5 = v5->next;
+      if ( !v5 )
+        break;
     }
-  }
-  if ( v6 )
-  {
+    if ( !v6 )
+      goto LABEL_14;
     v6->next = v4;
-    v4->next = v2;
   }
   else
   {
+LABEL_14:
     dword_10063F2C = v4;
-    v4->next = NULL;
   }
+  v4->next = NULL;
   return result;
 }
 
@@ -33944,16 +33961,20 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   if ( fread_locked(script->buffer, length, 1u, fp) != 1 )
   {
     FreeMemory(script);
-    fclose(fp);
-    return NULL;
+    script = NULL;
   }
   fclose(fp);
-  memcpy(v10, &unk_10060418, 0x48u);
-  memset(&v10[72], 0, 0x48u);
-  if ( !sub_10037850(FileName, (const unsigned char *)script->buffer, script->length) )
   {
-    LibVar("__squatt", (char *)"1");
-    botimport.Print(PRT_EXIT, &v10[3]);
+    const unsigned char *buffer;
+
+    memcpy(v10, &unk_10060418, 0x48u);
+    buffer = (const unsigned char *)script->buffer;
+    memset(&v10[72], 0, 0x48u);
+    if ( !sub_10037850(FileName, buffer, script->length) )
+    {
+      LibVar("__squatt", (char *)"1");
+      botimport.Print(PRT_EXIT, &v10[3]);
+    }
   }
   return script;
 }
