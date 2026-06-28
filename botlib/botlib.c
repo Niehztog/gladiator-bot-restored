@@ -10518,7 +10518,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     }
     {
       {
-        v7 = *((_DWORD *)area1 + 1);
+        v7 = ((aas_area_t *)area1)->numfaces;
         ground_foundreach = 0;
         ground_bestdist = 99999.0f;
         ground_bestlength = 0.0f;
@@ -10530,23 +10530,23 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           return 0;
         do
         {
-          groundface1num = aasworld.faceindex[i + *((_DWORD *)v127 + 2)];
+          groundface1num = aasworld.faceindex[i + ((aas_area_t *)v127)->firstface];
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
           if ( (groundface1[4] & 4) != 0
             || area1swim
-            && up[2] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[2]
-             + up[1] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[1]
-             + up[0] * aasworld.planes[(*(_DWORD *)groundface1 ^ (groundface1num >= 0))].normal[0] >= 0.7 )
+            && up[2] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[2]
+             + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[1]
+             + up[0] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[0] >= 0.7 )
           {
-            v10 = *((_DWORD *)groundface1 + 2);
+            v10 = ((aas_face_t *)groundface1)->numedges;
             k = 0;
             if ( v10 > 0 )
             {
               do
               {
-                edge1num = aasworld.edgeindex[k + *((_DWORD *)groundface1 + 3)];
+                edge1num = aasworld.edgeindex[k + ((aas_face_t *)groundface1)->firstedge];
                 side1 = edge1num < 0;
                 if ( (groundface1[4] & 4) == 0 )
                   side1 = side1 == faceside1;
@@ -10568,18 +10568,18 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                 VectorNormalize(normal);
                 v18 = 0;
                 dist = normal[2] * *(float *)&v71 + normal[1] * *(float *)&v70 + normal[0] * v69;
-                if ( *(int *)(area2 + 4) > 0 )
+                if ( ((aas_area_t *)area2)->numfaces > 0 )
                 {
                   v19 = area2;
                   do
                   {
-                    v20 = aasworld.faceindex[v18 + *(_DWORD *)(v19 + 8)];
+                    v20 = aasworld.faceindex[v18 + ((aas_area_t *)v19)->firstface];
                     groundface2 = &aasworld.faces[abs(v20)];
                     if ( (groundface2[4] & 4) != 0 )
                     {
-                      for ( j = 0; j < *((_DWORD *)groundface2 + 2); ++j )
+                      for ( j = 0; j < ((aas_face_t *)groundface2)->numedges; ++j )
                       {
-                        edge2num = aasworld.edgeindex[j + *((_DWORD *)groundface2 + 3)];
+                        edge2num = aasworld.edgeindex[j + ((aas_face_t *)groundface2)->firstedge];
                         edge2 = &aasworld.edges[abs(edge2num)];
                         v23p = &aasworld.vertexes[*edge2];
                         v78 = *(float *)v23p;
@@ -10838,16 +10838,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                     v19 = area2;
                     ++v18;
                   }
-                  while ( v18 < *(_DWORD *)(area2 + 4) );
+                  while ( v18 < ((aas_area_t *)area2)->numfaces );
                   groundface1 = v126;
                 }
-                v42 = *((_DWORD *)groundface1 + 2);
+                v42 = ((aas_face_t *)groundface1)->numedges;
                 ++k;
               }
               while ( k < v42 );
             }
           }
-          v43 = *((_DWORD *)v127 + 1);
+          v43 = ((aas_area_t *)v127)->numfaces;
           ++i;
         }
         while ( i < v43 );
@@ -15123,27 +15123,25 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
  * a1 = start (vec3*), a2 = end (vec3*), a3 = areas[] output, a4 = maxareas. */
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 {
+  int side, nodenum, tmpplanenum;
+  int numareas;
+  float front, back, frac;
+  vec3_t cur_start, cur_end, cur_mid;
   aas_tracestack_t tracestack[64];
   aas_tracestack_t *tstack_p;
   aas_node_t *aasnode;
-  float *plane;
-  float front, back, frac;
-  float cur_start_x, cur_start_y, cur_start_z;
-  float cur_end_x, cur_end_y, cur_end_z;
-  float cur_mid_x, cur_mid_y, cur_mid_z;
-  int nodenum, tmpplanenum;
-  int numareas;
+  aas_plane_t *plane;
 
   numareas = 0;
   areas[0] = 0;
   if ( !aasworld.loaded )
-    return 0;
+    return numareas;
 
   tstack_p = tracestack;
   VectorCopy(start, tstack_p->start);
   VectorCopy(end, tstack_p->end);
   tstack_p->planenum = 0;
-  tstack_p->nodenum  = 1;     /* root of BSP */
+  tstack_p->nodenum = 1;     /* root of BSP */
   tstack_p++;
 
   while ( 1 )
@@ -15151,30 +15149,26 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     tstack_p--;
     if ( tstack_p < tracestack )
       return numareas;
+
     nodenum = tstack_p->nodenum;
     if ( nodenum < 0 )
     {
-      /* leaf representing area (-nodenum) */
       areas[numareas] = -nodenum;
-      ++numareas;
+      numareas++;
       if ( numareas >= maxareas )
         return numareas;
       continue;
     }
     if ( !nodenum )
-      continue;     /* solid leaf — ignore for area collection */
+      continue;
 
-    /* interior node — split the trace by the node's plane */
-    aasnode = (aas_node_t *)((char *)aasworld.nodes + 12 * nodenum);
-    cur_start_x = tstack_p->start[0];
-    cur_start_y = tstack_p->start[1];
-    cur_start_z = tstack_p->start[2];
-    cur_end_x   = tstack_p->end[0];
-    cur_end_y   = tstack_p->end[1];
-    cur_end_z   = tstack_p->end[2];
-    plane = (float *)&aasworld.planes[aasnode->planenum];
-    front = cur_start_x * plane[0] + cur_start_y * plane[1] + cur_start_z * plane[2] - plane[3];
-    back  = cur_end_x   * plane[0] + cur_end_y   * plane[1] + cur_end_z   * plane[2] - plane[3];
+    aasnode = &aasworld.nodes[nodenum];
+    VectorCopy(tstack_p->start, cur_start);
+    VectorCopy(tstack_p->end, cur_end);
+    plane = &aasworld.planes[aasnode->planenum];
+    front = DotProduct(cur_start, plane->normal) - plane->dist;
+    back = DotProduct(cur_end, plane->normal) - plane->dist;
+
     if ( front > 0.0f && back > 0.0f )
     {
       tstack_p->nodenum = aasnode->children[0];
@@ -15187,34 +15181,31 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     }
     else
     {
-      int side;
-      /* split: trace crosses this plane */
       tmpplanenum = tstack_p->planenum;
-      frac = front / (front - back);
+      /* The original kept the stripped-epsilon branch skeleton; collapsing it
+       * changes MSVC6's x87 compare/divide schedule. */
+      if ( front < 0.0f )
+        frac = front / (front - back);
+      else
+        frac = front / (front - back);
       if ( frac < 0.0f )
         frac = 0.0f;
       else if ( frac > 1.0f )
         frac = 1.0f;
-      cur_mid_x = (cur_end_x - cur_start_x) * frac + cur_start_x;
-      cur_mid_y = (cur_end_y - cur_start_y) * frac + cur_start_y;
-      cur_mid_z = (cur_end_z - cur_start_z) * frac + cur_start_z;
+      cur_mid[0] = cur_start[0] + (cur_end[0] - cur_start[0]) * frac;
+      cur_mid[1] = cur_start[1] + (cur_end[1] - cur_start[1]) * frac;
+      cur_mid[2] = cur_start[2] + (cur_end[2] - cur_start[2]) * frac;
+
       side = front < 0.0f;
-      /* push the back half: start = mid, end stays, planenum = node's plane */
-      tstack_p->start[0] = cur_mid_x;
-      tstack_p->start[1] = cur_mid_y;
-      tstack_p->start[2] = cur_mid_z;
+      VectorCopy(cur_mid, tstack_p->start);
       tstack_p->planenum = aasnode->planenum;
-      tstack_p->nodenum  = aasnode->children[!side];
+      tstack_p->nodenum = aasnode->children[!side];
       tstack_p++;
-      /* push the front half: start preserved, end = mid, planenum preserved */
-      tstack_p->start[0] = cur_start_x;
-      tstack_p->start[1] = cur_start_y;
-      tstack_p->start[2] = cur_start_z;
-      tstack_p->end[0]   = cur_mid_x;
-      tstack_p->end[1]   = cur_mid_y;
-      tstack_p->end[2]   = cur_mid_z;
+
+      VectorCopy(cur_start, tstack_p->start);
+      VectorCopy(cur_mid, tstack_p->end);
       tstack_p->planenum = tmpplanenum;
-      tstack_p->nodenum  = aasnode->children[side];
+      tstack_p->nodenum = aasnode->children[side];
       tstack_p++;
     }
   }
