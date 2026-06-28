@@ -15873,16 +15873,25 @@ aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
 int __cdecl sub_1001CDD0(int a1, int a2)
 {
   aas_soundpool_t *v2;
+  /* Faithful to objdump@1001CDD0: `result` is only seeded after the non-NULL
+   * head check, so the empty-list path falls through with the caller's
+   * incoming EAX value. All current callers ignore that return in this case. */
+  int result;
 
-  for ( v2 = aasworld.d_100669CC; v2; v2 = v2->next )
+  v2 = aasworld.d_100669CC;
+  if ( v2 )
   {
-    if ( ((int *)v2->data)[6] == a1 && ((int *)v2->data)[8] == a2 )
+    result = a2;
+    for ( ; v2; v2 = v2->next )
     {
-      sub_1001CCC0(v2);
-      return (int)(intptr_t)sub_1001CC10(v2);
+      if ( ((int *)v2->data)[6] == a1 && ((int *)v2->data)[8] == a2 )
+      {
+        sub_1001CCC0(v2);
+        return (int)(intptr_t)sub_1001CC10(v2);
+      }
     }
   }
-  return a2;
+  return result;
 }
 
 //----- (1001CE20) --------------------------------------------------------
