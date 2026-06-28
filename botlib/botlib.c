@@ -27373,11 +27373,9 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
       return 10;
     case 12:          // TRAVEL_ROCKETJUMP
       return 6;
-    case 13:          // TRAVEL_BFGJUMP
-      return 6;
     case 14:          // TRAVEL_GRAPPLEHOOK (silent)
       return 8;
-    default:          // out-of-range
+    default:          // incl. 13 TRAVEL_BFGJUMP and out-of-range
       botimport.Print(PRT_ERROR, "travel type %d not implemented yet\n", reach->traveltype);
       return 8;
   }
