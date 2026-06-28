@@ -27352,22 +27352,32 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
   switch ( reach->traveltype )
   {
     case 2:           // TRAVEL_WALK
+      return 5;
     case 3:           // TRAVEL_CROUCH
+      return 5;
     case 4:           // TRAVEL_BARRIERJUMP
+      return 5;
     case 5:           // TRAVEL_JUMP
-    case 7:           // TRAVEL_WALKOFFLEDGE
-    case 8:           // TRAVEL_SWIM
-    case 9:           // TRAVEL_WATERJUMP
-    case 10:          // TRAVEL_TELEPORT
       return 5;
     case 6:           // TRAVEL_LADDER
-    case 12:          // TRAVEL_ROCKETJUMP
       return 6;
+    case 7:           // TRAVEL_WALKOFFLEDGE
+      return 5;
+    case 8:           // TRAVEL_SWIM
+      return 5;
+    case 9:           // TRAVEL_WATERJUMP
+      return 5;
+    case 10:          // TRAVEL_TELEPORT
+      return 5;
     case 11:          // TRAVEL_ELEVATOR
       return 10;
+    case 12:          // TRAVEL_ROCKETJUMP
+      return 6;
+    case 13:          // TRAVEL_BFGJUMP
+      return 6;
     case 14:          // TRAVEL_GRAPPLEHOOK (silent)
       return 8;
-    default:          // incl. 13 TRAVEL_BFGJUMP and out-of-range
+    default:          // out-of-range
       botimport.Print(PRT_ERROR, "travel type %d not implemented yet\n", reach->traveltype);
       return 8;
   }
