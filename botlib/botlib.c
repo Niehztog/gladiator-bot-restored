@@ -267,9 +267,9 @@ void BotCheckAttack(bot_state_t *bs);
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
 int __cdecl AAS_AreaLadder(int areanum);
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
-int AAS_InitReachability();
+void AAS_InitReachability();
 itemconfig_t *LoadItemConfig(char *Source);
-int AAS_Optimize(void);
+void AAS_Optimize(void);
 int BotSetupChatAI();
 int sub_1001D260();
 float __cdecl Characteristic_Float(bot_character_t * character, int index);
@@ -329,7 +329,7 @@ void __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
 qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2);
 BOOL __cdecl sub_10005C90(float *a1, float *a2);
-int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
+void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves);
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum);
@@ -356,7 +356,7 @@ qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas);
 int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done);
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);
 int AAS_FindPossiblePortals();
-int AAS_RemoveAllPortals();
+void AAS_RemoveAllPortals();
 int AAS_ClearShownDebugLines();
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color);
@@ -379,7 +379,7 @@ void AAS_InvalidateEntities();
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *);
 int __cdecl AAS_NextBSPEntity(int ent);
-int AAS_SwapAASData();
+void AAS_SwapAASData();
 void *AAS_DumpAASData();
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length);
@@ -459,7 +459,7 @@ void AAS_CalculateAreaTravelTimes(void);
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 void __cdecl AAS_FreeRoutingCache(void *cache);
 void AAS_FreeAllClusterAreaCache(void);
-int AAS_InitClusterAreaCache();
+void AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
 void AAS_InitRouting(void);
@@ -501,7 +501,7 @@ aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1);
 int __cdecl sub_1001CDD0(int a1, int a2);
 int __cdecl sub_1001CE20(intptr_t, int, int, int, int, int, float);
 void __cdecl sub_1001CFA0(float a1);
-int *sub_1001D140();
+void sub_1001D140();
 void BotResetNodeSwitches();
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs);
 int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str);
@@ -3672,7 +3672,7 @@ void __cdecl sub_10005CF0(int row_index, int value)
  * Each Q2 dmodel_t entry is 48 bytes: mins[3], maxs[3], origin[3], headnode,
  * firstface, numfaces.  `dmodels` is the model array, `nummodels`
  * the count, `dword_100674C0` the loaded flag. */
-int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
+void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
   int    i;
   int    model_offset;
@@ -3682,14 +3682,14 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
   vec3_t axis[3];            /* rotation matrix from angles                 */
 
   if ( !dword_100674C0 )
-    return 0;
+    return;
   if ( modelnum < 0 || modelnum >= nummodels )
   {
     botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, nummodels);
     if ( mins )   { mins[0]   = 0; mins[1]   = 0; mins[2]   = 0; }
     if ( maxs )   { maxs[0]   = 0; maxs[1]   = 0; maxs[2]   = 0; }
     if ( origin ) { origin[0] = 0; origin[1] = 0; origin[2] = 0; }
-    return (int)origin;
+    return;
   }
 
   model_offset = 48 * modelnum;
@@ -3724,7 +3724,6 @@ int __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins,
     origin[1] = *(float *)(model_offset + dmodels + 28);
     origin[2] = *(float *)(model_offset + dmodels + 32);
   }
-  return (int)origin;
 }
 
 //----- (10006090) --------------------------------------------------------
@@ -5738,12 +5737,11 @@ int AAS_FindPossiblePortals()
 }
 
 //----- (100095C0) --------------------------------------------------------
-int AAS_RemoveAllPortals()
+void AAS_RemoveAllPortals()
 {
   int result; // eax
   int i; // ecx
 
-  result = aasworld.numareas;
   i = 1;
   if ( aasworld.numareas > 1 )
   {
@@ -5756,7 +5754,6 @@ int AAS_RemoveAllPortals()
     }
     while ( i < aasworld.numareas );
   }
-  return result;
 }
 
 //----- (10009610) --------------------------------------------------------
@@ -5785,11 +5782,10 @@ int AAS_TestPortals()
 }
 
 //----- (100096E0) --------------------------------------------------------
-int AAS_InitClustering()
+void AAS_InitClustering()
 {
   int v1; // rax (was __int64)
 
-  v1 = aasworld.loaded;
   if ( aasworld.loaded )
   {
     if ( aasworld.numclusters < 1
@@ -5822,10 +5818,9 @@ int AAS_InitClustering()
       while ( !AAS_TestPortals() );
       aasworld.savefile = 1;
       botimport.Print(PRT_MESSAGE, "\r%6d portals created\n", aasworld.numportals);
-      v1 = botimport.Print(PRT_MESSAGE, "\r%6d clusters created\n", aasworld.numclusters);
+      botimport.Print(PRT_MESSAGE, "\r%6d clusters created\n", aasworld.numclusters);
     }
   }
-  return v1;
 }
 
 //----- (10009860) --------------------------------------------------------
@@ -7076,7 +7071,7 @@ int __cdecl AAS_NextBSPEntity(int ent)
 }
 
 //----- (1000BBA0) --------------------------------------------------------
-int AAS_SwapAASData()
+void AAS_SwapAASData()
 {
   int v0; // ebp
   int v1; // edi
@@ -7112,7 +7107,6 @@ int AAS_SwapAASData()
   int v61; // edi
   int v62; // esi
   int m; // esi
-  int result; // eax
   int v71; // edi
   int v72; // esi
 
@@ -7316,7 +7310,6 @@ int AAS_SwapAASData()
   {
     aasworld.portalindex[m] = LittleLong(aasworld.portalindex[m]);
   }
-  result = aasworld.numclusters;
   v71 = 0;
   if ( aasworld.numclusters > 0 )
   {
@@ -7327,12 +7320,10 @@ int AAS_SwapAASData()
       *(_DWORD *)((char *)aasworld.clusters + v72 + 4) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 4));
       ++v71;
       *(_DWORD *)((char *)aasworld.clusters + v72 + 8) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 8));
-      result = aasworld.numclusters;
       v72 += 12;
     }
     while ( v71 < aasworld.numclusters );
   }
-  return result;
 }
 
 //----- (1000C490) --------------------------------------------------------
@@ -9625,7 +9616,7 @@ int __cdecl AAS_OptimizeStore(optimized_t *optimized)
 }
 
 //----- (10010E90) --------------------------------------------------------
-int AAS_Optimize()
+void AAS_Optimize()
 {
   int i; // esi
   int v1; // edx
@@ -9654,7 +9645,7 @@ int AAS_Optimize()
     while ( v1 < aasworld.reachabilitysize );
   }
   AAS_OptimizeStore(&optimized);
-  return botimport.Print(PRT_MESSAGE, "AAS data optimized.\n");
+  botimport.Print(PRT_MESSAGE, "AAS data optimized.\n");
 }
 
 //----- (10010F60) --------------------------------------------------------
@@ -13353,11 +13344,8 @@ int AAS_ContinueInitReachability(int time)
 }
 
 //----- (10018C70) --------------------------------------------------------
-int AAS_InitReachability()
+void AAS_InitReachability()
 {
-  int result; // eax
-
-  result = aasworld.loaded;
   if ( aasworld.loaded )
   {
     if ( !aasworld.reachabilitysize || (unsigned int)(int)LibVarGetValue("forcereachability") )
@@ -13366,15 +13354,13 @@ int AAS_InitReachability()
       aasworld.numreachabilityareas = 1;
       AAS_SetupReachabilityHeap();
       areareachability = (aas_reachabilitynode_t **)GetClearedMemory(aasworld.numareas * sizeof(aas_reachabilitynode_t *));
-      return AAS_SetWeaponJumpAreaFlags();
+      AAS_SetWeaponJumpAreaFlags();
     }
     else
     {
-      result = aasworld.numareas;
       aasworld.numreachabilityareas = aasworld.numareas;
     }
   }
-  return result;
 }
 
 //----- (10018D00) --------------------------------------------------------
@@ -13597,7 +13583,7 @@ void AAS_FreeAllClusterAreaCache(void)
 /* 64-bit-safe restoration.  Allocates one head row of
  * `aas_routingcache_t **` per cluster followed by per-cluster arrays of
  * `aas_routingcache_t *` (one slot per area in the cluster). */
-int AAS_InitClusterAreaCache(void)
+void AAS_InitClusterAreaCache(void)
 {
   int                          totalareas, i;
   aas_cluster_t               *clusters;
@@ -13620,7 +13606,6 @@ int AAS_InitClusterAreaCache(void)
     aasworld.clusterareacache[i] = row;
     row += clusters[i].numareas;
   }
-  return total_bytes;
 }
 
 //----- (100193E0) --------------------------------------------------------
@@ -16043,7 +16028,7 @@ float __cdecl sub_1001D0A0(float *listener, void *emitter)
 }
 
 //----- (1001D140) --------------------------------------------------------
-int *sub_1001D140()
+void sub_1001D140()
 {
   int i;
   int j;
@@ -16066,7 +16051,7 @@ int *sub_1001D140()
       }
     }
   }
-  return (int *)(intptr_t)(aasworld.d_100669BC = aasworld.soundindex_table->numindexes);
+  aasworld.d_100669BC = aasworld.soundindex_table->numindexes;
 }
 
 //----- (1001D260) --------------------------------------------------------
