@@ -340,7 +340,7 @@ int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
-int sub_100071E0();
+void sub_100071E0();
 int sub_10007460(void);
 int AAS_DumpBSPData();
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
@@ -397,7 +397,7 @@ char *__cdecl AAS_ModelFromIndex(int index);
 int __cdecl IndexFromModel(char *String2);
 char *__cdecl AAS_ImageFromIndex(int index);
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
-int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
+void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
 indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6);
 void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6);
@@ -446,7 +446,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
 int AAS_Reachability_Teleport();
-int AAS_Reachability_Elevator();
+void AAS_Reachability_Elevator();
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
@@ -465,7 +465,7 @@ int AAS_InitRoutingUpdate();
 void AAS_InitRouting(void);
 aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
-int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
+void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum);
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
@@ -752,7 +752,7 @@ void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
 void __cdecl EA_EndRegular(int client, float thinktime);
 int EA_Setup();
 void EA_Shutdown();
-int __cdecl sub_100376B0(char *String1, __int16);
+void __cdecl sub_100376B0(char *String1, __int16);
 int __cdecl sub_100377E0(char *String1, __int16);
 int __cdecl sub_10037850(char *String1, const unsigned char *, int);
 unsigned int Sys_MilliSeconds();
@@ -4399,7 +4399,7 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 }
 
 //----- (100071E0) --------------------------------------------------------
-int sub_100071E0()
+void sub_100071E0()
 {
   int result; // eax
   int v1; // edx
@@ -4497,7 +4497,7 @@ int sub_100071E0()
         break;
     }
   }
-  return result;
+  { (void)(result); return; }
 }
 
 //----- (10007460) --------------------------------------------------------
@@ -8086,7 +8086,7 @@ indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
 }
 
 //----- (1000DB40) --------------------------------------------------------
-int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names)
+void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names)
 {
   int i; // ebx
   const char *v5; // edi
@@ -8103,7 +8103,7 @@ int __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names)
       }
     }
   }
-  return numindexes;
+  { (void)(numindexes); return; }
 }
 
 //----- (1000DBD0) --------------------------------------------------------
@@ -12215,7 +12215,7 @@ int AAS_Reachability_Teleport()
 }
 
 //----- (100160E0) --------------------------------------------------------
-int AAS_Reachability_Elevator()
+void AAS_Reachability_Elevator()
 {
   bsp_entity_t *v0; // edi
   bsp_entity_t *ent; // ebp — current entity walk
@@ -12295,7 +12295,7 @@ int AAS_Reachability_Elevator()
 LABEL_58:
       v50 = ent->next;
       if ( !v50 )
-        return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
+        { (void)(((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0)); return; }
       ent = v50;
     }
     model = AAS_ValueForBSPEpairKey(ent, "model");
@@ -12511,7 +12511,7 @@ LABEL_56:
     }
     goto LABEL_30;
   }
-  return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
+  { (void)(((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0)); return; }
 }
 // 1001650B: conditional instruction was optimized away because esi.4<10
 // 10016781: conditional instruction was optimized away because ebp.4<10
@@ -13958,7 +13958,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
 }
 
 //----- (10019C00) --------------------------------------------------------
-int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
+void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 {
   /* Faithful 64-bit-safe transcription of 0x10019C00.  The original
    * decompilation walked aasworld.portalupdate via raw 40-byte byte
@@ -14067,7 +14067,7 @@ int __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
       break;
     cur = tail;
   }
-  return 0;
+  { (void)(0); return; }
 }
 
 //----- (10019EB0) --------------------------------------------------------
@@ -15689,7 +15689,7 @@ LABEL_15:
  *   node[i].next = node[i+1] (NULL at tail); free-head = pool base.
  * Restored to use struct field access so the +44 / +48 offsets become
  * proper aas_soundpool_t.prev / .next on both 32- and 64-bit. */
-int sub_1001CAB0()
+void sub_1001CAB0()
 {
   int v1;
   int i;
@@ -15717,7 +15717,7 @@ int sub_1001CAB0()
   aasworld.d_100669C4[v1 - 1].prev = &aasworld.d_100669C4[v1 - 2];
   aasworld.d_100669C4[v1 - 1].next = NULL;
   aasworld.d_100669C8 = aasworld.d_100669C4;
-  return (int)(intptr_t)aasworld.d_100669C4;
+  { (void)((int)(intptr_t)aasworld.d_100669C4); return; }
 }
 
 //----- (1001CBE0) --------------------------------------------------------
@@ -29205,7 +29205,7 @@ void EA_Shutdown()
  * is already in the list, returns the strcmpi result of the matching
  * record; otherwise allocates a fresh 152-byte scriptcrc_t, stores
  * hash+name, and inserts it in alphabetical order. */
-int __cdecl sub_100376B0(char *String1, __int16 a2)
+void __cdecl sub_100376B0(char *String1, __int16 a2)
 {
   scriptcrc_t *v2; // esi
   scriptcrc_t *v5;
@@ -29220,7 +29220,7 @@ int __cdecl sub_100376B0(char *String1, __int16 a2)
   {
     result = _strcmpi(String1, v2->name);
     if ( !result )
-      return result;
+      { (void)(result); return; }
     v2 = v2->next;
     if ( !v2 )
       goto LABEL_6;
@@ -29244,7 +29244,7 @@ LABEL_6:
           v6->next = v4;
         else
           dword_10063F2C = v4;
-        return result;
+        { (void)(result); return; }
       }
       v6 = v5;
       v5 = v5->next;
@@ -29261,7 +29261,7 @@ LABEL_14:
     dword_10063F2C = v4;
   }
   v4->next = NULL;
-  return result;
+  { (void)(result); return; }
 }
 
 //----- (100377E0) --------------------------------------------------------
