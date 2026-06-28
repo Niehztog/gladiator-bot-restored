@@ -12107,103 +12107,100 @@ int AAS_Reachability_Teleport()
     while ( 1 )
     {
       classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
-      if ( classname && !strcmp(classname, "misc_teleporter") )
+      /* Flat early-out guards with `continue` (goto cont) match the original's
+       * control flow: IDA nested these into if/else, which makes cl.exe
+       * cross-jump-merge the error-print cold blocks (callΔ-3).  Re-flattening
+       * keeps each Print inline as the original did. Behaviour-identical. */
+      if ( !classname || strcmp(classname, "misc_teleporter") )
+        goto cont;
+      if ( !AAS_VectorForBSPEpairKey(ent, "origin", origin) )
       {
-        if ( AAS_VectorForBSPEpairKey(ent, "origin", origin) )
+        botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
+        goto cont;
+      }
+      target = (const char *)AAS_ValueForBSPEpairKey(ent, "target");
+      v27 = target;
+      if ( !target )
+      {
+        botimport.Print(PRT_ERROR, "teleporter at %1.0f %1.0f %1.0f without target\n", origin[0], origin[1], origin[2]);
+        goto cont;
+      }
+      for ( dest = v26; dest; dest = dest->next )
+      {
+        v5 = (const char *)AAS_ValueForBSPEpairKey(dest, "classname");
+        if ( v5 )
         {
-          target = (const char *)AAS_ValueForBSPEpairKey(ent, "target");
-          v27 = target;
-          if ( target )
+          if ( !strcmp(v5, "misc_teleporter_dest") )
           {
-            for ( dest = v26; dest; dest = dest->next )
+            targetname = (const char *)AAS_ValueForBSPEpairKey(dest, "targetname");
+            if ( targetname )
             {
-              v5 = (const char *)AAS_ValueForBSPEpairKey(dest, "classname");
-              if ( v5 )
-              {
-                if ( !strcmp(v5, "misc_teleporter_dest") )
-                {
-                  targetname = (const char *)AAS_ValueForBSPEpairKey(dest, "targetname");
-                  if ( targetname )
-                  {
-                    if ( !strcmp(targetname, target) )
-                      break;
-                  }
-                }
-              }
-            }
-            if ( !dest )
-            {
-              botimport.Print(PRT_ERROR, "teleporter without destination (%s)\n", target);
-            }
-            else if ( AAS_VectorForBSPEpairKey(dest, "origin", destorigin) )
-            {
-              end[0] = destorigin[0];
-              end[1] = destorigin[1];
-              destorigin[2] = destorigin[2] + 24;
-              end[2] = destorigin[2] - 100;
-              trace = AAS_TraceClientBBox(destorigin, end, 4, -1);
-              if ( trace.startsolid )
-              {
-                botimport.Print(PRT_ERROR, "teleporter destination (%s) in solid\n", target);
-              }
-              else
-              {
-                VectorCopy(trace.endpos, destorigin);
-                area2num = AAS_PointAreaNum(destorigin);
-                mins[0] = -8.0;
-                mins[1] = -8.0;
-                mins[2] = 8.0;
-                maxs[0] = 8.0;
-                maxs[1] = 8.0;
-                maxs[2] = 24.0;
-                AAS_PresenceTypeBoundingBox(4, v29, v30);
-                mins[1] = mins[1] + origin[1];
-                mins[2] = mins[2] + origin[2];
-                VectorAdd(maxs, origin, maxs);
-                mins[0] = mins[0] + origin[0] - v30[0];
-                mins[1] = mins[1] - v30[1];
-                mins[2] = mins[2] - v30[2];
-                VectorSubtract(maxs, v29, maxs);
-                areas = AAS_AASLinkEntity(mins, maxs, -1);
-                for ( i = areas; i; i = i->next_area )
-                {
-                  if ( AAS_AreaGrounded(i->areanum) )
-                  {
-                    area1num = i->areanum;
-                    lreach = AAS_AllocReachability();
-                    if ( !lreach )
-                      break;
-                    lreach->reach.areanum = area2num;
-                    lreach->reach.facenum = 0;
-                    lreach->reach.edgenum = 0;
-                    VectorCopy(origin, lreach->reach.start);
-                    VectorCopy(destorigin, lreach->reach.end);
-                    lreach->reach.traveltype = 10;
-                    lreach->reach.traveltime = 50;
-                    lreach->next = areareachability[area1num];
-                    areareachability[area1num] = lreach;
-                    ++reach_teleport;
-                  }
-                }
-                AAS_UnlinkFromAreas(areas);
-                ent = v25;
-              }
-            }
-            else
-            {
-              botimport.Print(PRT_ERROR, "teleporter destination (%s) without origin\n", target);
+              if ( !strcmp(targetname, target) )
+                break;
             }
           }
-          else
-          {
-            botimport.Print(PRT_ERROR, "teleporter at %1.0f %1.0f %1.0f without target\n", origin[0], origin[1], origin[2]);
-          }
-        }
-        else
-        {
-          botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
         }
       }
+      if ( !dest )
+      {
+        botimport.Print(PRT_ERROR, "teleporter without destination (%s)\n", target);
+        goto cont;
+      }
+      if ( !AAS_VectorForBSPEpairKey(dest, "origin", destorigin) )
+      {
+        botimport.Print(PRT_ERROR, "teleporter destination (%s) without origin\n", target);
+        goto cont;
+      }
+      end[0] = destorigin[0];
+      end[1] = destorigin[1];
+      destorigin[2] = destorigin[2] + 24;
+      end[2] = destorigin[2] - 100;
+      trace = AAS_TraceClientBBox(destorigin, end, 4, -1);
+      if ( trace.startsolid )
+      {
+        botimport.Print(PRT_ERROR, "teleporter destination (%s) in solid\n", target);
+        goto cont;
+      }
+      VectorCopy(trace.endpos, destorigin);
+      area2num = AAS_PointAreaNum(destorigin);
+      mins[0] = -8.0;
+      mins[1] = -8.0;
+      mins[2] = 8.0;
+      maxs[0] = 8.0;
+      maxs[1] = 8.0;
+      maxs[2] = 24.0;
+      AAS_PresenceTypeBoundingBox(4, v29, v30);
+      mins[1] = mins[1] + origin[1];
+      mins[2] = mins[2] + origin[2];
+      VectorAdd(maxs, origin, maxs);
+      mins[0] = mins[0] + origin[0] - v30[0];
+      mins[1] = mins[1] - v30[1];
+      mins[2] = mins[2] - v30[2];
+      VectorSubtract(maxs, v29, maxs);
+      areas = AAS_AASLinkEntity(mins, maxs, -1);
+      for ( i = areas; i; i = i->next_area )
+      {
+        if ( AAS_AreaGrounded(i->areanum) )
+        {
+          area1num = i->areanum;
+          lreach = AAS_AllocReachability();
+          if ( !lreach )
+            break;
+          lreach->reach.areanum = area2num;
+          lreach->reach.facenum = 0;
+          lreach->reach.edgenum = 0;
+          VectorCopy(origin, lreach->reach.start);
+          VectorCopy(destorigin, lreach->reach.end);
+          lreach->reach.traveltype = 10;
+          lreach->reach.traveltime = 50;
+          lreach->next = areareachability[area1num];
+          areareachability[area1num] = lreach;
+          ++reach_teleport;
+        }
+      }
+      AAS_UnlinkFromAreas(areas);
+      ent = v25;
+cont:
       v25 = ent->next;
       if ( !v25 )
         break;
