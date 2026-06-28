@@ -6906,11 +6906,11 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     if ( AAS_inPVS(eye, middle) )
     {
     /* default: trace from viewer (a2) to entity middle */
-    VectorCopy(((float *)eye), start);
-    VectorCopy(middle, end);
     contents_mask = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
     passent = viewer;
     hitent = v5;
+    VectorCopy(((float *)eye), start);
+    VectorCopy(middle, end);
     /* IDA dropped both PointContents() calls here — see 0x1000b893 / 0x1000b8a5
      * in the binary. They forward via wrapper sub_10003080 to bi_PointContents
      * (the engine import). Without the calls, eyecontents/fromcontents stay
@@ -6924,11 +6924,11 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     {
       if ( (contents_mask & 0x38) == 0 )
       {
+        passent = v5;
+        hitent = viewer;
         /* swap: trace from entity middle to viewer instead */
         VectorCopy(middle, start);
         VectorCopy(((float *)eye), end);
-        passent = v5;
-        hitent = viewer;
       }
       contents_mask ^= 0x38u;
     }
