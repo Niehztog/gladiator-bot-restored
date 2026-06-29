@@ -207,20 +207,20 @@ void ClientSetCamera(edict_t *ent)
 //===========================================================================
 // ClientToggleObserver                                       sub_1007bb4c
 //
-// "observer" command toggle.  Note the original tests "deathmatch ==
-// 0" first (in which case respawn() is called -- single-player drops
-// back into normal play immediately), and only then "observer == 0"
-// (which forbids leaving observer mode in a deathmatch where the cvar
-// was disabled).
+// "observer" command toggle.  When leaving observer mode the original
+// first checks the CTF cvar and, if enabled, opens the team/join menu
+// (sub_10018fee = CTFOpenJoinMenu).  Otherwise it checks the Rocket
+// Arena cvar and refuses to leave when RA is active; only the plain
+// non-CTF, non-RA path directly restores the player entity.
 //===========================================================================
 void ClientToggleObserver(edict_t *ent)
 {
 	if (ent->flags & FL_OBSERVER)
 	{
 		// ---- leaving observer mode ----
-		if (deathmatch->value)
+		if (ctf->value)
 		{
-			respawn(ent);
+			CTFOpenJoinMenu(ent);
 			return;
 		} //end if
 		if (ra->value)
@@ -258,8 +258,8 @@ void ClientToggleObserver(edict_t *ent)
 		ent->svflags |= SVF_NOCLIENT;
 		ent->client->camera.ent = ent;
 		ClientPlaceCamera(ent);
-		if (deathmatch->value)
-			ent->client->resp.score = 0;
+		if (ctf->value)
+			ent->client->resp.ctf_team = 0;
 		gi.bprintf(PRINT_HIGH, "%s entered observer mode\n", ent->client->pers.netname);
 	} //end else
 } //end of the function ClientToggleObserver
@@ -715,9 +715,9 @@ static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
 	else
 	{
 		if (pitch_diff >  3.0f)
-			cam->chaseoffset[YAW] -= inv_m_pitch * pitch_diff * 0.5;
+			cam->chaseoffset[PITCH] -= inv_m_pitch * pitch_diff * 0.5;
 		else if (pitch_diff < -3.0f)
-			cam->chaseoffset[YAW] -= inv_m_pitch * pitch_diff * 0.5;
+			cam->chaseoffset[PITCH] -= inv_m_pitch * pitch_diff * 0.5;
 	}
 
 	// chaseoffset[YAW] += yaw_diff * 0.2 ; wrap.  (disasm writes cam+0x2c
