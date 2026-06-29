@@ -21797,13 +21797,14 @@ LABEL_39:
     v18 = (char *)&BC_PAIRS(ch)[v7 + 1];
   }
   v16 = ++v4;
-  if ( v4 < 2 )
-    continue;
-  if ( file_ref.filelen )
-    botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, Destination);
-  else
-    botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
-  return ch;
+  if ( v4 >= 2 )
+  {
+    if ( file_ref.filelen )
+      botimport.Print(PRT_MESSAGE, "loaded %s from %s\\%s\n", a2, file_ref.path, Destination);
+    else
+      botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
+    return ch;
+  }
   }
   while ( !strcmp(token.string, "character") )
   {
@@ -21813,7 +21814,86 @@ LABEL_39:
   StripDoubleQuotes(token.string);
   if ( !PC_ExpectTokenString(source, "{") )
     goto LABEL_52;
-  if ( strcmp(token.string, a2) )
+  if ( !strcmp(token.string, a2) )
+  {
+    v17 = 1;
+    if ( PC_ExpectAnyToken(source, token.string) )
+    {
+      while ( strcmp(token.string, "}") )
+      {
+        if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
+        {
+          v12 = token.string;
+          v11 = "expected integer index, found %s\n";
+          goto LABEL_54;
+        }
+        v9 = token.intvalue;
+        if ( v9 > v14 )
+          v14 = v9;
+        if ( v16 && BC_PAIRS(ch)[token.intvalue].type )
+        {
+          v12 = token.intvalue;
+          v11 = "characteristic %d already initialized\n";
+          goto LABEL_54;
+        }
+        if ( !PC_ExpectAnyToken(source, token.string) )
+        {
+          FreeSource(source);
+          return 0;
+        }
+        if ( token.type == 3 )
+        {
+          if ( v16 )
+          {
+            if ( (token.subtype & 0x800) != 0 )
+            {
+              *(float *)&BC_PAIRS(ch)[v9].value = token.floatvalue;
+              BC_PAIRS(ch)[v9].type = 2;
+            }
+            else
+            {
+              BC_PAIRS(ch)[v9].value = (intptr_t)token.intvalue;
+              BC_PAIRS(ch)[v9].type = 1;
+            }
+          }
+        }
+        else
+        {
+          if ( token.type != 1 )
+          {
+            SourceError(source,
+                        "expected integer, float or string, found %s\n",
+                        token.string);
+            FreeSource(source);
+            return 0;
+          }
+          StripDoubleQuotes(token.string);
+          if ( v16 )
+          {
+            strcpy(v18, token.string);
+            BC_PAIRS(ch)[v9].value = (intptr_t)v18;
+            BC_PAIRS(ch)[v9].type = 3;
+            v18 += strlen(token.string) + 1;
+          }
+          else
+          {
+            v15 += strlen(token.string) + 1;
+          }
+        }
+        if ( !PC_ExpectAnyToken(source, token.string) )
+          break;
+      }
+    }
+LABEL_37:
+    v6 = source;
+    if ( !PC_ReadTokenHandle(source, token.string) )
+    {
+      v7 = v14;
+      v4 = v16;
+      goto LABEL_39;
+    }
+  }
+  else
   {
     v10 = 1;
     while ( 1 )
@@ -21836,85 +21916,9 @@ LABEL_52:
     FreeSource(v8);
     return 0;
   }
-  v17 = 1;
-  if ( PC_ExpectAnyToken(source, token.string) )
-  {
-    while ( strcmp(token.string, "}") )
-    {
-      if ( token.type != 3 || (token.subtype & 0x1000) == 0 )
-      {
-        v12 = token.string;
-        v11 = "expected integer index, found %s\n";
-        goto LABEL_54;
-      }
-      v9 = token.intvalue;
-      if ( v9 > v14 )
-        v14 = v9;
-      if ( v16 && BC_PAIRS(ch)[token.intvalue].type )
-      {
-        v12 = token.intvalue;
-        v11 = "characteristic %d already initialized\n";
-        goto LABEL_54;
-      }
-      if ( !PC_ExpectAnyToken(source, token.string) )
-      {
-        FreeSource(source);
-        return 0;
-      }
-      if ( token.type == 3 )
-      {
-        if ( v16 )
-        {
-          if ( (token.subtype & 0x800) != 0 )
-          {
-            *(float *)&BC_PAIRS(ch)[v9].value = token.floatvalue;
-            BC_PAIRS(ch)[v9].type = 2;
-          }
-          else
-          {
-            BC_PAIRS(ch)[v9].value = (intptr_t)token.intvalue;
-            BC_PAIRS(ch)[v9].type = 1;
-          }
-        }
-      }
-      else
-      {
-        if ( token.type != 1 )
-        {
-          SourceError(source,
-                      "expected integer, float or string, found %s\n",
-                      token.string);
-          FreeSource(source);
-          return 0;
-        }
-        StripDoubleQuotes(token.string);
-        if ( v16 )
-        {
-          strcpy(v18, token.string);
-          BC_PAIRS(ch)[v9].value = (intptr_t)v18;
-          BC_PAIRS(ch)[v9].type = 3;
-          v18 += strlen(token.string) + 1;
-        }
-        else
-        {
-          v15 += strlen(token.string) + 1;
-        }
-      }
-      if ( !PC_ExpectAnyToken(source, token.string) )
-        break;
-    }
-  }
-LABEL_37:
-  v6 = source;
-  if ( !PC_ReadTokenHandle(source, token.string) )
-  {
-    v7 = v14;
-    v4 = v16;
-    goto LABEL_39;
-  }
-  }
-  v12 = token.string;
-  v11 = "unknown definition %s\n";
+}
+v12 = token.string;
+v11 = "unknown definition %s\n";
 LABEL_54:
   SourceError(source, v11, v12);
   FreeSource(source);
