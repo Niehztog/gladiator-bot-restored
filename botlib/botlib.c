@@ -25051,15 +25051,17 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
   levelitem_t *li;
 
   if ( !itemconfig )
-    return -1;
+    goto notfound;
   li = levelitems;
   if ( !li )
-    return -1;
-  while ( li->number <= index || _strcmpi(name, itemconfig->items[li->iteminfo].name) )
+    goto notfound;
+  while ( 1 )
   {
+    if ( li->number > index && !_strcmpi(name, itemconfig->items[li->iteminfo].name) )
+      break;
     li = li->next;
     if ( !li )
-      return -1;
+      goto notfound;
   }
   goal->areanum   = li->areanum;
   VectorCopy(li->goalorigin, goal->origin);
@@ -25068,6 +25070,8 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
   VectorCopy(itemconfig->items[li->iteminfo].maxs, goal->maxs);
   goal->number    = li->number;
   return li->number;
+notfound:
+  return -1;
 }
 
 //----- (1002FA20) --------------------------------------------------------
