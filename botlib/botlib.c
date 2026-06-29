@@ -20918,8 +20918,8 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   float v14; // [esp+28h] [ebp+4h]
 
   v1 = a1;
-  v2 = &bs->chatstate;
   botname = ClientName(bs->client);
+  v2 = &bs->chatstate;
   while ( 1 )
   {
     v3 = BotNextConsoleMessage(v2);
