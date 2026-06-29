@@ -21050,14 +21050,10 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
     AIEnter_Stand(bs);
   }
   BotResetNodeSwitches();
-  i = 0;
-  while ( 1 )
+  for ( i = 0; i < 50; ++i )
   {
     if ( (BotAINode(bs))(bs) )
       break;
-    if ( ++i < 50 )
-      continue;
-    break;
   }
   if ( i >= 50 )
   {
