@@ -21806,8 +21806,14 @@ LABEL_39:
     return ch;
   }
   }
-  while ( !strcmp(token.string, "character") )
+  while ( 1 )
   {
+  if ( strcmp(token.string, "character") )
+  {
+    v12 = token.string;
+    v11 = "unknown definition %s\n";
+    goto LABEL_54;
+  }
   v8 = source;
   if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
     goto LABEL_52;
@@ -21884,41 +21890,39 @@ LABEL_39:
           break;
       }
     }
-LABEL_37:
-    v6 = source;
-    if ( !PC_ReadTokenHandle(source, token.string) )
-    {
-      v7 = v14;
-      v4 = v16;
-      goto LABEL_39;
-    }
-  }
-  else
-  {
-    v10 = 1;
-    while ( 1 )
-    {
-      v8 = source;
-      if ( !PC_ExpectAnyToken(source, token.string) )
-        break;
-      if ( !strcmp(token.string, "{") )
-      {
-        ++v10;
-      }
-      else if ( !strcmp(token.string, "}") )
-      {
-        --v10;
-      }
-      if ( !v10 )
-        goto LABEL_37;
-    }
-LABEL_52:
-    FreeSource(v8);
-    return 0;
-  }
+ LABEL_37:
+   v6 = source;
+   if ( !PC_ReadTokenHandle(source, token.string) )
+   {
+     v7 = v14;
+     v4 = v16;
+     goto LABEL_39;
+   }
+ }
+ else
+ {
+   v10 = 1;
+   while ( 1 )
+   {
+     v8 = source;
+     if ( !PC_ExpectAnyToken(source, token.string) )
+       break;
+     if ( !strcmp(token.string, "{") )
+     {
+       ++v10;
+     }
+     else if ( !strcmp(token.string, "}") )
+     {
+       --v10;
+     }
+     if ( !v10 )
+       goto LABEL_37;
+   }
+ LABEL_52:
+   FreeSource(v8);
+   return 0;
+ }
 }
-v12 = token.string;
-v11 = "unknown definition %s\n";
 LABEL_54:
   SourceError(source, v11, v12);
   FreeSource(source);
