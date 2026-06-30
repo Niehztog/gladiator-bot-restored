@@ -55,6 +55,7 @@
                                + Gladiator disassembly verification) */
 #include "struct_sizes_asserts.h" /* compile-time guard: every reconstructed
                                      struct must match original binary layout */
+#include "q2files.h"
 
 /* IDA Pro signed high-word/dword macros */
 #define SHIDWORD(x)  (*((int *)&(x) + 1))
@@ -310,13 +311,13 @@ int __cdecl AAS_BestReachableArea(int * origin, vec3_t mins, vec3_t maxs, vec3_t
 int AAS_TestPortals();
 void __cdecl EA_DropItem(int client, char *it);
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
-bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1);
+void __cdecl sub_10003240(bsp_link_t *a1);
 int __cdecl sub_10003080(vec3_t point);
-int sub_10003280();
-int sub_100032D0();
-int __cdecl sub_10003360(float *a1, int a2);
-char *__cdecl sub_10003420(float *a1, int a2);
-float *__cdecl sub_10003460(float *a1, float *a2);
+void sub_10003280();
+void sub_100032D0();
+int __cdecl sub_10003360(const vec3_t point, int modelnum);
+dleaf_t *__cdecl sub_10003420(float *a1, int a2);
+void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(float *angles, float *axis);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace);
 int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
@@ -1688,12 +1689,16 @@ int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; 
  * Q2 BSP lump globals @ original VA 0x100674C4..0x10067554.
  * Names + declaration order match Mr. Elusive's own Q2 BSP loader
  * bspc/l_bsp_q2.c (count/pointer pairs, plus the `dvis` alias of `dvisdata`)
- * 1:1 — the same author who wrote this botlib.  Pointer slots keep the
+ * 1:1 — the same author who wrote this botlib.  Most pointer slots keep the
  * reconstruction's `char *`/`unsigned char *` typing for 64-bit pointer +
- * byte-offset-arithmetic safety; only the identifiers were restored.
+ * byte-offset-arithmetic safety; the fully-restored BSP struct arrays
+ * (`dmodels`, `dleafs`, `dplanes`, `dnodes`, `texinfo`, `dfaces`) now use
+ * their typed `q2files.h` pointers.  `sub_100071E0` deliberately keeps a
+ * local byte-view of `texinfo`/`dfaces` to preserve the current MSVC6-oracle
+ * tie there; all other consumers are typed.
  * ------------------------------------------------------------------------- */
 int nummodels;            // 0x100674C4  (was dword_100674C4)
-char *dmodels;            // 0x100674C8  (was dword_100674C8)
+dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
 int visdatasize;          // 0x100674CC  (was dword_100674CC)
 char *dvisdata;           // 0x100674D0  (was dword_100674D0)
 char *dvis;               // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
@@ -1702,17 +1707,17 @@ char *dlightdata;         // 0x100674DC  (was dword_100674DC)
 int entdatasize;          // 0x100674E0  (was dword_100674E0)
 unsigned char *dentdata;  // 0x100674E4  (was dword_100674E4; was int in 32-bit binary)
 int numleafs;             // 0x100674E8  (was dword_100674E8)
-char *dleafs;             // 0x100674EC  (was dword_100674EC)
+dleaf_t *dleafs;          // 0x100674EC  (was dword_100674EC)
 int numplanes;            // 0x100674F0  (was dword_100674F0)
-char *dplanes;            // 0x100674F4  (was dword_100674F4)
+dplane_t *dplanes;        // 0x100674F4  (was dword_100674F4)
 int numvertexes;          // 0x100674F8  (was dword_100674F8)
 char *dvertexes;          // 0x100674FC  (was dword_100674FC)
 int numnodes;             // 0x10067500  (was dword_10067500)
-char *dnodes;             // 0x10067504  (was dword_10067504)
+dnode_t *dnodes;          // 0x10067504  (was dword_10067504)
 int numtexinfo;           // 0x10067508  (was dword_10067508)
-char *texinfo;            // 0x1006750C  (was dword_1006750C)
+texinfo_t *texinfo;       // 0x1006750C  (was dword_1006750C)
 int numfaces;             // 0x10067510  (was dword_10067510)
-char *dfaces;             // 0x10067514  (was dword_10067514)
+dface_t *dfaces;          // 0x10067514  (was dword_10067514)
 int numedges;             // 0x10067518  (was dword_10067518)
 char *dedges;             // 0x1006751C  (was dword_1006751C)
 int numleaffaces;         // 0x10067520  (was dword_10067520)
@@ -1767,14 +1772,14 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 }
 
 //----- (100030A0) --------------------------------------------------------
-int sub_100030A0()  /* InitBSPLinkHeap */
+void sub_100030A0()  /* InitBSPLinkHeap */
 {
   int i;
   int count = dword_1006957C;
 
   if ( !dword_10069578 )
   {
-    count = (int)(intptr_t)LibVarValue("max_bsplinks", (char *)"4096");
+    count = (intptr_t)LibVarValue("max_bsplinks", (char *)"4096");
     if ( count < 0 )
       count = 0;
     dword_1006957C = count;
@@ -1791,7 +1796,6 @@ int sub_100030A0()  /* InitBSPLinkHeap */
   dword_10069578[count - 1].prev_ent = &dword_10069578[count - 2];
   dword_10069578[count - 1].next_ent = NULL;
   dword_10069580 = dword_10069578;
-  return sizeof(bsp_link_t) * count;
 }
 
 //----- (100031B0) --------------------------------------------------------
@@ -1832,7 +1836,7 @@ bsp_link_t *sub_100031F0()  /* AllocBSPLink */
 }
 
 //----- (10003240) --------------------------------------------------------
-bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1)  /* FreeBSPLink */
+void __cdecl sub_10003240(bsp_link_t *a1)  /* FreeBSPLink */
 {
   if ( dword_10069580 )
     dword_10069580->prev_ent = a1;
@@ -1841,31 +1845,22 @@ bsp_link_t *__cdecl sub_10003240(bsp_link_t *a1)  /* FreeBSPLink */
   a1->prev_leaf = NULL;
   a1->next_leaf = NULL;
   dword_10069580 = a1;
-  return a1;
 }
 
 //----- (10003280) --------------------------------------------------------
-int sub_10003280()  /* InitBSPLinkedEntities */
+void sub_10003280()  /* InitBSPLinkedEntities */
 {
-  int result; // eax
-
-  result = dword_100674C0;
   if ( dword_100674C0 )
   {
     if ( dword_10069584 )
       FreeMemory(dword_10069584);
     dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * numleafs);
-    result = (int)(intptr_t)dword_10069584;
   }
-  return result;
 }
 
 //----- (100032D0) --------------------------------------------------------
-int sub_100032D0()
+void sub_100032D0()
 {
-  int result; // eax
-
-  result = dword_100674C0;
   if ( dword_100674C0 )
   {
     if ( dword_1006755C )
@@ -1873,56 +1868,52 @@ int sub_100032D0()
     dword_1006755C = GetClearedMemory(4 * numareaportals);
     if ( dword_10067560 )
       FreeMemory(dword_10067560);
-    result = GetClearedMemory(4 * numareas * numareas);
-    dword_10067560 = result;
+    dword_10067560 = GetClearedMemory(4 * numareas * numareas);
   }
-  return result;
 }
 
 //----- (10003360) --------------------------------------------------------
-int __cdecl sub_10003360(float *a1, int a2)
+int __cdecl sub_10003360(const vec3_t point, int modelnum) /* PointInLeaf */
 {
-  int v3; // ecx
+  vec_t d;
+  dplane_t *plane;
+  int node; // ecx
 
   if ( !dword_100674C0 )
     return 0;
-  v3 = *(_DWORD *)(48 * a2 + dmodels + 36);
-  while ( v3 >= 0 )
+  node = dmodels[modelnum].headnode;
+  while ( node >= 0 )
   {
-    {
-    float *plane = (float *)(dplanes + 20 * *(_DWORD *)(dnodes + 28 * v3));
-    if ( plane[1] * a1[1]
-       + plane[2] * a1[2]
-       + plane[0] * a1[0]
-       - plane[3] > 0.0f )
-      v3 = *(_DWORD *)(dnodes + 28 * v3 + 4);
+    plane = &dplanes[dnodes[node].planenum];
+    d = DotProduct(plane->normal, point) - plane->dist;
+    if ( d > 0 )
+      node = dnodes[node].children[0];
     else
-      v3 = *(_DWORD *)(dnodes + 28 * v3 + 8);
-    }
+      node = dnodes[node].children[1];
   }
-  return -1 - v3;
+  return -1 - node;
 }
 
 //----- (10003420) --------------------------------------------------------
-char *__cdecl sub_10003420(float *a1, int a2)
+dleaf_t *__cdecl sub_10003420(float *a1, int a2)
 {
   if ( !dword_100674C0 )
     return 0;
-  return dleafs + 28 * sub_10003360(a1, a2);
+  return &dleafs[sub_10003360(a1, a2)];
 }
 
 //----- (10003460) --------------------------------------------------------
-float *__cdecl sub_10003460(float *a1, float *a2)
+void __cdecl sub_10003460(vec3_t v, float m[3][3])
 {
-  float v3, v4, v5;
+  float x, y, z;
 
-  v3 = a1[0];
-  v4 = a1[1];
-  v5 = a1[2];
-  a1[0] = v3 * a2[0] + v4 * a2[1] + v5 * a2[2];
-  a1[1] = v3 * a2[3] + v4 * a2[4] + v5 * a2[5];
-  a1[2] = v3 * a2[6] + v4 * a2[7] + v5 * a2[8];
-  return a2;
+  x = v[0];
+  y = v[1];
+  z = v[2];
+
+  v[0] = x * m[0][0] + y * m[0][1] + z * m[0][2];
+  v[1] = x * m[1][0] + y * m[1][1] + z * m[1][2];
+  v[2] = x * m[2][0] + y * m[2][1] + z * m[2][2];
 }
 
 //----- (100034D0) --------------------------------------------------------
@@ -2237,9 +2228,9 @@ int __cdecl sub_10003C90(
   float *v13; // eax
   _DWORD *v14; // ebx
   float *v15; // ecx
-  /* v16: BSP plane-pointer base; was `int v16` in IDA, used as `*(float*)(v16+N)`.
-   * On aarch64 the int truncated dplanes's heap address.  Widened to char *. */
-  char *v16;
+  /* v16: BSP plane pointer; was `int v16` in IDA, later read positionally.
+   * On aarch64 the int truncated dplanes's heap address.  Restored to dplane_t *. */
+  dplane_t *v16;
   int v17; // ecx
   float v18; // st7
   float v19; // st7
@@ -2298,41 +2289,41 @@ int __cdecl sub_10003C90(
   {
     while ( 1 )
     {
-      v16 = dplanes + 20 * *(unsigned __int16 *)(dbrushsides + 4 * (v11 + *v14));
+      v16 = &dplanes[*(unsigned __int16 *)(dbrushsides + 4 * (v11 + *v14))];
       if ( v39 )
       {
-        normal[0] = *(float *)v16;
-        normal[1] = *(float *)(v16 + 4);
-        normal[2] = *(float *)(v16 + 8);
+        normal[0] = v16->normal[0];
+        normal[1] = v16->normal[1];
+        normal[2] = v16->normal[2];
         sub_10003460(normal, v59);
         v12 = a2;
         v17 = 4;
       }
       else
       {
-        v17 = *(_DWORD *)(v16 + 16);
-        normal[0] = *(float *)v16;
-        normal[1] = *(float *)(v16 + 4);
-        normal[2] = *(float *)(v16 + 8);
+        v17 = v16->type;
+        normal[0] = v16->normal[0];
+        normal[1] = v16->normal[1];
+        normal[2] = v16->normal[2];
       }
       if ( v40 )
       {
         if ( v17 < 3 )
         {
           if ( normal[v17] <= 0.0f )
-            v18 = *(float *)(v16 + 12) - v12[v17];
+            v18 = v16->dist - v12[v17];
           else
-            v18 = v12[v17] + *(float *)(v16 + 12);
+            v18 = v12[v17] + v16->dist;
           v38 = v18;
         }
         else
         {
-          v38 = normal[2] * v12[2] + normal[1] * v12[1] + normal[0] * *v12 + *(float *)(v16 + 12);
+          v38 = normal[2] * v12[2] + normal[1] * v12[1] + normal[0] * *v12 + v16->dist;
         }
       }
       else
       {
-        v38 = *(float *)(v16 + 12);
+        v38 = v16->dist;
       }
       if ( v17 < 3 )
       {
@@ -2460,31 +2451,30 @@ LABEL_30:
 int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
 {
   int v9; // ebp
-  /* v11: BSP-leaf base pointer (`dleafs + 28 * a1`).  Int→char* widening. */
-  char *v11;
+  /* v11: BSP leaf pointer for leaf `a1`. */
+  dleaf_t *v11;
   _DWORD *v13; // edi
   int v16; // ecx
-  /* v17: BSP plane-pointer base (`dplanes + 20 * plane_index`).  Stays a
-   * char* into the do-not-retype BSP plane lump; fields read positionally. */
-  char *v17;
+  /* v17: BSP plane pointer for the hit brush side. */
+  dplane_t *v17;
   bsp_trace_t *trace;  /* the caller's output struct (param a9), was `char *v12` */
   float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by sub_10003C90
   vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by sub_10003C90 via a11
   _DWORD *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
-  v11 = dleafs + 28 * a1;
+  v11 = &dleafs[a1];
   v24 = 0;
   /* First guard reuses the loop counter v9 (=0) as the compare operand, so the
    * leaf brush-count word compares as `numbrushes <= v9` → ref's `cmp WORD,bp;
    * jbe` (not `... ; je` from a literal `== 0`).  Same skip-when-empty result. */
-  if ( *(unsigned __int16 *)(v11 + 26) <= (unsigned int)v9 )
+  if ( v11->numleafbrushes <= (unsigned int)v9 )
     goto fail;
   trace = (bsp_trace_t *)a9;
   do
   {
     v13 = (_DWORD *)(dbrushes
-                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + *(unsigned __int16 *)(v11 + 24))));
+                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
     if ( (v13[2] & a8) != 0
       && sub_10003C90(v13, a2, a3, (int *)a4, a5, a6, a7, &trace->fraction, (_DWORD *)&a9, &v20, endpos) )
     {
@@ -2492,7 +2482,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
     }
     ++v9;
   }
-  while ( v9 < *(unsigned __int16 *)(v11 + 26) );
+  while ( v9 < v11->numleafbrushes );
   /* Wrap the success path in `if (v24)` (rather than `if (!v24) goto fail`) so
    * the fill code is the warm fall-through and the shared return-0 stays a COLD
    * tail block — ref reaches it via je/jbe from both guards (cl.exe otherwise
@@ -2513,12 +2503,12 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   v16 = a9;
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
-  v17 = dplanes + 20 * *(unsigned __int16 *)(dbrushsides + 4 * v16);
-  trace->plane.normal[0] = *(float *)v17;
-  trace->plane.normal[1] = *(float *)(v17 + 4);
-  trace->plane.normal[2] = *(float *)(v17 + 8);
-  trace->plane.dist      = *(float *)(v17 + 12);
-  trace->plane.type      = *(v17 + 16);
+  v17 = &dplanes[*(unsigned __int16 *)(dbrushsides + 4 * v16)];
+  trace->plane.normal[0] = v17->normal[0];
+  trace->plane.normal[1] = v17->normal[1];
+  trace->plane.normal[2] = v17->normal[2];
+  trace->plane.dist      = v17->dist;
+  trace->plane.type      = v17->type;
   trace->exp_dist = v20;
   trace->contents = v24[2];
   return 1;
@@ -2553,12 +2543,12 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v11; // ecx
   int v12; // eax
   float v13; // st7
-  /* v14: originally `int v14` in IDA — was used as `char*` base via
-   * `v14 = dmodels + 48*a2` then `*(float*)(v14+24)`.  On aarch64
+  /* v14: originally `int v14` in IDA — was used as the selected BSP model.
+   * On aarch64
    * the int storage truncated dmodels's heap address producing
    * a SIGSEGV in AAS_OnGround → AAS_TraceClientBBox → AAS_EntityCollision
-   * → here.  Widened to `char *`. */
-  char *v14;
+   * → here.  Restored to dmodel_t *. */
+  dmodel_t *v14;
   float v15; // st7
   int *v16; // eax
   int v17; // edx
@@ -2582,22 +2572,21 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int *v27; // ebp
   int v28; // eax
   int v29; // esi
-  _DWORD *v30; // eax
-  int *v31; // edx
+  dleaf_t *v30; // eax
+  dnode_t *v31; // edx
   float v32; // ecx
   float v33; // eax
   float v34; // ecx
   int v35; // eax
   float v36; // ecx
   int v37; // eax
-  /* v38: same bug class as v14 above — set to
-   * `dplanes + 20*v37` (BSP plane base + 20 *plane_index).  On
-   * aarch64 the int storage truncated the pointer, so later
-   * `*(float*)(v38+N)` reads crashed in AAS_OnGround chain.  Widened
-   * to char *.  The IDA-spilled `v110 = *(float*)&v38; ...; *(float*)&v38 = v110;`
+  /* v38: same bug class as v14 above — set to the BSP plane for `v37`.
+   * On aarch64 the int storage truncated the pointer, so later
+   * plane-field reads crashed in AAS_OnGround chain.  Restored to dplane_t *.
+   * The IDA-spilled `v110 = *(float*)&v38; ...; *(float*)&v38 = v110;`
    * temp-bit-pattern dance is harmless on 64-bit (write/read of the low
    * 4 bytes of v38 nets to zero net change within the same code path). */
-  char *v38;
+  dplane_t *v38;
   int v39; // ecx
   float v40; // st7
   float v41; // st6
@@ -2627,14 +2616,14 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v66; // edx
   float v67; // eax
   float v68; // edx
-  int *v69; // eax
+  dnode_t *v69; // eax
   int *v70; // edx
   float v71; // eax
   float v72; // edx
   float v73; // eax
   float v74; // edx
   float v75; // eax
-  int *v76; // edx
+  dnode_t *v76; // edx
   int v77; // eax
   float v78; // edx
   char *v79; // eax — AArch64: was `int`; trace-stack frame pointer
@@ -2677,7 +2666,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v117; // [esp+3Ch] [ebp-151Ch]
   float v118; // [esp+40h] [ebp-1518h]
   int v119; // [esp+44h] [ebp-1514h]
-  int *v120; // [esp+48h] [ebp-1510h]
+  dnode_t *v120; // [esp+48h] [ebp-1510h]
   int v121; // [esp+4Ch] [ebp-150Ch]
   int *v122; // [esp+50h] [ebp-1508h]
   float v123; // [esp+54h] [ebp-1504h]
@@ -2796,11 +2785,11 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v144 = 1;
     AnglesToAxis(a4, (float *)v151);
   }
-  v14 = dmodels + 48 * a2;
-  v15 = *(float *)(v14 + 24) + *a3;
+  v14 = &dmodels[a2];
+  v15 = v14->origin[0] + *a3;
   v136 = v15;
-  v137 = *(float *)(v14 + 28) + a3[1];
-  v138 = *(float *)(v14 + 32) + a3[2];
+  v137 = v14->origin[1] + a3[1];
+  v138 = v14->origin[2] + a3[2];
   if ( v15 != 0 || v137 != 0 || (v142 = 0, v138 != 0) )
     v142 = 1;
   v16 = v153;
@@ -2827,7 +2816,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v23 = a8[2];
     v152[4] = v22;
     v152[5] = v23;
-    v152[6] = *(_DWORD *)(v14 + 36);
+    v152[6] = v14->headnode;
     v152[7] = 0;
     v152[8] = 0;
     v153[0] = 0;     /* aliases v152[9] — the trace-stack link slot. See declaration above. */
@@ -2853,14 +2842,14 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             if ( v28 >= 0 )
               break;
             v29 = -1 - v28;
-            v30 = (_DWORD *)(dleafs + 28 * (-1 - v28));
-            if ( *(_WORD *)(dleafs + 28 * v29 + 26) && (*v30 & a10) != 0 )
+            v30 = &dleafs[v29];
+            if ( v30->numleafbrushes && (v30->contents & a10) != 0 )
               sub_10004310(v29, &v136, a4, a5, a6, (intptr_t)a7, a8, a10, (intptr_t)v150);
             if ( dword_10069584[v29] )
               sub_10003BF0(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
           }
           v106 = *(float *)v25;
-          v31 = (int *)(dnodes + 28 * v28);
+          v31 = &dnodes[v28];
           v32 = *((float *)v25 + 1);
           v108 = *((float *)v25 + 2);
           v33 = *((float *)v25 + 4);
@@ -2872,17 +2861,17 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v36 = *((float *)v25 + 5);
           v127 = v35;
           *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
-          v37 = *v31;
+          v37 = v31->planenum;
           v113 = v36;
           v120 = v31;
           v19 = (char *)v25;
-          v38 = dplanes + 20 * v37;
+          v38 = &dplanes[v37];
           v110 = *(float *)&v38;
           if ( v144 )
           {
-            v114[0] = *(float *)v38;
-            v114[1] = *(float *)(v38 + 4);
-            v114[2] = *(float *)(v38 + 8);
+            v114[0] = v38->normal[0];
+            v114[1] = v38->normal[1];
+            v114[2] = v38->normal[2];
             sub_10003460(&v114[0], v151);
             v31 = v120;
             *(float *)&v38 = v110;
@@ -2890,17 +2879,17 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           }
           else
           {
-            v117 = *(_DWORD *)(v38 + 16);
-            v114[0] = *(float *)v38;
-            v114[1] = *(float *)(v38 + 4);
-            v114[2] = *(float *)(v38 + 8);
+            v117 = v38->type;
+            v114[0] = v38->normal[0];
+            v114[1] = v38->normal[1];
+            v114[2] = v38->normal[2];
             v39 = v117;
           }
           if ( v142 )
-            v40 = v39 >= 3 ? v114[2] * v138 + v114[1] * v137 + v114[0] * v136 + *(float *)(v38 + 12) : *(&v136 + v39)
-                                                                                            + *(float *)(v38 + 12);
+            v40 = v39 >= 3 ? v114[2] * v138 + v114[1] * v137 + v114[0] * v136 + v38->dist : *(&v136 + v39)
+                                                                                            + v38->dist;
           else
-            v40 = *(float *)(v38 + 12);
+            v40 = v38->dist;
           if ( a6 && a7 )
             break;
           if ( v39 >= 3 )
@@ -2932,9 +2921,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               *((float *)v25 + 4) = v112;
               *((float *)v25 + 5) = v113;
               v100 = (char *)TR_DEC(*v27);
-              v25[7] = *v31;
+              v25[7] = v31->planenum;
               v25[8] = 0;
-              v101 = v31[(LODWORD(v99) == 0) + 1];
+              v101 = v31->children[LODWORD(v99) == 0];
               *v27 = TR_ENC(v24);
               v25[6] = v101;
               if ( !v100 )
@@ -2949,7 +2938,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               *(_DWORD *)(v100 + 28) = v119;
               v102 = v110;
               *(_DWORD *)(v100 + 32) = 0;
-              v103 = v31[LODWORD(v102) + 1];
+              v103 = v31->children[LODWORD(v102)];
               v24 = (int *)v100;
               *(_DWORD *)(v100 + 24) = v103;
               *(int *)(v100 + 36) = TR_ENC(v25);
@@ -2971,7 +2960,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               *((float *)v25 + 5) = v95;
               v25[7] = v96;
               v25[8] = 0;
-              v97 = v31[2];
+              v97 = v31->children[1];
               *v27 = TR_ENC(v24);
               v25[6] = v97;
               v24 = v25;
@@ -2994,7 +2983,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             *((float *)v25 + 5) = v88;
             v25[7] = v89;
             v25[8] = 0;
-            v90 = v31[1];
+            v90 = v31->children[0];
             *v27 = TR_ENC(v24);
             v25[6] = v90;
             v24 = v25;
@@ -3074,7 +3063,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         *((float *)v25 + 5) = v113;
         v25[7] = v119;
         v25[8] = v127;
-        v25[6] = v31[v53 + 1];
+        v25[6] = v31->children[v53];
         v54 = v132[v53 - 1];
         *v27 = TR_ENC(v24);
         v24 = v25;
@@ -3100,7 +3089,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         v56[7] = v119;
         v56[8] = v127;
         v58 = v109;
-        v59 = v31[LODWORD(v109) + 1];
+        v59 = v31->children[LODWORD(v109)];
         *v57 = TR_ENC(v24);
         v56[6] = v59;
         v24 = v56;
@@ -3158,11 +3147,11 @@ LABEL_71:
             v76 = v120;
             *(float *)(v19 + 20) = v75;
             v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-            *(_DWORD *)(v62 + 28) = *v76;
+            *(_DWORD *)(v62 + 28) = v76->planenum;
             v77 = v121;
             *(float *)(v62 + 32) = *(&v133[0] + v121);
             v64 = 0;
-            *(_DWORD *)(v62 + 24) = v76[v77 + 1];
+            *(_DWORD *)(v62 + 24) = v76->children[v77];
             v70 = v24;
             if ( !v24 )
             {
@@ -3198,10 +3187,10 @@ LABEL_101:
             v69 = v120;
             *(float *)(v19 + 20) = v68;
             v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-            *(_DWORD *)(v62 + 28) = *v69;
+            *(_DWORD *)(v62 + 28) = v69->planenum;
             *(float *)(v62 + 32) = *(&v133[0] + LODWORD(v109));
             v70 = v24;
-            *(_DWORD *)(v62 + 24) = v69[v121 + 1];
+            *(_DWORD *)(v62 + 24) = v69->children[v121];
             if ( !v24 )
               goto LABEL_101;
             while ( *(float *)(v62 + 4 * v126) < (float)*(float *)&v70[v126] != v135 )
@@ -3261,7 +3250,7 @@ LABEL_111:
               *(float *)(v79 + 20) = v81;
               *(_DWORD *)(v79 + 28) = v119;
               *(_DWORD *)(v79 + 32) = v127;
-              v82 = v120[LODWORD(v78) + 1];
+              v82 = v120->children[LODWORD(v78)];
               *v80 = TR_ENC(v24);
               *(_DWORD *)(v79 + 24) = v82;
               v24 = (int *)v79;
@@ -3317,8 +3306,8 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
   int v3; // ebx
   unsigned __int16 *i; // edi
   /* v5: same BSP-plane-pointer-truncation bug class as sub_100044F0:v14/v38.
-   * Original `int v5` truncated `dplanes + 20 * *i` on aarch64. */
-  char *v5;
+   * Original `int v5` truncated the selected dplane_t * on aarch64. */
+  dplane_t *v5;
   int v6; // edx
   float v8; // st7
   int v12; // [esp+14h] [ebp+4h]
@@ -3330,21 +3319,21 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
   i = (unsigned __int16 *)(dbrushsides + 4 * *a1);
   for ( ; v3 < v12; ++v3, i += 2 )
   {
-    v5 = dplanes + 20 * *i;
-    v6 = *(_DWORD *)(v5 + 16);
+    v5 = &dplanes[*i];
+    v6 = v5->type;
     if ( v6 < 3 )
     {
       /* axial plane shortcut: signbits of normal[v6] determine sign of a2[v6].
        * Original asm uses fcomps result (C0|C3 = "<= 0") to decide negation. */
       v8 = a2[v6];
-      if ( *(float *)(v5 + 4 * v6) <= 0.0f )
+      if ( v5->normal[v6] <= 0.0f )
         v8 = -v8;
     }
     else
     {
-      v8 = *(float *)(v5 + 8) * a2[2] + *(float *)(v5 + 4) * a2[1] + *(float *)v5 * *a2;
+      v8 = v5->normal[2] * a2[2] + v5->normal[1] * a2[1] + v5->normal[0] * *a2;
     }
-    if ( v8 - *(float *)(v5 + 12) > 0.005 )
+    if ( v8 - v5->dist > 0.005 )
       return 0;
   }
   return 1;
@@ -3355,9 +3344,8 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 {
   int v4; // edi
   int v6; // ebp
-  /* v7: BSP node base (`dleafs + 28 * leafnum`).  IDA's
-   * `int v7` truncates the heap pointer on aarch64. */
-  char *v7;
+  /* v7: BSP leaf pointer for the containing leaf. */
+  dleaf_t *v7;
   bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
   _DWORD *v10; // [esp+14h] [ebp-78h]
@@ -3388,11 +3376,11 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   AnglesToAxis(v12, (float *)v13);
   sub_10003460(v11, v13);
   v6 = sub_10003360(v11, a2);
-  v7 = dleafs + 28 * v6;
-  while ( v4 < *(unsigned __int16 *)(v7 + 26) )
+  v7 = &dleafs[v6];
+  while ( v4 < v7->numleafbrushes )
   {
     v10 = (_DWORD *)(dbrushes
-                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v4 + *(unsigned __int16 *)(v7 + 24))));
+                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v4 + v7->firstleafbrush)));
     if ( sub_100056D0(v10, v11) )
       return v10[2];
     ++v4;
@@ -3484,9 +3472,9 @@ void __cdecl AAS_DecompressVis(int a1, int a2)
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 {
   int v4; // edi
-  char *v5; // eax
+  dleaf_t *v5; // eax
   __int16 v6; // cx
-  char *v7; // esi
+  dleaf_t *v7; // esi
 
   if ( !dword_100674C0 )
     return 1;
@@ -3499,20 +3487,20 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
   else
   {
     v5 = sub_10003420(a1, 0);
-    v6 = *(_WORD *)(v5 + 4);
+    v6 = v5->cluster;
     if ( v6 == -1 )
       return 0;
     v4 = v6;
     flt_1006956C = *a1;
     flt_10069570 = a1[1];
     flt_10069574 = a1[2];
-    dword_10069568 = *(__int16 *)(v5 + 6);
+    dword_10069568 = v5->area;
   }
   v7 = sub_10003420(a2, 0);
-  if ( *(__int16 *)(v7 + 4) == -1 )
+  if ( v7->cluster == -1 )
     return 0;
   AAS_DecompressVis(v4, a3);
-  v6 = *(__int16 *)(v7 + 4);
+  v6 = v7->cluster;
   return ((unsigned __int8)byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
 }
 
@@ -3676,7 +3664,6 @@ void __cdecl sub_10005CF0(int row_index, int value)
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
   int    i;
-  int    model_offset;
   vec3_t local_mins, local_maxs;
   vec3_t corner;
   vec3_t bb_mins, bb_maxs;   /* accumulator for the rotated bbox */
@@ -3693,13 +3680,12 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
     return;
   }
 
-  model_offset = 48 * modelnum;
-  local_mins[0] = *(float *)(model_offset + dmodels +  0);
-  local_mins[1] = *(float *)(model_offset + dmodels +  4);
-  local_mins[2] = *(float *)(model_offset + dmodels +  8);
-  local_maxs[0] = *(float *)(model_offset + dmodels + 12);
-  local_maxs[1] = *(float *)(model_offset + dmodels + 16);
-  local_maxs[2] = *(float *)(model_offset + dmodels + 20);
+  local_mins[0] = dmodels[modelnum].mins[0];
+  local_mins[1] = dmodels[modelnum].mins[1];
+  local_mins[2] = dmodels[modelnum].mins[2];
+  local_maxs[0] = dmodels[modelnum].maxs[0];
+  local_maxs[1] = dmodels[modelnum].maxs[1];
+  local_maxs[2] = dmodels[modelnum].maxs[2];
 
   AnglesToAxis(angles, (float *)axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
@@ -3721,9 +3707,9 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   if ( maxs ) { VectorCopy(bb_maxs, maxs); }
   if ( origin )
   {
-    origin[0] = *(float *)(model_offset + dmodels + 24);
-    origin[1] = *(float *)(model_offset + dmodels + 28);
-    origin[2] = *(float *)(model_offset + dmodels + 32);
+    origin[0] = dmodels[modelnum].origin[0];
+    origin[1] = dmodels[modelnum].origin[1];
+    origin[2] = dmodels[modelnum].origin[2];
   }
 }
 
@@ -3804,8 +3790,8 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   int leafnum; // esi
   bsp_link_t *newlink; // eax
   bsp_link_t *v10; // ecx
-  _DWORD *v11; // esi
-  aas_plane_t *plane; // ecx
+  dnode_t *v11; // esi
+  dplane_t *plane; // ecx
   int v13; // edx
   int v14; // eax
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
@@ -3814,7 +3800,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     return 0;
   link = 0;
   v6 = &v15[1];
-  v15[0] = *(_DWORD *)(48 * modelnum + dmodels + 36);
+  v15[0] = dmodels[modelnum].headnode;
   /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
    * un-rotated top-test loop.  Because v6 starts at &v15[1], MSVC6 can
    * prove the first --v6>=&v15[0] always holds and removes the entry
@@ -3849,8 +3835,8 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     }
     else
     {
-      v11 = (_DWORD *)(dnodes + 28 * nodenum);
-      plane = (aas_plane_t *)(dplanes + 20 * *v11);
+      v11 = &dnodes[nodenum];
+      plane = &dplanes[v11->planenum];
       v13 = plane->type;
       if ( v13 < 3 )
       {
@@ -3866,9 +3852,9 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
         v14 = AAS_BoxOnPlaneSide2(absmins, absmaxs, (float *)plane);
       }
       if ( (v14 & 1) != 0 )
-        *v6++ = v11[1];
+        *v6++ = v11->children[0];
       if ( (v14 & 2) != 0 )
-        *v6++ = v11[2];
+        *v6++ = v11->children[1];
     }
   }
   return link;
@@ -3992,7 +3978,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entnum);
             if (brush_links) {
               for (brush_iter = brush_links; brush_iter; brush_iter = (bsp_link_t *)*(int *)((char *)brush_iter + 0x10)) {
-                if (*(unsigned short *)(dleafs + brush_iter->leafnum * 28 + 26)) {
+                if (dleafs[brush_iter->leafnum].numleafbrushes) {
                   *out++ = entnum;
                   count++;
                   break;
@@ -4216,9 +4202,9 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
 //----- (10006D10) --------------------------------------------------------
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
 {
-  intptr_t v6; // esi
+  dnode_t *v6; // esi
   int v7; // edx
-  float *v8; // eax
+  dplane_t *v8; // eax
   float *v9; // ebp
   float v10; // st7
   float v11; // st6
@@ -4227,7 +4213,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   unsigned __int16 v14; // ax
   int v15; // ebx
   __int16 *v16; // edi
-  float *v17; // esi
+  texinfo_t *v17; // esi
   int v18; // ebp
   __int64 v19; // rax
   int v20; // ecx
@@ -4250,28 +4236,28 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   float v37; // edx
   float v38; // edx
   int v39; // [esp+10h] [ebp-14h]
-  intptr_t v40; // [esp+14h] [ebp-10h]
+  dnode_t *v40; // [esp+14h] [ebp-10h]
   vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive sub_10006D10
   int v44; // [esp+28h] [ebp+4h]
-  intptr_t v45; // [esp+2Ch] [ebp+8h]
+  dface_t *v45; // [esp+2Ch] [ebp+8h]
   int i; // [esp+30h] [ebp+Ch]
 
   if ( a1 < 0 )
     return 0;
-  v6 = dnodes + 28 * a1;
+  v6 = &dnodes[a1];
   v40 = v6;
-  v7 = *(_DWORD *)(dplanes + 20 * *(_DWORD *)v6 + 16);
-  v8 = (float *)(dplanes + 20 * *(_DWORD *)v6);
+  v8 = &dplanes[v6->planenum];
+  v7 = v8->type;
   v9 = a3;
   if ( v7 < 3 )
   {
-    v10 = a2[v7] - v8[3];
-    v11 = a3[v7] - v8[3];
+    v10 = a2[v7] - v8->dist;
+    v11 = a3[v7] - v8->dist;
   }
   else
   {
-    v10 = a2[2] * v8[2] + a2[1] * v8[1] + *v8 * *a2 - v8[3];
-    v11 = a3[2] * v8[2] + a3[1] * v8[1] + *v8 * *a3 - v8[3];
+    v10 = a2[2] * v8->normal[2] + a2[1] * v8->normal[1] + v8->normal[0] * *a2 - v8->dist;
+    v11 = a3[2] * v8->normal[2] + a3[1] * v8->normal[1] + v8->normal[0] * *a3 - v8->dist;
   }
   if ( v10 >= 0.0f )
   {
@@ -4284,25 +4270,25 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v44 = 1;
   }
   if ( v12 == v11 < 0.0f )
-    return sub_10006D10(*(_DWORD *)(v6 + 4 * v12 + 4), a2, a3, a4, a5);
+    return sub_10006D10(v6->children[v12], a2, a3, a4, a5);
   v13 = v10 / (v10 - v11);
   mid[0] = (*a3 - *a2) * v13 + *a2;
   mid[1] = (a3[1] - a2[1]) * v13 + a2[1];
   mid[2] = (a3[2] - a2[2]) * v13 + a2[2];
-  if ( sub_10006D10(*(_DWORD *)(v6 + 4 * v12 + 4), a2, mid, a4, a5) )
+  if ( sub_10006D10(v6->children[v12], a2, mid, a4, a5) )
     return 1;
-  v14 = *(_WORD *)(v6 + 24);
+  v14 = v6->firstface;
   v39 = 0;
-  v15 = *(unsigned __int16 *)(v6 + 26);
-  v45 = dfaces + 20 * v14;
+  v15 = v6->numfaces;
+  v45 = &dfaces[v14];
   v16 = (__int16 *)(dword_10067558 + 8 * v14);
   if ( !(_WORD)v15 )
-    return sub_10006D10(*(_DWORD *)(v6 + 4 * (v44 == 0) + 4), mid, v9, a4, a5);
+    return sub_10006D10(v6->children[v44 == 0], mid, v9, a4, a5);
   while ( 1 )
   {
-    v17 = (float *)(texinfo + 76 * *(__int16 *)(v45 + 10));
-    v18 = (__int64)(mid[2] * v17[2] + mid[1] * v17[1] + mid[0] * *v17 + v17[3]);
-    v19 = (__int64)(mid[2] * v17[6] + mid[1] * v17[5] + mid[0] * v17[4] + v17[7]);
+    v17 = &texinfo[v45->texinfo];
+    v18 = (__int64)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
+    v19 = (__int64)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
     v20 = *v16;
     if ( v18 >= v20 )
     {
@@ -4317,16 +4303,16 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     }
     v16 += 4;
     v23 = ++v39 < v15;
-    v45 += 20;
+    ++v45;
     if ( !v23 )
     {
       v6 = v40;
       v9 = a3;
-      return sub_10006D10(*(_DWORD *)(v6 + 4 * (v44 == 0) + 4), mid, v9, a4, a5);
+      return sub_10006D10(v6->children[v44 == 0], mid, v9, a4, a5);
     }
   }
   v24 = 0;
-  v25 = *(_DWORD *)(v45 + 16);
+  v25 = v45->lightofs;
   if ( v25 >= 0 )
   {
     v30 = 0;
@@ -4337,7 +4323,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v34 = 0;
     for ( i = 0; i < 4; ++i )
     {
-      if ( *(_BYTE *)(v45 + v34 + 12) == 0xFF )
+      if ( v45->styles[v34] == 0xFF )
         break;
       v32 += 264 * *v33;
       v24 += 264 * v33[1];
@@ -4391,7 +4377,7 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
    * sub_10006D10 signature. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  if ( !dword_100674C0 || !dlightdata || !sub_10006D10(*(_DWORD *)(dmodels + 36), (float *)start, (float *)end, (float *)endpos, v7) )
+  if ( !dword_100674C0 || !dlightdata || !sub_10006D10(dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
     return 0;
   *red = v7[0];
   *green = v7[1];
@@ -4420,6 +4406,10 @@ void sub_100071E0()
   __int64 v15; // rax
   char *v16; // ecx
   qboolean v17; // cc
+  /* Known MSVC6 tie: keeping the face/texinfo walk in byte-view form preserves
+   * the established OUR+17 oracle parity here; fully typed field access
+   * regresses both this function and the PC_ReadDefineParms layout canary. */
+  char *face; // eax
   int i; // [esp+1Ch] [ebp-34h]
   int v19; // [esp+20h] [ebp-30h]
   int v20; // [esp+24h] [ebp-2Ch]
@@ -4442,15 +4432,16 @@ void sub_100071E0()
       v23[1] = 1203982208;
       v23[0] = 1203982208;
       v24[1] = -943501440;
-      v2 = *(__int16 *)(v1 + dfaces + 10);
+      face = (char *)dfaces + v1;
+      v2 = *(__int16 *)(face + 10);
       v24[0] = -943501440;
-      v22 = texinfo + 76 * v2;
-      if ( *(__int16 *)(v1 + dfaces + 8) > 0 )
+      v22 = (char *)&texinfo[v2];
+      if ( *(__int16 *)(face + 8) > 0 )
       {
         v3 = dedges;
         v4 = dvertexes;
-        v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(v1 + dfaces + 4));
-        v20 = *(__int16 *)(v1 + dfaces + 8);
+        v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(face + 4));
+        v20 = *(__int16 *)(face + 8);
         do
         {
           v6 = *v5;
@@ -4513,21 +4504,21 @@ int sub_10007460(void)
 {
   int v1; // ebp
   int v2; // ebx
-  char *v3; // esi
-  _DWORD *v4; // edi
+  texinfo_t *v3; // esi
+  float *v4; // edi
   char *v9; // eax
   int v10; // ebp
   int v11; // edi
   int v13; // esi
   int v16; // ebx
-  char *v17; // esi
-  _DWORD *v18; // edi
+  dplane_t *v17; // esi
+  float *v18; // edi
   int v22; // ebp
-  char *v23; // esi
+  dnode_t *v23; // esi
   _WORD *v29; // edi
   int v30; // ebx
   int v37; // ebp
-  char *v38; // esi
+  dleaf_t *v38; // esi
   _WORD *v44; // edi
   int v45; // ebx
   int n; // esi
@@ -4537,7 +4528,7 @@ int sub_10007460(void)
   int result; // eax
   int v68; // ebp
   int v69; // ebx
-  char *v70; // esi
+  dmodel_t *v70; // esi
   float *v75; // esi
   int v76; // edi
   int i; // [esp+10h] [ebp-4h]
@@ -4550,18 +4541,18 @@ int sub_10007460(void)
   for ( i = 0; i < numtexinfo; ++i )
   {
     v2 = 8;
-    v3 = texinfo + v1;
-    v4 = (_DWORD *)(texinfo + v1);
+    v3 = &texinfo[i];
+    v4 = &v3->vecs[0][0];
     do
     {
-      *(float *)v4 = LittleFloat(*(float *)v4);
+      *v4 = LittleFloat(*v4);
       ++v4;
       --v2;
     }
     while ( v2 );
-    *(_DWORD *)(v3 + 32) = LittleLong(*(int *)(v3 + 32));
-    *(_DWORD *)(v3 + 36) = LittleLong(*(int *)(v3 + 36));
-    *(_DWORD *)(v3 + 72) = LittleLong(*(int *)(v3 + 72));
+    v3->flags = LittleLong(v3->flags);
+    v3->value = LittleLong(v3->value);
+    v3->nexttexinfo = LittleLong(v3->nexttexinfo);
     HIWORD(a1) = HIWORD(numtexinfo);
     v1 += 76;
   }
@@ -4590,28 +4581,28 @@ int sub_10007460(void)
   for ( j = 0; j < numplanes; ++j )
   {
     v16 = 3;
-    v17 = dplanes + v10;
-    v18 = (_DWORD *)(dplanes + v10);
+    v17 = &dplanes[j];
+    v18 = v17->normal;
     do
     {
-      *(float *)v18 = LittleFloat(*(float *)v18);
+      *v18 = LittleFloat(*v18);
       ++v18;
       --v16;
     }
     while ( v16 );
-    *(float *)(v17 + 12) = LittleFloat(*(float *)(v17 + 12));
-    *(_DWORD *)(v17 + 16) = LittleLong(*(int *)(v17 + 16));
+    v17->dist = LittleFloat(v17->dist);
+    v17->type = LittleLong(v17->type);
     HIWORD(a1) = HIWORD(numplanes);
     v10 += 20;
   }
   v22 = 0;
   for ( k = 0; k < numnodes; ++k )
   {
-    v23 = dnodes + v22;
-    *(_DWORD *)v23 = LittleLong(*(int *)v23);
-    *(_DWORD *)(v23 + 4) = LittleLong(*(int *)(v23 + 4));
-    *(_DWORD *)(v23 + 8) = LittleLong(*(int *)(v23 + 8));
-    v29 = (_WORD *)(v23 + 18);
+    v23 = &dnodes[k];
+    v23->planenum = LittleLong(v23->planenum);
+    v23->children[0] = LittleLong(v23->children[0]);
+    v23->children[1] = LittleLong(v23->children[1]);
+    v29 = (unsigned short *)v23->maxs;
     v30 = 3;
     do
     {
@@ -4621,19 +4612,19 @@ int sub_10007460(void)
       --v30;
     }
     while ( v30 );
-    *(_WORD *)(v23 + 24) = LittleShort(*(_WORD *)(v23 + 24));
-    *(_WORD *)(v23 + 26) = LittleShort(*(_WORD *)(v23 + 26));
+    v23->firstface = LittleShort(v23->firstface);
+    v23->numfaces = LittleShort(v23->numfaces);
     HIWORD(a1) = HIWORD(numnodes);
     v22 += 28;
   }
   v37 = 0;
   for ( m = 0; m < numleafs; ++m )
   {
-    v38 = dleafs + v37;
-    *(_DWORD *)v38 = LittleLong(*(int *)v38);
-    *(_WORD *)(v38 + 4) = LittleShort(*(_WORD *)(v38 + 4));
-    *(_WORD *)(v38 + 6) = LittleShort(*(_WORD *)(v38 + 6));
-    v44 = (_WORD *)(v38 + 14);
+    v38 = &dleafs[m];
+    v38->contents = LittleLong(v38->contents);
+    v38->cluster = LittleShort(v38->cluster);
+    v38->area = LittleShort(v38->area);
+    v44 = (unsigned short *)v38->maxs;
     v45 = 3;
     do
     {
@@ -4643,10 +4634,10 @@ int sub_10007460(void)
       --v45;
     }
     while ( v45 );
-    *(_WORD *)(v38 + 20) = LittleShort(*(_WORD *)(v38 + 20));
-    *(_WORD *)(v38 + 22) = LittleShort(*(_WORD *)(v38 + 22));
-    *(_WORD *)(v38 + 24) = LittleShort(*(_WORD *)(v38 + 24));
-    *(_WORD *)(v38 + 26) = LittleShort(*(_WORD *)(v38 + 26));
+    v38->firstleafface = LittleShort(v38->firstleafface);
+    v38->numleaffaces = LittleShort(v38->numleaffaces);
+    v38->firstleafbrush = LittleShort(v38->firstleafbrush);
+    v38->numleafbrushes = LittleShort(v38->numleafbrushes);
     HIWORD(a1) = HIWORD(numleafs);
     v37 += 28;
   }
@@ -4698,11 +4689,11 @@ int sub_10007460(void)
     v69 = 0;
     do
     {
-      v70 = dmodels + v69;
-      *(_DWORD *)(v70 + 40) = LittleLong(*(int *)(v70 + 40));
-      *(_DWORD *)(v70 + 44) = LittleLong(*(int *)(v70 + 44));
-      *(_DWORD *)(v70 + 36) = LittleLong(*(int *)(v70 + 36));
-      v75 = (float *)(v70 + 24);
+      v70 = &dmodels[v68];
+      v70->firstface = LittleLong(v70->firstface);
+      v70->numfaces = LittleLong(v70->numfaces);
+      v70->headnode = LittleLong(v70->headnode);
+      v75 = v70->origin;
       v76 = 3;
       do
       {
