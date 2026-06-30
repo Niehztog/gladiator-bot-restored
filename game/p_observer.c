@@ -256,6 +256,11 @@ void ClientToggleObserver(edict_t *ent)
 		ent->health = 100;
 		ent->client->ps.stats[STAT_HEALTH] = ent->health;
 		ent->svflags |= SVF_NOCLIENT;
+		if (ent->deadflag)
+		{
+			ent->deadflag = DEAD_NO;
+			VectorCopy(ent->client->v_angle, ent->client->ps.viewangles);
+		}
 		ent->client->camera.ent = ent;
 		ClientPlaceCamera(ent);
 		if (ctf->value)
