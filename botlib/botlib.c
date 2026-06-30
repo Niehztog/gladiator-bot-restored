@@ -316,9 +316,9 @@ int __cdecl sub_10003080(vec3_t point);
 void sub_10003280();
 void sub_100032D0();
 int __cdecl sub_10003360(const vec3_t point, int modelnum);
-dleaf_t *__cdecl sub_10003420(float *a1, int a2);
+dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum);
 void __cdecl sub_10003460(vec3_t v, float m[3][3]);
-void __cdecl AnglesToAxis(float *angles, float *axis);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
+void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace);
 int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
@@ -1895,11 +1895,11 @@ int __cdecl sub_10003360(const vec3_t point, int modelnum) /* PointInLeaf */
 }
 
 //----- (10003420) --------------------------------------------------------
-dleaf_t *__cdecl sub_10003420(float *a1, int a2)
+dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum)
 {
   if ( !dword_100674C0 )
     return 0;
-  return &dleafs[sub_10003360(a1, a2)];
+  return &dleafs[sub_10003360(point, modelnum)];
 }
 
 //----- (10003460) --------------------------------------------------------
@@ -1938,8 +1938,9 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3])
  * time, giving bit-identical 32-bit-float output for any reasonable
  * angle.  GCC couldn't reproduce the original's stack-aliased 3x3
  * layout (locals v8/v12/v19..v22 aliasing into a contiguous matrix at
- * fixed [ebp-...] offsets); fixed by using real `float[9]` arrays. */
-void __cdecl AnglesToAxis(float *angles, float *axis)
+ * fixed [ebp-...] offsets); keep the source on real 3x3 arrays and let
+ * the oracle decide how close MSVC6 gets. */
+void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 {
   /* DEG2RAD constant: 64-bit double matching .rdata 0x10058008.  The radian
      products are inlined into the sin/cos calls (not stored to named double
@@ -1947,39 +1948,59 @@ void __cdecl AnglesToAxis(float *angles, float *axis)
      and CSEs it between sin and cos (fld st(0); fsin; ... fcos) — matching ref,
      which has only the three `fmul QWORD DEG2RAD` and no double spill slots. */
   static const double DEG2RAD = 0.017453292519943295;
-  float sy = (float)sin(angles[1] * DEG2RAD), cy = (float)cos(angles[1] * DEG2RAD);
-  float sp = (float)sin(angles[0] * DEG2RAD), cp = (float)cos(angles[0] * DEG2RAD);
-  float sr, cr;
   /* Only THREE matrix buffers: `m` holds the pitch matrix for the first
      concat, then is rebuilt in place as the roll matrix for the second (it is
      arg1 of both calls).  ref's 0x6c frame is exactly 3*9 floats — it reuses
      the buffer rather than carrying a separate roll_m. */
-  float m[9], yaw_m[9], tmp[9];
+  struct {
+    float yaw[3][3];
+    float m[3][3];
+    float tmp[3][3];
+  } mats;
+
+  /* Seed the constant slots first; the original MSVC6 build interleaves these
+     stores around the trig pipeline instead of keeping separate scalar temps. */
+  mats.yaw[0][2] = 0;
+  mats.yaw[1][2] = 0;
+  mats.yaw[2][0] = 0;
+  mats.yaw[2][1] = 0;
+  mats.yaw[2][2] = 1;
+  mats.m[0][1] = 0;
+  mats.m[1][0] = 0;
+  mats.m[1][1] = 1;
+  mats.m[1][2] = 0;
+  mats.m[2][1] = 0;
 
   /* yaw matrix (rotation around Z) */
-  yaw_m[0] =  cy; yaw_m[1] =  sy; yaw_m[2] = 0;
-  yaw_m[3] = -sy; yaw_m[4] =  cy; yaw_m[5] = 0;
-  yaw_m[6] = 0;   yaw_m[7] = 0;   yaw_m[8] = 1;
+  mats.yaw[0][1] = (float)sin(angles[1] * DEG2RAD);
+  mats.yaw[0][0] = (float)cos(angles[1] * DEG2RAD);
+  mats.yaw[1][0] = -mats.yaw[0][1];
+  mats.yaw[1][1] = mats.yaw[0][0];
 
   /* pitch matrix (rotation around Y) */
-  m[0] =  cp; m[1] = 0; m[2] = -sp;
-  m[3] =  0;  m[4] = 1; m[5] =  0;
-  m[6] =  sp; m[7] = 0; m[8] =  cp;
+  mats.m[0][2] = -(float)sin(angles[0] * DEG2RAD);
+  mats.m[2][0] = -mats.m[0][2];
+  mats.m[0][0] = (float)cos(angles[0] * DEG2RAD);
+  mats.m[2][2] = mats.m[0][0];
 
   /* tmp = pitch_m * yaw_m.  ref computes the roll angle and roll matrix only
      AFTER this call (3rd fmul DEG2RAD at 0x10003599 follows the call at
      0x10003594), so the roll matrix reuses the now-dead pitch buffer. */
-  R_ConcatRotations(m, yaw_m, tmp);
+  R_ConcatRotations(mats.m, mats.yaw, mats.tmp);
 
-  sr = (float)sin(angles[2] * DEG2RAD); cr = (float)cos(angles[2] * DEG2RAD);
   /* roll matrix (rotation around X), rebuilt in `m` */
-  m[0] = 1; m[1] =  0;  m[2] = 0;
-  m[3] = 0; m[4] =  cr; m[5] = sr;
-  m[6] = 0; m[7] = -sr; m[8] = cr;
+  mats.m[0][0] = 1;
+  mats.m[0][1] = 0;
+  mats.m[0][2] = 0;
+  mats.m[1][0] = 0;
+  mats.m[2][0] = 0;
+  mats.m[1][2] = (float)sin(angles[2] * DEG2RAD);
+  mats.m[1][1] = (float)cos(angles[2] * DEG2RAD);
+  mats.m[2][1] = -mats.m[1][2];
+  mats.m[2][2] = mats.m[1][1];
 
   /* output = roll_m * tmp */
-  R_ConcatRotations(m, tmp, axis);
-  return;
+  R_ConcatRotations(mats.m, mats.tmp, axis);
 }
 
 //----- (10003680) --------------------------------------------------------
@@ -2258,7 +2279,7 @@ int __cdecl sub_10003C90(
   vec3_t endp; // [esp+44h] [ebp-48h] — clipped end point
   vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
   vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
-  float v59[9]; // [esp+68h] [ebp-24h] BYREF
+  float v59[3][3]; // [esp+68h] [ebp-24h] BYREF
 
   if ( *a3 == 0.0f && a3[1] == 0.0f && a3[2] == 0.0f )
   {
@@ -2268,7 +2289,7 @@ int __cdecl sub_10003C90(
   else
   {
     v39 = 1;
-    AnglesToAxis(a3, (float *)v59);
+    AnglesToAxis(a3, v59);
     v11 = 0;
   }
   v12 = a2;
@@ -2705,7 +2726,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v148[3]; // [esp+C8h] [ebp-1490h] BYREF
   float v149[3]; // [esp+D4h] [ebp-1484h] BYREF
   float v150[21]; // [esp+E0h] [ebp-1478h] BYREF
-  float v151[9]; // [esp+134h] [ebp-1424h] BYREF
+  float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
   /* v152 (initial trace-stack frame, 9 ints declared) and v153 (127-entry
    * free list of 40-byte entries) were stack-adjacent in the original MSVC
    * build at [esp+0x158] and [esp+0x17C], so v152's "link" at offset +0x24
@@ -2783,7 +2804,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   else
   {
     v144 = 1;
-    AnglesToAxis(a4, (float *)v151);
+    AnglesToAxis(a4, v151);
   }
   v14 = &dmodels[a2];
   v15 = v14->origin[0] + *a3;
@@ -3351,7 +3372,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   _DWORD *v10; // [esp+14h] [ebp-78h]
   float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v12[3]; // [esp+24h] [ebp-68h] BYREF
-  float v13[9]; // [esp+30h] [ebp-5Ch] BYREF
+  float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
   char v14[12]; // [esp+54h] [ebp-38h] BYREF
   char v15[12]; // [esp+60h] [ebp-2Ch] BYREF
   float v16; // [esp+6Ch] [ebp-20h]
@@ -3373,7 +3394,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v12[0] = -*a4;
   v12[1] = -a4[1];
   v12[2] = -a4[2];
-  AnglesToAxis(v12, (float *)v13);
+  AnglesToAxis(v12, v13);
   sub_10003460(v11, v13);
   v6 = sub_10003360(v11, a2);
   v7 = &dleafs[v6];
@@ -3687,7 +3708,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   local_maxs[1] = dmodels[modelnum].maxs[1];
   local_maxs[2] = dmodels[modelnum].maxs[2];
 
-  AnglesToAxis(angles, (float *)axis);   /* build 3x3 row-major rotation matrix */
+  AnglesToAxis(angles, axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
 
   /* Iterate the 8 corners of the AABB, rotate each through `axis`, and
