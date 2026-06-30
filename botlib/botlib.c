@@ -319,11 +319,11 @@ int __cdecl sub_10003360(const vec3_t point, int modelnum);
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum);
 void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
-qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace);
-int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8);
+qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
+int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
 int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
-int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9);
-bsp_trace_t __cdecl AAS_TraceBSPModel(int a2, float *a3, float *a4, intptr_t a5, int *a6, float *a7, int *a8, int a9, int a10);
+int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
+bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
 int __cdecl sub_100056D0(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 void __cdecl AAS_DecompressVis(int a1, int a2);
@@ -2004,7 +2004,7 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 }
 
 //----- (10003680) --------------------------------------------------------
-qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, float *trace)
+qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v7; // edi
   int v12; // edx
@@ -2015,76 +2015,52 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
   int v18; // edi
   int v19; // edx
   float v20; // st6
-  unsigned __int8 v22; // c0
-  unsigned __int8 v23; // c3
   int v24; // edx
   float v25; // st6
-  unsigned __int8 v27; // c0
-  unsigned __int8 v28; // c3
-  char *v29; // eax
+  float *v29; // eax
   float *v30; // edx
   int v31; // esi
   float v32; // st7
   float v33; // st7
   float v35; // st7
-  unsigned __int8 v36; // c0
-  unsigned __int8 v37; // c3
   float v38; // st7
+  bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
+  bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
+  vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
+  vec3_t v44; /* was v44,v44[1],v44[2]: vec3_t local bbox min2 */
+  vec3_t v41; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
+  vec3_t v40; // [esp+8h] [ebp-E4h] BYREF
   float v39; // [esp+10h] [ebp-DCh]
-  float v40[3]; // [esp+14h] [ebp-D8h] BYREF
-  float v41[3]; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
-  /* v42 subsumed into v41[1] */
-  /* v43 subsumed into v41[2] */
-  float v44[3]; /* was v44,v44[1],v44[2]: vec3_t local bbox min2 */
-  /* v45 subsumed into v44[1] */
-  /* v46 subsumed into v44[2] */
-  float v47[24]; // [esp+38h] [ebp-B4h] BYREF
 
   if ( !dword_100674C0 )
     return 0;
-  AAS_EntityBSPData(entnum, (bsp_entdata_t *)v47);
-  if ( LODWORD(v47[12]) != 2 && LODWORD(v47[12]) != 3 )
+  AAS_EntityBSPData(entnum, &entdata);
+  if ( entdata.solid != 2 && entdata.solid != 3 )
     return 0;
   if ( boxmaxs )
   {
-    v41[0] = v47[6] - *boxmaxs;
-    v41[1] = v47[7] - boxmaxs[1];
-    v41[2] = v47[8] - boxmaxs[2];
+    VectorSubtract(entdata.absmins, boxmaxs, v41);
   }
   else
   {
-    v41[0] = v47[6];
-    v41[1] = v47[7];
-    v41[2] = v47[8];
+    VectorCopy(entdata.absmins, v41);
   }
   if ( boxmins )
   {
-    v44[0] = v47[9] - *boxmins;
-    v44[1] = v47[10] - boxmins[1];
-    v44[2] = v47[11] - boxmins[2];
+    VectorSubtract(entdata.absmaxs, boxmins, v44);
   }
   else
   {
-    v44[0] = v47[9];
-    v44[1] = v47[10];
-    v44[2] = v47[11];
+    VectorCopy(entdata.absmaxs, v44);
   }
-  /* Original: 3-iteration loop using (char*)&v41-start and (char*)&v44-start offsets
-   * to compare start[i] and end[i] against bbox mins (v41[3]) and maxs (v44[3]).
-   * Restored with direct array indexing — v41[3]={v41,v42,v43}, v44[3]={v44,v45,v46}. */
-  v7 = 0;
+  for (v7 = 0; v7 < 3; v7++)
   {
-    float *_a2 = (float *)start;
-    float *_a5 = (float *)end;
-    while (v7 < 3) {
-      if (_a2[v7] < v41[v7] && _a5[v7] < v41[v7]) break;
-      if (_a2[v7] > v44[v7] && _a5[v7] > v44[v7]) break;
-      ++v7;
-    }
+      if (start[v7] < v41[v7] && end[v7] < v41[v7]) break;
+      if (start[v7] > v44[v7] && end[v7] > v44[v7]) break;
   }
   if ( v7 != 3 )
     return 0;
-  if ( LODWORD(v47[12]) == 2 )
+  if ( entdata.solid == 2 )
   {
     v12 = 0;
     /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd QWORD 0.5; fcompp; test ah,1; je exit.
@@ -2092,126 +2068,127 @@ qboolean __cdecl AAS_EntityCollision(int entnum, char *start, vec3_t boxmins, ve
      * = 0.5).  fcompp with ST(0)=v41+0.5 and ST(1)=*i sets C0=1 iff v41+0.5 < *i; JE on
      * C0=0 exits when *i <= v41+0.5, so continue iff *i > v41+0.5.  Same form for v44-0.5
      * (test ah,0x41 = C0|C3 → continue iff *i < v44-0.5).
-     * NB on the literal: writing `0.5` (double) is the disasm-faithful precision but in
-     * THIS function it overshoots — the reg/FPU cascade spills the double intermediate to
-     * a 3rd QWORD slot (ref has 2 QWORD ops, our build then has 3) and pushes insns
-     * OUR+11→OUR+14.  Since 0.5 is exact in float and double the VALUE is identical, so we
-     * keep `0.5f` (the lower-divergence form, QWORD 0 vs ref 2) per the cascade-trap rule
-     * — this fn is reg-alloc-cascade-dominated and never MATCHes regardless. */
-    for ( i = (float *)start; v41[i-(float*)start] + 0.5f < *i && v44[i-(float*)start] - 0.5f > *i; ++i )
+     * NB on the literal: writing `0.5` (double) is the disasm-faithful precision, but in
+     * THIS function historically introduced an extra QWORD spill and moved the emitted code
+     * farther from the reference in the older success-form loop.  The lower-divergence form
+     * here is the indexed failure-form loop below with `0.5f`. */
+    for ( i = start; v12 < 3; ++i, ++v12 )
     {
-      if ( ++v12 >= 3 )
-      {
-        *((_DWORD *)trace + 20) = entnum;
-        *((_DWORD *)trace + 1) = 1;
-        *(_DWORD *)trace = 1;
-        trace[2] = 0.0f;
-        trace[19] = 0.0f;
-        *((_DWORD *)trace + 12) = -1;
-        trace[6] = 0.0f;
-        trace[7] = 0.0f;
-        trace[8] = 0.0f;
-        trace[9] = 0.0f;
-        trace[10] = 0.0f;
-        trace[3] = *(float *)start;
-        trace[4] = *((float *)start + 1);
-        trace[5] = *((float *)start + 2);
-        return 1;
-      }
+      if ( *i <= v41[v12] + 0.5f )
+        break;
+      if ( *i >= v44[v12] - 0.5f )
+        break;
+    }
+    if ( v12 == 3 )
+    {
+      trace->ent = entnum;
+      trace->startsolid = 1;
+      trace->allsolid = 1;
+      trace->fraction = 0.0f;
+      trace->contents = 0;
+      trace->sidenum = -1;
+      ((int *)&trace->plane.normal[0])[0] = 0;
+      ((int *)&trace->plane.normal[0])[1] = 0;
+      ((int *)&trace->plane.normal[0])[2] = 0;
+      ((int *)&trace->plane.normal[0])[3] = 0;
+      *(int *)&trace->plane.type = 0;
+      VectorCopy(start, trace->endpos);
+      return 1;
     }
   }
   v15 = 0;
-  v40[0] = *end - *(float *)start;
-  v40[1] = end[1] - *((float *)start + 1);
-  v40[2] = end[2] - *((float *)start + 2);
+  VectorSubtract(end, start, v40);
   while ( 1 )
   {
     if ( v40[v15] <= 0.0f )
       v16 = v44[v15];
     else
       v16 = v41[v15];
-    v17 = *(float *)&start[4 * v15] - v16;
+    v17 = start[v15] - v16;
     v18 = v15 + 1;
     v19 = v15 + 1;
     v39 = v17 / (v17 - (end[v15] - v16));
     if ( v15 > 1 )
       v19 = 0;
-    v20 = v39 * v40[v19] + *(float *)&start[4 * v19];
-    v47[v19 + 21] = v20;
-    if ( !(v22 | v23) && v20 < v44[v19] )
+    v20 = v39 * v40[v19] + start[v19];
+    clipend[v19] = v20;
+    if ( v41[v19] < v20 && v20 < v44[v19] )
     {
       v24 = v19 + 1;
       if ( v24 > 2 )
         v24 = 0;
-      v25 = v39 * v40[v24] + *(float *)&start[4 * v24];
-      v47[v24 + 21] = v25;
-      if ( !(v27 | v28) && v25 < v44[v24] )
+      v25 = v39 * v40[v24] + start[v24];
+      clipend[v24] = v25;
+      if ( v41[v24] < v25 && v25 < v44[v24] )
         break;
     }
     ++v15;
     if ( v18 >= 3 )
       goto LABEL_40;
   }
-  v47[v15 + 21] = v16;
+  clipend[v15] = v16;
 LABEL_40:
-  if ( v15 == 3 || v39 >= (float)trace[2] )
+  if ( v15 == 3 || v39 >= trace->fraction )
     return 0;
-  if ( LODWORD(v47[12]) != 2 )
+  if ( entdata.solid != 2 )
   {
-    if ( LODWORD(v47[12]) == 3 )
+    if ( entdata.solid == 3 )
     {
-      *(bsp_trace_t *)v47 = AAS_TraceBSPModel(LODWORD(v47[13]), v47, &v47[3], start, boxmins, boxmaxs, end, 0, contentmask);
-      if ( v47[2] < (float)trace[2] )
+      modeltrace = AAS_TraceBSPModel(entdata.modelnum, entdata.origin, entdata.angles, start, boxmins, boxmaxs, end, 0, contentmask);
+      if ( modeltrace.fraction < trace->fraction )
       {
-        memcpy(trace, v47, 0x54u);
+        memcpy(trace, &modeltrace, sizeof(modeltrace));
         return 1;
       }
     }
     return 0;
   }
-  trace[2] = v39;
-  *((_DWORD *)trace + 12) = -1;
-  trace[1] = 0.0f;
-  *trace = 0.0f;
-  *((_DWORD *)trace + 20) = entnum;
+  trace->fraction = v39;
+  trace->sidenum = -1;
+  trace->startsolid = 0;
+  trace->allsolid = 0;
+  trace->ent = entnum;
   if ( boxmins && boxmaxs )
   {
     if ( v40[v15] <= 0.0f )
-      trace[11] = -boxmins[v15];
+      trace->exp_dist = -boxmins[v15];
     else
-      trace[11] = boxmaxs[v15];
+      trace->exp_dist = boxmaxs[v15];
   }
+  /* Equivalent to trace->endpos[n] = start[n] + v39 * v40[n] for n=0..2,
+   * but kept as the original parallel pointer walk without byte-addressing vec3_t. */
   v29 = start;
-  v30 = trace + 3;
+  v30 = v40;
+  i = trace->endpos;
   v31 = 3;
   do
   {
-    v32 = v39 * *(float *)&v29[(char *)v40 - start];
-    v29 += 4;
+    v32 = v39 * *v30;
+    ++v29;
     ++v30;
     --v31;
-    *(v30 - 1) = v32 + *((float *)v29 - 1);
+    *i++ = v32 + *(v29 - 1);
   }
   while ( v31 );
   v33 = v40[v15];
-  trace[(v15 + 1) % 3 + 6] = 0.0f;
-  trace[(v15 + 2) % 3 + 6] = 0.0f;
+  trace->plane.normal[(v15 + 1) % 3] = 0.0f;
+  trace->plane.normal[(v15 + 2) % 3] = 0.0f;
   if ( v33 <= 0.0f )
-    trace[v15 + 6] = 1.0f;
+    trace->plane.normal[v15] = 1.0f;
   else
-    trace[v15 + 6] = -1.0f;
-  v35 = trace[v15 + 3];
-  if ( !(v36 | v37) )
+    trace->plane.normal[v15] = -1.0f;
+  v35 = trace->endpos[v15];
+  if ( v40[v15] > 0.0f )
     v35 = -v35;
-  v38 = v35 - trace[11];
-  *((_BYTE *)trace + 40) = v15;
-  trace[9] = v38;
+  v38 = v35 - trace->exp_dist;
+  trace->plane.type = (byte)v15;
+  trace->plane.dist = v38;
   return 1;
 }
 // 100037F3: conditional instruction was optimized away because edx.4<3
 
 //----- (10003BF0) --------------------------------------------------------
-int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int a6, int a7, float *a8)
+int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace)
 {
   bsp_link_t *i; // esi
   int v10; // [esp+0h] [ebp-4h]
@@ -2219,11 +2196,11 @@ int __cdecl sub_10003BF0(int a1, char *a2, float *a3, float *a4, float *a5, int 
   if ( !dword_100674C0 )
     return 0;
   v10 = 0;
-  for ( i = dword_10069584[a1]; i; i = i->next_ent )
+  for ( i = dword_10069584[leafnum]; i; i = i->next_ent )
   {
-    if ( i->entnum != a6 )
+    if ( i->entnum != passent )
     {
-      if ( AAS_EntityCollision(i->entnum, a2, a3, a4, a5, a7, a8) )
+      if ( AAS_EntityCollision(i->entnum, start, boxmins, boxmaxs, end, contentmask, trace) )
         v10 = 1;
     }
   }
@@ -2469,7 +2446,7 @@ LABEL_30:
 }
 
 //----- (10004310) --------------------------------------------------------
-int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, intptr_t a6, int *a7, int a8, intptr_t a9)
+int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v9; // ebp
   /* v11: BSP leaf pointer for leaf `a1`. */
@@ -2478,26 +2455,25 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
   int v16; // ecx
   /* v17: BSP plane pointer for the hit brush side. */
   dplane_t *v17;
-  bsp_trace_t *trace;  /* the caller's output struct (param a9), was `char *v12` */
   float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by sub_10003C90
   vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by sub_10003C90 via a11
+  int sidenum; // [esp+20h] [ebp+0h]
   _DWORD *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
-  v11 = &dleafs[a1];
+  v11 = &dleafs[leafnum];
   v24 = 0;
   /* First guard reuses the loop counter v9 (=0) as the compare operand, so the
    * leaf brush-count word compares as `numbrushes <= v9` → ref's `cmp WORD,bp;
    * jbe` (not `... ; je` from a literal `== 0`).  Same skip-when-empty result. */
   if ( v11->numleafbrushes <= (unsigned int)v9 )
     goto fail;
-  trace = (bsp_trace_t *)a9;
   do
   {
     v13 = (_DWORD *)(dbrushes
                    + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
-    if ( (v13[2] & a8) != 0
-      && sub_10003C90(v13, a2, a3, (int *)a4, a5, a6, a7, &trace->fraction, (_DWORD *)&a9, &v20, endpos) )
+    if ( (v13[2] & contentmask) != 0
+      && sub_10003C90(v13, origin, angles, (int *)start, (int *)boxmins, (intptr_t)boxmaxs, (int *)end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
       v24 = v13;
     }
@@ -2510,7 +2486,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
    * inlines the short return-0 warm here).  Bare-brace wrap = no re-indent. */
   if ( v24 )
   {
-  if ( endpos[0] == *(float *)a4 && endpos[1] == *(float *)(a4 + 4) && endpos[2] == *(float *)(a4 + 8) )
+  if ( endpos[0] == start[0] && endpos[1] == start[1] && endpos[2] == start[2] )
   {
     trace->allsolid   = 1;
     trace->startsolid = 1;
@@ -2521,7 +2497,7 @@ int __cdecl sub_10004310(int a1, float *a2, float *a3, intptr_t a4, int *a5, int
     trace->allsolid   = 0;
     trace->startsolid = 0;
   }
-  v16 = a9;
+  v16 = sidenum;
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
   v17 = &dplanes[*(unsigned __int16 *)(dbrushsides + 4 * v16)];
@@ -2541,27 +2517,50 @@ fail:
   return 0;
 }
 
+typedef struct bsp_model_tracestack_s {
+  vec3_t start;
+  vec3_t end;
+  int nodenum;
+  int planenum;
+  float planedist;
+  int next;   /* raw 32-bit pointer in the original DLL; offset-encoded on 64-bit */
+} bsp_model_tracestack_t;
+
+typedef struct bsp_model_plane_sidecache_s {
+  int sideflags[4];
+  float offsets[2];
+} bsp_model_plane_sidecache_t;
+
+_Static_assert(sizeof(bsp_model_tracestack_t) == 40, "bsp_model_tracestack_t size");
+_Static_assert(sizeof(bsp_model_plane_sidecache_t) == 24, "bsp_model_plane_sidecache_t size");
+
 //----- (100044F0) --------------------------------------------------------
 /* AAS_TraceBSPModel (sub_100044F0) — sweep a box (boxmins/boxmaxs) from start to
- * end through BSP model `a2` and return the resulting bsp_trace_t.  Gladiator's
- * own Q2-era BSP-model collision (no Q3-release cognate — Q3 delegates BSP traces
- * to the engine).  Self-named by its "AAS_TraceBSPModel: out of trace lines"
- * error below.  Returns by value via MSVC's hidden-retbuf ABI: the body fills the
- * local v150 trace (incl. via the recursive node/brush helpers) and each return
- * copies it into the caller's buffer. */
+ * end through BSP model `modelnum` at `modelorigin`/`angles` and return the
+ * resulting bsp_trace_t.  Gladiator's own Q2-era BSP-model collision (no
+ * Q3-release cognate — Q3 delegates BSP traces to the engine).  Self-named by
+ * its "AAS_TraceBSPModel: out of trace lines" error below.
+ *
+ * The saved disassembly shows two original stack aggregates that IDA split into
+ * scalars/OOB aliases: a 40-byte trace-stack frame
+ * {start,end,nodenum,planenum,planedist,next} and a 24-byte
+ * {int sideflags[4], float offsets[2]} side-cache block.  Restore both
+ * explicitly here for readability while keeping the 64-bit link-slot sideband.
+ *
+ * Returns by value via MSVC's hidden-retbuf ABI: the body fills local
+ * `bsp_trace_t trace` (including via the recursive node/brush helpers) and each
+ * return copies it into the caller's buffer. */
 bsp_trace_t __cdecl AAS_TraceBSPModel(
-        int a2,
-        float *a3,
-        float *a4,
-        intptr_t a5,
-        int *a6,
-        float *a7,
-        int *a8,
-        int a9,
-        int a10)
+        int modelnum,
+        const vec3_t modelorigin,
+        vec3_t angles,
+        vec3_t start,
+        vec3_t boxmins,
+        vec3_t boxmaxs,
+        vec3_t end,
+        int passent,
+        int contentmask)
 {
-  float v10; // edx
-  float v11; // ecx
   int v12; // eax
   float v13; // st7
   /* v14: originally `int v14` in IDA — was used as the selected BSP model.
@@ -2571,35 +2570,26 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
    * → here.  Restored to dmodel_t *. */
   dmodel_t *v14;
   float v15; // st7
-  int *v16; // eax
+  bsp_model_tracestack_t *v16; // eax
   int v17; // edx
-  int v18; // eax
-  /* v19, v62, v79, v100: AArch64 — these hold pointers into trace_buf
+  /* v19, v62, v79, v100: AArch64 — these hold pointers into trace_stack
    * (the trace-stack free/active lists).  IDA typed them `int` because
    * on 32-bit MSVC every link slot was 4 bytes; on aarch64 the 4-byte
    * int storage truncated 8-byte stack pointers, crashing
    * AAS_OnGround → AAS_TraceClientBBox → here.  Widened to char *.
-   * Link slots in the trace_buf still store 4-byte values, but they
-   * are now encoded byte-offsets into trace_buf (see TR_ENC/TR_DEC
+   * Link slots in the trace_stack still store 4-byte values, but they
+   * are now encoded byte-offsets into trace_stack (see TR_ENC/TR_DEC
    * macros below) instead of raw truncated pointers. */
-  char *v19;
-  int v20; // edx
-  float v21; // eax
-  int v22; // edx
-  int v23; // eax
-  int *v24; // ebx
-  int *v25; // esi
+  bsp_model_tracestack_t *v19;
+  bsp_model_tracestack_t *v24; // ebx
+  bsp_model_tracestack_t *v25; // esi
   int v26; // eax
   int *v27; // ebp
   int v28; // eax
   int v29; // esi
   dleaf_t *v30; // eax
   dnode_t *v31; // edx
-  float v32; // ecx
-  float v33; // eax
-  float v34; // ecx
-  int v35; // eax
-  float v36; // ecx
+  float v35; // eax
   int v37; // eax
   /* v38: same bug class as v14 above — set to the BSP plane for `v37`.
    * On aarch64 the int storage truncated the pointer, so later
@@ -2612,75 +2602,43 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v40; // st7
   float v41; // st6
   float v42; // st7
-  float v44; // st6
-  float v45; // st5
-  float v46; // st4
   int v47; // eax
   float v48; // st6
-  BOOL v49; // eax
-  int *v50; // ecx
-  BOOL v51; // eax
-  qboolean v52; // cc
   int v53; // ecx
   int v54; // eax
   float v55; // eax
-  int *v56; // eax
+  bsp_model_tracestack_t *v56; // eax
   int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset)
   float v58; // ebp
   int v59; // edx
   float v60; // st7
-  float v61; // edx
-  char *v62; // ecx — AArch64: was `int`; trace-stack frame pointer (see v19)
-  int *v63; // ebp  — AArch64: was `int**`
-  int *v64; // esi
-  float v65; // eax
-  float v66; // edx
-  float v67; // eax
-  float v68; // edx
+  bsp_model_tracestack_t *v62; // ecx — AArch64: trace-stack frame pointer (see v19)
+  int *v63; // ebp  — AArch64: points to a single 4-byte link slot
+  bsp_model_tracestack_t *v64; // esi
   dnode_t *v69; // eax
-  int *v70; // edx
-  float v71; // eax
-  float v72; // edx
-  float v73; // eax
-  float v74; // edx
-  float v75; // eax
+  bsp_model_tracestack_t *v70; // edx
   dnode_t *v76; // edx
   int v77; // eax
   float v78; // edx
-  char *v79; // eax — AArch64: was `int`; trace-stack frame pointer
-  int *v80; // ecx  — AArch64: was `int**`
-  float v81; // esi
+  bsp_model_tracestack_t *v79; // eax — AArch64: trace-stack frame pointer
+  int *v80; // ecx  — AArch64: points to a single 4-byte link slot
   int v82; // edx
   float v83; // st7
-  float v84; // ecx
-  float v85; // eax
-  float v86; // ecx
-  float v87; // eax
-  float v88; // ecx
   int v89; // eax
   int v90; // ecx
-  float v91; // ecx
-  float v92; // eax
-  float v93; // ecx
-  float v94; // eax
-  float v95; // ecx
   int v96; // eax
   int v97; // ecx
   float v98; // st7
   float v99; // edi
-  char *v100; // eax — AArch64: was `int`; trace-stack frame pointer (see v19)
+  bsp_model_tracestack_t *v100; // eax — AArch64: trace-stack frame pointer (see v19)
   int v101; // ecx
   float v102; // ebx
   int v103; // edx
   int v105; // [esp+0h] [ebp-1558h] BYREF
-  float v106; // [esp+10h] [ebp-1548h]
-  float v107; // [esp+14h] [ebp-1544h]
-  float v108; // [esp+18h] [ebp-1540h]
+  vec3_t v106; // [esp+10h] [ebp-1548h] BYREF — current piece start
   float v109; // [esp+1Ch] [ebp-153Ch]
   float v110; // [esp+20h] [ebp-1538h]
-  float v111; // [esp+24h] [ebp-1534h]
-  float v112; // [esp+28h] [ebp-1530h]
-  float v113; // [esp+2Ch] [ebp-152Ch]
+  vec3_t v111; // [esp+24h] [ebp-1534h] BYREF — current piece end
   float v114[3]; /* was v114,v115,v116: vec3_t plane normal */
   /* v115 subsumed into v114[1] */
   /* v116 subsumed into v114[2] */
@@ -2689,104 +2647,66 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v119; // [esp+44h] [ebp-1514h]
   dnode_t *v120; // [esp+48h] [ebp-1510h]
   int v121; // [esp+4Ch] [ebp-150Ch]
-  int *v122; // [esp+50h] [ebp-1508h]
-  float v123; // [esp+54h] [ebp-1504h]
-  float v124; // [esp+58h] [ebp-1500h]
-  float v125; // [esp+5Ch] [ebp-14FCh]
+  vec3_t v123; // [esp+54h] [ebp-1504h] BYREF — split point A
   int v126; // [esp+60h] [ebp-14F8h]
-  int v127; // [esp+64h] [ebp-14F4h]
-  float v128; // [esp+68h] [ebp-14F0h]
-  float v129; // [esp+6Ch] [ebp-14ECh]
-  float v130; // [esp+70h] [ebp-14E8h]
-  /* AArch64 stack-layout fix: the original 32-bit binary had a 4-byte slot
-   * at [esp+0x74] (v131 in the asm) that IDA dropped from the decompile.
-   * The code uses negative indices (v132[-1]) and over-indices (v132[3]/[4])
-   * to access this slot and v133[0..1] respectively — relying on a
-   * contiguous 6-float layout the 32-bit compiler happened to emit.  GCC on
-   * aarch64 reorders locals so those OOB accesses crash.  Fold v131+v132+v133
-   * into one backing array and expose v132/v133 as pointer aliases. */
-  float _v131_v133_buf[6];
-  /* v132 holds int booleans (the v48/v110 sign flags) in buf[0..3]; the
-   * original tests them with `mov; test eax,eax`, so it must be int* (a float
-   * alias would emit fld/fcomp at every test).  v133 aliases the same buffer's
-   * float distance slots buf[4..5]. */
-  int *const v132 = (int *)&_v131_v133_buf[1];   /* v132[-1..2] -> buf[0..3] (int) */
-  float *const v133 = &_v131_v133_buf[4];   /* v133[0..1]  -> buf[4..5] */
+  float v127; // [esp+64h] [ebp-14F4h]
+  vec3_t v128; // [esp+68h] [ebp-14F0h] BYREF — overall trace delta
+  /* AArch64 stack-layout fix: IDA split the original 24-byte side-cache block
+   * into v131/v132/v133 and then indexed across the artificial boundaries.
+   * Keep one real aggregate and preserve the original pointer aliases. */
+  int plane_sideflags[4];
+  float plane_offsets[2];
   BOOL v135; // [esp+8Ch] [ebp-14CCh]
-  float v136; // [esp+90h] [ebp-14C8h] BYREF
-  float v137; // [esp+94h] [ebp-14C4h]
-  float v138; // [esp+98h] [ebp-14C0h]
-  float v139; // [esp+9Ch] [ebp-14BCh]
-  float v140; // [esp+A0h] [ebp-14B8h]
-  float v141; // [esp+A4h] [ebp-14B4h]
+  vec3_t v136; // [esp+90h] [ebp-14C8h] BYREF — model origin + dmodel origin
+  vec3_t v139; // [esp+9Ch] [ebp-14BCh] BYREF — split point B
   int v142; // [esp+A8h] [ebp-14B0h]
   int v144; // [esp+B0h] [ebp-14A8h]
   float v145[2]; // [esp+B4h] [ebp-14A4h]
   float v147[2]; // [esp+C0h] [ebp-1498h]
   float v148[3]; // [esp+C8h] [ebp-1490h] BYREF
   float v149[3]; // [esp+D4h] [ebp-1484h] BYREF
-  float v150[21]; // [esp+E0h] [ebp-1478h] BYREF
+  bsp_trace_t trace; // [esp+E0h] [ebp-1478h] BYREF
   float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
-  /* v152 (initial trace-stack frame, 9 ints declared) and v153 (127-entry
-   * free list of 40-byte entries) were stack-adjacent in the original MSVC
-   * build at [esp+0x158] and [esp+0x17C], so v152's "link" at offset +0x24
-   * (= the OOB v152[9]) aliased v153[0].  The algorithm exploits this: it
-   * writes to v152[9] and reads v153[0] interchangeably.  GCC under -O2
-   * places independent locals at unrelated stack offsets, breaking the
-   * alias — v152[9] reads OOB memory that may contain a heap pointer from
-   * a prior caller's frame, later dereferenced as a free-list link → crash.
-   *
-   * Fix: declare a single combined array `trace_buf` and alias v152/v153
-   * to its halves.  v152[9] (= trace_buf[9]) is now an in-bounds access
-   * that aliases v153[0] (= trace_buf[9]) — exactly matching the original
-   * MSVC adjacency.  No other behavior change; the original's `v153[0] = 0`
-   * still zeros what is conceptually v152's link slot.  See
-   * `bsp_traversal_stack.md` for the same class of stack-adjacency bug in
-   * `AAS_TraceClientBBox`. */
-  int trace_buf[1280];   // = 9 (v152) + 1271 (v153); BYREF
-  int *v152 = trace_buf;
-  int *v153 = trace_buf + 9;
+  /* The original stack block is 128 contiguous 40-byte trace frames.  IDA split
+   * frame 0 into a 9-int local (`v152`) and treated its link slot (+0x24) as
+   * the first int of a separate `v153` array.  Keeping the real frame array
+   * restores that layout explicitly; v153 still aliases trace_stack[0].next. */
+  bsp_model_tracestack_t trace_stack[128];   // [esp+158h] [ebp-13A0h] BYREF
   /* The trace-stack free/active linked-lists store a "next-pointer" in 4-byte
-   * int slots (at byte offset +36 of each 40-byte frame, plus v153[0] as the
+   * int slots (at byte offset +36 of each 40-byte frame, plus trace_stack[0].next as the
    * free-list head).  On 32-bit (the original Windows DLL, the MSVC6 oracle,
    * MinGW32, gcc-i386) a pointer fits in the slot, so the ORIGINAL stored the
    * raw pointer — TR_ENC/TR_DEC are the identity, which is what the disasm
    * shows (plain lea/mov, no offset arithmetic).  On 64-bit (aarch64 .so) a
    * pointer does NOT fit, so each link is encoded as a 32-bit byte offset into
-   * trace_buf (value 0 reserved for NULL; stored value = offset + 1).
+   * trace_stack (value 0 reserved for NULL; stored value = offset + 1).
    * MSVC6 does NOT define __SIZEOF_POINTER__, so the `!defined` clause routes
    * the oracle to the faithful 32-bit form (a bare `== 4` would wrongly pick
    * the 64-bit branch and keep the OUR+252 offset-encoding sideband). */
 #if !defined(__SIZEOF_POINTER__) || __SIZEOF_POINTER__ == 4
   #define TR_ENC(p) ((int)(intptr_t)(p))
-  #define TR_DEC(i) ((char *)(intptr_t)(i))
+  #define TR_DEC(i) ((bsp_model_tracestack_t *)(intptr_t)(i))
 #else
-  #define TR_ENC(p) ((p) ? (int)((intptr_t)((char *)(p) - (char *)trace_buf) + 1) : 0)
-  #define TR_DEC(i) ((i) ? (char *)trace_buf + ((unsigned int)(i) - 1u) : (char *)0)
+  #define TR_ENC(p) ((p) ? (int)(((intptr_t)(p) - (intptr_t)trace_stack) + 1) : 0)
+  #define TR_DEC(i) ((i) ? (bsp_model_tracestack_t *)((intptr_t)trace_stack + ((unsigned int)(i) - 1u)) : (bsp_model_tracestack_t *)0)
 #endif
 
-  v10 = *((float *)a8 + 2);
-  memset(v150, 0, sizeof(v150));
-  v11 = *((float *)a8 + 1);
-  LODWORD(v150[3]) = *a8;
-  v150[4] = v11;
-  v150[5] = v10;
-  v150[0] = 0.0;
-  v150[1] = 0.0;
-  v150[2] = 1.0;
+  memset(&trace, 0, sizeof(trace));
+  VectorCopy(end, trace.endpos);
+  trace.allsolid = 0;
+  trace.startsolid = 0;
+  trace.fraction = 1.0f;
   if ( !dword_100674C0 )
-    return *(bsp_trace_t *)v150;
-  v128 = *(float *)a8 - *(float *)a5;
-  v129 = *((float *)a8 + 1) - *(float *)(a5 + 4);
-  v130 = *((float *)a8 + 2) - *(float *)(a5 + 8);
-  if ( v128 <= (float)v129 )
+    return trace;
+  VectorSubtract(end, start, v128);
+  if ( v128[0] <= v128[1] )
   {
-    if ( v129 > (float)v130 )
+    if ( v128[1] > v128[2] )
       v12 = 1;
     else
       v12 = 2;
   }
-  else if ( v128 > (float)v130 )
+  else if ( v128[0] > v128[2] )
   {
     v12 = 0;
   }
@@ -2794,54 +2714,43 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   {
     v12 = 2;
   }
-  v13 = *(&v128 + v12);
+  v13 = v128[v12];
   v126 = v12;
   v135 = v13 > 0;
-  if ( *a4 == 0 && a4[1] == 0 && a4[2] == 0 )
+  if ( angles[0] == 0 && angles[1] == 0 && angles[2] == 0 )
   {
     v144 = 0;
   }
   else
   {
     v144 = 1;
-    AnglesToAxis(a4, v151);
+    AnglesToAxis(angles, v151);
   }
-  v14 = &dmodels[a2];
-  v15 = v14->origin[0] + *a3;
-  v136 = v15;
-  v137 = v14->origin[1] + a3[1];
-  v138 = v14->origin[2] + a3[2];
-  if ( v15 != 0 || v137 != 0 || (v142 = 0, v138 != 0) )
+  v14 = &dmodels[modelnum];
+  VectorAdd(v14->origin, modelorigin, v136);
+  v15 = v136[0];
+  if ( v15 != 0 || v136[1] != 0 || (v142 = 0, v136[2] != 0) )
     v142 = 1;
-  v16 = v153;
+  v16 = trace_stack;
   v17 = 127;
   do
   {
-    *v16 = TR_ENC(v16 + 1);   /* AArch64: encode offset into trace_buf, not raw ptr */
-    v16 += 10;
+    v16->next = TR_ENC(v16 + 1);   /* AArch64: encode offset into trace_stack, not raw ptr */
+    ++v16;
     --v17;
   }
   while ( v17 );
-  v153[1270] = 0;
+  trace_stack[127].next = 0;
   if ( &v105 != (int *)-344 )
   {
-    v18 = *(_DWORD *)(a5 + 4);
-    v19 = (char *)TR_DEC(v153[0]);
-    v152[0] = *(_DWORD *)a5;
-    v20 = *(_DWORD *)(a5 + 8);
-    v152[1] = v18;
-    v21 = *(float *)a8;
-    v152[2] = v20;
-    v22 = a8[1];
-    *(float *)&v152[3] = v21;
-    v23 = a8[2];
-    v152[4] = v22;
-    v152[5] = v23;
-    v152[6] = v14->headnode;
-    v152[7] = 0;
-    v152[8] = 0;
-    v153[0] = 0;     /* aliases v152[9] — the trace-stack link slot. See declaration above. */
-    v24 = v152;
+    v19 = TR_DEC(trace_stack[0].next);
+    VectorCopy(start, trace_stack[0].start);
+    VectorCopy(end, trace_stack[0].end);
+    trace_stack[0].nodenum = v14->headnode;
+    trace_stack[0].planenum = 0;
+    trace_stack[0].planedist = 0.0f;
+    trace_stack[0].next = 0;
+    v24 = trace_stack;
     while ( 1 )
     {
       do
@@ -2852,48 +2761,38 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           {
             v25 = v24;
             if ( !v24 )
-              return *(bsp_trace_t *)v150;
-            v26 = v24[7];
-            v27 = v24 + 9;
-            v24 = (int *)TR_DEC(v24[9]);
-            v119 = v25[7];
+              return trace;
+            v26 = v24->planenum;
+            v27 = &v24->next;
+            v24 = TR_DEC(v24->next);
+            v119 = v25->planenum;
             if ( v26 < 0 )
-              return *(bsp_trace_t *)v150;
-            v28 = v25[6];
+              return trace;
+            v28 = v25->nodenum;
             if ( v28 >= 0 )
               break;
             v29 = -1 - v28;
             v30 = &dleafs[v29];
-            if ( v30->numleafbrushes && (v30->contents & a10) != 0 )
-              sub_10004310(v29, &v136, a4, a5, a6, (intptr_t)a7, a8, a10, (intptr_t)v150);
+            if ( v30->numleafbrushes && (v30->contents & contentmask) != 0 )
+              sub_10004310(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
             if ( dword_10069584[v29] )
-              sub_10003BF0(v29, (char *)a5, (float *)a6, a7, (float *)a8, a9, a10, v150);
+              sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
           }
-          v106 = *(float *)v25;
+          VectorCopy(v25->start, v106);
           v31 = &dnodes[v28];
-          v32 = *((float *)v25 + 1);
-          v108 = *((float *)v25 + 2);
-          v33 = *((float *)v25 + 4);
-          v107 = v32;
-          v34 = *((float *)v25 + 3);
-          v112 = v33;
-          v35 = v25[8];
-          v111 = v34;
-          v36 = *((float *)v25 + 5);
+          VectorCopy(v25->end, v111);
+          v35 = v25->planedist;
           v127 = v35;
           *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
           v37 = v31->planenum;
-          v113 = v36;
           v120 = v31;
-          v19 = (char *)v25;
+          v19 = v25;
           v38 = &dplanes[v37];
           v110 = *(float *)&v38;
           if ( v144 )
           {
-            v114[0] = v38->normal[0];
-            v114[1] = v38->normal[1];
-            v114[2] = v38->normal[2];
-            sub_10003460(&v114[0], v151);
+            VectorCopy(v38->normal, v114);
+            sub_10003460(v114, v151);
             v31 = v120;
             *(float *)&v38 = v110;
             v39 = 4;
@@ -2901,27 +2800,24 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           else
           {
             v117 = v38->type;
-            v114[0] = v38->normal[0];
-            v114[1] = v38->normal[1];
-            v114[2] = v38->normal[2];
+            VectorCopy(v38->normal, v114);
             v39 = v117;
           }
           if ( v142 )
-            v40 = v39 >= 3 ? v114[2] * v138 + v114[1] * v137 + v114[0] * v136 + v38->dist : *(&v136 + v39)
-                                                                                            + v38->dist;
+            v40 = v39 >= 3 ? DotProduct(v114, v136) + v38->dist : v136[v39] + v38->dist;
           else
             v40 = v38->dist;
-          if ( a6 && a7 )
+          if ( boxmins && boxmaxs )
             break;
           if ( v39 >= 3 )
           {
-            v109 = v114[2] * v108 + v114[1] * v107 + v114[0] * v106 - v40;
-            v83 = v114[2] * v113 + v114[1] * v112 + v114[0] * v111 - v40;
+            v109 = DotProduct(v114, v106) - v40;
+            v83 = DotProduct(v114, v111) - v40;
           }
           else
           {
-            v109 = *(&v106 + v39) - v40;
-            v83 = *(&v111 + v39) - v40;
+            v109 = v106[v39] - v40;
+            v83 = v111[v39] - v40;
           }
           if ( v109 <= -0.005 || v83 <= -0.005 )
           {
@@ -2929,100 +2825,75 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             {
               LODWORD(v110) = 1;
               v98 = v109 / (v109 - v83);
-              v123 = (v111 - v106) * v98 + v106;
-              v124 = (v112 - v107) * v98 + v107;
-              v125 = (v113 - v108) * v98 + v108;
+              v123[0] = (v111[0] - v106[0]) * v98 + v106[0];
+              v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
+              v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
               if ( v109 >= 0 )
                 v110 = 0.0;
               v99 = v110;
-              *(float *)v25 = v123;
-              *((float *)v25 + 1) = v124;
-              *((float *)v25 + 2) = v125;
-              *((float *)v25 + 3) = v111;
-              *((float *)v25 + 4) = v112;
-              *((float *)v25 + 5) = v113;
-              v100 = (char *)TR_DEC(*v27);
-              v25[7] = v31->planenum;
-              v25[8] = 0;
+              VectorCopy(v123, v25->start);
+              VectorCopy(v111, v25->end);
+              v100 = TR_DEC(*v27);
+              v25->planenum = v31->planenum;
+              v25->planedist = 0.0f;
               v101 = v31->children[LODWORD(v99) == 0];
               *v27 = TR_ENC(v24);
-              v25[6] = v101;
+              v25->nodenum = v101;
               if ( !v100 )
                 goto LABEL_125;
-              v19 = (char *)TR_DEC(*(int *)(v100 + 36));
-              *(float *)v100 = v106;
-              *(float *)(v100 + 4) = v107;
-              *(float *)(v100 + 8) = v108;
-              *(float *)(v100 + 12) = v123;
-              *(float *)(v100 + 16) = v124;
-              *(float *)(v100 + 20) = v125;
-              *(_DWORD *)(v100 + 28) = v119;
+              v19 = TR_DEC(v100->next);
+              VectorCopy(v106, v100->start);
+              VectorCopy(v123, v100->end);
+              v100->planenum = v119;
               v102 = v110;
-              *(_DWORD *)(v100 + 32) = 0;
+              v100->planedist = 0.0f;
               v103 = v31->children[LODWORD(v102)];
-              v24 = (int *)v100;
-              *(_DWORD *)(v100 + 24) = v103;
-              *(int *)(v100 + 36) = TR_ENC(v25);
+              v24 = v100;
+              v100->nodenum = v103;
+              v100->next = TR_ENC(v25);
             }
             else
             {
-              v91 = v107;
-              *(float *)v25 = v106;
-              v92 = v108;
-              v19 = (char *)TR_DEC(*v27);
-              *((float *)v25 + 1) = v91;
-              v93 = v111;
-              *((float *)v25 + 2) = v92;
-              v94 = v112;
-              *((float *)v25 + 3) = v93;
-              v95 = v113;
-              *((float *)v25 + 4) = v94;
+              v19 = TR_DEC(*v27);
+              VectorCopy(v106, v25->start);
+              VectorCopy(v111, v25->end);
               v96 = v119;
-              *((float *)v25 + 5) = v95;
-              v25[7] = v96;
-              v25[8] = 0;
+              v25->planenum = v96;
+              v25->planedist = 0.0f;
               v97 = v31->children[1];
               *v27 = TR_ENC(v24);
-              v25[6] = v97;
+              v25->nodenum = v97;
               v24 = v25;
             }
           }
           else
           {
-            v84 = v107;
-            *(float *)v25 = v106;
-            v85 = v108;
-            v19 = (char *)TR_DEC(*v27);
-            *((float *)v25 + 1) = v84;
-            v86 = v111;
-            *((float *)v25 + 2) = v85;
-            v87 = v112;
-            *((float *)v25 + 3) = v86;
-            v88 = v113;
-            *((float *)v25 + 4) = v87;
+            v19 = TR_DEC(*v27);
+            VectorCopy(v106, v25->start);
+            VectorCopy(v111, v25->end);
             v89 = v119;
-            *((float *)v25 + 5) = v88;
-            v25[7] = v89;
-            v25[8] = 0;
+            v25->planenum = v89;
+            v25->planedist = 0.0f;
             v90 = v31->children[0];
             *v27 = TR_ENC(v24);
-            v25[6] = v90;
+            v25->nodenum = v90;
             v24 = v25;
           }
         }
         if ( v39 >= 3 )
         {
           v121 = 1;
-          v109 = v114[2] * v108 + v114[1] * v107 + v114[0] * v106 - v40;
-          v42 = v114[2] * v113 + v114[1] * v112 + v114[0] * v111 - v40;
-          if ( v114[2] * v130 + v114[1] * v129 + v114[0] * v128 >= 0 )
+          v109 = DotProduct(v114, v106) - v40;
+          v42 = DotProduct(v114, v111) - v40;
+          if ( DotProduct(v114, v128) >= 0 )
             v121 = 0;
-          /* Original: 3-component loop selecting between a7[i] and a6[i] based
+          /* Original: 3-component loop selecting between boxmaxs[i] and
+           * boxmins[i] based
            * on sign of v114[i], storing to v148[i] and v149[i].
            * v114[3] is plane normal (was v114/v115/v116), v148/v149 are BSP extents. */
           {
-            float *_a6 = (float *)a6;
-            float *_a7 = a7;
+            float *_a6 = boxmins;
+            float *_a7 = boxmaxs;
             int _j;
             for (_j = 0; _j < 3; _j++) {
               if (v114[_j] <= 0.0f) {
@@ -3034,118 +2905,99 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               }
             }
           }
-          v44 = -v114[0];
-          v45 = -v114[1];
-          v46 = -v114[2];
           v31 = v120;
-          v133[0] = v148[2] * v46 + v148[1] * v45 + v148[0] * v44;
-          v133[1] = v149[2] * v46 + v149[1] * v45 + v149[0] * v44;
+          plane_offsets[0] = -DotProduct(v148, v114);
+          plane_offsets[1] = -DotProduct(v149, v114);
         }
         else
         {
-          v41 = *(&v106 + v39) - v40;
+          v41 = v106[v39] - v40;
           v121 = 1;
           v109 = v41;
-          v42 = *(&v111 + v39) - v40;
-          if ( *(&v128 + v39) >= 0 )
+          v42 = v111[v39] - v40;
+          if ( v128[v39] >= 0 )
             v121 = 0;
-          v133[0] = -*(float *)&a6[v39];
-          v133[1] = -a7[v39];
+          plane_offsets[0] = -boxmins[v39];
+          plane_offsets[1] = -boxmaxs[v39];
         }
-        v122 = v132;
         v47 = 0;
-        v117 = 0;
         do
         {
-          v48 = v109 - v133[v47/4];
-          *(float *)((char *)v145 + v47) = v48;
-          v110 = v42 - v133[v47/4];
-          *(float *)((char *)v147 + v47) = v110;
-          v49 = v48 > -0.005 && v110 > -0.005;
-          v50 = v122;
-          *(v122 - 1) = v49;
-          v51 = v48 < 0.005 && v110 < 0.005;
-          *v50 = v51;
-          v47 = v117 + 4;
-          v52 = v117 + 4 < 8;
-          v117 += 4;
-          v122 = v50 + 2;
+          v48 = v109 - plane_offsets[v47];
+          v145[v47] = v48;
+          v110 = v42 - plane_offsets[v47];
+          v147[v47] = v110;
+          plane_sideflags[2 * v47] = v48 > -0.005 && v110 > -0.005;
+          plane_sideflags[2 * v47 + 1] = v48 < 0.005 && v110 < 0.005;
+          ++v47;
         }
-        while ( v52 );
+        while ( v47 < 2 );
         v53 = v121;
-        if ( !v132[v121 - 1] && !v132[v121 + 1] )
+        if ( !plane_sideflags[v121] && !plane_sideflags[v121 + 2] )
           break;
-        v19 = (char *)TR_DEC(*v27);
-        *(float *)v25 = v106;
-        *((float *)v25 + 1) = v107;
-        *((float *)v25 + 2) = v108;
-        *((float *)v25 + 3) = v111;
-        *((float *)v25 + 4) = v112;
-        *((float *)v25 + 5) = v113;
-        v25[7] = v119;
-        v25[8] = v127;
-        v25[6] = v31->children[v53];
-        v54 = v132[v53 - 1];
+        v19 = TR_DEC(*v27);
+        VectorCopy(v106, v25->start);
+        VectorCopy(v111, v25->end);
+        v25->planenum = v119;
+        v25->planedist = v127;
+        v25->nodenum = v31->children[v53];
+        v54 = plane_sideflags[v53];
         *v27 = TR_ENC(v24);
         v24 = v25;
         if ( !v54 )
           break;
       }
-      while ( v132[v53 + 1] );
+      while ( plane_sideflags[v53 + 2] );
       LODWORD(v55) = v53 == 0;
       v109 = v55;
-      if ( v132[(int)LODWORD(v55) - 1] || v132[(int)LODWORD(v55) + 1] )
+      if ( plane_sideflags[(int)LODWORD(v55)] || plane_sideflags[(int)LODWORD(v55) + 2] )
       {
         if ( !v19 )
           break;
-        v56 = (int *)v19;
-        v57 = (int *)(v19 + 36);
-        *(float *)v19 = v106;
-        *(float *)(v19 + 4) = v107;
-        *(float *)(v19 + 8) = v108;
-        *(float *)(v19 + 12) = v111;
-        *(float *)(v19 + 16) = v112;
-        *(float *)(v19 + 20) = v113;
-        v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-        v56[7] = v119;
-        v56[8] = v127;
+        v56 = v19;
+        v57 = &v19->next;
+        VectorCopy(v106, v56->start);
+        VectorCopy(v111, v56->end);
+        v19 = TR_DEC(v19->next);
+        v56->planenum = v119;
+        v56->planedist = v127;
         v58 = v109;
         v59 = v31->children[LODWORD(v109)];
         *v57 = TR_ENC(v24);
-        v56[6] = v59;
+        v56->nodenum = v59;
         v24 = v56;
-        if ( !v132[(int)LODWORD(v58) - 1] || !v132[(int)LODWORD(v58) + 1] )
+        if ( !plane_sideflags[(int)LODWORD(v58)] || !plane_sideflags[(int)LODWORD(v58) + 2] )
           goto LABEL_71;
       }
       else
       {
         v58 = v109;
 LABEL_71:
-        if ( v132[2 * (int)LODWORD(v58) - 1] || v132[2 * (int)LODWORD(v58)] )
+        if ( plane_sideflags[2 * (int)LODWORD(v58)] || plane_sideflags[2 * (int)LODWORD(v58) + 1] )
         {
           v118 = -1.0;
         }
         else
         {
           v118 = v145[LODWORD(v58)] / (v145[LODWORD(v58)] - v147[LODWORD(v58)]);
-          v123 = (v111 - v106) * v118 + v106;
-          v124 = (v112 - v107) * v118 + v107;
-          v125 = (v113 - v108) * v118 + v108;
+          v123[0] = (v111[0] - v106[0]) * v118 + v106[0];
+          v123[1] = (v111[1] - v106[1]) * v118 + v106[1];
+          v123[2] = (v111[2] - v106[2]) * v118 + v106[2];
         }
-        if ( v132[2 * v53 - 1] || v132[2 * v53] )
+        if ( plane_sideflags[2 * v53] || plane_sideflags[2 * v53 + 1] )
         {
           v60 = -1.0;
         }
         else
         {
           v60 = v145[v53] / (v145[v53] - v147[v53]);
-          v139 = (v111 - v106) * v60 + v106;
-          v140 = (v112 - v107) * v60 + v107;
-          v141 = (v113 - v108) * v60 + v108;
+          v139[0] = (v111[0] - v106[0]) * v60 + v106[0];
+          v139[1] = (v111[1] - v106[1]) * v60 + v106[1];
+          v139[2] = (v111[2] - v106[2]) * v60 + v106[2];
         }
         if ( v118 >= 0 || v60 >= 0 )
         {
-          if ( v132[v53 - 1] || v132[v53 + 1] )
+          if ( plane_sideflags[v53] || plane_sideflags[v53 + 2] )
             goto LABEL_103;
           if ( v118 < 0 )
           {
@@ -3153,37 +3005,28 @@ LABEL_71:
               goto LABEL_103;
             if ( !v19 )
               break;
-            v71 = v140;
             v62 = v19;
-            v63 = (int *)(v19 + 36);
-            *(float *)v19 = v139;
-            v72 = v141;
-            *(float *)(v19 + 4) = v71;
-            v73 = v111;
-            *(float *)(v19 + 8) = v72;
-            v74 = v112;
-            *(float *)(v19 + 12) = v73;
-            v75 = v113;
-            *(float *)(v19 + 16) = v74;
+            v63 = &v19->next;
+            VectorCopy(v139, v62->start);
+            VectorCopy(v111, v62->end);
             v76 = v120;
-            *(float *)(v19 + 20) = v75;
-            v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-            *(_DWORD *)(v62 + 28) = v76->planenum;
+            v19 = TR_DEC(v19->next);
+            v62->planenum = v76->planenum;
             v77 = v121;
-            *(float *)(v62 + 32) = *(&v133[0] + v121);
+            v62->planedist = plane_offsets[v121];
             v64 = 0;
-            *(_DWORD *)(v62 + 24) = v76->children[v77];
+            v62->nodenum = v76->children[v77];
             v70 = v24;
             if ( !v24 )
             {
 LABEL_101:
-              v24 = (int *)v62;
+              v24 = v62;
               goto LABEL_102;
             }
-            while ( *(float *)(v62 + 4 * v126) < (float)*(float *)&v70[v126] != v135 )
+            while ( v62->start[v126] < v70->start[v126] != v135 )
             {
               v64 = v70;
-              v70 = (int *)TR_DEC(v70[9]);
+              v70 = TR_DEC(v70->next);
               if ( !v70 )
                 goto LABEL_99;
             }
@@ -3192,66 +3035,53 @@ LABEL_101:
           {
             if ( !v19 )
               break;
-            v61 = v124;
             v62 = v19;
-            v63 = (int *)(v19 + 36);
+            v63 = &v19->next;
             v64 = 0;
-            *(float *)v19 = v123;
-            v65 = v125;
-            *(float *)(v19 + 4) = v61;
-            v66 = v111;
-            *(float *)(v19 + 8) = v65;
-            v67 = v112;
-            *(float *)(v19 + 12) = v66;
-            v68 = v113;
-            *(float *)(v19 + 16) = v67;
+            VectorCopy(v123, v62->start);
+            VectorCopy(v111, v62->end);
             v69 = v120;
-            *(float *)(v19 + 20) = v68;
-            v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-            *(_DWORD *)(v62 + 28) = v69->planenum;
-            *(float *)(v62 + 32) = *(&v133[0] + LODWORD(v109));
+            v19 = TR_DEC(v19->next);
+            v62->planenum = v69->planenum;
+            v62->planedist = plane_offsets[LODWORD(v109)];
             v70 = v24;
-            *(_DWORD *)(v62 + 24) = v69->children[v121];
+            v62->nodenum = v69->children[v121];
             if ( !v24 )
               goto LABEL_101;
-            while ( *(float *)(v62 + 4 * v126) < (float)*(float *)&v70[v126] != v135 )
+            while ( v62->start[v126] < v70->start[v126] != v135 )
             {
               v64 = v70;
-              v70 = (int *)TR_DEC(v70[9]);
+              v70 = TR_DEC(v70->next);
               if ( !v70 )
                 goto LABEL_99;
             }
           }
           *v63 = TR_ENC(v70);
           if ( v64 )
-            v64[9] = TR_ENC(v62);
+            v64->next = TR_ENC(v62);
           else
-            v24 = (int *)v62;
+            v24 = v62;
           if ( v70 )
             goto LABEL_103;
 LABEL_99:
           if ( !v64 )
             goto LABEL_101;
-          v64[9] = TR_ENC(v62);
+          v64->next = TR_ENC(v62);
 LABEL_102:
           *v63 = 0;
 LABEL_103:
           v78 = v109;
-          if ( !v132[(int)LODWORD(v109) - 1] && !v132[(int)LODWORD(v109) + 1] )
+          if ( !plane_sideflags[(int)LODWORD(v109)] && !plane_sideflags[(int)LODWORD(v109) + 2] )
           {
             if ( v60 >= 0 )
             {
               if ( !v19 )
                 break;
               v79 = v19;
-              v80 = (int *)(v19 + 36);
-              *(float *)v19 = v106;
-              *(float *)(v19 + 4) = v107;
-              v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-              *(float *)(v79 + 8) = v108;
-              *(float *)(v79 + 12) = v139;
-              *(float *)(v79 + 16) = v140;
-              v81 = v141;
+              v80 = &v19->next;
+              VectorCopy(v106, v79->start);
+              v19 = TR_DEC(v19->next);
+              VectorCopy(v139, v79->end);
               goto LABEL_111;
             }
             if ( v118 >= 0 )
@@ -3259,22 +3089,17 @@ LABEL_103:
               if ( !v19 )
                 break;
               v79 = v19;
-              v80 = (int *)(v19 + 36);
-              *(float *)v19 = v106;
-              *(float *)(v19 + 4) = v107;
-              v19 = (char *)TR_DEC(*(int *)(v19 + 36));
-              *(float *)(v79 + 8) = v108;
-              *(float *)(v79 + 12) = v123;
-              *(float *)(v79 + 16) = v124;
-              v81 = v125;
+              v80 = &v19->next;
+              VectorCopy(v106, v79->start);
+              v19 = TR_DEC(v19->next);
+              VectorCopy(v123, v79->end);
 LABEL_111:
-              *(float *)(v79 + 20) = v81;
-              *(_DWORD *)(v79 + 28) = v119;
-              *(_DWORD *)(v79 + 32) = v127;
+              v79->planenum = v119;
+              v79->planedist = v127;
               v82 = v120->children[LODWORD(v78)];
               *v80 = TR_ENC(v24);
-              *(_DWORD *)(v79 + 24) = v82;
-              v24 = (int *)v79;
+              v79->nodenum = v82;
+              v24 = v79;
             }
           }
         }
@@ -3283,7 +3108,7 @@ LABEL_111:
   }
 LABEL_125:
   botimport.Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
-  return *(bsp_trace_t *)v150;
+  return trace;
 }
 
 //----- (10005640) --------------------------------------------------------
@@ -3318,7 +3143,7 @@ static void sub_10005640(
   zero_vec[1] = 0.0f;
   zero_vec[2] = 0.0f;
   *(bsp_trace_t *)out = AAS_TraceBSPModel(0, zero_vec, zero_vec,
-                                          (intptr_t)start, boxmins, boxmaxs, end, a5, contentmask);
+                                          start, (float *)boxmins, boxmaxs, (float *)end, a5, contentmask);
 }
 
 //----- (100056D0) --------------------------------------------------------
@@ -14863,7 +14688,7 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   {
     if ( link->entnum != passent )
     {
-      if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, 33619971, (float *)&bsptrace) )
+      if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, 33619971, &bsptrace) )
         collision = 1;
     }
     link = link->next_ent;
