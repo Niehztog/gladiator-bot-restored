@@ -5480,43 +5480,40 @@ int AAS_TestPortals()
 //----- (100096E0) --------------------------------------------------------
 void AAS_InitClustering()
 {
-  int v1; // rax (was __int64)
-
-  if ( aasworld.loaded )
+  if ( !aasworld.loaded )
+    return;
+  if ( aasworld.numclusters >= 1
+    && !(int)LibVarGetValue("forceclustering")
+    && !(int)LibVarGetValue("forcereachability") )
   {
-    if ( aasworld.numclusters < 1
-      || (unsigned int)(int)LibVarGetValue("forceclustering")
-      || (v1 = (int)LibVarGetValue("forcereachability"), (unsigned int)v1) )
-    {
-      AAS_RemoveAllPortals();
-      AAS_RemoveClusterAreas();
-      AAS_FindPossiblePortals();
-      if ( aasworld.portals )
-        FreeMemory(aasworld.portals);
-      aasworld.portals = GetClearedMemory(1310720);
-      if ( aasworld.portalindex )
-        FreeMemory(aasworld.portalindex);
-      aasworld.portalindex = (int *)GetClearedMemory(0x40000);
-      if ( aasworld.clusters )
-        FreeMemory(aasworld.clusters);
-      aasworld.clusters = GetClearedMemory(786432);
-      do
-      {
-        do
-        {
-          aasworld.numportals = 1;
-          aasworld.portalindexsize = 0;
-          aasworld.numclusters = 1;
-          AAS_CreatePortals();
-        }
-        while ( !AAS_FindClusters() );
-      }
-      while ( !AAS_TestPortals() );
-      aasworld.savefile = 1;
-      botimport.Print(PRT_MESSAGE, "\r%6d portals created\n", aasworld.numportals);
-      botimport.Print(PRT_MESSAGE, "\r%6d clusters created\n", aasworld.numclusters);
-    }
+    return;
   }
+  AAS_RemoveAllPortals();
+  AAS_RemoveClusterAreas();
+  AAS_FindPossiblePortals();
+  if ( aasworld.portals )
+    FreeMemory(aasworld.portals);
+  aasworld.portals = GetClearedMemory(1310720);
+  if ( aasworld.portalindex )
+    FreeMemory(aasworld.portalindex);
+  aasworld.portalindex = (int *)GetClearedMemory(0x40000);
+  if ( aasworld.clusters )
+    FreeMemory(aasworld.clusters);
+  aasworld.clusters = GetClearedMemory(786432);
+  while ( 1 )
+  {
+    aasworld.numportals = 1;
+    aasworld.portalindexsize = 0;
+    aasworld.numclusters = 1;
+    AAS_CreatePortals();
+    if ( !AAS_FindClusters() )
+      continue;
+    if ( AAS_TestPortals() )
+      break;
+  }
+  aasworld.savefile = 1;
+  botimport.Print(PRT_MESSAGE, "\r%6d portals created\n", aasworld.numportals);
+  botimport.Print(PRT_MESSAGE, "\r%6d clusters created\n", aasworld.numclusters);
 }
 
 //----- (10009860) --------------------------------------------------------
