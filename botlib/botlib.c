@@ -69,7 +69,7 @@ static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fre
  * a process-spawn nor a chdir-for-bspc path. */
 static int    remove_file(const char *path) { return remove(path); }
 static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
-static intptr_t SpawnProcess(int mode, char *file, char *args) { (void)mode; (void)file; (void)args; return -1; }
+static intptr_t SpawnProcess(int mode, char *file, char *args, char *cmd, char *addargs) { (void)mode; (void)file; (void)args; (void)cmd; (void)addargs; return -1; }
 /* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
 static int    _chdir(const char *path) { return chdir(path); }
 #endif /* _WIN32 */
@@ -3198,16 +3198,9 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v12[3]; // [esp+24h] [ebp-68h] BYREF
   float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
-  char v14[12]; // [esp+54h] [ebp-38h] BYREF
-  char v15[12]; // [esp+60h] [ebp-2Ch] BYREF
-  float v16; // [esp+6Ch] [ebp-20h]
-  float v17; // [esp+70h] [ebp-1Ch]
-  float v18; // [esp+74h] [ebp-18h]
-  float v19; // [esp+78h] [ebp-14h]
-  float v20; // [esp+7Ch] [ebp-10h]
-  float v21; // [esp+80h] [ebp-Ch]
-  int v22; // [esp+84h] [ebp-8h]
-  int v23; // [esp+88h] [ebp-4h]
+  /* one bsp_entdata_t local; IDA split it into char v14[12]/v15[12] +
+   * floats v16..v21 + ints v22/v23 (reads relying on stack-layout luck) */
+  bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF
 
   v4 = 0;
   if ( !dword_100674C0 )
@@ -3233,21 +3226,21 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   }
   for ( i = dword_10069584[v6]; i; i = i->next_ent )
   {
-    AAS_EntityBSPData(i->entnum, (bsp_entdata_t *)v14);
-    if ( *a1 > (float)v16
-      && *a1 < (float)v19
-      && a1[1] > (float)v17
-      && a1[1] < (float)v20
-      && a1[2] > (float)v18
-      && a1[2] < (float)v21 )
+    AAS_EntityBSPData(i->entnum, &entdata);
+    if ( *a1 > entdata.absmins[0]
+      && *a1 < entdata.absmaxs[0]
+      && a1[1] > entdata.absmins[1]
+      && a1[1] < entdata.absmaxs[1]
+      && a1[2] > entdata.absmins[2]
+      && a1[2] < entdata.absmaxs[2] )
     {
-      if ( v22 == 2 )
+      if ( entdata.solid == 2 )
       {
         v9 |= 0x2000000u;
       }
-      else if ( v22 == 3 )
+      else if ( entdata.solid == 3 )
       {
-        v9 |= sub_100057A0(a1, v23, v14, v15);
+        v9 |= sub_100057A0(a1, entdata.modelnum, entdata.origin, entdata.angles);
       }
     }
   }
@@ -3411,89 +3404,70 @@ int __cdecl sub_10005CC0(int a, int b)
  *         matrix[link][i]   = 1;
  *       }
  *
- * Phase C (10005DAD..10005E08):  the .text loop nest reads as
+ * Phase C (10005DAD..10005E08):  the .text loop nest is
  *
- *     for (edi = 0; edi < N; edi++)
- *       for (eax = 0; eax < N; eax++)
- *         for (;; eax++)                              // <-- bug
- *           if (matrix[edi][eax] && matrix[eax][0]) {
- *             matrix[edi][0] = 1;
- *             matrix[0][edi] = 1;
+ *     for (i = 0; i < numareas; i++)
+ *       for (j = 0; j < numareas; j++)
+ *         while (numareas > 0) {                      // <-- bug
+ *           if (matrix[i][j] && matrix[j][0]) {
+ *             matrix[i][0] = 1;
+ *             matrix[0][i] = 1;
  *           }
+ *           j++;
+ *         }
  *
- *   The innermost exit test is `test esi,esi; jg back` (where esi=N
- *   never changes), so once entered with N>0 the inner loop spins
- *   forever, walking eax off the end of the matrix.  This is a
- *   genuine Mr. Elusive bug — almost certainly why the call site
- *   was excised before ship and the function ended up DEAD.  Faithful
- *   transcription below uses `while (N > 0)` to make the bug
- *   structural; commented as such.  Do not "fix" — restoration must
- *   match the binary, and execution is unreachable.
+ *   The while's exit test is `test esi,esi; jg back` (numareas never
+ *   changes), so once entered with numareas>0 it spins forever,
+ *   walking j off the end of the matrix.  This is a genuine
+ *   Mr. Elusive bug — almost certainly why the call site was excised
+ *   before ship and the function ended up DEAD.  Transcribed
+ *   faithfully (no guard, no break): execution is unreachable, and
+ *   the byte-match requires the unbounded loop shape.
  *
  * Thunks: none (no calls in the body).
  *
  * DEAD in Gladiator — no live caller; deferred matrix maintenance
  * helper that was dropped before release.  /INCREMENTAL kept the
- * body in the binary. */
+ * body in the binary.  NB no local caching of the globals: the
+ * original reads numareas / dareas / dareaportals / the two matrix
+ * pointers directly at each use (the matrix stores force MSVC to
+ * reload them, which is exactly the reload pattern in the .text). */
 void __cdecl sub_10005CF0(int row_index, int value)
 {
-  int **matrix;
-  int  *flag_row;
-  int  *edge_pairs;
-  int  *edge_data;
-  int   N, i, j, k;
-  int   count, first, col, link;
-
-  flag_row   = (int *) dword_1006755C;
-  matrix     = (int **)dword_10067560;
-  edge_pairs = (int *) dareas;
-  edge_data  = (int *) dareaportals;
+  int i, j, k, col;
+  darea_t *area;
+  dareaportal_t *portal;
 
   /* Phase A */
-  flag_row[row_index] = value;
-
-  N = numareas;
-  if (N <= 0)
-    return;
+  ((int *)dword_1006755C)[row_index] = value;
 
   /* Phase B */
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++)
-      matrix[i][j] = 0;
-    matrix[i][i] = 1;
+  for (i = 0; i < numareas; i++) {
+    for (j = 0; j < numareas; j++)
+      ((int **)dword_10067560)[i][j] = 0;
+    ((int **)dword_10067560)[i][i] = 1;
 
-    count = edge_pairs[i * 2];
-    first = edge_pairs[i * 2 + 1];
-    for (k = 0; k < count; k++) {
-      col = first + k;
-      if (flag_row[col] != 0) {
-        link = edge_data[col * 2 + 1];
-        matrix[i][link] = 1;
-        matrix[link][i] = 1;
+    area = &((darea_t *)dareas)[i];
+    for (k = 0; k < area->numareaportals; k++) {
+      col = area->firstareaportal + k;
+      if (((int *)dword_1006755C)[col] != 0) {
+        portal = &((dareaportal_t *)dareaportals)[col];
+        ((int **)dword_10067560)[i][portal->otherarea] = 1;
+        ((int **)dword_10067560)[portal->otherarea][i] = 1;
       }
     }
   }
 
-  /* Phase C — preserved exactly as encoded.  Mr. Elusive bug: the
-   * innermost loop's exit test is `test N,N; jg` instead of
-   * `cmp eax,N; jl`, so once entered with N>0 it spins forever.
-   * Wrap with `while (N > 0)` to keep semantics; in practice this
-   * function is never called by anything in the shipped DLL. */
-  for (i = 0; i < N; i++) {
-    for (j = 0; j < N; j++) {
-      int eax = 0;
-      while (N > 0) {                       /* bug: no upper bound on eax */
-        if (matrix[i][eax] != 0 && matrix[eax][0] != 0) {
-          matrix[i][0] = 1;
-          matrix[0][i] = 1;
+  /* Phase C — the faithful Mr. Elusive bug (see banner); DEAD code,
+   * never executed. */
+  for (i = 0; i < numareas; i++) {
+    for (j = 0; j < numareas; j++) {
+      while (numareas > 0) {
+        if (((int **)dword_10067560)[i][j] != 0 && ((int **)dword_10067560)[j][0] != 0) {
+          ((int **)dword_10067560)[i][0] = 1;
+          ((int **)dword_10067560)[0][i] = 1;
         }
-        eax++;
-        /* the original .text reloads N here from numareas — same
-         * value, so this never frees us from the loop. */
-        break;                              /* restoration-only: prevent
-                                             * actual infinite loop at run
-                                             * time should this ever be
-                                             * reached.  See banner. */
+        j++;
       }
     }
   }
@@ -7966,8 +7940,6 @@ float AAS_Time()
 //----- (1000E140) --------------------------------------------------------
 intptr_t __cdecl sub_1000E140(char *Source)
 {
-  const char *v1; // eax
-  const char *v3; // eax
   intptr_t result; // eax
   char FileName[144]; // [esp+8h] [ebp-240h] BYREF
   char Arguments[144]; // [esp+98h] [ebp-1B0h] BYREF
@@ -7976,16 +7948,14 @@ intptr_t __cdecl sub_1000E140(char *Source)
 
   strncpy(Destination, Source, 0x90u);
   strncat(Destination, ".bsp", 144 - strlen(Destination));
-  v1 = (const char *)LibVarGetString("basedir");
-  strncpy(FileName, v1, 0x90u);
+  strncpy(FileName, (const char *)LibVarGetString("basedir"), 0x90u);
   sub_10041900(FileName, 144 - strlen(FileName));
-  v3 = (const char *)LibVarGetString("gamedir");
-  strncat(FileName, v3, 144 - strlen(FileName));
+  strncat(FileName, (const char *)LibVarGetString("gamedir"), 144 - strlen(FileName));
   sub_10041900(FileName, 144 - strlen(FileName));
   strncpy(Arguments, FileName, 0x90u);
   strncat(FileName, "maps", 144 - strlen(FileName));
   if ( _access(FileName, 4) )
-    FileName[strlen(FileName)] = 0;  /* original: v5[strlen(FileName)]=0 with v5 = &FileName (BYREF arg) */
+    FileName[strlen(FileName) - 4] = 0;  /* maps dir not accessible: strip the "maps" just appended */
   else
     sub_10041900(FileName, 144 - strlen(FileName));
   strncat(FileName, Source, 144 - strlen(FileName));
@@ -7993,7 +7963,7 @@ intptr_t __cdecl sub_1000E140(char *Source)
   strncat(Arguments, "winbspc.exe", 144 - strlen(Arguments));
   Log_Write("spawning \"%s\"", Arguments);
   sprintf(Buffer, "bsp2aas(%s,%s);", Destination, FileName);
-  result = SpawnProcess(1, Arguments, Arguments);
+  result = SpawnProcess(1, Arguments, Arguments, Buffer, 0);
   if ( result < 0 )
     return botimport.Print(PRT_ERROR, "can't execute WinBSPC\n");
   return result;
@@ -18578,21 +18548,13 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
 {
   int v2; // ebx
-  const char *v4; // eax
-  char v5; // cl
-  const char *v6; // eax
+  int v5; // ecx
   char *v7; // esi
   int v8; // ebx
-  const char *v9; // eax
   char *v10; // esi
   unsigned int v11; // ecx
-  const char *v12; // eax
-  const char *v13; // eax
   char *v14; // edi
-  const char *v15; // eax
   char *v16; // eax
-  const char *v17; // [esp-8h] [ebp-114h]
-  const char *v18; // [esp-4h] [ebp-110h]
   unsigned int MaxCount; // [esp+10h] [ebp-FCh]
   int v20[31]; // [esp+14h] [ebp-F8h] BYREF
   int v21[31]; // [esp+90h] [ebp-7Ch] BYREF
@@ -18606,23 +18568,26 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
       *(aas_entityinfo_t *)v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
       return ((LOWORD(v20[30]) ^ LOWORD(v21[30])) & 0x1C00) == 0;
     }
-    if ( libvar_ch->value == 0.0f )
+    if ( libvar_ch->value != 0.0f )
+    {
+      *(aas_entityinfo_t *)v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
+      if ( v20[25] != v21[25] )
+        return 1;
+    }
+    else
     {
       if ( libvar_teamplay->value != 0.0f )
       {
-        v18 = (const char *)ClientSkin(v21[3] - 1);
-        v4 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-        return _strcmpi(v4, v18) == 0;
+        return _strcmpi((const char *)ClientSkin(*(_DWORD *)((char *)bs + 4)),
+                        (const char *)ClientSkin(v21[3] - 1)) == 0;
       }
       v5 = (__int64)libvar_dmflags->value;
       if ( (v5 & 0x40) != 0 || libvar_ctf->value != 0.0f )
       {
-        v13 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-        v14 = strchr(v13, 47);
+        v14 = strchr((const char *)ClientSkin(*(_DWORD *)((char *)bs + 4)), 47);
         if ( !v14 )
           v14 = ClientSkin(*(_DWORD *)((char *)bs + 4));
-        v15 = (const char *)ClientSkin(v2 - 1);
-        v16 = strchr(v15, 47);
+        v16 = strchr((const char *)ClientSkin(v2 - 1), 47);
         if ( !v16 )
           v16 = ClientSkin(v2 - 1);
         if ( !_strcmpi(v14, v16) )
@@ -18630,27 +18595,17 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
       }
       else if ( (v5 & 0x80) != 0 )
       {
-        v6 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-        v7 = strchr(v6, 47);
+        v7 = strchr((const char *)ClientSkin(*(_DWORD *)((char *)bs + 4)), 47);
         MaxCount = v7 ? (unsigned int)(v7 - (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4))) : strlen((const char *)ClientSkin(*(_DWORD *)((char *)bs + 4)));
         v8 = v2 - 1;
-        v9 = (const char *)ClientSkin(v8);
-        v10 = strchr(v9, 47);
+        v10 = strchr((const char *)ClientSkin(v8), 47);
         v11 = v10 ? (unsigned int)(v10 - (const char *)ClientSkin(v8)) : strlen((const char *)ClientSkin(v8));
         if ( MaxCount == v11 )
         {
-          v17 = (const char *)ClientSkin(v8);
-          v12 = (const char *)ClientSkin(*(_DWORD *)((char *)bs + 4));
-          if ( !strncmp(v12, v17, MaxCount) )
+          if ( !strncmp((const char *)ClientSkin(*(_DWORD *)((char *)bs + 4)), (const char *)ClientSkin(v8), MaxCount) )
             return 1;
         }
       }
-    }
-    else
-    {
-      *(aas_entityinfo_t *)v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
-      if ( v20[25] != v21[25] )
-        return 1;
     }
   }
   return 0;
@@ -25231,7 +25186,7 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
   maxs[2] = maxs[2] - 10.0f;
   mins[0] = mins[0] - -4.0f;
   mins[1] = mins[1] - -4.0f;
-  for (i = 0; i < 3; i++) {
+  for (; i < 3; i++) {
     if (origin[i] < mins[i] || origin[i] > maxs[i])
       return 0;
   }
@@ -25366,7 +25321,6 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   int dx; // ebp
   int v8; // edi
   int v9; // esi
-  int *v10; // ebx
   int v12; // [esp+10h] [ebp-A4h]
   int dy; // [esp+14h] [ebp-A0h]
   int dz; // [esp+18h] [ebp-9Ch]
@@ -25432,14 +25386,10 @@ int __cdecl BotReachabilityArea(int *origin, int client)
           {
             if ( !v12 )
               v12 = v26[0];
-            v9 = 0;
-            if ( v8 > 0 )
+            for ( v9 = 0; v9 < v8; ++v9 )
             {
-              for ( v10 = v26; v9 < v8; ++v9, ++v10 )
-              {
-                if ( AAS_AreaReachability(*v10) )
-                  return v26[v9];
-              }
+              if ( AAS_AreaReachability(v26[v9]) )
+                return v26[v9];
             }
           }
           dx -= 5;
@@ -32499,87 +32449,87 @@ int __cdecl PS_ReadWhiteSpace(script_t *script)
 //----- (1003E520) --------------------------------------------------------
 int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
 {
-  char *v2; // ecx
-  char v3; // al
-  int c; // ecx
-  int val; // eax
-  int i; // eax
+  int c, val, i;
 
-  v2 = (script->script_p + 1);
-  script->script_p = v2;
-  v3 = *v2;
-  switch ( *v2 )
+  script->script_p++;
+  switch ( *script->script_p )
   {
     case '\\':
-      c = 92;
+      c = '\\';
       break;
     case 'n':
-      c = 10;
+      c = '\n';
       break;
     case 'r':
-      c = 13;
+      c = '\r';
       break;
     case 't':
-      c = 9;
+      c = '\t';
       break;
     case 'v':
-      c = 11;
+      c = '\v';
       break;
     case 'b':
-      c = 8;
+      c = '\b';
       break;
     case 'f':
-      c = 12;
+      c = '\f';
       break;
     case 'a':
-      c = 7;
+      c = '\a';
       break;
     case '\'':
-      c = 39;
+      c = '\'';
       break;
     case '"':
-      c = 34;
+      c = '"';
       break;
     case '?':
-      c = 63;
+      c = '?';
       break;
     case 'x':
-      script->script_p = v2 + 1;
-      for ( i = 0, c = 0; ; ++i, ++script->script_p )
+    {
+      script->script_p++;
+      for ( i = 0, val = 0; ; i++, script->script_p++ )
       {
-        val = *script->script_p;
-        if ( val >= '0' && val <= '9' ) val = val - '0';
-        else if ( val >= 'A' && val <= 'Z' ) val = val - 'A' + 10;
-        else if ( val >= 'a' && val <= 'z' ) val = val - 'a' + 10;
+        c = *script->script_p;
+        if ( c >= '0' && c <= '9' ) c = c - '0';
+        else if ( c >= 'A' && c <= 'Z' ) c = c - 'A' + 10;
+        else if ( c >= 'a' && c <= 'z' ) c = c - 'a' + 10;
         else break;
-        c = (c << 4) + val;
+        val = (val << 4) + c;
       }
-      --script->script_p;
-      if ( c > 255 )
+      script->script_p--;
+      if ( val > 0xFF )
       {
         ScriptWarning(script, "too large value in escape character");
-        c = 255;
+        val = 0xFF;
       }
+      c = val;
       break;
+    }
     default:
-      if ( v3 < '0' || v3 > '9' )
+    {
+      if ( *script->script_p < '0' || *script->script_p > '9' )
         ScriptError(script, "unknown escape char");
-      for ( i = 0, c = 0; ; ++i, ++script->script_p )
+      for ( i = 0, val = 0; ; i++, script->script_p++ )
       {
-        val = *script->script_p;
-        if ( val >= '0' && val <= '9' ) val = val - '0';
+        c = *script->script_p;
+        if ( c >= '0' && c <= '9' ) c = c - '0';
         else break;
-        c = c * 10 + val;
+        val = val * 10 + c;
       }
-      --script->script_p;
-      if ( c > 255 )
+      script->script_p--;
+      if ( val > 0xFF )
       {
         ScriptWarning(script, "too large value in escape character");
-        c = 255;
+        val = 0xFF;
       }
+      c = val;
       break;
+    }
   }
-  ++script->script_p;
+  script->script_p++;
   *ch = c;
   return 1;
 }
@@ -32661,30 +32611,21 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
 int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 {
   token_t *token = (token_t *)a2;
-  char *v2; // eax
-  int len; // edx
+  int len = 0;
   char c; // al
 
   token->type = 4;
-  token->string[0] = *script->script_p;
-  v2 = (char *)(script->script_p + 1);
-  len = 1;
-  script->script_p = v2;
-  while ( 1 )
+  do
   {
-    c = *v2;
-    if ( (c < 97 || c > 122) && (c < 65 || c > 90) && (c < 48 || c > 57) && c != 95 )
-      break;
-    token->string[len] = c;
-    ++len;
-    v2 = (char *)(script->script_p + 1);
-    script->script_p = v2;
+    token->string[len++] = *script->script_p++;
     if ( len >= 1024 )
     {
       ScriptError(script, "name longer than MAX_TOKEN = %d", 1024);
       return 0;
     }
+    c = *script->script_p;
   }
+  while ( (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || (c >= 48 && c <= 57) || c == 95 );
   token->string[len] = 0;
   token->subtype = len;
   return 1;
@@ -33021,22 +32962,23 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 int __cdecl PS_ReadPunctuation(script_t *script, char *token)
 {
   punctuation_t *punc;
-  const char *p;
-  const char *v4;
-  size_t len;
+  char *p;
+  int len;
 
   for ( punc = script->punctuationtable[*script->script_p]; punc; punc = punc->next )
   {
     p = punc->p;
-    v4 = (const char *)script->script_p;
     len = strlen(p);
-    if ( v4 + len <= (const char *)script->end_p && !strncmp(v4, p, len) )
+    if ( script->script_p + len <= script->end_p )
     {
-      strncpy(token, p, 0x400u);
-      script->script_p += len;
-      *((_DWORD *)token + 256) = 5;
-      *((_DWORD *)token + 257) = punc->n;
-      return 1;
+      if ( !strncmp(script->script_p, p, len) )
+      {
+        strncpy(token, p, 0x400u);
+        script->script_p += len;
+        *((_DWORD *)token + 256) = 5;
+        *((_DWORD *)token + 257) = punc->n;
+        return 1;
+      }
     }
   }
   return 0;
