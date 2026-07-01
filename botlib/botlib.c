@@ -11524,7 +11524,7 @@ area2 = v85;
           }
           v65 = ++v6;
         }
-        while ( v6 < *((_DWORD *)area1 + 1) );
+        while ( v6 < ((aas_area_t *)area1)->numfaces );
         if ( ladderface1 )
         {
           if ( ladderface2 )
@@ -11653,9 +11653,9 @@ area2 = v85;
               else
               {
                 lowestpoint[2] = 99999.0;
-                for ( i = 0; i < ladderface1[2]; ++i )
+                for ( i = 0; i < ((aas_face_t *)ladderface1)->numedges; ++i )
                 {
-                  v45 = abs(aasworld.edgeindex[i + ladderface1[3]]);
+                  v45 = abs(aasworld.edgeindex[i + ((aas_face_t *)ladderface1)->firstedge]);
                   v46 = aasworld.vertexes[aasworld.edges[v45].v[0]][0];
                   v47 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[0]]);
                   v1[1] = v47[1];
@@ -11678,7 +11678,7 @@ area2 = v85;
                     v66 = v45;
                   }
                 }
-                v85 = &aasworld.planes[*ladderface1];
+                v85 = &aasworld.planes[((aas_face_t *)ladderface1)->planenum];
                 VectorMA(lowestpoint, 5.0, (float *)v85, start);
                 v52 = start[2];
                 end[0] = start[0];
