@@ -16819,8 +16819,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
   double v4; // st7
   int v5; // edx
-  int v6; // ecx
-  int v7; // edx
   float range; // [esp+0h] [ebp-94h]
   float v9; // [esp+14h] [ebp-80h]
   int v10; // [esp+14h] [ebp-80h]
@@ -16918,11 +16916,9 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     BotAIBlocked(bs, &moveresult, 1);
     if ( (moveresult.flags & 3) != 0 )
     {
-      v6 = LODWORD(moveresult.ideal_viewangles[1]);
-      v7 = LODWORD(moveresult.ideal_viewangles[2]);
       *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
-      *(int *)&bs->ideal_viewangles[1] = v6;
-      *(int *)&bs->ideal_viewangles[2] = v7;
+      *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
+      *(int *)&bs->ideal_viewangles[2] = LODWORD(moveresult.ideal_viewangles[2]);
     }
     else
     {
@@ -16973,8 +16969,6 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   int v2; // eax
   int v3; // eax
   int areanum; // esi
-  int v5; // ecx
-  int v6; // edx
   int v7; // eax
   int v8; // edi
   bot_state_t *v9; // [esp-4h] [ebp-16Ch]
@@ -17023,11 +17017,9 @@ LABEL_9:
     areanum = v3;
     if ( v3 && AAS_AreaReachability(v3) )
     {
-      v5 = entinfo[5];
-      v6 = entinfo[6];
       (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
-      (*(int *)&bs->lastenemyorigin[1]) = v5;
-      (*(int *)&bs->lastenemyorigin[2]) = v6;
+      (*(int *)&bs->lastenemyorigin[1]) = entinfo[5];
+      (*(int *)&bs->lastenemyorigin[2]) = entinfo[6];
       bs->lastenemyareanum = areanum;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
@@ -17082,10 +17074,6 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   int v2; // esi
   int v3; // eax
   int v4; // ecx
-  int v5; // eax
-  int v6; // ecx
-  int v7; // eax
-  int v8; // ecx
   int v9; // [esp+Ch] [ebp-B4h]
   vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
   vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
@@ -17144,12 +17132,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   v3 = bs->enemy;
   v4 = bs->lastenemyareanum;
   goal[0] = bs->lastenemyorigin[0];
+  *(int *)&goal[1] = *(int *)&bs->lastenemyorigin[1];
+  *(int *)&goal[2] = *(int *)&bs->lastenemyorigin[2];
   *(int *)&goal[10] = v3;
-  v5 = *(int *)&bs->lastenemyorigin[1];
   *(int *)&goal[3] = v4;
-  v6 = *(int *)&bs->lastenemyorigin[2];
-  *(int *)&goal[1] = v5;
-  *(int *)&goal[2] = v6;
   goal[4] = -8.0;
   goal[5] = -8.0;
   goal[6] = -8.0;
@@ -17191,11 +17177,9 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     BotAIBlocked(bs, &moveresult, 0);
     if ( (moveresult.flags & 3) != 0 )
     {
-      v7 = LODWORD(moveresult.ideal_viewangles[1]);
-      v8 = LODWORD(moveresult.ideal_viewangles[2]);
       *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
-      *(int *)&bs->ideal_viewangles[1] = v7;
-      *(int *)&bs->ideal_viewangles[2] = v8;
+      *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
+      *(int *)&bs->ideal_viewangles[2] = LODWORD(moveresult.ideal_viewangles[2]);
     }
     else
     {
@@ -17239,8 +17223,6 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
   float v4; // st7
   float attack_skill; // captured BFloat dodge probability (IDA dropped the fstps)
-  int v5; // eax
-  int v6; // ecx
   int v7; // [esp+Ch] [ebp-178h]
   vec3_t dir; // [esp+14h] [ebp-170h] BYREF
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
@@ -17330,11 +17312,9 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         BotChooseBestFightWeapon(BotWS(bs));
         if ( (moveresult.flags & 1) != 0 )
         {
-          v5 = LODWORD(moveresult.ideal_viewangles[1]);
-          v6 = LODWORD(moveresult.ideal_viewangles[2]);
           *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
-          *(int *)&bs->ideal_viewangles[1] = v5;
-          *(int *)&bs->ideal_viewangles[2] = v6;
+          *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
+          *(int *)&bs->ideal_viewangles[2] = LODWORD(moveresult.ideal_viewangles[2]);
         }
         else if ( (moveresult.flags & 8) == 0 )
         {
@@ -20048,10 +20028,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v17; // eax
   int v18; // ebx
   void *v19; // edi (chatstate pointer)
-  int v20; // ecx
-  int v21; // edx
-  int v22; // eax
-  int v23; // ecx
   int v24; // ax
   double v25; // st7
   float v26; // st7
@@ -20275,18 +20251,14 @@ LABEL_64:
       BotMatchVariable(&match, 4, String2);
       if ( (match.subtype & 0x40) != 0 )
       {
-        v20 = bs->areanum;
-        v21 = *(int *)&bs->origin[0];
         bs->teamgoal.entitynum = bs->entitynum;
-        v22 = *(int *)&bs->origin[1];
-        bs->teamgoal.areanum = v20;
-        v23 = *(int *)&bs->origin[2];
-        bs->teamgoal.origin[1] = *(float *)&v22;
-        bs->teamgoal.origin[0] = *(float *)&v21;
+        bs->teamgoal.areanum = bs->areanum;
+        *(int *)&bs->teamgoal.origin[1] = *(int *)&bs->origin[1];
+        *(int *)&bs->teamgoal.origin[0] = *(int *)&bs->origin[0];
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
-        bs->teamgoal.origin[2] = *(float *)&v23;
+        *(int *)&bs->teamgoal.origin[2] = *(int *)&bs->origin[2];
         bs->teamgoal.maxs[0] = 8.0f;
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
@@ -20672,16 +20644,12 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 //----- (100289A0) --------------------------------------------------------
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
-  int v4; // edx
-  int v5; // ecx
   int v6; // edx
 
   bs->ltime += a2;
   bs->thinktime = a2;
-  v4 = *(int *)&bs->snapshot.origin[0];
-  v5 = *(int *)&bs->snapshot.origin[1];
-  *(int *)&bs->origin[1] = v5;
-  *(int *)&bs->origin[0] = v4;
+  *(int *)&bs->origin[0] = *(int *)&bs->snapshot.origin[0];
+  *(int *)&bs->origin[1] = *(int *)&bs->snapshot.origin[1];
   bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   v6 = (*(int *)&bs->snapshot.origin[2]);
   memcpy(bs->inventory, bs->inventory_src, 0x400u);
