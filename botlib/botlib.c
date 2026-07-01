@@ -28894,19 +28894,19 @@ void __cdecl sub_100376B0(char *String1, __int16 a2)
   scriptcrc_t *v4; // ebx (new record)
   int result;
 
-  v2 = dword_10063F2C;
-  if ( !v2 )
-    goto LABEL_6;
-  while ( 1 )
+  /* get-or-insert: original walks the sorted list, breaks on a name match,
+   * then a shared `if (v2) return;` distinguishes match (v2 != NULL) from
+   * exhaustion. MSVC routes the entry-skip and loop-exhaustion (v2 == NULL)
+   * straight to the alloc block, only the break path through the re-check
+   * (disasm 0x100376be..0x100376e1). IDA rewrote it as an inline early-return
+   * + goto, dropping the shared re-check → OUR-2. */
+  for ( v2 = dword_10063F2C; v2; v2 = v2->next )
   {
-    result = _strcmpi(String1, v2->name);
-    if ( !result )
-      { (void)(result); return; }
-    v2 = v2->next;
-    if ( !v2 )
-      goto LABEL_6;
+    if ( !_strcmpi(String1, v2->name) )
+      break;
   }
-LABEL_6:
+  if ( v2 )
+    return;
   v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
   v4->hash = a2;
   strcpy(v4->name, String1);
@@ -31269,6 +31269,42 @@ LABEL_88:
       v2 = v->next;
       switch ( o->op )
       {
+        /* Case bodies are laid out in the ORIGINAL source order (matching Q3
+         * l_precomp.c PC_EvaluateTokens and the disasm block order at
+         * 0x1003bec5..0x1003c200: LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB,
+         * AND, OR, GEQ, LEQ, EQ, UNEQ, GREATER, LESS, RSHIFT, LSHIFT, BIN_AND,
+         * BIN_OR, BIN_XOR, COLON, QUESTIONMARK). IDA re-sorted them by numeric
+         * op value; MSVC6 emits case bodies in source order, so the numeric
+         * order relocated every block and both jump tables. */
+        case 36:
+          v23 = v->floatvalue;
+          v->intvalue = v->intvalue == 0;
+          v->floatvalue = (float)(v23 == 0.0);
+          goto LABEL_144;
+        case 35:
+          v->intvalue = ~v->intvalue;
+          goto LABEL_144;
+        case 26:
+          v->intvalue *= v2->intvalue;
+          v->floatvalue = v2->floatvalue * v->floatvalue;
+          goto LABEL_144;
+        case 27:
+          v24 = v->floatvalue;
+          v->intvalue /= v2->intvalue;
+          v->floatvalue = v24 / v2->floatvalue;
+          goto LABEL_144;
+        case 28:
+          v->intvalue %= v2->intvalue;
+          goto LABEL_144;
+        case 29:
+          v->intvalue += v2->intvalue;
+          v->floatvalue = v2->floatvalue + v->floatvalue;
+          goto LABEL_144;
+        case 30:
+          v25 = v->floatvalue;
+          v->intvalue -= v2->intvalue;
+          v->floatvalue = v25 - v2->floatvalue;
+          goto LABEL_144;
         case 5:
           v26 = v->intvalue && v2->intvalue;
           v27 = v->floatvalue;
@@ -31317,50 +31353,6 @@ LABEL_88:
             ArgListf = 0;
           v->floatvalue = (float)ArgListf;
           goto LABEL_144;
-        case 21:
-          v->intvalue >>= v2->intvalue;
-          goto LABEL_144;
-        case 22:
-          v->intvalue <<= v2->intvalue;
-          goto LABEL_144;
-        case 26:
-          v->intvalue *= v2->intvalue;
-          v->floatvalue = v2->floatvalue * v->floatvalue;
-          goto LABEL_144;
-        case 27:
-          v24 = v->floatvalue;
-          v->intvalue /= v2->intvalue;
-          v->floatvalue = v24 / v2->floatvalue;
-          goto LABEL_144;
-        case 28:
-          v->intvalue %= v2->intvalue;
-          goto LABEL_144;
-        case 29:
-          v->intvalue += v2->intvalue;
-          v->floatvalue = v2->floatvalue + v->floatvalue;
-          goto LABEL_144;
-        case 30:
-          v25 = v->floatvalue;
-          v->intvalue -= v2->intvalue;
-          v->floatvalue = v25 - v2->floatvalue;
-          goto LABEL_144;
-        case 32:
-          v->intvalue &= v2->intvalue;
-          goto LABEL_144;
-        case 33:
-          v->intvalue |= v2->intvalue;
-          goto LABEL_144;
-        case 34:
-          v->intvalue ^= v2->intvalue;
-          goto LABEL_144;
-        case 35:
-          v->intvalue = ~v->intvalue;
-          goto LABEL_144;
-        case 36:
-          v23 = v->floatvalue;
-          v->intvalue = v->intvalue == 0;
-          v->floatvalue = (float)(v23 == 0.0);
-          goto LABEL_144;
         case 37:
           ArgListg = 1;
           v34 = v->floatvalue;
@@ -31376,6 +31368,21 @@ LABEL_88:
           if ( v35 >= v2->floatvalue )
             ArgListh = 0;
           v->floatvalue = (float)ArgListh;
+          goto LABEL_144;
+        case 21:
+          v->intvalue >>= v2->intvalue;
+          goto LABEL_144;
+        case 22:
+          v->intvalue <<= v2->intvalue;
+          goto LABEL_144;
+        case 32:
+          v->intvalue &= v2->intvalue;
+          goto LABEL_144;
+        case 33:
+          v->intvalue |= v2->intvalue;
+          goto LABEL_144;
+        case 34:
+          v->intvalue ^= v2->intvalue;
           goto LABEL_144;
         case 42:
           if ( !gotquestmarkvalue )
