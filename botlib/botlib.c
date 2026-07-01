@@ -3526,12 +3526,8 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
     return;
   }
 
-  local_mins[0] = dmodels[modelnum].mins[0];
-  local_mins[1] = dmodels[modelnum].mins[1];
-  local_mins[2] = dmodels[modelnum].mins[2];
-  local_maxs[0] = dmodels[modelnum].maxs[0];
-  local_maxs[1] = dmodels[modelnum].maxs[1];
-  local_maxs[2] = dmodels[modelnum].maxs[2];
+  VectorCopy(dmodels[modelnum].mins, local_mins);
+  VectorCopy(dmodels[modelnum].maxs, local_maxs);
 
   AnglesToAxis(angles, axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
@@ -3553,9 +3549,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   if ( maxs ) { VectorCopy(bb_maxs, maxs); }
   if ( origin )
   {
-    origin[0] = dmodels[modelnum].origin[0];
-    origin[1] = dmodels[modelnum].origin[1];
-    origin[2] = dmodels[modelnum].origin[2];
+    VectorCopy(dmodels[modelnum].origin, origin);
   }
 }
 
@@ -19180,9 +19174,7 @@ void BotCheckAttack(bot_state_t *bs)
     if ( AAS_Time() - v11 >= bs->enemysight_time )
     {
       entinfo = AAS_EntityInfo(bs->enemy);
-      dir[0] = entinfo.origin[0] - bs->origin[0];
-      dir[1] = entinfo.origin[1] - bs->origin[1];
-      dir[2] = entinfo.origin[2] - bs->origin[2];
+      VectorSubtract(entinfo.origin, bs->origin, dir);
       if ( VectorLength(dir) < 100.0f )
         v11 = 120.0f;
       else
