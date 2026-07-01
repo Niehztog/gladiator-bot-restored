@@ -13417,37 +13417,23 @@ void AAS_FreeAllClusterAreaCache(void)
  * `aas_routingcache_t *` (one slot per area in the cluster). */
 void AAS_InitClusterAreaCache(void)
 {
-  int                          totalareas, i, numclusters;
-  unsigned char               *blob;
-  aas_routingcache_t         **row;
-  int                          total_bytes;
+  int i, size;
+  char *ptr;
 
-  /* Register-allocation reconstruction (was OUR+2/174b, now INSN_COUNT/5b):
-   *  - Index aasworld.clusters DIRECTLY (no cached base local): the original
-   *    reloads the `ds:aasworld.clusters` global inside both loops rather than
-   *    pinning it in a callee-saved register.  A cached `clusters` local holds
-   *    the base in edi across the GetClearedMemory call, costing an extra
-   *    push/pop (ebx) for the loop-1 field temp; un-caching frees that register.
-   *  - Cache numclusters in a local: this pins the count in esi across loop 1
-   *    (matching ref's `mov esi,ds:IMM` + `mov edx,esi` countdown) instead of a
-   *    scratch reg.  Residual 5b = ref reloads the count into edx after the call
-   *    and reuses it for the total_bytes add + `row` lea, where our cached copy
-   *    stays in esi (a genuine reg tie: reading the global for `row` instead
-   *    regresses loop 1's allocation — MSVC allocates the whole fn holistically). */
-  numclusters = aasworld.numclusters;
-  totalareas = 0;
-  for ( i = 0; i < numclusters; ++i )
-    totalareas += aasworld.clusters[i].numareas;
-
-  total_bytes = numclusters * (int)sizeof(aas_routingcache_t **)
-              + totalareas  * (int)sizeof(aas_routingcache_t *);
-  blob = (unsigned char *)GetClearedMemory(total_bytes);
-  aasworld.clusterareacache = (aas_routingcache_t ***)blob;
-  row = (aas_routingcache_t **)(blob + numclusters * sizeof(aas_routingcache_t **));
+  /* Exact Q3/original source shape: one advancing byte pointer over the
+   * contiguous [cluster heads][per-area rows] blob.  This is 64-bit-safe
+   * because every step still scales by sizeof(pointer). */
+  for ( size = 0, i = 0; i < aasworld.numclusters; ++i )
+    size += aasworld.clusters[i].numareas;
+  ptr = (char *)GetClearedMemory(
+      aasworld.numclusters * sizeof(aas_routingcache_t **)
+      + size * sizeof(aas_routingcache_t *));
+  aasworld.clusterareacache = (aas_routingcache_t ***)ptr;
+  ptr += aasworld.numclusters * sizeof(aas_routingcache_t **);
   for ( i = 0; i < aasworld.numclusters; ++i )
   {
-    aasworld.clusterareacache[i] = row;
-    row += aasworld.clusters[i].numareas;
+    aasworld.clusterareacache[i] = (aas_routingcache_t **)ptr;
+    ptr += aasworld.clusters[i].numareas * sizeof(aas_routingcache_t *);
   }
 }
 
