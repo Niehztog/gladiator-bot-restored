@@ -18309,8 +18309,6 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   char pc; // al
   float v13; // st7
   float *result; // eax
-  float v15; // ecx
-  float v16; // edx
   int v17; // [esp-Ch] [ebp-154h]
   int v18; // [esp+0h] [ebp-148h]
   float v19; // [esp+0h] [ebp-148h]
@@ -18338,7 +18336,8 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
       v24 = -1.0;
       if ( (float)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[0] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[0] + 50.0f;
+      v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+      endpos[0] = v19 * v24 * 700.0f + endpos[0] + 50.0f;
     }
     if ( rnd > 0.2 )
     {
@@ -18346,11 +18345,13 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
       v24 = -1.0;
       if ( (float)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
         v24 = 1.0;
-      endpos[1] = (float)(rand() & 0x7FFF) * 0.000030518509f * v24 * 700.0f + endpos[1] + 50.0f;
+      v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+      endpos[1] = v19 * v24 * 700.0f + endpos[1] + 50.0f;
     }
     v20 = rand() & 0x7FFF;
     v18 = bs[2];
-    endpos[2] = (float)v20 * 0.000030518509f * 144.0f - 96.0f - 1.0f + endpos[2];
+    v19 = (float)v20 * 0.000030518509f;
+    endpos[2] = v19 * 144.0f - 96.0f - 1.0f + endpos[2];
     *(bsp_trace_t *)trace = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     dir[0] = v9;
@@ -18383,11 +18384,9 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   }
   while ( v13 < 10.0f );
   result = goal;
-  v15 = endpos[1];
-  v16 = endpos[2];
   *goal = endpos[0];
-  goal[1] = v15;
-  goal[2] = v16;
+  goal[1] = endpos[1];
+  goal[2] = endpos[2];
   return result;
 }
 
