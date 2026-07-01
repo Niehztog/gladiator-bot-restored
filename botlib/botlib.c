@@ -3520,9 +3520,9 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   if ( modelnum < 0 || modelnum >= nummodels )
   {
     botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, nummodels);
-    if ( mins )   { mins[0]   = 0; mins[1]   = 0; mins[2]   = 0; }
-    if ( maxs )   { maxs[0]   = 0; maxs[1]   = 0; maxs[2]   = 0; }
-    if ( origin ) { origin[0] = 0; origin[1] = 0; origin[2] = 0; }
+    if ( mins )   { VectorClear(mins); }
+    if ( maxs )   { VectorClear(maxs); }
+    if ( origin ) { VectorClear(origin); }
     return;
   }
 
@@ -3538,7 +3538,10 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
    * would otherwise scramble for separate locals. */
   for ( i = 0; i < 8; ++i )
   {
-    corner[0] = (i >= 4)         ? local_maxs[0] : local_mins[0];
+    /* `(i < 4)` with mins in the THEN arm reproduces the original's `jge`
+     * branch polarity (mins is the warm fall-through); the equivalent
+     * `(i >= 4) ? maxs : mins` compiles to the inverted `jl` — do not "clean up". */
+    corner[0] = (i < 4)          ? local_mins[0] : local_maxs[0];
     corner[1] = (i & 1)          ? local_mins[1] : local_maxs[1];
     corner[2] = (i < 2 || i > 6) ? local_mins[2] : local_maxs[2];
     sub_10003460(corner, (float *)axis);
@@ -26605,14 +26608,17 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
     hordir[0] = v9;
     hordir[1] = reach->end[1] - ms->origin[1];
     VectorNormalize(hordir);
-    if ( dist1 >= 24.0f )
-    {
-      if ( dist1 < 32.0f )
-        EA_DelayedJump(ms->client);
-    }
-    else
+    /* if/else-if with the `dist1 < 24` case first makes EA_Jump the warm
+     * fall-through, matching the original's `je` polarity; the equivalent
+     * `if (dist1 >= 24) { if (dist1 < 32) DelayedJump; } else Jump;` inverts to
+     * `jne` and diverges — do not "clean up". */
+    if ( dist1 < 24.0f )
     {
       EA_Jump(ms->client);
+    }
+    else if ( dist1 < 32.0f )
+    {
+      EA_DelayedJump(ms->client);
     }
     EA_Move(ms->client, hordir, 600.0f);
     ms->jumpreach = ms->lastreachnum;
