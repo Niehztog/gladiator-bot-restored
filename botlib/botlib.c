@@ -5917,7 +5917,6 @@ void __cdecl AAS_PrintTravelType(int traveltype)
  */
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor)
 {
-  double v4; // st7
   double dot; // st7
   /* Collapsed dir/v8/v9 (int+float+float) and up/v11/v12 (float×3) into
    * vec3_t locals.  CrossProduct/VectorNormalize/VectorMA require 3
@@ -5928,11 +5927,10 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   vec3_t cross; // [esp+2Ch] [ebp-18h] BYREF
   vec3_t p2; // [esp+38h] [ebp-Ch] BYREF
 
-  v4 = *end - *start;
   up[0] = 0.0;
   up[1] = 0.0;
   up[2] = 1.0;
-  dir[0] = v4;
+  dir[0] = end[0] - start[0];
   dir[1] = end[1] - start[1];
   dir[2] = end[2] - start[2];
   VectorNormalize(dir);
@@ -6001,8 +5999,6 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 {
   int traveltype; // eax
-  double v4; // st7
-  double v5; // st7
   float speed; // [esp+Ch] [ebp-7Ch] BYREF
   float zvel; // [esp+10h] [ebp-78h]
   vec3_t dir; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
@@ -6016,10 +6012,9 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
   if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
     AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &speed);
-    v5 = reach->end[0] - reach->start[0];
-    dir[2] = 0.0f;
-    dir[0] = v5;
+    dir[0] = reach->end[0] - reach->start[0];
     dir[1] = reach->end[1] - reach->start[1];
+    dir[2] = 0.0f;
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
@@ -6034,10 +6029,9 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
   {
     zvel = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
     AAS_HorizontalVelocityForJump(zvel, reach->start, reach->end, &speed);
-    v4 = reach->end[0] - reach->start[0];
-    dir[2] = 0.0f;
-    dir[0] = v4;
+    dir[0] = reach->end[0] - reach->start[0];
     dir[1] = reach->end[1] - reach->start[1];
+    dir[2] = 0.0f;
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     v12[2] = zvel;
@@ -8251,7 +8245,8 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 
   end[0] = origin[0];
   end[1] = origin[1];
-  end[2] = origin[2] - 4.0f;
+  end[2] = origin[2];
+  end[2] -= 4.0f;
 
   trace = AAS_TraceClientBBox(origin, end, presencetype, passent);
 
@@ -8438,8 +8433,6 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
 //----- (1000F4D0) --------------------------------------------------------
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
-  int v2; // ecx
-  double v3; // st7
   float points; // st7
   float v7; // [esp+0h] [ebp-D0h]
   /* IDA-split vec3 trios v8/v9/v10 and v11/v12/v13 — both passed by address
@@ -8456,11 +8449,10 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   vec3_t kvel; /* BYREF — scaled direction */
   float bsptrace[21]; /* BYREF — trace result */
 
-  v2 = *(int *)&origin[1];
-  v3 = origin[2] + 8.0f;
   start[0] = origin[0];
-  *(int *)&start[1] = v2;
-  start[2] = v3;
+  start[1] = origin[1];
+  start[2] = origin[2];
+  start[2] += 8.0f;      /* view offset Z */
   /* 1119092736 = 0x42B40000 is the IEEE-754 BIT pattern of 90.0f.  IDA's
    * decomp emitted the raw int literal under the assumption v18 was int[3]
    * (bit-cast valid).  With float[3] storage GCC int-to-float-converts the
@@ -8482,8 +8474,7 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   v[0] = bsptrace[3] - v[0];
   v[1] = bsptrace[4] - v[1];
   v[2] = bsptrace[5] - v[2];
-  v14 = radiusdamage;
-  points = v14 - 0.5 * VectorLength(v);
+  points = radiusdamage - 0.5 * VectorLength(v);
   *(float *)&v14 = points;
   if ( points < 0.0f )
     LODWORD(v14) = 0;
@@ -17786,16 +17777,16 @@ char *__cdecl EasyClientName(int client, char *buf)
     while ( v2 );
   }
   for ( i = strstr(Str, " "); i; i = strstr(Str, " ") )
-    memmove(i, i + 1, strlen(i));  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
+    memmove(i, i + 1, strlen(i + 1) + 1);  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
   str1 = strstr(Str, "[");
   str2 = strstr(Str, "]");
   if ( str1 && str2 )
   {
     /* overlapping shift-left: use memmove (was strcpy — UB on aarch64) */
-    if ( str2 <= str1 )
-      memmove(str2, str1 + 1, strlen(str1 + 1) + 1);
-    else
+    if ( str2 > str1 )
       memmove(str1, str2 + 1, strlen(str2 + 1) + 1);
+    else
+      memmove(str2, str1 + 1, strlen(str1 + 1) + 1);
   }
   v7 = Str[0];
   if ( (Str[0] == 109 || Str[0] == 77) && (Str[1] == 114 || Str[1] == 82) )
@@ -17817,7 +17808,7 @@ char *__cdecl EasyClientName(int client, char *buf)
       }
       else if ( c < 65 || c > 90 )
       {
-        strcpy(ptr, v9);
+        memmove(ptr, v9, strlen(v9) + 1);
       }
       else
       {
@@ -17887,13 +17878,8 @@ void __cdecl BotFreeWaypoints(bot_waypoint_t *wp)
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 {
 
-  float v3; // st7
   char v4; // al
-  float v6; // st7
   char v7; // al
-  int v8; // ecx
-  float v9; // st7
-  float v10; // st7
   /* point is a vec3_t test point (X int copy, Y int copy, Z float). Original
    * source likely declared as a vec3_t array — MSVC drops dead stores to v12/v13
    * when they are separate locals (only point is BYREF), so we declare as an
@@ -17910,29 +17896,24 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 1;
   if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
-  v3 = bs->origin[2] - 24.0f;
   point[0] = *(int *)&bs->origin[0];
   point[1] = *(int *)&bs->origin[1];
-  *(float *)&point[2] = v3;
+  *(float *)&point[2] = bs->origin[2] - 24.0f;
   v4 = (char)sub_10003080((float *)point);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
-  v6 = bs->origin[2] + 32.0f;
   point[0] = *(int *)&bs->origin[0];
   point[1] = *(int *)&bs->origin[1];
-  *(float *)&point[2] = v6;
+  *(float *)&point[2] = bs->origin[2] + 32.0f;
   v7 = (char)sub_10003080((float *)point);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
-  v8 = *(int *)&bs->origin[1];
-  v9 = bs->origin[2] + 1.0f;
   start[0] = *(int *)&bs->origin[0];
-  start[1] = v8;
-  end[0] = start[0];
-  *(float *)&start[2] = v9;
-  v10 = bs->origin[2] - 100.0f;
-  end[1] = v8;
-  *(float *)&end[2] = v10;
+  start[1] = *(int *)&bs->origin[1];
+  end[0] = *(int *)&bs->origin[0];
+  end[1] = *(int *)&bs->origin[1];
+  *(float *)&start[2] = bs->origin[2] + 1.0f;
+  *(float *)&end[2] = bs->origin[2] - 100.0f;
   AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
   *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)mins, (float*)maxs, (float*)(end), 4, bs->client);
   return trace[20] == 0;
@@ -18407,8 +18388,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
    * spurious `vN = v10;` assignments using the random number — which made
    * every probability gate trivially `random <= random` (always true) and
    * destroyed the BFloat gating throughout this AI helper. */
-  croucher = Characteristic_BFloat(v20, 48, 0.0f, 1.0f);
-  if ( v10 <= croucher )
+  if ( Characteristic_BFloat(v20, 48, 0.0f, 1.0f) <= v10 )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
     v11 = BotCharacter(bs);
@@ -18654,8 +18634,8 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v2 = bs->lasthealth;
   v15 = v1;
   v3 = bs->inventory_health;
-  bs->lasthealth = v3;
   healthdecrease = v2 > v3;
+  bs->lasthealth = v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
   v10 = 0;
   if ( v14 <= 0 )
@@ -19971,8 +19951,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v5; // eax
   int v6; // eax
   int v7; // esi
-  int v8; // ecx
-  int v9; // edx
   int v10; // ax
   float v11; // st7
   int v12; // eax
@@ -19988,8 +19966,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   float v26; // st7
   int v27; // eax
   int v28; // esi
-  int v29; // ecx
-  int v30; // edx
   int v31; // ax
   double v32; // st7
   float v33; // st7
@@ -20103,16 +20079,14 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
         {
           if ( AAS_AreaReachability(v6) )
           {
-            v8 = entinfo[4];
-            v9 = entinfo[5];
             bs->teamgoal.origin[2] = *(float *)&entinfo[6];
             bs->teamgoal.entitynum = v4;
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
             bs->teamgoal.mins[2] = -8.0f;
             bs->teamgoal.areanum = v7;
-            bs->teamgoal.origin[0] = *(float *)&v8;
-            bs->teamgoal.origin[1] = *(float *)&v9;
+            bs->teamgoal.origin[0] = *(float *)&entinfo[4];
+            bs->teamgoal.origin[1] = *(float *)&entinfo[5];
             bs->teamgoal.maxs[0] = 8.0f;
             bs->teamgoal.maxs[1] = 8.0f;
             bs->teamgoal.maxs[2] = 8.0f;
@@ -20232,16 +20206,14 @@ LABEL_64:
           {
             if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v18) )
             {
-              v29 = entinfo[4];
-              v30 = entinfo[5];
               bs->teamgoal.origin[2] = *(float *)&entinfo[6];
               bs->teamgoal.entitynum = v18;
               bs->teamgoal.mins[0] = -8.0f;
               bs->teamgoal.mins[1] = -8.0f;
               bs->teamgoal.mins[2] = -8.0f;
               bs->teamgoal.areanum = v28;
-              bs->teamgoal.origin[0] = *(float *)&v29;
-              bs->teamgoal.origin[1] = *(float *)&v30;
+              bs->teamgoal.origin[0] = *(float *)&entinfo[4];
+              bs->teamgoal.origin[1] = *(float *)&entinfo[5];
               bs->teamgoal.maxs[0] = 8.0f;
               bs->teamgoal.maxs[1] = 8.0f;
               bs->teamgoal.maxs[2] = 8.0f;
@@ -20328,7 +20300,7 @@ LABEL_64:
     case 13:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
-      if ( bs->teamleader[0] )
+      if ( strlen(bs->teamleader) )
         BotInitialChat(&bs->chatstate, "leftteam", (char *)bs + 4352,
                        (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
@@ -20348,8 +20320,7 @@ LABEL_64:
       {
         if ( !BotAddressedToBot(bs, &match) )
           return 1;
-        BotInitialChat(&bs->chatstate, "checkpoint_invalid", (char *)0,
-                       (char *)0);
+        BotInitialChat(&bs->chatstate, "checkpoint_invalid", (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
@@ -20377,7 +20348,7 @@ LABEL_64:
       if ( BotAddressedToBot(bs, &match) )
       {
         sprintf(Buffer, "%1.0f %1.0f %1.0f", v45->goal.origin[0], v45->goal.origin[1], v45->goal.origin[2]);
-        BotInitialChat(&bs->chatstate, "checkpoint_confirm", v45->name,
+        BotInitialChat(&bs->chatstate, "checkpoint_confirm", v45->name, Buffer,
                        (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
@@ -20480,8 +20451,7 @@ LABEL_64:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 4:
-          BotInitialChat(&bs->chatstate, "capturingflag", (char *)0,
-                         (char *)0);
+          BotInitialChat(&bs->chatstate, "capturingflag", (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 5:
@@ -23205,10 +23175,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     return NULL;
   }
   replyhead = NULL;
-  if ( PC_ReadTokenHandle(source, token.string) )
-  {
-
-  while ( 1 )
+  while ( PC_ReadTokenHandle(source, token.string) )
   {
     if ( strcmp(token.string, "[") )
     {
@@ -23220,6 +23187,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     rc = (bot_replychat_t *)GetClearedMemory(sizeof(bot_replychat_t));
     rc->keys = NULL;
     rc->next = replyhead;
+    replyhead = rc;
     do
     {
       key = (bot_replychatkey_t *)GetClearedMemory(sizeof(bot_replychatkey_t));
@@ -23263,7 +23231,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
         key->flags |= 8;
         if ( !PC_ExpectTokenType(source, 1, 0, token.string) )
         {
-          BotShutdownChatAI();
+          BotFreeReplyChat(replyhead);
           FreeSource(source);
           return NULL;
         }
@@ -23279,14 +23247,14 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
     if ( !PC_ExpectTokenString(source, "=")
         || !PC_ExpectTokenType(source, 3, 0, token.string) )
     {
-      BotShutdownChatAI();
+      BotFreeReplyChat(replyhead);
       FreeSource(source);
       return NULL;
     }
     rc->priority = (float)token.intvalue;
     if ( !PC_ExpectTokenString(source, "{") )
     {
-      BotShutdownChatAI();
+      BotFreeReplyChat(replyhead);
       FreeSource(source);
       return NULL;
     }
@@ -23297,7 +23265,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       {
         if ( !BotLoadChatMessage(source, chatmessagestring) )
         {
-          BotShutdownChatAI();
+          BotFreeReplyChat(replyhead);
           FreeSource(source);
           return NULL;
         }
@@ -23312,13 +23280,6 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
           break;
       }
     }
-    replyhead = rc;
-    if ( PC_ReadTokenHandle(source, token.string) )
-      continue;
-    break;
-  }
-
-  v1 = filename;
   }
   FreeSource(source);
   if ( file_ref.filelen )
@@ -24094,20 +24055,17 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
      {
        res = *(_DWORD *)cs == 2;
      }
-     else if ( (v5 & 0x80u) == 0 )
-     {
-       if ( (v5 & 0x10) != 0 )
-       {
-         res = StringsMatch(key->match, &match);
-       }
-       else if ( (v5 & 8) != 0 )
-       {
-         res = StringContains(message, key->string, 0) != 0;
-       }
-     }
-     else
+     else if ( (v5 & 0x80) != 0 )
      {
        res = *(_DWORD *)cs == 0;
+     }
+     else if ( (v5 & 0x10) != 0 )
+     {
+       res = StringsMatch(key->match, &match);
+     }
+     else if ( (v5 & 8) != 0 )
+     {
+       res = StringContains(message, key->string, 0) != 0;
      }
      if ( (key->flags & 1) != 0 )
      {
@@ -24115,14 +24073,14 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
          goto LABEL_34;
        found = 1;
      }
-     else if ( (key->flags & 2) == 0 )
+     else if ( (key->flags & 2) != 0 )
      {
        if ( res )
-         found = 1;
+         goto LABEL_34;
      }
      else if ( res )
      {
-       goto LABEL_34;
+       found = 1;
      }
      key = key->next;
    }
@@ -24144,17 +24102,15 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
        v15 = v8;
      }
      v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
-     v10 = rchat->firstchatmessage;
      v11 = v9;
+     for ( v10 = rchat->firstchatmessage; v10; v10 = v10->next )
+     {
+       if ( --v11 < 0 )
+         break;
+       AAS_Time();
+     }
      if ( v10 )
      {
-       while ( --v11 >= 0 )
-       {
-         AAS_Time();
-         v10 = v10->next;
-         if ( !v10 )
-           goto LABEL_34;
-       }
        bestchatmessage = v10;
        v14 = (__int64)rchat->priority;
      }
@@ -25536,7 +25492,6 @@ void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
 int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, intptr_t avoidreach, float *avoidreachtimes, intptr_t avoidreachtries, intptr_t goal, int travelflags)
 {
   int reachnum; // ebp
-  float *v11; // edi
   int i; // esi
   int t; // eax
   int v14; // eax
@@ -25551,12 +25506,10 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
     return 0;
   do
   {
-    v11 = avoidreachtimes;
-    for ( i = 0; i < 1; ++i )
+    for ( i = 0; i < 1; i++ )
     {
-      if ( *(_DWORD *)((char *)v11 + (avoidreach - (intptr_t)avoidreachtimes)) == reachnum && AAS_Time() <= *v11 )
+      if ( ((int *)avoidreach)[i] == reachnum && avoidreachtimes[i] >= AAS_Time() )
         break;
-      ++v11;
     }
     if ( i == 1 || *(int *)(avoidreachtries + 4 * i) <= 4 )
     {
@@ -25799,8 +25752,8 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
       if ( (type & 4) != 0 )
       {
         v10 = 3.0f;
-        v20 = ms->thinktime;
         cmdmove[2] = libvar_sv_jumpvel->value;
+        v20 = ms->thinktime;
       }
       else
       {
@@ -27782,15 +27735,15 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   fuzzyseperator_t *fs; // ebp
   int newindent; // edi
   fuzzyseperator_t *v7; // eax
-  fuzzyseperator_t *v9; // eax
   fuzzyseperator_t *firstfs; // [esp+10h] [ebp-440h]
   fuzzyseperator_t *lastfs; // [esp+14h] [ebp-43Ch]
   int founddefault; // [esp+18h] [ebp-438h]
   int index; // [esp+1Ch] [ebp-434h]
   token_t token; /* restored: original token_t local variable */
 
-  firstfs = lastfs = 0;
   founddefault = 0;
+  firstfs = 0;
+  lastfs = 0;
   if ( !PC_ExpectTokenString(source, "(") )
     return 0;
   if ( !PC_ExpectTokenType(source, 3, 4096, token.string) )
@@ -27857,13 +27810,8 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
           return 0;
         }
       }
-      else
+      else if ( !strcmp(token.string, "switch") )
       {
-        if ( strcmp(token.string, "switch") )
-        {
-          SourceError(source, "invalid name %s\n", token.string);
-          return 0;
-        }
         v7 = ReadFuzzySeperators_r(source);
         fs->child = v7;
         if ( !v7 )
@@ -27871,6 +27819,11 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
           FreeFuzzySeperators_r(firstfs);
           return 0;
         }
+      }
+      else
+      {
+        SourceError(source, "invalid name %s\n", token.string);
+        return 0;
       }
       if ( newindent )
       {
@@ -27897,18 +27850,17 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   if ( !founddefault )
   {
     SourceWarning(source, "switch without default\n");
-    v9 = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
-    v9->index = index;
-    v9->value = 999999;
-    v9->weight = 0;
-    v9->next = 0;
-    v9->child = 0;
-    if ( fs )
-    {
-      fs->next = v9;
-      return firstfs;
-    }
-    return v9;
+    fs = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
+    fs->index = index;
+    fs->value = 999999;
+    fs->weight = 0;
+    fs->next = 0;
+    fs->child = 0;
+    if ( lastfs )
+      lastfs->next = fs;
+    else
+      firstfs = fs;
+    lastfs = fs;
   }
   return firstfs;
 }
@@ -27942,18 +27894,17 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
   }
  cfg = (weightconfig_t *)GetClearedMemory(sizeof(weightconfig_t));
  cfg->numweights = 0;
- if ( PC_ReadTokenHandle(src, token.string) )
+ while ( PC_ReadTokenHandle(src, token.string) )
  {
-   while ( !strcmp(token.string, "weight") )
+   if ( !strcmp(token.string, "weight") )
    {
      if ( cfg->numweights >= MAX_FUZZY_WEIGHTS )
      {
        SourceWarning(src, "too many fuzzy weights\n");
-       goto LABEL_21;
+       break;
      }
      if ( !PC_ExpectTokenType(src, 1, 0, token.string) )
      {
-LABEL_25:
        FreeWeightConfig2(cfg);
        FreeSource(src);
        return 0;
@@ -27979,15 +27930,8 @@ LABEL_25:
        }
        cfg->weights[cfg->numweights].firstseperator = sep;
      }
-     else
+     else if ( !strcmp(token.string, "return") )
      {
-       if ( strcmp(token.string, "return") )
-       {
-         SourceError(src, "invalid name %s\n", token.string);
-         FreeWeightConfig2(cfg);
-         FreeSource(src);
-         return 0;
-       }
        sep = (fuzzyseperator_t *)GetClearedMemory(sizeof(fuzzyseperator_t));
        sep->index = 0;
        sep->value = 999999;
@@ -28002,18 +27946,29 @@ LABEL_25:
        }
        cfg->weights[cfg->numweights].firstseperator = sep;
      }
+     else
+     {
+       SourceError(src, "invalid name %s\n", token.string);
+       FreeWeightConfig2(cfg);
+       FreeSource(src);
+       return 0;
+     }
      if ( has_balance && !PC_ExpectTokenString(src, "}") )
-       goto LABEL_25;
+     {
+       FreeWeightConfig2(cfg);
+       FreeSource(src);
+       return 0;
+     }
      ++cfg->numweights;
-     if ( !PC_ReadTokenHandle(src, token.string) )
-       goto LABEL_21;
    }
-   SourceError(src, "invalid name %s\n", token.string);
-   FreeWeightConfig2(cfg);
-   FreeSource(src);
-   return 0;
+   else
+   {
+     SourceError(src, "invalid name %s\n", token.string);
+     FreeWeightConfig2(cfg);
+     FreeSource(src);
+     return 0;
+   }
  }
-LABEL_21:
  FreeSource(src);
  if ( file_ref.filelen )
    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Destination);
@@ -30559,7 +30514,7 @@ int __cdecl PC_Directive_define(source_t *source)
     last = t;
   }
   while ( PC_ReadLine(source, &token) );
-  if ( last && (!strcmp(define->tokens->string, "##") || !strcmp(last->string, "##")) )
+  if ( !strcmp(define->tokens->string, "##") || !strcmp(last->string, "##") )
   {
     SourceError(source, "define with misplaced ##");
     return 0;
@@ -32711,174 +32666,95 @@ void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *float
 //----- (1003ECD0) --------------------------------------------------------
 int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 {
-  int len; // ecx
-  char *v4; // edi
-  char v5; // dl
-  char v6; // bl
-  _BYTE *v7; // edi
-  char *v8; // edx
-  char v9; // dl
-  int v10; // ebx
-  int v12; // edx
-  char v13; // bl
-  _BYTE *v14; // edi
-  char *v15; // edx
-  char v16; // dl
-  int v17; // ebx
-  int octal; // edi
-  int dot; // ebp
-  char *v20; // edx
-  char v21; // dl
-  char *v22; // edi
-  char v23; // dl
-  int v24; // edx
-  int v25; // eax
-  int i; // [esp+18h] [ebp+8h]
+  int len = 0;
+  char c;
+  int octal, dot;
+  int i;
 
-  len = 0;
   token->type = 3;
-  v4 = (script)->script_p;
-  v5 = *v4;
-  if ( *v4 == 48 )
+  if ( *script->script_p == 48 && (script->script_p[1] == 120 || script->script_p[1] == 88) )
   {
-    v6 = v4[1];
-    if ( v6 == 120 || v6 == 88 )
+    token->string[len++] = *script->script_p++;
+    token->string[len++] = *script->script_p++;
+    c = *script->script_p;
+    /* hexadecimal — NB the faithful Gladiator quirk: uppercase digits admit only 'A' (65..65) */
+    while ( (c >= 48 && c <= 57) || (c >= 97 && c <= 102) || (c >= 65 && c <= 65) )
     {
-      token->string[0] = 48;
-      v7 = (_BYTE *)((script)->script_p + 1);
-      (script)->script_p = v7;
-      token->string[1] = *v7;
-      v8 = (char *)((script)->script_p + 1);
-      len = 2;
-      (script)->script_p = v8;
-      while ( 1 )
+      token->string[len++] = c;
+      if ( len >= 1024 )
       {
-        v9 = *v8;
-        if ( (v9 < 48 || v9 > 57) && (v9 < 97 || v9 > 102) && (v9 < 65 || v9 > 65) )
-          break;
-        token->string[len] = v9;
-        ++len;
-        v10 = (script)->script_p + 1;
-        (script)->script_p = v10;
-        v8 = (char *)v10;
-        if ( len >= 1024 )
-        {
-          ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
-                      1024);
-          return 0;
-        }
+        ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
+                    1024);
+        return 0;
       }
-      v12 = token->subtype;
-      BYTE1(v12) |= 1u;
-      goto LABEL_40;
+      c = *++script->script_p;
     }
-    v13 = v4[1];
-    if ( v13 == 98 || v13 == 66 )
-    {
-      token->string[0] = 48;
-      v14 = (_BYTE *)((script)->script_p + 1);
-      (script)->script_p = v14;
-      len = 2;
-      token->string[1] = *v14;
-      v15 = (char *)((script)->script_p + 1);
-      (script)->script_p = v15;
-      while ( 1 )
-      {
-        v16 = *v15;
-        if ( v16 != 48 && v16 != 49 )
-          break;
-        token->string[len] = v16;
-        ++len;
-        v17 = (script)->script_p + 1;
-        (script)->script_p = v17;
-        v15 = (char *)v17;
-        if ( len >= 1024 )
-        {
-          ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
-          return 0;
-        }
-      }
-      v12 = token->subtype;
-      BYTE1(v12) |= 4u;
-      goto LABEL_40;
-    }
+    token->subtype |= 0x100;
   }
-  octal = 0;
-  dot = 0;
-  if ( v5 == 48 )
-    octal = 1;
-  do
+  else if ( *script->script_p == 48 && (script->script_p[1] == 98 || script->script_p[1] == 66) )
   {
+    token->string[len++] = *script->script_p++;
+    token->string[len++] = *script->script_p++;
+    c = *script->script_p;
+    while ( c == 48 || c == 49 )
+    {
+      token->string[len++] = c;
+      if ( len >= 1024 )
+      {
+        ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
+        return 0;
+      }
+      c = *++script->script_p;
+    }
+    token->subtype |= 0x400;
+  }
+  else
+  {
+    octal = 0;
+    dot = 0;
+    if ( *script->script_p == 48 )
+      octal = 1;
     while ( 1 )
     {
-      while ( 1 )
+      token->string[len++] = *script->script_p++;
+      if ( len >= 1024 )
       {
-        token->string[++len - 1] = *(_BYTE *)(script)->script_p;
-        v20 = (char *)((script)->script_p + 1);
-        (script)->script_p = v20;
-        if ( len >= 1024 )
-        {
-          ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
-          return 0;
-        }
-        v21 = *v20;
-        if ( v21 != 46 )
-          break;
-        dot = 1;
+        ScriptError(script, "number longer than MAX_TOKEN = %d", 1024);
+        return 0;
       }
-      if ( v21 != 56 && v21 != 57 )
+      c = *script->script_p;
+      if ( c == 46 )
+        dot = 1;
+      else if ( c == 56 || c == 57 )
+        octal = 0;
+      else if ( c < 48 || c > 57 )
         break;
-      octal = 0;
     }
+    if ( octal )
+      token->subtype |= 0x200;
+    else
+      token->subtype |= 8;
+    if ( dot )
+      token->subtype |= 0x800;
   }
-  while ( v21 >= 48 && v21 <= 57 );
-  v12 = token->subtype;
-  if ( octal )
-    BYTE1(v12) |= 2u;
-  else
-    v12 |= 8u;
-  token->subtype = v12;
-  if ( dot )
+  for ( i = 0; i < 2; i++ )
   {
-    BYTE1(v12) |= 8u;
-LABEL_40:
-    token->subtype = v12;
+    c = *script->script_p;
+    if ( c == 108 || c == 76 && (token->subtype & 0x2000) == 0 )
+    {
+      script->script_p++;
+      token->subtype |= 0x2000;
+    }
+    else if ( c == 117 || c == 85 && (token->subtype & 0x4800) == 0 )
+    {
+      script->script_p++;
+      token->subtype |= 0x4000;
+    }
   }
-  i = 2;
-  do
-  {
-    v22 = (script)->script_p;
-    v23 = *v22;
-    if ( *v22 == 108 )
-    {
-LABEL_50:
-      (script)->script_p = v22 + 1;
-      v24 = token->subtype | 0x2000;
-      goto LABEL_51;
-    }
-    if ( v23 == 76 )
-    {
-      if ( (token->subtype & 0x2000) == 0 )
-        goto LABEL_50;
-    }
-    else if ( v23 == 117 || v23 == 85 && (token->subtype & 0x4800) == 0 )
-    {
-      (script)->script_p = v22 + 1;
-      v24 = token->subtype | 0x4000;
-LABEL_51:
-      token->subtype = v24;
-    }
-    --i;
-  }
-  while ( i );
   token->string[len] = 0;
   NumberValue(token->string, token->subtype, (int *)&token->intvalue, &token->floatvalue);
-  v25 = token->subtype;
-  if ( (v25 & 0x800) == 0 )
-  {
-    BYTE1(v25) |= 0x10u;
-    token->subtype = v25;
-  }
+  if ( (token->subtype & 0x800) == 0 )
+    token->subtype |= 0x1000;
   return 1;
 }
 // 1003ED96: conditional instruction was optimized away because dl.1==30
@@ -33645,6 +33521,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   float floatval; // st7
   int intval; // ebx
   int v8; // ecx
+  int type; // edi — (v8 & FT_TYPE) computed once, reused
   int intmin; // esi
   int intmax; // rax
   float v11; // st7
@@ -33684,27 +33561,21 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   if ( (token.subtype & 0x800) != 0 )
   {
     v5 = fielddef_flags(fd);
-    if ( (_BYTE)v5 == 3 )
-    {
-      floatval = token.floatvalue;
-      if ( negative )
-        floatval = -token.floatvalue;
-      if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(fd, 4), floatval < v18) || floatval > fielddef_float(fd, 5)) )
-      {
-        SourceError(source, "float out of range [%f, %f]", v18, fielddef_float(fd, 5));
-        return 0;
-      }
-      else
-      {
-        *p = floatval;
-        return 1;
-      }
-    }
-    else
+    if ( (_BYTE)v5 != 3 )
     {
       SourceError(source, "unexpected float");
       return 0;
     }
+    floatval = token.floatvalue;
+    if ( negative )
+      floatval = -token.floatvalue;
+    if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(fd, 4), floatval < v18) || floatval > fielddef_float(fd, 5)) )
+    {
+      SourceError(source, "float out of range [%f, %f]", v18, fielddef_float(fd, 5));
+      return 0;
+    }
+    *p = floatval;
+    return 1;
   }
   intval = token.intvalue;
   v19 = token.intvalue;
@@ -33714,7 +33585,8 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     v19 = -token.intvalue;
   }
   v8 = fielddef_flags(fd);
-  if ( (unsigned __int8)v8 == 1 )
+  type = v8 & 0xFF;
+  if ( type == 1 )
   {
     if ( (v8 & 0x400) != 0 )
     {
@@ -33736,7 +33608,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     intmin = v17;
     intmax = v16;
   }
-  if ( (unsigned __int8)v8 == 2 )
+  if ( type == 2 )
   {
     if ( (v8 & 0x400) != 0 )
     {
@@ -33752,9 +33624,9 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     }
     v16 = intmax;
   }
-  if ( (unsigned __int8)v8 != 1 && (unsigned __int8)v8 != 2 )
+  if ( type != 1 && type != 2 )
   {
-    if ( (unsigned __int8)v8 == 3 && (v8 & 0x200) != 0 )
+    if ( type == 3 && (v8 & 0x200) != 0 )
     {
       v11 = (float)v19;
       if ( v11 < fielddef_float(fd, 4) || v11 > fielddef_float(fd, 5) )
@@ -33784,18 +33656,18 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     return 0;
   }
   }
-  if ( (unsigned __int8)v8 == 1 )
+  if ( type == 1 )
   {
     *(_BYTE *)p = intval;
   }
-  else if ( (unsigned __int8)v8 == 2 )
+  else if ( type == 2 )
   {
     *(_DWORD *)p = intval;
     return 1;
   }
   else
   {
-    if ( (unsigned __int8)v8 == 3 )
+    if ( type == 3 )
       *p = (float)v19;
     return 1;
   }
