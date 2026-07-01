@@ -8332,6 +8332,8 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
   const void *v5; // esi
+  float *move_vec; // ecx
+  float *runstart_vec; // edi
   char stopevent; // cl
   /* IDA split a vec3 stack local (origin+1z) into three adjacent locals
    * v11/v12/v13 at [ebp-74h]/[ebp-70h]/[ebp-6Ch]; passed as a vec3 via
@@ -8351,18 +8353,16 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
   start_pos[2] = reach->start[2] + 1.0f;
+  move_vec = (float *)move;
+  runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
   v5 = (const void *)AAS_ClientMovementPrediction((char *)move, -1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
   memcpy(move, v5, sizeof(move));
-  *(float *)runstart = *(float *)move;
-  *(_DWORD *)(runstart + 8) = move[2];
+  VectorCopy(move_vec, runstart_vec);
   stopevent = move[16];
-  *(_DWORD *)(runstart + 4) = move[1];
   if ( (stopevent & 0x38) != 0 )
   {
-    *(float *)runstart       = start_pos[0];
-    *(float *)(runstart + 4) = start_pos[1];
-    *(float *)(runstart + 8) = start_pos[2];
+    VectorCopy(start_pos, runstart_vec);
   }
 }
 
