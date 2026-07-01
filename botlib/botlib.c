@@ -14391,6 +14391,8 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 {
   int nodenum; // eax
   aas_node_t *node; // ecx
+  aas_plane_t *plane;
+  vec_t dist;
 
   if ( !aasworld.loaded )
   {
@@ -14401,16 +14403,9 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   do
   {
     node = &aasworld.nodes[nodenum];
-    /* Residual 2-byte diff vs disasm@0x1001ae9f: the original schedules the
-     * inner two product terms descending (n2*p2 then n1*p1); MSVC6 emits them
-     * ascending here regardless of source term order (verified 3x: reordering
-     * the C expression is byte-identical — MSVC6 /O2 freely REASSOCIATES 3+-term
-     * FP sums, so the 2-term sum-of-products term-order lever does NOT apply to
-     * dot products; pairs the last two summed products + adds the first last). */
-    if ( point[0] * aasworld.planes[node->planenum].normal[0]
-       + point[1] * aasworld.planes[node->planenum].normal[1]
-       + point[2] * aasworld.planes[node->planenum].normal[2]
-       - aasworld.planes[node->planenum].dist > 0.0f )
+    plane = &aasworld.planes[node->planenum];
+    dist = DotProduct(point, plane->normal) - plane->dist;
+    if ( dist > 0.0f )
       nodenum = node->children[0];
     else
       nodenum = node->children[1];
@@ -21687,10 +21682,11 @@ int __cdecl Characteristic_Integer(bot_character_t *character, int index)
     v2 = (char)BC_PAIRS(character)[index].type;
     if ( v2 == 1 )
       return (int)BC_PAIRS(character)[index].value;
-    if ( v2 == 2 )
+    else if ( v2 == 2 )
       return (__int64)*(float *)&BC_PAIRS(character)[index].value;
+    else
+      botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   }
-  botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   return 0;
 }
 
