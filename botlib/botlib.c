@@ -5280,283 +5280,144 @@ int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
 //----- (10008FF0) --------------------------------------------------------
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
 {
-  aas_areasettings_t *v1; // eax
-  int result; // eax
-  int numbackareas; // ebx
-  int numfrontareas; // ebp
-  int numareas; // edi
-  int v6; // ecx
-  char *area; // esi
-  int v8; // eax
-  int v9; // rax (was __int64 — abs32 idiom)
-  int facenum; // eax
-  char *face; // ecx
-  int k; // edx
-  int *v13; // edi
-  int otherareanum; // edx
-  unsigned int faceplanenum; // ecx
-  int v16; // eax
-  _DWORD *v17; // ecx
-  int *v18; // eax
-  int v19; // eax
-  _DWORD *v20; // ecx
-  int v21; // eax
-  int v22; // edx
-  int fen; // esi
-  char *frontface; // eax
-  int v25; // ecx
-  unsigned int frontedgenum; // ebp
-  int v27; // edx
-  _DWORD *v28; // ebx
-  int v29; // esi
-  int ben; // ecx
-  int *v31; // edi
-  int v32; // edi
-  int *v33; // esi
-  int i; // [esp+10h] [ebp-E34h]
-  int v35; // [esp+10h] [ebp-E34h]
-  char *v36; // [esp+14h] [ebp-E30h]
-  int *v37; // [esp+14h] [ebp-E30h]
-  int numfrontfaces; // [esp+18h] [ebp-E2Ch]
-  int numbackfaces; // [esp+1Ch] [ebp-E28h]
-  int v40; // [esp+20h] [ebp-E24h]
-  int backplanenum; // [esp+24h] [ebp-E20h]
-  _DWORD *v42; // [esp+24h] [ebp-E20h]
-  int j; // [esp+28h] [ebp-E1Ch]
-  int v44; // [esp+28h] [ebp-E1Ch]
-  _DWORD *v45; // [esp+2Ch] [ebp-E18h]
-  int v46; // [esp+2Ch] [ebp-E18h]
-  int v47; // [esp+30h] [ebp-E14h]
-  int frontplanenum; // [esp+34h] [ebp-E10h]
-  _DWORD *v49; // [esp+38h] [ebp-E0Ch]
-  _DWORD *v50; // [esp+3Ch] [ebp-E08h]
-  _DWORD *v51; // [esp+40h] [ebp-E04h]
-  int areanums[128]; // [esp+44h] [ebp-E00h] BYREF
-  int numareafrontfaces[128]; // [esp+244h] [ebp-C00h] BYREF
-  _DWORD backareanums[128]; // [esp+444h] [ebp-A00h] BYREF
-  int numareabackfaces[128]; // [esp+644h] [ebp-800h] BYREF
-  _DWORD frontareanums[128]; // [esp+844h] [ebp-600h] BYREF
-  _DWORD frontfacenums[128]; // [esp+A44h] [ebp-400h] BYREF
-  _DWORD backfacenums[128]; // [esp+C44h] [ebp-200h] BYREF
+  int i;
+  int j;
+  int k;
+  int fen;
+  int ben;
+  int frontedgenum;
+  int backedgenum;
+  int facenum;
+  int areanums[128];
+  int numareas;
+  int otherareanum;
+  int numareafrontfaces[128];
+  int numareabackfaces[128];
+  int frontfacenums[128];
+  int backfacenums[128];
+  int numfrontfaces;
+  int numbackfaces;
+  int frontareanums[128];
+  int backareanums[128];
+  int numfrontareas;
+  int numbackareas;
+  int frontplanenum;
+  int backplanenum;
+  int faceplanenum;
+  aas_area_t *area;
+  aas_face_t *frontface;
+  aas_face_t *backface;
+  aas_face_t *face;
 
-  v1 = &aasworld.areasettings[areanum];
-  if ( (v1->contents & 8) != 0 )
+  if ( aasworld.areasettings[areanum].contents & 8 )
     return 0;
-  if ( (v1->areaflags & 1) == 0 )
+  if ( !(aasworld.areasettings[areanum].areaflags & 1) )
     return 0;
-  numbackareas = 0;
   memset(numareafrontfaces, 0, sizeof(numareafrontfaces));
   memset(numareabackfaces, 0, sizeof(numareabackfaces));
-  numbackfaces = 0;
-  numfrontfaces = 0;
-  numfrontareas = 0;
-  backplanenum = -1;
-  frontplanenum = -1;
+  numareas = numfrontfaces = numbackfaces = 0;
+  numfrontareas = numbackareas = 0;
+  frontplanenum = backplanenum = -1;
   numareas = AAS_FloodAreas_r(areanums, 0, areanum);
-  v6 = 0;
-  v40 = numareas;
-  for ( i = 0; v6 < numareas; i = v6 )
+  for ( i = 0; i < numareas; i++ )
   {
-    v47 = areanums[v6];
-    area = &aasworld.areas[v47];
-    v8 = 0;
-    v36 = area;
-    j = 0;
-    if ( *((int *)area + 1) > 0 )
+    area = &aasworld.areas[areanums[i]];
+    for ( j = 0; j < area->numfaces; j++ )
     {
-      v45 = &frontareanums[numfrontareas];
-      v51 = &frontfacenums[numfrontfaces];
-      v49 = &backareanums[numbackareas];
-      v50 = &backfacenums[numbackfaces];
-      do
+      facenum = abs(aasworld.faceindex[area->firstface + j]);
+      face = &aasworld.faces[facenum];
+      if ( face->faceflags & 1 )
+        continue;
+      for ( k = 0; k < numareas; k++ )
       {
-        v9 = aasworld.faceindex[v8 + *((_DWORD *)area + 2)];
-        facenum = abs(v9);
-        face = &aasworld.faces[facenum];
-        if ( (face[4] & 1) == 0 )
-        {
-          k = 0;
-          v13 = areanums;
-          do
-          {
-            if ( k != i && (*((_DWORD *)face + 4) == *v13 || *((_DWORD *)face + 5) == *v13) )
-              break;
-            ++k;
-            ++v13;
-          }
-          while ( k < v40 );
-          if ( k == v40 )
-          {
-            otherareanum = *((_DWORD *)face + 4);
-            if ( otherareanum == v47 )
-              otherareanum = *((_DWORD *)face + 5);
-            if ( (aasworld.areasettings[otherareanum].contents & 8) != 0 )
-              return 0;
-            faceplanenum = *(_DWORD *)face & 0xFFFFFFFE;
-            if ( frontplanenum < 0 || faceplanenum == frontplanenum )
-            {
-              frontplanenum = faceplanenum;
-              ++numfrontfaces;
-              *v51 = facenum;
-              v19 = 0;
-              ++v51;
-              if ( numfrontareas > 0 )
-              {
-                v20 = frontareanums;
-                do
-                {
-                  if ( *v20 == otherareanum )
-                    break;
-                  ++v19;
-                  ++v20;
-                }
-                while ( v19 < numfrontareas );
-              }
-              if ( v19 == numfrontareas )
-              {
-                ++numfrontareas;
-                *v45++ = otherareanum;
-              }
-              v18 = &numareafrontfaces[i];
-            }
-            else
-            {
-              if ( backplanenum >= 0 && faceplanenum != backplanenum )
-                return 0;
-              backplanenum = faceplanenum;
-              ++numbackfaces;
-              *v50 = facenum;
-              v16 = 0;
-              ++v50;
-              if ( numbackareas > 0 )
-              {
-                v17 = backareanums;
-                do
-                {
-                  if ( *v17 == otherareanum )
-                    break;
-                  ++v16;
-                  ++v17;
-                }
-                while ( v16 < numbackareas );
-              }
-              if ( v16 == numbackareas )
-              {
-                ++numbackareas;
-                *v49++ = otherareanum;
-              }
-              v18 = &numareabackfaces[i];
-            }
-            ++*v18;
-          }
-          area = v36;
-        }
-        v8 = ++j;
+        if ( k == i )
+          continue;
+        if ( face->frontarea == areanums[k] || face->backarea == areanums[k] )
+          break;
       }
-      while ( j < *((_DWORD *)area + 1) );
-      v6 = i;
-      numareas = v40;
-    }
-    ++v6;
-  }
-  if ( numareas > 0 )
-  {
-    for ( v21 = 0; v21 < numareas; ++v21 )
-    {
-      if ( !numareafrontfaces[v21] || !numareabackfaces[v21] )
+      if ( k != numareas )
+        continue;
+      if ( face->frontarea == areanums[i] )
+        otherareanum = face->backarea;
+      else
+        otherareanum = face->frontarea;
+      if ( aasworld.areasettings[otherareanum].contents & 8 )
         return 0;
-    }
-  }
-  result = AAS_ConnectedAreas(frontareanums, numfrontareas);
-  if ( result )
-  {
-    result = AAS_ConnectedAreas(backareanums, numbackareas);
-    if ( result )
-    {
-      v22 = 0;
-      v35 = 0;
-      if ( numfrontfaces > 0 )
+      faceplanenum = face->planenum & ~1;
+      if ( frontplanenum < 0 || faceplanenum == frontplanenum )
       {
-        v42 = frontfacenums;
-        do
+        frontplanenum = faceplanenum;
+        frontfacenums[numfrontfaces++] = facenum;
+        for ( k = 0; k < numfrontareas; k++ )
         {
-          fen = 0;
-          v46 = 0;
-          frontface = &aasworld.faces[*v42];
-          v25 = *((_DWORD *)frontface + 2);
-          if ( v25 > 0 )
-          {
-            v37 = &aasworld.edgeindex[*((_DWORD *)frontface + 3)];
-            do
-            {
-              frontedgenum = abs(*v37);
-              v27 = 0;
-              v44 = 0;
-              if ( numbackfaces > 0 )
-              {
-                v28 = backfacenums;
-                do
-                {
-                  v29 = aasworld.faces[*v28].numedges;
-                  ben = 0;
-                  if ( v29 > 0 )
-                  {
-                    v31 = &aasworld.edgeindex[aasworld.faces[*v28].firstedge];
-                    do
-                    {
-                      if ( frontedgenum == abs(*v31) )
-                        break;
-                      ++ben;
-                      ++v31;
-                    }
-                    while ( ben < v29 );
-                    v27 = v44;
-                  }
-                  if ( ben != v29 )
-                    break;
-                  ++v27;
-                  ++v28;
-                  v44 = v27;
-                }
-                while ( v27 < numbackfaces );
-                v25 = *((_DWORD *)frontface + 2);
-                fen = v46;
-              }
-              if ( v27 != numbackfaces )
-                break;
-              v46 = ++fen;
-              ++v37;
-            }
-            while ( fen < v25 );
-            numareas = v40;
-            v22 = v35;
-          }
-          if ( fen != v25 )
+          if ( frontareanums[k] == otherareanum )
             break;
-          v35 = ++v22;
-          ++v42;
         }
-        while ( v22 < numfrontfaces );
+        if ( k == numfrontareas )
+          frontareanums[numfrontareas++] = otherareanum;
+        numareafrontfaces[i]++;
       }
-      if ( v22 != numfrontfaces )
-        return 0;
-      if ( numareas > 0 )
+      else if ( backplanenum < 0 || faceplanenum == backplanenum )
       {
-        v32 = v40;
-        v33 = areanums;
-        do
+        backplanenum = faceplanenum;
+        backfacenums[numbackfaces++] = facenum;
+        for ( k = 0; k < numbackareas; k++ )
         {
-          aasworld.areasettings[*v33].contents |= 8u;
-          aasworld.areasettings[*v33].contents |= 0x20u;
-          Log_Write("possible portal: %d", *v33++);
-          --v32;
+          if ( backareanums[k] == otherareanum )
+            break;
         }
-        while ( v32 );
+        if ( k == numbackareas )
+          backareanums[numbackareas++] = otherareanum;
+        numareabackfaces[i]++;
       }
-      return v40;
+      else
+      {
+        return 0;
+      }
     }
   }
-  return result;
+  for ( i = 0; i < numareas; i++ )
+  {
+    if ( !numareafrontfaces[i] || !numareabackfaces[i] )
+      return 0;
+  }
+  if ( !AAS_ConnectedAreas(frontareanums, numfrontareas) )
+    return 0;
+  if ( !AAS_ConnectedAreas(backareanums, numbackareas) )
+    return 0;
+  for ( i = 0; i < numfrontfaces; i++ )
+  {
+    frontface = &aasworld.faces[frontfacenums[i]];
+    for ( fen = 0; fen < frontface->numedges; fen++ )
+    {
+      frontedgenum = abs(aasworld.edgeindex[frontface->firstedge + fen]);
+      for ( j = 0; j < numbackfaces; j++ )
+      {
+        backface = &aasworld.faces[backfacenums[j]];
+        for ( ben = 0; ben < backface->numedges; ben++ )
+        {
+          backedgenum = abs(aasworld.edgeindex[backface->firstedge + ben]);
+          if ( frontedgenum == backedgenum )
+            break;
+        }
+        if ( ben != backface->numedges )
+          break;
+      }
+      if ( j != numbackfaces )
+        break;
+    }
+    if ( fen != frontface->numedges )
+      break;
+  }
+  if ( i != numfrontfaces )
+    return 0;
+  for ( i = 0; i < numareas; i++ )
+  {
+    aasworld.areasettings[areanums[i]].contents |= 8u;
+    aasworld.areasettings[areanums[i]].contents |= 0x20u;
+    Log_Write("possible portal: %d", areanums[i]);
+  }
+  return numareas;
 }
 
 //----- (10009570) --------------------------------------------------------
