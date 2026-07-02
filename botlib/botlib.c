@@ -18575,7 +18575,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v10 = 0;
   if ( v14 <= 0 )
     return 0;
-  for ( i = v19; ; ++i )
+  for ( i = v19; ; )
   {
     *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(*i);
     if ( !sub_10021710(entinfo) && entinfo[3] != bs->entitynum )
@@ -18593,7 +18593,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
         }
         else
         {
-          v6 = v8 <= 810.0f ? v8 : 810.0f;
+          v6 = v8 > 810.0f ? 810.0f : v8;
           v9 = 360.0f - (270.0f - v6 * 0.33333334f);
         }
         vectoangles(dir, (float *)angles);
@@ -18620,7 +18620,9 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
         }
       }
     }
-    if ( ++v10 >= v14 )
+    ++v10;
+    ++i;
+    if ( v10 >= v14 )
       return 0;
   }
   bs->enemy = entinfo[3];
@@ -20676,8 +20678,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   float v6; // st6 (was double)
   float v7; // st6 (was double)
   float v9; // [esp+10h] [ebp-4h]
-  float v10; // [esp+18h] [ebp+4h]
-  float v11; // [esp+18h] [ebp+4h]
+  float v10; // [esp+18h] [ebp+4h] — reused in place for v10*thinktime (IDA renamed the 2nd write v11, but it's the SAME slot)
 
   (void)thinktime;
   v2 = bs->ideal_viewangles[0];
@@ -20700,14 +20701,14 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   }
   else
   {
-    v2 = 150.0f;
     v10 = 100.0f;
+    v2 = 150.0f;
   }
   v3 = bs->viewanglespeed;  /* was: (float *)&bs->_raw[1062]; offset +4248 = start of viewanglespeed[3].
                               * v3-6 (offset -24) → viewangles[i]; v3-3 (offset -12) → ideal_viewangles[i];
                               * *v3 → viewanglespeed[i].  The ++v3 walk advances all three in lockstep. */
   v4 = 2;
-  v11 = v10 * bs->thinktime;
+  v10 = v10 * bs->thinktime;
   v9 = v2 * bs->thinktime;
   do
   {
@@ -20719,7 +20720,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
     v5 = (float)abs((__int64)AngleDifference(*(v3 - 6), *(v3 - 3)));
     if ( v5 > *v3 )
     {
-      v6 = v11 + *v3;
+      v6 = v10 + *v3;
       *v3 = v6;
       if ( v6 > v5 )
         *v3 = v5;
