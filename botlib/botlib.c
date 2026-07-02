@@ -17004,8 +17004,6 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
   int v2; // esi
-  int v3; // eax
-  int v4; // ecx
   int v9; // [esp+Ch] [ebp-B4h]
   vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
   vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
@@ -17061,13 +17059,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     v2 |= 0x1000u;
     v9 = v2;
   }
-  v3 = bs->enemy;
-  v4 = bs->lastenemyareanum;
+  *(int *)&goal[10] = bs->enemy;
+  *(int *)&goal[3] = bs->lastenemyareanum;
   goal[0] = bs->lastenemyorigin[0];
   *(int *)&goal[1] = *(int *)&bs->lastenemyorigin[1];
   *(int *)&goal[2] = *(int *)&bs->lastenemyorigin[2];
-  *(int *)&goal[10] = v3;
-  *(int *)&goal[3] = v4;
   goal[4] = -8.0;
   goal[5] = -8.0;
   goal[6] = -8.0;
