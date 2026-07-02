@@ -558,7 +558,7 @@ float __cdecl BotAggression(bot_state_t *bs);
 BOOL __cdecl BotWantsToRetreat(int *bs);
 BOOL __cdecl BotWantsToChase(int *bs);
 float *__cdecl BotRoamGoal(_DWORD *bs, float *goal);
-bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a3);
+bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3);
 int __cdecl BotCTFTeam(bot_state_t *bs);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
@@ -16711,7 +16711,6 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   float v10; // [esp+Ch] [ebp-15Ch]
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
   int entinfo[31]; // [esp+40h] [ebp-128h] BYREF
-  bot_moveresult_t v13; // [esp+BCh] [ebp-ACh] BYREF (was char[48]; BotAttackMove output buffer)
 
   if ( BotIsObserver(bs) )
   {
@@ -16770,7 +16769,7 @@ LABEL_9:
       BotChooseBestFightWeapon(BotWS(bs));
       sub_100215E0(bs);
       BotBattleUseItems(bs);
-      moveresult = *BotAttackMove(&v13, (intptr_t)bs, v8);
+      moveresult = BotAttackMove((intptr_t)bs, v8);
       if ( moveresult.failure )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -18084,11 +18083,9 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
 }
 
 //----- (10022E10) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a3)
+bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
 {
   bot_state_t *bs = (bot_state_t *)a2;   /* restored: a2 is the bot state pointer (mirrors other __cdecl(int a) bot funcs) */
-  const void *v7; // esi
-  bot_moveresult_t *result; // eax
   __int16 v9; // ax
   float v10; // st7
   bot_character_t *v11; // restored: holds BotCharacter pointer
@@ -18134,10 +18131,7 @@ bot_moveresult_t *__cdecl BotAttackMove(bot_moveresult_t *a1, intptr_t a2, int a
     goal.maxs[1] = 8.0f;
     goal.maxs[2] = 8.0f;
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    v7 = (const void *)BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
-    result = a1;
-    memcpy(a1, v7, 0x30u);
-    return result;
+    return *BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
   }
   memset(&moveresult, 0, sizeof(moveresult));
   v9 = rand();
@@ -18270,9 +18264,7 @@ LABEL_35:
     }
   }
 LABEL_39:
-  result = a1;
-  memcpy(a1, &moveresult, 0x30u);
-  return result;
+  return moveresult;
 }
 
 //----- (10023510) --------------------------------------------------------
