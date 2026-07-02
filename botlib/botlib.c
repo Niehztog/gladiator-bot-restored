@@ -8945,7 +8945,7 @@ LABEL_86:
  *
  * DEAD — Gladiator never references this; almost certainly a leftover
  * jump-prediction test harness from development. */
-static void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
+void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
   aas_clientmove_t result;   /* filled by the by-value prediction return */
   vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
@@ -9928,9 +9928,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
-  int v135; // [esp+140h] [ebp-90h]
-  float v136; // [esp+144h] [ebp-8Ch]
-  float v137; // [esp+148h] [ebp-88h]
+  vec3_t water_beststart; // [esp+140h..148h] [ebp-90h..-88h] — contiguous vec3 in ref (Q3 decl); was IDA v135/v136/v137
   float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
   float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
   float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
@@ -9982,9 +9980,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v126 = groundface1;
           if ( (groundface1[4] & 4) != 0
             || area1swim
-            && up[2] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[2]
-             + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[1]
-             + up[0] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (groundface1num >= 0)].normal[0] >= 0.7 )
+            && up[2] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[2]
+             + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[1]
+             + up[0] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[0] >= 0.7 )
           {
             v10 = ((aas_face_t *)groundface1)->numedges;
             k = 0;
@@ -10263,9 +10261,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               {
                                 water_bestdist = dist;
                                 water_bestlength = length;
-                                v135 = *(int *)&start[0];
-                                v136 = start[1];
-                                v137 = start[2];
+                                *(int *)&water_beststart[0] = *(int *)&start[0];
+                                water_beststart[1] = start[1];
+                                water_beststart[2] = start[2];
                                 /* Same bit-pattern preservation as ground_bestnormal above. */
                                 *(int *)water_bestnormal = *(int *)&normal[0];
                                 *(int *)&water_bestnormal[1] = *(int *)&normal[1];
@@ -10338,10 +10336,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             v50 = AAS_AllocReachability();
             if ( !v50 )
               return 0;
-            v51 = v135;
-            v52 = v136;
+            v51 = *(int *)&water_beststart[0];
+            v52 = water_beststart[1];
             *(_DWORD *)(v50 + 8) = v114;
-            v53 = v137;
+            v53 = water_beststart[2];
             *(_DWORD *)(v50 + 12) = v51;
             *(float *)(v50 + 16) = v52;
             *(float *)(v50 + 20) = v53;
@@ -10584,10 +10582,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   vec3_t v76_vec; // [esp+7Ch..84h] [ebp-150h..-148h] BYREF — v76/v77/v78 collapsed (edge2 proj B)
   int v79; // [esp+88h] [ebp-144h]
   vec3_t v80_vec; // [esp+8Ch..94h] [ebp-140h..-138h] BYREF — v80/v81/v82 collapsed (edge1 proj A)
-  float v83; // [esp+98h] [ebp-134h]
-  float v84; // [esp+9Ch] [ebp-130h]
-  float v85; // [esp+A4h] [ebp-128h]
-  float v86; // [esp+A8h] [ebp-124h]
+  vec3_t dir1; // [esp+98h..A0h] [ebp-134h..-12Ch] — edge1 direction (Q3 AAS_ClosestEdgePoints dir1); [2] never written (IDA dropped the frame hole at [esp+A0h])
+  vec3_t dir2; // [esp+A4h..ACh] [ebp-128h..-120h] — edge2 direction (Q3 dir2); [2] never written (IDA dropped the frame hole at [esp+ACh])
   int l; // [esp+B0h] [ebp-11Ch]
   int k; // [esp+B4h] [ebp-118h]
   float maxjumpdistance; // [esp+B8h] [ebp-114h]
@@ -10676,13 +10672,13 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v2 = (float *)(&aasworld.vertexes[edge1[1]]);
                         HIDWORD(edge2num) = *edge2;
                         v23 = edge2[1];
-                        v83 = *v2 - *v1;
+                        dir1[0] = *v2 - *v1;
                         v3 = (float *)(&aasworld.vertexes[HIDWORD(edge2num)]);
                         v4 = (float *)(&aasworld.vertexes[v23]);
-                        v84 = v2[1] - v1[1];
-                        v85 = *v4 - *v3;
-                        v86 = v4[1] - v3[1];
-                        if ( v85 == 0 )
+                        dir1[1] = v2[1] - v1[1];
+                        dir2[0] = *v4 - *v3;
+                        dir2[1] = v4[1] - v3[1];
+                        if ( dir2[0] == 0 )
                         {
                           v70_vec[0] = *v3;
                           v70_vec[1] = v1[1];
@@ -10691,19 +10687,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v26 = (float)v86 / (float)v85;
+                          v26 = (float)dir2[1] / (float)dir2[0];
                           v27 = (float)v3[1] - v26 * (float)*v3;
-                          v28 = v27 * (float)v86 + v26 * (float)v85;
-                          v29 = ((float)v85 * (float)*v1 + (float)v86 * (float)v1[1] - v28) / (float)v85;
+                          v28 = v27 * (float)dir2[1] + v26 * (float)dir2[0];
+                          v29 = ((float)dir2[0] * (float)*v1 + (float)dir2[1] * (float)v1[1] - v28) / (float)dir2[0];
                           v70_vec[0] = (float)v29;
                           v70_vec[1] = (float)(v29 * v26 + v27);
                           {
-                            float tmp = ((float)v86 * (float)v2[1] + (float)v85 * (float)*v2 - v28) / (float)v85;
+                            float tmp = ((float)dir2[1] * (float)v2[1] + (float)dir2[0] * (float)*v2 - v28) / (float)dir2[0];
                             v76_vec[0] = (float)tmp;
                             v76_vec[1] = (float)(tmp * v26 + v27);
                           }
                         }
-                        if ( v83 == 0 )
+                        if ( dir1[0] == 0 )
                         {
                           v80_vec[0] = *v1;
                           v80_vec[1] = v3[1];
@@ -10712,14 +10708,14 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         }
                         else
                         {
-                          v30 = (float)v84 / (float)v83;
+                          v30 = (float)dir1[1] / (float)dir1[0];
                           v31 = (float)v1[1] - v30 * (float)*v1;
-                          v32 = v31 * (float)v84 + v30 * (float)v83;
-                          v33 = ((float)v83 * (float)*v3 + (float)v84 * (float)v3[1] - v32) / (float)v83;
+                          v32 = v31 * (float)dir1[1] + v30 * (float)dir1[0];
+                          v33 = ((float)dir1[0] * (float)*v3 + (float)dir1[1] * (float)v3[1] - v32) / (float)dir1[0];
                           v80_vec[0] = (float)v33;
                           v80_vec[1] = (float)(v33 * v30 + v31);
                           {
-                            float tmp = ((float)v84 * (float)v4[1] + (float)v83 * (float)*v4 - v32) / (float)v83;
+                            float tmp = ((float)dir1[1] * (float)v4[1] + (float)dir1[0] * (float)*v4 - v32) / (float)dir1[0];
                             v73_vec[0] = (float)tmp;
                             v73_vec[1] = (float)(tmp * v30 + v31);
                           }
@@ -14318,217 +14314,204 @@ fail:
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
                                         int presencetype, int passent)
 {
+  int side, nodenum, tmpplanenum;
+  float front, back, frac;
+  /* v1/v2 are function-scoped like Q3's (be_aas_sample.c AAS_TraceClientBBox):
+   * v1 = trace direction, v2 = traversed segment.  NB the original (pre-Q3)
+   * has NO VectorClear(v1) in the startsolid arms — the later plane-facing
+   * test then reads a stale/uninitialized v1.  Authentic original bug,
+   * preserved (Q3 added the VectorClear). */
+  vec3_t cur_start, cur_end, cur_mid, v1, v2;
   aas_tracestack_t tracestack[64];
   aas_tracestack_t *tstack_p;
-  aas_trace_t trace;
   aas_node_t *aasnode;
-  float *plane;
-  float front, back, frac, side_offset;
-  float cur_mid_x, cur_mid_y, cur_mid_z;
-  float cur_start_x, cur_start_y, cur_start_z;
-  float cur_end_x, cur_end_y, cur_end_z;
-  int nodenum, tmpplanenum;
-  float *trace_start_pt;
+  aas_plane_t *plane;
+  aas_trace_t trace;
 
   memset(&trace, 0, sizeof(trace));
   if ( !aasworld.loaded )
     return trace;
 
-  trace_start_pt = start;
-  /* push the whole line as the initial frame */
   tstack_p = tracestack;
+  /* we start with the whole line on the stack */
   VectorCopy(start, tstack_p->start);
   VectorCopy(end, tstack_p->end);
   tstack_p->planenum = 0;
-  tstack_p->nodenum  = 1;     /* root of BSP */
+  /* start with node 1 because node zero is a dummy for a solid leaf */
+  tstack_p->nodenum = 1;     /* starting at the root of the tree */
   tstack_p++;
 
   while ( 1 )
   {
-    while ( 1 )
+    /* pop up the stack */
+    tstack_p--;
+    /* if the trace stack is empty (ended up with a piece of the
+     * line to be traced in an area) */
+    if ( tstack_p < tracestack )
     {
-      tstack_p--;
-      if ( tstack_p < tracestack )
+      /* nothing was hit */
+      trace.startsolid = 0;
+      trace.fraction = 1.0;
+      /* endpos is the end of the line */
+      VectorCopy(end, trace.endpos);
+      /* nothing hit */
+      trace.ent = 0;
+      trace.area = 0;
+      trace.planenum = 0;
+      return trace;
+    }
+    /* number of the current node to test the line against */
+    nodenum = tstack_p->nodenum;
+    /* if it is an area */
+    if ( nodenum < 0 )
+    {
+      /* if can't enter the area because it hasn't got the right presence type */
+      if ( !(aasworld.areasettings[-nodenum].presencetype & presencetype) )
       {
-        /* underflow — entire line cleared: fraction=1, endpos=end */
-        trace.startsolid = 0;
-        trace.fraction   = 1.0f;
-        VectorCopy(end, trace.endpos);
-        trace.ent        = 0;
-        trace.area       = 0;
-        trace.planenum   = 0;
-        return trace;
-      }
-      nodenum = tstack_p->nodenum;
-      if ( nodenum < 0 )
-        break;     /* leaf representing an area */
-      if ( !nodenum )
-      {
-        /* solid leaf */
-        if ( tstack_p->start[0] == trace_start_pt[0]
-          && tstack_p->start[1] == trace_start_pt[1]
-          && tstack_p->start[2] == trace_start_pt[2] )
+        /* if the start point is still the initial start point
+         * NOTE: no need for epsilons because the points will be
+         * exactly the same when they're both the start point */
+        if ( tstack_p->start[0] == start[0]
+          && tstack_p->start[1] == start[1]
+          && tstack_p->start[2] == start[2] )
         {
           trace.startsolid = 1;
-          trace.fraction   = 0.0f;
+          trace.fraction = 0.0;
         }
         else
         {
-          float dir[3], seg[3];
           trace.startsolid = 0;
-          VectorSubtract(end, trace_start_pt, dir);
-          VectorSubtract(tstack_p->start, trace_start_pt, seg);
-          trace.fraction = VectorLength(seg) / VectorNormalize(dir);
-          /* back the hitpoint off slightly along the trace direction */
-          VectorMA((float *)tstack_p->start, -0.125f, (float *)dir, (float *)tstack_p->start);
-          /* original IDA decomp wrote dir[0..2] into 3 stack-local floats
-           * (v_dir_x, v_seg_y, v_seg_z) which were then never read; the
-           * assignments were pure dead code from MSVC's spill-to-stack. */
+          VectorSubtract(end, start, v1);
+          VectorSubtract(tstack_p->start, start, v2);
+          trace.fraction = VectorLength(v2) / VectorNormalize(v1);
+          VectorMA(tstack_p->start, -0.125, v1, tstack_p->start);
         }
         VectorCopy(tstack_p->start, trace.endpos);
-        trace.ent       = 0;
-        trace.area      = 0;     /* hit solid leaf */
-        trace.planenum  = tstack_p->planenum;
-        /* always take the plane facing toward the trace start */
-        plane = (float *)&aasworld.planes[trace.planenum];
-        {
-          float dx = end[0] - trace_start_pt[0];
-          float dy = end[1] - trace_start_pt[1];
-          float dz = end[2] - trace_start_pt[2];
-          if ( dz * plane[2] + dy * plane[1] + dx * plane[0] > 0.0f )
-            trace.planenum ^= 1;
-        }
+        trace.ent = 0;
+        trace.area = -nodenum;
+        trace.planenum = tstack_p->planenum;
+        /* always take the plane with normal facing towards the trace start */
+        plane = &aasworld.planes[trace.planenum];
+        if ( v1[2] * plane->normal[2] + v1[1] * plane->normal[1] + v1[0] * plane->normal[0] > 0.0f )
+          trace.planenum ^= 1;
         return trace;
-      }
-      /* interior node — split the trace by the node's plane */
-      aasnode = (aas_node_t *)((char *)aasworld.nodes + 12 * nodenum);
-      cur_start_x = tstack_p->start[0];
-      cur_start_y = tstack_p->start[1];
-      cur_start_z = tstack_p->start[2];
-      cur_end_x   = tstack_p->end[0];
-      cur_end_y   = tstack_p->end[1];
-      cur_end_z   = tstack_p->end[2];
-      plane = (float *)&aasworld.planes[aasnode->planenum];
-      front = cur_start_x * plane[0] + cur_start_y * plane[1] + cur_start_z * plane[2] - plane[3];
-      back  = cur_end_x   * plane[0] + cur_end_y   * plane[1] + cur_end_z   * plane[2] - plane[3];
-      if ( front <= -0.0005 || back <= -0.0005 )
-      {
-        if ( front >= 0.0005 || back >= 0.0005 )
-        {
-          /* split: trace crosses this plane.  Push the second half first,
-           * then push the first half so it pops next. */
-          tmpplanenum = tstack_p->planenum;
-          /* TRACEPLANE_EPSILON nudge toward the near side */
-          if ( front < 0.0f )
-            side_offset = front + 0.125;
-          else
-            side_offset = front - 0.125;
-          frac = side_offset / (front - back);
-          if ( frac >= 0.0f )
-          {
-            if ( frac > 1.0f )
-              frac = 1.0f;
-          }
-          else
-          {
-            frac = 0.0f;
-          }
-          cur_mid_x = (cur_end_x - cur_start_x) * frac + cur_start_x;
-          cur_mid_y = (cur_end_y - cur_start_y) * frac + cur_start_y;
-          cur_mid_z = (cur_end_z - cur_start_z) * frac + cur_start_z;
-          /* modify CURRENT frame in place to be the back-side half:
-           * start = mid (split point), end stays, planenum = node's plane. */
-          tstack_p->start[0] = cur_mid_x;
-          tstack_p->start[1] = cur_mid_y;
-          tstack_p->start[2] = cur_mid_z;
-          tstack_p->planenum = aasnode->planenum;
-          tstack_p->nodenum  = aasnode->children[front >= 0.0f ? 1 : 0];
-          /* push NEXT frame = the front-side half: start preserved,
-           * end = mid, planenum preserved. */
-          tstack_p[1].start[0] = cur_start_x;
-          tstack_p[1].start[1] = cur_start_y;
-          tstack_p[1].start[2] = cur_start_z;
-          tstack_p[1].end[0]   = cur_mid_x;
-          tstack_p[1].end[1]   = cur_mid_y;
-          tstack_p[1].end[2]   = cur_mid_z;
-          tstack_p[1].planenum = tmpplanenum;
-          tstack_p[1].nodenum  = aasnode->children[front < 0.0f ? 1 : 0];
-          /* advance past both pushes — outer loop will tstack_p-- back to the
-           * front-side half, processing it next.  Net: tstack_p += 2 here +
-           * tstack_p-- in next iteration = 1 frame deeper. */
-          tstack_p += 2;
-        }
-        else
-        {
-          /* whole line behind plane within tolerance — descend back child */
-          tstack_p->nodenum = aasnode->children[1];
-          tstack_p++;
-        }
       }
       else
       {
-        /* whole line in front of plane — descend front child */
-        tstack_p->nodenum = aasnode->children[0];
-        tstack_p++;
-      }
-    }
-    /* nodenum < 0 — hit a leaf representing area (-nodenum).  Test contents
-     * against presence mask, then optionally against entities. */
-    if ( (presencetype & ((int *)aasworld.areasettings - 7 * nodenum)[2]) == 0 )
-      break;       /* presence type doesn't match — exit BSP loop */
-    if ( passent >= 0 )
-    {
-      /* Inner per-area entity-collision test. The original binary called
-       * thunk 0x10001B1D → AAS_AreaEntityCollision(0x1001B130) with 6 args. */
-      if ( AAS_AreaEntityCollision(-nodenum, (char *)tstack_p,
-                                   (float *)((char *)tstack_p + 12),
-                                   presencetype, passent, &trace) )
-      {
-        if ( !trace.startsolid )
+        if ( passent >= 0 )
         {
-          float dir[3], seg[3];
-          VectorSubtract(end, start, dir);
-          VectorSubtract(trace.endpos, start, seg);
-          trace.fraction = VectorLength(seg) / VectorLength(dir);
+          if ( AAS_AreaEntityCollision(-nodenum, tstack_p->start,
+                                       tstack_p->end, presencetype, passent,
+                                       &trace) )
+          {
+            if ( !trace.startsolid )
+            {
+              VectorSubtract(end, start, v1);
+              VectorSubtract(trace.endpos, start, v2);
+              trace.fraction = VectorLength(v2) / VectorLength(v1);
+            }
+            return trace;
+          }
         }
-        return trace;
       }
-      trace_start_pt = start;
+      trace.lastarea = -nodenum;
+      continue;
     }
-    trace.lastarea = -nodenum;
+    /* if it is a solid leaf */
+    if ( !nodenum )
+    {
+      /* if the start point is still the initial start point
+       * NOTE: no need for epsilons because the points will be
+       * exactly the same when they're both the start point */
+      if ( tstack_p->start[0] == start[0]
+        && tstack_p->start[1] == start[1]
+        && tstack_p->start[2] == start[2] )
+      {
+        trace.startsolid = 1;
+        trace.fraction = 0.0;
+      }
+      else
+      {
+        trace.startsolid = 0;
+        VectorSubtract(end, start, v1);
+        VectorSubtract(tstack_p->start, start, v2);
+        trace.fraction = VectorLength(v2) / VectorNormalize(v1);
+        VectorMA(tstack_p->start, -0.125, v1, tstack_p->start);
+      }
+      VectorCopy(tstack_p->start, trace.endpos);
+      trace.ent = 0;
+      trace.area = 0;     /* hit solid leaf */
+      trace.planenum = tstack_p->planenum;
+      /* always take the plane with normal facing towards the trace start */
+      plane = &aasworld.planes[trace.planenum];
+      if ( v1[2] * plane->normal[2] + v1[1] * plane->normal[1] + v1[0] * plane->normal[0] > 0.0f )
+        trace.planenum ^= 1;
+      return trace;
+    }
+    /* the node to test against */
+    aasnode = &aasworld.nodes[nodenum];
+    /* start point of current line to test against node */
+    VectorCopy(tstack_p->start, cur_start);
+    /* end point of the current line to test against node */
+    VectorCopy(tstack_p->end, cur_end);
+    /* the current node plane */
+    plane = &aasworld.planes[aasnode->planenum];
+    front = DotProduct(cur_start, plane->normal) - plane->dist;
+    back = DotProduct(cur_end, plane->normal) - plane->dist;
+    /* if the whole to be traced line is totally at the front of this node
+     * only go down the tree with the front child */
+    if ( front > -0.0005 && back > -0.0005 )
+    {
+      /* keep the current start and end point on the stack
+       * and go down the tree with the front child */
+      tstack_p->nodenum = aasnode->children[0];
+      tstack_p++;
+    }
+    /* if the whole to be traced line is totally at the back of this node
+     * only go down the tree with the back child */
+    else if ( front < 0.0005 && back < 0.0005 )
+    {
+      /* keep the current start and end point on the stack
+       * and go down the tree with the back child */
+      tstack_p->nodenum = aasnode->children[1];
+      tstack_p++;
+    }
+    /* go down the tree both at the front and back of the node */
+    else
+    {
+      tmpplanenum = tstack_p->planenum;
+      /* calculate the hitpoint with the node (split point of the line)
+       * put the crosspoint TRACEPLANE_EPSILON pixels on the near side */
+      if ( front < 0 )
+        frac = (front + 0.125) / (front - back);
+      else
+        frac = (front - 0.125) / (front - back);
+      if ( frac < 0 )
+        frac = 0;
+      else if ( frac > 1 )
+        frac = 1;
+      cur_mid[0] = cur_start[0] + (cur_end[0] - cur_start[0]) * frac;
+      cur_mid[1] = cur_start[1] + (cur_end[1] - cur_start[1]) * frac;
+      cur_mid[2] = cur_start[2] + (cur_end[2] - cur_start[2]) * frac;
+
+      /* side the front part of the line is on */
+      side = front < 0;
+      /* first put the end part of the line on the stack (back side) */
+      VectorCopy(cur_mid, tstack_p->start);
+      /* not necessary to store because still on stack:
+       * VectorCopy(cur_end, tstack_p->end); */
+      tstack_p->planenum = aasnode->planenum;
+      tstack_p->nodenum = aasnode->children[!side];
+      tstack_p++;
+      /* now put the part near the start of the line on the stack so we will
+       * continue with that part first */
+      VectorCopy(cur_start, tstack_p->start);
+      VectorCopy(cur_mid, tstack_p->end);
+      tstack_p->planenum = tmpplanenum;
+      tstack_p->nodenum = aasnode->children[side];
+      tstack_p++;
+    }
   }
-  /* exited BSP loop with a leaf area whose presence type doesn't match —
-   * this is a "soft" hit: treat the area like a wall but record area info. */
-  if ( tstack_p->start[0] == trace_start_pt[0]
-    && tstack_p->start[1] == trace_start_pt[1]
-    && tstack_p->start[2] == trace_start_pt[2] )
-  {
-    trace.startsolid = 1;
-    trace.fraction   = 0.0f;
-  }
-  else
-  {
-    float dir[3], seg[3];
-    trace.startsolid = 0;
-    VectorSubtract(end, trace_start_pt, dir);
-    VectorSubtract(tstack_p->start, trace_start_pt, seg);
-    trace.fraction = VectorLength(seg) / VectorNormalize(dir);
-    VectorMA((float *)tstack_p->start, -0.125f, (float *)dir, (float *)tstack_p->start);
-  }
-  VectorCopy(tstack_p->start, trace.endpos);
-  trace.ent       = 0;
-  trace.area      = -nodenum;
-  trace.planenum  = tstack_p->planenum;
-  /* always face the plane toward the trace start */
-  {
-    float dx = end[0] - trace_start_pt[0];
-    float dy = end[1] - trace_start_pt[1];
-    float dz = end[2] - trace_start_pt[2];
-    plane = (float *)&aasworld.planes[trace.planenum];
-    if ( dz * plane[2] + dy * plane[1] + dx * plane[0] > 0.0f )
-      trace.planenum ^= 1;
-  }
-  return trace;
 }
 
 //----- (1001BA00) --------------------------------------------------------
@@ -15700,9 +15683,6 @@ fail:
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
 {
   int v7; // eax
-  int v9; // edx
-  int v10; // ecx
-  int v11; // edx
   float *result; // eax
   float *v17; // edi
   float v18; // st7
@@ -15710,7 +15690,6 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   int v21; // eax
   int v22; // esi
   float *v26; // esi
-  char *v27; // eax
   float v30; // st7
   float v34; // st7
   bot_waypoint_t *i; // edx
@@ -15779,37 +15758,36 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
               BotEnterChat(&bs->chatstate, bs->client, 1);
               bs->arrive_time = AAS_Time();
             }
-            else if ( AAS_Time() >= bs->attackcrouch_time )
-            {
-              if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.3 )
-              {
-                v45 = rand() & 0x7FFF;
-                v20 = (int)floor((float)v45 * 0.000030518509f * 2.9);
-                if ( v20 )
-                {
-                  if ( v20 == 1 )
-                    sub_100371B0(bs->client, 2);
-                  else
-                    sub_100371B0(bs->client, 3);
-                }
-                else
-                {
-                  sub_100371B0(bs->client, 0);
-                }
-              }
-            }
-            else
+            else if ( AAS_Time() < bs->attackcrouch_time )
             {
               EA_Crouch(bs->client);
             }
-          }
-          if ( AAS_Time() - 2 >= bs->arrive_time )
-          {
-            if ( (float)(rand() & 0x7FFF) * 0.000030518509f >= bs->thinktime * 0.8 )
+            else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.3 )
             {
-              BotResetAvoidReach((_DWORD *)bs->movestate);
-              return 0;
+              v45 = rand() & 0x7FFF;
+              v20 = (int)floor((float)v45 * 0.000030518509f * 2.9);
+              if ( v20 )
+              {
+                if ( v20 != 1 )
+                  sub_100371B0(bs->client, 3);
+                else
+                  sub_100371B0(bs->client, 2);
+              }
+              else
+              {
+                sub_100371B0(bs->client, 0);
+              }
             }
+          }
+          if ( AAS_Time() - 2 < bs->arrive_time )
+          {
+            dir[0] = *(float *)&entinfo[4] - *v17;
+            dir[1] = *(float *)&entinfo[5] - bs->origin[1];
+            dir[2] = *(float *)&entinfo[6] - bs->origin[2];
+            vectoangles(dir, bs->ideal_viewangles);
+          }
+          else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
+          {
             BotRoamGoal((_DWORD *)bs, target);
             dir[0] = target[0] - *v17;
             dir[1] = target[1] - bs->origin[1];
@@ -15818,10 +15796,8 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           else
           {
-            dir[0] = *(float *)&entinfo[4] - *v17;
-            dir[1] = *(float *)&entinfo[5] - bs->origin[1];
-            dir[2] = *(float *)&entinfo[6] - bs->origin[2];
-            vectoangles(dir, bs->ideal_viewangles);
+            BotResetAvoidReach((_DWORD *)bs->movestate);
+            return 0;
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
           { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
@@ -15852,8 +15828,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       v26 = bs->teamgoal.origin;
       if ( AAS_Time() - 60 > bs->teammatevisible_time )
       {
-        v27 = EasyClientName(bs->teammate - 1, netname);
-        BotInitialChat(&bs->chatstate, "accompany_cannotfind", v27, (char *)0);
+        BotInitialChat(&bs->chatstate, "accompany_cannotfind", EasyClientName(bs->teammate - 1, netname), (char *)0);
         BotEnterChat(&bs->chatstate, bs->client, 1);
         goto LABEL_55;
       }
@@ -15880,7 +15855,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       if ( VectorLength(dir) < 70 )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
-        v46 = (float)(rand() & 0x7FFF) * 0.000030518509f * 10;
+        v46 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
         v30 = AAS_Time();
         result = bs->teamgoal.origin;
         bs->defendaway_time = v30 + v46 + 5;
@@ -15889,9 +15864,8 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       return v26;
     }
 
-    switch ( bs->ltgtype )
+    if ( bs->ltgtype == 6 )
     {
-      case 6:
         if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, netname), (char *)0);
@@ -15945,7 +15919,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
         }
         return v26;
-      case 7:
+    }
+    if ( bs->ltgtype == 7 )
+    {
         if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           buf[0] = byte_1006294C;
@@ -15978,15 +15954,17 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
 LABEL_106:
             if ( AAS_Time() > bs->teamgoal_time )
             {
-              BotInitialChat(&bs->chatstate, "patrol_stop", 0, (char *)0);
+              BotInitialChat(&bs->chatstate, "patrol_stop", (char *)0);
               BotEnterChat(&bs->chatstate, bs->client, 1);
               bs->ltgtype = 0;
             }
             v42 = BotCurPatrolPoint(bs);
-            if ( v42 )
-              return v42->goal.origin;
-            bs->ltgtype = 0;
-            return 0;
+            if ( !v42 )
+            {
+              bs->ltgtype = 0;
+              return 0;
+            }
+            return v42->goal.origin;
           }
           v38 &= 0xFFFFFFFB;
           BotCurPatrolPoint(bs) = v39->next;
@@ -16004,7 +15982,9 @@ LABEL_106:
         }
         bs->patrolflags = v38;
         goto LABEL_106;
-      case 4:
+    }
+    if ( bs->ltgtype == 4 )
+    {
         if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
           BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0);
@@ -16035,7 +16015,7 @@ LABEL_106:
         if ( BotCTFCarryingFlag(bs) )
         {
           BotResetAvoidReach((_DWORD *)bs->movestate);
-          v47 = (float)(rand() & 0x7FFF) * 0.000030518509f * 10;
+          v47 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
           v43 = AAS_Time();
           bs->rushbaseaway_time = v43 + v47 + 5;
           return v26;
@@ -16111,17 +16091,14 @@ LABEL_55:
     {
       if ( AAS_AreaReachability(v7) )
       {
-        v9 = bs->teammate;
-        v10 = entinfo[5];
         bs->teamgoal.origin[0] = *(float *)&entinfo[4];
-        bs->teamgoal.entitynum = v9;
-        v11 = entinfo[6];
+        bs->teamgoal.entitynum = bs->teammate;
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
         bs->teamgoal.areanum = v7;
-        bs->teamgoal.origin[1] = *(float *)&v10;
-        bs->teamgoal.origin[2] = *(float *)&v11;
+        bs->teamgoal.origin[1] = *(float *)&entinfo[5];
+        bs->teamgoal.origin[2] = *(float *)&entinfo[6];
         bs->teamgoal.maxs[0] = 8.0f;
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
@@ -16553,9 +16530,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 
   int v2; // edi
   bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
-  double v4; // st7
-  int v5; // edx
-  float range; // [esp+0h] [ebp-94h]
+  int range; // [esp+0h] — the outgoing float arg slot; original int local (Q3 ai_dmnet.c AINode_Seek_LTG shape)
   float v9; // [esp+14h] [ebp-80h]
   int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
@@ -16629,10 +16604,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
     if ( AAS_Time() > bs->check_time )
     {
-      v4 = AAS_Time();
-      v5 = -(bs->ltgtype != 3);
-      bs->check_time = v4 + 0.5;
-      range = (float)(int)((v5 & 0xFFFFFCE0) + 1500);
+      bs->check_time = AAS_Time() + 0.5;
+      if ( bs->ltgtype == 3 ) /* LTG_DEFENDKEYAREA */
+        range = 1500;
+      else
+        range = 700;
       if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -19690,19 +19666,20 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v49; // eax
   int v50; // eax
   const char *v51; // eax
-  char *v52; // eax
   /* IDA split a single ebp-5C4h slot into v54 (int) + v55..v60 (float)
    * across mutually-exclusive switch cases.  Original had ONE union
    * member at this slot — restore it as a union so MSVC packs all
    * assignments onto the same 4-byte slot (saves 8 bytes of frame). */
-  union { int i; float f; } u54;
-#define v54 u54.i
-#define v55 u54.f
-#define v56 u54.f
-#define v57 u54.f
-#define v58 u54.f
-#define v59 u54.f
-#define v60 u54.f
+  int u54i;   /* IDA v54 — one ebp-5C4h slot; int view (checkpoint num)      */
+  float u54f; /* IDA v55..v60 — float view; MSVC6 colors both + the fild
+               * temps into ONE slot (BotCTFSeekGoals precedent)             */
+#define v54 u54i
+#define v55 u54f
+#define v56 u54f
+#define v57 u54f
+#define v58 u54f
+#define v59 u54f
+#define v60 u54f
   vec3_t origin; // [esp+2Ch] [ebp-5C0h] BYREF — checkpoint origin parsed from chat (sscanf input to AAS_PointAreaNum)
   /* IDA decompiled the 240-byte match struct as a flat `char v64[4]` plus
    * separate `int v65/v66` and never recovered the variables[] capture
@@ -19814,7 +19791,8 @@ LABEL_32:
         bs->teammate = v4;
         bs->teammatevisible_time = AAS_Time();
         v10 = rand();
-        v55 = 2 * ((float)(v10 & 0x7FFF) * 0.000030518509f);
+        v55 = (float)(v10 & 0x7FFF) * 0.000030518509f;
+        v55 = v55 + v55;
         bs->teammessage_time = AAS_Time() + v55;
         v11 = BotGetTime(&match);
         v12 = match.type;
@@ -19856,10 +19834,10 @@ LABEL_32:
         return 1;
       }
       v14 = rand();
-      v56 = 2 * ((float)(v14 & 0x7FFF) * 0.000030518509f);
-      v15 = AAS_Time();
+      v56 = (float)(v14 & 0x7FFF) * 0.000030518509f;
+      v56 = v56 + v56;
+      bs->teammessage_time = AAS_Time() + v56;
       bs->ltgtype = 3;
-      bs->teammessage_time = v15 + v56;
       v16 = BotGetTime(&match);
       bs->teamgoal_time = v16;
       if ( v16 == 0 )
@@ -19870,9 +19848,8 @@ LABEL_32:
       if ( !TeamPlayIsOn() || !BotAddressedToBot(bs, &match) )
         return 1;
       BotMatchVariable(&match, 0, Destination);
-      v17 = FindClientByName(Destination);
-      v18 = v17 + 1;
-      if ( v17 == -1 )
+      v18 = FindClientByName(Destination) + 1;
+      if ( !v18 )
       {
         v19 = &bs->chatstate;
         BotInitialChat(&bs->chatstate, "whois", Destination, (char *)0);
@@ -19938,10 +19915,10 @@ LABEL_64:
         goto LABEL_64;
       }
       v24 = rand();
-      v57 = 2 * ((float)(v24 & 0x7FFF) * 0.000030518509f);
-      v25 = AAS_Time();
+      v57 = (float)(v24 & 0x7FFF) * 0.000030518509f;
+      v57 = v57 + v57;
+      bs->teammessage_time = AAS_Time() + v57;
       bs->ltgtype = 6;
-      bs->teammessage_time = v25 + v57;
       v26 = BotGetTime(&match);
       bs->teamgoal_time = v26;
       if ( v26 == 0 )
@@ -19957,10 +19934,10 @@ LABEL_64:
       if ( !BotGetPatrolWaypoints(bs, &match) )
         return 1;
       v31 = rand();
-      v58 = 2 * ((float)(v31 & 0x7FFF) * 0.000030518509f);
-      v32 = AAS_Time();
+      v58 = (float)(v31 & 0x7FFF) * 0.000030518509f;
+      v58 = v58 + v58;
+      bs->teammessage_time = AAS_Time() + v58;
       bs->ltgtype = 7;
-      bs->teammessage_time = v32 + v58;
       v33 = BotGetTime(&match);
       bs->teamgoal_time = v33;
       if ( v33 != 0 )
@@ -19972,10 +19949,10 @@ LABEL_64:
       if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v35 = rand();
-      v59 = 2 * ((float)(v35 & 0x7FFF) * 0.000030518509f);
-      v36 = AAS_Time();
+      v59 = (float)(v35 & 0x7FFF) * 0.000030518509f;
+      v59 = v59 + v59;
+      bs->teammessage_time = AAS_Time() + v59;
       bs->ltgtype = 4;
-      bs->teammessage_time = v36 + v59;
       v37 = AAS_Time();
       bs->teamgoal_time = v37 + 180;
       return 1;
@@ -19983,10 +19960,10 @@ LABEL_64:
       if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v38 = rand();
-      v60 = 2 * ((float)(v38 & 0x7FFF) * 0.000030518509f);
-      v39 = AAS_Time();
+      v60 = (float)(v38 & 0x7FFF) * 0.000030518509f;
+      v60 = v60 + v60;
+      bs->teammessage_time = AAS_Time() + v60;
       bs->ltgtype = 5;
-      bs->teammessage_time = v39 + v60;
       v40 = AAS_Time();
       *(int *)&bs->rushbaseaway_time = 0;
       bs->teamgoal_time = v40 + 120;
@@ -20106,14 +20083,14 @@ LABEL_64:
       if ( !TeamPlayIsOn() )
         return 1;
       BotMatchVariable(&match, 3, Source);
-      if ( (match.subtype & 0x80u) == 0 )
-      {
-        v50 = FindClientByName(Source);
-      }
-      else
+      if ( (match.subtype & 0x80u) != 0 )
       {
         BotMatchVariable(&match, 0, Destination);
         v50 = FindClientByName(Destination);
+      }
+      else
+      {
+        v50 = FindClientByName(Source);
       }
       if ( v50 < 0 )
         return 1;
@@ -20141,8 +20118,7 @@ LABEL_64:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 3:
-          v52 = BotGoalName(bs->teamgoal.number);
-          BotInitialChat(&bs->chatstate, "defending", v52, (char *)0);
+          BotInitialChat(&bs->chatstate, "defending", BotGoalName(bs->teamgoal.number), (char *)0);
           BotEnterChat(&bs->chatstate, bs->client, 1);
           return 1;
         case 6:
