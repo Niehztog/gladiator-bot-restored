@@ -11706,7 +11706,6 @@ void AAS_Reachability_Elevator()
   int v24; // rax (was __int64)
   float v25; // st7 (was double)
   float v26; // st7 (was double)
-  float v27; // eax
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays.  In the
    * original frame BSPModelMinsMaxs writes 12 bytes each to mins/maxs/origin
    * starting at the addresses passed in; IDA decompiled the trios as scattered
@@ -11937,10 +11936,9 @@ LABEL_30:
                 *((_WORD *)lreach + 20) = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
                   *((_WORD *)lreach + 20) = 50;
-                v27 = v33;
                 i = 9999;
                 ((aas_reachabilitynode_t *)lreach)->next = areareachability[LODWORD(v33)];
-                areareachability[LODWORD(v27)] = (aas_reachabilitynode_t *)lreach;
+                areareachability[LODWORD(v33)] = (aas_reachabilitynode_t *)lreach;
                 ++reach_elevator;
               }
             }
@@ -12564,10 +12562,10 @@ LABEL_27:
                     goto LABEL_25;
                 }
                 v25 = *((_DWORD *)face3 + 1);
-                if ( (v25 & 1) != 0 )
-                  gap = (unsigned __int8)(~(_BYTE)v25 & 4) >> 2;
-                else
+                if ( (v25 & 1) == 0 )
                   gap = 1;
+                else
+                  gap = ((char)~(_BYTE)v25 & 4u) >> 2;
               }
 LABEL_25:
               v14 = v45;
