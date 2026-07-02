@@ -2695,21 +2695,10 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   if ( !dword_100674C0 )
     return trace;
   VectorSubtract(end, start, v128);
-  if ( v128[0] <= v128[1] )
-  {
-    if ( v128[1] > v128[2] )
-      v12 = 1;
-    else
-      v12 = 2;
-  }
-  else if ( v128[0] > v128[2] )
-  {
-    v12 = 0;
-  }
+  if ( v128[0] > v128[1] )
+    v12 = v128[0] > v128[2] ? 0 : 2;
   else
-  {
-    v12 = 2;
-  }
+    v12 = v128[1] > v128[2] ? 1 : 2;
   v13 = v128[v12];
   v126 = v12;
   v135 = v13 > 0;
@@ -2737,43 +2726,41 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   }
   while ( v17 );
   trace_stack[127].next = 0;
-  if ( &v105 != (int *)-344 )
+  v19 = TR_DEC(trace_stack[0].next);
+  VectorCopy(start, trace_stack[0].start);
+  VectorCopy(end, trace_stack[0].end);
+  trace_stack[0].nodenum = v14->headnode;
+  trace_stack[0].planenum = 0;
+  trace_stack[0].planedist = 0.0f;
+  trace_stack[0].next = 0;
+  v24 = trace_stack;
+  while ( 1 )
   {
-    v19 = TR_DEC(trace_stack[0].next);
-    VectorCopy(start, trace_stack[0].start);
-    VectorCopy(end, trace_stack[0].end);
-    trace_stack[0].nodenum = v14->headnode;
-    trace_stack[0].planenum = 0;
-    trace_stack[0].planedist = 0.0f;
-    trace_stack[0].next = 0;
-    v24 = trace_stack;
-    while ( 1 )
+    do
     {
-      do
+      while ( 1 )
       {
         while ( 1 )
         {
-          while ( 1 )
-          {
-            v25 = v24;
-            if ( !v24 )
-              return trace;
-            v26 = v24->planenum;
-            v27 = &v24->next;
-            v24 = TR_DEC(v24->next);
-            v119 = v25->planenum;
-            if ( v26 < 0 )
-              return trace;
-            v28 = v25->nodenum;
-            if ( v28 >= 0 )
-              break;
-            v29 = -1 - v28;
-            v30 = &dleafs[v29];
-            if ( v30->numleafbrushes && (v30->contents & contentmask) != 0 )
-              sub_10004310(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
-            if ( dword_10069584[v29] )
-              sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
-          }
+          v25 = v24;
+          if ( !v24 )
+            return trace;
+          v26 = v24->planenum;
+          v27 = &v24->next;
+          v24 = TR_DEC(v24->next);
+          v119 = v25->planenum;
+          if ( v26 < 0 )
+            return trace;
+          v28 = v25->nodenum;
+          if ( v28 >= 0 )
+            break;
+          v29 = -1 - v28;
+          v30 = &dleafs[v29];
+          if ( v30->numleafbrushes && (v30->contents & contentmask) != 0 )
+            sub_10004310(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
+          if ( dword_10069584[v29] )
+            sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
+        }
           VectorCopy(v25->start, v106);
           v31 = &dnodes[v28];
           VectorCopy(v25->end, v111);
@@ -2815,9 +2802,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             v109 = v106[v39] - v40;
             v83 = v111[v39] - v40;
           }
-          if ( v109 <= -0.005 || v83 <= -0.005 )
+          if ( v109 <= -0.005f || v83 <= -0.005f )
           {
-            if ( v109 >= 0.005 || v83 >= 0.005 )
+            if ( v109 >= 0.005f || v83 >= 0.005f )
             {
               LODWORD(v110) = 1;
               v98 = v109 / (v109 - v83);
@@ -2825,7 +2812,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
               v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
               if ( v109 >= 0 )
-                v110 = 0.0;
+                v110 = 0.0f;
               v99 = v110;
               VectorCopy(v123, v25->start);
               VectorCopy(v111, v25->end);
@@ -2923,8 +2910,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v145[v47] = v48;
           v110 = v42 - plane_offsets[v47];
           v147[v47] = v110;
-          plane_sideflags[2 * v47] = v48 > -0.005 && v110 > -0.005;
-          plane_sideflags[2 * v47 + 1] = v48 < 0.005 && v110 < 0.005;
+          plane_sideflags[2 * v47] = v48 > -0.005f && v110 > -0.005f;
+          plane_sideflags[2 * v47 + 1] = v48 < 0.005f && v110 < 0.005f;
           ++v47;
         }
         while ( v47 < 2 );
@@ -2971,7 +2958,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
 LABEL_71:
         if ( plane_sideflags[2 * (int)LODWORD(v58)] || plane_sideflags[2 * (int)LODWORD(v58) + 1] )
         {
-          v118 = -1.0;
+          v118 = -1.0f;
         }
         else
         {
@@ -2982,7 +2969,7 @@ LABEL_71:
         }
         if ( plane_sideflags[2 * v53] || plane_sideflags[2 * v53 + 1] )
         {
-          v60 = -1.0;
+          v60 = -1.0f;
         }
         else
         {
@@ -3098,7 +3085,6 @@ LABEL_111:
               v24 = v79;
             }
           }
-        }
       }
     }
   }
