@@ -9363,37 +9363,31 @@ int __cdecl AAS_AreaReachability(int areanum)
 float __cdecl AAS_FaceArea(char *face)
 {
   aas_face_t *f = (aas_face_t *)face;
-  int i; // ebp
-  int v3; // eax
-  float *v4; // ecx
-  float *v; // esi
-  int edgenum; // eax
-  BOOL side; // edi
-  char *edge; // eax
-  char *v9; // eax
-  vec3_t d2; // [esp+Ch] [ebp-24h] BYREF
-  vec3_t d1; // [esp+18h] [ebp-18h] BYREF
-  char cross[12]; // [esp+24h] [ebp-Ch] BYREF
-  float total; // [esp+34h] [ebp+4h]
+  int i;
+  int edgenum;
+  int side;
+  float total;
+  vec_t *v;
+  vec3_t d1;
+  vec3_t d2;
+  vec3_t cross;
+  aas_edge_t *edge;
 
-  v3 = f->firstedge;
+  edgenum = aasworld.edgeindex[f->firstedge];
+  side = edgenum < 0;
+  edge = &aasworld.edges[abs(edgenum)];
+  v = aasworld.vertexes[edge->v[side]];
+
   total = 0.0f;
-  v = (float *)&aasworld.vertexes[aasworld.edges[abs(aasworld.edgeindex[v3])].v[aasworld.edgeindex[v3] < 0]];
-  for ( i = 1; i < f->numedges - 1; ++i )
+  for ( i = 1; i < f->numedges - 1; i++ )
   {
-    v4 = (float *)aasworld.vertexes;
     edgenum = aasworld.edgeindex[f->firstedge + i];
     side = edgenum < 0;
     edge = &aasworld.edges[abs(edgenum)];
-    d1[0] = v4[3 * *(_DWORD *)&edge[4 * side]] - *v;
-    d1[1] = v4[3 * *(_DWORD *)&edge[4 * side] + 1] - v[1];
-    d1[2] = v4[3 * *(_DWORD *)&edge[4 * side] + 2] - v[2];
-    v9 = &edge[4 * !side];
-    d2[0] = v4[3 * *(_DWORD *)v9] - *v;
-    d2[1] = v4[3 * *(_DWORD *)v9 + 1] - v[1];
-    d2[2] = v4[3 * *(_DWORD *)v9 + 2] - v[2];
+    VectorSubtract(aasworld.vertexes[edge->v[side]], v, d1);
+    VectorSubtract(aasworld.vertexes[edge->v[!side]], v, d2);
     CrossProduct(d1, d2, cross);
-    total = VectorLength(cross) * 0.5 + total;
+    total += 0.5 * VectorLength(cross);
   }
   return total;
 }
@@ -22472,7 +22466,6 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   bot_matchtemplate_t *matches;       /* head of returned list */
   bot_matchtemplate_t *match;         /* current template */
   bot_matchtemplate_t *lastmatch;     /* previously appended template */
-  bot_matchtemplate_t *pendinghead;   /* template list built so far (v7) */
   int context;
   bot_fileref_t file_ref;
   token_t token;
@@ -22488,9 +22481,8 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
     botimport.Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
     return NULL;
   }
-
   matches = NULL;
-  pendinghead = NULL;
+  matches = NULL;
   lastmatch = NULL;
 
   while ( PC_ReadTokenHandle(source, token.string) )
@@ -22521,30 +22513,29 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
       if ( lastmatch )
         lastmatch->next = match;
       else
-        pendinghead = match;
+        matches = match;
       lastmatch = match;
       if ( !PC_ExpectTokenString(source, "(") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
       {
-        BotFreeMatchTemplates(pendinghead);
+        BotFreeMatchTemplates(matches);
         FreeSource(source);
         return NULL;
       }
       match->type = token.intvalue;
       if ( !PC_ExpectTokenString(source, ",") || !PC_ExpectTokenType(source, 3, 4096, token.string) )
       {
-        BotFreeMatchTemplates(pendinghead);
+        BotFreeMatchTemplates(matches);
         FreeSource(source);
         return NULL;
       }
       match->subtype = token.intvalue;
       if ( !PC_ExpectTokenString(source, ")") || !PC_ExpectTokenString(source, ";") )
       {
-        BotFreeMatchTemplates(pendinghead);
+        BotFreeMatchTemplates(matches);
         FreeSource(source);
         return NULL;
       }
     }
-    matches = pendinghead;
   }
 
   FreeSource(source);
@@ -26152,43 +26143,34 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
 
   BotClearMoveResult(&moveresult);
   AAS_JumpReachRunStart(reach, (intptr_t)runstart);
-  v3 = runstart[0] - reach->start[0];
-  hordir[2] = 0.0f;
-  hordir[0] = v3;
+  hordir[0] = runstart[0] - reach->start[0];
   hordir[1] = runstart[1] - reach->start[1];
+  hordir[2] = 0.0f;
   VectorNormalize(hordir);
-  v4 = *(int *)&reach->start[1];
-  v5 = reach->start[2];
-  start[0] = reach->start[0];
-  *(_DWORD *)&start[1] = v4;
-  start[2] = v5 + 1.0f;
+  VectorCopy(reach->start, start);
+  start[2] += 1.0f;
   VectorMA(reach->start, 80.0f, hordir, runstart);
   for ( dist1 = 0.0f; dist1 < 80.0f; dist1 = dist1 + 10.0f )
   {
     dist2 = dist1 + 10.0f;
-    VectorMA((float *)start, dist2, hordir, end);
-    end[2] = end[2] + 1.0f;
+    VectorMA(start, dist2, hordir, end);
+    end[2] += 1.0f;
     if ( AAS_PointAreaNum(end) != ms->reachareanum )
       break;
   }
   if ( dist1 < 80.0f )
     VectorMA(reach->start, dist1, hordir, runstart);
-  v6 = ms->origin[0] - reach->start[0];
+  VectorSubtract(ms->origin, reach->start, dir1);
   dir1[2] = 0.0f;
-  dir1[0] = v6;
-  dir1[1] = ms->origin[1] - reach->start[1];
   dist1 = VectorNormalize(dir1);
-  v7 = ms->origin[0] - runstart[0];
+  VectorSubtract(ms->origin, runstart, dir2);
   dir2[2] = 0.0f;
-  dir2[0] = v7;
-  dir2[1] = ms->origin[1] - runstart[1];
   dist2 = VectorNormalize(dir2);
-  if ( dir2[2] * dir1[2] + dir2[1] * dir1[1] + dir2[0] * dir1[0] < -0.8 || dist2 < 5.0f )
+  if ( DotProduct(dir1, dir2) < -0.8 || dist2 < 5.0f )
   {
-    v9 = reach->end[0] - ms->origin[0];
-    hordir[2] = 0.0f;
-    hordir[0] = v9;
+    hordir[0] = reach->end[0] - ms->origin[0];
     hordir[1] = reach->end[1] - ms->origin[1];
+    hordir[2] = 0.0f;
     VectorNormalize(hordir);
     /* if/else-if with the `dist1 < 24` case first makes EA_Jump the warm
      * fall-through, matching the original's `je` polarity; the equivalent
@@ -26207,10 +26189,9 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
   }
   else
   {
-    v8 = runstart[0] - ms->origin[0];
-    hordir[2] = 0.0f;
-    hordir[0] = v8;
+    hordir[0] = runstart[0] - ms->origin[0];
     hordir[1] = runstart[1] - ms->origin[1];
+    hordir[2] = 0.0f;
     VectorNormalize(hordir);
     if ( dist2 > 80.0f )
       dist2 = 80.0f;
