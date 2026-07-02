@@ -4019,8 +4019,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   float *v9; // ebp
   float v10; // st7
   float v11; // st6
-  int v12; // edx
-  double v13; // st7
   unsigned __int16 v14; // ax
   int v15; // ebx
   __int16 *v16; // edi
@@ -4049,9 +4047,9 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v39; // [esp+10h] [ebp-14h]
   dnode_t *v40; // [esp+14h] [ebp-10h]
   vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive sub_10006D10
-  int v44; // [esp+28h] [ebp+4h]
   dface_t *v45; // [esp+2Ch] [ebp+8h]
   int i; // [esp+30h] [ebp+Ch]
+  qboolean side;
 
   if ( a1 < 0 )
     return 0;
@@ -4070,23 +4068,13 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v10 = a2[2] * v8->normal[2] + a2[1] * v8->normal[1] + v8->normal[0] * *a2 - v8->dist;
     v11 = a3[2] * v8->normal[2] + a3[1] * v8->normal[1] + v8->normal[0] * *a3 - v8->dist;
   }
-  if ( v10 >= 0.0f )
-  {
-    v44 = 0;
-    v12 = 0;
-  }
-  else
-  {
-    v12 = 1;
-    v44 = 1;
-  }
-  if ( v12 == v11 < 0.0f )
-    return sub_10006D10(v6->children[v12], a2, a3, a4, a5);
-  v13 = v10 / (v10 - v11);
-  mid[0] = (*a3 - *a2) * v13 + *a2;
-  mid[1] = (a3[1] - a2[1]) * v13 + a2[1];
-  mid[2] = (a3[2] - a2[2]) * v13 + a2[2];
-  if ( sub_10006D10(v6->children[v12], a2, mid, a4, a5) )
+  side = v10 < 0.0f;
+  if ( (v11 < 0.0f) == side )
+    return sub_10006D10(v6->children[side], a2, a3, a4, a5);
+  mid[0] = (*a3 - *a2) * (v10 / (v10 - v11)) + *a2;
+  mid[1] = (a3[1] - a2[1]) * (v10 / (v10 - v11)) + a2[1];
+  mid[2] = (a3[2] - a2[2]) * (v10 / (v10 - v11)) + a2[2];
+  if ( sub_10006D10(v6->children[side], a2, mid, a4, a5) )
     return 1;
   v14 = v6->firstface;
   v39 = 0;
@@ -4094,7 +4082,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v45 = &dfaces[v14];
   v16 = (__int16 *)(dword_10067558 + 8 * v14);
   if ( !(_WORD)v15 )
-    return sub_10006D10(v6->children[v44 == 0], mid, v9, a4, a5);
+    return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
   while ( 1 )
   {
     v17 = &texinfo[v45->texinfo];
@@ -4119,7 +4107,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     {
       v6 = v40;
       v9 = a3;
-      return sub_10006D10(v6->children[v44 == 0], mid, v9, a4, a5);
+      return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
     }
   }
   v24 = 0;
