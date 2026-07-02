@@ -25935,13 +25935,6 @@ bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, bot
 //----- (10032AE0) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  float v3; // st7
-  int v4; // ecx
-  float v5; // st7
-  float v6; // st7
-  float v7; // st7
-  float v8; // st7
-  float v9; // st7
   bot_moveresult_t *result; // eax
   float speed; // [esp+0h] [ebp-90h]
   float dist1; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
@@ -26342,8 +26335,6 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
 {
   int v3; // eax
   int v4; // eax
-  int v5; // eax
-  double v6; // st7
   int state; // ebx
   double v10; // st7
   char v11; // cl
