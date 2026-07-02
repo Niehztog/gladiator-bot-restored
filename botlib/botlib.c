@@ -11109,7 +11109,7 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int edge1num; // ebp
   unsigned int v16; // ecx
   int *v17; // ebx
-  double face2area; // st7
+  float face2area; // st7
   int v19; // edx
   int v20; // eax
   unsigned int v21; // edi
@@ -11240,8 +11240,10 @@ while ( 1 )
   {
     v16 = abs(edge1num);
     v17 = &aasworld.edgeindex[*((_DWORD *)face2 + 3)];
-    while ( v16 != abs(*v17) )
+    while ( 1 )
     {
+      if ( v16 == abs(*v17) )
+        break;
       ++v17;
       if ( ++l >= v14 )
         goto LABEL_16;
@@ -19860,7 +19862,7 @@ LABEL_32:
           bs->ltgtype = 2;
           if ( v11 == 0 )
             bs->teamgoal_time = AAS_Time() + 240;
-          bs->formation_dist = 100.0f;
+          bs->formation_dist = 3.5 * 32;
           *(int *)&bs->arrive_time = 0;
           return 1;
         }
