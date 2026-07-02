@@ -4024,7 +4024,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   __int16 *v16; // edi
   texinfo_t *v17; // esi
   int v18; // ebp
-  __int64 v19; // rax
+  int v19; // eax
   int v20; // ecx
   int v21; // eax
   int v22; // ecx
@@ -4081,20 +4081,19 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v15 = v6->numfaces;
   v45 = &dfaces[v14];
   v16 = (__int16 *)(dword_10067558 + 8 * v14);
-  if ( !(_WORD)v15 )
+  if ( v15 <= 0 )
     return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
   while ( 1 )
   {
     v17 = &texinfo[v45->texinfo];
-    v18 = (__int64)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
-    v19 = (__int64)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
+    v18 = (int)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
+    v19 = (int)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
     v20 = *v16;
     if ( v18 >= v20 )
     {
-      HIDWORD(v19) = v16[1];
-      if ( (int)v19 >= SHIDWORD(v19) )
+      if ( v19 >= v16[1] )
       {
-        v21 = v19 - HIDWORD(v19);
+        v21 = v19 - v16[1];
         v22 = v18 - v20;
         if ( v22 <= v16[2] && v21 <= v16[3] )
           break;
@@ -4197,12 +4196,12 @@ void sub_100071E0()
   int v7; // eax
   float *v8; // ecx
   int j; // edx
-  double v10; // st7
+  float v10; // st7
   int v11; // edi
   int k; // esi
-  __int64 v13; // rax
+  int v13; // eax
   double X; // st7
-  __int64 v15; // rax
+  int v15; // eax
   char *v16; // ecx
   qboolean v17; // cc
   /* Known MSVC6 tie: keeping the face/texinfo walk in byte-view form preserves
@@ -12711,11 +12710,8 @@ int AAS_ContinueInitReachability(int time)
   int v5; // eax
   int i; // esi
   int start_time; // ebp
-  int v8; // eax
-  int v9; // edi
-  int v10; // edi
   int v11; // eax
-  int j; // esi
+  int j; // edi
 
   (void)time; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
 
@@ -12749,42 +12745,44 @@ int AAS_ContinueInitReachability(int time)
   {
     if ( i >= todo )
       break;
-    v8 = aasworld.numareas;
-    v9 = 1;
     ++aasworld.numreachabilityareas;
-    for ( ; v9 < aasworld.numareas; v9++ )
+    for ( j = 1; j < aasworld.numareas; ++j )
     {
-      if ( i != v9
-        && !AAS_ReachabilityExists(i, v9)
-        && !AAS_Reachability_Swim(i, v9)
-        && !AAS_Reachability_EqualFloorHeight(i, v9)
-        && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, v9)
-        && !AAS_Reachability_Ladder(i, v9) )
+      if ( i != j
+        && !AAS_ReachabilityExists(i, j)
+        && !AAS_Reachability_Swim(i, j)
+        && !AAS_Reachability_EqualFloorHeight(i, j)
+        && !AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(i, j)
+        && !AAS_Reachability_Ladder(i, j) )
       {
-        AAS_Reachability_Jump(i, v9);
+        AAS_Reachability_Jump(i, j);
       }
-      v8 = aasworld.numareas;
     }
-    v10 = 1;
-    if ( v8 > 1 )
+    for ( j = 1; j < aasworld.numareas; ++j )
     {
-      do
+      if ( i != j && !AAS_ReachabilityExists(i, j) )
       {
-        if ( i != v10 && !AAS_ReachabilityExists(i, v10) )
-        {
-          AAS_Reachability_Grapple(i, v10);
-          AAS_Reachability_WeaponJump(i, v10);
-        }
-        ++v10;
+        AAS_Reachability_Grapple(i, j);
+        AAS_Reachability_WeaponJump(i, j);
       }
-      while ( v10 < aasworld.numareas );
     }
     v11 = Sys_MilliSeconds();
     v2 = libvar_framereachability->value;
     if ( v11 - start_time > (int)(__int64)v2 )
       break;
   }
-  if ( aasworld.numreachabilityareas < aasworld.numareas )
+  if ( aasworld.numreachabilityareas >= aasworld.numareas )
+  {
+    for ( i = 1; i < aasworld.numareas; ++i )
+      AAS_Reachability_WalkOffLedge(i);
+    AAS_Reachability_Teleport();
+    AAS_Reachability_Elevator();
+    AAS_StoreReachability();
+    AAS_ShutDownReachabilityHeap();
+    FreeMemory(areareachability);
+    botimport.Print(PRT_MESSAGE, "calculating clusters...\n");
+  }
+  else
   {
     if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_reachabilitydelay->value) <= 1 )
       botimport.Print(PRT_MESSAGE, "calculating reachability...\n");
@@ -12795,17 +12793,6 @@ int AAS_ContinueInitReachability(int time)
       return 1;
     }
     botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
-  }
-  else
-  {
-    for ( j = 1; j < aasworld.numareas; ++j )
-      AAS_Reachability_WalkOffLedge(j);
-    AAS_Reachability_Teleport();
-    AAS_Reachability_Elevator();
-    AAS_StoreReachability();
-    AAS_ShutDownReachabilityHeap();
-    FreeMemory(areareachability); areareachability = NULL;
-    botimport.Print(PRT_MESSAGE, "calculating clusters...\n");
   }
   return 1;
 }
@@ -13454,7 +13441,6 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   clusternum = settings_base[portalcache->areanum].cluster;
   if ( clusternum < 0 )
     cache_traveltimes[-clusternum] = (unsigned short)(__int64)portalcache->starttraveltime;
-  cur->inlist = 0;
   cur->next   = NULL;
   cur->prev   = NULL;
   head = cur;
@@ -13616,19 +13602,24 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
     return 0;
   v5 = aasworld.portals;
   clusternum = aasworld.areasettings[areanum].cluster;
+  v9 = aasworld.areasettings[a2].cluster;
   v7 = clusternum;
-  if ( clusternum < 0 )
+  if ( clusternum < 0 && v9 > 0 )
   {
     v10 = &aasworld.portals[-clusternum];
-    if ( v10->frontcluster == aasworld.areasettings[a2].cluster || v10->backcluster == aasworld.areasettings[a2].cluster )
-      v7 = aasworld.areasettings[a2].cluster;
+    if ( v10->frontcluster == v9 || v10->backcluster == v9 )
+      v7 = v9;
   }
-  v9 = aasworld.areasettings[a2].cluster;
-  if ( v9 < 0 )
+  else
   {
-    v11 = &aasworld.portals[-v9];
-    if ( v11->frontcluster == clusternum || v11->backcluster == clusternum )
-      v9 = aasworld.areasettings[areanum].cluster;
+    if ( clusternum <= 0 )
+      goto portalpath;
+    if ( v9 < 0 )
+    {
+      v11 = &aasworld.portals[-v9];
+      if ( v11->frontcluster == clusternum || v11->backcluster == clusternum )
+        v9 = clusternum;
+    }
   }
   v5 = aasworld.portals;
   if ( v7 > 0 && v9 > 0 && v7 == v9 )
@@ -13654,6 +13645,7 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
     if ( result )
       return result;
   }
+portalpath:
   v14 = aasworld.areasettings[a2].cluster;
   if ( v14 < 0 )
     v14 = v5[-v14].frontcluster;
@@ -22415,7 +22407,7 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 
   lastvariable = -1;
   strptr       = match->string;
-  newstrptr    = NULL;
+  newstrptr    = match->string;
 
   for ( mp = pieces; mp; mp = mp->next )
   {
@@ -24096,18 +24088,10 @@ int InitLevelItemHeap()
     FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
   levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
-  if ( max_levelitems - 2 > 0 )
-  {
-    for ( i = 0; i < max_levelitems - 2; ++i )
-      levelitemheap[i].next = &levelitemheap[i + 1];
-    levelitemheap[max_levelitems - 1].next = NULL;
-    freelevelitems = levelitemheap;
-  }
-  else
-  {
-    levelitemheap[max_levelitems - 1].next = NULL;
-    freelevelitems = levelitemheap;
-  }
+  for ( i = 0; i < max_levelitems - 2; ++i )
+    levelitemheap[i].next = &levelitemheap[i + 1];
+  levelitemheap[max_levelitems - 1].next = NULL;
+  freelevelitems = levelitemheap;
   return (int)(intptr_t)levelitemheap;
 }
 
