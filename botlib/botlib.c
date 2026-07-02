@@ -9768,7 +9768,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
           VectorNormalize(normal);
           VectorMA(end, 5.0f, normal, end);
           VectorMA(start, 0.1f, normal, start);
-          end[2] += 0.125f;
+          end[2] += 0.125;
 
           height = DotProduct(invgravity, start);
           if ( !AAS_NearbySolidOrGap(start, end) )
