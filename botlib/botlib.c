@@ -26853,15 +26853,8 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
       }
       ++wc->numweapons;
     }
-    else
+    else if ( !strcmp(token.string, "projectileinfo") )
     {
-      if ( strcmp(token.string, "projectileinfo") )
-      {
-        botimport.Print(PRT_ERROR, "unknown definition %s in %s\n", token.string, path);
-        FreeMemory(wc);
-        FreeSource(source);
-        return 0;
-      }
       if ( wc->numprojectiles >= max_projectileinfo )
       {
         botimport.Print(PRT_ERROR, "more than %d projectiles defined in %s\n", max_projectileinfo, path);
@@ -26877,6 +26870,13 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
         return 0;
       }
       ++wc->numprojectiles;
+    }
+    else
+    {
+      botimport.Print(PRT_ERROR, "unknown definition %s in %s\n", token.string, path);
+      FreeMemory(wc);
+      FreeSource(source);
+      return 0;
     }
   }
   FreeSource(source);
