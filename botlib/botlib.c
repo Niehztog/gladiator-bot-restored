@@ -2008,7 +2008,6 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
 {
   int v7; // edi
   int v12; // edx
-  float *i; // ecx
   int v15; // ecx
   float v16; // st7
   float v17; // st6
@@ -2017,6 +2016,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float v20; // st6
   int v24; // edx
   float v25; // st6
+  float *i; // ecx (endpos-fill walk pointer)
   float *v29; // eax
   float *v30; // edx
   int v31; // esi
@@ -2062,21 +2062,17 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
     return 0;
   if ( entdata.solid == 2 )
   {
-    v12 = 0;
-    /* Binary at 0x100037BD: fld *i; fld v41[idx]; fadd QWORD 0.5; fcompp; test ah,1; je exit.
-     * The ref's 0.5 const is actually a DOUBLE (fadd/fsub QWORD ds:0x10058018, decoded
-     * = 0.5).  fcompp with ST(0)=v41+0.5 and ST(1)=*i sets C0=1 iff v41+0.5 < *i; JE on
-     * C0=0 exits when *i <= v41+0.5, so continue iff *i > v41+0.5.  Same form for v44-0.5
-     * (test ah,0x41 = C0|C3 → continue iff *i < v44-0.5).
-     * NB on the literal: writing `0.5` (double) is the disasm-faithful precision, but in
-     * THIS function historically introduced an extra QWORD spill and moved the emitted code
-     * farther from the reference in the older success-form loop.  The lower-divergence form
-     * here is the indexed failure-form loop below with `0.5f`. */
-    for ( i = start; v12 < 3; ++i, ++v12 )
+    /* Binary at 0x100037BD: fld start[i]; fld v41[i]; fadd QWORD 0.5; fcompp; test ah,1;
+     * je exit.  The ref's 0.5 const is a DOUBLE (fadd/fsub QWORD ds:0x10058018 = 0.5), and
+     * ref indexes BOTH operands off `start` reusing the &v41-start/&v44-start offsets CSE'd
+     * from the first bounds loop — so the pure-index form (start[i], not a walking `*i`) with
+     * a double 0.5 reproduces ref's `fld;fld;fadd;fcompp` and closes the -2 vs the old
+     * walking-pointer + 0.5f form. */
+    for ( v12 = 0; v12 < 3; ++v12 )
     {
-      if ( *i <= v41[v12] + 0.5f )
+      if ( start[v12] <= v41[v12] + 0.5 )
         break;
-      if ( *i >= v44[v12] - 0.5f )
+      if ( start[v12] >= v44[v12] - 0.5 )
         break;
     }
     if ( v12 == 3 )
@@ -17726,8 +17722,7 @@ char *__cdecl stristr(char *str, char *charset)
 //----- (10021860) --------------------------------------------------------
 char *__cdecl EasyClientName(int client, char *buf)
 {
-  char v2; // cl
-  char *p_Str; // eax
+  int ci; // eax (strength-reduced walk-pointer over Str)
   char *i; // edx
   char *str1; // esi
   char *str2; // eax
@@ -17740,17 +17735,8 @@ char *__cdecl EasyClientName(int client, char *buf)
   char Str[128]; // [esp+8h] [ebp-80h] BYREF
 
   strcpy(Str, (const char *)ClientName(client));
-  v2 = Str[0];
-  if ( Str[0] )
-  {
-    p_Str = Str;
-    do
-    {
-      *p_Str = v2 & 0x7F;
-      v2 = *++p_Str;
-    }
-    while ( v2 );
-  }
+  for ( ci = 0; Str[ci]; ci++ )
+    Str[ci] &= 0x7F;
   for ( i = strstr(Str, " "); i; i = strstr(Str, " ") )
     memmove(i, i + 1, strlen(i + 1) + 1);  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
   str1 = strstr(Str, "[");
@@ -17793,7 +17779,8 @@ char *__cdecl EasyClientName(int client, char *buf)
     }
     while ( *ptr );
   }
-  return strcpy(buf, Str);
+  strcpy(buf, Str);
+  return buf;
 }
 
 //----- (10021A90) --------------------------------------------------------
