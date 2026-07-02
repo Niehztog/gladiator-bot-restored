@@ -3265,42 +3265,40 @@ int __cdecl sub_10005A10(float *origin)
 }
 
 //----- (10005A60) --------------------------------------------------------
-void __cdecl AAS_DecompressVis(int a1, int a2)
+void __cdecl AAS_DecompressVis(int cluster, int visType)
 {
-  int row; // eax
-  char *out; // esi
-  char *in; // edx
-  unsigned int c; // ebx
+  int c;
+  int row;
+  char *in;
+  char *out;
 
-  if ( a1 != dword_10069564 )
+  if ( cluster == dword_10069564 )
+    return;
+  out = byte_10067564;
+  in = dvisdata + *(_DWORD *)(dvis + 4 * (visType + 2 * cluster) + 4);
+  row = (*(int *)dvis + 7) >> 3;
+  do
   {
-    out = &byte_10067564;
-    in = (char *)(dvisdata + *(_DWORD *)(dvis + 4 * (a2 + 2 * a1) + 4));
-    row = (*(int *)dvis + 7) >> 3;
-    a2 = row;
-    do
+    if ( *in )
     {
-      if ( *in )
-      {
-        *out++ = *in++;
-      }
-      else
-      {
-        c = (unsigned __int8)in[1];
-        if ( !c )
-        {
-          AAS_Error("AAS_DecompressVis: 0 repeat");
-          return;
-        }
-        memset(out, 0, c);
-        in += 2;
-        out += c;
-        row = a2;
-      }
+      *out++ = *in++;
+      continue;
     }
-    while ( out - (char *)&byte_10067564 < row );
-    dword_10069564 = a1;
+    c = (unsigned __int8)in[1];
+    if ( !c )
+    {
+      AAS_Error("AAS_DecompressVis: 0 repeat");
+      return;
+    }
+    in += 2;
+    while ( c )
+    {
+      *out++ = 0;
+      --c;
+    }
   }
+  while ( out - byte_10067564 < row );
+  dword_10069564 = cluster;
 }
 
 //----- (10005B30) --------------------------------------------------------
@@ -8419,58 +8417,41 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
 //----- (1000F4D0) --------------------------------------------------------
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
-  float points; // st7
-  float v7; // [esp+0h] [ebp-D0h]
-  /* IDA-split vec3 trios v8/v9/v10 and v11/v12/v13 — both passed by address
-   * to VectorMA / AAS_Trace / VectorLength which read 3 contiguous floats.
-   * GCC would not lay the original int+float+float decls out adjacently. */
-  vec3_t v;       /* was v8/v9/v10 — VectorMA scratch (origin - explosion mid) */
-  vec3_t start;      /* was v11/v12/v13 — origin shifted forward 8u, passed to AAS_Trace */
-  double v14;
-  vec3_t dir; /* BYREF */
-  vec3_t forward; /* BYREF — right vector from AngleVectors */
-  vec3_t right; /* BYREF — up vector from AngleVectors */
-  vec3_t viewangles; /* BYREF — angles (pitch=90, yaw=0, roll=0) */
-  vec3_t end; /* BYREF — trace end (origin11 + 500*v16) */
-  vec3_t kvel; /* BYREF — scaled direction */
-  float bsptrace[21]; /* BYREF — trace result */
+  vec3_t kvel, v, start, end, forward, right, viewangles, dir;
+  float mass, knockback, points;
+  vec3_t rocketoffset = {8, 8, -8};
+  vec3_t botmins = {-16, -16, -24};
+  vec3_t botmaxs = {16, 16, 32};
+  bsp_trace_t bsptrace;
 
-  start[0] = origin[0];
-  start[1] = origin[1];
-  start[2] = origin[2];
-  start[2] += 8.0f;      /* view offset Z */
-  /* 1119092736 = 0x42B40000 is the IEEE-754 BIT pattern of 90.0f.  IDA's
-   * decomp emitted the raw int literal under the assumption v18 was int[3]
-   * (bit-cast valid).  With float[3] storage GCC int-to-float-converts the
-   * literal to ~1.119e9, completely garbaging the pitch angle and breaking
-   * the downward rocket-blast trace.  Caused HV always-fail (hv_pass=0). */
-  viewangles[0] = 90.0f;   /* pitch = 90° (look straight down) */
-  viewangles[1] = 0;
-  viewangles[2] = 0;
-  AngleVectors(viewangles, forward, right, 0);
-  start[0] = (forward[0] + right[0]) * 8.0f + start[0];
-  start[1] = (forward[1] + right[1]) * 8.0f + start[1];
-  start[2] = (forward[2] + right[2]) * 8.0f + start[2] - 8.0f;
-  VectorMA(start, 500.0f, forward, end);
-  *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 1, 3);
-  v[0] = 0.0f;
-  v[1] = 0.0f;
-  v[2] = 8.0f;
-  VectorMA(origin, 0.5f, v, v);
-  v[0] = bsptrace[3] - v[0];
-  v[1] = bsptrace[4] - v[1];
-  v[2] = bsptrace[5] - v[2];
+  viewangles[PITCH] = 90.0f;
+  viewangles[YAW] = 0.0f;
+  viewangles[ROLL] = 0.0f;
+
+  VectorCopy(origin, start);
+  start[2] += 8.0f;
+  AngleVectors(viewangles, forward, right, NULL);
+  start[0] += forward[0] * rocketoffset[0] + right[0] * rocketoffset[1];
+  start[1] += forward[1] * rocketoffset[0] + right[1] * rocketoffset[1];
+  start[2] += forward[2] * rocketoffset[0] + right[2] * rocketoffset[1] + rocketoffset[2];
+
+  VectorMA(start, 500.0, forward, end);
+  bsptrace = AAS_Trace(start, NULL, NULL, end, 1, 3);
+
+  VectorAdd(botmins, botmaxs, v);
+  VectorMA(origin, 0.5, v, v);
+  VectorSubtract(bsptrace.endpos, v, v);
+
   points = radiusdamage - 0.5 * VectorLength(v);
-  *(float *)&v14 = points;
   if ( points < 0.0f )
-    LODWORD(v14) = 0;
-  dir[0] = origin[0] - bsptrace[3];
-  dir[1] = origin[1] - bsptrace[4];
-  dir[2] = origin[2] - bsptrace[5];
+    points = 0.0f;
+  points *= 0.5;
+
+  mass = 200.0f;
+  knockback = points;
+  VectorSubtract(origin, bsptrace.endpos, dir);
   VectorNormalize(dir);
-  *(float *)&v14 = *(float *)&v14 * 0.5;
-  v7 = *(float *)&v14 * 8.0;
-  VectorScale(dir, v7, kvel);
+  VectorScale(dir, 1600.0 * (float)knockback / mass, kvel);
   return kvel[2] + libvar_sv_jumpvel->value;
 }
 
@@ -14857,43 +14838,44 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
 //----- (1001BF00) --------------------------------------------------------
 qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 {
-  _DWORD *face; // ebx
+  int i;
   int edgenum;
-  char *edge;
-  float *v1;
-  BOOL firstvertex; // esi
-  float *v2; // ecx
-  char *plane; // [esp+10h] [ebp-28h]
-  float v11; // [esp+14h] [ebp-24h]
-  float v12; // [esp+18h] [ebp-20h]
-  float v13; // [esp+1Ch] [ebp-1Ch]
-  vec3_t edgevec; // [esp+20h] [ebp-18h] BYREF
-  vec3_t sepnormal; // [esp+2Ch] [ebp-Ch] BYREF
-  float v17; // [esp+40h] [ebp+8h]
+  int firstvertex;
+  vec_t *v1;
+  vec_t *v2;
+  aas_edge_t *edge;
+  aas_plane_t *plane;
+  float pointvec0;
+  float pointvec1;
+  float pointvec2;
+  vec3_t edgevec;
+  vec3_t sepnormal;
+  aas_face_t *face;
+  float minsep;
 
   if ( !aasworld.loaded )
     return 0;
   face = &aasworld.faces[facenum];
-  facenum = 0;
-  plane = &aasworld.planes[*face];
-  if ( (int)face[2] > 0 )
+  i = 0;
+  plane = &aasworld.planes[face->planenum];
+  if ( face->numedges > 0 )
   {
     while ( 1 )
     {
-      edgenum = aasworld.edgeindex[facenum + face[3]];
+      edgenum = aasworld.edgeindex[i + face->firstedge];
       edge = &aasworld.edges[abs(edgenum)];
       firstvertex = edgenum < 0;
-      v1 = (float *)&aasworld.vertexes[*(_DWORD *)(edge + 4 * firstvertex)];
-      v2 = (float *)(&aasworld.vertexes[*(_DWORD *)(edge + 4 * !firstvertex)]);
+      v1 = aasworld.vertexes[edge->v[firstvertex]];
+      v2 = aasworld.vertexes[edge->v[!firstvertex]];
       VectorSubtract(v2, v1, edgevec);
-      v11 = point[0] - v1[0];
-      v12 = point[1] - v1[1];
-      v13 = point[2] - v1[2];
-      CrossProduct(edgevec, plane, sepnormal);
-      v17 = -epsilon;
-      if ( sepnormal[2] * v13 + sepnormal[1] * v12 + sepnormal[0] * v11 < v17 )
+      pointvec0 = point[0] - v1[0];
+      pointvec1 = point[1] - v1[1];
+      pointvec2 = point[2] - v1[2];
+      CrossProduct(edgevec, plane->normal, sepnormal);
+      minsep = -epsilon;
+      if ( sepnormal[2] * pointvec2 + sepnormal[1] * pointvec1 + sepnormal[0] * pointvec0 < minsep )
         break;
-      if ( ++facenum >= (int)face[2] )
+      if ( ++i >= face->numedges )
         return 1;
     }
     return 0;
