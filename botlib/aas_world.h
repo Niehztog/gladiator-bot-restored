@@ -114,6 +114,22 @@ typedef struct aas_trace_s {
     int   planenum;     /* number of the plane that was hit */
 } aas_trace_t;
 
+/* Movement-prediction result — Gladiator's OLDER layout (80 bytes): no
+ * 'endarea', and a float at +0x44 where Q3's aas_clientmove_t carries int
+ * endcontents.  AAS_ClientMovementPrediction returns it BY VALUE (the
+ * hidden-pointer MSVC6 struct-return ABI the 1999 DLL shows at every call
+ * site — see byvalue_struct_return_class.md). */
+typedef struct aas_clientmove_s {
+    float endpos[3];       /* +0x00 position at the end of movement prediction */
+    float velocity[3];     /* +0x0C velocity at the end */
+    aas_trace_t trace;     /* +0x18 last trace (36 B) */
+    int   presencetype;    /* +0x3C presence type at the end */
+    int   stopevent;       /* +0x40 SE_* event(s) that stopped the prediction */
+    float endcontents;     /* +0x44 4.0f normally; (float)pointcontents on liquid stop */
+    float time;            /* +0x48 time predicted ahead (frames * frametime) */
+    int   frames;          /* +0x4C number of frames predicted ahead */
+} aas_clientmove_t;        /* 80 bytes */
+
 typedef struct aas_cluster_s {
     int   numareas;              /* +0  stride was 12 (3 ints) in 32-bit binary */
     int   numreachabilityareas;  /* +4  */

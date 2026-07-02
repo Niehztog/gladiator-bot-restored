@@ -278,7 +278,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 void PrintUsedMemorySize(void);
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float * velocity);
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
-char *__cdecl AAS_ClientMovementPrediction(char * move, int entnum, float * origin, int presencetype, int onground, float * velocity, float * cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int visualize);
+aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, float * origin, int presencetype, int onground, float * velocity, float * cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int visualize);
 int __cdecl PC_UnreadSourceToken(source_t *source, const void *token);
 int __cdecl sub_1001C760(char *Source);
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);
@@ -5961,7 +5961,6 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
   vec3_t dir; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
   vec3_t cmdmove; // [esp+20h] [ebp-68h] BYREF
   vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
-  int move[20]; // [esp+38h] [ebp-50h] BYREF — aas_clientmove_t move
 
   AAS_ShowArea(reach->areanum, 1);
   AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
@@ -5975,7 +5974,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction((char *)move, -1, reach->start, 2, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction(-1, reach->start, 2, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
     if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
       AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
@@ -5994,7 +5993,7 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     v12[2] = zvel;
     v12[0] = 0;
     v12[1] = 0;
-    AAS_ClientMovementPrediction((char *)move, -1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
+    AAS_ClientMovementPrediction(-1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
 
@@ -8253,8 +8252,6 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
  */
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
-  const void *v5; // esi
-  float *move_vec; // ecx
   float *runstart_vec; // edi
   char stopevent; // cl
   /* IDA split a vec3 stack local (origin+1z) into three adjacent locals
@@ -8266,7 +8263,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
   vec3_t hordir; // [esp+14h] [ebp-68h] BYREF
   vec3_t cmdmove; // [esp+20h] [ebp-5Ch] BYREF
-  int move[20]; // [esp+2Ch] [ebp-50h] BYREF
+  aas_clientmove_t move; // [esp+2Ch] [ebp-50h] BYREF (coalesced with the by-value return temp)
 
   hordir[0] = reach->start[0] - reach->end[0];
   hordir[1] = reach->start[1] - reach->end[1];
@@ -8275,13 +8272,11 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
   start_pos[2] = reach->start[2] + 1.0f;
-  move_vec = (float *)move;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
-  v5 = (const void *)AAS_ClientMovementPrediction((char *)move, -1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
-  memcpy(move, v5, sizeof(move));
-  VectorCopy(move_vec, runstart_vec);
-  stopevent = move[16];
+  move = AAS_ClientMovementPrediction(-1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
+  VectorCopy(move.endpos, runstart_vec);
+  stopevent = move.stopevent;
   if ( (stopevent & 0x38) != 0 )
   {
     VectorCopy(start_pos, runstart_vec);
@@ -8487,8 +8482,7 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  * tail.  Names/types below are mapped onto Q3's for readability only — the
  * codegen is byte-identical to the original DLL (verified vs the MSVC6 oracle).
  */
-char *__cdecl AAS_ClientMovementPrediction(
-        char *move,           // a1: aas_clientmove_t output buffer (built in move_buf, copied at tail)
+aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
         float *origin,        // a3: vec3_t start origin
         int presencetype,     // a4
@@ -8528,7 +8522,6 @@ char *__cdecl AAS_ClientMovementPrediction(
   int pc; // eax
   int event; // ecx
   char gap_pc; // al
-  char *result; // eax
   float backoff_left; // [esp+0h] [ebp-1F8h]
   float backoff_frame; // [esp+0h] [ebp-1F8h]
   int n; // [esp+1Ch] [ebp-1DCh]
@@ -8781,7 +8774,7 @@ char *__cdecl AAS_ClientMovementPrediction(
 LABEL_66:
       ++LODWORD(v50);
       if ( SLODWORD(v50) > 20 )
-        { result = move; memcpy(move, move_buf, 0x50u); return result; }
+        { return *(aas_clientmove_t *)move_buf; }
     }
     while ( trace.fraction < 1.0 );
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
@@ -8905,9 +8898,7 @@ LABEL_86:
     }
     break;
   }
-  result = move;
-  memcpy(move, move_buf, 0x50u);
-  return result;
+  return *(aas_clientmove_t *)move_buf;
 }
 
 //----- (10010690) --------------------------------------------------------
@@ -8956,7 +8947,7 @@ LABEL_86:
  * jump-prediction test harness from development. */
 static void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
-  char    result[80];        /* aas_clientmove_t — filled by prediction */
+  aas_clientmove_t result;   /* filled by the by-value prediction return */
   vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
   vec3_t  cmd_move;          /* desired-input vec: scaled forward + Z jump */
 
@@ -8972,11 +8963,11 @@ static void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
   cmd_move[2] = 224.0f;
 
   AAS_ClearShownDebugLines();
-  AAS_ClientMovementPrediction(result, entnum, origin, 2, 1,
+  result = AAS_ClientMovementPrediction(entnum, origin, 2, 1,
                                velocity, cmd_move, 13, 13,
                                0.1f, 1, 1);
 
-  if (result[0] & 0x02)
+  if (result.stopevent & 0x02)
     botimport.Print(PRT_MESSAGE, "leave ground\n");
 }
 
@@ -10611,8 +10602,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
    * the VectorScale's 3rd store overflows into whatever GCC laid out next. */
   vec3_t cmdmove; // [esp+D8h..E3h] [ebp-F4h..-E8h] BYREF
   aas_trace_t trace; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
-  int move2[20]; // [esp+12Ch] [ebp-A0h] BYREF
-  int move[20]; // [esp+17Ch] [ebp-50h] BYREF
+  aas_clientmove_t move2; // [esp+12Ch] [ebp-A0h] BYREF (the by-value return temp is IDA's `move` at [esp+17Ch])
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) && !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
   {
@@ -10986,10 +10976,7 @@ LABEL_62:
                    * landing point misses area2num in the probe loop and all
                    * 89 JUMP reaches on q2ctf2 are lost. */
                   cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
-                  memcpy(
-                    move2,
-                    AAS_ClientMovementPrediction(
-                                    (char *)move,
+                  move2 = AAS_ClientMovementPrediction(
                                     -1,
                                     beststart,
                                     2,
@@ -11000,9 +10987,8 @@ LABEL_62:
                                     30,
                                     0.1,
                                     61,
-                                    0),
-                    sizeof(move2));
-                  if ( move2[19] < 30 && (move2[16] & 0x38) == 0 )
+                                    0);
+                  if ( move2.frames < 30 && (move2.stopevent & 0x38) == 0 )
                   {
                     /* Probe loop: pull the candidate test-point back along the
                      * trace direction at scale 0, -8, -16, -24, -32 and accept
@@ -11027,7 +11013,7 @@ LABEL_62:
                     while ( 1 )
                     {
                       v51 = (float)probe_scale;
-                      VectorMA((float *)move2, v51, (float *)dir, teststart);
+                      VectorMA(move2.endpos, v51, (float *)dir, teststart);
                       v48 = teststart[2] + 0.125;
                       teststart[2] = v48;
                       if ( AAS_PointAreaNum(teststart) == area2num )
@@ -12258,8 +12244,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
   vec3_t cmdmove; /* [BYREF] */
   aas_trace_t trace;
-  int move[20]; /* [BYREF] */
-  int v36[20]; /* [BYREF] */
+  aas_clientmove_t move; /* [BYREF] (the by-value return temp is IDA's v36) */
 
   if ( !AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num) ) return 0;
   if ( !AAS_AreaGrounded(area2num) ) return 0;
@@ -12319,11 +12304,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                 velocity[2] = zvel;
                 velocity[0] = 0;
                 velocity[1] = 0;
-                memcpy(
-                  move,
-                  AAS_ClientMovementPrediction((char *)v36, -1, groundedpos, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0),
-                  sizeof(move));
-                if ( move[19] < 30 && (move[16] & 0x38) == 0 )
+                move = AAS_ClientMovementPrediction(-1, groundedpos, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0);
+                if ( move.frames < 30 && (move.stopevent & 0x38) == 0 )
                 {
                   v9 = 0;
                   v10 = 0;
@@ -12332,7 +12314,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                   while ( 1 )
                   {
                     v14 = (float)v16;
-                    VectorMA((float *)move, v14, dir, predictpos);
+                    VectorMA(move.endpos, v14, dir, predictpos);
                     v7 = predictpos[2] + 0.125;
                     predictpos[2] = v7;
                     if ( AAS_PointAreaNum(predictpos) == area2num )
@@ -15595,17 +15577,18 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *s
 int sub_1001D420(bot_state_t *bs)
 {
   aas_entityinfo_t entinfo; /* [esp+0x44] — entityinfo copy; reused for both lookups */
-  char   scratch[124];      /* [esp+0xC0] — AAS_EntityInfo buf arg AND AAS_ClientMovementPrediction scratch+output */
+  aas_clientmove_t move;    /* [esp+0xC0] — prediction result; MSVC6 coalesces it with its
+                             * own by-value return temp AND reuses the same slot for the two
+                             * sequential AAS_EntityInfo hidden return temps (124 B ∪ 80 B) */
   vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
   vec3_t forward;           /* [esp+0x1C] — first delta, then AngleVectors output       */
   vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
   vec3_t scaled;            /* [esp+0x38] — VectorScale(forward, 400, ...) for predict */
   int    entnum, areanum, prevent_entnum;
   float  z;
-  /* 1. Look up target name → entnum.  AAS_EntityInfo writes scratch and
-   *    returns a pointer to copy from. */
+  /* 1. Look up target name → entnum. */
   entnum = ClientFromName((const char *)((char *)bs + 0x1124)) + 1;
-  *(&entinfo) = AAS_EntityInfo(entnum);
+  entinfo = AAS_EntityInfo(entnum);
   if ( !entinfo.valid )
     goto fail;
   /* 2. Validate the entity sits in a reachable AAS area (origin @ +0x10). */
@@ -15622,7 +15605,7 @@ int sub_1001D420(bot_state_t *bs)
    *    second AAS_EntityInfo OVERWRITES the same `entinfo` block — current
    *    origin has already been saved to bs+0x1144 by step 3. */
   prevent_entnum = ClientFromName((const char *)((char *)bs + 0x10F0)) + 1;
-  *(&entinfo) = AAS_EntityInfo(prevent_entnum);
+  entinfo = AAS_EntityInfo(prevent_entnum);
   /* 5. Velocity = (entinfo.origin - entinfo.old_origin) of the second target.
    *    Both operands come from the SAME snapshot (NOT current_origin minus a
    *    prior entinfo's origin).  Threshold is 0.1 as a double @ds:0x10058130. */
@@ -15654,23 +15637,20 @@ int sub_1001D420(bot_state_t *bs)
   VectorScale(forward, 400.0f, scaled);
   /* 8. Predict 0.1 s of motion from start with velocity = scaled.  Stopevent
    *    mask 0x7C catches HITGROUND/HITWATER/HITLAVA/HITSLIME (same as
-   *    AAS_JumpReachRunStart's runstart helper).  The scratch buffer is
-   *    passed in AND read back from — the original copies 80 bytes from the
-   *    returned ptr onto itself (the prediction returns its input buffer,
-   *    so the copy is a no-op but emitted verbatim). */
-  memcpy(scratch,
-          AAS_ClientMovementPrediction(scratch, -1, start,
-                                       2, 1, velocity, scaled,
-                                       1, 2, 0.1f, 124, 0),
-          80);
+   *    AAS_JumpReachRunStart's runstart helper).  `move` coalesces with the
+   *    call's hidden by-value return temp (the ref self-copies 80 bytes onto
+   *    the same slot). */
+  move = AAS_ClientMovementPrediction(-1, start,
+                                      2, 1, velocity, scaled,
+                                      1, 2, 0.1f, 124, 0);
   /* 9. If prediction tripped water/slime/lava (mask 0x38), fall back to the
    *    start position; otherwise keep the angles vec (0, anglemod(yaw+bias), 0)
    *    we built in step 6.  Both paths emit one fld+fstp to bs+0x1158 — the
    *    z assignment threads through the FP stack. */
-  if ( (scratch[0x40] & 0x38) != 0 )
+  if ( (move.stopevent & 0x38) != 0 )
   {
-    *(int *)&angles[0] = *(int *)&start[0];
-    *(int *)&angles[1] = *(int *)&start[1];
+    angles[0] = start[0];
+    angles[1] = start[1];
     z = start[2];
   }
   else
@@ -25398,7 +25378,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
    * the param name for the input direction. */
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
   vec3_t cmdmove; // [esp+14h] [ebp-5Ch] BYREF
-  int move[20]; // [esp+20h] [ebp-50h] BYREF
+  aas_clientmove_t move; // [esp+20h] [ebp-50h] BYREF (coalesced with the by-value return temp)
   int v19; // [esp+74h] [ebp+4h]
   float v20; // [esp+78h] [ebp+8h]
 
@@ -25434,10 +25414,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
         v20 = ms->thinktime;
       }
       maxframes = (__int64)(v10 / v20);
-      memcpy(
-        move,
-        AAS_ClientMovementPrediction(
-                        (char *)move,
+      move = AAS_ClientMovementPrediction(
                         ms->entitynum,
                         ms->origin,
                         presencetype,
@@ -25448,16 +25425,15 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
                         maxframes,
                         v20,
                         61,
-                        0),
-        sizeof(move));
-      if ( move[19] >= maxframes )
+                        0);
+      if ( move.frames >= maxframes )
         return 0;
-      if ( (move[16] & 0x38) != 0 )
+      if ( (move.stopevent & 0x38) != 0 )
         return 0;
-      v13 = *(float *)move - ms->origin[0];
+      v13 = move.endpos[0] - ms->origin[0];
       hordir[0] = v13;
       hordir[2] = 0.0f;
-      hordir[1] = *((float *)move + 1) - ms->origin[1];
+      hordir[1] = move.endpos[1] - ms->origin[1];
       if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
         return 0;
       if ( v19 )
