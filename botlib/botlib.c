@@ -9103,46 +9103,47 @@ int __cdecl AAS_KeepFace(char *face)
 //----- (10010A00) --------------------------------------------------------
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 {
-  unsigned int v2; // edi
-  char *face; // esi
-  int optfacenum; // eax
-  _DWORD *optface; // ebp
-  int i; // esi
-  int optedgenum; // eax
-  char *v8; // [esp+10h] [ebp-8h]
+  int i;
+  int edgenum;
+  int optedgenum;
+  int optfacenum;
+  aas_face_t *face;
+  aas_face_t *optface;
 
-  v2 = abs(facenum);
-  face = &aasworld.faces[v2];
-  v8 = face;
+  face = &aasworld.faces[abs(facenum)];
   if ( !AAS_KeepFace(face) )
     return 0;
-  optfacenum = optimized->faceremap[v2];
+  optfacenum = optimized->faceremap[abs(facenum)];
   if ( optfacenum )
   {
-    if ( facenum <= 0 )
+    if ( facenum > 0 )
+      return optfacenum;
+    else
       return -optfacenum;
-    return optfacenum;
   }
-  optface = (_DWORD *)((char *)optimized->faces + 24 * optimized->numfaces);
-  memcpy(optface, face, 0x18u);
-  optface[2] = 0;
+  optface = &((aas_face_t *)optimized->faces)[optimized->numfaces];
+  memcpy(optface, face, sizeof(aas_face_t));
+  optface->numedges = 0;
+  optface->firstedge = optimized->edgeindexsize;
   i = 0;
-  for ( optface[3] = optimized->edgeindexsize; i < *((int *)v8 + 2); ++i )
+  for ( ; i < face->numedges; ++i )
   {
-    optedgenum = AAS_OptimizeEdge(optimized, aasworld.edgeindex[i + *((_DWORD *)v8 + 3)]);
+    edgenum = aasworld.edgeindex[face->firstedge + i];
+    optedgenum = AAS_OptimizeEdge(optimized, edgenum);
     if ( optedgenum )
     {
-      optimized->edgeindex[optface[2] + optface[3]] = optedgenum;
-      ++optface[2];
+      optimized->edgeindex[optface->firstedge + optface->numedges] = optedgenum;
+      optface->numedges++;
       ++optimized->edgeindexsize;
     }
   }
-  optimized->faceremap[v2] = optimized->numfaces;
+  optimized->faceremap[abs(facenum)] = optimized->numfaces;
   optfacenum = optimized->numfaces;
-  optimized->numfaces = optfacenum + 1;
-  if ( facenum <= 0 )
+  optimized->numfaces++;
+  if ( facenum > 0 )
+    return optfacenum;
+  else
     return -optfacenum;
-  return optfacenum;
 }
 
 //----- (10010B40) --------------------------------------------------------
