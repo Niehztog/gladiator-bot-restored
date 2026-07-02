@@ -21852,40 +21852,30 @@ void __cdecl BotDumpSynonymList(int *synlist)
  * the disassembly at 0x1002B110. */
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 {
-  char *ptr;                      /* IDA v2 — scratch buffer / advancing cursor */
-  int sizeNeeded;                 /* IDA v3 — alloc size (v18 from prev pass)   */
-  int pass;                       /* IDA v4 */
-  source_t *src;                  /* IDA v5 / v16 */
-  source_t *v16;
-  bot_synonym_t *lastsynonym;     /* IDA v10 */
-  bot_synonymlist_t *syn;         /* IDA v11/v25 */
-  bot_synonym_t *synonym;         /* IDA v12/v23 */
-  char *stringStorage;            /* IDA v13 */
-  int context;                    /* IDA v17 */
-  int sizeAccum;                  /* IDA v18 */
-  int level;                      /* IDA v19 */
-  int numsynonyms;                /* IDA v22 */
-  bot_synonymlist_t *lastsyn;     /* IDA v24 */
-  bot_synonymlist_t *synlist;     /* IDA v26 — head, returned */
-  bot_fileref_t file_ref;
+  int pass, size, level, numsynonyms;   /* IDA v4, v3/v18, v19, v22 */
+  int context;                          /* IDA v17 */
+  int contextstack[32];                 /* IDA v34 — char[128] really 32 ints */
+  /* NB deliberately UNinitialized (Q3 later added `= NULL` to hush compilers):
+   * ref@1002b151 loads ptr from its never-written slot — the pass-0 read is
+   * dead (`if (pass && size)` gates the only real assignment). */
+  char *ptr;                            /* IDA v2 — scratch buffer / advancing cursor */
+  source_t *src;                        /* IDA v5/v16 — ONE variable; the v16 copies were MSVC's own reloads */
   token_t token;
-  int contextstack[32];           /* IDA v34 — char[128] really 32 ints */
+  bot_synonymlist_t *synlist, *lastsyn, *syn;  /* IDA v26, v24, v11/v25 */
+  bot_synonym_t *synonym, *lastsynonym;        /* IDA v12/v23, v10 */
+  bot_fileref_t file_ref;
 
   if ( !sub_10041F60(filename, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
     return 0;
   }
-  ptr = NULL;
-  sizeNeeded = 0;
-  pass = 0;
-  sizeAccum = 0;
-  while ( 1 )
+  size = 0;
+  for ( pass = 0; pass < 2; pass++ )
   {
-    if ( pass && sizeNeeded )
-      ptr = (char *)GetClearedMemory(sizeNeeded);
+    if ( pass && size )
+      ptr = (char *)GetClearedMemory(size);
     src = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-    v16 = src;
     if ( !src )
     {
       botimport.Print(PRT_ERROR, "counldn't load %s\n", file_ref.path);
@@ -21895,138 +21885,132 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
     level = 0;
     synlist = NULL;
     lastsyn = NULL;
-    if ( PC_ReadTokenHandle(src, token.string) )
-      break;
-LABEL_45:
+    while ( PC_ReadTokenHandle(src, token.string) )
+    {
+      if ( token.type == 3 )
+      {
+        context |= token.intvalue;
+        contextstack[level] = token.intvalue;
+        ++level;
+        if ( level >= 32 )
+        {
+          SourceError(src, "more than 32 context levels");
+          FreeSource(src);
+          return 0;
+        }
+        if ( !PC_ExpectTokenString(src, "{") )
+        {
+          FreeSource(src);
+          return 0;
+        }
+      }
+      else if ( token.type == 5 )
+      {
+        if ( !strcmp(token.string, "}") )
+        {
+          --level;
+          if ( level < 0 )
+          {
+            SourceError(src, "too many }");
+            FreeSource(src);
+            return 0;
+          }
+          context &= ~contextstack[level];
+        }
+        else if ( !strcmp(token.string, "[") )
+        {
+          size += sizeof(bot_synonymlist_t);
+          if ( pass )
+          {
+            syn = (bot_synonymlist_t *)ptr;
+            ptr += sizeof(bot_synonymlist_t);
+            syn->context = context;
+            syn->firstsynonym = NULL;
+            syn->next = NULL;
+            if ( lastsyn )
+              lastsyn->next = syn;
+            else
+              synlist = syn;
+            lastsyn = syn;
+          }
+          numsynonyms = 0;
+          lastsynonym = NULL;
+          while ( 1 )
+          {
+            if ( !PC_ExpectTokenString(src, "(") || !PC_ExpectTokenType(src, 1, 0, token.string) )
+            {
+              FreeSource(src);
+              return 0;
+            }
+            StripDoubleQuotes(token.string);
+            if ( !strlen(token.string) )
+            {
+              SourceError(src, "empty string", token.string);
+              FreeSource(src);
+              return 0;
+            }
+            size += sizeof(bot_synonym_t) + strlen(token.string) + 1;
+            if ( pass )
+            {
+              synonym = (bot_synonym_t *)ptr;
+              ptr += sizeof(bot_synonym_t);
+              synonym->string = ptr;
+              ptr += strlen(token.string) + 1;
+              strcpy(synonym->string, token.string);
+              if ( lastsynonym )
+                lastsynonym->next = synonym;
+              else
+                syn->firstsynonym = synonym;
+              lastsynonym = synonym;
+            }
+            ++numsynonyms;
+            if ( !PC_ExpectTokenString(src, ",")
+              || !PC_ExpectTokenType(src, 3, 0, token.string)
+              || !PC_ExpectTokenString(src, ")") )
+            {
+              FreeSource(src);
+              return 0;
+            }
+            if ( pass )
+            {
+              synonym->weight = token.floatvalue;
+              syn->totalweight += synonym->weight;
+            }
+            if ( PC_CheckTokenString(src, "]") )
+              break;
+            if ( !PC_ExpectTokenString(src, ",") )
+            {
+              FreeSource(src);
+              return 0;
+            }
+          }
+          if ( numsynonyms < 2 )
+          {
+            SourceError(src, "synonym must have at least to entries\n");
+            FreeSource(src);
+            return 0;
+          }
+        }
+        else
+        {
+          SourceError(src, "unexpected %s", token.string);
+          FreeSource(src);
+          return 0;
+        }
+      }
+    }
     FreeSource(src);
     if ( level > 0 )
     {
       SourceError(src, "missing }");
       return 0;
     }
-    ++pass;
-    if ( pass >= 2 )
-    {
-      if ( file_ref.filelen )
-        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
-      else
-        botimport.Print(PRT_MESSAGE, "loaded %s\n", filename);
-      return synlist;
-    }
   }
-  while ( 1 )
-  {
-    if ( token.type == 3 )
-    {
-      context |= token.intvalue;
-      contextstack[level] = token.intvalue;
-      ++level;
-      if ( level >= 32 )
-      {
-        SourceError(src, "more than 32 context levels");
-        FreeSource(src);
-        return 0;
-      }
-      if ( !PC_ExpectTokenString(src, "{") )
-        goto LABEL_52;
-      goto LABEL_43;
-    }
-    if ( token.type != 5 )
-      goto LABEL_43;
-    if ( strcmp(token.string, "}") )
-      break;
-    --level;
-    if ( level < 0 )
-    {
-      SourceError(v16, "too many }");
-      FreeSource(v16);
-      return 0;
-    }
-    context &= ~contextstack[level];
-LABEL_42:
-    src = v16;
-LABEL_43:
-    if ( !PC_ReadTokenHandle(src, token.string) )
-    {
-      sizeNeeded = sizeAccum;
-      goto LABEL_45;
-    }
-  }
-  lastsynonym = NULL;
-  if ( !strcmp(token.string, "[") )
-  {
-    sizeAccum += sizeof(bot_synonymlist_t);
-    if ( pass )
-    {
-      syn = (bot_synonymlist_t *)ptr;
-      ptr += sizeof(bot_synonymlist_t);
-      syn->context = context;
-      syn->firstsynonym = NULL;
-      syn->next = NULL;
-      if ( lastsyn )
-        lastsyn->next = syn;
-      else
-        synlist = syn;
-      lastsyn = syn;
-    }
-    numsynonyms = 0;
-    do
-    {
-      src = v16;
-      if ( !PC_ExpectTokenString(v16, "(") || !PC_ExpectTokenType(v16, 1, 0, token.string) )
-        break;
-      StripDoubleQuotes(token.string);
-      if ( !strlen(token.string) )
-      {
-        SourceError(v16, "empty string", token.string);
-        goto LABEL_58;
-      }
-      sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
-      if ( pass )
-      {
-        synonym = (bot_synonym_t *)ptr;
-        stringStorage = (char *)(synonym + 1);
-        synonym->string = stringStorage;
-        ptr = stringStorage + strlen(token.string) + 1;
-        strcpy(synonym->string, token.string);
-        if ( lastsynonym )
-          lastsynonym->next = synonym;
-        else
-          syn->firstsynonym = synonym;
-        src = v16;
-        lastsynonym = synonym;
-      }
-      ++numsynonyms;
-      if ( !PC_ExpectTokenString(src, ",")
-          || !PC_ExpectTokenType(src, 3, 0, token.string)
-          || !PC_ExpectTokenString(src, ")") )
-      {
-        break;
-      }
-      if ( pass )
-      {
-        synonym->weight = token.floatvalue;
-        syn->totalweight += synonym->weight;
-      }
-      if ( PC_CheckTokenString(src, "]") )
-      {
-        if ( numsynonyms >= 2 )
-          goto LABEL_42;
-        SourceError(v16, "synonym must have at least to entries\n");
-        FreeSource(v16);
-        return 0;
-      }
-    }
-    while ( PC_ExpectTokenString(src, ",") );
-LABEL_52:
-    FreeSource(src);
-    return 0;
-  }
-  src = v16;
-  SourceError(v16, "unexpected %s", token.string);
-LABEL_58:
-  FreeSource(src);
-  return 0;
+  if ( file_ref.filelen )
+    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
+  else
+    botimport.Print(PRT_MESSAGE, "loaded %s\n", filename);
+  return synlist;
 }
 
 //----- (1002B7C0) --------------------------------------------------------
