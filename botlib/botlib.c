@@ -19750,39 +19750,37 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   if ( client < 0 )
     return 0;
   result = BotSameTeam(bs, client + 1);
-  if ( result )
+  if ( !result )
+    return result;
+  if ( (match->subtype & 2) != 0 )
   {
-    if ( (match->subtype & 2) != 0 )
+    BotMatchVariable(match, 1, addressedto);
+    botname = ClientName(*(_DWORD *)((char *)bs + 4));
+    if ( !BotFindMatch(addressedto, &addresseematch, 32) )
+      return 0;
+    while ( addresseematch.type != 101 )
     {
-      BotMatchVariable(match, 1, addressedto);
-      botname = ClientName(*(_DWORD *)((char *)bs + 4));
-      if ( !BotFindMatch(addressedto, &addresseematch, 32) )
-        return 0;
-      while ( addresseematch.type != 101 )
+      if ( addresseematch.type != 102 )
       {
-        if ( addresseematch.type != 102 )
-        {
-          BotMatchVariable(&addresseematch, 3, name);
-          return StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0);
-        }
         BotMatchVariable(&addresseematch, 3, name);
-        if ( StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0) )
-          return 1;
-        BotMatchVariable(&addresseematch, 5, addressedto);
-        result = BotFindMatch(addressedto, &addresseematch, 32);
-        if ( !result )
-          return result;
+        return StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0);
       }
+      BotMatchVariable(&addresseematch, 3, name);
+      if ( StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0) )
+        return 1;
+      BotMatchVariable(&addresseematch, 5, addressedto);
+      result = BotFindMatch(addressedto, &addresseematch, 32);
+      if ( !result )
+        return result;
     }
-    else
-    {
-      v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-      if ( 1.0f / (float)(BotNumTeamMates(bs) - 1) < v5 )
-        return 0;
-    }
-    return 1;
   }
-  return result;
+  else
+  {
+    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    if ( 1.0f / (float)(BotNumTeamMates(bs) - 1) < v5 )
+      return 0;
+  }
+  return 1;
 }
 
 //----- (10026E40) --------------------------------------------------------
