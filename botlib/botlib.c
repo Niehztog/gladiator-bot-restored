@@ -688,27 +688,27 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
 int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type);
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult);
 bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult);
-bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach);
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach);
 void __cdecl BotResetGrapple(bot_movestate_t *ms);
-bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach);
-bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal);
+bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_reachability_t *reach);
+bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal);
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
 int __cdecl BotResetMoveState(void *movestate);
@@ -25578,11 +25578,10 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 }
 
 //----- (10031E50) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
   float v5; // st7
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local into v7/v8/v9; original .text 0x10031e6b
    * stores the 3 floats at contiguous [esp+0xc/0x10/0x14].  GCC won't keep
    * three independent locals adjacent — VectorNormalize/EA_Move would then
@@ -25629,9 +25628,7 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
     speed = 400.0f;
   EA_Move(ms->client, dir, speed);
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10031FE0) --------------------------------------------------------
@@ -25640,7 +25637,7 @@ bot_moveresult_t *__cdecl BotTravel_Walk(bot_moveresult_t *a1, bot_movestate_t *
 // at 100 units before the preserved `400 - (400 - 3*dist)` form.
 // DEAD in Gladiator — only kept because /INCREMENTAL left it in the
 // original DLL.  Restored from objdump@10031FE0 + Q3 be_ai_move.c.
-bot_moveresult_t *__cdecl BotFinishTravel_Walk(bot_moveresult_t *result, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t moveresult;
   vec3_t hordir;
@@ -25663,14 +25660,12 @@ bot_moveresult_t *__cdecl BotFinishTravel_Walk(bot_moveresult_t *result, bot_mov
   speed = 400.0f - (400.0f - 3.0f * dist);
   EA_Move(ms->client, hordir, speed);
   VectorCopy(hordir, moveresult.movedir);
-  *result = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100320C0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
@@ -25684,15 +25679,12 @@ bot_moveresult_t *__cdecl BotTravel_Crouch(bot_moveresult_t *a1, bot_movestate_t
   EA_Crouch(ms->client);
   EA_Move(ms->client, dir, 400.0);
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032190) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   float speed; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
@@ -25717,15 +25709,12 @@ bot_moveresult_t *__cdecl BotTravel_BarrierJump(bot_moveresult_t *a1, bot_movest
     EA_Move(ms->client, dir, speed);
   }
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100322C0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   float v5; // [esp+0h] [ebp-48h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
@@ -25746,15 +25735,12 @@ bot_moveresult_t *__cdecl BotFinishTravel_BarrierJump(bot_moveresult_t *a1, bot_
     EA_Move(ms->client, dir, v5);
     VectorCopy(dir, moveresult.movedir);
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100323E0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
@@ -25767,16 +25753,13 @@ bot_moveresult_t *__cdecl BotTravel_Swim(bot_moveresult_t *a1, bot_movestate_t *
   VectorCopy(dir, moveresult.movedir);
   vectoangles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 2;
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100324C0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v4; // eax
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   vec3_t hordir; // [esp+14h] [ebp-3Ch] BYREF
@@ -25799,18 +25782,15 @@ bot_moveresult_t *__cdecl BotTravel_WaterJump(bot_moveresult_t *a1, bot_movestat
   vectoangles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032620) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v6; // eax
   int v7; // eax
   int v8; // eax
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   vec3_t pnt; // [esp+14h] [ebp-3Ch] BYREF (was IDA int[3] v14)
@@ -25844,19 +25824,16 @@ bot_moveresult_t *__cdecl BotFinishTravel_WaterJump(bot_moveresult_t *a1, bot_mo
       VectorCopy(dir, moveresult.movedir);
     }
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100327F0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float *v4; // ebx
   float dist; // st7
   float v6; // st7
   float v7; // st7
-  bot_moveresult_t *result; // eax
   float speed; // [esp+10h] [ebp-4Ch] BYREF
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
@@ -25904,15 +25881,12 @@ bot_moveresult_t *__cdecl BotTravel_WalkOffLedge(bot_moveresult_t *a1, bot_moves
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Move(ms->client, dir, speed);
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032A00) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   vec3_t pos; // [esp+14h] [ebp-3Ch] BYREF (was v7/v8/<hole>)
@@ -25927,15 +25901,12 @@ bot_moveresult_t *__cdecl BotFinishTravel_WalkOffLedge(bot_moveresult_t *a1, bot
   VectorNormalize(dir);
   EA_Move(ms->client, dir, 400.0);
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032AE0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   float speed; // [esp+0h] [ebp-90h]
   float dist1; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
   float dist2; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
@@ -26013,15 +25984,12 @@ bot_moveresult_t *__cdecl BotTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *
     EA_Move(ms->client, hordir, speed);
   }
   VectorCopy(hordir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032E80) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
   vec3_t reach_dir; // [esp+14h] [ebp-3Ch] BYREF (was v10/v11/v12)
@@ -26045,15 +26013,12 @@ bot_moveresult_t *__cdecl BotFinishTravel_Jump(bot_moveresult_t *a1, bot_movesta
       VectorCopy(dir, moveresult.movedir);
     }
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10032FC0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   vec3_t viewdir; // [esp+14h] [ebp-48h] BYREF
@@ -26074,16 +26039,13 @@ bot_moveresult_t *__cdecl BotTravel_Ladder(bot_moveresult_t *a1, bot_movestate_t
   EA_MoveForward(ms->client);
   moveresult.flags |= 1;
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100330E0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v4; // ecx
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
@@ -26106,13 +26068,11 @@ bot_moveresult_t *__cdecl BotTravel_Teleport(bot_moveresult_t *a1, bot_movestate
       moveresult.flags |= 2;
     VectorCopy(dir, moveresult.movedir);
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10033210) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
   float v5; // st7
@@ -26124,7 +26084,6 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
   float dist2; // st7
   float v13; // eax
   char v14; // al
-  bot_moveresult_t *result; // eax
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
   /* IDA split five vec3 stack locals — see BotTravel_Walk note. */
@@ -26242,15 +26201,12 @@ bot_moveresult_t *__cdecl BotTravel_Elevator(bot_moveresult_t *a1, bot_movestate
       moveresult.flags |= 4u;
     }
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10033790) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
   vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
   vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
@@ -26271,9 +26227,7 @@ bot_moveresult_t *__cdecl BotFinishTravel_Elevator(bot_moveresult_t *a1, bot_mov
     VectorNormalize(reachdir);
     EA_Move(ms->client, reachdir, 300.0);
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100338A0) --------------------------------------------------------
@@ -26331,7 +26285,7 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
 }
 
 //----- (10033B00) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v3; // eax
   int v4; // eax
@@ -26340,7 +26294,6 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   char v11; // cl
   long double v13; // st7
   int areanum; // eax
-  bot_moveresult_t *result; // eax
   double v17; // [esp+Ch] [ebp-54h]
   /* IDA split a vec3 stack local — see BotTravel_Walk note.  org[1]/org[2]
    * appeared as scalar temps v18/v19 (org[0] lives only on the x87 stack). */
@@ -26360,7 +26313,7 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     v4 = ms->moveflags;
     v4 &= ~0x40u;
     ms->moveflags = v4;
-    { result = a1; *a1 = moveresult; return result; }
+    { return moveresult; }
   }
   if ( (v3 & 0x40) != 0 )
   {
@@ -26380,26 +26333,26 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
           ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
         }
         ms->lastgrappledist = dist;
-        { result = a1; *a1 = moveresult; return result; }
+        { return moveresult; }
       }
       if ( state != 2 || ms->lastgrappledist - 2.0f >= dist )
       {
         ms->grapplevisible_time = AAS_Time();
         ms->lastgrappledist = dist;
-        { result = a1; *a1 = moveresult; return result; }
+        { return moveresult; }
       }
     }
     v17 = ms->grapplevisible_time;
     if ( AAS_Time() - 0.4 <= v17 )
     {
       ms->lastgrappledist = dist;
-      { result = a1; *a1 = moveresult; return result; }
+      { return moveresult; }
     }
     EA_Command(ms->client, "hookoff", (char *)0);
     ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
 LABEL_26:
     ms->reachability_time = 0;
-    { result = a1; *a1 = moveresult; return result; }
+    { return moveresult; }
   }
   v10 = AAS_Time();
   v11 = ms->moveflags;
@@ -26448,17 +26401,14 @@ LABEL_26:
   areanum = AAS_PointAreaNum(ms->origin);
   if ( areanum && areanum != ms->reachareanum )
     goto LABEL_26;
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10033EC0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float dist; // st7
   float v4; // st7
-  bot_moveresult_t *result; // eax
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
   float speed; // [esp+0h] [ebp-48h]
@@ -26501,9 +26451,7 @@ bot_moveresult_t *__cdecl BotTravel_RocketJump(bot_moveresult_t *a1, bot_movesta
   moveresult.flags |= 8u;
   EA_UseItem(v6, "Rocket Launcher");
   VectorCopy(dir, moveresult.movedir);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10034070) --------------------------------------------------------
@@ -26528,9 +26476,8 @@ void *__cdecl sub_10034070(void *out)
 }
 
 //----- (100340B0) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, bot_movestate_t *ms, aas_reachability_t *reach)
+bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t hordir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
@@ -26545,9 +26492,7 @@ bot_moveresult_t *__cdecl BotFinishTravel_WeaponJump(bot_moveresult_t *a1, bot_m
     EA_Move(ms->client, hordir, 800.0);
     VectorCopy(hordir, moveresult.movedir);
   }
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (10034170) --------------------------------------------------------
@@ -26586,11 +26531,10 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 }
 
 //----- (10034210) --------------------------------------------------------
-bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_t *ms, bot_goal_t *goal)
+bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal)
 {
   float dist; // st7
   float speed; // st7
-  bot_moveresult_t *result; // eax
   /* IDA split a vec3 stack local — see BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
@@ -26628,9 +26572,7 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
   ms->lastareanum = 0;
   ms->lastgoalareanum = goal->areanum;
   VectorCopy(ms->origin, ms->lastorigin);
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 
 //----- (100343A0) --------------------------------------------------------
@@ -26656,37 +26598,27 @@ bot_moveresult_t *__cdecl BotMoveInGoalArea(bot_moveresult_t *a1, bot_movestate_
  */
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
-  int v4; // edx
   int v8; // eax
-  bot_moveresult_t *v9; // esi
   bot_moveresult_t *result; // eax
   int reachnum; // ebp
   int v12; // eax
   int v14; // ecx
   int v15; // eax
-  bot_moveresult_t *v16; // eax
   int v17; // ecx
   int v18; // edx
   float v19; // [esp+10h] [ebp-2A0h]
   aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF (was float[11]; restored to the real reach struct)
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
-  /* v22 is a single MSVC-coalesced stack slot reused as: AAS_ReachabilityFromNum
-   * scratch buffer (char*), reachability-data holder (v22[9]=traveltype), and a
-   * bot_moveresult_t output buffer for the BotMoveInGoalArea / BotTravel_Walk
-   * calls below.  Kept as a raw 48-byte int[12]; cast to bot_moveresult_t* at the
-   * move-result use sites. */
-  int v22[12]; // [esp+70h] [ebp-240h] BYREF
-  bot_moveresult_t v23; // [esp+A0h] [ebp-210h] BYREF
-  bot_moveresult_t v24; // [esp+D0h] [ebp-1E0h] BYREF
-  bot_moveresult_t v25; // [esp+100h] [ebp-1B0h] BYREF
-  bot_moveresult_t v26; // [esp+130h] [ebp-180h] BYREF
-  bot_moveresult_t v27; // [esp+160h] [ebp-150h] BYREF
-  bot_moveresult_t v28; // [esp+190h] [ebp-120h] BYREF
-  bot_moveresult_t v29; // [esp+1C0h] [ebp-F0h] BYREF
-  bot_moveresult_t v30; // [esp+1F0h] [ebp-C0h] BYREF
-  bot_moveresult_t v31; // [esp+220h] [ebp-90h] BYREF
-  bot_moveresult_t v32; // [esp+250h] [ebp-60h] BYREF
-  bot_moveresult_t v33; // [esp+280h] [ebp-30h] BYREF
+  /* lastreach (IDA v22) is the last-reachability holder at [esp+70h].  Never
+   * address-escaped, so MSVC6 coalesces the hidden struct-return temp of its
+   * by-value AAS_ReachabilityFromNum() assignment with the slot itself (the
+   * ref shows a degenerate self rep-movs there), and the same 48-byte hole
+   * also hosts the hidden bot_moveresult_t return temps of the sequential
+   * BotMoveInGoalArea / first-arm BotTravel_* by-value calls.  The eleven
+   * per-switch-arm hidden temps IDA rendered as explicit locals v23..v33 at
+   * [esp+A0h..280h] are compiler-managed — the original source declared none
+   * of them. */
+  aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
 
   BotClearMoveResult(&moveresult);
   BotResetGrapple(movestate);
@@ -26698,190 +26630,164 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
     return result;
   }
   {
-    v4 = movestate->presencetype;
     movestate->moveflags &= 0xFFFFFFF3;
-    if ( AAS_OnGround(movestate->origin, v4, movestate->entitynum) )
+    if ( AAS_OnGround(movestate->origin, movestate->presencetype, movestate->entitynum) )
       movestate->moveflags |= 2;
     if ( AAS_Swimming(movestate->origin) )
       movestate->moveflags |= 4;
     if ( AAS_AgainstLadder((int *)movestate->origin) )
       movestate->moveflags |= 8;
-   if ( (movestate->moveflags & 0xE) == 0 )
-   {
-     if ( movestate->lastreachnum )
-     {
-       reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
-       moveresult.traveltype = reach.traveltype;
-       switch ( reach.traveltype )
-       {
-        case 2:
-          v16 = BotTravel_Walk(&v31, movestate, &reach);
-           moveresult = *v16; break;
-        case 3:
-        case 0xA:
-          goto LABEL_56;
-        case 4:
-          v16 = BotFinishTravel_BarrierJump(&v32, movestate, &reach);
-           moveresult = *v16; break;
-        case 5:
-          v16 = BotFinishTravel_Jump(&v25, movestate, &reach);
-           moveresult = *v16; break;
-        case 6:
-          v16 = BotTravel_Ladder(&v29, movestate, &reach);
-          moveresult = *v16; break;
-        case 7:
-          v16 = BotFinishTravel_WalkOffLedge(&v27, movestate, &reach);
-          moveresult = *v16; break;
-        case 8:
-LABEL_35:
-          v16 = BotTravel_Swim(&v24, movestate, &reach);
-           moveresult = *v16; break;
-        case 9:
-          v16 = BotFinishTravel_WaterJump(&v28, movestate, &reach);
-           moveresult = *v16; break;
-        case 0xB:
-          v16 = BotFinishTravel_Elevator(&v23, movestate, &reach);
-          moveresult = *v16; break;
-        case 0xC:
-          v16 = BotFinishTravel_WeaponJump(&v30, movestate, &reach);
-          moveresult = *v16; break;
-        case 0xE:
-          v16 = BotTravel_Grapple(&v26, movestate, &reach);
-          moveresult = *v16;
-          break;
-        default:
-          botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", reach.traveltype);
-          break;
-       }
-     }
-     goto LABEL_56;
-   }
-   *(aas_reachability_t *)v22 = AAS_ReachabilityFromNum(movestate->lastreachnum);
-   v8 = BotReachabilityArea((int *)movestate, v22[9] != 11);
-   movestate->areanum = v8;
-   if ( v8 == goal->areanum )
-   {
-     v9 = BotMoveInGoalArea((bot_moveresult_t *)v22, movestate, goal);
-     result = a1;
-     *a1 = *v9;
-     return result;
-   }
-   reachnum = movestate->lastreachnum;
-   if ( !reachnum )
-     goto LABEL_25;
-   reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
-   if ( (travelflags & AAS_TravelFlagForType(reach.traveltype)) == 0 )
-     goto LABEL_25;
-   if ( reach.traveltype == 14 )
-   {
-     if ( AAS_Time() > movestate->reachability_time || (movestate->moveflags & 0x80) != 0 )
-       goto LABEL_25;
+    if ( (movestate->moveflags & 0xE) != 0 )
+    {
+      lastreach = AAS_ReachabilityFromNum(movestate->lastreachnum);
+      v8 = BotReachabilityArea((int *)movestate, lastreach.traveltype != 11);
+      movestate->areanum = v8;
+      if ( v8 == goal->areanum )
+      {
+        *a1 = BotMoveInGoalArea(movestate, goal);
+        return a1;
+      }
+      reachnum = movestate->lastreachnum;
+      if ( reachnum )
+      {
+        reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
+        if ( (travelflags & AAS_TravelFlagForType(reach.traveltype)) != 0 )
+        {
+          if ( reach.traveltype == 14 )
+          {
+            if ( AAS_Time() <= movestate->reachability_time && (movestate->moveflags & 0x80) == 0 )
+              goto LABEL_27;
+          }
+          else if ( reach.traveltype == 11 )
+          {
+            if ( movestate->areanum != reach.areanum && AAS_Time() <= movestate->reachability_time )
+              goto LABEL_27;
+          }
+          else if ( movestate->lastgoalareanum == goal->areanum
+                 && AAS_Time() <= movestate->reachability_time
+                 && movestate->lastareanum == movestate->areanum )
+          {
+            goto LABEL_27;
+          }
+        }
+      }
+      AAS_AreaReachability(movestate->areanum);
+      v12 = BotGetReachabilityToGoal(
+              (intptr_t)movestate->origin,
+              movestate->areanum,
+              movestate->lastgoalareanum,
+              movestate->lastareanum,
+              movestate->entitynum,
+              (intptr_t)movestate->avoidreach,
+              movestate->avoidreachtimes,
+              (intptr_t)movestate->avoidreachtries,
+              (intptr_t)goal,
+              travelflags);
+      reachnum = v12;
+      movestate->reachareanum = movestate->areanum;
+      movestate->jumpreach = 0;
+      movestate->moveflags &= 0xFFFFFF7F;
+      if ( v12 )
+      {
+        reach = AAS_ReachabilityFromNum(v12);
+        v19 = (float)BotReachabilityTime(&reach);
+        movestate->reachability_time = AAS_Time() + v19;
+        BotAddToAvoidReach((intptr_t)movestate, reachnum, 6.0);
+      }
 LABEL_27:
-     v14 = movestate->areanum;
-     movestate->lastreachnum = reachnum;
-     v15 = goal->areanum;
-     movestate->lastareanum = v14;
-     movestate->lastgoalareanum = v15;
-     if ( reachnum )
-     {
-       reach = AAS_ReachabilityFromNum(reachnum);
-       moveresult.traveltype = reach.traveltype;
-       switch ( reach.traveltype )
-       {
-         case 2:
-           v16 = BotTravel_Walk((bot_moveresult_t *)v22, movestate, &reach);
-            moveresult = *v16; break;
-         case 3:
-           v16 = BotTravel_Crouch(&v33, movestate, &reach);
-            moveresult = *v16; break;
-         case 4:
-           v16 = BotTravel_BarrierJump(&v30, movestate, &reach);
-            moveresult = *v16; break;
-         case 5:
-           v16 = BotTravel_Jump(&v28, movestate, &reach);
-            moveresult = *v16; break;
-         case 6:
-           v16 = BotTravel_Ladder(&v26, movestate, &reach);
-           moveresult = *v16; break;
-         case 7:
-           v16 = BotTravel_WalkOffLedge(&v23, movestate, &reach);
-           moveresult = *v16; break;
-         case 8:
-           goto LABEL_35;
-         case 9:
-           v16 = BotTravel_WaterJump(&v25, movestate, &reach);
-            moveresult = *v16; break;
-         case 0xA:
-           v16 = BotTravel_Teleport(&v27, movestate, &reach);
-            moveresult = *v16; break;
-         case 0xB:
-           v16 = BotTravel_Elevator(&v29, movestate, &reach);
-            moveresult = *v16; break;
-         case 0xC:
-           v16 = BotTravel_RocketJump(&v31, movestate, &reach);
-           moveresult = *v16; break;
-         case 0xE:
-           v16 = BotTravel_Grapple(&v32, movestate, &reach);
-           moveresult = *v16; break;
-         default:
-           botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", reach.traveltype);
-           break;
-       }
-     }
-     else
-     {
-       moveresult.failure = 1;
-     }
-LABEL_56:
-     if ( moveresult.blocked )
-       movestate->reachability_time = movestate->reachability_time - movestate->thinktime * 10.0f;
-     v17 = *(int *)&movestate->origin[1];
-     v18 = *(int *)&movestate->origin[2];
-     *(int *)&movestate->lastorigin[0] = *(int *)&movestate->origin[0];
-     *(int *)&movestate->lastorigin[1] = v17;
-     *(int *)&movestate->lastorigin[2] = v18;
-     { result = a1; *a1 = moveresult; return result; }
-   }
-   if ( reach.traveltype == 11 )
-   {
-     if ( movestate->areanum != reach.areanum && AAS_Time() <= movestate->reachability_time )
-       goto LABEL_27;
+      v14 = movestate->areanum;
+      movestate->lastreachnum = reachnum;
+      v15 = goal->areanum;
+      movestate->lastareanum = v14;
+      movestate->lastgoalareanum = v15;
+      if ( reachnum )
+      {
+        reach = AAS_ReachabilityFromNum(reachnum);
+        moveresult.traveltype = reach.traveltype;
+        switch ( reach.traveltype )
+        {
+          case 2:
+            moveresult = BotTravel_Walk(movestate, &reach); break;
+          case 3:
+            moveresult = BotTravel_Crouch(movestate, &reach); break;
+          case 4:
+            moveresult = BotTravel_BarrierJump(movestate, &reach); break;
+          case 6:
+            moveresult = BotTravel_Ladder(movestate, &reach); break;
+          case 7:
+            moveresult = BotTravel_WalkOffLedge(movestate, &reach); break;
+          case 5:
+            moveresult = BotTravel_Jump(movestate, &reach); break;
+          case 8:
+            moveresult = BotTravel_Swim(movestate, &reach); break;
+          case 9:
+            moveresult = BotTravel_WaterJump(movestate, &reach); break;
+          case 0xA:
+            moveresult = BotTravel_Teleport(movestate, &reach); break;
+          case 0xB:
+            moveresult = BotTravel_Elevator(movestate, &reach); break;
+          case 0xE:
+            moveresult = BotTravel_Grapple(movestate, &reach); break;
+          case 0xC:
+            moveresult = BotTravel_RocketJump(movestate, &reach); break;
+          default:
+            botimport.Print(PRT_FATAL, "travel type %d not implemented yet\n", reach.traveltype);
+            break;
+        }
+      }
+      else
+      {
+        moveresult.failure = 1;
+      }
     }
-   else if ( movestate->lastgoalareanum == goal->areanum
-          && AAS_Time() <= movestate->reachability_time
-          && movestate->lastareanum == movestate->areanum )
-   {
-     goto LABEL_27;
-   }
-LABEL_25:
-   AAS_AreaReachability(movestate->areanum);
-   v12 = BotGetReachabilityToGoal(
-           (intptr_t)movestate->origin,
-           movestate->areanum,
-           movestate->lastgoalareanum,
-           movestate->lastareanum,
-           movestate->entitynum,
-           (intptr_t)movestate->avoidreach,
-           movestate->avoidreachtimes,
-           (intptr_t)movestate->avoidreachtries,
-           (intptr_t)goal,
-           travelflags);
-   reachnum = v12;
-   movestate->moveflags &= 0xFFFFFF7F;
-   movestate->reachareanum = movestate->areanum;
-   movestate->jumpreach = 0;
-   if ( v12 )
-   {
-     reach = AAS_ReachabilityFromNum(v12);
-     v19 = (float)BotReachabilityTime(&reach);
-     movestate->reachability_time = AAS_Time() + v19;
-     BotAddToAvoidReach((intptr_t)movestate, reachnum, 6.0);
-   }
-   goto LABEL_27;
- }
- result = a1;
- *a1 = moveresult;
- return result;
+    else
+    {
+      if ( movestate->lastreachnum )
+      {
+        reach = AAS_ReachabilityFromNum(movestate->lastreachnum);
+        moveresult.traveltype = reach.traveltype;
+        switch ( reach.traveltype )
+        {
+          case 2:
+            moveresult = BotTravel_Walk(movestate, &reach); break;
+          case 3:
+          case 0xA:
+            break;
+          case 4:
+            moveresult = BotFinishTravel_BarrierJump(movestate, &reach); break;
+          case 6:
+            moveresult = BotTravel_Ladder(movestate, &reach); break;
+          case 7:
+            moveresult = BotFinishTravel_WalkOffLedge(movestate, &reach); break;
+          case 5:
+            moveresult = BotFinishTravel_Jump(movestate, &reach); break;
+          case 8:
+            moveresult = BotTravel_Swim(movestate, &reach); break;
+          case 9:
+            moveresult = BotFinishTravel_WaterJump(movestate, &reach); break;
+          case 0xB:
+            moveresult = BotFinishTravel_Elevator(movestate, &reach); break;
+          case 0xE:
+            moveresult = BotTravel_Grapple(movestate, &reach); break;
+          case 0xC:
+            moveresult = BotFinishTravel_WeaponJump(movestate, &reach); break;
+          default:
+            botimport.Print(PRT_FATAL, "(last) travel type %d not implemented yet\n", reach.traveltype);
+            break;
+        }
+      }
+    }
+  }
+  if ( moveresult.blocked )
+    movestate->reachability_time = movestate->reachability_time - movestate->thinktime * 10.0f;
+  v17 = *(int *)&movestate->origin[1];
+  v18 = *(int *)&movestate->origin[2];
+  *(int *)&movestate->lastorigin[0] = *(int *)&movestate->origin[0];
+  *(int *)&movestate->lastorigin[1] = v17;
+  *(int *)&movestate->lastorigin[2] = v18;
+  result = a1;
+  *a1 = moveresult;
+  return result;
 }
 
 //----- (10034AF0) --------------------------------------------------------
