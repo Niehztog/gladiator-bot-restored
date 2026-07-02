@@ -656,7 +656,7 @@ void __cdecl BotDumpAvoidGoals(int *goalstate);
 void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
 float __cdecl BotAvoidGoalTime(int *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal);
-int BotUpdateEntityItems();
+void BotUpdateEntityItems(void);
 void __cdecl BotDumpGoalStack(int *goalstate);
 int __cdecl BotPushGoal(int *goalstate, const void *goal);
 int __cdecl BotPopGoal(int *goalstate);
@@ -5216,9 +5216,8 @@ int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
   int presencetype;
   int i, j, nextareanum;
 
-  areanum[cluster] = done;
-  area = (aas_area_t *)((char *)aasworld.areas + 48 * done);
-  cluster++;
+  areanum[cluster++] = done;
+  area = &aasworld.areas[done];
   presencetype = aasworld.areasettings[done].presencetype;
   for ( i = 0; i < area->numfaces; i++ )
   {
@@ -5409,20 +5408,11 @@ int AAS_FindPossiblePortals()
 //----- (100095C0) --------------------------------------------------------
 void AAS_RemoveAllPortals()
 {
-  int result; // eax
-  int i; // ecx
+  int i;
 
-  i = 1;
-  if ( aasworld.numareas > 1 )
+  for ( i = 1; i < aasworld.numareas; i++ )
   {
-    result = 28;
-    do
-    {
-      result += 28;
-      *(_DWORD *)((char *)aasworld.areasettings + result - 28) &= ~8u;
-      ++i;
-    }
-    while ( i < aasworld.numareas );
+    aasworld.areasettings[i].contents &= ~8u;
   }
 }
 
@@ -9273,30 +9263,15 @@ int __cdecl AAS_OptimizeStore(optimized_t *optimized)
 void AAS_Optimize()
 {
   int i; // esi
-  int v1; // edx
-  char *v2; // eax
-  int v3; // ecx
   optimized_t optimized; // [esp+4h] [ebp-3Ch] BYREF (was int[15])
 
   AAS_OptimizeAlloc(&optimized);
   for ( i = 1; i < aasworld.numareas; ++i )
     AAS_OptimizeArea(&optimized, i);
-  v1 = 0;
-  if ( aasworld.reachabilitysize > 0 )
+  for ( i = 0; i < aasworld.reachabilitysize; ++i )
   {
-    v2 = (char *)aasworld.reachability;
-    v3 = 0;
-    do
-    {
-      if ( *(_DWORD *)&v2[v3 + 36] != 11 )
-      {
-        *(_DWORD *)&v2[v3 + 4] = optimized.faceremap[*(_DWORD *)&v2[v3 + 4]];
-        v2 = (char *)aasworld.reachability;
-      }
-      ++v1;
-      v3 += 44;
-    }
-    while ( v1 < aasworld.reachabilitysize );
+    if ( aasworld.reachability[i].traveltype != 11 )
+      aasworld.reachability[i].facenum = optimized.faceremap[aasworld.reachability[i].facenum];
   }
   AAS_OptimizeStore(&optimized);
   botimport.Print(PRT_MESSAGE, "AAS data optimized.\n");
@@ -21933,18 +21908,13 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   int pass;                       /* IDA v4 */
   source_t *src;                  /* IDA v5 / v16 */
   source_t *v16;
-  qboolean tooMany;                   /* IDA v7 */
-  int *ctxStackTop;               /* IDA v8 = ctxStack[level-1] addr */
-  qboolean ctxNegative;               /* IDA v9 */
   bot_synonym_t *lastsynonym;     /* IDA v10 */
   bot_synonymlist_t *syn;         /* IDA v11/v25 */
   bot_synonym_t *synonym;         /* IDA v12/v23 */
   char *stringStorage;            /* IDA v13 */
-  double weightval;               /* IDA v14 */
   int context;                    /* IDA v17 */
   int sizeAccum;                  /* IDA v18 */
   int level;                      /* IDA v19 */
-  int *ctxStackP;                 /* IDA v20 */
   int numsynonyms;                /* IDA v22 */
   bot_synonymlist_t *lastsyn;     /* IDA v24 */
   bot_synonymlist_t *synlist;     /* IDA v26 — head, returned */
@@ -21995,16 +21965,14 @@ LABEL_45:
       return synlist;
     }
   }
-  ctxStackP = contextstack;
   while ( 1 )
   {
     if ( token.type == 3 )
     {
       context |= token.intvalue;
-      *ctxStackP = token.intvalue;
-      tooMany = ++level < 32;
-      ++ctxStackP;
-      if ( !tooMany )
+      contextstack[level] = token.intvalue;
+      ++level;
+      if ( level >= 32 )
       {
         SourceError(src, "more than 32 context levels");
         FreeSource(src);
@@ -22018,16 +21986,14 @@ LABEL_45:
       goto LABEL_43;
     if ( strcmp(token.string, "}") )
       break;
-    ctxStackTop = ctxStackP - 1;
-    ctxNegative = --level < 0;
-    --ctxStackP;
-    if ( ctxNegative )
+    --level;
+    if ( level < 0 )
     {
       SourceError(v16, "too many }");
       FreeSource(v16);
       return 0;
     }
-    context &= ~*ctxStackTop;
+    context &= ~contextstack[level];
 LABEL_42:
     src = v16;
 LABEL_43:
@@ -22063,7 +22029,7 @@ LABEL_43:
       StripDoubleQuotes(token.string);
       if ( !strlen(token.string) )
       {
-        SourceError(v16, "empty string");
+        SourceError(v16, "empty string", token.string);
         goto LABEL_58;
       }
       sizeAccum += sizeof(bot_synonym_t) + strlen(token.string) + 1;
@@ -22090,9 +22056,8 @@ LABEL_43:
       }
       if ( pass )
       {
-        weightval = token.floatvalue;
         synonym->weight = token.floatvalue;
-        syn->totalweight = (float)(weightval + syn->totalweight);
+        syn->totalweight += synonym->weight;
       }
       if ( PC_CheckTokenString(src, "]") )
       {
@@ -24640,17 +24605,15 @@ notfound:
 }
 
 //----- (1002FA20) --------------------------------------------------------
-int BotUpdateEntityItems()
+void BotUpdateEntityItems(void)
 {
   levelitem_t *v0;
   levelitem_t *nextli;
-  int result; // eax
   int ent; // ebp
   int v4; // ebx
   levelitem_t *li;
   int v7; // eax
   int v11; // ecx
-  iteminfo_t *item;
   levelitem_t *v13;
   int v16; // eax
   itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
@@ -24674,14 +24637,12 @@ int BotUpdateEntityItems()
     }
     while ( nextli );
   }
-  result = (int)(intptr_t)itemconfig;
   ic = itemconfig;
   if ( !itemconfig )
-    goto done;
-  result = AAS_NextBSPEntity(0);
-  ent = result;
-  if ( !result )
-    goto done;
+    return;
+  ent = AAS_NextBSPEntity(0);
+  if ( !ent )
+    return;
   v4 = v19;
   do
   {
@@ -24733,20 +24694,10 @@ LABEL_23:
 LABEL_24:
 LABEL_25:
       v11 = ic->numitems;
-      v4 = 0;
-      if ( ic->numitems > 0 )
+      for ( v4 = 0; v4 < v11; ++v4 )
       {
-        item = ic->items;
-        while ( 1 )
-        {
-          if ( item->modelindex == modelindex )
-            break;
-          ++v4;
-          ++item;
-          if ( v4 < v11 )
-            continue;
+        if ( ic->items[v4].modelindex == modelindex )
           break;
-        }
       }
       if ( v4 < v11 )
       {
@@ -24768,15 +24719,9 @@ LABEL_25:
       }
     }
 LABEL_31:
-    result = AAS_NextBSPEntity(ent);
-    ent = result;
+    ent = AAS_NextBSPEntity(ent);
   }
-  while ( result );
-done:
-  /* The two pre-loop guards (no itemconfig / no first entity) share this single
-   * return tail in the original (ref: je → here); inlining `return result;` at
-   * each emits two epilogue copies. */
-  return result;
+  while ( ent );
 }
 
 //----- (1002FD40) --------------------------------------------------------
@@ -26688,9 +26633,9 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   int areanum; // eax
   bot_moveresult_t *result; // eax
   double v17; // [esp+Ch] [ebp-54h]
-  float v18; // [esp+10h] [ebp-50h]
-  float v19; // [esp+14h] [ebp-4Ch]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* IDA split a vec3 stack local — see BotTravel_Walk note.  org[1]/org[2]
+   * appeared as scalar temps v18/v19 (org[0] lives only on the x87 stack). */
+  vec3_t org; // [esp+14h] [ebp-4Ch] BYREF (was v18/v19)
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
   vec3_t viewdir; // [esp+24h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
@@ -26710,11 +26655,9 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
   }
   if ( (v3 & 0x40) != 0 )
   {
-    v5 = GrappleState(ms, reach);
-    v6 = reach->end[0] - ms->origin[0];
-    state = v5;
+    state = GrappleState(ms, reach);
     dir[2] = 0.0f;
-    dir[0] = v6;
+    dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
     dist = VectorLength(dir);
     if ( state )
@@ -26727,7 +26670,8 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
           ms->reachability_time = 0;
           ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
         }
-        goto LABEL_8;
+        ms->lastgrappledist = dist;
+        { result = a1; *a1 = moveresult; return result; }
       }
       if ( state != 2 || ms->lastgrappledist - 2.0f >= dist )
       {
@@ -26739,12 +26683,11 @@ bot_moveresult_t *__cdecl BotTravel_Grapple(bot_moveresult_t *a1, bot_movestate_
     v17 = ms->grapplevisible_time;
     if ( AAS_Time() - 0.4 <= v17 )
     {
-LABEL_8:
       ms->lastgrappledist = dist;
       { result = a1; *a1 = moveresult; return result; }
     }
     EA_Command(ms->client, "hookoff", (char *)0);
-    ms->moveflags = ms->moveflags & 0xFFFFFF3F | 0x80;
+    ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
 LABEL_26:
     ms->reachability_time = 0;
     { result = a1; *a1 = moveresult; return result; }
@@ -26755,11 +26698,12 @@ LABEL_26:
   VectorSubtract(reach->start, ms->origin, dir);
   if ( (v11 & 4) == 0 )
     dir[2] = 0.0f;
-  v18 = ms->viewoffset[1] + ms->origin[1];
-  v19 = ms->viewoffset[2] + ms->origin[2];
-  viewdir[0] = reach->end[0] - (ms->viewoffset[0] + ms->origin[0]);
-  viewdir[1] = reach->end[1] - v18;
-  viewdir[2] = reach->end[2] - v19;
+  org[0] = ms->viewoffset[0] + ms->origin[0];
+  org[1] = ms->viewoffset[1] + ms->origin[1];
+  org[2] = ms->viewoffset[2] + ms->origin[2];
+  viewdir[0] = reach->end[0] - org[0];
+  viewdir[1] = reach->end[1] - org[1];
+  viewdir[2] = reach->end[2] - org[2];
   v26 = VectorNormalize(dir);
   vectoangles(viewdir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
