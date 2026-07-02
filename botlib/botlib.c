@@ -19635,25 +19635,19 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v12; // eax
   float v13; // st7
   int v14; // ax
-  double v15; // st7
   float v16; // st7
-  int v17; // eax
   int v18; // ebx
   void *v19; // edi (chatstate pointer)
   int v24; // ax
-  double v25; // st7
   float v26; // st7
   int v27; // eax
   int v28; // esi
   int v31; // ax
-  double v32; // st7
   float v33; // st7
   float v34; // st7
   int v35; // ax
-  double v36; // st7
   float v37; // st7
   int v38; // ax
-  double v39; // st7
   float v40; // st7
   int v41; // ebx
   bot_waypoint_t *v42; // eax
