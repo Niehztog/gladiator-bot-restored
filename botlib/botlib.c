@@ -321,8 +321,8 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
-int __cdecl sub_10003C90(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
-int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
+int __cdecl CM_TraceThroughBrush(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
+int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
 int __cdecl sub_100056D0(_DWORD *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
@@ -2208,7 +2208,16 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
 }
 
 //----- (10003C90) --------------------------------------------------------
-int __cdecl sub_10003C90(
+/* Named from Q3 engine cognate CM_TraceThroughBrush (code/qcommon/cm_trace.c)
+ * — Mr. Elusive was a Q3 engine programmer at id Software, not just the bot
+ * AI author, so this is same-author evidence like bspc, not a different
+ * corpus. Same shape: iterate a brush's sides, expand each plane by the
+ * trace box's mins/maxs, track the enter/leave fraction along start->end.
+ * Gladiator's Q2-only version lacks Q3's later capsule/sphere-collision
+ * additions (Q3 evolved after Gladiator's 1999 snapshot — algorithm
+ * divergence expected, per fidelity_first_principle; only the naming and
+ * per-brush-clip structure carry over). Called from CM_TraceThroughLeaf. */
+int __cdecl CM_TraceThroughBrush(
         _DWORD *a1,
         float *a2,
         float *a3,
@@ -2446,7 +2455,13 @@ LABEL_30:
 }
 
 //----- (10004310) --------------------------------------------------------
-int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
+/* Named from Q3 engine cognate CM_TraceThroughLeaf (code/qcommon/cm_trace.c)
+ * — same same-author reasoning as CM_TraceThroughBrush above. Same shape:
+ * iterate the leaf's brushes via leafbrushes[firstleafbrush+k], skip on
+ * content-mask mismatch, dispatch each surviving brush to
+ * CM_TraceThroughBrush. Gladiator has no patch/curve surfaces (a later Q3
+ * BSP feature), so it lacks Q3's second leafsurfaces loop. */
+int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v9; // ebp
   /* v11: BSP leaf pointer for leaf `a1`. */
@@ -2455,8 +2470,8 @@ int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start
   int v16; // ecx
   /* v17: BSP plane pointer for the hit brush side. */
   dplane_t *v17;
-  float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by sub_10003C90
-  vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by sub_10003C90 via a11
+  float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by CM_TraceThroughBrush
+  vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by CM_TraceThroughBrush via a11
   int sidenum; // [esp+20h] [ebp+0h]
   _DWORD *v24; // [esp+24h] [ebp+4h]
 
@@ -2473,7 +2488,7 @@ int __cdecl sub_10004310(int leafnum, vec3_t origin, vec3_t angles, vec3_t start
     v13 = (_DWORD *)(dbrushes
                    + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
     if ( (v13[2] & contentmask) != 0
-      && sub_10003C90(v13, origin, angles, (int *)start, (int *)boxmins, (intptr_t)boxmaxs, (int *)end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
+      && CM_TraceThroughBrush(v13, origin, angles, (int *)start, (int *)boxmins, (intptr_t)boxmaxs, (int *)end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
       v24 = v13;
     }
@@ -2761,7 +2776,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v29 = -1 - v28;
           v30 = &dleafs[v29];
           if ( v30->numleafbrushes && (v30->contents & contentmask) != 0 )
-            sub_10004310(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
+            CM_TraceThroughLeaf(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
           if ( dword_10069584[v29] )
             sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
         }
@@ -4420,7 +4435,7 @@ int Q2_SwapBSPFile(void)
      * every brush's planenum at map-load time.  On x86 the garbage stack
      * value happens to land within the plane array most runs but
      * intermittently corrupts a planenum to e.g. 25667, which then drives
-     * sub_10003C90 into an OOB plane pointer dereference during
+     * CM_TraceThroughBrush into an OOB plane pointer dereference during
      * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
      * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
      * the LittleShort round-trip (identity on little-endian). */
