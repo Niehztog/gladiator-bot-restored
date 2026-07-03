@@ -16763,8 +16763,7 @@ void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
-  int v2; // esi
-  int v9; // [esp+Ch] [ebp-B4h]
+  int tfl; // esi
   vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
   vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
   float goal[14]; // [esp+28h] [ebp-98h] BYREF
@@ -16807,18 +16806,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  v2 = 102334;
-  v9 = 102334;
+  tfl = 102334;
   if ( libvar_usehook->value != 0.0f )
-  {
-    v9 = 118718;
-    v2 = 118718;
-  }
+    tfl = 118718;
   if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-  {
-    v2 |= 0x1000u;
-    v9 = v2;
-  }
+    tfl |= 0x1000u;
   *(int *)&goal[10] = bs->enemy;
   *(int *)&goal[3] = bs->lastenemyareanum;
   goal[0] = bs->lastenemyorigin[0];
@@ -16844,7 +16836,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->check_time
     && (bs->check_time = AAS_Time() + 1.0f,
-        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, (bot_goal_t *)goal, 500.0)) )
+        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, tfl, (bot_goal_t *)goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
     BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -16856,7 +16848,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     BotUpdateBattleInventory(bs, bs->enemy);
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, tfl);
     if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -16871,7 +16863,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     }
     else
     {
-      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v9, (float *)(intptr_t)target) )
+      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, tfl, (float *)(intptr_t)target) )
       {
         VectorSubtract(target, bs->origin, dir);
         vectoangles(dir, bs->ideal_viewangles);
