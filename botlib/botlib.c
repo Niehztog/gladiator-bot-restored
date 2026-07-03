@@ -28145,22 +28145,24 @@ void __cdecl sub_100376B0(char *String1, __int16 a2)
     {
       result = _strcmpi(v4->name, v5->name);
       if ( result < 0 )
-      {
-        v4->next = v5;
-        if ( v6 )
-          v6->next = v4;
-        else
-          dword_10063F2C = v4;
-        { (void)(result); return; }
-      }
+        break;
       v6 = v5;
       v5 = v5->next;
       if ( !v5 )
-        break;
+      {
+        if ( !v6 )
+          goto LABEL_14;
+        v6->next = v4;
+        v4->next = NULL;
+        { (void)(result); return; }
+      }
     }
-    if ( !v6 )
-      goto LABEL_14;
-    v6->next = v4;
+    v4->next = v5;
+    if ( v6 )
+      v6->next = v4;
+    else
+      dword_10063F2C = v4;
+    { (void)(result); return; }
   }
   else
   {
