@@ -4009,7 +4009,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   float *v9; // ebp
   float v10; // st7
   float v11; // st6
-  unsigned __int16 v14; // ax
+  int v14; // eax
   int v15; // ebx
   __int16 *v16; // edi
   texinfo_t *v17; // esi
@@ -4020,9 +4020,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v22; // ecx
   int v24; // esi
   int v25; // edx
-  float v26; // ecx
-  float v27; // edx
-  float v28; // ecx
   int v29; // ebx
   int v30; // ebp
   int v31; // ecx
@@ -4095,15 +4092,12 @@ sample_lightmap:
   v25 = v45->lightofs;
   if ( v25 < 0 )
   {
-    v26 = mid[0];
-    v27 = mid[1];
     *a5 = 0;
     a5[1] = 0;
     a5[2] = 0;
-    *a4 = v26;
-    v28 = mid[2];
-    a4[1] = v27;
-    a4[2] = v28;
+    a4[0] = mid[0];
+    a4[1] = mid[1];
+    a4[2] = mid[2];
     return 1;
   }
   v30 = 0;
