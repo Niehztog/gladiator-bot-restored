@@ -464,7 +464,7 @@ void AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 int AAS_InitRoutingUpdate();
 void AAS_InitRouting(void);
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
+void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
@@ -13166,7 +13166,7 @@ static void sub_10019570(void)
  * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
  * everything with byte arithmetic on the int-typed globals.  Field
  * accesses now go through the typed structs; semantics preserved. */
-aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
+void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 {
   /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
   int                  travelmask;       /* v26 */
@@ -13187,7 +13187,6 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *area
   unsigned short       oldtt;            /* v19 */
   int                  cache_cluster;    /* *(a1+4) */
   unsigned short      *cache_traveltimes;
-  float                cache_starttt;
   int                  cache_areanum;
 
   ++numareacacheupdates;
@@ -13199,7 +13198,6 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *area
 
   travelmask        = ~areacache->travelflags;
   cache_cluster     = areacache->cluster;
-  cache_starttt     = areacache->starttraveltime;
   cache_areanum     = areacache->areanum;
   cache_traveltimes = (unsigned short *)(areacache + 1);
 
@@ -13207,7 +13205,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *area
   cur              = &aasworld.areaupdate[startareanum];
   cur->areanum         = startareanum;
   cur->areatraveltimes = aasworld.areatraveltimes[startareanum][0];
-  cur->tmptraveltime   = (unsigned short)(__int64)cache_starttt;
+  cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
 
   destcluster = settings_base[startareanum].cluster;
   if ( destcluster <= 0 )
@@ -13219,7 +13217,7 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *area
   {
     destclusterareanum = settings_base[startareanum].clusterareanum;
   }
-  cache_traveltimes[destclusterareanum] = (unsigned short)(__int64)cache_starttt;
+  cache_traveltimes[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
 
   cur->next = NULL;
   cur->prev = NULL;
@@ -13294,7 +13292,6 @@ aas_routingupdate_t *__cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *area
       ++linkidx;
     }
   }
-  return cur;
 }
 
 //----- (10019A90) --------------------------------------------------------
@@ -16898,7 +16895,6 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
   float v4; // st7
   float attack_skill; // captured BFloat dodge probability (IDA dropped the fstps)
-  int v7; // [esp+Ch] [ebp-178h]
   vec3_t dir; // [esp+14h] [ebp-170h] BYREF
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
@@ -16932,12 +16928,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     return 0;
   }
   v2 = 102334;
-  v7 = 102334;
   if ( libvar_usehook->value != 0.0f )
-  {
-    v7 = 118718;
-    v2 = 118718;
-  }
+    v2 |= 0x4000;
   BotUpdateBattleInventory(bs, bs->enemy);
   if ( BotWantsToChase((int *)bs) )
   {
@@ -17004,7 +16996,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
           }
           else
           {
-            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v7, (float *)(intptr_t)target) )
+            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
             {
               VectorSubtract(target, bs->origin, dir);
               vectoangles(dir, bs->ideal_viewangles);
@@ -20157,7 +20149,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       v4 = strstr(v3->message, ":");
       if ( v4 )
       {
-        v5 = v4 - v3->message;
+        v5 = v4 - (char *)v3;
         if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
         {
           BotRemoveConsoleMessage(v2, v3);
@@ -20178,11 +20170,10 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       {
         if ( BotValidChatPosition(v1) )
         {
-          Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
+          v11 = Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
           v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
           if ( 1.5 / (float)(NumBots() + 1) > v13 )
           {
-            v11 = v7;
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
             {
               v8 = strstr(v3->message, ":");
