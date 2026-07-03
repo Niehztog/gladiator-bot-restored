@@ -26078,18 +26078,13 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
     {
       dist = dist2;
-      v13 = telegoaldir[2];
-      final[0] = telegoaldir[0];
-      final[1] = telegoaldir[1];
+      VectorCopy(telegoaldir, final);
     }
     else
     {
       dist = *(float *)&dist1;
-      v13 = reachdir[2];
-      final[0] = reachdir[0];
-      final[1] = reachdir[1];
+      VectorCopy(reachdir, final);
     }
-    final[2] = v13;
     BotCheckBlocked(ms, final, &moveresult);
     if ( dist > 60.0f )
       dist = 60.0f;
