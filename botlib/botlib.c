@@ -11497,7 +11497,6 @@ int AAS_Reachability_Teleport()
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
   vec3_t origin; // [ebp-84h] BYREF — teleport entrance origin (VectorForBSPEpairKey output)
-  bsp_entity_t *v25; // [esp+58h] [ebp-78h]
   bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for AAS_FreeBSPEntities
   const char *v27; // [esp+60h] [ebp-70h]
   vec3_t end; // [esp+64h] [ebp-6Ch] BYREF
@@ -11510,7 +11509,6 @@ int AAS_Reachability_Teleport()
   if ( v0 )
   {
     v26 = v0;
-    v25 = v0;
     while ( 1 )
     {
       classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
@@ -11606,12 +11604,10 @@ int AAS_Reachability_Teleport()
         }
       }
       AAS_UnlinkFromAreas(areas);
-      ent = v25;
 cont:
-      v25 = ent->next;
-      if ( !v25 )
+      ent = ent->next;
+      if ( !ent )
         break;
-      ent = v25;
     }
     v0 = v26;
   }
@@ -24567,7 +24563,6 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
 //----- (10030260) --------------------------------------------------------
 int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
-  int result; // eax
   BOOL v8; // eax
   int v9; // esi
   levelitem_t *li; // esi (was v10)
@@ -24595,27 +24590,22 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
   if ( !p0 )
     return 0;
   v8 = AAS_Swimming(origin);
-  result = BotReachabilityArea(origin, !v8);
-  v9 = result;
-  areanum = result;
-  if ( result )
+  areanum = BotReachabilityArea(origin, !v8);
+  v9 = areanum;
+  if ( !areanum )
+    return 0;
+  if ( !AAS_AreaReachability(areanum) )
+    return 0;
+  ltg_time = ltg ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags) : 99999;
+  ic = itemconfig;
+  if ( !ic )
+    return 0;
+  li = levelitems;
+  bestweight = 0.0;
+  bestitem = 0;
+  memset(goal, 0, sizeof(goal));
+  for ( ; li; li = li->next )
   {
-    result = AAS_AreaReachability(result);
-    if ( result )
-    {
-      ltg_time = ltg ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags) : 99999;
-      ic = itemconfig;
-      result = (int)(intptr_t)itemconfig;
-      if ( ic )
-      {
-        li = levelitems;
-        bestweight = 0.0;
-        bestitem = 0;
-        memset(goal, 0, sizeof(goal));
-        if ( !li )
-          return 0;
-        do
-        {
           if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
           {
             v11 = li->areanum;
@@ -24669,26 +24659,17 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
               }
             }
           }
-          li = li->next;
-        }
-        while ( li );
-        if ( bestitem )
-        {
-          avoidtime = ic->items[bestitem->iteminfo].respawntime;
-          if ( avoidtime == 0.0f )
-            avoidtime = 30.0f;
-          BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
-          BotPushGoal(goalstate, goal);
-          return 1;
-        }
-        else
-        {
-          return 0;
-        }
-      }
-    }
   }
-  return result;
+  if ( bestitem )
+  {
+    avoidtime = ic->items[bestitem->iteminfo].respawntime;
+    if ( avoidtime == 0.0f )
+      avoidtime = 30.0f;
+    BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
+    BotPushGoal(goalstate, goal);
+    return 1;
+  }
+  return 0;
 }
 
 //----- (10030600) --------------------------------------------------------
