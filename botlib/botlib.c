@@ -2255,8 +2255,6 @@ int __cdecl CM_TraceThroughBrush(
   float v19; // st7
   float v20; // st6
   float v22; // st5
-  unsigned __int8 v23; // c0
-  unsigned __int8 v24; // c3
   float v25; // st5
   float v29; // st7
   float v30; // st7
@@ -2368,7 +2366,7 @@ int __cdecl CM_TraceThroughBrush(
 LABEL_30:
         v20 = v19 + v38;
         v22 = startp[v17];
-        if ( v23 | v24 )
+        if ( normal[v17] <= 0.0f )
         {
           v35 = -v22 - v20;
           v25 = -endp[v17];
@@ -2661,7 +2659,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v101; // ecx
   float v102; // ebx
   int v103; // edx
-  int v105; // [esp+0h] [ebp-1558h] BYREF
   vec3_t v106; // [esp+10h] [ebp-1548h] BYREF — current piece start
   float v109; // [esp+1Ch] [ebp-153Ch]
   float v110; // [esp+20h] [ebp-1538h]
@@ -8659,8 +8656,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
           {
             velchange = (float)phys_maxacceleration;
           }
-          *(float *)&v50 = (float)(velchange + (float)(*(float *)velp));
-          *velp = SLODWORD(v50);
+          *(float *)velp = *(float *)&v50 = (float)(velchange + (float)(*(float *)velp));
           if ( (float)(*(float *)&v50) <= maxvel )
           {
             if ( (float)(*(float *)&v50) < -maxvel )
@@ -11672,7 +11668,6 @@ void AAS_Reachability_Elevator()
   int p; // ecx
   int *v20; // eax
   int *lreach; // esi
-  int v22; // edx
   float v23; // st7 (was double)
   int v24; // rax (was __int64)
   float v25; // st7 (was double)
@@ -11696,11 +11691,8 @@ void AAS_Reachability_Elevator()
   vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
   int k;
   vec3_t toporg;        /* was v57/v58/v59 — VectorMA midpoint output (top) */
-  int v60;
   vec3_t btmorg;        /* was v61/v62/v63 — VectorMA midpoint output (bottom) */
   vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
-  int v66;
-  bsp_entity_t *v67;
   float start[3];         /* [BYREF] */
   float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
   float end[3];         /* [BYREF] */
@@ -11716,7 +11708,6 @@ void AAS_Reachability_Elevator()
   angles[2] = 0;
   v0 = AAS_ParseBSPEntities();
   ent = v0;
-  v67 = v0;
   v50 = v0;
   if ( v0 )
   {
@@ -11741,7 +11732,6 @@ LABEL_58:
       goto LABEL_58;
     }
     modelnum = atoi(model + 1);
-    v66 = modelnum;
     if ( modelnum <= 0 )
     {
       botimport.Print(PRT_ERROR, "func_plat with invalid model number\n");
@@ -11775,9 +11765,11 @@ LABEL_58:
     sumvec[2] = maxs[2] + mins[2];
     VectorMA(extent, 0.5f, sumvec, btmorg);
     btmorg[2] = maxs[2] + 2.0f;
-    mins[0] -= 1.0f; maxs[0] += 1.0f;
-    mins[1] -= 1.0f; maxs[1] += 1.0f;
-    mins[2] -= 1.0f; maxs[2] += 1.0f;
+    for ( i = 0; i < 3; ++i )
+    {
+      mins[i] -= 1.0f;
+      maxs[i] += 1.0f;
+    }
     sumvec[0] = maxs[0] + mins[0];
     sumvec[1] = maxs[1] + mins[1];
     sumvec[2] = maxs[2] + mins[2];
@@ -11799,7 +11791,6 @@ LABEL_58:
     *(float *)&yvals[5] = maxs[1];
     *(float *)&yvals[6] = mins[1];
     *(float *)&yvals[7] = mins[1];
-    v60 = 0;
     /* IDA's `while (v10 >= 32)` IS correct.  Disasm at 0x10016470 is
      * `cmp v10,0x20; jge 0x10016513`: at v10 < 32 fall through runs the
      * "origin+grid[v10]" path (which IDA placed after the while), then
@@ -11821,9 +11812,11 @@ LABEL_58:
 LABEL_30:
         for ( i = 0; i < 3; ++i )
         {
-          mins[0] -= 4.0f; maxs[0] += 4.0f;
-          mins[1] -= 4.0f; maxs[1] += 4.0f;
-          mins[2] -= 4.0f; maxs[2] += 4.0f;
+          for ( k = 0; k < 3; ++k )
+          {
+            mins[k] -= 4.0f;
+            maxs[k] += 4.0f;
+          }
           *(float *)&xvals_top[0] = mins[0];
           *(float *)&xvals_top[1] = sumvec[0];
           *(float *)&xvals_top[3] = sumvec[0];
@@ -11889,10 +11882,9 @@ LABEL_30:
               lreach = v20;
               if ( v20 )
               {
-                v22 = v66;
                 *v20 = area2num;
                 v23 = height;
-                v20[1] = v22;
+                v20[1] = modelnum;
                 v24 = (int)v23;
                 v25 = height * 100.0f;
                 lreach[2] = v24;
@@ -11917,15 +11909,12 @@ LABEL_53:
             v15 = k + 4;
           }
         }
-        v10 = v60;
         ent = v50;
       }
 LABEL_56:
       v10 += 4;
-      v60 = v10;
       if ( v10 >= 36 )
       {
-        v0 = v67;
         goto LABEL_58;
       }
     }
@@ -12046,7 +12035,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
             v37 = facecenter[2] - areastart[2];
             hordist = VectorLength(dir);
             v36 = hordist;
-            if ( hordist != 0.0f && v36 <= 2000.0f && tan(0.2617993877991494f) <= v37 / v36 )
+            if ( hordist != 0.0f && v36 <= 2000.0f && tan(0.2617993877991494) <= v37 / v36 )
             {
               VectorCopy(facecenter, start);
               /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
@@ -12521,8 +12510,10 @@ LABEL_27:
               if ( v21 > 0 )
               {
                 v24 = &aasworld.edgeindex[*((_DWORD *)face3 + 3)];
-                while ( abs(*v24) != v45 )
+                for ( ; ; )
                 {
+                  if ( abs(*v24) == v45 )
+                    break;
                   ++m;
                   ++v24;
                   if ( m >= v21 )
@@ -18146,7 +18137,11 @@ bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
           movetype = 4;
         }
       }
-      if ( AAS_Time() >= bs->attackcrouch_time )
+      if ( AAS_Time() < bs->attackcrouch_time )
+      {
+        movetype = 2;
+      }
+      else
       {
         if ( movetype == 4 )
         {
@@ -18162,10 +18157,6 @@ bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
           }
           bs->flags = v13;
         }
-      }
-      else
-      {
-        movetype = 2;
       }
       if ( attack_skill <= 0.4 )
       {
@@ -18216,8 +18207,8 @@ LABEL_37:
         {
           v19 = bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
-          ++i;
           bs->flags = v19 ^ 1;
+          ++i;
           if ( i < 2 )
             continue;
         }
@@ -19043,10 +19034,10 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     goto LABEL_37;
   v5 = BotEntityToActivate(v77[3]);
   v6 = v5;
-  if ( v5 )
-    v7 = (const char *)AAS_ValueForBSPEpairKey(v5, "classname");
-  else
+  if ( !v5 )
     v7 = &byte_1006294C;
+  else
+    v7 = (const char *)AAS_ValueForBSPEpairKey(v5, "classname");
   if ( !strcmp(v7, "func_door_secret") || !strcmp(v7, "func_door") )
   {
     v28 = AAS_ValueForBSPEpairKey(v6, "model");
@@ -19078,6 +19069,8 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, "lip");
     v56_vec[0] = 0;
+    v56_vec[1] = FloatForKey(v6, "angle");
+    v56_vec[2] = 0;
     BotSetMovedir(v56_vec, v50);
     VectorSubtract(v41_vec, v44_vec, v69_vec);
     VectorAdd(v44_vec, v41_vec, v59_vec);
@@ -25996,7 +25989,6 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   float v5; // st7
   float v6; // st7
   char v7; // al
-  float v8; // st7
   char v9; // al
   char v11; // al
   float dist2; // st7
@@ -26054,69 +26046,66 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
     if ( (v7 & 4) == 0 )
       reachdir[2] = 0.0f;
     *(float *)&dist1 = VectorNormalize(reachdir);
-    if ( MoverDown(reach) )
+    if ( !MoverDown(reach) )
     {
-      MoverBottomCenter(reach, telegoal);
-      v11 = ms->moveflags;
-      VectorSubtract(telegoal, ms->origin, telegoaldir);
-      if ( (v11 & 4) == 0 )
-        telegoaldir[2] = 0.0f;
-      dist2 = VectorNormalize(telegoaldir);
-      if ( *(float *)&dist1 < 20.0f
-        || dist2 < *(float *)&dist1
-        || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
-      {
-        dist = dist2;
-        v13 = telegoaldir[2];
-        final[0] = telegoaldir[0];
-        final[1] = telegoaldir[1];
-      }
-      else
-      {
-        dist = *(float *)&dist1;
-        v13 = reachdir[2];
-        final[0] = reachdir[0];
-        final[1] = reachdir[1];
-      }
-      final[2] = v13;
+      dist = *(float *)&dist1;
+      VectorCopy(reachdir, final);
       BotCheckBlocked(ms, final, &moveresult);
       if ( dist > 60.0f )
         dist = 60.0f;
-      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) )
-      {
-        v18 = 400.0f - (400.0f - dist * 6.0f);
-        EA_Move(ms->client, final, v18);
-      }
-      moveresult.movedir[0] = final[0];
-      v14 = ms->moveflags;
-      moveresult.movedir[1] = final[1];
-      moveresult.movedir[2] = final[2];
-      if ( (v14 & 4) != 0 )
-      {
-        moveresult.flags |= 2;
-      }
-    }
-    else
-    {
-      VectorCopy(reachdir, final);
-      BotCheckBlocked(ms, final, &moveresult);
-      if ( *(float *)&dist1 <= 60.0f )
-        v8 = *(float *)&dist1;
-      else
-        v8 = 60.0f;
-      v36 = 360.0f - (360.0f - v8 * 6.0f);
+      v36 = 360.0f - (360.0f - dist * 6.0f);
       if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) && v36 > 5.0f )
         EA_Move(ms->client, final, v36);
-      moveresult.movedir[2] = final[2];
-      v9 = ms->moveflags;
       moveresult.movedir[0] = final[0];
       moveresult.movedir[1] = final[1];
+      moveresult.movedir[2] = final[2];
+      v9 = ms->moveflags;
       if ( (v9 & 4) != 0 )
       {
         moveresult.flags |= 2;
       }
       moveresult.type = 1;
       moveresult.flags |= 4u;
+      return moveresult;
+    }
+    MoverBottomCenter(reach, telegoal);
+    v11 = ms->moveflags;
+    VectorSubtract(telegoal, ms->origin, telegoaldir);
+    if ( (v11 & 4) == 0 )
+      telegoaldir[2] = 0.0f;
+    dist2 = VectorNormalize(telegoaldir);
+    if ( *(float *)&dist1 < 20.0f
+      || dist2 < *(float *)&dist1
+      || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
+    {
+      dist = dist2;
+      v13 = telegoaldir[2];
+      final[0] = telegoaldir[0];
+      final[1] = telegoaldir[1];
+    }
+    else
+    {
+      dist = *(float *)&dist1;
+      v13 = reachdir[2];
+      final[0] = reachdir[0];
+      final[1] = reachdir[1];
+    }
+    final[2] = v13;
+    BotCheckBlocked(ms, final, &moveresult);
+    if ( dist > 60.0f )
+      dist = 60.0f;
+    if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) )
+    {
+      v18 = 400.0f - (400.0f - dist * 6.0f);
+      EA_Move(ms->client, final, v18);
+    }
+    moveresult.movedir[0] = final[0];
+    moveresult.movedir[1] = final[1];
+    moveresult.movedir[2] = final[2];
+    v14 = ms->moveflags;
+    if ( (v14 & 4) != 0 )
+    {
+      moveresult.flags |= 2;
     }
   }
   return moveresult;
@@ -30410,31 +30399,6 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
   {
     switch ( t->type )
     {
-      case 3:
-        if ( lastwasvalue )
-          goto LABEL_71;
-        v13 = GetClearedMemory(sizeof(value_t));
-        if ( negativevalue )
-        {
-          v13->intvalue = -(int)t->intvalue;
-          v13->floatvalue = -t->floatvalue;
-        }
-        else
-        {
-          v13->intvalue = (int)t->intvalue;
-          v13->floatvalue = t->floatvalue;
-        }
-        v13->parentheses = parentheses;
-        v13->next = 0;
-        v13->prev = lastvalue;
-        if ( lastvalue )
-          lastvalue->next = v13;
-        else
-          firstvalue = v13;
-        lastvalue = v13;
-        lastwasvalue = 1;
-        negativevalue = 0;
-        break;
       case 4:
         if ( lastwasvalue || v7 )
         {
@@ -30489,6 +30453,31 @@ LABEL_71:
         brace = 0;
         lastwasvalue = 1;
         break;
+      case 3:
+        if ( lastwasvalue )
+          goto LABEL_71;
+        v13 = GetClearedMemory(sizeof(value_t));
+        if ( negativevalue )
+        {
+          v13->intvalue = -(int)t->intvalue;
+          v13->floatvalue = -t->floatvalue;
+        }
+        else
+        {
+          v13->intvalue = (int)t->intvalue;
+          v13->floatvalue = t->floatvalue;
+        }
+        v13->parentheses = parentheses;
+        v13->next = 0;
+        v13->prev = lastvalue;
+        if ( lastvalue )
+          lastvalue->next = v13;
+        else
+          firstvalue = v13;
+        lastvalue = v13;
+        lastwasvalue = 1;
+        negativevalue = 0;
+        break;
       case 5:
         if ( v7 )
         {
@@ -30519,6 +30508,18 @@ LABEL_71:
           }
           switch ( v10 )
           {
+            case 35:
+            case 36:
+              if ( lastwasvalue )
+              {
+                SourceError(source, "! or ~ after value in #if/#elif");
+                goto LABEL_76;
+              }
+              goto LABEL_29;
+            case 30:
+              if ( !lastwasvalue )
+                negativevalue = 1;
+              goto LABEL_29;
             case 5:
             case 6:
             case 7:
@@ -30542,17 +30543,6 @@ LABEL_71:
                 goto LABEL_29;
               SourceError(source, "operator %s after operator in #if/#elif", t);
               goto LABEL_76;
-            case 30:
-              if ( !lastwasvalue )
-                negativevalue = 1;
-              goto LABEL_29;
-            case 35:
-            case 36:
-              if ( lastwasvalue )
-              {
-                SourceError(source, "! or ~ after value in #if/#elif");
-                goto LABEL_76;
-              }
 LABEL_29:
               if ( !negativevalue )
               {
