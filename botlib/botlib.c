@@ -11118,6 +11118,8 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   char *v83; // [esp+54h] [ebp-C4h]
   int ladderface2num; // [esp+58h] [ebp-C0h]
   char *v85; // [esp+5Ch] [ebp-BCh] (was int — aas_area_t * stash)
+  int absladderface1num;
+  int absladderface2num;
   vec3_t lowestpoint; // [esp+60h] [ebp-B8h] BYREF — v86/v87/v88 collapsed
   int v89; // [esp+6Ch] [ebp-ACh]
   float bestface2area; // [esp+70h] [ebp-A8h]
@@ -11243,6 +11245,8 @@ area2 = v85;
         {
           if ( ladderface2 )
           {
+            absladderface1num = abs(ladderface1num);
+            absladderface2num = abs(ladderface2num);
             v21 = abs(sharededgenum);
             sharededge = &aasworld.edges[v21];
             firstv = sharededgenum < 0;
@@ -11285,7 +11289,7 @@ area2 = v85;
                 v33 = v32;
                 if ( v32 )
                 {
-                  v34 = abs(ladderface1num);
+                  v34 = absladderface1num;
                   v32->reach.areanum = area2num;
                   v32->reach.facenum = v34;
                   v32->reach.edgenum = v21;
@@ -11302,7 +11306,7 @@ area2 = v85;
                   v36 = v35;
                   if ( v35 )
                   {
-                    v37 = abs(ladderface2num);
+                    v37 = absladderface2num;
                     v35->reach.areanum = area1num;
                     v35->reach.facenum = v37;
                     v35->reach.edgenum = v21;
@@ -11325,7 +11329,7 @@ area2 = v85;
                 v40 = v39;
                 if ( v39 )
                 {
-                  v41 = abs(ladderface1num);
+                  v41 = absladderface1num;
                   v39->reach.areanum = area2num;
                   v39->reach.facenum = v41;
                   v39->reach.edgenum = v21;
@@ -11345,7 +11349,7 @@ area2 = v85;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
                   {
-                    v43 = abs(ladderface2num);
+                    v43 = absladderface2num;
                     v42->reach.areanum = area1num;
                     v42->reach.facenum = v43;
                     v42->reach.edgenum = v21;
@@ -11430,7 +11434,7 @@ area2 = v85;
                   v59 = AAS_AllocReachability();
                   if ( v59 )
                   {
-                    v60 = abs(ladderface1num);
+                    v60 = absladderface1num;
                     v59->reach.areanum = v53;
                     v59->reach.facenum = v60;
                     v59->reach.edgenum = v66;
@@ -11448,7 +11452,7 @@ area2 = v85;
                     lreach = AAS_AllocReachability();
                     if ( lreach )
                     {
-                      v62 = abs(ladderface1num);
+                      v62 = absladderface1num;
                       lreach->reach.areanum = area1num;
                       lreach->reach.facenum = v62;
                       lreach->reach.edgenum = v66;
