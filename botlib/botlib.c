@@ -4286,11 +4286,9 @@ int sub_10007460(void)
   float *v18; // edi
   int v22; // ebp
   dnode_t *v23; // esi
-  _WORD *v29; // edi
   int v30; // ebx
   int v37; // ebp
   dleaf_t *v38; // esi
-  _WORD *v44; // edi
   int v45; // ebx
   int n; // esi
   int ii; // esi
@@ -4373,16 +4371,11 @@ int sub_10007460(void)
     v23->planenum = LittleLong(v23->planenum);
     v23->children[0] = LittleLong(v23->children[0]);
     v23->children[1] = LittleLong(v23->children[1]);
-    v29 = (unsigned short *)v23->maxs;
-    v30 = 3;
-    do
+    for ( v30 = 0; v30 < 3; ++v30 )
     {
-      *(v29 - 3) = LittleShort(*(v29 - 3));
-      *v29 = LittleShort(*v29);
-      ++v29;
-      --v30;
+      v23->mins[v30] = LittleShort(v23->mins[v30]);
+      v23->maxs[v30] = LittleShort(v23->maxs[v30]);
     }
-    while ( v30 );
     v23->firstface = LittleShort(v23->firstface);
     v23->numfaces = LittleShort(v23->numfaces);
     HIWORD(a1) = HIWORD(numnodes);
@@ -4395,16 +4388,11 @@ int sub_10007460(void)
     v38->contents = LittleLong(v38->contents);
     v38->cluster = LittleShort(v38->cluster);
     v38->area = LittleShort(v38->area);
-    v44 = (unsigned short *)v38->maxs;
-    v45 = 3;
-    do
+    for ( v45 = 0; v45 < 3; ++v45 )
     {
-      *(v44 - 3) = LittleShort(*(v44 - 3));
-      *v44 = LittleShort(*v44);
-      ++v44;
-      --v45;
+      v38->mins[v45] = LittleShort(v38->mins[v45]);
+      v38->maxs[v45] = LittleShort(v38->maxs[v45]);
     }
-    while ( v45 );
     v38->firstleafface = LittleShort(v38->firstleafface);
     v38->numleaffaces = LittleShort(v38->numleaffaces);
     v38->firstleafbrush = LittleShort(v38->firstleafbrush);
@@ -8185,6 +8173,7 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   aas_trace_t trace;
   vec3_t end;
   aas_plane_t *plane;
+  float steepness;
 
   end[0] = origin[0];
   end[1] = origin[1];
@@ -8197,7 +8186,8 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   if ( trace.fraction >= 1.0 ) return 0;
   if ( origin[2] - trace.endpos[2] > 2.0f ) return 0;
   plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
-  if ( plane->normal[2] < libvar_sv_maxsteepness->value ) return 0;
+  steepness = plane->normal[2];
+  if ( steepness < libvar_sv_maxsteepness->value ) return 0;
   return 1;
 }
 
@@ -14647,9 +14637,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   vec_t *v2;
   aas_edge_t *edge;
   aas_plane_t *plane;
-  float pointvec0;
-  float pointvec1;
-  float pointvec2;
+  vec3_t pointvec;
   vec3_t edgevec;
   vec3_t sepnormal;
   aas_face_t *face;
@@ -14670,12 +14658,12 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       v1 = aasworld.vertexes[edge->v[firstvertex]];
       v2 = aasworld.vertexes[edge->v[!firstvertex]];
       VectorSubtract(v2, v1, edgevec);
-      pointvec0 = point[0] - v1[0];
-      pointvec1 = point[1] - v1[1];
-      pointvec2 = point[2] - v1[2];
+      pointvec[0] = point[0] - v1[0];
+      pointvec[1] = point[1] - v1[1];
+      pointvec[2] = point[2] - v1[2];
       CrossProduct(edgevec, plane->normal, sepnormal);
       minsep = -epsilon;
-      if ( sepnormal[2] * pointvec2 + sepnormal[1] * pointvec1 + sepnormal[0] * pointvec0 < minsep )
+      if ( sepnormal[2] * pointvec[2] + sepnormal[1] * pointvec[1] + sepnormal[0] * pointvec[0] < minsep )
         break;
       if ( ++i >= face->numedges )
         return 1;
@@ -18754,8 +18742,9 @@ LABEL_39:
             break;
         }
         v2 = v2->next;
-        if ( !v2 )
-          goto LABEL_26;
+        if ( v2 )
+          continue;
+        goto LABEL_26;
       }
       *v10 = v2->next;
       if ( v2 )
