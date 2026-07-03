@@ -1990,10 +1990,10 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.yaw[1][1] = mats.yaw[0][0];
 
   /* pitch matrix (rotation around Y) */
-  mats.m[0][2] = -(float)sin(angles[0] * DEG2RAD);
-  mats.m[2][0] = -mats.m[0][2];
   mats.m[0][0] = (float)cos(angles[0] * DEG2RAD);
+  mats.m[0][2] = -(float)sin(angles[0] * DEG2RAD);
   mats.m[2][2] = mats.m[0][0];
+  mats.m[2][0] = -mats.m[0][2];
 
   /* tmp = pitch_m * yaw_m.  ref computes the roll angle and roll matrix only
      AFTER this call (3rd fmul DEG2RAD at 0x10003599 follows the call at
@@ -4076,7 +4076,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v11 = *a3 * v8->normal[0] + a3[1] * v8->normal[1] + a3[2] * v8->normal[2] - v8->dist;
   }
   side = v10 < 0.0f;
-  if ( (v11 < 0.0f) == side )
+  if ( side == (v11 < 0.0f) )
     return sub_10006D10(v6->children[side], a2, a3, a4, a5);
   mid[0] = (*a3 - *a2) * (v10 / (v10 - v11)) + *a2;
   mid[1] = (a3[1] - a2[1]) * (v10 / (v10 - v11)) + a2[1];
@@ -4459,8 +4459,8 @@ int Q2_SwapBSPFile(void)
     {
       *(_DWORD *)(v63 + dbrushes) = LittleLong(*(int *)(v63 + dbrushes));
       *(_DWORD *)(v63 + dbrushes + 4) = LittleLong(*(int *)(v63 + dbrushes + 4));
-      ++v62;
       *(_DWORD *)(v63 + dbrushes + 8) = LittleLong(*(int *)(v63 + dbrushes + 8));
+      ++v62;
       v63 += 12;
     }
     while ( v62 < numbrushes );
@@ -13194,7 +13194,6 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 {
   /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
   int                  travelmask;       /* v26 */
-  int                  startareanum;
   aas_routingupdate_t *cur;              /* v25 */
   aas_routingupdate_t *tail;             /* v21 */
   aas_routingupdate_t *head;             /* v24 */
@@ -13209,9 +13208,6 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   int                  contents, presencemask;
   unsigned short       newtt;            /* v17 */
   unsigned short       oldtt;            /* v19 */
-  int                  cache_cluster;    /* *(a1+4) */
-  unsigned short      *cache_traveltimes;
-  int                  cache_areanum;
 
   ++numareacacheupdates;
   ++aasworld.frameroutingupdates;
@@ -13221,27 +13217,23 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   reach_base      = (aas_reachability_t *)aasworld.reachability;
 
   travelmask        = ~areacache->travelflags;
-  cache_cluster     = areacache->cluster;
-  cache_areanum     = areacache->areanum;
-  cache_traveltimes = (unsigned short *)(areacache + 1);
 
-  startareanum     = cache_areanum;
-  cur              = &aasworld.areaupdate[startareanum];
-  cur->areanum         = startareanum;
-  cur->areatraveltimes = aasworld.areatraveltimes[startareanum][0];
+  cur              = &aasworld.areaupdate[areacache->areanum];
+  cur->areanum         = areacache->areanum;
+  cur->areatraveltimes = aasworld.areatraveltimes[areacache->areanum][0];
   cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
 
-  destcluster = settings_base[startareanum].cluster;
+  destcluster = settings_base[areacache->areanum].cluster;
   if ( destcluster <= 0 )
   {
     aas_portal_t *p = &((aas_portal_t *)aasworld.portals)[-destcluster];
-    destclusterareanum = p->clusterareanum[p->frontcluster != cache_cluster];
+    destclusterareanum = p->clusterareanum[p->frontcluster != areacache->cluster];
   }
   else
   {
-    destclusterareanum = settings_base[startareanum].clusterareanum;
+    destclusterareanum = settings_base[areacache->areanum].clusterareanum;
   }
-  cache_traveltimes[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
+  ((unsigned short *)(areacache + 1))[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
 
   cur->next = NULL;
   cur->prev = NULL;
@@ -13274,7 +13266,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
         {
           srcareanum  = link->areanum;
           destcluster = settings_base[srcareanum].cluster;
-          if ( destcluster <= 0 || destcluster == cache_cluster )
+          if ( destcluster <= 0 || destcluster == areacache->cluster )
           {
             newtt = cur->tmptraveltime
                   + reach->traveltime
@@ -13282,16 +13274,16 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
             if ( destcluster <= 0 )
             {
               aas_portal_t *p = &((aas_portal_t *)aasworld.portals)[-destcluster];
-              destclusterareanum = p->clusterareanum[p->frontcluster != cache_cluster];
+              destclusterareanum = p->clusterareanum[p->frontcluster != areacache->cluster];
             }
             else
             {
               destclusterareanum = settings_base[srcareanum].clusterareanum;
             }
-            oldtt = cache_traveltimes[destclusterareanum];
+            oldtt = ((unsigned short *)(areacache + 1))[destclusterareanum];
             if ( !oldtt || oldtt > newtt )
             {
-              cache_traveltimes[destclusterareanum] = newtt;
+              ((unsigned short *)(areacache + 1))[destclusterareanum] = newtt;
               upd = &aasworld.areaupdate[srcareanum];
               upd->areanum         = srcareanum;
               upd->tmptraveltime   = newtt;
@@ -20172,15 +20164,17 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
     if ( v3->type == 1 )
     {
       v4 = strstr(v3->message, ":");
-      if ( v4 )
+      if ( !v4 )
       {
-        v5 = v4 - (char *)v3;
-        if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
-        {
-          BotRemoveConsoleMessage(v2, v3);
-          v1 = a1;
-          continue;
-        }
+        BotRemoveConsoleMessage(v2, v3);
+        continue;
+      }
+      v5 = v4 - (char *)v3;
+      if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
+      {
+        BotRemoveConsoleMessage(v2, v3);
+        v1 = a1;
+        continue;
       }
     }
     UnifyWhiteSpaces(v3->message);
@@ -24655,7 +24649,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
                 if ( weight > 0.0f )
                 {
                   t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v11, travelflags);
-                  if ( t )
+                  if ( t > 0 )
                   {
                     v15 = (float)t;
                     if ( v15 < maxtime )
