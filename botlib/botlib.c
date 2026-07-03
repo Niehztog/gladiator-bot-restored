@@ -2020,6 +2020,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float *v29; // eax
   float *v30; // edx
   int v31; // esi
+  int *planeints;
   float v32; // st7
   float v33; // st7
   float v35; // st7
@@ -2083,12 +2084,15 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       trace->fraction = 0.0f;
       trace->contents = 0;
       trace->sidenum = -1;
-      ((int *)&trace->plane.normal[0])[0] = 0;
-      ((int *)&trace->plane.normal[0])[1] = 0;
-      ((int *)&trace->plane.normal[0])[2] = 0;
-      ((int *)&trace->plane.normal[0])[3] = 0;
-      *(int *)&trace->plane.type = 0;
-      VectorCopy(start, trace->endpos);
+      planeints = (int *)&trace->plane.normal[0];
+      planeints[0] = 0;
+      planeints[1] = 0;
+      planeints[2] = 0;
+      planeints[3] = 0;
+      planeints[4] = 0;
+      trace->endpos[0] = start[0];
+      trace->endpos[1] = start[1];
+      trace->endpos[2] = start[2];
       return 1;
     }
   }
@@ -2096,10 +2100,10 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   VectorSubtract(end, start, v40);
   while ( 1 )
   {
-    if ( v40[v15] <= 0.0f )
-      v16 = v44[v15];
-    else
+    if ( v40[v15] > 0.0f )
       v16 = v41[v15];
+    else
+      v16 = v44[v15];
     v17 = start[v15] - v16;
     v18 = v15 + 1;
     v19 = v15 + 1;
@@ -2126,60 +2130,60 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
 LABEL_40:
   if ( v15 == 3 || v39 >= trace->fraction )
     return 0;
-  if ( entdata.solid != 2 )
+  if ( entdata.solid == 2 )
   {
-    if ( entdata.solid == 3 )
+    trace->fraction = v39;
+    trace->sidenum = -1;
+    trace->startsolid = 0;
+    trace->allsolid = 0;
+    trace->ent = entnum;
+    if ( boxmins && boxmaxs )
     {
-      modeltrace = AAS_TraceBSPModel(entdata.modelnum, entdata.origin, entdata.angles, start, boxmins, boxmaxs, end, 0, contentmask);
-      if ( modeltrace.fraction < trace->fraction )
-      {
-        memcpy(trace, &modeltrace, sizeof(modeltrace));
-        return 1;
-      }
+      if ( v40[v15] > 0.0f )
+        trace->exp_dist = boxmaxs[v15];
+      else
+        trace->exp_dist = -boxmins[v15];
     }
-    return 0;
-  }
-  trace->fraction = v39;
-  trace->sidenum = -1;
-  trace->startsolid = 0;
-  trace->allsolid = 0;
-  trace->ent = entnum;
-  if ( boxmins && boxmaxs )
-  {
-    if ( v40[v15] <= 0.0f )
-      trace->exp_dist = -boxmins[v15];
+    /* Equivalent to trace->endpos[n] = start[n] + v39 * v40[n] for n=0..2,
+     * but kept as the original parallel pointer walk without byte-addressing vec3_t. */
+    v29 = start;
+    v30 = v40;
+    i = trace->endpos;
+    v31 = 3;
+    do
+    {
+      v32 = v39 * *v30;
+      ++v29;
+      ++v30;
+      --v31;
+      *i++ = v32 + *(v29 - 1);
+    }
+    while ( v31 );
+    v33 = v40[v15];
+    trace->plane.normal[(v15 + 1) % 3] = 0.0f;
+    trace->plane.normal[(v15 + 2) % 3] = 0.0f;
+    if ( v33 > 0.0f )
+      trace->plane.normal[v15] = -1.0f;
     else
-      trace->exp_dist = boxmaxs[v15];
+      trace->plane.normal[v15] = 1.0f;
+    v35 = trace->endpos[v15];
+    if ( v40[v15] > 0.0f )
+      v35 = -v35;
+    v38 = v35 - trace->exp_dist;
+    trace->plane.type = (byte)v15;
+    trace->plane.dist = v38;
+    return 1;
   }
-  /* Equivalent to trace->endpos[n] = start[n] + v39 * v40[n] for n=0..2,
-   * but kept as the original parallel pointer walk without byte-addressing vec3_t. */
-  v29 = start;
-  v30 = v40;
-  i = trace->endpos;
-  v31 = 3;
-  do
+  if ( entdata.solid == 3 )
   {
-    v32 = v39 * *v30;
-    ++v29;
-    ++v30;
-    --v31;
-    *i++ = v32 + *(v29 - 1);
+    modeltrace = AAS_TraceBSPModel(entdata.modelnum, entdata.origin, entdata.angles, start, boxmins, boxmaxs, end, 0, contentmask);
+    if ( modeltrace.fraction < trace->fraction )
+    {
+      memcpy(trace, &modeltrace, sizeof(modeltrace));
+      return 1;
+    }
   }
-  while ( v31 );
-  v33 = v40[v15];
-  trace->plane.normal[(v15 + 1) % 3] = 0.0f;
-  trace->plane.normal[(v15 + 2) % 3] = 0.0f;
-  if ( v33 <= 0.0f )
-    trace->plane.normal[v15] = 1.0f;
-  else
-    trace->plane.normal[v15] = -1.0f;
-  v35 = trace->endpos[v15];
-  if ( v40[v15] > 0.0f )
-    v35 = -v35;
-  v38 = v35 - trace->exp_dist;
-  trace->plane.type = (byte)v15;
-  trace->plane.dist = v38;
-  return 1;
+  return 0;
 }
 // 100037F3: conditional instruction was optimized away because edx.4<3
 
@@ -4014,7 +4018,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v20; // ecx
   int v21; // eax
   int v22; // ecx
-  qboolean v23; // cc
   int v24; // esi
   int v25; // edx
   float v26; // ecx
@@ -4051,8 +4054,8 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   }
   else
   {
-    v10 = a2[2] * v8->normal[2] + a2[1] * v8->normal[1] + v8->normal[0] * *a2 - v8->dist;
-    v11 = a3[2] * v8->normal[2] + a3[1] * v8->normal[1] + v8->normal[0] * *a3 - v8->dist;
+    v10 = *a2 * v8->normal[0] + a2[1] * v8->normal[1] + a2[2] * v8->normal[2] - v8->dist;
+    v11 = *a3 * v8->normal[0] + a3[1] * v8->normal[1] + a3[2] * v8->normal[2] - v8->dist;
   }
   side = v10 < 0.0f;
   if ( (v11 < 0.0f) == side )
@@ -4067,9 +4070,7 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v15 = v6->numfaces;
   v45 = &dfaces[v14];
   v16 = (__int16 *)(dword_10067558 + 8 * v14);
-  if ( v15 <= 0 )
-    return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
-  while ( 1 )
+  for ( ; v39 < v15; ++v39, ++v45, v16 += 4 )
   {
     v17 = &texinfo[v45->texinfo];
     v18 = (int)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
@@ -4082,52 +4083,17 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
         v21 = v19 - v16[1];
         v22 = v18 - v20;
         if ( v22 <= v16[2] && v21 <= v16[3] )
-          break;
+          goto sample_lightmap;
       }
     }
-    v16 += 4;
-    v23 = ++v39 < v15;
-    ++v45;
-    if ( !v23 )
-    {
-      v6 = v40;
-      v9 = a3;
-      return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
-    }
   }
+  v6 = v40;
+  v9 = a3;
+  return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
+sample_lightmap:
   v24 = 0;
   v25 = v45->lightofs;
-  if ( v25 >= 0 )
-  {
-    v30 = 0;
-    v29 = (v16[2] >> 4) + 1;
-    v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
-    v32 = 0;
-    v33 = (unsigned __int8 *)(dlightdata + v31);
-    v34 = 0;
-    for ( i = 0; i < 4; ++i )
-    {
-      if ( v45->styles[v34] == 0xFF )
-        break;
-      v32 += 264 * *v33;
-      v24 += 264 * v33[1];
-      v30 += 264 * v33[2];
-      v35 = ((v16[2] >> 4) + 1) * ((v16[3] >> 4) + 1);
-      v33 += 2 * v35 + v35;
-      v34 = i + 1;
-    }
-    v36 = mid[1];
-    *a5 = v32 >> 8;
-    v37 = mid[0];
-    a5[1] = v24 >> 8;
-    a5[2] = v30 >> 8;
-    *a4 = v37;
-    v38 = mid[2];
-    a4[1] = v36;
-    a4[2] = v38;
-    return 1;
-  }
-  else
+  if ( v25 < 0 )
   {
     v26 = mid[0];
     v27 = mid[1];
@@ -4140,6 +4106,33 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     a4[2] = v28;
     return 1;
   }
+  v30 = 0;
+  v29 = (v16[2] >> 4) + 1;
+  v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
+  v32 = 0;
+  v33 = (unsigned __int8 *)(dlightdata + v31);
+  v34 = 0;
+  for ( i = 0; i < 4; ++i )
+  {
+    if ( v45->styles[v34] == 0xFF )
+      break;
+    v32 += 264 * *v33;
+    v24 += 264 * v33[1];
+    v30 += 264 * v33[2];
+    v35 = ((v16[2] >> 4) + 1) * ((v16[3] >> 4) + 1);
+    v33 += 2 * v35 + v35;
+    v34 = i + 1;
+  }
+  v36 = mid[1];
+  *a5 = v32 >> 8;
+  v37 = mid[0];
+  a5[1] = v24 >> 8;
+  a5[2] = v30 >> 8;
+  *a4 = v37;
+  v38 = mid[2];
+  a4[1] = v36;
+  a4[2] = v38;
+  return 1;
 }
 
 //----- (10007150) --------------------------------------------------------
