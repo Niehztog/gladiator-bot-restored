@@ -14127,7 +14127,9 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   {
     node = &aasworld.nodes[nodenum];
     plane = &aasworld.planes[node->planenum];
-    dist = DotProduct(point, plane->normal) - plane->dist;
+    dist = point[2] * plane->normal[2];
+    dist = dist + point[1] * plane->normal[1];
+    dist = dist + point[0] * plane->normal[0] - plane->dist;
     if ( dist > 0.0f )
       nodenum = node->children[0];
     else
