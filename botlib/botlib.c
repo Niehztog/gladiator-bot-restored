@@ -16979,8 +16979,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     {
       v4 = AAS_Time();
       if ( v4 > bs->check_time
-        && (v4 = AAS_Time() + 1.0f,
-            bs->check_time = v4,
+        && (bs->check_time = AAS_Time() + 1.0f,
             BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -24003,6 +24002,12 @@ int InitLevelItemHeap()
     FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
   levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
+  if ( max_levelitems - 2 <= 0 )
+  {
+    levelitemheap[max_levelitems - 1].next = NULL;
+    freelevelitems = levelitemheap;
+    return (int)(intptr_t)levelitemheap;
+  }
   for ( i = 0; i < max_levelitems - 2; ++i )
     levelitemheap[i].next = &levelitemheap[i + 1];
   levelitemheap[max_levelitems - 1].next = NULL;
