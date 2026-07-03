@@ -342,7 +342,7 @@ void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
 void sub_100071E0();
-int sub_10007460(void);
+int Q2_SwapBSPFile(void);
 int AAS_DumpBSPData();
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
 int sub_100085F0();
@@ -4264,8 +4264,14 @@ void sub_100071E0()
  * caller (AAS_LoadBSPFile@10007d30, call@100083e9) sets up no ecx, leaving it
  * leftover garbage — i.e. the original source called this with no argument.
  * Dropping the phantom arg makes AAS_LoadBSPFile byte-identical (no spurious
- * `mov ecx,[esp+...]` arg load at the call site). */
-int sub_10007460(void)
+ * `mov ecx,[esp+...]` arg load at the call site).
+ *
+ * Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c (Mr. Elusive's
+ * same-author, same-era Q2 BSP-lump byteswap-on-load routine) — same-shape
+ * texinfo/dvis/dplanes/dnodes/dleafs/dmodels lump walk, differing only in
+ * that bspc's version also handles the reverse (to-disk) direction via a
+ * `todisk` flag, which this runtime-load-only DLL doesn't need. */
+int Q2_SwapBSPFile(void)
 {
   int v1; // ebp
   int v2; // ebx
@@ -4465,7 +4471,7 @@ int sub_10007460(void)
   }
   return result;
 }
-// 1000775A: sub_10007460 brushsides loop — IDA dropped the LittleShort
+// 1000775A: Q2_SwapBSPFile brushsides loop — IDA dropped the LittleShort
 //            call+return chain; fixed by writing v57 (read planenum) back.
 //            See note inside the function.
 
@@ -4838,7 +4844,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   if ( !dbrushsides )
     return BLERR_CANNOTREADBSPLUMP;
   numbrushsides = v72 >> 2;
-  sub_10007460();
+  Q2_SwapBSPFile();
   dword_100674C0 = 1;
   fclose(v4);
   sub_100071E0();
