@@ -19529,24 +19529,32 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   {
     BotMatchVariable(match, 1, addressedto);
     botname = ClientName(*(_DWORD *)((char *)bs + 4));
-    result = BotFindMatch(addressedto, &addresseematch, 32);
-    if ( !result )
-      return result;
-    while ( addresseematch.type != 101 )
+    while ( BotFindMatch(addressedto, &addresseematch, 32) )
     {
-      if ( addresseematch.type != 102 )
+      if ( addresseematch.type == 101 )
+      {
+        return 1;
+      }
+      if ( addresseematch.type == 102 )
       {
         BotMatchVariable(&addresseematch, 3, name);
-        return StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0);
+        if ( StringContains(botname, name, 0) )
+          return 1;
+        if ( StringContains((const char *)((char *)bs + 4352), name, 0) )
+          return 1;
+        BotMatchVariable(&addresseematch, 5, addressedto);
       }
-      BotMatchVariable(&addresseematch, 3, name);
-      if ( StringContains(botname, name, 0) || StringContains((const char *)((char *)bs + 4352), name, 0) )
-        return 1;
-      BotMatchVariable(&addresseematch, 5, addressedto);
-      result = BotFindMatch(addressedto, &addresseematch, 32);
-      if ( !result )
-        return result;
+      else
+      {
+        BotMatchVariable(&addresseematch, 3, name);
+        if ( StringContains(botname, name, 0) )
+          return 1;
+        if ( StringContains((const char *)((char *)bs + 4352), name, 0) )
+          return 1;
+        break;
+      }
     }
+    return 0;
   }
   else
   {
