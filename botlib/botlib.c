@@ -9929,6 +9929,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
   float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
   float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
+  vec3_t edgev1; // canonical Q3 edge endpoint locals
+  vec3_t edgev2;
+  vec3_t edgev3;
+  vec3_t edgev4;
+  vec3_t tmpv;
+  vec3_t p1area1;
+  vec3_t p2area1;
+  vec3_t p1area2;
+  vec3_t p2area2;
   /* Original MSVC layout: int testpoint[2] @ ebp-60h + float v142 @ ebp-58h were a
    * contiguous vec3 used as VectorMA destination and trace point for
    * AAS_PointAreaNum.  GCC won't pack int[2] adjacent to a separate float, so
@@ -9993,22 +10002,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                   side1 = side1 == faceside1;
                 v13 = abs(edge1num);
                 edge1 = &aasworld.edges[v13];
-                v15 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * (side1 == 0)]]);
-                v69 = *v15;
-                v16 = v15[1];
-                v71 = *((int *)v15 + 2);
-                v17 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge1[4 * side1]]);
-                *(float *)&v70 = v16;
-                v75 = *v17;
-                v76 = v17[1];
-                v77 = v17[2];
-                edgevec[0] = *v17 - v69;
-                edgevec[1] = v76 - v16;
-                edgevec[2] = v77 - *(float *)&v71;
+                VectorCopy(aasworld.vertexes[((aas_edge_t *)edge1)->v[!side1]], edgev1);
+                VectorCopy(aasworld.vertexes[((aas_edge_t *)edge1)->v[side1]], edgev2);
+                VectorSubtract(edgev2, edgev1, edgevec);
                 CrossProduct(edgevec, up, normal);
                 VectorNormalize(normal);
                 v18 = 0;
-                dist = normal[2] * *(float *)&v71 + normal[1] * *(float *)&v70 + normal[0] * v69;
+                dist = DotProduct(normal, edgev1);
                 if ( ((aas_area_t *)area2)->numfaces > 0 )
                 {
                   v19 = area2;
@@ -10022,79 +10022,47 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                       {
                         edge2num = aasworld.edgeindex[j + ((aas_face_t *)groundface2)->firstedge];
                         edge2 = &aasworld.edges[abs(edge2num)];
-                        v23p = &aasworld.vertexes[*edge2];
-                        v78 = *(float *)v23p;
-                        v79 = *(int *)(v23p + 4);
-                        v80 = *(float *)(v23p + 8);
-                        v23p = &aasworld.vertexes[edge2[1]];
-                        v72 = *(float *)v23p;
-                        v74 = *(float *)(v23p + 8);
-                        v73 = *(float *)(v23p + 4);
-                        v25 = (float)v80 * (float)normal[2]
-                            + (float)*(float *)&v79 * (float)normal[1]
-                            + (float)v78 * (float)normal[0]
-                            - (float)dist;
-                        if ( v25 >= -0.1 && v25 <= 0.1 )
+                        VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[0]], edgev3);
+                        VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[1]], edgev4);
+                        v25 = DotProduct(normal, edgev3) - dist;
+                        if ( v25 >= -0.1f && v25 <= 0.1f )
                         {
-                          v26 = (float)v74 * (float)normal[2]
-                              + (float)v73 * (float)normal[1]
-                              + (float)v72 * (float)normal[0]
-                              - (float)dist;
-                          if ( v26 >= -0.1 && v26 <= 0.1 )
+                          v25 = DotProduct(normal, edgev4) - dist;
+                          if ( v25 >= -0.1f && v25 <= 0.1f )
                           {
                             CrossProduct(up, normal, ort);
-                            y3 = v80;
-                            y1 = *(float *)&v71;
-                            y2 = v77;
-                            ortdot = (float)v99 * (float)v99
-                                + (float)v98 * (float)v98
-                                + (float)v97 * (float)v97;
-                            y4 = v74;
-                            x1 = ((float)v99 * (float)*(float *)&v71
-                                 + (float)v98 * (float)*(float *)&v70
-                                 + (float)v97 * (float)v69) / ortdot;
-                            x2 = ((float)v99 * (float)v77
-                                 + (float)v98 * (float)v76
-                                 + (float)v97 * (float)v75) / ortdot;
-                            x3 = ((float)v99 * (float)v80
-                                 + (float)v98 * (float)*(float *)&v79
-                                 + (float)v97 * (float)v78) / ortdot;
-                            x4 = ((float)v99 * (float)v74
-                                 + (float)v98 * (float)v73
-                                 + (float)v97 * (float)v72) / ortdot;
+                            ortdot = DotProduct(ort, ort);
+                            y1 = edgev1[2];
+                            y2 = edgev2[2];
+                            y3 = edgev3[2];
+                            y4 = edgev4[2];
+                            x1 = DotProduct(edgev1, ort) / ortdot;
+                            x2 = DotProduct(edgev2, ort) / ortdot;
+                            x3 = DotProduct(edgev3, ort) / ortdot;
+                            x4 = DotProduct(edgev4, ort) / ortdot;
                             if ( x1 > (float)x2 )
                             {
                               v28 = x1;
                               x1 = x2;
-                              y1 = v77;
                               x2 = v28;
-                              v29 = v69;
-                              y2 = *(float *)&v71;
-                              v69 = v75;
-                              v30 = *(float *)&v70;
-                              *(float *)&v70 = v76;
-                              v31 = *(float *)&v71;
-                              *(float *)&v71 = v77;
-                              v75 = v29;
-                              v76 = v30;
-                              v77 = v31;
+                              v28 = y1;
+                              y1 = y2;
+                              y2 = v28;
+                              VectorCopy(edgev1, tmpv);
+                              VectorCopy(edgev2, edgev1);
+                              VectorCopy(tmpv, edgev2);
                             }
                             if ( x3 > (float)x4 )
                             {
-                              v32 = x3;
+                              v28 = x3;
                               x3 = x4;
-                              y3 = v74;
-                              x4 = v32;
-                              v33 = v78;
-                              y4 = v80;
-                              v78 = v72;
-                              v34 = *(float *)&v79;
-                              *(float *)&v79 = v73;
-                              v35 = v80;
-                              v80 = v74;
-                              v72 = v33;
-                              v73 = v34;
-                              v74 = v35;
+                              x4 = v28;
+                              v28 = y3;
+                              y3 = y4;
+                              y4 = v28;
+                              VectorCopy(edgev3, tmpv);
+                              VectorCopy(edgev4, edgev3);
+                              VectorCopy(tmpv, edgev4);
                             }
                             if ( x2 > (float)x3 && x4 > (float)x1 )
                             {
@@ -10104,18 +10072,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               {
                                 dist1 = y3 - y1;
                                 dist2 = y4 - y2;
-                                *(float *)&v107 = v69;
-                                v108 = *(float *)&v70;
-                                v109 = *(float *)&v71;
-                                *(float *)&v104 = v75;
-                                v105 = v76;
-                                v106 = v77;
-                                *(float *)&v87 = v78;
-                                v88 = *(float *)&v79;
-                                v89 = v80;
-                                *(float *)&v84 = v72;
-                                v85 = v73;
-                                v86 = v74;
+                                VectorCopy(edgev1, p1area1);
+                                VectorCopy(edgev2, p2area1);
+                                VectorCopy(edgev3, p1area2);
+                                VectorCopy(edgev4, p2area2);
                               }
                               else
                               {
@@ -10123,72 +10083,47 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 if ( x1 > x3 - 0.1 && x1 < x3 + 0.1 )
                                 {
                                   dist1 = y3 - y1;
-                                  *(float *)&v107 = v69;
-                                  v108 = *(float *)&v70;
-                                  v109 = *(float *)&v71;
-                                  *(float *)&v87 = v78;
-                                  v88 = *(float *)&v79;
-                                  v89 = v80;
+                                  VectorCopy(edgev1, p1area1);
+                                  VectorCopy(edgev3, p1area2);
                                 }
                                 else if ( x1 < (float)x3 )
                                 {
-                                  v66 = (x3 - x1) * ((float)y2 - (float)y1)
-                                      / (x2 - x1) + (float)y1;
-                                  dist1 = (float)y3 - v66;
-                                  *(float *)&v107 = v78;
-                                  v108 = *(float *)&v79;
-                                  v109 = v66;
-                                  *(float *)&v87 = v78;
-                                  v88 = *(float *)&v79;
-                                  v89 = v80;
+                                  v66 = y1 + (x3 - x1) * (y2 - y1) / (x2 - x1);
+                                  dist1 = y3 - v66;
+                                  VectorCopy(edgev3, p1area1);
+                                  p1area1[2] = v66;
+                                  VectorCopy(edgev3, p1area2);
                                 }
                                 else
                                 {
-                                  v38 = (x1 - x3) * ((float)y4 - (float)y3)
-                                      / (x4 - x3) + (float)y3;
-                                  v67 = v38;
-                                  dist1 = v38 - (float)y1;
-                                  *(float *)&v107 = v69;
-                                  v108 = *(float *)&v70;
-                                  v109 = *(float *)&v71;
-                                  *(float *)&v87 = v69;
-                                  v88 = *(float *)&v70;
-                                  v89 = v67;
+                                  v66 = y3 + (x1 - x3) * (y4 - y3) / (x4 - x3);
+                                  dist1 = v66 - y1;
+                                  VectorCopy(edgev1, p1area1);
+                                  VectorCopy(edgev1, p1area2);
+                                  p1area2[2] = v66;
                                 }
                                 /* if the points are equal */
                                 if ( x2 > x4 - 0.1 && x2 < x4 + 0.1 )
                                 {
                                   dist2 = y4 - y2;
-                                  *(float *)&v104 = v75;
-                                  v105 = v76;
-                                  v106 = v77;
-                                  *(float *)&v84 = v72;
-                                  v85 = v73;
-                                  v86 = v74;
+                                  VectorCopy(edgev2, p2area1);
+                                  VectorCopy(edgev4, p2area2);
                                 }
                                 else if ( x2 < (float)x4 )
                                 {
-                                  v39 = (x2 - x3) * ((float)y4 - (float)y3)
-                                      / (x4 - x3) + (float)y3;
-                                  dist2 = v39 - (float)y2;
-                                  *(float *)&v104 = v75;
-                                  v105 = v76;
-                                  v106 = v77;
-                                  *(float *)&v84 = v75;
-                                  v85 = v76;
-                                  v86 = v39;
+                                  v66 = y3 + (x2 - x3) * (y4 - y3) / (x4 - x3);
+                                  dist2 = v66 - y2;
+                                  VectorCopy(edgev2, p2area1);
+                                  VectorCopy(edgev2, p2area2);
+                                  p2area2[2] = v66;
                                 }
                                 else
                                 {
-                                  v40 = (x4 - x1) * ((float)y2 - (float)y1)
-                                      / (x2 - x1) + (float)y1;
-                                  dist2 = (float)y4 - v40;
-                                  *(float *)&v104 = v72;
-                                  v105 = v73;
-                                  v106 = v40;
-                                  *(float *)&v84 = v72;
-                                  v85 = v73;
-                                  v86 = v74;
+                                  v66 = y1 + (x4 - x1) * (y2 - y1) / (x2 - x1);
+                                  dist2 = y4 - v66;
+                                  VectorCopy(edgev4, p2area1);
+                                  p2area1[2] = v66;
+                                  VectorCopy(edgev4, p2area2);
                                 }
                               }
                               /* if both distances are pretty much equal
@@ -10196,38 +10131,24 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               if ( dist1 > dist2 - 1 && dist1 < dist2 + 1 )
                               {
                                 dist = dist1;
-                                start[0] = *(float *)&v104 + *(float *)&v107;
-                                start[1] = v105 + v108;
-                                start[2] = v106 + v109;
+                                VectorAdd(p1area1, p2area1, start);
                                 VectorScale(start, 0.5f, start);
-                                end[0] = *(float *)&v84 + *(float *)&v87;
-                                end[1] = v85 + v88;
-                                end[2] = v86 + v89;
+                                VectorAdd(p1area2, p2area2, end);
                                 VectorScale(end, 0.5f, end);
                               }
                               else if ( dist1 < (float)dist2 )
                               {
                                 dist = dist1;
-                                *(int *)&start[0] = v107;
-                                start[1] = v108;
-                                start[2] = v109;
-                                *(int *)&end[0] = v87;
-                                end[1] = v88;
-                                end[2] = v89;
+                                VectorCopy(p1area1, start);
+                                VectorCopy(p1area2, end);
                               }
                               else
                               {
                                 dist = dist2;
-                                *(int *)&start[0] = v104;
-                                start[1] = v105;
-                                start[2] = v106;
-                                *(int *)&end[0] = v84;
-                                end[1] = v85;
-                                end[2] = v86;
+                                VectorCopy(p2area1, start);
+                                VectorCopy(p2area2, end);
                               }
-                              dir[0] = *(float *)&v84 - *(float *)&v87;
-                              dir[1] = v85 - v88;
-                              dir[2] = v86 - v89;
+                              VectorSubtract(p2area2, p1area2, dir);
                               length = VectorLength(dir);
                               v41 = dist;
                               if ( (v126[4] & 4) != 0 )
