@@ -9787,10 +9787,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   char *area1; // ebp
   int v3; // eax
   int v4; // edx
-  int v7; // eax
   int groundface1num; // eax
   char *groundface1; // ebp
-  int v10; // eax
   int edge1num; // eax
   int side1; // edi
   unsigned int v13; // esi
@@ -9826,13 +9824,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v39; // st6
   float v40; // st6
   float v41; // st7
-  int v42; // ecx
-  int v43; // edx
   int *v44; // eax
   int *v45; // esi
   int v46; // ecx
-  int v48; // ebp
-  int v49; // ebx
   char *v50; // esi
   int v51; // edx
   float v52; // eax
@@ -9921,7 +9915,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float ground_bestlength; // [esp+110h] [ebp-C0h]
   float water_bestlength; // [esp+114h] [ebp-BCh]
   char *v126; // [esp+118h] [ebp-B8h]
-  char *v127; // [esp+11Ch] [ebp-B4h]
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
@@ -9951,10 +9944,12 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   up[0] = 0.0f;
   up[1] = 0.0f;
   up[2] = 1.0f;
-  if ( (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
+  if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
+    return 0;
+  if ( !AAS_AreaGrounded(area2num) && !AAS_AreaSwim(area2num) )
+    return 0;
   {
     area1 = &aasworld.areas[area1num];
-    v127 = area1;
     area2 = &aasworld.areas[area2num];
     v3 = AAS_AreaSwim(area1num);
     area1swim = v3;
@@ -9968,19 +9963,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     }
     {
       {
-        v7 = ((aas_area_t *)area1)->numfaces;
         ground_foundreach = 0;
         ground_bestdist = 99999.0f;
         ground_bestlength = 0.0f;
         water_foundreach = 0;
         water_bestdist = 99999.0f;
         water_bestlength = 0.0f;
-        i = 0;
-        if ( v7 <= 0 )
-          return 0;
-        do
+        for ( i = 0; i < ((aas_area_t *)area1)->numfaces; ++i )
         {
-          groundface1num = aasworld.faceindex[i + ((aas_area_t *)v127)->firstface];
+          groundface1num = aasworld.faceindex[i + ((aas_area_t *)area1)->firstface];
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
@@ -9990,12 +9981,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
              + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[1]
              + up[0] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[0] >= 0.7 )
           {
-            v10 = ((aas_face_t *)groundface1)->numedges;
-            k = 0;
-            if ( v10 > 0 )
+            for ( k = 0; k < ((aas_face_t *)groundface1)->numedges; ++k )
             {
-              do
-              {
                 edge1num = aasworld.edgeindex[k + ((aas_face_t *)groundface1)->firstedge];
                 side1 = edge1num < 0;
                 if ( (groundface1[4] & 4) == 0 )
@@ -10203,16 +10190,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                   while ( v18 < ((aas_area_t *)area2)->numfaces );
                   groundface1 = v126;
                 }
-                v42 = ((aas_face_t *)groundface1)->numedges;
-                ++k;
-              }
-              while ( k < v42 );
             }
           }
-          v43 = ((aas_area_t *)v127)->numfaces;
-          ++i;
         }
-        while ( i < v43 );
         if ( ground_foundreach && ground_bestdist >= 0.0f && ground_bestdist < (float)libvar_sv_step->value )
         {
           v44 = (int *)AAS_AllocReachability();
@@ -10246,8 +10226,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
               (aasworld.areasettings[AAS_PointAreaNum(testpoint)].areaflags & 4) != 0)
           && libvar_sv_maxwaterjump->value + 24.0f > water_bestdist )
         {
-          v48 = area1num;
-          v49 = area2num;
           if ( (aasworld.areasettings[area1num].presencetype & 2) != 0
             && (aasworld.areasettings[area2num].presencetype & 2) != 0 )
           {
@@ -10272,32 +10250,27 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             return 1;
           }
         }
-        else
-        {
-          v49 = area2num;
-          v48 = area1num;
-        }
         if ( !ground_foundreach )
           return 0;
         if ( ground_bestdist > 0.0f
           && ground_bestdist < (float)libvar_sv_maxbarrier->value
           && (!water_foundreach || ground_bestdist - water_bestdist < 16.0f)
-          && !AAS_AreaCrouch(v48)
-          && !AAS_AreaCrouch(v49) )
+          && !AAS_AreaCrouch(area1num)
+          && !AAS_AreaCrouch(area2num) )
         {
           v54 = (int *)AAS_AllocReachability();
           v55 = v54;
           if ( !v54 )
             return 0;
           v54[2] = ground_bestarea2groundedgenum;
-          *v54 = v49;
+          *v54 = area2num;
           v54[1] = 0;
           VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v54 + 3));
           VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v55 + 6));
           v55[9] = 4;
           *((_WORD *)v55 + 20) = 400;
-          ((aas_reachabilitynode_t *)v55)->next = areareachability[v48];
-          areareachability[v48] = (aas_reachabilitynode_t *)v55;
+          ((aas_reachabilitynode_t *)v55)->next = areareachability[area1num];
+          areareachability[area1num] = (aas_reachabilitynode_t *)v55;
           ++reach_barrier;
           return 1;
         }
@@ -10309,19 +10282,19 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           if ( !v56 )
             return 0;
           *(_DWORD *)(v56 + 8) = ground_bestarea2groundedgenum;
-          *(_DWORD *)v56 = v49;
+          *(_DWORD *)v56 = area2num;
           *(_DWORD *)(v56 + 4) = 0;
           VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56 + 12);
           VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56 + 24);
           *(_DWORD *)(v56 + 36) = 2;
           *(_WORD *)(v56 + 40) = 1;
-          ((aas_reachabilitynode_t *)v56)->next = areareachability[v48];
-          areareachability[v48] = (aas_reachabilitynode_t *)v56;
+          ((aas_reachabilitynode_t *)v56)->next = areareachability[area1num];
+          areareachability[area1num] = (aas_reachabilitynode_t *)v56;
           ++reach_walk;
           return 1;
         }
         v114 = -AAS_FallDamageDistance();
-        if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(v49) )
+        if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(area2num) )
         {
           VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
           start[2] = ground_beststart[2];
@@ -10334,13 +10307,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           if ( !trace.startsolid && trace.fraction >= 1.0 )
           {
             trace.endpos[2] = trace.endpos[2] + 1.0f;
-            if ( AAS_PointAreaNum(trace.endpos) == v49 )
+            if ( AAS_PointAreaNum(trace.endpos) == area2num )
             {
               v57 = AAS_AllocReachability();
               if ( v57 )
               {
                 v58 = ground_bestarea2groundedgenum;
-                *(_DWORD *)v57 = v49;
+                *(_DWORD *)v57 = area2num;
                 *(_DWORD *)(v57 + 4) = 0;
                 *(_DWORD *)(v57 + 8) = v58;
                 *(float *)(v57 + 12) = ground_beststart[0];
@@ -10351,8 +10324,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                 *(float *)(v57 + 32) = ground_bestend[2];
                 *(_DWORD *)(v57 + 36) = 7;
                 *(_WORD *)(v57 + 40) = 100;
-                ((aas_reachabilitynode_t *)v57)->next = areareachability[v48];
-                areareachability[v48] = (aas_reachabilitynode_t *)v57;
+                ((aas_reachabilitynode_t *)v57)->next = areareachability[area1num];
+                areareachability[area1num] = (aas_reachabilitynode_t *)v57;
                 ++reach_walkoffledge;
                 return 1;
               }
