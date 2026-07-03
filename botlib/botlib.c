@@ -6733,9 +6733,9 @@ void AAS_SwapAASData()
     do
     {
       *(_DWORD *)((char *)aasworld.bboxes + v1) = LittleLong(*(int *)((char *)aasworld.bboxes + v1));
+      *(_DWORD *)((char *)aasworld.bboxes + v1 + 4) = LittleLong(*(int *)((char *)aasworld.bboxes + v1 + 4));
       v3 = v1 + 20;
       v4 = 3;
-      *(_DWORD *)((char *)aasworld.bboxes + v1 + 4) = LittleLong(*(int *)((char *)aasworld.bboxes + v1 + 4));
       do
       {
         *(float *)((char *)aasworld.bboxes + v3 - 12) = (float)LittleLong((int)*(float *)((char *)aasworld.bboxes + v3 - 12));
@@ -6810,8 +6810,8 @@ void AAS_SwapAASData()
       *(_DWORD *)((char *)aasworld.faces + v22 + 8) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 8));
       *(_DWORD *)((char *)aasworld.faces + v22 + 12) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 12));
       *(_DWORD *)((char *)aasworld.faces + v22 + 16) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 16));
-      ++v21;
       *(_DWORD *)((char *)aasworld.faces + v22 + 20) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 20));
+      ++v21;
       v22 += 24;
     }
     while ( v21 < aasworld.numfaces );
@@ -6828,9 +6828,9 @@ void AAS_SwapAASData()
     {
       *(_DWORD *)((char *)aasworld.areas + v32) = LittleLong(*(int *)((char *)aasworld.areas + v32));
       *(_DWORD *)((char *)aasworld.areas + v32 + 4) = LittleLong(*(int *)((char *)aasworld.areas + v32 + 4));
+      *(_DWORD *)((char *)aasworld.areas + v32 + 8) = LittleLong(*(int *)((char *)aasworld.areas + v32 + 8));
       v35 = v32 + 24;
       v36 = 3;
-      *(_DWORD *)((char *)aasworld.areas + v32 + 8) = LittleLong(*(int *)((char *)aasworld.areas + v32 + 8));
       do
       {
         *(float *)((char *)aasworld.areas + v35 - 12) = LittleFloat(*(float *)((char *)aasworld.areas + v35 - 12));
@@ -6857,8 +6857,8 @@ void AAS_SwapAASData()
       *(_DWORD *)((char *)aasworld.areasettings + v39 + 12) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 12));
       *(_DWORD *)((char *)aasworld.areasettings + v39 + 16) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 16));
       *(_DWORD *)((char *)aasworld.areasettings + v39 + 20) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 20));
-      ++v38;
       *(_DWORD *)((char *)aasworld.areasettings + v39 + 24) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 24));
+      ++v38;
       v39 += 28;
     }
     while ( v38 < aasworld.numareasettings );
@@ -6871,9 +6871,9 @@ void AAS_SwapAASData()
     {
       *(_DWORD *)((char *)aasworld.reachability + v48) = LittleLong(*(int *)((char *)aasworld.reachability + v48));
       *(_DWORD *)((char *)aasworld.reachability + v48 + 4) = LittleLong(*(int *)((char *)aasworld.reachability + v48 + 4));
+      *(_DWORD *)((char *)aasworld.reachability + v48 + 8) = LittleLong(*(int *)((char *)aasworld.reachability + v48 + 8));
       v51 = v48 + 24;
       v52 = 3;
-      *(_DWORD *)((char *)aasworld.reachability + v48 + 8) = LittleLong(*(int *)((char *)aasworld.reachability + v48 + 8));
       do
       {
         *(float *)((char *)aasworld.reachability + v51 - 12) = LittleFloat(*(float *)((char *)aasworld.reachability + v51 - 12));
@@ -6900,8 +6900,8 @@ void AAS_SwapAASData()
     {
       *(_DWORD *)((char *)aasworld.nodes + v57) = LittleLong(*(int *)((char *)aasworld.nodes + v57));
       *(_DWORD *)((char *)aasworld.nodes + v57 + 4) = LittleLong(*(int *)((char *)aasworld.nodes + v57 + 4));
-      ++v56;
       *(_DWORD *)((char *)aasworld.nodes + v57 + 8) = LittleLong(*(int *)((char *)aasworld.nodes + v57 + 8));
+      ++v56;
       v57 += 12;
     }
     while ( v56 < aasworld.numnodes );
@@ -6916,8 +6916,8 @@ void AAS_SwapAASData()
       *(_DWORD *)((char *)aasworld.portals + v62 + 4) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 4));
       *(_DWORD *)((char *)aasworld.portals + v62 + 8) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 8));
       *(_DWORD *)((char *)aasworld.portals + v62 + 12) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 12));
-      ++v61;
       *(_DWORD *)((char *)aasworld.portals + v62 + 16) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 16));
+      ++v61;
       v62 += 20;
     }
     while ( v61 < aasworld.numportals );
@@ -6934,8 +6934,8 @@ void AAS_SwapAASData()
     {
       *(_DWORD *)((char *)aasworld.clusters + v72) = LittleLong(*(int *)((char *)aasworld.clusters + v72));
       *(_DWORD *)((char *)aasworld.clusters + v72 + 4) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 4));
-      ++v71;
       *(_DWORD *)((char *)aasworld.clusters + v72 + 8) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 8));
+      ++v71;
       v72 += 12;
     }
     while ( v71 < aasworld.numclusters );
@@ -26099,9 +26099,9 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       EA_Move(ms->client, final, v18);
     }
     moveresult.movedir[0] = final[0];
+    v14 = ms->moveflags;
     moveresult.movedir[1] = final[1];
     moveresult.movedir[2] = final[2];
-    v14 = ms->moveflags;
     if ( (v14 & 4) != 0 )
     {
       moveresult.flags |= 2;
