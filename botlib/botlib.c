@@ -315,7 +315,7 @@ void __cdecl sub_10003240(bsp_link_t *a1);
 int __cdecl sub_10003080(vec3_t point);
 void sub_10003280();
 void sub_100032D0();
-int __cdecl sub_10003360(const vec3_t point, int modelnum);
+int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum);
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum);
 void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
@@ -1873,7 +1873,19 @@ void sub_100032D0()
 }
 
 //----- (10003360) --------------------------------------------------------
-int __cdecl sub_10003360(const vec3_t point, int modelnum) /* PointInLeaf */
+/* Named from Q3 engine cognate CM_PointLeafnum_r (code/qcommon/cm_test.c) —
+ * same-author evidence (Mr. Elusive, Q3 engine programmer), same runtime
+ * loaded-array data model (cm.nodes/cm.planes there, dnodes/dplanes here) —
+ * unlike the earlier-considered bspc/brushbsp.c PointInLeaf, which operates
+ * on a compile-time-only tree and was correctly rejected as a data-model
+ * mismatch (see function_naming.md). Q3's version hardcodes the world
+ * model's root (node 0); Gladiator's takes an explicit modelnum and looks
+ * up dmodels[modelnum].headnode, supporting inline sub-models (doors,
+ * plats) directly — a Gladiator-side extension, not a divergence in the
+ * core recursive-descent algorithm itself. The old inline "PointInLeaf"
+ * comment hint was an untrusted guess from the 2026-05-26 audit; this
+ * replaces it with real cognate evidence. */
+int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
 {
   vec_t d;
   dplane_t *plane;
@@ -1899,7 +1911,7 @@ dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum)
 {
   if ( !dword_100674C0 )
     return 0;
-  return &dleafs[sub_10003360(point, modelnum)];
+  return &dleafs[CM_PointLeafnum(point, modelnum)];
 }
 
 //----- (10003460) --------------------------------------------------------
@@ -3215,7 +3227,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v12[2] = -a4[2];
   AnglesToAxis(v12, v13);
   sub_10003460(v11, v13);
-  v6 = sub_10003360(v11, a2);
+  v6 = CM_PointLeafnum(v11, a2);
   v7 = &dleafs[v6];
   while ( v4 < v7->numleafbrushes )
   {
