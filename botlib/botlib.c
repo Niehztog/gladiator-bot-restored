@@ -17603,10 +17603,10 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 0;
   start[0] = *(int *)&bs->origin[0];
   start[1] = *(int *)&bs->origin[1];
-  end[0] = *(int *)&bs->origin[0];
-  end[1] = *(int *)&bs->origin[1];
   *(float *)&start[2] = bs->origin[2] + 1.0f;
   *(float *)&end[2] = bs->origin[2] - 100.0f;
+  end[0] = start[0];
+  end[1] = start[1];
   AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
   *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)mins, (float*)maxs, (float*)(end), 4, bs->client);
   return trace[20] == 0;
