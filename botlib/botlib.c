@@ -4027,9 +4027,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   unsigned __int8 *v33; // ecx
   int v34; // eax
   int v35; // eax
-  float v36; // ecx
-  float v37; // edx
-  float v38; // edx
   int v39; // [esp+10h] [ebp-14h]
   dnode_t *v40; // [esp+14h] [ebp-10h]
   vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive sub_10006D10
@@ -4117,15 +4114,12 @@ sample_lightmap:
     v33 += 2 * v35 + v35;
     v34 = i + 1;
   }
-  v36 = mid[1];
   *a5 = v32 >> 8;
-  v37 = mid[0];
   a5[1] = v24 >> 8;
   a5[2] = v30 >> 8;
-  *a4 = v37;
-  v38 = mid[2];
-  a4[1] = v36;
-  a4[2] = v38;
+  a4[0] = mid[0];
+  a4[1] = mid[1];
+  a4[2] = mid[2];
   return 1;
 }
 
@@ -4216,10 +4210,10 @@ void sub_100071E0()
         do
         {
           v6 = *v5;
-          if ( *v5 < 0 )
-            v7 = *(unsigned __int16 *)(v3 - 4 * v6 + 2);
-          else
+          if ( v6 >= 0 )
             v7 = *(unsigned __int16 *)(v3 + 4 * v6);
+          else
+            v7 = *(unsigned __int16 *)(v3 - 4 * v6 + 2);
           v8 = (float *)(v22 + 4);
           for ( j = 0; j < 2; ++j )
           {
@@ -8022,8 +8016,8 @@ int BotLibLoadMap(char *Source)
         botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, Destination);
       else
         botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-      v4 = 0;
       memset(&v7, 0, sizeof(v7));
+      v4 = 0;
       while ( 1 )
       {
         if ( v4 )
@@ -8893,10 +8887,9 @@ LABEL_86:
  *   3. VectorScale(move_dir, 400, cmd_move) — 400 u/s desired speed.
  *   4. cmd_move[2] = 224.0f — fixed jump impulse (matches sv_jumpvel
  *      default in Q2's playermove).
- *   5. velocity = {0, 0, GARBAGE}.  The .text writes only [esp+0xc] and
- *      [esp+0x10] to zero (= velocity.x and velocity.y); velocity.z is
- *      whatever stack slop was at entry.  Genuine Mr. Elusive bug —
- *      preserved.
+ *   5. velocity = {0, 0, 0} via VectorClear (chained a[0]=a[1]=a[2]=0 —
+ *      confirmed by 3 distinct zero-stores at descending stack addresses
+ *      E-0x60/E-0x64/E-0x68, not the 2 stores an earlier reading assumed).
  *   6. AAS_ClearShownDebugLines().
  *   7. AAS_ClientMovementPrediction(result, client, origin, 2, 1,
  *                                   velocity, cmd_move, 13, 13, 0.1f, 1, 1)
@@ -8925,12 +8918,10 @@ LABEL_86:
 void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
   aas_clientmove_t result;   /* filled by the by-value prediction return */
-  vec3_t  velocity;          /* {0, 0, GARBAGE} — see note above */
+  vec3_t  velocity;          /* zero vector */
   vec3_t  cmd_move;          /* desired-input vec: scaled forward + Z jump */
 
-  velocity[0] = 0.0f;
-  velocity[1] = 0.0f;
-  /* velocity[2] left uninitialized — original DLL bug, preserved. */
+  VectorClear(velocity);
 
   if (!AAS_Swimming(origin))
     dir[2] = 0.0f;
@@ -19529,8 +19520,9 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   {
     BotMatchVariable(match, 1, addressedto);
     botname = ClientName(*(_DWORD *)((char *)bs + 4));
-    if ( !BotFindMatch(addressedto, &addresseematch, 32) )
-      return 0;
+    result = BotFindMatch(addressedto, &addresseematch, 32);
+    if ( !result )
+      return result;
     while ( addresseematch.type != 101 )
     {
       if ( addresseematch.type != 102 )
@@ -25001,24 +24993,25 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
      * original semantics of comparing origin[i] against
      * maxs[i]+modelorigin[i]+16 and mins[i]+modelorigin[i]-16 for i=0..1. */
     i = 0;
-    while ( *(float *)((char *)maxs + 4 * i) + *(float *)((char *)modelorigin + 4 * i) + 16.0f >= origin[i]
-         && *(float *)((char *)mins + 4 * i) + *(float *)((char *)modelorigin + 4 * i) - 16.0f <= origin[i] )
+    do
     {
+      if ( *(float *)((char *)maxs + 4 * i) + *(float *)((char *)modelorigin + 4 * i) + 16.0f < origin[i] )
+        return 0;
+      if ( origin[i] < *(float *)((char *)mins + 4 * i) + *(float *)((char *)modelorigin + 4 * i) - 16.0f )
+        return 0;
       ++i;
-      if ( i >= 2 )
-      {
-        v7 = *(_DWORD *)&origin[1];
-        v8 = origin[2] + 24.0f;
-        org[0] = *(_DWORD *)&origin[0];
-        end[0] = org[0];
-        org[1] = v7;
-        end[1] = v7;
-        *(float *)&org[2] = v8;
-        *(float *)&end[2] = origin[2] - 48.0f;
-        *(bsp_trace_t *)trace = AAS_Trace((float*)(org), (float*)boxmins, (float*)boxmaxs, (float*)(end), entnum, 33619971);
-        return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
-      }
     }
+    while ( i < 2 );
+    v7 = *(_DWORD *)&origin[1];
+    v8 = origin[2] + 24.0f;
+    org[0] = *(_DWORD *)&origin[0];
+    end[0] = org[0];
+    org[1] = v7;
+    end[1] = v7;
+    *(float *)&org[2] = v8;
+    *(float *)&end[2] = origin[2] - 48.0f;
+    *(bsp_trace_t *)trace = AAS_Trace((float*)(org), (float*)boxmins, (float*)boxmaxs, (float*)(end), entnum, 33619971);
+    return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
   }
   return 0;
 }
@@ -25087,7 +25080,6 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
   int reachnum; // ebp
   int i; // esi
   int t; // eax
-  int v14; // eax
   int besttime; // [esp+8h] [ebp-60h]
   int bestreachnum; // [esp+Ch] [ebp-5Ch]
   int reach[11]; // [esp+10h] [ebp-58h] BYREF
@@ -25095,8 +25087,8 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
   besttime = 0;
   bestreachnum = 0;
   reachnum = AAS_NextAreaReachability(areanum, 0);
-  if ( !reachnum )
-    return 0;
+  if ( reachnum )
+  {
   do
   {
     for ( i = 0; i < 1; i++ )
@@ -25114,10 +25106,10 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
           t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(reach[0], *(_DWORD *)(goal + 12), travelflags);
           if ( t )
           {
-            v14 = LOWORD(reach[10]) + t;
-            if ( !besttime || v14 < besttime )
+            t += LOWORD(reach[10]);
+            if ( !besttime || t < besttime )
             {
-              besttime = v14;
+              besttime = t;
               bestreachnum = reachnum;
             }
           }
@@ -25127,6 +25119,7 @@ int __cdecl BotGetReachabilityToGoal(int origin, int areanum, int entnum, int la
     reachnum = AAS_NextAreaReachability(areanum, reachnum);
   }
   while ( reachnum );
+  }
   return bestreachnum;
 }
 
