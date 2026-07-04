@@ -24604,31 +24604,29 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 {
   int i; // edx
-  vec3_t maxs; // [esp+14h] [ebp-24h] BYREF — inner-box upper bound (mover.maxs - bot.mins + origin - 4)
-  vec3_t mins; // [esp+20h] [ebp-18h] BYREF — inner-box lower bound (mover.mins - bot.maxs + origin + 4)
-  vec3_t boxmins; // [esp+2Ch] [ebp-Ch] BYREF — bot bbox mins from PresenceTypeBoundingBox
+  vec3_t boxmins;     // [esp+14h] [ebp-24h] BYREF
+  vec3_t boxmaxs;     // [esp+20h] [ebp-18h] BYREF
+  vec3_t absmins;     // [esp+2Ch] [ebp-Ch] BYREF
+  vec3_t absmaxs;     // merged by MSVC6 with the same stack home pattern as Q3
+  vec3_t safety_maxs; // keep the Gladiator binary's safety shrink values, not Q3's later zeroes
+  vec3_t safety_mins;
 
-  AAS_PresenceTypeBoundingBox(4, boxmins, maxs);
-  mins[0] = goal[4] - maxs[0];
-  i = 0;
-  mins[1] = goal[5] - maxs[1];
-  mins[2] = goal[6] - maxs[2];
-  maxs[0] = goal[7] - boxmins[0];
-  maxs[1] = goal[8] - boxmins[1];
-  maxs[2] = goal[9] - boxmins[2];
-  mins[0] = mins[0] + *goal;
-  mins[1] = mins[1] + goal[1];
-  mins[2] = mins[2] + goal[2];
-  maxs[0] = maxs[0] + *goal;
-  maxs[1] = maxs[1] + goal[1];
-  maxs[2] = maxs[2] + goal[2];
-  maxs[0] = maxs[0] - 4.0f;
-  maxs[1] = maxs[1] - 4.0f;
-  maxs[2] = maxs[2] - 10.0f;
-  mins[0] = mins[0] - -4.0f;
-  mins[1] = mins[1] - -4.0f;
-  for (; i < 3; i++) {
-    if (origin[i] < mins[i] || origin[i] > maxs[i])
+  safety_maxs[0] = 4.0f;
+  safety_maxs[1] = 4.0f;
+  safety_maxs[2] = 10.0f;
+  safety_mins[0] = -4.0f;
+  safety_mins[1] = -4.0f;
+  safety_mins[2] = 0.0f;
+  AAS_PresenceTypeBoundingBox(4, boxmins, boxmaxs);
+  VectorSubtract((goal + 4), boxmaxs, absmins);
+  VectorSubtract((goal + 7), boxmins, absmaxs);
+  VectorAdd(absmins, goal, absmins);
+  VectorAdd(absmaxs, goal, absmaxs);
+  VectorSubtract(absmaxs, safety_maxs, absmaxs);
+  VectorSubtract(absmins, safety_mins, absmins);
+  for ( i = 0; i < 3; i++ )
+  {
+    if ( origin[i] < absmins[i] || origin[i] > absmaxs[i] )
       return 0;
   }
   return 1;
