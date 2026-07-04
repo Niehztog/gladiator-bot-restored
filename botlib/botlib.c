@@ -14892,7 +14892,6 @@ void __cdecl sub_1001C6F0(void)
 int sub_1001C760(char *Source)
 {
   int v2; // ebx
-  source_t *v4;
   source_t *v5;
   bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
   char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
@@ -14915,55 +14914,46 @@ int sub_1001C760(char *Source)
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
   }
-  v4 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
-  v5 = v4;
-  if ( !v4 )
+  v5 = LoadSourceFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+  if ( !v5 )
   {
     botimport.Print(PRT_ERROR, "counldn't load %s\n", Destination);
     return 0;
   }
   aasworld.numsoundinfo = 0;
-  if ( !PC_ReadTokenHandle(v5, ArgList) )
-    goto LABEL_15;
-  while ( 1 )
+  while ( PC_ReadTokenHandle(v5, ArgList) )
   {
     if ( !strcmp(ArgList, "soundinfo") )
     {
-      if ( aasworld.numsoundinfo < v2 )
+      if ( aasworld.numsoundinfo >= v2 )
       {
-        memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
-        if ( ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
-        {
-          ++aasworld.numsoundinfo;
-          if ( PC_ReadTokenHandle(v5, ArgList) )
-            continue;
-LABEL_15:
-          FreeSource(v5);
-          if ( file_ref.filelen )
-          {
-            botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
-            return 1;
-          }
-          botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-          return 1;
-        }
-        goto read_fail;
+        SourceError(v5, "more than %d sound infos defined\n", v2);
+        FreeSource(v5);
+        return 0;
       }
-      goto more_than;
+      memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
+      if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
+      {
+        FreeSource(v5);
+        return 0;
+      }
+      ++aasworld.numsoundinfo;
     }
-    goto unknown_def;
+    else
+    {
+      SourceError(v5, "unknown definition %s\n", ArgList);
+      FreeSource(v5);
+      return 0;
+    }
   }
-more_than:
-  SourceError(v5, "more than %d sound infos defined\n", v2);
   FreeSource(v5);
-  return 0;
-read_fail:
-  FreeSource(v5);
-  return 0;
-unknown_def:
-  SourceError(v5, "unknown definition %s\n", ArgList);
-  FreeSource(v5);
-  return 0;
+  if ( file_ref.filelen )
+  {
+    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+    return 1;
+  }
+  botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
+  return 1;
 }
 
 //----- (1001CAB0) --------------------------------------------------------
