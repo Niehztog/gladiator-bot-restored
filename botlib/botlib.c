@@ -8547,9 +8547,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   float phys_friction; // [esp+DCh] [ebp-11Ch]
   float phys_maxwalkvelocity; // [esp+E0h] [ebp-118h]
   float phys_maxcrouchvelocity; // [esp+E4h] [ebp-114h]
-  int lastorg0; // [esp+E8h] [ebp-110h]
-  int lastorg1; // [esp+ECh] [ebp-10Ch]
-  int lastorg2; // [esp+F0h] [ebp-108h]
+  vec3_t lastorg; // [esp+E8h] [ebp-110h] BYREF (Q3 be_aas_move.c:524/645 — was IDA-split lastorg0/1/2)
   float phys_stopspeed; // [esp+F4h] [ebp-104h]
   float phys_maxswimvelocity; // [esp+F8h] [ebp-100h]
   float old_velz; // [esp+104h] [ebp-F4h]
@@ -8670,9 +8668,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       presencetype = 4;
     else if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
       presencetype = 2;
-    lastorg0 = *(int *)&org[0];
-    lastorg1 = *(int *)&org[1];
-    lastorg2 = *(int *)&org[2];
+    *(int *)&lastorg[0] = *(int *)&org[0];
+    *(int *)&lastorg[1] = *(int *)&org[1];
+    *(int *)&lastorg[2] = *(int *)&org[2];
     left_test_vel[0] = frame_test_vel[0];
     left_test_vel[1] = frame_test_vel[1];
     left_test_vel[2] = frame_test_vel[2];
@@ -8876,9 +8874,9 @@ LABEL_86:
         gap_pc = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
         if ( (gap_pc & 0x20) != 0 )
           goto LABEL_84;
-        move_buf[1] = lastorg1;
-        move_buf[0] = lastorg0;
-        move_buf[2] = lastorg2;
+        move_buf[1] = *(int *)&lastorg[1];
+        move_buf[0] = *(int *)&lastorg[0];
+        move_buf[2] = *(int *)&lastorg[2];
         *(float *)&move_buf[4] = frame_test_vel[1];
         move_buf[3] = *(int *)&frame_test_vel[0];
         move_buf[5] = *(int *)&frame_test_vel[2];
@@ -10990,14 +10988,11 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v29; // esi
   float *plane2; // esi
   BOOL ladderface2vertical; // eax
-  aas_reachabilitynode_t *v32; // eax
-  aas_reachabilitynode_t *v33; // esi (was int — alloc'd reach slot pointer)
+  aas_reachabilitynode_t *v32; // eax (was int — alloc'd reach slot pointer)
   int v34; // edx
   aas_reachabilitynode_t *v35; // eax
-  aas_reachabilitynode_t *v36; // esi (was int)
   int v37; // ecx
   aas_reachabilitynode_t *v39; // eax
-  aas_reachabilitynode_t *v40; // esi (was int)
   int v41; // ecx
   aas_reachabilitynode_t *v42; // eax
   int v43; // ecx
@@ -11203,7 +11198,6 @@ area2 = v85;
                 && (float)abs((__int64)sharededgevec[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
-                v33 = v32;
                 if ( v32 )
                 {
                   v34 = absladderface1num;
@@ -11214,13 +11208,12 @@ area2 = v85;
                   v32->reach.start[1] = area1point[1];
                   v32->reach.start[2] = area1point[2];
                   VectorMA(area2point, -3.0, plane1, v32->reach.end);
-                  v33->reach.traveltype = 6;
-                  v33->reach.traveltime = 10;
-                  v33->next = areareachability[area1num];
-                  areareachability[area1num] = v33;
+                  v32->reach.traveltype = 6;
+                  v32->reach.traveltime = 10;
+                  v32->next = areareachability[area1num];
+                  areareachability[area1num] = v32;
                   ++reach_ladder;
                   v35 = AAS_AllocReachability();
-                  v36 = v35;
                   if ( v35 )
                   {
                     v37 = absladderface2num;
@@ -11231,10 +11224,10 @@ area2 = v85;
                     v35->reach.start[1] = area2point[1];
                     v35->reach.start[2] = area2point[2];
                     VectorMA(area1point, -3.0, plane1, v35->reach.end);
-                    v36->reach.traveltype = 6;
-                    v36->reach.traveltime = 10;
-                    v36->next = areareachability[area2num];
-                    areareachability[area2num] = v36;
+                    v35->reach.traveltype = 6;
+                    v35->reach.traveltime = 10;
+                    v35->next = areareachability[area2num];
+                    areareachability[area2num] = v35;
                     ++reach_ladder;
                     return 1;
                   }
@@ -11243,7 +11236,6 @@ area2 = v85;
               else if ( (ladderface2[4] & 4) != 0 )
               {
                 v39 = AAS_AllocReachability();
-                v40 = v39;
                 if ( v39 )
                 {
                   v41 = absladderface1num;
@@ -11258,10 +11250,10 @@ area2 = v85;
                   v39->reach.end[2] = area2point[2];
                   v39->reach.end[2] = area2point[2] + 16;
                   VectorMA(v39->reach.end, -15.0, plane1, v39->reach.end);
-                  v40->reach.traveltype = 6;
-                  v40->reach.traveltime = 10;
-                  v40->next = areareachability[area1num];
-                  areareachability[area1num] = v40;
+                  v39->reach.traveltype = 6;
+                  v39->reach.traveltime = 10;
+                  v39->next = areareachability[area1num];
+                  areareachability[area1num] = v39;
                   ++reach_ladder;
                   v42 = AAS_AllocReachability();
                   if ( v42 )
@@ -15563,7 +15555,6 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   float v18; // st7
   int v20; // rax (was __int64)
   int v21; // eax
-  int v22; // esi
   float *v26; // esi
   float v30; // st7
   float v34; // st7
@@ -15681,7 +15672,6 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       if ( entinfo[0] )
       {
         v21 = AAS_PointAreaNum(&entinfo[4]);
-        v22 = v21;
         if ( v21 )
         {
           if ( AAS_AreaReachability(v21) )
@@ -15691,7 +15681,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
             bs->teamgoal.mins[2] = -8.0f;
-            bs->teamgoal.areanum = v22;
+            bs->teamgoal.areanum = v21;
             bs->teamgoal.origin[0] = *(float *)&entinfo[4];
             bs->teamgoal.origin[2] = *(float *)&entinfo[6];
             bs->teamgoal.maxs[0] = 8.0f;
@@ -16554,7 +16544,6 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 {
 
   int v2; // eax
-  int v3; // eax
   int areanum; // esi
   int v7; // eax
   int v8; // edi
@@ -16599,9 +16588,8 @@ LABEL_9:
   }
   else
   {
-    v3 = AAS_PointAreaNum(&entinfo[4]);
-    areanum = v3;
-    if ( v3 && AAS_AreaReachability(v3) )
+    areanum = AAS_PointAreaNum(&entinfo[4]);
+    if ( areanum && AAS_AreaReachability(areanum) )
     {
       (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
       (*(int *)&bs->lastenemyorigin[1]) = entinfo[5];
@@ -19507,7 +19495,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v4; // ebx
   int v5; // eax
   int v6; // eax
-  int v7; // esi
   int v10; // ax
   float v11; // st7
   int v12; // eax
@@ -19519,7 +19506,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v24; // ax
   float v26; // st7
   int v27; // eax
-  int v28; // esi
   int v31; // ax
   float v33; // st7
   float v34; // st7
@@ -19626,7 +19612,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
       if ( entinfo[0] )
       {
         v6 = AAS_PointAreaNum(&entinfo[4]);
-        v7 = v6;
         if ( v6 )
         {
           if ( AAS_AreaReachability(v6) )
@@ -19636,7 +19621,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
             bs->teamgoal.mins[2] = -8.0f;
-            bs->teamgoal.areanum = v7;
+            bs->teamgoal.areanum = v6;
             bs->teamgoal.origin[0] = *(float *)&entinfo[4];
             bs->teamgoal.origin[1] = *(float *)&entinfo[5];
             bs->teamgoal.maxs[0] = 8.0f;
@@ -19753,7 +19738,6 @@ LABEL_64:
         if ( entinfo[0] )
         {
           v27 = AAS_PointAreaNum(&entinfo[4]);
-          v28 = v27;
           if ( v27 )
           {
             if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v18) )
@@ -19763,7 +19747,7 @@ LABEL_64:
               bs->teamgoal.mins[0] = -8.0f;
               bs->teamgoal.mins[1] = -8.0f;
               bs->teamgoal.mins[2] = -8.0f;
-              bs->teamgoal.areanum = v28;
+              bs->teamgoal.areanum = v27;
               bs->teamgoal.origin[0] = *(float *)&entinfo[4];
               bs->teamgoal.origin[1] = *(float *)&entinfo[5];
               bs->teamgoal.maxs[0] = 8.0f;
