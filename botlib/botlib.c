@@ -4455,14 +4455,12 @@ int Q2_SwapBSPFile(void)
   v62 = 0;
   if ( numbrushes > 0 )
   {
-    v63 = 0;
     do
     {
-      *(_DWORD *)(v63 + dbrushes) = LittleLong(*(int *)(v63 + dbrushes));
-      *(_DWORD *)(v63 + dbrushes + 4) = LittleLong(*(int *)(v63 + dbrushes + 4));
-      *(_DWORD *)(v63 + dbrushes + 8) = LittleLong(*(int *)(v63 + dbrushes + 8));
+      ((dbrush_t *)dbrushes)[v62].firstside = LittleLong(((dbrush_t *)dbrushes)[v62].firstside);
+      ((dbrush_t *)dbrushes)[v62].numsides = LittleLong(((dbrush_t *)dbrushes)[v62].numsides);
+      ((dbrush_t *)dbrushes)[v62].contents = LittleLong(((dbrush_t *)dbrushes)[v62].contents);
       ++v62;
-      v63 += 12;
     }
     while ( v62 < numbrushes );
   }
@@ -4477,17 +4475,12 @@ int Q2_SwapBSPFile(void)
       v70->firstface = LittleLong(v70->firstface);
       v70->numfaces = LittleLong(v70->numfaces);
       v70->headnode = LittleLong(v70->headnode);
-      v75 = v70->origin;
-      v76 = 3;
-      do
+      for ( v76 = 0; v76 < 3; ++v76 )
       {
-        *(v75 - 6) = LittleFloat(*(v75 - 6));
-        *(v75 - 3) = LittleFloat(*(v75 - 3));
-        *v75 = LittleFloat(*v75);
-        ++v75;
-        --v76;
+        v70->mins[v76] = LittleFloat(v70->mins[v76]);
+        v70->maxs[v76] = LittleFloat(v70->maxs[v76]);
+        v70->origin[v76] = LittleFloat(v70->origin[v76]);
       }
-      while ( v76 );
       result = nummodels;
       ++v68;
       v69 += 48;
@@ -18348,8 +18341,10 @@ void BotAimAtEnemy(bot_state_t *bs)
     *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
     bestorigin[0] = entinfo[4];
     bestorigin[1] = entinfo[5];
+    start[0] = bs->origin[0];
+    start[1] = bs->origin[1];
     bestorigin[2] = entinfo[6] + 8.0f;
-    VectorCopy(bs->origin, start);
+    start[2] = bs->origin[2];
     start[2] += bs->snapshot.viewoffset[2];
     start[2] += wi->offset[2];
     *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(bestorigin), bs->entitynum, 100663299);
@@ -18374,7 +18369,8 @@ void BotAimAtEnemy(bot_state_t *bs)
     {
       end[0] = entinfo[4];
       end[1] = entinfo[5];
-      end[2] = entinfo[6] - 64.0f;
+      end[2] = entinfo[6];
+      end[2] -= 64.0f;
       *(bsp_trace_t *)trace = AAS_Trace((&entinfo[4]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), SLODWORD(entinfo[3]), 100663299);
       VectorCopy(bestorigin, groundtarget);
       groundtarget[2] = trace[1] ? entinfo[6] - 16.0f : *(float *)&trace[5] - 8.0f;
