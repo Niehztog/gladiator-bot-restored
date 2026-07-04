@@ -2740,8 +2740,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     AnglesToAxis(angles, v151);
   }
   v14 = &dmodels[modelnum];
-  VectorAdd(v14->origin, modelorigin, v136);
-  v15 = v136[0];
+  v136[0] = v15 = v14->origin[0] + modelorigin[0];
+  v136[1] = v14->origin[1] + modelorigin[1];
+  v136[2] = v14->origin[2] + modelorigin[2];
   if ( v15 != 0 || v136[1] != 0 || (v142 = 0, v136[2] != 0) )
     v142 = 1;
   v16 = trace_stack;
@@ -11755,6 +11756,8 @@ LABEL_30:
               if ( l >= 16 )
                 goto LABEL_53;
             }
+            if ( l >= 16 )
+              goto LABEL_53;
             v18 = LODWORD(v33);
             if ( area2num != LODWORD(v33) && AAS_AreaGrounded(area2num) && !AAS_ReachabilityExists(v18, area2num) )
             {
@@ -11772,6 +11775,8 @@ LABEL_30:
                 if ( ++p >= 3 )
                   goto LABEL_53;
               }
+              if ( p >= 3 )
+                goto LABEL_53;
               v20 = (int *)AAS_AllocReachability();
               lreach = v20;
               if ( v20 )
@@ -11827,6 +11832,8 @@ LABEL_56:
         goto LABEL_56;
       area1num = v33;
     }
+    if ( v12 >= 16 )
+      goto LABEL_56;
     goto LABEL_30;
   }
   { (void)(((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0)); return; }
@@ -18969,7 +18976,9 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorMA(v59_vec, v34, v50, v38_vec);
       VectorSubtract(v38_vec, bs->origin, v50);
       vectoangles(v50, moveresult->ideal_viewangles);
-      moveresult->flags |= 1u;
+      v29 = moveresult->flags;
+      LOBYTE(v29) = v29 | 1;
+      moveresult->flags = v29;
       EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
@@ -18978,10 +18987,10 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     v9 = v65;
     for ( i = 0; i < 3; ++i )
     {
-      if ( v50[i] >= 0.0f )
-        v11 = v76[i];
-      else
+      if ( v50[i] < 0.0f )
         v11 = v75[i];
+      else
+        v11 = v76[i];
       v12 = fabs(v11) * fabs(v50[i]);
       v9 = v12 + v9;
     }
@@ -30239,7 +30248,6 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
   int v20; // ecx
   int v21; // edx
   value_t *v2;
-  double v23; // st7
   double v24; // st7
   double v25; // st7
   BOOL v26; // eax
@@ -30516,9 +30524,8 @@ LABEL_88:
          * op value; MSVC6 emits case bodies in source order, so the numeric
          * order relocated every block and both jump tables. */
         case 36:
-          v23 = v->floatvalue;
-          v->intvalue = v->intvalue == 0;
-          v->floatvalue = (float)(v23 == 0.0);
+          v->intvalue = !v->intvalue;
+          v->floatvalue = !v->floatvalue;
           goto LABEL_144;
         case 35:
           v->intvalue = ~v->intvalue;
