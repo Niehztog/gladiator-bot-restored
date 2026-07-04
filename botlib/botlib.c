@@ -14920,24 +14920,32 @@ int sub_1001C760(char *Source)
     goto LABEL_15;
   while ( 1 )
   {
-    if ( strcmp(ArgList, "soundinfo") )
-      goto unknown_def;
-    if ( aasworld.numsoundinfo >= v2 )
-      goto more_than;
-    memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
-    if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
-      goto read_fail;
-    ++aasworld.numsoundinfo;
-    if ( !PC_ReadTokenHandle(v5, ArgList) )
-      break;
-  }
+    if ( !strcmp(ArgList, "soundinfo") )
+    {
+      if ( aasworld.numsoundinfo < v2 )
+      {
+        memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
+        if ( ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
+        {
+          ++aasworld.numsoundinfo;
+          if ( PC_ReadTokenHandle(v5, ArgList) )
+            continue;
 LABEL_15:
-  FreeSource(v5);
-  if ( file_ref.filelen )
-    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
-  else
-    botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-  return 1;
+          FreeSource(v5);
+          if ( file_ref.filelen )
+          {
+            botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
+            return 1;
+          }
+          botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
+          return 1;
+        }
+        goto read_fail;
+      }
+      goto more_than;
+    }
+    goto unknown_def;
+  }
 more_than:
   SourceError(v5, "more than %d sound infos defined\n", v2);
   FreeSource(v5);
