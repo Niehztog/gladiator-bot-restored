@@ -4471,7 +4471,7 @@ int Q2_SwapBSPFile(void)
     v69 = 0;
     do
     {
-      v70 = &dmodels[v68];
+      v70 = (dmodel_t *)((char *)dmodels + v69);
       v70->firstface = LittleLong(v70->firstface);
       v70->numfaces = LittleLong(v70->numfaces);
       v70->headnode = LittleLong(v70->headnode);
