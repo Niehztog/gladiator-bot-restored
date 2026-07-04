@@ -14916,29 +14916,20 @@ int sub_1001C760(char *Source)
     return 0;
   }
   aasworld.numsoundinfo = 0;
-  if ( PC_ReadTokenHandle(v5, ArgList) )
+  if ( !PC_ReadTokenHandle(v5, ArgList) )
+    goto LABEL_15;
+  while ( 1 )
   {
-    while ( !strcmp(ArgList, "soundinfo") )
-    {
-      if ( aasworld.numsoundinfo >= v2 )
-      {
-        SourceError(v5, "more than %d sound infos defined\n", v2);
-        FreeSource(v5);
-        return 0;
-      }
-      memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
-      if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
-      {
-        FreeSource(v5);
-        return 0;
-      }
-      ++aasworld.numsoundinfo;
-      if ( !PC_ReadTokenHandle(v5, ArgList) )
-        goto LABEL_15;
-    }
-    SourceError(v5, "unknown definition %s\n", ArgList);
-    FreeSource(v5);
-    return 0;
+    if ( strcmp(ArgList, "soundinfo") )
+      goto unknown_def;
+    if ( aasworld.numsoundinfo >= v2 )
+      goto more_than;
+    memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
+    if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
+      goto read_fail;
+    ++aasworld.numsoundinfo;
+    if ( !PC_ReadTokenHandle(v5, ArgList) )
+      break;
   }
 LABEL_15:
   FreeSource(v5);
@@ -14947,6 +14938,17 @@ LABEL_15:
   else
     botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return 1;
+more_than:
+  SourceError(v5, "more than %d sound infos defined\n", v2);
+  FreeSource(v5);
+  return 0;
+read_fail:
+  FreeSource(v5);
+  return 0;
+unknown_def:
+  SourceError(v5, "unknown definition %s\n", ArgList);
+  FreeSource(v5);
+  return 0;
 }
 
 //----- (1001CAB0) --------------------------------------------------------
