@@ -18331,8 +18331,9 @@ void BotAimAtEnemy(bot_state_t *bs)
     bestorigin[1] = entinfo[5];
     start[0] = bs->origin[0];
     start[1] = bs->origin[1];
-    bestorigin[2] = entinfo[6] + 8.0f;
+    bestorigin[2] = entinfo[6];
     start[2] = bs->origin[2];
+    bestorigin[2] += 8.0f;
     start[2] += bs->snapshot.viewoffset[2];
     start[2] += wi->offset[2];
     *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(bestorigin), bs->entitynum, 100663299);
@@ -18600,16 +18601,13 @@ LABEL_5:
   while ( 1 )
   {
     if ( v14 >= 10 )
-    {
-LABEL_39:
-      botimport.Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
-      return 0;
-    }
+      goto LABEL_39;
     v2 = *v10;
     if ( *v10 )
     {
       while ( 1 )
       {
+LABEL_17:
         v12 = (const char *)AAS_ValueForBSPEpairKey(v2, "target");
         if ( v12 )
         {
@@ -18668,6 +18666,9 @@ LABEL_38:
     goto LABEL_38;
   }
   botimport.Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
+  return 0;
+LABEL_39:
+  botimport.Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
   return 0;
 }
 
