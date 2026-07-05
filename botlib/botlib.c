@@ -4318,12 +4318,10 @@ int Q2_SwapBSPFile(void)
   int n; // esi
   int ii; // esi
   int v62; // edi
-  int v63; // esi
   int result; // eax
   int v68; // ebp
   int v69; // ebx
   dmodel_t *v70; // esi
-  float *v75; // esi
   int v76; // edi
   int i; // [esp+10h] [ebp-4h]
   int j; // [esp+10h] [ebp-4h]
@@ -9785,36 +9783,21 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int side1; // edi
   unsigned int v13; // esi
   char *edge1; // ecx
-  float *v15; // eax
-  float v16; // ebx
-  float *v17; // eax
   int v18; // ebx
   char *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
   int v20; // rax — IDA decompiled as __int64; restored to int + abs() — see asm_matching/idioms
   char *groundface2; // edi
   int j; // ebp
   int edge2num; // rax — IDA decompiled as __int64; restored to int + abs()
-  char *v23p; // alias: char* pointer reuse of the v23 slot in IDA
   _DWORD *edge2; // ecx
   /* IDA-decompiled // stN locals — original MSVC kept these on the x87 stack
    * at 80-bit. Promoted to long double + explicit operand casts at the
    * chain expressions to mirror the original FPU pipeline.
    * See `fpu_long_double_precision.md`. */
   float v25; // st7
-  float v26; // st7
   float ortdot; // st7
   float v28; // st7
-  float v29; // st7
-  float v30; // ecx
-  float v31; // edx
-  float v32; // st7
-  float v33; // st7
-  float v34; // edx
-  float v35; // eax
   float dist1; // st7
-  float v38; // st7
-  float v39; // st6
-  float v40; // st6
   float v41; // st7
   int *v44; // eax
   int *v45; // esi
@@ -9836,29 +9819,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float ground_bestdist; // [esp+20h] [ebp-1B0h]
   float dist; // [esp+24h] [ebp-1ACh]
   float v66; // [esp+28h] [ebp-1A8h]
-  float v67; // [esp+28h] [ebp-1A8h]
   float length; // [esp+28h] [ebp-1A8h]
-  float v69; // [esp+2Ch] [ebp-1A4h]
-  int v70; // [esp+30h] [ebp-1A0h]
-  int v71; // [esp+34h] [ebp-19Ch]
-  float v72; // [esp+38h] [ebp-198h]
-  float v73; // [esp+3Ch] [ebp-194h]
-  float v74; // [esp+40h] [ebp-190h]
-  float v75; // [esp+44h] [ebp-18Ch]
-  float v76; // [esp+48h] [ebp-188h]
-  float v77; // [esp+4Ch] [ebp-184h]
-  float v78; // [esp+50h] [ebp-180h]
-  int v79; // [esp+54h] [ebp-17Ch]
-  float v80; // [esp+58h] [ebp-178h]
   float y3; // [esp+5Ch] [ebp-174h]
   float y1; // [esp+60h] [ebp-170h]
   float y4; // [esp+64h] [ebp-16Ch]
-  int v84; // [esp+68h] [ebp-168h]
-  float v85; // [esp+6Ch] [ebp-164h]
-  float v86; // [esp+70h] [ebp-160h]
-  int v87; // [esp+74h] [ebp-15Ch]
-  float v88; // [esp+78h] [ebp-158h]
-  float v89; // [esp+7Ch] [ebp-154h]
   float y2; // [esp+80h] [ebp-150h]
   /* Collapsed from {int start, int v92, int v93} — passed by reference to
    * VectorScale, which writes 3 floats.  GCC was laying these three ints out
@@ -9874,20 +9838,11 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * land in different stack slots from the reads, yielding garbage values
    * (e.g. v98 = 1.84e27). Collapse into a vec3_t to enforce contiguity. */
   vec3_t ort; // [esp+9Ch] [ebp-134h] BYREF
-#define v97 ort[0]
-#define v98 ort[1]
-#define v99 ort[2]
   float water_bestdist; // [esp+A8h] [ebp-128h]
   /* Collapsed from {float v101, int v102, int v103} per uninit-read root-cause
    * analysis: GCC may insert padding between mixed-type BYREF locals,
    * breaking the vec3 contract for CrossProduct(v143, up, &v101). */
   vec3_t normal; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
-  int v104; // [esp+B8h] [ebp-118h]
-  float v105; // [esp+BCh] [ebp-114h]
-  float v106; // [esp+C0h] [ebp-110h]
-  int v107; // [esp+C4h] [ebp-10Ch]
-  float v108; // [esp+C8h] [ebp-108h]
-  float v109; // [esp+CCh] [ebp-104h]
   /* Collapsed from {int ground_bestend, float v111, float v112} per uninit-read root-cause
    * analysis: ground_bestend is passed by reference to VectorMA which writes 3 floats.
    * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
@@ -10330,9 +10285,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   }
   return 0;
 }
-#undef v97
-#undef v98
-#undef v99
 
 //----- (10013BA0) --------------------------------------------------------
 /* Returns the Euclidean distance |a2 - a1|.  Original at 0x10013ba0
@@ -18607,7 +18559,6 @@ LABEL_5:
     {
       while ( 1 )
       {
-LABEL_17:
         v12 = (const char *)AAS_ValueForBSPEpairKey(v2, "target");
         if ( v12 )
         {
@@ -25873,7 +25824,6 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   char v9; // al
   char v11; // al
   float dist2; // st7
-  float v13; // eax
   char v14; // al
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
