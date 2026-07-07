@@ -4049,7 +4049,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v31; // ecx
   int v32; // edx
   unsigned __int8 *v33; // ecx
-  int v34; // eax
   int v35; // eax
   int v39; // [esp+10h] [ebp-14h]
   dnode_t *v40; // [esp+14h] [ebp-10h]
@@ -4107,7 +4106,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v6 = v40;
   return sub_10006D10(v6->children[!side], mid, a3, a4, a5);
 sample_lightmap:
-  v24 = 0;
   v25 = v45->lightofs;
   if ( v25 < 0 )
   {
@@ -4119,22 +4117,21 @@ sample_lightmap:
     a4[2] = mid[2];
     return 1;
   }
+  v24 = 0;
   v30 = 0;
   v29 = (v16[2] >> 4) + 1;
   v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
   v32 = 0;
   v33 = (unsigned __int8 *)(dlightdata + v31);
-  v34 = 0;
   for ( i = 0; i < 4; ++i )
   {
-    if ( v45->styles[v34] == 0xFF )
+    if ( v45->styles[i] == 0xFF )
       break;
     v32 += 264 * *v33;
     v24 += 264 * v33[1];
     v30 += 264 * v33[2];
     v35 = ((v16[2] >> 4) + 1) * ((v16[3] >> 4) + 1);
     v33 += 2 * v35 + v35;
-    v34 = i + 1;
   }
   *a5 = v32 >> 8;
   a5[1] = v24 >> 8;
@@ -8747,6 +8744,23 @@ LABEL_66:
         { return *(aas_clientmove_t *)move_buf; }
     }
     while ( trace.fraction < 1.0 );
+    goto LABEL_87;
+LABEL_85:
+    move_buf[0] = *(int *)&org[0];
+    move_buf[1] = *(int *)&org[1];
+    move_buf[2] = *(int *)&org[2];
+    move_buf[3] = *(int *)&frame_test_vel[0];
+    *(float *)&move_buf[4] = frame_test_vel[1];
+    move_buf[5] = *(int *)&frame_test_vel[2];
+    move_buf[16] = 0;
+LABEL_86:
+    move_buf[15] = presencetype;
+    move_buf[17] = 1082130432;
+    move_buf[19] = n;
+    *(float *)&move_buf[18] = (float)n * frametime;
+LABEL_88:
+    return *(aas_clientmove_t *)move_buf;
+LABEL_87:
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
     // check below then runs unconditionally (was IDA `if(vel>0) goto LABEL_76`).
     if ( frame_test_vel[2] <= 0.0f )
@@ -8780,93 +8794,78 @@ LABEL_66:
         move_buf[15] = presencetype;
         *(float *)&move_buf[18] = (float)n * frametime;
         move_buf[19] = n;
-        break;
+        goto LABEL_88;
       }
     }
+    onground = AAS_OnGround(org, presencetype, entnum);
+    if ( onground )
     {
-      onground = AAS_OnGround(org, presencetype, entnum);
-      if ( onground )
+      if ( (stopevent & 1) != 0 )
       {
-        if ( (stopevent & 1) != 0 )
-        {
-          move_buf[0] = *(int *)&org[0];
-          move_buf[1] = *(int *)&org[1];
-          move_buf[2] = *(int *)&org[2];
-          move_buf[3] = *(int *)&frame_test_vel[0];
-          *(float *)&move_buf[4] = frame_test_vel[1];
-          move_buf[5] = *(int *)&frame_test_vel[2];
-          memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-          move_buf[16] = 1;
-        }
-        else
-        {
-LABEL_84:
-          if ( ++n < maxframes )
-            continue;
-LABEL_85:
-          move_buf[0] = *(int *)&org[0];
-          move_buf[1] = *(int *)&org[1];
-          move_buf[2] = *(int *)&org[2];
-          move_buf[3] = *(int *)&frame_test_vel[0];
-          *(float *)&move_buf[4] = frame_test_vel[1];
-          move_buf[5] = *(int *)&frame_test_vel[2];
-          move_buf[16] = 0;
-        }
-LABEL_86:
-        move_buf[15] = presencetype;
-        move_buf[17] = 1082130432;
-        move_buf[19] = n;
-        *(float *)&move_buf[18] = (float)n * frametime;
-      }
-      else if ( (stopevent & 2) != 0 )
-      {
-        move_buf[2] = *(int *)&org[2];
         move_buf[0] = *(int *)&org[0];
         move_buf[1] = *(int *)&org[1];
-        move_buf[5] = *(int *)&frame_test_vel[2];
+        move_buf[2] = *(int *)&org[2];
         move_buf[3] = *(int *)&frame_test_vel[0];
         *(float *)&move_buf[4] = frame_test_vel[1];
-        memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-        *(float *)&move_buf[18] = (float)n * frametime;
-        move_buf[16] = 2;
-        move_buf[15] = presencetype;
-        move_buf[17] = 1082130432;
-        move_buf[19] = n;
-      }
-      else
-      {
-        if ( (stopevent & 0x40) == 0 )
-          goto LABEL_84;
-        start[0] = org[0];
-        end[0] = org[0];
-        start[1] = org[1];
-        start[2] = org[2];
-        end[1] = org[1];
-        end[2] = org[2];
-        end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0f);
-        gaptrace = AAS_TraceClientBBox(start, end, 4, -1);
-        if ( gaptrace.startsolid )
-          goto LABEL_84;
-        if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
-          goto LABEL_84;
-        gap_pc = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
-        if ( (gap_pc & 0x20) != 0 )
-          goto LABEL_84;
-        move_buf[1] = *(int *)&lastorg[1];
-        move_buf[0] = *(int *)&lastorg[0];
-        move_buf[2] = *(int *)&lastorg[2];
-        *(float *)&move_buf[4] = frame_test_vel[1];
-        move_buf[3] = *(int *)&frame_test_vel[0];
         move_buf[5] = *(int *)&frame_test_vel[2];
         memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-        *(float *)&move_buf[18] = (float)n * frametime;
-        move_buf[16] = 64;
-        move_buf[15] = presencetype;
-        move_buf[17] = 1082130432;
-        move_buf[19] = n;
+        move_buf[16] = 1;
+        goto LABEL_86;
       }
     }
-    break;
+    else if ( (stopevent & 2) != 0 )
+    {
+      move_buf[2] = *(int *)&org[2];
+      move_buf[0] = *(int *)&org[0];
+      move_buf[1] = *(int *)&org[1];
+      move_buf[5] = *(int *)&frame_test_vel[2];
+      move_buf[3] = *(int *)&frame_test_vel[0];
+      *(float *)&move_buf[4] = frame_test_vel[1];
+      memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+      move_buf[16] = 2;
+      move_buf[15] = presencetype;
+      move_buf[17] = 1082130432;
+      move_buf[19] = n;
+      *(float *)&move_buf[18] = (float)n * frametime;
+      goto LABEL_88;
+    }
+    else
+    {
+      if ( (stopevent & 0x40) == 0 )
+        goto LABEL_84;
+      start[0] = org[0];
+      end[0] = org[0];
+      start[1] = org[1];
+      start[2] = org[2];
+      end[1] = org[1];
+      end[2] = org[2];
+      end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0f);
+      gaptrace = AAS_TraceClientBBox(start, end, 4, -1);
+      if ( gaptrace.startsolid )
+        goto LABEL_84;
+      if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
+        goto LABEL_84;
+      gap_pc = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
+      if ( (gap_pc & 0x20) != 0 )
+        goto LABEL_84;
+      move_buf[1] = *(int *)&lastorg[1];
+      move_buf[0] = *(int *)&lastorg[0];
+      move_buf[2] = *(int *)&lastorg[2];
+      *(float *)&move_buf[4] = frame_test_vel[1];
+      move_buf[3] = *(int *)&frame_test_vel[0];
+      move_buf[5] = *(int *)&frame_test_vel[2];
+      memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
+      move_buf[16] = 64;
+      move_buf[15] = presencetype;
+      move_buf[17] = 1082130432;
+      move_buf[19] = n;
+      *(float *)&move_buf[18] = (float)n * frametime;
+      goto LABEL_88;
+    }
+LABEL_84:
+    if ( ++n < maxframes )
+      continue;
+    goto LABEL_85;
   }
   return *(aas_clientmove_t *)move_buf;
 }
