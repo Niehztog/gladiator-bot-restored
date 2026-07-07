@@ -4258,7 +4258,7 @@ void sub_100071E0()
         while ( v20 );
       }
       v11 = v19;
-      for ( k = 0; k < 2; *(_WORD *)(v11 + dword_10067558 - 2) = 16 * (LOWORD(v24[k + 3]) - v15) )
+      for ( k = 0; k < 2; *(_WORD *)(v11 + dword_10067558 - 2) = 16 * (LOWORD(v24[k + 3]) - LOWORD(v24[k + 1])) )
       {
         v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
         X = *(float *)&v24[k] * 0.0625f;
@@ -4266,10 +4266,9 @@ void sub_100071E0()
         v15 = (__int64)ceil(X);
         v16 = dword_10067558;
         v24[k + 4] = v15;
-        LOWORD(v15) = v24[k + 2];
         ++k;
         v11 += 2;
-        *(_WORD *)(v11 + v16 - 6) = 16 * v15;
+        *(_WORD *)(v11 + v16 - 6) = 16 * LOWORD(v24[k + 1]);
       }
       result = v21 + 1;
       v17 = ++v21 < numfaces;
@@ -12348,20 +12347,21 @@ LABEL_27:
               if ( v21 > 0 )
               {
                 v24 = &aasworld.edgeindex[*((_DWORD *)face3 + 3)];
-                for ( ; ; )
+                do
                 {
                   if ( abs(*v24) == v45 )
+                  {
+                    v25 = *((_DWORD *)face3 + 1);
+                    if ( (v25 & 1) == 0 )
+                      gap = 1;
+                    else
+                      gap = ((char)~(_BYTE)v25 & 4u) >> 2;
                     break;
+                  }
                   ++m;
                   ++v24;
-                  if ( m >= v21 )
-                    goto LABEL_25;
                 }
-                v25 = *((_DWORD *)face3 + 1);
-                if ( (v25 & 1) == 0 )
-                  gap = 1;
-                else
-                  gap = ((char)~(_BYTE)v25 & 4u) >> 2;
+                while ( m < v21 );
               }
 LABEL_25:
               v14 = v45;
@@ -17834,10 +17834,9 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
       v17 = bs[2];
       endpos[0] = dir[0] + *(float *)v2;
       endpos[1] = dir[1] + *((float *)bs + 422);
-      v11 = dir[2] + *((float *)bs + 423);
-      belowbestorg[1] = endpos[1];
-      endpos[2] = v11;
+      endpos[2] = dir[2] + *((float *)bs + 423);
       belowbestorg[0] = endpos[0];
+      belowbestorg[1] = endpos[1];
       belowbestorg[2] = endpos[2] - 800.0f;
       *(bsp_trace_t *)trace = AAS_Trace((float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(belowbestorg), v17, 3);
       if ( !trace[1] )
@@ -32787,10 +32786,7 @@ const char **__cdecl FindField(const char **defs, const char *name)
  *   slot[6] = substruct (structdef_t *). */
 static inline int fielddef_flags(char **f) { return (int)(intptr_t)f[2]; }
 static inline float fielddef_float(char **f, int slot) {
-    uint32_t bits = (uint32_t)(uintptr_t)f[slot];
-    float r;
-    memcpy(&r, &bits, sizeof(r));
-    return r;
+    return *(float *)&f[slot];   /* direct low-32 read (LE-safe); matches ref's fld [ebp+off] */
 }
 
 /* fielddef_t — Q3 l_struct.h field descriptor, overlaid on the char *[7]
@@ -32811,7 +32807,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 {
   int negative; // esi
   int v5; // eax
-  float floatval; // st7
+  double floatval; // st7
   int intval; // ebx
   int v8; // ecx
   int type; // edi — (v8 & FT_TYPE) computed once, reused
@@ -32917,9 +32913,29 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     }
     v16 = intmax;
   }
-  if ( type != 1 && type != 2 )
+  if ( type == 1 || type == 2 )
   {
-    if ( type == 3 && (v8 & 0x200) != 0 )
+    if ( (v8 & 0x200) != 0 )
+    {
+      v12 = (float)v17;
+      if ( v12 <= fielddef_float(fd, 4) )
+        v12 = fielddef_float(fd, 4);
+      v13 = (int)v12;
+      v14 = (float)v16;
+      intmin = v13;
+      if ( v14 >= fielddef_float(fd, 5) )
+        v14 = fielddef_float(fd, 5);
+      intmax = (int)v14;
+    }
+    if ( intval < intmin || intval > intmax )
+    {
+      SourceError(source, "value %d out of range [%d, %d]", intval, intmin, intmax);
+      return 0;
+    }
+  }
+  else if ( type == 3 )
+  {
+    if ( (v8 & 0x200) != 0 )
     {
       v11 = (float)v19;
       if ( v11 < fielddef_float(fd, 4) || v11 > fielddef_float(fd, 5) )
@@ -32928,26 +32944,6 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
         return 0;
       }
     }
-  }
-  else
-  {
-  if ( (v8 & 0x200) != 0 )
-  {
-    v12 = (float)v17;
-    if ( v12 <= fielddef_float(fd, 4) )
-      v12 = fielddef_float(fd, 4);
-    v13 = (int)v12;
-    v14 = (float)v16;
-    intmin = v13;
-    if ( v14 >= fielddef_float(fd, 5) )
-      v14 = fielddef_float(fd, 5);
-    intmax = (int)v14;
-  }
-  if ( intval < intmin || intval > intmax )
-  {
-    SourceError(source, "value %d out of range [%d, %d]", intval, intmin, intmax);
-    return 0;
-  }
   }
   if ( type == 1 )
   {
