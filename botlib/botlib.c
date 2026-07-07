@@ -4031,7 +4031,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   dnode_t *v6; // esi
   int v7; // edx
   dplane_t *v8; // eax
-  float *v9; // ebp
   float v10; // st7
   float v11; // st6
   int v14; // eax
@@ -4065,7 +4064,6 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   v40 = v6;
   v8 = &dplanes[v6->planenum];
   v7 = v8->type;
-  v9 = a3;
   if ( v7 < 3 )
   {
     v10 = a2[v7] - v8->dist;
@@ -4095,20 +4093,19 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
     v18 = (int)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
     v19 = (int)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
     v20 = *v16;
-    if ( v18 >= v20 )
-    {
-      if ( v19 >= v16[1] )
-      {
-        v21 = v19 - v16[1];
-        v22 = v18 - v20;
-        if ( v22 <= v16[2] && v21 <= v16[3] )
-          goto sample_lightmap;
-      }
-    }
+    if ( v18 < v20 )
+      continue;
+    if ( v19 < v16[1] )
+      continue;
+    v21 = v19 - v16[1];
+    v22 = v18 - v20;
+    if ( v22 > v16[2] )
+      continue;
+    if ( v21 <= v16[3] )
+      goto sample_lightmap;
   }
   v6 = v40;
-  v9 = a3;
-  return sub_10006D10(v6->children[!side], mid, v9, a4, a5);
+  return sub_10006D10(v6->children[!side], mid, a3, a4, a5);
 sample_lightmap:
   v24 = 0;
   v25 = v45->lightofs;
@@ -8554,31 +8551,22 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   aas_trace_t steptrace; // [esp+144h] [ebp-B4h] (was IDA int v83[9] + char v86[36] hidden return buffer)
   aas_trace_t gaptrace; // [esp+168h] [ebp-90h] (was IDA int v84[9] + char v85[36] hidden return buffer)
 
-  v12 = libvar_sv_stopspeed->value;
   phys_friction = libvar_sv_friction->value;
-  phys_stopspeed = v12;
-  v13 = libvar_sv_waterfriction->value;
+  phys_stopspeed = libvar_sv_stopspeed->value;
   phys_gravity = libvar_sv_gravity->value;
-  phys_waterfriction = v13;
-  v14 = (float)frametime * (float)libvar_sv_maxwalkvelocity->value;
+  phys_waterfriction = libvar_sv_waterfriction->value;
   phys_watergravity = libvar_sv_watergravity->value;
-  phys_maxwalkvelocity = (float)v14;
+  phys_maxwalkvelocity = frametime * libvar_sv_maxwalkvelocity->value;
   phys_maxcrouchvelocity = frametime * libvar_sv_maxcrouchvelocity->value;
-  v15 = (float)frametime * (float)libvar_sv_maxswimvelocity->value;
-  phys_maxstep = libvar_sv_step->value;
-  phys_maxswimvelocity = (float)v15;
-  v16 = libvar_sv_maxsteepness->value;
+  phys_maxswimvelocity = frametime * libvar_sv_maxswimvelocity->value;
   phys_maxacceleration = frametime * libvar_sv_maxaccelerate->value;
-  v17 = (float)frametime * (float)libvar_sv_jumpvel->value;
-  phys_maxsteepness = v16;
+  phys_maxstep = libvar_sv_step->value;
+  phys_maxsteepness = libvar_sv_maxsteepness->value;
+  phys_jumpvel = frametime * libvar_sv_jumpvel->value;
   memset(move_buf, 0, sizeof(move_buf));
-  phys_jumpvel = (float)v17;
   memset(&trace, 0, sizeof(trace));
-  v18 = *(int *)&origin[1];
-  v19 = (float)origin[2] + 0.25;
-  *(int *)&org[0] = *(int *)origin;
-  *(int *)&org[1] = v18;
-  org[2] = (float)v19;
+  VectorCopy(origin, org);
+  org[2] += 0.25;
   VectorScale(velocity, frametime, frame_test_vel);
   jump_frame = -1;
   n = 0;
@@ -8586,20 +8574,13 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
     goto LABEL_85;
   while ( 2 )
   {
-    swimming_ret = AAS_Swimming(org);
-    swimming = swimming_ret;
-    v57 = swimming_ret;
-    if ( swimming_ret )
-      gravity = (float)phys_watergravity;
-    else
-      gravity = (float)phys_gravity;
-    frame_test_vel[2] = (float)((float)frame_test_vel[2] - gravity * (float)frametime * 0.1);
-    if ( onground || swimming_ret )
+    swimming = AAS_Swimming(org);
+    v57 = swimming;
+    gravity = swimming ? phys_watergravity : phys_gravity;
+    frame_test_vel[2] = frame_test_vel[2] - gravity * 0.1 * frametime;
+    if ( onground || swimming )
     {
-      if ( swimming_ret )
-        friction = phys_friction;
-      else
-        friction = phys_waterfriction;
+      friction = swimming ? phys_friction : phys_waterfriction;
       VectorScale(frame_test_vel, 10.0f, frame_test_vel);
       AAS_ApplyFriction(frame_test_vel, friction, phys_stopspeed, frametime);
       VectorScale(frame_test_vel, 0.1f, frame_test_vel);
