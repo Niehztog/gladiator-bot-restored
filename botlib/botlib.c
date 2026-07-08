@@ -8467,7 +8467,7 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
  * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
- * OUR+11 / 4367 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
+ * OUR+11 / 4369 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
  * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
@@ -8716,14 +8716,14 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       old_frame_test_vel[2] = frame_test_vel[2];
       backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*plane));
       VectorMA(frame_test_vel, backoff_frame, plane, frame_test_vel);
-      if ( plane[2] <= (float)phys_maxsteepness )
-      {
-        landed = onground;
-      }
-      else
+      if ( plane[2] > (float)phys_maxsteepness )
       {
         landed = 1;
         onground = 1;
+      }
+      else
+      {
+        landed = onground;
       }
       if ( (stopevent & 0x20) == 0 )    // !SE_HITGROUNDDAMAGE
         goto LABEL_66;
