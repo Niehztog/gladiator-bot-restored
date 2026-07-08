@@ -8467,7 +8467,7 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
  * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
- * OUR+11 / 4369 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
+ * OUR+5 / 4414 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
  * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
@@ -8493,7 +8493,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   long double v19; // st7
   BOOL swimming_ret; // eax
   BOOL swimming; // esi
-  long double gravity; // st7
+  float gravity; // Q3 be_aas_move.c:519 declares this float; NOT long double (IDA's
+                 // pure-FPU-register marker)
   int crouch; // edi
   long double maxvel; // st7
   int ax; // eax
@@ -8578,10 +8579,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   org[2] += 0.25;
   VectorScale(velocity, frametime, frame_test_vel);
   jump_frame = -1;
-  n = 0;
-  if ( maxframes <= 0 )
-    goto LABEL_85;
-  while ( 2 )
+  for ( n = 0; n < maxframes; n++ )
   {
     swimming = AAS_Swimming(org);
     v57 = swimming;
@@ -8625,25 +8623,24 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         do
         {
           velchange = (float)frametime * (float)(*(float *)((char *)cmdmove + ((char *)velp - (char *)frame_test_vel))) - (float)(*(float *)velp);
-          if ( velchange <= phys_maxacceleration )
+          if ( velchange > phys_maxacceleration )
+          {
+            velchange = (float)phys_maxacceleration;
+          }
+          else
           {
             v50 = -phys_maxacceleration;
             if ( velchange < v50 )
               velchange = v50;
           }
-          else
-          {
-            velchange = (float)phys_maxacceleration;
-          }
           *(float *)velp = v50 = (float)(velchange + (float)(*(float *)velp));
-          if ( v50 <= maxvel )
-          {
-            if ( v50 < -maxvel )
-              *(float *)velp = (float)(-maxvel);
-          }
-          else
+          if ( v50 > maxvel )
           {
             *(float *)velp = (float)maxvel;
+          }
+          else if ( v50 < -maxvel )
+          {
+            *(float *)velp = (float)(-maxvel);
           }
           ++velp;
           --naxes;
@@ -8736,7 +8733,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         goto LABEL_66;                                        // neither -> no fall damage
       if ( delta != 0.0f )
       {
-        damage = delta * 10.0f * (delta * 10.0f) * 0.0001;
+        delta = delta * 10.0f;
+        damage = delta * delta * 0.0001;
         if ( !v57 && damage > 30.0f )
         {
           move_buf[0] = *(int *)&org[0];
@@ -8756,23 +8754,6 @@ LABEL_66:
         { return *(aas_clientmove_t *)move_buf; }
     }
     while ( trace.fraction < 1.0 );
-    goto LABEL_87;
-LABEL_85:
-    move_buf[0] = *(int *)&org[0];
-    move_buf[1] = *(int *)&org[1];
-    move_buf[2] = *(int *)&org[2];
-    move_buf[3] = *(int *)&frame_test_vel[0];
-    *(float *)&move_buf[4] = frame_test_vel[1];
-    move_buf[5] = *(int *)&frame_test_vel[2];
-    move_buf[16] = 0;
-LABEL_86:
-    move_buf[15] = presencetype;
-    move_buf[17] = 1082130432;
-    move_buf[19] = n;
-    *(float *)&move_buf[18] = (float)n * frametime;
-LABEL_88:
-    return *(aas_clientmove_t *)move_buf;
-LABEL_87:
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
     // check below then runs unconditionally (was IDA `if(vel>0) goto LABEL_76`).
     if ( frame_test_vel[2] <= 0.0f )
@@ -8875,10 +8856,22 @@ LABEL_87:
       goto LABEL_88;
     }
 LABEL_84:
-    if ( ++n < maxframes )
-      continue;
-    goto LABEL_85;
+    ;
   }
+LABEL_85:
+  move_buf[0] = *(int *)&org[0];
+  move_buf[1] = *(int *)&org[1];
+  move_buf[2] = *(int *)&org[2];
+  move_buf[3] = *(int *)&frame_test_vel[0];
+  *(float *)&move_buf[4] = frame_test_vel[1];
+  move_buf[5] = *(int *)&frame_test_vel[2];
+  move_buf[16] = 0;
+LABEL_86:
+  move_buf[15] = presencetype;
+  move_buf[17] = 1082130432;
+  move_buf[19] = n;
+  *(float *)&move_buf[18] = (float)n * frametime;
+LABEL_88:
   return *(aas_clientmove_t *)move_buf;
 }
 
