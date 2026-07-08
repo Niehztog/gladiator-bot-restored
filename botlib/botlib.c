@@ -8466,7 +8466,9 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  *     params and no AAS_TraceAreas scan.
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
- * codegen is byte-identical to the original DLL (verified vs the MSVC6 oracle).
+ * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
+ * OUR+11 / 4367 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
+ * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
@@ -8513,7 +8515,14 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   int n; // [esp+1Ch] [ebp-1DCh]
   vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
-  int v50;               // [esp+38h] [ebp-1C0h]  4-byte slot reused as int counter (LODWORD/SLODWORD) + float scratch (*(float*)&v50). The gravity *0.1 double value is NOT this slot — it's a separate compiler QWORD CSE temp, inlined below so it doesn't force an 8-byte declared local (which would add and esp,-8; orig is pure FPO).
+  float v50;             // [esp+38h] [ebp-1C0h]  4-byte slot, address-taken (ref reloads it from
+                         // memory at every use: 1000fb39-fb60, 1000ff60-ff6c) so it must stay a
+                         // real memory object, not a register temp -- reused as float scratch in
+                         // the accel loop and, via LODWORD/SLODWORD punning, as the int trace-loop
+                         // counter. The gravity*0.1 double value is NOT this slot -- it's a
+                         // separate compiler QWORD CSE temp (see line ~8580 above), inlined so it
+                         // doesn't force an 8-byte declared local (would add 'and esp,-8'; orig is
+                         // pure FPO).
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
   int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot
@@ -8541,7 +8550,10 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   vec3_t lastorg; // [esp+E8h] [ebp-110h] BYREF (Q3 be_aas_move.c:524/645 — was IDA-split lastorg0/1/2)
   float phys_stopspeed; // [esp+F4h] [ebp-104h]
   float phys_maxswimvelocity; // [esp+F8h] [ebp-100h]
-  float old_velz; // [esp+104h] [ebp-F4h]
+  vec3_t old_frame_test_vel; // [esp+F0h] BYREF (Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
+                             // ref allocates the full 3-float slot but only [2] is ever stored
+                             // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
+                             // which is why IDA rendered this as the scalar 'old_velz'.
   aas_trace_t trace; // [esp+108h] [ebp-F0h] (was IDA int v80[9] + char v87[36] hidden return buffer)
   float feet[3]; // [esp+12Ch] [ebp-CCh] BYREF
   float stepend[3]; // [esp+138h] [ebp-C0h] BYREF
@@ -8574,7 +8586,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
     swimming = AAS_Swimming(org);
     v57 = swimming;
     gravity = swimming ? phys_watergravity : phys_gravity;
-    frame_test_vel[2] = frame_test_vel[2] - gravity * 0.1 * frametime;
+    frame_test_vel[2] = frame_test_vel[2] - gravity * frametime * 0.1;
     if ( onground || swimming )
     {
       friction = swimming ? phys_friction : phys_waterfriction;
@@ -8613,20 +8625,20 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         do
         {
           velchange = (float)frametime * (float)(*(float *)((char *)cmdmove + ((char *)velp - (char *)frame_test_vel))) - (float)(*(float *)velp);
-          if ( velchange <= (float)phys_maxacceleration )
+          if ( velchange <= phys_maxacceleration )
           {
-            *(float *)&v50 = -phys_maxacceleration;
-            if ( velchange < (float)(*(float *)&v50) )
-              velchange = (float)(*(float *)&v50);
+            v50 = -phys_maxacceleration;
+            if ( velchange < v50 )
+              velchange = v50;
           }
           else
           {
             velchange = (float)phys_maxacceleration;
           }
-          *(float *)velp = *(float *)&v50 = (float)(velchange + (float)(*(float *)velp));
-          if ( (float)(*(float *)&v50) <= maxvel )
+          *(float *)velp = v50 = (float)(velchange + (float)(*(float *)velp));
+          if ( v50 <= maxvel )
           {
-            if ( (float)(*(float *)&v50) < -maxvel )
+            if ( v50 < -maxvel )
               *(float *)velp = (float)(-maxvel);
           }
           else
@@ -8701,7 +8713,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       VectorMA(left_test_vel, backoff_left, plane, left_test_vel);
       v32 = (float)frame_test_vel[1] * (float)plane[1];
       v33 = (float)frame_test_vel[2] * (float)plane[2];
-      old_velz = frame_test_vel[2];
+      old_frame_test_vel[2] = frame_test_vel[2];
       backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*plane));
       VectorMA(frame_test_vel, backoff_frame, plane, frame_test_vel);
       if ( plane[2] <= (float)phys_maxsteepness )
@@ -8716,10 +8728,10 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       if ( (stopevent & 0x20) == 0 )    // !SE_HITGROUNDDAMAGE
         goto LABEL_66;
       // Q3 be_aas_move.c:836 landing-damage delta (was IDA goto LABEL_62/63):
-      if ( old_velz < 0.0f && (float)frame_test_vel[2] > (float)old_velz && !landed )
-        delta = (float)old_velz;                              // still falling
+      if ( old_frame_test_vel[2] < 0.0f && (float)frame_test_vel[2] > (float)old_frame_test_vel[2] && !landed )
+        delta = (float)old_frame_test_vel[2];                              // still falling
       else if ( landed )
-        delta = (float)frame_test_vel[2] - (float)old_velz;   // landed this frame
+        delta = (float)frame_test_vel[2] - (float)old_frame_test_vel[2];   // landed this frame
       else
         goto LABEL_66;                                        // neither -> no fall damage
       if ( delta != 0.0f )
