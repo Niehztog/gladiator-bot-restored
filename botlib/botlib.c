@@ -8467,7 +8467,7 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
  * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
- * OUR+1 / 4364 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
+ * OUR+1 / 4354 byte_diffs as of 2026-07-09; see msvc6_intractables.md for
  * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
@@ -8524,7 +8524,11 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
-  int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot
+  int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot.
+                         // VERIFIED not a v50-style chimera (2026-07-09): ref's slot has
+                         // exactly these two non-overlapping roles and no third occupant --
+                         // the apparent extra touches nearby are push-depth-shifted reads of
+                         // start[2]/&start/&left_test_vel, not this slot. Do not re-chase.
   float phys_maxacceleration;             // [esp+5Ch] [ebp-19Ch]
   vec3_t end;            // [esp+60h] [ebp-198h] BYREF
   /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
@@ -8623,8 +8627,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
             velchange = phys_maxacceleration;
           else if ( velchange < -phys_maxacceleration )
             velchange = -phys_maxacceleration;
-          newvel = velchange + frame_test_vel[i];
-          frame_test_vel[i] = newvel;
+          frame_test_vel[i] = newvel = velchange + frame_test_vel[i];
           if ( newvel > maxvel )
             frame_test_vel[i] = maxvel;
           else if ( newvel < -maxvel )
@@ -8690,7 +8693,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
           }
         }
       }
-      backoff_left = (float)(-((float)left_test_vel[1] * (float)plane[1] + (float)left_test_vel[2] * (float)plane[2] + (float)left_test_vel[0] * (float)*plane));
+      v32 = (float)left_test_vel[1] * (float)plane[1];
+      v33 = (float)left_test_vel[2] * (float)plane[2];
+      backoff_left = (float)(-(v32 + v33 + (float)left_test_vel[0] * (float)*plane));
       VectorMA(left_test_vel, backoff_left, plane, left_test_vel);
       v32 = (float)frame_test_vel[1] * (float)plane[1];
       v33 = (float)frame_test_vel[2] * (float)plane[2];
