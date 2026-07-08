@@ -8467,7 +8467,7 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
  * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
- * OUR+5 / 4414 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
+ * OUR+1 / 4364 byte_diffs as of 2026-07-08; see msvc6_intractables.md for
  * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
@@ -8498,9 +8498,11 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   int crouch; // edi
   long double maxvel; // st7
   int ax; // eax
-  int *velp; // ecx
-  int naxes; // esi
-  long double velchange; // st6
+  int i;           // per-axis accel loop index (Q3 be_aas_move.c:620 fossil)
+  float velchange; // Q3 be_aas_move.c:520 '//float velchange, newvel;' -- float, NOT
+                   // long double (IDA pure-FPU-register marker; long double compares
+                   // suppress the memory-operand fcom forms ref shows at 1000fb26/fb43)
+  float newvel;    // ditto; ref round-trips it through the temp region (1000fb56/fb5c)
   float *plane; // ebp
   char *plane2; // eax
   long double v32; // st7
@@ -8514,16 +8516,12 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   float backoff_left; // [esp+0h] [ebp-1F8h]
   float backoff_frame; // [esp+0h] [ebp-1F8h]
   int n; // [esp+1Ch] [ebp-1DCh]
+  int j;           // trace-loop safety counter (Q3 be_aas_move.c:648/876). Plain int;
+                   // in ref it loses the ebx contest to presencetype and spills into
+                   // the compiler temp region ([esp+0x2c], shared with the QWORD
+                   // gravity CSE at 1000f9e5 -- proof this was never a declared float)
   vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
   vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
-  float v50;             // [esp+38h] [ebp-1C0h]  4-byte slot, address-taken (ref reloads it from
-                         // memory at every use: 1000fb39-fb60, 1000ff60-ff6c) so it must stay a
-                         // real memory object, not a register temp -- reused as float scratch in
-                         // the accel loop and, via LODWORD/SLODWORD punning, as the int trace-loop
-                         // counter. The gravity*0.1 double value is NOT this slot -- it's a
-                         // separate compiler QWORD CSE temp (see line ~8580 above), inlined so it
-                         // doesn't force an 8-byte declared local (would add 'and esp,-8'; orig is
-                         // pure FPO).
   vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
   vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
   int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot
@@ -8618,34 +8616,20 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       }
       if ( swimming || ax > 0 )
       {
-        velp = (int *)frame_test_vel;
-        naxes = ax;
-        do
+        for ( i = 0; i < ax; i++ )
         {
-          velchange = (float)frametime * (float)(*(float *)((char *)cmdmove + ((char *)velp - (char *)frame_test_vel))) - (float)(*(float *)velp);
+          velchange = frametime * cmdmove[i] - frame_test_vel[i];
           if ( velchange > phys_maxacceleration )
-          {
-            velchange = (float)phys_maxacceleration;
-          }
-          else
-          {
-            v50 = -phys_maxacceleration;
-            if ( velchange < v50 )
-              velchange = v50;
-          }
-          *(float *)velp = v50 = (float)(velchange + (float)(*(float *)velp));
-          if ( v50 > maxvel )
-          {
-            *(float *)velp = (float)maxvel;
-          }
-          else if ( v50 < -maxvel )
-          {
-            *(float *)velp = (float)(-maxvel);
-          }
-          ++velp;
-          --naxes;
+            velchange = phys_maxacceleration;
+          else if ( velchange < -phys_maxacceleration )
+            velchange = -phys_maxacceleration;
+          newvel = velchange + frame_test_vel[i];
+          frame_test_vel[i] = newvel;
+          if ( newvel > maxvel )
+            frame_test_vel[i] = maxvel;
+          else if ( newvel < -maxvel )
+            frame_test_vel[i] = -maxvel;
         }
-        while ( naxes );
       }
     }
     if ( crouch )
@@ -8658,7 +8642,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
     left_test_vel[0] = frame_test_vel[0];
     left_test_vel[1] = frame_test_vel[1];
     left_test_vel[2] = frame_test_vel[2];
-    LODWORD(v50) = 0;
+    j = 0;
     do
     {
       end[0] = left_test_vel[0] + org[0];
@@ -8749,9 +8733,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         }
       }
 LABEL_66:
-      ++LODWORD(v50);
-      if ( SLODWORD(v50) > 20 )
-        { return *(aas_clientmove_t *)move_buf; }
+      if ( ++j > 20 )
+        return *(aas_clientmove_t *)move_buf;
     }
     while ( trace.fraction < 1.0 );
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
