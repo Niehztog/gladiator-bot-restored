@@ -8466,14 +8466,15 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  *     params and no AAS_TraceAreas scan.
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
- * codegen is NOT byte-identical to the original DLL (MSVC6 oracle: OUR+1 /
- * 4354 byte_diffs as of 2026-07-09). Frame size matches ref exactly
+ * codegen is NOT byte-identical to the original DLL (MSVC6 oracle currently
+ * OUR+1 / 4359 byte_diffs, 2026-07-09). Frame size matches ref exactly
  * (sub esp,0x1dc); statement-level structure, variable identity/types, and
- * every callee are verified exact. The residual is CLOSED as a
- * compiler-internal register-allocation tie (six mechanistically distinct
- * source-level levers tried and falsified — see msvc6_intractables.md,
- * "AAS_ClientMovementPrediction" 2026-07-09 final entry, for the full case).
- * Do not re-open without a genuinely new, mechanistically distinct angle.
+ * every callee are verified exact. The old "closed as a register-allocation
+ * tie" verdict proved too strong: later source-faithful probes still moved the
+ * normalized asm in narrow regions (for example `maxvel` restoring to `float`),
+ * even when the raw byte metric did not improve. See msvc6_intractables.md for
+ * the current negative/positive probe history; treat the residual as narrow and
+ * difficult, not as mathematically exhausted.
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
@@ -8510,7 +8511,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
                  // pure-FPU-register marker)
   float delta; // NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads
   float damage; // st7
-  long double maxvel; // st7
+  float maxvel;
   float velchange; // Q3 be_aas_move.c:520 '//float velchange, newvel;' -- float, NOT
                    // long double (IDA pure-FPU-register marker; long double compares
                    // suppress the memory-operand fcom forms ref shows at 1000fb26/fb43)
@@ -8549,9 +8550,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
                              // which is why IDA rendered this as the scalar 'old_velz'.
   vec3_t left_test_vel;  // BYREF
   float *plane; // ebp
-  char *plane2; // eax
-  long double v32; // st7
-  long double v33; // st6
+  float *plane2; // eax
+  float v32;
+  float v33;
   /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
    * differs from Q3's aas_clientmove_t (no 'endarea'; a float at +0x44 where Q3
    * has int 'endcontents'), so it stays a raw int[20] — DON'T retype to Q3's.
@@ -8637,9 +8638,13 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       }
     }
     if ( crouch )
+    {
       presencetype = 4;
-    else if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
+      goto LABEL_12;
+    }
+    if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
       presencetype = 2;
+LABEL_12:
     *(int *)&lastorg[0] = *(int *)&org[0];
     *(int *)&lastorg[1] = *(int *)&org[1];
     *(int *)&lastorg[2] = *(int *)&org[2];
@@ -8675,8 +8680,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
         if ( !steptrace.startsolid )
         {
-          plane2 = AAS_PlaneFromNum(steptrace.planenum);
-          if ( *(float *)(plane2 + 8) > (float)phys_maxsteepness )
+          plane2 = (float *)AAS_PlaneFromNum(steptrace.planenum);
+          if ( plane2[2] > (float)phys_maxsteepness )
           {
             left_test_vel[2] = 0.0f;
             frame_test_vel[2] = 0.0f;
