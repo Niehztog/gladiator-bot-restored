@@ -2608,7 +2608,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   bsp_model_tracestack_t *v19;
   bsp_model_tracestack_t *v24; // ebx
   bsp_model_tracestack_t *v25; // esi
-  int v26; // eax
   int *v27; // ebp
   int v28; // eax
   int v29; // esi
@@ -2631,10 +2630,20 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v48; // st6
   int v53; // ecx
   int v54; // eax
-  float v55; // eax
+  /* side_a/side_b: Fable-5-proposed (2026-07-09), disasm-verified — the original
+   * stores the 0/1 "which side of the plane" selector as a plain int (ref
+   * `mov DWORD [slot],1` / `mov DWORD [slot],0` / `mov reg,[slot]`, zero FPU
+   * traffic). IDA routed both through float-declared locals (v110/v99/v102 for
+   * the no-box split; v55/v109-as-int/v58/v78 for the box split) requiring
+   * LODWORD() to read them back as ints, which MSVC6 compiles as a real
+   * fld/fstp materialization each time, not a no-op. side_a replaces
+   * v99/v102 (v110 keeps its other, genuinely-float, later uses); side_b
+   * replaces v55/v58/v78 and the "v109 used as an int selector" instances only
+   * (v109's earlier genuine float distance value is untouched). */
+  int side_a;
+  int side_b;
   bsp_model_tracestack_t *v56; // eax
   int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset)
-  float v58; // ebp
   int v59; // edx
   float v60; // st7
   bsp_model_tracestack_t *v62; // ecx — AArch64: trace-stack frame pointer (see v19)
@@ -2644,7 +2653,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   bsp_model_tracestack_t *v70; // edx
   dnode_t *v76; // edx
   int v77; // eax
-  float v78; // edx
   bsp_model_tracestack_t *v79; // eax — AArch64: trace-stack frame pointer
   int *v80; // ecx  — AArch64: points to a single 4-byte link slot
   int v82; // edx
@@ -2654,10 +2662,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v96; // eax
   int v97; // ecx
   float v98; // st7
-  float v99; // edi
   bsp_model_tracestack_t *v100; // eax — AArch64: trace-stack frame pointer (see v19)
   int v101; // ecx
-  float v102; // ebx
   int v103; // edx
   vec3_t v106; // [esp+10h] [ebp-1548h] BYREF — current piece start
   float v109; // [esp+1Ch] [ebp-153Ch]
@@ -2755,6 +2761,17 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   }
   while ( v17 );
   trace_stack[127].next = 0;
+  /* ref 0x100046d0: `lea eax,[esp+0x158]` (&trace_stack[0]) then
+   * `test eax,eax; je <error-print>` — a provably-dead-in-practice guard
+   * (a local array's address is never NULL) that IDA elided from the
+   * pseudocode but the 1998 compiler still emitted (artifact class 13,
+   * same class as AAS_Reachability_Elevator's elided bounds recheck).
+   * v16 is otherwise dead here; reuse it to hold the fresh base address,
+   * matching ref's fresh `lea` rather than reusing the loop's advanced
+   * pointer. Fable-5-proposed, disasm-verified 2026-07-09. */
+  v16 = trace_stack;
+  if ( !v16 )
+    goto LABEL_125;
   v19 = TR_DEC(trace_stack[0].next);
   VectorCopy(start, trace_stack[0].start);
   VectorCopy(end, trace_stack[0].end);
@@ -2774,11 +2791,10 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v25 = v24;
           if ( !v24 )
             return trace;
-          v26 = v24->planenum;
+          v119 = v24->planenum;
           v27 = &v24->next;
           v24 = TR_DEC(v24->next);
-          v119 = v25->planenum;
-          if ( v26 < 0 )
+          if ( v119 < 0 )
             return trace;
           v28 = v25->nodenum;
           if ( v28 >= 0 )
@@ -2800,13 +2816,11 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v120 = v31;
           v19 = v25;
           v38 = &dplanes[v37];
-          v110 = *(float *)&v38;
           if ( v144 )
           {
             VectorCopy(v38->normal, v114);
             sub_10003460(v114, v151);
             v31 = v120;
-            *(float *)&v38 = v110;
             v39 = 4;
           }
           else
@@ -2816,39 +2830,38 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             v39 = v117;
           }
           if ( v142 )
-            v40 = v39 >= 3 ? DotProduct(v114, v136) + v38->dist : v136[v39] + v38->dist;
+            v40 = v39 < 3 ? v136[v39] + v38->dist : DotProduct(v114, v136) + v38->dist;
           else
             v40 = v38->dist;
           if ( boxmins && boxmaxs )
             break;
-          if ( v39 >= 3 )
-          {
-            v109 = DotProduct(v114, v106) - v40;
-            v83 = DotProduct(v114, v111) - v40;
-          }
-          else
+          if ( v39 < 3 )
           {
             v109 = v106[v39] - v40;
             v83 = v111[v39] - v40;
           }
-          if ( v109 <= -0.005f || v83 <= -0.005f )
+          else
           {
-            if ( v109 >= 0.005f || v83 >= 0.005f )
+            v109 = DotProduct(v114, v106) - v40;
+            v83 = DotProduct(v114, v111) - v40;
+          }
+          if ( v109 <= -0.005 || v83 <= -0.005 )
+          {
+            if ( v109 >= 0.005 || v83 >= 0.005 )
             {
-              LODWORD(v110) = 1;
+              side_a = 1;
               v98 = v109 / (v109 - v83);
               v123[0] = (v111[0] - v106[0]) * v98 + v106[0];
               v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
               v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
               if ( v109 >= 0 )
-                v110 = 0.0f;
-              v99 = v110;
+                side_a = 0;
               VectorCopy(v123, v25->start);
               VectorCopy(v111, v25->end);
               v100 = TR_DEC(*v27);
               v25->planenum = v31->planenum;
               v25->planedist = 0.0f;
-              v101 = v31->children[LODWORD(v99) == 0];
+              v101 = v31->children[side_a == 0];
               *v27 = TR_ENC(v24);
               v25->nodenum = v101;
               if ( !v100 )
@@ -2857,9 +2870,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               VectorCopy(v106, v100->start);
               VectorCopy(v123, v100->end);
               v100->planenum = v119;
-              v102 = v110;
               v100->planedist = 0.0f;
-              v103 = v31->children[LODWORD(v102)];
+              v103 = v31->children[side_a];
               v24 = v100;
               v100->nodenum = v103;
               v100->next = TR_ENC(v25);
@@ -2892,7 +2904,18 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             v24 = v25;
           }
         }
-        if ( v39 >= 3 )
+        if ( v39 < 3 )
+        {
+          v41 = v106[v39] - v40;
+          v121 = 1;
+          v109 = v41;
+          v42 = v111[v39] - v40;
+          if ( v128[v39] >= 0 )
+            v121 = 0;
+          plane_offsets[0] = -boxmins[v39];
+          plane_offsets[1] = -boxmaxs[v39];
+        }
+        else
         {
           v121 = 1;
           v109 = DotProduct(v114, v106) - v40;
@@ -2921,17 +2944,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           plane_offsets[0] = -DotProduct(v148, v114);
           plane_offsets[1] = -DotProduct(v149, v114);
         }
-        else
-        {
-          v41 = v106[v39] - v40;
-          v121 = 1;
-          v109 = v41;
-          v42 = v111[v39] - v40;
-          if ( v128[v39] >= 0 )
-            v121 = 0;
-          plane_offsets[0] = -boxmins[v39];
-          plane_offsets[1] = -boxmaxs[v39];
-        }
         v47 = 0;
         do
         {
@@ -2939,8 +2951,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v145[v47] = v48;
           v110 = v42 - plane_offsets[v47];
           v147[v47] = v110;
-          plane_sideflags[2 * v47] = v48 > -0.005f && v110 > -0.005f;
-          plane_sideflags[2 * v47 + 1] = v48 < 0.005f && v110 < 0.005f;
+          plane_sideflags[2 * v47] = v48 > -0.005 && v110 > -0.005;
+          plane_sideflags[2 * v47 + 1] = v48 < 0.005 && v110 < 0.005;
           ++v47;
         }
         while ( v47 < 2 );
@@ -2960,9 +2972,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           break;
       }
       while ( plane_sideflags[v53 + 2] );
-      LODWORD(v55) = v53 == 0;
-      v109 = v55;
-      if ( plane_sideflags[(int)LODWORD(v55)] || plane_sideflags[(int)LODWORD(v55) + 2] )
+      side_b = (v53 == 0);
+      if ( plane_sideflags[side_b] || plane_sideflags[side_b + 2] )
       {
         if ( !v19 )
           break;
@@ -2973,25 +2984,23 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         v19 = TR_DEC(v19->next);
         v56->planenum = v119;
         v56->planedist = v127;
-        v58 = v109;
-        v59 = v31->children[LODWORD(v109)];
+        v59 = v31->children[side_b];
         *v57 = TR_ENC(v24);
         v56->nodenum = v59;
         v24 = v56;
-        if ( !plane_sideflags[(int)LODWORD(v58)] || !plane_sideflags[(int)LODWORD(v58) + 2] )
+        if ( !plane_sideflags[side_b] || !plane_sideflags[side_b + 2] )
           goto LABEL_71;
       }
       else
       {
-        v58 = v109;
 LABEL_71:
-        if ( plane_sideflags[2 * (int)LODWORD(v58)] || plane_sideflags[2 * (int)LODWORD(v58) + 1] )
+        if ( plane_sideflags[2 * side_b] || plane_sideflags[2 * side_b + 1] )
         {
           v118 = -1.0f;
         }
         else
         {
-          v118 = v145[LODWORD(v58)] / (v145[LODWORD(v58)] - v147[LODWORD(v58)]);
+          v118 = v145[side_b] / (v145[side_b] - v147[side_b]);
           v123[0] = (v111[0] - v106[0]) * v118 + v106[0];
           v123[1] = (v111[1] - v106[1]) * v118 + v106[1];
           v123[2] = (v111[2] - v106[2]) * v118 + v106[2];
@@ -3055,7 +3064,7 @@ LABEL_101:
             v69 = v120;
             v19 = TR_DEC(v19->next);
             v62->planenum = v69->planenum;
-            v62->planedist = plane_offsets[LODWORD(v109)];
+            v62->planedist = plane_offsets[side_b];
             v70 = v24;
             v62->nodenum = v69->children[v121];
             if ( !v24 )
@@ -3082,8 +3091,7 @@ LABEL_99:
 LABEL_102:
           *v63 = 0;
 LABEL_103:
-          v78 = v109;
-          if ( !plane_sideflags[(int)LODWORD(v109)] && !plane_sideflags[(int)LODWORD(v109) + 2] )
+          if ( !plane_sideflags[side_b] && !plane_sideflags[side_b + 2] )
           {
             if ( v60 >= 0 )
             {
@@ -3108,7 +3116,7 @@ LABEL_103:
 LABEL_111:
               v79->planenum = v119;
               v79->planedist = v127;
-              v82 = v120->children[LODWORD(v78)];
+              v82 = v120->children[side_b];
               *v80 = TR_ENC(v24);
               v79->nodenum = v82;
               v24 = v79;
