@@ -2764,7 +2764,18 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
    * same class as AAS_Reachability_Elevator's elided bounds recheck).
    * v16 is otherwise dead here; reuse it to hold the fresh base address,
    * matching ref's fresh `lea` rather than reusing the loop's advanced
-   * pointer. Fable-5-proposed, disasm-verified 2026-07-09. */
+   * pointer. Fable-5-proposed, disasm-verified 2026-07-09.
+   *
+   * Round 3 tried folding this into v24's own definition (checking v24
+   * itself here instead of a separate v16, one variable instead of two) on
+   * the theory that ref's two `lea`s of this same address reflect one
+   * variable materialized twice, not two variables. Build-tested:
+   * REGRESSED (byte_diffs 5667->5744, insn count unchanged at 971) — our
+   * compiled output still split it into two materializations (eax, then
+   * edx — not ebx) and still spilled, so the predicted mechanism didn't
+   * hold, and there is no independent fidelity argument for one C shape
+   * over the other (both are equally-plausible reconstructions of unknown
+   * original intent). Reverted; don't retry this exact framing. */
   v16 = trace_stack;
   if ( !v16 )
     goto LABEL_125;
@@ -2787,7 +2798,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v25 = v24;
           if ( !v24 )
             return trace;
-          v119 = v24->planenum;
+          v119 = v25->planenum;
           v27 = &v24->next;
           v24 = TR_DEC(v24->next);
           if ( v119 < 0 )
@@ -2797,7 +2808,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             break;
           v29 = -1 - v28;
           v30 = &dleafs[v29];
-          if ( v30->numleafbrushes && (v30->contents & contentmask) != 0 )
+          if ( v30->numleafbrushes && (contentmask & v30->contents) != 0 )
             CM_TraceThroughLeaf(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
           if ( dword_10069584[v29] )
             sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
