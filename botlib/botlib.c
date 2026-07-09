@@ -8466,9 +8466,14 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
  *     params and no AAS_TraceAreas scan.
  * The result is built in the move_buf[] scratch and copied to 'move' at the
  * tail.  Names/types below are mapped onto Q3's for readability only — the
- * codegen is NOT yet byte-identical to the original DLL (MSVC6 oracle:
- * OUR+1 / 4354 byte_diffs as of 2026-07-09; see msvc6_intractables.md for
- * the open leads). Frame size now matches ref exactly (sub esp,0x1dc).
+ * codegen is NOT byte-identical to the original DLL (MSVC6 oracle: OUR+1 /
+ * 4354 byte_diffs as of 2026-07-09). Frame size matches ref exactly
+ * (sub esp,0x1dc); statement-level structure, variable identity/types, and
+ * every callee are verified exact. The residual is CLOSED as a
+ * compiler-internal register-allocation tie (six mechanistically distinct
+ * source-level levers tried and falsified — see msvc6_intractables.md,
+ * "AAS_ClientMovementPrediction" 2026-07-09 final entry, for the full case).
+ * Do not re-open without a genuinely new, mechanistically distinct angle.
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
@@ -8483,54 +8488,70 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int stopevent,        // a11: SE_* stop-event mask
         int visualize)        // a12: draw AAS debug lines
 {
-  float v12; // eax
-  float v13; // ecx
-  long double v14; // st7
-  long double v15; // st7
-  float v16; // edx
-  long double v17; // st7
-  int v18; // edx
-  long double v19; // st7
-  BOOL swimming_ret; // eax
-  BOOL swimming; // esi
+  // Declaration order restored to the author's own Q3 be_aas_move.c:514-528 order
+  // (2026-07-09 probe): floats, then the int cluster (n,i,j,pc,...), then vectors,
+  // then planes/traces. Removed 9 dead IDA-artifact declarations with zero uses in
+  // this function's body (v12-v19, swimming_ret) -- verified zero occurrences beyond
+  // their own declaration before deletion.
+  float phys_friction;
+  float phys_stopspeed;
+  float phys_gravity;
+  float phys_waterfriction;
+  float phys_watergravity;
+  float phys_maxwalkvelocity;
+  float phys_maxcrouchvelocity;
+  float phys_maxswimvelocity;
+  float phys_maxacceleration;
+  float phys_maxstep;
+  float phys_maxsteepness;
+  float phys_jumpvel;
+  float friction;
   float gravity; // Q3 be_aas_move.c:519 declares this float; NOT long double (IDA's
                  // pure-FPU-register marker)
-  int crouch; // edi
+  float delta; // NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads
+  float damage; // st7
   long double maxvel; // st7
-  int ax; // eax
-  int i;           // per-axis accel loop index (Q3 be_aas_move.c:620 fossil)
   float velchange; // Q3 be_aas_move.c:520 '//float velchange, newvel;' -- float, NOT
                    // long double (IDA pure-FPU-register marker; long double compares
                    // suppress the memory-operand fcom forms ref shows at 1000fb26/fb43)
   float newvel;    // ditto; ref round-trips it through the temp region (1000fb56/fb5c)
-  float *plane; // ebp
-  char *plane2; // eax
-  long double v32; // st7
-  long double v33; // st6
-  int landed; // ecx
-  float delta; // st7  (NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads)
-  float damage; // st7
-  int pc; // eax
-  int event; // ecx
-  char gap_pc; // al
   float backoff_left; // [esp+0h] [ebp-1F8h]
   float backoff_frame; // [esp+0h] [ebp-1F8h]
-  int n; // [esp+1Ch] [ebp-1DCh]
+  int n;
+  int i;           // per-axis accel loop index (Q3 be_aas_move.c:620 fossil)
   int j;           // trace-loop safety counter (Q3 be_aas_move.c:648/876). Plain int;
                    // in ref it loses the ebx contest to presencetype and spills into
                    // the compiler temp region ([esp+0x2c], shared with the QWORD
                    // gravity CSE at 1000f9e5 -- proof this was never a declared float)
-  vec3_t org;            // [esp+20h] [ebp-1D8h] BYREF
-  vec3_t frame_test_vel; // [esp+2Ch] [ebp-1CCh] BYREF
-  vec3_t start;          // [esp+40h] [ebp-1B8h] BYREF
-  vec3_t left_test_vel;  // [esp+4Ch] [ebp-1ACh] BYREF
-  int v57;               // [esp+58h] [ebp-1A0h]  swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot.
+  int pc; // eax
+  int ax; // eax
+  int crouch; // edi
+  int event; // ecx
+  int jump_frame;
+  int landed; // ecx
+  BOOL swimming; // esi
+  int v57;               // swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot.
                          // VERIFIED not a v50-style chimera (2026-07-09): ref's slot has
                          // exactly these two non-overlapping roles and no third occupant --
                          // the apparent extra touches nearby are push-depth-shifted reads of
                          // start[2]/&start/&left_test_vel, not this slot. Do not re-chase.
-  float phys_maxacceleration;             // [esp+5Ch] [ebp-19Ch]
-  vec3_t end;            // [esp+60h] [ebp-198h] BYREF
+  char gap_pc; // al
+  vec3_t org;            // BYREF
+  vec3_t end;            // BYREF
+  float feet[3]; // BYREF
+  vec3_t start;          // BYREF
+  float stepend[3]; // BYREF
+  vec3_t lastorg; // BYREF (Q3 be_aas_move.c:524/645 — was IDA-split lastorg0/1/2)
+  vec3_t frame_test_vel; // BYREF
+  vec3_t old_frame_test_vel; // Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
+                             // ref allocates the full 3-float slot but only [2] is ever stored
+                             // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
+                             // which is why IDA rendered this as the scalar 'old_velz'.
+  vec3_t left_test_vel;  // BYREF
+  float *plane; // ebp
+  char *plane2; // eax
+  long double v32; // st7
+  long double v33; // st6
   /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
    * differs from Q3's aas_clientmove_t (no 'endarea'; a float at +0x44 where Q3
    * has int 'endcontents'), so it stays a raw int[20] — DON'T retype to Q3's.
@@ -8538,30 +8559,10 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
    *   [15]=presencetype  [16]=stopevent  [17]=float@0x44 (normally 4.0f bits
    *   =1082130432; =(float)pc on the liquid path)  [18]=time(=n*frametime)
    *   [19]=frames(=n). */
-  int move_buf[20]; // [esp+6Ch] [ebp-18Ch] BYREF
-  float phys_maxsteepness; // [esp+BCh] [ebp-13Ch]
-  int jump_frame; // [esp+C0h] [ebp-138h]
-  float friction; // [esp+C4h] [ebp-134h]
-  float phys_waterfriction; // [esp+C8h] [ebp-130h]
-  float phys_jumpvel; // [esp+CCh] [ebp-12Ch]
-  float phys_gravity; // [esp+D0h] [ebp-128h]
-  float phys_maxstep; // [esp+D4h] [ebp-124h]
-  float phys_watergravity; // [esp+D8h] [ebp-120h]
-  float phys_friction; // [esp+DCh] [ebp-11Ch]
-  float phys_maxwalkvelocity; // [esp+E0h] [ebp-118h]
-  float phys_maxcrouchvelocity; // [esp+E4h] [ebp-114h]
-  vec3_t lastorg; // [esp+E8h] [ebp-110h] BYREF (Q3 be_aas_move.c:524/645 — was IDA-split lastorg0/1/2)
-  float phys_stopspeed; // [esp+F4h] [ebp-104h]
-  float phys_maxswimvelocity; // [esp+F8h] [ebp-100h]
-  vec3_t old_frame_test_vel; // [esp+F0h] BYREF (Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
-                             // ref allocates the full 3-float slot but only [2] is ever stored
-                             // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
-                             // which is why IDA rendered this as the scalar 'old_velz'.
-  aas_trace_t trace; // [esp+108h] [ebp-F0h] (was IDA int v80[9] + char v87[36] hidden return buffer)
-  float feet[3]; // [esp+12Ch] [ebp-CCh] BYREF
-  float stepend[3]; // [esp+138h] [ebp-C0h] BYREF
-  aas_trace_t steptrace; // [esp+144h] [ebp-B4h] (was IDA int v83[9] + char v86[36] hidden return buffer)
-  aas_trace_t gaptrace; // [esp+168h] [ebp-90h] (was IDA int v84[9] + char v85[36] hidden return buffer)
+  int move_buf[20]; // BYREF
+  aas_trace_t trace; // (was IDA int v80[9] + char v87[36] hidden return buffer)
+  aas_trace_t steptrace; // (was IDA int v83[9] + char v86[36] hidden return buffer)
+  aas_trace_t gaptrace; // (was IDA int v84[9] + char v85[36] hidden return buffer)
 
   phys_friction = libvar_sv_friction->value;
   phys_stopspeed = libvar_sv_stopspeed->value;
