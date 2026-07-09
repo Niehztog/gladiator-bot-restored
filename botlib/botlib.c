@@ -2613,7 +2613,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v29; // esi
   dleaf_t *v30; // eax
   dnode_t *v31; // edx
-  float v35; // eax
   int v37; // eax
   /* v38: same bug class as v14 above — set to the BSP plane for `v37`.
    * On aarch64 the int storage truncated the pointer, so later
@@ -2649,10 +2648,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   bsp_model_tracestack_t *v62; // ecx — AArch64: trace-stack frame pointer (see v19)
   int *v63; // ebp  — AArch64: points to a single 4-byte link slot
   bsp_model_tracestack_t *v64; // esi
-  dnode_t *v69; // eax
   bsp_model_tracestack_t *v70; // edx
-  dnode_t *v76; // edx
-  int v77; // eax
   bsp_model_tracestack_t *v79; // eax — AArch64: trace-stack frame pointer
   int *v80; // ecx  — AArch64: points to a single 4-byte link slot
   int v82; // edx
@@ -2809,8 +2805,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           VectorCopy(v25->start, v106);
           v31 = &dnodes[v28];
           VectorCopy(v25->end, v111);
-          v35 = v25->planedist;
-          v127 = v35;
+          v127 = v25->planedist;
           *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
           v37 = v31->planenum;
           v120 = v31;
@@ -2927,16 +2922,14 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
            * on sign of v114[i], storing to v148[i] and v149[i].
            * v114[3] is plane normal (was v114/v115/v116), v148/v149 are BSP extents. */
           {
-            float *_a6 = boxmins;
-            float *_a7 = boxmaxs;
             int _j;
             for (_j = 0; _j < 3; _j++) {
-              if (v114[_j] <= 0.0f) {
-                v148[_j] = _a7[_j];
-                v149[_j] = _a6[_j];
+              if (v114[_j] > 0.0f) {
+                v148[_j] = boxmins[_j];
+                v149[_j] = boxmaxs[_j];
               } else {
-                v148[_j] = _a6[_j];
-                v149[_j] = _a7[_j];
+                v148[_j] = boxmaxs[_j];
+                v149[_j] = boxmins[_j];
               }
             }
           }
@@ -3030,13 +3023,11 @@ LABEL_71:
             v63 = &v19->next;
             VectorCopy(v139, v62->start);
             VectorCopy(v111, v62->end);
-            v76 = v120;
             v19 = TR_DEC(v19->next);
-            v62->planenum = v76->planenum;
-            v77 = v121;
+            v62->planenum = v120->planenum;
             v62->planedist = plane_offsets[v121];
             v64 = 0;
-            v62->nodenum = v76->children[v77];
+            v62->nodenum = v120->children[v121];
             v70 = v24;
             if ( !v24 )
             {
@@ -3061,12 +3052,11 @@ LABEL_101:
             v64 = 0;
             VectorCopy(v123, v62->start);
             VectorCopy(v111, v62->end);
-            v69 = v120;
             v19 = TR_DEC(v19->next);
-            v62->planenum = v69->planenum;
+            v62->planenum = v120->planenum;
             v62->planedist = plane_offsets[side_b];
             v70 = v24;
-            v62->nodenum = v69->children[v121];
+            v62->nodenum = v120->children[v121];
             if ( !v24 )
               goto LABEL_101;
             while ( v62->start[v126] < v70->start[v126] != v135 )
