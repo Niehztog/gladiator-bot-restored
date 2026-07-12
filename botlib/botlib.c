@@ -2102,9 +2102,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       planeints[2] = 0;
       planeints[3] = 0;
       planeints[4] = 0;
-      trace->endpos[0] = start[0];
-      trace->endpos[1] = start[1];
-      trace->endpos[2] = start[2];
+      VectorCopy(start, trace->endpos);
       return 1;
     }
   }
@@ -5901,9 +5899,7 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   up[0] = 0.0;
   up[1] = 0.0;
   up[2] = 1.0;
-  dir[0] = end[0] - start[0];
-  dir[1] = end[1] - start[1];
-  dir[2] = end[2] - start[2];
+  VectorSubtract(end, start, dir);
   VectorNormalize(dir);
   dot = dir[2] * up[2] + dir[1] * up[1] + dir[0] * up[0];
   if ( dot > 0.99 || dot < -0.99 )
@@ -8214,9 +8210,7 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   aas_plane_t *plane;
   float steepness;
 
-  end[0] = origin[0];
-  end[1] = origin[1];
-  end[2] = origin[2];
+  VectorCopy(origin, end);
   end[2] -= 4.0f;
 
   trace = AAS_TraceClientBBox(origin, end, presencetype, passent);
@@ -8678,15 +8672,11 @@ LABEL_12:
     *(int *)&lastorg[0] = *(int *)&org[0];
     *(int *)&lastorg[1] = *(int *)&org[1];
     *(int *)&lastorg[2] = *(int *)&org[2];
-    left_test_vel[0] = frame_test_vel[0];
-    left_test_vel[1] = frame_test_vel[1];
-    left_test_vel[2] = frame_test_vel[2];
+    VectorCopy(frame_test_vel, left_test_vel);
     j = 0;
     do
     {
-      end[0] = left_test_vel[0] + org[0];
-      end[1] = left_test_vel[1] + org[1];
-      end[2] = left_test_vel[2] + org[2];
+      VectorAdd(left_test_vel, org, end);
       trace = AAS_TraceClientBBox(org, end, presencetype, entnum);
       if ( visualize )
       {
@@ -8694,18 +8684,14 @@ LABEL_12:
           botimport.Print(PRT_MESSAGE, "PredictMovement: start solid\n");
         AAS_DebugLine(org, trace.endpos, -218959632);
       }
-      org[0] = trace.endpos[0];
-      org[1] = trace.endpos[1];
-      org[2] = trace.endpos[2];
+      VectorCopy(trace.endpos, org);
       if ( trace.fraction >= 1.0 )
         goto LABEL_66;
       plane = (float *)AAS_PlaneFromNum(trace.planenum);
       if ( plane[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
       {
         VectorMA(org, -0.25f, plane, start);
-        stepend[0] = start[0];
-        stepend[1] = start[1];
-        stepend[2] = start[2];
+        VectorCopy(start, stepend);
         start[2] = start[2] + phys_maxstep;
         steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
         if ( !steptrace.startsolid )
@@ -9712,9 +9698,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
           side = edgenum < 0;
           edge = &aasworld.edges[abs(edgenum)];
 
-          start[0] = aasworld.vertexes[edge->v[1]][0] + aasworld.vertexes[edge->v[0]][0];
-          start[1] = aasworld.vertexes[edge->v[1]][1] + aasworld.vertexes[edge->v[0]][1];
-          start[2] = aasworld.vertexes[edge->v[1]][2] + aasworld.vertexes[edge->v[0]][2];
+          VectorAdd(aasworld.vertexes[edge->v[1]],
+                    aasworld.vertexes[edge->v[0]], start);
           length = VectorLength(start);
           VectorScale(start, 0.5f, start);
           VectorCopy(start, end);
@@ -11163,9 +11148,7 @@ area2 = v85;
                   v32->reach.areanum = area2num;
                   v32->reach.facenum = v34;
                   v32->reach.edgenum = v21;
-                  v32->reach.start[0] = area1point[0];
-                  v32->reach.start[1] = area1point[1];
-                  v32->reach.start[2] = area1point[2];
+                  VectorCopy(area1point, v32->reach.start);
                   VectorMA(area2point, -3.0, plane1, v32->reach.end);
                   v32->reach.traveltype = 6;
                   v32->reach.traveltime = 10;
@@ -11179,9 +11162,7 @@ area2 = v85;
                     v35->reach.areanum = area1num;
                     v35->reach.facenum = v37;
                     v35->reach.edgenum = v21;
-                    v35->reach.start[0] = area2point[0];
-                    v35->reach.start[1] = area2point[1];
-                    v35->reach.start[2] = area2point[2];
+                    VectorCopy(area2point, v35->reach.start);
                     VectorMA(area1point, -3.0, plane1, v35->reach.end);
                     v35->reach.traveltype = 6;
                     v35->reach.traveltime = 10;
@@ -11201,12 +11182,8 @@ area2 = v85;
                   v39->reach.areanum = area2num;
                   v39->reach.facenum = v41;
                   v39->reach.edgenum = v21;
-                  v39->reach.start[0] = area1point[0];
-                  v39->reach.start[1] = area1point[1];
-                  v39->reach.start[2] = area1point[2];
-                  v39->reach.end[0] = area2point[0];
-                  v39->reach.end[1] = area2point[1];
-                  v39->reach.end[2] = area2point[2];
+                  VectorCopy(area1point, v39->reach.start);
+                  VectorCopy(area2point, v39->reach.end);
                   v39->reach.end[2] = area2point[2] + 16;
                   VectorMA(v39->reach.end, -15.0, plane1, v39->reach.end);
                   v39->reach.traveltype = 6;
@@ -11221,12 +11198,8 @@ area2 = v85;
                     v42->reach.areanum = area1num;
                     v42->reach.facenum = v43;
                     v42->reach.edgenum = v21;
-                    v42->reach.start[0] = area2point[0];
-                    v42->reach.start[1] = area2point[1];
-                    v42->reach.start[2] = area2point[2];
-                    v42->reach.end[0] = area1point[0];
-                    v42->reach.end[1] = area1point[1];
-                    v42->reach.end[2] = area1point[2];
+                    VectorCopy(area2point, v42->reach.start);
+                    VectorCopy(area1point, v42->reach.end);
                     v42->reach.traveltype = 7;
                     v42->reach.traveltime = 10;
                     v42->next = areareachability[area2num];
@@ -11258,9 +11231,7 @@ area2 = v85;
                   VectorScale(mid, 0.5, mid);
                   if ( mid[2] < (float)lowestpoint[2] )
                   {
-                    lowestpoint[0] = mid[0];
-                    lowestpoint[1] = mid[1];
-                    lowestpoint[2] = mid[2];
+                    VectorCopy(mid, lowestpoint);
                     v66 = v45;
                   }
                 }
@@ -11306,12 +11277,8 @@ area2 = v85;
                     v59->reach.areanum = v53;
                     v59->reach.facenum = v60;
                     v59->reach.edgenum = v66;
-                    v59->reach.start[0] = lowestpoint[0];
-                    v59->reach.start[1] = lowestpoint[1];
-                    v59->reach.start[2] = lowestpoint[2];
-                    v59->reach.end[0] = trace.endpos[0];
-                    v59->reach.end[1] = trace.endpos[1];
-                    v59->reach.end[2] = trace.endpos[2];
+                    VectorCopy(lowestpoint, v59->reach.start);
+                    VectorCopy(trace.endpos, v59->reach.end);
                     v59->reach.traveltype = 6;
                     v59->reach.traveltime = 10;
                     v59->next = areareachability[area1num];
@@ -14507,9 +14474,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
       v1 = aasworld.vertexes[edge->v[firstvertex]];
       v2 = aasworld.vertexes[edge->v[!firstvertex]];
       VectorSubtract(v2, v1, edgevec);
-      pointvec[0] = point[0] - v1[0];
-      pointvec[1] = point[1] - v1[1];
-      pointvec[2] = point[2] - v1[2];
+      VectorSubtract(point, v1, pointvec);
       CrossProduct(edgevec, plane->normal, sepnormal);
       minsep = -epsilon;
       if ( sepnormal[2] * pointvec[2] + sepnormal[1] * pointvec[1] + sepnormal[0] * pointvec[0] < minsep )
@@ -15673,9 +15638,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
-      dir[0] = v26[0] - bs->origin[0];
-      dir[1] = v26[1] - bs->origin[1];
-      dir[2] = v26[2] - bs->origin[2];
+      VectorSubtract(v26, bs->origin, dir);
       if ( VectorLength(dir) < 70 )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -15703,9 +15666,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->ltgtype = 0;
         }
-        dir[0] = v26[0] - bs->origin[0];
-        dir[1] = v26[1] - bs->origin[1];
-        dir[2] = v26[2] - bs->origin[2];
+        VectorSubtract(v26, bs->origin, dir);
         if ( VectorLength(dir) < 40 )
         {
           if ( bs->arrive_time == 0 )
@@ -18380,9 +18341,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         + bestorigin[2];
     /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
      * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
-    dir[0] = bestorigin[0] - bs->eye[0];
-    dir[1] = bestorigin[1] - bs->eye[1];
-    dir[2] = bestorigin[2] - bs->eye[2];
+    VectorSubtract(bestorigin, bs->eye, dir);
     if ( !_strcmpi(wi->name, "Railgun") )
     {
       VectorNormalize(dir);
@@ -25913,9 +25872,7 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       v36 = 360.0f - (360.0f - dist * 6.0f);
       if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) && v36 > 5.0f )
         EA_Move(ms->client, final, v36);
-      moveresult.movedir[0] = final[0];
-      moveresult.movedir[1] = final[1];
-      moveresult.movedir[2] = final[2];
+      VectorCopy(final, moveresult.movedir);
       v9 = ms->moveflags;
       if ( (v9 & 4) != 0 )
       {
@@ -26119,12 +26076,8 @@ LABEL_26:
   VectorSubtract(reach->start, ms->origin, dir);
   if ( (v11 & 4) == 0 )
     dir[2] = 0.0f;
-  org[0] = ms->viewoffset[0] + ms->origin[0];
-  org[1] = ms->viewoffset[1] + ms->origin[1];
-  org[2] = ms->viewoffset[2] + ms->origin[2];
-  viewdir[0] = reach->end[0] - org[0];
-  viewdir[1] = reach->end[1] - org[1];
-  viewdir[2] = reach->end[2] - org[2];
+  VectorAdd(ms->viewoffset, ms->origin, org);
+  VectorSubtract(reach->end, org, viewdir);
   v26 = VectorNormalize(dir);
   vectoangles(viewdir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
