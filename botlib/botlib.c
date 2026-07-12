@@ -15591,16 +15591,17 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             {
               v45 = rand() & 0x7FFF;
               v20 = (int)floor((float)v45 * 0.000030518509f * 2.9);
-              if ( v20 )
+              switch ( v20 )
               {
-                if ( v20 != 1 )
-                  sub_100371B0(bs->client, 3);
-                else
+                case 0:
+                  sub_100371B0(bs->client, 0);
+                  break;
+                case 1:
                   sub_100371B0(bs->client, 2);
-              }
-              else
-              {
-                sub_100371B0(bs->client, 0);
+                  break;
+                default:
+                  sub_100371B0(bs->client, 3);
+                  break;
               }
             }
           }
@@ -15621,11 +15622,10 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           else
           {
-            BotResetAvoidReach((_DWORD *)bs->movestate);
-            return 0;
+            goto LABEL_RESET;
           }
           bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-          { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
+          goto LABEL_RESET;
         }
       }
       if ( entinfo[0] )
@@ -15673,9 +15673,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
-      dir[0] = *v26 - bs->origin[0];
-      dir[1] = bs->teamgoal.origin[1] - bs->origin[1];
-      dir[2] = bs->teamgoal.origin[2] - bs->origin[2];
+      dir[0] = v26[0] - bs->origin[0];
+      dir[1] = v26[1] - bs->origin[1];
+      dir[2] = v26[2] - bs->origin[2];
       if ( VectorLength(dir) < 70 )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -15703,9 +15703,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->ltgtype = 0;
         }
-        dir[0] = *v26 - bs->origin[0];
-        dir[1] = bs->teamgoal.origin[1] - bs->origin[1];
-        dir[2] = bs->teamgoal.origin[2] - bs->origin[2];
+        dir[0] = v26[0] - bs->origin[0];
+        dir[1] = v26[1] - bs->origin[1];
+        dir[2] = v26[2] - bs->origin[2];
         if ( VectorLength(dir) < 40 )
         {
           if ( bs->arrive_time == 0 )
@@ -15740,7 +15740,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             BotEnterChat(&bs->chatstate, bs->client, 1);
             bs->ltgtype = 0;
           }
-          { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
+LABEL_RESET:
+          BotResetAvoidReach((_DWORD *)bs->movestate);
+          return 0;
         }
         return v26;
     }
@@ -15815,9 +15817,15 @@ LABEL_106:
           BotEnterChat(&bs->chatstate, bs->client, 1);
           bs->teammessage_time = 0.0f;
         }
-        v26 = (float *)&ctf_redflag;
-        if ( BotCTFTeam(bs) == 1 )
-          v26 = (float *)&ctf_blueflag;
+        switch ( BotCTFTeam(bs) )
+        {
+          case 1:
+            v26 = (float *)&ctf_blueflag;
+            break;
+          default:
+            v26 = (float *)&ctf_redflag;
+            break;
+        }
         if ( BotTouchingGoal(bs->origin, v26) )
           bs->ltgtype = 0;
         if ( AAS_Time() > bs->teamgoal_time )
@@ -15829,9 +15837,15 @@ LABEL_106:
     }
     if ( bs->ltgtype == 5 && AAS_Time() > bs->rushbaseaway_time )
     {
-      v26 = (float *)&ctf_blueflag;
-      if ( BotCTFTeam(bs) == 1 )
-        v26 = (float *)&ctf_redflag;
+      switch ( BotCTFTeam(bs) )
+      {
+        case 1:
+          v26 = (float *)&ctf_redflag;
+          break;
+        default:
+          v26 = (float *)&ctf_blueflag;
+          break;
+      }
       if ( AAS_Time() > bs->teamgoal_time )
         bs->ltgtype = 0;
       if ( BotTouchingGoal(bs->origin, v26) )
@@ -15881,7 +15895,7 @@ LABEL_55:
         BotResetAvoidGoals(bs->goalstate);
         BotResetAvoidReach((_DWORD *)bs->movestate);
       }
-      return BotGetTopGoal(bs->goalstate);
+      v26 = (float *)BotGetTopGoal(bs->goalstate);
     }
     return v26;
   }
@@ -15902,12 +15916,13 @@ LABEL_55:
     dir[1] = *(float *)&entinfo[5] - bs->origin[1];
     dir[2] = *(float *)&entinfo[6] - bs->origin[2];
     if ( VectorLength(dir) < 100 )
-      { BotResetAvoidReach((_DWORD *)bs->movestate); return 0; }
+      goto LABEL_RESET;
   }
   else
   {
     bs->teammatevisible_time = AAS_Time();
   }
+  v26 = bs->teamgoal.origin;
   if ( entinfo[0] )
   {
     v7 = AAS_PointAreaNum(&entinfo[4]);
@@ -15929,7 +15944,7 @@ LABEL_55:
       }
     }
   }
-  return bs->teamgoal.origin;
+  return v26;
 }
 
 //----- (1001EAE0) --------------------------------------------------------
