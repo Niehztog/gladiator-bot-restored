@@ -2625,8 +2625,15 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v40; // st7
   float v41; // st6
   float v42; // st7
+  float v44; // st6
+  float v45; // st5
+  float v46; // st4
   int v47; // eax
   float v48; // st6
+  BOOL v49; // eax
+  int *v50; // ecx
+  BOOL v51; // eax
+  qboolean v52; // cc
   int v53; // ecx
   int v54; // eax
   /* side_a/side_b: Fable-5-proposed (2026-07-09), disasm-verified — the original
@@ -2673,15 +2680,18 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v119; // [esp+44h] [ebp-1514h]
   dnode_t *v120; // [esp+48h] [ebp-1510h]
   int v121; // [esp+4Ch] [ebp-150Ch]
+  int *v122; // [esp+50h] [ebp-1508h]
   vec3_t v123; // [esp+54h] [ebp-1504h] BYREF — split point A
   int v126; // [esp+60h] [ebp-14F8h]
   float v127; // [esp+64h] [ebp-14F4h]
   vec3_t v128; // [esp+68h] [ebp-14F0h] BYREF — overall trace delta
   /* AArch64 stack-layout fix: IDA split the original 24-byte side-cache block
    * into v131/v132/v133 and then indexed across the artificial boundaries.
-   * Keep one real aggregate and preserve the original pointer aliases. */
+   * Keep the 4 side flags plus the two adjacent float offsets as explicit
+   * locals so VC6 can still form the ref's pointer/offset walks through them. */
   int plane_sideflags[4];
-  float plane_offsets[2];
+  float v133;
+  float v134;
   BOOL v135; // [esp+8Ch] [ebp-14CCh]
   vec3_t v136; // [esp+90h] [ebp-14C8h] BYREF — model origin + dmodel origin
   vec3_t v139; // [esp+9Ch] [ebp-14BCh] BYREF — split point B
@@ -2918,8 +2928,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v42 = v111[v39] - v40;
           if ( v128[v39] >= 0 )
             v121 = 0;
-          plane_offsets[0] = -boxmins[v39];
-          plane_offsets[1] = -boxmaxs[v39];
+          v133 = -boxmins[v39];
+          v134 = -boxmaxs[v39];
         }
         else
         {
@@ -2944,22 +2954,33 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
               }
             }
           }
+          v44 = -v114[0];
+          v45 = -v114[1];
+          v46 = -v114[2];
           v31 = v120;
-          plane_offsets[0] = -DotProduct(v148, v114);
-          plane_offsets[1] = -DotProduct(v149, v114);
+          v133 = v148[2] * v46 + v148[1] * v45 + v148[0] * v44;
+          v134 = v149[2] * v46 + v149[1] * v45 + v149[0] * v44;
         }
+        v122 = &plane_sideflags[1];
         v47 = 0;
+        v117 = 0;
         do
         {
-          v48 = v109 - plane_offsets[v47];
-          v145[v47] = v48;
-          v110 = v42 - plane_offsets[v47];
-          v147[v47] = v110;
-          plane_sideflags[2 * v47] = v48 > -0.005 && v110 > -0.005;
-          plane_sideflags[2 * v47 + 1] = v48 < 0.005 && v110 < 0.005;
-          ++v47;
+          v48 = v109 - *(float *)((char *)&v133 + v47);
+          *(float *)((char *)v145 + v47) = v48;
+          v110 = v42 - *(float *)((char *)&v133 + v47);
+          *(float *)((char *)v147 + v47) = v110;
+          v49 = v48 > -0.005 && v110 > -0.005;
+          v50 = v122;
+          *(v122 - 1) = v49;
+          v51 = v48 < 0.005 && v110 < 0.005;
+          *v50 = v51;
+          v47 = v117 + 4;
+          v52 = v117 + 4 < 8;
+          v117 += 4;
+          v122 = v50 + 2;
         }
-        while ( v47 < 2 );
+        while ( v52 );
         v53 = v121;
         if ( !plane_sideflags[v121] && !plane_sideflags[v121 + 2] )
           break;
@@ -3036,7 +3057,7 @@ LABEL_71:
             VectorCopy(v111, v62->end);
             v19 = TR_DEC(v19->next);
             v62->planenum = v120->planenum;
-            v62->planedist = plane_offsets[v121];
+            v62->planedist = *(&v133 + v121);
             v64 = 0;
             v62->nodenum = v120->children[v121];
             v70 = v24;
@@ -3065,7 +3086,7 @@ LABEL_101:
             VectorCopy(v111, v62->end);
             v19 = TR_DEC(v19->next);
             v62->planenum = v120->planenum;
-            v62->planedist = plane_offsets[side_b];
+            v62->planedist = *(&v133 + side_b);
             v70 = v24;
             v62->nodenum = v120->children[v121];
             if ( !v24 )
@@ -8861,7 +8882,6 @@ LABEL_66:
 LABEL_84:
     ;
   }
-LABEL_85:
   move_buf[0] = *(int *)&org[0];
   move_buf[1] = *(int *)&org[1];
   move_buf[2] = *(int *)&org[2];
@@ -12351,7 +12371,6 @@ LABEL_27:
                 }
                 while ( m < v21 );
               }
-LABEL_25:
               v14 = v45;
               if ( m >= v21 )
               {
@@ -17762,7 +17781,12 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   int v7; // ax
   float v9; // st7
   float len; // st7
-  float v11; // st6
+  float v11; // st6 — genuinely dead (never read/written); -Wunused-variable.
+                     // Do NOT delete without an MSVC6 oracle re-audit: removing a
+                     // dead local has previously shifted byte_diffs in an UNRELATED
+                     // function elsewhere in the TU (PC_ReadDefineParms precedent,
+                     // see struct_pointer_pitfalls.md). Fn is INSN_COUNT_MATCH/227b,
+                     // not yet MATCH — this may or may not be part of that residual.
   char pc; // al
   float v13; // st7
   float *result; // eax
