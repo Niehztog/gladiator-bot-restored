@@ -24283,7 +24283,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
   int areanum; // [esp+14h] [ebp-44h]
   itemconfig_t *ic; // [esp+18h] [ebp-40h]  - 64-bit fix (was int)
   int t; // [esp+1Ch] [ebp-3Ch]
-  int goal[14]; // [esp+20h] [ebp-38h] BYREF
+  bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
   float v19; // [esp+5Ch] [ebp+4h]
   float bestweight; // [esp+60h] [ebp+8h]
   float avoidtime; // [esp+68h] [ebp+10h]
@@ -24312,7 +24312,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
       li = levelitems;
       bestweight = 0.0;
       bestitem = 0;
-      memset(goal, 0, sizeof(goal));
+      memset(&goal, 0, sizeof(goal));
       if ( li )
       {
         do
@@ -24339,21 +24339,21 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
                     if ( v13 > bestweight )
                     {
                       bestitem = li;
-                      goal[0] = *(int *)&li->goalorigin[0];
-                      goal[1] = *(int *)&li->goalorigin[1];
-                      goal[2] = *(int *)&li->goalorigin[2];
-                      goal[4] = *(int *)&iteminfo->mins[0];
-                      goal[5] = *(int *)&iteminfo->mins[1];
-                      goal[6] = *(int *)&iteminfo->mins[2];
-                      goal[7] = *(int *)&iteminfo->maxs[0];
-                      goal[8] = *(int *)&iteminfo->maxs[1];
-                      goal[9] = *(int *)&iteminfo->maxs[2];
-                      goal[3] = v9;
+                      *(int *)&goal.origin[0] = *(int *)&li->goalorigin[0];
+                      *(int *)&goal.origin[1] = *(int *)&li->goalorigin[1];
+                      *(int *)&goal.origin[2] = *(int *)&li->goalorigin[2];
+                      *(int *)&goal.mins[0] = *(int *)&iteminfo->mins[0];
+                      *(int *)&goal.mins[1] = *(int *)&iteminfo->mins[1];
+                      *(int *)&goal.mins[2] = *(int *)&iteminfo->mins[2];
+                      *(int *)&goal.maxs[0] = *(int *)&iteminfo->maxs[0];
+                      *(int *)&goal.maxs[1] = *(int *)&iteminfo->maxs[1];
+                      *(int *)&goal.maxs[2] = *(int *)&iteminfo->maxs[2];
+                      goal.areanum = v9;
                       bestweight = v13;
-                      goal[10] = li->entitynum;
-                      goal[11] = li->number;
-                      goal[12] = 1;
-                      goal[13] = li->iteminfo;
+                      goal.entitynum = li->entitynum;
+                      goal.number = li->number;
+                      goal.flags = 1;
+                      goal.iteminfo = li->iteminfo;
                     }
                   }
                 }
@@ -24369,7 +24369,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
           if ( avoidtime == 0.0f )
             avoidtime = 30.0f;
           BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
-          BotPushGoal(goalstate, goal);
+          BotPushGoal(goalstate, &goal);
           return 1;
         }
         v7 = areanum;
@@ -24380,19 +24380,19 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
        * mapping passed v7 (= some pointer) into BotFindWayPoint where it
        * gets walked as a chat-node list, faulting on a corrupt next ptr
        * (= 0x5).  Restored to the correct function with all 4 args. */
-      if ( !AAS_RandomGoalArea(v7, travelflags, (_DWORD *)&goal[3], (float *)goal) )
+      if ( !AAS_RandomGoalArea(v7, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
         return 0;
-      goal[4] = -1049624576;
-      goal[5] = -1049624576;
-      goal[6] = -1049624576;
-      goal[7] = 1097859072;
-      goal[8] = 1097859072;
-      goal[9] = 1097859072;
-      goal[10] = 0;
-      goal[11] = 0;
-      goal[12] = 2;
-      goal[13] = 0;
-      BotPushGoal(goalstate, goal);
+      *(int *)&goal.mins[0] = -1049624576;
+      *(int *)&goal.mins[1] = -1049624576;
+      *(int *)&goal.mins[2] = -1049624576;
+      *(int *)&goal.maxs[0] = 1097859072;
+      *(int *)&goal.maxs[1] = 1097859072;
+      *(int *)&goal.maxs[2] = 1097859072;
+      goal.entitynum = 0;
+      goal.number = 0;
+      goal.flags = 2;
+      goal.iteminfo = 0;
+      BotPushGoal(goalstate, &goal);
       return 1;
     }
   }
@@ -24416,7 +24416,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
   itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
   int areanum; // [esp+18h] [ebp-40h]
   int t; // [esp+1Ch] [ebp-3Ch]
-  int goal[14]; // [esp+20h] [ebp-38h] BYREF
+  bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
   int v23; // [esp+5Ch] [ebp+4h]
   int v24; // [esp+5Ch] [ebp+4h]
   int ltg_time; // [esp+60h] [ebp+8h]
@@ -24442,7 +24442,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
   li = levelitems;
   bestweight = 0.0;
   bestitem = 0;
-  memset(goal, 0, sizeof(goal));
+  memset(&goal, 0, sizeof(goal));
   for ( ; li; li = li->next )
   {
           if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
@@ -24474,22 +24474,22 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
                           v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, ltg->areanum, travelflags);
                         if ( v16 <= ltg_time )
                         {
-                          goal[0] = *(int *)&li->goalorigin[0];
+                          *(int *)&goal.origin[0] = *(int *)&li->goalorigin[0];
                           bestweight = *(float *)&v24;
-                          goal[1] = *(int *)&li->goalorigin[1];
+                          *(int *)&goal.origin[1] = *(int *)&li->goalorigin[1];
                           bestitem = li;
-                          goal[2] = *(int *)&li->goalorigin[2];
-                          goal[4] = *(int *)&iteminfo->mins[0];
-                          goal[5] = *(int *)&iteminfo->mins[1];
-                          goal[6] = *(int *)&iteminfo->mins[2];
-                          goal[7] = *(int *)&iteminfo->maxs[0];
-                          goal[8] = *(int *)&iteminfo->maxs[1];
-                          goal[9] = *(int *)&iteminfo->maxs[2];
-                          goal[3] = v11;
-                          goal[10] = li->entitynum;
-                          goal[11] = li->number;
-                          goal[12] = 1;
-                          goal[13] = li->iteminfo;
+                          *(int *)&goal.origin[2] = *(int *)&li->goalorigin[2];
+                          *(int *)&goal.mins[0] = *(int *)&iteminfo->mins[0];
+                          *(int *)&goal.mins[1] = *(int *)&iteminfo->mins[1];
+                          *(int *)&goal.mins[2] = *(int *)&iteminfo->mins[2];
+                          *(int *)&goal.maxs[0] = *(int *)&iteminfo->maxs[0];
+                          *(int *)&goal.maxs[1] = *(int *)&iteminfo->maxs[1];
+                          *(int *)&goal.maxs[2] = *(int *)&iteminfo->maxs[2];
+                          goal.areanum = v11;
+                          goal.entitynum = li->entitynum;
+                          goal.number = li->number;
+                          goal.flags = 1;
+                          goal.iteminfo = li->iteminfo;
                         }
                       }
                     }
@@ -24505,7 +24505,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
     if ( avoidtime == 0.0f )
       avoidtime = 30.0f;
     BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
-    BotPushGoal(goalstate, goal);
+    BotPushGoal(goalstate, &goal);
     return 1;
   }
   return 0;
