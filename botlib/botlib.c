@@ -8990,7 +8990,7 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 {
   int i, optedgenum;
   aas_edge_t *edge;
-  _DWORD *optedge;
+  aas_edge_t *optedge;
 
   edge = &aasworld.edges[abs(edgenum)];
   if ( !AAS_KeepEdge(edge) )
@@ -9005,20 +9005,20 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
       return -optedgenum;
   }
 
-  optedge = (_DWORD *)((char *)optimized->edges + 8 * optimized->numedges);
+  optedge = &((aas_edge_t *)optimized->edges)[optimized->numedges];
 
   for ( i = 0; i < 2; i++ )
   {
     if ( optimized->vertexremap[edge->v[i]] )
     {
-      optedge[i] = optimized->vertexremap[edge->v[i]];
+      optedge->v[i] = optimized->vertexremap[edge->v[i]];
     }
     else
     {
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][0];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][1];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][2];
-      optedge[i] = optimized->numvertexes;
+      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][0] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][0];
+      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][1] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][1];
+      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][2] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][2];
+      optedge->v[i] = optimized->numvertexes;
       optimized->vertexremap[edge->v[i]] = optimized->numvertexes;
       optimized->numvertexes++;
     }
@@ -9090,32 +9090,32 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 //----- (10010B40) --------------------------------------------------------
 int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
-  int *area; // edx
-  _DWORD *optarea; // ebx
+  aas_area_t *area; // edx
+  aas_area_t *optarea; // ebx
   int result; // eax
   int i; // esi
   int optfacenum; // eax
 
-  area = (int *)(&aasworld.areas[areanum]);
-  optarea = (_DWORD *)((char *)optimized->areas + 48 * areanum);
+  area = &aasworld.areas[areanum];
+  optarea = &((aas_area_t *)optimized->areas)[areanum];
   memcpy(optarea, area, 0x30u);
-  optarea[1] = 0;
-  optarea[2] = optimized->faceindexsize;
-  result = area[1];
+  optarea->numfaces = 0;
+  optarea->firstface = optimized->faceindexsize;
+  result = area->numfaces;
   i = 0;
   if ( result > 0 )
   {
     while ( 1 )
     {
-      optfacenum = AAS_OptimizeFace(optimized, aasworld.faceindex[i + area[2]]);
+      optfacenum = AAS_OptimizeFace(optimized, aasworld.faceindex[i + area->firstface]);
       if ( optfacenum )
       {
-        optimized->faceindex[optarea[1] + optarea[2]] = optfacenum;
-        ++optarea[1];
+        optimized->faceindex[optarea->numfaces + optarea->firstface] = optfacenum;
+        ++optarea->numfaces;
         ++optimized->faceindexsize;
       }
       result = (intptr_t)area;
-      if ( ++i >= area[1] )
+      if ( ++i >= area->numfaces )
         break;
     }
   }
@@ -9762,22 +9762,22 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 //----- (10012200) --------------------------------------------------------
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num)
 {
-  char *area1; // ebp
+  aas_area_t *area1; // ebp
   int v3; // eax
   int v4; // edx
   int groundface1num; // eax
-  char *groundface1; // ebp
+  aas_face_t *groundface1; // ebp
   int edge1num; // eax
   int side1; // edi
   int v13; // esi
-  char *edge1; // ecx
+  aas_edge_t *edge1; // ecx
   int v18; // ebx
-  char *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
+  aas_area_t *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
   int v20; // rax — IDA decompiled as __int64; restored to int + abs() — see asm_matching/idioms
-  char *groundface2; // edi
+  aas_face_t *groundface2; // edi
   int j; // ebp
   int edge2num; // rax — IDA decompiled as __int64; restored to int + abs()
-  _DWORD *edge2; // ecx
+  aas_edge_t *edge2; // ecx
   /* IDA-decompiled // stN locals — original MSVC kept these on the x87 stack
    * at 80-bit. Promoted to long double + explicit operand casts at the
    * chain expressions to mirror the original FPU pipeline.
@@ -9787,13 +9787,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v28; // st7
   float dist1; // st7
   float v41; // st7
-  int *v44; // eax
-  int *v45; // esi
+  aas_reachabilitynode_t *v44; // eax
+  aas_reachabilitynode_t *v45; // esi
   int v46; // ecx
-  char *v50; // esi
-  int *v54; // eax
-  int *v55; // esi
-  char *v56; // esi
+  aas_reachabilitynode_t *v50; // esi
+  aas_reachabilitynode_t *v54; // eax
+  aas_reachabilitynode_t *v55; // esi
+  aas_reachabilitynode_t *v56; // esi
   char *v57; // eax
   int v58; // edx
   float x2; // [esp+10h] [ebp-1C0h]
@@ -9834,7 +9834,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
   int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
   int v114; // [esp+E0h] [ebp-F0h]
-  char *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
+  aas_area_t *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
   int ground_foundreach; // [esp+E8h] [ebp-E8h]
   int k; // [esp+ECh] [ebp-E4h]
   int water_foundreach; // [esp+F0h] [ebp-E0h]
@@ -9846,7 +9846,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
   float ground_bestlength; // [esp+110h] [ebp-C0h]
   float water_bestlength; // [esp+114h] [ebp-BCh]
-  char *v126; // [esp+118h] [ebp-B8h]
+  aas_face_t *v126; // [esp+118h] [ebp-B8h]
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
@@ -9888,9 +9888,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     /* if the areas are not near anough in the x-y direction */
     for ( v4 = 0; v4 < 2; ++v4 )
     {
-      if ( ((aas_area_t *)area1)->mins[v4] > ((aas_area_t *)area2)->maxs[v4] + 10.0f )
+      if ( area1->mins[v4] > area2->maxs[v4] + 10.0f )
         return 0;
-      if ( ((aas_area_t *)area1)->maxs[v4] < ((aas_area_t *)area2)->mins[v4] - 10.0f )
+      if ( area1->maxs[v4] < area2->mins[v4] - 10.0f )
         return 0;
     }
     {
@@ -9901,48 +9901,48 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         water_foundreach = 0;
         water_bestdist = 99999.0f;
         water_bestlength = 0.0f;
-        for ( i = 0; i < ((aas_area_t *)area1)->numfaces; ++i )
+        for ( i = 0; i < area1->numfaces; ++i )
         {
-          groundface1num = aasworld.faceindex[i + ((aas_area_t *)area1)->firstface];
+          groundface1num = aasworld.faceindex[i + area1->firstface];
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
-          if ( (((aas_face_t *)groundface1)->faceflags & 4) != 0
+          if ( (groundface1->faceflags & 4) != 0
             || area1swim
-            && up[2] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[2]
-             + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[1]
-             + up[0] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[0] >= 0.7 )
+            && up[2] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[2]
+             + up[1] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[1]
+             + up[0] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[0] >= 0.7 )
           {
-            for ( k = 0; k < ((aas_face_t *)groundface1)->numedges; ++k )
+            for ( k = 0; k < groundface1->numedges; ++k )
             {
-                edge1num = aasworld.edgeindex[k + ((aas_face_t *)groundface1)->firstedge];
+                edge1num = aasworld.edgeindex[k + groundface1->firstedge];
                 side1 = edge1num < 0;
-                if ( (((aas_face_t *)groundface1)->faceflags & 4) == 0 )
+                if ( (groundface1->faceflags & 4) == 0 )
                   side1 = side1 == faceside1;
                 v13 = abs(edge1num);
                 edge1 = &aasworld.edges[v13];
-                VectorCopy(aasworld.vertexes[((aas_edge_t *)edge1)->v[!side1]], edgev1);
-                VectorCopy(aasworld.vertexes[((aas_edge_t *)edge1)->v[side1]], edgev2);
+                VectorCopy(aasworld.vertexes[edge1->v[!side1]], edgev1);
+                VectorCopy(aasworld.vertexes[edge1->v[side1]], edgev2);
                 VectorSubtract(edgev2, edgev1, edgevec);
                 CrossProduct(edgevec, up, normal);
                 VectorNormalize(normal);
                 v18 = 0;
                 dist = DotProduct(normal, edgev1);
-                if ( ((aas_area_t *)area2)->numfaces > 0 )
+                if ( area2->numfaces > 0 )
                 {
                   v19 = area2;
                   do
                   {
-                    v20 = aasworld.faceindex[v18 + ((aas_area_t *)v19)->firstface];
+                    v20 = aasworld.faceindex[v18 + v19->firstface];
                     groundface2 = &aasworld.faces[abs(v20)];
-                    if ( (((aas_face_t *)groundface2)->faceflags & 4) != 0 )
+                    if ( (groundface2->faceflags & 4) != 0 )
                     {
-                      for ( j = 0; j < ((aas_face_t *)groundface2)->numedges; ++j )
+                      for ( j = 0; j < groundface2->numedges; ++j )
                       {
-                        edge2num = aasworld.edgeindex[j + ((aas_face_t *)groundface2)->firstedge];
+                        edge2num = aasworld.edgeindex[j + groundface2->firstedge];
                         edge2 = &aasworld.edges[abs(edge2num)];
-                        VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[0]], edgev3);
-                        VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[1]], edgev4);
+                        VectorCopy(aasworld.vertexes[edge2->v[0]], edgev3);
+                        VectorCopy(aasworld.vertexes[edge2->v[1]], edgev4);
                         v25 = DotProduct(normal, edgev3) - dist;
                         if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
@@ -10070,7 +10070,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               VectorSubtract(p2area2, p1area2, dir);
                               length = VectorLength(dir);
                               v41 = dist;
-                              if ( (((aas_face_t *)v126)->faceflags & 4) != 0 )
+                              if ( (v126->faceflags & 4) != 0 )
                               {
                                 if ( v41 < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
                                 {
@@ -10119,7 +10119,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                     v19 = area2;
                     ++v18;
                   }
-                  while ( v18 < ((aas_area_t *)area2)->numfaces );
+                  while ( v18 < area2->numfaces );
                   groundface1 = v126;
                 }
             }
@@ -10127,28 +10127,28 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         }
         if ( ground_foundreach && ground_bestdist >= 0.0f && ground_bestdist < (float)libvar_sv_step->value )
         {
-          v44 = (int *)AAS_AllocReachability();
+          v44 = AAS_AllocReachability();
           v45 = v44;
           if ( !v44 )
             return 0;
           v46 = ground_bestarea2groundedgenum;
-          *v44 = area2num;
-          v44[1] = 0;
-          v44[2] = v46;
-          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v44 + 3));
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v45 + 6));
-          v45[9] = 2;
-          *((_WORD *)v45 + 20) = 1;
+          v44->reach.areanum = area2num;
+          v44->reach.facenum = 0;
+          v44->reach.edgenum = v46;
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v44->reach.start);
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v45->reach.end);
+          v45->reach.traveltype = 2;
+          v45->reach.traveltime = 1;
           if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
-            *((_WORD *)v45 + 20) += 300;
-          ((aas_reachabilitynode_t *)v45)->next = areareachability[area1num];
-          areareachability[area1num] = (aas_reachabilitynode_t *)v45;
-          if ( !AAS_NearbySolidOrGap((float *)v45 + 3, (float *)v45 + 6) )
-            *((_WORD *)v45 + 20) += 400;
+            v45->reach.traveltime += 300;
+          v45->next = areareachability[area1num];
+          areareachability[area1num] = v45;
+          if ( !AAS_NearbySolidOrGap(v45->reach.start, v45->reach.end) )
+            v45->reach.traveltime += 400;
           /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
            * area sum, float), not to the real AAS_AreaReachability. */
-          if ( AAS_AreaGroundFaceArea(*v45) < 500.0f )
-            *((_WORD *)v45 + 20) += 400;
+          if ( AAS_AreaGroundFaceArea(v45->reach.areanum) < 500.0f )
+            v45->reach.traveltime += 400;
           ++reach_step;
           return 1;
         }
@@ -10164,17 +10164,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             v50 = AAS_AllocReachability();
             if ( !v50 )
               return 0;
-            *(_DWORD *)(v50 + 8) = v114;
-            *(float *)(v50 + 12) = water_beststart[0];
-            *(float *)(v50 + 16) = water_beststart[1];
-            *(float *)(v50 + 20) = water_beststart[2];
-            *(_DWORD *)v50 = area2num;
-            *(_DWORD *)(v50 + 4) = 0;
-            VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50 + 24);
-            *(_DWORD *)(v50 + 36) = 9;
-            *(_WORD *)(v50 + 40) = 700;
-            ((aas_reachabilitynode_t *)v50)->next = areareachability[area1num];
-            areareachability[area1num] = (aas_reachabilitynode_t *)v50;
+            v50->reach.edgenum = v114;
+            v50->reach.start[0] = water_beststart[0];
+            v50->reach.start[1] = water_beststart[1];
+            v50->reach.start[2] = water_beststart[2];
+            v50->reach.areanum = area2num;
+            v50->reach.facenum = 0;
+            VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50->reach.end);
+            v50->reach.traveltype = 9;
+            v50->reach.traveltime = 700;
+            v50->next = areareachability[area1num];
+            areareachability[area1num] = v50;
             ++reach_waterjump;
             return 1;
           }
@@ -10187,19 +10187,19 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           && !AAS_AreaCrouch(area1num)
           && !AAS_AreaCrouch(area2num) )
         {
-          v54 = (int *)AAS_AllocReachability();
+          v54 = AAS_AllocReachability();
           v55 = v54;
           if ( !v54 )
             return 0;
-          v54[2] = ground_bestarea2groundedgenum;
-          *v54 = area2num;
-          v54[1] = 0;
-          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, (float *)(v54 + 3));
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, (float *)(v55 + 6));
-          v55[9] = 4;
-          *((_WORD *)v55 + 20) = 400;
-          ((aas_reachabilitynode_t *)v55)->next = areareachability[area1num];
-          areareachability[area1num] = (aas_reachabilitynode_t *)v55;
+          v54->reach.edgenum = ground_bestarea2groundedgenum;
+          v54->reach.areanum = area2num;
+          v54->reach.facenum = 0;
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v54->reach.start);
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v55->reach.end);
+          v55->reach.traveltype = 4;
+          v55->reach.traveltime = 400;
+          v55->next = areareachability[area1num];
+          areareachability[area1num] = v55;
           ++reach_barrier;
           return 1;
         }
@@ -10210,15 +10210,15 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v56 = AAS_AllocReachability();
           if ( !v56 )
             return 0;
-          *(_DWORD *)(v56 + 8) = ground_bestarea2groundedgenum;
-          *(_DWORD *)v56 = area2num;
-          *(_DWORD *)(v56 + 4) = 0;
-          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56 + 12);
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56 + 24);
-          *(_DWORD *)(v56 + 36) = 2;
-          *(_WORD *)(v56 + 40) = 1;
-          ((aas_reachabilitynode_t *)v56)->next = areareachability[area1num];
-          areareachability[area1num] = (aas_reachabilitynode_t *)v56;
+          v56->reach.edgenum = ground_bestarea2groundedgenum;
+          v56->reach.areanum = area2num;
+          v56->reach.facenum = 0;
+          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56->reach.start);
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56->reach.end);
+          v56->reach.traveltype = 2;
+          v56->reach.traveltime = 1;
+          v56->next = areareachability[area1num];
+          areareachability[area1num] = v56;
           ++reach_walk;
           return 1;
         }
