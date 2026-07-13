@@ -11464,8 +11464,8 @@ void AAS_Reachability_Elevator()
   int l; // ebp
   int v18; // esi
   int p; // ecx
-  int *v20; // eax
-  int *lreach; // esi
+  aas_reachabilitynode_t *v20; // eax
+  aas_reachabilitynode_t *lreach; // esi
   float v23; // st7 (was double)
   int v24; // rax (was __int64)
   float v25; // st7 (was double)
@@ -11680,30 +11680,30 @@ LABEL_30:
               }
               if ( p >= 3 )
                 goto LABEL_53;
-              v20 = (int *)AAS_AllocReachability();
+              v20 = AAS_AllocReachability();
               lreach = v20;
               if ( v20 )
               {
-                *v20 = area2num;
+                v20->reach.areanum = area2num;
                 v23 = height;
-                v20[1] = modelnum;
+                v20->reach.facenum = modelnum;
                 v24 = (int)v23;
                 v25 = height * 100.0f;
-                lreach[2] = v24;
-                *((float *)lreach + 3) = dirvec[0];
+                lreach->reach.edgenum = v24;
+                lreach->reach.start[0] = dirvec[0];
                 v26 = v25 / speed;
-                *((float *)lreach + 4) = dirvec[1];
-                *((float *)lreach + 5) = dirvec[2];
-                *((float *)lreach + 6) = samplept[0];
-                *((float *)lreach + 7) = samplept[1];
-                *((float *)lreach + 8) = samplept[2];
-                lreach[9] = 11;
-                *((_WORD *)lreach + 20) = (__int64)v26;
+                lreach->reach.start[1] = dirvec[1];
+                lreach->reach.start[2] = dirvec[2];
+                lreach->reach.end[0] = samplept[0];
+                lreach->reach.end[1] = samplept[1];
+                lreach->reach.end[2] = samplept[2];
+                lreach->reach.traveltype = 11;
+                lreach->reach.traveltime = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
-                  *((_WORD *)lreach + 20) = 50;
+                  lreach->reach.traveltime = 50;
                 i = 9999;
-                ((aas_reachabilitynode_t *)lreach)->next = areareachability[LODWORD(v33)];
-                areareachability[LODWORD(v33)] = (aas_reachabilitynode_t *)lreach;
+                lreach->next = areareachability[LODWORD(v33)];
+                areareachability[LODWORD(v33)] = lreach;
                 ++reach_elevator;
               }
             }
