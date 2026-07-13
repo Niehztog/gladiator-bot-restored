@@ -2473,14 +2473,14 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   int v9; // ebp
   /* v11: BSP leaf pointer for leaf `a1`. */
   dleaf_t *v11;
-  _DWORD *v13; // edi
+  dbrush_t *v13; // edi
   int v16; // ecx
   /* v17: BSP plane pointer for the hit brush side. */
   dplane_t *v17;
   float v20; // [esp+10h] [ebp-10h] BYREF — expanded plane dist filled by CM_TraceThroughBrush
   vec3_t endpos; // [esp+14h] [ebp-Ch] BYREF — endpoint filled by CM_TraceThroughBrush via a11
   int sidenum; // [esp+20h] [ebp+0h]
-  _DWORD *v24; // [esp+24h] [ebp+4h]
+  dbrush_t *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
   v11 = &dleafs[leafnum];
@@ -2492,10 +2492,9 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     goto fail;
   do
   {
-    v13 = (_DWORD *)((char *)dbrushes
-                   + 12 * *(unsigned __int16 *)((char *)dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
-    if ( (v13[2] & contentmask) != 0
-      && CM_TraceThroughBrush((dbrush_t *)v13, origin, angles, start, boxmins, (intptr_t)boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
+    v13 = &dbrushes[dleafbrushes[v9 + v11->firstleafbrush]];
+    if ( (v13->contents & contentmask) != 0
+      && CM_TraceThroughBrush(v13, origin, angles, start, boxmins, (intptr_t)boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
       v24 = v13;
     }
@@ -2522,14 +2521,14 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   v16 = sidenum;
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
-  v17 = &dplanes[*(unsigned __int16 *)((char *)dbrushsides + 4 * v16)];
+  v17 = &dplanes[dbrushsides[v16].planenum];
   trace->plane.normal[0] = v17->normal[0];
   trace->plane.normal[1] = v17->normal[1];
   trace->plane.normal[2] = v17->normal[2];
   trace->plane.dist      = v17->dist;
   trace->plane.type      = v17->type;
   trace->exp_dist = v20;
-  trace->contents = v24[2];
+  trace->contents = v24->contents;
   return 1;
   }
 fail:
@@ -4466,17 +4465,17 @@ int Q2_SwapBSPFile(void)
      * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
      * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
      * the LittleShort round-trip (identity on little-endian). */
-    *(_WORD *)((char *)dbrushsides + 4 * ii) = LittleShort(*(_WORD *)((char *)dbrushsides + 4 * ii));
-    *(_WORD *)((char *)dbrushsides + 4 * ii + 2) = LittleShort(*(_WORD *)((char *)dbrushsides + 4 * ii + 2));
+    dbrushsides[ii].planenum = LittleShort(dbrushsides[ii].planenum);
+    dbrushsides[ii].texinfo  = LittleShort(dbrushsides[ii].texinfo);
   }
   v62 = 0;
   if ( numbrushes > 0 )
   {
     do
     {
-      ((dbrush_t *)dbrushes)[v62].firstside = LittleLong(((dbrush_t *)dbrushes)[v62].firstside);
-      ((dbrush_t *)dbrushes)[v62].numsides = LittleLong(((dbrush_t *)dbrushes)[v62].numsides);
-      ((dbrush_t *)dbrushes)[v62].contents = LittleLong(((dbrush_t *)dbrushes)[v62].contents);
+      dbrushes[v62].firstside = LittleLong(dbrushes[v62].firstside);
+      dbrushes[v62].numsides = LittleLong(dbrushes[v62].numsides);
+      dbrushes[v62].contents = LittleLong(dbrushes[v62].contents);
       ++v62;
     }
     while ( v62 < numbrushes );
