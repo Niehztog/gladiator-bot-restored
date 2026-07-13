@@ -8573,8 +8573,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
                              // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
                              // which is why IDA rendered this as the scalar 'old_velz'.
   vec3_t left_test_vel;  // BYREF
-  float *plane; // ebp
-  float *plane2; // eax
+  aas_plane_t *plane; // ebp
+  aas_plane_t *plane2; // eax
   float v32;
   float v33;
   /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
@@ -8687,17 +8687,17 @@ LABEL_12:
       VectorCopy(trace.endpos, org);
       if ( trace.fraction >= 1.0 )
         goto LABEL_66;
-      plane = (float *)AAS_PlaneFromNum(trace.planenum);
-      if ( plane[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
+      plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
+      if ( plane->normal[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
       {
-        VectorMA(org, -0.25f, plane, start);
+        VectorMA(org, -0.25f, plane->normal, start);
         VectorCopy(start, stepend);
         start[2] = start[2] + phys_maxstep;
         steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
         if ( !steptrace.startsolid )
         {
-          plane2 = (float *)AAS_PlaneFromNum(steptrace.planenum);
-          if ( plane2[2] > (float)phys_maxsteepness )
+          plane2 = (aas_plane_t *)AAS_PlaneFromNum(steptrace.planenum);
+          if ( plane2->normal[2] > (float)phys_maxsteepness )
           {
             left_test_vel[2] = 0.0f;
             frame_test_vel[2] = 0.0f;
@@ -8715,16 +8715,16 @@ LABEL_12:
           }
         }
       }
-      v32 = (float)left_test_vel[1] * (float)plane[1];
-      v33 = (float)left_test_vel[2] * (float)plane[2];
-      backoff_left = (float)(-(v32 + v33 + (float)left_test_vel[0] * (float)*plane));
-      VectorMA(left_test_vel, backoff_left, plane, left_test_vel);
-      v32 = (float)frame_test_vel[1] * (float)plane[1];
-      v33 = (float)frame_test_vel[2] * (float)plane[2];
+      v32 = (float)left_test_vel[1] * (float)plane->normal[1];
+      v33 = (float)left_test_vel[2] * (float)plane->normal[2];
+      backoff_left = (float)(-(v32 + v33 + (float)left_test_vel[0] * (float)plane->normal[0]));
+      VectorMA(left_test_vel, backoff_left, plane->normal, left_test_vel);
+      v32 = (float)frame_test_vel[1] * (float)plane->normal[1];
+      v33 = (float)frame_test_vel[2] * (float)plane->normal[2];
       old_frame_test_vel[2] = frame_test_vel[2];
-      backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)*plane));
-      VectorMA(frame_test_vel, backoff_frame, plane, frame_test_vel);
-      if ( plane[2] > (float)phys_maxsteepness )
+      backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)plane->normal[0]));
+      VectorMA(frame_test_vel, backoff_frame, plane->normal, frame_test_vel);
+      if ( plane->normal[2] > (float)phys_maxsteepness )
       {
         landed = 1;
         onground = 1;
