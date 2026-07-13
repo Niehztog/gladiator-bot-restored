@@ -557,7 +557,7 @@ double __cdecl BotChatTime(bot_state_t *bs);
 float __cdecl BotAggression(bot_state_t *bs);
 BOOL __cdecl BotWantsToRetreat(int *bs);
 BOOL __cdecl BotWantsToChase(int *bs);
-float *__cdecl BotRoamGoal(_DWORD *bs, float *goal);
+float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal);
 bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3);
 int __cdecl BotCTFTeam(bot_state_t *bs);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
@@ -15569,7 +15569,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
           {
-            BotRoamGoal((_DWORD *)bs, target);
+            BotRoamGoal(bs, target);
             dir[0] = target[0] - *v17;
             dir[1] = target[1] - bs->origin[1];
             dir[2] = target[2] - bs->origin[2];
@@ -15667,7 +15667,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
           {
-            BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
+            BotRoamGoal(bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
             VectorSubtract(target, bs->origin, dir);
             vectoangles(dir, bs->ideal_viewangles);
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
@@ -16251,7 +16251,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
      * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
     {
-    BotRoamGoal((_DWORD *)bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
+    BotRoamGoal(bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
     VectorSubtract(target, bs->origin, dir);
     vectoangles(dir, bs->ideal_viewangles);
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
@@ -16428,7 +16428,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     {
       if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
       {
-      BotRoamGoal((_DWORD *)bs, target);
+      BotRoamGoal(bs, target);
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
@@ -17739,7 +17739,7 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
 }
 
 //----- (10022A60) --------------------------------------------------------
-float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
+float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
 {
   int *v2; // ebp
   float v5; // st7
@@ -17769,12 +17769,12 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
   int trace[21]; // [esp+4Ch] [ebp-FCh] BYREF
 
   i = 0.0;
-  v2 = bs + 421;
+  v2 = (int *)bs->origin;
   do
   {
     *(_DWORD *)&endpos[0] = *v2;
-    *(_DWORD *)&endpos[1] = bs[422];
-    *(_DWORD *)&endpos[2] = bs[423];
+    *(_DWORD *)&endpos[1] = *(int *)&bs->origin[1];
+    *(_DWORD *)&endpos[2] = *(int *)&bs->origin[2];
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
     rnd = v5;
     if ( v5 < 0.8 )
@@ -17796,23 +17796,23 @@ float *__cdecl BotRoamGoal(_DWORD *bs, float *goal)
       endpos[1] = v19 * v24 * 700.0f + endpos[1] + 50.0f;
     }
     v20 = rand() & 0x7FFF;
-    v18 = bs[2];
+    v18 = bs->entitynum;
     v19 = (float)v20 * 0.000030518509f;
     endpos[2] = v19 * 144.0f - 96.0f - 1.0f + endpos[2];
     *(bsp_trace_t *)trace = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
     v9 = endpos[0] - *(float *)v2;
     dir[0] = v9;
-    dir[1] = endpos[1] - *((float *)bs + 422);
-    dir[2] = endpos[2] - *((float *)bs + 423);
+    dir[1] = endpos[1] - bs->origin[1];
+    dir[2] = endpos[2] - bs->origin[2];
     len = VectorNormalize(dir);
     if ( len > 100.0f )
     {
       v19 = *(float *)&trace[2] * len - 40.0f;
       VectorScale((float *)dir, v19, (float *)dir);
-      v17 = bs[2];
+      v17 = bs->entitynum;
       endpos[0] = dir[0] + *(float *)v2;
-      endpos[1] = dir[1] + *((float *)bs + 422);
-      endpos[2] = dir[2] + *((float *)bs + 423);
+      endpos[1] = dir[1] + bs->origin[1];
+      endpos[2] = dir[2] + bs->origin[2];
       belowbestorg[0] = endpos[0];
       belowbestorg[1] = endpos[1];
       belowbestorg[2] = endpos[2] - 800.0f;
