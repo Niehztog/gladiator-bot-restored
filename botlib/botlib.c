@@ -651,25 +651,25 @@ void __cdecl FreeLevelItem(levelitem_t *li);
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li);
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li);
 char *__cdecl BotGoalName(int number);
-int __cdecl BotResetAvoidGoals(void *goalstate);
-void __cdecl BotDumpAvoidGoals(int *goalstate);
-void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime);
-float __cdecl BotAvoidGoalTime(int *goalstate, int number);
+int __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate);
+void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate);
+void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime);
+float __cdecl BotAvoidGoalTime(bot_goalstate_t *goalstate, int number);
 int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal);
 void BotUpdateEntityItems(void);
-void __cdecl BotDumpGoalStack(int *goalstate);
-int __cdecl BotPushGoal(int *goalstate, const void *goal);
-int __cdecl BotPopGoal(int *goalstate);
-void __cdecl BotEmptyGoalStack(int *goalstate);
-void *__cdecl BotGetTopGoal(int *goalstate);
-void *__cdecl BotGetSecondGoal(int *goalstate);
-int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags);
-int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime);
+void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate);
+int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal);
+int __cdecl BotPopGoal(bot_goalstate_t *goalstate);
+void __cdecl BotEmptyGoalStack(bot_goalstate_t *goalstate);
+void *__cdecl BotGetTopGoal(bot_goalstate_t *goalstate);
+void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate);
+int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags);
+int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime);
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal);
 BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal);
-int __cdecl BotLoadItemWeights(int *goalstate, char *filename);
-void __cdecl BotFreeItemWeights(int *goalstate);
-int __cdecl BotResetGoalState(void *goalstate);
+int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename);
+void __cdecl BotFreeItemWeights(bot_goalstate_t *goalstate);
+int __cdecl BotResetGoalState(bot_goalstate_t *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
 double __cdecl AngleDiff(float ang1, float ang2);
@@ -1423,23 +1423,23 @@ bot_character_t **botcharacters;
 #define BotCharacter(bs) (*(bot_character_t **)&(bs)->character)
 #endif
 
-/* Side-band pointer slots within bs->goalstate (embedded int[243]).
- * goalstate[0] = weightconfig_t * for item weights (set by BotLoadItemWeights,
- * freed by BotFreeItemWeights via FreeWeightConfig2).
- * goalstate[1] = result of ItemWeightIndex (weight×itemconfig table),
- * freed by BotFreeItemWeights via FreeMemory. */
+/* Side-band pointer slots within bs->goalstate (bot_goalstate_t).
+ * goalstate.itemweightconfig = weightconfig_t * for item weights (set by
+ * BotLoadItemWeights, freed by BotFreeItemWeights via FreeWeightConfig2).
+ * goalstate.itemweightindex = result of ItemWeightIndex (weight×itemconfig
+ * table), freed by BotFreeItemWeights via FreeMemory. */
 #if BOTLIB_NEED_SIDEBAND
 void **botgoalstate_p0;  /* weightconfig_t* */
 void **botgoalstate_p1;  /* iteminfo weight table */
 #define BotGoalP0(bs) (botgoalstate_p0[(bs) - botstates])
 #define BotGoalP1(bs) (botgoalstate_p1[(bs) - botstates])
 #else
-#define BotGoalP0(bs) (*(void **)&(bs)->goalstate[0])
-#define BotGoalP1(bs) (*(void **)&(bs)->goalstate[1])
+#define BotGoalP0(bs) (*(void **)&(bs)->goalstate.itemweightconfig)
+#define BotGoalP1(bs) (*(void **)&(bs)->goalstate.itemweightindex)
 #endif
 
 /* Goalstate-handle accessors — used by BotLoadItemWeights /
- * BotFreeItemWeights, which take a `goalstate*` handle (= &bs->goalstate[0])
+ * BotFreeItemWeights, which take a `goalstate*` handle (= &bs->goalstate)
  * directly, exactly as the original 32-bit DLL pushed at the call sites
  * (push edi where edi = lea [ebx+0xBC0]).  On 32-bit this is byte-identical
  * to the disasm.  On 64-bit the int slots can't hold pointers, so we
@@ -1450,8 +1450,8 @@ void **botgoalstate_p1;  /* iteminfo weight table */
 #define BotGoalHandleP0(h) (botgoalstate_p0[_GoalHandleBs(h) - botstates])
 #define BotGoalHandleP1(h) (botgoalstate_p1[_GoalHandleBs(h) - botstates])
 #else
-#define BotGoalHandleP0(h) (*(void **)&(h)[0])
-#define BotGoalHandleP1(h) (*(void **)&(h)[1])
+#define BotGoalHandleP0(h) (*(void **)&(h)->itemweightconfig)
+#define BotGoalHandleP1(h) (*(void **)&(h)->itemweightindex)
 #endif
 
 /* bs->weaponweights is `int[7]` in the original 32-bit DLL — a flattened
@@ -15813,7 +15813,7 @@ LABEL_55:
       }
       return v26;
     }
-    v44 = (float *)BotGetTopGoal(bs->goalstate);
+    v44 = (float *)BotGetTopGoal(&bs->goalstate);
     v26 = v44;
     if ( v44 )
     {
@@ -15834,17 +15834,17 @@ LABEL_55:
     }
     if ( AAS_Time() > bs->ltg_time )
     {
-      BotPopGoal(bs->goalstate);
-      if ( BotChooseLTGItem(bs->goalstate, bs->origin, bs->inventory, tfl) )
+      BotPopGoal(&bs->goalstate);
+      if ( BotChooseLTGItem(&bs->goalstate, bs->origin, bs->inventory, tfl) )
       {
         bs->ltg_time = AAS_Time() + 20;
       }
       else
       {
-        BotResetAvoidGoals(bs->goalstate);
+        BotResetAvoidGoals(&bs->goalstate);
         BotResetAvoidReach((_DWORD *)bs->movestate);
       }
-      v26 = (float *)BotGetTopGoal(bs->goalstate);
+      v26 = (float *)BotGetTopGoal(&bs->goalstate);
     }
     return v26;
   }
@@ -15997,9 +15997,9 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
 
   BotRecordNodeSwitch(bs, "respawn", &byte_1006294C);
   BotResetMoveState(bs->movestate);
-  BotResetGoalState(bs->goalstate);
+  BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
-  BotResetAvoidGoals(bs->goalstate);
+  BotResetAvoidGoals(&bs->goalstate);
   BotResetAvoidReach((_DWORD *)bs->movestate);
   if ( BotChat_Death((int *)bs) )
   {
@@ -16127,7 +16127,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     else
     {
       BotResetLastAvoidReach((intptr_t)bs->movestate);
-      BotEmptyGoalStack(bs->goalstate);
+      BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
   }
@@ -16143,7 +16143,7 @@ int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
   const char *v2; // eax
   int result; // eax
 
-  goal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
+  goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
   if ( goal )
   {
     v2 = (const char *)BotGoalName(goal->number);
@@ -16199,7 +16199,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     v8 |= 0x1000;
   }
   bs->enemy = 0;
-  v3 = BotGetTopGoal(bs->goalstate);
+  v3 = BotGetTopGoal(&bs->goalstate);
   goal = v3;
   if ( v3 )
   {
@@ -16220,7 +16220,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->nbg_time )
   {
-    BotPopGoal(bs->goalstate);
+    BotPopGoal(&bs->goalstate);
     AIEnter_Seek_LTG(bs);
     return 0;
   }
@@ -16257,9 +16257,9 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   else
   {
-    v7 = BotGetSecondGoal(bs->goalstate);
+    v7 = BotGetSecondGoal(&bs->goalstate);
     if ( !v7 )
-      BotGetTopGoal(bs->goalstate);
+      BotGetTopGoal(&bs->goalstate);
     if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
@@ -16281,7 +16281,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     else
     {
       BotResetLastAvoidReach((intptr_t)bs->movestate);
-      BotEmptyGoalStack(bs->goalstate);
+      BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
   }
@@ -16298,7 +16298,7 @@ int __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
   const char *v2; // eax
   int result; // eax
 
-  goal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
+  goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
   if ( goal )
   {
     v2 = (const char *)BotGoalName(goal->number);
@@ -16379,7 +16379,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     else
     {
       BotResetLastAvoidReach((intptr_t)bs->movestate);
-      BotEmptyGoalStack(bs->goalstate);
+      BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
     return 0;
@@ -16397,7 +16397,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
         range = 1500;
       else
         range = 700;
-      if ( BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
+      if ( BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0f;
@@ -16641,7 +16641,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->check_time
     && (bs->check_time = AAS_Time() + 1.0f,
-        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, tfl, &goal, 500.0)) )
+        BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, tfl, &goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
     BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -16746,7 +16746,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   BotUpdateBattleInventory(bs, bs->enemy);
   if ( BotWantsToChase((int *)bs) )
   {
-    BotEmptyGoalStack(bs->goalstate);
+    BotEmptyGoalStack(&bs->goalstate);
     AIEnter_Battle_Chase(bs);
     return 0;
   }
@@ -16769,7 +16769,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
       v4 = AAS_Time();
       if ( v4 > bs->check_time
         && (bs->check_time = AAS_Time() + 1.0f,
-            BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
+            BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
       {
         BotResetLastAvoidReach((intptr_t)bs->movestate);
         bs->nbg_time = AAS_Time() + 5.0f;
@@ -16889,7 +16889,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     (*(int *)&bs->lastenemyorigin[2]) = entinfo[6];
     bs->lastenemyareanum = areanum;
   }
-  topgoal = (bot_goal_t *)BotGetTopGoal(bs->goalstate);
+  topgoal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
   if ( topgoal )
   {
     if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
@@ -16905,8 +16905,8 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->nbg_time )
   {
-    BotPopGoal(bs->goalstate);
-    if ( BotGetTopGoal(bs->goalstate) )
+    BotPopGoal(&bs->goalstate);
+    if ( BotGetTopGoal(&bs->goalstate) )
       AIEnter_Battle_Retreat(bs);
     else
       AIEnter_Battle_Fight(bs);
@@ -20092,8 +20092,8 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
   }
   if ( i >= 50 )
   {
-    BotDumpGoalStack(bs->goalstate);
-    BotDumpAvoidGoals(bs->goalstate);
+    BotDumpGoalStack(&bs->goalstate);
+    BotDumpAvoidGoals(&bs->goalstate);
     BotDumpNodeSwitches(bs);
   }
   result = *(_DWORD *)bs;
@@ -20354,11 +20354,13 @@ int Export_BotAIFrame(int a1, float a2)
 //   for each field: push *(int *)(bs+ofs); call MemoryByteSize@10039120;
 //   push ret, push fmt, push 1; call bi_Print@ds:0x10063fe8
 //   end: call PrintUsedMemorySize@10039150
-// Field offsets (raw — our bot_state_t labels in this region — goalstate
-// / chatstate / weaponweights — don't match these handle slots one-to-one):
+// Field offsets (raw — our bot_state_t labels in this region — chatstate /
+// weaponweights don't match these handle slots one-to-one):
 //   +0x688  = character handle
-//   +0xbc0  = item weights handle
-//   +0xbc4  = item index handle
+//   +0xbc0  = item weights handle (== goalstate.itemweightconfig; read via
+//             BotGoalP0 below since on 64-bit the real pointer lives in the
+//             sideband array, not inline at this offset)
+//   +0xbc4  = item index handle (== goalstate.itemweightindex; BotGoalP1)
 //   +0x1044 = chat file handle
 //   +0x1050 = weapon weights handle
 //   +0x1054 = weapon index handle
@@ -20367,9 +20369,9 @@ static void sub_100293A0(bot_state_t *bs)
   botimport.Print(PRT_MESSAGE, "%6d bytes character\n",
            MemoryByteSize(*(void **)((char *)bs + 0x688)));
   botimport.Print(PRT_MESSAGE, "%6d bytes item weights\n",
-           MemoryByteSize(*(void **)((char *)bs + 0xbc0)));
+           MemoryByteSize(BotGoalP0(bs)));
   botimport.Print(PRT_MESSAGE, "%6d bytes item index\n",
-           MemoryByteSize(*(void **)((char *)bs + 0xbc4)));
+           MemoryByteSize(BotGoalP1(bs)));
   botimport.Print(PRT_MESSAGE, "%6d bytes weapon weights\n",
            MemoryByteSize(*(void **)((char *)bs + 0x1050)));
   botimport.Print(PRT_MESSAGE, "%6d bytes weapon index\n",
@@ -20405,7 +20407,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   }
   memcpy(bs->settings, Source, 0x1B0u);
   weights_handle = Characteristic_String(char_handle, 28);
-  if ( BotLoadItemWeights(&bs->goalstate[0], weights_handle) )
+  if ( BotLoadItemWeights(&bs->goalstate, weights_handle) )
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
 #if BOTLIB_NEED_SIDEBAND
@@ -20418,7 +20420,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
 #endif
   if ( BotLoadWeaponWeights(BotWS(bs), weights_handle) )
   {
-    BotFreeItemWeights(&bs->goalstate[0]);
+    BotFreeItemWeights(&bs->goalstate);
     return 0;
   }
   chat_path = Characteristic_String(BotCharacter(bs), 12);
@@ -20426,7 +20428,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   chat_state_ptr = (_DWORD *)&bs->chatstate;
   if ( BotLoadChatFile(&bs->chatstate, chat_path, chat_arg) )
   {
-    BotFreeItemWeights(&bs->goalstate[0]);
+    BotFreeItemWeights(&bs->goalstate);
     BotFreeWeaponWeights(BotWS(bs));
     return 0;
   }
@@ -20470,7 +20472,7 @@ int __cdecl BotShutdownClient(int a1)
    * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
   if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
 #endif
-  BotFreeItemWeights(&bs->goalstate[0]);
+  BotFreeItemWeights(&bs->goalstate);
   sub_1002A590(v1[418]);
   BotFreeWaypoints(v1[1136]);
   v3 = v1[1137];
@@ -20582,7 +20584,7 @@ int __cdecl BotResetState(bot_state_t *bs)
   memcpy(settings, bs->settings, sizeof(settings));
   client = bs->client;
   memcpy(movestate, &bs->ms, sizeof(movestate));
-  memcpy(goalstate, bs->goalstate, sizeof(goalstate));
+  memcpy(goalstate, &bs->goalstate, sizeof(goalstate));
   inuse = bs->inuse;
   entitynum = bs->entitynum;
   memcpy(weaponstate, bs->weaponweights, sizeof(weaponstate));
@@ -20592,7 +20594,7 @@ int __cdecl BotResetState(bot_state_t *bs)
   BotFreeWaypoints(BotPatrolpoints(bs));
   memset(bs, 0, sizeof(*bs));
   memcpy(&bs->ms, movestate, sizeof(movestate));
-  memcpy(bs->goalstate, goalstate, sizeof(goalstate));
+  memcpy(&bs->goalstate, goalstate, sizeof(goalstate));
   memcpy(bs->weaponweights, weaponstate, sizeof(weaponstate));
   bs->inuse = inuse;
   memcpy(&bs->chatstate, &chatstate, sizeof(chatstate));
@@ -20601,9 +20603,9 @@ int __cdecl BotResetState(bot_state_t *bs)
   bs->character = character;
   bs->client = client;
   BotResetMoveState((int *)&bs->ms);
-  BotResetGoalState(bs->goalstate);
+  BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
-  BotResetAvoidGoals(bs->goalstate);
+  BotResetAvoidGoals(&bs->goalstate);
   return BotResetAvoidReach((int *)&bs->ms);
 }
 
@@ -23972,71 +23974,67 @@ char *__cdecl BotGoalName(int number)
 }
 
 //----- (1002F6F0) --------------------------------------------------------
-int __cdecl BotResetAvoidGoals(void *goalstate)
+int __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
 {
   int result; // eax
 
   result = 0;
-  memset((char *)goalstate + 460, 0, 0x100u);
-  memset((char *)goalstate + 716, 0, 0x100u);
+  memset(goalstate->avoidgoals, 0, sizeof(goalstate->avoidgoals));
+  memset(goalstate->avoidgoaltimes, 0, sizeof(goalstate->avoidgoaltimes));
   return result;
 }
 
 //----- (1002F730) --------------------------------------------------------
-void __cdecl BotDumpAvoidGoals(int *goalstate)
+void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate)
 {
-  int *p;
+  int i;
   int n;
 
-  p = (int *)((char *)goalstate + 460);
+  i = 0;
   n = 64;
   do
   {
-    if ( *(float *)((char *)p + 256) >= AAS_Time() )
+    if ( goalstate->avoidgoaltimes[i] >= AAS_Time() )
     {
-      Log_Write("avoid goal %s, number %d for %f seconds", BotGoalName(*p),
-                *p, *(float *)((char *)p + 256) - AAS_Time());
+      Log_Write("avoid goal %s, number %d for %f seconds", BotGoalName(goalstate->avoidgoals[i]),
+                goalstate->avoidgoals[i], goalstate->avoidgoaltimes[i] - AAS_Time());
     }
-    p++;
+    i++;
   }
   while ( --n );
 }
 
 //----- (1002F7B0) --------------------------------------------------------
-void __cdecl BotAddToAvoidGoals(int *gs, int number, float avoidtime)
+void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime)
 {
   int v3; // esi
-  float *i; // edi
 
-  for ( v3 = 0, i = (float *)((char *)gs + 716); v3 < 64; ++v3, ++i )
+  for ( v3 = 0; v3 < 64; ++v3 )
   {
-    if ( AAS_Time() > *i )
+    if ( AAS_Time() > gs->avoidgoaltimes[v3] )
     {
-      *(_DWORD *)((char *)gs + 4 * v3 + 460) = number;
-      *(float *)((char *)gs + 4 * v3 + 716) = AAS_Time() + avoidtime;
+      gs->avoidgoals[v3] = number;
+      gs->avoidgoaltimes[v3] = AAS_Time() + avoidtime;
       return;
     }
   }
 }
 
 //----- (1002F820) --------------------------------------------------------
-float __cdecl BotAvoidGoalTime(int *goalstate, int number)
+float __cdecl BotAvoidGoalTime(bot_goalstate_t *goalstate, int number)
 {
   int v2; // esi
-  float *i; // edi
 
   v2 = 0;
-  i = (float *)((char *)goalstate + 716);
   while ( 1 )
   {
-    if ( *((_DWORD *)i - 64) == number && AAS_Time() <= *i )
+    if ( goalstate->avoidgoals[v2] == number && AAS_Time() <= goalstate->avoidgoaltimes[v2] )
       break;
     ++v2;
-    ++i;
     if ( v2 >= 64 )
       return 0.0f;
   }
-  return *(float *)((char *)goalstate + 4 * v2 + 716) - AAS_Time();
+  return goalstate->avoidgoaltimes[v2] - AAS_Time();
 }
 
 //----- (1002F890) --------------------------------------------------------
@@ -24189,84 +24187,81 @@ LABEL_31:
 }
 
 //----- (1002FD40) --------------------------------------------------------
-void __cdecl BotDumpGoalStack(int *goalstate)
+void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
 {
   int i; // esi
-  _DWORD *v2; // edi
 
   i = 1;
-  if ( *(int *)((char *)goalstate + 456) >= 1 )
+  if ( goalstate->goalstacktop >= 1 )
   {
-    v2 = (_DWORD *)((char *)goalstate + 108);
     do
     {
-      Log_Write("%d: %s", i, BotGoalName(*v2));
+      Log_Write("%d: %s", i, BotGoalName(goalstate->goalstack[i].number));
       ++i;
-      v2 += 14;
     }
-    while ( i <= *(int *)((char *)goalstate + 456) );
+    while ( i <= goalstate->goalstacktop );
   }
 }
 
 //----- (1002FD90) --------------------------------------------------------
-int __cdecl BotPushGoal(int *goalstate, const void *goal)
+int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
 {
   int v2; // eax
   int result; // eax
 
-  v2 = *(_DWORD *)((char *)goalstate + 456);
+  v2 = goalstate->goalstacktop;
   if ( v2 >= 7 )
   {
     botimport.Print(PRT_ERROR, "goal heap overflow\n");
-    return ((int (__cdecl *)(int *))BotDumpGoalStack)(goalstate);
+    return ((int (__cdecl *)(bot_goalstate_t *))BotDumpGoalStack)(goalstate);
   }
   result = v2 + 1;
-  *(_DWORD *)((char *)goalstate + 456) = result;
-  memcpy((char *)goalstate + 56 * result + 8, goal, 0x38u);
+  goalstate->goalstacktop = result;
+  memcpy(&goalstate->goalstack[result], goal, sizeof(bot_goal_t));
   return result;
 }
 
 //----- (1002FE00) --------------------------------------------------------
-int __cdecl BotPopGoal(int *goalstate)
+int __cdecl BotPopGoal(bot_goalstate_t *goalstate)
 {
   int result; // eax
 
-  result = *(_DWORD *)((char *)goalstate + 456);
+  result = goalstate->goalstacktop;
   if ( result > 0 )
-    *(_DWORD *)((char *)goalstate + 456) = --result;
+    goalstate->goalstacktop = --result;
   return result;
 }
 
 //----- (1002FE30) --------------------------------------------------------
-void __cdecl BotEmptyGoalStack(int *goalstate)
+void __cdecl BotEmptyGoalStack(bot_goalstate_t *goalstate)
 {
-  *(_DWORD *)((char *)goalstate + 456) = 0;
+  goalstate->goalstacktop = 0;
 }
 
 //----- (1002FE50) --------------------------------------------------------
-void *__cdecl BotGetTopGoal(int *goalstate)
+void *__cdecl BotGetTopGoal(bot_goalstate_t *goalstate)
 {
   int result; // eax
 
-  result = *(_DWORD *)((char *)goalstate + 456);
+  result = goalstate->goalstacktop;
   if ( !result )
-    return (void *)result;
-  return (char *)goalstate + 56 * result + 8;
+    return (void *)(intptr_t)result;
+  return &goalstate->goalstack[result];
 }
 
 //----- (1002FE80) --------------------------------------------------------
-void *__cdecl BotGetSecondGoal(int *goalstate)
+void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate)
 {
   int v1; // eax
 
-  v1 = *(_DWORD *)((char *)goalstate + 456);
+  v1 = goalstate->goalstacktop;
   if ( v1 <= 1 )
     return 0;
-  return (char *)goalstate + 56 * v1 - 48;
+  return &goalstate->goalstack[v1 - 1];
 }
 
 //----- (1002FEB0) --------------------------------------------------------
-int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags)
+int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags)
 {
   int result; // eax
   BOOL v6; // eax
@@ -24285,10 +24280,11 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
   float v19; // [esp+5Ch] [ebp+4h]
   float bestweight; // [esp+60h] [ebp+8h]
   float avoidtime; // [esp+68h] [ebp+10h]
-  /* 64-bit fix: goalstate[0]/[1] used to hold weightconfig_t* / int* inline.
-   * On 64-bit they live in the sideband BotGoalP0/BotGoalP1 maxclients arrays.
-   * Recover bs from the goalstate pointer (goalstate is at +3008 inside bot_state_t)
-   * and read the typed pointers from the sideband. */
+  /* 64-bit fix: goalstate->itemweightconfig/itemweightindex are 32-bit
+   * pointer bit-patterns inline. On 64-bit they live in the sideband
+   * BotGoalP0/BotGoalP1 maxclients arrays instead.  Recover bs from the
+   * goalstate pointer (goalstate is at +3008 inside bot_state_t) and read
+   * the typed pointers from the sideband. */
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
@@ -24398,7 +24394,7 @@ int __cdecl BotChooseLTGItem(int *goalstate, vec3_t origin, char *inventory, int
 }
 
 //----- (10030260) --------------------------------------------------------
-int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
+int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
   BOOL v8; // eax
   int v9; // esi
@@ -24419,7 +24415,7 @@ int __cdecl BotChooseNBGItem(int *goalstate, vec3_t origin, char *inventory, int
   int v24; // [esp+5Ch] [ebp+4h]
   int ltg_time; // [esp+60h] [ebp+8h]
   float avoidtime; // [esp+68h] [ebp+10h]
-  /* 64-bit fix: see BotChooseLTGItem — goalstate[0]/[1] live in sideband. */
+  /* 64-bit fix: see BotChooseLTGItem — itemweightconfig/itemweightindex live in sideband. */
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
@@ -24581,7 +24577,7 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
 }
 
 //----- (100308D0) --------------------------------------------------------
-int __cdecl BotLoadItemWeights(int *goalstate, char *filename)
+int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename)
 {
   weightconfig_t *v2;
 
@@ -24599,7 +24595,7 @@ int __cdecl BotLoadItemWeights(int *goalstate, char *filename)
 }
 
 //----- (10030950) --------------------------------------------------------
-void __cdecl BotFreeItemWeights(int *goalstate)
+void __cdecl BotFreeItemWeights(bot_goalstate_t *goalstate)
 {
   if ( BotGoalHandleP0(goalstate) )
     FreeWeightConfig2((weightconfig_t *)BotGoalHandleP0(goalstate));
@@ -24608,10 +24604,10 @@ void __cdecl BotFreeItemWeights(int *goalstate)
 }
 
 //----- (10030990) --------------------------------------------------------
-int __cdecl BotResetGoalState(void *goalstate)
+int __cdecl BotResetGoalState(bot_goalstate_t *goalstate)
 {
-  memset((char *)goalstate + 8, 0, 0x1C0u);
-  *(_DWORD *)((char *)goalstate + 456) = 0;
+  memset(goalstate->goalstack, 0, sizeof(goalstate->goalstack));
+  goalstate->goalstacktop = 0;
   return BotResetAvoidGoals(goalstate);
 }
 

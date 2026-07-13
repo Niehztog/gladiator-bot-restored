@@ -67,6 +67,39 @@ typedef struct bot_movestate_s {
     int     avoidreachtries[1];     /* +124 retry count before adding to avoid list */
 } bot_movestate_t;                  /* sizeof == 128 */
 
+/* bot_goalstate_t — inline goal-management struct embedded in bot_state_t at
+ * +3008 (covers +3008..+3979 = 972 bytes).  Reverse-engineered directly from
+ * objdump offsets in BotPushGoal/BotGetTopGoal (0x1002fe50: `lea edx,
+ * [eax*8+0]; sub edx,eax; lea eax,[ecx+edx*8+8]` = ecx + eax*56 + 8),
+ * BotResetGoalState (`memset(goalstate+8, 0, 0x1C0)` = 448 B at +8),
+ * BotResetAvoidGoals (`rep stos` at ecx=0x40 into edx+0x1cc and edx+0x2cc =
+ * +460/+716), and BotDumpGoalStack/BotAvoidGoalTime/BotAddToAvoidGoals
+ * (all confirmed against reference/objdump/gladiator.dll.disasm.txt, not
+ * just the decompiled C).  Matches Q3 bot_goalstate_s (be_ai_goal.c:164-177)
+ * field-for-field, MINUS the `client`/`lastreachabilityarea` fields Q3 added
+ * later (Gladiator embeds one goalstate per bot inline via bot_state_t, so a
+ * `client` index back-pointer is redundant; adding either field would push
+ * the total past the disasm-locked 972 bytes) and with MAX_AVOIDGOALS=64
+ * confirmed by the `rep stos` count (Q3 later raised it to 256) — the same
+ * "Q3 evolved the constant, trust the disasm for Gladiator's value" pattern
+ * already established for bot_movestate_t's MAX_AVOIDREACH above.
+ *
+ * itemweightconfig/itemweightindex are 32-bit pointer BIT-PATTERNS in the
+ * original DLL (BotGoalP0/BotGoalP1 read them via a `*(void**)` reinterpret
+ * cast) — kept as plain `int` here rather than real pointers, since a genuine
+ * 8-byte pointer field would shift every subsequent offset on 64-bit and
+ * break this fixed layout.  Actual pointer access continues to go through
+ * the existing BotGoalP0/BotGoalP1/BotGoalHandleP0/BotGoalHandleP1 sideband
+ * macros, which this struct's field names now back directly. */
+typedef struct bot_goalstate_s {
+    int         itemweightconfig;   /* +0   weightconfig_t* bit-pattern (32-bit only) — see BotGoalP0 */
+    int         itemweightindex;    /* +4   int* bit-pattern (32-bit only) — see BotGoalP1 */
+    bot_goal_t  goalstack[8];       /* +8   1-indexed goal stack (slot 0 unused); MAX_GOALSTACK=8 matches Q3 exactly */
+    int         goalstacktop;       /* +456 current stack depth, 0..7 (overflow past 7 logs + drops the push) */
+    int         avoidgoals[64];     /* +460 item numbers currently being avoided */
+    float       avoidgoaltimes[64]; /* +716 AAS_Time() expiry per avoidgoals[] slot */
+} bot_goalstate_t;                  /* sizeof == 972 */
+
 /* Named team-waypoint linked-list node, heap-allocated by BotCreateWayPoint.
  * On 32-bit the original DLL allocates `strlen(name)+1+68` bytes and stores
  * the head/tail pointers inline in bot_state_t's +4544/+4548/+4552 int slots
@@ -290,7 +323,7 @@ typedef struct bot_state_s {
              * region still go through the `_raw[]` union (e.g. +4248 in
              * the patrol-state loop).  Splitting more pads is fine; the
              * union keeps both spellings live against the same memory. */
-            int    goalstate[243];        /* +3008..+3979 */
+            bot_goalstate_t goalstate;    /* +3008..+3979 (972 B) */
             bot_chatstate_t chatstate;    /* +3980..+4167 (188 bytes; see chat_state.h) */
             int    weaponweights[7];      /* +4168..+4195 */
             int    enemy;                 /* +4196 */
