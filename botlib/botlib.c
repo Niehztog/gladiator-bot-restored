@@ -2293,13 +2293,9 @@ int __cdecl CM_TraceThroughBrush(
   v14 = a1;
   v42 = 0;
   v36 = 0;
-  startp[0] = a4[0];
-  startp[1] = a4[1];
-  startp[2] = a4[2];
+  VectorCopy(a4, startp);
   v15 = a7;
-  endp[0] = a7[0];
-  endp[1] = a7[1];
-  endp[2] = a7[2];
+  VectorCopy(a7, endp);
   if ( a1->numsides > 0 )
   {
     while ( 1 )
@@ -2307,9 +2303,7 @@ int __cdecl CM_TraceThroughBrush(
       v16 = &dplanes[dbrushsides[v11 + v14->firstside].planenum];
       if ( v39 )
       {
-        normal[0] = v16->normal[0];
-        normal[1] = v16->normal[1];
-        normal[2] = v16->normal[2];
+        VectorCopy(v16->normal, normal);
         sub_10003460(normal, v59);
         v12 = a2;
         v17 = 4;
@@ -2317,9 +2311,7 @@ int __cdecl CM_TraceThroughBrush(
       else
       {
         v17 = v16->type;
-        normal[0] = v16->normal[0];
-        normal[1] = v16->normal[1];
-        normal[2] = v16->normal[2];
+        VectorCopy(v16->normal, normal);
       }
       if ( v40 )
       {
@@ -2522,9 +2514,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
   v17 = &dplanes[dbrushsides[v16].planenum];
-  trace->plane.normal[0] = v17->normal[0];
-  trace->plane.normal[1] = v17->normal[1];
-  trace->plane.normal[2] = v17->normal[2];
+  VectorCopy(v17->normal, trace->plane.normal);
   trace->plane.dist      = v17->dist;
   trace->plane.type      = v17->type;
   trace->exp_dist = v20;
@@ -10165,9 +10155,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             if ( !v50 )
               return 0;
             v50->reach.edgenum = v114;
-            v50->reach.start[0] = water_beststart[0];
-            v50->reach.start[1] = water_beststart[1];
-            v50->reach.start[2] = water_beststart[2];
+            VectorCopy(water_beststart, v50->reach.start);
             v50->reach.areanum = area2num;
             v50->reach.facenum = 0;
             VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50->reach.end);
@@ -12039,9 +12027,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   area1 = &aasworld.areas[area1num];
   if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
-  centerorg[0] = area1->center[0];
-  centerorg[1] = area1->center[1];
-  centerorg[2] = area1->center[2];
+  VectorCopy(area1->center, centerorg);
   if ( !AAS_PointAreaNum(centerorg) )
     Log_Write("area %d center %f %f %f in solid?", area1num, centerorg[0],
               centerorg[1], centerorg[2]);
@@ -12392,12 +12378,8 @@ LABEL_29:
             lreach->reach.areanum = v33;
             lreach->reach.facenum = 0;
             lreach->reach.edgenum = v36;
-            lreach->reach.start[0] = midorigin[0];
-            lreach->reach.start[1] = midorigin[1];
-            lreach->reach.start[2] = midorigin[2];
-            lreach->reach.end[0] = trace.endpos[0];
-            lreach->reach.end[1] = trace.endpos[1];
-            lreach->reach.end[2] = trace.endpos[2];
+            VectorCopy(midorigin, lreach->reach.start);
+            VectorCopy(trace.endpos, lreach->reach.end);
             lreach->reach.traveltype = 7;
             if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
               v35->reach.traveltime = 100;
