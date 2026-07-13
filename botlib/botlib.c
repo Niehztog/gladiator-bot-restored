@@ -418,9 +418,9 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);
 float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
 double __cdecl AAS_BFGJumpZVelocity(vec3_t origin);
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime);
-int AAS_KeepEdge(char *edge);
+int AAS_KeepEdge(aas_edge_t *edge);
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum);
-int __cdecl AAS_KeepFace(char *face);
+int __cdecl AAS_KeepFace(aas_face_t *face);
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum);
 int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum);
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized);
@@ -429,7 +429,7 @@ int AAS_SetupReachabilityHeap();
 void AAS_ShutDownReachabilityHeap();
 _DWORD sub_10010FF0();
 int __cdecl AAS_AreaReachability(int areanum);
-float __cdecl AAS_FaceArea(char *face);
+float __cdecl AAS_FaceArea(aas_face_t *face);
 float __cdecl AAS_AreaVolume(int areanum);
 float __cdecl AAS_AreaGroundFaceArea(int areanum);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
@@ -500,7 +500,7 @@ aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1);
 void sub_1001CD10(aas_soundpool_t *a1);
 aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1);
 int __cdecl sub_1001CDD0(int a1, int a2);
-int __cdecl sub_1001CE20(intptr_t, int, int, int, int, int, float);
+int __cdecl sub_1001CE20(float *, int, int, int, int, int, float);
 void __cdecl sub_1001CFA0(float a1);
 void sub_1001D140();
 void BotResetNodeSwitches();
@@ -4970,10 +4970,10 @@ int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
 int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 {
   int i; // ebp
-  char *area; // esi
+  aas_area_t *area; // esi
   int facenum; // rax
   int v10; // eax
-  char *face; // ecx
+  aas_face_t *face; // ecx
   int v12; // ecx
   int v14; // esi
   int v15; // eax
@@ -4999,15 +4999,15 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
   aasworld.areasettings[areanum].cluster = clusternum;
   aasworld.areasettings[areanum].clusterareanum = (aasworld.clusters[clusternum].numareas)++;
   area = &aasworld.areas[areanum];
-  for ( i = 0; i < *((int *)area + 1); i++ )
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    facenum = aasworld.faceindex[i + *((_DWORD *)area + 2)];
+    facenum = aasworld.faceindex[i + area->firstface];
     facenum = abs(facenum);
     v10 = aasworld.faces[facenum].frontarea;
     face = &aasworld.faces[facenum];
     if ( v10 == areanum )
     {
-      v12 = *((_DWORD *)face + 5);
+      v12 = face->backarea;
       if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
         return 0;
     }
@@ -8979,7 +8979,7 @@ int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, 
 }
 
 //----- (10010860) --------------------------------------------------------
-int AAS_KeepEdge(char *edge)
+int AAS_KeepEdge(aas_edge_t *edge)
 {
   (void)edge;
   return 1;
@@ -8989,7 +8989,7 @@ int AAS_KeepEdge(char *edge)
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 {
   int i, optedgenum;
-  char *edge;
+  aas_edge_t *edge;
   _DWORD *optedge;
 
   edge = &aasworld.edges[abs(edgenum)];
@@ -9009,17 +9009,17 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 
   for ( i = 0; i < 2; i++ )
   {
-    if ( optimized->vertexremap[((_DWORD *)edge)[i]] )
+    if ( optimized->vertexremap[edge->v[i]] )
     {
-      optedge[i] = optimized->vertexremap[((_DWORD *)edge)[i]];
+      optedge[i] = optimized->vertexremap[edge->v[i]];
     }
     else
     {
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][0];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][1];
-      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *(_DWORD *)&aasworld.vertexes[((_DWORD *)edge)[i]][2];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][0];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 4) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][1];
+      *(_DWORD *)((char *)optimized->vertexes + 12 * optimized->numvertexes + 8) = *(_DWORD *)&aasworld.vertexes[edge->v[i]][2];
       optedge[i] = optimized->numvertexes;
-      optimized->vertexremap[((_DWORD *)edge)[i]] = optimized->numvertexes;
+      optimized->vertexremap[edge->v[i]] = optimized->numvertexes;
       optimized->numvertexes++;
     }
   }
@@ -9033,9 +9033,9 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 }
 
 //----- (100109E0) --------------------------------------------------------
-int __cdecl AAS_KeepFace(char *face)
+int __cdecl AAS_KeepFace(aas_face_t *face)
 {
-  if ( !(face[4] & 2) )
+  if ( !(face->faceflags & 2) )
     return 0;
   else
     return 1;
@@ -9283,9 +9283,8 @@ int __cdecl AAS_AreaReachability(int areanum)
 }
 
 //----- (10011090) --------------------------------------------------------
-float __cdecl AAS_FaceArea(char *face)
+float __cdecl AAS_FaceArea(aas_face_t *face)
 {
-  aas_face_t *f = (aas_face_t *)face;
   int i;
   int edgenum;
   int side;
@@ -9296,15 +9295,15 @@ float __cdecl AAS_FaceArea(char *face)
   vec3_t cross;
   aas_edge_t *edge;
 
-  edgenum = aasworld.edgeindex[f->firstedge];
+  edgenum = aasworld.edgeindex[face->firstedge];
   side = edgenum < 0;
   edge = &aasworld.edges[abs(edgenum)];
   v = aasworld.vertexes[edge->v[side]];
 
   total = 0.0f;
-  for ( i = 1; i < f->numedges - 1; i++ )
+  for ( i = 1; i < face->numedges - 1; i++ )
   {
-    edgenum = aasworld.edgeindex[f->firstedge + i];
+    edgenum = aasworld.edgeindex[face->firstedge + i];
     side = edgenum < 0;
     edge = &aasworld.edges[abs(edgenum)];
     VectorSubtract(aasworld.vertexes[edge->v[side]], v, d1);
@@ -9343,7 +9342,7 @@ float __cdecl AAS_AreaVolume(int areanum)
         + corner[1] * aasworld.planes[face->planenum].normal[1]
         + corner[0] * aasworld.planes[face->planenum].normal[0]
         - aasworld.planes[face->planenum].dist);
-    a = AAS_FaceArea((char *)face);
+    a = AAS_FaceArea(face);
     volume += d * a;
   }
   return volume * 0.33333334f;
@@ -9354,16 +9353,16 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
   float total; // st7
   int i; // edi
-  char *area; // esi
+  aas_area_t *area; // esi
   int v4; // rax (was __int64 — abs32 idiom)
   int v5; // edx
 
   total = 0.0f;
   i = 0;
   area = &aasworld.areas[areanum];
-  for ( ; i < *((int *)area + 1); i++ )
+  for ( ; i < area->numfaces; i++ )
   {
-    v4 = aasworld.faceindex[i + *((int *)area + 2)];
+    v4 = aasworld.faceindex[i + area->firstface];
     v5 = abs(v4);
     if ( (aasworld.faces[v5].faceflags & 4) != 0 )
       total = AAS_FaceArea(&aasworld.faces[v5]) + total;
@@ -9375,9 +9374,9 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
   int i; // esi
-  char *face; // edi
+  aas_face_t *face; // edi
   int v4i;
-  char *edge;
+  aas_edge_t *edge;
   float scale; // [esp+0h] [ebp-10h]
 
   i = 0;
@@ -9385,18 +9384,18 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
   center[2] = 0.0;
   center[1] = 0.0;
   *center = 0.0;
-  for ( ; i < *((int *)face + 2); i++ )
+  for ( ; i < face->numedges; i++ )
   {
-    v4i = aasworld.edgeindex[i + *((_DWORD *)face + 3)];
+    v4i = aasworld.edgeindex[i + face->firstedge];
     edge = &aasworld.edges[abs(v4i)];
-    *center = aasworld.vertexes[*(_DWORD *)edge][0] + *center;
-    center[1] = aasworld.vertexes[*(_DWORD *)edge][1] + center[1];
-    center[2] = aasworld.vertexes[*(_DWORD *)edge][2] + center[2];
-    *center = aasworld.vertexes[*(_DWORD *)(edge + 4)][0] + *center;
-    center[1] = aasworld.vertexes[*(_DWORD *)(edge + 4)][1] + center[1];
-    center[2] = aasworld.vertexes[*(_DWORD *)(edge + 4)][2] + center[2];
+    *center = aasworld.vertexes[edge->v[0]][0] + *center;
+    center[1] = aasworld.vertexes[edge->v[0]][1] + center[1];
+    center[2] = aasworld.vertexes[edge->v[0]][2] + center[2];
+    *center = aasworld.vertexes[edge->v[1]][0] + *center;
+    center[1] = aasworld.vertexes[edge->v[1]][1] + center[1];
+    center[2] = aasworld.vertexes[edge->v[1]][2] + center[2];
   }
-  scale = 0.5 / (float)*((int *)face + 2);
+  scale = 0.5 / (float)face->numedges;
   VectorScale((float *)center, scale, (float *)center);
 }
 
@@ -11045,8 +11044,8 @@ while ( 1 )
       if ( ++l >= v14 )
         goto LABEL_16;
     }
-    face1area = AAS_FaceArea((char *)v83);
-    face2area = AAS_FaceArea((char *)face2);
+    face1area = AAS_FaceArea(v83);
+    face2area = AAS_FaceArea(face2);
     if ( face1area > (float)bestface1area && face2area > bestface2area )
     {
       bestface1area = face1area;
@@ -15054,7 +15053,7 @@ int __cdecl sub_1001CDD0(int a1, int a2)
 }
 
 //----- (1001CE20) --------------------------------------------------------
-int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, float a7)
+int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, float a7)
 {
   soundinfo_t *v8; // ebx
   aas_soundpool_t *i;
@@ -15089,9 +15088,9 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
       }
       v10->starttime = AAS_Time() + a7;
       v10->endtime = AAS_Time() + v8->duration + a7;
-      *(int *)&v10->origin[0] = *(_DWORD *)a1;
-      *(int *)&v10->origin[1] = *(_DWORD *)(a1 + 4);
-      *(int *)&v10->origin[2] = *(_DWORD *)(a1 + 8);
+      *(int *)&v10->origin[0] = *(int *)&a1[0];
+      *(int *)&v10->origin[1] = *(int *)&a1[1];
+      *(int *)&v10->origin[2] = *(int *)&a1[2];
       v10->_reserved20 = 0;
       v10->entnum = a2;
       v10->channel = a3;
@@ -16572,7 +16571,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   int tfl; // esi
   vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
   vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
-  float goal[14]; // [esp+28h] [ebp-98h] BYREF
+  bot_goal_t goal; // [esp+28h] [ebp-98h] BYREF
   bot_moveresult_t moveresult; // [esp+60h] [ebp-60h] BYREF
   bot_moveresult_t v14; // [esp+90h] [ebp-30h] BYREF
 
@@ -16617,18 +16616,18 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     tfl = 118718;
   if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
     tfl |= 0x1000u;
-  *(int *)&goal[10] = bs->enemy;
-  *(int *)&goal[3] = bs->lastenemyareanum;
-  goal[0] = bs->lastenemyorigin[0];
-  *(int *)&goal[1] = *(int *)&bs->lastenemyorigin[1];
-  *(int *)&goal[2] = *(int *)&bs->lastenemyorigin[2];
-  goal[4] = -8.0;
-  goal[5] = -8.0;
-  goal[6] = -8.0;
-  goal[7] = 8.0;
-  goal[8] = 8.0;
-  goal[9] = 8.0;
-  if ( BotTouchingGoal(bs->origin, goal) )
+  goal.entitynum = bs->enemy;
+  goal.areanum = bs->lastenemyareanum;
+  goal.origin[0] = bs->lastenemyorigin[0];
+  *(int *)&goal.origin[1] = *(int *)&bs->lastenemyorigin[1];
+  *(int *)&goal.origin[2] = *(int *)&bs->lastenemyorigin[2];
+  goal.mins[0] = -8.0;
+  goal.mins[1] = -8.0;
+  goal.mins[2] = -8.0;
+  goal.maxs[0] = 8.0;
+  goal.maxs[1] = 8.0;
+  goal.maxs[2] = 8.0;
+  if ( BotTouchingGoal(bs->origin, goal.origin) )
     *(int *)&bs->chase_time = 0;
   // Gladiator inverts Q3's `if (chase_time expired) { seek; return }` guard: the
   // binary tests `AAS_Time() <= chase_time` (chase still valid) and falls through
@@ -16642,7 +16641,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( AAS_Time() > bs->check_time
     && (bs->check_time = AAS_Time() + 1.0f,
-        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, tfl, (bot_goal_t *)goal, 500.0)) )
+        BotChooseNBGItem(bs->goalstate, bs->origin, bs->inventory, tfl, &goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
     BotResetLastAvoidReach((intptr_t)bs->movestate);
@@ -16654,7 +16653,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     BotUpdateBattleInventory(bs, bs->enemy);
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, tfl);
+    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, &goal, tfl);
     if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -16669,7 +16668,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     }
     else
     {
-      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, tfl, (float *)(intptr_t)target) )
+      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, &goal, tfl, (float *)(intptr_t)target) )
       {
         VectorSubtract(target, bs->origin, dir);
         vectoangles(dir, bs->ideal_viewangles);
