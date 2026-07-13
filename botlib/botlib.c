@@ -10895,15 +10895,15 @@ LABEL_62:
  */
 int AAS_Reachability_Ladder(int area1num, int area2num)
 {
-  char *area1; // edi
-  char *area2; // ebx
+  aas_area_t *area1; // edi
+  aas_area_t *area2; // ebx
   int v5; // eax
   int v6; // esi
-  _DWORD *ladderface1; // ebp
-  char *face1; // ecx
+  aas_face_t *ladderface1; // ebp
+  aas_face_t *face1; // ecx
   int v9; // eax
   int j; // edi
-  char *face2; // esi
+  aas_face_t *face2; // esi
   int v12; // edx
   int k; // eax
   int v14; // edi
@@ -10914,15 +10914,15 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v19; // edx
   int v20; // eax
   unsigned int v21; // edi
-  char *sharededge; // ecx
+  aas_edge_t *sharededge; // ecx
   BOOL firstv; // edx
   float *v24; // eax
   float v25; // ebx
   float *v26; // eax
   float v27; // edx
-  float *plane1; // ebx
+  aas_plane_t *plane1; // ebx
   int v29; // esi
-  float *plane2; // esi
+  aas_plane_t *plane2; // esi
   BOOL ladderface2vertical; // eax
   aas_reachabilitynode_t *v32; // eax (was int — alloc'd reach slot pointer)
   int v34; // edx
@@ -10943,10 +10943,10 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   float v52; // st7
   int v53; // edi
   int v54; // ebx
-  char *v55; // eax
+  aas_area_t *v55; // eax
   int v56; // esi
   int *v57; // ebp
-  char *v58; // eax
+  aas_face_t *v58; // eax
   aas_reachabilitynode_t *v59; // eax
   int v60; // ecx
   aas_reachabilitynode_t *lreach; // esi
@@ -10959,11 +10959,11 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   vec3_t area1point; // [esp+18h] [ebp-100h] BYREF — v68/v69/v70 collapsed
   int ladderface1num; // [esp+24h] [ebp-F4h]
   vec3_t area2point; // [esp+28h] [ebp-F0h] BYREF — v72/v73/v74 collapsed
-  char *ladderface2; // [esp+34h] [ebp-E4h]
+  aas_face_t *ladderface2; // [esp+34h] [ebp-E4h]
   vec3_t v1; // [esp+38h] [ebp-E0h] — v76/v77/v78 collapsed (first edge vertex)
   vec3_t v2; // [esp+44h] [ebp-D4h] — v79/v80/v81 collapsed (second edge vertex)
   int l; // [esp+50h] [ebp-C8h]
-  char *v83; // [esp+54h] [ebp-C4h]
+  aas_face_t *v83; // [esp+54h] [ebp-C4h]
   int ladderface2num; // [esp+58h] [ebp-C0h]
   char *v85; // [esp+5Ch] [ebp-BCh] (was int — aas_area_t * stash)
   int absladderface1num;
@@ -10972,8 +10972,8 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v89; // [esp+6Ch] [ebp-ACh]
   float bestface2area; // [esp+70h] [ebp-A8h]
   vec3_t mid; // [esp+74h] [ebp-A4h] BYREF — v91/v92/v93 collapsed
-  char *v94; // [esp+80h] [ebp-98h]
-  _DWORD *v95; // [esp+84h] [ebp-94h]
+  aas_area_t *v94; // [esp+80h] [ebp-98h]
+  aas_face_t *v95; // [esp+84h] [ebp-94h]
   float face1area; // [esp+88h] [ebp-90h]
   int v97; // [esp+8Ch] [ebp-8Ch]
   float bestface1area; // [esp+90h] [ebp-88h]
@@ -10996,11 +10996,11 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       maxjumpheight = (float)AAS_MaxJumpHeight(libvar_sv_jumpvel->value);
       area1 = &aasworld.areas[area1num];
       area2 = &aasworld.areas[area2num];
-      v5 = *((_DWORD *)area1 + 1);
+      v5 = area1->numfaces;
       v6 = 0;
       ladderface1 = 0;
       v94 = area1;
-      v85 = area2;
+      v85 = (char *)area2;
       v95 = 0;
       ladderface2 = 0;
       bestface1area = -9999.0;
@@ -11010,36 +11010,36 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
       {
         do
         {
-          face1num = aasworld.faceindex[v6 + *((_DWORD *)area1 + 2)];
+          face1num = aasworld.faceindex[v6 + area1->firstface];
           face1 = &aasworld.faces[abs(face1num)];
           v83 = face1;
-          if ( (face1[4] & 2) != 0 )
+          if ( (face1->faceflags & 2) != 0 )
           {
-            v9 = *((_DWORD *)area2 + 1);
+            v9 = area2->numfaces;
             j = 0;
             v89 = 0;
             if ( v9 > 0 )
             {
               do
               {
-                face2num = aasworld.faceindex[j + *((_DWORD *)area2 + 2)];
+                face2num = aasworld.faceindex[j + area2->firstface];
                 face2 = &aasworld.faces[abs(face2num)];
-                if ( (face2[4] & 2) != 0 )
+                if ( (face2->faceflags & 2) != 0 )
                 {
-v12 = *((_DWORD *)face1 + 2);
+v12 = face1->numedges;
 k = 0;
 v97 = 0;
 if ( v12 > 0 )
 {
 while ( 1 )
 {
-  v14 = *((_DWORD *)face2 + 2);
-  edge1num = aasworld.edgeindex[k + *((_DWORD *)face1 + 3)];
+  v14 = face2->numedges;
+  edge1num = aasworld.edgeindex[k + face1->firstedge];
   l = 0;
   if ( v14 > 0 )
   {
     v16 = abs(edge1num);
-    v17 = &aasworld.edgeindex[*((_DWORD *)face2 + 3)];
+    v17 = &aasworld.edgeindex[face2->firstedge];
     while ( 1 )
     {
       if ( v16 == abs(*v17) )
@@ -11048,8 +11048,8 @@ while ( 1 )
       if ( ++l >= v14 )
         goto LABEL_16;
     }
-    face1area = AAS_FaceArea(v83);
-    face2area = AAS_FaceArea(face2);
+    face1area = AAS_FaceArea((char *)v83);
+    face2area = AAS_FaceArea((char *)face2);
     if ( face1area > (float)bestface1area && face2area > bestface2area )
     {
       bestface1area = face1area;
@@ -11062,11 +11062,11 @@ while ( 1 )
     }
   }
 LABEL_16:
-  if ( l != *((_DWORD *)face2 + 2) )
+  if ( l != face2->numedges )
     break;
   face1 = v83;
   k = v97 + 1;
-  v19 = *((_DWORD *)v83 + 2);
+  v19 = v83->numedges;
   v97 = k;
   if ( k >= v19 )
     goto LABEL_20;
@@ -11075,10 +11075,10 @@ face1 = v83;
 LABEL_20:
 ladderface1 = v95;
 j = v89;
-area2 = v85;
+area2 = (aas_area_t *)v85;
 }
                 }
-                v20 = *((_DWORD *)area2 + 1);
+                v20 = area2->numfaces;
                 v89 = ++j;
               }
               while ( j < v20 );
@@ -11088,7 +11088,7 @@ area2 = v85;
           }
           v65 = ++v6;
         }
-        while ( v6 < ((aas_area_t *)area1)->numfaces );
+        while ( v6 < area1->numfaces );
         if ( ladderface1 )
         {
           if ( ladderface2 )
@@ -11098,12 +11098,12 @@ area2 = v85;
             v21 = abs(sharededgenum);
             sharededge = &aasworld.edges[v21];
             firstv = sharededgenum < 0;
-            v24 = (float *)(&aasworld.vertexes[*(_DWORD *)&sharededge[4 * firstv]]);
+            v24 = (float *)(&aasworld.vertexes[sharededge->v[firstv]]);
             v1[0] = *v24;
             v25 = v24[1];
             v1[2] = v24[2];
             v1[1] = v25;
-            v26 = (float *)(&aasworld.vertexes[*(_DWORD *)&sharededge[4 * !firstv]]);
+            v26 = (float *)(&aasworld.vertexes[sharededge->v[!firstv]]);
             v2[0] = *v26;
             v27 = v26[2];
             v2[1] = v26[1];
@@ -11115,22 +11115,22 @@ area2 = v85;
             area2point[1] = area1point[1];
             area2point[0] = area1point[0];
             area2point[2] = area1point[2];
-            plane1 = (float *)(&aasworld.planes[(*ladderface1 ^ (ladderface1num < 0))]);
-            v29 = *(_DWORD *)ladderface2;
+            plane1 = &aasworld.planes[(ladderface1->planenum ^ (ladderface1num < 0))];
+            v29 = ladderface2->planenum;
             sharededgevec[0] = v2[0] - v1[0];
             sharededgevec[1] = v2[1] - v1[1];
-            plane2 = (float *)(&aasworld.planes[(v29 ^ (ladderface2num < 0))]);
+            plane2 = &aasworld.planes[(v29 ^ (ladderface2num < 0))];
             sharededgevec[2] = v2[2] - v1[2];
-            CrossProduct(plane1, sharededgevec, dir);
+            CrossProduct(plane1->normal, sharededgevec, dir);
             VectorNormalize(dir);
             VectorMA(area1point, -32.0, dir, area1point);
             VectorMA(area2point, 32.0, dir, area2point);
-            v66 = (float)abs((__int64)plane1[2]) < 0.1;
-            ladderface2vertical = (float)abs((__int64)plane2[2]) < 0.1;
+            v66 = (float)abs((__int64)plane1->normal[2]) < 0.1;
+            ladderface2vertical = (float)abs((__int64)plane2->normal[2]) < 0.1;
             if ( v66 )
             {
               if ( ladderface2vertical
-                && *plane2 * *plane1 + plane2[2] * plane1[2] + plane2[1] * plane1[1] > 0.7
+                && plane2->normal[0] * plane1->normal[0] + plane2->normal[2] * plane1->normal[2] + plane2->normal[1] * plane1->normal[1] > 0.7
                 && (float)abs((__int64)sharededgevec[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
@@ -11141,7 +11141,7 @@ area2 = v85;
                   v32->reach.facenum = v34;
                   v32->reach.edgenum = v21;
                   VectorCopy(area1point, v32->reach.start);
-                  VectorMA(area2point, -3.0, plane1, v32->reach.end);
+                  VectorMA(area2point, -3.0, plane1->normal, v32->reach.end);
                   v32->reach.traveltype = 6;
                   v32->reach.traveltime = 10;
                   v32->next = areareachability[area1num];
@@ -11155,7 +11155,7 @@ area2 = v85;
                     v35->reach.facenum = v37;
                     v35->reach.edgenum = v21;
                     VectorCopy(area2point, v35->reach.start);
-                    VectorMA(area1point, -3.0, plane1, v35->reach.end);
+                    VectorMA(area1point, -3.0, plane1->normal, v35->reach.end);
                     v35->reach.traveltype = 6;
                     v35->reach.traveltime = 10;
                     v35->next = areareachability[area2num];
@@ -11165,7 +11165,7 @@ area2 = v85;
                   }
                 }
               }
-              else if ( (ladderface2[4] & 4) != 0 )
+              else if ( (ladderface2->faceflags & 4) != 0 )
               {
                 v39 = AAS_AllocReachability();
                 if ( v39 )
@@ -11177,7 +11177,7 @@ area2 = v85;
                   VectorCopy(area1point, v39->reach.start);
                   VectorCopy(area2point, v39->reach.end);
                   v39->reach.end[2] = area2point[2] + 16;
-                  VectorMA(v39->reach.end, -15.0, plane1, v39->reach.end);
+                  VectorMA(v39->reach.end, -15.0, plane1->normal, v39->reach.end);
                   v39->reach.traveltype = 6;
                   v39->reach.traveltime = 10;
                   v39->next = areareachability[area1num];
@@ -11204,9 +11204,9 @@ area2 = v85;
               else
               {
                 lowestpoint[2] = 99999.0;
-                for ( i = 0; i < ((aas_face_t *)ladderface1)->numedges; ++i )
+                for ( i = 0; i < ladderface1->numedges; ++i )
                 {
-                  v45 = abs(aasworld.edgeindex[i + ((aas_face_t *)ladderface1)->firstedge]);
+                  v45 = abs(aasworld.edgeindex[i + ladderface1->firstedge]);
                   v46 = aasworld.vertexes[aasworld.edges[v45].v[0]][0];
                   v47 = (float *)(&aasworld.vertexes[aasworld.edges[v45].v[0]]);
                   v1[1] = v47[1];
@@ -11227,7 +11227,7 @@ area2 = v85;
                     v66 = v45;
                   }
                 }
-                v85 = &aasworld.planes[((aas_face_t *)ladderface1)->planenum];
+                v85 = (char *)&aasworld.planes[ladderface1->planenum];
                 VectorMA(lowestpoint, 5.0, (float *)v85, start);
                 v52 = start[2];
                 end[0] = start[0];
@@ -11239,15 +11239,15 @@ area2 = v85;
                 v53 = AAS_PointAreaNum(trace.endpos);
                 v54 = 0;
                 v55 = &aasworld.areas[v53];
-                v56 = *((_DWORD *)v55 + 1);
+                v56 = v55->numfaces;
                 if ( v56 > 0 )
                 {
-                  v57 = &aasworld.faceindex[*((_DWORD *)v55 + 2)];
+                  v57 = &aasworld.faceindex[v55->firstface];
                   do
                   {
                     v58 = &aasworld.faces[abs(*v57)];
-                    if ( (v58[4] & 2) != 0
-                      && (float)abs((__int64)aasworld.planes[*(_DWORD *)v58].normal[2]) < 0.1 )
+                    if ( (v58->faceflags & 2) != 0
+                      && (float)abs((__int64)aasworld.planes[v58->planenum].normal[2]) < 0.1 )
                     {
                       break;
                     }
