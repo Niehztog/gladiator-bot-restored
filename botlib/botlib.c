@@ -10327,14 +10327,32 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v23; // ecx
   float *v3; // esi
   float *v4; // ebp
-  /* v26..v39: original x87 80-bit FPU temporaries.  Declared `double` by IDA
+  /* v26..v39: original x87 80-bit FPU temporaries.  IDA declared `double`
    * because the FPU return values were fstp'd to double slots, but the
    * intermediate computations in the original happened entirely in 80-bit
-   * registers (fld float promotes to 80-bit, fmul/fdiv/fadd stay 80-bit).
-   * GCC with -mfpmath=sse computes float*float in 32-bit SSE precision and
-   * only widens for storage — losing precision.  Use `long double` here and
-   * cast each float operand below to match the original x87 pipeline,
-   * mirroring the VectorLength fix. */
+   * x87 registers (fld float promotes to 80-bit, fmul/fdiv/fadd stay 80-bit).
+   * MSVC6 /O2 keeps an unspilled float temp at that same full register
+   * precision, so plain `float` reproduces the original pipeline exactly
+   * there (verified: none of v26..v39 is ever spilled on either side).  GCC
+   * with -mfpmath=sse instead computes float*float at 32-bit SSE precision —
+   * losing precision — so the native build needs `long double` + explicit
+   * per-operand casts to force the same wide intermediates (fp_int_bitpattern_bugs.md;
+   * mirrors the VectorLength fix).  The two goals need different spellings:
+   * on MSVC6, a `long double`-typed temp meeting a `float` memory operand
+   * forces an explicit widening convert that blocks fcom/fmul/fsub
+   * memory-operand fusion, diverging from ref's fused encoding at every site
+   * below (disasm-confirmed on all 8 `v39 < bestdist` compares and the
+   * v26/v27/v36/v37 projection products). */
+#if defined(_MSC_VER)
+  float v26; // st7
+  float v27; // st6
+  float v28; // st5
+  float v29; // st4
+  float v30; // st7
+  float v31; // st6
+  float v32; // st5
+  float v33; // st4
+#else
   long double v26; // st7
   long double v27; // st6
   long double v28; // st5
@@ -10343,12 +10361,22 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   long double v31; // st6
   long double v32; // st5
   long double v33; // st4
+#endif
   aas_plane_t *plane1; // eax
+#if defined(_MSC_VER)
+  float v36; // st7
+  float v37; // st6
+#else
   long double v36; // st7
   long double v37; // st6
+#endif
   aas_plane_t *plane2; // ecx
+#if defined(_MSC_VER)
+  float v39; // st7
+#else
   long double v39; // st7
-  float v40; // edx
+#endif
+  int v40; // edx
   int v41; // edx
   int v42; // ecx
   int v43; // eax
@@ -10420,12 +10448,10 @@ int AAS_Reachability_Jump(int area1num, int area2num)
 
     v6 = area2->mins;
     v7 = area1->maxs;
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 2; i++, v7++, v6++)
     {
       if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - (char *)area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
-      ++v7;
-      ++v6;
     }
 
     if ( *(float *)&maxjumpheight + area1->maxs[2] >= area2->mins[2] )
@@ -10481,14 +10507,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         dir1[1] = v2[1] - v1[1];
                         dir2[0] = *v4 - *v3;
                         dir2[1] = v4[1] - v3[1];
-                        if ( dir2[0] == 0 )
-                        {
-                          v70_vec[0] = *v3;
-                          v70_vec[1] = v1[1];
-                          v76_vec[0] = *v3;
-                          v76_vec[1] = v2[1];
-                        }
-                        else
+                        if ( dir2[0] != 0 )
                         {
                           v26 = (float)dir2[1] / (float)dir2[0];
                           v27 = (float)v3[1] - v26 * (float)*v3;
@@ -10497,19 +10516,21 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           v70_vec[0] = (float)v29;
                           v70_vec[1] = (float)(v29 * v26 + v27);
                           {
-                            float tmp = ((float)dir2[1] * (float)v2[1] + (float)dir2[0] * (float)*v2 - v28) / (float)dir2[0];
+                            float tmp = (float)dir2[1] * (float)v2[1];
+                            tmp = tmp + (float)dir2[0] * (float)*v2;
+                            tmp = (tmp - v28) / (float)dir2[0];
                             v76_vec[0] = (float)tmp;
                             v76_vec[1] = (float)(tmp * v26 + v27);
                           }
                         }
-                        if ( dir1[0] == 0 )
-                        {
-                          v80_vec[0] = *v1;
-                          v80_vec[1] = v3[1];
-                          v73_vec[0] = *v1;
-                          v73_vec[1] = v4[1];
-                        }
                         else
+                        {
+                          v70_vec[0] = *v3;
+                          v70_vec[1] = v1[1];
+                          v76_vec[0] = *v3;
+                          v76_vec[1] = v2[1];
+                        }
+                        if ( dir1[0] != 0 )
                         {
                           v30 = (float)dir1[1] / (float)dir1[0];
                           v31 = (float)v1[1] - v30 * (float)*v1;
@@ -10518,10 +10539,19 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           v80_vec[0] = (float)v33;
                           v80_vec[1] = (float)(v33 * v30 + v31);
                           {
-                            float tmp = ((float)dir1[1] * (float)v4[1] + (float)dir1[0] * (float)*v4 - v32) / (float)dir1[0];
+                            float tmp = (float)dir1[1] * (float)v4[1];
+                            tmp = tmp + (float)dir1[0] * (float)*v4;
+                            tmp = (tmp - v32) / (float)dir1[0];
                             v73_vec[0] = (float)tmp;
                             v73_vec[1] = (float)(tmp * v30 + v31);
                           }
+                        }
+                        else
+                        {
+                          v80_vec[0] = *v1;
+                          v80_vec[1] = v3[1];
+                          v73_vec[0] = *v1;
+                          v73_vec[1] = v4[1];
                         }
                         v70_vec[2] = 0.0f;
                         v76_vec[2] = 0.0f;
@@ -10542,7 +10572,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         if ( VectorBetweenVectors(v70_vec, v3, v4) )
                         {
                           v39 = VectorDistance(v1, v70_vec);
-                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
+                          if ( v39 <= bestdist - 0.5 || v39 >= bestdist + 0.5 )
                           {
                             if ( v39 < bestdist )
                             {
@@ -10565,7 +10595,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         if ( VectorBetweenVectors(v76_vec, v3, v4) )
                         {
                           v39 = VectorDistance(v2, v76_vec);
-                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
+                          if ( v39 <= bestdist - 0.5 || v39 >= bestdist + 0.5 )
                           {
                             if ( v39 < bestdist )
                             {
@@ -10588,7 +10618,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         if ( VectorBetweenVectors(v80_vec, v1, v2) )
                         {
                           v39 = VectorDistance(v3, v80_vec);
-                          if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
+                          if ( v39 <= bestdist - 0.5 || v39 >= bestdist + 0.5 )
                           {
                             if ( v39 < bestdist )
                             {
@@ -10611,16 +10641,16 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         if ( !VectorBetweenVectors(v73_vec, v1, v2) )
                           break;
                         v39 = VectorDistance(v4, v73_vec);
-                        if ( bestdist - 0.5 >= v39 || bestdist + 0.5 <= v39 )
+                        if ( v39 <= bestdist - 0.5 || v39 >= bestdist + 0.5 )
                         {
                           if ( v39 < bestdist )
                           {
                             bestdist = v39;
-                            v40 = v73_vec[2];
+                            v40 = *(int *)&v73_vec[2];
                             beststart[0] = v73_vec[0];
                             beststart[1] = v73_vec[1];
 LABEL_60:
-                            beststart[2] = v40;
+                            *(int *)&beststart[2] = v40;
                             bestend[0] = *v4;
                             bestend[1] = v4[1];
                             bestend[2] = v4[2];
@@ -10677,7 +10707,7 @@ LABEL_61:
                       bestdist = v39;
                       beststart[0] = *v2;
                       beststart[1] = v2[1];
-                      v40 = v2[2];
+                      v40 = *(int *)&v2[2];
                       goto LABEL_60;
                     }
 LABEL_62:
@@ -10807,8 +10837,9 @@ LABEL_62:
                      * generated ~0 reaches vs the original ~89 on q2ctf2.
                      *
                      * Fix: use a plain int counter, matching the original asm. */
-                    int probe_scale = 0;
+                    int probe_scale;
                     v46 = 0;
+                    probe_scale = 0;
                     while ( 1 )
                     {
                       v51 = (float)probe_scale;
