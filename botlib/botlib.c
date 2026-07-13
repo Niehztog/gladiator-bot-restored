@@ -13212,10 +13212,10 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
       other_traveltimes = (unsigned short *)(entry + 1);
     }
 
-    if ( ((int *)clust)[1] > 0 )
+    if ( clust->numreachabilityareas > 0 )
     {
-      int cluster_numportals  = ((int *)clust)[1];
-      int cluster_firstportal = ((int *)clust)[2];
+      int cluster_numportals  = clust->numreachabilityareas;
+      int cluster_firstportal = clust->firstportal;
       for ( i = 0; i < cluster_numportals; ++i )
       {
         portalnum = aasworld.portalindex[cluster_firstportal + i];
@@ -15370,7 +15370,7 @@ int sub_1001D420(bot_state_t *bs)
   /* 4. Look up the second name (bs+0x10F0); keep entnum+1 for bs+0x1178.  The
    *    second AAS_EntityInfo OVERWRITES the same `entinfo` block — current
    *    origin has already been saved to bs+0x1144 by step 3. */
-  prevent_entnum = ClientFromName((const char *)((char *)bs + 0x10F0)) + 1;
+  prevent_entnum = ClientFromName((const char *)bs->formation_teammate) + 1;
   entinfo = AAS_EntityInfo(prevent_entnum);
   /* 5. Velocity = (entinfo.origin - entinfo.old_origin) of the second target.
    *    Both operands come from the SAME snapshot (NOT current_origin minus a
@@ -23484,15 +23484,15 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
      res = 0;
      if ( (key->flags & 0x20) != 0 )
      {
-       res = *(_DWORD *)cs == 1;
+       res = cs->gender == 1;
      }
      else if ( (v5 & 0x40) != 0 )
      {
-       res = *(_DWORD *)cs == 2;
+       res = cs->gender == 2;
      }
      else if ( (v5 & 0x80) != 0 )
      {
-       res = *(_DWORD *)cs == 0;
+       res = cs->gender == 0;
      }
      else if ( (v5 & 0x10) != 0 )
      {
