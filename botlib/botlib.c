@@ -11748,13 +11748,13 @@ LABEL_56:
 //----- (10016BA0) --------------------------------------------------------
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
-  char *area2; // ebp
-  char *area1; // ecx
+  aas_area_t *area2; // ebp
+  aas_area_t *area1; // ecx
   int v4; // restored from disasm at 0x10016a78
   int v5; // ecx
   int i; // eax
   int face2num; // ebp
-  char *face2; // esi
+  aas_face_t *face2; // esi
   float *v; // rax (was __int64) — pointer to vertex (float[3])
   int vidx; // edge index value
   float hordist; // st7 (was double)
@@ -11778,7 +11778,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
   int v38;
-  char *v39;
+  aas_area_t *v39;
   aas_trace_t trace;
   float bsptrace[21]; /* [BYREF] */
 
@@ -11791,9 +11791,9 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   area1 = &aasworld.areas[area1num];
   area2 = &aasworld.areas[area2num];
   v39 = area2;
-  if ( *((float *)area2 + 8) < (float)*((float *)area1 + 5) )
+  if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
-  VectorCopy(((aas_area_t *)area1)->center, start);
+  VectorCopy(area1->center, start);
   if ( !AAS_AreaSwim(area1num) )
   {
     if ( !AAS_PointAreaNum(start) )
@@ -11812,26 +11812,26 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
-  v5 = *((_DWORD *)area2 + 1);
+  v5 = area2->numfaces;
   i = 0;
   v38 = 0;
   if ( v5 > 0 )
   {
     while ( 1 )
     {
-      face2num = aasworld.faceindex[i + *((_DWORD *)area2 + 2)];
+      face2num = aasworld.faceindex[i + area2->firstface];
       face2 = &aasworld.faces[abs(face2num)];
-      if ( (face2[4] & 1) != 0 )
+      if ( (face2->faceflags & 1) != 0 )
       {
-        vidx = aasworld.edgeindex[*((_DWORD *)face2 + 3)];
+        vidx = aasworld.edgeindex[face2->firstedge];
         v = aasworld.vertexes[aasworld.edges[abs(vidx)].v[0]];
         VectorSubtract(v, areastart, dir);
-        if ( dir[2] * aasworld.planes[*(_DWORD *)face2].normal[2]
-           + dir[1] * aasworld.planes[*(_DWORD *)face2].normal[1]
-           + dir[0] * aasworld.planes[*(_DWORD *)face2].normal[0] <= 0.0f )
+        if ( dir[2] * aasworld.planes[face2->planenum].normal[2]
+           + dir[1] * aasworld.planes[face2->planenum].normal[1]
+           + dir[0] * aasworld.planes[face2->planenum].normal[0] <= 0.0f )
         {
           AAS_FaceCenter(face2num, facecenter);
-          if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[*(_DWORD *)face2].normal[2] * -1.0f >= 0.0f )
+          if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[face2->planenum].normal[2] * -1.0f >= 0.0f )
           {
             dir[2] = 0.0f;
             dir[0] = facecenter[0] - areastart[0];
@@ -11847,7 +11847,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                * advance 20 floats = 80 bytes per plane; the original disasm
                * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
                * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(facecenter, -500.0f, aasworld.planes[*(_DWORD *)face2].normal, end);
+              VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
               *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
               if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
               {
@@ -11913,7 +11913,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
         }
       }
       i = v38 + 1;
-      v19 = *((_DWORD *)v39 + 1);
+      v19 = v39->numfaces;
       v38 = i;
       if ( i >= v19 )
         break;
