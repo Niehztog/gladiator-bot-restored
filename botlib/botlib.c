@@ -1701,7 +1701,7 @@ int nummodels;            // 0x100674C4  (was dword_100674C4)
 dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
 int visdatasize;          // 0x100674CC  (was dword_100674CC)
 char *dvisdata;           // 0x100674D0  (was dword_100674D0)
-char *dvis;               // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
+dvis_t *dvis;             // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
 int lightdatasize;        // 0x100674D8  (was dword_100674D8)
 char *dlightdata;         // 0x100674DC  (was dword_100674DC)
 int entdatasize;          // 0x100674E0  (was dword_100674E0)
@@ -3316,8 +3316,8 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
   if ( cluster == dword_10069564 )
     return;
   out = byte_10067564;
-  in = dvisdata + *(_DWORD *)(dvis + 4 * (visType + 2 * cluster) + 4);
-  row = (*(int *)dvis + 7) >> 3;
+  in = dvisdata + dvis->bitofs[cluster][visType];
+  row = (dvis->numclusters + 7) >> 3;
   do
   {
     if ( *in )
@@ -4367,26 +4367,26 @@ int Q2_SwapBSPFile(void)
     HIWORD(a1) = HIWORD(numtexinfo);
     v1 += 76;
   }
-  v9 = dvis;
+  v9 = (char *)dvis;
   v10 = 0;
   v11 = 0;
   if ( dvis )
   {
-    *(_DWORD *)dvis = LittleLong(*(int *)dvis);
-    v9 = dvis;
-    v11 = *(_DWORD *)dvis;
+    dvis->numclusters = LittleLong(dvis->numclusters);
+    v9 = (char *)dvis;
+    v11 = dvis->numclusters;
   }
   v13 = 0;
   if ( v11 > 0 )
   {
     while ( 1 )
     {
-      *(_DWORD *)(dvis + 8 * v13 + 4) = LittleLong(*(int *)(dvis + 8 * v13 + 4));
-      *(_DWORD *)(dvis + 8 * v13 + 8) = LittleLong(*(int *)(dvis + 8 * v13 + 8));
+      dvis->bitofs[v13][0] = LittleLong(dvis->bitofs[v13][0]);
+      dvis->bitofs[v13][1] = LittleLong(dvis->bitofs[v13][1]);
       ++v13;
       if ( v13 >= v11 )
         break;
-      v9 = dvis;
+      v9 = (char *)dvis;
     }
   }
   for ( j = 0; j < numplanes; ++j )
@@ -4774,7 +4774,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
     v24 = dvisdata;
   }
   visdatasize = v23;
-  dvis = v24;
+  dvis = (dvis_t *)v24;
   v25 = LittleLong(bsp_h.lumps[4].fileofs);
   v26 = Offset + v25;
   v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
