@@ -12006,8 +12006,8 @@ int AAS_SetWeaponJumpAreaFlags()
 //----- (10017CA0) --------------------------------------------------------
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 {
-  char *area2; // ebx
-  float *area1; // ecx
+  aas_area_t *area2; // ebx
+  aas_area_t *area1; // ecx
   int v4; // eax
   int i; // esi
   int face2num; // rax (was __int64; only low 32 bits used, abs() idiom — see asm_matching/idioms)
@@ -12040,12 +12040,12 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   if ( !AAS_AreaGrounded(area2num) ) return 0;
   if ( (aasworld.areasettings[area2num].areaflags & 0x2000) == 0 ) return 0;
   area2 = &aasworld.areas[area2num];
-  area1 = (float *)(&aasworld.areas[area1num]);
-  if ( *((float *)area2 + 8) < (float)area1[5] )
+  area1 = &aasworld.areas[area1num];
+  if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
-  centerorg[0] = *(area1 + 9);
-  centerorg[1] = *(area1 + 10);
-  centerorg[2] = area1[11];
+  centerorg[0] = area1->center[0];
+  centerorg[1] = area1->center[1];
+  centerorg[2] = area1->center[2];
   if ( !AAS_PointAreaNum(centerorg) )
     Log_Write("area %d center %f %f %f in solid?", area1num, centerorg[0],
               centerorg[1], centerorg[2]);
@@ -12056,17 +12056,17 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   if ( trace.startsolid )
     return 0;
   VectorCopy(trace.endpos, groundedpos);
-  v4 = *((_DWORD *)area2 + 1);
+  v4 = area2->numfaces;
   i = 0;
   v23 = 0;
   if ( v4 <= 0 )
     return 0;
   while ( 1 )
   {
-    face2num = aasworld.faceindex[i + *((_DWORD *)area2 + 2)];
+    face2num = aasworld.faceindex[i + area2->firstface];
     if ( (aasworld.faces[abs(face2num)].faceflags & 4) != 0 )
     {
-      AAS_FaceCenter(aasworld.faceindex[i + *((_DWORD *)area2 + 2)], facecenter);
+      AAS_FaceCenter(aasworld.faceindex[i + area2->firstface], facecenter);
       v7 = groundedpos[2] + 64.0f;
       if ( v7 <= facecenter[2] )
       {
@@ -12134,7 +12134,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
           break;
       }
     }
-    v11 = *((_DWORD *)area2 + 1);
+    v11 = area2->numfaces;
     v23 = ++i;
     if ( i >= v11 )
       return 0;
@@ -12162,7 +12162,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
   int result; // eax
-  char *area; // esi
+  aas_area_t *area; // esi
   int i; // ebx
   int v4; // ecx
   int face1num; // rax (was __int64 — abs32 idiom)
@@ -12171,30 +12171,30 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int j; // eax
   int face2num; // rax (was __int64 — abs32 idiom)
   int v10; // edi
-  char *face2; // esi
+  aas_face_t *face2; // esi
   int v12; // eax
   int l; // ecx
   unsigned int v14; // ebp
   int edge2num; // rax (was __int64 — abs32 idiom)
   int otherareanum; // ecx
-  char *area2; // eax
+  aas_area_t *area2; // eax
   int v18; // ecx
   int gap; // ebx
   unsigned int v20; // eax
   int v21; // edi
-  char *face3; // ebp
+  aas_face_t *face3; // ebp
   int m; // ecx
   int *v24; // esi
   int v25; // eax
   qboolean v26; // cc
-  char *edge; // eax
+  aas_edge_t *edge; // eax
   BOOL side; // ecx
   float *v29; // esi
   float *v30; // edi
   int reachareanum; // eax
   int v33; // edi
-  char *lreach; // eax
-  char *v35; // esi (was int) — alias of lreach (aas_reachabilitynode_t *)
+  aas_reachabilitynode_t *lreach; // eax
+  aas_reachabilitynode_t *v35; // esi (was int) — alias of lreach
   int v36; // edx
   int v37; // eax
   int n; // [esp+8h] [ebp-ACh]
@@ -12216,8 +12216,8 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int v50; // [esp+34h] [ebp-80h]
   int v51; // [esp+38h] [ebp-7Ch]
   aas_face_t *v52; // [esp+3Ch] [ebp-78h]
-  char *v53; // [esp+40h] [ebp-74h]
-  char *v54; // [esp+44h] [ebp-70h]
+  aas_area_t *v53; // [esp+40h] [ebp-74h]
+  aas_face_t *v54; // [esp+44h] [ebp-70h]
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
   float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
@@ -12233,12 +12233,12 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
       i = 0;
       v53 = area;
       v47 = 0;
-      v4 = *((_DWORD *)area + 1);
+      v4 = area->numfaces;
       if ( v4 > 0 )
       {
         while ( 1 )
         {
-          face1num = aasworld.faceindex[*((_DWORD *)area + 2) + i];
+          face1num = aasworld.faceindex[area->firstface + i];
           face1 = &aasworld.faces[abs(face1num)];
           v52 = face1;
           if ( (face1->faceflags & 4) != 0 )
@@ -12250,7 +12250,7 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
               break;
           }
 LABEL_46:
-          v4 = *((_DWORD *)area + 1);
+          v4 = area->numfaces;
           v47 = ++i;
           if ( i >= v4 )
             return result;
@@ -12262,14 +12262,14 @@ LABEL_6:
         if ( v4 <= 0 )
           goto LABEL_44;
 LABEL_7:
-        face2num = aasworld.faceindex[*((_DWORD *)area + 2) + j];
+        face2num = aasworld.faceindex[area->firstface + j];
         v10 = abs(face2num);
         v48 = v10;
         face2 = &aasworld.faces[v10];
         v54 = face2;
-        if ( (face2[4] & 4) != 0 )
+        if ( (face2->faceflags & 4) != 0 )
           goto LABEL_42;
-        v12 = *((_DWORD *)face2 + 2);
+        v12 = face2->numedges;
         l = 0;
         v50 = 0;
         if ( v12 <= 0 )
@@ -12278,22 +12278,22 @@ LABEL_7:
         v45 = v14;
         while ( 1 )
         {
-          edge2num = aasworld.edgeindex[l + *((_DWORD *)face2 + 3)];
+          edge2num = aasworld.edgeindex[l + face2->firstedge];
           if ( v14 == abs(edge2num) )
           {
-            otherareanum = *((_DWORD *)face2 + 4);
+            otherareanum = face2->frontarea;
             if ( otherareanum == areanum )
-              otherareanum = *((_DWORD *)face2 + 5);
+              otherareanum = face2->backarea;
             area2 = &aasworld.areas[otherareanum];
             if ( (aasworld.areasettings[otherareanum].areaflags & 1) != 0 )
             {
-              v18 = *((_DWORD *)area2 + 1);
+              v18 = area2->numfaces;
               gap = 0;
               n = 0;
               v46 = v18;
               if ( v18 <= 0 )
                 goto LABEL_42;
-              v44 = &aasworld.faceindex[*((_DWORD *)area2 + 2)];
+              v44 = &aasworld.faceindex[area2->firstface];
               while ( 2 )
               {
                 v20 = abs(*v44);
@@ -12313,12 +12313,12 @@ LABEL_27:
               m = 0;
               if ( v21 > 0 )
               {
-                v24 = &aasworld.edgeindex[*((_DWORD *)face3 + 3)];
+                v24 = &aasworld.edgeindex[face3->firstedge];
                 do
                 {
                   if ( abs(*v24) == v45 )
                   {
-                    v25 = *((_DWORD *)face3 + 1);
+                    v25 = face3->faceflags;
                     if ( (v25 & 1) == 0 )
                       gap = 1;
                     else
@@ -12343,7 +12343,7 @@ LABEL_28:
 LABEL_42:
               area = v53;
               j = v49 + 1;
-              v4 = *((_DWORD *)v53 + 1);
+              v4 = v53->numfaces;
               v49 = j;
               if ( j >= v4 )
               {
@@ -12364,8 +12364,8 @@ LABEL_44:
 LABEL_29:
             edge = &aasworld.edges[v14];
             side = edge1num < 0;
-            v29 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge[4 * side]]);
-            v30 = (float *)(&aasworld.vertexes[*(_DWORD *)&edge[4 * !side]]);
+            v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
+            v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
             sharededgevec[0] = *v30 - *v29;
             sharededgevec[1] = v30[1] - v29[1];
             sharededgevec[2] = v30[2] - v29[2];
@@ -12393,28 +12393,28 @@ LABEL_29:
             if ( !lreach )
               goto LABEL_42;
             v36 = edge1num;
-            *(_DWORD *)lreach = v33;
-            *(_DWORD *)(lreach + 4) = 0;
-            *(_DWORD *)(lreach + 8) = v36;
-            *(float *)(lreach + 12) = midorigin[0];
-            *(float *)(lreach + 16) = midorigin[1];
-            *(float *)(lreach + 20) = midorigin[2];
-            *(float *)(lreach + 24) = trace.endpos[0];
-            *(float *)(lreach + 28) = trace.endpos[1];
-            *(float *)(lreach + 32) = trace.endpos[2];
-            *(_DWORD *)(lreach + 36) = 7;
+            lreach->reach.areanum = v33;
+            lreach->reach.facenum = 0;
+            lreach->reach.edgenum = v36;
+            lreach->reach.start[0] = midorigin[0];
+            lreach->reach.start[1] = midorigin[1];
+            lreach->reach.start[2] = midorigin[2];
+            lreach->reach.end[0] = trace.endpos[0];
+            lreach->reach.end[1] = trace.endpos[1];
+            lreach->reach.end[2] = trace.endpos[2];
+            lreach->reach.traveltype = 7;
             if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
-              *(_WORD *)(v35 + 40) = 100;
+              v35->reach.traveltime = 100;
             else
-              *(_WORD *)(v35 + 40) = 3000;
+              v35->reach.traveltime = 3000;
             v10 = v48;
-            ((aas_reachabilitynode_t *)v35)->next = areareachability[areanum];
+            v35->next = areareachability[areanum];
             l = v50;
-            areareachability[areanum] = (aas_reachabilitynode_t *)v35;
+            areareachability[areanum] = v35;
             face2 = v54;
             ++reach_walkoffledge;
           }
-          v37 = *((_DWORD *)face2 + 2);
+          v37 = face2->numedges;
           v50 = ++l;
           if ( l >= v37 )
             goto LABEL_42;
