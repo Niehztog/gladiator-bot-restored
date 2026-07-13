@@ -321,10 +321,10 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
-int __cdecl CM_TraceThroughBrush(_DWORD *a1, float *a2, float *a3, int *a4, int *a5, intptr_t a6, int *a7, float *a8, _DWORD *a9, float *a10, float *a11);
+int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, float *a5, intptr_t a6, float *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
-int __cdecl sub_100056D0(_DWORD *a1, float *a2);
+int __cdecl sub_100056D0(dbrush_t *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 void __cdecl AAS_DecompressVis(int a1, int a2);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
@@ -1723,13 +1723,13 @@ char *dedges;             // 0x1006751C  (was dword_1006751C)
 int numleaffaces;         // 0x10067520  (was dword_10067520)
 char *dleaffaces;         // 0x10067524  (was dword_10067524)
 int numleafbrushes;       // 0x10067528  (was dword_10067528)
-char *dleafbrushes;       // 0x1006752C  (was dword_1006752C)
+unsigned short *dleafbrushes; // 0x1006752C  (was dword_1006752C)
 int numsurfedges;         // 0x10067530  (was dword_10067530)
 char *dsurfedges;         // 0x10067534  (was dword_10067534)
 int numbrushes;           // 0x10067538  (was dword_10067538)
-char *dbrushes;           // 0x1006753C  (was dword_1006753C)
+dbrush_t *dbrushes;       // 0x1006753C  (was dword_1006753C)
 int numbrushsides;        // 0x10067540  (was dword_10067540)
-char *dbrushsides;        // 0x10067544  (was dword_10067544)
+dbrushside_t *dbrushsides; // 0x10067544  (was dword_10067544)
 int numareas;             // 0x10067548  (was dword_10067548)
 char *dareas;             // 0x1006754C  (was dword_1006754C)
 int numareaportals;       // 0x10067550  (was dword_10067550)
@@ -2228,13 +2228,13 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
  * divergence expected, per fidelity_first_principle; only the naming and
  * per-brush-clip structure carry over). Called from CM_TraceThroughLeaf. */
 int __cdecl CM_TraceThroughBrush(
-        _DWORD *a1,
+        dbrush_t *a1,
         float *a2,
         float *a3,
-        int *a4,
-        int *a5,
+        float *a4,
+        float *a5,
         intptr_t a6,
-        int *a7,
+        float *a7,
         float *a8,
         _DWORD *a9,
         float *a10,
@@ -2243,7 +2243,7 @@ int __cdecl CM_TraceThroughBrush(
   int v11; // edi
   float *v12; // edx
   float *v13; // eax
-  _DWORD *v14; // ebx
+  dbrush_t *v14; // ebx
   float *v15; // ecx
   /* v16: BSP plane pointer; was `int v16` in IDA, later read positionally.
    * On aarch64 the int truncated dplanes's heap address.  Restored to dplane_t *. */
@@ -2289,22 +2289,22 @@ int __cdecl CM_TraceThroughBrush(
   v12 = a2;
   if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
     v40 = 1;
-  v13 = (float *)a4;
+  v13 = a4;
   v14 = a1;
   v42 = 0;
   v36 = 0;
-  startp[0] = *(float *)a4;
-  startp[1] = *((float *)a4 + 1);
-  startp[2] = *((float *)a4 + 2);
-  v15 = (float *)a7;
-  endp[0] = *(float *)a7;
-  endp[1] = *((float *)a7 + 1);
-  endp[2] = *((float *)a7 + 2);
-  if ( (int)a1[1] > 0 )
+  startp[0] = a4[0];
+  startp[1] = a4[1];
+  startp[2] = a4[2];
+  v15 = a7;
+  endp[0] = a7[0];
+  endp[1] = a7[1];
+  endp[2] = a7[2];
+  if ( a1->numsides > 0 )
   {
     while ( 1 )
     {
-      v16 = &dplanes[*(unsigned __int16 *)(dbrushsides + 4 * (v11 + *v14))];
+      v16 = &dplanes[dbrushsides[v11 + v14->firstside].planenum];
       if ( v39 )
       {
         normal[0] = v16->normal[0];
@@ -2354,7 +2354,7 @@ int __cdecl CM_TraceThroughBrush(
             else
             {
               v12 = a2;
-              v19 = -*(float *)&a5[v17];
+              v19 = -a5[v17];
             }
             goto LABEL_30;
           }
@@ -2382,11 +2382,10 @@ LABEL_30:
           /* For each component i, select from a6 or a5 based on sign of
            * normal[i]; result stored in vec[i]. */
           {
-            float *_a5 = (float *)a5;
             float *_a6 = (float *)a6;
             int _k;
             for (_k = 0; _k < 3; _k++)
-              vec[_k] = (normal[_k] <= 0.0f) ? _a6[_k] : _a5[_k];
+              vec[_k] = (normal[_k] <= 0.0f) ? _a6[_k] : a5[_k];
           }
           dir[0] = -normal[0];
           dir[1] = -normal[1];
@@ -2412,7 +2411,7 @@ LABEL_30:
         if ( v35 > -0.005 )
         {
           v43 = v19;
-          v42 = v11 + *v14;
+          v42 = v11 + v14->firstside;
         }
         if ( v35 <= 0.005 )
         {
@@ -2433,10 +2432,10 @@ LABEL_30:
         }
       }
       v36 = ++v11;
-      if ( v11 >= (int)v14[1] )
+      if ( v11 >= v14->numsides )
       {
-        v15 = (float *)a7;
-        v13 = (float *)a4;
+        v15 = a7;
+        v13 = a4;
         break;
       }
     }
@@ -2493,10 +2492,10 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     goto fail;
   do
   {
-    v13 = (_DWORD *)(dbrushes
-                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
+    v13 = (_DWORD *)((char *)dbrushes
+                   + 12 * *(unsigned __int16 *)((char *)dleafbrushes + 2 * (v9 + v11->firstleafbrush)));
     if ( (v13[2] & contentmask) != 0
-      && CM_TraceThroughBrush(v13, origin, angles, (int *)start, (int *)boxmins, (intptr_t)boxmaxs, (int *)end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
+      && CM_TraceThroughBrush((dbrush_t *)v13, origin, angles, start, boxmins, (intptr_t)boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
       v24 = v13;
     }
@@ -2523,7 +2522,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   v16 = sidenum;
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
-  v17 = &dplanes[*(unsigned __int16 *)(dbrushsides + 4 * v16)];
+  v17 = &dplanes[*(unsigned __int16 *)((char *)dbrushsides + 4 * v16)];
   trace->plane.normal[0] = v17->normal[0];
   trace->plane.normal[1] = v17->normal[1];
   trace->plane.normal[2] = v17->normal[2];
@@ -3186,10 +3185,10 @@ static void sub_10005640(
 }
 
 //----- (100056D0) --------------------------------------------------------
-int __cdecl sub_100056D0(_DWORD *a1, float *a2)
+int __cdecl sub_100056D0(dbrush_t *a1, float *a2)
 {
   int v3; // ebx
-  unsigned __int16 *i; // edi
+  dbrushside_t *i; // edi
   /* v5: same BSP-plane-pointer-truncation bug class as sub_100044F0:v14/v38.
    * Original `int v5` truncated the selected dplane_t * on aarch64. */
   dplane_t *v5;
@@ -3198,13 +3197,13 @@ int __cdecl sub_100056D0(_DWORD *a1, float *a2)
   int v12; // [esp+14h] [ebp+4h]
 
   v3 = 0;
-  v12 = a1[1];
+  v12 = a1->numsides;
   if ( v12 <= 0 )
     return 1;
-  i = (unsigned __int16 *)(dbrushsides + 4 * *a1);
-  for ( ; v3 < v12; ++v3, i += 2 )
+  i = &dbrushsides[a1->firstside];
+  for ( ; v3 < v12; ++v3, ++i )
   {
-    v5 = &dplanes[*i];
+    v5 = &dplanes[i->planenum];
     v6 = v5->type;
     if ( v6 < 3 )
     {
@@ -3233,7 +3232,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   dleaf_t *v7;
   bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
-  _DWORD *v10; // [esp+14h] [ebp-78h]
+  dbrush_t *v10; // [esp+14h] [ebp-78h]
   float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v12[3]; // [esp+24h] [ebp-68h] BYREF
   float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
@@ -3257,10 +3256,9 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v7 = &dleafs[v6];
   while ( v4 < v7->numleafbrushes )
   {
-    v10 = (_DWORD *)(dbrushes
-                   + 12 * *(unsigned __int16 *)(dleafbrushes + 2 * (v4 + v7->firstleafbrush)));
+    v10 = &dbrushes[dleafbrushes[v4 + v7->firstleafbrush]];
     if ( sub_100056D0(v10, v11) )
-      return v10[2];
+      return v10->contents;
     ++v4;
   }
   for ( i = dword_10069584[v6]; i; i = i->next_ent )
@@ -4446,7 +4444,7 @@ int Q2_SwapBSPFile(void)
   }
   for ( n = 0; n < numleafbrushes; ++n )
   {
-    *(_WORD *)(dleafbrushes + 2 * n) = LittleShort(*(_WORD *)(dleafbrushes + 2 * n));
+    dleafbrushes[n] = LittleShort(dleafbrushes[n]);
   }
   for ( ii = 0; ii < numbrushsides; ++ii )
   {
@@ -4468,8 +4466,8 @@ int Q2_SwapBSPFile(void)
      * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
      * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
      * the LittleShort round-trip (identity on little-endian). */
-    *(_WORD *)(dbrushsides + 4 * ii) = LittleShort(*(_WORD *)(dbrushsides + 4 * ii));
-    *(_WORD *)(dbrushsides + 4 * ii + 2) = LittleShort(*(_WORD *)(dbrushsides + 4 * ii + 2));
+    *(_WORD *)((char *)dbrushsides + 4 * ii) = LittleShort(*(_WORD *)((char *)dbrushsides + 4 * ii));
+    *(_WORD *)((char *)dbrushsides + 4 * ii + 2) = LittleShort(*(_WORD *)((char *)dbrushsides + 4 * ii + 2));
   }
   v62 = 0;
   if ( numbrushes > 0 )
