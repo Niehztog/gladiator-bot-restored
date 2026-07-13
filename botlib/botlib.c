@@ -9773,7 +9773,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   char *groundface1; // ebp
   int edge1num; // eax
   int side1; // edi
-  unsigned int v13; // esi
+  int v13; // esi
   char *edge1; // ecx
   int v18; // ebx
   char *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
@@ -9795,9 +9795,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int *v45; // esi
   int v46; // ecx
   char *v50; // esi
-  int v51; // edx
-  float v52; // eax
-  float v53; // ecx
   int *v54; // eax
   int *v55; // esi
   char *v56; // esi
@@ -9840,7 +9837,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
   vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
   int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
-  unsigned int v114; // [esp+E0h] [ebp-F0h]
+  int v114; // [esp+E0h] [ebp-F0h]
   char *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
   int ground_foundreach; // [esp+E8h] [ebp-E8h]
   int k; // [esp+ECh] [ebp-E4h]
@@ -9895,9 +9892,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
     /* if the areas are not near anough in the x-y direction */
     for ( v4 = 0; v4 < 2; ++v4 )
     {
-      if ( *(float *)(area1 + 4 * v4 + 12) > *(float *)(area2 + 4 * v4 + 24) + 10.0f )
+      if ( ((aas_area_t *)area1)->mins[v4] > ((aas_area_t *)area2)->maxs[v4] + 10.0f )
         return 0;
-      if ( *(float *)(area1 + 4 * v4 + 24) < *(float *)(area2 + 4 * v4 + 12) - 10.0f )
+      if ( ((aas_area_t *)area1)->maxs[v4] < ((aas_area_t *)area2)->mins[v4] - 10.0f )
         return 0;
     }
     {
@@ -9914,7 +9911,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
-          if ( (groundface1[4] & 4) != 0
+          if ( (((aas_face_t *)groundface1)->faceflags & 4) != 0
             || area1swim
             && up[2] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[2]
              + up[1] * aasworld.planes[((aas_face_t *)groundface1)->planenum ^ (!faceside1)].normal[1]
@@ -9924,7 +9921,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             {
                 edge1num = aasworld.edgeindex[k + ((aas_face_t *)groundface1)->firstedge];
                 side1 = edge1num < 0;
-                if ( (groundface1[4] & 4) == 0 )
+                if ( (((aas_face_t *)groundface1)->faceflags & 4) == 0 )
                   side1 = side1 == faceside1;
                 v13 = abs(edge1num);
                 edge1 = &aasworld.edges[v13];
@@ -9942,7 +9939,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                   {
                     v20 = aasworld.faceindex[v18 + ((aas_area_t *)v19)->firstface];
                     groundface2 = &aasworld.faces[abs(v20)];
-                    if ( (groundface2[4] & 4) != 0 )
+                    if ( (((aas_face_t *)groundface2)->faceflags & 4) != 0 )
                     {
                       for ( j = 0; j < ((aas_face_t *)groundface2)->numedges; ++j )
                       {
@@ -9951,10 +9948,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                         VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[0]], edgev3);
                         VectorCopy(aasworld.vertexes[((aas_edge_t *)edge2)->v[1]], edgev4);
                         v25 = DotProduct(normal, edgev3) - dist;
-                        if ( v25 >= -0.1f && v25 <= 0.1f )
+                        if ( v25 >= -0.1 && v25 <= 0.1 )
                         {
                           v25 = DotProduct(normal, edgev4) - dist;
-                          if ( v25 >= -0.1f && v25 <= 0.1f )
+                          if ( v25 >= -0.1 && v25 <= 0.1 )
                           {
                             CrossProduct(up, normal, ort);
                             ortdot = DotProduct(ort, ort);
@@ -10077,7 +10074,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               VectorSubtract(p2area2, p1area2, dir);
                               length = VectorLength(dir);
                               v41 = dist;
-                              if ( (v126[4] & 4) != 0 )
+                              if ( (((aas_face_t *)v126)->faceflags & 4) != 0 )
                               {
                                 if ( v41 < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
                                 {
@@ -10171,13 +10168,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             v50 = AAS_AllocReachability();
             if ( !v50 )
               return 0;
-            v51 = *(int *)&water_beststart[0];
-            v52 = water_beststart[1];
             *(_DWORD *)(v50 + 8) = v114;
-            v53 = water_beststart[2];
-            *(_DWORD *)(v50 + 12) = v51;
-            *(float *)(v50 + 16) = v52;
-            *(float *)(v50 + 20) = v53;
+            *(float *)(v50 + 12) = water_beststart[0];
+            *(float *)(v50 + 16) = water_beststart[1];
+            *(float *)(v50 + 20) = water_beststart[2];
             *(_DWORD *)v50 = area2num;
             *(_DWORD *)(v50 + 4) = 0;
             VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50 + 24);
@@ -10236,12 +10230,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(area2num) )
         {
           VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
+          VectorCopy(ground_bestend, start);
           start[2] = ground_beststart[2];
-          start[0] = ground_bestend[0];
-          end[0] = ground_bestend[0];
-          start[1] = ground_bestend[1];
-          end[1] = ground_bestend[1];
-          end[2] = ground_bestend[2] + 4.0f;
+          VectorCopy(ground_bestend, end);
+          end[2] += 4.0f;
           trace = AAS_TraceClientBBox(start, end, 2, -1);
           if ( !trace.startsolid && trace.fraction >= 1.0 )
           {
