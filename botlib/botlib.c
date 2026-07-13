@@ -11441,12 +11441,10 @@ void AAS_Reachability_Elevator()
   float v6; // st7
   float v7; // st7
   int v10; // ebx
-  float area1num; // edi
+  int area1num; // edi
   int v12; // esi
-  int v15; // eax
   int area2num; // ebx
   int l; // ebp
-  int v18; // esi
   int p; // ecx
   aas_reachabilitynode_t *v20; // eax
   aas_reachabilitynode_t *lreach; // esi
@@ -11460,14 +11458,13 @@ void AAS_Reachability_Elevator()
    * scalars which GCC will not lay out adjacently.  All vec3 trios passed by
    * address (point/dir/sumvec/etc.) must also be contiguous. */
   vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
-  float v33;            /* [BYREF] holds PointAreaNum return as float bits */
+  float v33;            /* lip value ("lip" epair, defaults to 8.0) */
   vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
   vec3_t sumvec;        /* was v37/v38 (+missing v39) — mins+maxs sum for VectorMA */
   vec3_t testpt;        /* was v40/v41/v42 — point for AAS_PointAreaNum */
   float height;
   vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
   vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
-  bsp_entity_t *v50;
   int i;
   float speed;
   vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
@@ -11489,35 +11486,24 @@ void AAS_Reachability_Elevator()
   angles[1] = 0;
   angles[2] = 0;
   v0 = AAS_ParseBSPEntities();
-  ent = v0;
-  v50 = v0;
-  if ( v0 )
+  for ( ent = v0; ent; ent = ent->next )
   {
-    while ( 1 )
-    {
-      classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
-      if ( classname )
-      {
-        if ( !strcmp(classname, "func_plat") )
-          break;
-      }
-LABEL_58:
-      v50 = ent->next;
-      if ( !v50 )
-        { (void)(((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0)); return; }
-      ent = v50;
-    }
+    classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
+    if ( !classname )
+      continue;
+    if ( strcmp(classname, "func_plat") )
+      continue;
     model = AAS_ValueForBSPEpairKey(ent, "model");
     if ( !model )
     {
       botimport.Print(PRT_ERROR, "func_plat without model\n");
-      goto LABEL_58;
+      continue;
     }
     modelnum = atoi(model + 1);
     if ( modelnum <= 0 )
     {
       botimport.Print(PRT_ERROR, "func_plat with invalid model number\n");
-      goto LABEL_58;
+      continue;
     }
     AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
     v75 = origin[2];
@@ -11573,25 +11559,38 @@ LABEL_58:
     *(float *)&yvals[5] = maxs[1];
     *(float *)&yvals[6] = mins[1];
     *(float *)&yvals[7] = mins[1];
-    /* IDA's `while (v10 >= 32)` IS correct.  Disasm at 0x10016470 is
-     * `cmp v10,0x20; jge 0x10016513`: at v10 < 32 fall through runs the
-     * "origin+grid[v10]" path (which IDA placed after the while), then
-     * `goto LABEL_30` re-enters the while body's inner per-i/per-k loops.
-     * At v10 == 32 the while body itself runs once with btmorg setup.
-     * Iteration pattern per plat: 8 grid probes (v10 = 0..28) + 1 btmorg
-     * probe (v10 = 32). */
-    while ( v10 >= 32 )
+    /* 9 candidate positions around the plat: 8 side probes (v10 = 0..28,
+     * step 4) plus 1 middle-of-plat probe (v10 = 32). */
+    for ( v10 = 0; v10 < 36; v10 += 4 )
     {
-      testpt[0] = btmorg[0];
-      testpt[1] = btmorg[1];
-      testpt[2] = btmorg[2] + 24.0f;
-      v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
-      if ( v33 != 0.0f )
+      if ( v10 < 32 )
       {
+        testpt[0] = origin[0] + *(float *)((char *)xvals + v10);
+        testpt[1] = origin[1] + *(float *)((char *)yvals + v10);
+        testpt[2] = toporg[2] + 16.0f;
+        area1num = AAS_PointAreaNum(testpt);
+        for ( v12 = 0; v12 < 16; ++v12 )
+        {
+          if ( area1num && (AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num)) )
+            break;
+          testpt[2] = testpt[2] + 4.0f;
+          area1num = AAS_PointAreaNum(testpt);
+        }
+        if ( v12 >= 16 )
+          continue;
+      }
+      else
+      {
+        testpt[0] = btmorg[0];
+        testpt[1] = btmorg[1];
+        testpt[2] = btmorg[2] + 24.0f;
+        area1num = AAS_PointAreaNum(testpt);
+        if ( !area1num )
+          continue;
         testpt[0] = toporg[0];
         testpt[1] = toporg[1];
         testpt[2] = toporg[2] + 24.0f;
-LABEL_30:
+      }
         for ( i = 0; i < 3; ++i )
         {
           for ( k = 0; k < 3; ++k )
@@ -11613,17 +11612,15 @@ LABEL_30:
           *(float *)&xvals_top[7] = mins[0];
           *(float *)&yvals_top[4] = maxs[1];
           *(float *)&yvals_top[5] = maxs[1];
-          v15 = 0;
           *(float *)&yvals_top[6] = mins[1];
           *(float *)&yvals_top[7] = mins[1];
           for ( k = 0; k < 32; k += 4 )
           {
-            samplept[0] = origin[0] + *(float *)((char *)xvals_top + v15);
-            samplept[1] = origin[1] + *(float *)((char *)yvals_top + v15);
+            samplept[0] = origin[0] + *(float *)((char *)xvals_top + k);
+            samplept[1] = origin[1] + *(float *)((char *)yvals_top + k);
             samplept[2] = btmorg[2] + 16.0f;
             area2num = AAS_PointAreaNum(samplept);
-            l = 0;
-            while ( 1 )
+            for ( l = 0; l < 16; ++l )
             {
               if ( area2num && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
               {
@@ -11638,29 +11635,23 @@ LABEL_30:
                   break;
               }
               samplept[2] = samplept[2] + 4.0f;
-              ++l;
               area2num = AAS_PointAreaNum(samplept);
-              if ( l >= 16 )
-                goto LABEL_53;
             }
             if ( l >= 16 )
               goto LABEL_53;
-            v18 = LODWORD(v33);
-            if ( area2num != LODWORD(v33) && AAS_AreaGrounded(area2num) && !AAS_ReachabilityExists(v18, area2num) )
+            if ( area2num != area1num && AAS_AreaGrounded(area2num) && !AAS_ReachabilityExists(area1num, area2num) )
             {
               dirvec[0] = testpt[0] - toporg[0];
               dirvec[1] = testpt[1] - toporg[1];
               dirvec[2] = testpt[2] - toporg[2];
               VectorNormalize(dirvec);
               dirvec[2] = testpt[2];
-              p = 0;
               dirvec[0] = dirvec[0] * 24.0f + testpt[0];
               dirvec[1] = dirvec[1] * 24.0f + testpt[1];
-              while ( mins[p] + origin[p] <= dirvec[p]
-                   && maxs[p] + origin[p] >= dirvec[p] )
+              for ( p = 0; p < 3; ++p )
               {
-                if ( ++p >= 3 )
-                  goto LABEL_53;
+                if ( mins[p] + origin[p] > dirvec[p] || maxs[p] + origin[p] < dirvec[p] )
+                  break;
               }
               if ( p >= 3 )
                 goto LABEL_53;
@@ -11686,44 +11677,18 @@ LABEL_30:
                 if ( !(unsigned __int16)(__int64)v26 )
                   lreach->reach.traveltime = 50;
                 i = 9999;
-                lreach->next = areareachability[LODWORD(v33)];
-                areareachability[LODWORD(v33)] = lreach;
+                lreach->next = areareachability[area1num];
+                areareachability[area1num] = lreach;
                 ++reach_elevator;
               }
             }
 LABEL_53:
-            v15 = k + 4;
+            ;
           }
         }
-        ent = v50;
-      }
-LABEL_56:
-      v10 += 4;
-      if ( v10 >= 36 )
-      {
-        goto LABEL_58;
-      }
     }
-    testpt[0] = origin[0] + *(float *)((char *)xvals + v10);
-    testpt[1] = origin[1] + *(float *)((char *)yvals + v10);
-    testpt[2] = toporg[2] + 16.0f;
-    area1num = COERCE_FLOAT(AAS_PointAreaNum(testpt));
-    v33 = area1num;
-    v12 = 0;
-    while ( area1num == 0.0f || !AAS_AreaGrounded(LODWORD(area1num)) && !AAS_AreaSwim(LODWORD(area1num)) )
-    {
-      testpt[2] = testpt[2] + 4.0f;
-      ++v12;
-      v33 = COERCE_FLOAT(AAS_PointAreaNum(testpt));
-      if ( v12 >= 16 )
-        goto LABEL_56;
-      area1num = v33;
-    }
-    if ( v12 >= 16 )
-      goto LABEL_56;
-    goto LABEL_30;
   }
-  { (void)(((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0)); return; }
+  AAS_FreeBSPEntities(v0);
 }
 // 1001650B: conditional instruction was optimized away because esi.4<10
 // 10016781: conditional instruction was optimized away because ebp.4<10
