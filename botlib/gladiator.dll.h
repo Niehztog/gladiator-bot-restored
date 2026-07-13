@@ -356,22 +356,46 @@ typedef struct token_s {
  *
  * Original gladiator allocated `52 * MAX_AAS_SOUNDS` raw bytes from
  * GetMemory and treated it as a packed array of 52-byte nodes.  Each
- * node had a doubly-linked-list pair (prev,next) at offsets +44/+48,
- * with the leading 44 bytes carrying payload — at minimum a float at
- * offset +4 (sort key, see sub_1001CC50).  The remaining payload bytes
- * have not yet been identified; they are preserved opaquely as
- * `data[44]` so the on-disk 32-bit layout is byte-identical and field
- * accesses at +44 / +48 become proper struct-pointer accesses on 64-bit
- * (where the pool node grows from 52 to 64 bytes).
+ * node had a doubly-linked-list pair (prev,next) at offsets +44/+48.
+ * The leading 44-byte payload is now identified field-for-field, cross
+ * referenced from the writer (sub_1001CE20), the two sort comparators
+ * (sub_1001CC50/sub_1001CD10), the dedupe/expire lookup (sub_1001CDD0),
+ * the tick function (sub_1001CFA0), and the one reader outside this
+ * subsystem (sub_1001D0A0, the inverse-square audibility calc — its own
+ * doc comment independently named +8/+0x20/+0x24 before this struct was
+ * expanded, and agrees exactly). `entnum`/`channel`/`unknown40` are
+ * inferred from field POSITION and Q2's usual
+ * S_StartSound(origin,entnum,channel,soundindex,volume,attenuation,
+ * timeofs)-shaped call, not independently confirmed — the whole
+ * subsystem is DEAD (no live caller anywhere in botlib.c reaches
+ * sub_1001CE20), so there's no runtime call site left to verify the
+ * exact semantic names against. `data[44]` is kept as a union member so
+ * any spot this project hasn't converted yet still compiles against the
+ * identical byte layout.
  *
  * Six aas_world fields reference these nodes:
  *   d_100669C4 = pool base (FreeMemory'd in sub_1001CAB0)
  *   d_100669C8 = free-list head, chained via .next
- *   d_100669CC/D0 = head/tail of one sorted active list
- *   d_100669D4/D8 = head/tail of a second sorted active list
+ *   d_100669CC/D0 = head/tail of one sorted active list (by endtime, sub_1001CC50)
+ *   d_100669D4/D8 = head/tail of a second sorted active list (by starttime, sub_1001CD10)
  * ======================================================================== */
 typedef struct aas_soundpool_s {
-    char                       data[44]; /* opaque payload (incl. float sort key @+4) */
+    union {
+        char data[44];       /* opaque byte view — kept for any un-migrated access */
+        struct {
+            float  starttime;   /* +0  AAS_Time() + requested delay (sub_1001CE20's a7) */
+            float  endtime;     /* +4  starttime + sound duration; sort key for CC/D0 list (sub_1001CC50) */
+            vec3_t origin;      /* +8  sound emission origin (sub_1001CE20's a1, a vec3 pointer) */
+            int    _reserved20; /* +20 always written 0 by sub_1001CE20 */
+            int    entnum;      /* +24 sub_1001CE20's a2; matched by sub_1001CDD0's dedupe/expire lookup */
+            int    channel;     /* +28 sub_1001CE20's a3 */
+            int    soundindex;  /* +32 sub_1001CE20's a4; indexes aasworld.d_100669C0[]; ALSO matched by sub_1001CDD0 */
+            float  volume;      /* +36 sub_1001CE20's a5 — declared `int a5` there but read as a genuine
+                                  * float multiplier by sub_1001D0A0's audibility formula; likely the same
+                                  * int/float-bit-pattern idiom already catalogued project-wide (fp_int_bitpattern_bugs.md) */
+            int    unknown40;   /* +40 sub_1001CE20's a6 */
+        };
+    };
     struct aas_soundpool_s    *prev;     /* +44 on 32-bit; struct padding pushes to +48 on 64-bit */
     struct aas_soundpool_s    *next;
 } aas_soundpool_t;

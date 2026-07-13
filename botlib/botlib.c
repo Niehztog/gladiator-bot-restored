@@ -14932,7 +14932,7 @@ void sub_1001CC50(aas_soundpool_t *a1)
   v1 = aasworld.d_100669D0;
   for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)(v1->data + 4) < *(float *)(a1->data + 4) )
+    if ( v1->endtime < a1->endtime )
       break;
     i = v1;
   }
@@ -14985,7 +14985,7 @@ void sub_1001CD10(aas_soundpool_t *a1)
   v1 = aasworld.d_100669D8;
   for ( i = NULL; v1; v1 = v1->prev )
   {
-    if ( *(float *)v1->data < *(float *)a1->data )
+    if ( v1->starttime < a1->starttime )
       break;
     i = v1;
   }
@@ -15044,7 +15044,7 @@ int __cdecl sub_1001CDD0(int a1, int a2)
     result = a2;
     for ( ; v2; v2 = v2->next )
     {
-      if ( ((int *)v2->data)[6] == a1 && ((int *)v2->data)[8] == a2 )
+      if ( v2->entnum == a1 && v2->soundindex == a2 )
       {
         sub_1001CCC0(v2);
         return (int)(intptr_t)sub_1001CC10(v2);
@@ -15057,7 +15057,7 @@ int __cdecl sub_1001CDD0(int a1, int a2)
 //----- (1001CE20) --------------------------------------------------------
 int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, float a7)
 {
-  char *v8; // ebx
+  soundinfo_t *v8; // ebx
   aas_soundpool_t *i;
   aas_soundpool_t *v10;
 
@@ -15075,7 +15075,7 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
     }
     if ( a4 < aasworld.d_100669BC )
     {
-      v8 = (char *)aasworld.d_100669C0[a4];
+      v8 = (soundinfo_t *)aasworld.d_100669C0[a4];
       if ( !v8 )
         return 0;
       for ( i = aasworld.d_100669CC; i; i = i->next )
@@ -15088,17 +15088,17 @@ int __cdecl sub_1001CE20(intptr_t a1, int a2, int a3, int a4, int a5, int a6, fl
         botimport.Print(PRT_ERROR, "empty sound heap\n");
         return 0;
       }
-      *(float *)v10->data = AAS_Time() + a7;
-      *(float *)(v10->data + 4) = AAS_Time() + *(float *)(v8 + 84) + a7;
-      *(int *)(v10->data + 8) = *(_DWORD *)a1;
-      *(int *)(v10->data + 12) = *(_DWORD *)(a1 + 4);
-      *(int *)(v10->data + 16) = *(_DWORD *)(a1 + 8);
-      *(int *)(v10->data + 20) = 0;
-      *(int *)(v10->data + 24) = a2;
-      *(int *)(v10->data + 28) = a3;
-      *(int *)(v10->data + 32) = a4;
-      *(int *)(v10->data + 36) = a5;
-      *(int *)(v10->data + 40) = a6;
+      v10->starttime = AAS_Time() + a7;
+      v10->endtime = AAS_Time() + v8->duration + a7;
+      *(int *)&v10->origin[0] = *(_DWORD *)a1;
+      *(int *)&v10->origin[1] = *(_DWORD *)(a1 + 4);
+      *(int *)&v10->origin[2] = *(_DWORD *)(a1 + 8);
+      v10->_reserved20 = 0;
+      v10->entnum = a2;
+      v10->channel = a3;
+      v10->soundindex = a4;
+      *(int *)&v10->volume = a5;   /* bit-pattern store: a5 is int-declared but volume is float, see struct doc comment */
+      v10->unknown40 = a6;
       sub_1001CD10(v10);
     }
     return 0;
@@ -15117,7 +15117,7 @@ void __cdecl sub_1001CFA0(float a1)
   aas_soundpool_t *v4;
 
   v1 = aasworld.d_100669CC;
-  while ( v1 && *(float *)(v1->data + 4) <= a1 )
+  while ( v1 && v1->endtime <= a1 )
   {
     v2 = v1->next;
     sub_1001CCC0(v1);
@@ -15130,10 +15130,10 @@ void __cdecl sub_1001CFA0(float a1)
     do
     {
       v4 = v3->next;
-      if ( *(float *)v3->data < a1 )
+      if ( v3->starttime < a1 )
       {
         sub_1001CD80(v3);
-        sub_1001CDD0(*(int *)(v3->data + 24), *(int *)(v3->data + 32));
+        sub_1001CDD0(v3->entnum, v3->soundindex);
         sub_1001CC50(v3);
       }
       v3 = v4;
@@ -15150,11 +15150,11 @@ void __cdecl sub_1001CFA0(float a1)
  * null cursor to reset) or the +0x30 next-chain field of the supplied
  * node.  Dead in Gladiator — the active iteration uses sub_1001CFA0's
  * inline `v1 = v1->next` instead. */
-int __cdecl sub_1001D040(char *p)
+int __cdecl sub_1001D040(aas_soundpool_t *p)
 {
   if ( !p )
-    return (int)aasworld.d_100669CC;
-  return *(int *)(p + 0x30);
+    return (int)(intptr_t)aasworld.d_100669CC;
+  return (int)(intptr_t)p->next;
 }
 
 //----- (1001D070) --------------------------------------------------------
@@ -15163,42 +15163,42 @@ int __cdecl sub_1001D040(char *p)
  * sound-pool entity-payload pointer keyed by the dword field at +0x20
  * (which is dword index 8) of the supplied node.  Dead in Gladiator;
  * preserved by /INCREMENTAL. */
-int __cdecl sub_1001D070(int *p)
+int __cdecl sub_1001D070(aas_soundpool_t *p)
 {
-  return (int)aasworld.d_100669C0[p[8]];
+  return (int)(intptr_t)aasworld.d_100669C0[p->soundindex];
 }
 
 //----- (1001D0A0) --------------------------------------------------------
 // Inverse-square sound audibility on a moving source.  Args:
 //   arg1 (edi) — listener origin (vec3 at +0)
-//   arg2 (esi) — sound emitter struct: vec3 origin at +8, soundindex
-//                at +0x20, volume-or-priority at +0x24 (float)
-// Walks aasworld.d_100669C0[esi->soundindex] to obtain the per-sound
-// soundinfo_t whose +0x50 holds the sound's range/strength constant.
+//   arg2 (esi) — sound emitter: an aas_soundpool_t node (see its struct
+//                doc comment in gladiator.dll.h for the full field map)
+// Walks aasworld.d_100669C0[emitter->soundindex] to obtain the per-sound
+// soundinfo_t whose ->volume holds the sound's range/strength constant.
 // First gates on AAS_InPVS(listener, &emitter->origin, default-flags)
 // via thunk @0x10001fc8 → sub_10005C90: returns 0.0f (.rdata
 // 0x10058000) when the emitter isn't in PVS or the soundindex maps
 // to a NULL soundinfo.  Otherwise returns
-//   (soundinfo[+0x50] * emitter[+0x24]) / dot(delta, delta)
+//   (soundinfo->volume * emitter->volume) / dot(delta, delta)
 // where delta = emitter->origin - listener.  DEAD in Gladiator —
 // /INCREMENTAL; the live sound code uses a per-cluster path instead.
 // Restored from objdump@1001D0A0.
-float __cdecl sub_1001D0A0(float *listener, void *emitter)
+float __cdecl sub_1001D0A0(float *listener, aas_soundpool_t *emitter)
 {
   float *eorigin;
-  void  *info;
+  soundinfo_t *info;
   float dx, dy, dz;
 
-  eorigin = (float *)((char *)emitter + 8);
+  eorigin = emitter->origin;
   if ( !sub_10005C90(listener, eorigin) )
     return 0.0f;
-  info = aasworld.d_100669C0[*(int *)((char *)emitter + 0x20)];
+  info = (soundinfo_t *)aasworld.d_100669C0[emitter->soundindex];
   if ( !info )
     return 0.0f;
   dx = eorigin[0] - listener[0];
-  dy = ((float *)emitter)[3] - listener[1];
-  dz = ((float *)emitter)[4] - listener[2];
-  return (*(float *)((char *)info + 0x50) * *(float *)((char *)emitter + 0x24))
+  dy = emitter->origin[1] - listener[1];
+  dz = emitter->origin[2] - listener[2];
+  return (info->volume * emitter->volume)
        / (dx*dx + dy*dy + dz*dz);
 }
 
