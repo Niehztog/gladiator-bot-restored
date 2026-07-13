@@ -3780,21 +3780,21 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
   int         j;
   int         entnum;
   int         solid;
-  float       entdata[13];   /* AAS_EntityBSPData destination — 52 B */
+  bsp_entdata_t entdata;      /* AAS_EntityBSPData destination — 56 B */
 
   count = 0;
   linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0);
   if (!linkhead)
     return 0;
 
-  for (link = linkhead; link && count < maxcount; link = (bsp_link_t *)*(int *)((char *)link + 0x10)) {
+  for (link = linkhead; link && count < maxcount; link = link->next_leaf) {
     ent_link = dword_10069584[link->leafnum];
     if (!ent_link)
       continue;
     out = &list[count];
 
     while (ent_link && count < maxcount) {
-      entnum = *(int *)ent_link;   /* ent_link->entnum @ +0 */
+      entnum = ent_link->entnum;
 
       /* Dedupe scan over already-collected results. */
       j = 0;
@@ -3809,27 +3809,27 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
       }
 
       if (j == count) {
-        AAS_EntityBSPData(entnum, (bsp_entdata_t *)entdata);
+        AAS_EntityBSPData(entnum, &entdata);
 
         /* MR. ELUSIVE BUG preserved verbatim: original .text uses
-         * entdata[0x20] (absmin.Z) where absmin.X (entdata[0x18])
-         * was clearly intended for the X-axis overlap check.  The
-         * Z test then redundantly checks absmin.Z again.  Net
-         * effect: absmin.X never participates in the overlap. */
-        if (entdata[8 /*[esp+0x3c] = entdata[0x20] = absmin.Z*/] <= maxs[0]
-         && entdata[9 /*[esp+0x40] = entdata[0x24] = absmax.X*/] >= mins[0]
-         && entdata[7 /*[esp+0x38] = entdata[0x1C] = absmin.Y*/] <= maxs[1]
-         && entdata[10/*[esp+0x44] = entdata[0x28] = absmax.Y*/] >= mins[1]
-         && entdata[8 /*[esp+0x3c] = entdata[0x20] = absmin.Z*/] <= maxs[2]
-         && entdata[11/*[esp+0x48] = entdata[0x2C] = absmax.Z*/] >= mins[2]) {
-          solid = *(int *)((char *)entdata + 0x30);
+         * absmin.Z where absmin.X was clearly intended for the X-axis
+         * overlap check.  The Z test then redundantly checks absmin.Z
+         * again.  Net effect: absmin.X never participates in the
+         * overlap. */
+        if (entdata.absmins[2] /* bug: should be absmins[0] */ <= maxs[0]
+         && entdata.absmaxs[0] >= mins[0]
+         && entdata.absmins[1] <= maxs[1]
+         && entdata.absmaxs[1] >= mins[1]
+         && entdata.absmins[2] <= maxs[2]
+         && entdata.absmaxs[2] >= mins[2]) {
+          solid = entdata.solid;
           if (solid == 1 || solid == 2) {
             *out++ = entnum;
             count++;
           } else if (solid == 3) {
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entnum);
             if (brush_links) {
-              for (brush_iter = brush_links; brush_iter; brush_iter = (bsp_link_t *)*(int *)((char *)brush_iter + 0x10)) {
+              for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
                 if (dleafs[brush_iter->leafnum].numleafbrushes) {
                   *out++ = entnum;
                   count++;
@@ -3841,7 +3841,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
           }
         }
       }
-      ent_link = (bsp_link_t *)*(int *)((char *)ent_link + 8);   /* ->next_ent */
+      ent_link = ent_link->next_ent;
     }
   }
 
