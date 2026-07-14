@@ -19405,7 +19405,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v14; // ax
   float v16; // st7
   int v18; // ebx
-  void *v19; // edi (chatstate pointer)
   int v24; // ax
   float v26; // st7
   int v27; // eax
@@ -19432,15 +19431,15 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
    * member at this slot — restore it as a union so MSVC packs all
    * assignments onto the same 4-byte slot (saves 8 bytes of frame). */
   int u54i;   /* IDA v54 — one ebp-5C4h slot; int view (checkpoint num)      */
-  float u54f; /* IDA v55..v60 — float view; MSVC6 colors both + the fild
-               * temps into ONE slot (BotCTFSeekGoals precedent)             */
+  float u54f; /* IDA v55 — float view; MSVC6 colors both into ONE slot
+               * (BotCTFSeekGoals precedent)             */
 #define v54 u54i
 #define v55 u54f
-#define v56 u54f
-#define v57 u54f
-#define v58 u54f
-#define v59 u54f
-#define v60 u54f
+  float v56;
+  float v57;
+  float v58;
+  float v59;
+  float v60;
   vec3_t origin; // [esp+2Ch] [ebp-5C0h] BYREF — checkpoint origin parsed from chat (sscanf input to AAS_PointAreaNum)
   /* IDA decompiled the 240-byte match struct as a flat `char v64[4]` plus
    * separate `int v65/v66` and never recovered the variables[] capture
@@ -19611,10 +19610,8 @@ LABEL_32:
       v18 = FindClientByName(Destination) + 1;
       if ( !v18 )
       {
-        v19 = &bs->chatstate;
         BotInitialChat(&bs->chatstate, "whois", Destination, (char *)0);
-LABEL_64:
-        BotEnterChat(v19, bs->client, 1);
+        BotEnterChat(&bs->chatstate, bs->client, 1);
         return 1;
       }
       BotMatchVariable(&match, 4, String2);
@@ -19669,9 +19666,9 @@ LABEL_64:
       }
       else if ( !BotGetMessageTeamGoal(bs, String2, &bs->teamgoal) )
       {
-        v19 = &bs->chatstate;
         BotInitialChat(&bs->chatstate, "cannotfind", String2, (char *)0);
-        goto LABEL_64;
+        BotEnterChat(&bs->chatstate, bs->client, 1);
+        return 1;
       }
       v24 = rand();
       v57 = (float)(v24 & 0x7FFF) * 0.000030518509f;
@@ -19743,7 +19740,7 @@ LABEL_64:
         BotInitialChat(&bs->chatstate, "leftteam", bs->teamleader,
                        (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
-      bs->teamleader[0] = byte_1006294C;
+      strcpy(bs->teamleader, "");
       return 1;
     case 20:
       if ( !TeamPlayIsOn() )
@@ -19882,23 +19879,21 @@ LABEL_64:
           return 1;
         case 6:
           BotInitialChat(&bs->chatstate, "camping", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
+          break;
         case 7:
           BotInitialChat(&bs->chatstate, "patrolling", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
+          break;
         case 4:
           BotInitialChat(&bs->chatstate, "capturingflag", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
+          break;
         case 5:
           BotInitialChat(&bs->chatstate, "rushingbase", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          return 1;
+          break;
         default:
           return 0;
       }
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      return 1;
     default:
       botimport.Print(PRT_MESSAGE, "unknown match type\n");
       return 1;
