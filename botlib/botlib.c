@@ -8656,9 +8656,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
     if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
       presencetype = 2;
 LABEL_12:
-    *(int *)&lastorg[0] = *(int *)&org[0];
-    *(int *)&lastorg[1] = *(int *)&org[1];
-    *(int *)&lastorg[2] = *(int *)&org[2];
+    lastorg[0] = org[0];
+    lastorg[1] = org[1];
+    lastorg[2] = org[2];
     VectorCopy(frame_test_vel, left_test_vel);
     j = 0;
     do
@@ -9005,9 +9005,9 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
     }
     else
     {
-      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][0] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][0];
-      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][1] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][1];
-      *(_DWORD *)&((vec3_t *)optimized->vertexes)[optimized->numvertexes][2] = *(_DWORD *)&aasworld.vertexes[edge->v[i]][2];
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][0] = aasworld.vertexes[edge->v[i]][0];
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][1] = aasworld.vertexes[edge->v[i]][1];
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][2] = aasworld.vertexes[edge->v[i]][2];
       optedge->v[i] = optimized->numvertexes;
       optimized->vertexremap[edge->v[i]] = optimized->numvertexes;
       optimized->numvertexes++;
@@ -10066,20 +10066,19 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 {
                                   ground_bestdist = dist;
                                   ground_bestlength = length;
-                                  *(int *)&ground_beststart[0] = *(int *)&start[0];
-                                  *(int *)&ground_beststart[1] = *(int *)&start[1];
+                                  ground_beststart[0] = start[0];
+                                  ground_beststart[1] = start[1];
                                   ground_beststart[2] = start[2];
-                                  /* Original asm uses integer movs to copy bit patterns from
-                                   * normal/v102/v103 (int slots holding cross-product float bits)
-                                   * into ground_bestnormal[0..2].  IDA's `ground_bestnormal[1] = v102` decompile would
-                                   * become an int→float conversion (fild) in GCC, corrupting
-                                   * the float.  Bit-cast explicitly. */
+                                  /* [0] keeps the int-view first-component copy form used
+                                   * elsewhere in this file; [1]/[2] were a redundant same-type
+                                   * cast on the now-collapsed vec3_t `normal` (oracle-confirmed
+                                   * byte-neutral to strip, 2026-07 cast sweep). */
                                   *(int *)ground_bestnormal = *(int *)&normal[0];
-                                  *(int *)&ground_bestnormal[1] = *(int *)&normal[1];
-                                  *(int *)&ground_bestnormal[2] = *(int *)&normal[2];
+                                  ground_bestnormal[1] = normal[1];
+                                  ground_bestnormal[2] = normal[2];
                                   ground_foundreach = 1;
                                   ground_bestarea2groundedgenum = v13;
-                                  *(int *)&ground_bestend[0] = *(int *)&end[0];
+                                  ground_bestend[0] = end[0];
                                   ground_bestend[1] = end[1];
                                   ground_bestend[2] = end[2];
                                 }
@@ -10088,18 +10087,18 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               {
                                 water_bestdist = dist;
                                 water_bestlength = length;
-                                *(int *)&water_beststart[0] = *(int *)&start[0];
+                                water_beststart[0] = start[0];
                                 water_beststart[1] = start[1];
                                 water_beststart[2] = start[2];
                                 /* Same bit-pattern preservation as ground_bestnormal above. */
                                 *(int *)water_bestnormal = *(int *)&normal[0];
-                                *(int *)&water_bestnormal[1] = *(int *)&normal[1];
-                                *(int *)&water_bestnormal[2] = *(int *)&normal[2];
+                                water_bestnormal[1] = normal[1];
+                                water_bestnormal[2] = normal[2];
                                 water_foundreach = 1;
                                 v114 = v13;
                                 *(int *)water_bestend = *(int *)&end[0];
-                                *(int *)&water_bestend[1] = *(int *)&end[1];
-                                *(int *)&water_bestend[2] = *(int *)&end[2];
+                                water_bestend[1] = end[1];
+                                water_bestend[2] = end[2];
                               }
                             }
                           }
@@ -15067,9 +15066,9 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, floa
       }
       v10->starttime = AAS_Time() + a7;
       v10->endtime = AAS_Time() + v8->duration + a7;
-      *(int *)&v10->origin[0] = *(int *)&a1[0];
-      *(int *)&v10->origin[1] = *(int *)&a1[1];
-      *(int *)&v10->origin[2] = *(int *)&a1[2];
+      v10->origin[0] = a1[0];
+      v10->origin[1] = a1[1];
+      v10->origin[2] = a1[2];
       v10->_reserved20 = 0;
       v10->entnum = a2;
       v10->channel = a3;
@@ -16598,8 +16597,8 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   goal.entitynum = bs->enemy;
   goal.areanum = bs->lastenemyareanum;
   goal.origin[0] = bs->lastenemyorigin[0];
-  *(int *)&goal.origin[1] = *(int *)&bs->lastenemyorigin[1];
-  *(int *)&goal.origin[2] = *(int *)&bs->lastenemyorigin[2];
+  goal.origin[1] = bs->lastenemyorigin[1];
+  goal.origin[2] = bs->lastenemyorigin[2];
   goal.mins[0] = -8.0;
   goal.mins[1] = -8.0;
   goal.mins[2] = -8.0;
@@ -19599,12 +19598,12 @@ LABEL_32:
       {
         bs->teamgoal.entitynum = bs->entitynum;
         bs->teamgoal.areanum = bs->areanum;
-        *(int *)&bs->teamgoal.origin[0] = *(int *)&bs->origin[0];
-        *(int *)&bs->teamgoal.origin[1] = *(int *)&bs->origin[1];
+        bs->teamgoal.origin[0] = bs->origin[0];
+        bs->teamgoal.origin[1] = bs->origin[1];
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
-        *(int *)&bs->teamgoal.origin[2] = *(int *)&bs->origin[2];
+        bs->teamgoal.origin[2] = bs->origin[2];
         bs->teamgoal.maxs[0] = 8.0f;
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
@@ -19986,8 +19985,8 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 
   bs->ltime += a2;
   bs->thinktime = a2;
-  *(int *)&bs->origin[0] = *(int *)&bs->snapshot.origin[0];
-  *(int *)&bs->origin[1] = *(int *)&bs->snapshot.origin[1];
+  bs->origin[0] = bs->snapshot.origin[0];
+  bs->origin[1] = bs->snapshot.origin[1];
   bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   v6 = (*(int *)&bs->snapshot.origin[2]);
   memcpy(bs->inventory, bs->inventory_src, 0x400u);
@@ -24285,15 +24284,15 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                     if ( v13 > bestweight )
                     {
                       bestitem = li;
-                      *(int *)&goal.origin[0] = *(int *)&li->goalorigin[0];
-                      *(int *)&goal.origin[1] = *(int *)&li->goalorigin[1];
-                      *(int *)&goal.origin[2] = *(int *)&li->goalorigin[2];
-                      *(int *)&goal.mins[0] = *(int *)&iteminfo->mins[0];
-                      *(int *)&goal.mins[1] = *(int *)&iteminfo->mins[1];
-                      *(int *)&goal.mins[2] = *(int *)&iteminfo->mins[2];
-                      *(int *)&goal.maxs[0] = *(int *)&iteminfo->maxs[0];
-                      *(int *)&goal.maxs[1] = *(int *)&iteminfo->maxs[1];
-                      *(int *)&goal.maxs[2] = *(int *)&iteminfo->maxs[2];
+                      goal.origin[0] = li->goalorigin[0];
+                      goal.origin[1] = li->goalorigin[1];
+                      goal.origin[2] = li->goalorigin[2];
+                      goal.mins[0] = iteminfo->mins[0];
+                      goal.mins[1] = iteminfo->mins[1];
+                      goal.mins[2] = iteminfo->mins[2];
+                      goal.maxs[0] = iteminfo->maxs[0];
+                      goal.maxs[1] = iteminfo->maxs[1];
+                      goal.maxs[2] = iteminfo->maxs[2];
                       goal.areanum = v9;
                       bestweight = v13;
                       goal.entitynum = li->entitynum;
@@ -24427,12 +24426,12 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                           goal.origin[1] = li->goalorigin[1];
                           bestitem = li;
                           goal.origin[2] = li->goalorigin[2];
-                          *(int *)&goal.mins[0] = *(int *)&iteminfo->mins[0];
-                          *(int *)&goal.mins[1] = *(int *)&iteminfo->mins[1];
-                          *(int *)&goal.mins[2] = *(int *)&iteminfo->mins[2];
-                          *(int *)&goal.maxs[0] = *(int *)&iteminfo->maxs[0];
-                          *(int *)&goal.maxs[1] = *(int *)&iteminfo->maxs[1];
-                          *(int *)&goal.maxs[2] = *(int *)&iteminfo->maxs[2];
+                          goal.mins[0] = iteminfo->mins[0];
+                          goal.mins[1] = iteminfo->mins[1];
+                          goal.mins[2] = iteminfo->mins[2];
+                          goal.maxs[0] = iteminfo->maxs[0];
+                          goal.maxs[1] = iteminfo->maxs[1];
+                          goal.maxs[2] = iteminfo->maxs[2];
                           goal.areanum = v11;
                           goal.entitynum = li->entitynum;
                           goal.number = li->number;
@@ -26432,7 +26431,7 @@ LABEL_27:
     movestate->reachability_time = movestate->reachability_time - movestate->thinktime * 10.0f;
   v17 = *(int *)&movestate->origin[1];
   v18 = *(int *)&movestate->origin[2];
-  *(int *)&movestate->lastorigin[0] = *(int *)&movestate->origin[0];
+  movestate->lastorigin[0] = movestate->origin[0];
   *(int *)&movestate->lastorigin[1] = v17;
   *(int *)&movestate->lastorigin[2] = v18;
   result = a1;
