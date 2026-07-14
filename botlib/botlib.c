@@ -17819,13 +17819,11 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   float v10; // st7
   bot_character_t *v11; // restored: holds BotCharacter pointer
   int movetype; // edi
-  int v13; // eax
   float strafechange_time; // st7
   int v16; // eax
   int i; // esi
   float v18; // st7
   int v19; // edx
-  bot_character_t *v20; // [esp-10h] [ebp-154h]
   float jumper; // [esp+10h] [ebp-134h]
   /* Collapsed vec3 triplets v22/v23/v24, v28/v29/v30, v32/v33/v34 — each
    * passed by-address to CrossProduct / VectorNormalize / VectorLength /
@@ -17836,7 +17834,6 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   float dist; // [esp+24h] [ebp-120h]
   float attack_skill; // [esp+28h] [ebp-11Ch]
   vec3_t forward; // [esp+2Ch] [ebp-118h] BYREF
-  float v31; // [esp+38h] [ebp-10Ch]
   vec3_t backward; // [esp+3Ch] [ebp-108h] BYREF
   vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
   vec3_t up = { 0, 0, 1.0f }; // [esp+54h] [ebp-F0h] BYREF
@@ -17859,7 +17856,6 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
     return *BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
   }
   memset(&moveresult, 0, sizeof(moveresult));
-  v20 = BotCharacter(bs);
   v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
@@ -17868,7 +17864,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
    * spurious `vN = v10;` assignments using the random number — which made
    * every probability gate trivially `random <= random` (always true) and
    * destroyed the BFloat gating throughout this AI helper. */
-  if ( Characteristic_BFloat(v20, 48, 0.0f, 1.0f) <= v10 )
+  if ( Characteristic_BFloat(BotCharacter(bs), 48, 0.0f, 1.0f) <= v10 )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
     v11 = BotCharacter(bs);
@@ -17889,16 +17885,13 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
       movetype = 1;
       if ( AAS_Time() - 1.0f > bs->attackcrouch_time )
       {
-        LOWORD(v31) = rand() & 0x7FFF;
-        LODWORD(v31) = LOWORD(v31);
-        if ( (float)LOWORD(v31) * 0.000030518509f >= jumper )
-        {
-          if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < croucher )
-            bs->attackcrouch_time = AAS_Time() + croucher * 5.0f;
-        }
-        else
+        if ( (float)(rand() & 0x7FFF) * 0.000030518509f < jumper )
         {
           movetype = 4;
+        }
+        else if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < croucher )
+        {
+          bs->attackcrouch_time = AAS_Time() + croucher * 5.0f;
         }
       }
       if ( AAS_Time() < bs->attackcrouch_time )
@@ -17909,30 +17902,28 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
       {
         if ( movetype == 4 )
         {
-          v13 = bs->flags;
-          if ( (v13 & 4) != 0 )
+          if ( (bs->flags & 4) != 0 )
           {
-            v13 &= 0xFFFFFFFB;
+            bs->flags &= 0xFFFFFFFB;
             movetype = 1;
           }
           else
           {
-            v13 |= 4;
+            bs->flags |= 4;
           }
-          bs->flags = v13;
         }
       }
       if ( attack_skill <= 0.4 )
       {
         if ( (dist <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, forward, 400.0f, movetype)) && dist < 100.0f )
           BotMoveInDirection((bot_movestate_t *)bs->movestate, backward, 400.0f, movetype);
-        goto LABEL_39;
+        return moveresult;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
       strafechange_time = (1.0f - attack_skill) * 0.2 + 0.4;
       if ( attack_skill > 0.7 )
       {
-        strafechange_time += 2.0 * ((rand() & 0x7FFF) / ((float)0x7FFF) - 0.5) * 0.1;
+        strafechange_time += 2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5) * 0.1;
       }
       if ( strafechange_time < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
       {
@@ -17973,7 +17964,7 @@ LABEL_37:
           if ( i < 2 )
             continue;
         }
-        goto LABEL_39;
+        return moveresult;
       }
       if ( dist >= 100.0f )
         goto LABEL_37;
@@ -17984,7 +17975,6 @@ LABEL_35:
       goto LABEL_36;
     }
   }
-LABEL_39:
   return moveresult;
 }
 
