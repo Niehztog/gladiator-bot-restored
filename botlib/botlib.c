@@ -558,7 +558,7 @@ float __cdecl BotAggression(bot_state_t *bs);
 BOOL __cdecl BotWantsToRetreat(int *bs);
 BOOL __cdecl BotWantsToChase(int *bs);
 float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal);
-bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3);
+bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3);
 int __cdecl BotCTFTeam(bot_state_t *bs);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
@@ -10454,7 +10454,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         return 0;
     }
 
-    if ( *(float *)&maxjumpheight + area1->maxs[2] >= area2->mins[2] )
+    if ( *(float *)&maxjumpheight + *v7 < *v6 )
+      return 0;
     {
       v8 = area1->numfaces;
       v9 = 0;
@@ -16509,7 +16510,7 @@ LABEL_9:
       BotChooseBestFightWeapon(BotWS(bs));
       sub_100215E0(bs);
       BotBattleUseItems(bs);
-      moveresult = BotAttackMove((intptr_t)bs, v8);
+      moveresult = BotAttackMove(bs, v8);
       if ( moveresult.failure )
       {
         BotResetAvoidReach((_DWORD *)bs->movestate);
@@ -17813,16 +17814,13 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
 }
 
 //----- (10022E10) --------------------------------------------------------
-bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
+bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
 {
-  bot_state_t *bs = (bot_state_t *)a2;   /* restored: a2 is the bot state pointer (mirrors other __cdecl(int a) bot funcs) */
-  __int16 v9; // ax
   float v10; // st7
   bot_character_t *v11; // restored: holds BotCharacter pointer
   int movetype; // edi
   int v13; // eax
   float strafechange_time; // st7
-  __int16 v15; // ax
   int v16; // eax
   int i; // esi
   float v18; // st7
@@ -17841,14 +17839,11 @@ bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
   float v31; // [esp+38h] [ebp-10Ch]
   vec3_t backward; // [esp+3Ch] [ebp-108h] BYREF
   vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
-  vec3_t up; // [esp+54h] [ebp-F0h] BYREF
+  vec3_t up = { 0, 0, 1.0f }; // [esp+54h] [ebp-F0h] BYREF
   bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
   bot_moveresult_t moveresult; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
   float entinfo[31]; // [esp+C8h] [ebp-7Ch] BYREF
 
-  up[0] = 0;
-  up[1] = 0;
-  up[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; up is float[3] */
   if ( AAS_Time() < bs->attackchase_time )
   {
     goal.entitynum = bs->enemy;
@@ -17864,9 +17859,8 @@ bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
     return *BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
   }
   memset(&moveresult, 0, sizeof(moveresult));
-  v9 = rand();
   v20 = BotCharacter(bs);
-  v10 = (float)(v9 & 0x7FFF) * 0.000030518509f;
+  v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
   /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
    * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
    * `fstp [esp+...]` immediately after each call.  In C those become the
@@ -17936,12 +17930,9 @@ bot_moveresult_t __cdecl BotAttackMove(intptr_t a2, int a3)
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
       strafechange_time = (1.0f - attack_skill) * 0.2 + 0.4;
-      v31 = strafechange_time;
       if ( attack_skill > 0.7 )
       {
-        v15 = rand();
-        strafechange_time = 2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5) * 0.1
-            + v31;
+        strafechange_time += 2.0 * ((rand() & 0x7FFF) / ((float)0x7FFF) - 0.5) * 0.1;
       }
       if ( strafechange_time < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
       {
@@ -24367,7 +24358,6 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
 //----- (10030260) --------------------------------------------------------
 int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
-  BOOL v8; // eax
   int v9; // esi
   levelitem_t *li; // esi (was v10)
   int v11; // ebx
@@ -24382,19 +24372,23 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   int areanum; // [esp+18h] [ebp-40h]
   int t; // [esp+1Ch] [ebp-3Ch]
   bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
-  int v23; // [esp+5Ch] [ebp+4h]
-  int v24; // [esp+5Ch] [ebp+4h]
   int ltg_time; // [esp+60h] [ebp+8h]
   float avoidtime; // [esp+68h] [ebp+10h]
   /* 64-bit fix: see BotChooseLTGItem — itemweightconfig/itemweightindex live in sideband. */
+#if BOTLIB_NEED_SIDEBAND
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
+#define NBG_IWC p0
+#define NBG_IWI p1
+#else
+#define NBG_IWC (*(weightconfig_t **)&goalstate->itemweightconfig)
+#define NBG_IWI (*(int **)&goalstate->itemweightindex)
+#endif
 
-  if ( !p0 )
+  if ( !NBG_IWC )
     return 0;
-  v8 = AAS_Swimming(origin);
-  areanum = BotReachabilityArea(origin, !v8);
+  areanum = BotReachabilityArea(origin, !AAS_Swimming(origin));
   v9 = areanum;
   if ( !areanum )
     return 0;
@@ -24416,11 +24410,10 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
             if ( v11 )
             {
               iteminfo = &ic->items[li->iteminfo];
-              weightnum = p1[iteminfo->number];
+              weightnum = NBG_IWI[iteminfo->number];
               if ( weightnum >= 0 )
               {
-                weight = FuzzyWeightUndecided(inventory, &p0->weights[weightnum]);
-                *(float *)&v23 = weight;
+                weight = FuzzyWeightUndecided(inventory, &NBG_IWC->weights[weightnum]);
                 if ( weight > 0.0f )
                 {
                   t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v11, travelflags);
@@ -24429,21 +24422,21 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                     v15 = (float)t;
                     if ( v15 < maxtime )
                     {
-                      *(float *)&v24 = *(float *)&v23 / (v15 * 0.01);
+                      weight = weight / (v15 * 0.01);
                       if ( li->timeout != 0.0f )
-                        *(float *)&v24 = *(float *)&v24 + 20.0f;
-                      if ( *(float *)&v24 > (float)bestweight )
+                        weight = weight + 20.0f;
+                      if ( weight > bestweight )
                       {
                         v16 = 0;
                         if ( ltg )
                           v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, ltg->areanum, travelflags);
                         if ( v16 <= ltg_time )
                         {
-                          *(int *)&goal.origin[0] = *(int *)&li->goalorigin[0];
-                          bestweight = *(float *)&v24;
-                          *(int *)&goal.origin[1] = *(int *)&li->goalorigin[1];
+                          goal.origin[0] = li->goalorigin[0];
+                          bestweight = weight;
+                          goal.origin[1] = li->goalorigin[1];
                           bestitem = li;
-                          *(int *)&goal.origin[2] = *(int *)&li->goalorigin[2];
+                          goal.origin[2] = li->goalorigin[2];
                           *(int *)&goal.mins[0] = *(int *)&iteminfo->mins[0];
                           *(int *)&goal.mins[1] = *(int *)&iteminfo->mins[1];
                           *(int *)&goal.mins[2] = *(int *)&iteminfo->mins[2];
@@ -24464,17 +24457,17 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
             }
           }
   }
-  if ( bestitem )
-  {
-    avoidtime = ic->items[bestitem->iteminfo].respawntime;
-    if ( avoidtime == 0.0f )
-      avoidtime = 30.0f;
-    BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
-    BotPushGoal(goalstate, &goal);
-    return 1;
-  }
-  return 0;
+  if ( !bestitem )
+    return 0;
+  avoidtime = ic->items[bestitem->iteminfo].respawntime;
+  if ( avoidtime == 0.0f )
+    avoidtime = 30.0f;
+  BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
+  BotPushGoal(goalstate, &goal);
+  return 1;
 }
+#undef NBG_IWC
+#undef NBG_IWI
 
 //----- (10030600) --------------------------------------------------------
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
