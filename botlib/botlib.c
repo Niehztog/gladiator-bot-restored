@@ -19425,7 +19425,6 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v48; // eax
   int v49; // eax
   int v50; // eax
-  const char *v51; // eax
   /* IDA split a single ebp-5C4h slot into v54 (int) + v55..v60 (float)
    * across mutually-exclusive switch cases.  Original had ONE union
    * member at this slot — restore it as a union so MSVC packs all
@@ -19448,7 +19447,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
    * StringsMatch / BotMatchVariable interfaces type-check properly. */
   bot_match_t match; // [esp+38h] [ebp-5B4h] -- the entire match struct
   char Destination[152]; // [esp+128h] [ebp-4C4h] BYREF
-  int entinfo[31]; // [esp+1C0h] [ebp-42Ch] BYREF
+  aas_entityinfo_t entinfo; // [esp+1C0h] [ebp-42Ch] BYREF
   char Source[152]; // [esp+23Ch] [ebp-3B0h] BYREF
   char Buffer[152]; // [esp+2D4h] [ebp-318h] BYREF
   char String2[152]; // [esp+36Ch] [ebp-280h] BYREF
@@ -19510,22 +19509,22 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
         return 1;
       }
       bs->teamgoal.entitynum = 0;
-      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(v4);
-      if ( entinfo[0] )
+      entinfo = AAS_EntityInfo(v4);
+      if ( entinfo.valid )
       {
-        v6 = AAS_PointAreaNum(&entinfo[4]);
+        v6 = AAS_PointAreaNum(entinfo.origin);
         if ( v6 )
         {
           if ( AAS_AreaReachability(v6) )
           {
-            bs->teamgoal.origin[2] = *(float *)&entinfo[6];
+            bs->teamgoal.origin[2] = entinfo.origin[2];
             bs->teamgoal.entitynum = v4;
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
             bs->teamgoal.mins[2] = -8.0f;
             bs->teamgoal.areanum = v6;
-            bs->teamgoal.origin[0] = *(float *)&entinfo[4];
-            bs->teamgoal.origin[1] = *(float *)&entinfo[5];
+            bs->teamgoal.origin[0] = entinfo.origin[0];
+            bs->teamgoal.origin[1] = entinfo.origin[1];
             bs->teamgoal.maxs[0] = 8.0f;
             bs->teamgoal.maxs[1] = 8.0f;
             bs->teamgoal.maxs[2] = 8.0f;
@@ -19619,8 +19618,8 @@ LABEL_32:
       {
         bs->teamgoal.entitynum = bs->entitynum;
         bs->teamgoal.areanum = bs->areanum;
-        *(int *)&bs->teamgoal.origin[1] = *(int *)&bs->origin[1];
         *(int *)&bs->teamgoal.origin[0] = *(int *)&bs->origin[0];
+        *(int *)&bs->teamgoal.origin[1] = *(int *)&bs->origin[1];
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
@@ -19634,22 +19633,22 @@ LABEL_32:
         if ( v18 == bs->entitynum )
           return 1;
         bs->teamgoal.entitynum = 0;
-        *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(v18);
-        if ( entinfo[0] )
+        entinfo = AAS_EntityInfo(v18);
+        if ( entinfo.valid )
         {
-          v27 = AAS_PointAreaNum(&entinfo[4]);
+          v27 = AAS_PointAreaNum(entinfo.origin);
           if ( v27 )
           {
             if ( AAS_AreaReachability(v27) && BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, v18) )
             {
-              bs->teamgoal.origin[2] = *(float *)&entinfo[6];
+              bs->teamgoal.origin[2] = entinfo.origin[2];
               bs->teamgoal.entitynum = v18;
               bs->teamgoal.mins[0] = -8.0f;
               bs->teamgoal.mins[1] = -8.0f;
               bs->teamgoal.mins[2] = -8.0f;
               bs->teamgoal.areanum = v27;
-              bs->teamgoal.origin[0] = *(float *)&entinfo[4];
-              bs->teamgoal.origin[1] = *(float *)&entinfo[5];
+              bs->teamgoal.origin[0] = entinfo.origin[0];
+              bs->teamgoal.origin[1] = entinfo.origin[1];
               bs->teamgoal.maxs[0] = 8.0f;
               bs->teamgoal.maxs[1] = 8.0f;
               bs->teamgoal.maxs[2] = 8.0f;
@@ -19850,8 +19849,7 @@ LABEL_32:
       }
       if ( v50 < 0 )
         return 1;
-      v51 = (const char *)ClientName(v50);
-      if ( _strcmpi(bs->formation_teammate, v51) )
+      if ( _strcmpi(bs->formation_teammate, (const char *)ClientName(v50)) )
         return 1;
       bs->formation_teammate[0] = 0;
       return 1;
