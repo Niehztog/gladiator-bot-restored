@@ -11686,22 +11686,14 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   aas_area_t *area2; // ebp
   aas_area_t *area1; // ecx
   int v4; // restored from disasm at 0x10016a78
-  int v5; // ecx
   int i; // eax
   int face2num; // ebp
   aas_face_t *face2; // esi
   float *v; // rax (was __int64) — pointer to vertex (float[3])
-  int vidx; // edge index value
   float hordist; // st7 (was double)
   int areanum; // edi
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
-  float v14; // st7 (was double)
-  float v15; // st7 (was double)
-  float v16; // edx
-  float v17; // eax
-  float v18; // ecx
-  int v19; // edx
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays.
    * VectorLength, VectorNormalize and AAS_Trace read 3 contiguous floats
    * from the pointers passed in, so GCC must lay each trio out adjacently. */
@@ -11712,8 +11704,6 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
-  int v38;
-  aas_area_t *v39;
   aas_trace_t trace;
   float bsptrace[21]; /* [BYREF] */
 
@@ -11725,7 +11715,6 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     return 0;
   area1 = &aasworld.areas[area1num];
   area2 = &aasworld.areas[area2num];
-  v39 = area2;
   if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
   VectorCopy(area1->center, start);
@@ -11747,99 +11736,86 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
-  v5 = area2->numfaces;
-  i = 0;
-  v38 = 0;
-  if ( v5 > 0 )
+  for ( i = 0; i < area2->numfaces; i++ )
   {
-    while ( 1 )
+    face2num = aasworld.faceindex[i + area2->firstface];
+    face2 = &aasworld.faces[abs(face2num)];
+    if ( (face2->faceflags & 1) != 0 )
     {
-      face2num = aasworld.faceindex[i + area2->firstface];
-      face2 = &aasworld.faces[abs(face2num)];
-      if ( (face2->faceflags & 1) != 0 )
+      v = aasworld.vertexes[aasworld.edges[abs(aasworld.edgeindex[face2->firstedge])].v[0]];
+      VectorSubtract(v, areastart, dir);
+      if ( dir[2] * aasworld.planes[face2->planenum].normal[2]
+         + dir[1] * aasworld.planes[face2->planenum].normal[1]
+         + dir[0] * aasworld.planes[face2->planenum].normal[0] <= 0.0f )
       {
-        vidx = aasworld.edgeindex[face2->firstedge];
-        v = aasworld.vertexes[aasworld.edges[abs(vidx)].v[0]];
-        VectorSubtract(v, areastart, dir);
-        if ( dir[2] * aasworld.planes[face2->planenum].normal[2]
-           + dir[1] * aasworld.planes[face2->planenum].normal[1]
-           + dir[0] * aasworld.planes[face2->planenum].normal[0] <= 0.0f )
+        AAS_FaceCenter(face2num, facecenter);
+        if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[face2->planenum].normal[2] * -1.0f >= 0.0f )
         {
-          AAS_FaceCenter(face2num, facecenter);
-          if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[face2->planenum].normal[2] * -1.0f >= 0.0f )
+          dir[2] = 0.0f;
+          dir[0] = facecenter[0] - areastart[0];
+          dir[1] = facecenter[1] - areastart[1];
+          v37 = facecenter[2] - areastart[2];
+          hordist = VectorLength(dir);
+          v36 = hordist;
+          if ( hordist != 0.0f && v36 <= 2000.0f && v37 / v36 >= tan(0.2617993877991494) )
           {
-            dir[2] = 0.0f;
-            dir[0] = facecenter[0] - areastart[0];
-            dir[1] = facecenter[1] - areastart[1];
-            v37 = facecenter[2] - areastart[2];
-            hordist = VectorLength(dir);
-            v36 = hordist;
-            if ( hordist != 0.0f && v36 <= 2000.0f && tan(0.2617993877991494) <= v37 / v36 )
+            VectorCopy(facecenter, start);
+            /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
+             * decompiled the address calc as `+ 20 * planenum` which would
+             * advance 20 floats = 80 bytes per plane; the original disasm
+             * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
+             * planes + planenum*5*4 = planes + planenum*20 bytes. */
+            VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
+            *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
+            if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
             {
-              VectorCopy(facecenter, start);
-              /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
-               * decompiled the address calc as `+ 20 * planenum` which would
-               * advance 20 floats = 80 bytes per plane; the original disasm
-               * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
-               * planes + planenum*5*4 = planes + planenum*20 bytes. */
-              VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
-              *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
-              if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
+              VectorSubtract(facecenter, areastart, dir);
+              VectorNormalize(dir);
+              VectorMA(areastart, 4.0f, dir, start);
+              /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
+               * IDA dropped the middle assignment. */
+              end[0] = bsptrace[3];
+              end[1] = bsptrace[4];
+              end[2] = bsptrace[5];
+              trace = AAS_TraceClientBBox(start, end, 2, -1);
+              VectorSubtract(trace.endpos, facecenter, dir);
+              if ( VectorLength(dir) <= 24.0f )
               {
-                VectorSubtract(facecenter, areastart, dir);
-                VectorNormalize(dir);
-                VectorMA(areastart, 4.0f, dir, start);
-                /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
-                 * IDA dropped the middle assignment. */
-                end[0] = bsptrace[3];
-                end[1] = bsptrace[4];
-                end[2] = bsptrace[5];
+                VectorCopy(trace.endpos, start);
+                /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
+                 * from trace.endpos; IDA dropped the middle assignment. */
+                VectorCopy(trace.endpos, end);
+                end[2] -= AAS_FallDamageDistance();
                 trace = AAS_TraceClientBBox(start, end, 2, -1);
-                VectorSubtract(trace.endpos, facecenter, dir);
-                if ( VectorLength(dir) <= 24.0f )
+                if ( trace.fraction < 1.0f )
                 {
-                  VectorCopy(trace.endpos, start);
-                  /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
-                   * from trace.endpos; IDA dropped the middle assignment. */
-                  VectorCopy(trace.endpos, end);
-                  v37 = AAS_FallDamageDistance();
-                  end[2] = end[2] - (float)v37;
-                  trace = AAS_TraceClientBBox(start, end, 2, -1);
-                  if ( trace.fraction < 1.0f )
+                  areanum = AAS_PointAreaNum(trace.endpos);
+                  if ( (aasworld.areasettings[areanum].contents & 6) == 0
+                    && areanum != area1num
+                    && !AAS_ReachabilityExists(area1num, areanum)
+                    && AAS_AreaGrounded(areanum) )
                   {
-                    areanum = AAS_PointAreaNum(trace.endpos);
-                    if ( (aasworld.areasettings[areanum].contents & 6) == 0
-                      && areanum != area1num
-                      && !AAS_ReachabilityExists(area1num, areanum)
-                      && AAS_AreaGrounded(areanum) )
-                    {
-                      lreach = AAS_AllocReachability();
-                      v13 = lreach;
-                      if ( !lreach )
-                        return 0;
-                      v14 = bsptrace[3];
-                      lreach->reach.areanum = areanum;
-                      lreach->reach.facenum = face2num;
-                      lreach->reach.edgenum = 0;
-                      lreach->reach.start[0] = areastart[0];
-                      v15 = v14 - lreach->reach.start[0];
-                      v16 = bsptrace[3];
-                      lreach->reach.start[1] = areastart[1];
-                      v17 = bsptrace[4];
-                      v13->reach.start[2] = areastart[2];
-                      v18 = bsptrace[5];
-                      v13->reach.end[0] = v16;
-                      v13->reach.end[1] = v17;
-                      v13->reach.end[2] = v18;
-                      v13->reach.traveltype = 14;
-                      dir[0] = v15;
-                      dir[1] = v13->reach.end[1] - v13->reach.start[1];
-                      dir[2] = v13->reach.end[2] - v13->reach.start[2];
-                      v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25 + 500.0);
-                      v13->next = areareachability[area1num];
-                      areareachability[area1num] = v13;
-                      ++reach_grapple;
-                    }
+                    lreach = AAS_AllocReachability();
+                    v13 = lreach;
+                    if ( !lreach )
+                      return 0;
+                    lreach->reach.areanum = areanum;
+                    lreach->reach.facenum = face2num;
+                    lreach->reach.edgenum = 0;
+                    lreach->reach.start[0] = areastart[0];
+                    lreach->reach.start[1] = areastart[1];
+                    v13->reach.start[2] = areastart[2];
+                    v13->reach.end[0] = bsptrace[3];
+                    v13->reach.end[1] = bsptrace[4];
+                    v13->reach.end[2] = bsptrace[5];
+                    v13->reach.traveltype = 14;
+                    dir[0] = bsptrace[3] - lreach->reach.start[0];
+                    dir[1] = v13->reach.end[1] - v13->reach.start[1];
+                    dir[2] = v13->reach.end[2] - v13->reach.start[2];
+                    v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25 + 500.0);
+                    v13->next = areareachability[area1num];
+                    areareachability[area1num] = v13;
+                    ++reach_grapple;
                   }
                 }
               }
@@ -11847,12 +11823,6 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
           }
         }
       }
-      i = v38 + 1;
-      v19 = v39->numfaces;
-      v38 = i;
-      if ( i >= v19 )
-        break;
-      area2 = v39;
     }
   }
   return 0;
