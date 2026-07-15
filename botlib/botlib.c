@@ -11916,7 +11916,6 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   int v4; // eax
   int i; // esi
   int face2num; // rax (was __int64; only low 32 bits used, abs() idiom — see asm_matching/idioms)
-  float v7; // st7
   int n; // ebp
   int v9; // edi
   int v10; // esi
@@ -11932,6 +11931,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
   int v23;
   float speed;
+  float hordist;
   vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
   vec3_t dir; /* [BYREF] */
   vec3_t velocity; /* [BYREF] */
@@ -11944,8 +11944,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   if ( !AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num) ) return 0;
   if ( !AAS_AreaGrounded(area2num) ) return 0;
   if ( (aasworld.areasettings[area2num].areaflags & 0x2000) == 0 ) return 0;
-  area2 = &aasworld.areas[area2num];
   area1 = &aasworld.areas[area1num];
+  area2 = &aasworld.areas[area2num];
   if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
   VectorCopy(area1->center, centerorg);
@@ -11970,28 +11970,25 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
     if ( (aasworld.faces[abs(face2num)].faceflags & 4) != 0 )
     {
       AAS_FaceCenter(aasworld.faceindex[i + area2->firstface], facecenter);
-      v7 = groundedpos[2] + 64.0f;
-      if ( v7 <= facecenter[2] )
+      if ( groundedpos[2] + 64.0f <= facecenter[2] )
       {
         n = 0;
         reached_face = 0;
         while ( 1 )
         {
           if ( n )
-            AAS_BFGJumpZVelocity(groundedpos);
+            zvel = AAS_BFGJumpZVelocity(groundedpos);
           else
-            v7 = AAS_RocketJumpZVelocity(groundedpos);
-          zvel = v7;
+            zvel = AAS_RocketJumpZVelocity(groundedpos);
           if ( AAS_HorizontalVelocityForJump(zvel, groundedpos, facecenter, &speed) )
           {
-            v7 = speed;
             if ( speed < 270.0f )
             {
               dir[2] = 0;
               dir[0] = facecenter[0] - groundedpos[0];
               dir[1] = facecenter[1] - groundedpos[1];
-              v7 = VectorNormalize(dir);
-              if ( facecenter[2] * 1.6 - groundedpos[2] > v7 )
+              hordist = VectorNormalize(dir);
+              if ( hordist < facecenter[2] * 1.6 - groundedpos[2] )
               {
                 VectorScale(dir, speed, cmdmove);
                 velocity[2] = zvel;
@@ -12008,8 +12005,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                   {
                     v14 = (float)v16;
                     VectorMA(move.endpos, v14, dir, predictpos);
-                    v7 = predictpos[2] + 0.125;
-                    predictpos[2] = v7;
+                    predictpos[2] += 0.125;
                     if ( AAS_PointAreaNum(predictpos) == area2num )
                     {
                       reached = 1;
