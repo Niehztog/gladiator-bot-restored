@@ -24203,20 +24203,22 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
      * mapping passed the area number into BotFindWayPoint where it
      * gets walked as a chat-node list, faulting on a corrupt next ptr
      * (= 0x5).  Restored to the correct function with all 4 args. */
-    if ( !AAS_RandomGoalArea(areanum, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
-      return 0;
-    *(int *)&goal.mins[0] = -1049624576;
-    *(int *)&goal.mins[1] = -1049624576;
-    *(int *)&goal.mins[2] = -1049624576;
-    *(int *)&goal.maxs[0] = 1097859072;
-    *(int *)&goal.maxs[1] = 1097859072;
-    *(int *)&goal.maxs[2] = 1097859072;
-    goal.entitynum = 0;
-    goal.number = 0;
-    goal.flags = 2;
-    goal.iteminfo = 0;
-    BotPushGoal(goalstate, &goal);
-    return 1;
+    if ( AAS_RandomGoalArea(areanum, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
+    {
+      goal.mins[0] = -15;
+      goal.mins[1] = -15;
+      goal.mins[2] = -15;
+      goal.maxs[0] = 15;
+      goal.maxs[1] = 15;
+      goal.maxs[2] = 15;
+      goal.entitynum = 0;
+      goal.number = 0;
+      goal.flags = 2;
+      goal.iteminfo = 0;
+      BotPushGoal(goalstate, &goal);
+      return 1;
+    }
+    return 0;
   }
   avoidtime = ic->items[bestitem->iteminfo].respawntime;
   if ( avoidtime == 0.0f )
