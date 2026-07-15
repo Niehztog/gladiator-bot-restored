@@ -24104,9 +24104,6 @@ void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate)
 //----- (1002FEB0) --------------------------------------------------------
 int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags)
 {
-  int result; // eax
-  BOOL v6; // eax
-  int v7; // ebx
   levelitem_t *li; // esi (was v8)
   int v9; // ebx
   iteminfo_t *iteminfo; // edi (was _DWORD *) - 64-bit fix
@@ -24121,118 +24118,115 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   float v19; // [esp+5Ch] [ebp+4h]
   float bestweight; // [esp+60h] [ebp+8h]
   float avoidtime; // [esp+68h] [ebp+10h]
-  /* 64-bit fix: goalstate->itemweightconfig/itemweightindex are 32-bit
-   * pointer bit-patterns inline. On 64-bit they live in the sideband
-   * BotGoalP0/BotGoalP1 maxclients arrays instead.  Recover bs from the
-   * goalstate pointer (goalstate is at +3008 inside bot_state_t) and read
-   * the typed pointers from the sideband. */
+  /* 64-bit fix: see BotChooseNBGItem — itemweightconfig/itemweightindex live in sideband. */
+#if BOTLIB_NEED_SIDEBAND
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
   weightconfig_t *p0 = (weightconfig_t *)BotGoalP0(bs);
   int *p1 = (int *)BotGoalP1(bs);
+#define LTG_IWC p0
+#define LTG_IWI p1
+#else
+#define LTG_IWC (*(weightconfig_t **)&goalstate->itemweightconfig)
+#define LTG_IWI (*(int **)&goalstate->itemweightindex)
+#endif
 
-  if ( !p0 )
+  if ( !LTG_IWC )
     return 0;
-  v6 = AAS_Swimming(origin);
-  result = BotReachabilityArea(origin, !v6);
-  v7 = result;
-  areanum = result;
-  if ( result )
+  areanum = BotReachabilityArea(origin, !AAS_Swimming(origin));
+  if ( !areanum )
+    return 0;
+  if ( !AAS_AreaReachability(areanum) )
+    return 0;
+  ic = itemconfig;
+  if ( !itemconfig )
+    return 0;
+  li = levelitems;
+  bestweight = 0.0;
+  bestitem = 0;
+  memset(&goal, 0, sizeof(goal));
+  if ( li )
   {
-    result = AAS_AreaReachability(result);
-    if ( result )
+    do
     {
-      ic = itemconfig;
-      if ( !itemconfig )
-        return 0;
-      li = levelitems;
-      bestweight = 0.0;
-      bestitem = 0;
-      memset(&goal, 0, sizeof(goal));
-      if ( li )
+      if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
       {
-        do
+        v9 = li->areanum;
+        if ( v9 )
         {
-          if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
+          iteminfo = &ic->items[li->iteminfo];
+          weightnum = LTG_IWI[iteminfo->number];
+          if ( weightnum >= 0 )
           {
-            v9 = li->areanum;
-            if ( v9 )
+            weight = FuzzyWeightUndecided(inventory, &LTG_IWC->weights[weightnum]);
+            if ( weight > 0.0f )
             {
-              iteminfo = &ic->items[li->iteminfo];
-              weightnum = p1[iteminfo->number];
-              if ( weightnum >= 0 )
+              t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v9, travelflags);
+              if ( t > 0 )
               {
-                weight = FuzzyWeightUndecided(inventory, &p0->weights[weightnum]);
-                if ( weight > 0.0f )
+                v19 = weight;
+                v13 = v19 / ((float)t * 0.01);
+                if ( li->timeout != 0.0f )
+                  v13 = v13 + 20.0f;
+                if ( v13 > bestweight )
                 {
-                  t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v9, travelflags);
-                  if ( t )
-                  {
-                    v19 = weight;
-                    v13 = v19 / ((float)t * 0.01);
-                    if ( li->timeout != 0.0f )
-                      v13 = v13 + 20.0f;
-                    if ( v13 > bestweight )
-                    {
-                      bestitem = li;
-                      goal.origin[0] = li->goalorigin[0];
-                      goal.origin[1] = li->goalorigin[1];
-                      goal.origin[2] = li->goalorigin[2];
-                      goal.mins[0] = iteminfo->mins[0];
-                      goal.mins[1] = iteminfo->mins[1];
-                      goal.mins[2] = iteminfo->mins[2];
-                      goal.maxs[0] = iteminfo->maxs[0];
-                      goal.maxs[1] = iteminfo->maxs[1];
-                      goal.maxs[2] = iteminfo->maxs[2];
-                      goal.areanum = v9;
-                      bestweight = v13;
-                      goal.entitynum = li->entitynum;
-                      goal.number = li->number;
-                      goal.flags = 1;
-                      goal.iteminfo = li->iteminfo;
-                    }
-                  }
+                  bestitem = li;
+                  goal.origin[0] = li->goalorigin[0];
+                  goal.origin[1] = li->goalorigin[1];
+                  goal.origin[2] = li->goalorigin[2];
+                  goal.mins[0] = iteminfo->mins[0];
+                  goal.mins[1] = iteminfo->mins[1];
+                  goal.mins[2] = iteminfo->mins[2];
+                  goal.maxs[0] = iteminfo->maxs[0];
+                  goal.maxs[1] = iteminfo->maxs[1];
+                  goal.maxs[2] = iteminfo->maxs[2];
+                  goal.areanum = v9;
+                  bestweight = v13;
+                  goal.entitynum = li->entitynum;
+                  goal.number = li->number;
+                  goal.flags = 1;
+                  goal.iteminfo = li->iteminfo;
                 }
               }
             }
           }
-          li = li->next;
         }
-        while ( li );
-        if ( bestitem )
-        {
-          avoidtime = ic->items[bestitem->iteminfo].respawntime;
-          if ( avoidtime == 0.0f )
-            avoidtime = 30.0f;
-          BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
-          BotPushGoal(goalstate, &goal);
-          return 1;
-        }
-        v7 = areanum;
       }
-      /* Original sub_10001A64 thunks to AAS_RandomGoalArea, a 4-arg "pick a
-       * reachable area for goal" function — NOT BotFindWayPoint (the chat
-       * linked-list walker our deobfuscator confused it with).  Wrong
-       * mapping passed v7 (= some pointer) into BotFindWayPoint where it
-       * gets walked as a chat-node list, faulting on a corrupt next ptr
-       * (= 0x5).  Restored to the correct function with all 4 args. */
-      if ( !AAS_RandomGoalArea(v7, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
-        return 0;
-      *(int *)&goal.mins[0] = -1049624576;
-      *(int *)&goal.mins[1] = -1049624576;
-      *(int *)&goal.mins[2] = -1049624576;
-      *(int *)&goal.maxs[0] = 1097859072;
-      *(int *)&goal.maxs[1] = 1097859072;
-      *(int *)&goal.maxs[2] = 1097859072;
-      goal.entitynum = 0;
-      goal.number = 0;
-      goal.flags = 2;
-      goal.iteminfo = 0;
-      BotPushGoal(goalstate, &goal);
-      return 1;
+      li = li->next;
     }
+    while ( li );
   }
-  return result;
+  if ( !bestitem )
+  {
+    /* Original sub_10001A64 thunks to AAS_RandomGoalArea, a 4-arg "pick a
+     * reachable area for goal" function — NOT BotFindWayPoint (the chat
+     * linked-list walker our deobfuscator confused it with).  Wrong
+     * mapping passed the area number into BotFindWayPoint where it
+     * gets walked as a chat-node list, faulting on a corrupt next ptr
+     * (= 0x5).  Restored to the correct function with all 4 args. */
+    if ( !AAS_RandomGoalArea(areanum, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
+      return 0;
+    *(int *)&goal.mins[0] = -1049624576;
+    *(int *)&goal.mins[1] = -1049624576;
+    *(int *)&goal.mins[2] = -1049624576;
+    *(int *)&goal.maxs[0] = 1097859072;
+    *(int *)&goal.maxs[1] = 1097859072;
+    *(int *)&goal.maxs[2] = 1097859072;
+    goal.entitynum = 0;
+    goal.number = 0;
+    goal.flags = 2;
+    goal.iteminfo = 0;
+    BotPushGoal(goalstate, &goal);
+    return 1;
+  }
+  avoidtime = ic->items[bestitem->iteminfo].respawntime;
+  if ( avoidtime == 0.0f )
+    avoidtime = 30.0f;
+  BotAddToAvoidGoals(goalstate, bestitem->number, avoidtime);
+  BotPushGoal(goalstate, &goal);
+  return 1;
 }
+#undef LTG_IWC
+#undef LTG_IWI
 
 //----- (10030260) --------------------------------------------------------
 int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
