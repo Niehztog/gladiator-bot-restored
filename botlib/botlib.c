@@ -10954,7 +10954,6 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int v60; // ecx
   aas_reachabilitynode_t *lreach; // esi
   int v62; // edx
-  double v64; // st7
   int v65; // [esp+10h] [ebp-108h]
   BOOL v66; // [esp+10h] [ebp-108h]
   int sharededgenum; // [esp+14h] [ebp-104h]
@@ -11033,8 +11032,8 @@ if ( v12 > 0 )
 {
 while ( 1 )
 {
-  v14 = face2->numedges;
   edge1num = aasworld.edgeindex[k + face1->firstedge];
+  v14 = face2->numedges;
   l = 0;
   if ( v14 > 0 )
   {
@@ -11260,10 +11259,9 @@ area2 = (aas_area_t *)v85;
                       lreach->reach.start[1] = trace.endpos[1];
                       lreach->reach.start[2] = trace.endpos[2];
                       VectorMA(lowestpoint, -5.0, (float *)v85, lreach->reach.end);
-                      v64 = lreach->reach.end[2] + 10;
                       lreach->reach.traveltype = 5;
                       lreach->reach.traveltime = 10;
-                      lreach->reach.end[2] = v64;
+                      lreach->reach.end[2] = lreach->reach.end[2] + 10;
                       lreach->next = areareachability[v53];
                       areareachability[v53] = lreach;
                       ++reach_jump;
