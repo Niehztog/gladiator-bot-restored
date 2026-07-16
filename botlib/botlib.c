@@ -18662,18 +18662,13 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   long double v9; // st7
   int i; // ecx
   long double v11; // st6
-  long double v12; // rt0
   bot_state_t *v13; // esi (originally `int v13 = a1` where `a1` aliased a global char[] - decompiler artifact; real value is bs)
-  float v14; // ecx
-  float v15; // edx
   int v16; // eax
   int v18; // ecx
   char *v20; // esi
   int v21; // eax
   char *v28; // eax
   int v33; // eax
-  float v34; // [esp+0h] [ebp-174h]
-  float v35; // [esp+0h] [ebp-174h]
   vec3_t v38_vec; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
   vec3_t v41_vec; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
   vec3_t v44_vec; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
@@ -18745,8 +18740,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     v65 = (fabs(v50[2]) * v69_vec[2] + fabs(v50[1]) * v69_vec[1] + fabs(v50[0]) * v69_vec[0]) * 0.5f;
     if ( FloatForKey(v6, "health") != 0.0f )
     {
-      v34 = -v65;
-      VectorMA(v59_vec, v34, v50, v38_vec);
+      VectorMA(v59_vec, -v65, v50, v38_vec);
       VectorSubtract(v38_vec, bs->origin, v50);
       vectoangles(v50, moveresult->ideal_viewangles);
       moveresult->flags |= 1;
@@ -18762,11 +18756,9 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
         v11 = v75[i];
       else
         v11 = v76[i];
-      v12 = fabs(v11) * fabs(v50[i]);
-      v9 = v12 + v9;
+      v9 = fabs(v11) * fabs(v50[i]) + v9;
     }
-    v35 = -v9;
-    VectorMA(v59_vec, v35, v50, v38_vec);
+    VectorMA(v59_vec, -v9, v50, v38_vec);
     v53_vec[0] = v38_vec[0];
     v53_vec[1] = v38_vec[1]; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
     v53_vec[2] = v38_vec[2] + 24.0f;
@@ -18779,11 +18771,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorCopy(trace.endpos, v38_vec);
     }
     v13 = bs;
-    v14 = v59_vec[1];
-    v15 = v59_vec[2];
-    bs->activategoal.origin[0] = v59_vec[0];
-    bs->activategoal.origin[1] = v14;
-    bs->activategoal.origin[2] = v15;
+    VectorCopy(v59_vec, bs->activategoal.origin);
     v16 = AAS_PointAreaNum(v38_vec);
     v18 = v77[3];
     bs->activategoal.areanum = v16;
