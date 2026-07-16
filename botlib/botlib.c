@@ -18654,6 +18654,7 @@ void __cdecl sub_10025070(void)
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate)
 {
   ai_node_fn_t result; // eax
+  int modelnum;
   int *v5; // eax
   int *v6; // ebp
   const char *v7; // edi
@@ -18670,9 +18671,6 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   char *v20; // esi
   int v21; // eax
   char *v28; // eax
-  int v29; // eax
-  float v31; // ecx
-  float v32; // eax
   int v33; // eax
   float v34; // [esp+0h] [ebp-174h]
   float v35; // [esp+0h] [ebp-174h]
@@ -18695,11 +18693,10 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   vec3_t v76; // [esp+ECh] [ebp-88h] BYREF
   int v77[31]; // [esp+F8h] [ebp-7Ch] BYREF
 
-  result = (int (__cdecl *)(int))moveresult->blocked;
   up[0] = 0;
   up[1] = 0;
   up[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
-  if ( !result )
+  if ( !moveresult->blocked )
     return;
   *(aas_entityinfo_t *)v77 = AAS_EntityInfo(moveresult->blockentity);
   if ( v77[22] != 3 || !activate )
@@ -18713,18 +18710,16 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   if ( !strcmp(v7, "func_door_secret") || !strcmp(v7, "func_door") )
   {
     v28 = AAS_ValueForBSPEpairKey(v6, "model");
-    result = (int (__cdecl *)(int))IndexFromModel(v28);
-    if ( result )
+    modelnum = IndexFromModel(v28);
+    if ( modelnum )
     {
       VectorClear(v56_vec);
-      AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, v56_vec, v44_vec, v41_vec, NULL);
       VectorAdd(v44_vec, v41_vec, v38_vec);
       VectorScale(v38_vec, 0.5f, v38_vec);
       VectorSubtract(v38_vec, bs->origin, v50);
       vectoangles(v50, moveresult->ideal_viewangles);
-      v29 = moveresult->flags;
-      LOBYTE(v29) = v29 | 1;
-      moveresult->flags = v29;
+      moveresult->flags |= 1;
       EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
@@ -18734,11 +18729,11 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   if ( !strcmp(v7, "func_button") )
   {
     v8 = AAS_ValueForBSPEpairKey(v6, "model");
-    result = (int (__cdecl *)(int))IndexFromModel(v8);
-    if ( !result )
+    modelnum = IndexFromModel(v8);
+    if ( !modelnum )
       return;
     VectorClear(v56_vec);
-    AAS_BSPModelMinsMaxsOrigin((int)result - 1, v56_vec, v44_vec, v41_vec, NULL);
+    AAS_BSPModelMinsMaxsOrigin(modelnum - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, "lip");
     v56_vec[0] = 0;
     v56_vec[1] = FloatForKey(v6, "angle");
@@ -18754,9 +18749,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
       VectorMA(v59_vec, v34, v50, v38_vec);
       VectorSubtract(v38_vec, bs->origin, v50);
       vectoangles(v50, moveresult->ideal_viewangles);
-      v29 = moveresult->flags;
-      LOBYTE(v29) = v29 | 1;
-      moveresult->flags = v29;
+      moveresult->flags |= 1;
       EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
@@ -18827,12 +18820,10 @@ LABEL_37:
     hordir[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
     hordir[2] = 0;
     VectorNormalize(hordir);
-    v31 = bs->origin[2];
-    v32 = bs->origin[1];
     v53_vec[0] = bs->origin[0];
-    v53_vec[1] = v32;
-    v53_vec[2] = v31;   /* materialize origin[2] to the slot; original mov [esp+0x58],ecx then fld it back at 0x10025ec3 */
-    v53_vec[2] = v31 + libvar_sv_step->value;
+    v53_vec[1] = bs->origin[1];
+    v53_vec[2] = bs->origin[2];
+    v53_vec[2] = v53_vec[2] + libvar_sv_step->value;
     VectorMA(v53_vec, 5.0f, hordir, v66_vec);
     v44_vec[0] = -16.0f;
     v44_vec[1] = -16.0f;
