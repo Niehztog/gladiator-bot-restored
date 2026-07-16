@@ -10317,7 +10317,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int j; // ebp
   __int64 face2num; // rax
   aas_face_t *face2; // ecx
-  int v17; // eax
   int edge1num; // edx
   __int64 edge2num; // rax
   aas_edge_t *edge2; // ecx
@@ -10376,8 +10375,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   long double v39; // st7
 #endif
   int v40; // edx
-  int v41; // edx
-  int v42; // ecx
   int v43; // eax
   int v44; // ecx
   int traveltype; // ebx
@@ -10395,8 +10392,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   float phys_jumpvel; // [esp+38h] [ebp-194h]
   int dir[3]; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
   vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start (vec3, IDA split)
-  aas_face_t *v66; // [esp+54h] [ebp-178h]
-  aas_face_t *v67; // [esp+58h] [ebp-174h]
   int maxjumpheight; // [esp+5Ch] [ebp-170h]
   float speed; // [esp+60h] [ebp-16Ch] BYREF
   /* Four edge-projection vec3 results used to find the best face-pair
@@ -10453,7 +10448,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         return 0;
     }
 
-    if ( *(float *)&maxjumpheight + *v7 < *v6 )
+    if ( *(float *)&maxjumpheight + area1->maxs[2] < area2->mins[2] )
       return 0;
     {
       v8 = area1->numfaces;
@@ -10467,7 +10462,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         face1num = aasworld.faceindex[v9 + area1->firstface];
         face1num = (HIDWORD(face1num) ^ face1num) - HIDWORD(face1num);
         face1 = &aasworld.faces[face1num];
-        v66 = face1;
         if ( (face1->faceflags & 4) != 0 )
         {
           v13 = area2->numfaces;
@@ -10479,14 +10473,11 @@ int AAS_Reachability_Jump(int area1num, int area2num)
             {
               face2num = aasworld.faceindex[j + area2->firstface];
               face2 = &aasworld.faces[((HIDWORD(face2num) ^ face2num) - HIDWORD(face2num))];
-              v67 = face2;
               if ( (face2->faceflags & 4) != 0 )
               {
-                v17 = face1->numedges;
-                k = 0;
-                if ( v17 > 0 )
+                if ( face1->numedges > 0 )
                 {
-                  while ( 1 )
+                  for ( k = 0; k < face1->numedges; k++ )
                   {
                     edge1num = k + face1->firstedge;
                     l = 0;
@@ -10495,7 +10486,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                     {
                       while ( 1 )
                       {
-                        edge2num = aasworld.edgeindex[l + v67->firstedge];
+                        edge2num = aasworld.edgeindex[l + face2->firstedge];
                         edge2 = &aasworld.edges[((HIDWORD(edge2num) ^ edge2num) - HIDWORD(edge2num))];
                         v1 = (float *)(&aasworld.vertexes[edge1->v[0]]);
                         v2 = (float *)(&aasworld.vertexes[edge1->v[1]]);
@@ -10557,11 +10548,11 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                         v76_vec[2] = 0.0f;
                         v80_vec[2] = 0.0f;
                         v73_vec[2] = 0.0f;
-                        plane1 = &aasworld.planes[v66->planenum];
+                        plane1 = &aasworld.planes[face1->planenum];
                         v79 = 0;
-                        v36 = (float)v70_vec[1] * (float)aasworld.planes[v67->planenum].normal[1];
-                        v37 = (float)v70_vec[0] * (float)aasworld.planes[v67->planenum].normal[0];
-                        plane2 = &aasworld.planes[v67->planenum];
+                        v36 = (float)v70_vec[1] * (float)aasworld.planes[face2->planenum].normal[1];
+                        v37 = (float)v70_vec[0] * (float)aasworld.planes[face2->planenum].normal[0];
+                        plane2 = &aasworld.planes[face2->planenum];
                         v70_vec[2] = (float)(((float)plane2->dist - (v36 + v37)) / (float)plane2->normal[2]);
                         v76_vec[2] = (float)(((float)plane2->dist - ((float)v76_vec[1] * (float)plane2->normal[1] + (float)v76_vec[0] * (float)plane2->normal[0])) / (float)plane2->normal[2]);
                         v80_vec[2] = (float)(((float)plane1->dist - ((float)v80_vec[0] * (float)plane1->normal[0] + (float)v80_vec[1] * (float)plane1->normal[1])) / (float)plane1->normal[2]);
@@ -10662,8 +10653,7 @@ LABEL_60:
                           VectorMiddle(bestend, v4, bestend);
                         }
 LABEL_61:
-                        v41 = v67->numedges;
-                        if ( ++l >= v41 )
+                        if ( ++l >= face2->numedges )
                           goto LABEL_62;
                       }
                       if ( v79 )
@@ -10711,16 +10701,11 @@ LABEL_61:
                       goto LABEL_60;
                     }
 LABEL_62:
-                    v42 = v66->numedges;
-                    if ( ++k >= v42 )
-                      break;
-                    face2 = v67;
-                    face1 = v66;
+                    ;
                   }
                   j = v92;
                   area1 = area1_save;
                   area2 = (aas_area_t *)v91;
-                  face1 = v66;
                 }
               }
               v43 = area2->numfaces;
