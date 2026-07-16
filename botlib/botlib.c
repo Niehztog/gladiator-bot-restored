@@ -451,7 +451,7 @@ void AAS_Reachability_Elevator();
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
-int __cdecl AAS_Reachability_WalkOffLedge(int areanum);
+void __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int AAS_StoreReachability();
 int __cdecl AAS_TravelFlagForType(int traveltype);
 void AAS_CreateReversedReachability(void);
@@ -12043,9 +12043,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 }
 
 //----- (100181D0) --------------------------------------------------------
-int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
+void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
-  int result; // eax
   aas_area_t *area; // esi
   int i; // ebx
   int v4; // ecx
@@ -12062,17 +12061,14 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int edge2num; // rax (was __int64 — abs32 idiom)
   int otherareanum; // ecx
   aas_area_t *area2; // eax
-  int v18; // ecx
   int gap; // ebx
   unsigned int v20; // eax
-  int v21; // edi
   aas_face_t *face3; // ebp
   int m; // ecx
-  int *v24; // esi
   int v25; // eax
-  qboolean v26; // cc
   aas_edge_t *edge; // eax
   BOOL side; // ecx
+  aas_plane_t *plane;
   float *v29; // esi
   float *v30; // edi
   int reachareanum; // eax
@@ -12094,11 +12090,9 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int *v44; // [esp+1Ch] [ebp-98h]
   unsigned int v45; // [esp+20h] [ebp-94h]
   int v46; // [esp+24h] [ebp-90h]
-  int v47; // [esp+28h] [ebp-8Ch]
   int v48; // [esp+2Ch] [ebp-88h]
   int v49; // [esp+30h] [ebp-84h]
   int v50; // [esp+34h] [ebp-80h]
-  int v51; // [esp+38h] [ebp-7Ch]
   aas_face_t *v52; // [esp+3Ch] [ebp-78h]
   aas_area_t *v53; // [esp+40h] [ebp-74h]
   aas_face_t *v54; // [esp+44h] [ebp-70h]
@@ -12107,46 +12101,27 @@ int __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+6Ch] [ebp-48h] (was int v58[9] + char v59[36] hidden return buffer)
 
-  result = AAS_AreaGrounded(areanum);
-  if ( result )
+  if ( !AAS_AreaGrounded(areanum) || AAS_AreaSwim(areanum) )
+    return;
+  area = &aasworld.areas[areanum];
+  v53 = area;
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    result = AAS_AreaSwim(areanum);
-    if ( !result )
+    face1num = aasworld.faceindex[area->firstface + i];
+    face1 = &aasworld.faces[abs(face1num)];
+    v52 = face1;
+    if ( (face1->faceflags & 4) == 0 )
+      continue;
+    v4 = area->numfaces;
+    for ( k = 0; k < face1->numedges; k++ )
     {
-      area = &aasworld.areas[areanum];
-      i = 0;
-      v53 = area;
-      v47 = 0;
-      v4 = area->numfaces;
-      if ( v4 > 0 )
-      {
-        while ( 1 )
-        {
-          face1num = aasworld.faceindex[area->firstface + i];
-          face1 = &aasworld.faces[abs(face1num)];
-          v52 = face1;
-          if ( (face1->faceflags & 4) != 0 )
-          {
-            result = face1->numedges;
-            k = 0;
-            v51 = 0;
-            if ( result > 0 )
-              break;
-          }
-LABEL_46:
-          v4 = area->numfaces;
-          v47 = ++i;
-          if ( i >= v4 )
-            return result;
-        }
-LABEL_6:
-        edge1num = aasworld.edgeindex[face1->firstedge + k];
-        j = 0;
-        v49 = 0;
-        if ( v4 <= 0 )
-          goto LABEL_44;
+      edge1num = aasworld.edgeindex[face1->firstedge + k];
+      j = 0;
+      v49 = 0;
+      if ( v4 <= 0 )
+        continue;
 LABEL_7:
-        face2num = aasworld.faceindex[area->firstface + j];
+      face2num = aasworld.faceindex[area->firstface + j];
         v10 = abs(face2num);
         v48 = v10;
         face2 = &aasworld.faces[v10];
@@ -12171,36 +12146,17 @@ LABEL_7:
             area2 = &aasworld.areas[otherareanum];
             if ( (aasworld.areasettings[otherareanum].areaflags & 1) != 0 )
             {
-              v18 = area2->numfaces;
               gap = 0;
-              n = 0;
-              v46 = v18;
-              if ( v18 <= 0 )
-                goto LABEL_42;
               v44 = &aasworld.faceindex[area2->firstface];
-              while ( 2 )
+              for ( n = 0; n < area2->numfaces; n++, ++v44 )
               {
                 v20 = abs(*v44);
                 if ( v20 == v10 )
-                {
-LABEL_27:
-                  v26 = ++n < v18;
-                  ++v44;
-                  if ( !v26 )
-                    goto LABEL_28;
                   continue;
-                }
-                break;
-              }
-              v21 = aasworld.faces[v20].numedges;
-              face3 = &aasworld.faces[v20];
-              m = 0;
-              if ( v21 > 0 )
-              {
-                v24 = &aasworld.edgeindex[face3->firstedge];
-                do
+                face3 = &aasworld.faces[v20];
+                for ( m = 0; m < face3->numedges; m++ )
                 {
-                  if ( abs(*v24) == v45 )
+                  if ( abs(aasworld.edgeindex[face3->firstedge + m]) == v45 )
                   {
                     v25 = face3->faceflags;
                     if ( (v25 & 1) == 0 )
@@ -12209,19 +12165,11 @@ LABEL_27:
                       gap = ((char)~(_BYTE)v25 & 4u) >> 2;
                     break;
                   }
-                  ++m;
-                  ++v24;
                 }
-                while ( m < v21 );
+                if ( m < face3->numedges )
+                  break;
               }
               v14 = v45;
-              if ( m >= v21 )
-              {
-                v10 = v48;
-                v18 = v46;
-                goto LABEL_27;
-              }
-LABEL_28:
               if ( gap )
                 goto LABEL_29;
 LABEL_42:
@@ -12230,19 +12178,7 @@ LABEL_42:
               v4 = v53->numfaces;
               v49 = j;
               if ( j >= v4 )
-              {
-                face1 = v52;
-                k = v51;
-LABEL_44:
-                result = face1->numedges;
-                v51 = ++k;
-                if ( k >= result )
-                {
-                  i = v47;
-                  goto LABEL_46;
-                }
-                goto LABEL_6;
-              }
+                continue;
               goto LABEL_7;
             }
 LABEL_29:
@@ -12250,10 +12186,11 @@ LABEL_29:
             side = edge1num < 0;
             v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
             v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
+            plane = &aasworld.planes[v52->planenum];
             sharededgevec[0] = *v30 - *v29;
             sharededgevec[1] = v30[1] - v29[1];
             sharededgevec[2] = v30[2] - v29[2];
-            CrossProduct(aasworld.planes[v52->planenum].normal, sharededgevec, dir);
+            CrossProduct(plane->normal, sharededgevec, dir);
             VectorNormalize(dir);
             midorigin[0] = *v29 + *v30;
             midorigin[1] = v29[1] + v30[1];
@@ -12301,8 +12238,6 @@ LABEL_29:
         }
       }
     }
-  }
-  return result;
 }
 
 //----- (100187E0) --------------------------------------------------------
