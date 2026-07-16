@@ -18730,10 +18730,13 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     VectorClear(v56_vec);
     AAS_BSPModelMinsMaxsOrigin(modelnum - 1, v56_vec, v44_vec, v41_vec, NULL);
     FloatForKey(v6, "lip");
-    v56_vec[0] = 0;
-    v56_vec[1] = FloatForKey(v6, "angle");
-    v56_vec[2] = 0;
-    BotSetMovedir(v56_vec, v50);
+    {
+      vec3_t angles;
+      angles[0] = 0;
+      angles[1] = FloatForKey(v6, "angle");
+      angles[2] = 0;
+      BotSetMovedir(angles, v50);
+    }
     VectorSubtract(v41_vec, v44_vec, v69_vec);
     VectorAdd(v44_vec, v41_vec, v59_vec);
     VectorScale(v59_vec, 0.5f, v59_vec);
