@@ -10304,7 +10304,6 @@ void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 int AAS_Reachability_Jump(int area1num, int area2num)
 {
   aas_area_t *area1; // ebx (was `float area1` IDA punned a pointer in float-typed slot — must be a real ptr on 64-bit)
-  aas_area_t *area1_save; // backup of area1 across the inner face1 loop (was sharing v90's slot in IDA)
   aas_area_t *area2; // esi
   int i; // edx
   float *v6; // edi
@@ -10414,7 +10413,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   float maxjumpdistance; // [esp+B8h] [ebp-114h]
   float v90; // [esp+BCh] [ebp-110h]
   char *v91; // [esp+C0h] [ebp-10Ch]
-  int v92; // [esp+C4h] [ebp-108h]
   vec3_t testend; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination
   aas_edge_t *edge1; // [esp+D4h] [ebp-F8h]
   /* cmdmove must hold 3 floats: VectorScale writes 3 and ClientMovementPrediction
@@ -10429,8 +10427,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   {
     area1 = &aasworld.areas[area1num];
     area2 = &aasworld.areas[area2num];
-    area1_save = area1;
-    v91 = (char *)area2;
     /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
      * `call AAS_MaxJumpDistance` / `call AAS_MaxJumpHeight`, each followed by
      * `fstp [esp+...]` storing into v89 / v68.  IDA emitted `vN = a1` instead
@@ -10440,6 +10436,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
 
+    if ( *(float *)&maxjumpheight + area1->maxs[2] < area2->mins[2] )
+      return 0;
+
     v6 = area2->mins;
     v7 = area1->maxs;
     for (i = 0; i < 2; i++, v7++, v6++)
@@ -10447,9 +10446,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
       if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - (char *)area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
     }
-
-    if ( *(float *)&maxjumpheight + area1->maxs[2] < area2->mins[2] )
-      return 0;
     {
       v8 = area1->numfaces;
       v9 = 0;
@@ -10466,7 +10462,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
         {
           v13 = area2->numfaces;
           j = 0;
-          v92 = 0;
           if ( v13 > 0 )
           {
             do
@@ -10703,13 +10698,10 @@ LABEL_61:
 LABEL_62:
                     ;
                   }
-                  j = v92;
-                  area1 = area1_save;
-                  area2 = (aas_area_t *)v91;
                 }
               }
               v43 = area2->numfaces;
-              v92 = ++j;
+              ++j;
             }
             while ( j < v43 );
           }
