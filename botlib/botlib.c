@@ -12047,7 +12047,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
   aas_area_t *area; // esi
   int i; // ebx
-  int v4; // ecx
   int face1num; // rax (was __int64 — abs32 idiom)
   aas_face_t *face1; // edx
   int k; // edi
@@ -12055,7 +12054,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int face2num; // rax (was __int64 — abs32 idiom)
   int v10; // edi
   aas_face_t *face2; // esi
-  int v12; // eax
   int l; // ecx
   unsigned int v14; // ebp
   int edge2num; // rax (was __int64 — abs32 idiom)
@@ -12076,7 +12074,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v35; // esi (was int) — alias of lreach
   int v36; // edx
-  int v37; // eax
   int n; // [esp+8h] [ebp-ACh]
   float v39; // [esp+8h] [ebp-ACh]
   /* midorigin: edge midpoint, lifted off the floor by 8 units along edgecross.
@@ -12087,15 +12084,9 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
    * rejected ~97% of WALKOFFLEDGE candidates on q2ctf2 (23/755). */
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   int edge1num; // [esp+18h] [ebp-9Ch]
-  int *v44; // [esp+1Ch] [ebp-98h]
   unsigned int v45; // [esp+20h] [ebp-94h]
   int v46; // [esp+24h] [ebp-90h]
-  int v48; // [esp+2Ch] [ebp-88h]
-  int v49; // [esp+30h] [ebp-84h]
-  int v50; // [esp+34h] [ebp-80h]
   aas_face_t *v52; // [esp+3Ch] [ebp-78h]
-  aas_area_t *v53; // [esp+40h] [ebp-74h]
-  aas_face_t *v54; // [esp+44h] [ebp-70h]
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
   float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
@@ -12104,7 +12095,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   if ( !AAS_AreaGrounded(areanum) || AAS_AreaSwim(areanum) )
     return;
   area = &aasworld.areas[areanum];
-  v53 = area;
   for ( i = 0; i < area->numfaces; i++ )
   {
     face1num = aasworld.faceindex[area->firstface + i];
@@ -12112,132 +12102,106 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
     v52 = face1;
     if ( (face1->faceflags & 4) == 0 )
       continue;
-    v4 = area->numfaces;
     for ( k = 0; k < face1->numedges; k++ )
     {
       edge1num = aasworld.edgeindex[face1->firstedge + k];
-      j = 0;
-      v49 = 0;
-      if ( v4 <= 0 )
-        continue;
-LABEL_7:
-      face2num = aasworld.faceindex[area->firstface + j];
+      for ( j = 0; j < area->numfaces; j++ )
+      {
+        face2num = aasworld.faceindex[area->firstface + j];
         v10 = abs(face2num);
-        v48 = v10;
         face2 = &aasworld.faces[v10];
-        v54 = face2;
         if ( (face2->faceflags & 4) != 0 )
-          goto LABEL_42;
-        v12 = face2->numedges;
-        l = 0;
-        v50 = 0;
-        if ( v12 <= 0 )
-          goto LABEL_42;
+          continue;
+        if ( face2->numedges <= 0 )
+          continue;
         v14 = abs(edge1num);
         v45 = v14;
-        while ( 1 )
+        for ( l = 0; l < face2->numedges; l++ )
         {
           edge2num = aasworld.edgeindex[l + face2->firstedge];
-          if ( v14 == abs(edge2num) )
+          if ( v14 != abs(edge2num) )
+            continue;
+          otherareanum = face2->frontarea;
+          if ( otherareanum == areanum )
+            otherareanum = face2->backarea;
+          area2 = &aasworld.areas[otherareanum];
+          if ( (aasworld.areasettings[otherareanum].areaflags & 1) != 0 )
           {
-            otherareanum = face2->frontarea;
-            if ( otherareanum == areanum )
-              otherareanum = face2->backarea;
-            area2 = &aasworld.areas[otherareanum];
-            if ( (aasworld.areasettings[otherareanum].areaflags & 1) != 0 )
+            gap = 0;
+            for ( n = 0; n < area2->numfaces; n++ )
             {
-              gap = 0;
-              v44 = &aasworld.faceindex[area2->firstface];
-              for ( n = 0; n < area2->numfaces; n++, ++v44 )
-              {
-                v20 = abs(*v44);
-                if ( v20 == v10 )
-                  continue;
-                face3 = &aasworld.faces[v20];
-                for ( m = 0; m < face3->numedges; m++ )
-                {
-                  if ( abs(aasworld.edgeindex[face3->firstedge + m]) == v45 )
-                  {
-                    v25 = face3->faceflags;
-                    if ( (v25 & 1) == 0 )
-                      gap = 1;
-                    else
-                      gap = ((char)~(_BYTE)v25 & 4u) >> 2;
-                    break;
-                  }
-                }
-                if ( m < face3->numedges )
-                  break;
-              }
-              v14 = v45;
-              if ( gap )
-                goto LABEL_29;
-LABEL_42:
-              area = v53;
-              j = v49 + 1;
-              v4 = v53->numfaces;
-              v49 = j;
-              if ( j >= v4 )
+              v20 = abs(aasworld.faceindex[area2->firstface + n]);
+              if ( v20 == v10 )
                 continue;
-              goto LABEL_7;
+              face3 = &aasworld.faces[v20];
+              for ( m = 0; m < face3->numedges; m++ )
+              {
+                if ( abs(aasworld.edgeindex[face3->firstedge + m]) == v45 )
+                {
+                  v25 = face3->faceflags;
+                  if ( (v25 & 1) == 0 )
+                    gap = 1;
+                  else
+                    gap = ((char)~(_BYTE)v25 & 4u) >> 2;
+                  break;
+                }
+              }
+              if ( m < face3->numedges )
+                break;
             }
-LABEL_29:
-            edge = &aasworld.edges[v14];
-            side = edge1num < 0;
-            v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
-            v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
-            plane = &aasworld.planes[v52->planenum];
-            sharededgevec[0] = *v30 - *v29;
-            sharededgevec[1] = v30[1] - v29[1];
-            sharededgevec[2] = v30[2] - v29[2];
-            CrossProduct(plane->normal, sharededgevec, dir);
-            VectorNormalize(dir);
-            midorigin[0] = *v29 + *v30;
-            midorigin[1] = v29[1] + v30[1];
-            midorigin[2] = v30[2] + v29[2];
-            VectorScale(midorigin, 0.5, midorigin);
-            VectorMA(midorigin, 8.0, (float *)dir, midorigin);
-            testend[0] = midorigin[0];
-            testend[1] = midorigin[1];
-            testend[2] = midorigin[2] - 1000.0f;
-            trace = AAS_TraceClientBBox(midorigin, (float *)testend, 4, -1);
-            if ( trace.startsolid )
-              goto LABEL_42;
-            reachareanum = AAS_PointAreaNum(trace.endpos);
-            v33 = reachareanum;
-            if ( reachareanum == areanum || AAS_ReachabilityExists(areanum, reachareanum) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
-              goto LABEL_42;
-            if ( (aasworld.areasettings[v33].contents & 6) != 0 )
-              goto LABEL_42;
-            lreach = AAS_AllocReachability();
-            v35 = lreach;
-            if ( !lreach )
-              goto LABEL_42;
-            v36 = edge1num;
-            lreach->reach.areanum = v33;
-            lreach->reach.facenum = 0;
-            lreach->reach.edgenum = v36;
-            VectorCopy(midorigin, lreach->reach.start);
-            VectorCopy(trace.endpos, lreach->reach.end);
-            lreach->reach.traveltype = 7;
-            if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
-              v35->reach.traveltime = 100;
-            else
-              v35->reach.traveltime = 3000;
-            v10 = v48;
-            v35->next = areareachability[areanum];
-            l = v50;
-            areareachability[areanum] = v35;
-            face2 = v54;
-            ++reach_walkoffledge;
+            v14 = v45;
+            if ( !gap )
+              break;
           }
-          v37 = face2->numedges;
-          v50 = ++l;
-          if ( l >= v37 )
-            goto LABEL_42;
+          edge = &aasworld.edges[v14];
+          side = edge1num < 0;
+          v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
+          v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
+          plane = &aasworld.planes[v52->planenum];
+          sharededgevec[0] = *v30 - *v29;
+          sharededgevec[1] = v30[1] - v29[1];
+          sharededgevec[2] = v30[2] - v29[2];
+          CrossProduct(plane->normal, sharededgevec, dir);
+          VectorNormalize(dir);
+          midorigin[0] = *v29 + *v30;
+          midorigin[1] = v29[1] + v30[1];
+          midorigin[2] = v30[2] + v29[2];
+          VectorScale(midorigin, 0.5, midorigin);
+          VectorMA(midorigin, 8.0, (float *)dir, midorigin);
+          testend[0] = midorigin[0];
+          testend[1] = midorigin[1];
+          testend[2] = midorigin[2] - 1000.0f;
+          trace = AAS_TraceClientBBox(midorigin, (float *)testend, 4, -1);
+          if ( trace.startsolid )
+            break;
+          reachareanum = AAS_PointAreaNum(trace.endpos);
+          v33 = reachareanum;
+          if ( reachareanum == areanum || AAS_ReachabilityExists(areanum, reachareanum) || !AAS_AreaGrounded(v33) && !AAS_AreaSwim(v33) )
+            break;
+          if ( (aasworld.areasettings[v33].contents & 6) != 0 )
+            break;
+          lreach = AAS_AllocReachability();
+          v35 = lreach;
+          if ( !lreach )
+            break;
+          v36 = edge1num;
+          lreach->reach.areanum = v33;
+          lreach->reach.facenum = 0;
+          lreach->reach.edgenum = v36;
+          VectorCopy(midorigin, lreach->reach.start);
+          VectorCopy(trace.endpos, lreach->reach.end);
+          lreach->reach.traveltype = 7;
+          if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
+            v35->reach.traveltime = 100;
+          else
+            v35->reach.traveltime = 3000;
+          v35->next = areareachability[areanum];
+          areareachability[areanum] = v35;
+          ++reach_walkoffledge;
         }
       }
     }
+  }
 }
 
 //----- (100187E0) --------------------------------------------------------
