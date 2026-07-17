@@ -10436,9 +10436,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
     maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
 
-    if ( *(float *)&maxjumpheight + area1->maxs[2] < area2->mins[2] )
-      return 0;
-
     v6 = area2->mins;
     v7 = area1->maxs;
     for (i = 0; i < 2; i++, v7++, v6++)
@@ -10446,6 +10443,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
       if ( maxjumpdistance + *(float *)((char *)area2 + ((char *)v7 - (char *)area1)) < *(v7 - 3) || *v6 - maxjumpdistance > *v7 )
         return 0;
     }
+
+    if ( *(float *)&maxjumpheight + area1->maxs[2] < area2->mins[2] )
+      return 0;
     {
       v8 = area1->numfaces;
       v9 = 0;
@@ -10470,10 +10470,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
               face2 = &aasworld.faces[((HIDWORD(face2num) ^ face2num) - HIDWORD(face2num))];
               if ( (face2->faceflags & 4) != 0 )
               {
-                if ( face1->numedges > 0 )
+                for ( k = 0; k < face1->numedges; k++ )
                 {
-                  for ( k = 0; k < face1->numedges; k++ )
-                  {
                     edge1num = k + face1->firstedge;
                     l = 0;
                     edge1 = &aasworld.edges[abs(aasworld.edgeindex[edge1num])];
@@ -10698,7 +10696,6 @@ LABEL_61:
 LABEL_62:
                     ;
                   }
-                }
               }
               v43 = area2->numfaces;
               ++j;
