@@ -13459,7 +13459,7 @@ int __cdecl AAS_AlternativeRouteGoals(
 {
   int   startareanum;
   int   goalareanum;
-  int   baseline_travel;
+  short baseline_travel;
   short travel_to_start;
   short travel_to_goal;
   int   areanum;
