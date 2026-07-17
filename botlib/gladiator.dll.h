@@ -452,6 +452,7 @@ typedef struct aas_routingupdate_s {
  * arrays below be typed as element pointers instead of void*, so call sites can
  * use aasworld.X[i].field instead of IDA byte-arithmetic.  Pointer fields only
  * need the incomplete type here; the full layout arrives with aas_world.h. */
+typedef struct aas_bbox_s         aas_bbox_t;
 typedef struct aas_plane_s        aas_plane_t;
 typedef struct aas_edge_s         aas_edge_t;
 typedef struct aas_face_s         aas_face_t;
@@ -469,7 +470,7 @@ typedef struct aas_world_s {
     char  filename[144];            /* +0x010  (VA 0x100667F0) */
     char  mapname[144];             /* +0x0A0  (VA 0x10066880) */
     int   numbboxes;                /* +0x130  (VA 0x10066910) */
-    void *bboxes;                   /* +0x134  (VA 0x10066914, was "Buffer")            */
+    aas_bbox_t *bboxes;              /* +0x134  (VA 0x10066914, was "Buffer")            */
     int   numvertexes;              /* +0x138 */
     vec3_t *vertexes;               /* +0x13C  (float[3] per vertex) */
     int   numplanes;                /* +0x140 */

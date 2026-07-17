@@ -6688,79 +6688,50 @@ int __cdecl AAS_NextBSPEntity(int ent)
 void AAS_SwapAASData()
 {
   int v0; // ebp
-  int v1; // edi
   int v3; // esi
-  int v4; // ebx
   int v8; // ebx
-  int v9; // esi
   int v10; // edi
   int v11; // ebp
-  int v12; // edi
-  int v13; // esi
   int v14; // ebx
-  int v15; // eax
   int i; // esi
   int j; // esi
   int v21; // edi
-  int v22; // esi
   int k; // esi
   int v31; // ebp
-  int v32; // edi
-  int v35; // esi
   int v36; // ebx
   int v38; // edi
-  int v39; // esi
   int v47; // ebp
-  int v48; // esi
-  int v51; // edi
   int v52; // ebx
-  void *v54; // eax
-  __int16 v55; // ax
   int v56; // edi
-  int v57; // esi
   int v61; // edi
-  int v62; // esi
   int m; // esi
   int v71; // edi
-  int v72; // esi
 
   v0 = 0;
   if ( aasworld.numbboxes > 0 )
   {
-    v1 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.bboxes + v1) = LittleLong(*(int *)((char *)aasworld.bboxes + v1));
-      *(_DWORD *)((char *)aasworld.bboxes + v1 + 4) = LittleLong(*(int *)((char *)aasworld.bboxes + v1 + 4));
-      v3 = v1 + 20;
-      v4 = 3;
-      do
+      aasworld.bboxes[v0].presencetype = LittleLong(aasworld.bboxes[v0].presencetype);
+      aasworld.bboxes[v0].flags = LittleLong(aasworld.bboxes[v0].flags);
+      for ( v3 = 0; v3 < 3; ++v3 )
       {
-        *(float *)((char *)aasworld.bboxes + v3 - 12) = (float)LittleLong((int)*(float *)((char *)aasworld.bboxes + v3 - 12));
-        *(float *)((char *)aasworld.bboxes + v3) = (float)LittleLong((int)*(float *)((char *)aasworld.bboxes + v3));
-        v3 += 4;
-        --v4;
+        aasworld.bboxes[v0].mins[v3] = (float)LittleLong((int)aasworld.bboxes[v0].mins[v3]);
+        aasworld.bboxes[v0].maxs[v3] = (float)LittleLong((int)aasworld.bboxes[v0].maxs[v3]);
       }
-      while ( v4 );
       ++v0;
-      v1 += 32;
     }
     while ( v0 < aasworld.numbboxes );
   }
   v8 = 0;
   if ( aasworld.numvertexes > 0 )
   {
-    v9 = 0;
     do
     {
-      v10 = 3;
-      do
+      for ( v10 = 0; v10 < 3; ++v10 )
       {
-        *(float *)((char *)aasworld.vertexes + v9) = LittleFloat(*(float *)((char *)aasworld.vertexes + v9));
-        v9 += 4;
-        --v10;
+        aasworld.vertexes[v8][v10] = LittleFloat(aasworld.vertexes[v8][v10]);
       }
-      while ( v10 );
       ++v8;
     }
     while ( v8 < aasworld.numvertexes );
@@ -6768,23 +6739,15 @@ void AAS_SwapAASData()
   v11 = 0;
   if ( aasworld.numplanes > 0 )
   {
-    v12 = 0;
     do
     {
-      v13 = v12;
-      v14 = 3;
-      do
+      for ( v14 = 0; v14 < 3; ++v14 )
       {
-        *(float *)((char *)aasworld.planes + v13) = LittleFloat(*(float *)((char *)aasworld.planes + v13));
-        v13 += 4;
-        --v14;
+        aasworld.planes[v11].normal[v14] = LittleFloat(aasworld.planes[v11].normal[v14]);
       }
-      while ( v14 );
-      *(float *)((char *)aasworld.planes + v12 + 12) = LittleFloat(*(float *)((char *)aasworld.planes + v12 + 12));
-      v15 = LittleLong(*(int *)((char *)aasworld.planes + v12 + 16));
+      aasworld.planes[v11].dist = LittleFloat(aasworld.planes[v11].dist);
+      aasworld.planes[v11].type = LittleLong(aasworld.planes[v11].type);
       ++v11;
-      *(_DWORD *)((char *)aasworld.planes + v12 + 16) = v15;
-      v12 += 20;
     }
     while ( v11 < aasworld.numplanes );
   }
@@ -6800,17 +6763,15 @@ void AAS_SwapAASData()
   v21 = 0;
   if ( aasworld.numfaces > 0 )
   {
-    v22 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.faces + v22) = LittleLong(*(int *)((char *)aasworld.faces + v22));
-      *(_DWORD *)((char *)aasworld.faces + v22 + 4) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 4));
-      *(_DWORD *)((char *)aasworld.faces + v22 + 8) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 8));
-      *(_DWORD *)((char *)aasworld.faces + v22 + 12) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 12));
-      *(_DWORD *)((char *)aasworld.faces + v22 + 16) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 16));
-      *(_DWORD *)((char *)aasworld.faces + v22 + 20) = LittleLong(*(int *)((char *)aasworld.faces + v22 + 20));
+      aasworld.faces[v21].planenum = LittleLong(aasworld.faces[v21].planenum);
+      aasworld.faces[v21].faceflags = LittleLong(aasworld.faces[v21].faceflags);
+      aasworld.faces[v21].numedges = LittleLong(aasworld.faces[v21].numedges);
+      aasworld.faces[v21].firstedge = LittleLong(aasworld.faces[v21].firstedge);
+      aasworld.faces[v21].frontarea = LittleLong(aasworld.faces[v21].frontarea);
+      aasworld.faces[v21].backarea = LittleLong(aasworld.faces[v21].backarea);
       ++v21;
-      v22 += 24;
     }
     while ( v21 < aasworld.numfaces );
   }
@@ -6821,102 +6782,79 @@ void AAS_SwapAASData()
   v31 = 0;
   if ( aasworld.numareas > 0 )
   {
-    v32 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.areas + v32) = LittleLong(*(int *)((char *)aasworld.areas + v32));
-      *(_DWORD *)((char *)aasworld.areas + v32 + 4) = LittleLong(*(int *)((char *)aasworld.areas + v32 + 4));
-      *(_DWORD *)((char *)aasworld.areas + v32 + 8) = LittleLong(*(int *)((char *)aasworld.areas + v32 + 8));
-      v35 = v32 + 24;
-      v36 = 3;
-      do
+      aasworld.areas[v31].areanum = LittleLong(aasworld.areas[v31].areanum);
+      aasworld.areas[v31].numfaces = LittleLong(aasworld.areas[v31].numfaces);
+      aasworld.areas[v31].firstface = LittleLong(aasworld.areas[v31].firstface);
+      for ( v36 = 0; v36 < 3; ++v36 )
       {
-        *(float *)((char *)aasworld.areas + v35 - 12) = LittleFloat(*(float *)((char *)aasworld.areas + v35 - 12));
-        *(float *)((char *)aasworld.areas + v35) = LittleFloat(*(float *)((char *)aasworld.areas + v35));
-        *(float *)((char *)aasworld.areas + v35 + 12) = LittleFloat(*(float *)((char *)aasworld.areas + v35 + 12));
-        v35 += 4;
-        --v36;
+        aasworld.areas[v31].mins[v36] = LittleFloat(aasworld.areas[v31].mins[v36]);
+        aasworld.areas[v31].maxs[v36] = LittleFloat(aasworld.areas[v31].maxs[v36]);
+        aasworld.areas[v31].center[v36] = LittleFloat(aasworld.areas[v31].center[v36]);
       }
-      while ( v36 );
       ++v31;
-      v32 += 48;
     }
     while ( v31 < aasworld.numareas );
   }
   v38 = 0;
   if ( aasworld.numareasettings > 0 )
   {
-    v39 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.areasettings + v39) = LittleLong(*(int *)((char *)aasworld.areasettings + v39));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 4) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 4));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 8) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 8));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 12) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 12));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 16) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 16));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 20) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 20));
-      *(_DWORD *)((char *)aasworld.areasettings + v39 + 24) = LittleLong(*(int *)((char *)aasworld.areasettings + v39 + 24));
+      aasworld.areasettings[v38].contents = LittleLong(aasworld.areasettings[v38].contents);
+      aasworld.areasettings[v38].areaflags = LittleLong(aasworld.areasettings[v38].areaflags);
+      aasworld.areasettings[v38].presencetype = LittleLong(aasworld.areasettings[v38].presencetype);
+      aasworld.areasettings[v38].cluster = LittleLong(aasworld.areasettings[v38].cluster);
+      aasworld.areasettings[v38].clusterareanum = LittleLong(aasworld.areasettings[v38].clusterareanum);
+      aasworld.areasettings[v38].numreachableareas = LittleLong(aasworld.areasettings[v38].numreachableareas);
+      aasworld.areasettings[v38].firstreachablearea = LittleLong(aasworld.areasettings[v38].firstreachablearea);
       ++v38;
-      v39 += 28;
     }
     while ( v38 < aasworld.numareasettings );
   }
   v47 = 0;
   if ( aasworld.reachabilitysize > 0 )
   {
-    v48 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.reachability + v48) = LittleLong(*(int *)((char *)aasworld.reachability + v48));
-      *(_DWORD *)((char *)aasworld.reachability + v48 + 4) = LittleLong(*(int *)((char *)aasworld.reachability + v48 + 4));
-      *(_DWORD *)((char *)aasworld.reachability + v48 + 8) = LittleLong(*(int *)((char *)aasworld.reachability + v48 + 8));
-      v51 = v48 + 24;
-      v52 = 3;
-      do
+      aasworld.reachability[v47].areanum = LittleLong(aasworld.reachability[v47].areanum);
+      aasworld.reachability[v47].facenum = LittleLong(aasworld.reachability[v47].facenum);
+      aasworld.reachability[v47].edgenum = LittleLong(aasworld.reachability[v47].edgenum);
+      for ( v52 = 0; v52 < 3; ++v52 )
       {
-        *(float *)((char *)aasworld.reachability + v51 - 12) = LittleFloat(*(float *)((char *)aasworld.reachability + v51 - 12));
-        *(float *)((char *)aasworld.reachability + v51) = LittleFloat(*(float *)((char *)aasworld.reachability + v51));
-        v51 += 4;
-        --v52;
+        aasworld.reachability[v47].start[v52] = LittleFloat(aasworld.reachability[v47].start[v52]);
+        aasworld.reachability[v47].end[v52] = LittleFloat(aasworld.reachability[v47].end[v52]);
       }
-      while ( v52 );
-      v54 = (void *)(intptr_t)LittleLong(*(int *)((char *)aasworld.reachability + v48 + 36));
-      *(_DWORD *)((char *)aasworld.reachability + v48 + 36) = v54;
-      LOWORD(v54) = LittleShort(*(_WORD *)((char *)aasworld.reachability + v48 + 40));
-      v55 = (__int16)(intptr_t)v54;
+      aasworld.reachability[v47].traveltype = LittleLong(aasworld.reachability[v47].traveltype);
+      aasworld.reachability[v47].traveltime = LittleShort(aasworld.reachability[v47].traveltime);
       ++v47;
-      *(_WORD *)((char *)aasworld.reachability + v48 + 40) = v55;
-      v48 += 44;
     }
     while ( v47 < aasworld.reachabilitysize );
   }
   v56 = 0;
   if ( aasworld.numnodes > 0 )
   {
-    v57 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.nodes + v57) = LittleLong(*(int *)((char *)aasworld.nodes + v57));
-      *(_DWORD *)((char *)aasworld.nodes + v57 + 4) = LittleLong(*(int *)((char *)aasworld.nodes + v57 + 4));
-      *(_DWORD *)((char *)aasworld.nodes + v57 + 8) = LittleLong(*(int *)((char *)aasworld.nodes + v57 + 8));
+      aasworld.nodes[v56].planenum = LittleLong(aasworld.nodes[v56].planenum);
+      aasworld.nodes[v56].children[0] = LittleLong(aasworld.nodes[v56].children[0]);
+      aasworld.nodes[v56].children[1] = LittleLong(aasworld.nodes[v56].children[1]);
       ++v56;
-      v57 += 12;
     }
     while ( v56 < aasworld.numnodes );
   }
   v61 = 0;
   if ( aasworld.numportals > 0 )
   {
-    v62 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.portals + v62) = LittleLong(*(int *)((char *)aasworld.portals + v62));
-      *(_DWORD *)((char *)aasworld.portals + v62 + 4) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 4));
-      *(_DWORD *)((char *)aasworld.portals + v62 + 8) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 8));
-      *(_DWORD *)((char *)aasworld.portals + v62 + 12) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 12));
-      *(_DWORD *)((char *)aasworld.portals + v62 + 16) = LittleLong(*(int *)((char *)aasworld.portals + v62 + 16));
+      aasworld.portals[v61].areanum = LittleLong(aasworld.portals[v61].areanum);
+      aasworld.portals[v61].frontcluster = LittleLong(aasworld.portals[v61].frontcluster);
+      aasworld.portals[v61].backcluster = LittleLong(aasworld.portals[v61].backcluster);
+      aasworld.portals[v61].clusterareanum[0] = LittleLong(aasworld.portals[v61].clusterareanum[0]);
+      aasworld.portals[v61].clusterareanum[1] = LittleLong(aasworld.portals[v61].clusterareanum[1]);
       ++v61;
-      v62 += 20;
     }
     while ( v61 < aasworld.numportals );
   }
@@ -6927,14 +6865,12 @@ void AAS_SwapAASData()
   v71 = 0;
   if ( aasworld.numclusters > 0 )
   {
-    v72 = 0;
     do
     {
-      *(_DWORD *)((char *)aasworld.clusters + v72) = LittleLong(*(int *)((char *)aasworld.clusters + v72));
-      *(_DWORD *)((char *)aasworld.clusters + v72 + 4) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 4));
-      *(_DWORD *)((char *)aasworld.clusters + v72 + 8) = LittleLong(*(int *)((char *)aasworld.clusters + v72 + 8));
+      aasworld.clusters[v71].numareas = LittleLong(aasworld.clusters[v71].numareas);
+      aasworld.clusters[v71].numreachabilityareas = LittleLong(aasworld.clusters[v71].numreachabilityareas);
+      aasworld.clusters[v71].firstportal = LittleLong(aasworld.clusters[v71].firstportal);
       ++v71;
-      v72 += 12;
     }
     while ( v71 < aasworld.numclusters );
   }

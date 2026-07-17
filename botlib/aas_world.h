@@ -19,6 +19,19 @@
  * --------------------------------------------------------------------- */
 typedef float  aas_vertex_t[3];
 
+/* aas_bbox_t — 32-byte presence-bbox record (stride verified as 32 in
+ * AAS_SwapAASData's own byte-accumulator walk, `v1 += 32`).  Layout matches
+ * Q3 botlib aas_bbox_t exactly (aasfile.h): presencetype/flags as two
+ * leading dwords, then mins/maxs as two vec3_t (verified against the byte
+ * offsets AAS_SwapAASData touches: +0/+4 as dwords, +8/+20, +12/+24,
+ * +16/+28 as float pairs). */
+typedef struct aas_bbox_s {
+    int   presencetype;  /* +0  dword 0 */
+    int   flags;         /* +4  dword 1 */
+    float mins[3];       /* +8  dwords 2-4 */
+    float maxs[3];       /* +20 dwords 5-7 */
+} aas_bbox_t;                           /* 32 bytes  (offset stride = 32) */
+
 typedef struct aas_plane_s { float normal[3]; float dist; int type; }  aas_plane_t;
 typedef struct aas_edge_s  { int v[2]; }                               aas_edge_t;
 typedef int                                                aas_edgeindex_t;
