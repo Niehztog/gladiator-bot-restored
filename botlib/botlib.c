@@ -10745,9 +10745,9 @@ LABEL_62:
               /* Build trace endpoint v93 = v63 (XY copied as bits) with Z dropped 100u:
                * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=teststart[1],
                * fld teststart[2] / fsub 100.0 / fstp [v95]. */
+              testend[2] = teststart[2] - 100.0f;
               testend[0] = teststart[0];
               testend[1] = teststart[1];
-              testend[2] = teststart[2] - 100.0f;
               trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
               if ( !trace.startsolid
                 && (trace.fraction >= 1
@@ -10755,9 +10755,9 @@ LABEL_62:
                  || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
                 VectorMA(bestend, -1.0, (float *)dir, teststart);
+                testend[2] = teststart[2] - 100.0f;
                 testend[0] = teststart[0];
                 testend[1] = teststart[1];
-                testend[2] = teststart[2] - 100.0f;
                 trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
                 if ( !trace.startsolid
                   && (trace.fraction >= 1
