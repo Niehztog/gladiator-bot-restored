@@ -12055,7 +12055,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int v10; // edi
   aas_face_t *face2; // esi
   int l; // ecx
-  unsigned int v14; // ebp
   int edge2num; // rax (was __int64 — abs32 idiom)
   int otherareanum; // ecx
   aas_area_t *area2; // eax
@@ -12084,7 +12083,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
    * rejected ~97% of WALKOFFLEDGE candidates on q2ctf2 (23/755). */
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   int edge1num; // [esp+18h] [ebp-9Ch]
-  unsigned int v45; // [esp+20h] [ebp-94h]
   int v46; // [esp+24h] [ebp-90h]
   aas_face_t *v52; // [esp+3Ch] [ebp-78h]
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
@@ -12112,14 +12110,10 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
         face2 = &aasworld.faces[v10];
         if ( (face2->faceflags & 4) != 0 )
           continue;
-        if ( face2->numedges <= 0 )
-          continue;
-        v14 = abs(edge1num);
-        v45 = v14;
         for ( l = 0; l < face2->numedges; l++ )
         {
           edge2num = aasworld.edgeindex[l + face2->firstedge];
-          if ( v14 != abs(edge2num) )
+          if ( abs(edge1num) != abs(edge2num) )
             continue;
           otherareanum = face2->frontarea;
           if ( otherareanum == areanum )
@@ -12136,24 +12130,30 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
               face3 = &aasworld.faces[v20];
               for ( m = 0; m < face3->numedges; m++ )
               {
-                if ( abs(aasworld.edgeindex[face3->firstedge + m]) == v45 )
+                if ( abs(aasworld.edgeindex[face3->firstedge + m]) == abs(edge1num) )
                 {
                   v25 = face3->faceflags;
                   if ( (v25 & 1) == 0 )
+                  {
                     gap = 1;
-                  else
-                    gap = ((char)~(_BYTE)v25 & 4u) >> 2;
+                    break;
+                  }
+                  if ( (v25 & 4) != 0 )
+                  {
+                    gap = 0;
+                    break;
+                  }
+                  gap = 1;
                   break;
                 }
               }
               if ( m < face3->numedges )
                 break;
             }
-            v14 = v45;
             if ( !gap )
               break;
           }
-          edge = &aasworld.edges[v14];
+          edge = &aasworld.edges[abs(edge1num)];
           side = edge1num < 0;
           v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
           v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
@@ -12168,9 +12168,8 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           midorigin[2] = v30[2] + v29[2];
           VectorScale(midorigin, 0.5, midorigin);
           VectorMA(midorigin, 8.0, (float *)dir, midorigin);
-          testend[0] = midorigin[0];
-          testend[1] = midorigin[1];
-          testend[2] = midorigin[2] - 1000.0f;
+          VectorCopy(midorigin, testend);
+          testend[2] -= 1000.0f;
           trace = AAS_TraceClientBBox(midorigin, (float *)testend, 4, -1);
           if ( trace.startsolid )
             break;
