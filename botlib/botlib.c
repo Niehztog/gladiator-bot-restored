@@ -15007,7 +15007,13 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *s
 }
 
 //----- (1001D420) --------------------------------------------------------
-/* sub_1001D420: aim-prediction helper.  Reads two name strings from the bot
+/* BotGetFormationGoal (was sub_1001D420): predicts and returns a formation
+ * follow-position "goal box" for escorting bs->formation_teammate.  Named
+ * from Q3's ai_main.h, which still declares formation_angle/formation_dir/
+ * formation_origin/formation_goal fields matching this function's writes
+ * field-for-field, though those fields are never read or written anywhere
+ * else in the whole Q3 tree — this is likely the only surviving logic that
+ * ever populated them.  Reads two name strings from the bot
  * state (bs+0x10F0 = formation_teammate; bs+0x1124 = "secondary" name),
  * looks each up via ClientFromName and AAS_EntityInfo, then:
  *
@@ -15050,7 +15056,7 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *s
  *                    AAS_JumpReachRunStart@1000F010)
  *   0xC1000000 = -8.0f, 0x41000000 = 8.0f, 0x43C80000 = 400.0f,
  *   0x3DCCCCCD = 0.1f, 0x7C = stopevent mask (HITGROUND|HITWATER|HITLAVA|HITSLIME). */
-int sub_1001D420(bot_state_t *bs)
+int BotGetFormationGoal(bot_state_t *bs)
 {
   aas_entityinfo_t entinfo; /* [esp+0x44] — entityinfo copy; reused for both lookups */
   aas_clientmove_t move;    /* [esp+0xC0] — prediction result; MSVC6 coalesces it with its
@@ -17816,7 +17822,6 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   int v1; // eax
   int v2; // edi
   int v3; // eax
-  int *i; // ebp
   BOOL v5; // esi
   float v6; // st7
   float v8; // [esp+10h] [ebp-168h]
@@ -17837,12 +17842,9 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   healthdecrease = v2 > v3;
   bs->lasthealth = v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
-  v10 = 0;
-  if ( v14 <= 0 )
-    return 0;
-  for ( i = v19; ; )
+  for ( v10 = 0; v10 < v14; ++v10 )
   {
-    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(*i);
+    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(v19[v10]);
     if ( !sub_10021710(entinfo) && entinfo[3] != bs->entitynum )
     {
       dir[0] = *(float *)&entinfo[4] - bs->origin[0];
@@ -17862,37 +17864,36 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
           v9 = 360.0f - (270.0f - v6 * 0.33333334f);
         }
         vectoangles(dir, (float *)angles);
-        if ( InFieldOfVision(bs->viewangles, v9, angles) && !BotSameTeam(bs, *i) )
+        if ( InFieldOfVision(bs->viewangles, v9, angles) && !BotSameTeam(bs, v19[v10]) )
         {
           if ( v5 && v8 <= 300.0f )
-            break;
+            goto found;
           if ( AAS_PointLight((float *)&entinfo[4], 0, 0, 0) >= 5 )
           {
             if ( v8 <= 300.0f )
-              break;
+              goto found;
             if ( EntityIsShooting((intptr_t)entinfo) )
-              break;
+              goto found;
             dir[0] = bs->origin[0] - *(float *)&entinfo[4];
             dir[1] = bs->origin[1] - *(float *)&entinfo[5];
             dir[2] = bs->origin[2] - *(float *)&entinfo[6];
             vectoangles(dir, (float *)angles);
             if ( InFieldOfVision((float *)&entinfo[7], 160.0f, angles) )
-              break;
-            BotUpdateBattleInventory(bs, *i);
+              goto found;
+            BotUpdateBattleInventory(bs, v19[v10]);
             if ( !BotWantsToRetreat((int *)bs) )
-              break;
+              goto found;
           }
         }
       }
     }
-    ++v10;
-    ++i;
-    if ( v10 >= v14 )
-      return 0;
+    continue;
+found:
+    bs->enemy = entinfo[3];
+    bs->enemysight_time = AAS_Time();
+    return 1;
   }
-  bs->enemy = entinfo[3];
-  bs->enemysight_time = AAS_Time();
-  return 1;
+  return 0;
 }
 
 //----- (10023CE0) --------------------------------------------------------
