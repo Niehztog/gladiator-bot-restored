@@ -4249,6 +4249,10 @@ void sub_100071E0()
         v3 = dedges;
         v4 = dvertexes;
         v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(face + 4));
+        /* Merging this into the guard as `if ((v20 = *(__int16*)(face+8)) > 0)`
+         * was build-tested 2026-07-19 and regressed 666b->778b (differing
+         * lines 93->103) — the two-read form is the byte-matching one; do
+         * not re-merge. */
         v20 = *(__int16 *)(face + 8);
         do
         {
@@ -12878,12 +12882,7 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
    * on 64-bit.  Restored using the typed aas_routingupdate_t fifo.
    * 64-bit fix: was `int a1_` -> truncated pointer. */
   aas_routingupdate_t *cur, *head, *tail, *upd;
-  aas_routingupdate_t *portalupdate = aasworld.portalupdate;
-  aas_areasettings_t  *settings_base = (aas_areasettings_t *)aasworld.areasettings;
-  aas_portal_t        *portals = (aas_portal_t *)aasworld.portals;
-  aas_cluster_t       *clusters = (aas_cluster_t *)aasworld.clusters;
-  unsigned short      *cache_traveltimes;
-  unsigned short      *other_traveltimes;
+  aas_routingcache_t *entry;
   int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
   unsigned short t, v17, v18;
   aas_cluster_t *clust;
@@ -12893,15 +12892,13 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   memset((void *)aasworld.portalupdate, 0,
          sizeof(aas_routingupdate_t) * aasworld.numareas);
 
-  cache_traveltimes = (unsigned short *)(portalcache + 1);
-
-  cur = &portalupdate[portalcache->areanum];
+  cur = &aasworld.portalupdate[portalcache->areanum];
   cur->cluster       = portalcache->cluster;
   cur->areanum       = portalcache->areanum;
   cur->tmptraveltime = (unsigned short)(__int64)portalcache->starttraveltime;
-  clusternum = settings_base[portalcache->areanum].cluster;
+  clusternum = ((aas_areasettings_t *)aasworld.areasettings)[portalcache->areanum].cluster;
   if ( clusternum < 0 )
-    cache_traveltimes[-clusternum] = (unsigned short)(__int64)portalcache->starttraveltime;
+    ((unsigned short *)(portalcache + 1))[-clusternum] = (unsigned short)(__int64)portalcache->starttraveltime;
   cur->next   = NULL;
   cur->prev   = NULL;
   head = cur;
@@ -12917,46 +12914,40 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
     v7 = cur->cluster;
     tail = cur->next;
     cur->inlist = 0;
-    clust = &clusters[v7];
-    {
-      aas_routingcache_t *entry =
-          AAS_GetAreaRoutingCache(v7, cur->areanum, portalcache->travelflags);
-      other_traveltimes = (unsigned short *)(entry + 1);
-    }
+    clust = &((aas_cluster_t *)aasworld.clusters)[v7];
+    entry = AAS_GetAreaRoutingCache(v7, cur->areanum, portalcache->travelflags);
 
     if ( clust->numreachabilityareas > 0 )
     {
-      int cluster_numportals  = clust->numreachabilityareas;
-      int cluster_firstportal = clust->firstportal;
-      for ( i = 0; i < cluster_numportals; ++i )
+      for ( i = 0; i < clust->numreachabilityareas; ++i )
       {
-        portalnum = aasworld.portalindex[cluster_firstportal + i];
-        v11 = portals[portalnum].areanum;
+        portalnum = aasworld.portalindex[clust->firstportal + i];
+        v11 = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
         if ( v11 != cur->areanum )
         {
-          v14 = settings_base[v11].cluster;
+          v14 = ((aas_areasettings_t *)aasworld.areasettings)[v11].cluster;
           if ( v14 <= 0 )
           {
-            clusterareanum = portals[-v14].clusterareanum[portals[-v14].frontcluster != cur->cluster];
+            clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
           }
           else
           {
-            clusterareanum = settings_base[v11].clusterareanum;
+            clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
           }
-          t = other_traveltimes[clusterareanum];
+          t = ((unsigned short *)(entry + 1))[clusterareanum];
           if ( t )
           {
             v17 = cur->tmptraveltime + t;
-            v18 = cache_traveltimes[portalnum];
+            v18 = ((unsigned short *)(portalcache + 1))[portalnum];
             if ( !v18 || v18 > v17 )
             {
-              cache_traveltimes[portalnum] = v17;
-              upd = &portalupdate[portals[portalnum].areanum];
-              v20 = portals[portalnum].frontcluster;
+              ((unsigned short *)(portalcache + 1))[portalnum] = v17;
+              upd = &aasworld.portalupdate[((aas_portal_t *)aasworld.portals)[portalnum].areanum];
+              v20 = ((aas_portal_t *)aasworld.portals)[portalnum].frontcluster;
               if ( v20 == cur->cluster )
-                v20 = portals[portalnum].backcluster;
+                v20 = ((aas_portal_t *)aasworld.portals)[portalnum].backcluster;
               upd->cluster = v20;
-              upd->areanum = portals[portalnum].areanum;
+              upd->areanum = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
               upd->tmptraveltime = v17;
               if ( !upd->inlist )
               {
@@ -23388,7 +23379,10 @@ itemconfig_t * LoadItemConfig(char *filename)
    * the unknown-definition cold block.  The IDA `read; while(!strcmp){...;
    * if(!read)goto}` rewrite places the mismatch as the loop fall-through and
    * the read as an internal goto, which diverges.  (MSVC still peels one extra
-   * strcmp copy regardless of form — a loop-rotation tie, see notes.) */
+   * strcmp copy regardless of form — a loop-rotation tie, confirmed against
+   * both this structured do-while AND an explicit goto-formed rewrite of the
+   * identical CFG, which compiled byte-for-byte identical to this form; see
+   * notes.) */
   do
   {
     if ( strcmp(ArgList, "iteminfo") )
@@ -23731,7 +23725,6 @@ void BotUpdateEntityItems(void)
   int v4; // ebx
   levelitem_t *li;
   int v7; // eax
-  int v11; // ecx
   levelitem_t *v13;
   int v16; // eax
   itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
@@ -23807,35 +23800,32 @@ LABEL_19:
               ic->items[v4].maxs,
               li->goalorigin);
 LABEL_23:
-    if ( !li )
-    {
+    if ( li )
+      goto LABEL_31;
 LABEL_24:
 LABEL_25:
-      v11 = ic->numitems;
-      for ( v4 = 0; v4 < v11; ++v4 )
-      {
-        if ( ic->items[v4].modelindex == modelindex )
-          break;
-      }
-      if ( v4 < v11 )
-      {
-        v13 = (levelitem_t *)AllocLevelItem();
-        v13->entitynum = ent;
-        v16 = ent + numlevelitems;
-        v13->origin[0] = entinfo[4];
-        v13->number = v16;
-        v13->origin[1] = entinfo[5];
-        v13->origin[2] = entinfo[6];
-        v13->iteminfo = v4;
-        v13->areanum = AAS_BestReachableArea(
-                                  (int *)v13->origin,
-                                  ic->items[v4].mins,
-                                  ic->items[v4].maxs,
-                                  v13->goalorigin);
-        v13->timeout = AAS_Time() + 30.0f;
-        AddLevelItemToList(v13);
-      }
+    for ( v4 = 0; v4 < ic->numitems; ++v4 )
+    {
+      if ( ic->items[v4].modelindex == modelindex )
+        break;
     }
+    if ( v4 >= ic->numitems )
+      goto LABEL_31;
+    v13 = (levelitem_t *)AllocLevelItem();
+    v13->entitynum = ent;
+    v16 = ent + numlevelitems;
+    v13->origin[0] = entinfo[4];
+    v13->number = v16;
+    v13->origin[1] = entinfo[5];
+    v13->origin[2] = entinfo[6];
+    v13->iteminfo = v4;
+    v13->areanum = AAS_BestReachableArea(
+                              (int *)v13->origin,
+                              ic->items[v4].mins,
+                              ic->items[v4].maxs,
+                              v13->goalorigin);
+    v13->timeout = AAS_Time() + 30.0f;
+    AddLevelItemToList(v13);
 LABEL_31:
     ent = AAS_NextBSPEntity(ent);
   }
@@ -24448,7 +24438,14 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
      * truncates the pointer difference to 32 bits and breaks on
      * 64-bit.  Rewritten with explicit array indexing; preserves the
      * original semantics of comparing origin[i] against
-     * maxs[i]+modelorigin[i]+16 and mins[i]+modelorigin[i]-16 for i=0..1. */
+     * maxs[i]+modelorigin[i]+16 and mins[i]+modelorigin[i]-16 for i=0..1.
+     * (A #if BOTLIB_NEED_SIDEBAND-gated 32-bit-only pointer-diff walk,
+     * matching ref's register-burning form more literally, was build-tested
+     * 2026-07-19 and regressed 649b->700b: introducing the dmaxs/dmins/dmodel
+     * locals shifted register pressure enough to also reschedule the
+     * UNRELATED angles-zero-init/box-constant block earlier in this same
+     * function, a collateral cascade rather than a clean local improvement.
+     * Do not re-attempt this exact lever.) */
     i = 0;
     do
     {
@@ -32421,6 +32418,21 @@ typedef struct fielddef_s {
 } fielddef_t;
 
 //----- (10040540) --------------------------------------------------------
+/* 2026-07-19 Fable-5 handoff: dropped the decompiler-invented `type` local
+ * (was `v8 & 0xFF` cached once) and the shadow v16/v17/v11/v12/v13/v14
+ * temps, testing `(v8 & 0xFF)` directly at each site and folding the
+ * intmin/intmax clamp into Q3-style ternaries — this restores ref's
+ * un-threaded type dispatch (the recomputed mask blocks jump-threading,
+ * matching ref's repeated `and edi,0xff`) and collapsed the masked-diff
+ * residual from 121 differing lines/745b to 22 lines/486b. The remaining
+ * residual is narrower: 4 float comparison sites against a fresh
+ * `fielddef_float()` call compile to `fld/fld st(1)-or-fxch/fcompp` here
+ * vs ref's single memory-operand `fcom`/`fcomp` — tried caching the
+ * fielddef_float(fd,4)/(fd,5) results into named float locals to match
+ * (mirroring the working v18 pattern in the float-value path above this
+ * function), which REGRESSED (22->169 differing lines); reverted. Do not
+ * re-attempt that specific lever without a new idea for what ref's fcom
+ * operand actually is. */
 int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 {
   int negative; // esi
@@ -32428,15 +32440,8 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   double floatval; // st7
   int intval; // ebx
   int v8; // ecx
-  int type; // edi — (v8 & FT_TYPE) computed once, reused
   int intmin; // esi
   int intmax; // rax
-  float v11; // st7
-  float v12; // st7
-  int v13; // rax
-  float v14; // st7
-  int v16; // [esp+20h] [ebp-440h]
-  int v17; // [esp+24h] [ebp-43Ch]
   float v18; // [esp+28h] [ebp-438h]
   int v19; // [esp+28h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
@@ -32492,58 +32497,38 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     v19 = -token.intvalue;
   }
   v8 = fielddef_flags(fd);
-  type = v8 & 0xFF;
-  if ( type == 1 )
+  if ( (v8 & 0xFF) == 1 )
   {
     if ( (v8 & 0x400) != 0 )
     {
       intmin = 0;
       intmax = 255;
-      v17 = 0;
-      v16 = 255;
     }
     else
     {
       intmin = -128;
       intmax = 127;
-      v17 = -128;
-      v16 = 127;
     }
   }
-  else
-  {
-    intmin = v17;
-    intmax = v16;
-  }
-  if ( type == 2 )
+  if ( (v8 & 0xFF) == 2 )
   {
     if ( (v8 & 0x400) != 0 )
     {
       intmin = 0;
       intmax = 0xFFFF;
-      v17 = 0;
     }
     else
     {
       intmin = -32768;
       intmax = 0x7FFF;
-      v17 = -32768;
     }
-    v16 = intmax;
   }
-  if ( type == 1 || type == 2 )
+  if ( (v8 & 0xFF) == 1 || (v8 & 0xFF) == 2 )
   {
     if ( (v8 & 0x200) != 0 )
     {
-      v12 = (float)v17;
-      if ( v12 <= fielddef_float(fd, 4) )
-        v12 = fielddef_float(fd, 4);
-      v13 = (int)v12;
-      v14 = (float)v16;
-      intmin = v13;
-      if ( v14 >= fielddef_float(fd, 5) )
-        v14 = fielddef_float(fd, 5);
-      intmax = (int)v14;
+      intmin = intmin > fielddef_float(fd, 4) ? intmin : fielddef_float(fd, 4);
+      intmax = intmax < fielddef_float(fd, 5) ? intmax : fielddef_float(fd, 5);
     }
     if ( intval < intmin || intval > intmax )
     {
@@ -32551,30 +32536,29 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
       return 0;
     }
   }
-  else if ( type == 3 )
+  else if ( (v8 & 0xFF) == 3 )
   {
     if ( (v8 & 0x200) != 0 )
     {
-      v11 = (float)v19;
-      if ( v11 < fielddef_float(fd, 4) || v11 > fielddef_float(fd, 5) )
+      if ( (float)v19 < fielddef_float(fd, 4) || (float)v19 > fielddef_float(fd, 5) )
       {
         SourceError(source, "value %d out of range [%f, %f]", intval, fielddef_float(fd, 4), fielddef_float(fd, 5));
         return 0;
       }
     }
   }
-  if ( type == 1 )
+  if ( (v8 & 0xFF) == 1 )
   {
     *(_BYTE *)p = intval;
   }
-  else if ( type == 2 )
+  else if ( (v8 & 0xFF) == 2 )
   {
     *(_DWORD *)p = intval;
     return 1;
   }
   else
   {
-    if ( type == 3 )
+    if ( (v8 & 0xFF) == 3 )
       *p = (float)v19;
     return 1;
   }
