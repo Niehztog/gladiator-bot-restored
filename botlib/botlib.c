@@ -1964,6 +1964,7 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
      concat, then is rebuilt in place as the roll matrix for the second (it is
      arg1 of both calls).  ref's 0x6c frame is exactly 3*9 floats — it reuses
      the buffer rather than carrying a separate roll_m. */
+  float cp, sp;
   struct {
     float yaw[3][3];
     float m[3][3];
@@ -1989,11 +1990,19 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.yaw[1][0] = -mats.yaw[0][1];
   mats.yaw[1][1] = mats.yaw[0][0];
 
-  /* pitch matrix (rotation around Y) */
-  mats.m[0][0] = (float)cos(angles[0] * DEG2RAD);
-  mats.m[0][2] = -(float)sin(angles[0] * DEG2RAD);
-  mats.m[2][2] = mats.m[0][0];
-  mats.m[2][0] = -mats.m[0][2];
+  /* pitch matrix (rotation around Y).  Unlike yaw/roll (which re-read their
+     own struct fields for the second use and already match ref that way),
+     ref's disasm here stores each trig result to a scratch slot once and
+     reloads it via an integer mov before storing to its final cells — the
+     signature of named scalar temps, not a struct-field re-read.  Named
+     temps here cut byte_diffs 483->328; the same treatment tried on yaw/roll
+     regresses (confirmed 2026-07-18), so it is NOT applied there. */
+  cp = (float)cos(angles[0] * DEG2RAD);
+  sp = (float)sin(angles[0] * DEG2RAD);
+  mats.m[0][0] = cp;
+  mats.m[0][2] = -sp;
+  mats.m[2][2] = cp;
+  mats.m[2][0] = sp;
 
   /* tmp = pitch_m * yaw_m.  ref computes the roll angle and roll matrix only
      AFTER this call (3rd fmul DEG2RAD at 0x10003599 follows the call at
@@ -16240,31 +16249,11 @@ LABEL_9:
       bs->lastenemyareanum = areanum;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
-    if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
-    {
-      v8 = 102334;
-      if ( libvar_usehook->value != 0.0f )
-        v8 = 118718;
-      if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-        v8 |= 0x1000u;
-      sub_10020FE0(bs, BotWS(bs));
-      BotChooseBestFightWeapon(BotWS(bs));
-      sub_100215E0(bs);
-      BotBattleUseItems(bs);
-      moveresult = BotAttackMove(bs, v8);
-      if ( moveresult.failure )
-      {
-        BotResetAvoidReach((_DWORD *)bs->movestate);
-        bs->ltg_time = 0.0f;
-      }
-      BotAIBlocked(bs, &moveresult, 0);
-      BotAimAtEnemy(bs);
-      BotCheckAttack(bs);
-      if ( BotWantsToRetreat((int *)bs) )
-        AIEnter_Battle_Retreat(bs);
-      return 1;
-    }
-    else
+    /* Q3's ai_dmnet.c cognate tests not-visible FIRST and early-outs to the
+       chase/seek branch, with the attack pipeline as the fallthrough — the
+       opposite of the previous not-inverted form here.  Matching Q3's order
+       improved differing-lines 50->24 and byte_diffs 784->780 (2026-07-18). */
+    if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       v7 = BotWantsToChase((int *)bs);
       v9 = bs;
@@ -16273,6 +16262,27 @@ LABEL_9:
       AIEnter_Battle_Chase(bs);
       return 0;
     }
+    v8 = 102334;
+    if ( libvar_usehook->value != 0.0f )
+      v8 = 118718;
+    if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+      v8 |= 0x1000u;
+    sub_10020FE0(bs, BotWS(bs));
+    BotChooseBestFightWeapon(BotWS(bs));
+    sub_100215E0(bs);
+    BotBattleUseItems(bs);
+    moveresult = BotAttackMove(bs, v8);
+    if ( moveresult.failure )
+    {
+      BotResetAvoidReach((_DWORD *)bs->movestate);
+      bs->ltg_time = 0.0f;
+    }
+    BotAIBlocked(bs, &moveresult, 0);
+    BotAimAtEnemy(bs);
+    BotCheckAttack(bs);
+    if ( BotWantsToRetreat((int *)bs) )
+      AIEnter_Battle_Retreat(bs);
+    return 1;
   }
 }
 
@@ -23095,6 +23105,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
  bot_chatmessage_t *v7; // esi
  int v8; // edi
  int v9; // rax (was __int64)
+ float rnd;
  bot_chatmessage_t *v10; // esi
  int v11; // edi
  bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
@@ -23173,7 +23184,13 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
        while ( v7 );
        v15 = v8;
      }
-     v9 = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * (float)v15);
+     /* Split into two statements: ref's disasm multiplies by the 0.000030518509f
+        constant BEFORE the v15 factor (fmul ds:const; fimul [v15]); the single-
+        expression form compiled the two multiplies in the opposite order despite
+        matching left-to-right source text.  A sequence point after computing the
+        const-scaled value reproduces ref's order exactly (verified 2026-07-18). */
+     rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
+     v9 = (int)(rnd * (float)v15);
      v11 = v9;
      for ( v10 = rchat->firstchatmessage; v10; v10 = v10->next )
      {
