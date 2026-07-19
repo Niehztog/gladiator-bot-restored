@@ -12103,7 +12103,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           VectorNormalize(dir);
           midorigin[0] = *v29 + *v30;
           midorigin[1] = v29[1] + v30[1];
-          midorigin[2] = v30[2] + v29[2];
+          midorigin[2] = v29[2] + v30[2];
           VectorScale(midorigin, 0.5, midorigin);
           VectorMA(midorigin, 8.0, (float *)dir, midorigin);
           VectorCopy(midorigin, testend);
@@ -13007,7 +13007,6 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanu
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum)
 {
   __int16 result; // ax
-  aas_portal_t *v5; // ecx
   int clusternum; // edi
   int v7; // esi
   int v9; // eax
@@ -13048,7 +13047,6 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   }
   if ( aasworld.frameroutingupdates > 10 )
     return 0;
-  v5 = aasworld.portals;
   clusternum = aasworld.areasettings[areanum].cluster;
   v9 = aasworld.areasettings[a2].cluster;
   v7 = clusternum;
@@ -13069,15 +13067,12 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
         v9 = clusternum;
     }
   }
-  v5 = aasworld.portals;
   if ( v7 > 0 && v9 > 0 && v7 == v9 )
   {
     v12 = AAS_GetAreaRoutingCache(v7, a2, goalareanum);
-    v5 = aasworld.portals;
     clusternum = aasworld.areasettings[areanum].cluster;
     if ( clusternum <= 0 )
     {
-      v5 = aasworld.portals;
       v13 = aasworld.portals[-clusternum].clusterareanum[aasworld.portals[-clusternum].frontcluster != v7];
     }
     else
@@ -13096,7 +13091,7 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
 portalpath:
   v14 = aasworld.areasettings[a2].cluster;
   if ( v14 < 0 )
-    v14 = v5[-v14].frontcluster;
+    v14 = aasworld.portals[-v14].frontcluster;
   portalcache = AAS_GetPortalRoutingCache(v14, a2, goalareanum);
   v16 = 0;
   v17 = portalcache;
