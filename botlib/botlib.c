@@ -11280,9 +11280,9 @@ int AAS_Reachability_Teleport()
         botimport.Print(PRT_ERROR, "teleporter destination (%s) without origin\n", target);
         goto cont;
       }
+      destorigin[2] = destorigin[2] + 24;
       end[0] = destorigin[0];
       end[1] = destorigin[1];
-      destorigin[2] = destorigin[2] + 24;
       end[2] = destorigin[2] - 100;
       trace = AAS_TraceClientBBox(destorigin, end, 4, -1);
       if ( trace.startsolid )
@@ -12720,8 +12720,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   aas_routingupdate_t *upd;
   aas_reversedlink_t  *link;             /* v22 */
   int                  linkidx;          /* v23 / 2 */
-  aas_areasettings_t  *settings_base;
-  aas_reachability_t  *reach_base, *reach;
+  aas_reachability_t  *reach;
   int                  destcluster;      /* v3, v16 */
   int                  destclusterareanum;
   int                  srcareanum;       /* v14 */
@@ -12733,9 +12732,6 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   ++aasworld.frameroutingupdates;
   memset((void *)aasworld.areaupdate, 0, sizeof(aas_routingupdate_t) * aasworld.numareas);
 
-  settings_base   = (aas_areasettings_t *)aasworld.areasettings;
-  reach_base      = (aas_reachability_t *)aasworld.reachability;
-
   travelmask        = ~areacache->travelflags;
 
   cur              = &aasworld.areaupdate[areacache->areanum];
@@ -12743,7 +12739,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   cur->areatraveltimes = aasworld.areatraveltimes[areacache->areanum][0];
   cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
 
-  destcluster = settings_base[areacache->areanum].cluster;
+  destcluster = aasworld.areasettings[areacache->areanum].cluster;
   if ( destcluster <= 0 )
   {
     aas_portal_t *p = &((aas_portal_t *)aasworld.portals)[-destcluster];
@@ -12751,7 +12747,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   }
   else
   {
-    destclusterareanum = settings_base[areacache->areanum].clusterareanum;
+    destclusterareanum = aasworld.areasettings[areacache->areanum].clusterareanum;
   }
   ((unsigned short *)(areacache + 1))[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
 
@@ -12774,10 +12770,10 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
     linkidx = 0;
     while ( link )
     {
-      reach = &reach_base[link->linknum];
+      reach = &aasworld.reachability[link->linknum];
       if ( (travelmask & aasworld.travelflagfortype[reach->traveltype]) == 0 )
       {
-        contents = settings_base[reach->areanum].contents;
+        contents = aasworld.areasettings[reach->areanum].contents;
         if ( contents & 1 )      presencemask = 0x10000;
         else if ( contents & 4 ) presencemask = 0x20000;
         else if ( contents & 2 ) presencemask = 0x40000;
@@ -12785,7 +12781,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
         if ( (presencemask & travelmask) == 0 )
         {
           srcareanum  = link->areanum;
-          destcluster = settings_base[srcareanum].cluster;
+          destcluster = aasworld.areasettings[srcareanum].cluster;
           if ( destcluster <= 0 || destcluster == areacache->cluster )
           {
             newtt = cur->tmptraveltime
@@ -12798,7 +12794,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
             }
             else
             {
-              destclusterareanum = settings_base[srcareanum].clusterareanum;
+              destclusterareanum = aasworld.areasettings[srcareanum].clusterareanum;
             }
             oldtt = ((unsigned short *)(areacache + 1))[destclusterareanum];
             if ( !oldtt || oldtt > newtt )
@@ -12808,7 +12804,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
               upd->areanum         = srcareanum;
               upd->tmptraveltime   = newtt;
               upd->areatraveltimes = aasworld.areatraveltimes[srcareanum]
-                                       [link->linknum - settings_base[srcareanum].firstreachablearea];
+                                       [link->linknum - aasworld.areasettings[srcareanum].firstreachablearea];
               if ( !upd->inlist )
               {
                 upd->next = NULL;
@@ -23726,7 +23722,6 @@ void BotUpdateEntityItems(void)
   levelitem_t *li;
   int v7; // eax
   levelitem_t *v13;
-  int v16; // eax
   itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
   int v19; // [esp+10h] [ebp-108h]
   int modelindex; // [esp+10h] [ebp-108h]
@@ -23813,9 +23808,8 @@ LABEL_25:
       goto LABEL_31;
     v13 = (levelitem_t *)AllocLevelItem();
     v13->entitynum = ent;
-    v16 = ent + numlevelitems;
+    v13->number = numlevelitems + ent;
     v13->origin[0] = entinfo[4];
-    v13->number = v16;
     v13->origin[1] = entinfo[5];
     v13->origin[2] = entinfo[6];
     v13->iteminfo = v4;
