@@ -2628,7 +2628,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   BOOL v49; // eax
   int *v50; // ecx
   BOOL v51; // eax
-  qboolean v52; // cc
   int v53; // ecx
   int v54; // eax
   /* side_a/side_b: Fable-5-proposed (2026-07-09), disasm-verified — the original
@@ -2958,7 +2957,6 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         }
         v122 = &plane_sideflags[1];
         v47 = 0;
-        v117 = 0;
         do
         {
           v48 = v109 - *(float *)((char *)&v133 + v47);
@@ -2970,12 +2968,10 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           *(v122 - 1) = v49;
           v51 = v48 < 0.005 && v110 < 0.005;
           *v50 = v51;
-          v47 = v117 + 4;
-          v52 = v117 + 4 < 8;
-          v117 += 4;
+          v47 += 4;
           v122 = v50 + 2;
         }
-        while ( v52 );
+        while ( v47 < 8 );
         v53 = v121;
         if ( !plane_sideflags[v121] && !plane_sideflags[v121 + 2] )
           break;
@@ -11299,12 +11295,9 @@ int AAS_Reachability_Teleport()
       maxs[1] = 8.0;
       maxs[2] = 24.0;
       AAS_PresenceTypeBoundingBox(4, v29, v30);
-      mins[1] = mins[1] + origin[1];
-      mins[2] = mins[2] + origin[2];
+      VectorAdd(mins, origin, mins);
       VectorAdd(maxs, origin, maxs);
-      mins[0] = mins[0] + origin[0] - v30[0];
-      mins[1] = mins[1] - v30[1];
-      mins[2] = mins[2] - v30[2];
+      VectorSubtract(mins, v30, mins);
       VectorSubtract(maxs, v29, maxs);
       areas = AAS_AASLinkEntity(mins, maxs, -1);
       for ( i = areas; i; i = i->next_area )
@@ -12186,7 +12179,6 @@ int AAS_ContinueInitReachability(int time)
   int v5; // eax
   int i; // esi
   int start_time; // ebp
-  int v11; // eax
   int j; // edi
 
   (void)time; /* caller passes arg; original function ignores it (no ebp frame at 0x10018920) */
@@ -12242,9 +12234,7 @@ int AAS_ContinueInitReachability(int time)
         AAS_Reachability_WeaponJump(i, j);
       }
     }
-    v11 = Sys_MilliSeconds();
-    v2 = libvar_framereachability->value;
-    if ( v11 - start_time > (int)(__int64)v2 )
+    if ( Sys_MilliSeconds() - start_time > (int)(__int64)libvar_framereachability->value )
       break;
   }
   if ( aasworld.numreachabilityareas >= aasworld.numareas )
@@ -12266,9 +12256,11 @@ int AAS_ContinueInitReachability(int time)
     {
       botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100);
       botimport.Print(PRT_MESSAGE, "\nplease wait while storing reachability...\n");
-      return 1;
     }
-    botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
+    else
+    {
+      botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100 * aasworld.numreachabilityareas / aasworld.numareas);
+    }
   }
   return 1;
 }
@@ -12740,14 +12732,14 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
 
   destcluster = aasworld.areasettings[areacache->areanum].cluster;
-  if ( destcluster <= 0 )
+  if ( destcluster > 0 )
   {
-    aas_portal_t *p = &((aas_portal_t *)aasworld.portals)[-destcluster];
-    destclusterareanum = p->clusterareanum[p->frontcluster != areacache->cluster];
+    destclusterareanum = aasworld.areasettings[areacache->areanum].clusterareanum;
   }
   else
   {
-    destclusterareanum = aasworld.areasettings[areacache->areanum].clusterareanum;
+    destclusterareanum = ((aas_portal_t *)aasworld.portals)[-destcluster].clusterareanum
+                            [((aas_portal_t *)aasworld.portals)[-destcluster].frontcluster != areacache->cluster];
   }
   ((unsigned short *)(areacache + 1))[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
 
@@ -12787,14 +12779,14 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
             newtt = cur->tmptraveltime
                   + reach->traveltime
                   + cur->areatraveltimes[linkidx];
-            if ( destcluster <= 0 )
+            if ( destcluster > 0 )
             {
-              aas_portal_t *p = &((aas_portal_t *)aasworld.portals)[-destcluster];
-              destclusterareanum = p->clusterareanum[p->frontcluster != areacache->cluster];
+              destclusterareanum = aasworld.areasettings[srcareanum].clusterareanum;
             }
             else
             {
-              destclusterareanum = aasworld.areasettings[srcareanum].clusterareanum;
+              destclusterareanum = ((aas_portal_t *)aasworld.portals)[-destcluster].clusterareanum
+                                      [((aas_portal_t *)aasworld.portals)[-destcluster].frontcluster != areacache->cluster];
             }
             oldtt = ((unsigned short *)(areacache + 1))[destclusterareanum];
             if ( !oldtt || oldtt > newtt )
@@ -31576,14 +31568,14 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     /* hexadecimal — NB the faithful Gladiator quirk: uppercase digits admit only 'A' (65..65) */
     while ( (c >= 48 && c <= 57) || (c >= 97 && c <= 102) || (c >= 65 && c <= 65) )
     {
-      token->string[len++] = c;
+      token->string[len++] = *script->script_p++;
       if ( len >= 1024 )
       {
         ScriptError(script, "hexadecimal number longer than MAX_TOKEN = %d",
                     1024);
         return 0;
       }
-      c = *++script->script_p;
+      c = *script->script_p;
     }
     token->subtype |= 0x100;
   }
@@ -31594,13 +31586,13 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     c = *script->script_p;
     while ( c == 48 || c == 49 )
     {
-      token->string[len++] = c;
+      token->string[len++] = *script->script_p++;
       if ( len >= 1024 )
       {
         ScriptError(script, "binary number longer than MAX_TOKEN = %d", 1024);
         return 0;
       }
-      c = *++script->script_p;
+      c = *script->script_p;
     }
     token->subtype |= 0x400;
   }
