@@ -2441,12 +2441,8 @@ LABEL_30:
       }
     }
   }
-  vec[0] = *v15 - *v13;
-  vec[1] = v15[1] - v13[1];
-  vec[2] = v15[2] - v13[2];
-  dir[0] = startp[0] - *v13;
-  dir[1] = startp[1] - v13[1];
-  dir[2] = startp[2] - v13[2];
+  VectorSubtract(v15, v13, vec);
+  VectorSubtract(startp, v13, dir);
   v41 = VectorLength(dir);
   v31 = v41 / VectorLength(vec);
   if ( v31 >= *a8 )
@@ -3238,9 +3234,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   if ( !dword_100674C0 )
     return 0;
   v9 = 0;
-  v11[0] = *a1 - *a3;
-  v11[1] = a1[1] - a3[1];
-  v11[2] = a1[2] - a3[2];
+  VectorSubtract(a1, a3, v11);
   v12[0] = -*a4;
   v12[1] = -a4[1];
   v12[2] = -a4[2];
@@ -7461,9 +7455,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   v8 = aasworld.newestcache;
   for ( i = v7; v8; v8 = v8->next )
   {
-    v12[0] = *v6 - v8->origin[0];
-    v12[1] = v6[1] - v8->origin[1];
-    v12[2] = v6[2] - v8->origin[2];
+    VectorSubtract(v6, v8->origin, v12);
     v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0f )
     {
@@ -10195,9 +10187,7 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 {
   vec3_t dir; // [esp+0h] [ebp-Ch] BYREF
 
-  dir[0] = *v2 - *v1;
-  dir[1] = v2[1] - v1[1];
-  dir[2] = v2[2] - v1[2];
+  VectorSubtract(v2, v1, dir);
   return VectorLength(dir);
 }
 
@@ -10226,9 +10216,7 @@ int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
 //----- (10013C70) --------------------------------------------------------
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 {
-  *middle = *v1 + *v2;
-  middle[1] = v1[1] + v2[1];
-  middle[2] = v1[2] + v2[2];
+  VectorAdd(v1, v2, middle);
   VectorScale((float *)middle, 0.5, (float *)middle);
 }
 
@@ -10492,10 +10480,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart[0] = *v1;
-                              beststart[1] = v1[1];
+                              VectorCopy(v1, beststart);
                               bestdist = v39;
-                              beststart[2] = v1[2];
                               VectorCopy(v70_vec, bestend);
                             }
                           }
@@ -10515,10 +10501,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              beststart[0] = *v2;
-                              beststart[1] = v2[1];
+                              VectorCopy(v2, beststart);
                               bestdist = v39;
-                              beststart[2] = v2[2];
                               VectorCopy(v76_vec, bestend);
                             }
                           }
@@ -10540,9 +10524,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             {
                               VectorCopy(v80_vec, beststart);
                               bestdist = v39;
-                              bestend[0] = *v3;
-                              bestend[1] = v3[1];
-                              bestend[2] = v3[2];
+                              VectorCopy(v3, bestend);
                             }
                           }
                           else
@@ -10567,9 +10549,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             beststart[1] = v73_vec[1];
 LABEL_60:
                             *(int *)&beststart[2] = v40;
-                            bestend[0] = *v4;
-                            bestend[1] = v4[1];
-                            bestend[2] = v4[2];
+                            VectorCopy(v4, bestend);
                           }
                         }
                         else
@@ -10586,35 +10566,23 @@ LABEL_61:
                       v39 = VectorDistance(v1, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *v1;
-                        beststart[1] = v1[1];
-                        beststart[2] = v1[2];
+                        VectorCopy(v1, beststart);
                         bestdist = v39;
-                        bestend[0] = *v3;
-                        bestend[1] = v3[1];
-                        bestend[2] = v3[2];
+                        VectorCopy(v3, bestend);
                       }
                       v39 = VectorDistance(v1, v4);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *v1;
-                        beststart[1] = v1[1];
-                        beststart[2] = v1[2];
+                        VectorCopy(v1, beststart);
                         bestdist = v39;
-                        bestend[0] = *v4;
-                        bestend[1] = v4[1];
-                        bestend[2] = v4[2];
+                        VectorCopy(v4, bestend);
                       }
                       v39 = VectorDistance(v2, v3);
                       if ( v39 < bestdist )
                       {
-                        beststart[0] = *v2;
-                        beststart[1] = v2[1];
-                        beststart[2] = v2[2];
+                        VectorCopy(v2, beststart);
                         bestdist = v39;
-                        bestend[0] = *v3;
-                        bestend[1] = v3[1];
-                        bestend[2] = v3[2];
+                        VectorCopy(v3, bestend);
                       }
                       v39 = VectorDistance(v2, v4);
                       if ( v39 >= bestdist )
@@ -12062,14 +12030,10 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
           v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
           plane = &aasworld.planes[v52->planenum];
-          sharededgevec[0] = *v30 - *v29;
-          sharededgevec[1] = v30[1] - v29[1];
-          sharededgevec[2] = v30[2] - v29[2];
+          VectorSubtract(v30, v29, sharededgevec);
           CrossProduct(plane->normal, sharededgevec, dir);
           VectorNormalize(dir);
-          midorigin[0] = *v29 + *v30;
-          midorigin[1] = v29[1] + v30[1];
-          midorigin[2] = v29[2] + v30[2];
+          VectorAdd(v29, v30, midorigin);
           VectorScale(midorigin, 0.5, midorigin);
           VectorMA(midorigin, 8.0, (float *)dir, midorigin);
           VectorCopy(midorigin, testend);
@@ -14404,12 +14368,8 @@ aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int
   vec3_t newabsmins; // [esp+24h] [ebp-Ch] BYREF
 
   AAS_PresenceTypeBoundingBox(presencetype, mins, maxs);
-  newabsmins[0] = *absmins - maxs[0];
-  newabsmins[1] = absmins[1] - maxs[1];
-  newabsmins[2] = absmins[2] - maxs[2];
-  newabsmaxs[0] = *absmaxs - mins[0];
-  newabsmaxs[1] = absmaxs[1] - mins[1];
-  newabsmaxs[2] = absmaxs[2] - mins[2];
+  VectorSubtract(absmins, maxs, newabsmins);
+  VectorSubtract(absmaxs, mins, newabsmaxs);
   return AAS_AASLinkEntity(newabsmins, newabsmaxs, entnum);
 }
 
