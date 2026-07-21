@@ -11596,7 +11596,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   }
   for ( i = 0; i < area2->numfaces; i++ )
   {
-    face2num = aasworld.faceindex[i + area2->firstface];
+    face2num = aasworld.faceindex[area2->firstface + i];
     face2 = &aasworld.faces[abs(face2num)];
     if ( (face2->faceflags & 1) != 0 )
     {
@@ -12650,6 +12650,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   aas_routingupdate_t *upd;
   aas_reversedlink_t  *link;             /* v22 */
   int                  linkidx;          /* v23 / 2 */
+  int                  linknum;
   aas_reachability_t  *reach;
   int                  destcluster;      /* v3, v16 */
   int                  destclusterareanum;
@@ -12700,7 +12701,8 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
     linkidx = 0;
     while ( link )
     {
-      reach = &aasworld.reachability[link->linknum];
+      linknum = link->linknum;
+      reach = &aasworld.reachability[linknum];
       if ( (travelmask & aasworld.travelflagfortype[reach->traveltype]) == 0 )
       {
         contents = aasworld.areasettings[reach->areanum].contents;
@@ -12734,7 +12736,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
               upd->areanum         = srcareanum;
               upd->tmptraveltime   = newtt;
               upd->areatraveltimes = aasworld.areatraveltimes[srcareanum]
-                                       [link->linknum - aasworld.areasettings[srcareanum].firstreachablearea];
+                                       [linknum - aasworld.areasettings[srcareanum].firstreachablearea];
               if ( !upd->inlist )
               {
                 upd->next = NULL;
@@ -17468,7 +17470,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
 bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
 {
   float v10; // st7
-  bot_character_t *v11; // restored: holds BotCharacter pointer
+  float jitter;
   int movetype; // edi
   float strafechange_time; // st7
   int v16; // eax
@@ -17518,8 +17520,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   if ( Characteristic_BFloat(BotCharacter(bs), 48, 0.0f, 1.0f) <= v10 )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
-    v11 = BotCharacter(bs);
-    jumper = Characteristic_BFloat(v11, 25, 0.0f, 1.0f);
+    jumper = Characteristic_BFloat(BotCharacter(bs), 25, 0.0f, 1.0f);
     croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
     if ( attack_skill >= 0.2 )
     {
@@ -17574,7 +17575,8 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
       strafechange_time = (1.0f - attack_skill) * 0.2 + 0.4;
       if ( attack_skill > 0.7 )
       {
-        strafechange_time += 2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5) * 0.1;
+        jitter = (float)(rand() & 0x7FFF) * 0.000030518509f - 0.5;
+        strafechange_time += (jitter + jitter) * 0.1;
       }
       if ( strafechange_time < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
       {
