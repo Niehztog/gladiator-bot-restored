@@ -2586,7 +2586,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v15; // st7
   bsp_model_tracestack_t *v16; // eax
   int v17; // edx
-  /* v19, v62, v79, v100: AArch64 — these hold pointers into trace_stack
+  /* v19, v56, v100: AArch64 — these hold pointers into trace_stack
    * (the trace-stack free/active lists).  IDA typed them `int` because
    * on 32-bit MSVC every link slot was 4 bytes; on aarch64 the 4-byte
    * int storage truncated 8-byte stack pointers, crashing
@@ -2636,16 +2636,12 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
    * (v109's earlier genuine float distance value is untouched). */
   int side_a;
   int side_b;
-  bsp_model_tracestack_t *v56; // eax
-  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset)
+  bsp_model_tracestack_t *v56; // eax — EXPERIMENTAL: reused tstack-style temp for all three disjoint fresh-node sites (was split by IDA into v56/v62/v79; revert if not exact/kept)
+  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset). EXPERIMENTAL: reused for all three disjoint fresh-node sites (was split by IDA into v57/v57/v57; revert if not exact/kept)
   int v59; // edx
   float v60; // st7
-  bsp_model_tracestack_t *v62; // ecx — AArch64: trace-stack frame pointer (see v19)
-  int *v63; // ebp  — AArch64: points to a single 4-byte link slot
   bsp_model_tracestack_t *v64; // esi
   bsp_model_tracestack_t *v70; // edx
-  bsp_model_tracestack_t *v79; // eax — AArch64: trace-stack frame pointer
-  int *v80; // ecx  — AArch64: points to a single 4-byte link slot
   int v82; // edx
   float v83; // st7
   int v89; // eax
@@ -3036,23 +3032,23 @@ LABEL_71:
               goto LABEL_103;
             if ( !v19 )
               break;
-            v62 = v19;
-            v63 = &v19->next;
-            VectorCopy(v139, v62->start);
-            VectorCopy(v111, v62->end);
+            v56 = v19;
+            v57 = &v19->next;
+            VectorCopy(v139, v56->start);
+            VectorCopy(v111, v56->end);
             v19 = TR_DEC(v19->next);
-            v62->planenum = v120->planenum;
-            v62->planedist = *(&v133 + v121);
+            v56->planenum = v120->planenum;
+            v56->planedist = *(&v133 + v121);
             v64 = 0;
-            v62->nodenum = v120->children[v121];
+            v56->nodenum = v120->children[v121];
             v70 = v24;
             if ( !v24 )
             {
 LABEL_101:
-              v24 = v62;
+              v24 = v56;
               goto LABEL_102;
             }
-            while ( v62->start[v126] < v70->start[v126] != v135 )
+            while ( v56->start[v126] < v70->start[v126] != v135 )
             {
               v64 = v70;
               v70 = TR_DEC(v70->next);
@@ -3064,19 +3060,19 @@ LABEL_101:
           {
             if ( !v19 )
               break;
-            v62 = v19;
-            v63 = &v19->next;
+            v56 = v19;
+            v57 = &v19->next;
             v64 = 0;
-            VectorCopy(v123, v62->start);
-            VectorCopy(v111, v62->end);
+            VectorCopy(v123, v56->start);
+            VectorCopy(v111, v56->end);
             v19 = TR_DEC(v19->next);
-            v62->planenum = v120->planenum;
-            v62->planedist = *(&v133 + side_b);
+            v56->planenum = v120->planenum;
+            v56->planedist = *(&v133 + side_b);
             v70 = v24;
-            v62->nodenum = v120->children[v121];
+            v56->nodenum = v120->children[v121];
             if ( !v24 )
               goto LABEL_101;
-            while ( v62->start[v126] < v70->start[v126] != v135 )
+            while ( v56->start[v126] < v70->start[v126] != v135 )
             {
               v64 = v70;
               v70 = TR_DEC(v70->next);
@@ -3084,19 +3080,19 @@ LABEL_101:
                 goto LABEL_99;
             }
           }
-          *v63 = TR_ENC(v70);
+          *v57 = TR_ENC(v70);
           if ( v64 )
-            v64->next = TR_ENC(v62);
+            v64->next = TR_ENC(v56);
           else
-            v24 = v62;
+            v24 = v56;
           if ( v70 )
             goto LABEL_103;
 LABEL_99:
           if ( !v64 )
             goto LABEL_101;
-          v64->next = TR_ENC(v62);
+          v64->next = TR_ENC(v56);
 LABEL_102:
-          *v63 = 0;
+          *v57 = 0;
 LABEL_103:
           if ( !plane_sideflags[side_b] && !plane_sideflags[side_b + 2] )
           {
@@ -3104,29 +3100,29 @@ LABEL_103:
             {
               if ( !v19 )
                 break;
-              v79 = v19;
-              v80 = &v19->next;
-              VectorCopy(v106, v79->start);
+              v56 = v19;
+              v57 = &v19->next;
+              VectorCopy(v106, v56->start);
               v19 = TR_DEC(v19->next);
-              VectorCopy(v139, v79->end);
+              VectorCopy(v139, v56->end);
               goto LABEL_111;
             }
             if ( v118 >= 0 )
             {
               if ( !v19 )
                 break;
-              v79 = v19;
-              v80 = &v19->next;
-              VectorCopy(v106, v79->start);
+              v56 = v19;
+              v57 = &v19->next;
+              VectorCopy(v106, v56->start);
               v19 = TR_DEC(v19->next);
-              VectorCopy(v123, v79->end);
+              VectorCopy(v123, v56->end);
 LABEL_111:
-              v79->planenum = v119;
-              v79->planedist = v127;
+              v56->planenum = v119;
+              v56->planedist = v127;
               v82 = v120->children[side_b];
-              *v80 = TR_ENC(v24);
-              v79->nodenum = v82;
-              v24 = v79;
+              *v57 = TR_ENC(v24);
+              v56->nodenum = v82;
+              v24 = v56;
             }
           }
       }
