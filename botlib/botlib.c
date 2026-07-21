@@ -2636,8 +2636,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
    * (v109's earlier genuine float distance value is untouched). */
   int side_a;
   int side_b;
-  bsp_model_tracestack_t *v56; // eax — EXPERIMENTAL: reused tstack-style temp for all three disjoint fresh-node sites (was split by IDA into v56/v62/v79; revert if not exact/kept)
-  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset). EXPERIMENTAL: reused for all three disjoint fresh-node sites (was split by IDA into v57/v57/v57; revert if not exact/kept)
+  bsp_model_tracestack_t *v56; // eax — reused tstack-style temp for all three disjoint fresh-node sites (was split by IDA into v56/v62/v79)
+  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset). Reused for all three disjoint fresh-node sites (was split by IDA into v57/v63/v80)
   int v59; // edx
   float v60; // st7
   bsp_model_tracestack_t *v64; // esi
