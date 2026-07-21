@@ -11571,7 +11571,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
     return 0;
   area1 = &aasworld.areas[area1num];
   area2 = &aasworld.areas[area2num];
-  if ( area2->maxs[2] < (float)area1->mins[2] )
+  if ( area2->maxs[2] < area1->mins[2] )
     return 0;
   VectorCopy(area1->center, start);
   if ( !AAS_AreaSwim(area1num) )
@@ -12838,49 +12838,46 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
     clust = &((aas_cluster_t *)aasworld.clusters)[v7];
     entry = AAS_GetAreaRoutingCache(v7, cur->areanum, portalcache->travelflags);
 
-    if ( clust->numreachabilityareas > 0 )
+    for ( i = 0; i < clust->numreachabilityareas; ++i )
     {
-      for ( i = 0; i < clust->numreachabilityareas; ++i )
+      portalnum = aasworld.portalindex[clust->firstportal + i];
+      v11 = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
+      if ( v11 != cur->areanum )
       {
-        portalnum = aasworld.portalindex[clust->firstportal + i];
-        v11 = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
-        if ( v11 != cur->areanum )
+        v14 = ((aas_areasettings_t *)aasworld.areasettings)[v11].cluster;
+        if ( v14 > 0 )
         {
-          v14 = ((aas_areasettings_t *)aasworld.areasettings)[v11].cluster;
-          if ( v14 > 0 )
+          clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
+        }
+        else
+        {
+          clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
+        }
+        t = ((unsigned short *)(entry + 1))[clusterareanum];
+        if ( t )
+        {
+          v17 = cur->tmptraveltime + t;
+          v18 = ((unsigned short *)(portalcache + 1))[portalnum];
+          if ( !v18 || v18 > v17 )
           {
-            clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
-          }
-          else
-          {
-            clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
-          }
-          t = ((unsigned short *)(entry + 1))[clusterareanum];
-          if ( t )
-          {
-            v17 = cur->tmptraveltime + t;
-            v18 = ((unsigned short *)(portalcache + 1))[portalnum];
-            if ( !v18 || v18 > v17 )
+            ((unsigned short *)(portalcache + 1))[portalnum] = v17;
+            upd = &aasworld.portalupdate[((aas_portal_t *)aasworld.portals)[portalnum].areanum];
+            v20 = ((aas_portal_t *)aasworld.portals)[portalnum].frontcluster;
+            if ( v20 == cur->cluster )
+              v20 = ((aas_portal_t *)aasworld.portals)[portalnum].backcluster;
+            upd->cluster = v20;
+            upd->areanum = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
+            upd->tmptraveltime = v17;
+            if ( !upd->inlist )
             {
-              ((unsigned short *)(portalcache + 1))[portalnum] = v17;
-              upd = &aasworld.portalupdate[((aas_portal_t *)aasworld.portals)[portalnum].areanum];
-              v20 = ((aas_portal_t *)aasworld.portals)[portalnum].frontcluster;
-              if ( v20 == cur->cluster )
-                v20 = ((aas_portal_t *)aasworld.portals)[portalnum].backcluster;
-              upd->cluster = v20;
-              upd->areanum = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
-              upd->tmptraveltime = v17;
-              if ( !upd->inlist )
-              {
-                upd->next = NULL;
-                upd->prev = head;
-                if ( head )
-                  head->next = upd;
-                else
-                  tail = upd;
-                head = upd;
-                upd->inlist = 1;
-              }
+              upd->next = NULL;
+              upd->prev = head;
+              if ( head )
+                head->next = upd;
+              else
+                tail = upd;
+              head = upd;
+              upd->inlist = 1;
             }
           }
         }
@@ -16093,7 +16090,6 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   int areanum; // esi
   int v7; // eax
   int v8; // edi
-  bot_state_t *v9; // [esp-4h] [ebp-16Ch]
   float v10; // [esp+Ch] [ebp-15Ch]
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
   int entinfo[31]; // [esp+40h] [ebp-128h] BYREF
@@ -16115,16 +16111,14 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   }
   if ( !bs->enemy )
   {
-    v9 = bs;
 LABEL_9:
-    AIEnter_Seek_LTG(v9);
+    AIEnter_Seek_LTG(bs);
     return 0;
   }
   *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
   if ( sub_10021710(entinfo) )
   {
     v2 = BotChat_Kill((int *)bs);
-    v9 = bs;
     if ( !v2 )
       goto LABEL_9;
     v10 = BotChatTime(bs);
@@ -16150,7 +16144,6 @@ LABEL_9:
     if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       v7 = BotWantsToChase((int *)bs);
-      v9 = bs;
       if ( !v7 )
         goto LABEL_9;
       AIEnter_Battle_Chase(bs);
