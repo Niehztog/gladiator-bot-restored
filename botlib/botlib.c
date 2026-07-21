@@ -2326,10 +2326,10 @@ int __cdecl CM_TraceThroughBrush(
       {
         if ( v17 < 3 )
         {
-          if ( normal[v17] <= 0.0f )
-            v18 = v16->dist - v12[v17];
-          else
+          if ( normal[v17] > 0.0f )
             v18 = v12[v17] + v16->dist;
+          else
+            v18 = v16->dist - v12[v17];
           v38 = v18;
         }
         else
@@ -2413,22 +2413,19 @@ LABEL_30:
           v43 = v19;
           v42 = v11 + v14->firstside;
         }
-        if ( v35 <= 0.005 )
-        {
-          if ( v37 > 0.005 )
-          {
-            v30 = v35 / (v35 - v37);
-            endp[0] = (endp[0] - startp[0]) * v30 + startp[0];
-            endp[1] = (endp[1] - startp[1]) * v30 + startp[1];
-            endp[2] = (endp[2] - startp[2]) * v30 + startp[2];
-          }
-        }
-        else
+        if ( v35 > 0.005 )
         {
           v29 = v35 / (v35 - v37);
           startp[0] = (endp[0] - startp[0]) * v29 + startp[0];
           startp[1] = (endp[1] - startp[1]) * v29 + startp[1];
           startp[2] = (endp[2] - startp[2]) * v29 + startp[2];
+        }
+        else if ( v37 > 0.005 )
+        {
+          v30 = v35 / (v35 - v37);
+          endp[0] = (endp[0] - startp[0]) * v30 + startp[0];
+          endp[1] = (endp[1] - startp[1]) * v30 + startp[1];
+          endp[2] = (endp[2] - startp[2]) * v30 + startp[2];
         }
       }
       v36 = ++v11;
@@ -3231,7 +3228,6 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
    * floats v16..v21 + ints v22/v23 (reads relying on stack-layout luck) */
   bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF
 
-  v4 = 0;
   if ( !dword_100674C0 )
     return 0;
   v9 = 0;
@@ -3243,7 +3239,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   sub_10003460(v11, v13);
   v6 = CM_PointLeafnum(v11, a2);
   v7 = &dleafs[v6];
-  while ( v4 < v7->numleafbrushes )
+  for ( v4 = 0; v4 < v7->numleafbrushes; ++v4 )
   {
     int brushnum;
 
@@ -3251,7 +3247,6 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
     v10 = &dbrushes[brushnum];
     if ( sub_100056D0(v10, v11) )
       return v10->contents;
-    ++v4;
   }
   for ( i = dword_10069584[v6]; i; i = i->next_ent )
   {
@@ -12829,8 +12824,9 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   head = cur;
   tail = cur;
 
-  while ( cur )
+  while ( tail )
   {
+    cur = tail;
     upd = cur->next;
     if ( upd )
       upd->prev = NULL;
@@ -12890,9 +12886,6 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
         }
       }
     }
-    if ( !tail )
-      break;
-    cur = tail;
   }
   { (void)(0); return; }
 }
