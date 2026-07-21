@@ -756,7 +756,7 @@ void EA_Shutdown();
 void __cdecl sub_100376B0(char *String1, __int16);
 int __cdecl sub_100377E0(char *String1, __int16);
 int __cdecl sub_10037850(char *String1, const unsigned char *, int);
-unsigned int Sys_MilliSeconds();
+int Sys_MilliSeconds();
 qboolean __cdecl ValidClientNumber(int num, const char *str);
 qboolean __cdecl ValidEntityNumber(int num, const char *str);
 qboolean __cdecl BotLibSetup(const char *str);
@@ -27680,7 +27680,7 @@ void __cdecl sub_10037880(void)
 }
 
 //----- (100378C0) --------------------------------------------------------
-unsigned int Sys_MilliSeconds()
+int Sys_MilliSeconds()
 {
   return clock() * 1000 / CLOCKS_PER_SEC;
 }
