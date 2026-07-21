@@ -3245,7 +3245,10 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v7 = &dleafs[v6];
   while ( v4 < v7->numleafbrushes )
   {
-    v10 = &dbrushes[dleafbrushes[v4 + v7->firstleafbrush]];
+    int brushnum;
+
+    brushnum = dleafbrushes[v4 + v7->firstleafbrush];
+    v10 = &dbrushes[brushnum];
     if ( sub_100056D0(v10, v11) )
       return v10->contents;
     ++v4;
@@ -11781,9 +11784,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   int reached;
   int reached_face;
   aas_reachabilitynode_t *lreach; // eax
-  float v14; // [esp+Ch] [ebp-14Ch]
   float zvel; // [esp+28h] [ebp-130h]
-  int v16; // [esp+28h] [ebp-130h]
   /* IDA-split vec3 locals restored as contiguous vec3_t arrays. */
   vec3_t groundedpos;   /* was v17/v18/v19 — origin dropped onto floor */
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
@@ -11806,13 +11807,12 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   area2 = &aasworld.areas[area2num];
   if ( area2->maxs[2] < (float)area1->mins[2] )
     return 0;
-  VectorCopy(area1->center, centerorg);
+  VectorCopy(aasworld.areas[area1num].center, centerorg);
   if ( !AAS_PointAreaNum(centerorg) )
     Log_Write("area %d center %f %f %f in solid?", area1num, centerorg[0],
               centerorg[1], centerorg[2]);
-  end[0] = centerorg[0];
-  end[1] = centerorg[1];
-  end[2] = centerorg[2] - 1000.0f;
+  VectorCopy(centerorg, end);
+  end[2] -= 1000.0f;
   trace = AAS_TraceClientBBox(centerorg, end, 4, -1);
   if ( trace.startsolid )
     return 0;
@@ -11857,12 +11857,10 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                 {
                   v9 = 0;
                   v10 = 0;
-                  v16 = 0;
                   reached = 0;
                   while ( 1 )
                   {
-                    v14 = (float)v16;
-                    VectorMA(move.endpos, v14, dir, predictpos);
+                    VectorMA(move.endpos, (float)v10, dir, predictpos);
                     predictpos[2] += 0.125;
                     if ( AAS_PointAreaNum(predictpos) == area2num )
                     {
@@ -11871,7 +11869,6 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                     }
                     v10 -= 8;
                     v9 += 8;
-                    v16 = v10;
                     if ( v10 < -32 )
                       break;
                   }
@@ -12854,13 +12851,13 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
         if ( v11 != cur->areanum )
         {
           v14 = ((aas_areasettings_t *)aasworld.areasettings)[v11].cluster;
-          if ( v14 <= 0 )
+          if ( v14 > 0 )
           {
-            clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
+            clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
           }
           else
           {
-            clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
+            clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
           }
           t = ((unsigned short *)(entry + 1))[clusterareanum];
           if ( t )
@@ -26715,12 +26712,22 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
      StripDoubleQuotes(token.string);
      cfg->weights[cfg->numweights].name = (char *)GetMemory(strlen(token.string) + 1);
      strcpy(cfg->weights[cfg->numweights].name, token.string);
-     if ( !PC_ExpectAnyToken(src, token.string)
-       || (has_balance = 0, !strcmp(token.string, "{")) && (has_balance = 1, !PC_ExpectAnyToken(src, token.string)) )
+     if ( !PC_ExpectAnyToken(src, token.string) )
      {
        FreeWeightConfig2(cfg);
        FreeSource(src);
        return 0;
+     }
+     has_balance = 0;
+     if ( !strcmp(token.string, "{") )
+     {
+       has_balance = 1;
+       if ( !PC_ExpectAnyToken(src, token.string) )
+       {
+         FreeWeightConfig2(cfg);
+         FreeSource(src);
+         return 0;
+       }
      }
      if ( !strcmp(token.string, "switch") )
      {
