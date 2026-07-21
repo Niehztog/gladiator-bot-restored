@@ -321,7 +321,7 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
-int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, float *a5, intptr_t a6, float *a7, float *a8, _DWORD *a9, float *a10, float *a11);
+int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, float *a5, float *a6, float *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
 int __cdecl sub_100056D0(dbrush_t *a1, float *a2);
@@ -2242,7 +2242,7 @@ int __cdecl CM_TraceThroughBrush(
         float *a3,
         float *a4,
         float *a5,
-        intptr_t a6,
+        float *a6,
         float *a7,
         float *a8,
         _DWORD *a9,
@@ -2349,7 +2349,7 @@ int __cdecl CM_TraceThroughBrush(
           {
             if ( normal[v17] <= 0.0f )
             {
-              v19 = *(float *)(a6 + 4 * v17);
+              v19 = a6[v17];
               v12 = a2;
             }
             else
@@ -2383,10 +2383,9 @@ LABEL_30:
           /* For each component i, select from a6 or a5 based on sign of
            * normal[i]; result stored in vec[i]. */
           {
-            float *_a6 = (float *)a6;
             int _k;
             for (_k = 0; _k < 3; _k++)
-              vec[_k] = (normal[_k] <= 0.0f) ? _a6[_k] : a5[_k];
+              vec[_k] = (normal[_k] <= 0.0f) ? a6[_k] : a5[_k];
           }
           dir[0] = -normal[0];
           dir[1] = -normal[1];
@@ -2441,21 +2440,27 @@ LABEL_30:
       }
     }
   }
-  VectorSubtract(v15, v13, vec);
-  VectorSubtract(startp, v13, dir);
+  vec[0] = *v15 - *v13;
+  vec[1] = v15[1] - v13[1];
+  vec[2] = v15[2] - v13[2];
+  dir[0] = startp[0] - *v13;
+  dir[1] = startp[1] - v13[1];
+  dir[2] = startp[2] - v13[2];
   v41 = VectorLength(dir);
   v31 = v41 / VectorLength(vec);
-  if ( v31 >= *a8 )
-    return 0;
-  *a8 = v31;
-  *a9 = v42;
-  v32 = startp[1];
-  *a10 = v43;
-  v33 = startp[2];
-  *a11 = startp[0];
-  a11[1] = v32;
-  a11[2] = v33;
-  return 1;
+  if ( v31 < *a8 )
+  {
+    *a8 = v31;
+    *a9 = v42;
+    v32 = startp[1];
+    *a10 = v43;
+    v33 = startp[2];
+    *a11 = startp[0];
+    a11[1] = v32;
+    a11[2] = v33;
+    return 1;
+  }
+  return 0;
 }
 
 //----- (10004310) --------------------------------------------------------
@@ -2491,7 +2496,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   {
     v13 = &dbrushes[dleafbrushes[v9 + v11->firstleafbrush]];
     if ( (v13->contents & contentmask) != 0
-      && CM_TraceThroughBrush(v13, origin, angles, start, boxmins, (intptr_t)boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
+      && CM_TraceThroughBrush(v13, origin, angles, start, boxmins, boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
       v24 = v13;
     }
@@ -3234,7 +3239,9 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   if ( !dword_100674C0 )
     return 0;
   v9 = 0;
-  VectorSubtract(a1, a3, v11);
+  v11[0] = *a1 - *a3;
+  v11[1] = a1[1] - a3[1];
+  v11[2] = a1[2] - a3[2];
   v12[0] = -*a4;
   v12[1] = -a4[1];
   v12[2] = -a4[2];
@@ -4126,7 +4133,9 @@ sample_lightmap:
     *a5 = 0;
     a5[1] = 0;
     a5[2] = 0;
-    VectorCopy(mid, a4);
+    a4[0] = mid[0];
+    a4[1] = mid[1];
+    a4[2] = mid[2];
     return 1;
   }
   v24 = 0;
@@ -4148,7 +4157,9 @@ sample_lightmap:
   *a5 = v32 >> 8;
   a5[1] = v24 >> 8;
   a5[2] = v30 >> 8;
-  VectorCopy(mid, a4);
+  a4[0] = mid[0];
+  a4[1] = mid[1];
+  a4[2] = mid[2];
   return 1;
 }
 
@@ -7455,7 +7466,9 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   v8 = aasworld.newestcache;
   for ( i = v7; v8; v8 = v8->next )
   {
-    VectorSubtract(v6, v8->origin, v12);
+    v12[0] = *v6 - v8->origin[0];
+    v12[1] = v6[1] - v8->origin[1];
+    v12[2] = v6[2] - v8->origin[2];
     v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0f )
     {
@@ -8589,7 +8602,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
     if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
       presencetype = 2;
 LABEL_12:
-    VectorCopy(org, lastorg);
+    lastorg[0] = org[0];
+    lastorg[1] = org[1];
+    lastorg[2] = org[2];
     VectorCopy(frame_test_vel, left_test_vel);
     j = 0;
     do
@@ -8936,8 +8951,9 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
     }
     else
     {
-      VectorCopy(aasworld.vertexes[edge->v[i]],
-                 ((vec3_t *)optimized->vertexes)[optimized->numvertexes]);
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][0] = aasworld.vertexes[edge->v[i]][0];
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][1] = aasworld.vertexes[edge->v[i]][1];
+      ((vec3_t *)optimized->vertexes)[optimized->numvertexes][2] = aasworld.vertexes[edge->v[i]][2];
       optedge->v[i] = optimized->numvertexes;
       optimized->vertexremap[edge->v[i]] = optimized->numvertexes;
       optimized->numvertexes++;
@@ -9996,7 +10012,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                 {
                                   ground_bestdist = dist;
                                   ground_bestlength = length;
-                                  VectorCopy(start, ground_beststart);
+                                  ground_beststart[0] = start[0];
+                                  ground_beststart[1] = start[1];
+                                  ground_beststart[2] = start[2];
                                   /* [0] keeps the int-view first-component copy form used
                                    * elsewhere in this file; [1]/[2] were a redundant same-type
                                    * cast on the now-collapsed vec3_t `normal` (oracle-confirmed
@@ -10006,14 +10024,18 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   ground_bestnormal[2] = normal[2];
                                   ground_foundreach = 1;
                                   ground_bestarea2groundedgenum = v13;
-                                  VectorCopy(end, ground_bestend);
+                                  ground_bestend[0] = end[0];
+                                  ground_bestend[1] = end[1];
+                                  ground_bestend[2] = end[2];
                                 }
                               }
                               else if ( v41 < water_bestdist || water_bestdist + 1.0f > dist && length > (float)water_bestlength )
                               {
                                 water_bestdist = dist;
                                 water_bestlength = length;
-                                VectorCopy(start, water_beststart);
+                                water_beststart[0] = start[0];
+                                water_beststart[1] = start[1];
+                                water_beststart[2] = start[2];
                                 /* Same bit-pattern preservation as ground_bestnormal above. */
                                 *(int *)water_bestnormal = *(int *)&normal[0];
                                 water_bestnormal[1] = normal[1];
@@ -10187,7 +10209,9 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 {
   vec3_t dir; // [esp+0h] [ebp-Ch] BYREF
 
-  VectorSubtract(v2, v1, dir);
+  dir[0] = *v2 - *v1;
+  dir[1] = v2[1] - v1[1];
+  dir[2] = v2[2] - v1[2];
   return VectorLength(dir);
 }
 
@@ -10216,7 +10240,9 @@ int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
 //----- (10013C70) --------------------------------------------------------
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 {
-  VectorAdd(v1, v2, middle);
+  *middle = *v1 + *v2;
+  middle[1] = v1[1] + v2[1];
+  middle[2] = v1[2] + v2[2];
   VectorScale((float *)middle, 0.5, (float *)middle);
 }
 
@@ -10480,8 +10506,10 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              VectorCopy(v1, beststart);
+                              beststart[0] = *v1;
+                              beststart[1] = v1[1];
                               bestdist = v39;
+                              beststart[2] = v1[2];
                               VectorCopy(v70_vec, bestend);
                             }
                           }
@@ -10501,8 +10529,10 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                           {
                             if ( v39 < bestdist )
                             {
-                              VectorCopy(v2, beststart);
+                              beststart[0] = *v2;
+                              beststart[1] = v2[1];
                               bestdist = v39;
+                              beststart[2] = v2[2];
                               VectorCopy(v76_vec, bestend);
                             }
                           }
@@ -10524,7 +10554,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             {
                               VectorCopy(v80_vec, beststart);
                               bestdist = v39;
-                              VectorCopy(v3, bestend);
+                              bestend[0] = *v3;
+                              bestend[1] = v3[1];
+                              bestend[2] = v3[2];
                             }
                           }
                           else
@@ -10549,7 +10581,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
                             beststart[1] = v73_vec[1];
 LABEL_60:
                             *(int *)&beststart[2] = v40;
-                            VectorCopy(v4, bestend);
+                            bestend[0] = *v4;
+                            bestend[1] = v4[1];
+                            bestend[2] = v4[2];
                           }
                         }
                         else
@@ -10566,23 +10600,35 @@ LABEL_61:
                       v39 = VectorDistance(v1, v3);
                       if ( v39 < bestdist )
                       {
-                        VectorCopy(v1, beststart);
+                        beststart[0] = *v1;
+                        beststart[1] = v1[1];
+                        beststart[2] = v1[2];
                         bestdist = v39;
-                        VectorCopy(v3, bestend);
+                        bestend[0] = *v3;
+                        bestend[1] = v3[1];
+                        bestend[2] = v3[2];
                       }
                       v39 = VectorDistance(v1, v4);
                       if ( v39 < bestdist )
                       {
-                        VectorCopy(v1, beststart);
+                        beststart[0] = *v1;
+                        beststart[1] = v1[1];
+                        beststart[2] = v1[2];
                         bestdist = v39;
-                        VectorCopy(v4, bestend);
+                        bestend[0] = *v4;
+                        bestend[1] = v4[1];
+                        bestend[2] = v4[2];
                       }
                       v39 = VectorDistance(v2, v3);
                       if ( v39 < bestdist )
                       {
-                        VectorCopy(v2, beststart);
+                        beststart[0] = *v2;
+                        beststart[1] = v2[1];
+                        beststart[2] = v2[2];
                         bestdist = v39;
-                        VectorCopy(v3, bestend);
+                        bestend[0] = *v3;
+                        bestend[1] = v3[1];
+                        bestend[2] = v3[2];
                       }
                       v39 = VectorDistance(v2, v4);
                       if ( v39 >= bestdist )
@@ -11129,7 +11175,9 @@ area2 = (aas_area_t *)v85;
                       lreach->reach.areanum = area1num;
                       lreach->reach.facenum = v62;
                       lreach->reach.edgenum = v66;
-                      VectorCopy(trace.endpos, lreach->reach.start);
+                      lreach->reach.start[0] = trace.endpos[0];
+                      lreach->reach.start[1] = trace.endpos[1];
+                      lreach->reach.start[2] = trace.endpos[2];
                       VectorMA(lowestpoint, -5.0, (float *)v85, lreach->reach.end);
                       lreach->reach.traveltype = 5;
                       lreach->reach.traveltime = 10;
@@ -11362,7 +11410,9 @@ void AAS_Reachability_Elevator()
     }
     AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
     v75 = origin[2];
-    VectorCopy(origin, extent);
+    extent[0] = origin[0];
+    extent[1] = origin[1];
+    extent[2] = origin[2];
     v5 = FloatForKey(ent, "lip");
     v33 = v5;
     if ( v5 == 0 )
@@ -11376,10 +11426,14 @@ void AAS_Reachability_Elevator()
     if ( v7 == 0 )
       speed = 200.0f;
     extent[2] = extent[2] - height;
-    VectorAdd(maxs, mins, sumvec);
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
     VectorMA(extent, 0.5f, sumvec, toporg);
     toporg[2] = maxs[2] - (v75 - extent[2]) + 2.0f;
-    VectorAdd(maxs, mins, sumvec);
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
     VectorMA(extent, 0.5f, sumvec, btmorg);
     btmorg[2] = maxs[2] + 2.0f;
     for ( i = 0; i < 3; ++i )
@@ -11387,7 +11441,9 @@ void AAS_Reachability_Elevator()
       mins[i] -= 1.0f;
       maxs[i] += 1.0f;
     }
-    VectorAdd(maxs, mins, sumvec);
+    sumvec[0] = maxs[0] + mins[0];
+    sumvec[1] = maxs[1] + mins[1];
+    sumvec[2] = maxs[2] + mins[2];
     VectorScale(sumvec, 0.5f, sumvec);
     *(float *)&xvals[0] = mins[0];
     *(float *)&xvals[1] = sumvec[0];
@@ -11488,7 +11544,9 @@ void AAS_Reachability_Elevator()
               goto LABEL_53;
             if ( area2num != area1num && AAS_AreaGrounded(area2num) && !AAS_ReachabilityExists(area1num, area2num) )
             {
-              VectorSubtract(testpt, toporg, dirvec);
+              dirvec[0] = testpt[0] - toporg[0];
+              dirvec[1] = testpt[1] - toporg[1];
+              dirvec[2] = testpt[2] - toporg[2];
               VectorNormalize(dirvec);
               dirvec[2] = testpt[2];
               dirvec[0] = dirvec[0] * 24.0f + testpt[0];
@@ -11514,7 +11572,9 @@ void AAS_Reachability_Elevator()
                 v26 = v25 / speed;
                 lreach->reach.start[1] = dirvec[1];
                 lreach->reach.start[2] = dirvec[2];
-                VectorCopy(samplept, lreach->reach.end);
+                lreach->reach.end[0] = samplept[0];
+                lreach->reach.end[1] = samplept[1];
+                lreach->reach.end[2] = samplept[2];
                 lreach->reach.traveltype = 11;
                 lreach->reach.traveltime = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
@@ -12030,10 +12090,14 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
           v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
           plane = &aasworld.planes[v52->planenum];
-          VectorSubtract(v30, v29, sharededgevec);
+          sharededgevec[0] = *v30 - *v29;
+          sharededgevec[1] = v30[1] - v29[1];
+          sharededgevec[2] = v30[2] - v29[2];
           CrossProduct(plane->normal, sharededgevec, dir);
           VectorNormalize(dir);
-          VectorAdd(v29, v30, midorigin);
+          midorigin[0] = *v29 + *v30;
+          midorigin[1] = v29[1] + v30[1];
+          midorigin[2] = v29[2] + v30[2];
           VectorScale(midorigin, 0.5, midorigin);
           VectorMA(midorigin, 8.0, (float *)dir, midorigin);
           VectorCopy(midorigin, testend);
@@ -12688,11 +12752,11 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   while ( head )
   {
     cur  = head;
-    head = cur->next;
-    if ( head )
-      head->prev = NULL;
+    if ( cur->next )
+      cur->next->prev = NULL;
     else
       tail = NULL;
+    head = cur->next;
     cur->inlist = 0;
 
     link = aasworld.reversedreachability[cur->areanum].first;
@@ -14368,8 +14432,12 @@ aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int
   vec3_t newabsmins; // [esp+24h] [ebp-Ch] BYREF
 
   AAS_PresenceTypeBoundingBox(presencetype, mins, maxs);
-  VectorSubtract(absmins, maxs, newabsmins);
-  VectorSubtract(absmaxs, mins, newabsmaxs);
+  newabsmins[0] = *absmins - maxs[0];
+  newabsmins[1] = absmins[1] - maxs[1];
+  newabsmins[2] = absmins[2] - maxs[2];
+  newabsmaxs[0] = *absmaxs - mins[0];
+  newabsmaxs[1] = absmaxs[1] - mins[1];
+  newabsmaxs[2] = absmaxs[2] - mins[2];
   return AAS_AASLinkEntity(newabsmins, newabsmaxs, entnum);
 }
 
@@ -14718,7 +14786,9 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, floa
       }
       v10->starttime = AAS_Time() + a7;
       v10->endtime = AAS_Time() + v8->duration + a7;
-      VectorCopy(a1, v10->origin);
+      v10->origin[0] = a1[0];
+      v10->origin[1] = a1[1];
+      v10->origin[2] = a1[2];
       v10->_reserved20 = 0;
       v10->entnum = a2;
       v10->channel = a3;
@@ -15954,7 +16024,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
   int range; // [esp+0h] — the outgoing float arg slot; original int local (Q3 ai_dmnet.c AINode_Seek_LTG shape)
   float v9; // [esp+14h] [ebp-80h]
-  int v10; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
   bot_goal_t *v17; // 64-bit fix (was int) - alias of goal
@@ -15984,16 +16053,13 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     return 0;
   }
   v2 = 102334;
-  v10 = 102334;
   if ( libvar_usehook->value != 0.0f )
   {
-    v10 = 118718;
     v2 = 118718;
   }
   if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v2 |= 0x1000u;
-    v10 = v2;
   }
   bs->enemy = 0;
   if ( AAS_Time() - 5.0f < bs->killedenemy_time
@@ -16066,7 +16132,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
     }
-    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v17, v10, (float *)(intptr_t)target) )
+    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v17, v2, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
@@ -16253,7 +16319,9 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     tfl |= 0x1000u;
   goal.entitynum = bs->enemy;
   goal.areanum = bs->lastenemyareanum;
-  VectorCopy(bs->lastenemyorigin, goal.origin);
+  goal.origin[0] = bs->lastenemyorigin[0];
+  goal.origin[1] = bs->lastenemyorigin[1];
+  goal.origin[2] = bs->lastenemyorigin[2];
   goal.mins[0] = -8.0;
   goal.mins[1] = -8.0;
   goal.mins[2] = -8.0;
@@ -18540,7 +18608,9 @@ LABEL_37:
     hordir[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
     hordir[2] = 0;
     VectorNormalize(hordir);
-    VectorCopy(bs->origin, v53_vec);
+    v53_vec[0] = bs->origin[0];
+    v53_vec[1] = bs->origin[1];
+    v53_vec[2] = bs->origin[2];
     v53_vec[2] = v53_vec[2] + libvar_sv_step->value;
     VectorMA(v53_vec, 5.0f, hordir, v66_vec);
     v44_vec[0] = -16.0f;
@@ -23883,9 +23953,15 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                 if ( v13 > bestweight )
                 {
                   bestitem = li;
-                  VectorCopy(li->goalorigin, goal.origin);
-                  VectorCopy(iteminfo->mins, goal.mins);
-                  VectorCopy(iteminfo->maxs, goal.maxs);
+                  goal.origin[0] = li->goalorigin[0];
+                  goal.origin[1] = li->goalorigin[1];
+                  goal.origin[2] = li->goalorigin[2];
+                  goal.mins[0] = iteminfo->mins[0];
+                  goal.mins[1] = iteminfo->mins[1];
+                  goal.mins[2] = iteminfo->mins[2];
+                  goal.maxs[0] = iteminfo->maxs[0];
+                  goal.maxs[1] = iteminfo->maxs[1];
+                  goal.maxs[2] = iteminfo->maxs[2];
                   goal.areanum = v9;
                   bestweight = v13;
                   goal.entitynum = li->entitynum;
@@ -24019,8 +24095,12 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                           goal.origin[1] = li->goalorigin[1];
                           bestitem = li;
                           goal.origin[2] = li->goalorigin[2];
-                          VectorCopy(iteminfo->mins, goal.mins);
-                          VectorCopy(iteminfo->maxs, goal.maxs);
+                          goal.mins[0] = iteminfo->mins[0];
+                          goal.mins[1] = iteminfo->mins[1];
+                          goal.mins[2] = iteminfo->mins[2];
+                          goal.maxs[0] = iteminfo->maxs[0];
+                          goal.maxs[1] = iteminfo->maxs[1];
+                          goal.maxs[2] = iteminfo->maxs[2];
                           goal.areanum = v11;
                           goal.entitynum = li->entitynum;
                           goal.number = li->number;
