@@ -4264,8 +4264,8 @@ void sub_100071E0()
       for ( k = 0; k < 2; *(_WORD *)(v11 + dword_10067558 - 2) = 16 * (LOWORD(v24[k + 3]) - LOWORD(v24[k + 1])) )
       {
         v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
-        X = *(float *)&v24[k] * 0.0625f;
         v24[k + 2] = v13;
+        X = *(float *)&v24[k] * 0.0625f;
         v15 = (__int64)ceil(X);
         v16 = dword_10067558;
         v24[k + 4] = v15;
@@ -11542,8 +11542,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   aas_area_t *area2; // ebp
   aas_area_t *area1; // ecx
   int v4; // restored from disasm at 0x10016a78
-  int i; // eax
   int face2num; // ebp
+  int i; // eax
   aas_face_t *face2; // esi
   float *v; // rax (was __int64) — pointer to vertex (float[3])
   float hordist; // st7 (was double)
@@ -11580,7 +11580,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
       Log_Write("area %d center %f %f %f in solid?", area1num, start[0],
                 start[1], start[2]);
     VectorCopy(start, end);
-    end[2] = start[2] - 1000.0f;
+    end[2] -= 1000.0f;
     trace = AAS_TraceClientBBox(start, end, 4, -1);
     if ( trace.startsolid )
       return 0;
