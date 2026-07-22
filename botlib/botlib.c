@@ -11569,7 +11569,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   area2 = &aasworld.areas[area2num];
   if ( area2->maxs[2] < area1->mins[2] )
     return 0;
-  VectorCopy(area1->center, start);
+  VectorCopy(aasworld.areas[area1num].center, start);
   if ( !AAS_AreaSwim(area1num) )
   {
     if ( !AAS_PointAreaNum(start) )
