@@ -10060,29 +10060,33 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           ++reach_step;
           return 1;
         }
-        if ( water_foundreach
-          && (VectorMA((float *)water_bestend, -2.0f, (float *)water_bestnormal, testpoint),
-              testpoint[2] = testpoint[2] - libvar_sv_maxwaterjump->value,
-              (aasworld.areasettings[AAS_PointAreaNum(testpoint)].areaflags & 4) != 0)
-          && libvar_sv_maxwaterjump->value + 24.0f > water_bestdist )
+        if ( water_foundreach )
         {
-          if ( (aasworld.areasettings[area1num].presencetype & 2) != 0
-            && (aasworld.areasettings[area2num].presencetype & 2) != 0 )
+          VectorMA((float *)water_bestend, -2.0f, (float *)water_bestnormal, testpoint);
+          testpoint[2] = testpoint[2] - libvar_sv_maxwaterjump->value;
+          if ( (aasworld.areasettings[AAS_PointAreaNum(testpoint)].areaflags & 4) != 0 )
           {
-            v50 = AAS_AllocReachability();
-            if ( !v50 )
-              return 0;
-            v50->reach.edgenum = v114;
-            VectorCopy(water_beststart, v50->reach.start);
-            v50->reach.areanum = area2num;
-            v50->reach.facenum = 0;
-            VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50->reach.end);
-            v50->reach.traveltype = 9;
-            v50->reach.traveltime = 700;
-            v50->next = areareachability[area1num];
-            areareachability[area1num] = v50;
-            ++reach_waterjump;
-            return 1;
+            if ( libvar_sv_maxwaterjump->value + 24.0f > water_bestdist )
+            {
+              if ( (aasworld.areasettings[area1num].presencetype & 2) != 0
+                && (aasworld.areasettings[area2num].presencetype & 2) != 0 )
+              {
+                v50 = AAS_AllocReachability();
+                if ( !v50 )
+                  return 0;
+                v50->reach.edgenum = v114;
+                VectorCopy(water_beststart, v50->reach.start);
+                v50->reach.areanum = area2num;
+                v50->reach.facenum = 0;
+                VectorMA((float *)water_bestend, 15.0f, (float *)water_bestnormal, v50->reach.end);
+                v50->reach.traveltype = 9;
+                v50->reach.traveltime = 700;
+                v50->next = areareachability[area1num];
+                areareachability[area1num] = v50;
+                ++reach_waterjump;
+                return 1;
+              }
+            }
           }
         }
         if ( !ground_foundreach )
@@ -17354,13 +17358,15 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
   float v5; // st7
   int v6; // ax
   int v7; // ax
-  float v9; // st7
+  float v9; // st7 — dead since the Fable-5 bundle-12 VectorSubtract-macro restoration
+                    // (2026-07-22) replaced its one assignment; same do-not-delete-blind
+                    // caution as v11 below applies (PC_ReadDefineParms precedent).
   float len; // st7
   float v11; // st6 — genuinely dead (never read/written); -Wunused-variable.
                      // Do NOT delete without an MSVC6 oracle re-audit: removing a
                      // dead local has previously shifted byte_diffs in an UNRELATED
                      // function elsewhere in the TU (PC_ReadDefineParms precedent,
-                     // see struct_pointer_pitfalls.md). Fn is INSN_COUNT_MATCH/227b,
+                     // see struct_pointer_pitfalls.md). Fn is INSN_COUNT_MATCH/199b,
                      // not yet MATCH — this may or may not be part of that residual.
   char pc; // al
   float v13; // st7
@@ -17409,10 +17415,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
     v19 = (float)v20 * 0.000030518509f;
     endpos[2] = v19 * 144.0f - 96.0f - 1.0f + endpos[2];
     *(bsp_trace_t *)trace = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
-    v9 = endpos[0] - *(float *)v2;
-    dir[0] = v9;
-    dir[1] = endpos[1] - bs->origin[1];
-    dir[2] = endpos[2] - bs->origin[2];
+    VectorSubtract(endpos, bs->origin, dir);
     len = VectorNormalize(dir);
     if ( len > 100.0f )
     {
