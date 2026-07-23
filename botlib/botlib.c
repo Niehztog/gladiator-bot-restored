@@ -17358,16 +17358,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
   float v5; // st7
   int v6; // ax
   int v7; // ax
-  float v9; // st7 — dead since the Fable-5 bundle-12 VectorSubtract-macro restoration
-                    // (2026-07-22) replaced its one assignment; same do-not-delete-blind
-                    // caution as v11 below applies (PC_ReadDefineParms precedent).
   float len; // st7
-  float v11; // st6 — genuinely dead (never read/written); -Wunused-variable.
-                     // Do NOT delete without an MSVC6 oracle re-audit: removing a
-                     // dead local has previously shifted byte_diffs in an UNRELATED
-                     // function elsewhere in the TU (PC_ReadDefineParms precedent,
-                     // see struct_pointer_pitfalls.md). Fn is INSN_COUNT_MATCH/199b,
-                     // not yet MATCH — this may or may not be part of that residual.
   char pc; // al
   float v13; // st7
   float *result; // eax
