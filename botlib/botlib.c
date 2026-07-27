@@ -18488,7 +18488,6 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
         bs->nbg_time = 0.0f;
         return;
       }
-LABEL_32:
       if ( result == AINode_Seek_LTG )
         v13->ltg_time = 0.0f;
       return;
@@ -18575,7 +18574,9 @@ LABEL_37:
         bs->nbg_time = 0.0f;
         return;
       }
-      goto LABEL_32;
+      if ( result == AINode_Seek_LTG )
+        v13->ltg_time = 0.0f;
+      return;
     }
     AIEnter_Seek_ActivateEntity(v13);
     return;
