@@ -1964,7 +1964,9 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
      concat, then is rebuilt in place as the roll matrix for the second (it is
      arg1 of both calls).  ref's 0x6c frame is exactly 3*9 floats — it reuses
      the buffer rather than carrying a separate roll_m. */
-  float cp, sp;
+  float sp, cp;
+  float sy, cy;
+  float sr, cr;
   struct {
     float yaw[3][3];
     float m[3][3];
@@ -1985,10 +1987,12 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.m[2][1] = 0;
 
   /* yaw matrix (rotation around Z) */
-  mats.yaw[0][1] = (float)sin(angles[1] * DEG2RAD);
-  mats.yaw[0][0] = (float)cos(angles[1] * DEG2RAD);
-  mats.yaw[1][0] = -mats.yaw[0][1];
-  mats.yaw[1][1] = mats.yaw[0][0];
+  sy = (float)sin(angles[1] * DEG2RAD);
+  cy = (float)cos(angles[1] * DEG2RAD);
+  mats.yaw[0][1] = sy;
+  mats.yaw[0][0] = cy;
+  mats.yaw[1][0] = -sy;
+  mats.yaw[1][1] = cy;
 
   /* pitch matrix (rotation around Y).  Unlike yaw/roll (which re-read their
      own struct fields for the second use and already match ref that way),
@@ -1997,8 +2001,8 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
      signature of named scalar temps, not a struct-field re-read.  Named
      temps here cut byte_diffs 483->328; the same treatment tried on yaw/roll
      regresses (confirmed 2026-07-18), so it is NOT applied there. */
-  cp = (float)cos(angles[0] * DEG2RAD);
   sp = (float)sin(angles[0] * DEG2RAD);
+  cp = (float)cos(angles[0] * DEG2RAD);
   mats.m[0][0] = cp;
   mats.m[0][2] = -sp;
   mats.m[2][2] = cp;
@@ -2015,10 +2019,12 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.m[0][2] = 0;
   mats.m[1][0] = 0;
   mats.m[2][0] = 0;
-  mats.m[1][2] = (float)sin(angles[2] * DEG2RAD);
-  mats.m[1][1] = (float)cos(angles[2] * DEG2RAD);
-  mats.m[2][1] = -mats.m[1][2];
-  mats.m[2][2] = mats.m[1][1];
+  sr = (float)sin(angles[2] * DEG2RAD);
+  cr = (float)cos(angles[2] * DEG2RAD);
+  mats.m[1][2] = sr;
+  mats.m[1][1] = cr;
+  mats.m[2][1] = -sr;
+  mats.m[2][2] = cr;
 
   /* output = roll_m * tmp */
   R_ConcatRotations(mats.m, mats.tmp, axis);
