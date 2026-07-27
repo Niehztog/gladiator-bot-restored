@@ -284,7 +284,7 @@ int __cdecl sub_1001C760(char *Source);
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);
 void __cdecl PC_FreeToken(token_t *token);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
-_DWORD *BotInitLevelItems(void);
+void BotInitLevelItems(void);
 int __cdecl BotLibLoadMap(char *Source);
 int AAS_FreeRoutingCaches(void);  /* sub_10019550 (was: AAS_FreeRoutingCaches thunk) */
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
@@ -499,7 +499,7 @@ void sub_1001CC50(aas_soundpool_t *a1);
 aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1);
 void sub_1001CD10(aas_soundpool_t *a1);
 aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1);
-int __cdecl sub_1001CDD0(int a1, int a2);
+void __cdecl sub_1001CDD0(int a1, int a2);
 int __cdecl sub_1001CE20(float *, int, int, int, int, int, float);
 void __cdecl sub_1001CFA0(float a1);
 void sub_1001D140();
@@ -643,7 +643,7 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type);
 void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...);
 int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message);
 unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate);
-char __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto);
+void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto);
 void BotShutdownChatAI();
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic);
 _DWORD *__cdecl AllocLevelItem(void);
@@ -872,16 +872,16 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t * def, int structure, in
 int __cdecl WriteStructure(FILE *fp, int def, int structure);
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 int __stdcall sub_100415E0(int a1);
-HGLOBAL sub_10041600(void);
+void sub_10041600(void);
 LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
 int __cdecl vectoangles(float *value1, float *angles);
 char __cdecl sub_100418D0(_BYTE *a1);
-char __cdecl sub_10041900(const char *a1, int a2);
+void __cdecl sub_10041900(const char *a1, int a2);
 int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *);
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2);
-HGLOBAL sub_10042380();
+void sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
 /* Vector / COM_ / Q_ / byte-order / Info_ helpers from q_shared.c
  * (compiled separately to q_shared.o) are prototyped in q_shared.h above.
@@ -3298,9 +3298,9 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
 
   if ( cluster == dword_10069564 )
     return;
-  out = byte_10067564;
   in = dvisdata + dvis->bitofs[cluster][visType];
   row = (dvis->numclusters + 7) >> 3;
+  out = byte_10067564;
   do
   {
     if ( *in )
@@ -11561,6 +11561,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
   aas_trace_t trace;
+  vec3_t down = { 0, 0, -1 };
   float bsptrace[21]; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
@@ -11605,7 +11606,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
          + dir[0] * aasworld.planes[face2->planenum].normal[0] <= 0.0f )
       {
         AAS_FaceCenter(face2num, facecenter);
-        if ( areastart[2] + 64.0f <= facecenter[2] && aasworld.planes[face2->planenum].normal[2] * -1.0f >= 0.0f )
+        if ( areastart[2] + 64.0f <= facecenter[2] && DotProduct(aasworld.planes[face2->planenum].normal, down) >= 0.0f )
         {
           dir[2] = 0.0f;
           dir[0] = facecenter[0] - areastart[0];
@@ -11850,10 +11851,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                 move = AAS_ClientMovementPrediction(-1, groundedpos, 2, 1, velocity, cmdmove, 3, 30, 0.1f, 61, 0);
                 if ( move.frames < 30 && (move.stopevent & 0x38) == 0 )
                 {
-                  v9 = 0;
-                  v10 = 0;
                   reached = 0;
-                  while ( 1 )
+                  for ( v9 = 0, v10 = 0; v10 >= -32; v10 -= 8, v9 += 8 )
                   {
                     VectorMA(move.endpos, (float)v10, dir, predictpos);
                     predictpos[2] += 0.125;
@@ -11862,10 +11861,6 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
                       reached = 1;
                       break;
                     }
-                    v10 -= 8;
-                    v9 += 8;
-                    if ( v10 < -32 )
-                      break;
                   }
                   if ( reached && v9 <= 32 )
                   {
@@ -14648,28 +14643,26 @@ aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
 //----- (1001CDD0) --------------------------------------------------------
 /* Search the d_100669CC list for a node whose payload ints @+24 and @+32
  * match a1/a2, unlink and free it.  Original gladiator at 0x1001CDD0. */
-int __cdecl sub_1001CDD0(int a1, int a2)
+/* void: ref 1001cdd0 sets no return value on ANY path -- both the
+ * not-found (1001cdf4) and the unlink (1001ce05) exits are a bare
+ * `pop esi; ret`.  All three callers ignore the value. */
+void __cdecl sub_1001CDD0(int a1, int a2)
 {
   aas_soundpool_t *v2;
-  /* Faithful to objdump@1001CDD0: `result` is only seeded after the non-NULL
-   * head check, so the empty-list path falls through with the caller's
-   * incoming EAX value. All current callers ignore that return in this case. */
-  int result;
 
   v2 = aasworld.d_100669CC;
   if ( v2 )
   {
-    result = a2;
     for ( ; v2; v2 = v2->next )
     {
       if ( v2->entnum == a1 && v2->soundindex == a2 )
       {
         sub_1001CCC0(v2);
-        return (int)(intptr_t)sub_1001CC10(v2);
+        sub_1001CC10(v2);
+        return;
       }
     }
   }
-  return result;
 }
 
 //----- (1001CE20) --------------------------------------------------------
@@ -21702,7 +21695,7 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
     }
   }
 
-  if ( lastvariable >= 0 || !strlen(strptr) )
+  if ( !mp && (lastvariable >= 0 || !strlen(strptr)) )
   {
     if ( lastvariable >= 0 )
       match->variables[lastvariable].length = strlen(match->variables[lastvariable].ptr);
@@ -23098,20 +23091,19 @@ unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate)
 }
 
 //----- (1002EA80) --------------------------------------------------------
-char __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
+/* void, like the Q3 cognate: ref 1002ea80's two exits (1002eab5 / 1002eacc)
+ * are both a bare `pop edi; pop esi; ret` -- the trailing `mov al,ds:...;
+ * mov [esi],al` is the strcpy(cs->chatmessage, "") clear, not a return. */
+void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 {
-  char v;
   if ( strlen((const char *)chatstate + 20) )
   {
     if ( sendto == 1 )
       EA_SayTeam(clientto, (char *)chatstate + 20);
     else
       EA_Say(clientto, (char *)chatstate + 20);
-    v = byte_1006294C;
-    *((char *)chatstate + 20) = v;
-    return v;
+    *((char *)chatstate + 20) = byte_1006294C;
   }
-  return 0;
 }
 
 //----- (1002EAF0) --------------------------------------------------------
@@ -23329,7 +23321,7 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 }
 
 //----- (1002F1A0) --------------------------------------------------------
-int InitLevelItemHeap()
+void InitLevelItemHeap()
 {
   int max_levelitems;
   int i;
@@ -23338,17 +23330,14 @@ int InitLevelItemHeap()
     FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
   levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
-  if ( max_levelitems - 2 <= 0 )
-  {
-    levelitemheap[max_levelitems - 1].next = NULL;
-    freelevelitems = levelitemheap;
-    return (int)(intptr_t)levelitemheap;
-  }
+  /* One textual tail; MSVC6 /O2 DUPLICATES it so the loop-skipped path can reuse
+   * the still-live GetMemory result while the post-loop path reloads the global
+   * (ref 1002f1ff vs 1002f21c).  Writing the two tails out explicitly instead
+   * makes them identical and MSVC tail-MERGES them back into one (OUR-8). */
   for ( i = 0; i < max_levelitems - 2; ++i )
     levelitemheap[i].next = &levelitemheap[i + 1];
   levelitemheap[max_levelitems - 1].next = NULL;
   freelevelitems = levelitemheap;
-  return (int)(intptr_t)levelitemheap;
 }
 
 //----- (1002F270) --------------------------------------------------------
@@ -23402,9 +23391,8 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
 }
 
 //----- (1002F360) --------------------------------------------------------
-_DWORD * BotInitLevelItems()
+void BotInitLevelItems()
 {
-  _DWORD *result; // eax
   itemconfig_t *ic; // ebx
   bsp_entity_t *v4; // ebp
   int i; // edi
@@ -23420,7 +23408,7 @@ _DWORD * BotInitLevelItems()
   int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
-  result = (_DWORD *)InitLevelItemHeap();
+  InitLevelItemHeap();
   ic = itemconfig;
   levelitems = 0;
   numlevelitems = 0;
@@ -23449,7 +23437,6 @@ _DWORD * BotInitLevelItems()
               if ( AAS_VectorForBSPEpairKey(ent, "origin", origin) )
               {
                 levelitem_t *li = (levelitem_t *)AllocLevelItem();
-                result = (_DWORD *)li;
                 if ( !li )
                   goto done;
                 li->number = ++numlevelitems;
@@ -23480,14 +23467,14 @@ _DWORD * BotInitLevelItems()
       }
       while ( ent );
     }
-    result = (_DWORD *)botimport.Print(PRT_MESSAGE, "found %d level items\n", numlevelitems);
+    botimport.Print(PRT_MESSAGE, "found %d level items\n", numlevelitems);
   }
-  // Single shared exit: all three return paths arrange `result` (eax) and
-  // converge here — !itemconfig → InitLevelItemHeap result, alloc-fail → li(=0)
-  // via `goto done`, normal → bi_Print return.  The 1999 goto-fail style; the
-  // separate `return`s let MSVC split the alloc-fail epilogue (was OUR+9).
+  // Single shared exit (ref 1002f5de): the original is void, so the !itemconfig,
+  // alloc-fail (`goto done`) and normal paths all fall into ONE epilogue.  Giving
+  // the function a return value makes MSVC materialise a separate epilogue per
+  // `return` expression (+8 trailing insns each) that the original does not have.
 done:
-  return result;
+  ;
 }
 
 //----- (1002F6A0) --------------------------------------------------------
@@ -32370,11 +32357,11 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     return 1;
   }
   intval = token.intvalue;
-  v19 = token.intvalue;
+  v19 = intval;
   if ( negative )
   {
     intval = -token.intvalue;
-    v19 = -token.intvalue;
+    v19 = intval;
   }
   v8 = fielddef_flags(fd);
   if ( (v8 & 0xFF) == 1 )
@@ -32407,8 +32394,8 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   {
     if ( (v8 & 0x200) != 0 )
     {
-      intmin = intmin > fielddef_float(fd, 4) ? intmin : fielddef_float(fd, 4);
-      intmax = intmax < fielddef_float(fd, 5) ? intmax : fielddef_float(fd, 5);
+      intmin = intmin > *(float *)&fd[4] ? intmin : *(float *)&fd[4];
+      intmax = intmax < *(float *)&fd[5] ? intmax : *(float *)&fd[5];
     }
     if ( intval < intmin || intval > intmax )
     {
@@ -32420,9 +32407,9 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   {
     if ( (v8 & 0x200) != 0 )
     {
-      if ( (float)v19 < fielddef_float(fd, 4) || (float)v19 > fielddef_float(fd, 5) )
+      if ( (float)v19 < *(float *)&fd[4] || (float)v19 > *(float *)&fd[5] )
       {
-        SourceError(source, "value %d out of range [%f, %f]", intval, fielddef_float(fd, 4), fielddef_float(fd, 5));
+        SourceError(source, "value %d out of range [%f, %f]", intval, *(float *)&fd[4], *(float *)&fd[5]);
         return 0;
       }
     }
@@ -32813,7 +32800,8 @@ int __stdcall sub_100415E0(int a1)
 }
 
 //----- (10041600) --------------------------------------------------------
-HGLOBAL sub_10041600(void)
+/* void: ref 10041600 falls through to one bare `pop edi; pop esi; ret`. */
+void sub_10041600(void)
 {
 
   if ( dword_10062970 )
@@ -32824,9 +32812,8 @@ HGLOBAL sub_10041600(void)
   if ( dword_10062968 )
   {
     GlobalUnlock(dword_10062968);
-    return (HGLOBAL)(intptr_t)GlobalFree(dword_10062968);
+    GlobalFree(dword_10062968);
   }
-  return dword_10062968;
 }
 
 //----- (10041650) --------------------------------------------------------
@@ -32972,7 +32959,10 @@ char __cdecl sub_100418D0(_BYTE *a1)
 }
 
 //----- (10041900) --------------------------------------------------------
-char __cdecl sub_10041900(const char *a1, int a2)
+/* void: ref 10041900 routes every guard to the SAME bare `pop edi; pop esi;
+ * ret` at 10041940 and never sets eax -- the `result`/`a2 - v4` returns were
+ * IDA reading the incidental al/eax left by the last compare. */
+void __cdecl sub_10041900(const char *a1, int a2)
 {
   char result; // al
   unsigned int v4; // esi
@@ -32988,11 +32978,8 @@ char __cdecl sub_10041900(const char *a1, int a2)
         ((char *)a1)[v4] = BOTLIB_PATHSEP;
         ((char *)a1)[v4 + 1] = 0;
       }
-      return result;
     }
-    return a2 - v4;
   }
-  return 0;
 }
 
 //----- (10041970) --------------------------------------------------------
@@ -33326,15 +33313,15 @@ int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
 }
 
 //----- (10042380) --------------------------------------------------------
-HGLOBAL sub_10042380()
+/* void: ref 10042380's only exit is the shared `ret` at 1004239c. */
+void sub_10042380()
 {
 
   if ( hMem )
   {
     GlobalUnlock(hMem);
-    return (HGLOBAL)(intptr_t)GlobalFree(hMem);
+    GlobalFree(hMem);
   }
-  return hMem;
 }
 
 //----- (100423B0) --------------------------------------------------------
