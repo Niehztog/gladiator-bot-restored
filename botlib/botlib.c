@@ -7899,7 +7899,7 @@ int __cdecl sub_1000E430(char *Source)
   strncat(ArgList, ".aas", 144 - strlen(ArgList));
   v3 = 0;
   v4 = dirs[0];
-  do
+  for ( ; v3 < 2; ++v3, v4 += 144 )
   {
     for ( i = 0; i < 10; ++i )
     {
@@ -7929,10 +7929,8 @@ int __cdecl sub_1000E430(char *Source)
         Log_Write("could not find %s in %s", ArgList, Destination); /* "could not find %s in %s" */
       }
     }
-    ++v3;
-    v4 += 144;   /* walk to next dir row (gamedir -> "baseq2"); array contiguity makes this portable */
   }
-  while ( v3 < 2 );
+  /* v4 walks the next dir row (gamedir -> "baseq2"); array contiguity makes this portable */
   _chdir(Path);
   return BLERR_NOAASFILE;
 }
