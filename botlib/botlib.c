@@ -30026,16 +30026,20 @@ LABEL_29:
       break;
     v7 = negativevalue;
   }
-  if ( lastwasvalue )
+  /* Ref 0x1003c0e6 is `test ecx,ecx; jne <parentheses check>` — the
+   * "trailing operator" arm is the WARM fall-through and the lastwasvalue arm the
+   * jump target, so the original guard is negative.  IDA's positive
+   * `if (lastwasvalue){…} else {…}` swaps the two blocks. */
+  if ( !lastwasvalue )
+  {
+LABEL_73:
+    SourceError(source, "trailing operator in #if/#elif");
+  }
+  else
   {
     if ( !parentheses )
       goto LABEL_77;
     SourceError(source, "too many ( in #if/#elif");
-  }
-  else
-  {
-LABEL_73:
-    SourceError(source, "trailing operator in #if/#elif");
   }
 LABEL_76:
   error = 1;
