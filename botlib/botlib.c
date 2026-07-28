@@ -340,8 +340,8 @@ float __cdecl FloatForKey(bsp_entity_t *ent, const char *key);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 bsp_entity_t *AAS_ParseBSPEntities(void);
-int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5);
-void sub_100071E0();
+int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor);
+void CalcSurfaceExtents();
 int Q2_SwapBSPFile(void);
 int AAS_DumpBSPData();
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
@@ -1693,7 +1693,7 @@ int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; 
  * reconstruction's `char *`/`unsigned char *` typing for 64-bit pointer +
  * byte-offset-arithmetic safety; the fully-restored BSP struct arrays
  * (`dmodels`, `dleafs`, `dplanes`, `dnodes`, `texinfo`, `dfaces`) now use
- * their typed `q2files.h` pointers.  `sub_100071E0` deliberately keeps a
+ * their typed `q2files.h` pointers.  `CalcSurfaceExtents` deliberately keeps a
  * local byte-view of `texinfo`/`dfaces` to preserve the current MSVC6-oracle
  * tie there; all other consumers are typed.
  * ------------------------------------------------------------------------- */
@@ -1737,7 +1737,9 @@ char *dareaportals;       // 0x10067554  (was dword_10067554)
 /* 0x10067558..0x10067560 — three pointers AFTER the standard Q2 lumps; not
  * present in l_bsp_q2.c (Gladiator-specific AAS precompute, e.g. per-face PVS
  * table allocated by GetClearedMemory). No clean cognate → left unnamed. */
-char *dword_10067558; // pointer (per-face PVS table, allocated by GetClearedMemory)
+char *dword_10067558; // per-face {short texturemins[2]; short extents[2]} table,
+                      // 8*numfaces, built by CalcSurfaceExtents (Q1 model.c cognate),
+                      // read by RecursiveLightPoint.  NOT a PVS table.
 char *dword_1006755C; // pointer
 char *dword_10067560; // pointer
 char byte_10067564[8192]; // weak
@@ -4041,7 +4043,36 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
 // 10001C30: thunk -> 0x1003F5C0 = PS_ExpectTokenType (script-level expect)
 
 //----- (10006D10) --------------------------------------------------------
-int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
+/* RecursiveLightPoint — lifted from Quake 1 `WinQuake/gl_rlight.c` (the GL
+ * variant: it is the one that also exports the impact point, id's `lightspot`,
+ * which here is the `lightspot` out-parameter).  Quake 1's full source was GPL
+ * from Dec 1996; Quake 2's engine source did not ship until Dec 2001, so Q1 is
+ * the only possible engine ancestor for a 1999 build.  The BSP *file* structs
+ * (dnode_t/dface_t/dedge_t/texinfo_t/dlightdata) come from the separately
+ * published Quake 2 tools source instead, which is why the data layout is Q2
+ * while the algorithm is Q1.
+ *
+ * Mr. Elusive grafted Q1 `world.c`'s SV_RecursiveHullCheck head onto it:
+ *   if (num < 0) return ...             <- Q1 SV_RecursiveHullCheck, not
+ *   node  = dnodes  + num;                 RecursiveLightPoint (which takes an
+ *   plane = dplanes + node->planenum;      mnode_t* and tests node->contents<0)
+ *   if (plane->type < 3) axial fast path <- id's own "FIXME: optimize for
+ *                                           axial" comment sits exactly where
+ *                                           Q1 did NOT do it; he did.
+ * Other deliberate deviations from Q1 (all confirmed against the ref disasm,
+ * do NOT "restore" them):
+ *   - returns 0/1 instead of Q1's -1/0..255, and drops Q1's redundant second
+ *     `if ((back<0)==side) return -1;`
+ *   - drops Q1's `surf->flags & SURF_DRAWTILED` skip
+ *   - `mid[i] = (end[i]-start[i])*frac + start[i]`, NOT Q1's
+ *     `start[i] + (end[i]-start[i])*frac` (ref: fld end; fsub start; fmul frac;
+ *     fadd start)
+ *   - Q1's single-channel `r += *lightmap * scale` is replaced by a 3-channel
+ *     RGB read, because Q2 lightdata is RGB; the styles/d_lightstylevalue loop
+ *     is gone with it.
+ * Reads the per-face {texturemins[2], extents[2]} table built by
+ * CalcSurfaceExtents (0x100071E0). */
+int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor)
 {
   dnode_t *v6; // esi
   int v7; // edx
@@ -4067,34 +4098,34 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
   int v35; // eax
   int v39; // [esp+10h] [ebp-14h]
   dnode_t *v40; // [esp+14h] [ebp-10h]
-  vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive sub_10006D10
+  vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive RecursiveLightPoint
   dface_t *v45; // [esp+2Ch] [ebp+8h]
   int i; // [esp+30h] [ebp+Ch]
   qboolean side;
 
-  if ( a1 < 0 )
+  if ( nodenum < 0 )
     return 0;
-  v6 = &dnodes[a1];
+  v6 = &dnodes[nodenum];
   v40 = v6;
   v8 = &dplanes[v6->planenum];
   v7 = v8->type;
   if ( v7 < 3 )
   {
-    v10 = a2[v7] - v8->dist;
-    v11 = a3[v7] - v8->dist;
+    v10 = start[v7] - v8->dist;
+    v11 = end[v7] - v8->dist;
   }
   else
   {
-    v10 = *a2 * v8->normal[0] + a2[1] * v8->normal[1] + a2[2] * v8->normal[2] - v8->dist;
-    v11 = *a3 * v8->normal[0] + a3[1] * v8->normal[1] + a3[2] * v8->normal[2] - v8->dist;
+    v10 = *start * v8->normal[0] + start[1] * v8->normal[1] + start[2] * v8->normal[2] - v8->dist;
+    v11 = *end * v8->normal[0] + end[1] * v8->normal[1] + end[2] * v8->normal[2] - v8->dist;
   }
   side = v10 < 0.0f;
   if ( side == (v11 < 0.0f) )
-    return sub_10006D10(v6->children[side], a2, a3, a4, a5);
-  mid[0] = (*a3 - *a2) * (v10 / (v10 - v11)) + *a2;
-  mid[1] = (a3[1] - a2[1]) * (v10 / (v10 - v11)) + a2[1];
-  mid[2] = (a3[2] - a2[2]) * (v10 / (v10 - v11)) + a2[2];
-  if ( sub_10006D10(v6->children[side], a2, mid, a4, a5) )
+    return RecursiveLightPoint(v6->children[side], start, end, lightspot, pointcolor);
+  mid[0] = (*end - *start) * (v10 / (v10 - v11)) + *start;
+  mid[1] = (end[1] - start[1]) * (v10 / (v10 - v11)) + start[1];
+  mid[2] = (end[2] - start[2]) * (v10 / (v10 - v11)) + start[2];
+  if ( RecursiveLightPoint(v6->children[side], start, mid, lightspot, pointcolor) )
     return 1;
   v14 = v6->firstface;
   v39 = 0;
@@ -4119,15 +4150,15 @@ int __cdecl sub_10006D10(int a1, float *a2, float *a3, float *a4, int *a5)
       goto sample_lightmap;
   }
   v6 = v40;
-  return sub_10006D10(v6->children[!side], mid, a3, a4, a5);
+  return RecursiveLightPoint(v6->children[!side], mid, end, lightspot, pointcolor);
 sample_lightmap:
   v25 = v45->lightofs;
   if ( v25 < 0 )
   {
-    *a5 = 0;
-    a5[1] = 0;
-    a5[2] = 0;
-    VectorCopy(mid, a4);
+    *pointcolor = 0;
+    pointcolor[1] = 0;
+    pointcolor[2] = 0;
+    VectorCopy(mid, lightspot);
     return 1;
   }
   v24 = 0;
@@ -4146,33 +4177,33 @@ sample_lightmap:
     v35 = ((v16[2] >> 4) + 1) * ((v16[3] >> 4) + 1);
     v33 += 2 * v35 + v35;
   }
-  *a5 = v32 >> 8;
-  a5[1] = v24 >> 8;
-  a5[2] = v30 >> 8;
-  VectorCopy(mid, a4);
+  *pointcolor = v32 >> 8;
+  pointcolor[1] = v24 >> 8;
+  pointcolor[2] = v30 >> 8;
+  VectorCopy(mid, lightspot);
   return 1;
 }
 
 //----- (10007150) --------------------------------------------------------
 /* Static-light helper for AAS_BSPTraceLight (sub_1000D5F0).  Traces model 0
- * via sub_10006D10 and returns both the trace endpos (a4..a6 receive the
- * RGB at the surface — see sub_10006D10 line 4563-4566 / 4577-4583).
+ * via RecursiveLightPoint and returns both the trace endpos (a4..a6 receive the
+ * RGB at the surface — see RecursiveLightPoint line 4563-4566 / 4577-4583).
  * Q3 botlib has no equivalent because
  * be_aas_bspq3.c stubs the entire BSPTraceLight feature.  Q2-canonical name
  * is unrecoverable — kept under the address name. */
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
 {
   /* IDA decompiled this as `float v7[3]`, but the original asm does raw 4-byte
-   * mov copies — sub_10006D10 writes the RGB lightmap samples here as INTs
+   * mov copies — RecursiveLightPoint writes the RGB lightmap samples here as INTs
    * (signature `int *a5`), and sub_10007150 stores them back to *red/*green/*blue
    * with plain `mov [esp+...], reg` — no float conversion.  With `float v7[3]`,
    * GCC emits a cvttss2si float→int conversion at `*red = v7[0]`, which on the
    * tiny (denormal) bit patterns of small int values (e.g. R=41 → 5.7e-44f)
    * truncates to 0.  Fix: use int[3] to match the original code and the
-   * sub_10006D10 signature. */
+   * RecursiveLightPoint signature. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  if ( !dword_100674C0 || !dlightdata || !sub_10006D10(dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
+  if ( !dword_100674C0 || !dlightdata || !RecursiveLightPoint(dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
     return 0;
   *red = v7[0];
   *green = v7[1];
@@ -4181,7 +4212,25 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 }
 
 //----- (100071E0) --------------------------------------------------------
-void sub_100071E0()
+/* CalcSurfaceExtents — Quake 1 `WinQuake/model.c`, adapted to walk the BSP
+ * *file* lumps (dfaces/dsurfedges/dedges/dvertexes/texinfo) instead of a loaded
+ * model_t, and to write an 8-byte {short texturemins[2]; short extents[2]}
+ * record per face into a side table (dword_10067558, 8*numfaces) because botlib
+ * has no msurface_t to hang them off.  Consumed by RecursiveLightPoint
+ * (0x10006D10).  See that function's banner for the Q1-vs-Q2-tools provenance.
+ *
+ * Deliberate deviations from Q1 (verified in the ref disasm — do NOT restore):
+ *   - mins init is 99999.0f, not id's 999999 (ref immediate 0x47c34f80 at
+ *     0x10007248); maxs is -99999.0f as in Q1.
+ *   - Q1's `if (!(tex->flags & TEX_SPECIAL) && extents[i] > 256) Sys_Error(...)`
+ *     bad-extents check is absent.
+ *   - the `val` dot product is written vecs-first and out of index order, not
+ *     Q1's `DotProduct(v->position, tex->vecs[j])`.  This is untestable either
+ *     way: MSVC6 /O2 canonicalises a 3-term FP sum, emitting (2,1,0) whatever
+ *     the source order (proved by ref emitting (2,1,0) for BOTH this function's
+ *     (2,0,1)-ordered sum and RecursiveLightPoint's (0,1,2)-ordered `front`,
+ *     with both matching). */
+void CalcSurfaceExtents()
 {
   int result; // eax
   int v1; // edx
@@ -4871,7 +4920,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   Q2_SwapBSPFile();
   dword_100674C0 = 1;
   fclose(v4);
-  sub_100071E0();
+  CalcSurfaceExtents();
   sub_100030A0();
   sub_10003280();
   sub_100032D0();
