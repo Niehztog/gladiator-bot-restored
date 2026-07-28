@@ -1690,12 +1690,14 @@ int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; 
  * Names + declaration order match Mr. Elusive's own Q2 BSP loader
  * bspc/l_bsp_q2.c (count/pointer pairs, plus the `dvis` alias of `dvisdata`)
  * 1:1 — the same author who wrote this botlib.  Most pointer slots keep the
- * reconstruction's `char *`/`unsigned char *` typing for 64-bit pointer +
- * byte-offset-arithmetic safety; the fully-restored BSP struct arrays
- * (`dmodels`, `dleafs`, `dplanes`, `dnodes`, `texinfo`, `dfaces`) now use
- * their typed `q2files.h` pointers.  `CalcSurfaceExtents` deliberately keeps a
- * local byte-view of `texinfo`/`dfaces` to preserve the current MSVC6-oracle
- * tie there; all other consumers are typed.
+ * reconstruction's `char *`/`unsigned char *` typing ONLY where the lump really
+ * is an untyped blob (`dvisdata`, `dlightdata`, `dentdata` — `byte *` in
+ * l_bsp_q2.c too).  Every lump with a real record type now uses its typed
+ * `q2files.h` pointer, and every consumer indexes it as an array: `dmodels`,
+ * `dleafs`, `dplanes`, `dnodes`, `texinfo`, `dfaces`, `dvertexes`, `dedges`,
+ * `dleaffaces`, `dleafbrushes`, `dsurfedges`, `dbrushes`, `dbrushsides`,
+ * `dareas`, `dareaportals`.  The single remaining byte-view is the `dmodels`
+ * walk in `Q2_SwapBSPFile` — see the oracle evidence at that site.
  * ------------------------------------------------------------------------- */
 int nummodels;            // 0x100674C4  (was dword_100674C4)
 dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
@@ -1711,7 +1713,7 @@ dleaf_t *dleafs;          // 0x100674EC  (was dword_100674EC)
 int numplanes;            // 0x100674F0  (was dword_100674F0)
 dplane_t *dplanes;        // 0x100674F4  (was dword_100674F4)
 int numvertexes;          // 0x100674F8  (was dword_100674F8)
-char *dvertexes;          // 0x100674FC  (was dword_100674FC)
+dvertex_t *dvertexes;     // 0x100674FC  (was dword_100674FC)
 int numnodes;             // 0x10067500  (was dword_10067500)
 dnode_t *dnodes;          // 0x10067504  (was dword_10067504)
 int numtexinfo;           // 0x10067508  (was dword_10067508)
@@ -1719,21 +1721,21 @@ texinfo_t *texinfo;       // 0x1006750C  (was dword_1006750C)
 int numfaces;             // 0x10067510  (was dword_10067510)
 dface_t *dfaces;          // 0x10067514  (was dword_10067514)
 int numedges;             // 0x10067518  (was dword_10067518)
-char *dedges;             // 0x1006751C  (was dword_1006751C)
+dedge_t *dedges;          // 0x1006751C  (was dword_1006751C)
 int numleaffaces;         // 0x10067520  (was dword_10067520)
-char *dleaffaces;         // 0x10067524  (was dword_10067524)
+unsigned short *dleaffaces; // 0x10067524  (was dword_10067524)
 int numleafbrushes;       // 0x10067528  (was dword_10067528)
 unsigned short *dleafbrushes; // 0x1006752C  (was dword_1006752C)
 int numsurfedges;         // 0x10067530  (was dword_10067530)
-char *dsurfedges;         // 0x10067534  (was dword_10067534)
+int *dsurfedges;          // 0x10067534  (was dword_10067534)
 int numbrushes;           // 0x10067538  (was dword_10067538)
 dbrush_t *dbrushes;       // 0x1006753C  (was dword_1006753C)
 int numbrushsides;        // 0x10067540  (was dword_10067540)
 dbrushside_t *dbrushsides; // 0x10067544  (was dword_10067544)
 int numareas;             // 0x10067548  (was dword_10067548)
-char *dareas;             // 0x1006754C  (was dword_1006754C)
+darea_t *dareas;          // 0x1006754C  (was dword_1006754C)
 int numareaportals;       // 0x10067550  (was dword_10067550)
-char *dareaportals;       // 0x10067554  (was dword_10067554)
+dareaportal_t *dareaportals; // 0x10067554  (was dword_10067554)
 /* 0x10067558..0x10067560 — three pointers AFTER the standard Q2 lumps; not
  * present in l_bsp_q2.c (Gladiator-specific AAS precompute, e.g. per-face PVS
  * table allocated by GetClearedMemory). No clean cognate → left unnamed. */
@@ -3514,11 +3516,11 @@ void __cdecl sub_10005CF0(int row_index, int value)
       ((int **)dword_10067560)[i][j] = 0;
     ((int **)dword_10067560)[i][i] = 1;
 
-    area = &((darea_t *)dareas)[i];
+    area = &dareas[i];
     for (k = 0; k < area->numareaportals; k++) {
       col = area->firstareaportal + k;
       if (((int *)dword_1006755C)[col] != 0) {
-        portal = &((dareaportal_t *)dareaportals)[col];
+        portal = &dareaportals[col];
         ((int **)dword_10067560)[i][portal->otherarea] = 1;
         ((int **)dword_10067560)[portal->otherarea][i] = 1;
       }
@@ -4278,12 +4280,11 @@ void CalcSurfaceExtents()
 {
   int result; // eax
   int v2; // eax
-  char *v3; // edi
-  char *v4; // ebx
+  dedge_t *v3; // edi
+  dvertex_t *v4; // ebx
   int *v5; // ebp
   int v6; // ecx
   int v7; // eax
-  float *v8; // ecx
   int j; // edx
   float v10; // st7
   int v11; // edi
@@ -4293,15 +4294,11 @@ void CalcSurfaceExtents()
   int v15; // eax
   char *v16; // ecx
   qboolean v17; // cc
-  /* Known MSVC6 tie: keeping the face/texinfo walk in byte-view form preserves
-   * the established OUR+17 oracle parity here; fully typed field access
-   * regresses both this function and the PC_ReadDefineParms layout canary. */
-  char *face; // eax
+  dface_t *face; // eax
   int i; // [esp+1Ch] [ebp-34h]
   int v19; // [esp+20h] [ebp-30h]
   int v20; // [esp+24h] [ebp-2Ch]
-  int v21; // [esp+28h] [ebp-28h]
-  char *v22; // [esp+2Ch] [ebp-24h]
+  texinfo_t *v22; // [esp+2Ch] [ebp-24h]
   int v23[2]; // [esp+30h] [ebp-20h]
   int v24[6]; // [esp+38h] [ebp-18h]
 
@@ -4309,23 +4306,25 @@ void CalcSurfaceExtents()
     FreeMemory(dword_10067558);
   dword_10067558 = GetClearedMemory(8 * numfaces);
   result = numfaces;
-  v21 = 0;
+  i = 0;
   if ( numfaces > 0 )
   {
     v19 = 4;
-    /* IDA split ONE face-byte-offset variable into `v1` and `i` joined by a
-     * `v1 = i` loop-third-clause; they are provably equal at every iteration
-     * top.  The split costs the loop back-edge a `mov ecx,esi; jmp <top>` pair
-     * where ref reloads the single slot and closes with one `jl <top>`. */
+    /* ONE loop index.  Ref spills TWO values here ([esp+1Ch] and [esp+28h]) and
+     * IDA named them separately (`i` = the ×20 byte offset into dfaces, `v21` =
+     * the face number), but the byte offset is MSVC's strength-reduced temp for
+     * `dfaces[i]`, not a source variable — the original indexes the typed lump.
+     * (An earlier note also had `v1` split off this same value; that one was
+     * already collapsed.) */
     for ( i = 0; ; )
     {
       *(float *)&v23[1] = 99999.0f;
       *(float *)&v23[0] = 99999.0f;
       *(float *)&v24[1] = -99999.0f;
-      face = (char *)dfaces + i;
-      v2 = *(__int16 *)(face + 10);
+      face = &dfaces[i];
+      v2 = face->texinfo;
       *(float *)&v24[0] = -99999.0f;
-      v22 = (char *)&texinfo[v2];
+      v22 = &texinfo[v2];
       /* ONE read, sign-extended once: ref has a single `movsx eax,WORD PTR
        * [face+8]; test eax,eax` and later stores that same eax into v20's
        * slot.  Reading the field twice (guard + body) makes cl.exe test in
@@ -4333,7 +4332,7 @@ void CalcSurfaceExtents()
        * in-condition form `if ((v20 = *(__int16*)(face+8)) > 0)` was tested
        * 2026-07-19 and regressed — hoisting the assignment ABOVE the guard is
        * a different form. */
-      v20 = *(__int16 *)(face + 8);
+      v20 = face->numedges;
       if ( v20 > 0 )
       {
         /* Initialiser ORDER is NOT a lever here (tested 2026-07-28): putting
@@ -4345,26 +4344,24 @@ void CalcSurfaceExtents()
          * LICM-hoists `v8` into ebx and rematerialises `ds:dedges` twice. */
         v3 = dedges;
         v4 = dvertexes;
-        v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(face + 4));
+        v5 = &dsurfedges[face->firstedge];
         do
         {
           v6 = *v5;
           if ( v6 >= 0 )
-            v7 = *(unsigned __int16 *)(v3 + 4 * v6);
+            v7 = v3[v6].v[0];
           else
-            v7 = *(unsigned __int16 *)(v3 - 4 * v6 + 2);
-          v8 = (float *)(v22 + 4);
+            v7 = v3[-v6].v[1];
           for ( j = 0; j < 2; ++j )
           {
-            v10 = v8[1] * *(float *)(v4 + 12 * v7 + 8)
-                + *(v8 - 1) * *(float *)(v4 + 12 * v7)
-                + *v8 * *(float *)(v4 + 12 * v7 + 4)
-                + v8[2];
+            v10 = v22->vecs[j][2] * v4[v7].point[2]
+                + v22->vecs[j][0] * v4[v7].point[0]
+                + v22->vecs[j][1] * v4[v7].point[1]
+                + v22->vecs[j][3];
             if ( v10 < *(float *)&v23[j] )
               *(float *)&v23[j] = v10;
             if ( v10 > *(float *)&v24[j] )
               *(float *)&v24[j] = v10;
-            v8 += 4;
           }
           ++v5;
           --v20;
@@ -4385,9 +4382,8 @@ void CalcSurfaceExtents()
         *(_WORD *)(v11 + v16 - 6) = v24[k + 1] * 16;
         *(_WORD *)(v11 + dword_10067558 - 2) = (v24[k + 3] - v24[k + 1]) * 16;
       }
-      result = v21 + 1;
-      v17 = ++v21 < numfaces;
-      i += 20;
+      result = i + 1;
+      v17 = ++i < numfaces;
       v19 += 8;
       if ( !v17 )
         break;
@@ -4580,6 +4576,13 @@ int Q2_SwapBSPFile(void)
   v68 = 0;
   if ( nummodels > 0 )
   {
+    /* The ONE sanctioned byte-view left on a BSP lump.  Typed `&dmodels[v68]`
+     * compiles to the same base+byte-offset induction pair but hands cl.exe the
+     * opposite SIB roles — ref 0x100075f5 is `mov ecx,[eax+ebx*1+IMM]` /
+     * `lea esi,[eax+ebx*1]` with dmodels as the BASE and the x48 offset as the
+     * index; the typed form emits `[ebx+eax*1+IMM]`.  Measured 2026-07-28:
+     * exactly 2 bytes / 4 differing lines, i.e. it costs this function its MATCH
+     * for a pure encoding tie.  The field reads below are typed either way. */
     v69 = 0;
     do
     {
