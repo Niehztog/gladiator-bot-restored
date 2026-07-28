@@ -2820,8 +2820,16 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   v24 = trace_stack;
   while ( 1 )
   {
-    do
-    {
+    /* ONE merged node loop with the BOX path as the warm fall-through.  IDA
+     * rendered the CFG as `do { while(1){ …; if (box) break; <no-box> } <box>
+     * … } while (sf[v53+2]);`, i.e. two nested loops with the box code outside
+     * the inner one.  All three of that structure's exits go to the SAME place
+     * (side_b = …) and both back-edges go to the SAME place (the trace-stack
+     * pop), so it is one loop; the nesting is an artifact.  It matters because
+     * ref places the whole no-box arm COLD at 0x10005054 (each of its exits
+     * closing with `jmp 0x10004755` back to the pop) and keeps the box arm
+     * inline as the fall-through of two `je 0x10005054` guards — which only
+     * happens when the box arm is the `if` body and the no-box arm the `else`. */
       while ( 1 )
       {
         while ( 1 )
@@ -2870,77 +2878,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
             v40 = v39 < 3 ? v136[v39] + v38->dist : DotProduct(v114, v136) + v38->dist;
           else
             v40 = v38->dist;
-          if ( boxmins && boxmaxs )
-            break;
-          if ( v39 < 3 )
-          {
-            v109 = v106[v39] - v40;
-            v83 = v111[v39] - v40;
-          }
-          else
-          {
-            v109 = DotProduct(v114, v106) - v40;
-            v83 = DotProduct(v114, v111) - v40;
-          }
-          if ( v109 <= -0.005 || v83 <= -0.005 )
-          {
-            if ( v109 >= 0.005 || v83 >= 0.005 )
-            {
-              side_a = 1;
-              v98 = v109 / (v109 - v83);
-              v123[0] = (v111[0] - v106[0]) * v98 + v106[0];
-              v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
-              v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
-              if ( v109 >= 0 )
-                side_a = 0;
-              VectorCopy(v123, v25->start);
-              VectorCopy(v111, v25->end);
-              v100 = TR_DEC(*v27);
-              v25->planenum = v31->planenum;
-              v25->planedist = 0.0f;
-              v101 = v31->children[side_a == 0];
-              *v27 = TR_ENC(v24);
-              v25->nodenum = v101;
-              if ( !v100 )
-                goto LABEL_125;
-              v19 = TR_DEC(v100->next);
-              VectorCopy(v106, v100->start);
-              VectorCopy(v123, v100->end);
-              v100->planenum = v119;
-              v100->planedist = 0.0f;
-              v103 = v31->children[side_a];
-              v24 = v100;
-              v100->nodenum = v103;
-              v100->next = TR_ENC(v25);
-            }
-            else
-            {
-              v19 = TR_DEC(*v27);
-              VectorCopy(v106, v25->start);
-              VectorCopy(v111, v25->end);
-              v96 = v119;
-              v25->planenum = v96;
-              v25->planedist = 0.0f;
-              v97 = v31->children[1];
-              *v27 = TR_ENC(v24);
-              v25->nodenum = v97;
-              v24 = v25;
-            }
-          }
-          else
-          {
-            v19 = TR_DEC(*v27);
-            VectorCopy(v106, v25->start);
-            VectorCopy(v111, v25->end);
-            v89 = v119;
-            v25->planenum = v89;
-            v25->planedist = 0.0f;
-            v90 = v31->children[0];
-            *v27 = TR_ENC(v24);
-            v25->nodenum = v90;
-            v24 = v25;
-          }
-        }
+        if ( boxmins && boxmaxs )
+        {
         if ( v39 < 3 )
         {
           v41 = v106[v39] - v40;
@@ -3013,8 +2952,81 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
         v24 = v25;
         if ( !v54 )
           break;
-      }
-      while ( plane_sideflags[v53 + 2] );
+          if ( !plane_sideflags[v53 + 2] )
+            break;
+        }
+        else
+        {
+          if ( v39 < 3 )
+          {
+            v109 = v106[v39] - v40;
+            v83 = v111[v39] - v40;
+          }
+          else
+          {
+            v109 = DotProduct(v114, v106) - v40;
+            v83 = DotProduct(v114, v111) - v40;
+          }
+          if ( v109 <= -0.005 || v83 <= -0.005 )
+          {
+            if ( v109 >= 0.005 || v83 >= 0.005 )
+            {
+              side_a = 1;
+              v98 = v109 / (v109 - v83);
+              v123[0] = (v111[0] - v106[0]) * v98 + v106[0];
+              v123[1] = (v111[1] - v106[1]) * v98 + v106[1];
+              v123[2] = (v111[2] - v106[2]) * v98 + v106[2];
+              if ( v109 >= 0 )
+                side_a = 0;
+              VectorCopy(v123, v25->start);
+              VectorCopy(v111, v25->end);
+              v100 = TR_DEC(*v27);
+              v25->planenum = v31->planenum;
+              v25->planedist = 0.0f;
+              v101 = v31->children[side_a == 0];
+              *v27 = TR_ENC(v24);
+              v25->nodenum = v101;
+              if ( !v100 )
+                goto LABEL_125;
+              v19 = TR_DEC(v100->next);
+              VectorCopy(v106, v100->start);
+              VectorCopy(v123, v100->end);
+              v100->planenum = v119;
+              v100->planedist = 0.0f;
+              v103 = v31->children[side_a];
+              v24 = v100;
+              v100->nodenum = v103;
+              v100->next = TR_ENC(v25);
+            }
+            else
+            {
+              v19 = TR_DEC(*v27);
+              VectorCopy(v106, v25->start);
+              VectorCopy(v111, v25->end);
+              v96 = v119;
+              v25->planenum = v96;
+              v25->planedist = 0.0f;
+              v97 = v31->children[1];
+              *v27 = TR_ENC(v24);
+              v25->nodenum = v97;
+              v24 = v25;
+            }
+          }
+          else
+          {
+            v19 = TR_DEC(*v27);
+            VectorCopy(v106, v25->start);
+            VectorCopy(v111, v25->end);
+            v89 = v119;
+            v25->planenum = v89;
+            v25->planedist = 0.0f;
+            v90 = v31->children[0];
+            *v27 = TR_ENC(v24);
+            v25->nodenum = v90;
+            v24 = v25;
+          }
+        }
+        }
       side_b = (v53 == 0);
       if ( plane_sideflags[side_b] || plane_sideflags[side_b + 2] )
       {
@@ -4324,6 +4336,13 @@ void CalcSurfaceExtents()
       v20 = *(__int16 *)(face + 8);
       if ( v20 > 0 )
       {
+        /* Initialiser ORDER is NOT a lever here (tested 2026-07-28): putting
+         * `v5`'s dsurfedges computation FIRST, i.e. ref's own emission order
+         * dsurfedges -> dedges -> dvertexes, is an EXACT no-op (146 insns / 523
+         * byte_diffs either way).  The residual is the register-pressure contest
+         * in [[msvc6_intractables]]: ref keeps dedges AND dvertexes in registers
+         * and recomputes `v8 = v22 + 4` from v22's slot per do-iteration; ours
+         * LICM-hoists `v8` into ebx and rematerialises `ds:dedges` twice. */
         v3 = dedges;
         v4 = dvertexes;
         v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(face + 4));
