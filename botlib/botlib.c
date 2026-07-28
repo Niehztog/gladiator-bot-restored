@@ -2105,7 +2105,12 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       if ( start[v12] >= v44[v12] - 0.5 )
         break;
     }
-    if ( v12 == 3 )
+    /* Relational, not equality: ref's post-loop test is `cmp edx,3; jl <skip>`
+     * with the loop-exhaustion path JUMPING OVER it (cl.exe proves v12==3 there
+     * and keeps the block only for the two break predecessors).  `== 3` emits
+     * `jne` and no skip-jmp.  The FIRST bounds loop above genuinely does use
+     * `!= 3` in ref (`cmp edi,3; jne`), so the two are not interchangeable. */
+    if ( v12 >= 3 )
     {
       trace->ent = entnum;
       trace->startsolid = 1;
