@@ -107,9 +107,17 @@ typedef struct bot_chatstate_s {
         int  _slots[47];                         /* opaque 47-int payload — preserves 188-byte size */
         struct {
             int  gender;                         /* +0 — 0/1/2 */
-            char _pad_04[16];                    /* +4..+19 */
-            char name[20];                       /* +20..+39 — strlen/strcpy target */
-            char _pad_28[132];                   /* +40..+171 — unmapped slots [10..42] */
+            char name[16];                       /* +4..+19 — the bot's own chat name;
+                                                  * set by sub_1002EB30 (Q3's BotSetChatName):
+                                                  * memset 15 + strncpy limit 15, so name[15]
+                                                  * is the terminator slot. */
+            /* +20..+171 (152 B) is ONE buffer, not a 20-byte name plus padding:
+             * every consumer treats +20 as the outgoing chat message —
+             * BotChatLength does strlen(cs+20), BotEnterChat passes it to
+             * EA_Say/EA_SayTeam and then stores the empty-string byte at +20,
+             * and BotConstructChatMessage uses it as its output buffer.  Q3's
+             * cognate field is bot_chatstate_t.chatmessage. */
+            char chatmessage[152];               /* +20..+171 */
             int  _slot_43;                       /* +172 — side-banded first-msg ptr */
             int  _slot_44;                       /* +176 — side-banded last-msg ptr */
             int  _slot_45;                       /* +180 — side-banded count (mirror only) */

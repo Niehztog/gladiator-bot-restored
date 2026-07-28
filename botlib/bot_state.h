@@ -368,7 +368,18 @@ typedef struct bot_state_s {
                                            * defaulted to 100.0f (encoded 0x42E80000); set by chat-match type 16
                                            * to atof(arg)*32.0 (units) or atof(arg)*9.7536 (feet→units), clamped
                                            * to [48,500].  Q3 ancestor: bs->formation_dist (ai_main.h:266). */
-            char   _pad_1124h[100];       /* +4388..+4487 */
+            /* +4388..+4487 — BotGetFormationGoal's (0x1001D420) working set.
+             * Offsets and types are proven by that function's disasm
+             * (0x1001d420..0x1001d6a1) and the block decomposes EXACTLY:
+             * 16+4+12+12+56 = 100, with the trailing bot_goal_t ending at
+             * +4487, i.e. immediately before activategoal (+4488).  The names
+             * are role-derived from that one function, which is the only
+             * consumer. */
+            char       formationgoal_name[16]; /* +4388 target netname; ClientFromName() input   */
+            float      formationgoal_yawbias;  /* +4404 yaw bias added to the target's direction */
+            vec3_t     formationgoal_dir;      /* +4408 target movement delta, then AngleVectors fwd */
+            vec3_t     formationgoal_origin;   /* +4420 target origin, saved as the predict start */
+            bot_goal_t formationgoal;          /* +4432..+4487 filled and returned by address    */
             bot_goal_t activategoal;      /* +4488..+4543 (56 B) embedded activate-goal: origin/areanum/mins/maxs/entitynum/number/flags/iteminfo.
                                            * Pointer to this is passed as `bot_goal_t *` to BotTouchingGoal/BotMoveToGoal.
                                            * Mins/maxs set as origin ± 5 with z-offsets; areanum filled from AAS_PointAreaNum. */
