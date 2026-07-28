@@ -12000,7 +12000,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   int edge1num; // [esp+18h] [ebp-9Ch]
   int v46; // [esp+24h] [ebp-90h]
-  aas_face_t *v52; // [esp+3Ch] [ebp-78h]
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
   float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
@@ -12013,7 +12012,6 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   {
     face1num = aasworld.faceindex[area->firstface + i];
     face1 = &aasworld.faces[abs(face1num)];
-    v52 = face1;
     if ( (face1->faceflags & 4) == 0 )
       continue;
     for ( k = 0; k < face1->numedges; k++ )
@@ -12073,7 +12071,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           side = edge1num < 0;
           v29 = (float *)(&aasworld.vertexes[edge->v[side]]);
           v30 = (float *)(&aasworld.vertexes[edge->v[!side]]);
-          plane = &aasworld.planes[v52->planenum];
+          plane = &aasworld.planes[face1->planenum];
           VectorSubtract(v30, v29, sharededgevec);
           CrossProduct(plane->normal, sharededgevec, dir);
           VectorNormalize(dir);
@@ -24316,74 +24314,66 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
    * field. */
   int v3; // ecx
   int i; // edi
-  int v7; // eax
-  float v8; // st7
-  /* org/boxmins/boxmaxs/end are int[3] in IDA decomp; org[0]/org[1]/end[0]/end[1] are
-   * raw 32-bit copies of float coords.  boxmins/boxmaxs hold float bit patterns
-   * (mins/maxs).  Retyping to float[3] silently injects int->float conversion
-   * on the raw-copy stores. */
-  int org[3]; // [esp+10h] [ebp-B4h] BYREF
+  /* IDA typed org/end/boxmins/boxmaxs/maxs/mins/modelorigin as int[3] and read
+   * them through `*(float *)` casts.  They are all plain vec3_t: the float
+   * typing is what lets cl.exe strength-reduce the compare loop and emit the
+   * per-store float immediates below (see the two notes further down). */
+  vec3_t org; // [esp+10h] [ebp-B4h] BYREF
   vec3_t angles; // [esp+1Ch] [ebp-A8h] BYREF
-  int boxmins[3]; // [esp+28h] [ebp-9Ch] BYREF
-  int boxmaxs[3]; // [esp+34h] [ebp-90h] BYREF
-  int end[3]; // [esp+40h] [ebp-84h] BYREF
-  _DWORD maxs[3]; // [esp+4Ch] [ebp-78h] BYREF
-  _DWORD modelorigin[3]; // [esp+58h] [ebp-6Ch] BYREF
-  _DWORD mins[3]; // [esp+64h] [ebp-60h] BYREF
+  vec3_t boxmins; // [esp+28h] [ebp-9Ch] BYREF
+  vec3_t boxmaxs; // [esp+34h] [ebp-90h] BYREF
+  vec3_t end; // [esp+40h] [ebp-84h] BYREF
+  vec3_t maxs; // [esp+4Ch] [ebp-78h] BYREF
+  vec3_t modelorigin; // [esp+58h] [ebp-6Ch] BYREF
+  vec3_t mins; // [esp+64h] [ebp-60h] BYREF
   int trace[21]; // [esp+70h] [ebp-54h] BYREF
 
   v3 = reach->traveltype;
-  memset(angles, 0, sizeof(angles));
-  /* 2026-07-28: these ARE IDA int bit patterns and mechanism 3 DOES apply —
-   * rewriting them as `*(float *)&boxmins[0] = -16.0f;` … (plus `angles[i] =
-   * 0.0f;` instead of the memset) provably removes cl.exe's integer-constant
-   * CSE and reproduces ref's per-store `c7 44 24 NN <imm32>` form for all 9
-   * stores.  REVERTED anyway: the dominant divergence here is a whole-frame
-   * slot PERMUTATION (ours puts boxmins at frame+0x0 where ref has org; only
-   * `angles` at frame+0xc agrees), and with the constants fixed the row moved
-   * OUR-4/649b -> OUR-6/679b.  Re-apply this together with a fix for the local
-   * ordering, not on its own. */
-  boxmins[0] = -1048576000;
-  boxmins[1] = -1048576000;
-  boxmins[2] = -1056964608;
-  boxmaxs[0] = 1098907648;
-  boxmaxs[1] = 1098907648;
-  boxmaxs[2] = 1090519040;
+  /* Mechanism 3: IDA rendered these nine stores as int bit patterns, which
+   * cl.exe integer-constant-CSEs into a register (`mov eax,0xc1800000; mov
+   * [a],eax; mov [b],eax`).  Written through float lvalues each store emits
+   * its own `c7 44 24 NN <imm32>`, matching ref 0x10030d17..0x10030d5e.  The
+   * angles zeroing must come FIRST and be plain assignments (ref stores
+   * 0x1c/0x20/0x24 before the box constants), and the box values must be
+   * assignments rather than declaration initialisers. */
+  angles[0] = 0.0f;
+  angles[1] = 0.0f;
+  angles[2] = 0.0f;
+  boxmins[0] = -16.0f;
+  boxmins[1] = -16.0f;
+  boxmins[2] = -8.0f;
+  boxmaxs[0] = 16.0f;
+  boxmaxs[1] = 16.0f;
+  boxmaxs[2] = 8.0f;
   if ( v3 == 11 )
   {
-    AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, (float *)mins, (float *)maxs, (float *)modelorigin);
-    /* Original used pointer arithmetic `v6 = (char *)modelorigin - origin` then
-     * `*(float *)((char *)v5 + (_DWORD)v6)` — the (_DWORD) cast
-     * truncates the pointer difference to 32 bits and breaks on
-     * 64-bit.  Rewritten with explicit array indexing; preserves the
-     * original semantics of comparing origin[i] against
-     * maxs[i]+modelorigin[i]+16 and mins[i]+modelorigin[i]-16 for i=0..1.
-     * (A #if BOTLIB_NEED_SIDEBAND-gated 32-bit-only pointer-diff walk,
-     * matching ref's register-burning form more literally, was build-tested
-     * 2026-07-19 and regressed 649b->700b: introducing the dmaxs/dmins/dmodel
-     * locals shifted register pressure enough to also reschedule the
-     * UNRELATED angles-zero-init/box-constant block earlier in this same
-     * function, a collateral cascade rather than a clean local improvement.
-     * Do not re-attempt this exact lever.) */
-    i = 0;
-    do
+    AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
+    /* Plain `vec3_t` arrays indexed by the loop counter: cl.exe /O2 does the
+     * strength reduction itself, picking `origin` as the single induction
+     * pointer and expressing maxs/mins/modelorigin as base DIFFERENCES
+     * (`lea ebx,[maxs]; sub ebx,edx; fld [ebx+ecx]`) — exactly ref at
+     * 0x10030d89..0x10030dc7.  IDA's `*(float *)((char *)maxs + 4 * i)` byte
+     * arithmetic on `_DWORD[3]` locals blocks that and emits esp-relative
+     * indexed loads instead.  NB writing the differences out as named locals
+     * (dmaxs/dmins/dmodel) is NOT the same thing and regressed — let the
+     * compiler derive them. */
+    for ( i = 0; i < 2; i++ )
     {
-      if ( *(float *)((char *)maxs + 4 * i) + *(float *)((char *)modelorigin + 4 * i) + 16.0f < origin[i] )
+      if ( maxs[i] + modelorigin[i] + 16.0f < origin[i] )
         return 0;
-      if ( origin[i] < *(float *)((char *)mins + 4 * i) + *(float *)((char *)modelorigin + 4 * i) - 16.0f )
+      if ( origin[i] < mins[i] + modelorigin[i] - 16.0f )
         return 0;
-      ++i;
     }
-    while ( i < 2 );
-    v7 = *(_DWORD *)&origin[1];
-    v8 = origin[2] + 24.0f;
-    org[0] = *(_DWORD *)&origin[0];
-    end[0] = org[0];
-    org[1] = v7;
-    end[1] = v7;
-    *(float *)&org[2] = v8;
-    *(float *)&end[2] = origin[2] - 48.0f;
-    *(bsp_trace_t *)trace = AAS_Trace((float*)(org), (float*)boxmins, (float*)boxmaxs, (float*)(end), entnum, 33619971);
+    /* Mechanism 12: ref's `fld [edx+8]; mov ecx,[edx]; mov eax,[edx+4]; fadd
+     * 24.0` is two VectorCopys from ONE source (note ecx/eax each feeding both
+     * destinations) with the `[2]` copies forwarded into the adjustments — the
+     * two surviving integer copies fill the fld->fadd gap.  IDA's int[3] +
+     * `*(float *)&org[2] = …` form loses the interleave. */
+    VectorCopy(origin, org);
+    VectorCopy(origin, end);
+    org[2] = origin[2] + 24.0f;
+    end[2] = origin[2] - 48.0f;
+    *(bsp_trace_t *)trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
     return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
   }
   return 0;
@@ -25612,16 +25602,20 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
         { return moveresult; }
       }
     }
+    /* Guard written POSITIVE (Q3 be_ai_move.c: `if (ms->grapplevisible_time <
+     * AAS_Time() - 0.4) { hookoff; ...; return; }` with the shared
+     * `lastgrappledist = dist` as the fall-through).  IDA inverted it, which
+     * made the store block the warm fall-through and cost the cross-jump into
+     * the earlier `lastgrappledist = dist; return` copy at 0x10033bcb. */
     v17 = ms->grapplevisible_time;
-    if ( AAS_Time() - 0.4 <= v17 )
+    if ( AAS_Time() - 0.4 > v17 )
     {
-      ms->lastgrappledist = dist;
+      EA_Command(ms->client, "hookoff", (char *)0);
+      ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
+      ms->reachability_time = 0;
       { return moveresult; }
     }
-    EA_Command(ms->client, "hookoff", (char *)0);
-    ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
-LABEL_26:
-    ms->reachability_time = 0;
+    ms->lastgrappledist = dist;
     { return moveresult; }
   }
   v10 = AAS_Time();
