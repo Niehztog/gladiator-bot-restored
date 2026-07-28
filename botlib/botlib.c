@@ -1782,7 +1782,33 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 }
 
 //----- (100030A0) --------------------------------------------------------
-void sub_100030A0()  /* InitBSPLinkHeap */
+/* COGNATE FOUND but deliberately NOT renamed — see the note below.
+ *
+ * This trio is line-for-line Q3 `be_aas_sample.c`'s AAS_InitAASLinkHeap /
+ * AAS_AllocAASLink / AAS_DeAllocAASLink: same `if (!heap)` guard, same
+ * LibVarValue-with-default-then-clamp, same heap[0] / for(i=1..count-2) /
+ * heap[count-1] free-list weave, same `freelinks = &heap[0]`.
+ *
+ * But those exact names are ALREADY TAKEN in this reconstruction, by the
+ * genuine AAS-area link heap at 0x1001AC00 / 0x1001AD50 / 0x1001ADA0.
+ * Gladiator carries BOTH families and the binary distinguishes them at every
+ * corresponding site:
+ *      AAS-area (named)                 BSP-leaf (this trio)
+ *      LibVarValue("max_aaslinks")      LibVarValue("max_bsplinks")
+ *      "empty aas link heap\n"          "empty bsp link heap\n"
+ *      link->prev_area / next_area      link->prev_leaf / next_leaf
+ *      aasworld.linkheap/freelinks      dword_10069578 / dword_10069580
+ *
+ * So the original MUST have had two distinct name sets, and the author's own
+ * vocabulary for this one is "bsp link" — i.e. `AAS_InitBSPLinkHeap` /
+ * `AAS_AllocBSPLink` / `AAS_DeAllocBSPLink`, which is exactly what the
+ * 2026-05-26 audit reverted as invented (back when no cognate was known for
+ * either family).  That spelling is now strongly evidenced rather than guessed,
+ * but it is still DERIVED, so the rename is held pending a user decision
+ * (user, 2026-07-28: adopt cognates verbatim only — and verbatim is impossible
+ * here).  Do not "resolve" this by renaming the 0x1001ACxx family instead:
+ * those three ARE the aas_link_t functions and their names are correct. */
+void sub_100030A0()
 {
   int i;
   int count = dword_1006957C;
@@ -1827,7 +1853,7 @@ void __cdecl sub_100031B0(char *name)
 }
 
 //----- (100031F0) --------------------------------------------------------
-bsp_link_t *sub_100031F0()  /* AllocBSPLink */
+bsp_link_t *sub_100031F0()
 {
   bsp_link_t *result;
   bsp_link_t *next;
@@ -1846,7 +1872,7 @@ bsp_link_t *sub_100031F0()  /* AllocBSPLink */
 }
 
 //----- (10003240) --------------------------------------------------------
-void __cdecl sub_10003240(bsp_link_t *a1)  /* FreeBSPLink */
+void __cdecl sub_10003240(bsp_link_t *a1)
 {
   if ( dword_10069580 )
     dword_10069580->prev_ent = a1;
