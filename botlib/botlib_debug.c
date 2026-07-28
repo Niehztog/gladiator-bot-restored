@@ -1,12 +1,9 @@
 /*
- * botlib_debug.c — Diagnostic crash tracing for gladiator.dll
+ * botlib_debug.c — Win32 crash tracing for gladiator.dll.
  *
- * Adds a DllMain that opens a log file, and provides BOTLIB_LOG() which
- * key functions can call.  The log file path is:
- *   C:\gladiator_debug.log   (or the game directory if that fails)
- *
- * To enable: add botlib_debug.o to OBJS_ in the Makefile.
- * The log shows exactly which function was last entered before the crash.
+ * DllMain opens gladiator_debug.log (falling back to C:\) and installs an
+ * SEH filter that dumps the faulting address, registers and stack.  Inert on
+ * POSIX.
  */
 
 #include <stdio.h>
@@ -23,20 +20,10 @@ void botlib_log(const char *fmt, ...)
 #ifdef _WIN32
 #include <windows.h>
 
-/* -----------------------------------------------------------------------
- * Log file handle — opened in DllMain, written only when something
- * worth logging happens (exception filter, explicit botlib_log()).
- *
- * The file is created with "w" mode at DllMain time because fopen() can
- * fail at crash time when the heap is corrupted — we want a guaranteed
- * writable handle ready in advance.  However we deliberately do NOT
- * emit any content until an actual crash fires; that way a clean run
- * leaves a 0-byte file, and the file's mere non-zero size is a crash
- * indicator on its own.
- *
- * On DLL_PROCESS_DETACH we close the file and unlink it if nothing was
- * ever written (the common "clean shutdown" case).
- * --------------------------------------------------------------------- */
+/* The log is opened in DllMain because fopen() can fail at crash time on a
+ * corrupted heap, but nothing is written until a crash actually fires — so a
+ * clean run leaves a 0-byte file, which DLL_PROCESS_DETACH then unlinks.
+ * Non-zero size is therefore itself the crash indicator. */
 static FILE *g_log = NULL;
 static char  g_log_path[MAX_PATH] = {0};
 static int   g_log_dirty = 0;   /* set to 1 the moment we write anything */
@@ -64,10 +51,8 @@ static void blog_open(void)
     }
 }
 
-/* -----------------------------------------------------------------------
- * DllMain — called by Windows when the DLL is loaded/unloaded
- * --------------------------------------------------------------------- */
-void botlib_install_exception_handler(void);  /* defined below */
+/* DllMain — DLL load/unload. */
+void botlib_install_exception_handler(void);
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
@@ -79,9 +64,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
         blog_open();
         botlib_log("DllMain: DLL_PROCESS_ATTACH — gladiator.dll loaded");
         botlib_log("  Base address: 0x%08X", (unsigned)hinstDLL);
-        /* Install the SEH crash filter at load time — the faithful location
-         * (the original 1999 DLL installed it here, not from GetBotAPI, which
-         * makes no such call).  Inert on Linux (no DllMain / no SEH). */
+        /* Faithful install site: the original did it here, not in
+         * GetBotAPI. */
         botlib_install_exception_handler();
         break;
 
@@ -91,9 +75,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
             int clean = !g_log_dirty;
             fclose(g_log);
             g_log = NULL;
-            /* Clean shutdown (no crash content written) — delete the
-             * empty placeholder file so it doesn't look like a crash
-             * happened. */
+            /* Clean shutdown — drop the empty file. */
             if (clean && g_log_path[0])
                 remove(g_log_path);
         }
@@ -102,15 +84,8 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
     return TRUE;
 }
 
-/* -----------------------------------------------------------------------
- * blog_annotate_module — if `v` points into an executable image, write
- *   " (modname+0xRVA)" into `out`.  Otherwise leave `out` empty.
- *
- * Uses VirtualQuery + GetModuleFileNameA so it works for *any* loaded
- * module (gladiator.dll, game.dll, yquake2.exe, system DLLs), not just
- * gladiator.dll.  Filters out non-image pages (heap, stack, free) by
- * requiring MEM_IMAGE.
- * --------------------------------------------------------------------- */
+/* If `v` points into any loaded image, write " (modname+0xRVA)" into `out`;
+ * otherwise leave it empty.  MEM_IMAGE filters out heap/stack/free pages. */
 static void blog_annotate_module(uintptr_t v, char *out, size_t outsz)
 {
     out[0] = '\0';
@@ -128,9 +103,7 @@ static void blog_annotate_module(uintptr_t v, char *out, size_t outsz)
     snprintf(out, outsz, "  (%s+0x%X)", name, rva);
 }
 
-/* -----------------------------------------------------------------------
- * Structured Exception handler — wraps GetBotAPI to catch hard crashes
- * --------------------------------------------------------------------- */
+/* SEH filter — catches hard crashes anywhere in the process. */
 static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
 {
     EXCEPTION_RECORD *er = ep->ExceptionRecord;
@@ -143,10 +116,9 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         fprintf(g_log, "CRASH: exception 0x%08X at 0x%08X\n",
                 (unsigned)code, (unsigned)(intptr_t)addr);
 
-        /* Identify which module actually contains EIP, not just gladiator.dll.
-         * VirtualQuery on the crash address yields the allocation base of the
-         * mapped image; that base IS the HMODULE of the containing DLL/EXE.
-         * From there GetModuleFileNameA gives the path so we can name it. */
+        /* VirtualQuery's allocation base for the crash address IS the
+         * HMODULE of the containing image, so this names whichever module
+         * actually holds EIP — not just gladiator.dll. */
         MEMORY_BASIC_INFORMATION mbi;
         HMODULE eip_mod = NULL;
         char eip_modpath[MAX_PATH] = {0};
@@ -166,9 +138,8 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
             fprintf(g_log, "  EIP module: <unresolved>\n");
         }
 
-        /* gladiator.dll's own base, for reference + the preserved
-         * vma-relative offset (only meaningful if EIP is actually in
-         * gladiator.dll). */
+        /* gladiator.dll's own base + vma-relative offset (meaningful only
+         * when EIP is inside it). */
         HMODULE hmod = GetModuleHandleA("gladiator.dll");
         fprintf(g_log, "  gladiator.dll runtime base: 0x%08X\n",
                 (unsigned)(intptr_t)hmod);
@@ -188,8 +159,7 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
                     (unsigned)er->ExceptionInformation[1]);
         }
 
-        /* CPU registers at crash.  Cast DWORD (= long unsigned int) → unsigned
-         * for %X to silence -Wformat= without changing the printed bits. */
+        /* Registers.  DWORD is cast to unsigned for %X; same bits. */
 #if defined(_M_X64) || defined(__x86_64__)
         fprintf(g_log, "  RAX=%016llX RBX=%016llX RCX=%016llX RDX=%016llX\n",
             (unsigned long long)ctx->Rax,
@@ -212,10 +182,9 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         uintptr_t *bp = (uintptr_t *)(uintptr_t)ctx->Ebp;
 #endif
 
-        /* Dump stack from ESP — show 64 entries to capture return address past local frame.
-         * Annotate each slot with module!RVA if it points into a loaded image,
-         * so call-chain reconstruction doesn't require manually probing every
-         * address against the linker maps. */
+        /* 64 entries from ESP — enough to reach the return address past the
+         * local frame.  Slots pointing into an image get a module!RVA
+         * annotation so the call chain needs no manual map lookups. */
         fprintf(g_log, "  Stack (ESP-relative):\n");
         for (int i = 0; i < 64; i++) {
             if (IsBadReadPtr(sp + i, sizeof(*sp)))
@@ -246,7 +215,7 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
     return EXCEPTION_CONTINUE_SEARCH;
 }
 
-/* Call this once at the start of GetBotAPI to install the handler */
+/* Installed from DllMain. */
 void botlib_install_exception_handler(void)
 {
     SetUnhandledExceptionFilter(gladiator_exception_filter);

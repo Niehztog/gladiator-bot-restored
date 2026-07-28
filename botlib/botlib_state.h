@@ -1,43 +1,28 @@
 #ifndef BOTLIB_STATE_H
 #define BOTLIB_STATE_H
 
-/* =========================================================================
- * botlib_state.h — the three contiguous .data/.bss blocks that the original
- * Gladiator botlib interface TU laid out as single aggregates, and which
- * GetBotAPI (@0x10038480) and Export_BotShutdownLibrary (@0x10037CF0)
- * address as whole blocks via rep movs / rep stos:
+/* botlib_state.h — the three contiguous .data/.bss blocks that GetBotAPI
+ * (@0x10038480) and Export_BotShutdownLibrary (@0x10037CF0) address as whole
+ * aggregates via rep movs / rep stos:
  *
  *   block 3  bot_exports @0x10063F80  20 dwords  bot_export_t (the API table)
  *   block 2  botimport   @0x10063FE0  10 dwords  engine import callbacks
  *   block 1  botstate    @0x10064020  20 dwords  setup flag + counts + libvars
  *
- * IDA decompiled each field as a separate dword_/bi_ symbol; in our single
- * botlib.c TU those scatter across .bss, so GetBotAPI's bulk import copy and
- * Export_BotShutdownLibrary's bulk clears compiled to dozens of individual
- * mov stores instead of the original rep movs / rep stos.  Restoring them as
- * the original aggregates reproduces the bulk copy/clear AND is 64-bit-correct
- * (the copy/clear is sizeof-based, so the 8-byte pointers on aarch64 are
- * handled automatically — no #if split needed).  Call sites use the
- * botimport.* / botstate.* struct members directly; members are lvalues, so
- * both reads and writes work verbatim.  (Only the 16 movement-libvar handles
- * keep #define aliases, below.)
+ * Keeping them as aggregates (rather than the decompiler's scattered
+ * dword_/bi_ symbols) is what makes those bulk copies/clears compile back to
+ * rep movs / rep stos, and is 64-bit-correct since they are sizeof-based.
+ * Call sites use botimport.* / botstate.* members directly.
  *
- * Shared by botlib.c (defines the storage) and botlib_exports.c.
- * ========================================================================= */
-
-/* NB: ../game/botlib.h (bot_export_t) has no include guard, so it is NOT
- * re-included here — both includers (botlib.c, botlib_exports.c) include it
- * before this header.  ea_state.h / libvar.h are guarded, so re-including
- * them here is safe and keeps this header self-sufficient for those types. */
+ * Shared by botlib.c (which defines the storage) and botlib_exports.c.
+ * ../game/botlib.h has no include guard and is NOT re-included here — both
+ * includers pull it in first. */
 #include "ea_state.h"        /* ea_state_t (BotInput arg type) */
 #include "libvar.h"          /* libvar_t   (block-1 handles)   */
 
 /* ---- block 2: engine import callbacks (botimport, @0x10063FE0) -----------
- * 10 function pointers.  Field types match the original per-call-site tuning
- * (notably Trace's explicit-retbuf ABI and Print's int return); the layout is
- * 10 pointers either way.  DebugLineDelete (slot 9) was previously missing —
- * its slot is restored here so the block is the full 10 dwords the import
- * copy/clear span. */
+ * 10 function pointers; note Trace's explicit-retbuf ABI and Print's int
+ * return. */
 typedef struct botimport_block_s {
     void  (__cdecl *BotInput)(int, ea_state_t *);
     int   (__cdecl *BotClientCommand)(int client, char *str, ...);
@@ -67,10 +52,7 @@ extern botimport_block_t botimport;
 extern botstate_block_t  botstate;
 extern bot_export_t      bot_exports;  /* block 3 @0x10063F80 */
 
-/* ---- libvar handle aliases ----------------------------------------------
- * The botimport.* / botstate.* scalar call sites (bi_Print, botlibsetup,
- * maxclients, dword_1006402C, …) were inlined to their struct members
- * directly.  Only the 16 movement-libvar handles keep aliases, for brevity. */
+/* ---- libvar handle aliases (for brevity at call sites) ------------------ */
 #define libvar_sv_friction          botstate.libvars[0]
 #define libvar_sv_stopspeed         botstate.libvars[1]
 #define libvar_sv_gravity           botstate.libvars[2]

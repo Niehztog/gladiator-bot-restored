@@ -1,21 +1,10 @@
 /*
- * struct_sizes_asserts.h — compile-time guard that every reconstructed
- * struct still matches the layout of the original Mr. Elusive 1999
- * binary.
+ * struct_sizes_asserts.h — compile-time guard that every reconstructed struct
+ * still matches the original 1999 binary's layout.  Adding, removing,
+ * retyping or reordering a field fails the build.
  *
- * These _Static_assert lines are the strongest form of regression check
- * we have: if anyone adds, removes, retypes, or reorders a field, the
- * build itself fails with the assertion name pointing at the affected
- * struct.  Each size here was verified against the original DLL
- * disassembly (stack-frame `sub esp, N` analysis or struct-pointer
- * arithmetic) — see the per-struct headers for the trail.
- *
- * Include this file exactly once, from a single .c translation unit, to
- * avoid duplicate-assert warnings.  We include it from botlib.c.
- *
- * Add new asserts here whenever a new struct gets a confirmed binary
- * layout.  Do NOT add asserts for structs whose layout is still
- * speculative — wait until the binary cross-reference is complete.
+ * Included exactly once, from botlib.c.  Only add asserts for structs whose
+ * binary layout is confirmed, never for speculative ones.
  */
 #ifndef BOTLIB_STRUCT_SIZES_ASSERTS_H
 #define BOTLIB_STRUCT_SIZES_ASSERTS_H
@@ -28,29 +17,19 @@
 #include "chat_state.h"
 #include "ea_state.h"
 
-/*
- * These assertions encode the original 32-bit Windows DLL struct layout.
- * On 64-bit hosts, pointer-containing structs naturally grow, so we only
- * enable the asserts when compiling for a 32-bit target.  Binary
- * compatibility with the original DLL is enforced through the MinGW
- * 32-bit build path; the 64-bit Linux build path is for development
- * smoke-testing only.
- */
+/* Pointer-bearing structs grow on 64-bit hosts, so those asserts are gated to
+ * 32-bit targets; the MinGW 32-bit path is what enforces DLL compatibility. */
 #include <stdint.h>
 
-/* MSVC 6.0 oracle build: _Static_assert is C11 and not supported. Skip the
- * size guards entirely under that compiler — the assertions are validated
- * by the native (MinGW/gcc) build path. */
+/* MSVC 6.0 oracle build: _Static_assert is C11.  Skip the guards there — the
+ * native MinGW/gcc build path validates them. */
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define _Static_assert(cond, msg) /* skipped under MSVC < 14.0 */
 #endif
 
 _Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must remain 0x4CC bytes");
-/* bot_moveresult_t is pointer-free (6 ints + 2 vec3_t) so it is 48 bytes on
- * every target — assert it unconditionally, including the native 64-bit build. */
+/* The next three are pointer-free, so they hold on 64-bit too. */
 _Static_assert(sizeof(bot_moveresult_t)    == 48,   "bot_moveresult_t size (0x30, Q3 minus weapon field)");
-/* bot_movestate_t (vec3/int/float only) and bot_chatstate_t (int/char union)
- * are pointer-free as well — same size on every target. */
 _Static_assert(sizeof(bot_movestate_t)     == 128,  "bot_movestate_t size (bs+2880..+3007 inline block)");
 _Static_assert(sizeof(bot_chatstate_t)     == 188,  "bot_chatstate_t size (47 ints, bs+3980 inline block)");
 

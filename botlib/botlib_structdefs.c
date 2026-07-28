@@ -1,20 +1,11 @@
 /*
- * botlib_structdefs.c — Structure descriptor tables recovered from gladiator.dll .data section
+ * botlib_structdefs.c — structure descriptor tables recovered from the .data
+ * section (0x1005C138, 0x1005D890, 0x1005DFD8, 0x1005DFE0).
  *
- * sub_10040AD0() takes a pointer to a structdef: { int size; char **fields; }.
- * sub_100404B0() scans the field table looking for a field name.
- * Each field table entry has 7 (char *)-wide slots:
- *   [0] field name string pointer
- *   [1] byte offset of field in struct (integer stored as char *)
- *   [2] type flags (integer stored as char *; low byte = type, high byte = array flag)
- *   [3] array element count (integer stored as char *)
- *   [4] 0
- *   [5] default value as float-bits (integer stored as char *)
- *   [6] 0
- * Terminated by a 7-slot entry whose first slot is NULL.
- *
- * All four descriptors recovered by disassembling gladiator.dll at their
- * .data addresses (0x1005C138, 0x1005D890, 0x1005DFD8, 0x1005DFE0).
+ * A structdef is { int size; char **fields; }; each field table entry is
+ * 7 (char *)-wide slots, terminated by an entry whose first slot is NULL:
+ *   [0] name  [1] byte offset  [2] type flags (low byte type, high byte
+ *   array flag)  [3] array count  [4] 0  [5] default as float-bits  [6] 0
  */
 
 #include <stdint.h>
@@ -31,12 +22,7 @@
 #define FE_END \
     P(0),  P(0),   P(0),   P(0),  P(0),  P(0),  P(0)
 
-/* =========================================================================
- * unk_1005C138 — sound info struct descriptor (struct size = 176 = 0xB0)
- * Field table at original binary address 0x1005C070.
- * Fields: name(str,0x00), volume(f,0x50,def=80), duration(f,0x54,def=10),
- *         type(i,0x58), recognition(f,0x5C,def=1), string(str,0x60)
- * ========================================================================= */
+/* unk_1005C138 — soundinfo descriptor (176 B); field table at 0x1005C070. */
 static char *snd_fields[] = {
     FE("name",        0x00, 0x004, 0, 0x00000000),
     FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
@@ -48,12 +34,7 @@ static char *snd_fields[] = {
 };
 structdef_t unk_1005C138 = { 176, snd_fields };
 
-/* =========================================================================
- * unk_1005D890 — item/entity struct descriptor (struct size = 284 = 0x11C)
- * Field table at original binary address 0x1005D7B0.
- * Fields: name(str,0x00), model(str,0xA0), type(i,0xF4), index(i,0xF8),
- *         respawntime(f,0xFC), mins(f[3],0x100), maxs(f[3],0x10C)
- * ========================================================================= */
+/* unk_1005D890 — iteminfo descriptor (284 B); field table at 0x1005D7B0. */
 static char *item_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x0A0, 0x004, 0, 0x00000000),
@@ -66,10 +47,7 @@ static char *item_fields[] = {
 };
 structdef_t unk_1005D890 = { 284, item_fields };
 
-/* =========================================================================
- * unk_1005DFD8 — weapon config struct descriptor (struct size = 344 = 0x158)
- * Field table at original binary address 0x1005DBC8.
- * ========================================================================= */
+/* unk_1005DFD8 — weaponinfo descriptor (344 B); field table at 0x1005DBC8. */
 static char *weap_fields[] = {
     FE("name",            0x004, 0x004, 0, 0x00000000),
     FE("level",           0x0A4, 0x002, 0, 0x00000000),
@@ -96,10 +74,7 @@ static char *weap_fields[] = {
 };
 structdef_t unk_1005DFD8 = { 344, weap_fields };
 
-/* =========================================================================
- * unk_1005DFE0 — projectile config struct descriptor (struct size = 208 = 0xD0)
- * Field table at original binary address 0x1005DE30.
- * ========================================================================= */
+/* unk_1005DFE0 — projectileinfo descriptor (208 B); table at 0x1005DE30. */
 static char *proj_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x054, 0x004, 0, 0x00000000),
@@ -119,29 +94,15 @@ static char *proj_fields[] = {
 };
 structdef_t unk_1005DFE0 = { 208, proj_fields };
 
-/* =========================================================================
- * Vec3 constants from .rdata section
- * Used by VectorCompare() — must be 12 bytes (3 floats), not a single int.
- * ========================================================================= */
-
-/* unk_1005C56C: vec3 {0.0, -1.0, 0.0}  (0xBF800000 = -1.0f) */
+/* .rdata vec3 constants — 12 bytes each, as VectorCompare() requires. */
 float unk_1005C56C[3] = { 0.0f, -1.0f,  0.0f };
-
-/* unk_1005C584: vec3 {0.0, -2.0, 0.0}  (0xC0000000 = -2.0f) */
 float unk_1005C584[3] = { 0.0f, -2.0f,  0.0f };
+float velocity[3]     = { 0.0f,  0.0f,  0.0f };   /* passed to AAS_ClientMovementHV */
 
-/* velocity: vec3 {0.0, 0.0, 0.0} — zero vector passed to AAS_ClientMovementHV */
-float velocity[3] = { 0.0f,  0.0f,  0.0f };
-
-/* =========================================================================
- * unk_1005E678 — CRC16 weapon ID table (91 entries + NULL terminator)
- *
- * sub_100377E0() iterates: v2 = &unk_1005E678; do { if (a2 == *v2) break;
- *   v2 += 4; } while (v2 < &unk_1005E958);
- * Each entry is 8 bytes: { uint16 crc16, uint16 pad, uint32 weapon_type }.
- * unk_1005E958 must immediately follow this array (end-of-table sentinel address).
- * GCC initialises globals in declaration order within a TU, so adjacency holds.
- * ========================================================================= */
+/* unk_1005E678 — CRC16 weapon ID table, 91 entries of
+ * { uint16 crc16, uint16 pad, uint32 weapon_type } plus a NULL terminator.
+ * sub_100377E0 scans it up to &unk_1005E958, so that symbol MUST stay
+ * immediately after this array (guaranteed by declaration order in a TU). */
 int unk_1005E678[] = {
     0x0000A991, 0x00000001,
     0x0000A757, 0x00000001,
@@ -236,14 +197,10 @@ int unk_1005E678[] = {
     0x0000E488, 0x00000020,
     0x00000000, 0x00000000,   /* NULL terminator (entry 91) */
 };
-/* End-of-table sentinel: address used by sub_100377E0 as loop bound.
-   Must immediately follow unk_1005E678 in memory. */
+/* End-of-table sentinel — must immediately follow unk_1005E678. */
 int unk_1005E958 = 0;
 
-/* =========================================================================
- * unk_10060418 — 72-byte data blob; &[3] = "You are not allowed to..." message
- * Copied with memcpy(v10, &unk_10060418, 0x48); then bi_Print(5, &v10[3]).
- * ========================================================================= */
+/* unk_10060418 — 72-byte blob; &[3] is the "You are not allowed to…" text. */
 char unk_10060418[72] = {
     0x00, 0x00, 0x00, 0x59, 0x6F, 0x75, 0x20, 0x61, 0x72, 0x65, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x61,
     0x6C, 0x6C, 0x6F, 0x77, 0x65, 0x64, 0x20, 0x74, 0x6F, 0x0A, 0x6D, 0x6F, 0x64, 0x69, 0x66, 0x79,

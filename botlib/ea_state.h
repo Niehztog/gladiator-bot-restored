@@ -1,30 +1,18 @@
 /*
- * ea_state.h — Elementary Action subsystem per-client state (36 bytes).
+ * ea_state.h — Elementary Action per-client state (36 bytes).
  *
- * EA_Setup() allocates `ea_controls = GetClearedMemory(36 * maxclients)`,
- * indexed with stride 36 = sizeof(ea_state_t) per client.
- *
- * Field layout confirmed from the EA_* function bodies (EA_Move writes dir +
- * speed at +4..+19; EA_View writes angles at +20..+31; EA_Jump/Attack
- * toggle bits in flags at +32; thinktime at +0 set just before BotInput
- * fires, then cleared after).
- *
- * The flags field holds bitmasks defined as ACTION_* in gladq2_src/botlib.h.
- * Reproduced here so callers don't have to pull in the whole botlib.h.
- *
- * Layout matches the engine's bot_input_t exactly (thinktime/dir/speed/
- * viewangles/actionflags).  EA_EndRegular passes a pointer to this struct
- * to game.dll's BotInput() which memcpys all 36 bytes into
- * botglobals.botinputs[client] — so the field types and offsets here are
- * what the engine sees.
+ * EA_Setup() allocates `ea_controls = GetClearedMemory(36 * maxclients)`.
+ * The layout is the engine's bot_input_t: EA_EndRegular hands a pointer to
+ * game.dll's BotInput(), which memcpys all 36 bytes into
+ * botglobals.botinputs[client].
  */
 
 #ifndef EA_STATE_H
 #define EA_STATE_H
 
 /* Elementary Action flag bits — must match gladq2_src/botlib.h.
- * ACTION_JUMP and ACTION_MOVEUP are aliased to the same bit (0x008);
- * ACTION_CROUCH and ACTION_MOVEDOWN likewise (0x010). */
+ * ACTION_JUMP/ACTION_MOVEUP share bit 0x008; ACTION_CROUCH/ACTION_MOVEDOWN
+ * share 0x010. */
 #ifndef ACTION_ATTACK
 #define ACTION_ATTACK       0x001  /* primary fire                     */
 #define ACTION_USE          0x002  /* "use" / activate                 */
@@ -40,11 +28,9 @@
 #define ACTION_DELAYEDJUMP  0x200  /* deferred jump (Q3 carryover)     */
 #endif
 
-/* Internal-only bit used by EA_Jump / EA_DelayedJump to gate the
- * jump-press to one frame at a time.  Set by EA_EndRegular when the
- * frame's input is consumed; checked at the top of EA_Jump.  This bit
- * does not have an ACTION_* name in botlib.h since it's an
- * implementation detail of the jump latch. */
+/* Internal jump latch (no ACTION_* name in botlib.h): set by EA_EndRegular
+ * when the frame's input is consumed, checked at the top of EA_Jump to gate
+ * the jump-press to one frame at a time. */
 #define EA_JUMPEDLASTFRAME  0x080
 
 typedef struct ea_state_s {

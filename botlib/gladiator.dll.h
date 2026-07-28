@@ -18,11 +18,9 @@
 
 /* _iobuf/FILE are provided by <stdio.h> which must be included before this header. */
 
-/* MSVC calling conventions.
- * On non-Windows targets these are no-ops.
- * On MinGW (Windows target, non-MSVC) __cdecl and __stdcall are built-in
- * GCC keywords — do NOT redefine them or the calling-convention attribute is
- * silently discarded, which breaks GetBotAPI (game.dll calls it __stdcall). */
+/* MSVC calling conventions — no-ops on non-Windows targets.  On MinGW these
+ * are built-in GCC keywords: do NOT redefine them, or the attribute is
+ * silently discarded and GetBotAPI breaks (game.dll calls it __stdcall). */
 #if !defined(_MSC_VER) && !defined(_WIN32)
 #ifndef __cdecl
 #define __cdecl
@@ -72,9 +70,8 @@ typedef void        *HMODULE;
 typedef void        *FARPROC;
 typedef const char  *LPCSTR;
 
-/* IDA Pro bit-extraction macros.
-   These reinterpret the bit pattern of a value at a given byte offset,
-   matching what the x86 MSVC compiler emitted for partial-register reads. */
+/* IDA Pro bit-extraction macros — reinterpret the bit pattern at a byte
+   offset, matching MSVC's partial-register reads. */
 #define LOBYTE(x)    (*(unsigned char *)&(x))
 #define HIBYTE(x)    (*((unsigned char *)&(x) + 1))
 #define BYTE1(x)     (*((unsigned char *)&(x) + 1))   /* alias for HIBYTE */
@@ -84,10 +81,9 @@ typedef const char  *LPCSTR;
 #define HIDWORD(x)   (*((int *)&(x) + 1))            /* signed: needed for IDA's `(HIDWORD(v) ^ v) - HIDWORD(v)` abs idiom on 64-bit */
 #define SLODWORD(x)  (*(int *)&(x))                   /* signed variant */
 #define SLOBYTE(x)   (*(signed char *)&(x))
-#define BYTE2(x)     (*((unsigned char *)&(x) + 2))                   /* signed variant */
-/* COERCE_FLOAT: reinterpret an int's bits as a float.
-   Implemented as an inline function (union type-punning, C99 §6.5.2.3) so it
-   works on rvalues (e.g., function return values) unlike the & form. */
+#define BYTE2(x)     (*((unsigned char *)&(x) + 2))
+/* COERCE_FLOAT: reinterpret an int's bits as a float.  An inline function
+   (union type-punning) so it works on rvalues, unlike the & form. */
 #if defined(_MSC_VER) && _MSC_VER < 1900
 #define inline __inline
 #endif
@@ -255,16 +251,12 @@ struct _PROCESS_INFORMATION
 
 /* 29, 30 — _iobuf/FILE: provided by <stdio.h>, included before this header. */
 
-/* vec3_t — 3-component float vector, matches Q3/Q2 definition.
- * Guarded: game/botlib.h (BOTLIB_H) and q_shared.h (Q_SHARED_H) both define it. */
+/* vec3_t — guarded because game/botlib.h and q_shared.h both define it. */
 #if !defined(BOTLIB_H) && !defined(Q_SHARED_H)
 typedef float vec3_t[3];
 #endif
 
-/* Q2 BSP file header (AAS_LoadBSPFile, 0xA0 = 160 bytes).
- * Matches dheader_t from Quake 2 source qfiles.h.
- * Original: `lea eax,[esp+0x18]; push 0xa0; push eax; call fread_locked`
- * then fields at [esp+0x10]=ident, [esp+0x14]=version, [esp+0x18]=lumps[0]... */
+/* Q2 BSP file header (= dheader_t in Q2's qfiles.h), read by AAS_LoadBSPFile. */
 typedef struct { int fileofs; int filelen; } bsp_lump_t;
 typedef struct {
     int       ident;            /* "IBSP" = 0x50534249   */
@@ -272,9 +264,8 @@ typedef struct {
     bsp_lump_t lumps[19];       /* 19 lumps × 8 = 152 B  */
 } dBspHeader_t;                 /* sizeof = 160 = 0xA0   */
 
-/* Gladiator AAS file header (AAS_LoadAASFile, 0x78 = 120 bytes).
- * Q3's aas_header_t adds a bspchecksum field (0x7C=124); Gladiator omits it.
- * Same lump layout as Q3 but 14 lumps instead of Q3's 14+checksum variant. */
+/* AAS file header (AAS_LoadAASFile).  Q3 adds a bspchecksum field (124 B);
+ * Gladiator omits it. */
 typedef struct { int fileofs; int filelen; } aas_lump_t;
 #define AAS_LUMPS_Q2 14
 typedef struct {
@@ -286,145 +277,97 @@ typedef struct {
 /* bsp_surface_t, bot_settings_t, bot_clientsettings_t — defined in game/botlib.h. */
 
 /* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.
- * Size = 4 + 4 + MAX_FILEPATH = 4 + 4 + 144 = 152 bytes = 38 ints.
- * IDA represents this as "int Offset[38]" in functions where it can't resolve the type,
- * or decomposes it into three separate locals (int Offset + size_t ElementSize +
- * char Source[144]) in others — both are the same struct.  The field names match
- * Q2 pak-file terminology (fileofs/filelen are standard Quake2 .pak lump terms).
- * MAX_FILEPATH = 144 is defined in gladq2_src/botlib.h.
- * Not present in Q3 botlib — Q3 uses a transparent VFS (FS_FOpenFileRead) that
- * handles pak files internally, so this struct is Q2-specific. */
+ * Q2-specific (Q3's transparent VFS handles paks internally).  The
+ * decompilations show it as "int Offset[38]" or as three separate locals. */
 typedef struct bot_fileref_s {
     int  fileofs;              /* file offset within pak  (0 = file is directly on disk)  */
     int  filelen;              /* file length within pak  (0 = read whole file from disk)  */
-    char path[144];            /* path to pak file, or direct file path when fileofs == 0  */
-                               /* 144 = MAX_FILEPATH from gladq2_src/botlib.h               */
-} bot_fileref_t;               /* sizeof = 152 bytes = 38 ints ("int Offset[38]" in IDA)   */
+    char path[144];            /* pak path, or direct file path when fileofs == 0;
+                                  144 = MAX_FILEPATH from gladq2_src/botlib.h              */
+} bot_fileref_t;               /* sizeof = 152 */
 
-/* scriptcrc_s — 152-byte record in the dword_10063F2C linked list.
- * Allocated by GetClearedMemory(152) in sub_100376B0.  Each record
- * memorises a (filename, CRC-hash) pair so the engine can warn when a
- * script's CRC differs from one previously seen.  Q3 botlib has no
- * direct analogue (its CRC table is keyed differently); name chosen
- * descriptively.  Field offsets exactly match the 32-bit binary. */
+/* scriptcrc_t — record in the dword_10063F2C list holding a (filename,
+ * CRC-hash) pair, so the engine can warn when a script's CRC changes. */
 typedef struct scriptcrc_s {
     __int16              hash;            /* +0   CRC-16 of the file body  */
     char                 name[146];       /* +2   filename (zero-terminated) */
     struct scriptcrc_s  *next;            /* +148 on 32-bit; offset moves to +152 on 64-bit */
 } scriptcrc_t;                            /* sizeof = 152 on 32-bit, 160 on 64-bit */
 
-/* structdef_t — struct descriptor passed to ReadStructure / FindField.
- * In the original 32-bit DLL this was a plain int[2] array { size, fields_ptr }.
- * Using a proper struct makes it pointer-size-agnostic (works on both 32 and 64-bit). */
+/* structdef_t — struct descriptor passed to ReadStructure / FindField.  A
+ * plain int[2] { size, fields_ptr } in the 32-bit original; typed here so it
+ * is pointer-size-agnostic. */
 typedef struct { int size; char **fields; } structdef_t;
 
-/* token_t — script token (= Q3A l_script.h::token_t with NUMBERVALUE).
- * Layout verified by disassembly of gladiator.dll (PS_ReadToken writes):
- *   type        at buf+256*4 = +0x400 ✓
- *   linescrossed at buf+265*4 = +0x424 ✓   → next at +0x428
- * Q3 comparison: Q3 has float floatvalue (+0x40C, 4 bytes) giving next at +0x420.
- * Gladiator has double floatvalue (+0x410, 8 bytes) with 4-byte alignment pad before it,
- * which pushes whitespace_p to +0x418 and next to +0x428 — matching disassembly. */
+/* token_t — script token (Q3's l_script.h::token_t with NUMBERVALUE).  Q3's
+ * float floatvalue is a double here, so with its alignment pad whitespace_p
+ * lands at +0x418 and next at +0x428 (Q3: +0x420). */
 typedef struct token_s {
     char string[1024];                   /* +0x000: token text (MAX_TOKEN chars)     */
     int type;                            /* +0x400: TT_STRING=1 NUMBER=3 NAME=4 PUNCT=5 */
     int subtype;                         /* +0x404: punctuation id / number subtype  */
-    unsigned int intvalue;               /* +0x408: integer value.  Original was
-                                          *         `unsigned long` in 32-bit MSVC =
-                                          *         4 bytes; kept 4 bytes here so the
-                                          *         offsets through +0x420 stay
-                                          *         binary-identical with the original. */
+    unsigned int intvalue;               /* +0x408: `unsigned long` in the 32-bit
+                                          *         original; must stay 4 bytes    */
     int _floatvalue_pad;                 /* +0x40C: alignment padding before double  */
     double floatvalue;                   /* +0x410: floating-point value (8 bytes)   */
-    char *whitespace_p;                  /* +0x418 on 32-bit (grows to +0x418 still
-                                          *         on 64-bit; pointer width doubles) */
+    char *whitespace_p;                  /* +0x418 */
     char *endwhitespace_p;
     int line;
     int linescrossed;
     struct token_s *next;
     int padding;
 } token_t;
-/* Original gladiator DLL was 32-bit, so token_t was 0x430 (1072) bytes.
- * On 64-bit the three pointer fields (whitespace_p, endwhitespace_p, next)
- * grow to 8 bytes each, so the struct expands to 1088 bytes.  All copy/
- * alloc sites that used the literal constant 1072 / 0x430 must therefore
- * be migrated to sizeof(token_t).  Fields up through `floatvalue` keep
- * their original 32-bit offsets, which is all we can guarantee. */
+/* 1072 (0x430) bytes on 32-bit, 1088 on 64-bit where the three pointers
+ * widen — so copy/alloc sites must use sizeof(token_t), never the literal.
+ * Fields up through `floatvalue` keep their original offsets. */
 
-/* ========================================================================
- * aas_soundpool_t — node of the AAS active-sound bookkeeping pool.
+/* aas_soundpool_t — node of the AAS active-sound pool, a packed array of
+ * 52-byte nodes (`52 * MAX_AAS_SOUNDS`) with prev/next at +44/+48.
  *
- * Original gladiator allocated `52 * MAX_AAS_SOUNDS` raw bytes from
- * GetMemory and treated it as a packed array of 52-byte nodes.  Each
- * node had a doubly-linked-list pair (prev,next) at offsets +44/+48.
- * The leading 44-byte payload is now identified field-for-field, cross
- * referenced from the writer (sub_1001CE20), the two sort comparators
- * (sub_1001CC50/sub_1001CD10), the dedupe/expire lookup (sub_1001CDD0),
- * the tick function (sub_1001CFA0), and the one reader outside this
- * subsystem (sub_1001D0A0, the inverse-square audibility calc — its own
- * doc comment independently named +8/+0x20/+0x24 before this struct was
- * expanded, and agrees exactly). `entnum`/`channel`/`unknown40` are
- * inferred from field POSITION and Q2's usual
- * S_StartSound(origin,entnum,channel,soundindex,volume,attenuation,
- * timeofs)-shaped call, not independently confirmed — the whole
- * subsystem is DEAD (no live caller anywhere in botlib.c reaches
- * sub_1001CE20), so there's no runtime call site left to verify the
- * exact semantic names against. `data[44]` is kept as a union member so
- * any spot this project hasn't converted yet still compiles against the
- * identical byte layout.
+ * The subsystem is DEAD: nothing in botlib.c reaches the writer
+ * (sub_1001CE20), so entnum/channel/unknown40 are named from field position
+ * and Q2's usual S_StartSound argument order, not from a live call site.
+ * `data[44]` stays as a union member for any un-migrated byte access.
  *
  * Six aas_world fields reference these nodes:
  *   d_100669C4 = pool base (FreeMemory'd in sub_1001CAB0)
  *   d_100669C8 = free-list head, chained via .next
- *   d_100669CC/D0 = head/tail of one sorted active list (by endtime, sub_1001CC50)
- *   d_100669D4/D8 = head/tail of a second sorted active list (by starttime, sub_1001CD10)
- * ======================================================================== */
+ *   d_100669CC/D0 = head/tail of the endtime-sorted active list
+ *   d_100669D4/D8 = head/tail of the starttime-sorted active list */
 typedef struct aas_soundpool_s {
     union {
         char data[44];       /* opaque byte view — kept for any un-migrated access */
         struct {
-            float  starttime;   /* +0  AAS_Time() + requested delay (sub_1001CE20's a7) */
-            float  endtime;     /* +4  starttime + sound duration; sort key for CC/D0 list (sub_1001CC50) */
-            vec3_t origin;      /* +8  sound emission origin (sub_1001CE20's a1, a vec3 pointer) */
-            int    _reserved20; /* +20 always written 0 by sub_1001CE20 */
-            int    entnum;      /* +24 sub_1001CE20's a2; matched by sub_1001CDD0's dedupe/expire lookup */
-            int    channel;     /* +28 sub_1001CE20's a3 */
-            int    soundindex;  /* +32 sub_1001CE20's a4; indexes aasworld.d_100669C0[]; ALSO matched by sub_1001CDD0 */
-            float  volume;      /* +36 sub_1001CE20's a5 — declared `int a5` there but read as a genuine
-                                  * float multiplier by sub_1001D0A0's audibility formula; likely the same
-                                  * int/float-bit-pattern idiom already catalogued project-wide (fp_int_bitpattern_bugs.md) */
-            int    unknown40;   /* +40 sub_1001CE20's a6 */
+            float  starttime;   /* +0  AAS_Time() + requested delay */
+            float  endtime;     /* +4  starttime + sound duration; sort key */
+            vec3_t origin;      /* +8  sound emission origin */
+            int    _reserved20; /* +20 always written 0 */
+            int    entnum;      /* +24 */
+            int    channel;     /* +28 */
+            int    soundindex;  /* +32 indexes aasworld.d_100669C0[] */
+            float  volume;      /* +36 passed as int, read as a float multiplier by
+                                  * sub_1001D0A0's audibility formula */
+            int    unknown40;   /* +40 */
         };
     };
-    struct aas_soundpool_s    *prev;     /* +44 on 32-bit; struct padding pushes to +48 on 64-bit */
+    struct aas_soundpool_s    *prev;     /* +44 on 32-bit, +48 on 64-bit */
     struct aas_soundpool_s    *next;
 } aas_soundpool_t;
 
 /* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
  * Include game/botlib.h before this header to get these definitions. */
 
-/* ========================================================================
- * aas_world_t — Area Awareness System global state.
- *
- * In the original Gladiator DLL, this is one contiguous 676-byte (0x2A4)
- * struct in BSS starting at VA 0x100667E0. IDA decomposed every field into
- * a separate global, which broke the `memset(&aasworld_loaded, 0, 0x2A4u)`
- * call in AAS_Shutdown — under GCC the linker doesn't pack BSS globals in
- * declaration order, so the memset would corrupt unrelated globals.
- *
- * Field offsets verified against original binary (0x100667E0..0x10066A84).
- * Each field's binary VA is shown alongside the struct offset.  The matching
- * `aasworld_*` legacy names are restored as #define macros in the .c file.
- * ======================================================================== */
-/* Forward decl needed for aas_world_s::entities (defined in aas_world.h) */
+/* aas_world_t — Area Awareness System global state: one contiguous 676-byte
+ * (0x2A4) BSS struct at VA 0x100667E0.  It must stay one aggregate — as
+ * separate globals, AAS_Shutdown's `memset(&aasworld, 0, 0x2A4u)` would
+ * corrupt whatever the linker placed next.  Each field carries its binary VA;
+ * the legacy `aasworld_*` names are #defines in the .c file. */
 struct aas_entity_s;
 typedef struct aas_entity_s aas_entity_t;
 
-/* Routing structures whose pointer slots truncated when typed as plain
- * `int` in the IDA decompile.  Restored with real pointer fields so the
- * heap layout is 64-bit-safe.  Stride is computed via sizeof(...) at the
- * use sites (instead of the hard-coded 40 / 8 / 12 constants from the
- * 32-bit binary), keeping behaviour identical on 32-bit Windows. */
+/* Routing structures whose pointer slots the decompiler typed as plain `int`.
+ * Real pointers here, with the stride taken from sizeof() at the use sites
+ * rather than the 32-bit binary's hard-coded 40 / 8 / 12. */
 typedef struct aas_reversedlink_s {
     int                         linknum;     /* +0  reachability index        */
     int                         areanum;     /* +4  source area for the link  */
@@ -448,10 +391,8 @@ typedef struct aas_routingupdate_s {
     struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
 } aas_routingupdate_t;
 /* Forward typedefs for the AAS element types (full defs in aas_world.h, which
- * is included AFTER this header).  Tagged structs let the aas_world_t member
- * arrays below be typed as element pointers instead of void*, so call sites can
- * use aasworld.X[i].field instead of IDA byte-arithmetic.  Pointer fields only
- * need the incomplete type here; the full layout arrives with aas_world.h. */
+ * is included after this header) so the aas_world_t arrays below can be typed
+ * element pointers rather than void*. */
 typedef struct aas_bbox_s         aas_bbox_t;
 typedef struct aas_plane_s        aas_plane_t;
 typedef struct aas_edge_s         aas_edge_t;
@@ -504,8 +445,7 @@ typedef struct aas_world_s {
     struct aas_link_s  *freelinks;  /* +0x1B0 */
     struct aas_link_s **arealinkedentities; /* +0x1B4 */
     int   numentities;              /* +0x1B8 */
-    int   aas_maxclients;           /* +0x1BC  (aas_-prefixed to avoid the former
-                                       botlib_state.h `maxclients` macro, since removed) */
+    int   aas_maxclients;           /* +0x1BC */
     aas_entity_t *entities;         /* +0x1C0  (pointer; 32-bit binary stored as int) */
     struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
     struct indexlist_s *soundindex_table;  /* +0x1C8 */
@@ -515,29 +455,18 @@ typedef struct aas_world_s {
     struct soundinfo_s *soundinfo;  /* +0x1D8  (VA 0x100669B8) soundinfo_t array (fwd-decl; full def in botlib_structs.h) */
     int    d_100669BC;              /* +0x1DC */
     void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
-    /* aas_world.d_100669C4..D8 are six pointers maintaining a 52-byte
-     * pool of `aas_soundpool_t` nodes (allocated by sub_1001CAB0):
-     *   d_100669C4 = pool base (raw GetMemory return)
-     *   d_100669C8 = free-list head (chained via next at +48)
-     *   d_100669CC, d_100669D0 = head/tail of sorted active list #1
-     *   d_100669D4, d_100669D8 = head/tail of sorted active list #2
-     * Original DLL stored these as `int` because pointers were 32-bit;
-     * on 64-bit they MUST be real pointer types or every list walk
-     * truncates.  Bound type-wise to aas_soundpool_t which is restored
-     * below. */
+    /* Six pointers maintaining the aas_soundpool_t node pool (see above).
+     * `int` in the original; must be real pointers or 64-bit list walks
+     * truncate. */
     struct aas_soundpool_s *d_100669C4;  /* +0x1E4 */
     struct aas_soundpool_s *d_100669C8;  /* +0x1E8 */
     struct aas_soundpool_s *d_100669CC;  /* +0x1EC */
     struct aas_soundpool_s *d_100669D0;  /* +0x1F0 */
     struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
     struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
-    int   _pad_1FC;                 /* +0x1FC  (VA 0x100669DC) — point-light pool base
-                                                  pointer; written once by sub_1000D340
-                                                  (AAS_InitBSPPointLights) from GetMemory
-                                                  so the buffer can later be FreeMemory'd.
-                                                  Distinct from oldestcache (free-list head)
-                                                  which can advance; this slot tracks the
-                                                  original allocation. */
+    int   _pad_1FC;                 /* +0x1FC  (VA 0x100669DC) point-light pool base, kept
+                                                  so the buffer can be FreeMemory'd — unlike
+                                                  oldestcache, this never advances */
     struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
     struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
     int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
@@ -550,12 +479,8 @@ typedef struct aas_world_s {
     struct aas_routingcache_s **portalcache;       /* +0x2A0 [area]                   */
 } aas_world_t;                      /* sizeof == 0x2A4 == 676                           */
 
-/* Compile-time offset checks vs the original binary's VA layout (must run
- * BEFORE the macro definitions below — some legacy names like
- * `modelindex_table` collide with struct field names).
- * These checks are only valid on 32-bit builds (Windows/MinGW): the struct
- * contains void* pointers which are 4 bytes on 32-bit and 8 bytes on 64-bit,
- * so the offsets beyond the first pointer field shift on 64-bit Linux. */
+/* Offset checks vs the original binary's VA layout.  32-bit only — every
+ * offset past the first pointer field shifts on 64-bit. */
 #include <stddef.h>  /* offsetof */
 #if __SIZEOF_POINTER__ == 4
 _Static_assert(sizeof(aas_world_t) == 0x2A4,                     "aas_world_t size");
@@ -575,7 +500,7 @@ _Static_assert(offsetof(aas_world_t, areaupdate)           == 0x288, "areaupdate
 _Static_assert(offsetof(aas_world_t, portalcache)          == 0x2A0, "portalcache");
 #endif /* __SIZEOF_POINTER__ == 4 */
 
-/* Single instance defined in gladiator_deobfuscated.c. */
+/* Single instance defined in botlib.c. */
 extern aas_world_t aasworld;
 
 #endif /* GLADIATOR_DLL_H */

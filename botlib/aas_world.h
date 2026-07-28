@@ -1,30 +1,17 @@
 /*
- * aas_world.h — AAS (Area Awareness System) world state structure
+ * aas_world.h — AAS (Area Awareness System) world element types.
  *
- * Reconstructed from Gladiator Bot v0.96 decompilation.
- * In the original source, all fields below were a single global `aasworld`
- * of type `aas_t` (as in Q3's be_aas_def.h). The DLL was compiled with the
- * struct fields as individually-linked globals (`aasworld_*`), which is how
- * they appear in the decompiled code.
- *
- * Field mapping: Q2 global → Q3 aas_t field (be_aas_def.h)
- * Nearly 1:1 with Q3; differences noted with [Q2-ONLY] or [Q3-ONLY].
+ * The original DLL links the fields of Q3's single `aasworld` (aas_t,
+ * be_aas_def.h) as individually-named globals (`aasworld_*`); the
+ * reconstruction collects them into `aas_world_t` in gladiator.dll.h.
  */
 
 #ifndef AAS_WORLD_H
 #define AAS_WORLD_H
 
-/* -----------------------------------------------------------------------
- * AAS element type sizes (from Q3 AAS file format, same in Q2)
- * --------------------------------------------------------------------- */
 typedef float  aas_vertex_t[3];
 
-/* aas_bbox_t — 32-byte presence-bbox record (stride verified as 32 in
- * AAS_SwapAASData's own byte-accumulator walk, `v1 += 32`).  Layout matches
- * Q3 botlib aas_bbox_t exactly (aasfile.h): presencetype/flags as two
- * leading dwords, then mins/maxs as two vec3_t (verified against the byte
- * offsets AAS_SwapAASData touches: +0/+4 as dwords, +8/+20, +12/+24,
- * +16/+28 as float pairs). */
+/* 32-byte presence bbox; layout as Q3 aas_bbox_t (aasfile.h). */
 typedef struct aas_bbox_s {
     int   presencetype;  /* +0  dword 0 */
     int   flags;         /* +4  dword 1 */
@@ -35,13 +22,7 @@ typedef struct aas_bbox_s {
 typedef struct aas_plane_s { float normal[3]; float dist; int type; }  aas_plane_t;
 typedef struct aas_edge_s  { int v[2]; }                               aas_edge_t;
 typedef int                                                aas_edgeindex_t;
-/* aas_face_t — 24-byte face record (verified by stride `24 * facenum` in
- * 10+ usages).  Field naming matches Q3 botlib (be_aas_def.h aas_face_t):
- *   +0  planenum  +4 faceflags  +8 numedges  +12 firstedge
- *   +16 frontarea +20 backarea
- * Earlier reconstruction had `{planenum; areas[2]; edges[2]}` which yielded
- * 20 bytes and reversed the area-vs-edge order; nothing in the codebase
- * referenced those member names so the rename is safe. */
+/* 24-byte face record (stride 24); layout as Q3 aas_face_t. */
 typedef struct aas_face_s {
     int planenum;
     int faceflags;
@@ -52,12 +33,7 @@ typedef struct aas_face_s {
 } aas_face_t;
 typedef int                                                aas_faceindex_t;
 
-/* aas_area_t — 48-byte area record (stride verified as 48 == 12 dwords in
- * 40+ usages, e.g. `(char*)aasworld.areas + 48*areanum`).  Layout matches Q3
- * botlib aas_area_t exactly (be_aas_def.h): dword 1 = numfaces (loop count),
- * dword 2 = firstface (faceindex base), dwords 9-11 = center/origin.  The
- * earlier reconstruction here had a 32-byte {mins;maxs;firstface;numfaces}
- * which was wrong on every count; nothing referenced those member names. */
+/* 48-byte area record (stride 48); layout as Q3 aas_area_t. */
 typedef struct aas_area_s {
     int   areanum;       /* +0   dword 0 */
     int   numfaces;      /* +4   dword 1 */
@@ -88,10 +64,9 @@ typedef struct aas_reachability_s {
 } aas_reachability_t;    /* 44 bytes (stride = 44)                   */
 
 /* Free-list node used by AAS_SetupReachabilityHeap / AAS_AllocReachability.
- * 32-bit: 44 reach bytes + 4-byte next ptr = 48-byte stride.  64-bit
- * widens next to 8 bytes; the allocator uses sizeof() so the pool sizes
- * correctly for either word width and reach offsets within the node
- * remain at +0 (consumers cast the popped void* straight to int* / reach). */
+ * 48-byte stride on 32-bit; the allocator uses sizeof() so a widened `next`
+ * still sizes the pool correctly.  Payload stays at +0 — consumers cast the
+ * popped void* straight to int* / aas_reachability_t*. */
 typedef struct aas_reachabilitynode_s {
     aas_reachability_t              reach;     /* +0   payload */
     struct aas_reachabilitynode_s  *next;      /* +44 on 32-bit, +48 on 64-bit (padding) */
@@ -106,8 +81,7 @@ typedef struct aas_portal_s {
 } aas_portal_t;              /* 20 bytes (stride = 20)                      */
 typedef int                                                aas_portalindex_t;
 
-/* BSP traversal stack frame used by AAS_TraceClientBBox / AAS_TraceAreas.
- * Matches Q3 botlib aas_tracestack_t exactly (be_aas_sample.c:56). */
+/* BSP traversal stack frame used by AAS_TraceClientBBox / AAS_TraceAreas. */
 typedef struct aas_tracestack_s {
     float start[3];     /* start point of the piece of line to trace */
     float end[3];       /* end point of the piece of line to trace   */
@@ -115,8 +89,7 @@ typedef struct aas_tracestack_s {
     int   nodenum;      /* node found after splitting with planenum  */
 } aas_tracestack_t;
 
-/* Trace result returned by AAS_TraceClientBBox.  9 dwords (36 bytes).
- * Matches Q3 botlib aas_trace_t exactly (be_aas.h:84). */
+/* Trace result returned by AAS_TraceClientBBox.  9 dwords (36 bytes). */
 typedef struct aas_trace_s {
     int   startsolid;   /* if true, the initial point was in solid */
     float fraction;     /* time completed, 1.0 = didn't hit anything */
@@ -127,11 +100,9 @@ typedef struct aas_trace_s {
     int   planenum;     /* number of the plane that was hit */
 } aas_trace_t;
 
-/* Movement-prediction result — Gladiator's OLDER layout (80 bytes): no
- * 'endarea', and a float at +0x44 where Q3's aas_clientmove_t carries int
- * endcontents.  AAS_ClientMovementPrediction returns it BY VALUE (the
- * hidden-pointer MSVC6 struct-return ABI the 1999 DLL shows at every call
- * site — see byvalue_struct_return_class.md). */
+/* Movement-prediction result — Gladiator's older 80-byte layout: no
+ * 'endarea', and a float at +0x44 where Q3 carries int endcontents.
+ * AAS_ClientMovementPrediction returns it BY VALUE (hidden-pointer ABI). */
 typedef struct aas_clientmove_s {
     float endpos[3];       /* +0x00 position at the end of movement prediction */
     float velocity[3];     /* +0x0C velocity at the end */
@@ -149,10 +120,8 @@ typedef struct aas_cluster_s {
     int   firstportal;           /* +8  */
 } aas_cluster_t;
 
-/* Working struct used by AAS_Optimize / AAS_OptimizeArea / AAS_OptimizeFace /
- * AAS_OptimizeEdge / AAS_OptimizeAlloc / AAS_OptimizeStore.  In the IDA
- * decompilation this was an anonymous _DWORD[15] local; on 64-bit pointer
- * fields are 8 bytes so a flat _DWORD[] truncates them. */
+/* Working struct for the AAS_Optimize* family.  Typed rather than the
+ * decompiler's _DWORD[15] local, whose slots truncate 64-bit pointers. */
 typedef struct optimized_s {
     int      numvertexes;        /*  0 */
     void    *vertexes;           /*  1  12-byte vec3 per vertex */
@@ -180,26 +149,14 @@ typedef struct aas_link_s {
     struct aas_link_s *prev_area;  /* +20 per-entity area chain (back)   */
 } aas_link_t;
 
-/* Forward declaration for the BSP-leaf link node; its full definition lives
- * in botlib_structs.h (included after this header).  Only a pointer to it is
- * needed below, so the struct tag alone is enough. */
-struct bsp_link_s;
+struct bsp_link_s;   /* full definition in botlib_structs.h */
 
 /* aas_entityinfo_t — per-frame snapshot of one engine entity, the "info" half
- * of aas_entity_t.  AAS_UpdateEntity() fills it from the game side's
- * bot_updateentity_t (game/botlib.h), and AAS_EntityInfo() hands back a
- * 124-byte (0x7C) copy of exactly this block.
+ * of aas_entity_t.  Filled by AAS_UpdateEntity() from bot_updateentity_t
+ * (game/botlib.h); AAS_EntityInfo() hands back a copy of this block.
  *
- * This is the Q2/Gladiator flavour of Q3's aas_entityinfo_t: it predates the
- * Q3 player-model fields (type/flags/groundent/weapon/legsAnim/torsoAnim) and
- * instead mirrors the Q2 entity_state_t members (modelindex2..4, skinnum,
- * effects, renderfx).  Field names follow Mr. Elusive's own bot_updateentity_t
- * and Q3's aas_entityinfo_t where they coincide; the header fields (valid,
- * ltime, update_time, number, lastvisorigin) use the Q3 names.
- *
- * Offsets verified instruction-by-instruction against AAS_UpdateEntity
- * @0x1000A920 (esi = entity base, edi = bot_updateentity_t) and the readers
- * AAS_EntityModelindex/RenderFX/ModelNum/BSPData/Size. */
+ * The Q2 flavour of Q3's aas_entityinfo_t: no player-model fields, instead
+ * the Q2 entity_state_t members (modelindex2..4, skinnum, effects, renderfx). */
 typedef struct aas_entityinfo_s {
     int    valid;          /* +0    true if updated this frame             */
     float  ltime;          /* +4    local time of last update              */
@@ -222,20 +179,13 @@ typedef struct aas_entityinfo_s {
     int    renderfx;       /* +120  render fx flags                       */
 } aas_entityinfo_t;        /* 124 bytes (0x7C) */
 
-/* aas_entity_t — element type of aasworld.entities[], 132 bytes.  Mirrors
- * Q3's  { aas_entityinfo_t i; aas_link_t *areas; bsp_link_t *leaves; }.
+/* aas_entity_t — element type of aasworld.entities[], 132 bytes.
  *
- * The two link heads are inline 4-byte pointer slots in the original 32-bit
- * DLL (area chain @+124, BSP-leaf chain @+128).  An 8-byte pointer cannot fit
- * a 4-byte slot, so — exactly like the bot_state_t / bot_chatstate_t
- * side-bands (see BOTLIB_NEED_SIDEBAND in botlib.c) — on 64-bit the real heads
- * are mirrored into the parallel arrays aasentity_arealinks[] /
- * aasentity_bsplinks[] and these slots degrade to inert 4-byte placeholders.
- * Keeping them 4 bytes pins sizeof(aas_entity_t) at 132 on every target, so
- * aasworld.entities[entnum] indexing and the heap stride stay ABI-correct.
- *
- * Always read/write the link heads through AAS_EntAreaLink()/AAS_EntBspLink()
- * (botlib.c), never these fields directly — on 64-bit the fields are dead. */
+ * The two link heads are 4-byte pointer slots in the 32-bit original.  On
+ * 64-bit they degrade to inert placeholders (keeping sizeof at 132 so the
+ * entities[] stride stays ABI-correct) and the real heads live in the
+ * side-band arrays aasentity_arealinks[]/aasentity_bsplinks[].  ALWAYS go
+ * through AAS_EntAreaLink()/AAS_EntBspLink(), never these fields. */
 typedef struct aas_entity_s {
     aas_entityinfo_t   i;          /* +0    entity info snapshot           */
 #if __SIZEOF_POINTER__ == 4
@@ -258,15 +208,10 @@ _Static_assert(offsetof(aas_entityinfo_t, modelindex)    == 92,  "ent.modelindex
 _Static_assert(offsetof(aas_entityinfo_t, renderfx)      == 120, "ent.renderfx");
 
 typedef struct aas_routingcache_s {
-    /* Faithful Gladiator 32-bit layout (44-byte header + trailing
-     * unsigned short traveltimes[numareas]).  Field offsets on 32-bit
-     * match the original disassembly:
-     *   +0  time, +4 cluster, +8 areanum, +12..+20 origin,
-     *   +24 starttraveltime, +28 travelflags, +32 prev, +36 next.
-     * On 64-bit the pointer fields grow, header becomes 56 bytes; the
-     * trailing traveltimes are accessed via (cache + 1) instead of
-     * (cache + 0x28), and AAS_AllocRoutingCache uses sizeof() so the
-     * trailing array is correctly placed for either word size. */
+    /* 44-byte header on 32-bit + trailing unsigned short
+     * traveltimes[numareas].  On 64-bit the header grows to 56; the
+     * trailing array is reached via (cache + 1) and AAS_AllocRoutingCache
+     * uses sizeof(), so it lands correctly for either word size. */
     float time;                          /* +0    last-used timestamp */
     int   cluster;                       /* +4    source cluster      */
     int   areanum;                       /* +8    source area in cluster */
@@ -278,39 +223,24 @@ typedef struct aas_routingcache_s {
     /* unsigned short traveltimes[numareas]  follows immediately after */
 } aas_routingcache_t;
 
-/* bsp_pointlight_t — Gladiator's Q2-specific dynamic point-light cache
- * entry used by BotAddPointLight / AAS_BSPTraceLight.  Q3 stubs the whole
- * subsystem (be_aas_bspq3.c returns 0 from AAS_BSPTraceLight); the live
- * list head is aasworld.newestcache, the free pool is aasworld.oldestcache.
+/* bsp_pointlight_t — Q2-specific dynamic point-light cache entry used by
+ * BotAddPointLight / AAS_BSPTraceLight (Q3 stubs the whole subsystem).
+ * Live list head is aasworld.newestcache, free pool aasworld.oldestcache.
+ * 52 bytes on 32-bit.
  *
- * Verified offsets in BotAddPointLight (0x1000D550) and AAS_BSPTraceLight
- * (0x1000D5F0) on the 32-bit binary:
- *   +0..+8   origin xyz       (BotAddPointLight writes from vec3 param)
- *   +12      ent              (entity number that owns the light)
- *   +16..+24 color rgb        (intensity per channel)
- *   +28      radius           (used as r² in distance test in TraceLight)
- *   +32      endtime          (sub_1000D4E0 prunes when endtime < now)
- *   +36      starttime        (AAS_Time() at insert; record-keeping)
- *   +40      decay            (set but not read in the 5 consumers;
- *                              presumably consulted by engine-side code)
- *   +44      next             (live-list / free-list forward link)
- *   +48      prev             (live-list back link; head's prev == NULL)
- * Size = 52 B on 32-bit; on 64-bit the two trailing pointers grow.
- *
- * NB: in stock Gladiator the engine never calls Export_BotAddPointLight
- * in deathmatch — the free pool is never seeded, so sub_1000D450 emits
- * "Warning: empty list" on the first allocation attempt.  The subsystem
- * is effectively dormant at runtime; restoring it is fidelity work. */
+ * Dormant at runtime: the engine never calls Export_BotAddPointLight in
+ * deathmatch, so the free pool is never seeded and the first allocation
+ * logs "Warning: empty list". */
 typedef struct bsp_pointlight_s {
     float origin[3];                     /* +0   */
-    int   ent;                           /* +12  */
-    float color[3];                      /* +16  */
-    float radius;                        /* +28  */
-    float endtime;                       /* +32  */
-    float starttime;                     /* +36  */
-    float decay;                         /* +40  */
-    struct bsp_pointlight_s *next;       /* +44  */
-    struct bsp_pointlight_s *prev;       /* +48  */
+    int   ent;                           /* +12  owning entity */
+    float color[3];                      /* +16  intensity per channel */
+    float radius;                        /* +28  used as r² in the distance test */
+    float endtime;                       /* +32  pruned when endtime < now */
+    float starttime;                     /* +36  AAS_Time() at insert */
+    float decay;                         /* +40  written, never read here */
+    struct bsp_pointlight_s *next;       /* +44  live/free list forward link */
+    struct bsp_pointlight_s *prev;       /* +48  head's prev == NULL */
 } bsp_pointlight_t;
 
 /* aas_routingupdate_t and aas_reversedreach_t are defined in
@@ -321,16 +251,5 @@ typedef struct {
     int   firstcluster;
     int  *clusters;
 } aas_reachabilityareas_t;
-
-/* -----------------------------------------------------------------------
- * Historical note: the original Q3 source kept a single global `aasworld`
- * of type `aas_t` (be_aas_def.h).  In Gladiator-Q2 the same fields were
- * linked as individually-named globals (aasworld_numareas, aasworld_planes,
- * ...).  The active reconstruction collects them back into one struct
- * `aas_world_t` defined in gladiator.dll.h (with a _Static_assert gate on
- * the original 32-bit binary layout).  No separate `aas_t` typedef is
- * defined here — the per-field mapping comments scattered above (e.g.
- * "aasworld_numareas") double as documentation.
- * --------------------------------------------------------------------- */
 
 #endif /* AAS_WORLD_H */

@@ -1,42 +1,30 @@
 /*
- * chat_state.h — Bot chat-system types restored from disassembly
+ * chat_state.h — Bot chat-system types.
  *
- * The Gladiator Bot v0.96 chat AI parses incoming chat messages against a
- * list of patterns loaded from gladiator/match.c.  Each pattern is a chain
- * of bot_matchpiece_t nodes (alternating MT_STRING and MT_VARIABLE).  When
- * a pattern matches, the AI gets back a bot_match_t struct describing the
- * match: which type/subtype, plus capture info for each MT_VARIABLE piece.
+ * The chat AI parses incoming messages against patterns loaded from
+ * gladiator/match.c.  Each pattern is a chain of bot_matchpiece_t nodes
+ * (alternating MT_STRING and MT_VARIABLE); on a hit the AI gets a
+ * bot_match_t with the type/subtype plus one capture per MT_VARIABLE.
  *
- * Q3 botlib has the same data flow with similar names (be_ai_chat.h), but
- * the Q2 layout differs:
- *   - MAX_MESSAGE_SIZE   = 0x96 (150) in Q2  vs 256 in Q3
- *   - MAX_MATCHVARIABLES = 10        in Q2  vs   8 in Q3
- *   - bot_matchvariable_s.ptr is a real `char*` in Q2 (Q3 stores a signed-char offset).
- *
- * Confirmed against gladiator.dll_ disassembly:
- *   - BotFindMatch  (sub_1002C930) does `strncpy(match->string, src, 0x96)`.
- *   - sub_1002C800 (sub_1002C800) reads/writes match->variables[i].ptr at
- *     offset +160 (= 152 + 4 + 4) within the match struct, and .length at +164.
- *   - BotMatchVariable (sub_1002CA20) checks `variable < 10`.
- *   - sub_10026F10's stack frame allocates the struct at ebp-5B4 (240
- *     bytes before ebp-374 = first non-match local), matching sizeof = 240.
+ * Same data flow as Q3 botlib (be_ai_chat.h), different layout:
+ *   MAX_MESSAGE_SIZE 150 (Q3: 256), MAX_MATCHVARIABLES 10 (Q3: 8), and
+ *   bot_matchvariable_s.ptr is a real char* (Q3: a signed-char offset).
  */
 
 #ifndef CHAT_STATE_H
 #define CHAT_STATE_H
 
-#define MAX_MESSAGE_SIZE       0x96   /* 150 — chat message buffer per Q2 binary */
-#define MAX_MATCHVARIABLES     10     /* 10 — capture slots per Q2 binary */
+#define MAX_MESSAGE_SIZE       0x96   /* 150 */
+#define MAX_MATCHVARIABLES     10
 
-/* Match piece types (used in bot_matchpiece_t.type).
- * Confirmed by sub_1002C800's `cmp $2, %eax; jne …; cmp $1, %eax`. */
+/* Match piece types (bot_matchpiece_t.type) */
 #define MT_STRING              2
 #define MT_VARIABLE            1
 
-/* ---- Pattern-template data structures (loaded from match.c) -------------
+/* ---- Pattern templates (loaded from match.c) ----------------------------
  *
- * bot_matchstring_t — alternative string in a MT_STRING piece.  Linked list
- * head lives at bot_matchpiece_t.firststring; chain via .next. */
+ * bot_matchstring_t — alternative string in a MT_STRING piece; list head at
+ * bot_matchpiece_t.firststring. */
 typedef struct bot_matchstring_s {
     char *string;                          /* offset  0 */
     struct bot_matchstring_s *next;        /* offset  4 */
@@ -53,8 +41,7 @@ typedef struct bot_matchpiece_s {
 } bot_matchpiece_t;                         /* sizeof = 16 */
 
 /* bot_matchtemplate_t — one entry in the match-template list (head at
- * dword_10064378).  Confirmed by BotFindMatch reading [v3+0]=context flags,
- * [v3+4]=type, [v3+8]=subtype, [v3+12]=first piece, [v3+16]=next template. */
+ * dword_10064378). */
 typedef struct bot_matchtemplate_s {
     int  context;                                /* offset  0 — bitmask of contexts in which this pattern is active */
     int  type;                                   /* offset  4 — match-type returned to caller */
@@ -72,9 +59,7 @@ typedef struct bot_matchvariable_s {
     int   length;                                /* offset  4 — capture length in bytes */
 } bot_matchvariable_t;                           /* sizeof = 8 */
 
-/* bot_match_t — result struct passed back to AI when BotFindMatch hits.
- * Total size 240 bytes; layout matches the original Gladiator binary
- * (verified via sub_10026F10's stack allocation at ebp-5B4). */
+/* bot_match_t — result struct passed back to the AI when BotFindMatch hits. */
 typedef struct bot_match_s {
     char string[MAX_MESSAGE_SIZE + 2];           /* offset   0 — chat message (150 used + 2 padding to 4-byte align) */
     int  type;                                   /* offset 152 — match type */
@@ -84,44 +69,27 @@ typedef struct bot_match_s {
 
 /* ---- Reply-chat structures (rchat.c) ----------------------------------- */
 
-/* bot_chatstate_t — per-client chat state embedded inline in bot_state_t
- * at offset +3980.  Original 32-bit DLL size = 47 ints = 188 bytes.  Most
- * of the slot layout is opaque; the few fields confirmed from disasm /
- * existing code paths are aliased below.  All actual pointer-bearing
- * slots ([43..46]) cannot hold 64-bit pointers and are routed through
- * side-band arrays (`botchatdumps`, `botchatmsglinks`) — they remain
- * 4-byte ints here purely to preserve the 188-byte layout.
- *
- * Confirmed accessors:
- *   - chatstate[0]      @ +0    int  gender   — 1=female, 2=male, 0=neutral.
- *     Set by BotSetupClient from Characteristic_String(BotCharacter, 3).
- *     Read by BotReplyChat (sub_1002E7D0) via *(_DWORD *)cs comparisons.
- *   - chatstate[5..]    @ +20   char name[?]  — strlen()/strcpy() target
- *     in BotChatLength (sub_1002E760) and BotInitialChat.
- *   - chatstate[43]     @ +172  bot_consolemessage_t *first  (side-banded)
- *   - chatstate[44]     @ +176  bot_consolemessage_t *last   (side-banded)
- *   - chatstate[45]     @ +180  int                   count  (side-banded)
- *   - chatstate[46]     @ +184  chatlist_t *chatdump         (side-banded) */
+/* bot_chatstate_t — per-client chat state embedded in bot_state_t at +3980,
+ * 47 ints = 188 bytes.  Slots [43..46] hold pointers in the 32-bit original
+ * and are routed through the side-band arrays (`botchatdumps`,
+ * `botchatmsglinks`); they stay 4-byte ints to preserve the 188-byte size. */
 typedef struct bot_chatstate_s {
     union {
-        int  _slots[47];                         /* opaque 47-int payload — preserves 188-byte size */
+        int  _slots[47];                         /* opaque payload — preserves the 188-byte size */
         struct {
-            int  gender;                         /* +0 — 0/1/2 */
-            char name[16];                       /* +4..+19 — the bot's own chat name;
-                                                  * set by BotSetChatName (0x1002EB30):
-                                                  * memset 15 + strncpy limit 15, so name[15]
-                                                  * is the terminator slot. */
-            /* +20..+171 (152 B) is ONE buffer, not a 20-byte name plus padding:
-             * every consumer treats +20 as the outgoing chat message —
-             * BotChatLength does strlen(cs+20), BotEnterChat passes it to
-             * EA_Say/EA_SayTeam and then stores the empty-string byte at +20,
-             * and BotConstructChatMessage uses it as its output buffer.  Q3's
-             * cognate field is bot_chatstate_t.chatmessage. */
+            int  gender;                         /* +0   0=neutral, 1=female, 2=male; set by
+                                                  * BotSetupClient from Characteristic_String(…, 3) */
+            char name[16];                       /* +4   chat name; BotSetChatName memsets 15 and
+                                                  * strncpy-limits to 15, so name[15] terminates */
+            /* +20..+171 is ONE buffer holding the outgoing chat message:
+             * BotChatLength strlen()s it, BotEnterChat passes it to
+             * EA_Say/EA_SayTeam then empties it, BotConstructChatMessage
+             * writes into it. */
             char chatmessage[152];               /* +20..+171 */
-            int  _slot_43;                       /* +172 — side-banded first-msg ptr */
-            int  _slot_44;                       /* +176 — side-banded last-msg ptr */
-            int  _slot_45;                       /* +180 — side-banded count (mirror only) */
-            int  _slot_46;                       /* +184 — side-banded chatdump ptr */
+            int  _slot_43;                       /* +172 side-banded first-msg ptr */
+            int  _slot_44;                       /* +176 side-banded last-msg ptr */
+            int  _slot_45;                       /* +180 side-banded count (mirror only) */
+            int  _slot_46;                       /* +184 side-banded chatdump ptr */
         };
     };
 } bot_chatstate_t;                               /* sizeof = 188 */
@@ -144,7 +112,7 @@ typedef struct bot_replychatkey_s {
 } bot_replychatkey_t;                           /* sizeof = 16 / 32 */
 
 /* bot_replychat_t — one entry in the reply-chat list (head at
- * dword_10064380).  Q2 differs from Q3 (no `cmd` field, no name). */
+ * dword_10064380).  No `cmd` field and no name, unlike Q3. */
 typedef struct bot_replychat_s {
     bot_replychatkey_t       *keys;             /* +0  trigger key chain */
     float                     priority;         /* +4 */
@@ -162,13 +130,9 @@ typedef struct bot_stringlist_s {
 } bot_stringlist_t;                             /* sizeof = 8 / 16 */
 
 /* bot_consolemessage_t — entry in the free-listed console-message pool
- * (sub_1002A880 allocates a fixed array of these, sub_1002A9A0 pops, and
- * sub_1002A9E0 pushes back into the freelist).  The 32-bit binary used
- * a 168-byte node where prev/next live at offsets 160/164 — exact field
- * breakdown of the leading 160 bytes is not relevant here, we just keep
- * the opaque payload so prev/next stay correctly placed.  On 64-bit the
- * pointer fields grow from 4 to 8 bytes so we let the compiler compute
- * sizeof() and use struct field access instead of byte arithmetic. */
+ * (sub_1002A880 allocates the array, sub_1002A9A0 pops, sub_1002A9E0
+ * returns nodes).  168-byte node on 32-bit with prev/next at +160/+164;
+ * accessed via struct fields so sizeof() adapts to 64-bit pointers. */
 typedef struct bot_consolemessage_s {
     float                          time;         /* +0  AAS_Time stamp */
     int                            type;         /* +4  message type/level */

@@ -1,18 +1,14 @@
 /*
- * botlib.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed.
+ * botlib.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
+ * from the Windows gladiator.dll.
  *
- * Source binary : Gladiator Bot for Quake II — Windows DLL (gladiator.dll).
- * Basis         : IDA Pro (Hex-Rays) decompilation, cross-checked against the
- *                 RetDec output, the original disassembly, and the Q3 botlib
- *                 source (Mr. Elusive wrote both botlibs).
- * Naming        : a function is renamed only where a unique string in its body
- *                 matches Q3 botlib, or its implementation is structurally
- *                 identical; otherwise it keeps its sub_XXXXXXXX address name.
- *                 Most 0x10001xxx symbols are 5-byte JMP thunks, named for the
- *                 function they jump to.
+ * Naming: a function is renamed only where a unique string in its body matches
+ * Q3 botlib or the implementation is structurally identical; otherwise it keeps
+ * its sub_XXXXXXXX address name.  Most 0x10001xxx symbols are 5-byte JMP
+ * thunks, named for the function they jump to.
  *
- * See CLAUDE.md and .claude/memory/ for the reconstruction methodology and the
- * 32-bit -> 64-bit "side-band" porting scheme (BOTLIB_NEED_SIDEBAND, below).
+ * See CLAUDE.md and .claude/memory/ for the methodology and the 32->64-bit
+ * side-band scheme (BOTLIB_NEED_SIDEBAND, below).
  */
 
 #include <math.h>
@@ -26,15 +22,11 @@
 #include <time.h>      /* time(), ctime() */
 #include <unistd.h>    /* access(), chdir(), getcwd() */
 
-/* Pull q_shared.h in first so its qboolean/vec3_t/cplane_t/pmtype_t/etc.
- * become the canonical types (and forward decls for q_shared.c's helpers
- * are visible everywhere below).  q_shared.h sets Q_SHARED_H, which makes
- * botlib.h skip its local-stub Q2-type subset — no clash between the two. */
+/* q_shared.h first, so its qboolean/vec3_t/cplane_t/… are the canonical types.
+ * It sets Q_SHARED_H, which makes botlib.h skip its own Q2-type stubs. */
 #include "../game/q_shared.h"
-/* q_shared.h defines `VectorNegate(a,b)` as a 2-arg macro, but the
- * original Gladiator botlib has a 1-arg in-place `VectorNegate(v)`
- * function at 0x10043540 — Mr. Elusive's q_shared.h revision must have
- * lacked the macro.  Drop the macro so our 1-arg function is callable. */
+/* q_shared.h's VectorNegate is a 2-arg macro, but botlib has a 1-arg in-place
+ * VectorNegate(v) function at 0x10043540.  Drop the macro so it stays callable. */
 #undef VectorNegate
 #include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
 #include "gladiator.dll.h"
@@ -44,29 +36,19 @@
 #include "bot_state.h"   /* bot_state_t, BOT_* offset constants (reconstructed) */
 #include "chat_state.h"  /* bot_match_t, bot_matchpiece_t etc. */
 #include "libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
-#include "botlib_state.h"   /* botimport / botstate / bot_exports blocks +
-                               the bi_Print, maxclients, libvar_sv_* … field
-                               aliases (must precede any use of those names) */
-#include "botlib_structs.h" /* weaponinfo_t, projectileinfo_t, iteminfo_t,
-                               soundinfo_t, script_t, source_t, define_t,
-                               indent_t, punctuation_t, fuzzyseperator_t,
-                               weight_t, weightconfig_t, bot_goal_t,
-                               aas_settings_t (reconstructed from Q3 layouts
-                               + Gladiator disassembly verification) */
-#include "struct_sizes_asserts.h" /* compile-time guard: every reconstructed
-                                     struct must match original binary layout */
+#include "botlib_state.h"   /* botimport / botstate / bot_exports + libvar aliases */
+#include "botlib_structs.h" /* config, parser, weight, goal and item structs */
+#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
 #include "q2files.h"
 
-/* IDA Pro signed high-word/dword macros */
+/* signed high-word/dword accessors */
 #define SHIDWORD(x)  (*((int *)&(x) + 1))
 
-/* Stubs for MSVC CRT functions removed from this file but still called in bot code.
-   These were statically linked in the original Windows DLL. */
+/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls. */
 static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fread(buf, sz, n, f); }
 #ifdef _WIN32
-/* Used only by the Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430,
- * sub_10041FF0) — gated out on Linux, whose botlib (gladi386.so) imports neither
- * a process-spawn nor a chdir-for-bspc path. */
+/* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
+ * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */
 static int    remove_file(const char *path) { return remove(path); }
 static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
 static intptr_t SpawnProcess(int mode, char *file, char *args, char *cmd, char *addargs) { (void)mode; (void)file; (void)args; (void)cmd; (void)addargs; return -1; }
@@ -75,8 +57,7 @@ static int    _chdir(const char *path) { return chdir(path); }
 #endif /* _WIN32 */
 
 #ifndef _WIN32
-/* POSIX equivalents for Windows CRT functions used in the decompiled code.
- * On Windows/MinGW these are provided by the runtime; on Linux we map them. */
+/* POSIX equivalents for the Windows CRT functions used below. */
 #include <strings.h>    /* strcasecmp */
 #include <errno.h>      /* errno */
 #define _strcmpi   strcasecmp
@@ -85,15 +66,10 @@ static inline int *_errno(void) { return &errno; }
 typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
 #endif
 
-/* Win32 imports used by the UnZip/ZIP32 windll path (gated Windows-only below).
- *
- * Both Windows toolchains use the real kernel32 imports: the MSVC oracle emits
- * IAT-indirect calls (`call DWORD PTR ds:[__imp_X]`) that byte-match the
- * original gladiator.dll, and the MinGW32 build links the same kernel32
- * imports, so it faithfully exercises the same code path.  We declare only the
- * handful we use and avoid <windows.h> (its typedefs collide with our local
- * ones).  The Linux build gates the whole unzip/zip subsystem out (gladi386.so
- * had no such code), so none of these are referenced there. */
+/* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than
+ * via <windows.h>, whose typedefs collide with our local ones; both Windows
+ * toolchains resolve them to the same kernel32 imports as the original.  The
+ * Linux build gates the whole unzip/zip subsystem out. */
 #ifdef _WIN32
 __declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
 __declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
@@ -108,50 +84,18 @@ __declspec(dllimport) int    __stdcall lstrlenA(const char *s);
 #endif
 
 /* ------------------------------------------------------------------------
- * Info-ZIP UnZip windll SDK structures (windll/structs.h).
+ * Info-ZIP UnZip windll SDK structures (windll/structs.h) — the option block
+ * (DCL, 0x44 B) and callback table (USERFUNCTIONS, 0x28 B) that sub_10041240
+ * passes to UNZIP32.DLL's "windll_unzip" to extract the .aas from aasN.zip.
  *
- * sub_10041240 extracts the .aas file out of aasN.zip by loading
- * UNZIP32.DLL and calling its "windll_unzip" entry point.  These are the
- * option block (DCL) and callback table (USERFUNCTIONS) that entry point
- * expects.
+ * The shipped unzip32.dll is UnZip 5.33, so the layouts follow the 5.32 SDK
+ * headers vendored at reference/unzip532/structs.h (5.51's 0x2C USERFUNCTIONS
+ * adds a 6th callback and is NOT the right shape here).
  *
- * The shipped DLL is identified (VS_VERSION_INFO + banner) as Info-ZIP
- * UnZip 5.33, dated 10 Dec 1997 ("Windows Info-ZIP UnZip32 DLL by Mike
- * White"; PE TimeDateStamp Sat Dec 13 1997; MSVC linker 5.0).  See
- * release_/gladiator/unzip32.dll and [[unzip32_dll_provenance]].  Field
- * names match Info-ZIP's UnZip windll header; the closest authentic source
- * is the UnZip 5.32 windll SDK (unz532d.zip, Nov 1997 — the release
- * immediately preceding the 5.33 DLL), vendored verbatim at
- * reference/unzip532/structs.h.  The later 5.51 copy at
- * reference/unzip551/windll_structs.h is kept as a secondary reference.
- *
- * The exact byte layout is proved by the disassembly of sub_10041240:
- *   - DCL = 15 ints + 2 LPSTR = 0x44 bytes — matches the 5.32 header (C_flag
- *     at +0x34, lpszZipFN/lpszExtractDir at +0x3C/+0x40).  The disasm writes
- *     a pointer at +0x40 and C_flag=1, which only the 5.32+ DCL has; UnZip
- *     5.31's DCL (Overwrite/ZipInfoVerbose + a single pointer) does not fit.
- *     No StructVersID / B,D,U flags; those came in UnZip 6.0.
- *   - USERFUNCTIONS: the disasm proves only the size (GlobalAlloc(
- *     GMEM_ZEROINIT, 0x28)) and the five callback pointers written at
- *     +0x00..+0x10; everything from +0x14 on is zero-init and never written,
- *     so the binary does not constrain the tail.  We use the 5.32 layout: 5
- *     callbacks + WORD cchComment (+0x14) + TotalSizeComp + TotalSize +
- *     CompFactor + NumMembers = 0x28.  NB CompFactor is present in 5.32 too
- *     — 5.51 is 0x2C not because it "adds CompFactor" but because it adds a
- *     6th callback (ServCallBk/DLLSERVICE) at +0x14 and moves cchComment to
- *     the tail.  See reference/unzip532/README.md.
- *
- * Every pointer-bearing field (the LPSTR names and the DLL* callbacks) is
- * declared as a 4-byte `int` slot, exactly as the original 32-bit DLL laid
- * them out, so the struct size and field offsets stay identical on the
- * 64-bit Linux build too (the original byte image: 0x44 / 0x28).  Casting
- * the callback addresses to (intptr_t) on assignment keeps that intent
- * explicit.
- *
- * Windows-only: these structs exist solely for sub_10041240 (the UNZIP32.DLL
- * windll path).  The Linux botlib (gladi386.so) has no unzip support at all —
- * it loads .aas files directly (see BotLibLoadMap) — so the whole subsystem,
- * and therefore these structs, is gated out off-Windows. */
+ * Every pointer-bearing field is a 4-byte `int` slot, as in the 32-bit
+ * original, so both struct sizes stay 0x44 / 0x28 on 64-bit too; callback
+ * addresses are cast to (intptr_t) on assignment.  Windows-only — the Linux
+ * botlib has no unzip support and loads .aas files directly. */
 #ifdef _WIN32
 typedef struct {
   int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
@@ -193,45 +137,31 @@ typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 /* ------------------------------------------------------------------------
  * Side-band gate.
  *
- * The original 1999 Gladiator DLL was 32-bit MSVC, so every "pointer slot"
- * inside bot_state_t / bot_chatstate_t / aas_entity_t was just a 4-byte
- * `int` field that held the pointer's bit pattern directly.  When we port
- * to 64-bit (Linux x86_64, aarch64) those 4-byte slots can no longer hold
- * an 8-byte pointer, so we mirror each such slot into a parallel
- * heap-allocated array (the "side-band") and route reads/writes through
- * helper macros (BotCharacter, BotAINode, BotWS, ...).
+ * Every "pointer slot" in bot_state_t / bot_chatstate_t / aas_entity_t is a
+ * 4-byte int field holding a pointer bit-pattern.  On 64-bit those slots are
+ * too narrow, so each is mirrored into a parallel heap array (the side-band)
+ * reached through helper macros (BotCharacter, BotAINode, BotWS, …).
  *
- * On 32-bit targets the original inline layout is still valid: the macros
- * re-interpret the int slot as the typed pointer it actually holds, and
- * the side-band tables — together with their allocate / free / clear
- * boilerplate — are compiled out completely.  This restores the original
- * memory image of bot_state_t / bot_chatstate_t / aas_entity_t exactly.
- *
- * Toggle the predicate here and gates throughout botlib.c will follow. */
+ * On 32-bit the macros just reinterpret the inline int slot and the side-band
+ * tables compile out entirely, reproducing the original memory image exactly.
+ * Every gate in botlib.c follows this one predicate. */
 #if defined(__x86_64__) || defined(__aarch64__)
 #define BOTLIB_NEED_SIDEBAND 1
 #else
 #define BOTLIB_NEED_SIDEBAND 0
 #endif
 
-/* ------------------------------------------------------------------------
- * Forward typedefs for opaque structs used by the prototypes below; the full
- * layouts appear later in this file or in the included headers.
- * --------------------------------------------------------------------- */
+/* Forward typedefs for the prototypes below; layouts come later. */
 typedef struct bot_character_s    bot_character_t;   /* layout defined later; needed by Characteristic_* */
 typedef struct bot_weaponstate_s  bot_weaponstate_t;
 struct chatlist_s;
 typedef struct chatlist_s         chatlist_t;
-/* BotInitialChat records up to 10 (string,len) variables and forwards them to
- * BotConstructChatMessage for %v0..%v9 substitution.  Widened to (ptr + int +
- * pad) on 64-bit so the pointer survives the original 8-byte-per-entry slot. */
+/* BotInitialChat records up to 10 (string,len) pairs for BotConstructChatMessage
+ * to substitute as %v0..%v9.  The original entry is 8 bytes; widened on 64-bit
+ * so the pointer survives. */
 typedef struct bot_chatvar_s { char *str; int len; } bot_chatvar_t;
 
-/* -----------------------------------------------------------------------
- * Export function declarations — defined in botlib_exports.c
- * These replace the _UNKNOWN Export_* data slot declarations that caused
- * GetBotAPI() to store BSS addresses instead of code addresses.
- * --------------------------------------------------------------------- */
+/* Export functions — defined in botlib_exports.c. */
 char *Export_BotVersion(void);
 int Export_BotSetupLibrary(void);
 int Export_BotShutdownLibrary(void);
@@ -254,18 +184,14 @@ int Export_BotAddPointLight(int *origin, int ent, float radius,
                              float r, float g, float b, float time, float decay);
 int Export_Test(int parm0, char *parm1, float *parm2, float *parm3);
 
-/* ------------------------------------------------------------------------
- * Forward declarations for the botlib functions defined below.  Names match
- * Q3 botlib where recovered; unresolved ones keep their sub_XXXXXXXX address
- * names.  Address/provenance notes are retained; IDA "idb"/"weak" tags are not.
- * --------------------------------------------------------------------- */
+/* Forward declarations for the functions defined below. */
 int __cdecl AAS_ContinueInit(int time);
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
-void sub_10028E80(void);  /* was: sub_10028E80 thunk */
+void sub_10028E80(void);  
 void BotCheckAttack(bot_state_t *bs);
-void AAS_InitTravelFlagFromType(void); /* sub_10018D00 (was: AAS_InitTravelFlagFromType thunk) */
+void AAS_InitTravelFlagFromType(void); /* sub_10018D00 */
 int __cdecl AAS_AreaLadder(int areanum);
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
 void AAS_InitReachability();
@@ -286,12 +212,12 @@ void __cdecl PC_FreeToken(token_t *token);
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 void BotInitLevelItems(void);
 int __cdecl BotLibLoadMap(char *Source);
-int AAS_FreeRoutingCaches(void);  /* sub_10019550 (was: AAS_FreeRoutingCaches thunk) */
+int AAS_FreeRoutingCaches(void);  /* sub_10019550 */
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
 libvar_t *__cdecl LibVar(char *var_name, char *value);            /* register/lookup libvar */
 float     __cdecl LibVarValue(char *var_name, char *value);    /* register, return value */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
-void sub_1001D290(void);  /* was: sub_1001D290 thunk */
+void sub_1001D290(void);  
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 int __cdecl Characteristic_Integer(bot_character_t * character, int index);
 int __cdecl AAS_StartFrame(float time);
@@ -773,7 +699,7 @@ libvar_t *__cdecl LibVarGet(const char *var_name);
 char     *__cdecl LibVarGetString(const char *var_name);
 float     __cdecl LibVarGetValue(const char *var_name);
 char     *__cdecl LibVarString(char *var_name, char *value);   /* returns libvar->string */
-void Log_Open(char *FileName);  /* IDA's __usercall a1@<st0> was a phantom param */
+void Log_Open(char *FileName);  
 FILE *Log_Shutdown();
 FILE *Log_Write(char *Format, ...);
 FILE *Log_FilePointer();
@@ -821,7 +747,7 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
 int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int integer);
 int __cdecl PC_Directive_elif(source_t *source);
 int __cdecl PC_Directive_if(source_t *source);
-int __cdecl PC_Directive_line(source_t * source); /* #line handler — restored from disassembly + Q3 reference at line ~32900 */
+int __cdecl PC_Directive_line(source_t * source); /* #line handler */
 int __cdecl PC_Directive_error(source_t *source);
 int __cdecl PC_Directive_pragma(source_t *source);
 int __cdecl UnreadSignToken(source_t *source);
@@ -883,11 +809,9 @@ int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *);
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2);
 void sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
-/* Vector / COM_ / Q_ / byte-order / Info_ helpers from q_shared.c
- * (compiled separately to q_shared.o) are prototyped in q_shared.h above.
- * `bigendien` and the fn-ptr slots `_BigShort` etc. (formerly
- * dword_100637CC..E0) likewise.  Only botlib.c-local helpers need
- * explicit decls here. */
+/* The Vector / COM_ / Q_ / byte-order / Info_ helpers live in q_shared.c and
+ * are prototyped by q_shared.h above; only botlib.c-local ones are declared
+ * here. */
 float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this */
 
 //-------------------------------------------------------------------------
@@ -1219,10 +1143,8 @@ __int16 crctable[308] =
   0,
   0
 }; // weak
-/* Preprocessor directive table at VA 0x1005F260.
- * IDA captured only the first two fields (off_1005F260="if", off_1005F264=PC_Directive_if).
- * The full table was a {char*, int(*)(int)} array in .data — verified by disassembly.
- * #ifdef/#ifndef were 1-arg wrappers calling PC_Directive_ifdef(source, 8/16). */
+/* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
+ * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_ifdef(src, 8/16). */
 static int preproc_ifdef_wrap(source_t *src)  { return PC_Directive_ifdef(src, 8);  }
 static int preproc_ifndef_wrap(source_t *src) { return PC_Directive_ifdef(src, 16); }
 
@@ -1245,12 +1167,10 @@ static preproc_directive_t preproc_directives[] = {
     {NULL, NULL}
 };
 /* Preserved as aliases so existing PC_ReadDirective code referencing &off_1005F260 still compiles. */
-char *off_1005F260 = "if"; // weak — original: first name field; now use preproc_directives
+char *off_1005F260 = "if"; // the table's first name field; see preproc_directives
 int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: first handler
-/* off_1005F300 — eval type dispatch table at VA 0x1005F300.
- * IDA named only the first {char*, handler*} pair; the full array has 2 entries + NULL.
- * Verified by disassembly: PC_ReadDollarDirective walks this as stride-2-pointer array.
- * Handler for "evalfloat" = thunk 0x10001B0E → PC_DollarDirective_evalfloat (evaluates float expressions). */
+/* off_1005F300 — eval type dispatch table at VA 0x1005F300: 2 entries + NULL,
+ * walked by PC_ReadDollarDirective as a stride-2 pointer array. */
 typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } eval_type_t;
 static eval_type_t eval_type_table[] = {
     {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
@@ -1260,20 +1180,10 @@ static eval_type_t eval_type_table[] = {
 char *off_1005F300 = "evalint";                        /* alias: first name field  */
 int (__cdecl *off_1005F304)(intptr_t) = &PC_DollarDirective_evalint; /* alias: first handler     */
 char word_1005F588[] = { '\"', '\0' }; // idb
-/* off_1005FE00 — in the original binary this was the 'p' field (char*) of the first
- * entry in a punctuation_t[] array stored at VA 0x1005FE00 in the .data section.
- * IDA captured only the first 4 bytes and named them char *off_1005FE00 = ">>=";
- * the rest of the array (subtype, next, then the next entries) was unnamed.
- * PS_CreatePunctuationTable takes (const char**)&off_1005FE00 and advances 3 slots (12 bytes =
- * sizeof(punctuation_t)) per iteration — confirmed by "v3 = a2 + 3" in the decompilation.
- * Restored from Q3A l_script.c::default_punctuations (same author, identical struct layout):
- *   { char *p, int n, punctuation_t *next }  — next is written at runtime by PS_CreatePunctuationTable.
- * SetScriptPunctuations is updated to pass the array directly instead of &off_1005FE00. */
-/* Exact punctuation table from the original gladiator.dll binary at VA 0x1005FE00.
- * Verified by disassembling the .data section at file offset 0x5EE00 (52 entries
- * + NULL).  Matches Q3 l_script.c::default_punctuations byte-for-byte.
- * String literals are (const char *) but punctuation_t.p is `char *`; the
- * BOTCFLAGS already suppresses -Wdiscarded-qualifiers for this codebase. */
+/* The punctuation_t[] array at VA 0x1005FE00 (52 entries + NULL), identical to
+ * Q3 l_script.c::default_punctuations.  PS_CreatePunctuationTable walks it with
+ * a 3-slot stride and fills each `next` at runtime.  String literals are const
+ * while punctuation_t.p is char* — BOTCFLAGS suppresses that warning. */
 static punctuation_t default_punctuations[] = {
     /* multi-char — longest first */
     {">>=", 1,  NULL}, {"<<=", 2,  NULL},
@@ -1319,7 +1229,7 @@ int dword_1006295C = 0; // weak
 libvar_t *libvar_laserhook; /* libvar handle */
 HGLOBAL dword_10062968 = NULL; // idb
 #ifdef _WIN32
-LPDCL dword_1006296C = NULL; /* locked DCL option block (was IDA int) — UnZip windll, Windows-only */
+LPDCL dword_1006296C = NULL; /* locked DCL option block — UnZip windll, Windows-only */
 #endif
 HGLOBAL dword_10062970 = NULL; // idb
 HGLOBAL hMem = NULL; // idb
@@ -1331,47 +1241,33 @@ float flt_100631A0; // weak
 float flt_100631A8; // weak
 extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_structdefs.c */
 int dword_10063388; // weak
-/* dword_100637CC..E0 (q_shared.c's _LittleFloat/_BigFloat/_LittleLong/_LittleShort
- * /_BigShort/_BigLong fn-ptr slots at original 0x100637CC..E0) and `bigendien`
- * (at original 0x10063884) live in game/q_shared.c — compiled separately to q_shared.o. */
+/* The byte-order fn-ptr slots (0x100637CC..E0) and `bigendien` (0x10063884)
+ * live in game/q_shared.c. */
 #ifdef _WIN32
-LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table (was IDA int) — UnZip windll, Windows-only */
+LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table — UnZip windll, Windows-only */
 #endif
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 define_t *globaldefines;
-/* l_memory.c block tracker: original dword_10063A1C/A2C/A30 are fully renamed
- * to `totalmemorysize`, `numblocks`, `memory` (Q3 l_memory.c names) at their
- * definitions alongside memoryblock_t below — no IDA spellings remain. */
-/* l_log.c logfile state @ original VA 0x10063A40.  filename[1024]@0x10063A40,
- * fp@0x10063E40, numwrites@0x10063E44 are contiguous in .data — a single
- * logfile_t struct, matching Q3 l_log.c::logfile_t (same author) exactly. */
+/* l_log.c logfile state @ VA 0x10063A40: filename[1024]@0x10063A40,
+ * fp@0x10063E40 and numwrites@0x10063E44 are contiguous in .data — one
+ * logfile_t, as in Q3 l_log.c. */
 typedef struct logfile_s {
     char  filename[1024];   /* 0x10063A40  (was byte_10063A40)               */
-    FILE *fp;               /* 0x10063E40  (was the IDA-named global Stream) */
+    FILE *fp;               /* 0x10063E40 */
     int   numwrites;        /* 0x10063E44  (was dword_10063E44)              */
 } logfile_t;
 logfile_t logfile;
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
-/* dword_10063F2C — head of a singly-linked list of 152-byte "known
- * script CRC" records, sorted alphabetically by filename.  Original DLL
- * stored this as a 32-bit int because pointers were 32-bit; on 64-bit
- * it MUST hold a real pointer.  Backed by scriptcrc_t (gladiator.dll.h).
- * Used only by sub_100376B0 / sub_100377E0 (script CRC registration). */
+/* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in the
+ * 32-bit original; must be a real pointer here).  Used only by sub_100376B0 /
+ * sub_100377E0. */
 struct scriptcrc_s;
 struct scriptcrc_s *dword_10063F2C; // weak
-/* The three interface blocks live in botlib_state.h as typed aggregates so
- * GetBotAPI's import copy and Export_BotShutdownLibrary's clears reproduce the
- * original rep movs / rep stos (the IDA per-field dword_/bi_ symbols scattered
- * across .bss and defeated the bulk ops).  Storage is defined here; call sites
- * use the botimport.* / botstate.* members directly (the header keeps only the
- * libvar_sv_* field aliases).
- *
- * NB: the 20 IDA "globals" dword_10063F80..dword_10063FCC were the export
- * table seen field-by-field — they ARE bot_exports (block 3, @0x10063F80) and
- * are dropped here as dead duplicates (each had zero real uses).  bi_BotInput
- * was dword_10063FE0; the previously-missing DebugLineDelete slot is restored
- * inside botimport so the block spans the full 10 import dwords. */
+/* The three interface blocks are typed aggregates in botlib_state.h so that
+ * GetBotAPI's import copy and Export_BotShutdownLibrary's clears compile back
+ * to the original rep movs / rep stos.  Storage is defined here; call sites use
+ * the botimport.* / botstate.* members directly. */
 botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callbacks */
 botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
 bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
@@ -1391,13 +1287,11 @@ bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
 int dword_10064388; // weak
 bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
 int dword_1006439C; // weak
-/* bot_character layout (private to botlib; not shared with engine):
+/* bot_character (botlib-private):
  *   { int numcharacteristics; bot_characteristic_t pairs[N]; char strings[]; }
- * The original 32-bit DLL stored each pair as raw int[2]: a byte-sized type
- * in the first dword (offset +0, with padding) and the value in the second
- * dword (offset +4).  Keep that byte field explicit so MSVC6 emits the same
- * byte loads/stores on 32-bit, while intptr_t preserves the pointer-sized
- * value slot needed by the 64-bit port. */
+ * Each pair is an int[2]: a byte-sized type at +0 (padded) and the value at +4.
+ * The byte field stays explicit so MSVC6 emits the same byte accesses, while
+ * intptr_t keeps the value slot pointer-sized for the 64-bit port. */
 typedef struct bot_characteristic_s {
     unsigned char type; /* 0=unset, 1=int, 2=float, 3=string */
     intptr_t      value; /* int, float (via *(float*)&value), or char * */
@@ -1407,27 +1301,21 @@ typedef struct bot_character_s {
 } bot_character_t;
 #define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
     ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
-bot_state_t *botstates; // base array of maxclients bot states (was IDA dword_100643A0)
-/* Side-band tables — see BOTLIB_NEED_SIDEBAND gate above.  On 64-bit the
- * parallel arrays declared here back each helper macro; on 32-bit the
- * arrays are not declared and the macros resolve to direct casts of the
- * original inline int slots.  Either way the macro is an lvalue of the
- * correct typed-pointer (or, for chatmsg_links_t, the correct struct).
- * Keep each macro identical in semantics across the two branches. */
+bot_state_t *botstates; // base array of maxclients bot states
+/* Side-band tables — see the BOTLIB_NEED_SIDEBAND gate above.  Each macro must
+ * be an lvalue of the same type in both branches: backed by a parallel array on
+ * 64-bit, a direct cast of the inline int slot on 32-bit. */
 #if BOTLIB_NEED_SIDEBAND
 bot_character_t **botcharacters;
 #define BotCharacter(bs) (botcharacters[(bs) - botstates])
 #else
-/* bs->character is an int slot at +1672 holding a bot_character_t pointer
- * on the original 32-bit DLL — exactly the same layout as MSVC 1999. */
+/* bs->character: the int slot at +1672 holds a bot_character_t pointer. */
 #define BotCharacter(bs) (*(bot_character_t **)&(bs)->character)
 #endif
 
-/* Side-band pointer slots within bs->goalstate (bot_goalstate_t).
- * goalstate.itemweightconfig = weightconfig_t * for item weights (set by
- * BotLoadItemWeights, freed by BotFreeItemWeights via FreeWeightConfig2).
- * goalstate.itemweightindex = result of ItemWeightIndex (weight×itemconfig
- * table), freed by BotFreeItemWeights via FreeMemory. */
+/* Side-band pointer slots in bs->goalstate: itemweightconfig (weightconfig_t*,
+ * set by BotLoadItemWeights, freed via FreeWeightConfig2) and itemweightindex
+ * (ItemWeightIndex's weight×itemconfig table, freed via FreeMemory). */
 #if BOTLIB_NEED_SIDEBAND
 void **botgoalstate_p0;  /* weightconfig_t* */
 void **botgoalstate_p1;  /* iteminfo weight table */
@@ -1438,13 +1326,10 @@ void **botgoalstate_p1;  /* iteminfo weight table */
 #define BotGoalP1(bs) (*(void **)&(bs)->goalstate.itemweightindex)
 #endif
 
-/* Goalstate-handle accessors — used by BotLoadItemWeights /
- * BotFreeItemWeights, which take a `goalstate*` handle (= &bs->goalstate)
- * directly, exactly as the original 32-bit DLL pushed at the call sites
- * (push edi where edi = lea [ebx+0xBC0]).  On 32-bit this is byte-identical
- * to the disasm.  On 64-bit the int slots can't hold pointers, so we
- * recover bs via the goalstate offset and route through the side-band
- * arrays. */
+/* Goalstate-handle accessors.  BotLoadItemWeights / BotFreeItemWeights take a
+ * `goalstate*` handle (= &bs->goalstate) directly, as the original call sites
+ * did.  On 64-bit these recover bs from the goalstate offset and route through
+ * the side-band arrays. */
 #if BOTLIB_NEED_SIDEBAND
 #define _GoalHandleBs(h) ((bot_state_t *)((char *)(h) - offsetof(bot_state_t, goalstate)))
 #define BotGoalHandleP0(h) (botgoalstate_p0[_GoalHandleBs(h) - botstates])
@@ -1454,12 +1339,9 @@ void **botgoalstate_p1;  /* iteminfo weight table */
 #define BotGoalHandleP1(h) (*(void **)&(h)->itemweightindex)
 #endif
 
-/* bs->weaponweights is `int[7]` in the original 32-bit DLL — a flattened
- * inline struct.  Five of its seven slots hold pointers (chat_lines,
- * weightconfig, item-weight map, modelname string, ...) which on 64-bit
- * Linux do not fit in 4-byte int slots.  Mirrored into a typed side-band
- * struct allocated 1:1 per bot.  Field offsets here match the original
- * inline layout (byte offsets +0, +4, +8, +12, +16, +20, +24). */
+/* bs->weaponweights is a flattened inline `int[7]`, five slots of which hold
+ * pointers.  Mirrored into this typed struct (one per bot) on 64-bit; the field
+ * offsets match the original inline layout (+0 … +24). */
 typedef struct bot_weaponstate_s {
     int               client;       /* +0   = bs->client copy */
     int              *inventory;    /* +4   pointer into bs->inventory (item-count array; cast as int* for FuzzyWeight) */
@@ -1473,18 +1355,14 @@ typedef struct bot_weaponstate_s {
 bot_weaponstate_t **botweaponstates;
 #define BotWS(bs) (botweaponstates[(bs) - botstates])
 #else
-/* On 32-bit the weaponstate IS the inline bs->weaponweights[7] (28 bytes,
- * same byte offsets as bot_weaponstate_t's seven 4-byte fields).  The
- * struct is never separately heap-allocated on 32-bit — alloc/free
- * patterns are #if-guarded out at the call sites. */
+/* On 32-bit the weaponstate IS the inline bs->weaponweights[7], so it is never
+ * heap-allocated — the alloc/free paths are #if-guarded out at the call sites. */
 #define BotWS(bs) ((bot_weaponstate_t *)&(bs)->weaponweights[0])
 #endif
 
-/* Side-band for the pointer slot at chatstate+184 (BotLoadInitialChat
- * result).  On 32-bit Windows this slot lives inline at chatstate[46];
- * on 64-bit we route reads/writes through this parallel array indexed by
- * client number, derived from the chatstate pointer's distance from the
- * bot_state_t base array (chatstate offset is +3980 in bot_state_t). */
+/* Side-band for the BotLoadInitialChat result at chatstate+184 (chatstate[46]).
+ * Indexed by client number, recovered from the chatstate pointer's distance
+ * from the bot_state_t base array (chatstate sits at +3980). */
 #if BOTLIB_NEED_SIDEBAND
 void **botchatdumps;
 #define BotChatDumpSlot(cs_ptr) \
@@ -1495,11 +1373,8 @@ void **botchatdumps;
 #define BotChatDumpSlot(cs_ptr) (*(chatlist_t **)&(cs_ptr)->_slot_46)
 #endif
 
-/* Side-band for the per-client console-message FIFO that the original
- * 32-bit DLL stored inline in chatstate slots [43..45] (firstmessage,
- * lastmessage, count).  Pointers don't fit in those 4-byte int slots on
- * 64-bit, so we mirror them out into a parallel maxclients-sized array
- * keyed by client index. */
+/* Side-band for the per-client console-message FIFO held inline in chatstate
+ * slots [43..45] (firstmessage, lastmessage, count). */
 typedef struct chatmsg_links_s {
     bot_consolemessage_t *first;   /* chatstate[43] @ +172 */
     bot_consolemessage_t *last;    /* chatstate[44] @ +176 */
@@ -1511,20 +1386,15 @@ chatmsg_links_t *botchatmsglinks;
 #define BotChatMsgLinksCS(cs) \
     (botchatmsglinks[((bot_state_t *)((char*)(cs) - offsetof(bot_state_t, chatstate))) - botstates])
 #else
-/* 32-bit: chatstate slots [43..45] (+172/+176/+180) are 4+4+4 = 12 bytes,
- * matching chatmsg_links_t natural layout on 32-bit pointers.  Aliasing
- * the three int fields as the struct gives an lvalue for .first/.last/
- * .count assignments. */
+/* 32-bit: slots [43..45] (+172/+176/+180) are exactly chatmsg_links_t's 12
+ * bytes, so aliasing them as the struct yields an lvalue. */
 #define BotChatMsgLinks(client) \
     (*(chatmsg_links_t *)&botstates[(client)].chatstate._slot_43)
 #define BotChatMsgLinksCS(cs) \
     (*(chatmsg_links_t *)&(cs)->_slot_43)
 #endif
 
-/* Side-band for the AI node function pointer stored in BotAINode(bs).
- * On 32-bit Windows a function pointer fits in the 4-byte int slot;
- * on 64-bit Linux it doesn't.  BotAINode(bs) reads/writes the real
- * pointer through this parallel maxclients-sized array. */
+/* Side-band for the AI node function pointer behind BotAINode(bs). */
 #if BOTLIB_NEED_SIDEBAND
 ai_node_fn_t *botainodes;
 #define BotAINode(bs) (botainodes[(bs) - botstates])
@@ -1533,11 +1403,10 @@ ai_node_fn_t *botainodes;
 #define BotAINode(bs) (*(ai_node_fn_t *)&(bs)->ainode)
 #endif
 
-/* Side-band for the three waypoint head-pointer slots inside bot_state_t at
- * +4544 (checkpoints), +4548 (patrolpoints), +4552 (curpatrolpoint).  These
- * 4-byte int slots cannot hold an 8-byte bot_waypoint_t* on 64-bit Linux, so
- * the real pointers live in parallel maxclients-sized arrays indexed by
- * (bs - botstates).  Allocated in BotSetupLibrary, freed in BotShutdownLibrary. */
+/* Side-band for the three waypoint head slots at bot_state_t +4544
+ * (checkpoints), +4548 (patrolpoints) and +4552 (curpatrolpoint), indexed by
+ * (bs - botstates).  Allocated in BotSetupLibrary, freed in
+ * BotShutdownLibrary. */
 #if BOTLIB_NEED_SIDEBAND
 bot_waypoint_t **botcheckpoints;
 bot_waypoint_t **botpatrolpoints;
@@ -1552,12 +1421,9 @@ bot_waypoint_t **botcurpatrolpoint;
 #define BotCurPatrolPoint(bs) (*(bot_waypoint_t **)&(bs)->curpatrolpoint)
 #endif
 
-/* Side-band for the two pointer slots inside the 132-byte aas_entity_t at
- * +124 (areas link-list head) and +128 (BSP-leaf link-list head).  The
- * 32-bit original kept these inline as 4-byte slots; on 64-bit the
- * aas_link_t / bsp_link_t pointers don't fit, so we mirror them out into
- * parallel numentities-sized arrays keyed by entity index.  Allocated
- * together with aasworld.entities in sub_1000EDC0. */
+/* Side-band for aas_entity_t's two link-list heads at +124 (areas) and +128
+ * (BSP leaves), keyed by entity index.  Allocated with aasworld.entities in
+ * sub_1000EDC0. */
 #if BOTLIB_NEED_SIDEBAND
 aas_link_t **aasentity_arealinks;
 bsp_link_t **aasentity_bsplinks;
@@ -1571,16 +1437,13 @@ bsp_link_t **aasentity_bsplinks;
 #endif
 
 
-/* Initial-chat dump structures.  On 32-bit they are the original inline
- * layouts that BotLoadInitialChat packs into one contiguous heap buffer:
- *   chatlist_t   @ +0  -> types
- *   chattype_t   @ +0..+43  (name[32], numlines, firstline, next)
- *   chatline_t   @ +0..+11  (string, ltime, next)
- * followed by the inline chat string bytes.
- *
- * On 64-bit those 4-byte pointer slots cannot hold real pointers, so the
- * side-band path allocates one heap node per chat-type / chat-line and keeps
- * the string inline behind the 64-bit chatline_t node. */
+/* Initial-chat dump structures.  BotLoadInitialChat packs them into one
+ * contiguous heap buffer:
+ *   chatlist_t   @ +0        -> types
+ *   chattype_t   @ +0..+43   (name[32], numlines, firstline, next)
+ *   chatline_t   @ +0..+11   (string, ltime, next)
+ * followed by the inline chat strings.  The 64-bit side-band path instead
+ * allocates one node per chat-type / chat-line, string inline behind it. */
 typedef struct chatline_s {
     char              *string;       /* +0  pointer to inline string buffer */
     float              ltime;        /* +4  last-time gate (AAS_Time) */
@@ -1604,10 +1467,8 @@ typedef struct chatlist_s {
 float flt_100643A4; // weak
 bot_clientsettings_t *dword_100643A8; /* per-client {netname[16], skin[128]} = 144 B */
 libvar_t *libvar_ctf; /* libvar handle */
-/* CTF flag goals.  BotGetLevelItemGoal fills a bot_goal_t (48 bytes); the
- * original DLL reserved 56 bytes per slot in .bss to match Q3's bot_goal_t
- * size (Q3 has flags+iteminfo trailing fields that Gladiator omits).  The
- * `areanum` field doubles as "flag found" flag — 0 means not located yet. */
+/* CTF flag goals.  BotGetLevelItemGoal fills 48 bytes of each 56-byte
+ * bot_goal_t slot; `areanum` doubles as the "flag found" flag (0 = not yet). */
 bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
 bot_goal_t ctf_redflag;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
 libvar_t *libvar_usehook; /* libvar handle */
@@ -1630,24 +1491,18 @@ int dword_10064498; // weak
 int dword_1006449C; // weak
 int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
 char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
-/* midrangearea_t — Q3's own name for this 8-byte scratch record
- * (be_aas_routealt.c); `midrangeareas` points at an array of these.
- * Confirmed identical layout to the raw byte-arithmetic access this
- * reconstruction used previously (int valid; u16 starttime; u16 goaltime). */
+/* midrangearea_t — Q3's name for this 8-byte scratch record
+ * (be_aas_routealt.c); `midrangeareas` points at an array of them. */
 typedef struct midrangearea_s {
   int            valid;
   unsigned short starttime;
   unsigned short goaltime;
 } midrangearea_t;
 
-/* be_aas_routealt.c globals (AAS_AlternativeRouteGoals / AAS_AltRoutingFloodCluster_r).
- * midrangeareas (midrangearea_t*, 8 B/area) and clusterareas (int* area-index list)
- * are heap pointers the original 32-bit DLL stored in 4-byte .data dwords, which IDA
- * rendered as `int` reached by byte arithmetic (`base + 8*areanum`).  Declared as the
- * real typed pointers: 4 bytes on the 32-bit oracle (identical .data image and
- * codegen) and pointer-width on 64-bit, with no sideband needed.  An earlier note here
- * claimed "a typed pointer would mis-scale + 8*areanum" — that only holds if the byte
- * expression is kept; indexing as midrangeareas[areanum] scales correctly. */
+/* be_aas_routealt.c globals (AAS_AlternativeRouteGoals /
+ * AAS_AltRoutingFloodCluster_r).  midrangeareas (8 B/area) and clusterareas
+ * (int* area-index list) are heap pointers held in 4-byte .data dwords; typed
+ * pointers here, indexed as arrays, so no side-band is needed. */
 int numclusterareas;     // 0x10066730 area count — stays int (was dword_10066730)
 midrangearea_t *midrangeareas; // 0x10066740 (was dword_10066740)
 int *clusterareas;             // 0x10066744 (was dword_10066744)
@@ -1656,7 +1511,7 @@ int numareacacheupdates; // weak
 aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
 int reach_ladder; // weak
 int reach_elevator; // weak
-intptr_t reachabilityheap; // pool base (was: int truncated ptr)
+intptr_t reachabilityheap; // pool base
 int reach_jump; // weak
 int reach_grapple; // weak
 int reach_waterjump; // weak
@@ -1664,46 +1519,31 @@ int reach_teleport; // weak
 int reach_barrier; // weak
 int reach_swim; // weak
 int reach_equalfloor; // weak
-intptr_t nextreachability; // free-list head (was: int truncated ptr)
+intptr_t nextreachability; // free-list head
 int reach_walkoffledge; // weak
 int reach_rocketjump; // weak
 int reach_step; // weak
 int reach_walk; // weak
-/* ----------------------------------------------------------------------
- * aas_world_t — single 676-byte AAS state struct (was 169 separate globals).
- *
- * The original DLL allocates one contiguous BSS region at 0x100667E0..0x10066A84
- * and `AAS_Shutdown` zeros it via `memset(&aasworld.loaded, 0, 0x2A4u)`.
- * IDA decomposed every field into a separate global; under GCC the linker
- * doesn't pack BSS in declaration order, so the original memset would corrupt
- * unrelated globals.  Restored as one struct so the memset (now using
- * `sizeof(aasworld)`) hits exactly the intended 676 bytes.
- *
- * Field offsets are verified at compile time in gladiator.dll.h.
- * -------------------------------------------------------------------- */
+/* aas_world_t — the single 676-byte AAS state struct occupying
+ * 0x100667E0..0x10066A84, which AAS_Shutdown zeros wholesale.  It must stay one
+ * aggregate: as separate globals the memset would run off into whatever the
+ * linker placed next.  Field offsets are asserted in gladiator.dll.h. */
 
 aas_world_t aasworld;
 
-/* be_aas_debug.c debug-line state (MAX_DEBUGLINES=256). Verified against Q3
- * AAS_DebugLine/AAS_ClearShownDebugLines: debuglines[] holds DebugLineCreate
- * handles passed to DebugLineShow; debuglinevisible[] is the 0/1 shown flag. */
+/* be_aas_debug.c debug-line state (MAX_DEBUGLINES=256): debuglines[] holds the
+ * DebugLineCreate handles passed to DebugLineShow, debuglinevisible[] the 0/1
+ * shown flag. */
 int numdebuglines;          // 0x10066B14 (was dword_10066B14)
 int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)
 int debuglines[256];        // 0x100670C0 (was dword_100670C0)
 int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
 /* ---------------------------------------------------------------------------
- * Q2 BSP lump globals @ original VA 0x100674C4..0x10067554.
- * Names + declaration order match Mr. Elusive's own Q2 BSP loader
- * bspc/l_bsp_q2.c (count/pointer pairs, plus the `dvis` alias of `dvisdata`)
- * 1:1 — the same author who wrote this botlib.  Most pointer slots keep the
- * reconstruction's `char *`/`unsigned char *` typing ONLY where the lump really
- * is an untyped blob (`dvisdata`, `dlightdata`, `dentdata` — `byte *` in
- * l_bsp_q2.c too).  Every lump with a real record type now uses its typed
- * `q2files.h` pointer, and every consumer indexes it as an array: `dmodels`,
- * `dleafs`, `dplanes`, `dnodes`, `texinfo`, `dfaces`, `dvertexes`, `dedges`,
- * `dleaffaces`, `dleafbrushes`, `dsurfedges`, `dbrushes`, `dbrushsides`,
- * `dareas`, `dareaportals`.  The single remaining byte-view is the `dmodels`
- * walk in `Q2_SwapBSPFile` — see the oracle evidence at that site.
+ * Q2 BSP lump globals @ VA 0x100674C4..0x10067554.  Names and declaration order
+ * match Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.  Lumps with a real
+ * record type use their typed q2files.h pointer and are indexed as arrays; only
+ * the genuinely untyped blobs (dvisdata, dlightdata, dentdata) stay byte
+ * pointers.  The one remaining byte-view is the dmodels walk in Q2_SwapBSPFile.
  * ------------------------------------------------------------------------- */
 int nummodels;            // 0x100674C4  (was dword_100674C4)
 dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
@@ -1742,9 +1582,8 @@ int numareas;             // 0x10067548  (was dword_10067548)
 darea_t *dareas;          // 0x1006754C  (was dword_1006754C)
 int numareaportals;       // 0x10067550  (was dword_10067550)
 dareaportal_t *dareaportals; // 0x10067554  (was dword_10067554)
-/* 0x10067558..0x10067560 — three pointers AFTER the standard Q2 lumps; not
- * present in l_bsp_q2.c (Gladiator-specific AAS precompute, e.g. per-face PVS
- * table allocated by GetClearedMemory). No clean cognate → left unnamed. */
+/* 0x10067558..0x10067560 — three Gladiator-specific AAS precompute pointers
+ * after the standard Q2 lumps; no cognate in l_bsp_q2.c, so left unnamed. */
 char *dword_10067558; // per-face {short texturemins[2]; short extents[2]} table,
                       // 8*numfaces, built by CalcSurfaceExtents (Q1 model.c cognate),
                       // read by RecursiveLightPoint.  NOT a PVS table.
@@ -1763,17 +1602,10 @@ bsp_link_t **dword_10069584; // bsp_leaflinks (per-leaf list-heads array)
 
 
 //----- (10003010) --------------------------------------------------------
-/* AAS_Trace — sweep a (optionally bbox-bounded) line through the BSP world and
- * return the resulting trace.  Restored to its Q3 botlib by-value form
- * (be_aas_bspq3.c:147), matching the game-side import prototype
- * bot_import_t.Trace (game/botlib.h:242): returns a `bsp_trace_t` by value.
- *
- * MSVC's __cdecl struct-return ABI lowers that to a hidden first-argument return
- * buffer the caller allocates; the engine import bi_Trace fills a local
- * bsp_trace_t and returns the same pointer, and `return *bi_Trace(...)` copies
- * it into our caller-supplied buffer (the disasm at 0x10003010 is exactly this
- * single rep-movs copy from the returned pointer — `mov esi,eax` proves the
- * import returns the retbuf, not void). */
+/* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
+ * Returns bsp_trace_t BY VALUE, as both Q3 botlib and the game-side import
+ * prototype do; MSVC lowers that to a hidden caller-allocated return buffer, so
+ * `return *bi_Trace(...)` is the single rep-movs copy the disasm shows. */
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
   bsp_trace_t bsptrace;
@@ -1782,32 +1614,20 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 }
 
 //----- (100030A0) --------------------------------------------------------
-/* COGNATE FOUND but deliberately NOT renamed — see the note below.
- *
- * This trio is line-for-line Q3 `be_aas_sample.c`'s AAS_InitAASLinkHeap /
- * AAS_AllocAASLink / AAS_DeAllocAASLink: same `if (!heap)` guard, same
- * LibVarValue-with-default-then-clamp, same heap[0] / for(i=1..count-2) /
- * heap[count-1] free-list weave, same `freelinks = &heap[0]`.
- *
- * But those exact names are ALREADY TAKEN in this reconstruction, by the
- * genuine AAS-area link heap at 0x1001AC00 / 0x1001AD50 / 0x1001ADA0.
- * Gladiator carries BOTH families and the binary distinguishes them at every
- * corresponding site:
+/* BSP-leaf link heap — the Q3 cognate is be_aas_sample.c's
+ * AAS_InitAASLinkHeap / AAS_AllocAASLink / AAS_DeAllocAASLink, but those names
+ * are already taken here by the genuine AAS-area link heap at 0x1001AC00 /
+ * 0x1001AD50 / 0x1001ADA0.  Gladiator carries BOTH families, distinguished at
+ * every site:
  *      AAS-area (named)                 BSP-leaf (this trio)
  *      LibVarValue("max_aaslinks")      LibVarValue("max_bsplinks")
  *      "empty aas link heap\n"          "empty bsp link heap\n"
  *      link->prev_area / next_area      link->prev_leaf / next_leaf
  *      aasworld.linkheap/freelinks      dword_10069578 / dword_10069580
  *
- * So the original MUST have had two distinct name sets, and the author's own
- * vocabulary for this one is "bsp link" — i.e. `AAS_InitBSPLinkHeap` /
- * `AAS_AllocBSPLink` / `AAS_DeAllocBSPLink`, which is exactly what the
- * 2026-05-26 audit reverted as invented (back when no cognate was known for
- * either family).  That spelling is now strongly evidenced rather than guessed,
- * but it is still DERIVED, so the rename is held pending a user decision
- * (user, 2026-07-28: adopt cognates verbatim only — and verbatim is impossible
- * here).  Do not "resolve" this by renaming the 0x1001ACxx family instead:
- * those three ARE the aas_link_t functions and their names are correct. */
+ * A verbatim cognate name is therefore impossible, so this trio stays unnamed.
+ * Do NOT "resolve" it by renaming the 0x1001ACxx family — those three really
+ * are the aas_link_t functions. */
 void sub_100030A0()
 {
   int i;
@@ -1835,12 +1655,10 @@ void sub_100030A0()
 }
 
 //----- (100031B0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@100031B0: walks the bsp_link freelist headed at
-// dword_10069580, chasing .next_ent (offset +8) and counting nodes; then
+// Walks the bsp_link freelist headed at dword_10069580, chasing .next_ent and
+// counting nodes; then
 // prints "%d free bsp links, %s\n" at level 1 with (count, caller_name).
-// This is a heap-diagnostic helper that earlier builds called from
-// AAS_DumpBSPLinks or similar verbose-mode reporting.
+// A heap-diagnostic helper for verbose-mode reporting.  DEAD in Gladiator.
 void __cdecl sub_100031B0(char *name)
 {
   bsp_link_t *node;
@@ -1909,18 +1727,10 @@ void sub_100032D0()
 }
 
 //----- (10003360) --------------------------------------------------------
-/* Named from Q3 engine cognate CM_PointLeafnum_r (code/qcommon/cm_test.c) —
- * same-author evidence (Mr. Elusive, Q3 engine programmer), same runtime
- * loaded-array data model (cm.nodes/cm.planes there, dnodes/dplanes here) —
- * unlike the earlier-considered bspc/brushbsp.c PointInLeaf, which operates
- * on a compile-time-only tree and was correctly rejected as a data-model
- * mismatch (see function_naming.md). Q3's version hardcodes the world
- * model's root (node 0); Gladiator's takes an explicit modelnum and looks
- * up dmodels[modelnum].headnode, supporting inline sub-models (doors,
- * plats) directly — a Gladiator-side extension, not a divergence in the
- * core recursive-descent algorithm itself. The old inline "PointInLeaf"
- * comment hint was an untrusted guess from the 2026-05-26 audit; this
- * replaces it with real cognate evidence. */
+/* Named from the Q3 engine cognate CM_PointLeafnum_r (qcommon/cm_test.c), same
+ * recursive descent over a runtime-loaded node/plane array.  Q3 hardcodes the
+ * world model's root; Gladiator takes an explicit modelnum and starts from
+ * dmodels[modelnum].headnode, so inline sub-models (doors, plats) work too. */
 int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
 {
   vec_t d;
@@ -1966,40 +1776,28 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3])
 
 //----- (100034D0) --------------------------------------------------------
 /* AnglesToAxis — build a 3x3 row-major rotation matrix from Q3-style
- * angles[PITCH=0, YAW=1, ROLL=2].  Computes
- *     output = roll_m * pitch_m * yaw_m
- * (rotation order applied to a column vector: yaw first, then pitch,
- * then roll).
+ * angles[PITCH=0, YAW=1, ROLL=2]: output = roll_m * pitch_m * yaw_m, i.e. a
+ * column vector is yawed, then pitched, then rolled.
  *
- * Verified bit-faithful against the original disassembly at
- * .text 0x100034D0 by tracing every fld/fmul/fsin/fcos/fst[p] write:
- *   yaw_m   = [[ cy, sy,0],[-sy,cy,0],[0,0,1]]   ; rotation around Z
- *   pitch_m = [[ cp, 0,-sp],[0, 1,0],[sp,0,cp]]  ; rotation around Y
- *   roll_m  = [[ 1, 0, 0],[0,cr,sr],[0,-sr,cr]]  ; rotation around X
- *   R_ConcatRotations(pitch_m, yaw_m, tmp)         ; tmp = pitch*yaw
- *   R_ConcatRotations(roll_m,  tmp,   axis_out)    ; axis = roll*tmp
+ *   yaw_m   = [[ cy, sy,0],[-sy,cy,0],[0,0,1]]   ; around Z
+ *   pitch_m = [[ cp, 0,-sp],[0, 1,0],[sp,0,cp]]  ; around Y
+ *   roll_m  = [[ 1, 0, 0],[0,cr,sr],[0,-sr,cr]]  ; around X
+ *   R_ConcatRotations(pitch_m, yaw_m, tmp)       ; tmp  = pitch*yaw
+ *   R_ConcatRotations(roll_m,  tmp,   axis_out)  ; axis = roll*tmp
  *
- * Precision: original uses an 80-bit FPU pipe with a 64-bit double
- * DEG2RAD constant at .rdata 0x10058008 (= π/180), truncating only at
- * the final fstp DWORD.  We use `double` intermediates so the multiply
- * happens in ≥64-bit precision then casts to float at matrix-store
- * time, giving bit-identical 32-bit-float output for any reasonable
- * angle.  GCC couldn't reproduce the original's stack-aliased 3x3
- * layout (locals v8/v12/v19..v22 aliasing into a contiguous matrix at
- * fixed [ebp-...] offsets); keep the source on real 3x3 arrays and let
- * the oracle decide how close MSVC6 gets. */
+ * The original runs an 80-bit FPU pipe against a 64-bit DEG2RAD constant and
+ * truncates only at the final fstp DWORD, so the `double` intermediates here
+ * are what give bit-identical float output. */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 {
-  /* DEG2RAD constant: 64-bit double matching .rdata 0x10058008.  The radian
-     products are inlined into the sin/cos calls (not stored to named double
-     locals) so MSVC6 /O2 keeps each `angles[i]*DEG2RAD` live on the x87 stack
-     and CSEs it between sin and cos (fld st(0); fsin; ... fcos) — matching ref,
-     which has only the three `fmul QWORD DEG2RAD` and no double spill slots. */
+  /* DEG2RAD: the 64-bit double at .rdata 0x10058008.  Keep each
+     `angles[i]*DEG2RAD` inlined into the sin/cos calls rather than stored to a
+     named local, so MSVC6 keeps it live on the x87 stack and CSEs it between
+     the two calls instead of spilling. */
   static const double DEG2RAD = 0.017453292519943295;
-  /* Only THREE matrix buffers: `m` holds the pitch matrix for the first
-     concat, then is rebuilt in place as the roll matrix for the second (it is
-     arg1 of both calls).  ref's 0x6c frame is exactly 3*9 floats — it reuses
-     the buffer rather than carrying a separate roll_m. */
+  /* Only THREE matrix buffers: `m` holds the pitch matrix for the first concat,
+     then is rebuilt in place as the roll matrix for the second.  The original
+     frame is exactly 3*9 floats — it reuses the buffer, no separate roll_m. */
   float sp, cp;
   float sy, cy;
   float sr, cr;
@@ -2009,8 +1807,8 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
     float tmp[3][3];
   } mats;
 
-  /* Seed the constant slots first; the original MSVC6 build interleaves these
-     stores around the trig pipeline instead of keeping separate scalar temps. */
+  /* Seed the constant slots first — the original interleaves these stores
+     around the trig pipeline rather than using scalar temps. */
   mats.yaw[0][2] = 0;
   mats.yaw[1][2] = 0;
   mats.yaw[2][0] = 0;
@@ -2030,13 +1828,10 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.yaw[1][0] = -sy;
   mats.yaw[1][1] = cy;
 
-  /* pitch matrix (rotation around Y).  Unlike yaw/roll (which re-read their
-     own struct fields for the second use and already match ref that way),
-     ref's disasm here stores each trig result to a scratch slot once and
-     reloads it via an integer mov before storing to its final cells — the
-     signature of named scalar temps, not a struct-field re-read.  Named
-     temps here cut byte_diffs 483->328; the same treatment tried on yaw/roll
-     regresses (confirmed 2026-07-18), so it is NOT applied there. */
+  /* pitch matrix (around Y).  The original stores each trig result to a scratch
+     slot and reloads it with an integer mov — named scalar temps, unlike yaw and
+     roll, which re-read their own struct fields.  Do NOT extend the temps to
+     yaw/roll: that regresses the match. */
   sp = (float)sin(angles[0] * DEG2RAD);
   cp = (float)cos(angles[0] * DEG2RAD);
   mats.m[0][0] = cp;
@@ -2044,9 +1839,8 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   mats.m[2][2] = cp;
   mats.m[2][0] = sp;
 
-  /* tmp = pitch_m * yaw_m.  ref computes the roll angle and roll matrix only
-     AFTER this call (3rd fmul DEG2RAD at 0x10003599 follows the call at
-     0x10003594), so the roll matrix reuses the now-dead pitch buffer. */
+  /* tmp = pitch_m * yaw_m.  The roll angle and matrix are computed only AFTER
+     this call, so the roll matrix can reuse the now-dead pitch buffer. */
   R_ConcatRotations(mats.m, mats.yaw, mats.tmp);
 
   /* roll matrix (rotation around X), rebuilt in `m` */
@@ -2125,12 +1919,9 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
     return 0;
   if ( entdata.solid == 2 )
   {
-    /* Binary at 0x100037BD: fld start[i]; fld v41[i]; fadd QWORD 0.5; fcompp; test ah,1;
-     * je exit.  The ref's 0.5 const is a DOUBLE (fadd/fsub QWORD ds:0x10058018 = 0.5), and
-     * ref indexes BOTH operands off `start` reusing the &v41-start/&v44-start offsets CSE'd
-     * from the first bounds loop — so the pure-index form (start[i], not a walking `*i`) with
-     * a double 0.5 reproduces ref's `fld;fld;fadd;fcompp` and closes the -2 vs the old
-     * walking-pointer + 0.5f form. */
+    /* The 0.5 constant is a DOUBLE (fadd QWORD 0.5), and both operands are indexed
+     * off `start` reusing the offsets CSE'd from the first bounds loop — so keep the
+     * pure-index form, not a walking pointer, and keep 0.5 not 0.5f. */
     for ( v12 = 0; v12 < 3; ++v12 )
     {
       if ( start[v12] <= v41[v12] + 0.5 )
@@ -2138,11 +1929,9 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       if ( start[v12] >= v44[v12] - 0.5 )
         break;
     }
-    /* Relational, not equality: ref's post-loop test is `cmp edx,3; jl <skip>`
-     * with the loop-exhaustion path JUMPING OVER it (cl.exe proves v12==3 there
-     * and keeps the block only for the two break predecessors).  `== 3` emits
-     * `jne` and no skip-jmp.  The FIRST bounds loop above genuinely does use
-     * `!= 3` in ref (`cmp edi,3; jne`), so the two are not interchangeable. */
+    /* Relational, not equality: the original's post-loop test is `cmp edx,3; jl`,
+     * kept only for the two break predecessors.  `== 3` emits `jne` and drops the
+     * skip-jump.  The FIRST bounds loop above really does use `!= 3`. */
     if ( v12 >= 3 )
     {
       trace->ent = entnum;
@@ -2151,12 +1940,10 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       trace->fraction = 0.0f;
       trace->contents = 0;
       trace->sidenum = -1;
-      /* Ref 0x1000387a/0x1000388b: `lea edx,[eax+0x18]` + a FRESH `xor ecx,ecx`
-       * feeding five `[edx+N]` stores — cl.exe's inline expansion of a 20-byte
-       * memset, which is why the plane's base address is materialised into its
-       * own register and the zero is NOT the one already live in edi for
-       * fraction/contents.  Five scalar `planeints[i] = 0` stores instead let
-       * cl.exe fold the base into the addressing mode and share edi's zero. */
+      /* Keep the memset: the original materialises the plane's base into its own
+       * register with a fresh zero (an inlined 20-byte memset).  Five scalar
+       * `planeints[i] = 0` stores would instead fold the base into the addressing
+       * mode and share the zero already live for fraction/contents. */
       memset(&trace->plane, 0, sizeof(trace->plane));
       VectorCopy(start, trace->endpos);
       return 1;
@@ -2171,11 +1958,8 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
     else
       v16 = v44[v15];
     v17 = start[v15] - v16;
-    /* ONE `v15 + 1`, and the loop advance is `v15 = v18` — not `++v15`.  Ref
-     * recomputes `lea edi,[ecx+0x1]` per iteration and closes the loop with
-     * `mov ecx,edi; cmp ecx,3; jl <top>`.  With `++v15` cl.exe instead carries
-     * v15 and v15+1 as TWO parallel induction variables plus a saved copy of
-     * v18 for the bound test (`mov ebx,edi` + `inc ecx` + `inc edi`) = OUR+2. */
+    /* ONE `v15 + 1`, and the advance is `v15 = v18` — not `++v15`, which would
+     * carry v15 and v15+1 as two parallel induction variables. */
     v18 = v15 + 1;
     v19 = v18;
     v39 = v17 / (v17 - (end[v15] - v16));
@@ -2215,8 +1999,8 @@ LABEL_40:
       else
         trace->exp_dist = -boxmins[v15];
     }
-    /* Equivalent to trace->endpos[n] = start[n] + v39 * v40[n] for n=0..2,
-     * but kept as the original parallel pointer walk without byte-addressing vec3_t. */
+    /* trace->endpos[n] = start[n] + v39 * v40[n], as the original parallel
+     * pointer walk. */
     v29 = start;
     v30 = v40;
     i = trace->endpos;
@@ -2279,15 +2063,10 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
 }
 
 //----- (10003C90) --------------------------------------------------------
-/* Named from Q3 engine cognate CM_TraceThroughBrush (code/qcommon/cm_trace.c)
- * — Mr. Elusive was a Q3 engine programmer at id Software, not just the bot
- * AI author, so this is same-author evidence like bspc, not a different
- * corpus. Same shape: iterate a brush's sides, expand each plane by the
- * trace box's mins/maxs, track the enter/leave fraction along start->end.
- * Gladiator's Q2-only version lacks Q3's later capsule/sphere-collision
- * additions (Q3 evolved after Gladiator's 1999 snapshot — algorithm
- * divergence expected, per fidelity_first_principle; only the naming and
- * per-brush-clip structure carry over). Called from CM_TraceThroughLeaf. */
+/* Named from the Q3 engine cognate CM_TraceThroughBrush (qcommon/cm_trace.c):
+ * iterate a brush's sides, expand each plane by the trace box, track the
+ * enter/leave fraction along start->end.  No capsule/sphere collision — Q3
+ * added that later.  Called from CM_TraceThroughLeaf. */
 int __cdecl CM_TraceThroughBrush(
         dbrush_t *a1,
         float *a2,
@@ -2306,8 +2085,7 @@ int __cdecl CM_TraceThroughBrush(
   float *v13; // eax
   dbrush_t *v14; // ebx
   float *v15; // ecx
-  /* v16: BSP plane pointer; was `int v16` in IDA, later read positionally.
-   * On aarch64 the int truncated dplanes's heap address.  Restored to dplane_t *. */
+  /* v16: BSP plane pointer — an `int` would truncate dplanes on 64-bit. */
   dplane_t *v16;
   int v17; // ecx
   float v18; // st7
@@ -2345,11 +2123,9 @@ int __cdecl CM_TraceThroughBrush(
   v12 = a2;
   if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
     v40 = 1;
-  /* IDA put `v11 = 0` inside BOTH arms of the angles test above; that is the
-   * compiler having SUNK one shared zero register into the two arms (ref
-   * 0x10003cd2 / 0x10003cf2 `xor edi,edi`), not two source statements.  Keeping
-   * it here with the other zero initialisers lets cl.exe value-number all four
-   * `= 0` stores onto that single register instead of materialising a second. */
+  /* One shared zero, hoisted here with the other zero initialisers: the two
+   * `v11 = 0` copies the decompiler shows inside the angles test are the
+   * compiler sinking a single zero register into both arms. */
   v11 = 0;
   v13 = a4;
   v14 = a1;
@@ -2400,10 +2176,8 @@ int __cdecl CM_TraceThroughBrush(
         {
           if ( a6 )
           {
-            /* Ref 0x10003d36: `test ah,0x41; jne <a6 arm>` — the `normal>0`
-             * (`-a5`) arm is the WARM fall-through and the `<=0` (`a6`) arm the
-             * cold jump target, so the original guard was written positively.
-             * IDA inverted it to `<= 0` first, which swaps the two blocks. */
+            /* Positive guard: the `normal>0` arm is the warm fall-through and the
+             * `<=0` arm the cold jump target.  Inverting it swaps the blocks. */
             if ( normal[v17] > 0.0f )
             {
               v12 = a2;
@@ -2421,8 +2195,7 @@ int __cdecl CM_TraceThroughBrush(
         v19 = 0.0;
 LABEL_30:
         v20 = v19 + v38;
-        /* Same inversion as above (ref 0x10003eba `test ah,0x41; jne <negated
-         * arm>`): the un-negated `normal>0` arm is the fall-through. */
+        /* As above: the un-negated `normal>0` arm is the fall-through. */
         if ( normal[v17] > 0.0f )
         {
           v35 = startp[v17] - v20;
@@ -2438,15 +2211,11 @@ LABEL_30:
       {
         if ( a5 && a6 )
         {
-          /* For each component i, select from a5 or a6 based on sign of
-           * normal[i]; result stored in vec[i].  Ref 0x10003dc9
-           * `test ah,0x41; jne <a6 arm>` puts the `normal>0` (a5) arm inline,
-           * so the original ternary tested positively — IDA's `<= 0 ? a6 : a5`
-           * spelling swaps the two arms' warm/cold placement. */
-          /* Written as two assignment STATEMENTS, not a ternary: ref copies the
-           * selected component with an integer `mov eax,[..]; mov [..],eax`
-           * pair (0x10003dcb/0x10003dd2).  A float-valued ternary makes cl.exe
-           * materialise the result on the x87 stack (`fld`/`fstp`) instead. */
+          /* Per component, select a5 or a6 by the sign of normal[i] into vec[i].
+           * Test positively (the a5 arm is inline), and use two assignment
+           * STATEMENTS rather than a ternary — the original copies the selected
+           * component with integer movs, whereas a float-valued ternary would
+           * route it through the x87 stack. */
           {
             int _k;
             for (_k = 0; _k < 3; _k++)
@@ -2516,11 +2285,9 @@ LABEL_30:
     *a8 = v31;
     *a9 = v42;
     *a10 = v43;
-    /* IDA's `v32`/`v33` float shuttles (named after ref's ecx/edx) and the
-     * `*a10 = v43` store wedged between them are MSVC's load-ahead schedule for
-     * ONE grouped vec3 copy, not source statements — ref copies [1] and [2] with
-     * integer `mov`s (0x10004284/0x10004287), which a float-typed local forces
-     * onto the x87 stack instead. */
+    /* ONE grouped vec3 copy: the float shuttles and interleaved store the
+     * decompiler shows are MSVC's load-ahead schedule.  The original copies [1]
+     * and [2] with integer movs, which a float-typed local would prevent. */
     VectorCopy(startp, a11);
     return 1;
   }
@@ -2528,12 +2295,10 @@ LABEL_30:
 }
 
 //----- (10004310) --------------------------------------------------------
-/* Named from Q3 engine cognate CM_TraceThroughLeaf (code/qcommon/cm_trace.c)
- * — same same-author reasoning as CM_TraceThroughBrush above. Same shape:
- * iterate the leaf's brushes via leafbrushes[firstleafbrush+k], skip on
- * content-mask mismatch, dispatch each surviving brush to
- * CM_TraceThroughBrush. Gladiator has no patch/curve surfaces (a later Q3
- * BSP feature), so it lacks Q3's second leafsurfaces loop. */
+/* Named from the Q3 engine cognate CM_TraceThroughLeaf (qcommon/cm_trace.c):
+ * walk leafbrushes[firstleafbrush+k], skip content-mask mismatches, dispatch
+ * the rest to CM_TraceThroughBrush.  No patch/curve surfaces in Q2, so Q3's
+ * second leafsurfaces loop is absent. */
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v9; // ebp
@@ -2551,9 +2316,8 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   v9 = 0;
   v11 = &dleafs[leafnum];
   v24 = 0;
-  /* First guard reuses the loop counter v9 (=0) as the compare operand, so the
-   * leaf brush-count word compares as `numbrushes <= v9` → ref's `cmp WORD,bp;
-   * jbe` (not `... ; je` from a literal `== 0`).  Same skip-when-empty result. */
+  /* Compare against the loop counter v9 (=0), not a literal 0: that is what
+   * yields `cmp WORD,bp; jbe` instead of `je`.  Same skip-when-empty result. */
   if ( v11->numleafbrushes <= (unsigned int)v9 )
     goto fail;
   do
@@ -2567,10 +2331,9 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     ++v9;
   }
   while ( v9 < v11->numleafbrushes );
-  /* Wrap the success path in `if (v24)` (rather than `if (!v24) goto fail`) so
-   * the fill code is the warm fall-through and the shared return-0 stays a COLD
-   * tail block — ref reaches it via je/jbe from both guards (cl.exe otherwise
-   * inlines the short return-0 warm here).  Bare-brace wrap = no re-indent. */
+  /* `if (v24)` rather than `if (!v24) goto fail`, so the fill code is the warm
+   * fall-through and the shared return-0 stays a cold tail block reached by
+   * je/jbe from both guards. */
   if ( v24 )
   {
   if ( endpos[0] == start[0] && endpos[1] == start[1] && endpos[2] == start[2] )
@@ -2596,9 +2359,8 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   return 1;
   }
 fail:
-  /* Both early-out guards (no brushes / no hit) share ONE return-0 epilogue in
-   * the original — ref reaches it via jbe/je; inlining a `return 0;` at each
-   * guard emits two copies (OUR+7).  goto-to-shared-tail restores the share. */
+  /* Both early-out guards share this ONE return-0 epilogue; a `return 0;` at
+   * each guard would emit two copies. */
   return 0;
 }
 
@@ -2620,21 +2382,17 @@ _Static_assert(sizeof(bsp_model_tracestack_t) == 40, "bsp_model_tracestack_t siz
 _Static_assert(sizeof(bsp_model_plane_sidecache_t) == 24, "bsp_model_plane_sidecache_t size");
 
 //----- (100044F0) --------------------------------------------------------
-/* AAS_TraceBSPModel (sub_100044F0) — sweep a box (boxmins/boxmaxs) from start to
- * end through BSP model `modelnum` at `modelorigin`/`angles` and return the
- * resulting bsp_trace_t.  Gladiator's own Q2-era BSP-model collision (no
- * Q3-release cognate — Q3 delegates BSP traces to the engine).  Self-named by
+/* AAS_TraceBSPModel (sub_100044F0) — sweep a box from start to end through BSP
+ * model `modelnum` at `modelorigin`/`angles`.  Gladiator's own Q2-era
+ * BSP-model collision (Q3 delegates BSP traces to the engine); self-named by
  * its "AAS_TraceBSPModel: out of trace lines" error below.
  *
- * The saved disassembly shows two original stack aggregates that IDA split into
- * scalars/OOB aliases: a 40-byte trace-stack frame
+ * Two original stack aggregates: a 40-byte trace-stack frame
  * {start,end,nodenum,planenum,planedist,next} and a 24-byte
- * {int sideflags[4], float offsets[2]} side-cache block.  Restore both
- * explicitly here for readability while keeping the 64-bit link-slot sideband.
+ * {int sideflags[4], float offsets[2]} side-cache block.
  *
- * Returns by value via MSVC's hidden-retbuf ABI: the body fills local
- * `bsp_trace_t trace` (including via the recursive node/brush helpers) and each
- * return copies it into the caller's buffer. */
+ * Returns bsp_trace_t by value through MSVC's hidden-retbuf ABI: the body fills
+ * the local `trace` and each return copies it into the caller's buffer. */
 bsp_trace_t __cdecl AAS_TraceBSPModel(
         int modelnum,
         const vec3_t modelorigin,
@@ -2648,23 +2406,14 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
 {
   int v12; // eax
   float v13; // st7
-  /* v14: originally `int v14` in IDA — was used as the selected BSP model.
-   * On aarch64
-   * the int storage truncated dmodels's heap address producing
-   * a SIGSEGV in AAS_OnGround → AAS_TraceClientBBox → AAS_EntityCollision
-   * → here.  Restored to dmodel_t *. */
+  /* v14: the selected BSP model — an `int` truncates dmodels on 64-bit. */
   dmodel_t *v14;
   float v15; // st7
   bsp_model_tracestack_t *v16; // eax
   int v17; // edx
-  /* v19, v56, v100: AArch64 — these hold pointers into trace_stack
-   * (the trace-stack free/active lists).  IDA typed them `int` because
-   * on 32-bit MSVC every link slot was 4 bytes; on aarch64 the 4-byte
-   * int storage truncated 8-byte stack pointers, crashing
-   * AAS_OnGround → AAS_TraceClientBBox → here.  Widened to char *.
-   * Link slots in the trace_stack still store 4-byte values, but they
-   * are now encoded byte-offsets into trace_stack (see TR_ENC/TR_DEC
-   * macros below) instead of raw truncated pointers. */
+  /* v19, v56, v100: pointers into trace_stack (its free/active lists).  The
+   * link slots inside trace_stack stay 4 bytes wide, but on 64-bit they hold
+   * encoded byte offsets rather than raw pointers — see TR_ENC/TR_DEC below. */
   bsp_model_tracestack_t *v19;
   bsp_model_tracestack_t *v24; // ebx
   bsp_model_tracestack_t *v25; // esi
@@ -2674,12 +2423,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   dleaf_t *v30; // eax
   dnode_t *v31; // edx
   int v37; // eax
-  /* v38: same bug class as v14 above — set to the BSP plane for `v37`.
-   * On aarch64 the int storage truncated the pointer, so later
-   * plane-field reads crashed in AAS_OnGround chain.  Restored to dplane_t *.
-   * The IDA-spilled `v110 = *(float*)&v38; ...; *(float*)&v38 = v110;`
-   * temp-bit-pattern dance is harmless on 64-bit (write/read of the low
-   * 4 bytes of v38 nets to zero net change within the same code path). */
+  /* v38: the BSP plane for `v37`; same truncation class as v14 above. */
   dplane_t *v38;
   int v39; // ecx
   float v40; // st7
@@ -2694,20 +2438,15 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   BOOL v51; // eax
   int v53; // ecx
   int v54; // eax
-  /* side_a/side_b: Fable-5-proposed (2026-07-09), disasm-verified — the original
-   * stores the 0/1 "which side of the plane" selector as a plain int (ref
-   * `mov DWORD [slot],1` / `mov DWORD [slot],0` / `mov reg,[slot]`, zero FPU
-   * traffic). IDA routed both through float-declared locals (v110/v99/v102 for
-   * the no-box split; v55/v109-as-int/v58/v78 for the box split) requiring
-   * LODWORD() to read them back as ints, which MSVC6 compiles as a real
-   * fld/fstp materialization each time, not a no-op. side_a replaces
-   * v99/v102 (v110 keeps its other, genuinely-float, later uses); side_b
-   * replaces v55/v58/v78 and the "v109 used as an int selector" instances only
-   * (v109's earlier genuine float distance value is untouched). */
+  /* side_a/side_b: the 0/1 "which side of the plane" selectors, plain ints with
+   * no FPU traffic.  Routing them through float locals (as the decompiler did)
+   * costs a real fld/fstp per read.  side_a covers the no-box split, side_b the
+   * box split; v109's genuine float distance value is a separate thing. */
   int side_a;
   int side_b;
-  bsp_model_tracestack_t *v56; // eax — reused tstack-style temp for all three disjoint fresh-node sites (was split by IDA into v56/v62/v79)
-  int *v57; // esi  — AArch64: was `int**`; now points to a single 4-byte link slot (encoded offset). Reused for all three disjoint fresh-node sites (was split by IDA into v57/v63/v80)
+  bsp_model_tracestack_t *v56; // eax — one temp shared by all three disjoint fresh-node sites
+  int *v57; // esi  — points at a single 4-byte link slot (an encoded offset on 64-bit);
+       // shared by all three disjoint fresh-node sites
   int v59; // edx
   float v60; // st7
   bsp_model_tracestack_t *v64; // esi
@@ -2740,18 +2479,12 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v126; // [esp+60h] [ebp-14F8h]
   float v127; // [esp+64h] [ebp-14F4h]
   vec3_t v128; // [esp+68h] [ebp-14F0h] BYREF — overall trace delta
-  /* The 24-byte side-cache block.  These MUST stay two separate scalar floats
-   * rather than a `float[2]` (or the whole block as the declared
-   * `bsp_model_plane_sidecache_t`), and the indexed reads must stay byte-offset
-   * expressions — measured against the oracle 2026-07-28:
-   *   two scalars + byte offsets   OUR+2  / 5543b   <-- the original's form
-   *   float sideoffsets[2]         OUR+16 / 5709b   (+6 lea, +4 mov)
-   *   one 24-byte struct           OUR+16 / 5783b   (frame 8 B CLOSER, 0x1544 vs
-   *                                                  ref 0x1548, same +14 cost)
-   * An array forces MSVC to keep the pair addressable as a unit; two scalars let
-   * it coalesce them, which is what ref does.  So the `*(&v133 + v121)` /
-   * `*(float *)((char *)&v133 + v47)` walks are the ORIGINAL's own addressing,
-   * not a decompiler artifact — do not "fix" them. */
+  /* The 24-byte side-cache block.  These MUST stay two separate scalar floats,
+   * not a `float[2]` or one struct, and the indexed reads must stay byte-offset
+   * expressions: an array forces MSVC to keep the pair addressable as a unit,
+   * while two scalars let it coalesce them, which is what the original does.
+   * The `*(&v133 + v121)` walks are therefore the original's own addressing, not
+   * a decompiler artifact — do not "fix" them. */
   int plane_sideflags[4];
   float v133;
   float v134;
@@ -2766,22 +2499,15 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v149[3]; // [esp+D4h] [ebp-1484h] BYREF
   bsp_trace_t trace; // [esp+E0h] [ebp-1478h] BYREF
   float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
-  /* The original stack block is 128 contiguous 40-byte trace frames.  IDA split
-   * frame 0 into a 9-int local (`v152`) and treated its link slot (+0x24) as
-   * the first int of a separate `v153` array.  Keeping the real frame array
-   * restores that layout explicitly; v153 still aliases trace_stack[0].next. */
+  /* 128 contiguous 40-byte trace frames; v153 aliases trace_stack[0].next. */
   bsp_model_tracestack_t trace_stack[128];   // [esp+158h] [ebp-13A0h] BYREF
-  /* The trace-stack free/active linked-lists store a "next-pointer" in 4-byte
-   * int slots (at byte offset +36 of each 40-byte frame, plus trace_stack[0].next as the
-   * free-list head).  On 32-bit (the original Windows DLL, the MSVC6 oracle,
-   * MinGW32, gcc-i386) a pointer fits in the slot, so the ORIGINAL stored the
-   * raw pointer — TR_ENC/TR_DEC are the identity, which is what the disasm
-   * shows (plain lea/mov, no offset arithmetic).  On 64-bit (aarch64 .so) a
-   * pointer does NOT fit, so each link is encoded as a 32-bit byte offset into
-   * trace_stack (value 0 reserved for NULL; stored value = offset + 1).
-   * MSVC6 does NOT define __SIZEOF_POINTER__, so the `!defined` clause routes
-   * the oracle to the faithful 32-bit form (a bare `== 4` would wrongly pick
-   * the 64-bit branch and keep the OUR+252 offset-encoding sideband). */
+  /* The trace-stack lists keep their "next pointer" in 4-byte int slots (+36 of
+   * each frame, plus trace_stack[0].next as the free-list head).  On 32-bit a
+   * pointer fits, so TR_ENC/TR_DEC are the identity — plain lea/mov, exactly as
+   * the disasm shows.  On 64-bit each link becomes a byte offset into
+   * trace_stack, stored as offset+1 so 0 stays NULL.
+   * MSVC6 does not define __SIZEOF_POINTER__, hence the `!defined` clause —
+   * a bare `== 4` would route the oracle to the 64-bit branch. */
 #if !defined(__SIZEOF_POINTER__) || __SIZEOF_POINTER__ == 4
   #define TR_ENC(p) ((int)(intptr_t)(p))
   #define TR_DEC(i) ((bsp_model_tracestack_t *)(intptr_t)(i))
@@ -2830,25 +2556,11 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   }
   while ( v17 );
   trace_stack[127].next = 0;
-  /* ref 0x100046d0: `lea eax,[esp+0x158]` (&trace_stack[0]) then
-   * `test eax,eax; je <error-print>` — a provably-dead-in-practice guard
-   * (a local array's address is never NULL) that IDA elided from the
-   * pseudocode but the 1998 compiler still emitted (artifact class 13,
-   * same class as AAS_Reachability_Elevator's elided bounds recheck).
-   * v16 is otherwise dead here; reuse it to hold the fresh base address,
-   * matching ref's fresh `lea` rather than reusing the loop's advanced
-   * pointer. Fable-5-proposed, disasm-verified 2026-07-09.
-   *
-   * Round 3 tried folding this into v24's own definition (checking v24
-   * itself here instead of a separate v16, one variable instead of two) on
-   * the theory that ref's two `lea`s of this same address reflect one
-   * variable materialized twice, not two variables. Build-tested:
-   * REGRESSED (byte_diffs 5667->5744, insn count unchanged at 971) — our
-   * compiled output still split it into two materializations (eax, then
-   * edx — not ebx) and still spilled, so the predicted mechanism didn't
-   * hold, and there is no independent fidelity argument for one C shape
-   * over the other (both are equally-plausible reconstructions of unknown
-   * original intent). Reverted; don't retry this exact framing. */
+  /* A dead-in-practice NULL check on &trace_stack[0] that the 1998 compiler
+   * still emitted (the decompiler elided it).  v16 is otherwise dead, so it
+   * holds the fresh base address, matching the original's fresh `lea` rather
+   * than reusing the loop's advanced pointer.  Do not fold this into v24's own
+   * definition — tried, and it regresses. */
   v16 = trace_stack;
   if ( !v16 )
     goto LABEL_125;
@@ -2862,16 +2574,11 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   v24 = trace_stack;
   while ( 1 )
   {
-    /* ONE merged node loop with the BOX path as the warm fall-through.  IDA
-     * rendered the CFG as `do { while(1){ …; if (box) break; <no-box> } <box>
-     * … } while (sf[v53+2]);`, i.e. two nested loops with the box code outside
-     * the inner one.  All three of that structure's exits go to the SAME place
-     * (side_b = …) and both back-edges go to the SAME place (the trace-stack
-     * pop), so it is one loop; the nesting is an artifact.  It matters because
-     * ref places the whole no-box arm COLD at 0x10005054 (each of its exits
-     * closing with `jmp 0x10004755` back to the pop) and keeps the box arm
-     * inline as the fall-through of two `je 0x10005054` guards — which only
-     * happens when the box arm is the `if` body and the no-box arm the `else`. */
+    /* ONE merged node loop with the BOX path as the warm fall-through — the
+     * decompiler's nested-loop rendering is an artifact (all its exits and both
+     * back-edges land in the same two places).  The box arm must be the `if`
+     * body and the no-box arm the `else`: that is what places the whole no-box
+     * arm cold, each exit jumping back to the trace-stack pop. */
       while ( 1 )
       {
         while ( 1 )
@@ -2940,10 +2647,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           v42 = DotProduct(v114, v111) - v40;
           if ( DotProduct(v114, v128) >= 0 )
             v121 = 0;
-          /* Original: 3-component loop selecting between boxmaxs[i] and
-           * boxmins[i] based
-           * on sign of v114[i], storing to v148[i] and v149[i].
-           * v114[3] is plane normal (was v114/v115/v116), v148/v149 are BSP extents. */
+          /* 3-component loop selecting boxmaxs[i] or boxmins[i] by the sign of the
+           * plane normal v114[i], into the BSP extents v148[i] / v149[i]. */
           {
             int _j;
             for (_j = 0; _j < 3; _j++) {
@@ -3231,7 +2936,7 @@ LABEL_125:
 // memcpy's the 84-byte trace result into the caller-supplied output buffer.
 // DEAD in Gladiator — no live caller; only reachable via the MSVC
 // /INCREMENTAL thunk that preserved this entry point in the linker output.
-// Restored IDA-missed stub.  Verified against objdump@10005640:
+// Restored dead stub:
 //   sub esp,0x60 ; reserve trace-local frame
 //   push 10 args (3 stack-local ptrs + zero int + 6 forwarded caller args)
 //   call sub_100044F0
@@ -3311,8 +3016,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v12[3]; // [esp+24h] [ebp-68h] BYREF
   float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
-  /* one bsp_entdata_t local; IDA split it into char v14[12]/v15[12] +
-   * floats v16..v21 + ints v22/v23 (reads relying on stack-layout luck) */
+  /* one bsp_entdata_t local */
   bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF
 
   if ( !dword_100674C0 )
@@ -3359,17 +3063,8 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 }
 
 //----- (10005A10) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10005A10:
- *   sub esp,0xc; mov edx,[esp+0x10]; lea eax,[esp]; lea ecx,[esp];
- *   push eax; push ecx; push 0; push edx;
- *   mov [esp+0x10..0x18],0  (zero a vec3 local at esp+0..0xb);
- *   call 0x10001ac8 (-> 0x100057A0 = AAS_AreaContents/leaf-walker);
- *   add esp,0x1c; ret
- * Point-only flavor of sub_100057A0: passes the caller's vec3 as
- * origin, zero-mins/zero-maxs (degenerate point box).  Returns whatever
- * sub_100057A0 returned in EAX.  Dead in Gladiator -- preserved by
- * /INCREMENTAL. */
+/* Point-only flavour of sub_100057A0: the caller's vec3 as origin with
+ * zero mins/maxs, i.e. a degenerate point box.  DEAD in Gladiator. */
 int __cdecl sub_10005A10(float *origin)
 {
   vec3_t zero_vec;
@@ -3465,82 +3160,37 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
 }
 
 //----- (10005CC0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10005CC0: double-indirect lookup
- *   `((int **)dword_10067560)[a][b]`
- * where dword_10067560 is the cluster-routing pointer table.  Dead in
- * Gladiator — the live AAS routing accessors use direct indexed access
- * through aasworld.clusterareacache/portalcache instead; this is a
- * lookup helper preserved by /INCREMENTAL. */
+/* Double-indirect lookup into the cluster-routing pointer table.  DEAD in
+ * Gladiator — the live routing accessors index
+ * aasworld.clusterareacache/portalcache directly. */
 int __cdecl sub_10005CC0(int a, int b)
 {
   return ((int **)dword_10067560)[a][b];
 }
 
 //----- (10005CF0) --------------------------------------------------------
-/* sub_10005CF0 — DEAD reach-graph propagation helper.  Restored from
- * objdump@0x10005CF0 (95 lines).  Three-phase node-flag propagation
- * over the cluster-routing matrix (dword_10067560, treated as int**:
- * a leading int[N] row-pointer table followed by N row buffers) and a
- * 1-D row vector (dword_1006755C, int[numareaportals]).
+/* sub_10005CF0 — reach-graph propagation over the cluster-routing matrix
+ * (dword_10067560, an int[N] row-pointer table followed by N int[N] rows) and
+ * the 1-D flag row dword_1006755C (int[numareaportals]).  Three phases:
  *
- * Args (cdecl, 2 args):
- *   row_index (= ecx = [esp+4])   — index into the 1-D flag row
- *   value     (= eax = [esp+8])   — value stored at that slot
+ *   A: flag_row[row_index] = value;
+ *   B: for each area i, clear matrix[i][*], set the diagonal, and for every
+ *      areaportal of i whose flag is set, mark matrix[i][link] and
+ *      matrix[link][i];
+ *   C: the nested walk below.
  *
- * Globals (already declared above; see sub_100032D0 at 0x100032D0 for
- * the allocator side):
- *   numareas = N (count, sub_100032D0 sizes the matrix as N*N)
- *   numareaportals = M (sub_100032D0 sizes the 1-D flag row as M)
- *   dareas = edge-pair table, stride 8: (count, first_index)
- *   dareaportals = edge-data  table, stride 8 (2nd dword = link idx)
- *   dword_1006755C = flag row, int[M]
- *   dword_10067560 = matrix, int**[N], rows are int[N]
+ * Phase C carries a genuine Mr. Elusive bug — its innermost `while (numareas >
+ * 0)` tests a value the loop never changes, so it spins forever walking j off
+ * the end of the matrix.  Almost certainly why the call site was excised before
+ * ship.  Transcribed faithfully: it is unreachable, and the byte-match needs
+ * the unbounded shape.
  *
- * Phase A (10005D00):
- *   flag_row[row_index] = value;
+ * Do NOT cache the globals in locals: the original re-reads numareas / dareas /
+ * dareaportals / both matrix pointers at each use, because the matrix stores
+ * force MSVC to reload them.
  *
- * Phase B (10005D14..10005DAC):  for each i in [0..N):
- *   - clear matrix[i][*] across the row (the .text pre-increments
- *     ecx and writes at displacement ecx*4-4, so the visible bounds
- *     are 0..N-1).
- *   - matrix[i][i] = 1 (diagonal).
- *   - for each esi in [0..edge_pairs[i].count):
- *       col = edge_pairs[i].first + esi;
- *       if (flag_row[col] != 0) {
- *         link = edge_data[col].second;
- *         matrix[i][link]   = 1;
- *         matrix[link][i]   = 1;
- *       }
- *
- * Phase C (10005DAD..10005E08):  the .text loop nest is
- *
- *     for (i = 0; i < numareas; i++)
- *       for (j = 0; j < numareas; j++)
- *         while (numareas > 0) {                      // <-- bug
- *           if (matrix[i][j] && matrix[j][0]) {
- *             matrix[i][0] = 1;
- *             matrix[0][i] = 1;
- *           }
- *           j++;
- *         }
- *
- *   The while's exit test is `test esi,esi; jg back` (numareas never
- *   changes), so once entered with numareas>0 it spins forever,
- *   walking j off the end of the matrix.  This is a genuine
- *   Mr. Elusive bug — almost certainly why the call site was excised
- *   before ship and the function ended up DEAD.  Transcribed
- *   faithfully (no guard, no break): execution is unreachable, and
- *   the byte-match requires the unbounded loop shape.
- *
- * Thunks: none (no calls in the body).
- *
- * DEAD in Gladiator — no live caller; deferred matrix maintenance
- * helper that was dropped before release.  /INCREMENTAL kept the
- * body in the binary.  NB no local caching of the globals: the
- * original reads numareas / dareas / dareaportals / the two matrix
- * pointers directly at each use (the matrix stores force MSVC to
- * reload them, which is exactly the reload pattern in the .text). */
+ * DEAD in Gladiator — a deferred matrix-maintenance helper dropped before
+ * release. */
 void __cdecl sub_10005CF0(int row_index, int value)
 {
   int i, j, k, col;
@@ -3615,15 +3265,13 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   AnglesToAxis(angles, axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
 
-  /* Iterate the 8 corners of the AABB, rotate each through `axis`, and
-   * accumulate into bb_mins/bb_maxs.  &corner is read as a vec3_t inside
-   * sub_10003460 — the array form forces the contiguous layout that GCC
-   * would otherwise scramble for separate locals. */
+  /* Rotate all 8 AABB corners through `axis` and accumulate into
+   * bb_mins/bb_maxs.  `corner` must stay an array: sub_10003460 reads it as a
+   * vec3_t, and separate float locals are not guaranteed to be adjacent. */
   for ( i = 0; i < 8; ++i )
   {
-    /* `(i < 4)` with mins in the THEN arm reproduces the original's `jge`
-     * branch polarity (mins is the warm fall-through); the equivalent
-     * `(i >= 4) ? maxs : mins` compiles to the inverted `jl` — do not "clean up". */
+    /* Keep `(i < 4)` with mins in the THEN arm: the inverted
+     * `(i >= 4) ? maxs : mins` flips the branch polarity. */
     corner[0] = (i < 4)          ? local_mins[0] : local_maxs[0];
     corner[1] = (i & 1)          ? local_mins[1] : local_maxs[1];
     corner[2] = (i < 2 || i > 6) ? local_mins[2] : local_maxs[2];
@@ -3670,14 +3318,9 @@ bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 }
 
 //----- (10006100) --------------------------------------------------------
-/* Q3 canonical name: AAS_BoxOnPlaneSide2 (be_aas_sample.c:1126).
- * Classifies an axis-aligned bounding box (a1=absmins, a2=absmaxs) against a
- * BSP splitting plane (a3=aas_plane_t {normal[3]; dist}) and returns 1/2/3
- * (front/back/spanning). */
-/* Q3 canonical: BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, aas_plane_t *p).
- * IDA decompiled this as pointer-arithmetic via `v4 = a3 - a1` etc.; the
- * original C source iterated 3 components selecting the appropriate corner
- * from absmins/absmaxs based on the plane normal's sign. */
+/* AAS_BoxOnPlaneSide2 (Q3 be_aas_sample.c) — classify an AABB against a BSP
+ * splitting plane, returning 1/2/3 for front/back/spanning by iterating the
+ * three components and picking the corner matching each normal's sign. */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
 {
   int    i, sides;
@@ -3727,12 +3370,10 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   link = 0;
   v6 = &v15[1];
   v15[0] = dmodels[modelnum].headnode;
-  /* while(1)+break (NOT while(--v6 >= &v15[0])): the original is an
-   * un-rotated top-test loop.  Because v6 starts at &v15[1], MSVC6 can
-   * prove the first --v6>=&v15[0] always holds and removes the entry
-   * guard, rotating to a bottom-test loop (OUR-1).  The infinite-loop +
-   * internal break form has no entry guard to remove, so the test stays
-   * at the top exactly as in the ref binary.  Don't "simplify" it back. */
+  /* while(1)+break, NOT `while (--v6 >= &v15[0])`: since v6 starts at &v15[1],
+   * MSVC6 can prove that guard always holds first time and rotates the loop to
+   * a bottom test.  The infinite-loop form keeps the test at the top, as in the
+   * original — do not "simplify" it back. */
   while ( 1 )
   {
     if ( --v6 < &v15[0] )
@@ -3787,57 +3428,19 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
 }
 
 //----- (100063D0) --------------------------------------------------------
-/* sub_100063D0 — DEAD `AAS_EntitiesInBox(mins, maxs, list, maxcount)`.
- * Restored from objdump@0x100063D0 (~155 lines).
+/* sub_100063D0 — `AAS_EntitiesInBox(mins, maxs, list, maxcount)`: write up to
+ * `maxcount` entnums of the world entities overlapping [mins,maxs] into list[]
+ * and return the count.
  *
- * Queries which world entities overlap the AABB [mins,maxs] and
- * writes up to `maxcount` entnums into `list[]`, returning the
- * number written.
- *
- * Flow:
- *   1. linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0)
- *      — builds a transient chain of bsp_link_t nodes, one per leaf
- *      the query box touches.  Saved to a stack slot for cleanup.
- *   2. For each leaf in the chain (walking ->next_leaf at +0x10):
- *      a. entlist = dword_10069584[leaf->leafnum]  — the leaf's own
- *         entity-link chain (heads array indexed by leafnum).
- *      b. For each ent_link in that chain (walking ->next_ent at +0x8),
- *         while count < maxcount:
- *           - Dedupe: linear scan list[0..count-1] for entlink->entnum.
- *             Skip if already present.
- *           - AAS_EntityBSPData(entlink->entnum, &entdata):
- *               entdata @ [esp+0x1c], 56 bytes:
- *                 +0x00..0x0B origin     +0x0C..0x17 angles
- *                 +0x18..0x23 absmin     +0x24..0x2F absmax
- *                 +0x30 solid            +0x34 modelnum-1
- *           - AABB overlap test against (mins,maxs) — all six bounds
- *             are the correct ones (the "absmin.Z-for-absmin.X" defect
- *             once recorded here was an esp-offset misread; see the
- *             in-body note at the compare):
- *               absmin.X<=maxs.X && absmax.X>=mins.X
- *               absmin.Y<=maxs.Y && absmax.Y>=mins.Y
- *               absmin.Z<=maxs.Z && absmax.Z>=mins.Z
- *           - On overlap pass:
- *             * solid == 1 or 2 (SOLID_BBOX / SOLID_TRIGGER): add
- *               entnum to list and bump count.
- *             * solid == 3 (SOLID_BSP movable brush): re-call
- *               AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum) to
- *               get THIS brush model's own leaf chain, then scan it for
- *               any leaf whose word @ dleafs[leafnum*28 + 26]
- *               is non-zero (= "this leaf carries an AAS area
- *               marker"); if found, add the entnum.  Always
- *               AAS_UnlinkFromBSPLeaves(temp) before continuing —
- *               NULL included, there is no guard.
- *             * other solid values: silently skipped.
- *   3. AAS_UnlinkFromBSPLeaves(linkhead) frees the original chain.
- *   4. Return edi (accumulated count).
- *
- * Thunks: 0x10001E24 → 0x10006210 = AAS_BSPLinkEntity,
- *         0x10001825 → 0x1000AF30 = AAS_EntityBSPData,
- *         0x100019A6 → 0x10006090 = AAS_UnlinkFromBSPLeaves.
- *
- * Globals: ds:0x10069584 = bsp_leaf_entlinks[leafnum] (head array),
- *          ds:0x100674EC = aasworld.bspleafs (stride 28).
+ * AAS_BSPLinkEntity builds a transient bsp_link_t chain, one node per leaf the
+ * box touches.  For each such leaf, its own entity-link chain (heads array
+ * bsp_leaf_entlinks[leafnum]) is walked, duplicates are skipped by a linear
+ * scan of the results so far, and each candidate's AAS_EntityBSPData bbox is
+ * overlap-tested.  On a hit, SOLID_BBOX/SOLID_TRIGGER entities are added
+ * directly; a SOLID_BSP movable brush is re-linked by its own modelnum and
+ * added only if one of ITS leaves carries an AAS area marker
+ * (dleafs[leafnum].area).  Every chain is released with
+ * AAS_UnlinkFromBSPLeaves, NULL included — there is no guard.
  *
  * DEAD in Gladiator — no live caller. */
 int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
@@ -3855,10 +3458,9 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 
   count = 0;
   linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0);
-  /* NO early `if (!linkhead) return 0;` — that is an IDA artifact.  Ref's
-   * `test eax,eax; je 0x10006571` is the for-loop's own entry guard and it
-   * lands on the SHARED exit, so the original calls
-   * AAS_UnlinkFromBSPLeaves(NULL) on that path (which tolerates NULL). */
+  /* NO early `if (!linkhead) return 0;` — the original's test is this loop's own
+   * entry guard and lands on the shared exit, so the NULL path still calls
+   * AAS_UnlinkFromBSPLeaves(NULL), which tolerates it. */
   for (link = linkhead; link && count < maxcount; link = link->next_leaf) {
     ent_link = dword_10069584[link->leafnum];
     if (!ent_link)
@@ -3866,10 +3468,8 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
     out = &list[count];
 
     while (ent_link && count < maxcount) {
-      /* Dedupe scan over already-collected results.  `ent_link->entnum` is
-       * re-read at every use site (four of them) — the original never cached
-       * it in a local, which is why ref pins ent_link itself in ebx and needs
-       * no spill slot for it. */
+      /* Dedupe scan over the results so far.  Re-read `ent_link->entnum` at each of
+       * the four use sites — the original never caches it in a local. */
       for (j = 0; j < count; j++) {
         if (list[j] == ent_link->entnum)
           break;
@@ -3878,14 +3478,11 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
       if (j == count) {
         AAS_EntityBSPData(ent_link->entnum, &entdata);
 
-        /* NB there is NO "Mr. Elusive absmin.Z-for-absmin.X bug" here — that
-         * earlier reading was an esp-offset trap.  Ref's first compare is
-         * `fld DWORD PTR [esp+0x3c]` at 0x10006461, but esp is still 8 lower
-         * there (the two pushed AAS_EntityBSPData args are only popped by the
-         * `add esp,0x8` AFTER the fld), so it addresses frame+0x34 =
-         * entdata+0x18 = absmins[0].  The textually identical
-         * `fld [esp+0x3c]` further down (0x1000649b) runs at the restored esp
-         * and IS absmins[2].  All six bounds are the correct ones. */
+        /* All six bounds are the correct ones.  The two textually identical
+         * `fld [esp+0x3c]` instructions in the original read DIFFERENT fields:
+         * the first runs while esp is still 8 lower (the AAS_EntityBSPData args
+         * are popped only afterwards) so it is absmins[0], the second is
+         * absmins[2]. */
         if (entdata.absmins[0] <= maxs[0]
          && entdata.absmaxs[0] >= mins[0]
          && entdata.absmins[1] <= maxs[1]
@@ -3897,15 +3494,11 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
             count++;
             *out++ = ent_link->entnum;
           } else if (solid == 3) {
-            /* 4th arg is entdata.modelnum, not entnum: ref pushes
-             * [esp+0x50] = entdata+0x34 (`mov ecx,[esp+0x50]; push ecx;
-             * push 0x0; push esi; push ebp` @0x100064e2). */
+            /* 4th arg is entdata.modelnum, not entnum. */
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum);
-            /* No `if (brush_links)` guard either — ref's `je 0x10006538`
-             * lands directly on `push eax; call AAS_UnlinkFromBSPLeaves`,
-             * so the NULL case unlinks NULL.  And the hit is reported by
-             * BREAKing to a shared post-loop `if (brush_iter)` re-check
-             * (ref 0x1000651c `test ecx,ecx; je`), not inline in the loop. */
+            /* No `if (brush_links)` guard either — the NULL case unlinks NULL.  And the
+             * hit is reported by BREAKing to the shared post-loop `if (brush_iter)`
+             * re-check, not inline in the loop. */
             for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
               if (dleafs[brush_iter->leafnum].numleafbrushes)
                 break;
@@ -3937,13 +3530,13 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 // strcmp/strlen/memcpy as repe scas / rep movs sequences (see
 // 10006615..10006637 for the strcmp, 1000666a/10006681 for the
 // scas-derived strlen, and 10006690..10006699 for the dword+byte rep
-// movs) — restored here as the equivalent strdup-style idiom that
+// movs) — written here as the equivalent strdup-style idiom that
 // MSVC inlined from <string.h>.
 // Allocator thunks: 0x10001479 → GetClearedMemory, 0x10001AB4 →
 // GetMemory, 0x1000180C → FreeMemory.
 // DEAD in Gladiator — the engine builds its BSP entity dict from the
 // .bsp lump and never patches entries post-load; preserved by
-// /INCREMENTAL.  Restored from objdump@10006600.
+// /INCREMENTAL.
 void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
 {
   bsp_epair_t *ep;
@@ -4129,35 +3722,23 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
 // 10001C30: thunk -> 0x1003F5C0 = PS_ExpectTokenType (script-level expect)
 
 //----- (10006D10) --------------------------------------------------------
-/* RecursiveLightPoint — lifted from Quake 1 `WinQuake/gl_rlight.c` (the GL
- * variant: it is the one that also exports the impact point, id's `lightspot`,
- * which here is the `lightspot` out-parameter).  Quake 1's full source was GPL
- * from Dec 1996; Quake 2's engine source did not ship until Dec 2001, so Q1 is
- * the only possible engine ancestor for a 1999 build.  The BSP *file* structs
- * (dnode_t/dface_t/dedge_t/texinfo_t/dlightdata) come from the separately
- * published Quake 2 tools source instead, which is why the data layout is Q2
- * while the algorithm is Q1.
+/* RecursiveLightPoint — Quake 1's `WinQuake/gl_rlight.c` (the GL variant, the
+ * one that also exports the impact point as `lightspot`), with Q1 `world.c`'s
+ * SV_RecursiveHullCheck head grafted on: `if (num < 0) return`, node/plane
+ * fetched from the dnodes/dplanes lumps, plus an axial fast path Q1 itself
+ * never added.  Algorithm is Q1, data layout is Q2 (the BSP file structs come
+ * from the Q2 tools source).
  *
- * Mr. Elusive grafted Q1 `world.c`'s SV_RecursiveHullCheck head onto it:
- *   if (num < 0) return ...             <- Q1 SV_RecursiveHullCheck, not
- *   node  = dnodes  + num;                 RecursiveLightPoint (which takes an
- *   plane = dplanes + node->planenum;      mnode_t* and tests node->contents<0)
- *   if (plane->type < 3) axial fast path <- id's own "FIXME: optimize for
- *                                           axial" comment sits exactly where
- *                                           Q1 did NOT do it; he did.
- * Other deliberate deviations from Q1 (all confirmed against the ref disasm,
- * do NOT "restore" them):
- *   - returns 0/1 instead of Q1's -1/0..255, and drops Q1's redundant second
+ * Deliberate deviations from Q1 — do NOT "restore" them:
+ *   - returns 0/1 rather than -1/0..255, and drops Q1's redundant second
  *     `if ((back<0)==side) return -1;`
  *   - drops Q1's `surf->flags & SURF_DRAWTILED` skip
- *   - `mid[i] = (end[i]-start[i])*frac + start[i]`, NOT Q1's
- *     `start[i] + (end[i]-start[i])*frac` (ref: fld end; fsub start; fmul frac;
- *     fadd start)
- *   - Q1's single-channel `r += *lightmap * scale` is replaced by a 3-channel
- *     RGB read, because Q2 lightdata is RGB; the styles/d_lightstylevalue loop
- *     is gone with it.
- * Reads the per-face {texturemins[2], extents[2]} table built by
- * CalcSurfaceExtents (0x100071E0). */
+ *   - `mid[i] = (end[i]-start[i])*frac + start[i]`, not Q1's
+ *     `start[i] + (end[i]-start[i])*frac`
+ *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB
+ *     read (Q2 lightdata is RGB), taking the styles loop with it.
+ * Reads the per-face {texturemins[2], extents[2]} table that
+ * CalcSurfaceExtents (0x100071E0) builds. */
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor)
 {
   dnode_t *v6; // esi
@@ -4271,22 +3852,16 @@ sample_lightmap:
 }
 
 //----- (10007150) --------------------------------------------------------
-/* Static-light helper for AAS_BSPTraceLight (sub_1000D5F0).  Traces model 0
- * via RecursiveLightPoint and returns both the trace endpos (a4..a6 receive the
- * RGB at the surface — see RecursiveLightPoint line 4563-4566 / 4577-4583).
- * Q3 botlib has no equivalent because
- * be_aas_bspq3.c stubs the entire BSPTraceLight feature.  Q2-canonical name
- * is unrecoverable — kept under the address name. */
+/* Static-light helper for AAS_BSPTraceLight (sub_1000D5F0): traces model 0 via
+ * RecursiveLightPoint, returning the endpos plus the surface RGB in
+ * red/green/blue.  Q3 stubs the whole BSPTraceLight feature, so there is no
+ * cognate name — kept under its address. */
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
 {
-  /* IDA decompiled this as `float v7[3]`, but the original asm does raw 4-byte
-   * mov copies — RecursiveLightPoint writes the RGB lightmap samples here as INTs
-   * (signature `int *a5`), and sub_10007150 stores them back to *red/*green/*blue
-   * with plain `mov [esp+...], reg` — no float conversion.  With `float v7[3]`,
-   * GCC emits a cvttss2si float→int conversion at `*red = v7[0]`, which on the
-   * tiny (denormal) bit patterns of small int values (e.g. R=41 → 5.7e-44f)
-   * truncates to 0.  Fix: use int[3] to match the original code and the
-   * RecursiveLightPoint signature. */
+  /* int[3], not float[3]: RecursiveLightPoint writes the RGB lightmap samples
+   * here as ints and the original copies them out with plain movs.  Typed as
+   * float, the copy becomes a float->int conversion that truncates the small
+   * (denormal-looking) sample values to 0. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
   if ( !dword_100674C0 || !dlightdata || !RecursiveLightPoint(dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
@@ -4298,24 +3873,18 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 }
 
 //----- (100071E0) --------------------------------------------------------
-/* CalcSurfaceExtents — Quake 1 `WinQuake/model.c`, adapted to walk the BSP
- * *file* lumps (dfaces/dsurfedges/dedges/dvertexes/texinfo) instead of a loaded
- * model_t, and to write an 8-byte {short texturemins[2]; short extents[2]}
- * record per face into a side table (dword_10067558, 8*numfaces) because botlib
- * has no msurface_t to hang them off.  Consumed by RecursiveLightPoint
- * (0x10006D10).  See that function's banner for the Q1-vs-Q2-tools provenance.
+/* CalcSurfaceExtents — Quake 1 `WinQuake/model.c`, walking the BSP file lumps
+ * (dfaces/dsurfedges/dedges/dvertexes/texinfo) instead of a loaded model_t and
+ * writing an 8-byte {short texturemins[2]; short extents[2]} record per face
+ * into the dword_10067558 side table, since botlib has no msurface_t to hang
+ * them off.  Consumed by RecursiveLightPoint (0x10006D10).
  *
- * Deliberate deviations from Q1 (verified in the ref disasm — do NOT restore):
- *   - mins init is 99999.0f, not id's 999999 (ref immediate 0x47c34f80 at
- *     0x10007248); maxs is -99999.0f as in Q1.
- *   - Q1's `if (!(tex->flags & TEX_SPECIAL) && extents[i] > 256) Sys_Error(...)`
- *     bad-extents check is absent.
- *   - the `val` dot product is written vecs-first and out of index order, not
- *     Q1's `DotProduct(v->position, tex->vecs[j])`.  This is untestable either
- *     way: MSVC6 /O2 canonicalises a 3-term FP sum, emitting (2,1,0) whatever
- *     the source order (proved by ref emitting (2,1,0) for BOTH this function's
- *     (2,0,1)-ordered sum and RecursiveLightPoint's (0,1,2)-ordered `front`,
- *     with both matching). */
+ * Deliberate deviations from Q1 — do NOT restore:
+ *   - mins init is 99999.0f, not id's 999999 (maxs is -99999.0f as in Q1)
+ *   - Q1's TEX_SPECIAL bad-extents Sys_Error check is absent
+ *   - the `val` dot product is written vecs-first and out of index order.  This
+ *     one is unobservable: MSVC6 /O2 canonicalises a 3-term FP sum to (2,1,0)
+ *     whatever the source order. */
 void CalcSurfaceExtents()
 {
   int result; // eax
@@ -4350,12 +3919,8 @@ void CalcSurfaceExtents()
   if ( numfaces > 0 )
   {
     v19 = 4;
-    /* ONE loop index.  Ref spills TWO values here ([esp+1Ch] and [esp+28h]) and
-     * IDA named them separately (`i` = the ×20 byte offset into dfaces, `v21` =
-     * the face number), but the byte offset is MSVC's strength-reduced temp for
-     * `dfaces[i]`, not a source variable — the original indexes the typed lump.
-     * (An earlier note also had `v1` split off this same value; that one was
-     * already collapsed.) */
+    /* ONE loop index: the ×20 byte offset the original also spills is MSVC's
+     * strength-reduced temp for `dfaces[i]`, not a second source variable. */
     for ( i = 0; ; )
     {
       *(float *)&v23[1] = 99999.0f;
@@ -4365,23 +3930,15 @@ void CalcSurfaceExtents()
       v2 = face->texinfo;
       *(float *)&v24[0] = -99999.0f;
       v22 = &texinfo[v2];
-      /* ONE read, sign-extended once: ref has a single `movsx eax,WORD PTR
-       * [face+8]; test eax,eax` and later stores that same eax into v20's
-       * slot.  Reading the field twice (guard + body) makes cl.exe test in
-       * 16-bit (`mov ax,..; test ax,ax`) and sign-extend separately.  NB the
-       * in-condition form `if ((v20 = *(__int16*)(face+8)) > 0)` was tested
-       * 2026-07-19 and regressed — hoisting the assignment ABOVE the guard is
-       * a different form. */
+      /* ONE read, sign-extended once, hoisted ABOVE the guard.  Reading the field
+       * twice (guard + body) makes the test 16-bit with a separate sign-extend;
+       * folding the assignment INTO the condition also regresses. */
       v20 = face->numedges;
       if ( v20 > 0 )
       {
-        /* Initialiser ORDER is NOT a lever here (tested 2026-07-28): putting
-         * `v5`'s dsurfedges computation FIRST, i.e. ref's own emission order
-         * dsurfedges -> dedges -> dvertexes, is an EXACT no-op (146 insns / 523
-         * byte_diffs either way).  The residual is the register-pressure contest
-         * in [[msvc6_intractables]]: ref keeps dedges AND dvertexes in registers
-         * and recomputes `v8 = v22 + 4` from v22's slot per do-iteration; ours
-         * LICM-hoists `v8` into ebx and rematerialises `ds:dedges` twice. */
+        /* Initialiser order is NOT a lever here — reordering to the original's own
+         * dsurfedges -> dedges -> dvertexes emission order is an exact no-op.
+         * The residual is a register-pressure difference, not a source shape. */
         v3 = dedges;
         v4 = dvertexes;
         v5 = &dsurfedges[face->firstedge];
@@ -4433,19 +3990,12 @@ void CalcSurfaceExtents()
 }
 
 //----- (10007460) --------------------------------------------------------
-/* No parameters: the ecx "a1" IDA invented is a phantom __fastcall arg — the
- * prologue's `push ecx` only reserves a local slot, and the incoming ecx is
- * overwritten at 1000746e (`mov [esp+0x10],ebp`) before any read. The sole
- * caller (AAS_LoadBSPFile@10007d30, call@100083e9) sets up no ecx, leaving it
- * leftover garbage — i.e. the original source called this with no argument.
- * Dropping the phantom arg makes AAS_LoadBSPFile byte-identical (no spurious
- * `mov ecx,[esp+...]` arg load at the call site).
+/* No parameters: the `a1` the decompiler shows is a phantom __fastcall arg —
+ * the prologue's `push ecx` only reserves a local slot and the incoming ecx is
+ * overwritten before any read, while the sole caller sets up no ecx at all.
  *
- * Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c (Mr. Elusive's
- * same-author, same-era Q2 BSP-lump byteswap-on-load routine) — same-shape
- * texinfo/dvis/dplanes/dnodes/dleafs/dmodels lump walk, differing only in
- * that bspc's version also handles the reverse (to-disk) direction via a
- * `todisk` flag, which this runtime-load-only DLL doesn't need. */
+ * Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c; same lump walk,
+ * minus bspc's `todisk` reverse direction, which a load-only DLL never needs. */
 int Q2_SwapBSPFile(void)
 {
   int v1; // ebp
@@ -4477,7 +4027,7 @@ int Q2_SwapBSPFile(void)
   int j; // [esp+10h] [ebp-4h]
   int k; // [esp+10h] [ebp-4h]
   int m; // [esp+10h] [ebp-4h]
-  int a1; // [esp+10h] dead HIWORD scratch (IDA mislabeled stack slot, never read)
+  int a1; // [esp+10h] dead scratch slot, never read
 
   v1 = 0;
   for ( i = 0; i < numtexinfo; ++i )
@@ -4579,24 +4129,10 @@ int Q2_SwapBSPFile(void)
   }
   for ( ii = 0; ii < numbrushsides; ++ii )
   {
-    /* Original disasm (10007745..10007777):
-     *   mov   cx, [brushsides + 4*ii]      ; planenum
-     *   push  ecx
-     *   call  LittleShort                  ; no-op on little-endian
-     *   mov   [brushsides + 4*ii], ax      ; write swapped value back
-     *   mov   cx, [brushsides + 4*ii + 2]  ; texinfo
-     *   push  ecx
-     *   call  LittleShort
-     *   mov   [brushsides + 4*ii + 2], ax
-     * IDA inlined LittleShort and lost the call/return chain, leaving
-     * `*(_WORD *)(... + 4*ii) = v59;` writing an UNINITIALIZED `v59` over
-     * every brush's planenum at map-load time.  On x86 the garbage stack
-     * value happens to land within the plane array most runs but
-     * intermittently corrupts a planenum to e.g. 25667, which then drives
-     * CM_TraceThroughBrush into an OOB plane pointer dereference during
-     * AAS_TraceClientBBox (crash at 0x10003C90+0x276 reading plane->type).
-     * IDA's own auto-comment flags v59 as "possibly undefined".  Restore
-     * the LittleShort round-trip (identity on little-endian). */
+    /* The LittleShort round-trip must stay (identity on little-endian): the
+     * decompiler lost the call/return chain here and wrote an uninitialised
+     * temp over every brush's planenum at map-load time, which intermittently
+     * drove CM_TraceThroughBrush into an out-of-range plane. */
     dbrushsides[ii].planenum = LittleShort(dbrushsides[ii].planenum);
     dbrushsides[ii].texinfo  = LittleShort(dbrushsides[ii].texinfo);
   }
@@ -4616,13 +4152,11 @@ int Q2_SwapBSPFile(void)
   v68 = 0;
   if ( nummodels > 0 )
   {
-    /* The ONE sanctioned byte-view left on a BSP lump.  Typed `&dmodels[v68]`
-     * compiles to the same base+byte-offset induction pair but hands cl.exe the
-     * opposite SIB roles — ref 0x100075f5 is `mov ecx,[eax+ebx*1+IMM]` /
-     * `lea esi,[eax+ebx*1]` with dmodels as the BASE and the x48 offset as the
-     * index; the typed form emits `[ebx+eax*1+IMM]`.  Measured 2026-07-28:
-     * exactly 2 bytes / 4 differing lines, i.e. it costs this function its MATCH
-     * for a pure encoding tie.  The field reads below are typed either way. */
+    /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[v68]`
+     * yields the same base+offset induction pair but swaps the SIB roles (the
+     * original keeps dmodels as the base and the x48 offset as the index),
+     * which costs this function its byte-match for a pure encoding tie.  The
+     * field reads below are typed either way. */
     v69 = 0;
     do
     {
@@ -4644,8 +4178,7 @@ int Q2_SwapBSPFile(void)
   }
   return result;
 }
-// 1000775A: Q2_SwapBSPFile brushsides loop — IDA dropped the LittleShort
-//            call+return chain; fixed by writing v57 (read planenum) back.
+// 1000775A: Q2_SwapBSPFile brushsides loop — the LittleShort round-trip.
 //            See note inside the function.
 
 //----- (10007980) --------------------------------------------------------
@@ -5663,22 +5196,14 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 }
 
 //----- (10009A10) --------------------------------------------------------
-/* AAS_DrawPlaneCross — plane-projection debug "X" visualiser (Q3
- * be_aas_debug.c, verbatim).  Builds four corners of a 12x12 square around the
- * hit point in the two transverse axes (±6; the 6.0 float is .rdata 0x1005804c),
- * projects each onto the plane along axis n0=type%3, then draws the two
- * diagonals via botimport.DebugLineShow using line-IDs from the shared
- * debuglines/debuglinevisible/numdebuglines pool.
+/* AAS_DrawPlaneCross — plane-projection debug "X" visualiser, verbatim Q3
+ * be_aas_debug.c.  Builds the four corners of a 12x12 square around the hit
+ * point in the two transverse axes, projects each onto the plane along axis
+ * n0 = type%3, then draws the two diagonals through botimport.DebugLineShow
+ * with line-IDs from the shared debuglines pool.
  *
- * This is the EXACT Q3 source form; byte-identical to the original at 0x10009A10
- * under the MSVC6 oracle (a prior reconstruction had the projection operands and
- * loop guard reordered, which diverged — see the asmdiff_workflow "restore the
- * Q3 form" lever).
- *
- * DEAD in shipped Gladiator (no .text caller); preserved by /INCREMENTAL.
- * External linkage (NOT static): cl /O2 drops an unreferenced static, but the
- * original emitted this as a file-scope function that /INCREMENTAL then kept —
- * so external linkage is the faithful form and lets the oracle audit it. */
+ * DEAD in shipped Gladiator (no .text caller), preserved by /INCREMENTAL.
+ * Must keep external linkage: cl /O2 would drop an unreferenced static. */
 void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int color)
 {
   int    n0, n1, n2, j, line, lines[2];
@@ -5727,64 +5252,23 @@ void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int c
 }
 
 //----- (10009CB0) --------------------------------------------------------
-/* AAS_ShowBoundingBox — DEAD debug-cube draw helper.  Restored from
- * objdump@0x10009CB0 (131 lines).  Identity: Q3's AAS_ShowBoundingBox
- * (be_aas_debug.c) — same 8-corner cube, 3-line-ID cycle, and
- * top/bottom/vertical edge-draw loop.  NOTE: the .text reads the 2nd
- * stack param for the top (maxs) corners and the 3rd for the bottom
- * (mins) corners — the reverse of Q3's (origin, mins, maxs) prototype —
- * so the param order here is kept as decompiled to stay byte-faithful.
- * Draws an AABB at origin with
- * mins/maxs offsets as a wireframe cube of color 0xF2F2F0F0 using the
- * shared debuglines line-ID slot table — but only retains THREE
- * line IDs across all 12 edges, so the bottom-quad / top-quad /
- * vertical edges visible at any moment cycle through which 3 of the
- * 12 are present.  Almost certainly a development-time visualization
- * (e.g., a "flicker the entity bbox so it's not too noisy in the
- * debug view" toggle).
+/* AAS_ShowBoundingBox — Q3's AAS_ShowBoundingBox (be_aas_debug.c): draw the
+ * AABB at `origin` with mins/maxs offsets as a wireframe cube in colour
+ * 0xF2F2F0F0.  NOTE the param order is the reverse of Q3's
+ * (origin, mins, maxs) — the .text takes the 2nd param as the TOP corners and
+ * the 3rd as the bottom — and is kept as-is to stay byte-faithful.
  *
- * Signature (cdecl, 3 vec3 args):
- *   void AAS_ShowBoundingBox(vec3_t origin, vec3_t mins_offset, vec3_t maxs_offset)
+ *   bottom_corners[4], z = origin.z + mins.z:  SW, SE, NE, NW
+ *   top_corners[4],    z = origin.z + maxs.z:  memcpy of bottom, then a
+ *     4x stride-12 fst loop patches each copy's third float.
  *
- * Geometry (verified field-by-field from the .text FPU schedule):
- *   X1 = origin[0] + mins[0]   X4 = origin[0] + maxs[0]
- *   X2 = origin[1] + mins[1]   X5 = origin[1] + maxs[1]
- *   X3 = origin[2] + mins[2]   X6 = origin[2] + maxs[2]
+ * Per iteration i in [1..4] it draws bot[i-1]->bot[i&3], top[i-1]->top[i&3]
+ * and bot[i-1]->top[i-1], covering all 12 edges — but only THREE line IDs are
+ * held across them, so which 3 edges are actually on screen cycles.  Almost
+ * certainly a development-time "flicker the bbox" visualisation.
  *
- *   bottom_corners[4] @ [ebp-0x60..0x34]:   z = X3 (= origin.z + mins.z)
- *     [0] = (X1, X2, X3)   SW
- *     [1] = (X4, X2, X3)   SE
- *     [2] = (X4, X5, X3)   NE
- *     [3] = (X1, X5, X3)   NW
- *   top_corners[4]    @ [ebp-0x30..0x04]:   z = X6 (= origin.z + maxs.z)
- *     (memcpy from bottom, then a 4×stride-12 fst loop overwrites z
- *     of each copy with X6 — Mr. Elusive's verbatim trick to build
- *     "same XY, different Z" by patching the third float in place.)
- *
- * Per outer iteration i in [1..4]:
- *   - bi_DebugLineShow(line_ids[0], &bot[i-1],         &bot[i & 3],   0xF2F2F0F0)
- *   - bi_DebugLineShow(line_ids[1], &top[i-1],         &top[i & 3],   0xF2F2F0F0)
- *   - bi_DebugLineShow(line_ids[2], &bot[i-1],         &top[i-1],     0xF2F2F0F0)
- *   = 12 line draws covering all 12 cube edges, but with only
- *     3 line IDs cycled (each ID's last assignment wins on screen).
- *
- * Line-ID allocation (front of function) inlines a private copy of
- * AAS_DebugLine's slot scan: it walks debuglines[0..255] looking
- * for either an empty slot (calls bi_DebugLineCreate, bumps
- * numdebuglines free counter) or an existing-but-unused slot,
- * markes it in-use via debuglinevisible[slot] = 1, and stashes 3 IDs
- * into a local int[3].
- *
- * NOTE: The .text writes the outer-loop counter `i` to scratch slot
- * [esp+0x80] (= the function's arg0 stack slot — overwritten because
- * arg0/1/2 were already loaded into eax/edx/ecx).  Restoration
- * uses a real local instead.
- *
- * Thunks: ds:0x10063FFC = bi_DebugLineCreate
- *         ds:0x10064004 = bi_DebugLineShow
- * Globals: debuglines[256] = line-ID slot table
- *          debuglinevisible[256] = per-slot in-use flag
- *          numdebuglines      = free counter
+ * The line-ID allocation up front inlines a private copy of AAS_DebugLine's
+ * slot scan over debuglines[0..255].
  *
  * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
 void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
@@ -5830,36 +5314,16 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 }
 
 //----- (10009ED0) --------------------------------------------------------
-/* Restored (IDA-missed dead-code stub, /INCREMENTAL leftover).  Decoded
- * from objdump@10009ED0 (size 0x162 / 128 lines).  Identity: AAS_ShowFace
- * — given a face index, draws every edge of the face as a line with a
- * rotating 4-color debug palette, then draws a 20-unit normal arrow from
- * the face's first vertex along the face's plane normal in color
- * 0xF2F2F0F0.  Sibling of AAS_ShowArea@1000A0A0 (which calls AAS_DebugLine
- * per ground-face edge) but operates on a single face index directly.
+/* AAS_ShowFace — draw every edge of one face as a line, cycling a 4-colour
+ * debug palette (0xDCDDDEDF -> 0xF2F2F0F0 -> 0xD0D1D2D3 -> 0xF3F3F1F1),
+ * then a 20-unit normal arrow from the face's first vertex in 0xF2F2F0F0.
+ * Sibling of AAS_ShowArea@1000A0A0, but takes a face index directly.
  *
- * aasworld globals consulted (all already documented elsewhere):
- *   ds:0x1006691C  vertexes pool       (stride 12  = vec3)
- *   ds:0x10066924  planes pool         (stride 20  = normal[3] + dist + type)
- *   ds:0x10066928  numedges            (range-check bound)
- *   ds:0x1006692C  edges pool          (stride 8   = v0_idx, v1_idx)
- *   ds:0x10066934  edgeindex           (signed; abs = edge_idx)
- *   ds:0x10066938  numfaces            (range-check bound)
- *   ds:0x1006693C  faces pool          (stride 24  = planenum@0, numedges@8, firstedge@0xC)
+ * The original's colour cycle is a sub/neg/sbb/and/add bit-twiddle in the
+ * fall-through branch; the algebra reduces exactly to the 4-entry table and
+ * modulo step used here.
  *
- * Color rotation (initial value 0xDCDDDEDF, then cycles 4 ways):
- *   0xDCDDDEDF → 0xF2F2F0F0 → 0xD0D1D2D3 → 0xF3F3F1F1 → (loop)
- * Decoded from the if/else/else chain at 10009F48-10009F7B which the
- * compiler obfuscated into a sub/neg/sbb/and/add bit-twiddle for the
- * fall-through branch — the algebra reduces to exactly the same 4-cycle.
- * Cleanest C expression is a 4-entry table and modulo step.
- *
- * Range warnings issued via bi_Print(PRT_ERROR, msg, idx) for facenum or edgenum
- * out of range (.rdata strings 0x1005AFE8="facenum %d out of range\\n",
- * 0x1005AFC8="edgenum %d out of range\\n").
- *
- * DEAD in shipped Gladiator (no .text caller; AAS_ShowArea draws
- * area-level wireframes via a different path).  Restored verbatim. */
+ * DEAD in shipped Gladiator — no .text caller. */
 void __cdecl AAS_ShowFace(int facenum)
 {
   int i, color, edgenum;
@@ -5974,12 +5438,8 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 // 1000A228: conditional instruction was optimized away because esi.4<100
 
 //----- (1000A370) --------------------------------------------------------
-/*
- * AAS_DrawCross — draws a 3D cross at `origin` with arm length `size` in
- * the given color.  Renamed from sub_1000A370 / AAS_AddBBoxFaceEdges.
- * Structural match: ioq3 code/botlib/be_aas_debug.c:525 — three line
- * segments along each axis, each spanning [origin-size, origin+size].
- */
+/* AAS_DrawCross (was sub_1000A370) — a 3D cross at `origin`: three line
+ * segments, one per axis, each spanning [origin-size, origin+size]. */
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 {
   int i;
@@ -5996,36 +5456,25 @@ void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 }
 
 //----- (1000A400) --------------------------------------------------------
-/*
- * AAS_PrintTravelType — debug helper that pretty-prints a TRAVEL_* travel
- * type.  In this build it is compiled out to a single `ret` (file offset
- * 0x1000A400 in the original DLL: `c3` followed by nop/int3 padding).
- * Likely guarded by a debug #ifdef that was off for the release build, but
- * the symbol is still reachable through its thunk at 0x10001F7D so the
- * empty body must remain present for AAS_ShowReachableAreas to call.
- */
+/* AAS_PrintTravelType — pretty-prints a TRAVEL_* type, but compiled out to a
+ * bare `ret` in this build (presumably a debug #ifdef that was off).  The
+ * empty body must stay: AAS_ShowReachableAreas still calls it through the
+ * thunk at 0x10001F7D. */
 void __cdecl AAS_PrintTravelType(int traveltype)
 {
   (void)traveltype;
 }
 
 //----- (1000A420) --------------------------------------------------------
-/*
- * AAS_DrawArrow — draws an arrow from `start` to `end`: a shaft in
- * `linecolor` plus two short side strokes in `arrowcolor` forming the
- * arrowhead at `end`.  Renamed from sub_1000A420 / AAS_MovementPrediction.
- * Structural match: ioq3 code/botlib/be_aas_debug.c:579 — direction is
- * normalized end-start, cross-product with up vector (with the |dot|>0.99
- * fallback to (1,0,0)) produces the perpendicular offset for the head;
- * three calls to AAS_DebugLine draw shaft + two
- * arrowhead strokes.  Magic 1065353216 = 0x3F800000 = 1.0f.
- */
+/* AAS_DrawArrow (was sub_1000A420) — an arrow from `start` to `end`: a shaft
+ * in `linecolor` plus two arrowhead strokes in `arrowcolor`.  The head offset
+ * is normalize(end-start) crossed with the up vector, falling back to (1,0,0)
+ * when |dot| > 0.99. */
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor)
 {
   double dot; // st7
-  /* Collapsed dir/v8/v9 (int+float+float) and up/v11/v12 (float×3) into
-   * vec3_t locals.  CrossProduct/VectorNormalize/VectorMA require 3
-   * contiguous floats; separate scalar decls let GCC reorder/pad them. */
+  /* vec3_t locals, not separate scalars: CrossProduct / VectorNormalize /
+   * VectorMA need three contiguous floats. */
   vec3_t dir;  // [esp+8h] [ebp-3Ch] BYREF
   vec3_t up; // [esp+14h] [ebp-30h] BYREF
   vec3_t p1; // [esp+20h] [ebp-24h] BYREF
@@ -6060,51 +5509,23 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
 
 //----- (1000A5E0) --------------------------------------------------------
 /*
- * AAS_ShowReachability — debug visualization of a single aas_reachability_t.
+ * AAS_ShowReachability (was sub_1000A5E0) — debug visualisation of one
+ * aas_reachability_t, matching Q3's AAS_ShowReachability: an ShowArea +
+ * DrawArrow header, then a switch on traveltype running
+ * HorizontalVelocityForJump + ClientMovement prediction per branch, with a
+ * TRAVEL_JUMP-only DrawCross from JumpReachRunStart.
  *
- * Renamed from sub_1000A5E0.  Identified by structural match with Q3's
- * AAS_ShowReachability (ioq3 code/botlib/be_aas_debug.c:605): same
- * (start,end,traveltype) struct field offsets at +12/+24/+36, same JUMP/
- * WALKOFFLEDGE/ROCKETJUMP travel-type values (5/7/12 = Q3 TRAVEL_JUMP/
- * TRAVEL_WALKOFFLEDGE/TRAVEL_ROCKETJUMP per ioq3 aasfile.h:42,44,49), and
- * identical control flow (ShowArea + DrawArrow header, then a switch on
- * traveltype with HorizontalVelocityForJump + ClientMovement prediction in
- * each branch, plus a TRAVEL_JUMP-only DrawCross emitted by JumpReachRunStart).
- *
- * Parameter a1 is an aas_reachability_t * — kept as int to avoid touching
- * the rest of the file ahead of the upcoming reachability typedef pass.
- *
- * Call-site analysis (verified against reference/objdump/gladiator.dll.disasm.txt):
- *   - sub_1000A5E0 has exactly one xref in the whole binary: a single
- *     forwarding thunk at 0x1000160e (jmp 0x1000A5E0).
- *   - That thunk is called from exactly one site: 0x1000A8CA, inside the
- *     (decompiler-missed) function at 0x1000A810, which is the Gladiator
- *     analogue of Q3's AAS_ShowReachableAreas — see ioq3 be_aas_debug.c:684;
- *     same static aas_reachability_t / lastareanum / lasttime pattern.
- *   - 0x1000A810 has its own thunk at 0x10001F87, and that thunk has no
- *     direct callers either.
- * So the function appears "dead" to static analysis only because it is a
- * debug-only helper reached via an indirect/dispatched route (Q3 wires the
- * equivalents through console commands in be_interface.c:508/533/552 —
- * Gladiator likely does the same through bi_BotLibVarSet or a similar
- * string-keyed dispatcher that the decompilers do not resolve).
- *
- * Adjacent helpers in this same debug family, since renamed by structural
- * match against ioq3 be_aas_debug.c / be_aas_move.c:
- *   0x1000A370  AAS_DrawCross            (was AAS_AddBBoxFaceEdges)
- *   0x1000A420  AAS_DrawArrow            (was AAS_MovementPrediction)
- *   0x1000F010  AAS_JumpReachRunStart    (was AAS_PredictMoveDir)
- *   0x1000F750  AAS_RocketJumpZVelocity  (was AAS_FallVelocity)
- *                                          one-line wrapper for
- *                                          AAS_WeaponJumpZVelocity(origin,120)
- *                                          — matches ioq3 be_aas_move.c:341
+ * Appears dead to static analysis: its only xref is the thunk at 0x1000160e,
+ * called only from AAS_ShowReachableAreas (0x1000A810), whose own thunk has no
+ * callers either — the whole debug family is reached through a string-keyed
+ * console dispatcher the decompilers do not resolve.
  */
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 {
   int traveltype; // eax
   float speed; // [esp+Ch] [ebp-7Ch] BYREF
   float zvel; // [esp+10h] [ebp-78h]
-  vec3_t dir; // [esp+14h] [ebp-74h] BYREF (IDA saw only the first dword; the slot is 12 B / vec3)
+  vec3_t dir; // [esp+14h] [ebp-74h] BYREF (12 B / vec3)
   vec3_t cmdmove; // [esp+20h] [ebp-68h] BYREF
   vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
 
@@ -6145,37 +5566,15 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 
 //----- (1000A810) --------------------------------------------------------
 /*
- * AAS_ShowReachableAreas — debug helper that walks the reachability list of
- * a single area one entry per call (throttled to 1.5 s between advances),
- * prints the travel type of the current reach, and hands it to
- * AAS_ShowReachability for visualization.
+ * AAS_ShowReachableAreas — walks one area's reachability list, one entry per
+ * call and throttled to 1.5 s per advance, printing each travel type and
+ * handing the reach to AAS_ShowReachability.  Matches Q3's version in
+ * be_aas_debug.c: same control flow, same statics, same throttle.
  *
- * Reconstructed from the disassembly at
- *   reference/objdump/gladiator.dll.disasm.txt:19658-19709
- *   (file offsets 0x1000A810-0x1000A8D3)
- * because IDA Pro's gladiator.dll.c skipped this function entirely (the
- * function markers around it are present for 0x1000A5E0 and 0x1000A920,
- * but the body at 0x1000A810 was never emitted).
+ * Statics in the original DLL: reach @0x10062908 (44 B), lasttime @0x10062934,
+ * lastareanum @0x10062938, index @0x1006293c.
  *
- * Structural match: ioq3 code/botlib/be_aas_debug.c:684 — identical control
- * flow, same set of statics, same 1.5 s throttle.
- *
- * Static state in the original DLL:
- *   0x10062908  aas_reachability_t reach     (44 bytes / 11 dwords)
- *   0x10062934  float lasttime
- *   0x10062938  int   lastareanum
- *   0x1006293c  int   index
- * The threshold constant at 0x10058070 is the double 1.5.
- *
- * Layout used here: 28-byte aas_areasettings_t stride matches the
- * `aasworld.areasettings` access pattern seen elsewhere in this file (e.g.
- * `*((_DWORD *)aasworld.areasettings + 7 * areanum + N)`), with
- * numreachableareas at +0x14 / index 5 and firstreachablearea at +0x18 /
- * index 6.
- *
- * Reached only via the thunk at 0x10001F87 (no direct callers in static
- * disassembly); like AAS_ShowReachability, dispatched indirectly through a
- * string-keyed console command.
+ * Reached only via the thunk at 0x10001F87 — see AAS_ShowReachability.
  */
 static int   showreach_reach[11];       /* aas_reachability_t (44 B) */
 static int   showreach_lastareanum;
@@ -6272,9 +5671,8 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
     AAS_UnlinkFromBSPLeaves(AAS_EntBspLink(entnum));
     AAS_EntBspLink(entnum) = AAS_BSPLinkEntity(absmins, absmaxs, entnum, 0);
 #else
-    /* 32-bit/oracle: reach the link heads through the already-cached `ent`
-     * pointer (= &aasworld.entities[entnum], since .i is at offset 0) so MSVC
-     * reuses esi for [esi+0x7c]/[esi+0x80] instead of recomputing the index. */
+    /* Reach the link heads through the already-cached `ent` pointer so MSVC
+     * reuses one register for both, rather than recomputing the index. */
     AAS_UnlinkFromAreas(((aas_entity_t *)ent)->areas);
     ((aas_entity_t *)ent)->areas = AAS_LinkEntityClientBBox(absmins, absmaxs, entnum, 2);
     AAS_UnlinkFromBSPLeaves(((aas_entity_t *)ent)->leaves);
@@ -6285,15 +5683,10 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 }
 
 //----- (1000ABE0) --------------------------------------------------------
-/* AAS_EntityInfo — return the AAS info snapshot for an engine entity.  Restored
- * to the by-value form: the binary takes the return buffer as a hidden first
- * argument (MSVC's __cdecl struct-return ABI) and returns it in eax, so the
- * disasm at 0x1000abe0 is `return aasworld.entities[entnum].i` on the valid path
- * and `return entinfo` (a zeroed local) on the error paths — each a single
- * rep-movs into the caller's return buffer.  Note the arg order differs from
- * Q3's `void AAS_EntityInfo(int entnum, aas_entityinfo_t *info)` (be_aas_entity.c
- * :171): Gladiator returns the struct by value, so `entnum` is the only explicit
- * parameter. */
+/* AAS_EntityInfo — the AAS info snapshot for an engine entity, returned BY
+ * VALUE through MSVC's hidden-retbuf ABI: aasworld.entities[entnum].i on the
+ * valid path, a zeroed local on the error paths.  Q3 instead takes an output
+ * pointer, so `entnum` is the only explicit parameter here. */
 aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
 {
   aas_entityinfo_t entinfo; // [esp+8h] [ebp-7Ch] BYREF
@@ -6315,8 +5708,7 @@ aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
 }
 
 //----- (1000ACB0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@1000ACB0: bounds-checked copy of entities[entnum].origin
+// Bounds-checked copy of entities[entnum].origin
 // (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
 // prints via bi_Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", ...)
 // and zeroes the destination vec3.
@@ -6385,8 +5777,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
 }
 
 //----- (1000AEA0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub). Verified against objdump@1000AEA0:
-// returns the bbox of entities[entnum] via two vec3 out-params (mins from
+// Returns the bbox of entities[entnum] via two vec3 out-params (mins from
 // struct offsets +0x40..+0x48, maxs from +0x4C..+0x54).  Guards on
 // aasworld.initialized then bounds-checks entnum; on OOR prints via
 // bi_Print(PRT_FATAL, "AAS_EntitySize: entnum %d out of range\n", entnum) and
@@ -6456,16 +5847,14 @@ void AAS_ResetEntityLinks()
 {
   int i;
 
-  /* On 32-bit the macros clear the inline +124/+128 link heads; on 64-bit
-   * they clear the parallel side-band arrays (the inert inline placeholders
-   * are already zero from GetClearedMemory and are never read). */
+  /* The macros clear the inline +124/+128 link heads on 32-bit, the side-band
+   * arrays on 64-bit. */
   for ( i = 0; i < aasworld.numentities; i++ )
   {
     AAS_EntAreaLink(i) = NULL;
     AAS_EntBspLink(i) = NULL;
   }
-  /* IDA inferred a return of the loop's 132*numentities byte accumulator;
-   * the value is never consumed (Q3's AAS_ResetEntityLinks is void). */
+  /* No return value: Q3's AAS_ResetEntityLinks is void. */
 }
 
 //----- (1000B0E0) --------------------------------------------------------
@@ -6507,13 +5896,10 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   float v12; // st7
   float *v13; // ecx
   aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
-  /* Same vec3 stack-layout class of bug as in BotReachabilityArea:
-   * IDA split the start position into v18/v19/v20 (three separate floats)
-   * but the original passes &v18 to AAS_PointAreaNum / AAS_TraceClientBBox
-   * as a vec3 pointer.  GCC won't keep them adjacent, so y/z are read as
-   * garbage and AAS_PointAreaNum returns 0 for every level item, leaving
-   * goal_areanum=0 in the goal-item list and BotChooseLTGItem's weight loop
-   * unable to pick any item. */
+  /* Must be one vec3_t, not three floats: the original passes its address to
+   * AAS_PointAreaNum / AAS_TraceClientBBox as a vec3 pointer.  Split into
+   * separate locals, y/z read as garbage and every level item ends up with
+   * areanum 0, so BotChooseLTGItem can never pick one. */
   vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   int j; // [esp+1Ch] [ebp-80h]
   int i; // [esp+20h] [ebp-7Ch]
@@ -6632,8 +6018,8 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
 {
   int v5;
   int contents_mask;             // contentmask
-  int eyecontents;     // PointContents(eye) — was IDA-dropped, manifested as undefined v11
-  int fromcontents;    // PointContents(viewer) — was IDA-dropped, manifested as undefined v12
+  int eyecontents;     // PointContents(eye)
+  int fromcontents;    // PointContents(viewer)
   int i;             // iteration counter
   int passent;             // passent
   int hitent;             // hitent
@@ -6669,11 +6055,9 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     hitent = v5;
     VectorCopy(((float *)eye), start);
     VectorCopy(middle, end);
-    /* IDA dropped both PointContents() calls here — see 0x1000b893 / 0x1000b8a5
-     * in the binary. They forward via wrapper sub_10003080 to bi_PointContents
-     * (the engine import). Without the calls, eyecontents/fromcontents stay
-     * uninitialized and the trace direction never swaps when one endpoint is
-     * underwater, so visibility checks across water surfaces silently fail. */
+    /* Both PointContents() calls are required: without them eyecontents and
+     * fromcontents stay uninitialised, the trace direction never swaps when one
+     * endpoint is underwater, and visibility across water surfaces fails. */
     eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
@@ -6719,7 +6103,7 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
 // Stride 132 (=sizeof(aas_entity_t)); field +0x10 = origin xyz, +0x5C
 // = classnum/spawnflags-style key (matches the disasm).  Distance via
 // VectorLength thunk @0x10001D75 → VectorLength@10043500.  DEAD in
-// Gladiator — /INCREMENTAL.  Restored from objdump@1000B1F0.
+// Gladiator — /INCREMENTAL.
 int __cdecl sub_1000B1F0(float *ref, int target)
 {
   int i;
@@ -6731,13 +6115,9 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 
   best_index = 0;
   best_dist  = 99999.0f;
-  /* No explicit `if (numentities <= 0) return` guard: the for-loop's own
-   * entry test (i < numentities) skips the body when numentities <= 0, and
-   * the single `return best_index` tail returns 0 for that path.  The
-   * original shares one return epilogue between the empty and normal exits
-   * (ref: `mov ecx,numentities; test ecx,ecx; jle <tail>`, loop warm) — an
-   * explicit early `return best_index;` instead emits a second inline
-   * epilogue (OUR+3). */
+  /* No explicit `if (numentities <= 0) return` guard: the loop's own entry test
+   * covers it and the single tail returns 0, sharing one epilogue between the
+   * empty and normal exits as the original does. */
   for ( i = 0; i < aasworld.numentities; i++ )
   {
     ent = &aasworld.entities[i].i;
@@ -6759,18 +6139,9 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 }
 
 //----- (1000B1B0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1000B1B0:
- *   mov eax,[esp+4]; mov edx,ds:0x100669a0 (= aasworld.entities);
- *   mov ecx,eax; shl ecx,5; add ecx,eax;       (ecx = arg * 33)
- *   lea eax,[edx+ecx*4];                       (entry addr; result unused)
- *   mov eax,[edx+ecx*4+0x7c];                  (load aasworld.entities[arg]._7c)
- *   push eax; call 0x10001f6e (-> 0x1000B130 = AAS_BestReachableLinkArea);
- *   add esp,4; ret
- * Stride 33*4 = 132 = sizeof(aas_entity_t).  Field +0x7c on aas_entity_t
- * holds the entity's aas_link_t* chain head; this thin wrapper hands
- * that chain to AAS_BestReachableLinkArea and returns the result.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Thin wrapper handing aasworld.entities[entnum].areas (the entity's
+ * aas_link_t chain head at +0x7c) to AAS_BestReachableLinkArea.
+ * DEAD in Gladiator — preserved by /INCREMENTAL. */
 int __cdecl AAS_BestReachableEntityArea(int entnum)
 {
 #if BOTLIB_NEED_SIDEBAND
@@ -7188,8 +6559,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   size_t v74; // eax
   size_t v75; // edi
   void *v76; // ecx
-  /* IDA invented a local "Buffer" at [ebp-78h]; the binary actually writes the
-   * lump-0 pointer directly to the global aasworld.bboxes at 0x10066914. */
+  /* The lump-0 pointer goes straight to the global aasworld.bboxes. */
   aas_header_t aas_h; /* Gladiator AAS header: ident+version+14 lumps = 0x78 bytes */
 
   AAS_DumpAASData();
@@ -7443,8 +6813,7 @@ qboolean __cdecl AAS_WriteAASFile(char *filename)
 // DEAD in Gladiator — preserved by /INCREMENTAL: in stock builds the
 // engine never sets up max_aaslights and never calls this init, so
 // BotAddPointLight's free-list pop in sub_1000D450 always returns
-// NULL and the point-light cache stays empty.  Restored from
-// objdump@1000D340.
+// NULL and the point-light cache stays empty.
 static void sub_1000D340(void)
 {
   int max;
@@ -7543,9 +6912,8 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
   v8 = sub_1000D450();
   if ( v8 )
   {
-    /* Note: the original copies the free-list entry's stale xyz back into
-     * the caller's origin buffer (asm at 0x1000d560-d571 loads from [esi+0..8]
-     * into [eax+0..8] where eax = origin param).  Quirk preserved. */
+    /* Quirk preserved: the original copies the free-list entry's stale xyz back
+     * into the caller's origin buffer. */
     VectorCopy(v8->origin, origin);
     v8->ent       = ent;
     v8->radius    = radius;
@@ -7565,17 +6933,14 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
 }
 
 //----- (1000D5F0) --------------------------------------------------------
-/* AAS_BSPTraceLight: traces (start..end) through the BSP, returns the lightmap
- * RGB at the impact point in *red/*green/*blue and the impact position in
- * *endpos.  After the static trace, walks the BotAddPointLight cache list
- * (aasworld.newestcache) and adds each point-light's contribution where the
- * light's radius exceeds the distance to endpos.  Return value is the average
- * intensity (R+G+B)/3 plus accumulated radius slack — used as a "how lit is
- * this point" scalar by callers like BotEntityVisible.
+/* AAS_BSPTraceLight — trace (start..end) through the BSP, returning the
+ * lightmap RGB at the impact point in *red/*green/*blue and the position in
+ * *endpos.  After the static trace it walks the BotAddPointLight cache
+ * (aasworld.newestcache), adding each light whose radius exceeds its distance
+ * to endpos.  Returns (R+G+B)/3 plus accumulated radius slack — the "how lit
+ * is this point" scalar callers like BotEntityVisible use.
  *
- * Q3 stubs this in be_aas_bspq3.c (returns 0); the Q2-specific implementation
- * here is the original.  Was IDA-named sub_1000D5F0; signature matches Q3's
- * forward decl exactly. */
+ * Q3 stubs this out in be_aas_bspq3.c; this Q2 implementation is the original. */
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue)
 {
   float *v6; // ebx
@@ -7584,13 +6949,10 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   float v9; // st7
   int i; // [esp+Ch] [ebp-10h]
   vec3_t v12; // [esp+10h] [ebp-Ch] BYREF
-  /* On 64-bit, sub_10007150 writes RGB ints into local slots; we can't reuse
-   * the (now intptr_t) parameter slots for that purpose like the IDA decomp
-   * did on 32-bit.  Use dedicated int locals instead and feed them by name.
-   * The original (and the 32-bit oracle) does NOT pre-zero them — they are
-   * write-only outputs of sub_10007150.  sub_10007150 leaves them unwritten on
-   * its false return (no BSP light data), so on 64-bit we zero-init for safety;
-   * on 32-bit we match the original's no-init form (recovers OUR+3). */
+  /* Dedicated int locals for sub_10007150's RGB outputs, since the parameter
+   * slots are intptr_t here.  32-bit keeps the original's no-init form; 64-bit
+   * zero-inits, because sub_10007150 leaves them unwritten when there is no BSP
+   * light data. */
 #if BOTLIB_NEED_SIDEBAND
   int rs = 0, gs = 0, bs_ = 0;
 #else
@@ -7626,13 +6988,9 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 }
 
 //----- (1000D770) --------------------------------------------------------
-/* AAS_PointLight: convenience wrapper that returns the lightmap intensity at
- * `origin` by tracing 4096 units straight down via AAS_BSPTraceLight.  Caller
- * gets back the scalar return value (avg RGB) and may pass NULL for the three
- * channel out-pointers when only the intensity is wanted.
- *
- * Signature matches the Q3 botlib forward
- * decl in be_interface.c:310 and the q3a_bot_backport_for_q2 stub. */
+/* AAS_PointLight — lightmap intensity at `origin`, from an AAS_BSPTraceLight
+ * 4096 units straight down.  The three channel out-pointers may be NULL when
+ * only the average-RGB return value is wanted. */
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue)
 {
   /* int[3]: raw bit copies for X/Y, float bit pattern stored at [2]. */
@@ -7728,8 +7086,7 @@ int __cdecl IndexFromModel(char *String2)
 }
 
 //----- (1000D9C0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@1000D9C0: pushes "SoundFromIndex" + aasworld.soundindex_table,
+// Pushes "SoundFromIndex" + aasworld.soundindex_table,
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
 char *__cdecl AAS_SoundFromIndex(int index)
 {
@@ -7737,7 +7094,7 @@ char *__cdecl AAS_SoundFromIndex(int index)
 }
 
 //----- (1000D9F0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
+// Mirror of IndexFromModel against the
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromSound(char *String2)
 {
@@ -7752,7 +7109,7 @@ char *__cdecl AAS_ImageFromIndex(int index)
 }
 
 //----- (1000DA50) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub). Mirror of IndexFromModel against the
+// Mirror of IndexFromModel against the
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromImage(char *String2)
 {
@@ -7854,11 +7211,9 @@ void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a
 }
 
 //----- (1000DDA0) --------------------------------------------------------
-/* Restored from original MSVC source (0x1000DDA0).  Q3 equivalent:
- * AAS_PresenceTypeBoundingBox in be_aas_sample.c.  Verified against binary
- * at 0x1000DDC2-0x1000DE32: 0xC1800000 = -16.0f, 0x41800000 = +16.0f.
- * Q2 player bbox is 32x32 (-16..16), not Q3's 30x30.
- * Presence types: Gladiator 4=NORMAL, 2=CROUCH (Q3 uses 1/2, same values). */
+/* AAS_PresenceTypeBoundingBox (Q3 be_aas_sample.c).  The Q2 player bbox is
+ * 32x32 (-16..16), not Q3's 30x30.  Presence types here are 4=NORMAL,
+ * 2=CROUCH (Q3 uses 1/2). */
 int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t maxs)
 {
   int    index;
@@ -7888,11 +7243,10 @@ int AAS_Initialized()
 }
 
 //----- (1000DF00) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub). Verified against objdump@1000DF00:
-// sets aasworld.initialized = 1, then prints "AAS initialized.\n" at level 1.
+// Sets aasworld.initialized = 1, then prints "AAS initialized." at level 1.
 // Q3 be_aas_main.c AAS_SetInitialized: sets aasworld.initialized and prints
 // "AAS initialized.\n". Called from AAS_ContinueInit's tail (see 1000DF30).
-// IDA kept the bi_Print return value (Q3 declares it void).
+// Returns bi_Print's value (Q3 declares it void).
 int __cdecl AAS_SetInitialized(void)
 {
   aasworld.initialized = 1;
@@ -8008,21 +7362,16 @@ int __cdecl sub_1000E430(char *Source)
   char *v4; // ebx
   int i; // esi
   int v7; // esi
-  /* Each of these char buffers is 144 bytes in the original binary;
-   * IDA decomposed each as char[141] + __int16 + char (= 144 contiguous).
-   * Restored as char[144] so strncpy/strncat with bound 144 don't overrun. */
+  /* Each of these buffers is 144 bytes, so the strncpy/strncat bounds of 144
+   * cannot overrun. */
   char Destination[144]; // [esp+10h] [ebp-360h] BYREF
   char ArgList[144]; // [esp+A0h] [ebp-2D0h] BYREF
   char Path[144]; // [esp+130h] [ebp-240h] BYREF
-  /* The three search-dir buffers are ONE contiguous char[3][144] array in the
-   * original (rows at [esp+1C0h]/[250h]/[2E0h], 0x90 apart): the loop walks a
-   * char* through it with `v4 += 144` (disasm `add ebx,0x90` @0x1000e6d9).  All
-   * three rows are zero-inited even though only dirs[0]=gamedir and dirs[1]=
-   * "baseq2" are populated/searched (the loop runs 2 iters); dirs[2] stays empty.
-   * It MUST be a real array, not three named locals: the array's escaping address
-   * keeps MSVC /O2 from dead-eliminating the unused dirs[2] (separate locals get
-   * elided, shrinking the frame 0x360->0x2d0).  A [3][144] array is contiguous by
-   * C semantics, so `v4 += 144` is portable on 64-bit too.  Was v13/v16/v19_buf. */
+  /* The three search-dir buffers are ONE contiguous char[3][144] array, walked
+   * by a char* stepping 144.  All three rows are zero-inited even though only
+   * dirs[0] (gamedir) and dirs[1] ("baseq2") are ever populated or searched.
+   * It MUST be a real array, not three named locals: the escaping address is
+   * what keeps /O2 from dead-eliminating the unused dirs[2]. */
   char dirs[3][144]; // [esp+1C0h] [ebp-1B0h] BYREF
 
   dirs[0][0] = byte_1006294C;
@@ -8101,7 +7450,7 @@ int BotLibLoadMap(char *Source)
   int v5; // esi  (holds sub_1000E430 result — Windows-only aasN.zip fallback)
 #endif
   int errnum; // esi
-  bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF — was "int v7[38]" in IDA
+  bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
   char aasfile[144]; // [esp+134h] [ebp-90h] BYREF
 
@@ -8167,11 +7516,10 @@ int BotLibLoadMap(char *Source)
               Source);
           }
 #else
-          /* Faithful Linux give-up path (objdump@gladi386.so:F185 ~0x1b4ac).
-           * The original Linux botlib has no UNZIP32/ZIP32 windll and no
-           * winbspc spawn (gladi386.so imports neither dlopen nor exec), so it
-           * never calls the aasN.zip fallback: it sets errno=5 directly and the
-           * autolaunchbspc branch only reports that BSPC is a Win32 program. */
+          /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll
+           * and no winbspc spawn, so it never tries the aasN.zip fallback — it sets
+           * errno=5 and the autolaunchbspc branch only reports that BSPC is a Win32
+           * program. */
           *_errno() = 5;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
             botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
@@ -8262,9 +7610,7 @@ int AAS_Shutdown()
   AAS_DumpAASData();
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
-  /* Zero the entire 676-byte aas_world_t state.  Original used memset(&loaded,
-   * 0, 0x2A4u); switched to sizeof(aasworld) since aasworld is now a struct.
-   * The two are identical at the binary level (0x2A4 == sizeof(aas_world_t)). */
+  /* Zero the whole 676-byte state; sizeof(aasworld) == the original's 0x2A4. */
   memset(&aasworld, 0, sizeof(aasworld));
   aasworld.initialized = 0;
   return botimport.Print(PRT_MESSAGE, "AAS shutdown.\n");
@@ -8293,19 +7639,16 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 }
 
 //----- (1000EFC0) --------------------------------------------------------
-/* function actually tests if a point 2 units below the
- * given origin is in liquid (LAVA|SLIME|WATER = 0x38).  Used by BotMoveInDirection
- * to pick a swim/jump movement style.  IDA dropped the bi_PointContents call
- * (compare 0x1000efe6 in the binary) and v3 was uninitialized. */
+/* Tests whether a point 2 units below `origin` is in liquid
+ * (LAVA|SLIME|WATER = 0x38).  BotMoveInDirection uses it to pick a swim/jump
+ * movement style.  The bi_PointContents call is required — without it the
+ * result is uninitialised. */
 BOOL __cdecl AAS_Swimming(vec3_t origin)
 {
-  /* v5 must be int[3]: the X/Y stores are raw 32-bit copies (not int->float
-   * conversions), preserving the float bit pattern from origin.  Verified at
-   * .text 0x1000efc0: mov [esp+0],ecx / mov [esp+8],edx for X/Y, and
-   * fstp [esp+0xc] for Z.  Retyping to float[3] silently injects a
-   * cvtsi2ss on the first two stores, garbling X/Y of the test point and
-   * making bi_PointContents always miss water — bots in water never enter
-   * the swim branch and get stuck. */
+  /* int[3], not float[3]: X/Y are raw 32-bit copies of origin's float bit
+   * patterns.  As float[3] the compiler injects an int->float conversion on
+   * those two stores, garbling the test point so bi_PointContents never sees
+   * water and swimming bots get stuck. */
   int testorg[3]; // [esp+0h] [ebp-Ch] BYREF
   float z; // st7
 
@@ -8318,26 +7661,18 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 
 //----- (1000F010) --------------------------------------------------------
 /*
- * AAS_JumpReachRunStart — compute the run-up start position for a TRAVEL_JUMP
- * reachability: predict the bot's movement back from reach->start along the
- * horizontal direction (start - end), scale-400, and write the predicted
- * endpos into `runstart`.  Falls back to `start` if the prediction hits
- * water/slime/lava or a ground-damage drop (stopevent mask 0x38 | 0x04 = 0x3C
- * is what Q3 uses; the captured mask test here is `v8 & 0x38`).
- *
- * Renamed from sub_1000F010 / AAS_PredictMoveDir.
- * Structural match: ioq3 code/botlib/be_aas_move.c:256.
+ * AAS_JumpReachRunStart (was sub_1000F010) — the run-up start position for a
+ * TRAVEL_JUMP reachability: predict movement back from reach->start along the
+ * horizontal (start - end) direction at speed 400 and write the predicted
+ * endpos into `runstart`, falling back to `start` if the prediction hits
+ * liquid or a ground-damage drop (mask 0x38 here; Q3 uses 0x3C).
  */
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
   float *runstart_vec; // edi
   char stopevent; // cl
-  /* IDA split a vec3 stack local (origin+1z) into three adjacent locals
-   * v11/v12/v13 at [ebp-74h]/[ebp-70h]/[ebp-6Ch]; passed as a vec3 via
-   * &v11 to AAS_ClientMovementPrediction.  GCC will not preserve that adjacency
-   * (verified: v11 at esp+0xb4, v12 at esp+0xd0 — 28-byte gap), so the
-   * callee reads junk for start[1]/start[2].  Collapse into a proper
-   * vec3_t to guarantee contiguous layout. */
+  /* One vec3_t: the original passes its address to AAS_ClientMovementPrediction,
+   * and three separate float locals are not guaranteed to be adjacent. */
   vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
   vec3_t hordir; // [esp+14h] [ebp-68h] BYREF
   vec3_t cmdmove; // [esp+20h] [ebp-5Ch] BYREF
@@ -8376,7 +7711,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 // The first five take the early-exit "return 1" path on a hit; the
 // floor probe returns the bit as 0/1 directly via shr 29 / and 1.
 // Constants from .rdata 0x100580dc/e0/e4 = 16.0f / 8.0f / 48.0f.
-// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1000F130.
+// DEAD in Gladiator — /INCREMENTAL.
 //----- (10003080) --- thin wrapper forwarding to bi_PointContents
 int __cdecl sub_10003080(vec3_t point)
 {
@@ -8502,13 +7837,9 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 }
 
 //----- (1000F750) --------------------------------------------------------
-/*
- * AAS_RocketJumpZVelocity — Z-velocity gained by self-rocketing at `origin`
- * with the rocket-launcher's 120-unit radius damage.  Renamed from
- * sub_1000F750 / AAS_FallVelocity; one-line wrapper around the underlying
- * AAS_WeaponJumpZVelocity (currently still named AAS_WeaponJumpZVelocity at
- * 0x1000F4D0; rename pending).  Matches ioq3 be_aas_move.c:341.
- */
+/* AAS_RocketJumpZVelocity (was sub_1000F750) — Z-velocity from self-rocketing
+ * at `origin`; a one-line wrapper over AAS_WeaponJumpZVelocity with the
+ * launcher's 120-unit radius damage. */
 float __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
@@ -8544,29 +7875,19 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
 
 //----- (1000F840) --------------------------------------------------------
 /*
- * AAS_ClientMovementPrediction — predict client movement up to 'maxframes'
- * frames ahead (cf. Q3 be_aas_move.c:505).  This is the OLDER Gladiator form;
- * it diverges from Q3 by design — do NOT "upgrade" it to the Q3 algorithm:
- *   - physics are read from libvar_sv_* handles, not the aassettings struct;
- *   - acceleration is the inline per-axis velchange/clamp loop below (the block
- *     Q3 later replaced with AAS_Accelerate + wishdir/wishspeed and left as a
- *     comment at be_aas_move.c:619-631);
+ * AAS_ClientMovementPrediction — predict client movement up to `maxframes`
+ * ahead.  This is the OLDER form; it diverges from Q3 by design — do NOT
+ * "upgrade" it to the Q3 algorithm:
+ *   - physics come from the libvar_sv_* handles, not an aassettings struct;
+ *   - acceleration is the inline per-axis velchange/clamp loop below, which Q3
+ *     later replaced with AAS_Accelerate + wishdir/wishspeed;
  *   - maxwalk/crouch/swim velocities are pre-scaled by frametime here;
- *   - only SE_HITGROUND(1)/SE_LEAVEGROUND(2)/SE_ENTER{LAVA,SLIME,WATER}/
- *     SE_HITGROUNDDAMAGE(0x20)/SE_GAP(0x40) stop-events exist — no SE_ENTERAREA/
- *     jumppad/teleporter/SE_HITBOUNDINGBOX, hence no mins/maxs/stopareanum
- *     params and no AAS_TraceAreas scan.
- * The result is built in the move_buf[] scratch and copied to 'move' at the
- * tail.  Names/types below are mapped onto Q3's for readability only — the
- * codegen is NOT byte-identical to the original DLL (MSVC6 oracle currently
- * OUR+1 / 4359 byte_diffs, 2026-07-09). Frame size matches ref exactly
- * (sub esp,0x1dc); statement-level structure, variable identity/types, and
- * every callee are verified exact. The old "closed as a register-allocation
- * tie" verdict proved too strong: later source-faithful probes still moved the
- * normalized asm in narrow regions (for example `maxvel` restoring to `float`),
- * even when the raw byte metric did not improve. See msvc6_intractables.md for
- * the current negative/positive probe history; treat the residual as narrow and
- * difficult, not as mathematically exhausted.
+ *   - the only stop-events are SE_HITGROUND(1) / SE_LEAVEGROUND(2) /
+ *     SE_ENTER{LAVA,SLIME,WATER} / SE_HITGROUNDDAMAGE(0x20) / SE_GAP(0x40) —
+ *     no SE_ENTERAREA, jumppad, teleporter or SE_HITBOUNDINGBOX, hence no
+ *     mins/maxs/stopareanum params and no AAS_TraceAreas scan.
+ * The result is built in the move_buf[] scratch and copied to `move` at the
+ * tail.  Names and types follow Q3's for readability only.
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
@@ -8581,11 +7902,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int stopevent,        // a11: SE_* stop-event mask
         int visualize)        // a12: draw AAS debug lines
 {
-  // Declaration order restored to the author's own Q3 be_aas_move.c:514-528 order
-  // (2026-07-09 probe): floats, then the int cluster (n,i,j,pc,...), then vectors,
-  // then planes/traces. Removed 9 dead IDA-artifact declarations with zero uses in
-  // this function's body (v12-v19, swimming_ret) -- verified zero occurrences beyond
-  // their own declaration before deletion.
+  // Declaration order follows the author's own Q3 be_aas_move.c: floats, then
+  // the int cluster (n, i, j, pc, ...), then vectors, then planes/traces.
   float phys_friction;
   float phys_stopspeed;
   float phys_gravity;
@@ -8599,14 +7917,12 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   float phys_maxsteepness;
   float phys_jumpvel;
   float friction;
-  float gravity; // Q3 be_aas_move.c:519 declares this float; NOT long double (IDA's
-                 // pure-FPU-register marker)
-  float delta; // NOT long double: keeps the fall-damage chain fmul DWORD 10.0 / fcomp DWORD 0.0,30.0 — see the bare-double literals below, deliberate to match ref QWORD loads
+  float gravity; // float, NOT long double (Q3 be_aas_move.c declares it float)
+  float delta; // NOT long double: keeps the fall-damage chain's fmul/fcomp on DWORD operands
   float damage; // st7
   float maxvel;
-  float velchange; // Q3 be_aas_move.c:520 '//float velchange, newvel;' -- float, NOT
-                   // long double (IDA pure-FPU-register marker; long double compares
-                   // suppress the memory-operand fcom forms ref shows at 1000fb26/fb43)
+  float velchange; // float, NOT long double: long double compares suppress the
+                   // memory-operand fcom forms the original uses
   float newvel;    // ditto; ref round-trips it through the temp region (1000fb56/fb5c)
   float backoff_left; // [esp+0h] [ebp-1F8h]
   float backoff_frame; // [esp+0h] [ebp-1F8h]
@@ -8623,9 +7939,10 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   int jump_frame;
   int landed; // ecx
   BOOL swimming; // esi
-  int v57;               // swimming flag during the frame loop; the same slot is reused to carry point-contents (pc) on the landing/liquid path — kept as one var to match the original's merged slot.
-                         // VERIFIED not a v50-style chimera (2026-07-09): ref's slot has
-                         // exactly these two non-overlapping roles and no third occupant --
+  int v57;               // swimming flag during the frame loop; the same slot carries
+                         // point-contents (pc) on the landing/liquid path — ONE variable,
+                         // matching the original's merged slot.
+                         // The slot has exactly these two non-overlapping roles --
                          // the apparent extra touches nearby are push-depth-shifted reads of
                          // start[2]/&start/&left_test_vel, not this slot. Do not re-chase.
   char gap_pc; // al
@@ -8634,28 +7951,27 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   float feet[3]; // BYREF
   vec3_t start;          // BYREF
   float stepend[3]; // BYREF
-  vec3_t lastorg; // BYREF (Q3 be_aas_move.c:524/645 — was IDA-split lastorg0/1/2)
+  vec3_t lastorg; // BYREF (Q3 be_aas_move.c's lastorg)
   vec3_t frame_test_vel; // BYREF
   vec3_t old_frame_test_vel; // Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
                              // ref allocates the full 3-float slot but only [2] is ever stored
                              // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
-                             // which is why IDA rendered this as the scalar 'old_velz'.
+                             // so only its z component is ever read.
   vec3_t left_test_vel;  // BYREF
   aas_plane_t *plane; // ebp
   aas_plane_t *plane2; // eax
   float v32;
   float v33;
-  /* aas_clientmove_t scratch (copied to 'move' at the tail).  Gladiator's layout
-   * differs from Q3's aas_clientmove_t (no 'endarea'; a float at +0x44 where Q3
-   * has int 'endcontents'), so it stays a raw int[20] — DON'T retype to Q3's.
-   * dword index: [0..2]=endpos  [3..5]=velocity  [6..14]=trace(aas_trace_t)
-   *   [15]=presencetype  [16]=stopevent  [17]=float@0x44 (normally 4.0f bits
-   *   =1082130432; =(float)pc on the liquid path)  [18]=time(=n*frametime)
-   *   [19]=frames(=n). */
+  /* aas_clientmove_t scratch, copied to `move` at the tail.  Stays a raw int[20]
+   * — do NOT retype to Q3's struct, whose layout differs (no `endarea`, and an
+   * int `endcontents` where this has a float).  dword index:
+   *   [0..2]=endpos [3..5]=velocity [6..14]=trace [15]=presencetype
+   *   [16]=stopevent [17]=float@0x44 (4.0f bits, or (float)pc on the liquid
+   *   path) [18]=time (n*frametime) [19]=frames (n). */
   int move_buf[20]; // BYREF
-  aas_trace_t trace; // (was IDA int v80[9] + char v87[36] hidden return buffer)
-  aas_trace_t steptrace; // (was IDA int v83[9] + char v86[36] hidden return buffer)
-  aas_trace_t gaptrace; // (was IDA int v84[9] + char v85[36] hidden return buffer)
+  aas_trace_t trace; // (plus its hidden return buffer)
+  aas_trace_t steptrace; // (plus its hidden return buffer)
+  aas_trace_t gaptrace; // (plus its hidden return buffer)
 
   phys_friction = libvar_sv_friction->value;
   phys_stopspeed = libvar_sv_stopspeed->value;
@@ -8801,7 +8117,7 @@ LABEL_12:
       }
       if ( (stopevent & 0x20) == 0 )    // !SE_HITGROUNDDAMAGE
         goto LABEL_66;
-      // Q3 be_aas_move.c:836 landing-damage delta (was IDA goto LABEL_62/63):
+      // Q3 be_aas_move.c's landing-damage delta:
       if ( old_frame_test_vel[2] < 0.0f && (float)frame_test_vel[2] > (float)old_frame_test_vel[2] && !landed )
         delta = (float)old_frame_test_vel[2];                              // still falling
       else if ( landed )
@@ -8831,12 +8147,12 @@ LABEL_66:
     }
     while ( trace.fraction < 1.0 );
     // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
-    // check below then runs unconditionally (was IDA `if(vel>0) goto LABEL_76`).
+    // check below then runs unconditionally.
     if ( frame_test_vel[2] <= 0.0f )
     {
       VectorCopy(org, feet);
       feet[2] = feet[2] - 22.0f;
-      pc = sub_10003080((float *)feet);   /* IDA-dropped: see 0x100100dd */
+      pc = sub_10003080((float *)feet);   
       event = 0;
       v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
       // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3 be_aas_move.c:888):
@@ -8901,14 +8217,11 @@ LABEL_66:
     {
       if ( (stopevent & 0x40) == 0 )
         goto LABEL_84;
-      /* Q3 be_aas_move.c:949 is `VectorCopy(org, start); VectorCopy(start, end);
-       * end[2] -= 48 + phys_maxbarrier;` and the dead `end[2] = org[2];` below is
-       * that VectorCopy's third component — but this interleave is one of the
-       * FAITHFUL pipeline renderings, not an IDA scramble: BOTH grouped forms
-       * (copy from org, and Q3's copy-from-start with `-=`) were build-tested
-       * 2026-07-28 and each dropped 3 insns, OUR+1/4359b -> OUR-2/4406b.  Keep
-       * the element order; the residual is this function's documented frame
-       * cascade, not these stores. */
+      /* Q3 writes this as `VectorCopy(org, start); VectorCopy(start, end);
+       * end[2] -= 48 + phys_maxbarrier;`, and the dead `end[2] = org[2];` below is
+       * that second copy's third component.  The interleave here is faithful, not
+       * a decompiler scramble — both grouped forms were tried and regress.  Keep
+       * the element order. */
       start[0] = org[0];
       end[0] = org[0];
       start[1] = org[1];
@@ -8921,7 +8234,7 @@ LABEL_66:
         goto LABEL_84;
       if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
         goto LABEL_84;
-      gap_pc = sub_10003080((float *)end);   /* IDA-dropped barrier-water check */
+      gap_pc = sub_10003080((float *)end);   /* barrier-water check */
       if ( (gap_pc & 0x20) != 0 )
         goto LABEL_84;
       move_buf[1] = *(int *)&lastorg[1];
@@ -8958,48 +8271,15 @@ LABEL_88:
 }
 
 //----- (10010690) --------------------------------------------------------
-/* AAS_TestMovementPrediction — DEAD movement-prediction debug helper.  Restored from
- * objdump@0x10010690 (68 lines).  Drives one AAS_ClientMovementPrediction
- * step with a forced +Z=224 jump impulse, then prints "leave ground\n"
- * via bi_Print if the prediction's result-flags byte sets bit 0x02.
+/* AAS_TestMovementPrediction — movement-prediction debug helper: flatten the
+ * direction's Z unless swimming, normalize it, scale to 400 u/s, force a
+ * +Z=224 jump impulse, clear the debug lines, then run one
+ * AAS_ClientMovementPrediction of 13 frames at 0.1 s (presence=NORMAL,
+ * onground, stopevent, visualize) and print "leave ground" if the result
+ * flags set bit 0x02.
  *
- * Signature (cdecl, 3 args):
- *   void AAS_TestMovementPrediction(int client, vec3_t origin, vec3_t move_dir)
- *
- *   1. If !AAS_Swimming(origin), move_dir[2] = 0 (flatten Z so the bot
- *      doesn't run into a ceiling).
- *   2. VectorNormalize(move_dir) (FPU return discarded with fstp st(0)).
- *   3. VectorScale(move_dir, 400, cmd_move) — 400 u/s desired speed.
- *   4. cmd_move[2] = 224.0f — fixed jump impulse (matches sv_jumpvel
- *      default in Q2's playermove).
- *   5. velocity = {0, 0, 0} via VectorClear (chained a[0]=a[1]=a[2]=0 —
- *      confirmed by 3 distinct zero-stores at descending stack addresses
- *      E-0x60/E-0x64/E-0x68, not the 2 stores an earlier reading assumed).
- *   6. AAS_ClearShownDebugLines().
- *   7. AAS_ClientMovementPrediction(result, client, origin, 2, 1,
- *                                   velocity, cmd_move, 13, 13, 0.1f, 1, 1)
- *      — 13 frames at 0.1s each = 1.3s simulated, presence=PRESENCE_NORMAL,
- *      onground=1, stopevent=1, visualize=1.
- *   8. The 80-byte (aas_clientmove_t) return value is copied to a local
- *      via rep movs (compiler artifact — return-by-value-into-out-buf
- *      from MSVC); then the first byte's 0x02 bit is tested.
- *
- * Thunks resolved:
- *   0x10001032 → 0x1000EFC0 = AAS_Swimming
- *   0x100018DE → 0x10043290 = VectorNormalize
- *   0x10001C62 → 0x10043570 = VectorScale
- *   0x100019FB → 0x10009860 = AAS_ClearShownDebugLines
- *   0x100015FF → 0x1000F840 = AAS_ClientMovementPrediction
- *   ds:0x10063FE8 = bi_Print
- *
- * Constants:
- *   0x43C80000 = 400.0f  (speed)
- *   0x43600000 = 224.0f  (jump Z impulse)
- *   0x3DCCCCCD = 0.1f    (frametime)
- *   0x1005B844 = "leave ground\n"
- *
- * DEAD — Gladiator never references this; almost certainly a leftover
- * jump-prediction test harness from development. */
+ * DEAD — nothing references it; almost certainly a leftover development
+ * test harness. */
 void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
   aas_clientmove_t result;   /* filled by the by-value prediction return */
@@ -9272,17 +8552,11 @@ void AAS_Optimize()
 }
 
 //----- (10010F60) --------------------------------------------------------
-/* 32-bit DLL allocated 65536 fixed-size nodes (48 B each, next-ptr at +44)
- * for the reach free-list.  On 64-bit the node is 56 B and the next-ptr sits
- * at +48, and that slot must hold a full 64-bit pointer.  Keep the original
- * byte-offset walk verbatim (so MSVC6 still emits the identical +44 /
- * stride-48 code and the function stays byte-identical) but address the link
- * slot via offsetof(..,next) and store through intptr_t* — so on aarch64 the
- * stride (56), the link offset (48) and the stored pointer width (8) are all
- * correct.  Was: int result + hardcoded +44 + *(int*), which truncated both
- * the heap base and the stored link AND wrote the link at +44 while
- * AAS_AllocReachability reads ->next at +48, leaving the free-list empty so
- * the very first AAS_AllocReachability raised AAS_MAX_REACHABILITYSIZE. */
+/* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr
+ * at +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original
+ * byte-offset walk (so MSVC6 still emits the +44 / stride-48 form) but derive
+ * the link slot from offsetof(..,next) and store through intptr_t*, so stride,
+ * link offset and pointer width are all right on either target. */
 #define AAS_REACHABILITYHEAP_NODES 65536
 
 int AAS_SetupReachabilityHeap()
@@ -9309,29 +8583,10 @@ void AAS_ShutDownReachabilityHeap()
 }
 
 //----- (10010FF0) --------------------------------------------------------
-/* AAS_AllocReachability — pop a link off the AAS-link free chain.
- * IDA failed to decompile this 17-dword function; transcribed directly from
- * the disassembly at 0x10010FF0:
- *   mov  0x100667B4, %eax           ; eax = aasworld.freelinks
- *   test %eax, %eax
- *   jne  +1
- *   ret                              ; head NULL → return NULL
- *   mov  0x2C(%eax), %ecx            ; ecx = head->next  (offset +44)
- *   test %ecx, %ecx
- *   jne  +0x12
- *   push  "AAS_MAX_REACHABILITYSIZE"
- *   call  AAS_Error
- *   mov  0x100667B4, %eax            ; reload head (eax may be trashed)
- *   add  $4, %esp
- *   mov  0x2C(%eax), %ecx            ; ecx = head->next
- *   mov  %ecx, 0x100667B4            ; aasworld.freelinks = head->next
- *   mov  0x1006677C, %ecx            ; ecx = link counter
- *   inc  %ecx
- *   mov  %ecx, 0x1006677C            ; ++counter
- *   ret                              ; return original head (eax)
- *
- * Note this is a DIFFERENT free list from the entity-link one at
- * aasworld.freelinks (0x10066990, 16-byte stride, link at +8). */
+/* AAS_AllocReachability — pop a node off the reach free chain, raising
+ * AAS_MAX_REACHABILITYSIZE when the successor is NULL, and bump
+ * numreachabilities.  Note this is a DIFFERENT free list from the entity-link
+ * one at aasworld.freelinks (16-byte stride, link at +8). */
 int numreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
 
 void *AAS_AllocReachability(void)
@@ -9517,10 +8772,9 @@ int __cdecl AAS_AreaCrouch(int areanum)
 //----- (10011610) --------------------------------------------------------
 int __cdecl AAS_AreaSwim(int areanum)
 {
-  /* if/else 0-or-1 return form (== Q3's `if (areaflags & AREA_LIQUID) return
-   * qtrue; else return qfalse;`). MSVC's bit-test→0/1 idiom emits the byte-
-   * narrowed `movsx eax,BYTE; and 4; shr 2` (disasm@0x10011610). An arithmetic
-   * `(x&4)>>2` instead gets reassociated to `(x>>2)&1` on a full DWORD load. */
+  /* Keep the if/else 0-or-1 form (Q3's `if (areaflags & AREA_LIQUID)`): MSVC's
+   * bit-test idiom emits a byte-narrowed test, whereas an arithmetic
+   * `(x&4)>>2` gets reassociated to `(x>>2)&1` on a full DWORD load. */
   if ( aasworld.areasettings[areanum].areaflags & 4 )
     return 1;
   else
@@ -9528,13 +8782,8 @@ int __cdecl AAS_AreaSwim(int areanum)
 }
 
 //----- (10011640) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10011640: byte-identical duplicate of AAS_AreaSwim@10011610
- * (same `lea ecx,[eax*8]; sub ecx,eax; movsx eax,BYTE[edx+ecx*4+4];
- * and 4; shr 2` sequence reading areasettings[a].areaflags bit 2).
- * This is Q3's AAS_AreaLiquid — be_aas_reach.c has AAS_AreaSwim
- * immediately followed by AAS_AreaLiquid, both with the identical body
- * `if (areaflags & AREA_LIQUID) return qtrue; else return qfalse;`. */
+/* Q3's AAS_AreaLiquid — a byte-identical duplicate of AAS_AreaSwim above, as
+ * in be_aas_reach.c, where both share the same AREA_LIQUID body. */
 int __cdecl AAS_AreaLiquid(int areanum)
 {
   if ( aasworld.areasettings[areanum].areaflags & 4 )
@@ -9556,19 +8805,8 @@ int __cdecl AAS_AreaLadder(int areanum)
 }
 
 //----- (100116D0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100116D0:
- *   eax = ds:0x10064068    (= libvar_sv_jumpvel)
- *   ecx = ds:0x10064038    (= libvar_sv_gravity)
- *   fld  [eax+0x10]        (sv_jumpvel.value)
- *   fld  [ecx+0x10]        (sv_gravity.value)
- *   fmul qword ds:0x10058130   (* 0.1 -- verified from PE .rdata)
- *   fdivp st(1),st         (sv_jumpvel / (sv_gravity * 0.1)
- *                              = 10 * sv_jumpvel / sv_gravity)
- *   jmp  0x100442e8        (tail-call _ftol; returns int)
- * Returns (int)(10 * sv_jumpvel.value / sv_gravity.value), a crude
- * jump-time / hang-time estimate in tics.  Dead in Gladiator --
- * preserved by /INCREMENTAL. */
+/* Returns (int)(10 * sv_jumpvel / sv_gravity) — a crude jump/hang-time
+ * estimate in tics.  DEAD in Gladiator, preserved by /INCREMENTAL. */
 int __cdecl sub_100116D0(void)
 {
   return (int)(libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1));
@@ -9594,12 +8832,8 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 {
   int areanum; // eax
   int v4; // esi
-  /* Original MSVC frame: vec3_t point at [ebp-18h] (12 bytes) and vec3_t dir at [ebp-Ch].
-   * IDA split point into `int point[2] + float v6` because the .z slot at [ebp-10h]
-   * was assigned via `fadd 16.0; fstp [ebp-10h]` only after the first
-   * AAS_PointAreaNum, making it look like a separate scalar to the decompiler.
-   * Restoring as vec3_t so VectorMA writes/reads land in the same slot the
-   * disassembly bumps by 16.0. */
+  /* One vec3_t, so VectorMA's writes land in the same slot the original bumps by
+   * 16.0 after the first AAS_PointAreaNum. */
   vec3_t testpoint; // [esp+4h] [ebp-18h] BYREF
   vec3_t dir; // [esp+10h] [ebp-Ch] BYREF
 
@@ -9660,7 +8894,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
       if ( face1num == face2num )
       {
         AAS_FaceCenter(face1num, start);
-        if ( sub_10003080(start) & 0x38 )   /* IDA-dropped: water-edge contents check */
+        if ( sub_10003080(start) & 0x38 )   /* water-edge contents check */
         {
           face1 = &aasworld.faces[face1num];
           areasettings = &aasworld.areasettings[area1num];
@@ -9671,7 +8905,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
           lreach->reach.facenum = face1num;
           lreach->reach.edgenum = 0;
           VectorCopy(start, lreach->reach.start);
-          /* IDA decompiled this as float* arithmetic and lost the 20-byte aas_plane_t stride. */
+          /* Indexed, not float* arithmetic — aas_plane_t's stride is 20 bytes. */
           plane = &aasworld.planes[face1->planenum ^ side1];
           VectorMA(lreach->reach.start, 2.0f, plane->normal, lreach->reach.end);
           lreach->reach.traveltype = 8;
@@ -9848,15 +9082,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   aas_edge_t *edge1; // ecx
   int v18; // ebx
   aas_area_t *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
-  int v20; // rax — IDA decompiled as __int64; restored to int + abs() — see asm_matching/idioms
+  int v20; // rax — int + abs(); see asm_matching/idioms
   aas_face_t *groundface2; // edi
   int j; // ebp
-  int edge2num; // rax — IDA decompiled as __int64; restored to int + abs()
+  int edge2num; // rax — int + abs()
   aas_edge_t *edge2; // ecx
-  /* IDA-decompiled // stN locals — original MSVC kept these on the x87 stack
-   * at 80-bit. Promoted to long double + explicit operand casts at the
-   * chain expressions to mirror the original FPU pipeline.
-   * See `fpu_long_double_precision.md`. */
+  /* The original keeps these on the x87 stack at 80-bit, so they are long
+   * double with explicit operand casts in the chain expressions. */
   float v25; // st7
   float ortdot; // st7
   float v28; // st7
@@ -9884,28 +9116,16 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float y1; // [esp+60h] [ebp-170h]
   float y4; // [esp+64h] [ebp-16Ch]
   float y2; // [esp+80h] [ebp-150h]
-  /* Collapsed from {int start, int v92, int v93} — passed by reference to
-   * VectorScale, which writes 3 floats.  GCC was laying these three ints out
-   * in REVERSE order (start at +0x120, v92 at +0x11c, v93 at +0x118 in our
-   * compiled disasm), so VectorScale read garbage for v92/v93 and wrote back
-   * to unrelated stack slots.  Collapse to vec3_t. */
+  /* vec3_t: passed by reference to VectorScale, which writes 3 floats. */
   vec3_t start; // [esp+84h] [ebp-14Ch] BYREF — was start/v92/v93 int triplet
   /* Same root cause as start/v92/v93 — VectorScale destination. */
   vec3_t end; // [esp+90h] [ebp-140h] BYREF — was end/v95/v96 int triplet
-  /* Collapsed from {float v97, v98, v99} — same root cause as start/end/v101:
-   * CrossProduct(up, v101, &v97) writes 3 floats expecting a contiguous vec3.
-   * GCC may insert padding between separate float BYREF locals, so the writes
-   * land in different stack slots from the reads, yielding garbage values
-   * (e.g. v98 = 1.84e27). Collapse into a vec3_t to enforce contiguity. */
+  /* vec3_t: CrossProduct writes 3 contiguous floats here. */
   vec3_t ort; // [esp+9Ch] [ebp-134h] BYREF
   float water_bestdist; // [esp+A8h] [ebp-128h]
-  /* Collapsed from {float v101, int v102, int v103} per uninit-read root-cause
-   * analysis: GCC may insert padding between mixed-type BYREF locals,
-   * breaking the vec3 contract for CrossProduct(v143, up, &v101). */
+  /* vec3_t: CrossProduct's destination. */
   vec3_t normal; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
-  /* Collapsed from {int ground_bestend, float v111, float v112} per uninit-read root-cause
-   * analysis: ground_bestend is passed by reference to VectorMA which writes 3 floats.
-   * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
+  /* vec3_t: VectorMA's destination. */
   vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
   int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
   int v114; // [esp+E0h] [ebp-F0h]
@@ -9915,9 +9135,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int water_foundreach; // [esp+F0h] [ebp-E0h]
   int i; // [esp+F4h] [ebp-DCh]
   float ground_bestnormal[3]; // [esp+F8h] [ebp-D8h] BYREF
-  /* Collapsed from {int ground_beststart, int v122, float v123} per uninit-read root-cause
-   * analysis: ground_beststart is passed by reference to VectorMA which writes 3 floats.
-   * GCC may insert padding between mixed-type locals, breaking the vec3 contract. */
+  /* vec3_t: VectorMA's destination. */
   vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
   float ground_bestlength; // [esp+110h] [ebp-C0h]
   float water_bestlength; // [esp+114h] [ebp-BCh]
@@ -9925,7 +9143,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
-  vec3_t water_beststart; // [esp+140h..148h] [ebp-90h..-88h] — contiguous vec3 in ref (Q3 decl); was IDA v135/v136/v137
+  vec3_t water_beststart; // [esp+140h..148h] [ebp-90h..-88h] — one contiguous vec3, as Q3 declares it
   float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
   float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
   float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
@@ -9938,12 +9156,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t p2area1;
   vec3_t p1area2;
   vec3_t p2area2;
-  /* Original MSVC layout: int testpoint[2] @ ebp-60h + float v142 @ ebp-58h were a
-   * contiguous vec3 used as VectorMA destination and trace point for
-   * AAS_PointAreaNum.  GCC won't pack int[2] adjacent to a separate float, so
-   * VectorMA's third write overruns testpoint into stack padding, v142 is read
-   * uninitialized, and the z decrement has no effect on the trace point.
-   * Collapsed to a vec3_t. */
+  /* vec3_t: VectorMA's destination and the AAS_PointAreaNum trace point — the z
+   * decrement below has to land in the same slot. */
   vec3_t testpoint; // [esp+170h] [ebp-60h] BYREF — was int testpoint[2] + float v142
   float edgevec[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
@@ -10153,9 +9367,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   ground_bestlength = length;
                                   VectorCopy(start, ground_beststart);
                                   /* [0] keeps the int-view first-component copy form used
-                                   * elsewhere in this file; [1]/[2] were a redundant same-type
-                                   * cast on the now-collapsed vec3_t `normal` (oracle-confirmed
-                                   * byte-neutral to strip, 2026-07 cast sweep). */
+                                   * elsewhere in this file. */
                                   *(int *)ground_bestnormal = *(int *)&normal[0];
                                   ground_bestnormal[1] = normal[1];
                                   ground_bestnormal[2] = normal[2];
@@ -10213,8 +9425,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           areareachability[area1num] = v45;
           if ( !AAS_NearbySolidOrGap(v45->reach.start, v45->reach.end) )
             v45->reach.traveltime += 400;
-          /* IDA-confused thunk: 0x10001be0 jumps to 0x10011360 (ground face
-           * area sum, float), not to the real AAS_AreaReachability. */
+          /* The thunk at 0x10001be0 goes to the ground-face area sum, NOT to
+           * AAS_AreaReachability. */
           if ( AAS_AreaGroundFaceArea(v45->reach.areanum) < 500.0f )
             v45->reach.traveltime += 400;
           ++reach_step;
@@ -10337,11 +9549,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
 }
 
 //----- (10013BA0) --------------------------------------------------------
-/* Returns the Euclidean distance |a2 - a1|.  Original at 0x10013ba0
- * tail-calls VectorLength (0x10001d75) and returns whatever VectorLength
- * leaves on ST(0).  IDA decompiled this as `void` because the body looks
- * like a fire-and-forget call; that broke every caller that read v39 (or
- * similar) immediately after — see `ida_dropped_results.md`. */
+/* Euclidean distance |v2 - v1|: a tail-call to VectorLength, returning what
+ * it leaves on ST(0).  Not void — the decompiler read it that way because the
+ * body looks like a fire-and-forget call. */
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 {
   vec3_t dir; // [esp+0h] [ebp-Ch] BYREF
@@ -10351,18 +9561,11 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 }
 
 //----- (10013BF0) --------------------------------------------------------
-/* Returns 1 iff (a - b) . (a - c) <= 0 — the "is point a between b and c on
- * the line they define" test.  Equivalent to: a sits inside the segment [b,c]
- * (or on either endpoint).  Used by AAS_Reachability_Jump to decide whether a
- * projected vertex lands inside the OTHER edge so the projection's distance
- * counts toward the area-pair connection metric.
- *
- * Body recovered from disassembly at 0x10013BF0–0x10013C45: subtracts a-b and
- * a-c, dot-products them, fcomps against the float at 0x10058000 (= 0.0),
- * tests C0|C3 (st0 <= 0).  IDA dropped the 3 args; the 4 call sites in
- * AAS_Reachability_Jump (asm at 0x1001417b, 0x1001423c, 0x10014300, 0x100143d0)
- * push (a, b, c) right-to-left immediately before the call; matching them to
- * the C decomp gives args of the form (projection, edge_v0, edge_v1). */
+/* Returns 1 iff (v - v1) . (v - v2) <= 0, i.e. v lies within the segment
+ * [v1,v2] (endpoints included).  AAS_Reachability_Jump uses it to decide
+ * whether a projected vertex lands inside the OTHER edge, so the projection's
+ * distance counts toward the area-pair connection metric; its four call sites
+ * pass (projection, edge_v0, edge_v1). */
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
 {
   float ab[3], ac[3];
@@ -10382,7 +9585,7 @@ void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 //----- (10013CC0) --------------------------------------------------------
 int AAS_Reachability_Jump(int area1num, int area2num)
 {
-  aas_area_t *area1; // ebx (was `float area1` IDA punned a pointer in float-typed slot — must be a real ptr on 64-bit)
+  aas_area_t *area1; // ebx — a real pointer, not a float-typed slot holding its bits
   aas_area_t *area2; // esi
   int i; // edx
   int v8; // ecx
@@ -10401,22 +9604,12 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v23; // ecx
   float *v3; // esi
   float *v4; // ebp
-  /* v26..v39: original x87 80-bit FPU temporaries.  IDA declared `double`
-   * because the FPU return values were fstp'd to double slots, but the
-   * intermediate computations in the original happened entirely in 80-bit
-   * x87 registers (fld float promotes to 80-bit, fmul/fdiv/fadd stay 80-bit).
-   * MSVC6 /O2 keeps an unspilled float temp at that same full register
-   * precision, so plain `float` reproduces the original pipeline exactly
-   * there (verified: none of v26..v39 is ever spilled on either side).  GCC
-   * with -mfpmath=sse instead computes float*float at 32-bit SSE precision —
-   * losing precision — so the native build needs `long double` + explicit
-   * per-operand casts to force the same wide intermediates (fp_int_bitpattern_bugs.md;
-   * mirrors the VectorLength fix).  The two goals need different spellings:
-   * on MSVC6, a `long double`-typed temp meeting a `float` memory operand
-   * forces an explicit widening convert that blocks fcom/fmul/fsub
-   * memory-operand fusion, diverging from ref's fused encoding at every site
-   * below (disasm-confirmed on all 8 `v39 < bestdist` compares and the
-   * v26/v27/v36/v37 projection products). */
+  /* v26..v39 are x87 80-bit FPU temporaries, and the two toolchains need
+   * different spellings for that.  MSVC6 /O2 keeps an unspilled `float` temp at
+   * full register precision, and a `long double` there would force a widening
+   * convert that blocks memory-operand fusion.  GCC with -mfpmath=sse computes
+   * float*float at 32-bit, so the native build needs `long double` plus
+   * per-operand casts to get the same wide intermediates. */
 #if defined(_MSC_VER)
   float v26; // st7
   float v27; // st6
@@ -10459,32 +9652,26 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   aas_reachabilitynode_t *lreach; // esi
   float v51; // [esp+0h] [ebp-1CCh]
   float bestdist; // [esp+1Ch] [ebp-1B0h]
-  /* beststart/bestend are vec3_t passed to AAS_HorizontalVelocityForJump and
-   * other vec3 helpers via (int)beststart / (int)bestend.  Original AAS
-   * stack layout had them as contiguous 12-byte vec3 slots; IDA split them
-   * into int+float+float locals.  GCC won't reliably keep these adjacent. */
+  /* vec3_t: passed to AAS_HorizontalVelocityForJump and the other vec3
+   * helpers. */
   vec3_t beststart; // [esp+20h..0x2B] [ebp-1ACh..-1A4h] BYREF
   vec3_t bestend;   // [esp+2Ch..0x37] [ebp-1A0h..-198h] BYREF
   float phys_jumpvel; // [esp+38h] [ebp-194h]
   vec3_t dir; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
-  vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start (vec3, IDA split)
+  vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start
   int maxjumpheight; // [esp+5Ch] [ebp-170h]
   float speed; // [esp+60h] [ebp-16Ch] BYREF
-  /* Four edge-projection vec3 results used to find the best face-pair
-   * candidate.  Each was IDA-split into int + float + float at adjacent
-   * stack slots; GCC won't reliably keep them adjacent, so VectorDistance/
-   * VectorMiddle/VectorBetweenVectors read garbage Y/Z components — corrupting the
-   * "best candidate" selection and forcing beststart.z >= bestend.z in all
-   * surviving candidates.  Net effect: HV @ 0.0 always succeeds → all reaches
-   * take the traveltype=7 (WALKOFFLEDGE) branch and JUMP (5) is never
-   * produced (original q2ctf2 generates 89 JUMP reaches via this path). */
+  /* The four edge-projection results used to pick the best face pair.  All must
+   * be vec3_t: VectorDistance / VectorMiddle / VectorBetweenVectors read three
+   * components, and garbage Y/Z corrupts the candidate selection so every reach
+   * ends up WALKOFFLEDGE and JUMP is never produced at all. */
   vec3_t v70_vec; // [esp+64h..6Ch] [ebp-168h..-160h] BYREF — v70/v71/v72 collapsed (edge2 proj A)
   vec3_t v73_vec; // [esp+70h..78h] [ebp-15Ch..-154h] BYREF — v73/v74/v75 collapsed (edge1 proj B)
   vec3_t v76_vec; // [esp+7Ch..84h] [ebp-150h..-148h] BYREF — v76/v77/v78 collapsed (edge2 proj B)
   int v79; // [esp+88h] [ebp-144h]
   vec3_t v80_vec; // [esp+8Ch..94h] [ebp-140h..-138h] BYREF — v80/v81/v82 collapsed (edge1 proj A)
-  vec3_t dir1; // [esp+98h..A0h] [ebp-134h..-12Ch] — edge1 direction (Q3 AAS_ClosestEdgePoints dir1); [2] never written (IDA dropped the frame hole at [esp+A0h])
-  vec3_t dir2; // [esp+A4h..ACh] [ebp-128h..-120h] — edge2 direction (Q3 dir2); [2] never written (IDA dropped the frame hole at [esp+ACh])
+  vec3_t dir1; // [esp+98h..A0h] — edge1 direction (Q3's dir1); [2] is never written
+  vec3_t dir2; // [esp+A4h..ACh] — edge2 direction (Q3's dir2); [2] is never written
   int l; // [esp+B0h] [ebp-11Ch]
   int k; // [esp+B4h] [ebp-118h]
   float maxjumpdistance; // [esp+B8h] [ebp-114h]
@@ -10492,31 +9679,24 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   char *v91; // [esp+C0h] [ebp-10Ch]
   vec3_t testend; // [esp+C8h..D0h] [ebp-104h..0FCh] BYREF — vec3 trace destination
   aas_edge_t *edge1; // [esp+D4h] [ebp-F8h]
-  /* cmdmove must hold 3 floats: VectorScale writes 3 and ClientMovementPrediction
-   * reads 3.  IDA declared it int[2] but the original frame leaves 12 bytes
-   * (next slot `trace` at [ebp-E8h] is +12 from cmdmove [ebp-F4h]).  As int[2]
-   * the VectorScale's 3rd store overflows into whatever GCC laid out next. */
+  /* vec3_t: VectorScale writes 3 floats and ClientMovementPrediction reads 3;
+   * the original frame leaves exactly 12 bytes here. */
   vec3_t cmdmove; // [esp+D8h..E3h] [ebp-F4h..-E8h] BYREF
   aas_trace_t trace; // [esp+E4h] [ebp-E8h] (was int v99[9] + char v100[36] hidden return buffer)
-  aas_clientmove_t move2; // [esp+12Ch] [ebp-A0h] BYREF (the by-value return temp is IDA's `move` at [esp+17Ch])
+  aas_clientmove_t move2; // [esp+12Ch] [ebp-A0h] BYREF
 
   if ( AAS_AreaGrounded(area1num) && AAS_AreaGrounded(area2num) && !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
   {
     area1 = &aasworld.areas[area1num];
     area2 = &aasworld.areas[area2num];
-    /* IDA dropped FPU returns: original .text 0x10013d50/0x10013d5d are
-     * `call AAS_MaxJumpDistance` / `call AAS_MaxJumpHeight`, each followed by
-     * `fstp [esp+...]` storing into v89 / v68.  IDA emitted `vN = a1` instead
-     * — a1 is the area number, breaking the jump-time / jump-height checks
-     * for barrier-jump reachability generation. */
+    /* AAS_MaxJumpDistance / AAS_MaxJumpHeight return their values on the FPU
+     * stack; the decompiler dropped both, substituting the area number and
+     * breaking the jump-distance/height checks for barrier-jump generation. */
     phys_jumpvel = libvar_sv_jumpvel->value;
     maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
 
-    /* Q3 be_aas_reach.c's own x-y proximity test.  IDA rendered it as two
-     * walking float pointers plus `*(float *)((char *)area2 + ((char *)v7 -
-     * (char *)area1))` — i.e. "the same field offset, in the other area" —
-     * which is just area2->maxs[i]; `*(v7 - 3)` is area1->mins[i]. */
+    /* Q3 be_aas_reach.c's own x-y proximity test. */
     for (i = 0; i < 2; i++)
     {
       if ( maxjumpdistance + area2->maxs[i] < area1->mins[i]
@@ -10787,24 +9967,19 @@ LABEL_62:
                 return 0;
               traveltype = 5;
             }
-            /* X/Y horizontal-distance check (Z explicitly zeroed):
-             * .text 0x100146cf-0x100146f4 — fld v56X / fsub v53X / fstp v60[0];
-             * fld bestend[1] / fsub beststart[1] / fstp v60[1]; v60[2] := 0 just before. */
+            /* X/Y horizontal-distance check, with Z explicitly zeroed first. */
             dir[2] = 0.0f;
             dir[0] = bestend[0] - beststart[0];
             dir[1] = bestend[1] - beststart[1];
             if ( VectorLength(dir) >= 10 )
             {
-              /* Full 3-component direction vector for the actual barrier trace:
-               * .text 0x1001470d-0x10014736 — three fld/fsub/fstp pairs. */
+              /* Full 3-component direction vector for the barrier trace. */
               dir[0] = bestend[0] - beststart[0];
               dir[1] = bestend[1] - beststart[1];
               dir[2] = bestend[2] - beststart[2];
               VectorNormalize(dir);
               VectorMA(beststart, 1.0, dir, teststart);
-              /* Build trace endpoint v93 = v63 (XY copied as bits) with Z dropped 100u:
-               * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=teststart[1],
-               * fld teststart[2] / fsub 100.0 / fstp [v95]. */
+              /* Trace endpoint: XY copied as bits, Z dropped 100 units. */
               testend[2] = teststart[2] - 100.0f;
               testend[0] = teststart[0];
               testend[1] = teststart[1];
@@ -10831,13 +10006,10 @@ LABEL_62:
                   dir[1] = bestend[1] - beststart[1];
                   VectorNormalize(dir);
                   VectorScale(dir, speed, cmdmove);
-                  /* .text 0x1001492f-0x10014951 — cmdmove[2] override:
-                   *   if (traveltype == 5)  cmdmove[2] = libvar_sv_jumpvel->value;
-                   *   else                  cmdmove[2] = 0.0f;
-                   * IDA dropped this entire branch; without it the prediction
-                   * never applies a Z impulse, so every JUMP candidate's
-                   * landing point misses area2num in the probe loop and all
-                   * 89 JUMP reaches on q2ctf2 are lost. */
+                  /* The cmdmove[2] override is required: without a Z impulse for
+                   * traveltype 5, every JUMP candidate's landing point misses
+                   * area2num in the probe loop and no JUMP reach is ever
+                   * produced. */
                   cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
                   move2 = AAS_ClientMovementPrediction(
                                     -1,
@@ -10855,22 +10027,11 @@ LABEL_62:
                   {
                     /* Probe loop: pull the candidate test-point back along the
                      * trace direction at scale 0, -8, -16, -24, -32 and accept
-                     * the first scale that lands in area2num.  Original asm at
-                     * 0x100149b2-0x10014a05 keeps an integer counter in esi.
-                     *
-                     * IDA decompiled the counter as float v47 + float
-                     * phys_jumpvel with LODWORD bit-pattern smuggling.  At -O0
-                     * GCC compiles `phys_jumpvel = v47` to fld+fstp via x87
-                     * (see compiled disasm at 6971a2b5/6971a2bc) — and x87
-                     * fld+fstp does NOT preserve qNaN bit patterns.  After the
-                     * first iteration v47.bits = 0xFFFFFFF8 (= -8 as int, qNaN
-                     * as float); the round-trip through phys_jumpvel quantizes
-                     * it to a canonical qNaN (e.g. 0xFFC00000), and the next
-                     * SLODWORD read gives ~-4.2M instead of -8.  Result: only
-                     * the scale=0 iteration ever worked, and the JUMP path
-                     * generated ~0 reaches vs the original ~89 on q2ctf2.
-                     *
-                     * Fix: use a plain int counter, matching the original asm. */
+                     * the first scale that lands in area2num.  The counter must
+                     * be a plain int, as in the original asm — smuggling it
+                     * through a float slot (as the decompiler did) loses the
+                     * bit pattern to x87 qNaN canonicalisation, so only the
+                     * scale=0 iteration ever works and JUMP reaches vanish. */
                     int probe_scale;
                     v46 = 0;
                     probe_scale = 0;
@@ -10898,11 +10059,8 @@ LABEL_62:
                         VectorCopy(beststart, lreach->reach.start);
                         VectorCopy(bestend, lreach->reach.end);
                         lreach->reach.traveltype = traveltype;
-                        /* traveltime = dist * 240 / sv_maxwalkvelocity + 600.
-                         * Original asm at 0x10014a6d calls VectorDistance and
-                         * consumes ST(0) directly in the fmul.  Our C dropped
-                         * the return and used v48 (probe-loop teststart.z), which
-                         * is wrong — see ida_dropped_results.md. */
+                        /* traveltime = dist * 240 / sv_maxwalkvelocity + 600, where dist
+                         * is VectorDistance's FPU return value. */
                         lreach->reach.traveltime = (__int64)(VectorDistance(bestend, beststart) * 240 / libvar_sv_maxwalkvelocity->value + 600);
                         lreach->next = areareachability[area1num];
                         areareachability[area1num] = lreach;
@@ -10924,23 +10082,13 @@ LABEL_62:
 //----- (10014E60) --------------------------------------------------------
 /* AAS_Reachability_Ladder
  *
- * Six reach.facenum writes in this function (v34, v37, v41, v43, v60, v62)
- * originally stored the raw SIGNED faceindex value (v71 or v84) — both
- * loaded from aasworld.faceindex[], where the sign encodes face orientation
- * (used locally for plane-flip selection at lines 12658 and 12644).  The
- * original DLL did not abs() these before storing; AAS_Optimize at
- * 0x10010ef2 then did a raw signed [base+idx*4] lookup, producing garbage
- * face numbers on every ladder/jump-off-ladder reach in the optimized .aas
- * (MSVC's heap kept the negative offsets mapped so the orig DLL silently
- * produced wrong values instead of crashing; MinGW unmaps that region,
- * which is what crashed us on q2dm3).
- *
- * Q3's later AAS_Optimize fixed this defensively (be_aas_optimize.c:301
- * uses abs() + sign-preserve).  We apply the deeper fix here: store the
- * absolute face number at the reach writer.  Downstream code only ever
- * needs the magnitude.  This deviates from the original DLL's byte content
- * for ladder reach records whose underlying faceindex entry was negative,
- * but those bytes were meaningless in the orig anyway.
+ * DELIBERATE DEVIATION: the six reach.facenum writes here store abs() of the
+ * faceindex value.  The original stored it raw and signed (the sign encodes
+ * face orientation, used locally for plane-flip selection), and AAS_Optimize
+ * then did a signed [base+idx*4] lookup — producing garbage face numbers on
+ * every ladder reach in the optimized .aas, and an unmapped read under MinGW.
+ * Downstream code only ever needs the magnitude, and Q3's later AAS_Optimize
+ * abs()es defensively for the same reason.
  */
 int AAS_Reachability_Ladder(int area1num, int area2num)
 {
@@ -11024,9 +10172,8 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   {
     if ( AAS_AreaLadder(area2num) )
     {
-      /* IDA dropped FPU return: original at AAS_Reachability_Ladder entry calls
-       * AAS_MaxJumpHeight and stores the float result to v103.  IDA used a1
-       * (the source area number) instead — breaks ladder-reachability filtering. */
+      /* AAS_MaxJumpHeight's FPU return is required here; the decompiler dropped it
+       * and substituted the area number, breaking ladder-reach filtering. */
       phys_jumpvel = libvar_sv_jumpvel->value;
       maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
       area1 = &aasworld.areas[area1num];
@@ -11232,9 +10379,8 @@ area2 = (aas_area_t *)v85;
                     v66 = v45;
                   }
                 }
-                /* v85 is the slot the original re-used here (it also stashes
-                 * area2 further up); keep the slot, name the field instead of
-                 * punning offset 0 through `(float *)`. */
+                /* v85 is the slot the original re-uses here (it also stashes area2
+                 * further up). */
                 v85 = (char *)&aasworld.planes[ladderface1->planenum];
                 VectorMA(lowestpoint, 5.0, ((aas_plane_t *)v85)->normal, start);
                 v52 = start[2];
@@ -11348,10 +10494,9 @@ int AAS_Reachability_Teleport()
     while ( 1 )
     {
       classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
-      /* Flat early-out guards with `continue` (goto cont) match the original's
-       * control flow: IDA nested these into if/else, which makes cl.exe
-       * cross-jump-merge the error-print cold blocks (callΔ-3).  Re-flattening
-       * keeps each Print inline as the original did. Behaviour-identical. */
+      /* Flat early-out guards with `continue`, not nested if/else: nesting lets
+       * cl.exe cross-jump-merge the error-print cold blocks, whereas the
+       * original keeps each Print inline. */
       if ( !classname || strcmp(classname, "misc_teleporter") )
         goto cont;
       if ( !AAS_VectorForBSPEpairKey(ent, "origin", origin) )
@@ -11470,11 +10615,9 @@ void AAS_Reachability_Elevator()
   int v24; // rax (was __int64)
   float v25; // st7 (was double)
   float v26; // st7 (was double)
-  /* IDA-split vec3 locals restored as contiguous vec3_t arrays.  In the
-   * original frame BSPModelMinsMaxs writes 12 bytes each to mins/maxs/origin
-   * starting at the addresses passed in; IDA decompiled the trios as scattered
-   * scalars which GCC will not lay out adjacently.  All vec3 trios passed by
-   * address (point/dir/sumvec/etc.) must also be contiguous. */
+  /* Contiguous vec3_t arrays: BSPModelMinsMaxs writes 12 bytes to each of
+   * mins/maxs/origin, and every other vec3 trio passed by address here
+   * (point/dir/sumvec/…) has the same requirement. */
   vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
   float v33;            /* lip value ("lip" epair, defaults to 8.0) */
   vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
@@ -11493,10 +10636,7 @@ void AAS_Reachability_Elevator()
   float start[3];         /* [BYREF] */
   float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
   float end[3];         /* [BYREF] */
-  /* Candidate-probe offset tables.  IDA typed these `int[]` and wrote every
-   * element through `*(float *)&xvals[N]`, then read them back with byte-offset
-   * loops (`(char *)xvals + v10`, v10 stepping 4).  They hold plain floats;
-   * declared as such, with the loops indexed. */
+  /* Candidate-probe offset tables — plain floats, read by indexed loops. */
   float xvals[8];
   float yvals[8];
   float yvals_top[8];
@@ -11705,7 +10845,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
   aas_area_t *area2; // ebp
   aas_area_t *area1; // ecx
-  int v4; // restored from disasm at 0x10016a78
+  int v4; 
   int face2num; // ebp
   int i; // eax
   aas_face_t *face2; // esi
@@ -11714,13 +10854,12 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   int areanum; // edi
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
-  /* IDA-split vec3 locals restored as contiguous vec3_t arrays.
-   * VectorLength, VectorNormalize and AAS_Trace read 3 contiguous floats
-   * from the pointers passed in, so GCC must lay each trio out adjacently. */
+  /* Contiguous vec3_t arrays: VectorLength, VectorNormalize and AAS_Trace all
+   * read three floats from the pointers passed in. */
   vec3_t dir;       /* was v21/v22/v23 — vertex - origin delta vec */
   vec3_t start;   /* was v24/v25/v26 — center origin (trace start) */
   vec3_t areastart;    /* was v27/v28/v29 — origin dropped onto floor */
-  vec3_t end;        /* was v30/(v31)/v32 — VectorMA output (v31 elided by IDA) */
+  vec3_t end;        /* VectorMA output */
   vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
@@ -11753,7 +10892,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   }
   else
   {
-    v4 = sub_10003080((float *)start);   /* IDA-dropped: swim-area liquid check */
+    v4 = sub_10003080((float *)start);   /* swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }
@@ -11781,11 +10920,9 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
           if ( hordist != 0.0f && v36 <= 2000.0f && v37 / v36 >= tan(0.2617993877991494) )
           {
             VectorCopy(facecenter, start);
-            /* aas_plane_t is 20 bytes (5 floats: normal[3] + dist + type).  IDA
-             * decompiled the address calc as `+ 20 * planenum` which would
-             * advance 20 floats = 80 bytes per plane; the original disasm
-             * at 10016ebb is `lea edx,[esi+esi*4]; lea ecx,[eax+edx*4]` =
-             * planes + planenum*5*4 = planes + planenum*20 bytes. */
+            /* Indexed access: aas_plane_t is 20 BYTES (normal[3] + dist + type), so the
+             * decompiler's `+ 20 * planenum` on a float* advanced 80 bytes per
+             * plane. */
             VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
             *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
             if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
@@ -11793,8 +10930,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
               VectorSubtract(facecenter, areastart, dir);
               VectorNormalize(dir);
               VectorMA(areastart, 4.0f, dir, start);
-              /* Disasm 10016f91/f95/f9f writes all three vmav[] slots;
-               * IDA dropped the middle assignment. */
+              /* All three vmav[] slots are written here. */
               end[0] = bsptrace[3];
               end[1] = bsptrace[4];
               end[2] = bsptrace[5];
@@ -11803,8 +10939,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
               if ( VectorLength(dir) <= 24.0f )
               {
                 VectorCopy(trace.endpos, start);
-                /* Disasm 1001702b/702f/7033 writes all three vmav[] slots
-                 * from trace.endpos; IDA dropped the middle assignment. */
+                /* All three vmav[] slots are written from trace.endpos. */
                 VectorCopy(trace.endpos, end);
                 end[2] -= AAS_FallDamageDistance();
                 trace = AAS_TraceClientBBox(start, end, 2, -1);
@@ -11861,10 +10996,9 @@ int AAS_SetWeaponJumpAreaFlags()
   vec3_t maxs; // [esp+38h] [ebp-18h] BYREF
   vec3_t mins; // [esp+44h] [ebp-Ch] BYREF
 
-  /* IDA emitted raw int bit-patterns: -1049624576 = 0xC1700000 = -15.0f,
-   * 1097859072 = 0x41700000 = 15.0f.  When maxs/mins are float[3], C converts
-   * the literals to ~±1.097e9 (NOT the intended ±15).  Bounds become
-   * essentially unbounded and AAS_BestReachableArea flags wrong areas. */
+  /* Float literals, not the decompiler's raw ±15.0f bit patterns: as int
+   * literals assigned to a float[3] they convert to ~±1.1e9, leaving the bounds
+   * effectively unbounded so AAS_BestReachableArea flags the wrong areas. */
   mins[0] = -15.0f;
   mins[1] = -15.0f;
   mins[2] = -15.0f;
@@ -11936,7 +11070,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   aas_area_t *area1; // ecx
   int v4; // eax
   int i; // esi
-  int face2num; // rax (was __int64; only low 32 bits used, abs() idiom — see asm_matching/idioms)
+  int face2num; // rax (only the low 32 bits are used; abs() idiom)
   int n; // ebp
   int v9; // edi
   int v10; // esi
@@ -11945,7 +11079,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   int reached_face;
   aas_reachabilitynode_t *lreach; // eax
   float zvel; // [esp+28h] [ebp-130h]
-  /* IDA-split vec3 locals restored as contiguous vec3_t arrays. */
+  /* Contiguous vec3_t arrays. */
   vec3_t groundedpos;   /* was v17/v18/v19 — origin dropped onto floor */
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
   int v23;
@@ -11958,7 +11092,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
   vec3_t cmdmove; /* [BYREF] */
   aas_trace_t trace;
-  aas_clientmove_t move; /* [BYREF] (the by-value return temp is IDA's v36) */
+  aas_clientmove_t move; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num) ) return 0;
   if ( !AAS_AreaGrounded(area2num) ) return 0;
@@ -12099,12 +11233,11 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   int v36; // edx
   int n; // [esp+8h] [ebp-ACh]
   float v39; // [esp+8h] [ebp-ACh]
-  /* midorigin: edge midpoint, lifted off the floor by 8 units along edgecross.
-   * Passed by-address to VectorScale / VectorMA / AAS_TraceClientBBox and copied
-   * as the reach's `start` vec3.  IDA split this contiguous vec3 into int v40 +
-   * float v41 + float v42 at adjacent stack slots; GCC won't reliably keep them
-   * adjacent, which made the trace fire from a garbage origin and silently
-   * rejected ~97% of WALKOFFLEDGE candidates on q2ctf2 (23/755). */
+  /* midorigin: the edge midpoint, lifted 8 units off the floor along edgecross.
+   * Must be a real vec3_t — it is passed by address to VectorScale / VectorMA /
+   * AAS_TraceClientBBox and copied as the reach's `start`; split into separate
+   * locals the trace fires from a garbage origin and nearly every
+   * WALKOFFLEDGE candidate is silently rejected. */
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   int edge1num; // [esp+18h] [ebp-9Ch]
   int v46; // [esp+24h] [ebp-90h]
@@ -12373,26 +11506,11 @@ void AAS_InitReachability()
 }
 
 //----- (10018D00) --------------------------------------------------------
-/* AAS_InitTravelFlagFromType — initializes the travel-type → travel-flag
- * lookup table (aasworld.travelflagfortype, 32 entries × 4 bytes at
- * 0x100669E8).  Faithful transcription from disassembly at 0x10018D00:
- *   movl $0x1,    0x100669EC   ; [1]  TRAVEL_INVALID    → TFL_INVALID
- *   movl $0x2,    0x100669F0   ; [2]  TRAVEL_WALK       → TFL_WALK
- *   movl $0x4,    0x100669F4   ; [3]  TRAVEL_CROUCH     → TFL_CROUCH
- *   movl $0x8,    0x100669F8   ; [4]  TRAVEL_BARRIERJUMP→ TFL_BARRIERJUMP
- *   movl $0x10,   0x100669FC   ; [5]  TRAVEL_JUMP       → TFL_JUMP
- *   movl $0x20,   0x10066A00   ; [6]  TRAVEL_LADDER     → TFL_LADDER
- *   movl $0x80,   0x10066A04   ; [7]  TRAVEL_WALKOFFLEDGE → TFL_WALKOFFLEDGE  (note: index 7 skips bit 6)
- *   movl $0x100,  0x10066A08   ; [8]  TRAVEL_SWIM       → TFL_SWIM
- *   movl $0x200,  0x10066A0C   ; [9]  TRAVEL_WATERJUMP  → TFL_WATERJUMP
- *   movl $0x400,  0x10066A10   ; [10] TRAVEL_TELEPORT   → TFL_TELEPORT
- *   movl $0x800,  0x10066A14   ; [11] TRAVEL_ELEVATOR   → TFL_ELEVATOR
- *   movl $0x1000, 0x10066A18   ; [12] TRAVEL_ROCKETJUMP → TFL_ROCKETJUMP
- *   movl $0x2000, 0x10066A1C   ; [13] TRAVEL_BFGJUMP    → TFL_BFGJUMP
- *   movl $0x4000, 0x10066A20   ; [14] TRAVEL_GRAPPLEHOOK→ TFL_GRAPPLEHOOK
- *   ret
- * Indices [0] and [15..31] left at zero by GetClearedMemory.  Q3's
- * be_aas_main.c does the same init in AAS_InitTravelFlagFromType. */
+/* AAS_InitTravelFlagFromType — fill the travel-type -> travel-flag table
+ * (aasworld.travelflagfortype, 32 entries).  Entries [1..14] map TRAVEL_* to
+ * TFL_* one bit per type, in order, EXCEPT that index 7 (WALKOFFLEDGE) is
+ * 0x80, skipping bit 6.  Indices [0] and [15..31] stay zero.  Q3's
+ * be_aas_main.c does the same. */
 void AAS_InitTravelFlagFromType(void)
 {
   aasworld.travelflagfortype[1]  = 0x0001;     /* TFL_INVALID         */
@@ -12421,12 +11539,10 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
 }
 
 //----- (10018DF0) --------------------------------------------------------
-/* 64-bit-safe restoration of the original heap layout.  The 32-bit DLL
- * allocated one contiguous blob containing `numareas` reversed-reach heads
- * followed by `reachabilitysize` link nodes, walking with pointer
- * arithmetic in bytes.  Here we keep the contiguous blob but type it as
- * `aas_reversedreach_t[]` followed by `aas_reversedlink_t[]`, so the
- * inline `next` pointer slots are the correct width on both ABIs. */
+/* One contiguous blob of `numareas` reversed-reach heads followed by
+ * `reachabilitysize` link nodes, as in the original, but typed as
+ * aas_reversedreach_t[] + aas_reversedlink_t[] so the inline `next` slots are
+ * the right width on both ABIs. */
 void AAS_CreateReversedReachability(void)
 {
   int i, n;
@@ -12481,12 +11597,9 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
 }
 
 //----- (10019010) --------------------------------------------------------
-/* 64-bit-safe restoration of the original packed pointer-walk.  The 32-bit
- * DLL/Q3 source builds one contiguous blob:
- *   areatraveltimes[area][reachidx][linkidx] -> unsigned short
- * using a single advancing byte pointer.  Keep that source shape so the
- * MSVC6 oracle sees the original loop/carried-pointer codegen while the
- * allocation still scales with widened pointer sizes on 64-bit. */
+/* One contiguous blob, areatraveltimes[area][reachidx][linkidx] -> unsigned
+ * short, built with a single advancing pointer as in the original — keep that
+ * shape, while the allocation still scales with pointer width. */
 void AAS_CalculateAreaTravelTimes(void)
 {
   int i, l, n, size;
@@ -12547,12 +11660,9 @@ void AAS_CalculateAreaTravelTimes(void)
 //----- (10019230) --------------------------------------------------------
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes)
 {
-  /* Original 32-bit disasm: GetClearedMemory(2 * numareas + 44).
-   * 44 = sizeof(aas_routingcache_t) on 32-bit (40-byte header + 4 slop).
-   * Using sizeof() keeps the trailing unsigned short traveltimes[] array
-   * placed correctly for both 32-bit and 64-bit pointer-widened layouts.
-   * The trailing array is accessed via &cache[1] (pointer arithmetic).
-   * 64-bit: must return a real pointer (was int → truncated on aarch64). */
+  /* The original allocates `2 * numareas + 44`, where 44 is the 32-bit
+   * sizeof(aas_routingcache_t); using sizeof() keeps the trailing
+   * traveltimes[] array (reached via &cache[1]) correct on both ABIs. */
   return (aas_routingcache_t *)GetClearedMemory(2 * numtraveltimes + (int)sizeof(aas_routingcache_t) + 4);
 }
 
@@ -12589,17 +11699,15 @@ void AAS_FreeAllClusterAreaCache(void)
 }
 
 //----- (10019350) --------------------------------------------------------
-/* 64-bit-safe restoration.  Allocates one head row of
- * `aas_routingcache_t **` per cluster followed by per-cluster arrays of
- * `aas_routingcache_t *` (one slot per area in the cluster). */
+/* One head row of `aas_routingcache_t **` per cluster, followed by
+ * per-cluster arrays of `aas_routingcache_t *`, one slot per area. */
 void AAS_InitClusterAreaCache(void)
 {
   int i, size;
   char *ptr;
 
-  /* Exact Q3/original source shape: one advancing byte pointer over the
-   * contiguous [cluster heads][per-area rows] blob.  This is 64-bit-safe
-   * because every step still scales by sizeof(pointer). */
+  /* The original's shape: one advancing pointer over the contiguous
+   * [cluster heads][per-area rows] blob, every step scaled by sizeof. */
   for ( size = 0, i = 0; i < aasworld.numclusters; ++i )
     size += aasworld.clusters[i].numareas;
   ptr = (char *)GetClearedMemory(
@@ -12615,35 +11723,19 @@ void AAS_InitClusterAreaCache(void)
 }
 
 //----- (100193E0) --------------------------------------------------------
-/* AAS_FreeAllPortalCache — release every per-area portal cache chain and the
- * top-level array.  Faithful transcription from disassembly at 0x100193E0:
- *   if (aasworld.portalcache) {
- *     for (i = 0; i < aasworld.numareas; i++) {
- *       for (entry = portalcache[i]; entry; entry = next) {
- *         next = entry->[+0x24];          ; chain link at offset 0x24
- *         FreeMemory(entry);              ; via AAS_FreeRoutingCache thunk → FreeMemory
- *       }
- *       portalcache[i] = NULL;
- *     }
- *     FreeMemory(portalcache);
- *     aasworld.portalcache = NULL;
- *   }
- *
- * Was deobfuscator-named only as a thunk target; placed here at its proper
- * binary address. */
+/* AAS_FreeAllPortalCache — release every per-area portal cache chain, then the
+ * top-level array. */
 int AAS_FreeAllPortalCache(void)
 {
-  /* Faithful transcription of 0x100193E0.  Original 32-bit walked
-   * aasworld.portalcache[area] following cache->next (+0x24).
-   * 64-bit-safe via typed array indexing + typed `next` field. */
+  /* Typed array indexing and a typed `next` field, so the chain walk is
+   * pointer-width-correct. */
   int i;
   aas_routingcache_t *entry, *next;
 
   /* `if (portalcache) { ... }` with no return statement — the original is
-   * effectively void (the NULL path `je`s straight to the shared `ret` with
-   * eax = portalcache = 0; the work path leaves leftover eax).  An early
+   * effectively void, both paths falling into one shared `ret`.  An early
    * `if (!portalcache) return 0;` would invert the branch and add an
-   * `xor eax,eax`.  Same idiom as FreeMemory (a verified byte-match). */
+   * `xor eax,eax`.  Same idiom as FreeMemory. */
   if ( aasworld.portalcache )
   {
     for ( i = 0; i < aasworld.numareas; ++i )
@@ -12663,9 +11755,7 @@ int AAS_FreeAllPortalCache(void)
 //----- (10019470) --------------------------------------------------------
 int AAS_InitPortalCache()
 {
-  /* Original 32-bit: GetClearedMemory(4 * numareas) — one pointer slot
-   * per area in a flat array.  On 64-bit each slot is 8 bytes, so use
-   * sizeof(aas_routingcache_t *). */
+  /* One pointer slot per area; sized with sizeof(), not the original's 4. */
   aasworld.portalcache = (aas_routingcache_t **)GetClearedMemory(
       aasworld.numareas * (int)sizeof(aas_routingcache_t *));
   return (int)(intptr_t)aasworld.portalcache;
@@ -12674,9 +11764,8 @@ int AAS_InitPortalCache()
 //----- (100194A0) --------------------------------------------------------
 int AAS_InitRoutingUpdate()
 {
-  /* 64-bit fix: was assigning int return of GetClearedMemory to a pointer
-   * (truncated to 32 bits on aarch64).  Use sizeof() so allocation grows
-   * to match the typed struct (40 -> 56 bytes per slot on 64-bit). */
+  /* sizeof(), not the original's 40, so each slot grows with the typed
+   * struct. */
   if ( aasworld.areaupdate )
     FreeMemory((int)(intptr_t)aasworld.areaupdate);
   aasworld.areaupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
@@ -12698,12 +11787,8 @@ void AAS_InitRouting(void)
 // 1000105F: thunk → 0x10018D00 = AAS_InitTravelFlagFromType
 
 //----- (10019550) --------------------------------------------------------
-/* AAS_FreeRoutingCaches — drop both routing caches.  Faithful transcription
- * from disassembly at 0x10019550:
- *   call 0x10001D9D (thunk → 0x10019280 = AAS_FreeAllClusterAreaCache)
- *   jmp  0x10001C3A (thunk → 0x100193E0 = AAS_FreeAllPortalCache)
- * IDA decomp couldn't follow the thunk at 0x100018C0 so it produced a
- * synthetic "AAS_FreeRoutingCaches" symbol; this is the real body. */
+/* AAS_FreeRoutingCaches — drop both routing caches: the cluster-area cache,
+ * then a tail-call to the portal cache. */
 int AAS_FreeRoutingCaches(void)
 {
   AAS_FreeAllClusterAreaCache();
@@ -12711,32 +11796,14 @@ int AAS_FreeRoutingCaches(void)
 }
 
 //----- (10019570) --------------------------------------------------------
-/* sub_10019570 — DEAD in Gladiator.  Walks both routing caches
- * and FreeMemory's every aas_routingcache_t whose .time field is older
- * than (AAS_Time() - 15.0s).  Restored from objdump@0x10019570 (119
- * lines).  Same idea (and very nearly the same instruction stream) as
- * Q3's sub_10019570 in be_aas_route.c.
+/* sub_10019570 — walk both routing caches and free every aas_routingcache_t
+ * whose .time is older than AAS_Time() - 15.0 s.  Nearly the same instruction
+ * stream as Q3's equivalent in be_aas_route.c.
  *
- * Layout used:
- *   aas_cluster_t  stride 12, field0 = numareas (loop bound, edx)
- *   aas_routingcache_t:
- *     +0x00  float time          (timestamp; compared via FSUB QWORD 15.0)
- *     +0x20  aas_routingcache_t *prev   (timestamp-link)
- *     +0x24  aas_routingcache_t *next   (timestamp-link)
+ * numclusters/numareas are re-fetched inside the loop tail (the compiler
+ * cannot prove FreeMemory does not alias them) — preserved.
  *
- * Globals via aasworld:
- *   numclusters        +0x198 (VA 0x10066978)
- *   clusters           +0x19C (VA 0x1006697C, stride 12)
- *   numareas           +0x168 (VA 0x10066948)
- *   clusterareacache   +0x29C (VA 0x10066A7C, [cluster][areaInCluster])
- *   portalcache        +0x2A0 (VA 0x10066A80, [area])
- *
- * Thunks:
- *   0x10001F0A → 0x1000E120 = AAS_Time() (returns aasworld.time as double)
- *   0x10001B04 → 0x10019260 = AAS_FreeRoutingCache (FreeMemory wrapper)
- *
- * The .text re-fetches numclusters/numareas inside the loop tail (the
- * compiler can't prove they don't alias FreeMemory) — preserved here. */
+ * DEAD in Gladiator. */
 static void sub_10019570(void)
 {
   int i, j, numareas_in_cluster;
@@ -12783,10 +11850,8 @@ static void sub_10019570(void)
 }
 
 //----- (10019700) --------------------------------------------------------
-/* 64-bit-safe restoration.  The 32-bit DLL chained the routing-update
- * FIFO via 4-byte pointer slots inside aas_routingupdate_t and walked
- * everything with byte arithmetic on the int-typed globals.  Field
- * accesses now go through the typed structs; semantics preserved. */
+/* The routing-update FIFO is walked through typed aas_routingupdate_t fields
+ * rather than the original's byte arithmetic on int-typed globals. */
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 {
   /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
@@ -12908,11 +11973,9 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 //----- (10019A90) --------------------------------------------------------
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags)
 {
-  /* Faithful 64-bit-safe transcription of 0x10019A90.
-   * Per-area chain clustercache lives at aasworld.clusterareacache[cluster][areaInCluster];
-   * each entry's prev/next pointers must hold full 64-bit pointers, so we
-   * use the typed aas_routingcache_t struct fields instead of the original
-   * raw *(_DWORD *)(p + 0x20/0x24) byte accesses. */
+  /* The per-area chain head is aasworld.clusterareacache[cluster][areaInCluster];
+   * prev/next go through typed fields, not the original's +0x20/+0x24 byte
+   * accesses. */
   aas_areasettings_t *areasettings; // ecx
   int areacluster; // eax
   aas_routingcache_t *clustercache, *cache;
@@ -12951,11 +12014,8 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
 //----- (10019C00) --------------------------------------------------------
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 {
-  /* Faithful 64-bit-safe transcription of 0x10019C00.  The original
-   * decompilation walked aasworld.portalupdate via raw 40-byte byte
-   * arithmetic and chained slots through 4-byte ptr fields; both break
-   * on 64-bit.  Restored using the typed aas_routingupdate_t fifo.
-   * 64-bit fix: was `int a1_` -> truncated pointer. */
+  /* Walks aasworld.portalupdate through the typed aas_routingupdate_t FIFO
+   * rather than the original's 40-byte byte arithmetic. */
   aas_routingupdate_t *cur, *head, *tail, *upd;
   aas_routingcache_t *entry;
   int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
@@ -13045,9 +12105,7 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 //----- (10019EB0) --------------------------------------------------------
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags)
 {
-  /* Faithful 64-bit-safe transcription of 0x10019EB0.  Per-area portal
-   * chain head lives at aasworld.portalcache[area]; entries link via
-   * prev/next which must hold full 64-bit pointers. */
+  /* Per-area portal chain head is aasworld.portalcache[area]. */
   aas_routingcache_t *cache;
 
   cache = aasworld.portalcache[areanum];
@@ -13153,11 +12211,8 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
     {
       v13 = aasworld.areasettings[areanum].clusterareanum;
     }
-    /* 64-bit fix: the original `+ 40` hard-coded the 32-bit aas_routingcache_t
-     * header size.  On aarch64 the header grows to 48 bytes (8-byte prev/next),
-     * so the byte-arithmetic form read into the `next` pointer instead of
-     * traveltimes[].  Use `((unsigned short *)(cache + 1))[idx]` which is
-     * sizeof-correct on both ABIs. */
+    /* `(cache + 1)`, not the original's hard-coded `+ 40`: the header grows on
+     * 64-bit, where that offset lands inside the `next` pointer. */
     result = ((unsigned short *)(v12 + 1))[v13];
     if ( result )
       return result;
@@ -13215,14 +12270,10 @@ portalpath:
 }
 
 //----- (1001A2E0) --------------------------------------------------------
-/* AAS_ReachabilityFromNum — return reachability record `num` by value.  Like
- * AAS_EntityInfo, the binary takes the return buffer as a hidden first argument
- * (MSVC __cdecl struct-return ABI) and returns it in eax; the disasm at
- * 0x1001a2e0 is `return aasworld.reachability[num]` on the valid path and
- * `return reach` (a zeroed local) otherwise — each a single rep-movs into the
- * caller's return buffer.  Arg order differs from Q3's
- * `void AAS_ReachabilityFromNum(int num, aas_reachability_t *reach)`
- * (be_aas_route.c:1919): Gladiator returns the struct by value. */
+/* AAS_ReachabilityFromNum — reachability record `num`, returned BY VALUE
+ * through MSVC's hidden-retbuf ABI (as AAS_EntityInfo does): the record itself
+ * on the valid path, a zeroed local otherwise.  Q3 instead takes an output
+ * pointer. */
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num)
 {
   aas_reachability_t reach;
@@ -13344,13 +12395,13 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
       continue;
     AAS_AltRoutingFloodCluster_r(otherareanum);
   }
-  /* Original 32-bit DLL falls through here with eax already holding the final
-   * area->numfaces load from the loop condition; the return value is unused. */
+  /* Falls through with the loop's final area->numfaces load still in eax; the
+   * return value is unused. */
 }
 
-/* Output entry for AAS_AlternativeRouteGoals (24 bytes; stride matches the
- * disasm's `add ebx,0x18`).  Declared ahead of the docblock marker so the
- * ref-funcmap generator attributes 0x1001A720 to the function, not this type. */
+/* Output entry for AAS_AlternativeRouteGoals (24 bytes).  Declared ahead of
+ * the docblock so the ref-funcmap generator attributes 0x1001A720 to the
+ * function rather than this type. */
 typedef struct aas_altroutegoal_s {
   vec3_t          origin;
   int             areanum;
@@ -13361,77 +12412,31 @@ typedef struct aas_altroutegoal_s {
 } aas_altroutegoal_t;
 
 //----- (1001A720) --------------------------------------------------------
-/* AAS_AlternativeRouteGoals — find clusters of "midrange" route-portal
- * areas that lie within a 1.5x detour budget of the direct
- * start→goal route, and emit one alternative-route goal per cluster.
+/* AAS_AlternativeRouteGoals — find clusters of "midrange" route-portal areas
+ * lying within a 1.5x detour budget of the direct start->goal route, and emit
+ * one alternative-route goal per cluster.
  *
- * Algorithm:
- *   1) Resolve start/goal to areas via AAS_PointAreaNum.
- *   2) Baseline travel = AAS_AreaTravelTimeToGoalArea(start, goal, tf).
- *   3) Zero the candidate-flag table midrangeareas (8 bytes/area).
- *   4) For each area a in 1..numareas, mark midrangeareas[a].valid=1
- *      and record travel_to_start/travel_to_goal as words iff:
- *        - contents byte at areasettings[a]+0 has bit 0x20 set
- *          (AREACONTENTS_ROUTEPORTAL — Q3's aasfile.h numbers this bit 32;
- *          its AREACONTENTS_JUMPPAD is 128/0x80, a different bit.  This
- *          project's own AAS_CheckAreaForPossiblePortals sets this same
- *          0x20 bit alongside the confirmed AREACONTENTS_CLUSTERPORTAL
- *          bit (8) while logging "possible portal", corroborating
- *          ROUTEPORTAL over JUMPPAD here), AND
- *        - AAS_AreaReachability(a) != 0 (area has reachabilities), AND
- *        - travel(start→a, tf) ≤ 1.5 * baseline, AND
- *        - travel(a→goal,  tf) ≤ 1.5 * baseline.
- *      Each marked area is logged via Log_Write("%d midrange area %d").
- *   5) For each ebp in 1..numareas where midrangeareas[ebp].valid!=0:
- *        - Recursively flood-fill via face neighbors (AAS_AltRoutingFloodCluster_r)
- *          which clears flags and accumulates the connected cluster's
- *          area indices into clusterareas[0..numclusterareas-1].
- *        - Compute the cluster centroid as the average of each member
- *          area's center (aasworld.areas[i]+0x24).
- *        - Within the cluster, find the area whose center is closest
- *          to the centroid (VectorLength of the diff).
- *        - Emit one aas_altroutegoal_t entry:
- *            vec3   origin = areas[best].center
- *            int    areanum = best
- *            u16    travel_to_start  = midrangeareas[best]+4
- *            u16    travel_to_goal   = midrangeareas[best]+6
- *            u16    extra_travel     = (start+goal) - baseline
- *        - Stop once count == maxaltroutegoals.
- *   6) bi_Print(PRT_MESSAGE, "%d alternative route goals\n", count); return count.
+ *   1) Resolve start/goal to areas, and take the baseline travel time between
+ *      them.
+ *   2) Mark each area whose contents carry AREACONTENTS_ROUTEPORTAL (0x20) and
+ *      which has reachabilities, if travel(start->a) and travel(a->goal) are
+ *      both within 1.5x the baseline, recording both times.
+ *   3) Flood-fill each marked area's connected cluster via face neighbours,
+ *      take the cluster centroid, pick the member area whose center is closest
+ *      to it, and emit one aas_altroutegoal_t for it — origin, areanum, the
+ *      two travel times, and (start+goal) - baseline as the extra travel.
+ *      Stop at maxaltroutegoals.
  *
- * Output struct (24 bytes, stride matches `add ebx,0x18`):
- *   +0..0xB  vec3 origin
- *   +0xC     int  areanum
- *   +0x10    u16  travel_to_start
- *   +0x12    u16  travel_to_goal
- *   +0x14    u16  extra_travel_time
- *   +0x16    (2 bytes padding)
+ * Quirk preserved: the per-iteration Log_Write prints the match counter BEFORE
+ * it is incremented, so the printed number lags by one.
  *
- * Constants (resolved from .rdata):
- *   ds:0x10058070  (double) 1.5  — detour-budget factor
- *   ds:0x100580d0  (double) 1.0  — for VectorScale(1.0/N)
- *   ds:0x1005bf78  "%d midrange area %d"
- *   ds:0x1005bf54  "%d alternative route goals\n"
+ * Do NOT cache aasworld.areasettings/areas or midrangeareas/clusterareas in
+ * function-lifetime locals: the original re-derives each from its global at
+ * every use, which is what MSVC6's aliasing model produces once the accesses
+ * go through the plain indexed form Q3 itself uses.
  *
- * DEAD in Gladiator — no .text caller; /INCREMENTAL leftover.  Q3's
- * AAS_AlternativeRouteGoals adds a `type` discriminator and explicit
- * start/goal areanums; this Q2 prototype derives them via
- * AAS_PointAreaNum inside.  Restored from objdump@1001A720.
- *
- * Note: the per-iteration Log_Write call passes (counter, areanum) but
- * counter is `ebx` which the .text only increments AFTER the call —
- * so the printed counter lags by one (0 for the first match, etc.).
- * Preserved verbatim.
- *
- * No function-lifetime cached base pointers: ref re-derives
- * aasworld.areasettings/areas and midrangeareas/clusterareas from their
- * ds:IMM globals at every use (disasm-confirmed 3 separate reloads in the
- * Phase-1 marking block, the centroid loop, and the closest-point/emission
- * block) rather than holding them in a callee-saved register for the whole
- * function — MSVC6's conservative aliasing model forces this once every
- * struct/array access goes through the plain indexed form Q3's own text
- * uses, matching the two counters (nummidrangeareas/numaltroutegoals)
- * Q3 also keeps separate rather than merged into one.
+ * DEAD in Gladiator — no .text caller.  Q3's version adds a `type`
+ * discriminator and takes explicit start/goal areanums.
  */
 int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
@@ -13695,8 +12700,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 }
 
 //----- (1001AF00) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@1001AF00: returns aasworld.areasettings[areanum].cluster
+// Returns aasworld.areasettings[areanum].cluster
 // (struct offset +0xC into the 28-byte aas_areasettings_t).  No
 // aasworld.loaded guard (unlike AAS_AreaPresenceType — this variant just
 // trusts the bounds-check).  Uses `areanum > 0` (not `>= 0`) so area 0 is
@@ -13750,7 +12754,7 @@ int __cdecl AAS_PointContents(vec3_t point)
 // VectorNormalize is run on a *local copy* of the normal (see esp+0x10
 // memcpy then push+call), so the caller's vector survives unchanged
 // even though the assembly does an in-place normalize.  DEAD in
-// Gladiator — /INCREMENTAL.  Restored from objdump@1001AFF0.
+// Gladiator — /INCREMENTAL.
 double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
 {
   vec3_t support;
@@ -13804,12 +12808,10 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   bsptrace.fraction = 1.0;
   link = aasworld.arealinkedentities[areanum];
   collision = 0;
-  /* The empty-list guard reaches the function's `return 0` tail via `goto fail`
-   * (ref shares that block: `je` to it).  The post-loop test is Q3's positive
-   * `if (collision) { ...; return 1; }` so the success block is the warm
-   * fall-through and `return 0` the cold tail — matching ref's `je <cold ret0>`
-   * (was IDA's inverted `if(!collision) goto fail`, which made MSVC place the
-   * success block cold and the bytes diverge — restored 2026-06-25). */
+  /* The empty-list guard reaches the shared `return 0` tail via `goto fail`, and
+   * the post-loop test is Q3's positive `if (collision)`, so the success block
+   * is the warm fall-through and `return 0` the cold tail.  Inverting it moves
+   * the success block cold. */
   if ( !link )
     goto fail;
   do
@@ -13837,38 +12839,25 @@ fail:
 
 //----- (1001B260) --------------------------------------------------------
 /* AAS_TraceClientBBox — sweep a presence-typed bbox along a line and return
- * the first AAS-leaf hit (or fraction=1.0 if the trace clears the BSP).
+ * the first AAS-leaf hit (fraction=1.0 if the trace clears the BSP).  The BSP
+ * traversal stack is aas_tracestack_t frames walked by one tstack_p, as in Q3.
  *
- * Faithful restoration of Mr. Elusive's original C source.  IDA decompiled
- * the BSP traversal stack as 67 split locals (v36..v60) walked via three
- * aliased pointers (v6/v8/v9), but the underlying stack frame is 32 bytes
- * = `aas_tracestack_t` (Q3 botlib `be_aas_sample.c:56`).  Restoring the
- * struct + a single tstack_p pointer makes layout deterministic under GCC
- * and matches the Q3 source line-for-line.
+ * Differences from Q3, all faithful to the original:
+ *   - ON_EPSILON is 0.0005 (Q3's pre-bk010221 value).
+ *   - No PLANE_X/Y/Z axial shortcut (Q3 added, then disabled, one).
+ *   - frac is clamped to [0,1], not Q3's later [0.001,0.999].
+ *   - No `if (front == back)` FPE guard.
  *
- * Differences from Q3 (be_aas_sample.c:448) preserved per disassembly:
- *   - ON_EPSILON is 0.0005 here (Q3's 1999 comment confirms this was the
- *     pre-bk010221 value).
- *   - No PLANE_X/Y/Z axial shortcut (Q3's was added later, then disabled).
- *   - frac is clamped to [0,1] (Q3 clamps to [0.001,0.999] post-bk010221).
- *   - No `if (front == back)` FPE guard (Q3 added that with bk010221).
- *
- * Return-by-value matches Q3 source signature; MSVC/GCC cdecl insert a hidden
- * out-pointer first arg behind the scenes, identical to the original binary.
- *
- * start/end = vec3, presencetype = PRESENCE_* mask, passent = -1 disables
- * entity collision test.
+ * Returns by value, as in Q3; passent = -1 disables the entity collision test.
  */
 aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
                                         int presencetype, int passent)
 {
   int side, nodenum, tmpplanenum;
   float front, back, frac;
-  /* v1/v2 are function-scoped like Q3's (be_aas_sample.c AAS_TraceClientBBox):
-   * v1 = trace direction, v2 = traversed segment.  NB the original (pre-Q3)
-   * has NO VectorClear(v1) in the startsolid arms — the later plane-facing
-   * test then reads a stale/uninitialized v1.  Authentic original bug,
-   * preserved (Q3 added the VectorClear). */
+  /* Function-scoped as in Q3: v1 = trace direction, v2 = traversed segment.
+   * The startsolid arms have NO VectorClear(v1), so the later plane-facing test
+   * reads a stale v1 — an authentic original bug; Q3 added the clear. */
   vec3_t cur_start, cur_end, cur_mid, v1, v2;
   aas_tracestack_t tracestack[64];
   aas_tracestack_t *tstack_p;
@@ -14132,8 +13121,8 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     else
     {
       tmpplanenum = tstack_p->planenum;
-      /* The original kept the stripped-epsilon branch skeleton; collapsing it
-       * changes MSVC6's x87 compare/divide schedule. */
+      /* Keep the stripped-epsilon branch skeleton: collapsing it changes MSVC6's
+       * x87 compare/divide schedule. */
       if ( front < 0.0f )
         frac = front / (front - back);
       else
@@ -14162,11 +13151,9 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 }
 
 //----- (1001BD40) --------------------------------------------------------
-// Restored from objdump@1001BD40.  IDA's 1-arg decompile (`int sub_1001BD40(int a1)`
-// with "v3 possibly undefined" — see reference/ida/gladiator.dll.c:16267) was
-// structurally broken: the disasm shows 4 args (face, pnormal, point, epsilon)
-// and an inlined CrossProduct + DotProduct loop matching Q3's AAS_InsideFace
-// (be_aas_route.c).  Caller cleanup `add esp,0x10` at 1001c159 / 1001c28b
+// Four args (face, pnormal, point, epsilon) with an inlined CrossProduct +
+// DotProduct loop, matching Q3's AAS_InsideFace (be_aas_route.c); the callers'
+// `add esp,0x10` cleanup confirms the count.
 // confirms the 4-dword stack-arg layout.
 // DEAD in Gladiator — only reachable via /INCREMENTAL thunks
 // (0x1000119f → 1001BD40) from sub_1001C0B0 and sub_1001C210.
@@ -14250,7 +13237,7 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 // faceindex (0x10066944), faces pool (0x1006693c, stride 24 —
 // planenum at +0, faceflags at +4), planes pool (0x10066924,
 // stride 20 — normal at +0..+8, dist at +12, signbits at +16).
-// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C0B0.
+// DEAD in Gladiator — /INCREMENTAL.
 void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
 {
   int    i;
@@ -14280,15 +13267,8 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
 }
 
 //----- (1001C1C0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1001C1C0: copies the BSP plane (normal + dist) of a face
- * into caller buffers.
- *   plane_idx = ((int *)aasworld.faces)[face_idx * 6]   // face stride 24
- *   plane     = (float *)aasworld.planes + plane_idx * 5 // plane stride 20
- *   out_normal[0..2] = plane[0..2]
- *   *out_dist        = plane[3]
- * Dead in Gladiator — live code (AAS_FaceOnSameSide etc.) walks
- * aasworld.planes/faces directly; preserved by /INCREMENTAL. */
+/* Copies a face's BSP plane (normal + dist) into the caller's buffers.
+ * DEAD in Gladiator — live code walks aasworld.planes/faces directly. */
 void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
 {
   int    plane_idx;
@@ -14309,7 +13289,7 @@ void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
 // orientations of a single BSP plane).  On match, calls
 // AAS_InsideFace(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
 // 0.01f); a non-zero return promotes the face pointer to the result.
-// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1001C210.
+// DEAD in Gladiator — /INCREMENTAL.
 void *__cdecl sub_1001C210(int *gate)
 {
   int    i;
@@ -14405,14 +13385,10 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   int nodenum;
   int type;
   int side;
-  /* IDA decompiled the 256-byte stack-based BSP traversal queue as a single
-   * int + char.  GCC honored that literally — only ~8 bytes — so when the
-   * asm pushed multiple children (`*v5++ = child1; *v5++ = child2;`) it ran
-   * off the array into adjacent locals, corrupting the traversal.  This was
-   * Bug #1 from memory: AAS_BestReachableArea's box-link fallback called
-   * AAS_AASLinkEntity, which mis-traversed and returned garbage, so 82
-   * of 83 q2dm1 items got goal_areanum=0 and the bot couldn't pursue items.
-   * Original frame: sub $0x100,%esp = 256 bytes = 64 int slots. */
+  /* The BSP traversal queue is 256 bytes = 64 int slots in the original frame.
+   * Sized any smaller (as the decompiler had it), pushing both children of a
+   * node runs off the array into adjacent locals and corrupts the traversal,
+   * which leaves nearly every level item with goal_areanum 0. */
   int linkstack[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !aasworld.loaded )
@@ -14455,16 +13431,11 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     type = aasworld.planes[aasnode->planenum].type;
     if ( type < 3 )
     {
-      /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined.  side&1 = descend
-       * front child[0], side&2 = descend back child[1].  IDA had decompiled
-       * this with all three comparisons/branches inverted (dist > absmins ->
-       * side 1, dist < absmaxs -> side 3, else side 2), which is not just a
-       * codegen mismatch but a real behavioural bug: a box straddling the
-       * plane (absmins < dist < absmaxs) was classified side=1 (front only)
-       * instead of side=3 (both children), so straddling entities were
-       * mis-linked into too few areas.  The original (objdump 1001c54a-c578:
-       * je on dist<=absmins, jne on dist<absmaxs) is the canonical form below,
-       * matching Q3 AAS_BoxOnPlaneSide2's dist1>=0->front / dist2<0->back. */
+      /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined: side&1 descends front
+       * child[0], side&2 descends back child[1].  The comparison polarity below
+       * is the original's and matters behaviourally — inverted, a box straddling
+       * the plane classifies as front-only instead of both children, so
+       * straddling entities get linked into too few areas. */
       if ( aasworld.planes[aasnode->planenum].dist <= (float)absmins[type] )
         side = 1;
       else if ( aasworld.planes[aasnode->planenum].dist >= (float)absmaxs[type] )
@@ -14485,12 +13456,8 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
 }
 
 //----- (1001C620) --------------------------------------------------------
-/* AAS_LinkEntityClientBBox — adjusts the entity bbox by the AAS presence
- * type bounding box and links it into the AAS area tree.  Identified from
- * Q3 botlib (be_aas_sample.c:1323 in Q3 source) — structurally identical:
- * AAS_PresenceTypeBoundingBox + VectorSubtract x2 + AAS_AASLinkEntity.
- * IDA arg order for AAS_PresenceTypeBoundingBox(type, mins, maxs) in Q3
- * matches the disasm (2nd arg = mins-out, 3rd arg = maxs-out).           */
+/* AAS_LinkEntityClientBBox — adjust the entity bbox by the presence-type
+ * bounding box, then link it into the AAS area tree. */
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype)
 {
   vec3_t maxs; // [esp+0h] [ebp-30h] BYREF
@@ -14513,25 +13480,10 @@ char *__cdecl AAS_PlaneFromNum(int planenum)
 }
 
 //----- (1001C6F0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1001C6F0:
- *   mov eax,ds:aasworld.numsoundinfo (0x100669b4); push esi/edi
- *   xor edi,edi; test eax,eax; jle ret
- * loop:
- *   call Log_FilePointer (thunk 0x1000120d -> 0x10038EC0)
- *   test eax,eax; je ret
- *   mov ecx,ds:aasworld.soundinfo (0x100669b8)
- *   lea edx,[esi+ecx]                ;; esi = i * 0xB0
- *   push edx; push 0x1005C138; push eax
- *   call WriteStructure (thunk 0x100013e3 -> 0x10041210)
- *   call Log_Flush (thunk 0x100011b3 -> 0x10038EE0)
- *   inc edi; add esi,0xB0; cmp edi,numsoundinfo; jl loop
- * Dumps every loaded soundinfo_t entry to the bot debug log using the
- * generic ReadStructure/WriteStructure pretty-printer with the
- * soundinfo structdef at .data 0x1005C138 (stride 0xB0 = 176 bytes
- * verified against the ReadStructure call at sub_10042F90).  Companion
- * to AAS_DumpAreas / AAS_DumpReachabilities (Q3 botlib).  Dead in
- * Gladiator -- preserved by /INCREMENTAL. */
+/* Dumps every loaded soundinfo_t to the bot debug log via the generic
+ * WriteStructure pretty-printer and the soundinfo structdef at .data
+ * 0x1005C138.  Companion to Q3's AAS_DumpAreas / AAS_DumpReachabilities.
+ * DEAD in Gladiator. */
 void __cdecl sub_1001C6F0(void)
 {
   int   i;
@@ -14551,7 +13503,7 @@ int sub_1001C760(char *Source)
 {
   int v2; // ebx
   source_t *v5;
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
   char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+138h] [ebp-430h] BYREF
 
@@ -14615,14 +13567,9 @@ int sub_1001C760(char *Source)
 }
 
 //----- (1001CAB0) --------------------------------------------------------
-/* Original gladiator function at 0x1001CAB0 — initialise the aas-sound
- * node free pool.  Allocates `52 * max_aas_sounds` bytes (raw size on
- * 32-bit; on 64-bit the per-node size grows to sizeof(aas_soundpool_t))
- * and threads them into a doubly-linked free list.  Disassembly:
- *   LibVarSet clamps the cvar; node[i].prev = node[i-1] (NULL at head);
- *   node[i].next = node[i+1] (NULL at tail); free-head = pool base.
- * Restored to use struct field access so the +44 / +48 offsets become
- * proper aas_soundpool_t.prev / .next on both 32- and 64-bit. */
+/* Initialise the aas-sound node free pool: clamp the cvar, allocate
+ * max_aas_sounds nodes and thread them into a doubly-linked free list with the
+ * pool base as the head. */
 void sub_1001CAB0()
 {
   int v1;
@@ -14787,11 +13734,9 @@ aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
 }
 
 //----- (1001CDD0) --------------------------------------------------------
-/* Search the d_100669CC list for a node whose payload ints @+24 and @+32
- * match a1/a2, unlink and free it.  Original gladiator at 0x1001CDD0. */
-/* void: ref 1001cdd0 sets no return value on ANY path -- both the
- * not-found (1001cdf4) and the unlink (1001ce05) exits are a bare
- * `pop esi; ret`.  All three callers ignore the value. */
+/* Search the d_100669CC list for the node whose entnum and soundindex match
+ * a1/a2, then unlink and free it.  Genuinely void — neither exit sets a return
+ * value, and all three callers ignore it. */
 void __cdecl sub_1001CDD0(int a1, int a2)
 {
   aas_soundpool_t *v2;
@@ -14852,7 +13797,7 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, floa
       v10->entnum = a2;
       v10->channel = a3;
       v10->soundindex = a4;
-      *(int *)&v10->volume = a5;   /* bit-pattern store: a5 is int-declared but volume is float, see struct doc comment */
+      *(int *)&v10->volume = a5;   /* bit-pattern store: the arg is int-declared but the field is float */
       v10->unknown40 = a6;
       sub_1001CD10(v10);
     }
@@ -14898,13 +13843,8 @@ void __cdecl sub_1001CFA0(float a1)
 }
 
 //----- (1001D040) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1001D040: `if (p==NULL) return aasworld.d_100669CC;
- *                    else return *(int*)((char*)p + 0x30);`
- * Returns either the active sound-pool list head (when called with a
- * null cursor to reset) or the +0x30 next-chain field of the supplied
- * node.  Dead in Gladiator — the active iteration uses sub_1001CFA0's
- * inline `v1 = v1->next` instead. */
+/* Sound-pool list cursor: the active list head for a NULL argument, else the
+ * node's next link.  DEAD in Gladiator — sub_1001CFA0 walks the list inline. */
 int __cdecl sub_1001D040(aas_soundpool_t *p)
 {
   if ( !p )
@@ -14913,11 +13853,8 @@ int __cdecl sub_1001D040(aas_soundpool_t *p)
 }
 
 //----- (1001D070) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1001D070: returns aasworld.d_100669C0[ p[8] ] — i.e. the
- * sound-pool entity-payload pointer keyed by the dword field at +0x20
- * (which is dword index 8) of the supplied node.  Dead in Gladiator;
- * preserved by /INCREMENTAL. */
+/* Returns aasworld.d_100669C0[node->soundindex] — the sound's payload
+ * pointer.  DEAD in Gladiator. */
 int __cdecl sub_1001D070(aas_soundpool_t *p)
 {
   return (int)(intptr_t)aasworld.d_100669C0[p->soundindex];
@@ -14937,7 +13874,7 @@ int __cdecl sub_1001D070(aas_soundpool_t *p)
 //   (soundinfo->volume * emitter->volume) / dot(delta, delta)
 // where delta = emitter->origin - listener.  DEAD in Gladiator —
 // /INCREMENTAL; the live sound code uses a per-cluster path instead.
-// Restored from objdump@1001D0A0.
+
 float __cdecl sub_1001D0A0(float *listener, aas_soundpool_t *emitter)
 {
   float *eorigin;
@@ -14995,11 +13932,8 @@ int sub_1001D260()
 }
 
 //----- (1001D290) --------------------------------------------------------
-/* sub_1001D290 — empty function (just `ret`).  Faithful transcription:
- *   ret
- * Called from AAS_Shutdown after AAS_FreeRoutingCaches; in
- * Q3 botlib AAS_Shutdown's sequence includes empty post-cleanup steps
- * that look like this. */
+/* Empty in the original — an AAS_Shutdown post-cleanup step, called after
+ * AAS_FreeRoutingCaches. */
 void sub_1001D290(void) { /* empty body */ }
 
 //----- (1001D2B0) --------------------------------------------------------
@@ -15035,14 +13969,8 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 //----- (1001D3A0) --------------------------------------------------------
 int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str)
 {
-  /* Original asm at .text 0x1001d3a0 reuses the function's own `node` argument
-   * (the state name pointer) as the 3rd %s in sprintf — it was already on
-   * the stack from the function entry, and the caller passed string
-   * literals like aSeekLtg/aSeekNbg cast to int.  IDA misread this as
-   * "v6 uninitialised" and invented a separate local.  On 64-bit, the
-   * `(int)aSeekLtg` casts at call sites truncated the pointer and made
-   * sprintf's strlen() segfault.  Restore the original semantics: node is
-   * the state name string. */
+  /* `node` is the state-name string, reused as the third %s — the original
+   * passes its own argument, already on the stack from entry. */
 
   sprintf(&nodeswitch[144 * numnodeswitches], "%s at %2.1f entered %s: %s\n",
           (const char *)ClientName(bs->client), AAS_Time(), node, str);
@@ -15050,61 +13978,30 @@ int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *s
 }
 
 //----- (1001D420) --------------------------------------------------------
-/* BotGetFormationGoal (was sub_1001D420): predicts and returns a formation
- * follow-position "goal box" for escorting bs->formation_teammate.  Named
- * from Q3's ai_main.h, which still declares formation_angle/formation_dir/
- * formation_origin/formation_goal fields matching this function's writes
- * field-for-field, though those fields are never read or written anywhere
- * else in the whole Q3 tree — this is likely the only surviving logic that
- * ever populated them.  Reads two name strings from the bot
- * state (bs+0x10F0 = formation_teammate; bs+0x1124 = "secondary" name),
- * looks each up via ClientFromName and AAS_EntityInfo, then:
+/* BotGetFormationGoal (was sub_1001D420) — predict and return a formation
+ * follow-position "goal box" for escorting bs->formation_teammate.  Named from
+ * Q3's ai_main.h, whose formation_angle/dir/origin/goal fields match this
+ * function's writes field-for-field even though nothing else in the Q3 tree
+ * ever touches them; this is likely the only logic that populated them.
  *
- *   - validates the first target's origin via AAS_PointAreaNum + AAS_AreaReachability;
- *   - saves its origin to bs+0x1144..0x114C;
- *   - takes (entinfo.origin - entinfo.old_origin) of the SECOND target as a
- *     per-frame velocity; if length > 0.1 stores it to bs+0x1138..0x1140;
- *   - converts velocity to angles, biases yaw by *(float*)(bs+0x1134),
- *     zeroes pitch/roll, and predicts 0.1 s of forward motion from
- *     start = saved_origin + (0,0,1);
- *   - if the prediction trips water/slime/lava (stopevent mask 0x38) writes
- *     the START position into bs+0x1150..0x1158; otherwise leaves the
- *     (0, anglemod(yaw+bias), 0) angles vec there.  bs+0x115C = areanum,
- *     bs+0x1160..0x1174 = ±8 mins/maxs, bs+0x1178 = ClientFromName(bs+0x10F0)+1.
+ * It looks up two names via ClientFromName + AAS_EntityInfo, then:
+ *   - validates the first target's origin (AAS_PointAreaNum +
+ *     AAS_AreaReachability) and saves it as the predict start;
+ *   - takes (origin - old_origin) of the SECOND target's snapshot as a
+ *     per-frame velocity, storing it when |v| > 0.1;
+ *   - converts that to angles, biases the yaw by formationgoal_yawbias, zeroes
+ *     pitch and roll, and predicts 0.1 s of motion from saved_origin + (0,0,1);
+ *   - on a water/slime/lava stop (mask 0x38) writes the START position into
+ *     the goal origin, otherwise leaves the (0, anglemod(yaw+bias), 0) angles
+ *     there; then fills areanum, ±8 mins/maxs and entitynum.
  *
- * Returns (bs+0x1150) in eax in all paths.
- *
- * DEAD in shipped Gladiator (no extant caller in the .idata-walked call graph;
- * survived the original DLL via /INCREMENTAL).  The function is `int` (not
- * `static`) so MSVC6 /O2 /Gy doesn't dead-strip it from the oracle build —
- * /INCREMENTAL kept it alive in the original; /OPT:NOREF in our oracle would
- * otherwise drop it.
- *
- * Body offsets verified instruction-by-instruction against
- * reference/objdump/gladiator.dll.disasm.txt @0x1001d420..0x1001d6a1.  Key
- * fixes vs the IDA reconstruction that lived here previously:
- *   - entinfo.origin is at +0x10 (NOT +4 — IDA was off by 12 bytes).
- *   - entinfo.old_origin is at +0x28; both velocity operands come from the
- *     SECOND lookup's snapshot (not current_origin minus prev_origin).
- *   - angles[1] is the yaw with the bs+0x1134 bias; angles[0]=angles[2]=0
- *     (IDA swapped angles[1] and angles[2]).
- *   - The water/slime/lava branch reads START (E0+0x18..0x20), not the
- *     predicted endpos at predict+4/+8/+0C — see `mov edx,[esp+0x28]` etc.
- *   - bs+0x1150..0x1158 is the aim/origin vec; bs+0x115C is the areanum.
- *     IDA had bs+0x1150 = out_entnum and bs+0x115C = scaled[2].
- * Static-image constants:
- *   ds:0x10058130  = 0.1   (double; |velocity| > 0.1 acceptance threshold)
- *   ds:0x100580C4  = 1.0   (float; start[2] = saved_origin[2] + 1.0)
- *   ds:0x100631CC  = velocity (zero-init vec3 — same pattern as
- *                    AAS_JumpReachRunStart@1000F010)
- *   0xC1000000 = -8.0f, 0x41000000 = 8.0f, 0x43C80000 = 400.0f,
- *   0x3DCCCCCD = 0.1f, 0x7C = stopevent mask (HITGROUND|HITWATER|HITLAVA|HITSLIME). */
+ * DEAD in shipped Gladiator.  Must NOT be static: /O2 would dead-strip it,
+ * whereas /INCREMENTAL kept it in the original. */
 int BotGetFormationGoal(bot_state_t *bs)
 {
   aas_entityinfo_t entinfo; /* [esp+0x44] — entityinfo copy; reused for both lookups */
-  aas_clientmove_t move;    /* [esp+0xC0] — prediction result; MSVC6 coalesces it with its
-                             * own by-value return temp AND reuses the same slot for the two
-                             * sequential AAS_EntityInfo hidden return temps (124 B ∪ 80 B) */
+  aas_clientmove_t move;    /* prediction result; MSVC6 coalesces this slot with its own
+                             * by-value return temp and with both AAS_EntityInfo temps */
   vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
   vec3_t forward;           /* [esp+0x1C] — first delta, then AngleVectors output       */
   vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
@@ -15126,14 +14023,13 @@ int BotGetFormationGoal(bot_state_t *bs)
   *(int *)&bs->formationgoal_origin[0] = *(int *)&entinfo.origin[0];
   *(int *)&bs->formationgoal_origin[1] = *(int *)&entinfo.origin[1];
   *(int *)&bs->formationgoal_origin[2] = *(int *)&entinfo.origin[2];
-  /* 4. Look up the second name (bs+0x10F0); keep entnum+1 for bs+0x1178.  The
-   *    second AAS_EntityInfo OVERWRITES the same `entinfo` block — current
-   *    origin has already been saved to bs+0x1144 by step 3. */
+  /* 4. Look up the second name, keeping entnum+1 for the goal.  This
+   *    AAS_EntityInfo OVERWRITES the same `entinfo` block — step 3 has already
+   *    saved the origin it needed. */
   prevent_entnum = ClientFromName((const char *)bs->formation_teammate) + 1;
   entinfo = AAS_EntityInfo(prevent_entnum);
-  /* 5. Velocity = (entinfo.origin - entinfo.old_origin) of the second target.
-   *    Both operands come from the SAME snapshot (NOT current_origin minus a
-   *    prior entinfo's origin).  Threshold is 0.1 as a double @ds:0x10058130. */
+  /* 5. Velocity = origin - old_origin of the second target, BOTH from the same
+   *    snapshot.  The acceptance threshold 0.1 is a double. */
   if ( entinfo.valid )
   {
     VectorSubtract(entinfo.origin, entinfo.old_origin, forward);
@@ -15144,34 +14040,28 @@ int BotGetFormationGoal(bot_state_t *bs)
       *(int *)&bs->formationgoal_dir[2] = *(int *)&forward[2];
     }
   }
-  /* 6. Convert the running velocity (bs+0x1138) to angles; bias yaw by
-   *    bs+0x1134 and wrap with anglemod; zero pitch (angles[0]) and roll
-   *    (angles[2]).  The disasm zeroes angles[2] explicitly even though
-   *    vectoangles already writes 0 — preserved verbatim. */
+  /* 6. Velocity to angles: bias the yaw and wrap with anglemod, zero pitch and
+   *    roll.  The explicit angles[2] = 0 is redundant after vectoangles but is
+   *    in the original — preserved. */
   vectoangles(bs->formationgoal_dir, angles);
   angles[0] = 0.0f;
   angles[1] = anglemod(angles[1] + bs->formationgoal_yawbias);
-  /* 7. start = saved_origin + (0,0,1).  forward = AngleVectors(angles).
-   *    scaled = forward * 400.  The disasm reads the first two start
-   *    components as int bit-copies and the third as float-add. */
+  /* 7. start = saved_origin + (0,0,1); scaled = AngleVectors(angles) * 400.
+   *    The first two start components are int bit-copies, the third a
+   *    float add. */
   angles[2] = 0.0f;
   AngleVectors(angles, forward, NULL, NULL);
   *(int *)&start[0] = *(int *)&bs->formationgoal_origin[0];
   *(int *)&start[1] = *(int *)&bs->formationgoal_origin[1];
   start[2] = bs->formationgoal_origin[2] + 1.0f;
   VectorScale(forward, 400.0f, scaled);
-  /* 8. Predict 0.1 s of motion from start with velocity = scaled.  Stopevent
-   *    mask 0x7C catches HITGROUND/HITWATER/HITLAVA/HITSLIME (same as
-   *    AAS_JumpReachRunStart's runstart helper).  `move` coalesces with the
-   *    call's hidden by-value return temp (the ref self-copies 80 bytes onto
-   *    the same slot). */
+  /* 8. Predict 0.1 s of motion from start at velocity `scaled`; stopevent mask
+   *    0x7C catches HITGROUND/HITWATER/HITLAVA/HITSLIME. */
   move = AAS_ClientMovementPrediction(-1, start,
                                       2, 1, velocity, scaled,
                                       1, 2, 0.1f, 124, 0);
-  /* 9. If prediction tripped water/slime/lava (mask 0x38), fall back to the
-   *    start position; otherwise keep the angles vec (0, anglemod(yaw+bias), 0)
-   *    we built in step 6.  Both paths emit one fld+fstp to bs+0x1158 — the
-   *    z assignment threads through the FP stack. */
+  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start position;
+   *    otherwise keep the angles vec built in step 6. */
   if ( (move.stopevent & 0x38) != 0 )
   {
     angles[0] = start[0];
@@ -15198,30 +14088,20 @@ fail:
 }
 
 //----- (1001D760) --------------------------------------------------------
-/* BotLongTermGoal: dispatches the bot's current LTG (long-term goal) state
- * and returns the goal position vec3 to seek (NULL if no goal active).
+/* BotLongTermGoal — dispatch the bot's current long-term-goal state and return
+ * the goal position to seek, or NULL if no goal is active.
  *
- *      bs = bot_state pointer (offsets are bs->ltgtype@4260, bs->teammate@4264,
- *           bs->teamgoal_time@4328, bs->teamgoal@4268-4276, etc.)
- *     tfl = travel flags as float (TFL_* mask, packed in low 17 bits)
- * retreat = "in battle" flag — 0 = full LTG processing (called from
- *        AINode_Seek_LTG); 1 = just check if goal is still valid (called
- *        from AINode_Battle_Retreat).
+ *     tfl = travel flags (TFL_* mask in the low 17 bits)
+ * retreat = 0 for full LTG processing (from AINode_Seek_LTG), 1 to only check
+ *           whether the goal is still valid (from AINode_Battle_Retreat)
  *
- * LTG sub-types handled in switch:
- *   1 = team-leader / accompany-ready
- *   2 = accompany teammate (bs->teammate)
- *   3 = defend a goal item
- *   4 = capture-the-flag goal (returns the flag base vec3 directly)
- *   6 = camp at goal
- *   7 = patrol checkpoints (linked list at bs->patrolpoints@4548)
+ * LTG sub-types in the switch:
+ *   1 = team-leader / accompany-ready      2 = accompany bs->teammate
+ *   3 = defend a goal item                 4 = CTF goal (returns the flag base)
+ *   6 = camp at goal                       7 = patrol checkpoints
  *
- * IDA decompiler named this AINode_Accompany based on the prominent
- * "accompany start/stop/arrived/cannot" string references, but the function
- * actually handles every LTG sub-type, not just accompany.  Q3 botlib's
- * BotLongTermGoal (be_ai_goal.c) takes (goalstate handle, tfl, retreat,
- * out *goal) — same role, different output mechanism: Q2 returns the goal
- * vec3 by pointer-into-bs, Q3 fills a bot_goal_t out-param. */
+ * Q3's BotLongTermGoal fills a bot_goal_t out-param instead of returning a
+ * pointer into bs. */
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
 {
   int v7; // eax
@@ -15281,9 +14161,8 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           v18 = AAS_Time() - 5;
           if ( v18 > bs->attackcrouch_time )
           {
-            /* IDA dropped fstps after BFloat; v51 is the bfloat result, not v18.
-             * Disasm at 1001daf9 stores bfloat result and reuses it for both
-             * the rand check and the *15.0 jump-time factor below. */
+            /* The BFloat result feeds both the rand check and the *15.0 jump-time
+             * factor below. */
             croucher = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < croucher * bs->thinktime )
               bs->attackcrouch_time = AAS_Time() + croucher * 15 + 5;
@@ -15428,7 +14307,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
           {
-            BotRoamGoal(bs, target);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`, passing the .rodata string instead of bs and reading garbage entitynum for AAS_Trace passent */
+            BotRoamGoal(bs, target);   /* named `bs`, not `a1`: that alias collides with the global `char a1[2]` */
             VectorSubtract(target, bs->origin, dir);
             vectoangles(dir, bs->ideal_viewangles);
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
@@ -15436,8 +14315,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           v34 = AAS_Time() - 5;
           if ( v34 > bs->attackcrouch_time )
           {
-            /* IDA dropped fstps after BFloat; v51 is the bfloat result.
-             * Disasm at 1001e1d4 mirrors 1001daf9 — same squatt-jump pattern. */
+            /* Same squat-jump pattern as the BFloat use above. */
             croucher = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < croucher * bs->thinktime )
               bs->attackcrouch_time = AAS_Time() + croucher * 15 + 5;
@@ -15583,7 +14461,7 @@ LABEL_55:
       if ( BotTouchingGoal(bs->origin, v44) )
       {
         if ( libvar_runes->value != 0.0f )
-          sub_100262C0((_DWORD *)bs, v26);   /* aarch64: was `a1` — IDA-style alias collided with global `char a1[2]="1"`. */
+          sub_100262C0((_DWORD *)bs, v26);   /* named `bs`, not `a1`: that alias collides with the global `char a1[2]` */
         bs->ltg_time = 0.0f;
       }
       else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)v26) )
@@ -15924,10 +14802,8 @@ int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 int __cdecl AINode_Seek_NBG(bot_state_t *bs)
 {
 
-  /* v3/goal are int (goal pointer) in the original binary — held in esi
-   * throughout (.text 0x1001f35e-0x1001f410, no FPU touch).  IDA mistyped
-   * them as float because BotGetTopGoal's return is later compared to 0.0f
-   * in a sibling function, but here they stay integer. */
+  /* v3/goal stay integer here — the original holds the goal pointer in esi
+   * throughout, with no FPU traffic. */
   void *v3; // eax
   void *goal; // esi
   int v5; // edx
@@ -16006,10 +14882,8 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   else if ( (moveresult.flags & 4) != 0 )
   {
-    /* Operand order matches the original: the rand() side is evaluated
-     * FIRST so the double product (thinktime*0.8) is not spilled to a
-     * QWORD stack slot across the call (ref 1001f48d-1001f4a3:
-     * fild;fmul DWORD rand-const; fld thinktime;fmul QWORD 0.8; fcompp). */
+    /* rand() side first, as in the original, so the double product
+     * (thinktime*0.8) is not spilled to a QWORD slot across the call. */
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
     {
     BotRoamGoal(bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
@@ -16246,11 +15120,10 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
-  /* Written out inline, NOT as `LABEL_9:` hosted here: ref keeps a physical
-   * copy of `AIEnter_Seek_LTG(bs); return 0;` as the FALL-THROUGH of this guard
-   * (0x1001fd8a) plus one shared copy at the function tail for the two later
-   * goto sites.  Hosting the label here instead gives cl.exe a block with three
-   * predecessors and no fall-through, so it floats BOTH copies to the tail. */
+  /* Inline, not a shared label: the original keeps a physical copy of
+   * `AIEnter_Seek_LTG(bs); return 0;` as this guard's fall-through PLUS one at
+   * the function tail for the two later gotos.  A single hosted label has three
+   * predecessors and no fall-through, so both copies float to the tail. */
   if ( !bs->enemy )
   {
     AIEnter_Seek_LTG(bs);
@@ -16259,11 +15132,9 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
   if ( sub_10021710(entinfo) )
   {
-    /* Q3 (ai_dmnet.c) has `if (BotChat_Kill(bs)) {stand} else {seek} return
-     * qfalse;` — ONE shared `return 0`, not IDA's goto.  Ref proves it: the
-     * `bs` argument push is hoisted ABOVE the branch (`test eax,eax; push ebx;
-     * je`), serving BotChatTime(bs) on the fall-through and AIEnter_Seek_LTG(bs)
-     * on the taken path — only possible with both calls inline here. */
+    /* Q3's shape: `if (BotChat_Kill(bs)) {stand} else {seek} return qfalse;` with
+     * ONE shared return.  The original hoists the `bs` push above the branch to
+     * serve both calls, which only works with both inline here. */
     if ( BotChat_Kill((int *)bs) )
     {
       v10 = BotChatTime(bs);
@@ -16287,10 +15158,8 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
       bs->lastenemyareanum = areanum;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
-    /* Q3's ai_dmnet.c cognate tests not-visible FIRST and early-outs to the
-       chase/seek branch, with the attack pipeline as the fallthrough — the
-       opposite of the previous not-inverted form here.  Matching Q3's order
-       improved differing-lines 50->24 and byte_diffs 784->780 (2026-07-18). */
+    /* Q3's order: test not-visible FIRST and early-out to the chase/seek branch,
+       leaving the attack pipeline as the fall-through. */
     if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       if ( BotWantsToChase((int *)bs) )
@@ -16394,11 +15263,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   goal.maxs[2] = 8.0;
   if ( BotTouchingGoal(bs->origin, goal.origin) )
     *(int *)&bs->chase_time = 0;
-  // Gladiator inverts Q3's `if (chase_time expired) { seek; return }` guard: the
-  // binary tests `AAS_Time() <= chase_time` (chase still valid) and falls through
-  // to the seek-LTG exit otherwise.  Written as an early-return on the inverted
-  // condition so the three AIEnter_Seek_LTG exits stay flat/inline (ref keeps them
-  // separate; the IDA if/else nesting made MSVC cross-jump-merge them — OUR-18).
+  // Gladiator inverts Q3's `if (chase_time expired) { seek; return }`: it tests
+  // `AAS_Time() <= chase_time` and falls through to the seek-LTG exit otherwise.
+  // Written as an early return so the three AIEnter_Seek_LTG exits stay flat and
+  // inline — nesting them lets MSVC cross-jump-merge the three.
   if ( AAS_Time() > bs->chase_time )
   {
     AIEnter_Seek_LTG(bs);
@@ -16472,7 +15340,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   int v2; // edi
   bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
   float v4; // st7
-  float attack_skill; // captured BFloat dodge probability (IDA dropped the fstps)
+  float attack_skill; // captured BFloat dodge probability
   vec3_t dir; // [esp+14h] [ebp-170h] BYREF
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
@@ -16562,10 +15430,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         }
         else if ( (moveresult.flags & 8) == 0 )
         {
-          /* IDA dropped fstps after BFloat; v4 here was AAS_Time from way
-           * earlier, never reset since.  Disasm at 10020901..1002090c shows
-           * the bfloat result is compared directly with 0.3 (characteristic 4
-           * is "aggression": >0.3 attack, <=0.3 dodge). */
+          /* Characteristic 4 is aggression: > 0.3 attack, <= 0.3 dodge. */
           attack_skill = (float)Characteristic_BFloat(BotCharacter(bs), 4, 0.0, 1.0);
           if ( attack_skill > 0.3 )
           {
@@ -16915,13 +15780,8 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
 }
 
 //----- (100214E0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100214E0: `movsx eax, WORD PTR [eax+0xB8]; ret`.  Taking the arg as
- * `bot_state_t *` (both neighbouring functions do), +0xB8 = 184 is
- * `snapshot.stats[16]` — stats begins at bot_state_t +152 and the signed
- * 16-bit load matches `short stats[32]`.  Offset-verified against the oracle
- * (stats[10] would emit +0xAC).  Dead in Gladiator, so there is no call site
- * to confirm the parameter type; preserved by /INCREMENTAL. */
+/* Returns the signed 16-bit snapshot.stats[16].  DEAD in Gladiator, so no call
+ * site confirms the parameter type; bot_state_t * matches both neighbours. */
 int __cdecl sub_100214E0(bot_state_t *p)
 {
   return p->snapshot.stats[16];
@@ -17043,15 +15903,14 @@ char *__cdecl EasyClientName(int client, char *buf)
   char *ptr; // esi
   const char *v9; // ebx
   char c; // al
-  /* Binary at 0x10021864 does `sub esp, 0x80` — a single 128-byte stack buffer.
-   * IDA decompiled it as Str (1 byte) + Str[1] (1 byte) + (&Str[2])[126]; restored as Str[128]. */
+  /* One 128-byte stack buffer (the original's `sub esp,0x80`). */
   char Str[128]; // [esp+8h] [ebp-80h] BYREF
 
   strcpy(Str, (const char *)ClientName(client));
   for ( ci = 0; Str[ci]; ci++ )
     Str[ci] &= 0x7F;
   for ( i = strstr(Str, " "); i; i = strstr(Str, " ") )
-    memmove(i, i + 1, strlen(i + 1) + 1);  /* was: strcpy(i, i + 1) — UB on aarch64 SIMD strcpy */
+    memmove(i, i + 1, strlen(i + 1) + 1);  /* memmove, not strcpy: the ranges overlap */
   str1 = strstr(Str, "[");
   str2 = strstr(Str, "]");
   if ( str1 && str2 )
@@ -17099,11 +15958,9 @@ char *__cdecl EasyClientName(int client, char *buf)
 //----- (10021A90) --------------------------------------------------------
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum)
 {
-  /* Original 32-bit alloc was `GetMemory(strlen(name)+1+68)` with a hand-laid
-   * header of name-ptr@+0, origin@+4, areanum@+16, mins@+20, maxs@+32, next@+60,
-   * prev@+64.  On 64-bit Linux the pointer width forces a real C struct; the
-   * trailing name buffer still lives inline immediately after the node so a
-   * single FreeMemory frees both. */
+  /* The original allocates strlen(name)+1+68 with a hand-laid header; a real
+   * struct here, with the name buffer still inline right after the node so one
+   * FreeMemory releases both. */
   bot_waypoint_t *wp;
   size_t namelen = strlen(name);
 
@@ -17155,14 +16012,11 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 
   char v4; // al
   char v7; // al
-  /* Real vec3_t, filled with Q3's (be_ai_chat.c) exact statements:
-   * `VectorCopy(bs->origin, X); X[2] += K;`.  MSVC6 compiles a float-to-float
-   * copy as an integer mov (no conversion), forwards the [2] copy into the
-   * arithmetic, and then interleaves the two surviving integer copies between
-   * the `fld` and the `fadd` — which is ref's schedule
-   * (`fld [esi+0x69c]; mov eax,[esi+0x694]; mov ecx,[esi+0x698]; fadd ds:1.0`).
-   * start/end being copied from the SAME source is also what produces ref's
-   * `mov edx,eax` / `mov eax,ecx` register reuse. */
+  /* Real vec3_t, written with Q3's exact statements
+   * (`VectorCopy(bs->origin, X); X[2] += K;`): MSVC6 forwards the [2] copy into
+   * the arithmetic and interleaves the two surviving integer copies between the
+   * fld and the fadd.  Copying start and end from the SAME source is what
+   * produces the original's register reuse. */
   vec3_t point; // [esp+4h] [ebp-90h] BYREF
   vec3_t start; // [esp+10h] [ebp-84h] BYREF
   vec3_t end;   // [esp+1Ch] [ebp-78h] BYREF
@@ -17310,9 +16164,7 @@ int __cdecl BotChat_Death(int *bs)
   else
   {
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-    /* IDA dropped fstps after BFloat; v8 should be the bfloat result, not
-     * a copy of v5 (which would make the rand check always true).
-     * Characteristic 15 is "praise vs insult" probability. */
+    /* Characteristic 15 is the praise-vs-insult probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
       BotInitialChat(bs + 995, "death_insult", v7, (char *)0);
@@ -17357,8 +16209,7 @@ BOOL __cdecl BotChat_Kill(int *bs)
   else
   {
     v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-    /* IDA dropped fstps after BFloat; v8 should be the bfloat result.
-     * Characteristic 15 is "praise vs insult" probability. */
+    /* Characteristic 15 is the praise-vs-insult probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
       BotInitialChat(bs + 995, "kill_insult", name, (char *)0);
@@ -17380,10 +16231,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
     return 0;
   if ( bs->ltgtype == 1 || bs->ltgtype == 2 || bs->ltgtype == 5 )
     return 0;
-  /* IDA dropped fstps after BFloat (characteristic 21 = "random chat
-   * probability"); rnd should be the bfloat result, not a copy of
-   * libvar_nochat (which is 0 — making the rand check always true and
-   * turning every BotChat_Random into return 0 on the !fastchat branch). */
+  /* Characteristic 21 is the random-chat probability. */
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
   if ( (float)(rand() & 0x7FFF) * 0.000030518509f > bs->thinktime * 0.1 )
     return 0;
@@ -17466,12 +16314,9 @@ BOOL __cdecl BotWantsToChase(int *bs)
 }
 
 //----- (10022970) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10022970: `mov eax, 1; ret`.  Always-true predicate sitting
- * between BotWantsToChase and BotCanAndWantsToRocketJump in the bot
- * decision-helper run.  Likely a placeholder for a feature toggle
- * (BotWantsToRetreat? BotShouldRetreat?) that ended up hard-coded to 1.
- * Dead in Gladiator; preserved by /INCREMENTAL. */
+/* Always-true predicate between BotWantsToChase and
+ * BotCanAndWantsToRocketJump — probably a feature toggle that ended up
+ * hard-coded.  DEAD in Gladiator. */
 int __cdecl BotWantsToHelp(bot_state_t *bs)
 {
   return 1;
@@ -17572,7 +16417,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
       if ( !trace[1] )
       {
         *(float *)&trace[5] = *(float *)&trace[5] + 1.0f;
-        pc = sub_10003080((float *)&trace[3]);   /* IDA-dropped: trace-endpoint lava/slime check */
+        pc = sub_10003080((float *)&trace[3]);   /* trace-endpoint lava/slime check */
         if ( (pc & 0x18) == 0 )
           break;
       }
@@ -17600,10 +16445,8 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   float v18; // st7
   int v19; // edx
   float jumper; // [esp+10h] [ebp-134h]
-  /* Collapsed vec3 triplets v22/v23/v24, v28/v29/v30, v32/v33/v34 — each
-   * passed by-address to CrossProduct / VectorNormalize / VectorLength /
-   * BotMoveInDirection which expect 3 contiguous floats.  Separate scalar
-   * decls let GCC reorder/pad them and corrupt the vec3 contract. */
+  /* vec3_t: passed by address to CrossProduct / VectorNormalize /
+   * VectorLength / BotMoveInDirection, all of which read three floats. */
   vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
   float croucher; // [esp+20h] [ebp-124h]
   float dist; // [esp+24h] [ebp-120h]
@@ -17632,13 +16475,9 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   }
   memset(&moveresult, 0, sizeof(moveresult));
   v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-  /* IDA dropped the FPU return capture for each Characteristic_BFloat call:
-   * the original asm at .text 10022f44 / 10022f6b / 10022f84 / 10022f9d does
-   * `fstp [esp+...]` immediately after each call.  In C those become the
-   * `vN = Characteristic_BFloat(...)` captures below.  IDA had emitted
-   * spurious `vN = v10;` assignments using the random number — which made
-   * every probability gate trivially `random <= random` (always true) and
-   * destroyed the BFloat gating throughout this AI helper. */
+  /* Each Characteristic_BFloat result must be captured from the FPU return, as
+   * the four `fstp [esp+…]` stores in the original do — otherwise every
+   * probability gate below degenerates to `random <= random`. */
   if ( Characteristic_BFloat(BotCharacter(bs), 48, 0.0f, 1.0f) <= v10 )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
@@ -17861,7 +16700,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   float v8; // [esp+10h] [ebp-168h]
   float v9; // [esp+14h] [ebp-164h]
   int v10; // [esp+18h] [ebp-160h]
-  vec3_t dir; // [ebp-15Ch] BYREF — was split v11/v12/v13 (X/Y/Z); IDA dropped v12/v13 stores
+  vec3_t dir; // [ebp-15Ch] BYREF — one vec3; all three components are stored
   int v14; // [esp+28h] [ebp-150h]
   int v15; // [esp+2Ch] [ebp-14Ch]
   BOOL healthdecrease; // [esp+30h] [ebp-148h]
@@ -17947,19 +16786,19 @@ void BotAimAtEnemy(bot_state_t *bs)
   float dist; // [esp+1Ch] [ebp-1ACh]
   float aim_skill; // [esp+20h] [ebp-1A8h]
   float v28; // [esp+20h] [ebp-1A8h]
-  vec3_t dir; // [ebp-1A4h] BYREF — was split v29/v30/v31 (X/Y/Z); IDA dropped Y/Z stores in some sites
-  vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF — was IDA-split int bestorigin/v33/v34
+  vec3_t dir; // [ebp-1A4h] BYREF — one vec3; all three components are stored
+  vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF
   float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
-  vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF — was IDA-split groundtarget/v37/v38
-  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF — was IDA-split start/v40/v41
+  vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF
+  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
   vec3_t end; // [esp+58h] [ebp-170h] BYREF
   vec3_t mins; // [esp+64h] [ebp-164h] BYREF
   vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
   int trace[21]; // [esp+7Ch] [ebp-14Ch] BYREF
   float entinfo[31]; // [esp+D0h] [ebp-F8h] BYREF
 
-  /* 0xc0800000 = -4.0f; 0x40800000 = 4.0f.
-   * mins, maxs are float[3] — use float literals to avoid int→float conversion. */
+  /* Float literals: mins/maxs are float[3], so the original's raw ±4.0f bit
+   * patterns would be converted, not reinterpreted. */
   mins[0] = -4.0f;
   v2 = bs->enemy;
   mins[1] = -4.0f;
@@ -17969,12 +16808,8 @@ void BotAimAtEnemy(bot_state_t *bs)
   maxs[2] = 4.0f;
   if ( v2 )
   {
-    /* IDA dropped FPU returns: v27 and v35 hold the FPU-returned values from
-     * the two Characteristic_BFloat calls.  Original .text 0x10023d3d/0x10023d56
-     * — fstp [esp+0x20] captures #1, fst [esp+0x48] captures #2 (without pop)
-     * then fcomp 0.0 jumps if v35 > 0; else clamps to 0.000099999997f.
-     * IDA emitted v27 = a1 / v35 = a1 because it confused the FPU register
-     * for the eax return register. */
+    /* Both Characteristic_BFloat results come back on the FPU stack; the second is
+     * compared against 0.0 and clamped to 0.000099999997f when not positive. */
     aim_skill = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
     aim_accuracy = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
     if ( aim_accuracy <= 0.0f )
@@ -17997,9 +16832,7 @@ void BotAimAtEnemy(bot_state_t *bs)
       bestorigin[2] += 16.0f;
     if ( wi->speed != 0.0f && aim_skill > 0.4 )
     {
-      /* IDA dropped the Y/Z component stores; restored from BotAimAtEnemy disasm
-       * at 0x10023a3a-0x10023a65 (three fld/fsub/fstp triples) and the second
-       * VectorNormalize block at 0x10023a... — see binary */
+      /* All three components are stored (three fld/fsub/fstp triples). */
       dir[0] = entinfo[4] - bs->origin[0];
       dir[1] = entinfo[5] - bs->origin[1];
       dir[2] = entinfo[6] - bs->origin[2];
@@ -18023,13 +16856,13 @@ void BotAimAtEnemy(bot_state_t *bs)
       v12 = *(float *)&trace[5] - groundtarget[2];
       if ( fabs(v12) < 50.0 )
       {
-        /* IDA dropped Y/Z component stores; restored from disasm 0x100240a0-0x100240c0 */
+        /* All three components are stored. */
         dir[0] = *(float *)&trace[3] - groundtarget[0];
         dir[1] = *(float *)&trace[4] - groundtarget[1];
         dir[2] = v12;
         if ( VectorLength(dir) < 60.0f )
         {
-          /* IDA dropped Y/Z component stores; restored from disasm 0x100240dd-0x10024108 */
+          /* All three components are stored. */
           dir[0] = *(float *)&trace[3] - start[0];
           dir[1] = *(float *)&trace[4] - start[1];
           dir[2] = *(float *)&trace[5] - start[2];
@@ -18056,8 +16889,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     v15 = rand();
     bestorigin[2] = (2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 10.0
         + bestorigin[2];
-    /* IDA dropped Y/Z component stores; restored from disasm — three fld/fsub/fstp triples
-     * before sub_100018DE/sub_10001E9C in BotAimAtEnemy tail */
+    /* All three components are stored. */
     VectorSubtract(bestorigin, bs->eye, dir);
     if ( !_strcmpi(wi->name, "Railgun") )
     {
@@ -18095,11 +16927,10 @@ void BotCheckAttack(bot_state_t *bs)
   weaponinfo_t *wi; // ebx
   projectileinfo_t *v6; // ecx
   float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
-  float v11; // [esp+10h] [ebp-1A4h] — one local reused (IDA split into v11/v12)
-  vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — restored vec3 trace start; IDA split
-                // it into int start + float v14/v15, whose stores were dead-store-
-                // eliminated (nothing read them by name), so VectorMA/AAS_Trace
-                // saw garbage in [1]/[2]
+  float v11; // [esp+10h] [ebp-1A4h] — one local, reused
+  vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — trace start; as separate locals the
+                // y/z stores get dead-store-eliminated and VectorMA/AAS_Trace see
+                // garbage in [1]/[2]
   vec3_t forward; // [esp+20h] [ebp-194h] BYREF
   vec3_t maxs; // [esp+2Ch] [ebp-188h] BYREF
   vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
@@ -18109,8 +16940,7 @@ void BotCheckAttack(bot_state_t *bs)
   float trace[21]; // [esp+68h] [ebp-14Ch] BYREF
   aas_entityinfo_t entinfo; // [esp+BCh] [ebp-7Ch] BYREF
 
-  /* -1056964608 = 0xC1000000 = -8.0f; 1090519040 = 0x41000000 = 8.0f.
-   * maxs, mins are float[3] — use float literals. */
+  /* Float literals: mins/maxs are float[3], not raw bit patterns. */
   mins[0] = -8.0f;
   attackentity = bs->enemy;
   mins[1] = -8.0f;
@@ -18120,11 +16950,7 @@ void BotCheckAttack(bot_state_t *bs)
   maxs[2] = 8.0f;
   if ( attackentity )
   {
-    /* IDA dropped FPU return: original .text 0x100245ef is `call Char..._BFloat`
-     * followed by `fstp [esp+0x20]` (= v11).  IDA emitted v11 = a1 instead
-     * of v11 = (float)Characteristic_BFloat(...) — which makes the splash-attack
-     * timer compare AAS_Time() to the bot pointer cast as float, never letting
-     * splash attacks fire. */
+    /* Characteristic_BFloat's FPU return drives the splash-attack timer. */
     v11 = (float)Characteristic_BFloat(BotCharacter(bs), 11, 0.0, 1.0);
     if ( AAS_Time() - v11 >= bs->enemysight_time )
     {
@@ -18344,40 +17170,25 @@ int __cdecl BotSetMovedir(float *angles, float *movedir)
   }
   else
   {
-    /* AngleVectors is void; the original else-branch's return value is dead
-     * (both callers ignore it), so MSVC /O2 does NOT reload `dir` after the
-     * call — it returns whatever eax holds on AngleVectors' return. The
-     * cast-call reproduces that `call; ret` with eax flowing through, instead
-     * of forcing `dir` to be kept alive across the call (which would cost an
-     * extra callee-saved register push). */
+    /* AngleVectors is void and this return value is dead (both callers ignore
+     * it), so the original just lets eax flow through from the call.  The
+     * cast-call reproduces that `call; ret` instead of keeping `dir` alive
+     * across the call at the cost of a callee-saved push. */
     return ((int (__cdecl *)(float *, float *, void *, void *))AngleVectors)(angles, movedir, NULL, NULL);
   }
 }
 
 //----- (10025070) --------------------------------------------------------
-/* Debug visualizer for func_button entities.  Restored from disassembly
- * 0x10025070-0x1002545d.  IDA Pro skipped this function entirely (gap
- * between BotCheckAttack and BotAIBlocked); RetDec emitted it as
- * function_10025070 but in an unusable register-rewriting form.
+/* Debug visualiser for func_button entities: walk the BSP entity list, filter
+ * by classname == "func_button", read the brush's model AABB plus the
+ * "angle"/"health" keys, and draw permanent debug crosses — one at the shoot
+ * point for shootable buttons (health != 0), three for touch/use buttons
+ * (the bot's standing position plus two corner markers).  Capped at the first
+ * 6 matching buttons.
  *
- * Walks the BSP entity linked list at dword_10064398, filters by
- * classname == "func_button", reads the brush's BSP model AABB and the
- * entity's "angle"/"health" keys, then draws permanent debug crosses.
- *
- *  - health != 0 (shootable buttons): one cross at the shoot point
- *    pulled back from the face by half the brush's own extent along the
- *    move direction.
- *  - health == 0 (touch/use buttons): three crosses showing the bot's
- *    standing position in front of the button plus two derived corner
- *    markers based on the brush AABB recentered around that stand spot.
- *
- * Capped at the first 6 matching buttons (loop counter > 5 exits).
- *
- * Quirks preserved from the original binary: (a) FloatForKey(ent, "lip")
- * is called and its result discarded via `fstp st(0)` — likely dead code
- * left from a deleted feature; (b) the BSPModelMinsMaxs call is made
- * with zero-initialized `angles`, so the returned bbox is the model's
- * axis-aligned local-space AABB rather than a world-rotated one. */
+ * Quirks preserved: FloatForKey(ent, "lip") is called and its result
+ * discarded, and BSPModelMinsMaxs is called with zero-initialised `angles`, so
+ * the bbox is the model's local-space AABB rather than a world-rotated one. */
 void __cdecl sub_10025070(void)
 {
   bsp_entity_t *ent;
@@ -18408,13 +17219,10 @@ void __cdecl sub_10025070(void)
 
   do
   {
-    /* The two (const char *) casts below trip -Wdiscarded-qualifiers
-     * (AAS_ValueForBSPEpairKey returns char *, the locals are char *), but do
-     * NOT remove them.  They are codegen-neutral for this function, yet
-     * dropping them perturbs MSVC6's whole-TU instruction scheduler enough to
-     * flip an independent-load tie-break in PC_ReadDefineParms, demoting that
-     * function from byte-MATCH to a 2-instruction reorder.  Verified against
-     * the MSVC6 oracle 2026-06-19 — keeping the casts preserves the match. */
+    /* Do NOT remove the two (const char *) casts below, even though they trip
+     * -Wdiscarded-qualifiers and are codegen-neutral here: dropping them
+     * perturbs MSVC6's whole-TU scheduler enough to flip a tie-break in
+     * PC_ReadDefineParms and cost that function its byte-match. */
     classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
     if ( !strcmp(classname, "func_button") )
     {
@@ -18453,12 +17261,10 @@ void __cdecl sub_10025070(void)
         int offset;
 
         AAS_PresenceTypeBoundingBox(4, l.bboxmins, l.bboxmaxs);
-        /* BYTE-OFFSET walk, not `for (i = 0; i < 3; i++)`: ref 0x100251xx is
-         * `fld [esp+ecx*1+IMM] … add ecx,0x4; cmp ecx,0xc; jl <top>` — one
-         * esp-relative index shared by all three arrays.  The indexed form makes
-         * cl.exe strength-reduce to a walking pointer plus a separate `dec edx`
-         * counter: OUR+2 / 880b vs ICM / 33b (measured 2026-07-28).  This is the
-         * original's own addressing; do not "fix" it. */
+        /* BYTE-OFFSET walk, not `for (i = 0; i < 3; i++)`: the original shares one
+         * esp-relative index across all three arrays, whereas the indexed form
+         * strength-reduces to a walking pointer plus a separate counter.  This is
+         * the original's own addressing — do not "fix" it. */
         offset = 0;
         accum = l.dist;
         do
@@ -18502,11 +17308,8 @@ void __cdecl sub_10025070(void)
 }
 
 //----- (10025560) --------------------------------------------------------
-/* Returns void: the original function leaves whatever is in eax (a call
- * result, bs->ainode, or the trace pointer) on each exit path and the
- * callers ignore it.  IDA invented an `ai_node_fn_t result` return; the
- * shared epilogue at 0x1002600e confirms there is no meaningful return
- * value.  Matches Q3's `void BotAIBlocked`. */
+/* Genuinely void, as in Q3: each exit path just leaves whatever is in eax and
+ * every caller ignores it. */
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate)
 {
   ai_node_fn_t result; // eax
@@ -18530,12 +17333,12 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   vec3_t v44_vec; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
   vec3_t v47_vec; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
   vec3_t v50; /* was v50,v51,v52 — vec3_t for activated area check */
-  vec3_t v53_vec; // [esp+58h..60h] [ebp-11Ch..114h] BYREF (was v53/v54/v55; IDA folded v54)
+  vec3_t v53_vec; // [esp+58h..60h] [ebp-11Ch..114h] BYREF
   vec3_t v56_vec; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
   vec3_t v59_vec; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
   vec3_t sideward; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
   float v65; // [esp+88h] [ebp-ECh]
-  vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF (was v66/v67/v68; IDA folded v67/v68)
+  vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF
   vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
   vec3_t hordir; // [esp+A4h] [ebp-D0h] BYREF
   vec3_t up; // [esp+B0h] [ebp-C4h] BYREF
@@ -18619,11 +17422,11 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     }
     VectorMA(v59_vec, -v9, v50, v38_vec);
     v53_vec[0] = v38_vec[0];
-    v53_vec[1] = v38_vec[1]; /* IDA dropped middle start write; original mov [esp+0x60], ecx at 0x10025930 */
+    v53_vec[1] = v38_vec[1]; /* all three start components are written */
     v53_vec[2] = v38_vec[2] + 24.0f;
     v66_vec[0] = v38_vec[0];
-    v66_vec[1] = v38_vec[1]; /* IDA dropped middle end write; original mov [esp+0x98], eax at 0x10025954 */
-    v66_vec[2] = v53_vec[2] - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xAC] at 0x1002596B */
+    v66_vec[1] = v38_vec[1]; /* all three end components are written */
+    v66_vec[2] = v53_vec[2] - 100.0f; /* end.z is written here too */
     trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
     if ( !trace.startsolid )
     {
@@ -18711,12 +17514,12 @@ LABEL_37:
   VectorAdd(v44_vec, v41_vec, v47_vec);
   VectorScale(v47_vec, 0.5f, v47_vec);
   v53_vec[0] = v47_vec[0];
-  v53_vec[1] = v47_vec[1]; /* IDA dropped middle start write; original mov [esp+0x70], edx at 0x10025BE5 */
+  v53_vec[1] = v47_vec[1]; /* all three start components are written */
   v53_vec[2] = v41_vec[2] + 24.0f;
   v66_vec[0] = v47_vec[0];
-  v66_vec[1] = v47_vec[1]; /* IDA dropped middle end write; original mov [esp+0xA8], ecx at 0x10025C09 */
-  v66_vec[2] = v53_vec[2] - 100.0f; /* IDA dropped end.z write; original fstp [esp+0xBC] at 0x10025C20 */
-  /* Original IDA: sub_10001861 (thunk → 0x1001B260 = AAS_TraceClientBBox). */
+  v66_vec[1] = v47_vec[1]; /* all three end components are written */
+  v66_vec[2] = v53_vec[2] - 100.0f; /* end.z is written here too */
+  /* thunk 0x10001861 -> AAS_TraceClientBBox */
   trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
   if ( !trace.startsolid )
   {
@@ -18856,8 +17659,8 @@ BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
   if ( !strlen(goalname) )
     return 0;
   i = -1;
-  /* Keep the original do/while shape; the DLL still carries the second
-   * iteration path even though a positive first result returns immediately. */
+  /* Keep the do/while: the original carries the second iteration path even
+   * though a positive first result returns immediately. */
   do
   {
     i = BotGetLevelItemGoal(i, goalname, goal);
@@ -18891,9 +17694,7 @@ float __cdecl BotGetTime(bot_match_t *match)
   float v1; // st7
   float t; // [esp+0h] [ebp-18Ch]
   char timestring[152]; // [esp+4h] [ebp-188h] BYREF
-  /* IDA split bot_match_t (240 B) into `char Destination[4]` + a phantom
-   * `int v6` at offset +152 (= match.type).  The original calls
-   * sub_10001267 = BotFindMatch, not strncmp.  See chat_state.h. */
+  /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t timematch; // [esp+9Ch] [ebp-F0h] BYREF
 
   if ( (match->subtype & 0x10) == 0 )
@@ -18944,9 +17745,7 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
   bot_waypoint_t *wp; // ecx (tail walker)
   bot_goal_t goal; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
   char Destination[152]; // [esp+48h] [ebp-188h] BYREF
-  /* IDA split bot_match_t (240 B) into `char keyareamatch[4]` + phantom `int v10` at
-   * offset +156 (= match.subtype).  The original calls sub_10001267 =
-   * BotFindMatch, not strncmp.  See chat_state.h. */
+  /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t keyareamatch; // [esp+E0h] [ebp-F0h] BYREF
 
   newpatrolpoints = NULL;
@@ -18970,9 +17769,7 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
       BotPatrolpoints(bs) = NULL;
       return 0;
     }
-    /* IDA mis-named the thunk at 0x10001401 (which jumps to BotCreateWayPoint
-     * at 0x10021A90) as BotResetState; the real call is BotCreateWayPoint
-     * with (name, &goal.origin, areanum). */
+    /* Thunk 0x10001401 goes to BotCreateWayPoint, not BotResetState. */
     newwp = BotCreateWayPoint(Destination, goal.origin, goal.areanum);
     newwp->next = NULL;
     for ( wp = newpatrolpoints; wp && wp->next; wp = wp->next )
@@ -19032,9 +17829,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   float v5; // [esp+Ch] [ebp-2BCh]
   char name[152]; // [esp+10h] [ebp-2B8h] BYREF
   char addressedto[152]; // [esp+A8h] [ebp-220h] BYREF
-  /* IDA split bot_match_t (240 B) into `char addresseematch[4]` + phantom `int v9` at
-   * offset +152 (= match.type).  The original calls sub_10001267 =
-   * BotFindMatch, not strncmp.  See chat_state.h. */
+  /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t addresseematch; // [esp+140h] [ebp-188h] BYREF
   char netname[152]; // [esp+230h] [ebp-98h] BYREF
 
@@ -19163,13 +17958,10 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   int v48; // eax
   int v49; // eax
   int v50; // eax
-  /* IDA split a single ebp-5C4h slot into v54 (int) + v55..v60 (float)
-   * across mutually-exclusive switch cases.  Original had ONE union
-   * member at this slot — restore it as a union so MSVC packs all
-   * assignments onto the same 4-byte slot (saves 8 bytes of frame). */
-  int u54i;   /* IDA v54 — one ebp-5C4h slot; int view (checkpoint num)      */
-  float u54f; /* IDA v55 — float view; MSVC6 colors both into ONE slot
-               * (BotCTFSeekGoals precedent)             */
+  /* ONE slot shared by the mutually-exclusive switch cases; kept as a union so
+   * MSVC packs every assignment onto the same 4 bytes. */
+  int u54i;   /* int view (checkpoint num) */
+  float u54f; /* float view of the same slot */
 #define v54 u54i
 #define v55 u54f
   float v56;
@@ -19178,20 +17970,16 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   float v59;
   float v60;
   vec3_t origin; // [esp+2Ch] [ebp-5C0h] BYREF — checkpoint origin parsed from chat (sscanf input to AAS_PointAreaNum)
-  /* IDA decompiled the 240-byte match struct as a flat `char v64[4]` plus
-   * separate `int v65/v66` and never recovered the variables[] capture
-   * array.  Restored as the proper bot_match_t (chat_state.h) — same byte
-   * layout (sizeof=240) but with named fields so the BotFindMatch /
-   * StringsMatch / BotMatchVariable interfaces type-check properly. */
+  /* The full 240-byte bot_match_t (chat_state.h), including the variables[]
+   * capture array, so the BotFindMatch / StringsMatch / BotMatchVariable
+   * interfaces type-check. */
   bot_match_t match; // [esp+38h] [ebp-5B4h] -- the entire match struct
   char Destination[152]; // [esp+128h] [ebp-4C4h] BYREF
   aas_entityinfo_t entinfo; // [esp+1C0h] [ebp-42Ch] BYREF
   char Source[152]; // [esp+23Ch] [ebp-3B0h] BYREF
   char Buffer[152]; // [esp+2D4h] [ebp-318h] BYREF
   char String2[152]; // [esp+36Ch] [ebp-280h] BYREF
-  /* IDA split bot_match_t (240 B) into `char v74[152]` + phantom `int v75`
-   * at offset +152 (= match.type).  The original calls sub_10001267 =
-   * BotFindMatch, not strncmp.  See chat_state.h. */
+  /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t teammatematch; // [esp+4FCh] [ebp-F0h] BYREF
 
   match.type = 0;
@@ -19464,7 +18252,7 @@ LABEL_32:
         return 1;
       BotMatchVariable(&match, 3, Source);
       strncpy(bs->teamleader, Source, 0x20u);
-      bs->teamleader[31] = 0;   /* ensure NUL-terminated; IDA emitted as `*(&bs->_i4384 - 1) = 0` because _i4384 sat right after the 32-byte teamleader[] array */
+      bs->teamleader[31] = 0;   /* ensure NUL-terminated */
       BotInitialChat(&bs->chatstate, "joinedteam", Source, (char *)0);
       BotEnterChat(&bs->chatstate, bs->client, 1);
       return 1;
@@ -19509,7 +18297,7 @@ LABEL_32:
           BotCheckpoints(bs) = v42->next;
         FreeMemory(v42);
       }
-      /* IDA mis-named the 0x10001401 thunk again — real call is BotCreateWayPoint. */
+      /* thunk 0x10001401 -> BotCreateWayPoint */
       v45 = BotCreateWayPoint(Buffer, origin, v41);
       v45->next = BotCheckpoints(bs);
       v46 = BotCheckpoints(bs);
@@ -19670,12 +18458,10 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
     if ( v3->type == 1 )
     {
       v4 = strstr(v3->message, ":");
-      /* POSITIVE guard: ref 0x100286c1 is `test eax,eax; je <cold remove>` with
-       * the `v5 = …` body as the warm FALL-THROUGH.  IDA's negative
-       * `if (!v4) { remove; continue; }` makes the remove-and-continue block the
-       * fall-through instead, which is also what lets cl.exe cross-jump it into
-       * the strncmp path's identical block (ref keeps the two separate — hence
-       * its one-call surplus). */
+      /* POSITIVE guard, so the body stays the warm fall-through.  The negative
+       * `if (!v4) { remove; continue; }` form makes the remove block the
+       * fall-through, which also lets cl.exe cross-jump it into the strncmp
+       * path's identical block; the original keeps the two separate. */
       if ( v4 )
       {
         v5 = v4 - (char *)v3;
@@ -19840,12 +18626,8 @@ void BotSetupDeathmatchAI()
 }
 
 //----- (10028E80) --------------------------------------------------------
-/* sub_10028E80 — empty function (just `ret`).  Faithful transcription:
- *   ret
- * Was deobfuscator-named "sub_10028E80" (the IDA decomp couldn't follow the
- * MSVC thunk at 0x1000100F).  Called from BotShutdownLibrary as the first
- * teardown step; in Q3 botlib BotShutdownLibrary's first call is
- * BotShutdownChatAI — this may be its empty Q2-release-build counterpart. */
+/* Empty in the original.  BotShutdownLibrary's first teardown step; Q3 calls
+ * BotShutdownChatAI here, so this may be its release-build counterpart. */
 void sub_10028E80(void) { /* empty body — original returns immediately */ }
 
 //----- (10028EA0) --------------------------------------------------------
@@ -19941,14 +18723,9 @@ float BotChangeViewAngle(float angle, float ideal_angle, float speed)
 }
 
 //----- (10029150) --------------------------------------------------------
-/* Signature recovered from .text callsite analysis: all 9 callers push two
- * dwords (`push bs->thinktime; push bs`) and clean up with `add esp,8`, so
- * the function takes (bs, thinktime).  However, the function body itself
- * reads `bs->thinktime` directly from the struct via `fmul [edi+0x690]`
- * (see .text 100291d4 / 100291e9) rather than from the 2nd argument — the
- * `thinktime` parameter is redundant.  Mr. Elusive's original source most
- * likely declared the param for API symmetry with Q3 but the body re-reads
- * bs->thinktime from the struct.  Leave `thinktime` unused on purpose. */
+/* All nine callers push (bs, thinktime), but the body reads bs->thinktime
+ * straight from the struct instead of the parameter — probably declared for API
+ * symmetry with Q3.  `thinktime` is deliberately unused. */
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
   float v2; // st7 (was double)
@@ -19958,7 +18735,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   float v6; // st6 (was double)
   float v7; // st6 (was double)
   float v9; // [esp+10h] [ebp-4h]
-  float v10; // [esp+18h] [ebp+4h] — reused in place for v10*thinktime (IDA renamed the 2nd write v11, but it's the SAME slot)
+  float v10; // [esp+18h] [ebp+4h] — reused in place for v10*thinktime
 
   (void)thinktime;
   v2 = bs->ideal_viewangles[0];
@@ -19969,13 +18746,10 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   }
   if ( bs->enemy )
   {
-    /* IDA dropped the FPU return captures of both Characteristic_BFloat calls
-     * here.  Per original asm at .text 100291ac / 100291ef the first BFloat
-     * (#9) is captured into the slot IDA names v10, and the second BFloat
-     * (#10) is left in ST(0) and consumed at the post-merge `fmul [edi+0x690];
-     * fstp [esp+0x10]` (= `v9 = <BFloat#10> * bs->thinktime`).  In the C control
-     * flow we recapture it into v2, which the else-branch already overwrites
-     * (= 150.0f) and the post-merge `v5 = v2 * bs->thinktime;` then consumes. */
+    /* Both Characteristic_BFloat results come back on the FPU stack: #9 into v10,
+     * and #10 stays in ST(0) until the post-merge `v2 * bs->thinktime` consumes
+     * it — recaptured into v2 here, which the else-branch overwrites with
+     * 150.0f. */
     v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800.0f);
     v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800.0f);
   }
@@ -19984,19 +18758,16 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
     v10 = 100.0f;
     v2 = 150.0f;
   }
-  v3 = bs->viewanglespeed;  /* was: (float *)&bs->_raw[1062]; offset +4248 = start of viewanglespeed[3].
-                              * v3-6 (offset -24) → viewangles[i]; v3-3 (offset -12) → ideal_viewangles[i];
-                              * *v3 → viewanglespeed[i].  The ++v3 walk advances all three in lockstep. */
+  v3 = bs->viewanglespeed;  /* One walk over three parallel vec3s: *v3 is viewanglespeed[i],
+                              * v3-6 is viewangles[i] and v3-3 ideal_viewangles[i], all
+                              * advanced in lockstep. */
   v4 = 2;
   v10 = v10 * bs->thinktime;
   v9 = v2 * bs->thinktime;
   do
   {
-    /* IDA dropped the FPU return of AngleDifference: the original fed its
-     * ST(0) result straight into __ftol + cdq/xor/sub abs (.text 100291fb→
-     * 1002920b), i.e. v5 = abs((int)AngleDifference(viewangles[i],
-     * ideal_viewangles[i])).  Our prior form discarded the call and abs'd a
-     * stale v5 — both an asm divergence and a behaviour bug. */
+    /* AngleDifference's FPU return feeds straight into the int conversion and
+     * abs: v5 = abs((int)AngleDifference(viewangles[i], ideal_viewangles[i])). */
     v5 = (float)abs((__int64)AngleDifference(*(v3 - 6), *(v3 - 3)));
     if ( v5 > *v3 )
     {
@@ -20055,12 +18826,12 @@ int Export_BotAIFrame(int a1, float a2)
 // DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk
 // (no live caller; debug-only telemetry sibling of the dump helpers at
 // 10029E10/1002B070/1002B900).
-// Restored IDA-missed stub.  Verified against objdump@100293A0:
+// Restored dead stub:
 //   for each field: push *(int *)(bs+ofs); call MemoryByteSize@10039120;
 //   push ret, push fmt, push 1; call bi_Print@ds:0x10063fe8
 //   end: call PrintUsedMemorySize@10039150
-// Field offsets (raw — our bot_state_t labels in this region — chatstate /
-// weaponweights don't match these handle slots one-to-one):
+// Field offsets, raw: the bot_state_t labels in this region (chatstate /
+// weaponweights) do not match these handle slots one-to-one:
 //   +0x688  = character handle
 //   +0xbc0  = item weights handle (== goalstate.itemweightconfig; read via
 //             BotGoalP0 below since on 64-bit the real pointer lives in the
@@ -20116,10 +18887,8 @@ int __cdecl BotSetupClient(int a1, char *Source)
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
 #if BOTLIB_NEED_SIDEBAND
-  /* On 64-bit the weaponstate lives in a side-band heap struct because
-   * the original inline int[7] cannot hold its five pointer fields.
-   * On 32-bit BotWS(bs) already aliases &bs->weaponweights[0] and needs
-   * no separate allocation — matching the original DLL exactly. */
+  /* On 32-bit BotWS(bs) already aliases &bs->weaponweights[0], so no separate
+   * allocation happens — exactly as in the original. */
   if ( !BotWS(bs) )
     BotWS(bs) = (bot_weaponstate_t *)GetClearedMemory(sizeof(bot_weaponstate_t));
 #endif
@@ -20172,9 +18941,7 @@ int __cdecl BotShutdownClient(int a1)
   BotFreeChatState(&bs->chatstate);
   BotFreeWeaponWeights(BotWS(bs));
 #if BOTLIB_NEED_SIDEBAND
-  /* 64-bit only: free the heap-allocated weaponstate struct.  On 32-bit
-   * BotWS(bs) aliases inline bs->weaponweights[7] (no heap struct) and
-   * the memset(bs, 0, ...) two lines below already zeroes its bytes. */
+  /* 64-bit only: on 32-bit BotWS(bs) is inline and the memset below clears it. */
   if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
 #endif
   BotFreeItemWeights(&bs->goalstate);
@@ -20224,12 +18991,9 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     return BLERR_AIUPDATEINACTIVECLIENT;
   }
   memcpy(&v2->snapshot, a2, sizeof(v2->snapshot));
-  /* IDA's `v2 + 1056` / `v4 - 1044` were dword/float strides off the old
-   * `_DWORD *v2`: +1056 dwords = +4224 = viewangles, and 1044 floats back from
-   * there = +48 = snapshot.delta_angles.  The original walks ONE pointer over
-   * viewangles and reads delta_angles at a fixed negative float displacement
-   * (`fld [edi-0x1050]`, one instruction); the displacement is written as the
-   * field difference so it stays a compile-time constant with no magic 1044. */
+  /* The original walks ONE pointer over viewangles and reads delta_angles at a
+   * fixed negative displacement from it (one `fld [edi-0x1050]`).  Written as
+   * the field difference so it stays a compile-time constant. */
   v4 = v2->viewangles;
   v5 = 3;
   do
@@ -20418,30 +19182,9 @@ int BotShutdownLibrary()
 }
 
 //----- (10029E10) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10029E10:
- *   push 0x1005ab58("{"); call Log_Write
- *   ebx = arg; xor esi,esi (i=0); cmp [ebx],0; jle done
- *   edi = ebx + 8                  ;; first entry's value field
- *   loop:
- *     movsx eax, byte [edi-4]      ;; type byte (entry layout: char type
- *                                  ;;   @+0, 3 pad, value @+4 ; stride 8)
- *     dec eax; je print_int(1)
- *     dec eax; je print_float(2)
- *     dec eax; jne skip
- *     push [edi]; push esi; push 0x1005cfec(" %4d %s"); call Log_Write
- *     jmp next
- *   print_float: fld [edi]; sub esp,8; fstp qword [esp];
- *     push esi; push 0x1005cfe0(" %4d %f"); call Log_Write
- *   print_int: push [edi]; push esi; push 0x1005cfd4(" %4d %d"); call Log_Write
- *   next: ++esi; edi += 8; cmp esi,[ebx]; jl loop
- *   done: push 0x1005ab54("}"); call Log_Write
- * Iterates a typed-value list { int count; struct{char type; char pad[3];
- * union{int i; float f; char *s;} u;} entries[]; }, printing each entry
- * with its index and a type-specific format.  Companion dead dumper to
- * the named-value list printers at 1002B070/1002B900.  Type tags 1=int,
- * 2=float (printed via promotion to double), 3=string.  Dead in
- * Gladiator -- preserved by /INCREMENTAL. */
+/* Print each characteristic with its index and a type-specific format
+ * (tag 1 = int, 2 = float, 3 = string).  Companion to the named-value list
+ * dumpers at 1002B070 / 1002B900.  DEAD in Gladiator. */
 void __cdecl BotDumpCharacter(bot_character_t *ch)
 {
   int   i;
@@ -20450,15 +19193,11 @@ void __cdecl BotDumpCharacter(bot_character_t *ch)
   i = 0;
   if ( ch->numcharacteristics > 0 )
   {
-    /* Ref 0x10029e2b biases the walk to the VALUE (`lea edi,[ebx+0x8]` =
-     * &BC_PAIRS(ch)[0].value) and reads the type at `[edi-0x4]`, so three of the
-     * four accesses are 2-byte `[edi]` forms.  A struct-pointer walk
-     * (`bot_characteristic_t *p = BC_PAIRS(ch)` with `p->type` / `p->value`)
-     * biases to the pair BASE instead and costs 124 bytes — measured
-     * 2026-07-28 both with and without a `type` local, so the bias comes from
-     * the addressing, not from the switch shape.  Bias and stride are derived
-     * from the struct rather than hardcoded: IDA's `p += 8` was a 64-bit bug
-     * (bot_characteristic_t is 16 bytes there). */
+    /* The walk is biased to the VALUE field, reading the type at [edi-4], which is
+     * what makes three of the four accesses short `[edi]` forms; a struct-pointer
+     * walk over p->type / p->value biases to the pair base instead and costs
+     * ~124 bytes.  Bias and stride come from the struct, not literals —
+     * bot_characteristic_t is 16 bytes on 64-bit. */
     p = (char *)&BC_PAIRS(ch)[0].value;
     do
     {
@@ -20634,10 +19373,8 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
     }
     if ( !pass )
     {
-      /* Original allocates `12 + 8 * numchars + strings` on 32-bit:
-       * 4-byte count, one extra pair slot, then the string tail.  This
-       * expression preserves that layout on 32-bit while scaling the pair
-       * storage correctly for the 64-bit port. */
+      /* The original allocates 12 + 8*numchars + strings: a 4-byte count, one
+       * extra pair slot, then the string tail. */
       ch = (bot_character_t *)GetClearedMemory(
         stringbytes
         + sizeof(bot_characteristic_t) * numchars
@@ -20819,14 +19556,9 @@ int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 //----- (1002AA20) --------------------------------------------------------
 int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg)
 {
-  /* Faithful reconstruction of original 0x1002AA20 (BotRemoveConsoleMessage).  The
-   * disassembly tests msg+164 (next) first and msg+160 (prev) second; an
-   * earlier port of this function had the two conditions swapped, which
-   * left links->first pointing at a freed message and made
-   * BotCheckConsoleMessages busy-loop on the same node forever (visible
-   * via gdb backtraces all in BotCheckConsoleMessages within seconds of
-   * bots joining).  See gladiator.dll.c BotRemoveConsoleMessage disassembly for
-   * authoritative offsets. */
+  /* The original tests `next` FIRST and `prev` second.  Swapping them leaves
+   * links->first pointing at a freed message and BotCheckConsoleMessages
+   * busy-loops on that node forever. */
   chatmsg_links_t *links;
 
   links = &BotChatMsgLinksCS(chatstate);
@@ -21016,27 +19748,9 @@ str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
 // 1002AF99: conditional instruction was optimized away because edx.4!=0
 
 //----- (1002B070) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002B070:
- *   call Log_FilePointer; edi=eax; test; je end
- *   ebx = arg; test; je end
- * outer:
- *   fprintf(edi, "%d : [", *(int*)ebx)          ;; 0x1005d294
- *   esi = *(int*)(ebx+8)                        ;; inner-list head
- *   if !esi goto skip_inner
- *   inner:
- *     fld [esi+4]; sub esp,8; fstp qword [esp]
- *     push [esi]; push 0x1005d284; push edi; call fprintf  ;; ("%s", %1.2f)
- *     if [esi+8] != 0: push 0x1005d280; push edi; call fprintf  ;; ", "
- *     esi = [esi+8]                              ;; next item
- *     if (esi) goto inner
- *   skip_inner: push 0x1005d27c; push edi; call fprintf  ;; "]\n"
- *   ebx = [ebx+0xc]; if (ebx) goto outer
- *   end: ret
- * Outer list = { int key; pad; struct item *items; struct list *next; } stride 16.
- * Inner item = { char *name; float val; struct item *next; } stride 12.
- * Companion to the named-list dumper at 1002B900 (which uses %s-only
- * inner records).  Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Print each synonym list as `<key> : [("name", weight), ...]`.  Companion to
+ * the named-list dumper at 1002B900, whose inner records are %s-only.
+ * DEAD in Gladiator. */
 void __cdecl BotDumpSynonymList(int *synlist)
 {
   /* Inner item struct: { char *name; float val; struct item *next; } stride 12.
@@ -21066,30 +19780,24 @@ void __cdecl BotDumpSynonymList(int *synlist)
 }
 
 //----- (1002B110) --------------------------------------------------------
-/* Original gladiator function at 0x1002B110 — the syn.c synonym-config
- * loader.  Two-pass parser: pass 0 sums the required scratch-buffer size
- * (`v18`), pass 1 allocates the buffer (v2) and populates it with packed
- * bot_synonymlist_t / bot_synonym_t records.
- *
- * The original IDA decompile used raw `int *` indexing with literal +16
- * (sizeof(bot_synonymlist_t)) and +13 (sizeof(bot_synonym_t)+1) byte
- * strides, which only hold on 32-bit.  On 64-bit pointer fields grow
- * (4→8 bytes), so the size calculation must use sizeof() and writes must
- * use struct-field access.  Logic and control flow are preserved 1:1 with
- * the disassembly at 0x1002B110. */
+/* The syn.c synonym-config loader: a two-pass parser where pass 0 sums the
+ * required scratch-buffer size and pass 1 allocates it and fills it with packed
+ * bot_synonymlist_t / bot_synonym_t records.  Sizes come from sizeof() and
+ * writes go through struct fields, since the original's +16 / +13 literal
+ * strides only hold on 32-bit. */
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 {
-  int pass, size, level, numsynonyms;   /* IDA v4, v3/v18, v19, v22 */
-  int context;                          /* IDA v17 */
-  int contextstack[32];                 /* IDA v34 — char[128] really 32 ints */
-  /* NB deliberately UNinitialized (Q3 later added `= NULL` to hush compilers):
-   * ref@1002b151 loads ptr from its never-written slot — the pass-0 read is
-   * dead (`if (pass && size)` gates the only real assignment). */
-  char *ptr;                            /* IDA v2 — scratch buffer / advancing cursor */
-  source_t *src;                        /* IDA v5/v16 — ONE variable; the v16 copies were MSVC's own reloads */
+  int pass, size, level, numsynonyms;   
+  int context;
+  int contextstack[32];                 /* 128 bytes = 32 ints */
+  /* Deliberately UNinitialised, as in the original (Q3 later added `= NULL` to
+   * hush compilers): the pass-0 read is dead, since `if (pass && size)` gates
+   * the only real assignment. */
+  char *ptr;                            /* scratch buffer / advancing cursor */
+  source_t *src;
   token_t token;
-  bot_synonymlist_t *synlist, *lastsyn, *syn;  /* IDA v26, v24, v11/v25 */
-  bot_synonym_t *synonym, *lastsynonym;        /* IDA v12/v23, v10 */
+  bot_synonymlist_t *synlist, *lastsyn, *syn;
+  bot_synonym_t *synonym, *lastsynonym;
   bot_fileref_t file_ref;
 
   if ( !sub_10041F60(filename, &file_ref) )
@@ -21241,9 +19949,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 }
 
 //----- (1002B7C0) --------------------------------------------------------
-/* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
- * traversal.  The original IDA expressed firstsynonym (+8) and next (+12)
- * as raw _DWORD offsets which truncate on 64-bit. */
+/* Typed bot_synonymlist_t / bot_synonym_t traversal. */
 void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
 {
   bot_synonymlist_t *syn;
@@ -21260,9 +19966,8 @@ void __cdecl BotReplaceSynonyms(char *string, unsigned long int context)
 }
 
 //----- (1002B830) --------------------------------------------------------
-/* Restored from byte-offset walk to typed bot_synonymlist_t/bot_synonym_t
- * traversal.  Selects a synonym by weighted random pick and rewrites all
- * other occurrences in the string. */
+/* Selects a synonym by weighted random pick and rewrites all other
+ * occurrences in the string. */
 void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
 {
   bot_synonymlist_t *syn;
@@ -21290,29 +19995,10 @@ void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
 }
 
 //----- (1002B900) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002B900:
- *   call Log_FilePointer; edi=eax; test; je end
- *   ebx = arg; test; je end
- * outer:
- *   fprintf(edi, "%s = {", *(char**)ebx)        ;; 0x1005d344
- *   esi = *(int*)(ebx+8); if !esi goto skip_inner
- *   inner:
- *     fprintf(edi, "\"%s\"", *(char**)esi)      ;; 0x1005d33c
- *     if (*(int*)(esi+4)) fprintf(edi, ", ")    ;; 0x1005d280
- *     else                fprintf(edi, "}\n")   ;; 0x1005d338
- *     esi = *(char**)(esi+4); if esi goto inner
- * skip_inner:
- *   ebx = *(int**)(ebx+0xc); if ebx goto outer
- *   end: ret
- * Outer node = { char *name; pad; struct item *items; struct list *next; }
- *   stride 16, walked via [+0xc].next.
- * Inner item = { char *name; struct item *next; } stride 8.
- * The outer block's closing "}\n" is emitted by the LAST inner item;
- * an empty inner list leaves the block unterminated -- abandoned/buggy
- * Mr. Elusive helper, no canonical Q3 counterpart.  Sibling of the
- * named-float dumper at BotDumpSynonymList.  Dead in Gladiator --
- * preserved by /INCREMENTAL. */
+/* Print each random-string list as `<name> = {"a", "b"}`.  Note the closing
+ * "}\n" is emitted by the LAST inner item, so an empty inner list leaves the
+ * block unterminated — an abandoned helper with no Q3 counterpart.  Sibling of
+ * BotDumpSynonymList.  DEAD in Gladiator. */
 void __cdecl BotDumpRandomStringList(int *randomlist)
 {
   FILE *fp;
@@ -21340,8 +20026,8 @@ void __cdecl BotDumpRandomStringList(int *randomlist)
 // pass 0 counts the required scratch-buffer size, pass 1 allocates a single
 // GetClearedMemory() block and populates it as a packed sequence of
 // bot_randomlist_t / bot_randomstring_t records, each immediately followed
-// by its inline string.  IDA's original used hardcoded 32-bit byte strides
-// (+16, +8, +12) which truncate on 64-bit because the pointer fields grow
+// by its inline string.  Sizes come from sizeof() rather than the original's
+// hardcoded +16/+8/+12 strides, which only hold while the pointer fields
 // from 4 to 8 bytes; we use sizeof() instead so the same source builds
 // correctly under both ABIs.
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
@@ -21360,12 +20046,9 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     return NULL;
   }
 
-  /* Original omits ptr/random inits: ptr is read only under the `pass && size`
-   * guard (pass 0 short-circuits) and random is written before read on pass 1,
-   * so both are write-before-read safe and the original leaves them to leftover
-   * register values (ref: `mov ebx,[slot]; mov ebp,[slot]`).  Only size (live
-   * for pass-0 accumulation) and randomlist (the returned head) are zeroed.
-   * Faithful match of the BotLoadInitialChat invented-init lever. */
+  /* ptr and random are deliberately left uninitialised, as in the original: ptr
+   * is read only under the `pass && size` guard and random is written before
+   * read on pass 1.  Only size and randomlist (the returned head) are zeroed. */
   size = 0;
   randomlist = NULL;
   for ( pass = 0; pass < 2; ++pass )
@@ -21409,14 +20092,11 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
         FreeSource(source);
         return NULL;
       }
-      /* Each random-string list element is a SINGLE quoted string, comma-
-       * separated, brace-terminated.  The original Gladiator reads them with
-       * PC_ExpectTokenType(TT_STRING)+StripDoubleQuotes (NOT BotLoadChatMessage,
-       * which is the Q3 form — Q3 diverges here).  BotLoadChatMessage treats the
-       * commas as message-piece separators and concatenates the whole list,
-       * then fails at '}' ("expected ,, found }").  Restored from objdump
-       * @0x1002BB06 (PC_ExpectTokenType / PC_CheckTokenString("}") /
-       * PC_ExpectTokenString(",")). */
+      /* Each element is a SINGLE quoted string, comma-separated and
+       * brace-terminated, read with PC_ExpectTokenType(TT_STRING) +
+       * StripDoubleQuotes — NOT Q3's BotLoadChatMessage, which would treat the
+       * commas as message-piece separators, concatenate the whole list and then
+       * fail at '}'. */
       while ( PC_ExpectTokenType(source, 1, 0, token.string) )
       {
         StripDoubleQuotes(token.string);
@@ -21501,7 +20181,7 @@ char *__cdecl RandomString(const char *name)
 // "garbage" int local so the call site retains the same arity as
 // the original — and the same UB on the value.
 //
-// DEAD in Gladiator — /INCREMENTAL.  Restored from objdump@1002BEA0.
+// DEAD in Gladiator — /INCREMENTAL.
 void __cdecl BotDumpMatchTemplates(void *matches)
 {
   FILE *log;
@@ -21518,10 +20198,9 @@ void __cdecl BotDumpMatchTemplates(void *matches)
     return;
   while ( tmpl )
   {
-    /* Mr. Elusive bug, preserved verbatim: the original .text pushes only the
-     * format + FILE* here (no argument for %8d), so %8d reads whatever 4 bytes
-     * follow on the caller stack at runtime.  Do NOT add a third argument — it
-     * would emit an extra push the original binary does not have. */
+    /* Faithful original bug: only the format and FILE* are pushed, so %8d reads
+     * whatever 4 bytes follow on the stack.  Do NOT add a third argument — that
+     * would emit a push the original does not have. */
     fprintf(log, "%8d { ");
     piece = tmpl->first;
     while ( piece )
@@ -21577,8 +20256,8 @@ void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces)
 //----- (1002C020) --------------------------------------------------------
 // Q3 equivalent: ReadFuzzySeparators (be_ai_chat.c).  Parses a single match
 // pattern body (list of pieces separated by ',' or '|') into a chain of
-// bot_matchpiece_t.  Original IDA decompilation used GetMemory(16) plus
-// int-stride indexing (v4[2], v4[3]) which truncates on 64-bit because
+// bot_matchpiece_t, allocated with sizeof() rather than the original's
+// literal 16 and int-stride indexing, which only hold while
 // firststring/next pointers grow from 4 to 8 bytes.
 bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken)
 {
@@ -21704,9 +20383,7 @@ void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 
 //----- (1002C410) --------------------------------------------------------
 // Q3 equivalent: BotLoadMatchTemplates (be_ai_chat.c).  Parses match.c into
-// a linked list of bot_matchtemplate_t.  The IDA decompilation stored
-// source/template pointers in ints (v3, v4, v5, v6, v7) and used int-stride
-// indexing (v6[3]/v6[4]) which truncates on 64-bit because the pointer
+// a linked list of bot_matchtemplate_t.
 // fields of bot_matchtemplate_t live past padding.  Rewritten to use the
 // proper struct types so allocation size, field offsets and pointer width
 // are correct under both 32-bit and 64-bit ABIs.
@@ -21715,7 +20392,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   source_t *source;
   bot_matchtemplate_t *matches;       /* head of returned list */
   bot_matchtemplate_t *match;         /* current template */
-  bot_matchtemplate_t *lastmatch;     /* previously appended template */
+  bot_matchtemplate_t *lastmatch;     /* last appended template */
   int context;
   bot_fileref_t file_ref;
   token_t token;
@@ -21797,14 +20474,8 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 }
 
 //----- (1002C800) --------------------------------------------------------
-/* Restored from disassembly + Q3 botlib reference (be_ai_chat.c StringsMatch).
- * The IDA decompilation reduced the function to opaque _DWORD-pointer math;
- * here we use the proper bot_match_t / bot_matchpiece_t types so the field
- * accesses are explicit and the field offsets are guaranteed to match the
- * original 240-byte layout via the struct definition in chat_state.h.
- *
- * Returns true if `pieces` matches `match->string`, with capture info
- * written into match->variables[]. */
+/* Returns true if `pieces` matches `match->string`, writing capture info into
+ * match->variables[].  Q3 cognate: be_ai_chat.c StringsMatch. */
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 {
   bot_matchpiece_t  *mp;
@@ -21820,18 +20491,16 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
   {
     if ( mp->type == MT_STRING )
     {
-      /* Walk the alternative-string list looking for any that's contained
-       * in the remaining text.  Empty firststring is a special "match
-       * anywhere" — fall through with newstrptr at its previous value. */
+      /* Walk the alternative-string list for any contained in the remaining
+       * text.  An empty firststring means "match anywhere" — fall through with
+       * newstrptr unchanged. */
       ms = mp->firststring;
       if ( ms )
       {
         while ( 1 )
         {
-          /* Original IDA decompilation called this "FindClientByName"
-           * (synthetic name for the MSVC thunk 0x1000119A); the real body
-           * at 0x1002ACF0 is StringContains, returning a pointer into the
-           * haystack where needle was found, or NULL if not. */
+          /* Thunk 0x1000119A -> StringContains, which returns a pointer into the
+           * haystack, or NULL. */
           newstrptr = (char *)StringContains(strptr, ms->string, 0);
           if ( newstrptr )
             break;
@@ -21855,11 +20524,9 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
         return 0;
       }
 
-      /* Advance strptr past the matched substring.  The original computes
-       * this unconditionally (1002c876: mov edi,[esi]; repnz scasb; add
-       * edi,edx) with esi still holding the matched alternative `ms`; it does
-       * not re-guard mp->firststring / ms->string (which never occur NULL for
-       * a real MT_STRING piece). The guarded form emitted 3 extra branches. */
+      /* Advance strptr past the matched substring, unconditionally as the original
+       * does — it does not re-guard mp->firststring / ms->string, which are never
+       * NULL for a real MT_STRING piece, and guarding costs three branches. */
       strptr = newstrptr + strlen(ms->string);
     }
     else if ( mp->type == MT_VARIABLE )
@@ -21880,10 +20547,9 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 // 1002C8BB: conditional instruction was optimized away because ebx.4<0
 
 //----- (1002C930) --------------------------------------------------------
-/* Restored from disassembly + Q3 reference.  Walks the chat-pattern template
- * list (head at matchtemplates), filtered by `context` bitmask; for each
- * matching template runs StringsMatch.  On success fills match->type and
- * match->subtype from the template. */
+/* Walks the chat-pattern template list (head at matchtemplates), filtered by
+ * the `context` bitmask, running StringsMatch on each and filling match->type
+ * and match->subtype from the template that hits. */
 int __cdecl BotFindMatch(char *str, bot_match_t *match, int context)
 {
   bot_matchtemplate_t *ms;
@@ -21912,10 +20578,9 @@ int __cdecl BotFindMatch(char *str, bot_match_t *match, int context)
 }
 
 //----- (1002CA20) --------------------------------------------------------
-/* Copy a captured variable (by index) out of a match into `buf`.  Restored
- * from disassembly with proper struct typing — equivalent to Q3's
- * BotMatchVariable but without the buf-size argument (Q2's version writes
- * unbounded; callers must provide a sufficiently large buffer). */
+/* Copy a captured variable (by index) out of a match into `buf`.  Unlike Q3's
+ * BotMatchVariable there is no buf-size argument — the write is unbounded, so
+ * callers must supply a large enough buffer. */
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
 {
   if ( variable < 0 || variable >= MAX_MATCHVARIABLES )
@@ -21937,10 +20602,8 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
 }
 
 //----- (1002CAC0) --------------------------------------------------------
-/* BotFindStringInList: walks a bot_stringlist_t list, returns matching node.
- * Q3 botlib has the same function in be_ai_chat.c (offset 0 = char *string,
- * offset 4 = next).  Used by BotCheckChatMessageIntegrety to
- * deduplicate the missing-random-key list. */
+/* Walks a bot_stringlist_t list and returns the matching node.  Used by
+ * BotCheckChatMessageIntegrety to deduplicate the missing-random-key list. */
 bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char *string)
 {
   bot_stringlist_t *n;
@@ -21958,11 +20621,10 @@ bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char
  * list of undefined variable nodes (accumulating into a2); returns updated list. */
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist)
 {
-  /* Canonical Q3 be_ai_chat.c:1513 structure (while + switch over the escape
-   * char), reading the message pointer as `char` so MSVC emits `mov al`/`cmp al`
-   * rather than the `int`-promoted `movsx` the IDA decompile produced.  Strings
-   * and the node-alloc block are the ORIGINAL Gladiator forms (aSSMissingRando,
-   * the "PC_HashString:" FATAL prefix), not the Q3 message text. */
+  /* Q3's structure (while + switch over the escape char), reading the message
+   * pointer as `char` so MSVC emits `mov al`/`cmp al` rather than an
+   * int-promoted `movsx`.  The strings and the node-alloc block are Gladiator's
+   * own, not Q3's message text. */
   int i;
   const char *msgptr;
   bot_stringlist_t *node;
@@ -22101,47 +20763,10 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
 }
 
 //----- (1002CF40) --------------------------------------------------------
-/* BotDumpReplyChat — DEAD.  Restored from
- * objdump@0x1002CF40 (~221 instructions).  String table contains
- * "BotDumpReplyChat:\n" @0x1005D54C (function-name banner header),
- * confirming the identity.
- *
- * Walks the bot_replychat_t chain pointed to by arg0 and dumps each
- * entry to Log_FilePointer() in the same `[<LHS>] = <weight>\n{\n
- * \t"chat1";\n\t"chat2";\n}\n` syntax that sub_1002E5D0 generates
- * for in-memory weight rules — but here the LHS-pattern formatter is
- * inlined again (Mr. Elusive duplicated the dumper instead of
- * sharing one helper), and after the LHS terminator each entry's
- * own quoted-chat list (replychat->chats at +0x0C) is enumerated.
- *
- * Replychat node layout (offsets verified from the .text):
- *   +0x00  lhs_node_t *lhs          (linked-list head — same node
- *                                     layout as sub_1002E5D0 takes)
- *   +0x04  float       weight
- *   +0x08  ???                       (unused by this dumper)
- *   +0x0C  chat_str_t *chats         (linked list of chat strings,
- *                                     each {char *string @+0, ?@+4,
- *                                     chat_str_t *next @+8})
- *   +0x10  bot_replychat_t *next
- *
- * Per replychat entry the output is:
- *   "["                                          (open LHS)
- *   <LHS expansion — same flag cascade as sub_1002E5D0>
- *   "] = %1.0f\n"   using replychat->weight     (close LHS + weight)
- *   "{\n"
- *   for each chat in replychat->chats:
- *     "\t\"%s\";\n"
- *   "}\n"
- *
- * Strings: "BotDumpReplyChat:\n" @0x1005D54C, "[" @0x1005C65C,
- *          "&" @0x1005D548, "!" @0x1005D544, "name" @0x1005C1A0,
- *          "female" @0x1005D53C, "male" @0x1005D534, "it" @0x1005D530,
- *          "(" @0x1005D334, "\"%s\"" @0x1005D33C, "%d" @0x1005D37C,
- *          ", " @0x1005D280, ")" @0x1005D32C, "] = %1.0f\n" @0x1005D520,
- *          "{\n" @0x1005D51C, "\t\"%s\";\n" @0x1005D510, "}\n" @0x1005D338.
- *
- * Thunks: 0x1000120D → 0x10038EC0 = Log_FilePointer (returns FILE*),
- *         0x10045898               = fprintf.
+/* BotDumpReplyChat — dump each bot_replychat_t as
+ * `[<LHS>] = <weight>\n{\n\t"chat";\n…}\n`, the same weight-config syntax
+ * sub_1002E5D0 emits, with that function's LHS flag cascade duplicated inline
+ * rather than shared, then each entry's own quoted-chat list.
  *
  * DEAD in Gladiator — no live caller. */
 void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
@@ -22265,8 +20890,8 @@ void __cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 
 //----- (1002D270) --------------------------------------------------------
 // Q3 equivalent: BotLoadReplyChat (be_ai_chat.c).  Loads rchat.c into a
-// linked list of bot_replychat_t.  Original IDA decompilation stored
-// pointers in ints (v5, v6, v7, v16) and used int-stride indexing which
+// linked list of bot_replychat_t.  Typed pointers here, not the original's
+// int slots and int-stride indexing, which
 // truncates on 64-bit because every chain link doubles in width.
 // Rewritten with proper struct types so each allocation and field write
 // has the correct size and offset under both 32-bit and 64-bit ABIs.
@@ -22418,29 +21043,9 @@ static void BotFreeChatTree(chatlist_t *list);
 #endif
 
 //----- (1002D7E0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002D7E0:
- *   push 0x1005ab58("{"); call Log_Write
- *   eax = arg; edi = [eax]; test edi,edi; je tail
- * outer:
- *   push esi; push edi; push 0x1005d5bc(' type "%s"'); call Log_Write
- *   push 0x1005d5b8(" {"); call Log_Write
- *   ecx = [edi+0x20]; push ecx; push 0x1005d59c("  numchatmessages = %d"); call Log_Write
- *   esi = [edi+0x24]                       ;; chattype_t->messages head
- *   if (!esi) goto skip_inner
- *   inner:
- *     edx = [esi]; push edx; push 0x1005d594('  "%s"'); call Log_Write
- *     esi = [esi+8]; if (esi) goto inner
- *   skip_inner:
- *     push 0x1005d590(" }"); call Log_Write
- *     edi = [edi+0x28]; if (edi) goto outer
- *   tail: push 0x1005ab54("}"); call Log_Write; ret
- * Twin of the live BotLoadInitialChat at 1002D8A0: this is the loaded-
- * chat-tree pretty-printer that BotLoadInitialChat would call after
- * parsing if dumping were enabled.  Walks chatlist_t->types (chattype_t
- * chain) and per-type chattype_t->messages (chatmessage_t chain),
- * matching the chat-config grammar that BotLoadInitialChat parses
- * just below.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Pretty-print a loaded chat tree — walks chatlist_t->types and each type's
+ * messages, in the same grammar BotLoadInitialChat parses just below.  DEAD in
+ * Gladiator. */
 void __cdecl BotDumpInitialChat(chatlist_t *chat)
 {
   chattype_t *t;
@@ -22468,10 +21073,9 @@ void __cdecl BotDumpInitialChat(chatlist_t *chat)
 void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
 {
 #if BOTLIB_NEED_SIDEBAND
-  /* 64-bit-safe rewrite: instead of building a single contiguous heap
-   * buffer with truncating 4-byte pointer slots, allocate one struct per
-   * chat-type and one struct per chat-line, chained via real pointers.
-   * Behaviour and parser-token sequence match the 32-bit original. */
+  /* One struct per chat-type and per chat-line, chained with real pointers,
+   * rather than the original's single contiguous buffer of 4-byte slots.
+   * Behaviour and parser-token sequence are unchanged. */
   source_t      *src;
   chatlist_t    *list;
   chattype_t    *cur_type;
@@ -22639,7 +21243,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
     return 0;
   }
   found = 0;
-  /* Original MSVC6 code relies on pass==0 short-circuiting before ptr/size are used. */
+  /* Relies on pass==0 short-circuiting before ptr/size are used. */
   for ( pass = 0; pass < 2; ++pass )
   {
     if ( pass && size )
@@ -22769,8 +21373,8 @@ while ( PC_ReadTokenHandle(src, token) )
 }
 
 #if BOTLIB_NEED_SIDEBAND
-/* 64-bit-only helper for the side-banded chat-tree representation.  The
- * original 32-bit DLL freed the whole chat dump with one FreeMemory call. */
+/* 64-bit-only helper for the side-banded chat tree; the original freed the
+ * whole chat dump with a single FreeMemory. */
 static void BotFreeChatTree(chatlist_t *list)
 {
   chattype_t *t, *tn;
@@ -22818,14 +21422,10 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
   bot_consolemessage_t *msg;
 
   BotFreeChatFile(cs);
-  /* Original 0x1002DFB0 passes the chatstate pointer to BotNextConsoleMessage
-   * / BotRemoveConsoleMessage because the 32-bit binary stored the per-client console-
-   * message linked list inline in the chatstate at +0xac/+0xb0/+0xb4.  In
-   * the 64-bit port those head/tail/count slots cannot hold real pointers,
-   * so the list lives in side-band `botchatmsglinks[client]`; BotChatMsgLinksCS
-   * derives the client index from cs by computing the offset back into
-   * botstates[].  The original took only `cs` (one arg) — the client index is
-   * derived, never passed. */
+  /* The chatstate pointer is the only argument, as in the original — the
+   * per-client message list lives inline at chatstate +0xac/+0xb0/+0xb4 on
+   * 32-bit, and BotChatMsgLinksCS derives the client index from `cs` for the
+   * 64-bit side-band. */
   for ( msg = BotNextConsoleMessage(cs); msg; msg = BotNextConsoleMessage(cs) )
     BotRemoveConsoleMessage(cs, msg);
 }
@@ -22936,12 +21536,9 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
 }
 
 //----- (1002E3B0) --------------------------------------------------------
-/* BotChooseInitialChatMessage: picks a chat line from the initial-chat list
- * for the named chat type (e.g. "enter_game"). a1 is the head-slot pointer
- * stored at chat_state[184]; *a1 is the first chat-type entry, with inline
- * name at offset 0, chat-line list head at offset 36, and next at offset 40.
- * Returns the chosen chat line's chat-string pointer (chat_line[0]).
- * Q3 botlib has the same function with this name in be_ai_chat.c. */
+/* Pick a chat line from the initial-chat list for the named chat type (e.g.
+ * "enter_game"), returning its chat-string pointer.  `cs` is the head slot
+ * stored at chatstate+184. */
 char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
 {
   chattype_t *t;
@@ -23034,39 +21631,13 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
 }
 
 //----- (1002E5D0) --------------------------------------------------------
-/* sub_1002E5D0 — DEAD fuzzy-weight LHS / condition dumper.  Restored
- * from objdump@0x1002E5D0 (~98 instructions, ~131 lines of .text).
- *
- * Walks a linked list of fuzzy-rule LHS nodes and pretty-prints the
- * pattern surrounded by `[...] = <weight>\n{\n` — the standard
- * Mr. Elusive weight-config syntax.  Sole arg is a pointer to a
- * { list_head_t *head;  float weight; } pair.
- *
- * Per-node flags select prefix + body format:
- *   0x01  →  prefix "&"   (continued conjunction)
- *   0x02  →  prefix "!"   (negation)
- *   0x04  →  body "name"
- *   0x20  →  body "female"
- *   0x40  →  body "male"
- *   0x80  →  body "it"
- *   0x10  →  body "(<inner1>, <inner2>, ...)" where each inner item is
- *            either   "\"%s\""   if inner->type == 2 (string ptr at
- *                                inner->strptr_ptr → *strptr_ptr)
- *            or       "%d"        for the default branch
- *                                (inner->intval at +0x8).
- *   0x08  →  body "\"%s\"" with node->strptr (at node+4)
- *
- * Between nodes:  ", "
- * After last node: "] = %1.0f\n" using *(float *)(arg0 + 4)
- * Tail (always):  "{\n"
- *
- * Strings: "[" @0x1005c65c, "&" @0x1005d548, "!" @0x1005d544,
- *          "name" @0x1005c1a0, "female" @0x1005d53c, "male" @0x1005d534,
- *          "it" @0x1005d530, "(" @0x1005d334, "\"%s\"" @0x1005d33c,
- *          "%d" @0x1005d37c, ", " @0x1005d280, ")" @0x1005d32c,
- *          "] = %1.0f\n" @0x1005d520, "{\n" @0x1005d51c.
- *
- * Thunk: ds:0x10063FE8 = bi_Print.
+/* Fuzzy-weight LHS / condition dumper: walk a chain of reply-chat key nodes and
+ * pretty-print the pattern as `[...] = <weight>\n{\n`, the standard weight-config
+ * syntax.  Per-node flags select prefix and body:
+ *   0x01 "&"        0x02 "!"        0x04 "name"     0x08 "\"<string>\""
+ *   0x10 "(<inner>, …)" — each inner is "\"%s\"" for type 2, else "%d"
+ *   0x20 "female"   0x40 "male"     0x80 "it"
+ * Nodes are joined with ", ".
  *
  * DEAD in Gladiator — no live caller. */
 void __cdecl sub_1002E5D0(bot_replychat_t *arg)
@@ -23220,11 +21791,9 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
        while ( v7 );
        v15 = v8;
      }
-     /* Split into two statements: ref's disasm multiplies by the 0.000030518509f
-        constant BEFORE the v15 factor (fmul ds:const; fimul [v15]); the single-
-        expression form compiled the two multiplies in the opposite order despite
-        matching left-to-right source text.  A sequence point after computing the
-        const-scaled value reproduces ref's order exactly (verified 2026-07-18). */
+     /* Two statements, not one expression: the original multiplies by the
+        0.000030518509f constant BEFORE the v15 factor, and only a sequence point
+        after the const-scaled value reproduces that order. */
      rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
      v9 = (int)(rnd * (float)v15);
      v11 = v9;
@@ -23261,9 +21830,8 @@ unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate)
 }
 
 //----- (1002EA80) --------------------------------------------------------
-/* void, like the Q3 cognate: ref 1002ea80's two exits (1002eab5 / 1002eacc)
- * are both a bare `pop edi; pop esi; ret` -- the trailing `mov al,ds:...;
- * mov [esi],al` is the strcpy(cs->chatmessage, "") clear, not a return. */
+/* Genuinely void, like the Q3 cognate: the trailing byte store is the
+ * strcpy(cs->chatmessage, "") clear, not a return value. */
 void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 {
   if ( strlen(chatstate->chatmessage) )
@@ -23277,18 +21845,10 @@ void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 }
 
 //----- (1002EAF0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against objdump@1002EAF0:
- * switch on the second arg, writing an int through the first.
- *
- * Named from Q3 be_ai_chat.c:2840 `BotSetChatGender` — an unambiguous
- * structural match, not a role guess: the switch is value-for-value Q3's
- * (`case CHAT_GENDERFEMALE(1): cs->gender = 1; case CHAT_GENDERMALE(2):
- * cs->gender = 2; default: cs->gender = CHAT_GENDERLESS(0)`), the written
- * int is at offset 0 of bot_chatstate_t, which IS `gender`, and this sits
- * immediately before BotSetChatName (0x1002EB30) exactly as in Q3, where the
- * two are adjacent (2840 / 2859).  Gladiator's chatstate has no `client`
- * field, which is why neither takes Q3's later `client` argument.
- * Dead in Gladiator; preserved by /INCREMENTAL. */
+/* BotSetChatGender (Q3 be_ai_chat.c) — the switch is value-for-value Q3's
+ * (1 = female, 2 = male, default genderless) writing chatstate.gender.  No
+ * `client` argument: Gladiator's chatstate has no such field.
+ * DEAD in Gladiator. */
 void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 {
   switch ( gender )
@@ -23300,26 +21860,10 @@ void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 }
 
 //----- (1002EB30) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002EB30:
- *   mov eax,[esp+4]; xor ecx,ecx; add eax,0x4; push 0xf; mov edx,eax;
- *   mov [edx],ecx; mov [edx+4],ecx; mov [edx+8],ecx;
- *   mov word ptr [edx+0xc],cx; mov byte ptr [edx+0xe],cl;
- *   mov ecx,[esp+0xc]; push ecx; push eax;
- *   call 0x10044de0 (= strncpy); add esp,0xc; ret
- * The stores are edx-relative (edx = arg1+4), so they zero exactly 15 bytes
- * (3 dwords + 1 word + 1 byte) starting at arg1+4, then strncpy with a
- * 15-byte limit into the same slot — i.e. `bot_chatstate_t.name[16]`.
- *
- * Named from Q3 be_ai_chat.c:2859 `BotSetChatName`: same body idiom
- * (`memset(cs->name, 0, …); strncpy(cs->name, name, …)`) with the sizes at
- * Gladiator's 16-byte field instead of Q3's 32, writing the one name field
- * bot_chatstate_t has, and paired with BotSetChatGender immediately above in
- * Q3's own order.  Q3 additionally takes a `client` argument and sets
- * `cs->client`; Gladiator's chatstate has no such field, hence two parameters.
- * Q3 also explicitly zeroes the last byte after the strncpy — here the memset
- * covers only name[0..14], so name[15] is left as whatever it was.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* BotSetChatName (Q3 be_ai_chat.c) — memset 15 bytes of chatstate.name[16],
+ * then strncpy with a 15-byte limit.  Unlike Q3, name[15] is left as-is (the
+ * memset covers only name[0..14]) and there is no `client` argument.
+ * DEAD in Gladiator. */
 void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name)
 {
   memset(chatstate->name, 0, 15);
@@ -23327,23 +21871,8 @@ void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name)
 }
 
 //----- (1002EB70) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002EB70:
- *   ecx = ds:0x10064380   (= bot_replychat_t * head: replychats)
- *   xor edx,edx
- *   while ( ecx ) {
- *     eax = [ecx+0xc]     (firstchatmessage)
- *     while ( eax ) {
- *       [eax+0x4] = 0     (bot_chatmessage_t.time = 0)
- *       eax = [eax+0x8]   (chat->next)
- *     }
- *     ecx = [ecx+0x10]    (replychat->next)
- *   }
- *   ret
- * Walks the global reply-chat list and clears the last-used timestamp on
- * every chatmessage in every entry.  Q3 cognate is BotResetChatAI
- * (be_ai_chat.c): identical nested loop over replychats -> firstchatmessage
- * setting m->time = 0.  Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Clear the last-used timestamp on every chatmessage of every reply-chat
+ * entry, as Q3's BotResetChatAI does.  DEAD in Gladiator. */
 void __cdecl BotResetChatAI(void)
 {
   bot_replychat_t   *rc;
@@ -23401,7 +21930,7 @@ itemconfig_t * LoadItemConfig(char *filename)
   source_t *src;
   itemconfig_t *cfg;
   iteminfo_t *item;
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
   char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+13Ch] [ebp-430h] BYREF
 
@@ -23428,12 +21957,10 @@ itemconfig_t * LoadItemConfig(char *filename)
   cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
   cfg->numitems = 0;
   cfg->items    = (iteminfo_t *)(cfg + 1);
-  /* Shape copied wholesale from the near-MATCH sibling LoadWeaponConfig (same
-   * idiom, 2 bytes from byte-identical): a plain top-tested
-   * `while (PC_ReadTokenHandle(...))`, every error path written out INLINE
-   * (no shared goto label), and the unknown-definition case as the trailing
-   * `else`.  The previous `if(read){ do{...}while(read); }` form made MSVC6
-   * PEEL the strcmp condition (OUR+11 = one extra inlined strcmp block). */
+  /* Same shape as the sibling LoadWeaponConfig: a plain top-tested
+   * `while (PC_ReadTokenHandle(...))`, every error path written out INLINE with
+   * no shared label, and the unknown-definition case as the trailing `else`.
+   * An `if(read){ do{…}while(read); }` form makes MSVC6 peel the strcmp. */
   while ( PC_ReadTokenHandle(src, ArgList) )
   {
     if ( !strcmp(ArgList, "iteminfo") )
@@ -23508,10 +22035,10 @@ void InitLevelItemHeap()
     FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
   levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
-  /* One textual tail; MSVC6 /O2 DUPLICATES it so the loop-skipped path can reuse
-   * the still-live GetMemory result while the post-loop path reloads the global
-   * (ref 1002f1ff vs 1002f21c).  Writing the two tails out explicitly instead
-   * makes them identical and MSVC tail-MERGES them back into one (OUR-8). */
+  /* ONE textual tail: MSVC6 /O2 duplicates it so the loop-skipped path can reuse
+   * the still-live GetMemory result while the post-loop path reloads the global.
+   * Writing both tails out explicitly makes them identical and they get
+   * tail-merged back into one. */
   for ( i = 0; i < max_levelitems - 2; ++i )
     levelitemheap[i].next = &levelitemheap[i + 1];
   levelitemheap[max_levelitems - 1].next = NULL;
@@ -23577,12 +22104,9 @@ void BotInitLevelItems()
   int v7; // ebp
   const char *classname; // [esp+28h] [ebp-18h]
   bsp_entity_t *ent; // [esp+2Ch] [ebp-14h]
-  /* IDA split the item-origin vec3 into three separate floats v12/v13/v14
-   * but the original passes &v12 as vec3 to AAS_VectorForBSPEpairKey,
-   * AAS_DropToFloor, and AAS_BestReachableArea.  GCC won't keep the locals
-   * adjacent, so y/z are read as garbage and AAS_BestReachableArea returns
-   * 0 for nearly every item — leaving goal_areanum=0 and BotChooseLTGItem
-   * unable to pick any goal. */
+  /* The item origin must be a real vec3_t — it is passed by address to
+   * AAS_VectorForBSPEpairKey, AAS_DropToFloor and AAS_BestReachableArea, and
+   * split into separate locals nearly every item ends up with areanum 0. */
   int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
@@ -23647,10 +22171,9 @@ void BotInitLevelItems()
     }
     botimport.Print(PRT_MESSAGE, "found %d level items\n", numlevelitems);
   }
-  // Single shared exit (ref 1002f5de): the original is void, so the !itemconfig,
-  // alloc-fail (`goto done`) and normal paths all fall into ONE epilogue.  Giving
-  // the function a return value makes MSVC materialise a separate epilogue per
-  // `return` expression (+8 trailing insns each) that the original does not have.
+  // Single shared exit: the function is void, so the !itemconfig, alloc-fail and
+  // normal paths all fall into ONE epilogue.  A return value would give each
+  // `return` its own epilogue.
 done:
   ;
 }
@@ -24041,12 +22564,8 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   }
   if ( !bestitem )
   {
-    /* Original sub_10001A64 thunks to AAS_RandomGoalArea, a 4-arg "pick a
-     * reachable area for goal" function — NOT BotFindWayPoint (the chat
-     * linked-list walker our deobfuscator confused it with).  Wrong
-     * mapping passed the area number into BotFindWayPoint where it
-     * gets walked as a chat-node list, faulting on a corrupt next ptr
-     * (= 0x5).  Restored to the correct function with all 4 args. */
+    /* Thunk 0x10001A64 goes to the 4-arg AAS_RandomGoalArea, NOT to
+     * BotFindWayPoint. */
     if ( AAS_RandomGoalArea(areanum, travelflags, (_DWORD *)&goal.areanum, goal.origin) )
     {
       goal.mins[0] = -15;
@@ -24151,13 +22670,10 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                           v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, ltg->areanum, travelflags);
                         if ( v16 <= ltg_time )
                         {
-                          /* The two scalar stores are NOT interleaved into the
-                           * vec copy in the source: they read `li`/`weight`,
-                           * which the copy itself also uses, so ref's
-                           * origin[0]/bestweight/origin[1]/bestitem/origin[2]
-                           * emission is MSVC6's software pipeline filling the
-                           * load-ahead bubbles (sub_10004310 class), not
-                           * statement order. */
+                          /* The two scalar stores are NOT interleaved into the vec copy in
+                           * the source — the original's interleaved emission is
+                           * MSVC6 filling load-ahead bubbles, since both read the
+                           * same `li`/`weight` the copy uses. */
                           bestweight = weight;
                           bestitem = li;
                           VectorCopy(li->goalorigin, goal.origin);
@@ -24222,21 +22738,18 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 }
 
 //----- (10030770) --------------------------------------------------------
-/* BotItemGoalInVisButNotVisible — true when the goal item's bounding-box centre
- * is visible from the bot's eye, yet the goal entity itself is not currently
- * being updated by the engine.  Restored to the Q3 source shape (be_ai_goal.c
- * :1637) with named typed locals: `trace` and `entinfo` have non-overlapping
- * lifetimes so MSVC6 coalesces them into one 0x7C stack slot (frame 0x88),
- * reused after the fraction test — exactly as the binary at 0x10030770.
+/* BotItemGoalInVisButNotVisible — true when the goal item's bbox centre is
+ * visible from the bot's eye but the goal entity is not currently being updated
+ * by the engine.  `trace` and `entinfo` have non-overlapping lifetimes, so
+ * MSVC6 coalesces them into one stack slot, reused after the fraction test.
  *
- * Three Gladiator-vs-Q3 divergences are kept faithful to that binary:
- *   - `entitynum <= 0` returns 1 here, where Q3 returns qfalse.
- *   - the "not updated" test is the older `if (!entinfo.valid) return qtrue`,
- *     which survives verbatim as the commented-out line in Q3 (be_ai_goal.c
- *     :1662); Q3's live code evolved it to `entinfo.ltime < AAS_Time() - 0.5`.
- *   - the second VectorAdd keeps the binary's `middle + goal->origin` operand
- *     order (Q3 has `goal->origin + middle`), and contentmask is the literal 3.
- * `viewangles` is unused (present only to match the engine call signature). */
+ * Three divergences from Q3, all faithful to the binary:
+ *   - `entitynum <= 0` returns 1, where Q3 returns qfalse;
+ *   - the "not updated" test is the older `if (!entinfo.valid)`, which survives
+ *     commented out in Q3, whose live code uses `ltime < AAS_Time() - 0.5`;
+ *   - the second VectorAdd is `middle + goal->origin` (Q3 has the operands the
+ *     other way round), and contentmask is the literal 3.
+ * `viewangles` is unused, present only to match the engine call signature. */
 BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal)
 {
   aas_entityinfo_t entinfo; // [ebp-7Ch] BYREF — coalesced with `trace`
@@ -24352,15 +22865,10 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   int v12; // [esp+10h] [ebp-A4h]
   int dy; // [esp+14h] [ebp-A0h]
   int dz; // [esp+18h] [ebp-9Ch]
-  /* IDA split origin and trace endpoint into separate int/float locals
-   * (v15/v16/v17 and v20/v21/v22 in the raw decompile).  The original stack
-   * laid them out as consecutive 4-byte slots and the function passes &v15
-   * and &v20 to AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas as
-   * vec3 pointers.  GCC's local placement broke that, so origin/y/z were
-   * read as garbage and BotReachabilityArea always returned 0 (causing
-   * the bot to be inert).  Restored as proper vec3_t locals named "start"
-   * and "end" per Mr. Elusive's Q3 conventions (cf. AAS_BestReachableArea
-   * in ioq3 be_aas_reach.c). */
+  /* start/end must be real vec3_t locals: both are passed by address to
+   * AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas, and split into
+   * separate slots BotReachabilityArea always returns 0 and the bot goes
+   * inert. */
   vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
   int v18; // [esp+28h] [ebp-8Ch]
   int v19; // [esp+2Ch] [ebp-88h]
@@ -24408,7 +22916,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
           end[0] = fdz + start[0];
           end[1] = fdy + start[1];
           end[2] = (float)v18 + start[2];
-          /* original IDA: sub_10001C8F (thunk -> 0x1001BA00 = AAS_TraceAreas).*/
+          /* thunk 0x10001C8F -> AAS_TraceAreas */
           v8 = AAS_TraceAreas(start, end, (int *)v26, 10);
           if ( v8 > 0 )
           {
@@ -24439,17 +22947,13 @@ int __cdecl BotReachabilityArea(int *origin, int client)
 //----- (10030D00) --------------------------------------------------------
 BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 {
-  /* origin = origin vec3 pointer, reach = reach_t pointer.  Originally typed
-   * as int; on aarch64 the int parameter sign-truncated callers'
-   * pointers (BotTravel_Elevator passes intptr_t reach) and crashed at
-   * the first deref `*(_DWORD *)(reach + 36)` reading the traveltype
-   * field. */
+  /* origin is a vec3 pointer and reach a reach_t pointer; as ints they truncate
+   * the callers' pointers (BotTravel_Elevator passes an intptr_t reach). */
   int v3; // ecx
   int i; // edi
-  /* IDA typed org/end/boxmins/boxmaxs/maxs/mins/modelorigin as int[3] and read
-   * them through `*(float *)` casts.  They are all plain vec3_t: the float
-   * typing is what lets cl.exe strength-reduce the compare loop and emit the
-   * per-store float immediates below (see the two notes further down). */
+  /* org/end/boxmins/boxmaxs/maxs/mins/modelorigin are all plain vec3_t — the
+   * float typing is what lets cl.exe strength-reduce the compare loop and emit
+   * the per-store float immediates below. */
   vec3_t org; // [esp+10h] [ebp-B4h] BYREF
   vec3_t angles; // [esp+1Ch] [ebp-A8h] BYREF
   vec3_t boxmins; // [esp+28h] [ebp-9Ch] BYREF
@@ -24461,13 +22965,10 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   int trace[21]; // [esp+70h] [ebp-54h] BYREF
 
   v3 = reach->traveltype;
-  /* Mechanism 3: IDA rendered these nine stores as int bit patterns, which
-   * cl.exe integer-constant-CSEs into a register (`mov eax,0xc1800000; mov
-   * [a],eax; mov [b],eax`).  Written through float lvalues each store emits
-   * its own `c7 44 24 NN <imm32>`, matching ref 0x10030d17..0x10030d5e.  The
-   * angles zeroing must come FIRST and be plain assignments (ref stores
-   * 0x1c/0x20/0x24 before the box constants), and the box values must be
-   * assignments rather than declaration initialisers. */
+  /* Float lvalues, so each of these nine stores emits its own immediate — as int
+   * bit patterns cl.exe would CSE the constant into a register.  The angles
+   * zeroing must come FIRST, and all of these must be assignments rather than
+   * declaration initialisers. */
   angles[0] = 0.0f;
   angles[1] = 0.0f;
   angles[2] = 0.0f;
@@ -24480,15 +22981,11 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   if ( v3 == 11 )
   {
     AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
-    /* Plain `vec3_t` arrays indexed by the loop counter: cl.exe /O2 does the
-     * strength reduction itself, picking `origin` as the single induction
-     * pointer and expressing maxs/mins/modelorigin as base DIFFERENCES
-     * (`lea ebx,[maxs]; sub ebx,edx; fld [ebx+ecx]`) — exactly ref at
-     * 0x10030d89..0x10030dc7.  IDA's `*(float *)((char *)maxs + 4 * i)` byte
-     * arithmetic on `_DWORD[3]` locals blocks that and emits esp-relative
-     * indexed loads instead.  NB writing the differences out as named locals
-     * (dmaxs/dmins/dmodel) is NOT the same thing and regressed — let the
-     * compiler derive them. */
+    /* Plain vec3_t arrays indexed by the loop counter: cl.exe /O2 then does the
+     * strength reduction itself, picking `origin` as the induction pointer and
+     * expressing maxs/mins/modelorigin as base differences, exactly as the
+     * original does.  Byte arithmetic blocks that, and writing the differences
+     * out as named locals is NOT equivalent — let the compiler derive them. */
     for ( i = 0; i < 2; i++ )
     {
       if ( maxs[i] + modelorigin[i] + 16.0f < origin[i] )
@@ -24496,14 +22993,11 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
       if ( origin[i] < mins[i] + modelorigin[i] - 16.0f )
         return 0;
     }
-    /* Mechanism 12: ref's `fld [edx+8]; mov ecx,[edx]; mov eax,[edx+4]; fadd
-     * 24.0` is two VectorCopys from ONE source (note ecx/eax each feeding both
-     * destinations) with the `[2]` copies forwarded into the adjustments — the
-     * two surviving integer copies fill the fld->fadd gap.  IDA's int[3] +
-     * `*(float *)&org[2] = …` form loses the interleave.  The STATEMENT ORDER
-     * is load-bearing too: copy-adjust/copy-adjust (Q3 be_ai_move.c:466) puts
-     * the fadd after the int loads and sinks both fstp's into the argument
-     * pushes; grouping it as copy/copy/adjust/adjust does not (89b residual). */
+    /* Two VectorCopys from ONE source with the [2] copies forwarded into the
+     * adjustments, so the surviving integer copies fill the fld->fadd gap.  The
+     * STATEMENT ORDER is load-bearing: copy-adjust/copy-adjust (as Q3 writes it)
+     * puts the fadd after the int loads and sinks both fstps into the argument
+     * pushes; copy/copy/adjust/adjust does not. */
     VectorCopy(origin, org);
     org[2] += 24.0f;
     VectorCopy(origin, end);
@@ -24677,14 +23171,10 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
   float startz; // [esp+10h] [ebp-64h]
-  /* IDA split two vec3 stack locals (end, start) into single ints / floats and
-   * dropped the per-component stores for end.  Asm at .text 0x10031450 sets
-   * all three components of both vectors before every AAS_TraceClientBBox /
-   * bi_PointContents call.  Without the missing end[1]/end[2] stores the
-   * trace's end vector contains uninitialized stack garbage — the trace
-   * returns a near-random dist, BotTravel_Walk then issues
-   * `speed = 2 * dist`, so the bot crawls at 16 u/s and hitches every couple
-   * of seconds.  Restored as float[3]; see bot_movement_split_vec3.md. */
+  /* end/start are real vec3_t and ALL three components of each are set before
+   * every AAS_TraceClientBBox / PointContents call.  Miss the end[1]/end[2]
+   * stores and the trace returns a near-random dist, which BotTravel_Walk turns
+   * into `speed = 2 * dist` — the bot then crawls and hitches. */
   vec3_t end; // [esp+14h] [ebp-60h] BYREF — trace end vector
   vec3_t start; // [esp+20h] [ebp-54h] BYREF — trace start vector (was start/v14/v15)
   aas_trace_t trace; // [esp+2Ch] [ebp-48h] (was int v16[9] + char v17[36] hidden return buffer)
@@ -24709,7 +23199,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
       {
         VectorCopy(trace.endpos, end);
         end[2] -= 20.0f;
-        /* IDA-dropped: barrier-jump under-water check; direct PointContents-wrapper call */
+        /* barrier-jump under-water check */
         if ( (sub_10003080((float *)end) & 0x20) != 0 )
           break;
         return dist;
@@ -24725,10 +23215,8 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 {
   int result; // eax
   float v11; // [esp+0h] [ebp-84h]
-  /* IDA split two vec3 stack locals (end, start) into single ints and dropped
-   * most of the per-component stores.  Asm at .text 0x10031650 sets all three
-   * components of each vector before every AAS_TraceClientBBox / VectorMA
-   * call (see bot_movement_split_vec3.md / ida_dropped_results.md). */
+  /* end/start are real vec3_t with all three components set before every
+   * AAS_TraceClientBBox / VectorMA call. */
   vec3_t end; // [esp+18h] [ebp-6Ch] BYREF
   vec3_t start; // [esp+24h] [ebp-60h] BYREF
   vec3_t hordir; // [esp+30h] [ebp-54h] BYREF
@@ -24779,10 +23267,9 @@ int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int
 {
   int v3; // edx
   int v4; // eax
-  /* normdir is int[3] in the original IDA decomp; the raw 32-bit copies preserve the
-   * float bit pattern from dir.  Retyping to float[3] silently injects int→float
-   * conversions on the normdir[i] = v3/v4/*(_DWORD*) stores, corrupting the swim
-   * direction (e.g. 0.5f -> ~1.06e9 swim speed).  Verified at .text 0x100318D0. */
+  /* int[3]: the stores are raw 32-bit copies of dir's float bit patterns.  As
+   * float[3] they become int->float conversions and the swim direction is
+   * destroyed (0.5f becomes ~1.06e9). */
   int normdir[3]; // [esp+0h] [ebp-Ch] BYREF
 
   v3 = *(int *)&dir[1];
@@ -24803,10 +23290,8 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   float v10; // st7
   int maxframes; // ebx
   float v13; // st7
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. Original
-   * .text 0x10031995/0x1003199a/0x1003199e stores the 3 floats at contiguous
-   * [esp+0x10/+0x14/+0x18].  Renamed from 'dir' to 'hordir' (Q3 name) to free
-   * the param name for the input direction. */
+  /* Real vec3_t (see the BotTravel_Walk note); named hordir, as in Q3, to free
+   * `dir` for the input direction. */
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
   vec3_t cmdmove; // [esp+14h] [ebp-5Ch] BYREF
   aas_clientmove_t move; // [esp+20h] [ebp-50h] BYREF (coalesced with the by-value return temp)
@@ -24882,15 +23367,11 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
 }
 
 //----- (10031BE0) --------------------------------------------------------
-/* BotMoveInDirection: public movement-dispatcher entry (was sub_10031BE0).
- * Routes (movestate, dir, speed, type) to BotSwimInDirection if the bot's
- * origin sits in a liquid contents (LAVA|SLIME|WATER), else to BotWalkInDirection.
- * Direct match for Q3 botlib's BotMoveInDirection at be_ai_move.c:1228
- * (which uses AAS_Swimming() instead of AAS_Swimming() — same intent;
- *
- * Both branches receive the same 4 args (ms, dir, speed, type): the original
- * pushes them once and `je`s to select the call target, so BotSwimInDirection
- * is a 4-arg callee too (it just ignores `type`). */
+/* BotMoveInDirection (was sub_10031BE0) — the public movement dispatcher:
+ * route (ms, dir, speed, type) to BotSwimInDirection when the bot's origin is
+ * in liquid, else to BotWalkInDirection.  The original pushes the four args
+ * once and `je`s to pick the target, so BotSwimInDirection is a 4-arg callee
+ * too even though it ignores `type`. */
 int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type)
 {
   if ( AAS_Swimming(movestate->origin) )
@@ -24908,7 +23389,7 @@ int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float spe
 // (p2.y-p1.y)*(p4.x-p3.x), the two side-crosses c1 / c2 are formed
 // against p1 and p3 respectively, and the result is the rational
 // formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
-// /INCREMENTAL.  Restored from objdump@10031C30.
+// /INCREMENTAL.
 int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
 {
   float d1x = p2[0] - p1[0];
@@ -24935,13 +23416,10 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
 {
   int result; // eax
   int v4; // ecx
-  /* IDA split mins/maxs/end vec3 stack locals into _DWORD[2]+float
-   * triples.  On 64-bit GCC won't necessarily place a float right
-   * after a 2-int array — AAS_PresenceTypeBoundingBox would write
-   * mins[2]/maxs[2] into stray slots and AAS_Trace would read garbage
-   * past the bounding box, blocking *every* movement with phantom
-   * collisions.  Restored as proper vec3_t locals (mins/maxs/end)
-   * matching Q3 botlib (BotCheckBlocked, be_ai_move.c). */
+  /* mins/maxs/end must be real vec3_t: otherwise
+   * AAS_PresenceTypeBoundingBox writes mins[2]/maxs[2] into stray slots and
+   * AAS_Trace reads garbage past the bounding box, blocking every movement
+   * with phantom collisions. */
   vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
   vec3_t mins; // [esp+14h] [ebp-6Ch] BYREF (was _DWORD v7[2] + float v8)
   vec3_t end;  // [esp+20h] [ebp-60h] BYREF (was float v9[3])
@@ -24989,11 +23467,9 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
 {
   float v4; // st7
   float v5; // st7
-  /* IDA split a vec3 stack local into v7/v8/v9; original .text 0x10031e6b
-   * stores the 3 floats at contiguous [esp+0xc/0x10/0x14].  GCC won't keep
-   * three independent locals adjacent — VectorNormalize/EA_Move would then
-   * read garbage as dir[2] and the bot sends near-vertical movement (z≈1.0),
-   * which the game rejects as upmove since pitch=0.  Restored as float[3]. */
+  /* Real vec3_t: split into separate locals, VectorNormalize / EA_Move read
+   * garbage as dir[2] and the bot sends near-vertical movement, which the game
+   * rejects as upmove. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float dist; // [esp+50h] [ebp+Ch]
@@ -25020,14 +23496,10 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
     if ( dist < 20.0f )
       EA_Crouch(ms->client);
   }
-  /* IDA dropped FPU return: at .text 0x10031f12 the call to BotGapDistance
-   * leaves its float result in ST(0); the very next `fcoms 0x10058000`
-   * compares THAT value against 0.0, and the `fadd %st,%st(0)` doubles it for
-   * the speed.  IDA reused the v4 stack slot from the dir-length expression
-   * above and discarded the call return — so our reconstruction was setting
-   * speed = 2 * distance-to-goal instead of 2 * jump-distance, making the bot
-   * crawl as it approaches every goal and "pause" when distance ≈ 0 (just
-   * before the goal flips).  Capture the real return.  See ida_dropped_results.md. */
+  /* BotGapDistance's FPU return is what the 0.0 compare and the doubling below
+   * consume — not the dir length computed above.  Confusing the two makes speed
+   * 2 * distance-to-goal instead of 2 * jump-distance, so the bot crawls toward
+   * every goal and stalls as the distance approaches 0. */
   v4 = BotGapDistance(ms, dir);
   if ( v4 > 0.0f )
     speed = 300.0f - (300.0f - (v4 + v4));
@@ -25043,7 +23515,7 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
 // BotFinishTravel_Walk: walk straight to reach->end with speed capped
 // at 100 units before the preserved `400 - (400 - 3*dist)` form.
 // DEAD in Gladiator — only kept because /INCREMENTAL left it in the
-// original DLL.  Restored from objdump@10031FE0 + Q3 be_ai_move.c.
+// original DLL; Q3 cognate in be_ai_move.c.
 bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   bot_moveresult_t moveresult;
@@ -25058,12 +23530,9 @@ bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachabil
   dist = VectorNormalize(hordir);
   if ( dist > 100.0f )
     dist = 100.0f;
-  /* Mr. Elusive bug preserved verbatim: the .text at 10032042 /
-   * 10032048 emits two consecutive `fsubr DWORD [0x10058384]`
-   * (= 400.0) after `fmul DWORD [0x10058380]` (= 3.0).  Algebraically
-   * 400 - (400 - 3*dist) == 3*dist, but the original source wrote it
-   * out as the nested subtraction, so reproduce the literal form to
-   * match the two fsubr instructions (all float / DWORD ops). */
+  /* Faithful original oddity: algebraically this is just 3*dist, but the
+   * original emits the nested subtraction as two consecutive fsubr, so keep the
+   * literal form. */
   speed = 400.0f - (400.0f - 3.0f * dist);
   EA_Move(ms->client, hordir, speed);
   VectorCopy(hordir, moveresult.movedir);
@@ -25073,7 +23542,7 @@ bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachabil
 //----- (100320C0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
@@ -25093,7 +23562,7 @@ bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_
 bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float speed; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
   float dist; // [esp+54h] [ebp+Ch]
@@ -25123,7 +23592,7 @@ bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachabi
 bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v5; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
   float dist; // [esp+50h] [ebp+8h]
@@ -25148,7 +23617,7 @@ bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_re
 //----- (100323E0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
@@ -25167,7 +23636,7 @@ bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t 
 bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v4; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
   vec3_t hordir; // [esp+14h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
@@ -25198,9 +23667,9 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   int v6; // eax
   int v7; // eax
   int v8; // eax
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF
-  vec3_t pnt; // [esp+14h] [ebp-3Ch] BYREF (was IDA int[3] v14)
+  vec3_t pnt; // [esp+14h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
@@ -25208,7 +23677,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   {
     VectorCopy(ms->origin, pnt);
     pnt[2] -= 32.0f;
-    if ( (AAS_PointContents(pnt) & 0x38) != 0 )   /* IDA-dropped: under-foot liquid check */
+    if ( (AAS_PointContents(pnt) & 0x38) != 0 )   /* under-foot liquid check */
     {
       VectorSubtract(reach->end, ms->origin, dir);
       v6 = rand();
@@ -25242,7 +23711,7 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
   float v6; // st7
   float v7; // st7
   float speed; // [esp+10h] [ebp-4Ch] BYREF
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
   vec3_t pos; // [esp+20h] [ebp-3Ch] BYREF (was v13/v14/<hole>)
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
@@ -25294,7 +23763,7 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
 //----- (10032A00) --------------------------------------------------------
 bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   vec3_t pos; // [esp+14h] [ebp-3Ch] BYREF (was v7/v8/<hole>)
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
@@ -25317,19 +23786,14 @@ bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t 
   float speed; // [esp+0h] [ebp-90h]
   float dist1; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
   float dist2; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
-  /* IDA split four vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t hordir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
   vec3_t runstart; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
   vec3_t dir2; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
   vec3_t dir1;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
   vec3_t start; // [esp+48h] [ebp-48h] BYREF
-  /* Same vec3-split shape as AAS_NearbySolidOrGap: VectorMA at 0x10032b95 writes
-   * three floats starting at [esp+0x4c], and disasm at 0x10032b9a/0x10032ba9
-   * does `fld [esp+0x68]; fadd 1.0; fstp [esp+0x6c]` on that vec's z-slot
-   * (same stack offset modulo intervening pushes).  IDA had decompiled the
-   * 12-byte slot as `int v28[2] + float v29;` and rendered the z-bump as
-   * `v29 += 1.0`, which only updates the same memory under MSVC's frame
-   * layout.  Restore as proper vec3. */
+  /* Real vec3_t, as in AAS_NearbySolidOrGap: VectorMA writes three floats here
+   * and the z-bump below has to land in the same slot. */
   vec3_t end; // [esp+54h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+60h] [ebp-30h] BYREF
 
@@ -25364,10 +23828,8 @@ bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t 
     hordir[1] = reach->end[1] - ms->origin[1];
     hordir[2] = 0.0f;
     VectorNormalize(hordir);
-    /* if/else-if with the `dist1 < 24` case first makes EA_Jump the warm
-     * fall-through, matching the original's `je` polarity; the equivalent
-     * `if (dist1 >= 24) { if (dist1 < 32) DelayedJump; } else Jump;` inverts to
-     * `jne` and diverges — do not "clean up". */
+    /* Keep `dist1 < 24` first, so EA_Jump is the warm fall-through: the
+     * equivalent `if (dist1 >= 24) {...} else Jump;` inverts the branch. */
     if ( dist1 < 24.0f )
     {
       EA_Jump(ms->client);
@@ -25397,7 +23859,7 @@ bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t 
 //----- (10032E80) --------------------------------------------------------
 bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v7/v8/v9)
   vec3_t reach_dir; // [esp+14h] [ebp-3Ch] BYREF (was v10/v11/v12)
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
@@ -25426,7 +23888,7 @@ bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachabil
 //----- (10032FC0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   vec3_t viewdir; // [esp+14h] [ebp-48h] BYREF
   vec3_t origin; // [esp+20h] [ebp-3Ch] BYREF
@@ -25453,7 +23915,7 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
 bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v4; // ecx
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float dist; // [esp+4Ch] [ebp+8h]
@@ -25491,7 +23953,7 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   char v14; // al
   float v17; // [esp+0h] [ebp-7Ch]
   float v18; // [esp+0h] [ebp-7Ch]
-  /* IDA split five vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t final; // [esp+10h] [ebp-6Ch] BYREF (was v19/v20/v21)
   vec3_t dir;   // [esp+1Ch] [ebp-60h] BYREF (was v22/v23/v24)
   vec3_t reachdir; // [esp+28h] [ebp-54h] BYREF (was v25/v26/v27; renamed from 'reach' to free the param name)
@@ -25602,7 +24064,7 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
 //----- (10033790) --------------------------------------------------------
 bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split two vec3 stack locals — see BotTravel_Walk note. */
+  /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
   vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
   vec3_t telegoal;    // [esp+20h] [ebp-3Ch] BYREF (was v8[3])
@@ -25667,10 +24129,8 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
   int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF — reach buffer
 
   *(aas_reachability_t *)v2 = AAS_ReachabilityFromNum(ms->lastreachnum);
-  /* moveflags is a real int field now, so the bit test `& 0x40` reads the
-   * integer flags directly (disasm @ 0x10033a9f: `test BYTE [ebx+0x60],0x40`).
-   * Previously, with `ms` as float*, IDA's `(_BYTE)ms[24]` was a float→byte
-   * conversion that truncated bit 0x40 to 0 — see float_array_int_bitpattern. */
+  /* `& 0x40` reads the integer moveflags field directly; through a float lens it
+   * would be a float->byte conversion that truncates the bit to 0. */
   if ( v2[9] != 14 && ((ms->moveflags & 0x40) != 0 || ms->grapplevisible_time != 0.0f) )
   {
     EA_Command(ms->client, "hookoff", (char *)0);
@@ -25690,8 +24150,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   long double v13; // st7
   int areanum; // eax
   double v17; // [esp+Ch] [ebp-54h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note.  org[1]/org[2]
-   * appeared as scalar temps v18/v19 (org[0] lives only on the x87 stack). */
+  /* Real vec3_t — see the BotTravel_Walk note.  org[0] lives only on the x87
+   * stack. */
   vec3_t org; // [esp+14h] [ebp-4Ch] BYREF (was v18/v19)
   vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
   vec3_t viewdir; // [esp+24h] [ebp-3Ch] BYREF
@@ -25737,11 +24197,9 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
         { return moveresult; }
       }
     }
-    /* Guard written POSITIVE (Q3 be_ai_move.c: `if (ms->grapplevisible_time <
-     * AAS_Time() - 0.4) { hookoff; ...; return; }` with the shared
-     * `lastgrappledist = dist` as the fall-through).  IDA inverted it, which
-     * made the store block the warm fall-through and cost the cross-jump into
-     * the earlier `lastgrappledist = dist; return` copy at 0x10033bcb. */
+    /* POSITIVE guard, as Q3 writes it (`if (grapplevisible_time < AAS_Time() -
+     * 0.4) { hookoff; …; return; }`), leaving the shared
+     * `lastgrappledist = dist` as the fall-through. */
     v17 = ms->grapplevisible_time;
     if ( AAS_Time() - 0.4 > v17 )
     {
@@ -25764,22 +24222,16 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   v26 = VectorNormalize(dir);
   vectoangles(viewdir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
-  /* IDA-dropped FPU-return pattern: the original asm at 0x10033cfb/0x10033d1b
-   * does `call AngleDiff; fabs; fcomp 2.0` (the abs operates on the AngleDiff
-   * result still in ST(0)). IDA dropped the captured return and left the
-   * preceding `fabs(v26)` chain bound to the length, never to the angle
-   * difference — so the gate "yaw/pitch aligned to within 2°" was actually
-   * "length < 2.0", which on a far hookable surface kept the bot perpetually
-   * in the walk-toward branch and never fired the hookon command. See
-   * .claude/memory/ida_dropped_results.md. */
+  /* The fabs applies to AngleDiff's FPU return, not to the length computed
+   * above: the gate is "yaw/pitch aligned to within 2 degrees".  Bound to the
+   * length instead, a far hookable surface keeps the bot in the walk-toward
+   * branch forever and the hookon command never fires. */
   if ( v26 >= 5.0f
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], ms->viewangles[0])), v13 >= 2.0)
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
   {
-    /* Q3 be_ai_move.c:2724 polarity — the `dist < 70` ARITHMETIC arm is the
-     * warm fall-through (ref `test ah,0x1; je <const-store>` @0x10033c58), not
-     * the `speed = 400` constant store.  IDA's inverted `>= 70` form makes
-     * cl.exe lay the constant store warm and the arithmetic cold. */
+    /* Q3's polarity: the `dist < 70` ARITHMETIC arm is the warm fall-through, not
+     * the `speed = 400` constant store. */
     if ( v26 < 70.0f )
       speed = 300.0f - (300.0f - v26 * 4.0f);
     else
@@ -25791,17 +24243,14 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   else
   {
     EA_Command(ms->client, "hookon", (char *)0);
-    /* int bit-pattern store: original `mov DWORD [ebx+0x6c],0x4969FFB0`
-     * writes the raw float bits (~956415.0f) into lastgrappledist; go
-     * through the int lens so we don't int->float convert. */
+    /* int bit-pattern store: the original writes raw float bits (~956415.0f) into
+     * lastgrappledist, so go through the int lens rather than converting. */
     *(int *)&ms->lastgrappledist = 1232348144;
     ms->moveflags |= 0x40;
   }
   areanum = AAS_PointAreaNum(ms->origin);
-  /* Q3 (be_ai_move.c) writes this inline — `if (areanum && areanum !=
-   * ms->reachareanum) ms->reachability_time = 0;` — not as a BACKWARD goto into
-   * the earlier hookoff tail.  The store is 3 bytes either way; the goto gives
-   * that tail a second, far predecessor. */
+  /* Inline, as Q3 writes it — not a backward goto into the earlier hookoff tail,
+   * which would give that tail a second, far predecessor. */
   if ( areanum && areanum != ms->reachareanum )
     ms->reachability_time = 0;
   return moveresult;
@@ -25815,7 +24264,7 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
   int v6; // [esp-14h] [ebp-5Ch]
   int v7; // [esp-Ch] [ebp-54h]
   float speed; // [esp+0h] [ebp-48h]
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF (was v9/v10/v11)
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
 
@@ -25845,9 +24294,7 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
   }
   vectoangles(dir, ms->viewangles);
   v7 = ms->client;
-  /* int bit-pattern store: original `mov DWORD [reg+0x34],0x42B40000`
-   * sets viewangles[0] (pitch) to 90.0f via raw bits; go through the int
-   * lens so we don't int->float convert. */
+  /* int bit-pattern store: the original sets pitch to 90.0f via raw bits. */
   *(int *)&ms->viewangles[0] = 1119092736;
   EA_View(v7, ms->viewangles);
   v6 = ms->client;
@@ -25858,19 +24305,8 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
 }
 
 //----- (10034070) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10034070:
- *   sub esp,0x30; lea eax,[esp+0]; push eax;
- *   call 0x100015eb (-> 0x10031e20 = BotClearMoveResult);
- *   add esp,4; mov edi,[esp+0x34]; lea esi,[esp+0];
- *   mov ecx,0xc; rep movsd; add esp,0x30; ret
- * Allocates a 48-byte (bot_moveresult_t-sized) local, hands it to
- * BotClearMoveResult to zero out the leading 6 dwords, then copies
- * the entire 48-byte buffer to the caller-supplied output via
- * rep movsd.  Equivalent to: bot_moveresult_t r; BotClearMoveResult(&r);
- * *out = r;  Dead in Gladiator -- preserved by /INCREMENTAL.
- * Returns `out` (the original kept the memcpy dst in eax: ref loads the
- * param into eax then `mov edi,eax`, vs a direct load into edi). */
+/* `bot_moveresult_t r; BotClearMoveResult(&r); *out = r;` — returning `out`,
+ * which the original keeps in eax across the copy.  DEAD in Gladiator. */
 void *__cdecl sub_10034070(void *out)
 {
   bot_moveresult_t moveresult;
@@ -25881,7 +24317,7 @@ void *__cdecl sub_10034070(void *out)
 //----- (100340B0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t hordir; // [esp+8h] [ebp-3Ch] BYREF (was v4/v5/v6)
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
@@ -25938,7 +24374,7 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
 {
   float dist; // st7
   float speed; // st7
-  /* IDA split a vec3 stack local — see BotTravel_Walk note. */
+  /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float v17; // [esp+50h] [ebp+Ch]
@@ -25979,25 +24415,11 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
 }
 
 //----- (100343A0) --------------------------------------------------------
-/* BotMoveToGoal — at preferred address 0x100343A0.
- *
- * Builds a bot_moveresult_t (48 bytes) into output buffer a1 given the bot's
- * movement-state pointer (a2), the bot_goal_t pointer (a3), and AAS travel-
- * type flags (a4).  Returns a1 (the filled buffer).  Iterates the AAS
- * reachability chain and dispatches to the right BotBuildMove* builder for
- * each travel type (Walk / Swim / Jump / Ladder / Grapple / Elevator /
- * RocketJump / WaterJump / etc. — 14 types).
- *
- * The IDA decomp typed a2/a3 as `float` and littered the body with
- * LODWORD/SLODWORD/COERCE_FLOAT to extract the underlying int bits.  The
- * original C source had plain int (pointer) args; the artefact comes from
- * IDA picking up an unrelated float assignment elsewhere and propagating.
- * The thunk at 0x1000111D was MSVC's incremental-link trampoline (jmp rel32)
- * — there was only ever one function in the original source.
- *
- * Inner BotBuildMove* helpers (ToGoal, Attack, OnElevator, ToPos) and
- * BotGapDistance have had their signatures corrected to plain `int`
- * to match the original — see float_vs_int_signature_bug.md.
+/* BotMoveToGoal — build a bot_moveresult_t into the output buffer from the
+ * movement state, goal and AAS travel flags, returning that buffer.  Walks the
+ * AAS reachability chain and dispatches to the right BotTravel_* builder for
+ * each of the 14 travel types (Walk / Swim / Jump / Ladder / Grapple /
+ * Elevator / RocketJump / WaterJump / …).
  */
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
@@ -26010,17 +24432,13 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
   int v17; // ecx
   int v18; // edx
   float v19; // [esp+10h] [ebp-2A0h]
-  aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF (was float[11]; restored to the real reach struct)
+  aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
-  /* lastreach (IDA v22) is the last-reachability holder at [esp+70h].  Never
-   * address-escaped, so MSVC6 coalesces the hidden struct-return temp of its
-   * by-value AAS_ReachabilityFromNum() assignment with the slot itself (the
-   * ref shows a degenerate self rep-movs there), and the same 48-byte hole
-   * also hosts the hidden bot_moveresult_t return temps of the sequential
-   * BotMoveInGoalArea / first-arm BotTravel_* by-value calls.  The eleven
-   * per-switch-arm hidden temps IDA rendered as explicit locals v23..v33 at
-   * [esp+A0h..280h] are compiler-managed — the original source declared none
-   * of them. */
+  /* lastreach never escapes, so MSVC6 coalesces the hidden struct-return temp of
+   * its by-value AAS_ReachabilityFromNum() assignment with the slot itself, and
+   * reuses the same hole for the sequential BotMoveInGoalArea / BotTravel_*
+   * return temps.  Those per-arm temps are compiler-managed — the original
+   * source declares none of them. */
   aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
 
   BotClearMoveResult(&moveresult);
@@ -26224,11 +24642,10 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
   if ( latesttime != 0 )
   {
     *(int *)&ms->avoidreachtimes[latest] = 0;
-    /* FAITHFUL ORIGINAL BUG — do NOT "fix": ref 0x10034b5c guards on
-     * [ecx+0x80] = avoidreachtries[1], ONE PAST the 1-element array, then
-     * decrements avoidreachtries[latest] at [ecx+0x7c].  Q3's cognate guards on
-     * avoidreachtries[latest].  Indexed through a decayed pointer so the
-     * out-of-bounds subscript is explicit rather than an array-bounds warning. */
+    /* FAITHFUL ORIGINAL BUG — do NOT "fix": the guard reads avoidreachtries[1],
+     * ONE PAST the 1-element array, then decrements avoidreachtries[latest].
+     * Q3's cognate guards on avoidreachtries[latest].  Indexed through a decayed
+     * pointer so the out-of-bounds subscript is explicit. */
     if ( ((int *)ms->avoidreachtries)[1] > 0 )
       --ms->avoidreachtries[latest];
   }
@@ -26257,11 +24674,9 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
    * described by a (path, offset, length) triple rather than a bare name. */
   bot_fileref_t file_ref;
 
-  /* __usercall fixup: original binary thunk 0x10001AAF -> 0x10038A90 is
-   * LibVarValue (2-arg, returns float via x87 ST0).  IDA's "v2 = (__int64)a1@<st0>"
-   * lost the return value; we capture it directly here. The previous LibVar
-   * (libvar_t*) name was a deobfuscation mislabel — using the pointer as a
-   * count blew up GetClearedMemory below. */
+  /* Thunk 0x10001AAF -> LibVarValue, which returns the float value in ST(0) —
+   * not LibVar, whose libvar_t* would be used as a count by the allocation
+   * below. */
   max_weaponinfo = (int)LibVarValue("max_weaponinfo", "32");
   if ( max_weaponinfo < 0 )
   {
@@ -26427,15 +24842,9 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *fil
 }
 
 //----- (100353C0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100353C0: iterates the active weaponconfig
- * over `weapons[0..numweapons-1]` (stride 0x158 = sizeof(weaponinfo_t),
- * model field at +0x54), calls sub_10043C10 (= Q_stricmp) against arg2,
- * and on first case-insensitive match returns weapons[i].number
- * (=*weapons[i] = field +0).  Returns -1 (or eax,0xffffffff) if the
- * config is unloaded, empty, or no entry matches.  Sibling pattern of
- * sub_10035430.  Mirror of Q3's ReadWeaponConfig name-resolver.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Case-insensitive lookup of a weapon by model name, returning its `number`,
+ * or -1 if the config is unloaded, empty or has no match.  Sibling of
+ * sub_10035430.  DEAD in Gladiator. */
 int __cdecl sub_100353C0(const char *modelname)
 {
   weaponconfig_t *cfg;
@@ -26455,12 +24864,8 @@ int __cdecl sub_100353C0(const char *modelname)
 }
 
 //----- (10035430) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10035430: sibling of sub_100353C0 -- same loop and same
- * Q_stricmp comparison, but on match returns `&weapons[i].name`
- * (lea eax,[esi+4]) and on miss returns 0x1005E3FC = "unknown weapon".
- * Mirror of Q3's weapon-model-to-name resolver.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* As sub_100353C0, but returns the weapon's name, or "unknown weapon" on a
+ * miss.  DEAD in Gladiator. */
 const char *__cdecl sub_10035430(const char *modelname)
 {
   static const char default_name[] = "unknown weapon"; /* @0x1005E3FC */
@@ -26553,8 +24958,7 @@ int __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
   int *itemweights; // ebx
 
 #if defined(__x86_64__) || defined(__aarch64__)
-  /* On 64-bit the sideband slot is NULL until BotSetupClient allocates it.
-   * Gated to 64-bit so the Win32 path stays byte-identical to disasm@10035640. */
+  /* 64-bit only: the side-band slot is NULL until BotSetupClient allocates it. */
   if ( !weaponstate ) return 0;
 #endif
   weightconfig = weaponstate->weightconfig;
@@ -26596,7 +25000,7 @@ int BotShutdownWeaponAI()
 //----- (10035700) --------------------------------------------------------
 int __cdecl ReadValue(source_t *source, float *value)
 {
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   if ( !PC_ExpectAnyToken(source, token.string) )
     return 0;
@@ -26707,7 +25111,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   fuzzyseperator_t *lastfs; // [esp+14h] [ebp-43Ch]
   int founddefault; // [esp+18h] [ebp-438h]
   int index; // [esp+1Ch] [ebp-434h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   founddefault = 0;
   firstfs = 0;
@@ -26843,7 +25247,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
   weightconfig_t *cfg;
   fuzzyseperator_t *sep;
   int has_balance;
-  bot_fileref_t file_ref; /* restored: original bot_fileref_t local (IDA: "int Offset[38]") */
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
   char Destination[144]; // [esp+B0h] [ebp-4C0h] BYREF
   token_t token; // [esp+140h] [ebp-430h] BYREF
 
@@ -27060,7 +25464,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int a2, int indent)
 // 0 on any fopen/fprintf/recursion failure (note: failure path does
 // not close fp — minor leak in the dead code, preserved).  DEAD in
 // Gladiator — /INCREMENTAL; live in Q3 as WriteWeightConfig.
-// Restored from objdump@100368B0.
+
 int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
 {
   FILE *fp;
@@ -27187,9 +25591,7 @@ double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 // LIVE: called by the item/weapon goal scorers every think.
 double __cdecl FuzzyWeight(int *facts, weight_t *w)
 {
-  /* Binary at 0x10036C70 is a thin wrapper: push args, call FuzzyWeight_r, ret.
-   * FuzzyWeight_r returns double in ST(0); caller-side comments at IDA lines
-   * confirm `double __cdecl FuzzyWeight`. */
+  /* Thin wrapper over FuzzyWeight_r, which returns a double in ST(0). */
   return FuzzyWeight_r(facts, w->firstseperator);
 }
 
@@ -27218,10 +25620,10 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
     }
     else if ( fs->type == 1 )
     {
-      /* crandom() = 2.0 * (random() - 0.5); random() = (rand()&0x7FFF)*c.
-       * MSVC strength-reduces the `2.0 *` to `fadd st(0),st`.  Keeping the
-       * crandom() value as its own subexpression makes MSVC double it BEFORE
-       * the (maxweight-minweight) multiply, matching the original order. */
+      /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.
+       * Keep the crandom() value as its own subexpression so the doubling (which
+       * MSVC strength-reduces to `fadd st(0),st`) happens BEFORE the
+       * (maxweight-minweight) multiply, as in the original. */
       if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
       {
         fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
@@ -27244,20 +25646,8 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 }
 
 //----- (10036DF0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10036DF0:
- *   push ebx; mov ebx,[esp+8]; push esi; xor esi,esi;
- *   cmp [ebx],esi; jle exit; push edi; lea edi,[ebx+8];
- *   loop: mov eax,[edi]; push eax;
- *         call 0x10001d5c (-> 0x10036cd0 = EvolveFuzzySeperator_r);
- *         add esp,4; mov eax,[ebx]; inc esi; add edi,8;
- *         cmp esi,eax; jl loop; pop edi;
- *   exit: pop esi; pop ebx; ret
- * Iterates an array at arg+8 (stride 8 bytes, count at arg+0) and
- * calls EvolveFuzzySeperator_r on the first dword of each entry.
- * Outer driver in the GA pipeline -- evolves a list of fuzzy-logic
- * subtrees (matching Q3's EvolveFuzzyNetwork over BotMutateGoalFuzzyLogic).
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Run EvolveFuzzySeperator_r over every weight in the config — the outer driver
+ * of the GA pipeline, matching Q3's EvolveFuzzyNetwork.  DEAD in Gladiator. */
 void __cdecl EvolveWeightConfig(int *config)
 {
   int i;
@@ -27278,12 +25668,9 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
     v3 = fs->child;
     if ( v3 )
     {
-      /* IDA emitted LODWORD(scale) here from `mov edi,[esp+0x10]; push edi`,
-       * but scale is a real float (the fuzzy invar — see Q3 EvaluateFuzzyRelationship
-       * lineage and the fmul at .text 0x10036e59).  Passing LODWORD forces
-       * GCC to insert fildll/fstps at the call site (verified at our
-       * .text 0x6974547b) which destroys the float bit pattern.  Pass scale
-       * directly — original .text 0x10036e41 is just a raw 4-byte slot copy. */
+      /* Pass `scale` directly: it is a real float and the original just copies the
+       * 4-byte slot.  Routing it through LODWORD makes GCC insert an int->float
+       * conversion that destroys the bit pattern. */
       ScaleFuzzySeperator_r(v3, scale);
     }
     else if ( fs->type == 1 )
@@ -27313,7 +25700,7 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 // clamp pattern (fld + fcomp 0.0f@.rdata 0x10058000 / 1.0f@0x100580c4) is
 // canonical Mr. Elusive — same idiom appears in the live fuzzy code.
 // DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk.
-// Restored IDA-missed stub.  Verified against objdump@10036EB0:
+// Restored dead stub:
 //   clamp [esp+0xc] (scale) into [0,1]
 //   edx = table->count; if (count <= 0) return
 //   edi = &table->entries[0]; ebp = 0
@@ -27391,8 +25778,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *
 }
 
 //----- (10037020) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@10037020: top-level pair-wise interbreed of two
+// Top-level pair-wise interbreed of two
 // weightconfig_t's.  Bails with "can't merge weight configs\n" if the
 // configs' numweights disagree; otherwise calls InterbreedFuzzySeperator_r
 // on every (a->weights[i].firstseperator, b->weights[i].firstseperator)
@@ -27436,8 +25822,7 @@ void __cdecl EA_DropItem(int client, char *it)
 }
 
 //----- (10037150) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@10037150: pushes 0, item, "invuse" (0x1005E634), client
+// Pushes 0, item, "invuse", client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
 void __cdecl EA_UseInv(int client, char *inv)
@@ -27446,7 +25831,7 @@ void __cdecl EA_UseInv(int client, char *inv)
 }
 
 //----- (10037180) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub).  Mirror of EA_UseInv with the
+// Mirror of EA_UseInv with the
 // "invdrop" command string (0x1005E63C).
 void __cdecl EA_DropInv(int client, char *inv)
 {
@@ -27488,11 +25873,8 @@ int __cdecl EA_Command(int client, char *command, ...)
 // 10037233: conditional instruction was optimized away because esi.4<A
 
 //----- (100372C0) --------------------------------------------------------
-/* EA_Attack — set ACTION_ATTACK (bit 0x01) on the elementary-action
- * flags so the engine fires the bot's weapon next frame.  Original
- * ioq3 be_ea.c::EA_Attack does the same thing; Mr. Elusive's code is
- * literally `bi->actionflags |= ACTION_ATTACK`.  IDA mis-named this
- * AAS_EntityPointer based on a guessed cross-reference. */
+/* EA_Attack — set ACTION_ATTACK so the engine fires the bot's weapon next
+ * frame.  As Q3's be_ea.c::EA_Attack. */
 int __cdecl EA_Attack(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27501,13 +25883,8 @@ int __cdecl EA_Attack(int client)
 }
 
 //----- (100372F0) --------------------------------------------------------
-/* EA_UseItem — set ACTION_USE.  Restored IDA-missed dead-code stub.
- * Verified against objdump@100372F0: identical EA-template to EA_Attack
- * above but with `or [eax+0x20], 0x2` setting ACTION_USE (bit 0x02).
- * Sits in the EA family between EA_Attack (100372C0) and EA_Respawn
- * (10037320).  Matches Q3 be_ea.c::EA_UseItem.  Dead in Gladiator —
- * Gladiator's mod never queues USE actions through the EA layer (it
- * uses bi_BotClientCommand "use" directly); preserved by /INCREMENTAL. */
+/* EA_Use — set ACTION_USE.  DEAD in Gladiator: the mod issues USE through
+ * bi_BotClientCommand instead of the EA layer. */
 void __cdecl EA_Use(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27515,8 +25892,7 @@ void __cdecl EA_Use(int client)
 }
 
 //----- (10037320) --------------------------------------------------------
-/* EA_Respawn — set ACTION_RESPAWN.  Matches ioq3 be_ea.c::EA_Respawn.
- * IDA mis-named WeaponSetFlag from a guessed cross-reference. */
+/* EA_Respawn — set ACTION_RESPAWN. */
 int __cdecl EA_Respawn(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27525,10 +25901,8 @@ int __cdecl EA_Respawn(int client)
 }
 
 //----- (10037350) --------------------------------------------------------
-/* EA_Jump — set ACTION_JUMP, but only if the jump-latch
- * (EA_JUMPEDLASTFRAME, bit 0x80) is clear.  If the latch is set, clear
- * ACTION_JUMP instead so the engine sees a key release.  Matches Q3
- * be_ea.c::EA_Jump's ACTION_JUMPEDLASTFRAME gating semantics. */
+/* EA_Jump — set ACTION_JUMP only while the EA_JUMPEDLASTFRAME latch is clear;
+ * if it is set, clear ACTION_JUMP instead so the engine sees a key release. */
 char __cdecl EA_Jump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27540,10 +25914,8 @@ char __cdecl EA_Jump(int client)
 }
 
 //----- (10037390) --------------------------------------------------------
-/* EA_DelayedJump — set ACTION_DELAYEDJUMP (bit 0x200) gated by the
- * jump-latch like EA_Jump.  Matches Q3 be_ea.c::EA_DelayedJump.
- * IDA mis-named WeaponToggleFlag from a guessed cross-reference;
- * the `BYTE1(v) |= 2u` form expresses bit 9 (0x200 = ACTION_DELAYEDJUMP). */
+/* EA_DelayedJump — set ACTION_DELAYEDJUMP (0x200), jump-latch gated like
+ * EA_Jump.  The `BYTE1(v) |= 2u` form is how the original writes bit 9. */
 int __cdecl EA_DelayedJump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27565,14 +25937,10 @@ int __cdecl EA_Crouch(int client)
 }
 
 //----- (10037400) --------------------------------------------------------
-/* EA_MoveUp — set ACTION_MOVEUP.  Gladiator's botlib.h aliases
- * ACTION_MOVEUP and ACTION_JUMP to the same bit (both 0x008), so a
- * press of MoveUp climbs the bot up water/ladders the same way Q3's
- * EA_MoveUp does.  Distinguished from EA_Jump (0x10037350) by being
- * unconditional — EA_Jump gates on EA_JUMPEDLASTFRAME, this does not.
- * Used by BotTravel_WaterJump where the bot needs to jump out of
- * water regardless of jump-cooldown state.  IDA mis-named this
- * WeaponSetAttackFlag based on guessed cross-references. */
+/* EA_MoveUp — set ACTION_MOVEUP, which aliases ACTION_JUMP's bit (0x008).
+ * Unlike EA_Jump this is unconditional, with no EA_JUMPEDLASTFRAME gate, which
+ * is what BotTravel_WaterJump needs to jump out of water regardless of the
+ * jump cooldown. */
 int __cdecl EA_MoveUp(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27581,16 +25949,9 @@ int __cdecl EA_MoveUp(int client)
 }
 
 //----- (10037430) --------------------------------------------------------
-/* EA_MoveDown — set ACTION_MOVEDOWN.  Restored (IDA-missed dead-code
- * stub, /INCREMENTAL leftover).  Verified against objdump@10037430:
- *     ea_state_t *ea = &ea_controls[client];   // [10064074 + client*36]
- *     ea->flags |= 0x10;                       // ACTION_MOVEDOWN
- * which is bit-for-bit identical to EA_Crouch (100373D0) because
- * ACTION_MOVEDOWN and ACTION_CROUCH alias to the same flag bit (0x10).
- * Q3 be_ea.c::EA_MoveDown.  Sits in the EA family between EA_MoveUp
- * (10037400) and EA_MoveForward (10037460).  Dead in Gladiator — the
- * mod only ever calls EA_Crouch when it wants this bit set — but the
- * /INCREMENTAL thunk preserved the symbol. */
+/* EA_MoveDown — set ACTION_MOVEDOWN, which aliases ACTION_CROUCH's bit (0x10),
+ * so this is bit-for-bit EA_Crouch.  DEAD in Gladiator, which always calls
+ * EA_Crouch instead. */
 void __cdecl EA_MoveDown(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27598,9 +25959,7 @@ void __cdecl EA_MoveDown(int client)
 }
 
 //----- (10037460) --------------------------------------------------------
-/* EA_MoveForward — set ACTION_MOVEFORWARD.  Matches Q3
- * be_ea.c::EA_MoveForward.  IDA mis-named AAS_EntityMark from a
- * guessed cross-reference. */
+/* EA_MoveForward — set ACTION_MOVEFORWARD. */
 int __cdecl EA_MoveForward(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27609,9 +25968,7 @@ int __cdecl EA_MoveForward(int client)
 }
 
 //----- (10037490) --------------------------------------------------------
-/* EA_MoveBack — set ACTION_MOVEBACK (bit 0x40).  Restored IDA-missed
- * dead-code stub.  Verified against objdump@10037490: same EA template
- * as EA_MoveForward with `or [eax+0x20], 0x40`.  Matches Q3 be_ea.c. */
+/* EA_MoveBack — set ACTION_MOVEBACK (0x40).  DEAD in Gladiator. */
 void __cdecl EA_MoveBack(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27619,9 +25976,7 @@ void __cdecl EA_MoveBack(int client)
 }
 
 //----- (100374C0) --------------------------------------------------------
-/* EA_MoveLeft — set ACTION_MOVELEFT (bit 0x80).  Restored IDA-missed
- * dead-code stub.  Verified against objdump@100374C0: same EA template
- * using `or cl, 0x80` (low byte of [eax+0x20] dword).  Q3 be_ea.c. */
+/* EA_MoveLeft — set ACTION_MOVELEFT (0x80).  DEAD in Gladiator. */
 void __cdecl EA_MoveLeft(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27629,10 +25984,7 @@ void __cdecl EA_MoveLeft(int client)
 }
 
 //----- (100374F0) --------------------------------------------------------
-/* EA_MoveRight — set ACTION_MOVERIGHT (bit 0x100).  Restored IDA-missed
- * dead-code stub.  Verified against objdump@100374F0: same EA template
- * using `or ch, 0x01` (high byte of low word of [eax+0x20] dword =
- * bit 8 = 0x100).  Q3 be_ea.c. */
+/* EA_MoveRight — set ACTION_MOVERIGHT (0x100).  DEAD in Gladiator. */
 void __cdecl EA_MoveRight(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27665,35 +26017,15 @@ void __cdecl EA_View(int client, vec3_t viewangles)
 }
 
 //----- (100375E0) --------------------------------------------------------
-/* EA_EndRegular — flush this frame's accumulated EA state to the
- * engine via the `dword_10063FE0` botimport callback, then clear the
- * EA fields ready for the next frame.  After the engine consumes the
- * input, if the jump bit was set (i.e. the bot just jumped this frame)
- * latch EA_JUMPEDLASTFRAME so the next call to EA_Jump emits a key
- * release.  This is the same press/release latch pattern Q3's botlib
- * uses around ACTION_JUMPEDLASTFRAME. */
-/* Original gladiator function at 0x10037580 — flush this frame's
- * accumulated EA state to the engine via the BotInput callback.
+/* EA_EndRegular — flush this frame's accumulated EA state to the engine via the
+ * BotInput callback, then clear the EA fields for the next frame.  If the jump
+ * bit was set, latch EA_JUMPEDLASTFRAME so the next EA_Jump emits a key
+ * release — the same press/release pattern Q3 uses.
  *
- * IMPORTANT: ea[+0] is `thinktime` (float), NOT `weapon` (int).  IDA
- * decompiled the 2nd arg as int because on x86 a float and int both
- * occupy 4 stack bytes and the disassembly doesn't distinguish.  But:
- * (a) the only call site (sub_10028A40) carries the BotDeathmatchAI
- * float thinktime through, and (b) the engine's bot_input_t struct
- * (game/botlib.h) layout matches ea_state_t exactly when [+0] is read
- * as `float thinktime`: thinktime@0, dir@4, speed@16, viewangles@20,
- * actionflags@32 — total 36 bytes.
- *
- * The aarch64 AAPCS lands `float` in s0..s7 and `int` in w0..w7, so
- * declaring this with `int` here causes the float arg to be silently
- * truncated to 0 by GCC's implicit conversion at the call site.  This
- * results in `bi->thinktime = 0` -> `ucmd.msec = 0` -> bot frozen at
- * spawn (no movement at all).  Same class of bug as BotAI.
- *
- * After the BotInput call, if the jump bit was set (i.e. the bot just
- * jumped this frame) latch EA_JUMPEDLASTFRAME so the next call to
- * EA_Jump emits a key release.  This is the same press/release latch
- * pattern Q3's botlib uses around ACTION_JUMPEDLASTFRAME. */
+ * The second parameter is `float thinktime`, NOT an int: ea_state_t matches the
+ * engine's bot_input_t only with thinktime@0, and on aarch64 an int declaration
+ * silently truncates the float to 0, giving ucmd.msec = 0 and a bot frozen at
+ * spawn. */
 void __cdecl EA_EndRegular(int client, float thinktime)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -27701,13 +26033,10 @@ void __cdecl EA_EndRegular(int client, float thinktime)
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
   botimport.BotInput(client, ea);
-  /* Clear the non-flag fields first so MSVC6 materialises the shared zero
-   * (`xor eax,eax`) BEFORE the `ea->flags & ACTION_JUMP` mask — the mask then
-   * sets the ZF that the trailing `if` consumes, and the field stores (which
-   * don't touch flags) preserve it.  Reading `jumped_this_frame` after these
-   * clears is value-identical (they don't write ea->flags).  Doing the mask
-   * first instead forces a flag-safe `mov eax,0` for the clears plus a second
-   * `xor eax,eax` for the return (the OUR+1). */
+  /* Clear the non-flag fields FIRST, so MSVC6 materialises the shared zero
+   * before the `ea->flags & ACTION_JUMP` mask: the mask then sets the ZF the
+   * trailing `if` consumes, and these stores preserve it.  Masking first forces
+   * a flag-safe `mov eax,0` plus a second zero for the return. */
   ea->thinktime = 0.0f;
   ea->dir[0] = ea->dir[1] = ea->dir[2] = 0.0f;
   ea->speed    = 0.0f;
@@ -27731,11 +26060,9 @@ void EA_Shutdown()
 }
 
 //----- (100376B0) --------------------------------------------------------
-/* Original gladiator function at 0x100376B0 — register/lookup a
- * (filename, CRC) pair in the sorted dword_10063F2C list.  If the name
- * is already in the list, returns the strcmpi result of the matching
- * record; otherwise allocates a fresh 152-byte scriptcrc_t, stores
- * hash+name, and inserts it in alphabetical order. */
+/* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C
+ * list: on a name hit return the strcmpi result of that record, else allocate a
+ * scriptcrc_t, store hash+name and insert it alphabetically. */
 void __cdecl sub_100376B0(char *String1, __int16 a2)
 {
   scriptcrc_t *v2; // esi
@@ -27744,12 +26071,9 @@ void __cdecl sub_100376B0(char *String1, __int16 a2)
   scriptcrc_t *v4; // ebx (new record)
   int result;
 
-  /* get-or-insert: original walks the sorted list, breaks on a name match,
-   * then a shared `if (v2) return;` distinguishes match (v2 != NULL) from
-   * exhaustion. MSVC routes the entry-skip and loop-exhaustion (v2 == NULL)
-   * straight to the alloc block, only the break path through the re-check
-   * (disasm 0x100376be..0x100376e1). IDA rewrote it as an inline early-return
-   * + goto, dropping the shared re-check → OUR-2. */
+  /* Get-or-insert: walk the sorted list, break on a name match, then let ONE
+   * shared `if (v2) return;` distinguish match from exhaustion.  An inline
+   * early-return drops that shared re-check. */
   for ( v2 = dword_10063F2C; v2; v2 = v2->next )
   {
     if ( !_strcmpi(String1, v2->name) )
@@ -27814,13 +26138,9 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
 }
 
 //----- (10037820) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against objdump@10037820:
- * the instruction sequence is byte-identical to sub_10037850 below
- * (same `mov [esp+0xc/0x8]; push; call CRC_Block; push; call
- * sub_100377E0` template) — /INCREMENTAL produced two compiled copies of
- * the same C source function and preserved both via separate thunks.
- * Same semantics as sub_10037850: CRC-hash the buffer and register the
- * (name, crc) pair through sub_100377E0. */
+/* CRC-hash the buffer and register the (name, crc) pair — byte-identical to
+ * sub_10037850 below; /INCREMENTAL kept two compiled copies of the same
+ * source function. */
 int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 {
   __int16 crc; // ax
@@ -27839,8 +26159,7 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 }
 
 //----- (10037880) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@10037880: walks the dword_10063F2C scriptcrc linked
+// Walks the dword_10063F2C scriptcrc linked
 // list and Log_Write's each entry as a C array initializer line:
 //   \t{0x%04X, 1}, //name
 // Format string at 0x1005E9EC, next-pointer at scriptcrc_t offset +0x94
@@ -27944,21 +26263,15 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 }
 
 //----- (10038480) --------------------------------------------------------
-/* Original GetBotAPI at 0x10038480 ends with a plain `ret` (no `ret 4`), so
- * the export is __cdecl despite gladq2_src/bl_main.c:1028 declaring the
- * function pointer as WINAPI.  The header `game/botlib.h` matches with a
- * plain prototype; we stick with __cdecl here to stay faithful to the
- * original binary. */
+/* The original ends with a plain `ret`, not `ret 4`, so this export is __cdecl
+ * even though gladq2_src/bl_main.c declares the function pointer WINAPI.  Both
+ * sides are individually faithful; the mismatch is authentic. */
 bot_export_t *GetBotAPI(bot_import_t *import)
 {
-  /* Copy the engine import table into the contiguous botimport block in one
-   * shot.  botimport_block_t is exactly the 10 import callbacks, so the
-   * original emits `rep movs` of 10 dwords here (the IDA per-field bi_Print,
-   * dword_10063FE0, … symbols scattered across .bss and turned this into 9
-   * separate field stores).  sizeof keeps it 64-bit-correct (10 pointers).
-   * NB: the original GetBotAPI makes no other call — the SEH crash-handler
-   * install was moved to botlib_debug.c's DllMain (where the 1999 DLL
-   * installed it), so it no longer appears as a spurious leading call here. */
+  /* One shot: botimport_block_t is exactly the 10 import callbacks, so this is
+   * the original's `rep movs` of 10 dwords, and sizeof keeps it 64-bit-correct.
+   * GetBotAPI makes no other call — the SEH crash-handler install belongs in
+   * botlib_debug.c's DllMain, where the original had it. */
   memcpy(&botimport, import, sizeof(botimport));
 
   bot_exports.BotVersion           = Export_BotVersion;
@@ -27995,8 +26308,7 @@ _WORD *__cdecl CRC_Init(_WORD *crcvalue)
 }
 
 //----- (100385D0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@100385D0: standard CCITT CRC-16 single-byte update
+// Standard CCITT CRC-16 single-byte update
 // against the lookup table at crctable.  Mirrors Q3 CRC_ProcessByte.
 // Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
 // preserved by the linker.
@@ -28029,13 +26341,13 @@ __int16 __cdecl CRC_Block(const unsigned char *data, int length)
 }
 
 //----- (100386E0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub). Verified against objdump@100386E0:
+// Restored dead stub:
 // CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte
 // transform as CRC_ProcessByte in a tight loop and writing the result back
 // through `crc`.  Mirrors Q3 CRC_ProcessByteString — dead in Gladiator (the
 // equivalent loop is inlined in CRC_Block at 10038640).  Note the disasm
 // scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
-// ebp=base — this is the classic IDA index-base swap and is equivalent to
+// ebp=base — the classic index/base swap, equivalent to
 // data[i] for i in [0..len).
 void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
 {
@@ -28101,8 +26413,7 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
 }
 
 //----- (100388D0) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@100388D0: drains the libvarlist by repeatedly popping
+// Drains the libvarlist by repeatedly popping
 // the head, advancing libvarlist to head->next (struct offset +0x14),
 // and calling LibVarDeAlloc on the popped node.  Final
 // libvarlist = NULL is redundant after the loop but is present in the
@@ -28169,18 +26480,15 @@ libvar_t *__cdecl LibVar(char *var_name, char *value)
 //----- (10038A60) --------------------------------------------------------
 char *__cdecl LibVarString(char *var_name, char *value)
 {
-  /* Returns the string value of a libvar (libvar->string).
-   * In the original binary this was sub_10038A60; the thunk sub_100013BB
-   * forwarded all file-path lookups here — not to LibVar (sub_100389C0). */
+  /* Returns libvar->string.  Thunk 0x100013BB forwards all file-path lookups
+   * here, not to LibVar. */
   return LibVar(var_name, value)->string;
 }
 
 //----- (10038A90) --------------------------------------------------------
 float __cdecl LibVarValue(char *var_name, char *value)
 {
-  /* l_libvar.c: LibVarValue(name, default) — registers the libvar if missing
-   * (forwarding to LibVar) and returns the numeric value field.
-   * Q3 signature: float LibVarValue(const char *var_name, const char *value). */
+  /* Registers the libvar if missing, then returns its numeric value. */
   return LibVar(var_name, value)->value;
 }
 
@@ -28199,16 +26507,8 @@ void __cdecl LibVarSet(char *var_name, char *value)
 }
 
 //----- (10038B80) --------------------------------------------------------
-/* LibVarGetModified — restored IDA-missed dead-code stub.  Verified
- * against objdump@10038B80:
- *   push [esp+4]; call thunk@0x10001C71 (→ LibVarGet);
- *   add esp,4; test eax,eax; je _ret0;
- *   mov eax,[eax+0xc]; ret    ; (+0xc = libvar_t::modified)
- *   _ret0: xor eax,eax; ret
- * Returns the `modified` flag for the libvar with the given name, or 0
- * if no such libvar exists.  Direct counterpart of Q3 botlib's
- * LibVarGetModified.  Dead in Gladiator — never reached via thunk
- * 0x10001C71; preserved by /INCREMENTAL. */
+/* Q3's LibVarGetModified — the `modified` flag for the named libvar, or 0 if
+ * there is no such libvar.  DEAD in Gladiator. */
 int __cdecl LibVarChanged(const char *var_name)
 {
   libvar_t *v;
@@ -28220,15 +26520,8 @@ int __cdecl LibVarChanged(const char *var_name)
 }
 
 //----- (10038BB0) --------------------------------------------------------
-/* LibVarClearModified — restored IDA-missed dead-code stub.  Verified
- * against objdump@10038BB0:
- *   push [esp+4]; call thunk@0x10001C71 (→ LibVarGet);
- *   add esp,4; test eax,eax; je _ret;
- *   mov DWORD[eax+0xc],0; _ret: ret
- * Clears the `modified` flag on the libvar with the given name (no-op
- * if it doesn't exist).  Q3 botlib cognate is LibVarSetNotModified
- * (l_libvar.c) — `v = LibVarGet(name); if (v) v->modified = qfalse;`.
- * Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Q3's LibVarSetNotModified — clear the `modified` flag on the named libvar,
+ * a no-op if it does not exist.  DEAD in Gladiator. */
 void __cdecl LibVarSetNotModified(const char *var_name)
 {
   libvar_t *v;
@@ -28239,11 +26532,8 @@ void __cdecl LibVarSetNotModified(const char *var_name)
 }
 
 //----- (10038BE0) --------------------------------------------------------
-/* Log_Open: faithful transcription of the disassembly at 0x10038BE0.  IDA's
- * decompiler invented an `a1@<st0>` first parameter because the function
- * begins by leaving a float on st0 (from an internal LibVarValue call) and
- * then fcomps it.  Original C source has only ONE parameter (the filename);
- * the libvar value is read internally. */
+/* One parameter, the filename — the libvar value the function fcomps at entry
+ * is read internally, not passed in. */
 void Log_Open(char *filename)
 {
   if ( LibVarValue("log", (char *)"0") != 0.0f )      /* "log" libvar enabled (default "0") */
@@ -28273,13 +26563,9 @@ void Log_Open(char *filename)
 }
 
 //----- (10038CF0) --------------------------------------------------------
-/* Q3 l_log.c: void Log_Close(void).  Closes logfile.fp, clears it on
- * success, and prints the close message (or an error if fclose fails).
- * Verified against objdump@10038CF0; logfile.fp @ 0x10063E40, log filename
- * @ logfile.filename, fclose thunk 0x10044888.  This is NOT a dead
- * duplicate — Log_Shutdown@0x10038D60 tail-jumps here through an
- * /INCREMENTAL thunk (the earlier "dead /INCREMENTAL copy" reading was
- * wrong: 10038D60 is the guard wrapper, this is the real close body). */
+/* Close logfile.fp, clear it on success and print the close message (or an
+ * error if fclose fails).  Live: Log_Shutdown@0x10038D60 is the guard wrapper
+ * that tail-jumps here. */
 int __cdecl Log_Close(void)
 {
   int result; // eax
@@ -28301,9 +26587,8 @@ int __cdecl Log_Close(void)
 }
 
 //----- (10038D60) --------------------------------------------------------
-/* Q3 l_log.c: void Log_Shutdown(void) { if (logfile.fp) Log_Close(); }
- * The original tail-jumps (through an /INCREMENTAL thunk) to Log_Close
- * at 0x10038CF0 — it is the guarded wrapper, not a duplicate. */
+/* `if (logfile.fp) Log_Close();` — the guarded wrapper, tail-jumping to
+ * Log_Close, not a duplicate of it. */
 FILE *Log_Shutdown()
 {
   FILE *result; // eax
@@ -28332,29 +26617,14 @@ FILE *Log_Write(char *Format, ...)
 }
 
 //----- (10038DD0) --------------------------------------------------------
-/* IDA-missed dead-code stub: an older, more elaborate variant of
- * Log_Write that prepends a per-line counter + uptime timestamp to
- * every log entry.  /INCREMENTAL preserved it alongside the live
- * minimal Log_Write@10038D80.  Restored from objdump@10038DD0:
+/* An older, more elaborate Log_Write that prefixes each line with a counter
+ * and an uptime timestamp, preserved alongside the live minimal
+ * Log_Write@10038D80.
  *
- *   fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ", counter, hour, min,
- *           sec_total, hund);
- *   vfprintf(logfile.fp, Format, va);
- *   counter++;
- *   fprintf(logfile.fp, "\r\n");
- *   fflush(logfile.fp);
+ * Faithful original bug: the 4th %02d field is fed the TOTAL uptime seconds
+ * rather than seconds-within-minute, so timestamps past 60 s read oddly.
  *
- * Time decomposition (with `t` = dword_1006402C, the live cached
- * floattime):  sec_total = (int)t; hund = -100*sec_total -
- * (int)(t * -100.0);  min = (int)(t * 1/60);  hour = (int)(t * 1/3600).
- * Float constants @ .rdata 0x100583E8 = 1/3600, 0x100583EC = 1/60,
- * 0x100583F0 = -100.0; fmt @ 0x1005F18C; "\r\n" @ 0x1005F188; counter
- * lives at .data 0x10063E44 and is incremented post-print.
- *
- * Note: the 4th '%02d' field is fed sec_total (total uptime seconds),
- * not seconds-within-minute, so timestamps > 60 s read oddly — this
- * is a real Mr. Elusive bug in the dead path, preserved verbatim.
- * DEAD in Gladiator — /INCREMENTAL.
+ * DEAD in Gladiator.
  */
 FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
@@ -28364,10 +26634,10 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
   int min;
   int hour;
 
-  /* Guard as `if (fp) { body } return fp;` so MSVC places the body as the warm
-   * fall-through and the NULL-return as the cold forward-`je` target (ref shape),
-   * not an inline early-return.  numwrites++ follows the "\r\n" fprintf to match
-   * the original's schedule (the inc interleaves with the fflush call setup). */
+  /* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
+   * warm fall-through and the NULL return the cold forward-`je` target.
+   * numwrites++ follows the "\r\n" fprintf, interleaving with the fflush setup
+   * as the original does. */
   if ( logfile.fp )
   {
     sec_total = (int)*(float *)&botstate.bottime;
@@ -28383,11 +26653,10 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
     logfile.numwrites++;
     return (FILE *)fflush(logfile.fp);
   }
-  /* No explicit return on the !fp path: ref shares the main `pop edi; ret`
-   * epilogue via `je 0x10038e8a` (skipping `pop esi`, which is only pushed
-   * inside the body) and leaves eax undefined.  An explicit `return logfile.fp`
-   * forces a separate `xor eax,eax; pop edi; ret` block (OUR+3).  Faithful: the
-   * function is dead (/INCREMENTAL) so the undefined return is never observed. */
+  /* No explicit return on the !fp path: the original shares the main epilogue and
+   * leaves eax undefined, whereas an explicit `return logfile.fp` forces its own
+   * epilogue block.  The function is dead, so the undefined value is never
+   * observed. */
 }
 
 //----- (10038EC0) --------------------------------------------------------
@@ -28407,23 +26676,12 @@ void Log_Flush()
 /* ----------------------------------------------------------------------
  * Memory-block leak tracker (10038F10..100391C0).
  *
- * The Gladiator botlib uses a slimmed-down variant of the Q3 botlib
- * l_memory.c MEMORYMANEGER (sic) path: every bi_GetMemory allocation is
- * prefixed with a memoryblock_t header that threads onto a doubly-linked
- * list rooted at `memory`.  Q3 tracks both `allocatedmemory` (raw user
- * bytes) and `totalmemorysize` (bytes incl. headers); Gladiator dropped
- * the first counter — only `totalmemorysize` and `numblocks` remain,
- * matching the two-line `PrintUsedMemorySize` output ("total botlib
- * memory" + "total memory blocks").
- *
- * IDA emitted the header as five hardcoded `*(_DWORD *)(p + 0/4/8/12/16)`
- * accesses because all five fields fit in 4 bytes on 32-bit Windows.  We
- * restore the struct so `void *ptr`, `*prev`, `*next` size correctly on
- * 64-bit Linux.  Names match Q3's l_memory.c exactly.
- *
- * IDA also mislabeled the validator function as `UnlinkMemoryBlock`; the
- * real Q3 name for that helper is `BlockFromPointer`.  The actual list-
- * unlink helper (sub_10038F50 in IDA) is the true `UnlinkMemoryBlock`.
+ * A slimmed-down variant of Q3 l_memory.c's MEMORYMANEGER (sic) path: every
+ * bi_GetMemory allocation is prefixed with a memoryblock_t header threaded onto
+ * a doubly-linked list rooted at `memory`.  Q3 tracks both `allocatedmemory`
+ * (raw user bytes) and `totalmemorysize` (bytes including headers); Gladiator
+ * kept only the latter plus `numblocks`, matching PrintUsedMemorySize's two
+ * lines of output.  Field names follow Q3's l_memory.c.
  * ---------------------------------------------------------------------- */
 typedef struct memoryblock_s {
   unsigned long int       id;        /* +0  MEM_ID sentinel               */
@@ -28435,9 +26693,9 @@ typedef struct memoryblock_s {
 
 #define MEM_ID 0x12345678l
 
-memoryblock_t *memory;          /* list head    (was dword_10063A30) */
-int            totalmemorysize; /* bytes alloc  (was dword_10063A1C) */
-int            numblocks;       /* block count  (was dword_10063A2C) */
+memoryblock_t *memory;          /* list head    @0x10063A30 */
+int            totalmemorysize; /* bytes alloc  @0x10063A1C */
+int            numblocks;       /* block count  @0x10063A2C */
 
 //----- (10038F10) --------------------------------------------------------
 void LinkMemoryBlock(memoryblock_t *block)
@@ -28486,8 +26744,7 @@ void *__cdecl GetClearedMemory(unsigned int size)
 }
 
 //----- (10039040) --------------------------------------------------------
-/* IDA named this `UnlinkMemoryBlock`; the Q3 source shows the original
- * name was `BlockFromPointer`.  The real list-unlink helper is sub_10038F50. */
+/* Q3's BlockFromPointer.  The real list-unlink helper is sub_10038F50. */
 static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 {
   memoryblock_t *block;
@@ -28509,13 +26766,10 @@ static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 }
 
 //----- (100390B0) --------------------------------------------------------
-/* Q3 source: `void FreeMemory(void *ptr)`.  IDA inferred an `int` return
- * because MSVC's epilogue leaves `totalmemorysize - block->size` in eax;
- * that's a register-allocation artifact, not a real return value.  We
- * keep the `int` signature here as a transitional dummy so the ~25 IDA-
- * generated `return FreeMemory(x);` call sites still compile.  Each
- * caller will be restored to `void`-returning form when its parent
- * function is faithfulness-audited. */
+/* Void in Q3; the apparent `int` return is just the
+ * `totalmemorysize - block->size` the epilogue leaves in eax.  The `int`
+ * signature is kept so the ~25 `return FreeMemory(x);` call sites still
+ * compile, and goes away as each of those is audited. */
 int __cdecl FreeMemory(void *ptr)
 {
   memoryblock_t *block = BlockFromPointer(ptr, "FreeMemory");
@@ -28654,10 +26908,8 @@ void __cdecl PC_PushScript(source_t *source, script_t *script)
 }
 
 //----- (10039460) --------------------------------------------------------
-/* Original gladiator function at 0x10039460 — duplicates a token_t.
- * IDA's `result[266] = 0` indexes by 4 bytes (32-bit pointer width) to
- * reach token_t.next at +0x428.  On 64-bit that offset moves with the
- * pointer-field expansion, so we must zero via the struct member. */
+/* Duplicate a token_t.  Clear `next` through the struct member — its offset
+ * moves once the pointer fields widen. */
 token_t *__cdecl PC_CopyToken(const token_t *token)
 {
   token_t *result;
@@ -28719,10 +26971,8 @@ int __cdecl PC_UnreadSourceToken(source_t *source, const void *token)
 }
 
 //----- (10039630) --------------------------------------------------------
-/* PC_ReadDefineParms: reads the actual argument list passed to a
- * function-style macro at a call site. Q3 botlib has the same function
- * with signature (source, define, parms[], maxparms). Renamed from
- * PC_ExpandDefine — the prior collision was a rename-pass artefact. */
+/* Read the actual argument list passed to a function-style macro at a call
+ * site.  Same signature as Q3's PC_ReadDefineParms. */
 int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **parms, int maxparms)
 {
   int i;
@@ -28857,16 +27107,11 @@ unsigned int __cdecl PC_NameHash(const char *name)
   unsigned int v2; // ecx
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
-  /* 2026-07-28: the residual is cl.exe's `push edi` shrink-wrap decision.  Ref
-   * pushes edi only inside the name!=NULL region (0x10039c40) and lets the !name
-   * path jump into the TAIL of the len==0 exit (`and eax,0x3ff` @0x10039c87) with
-   * eax already 0 from an entry `xor eax,eax` that serves three uses (the v4=0
-   * store, the `repnz scas` search byte, and that return value).  Ours pushes edi
-   * unconditionally, so both cold exits merge into one edi-popping block and the
-   * v4=0 store becomes an immediate form (+4 bytes).  TWO restructures tested and
-   * REVERTED: memcpy-inside-the-if + one trailing return (OUR-1/159b — cl.exe
-   * moved the len==0 `test ecx,ecx` out of line), and an `if (!name) return …;`
-   * early-return guard (OUR+8/167b — duplicates the abs+mask).  Keep this form. */
+  /* Keep this form.  The residual against the original is cl.exe's `push edi`
+   * shrink-wrap decision — the original pushes edi only inside the name != NULL
+   * region and lets the !name path fall into the tail of the len == 0 exit.  Both
+   * alternatives (memcpy inside the `if` with one trailing return, and an
+   * `if (!name) return …;` early guard) were tried and are worse. */
   if ( name )
   {
     v2 = strlen(name);
@@ -28881,17 +27126,8 @@ unsigned int __cdecl PC_NameHash(const char *name)
 }
 
 //----- (10039CB0) --------------------------------------------------------
-/* Original gladiator helper at 0x10039CB0 — prepend `a1` (the define being
- * added) into the bucket of `a2[]` (the source's definehash table) using
- * a hash of the define's name.  Disassembly:
- *   mov  ecx, [a1]          ; a1->name
- *   call PC_NameHash       ; hash(name)
- *   mov  edx, [a2+eax*4]    ; head of bucket
- *   mov  [a1+28], edx       ; a1->hashnext = head
- *   mov  [a2+eax*4], a1     ; bucket head = a1
- * Retyped from int/int to (define_t*, define_t**) so the pointers don't
- * truncate on 64-bit; the body now uses struct-field access (same
- * semantics, but the +28 byte offset is define_t.hashnext only on 32-bit). */
+/* Prepend `define` to its bucket in the source's definehash table, keyed by
+ * PC_NameHash of the define's name. */
 unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
 {
   unsigned int result;
@@ -28903,13 +27139,8 @@ unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
 }
 
 //----- (10039CE0) --------------------------------------------------------
-/* PC_FindHashedDefine: hash-bucket lookup of a define_t by name.
- * a1 is `define_t **definehash` — an array of buckets indexed by PC_NameHash;
- * each bucket is a linked list chained via define_t.hashnext.
- * Body matches the disassembly at 0x10039CE0; retyped from
- * (int, const char*) to (define_t**, const char*) so the bucket-array
- * pointer doesn't truncate on 64-bit and the chain walk uses
- * define_t.hashnext directly. */
+/* Hash-bucket lookup of a define_t by name: `definehash` is the bucket array
+ * indexed by PC_NameHash, each bucket chained via define_t.hashnext. */
 define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
 {
   define_t *v2;
@@ -28923,9 +27154,8 @@ define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
 }
 
 //----- (10039D70) --------------------------------------------------------
-/* PC_FindDefine: linear search of a define_t linked list (next at offset 24).
- * Q3 botlib has the same function in l_precomp.c.  In Gladiator the only
- * caller is PC_RemoveGlobalDefine (sub_1003B4E0) walking globaldefines. */
+/* Linear search of a define_t list.  The only caller is
+ * PC_RemoveGlobalDefine, walking globaldefines. */
 int __cdecl PC_FindDefine(define_t *defines, const char *name)
 {
   define_t *v2;
@@ -28973,25 +27203,10 @@ void __cdecl PC_FreeDefine(define_t *define)
 }
 
 //----- (10039EE0) --------------------------------------------------------
-/* PC_AddBuiltinDefines — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Verified against objdump@10039EE0:
- *   - Stack table (5 entries, {char *name; int value;}) is built in place
- *     at [esp+0x04..+0x28]:
- *         { "__LINE__", 1 }, { "__FILE__", 2 },
- *         { "__DATE__", 3 }, { "__TIME__", 4 }, { NULL, 0 }
- *     Name string literals confirmed at .rdata VAs 0x1005F5B0/5A4/598/58C.
- *   - For each non-NULL name, allocates (strlen + 0x21) bytes via
- *     GetMemory (thunk 0x10001AB4 -> 0x10038F90), zeros the leading 32
- *     bytes (= sizeof(define_t)), points define->name to (def + 0x20),
- *     memcpy's the name (rep movs dword + byte), sets flags |= 1 and
- *     builtin = value, then calls PC_AddDefineToHash(def,
- *     source->definehash @ +0x218).  Loop driven by ebx walking the
- *     5-entry table in 8-byte stride.
- *
- * This is the canonical Q3 botlib helper (l_precomp.c::PC_AddBuiltin-
- * Defines) — same author, same code, restored in the corresponding Q3
- * sources.  Dead in Gladiator: no caller; only kept live by the
- * /INCREMENTAL relink stub. */
+/* Q3's PC_AddBuiltinDefines — walk a local {name, value} table of __LINE__,
+ * __FILE__, __DATE__, __TIME__ and add each to source->definehash as a
+ * built-in define, with the name stored inline after the struct.
+ * DEAD in Gladiator. */
 void __cdecl PC_AddBuiltinDefines(source_t *source)
 {
   struct {
@@ -29297,9 +27512,8 @@ int __cdecl PC_Directive_include(source_t *source)
 }
 
 //----- (1003AB10) --------------------------------------------------------
-/* Q3 l_precomp.c:1061: int PC_ReadLine(source_t *source, token_t *token).
- * Read tokens, skipping past line-continuation backslashes; stop and
- * unread when the next token is on a new line. */
+/* Read tokens, skipping line-continuation backslashes; stop and unread once the
+ * next token is on a new line. */
 int __cdecl PC_ReadLine(source_t *source, token_t *token)
 {
   int crossline; // ebp
@@ -29321,11 +27535,7 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
 }
 
 //----- (1003ABD0) --------------------------------------------------------
-/* Original gladiator helper at 0x1003ABD0 — PC_WhiteSpaceBeforeToken.
- * Disassembly: returns (token->endwhitespace_p > token->whitespace_p).
- * Retyped from `int a1` to `token_t *a1` so the byte offsets +1048/+1052
- * (whitespace_p / endwhitespace_p on 32-bit) become proper field access
- * and don't drift when token_t's pointer fields grow on 64-bit. */
+/* Returns (token->endwhitespace_p > token->whitespace_p). */
 BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token)
 {
   int diff;
@@ -29335,9 +27545,7 @@ BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token)
 }
 
 //----- (1003AC00) --------------------------------------------------------
-/* Original gladiator helper at 0x1003AC00 — PC_ClearTokenWhiteSpace.
- * Disassembly zeroes token offsets +1048, +1052, +1060 = whitespace_p,
- * endwhitespace_p, linescrossed.  Same restoration as above. */
+/* Zeroes whitespace_p, endwhitespace_p and linescrossed. */
 token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token)
 {
   token->whitespace_p = NULL;
@@ -29352,7 +27560,7 @@ int __cdecl PC_Directive_undef(source_t *source)
   unsigned int hash;
   define_t *lastdefine;
   define_t *define;
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   if ( source->skip > 0 )
     return 1;
@@ -29393,16 +27601,9 @@ int __cdecl PC_Directive_undef(source_t *source)
 
 //----- (1003ADE0) --------------------------------------------------------
 //----- (1003ADE0) --------------------------------------------------------
-/* Original gladiator function at 0x1003ADE0.  The IDA decompile expressed
- * the define_t and token_t layouts via raw byte offsets (`*(_DWORD *)v3`,
- * `v6[266]`, etc.) which only held on 32-bit.  The control flow,
- * disassembly, and instruction sequence are preserved 1:1 here; the only
- * change is using struct-field access instead of literal offsets so the
- * code stays correct as define_t grows from 32 → 56 bytes and token_t
- * grows from 1072 → 1088 bytes on 64-bit.  Variable names follow Q3
- * botlib's PC_Directive_define for readability (Mr. Elusive's own Q3
- * sources use these names), but every statement maps to a disassembly
- * line in the original gladiator binary. */
+/* Struct-field access throughout rather than the original's literal offsets, so
+ * this stays correct as define_t grows 32 -> 56 bytes and token_t 1072 -> 1088
+ * on 64-bit.  Variable names follow Q3's PC_Directive_define. */
 int __cdecl PC_Directive_define(source_t *source)
 {
   token_t token;
@@ -29513,14 +27714,9 @@ int __cdecl PC_Directive_define(source_t *source)
 }
 
 //----- (1003B320) --------------------------------------------------------
-/* Original gladiator function at 0x1003B320 (PC_DefineFromString in the
- * Q3 naming convention).  Restored to return define_t * so that the
- * return value of LoadScriptMemory — a script_t* — doesn't get truncated
- * through an `int v1` local on 64-bit.  Logic matches the disassembly
- * line-by-line: allocate a stub source_t on the stack, parse `string`
- * through PC_Directive_define, copy out the single resulting define
- * from the local definehash, free the source's scratch buffers, and
- * return it. */
+/* Allocate a stub source_t on the stack, parse `string` through
+ * PC_Directive_define, copy out the single resulting define from the local
+ * definehash, free the scratch buffers and return it. */
 define_t *__cdecl PC_DefineFromString(const char *string)
 {
   script_t *script;
@@ -29560,21 +27756,9 @@ define_t *__cdecl PC_DefineFromString(const char *string)
 }
 
 //----- (1003B460) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003B460:
- *   mov eax,[esp+8]; push eax;
- *   call 0x10001104 (-> 0x1003B320 = PC_DefineFromString);
- *   add esp,4; test eax,eax; jne L;
- *   ret                       (returns eax which is 0 / NULL)
- * L: mov ecx,[esp+4]          (source_t * arg1)
- *   mov edx,[ecx+0x218]       (source->definehash, +536)
- *   push edx; push eax;
- *   call 0x100013ca (-> 0x10039CB0 = PC_AddDefineToHash);
- *   add esp,8; mov eax,1; ret
- * Mirror of Q3's PC_AddDefine(handle, string): parses `string` into a
- * fresh define_t and links it into source->definehash; returns 1 on
- * success, 0 if parsing failed.  Dead in Gladiator -- preserved by
- * /INCREMENTAL. */
+/* Q3's PC_AddDefine — parse `string` into a fresh define_t and link it into
+ * source->definehash; 1 on success, 0 if parsing failed.
+ * DEAD in Gladiator. */
 int __cdecl PC_AddDefine(source_t *source, const char *string)
 {
   define_t *def;
@@ -29587,16 +27771,7 @@ int __cdecl PC_AddDefine(source_t *source, const char *string)
 }
 
 //----- (1003B4A0) --------------------------------------------------------
-/* Original gladiator function at 0x1003B4A0 — prepends a parsed define
- * onto the file-static `globaldefines` linked list (chain via define_t.next).
- * Disassembly:
- *   call PC_DefineFromString
- *   test eax,eax / je return0
- *   mov  edx,[globaldefines]
- *   mov  [eax+24],edx     ; define->next = globaldefines
- *   mov  [globaldefines],eax
- *   return 1
- * Restored with struct-field access so the +24 offset survives on 64-bit. */
+/* Prepend a parsed define onto the file-static `globaldefines` list. */
 int __cdecl PC_AddGlobalDefine(const char *string)
 {
   define_t *define;
@@ -29610,19 +27785,13 @@ int __cdecl PC_AddGlobalDefine(const char *string)
 }
 
 //----- (1003B4E0) --------------------------------------------------------
-/* PC_RemoveGlobalDefine: remove a #define from globaldefines by name.
- * Body matches Q3 botlib l_precomp.c PC_RemoveGlobalDefine line-for-line.
- * Hex-Rays did not render this function (probably because it has no
- * reachable callers — its only caller would be its own thunk 0x10001C80,
- * which nothing invokes, and the DLL exports only GetBotAPI).  Restored
- * by hand from the binary at 0x1003B4E0 to preserve byte-for-byte
- * fidelity with the compiled .text section. */
+/* Remove a #define from globaldefines by name; line-for-line Q3's
+ * PC_RemoveGlobalDefine.  No reachable caller — only its own unused thunk. */
 int __cdecl PC_RemoveGlobalDefine(const char *name)
 {
   int define;
 
-  /* PC_FindDefine still takes int — explicit cast documents the truncation;
-   * will be lifted when PC_FindDefine is retyped to (define_t *, char *). */
+  /* PC_FindDefine still takes int; the cast documents the truncation. */
   define = PC_FindDefine((int)globaldefines, name);
   if ( define )
   {
@@ -29633,8 +27802,7 @@ int __cdecl PC_RemoveGlobalDefine(const char *name)
 }
 
 //----- (1003B520) --------------------------------------------------------
-// Restored (IDA-missed dead-code stub, /INCREMENTAL leftover). Verified
-// against objdump@1003B520: drains the globaldefines list by repeatedly
+// Drains the globaldefines list by repeatedly
 // popping the head, advancing globaldefines to head->next (define_t
 // offset +0x18 = +24, matching botlib_structs.h define_s::next), and
 // calling PC_FreeDefine on the popped node.  This is the shutdown path
@@ -29652,13 +27820,8 @@ void __cdecl PC_RemoveAllGlobalDefines(void)
 }
 
 //----- (1003B560) --------------------------------------------------------
-/* Original gladiator function at 0x1003B560 — deep-copy a define_t.
- * The original 32-bit allocator pattern was a single GetMemory of
- * sizeof(define_t)+strlen(name)+1 with the name string stored inline
- * right after the struct.  On 64-bit sizeof(define_t) grows from 32 to
- * 56, so the literal "+33" in IDA must become "+sizeof(define_t)+1".
- * IDA's `v[266]` indexing on token_t is 32-bit-only; restored to use
- * token->next directly. */
+/* Deep-copy a define_t: one allocation of sizeof(define_t) + strlen(name) + 1,
+ * with the name stored inline right after the struct. */
 define_t *__cdecl PC_CopyDefine(define_t *define)
 {
   define_t *def;
@@ -29706,10 +27869,8 @@ define_t *__cdecl PC_CopyDefine(define_t *define)
 }
 
 //----- (1003B680) --------------------------------------------------------
-/* Original gladiator function at 0x1003B680.  Walks `globaldefines`
- * (chained via define_t.next at +24 on 32-bit) and copies each into the
- * passed source's definehash table via PC_CopyDefine + PC_AddDefineToHash.
- * Body restored to struct-field walk; semantics identical to disasm. */
+/* Copy every entry of `globaldefines` into the source's definehash table via
+ * PC_CopyDefine + PC_AddDefineToHash. */
 void __cdecl PC_AddGlobalDefinesToSource(source_t *source)
 {
   define_t *def;
@@ -30098,10 +28259,8 @@ LABEL_29:
       break;
     v7 = negativevalue;
   }
-  /* Ref 0x1003c0e6 is `test ecx,ecx; jne <parentheses check>` — the
-   * "trailing operator" arm is the WARM fall-through and the lastwasvalue arm the
-   * jump target, so the original guard is negative.  IDA's positive
-   * `if (lastwasvalue){…} else {…}` swaps the two blocks. */
+  /* Negative guard: the "trailing operator" arm is the warm fall-through and the
+   * lastwasvalue arm the jump target. */
   if ( !lastwasvalue )
   {
 LABEL_73:
@@ -30135,13 +28294,11 @@ LABEL_88:
       v2 = v->next;
       switch ( o->op )
       {
-        /* Case bodies are laid out in the ORIGINAL source order (matching Q3
-         * l_precomp.c PC_EvaluateTokens and the disasm block order at
-         * 0x1003bec5..0x1003c200: LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB,
-         * AND, OR, GEQ, LEQ, EQ, UNEQ, GREATER, LESS, RSHIFT, LSHIFT, BIN_AND,
-         * BIN_OR, BIN_XOR, COLON, QUESTIONMARK). IDA re-sorted them by numeric
-         * op value; MSVC6 emits case bodies in source order, so the numeric
-         * order relocated every block and both jump tables. */
+        /* Case bodies in the ORIGINAL source order, matching Q3's PC_EvaluateTokens:
+         * LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB, AND, OR, GEQ, LEQ, EQ,
+         * UNEQ, GREATER, LESS, RSHIFT, LSHIFT, BIN_AND, BIN_OR, BIN_XOR, COLON,
+         * QUESTIONMARK.  MSVC6 emits case bodies in source order, so sorting them
+         * numerically relocates every block and both jump tables. */
         case 36:
           v->intvalue = !v->intvalue;
           v->floatvalue = !v->floatvalue;
@@ -30479,7 +28636,7 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
   token_t *nexttoken; // esi
   int indent; // [esp+10h] [ebp-438h]
   int defined; // [esp+14h] [ebp-434h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   defined = 0;
   if ( intvalue )
@@ -30611,10 +28768,8 @@ int __cdecl PC_Directive_if(source_t *source)
 }
 
 //----- (1003CD00) --------------------------------------------------------
-/* IDA analysis failed (reported funcsize=7, confusing the function boundary).
- * Restored from disassembly of the original binary and confirmed against Q3A's
- * PC_Directive_line (l_precomp.c): both report "#line directive not supported"
- * via the source error reporter and return false (0). */
+/* As Q3's PC_Directive_line: report "#line directive not supported" through the
+ * source error reporter and return 0. */
 int __cdecl PC_Directive_line(source_t *source)
 {
   SourceError(source, "#line directive not supported");
@@ -30635,11 +28790,8 @@ int __cdecl PC_Directive_error(source_t *source)
 //----- (1003CD80) --------------------------------------------------------
 int __cdecl PC_Directive_pragma(source_t *source)
 {
-  /* IDA rendered the on-stack token_t as `_DWORD v3[268]` (= 1072 bytes, the
-   * 32-bit sizeof(token_t)).  PC_ReadLine writes a full token_t into it, which
-   * is 1088 bytes on 64-bit — a 16-byte stack overflow.  Use the real type so
-   * the buffer grows with the pointer fields (byte-neutral on the 32-bit
-   * oracle: sizeof(token_t)==1072 there). */
+  /* A real token_t, not a fixed 1072-byte buffer: PC_ReadLine writes a full
+   * token_t, which is 1088 bytes once the pointer fields widen. */
   token_t v3; // [esp+0h] [ebp-430h] BYREF
 
   SourceWarning(source, "#pragma directive not supported");
@@ -30669,7 +28821,7 @@ int __cdecl PC_Directive_eval(source_t *source)
   int result; // eax
   int v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   result = PC_Evaluate(source, &value, 0, 1);
   if ( !result )
@@ -30694,7 +28846,7 @@ int __cdecl PC_Directive_evalfloat(source_t *source)
   int result; // eax
   int v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   result = PC_Evaluate(source, 0, &value, 0);
   if ( !result )
@@ -30716,10 +28868,8 @@ int __cdecl PC_Directive_evalfloat(source_t *source)
 //----- (1003D090) --------------------------------------------------------
 int __cdecl PC_ReadDirective(source_t *source)
 {
-  /* Original binary: sub $0x430,%esp / lea 0x0(%esp),%eax / push %eax
-   * — entire 1072-byte token_t allocated as one block, pointer passed to
-   * sub_10001BBD.  token.string kept as char[] so all string ops compile unchanged. */
-  token_t token; /* restored: original token_t local variable */
+  /* One token_t allocated as a single block, as in the original. */
+  token_t token;
   int i;
 
   if ( !PC_ReadSourceToken(source, token.string) )
@@ -30735,10 +28885,9 @@ int __cdecl PC_ReadDirective(source_t *source)
   }
   if ( token.type == 4 )
   {
-    /* Original used &off_1005F260 as start of {name,handler} array — restored
-     * as preproc_directives[].  Indexed scan (Q3 l_precomp.c:2531): the index
-     * is reused at the call site (`directives[i].func`), so MSVC keeps both the
-     * strength-reduced name pointer AND the index counter. */
+    /* Indexed scan, as Q3 writes it: the index is reused at the call site
+     * (`directives[i].func`), so MSVC keeps both the strength-reduced name
+     * pointer and the counter. */
     for ( i = 0; preproc_directives[i].name; i++ )
     {
       if ( !strcmp(preproc_directives[i].name, token.string) )
@@ -30755,7 +28904,7 @@ int __cdecl PC_DollarDirective_evalint(source_t *source)
   int result; // eax
   script_t *v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   result = PC_DollarEvaluate(source, &value, 0, 1);
   if ( !result )
@@ -30782,7 +28931,7 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *source)
   int result; // eax
   script_t *v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   result = PC_DollarEvaluate(source, 0, &value, 0);
   if ( !result )
@@ -30834,9 +28983,8 @@ int __cdecl PC_ReadDollarDirective(source_t *source)
 }
 
 //----- (1003D580) --------------------------------------------------------
-/* Original gladiator function at 0x1003D580.  IDA decompile used
- * a1[136] / a1[134] indexing relying on 32-bit pointer width; restored
- * to use source_t->skip and source_t->definehash struct fields. */
+/* Uses the source_t->skip and ->definehash fields rather than the original's
+ * width-dependent indexing. */
 int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
 {
   define_t *v3;
@@ -30992,25 +29140,9 @@ int __cdecl PC_CheckTokenString(source_t *source, const char *string)
 }
 
 //----- (1003DBE0) --------------------------------------------------------
-/* PC_ExpectTokenType — restored IDA-missed dead-code stub (preserved
- * by /INCREMENTAL).  Verified against objdump@1003DBE0:
- *   - 0x430-byte on-stack token_t Buffer (matches gladiator_token_t).
- *   - PC_ReadTokenHandle(source, &Buffer)  (thunk 0x100010A5)
- *   - if returned 0: return 0 (failure to read)
- *   - else if Buffer.type == expected_type (offset +0x404 = type field
- *     of token_t) AND (Buffer.subtype & expected_subtype) ==
- *     expected_subtype (offset +0x408 = subtype field):
- *         memcpy(out_token, &Buffer, 0x10c * 4 = 0x430 bytes)
- *         return 1
- *   - else: PC_UnreadSourceToken(source, &Buffer); return 0
- *
- * The `and edx, eax; cmp edx, eax` idiom expresses subtype mask-match
- * (all bits in `expected_subtype` must be set in token.subtype) — the
- * canonical Q3 PC_ExpectTokenType subtype semantics.  The rep movsd
- * 0x10c-count copy is the standard sizeof(token_t)/4 token return.
- *
- * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
- * keeps it live.  Matches Q3 l_precomp.c::PC_ExpectTokenType. */
+/* Read one token and keep it only if its type matches and every bit of
+ * `subtype` is set in the token's subtype; otherwise unread it and fail.
+ * DEAD in Gladiator. */
 int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *token)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
@@ -31027,20 +29159,8 @@ int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *
 }
 
 //----- (1003DC80) --------------------------------------------------------
-/* PC_SkipUntilString — restored IDA-missed dead-code stub (preserved
- * by /INCREMENTAL).  Verified against objdump@1003DC80:
- *   - 0x430-byte on-stack token_t Buffer.
- *   - Outer loop: PC_ReadTokenHandle(source, &Buffer).
- *     - If 0: return 0 (end of stream, target string not found).
- *     - Inline 2-byte-at-a-time strcmp of Buffer.string (offset 0)
- *       against the target string argument (esi/edi).  The compare
- *       uses the standard MSVC `sbb eax,eax; sbb eax,-1` idiom to
- *       produce +1 / -1 / 0 from the differing byte pair.
- *     - If strcmp == 0 (match): return 1.
- *     - Otherwise read the next token and repeat.
- *
- * Dead in Gladiator: no caller; only the /INCREMENTAL relink stub
- * keeps it live.  Matches Q3 l_precomp.c::PC_SkipUntilString. */
+/* Read tokens until one equals `string` (1) or the stream ends (0).
+ * DEAD in Gladiator. */
 int __cdecl PC_SkipUntilString(source_t *source, char *string)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+10h] [ebp-430h] BYREF
@@ -31060,42 +29180,19 @@ int __cdecl PC_UnreadLastToken(source_t *source)
 }
 
 //----- (1003DD70) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003DD70:
- *   push [esp+8]; push [esp+8]; call thunk@0x10001631; add esp,8; ret
- * Thunk 0x10001631 targets PC_UnreadSourceToken (0x100395F0).  Pure
- * pass-through wrapper — likely the abandoned `PC_UnreadToken(src,
- * token)` external entry point that paralleled PC_UnreadLastToken.
- * Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Pass-through wrapper around PC_UnreadSourceToken — the external
+ * PC_UnreadToken entry point paralleling PC_UnreadLastToken.
+ * DEAD in Gladiator. */
 void __cdecl PC_UnreadToken(source_t *source, token_t *token)
 {
   PC_UnreadSourceToken(source, token);
 }
 
 //----- (1003DDA0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003DDA0:
- *   mov eax,[esp+8]      ; arg2 = path
- *   push ebx; push esi
- *   mov esi,[esp+0xc]    ; arg1 = source_t *
- *   push edi
- *   push 0x104; lea ebx,[esi+0x104]; push eax; push ebx
- *   call memcpy@0x10044de0       ;; memcpy(esi+0x104, path, 0x104)
- *   add esp,0xc
- *   mov edi,ebx; or ecx,-1; xor eax,eax; repnz scasb; not ecx; dec ecx
- *   cmp [ecx+esi+0x103], 0x5c    ;; last char == '\\' ?
- *   je  done
- *   ... (same check for '/' )  je done
- *   mov edi,0x1005f6c6           ;; "\\\\"
- *   ... strcat(esi+0x104, "\\\\")  via repnz scasb to find end + rep movs
- *   done: ret
- * String literal at .rdata 0x1005F6C0 = "\\\\".  This is the canonical
- * Q3 PC_SetIncludePath / PC_SetBaseFolder pattern: copy the path into
- * a fixed-size buffer at source->includepath (+0x104) and ensure it
- * ends with a path separator.  The 0x104-byte memcpy (rather than
- * strncpy) is verbatim from the binary — it reads past the source
- * string's nul, but the function is dead so it never executes.
- * Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Copy `path` into source->includepath and ensure it ends with a separator.
+ * The fixed 0x104-byte memcpy (rather than strncpy) is verbatim from the
+ * original — it reads past the source string's NUL, but the function never
+ * runs.  DEAD in Gladiator. */
 void __cdecl PC_SetIncludePath(source_t *source, char *path)
 {
   strncpy(source->includepath, path, 0x104);
@@ -31107,13 +29204,8 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
 }
 
 //----- (1003DE40) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003DE40:
- *   mov ecx,[esp+4]; mov eax,[esp+8]; mov [ecx+0x208],eax; ret
- * Setter that writes a dword to offset 0x208 of the supplied struct
- * (lies inside source_t's reserved _pad_1 region between +312 and
- * +523, so the field carries no live name in the present
- * reconstruction).  Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Writes a dword to +0x208 of the source, inside source_t's reserved _pad_1
+ * region, so the field has no name here.  DEAD in Gladiator. */
 void __cdecl PC_SetPunctuations(void *source, int p)
 {
   *(int *)((char *)source + 0x208) = p;
@@ -31143,30 +29235,9 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
 }
 
 //----- (1003DF30) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003DF30 -- the memory-buffer twin of LoadSourceFile
- * (0x1003DE60):
- *   push args; call LoadScriptMemory@0x10040380 via thunk 0x100015A0
- *   mov ebx,eax; xor ebp,ebp
- *   cmp ebx,ebp; je return_null
- *   mov [ebx+0x568],ebp                      ;; script->next = NULL
- *   push 0x658; call GetMemory@0x10039040 via thunk 0x10001AB4
- *   mov esi,eax; mov ecx,0x196; xor eax,eax; rep stosd  ;; memset(src,0,0x658)
- *   push 0x104; push arg3(name); push esi
- *   call 0x10044DE0                          ;; strncpy(src->filename, name, 0x104)
- *   mov [esi+0x20C],ebx                      ;; src->scriptstack = script
- *   mov [esi+0x210],ebp                      ;; src->tokens      = NULL
- *   mov [esi+0x214],ebp                      ;; src->defines     = NULL
- *   mov [esi+0x21C],ebp                      ;; src->indentstack = NULL
- *   mov [esi+0x220],ebp                      ;; src->skip        = 0
- *   push 0x1000; call GetClearedMemory@0x10039000 via thunk 0x10001479
- *   mov [esi+0x218],eax                      ;; src->definehash
- *   push esi; call PC_AddGlobalDefinesToSource@0x1003B680 via 0x1000167C
- *   mov eax,esi; ret
- * Canonical Q3 LoadSourceMemory(char *ptr, int length, char *name): same
- * structure as LoadSourceFile above but uses LoadScriptMemory to wrap
- * an already-in-memory script buffer. Dead in Gladiator -- preserved by
- * /INCREMENTAL. */
+/* The memory-buffer twin of LoadSourceFile above: same structure, but wraps an
+ * already-in-memory script buffer via LoadScriptMemory.
+ * DEAD in Gladiator. */
 source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
 {
   script_t *script;
@@ -31227,12 +29298,8 @@ void __cdecl FreeSource(source_t *source)
 }
 
 //----- (1003E120) --------------------------------------------------------
-/* Q3 l_script.c: void PS_CreatePunctuationTable(script_t *, punctuation_t *).
- * Build a 256-entry perfect-hash table indexed by the first character of
- * each punctuation, with chains sorted longer-first.  IDA emitted this as
- * an `int a1` function with `const char **` array walking by stride 3 (=
- * sizeof(punctuation_t) on 32-bit); restored to the Q3 form so it works
- * with proper struct sizing on 64-bit. */
+/* Build a 256-entry perfect-hash table indexed by each punctuation's first
+ * character, with chains sorted longer-first. */
 void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations)
 {
   int i;
@@ -31267,23 +29334,9 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
 // 1003E1C8: conditional instruction was optimized away because edx.4!=0
 
 //----- (1003E250) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003E250:
- *   mov esi,[arg1+0x130]                ;; script->punctuations
- *   cmp [esi],0; je return_default      ;; empty table check
- *   xor edx,edx; mov edi,arg2(num); mov ecx,esi; mov eax,esi
- * loop:
- *   cmp [ecx+4],edi; je return_match    ;; record.n == num?
- *   mov ebx,[eax+0xc]                   ;; peek next record's p
- *   add eax,0xc; inc edx; mov ecx,eax   ;; advance, idx++
- *   test ebx,ebx; jne loop              ;; while next->p != NULL
- * return_default: return "unkown punctuation" (.data @0x10060188 — verbatim, sic).
- * return_match: lea ecx,[edx*3]; return [esi+ecx*4] (= base[idx].p).
- * Canonical Q3 l_script.c PunctuationFromNum: linear scan of the
- * per-script punctuation array, indexed by .n; returns the matching
- * punctuation string or a typo'd default.  Walks `script->punctuations`
- * as a contiguous punctuation_t[] terminated by a record with NULL p.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Linear scan of script->punctuations (a contiguous array terminated by a NULL
+ * `p`) for the record whose .n matches, returning its string or the original's
+ * typo'd "unkown punctuation" default.  DEAD in Gladiator. */
 char *__cdecl PunctuationFromNum(script_t *script, int num)
 {
   int i;
@@ -31325,9 +29378,7 @@ void ScriptWarning(int script, char *Format, ...)
 
 //----- (1003E3C0) --------------------------------------------------------
 //----- (1003E3C0) --------------------------------------------------------
-/* Q3 l_script.c: void SetScriptPunctuations(script_t *, punctuation_t *).
- * If a punctuation list is given, install it; otherwise install the
- * gladiator default table (originally at .data VA 0x1005FE00). */
+/* Install the given punctuation list, or the default table when NULL. */
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 {
   if ( p )
@@ -31343,9 +29394,8 @@ void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 }
 
 //----- (1003E410) --------------------------------------------------------
-/* Q3 l_script.c:602 PS_ReadWhiteSpace(script_t *script).  Retyped to a
- * proper pointer so PS_ReadToken's already-correct script_t* survives
- * the call on 64-bit instead of truncating through (int)script. */
+/* PS_ReadWhiteSpace — takes a real script_t*, so PS_ReadToken's pointer is not
+ * truncated across the call. */
 int __cdecl PS_ReadWhiteSpace(script_t *script)
 {
   while ( 1 )
@@ -31580,14 +29630,8 @@ int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 }
 
 //----- (1003EAB0) --------------------------------------------------------
-/* Original gladiator helper at 0x1003EAB0.  The IDA decompile expressed
- * the moving cursor through `a1` using HIDWORD(v4) — i.e. it stuffed a
- * 32-bit pointer into the upper half of a 64-bit register.  That idiom
- * is meaningless on 64-bit (real pointers don't fit in 32 bits), so the
- * body is restored to walk `a1` via a normal `char *p` local.  Control
- * flow, arithmetic, and disassembled instruction order are preserved 1:1.
- * Subtype flags match the original: 0x800=float 0x8=decimal 0x100=hex
- * 0x200=octal 0x400=binary. */
+/* Walks `string` through a plain char* cursor.  Subtype flags: 0x800 = float,
+ * 0x8 = decimal, 0x100 = hex, 0x200 = octal, 0x400 = binary. */
 void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue)
 {
   char *p;
@@ -31753,37 +29797,8 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 // 1003ED96: conditional instruction was optimized away because dl.1==30
 
 //----- (1003F020) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003F020:
- *   mov esi,arg1(script); mov edi,arg2(token)
- *   mov [edi+0x400],2                 ;; token.type = TT_LITERAL
- *   mov cl,[esi+0x108]
- *   mov [edi],cl                      ;; token.string[0] = *script_p
- *   inc DWORD[esi+0x108]
- *   mov al,*script_p; test al,al
- *   jne 0x1003F068
- *     push "end of file before trailing '"@0x10060334; push script
- *     call ScriptError via 0x10001A23; return 0
- *   cmp al,'\\'; lea ebx,[edi+1]
- *   jne 0x1003F081
- *     push ebx; push esi; call PS_ReadEscapeCharacter via 0x10001C99
- *     test eax,eax; je return_0
- *     jmp 0x1003F090
- *   0x1003F081: mov [ebx],al; ++script_p
- *   0x1003F090: cmp *script_p,'\''; je 0x1003F0E4
- *     push "too many characters in literal, ignored"@0x10060304
- *     push script; call ScriptWarning via 0x10001460
- *     skip-loop: while *script_p && != '\'' && != '\n': ++script_p
- *     if *script_p=='\'': ++script_p
- *   0x1003F0E4:
- *     mov [edi+2], *script_p; ++script_p; mov [edi+3],0
- *     movsx eax,[ebx]; mov [edi+0x404],eax   ;; subtype = (signed char)string[1]
- *     return 1
- * Canonical Q3 l_script.c PS_ReadCharacterLiteral: reads a 'x' or '\\n'-
- * style character constant and stores the character value in
- * token.subtype.  Matches the live PS_ReadString family in structure.
- * Strings at .rdata 0x10060304 / 0x10060334 inlined below.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Q3's PS_ReadCharacterLiteral — read a 'x' or '\\n'-style character constant
+ * and store its value in token.subtype.  DEAD in Gladiator. */
 int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 {
   token->type = 2; /* TT_LITERAL */
@@ -31820,14 +29835,10 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 }
 
 //----- (1003F160) --------------------------------------------------------
-/* Original gladiator function at 0x1003F160 — try to read a punctuation
- * token from the script's current position.  IDA decompile used
- * `(int)punctuationtable[c]` which truncated the bucket pointer; restored
- * to use punctuation_t * directly.
- * NB: the table index `*a1->script_p` is a *signed* char on purpose —
- * 0x1003F174 emits `movsx ecx, byte [eax]` (sign-extend).  Q3 later changed
- * this to `(unsigned int)` (movzx); do NOT "fix" the -Wchar-subscripts here
- * to unsigned char — that would diverge from the original DLL. */
+/* Try to read a punctuation token at the script's current position.
+ * NB the table index `*script->script_p` is a SIGNED char on purpose — the
+ * original sign-extends it.  Q3 later changed this to unsigned; do NOT "fix"
+ * the -Wchar-subscripts warning here. */
 int __cdecl PS_ReadPunctuation(script_t *script, char *token)
 {
   punctuation_t *punc;
@@ -31879,11 +29890,8 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
 }
 
 //----- (1003F2D0) --------------------------------------------------------
-//----- (1003F2D0) --------------------------------------------------------
-/* Q3 l_script.c:850: int PS_ReadToken(script_t *script, token_t *token).
- * Restoring just the first parameter type for now — the body still calls
- * its sub-helpers via (int)script casts; those helpers get their proper
- * sigs as the iterative crash loop reaches them. */
+/* Q3's PS_ReadToken(script_t *, token_t *).  Only the first parameter is typed
+ * so far; the body still reaches its sub-helpers through (int)script casts. */
 int __cdecl PS_ReadToken(script_t *script, char *Destination)
 {
   token_t *token = (token_t *)Destination;
@@ -31937,27 +29945,8 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
 }
 
 //----- (1003F4D0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003F4D0:
- *   sub esp,0x430                ;; token_t on stack
- *   push esp; push ebp(script)
- *   call PS_ReadToken via thunk 0x1000127B
- *   test eax,eax; je fail_read
- *   ... inline strcmp(token.string, expected) using sbb/sbb idiom
- *   test eax,eax; jne mismatch
- *   success: return 1
- *   mismatch:
- *     push &token; push expected; push "expected %s, found %s"; push script
- *     call ScriptError; return 0
- *   fail_read:
- *     push expected; push "couldn't find expected %s"; push script
- *     call ScriptError; return 0
- * Canonical Q3 l_script.c PS_ExpectTokenString: read next token, error
- * if read fails or the token's string field doesn't equal the expected
- * literal.  Format strings at .rdata 0x1005FD28 ("couldn't find
- * expected %s") and 0x1005FD0C ("expected %s, found %s") -- already
- * declared in botlib.c as aCouldnTFindExp / aExpectedSFound.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Read the next token and ScriptError unless its string equals `string`.
+ * DEAD in Gladiator. */
 int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 {
   token_t token;
@@ -32054,25 +30043,9 @@ int __cdecl PS_ExpectAnyToken(int script, int token)
 }
 
 //----- (1003F9F0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003F9F0:
- *   sub esp,0x430                  ;; token_t on stack
- *   push edi; mov edi,arg1(script)
- *   push esp; push edi
- *   call PS_ReadToken via 0x1000127B
- *   test eax,eax; je fail (1003FA69)
- *   mov esi,arg2(string)
- *   ... inline strcmp(token.string, string) ...
- *   test eax,eax; jne mismatch (1003FA5D)
- *   return 1
- *   mismatch:
- *     mov eax,[edi+0x110]; mov [edi+0x108],eax  ;; script_p = lastscript_p
- *   fail: return 0
- * Canonical Q3 l_script.c PS_CheckTokenString: peek-read next token,
- * if its string matches the expected literal return 1, else rewind
- * script->script_p from script->lastscript_p and return 0.
- * Sibling of PS_CheckTokenType (0x1003FAB0).
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Peek the next token: 1 if its string matches, else rewind script_p from
+ * lastscript_p and return 0.  Sibling of PS_CheckTokenType.
+ * DEAD in Gladiator. */
 int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 {
   token_t token;
@@ -32085,28 +30058,9 @@ int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 }
 
 //----- (1003FAB0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003FAB0:
- *   sub esp,0x430                 ;; token_t on stack
- *   push esi; mov esi,arg1(script)
- *   push esp; push esi
- *   call PS_ReadToken via 0x1000127B
- *   test eax,eax; je fail
- *   mov ecx,[esp+0x404]           ;; token.type
- *   cmp ecx,arg2(expected_type)
- *   jne unread
- *   mov edx,[esp+0x408]           ;; token.subtype
- *   and edx,arg3(subtype_mask)
- *   cmp edx,arg3; jne unread
- *   ;; match: push edi; mov edi,arg4; mov ecx,0x10c;
- *   ;;        lea esi,[esp+8]; rep movsd; return 1
- *   unread: mov eax,[esi+0x110]; mov [esi+0x108],eax  ;; rewind script_p
- *   fail:   return 0
- * Canonical Q3 PS_CheckTokenType: peek-read next token, on
- * (type==expected && (subtype & mask)==mask) copy out and return 1;
- * otherwise restore script->script_p from script->lastscript_p and
- * return 0.  Sibling of PS_ExpectTokenType (0x1003F5C0).
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Peek the next token: on (type == expected && (subtype & mask) == mask) copy
+ * it out and return 1, else rewind script_p and return 0.  Sibling of
+ * PS_ExpectTokenType.  DEAD in Gladiator. */
 int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *out)
 {
   token_t token;
@@ -32122,27 +30076,8 @@ int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *
 }
 
 //----- (1003FB50) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003FB50:
- *   sub esp,0x430                 ;; token_t on stack
- *   push ebx,ebp,esi,edi; mov ebp,arg1(script)
- *   push esp; push ebp
- *   call PS_ReadToken via 0x1000127B
- *   test eax,eax; je fail
- *   mov edi,arg2(string); mov esi,edi
- *   loop_cmp:
- *     ... inline strcmp(token.string, string) ...
- *     test eax,eax; je success
- *     push esp(&token); push ebp(script); call PS_ReadToken
- *     test eax,eax; jne loop_cmp
- *   fail:    return 0
- *   success: return 1
- * Canonical Q3 l_script.c PS_SkipUntilString: keep reading tokens
- * until one whose string equals the target is found, or stream ends.
- * The compiler hoisted the first PS_ReadToken out of the while loop
- * for code-size; behaviour is identical to the source idiom.  Sibling
- * of PC_SkipUntilString (0x1003DC80, batch 23).
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* Read tokens until one equals `string` (1) or the stream ends (0).  Sibling of
+ * PC_SkipUntilString.  DEAD in Gladiator. */
 int __cdecl PS_SkipUntilString(script_t *script, const char *string)
 {
   token_t token;
@@ -32155,30 +30090,15 @@ int __cdecl PS_SkipUntilString(script_t *script, const char *string)
 }
 
 //----- (1003FC10) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003FC10:
- *   mov eax,[esp+4]; mov DWORD[eax+0x128],1; ret
- * Setter that marks the "loaded" flag (+0x128 = 1) on a preprocessor
- * context struct.  Pairs with the init at 0x1003FFF0 (which clears
- * the same flag) and the bulk-load helper at 0x1003FC30 (which fills
- * the +0x138 macro table then sets the flag).  Dead in Gladiator —
- * preserved by /INCREMENTAL. */
+/* Sets script->tokenavailable = 1.  DEAD in Gladiator. */
 void __cdecl PS_UnreadLastToken(script_t *script)
 {
   script->tokenavailable = 1;
 }
 
 //----- (1003FC70) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003FC70:
- *   mov edx,[esp+4]; mov ecx,[edx+0x114]; mov eax,[edx+0x118];
- *   cmp ecx,eax; je _eof; mov al,[ecx]; inc ecx;
- *   mov [edx+0x114],ecx; ret    (returns the read byte in AL)
- *   _eof: xor al,al; ret
- * Reads one byte from a [cursor..end) buffer carried in a PC-context
- * (+0x114 = cursor, +0x118 = end), advances the cursor, and returns
- * the byte; returns 0 at EOF.  Standalone getc-style reader.
- * Dead in Gladiator -- preserved by /INCREMENTAL. */
+/* getc over the script's whitespace span: read one byte, advance the cursor,
+ * return 0 at the end.  DEAD in Gladiator. */
 char PS_NextWhiteSpaceChar(script_t *script)
 {
   if (script->whitespace_p != script->endwhitespace_p)
@@ -32189,11 +30109,10 @@ char PS_NextWhiteSpaceChar(script_t *script)
 //----- (1003FCB0) --------------------------------------------------------
 void __cdecl StripDoubleQuotes(char *string)
 {
-  /* Gladiator-era source used strcpy() with overlapping src/dst — byte-
-   * copy on 32-bit MSVC, undefined on 64-bit glibc (aarch64 SIMD strcpy
-   * mangles overlapping copies, breaks IndexFromModel).  Use strcpy on
-   * MSVC oracle (byte fidelity), memmove elsewhere.  Outer 'while'
-   * (NOT Q3's single 'if') matches ref disasm loopback. */
+  /* The original uses strcpy() with OVERLAPPING src/dst — a byte copy under
+   * 32-bit MSVC, undefined with glibc's SIMD strcpy — so keep strcpy only for
+   * the oracle and memmove elsewhere.  The outer `while` (not Q3's single `if`)
+   * matches the original's loopback. */
   while ( *string == '"' )
 #if defined(_MSC_VER)
     strcpy(string, string + 1);
@@ -32224,7 +30143,7 @@ void __cdecl StripSingleQuotes(char *string)
 // with .rdata 0x100603c8 "expected float value, found %s\n".  Returns
 // token.floatvalue * sign as a double.
 // DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedInt
-// (integer variant below).  Restored from objdump@1003FDD0; sign is
+// (integer variant below).  The sign is
 // constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
 // 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
 double __cdecl ReadSignedFloat(int script)
@@ -32254,7 +30173,7 @@ double __cdecl ReadSignedFloat(int script)
 // 0x100603f0 "expected integer value, found %s\n".  Returns
 // token.intvalue * sign as int.
 // DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedFloat
-// (float variant above).  Restored from objdump@1003FEC0.
+// (float variant above).
 int __cdecl ReadSignedInt(int script)
 {
   int sign;
@@ -32281,14 +30200,8 @@ void __cdecl SetScriptFlags(script_t *script, int flags)
 }
 
 //----- (1003FFD0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1003FFD0:
- *   mov eax,[esp+4]; mov eax,[eax+0x12c]; ret
- * Returns the int field at offset 0x12c of the supplied struct.
- * Within script_t layout +0x12c sits between the script_t's
- * lastscriptload-counter (+0x128) and the load-flag (+0x130);
- * the live API uses dedicated accessors (PS_GetScriptName etc.)
- * instead.  Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Returns script->flags.  DEAD in Gladiator — the live API uses the dedicated
+ * accessors instead. */
 int __cdecl GetScriptFlags(script_t *script)
 {
   return script->flags;
@@ -32302,49 +30215,21 @@ BOOL __cdecl EndOfScript(script_t *script)
 }
 
 //----- (10040090) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10040090: loads two adjacent dwords from a script_t at +0x120
- * and +0x124 and returns their difference.  Matches Q3 l_script.c's
- * ScriptError/length accessor pattern: returns (current_token_offset -
- * something_offset).  Dead in Gladiator — never reached via thunk
- * 0x10001492; preserved by /INCREMENTAL. */
+/* Returns script->line - script->lastline.  DEAD in Gladiator. */
 int __cdecl NumLinesCrossed(script_t *script)
 {
   return script->line - script->lastline;
 }
 
 //----- (100400C0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100400C0:
- *   mov ebp,arg1(string)
- *   strlen(string) -> edi    (via repnz scasb)
- *   mov esi,arg2(script); mov bl,*string
- *   push esi; call PS_ReadWhiteSpace via 0x10001DFC
- *   test eax,eax; je return_0
- *   loop_check:
- *     mov eax,[esi+0x108]
- *     cmp [eax],bl                      ;; *script_p == string[0]?
- *     jne advance
- *     push edi(len); push ebp(string); push eax(script_p)
- *     call strncmp@0x100456B0
- *     test eax,eax; je return_1
- *   advance:
- *     ++script->script_p
- *     push esi; call PS_ReadWhiteSpace via 0x10001DFC
- *     test eax,eax; jne loop_check
- *   return_0: return 0
- *   return_1: return 1
- * Lower-level companion to the token-based PS_SkipUntilString
- * (0x1003FB50): scans the raw script stream character-by-character,
- * skipping whitespace between probes, looking for an occurrence of
- * the target string anchored on its first byte.  Returns 1 if found,
- * 0 on EOF.  No canonical Q3 counterpart -- abandoned Mr. Elusive
- * helper.  Dead in Gladiator -- preserved by /INCREMENTAL.
- * Param order is (script, string): the disasm strlen's the param at
- * [orig+8] (the search string, into ebp) while operating script_p
- * through [orig+4] (esi).  The single `while (PS_ReadWhiteSpace(...))`
- * lets MSVC rotate the loop (top je / bottom jne / fall-through return 0)
- * exactly as the original — a leading guard + while(1) emits an extra jmp. */
+/* Character-level companion to the token-based PS_SkipUntilString: scan the raw
+ * script stream, skipping whitespace between probes, for an occurrence of
+ * `value` anchored on its first byte.  No Q3 counterpart.
+ *
+ * Keep the single `while (PS_ReadWhiteSpace(...))`, which lets MSVC rotate the
+ * loop as the original does; a leading guard plus while(1) emits an extra jmp.
+ *
+ * DEAD in Gladiator. */
 int __cdecl ScriptSkipTo(script_t *script, char *value)
 {
   int len;
@@ -32380,10 +30265,9 @@ int __cdecl FileLength(FILE *fp)
 }
 
 //----- (100401A0) --------------------------------------------------------
-/* LoadScriptFile — raw script file loader (= Q3A's LoadScriptFile).
- * Creates a script_t (struct header 1392 bytes + file data) in one allocation.
- * Does NOT set up a source_t or scriptstack; that is done by LoadSourceFile
- * (LoadSourceFile) which calls this via LoadScriptFile and then builds the source_t. */
+/* Raw script file loader: create a script_t (1392-byte header + file data) in
+ * one allocation.  Does NOT set up a source_t or scriptstack — LoadSourceFile
+ * does that around this. */
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
 {
   FILE *fp;
@@ -32421,9 +30305,9 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   {
     const unsigned char *buffer;
 
-    /* Ref 0x1004028d loads script->buffer (`mov edx,[ebx+0x104]`) BEFORE the
-     * memcpy's `rep movs` and only materialises the memset's `xor eax,eax`
-     * after it, so the buffer fetch is the first statement of this block. */
+    /* The buffer fetch is the FIRST statement of this block: the original loads
+     * script->buffer before the memcpy and only materialises the memset's zero
+     * afterwards. */
     buffer = (const unsigned char *)script->buffer;
     memcpy(v10, &unk_10060418, 0x48u);
     memset(&v10[72], 0, 0x48u);
@@ -32482,20 +30366,19 @@ const char **__cdecl FindField(const char **defs, const char *name)
   return 0;
 }
 
-/* Field-table slot helpers — field tables are emitted as char *[7] entries
- * to preserve binary layout via slot indices (not byte offsets) so they
- * work on both 32-bit and 64-bit (slot size = sizeof(char *)).
- *   slot[0] = name, [1] = offset, [2] = type|flags, [3] = arr,
- *   slot[4] = minrange (float bits as ptr), [5] = maxrange (float bits as ptr),
- *   slot[6] = substruct (structdef_t *). */
+/* Field-table slot helpers.  Field tables are char *[7] entries addressed by
+ * slot index rather than byte offset, so they work on both word widths:
+ *   [0] name  [1] offset  [2] type|flags  [3] arr
+ *   [4] minrange (float bits)  [5] maxrange (float bits)
+ *   [6] substruct (structdef_t *) */
 static inline int fielddef_flags(char **f) { return (int)(intptr_t)f[2]; }
 static inline float fielddef_float(char **f, int slot) {
     return *(float *)&f[slot];   /* direct low-32 read (LE-safe); matches ref's fld [ebp+off] */
 }
 
-/* fielddef_t — Q3 l_struct.h field descriptor, overlaid on the char *[7]
- * table entries.  Members are pointer-sized (intptr_t) so the struct lines
- * up with the slot layout on both 32-bit (int) and 64-bit (8-byte slots). */
+/* fielddef_t — Q3's l_struct.h field descriptor, overlaid on the char *[7]
+ * entries.  Members are pointer-sized so the struct lines up with the slots on
+ * either word width. */
 typedef struct fielddef_s {
     const char *name;            /* slot 0 */
     intptr_t    offset;          /* slot 1 */
@@ -32507,21 +30390,15 @@ typedef struct fielddef_s {
 } fielddef_t;
 
 //----- (10040540) --------------------------------------------------------
-/* 2026-07-19 Fable-5 handoff: dropped the decompiler-invented `type` local
- * (was `v8 & 0xFF` cached once) and the shadow v16/v17/v11/v12/v13/v14
- * temps, testing `(v8 & 0xFF)` directly at each site and folding the
- * intmin/intmax clamp into Q3-style ternaries — this restores ref's
- * un-threaded type dispatch (the recomputed mask blocks jump-threading,
- * matching ref's repeated `and edi,0xff`) and collapsed the masked-diff
- * residual from 121 differing lines/745b to 22 lines/486b. The remaining
- * residual is narrower: 4 float comparison sites against a fresh
- * `fielddef_float()` call compile to `fld/fld st(1)-or-fxch/fcompp` here
- * vs ref's single memory-operand `fcom`/`fcomp` — tried caching the
- * fielddef_float(fd,4)/(fd,5) results into named float locals to match
- * (mirroring the working v18 pattern in the float-value path above this
- * function), which REGRESSED (22->169 differing lines); reverted. Do not
- * re-attempt that specific lever without a new idea for what ref's fcom
- * operand actually is. */
+/* Test `(v8 & 0xFF)` directly at each site rather than caching it in a `type`
+ * local, and keep the intmin/intmax clamp as Q3-style ternaries: the recomputed
+ * mask is what blocks jump-threading and reproduces the original's repeated
+ * `and edi,0xff` dispatch.
+ *
+ * The residual is four float comparisons that compile to fld/fcompp here where
+ * the original has a single memory-operand fcom.  Caching the
+ * fielddef_float(fd,4)/(fd,5) results into named locals to match was tried and
+ * regresses badly — do not re-attempt without a new idea. */
 int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 {
   int negative; // esi
@@ -32532,7 +30409,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   int intmin; // esi
   int intmax; // rax
   float v18; // [esp+28h] [ebp-438h]
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   negative = 0;
   if ( !PC_ExpectAnyToken(source, token.string) )
@@ -32653,7 +30530,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 int __cdecl ReadChar(source_t *source, char **fd, float *p)
 {
   int result; // eax
-  token_t token; /* restored: original token_t local variable */
+  token_t token;
 
   result = PC_ExpectAnyToken(source, token.string);
   if ( !result )
@@ -32814,8 +30691,7 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
   char *p; // esi
   fielddef_t *fd; // ebx + ebp
 
-  /* The 0x10001ac3 thunk used at these three sites resolves to WriteIndent
-   * (0x10040E30), not fputc — IDA mislabelled the indirect call. */
+  /* Thunk 0x10001ac3 -> WriteIndent, not fputc. */
   if ( !WriteIndent(fp, indent) )
     return 0;
   if ( fprintf(fp, "{\r\n") < 0 )
@@ -32864,8 +30740,7 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
           p += 80;
           break;
         case 6:
-          /* Nested struct case: recursive call. The original binary thunked
-           * via 0x10001500 → WriteStructWithIndent (0x10040F20). */
+          /* Nested struct: recurse. */
           if ( !WriteStructWithIndent(fp, fd->substruct, structure, indent) )
             return 0;
           p += fd->substruct->size;
@@ -32887,14 +30762,12 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
     if ( fprintf(fp, "\r\n") < 0 )
       return 0;
   }
-  /* Ref's tail exit at 0x1004112a is a 5-insn `pop;pop;pop;pop;ret` with NO
-   * `xor eax,eax` — MSVC6 omits it because the `jne` fall-through proves eax==0
-   * from WriteIndent's own return.  That is the signature of a plain `return 0`
-   * guard (same as WriteFuzzySeperators_r's 3rd guard at 0x100366dc), NOT of
-   * IDA's `result = WriteIndent(...); … return result;` rendering: a trailing
-   * `return result;` makes cl.exe canonicalise every `return 0` in the function
-   * into ONE block hosted at the textual end, which un-pins the shared exit
-   * block ref keeps inline at guard 1. */
+  /* A plain `return 0` guard, not `result = WriteIndent(...); … return result;`:
+   * the original's tail exit has no `xor eax,eax` because the fall-through
+   * already proves eax == 0 from WriteIndent's return.  A trailing
+   * `return result;` makes cl.exe canonicalise every `return 0` into one block
+   * at the textual end, un-pinning the shared exit the original keeps inline at
+   * the first guard. */
   if ( !WriteIndent(fp, indent - 1) )
     return 0;
   if ( fprintf(fp, "}\r\n") < 0 )
@@ -32905,9 +30778,7 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
 //----- (10041210) --------------------------------------------------------
 int __cdecl WriteStructure(FILE *fp, int def, int structure)
 {
-  /* WriteStructure is a thin entry point that just calls WriteStructWithIndent
-   * with indent=0. Original binary used the 0x10001500 thunk → 0x10040F20. The
-   * earlier PC_Directive_ifdef name was a deobfuscation mislabel of that thunk. */
+  /* Thin entry point: WriteStructWithIndent with indent = 0. */
   return WriteStructWithIndent(fp, (structdef_t *)def, structure, 0);
 }
 
@@ -33042,22 +30913,9 @@ void sub_10041600(void)
 }
 
 //----- (10041650) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@10041650:
- *   mov eax,ds:0x100605DC      ; cached value
- *   cmp eax,0xFFFFFFFF
- *   jne done
- *   call DWORD PTR ds:0x1006C230   ; kernel32!GetVersion IAT slot
- *   cmp eax,0x80000000
- *   sbb eax,eax
- *   neg eax
- *   mov ds:0x100605DC,eax
- *   done: ret
- * Cached MSVC _osplatform-style helper: returns 1 if running on
- * Windows NT (top bit of GetVersion() == 0) and 0 on Windows 9x.
- * Cache slot lives at ds:0x100605DC, initialised to -1 in .data
- * and overwritten with the 0/1 result on first call.
- * Dead in Gladiator — preserved by /INCREMENTAL. */
+/* Cached MSVC _osplatform-style helper: 1 on Windows NT (top bit of
+ * GetVersion() clear), 0 on Windows 9x.  The cache slot starts at -1.
+ * DEAD in Gladiator. */
 static int sub_10041650(void)
 {
   static unsigned int cached = 0xFFFFFFFFu;
@@ -33083,8 +30941,8 @@ LPSTR __stdcall sub_10041680(
         int a13)
 {
 #ifdef _WIN32
-  /* Faithful Win32 reconstruction (IDA sub_10041680): two stack-local
-   * string buffers initialized from .rdata literals, then lstrcpyA / sprintf. */
+  /* Two stack-local string buffers initialised from .rdata literals, then
+   * lstrcpyA / sprintf. */
   char Format[] = "%c%d%%"; // [esp+8h] [ebp-14h] BYREF
   CHAR String2[] = "100%%"; // [esp+0h] [ebp-1Ch] BYREF
   CHAR String1[12]; // [esp+10h] [ebp-Ch] BYREF
@@ -33099,9 +30957,8 @@ LPSTR __stdcall sub_10041680(
   else
     return (LPSTR)sprintf(String1, Format, sign, a3);
 #else
-  /* Progress callback — Windows lstrcpyA unavailable, using sprintf into a
-   * static buffer (String1 in the original is a stack local; safe here as
-   * this callback is unreachable in the Linux build). */
+  /* Progress callback.  No lstrcpyA off-Windows, so sprintf into a static buffer
+   * — safe because this callback is unreachable in the Linux build. */
   static CHAR buf[16];
   if (a3 == 100)
     strcpy(buf, "100%%");
@@ -33157,11 +31014,9 @@ int __cdecl vectoangles(float *value1, float *angles)
 }
 
 //----- (100418D0) --------------------------------------------------------
-/* sub_100418D0 — in-place path-separator normalisation.  Original Gladiator
- * (Windows-only) folded both '/' and '\\' to '\\' since Win32 file APIs
- * accept either but the engine preferred backslash internally.  On POSIX
- * we must fold to '/' instead, otherwise access()/fopen() reject paths
- * containing '\\'.  Disassembly preserved verbatim for _WIN32 builds. */
+/* In-place path-separator normalisation.  The original folds both '/' and '\\'
+ * to '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.
+ * The _WIN32 branch is verbatim. */
 #ifdef _WIN32
 #  define BOTLIB_PATHSEP '\\'
 #else
@@ -33184,9 +31039,8 @@ char __cdecl sub_100418D0(_BYTE *a1)
 }
 
 //----- (10041900) --------------------------------------------------------
-/* void: ref 10041900 routes every guard to the SAME bare `pop edi; pop esi;
- * ret` at 10041940 and never sets eax -- the `result`/`a2 - v4` returns were
- * IDA reading the incidental al/eax left by the last compare. */
+/* Genuinely void: every guard routes to the same bare epilogue and eax is never
+ * set — any apparent return value is just the last compare's residue. */
 void __cdecl sub_10041900(const char *a1, int a2)
 {
   char result; // al
@@ -33207,9 +31061,9 @@ void __cdecl sub_10041900(const char *a1, int a2)
   }
 }
 
-/* PAK directory entry — 64 bytes, identical on 32- and 64-bit.  Declared above
- * the docblock marker so the ref-funcmap generator still attributes the address
- * to the function (see msvc6_oracle coverage gotcha 2). */
+/* PAK directory entry — 64 bytes on either word width.  Declared above the
+ * docblock so the ref-funcmap generator attributes the address to the
+ * function. */
 typedef struct pak_direntry_s {
     char    name[56];
     int32_t filepos;
@@ -33232,11 +31086,7 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
   v3 = fopen(FileName, "rb");
   v4 = v3;
   if ( !v3 ) { return 0; }
-  /* Read 12-byte PAK header: magic(4), dir_offset(4), dir_size(4).
-   * IDA misidentified the register loads of Buffer[1] and Buffer[2] as
-   * operator delete() calls; they were actually arguments to fseek/GetMemory.
-   * v5/v6 are marked "possibly undefined" by IDA because they came from
-   * the void return of the fake delete, not from real computed values. */
+  /* 12-byte PAK header: magic(4), dir_offset(4), dir_size(4). */
   if ( fread_locked(Buffer, 1u, 0xCu, v3) != 12
     || Buffer[0] != 1262698832   /* "PACK" magic = 0x4B434150 */
     || fseek(v4, LittleLong(Buffer[1]), SEEK_SET) )  /* seek to directory (Buffer[1] = dir_offset) */
@@ -33276,17 +31126,9 @@ LABEL_11:
         goto LABEL_11;
     }
     strcpy(a3->path, FileName);
-    /* PAK directory entry layout (64 bytes, identical on 32/64-bit):
-     *   char  name[56];
-     *   int32 filepos;     // byte offset 56
-     *   int32 filelen;     // byte offset 60
-     * IDA's `void *v12[14]/[15]` decompile is only correct on 32-bit
-     * (sizeof(void*) == 4).  Read the two ints directly.
-     * NOTE: this lone goto is load-bearing — the shared FreeMemory/return-0
-     * tail plus the v8 stack-spill (edi is the strcpy rep-movs scratch) is
-     * only reproduced by this form.  Every structured equivalent (for/while
-     * with success-inside or success-after) makes MSVC6 cache v8 in edi,
-     * regressing the byte match (reg-alloc tie). */
+    /* This lone goto is load-bearing: the shared FreeMemory/return-0 tail plus the
+     * v8 stack spill (edi is the strcpy rep-movs scratch) is only reproduced by
+     * this form — every structured equivalent makes MSVC6 cache v8 in edi. */
     a3->fileofs = LittleLong(((pak_direntry_t *)v8)[v10].filepos);
     a3->filelen = LittleLong(((pak_direntry_t *)v8)[v10].filelen);
     (void)v12;
@@ -33296,22 +31138,20 @@ LABEL_11:
 }
 
 //----- (10041BA0) --------------------------------------------------------
-/* Original name unknown; equivalent to Q3A backport's Q3_FS_FOpenFile inner path search.
- * Searches for file a3 under basePath a1, first in subdir Source (gamedir), then "baseq2".
- * Both subdirs and pak archives are tried.  Result written to a4 (offset-info struct). */
+/* Search for file `a3` under base path `a1`, first in the gamedir `Source`,
+ * then "baseq2", trying both loose files and pak archives; the result goes to
+ * the bot_fileref_t out-param. */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
 {
   char *v4; // ebp
   int v5; // esi
   int v7; // [esp+10h] [ebp-244h]
-  /* FileName plus a char[3][144] subdir array, all 144-byte buffers in the original
-   * (IDA split FileName/the 3rd row as char[141]+__int16+char).  subdirs MUST be one
-   * [3][144] array, not [2][144]+a named v17_buf: the loop walks a char* through all
-   * three rows with `v4 += 144` but only rows [0]=subdir and [1]="baseq2" are
-   * populated/searched (2 iters), so a separate row-[2] local gets dead-eliminated by
-   * MSVC /O2 (frame 0x244->0x1b4 = -0x90).  The array's escaping address keeps it live.
-   * Each buffer is inited byte[0]=byte_1006294C ('\0') + memset(&[1],0,143) per the
-   * disasm — identical to a 144-byte zero-fill since the marker is NUL. */
+  /* `subdirs` MUST be one [3][144] array, not [2][144] plus a named third buffer:
+   * the loop walks a char* across all three rows, but only rows 0 (subdir) and 1
+   * ("baseq2") are populated and searched, so a separately-named row 2 gets
+   * dead-eliminated by /O2 — the array's escaping address is what keeps it live.
+   * Each buffer's init is byte[0] = '\0' plus memset of the remaining 143, which
+   * is just a 144-byte zero-fill. */
   char FileName[144]; // [esp+14h] [ebp-240h] BYREF
   char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
 
@@ -33405,29 +31245,17 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 #ifdef _WIN32  /* ---- ZIP32 windll archive path (ZIP32.DLL): sub_10041FF0 + helpers/callbacks ----
                 * Windows-only, and dead even there (no live caller).  Absent on Linux. */
 //----- (10041FF0) --------------------------------------------------------
-/* sub_10041FF0 — `BotArchiveZip`-style helper that adds one file to a zip
- * archive by dynamically loading Info-ZIP's ZIP32.DLL and driving its
- * ZpInit / ZpSetOptions / ZpArchive entry points.  Reconstructed from
- * objdump@0x10041FF0 (191 insns) cross-checked with RetDec
- * (function_10041ff0).  Mirrors the structure of the already-MATCHing
- * UnZip sibling sub_10041240 above: the Win32 calls are shimmed on Linux
- * (SearchPathA returns 0, so the body bails before touching any DLL), so
- * this compiles and is harmlessly inert off-Windows while the MSVC6 oracle
- * sees the original Win32 code.
+/* sub_10041FF0 — add one file to a zip archive by loading Info-ZIP's ZIP32.DLL
+ * and driving its ZpInit / ZpSetOptions / ZpArchive entry points, mirroring the
+ * UnZip sibling sub_10041240 above.  Off-Windows the shimmed SearchPathA
+ * returns 0, so the body bails before touching any DLL.
  *
- * The two ZIP32 structures are passed BY VALUE: ZPOPT is exactly 248 bytes
- * (proved by ds:0x100639d8 − ds:0x100638e0 and the rep-movs of 62 dwords)
- * and ZCL is 12 bytes.  Pointer fields are 4-byte int slots, like the UnZip
- * DCL/USERFUNCTIONS above, so the byte image is identical on 64-bit.  Field
- * names are offset-derived: only the two TRUE flags (+0x24, +0x30) and the
- * embedded getcwd buffer (+0x76, ds:0x10063956) carry meaning here.
+ * ZPOPT (248 bytes) and ZCL (12 bytes) are passed BY VALUE, with pointer fields
+ * as 4-byte int slots so the byte image is width-independent.  Field names are
+ * offset-derived; only the two TRUE flags and the embedded getcwd buffer carry
+ * meaning here.
  *
- * Strings (.rdata): "ZIP32.DLL" @0x10060694, "ZpArchive" @0x10060688,
- *   "ZpSetOptions" @0x10060678, "ZpInit" @0x10060670, error fmt @0x10060638.
- * Callback thunks: print=sub_100423D0, password=sub_100423F0 (empty pw),
- *   comment=sub_100423B0.  Companion cleanup = sub_10042380.
- *
- * DEAD in Gladiator — only caller was an unreachable debug menu entry. */
+ * DEAD in Gladiator — its only caller was an unreachable debug menu entry. */
 typedef struct {
   int  o00, o04, o08, o0c, o10, o14;  /* +0x00..+0x14                     */
   int  o18, o1c;                      /* +0x18,+0x1c  (never set -> 0)    */
@@ -33565,11 +31393,8 @@ int __stdcall sub_100423B0(int a1, int a2, int a3, int a4)
 }
 
 //----- (100423D0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100423D0: `mov eax, [esp+0x8]; ret`.  Two-argument cdecl
- * function that simply returns its second argument unchanged.  Looks
- * like a placeholder identity passthrough left over from a refactored
- * 2-arg helper.  Dead in Gladiator; preserved by /INCREMENTAL. */
+/* Returns its second argument unchanged — a placeholder identity passthrough.
+ * DEAD in Gladiator. */
 int __cdecl sub_100423D0(int a1, int a2)
 {
   (void)a1;
@@ -33577,10 +31402,8 @@ int __cdecl sub_100423D0(int a1, int a2)
 }
 
 //----- (100423F0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@100423F0: `mov eax, [esp+0x4]; mov BYTE PTR [eax], 0;
- * ret 0x4`.  Stdcall 1-arg function that NUL-terminates a string at
- * the supplied pointer.  Dead in Gladiator; preserved by /INCREMENTAL. */
+/* Writes an empty string at `p` — the ZIP32 password callback.
+ * DEAD in Gladiator. */
 void __stdcall sub_100423F0(char *p)
 {
   p[0] = 0;
@@ -33598,17 +31421,9 @@ void __stdcall sub_100423F0(char *p)
 /* PerpendicularVector — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100431B0) --------------------------------------------------------
-/* Q2 q_shared.c::ClearBounds — initialise mins to +99999, maxs to -99999.
- * IDA decompiled the writes as `_DWORD *` stores of the 32-bit float bit
- * patterns (0x47C35000 = 99999.0f, 0xC7C35000 = -99999.0f); restored to
- * the original `vec3_t` form. */
 /* ClearBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100431F0) --------------------------------------------------------
-/* Q2 q_shared.c::AddPointToBounds — extend the bbox to include point v.
- * IDA decompiled this with pointer-arithmetic offsets (v4 = a1 - a2)
- * because it didn't recognise the three vec3_t parameters; restored to
- * the original loop. */
 /* AddPointToBounds — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043240) --------------------------------------------------------
@@ -33618,29 +31433,12 @@ void __stdcall sub_100423F0(char *p)
 /* VectorNormalize — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043380) --------------------------------------------------------
-/* Q2 q_shared.c::VectorMA — vecc = veca + scale * vecb.
- * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
 /* VectorMA — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100433D0) --------------------------------------------------------
-/* DotProduct — restored IDA-missed dead-code stub.  Verified against
- * objdump@100433D0: computes a[2]*b[2] + a[1]*b[1] + a[0]*b[0] on the
- * FPU and returns it.  Matches Q3 q_math.c::DotProduct verbatim.
- * Dead in Gladiator — call sites use the inline macro DotProduct(a,b);
- * the out-of-line copy was emitted by /INCREMENTAL. */
 /* _DotProduct — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043480) --------------------------------------------------------
-/* VectorCopy — restored IDA-missed dead-code stub.  Verified against
- * objdump@10043480:
- *     dst[0] = src[0];
- *     dst[1] = src[1];
- *     dst[2] = src[2];
- * Three dword-sized moves, args ordered (src, dst) — matches Q3
- * q_shared.h's `VectorCopy(in, out)` macro that was emitted as a
- * function by /INCREMENTAL. Dead in Gladiator because every site uses
- * the macro form inlined directly; the thunk preserved one slot for
- * possible incremental relinking. */
 /* _VectorCopy — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100434B0) --------------------------------------------------------
@@ -33662,62 +31460,22 @@ float *__cdecl VectorNegate(float *v)
 }
 
 //----- (10043570) --------------------------------------------------------
-/* Q2 q_shared.c::VectorScale — out = scale * v.
- * IDA decompiled args as int with `*(float *)` casts; restored to vec3_t. */
 /* VectorScale — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043640) --------------------------------------------------------
-/* COM_FileExtension — restored IDA-missed dead-code stub.  Verified
- * against objdump@10043640:
- *   1. Walk `path` forward to the last '\0' or first '.'.
- *   2. If at '\0' (no dot), return pointer to the empty-string sentinel
- *      byte_1006294C.
- *   3. Otherwise advance past the dot and copy up to 7 chars of the
- *      extension into static buffer byte_10062D90, null-terminate, and
- *      return its address.
- * Matches Q3 q_shared.c::COM_FileExtension exactly.  Dead in
- * Gladiator (the engine handles file paths via its own COM_*); the
- * /INCREMENTAL thunk preserved this for incremental relinking. */
 /* COM_FileExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (100436B0) --------------------------------------------------------
-/* COM_FileBase — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Verified against objdump@100436B0:
- *   - s   = in + strlen(in) - 1   (repnz scas al, [edi])
- *   - walk s backward to first '.' or until s == in
- *   - walk s2 from s backward to first '/' or until s2 == in
- *   - if (s - s2) < 2 -> out[0] = 0; return
- *   - else: s--; memcpy(out, s2 + 1, s - s2); out[s - s2] = 0
- *     (memcpy via thunk 0x10044DE0 = static-linked MSVC memcpy).
- *
- * Byte-for-byte match with the Quake II q_shared.c COM_FileBase (same
- * author lineage as Gladiator — preserves the quirky "loses first
- * basename character when there is no '/' in the path" behavior, which
- * is a known artifact of the Q2 implementation; Q3 fixed this).
- * Dead in Gladiator: no caller; kept live solely by /INCREMENTAL. */
 /* COM_FileBase — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043790) --------------------------------------------------------
-/* COM_DefaultExtension — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Dead in Gladiator: nothing in the bot calls it; only the
- * thunk entry at 0x10001B40 keeps it alive.  Classic Q2/Q3 q_shared.c
- * helper: if `path` does not already end in an extension on its basename,
- * append `ext`.  Verified against objdump@10043790:
- *   - walks to last char via repnz scasb (strlen);
- *   - if last char is '/' or string is empty, strcat(ext);
- *   - else walks backward, returning early on '.' (already has extension)
- *     or strcat'ing on '/' or reaching the start.
- * The strlen-via-scasb and strcat-via-movsd/movsb tails are MSVC's inline
- * /Oi expansions of the obvious C source; restored as straight C. */
 /* COM_DefaultExtension — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043810..0x100439F0) ---------------------------------------------
-/* Byte-order subsystem (BigShort/LittleShort/BigLong/LittleLong/BigFloat/
- * LittleFloat dispatchers + Short/Long/FloatSwap+NoSwap helpers + Swap_Init,
- * originally at 0x10043810..0x100439F0 with fn-ptr slots dword_100637CC..E0
- * and `bigendien`) is q_shared.c's.  Compiled separately to q_shared.o
- * (Mr. Elusive's 1999 lcc.mak builds q_shared.obj as its own object);
- * declarations in game/q_shared.h.  Previously duplicated here. */
+/* Byte-order subsystem (the BigShort/LittleShort/… dispatchers, the
+ * Swap/NoSwap helpers and Swap_Init, with fn-ptr slots dword_100637CC..E0 and
+ * `bigendien`) lives in q_shared.c — Mr. Elusive's lcc.mak builds q_shared.obj
+ * as its own object; declarations are in game/q_shared.h. */
 
 //----- (10043C40) --------------------------------------------------------
 /* Q_strncasecmp — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
@@ -33732,27 +31490,9 @@ float *__cdecl VectorNegate(float *v)
 /* Info_RemoveKey — pure Q2 q_shared.c helper; body lives in game/q_shared.c — compiled separately to q_shared.o */
 
 //----- (10043FC0) --------------------------------------------------------
-/* Info_Validate — restored IDA-missed dead-code stub (preserved by
- * /INCREMENTAL).  Verified against objdump@10043FC0:
- *   - strstr(s, "\"")  (string literal at .rdata 0x1005F588 = "\"")
- *       -> if non-NULL, return 0 (fail: contains a double-quote)
- *   - strstr(s, ";")   (string literal at .rdata 0x1005D42C = ";")
- *       -> return (result == NULL) ? 1 : 0  via the canonical
- *          `neg eax; sbb eax, eax; inc eax` !x idiom.
- *
- * The strstr thunk at 0x10045630 is confirmed as the static-linked
- * MSVC strstr (already documented in prior batches).
- *
- * Byte-for-byte match with Q3 q_shared.c::Info_Validate — rejects
- * info-string fragments containing '"' or ';' (both would break the
- * key/value tokeniser).  Dead in Gladiator: no caller reaches the
- * info-validation path; only the /INCREMENTAL relink stub keeps it
- * alive. */
-/* Info_Validate's body lives in game/q_shared.c (q_shared.o).  This forward
- * declaration exists only so the oracle funcmap parser attributes 0x10043FC0
- * to Info_Validate; without a real line here the `//----- (10043FC0)` marker
- * would leak onto the trailing Com_Printf stub (which folds with Com_DPrintf
- * @0x10042410 and has no distinct original address of its own). */
+/* Info_Validate's body lives in game/q_shared.c.  This declaration exists only
+ * so the oracle funcmap parser attributes 0x10043FC0 here rather than letting
+ * the marker leak onto the trailing Com_Printf stub. */
 qboolean Info_Validate(char *s);
 
 // nfuncs=1767 queued=667 decompiled=667 lumina nreq=0 worse=0 better=0
@@ -33761,13 +31501,10 @@ qboolean Info_Validate(char *s);
 // getcwd_locked, sub_10045A05, sub_10049D0E, ld12_to_double, ld12_to_float,
 // sub_1004C7A7, sub_1004C802, sub_1004D4BC, sub_1004EFD8, SpawnProcess.
 // These are provided by the standard C library via the headers included above.
-// 2 decompilation failures reported by IDA (see #error stubs above)
+// 2 decompilation failures (see the #error stubs above)
 
-/* Com_Printf @ original 0x10042410 — single-byte `ret` in the 1999 DLL.
- * q_shared.c's Com_sprintf-overflow / Info_RemoveKey-backslash /
- * Info_SetValueForKey-{semicolon,quote,length,overflow} diagnostics call
- * this and silently drop.  Routing to bi_Print would be more chatty than
- * the original; keep the empty body to preserve that fidelity.  Mr.
- * Elusive's lcc.mak listed q_shared.obj as its own object file, so
- * q_shared.c can't define this — it's a botlib-side stub. */
+/* Com_Printf @0x10042410 — a single-byte `ret` in the original, so q_shared.c's
+ * Com_sprintf / Info_* diagnostics silently drop.  Keep the empty body: routing
+ * to bi_Print would be more chatty than the original.  It is a botlib-side stub
+ * because lcc.mak builds q_shared.obj as its own object. */
 void Com_Printf(char *msg, ...) { (void)msg; }

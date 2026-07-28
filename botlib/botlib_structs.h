@@ -1,18 +1,13 @@
 /*
  * botlib_structs.h — Reconstructed Gladiator botlib structs.
  *
- * The four primary config structs (soundinfo_t, iteminfo_t, weaponinfo_t,
- * projectileinfo_t) have byte-exact layouts because their field tables are
- * preserved in the original .data section and have been recovered into
- * botlib_structdefs.c.  Each field's byte offset and type is taken directly
- * from those tables, which makes the C struct equivalent guaranteed to be
- * byte-identical to the original.
+ * soundinfo_t, iteminfo_t, weaponinfo_t and projectileinfo_t are byte-exact:
+ * their field tables survive in the original .data section and are recovered
+ * in botlib_structdefs.c, so every offset and type comes straight from there.
  *
- * Q3 botlib equivalents:
- *   weaponinfo_t   : be_ai_weap.h:61   (Q3 = 180 B,  Q2 = 344 B — Q2 was extended)
- *   projectileinfo_t: be_ai_weap.h:43  (Q3 =  76 B,  Q2 = 208 B — Q2 was extended)
- *   iteminfo_t     : not in Q3 (uses bot_goal_t)
- *   soundinfo_t    : not in Q3 botlib (Q2-specific)
+ * weaponinfo_t and projectileinfo_t are Q2-extended versions of the Q3
+ * structs (344 vs 180 B, 208 vs 76 B); iteminfo_t and soundinfo_t have no
+ * Q3 counterpart.
  */
 
 #ifndef BOTLIB_STRUCTS_H
@@ -20,16 +15,10 @@
 
 #include "gladiator.dll.h"   /* vec3_t */
 
-/* Constants used inside the structs */
-#define MAX_INFOSTRING   80     /* "name" / "model" string field width  (offset stride 0x50) */
-#define MAX_SHORTSTRING  80     /* same — Gladiator inlines fixed buffers */
+#define MAX_INFOSTRING   80     /* "name" / "model" field width (stride 0x50) */
+#define MAX_SHORTSTRING  80
 
-/* -------------------------------------------------------------------------
- * soundinfo_t — 176 bytes (descriptor unk_1005C138, size 0xB0).
- * Field table at .data 0x1005C070.  Field offsets:
- *   name(str,0x00) volume(f,0x50,def=80) duration(f,0x54,def=10)
- *   type(i,0x58)   recognition(f,0x5C,def=1) string(str,0x60)
- * ------------------------------------------------------------------------- */
+/* soundinfo_t — descriptor unk_1005C138, field table at .data 0x1005C070. */
 typedef struct soundinfo_s {
     char  name[80];          /* +0x00 — sound symbolic name (MAX_SHORTSTRING) */
     float volume;            /* +0x50 — playback volume (default 80.0)        */
@@ -39,12 +28,7 @@ typedef struct soundinfo_s {
     char  string[80];        /* +0x60 — sound file path                       */
 } soundinfo_t;               /* sizeof = 0xB0 = 176 */
 
-/* -------------------------------------------------------------------------
- * iteminfo_t — 284 bytes (descriptor unk_1005D890, size 0x11C).
- * Fields: name(str,0x00) model(str,0xA0) type(i,0xF4) index(i,0xF8)
- *         respawntime(f,0xFC) mins(vec3,0x100) maxs(vec3,0x10C)
- * Trailing 8 bytes (0x118..0x11F) appear unused/reserved.
- * ------------------------------------------------------------------------- */
+/* iteminfo_t — descriptor unk_1005D890. */
 typedef struct iteminfo_s {
     char    name[80];        /* +0x000 — item config name (e.g. "Shotgun")    */
     char    dispname[80];    /* +0x050 — spawn classname for BSP matching (set by LoadItemConfig) */
@@ -58,30 +42,15 @@ typedef struct iteminfo_s {
     int     number;          /* +0x118 — loader-assigned index in items[]     */
 } iteminfo_t;                /* sizeof = 0x11C = 284 */
 
-/* itemconfig_t — top-level container returned by LoadItemConfig
- * (LoadItemConfig).  Header is 8 bytes followed by `numitems * 284`-byte
- * iteminfo_t entries inline.
- *   v5[0] = numitems
- *   v5[1] = (iteminfo_t *)(v5 + 2)   → points just past the header
- */
+/* itemconfig_t — container returned by LoadItemConfig: 8-byte header with the
+ * iteminfo_t entries inline right after it. */
 typedef struct itemconfig_s {
     int          numitems;        /* +0  populated count of items[]         */
     iteminfo_t  *items;            /* +4  → base + 8                         */
 } itemconfig_t;                    /* sizeof = 8 (header only) */
 
-/* -------------------------------------------------------------------------
- * weaponinfo_t — 344 bytes (descriptor unk_1005DFD8, size 0x158).
- * Q3 has same field names but at smaller offsets.
- * Recovered fields:
- *   valid(?,0x00) name(str,0x04) model(str,0x54) level(i,0xA4) weaponindex(i,0xA8)
- *   flags(i,0xAC) projectile(str,0xB0) numprojectiles(i,0x100) hspread(f,0x104)
- *   vspread(f,0x108) speed(f,0x10C) acceleration(f,0x110) recoil(vec3,0x114)
- *   offset(vec3,0x120) angleoffset(vec3,0x12C) extrazvelocity(f,0x138)
- *   ammoamount(i,0x13C) ammoindex(i,0x140) activate(f,0x144) reload(f,0x148)
- *   spinup(f,0x14C) spindown(f,0x150)
- * The first 4 bytes (offset 0..3) precede "name" and are most likely the Q3
- * "valid" flag — kept as `int valid` to preserve total size.
- * ------------------------------------------------------------------------- */
+/* weaponinfo_t — descriptor unk_1005DFD8.  Same field names as Q3, larger
+ * offsets.  The leading dword before `name` is Q3's `valid` flag. */
 typedef struct projectileinfo_s projectileinfo_t;  /* fwd decl for proj field */
 typedef struct weaponinfo_s {
     int                number;          /* +0x000 — index in weaponconfig array (set by LoadWeaponConfig) */
@@ -109,20 +78,10 @@ typedef struct weaponinfo_s {
     projectileinfo_t  *proj;            /* +0x154 — resolved projectileinfo pointer (Gladiator-specific; Q3 embeds the projectileinfo) */
 } weaponinfo_t;                         /* sizeof = 0x158 = 344 */
 
-/* -------------------------------------------------------------------------
- * projectileinfo_t — 208 bytes (descriptor unk_1005DFE0, size 0xD0).
- * Field table at .data 0x1005DE30.
- * Fields (verified from descriptor):
- *   name(str,0x00) model(str,0x54) flags(i,0xA0) gravity(f,0xA4) damage(i,0xA8)
- *   radius(f,0xAC) visdamage(i,0xB0) damagetype(i,0xB4) healthinc(i,0xB8)
- *   push(f,0xBC) detonation(f,0xC0) bounce(f,0xC4) bouncefric(f,0xC8)
- *   bouncestop(f,0xCC)
- * ------------------------------------------------------------------------- */
+/* projectileinfo_t — descriptor unk_1005DFE0, field table at .data 0x1005DE30. */
 struct projectileinfo_s {
-    char    name[84];        /* +0x00 — projectile symbolic name (84, not 80:
-                                descriptor places model at +0x54; name[80] put
-                                every later field 4 low vs the parse-side field
-                                table and made sizeof 204 ≠ descriptor 208)    */
+    char    name[84];        /* +0x00 — 84, not 80: the descriptor puts model
+                                at +0x54                                       */
     char    model[76];       /* +0x54 — projectile model path; ends at 0xA0   */
     int     flags;           /* +0xA0 — projectile flags                      */
     float   gravity;         /* +0xA4 — gravity multiplier                    */
@@ -138,20 +97,10 @@ struct projectileinfo_s {
     float   bouncestop;      /* +0xCC — bounce stop velocity                  */
 };                           /* sizeof = 0xD0 = 208 */
 
-/* -------------------------------------------------------------------------
- * weaponconfig_t — top-level container returned by LoadWeaponConfig.
- * Single allocation: 16-byte header + (numweapons * 344) + (numprojectiles * 208).
- * Header layout confirmed at LoadWeaponConfig (line ~28567):
- *   v7[0] = numweapons               (int)
- *   v7[1] = numprojectiles           (int)
- *   v7[2] = (projectileinfo_t *)     points at base + 16 + 344*numweapons
- *   v7[3] = (weaponinfo_t *)         points at base + 16
- *
- * Q3 botlib's equivalent struct is `weaponconfig_t` in be_ai_weap.h, but with
- * inline arrays (MAX_WEAPONS / MAX_PROJECTILES); Gladiator uses pointers since
- * the limits are configurable via the max_weaponinfo / max_projectileinfo
- * libvars at runtime.
- * ------------------------------------------------------------------------- */
+/* weaponconfig_t — container returned by LoadWeaponConfig as one allocation:
+ * 16-byte header + numweapons*344 + numprojectiles*208.  Pointers rather than
+ * Q3's inline arrays, because the limits come from the max_weaponinfo /
+ * max_projectileinfo libvars at runtime. */
 typedef struct weaponconfig_s {
     int                numweapons;       /* +0  populated count of weaponinfo[]     */
     int                numprojectiles;   /* +4  populated count of projectileinfo[] */
@@ -159,24 +108,16 @@ typedef struct weaponconfig_s {
     weaponinfo_t      *weaponinfo;       /* +12 → base + 16                         */
 } weaponconfig_t;                        /* sizeof = 16 (header only) */
 
-/* -------------------------------------------------------------------------
- * Script-parser structs (l_script.h / l_precomp.h equivalents).
- * Offsets verified by disassembly of sub_100401A0 (sub_100402F0, line ~34370),
- * sub_10040380 (sub_10040380, line ~34418), FreeScript (sub_10040470),
- * sub_1003DE60 source-alloc (sub_1003DE60, line ~33216), sub_1003E000
- * (sub_1003E000, line ~33243), PC_PushIndent / PC_PopIndent (sub_~30640),
- * PC_FreeDefine (sub_~31080), PC_FreeToken.
- * ------------------------------------------------------------------------- */
+/* ---- Script-parser structs (l_script.h / l_precomp.h equivalents) ------- */
 
-/* punctuation_t — 12 bytes; layout matches Q3 l_script.h:149 byte-for-byte. */
+/* punctuation_t — layout as Q3. */
 typedef struct punctuation_s {
     char                  *p;       /* +0  punctuation literal text   */
     int                    n;       /* +4  punctuation type id        */
     struct punctuation_s  *next;    /* +8  chain                      */
 } punctuation_t;                    /* sizeof = 12 */
 
-/* indent_t — 16 bytes; PC_PushIndent allocates 16 bytes, layout matches Q3.
- * Field offsets confirmed: type@+0 skip@+4 script@+8 next@+12. */
+/* indent_t — layout as Q3. */
 typedef struct indent_s {
     int                    type;    /* +0  INDENT_IF / IFDEF / ELSE / ELIF / ... */
     int                    skip;    /* +4  > 0: skipping until matching #endif   */
@@ -184,9 +125,7 @@ typedef struct indent_s {
     struct indent_s       *next;    /* +12 next on indent stack                  */
 } indent_t;                         /* sizeof = 16 */
 
-/* define_t — chain link at +28 (sub_1003E000: *(_DWORD *)(m + 28) = next).
- * parms@+16 tokens@+20 confirmed via PC_FreeDefine.  Layout matches Q3
- * l_precomp.h::define_t — restore Q3 names directly. */
+/* define_t — layout as Q3 l_precomp.h::define_t. */
 typedef struct define_s {
     char                  *name;    /* +0  macro name                              */
     int                    flags;   /* +4  DEFINE_FIXED etc.                       */
@@ -195,19 +134,12 @@ typedef struct define_s {
     struct token_s *parms;/* +16 parameter token list                    */
     struct token_s *tokens;/* +20 macro body token list                   */
     struct define_s       *next;    /* +24 hash-chain next                          */
-    struct define_s       *hashnext;/* +28 (sub_1003E000 walks this offset)       */
-} define_t;                         /* sizeof = 32 (Q3 has same layout, 32 bytes) */
+    struct define_s       *hashnext;/* +28                                        */
+} define_t;                         /* sizeof = 32 */
 
-/* script_t — 1392-byte header followed by file data inline.  Offsets all
- * verified from sub_100401A0 and sub_10040380:
- *   filename[260]@+0  buffer@+260  script_p@+264  end_p@+268  lastscript_p@+272
- *   length@+284  line@+288  lastline@+292  tokenavailable@+296  ...
- *   punctuationtable@+308 (freed in FreeScript)  token@+312..+1383
- *   next@+1384 (sub_1003E000 walks scriptstack via i+1384)
- *
- * Q2 differences vs Q3: filename buffer trimmed from 1024 to 260 bytes;
- * embedded token is token_t (1072 B, has double floatvalue) instead
- * of Q3's float-floatvalue token_t. */
+/* script_t — 1392-byte header followed by the file data inline.  Differs from
+ * Q3: filename buffer trimmed from 1024 to 260 bytes, and the embedded token
+ * is token_t (1072 B, double floatvalue) rather than Q3's float variant. */
 typedef struct script_s {
     char                   filename[260];      /* +0    file path (strcpy at sub_100401A0) */
     char                  *buffer;             /* +260  start of file data buffer           */
@@ -229,15 +161,8 @@ typedef struct script_s {
     /* +1392 onwards: file data lives inline after the header */
 } script_t;                                    /* sizeof = 1392 (header only) */
 
-/* source_t — 1624 bytes; sub_1003E000 accesses scriptstack/tokens/defines/
- * definehash/indentstack/skip at dword indices [131..136] (offsets 524..544).
- * sub_1003E120 accesses *(a1 + 308) as a separately-allocated 1024-byte
- * scratch buffer (extends Q3 source_t).
- *
- * Q3 source_t layout (l_precomp.h:95):
- *   filename[1024], includepath[1024], punctuations*, scriptstack*, tokens*,
- *   defines*, definehash**, indentstack*, skip, token.
- * Q2 trims path buffers and adds a definebuffer scratchpad.  Total = 1624. */
+/* source_t — 1624 bytes.  Q2 trims Q3's 1024-byte path buffers and adds the
+ * separately-allocated 1024-byte definebuffer scratchpad at +308. */
 typedef struct source_s {
     char                   filename[260];      /* +0    source filename                     */
     char                   includepath[48];    /* +260  base path for #include resolution   */
@@ -253,11 +178,7 @@ typedef struct source_s {
     struct token_s         cachedtoken;        /* +552  last-read token (memcpy'd by PC_ReadTokenHandle) */
 } source_t;                                    /* sizeof = 1624 on 32-bit */
 
-/* -------------------------------------------------------------------------
- * AI weight structs (be_ai_weight.h equivalents).  Layouts taken from Q3 —
- * Gladiator field offsets in fuzzyseperator_t are 36 bytes / 9 ints; matched
- * by ReadFuzzyWeights / FuzzyWeight_r functions in the original DLL.
- * ------------------------------------------------------------------------- */
+/* ---- AI weight structs (be_ai_weight.h equivalents) -------------------- */
 typedef struct fuzzyseperator_s {
     int                       index;       /* +0  fact index             */
     int                       value;       /* +4  comparison value       */
@@ -267,8 +188,6 @@ typedef struct fuzzyseperator_s {
     float                     maxweight;   /* +20 upper bound            */
     struct fuzzyseperator_s  *child;       /* +24 nested branch          */
     struct fuzzyseperator_s  *next;        /* +28 sibling separator      */
-    /* Q3 has 8 fields (32 B); Gladiator may extend to 36 B with one trailing
-     * field (e.g. probability) — verify via disassembly before using. */
 } fuzzyseperator_t;                        /* sizeof = 32 */
 
 typedef struct weight_s {
@@ -276,24 +195,18 @@ typedef struct weight_s {
     fuzzyseperator_t         *firstseperator; /* +4 first separator      */
 } weight_t;                                /* sizeof = 8 */
 
-/* weightconfig_t — 1028 bytes (sub_10035FA0 allocates GetClearedMemory(1028)).
- * Inline weight array, MAX_WEIGHTS = 128.  No filename field (Q3 has one; Gladiator dropped it). */
+/* weightconfig_t — 1028 bytes, inline weight array.  No filename field
+ * (Q3 has one). */
 #define MAX_FUZZY_WEIGHTS 128
 typedef struct weightconfig_s {
     int       numweights;                       /* +0  weight count           */
     weight_t  weights[MAX_FUZZY_WEIGHTS];       /* +4  inline weight array    */
 } weightconfig_t;                               /* sizeof = 4 + 128*8 = 1028  */
 
-/* -------------------------------------------------------------------------
- * Synonym structs (be_ai_chat.c equivalents, used by sub_1002B110 — the
- * syn.c loader).  Gladiator built these by 32-bit-only byte-stride
- * arithmetic in a packed scratch buffer; on 64-bit the buffer must use
- * the natural struct sizes (pointer fields grow 4→8 bytes).
- *
- * Layouts mirror Q3 botlib's bot_synonymlist_t / bot_synonym_t, but the
- * `context` field is `int` (not `unsigned long`) to stay binary-compatible
- * with the original 32-bit Windows DLL where sizeof(long) == 4.
- * ------------------------------------------------------------------------- */
+/* Synonym structs (be_ai_chat.c equivalents, used by the syn.c loader
+ * sub_1002B110).  The original packed these with byte-stride arithmetic;
+ * here the scratch buffer must be sized with sizeof() so 8-byte pointers
+ * fit.  `context` is int, not Q3's unsigned long, to keep the 32-bit size. */
 typedef struct bot_synonym_s {
     char                     *string;       /* +0   inline string ptr            */
     float                     weight;       /* +4(32) / +8(64) probability       */
@@ -307,12 +220,8 @@ typedef struct bot_synonymlist_s {
     struct bot_synonymlist_s *next;          /* +12(32)/+24(64) chain link       */
 } bot_synonymlist_t;                         /* sizeof = 16 (32-bit) / 32 (64-bit)*/
 
-/* -------------------------------------------------------------------------
- * Random-string structs (be_ai_chat.c equivalents).  Used by sub_1002B990
- * (the rnd.c loader / BotLoadRandomStrings).  Same 32-bit-only byte
- * arithmetic problem as the synonym loader: pointer fields grow on
- * 64-bit so size calc and buffer writes must use struct types.
- * ------------------------------------------------------------------------- */
+/* Random-string structs, used by the rnd.c loader (sub_1002B990).  Same
+ * sizeof()-not-byte-arithmetic requirement as the synonym loader above. */
 typedef struct bot_randomstring_s {
     char                       *string;     /* +0  inline string ptr           */
     struct bot_randomstring_s  *next;       /* +4(32) / +8(64) chain link       */
@@ -325,20 +234,9 @@ typedef struct bot_randomlist_s {
     struct bot_randomlist_s    *next;               /* +12(32) / +24(64) */
 } bot_randomlist_t;                                 /* sizeof = 16 / 32 */
 
-/* -------------------------------------------------------------------------
- * Bot goal struct — 56 bytes (matches Q3 be_ai_goal.h::bot_goal_t).
- * Field offsets confirmed from BotGetLevelItemGoal (BotGetLevelItemGoal):
- *   a3+0,4,8   = origin[3]
- *   a3+12      = areanum
- *   a3+16..28  = mins[3]
- *   a3+28..40  = maxs[3]
- *   a3+40      = entitynum
- *   a3+44      = number (item number from levelitem)
- * The trailing `flags` and `iteminfo` fields are present in the layout (the
- * CTF-flag .bss slots are 56 bytes, and memcpy at sub_10027240 copies 0x38u
- * = 56 bytes when transferring a goal) but Gladiator never writes to them —
- * BotGetLevelItemGoal fills 48 bytes; the trailing 8 stay zero from .bss.
- * ------------------------------------------------------------------------- */
+/* bot_goal_t — 56 bytes, as Q3 be_ai_goal.h.  The trailing flags/iteminfo
+ * fields are part of the layout (goal memcpys move 56 bytes) but nothing
+ * writes them: BotGetLevelItemGoal fills the leading 48. */
 typedef struct bot_goal_s {
     vec3_t                    origin;        /* +0   goal world position    */
     int                       areanum;       /* +12  AAS area number        */
@@ -350,40 +248,23 @@ typedef struct bot_goal_s {
     int                       iteminfo;      /* +52  Q3 field; unused in Gladiator */
 } bot_goal_t;                                /* sizeof = 56 */
 
-/* -------------------------------------------------------------------------
- * Level item pool entry — 52 bytes.
- * Allocated as a fixed-size pool by InitLevelItemHeap (52 * max_levelitems).
- * Free list is singly linked via `next`; active list is doubly linked via
- * `prev`/`next` (AddLevelItemToList / sub_1002F320).
- * Field offsets confirmed from BotUpdateEntityItems and
- * BotGetLevelItemGoal:
- *   +0   number      — item number = entitynum + map base bias
- *   +4   iteminfo    — index into itemconfig->items[]
- *   +8   origin      — entity world position (vec3)
- *   +20  areanum     — AAS area number reachable for this item
- *   +24  goalorigin  — best reachable origin (vec3), filled by AAS_BestReachableArea
- *   +36  entitynum   — BSP entity number
- *   +40  timeout     — sub_1000E120() + 30.0 when item respawns / expires
- *   +44  prev        — doubly-linked active list back pointer
- *   +48  next        — list link (free list and active list both use this)
- * ------------------------------------------------------------------------- */
+/* levelitem_t — fixed-size pool allocated by InitLevelItemHeap
+ * (52 * max_levelitems).  The free list is singly linked via `next`, the
+ * active list doubly linked via `prev`/`next`. */
 typedef struct levelitem_s {
-    int                       number;       /* +0  item number          */
-    int                       iteminfo;     /* +4  iteminfo[] index     */
+    int                       number;       /* +0  entitynum + map base bias */
+    int                       iteminfo;     /* +4  itemconfig->items[] index */
     vec3_t                    origin;       /* +8  world position       */
     int                       areanum;      /* +20 AAS area number      */
-    vec3_t                    goalorigin;   /* +24 best reachable point */
+    vec3_t                    goalorigin;   /* +24 from AAS_BestReachableArea */
     int                       entitynum;    /* +36 BSP entity number    */
-    float                     timeout;      /* +40 expiry time          */
+    float                     timeout;      /* +40 respawn/expiry time  */
     struct levelitem_s       *prev;         /* +44 active-list back ptr */
     struct levelitem_s       *next;         /* +48 list link            */
 } levelitem_t;                               /* sizeof = 52 */
 
-/* -------------------------------------------------------------------------
- * AAS movement physics settings (be_aas_def.h::aas_settings_t).
- * 37 floats (148 B).  Loaded from libvar_sv_* cvars in AAS_LoadSettings.
- * Field order matches Q3 — 16 sv_* values are read into matching slots.
- * ------------------------------------------------------------------------- */
+/* aas_settings_t — 37 movement-physics floats, loaded from the libvar_sv_*
+ * cvars in AAS_LoadSettings.  Field order as Q3. */
 typedef struct aas_settings_s {
     float phys_gravitydirection[3];  /* +0   normalised gravity direction */
     float phys_friction;             /* +12                                */
@@ -420,15 +301,11 @@ typedef struct aas_settings_s {
     float rs_startelevator;          /* +136                               */
     float rs_falldamage5;            /* +140                               */
     float rs_falldamage10;           /* +144                               */
-    /* sizeof = 148 — confirm via Gladiator AAS_InitSettings disassembly */
-} aas_settings_t;
+} aas_settings_t;                    /* sizeof = 148 */
 
 /* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.
- * Matches the Q3 botlib l_precomp.c shape, but with `double floatvalue`
- * (Gladiator's expression evaluator was extended to doubles; the original
- * binary's GetClearedMemory(32) for value_t and (24) for operator_t still
- * hold on 32-bit MSVC; on 64-bit the trailing prev/next pointers double
- * to 8 bytes so we must allocate sizeof(...) instead). */
+ * Q3's l_precomp.c shape but with `double floatvalue`.  Allocate with
+ * sizeof() — the original's fixed 32/24 bytes only hold on 32-bit. */
 typedef struct value_s {
     int intvalue;                /* +0  */
     int _pad0;                   /* +4  alignment for double */
@@ -447,14 +324,9 @@ typedef struct operator_s {
     struct operator_s *next;
 } operator_t;
 
-/* -------------------------------------------------------------------------
- * bsp_link_t — entity<->BSP-leaf link node, 24 bytes on 32-bit.
- *
- * Q3 equivalent: be_aas_def.h:70 (same layout).  Field offsets are confirmed
- * from AAS_InitAASLinkHeap (0x100030A0) disassembly (24-byte stride, +8/+12 used as free-list
- * next/prev which corresponds to next_ent/prev_ent slots).  On 64-bit each
- * pointer expands to 8 bytes so the node grows to 40 bytes.
- */
+/* bsp_link_t — entity<->BSP-leaf link node, 24 bytes on 32-bit (40 on
+ * 64-bit).  Same layout as Q3.  AAS_InitAASLinkHeap free-lists nodes through
+ * the next_ent/prev_ent slots. */
 typedef struct bsp_link_s {
     int                 entnum;
     int                 leafnum;
@@ -464,49 +336,28 @@ typedef struct bsp_link_s {
     struct bsp_link_s  *prev_leaf;
 } bsp_link_t;
 
-/* -------------------------------------------------------------------------
- * bsp_entdata_t — entity bbox/solid snapshot filled by AAS_EntityBSPData,
- * 56 bytes (pointer-free, so identical on 32- and 64-bit).
- *
- * Q3 equivalent: be_aas_def.h:78 (bsp_entdata_s, identical layout).  Field
- * offsets confirmed from AAS_EntityBSPData disassembly @ 1000AF30:
- *   +0  origin    +12 angles    +24 absmins    +36 absmaxs
- *   +48 solid     +52 modelnum  (= entity modelindex - 1)
- */
+/* bsp_entdata_t — entity bbox/solid snapshot filled by AAS_EntityBSPData;
+ * 56 bytes, pointer-free.  Same layout as Q3. */
 typedef struct bsp_entdata_s {
     vec3_t  origin;
     vec3_t  angles;
     vec3_t  absmins;
     vec3_t  absmaxs;
     int     solid;
-    int     modelnum;
+    int     modelnum;   /* entity modelindex - 1 */
 } bsp_entdata_t;
 
-/* -------------------------------------------------------------------------
- * indexlist_t — model/sound/image name lookup table.
- *
- * Used by aasworld.modelindex_table / soundindex_table / imageindex_table.
- * Original 32-bit layout (sub_1000DA80 disassembly @ 1000DA80):
- *   +0  int    numindexes
- *   +4  char **indexes   (points to the trailing array at +8)
- *   +8  char  *slots[numindexes]
- * Allocation = sizeof(int) + sizeof(char**) + numindexes*sizeof(char*).
- * On 32-bit that's 4 + 4 + 4*n = 4*n + 8 (matches original "lea eax,[esi*4+8]").
- * On 64-bit it becomes 4 + 8 + 8*n + 4 alignment = 8*n + 16.
- */
+/* indexlist_t — model/sound/image name lookup table used by
+ * aasworld.modelindex_table / soundindex_table / imageindex_table.  The
+ * char* slot array trails the header, so `indexes` points at (this + 1) and
+ * the allocation must be computed with sizeof(), not 4*n + 8. */
 typedef struct indexlist_s {
     int    numindexes;
     char **indexes;
 } indexlist_t;
 
-/* -------------------------------------------------------------------------
- * bsp_epair_t / bsp_entity_t — BSP entity-lump epair list.
- *
- * Q3 equivalent: be_aas_bspq2.c:60.  Layout confirmed from
- * AAS_ValueForBSPEpairKey @ 0x10006760: reads key at +0, value at +4,
- * next at +8 (32-bit).  bsp_entity_t holds just one pointer (epairs head).
- * On 64-bit the struct grows from 12 → 24 bytes; entity slot from 4 → 8 bytes.
- */
+/* bsp_epair_t / bsp_entity_t — BSP entity-lump epair list; same layout as Q3
+ * be_aas_bspq2.c.  12 bytes on 32-bit, 24 on 64-bit. */
 typedef struct bsp_epair_s {
     char               *key;
     char               *value;
@@ -518,34 +369,14 @@ typedef struct bsp_entity_s {
     struct bsp_entity_s *next;
 } bsp_entity_t;
 
-/* -------------------------------------------------------------------------
- * bot_moveresult_t — 48 bytes (0x30).  The result of one movement tick,
- * filled by BotMoveToGoal / BotMoveInGoalArea / the BotTravel_* builders.
+/* bot_moveresult_t — result of one movement tick, filled by BotMoveToGoal /
+ * BotMoveInGoalArea / the BotTravel_* builders.  The Q3 layout MINUS the
+ * `weapon` field Q3 later inserted at +0x18 for grapple-as-movement-weapon,
+ * so movedir sits at +0x18 and the struct is 48 bytes, not Q3's 52.
  *
- * Q3 equivalent: bot_moveresult_s in be_ai_move.h.  The Gladiator (1999)
- * struct is the Q3 layout MINUS the `weapon` field that Q3 later inserted
- * at +0x18 to support grapple-as-movement-weapon — so movedir sits at
- * +0x18 (not +0x1C) and the whole struct is 48 bytes instead of Q3's 52.
- *
- * Layout verified byte-for-byte against the original DLL disassembly:
- *   - BotClearMoveResult @ 0x10031e20 zeroes exactly the leading six
- *     dwords [+0x00..+0x14] => failure,type,blocked,blockentity,
- *     traveltype,flags.
- *   - BotCheckBlocked @ 0x10031d10 writes blocked=1 at +0x08 and the
- *     blocking entity number at +0x0C.
- *   - BotFinishTravel_WeaponJump @ 0x100340b0 stores the normalized
- *     movedir vec3 at [+0x18/+0x1C/+0x20] and rep-movs 0xC dwords
- *     (48 bytes) into the caller's retbuf.
- *   - BotTravel_Swim/Ladder/... call vectoangles(dir, &result+0x24),
- *     placing ideal_viewangles at +0x24.
- *
- * IDA could not see the struct: every move builder reconstructed it as a
- * bare `int v[12]` stack local plus an `int *`/`intptr_t` return value
- * (MSVC's hidden struct-return pointer).  Restored here as the real type.
- *
- * flags bits (result->flags): 1=uses view for movement, 2=uses view for
- *   swimming, 4=waiting for something, 8=view set by movement code.
- * type values (result->type): 1=elevator up / wait-for-mover.
+ * flags: 1=uses view for movement, 2=uses view for swimming,
+ *        4=waiting for something, 8=view set by movement code.
+ * type:  1=elevator up / wait-for-mover.
  * ------------------------------------------------------------------------- */
 typedef struct bot_moveresult_s {
     int    failure;             /* +0x00 movement failed all together        */
