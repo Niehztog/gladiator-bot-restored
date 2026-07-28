@@ -16132,9 +16132,7 @@ int __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
 int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 {
 
-  int v2; // eax
   int areanum; // esi
-  int v7; // eax
   int v8; // edi
   float v10; // [esp+Ch] [ebp-15Ch]
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
@@ -16155,21 +16153,34 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
+  /* Written out inline, NOT as `LABEL_9:` hosted here: ref keeps a physical
+   * copy of `AIEnter_Seek_LTG(bs); return 0;` as the FALL-THROUGH of this guard
+   * (0x1001fd8a) plus one shared copy at the function tail for the two later
+   * goto sites.  Hosting the label here instead gives cl.exe a block with three
+   * predecessors and no fall-through, so it floats BOTH copies to the tail. */
   if ( !bs->enemy )
   {
-LABEL_9:
     AIEnter_Seek_LTG(bs);
     return 0;
   }
   *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
   if ( sub_10021710(entinfo) )
   {
-    v2 = BotChat_Kill((int *)bs);
-    if ( !v2 )
-      goto LABEL_9;
-    v10 = BotChatTime(bs);
-    bs->stand_time = AAS_Time() + v10;
-    AIEnter_Stand(bs);
+    /* Q3 (ai_dmnet.c) has `if (BotChat_Kill(bs)) {stand} else {seek} return
+     * qfalse;` — ONE shared `return 0`, not IDA's goto.  Ref proves it: the
+     * `bs` argument push is hoisted ABOVE the branch (`test eax,eax; push ebx;
+     * je`), serving BotChatTime(bs) on the fall-through and AIEnter_Seek_LTG(bs)
+     * on the taken path — only possible with both calls inline here. */
+    if ( BotChat_Kill((int *)bs) )
+    {
+      v10 = BotChatTime(bs);
+      bs->stand_time = AAS_Time() + v10;
+      AIEnter_Stand(bs);
+    }
+    else
+    {
+      AIEnter_Seek_LTG(bs);
+    }
     return 0;
   }
   else
@@ -16189,10 +16200,10 @@ LABEL_9:
        improved differing-lines 50->24 and byte_diffs 784->780 (2026-07-18). */
     if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
-      v7 = BotWantsToChase((int *)bs);
-      if ( !v7 )
-        goto LABEL_9;
-      AIEnter_Battle_Chase(bs);
+      if ( BotWantsToChase((int *)bs) )
+        AIEnter_Battle_Chase(bs);
+      else
+        AIEnter_Seek_LTG(bs);
       return 0;
     }
     v8 = 102334;
@@ -17081,9 +17092,11 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   start[0] = *(int *)&bs->origin[0];
   start[1] = *(int *)&bs->origin[1];
   *(float *)&start[2] = bs->origin[2] + 1.0f;
-  *(float *)&end[2] = bs->origin[2] - 100.0f;
+  /* Q3 (be_ai_chat.c) fills `start` completely, then `end`; IDA hoisted the
+   * end[2] arithmetic above the end[0]/end[1] copies. */
   end[0] = start[0];
   end[1] = start[1];
+  *(float *)&end[2] = bs->origin[2] - 100.0f;
   AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
   *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)mins, (float*)maxs, (float*)(end), 4, bs->client);
   return trace[20] == 0;
@@ -24319,6 +24332,15 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 
   v3 = reach->traveltype;
   memset(angles, 0, sizeof(angles));
+  /* 2026-07-28: these ARE IDA int bit patterns and mechanism 3 DOES apply —
+   * rewriting them as `*(float *)&boxmins[0] = -16.0f;` … (plus `angles[i] =
+   * 0.0f;` instead of the memset) provably removes cl.exe's integer-constant
+   * CSE and reproduces ref's per-store `c7 44 24 NN <imm32>` form for all 9
+   * stores.  REVERTED anyway: the dominant divergence here is a whole-frame
+   * slot PERMUTATION (ours puts boxmins at frame+0x0 where ref has org; only
+   * `angles` at frame+0xc agrees), and with the constants fixed the row moved
+   * OUR-4/649b -> OUR-6/679b.  Re-apply this together with a fix for the local
+   * ordering, not on its own. */
   boxmins[0] = -1048576000;
   boxmins[1] = -1048576000;
   boxmins[2] = -1056964608;
@@ -28690,6 +28712,16 @@ unsigned int __cdecl PC_NameHash(const char *name)
   unsigned int v2; // ecx
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
+  /* 2026-07-28: the residual is cl.exe's `push edi` shrink-wrap decision.  Ref
+   * pushes edi only inside the name!=NULL region (0x10039c40) and lets the !name
+   * path jump into the TAIL of the len==0 exit (`and eax,0x3ff` @0x10039c87) with
+   * eax already 0 from an entry `xor eax,eax` that serves three uses (the v4=0
+   * store, the `repnz scas` search byte, and that return value).  Ours pushes edi
+   * unconditionally, so both cold exits merge into one edi-popping block and the
+   * v4=0 store becomes an immediate form (+4 bytes).  TWO restructures tested and
+   * REVERTED: memcpy-inside-the-if + one trailing return (OUR-1/159b — cl.exe
+   * moved the len==0 `test ecx,ecx` out of line), and an `if (!name) return …;`
+   * early-return guard (OUR+8/167b — duplicates the abs+mask).  Keep this form. */
   if ( name )
   {
     v2 = strlen(name);
@@ -32348,7 +32380,6 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   int intmin; // esi
   int intmax; // rax
   float v18; // [esp+28h] [ebp-438h]
-  int v19; // [esp+28h] [ebp-438h]
   token_t token; /* restored: original token_t local variable */
 
   negative = 0;
@@ -32395,12 +32426,8 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     return 1;
   }
   intval = token.intvalue;
-  v19 = intval;
   if ( negative )
-  {
     intval = -token.intvalue;
-    v19 = intval;
-  }
   v8 = fielddef_flags(fd);
   if ( (v8 & 0xFF) == 1 )
   {
@@ -32445,7 +32472,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   {
     if ( (v8 & 0x200) != 0 )
     {
-      if ( (float)v19 < *(float *)&fd[4] || (float)v19 > *(float *)&fd[5] )
+      if ( (float)intval < *(float *)&fd[4] || (float)intval > *(float *)&fd[5] )
       {
         SourceError(source, "value %d out of range [%f, %f]", intval, *(float *)&fd[4], *(float *)&fd[5]);
         return 0;
@@ -32464,7 +32491,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   else
   {
     if ( (v8 & 0xFF) == 3 )
-      *p = (float)v19;
+      *p = (float)intval;
     return 1;
   }
   return 1;
@@ -32630,7 +32657,6 @@ int __cdecl WriteFloat(FILE *fp, float value)
 //----- (10040F20) --------------------------------------------------------
 int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int indent)
 {
-  int result; // eax
   int i; // ebp (strength-reduced to a byte offset)
   int num; // reuses the dead Stream param slot [esp+14h]
   char *p; // esi
@@ -32709,10 +32735,19 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
     if ( fprintf(fp, "\r\n") < 0 )
       return 0;
   }
-  result = WriteIndent(fp, indent - 1);
-  if ( result )
-    return fprintf(fp, "}\r\n") >= 0;
-  return result;
+  /* Ref's tail exit at 0x1004112a is a 5-insn `pop;pop;pop;pop;ret` with NO
+   * `xor eax,eax` — MSVC6 omits it because the `jne` fall-through proves eax==0
+   * from WriteIndent's own return.  That is the signature of a plain `return 0`
+   * guard (same as WriteFuzzySeperators_r's 3rd guard at 0x100366dc), NOT of
+   * IDA's `result = WriteIndent(...); … return result;` rendering: a trailing
+   * `return result;` makes cl.exe canonicalise every `return 0` in the function
+   * into ONE block hosted at the textual end, which un-pins the shared exit
+   * block ref keeps inline at guard 1. */
+  if ( !WriteIndent(fp, indent - 1) )
+    return 0;
+  if ( fprintf(fp, "}\r\n") < 0 )
+    return 0;
+  return 1;
 }
 
 //----- (10041210) --------------------------------------------------------
