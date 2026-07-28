@@ -19488,11 +19488,6 @@ LABEL_32:
 //----- (10028650) --------------------------------------------------------
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 {
-  /* a1/v1 hold the bs pointer; on 64-bit we must keep their full
-   * width or BotAINode((bot_state_t *)v1) re-truncates to a bogus
-   * index.  Keep both as intptr_t to preserve the original cast sites. */
-  intptr_t a1 = (intptr_t)bs;
-  intptr_t v1; // edi (was int)
   bot_chatstate_t *v2; // ebp
   bot_consolemessage_t *v3;
   char *v4; // eax
@@ -19506,14 +19501,10 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   double v13; // [esp+1Ch] [ebp-8h]
   float v14; // [esp+28h] [ebp+4h]
 
-  v1 = a1;
   botname = ClientName(bs->client);
   v2 = &bs->chatstate;
-  while ( 1 )
+  while ( (v3 = BotNextConsoleMessage(v2)) != NULL )
   {
-    v3 = BotNextConsoleMessage(v2);
-    if ( !v3 )
-      return;
     if ( BotNumConsoleMessages(v2) < 10 && v3->type == 1 )
     {
       v12 = AAS_Time();
@@ -19532,23 +19523,22 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
       if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
       {
         BotRemoveConsoleMessage(v2, v3);
-        v1 = a1;
         continue;
       }
     }
     UnifyWhiteSpaces(v3->message);
     context = 3;
     if ( libvar_ctf->value != 0.0f )
-      context = BotCTFTeam(v1) != 1 ? 11 : 7;
+      context = BotCTFTeam(bs) != 1 ? 11 : 7;
     BotReplaceSynonyms(v3->message, context);
-    if ( !BotMatchMessage(v1, v3->message) && v3->type == 1 )
+    if ( !BotMatchMessage(bs, v3->message) && v3->type == 1 )
     {
       v7 = libvar_nochat->value;
-      if ( v7 == 0.0f && BotAINode((bot_state_t *)v1) != AINode_Stand )
+      if ( v7 == 0.0f && BotAINode(bs) != AINode_Stand )
       {
-        if ( BotValidChatPosition(v1) )
+        if ( BotValidChatPosition(bs) )
         {
-          v11 = Characteristic_BFloat(BotCharacter((bot_state_t *)v1), 22, 0.0, 1.0);
+          v11 = Characteristic_BFloat(BotCharacter(bs), 22, 0.0, 1.0);
           v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
           if ( 1.5 / (float)(NumBots() + 1) > v13 )
           {
@@ -19557,17 +19547,16 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
               v8 = strstr(v3->message, ":");
               if ( v8 )
               {
-                memcpy(v3->message, v8 + 1, strlen(v8 + 1) + 1);
+                memmove(v3->message, v8 + 1, strlen(v8 + 1) + 1);
                 UnifyWhiteSpaces(v3->message);
-                if ( BotReplyChat(&bs->chatstate, v3->message) )
+                if ( BotReplyChat(v2, v3->message) )
                 {
                   BotRemoveConsoleMessage(v2, v3);
-                  v14 = BotChatTime(a1);
+                  v14 = BotChatTime(bs);
                   bs->stand_time = AAS_Time() + v14;
-                  AIEnter_Stand(a1);
+                  AIEnter_Stand(bs);
                   return;
                 }
-                v1 = a1;
               }
             }
           }
