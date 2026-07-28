@@ -3728,30 +3728,28 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
  *           - Dedupe: linear scan list[0..count-1] for entlink->entnum.
  *             Skip if already present.
  *           - AAS_EntityBSPData(entlink->entnum, &entdata):
- *               entdata @ [esp+0x1c], 52 bytes:
+ *               entdata @ [esp+0x1c], 56 bytes:
  *                 +0x00..0x0B origin     +0x0C..0x17 angles
  *                 +0x18..0x23 absmin     +0x24..0x2F absmax
  *                 +0x30 solid            +0x34 modelnum-1
- *           - AABB overlap test against (mins,maxs):
+ *           - AABB overlap test against (mins,maxs) — all six bounds
+ *             are the correct ones (the "absmin.Z-for-absmin.X" defect
+ *             once recorded here was an esp-offset misread; see the
+ *             in-body note at the compare):
  *               absmin.X<=maxs.X && absmax.X>=mins.X
  *               absmin.Y<=maxs.Y && absmax.Y>=mins.Y
  *               absmin.Z<=maxs.Z && absmax.Z>=mins.Z
- *             ** Mr. Elusive bug preserved verbatim **: the X-axis
- *             test in the original .text reads entdata[0x20] (which
- *             is absmin.Z) instead of entdata[0x18] (absmin.X), so
- *             the X test is really `absmin.Z <= maxs.X` and the Z
- *             test repeats `absmin.Z <= maxs.Z`.  The absmin.X bound
- *             is never actually tested.  Reproduced below verbatim.
  *           - On overlap pass:
  *             * solid == 1 or 2 (SOLID_BBOX / SOLID_TRIGGER): add
  *               entnum to list and bump count.
  *             * solid == 3 (SOLID_BSP movable brush): re-call
- *               AAS_BSPLinkEntity(mins, maxs, 0, ent->entnum) to get
- *               THIS entity's own leaf chain, then scan it for any
- *               leaf whose word @ dleafs[leafnum*28 + 26]
+ *               AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum) to
+ *               get THIS brush model's own leaf chain, then scan it for
+ *               any leaf whose word @ dleafs[leafnum*28 + 26]
  *               is non-zero (= "this leaf carries an AAS area
  *               marker"); if found, add the entnum.  Always
- *               AAS_UnlinkFromBSPLeaves(temp) before continuing.
+ *               AAS_UnlinkFromBSPLeaves(temp) before continuing —
+ *               NULL included, there is no guard.
  *             * other solid values: silently skipped.
  *   3. AAS_UnlinkFromBSPLeaves(linkhead) frees the original chain.
  *   4. Return edi (accumulated count).
@@ -3774,15 +3772,15 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
   int        *out;
   int         count;
   int         j;
-  int         entnum;
   int         solid;
   bsp_entdata_t entdata;      /* AAS_EntityBSPData destination — 56 B */
 
   count = 0;
   linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0);
-  if (!linkhead)
-    return 0;
-
+  /* NO early `if (!linkhead) return 0;` — that is an IDA artifact.  Ref's
+   * `test eax,eax; je 0x10006571` is the for-loop's own entry guard and it
+   * lands on the SHARED exit, so the original calls
+   * AAS_UnlinkFromBSPLeaves(NULL) on that path (which tolerates NULL). */
   for (link = linkhead; link && count < maxcount; link = link->next_leaf) {
     ent_link = dword_10069584[link->leafnum];
     if (!ent_link)
@@ -3790,29 +3788,27 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
     out = &list[count];
 
     while (ent_link && count < maxcount) {
-      entnum = ent_link->entnum;
-
-      /* Dedupe scan over already-collected results. */
-      j = 0;
-      if (count > 0) {
-        int *p = list;
-        while (j < count) {
-          if (*p == entnum)
-            break;
-          j++;
-          p++;
-        }
+      /* Dedupe scan over already-collected results.  `ent_link->entnum` is
+       * re-read at every use site (four of them) — the original never cached
+       * it in a local, which is why ref pins ent_link itself in ebx and needs
+       * no spill slot for it. */
+      for (j = 0; j < count; j++) {
+        if (list[j] == ent_link->entnum)
+          break;
       }
 
       if (j == count) {
-        AAS_EntityBSPData(entnum, &entdata);
+        AAS_EntityBSPData(ent_link->entnum, &entdata);
 
-        /* MR. ELUSIVE BUG preserved verbatim: original .text uses
-         * absmin.Z where absmin.X was clearly intended for the X-axis
-         * overlap check.  The Z test then redundantly checks absmin.Z
-         * again.  Net effect: absmin.X never participates in the
-         * overlap. */
-        if (entdata.absmins[2] /* bug: should be absmins[0] */ <= maxs[0]
+        /* NB there is NO "Mr. Elusive absmin.Z-for-absmin.X bug" here — that
+         * earlier reading was an esp-offset trap.  Ref's first compare is
+         * `fld DWORD PTR [esp+0x3c]` at 0x10006461, but esp is still 8 lower
+         * there (the two pushed AAS_EntityBSPData args are only popped by the
+         * `add esp,0x8` AFTER the fld), so it addresses frame+0x34 =
+         * entdata+0x18 = absmins[0].  The textually identical
+         * `fld [esp+0x3c]` further down (0x1000649b) runs at the restored esp
+         * and IS absmins[2].  All six bounds are the correct ones. */
+        if (entdata.absmins[0] <= maxs[0]
          && entdata.absmaxs[0] >= mins[0]
          && entdata.absmins[1] <= maxs[1]
          && entdata.absmaxs[1] >= mins[1]
@@ -3820,20 +3816,27 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
          && entdata.absmaxs[2] >= mins[2]) {
           solid = entdata.solid;
           if (solid == 1 || solid == 2) {
-            *out++ = entnum;
             count++;
+            *out++ = ent_link->entnum;
           } else if (solid == 3) {
-            brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entnum);
-            if (brush_links) {
-              for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
-                if (dleafs[brush_iter->leafnum].numleafbrushes) {
-                  *out++ = entnum;
-                  count++;
-                  break;
-                }
-              }
-              AAS_UnlinkFromBSPLeaves(brush_links);
+            /* 4th arg is entdata.modelnum, not entnum: ref pushes
+             * [esp+0x50] = entdata+0x34 (`mov ecx,[esp+0x50]; push ecx;
+             * push 0x0; push esi; push ebp` @0x100064e2). */
+            brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum);
+            /* No `if (brush_links)` guard either — ref's `je 0x10006538`
+             * lands directly on `push eax; call AAS_UnlinkFromBSPLeaves`,
+             * so the NULL case unlinks NULL.  And the hit is reported by
+             * BREAKing to a shared post-loop `if (brush_iter)` re-check
+             * (ref 0x1000651c `test ecx,ecx; je`), not inline in the loop. */
+            for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
+              if (dleafs[brush_iter->leafnum].numleafbrushes)
+                break;
             }
+            if (brush_iter) {
+              count++;
+              *out++ = ent_link->entnum;
+            }
+            AAS_UnlinkFromBSPLeaves(brush_links);
           }
         }
       }
@@ -4238,7 +4241,6 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 void CalcSurfaceExtents()
 {
   int result; // eax
-  int v1; // edx
   int v2; // eax
   char *v3; // edi
   char *v4; // ebx
@@ -4274,27 +4276,33 @@ void CalcSurfaceExtents()
   v21 = 0;
   if ( numfaces > 0 )
   {
-    v1 = 0;
     v19 = 4;
-    for ( i = 0; ; v1 = i )
+    /* IDA split ONE face-byte-offset variable into `v1` and `i` joined by a
+     * `v1 = i` loop-third-clause; they are provably equal at every iteration
+     * top.  The split costs the loop back-edge a `mov ecx,esi; jmp <top>` pair
+     * where ref reloads the single slot and closes with one `jl <top>`. */
+    for ( i = 0; ; )
     {
       *(float *)&v23[1] = 99999.0f;
       *(float *)&v23[0] = 99999.0f;
       *(float *)&v24[1] = -99999.0f;
-      face = (char *)dfaces + v1;
+      face = (char *)dfaces + i;
       v2 = *(__int16 *)(face + 10);
       *(float *)&v24[0] = -99999.0f;
       v22 = (char *)&texinfo[v2];
-      if ( *(__int16 *)(face + 8) > 0 )
+      /* ONE read, sign-extended once: ref has a single `movsx eax,WORD PTR
+       * [face+8]; test eax,eax` and later stores that same eax into v20's
+       * slot.  Reading the field twice (guard + body) makes cl.exe test in
+       * 16-bit (`mov ax,..; test ax,ax`) and sign-extend separately.  NB the
+       * in-condition form `if ((v20 = *(__int16*)(face+8)) > 0)` was tested
+       * 2026-07-19 and regressed — hoisting the assignment ABOVE the guard is
+       * a different form. */
+      v20 = *(__int16 *)(face + 8);
+      if ( v20 > 0 )
       {
         v3 = dedges;
         v4 = dvertexes;
         v5 = (int *)(dsurfedges + 4 * *(_DWORD *)(face + 4));
-        /* Merging this into the guard as `if ((v20 = *(__int16*)(face+8)) > 0)`
-         * was build-tested 2026-07-19 and regressed 666b->778b (differing
-         * lines 93->103) — the two-read form is the byte-matching one; do
-         * not re-merge. */
-        v20 = *(__int16 *)(face + 8);
         do
         {
           v6 = *v5;
@@ -4321,7 +4329,7 @@ void CalcSurfaceExtents()
         while ( v20 );
       }
       v11 = v19;
-      for ( k = 0; k < 2; *(_WORD *)(v11 + dword_10067558 - 2) = 16 * (LOWORD(v24[k + 3]) - LOWORD(v24[k + 1])) )
+      for ( k = 0; k < 2; )
       {
         v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
         v24[k + 2] = v13;
@@ -4331,7 +4339,8 @@ void CalcSurfaceExtents()
         v24[k + 4] = v15;
         ++k;
         v11 += 2;
-        *(_WORD *)(v11 + v16 - 6) = 16 * LOWORD(v24[k + 1]);
+        *(_WORD *)(v11 + v16 - 6) = v24[k + 1] * 16;
+        *(_WORD *)(v11 + dword_10067558 - 2) = (v24[k + 3] - v24[k + 1]) * 16;
       }
       result = v21 + 1;
       v17 = ++v21 < numfaces;
@@ -24373,11 +24382,14 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
      * 24.0` is two VectorCopys from ONE source (note ecx/eax each feeding both
      * destinations) with the `[2]` copies forwarded into the adjustments — the
      * two surviving integer copies fill the fld->fadd gap.  IDA's int[3] +
-     * `*(float *)&org[2] = …` form loses the interleave. */
+     * `*(float *)&org[2] = …` form loses the interleave.  The STATEMENT ORDER
+     * is load-bearing too: copy-adjust/copy-adjust (Q3 be_ai_move.c:466) puts
+     * the fadd after the int loads and sinks both fstp's into the argument
+     * pushes; grouping it as copy/copy/adjust/adjust does not (89b residual). */
     VectorCopy(origin, org);
+    org[2] += 24.0f;
     VectorCopy(origin, end);
-    org[2] = origin[2] + 24.0f;
-    end[2] = origin[2] - 48.0f;
+    end[2] -= 48.0f;
     *(bsp_trace_t *)trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
     return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
   }
