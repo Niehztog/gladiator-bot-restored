@@ -32,15 +32,28 @@ ifneq (,$(findstring MSYS,$(YQ2_OSTYPE)))
 YQ2_OSTYPE := Windows
 endif
 
+# Special case for cross-compiling the Windows PE32/PE32+ DLLs directly with
+# the mingw-w64 toolchain from a plain Linux/WSL1 shell -- no MSYS2 install,
+# MSYSTEM environment, or Windows env vars required:
+#   make CC=i686-w64-mingw32-gcc      -> 32 bit gladiator.dll / game.dll
+#   make CC=x86_64-w64-mingw32-gcc    -> 64 bit gladiator.dll / game.dll
+ifneq (,$(findstring w64-mingw32,$(CC)))
+YQ2_OSTYPE := Windows
+endif
+
 # Detect the architecture
 ifeq ($(YQ2_OSTYPE), Windows)
-ifdef MINGW_CHOST
+ifneq (,$(findstring x86_64-w64-mingw32,$(CC)))
+YQ2_ARCH ?= x86_64
+else ifneq (,$(findstring i686-w64-mingw32,$(CC)))
+YQ2_ARCH ?= i386
+else ifdef MINGW_CHOST
 ifeq ($(MINGW_CHOST), x86_64-w64-mingw32)
 YQ2_ARCH ?= x86_64
 else # i686-w64-mingw32
 YQ2_ARCH ?= i386
 endif
-else # windows, but MINGW_CHOST not defined
+else # windows, but MINGW_CHOST not defined and CC isn't a w64-mingw32-* cross compiler
 ifdef PROCESSOR_ARCHITEW6432
 # 64 bit Windows
 YQ2_ARCH ?= $(PROCESSOR_ARCHITEW6432)
@@ -48,7 +61,7 @@ else
 # 32 bit Windows
 YQ2_ARCH ?= $(PROCESSOR_ARCHITECTURE)
 endif
-endif # windows but MINGW_CHOST not defined
+endif # windows but MINGW_CHOST not defined and CC isn't a w64-mingw32-* cross compiler
 else
 ifneq ($(YQ2_OSTYPE), Darwin)
 # Normalize some abiguous YQ2_ARCH strings
@@ -330,6 +343,32 @@ build/game/%.o: game/%.c
 	# is redundant and only triggers a "ZOID redefined" warning (the -D form
 	# expands to 1, g_local.h's to empty). Every game/*.c includes g_local.h.
 	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -DC_ONLY -Igame/ -o $@ $<
+
+# game/bl_main.c's Win32 BotLoadLibrary() calls gladiator.dll's GetBotAPI
+# through a function pointer typedef'd WINAPI (__stdcall), but the real
+# export is cdecl (botlib.c's GetBotAPI ends in a plain `ret`, verified
+# against the original disassembly -- gladq2_src/bl_main.c has the same
+# WINAPI typedef, so this mismatch is authentic to the 1999 sources, not a
+# reconstruction artifact). The __stdcall assumption makes the caller emit
+# a compensating post-call `sub esp,4` that only the real callee's `ret 4`
+# would have justified; with -fomit-frame-pointer every later ESP-relative
+# local in BotLoadLibrary (incl. the `lib` pointer used right after) reads
+# 4 bytes off, corrupting it -- crashes on every bot spawn. A frame pointer
+# sidesteps this (those locals become EBP-relative instead), which is why
+# it was never seen with MSVC6 or with MinGW toolchains whose vectorizer
+# happens to force one for the adjacent struct copy -- that's incidental,
+# not guaranteed (observed: MSYS2 gcc 15.2 does, plain i686-w64-mingw32-gcc
+# 13 doesn't, and the latter reliably crashes without this), so force it
+# explicitly instead of relying on it. Only matters on i386 (WINAPI is a
+# no-op on x86_64 -- one calling convention for everything there), but
+# apply for every Windows build regardless: YQ2_ARCH's value here isn't a
+# reliable i386-vs-x86_64 signal by itself (e.g. a real MSYS2/MINGW32 shell
+# with no MINGW_CHOST/PROCESSOR_ARCHITEW6432 set reports YQ2_ARCH=AMD64
+# from PROCESSOR_ARCHITECTURE even though /mingw32/bin/gcc.exe only ever
+# emits 32-bit PE32), and the flag is a harmless no-op on genuine x86_64.
+ifeq ($(YQ2_OSTYPE), Windows)
+build/game/bl_main.o : CFLAGS += -fno-omit-frame-pointer
+endif
 
 # ----------
 
