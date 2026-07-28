@@ -8801,6 +8801,14 @@ LABEL_66:
     {
       if ( (stopevent & 0x40) == 0 )
         goto LABEL_84;
+      /* Q3 be_aas_move.c:949 is `VectorCopy(org, start); VectorCopy(start, end);
+       * end[2] -= 48 + phys_maxbarrier;` and the dead `end[2] = org[2];` below is
+       * that VectorCopy's third component — but this interleave is one of the
+       * FAITHFUL pipeline renderings, not an IDA scramble: BOTH grouped forms
+       * (copy from org, and Q3's copy-from-start with `-=`) were build-tested
+       * 2026-07-28 and each dropped 3 insns, OUR+1/4359b -> OUR-2/4406b.  Keep
+       * the element order; the residual is this function's documented frame
+       * cascade, not these stores. */
       start[0] = org[0];
       end[0] = org[0];
       start[1] = org[1];
@@ -11559,10 +11567,8 @@ void AAS_Reachability_Elevator()
                 v24 = (int)v23;
                 v25 = height * 100.0f;
                 lreach->reach.edgenum = v24;
-                lreach->reach.start[0] = dirvec[0];
+                VectorCopy(dirvec, lreach->reach.start);
                 v26 = v25 / speed;
-                lreach->reach.start[1] = dirvec[1];
-                lreach->reach.start[2] = dirvec[2];
                 VectorCopy(samplept, lreach->reach.end);
                 lreach->reach.traveltype = 11;
                 lreach->reach.traveltime = (__int64)v26;
@@ -19253,12 +19259,10 @@ LABEL_32:
       {
         bs->teamgoal.entitynum = bs->entitynum;
         bs->teamgoal.areanum = bs->areanum;
-        bs->teamgoal.origin[0] = bs->origin[0];
-        bs->teamgoal.origin[1] = bs->origin[1];
+        VectorCopy(bs->origin, bs->teamgoal.origin);
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
-        bs->teamgoal.origin[2] = bs->origin[2];
         bs->teamgoal.maxs[0] = 8.0f;
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
@@ -24017,11 +24021,16 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                           v16 = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v11, ltg->areanum, travelflags);
                         if ( v16 <= ltg_time )
                         {
-                          goal.origin[0] = li->goalorigin[0];
+                          /* The two scalar stores are NOT interleaved into the
+                           * vec copy in the source: they read `li`/`weight`,
+                           * which the copy itself also uses, so ref's
+                           * origin[0]/bestweight/origin[1]/bestitem/origin[2]
+                           * emission is MSVC6's software pipeline filling the
+                           * load-ahead bubbles (sub_10004310 class), not
+                           * statement order. */
                           bestweight = weight;
-                          goal.origin[1] = li->goalorigin[1];
                           bestitem = li;
-                          goal.origin[2] = li->goalorigin[2];
+                          VectorCopy(li->goalorigin, goal.origin);
                           VectorCopy(iteminfo->mins, goal.mins);
                           VectorCopy(iteminfo->maxs, goal.maxs);
                           goal.areanum = v11;
