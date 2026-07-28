@@ -25663,10 +25663,14 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], ms->viewangles[0])), v13 >= 2.0)
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
   {
-    if ( v26 >= 70.0f )
-      speed = 400.0f;
-    else
+    /* Q3 be_ai_move.c:2724 polarity — the `dist < 70` ARITHMETIC arm is the
+     * warm fall-through (ref `test ah,0x1; je <const-store>` @0x10033c58), not
+     * the `speed = 400` constant store.  IDA's inverted `>= 70` form makes
+     * cl.exe lay the constant store warm and the arithmetic cold. */
+    if ( v26 < 70.0f )
       speed = 300.0f - (300.0f - v26 * 4.0f);
+    else
+      speed = 400.0f;
     BotCheckBlocked(ms, dir, &moveresult);
     EA_Move(ms->client, dir, speed);
     VectorCopy(dir, moveresult.movedir);
