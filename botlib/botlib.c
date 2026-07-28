@@ -2049,7 +2049,6 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float *v29; // eax
   float *v30; // edx
   int v31; // esi
-  int *planeints;
   float v32; // st7
   float v33; // st7
   float v35; // st7
@@ -2118,12 +2117,13 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       trace->fraction = 0.0f;
       trace->contents = 0;
       trace->sidenum = -1;
-      planeints = (int *)&trace->plane.normal[0];
-      planeints[0] = 0;
-      planeints[1] = 0;
-      planeints[2] = 0;
-      planeints[3] = 0;
-      planeints[4] = 0;
+      /* Ref 0x1000387a/0x1000388b: `lea edx,[eax+0x18]` + a FRESH `xor ecx,ecx`
+       * feeding five `[edx+N]` stores — cl.exe's inline expansion of a 20-byte
+       * memset, which is why the plane's base address is materialised into its
+       * own register and the zero is NOT the one already live in edi for
+       * fraction/contents.  Five scalar `planeints[i] = 0` stores instead let
+       * cl.exe fold the base into the addressing mode and share edi's zero. */
+      memset(&trace->plane, 0, sizeof(trace->plane));
       VectorCopy(start, trace->endpos);
       return 1;
     }
@@ -2279,13 +2279,10 @@ int __cdecl CM_TraceThroughBrush(
   float v18; // st7
   float v19; // st7
   float v20; // st6
-  float v22; // st5
   float v25; // st5
   float v29; // st7
   float v30; // st7
   float v31; // st7
-  float v32; // ecx
-  float v33; // edx
   float v35; // [esp+10h] [ebp-7Ch]
   int v36; // [esp+14h] [ebp-78h]
   float v37; // [esp+14h] [ebp-78h]
@@ -2304,18 +2301,22 @@ int __cdecl CM_TraceThroughBrush(
 
   if ( *a3 == 0.0f && a3[1] == 0.0f && a3[2] == 0.0f )
   {
-    v11 = 0;
     v39 = 0;
   }
   else
   {
     v39 = 1;
     AnglesToAxis(a3, v59);
-    v11 = 0;
   }
   v12 = a2;
   if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
     v40 = 1;
+  /* IDA put `v11 = 0` inside BOTH arms of the angles test above; that is the
+   * compiler having SUNK one shared zero register into the two arms (ref
+   * 0x10003cd2 / 0x10003cf2 `xor edi,edi`), not two source statements.  Keeping
+   * it here with the other zero initialisers lets cl.exe value-number all four
+   * `= 0` stores onto that single register instead of materialising a second. */
+  v11 = 0;
   v13 = a4;
   v14 = a1;
   v42 = 0;
@@ -2365,15 +2366,19 @@ int __cdecl CM_TraceThroughBrush(
         {
           if ( a6 )
           {
-            if ( normal[v17] <= 0.0f )
-            {
-              v19 = a6[v17];
-              v12 = a2;
-            }
-            else
+            /* Ref 0x10003d36: `test ah,0x41; jne <a6 arm>` — the `normal>0`
+             * (`-a5`) arm is the WARM fall-through and the `<=0` (`a6`) arm the
+             * cold jump target, so the original guard was written positively.
+             * IDA inverted it to `<= 0` first, which swaps the two blocks. */
+            if ( normal[v17] > 0.0f )
             {
               v12 = a2;
               v19 = -a5[v17];
+            }
+            else
+            {
+              v19 = a6[v17];
+              v12 = a2;
             }
             goto LABEL_30;
           }
@@ -2382,28 +2387,41 @@ int __cdecl CM_TraceThroughBrush(
         v19 = 0.0;
 LABEL_30:
         v20 = v19 + v38;
-        v22 = startp[v17];
-        if ( normal[v17] <= 0.0f )
+        /* Same inversion as above (ref 0x10003eba `test ah,0x41; jne <negated
+         * arm>`): the un-negated `normal>0` arm is the fall-through. */
+        if ( normal[v17] > 0.0f )
         {
-          v35 = -v22 - v20;
-          v25 = -endp[v17];
+          v35 = startp[v17] - v20;
+          v25 = endp[v17];
         }
         else
         {
-          v35 = v22 - v20;
-          v25 = endp[v17];
+          v35 = -startp[v17] - v20;
+          v25 = -endp[v17];
         }
       }
       else
       {
         if ( a5 && a6 )
         {
-          /* For each component i, select from a6 or a5 based on sign of
-           * normal[i]; result stored in vec[i]. */
+          /* For each component i, select from a5 or a6 based on sign of
+           * normal[i]; result stored in vec[i].  Ref 0x10003dc9
+           * `test ah,0x41; jne <a6 arm>` puts the `normal>0` (a5) arm inline,
+           * so the original ternary tested positively — IDA's `<= 0 ? a6 : a5`
+           * spelling swaps the two arms' warm/cold placement. */
+          /* Written as two assignment STATEMENTS, not a ternary: ref copies the
+           * selected component with an integer `mov eax,[..]; mov [..],eax`
+           * pair (0x10003dcb/0x10003dd2).  A float-valued ternary makes cl.exe
+           * materialise the result on the x87 stack (`fld`/`fstp`) instead. */
           {
             int _k;
             for (_k = 0; _k < 3; _k++)
-              vec[_k] = (normal[_k] <= 0.0f) ? a6[_k] : a5[_k];
+            {
+              if ( normal[_k] > 0.0f )
+                vec[_k] = a5[_k];
+              else
+                vec[_k] = a6[_k];
+            }
           }
           dir[0] = -normal[0];
           dir[1] = -normal[1];
@@ -2463,12 +2481,13 @@ LABEL_30:
   {
     *a8 = v31;
     *a9 = v42;
-    v32 = startp[1];
     *a10 = v43;
-    v33 = startp[2];
-    *a11 = startp[0];
-    a11[1] = v32;
-    a11[2] = v33;
+    /* IDA's `v32`/`v33` float shuttles (named after ref's ecx/edx) and the
+     * `*a10 = v43` store wedged between them are MSVC's load-ahead schedule for
+     * ONE grouped vec3 copy, not source statements — ref copies [1] and [2] with
+     * integer `mov`s (0x10004284/0x10004287), which a float-typed local forces
+     * onto the x87 stack instead. */
+    VectorCopy(startp, a11);
     return 1;
   }
   return 0;
@@ -32298,8 +32317,11 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   {
     const unsigned char *buffer;
 
-    memcpy(v10, &unk_10060418, 0x48u);
+    /* Ref 0x1004028d loads script->buffer (`mov edx,[ebx+0x104]`) BEFORE the
+     * memcpy's `rep movs` and only materialises the memset's `xor eax,eax`
+     * after it, so the buffer fetch is the first statement of this block. */
     buffer = (const unsigned char *)script->buffer;
+    memcpy(v10, &unk_10060418, 0x48u);
     memset(&v10[72], 0, 0x48u);
     if ( !sub_10037850(FileName, buffer, script->length) )
     {
