@@ -17,6 +17,25 @@
 # - Windows                                             #
 # ----------------------------------------------------- #
 
+# On the Windows agent's WSL1 host, `uname -s` reports plain "Linux" -- WSL1
+# has no SystemRoot, MSYSTEM, or MINGW_CHOST to signal otherwise -- so with
+# no explicit CC= this Makefile would otherwise silently default to a native
+# .so build that is never actually used on that host (this exact WSL1
+# environment only ever builds gladiator.dll; see CLAUDE.md's two-agent
+# table). Auto-select the 32-bit mingw-w64 cross compiler there instead, but
+# only when the caller didn't already choose a compiler: $(origin CC) is
+# "default" only when nothing (not `make CC=...`, not a CC env var) overrode
+# GNU Make's built-in `CC = cc` -- note plain `CC ?= ...` can NOT be used for
+# this, since that built-in default already counts as "having a value" and
+# silently wins over `?=`.
+ifeq ($(origin CC), default)
+ifneq (,$(wildcard /mnt/c))
+ifneq (,$(WSL_DISTRO_NAME))
+CC := i686-w64-mingw32-gcc
+endif
+endif
+endif
+
 # Detect the OS
 ifdef SystemRoot
 YQ2_OSTYPE ?= Windows
@@ -79,10 +98,10 @@ endif
 # Detect the compiler
 ifeq ($(shell $(CC) -v 2>&1 | grep -c "clang version"), 1)
 COMPILER := clang
-COMPILERVER := $(shell $(CC)  -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/')
+COMPILERVER := $(shell $(CC) -dumpversion | sed -e 's/[^0-9].*//')
 else ifeq ($(shell $(CC) -v 2>&1 | grep -c -E "(gcc version|gcc-Version)"), 1)
 COMPILER := gcc
-COMPILERVER := $(shell $(CC)  -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/')
+COMPILERVER := $(shell $(CC) -dumpversion | sed -e 's/[^0-9].*//')
 else
 COMPILER := unknown
 endif
@@ -131,8 +150,13 @@ else ifeq ($(COMPILER), gcc)
 	# (override: CFLAGS has override origin from line ~94, so a plain += here
 	# would be silently dropped by GNU Make.)
 	override CFLAGS += -Wno-missing-braces
-	# GCC 8.0 or higher.
-	ifeq ($(shell test $(COMPILERVER) -ge 80000; echo $$?),0)
+	# GCC 8 or higher. COMPILERVER is just the leading digit run of
+	# `-dumpversion` (major version only) -- GCC has reported only the bare
+	# major version there since GCC 7 (e.g. "13", not "13.3.0"), and the
+	# mingw-w64 cross compilers append a non-numeric suffix on top of that
+	# ("13-win32"), so strip at the first non-digit rather than assume a
+	# dotted X.Y.Z string to renormalize.
+	ifeq ($(shell test $(COMPILERVER) -ge 8; echo $$?),0)
 	    # -Wno-format-truncation and -Wno-format-overflow
 		# because GCC spams about 50 false positives.
     	CFLAGS += -Wno-format-truncation -Wno-format-overflow
