@@ -2137,8 +2137,13 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
     else
       v16 = v44[v15];
     v17 = start[v15] - v16;
+    /* ONE `v15 + 1`, and the loop advance is `v15 = v18` — not `++v15`.  Ref
+     * recomputes `lea edi,[ecx+0x1]` per iteration and closes the loop with
+     * `mov ecx,edi; cmp ecx,3; jl <top>`.  With `++v15` cl.exe instead carries
+     * v15 and v15+1 as TWO parallel induction variables plus a saved copy of
+     * v18 for the bound test (`mov ebx,edi` + `inc ecx` + `inc edi`) = OUR+2. */
     v18 = v15 + 1;
-    v19 = v15 + 1;
+    v19 = v18;
     v39 = v17 / (v17 - (end[v15] - v16));
     if ( v15 > 1 )
       v19 = 0;
@@ -2154,8 +2159,8 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       if ( v41[v24] < v25 && v25 < v44[v24] )
         break;
     }
-    ++v15;
-    if ( v18 >= 3 )
+    v15 = v18;
+    if ( v15 >= 3 )
       goto LABEL_40;
   }
   clipend[v15] = v16;
