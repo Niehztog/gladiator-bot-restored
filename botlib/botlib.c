@@ -8734,9 +8734,8 @@ LABEL_66:
     // check below then runs unconditionally (was IDA `if(vel>0) goto LABEL_76`).
     if ( frame_test_vel[2] <= 0.0f )
     {
-      feet[0] = org[0];
-      feet[1] = org[1];
-      feet[2] = org[2] - 22.0f;
+      VectorCopy(org, feet);
+      feet[2] = feet[2] - 22.0f;
       pc = sub_10003080((float *)feet);   /* IDA-dropped: see 0x100100dd */
       event = 0;
       v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
@@ -11480,15 +11479,13 @@ void AAS_Reachability_Elevator()
       }
       else
       {
-        testpt[0] = btmorg[0];
-        testpt[1] = btmorg[1];
-        testpt[2] = btmorg[2] + 24.0f;
+        VectorCopy(btmorg, testpt);
+        testpt[2] = testpt[2] + 24.0f;
         area1num = AAS_PointAreaNum(testpt);
         if ( !area1num )
           continue;
-        testpt[0] = toporg[0];
-        testpt[1] = toporg[1];
-        testpt[2] = toporg[2] + 24.0f;
+        VectorCopy(toporg, testpt);
+        testpt[2] = testpt[2] + 24.0f;
       }
         for ( i = 0; i < 3; ++i )
         {
@@ -17061,14 +17058,17 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 
   char v4; // al
   char v7; // al
-  /* point is a vec3_t test point (X int copy, Y int copy, Z float). Original
-   * source likely declared as a vec3_t array — MSVC drops dead stores to v12/v13
-   * when they are separate locals (only point is BYREF), so we declare as an
-   * array to keep all three slots live across the call. */
-  int point[3]; // [esp+4h] [ebp-90h] BYREF
-  /* start/end are int[3] in IDA decomp; X/Y are raw bit copies, Z is *(float *)&v[2]. */
-  int start[3]; // [esp+10h] [ebp-84h] BYREF
-  int end[3]; // [esp+1Ch] [ebp-78h] BYREF
+  /* Real vec3_t, filled with Q3's (be_ai_chat.c) exact statements:
+   * `VectorCopy(bs->origin, X); X[2] += K;`.  MSVC6 compiles a float-to-float
+   * copy as an integer mov (no conversion), forwards the [2] copy into the
+   * arithmetic, and then interleaves the two surviving integer copies between
+   * the `fld` and the `fadd` — which is ref's schedule
+   * (`fld [esi+0x69c]; mov eax,[esi+0x694]; mov ecx,[esi+0x698]; fadd ds:1.0`).
+   * start/end being copied from the SAME source is also what produces ref's
+   * `mov edx,eax` / `mov eax,ecx` register reuse. */
+  vec3_t point; // [esp+4h] [ebp-90h] BYREF
+  vec3_t start; // [esp+10h] [ebp-84h] BYREF
+  vec3_t end;   // [esp+1Ch] [ebp-78h] BYREF
   _DWORD maxs[3]; // [esp+28h] [ebp-6Ch] BYREF
   _DWORD mins[3]; // [esp+34h] [ebp-60h] BYREF
   int trace[21]; // [esp+40h] [ebp-54h] BYREF
@@ -17077,28 +17077,22 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 1;
   if ( (bs->snapshot.pm_flags & 4) == 0 )
     return 0;
-  point[0] = *(int *)&bs->origin[0];
-  point[1] = *(int *)&bs->origin[1];
-  *(float *)&point[2] = bs->origin[2] - 24.0f;
-  v4 = (char)sub_10003080((float *)point);
+  VectorCopy(bs->origin, point);
+  point[2] = point[2] - 24.0f;
+  v4 = (char)sub_10003080(point);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
-  point[0] = *(int *)&bs->origin[0];
-  point[1] = *(int *)&bs->origin[1];
-  *(float *)&point[2] = bs->origin[2] + 32.0f;
-  v7 = (char)sub_10003080((float *)point);
+  VectorCopy(bs->origin, point);
+  point[2] = point[2] + 32.0f;
+  v7 = (char)sub_10003080(point);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
-  start[0] = *(int *)&bs->origin[0];
-  start[1] = *(int *)&bs->origin[1];
-  *(float *)&start[2] = bs->origin[2] + 1.0f;
-  /* Q3 (be_ai_chat.c) fills `start` completely, then `end`; IDA hoisted the
-   * end[2] arithmetic above the end[0]/end[1] copies. */
-  end[0] = start[0];
-  end[1] = start[1];
-  *(float *)&end[2] = bs->origin[2] - 100.0f;
+  VectorCopy(bs->origin, start);
+  VectorCopy(bs->origin, end);
+  start[2] = start[2] + 1.0f;
+  end[2] = end[2] - 100.0f;
   AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
-  *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)mins, (float*)maxs, (float*)(end), 4, bs->client);
+  *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
   return trace[20] == 0;
 }
 
@@ -17475,9 +17469,8 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
       endpos[0] = dir[0] + *(float *)v2;
       endpos[1] = dir[1] + bs->origin[1];
       endpos[2] = dir[2] + bs->origin[2];
-      belowbestorg[0] = endpos[0];
-      belowbestorg[1] = endpos[1];
-      belowbestorg[2] = endpos[2] - 800.0f;
+      VectorCopy(endpos, belowbestorg);
+      belowbestorg[2] = belowbestorg[2] - 800.0f;
       *(bsp_trace_t *)trace = AAS_Trace((float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(belowbestorg), v17, 3);
       if ( !trace[1] )
       {
@@ -25663,8 +25656,12 @@ LABEL_26:
     ms->moveflags |= 0x40;
   }
   areanum = AAS_PointAreaNum(ms->origin);
+  /* Q3 (be_ai_move.c) writes this inline — `if (areanum && areanum !=
+   * ms->reachareanum) ms->reachability_time = 0;` — not as a BACKWARD goto into
+   * the earlier hookoff tail.  The store is 3 bytes either way; the goto gives
+   * that tail a second, far predecessor. */
   if ( areanum && areanum != ms->reachareanum )
-    goto LABEL_26;
+    ms->reachability_time = 0;
   return moveresult;
 }
 
