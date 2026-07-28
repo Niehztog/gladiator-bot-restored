@@ -19628,13 +19628,22 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
     if ( v3->type == 1 )
     {
       v4 = strstr(v3->message, ":");
-      if ( !v4 )
+      /* POSITIVE guard: ref 0x100286c1 is `test eax,eax; je <cold remove>` with
+       * the `v5 = …` body as the warm FALL-THROUGH.  IDA's negative
+       * `if (!v4) { remove; continue; }` makes the remove-and-continue block the
+       * fall-through instead, which is also what lets cl.exe cross-jump it into
+       * the strncmp path's identical block (ref keeps the two separate — hence
+       * its one-call surplus). */
+      if ( v4 )
       {
-        BotRemoveConsoleMessage(v2, v3);
-        continue;
+        v5 = v4 - (char *)v3;
+        if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
+        {
+          BotRemoveConsoleMessage(v2, v3);
+          continue;
+        }
       }
-      v5 = v4 - (char *)v3;
-      if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
+      else
       {
         BotRemoveConsoleMessage(v2, v3);
         continue;
