@@ -23251,21 +23251,25 @@ void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 }
 
 //----- (1002EAF0) --------------------------------------------------------
-/* Restored IDA-missed dead-code stub.  Verified against
- * objdump@1002EAF0: switch on second arg, writing an int to *first arg.
- *   b == 1 → *out = 1
- *   b == 2 → *out = 2
- *   else   → *out = 0
- * Enum-to-int mapper, looks like a chat-context selector (matches the
- * shape of Q3 trap_BotEnterChat's chat-type argument).  Dead in
- * Gladiator; preserved by /INCREMENTAL. */
-void __cdecl sub_1002EAF0(int *out, int b)
+/* Restored IDA-missed dead-code stub.  Verified against objdump@1002EAF0:
+ * switch on the second arg, writing an int through the first.
+ *
+ * Named from Q3 be_ai_chat.c:2840 `BotSetChatGender` — an unambiguous
+ * structural match, not a role guess: the switch is value-for-value Q3's
+ * (`case CHAT_GENDERFEMALE(1): cs->gender = 1; case CHAT_GENDERMALE(2):
+ * cs->gender = 2; default: cs->gender = CHAT_GENDERLESS(0)`), the written
+ * int is at offset 0 of bot_chatstate_t, which IS `gender`, and this sits
+ * immediately before BotSetChatName (0x1002EB30) exactly as in Q3, where the
+ * two are adjacent (2840 / 2859).  Gladiator's chatstate has no `client`
+ * field, which is why neither takes Q3's later `client` argument.
+ * Dead in Gladiator; preserved by /INCREMENTAL. */
+void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 {
-  switch ( b )
+  switch ( gender )
   {
-    case 1: *out = 1; break;
-    case 2: *out = 2; break;
-    default: *out = 0; break;
+    case 1: chatstate->gender = 1; break;
+    case 2: chatstate->gender = 2; break;
+    default: chatstate->gender = 0; break;
   }
 }
 
@@ -23279,13 +23283,21 @@ void __cdecl sub_1002EAF0(int *out, int b)
  *   call 0x10044de0 (= strncpy); add esp,0xc; ret
  * The stores are edx-relative (edx = arg1+4), so they zero exactly 15 bytes
  * (3 dwords + 1 word + 1 byte) starting at arg1+4, then strncpy with a
- * 15-byte limit into the same slot — i.e. `bot_chatstate_t.name[16]` with
- * name[15] left as the terminator, Q3's BotSetChatName idiom.
+ * 15-byte limit into the same slot — i.e. `bot_chatstate_t.name[16]`.
+ *
+ * Named from Q3 be_ai_chat.c:2859 `BotSetChatName`: same body idiom
+ * (`memset(cs->name, 0, …); strncpy(cs->name, name, …)`) with the sizes at
+ * Gladiator's 16-byte field instead of Q3's 32, writing the one name field
+ * bot_chatstate_t has, and paired with BotSetChatGender immediately above in
+ * Q3's own order.  Q3 additionally takes a `client` argument and sets
+ * `cs->client`; Gladiator's chatstate has no such field, hence two parameters.
+ * Q3 also explicitly zeroes the last byte after the strncpy — here the memset
+ * covers only name[0..14], so name[15] is left as whatever it was.
  * Dead in Gladiator -- preserved by /INCREMENTAL. */
-void __cdecl sub_1002EB30(bot_chatstate_t *target, const char *src)
+void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name)
 {
-  memset(target->name, 0, 15);
-  strncpy(target->name, src, 15);
+  memset(chatstate->name, 0, 15);
+  strncpy(chatstate->name, name, 15);
 }
 
 //----- (1002EB70) --------------------------------------------------------

@@ -108,7 +108,7 @@ typedef struct bot_chatstate_s {
         struct {
             int  gender;                         /* +0 — 0/1/2 */
             char name[16];                       /* +4..+19 — the bot's own chat name;
-                                                  * set by sub_1002EB30 (Q3's BotSetChatName):
+                                                  * set by BotSetChatName (0x1002EB30):
                                                   * memset 15 + strncpy limit 15, so name[15]
                                                   * is the terminator slot. */
             /* +20..+171 (152 B) is ONE buffer, not a 20-byte name plus padding:
