@@ -10368,7 +10368,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   vec3_t beststart; // [esp+20h..0x2B] [ebp-1ACh..-1A4h] BYREF
   vec3_t bestend;   // [esp+2Ch..0x37] [ebp-1A0h..-198h] BYREF
   float phys_jumpvel; // [esp+38h] [ebp-194h]
-  int dir[3]; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
+  vec3_t dir; // [esp+3Ch..44h] [ebp-190h..188h] BYREF — vec3 difference; v60[0..2] = old v60/v61/v62
   vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start (vec3, IDA split)
   int maxjumpheight; // [esp+5Ch] [ebp-170h]
   float speed; // [esp+60h] [ebp-16Ch] BYREF
@@ -10689,18 +10689,18 @@ LABEL_62:
             /* X/Y horizontal-distance check (Z explicitly zeroed):
              * .text 0x100146cf-0x100146f4 — fld v56X / fsub v53X / fstp v60[0];
              * fld bestend[1] / fsub beststart[1] / fstp v60[1]; v60[2] := 0 just before. */
-            *(float *)&dir[2] = 0.0f;
-            *(float *)&dir[0] = bestend[0] - beststart[0];
-            *(float *)&dir[1] = bestend[1] - beststart[1];
-            if ( VectorLength((float *)dir) >= 10 )
+            dir[2] = 0.0f;
+            dir[0] = bestend[0] - beststart[0];
+            dir[1] = bestend[1] - beststart[1];
+            if ( VectorLength(dir) >= 10 )
             {
               /* Full 3-component direction vector for the actual barrier trace:
                * .text 0x1001470d-0x10014736 — three fld/fsub/fstp pairs. */
-              *(float *)&dir[0] = bestend[0] - beststart[0];
-              *(float *)&dir[1] = bestend[1] - beststart[1];
-              *(float *)&dir[2] = bestend[2] - beststart[2];
-              VectorNormalize((float *)dir);
-              VectorMA(beststart, 1.0, (float *)dir, teststart);
+              dir[0] = bestend[0] - beststart[0];
+              dir[1] = bestend[1] - beststart[1];
+              dir[2] = bestend[2] - beststart[2];
+              VectorNormalize(dir);
+              VectorMA(beststart, 1.0, dir, teststart);
               /* Build trace endpoint v93 = v63 (XY copied as bits) with Z dropped 100u:
                * .text 0x10014756-0x10014785 — mov [v93]=v63, mov [v94]=teststart[1],
                * fld teststart[2] / fsub 100.0 / fstp [v95]. */
@@ -10713,7 +10713,7 @@ LABEL_62:
                  || aasworld.planes[trace.planenum].normal[2] < 0.7
                  || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
-                VectorMA(bestend, -1.0, (float *)dir, teststart);
+                VectorMA(bestend, -1.0, dir, teststart);
                 testend[2] = teststart[2] - 100.0f;
                 testend[0] = teststart[0];
                 testend[1] = teststart[1];
@@ -10725,11 +10725,11 @@ LABEL_62:
                 {
                   /* Horizontal velocity vector (Z explicitly zeroed):
                    * .text 0x100148e9-0x1001490e — same pattern as block 1. */
-                  *(float *)&dir[2] = 0.0f;
-                  *(float *)&dir[0] = bestend[0] - beststart[0];
-                  *(float *)&dir[1] = bestend[1] - beststart[1];
-                  VectorNormalize((float *)dir);
-                  VectorScale((float *)dir, speed, cmdmove);
+                  dir[2] = 0.0f;
+                  dir[0] = bestend[0] - beststart[0];
+                  dir[1] = bestend[1] - beststart[1];
+                  VectorNormalize(dir);
+                  VectorScale(dir, speed, cmdmove);
                   /* .text 0x1001492f-0x10014951 — cmdmove[2] override:
                    *   if (traveltype == 5)  cmdmove[2] = libvar_sv_jumpvel->value;
                    *   else                  cmdmove[2] = 0.0f;
@@ -10776,7 +10776,7 @@ LABEL_62:
                     while ( 1 )
                     {
                       v51 = (float)probe_scale;
-                      VectorMA(move2.endpos, v51, (float *)dir, teststart);
+                      VectorMA(move2.endpos, v51, dir, teststart);
                       v48 = teststart[2] + 0.125;
                       teststart[2] = v48;
                       if ( AAS_PointAreaNum(teststart) == area2num )
