@@ -10780,12 +10780,10 @@ void AAS_Reachability_Elevator()
             {
               if ( area2num && (AAS_AreaGrounded(area2num) || AAS_AreaSwim(area2num)) )
               {
-                start[0] = btmorg[0];
-                start[1] = btmorg[1];
-                end[0] = samplept[0];
-                start[2] = btmorg[2] + 32.0f;
-                end[1] = samplept[1];
-                end[2] = samplept[2] + 1.0f;
+                VectorCopy(btmorg, start);
+                start[2] += 32.0f;
+                VectorCopy(samplept, end);
+                end[2] += 1.0f;
                 trace = AAS_TraceClientBBox(start, end, 4, -1);
                 if ( trace.fraction >= 1.0f )
                   break;
@@ -28046,10 +28044,6 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
   double v34; // st7
   double v35; // st7
   int v36; // eax
-  value_t *v37;
-  value_t *v38;
-  operator_t *v39;
-  operator_t *v40;
   operator_t *v41;
   value_t *v42;
   value_t *v43;
@@ -28451,24 +28445,20 @@ LABEL_144:
           {
             if ( v36 != 43 )
               v = v->next;
-            v37 = v->prev;
-            if ( v37 )
-              v37->next = v->next;
+            if ( v->prev )
+              v->prev->next = v->next;
             else
               firstvalue = v->next;
-            v38 = v->next;
-            if ( v38 )
-              v38->prev = v->prev;
+            if ( v->next )
+              v->next->prev = v->prev;
             FreeMemory(v);
           }
-          v39 = o->prev;
-          if ( v39 )
-            v39->next = o->next;
+          if ( o->prev )
+            o->prev->next = o->next;
           else
             firstoperator = o->next;
-          v40 = o->next;
-          if ( v40 )
-            v40->prev = o->prev;
+          if ( o->next )
+            o->next->prev = o->prev;
           FreeMemory(o);
           break;
         default:
