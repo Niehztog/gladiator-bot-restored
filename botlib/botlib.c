@@ -9461,82 +9461,86 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
             }
           }
         }
-        if ( !ground_foundreach )
-          return 0;
-        if ( ground_bestdist > 0.0f
-          && ground_bestdist < (float)libvar_sv_maxbarrier->value
-          && (!water_foundreach || ground_bestdist - water_bestdist < 16.0f)
-          && !AAS_AreaCrouch(area1num)
-          && !AAS_AreaCrouch(area2num) )
+        if ( ground_foundreach )
         {
-          v54 = AAS_AllocReachability();
-          v55 = v54;
-          if ( !v54 )
-            return 0;
-          v54->reach.edgenum = ground_bestarea2groundedgenum;
-          v54->reach.areanum = area2num;
-          v54->reach.facenum = 0;
-          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v54->reach.start);
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v55->reach.end);
-          v55->reach.traveltype = 4;
-          v55->reach.traveltime = 400;
-          v55->next = areareachability[area1num];
-          areareachability[area1num] = v55;
-          ++reach_barrier;
-          return 1;
-        }
-        if ( ground_bestdist >= 0.0f )
-          return 0;
-        if ( -libvar_sv_step->value < ground_bestdist )
-        {
-          v56 = AAS_AllocReachability();
-          if ( !v56 )
-            return 0;
-          v56->reach.edgenum = ground_bestarea2groundedgenum;
-          v56->reach.areanum = area2num;
-          v56->reach.facenum = 0;
-          VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56->reach.start);
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56->reach.end);
-          v56->reach.traveltype = 2;
-          v56->reach.traveltime = 1;
-          v56->next = areareachability[area1num];
-          areareachability[area1num] = v56;
-          ++reach_walk;
-          return 1;
-        }
-        v114 = -AAS_FallDamageDistance();
-        if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(area2num) )
-        {
-          VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
-          VectorCopy(ground_bestend, start);
-          start[2] = ground_beststart[2];
-          VectorCopy(ground_bestend, end);
-          end[2] += 4.0f;
-          trace = AAS_TraceClientBBox(start, end, 2, -1);
-          if ( !trace.startsolid && trace.fraction >= 1.0 )
+          if ( ground_bestdist > 0.0f && ground_bestdist < (float)libvar_sv_maxbarrier->value )
           {
-            trace.endpos[2] = trace.endpos[2] + 1.0f;
-            if ( AAS_PointAreaNum(trace.endpos) == area2num )
+            if ( !water_foundreach || ground_bestdist - water_bestdist < 16.0f )
             {
-              v57 = AAS_AllocReachability();
-              if ( v57 )
+              if ( !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
               {
-                v58 = ground_bestarea2groundedgenum;
-                *(_DWORD *)v57 = area2num;
-                *(_DWORD *)(v57 + 4) = 0;
-                *(_DWORD *)(v57 + 8) = v58;
-                *(float *)(v57 + 12) = ground_beststart[0];
-                *(float *)(v57 + 16) = ground_beststart[1];
-                *(float *)(v57 + 20) = ground_beststart[2];
-                *(float *)(v57 + 24) = ground_bestend[0];
-                *(float *)(v57 + 28) = ground_bestend[1];
-                *(float *)(v57 + 32) = ground_bestend[2];
-                *(_DWORD *)(v57 + 36) = 7;
-                *(_WORD *)(v57 + 40) = 100;
-                ((aas_reachabilitynode_t *)v57)->next = areareachability[area1num];
-                areareachability[area1num] = (aas_reachabilitynode_t *)v57;
-                ++reach_walkoffledge;
+                v54 = AAS_AllocReachability();
+                v55 = v54;
+                if ( !v54 )
+                  return 0;
+                v54->reach.edgenum = ground_bestarea2groundedgenum;
+                v54->reach.areanum = area2num;
+                v54->reach.facenum = 0;
+                VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v54->reach.start);
+                VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v55->reach.end);
+                v55->reach.traveltype = 4;
+                v55->reach.traveltime = 400;
+                v55->next = areareachability[area1num];
+                areareachability[area1num] = v55;
+                ++reach_barrier;
                 return 1;
+              }
+            }
+          }
+          if ( ground_bestdist < 0.0f )
+          {
+            if ( -libvar_sv_step->value < ground_bestdist )
+            {
+              v56 = AAS_AllocReachability();
+              if ( !v56 )
+                return 0;
+              v56->reach.edgenum = ground_bestarea2groundedgenum;
+              v56->reach.areanum = area2num;
+              v56->reach.facenum = 0;
+              VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v56->reach.start);
+              VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v56->reach.end);
+              v56->reach.traveltype = 2;
+              v56->reach.traveltime = 1;
+              v56->next = areareachability[area1num];
+              areareachability[area1num] = v56;
+              ++reach_walk;
+              return 1;
+            }
+            v114 = -AAS_FallDamageDistance();
+            if ( (float)(int)v114 < ground_bestdist || AAS_AreaSwim(area2num) )
+            {
+              VectorMA(ground_bestend, 2.0f, (float *)ground_bestnormal, ground_bestend);
+              VectorCopy(ground_bestend, start);
+              start[2] = ground_beststart[2];
+              VectorCopy(ground_bestend, end);
+              end[2] += 4.0f;
+              trace = AAS_TraceClientBBox(start, end, 2, -1);
+              if ( !trace.startsolid && trace.fraction >= 1.0 )
+              {
+                trace.endpos[2] = trace.endpos[2] + 1.0f;
+                if ( AAS_PointAreaNum(trace.endpos) == area2num )
+                {
+                  v57 = AAS_AllocReachability();
+                  if ( v57 )
+                  {
+                    v58 = ground_bestarea2groundedgenum;
+                    *(_DWORD *)v57 = area2num;
+                    *(_DWORD *)(v57 + 4) = 0;
+                    *(_DWORD *)(v57 + 8) = v58;
+                    *(float *)(v57 + 12) = ground_beststart[0];
+                    *(float *)(v57 + 16) = ground_beststart[1];
+                    *(float *)(v57 + 20) = ground_beststart[2];
+                    *(float *)(v57 + 24) = ground_bestend[0];
+                    *(float *)(v57 + 28) = ground_bestend[1];
+                    *(float *)(v57 + 32) = ground_bestend[2];
+                    *(_DWORD *)(v57 + 36) = 7;
+                    *(_WORD *)(v57 + 40) = 100;
+                    ((aas_reachabilitynode_t *)v57)->next = areareachability[area1num];
+                    areareachability[area1num] = (aas_reachabilitynode_t *)v57;
+                    ++reach_walkoffledge;
+                    return 1;
+                  }
+                }
               }
             }
           }
@@ -20485,55 +20489,60 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 
   lastvariable = -1;
   strptr       = match->string;
-  newstrptr    = match->string;
-
-  for ( mp = pieces; mp; mp = mp->next )
+  mp           = pieces;
+  if ( mp )
   {
-    if ( mp->type == MT_STRING )
+    newstrptr = match->string;
+    do
     {
-      /* Walk the alternative-string list for any contained in the remaining
-       * text.  An empty firststring means "match anywhere" — fall through with
-       * newstrptr unchanged. */
-      ms = mp->firststring;
-      if ( ms )
+      if ( mp->type == MT_STRING )
       {
-        while ( 1 )
+        /* Walk the alternative-string list for any contained in the remaining
+         * text.  An empty firststring means "match anywhere" — fall through with
+         * newstrptr unchanged. */
+        ms = mp->firststring;
+        if ( ms )
         {
-          /* Thunk 0x1000119A -> StringContains, which returns a pointer into the
-           * haystack, or NULL. */
-          newstrptr = (char *)StringContains(strptr, ms->string, 0);
-          if ( newstrptr )
-            break;
-          ms = ms->next;
-          if ( !ms )
-            return 0;
+          while ( 1 )
+          {
+            /* Thunk 0x1000119A -> StringContains, which returns a pointer into the
+             * haystack, or NULL. */
+            newstrptr = (char *)StringContains(strptr, ms->string, 0);
+            if ( newstrptr )
+              break;
+            ms = ms->next;
+            if ( !ms )
+              return 0;
+          }
         }
-      }
-      else if ( !newstrptr )
-      {
-        return 0;
-      }
+        else if ( !newstrptr )
+        {
+          return 0;
+        }
 
-      if ( lastvariable >= 0 )
-      {
-        match->variables[lastvariable].length = newstrptr - match->variables[lastvariable].ptr;
-        lastvariable = -1;
-      }
-      else if ( newstrptr != strptr )
-      {
-        return 0;
-      }
+        if ( lastvariable >= 0 )
+        {
+          match->variables[lastvariable].length = newstrptr - match->variables[lastvariable].ptr;
+          lastvariable = -1;
+        }
+        else if ( newstrptr != strptr )
+        {
+          return 0;
+        }
 
-      /* Advance strptr past the matched substring, unconditionally as the original
-       * does — it does not re-guard mp->firststring / ms->string, which are never
-       * NULL for a real MT_STRING piece, and guarding costs three branches. */
-      strptr = newstrptr + strlen(ms->string);
+        /* Advance strptr past the matched substring, unconditionally as the original
+         * does — it does not re-guard mp->firststring / ms->string, which are never
+         * NULL for a real MT_STRING piece, and guarding costs three branches. */
+        strptr = newstrptr + strlen(ms->string);
+      }
+      else if ( mp->type == MT_VARIABLE )
+      {
+        match->variables[mp->variable].ptr = strptr;
+        lastvariable = mp->variable;
+      }
+      mp = mp->next;
     }
-    else if ( mp->type == MT_VARIABLE )
-    {
-      match->variables[mp->variable].ptr = strptr;
-      lastvariable = mp->variable;
-    }
+    while ( mp );
   }
 
   if ( !mp && (lastvariable >= 0 || !strlen(strptr)) )
