@@ -18,7 +18,7 @@
 #define MAX_INFOSTRING   80     /* "name" / "model" field width (stride 0x50) */
 #define MAX_SHORTSTRING  80
 
-/* soundinfo_t — descriptor unk_1005C138, field table at .data 0x1005C070. */
+/* soundinfo_t — descriptor soundinfo_struct, field table at .data 0x1005C070. */
 typedef struct soundinfo_s {
     char  name[80];          /* +0x00 — sound symbolic name (MAX_SHORTSTRING) */
     float volume;            /* +0x50 — playback volume (default 80.0)        */
@@ -28,7 +28,7 @@ typedef struct soundinfo_s {
     char  string[80];        /* +0x60 — sound file path                       */
 } soundinfo_t;               /* sizeof = 0xB0 = 176 */
 
-/* iteminfo_t — descriptor unk_1005D890. */
+/* iteminfo_t — descriptor iteminfo_struct. */
 typedef struct iteminfo_s {
     char    name[80];        /* +0x000 — item config name (e.g. "Shotgun")    */
     char    dispname[80];    /* +0x050 — spawn classname for BSP matching (set by LoadItemConfig) */
@@ -49,7 +49,7 @@ typedef struct itemconfig_s {
     iteminfo_t  *items;            /* +4  → base + 8                         */
 } itemconfig_t;                    /* sizeof = 8 (header only) */
 
-/* weaponinfo_t — descriptor unk_1005DFD8.  Same field names as Q3, larger
+/* weaponinfo_t — descriptor weaponinfo_struct.  Same field names as Q3, larger
  * offsets.  The leading dword before `name` is Q3's `valid` flag. */
 typedef struct projectileinfo_s projectileinfo_t;  /* fwd decl for proj field */
 typedef struct weaponinfo_s {
@@ -78,7 +78,7 @@ typedef struct weaponinfo_s {
     projectileinfo_t  *proj;            /* +0x154 — resolved projectileinfo pointer (Gladiator-specific; Q3 embeds the projectileinfo) */
 } weaponinfo_t;                         /* sizeof = 0x158 = 344 */
 
-/* projectileinfo_t — descriptor unk_1005DFE0, field table at .data 0x1005DE30. */
+/* projectileinfo_t — descriptor projectileinfo_struct, field table at .data 0x1005DE30. */
 struct projectileinfo_s {
     char    name[84];        /* +0x00 — 84, not 80: the descriptor puts model
                                 at +0x54                                       */

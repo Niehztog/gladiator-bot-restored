@@ -817,7 +817,7 @@ float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this 
 //-------------------------------------------------------------------------
 // Data declarations
 
-extern structdef_t unk_1005C138; /* sound info structdef — defined in botlib_structdefs.c */
+extern structdef_t soundinfo_struct; /* sound info structdef — defined in botlib_structdefs.c */
 extern float unk_1005C56C[3]; /* vec3 {0,-1,0} — defined in botlib_structdefs.c */
 float flt_1005C578 = 0.0; // weak
 int dword_1005C57C = 0; // weak
@@ -826,9 +826,9 @@ extern float unk_1005C584[3]; /* vec3 {0,-2,0} — defined in botlib_structdefs.
 float flt_1005C590 = 0.0; // weak
 int dword_1005C594 = 0; // weak
 int dword_1005C598 = -1082130432; // weak
-extern structdef_t unk_1005D890; /* item/entity structdef — defined in botlib_structdefs.c */
-extern structdef_t unk_1005DFD8; /* weapon config structdef — defined in botlib_structdefs.c */
-extern structdef_t unk_1005DFE0; /* projectile config structdef — defined in botlib_structdefs.c */
+extern structdef_t iteminfo_struct; /* item/entity structdef — defined in botlib_structdefs.c */
+extern structdef_t weaponinfo_struct; /* weapon config structdef — defined in botlib_structdefs.c */
+extern structdef_t projectileinfo_struct; /* projectile config structdef — defined in botlib_structdefs.c */
 __int16 word_1005E498 = 45; // weak
 extern int unk_1005E678[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
 extern int unk_1005E958;  /* end-of-table sentinel address — immediately after unk_1005E678 */
@@ -1284,7 +1284,8 @@ bot_matchtemplate_t *matchtemplates; // weak
 bot_randomlist_t *randomstrings; // weak
 bot_replychat_t *replychats; // weak
 bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
-int dword_10064388; // weak
+int numbots; /* active-bot count, ++/-- in BotSetupClient/BotShutdownClient, returned by
+                NumBots(); name recovered from the tourney-2.5 Linux gladi386.so .dynsym */
 bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
 int dword_1006439C; // weak
 /* bot_character (botlib-private):
@@ -1465,7 +1466,9 @@ typedef struct chatlist_s {
 } chatlist_t;
 
 float flt_100643A4; // weak
-bot_clientsettings_t *dword_100643A8; /* per-client {netname[16], skin[128]} = 144 B */
+bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B; name recovered
+                                          from the tourney-2.5 Linux gladi386.so .dynsym (unstripped
+                                          data symbols) */
 libvar_t *libvar_ctf; /* libvar handle */
 /* CTF flag goals.  BotGetLevelItemGoal fills 48 bytes of each 56-byte
  * bot_goal_t slot; `areanum` doubles as the "flag found" flag (0 = not yet). */
@@ -13495,7 +13498,7 @@ void __cdecl sub_1001C6F0(void)
     fp = Log_FilePointer();
     if ( !fp )
       return;
-    WriteStructure(fp, (int)&unk_1005C138, (char *)&aasworld.soundinfo[i]);
+    WriteStructure(fp, (int)&soundinfo_struct, (char *)&aasworld.soundinfo[i]);
     Log_Flush();
   }
 }
@@ -13544,7 +13547,7 @@ int sub_1001C760(char *Source)
         return 0;
       }
       memset(&aasworld.soundinfo[aasworld.numsoundinfo], 0, sizeof(soundinfo_t));
-      if ( !ReadStructure(v5, &unk_1005C138, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
+      if ( !ReadStructure(v5, &soundinfo_struct, (char *)&aasworld.soundinfo[aasworld.numsoundinfo]) )
       {
         FreeSource(v5);
         return 0;
@@ -16681,7 +16684,7 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
   numplayers = 0;
   for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( strlen(dword_100643A8[i].netname) )
+    if ( strlen(clientsettings[i].netname) )
     {
       if ( BotSameTeam(bs, i + 1) )
         ++numplayers;
@@ -17727,12 +17730,12 @@ int __cdecl FindClientByName(char *name)
 
   for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( !_strcmpi(dword_100643A8[i].netname, name) )
+    if ( !_strcmpi(clientsettings[i].netname, name) )
       return i;
   }
   for ( i = 0; i < botstate.num_clients; i++ )
   {
-    if ( stristr(dword_100643A8[i].netname, name) )
+    if ( stristr(clientsettings[i].netname, name) )
       return i;
   }
   return -1;
@@ -18641,7 +18644,7 @@ int __cdecl ClientFromName(const char *name)
   v1 = 0;
   if ( botstate.num_clients <= 0 )
     return 0;
-  for ( i = dword_100643A8; v1 < botstate.num_clients; ++v1, ++i )
+  for ( i = clientsettings; v1 < botstate.num_clients; ++v1, ++i )
   {
     if ( !strcmp(name, i->netname) )
       return v1;
@@ -18653,7 +18656,7 @@ int __cdecl ClientFromName(const char *name)
 char *__cdecl ClientName(int client)
 {
   if ( client >= 0 && client < botstate.num_clients )
-    return dword_100643A8[client].netname;
+    return clientsettings[client].netname;
   botimport.Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
   return &byte_1006294C;
 }
@@ -18662,7 +18665,7 @@ char *__cdecl ClientName(int client)
 char *__cdecl ClientSkin(int client)
 {
   if ( client >= 0 && client < botstate.num_clients )
-    return dword_100643A8[client].skin;
+    return clientsettings[client].skin;
   botimport.Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
   return &byte_1006294C;
 }
@@ -18670,7 +18673,7 @@ char *__cdecl ClientSkin(int client)
 //----- (10028FD0) --------------------------------------------------------
 int NumBots()
 {
-  return dword_10064388;
+  return numbots;
 }
 
 //----- (10028FF0) --------------------------------------------------------
@@ -18920,7 +18923,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   bs->entitynum = a1 + 1;
   bs->inuse_marker = 1;
   bs->setup_time = AAS_Time();
-  ++dword_10064388;
+  ++numbots;
   return 1;
 }
 
@@ -18955,7 +18958,7 @@ int __cdecl BotShutdownClient(int a1)
   v1[1137] = 0;
   memset(v1, 0, 0x11D0u);
   *v1 = 0;
-  --dword_10064388;
+  --numbots;
   return BLERR_NOERROR;
 }
 
@@ -19011,7 +19014,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
 //----- (10029920) --------------------------------------------------------
 int __cdecl BotClientSettings(int a1, const void *a2)
 {
-  memcpy(&dword_100643A8[a1], a2, sizeof(bot_clientsettings_t));
+  memcpy(&clientsettings[a1], a2, sizeof(bot_clientsettings_t));
   return 0;
 }
 
@@ -19127,7 +19130,7 @@ int BotSetupLibrary()
   botpatrolpoints   = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botstate.num_clients);
   botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botstate.num_clients);
 #endif
-  dword_100643A8 = GetClearedMemory(sizeof(bot_clientsettings_t) * botstate.num_clients);
+  clientsettings = GetClearedMemory(sizeof(bot_clientsettings_t) * botstate.num_clients);
   dword_1006439C = (int)LibVarValue("gametype", (char *)"0");
   return BLERR_NOERROR;
 }
@@ -19141,10 +19144,10 @@ int BotShutdownLibrary()
   BotShutdownChatAI();
   BotShutdownGoalAI();
   BotShutdownWeaponAI();
-  if ( dword_100643A8 )
-    FreeMemory(dword_100643A8);
+  if ( clientsettings )
+    FreeMemory(clientsettings);
   result = (int)(intptr_t)botstates;
-  dword_100643A8 = 0;
+  clientsettings = 0;
   if ( botstates )
     result = FreeMemory(botstates);
   botstates = 0;
@@ -21989,7 +21992,7 @@ itemconfig_t * LoadItemConfig(char *filename)
       }
       StripDoubleQuotes(ArgList);
       strncpy(item->dispname, ArgList, 80);
-      if ( !ReadStructure(src, &unk_1005D890, item) )
+      if ( !ReadStructure(src, &iteminfo_struct, item) )
       {
         FreeMemory(cfg);
         FreeSource(src);
@@ -24732,7 +24735,7 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
         return 0;
       }
       memset(&wc->weaponinfo[wc->numweapons], 0, sizeof(weaponinfo_t));
-      if ( !ReadStructure(source, &unk_1005DFD8, &wc->weaponinfo[wc->numweapons]) )
+      if ( !ReadStructure(source, &weaponinfo_struct, &wc->weaponinfo[wc->numweapons]) )
       {
         FreeMemory(wc);
         FreeSource(source);
@@ -24750,7 +24753,7 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
         return 0;
       }
       memset(&wc->projectileinfo[wc->numprojectiles], 0, sizeof(projectileinfo_t));
-      if ( !ReadStructure(source, &unk_1005DFE0, &wc->projectileinfo[wc->numprojectiles]) )
+      if ( !ReadStructure(source, &projectileinfo_struct, &wc->projectileinfo[wc->numprojectiles]) )
       {
         FreeMemory(wc);
         FreeSource(source);

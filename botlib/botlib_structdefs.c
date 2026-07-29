@@ -22,8 +22,8 @@
 #define FE_END \
     P(0),  P(0),   P(0),   P(0),  P(0),  P(0),  P(0)
 
-/* unk_1005C138 — soundinfo descriptor (176 B); field table at 0x1005C070. */
-static char *snd_fields[] = {
+/* soundinfo_struct — descriptor at 0x1005C138 (176 B); field table at 0x1005C070. */
+static char *soundinfo_fields[] = {
     FE("name",        0x00, 0x004, 0, 0x00000000),
     FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
     FE("duration",    0x54, 0x203, 0, 0x41200000),  /* 10.0f */
@@ -32,10 +32,10 @@ static char *snd_fields[] = {
     FE("string",      0x60, 0x004, 0, 0x00000000),
     FE_END
 };
-structdef_t unk_1005C138 = { 176, snd_fields };
+structdef_t soundinfo_struct = { 176, soundinfo_fields };
 
-/* unk_1005D890 — iteminfo descriptor (284 B); field table at 0x1005D7B0. */
-static char *item_fields[] = {
+/* iteminfo_struct — descriptor at 0x1005D890 (284 B); field table at 0x1005D7B0. */
+static char *iteminfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x0A0, 0x004, 0, 0x00000000),
     FE("type",        0x0F4, 0x002, 0, 0x00000000),
@@ -45,10 +45,10 @@ static char *item_fields[] = {
     FE("maxs",        0x10C, 0x103, 3, 0x00000000),  /* vec3, flags 0x103 */
     FE_END
 };
-structdef_t unk_1005D890 = { 284, item_fields };
+structdef_t iteminfo_struct = { 284, iteminfo_fields };
 
-/* unk_1005DFD8 — weaponinfo descriptor (344 B); field table at 0x1005DBC8. */
-static char *weap_fields[] = {
+/* weaponinfo_struct — descriptor at 0x1005DFD8 (344 B); field table at 0x1005DBC8. */
+static char *weaponinfo_fields[] = {
     FE("name",            0x004, 0x004, 0, 0x00000000),
     FE("level",           0x0A4, 0x002, 0, 0x00000000),
     FE("model",           0x054, 0x004, 0, 0x00000000),
@@ -72,10 +72,10 @@ static char *weap_fields[] = {
     FE("spindown",        0x150, 0x003, 0, 0x00000000),
     FE_END
 };
-structdef_t unk_1005DFD8 = { 344, weap_fields };
+structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
 
-/* unk_1005DFE0 — projectileinfo descriptor (208 B); table at 0x1005DE30. */
-static char *proj_fields[] = {
+/* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30. */
+static char *projectileinfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x054, 0x004, 0, 0x00000000),
     FE("flags",       0x0A0, 0x002, 0, 0x00000000),
@@ -92,7 +92,7 @@ static char *proj_fields[] = {
     FE("bouncestop",  0x0CC, 0x003, 0, 0x00000000),
     FE_END
 };
-structdef_t unk_1005DFE0 = { 208, proj_fields };
+structdef_t projectileinfo_struct = { 208, projectileinfo_fields };
 
 /* .rdata vec3 constants — 12 bytes each, as VectorCompare() requires. */
 float unk_1005C56C[3] = { 0.0f, -1.0f,  0.0f };
