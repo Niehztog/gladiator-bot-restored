@@ -817,29 +817,19 @@ float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this 
 // Data declarations
 
 extern structdef_t soundinfo_struct; /* sound info structdef — defined in botlib_structdefs.c */
-/* G_SetMovedir's four direction constants, in the original declaration order.
- * Non-static in Mr. Elusive's sources (see game/g_utils.c:342-345), which is
- * why all four survive by name in the Linux gladi386.so's .dynsym.  IDA split
- * the two MOVEDIR_* vec3s into per-dword scalars (flt_1005C578/dword_1005C57C/
- * dword_1005C580 and flt_1005C590/dword_1005C594/dword_1005C598) because
- * VectorCopy expands to three separate moves.  All four are defined in
- * botlib_structdefs.c. */
-extern float VEC_UP[3];   /* 0x1005C56C {0,-1,0} — defined in botlib_structdefs.c */
-/* 0x1005C578 MOVEDIR_UP = {0,0,1}.  Kept as three separately-typed scalars, NOT
- * a float[3]: MSVC6 emitted fld/fstp for element [0] and integer movs for [1]
- * and [2] (0x10024FE7..0x10025005), a mix only differently-typed scalars
- * reproduce.  Writing it as an array — whether VectorCopy() or element-wise —
- * costs .text and would put BotSetMovedir's byte-MATCH at risk.  Worth
- * re-testing under the MSVC6 oracle whether the array form still matches; if it
- * does, `VectorCopy(MOVEDIR_UP, movedir)` is the true original (game/g_utils.c
- * :351 writes exactly that).  Until then, do not "simplify" these. */
-float flt_1005C578 = 0.0;             /* MOVEDIR_UP[0] */
-int   dword_1005C57C = 0;             /* MOVEDIR_UP[1] */
-int   dword_1005C580 = 1065353216;    /* MOVEDIR_UP[2] = 1.0f  */
-extern float VEC_DOWN[3]; /* 0x1005C584 {0,-2,0} — defined in botlib_structdefs.c */
-float flt_1005C590 = 0.0;             /* MOVEDIR_DOWN[0] — 0x1005C590 */
-int   dword_1005C594 = 0;             /* MOVEDIR_DOWN[1] */
-int   dword_1005C598 = -1082130432;   /* MOVEDIR_DOWN[2] = -1.0f */
+/* G_SetMovedir's four direction constants, in the original declaration order;
+ * all four are defined in botlib_structdefs.c.  IDA rendered the two MOVEDIR_*
+ * vec3s as per-dword scalars (flt_1005C578/dword_1005C57C/dword_1005C580 and
+ * flt_1005C590/dword_1005C594/dword_1005C598) because VectorCopy expands to
+ * three separate moves and MSVC6 kept only the first in the FPU — a decompiler
+ * artifact, not the original shape.  The array form is proven twice over: the
+ * 1999 Linux gladi386.so's symbol table sizes each of the four at 12 bytes
+ * (`readelf -s`: "12 OBJECT GLOBAL … MOVEDIR_UP"), and BotSetMovedir stays
+ * byte-identical (125 B) under the MSVC6 oracle with float[3] + VectorCopy. */
+extern float VEC_UP[3];      /* 0x1005C56C {0,-1, 0} — defined in botlib_structdefs.c */
+extern float MOVEDIR_UP[3];  /* 0x1005C578 {0, 0, 1} — defined in botlib_structdefs.c */
+extern float VEC_DOWN[3];    /* 0x1005C584 {0,-2, 0} — defined in botlib_structdefs.c */
+extern float MOVEDIR_DOWN[3]; /* 0x1005C590 {0, 0,-1} — defined in botlib_structdefs.c */
 extern structdef_t iteminfo_struct; /* item/entity structdef — defined in botlib_structdefs.c */
 extern structdef_t weaponinfo_struct; /* weapon config structdef — defined in botlib_structdefs.c */
 extern structdef_t projectileinfo_struct; /* projectile config structdef — defined in botlib_structdefs.c */
@@ -17183,21 +17173,14 @@ LABEL_39:
 //----- (10024FD0) --------------------------------------------------------
 int __cdecl BotSetMovedir(float *angles, float *movedir)
 {
-  /* The two copies are g_utils.c's VectorCopy(MOVEDIR_UP/MOVEDIR_DOWN, movedir);
-   * the scalar spelling reproduces MSVC6's mixed fld/fstp + mov + mov exactly.
-   * See the MOVEDIR_* declaration comment before changing this. */
   if ( VectorCompare(angles, VEC_UP) )
   {
-    movedir[0] = flt_1005C578;
-    *(_DWORD *)&movedir[1] = dword_1005C57C;
-    *(_DWORD *)&movedir[2] = dword_1005C580;
+    VectorCopy(MOVEDIR_UP, movedir);
     return (int)(intptr_t)movedir;
   }
   else if ( VectorCompare(angles, VEC_DOWN) )
   {
-    movedir[0] = flt_1005C590;
-    *(_DWORD *)&movedir[1] = dword_1005C594;
-    *(_DWORD *)&movedir[2] = dword_1005C598;
+    VectorCopy(MOVEDIR_DOWN, movedir);
     return (int)(intptr_t)movedir;
   }
   else
