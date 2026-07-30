@@ -19,6 +19,7 @@
 #include <string.h>    /* string and memory ops */
 #include <stdlib.h>    /* malloc, atoi, rand, abs */
 #include <ctype.h>     /* toupper */
+#include <errno.h>     /* errno */
 #include <time.h>      /* time(), ctime() */
 #include <unistd.h>    /* access(), chdir(), getcwd() */
 
@@ -59,10 +60,8 @@ static int    _chdir(const char *path) { return chdir(path); }
 #ifndef _WIN32
 /* POSIX equivalents for the Windows CRT functions used below. */
 #include <strings.h>    /* strcasecmp */
-#include <errno.h>      /* errno */
 #define _strcmpi   strcasecmp
 #define _access    access
-static inline int *_errno(void) { return &errno; }
 typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
 #endif
 
@@ -7449,9 +7448,9 @@ int __cdecl sub_1000E430(char *Source)
         if ( sub_10041240((int)Destination, ArgList, 0) )
         {
           v7 = AAS_LoadAASFile(ArgList, 0, 0);
-          *_errno() = v7;
-          if ( *_errno() )
-            return *_errno();
+          errno = v7;
+          if ( errno )
+            return errno;
           remove_file(ArgList);
           botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", Destination, ArgList);
           Log_Write("found %s in %s", ArgList, Destination); /* "found %s in %s" */
@@ -7491,10 +7490,10 @@ int BotLibLoadMap(char *Source)
   if ( sub_10041F60(Destination, &v7) )
   {
     v2 = AAS_LoadBSPFile(v7.path, v7.fileofs, v7.filelen);
-    *_errno() = v2;
-    if ( *_errno() )
+    errno = v2;
+    if ( errno )
     {
-      return *_errno();
+      return errno;
     }
     else
     {
@@ -7518,8 +7517,8 @@ int BotLibLoadMap(char *Source)
         {
 #ifdef _WIN32
           v5 = sub_1000E430(Source);
-          *_errno() = v5;
-          if ( !*_errno() )
+          errno = v5;
+          if ( !errno )
             return BLERR_NOERROR;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
           {
@@ -7548,7 +7547,7 @@ int BotLibLoadMap(char *Source)
            * and no winbspc spawn, so it never tries the aasN.zip fallback — it sets
            * errno=5 and the autolaunchbspc branch only reports that BSPC is a Win32
            * program. */
-          *_errno() = 5;
+          errno = 5;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
             botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
 #endif
@@ -7557,9 +7556,9 @@ int BotLibLoadMap(char *Source)
         }
       }
       errnum = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
-      *_errno() = errnum;
-      if ( *_errno() )
-        return *_errno();
+      errno = errnum;
+      if ( errno )
+        return errno;
       if ( v7.fileofs )
         botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, aasfile);
       else
@@ -7593,11 +7592,11 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   sub_1000DC20(a2, a3, a4, a5, a6, a7);
   AAS_FreeRoutingCaches();
   v8 = BotLibLoadMap(Source);
-  *_errno() = v8;
-  if ( *_errno() )
+  errno = v8;
+  if ( errno )
   {
     aasworld.loaded = 0;
-    return *_errno();
+    return errno;
   }
   AAS_InitAASLinkHeap();
   AAS_InitAASLinkedEntities();
@@ -19136,15 +19135,15 @@ int sub_10029C10()
 int BotSetupLibrary()
 {
   srand(time(0));
-  *_errno() = BotSetupWeaponAI();
-  if ( *_errno() )
-    return *_errno();
-  *_errno() = BotSetupGoalAI();
-  if ( *_errno() )
-    return *_errno();
-  *_errno() = BotSetupChatAI();
-  if ( *_errno() )
-    return *_errno();
+  errno = BotSetupWeaponAI();
+  if ( errno )
+    return errno;
+  errno = BotSetupGoalAI();
+  if ( errno )
+    return errno;
+  errno = BotSetupChatAI();
+  if ( errno )
+    return errno;
   botstates = (bot_state_t *)GetClearedMemory(sizeof(bot_state_t) * botstate.num_clients);
 #if BOTLIB_NEED_SIDEBAND
   botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * botstate.num_clients);
@@ -28173,7 +28172,10 @@ LABEL_71:
         break;
       case 3:
         if ( lastwasvalue )
-          goto LABEL_71;
+        {
+          SourceError(source, "syntax error in #if/#elif");
+          goto LABEL_76;
+        }
         v13 = GetClearedMemory(sizeof(value_t));
         if ( negativevalue )
         {
