@@ -818,20 +818,41 @@ float *__cdecl VectorNegate(float *v); /* botlib.c-local; q_shared.c lacks this 
 // Data declarations
 
 extern structdef_t soundinfo_struct; /* sound info structdef — defined in botlib_structdefs.c */
-extern float unk_1005C56C[3]; /* vec3 {0,-1,0} — defined in botlib_structdefs.c */
-float flt_1005C578 = 0.0; // weak
-int dword_1005C57C = 0; // weak
-int dword_1005C580 = 1065353216; // weak
-extern float unk_1005C584[3]; /* vec3 {0,-2,0} — defined in botlib_structdefs.c */
-float flt_1005C590 = 0.0; // weak
-int dword_1005C594 = 0; // weak
-int dword_1005C598 = -1082130432; // weak
+/* G_SetMovedir's four direction constants, in the original declaration order.
+ * Non-static in Mr. Elusive's sources (see game/g_utils.c:342-345), which is
+ * why all four survive by name in the Linux gladi386.so's .dynsym.  IDA split
+ * the two MOVEDIR_* vec3s into per-dword scalars (flt_1005C578/dword_1005C57C/
+ * dword_1005C580 and flt_1005C590/dword_1005C594/dword_1005C598) because
+ * VectorCopy expands to three separate moves.  All four are defined in
+ * botlib_structdefs.c. */
+extern float VEC_UP[3];   /* 0x1005C56C {0,-1,0} — defined in botlib_structdefs.c */
+/* 0x1005C578 MOVEDIR_UP = {0,0,1}.  Kept as three separately-typed scalars, NOT
+ * a float[3]: MSVC6 emitted fld/fstp for element [0] and integer movs for [1]
+ * and [2] (0x10024FE7..0x10025005), a mix only differently-typed scalars
+ * reproduce.  Writing it as an array — whether VectorCopy() or element-wise —
+ * costs .text and would put BotSetMovedir's byte-MATCH at risk.  Worth
+ * re-testing under the MSVC6 oracle whether the array form still matches; if it
+ * does, `VectorCopy(MOVEDIR_UP, movedir)` is the true original (game/g_utils.c
+ * :351 writes exactly that).  Until then, do not "simplify" these. */
+float flt_1005C578 = 0.0;             /* MOVEDIR_UP[0] */
+int   dword_1005C57C = 0;             /* MOVEDIR_UP[1] */
+int   dword_1005C580 = 1065353216;    /* MOVEDIR_UP[2] = 1.0f  */
+extern float VEC_DOWN[3]; /* 0x1005C584 {0,-2,0} — defined in botlib_structdefs.c */
+float flt_1005C590 = 0.0;             /* MOVEDIR_DOWN[0] — 0x1005C590 */
+int   dword_1005C594 = 0;             /* MOVEDIR_DOWN[1] */
+int   dword_1005C598 = -1082130432;   /* MOVEDIR_DOWN[2] = -1.0f */
 extern structdef_t iteminfo_struct; /* item/entity structdef — defined in botlib_structdefs.c */
 extern structdef_t weaponinfo_struct; /* weapon config structdef — defined in botlib_structdefs.c */
 extern structdef_t projectileinfo_struct; /* projectile config structdef — defined in botlib_structdefs.c */
 __int16 word_1005E498 = 45; // weak
-extern int unk_1005E678[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
-extern int unk_1005E958;  /* end-of-table sentinel address — immediately after unk_1005E678 */
+extern int filecrcs[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
+/* NOT a variable and has no original name to recover: 0x1005E958 is exactly
+ * filecrcs + 736, i.e. the one-past-the-end address MSVC folded into the scan
+ * loop's bound as a link-time constant, and IDA had to invent a symbol for the
+ * referenced address.  Confirmed: the DLL holds only zero fill there, and the
+ * Linux .so — whose .dynsym kept every real global — has no symbol at the
+ * corresponding end-of-filecrcs offset either.  Do not chase a name for it. */
+extern int unk_1005E958;
 __int16 crctable[308] =
 {
   0,
@@ -1144,12 +1165,16 @@ __int16 crctable[308] =
   0
 }; // weak
 /* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
- * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_ifdef(src, 8/16). */
+ * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_ifdef(src, 8/16).
+ * `directive_t` / `directives` / `dollardirectives` are the original names,
+ * recovered from the Linux gladi386.so .dynsym (both tables 160 B = Q3's
+ * `directive_t directives[20]`), replacing the invented preproc_directive_t /
+ * preproc_directives / eval_type_table. */
 static int preproc_ifdef_wrap(source_t *src)  { return PC_Directive_ifdef(src, 8);  }
 static int preproc_ifndef_wrap(source_t *src) { return PC_Directive_ifdef(src, 16); }
 
-typedef struct { const char *name; int (*handler)(intptr_t); } preproc_directive_t;
-static preproc_directive_t preproc_directives[] = {
+typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
+static directive_t directives[] = {
     {"if",        PC_Directive_if},   /* 0x1003CCB0 */
     {"ifdef",     preproc_ifdef_wrap},   /* 0x1003B7B0 -> PC_Directive_ifdef(s,8)  */
     {"ifndef",    preproc_ifndef_wrap},  /* 0x1003B7D0 -> PC_Directive_ifdef(s,16) */
@@ -1167,12 +1192,12 @@ static preproc_directive_t preproc_directives[] = {
     {NULL, NULL}
 };
 /* Preserved as aliases so existing PC_ReadDirective code referencing &off_1005F260 still compiles. */
-char *off_1005F260 = "if"; // the table's first name field; see preproc_directives
+char *off_1005F260 = "if"; // the table's first name field; see directives
 int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: first handler
-/* off_1005F300 — eval type dispatch table at VA 0x1005F300: 2 entries + NULL,
- * walked by PC_ReadDollarDirective as a stride-2 pointer array. */
-typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } eval_type_t;
-static eval_type_t eval_type_table[] = {
+/* dollardirectives — $-directive dispatch table at VA 0x1005F300: 2 entries +
+ * NULL, walked by PC_ReadDollarDirective as a stride-2 pointer array.  Same
+ * directive_t element type as `directives` above (as in Q3 l_precomp.c). */
+static directive_t dollardirectives[] = {
     {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
     {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
     {NULL, NULL}
@@ -17159,14 +17184,17 @@ LABEL_39:
 //----- (10024FD0) --------------------------------------------------------
 int __cdecl BotSetMovedir(float *angles, float *movedir)
 {
-  if ( VectorCompare(angles, (float *)&unk_1005C56C) )
+  /* The two copies are g_utils.c's VectorCopy(MOVEDIR_UP/MOVEDIR_DOWN, movedir);
+   * the scalar spelling reproduces MSVC6's mixed fld/fstp + mov + mov exactly.
+   * See the MOVEDIR_* declaration comment before changing this. */
+  if ( VectorCompare(angles, VEC_UP) )
   {
     movedir[0] = flt_1005C578;
     *(_DWORD *)&movedir[1] = dword_1005C57C;
     *(_DWORD *)&movedir[2] = dword_1005C580;
     return (int)(intptr_t)movedir;
   }
-  else if ( VectorCompare(angles, (float *)&unk_1005C584) )
+  else if ( VectorCompare(angles, VEC_DOWN) )
   {
     movedir[0] = flt_1005C590;
     *(_DWORD *)&movedir[1] = dword_1005C594;
@@ -26136,7 +26164,7 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
 {
   _WORD *v2;
 
-  v2 = &unk_1005E678;
+  v2 = &filecrcs;
   while ( (int)v2 < (int)&unk_1005E958 )
   {
     if ( (_WORD)a2 == *v2 )
@@ -28890,10 +28918,10 @@ int __cdecl PC_ReadDirective(source_t *source)
     /* Indexed scan, as Q3 writes it: the index is reused at the call site
      * (`directives[i].func`), so MSVC keeps both the strength-reduced name
      * pointer and the counter. */
-    for ( i = 0; preproc_directives[i].name; i++ )
+    for ( i = 0; directives[i].name; i++ )
     {
-      if ( !strcmp(preproc_directives[i].name, token.string) )
-        return preproc_directives[i].handler(source);
+      if ( !strcmp(directives[i].name, token.string) )
+        return directives[i].handler(source);
     }
   }
   SourceError(source, "unknown precompiler directive %s", token.string);
@@ -28973,10 +29001,10 @@ int __cdecl PC_ReadDollarDirective(source_t *source)
   }
   if ( token.type == 4 )
   {
-    for ( i = 0; eval_type_table[i].name; i++ )
+    for ( i = 0; dollardirectives[i].name; i++ )
     {
-      if ( !strcmp(eval_type_table[i].name, token.string) )
-        return eval_type_table[i].handler(source);
+      if ( !strcmp(dollardirectives[i].name, token.string) )
+        return dollardirectives[i].handler(source);
     }
   }
   PC_UnreadSourceToken(source, token.string);

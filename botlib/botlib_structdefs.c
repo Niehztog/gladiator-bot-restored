@@ -94,16 +94,23 @@ static char *projectileinfo_fields[] = {
 };
 structdef_t projectileinfo_struct = { 208, projectileinfo_fields };
 
-/* .rdata vec3 constants — 12 bytes each, as VectorCompare() requires. */
-float unk_1005C56C[3] = { 0.0f, -1.0f,  0.0f };
-float unk_1005C584[3] = { 0.0f, -2.0f,  0.0f };
+/* G_SetMovedir's direction constants (game/g_utils.c:342-345), 12 bytes each.
+ * MOVEDIR_UP / MOVEDIR_DOWN are defined next to their use in botlib.c so the
+ * emitted code keeps matching the original — see the note there. */
+float VEC_UP[3]   = { 0.0f, -1.0f,  0.0f };
+float VEC_DOWN[3] = { 0.0f, -2.0f,  0.0f };
 float velocity[3]     = { 0.0f,  0.0f,  0.0f };   /* passed to AAS_ClientMovementHV */
 
-/* unk_1005E678 — CRC16 weapon ID table, 91 entries of
- * { uint16 crc16, uint16 pad, uint32 weapon_type } plus a NULL terminator.
+/* filecrcs (name recovered from the Linux gladi386.so .dynsym, where it is a
+ * 736-byte global whose contents are byte-identical to this table) — 91 entries
+ * of { uint16 crc16, uint16 pad, uint32 flags } plus a NULL terminator.
+ * This is the config-file CRC whitelist of the integrity subsystem that also
+ * owns CRC_Block / sub_10037820 and the "You are not allowed to modify the bot
+ * characters" message, NOT the weapon table an earlier annotation guessed; the
+ * flags column (1/3/4/6/8/0x20/0x40) is an unidentified file category.
  * sub_100377E0 scans it up to &unk_1005E958, so that symbol MUST stay
  * immediately after this array (guaranteed by declaration order in a TU). */
-int unk_1005E678[] = {
+int filecrcs[] = {
     0x0000A991, 0x00000001,
     0x0000A757, 0x00000001,
     0x00007267, 0x00000001,
@@ -197,7 +204,7 @@ int unk_1005E678[] = {
     0x0000E488, 0x00000020,
     0x00000000, 0x00000000,   /* NULL terminator (entry 91) */
 };
-/* End-of-table sentinel — must immediately follow unk_1005E678. */
+/* End-of-table sentinel — must immediately follow filecrcs. */
 int unk_1005E958 = 0;
 
 /* unk_10060418 — 72-byte blob; &[3] is the "You are not allowed to…" text. */
