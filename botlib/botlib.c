@@ -1890,14 +1890,8 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float v20; // st6
   int v24; // edx
   float v25; // st6
-  float *i; // ecx (endpos-fill walk pointer)
-  float *v29; // eax
-  float *v30; // edx
   int v31; // esi
-  float v32; // st7
-  float v33; // st7
   float v35; // st7
-  float v38; // st7
   bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
   bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
   vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
@@ -2016,34 +2010,23 @@ LABEL_40:
       else
         trace->exp_dist = -boxmins[v15];
     }
-    /* trace->endpos[n] = start[n] + v39 * v40[n], as the original parallel
-     * pointer walk. */
-    v29 = start;
-    v30 = v40;
-    i = trace->endpos;
-    v31 = 3;
-    do
-    {
-      v32 = v39 * *v30;
-      ++v29;
-      ++v30;
-      --v31;
-      *i++ = v32 + *(v29 - 1);
-    }
-    while ( v31 );
-    v33 = v40[v15];
+    /* Plain indexed form: cl.exe strength-reduces it to ONE induction pointer
+     * (start) plus a base difference for v40, and counts down from 3.  IDA's
+     * `++v29; … *(v29 - 1)` walk instead pre-biases the pointer, costing a
+     * `lea eax,[edx-0x4]` the original does not have. */
+    for ( v31 = 0; v31 < 3; ++v31 )
+      trace->endpos[v31] = v39 * v40[v31] + start[v31];
     trace->plane.normal[(v15 + 1) % 3] = 0.0f;
     trace->plane.normal[(v15 + 2) % 3] = 0.0f;
-    if ( v33 > 0.0f )
+    if ( v40[v15] > 0.0f )
       trace->plane.normal[v15] = -1.0f;
     else
       trace->plane.normal[v15] = 1.0f;
     v35 = trace->endpos[v15];
     if ( v40[v15] > 0.0f )
       v35 = -v35;
-    v38 = v35 - trace->exp_dist;
     trace->plane.type = (byte)v15;
-    trace->plane.dist = v38;
+    trace->plane.dist = v35 - trace->exp_dist;
     return 1;
   }
   if ( entdata.solid == 3 )
