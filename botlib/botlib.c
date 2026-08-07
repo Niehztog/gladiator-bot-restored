@@ -3916,7 +3916,6 @@ void CalcSurfaceExtents()
   int v11; // edi
   int k; // esi
   int v13; // eax
-  double X; // st7
   int v15; // eax
   char *v16; // ecx
   qboolean v17; // cc
@@ -3987,8 +3986,7 @@ void CalcSurfaceExtents()
       {
         v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
         v24[k + 2] = v13;
-        X = *(float *)&v24[k] * 0.0625f;
-        v15 = (__int64)ceil(X);
+        v15 = (__int64)ceil(*(float *)&v24[k] * 0.0625f);
         v16 = dword_10067558;
         v24[k + 4] = v15;
         ++k;
@@ -8098,16 +8096,17 @@ LABEL_12:
           plane2 = (aas_plane_t *)AAS_PlaneFromNum(steptrace.planenum);
           if ( plane2->normal[2] > (float)phys_maxsteepness )
           {
+            VectorSubtract(end, steptrace.endpos, left_test_vel);
             left_test_vel[2] = 0.0f;
             frame_test_vel[2] = 0.0f;
-            left_test_vel[0] = end[0] - steptrace.endpos[0];
-            left_test_vel[1] = end[1] - steptrace.endpos[1];
-            if ( visualize && steptrace.endpos[2] - org[2] > 0.125 )
+            if ( visualize )
             {
-              start[0] = org[0];
-              start[1] = org[1];
-              start[2] = steptrace.endpos[2];
-              AAS_DebugLine(org, start, -202116623);
+              if ( steptrace.endpos[2] - org[2] > 0.125 )
+              {
+                VectorCopy(org, start);
+                start[2] = steptrace.endpos[2];
+                AAS_DebugLine(org, start, -202116623);
+              }
             }
             org[2] = steptrace.endpos[2];
             goto LABEL_66;
@@ -9110,7 +9109,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float ortdot; // st7
   float v28; // st7
   float dist1; // st7
-  float v41; // st7
   aas_reachabilitynode_t *v44; // eax
   aas_reachabilitynode_t *v45; // esi
   int v46; // ecx
@@ -9375,10 +9373,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               }
                               VectorSubtract(p2area2, p1area2, dir);
                               length = VectorLength(dir);
-                              v41 = dist;
                               if ( (v126->faceflags & 4) != 0 )
                               {
-                                if ( v41 < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
+                                if ( dist < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
                                 {
                                   ground_bestdist = dist;
                                   ground_bestlength = length;
@@ -9393,7 +9390,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                                   VectorCopy(end, ground_bestend);
                                 }
                               }
-                              else if ( v41 < water_bestdist || water_bestdist + 1.0f > dist && length > (float)water_bestlength )
+                              else if ( dist < water_bestdist || water_bestdist + 1.0f > dist && length > (float)water_bestlength )
                               {
                                 water_bestdist = dist;
                                 water_bestlength = length;
@@ -9988,22 +9985,15 @@ LABEL_62:
                 return 0;
               traveltype = 5;
             }
-            /* X/Y horizontal-distance check, with Z explicitly zeroed first. */
+            VectorSubtract(bestend, beststart, dir);
             dir[2] = 0.0f;
-            dir[0] = bestend[0] - beststart[0];
-            dir[1] = bestend[1] - beststart[1];
             if ( VectorLength(dir) >= 10 )
             {
-              /* Full 3-component direction vector for the barrier trace. */
-              dir[0] = bestend[0] - beststart[0];
-              dir[1] = bestend[1] - beststart[1];
-              dir[2] = bestend[2] - beststart[2];
+              VectorSubtract(bestend, beststart, dir);
               VectorNormalize(dir);
               VectorMA(beststart, 1.0, dir, teststart);
-              /* Trace endpoint: XY copied as bits, Z dropped 100 units. */
-              testend[2] = teststart[2] - 100.0f;
-              testend[0] = teststart[0];
-              testend[1] = teststart[1];
+              VectorCopy(teststart, testend);
+              testend[2] = testend[2] - 100.0f;
               trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
               if ( !trace.startsolid
                 && (trace.fraction >= 1
@@ -10011,9 +10001,8 @@ LABEL_62:
                  || teststart[2] - trace.endpos[2] > libvar_sv_maxbarrier->value) )
               {
                 VectorMA(bestend, -1.0, dir, teststart);
-                testend[2] = teststart[2] - 100.0f;
-                testend[0] = teststart[0];
-                testend[1] = teststart[1];
+                VectorCopy(teststart, testend);
+                testend[2] = testend[2] - 100.0f;
                 trace = AAS_TraceClientBBox(teststart, testend, 2, -1);
                 if ( !trace.startsolid
                   && (trace.fraction >= 1
@@ -10022,9 +10011,8 @@ LABEL_62:
                 {
                   /* Horizontal velocity vector (Z explicitly zeroed):
                    * .text 0x100148e9-0x1001490e — same pattern as block 1. */
+                  VectorSubtract(bestend, beststart, dir);
                   dir[2] = 0.0f;
-                  dir[0] = bestend[0] - beststart[0];
-                  dir[1] = bestend[1] - beststart[1];
                   VectorNormalize(dir);
                   VectorScale(dir, speed, cmdmove);
                   /* The cmdmove[2] override is required: without a Z impulse for
@@ -10621,9 +10609,6 @@ void AAS_Reachability_Elevator()
   const char *classname; // eax
   char *model; // eax — AAS_ValueForBSPEpairKey return
   int modelnum; // eax
-  float v5; // st7
-  float v6; // st7
-  float v7; // st7
   int v10; // ebx
   int area1num; // edi
   int v12; // esi
@@ -10691,17 +10676,14 @@ void AAS_Reachability_Elevator()
     AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
     v75 = origin[2];
     VectorCopy(origin, extent);
-    v5 = FloatForKey(ent, "lip");
-    v33 = v5;
-    if ( v5 == 0 )
+    v33 = FloatForKey(ent, "lip");
+    if ( v33 == 0 )
       v33 = 8.0f;
-    v6 = FloatForKey(ent, "height");
-    height = v6;
-    if ( v6 == 0 )
+    height = FloatForKey(ent, "height");
+    if ( height == 0 )
       height = maxs[2] - mins[2] - v33;
-    v7 = FloatForKey(ent, "speed");
-    speed = v7;
-    if ( v7 == 0 )
+    speed = FloatForKey(ent, "speed");
+    if ( speed == 0 )
       speed = 200.0f;
     extent[2] = extent[2] - height;
     VectorAdd(maxs, mins, sumvec);
@@ -10719,18 +10701,17 @@ void AAS_Reachability_Elevator()
     VectorScale(sumvec, 0.5f, sumvec);
     xvals[0] = mins[0];
     xvals[1] = sumvec[0];
-    xvals[3] = sumvec[0];
     xvals[2] = maxs[0];
+    xvals[3] = sumvec[0];
     yvals[0] = sumvec[1];
-    yvals[2] = sumvec[1];
     yvals[1] = maxs[1];
+    yvals[2] = sumvec[1];
     yvals[3] = mins[1];
-    xvals[5] = maxs[0];
     xvals[4] = mins[0];
-    xvals[7] = mins[0];
+    xvals[5] = maxs[0];
     xvals[6] = maxs[0];
+    xvals[7] = mins[0];
     yvals[4] = maxs[1];
-    v10 = 0;
     yvals[5] = maxs[1];
     yvals[6] = mins[1];
     yvals[7] = mins[1];
@@ -10773,15 +10754,15 @@ void AAS_Reachability_Elevator()
           }
           xvals_top[0] = mins[0];
           xvals_top[1] = sumvec[0];
+          xvals_top[2] = maxs[0];
           xvals_top[3] = sumvec[0];
           yvals_top[0] = sumvec[1];
-          xvals_top[2] = maxs[0];
+          yvals_top[1] = maxs[1];
           yvals_top[2] = sumvec[1];
           yvals_top[3] = mins[1];
-          yvals_top[1] = maxs[1];
+          xvals_top[4] = mins[0];
           xvals_top[5] = maxs[0];
           xvals_top[6] = maxs[0];
-          xvals_top[4] = mins[0];
           xvals_top[7] = mins[0];
           yvals_top[4] = maxs[1];
           yvals_top[5] = maxs[1];
@@ -14978,7 +14959,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   float v9; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
-  bot_goal_t *v17; // 64-bit fix (was int) - alias of goal
   bot_moveresult_t moveresult; // [esp+34h] [ebp-60h] BYREF
   bot_moveresult_t v19; // [esp+64h] [ebp-30h] BYREF
 
@@ -15039,7 +15019,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   if ( libvar_ctf->value != 0.0f )
     BotCTFSeekGoals(bs);
     goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
-    v17 = goal;
     if ( goal )
     {
     if ( AAS_Time() > bs->check_time )
@@ -15084,7 +15063,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
     }
-    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v17, v2, (float *)(intptr_t)target) )
+    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
@@ -16369,12 +16348,10 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
 float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
 {
   int *v2; // ebp
-  float v5; // st7
   int v6; // ax
   int v7; // ax
   float len; // st7
   char pc; // al
-  float v13; // st7
   float *result; // eax
   int v17; // [esp-Ch] [ebp-154h]
   int v18; // [esp+0h] [ebp-148h]
@@ -16395,9 +16372,8 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
     *(_DWORD *)&endpos[0] = *v2;
     *(_DWORD *)&endpos[1] = *(int *)&bs->origin[1];
     *(_DWORD *)&endpos[2] = *(int *)&bs->origin[2];
-    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-    rnd = v5;
-    if ( v5 < 0.8 )
+    rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    if ( rnd < 0.8 )
     {
       v6 = rand();
       v24 = -1.0;
@@ -16441,10 +16417,9 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
           break;
       }
     }
-    v13 = i + 1.0f;
-    i = v13;
+    i = i + 1.0f;
   }
-  while ( v13 < 10.0f );
+  while ( i < 10.0f );
   result = goal;
   *goal = endpos[0];
   goal[1] = endpos[1];
@@ -17132,37 +17107,37 @@ LABEL_38:
       goto LABEL_39;
   }
   v13 = (const char *)AAS_ValueForBSPEpairKey(v2, "classname");
-  v15 = v13;
-  if ( !v13 )
-  {
-    botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
-    return 0;
-  }
-  if ( strcmp(v13, "trigger_counter") && strcmp(v15, "trigger_relay") )
-  {
-    if ( !strcmp(v15, "func_button")
-        || !strcmp(v15, "trigger_multiple")
-        || !strcmp(v15, "trigger_once")
-        || !strcmp(v15, "func_door_rotating") )
-    {
-      return (int *)v2;
-    }
-    if ( !strcmp(v15, "trigger_key") )
-      return 0;
-    --v14;
-    --v11;
-    --v10;
-    goto LABEL_38;
-  }
-  if ( v14 < 9 )
-  {
-    ++v14;
-    ++v11;
-    ++v10;
-    *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
-    *v10 = dword_10064398;
-    goto LABEL_38;
-  }
+      v15 = v13;
+      if ( !v13 )
+      {
+        botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
+        return 0;
+      }
+      if ( strcmp(v13, "trigger_counter") && strcmp(v15, "trigger_relay") )
+      {
+        if ( !strcmp(v15, "func_button")
+            || !strcmp(v15, "trigger_multiple")
+            || !strcmp(v15, "trigger_once")
+            || !strcmp(v15, "func_door_rotating") )
+        {
+          return (int *)v2;
+        }
+        if ( !strcmp(v15, "trigger_key") )
+          return 0;
+        --v14;
+        --v11;
+        --v10;
+        goto LABEL_38;
+      }
+      if ( v14 < 9 )
+      {
+        ++v14;
+        ++v11;
+        ++v10;
+        *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
+        *v10 = dword_10064398;
+        goto LABEL_38;
+      }
   botimport.Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
   return 0;
 LABEL_39:
@@ -21730,20 +21705,18 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
  int v5; // ecx
  BOOL res; // eax
  bot_chatmessage_t *v7; // esi
- int v8; // edi
- int v9; // rax (was __int64)
+ int numchatmessages; // edi / [esp+18h] [ebp-F8h]
+ int num; // rax (was __int64) / edi
  float rnd;
  bot_chatmessage_t *v10; // esi
- int v11; // edi
  bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
  int v14; // [esp+14h] [ebp-FCh]
- int v15; // [esp+18h] [ebp-F8h]
  bot_match_t match; // [esp+20h] [ebp-F0h] BYREF
 
  memset(&match, 0, sizeof(match));
  rchat = replychats;
- v14 = 0;
  strcpy(match.string, message);
+ v14 = 0;
  bestchatmessage = 0;
  if ( !rchat )
    return 0;
@@ -21798,28 +21771,25 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
    if ( found && (float)v14 < rchat->priority )
    {
      v7 = rchat->firstchatmessage;
-     v8 = 0;
-     v15 = 0;
+     numchatmessages = 0;
      if ( v7 )
      {
        do
        {
          if ( AAS_Time() >= v7->time )
-           ++v8;
+           ++numchatmessages;
          v7 = v7->next;
        }
        while ( v7 );
-       v15 = v8;
      }
      /* Two statements, not one expression: the original multiplies by the
         0.000030518509f constant BEFORE the v15 factor, and only a sequence point
         after the const-scaled value reproduces that order. */
      rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
-     v9 = (int)(rnd * (float)v15);
-     v11 = v9;
+     num = (int)(rnd * (float)numchatmessages);
      for ( v10 = rchat->firstchatmessage; v10; v10 = v10->next )
      {
-       if ( --v11 < 0 )
+       if ( --num < 0 )
          break;
        AAS_Time();
      }
@@ -24193,9 +24163,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   if ( (v3 & 0x40) != 0 )
   {
     state = GrappleState(ms, reach);
+    VectorSubtract(reach->end, ms->origin, dir);
     dir[2] = 0.0f;
-    dir[0] = reach->end[0] - ms->origin[0];
-    dir[1] = reach->end[1] - ms->origin[1];
     dist = VectorLength(dir);
     if ( state )
     {
