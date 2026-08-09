@@ -403,11 +403,39 @@ endif
 # SPLIT_TUS uses -- so both builds lay the image out the same way.
 BOTLIB_OBJS_ = \
 	botlib.o \
+	be_aas_bspq2.o \
+	be_aas_cluster.o \
+	be_aas_debug.o \
+	be_aas_entity.o \
+	be_aas_file.o \
+	be_aas_light.o \
+	be_aas_main.o \
+	be_aas_move.o \
+	be_aas_optimize.o \
+	be_aas_reach.o \
+	be_aas_route.o \
+	be_aas_routealt.o \
+	be_aas_sample.o \
+	be_aas_sound.o \
+	be_ai2_dmnet.o \
+	be_ai2_dmq2.o \
+	be_ai2_main.o \
+	be_ai_char.o \
+	be_ai_chat.o \
+	be_ai_goal.o \
+	be_ai_move.o \
+	be_ai_weap.o \
+	be_ai_weight.o \
+	be_ea.o \
+	be_interface.o \
 	l_crc.o \
 	l_libvar.o \
 	l_log.o \
 	l_memory.o \
+	l_precomp.o \
+	l_script.o \
 	l_struct.o \
+	l_utils.o \
 	botlib_exports.o \
 	botlib_debug.o \
 	botlib_structdefs.o \

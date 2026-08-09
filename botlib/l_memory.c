@@ -15,70 +15,7 @@
  * split.
  */
 
-#include <math.h>
-#include <stdarg.h>
-#include <stddef.h>    /* offsetof, size_t */
-#include <stdint.h>    /* intptr_t */
-#include <stdio.h>     /* file I/O, sprintf, sscanf */
-#include <string.h>    /* string and memory ops */
-#include <stdlib.h>    /* malloc, atoi, rand, abs */
-#include <ctype.h>     /* toupper */
-#include <errno.h>     /* errno */
-#include <time.h>      /* time(), ctime() */
-#include <unistd.h>    /* access(), chdir(), getcwd() */
-
-/* q_shared.h first, so its qboolean/vec3_t/cplane_t/… are the canonical types.
- * It sets Q_SHARED_H, which makes botlib.h skip its own Q2-type stubs. */
-#include "../game/q_shared.h"
-/* q_shared.h's VectorNegate is a 2-arg macro, but botlib has a 1-arg in-place
- * VectorNegate(v) function at 0x10043540.  Drop the macro so it stays callable. */
-#undef VectorNegate
-#include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
-#include "gladiator.dll.h"
-#include "ea_state.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "aas_world.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-
-#include "bot_state.h"   /* bot_state_t, BOT_* offset constants (reconstructed) */
-#include "chat_state.h"  /* bot_match_t, bot_matchpiece_t etc. */
-#include "libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
-#include "botlib_state.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "botlib_structs.h" /* config, parser, weight, goal and item structs */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
-#include "q2files.h"
-
-/* signed high-word/dword accessors */
-#define SHIDWORD(x)  (*((int *)&(x) + 1))
-
-/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls. */
-static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fread(buf, sz, n, f); }
-#ifdef _WIN32
-/* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
- * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */
-static int    remove_file(const char *path) { return remove(path); }
-static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
-static intptr_t SpawnProcess(int mode, char *file, char *args, char *cmd, char *addargs) { (void)mode; (void)file; (void)args; (void)cmd; (void)addargs; return -1; }
-/* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
-static int    _chdir(const char *path) { return chdir(path); }
-#endif /* _WIN32 */
-
-#ifndef _WIN32
-/* POSIX equivalents for the Windows CRT functions used below. */
-#include <strings.h>    /* strcasecmp */
-#define _strcmpi   strcasecmp
-#define _access    access
-typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
-#endif
-
-/* ----------------------------------------------------------------------
- * Memory-block leak tracker (10038F10..100391C0).
- *
- * A slimmed-down variant of Q3 l_memory.c's MEMORYMANEGER (sic) path: every
- * bi_GetMemory allocation is prefixed with a memoryblock_t header threaded onto
- * a doubly-linked list rooted at `memory`.  Q3 tracks both `allocatedmemory`
- * (raw user bytes) and `totalmemorysize` (bytes including headers); Gladiator
- * kept only the latter plus `numblocks`, matching PrintUsedMemorySize's two
- * lines of output.  Field names follow Q3's l_memory.c.
- * ---------------------------------------------------------------------- */
+#include "botlib_local.h"
 typedef struct memoryblock_s {
   unsigned long int       id;        /* +0  MEM_ID sentinel               */
   void                   *ptr;       /* +4  user pointer (= block + 1)    */
