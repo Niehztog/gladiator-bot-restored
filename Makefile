@@ -396,8 +396,18 @@ endif
 
 # ----------
 
+# botlib.c is being progressively split back into Mr. Elusive's original
+# translation units (l_crc.c, l_log.c, ...); the boundaries are recovered in
+# .claude/memory/tu_partition.md.  Keep the split TUs in original .text order
+# between botlib.o and the glue objects -- the same order build_oracle_dll.sh's
+# SPLIT_TUS uses -- so both builds lay the image out the same way.
 BOTLIB_OBJS_ = \
 	botlib.o \
+	l_crc.o \
+	l_libvar.o \
+	l_log.o \
+	l_memory.o \
+	l_struct.o \
 	botlib_exports.o \
 	botlib_debug.o \
 	botlib_structdefs.o \
