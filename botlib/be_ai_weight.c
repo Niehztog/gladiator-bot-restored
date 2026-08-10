@@ -836,7 +836,7 @@ void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
  * The blend divides two ints and only then converts, exactly as FuzzyWeight_r
  * does (`idiv` then `fild`, not `fdiv`) -- a step function, not a smooth
  * interpolation.  Faithful; see .claude/memory/fuzzy_weight_system.md. */
-float __cdecl F34(int *inventory, weight_t *w)
+double __cdecl F34(int *inventory, weight_t *w)
 {
   fuzzyseperator_t *fs;
   float w1, w2;

@@ -37,7 +37,9 @@ qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs);
 int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
 static void sub_10036EB0(int *table, const char *name, float scale);
 
-#endif /* BOTLIB_BE_AI_WEIGHT_H */
 #ifndef _WIN32
-float __cdecl F34(int *inventory, weight_t *w);
+/* gladi386.so-only; see the definition in be_ai_weight.c. */
+double __cdecl F34(int *inventory, weight_t *w);
 #endif
+
+#endif /* BOTLIB_BE_AI_WEIGHT_H */
