@@ -93,7 +93,7 @@ float flt_100643A4; // weak
 //----- (10028E80) --------------------------------------------------------
 /* Empty in the original.  BotShutdownLibrary's first teardown step; Q3 calls
  * BotShutdownChatAI here, so this may be its release-build counterpart. */
-void sub_10028E80(void) { /* empty body — original returns immediately */ }
+void BotShutdownDeathmatchAI(void) { /* empty body — original returns immediately */ }
 //----- (10028EA0) --------------------------------------------------------
 int __cdecl ClientFromName(const char *name)
 {
@@ -579,7 +579,7 @@ int BotShutdownLibrary()
 {
   int result; // eax
 
-  sub_10028E80();
+  BotShutdownDeathmatchAI();
   BotShutdownChatAI();
   BotShutdownGoalAI();
   BotShutdownWeaponAI();

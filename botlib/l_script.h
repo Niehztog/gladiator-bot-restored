@@ -115,4 +115,7 @@ void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p);
 void __cdecl StripDoubleQuotes(char *string);
 void __cdecl StripSingleQuotes(char *string);
 
+void __cdecl PS_UnreadToken(script_t *script, token_t *token);
+void __cdecl ResetScript(script_t *script);
+
 #endif /* BOTLIB_L_SCRIPT_H */

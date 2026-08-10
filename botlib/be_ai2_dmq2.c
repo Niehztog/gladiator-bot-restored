@@ -3080,23 +3080,3 @@ void BotSetupDeathmatchAI()
   }
   dword_1006446C = 1;
 }
-
-/* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.
- *
- * The `.so` is the August 2 1999 build and the DLL this reconstruction is
- * derived from is July 18, so the Linux image carries functions the Windows
- * one does not.  They are gated rather than added unconditionally, because
- * the DLL is the canonical byte-match target and code it does not contain
- * must not appear in it.  Drop the gate for any of these that later turns up
- * in the DLL.
- * ------------------------------------------------------------------------ */
-#ifndef _WIN32
-
-/* F815 @ 0x0003366c, 1 byte -- a bare `ret`.  Called by BotShutdownLibrary,
- * immediately after F814 = BotSetupDeathmatchAI, and Q3 botlib has exactly
- * this pair with the shutdown half empty. */
-void __cdecl BotShutdownDeathmatchAI(void)
-{
-} //end of the function BotShutdownDeathmatchAI
-#endif /* !_WIN32 -- gladi386.so-only */

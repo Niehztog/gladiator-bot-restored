@@ -1103,31 +1103,28 @@ void __cdecl FreeScript(script_t *script)
  * botlib/l_struct.c (l_struct.obj, DLL 0x100404B0..0x1004123F -- see
  * .claude/memory/tu_partition.md). */
 
-/* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.
- *
- * The `.so` is the August 2 1999 build and the DLL this reconstruction is
- * derived from is July 18, so the Linux image carries functions the Windows
- * one does not.  They are gated rather than added unconditionally, because
- * the DLL is the canonical byte-match target and code it does not contain
- * must not appear in it.  Drop the gate for any of these that later turns up
- * in the DLL.
- * ------------------------------------------------------------------------ */
-#ifndef _WIN32
+/* Both of the following ARE in gladiator.dll -- verified by disassembling the
+ * spans our funcmap left unclaimed in l_script's range: 0x1003FC30 is the
+ * `rep movsd` + `tokenavailable = 1` of PS_UnreadToken and 0x1003FFF0 is
+ * ResetScript's seven field writes plus `rep stos`.  They were briefly gated
+ * `#ifndef _WIN32` on the mistaken assumption that anything the ELF audit
+ * reported MISSING was Linux-only; the ELF audit says nothing about the DLL,
+ * and the check that does is "is there unclaimed .text in this TU's range". */
 
-/* F379 @ 0x00052700, 37 bytes.  Q3 botlib l_script.c has this verbatim; the
- * disassembly is a `rep movsd` of 0x10b dwords (1068 = sizeof(token_t)) into
- * script->token followed by `tokenavailable = 1`. */
+//----- (1003FC30) --------------------------------------------------------
+/* F379 @ 0x00052700 (37 B ELF) / 0x1003FC30 (DLL).  Q3 botlib l_script.c has
+ * this verbatim.  The two builds copy a different count -- 0x10b dwords in the
+ * ELF against 0x10c in the DLL -- because sizeof(token_t) differs by 4 between
+ * them; both are `sizeof(token_t)` in source. */
 void __cdecl PS_UnreadToken(script_t *script, token_t *token)
 {
   memcpy(&script->token, token, sizeof(token_t));
   script->tokenavailable = 1;
 } //end of the function PS_UnreadToken
 
-/* F387 @ 0x00052a14, 114 bytes.  Q3 botlib l_script.c, field for field: the
- * disassembly writes script_p and lastscript_p from buffer, NULLs
- * whitespace_p and punctuationtable, zeroes tokenavailable, sets line and
- * lastline to 1, and memsets 0x42c bytes (= sizeof(token_t)) of script->token. */
+//----- (1003FFF0) --------------------------------------------------------
+/* F387 @ 0x00052a14 (114 B ELF) / 0x1003FFF0 (DLL).  Q3 botlib l_script.c,
+ * field for field. */
 void __cdecl ResetScript(script_t *script)
 {
   script->script_p = script->buffer;
@@ -1139,4 +1136,3 @@ void __cdecl ResetScript(script_t *script)
   script->tokenavailable = 0;
   memset(&script->token, 0, sizeof(token_t));
 } //end of the function ResetScript
-#endif /* !_WIN32 -- gladi386.so-only */
