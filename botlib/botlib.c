@@ -14,18 +14,9 @@
 #include "botlib_local.h"
 #include "be_ai2_main.h"
 
-float velocity[3]     = { 0.0f,  0.0f,  0.0f };   /* passed to AAS_ClientMovementHV */
 
 
-__int16 word_1005E498 = 45; // weak
 
-CHAR FileName[] = "UNZIP32.DLL"; // idb
-_UNKNOWN unk_10061280; // weak
-_UNKNOWN unk_10061298; // weak
-char byte_1006294C = '\0'; // idb
-#ifdef _WIN32
-LPDCL dword_1006296C = NULL; /* locked DCL option block — UnZip windll, Windows-only */
-#endif
 float flt_10062984 = 0.0; // weak
 float flt_10062988 = 0.0; // weak
 float flt_1006298C = 0.0; // weak
@@ -33,86 +24,25 @@ float flt_1006319C; // weak
 float flt_100631A0; // weak
 float flt_100631A8; // weak
 int dword_10063388; // weak
-#ifdef _WIN32
-LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table — UnZip windll, Windows-only */
-#endif
-botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callbacks */
-botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
-bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
-int numbots; /* active-bot count, ++/-- in BotSetupClient/BotShutdownClient, returned by
-                NumBots(); name recovered from the tourney-2.5 Linux gladi386.so .dynsym */
-bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
-#if BOTLIB_NEED_SIDEBAND
-bot_character_t **botcharacters;
-#else
-#endif
 
-#if BOTLIB_NEED_SIDEBAND
-void **botgoalstate_p0;  /* weightconfig_t* */
-void **botgoalstate_p1;  /* iteminfo weight table */
-#else
-#endif
 
 #if BOTLIB_NEED_SIDEBAND
 #else
 #endif
 
-#if BOTLIB_NEED_SIDEBAND
-bot_weaponstate_t **botweaponstates;
-#else
-#endif
-
-#if BOTLIB_NEED_SIDEBAND
-void **botchatdumps;
-#else
-#endif
-
-#if BOTLIB_NEED_SIDEBAND
-chatmsg_links_t *botchatmsglinks;
-#else
-#endif
-
-#if BOTLIB_NEED_SIDEBAND
-ai_node_fn_t *botainodes;
-#else
-#endif
-
-#if BOTLIB_NEED_SIDEBAND
-bot_waypoint_t **botcheckpoints;
-bot_waypoint_t **botpatrolpoints;
-bot_waypoint_t **botcurpatrolpoint;
-#else
-#endif
-
-#if BOTLIB_NEED_SIDEBAND
-aas_link_t **aasentity_arealinks;
-bsp_link_t **aasentity_bsplinks;
-#else
-#endif
 
 
 
 
 
-bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B; name recovered
-                                          from the tourney-2.5 Linux gladi386.so .dynsym (unstripped
-                                          data symbols) */
-libvar_t *libvar_ctf; /* libvar handle */
-bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
-bot_goal_t ctf_redflag;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
-libvar_t *libvar_usehook; /* libvar handle */
-libvar_t *libvar_runes; /* libvar handle */
-libvar_t *libvar_rocketjump; /* libvar handle */
 
 
-aas_world_t aasworld;
 
-int numplanes;            // 0x100674F0  (was dword_100674F0)
-int numvertexes;          // 0x100674F8  (was dword_100674F8)
-int numnodes;             // 0x10067500  (was dword_10067500)
-int numfaces;             // 0x10067510  (was dword_10067510)
-int numedges;             // 0x10067518  (was dword_10067518)
-int numareas;             // 0x10067548  (was dword_10067548)
+
+
+
+
+
 
 
 //----- (100426B0) --------------------------------------------------------

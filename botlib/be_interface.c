@@ -28,6 +28,12 @@
 #include "l_memory.h"
 #include "l_precomp.h"
 
+botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callbacks */
+
+botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
+
+bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
+
 /* filecrcs (name recovered from the Linux gladi386.so .dynsym, where it is a
  * 736-byte global whose contents are byte-identical to this table) — 91 entries
  * of { uint16 crc16, uint16 pad, uint32 flags } plus a NULL terminator.

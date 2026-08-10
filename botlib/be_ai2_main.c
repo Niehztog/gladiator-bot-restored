@@ -28,6 +28,48 @@
 #include "l_libvar.h"
 #include "l_memory.h"
 
+int numbots; /* active-bot count, ++/-- in BotSetupClient/BotShutdownClient, returned by
+                NumBots(); name recovered from the tourney-2.5 Linux gladi386.so .dynsym */
+bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
+
+#if BOTLIB_NEED_SIDEBAND
+bot_character_t **botcharacters;
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+void **botgoalstate_p0;  /* weightconfig_t* */
+void **botgoalstate_p1;  /* iteminfo weight table */
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+bot_weaponstate_t **botweaponstates;
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+void **botchatdumps;
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+chatmsg_links_t *botchatmsglinks;
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+ai_node_fn_t *botainodes;
+#else
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+bot_waypoint_t **botcheckpoints;
+bot_waypoint_t **botpatrolpoints;
+bot_waypoint_t **botcurpatrolpoint;
+#else
+#endif
+
 int dword_1006439C; // weak
 bot_state_t *botstates; // base array of maxclients bot states
 float flt_100643A4; // weak

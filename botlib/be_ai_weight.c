@@ -21,6 +21,8 @@
 #include "l_script.h"
 #include "l_utils.h"
 
+__int16 word_1005E498 = 45; // weak
+
 //----- (10035700) --------------------------------------------------------
 int __cdecl ReadValue(source_t *source, float *value)
 {

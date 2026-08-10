@@ -31,6 +31,14 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
+#if BOTLIB_NEED_SIDEBAND
+aas_link_t **aasentity_arealinks;
+bsp_link_t **aasentity_bsplinks;
+#else
+#endif
+
+aas_world_t aasworld;
+
 //----- (1000D7E0) --------------------------------------------------------
 int AAS_Error(char *Format, ...)
 {

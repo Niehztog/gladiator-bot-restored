@@ -89,7 +89,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   start_pos[2] = reach->start[2] + 1.0f;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
-  move = AAS_ClientMovementPrediction(-1, start_pos, 2, 1, velocity, cmdmove, 1, 2, 0.1f, 124, 0);
+  move = AAS_ClientMovementPrediction(-1, start_pos, 2, 1, vec3_origin, cmdmove, 1, 2, 0.1f, 124, 0);
   VectorCopy(move.endpos, runstart_vec);
   stopevent = move.stopevent;
   if ( (stopevent & 0x38) != 0 )

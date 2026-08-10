@@ -24,6 +24,18 @@
 #include "l_memory.h"
 #include "l_script.h"
 
+int numplanes;            // 0x100674F0  (was dword_100674F0)
+
+int numvertexes;          // 0x100674F8  (was dword_100674F8)
+
+int numnodes;             // 0x10067500  (was dword_10067500)
+
+int numfaces;             // 0x10067510  (was dword_10067510)
+
+int numedges;             // 0x10067518  (was dword_10067518)
+
+int numareas;             // 0x10067548  (was dword_10067548)
+
 int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
 int nummodels;            // 0x100674C4  (was dword_100674C4)
 dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)

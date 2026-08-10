@@ -1478,7 +1478,7 @@ LABEL_62:
                                     beststart,
                                     2,
                                     1,
-                                    velocity,
+                                    vec3_origin,
                                     cmdmove,    /* now vec3_t */
                                     3,
                                     30,

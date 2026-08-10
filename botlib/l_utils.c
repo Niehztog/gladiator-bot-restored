@@ -20,6 +20,22 @@
 #include "l_log.h"
 #include "l_memory.h"
 
+CHAR FileName[] = "UNZIP32.DLL"; // idb
+
+_UNKNOWN unk_10061280; // weak
+
+_UNKNOWN unk_10061298; // weak
+
+char byte_1006294C = '\0'; // idb
+
+#ifdef _WIN32
+LPDCL dword_1006296C = NULL; /* locked DCL option block — UnZip windll, Windows-only */
+#endif
+
+#ifdef _WIN32
+LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table — UnZip windll, Windows-only */
+#endif
+
 CHAR aWindllUnzip[] = "windll_unzip"; // idb
 HGLOBAL dword_10062968 = NULL; // idb
 HGLOBAL dword_10062970 = NULL; // idb

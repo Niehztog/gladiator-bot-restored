@@ -35,6 +35,21 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
+bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B; name recovered
+                                          from the tourney-2.5 Linux gladi386.so .dynsym (unstripped
+                                          data symbols) */
+libvar_t *libvar_ctf; /* libvar handle */
+
+bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
+
+bot_goal_t ctf_redflag;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
+
+libvar_t *libvar_usehook; /* libvar handle */
+
+libvar_t *libvar_runes; /* libvar handle */
+
+libvar_t *libvar_rocketjump; /* libvar handle */
+
 /* G_SetMovedir's four direction constants, 12 bytes each, in the original
  * .data order (0x1005C56C / 0x1005C578 / 0x1005C584 / 0x1005C590) — the same
  * order and values as game/g_utils.c:342-345, from which BotSetMovedir was

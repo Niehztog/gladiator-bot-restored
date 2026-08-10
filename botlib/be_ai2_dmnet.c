@@ -153,7 +153,7 @@ int BotGetFormationGoal(bot_state_t *bs)
   /* 8. Predict 0.1 s of motion from start at velocity `scaled`; stopevent mask
    *    0x7C catches HITGROUND/HITWATER/HITLAVA/HITSLIME. */
   move = AAS_ClientMovementPrediction(-1, start,
-                                      2, 1, velocity, scaled,
+                                      2, 1, vec3_origin, scaled,
                                       1, 2, 0.1f, 124, 0);
   /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start position;
    *    otherwise keep the angles vec built in step 6. */
