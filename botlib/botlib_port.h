@@ -324,7 +324,11 @@ static int    _chdir(const char *path) { return chdir(path); }
 typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
 #endif
 
-/* AI node function pointer type (used for BotAINode side-band table) */
+/* AI node function pointer type (used for BotAINode side-band table).
+ * bot_state_s is only completed later, by be_ai_def.h; forward-declare it at
+ * file scope so the tag in the prototype below refers to that same struct
+ * rather than to a fresh one scoped to the parameter list. */
+struct bot_state_s;
 typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 
 /* ------------------------------------------------------------------------

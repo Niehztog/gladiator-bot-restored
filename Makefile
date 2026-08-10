@@ -215,6 +215,16 @@ endif
 #                               bound equal to dest size, sprintf into a fixed
 #                               buffer with %s, returning &local.  Fixing them
 #                               would diverge from the binary.
+#   unknown-pragmas           — game/q_shared.{c,h} carry id's original MSVC
+#                               `#pragma warning(disable: ...)` / `#pragma
+#                               optimize` lines (byte-identical to
+#                               gladq2_src/q_shared.h, and still meaningful to
+#                               the MSVC6 matching oracle, which is the one
+#                               compiler that honours them). Every non-MSVC
+#                               compiler nags once per pragma per TU — ~580
+#                               lines per build, since q_shared.h is included
+#                               first by ALL modules. The source is authentic
+#                               and must not be touched, so silence it here.
 BOTCFLAGS=-O0 \
           -Wno-int-conversion -Wno-incompatible-pointer-types \
           -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
@@ -223,7 +233,8 @@ BOTCFLAGS=-O0 \
           -Wno-maybe-uninitialized -Wno-uninitialized \
           -Wno-parentheses -Wno-comment -Wno-misleading-indentation \
           -Wno-stringop-overflow -Wno-stringop-overread \
-          -Wno-format-overflow -Wno-dangling-pointer
+          -Wno-format-overflow -Wno-dangling-pointer \
+          -Wno-unknown-pragmas
 
 # ----------
 

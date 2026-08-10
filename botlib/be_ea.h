@@ -12,21 +12,15 @@
 #define BOTLIB_BE_EA_H
 
 /* ea_state_t: the per-client elementary-action state this TU owns. Was ea_state.h until 2026-08-10. */
-/* Elementary Action flag bits — must match gladq2_src/botlib.h.
- * ACTION_JUMP/ACTION_MOVEUP share bit 0x008; ACTION_CROUCH/ACTION_MOVEDOWN
- * share 0x010. */
-#define ACTION_ATTACK       0x001  /* primary fire                     */
-#define ACTION_USE          0x002  /* "use" / activate                 */
-#define ACTION_RESPAWN      0x004  /* request respawn after death      */
-#define ACTION_JUMP         0x008  /* jump (gated by JUMPEDLASTFRAME)  */
-#define ACTION_MOVEUP       0x008  /* move-up (alias of JUMP)          */
-#define ACTION_CROUCH       0x010  /* crouch                           */
-#define ACTION_MOVEDOWN     0x010  /* move-down (alias of CROUCH)      */
-#define ACTION_MOVEFORWARD  0x020  /* +forward                         */
-#define ACTION_MOVEBACK     0x040  /* +back                            */
-#define ACTION_MOVELEFT     0x080  /* +moveleft                        */
-#define ACTION_MOVERIGHT    0x100  /* +moveright                       */
-#define ACTION_DELAYEDJUMP  0x200  /* deferred jump (Q3 carryover)     */
+
+/* The ACTION_* bits stored in ea_state_t.flags are deliberately NOT defined
+ * here: they are part of the botlib<->game interface and belong to
+ * ../game/botlib.h (verbatim from the shipped gladq2_src/botlib.h), which
+ * botlib_port.h pulls into every botlib TU ahead of this header.  Q3's
+ * be_ea.c takes them from ../game/botlib.h the same way and defines only its
+ * private jump latch locally.  Values worth knowing while reading below:
+ * ACTION_JUMP/ACTION_MOVEUP share bit 8, ACTION_CROUCH/ACTION_MOVEDOWN
+ * share bit 16. */
 
 /* Internal jump latch (no ACTION_* name in botlib.h): set by EA_EndRegular
  * when the frame's input is consumed, checked at the top of EA_Jump to gate
