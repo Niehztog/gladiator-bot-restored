@@ -31,7 +31,6 @@
 #include "l_libvar.h"
 #include "l_memory.h"
 #include "l_utils.h"
-extern char byte_1006294C;
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
 
 //----- (10038750) --------------------------------------------------------
@@ -125,7 +124,7 @@ char *__cdecl LibVarGetString(const char *var_name)
   libvar_t *v = LibVarGet(var_name);
   if ( v )
     return v->string;
-  return &byte_1006294C;
+  return "";
 }
 
 //----- (10038990) --------------------------------------------------------

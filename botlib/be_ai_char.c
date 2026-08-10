@@ -337,7 +337,7 @@ int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int m
 char *__cdecl Characteristic_String(bot_character_t *character, int index)
 {
   if ( !CheckCharacteristicIndex(character, index) )
-    return &byte_1006294C;
+    return "";
   if ( (unsigned char)BC_PAIRS(character)[index].type == 3 )
     return (char *)BC_PAIRS(character)[index].value;
   botimport.Print(PRT_ERROR, "characteristic %d is not a string\n", index);

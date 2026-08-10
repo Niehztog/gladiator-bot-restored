@@ -81,14 +81,14 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
   return botimport.Print(PRT_FATAL, Buffer);
 }
 //----- (1001D3A0) --------------------------------------------------------
-int __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str)
+void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str)
 {
   /* `node` is the state-name string, reused as the third %s — the original
    * passes its own argument, already on the stack from entry. */
 
   sprintf(&nodeswitch[144 * numnodeswitches], "%s at %2.1f entered %s: %s\n",
           (const char *)ClientName(bs->client), AAS_Time(), node, str);
-  return ++numnodeswitches;
+  numnodeswitches++;
 }
 //----- (1001D420) --------------------------------------------------------
 /* BotGetFormationGoal (was sub_1001D420) — predict and return a formation
@@ -452,7 +452,7 @@ LABEL_RESET:
     {
         if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
         {
-          buf[0] = byte_1006294C;
+          strcpy(buf, "");
           for ( i = BotPatrolpoints(bs); i; i = i->next )
           {
             strcat(buf, i->name);
@@ -651,8 +651,7 @@ LABEL_55:
 //----- (1001EAE0) --------------------------------------------------------
 void __cdecl AIEnter_Intermission(bot_state_t *bs)
 {
-
-  BotRecordNodeSwitch(bs, "intermission", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "intermission", "");
   BotResetState(bs);
   if ( BotChat_EndLevel(bs) )
     BotEnterChat(&bs->chatstate, bs->client, 0);
@@ -681,15 +680,11 @@ int __cdecl AINode_Intermission(bot_state_t *bs)
   return 1;
 }
 //----- (1001EBD0) --------------------------------------------------------
-int __cdecl AIEnter_Observer(bot_state_t *bs)
+void __cdecl AIEnter_Observer(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  BotRecordNodeSwitch(bs, "observer", &byte_1006294C);
-  result = BotResetState(bs);
+  BotRecordNodeSwitch(bs, "observer", "");
+  BotResetState(bs);
   BotAINode(bs) = AINode_Observer;
-  return result;
 }
 //----- (1001EC10) --------------------------------------------------------
 int __cdecl AINode_Observer(bot_state_t *bs)
@@ -699,14 +694,10 @@ int __cdecl AINode_Observer(bot_state_t *bs)
   return 1;
 }
 //----- (1001EC50) --------------------------------------------------------
-int __cdecl AIEnter_Stand(bot_state_t *bs)
+void __cdecl AIEnter_Stand(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  result = BotRecordNodeSwitch(bs, "stand", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "stand", "");
   BotAINode(bs) = AINode_Stand;
-  return result;
 }
 //----- (1001EC90) --------------------------------------------------------
 int __cdecl AINode_Stand(bot_state_t *bs)
@@ -737,11 +728,10 @@ int __cdecl AINode_Stand(bot_state_t *bs)
 //----- (1001ED80) --------------------------------------------------------
 void __cdecl AIEnter_Respawn(bot_state_t *bs)
 {
-
   double v2; // st7
   float v3; // [esp+10h] [ebp+4h]
 
-  BotRecordNodeSwitch(bs, "respawn", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "respawn", "");
   BotResetMoveState(&bs->ms);
   BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
@@ -788,14 +778,10 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
   return 1;
 }
 //----- (1001EF00) --------------------------------------------------------
-int __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
+void __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  result = BotRecordNodeSwitch(bs, "activate entity", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "activate entity", "");
   BotAINode(bs) = AINode_Seek_ActivateEntity;
-  return result;
 }
 //----- (1001EF40) --------------------------------------------------------
 int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
@@ -878,25 +864,22 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   return 1;
 }
 //----- (1001F210) --------------------------------------------------------
-int __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
+void __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 {
-
   bot_goal_t *goal; // eax
   const char *v2; // eax
-  int result; // eax
 
   goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
   if ( goal )
   {
     v2 = (const char *)BotGoalName(goal->number);
-    result = BotRecordNodeSwitch(bs, "seek NBG", v2);
+    BotRecordNodeSwitch(bs, "seek NBG", v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, "seek NBG", "no goal");
+    BotRecordNodeSwitch(bs, "seek NBG", "no goal");
   }
   BotAINode(bs) = AINode_Seek_NBG;
-  return result;
 }
 //----- (1001F290) --------------------------------------------------------
 int __cdecl AINode_Seek_NBG(bot_state_t *bs)
@@ -1027,25 +1010,22 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   return 1;
 }
 //----- (1001F6E0) --------------------------------------------------------
-int __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
+void __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 {
-
   bot_goal_t *goal; // eax
   const char *v2; // eax
-  int result; // eax
 
   goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
   if ( goal )
   {
     v2 = (const char *)BotGoalName(goal->number);
-    result = BotRecordNodeSwitch(bs, "seek LTG", v2);
+    BotRecordNodeSwitch(bs, "seek LTG", v2);
   }
   else
   {
-    result = BotRecordNodeSwitch(bs, "seek LTG", "no goal");
+    BotRecordNodeSwitch(bs, "seek LTG", "no goal");
   }
   BotAINode(bs) = AINode_Seek_LTG;
-  return result;
 }
 //----- (1001F760) --------------------------------------------------------
 int __cdecl AINode_Seek_LTG(bot_state_t *bs)
@@ -1180,14 +1160,10 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     return 1;
 }
 //----- (1001FCF0) --------------------------------------------------------
-int __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
+void __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  result = BotRecordNodeSwitch(bs, "battle fight", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "battle fight", "");
   BotAINode(bs) = AINode_Battle_Fight;
-  return result;
 }
 //----- (1001FD30) --------------------------------------------------------
 int __cdecl AINode_Battle_Fight(bot_state_t *bs)
@@ -1288,7 +1264,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 //----- (10020050) --------------------------------------------------------
 void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 {
-  BotRecordNodeSwitch(bs, "battle chase", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "battle chase", "");
   bs->chase_time = AAS_Time() + 10.0f;
   BotAINode(bs) = AINode_Battle_Chase;
 }
@@ -1414,14 +1390,10 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
 }
 //----- (100205C0) --------------------------------------------------------
-int __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
+void __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  result = BotRecordNodeSwitch(bs, "battle retreat", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "battle retreat", "");
   BotAINode(bs) = AINode_Battle_Retreat;
-  return result;
 }
 //----- (10020600) --------------------------------------------------------
 int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
@@ -1548,14 +1520,10 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   }
 }
 //----- (10020AD0) --------------------------------------------------------
-int __cdecl AIEnter_Battle_NBG(bot_state_t *bs)
+void __cdecl AIEnter_Battle_NBG(bot_state_t *bs)
 {
-
-  int result; // eax
-
-  result = BotRecordNodeSwitch(bs, "battle NBG", &byte_1006294C);
+  BotRecordNodeSwitch(bs, "battle NBG", "");
   BotAINode(bs) = AINode_Battle_NBG;
-  return result;
 }
 //----- (10020B10) --------------------------------------------------------
 int __cdecl AINode_Battle_NBG(bot_state_t *bs)

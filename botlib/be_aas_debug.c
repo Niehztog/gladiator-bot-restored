@@ -41,21 +41,20 @@ int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)
 int debuglines[256];        // 0x100670C0 (was dword_100670C0)
 
 //----- (10009860) --------------------------------------------------------
-int AAS_ClearShownDebugLines()
+void AAS_ClearShownDebugLines(void)
 {
   int i; // esi
-  int result; // eax
+  int line; // eax
 
   for ( i = 0; i < 256; ++i )
   {
-    result = debuglines[i];
-    if ( result )
+    line = debuglines[i];
+    if ( line )
     {
-      result = botimport.DebugLineShow(result, 0, 0, -1);
+      botimport.DebugLineShow(line, 0, 0, -1);
       debuglinevisible[i] = 0;
     }
   }
-  return result;
 }
 //----- (100098B0) --------------------------------------------------------
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)

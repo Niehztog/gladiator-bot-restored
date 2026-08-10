@@ -1115,7 +1115,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
   if ( variable < 0 || variable >= MAX_MATCHVARIABLES )
   {
     botimport.Print(PRT_FATAL, "BotMatchVariable: variable out of range\n");
-    *buf = byte_1006294C;
+    strcpy(buf, "");
     return buf;
   }
   if ( match->variables[variable].ptr )
@@ -1125,7 +1125,7 @@ char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf)
   }
   else
   {
-    *buf = byte_1006294C;
+    strcpy(buf, "");
   }
   return buf;
 }
@@ -2344,7 +2344,7 @@ void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
       EA_SayTeam(clientto, chatstate->chatmessage);
     else
       EA_Say(clientto, chatstate->chatmessage);
-    chatstate->chatmessage[0] = byte_1006294C;
+    strcpy(chatstate->chatmessage, "");
   }
 }
 //----- (1002EAF0) --------------------------------------------------------

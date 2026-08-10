@@ -159,7 +159,7 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2);
 unsigned int __cdecl PC_NameHash(const char *name);
 int __cdecl PC_OperatorPriority(int op);
 indent_t *__cdecl PC_PopIndent(source_t *source, int *type, int *skip);
-indent_t *__cdecl PC_PushIndent(source_t *source, int type, int skip);
+void __cdecl PC_PushIndent(source_t *source, int type, int skip);
 void __cdecl PC_PushScript(source_t *source, script_t *script);
 int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **parms, int maxparms);
 int __cdecl PC_ReadDirective(source_t *source);

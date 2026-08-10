@@ -661,7 +661,7 @@ int __cdecl BotChat_Death(int *bs)
   if ( v4 )
     EasyClientName(v4 - 1, v7);
   else
-    v7[0] = byte_1006294C;
+    strcpy(v7, "");
   if ( bs[693] == 12 )
   {
     BotInitialChat(bs + 995, "death_bfg", v7, (char *)0);
@@ -705,7 +705,7 @@ BOOL __cdecl BotChat_Kill(int *bs)
   if ( v4 )
     EasyClientName(v4 - 1, name);
   else
-    name[0] = byte_1006294C;
+    strcpy(name, "");
   if ( bs[692] == 13 )
   {
     BotInitialChat(bs + 995, "kill_telefrag", name, (char *)0);
@@ -1835,7 +1835,7 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   v5 = BotEntityToActivate(v77[3]);
   v6 = v5;
   if ( !v5 )
-    v7 = &byte_1006294C;
+    v7 = "";
   else
     v7 = (const char *)AAS_ValueForBSPEpairKey(v5, "classname");
   if ( !strcmp(v7, "func_door_secret") || !strcmp(v7, "func_door") )

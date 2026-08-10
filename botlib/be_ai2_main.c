@@ -116,7 +116,7 @@ char *__cdecl ClientName(int client)
   if ( client >= 0 && client < botstate.num_clients )
     return clientsettings[client].netname;
   botimport.Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
-  return &byte_1006294C;
+  return "";
 }
 //----- (10028F80) --------------------------------------------------------
 char *__cdecl ClientSkin(int client)
@@ -124,7 +124,7 @@ char *__cdecl ClientSkin(int client)
   if ( client >= 0 && client < botstate.num_clients )
     return clientsettings[client].skin;
   botimport.Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
-  return &byte_1006294C;
+  return "";
 }
 //----- (10028FD0) --------------------------------------------------------
 int NumBots()
@@ -575,20 +575,17 @@ int BotSetupLibrary()
   return BLERR_NOERROR;
 }
 //----- (10029DA0) --------------------------------------------------------
-int BotShutdownLibrary()
+void BotShutdownLibrary(void)
 {
-  int result; // eax
-
   BotShutdownDeathmatchAI();
   BotShutdownChatAI();
   BotShutdownGoalAI();
   BotShutdownWeaponAI();
   if ( clientsettings )
     FreeMemory(clientsettings);
-  result = (int)(intptr_t)botstates;
   clientsettings = 0;
   if ( botstates )
-    result = FreeMemory(botstates);
+    FreeMemory(botstates);
   botstates = 0;
 #if BOTLIB_NEED_SIDEBAND
   if ( botcharacters )
@@ -622,5 +619,4 @@ int BotShutdownLibrary()
     FreeMemory(botcurpatrolpoint);
   botcurpatrolpoint = 0;
 #endif
-  return result;
 }

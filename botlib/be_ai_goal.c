@@ -319,13 +319,13 @@ char *__cdecl BotGoalName(int number)
   levelitem_t *v1;
 
   if ( !itemconfig )
-    return &byte_1006294C;
+    return "";
   for ( v1 = levelitems; v1; v1 = v1->next )
   {
     if ( v1->number == number )
       return itemconfig->items[v1->iteminfo].name;
   }
-  return &byte_1006294C;
+  return "";
 }
 //----- (1002F6F0) --------------------------------------------------------
 void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
@@ -934,13 +934,9 @@ int BotSetupGoalAI()
   return BLERR_NOERROR;
 }
 //----- (10030A20) --------------------------------------------------------
-int BotShutdownGoalAI()
+void BotShutdownGoalAI(void)
 {
-  int result; // eax
-
-  result = itemconfig;
   if ( itemconfig )
-    result = FreeMemory(itemconfig);
+    FreeMemory(itemconfig);
   itemconfig = 0;
-  return result;
 }

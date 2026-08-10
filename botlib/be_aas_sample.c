@@ -103,19 +103,14 @@ void __cdecl AAS_DeAllocAASLink(aas_link_t *link)
   aasworld.freelinks = link;
 }
 //----- (1001ADE0) --------------------------------------------------------
-int AAS_InitAASLinkedEntities()
+void AAS_InitAASLinkedEntities(void)
 {
-  int result; // eax
-
-  result = aasworld.loaded;
   if ( aasworld.loaded )
   {
     if ( aasworld.arealinkedentities )
       FreeMemory(aasworld.arealinkedentities);
     aasworld.arealinkedentities = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * aasworld.numareas);
-    result = (int)(intptr_t)aasworld.arealinkedentities;
   }
-  return result;
 }
 //----- (1001AE30) --------------------------------------------------------
 void AAS_FreeAASLinkedEntities()

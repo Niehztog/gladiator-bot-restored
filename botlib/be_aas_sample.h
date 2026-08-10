@@ -22,7 +22,7 @@ void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist);
 void AAS_FreeAASLinkHeap();
 void AAS_FreeAASLinkedEntities();
 void AAS_InitAASLinkHeap();
-int AAS_InitAASLinkedEntities();
+void AAS_InitAASLinkedEntities(void);
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon);
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype);
 char *__cdecl AAS_PlaneFromNum(int planenum);

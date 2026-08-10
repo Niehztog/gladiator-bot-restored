@@ -23,7 +23,7 @@ void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename);
 void __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate);
 int BotSetupWeaponAI();
-int BotShutdownWeaponAI();
+void BotShutdownWeaponAI(void);
 weaponconfig_t *LoadWeaponConfig(char *filename);
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc);
 int __cdecl sub_100353C0(const char *modelname);

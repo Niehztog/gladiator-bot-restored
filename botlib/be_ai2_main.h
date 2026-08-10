@@ -52,7 +52,7 @@ int __cdecl BotSettings(int a1, const void *a2);
 int __cdecl BotSetupClient(int, char *Source);
 int BotSetupLibrary();
 int __cdecl BotShutdownClient(int a1);
-int BotShutdownLibrary();
+void BotShutdownLibrary(void);
 int __cdecl BotUpdateClient(int a1, const void *a2);
 int __cdecl ClientFromName(const char *name);
 char *__cdecl ClientName(int client);

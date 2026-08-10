@@ -125,7 +125,7 @@ int SourceWarning(source_t *src, char *Format, ...)
            Buffer);
 }
 //----- (100392E0) --------------------------------------------------------
-indent_t *__cdecl PC_PushIndent(source_t *source, int type, int skip)
+void __cdecl PC_PushIndent(source_t *source, int type, int skip)
 {
   indent_t *ind;
 
@@ -136,7 +136,6 @@ indent_t *__cdecl PC_PushIndent(source_t *source, int type, int skip)
   source->skip  += ind->skip;
   ind->next   = source->indentstack;
   source->indentstack = ind;
-  return ind;
 }
 //----- (10039350) --------------------------------------------------------
 indent_t *__cdecl PC_PopIndent(source_t *source, int *type, int *skip)
@@ -2004,7 +2003,7 @@ int __cdecl PC_Directive_error(source_t *source)
 {
   token_t token; // [esp+4h] [ebp-430h] BYREF
 
-  token.string[0] = byte_1006294C;
+  strcpy(token.string, "");
   PC_ReadSourceToken(source, token.string);
   SourceError(source, "#error directive: %s", token.string);
   return 0;

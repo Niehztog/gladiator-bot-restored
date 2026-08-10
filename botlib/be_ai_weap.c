@@ -408,13 +408,9 @@ int BotSetupWeaponAI()
   return BLERR_NOERROR;
 }
 //----- (100356D0) --------------------------------------------------------
-int BotShutdownWeaponAI()
+void BotShutdownWeaponAI(void)
 {
-  int result; // eax
-
-  result = weaponconfig;
   if ( weaponconfig )
-    result = FreeMemory(weaponconfig);
+    FreeMemory(weaponconfig);
   weaponconfig = 0;
-  return result;
 }

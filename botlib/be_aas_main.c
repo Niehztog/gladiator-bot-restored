@@ -73,7 +73,7 @@ char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int 
   if ( !aasworld.indexes_loaded )
   {
     botimport.Print(PRT_ERROR, "%s: index %d not setup\n", indexname, index);
-    return &byte_1006294C;
+    return "";
   }
   if ( index < 0 || index >= list->numindexes )
   {
@@ -87,10 +87,10 @@ char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int 
     if ( index )
     {
       botimport.Print(PRT_ERROR, "%s: reference to unused index %d\n", indexname, index);
-      return &byte_1006294C;
+      return "";
     }
   }
-  return &byte_1006294C;
+  return "";
 }
 //----- (1000D8D0) --------------------------------------------------------
 int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *String2)
@@ -406,12 +406,12 @@ int __cdecl sub_1000E430(char *Source)
    * what keeps /O2 from dead-eliminating the unused dirs[2]. */
   char dirs[3][144]; // [esp+1C0h] [ebp-1B0h] BYREF
 
-  dirs[0][0] = byte_1006294C;
-  Destination[0] = byte_1006294C;
+  strcpy(dirs[0], "");
+  strcpy(Destination, "");
   memset(&dirs[0][1], 0, 143);
-  dirs[1][0] = byte_1006294C;
+  strcpy(dirs[1], "");
   memset(&dirs[1][1], 0, 143);
-  dirs[2][0] = byte_1006294C;
+  strcpy(dirs[2], "");
   memset(&dirs[2][1], 0, 143);
   memset(&Destination[1], 0, 143);
   v1 = (const char *)LibVarGetString("basedir");
@@ -512,7 +512,7 @@ int BotLibLoadMap(char *Source)
         if ( v4 )
           strncpy(aasfile, "maps\\", 0x90u);
         else
-          strncpy(aasfile, &byte_1006294C, 0x90u);
+          strncpy(aasfile, "", 0x90u);
         strncat(aasfile, Source, 144 - strlen(aasfile));
         strncat(aasfile, ".aas", 144 - strlen(aasfile));
         if ( sub_10041F60(aasfile, &v7) )

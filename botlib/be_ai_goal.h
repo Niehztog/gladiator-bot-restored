@@ -43,7 +43,7 @@ int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal);
 void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate);
 void __cdecl BotResetGoalState(bot_goalstate_t *goalstate);
 int BotSetupGoalAI();
-int BotShutdownGoalAI();
+void BotShutdownGoalAI(void);
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal);
 void BotUpdateEntityItems(void);
 void __cdecl FreeLevelItem(levelitem_t *li);

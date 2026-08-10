@@ -107,7 +107,6 @@ extern CHAR aWindllUnzip[];
 extern CHAR FileName[];
 extern _UNKNOWN unk_10061280;
 extern _UNKNOWN unk_10061298;
-extern char byte_1006294C;
 extern HGLOBAL dword_10062968;
 extern HGLOBAL dword_10062970;
 extern HGLOBAL hMem;

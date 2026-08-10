@@ -21,7 +21,7 @@ extern int numdebuglines;
 extern int debuglinevisible[256];
 extern int debuglines[256];
 
-int AAS_ClearShownDebugLines();
+void AAS_ClearShownDebugLines(void);
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color);

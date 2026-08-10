@@ -41,7 +41,6 @@ _UNKNOWN unk_10061280; // weak
 
 _UNKNOWN unk_10061298; // weak
 
-char byte_1006294C = '\0'; // idb
 
 #ifdef _WIN32
 LPDCL dword_1006296C = NULL; /* locked DCL option block — UnZip windll, Windows-only */
@@ -419,12 +418,12 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
   char FileName[144]; // [esp+14h] [ebp-240h] BYREF
   char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
 
-  subdirs[0][0] = byte_1006294C;
-  FileName[0] = byte_1006294C;
+  strcpy(subdirs[0], "");
+  strcpy(FileName, "");
   memset(&subdirs[0][1], 0, 143);
-  subdirs[1][0] = byte_1006294C;
+  strcpy(subdirs[1], "");
   memset(&subdirs[1][1], 0, 143);
-  subdirs[2][0] = byte_1006294C;
+  strcpy(subdirs[2], "");
   memset(&subdirs[2][1], 0, 143);
   memset(&FileName[1], 0, 143);
   if ( Source )
