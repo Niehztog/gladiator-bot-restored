@@ -22,20 +22,22 @@
 
 /* q_shared.h first, so its qboolean/vec3_t/cplane_t/… are the canonical types.
  * It sets Q_SHARED_H, which makes botlib.h skip its own Q2-type stubs. */
-#include "../game/q_shared.h"
 /* q_shared.h's VectorNegate is a 2-arg macro, but botlib has a 1-arg in-place
  * VectorNegate(v) function at 0x10043540.  Drop the macro so it stays callable. */
 #undef VectorNegate
-#include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
-#include "gladiator.dll.h"
 #include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
+#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
+#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
 #include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
 
+#include "l_script.h"      /* token_t, script_t, punctuation_t */
+#include "l_precomp.h"     /* source_t, define_t */
+#include "l_struct.h"      /* structdef_t */
+#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
 #include "be_ai_def.h"     /* the bot-AI structures and interfaces */
 #include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
 #include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
 #include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
-#include "q2files.h"
 
 
 

@@ -11,7 +11,6 @@
 
 #include <stddef.h>
 
-#include "gladiator.dll.h"
 #include "be_ea.h"
 
 /* Pointer-bearing structs grow on 64-bit hosts, so those asserts are gated to

@@ -11,6 +11,12 @@
 #ifndef BOTLIB_L_STRUCT_H
 #define BOTLIB_L_STRUCT_H
 
+/* structdef_t: the struct descriptor ReadStructure/FindField take. */
+/* structdef_t — struct descriptor passed to ReadStructure / FindField.  A
+ * plain int[2] { size, fields_ptr } in the 32-bit original; typed here so it
+ * is pointer-size-agnostic. */
+typedef struct { int size; char **fields; } structdef_t;
+
 const char **__cdecl FindField(const char **defs, const char *name);
 int __cdecl ReadChar(source_t *source, char **fd, float *p);
 int __cdecl ReadNumber(source_t *source, char **fd, float *p);

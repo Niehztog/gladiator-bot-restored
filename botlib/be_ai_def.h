@@ -122,73 +122,10 @@ typedef struct weaponconfig_s {
 
 /* ---- Script-parser structs (l_script.h / l_precomp.h equivalents) ------- */
 
-/* punctuation_t — layout as Q3. */
-typedef struct punctuation_s {
-    char                  *p;       /* +0  punctuation literal text   */
-    int                    n;       /* +4  punctuation type id        */
-    struct punctuation_s  *next;    /* +8  chain                      */
-} punctuation_t;                    /* sizeof = 12 */
 
-/* indent_t — layout as Q3. */
-typedef struct indent_s {
-    int                    type;    /* +0  INDENT_IF / IFDEF / ELSE / ELIF / ... */
-    int                    skip;    /* +4  > 0: skipping until matching #endif   */
-    struct script_s       *script;  /* +8  script that opened this indent        */
-    struct indent_s       *next;    /* +12 next on indent stack                  */
-} indent_t;                         /* sizeof = 16 */
 
-/* define_t — layout as Q3 l_precomp.h::define_t. */
-typedef struct define_s {
-    char                  *name;    /* +0  macro name                              */
-    int                    flags;   /* +4  DEFINE_FIXED etc.                       */
-    int                    builtin; /* +8  > 0 for built-in defines (__LINE__ etc.) */
-    int                    numparms;/* +12 number of parameter tokens              */
-    struct token_s *parms;/* +16 parameter token list                    */
-    struct token_s *tokens;/* +20 macro body token list                   */
-    struct define_s       *next;    /* +24 hash-chain next                          */
-    struct define_s       *hashnext;/* +28                                        */
-} define_t;                         /* sizeof = 32 */
 
-/* script_t — 1392-byte header followed by the file data inline.  Differs from
- * Q3: filename buffer trimmed from 1024 to 260 bytes, and the embedded token
- * is token_t (1072 B, double floatvalue) rather than Q3's float variant. */
-typedef struct script_s {
-    char                   filename[260];      /* +0    file path (strcpy at sub_100401A0) */
-    char                  *buffer;             /* +260  start of file data buffer           */
-    char                  *script_p;           /* +264  current parse pointer               */
-    char                  *end_p;              /* +268  one-past-end of buffer              */
-    char                  *lastscript_p;       /* +272  start of last token                 */
-    char                  *whitespace_p;       /* +276  start of preceding whitespace       */
-    char                  *endwhitespace_p;    /* +280  end of preceding whitespace         */
-    int                    length;             /* +284  buffer length in bytes              */
-    int                    line;               /* +288  current source line (1-based)       */
-    int                    lastline;           /* +292  line of last token                  */
-    int                    tokenavailable;     /* +296  pushed-back token flag              */
-    int                    flags;              /* +300  script flags                        */
-    punctuation_t         *punctuations;       /* +304  per-script punctuation list head    */
-    punctuation_t        **punctuationtable;   /* +308  perfect-hash table (FreeScript frees)*/
-    struct token_s token;            /* +312..+1383  embedded last token          */
-    struct script_s       *next;               /* +1384 next in scriptstack chain           */
-    int                    _trail;             /* +1388 trailing padding (memset clears 1392)*/
-    /* +1392 onwards: file data lives inline after the header */
-} script_t;                                    /* sizeof = 1392 (header only) */
 
-/* source_t — 1624 bytes.  Q2 trims Q3's 1024-byte path buffers and adds the
- * separately-allocated 1024-byte definebuffer scratchpad at +308. */
-typedef struct source_s {
-    char                   filename[260];      /* +0    source filename                     */
-    char                   includepath[48];    /* +260  base path for #include resolution   */
-    char                  *definebuffer;       /* +308  scratch buffer (sub_1003E120)  */
-    char                   _pad_1[212];        /* +312..+523 reserved/unknown               */
-    script_t              *scriptstack;        /* +524  current script-include stack head   */
-    struct token_s *tokens;          /* +528  pushed-back token list              */
-    define_t              *defines;            /* +532  define list head (linear)           */
-    define_t             **definehash;         /* +536  define hash table (4096 B)          */
-    indent_t              *indentstack;        /* +540  conditional-compile indent stack    */
-    int                    skip;               /* +544  > 0 skipping #if/#else block        */
-    int                    _pad_after_skip;    /* +548  unused / padding                    */
-    struct token_s         cachedtoken;        /* +552  last-read token (memcpy'd by PC_ReadTokenHandle) */
-} source_t;                                    /* sizeof = 1624 on 32-bit */
 
 /* ---- AI weight structs (be_ai_weight.h equivalents) -------------------- */
 typedef struct fuzzyseperator_s {
@@ -315,26 +252,7 @@ typedef struct aas_settings_s {
     float rs_falldamage10;           /* +144                               */
 } aas_settings_t;                    /* sizeof = 148 */
 
-/* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.
- * Q3's l_precomp.c shape but with `double floatvalue`.  Allocate with
- * sizeof() — the original's fixed 32/24 bytes only hold on 32-bit. */
-typedef struct value_s {
-    int intvalue;                /* +0  */
-    int _pad0;                   /* +4  alignment for double */
-    double floatvalue;           /* +8  */
-    int parentheses;             /* +16 */
-    /* Compiler auto-pads 4 bytes here on 64-bit ABIs to align prev/next. */
-    struct value_s *prev;        /* +20 on 32-bit, +24 on 64-bit */
-    struct value_s *next;        /* +24 on 32-bit, +32 on 64-bit */
-} value_t;
 
-typedef struct operator_s {
-    int op;
-    int priority;
-    int parentheses;
-    struct operator_s *prev;
-    struct operator_s *next;
-} operator_t;
 
 /* bsp_link_t — entity<->BSP-leaf link node, 24 bytes on 32-bit (40 on
  * 64-bit).  Same layout as Q3.  AAS_InitAASLinkHeap free-lists nodes through

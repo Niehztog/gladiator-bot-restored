@@ -11,6 +11,15 @@
 #ifndef BOTLIB_BE_INTERFACE_H
 #define BOTLIB_BE_INTERFACE_H
 
+/* scriptcrc_t: the (filename, CRC) record this TU's list is made of. */
+/* scriptcrc_t — record in the dword_10063F2C list holding a (filename,
+ * CRC-hash) pair, so the engine can warn when a script's CRC changes. */
+typedef struct scriptcrc_s {
+    __int16              hash;            /* +0   CRC-16 of the file body  */
+    char                 name[146];       /* +2   filename (zero-terminated) */
+    struct scriptcrc_s  *next;            /* +148 on 32-bit; offset moves to +152 on 64-bit */
+} scriptcrc_t;                            /* sizeof = 152 on 32-bit, 160 on 64-bit */
+
 /* botimport / botstate / bot_exports and the libvar handle macros -- this TU defines all of them, and Q3's own be_interface.h declares the same set. Was botlib_state.h until 2026-08-10. */
 /* botlib_state.h — the three contiguous .data/.bss blocks that GetBotAPI
  * (@0x10038480) and Export_BotShutdownLibrary (@0x10037CF0) address as whole

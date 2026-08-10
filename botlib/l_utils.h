@@ -11,6 +11,17 @@
 #ifndef BOTLIB_L_UTILS_H
 #define BOTLIB_L_UTILS_H
 
+/* bot_fileref_t: the pak/file reference this TU's search path builds. */
+/* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.
+ * Q2-specific (Q3's transparent VFS handles paks internally).  The
+ * decompilations show it as "int Offset[38]" or as three separate locals. */
+typedef struct bot_fileref_s {
+    int  fileofs;              /* file offset within pak  (0 = file is directly on disk)  */
+    int  filelen;              /* file length within pak  (0 = read whole file from disk)  */
+    char path[144];            /* pak path, or direct file path when fileofs == 0;
+                                  144 = MAX_FILEPATH from gladq2_src/botlib.h              */
+} bot_fileref_t;               /* sizeof = 152 */
+
 /* The Win32 UnZip windll path lives entirely in this TU, so its kernel32
  * imports and the UNZIP32.DLL DCL/USERFUNCTIONS layouts belong here. */
 /* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than

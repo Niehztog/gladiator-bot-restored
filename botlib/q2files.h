@@ -20,6 +20,19 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 
+#ifndef BOTLIB_Q2FILES_H
+#define BOTLIB_Q2FILES_H
+
+/* The Q2 BSP file header, from the IDA-emitted gladiator.dll.h.
+ * This is Q2's own dheader_t; qfiles.h is where Q2 keeps it. */
+/* Q2 BSP file header (= dheader_t in Q2's qfiles.h), read by AAS_LoadBSPFile. */
+typedef struct { int fileofs; int filelen; } bsp_lump_t;
+typedef struct {
+    int       ident;            /* "IBSP" = 0x50534249   */
+    int       version;          /* 38 for Q2 BSP         */
+    bsp_lump_t lumps[19];       /* 19 lumps × 8 = 152 B  */
+} dBspHeader_t;                 /* sizeof = 160 = 0xA0   */
+
 //
 // qfiles.h: quake file formats
 // This file must be identical in the quake and utils directories
@@ -485,3 +498,5 @@ typedef struct
 	int		numareaportals;
 	int		firstareaportal;
 } darea_t;
+
+#endif /* BOTLIB_Q2FILES_H */

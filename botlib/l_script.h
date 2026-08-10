@@ -11,6 +11,66 @@
 #ifndef BOTLIB_L_SCRIPT_H
 #define BOTLIB_L_SCRIPT_H
 
+/* token_t: the script token this TU produces. */
+/* token_t — script token (Q3's l_script.h::token_t with NUMBERVALUE).  Q3's
+ * float floatvalue is a double here, so with its alignment pad whitespace_p
+ * lands at +0x418 and next at +0x428 (Q3: +0x420). */
+typedef struct token_s {
+    char string[1024];                   /* +0x000: token text (MAX_TOKEN chars)     */
+    int type;                            /* +0x400: TT_STRING=1 NUMBER=3 NAME=4 PUNCT=5 */
+    int subtype;                         /* +0x404: punctuation id / number subtype  */
+    unsigned int intvalue;               /* +0x408: `unsigned long` in the 32-bit
+                                          *         original; must stay 4 bytes    */
+    int _floatvalue_pad;                 /* +0x40C: alignment padding before double  */
+    double floatvalue;                   /* +0x410: floating-point value (8 bytes)   */
+    char *whitespace_p;                  /* +0x418 */
+    char *endwhitespace_p;
+    int line;
+    int linescrossed;
+    struct token_s *next;
+    int padding;
+} token_t;
+
+/* punctuation_t and script_t belong next to token_t: Q3 botlib keeps all
+ * three in l_script.h, and splitting them left l_script.h and be_ai_def.h
+ * needing each other. */
+/* punctuation_t — layout as Q3. */
+typedef struct punctuation_s {
+    char                  *p;       /* +0  punctuation literal text   */
+    int                    n;       /* +4  punctuation type id        */
+    struct punctuation_s  *next;    /* +8  chain                      */
+} punctuation_t;                    /* sizeof = 12 */
+
+/* script_t — 1392-byte header followed by the file data inline.  Differs from
+ * Q3: filename buffer trimmed from 1024 to 260 bytes, and the embedded token
+ * is token_t (1072 B, double floatvalue) rather than Q3's float variant. */
+typedef struct script_s {
+    char                   filename[260];      /* +0    file path (strcpy at sub_100401A0) */
+    char                  *buffer;             /* +260  start of file data buffer           */
+    char                  *script_p;           /* +264  current parse pointer               */
+    char                  *end_p;              /* +268  one-past-end of buffer              */
+    char                  *lastscript_p;       /* +272  start of last token                 */
+    char                  *whitespace_p;       /* +276  start of preceding whitespace       */
+    char                  *endwhitespace_p;    /* +280  end of preceding whitespace         */
+    int                    length;             /* +284  buffer length in bytes              */
+    int                    line;               /* +288  current source line (1-based)       */
+    int                    lastline;           /* +292  line of last token                  */
+    int                    tokenavailable;     /* +296  pushed-back token flag              */
+    int                    flags;              /* +300  script flags                        */
+    punctuation_t         *punctuations;       /* +304  per-script punctuation list head    */
+    punctuation_t        **punctuationtable;   /* +308  perfect-hash table (FreeScript frees)*/
+    struct token_s token;            /* +312..+1383  embedded last token          */
+    struct script_s       *next;               /* +1384 next in scriptstack chain           */
+    int                    _trail;             /* +1388 trailing padding (memset clears 1392)*/
+    /* +1392 onwards: file data lives inline after the header */
+} script_t;                                    /* sizeof = 1392 (header only) */
+
+
+
+/* 1072 (0x430) bytes on 32-bit, 1088 on 64-bit where the three pointers
+ * widen — so copy/alloc sites must use sizeof(token_t), never the literal.
+ * Fields up through `floatvalue` keep their original offsets. */
+
 BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *fp);
 void      __cdecl FreeScript(script_t *script);
