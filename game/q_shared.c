@@ -1397,3 +1397,47 @@ void Info_SetValueForKey (char *s, char *key, char *value)
 //====================================================================
 
 
+#ifdef BOTLIB
+/* ------------------------------------------------------------------------
+ * Gladiator botlib additions.  ADDITIVE ONLY: nothing above this line is
+ * touched, so the game build (which never defines BOTLIB) sees exactly the
+ * preserved q_shared.c it always has.
+ *
+ * These objects live in q_shared.obj in the shipped gladiator.dll -- the DLL's
+ * own code proves it: the six floats below are referenced ONLY from within
+ * q_shared's .text range (0x100426B0..), and VectorNegate/Com_Printf sit at
+ * 0x10043540 / 0x10042410, inside it.  They were parked in botlib.c only
+ * because this file was previously off-limits to any edit at all.
+ * ------------------------------------------------------------------------ */
+
+/* FPU scratch/constants in q_shared's .data and .bss, each referenced only
+ * from q_shared's own code (6, 6, 6 / 6, 5, 6 references respectively). */
+float flt_10062984 = 0.0;   /* 0x10062984 */
+float flt_10062988 = 0.0;   /* 0x10062988 */
+float flt_1006298C = 0.0;   /* 0x1006298C */
+float flt_1006319C;         /* 0x1006319C */
+float flt_100631A0;         /* 0x100631A0 */
+float flt_100631A8;         /* 0x100631A8 */
+int   dword_10063388;       /* 0x10063388 */
+
+/* VectorNegate @0x10043540 — a 1-arg in-place negate.  q_shared.h has only a
+ * 2-arg VectorNegate macro, which every botlib TU #undefs so this stays
+ * callable; Q2's stock q_shared.c has no such function. */
+#undef VectorNegate
+/* No __cdecl here: that spelling comes from botlib's gladiator.dll.h,
+ * which this file does not include, and it is MSVC's default anyway. */
+float *VectorNegate(float *v)
+{
+  float *result; // eax
+
+  result = v;
+  *v = -*v;
+  v[1] = -v[1];
+  v[2] = -v[2];
+  return result;
+}
+
+/* Com_Printf @0x10042410 — a single-byte `ret` in the original, so the
+ * Com_sprintf / Info_* diagnostics below silently drop.  Keep the empty body. */
+void Com_Printf(char *msg, ...) { (void)msg; }
+#endif /* BOTLIB */

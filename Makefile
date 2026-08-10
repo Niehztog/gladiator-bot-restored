@@ -357,7 +357,7 @@ build/%.o: game/%.c
 build/q_shared.o: game/q_shared.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DC_ONLY -Igame/ -o $@ $<
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DC_ONLY -DBOTLIB -Igame/ -o $@ $<
 
 build/game/%.o: game/%.c
 	@echo "===> CC $<"
@@ -402,7 +402,6 @@ endif
 # between botlib.o and the glue objects -- the same order build_oracle_dll.sh's
 # SPLIT_TUS uses -- so both builds lay the image out the same way.
 BOTLIB_OBJS_ = \
-	botlib.o \
 	be_aas_bspq2.o \
 	be_aas_cluster.o \
 	be_aas_debug.o \
