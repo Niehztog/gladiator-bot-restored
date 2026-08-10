@@ -15,7 +15,7 @@
 #include "botlib_structs.h"
 #include "bot_state.h"
 #include "chat_state.h"
-#include "ea_state.h"
+#include "be_ea.h"
 
 /* Pointer-bearing structs grow on 64-bit hosts, so those asserts are gated to
  * 32-bit targets; the MinGW 32-bit path is what enforces DLL compatibility. */

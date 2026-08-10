@@ -15,6 +15,7 @@
  * split.
  */
 
+#include "botlib_local.h"
 #include "l_memory.h"
 
 #define MEM_ID 0x12345678l

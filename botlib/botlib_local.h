@@ -28,13 +28,13 @@
 #undef VectorNegate
 #include "../game/botlib.h"  /* bot_export_t, bot_import_t + prerequisite Q2 types */
 #include "gladiator.dll.h"
-#include "ea_state.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "aas_world.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
+#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
+#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
 
 #include "bot_state.h"   /* bot_state_t, BOT_* offset constants (reconstructed) */
 #include "chat_state.h"  /* bot_match_t, bot_matchpiece_t etc. */
-#include "libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
-#include "botlib_state.h"   /* botimport / botstate / bot_exports + libvar aliases */
+#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
 #include "botlib_structs.h" /* config, parser, weight, goal and item structs */
 #include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
 #include "q2files.h"

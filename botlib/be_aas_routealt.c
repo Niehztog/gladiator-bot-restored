@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_aas_routealt.h"
 #include "be_aas_reach.h"
 #include "be_aas_route.h"

@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "l_script.h"
 #include "be_interface.h"
 #include "l_libvar.h"

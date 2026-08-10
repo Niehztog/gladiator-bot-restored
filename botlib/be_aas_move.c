@@ -15,10 +15,12 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_aas_move.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_debug.h"
 #include "be_aas_sample.h"
+#include "be_interface.h"
 
 //----- (1000EEB0) --------------------------------------------------------
 BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)

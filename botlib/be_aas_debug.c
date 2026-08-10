@@ -15,9 +15,11 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_aas_debug.h"
 #include "be_aas_main.h"
 #include "be_aas_move.h"
+#include "be_interface.h"
 
 int numdebuglines;          // 0x10066B14 (was dword_10066B14)
 int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)

@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_ai_chat.h"
 #include "be_aas_main.h"
 #include "be_ea.h"

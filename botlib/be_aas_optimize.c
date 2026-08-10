@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_aas_optimize.h"
 #include "l_memory.h"
 

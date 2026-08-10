@@ -1,5 +1,12 @@
 /*
- * aas_world.h — AAS (Area Awareness System) world element types.
+ * be_aas_def.h — the AAS internal definitions: the world structures the
+ * be_aas_*.c files (and be_interface.c) are built on.  Mr. Elusive's own name
+ * for this header — Q3 botlib ships be_aas_def.h holding exactly this subject
+ * matter, included by its twelve be_aas_*.c plus be_interface.c.  Was
+ * aas_world.h until 2026-08-10.
+ */
+/*
+ * be_aas_def.h — AAS (Area Awareness System) world element types.
  *
  * The original DLL links the fields of Q3's single `aasworld` (aas_t,
  * be_aas_def.h) as individually-named globals (`aasworld_*`); the

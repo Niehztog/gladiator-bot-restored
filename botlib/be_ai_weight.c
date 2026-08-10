@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_ai_weight.h"
 #include "l_memory.h"
 #include "l_precomp.h"

@@ -13,6 +13,7 @@
  * split.
  */
 
+#include "botlib_local.h"
 #include "l_struct.h"
 #include "l_precomp.h"
 #include "l_script.h"

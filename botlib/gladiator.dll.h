@@ -390,7 +390,7 @@ typedef struct aas_routingupdate_s {
     struct aas_routingupdate_s    *next;             /* +32 fifo next              */
     struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
 } aas_routingupdate_t;
-/* Forward typedefs for the AAS element types (full defs in aas_world.h, which
+/* Forward typedefs for the AAS element types (full defs in be_aas_def.h, which
  * is included after this header) so the aas_world_t arrays below can be typed
  * element pointers rather than void*. */
 typedef struct aas_bbox_s         aas_bbox_t;

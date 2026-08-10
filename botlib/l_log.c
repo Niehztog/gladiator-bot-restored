@@ -14,6 +14,7 @@
  * split.
  */
 
+#include "botlib_local.h"
 #include "l_log.h"
 #include "l_libvar.h"
 typedef struct logfile_s {

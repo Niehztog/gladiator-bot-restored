@@ -14,6 +14,7 @@
  * split.
  */
 
+#include "botlib_local.h"
 #include "l_libvar.h"
 #include "l_memory.h"
 extern char byte_1006294C;

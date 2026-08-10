@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_ai_move.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -24,6 +25,7 @@
 #include "be_aas_route.h"
 #include "be_aas_sample.h"
 #include "be_ea.h"
+#include "be_interface.h"
 #include "l_libvar.h"
 #include "l_utils.h"
 

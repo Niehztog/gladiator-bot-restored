@@ -15,6 +15,7 @@
  * botlib.c's remaining globals).
  */
 
+#include "botlib_local.h"
 #include "be_aas_file.h"
 #include "be_aas_light.h"
 #include "be_aas_main.h"

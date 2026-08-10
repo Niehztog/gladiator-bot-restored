@@ -14,6 +14,7 @@
  * split.
  */
 
+#include "botlib_local.h"
 #include "l_crc.h"
 __int16 crctable[308] =
 {

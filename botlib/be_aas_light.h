@@ -2,14 +2,14 @@
  * be_aas_light.h — interface of be_aas_light.c, one of the original Gladiator Bot v0.96
  * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
  *
- * Includes botlib_local.h so it is self-contained: the declarations below
- * reference types that live there, and a caller should never have to care in
- * which order it includes botlib headers.
+ * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
+ * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
+ * then pulls in the interfaces it calls into.  A per-TU header that included
+ * the shared header instead would form a cycle with it, because the shared
+ * header needs types these files declare against.
  */
 #ifndef BOTLIB_BE_AAS_LIGHT_H
 #define BOTLIB_BE_AAS_LIGHT_H
-
-#include "botlib_local.h"
 
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
