@@ -3001,3 +3001,30 @@ int __cdecl sub_10003080(vec3_t point)
 {
   return botimport.PointContents(point);
 }
+
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.
+ *
+ * The `.so` is the August 2 1999 build and the DLL this reconstruction is
+ * derived from is July 18, so the Linux image carries functions the Windows
+ * one does not.  They are gated rather than added unconditionally, because
+ * the DLL is the canonical byte-match target and code it does not contain
+ * must not appear in it.  Drop the gate for any of these that later turns up
+ * in the DLL.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+
+/* F673 @ 0x0000aa40, 113 bytes.  `RotatePoint(vec3_t point, float m[3][3])`,
+ * declared in Q3's bspc/l_math.h and sitting immediately before AnglesToAxis
+ * (F674) here too.  The disassembly copies the point to three stack slots
+ * first, which is what the source's own `vec3_t tmp` does. */
+void __cdecl RotatePoint(vec3_t point, float matrix[3][3])
+{
+  vec3_t tvec;
+
+  VectorCopy(point, tvec);
+  point[0] = DotProduct(matrix[0], tvec);
+  point[1] = DotProduct(matrix[1], tvec);
+  point[2] = DotProduct(matrix[2], tvec);
+} //end of the function RotatePoint
+#endif /* !_WIN32 -- gladi386.so-only */

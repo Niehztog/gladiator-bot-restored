@@ -1102,3 +1102,41 @@ void __cdecl FreeScript(script_t *script)
 /* The nine structure read/write functions live in their own TU:
  * botlib/l_struct.c (l_struct.obj, DLL 0x100404B0..0x1004123F -- see
  * .claude/memory/tu_partition.md). */
+
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.
+ *
+ * The `.so` is the August 2 1999 build and the DLL this reconstruction is
+ * derived from is July 18, so the Linux image carries functions the Windows
+ * one does not.  They are gated rather than added unconditionally, because
+ * the DLL is the canonical byte-match target and code it does not contain
+ * must not appear in it.  Drop the gate for any of these that later turns up
+ * in the DLL.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+
+/* F379 @ 0x00052700, 37 bytes.  Q3 botlib l_script.c has this verbatim; the
+ * disassembly is a `rep movsd` of 0x10b dwords (1068 = sizeof(token_t)) into
+ * script->token followed by `tokenavailable = 1`. */
+void __cdecl PS_UnreadToken(script_t *script, token_t *token)
+{
+  memcpy(&script->token, token, sizeof(token_t));
+  script->tokenavailable = 1;
+} //end of the function PS_UnreadToken
+
+/* F387 @ 0x00052a14, 114 bytes.  Q3 botlib l_script.c, field for field: the
+ * disassembly writes script_p and lastscript_p from buffer, NULLs
+ * whitespace_p and punctuationtable, zeroes tokenavailable, sets line and
+ * lastline to 1, and memsets 0x42c bytes (= sizeof(token_t)) of script->token. */
+void __cdecl ResetScript(script_t *script)
+{
+  script->script_p = script->buffer;
+  script->lastscript_p = script->buffer;
+  script->whitespace_p = NULL;
+  script->punctuationtable = NULL;
+  script->line = 1;
+  script->lastline = 1;
+  script->tokenavailable = 0;
+  memset(&script->token, 0, sizeof(token_t));
+} //end of the function ResetScript
+#endif /* !_WIN32 -- gladi386.so-only */

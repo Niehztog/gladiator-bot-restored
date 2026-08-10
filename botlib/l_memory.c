@@ -86,7 +86,10 @@ void *__cdecl GetClearedMemory(unsigned int size)
 
 //----- (10039040) --------------------------------------------------------
 /* Q3's BlockFromPointer.  The real list-unlink helper is sub_10038F50. */
-static memoryblock_t *BlockFromPointer(void *ptr, const char *str)
+/* Not `static`: gladi386.so exports this (it is one of the 809 .dynsym
+ * FUNCs), and gcc 2.7.2.3 inlines a `static` with few call sites, which
+ * both loses the symbol the audit needs and is the wrong linkage. */
+memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 {
   memoryblock_t *block;
 

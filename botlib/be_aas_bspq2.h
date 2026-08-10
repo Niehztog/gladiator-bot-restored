@@ -20,7 +20,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -29,7 +29,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -38,7 +38,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -47,7 +47,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -56,7 +56,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -65,7 +65,7 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -144,7 +144,7 @@ extern int dword_1006957C;
 extern bsp_link_t *dword_10069580;
 extern bsp_link_t **dword_10069584;
 
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,
@@ -191,7 +191,7 @@ void sub_100032D0();
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum);
 void __cdecl sub_10003460(vec3_t v, float m[3][3]);
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
-static void sub_10005640(
+void sub_10005640(
         void *out,
         float *start,
         int *boxmins,

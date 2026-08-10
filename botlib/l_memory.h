@@ -26,7 +26,7 @@ typedef struct memoryblock_s {
  * already in scope. */
 int __cdecl FreeMemory(void *ptr);  /* dummy `int` return; see definition */
 
-static memoryblock_t *BlockFromPointer(void *ptr, const char *str);
+memoryblock_t *BlockFromPointer(void *ptr, const char *str);
 void DumpMemory(void);
 int __cdecl FreeMemory(void *ptr);
 void *__cdecl GetClearedMemory(unsigned int size);

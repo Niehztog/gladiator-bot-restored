@@ -41,6 +41,10 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int AAS_RoutingInfo();
 int __cdecl AAS_TravelFlagForType(int traveltype);
+#ifndef _WIN32
+float __cdecl AAS_RoutingTime(void);
+int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
+#endif
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);
 static void sub_10019570(void);

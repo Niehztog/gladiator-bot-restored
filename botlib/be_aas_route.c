@@ -882,3 +882,40 @@ int AAS_RoutingInfo()
   botimport.Print(PRT_MESSAGE, "%d area cache updates\n", numareacacheupdates);
   return botimport.Print(PRT_MESSAGE, "%d portal cache updates\n", numportalcacheupdates);
 }
+
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.
+ *
+ * The `.so` is the August 2 1999 build and the DLL this reconstruction is
+ * derived from is July 18, so the Linux image carries functions the Windows
+ * one does not.  They are gated rather than added unconditionally, because
+ * the DLL is the canonical byte-match target and code it does not contain
+ * must not appear in it.  Drop the gate for any of these that later turns up
+ * in the DLL.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+
+/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib be_aas_route.c has this verbatim.
+ * The disassembly indexes areasettings by 28 (its sizeof) and portals by 20,
+ * takes `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
+ * clusterareanum[frontcluster != cluster] out of the portal at -cluster. */
+int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
+{
+  int side, areacluster;
+
+  areacluster = aasworld.areasettings[areanum].cluster;
+  if ( areacluster > 0 )
+    return aasworld.areasettings[areanum].clusterareanum;
+  side = aasworld.portals[-areacluster].frontcluster != cluster;
+  return aasworld.portals[-areacluster].clusterareanum[side];
+} //end of the function AAS_ClusterAreaNum
+
+/* F511 @ 0x0002651c, 20 bytes -- a bare tail call to AAS_Time().  Q3 botlib
+ * has it as `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`;
+ * here it is out of line, which is what an `__inline` compiles to under a
+ * compiler that does not honour the hint. */
+float __cdecl AAS_RoutingTime(void)
+{
+  return AAS_Time();
+} //end of the function AAS_RoutingTime
+#endif /* !_WIN32 -- gladi386.so-only */

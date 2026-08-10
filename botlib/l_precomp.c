@@ -40,19 +40,31 @@ char word_1005F588[] = { '\"', '\0' }; // idb
 define_t *globaldefines;
 
 /* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
- * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_ifdef(src, 8/16).
+ * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_if_def(src,
+ * INDENT_IFDEF/INDENT_IFNDEF) -- Q3 botlib has exactly this trio and the same
+ * INDENT_* values, and gladi386.so exports all three (F243/F244/F245), so the
+ * two wrappers are the original's own functions and not reconstruction glue.
  * `directive_t` / `directives` / `dollardirectives` are the original names,
  * recovered from the Linux gladi386.so .dynsym (both tables 160 B = Q3's
  * `directive_t directives[20]`), replacing the invented preproc_directive_t /
  * preproc_directives / eval_type_table. */
-static int preproc_ifdef_wrap(source_t *src)  { return PC_Directive_ifdef(src, 8);  }
-static int preproc_ifndef_wrap(source_t *src) { return PC_Directive_ifdef(src, 16); }
+//----- (1003B7B0) --------------------------------------------------------
+int __cdecl PC_Directive_ifdef(source_t *src)
+{
+  return PC_Directive_if_def(src, INDENT_IFDEF);
+} //end of the function PC_Directive_ifdef
+
+//----- (1003B7D0) --------------------------------------------------------
+int __cdecl PC_Directive_ifndef(source_t *src)
+{
+  return PC_Directive_if_def(src, INDENT_IFNDEF);
+} //end of the function PC_Directive_ifndef
 
 typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
 static directive_t directives[] = {
     {"if",        PC_Directive_if},   /* 0x1003CCB0 */
-    {"ifdef",     preproc_ifdef_wrap},   /* 0x1003B7B0 -> PC_Directive_ifdef(s,8)  */
-    {"ifndef",    preproc_ifndef_wrap},  /* 0x1003B7D0 -> PC_Directive_ifdef(s,16) */
+    {"ifdef",     PC_Directive_ifdef},   /* 0x1003B7B0 */
+    {"ifndef",    PC_Directive_ifndef},  /* 0x1003B7D0 */
     {"elif",      PC_Directive_elif},         /* 0x1003CC10 */
     {"else",      PC_Directive_else},         /* 0x1003B7F0 */
     {"endif",     PC_Directive_endif},         /* 0x1003B880 */
@@ -1110,7 +1122,7 @@ void __cdecl PC_AddGlobalDefinesToSource(source_t *source)
   }
 }
 //----- (1003B6C0) --------------------------------------------------------
-int __cdecl PC_Directive_ifdef(source_t *src, int type)
+int __cdecl PC_Directive_if_def(source_t *src, int type)
 {
   define_t *def;
   token_t token;

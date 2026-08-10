@@ -108,7 +108,16 @@ int __cdecl PC_Directive_error(source_t *source);
 int __cdecl PC_Directive_eval(source_t *source);
 int __cdecl PC_Directive_evalfloat(source_t *source);
 int __cdecl PC_Directive_if(source_t *source);
-int __cdecl PC_Directive_ifdef(source_t *src, int type);
+/* indent types, as Q3 botlib l_precomp.h */
+#define INDENT_IF       0x0001
+#define INDENT_ELSE     0x0002
+#define INDENT_ELIF     0x0004
+#define INDENT_IFDEF    0x0008
+#define INDENT_IFNDEF   0x0010
+
+int __cdecl PC_Directive_if_def(source_t *src, int type);
+int __cdecl PC_Directive_ifdef(source_t *src);
+int __cdecl PC_Directive_ifndef(source_t *src);
 int __cdecl PC_Directive_include(source_t *source);
 int __cdecl PC_Directive_line(source_t *source);
 int __cdecl PC_Directive_pragma(source_t *source);
