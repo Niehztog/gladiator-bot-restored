@@ -32,21 +32,20 @@
  *   d_100669CC/D0 = head/tail of the endtime-sorted active list
  *   d_100669D4/D8 = head/tail of the starttime-sorted active list */
 typedef struct aas_soundpool_s {
-    union {
-        char data[44];       /* opaque byte view — kept for any un-migrated access */
-        struct {
-            float  starttime;   /* +0  AAS_Time() + requested delay */
-            float  endtime;     /* +4  starttime + sound duration; sort key */
-            vec3_t origin;      /* +8  sound emission origin */
-            int    _reserved20; /* +20 always written 0 */
-            int    entnum;      /* +24 */
-            int    channel;     /* +28 */
-            int    soundindex;  /* +32 indexes aasworld.d_100669C0[] */
-            float  volume;      /* +36 passed as int, read as a float multiplier by
-                                  * sub_1001D0A0's audibility formula */
-            int    unknown40;   /* +40 */
-        };
-    };
+    /* The 1999 Linux build was gcc 2.7.2.3, which has no anonymous
+     * struct/union members -- so the original cannot have had the
+     * `union { char data[44]; struct {...}; }` overlay this carried until
+     * 2026-08-10.  The byte view had no users; the fields are the record. */
+    float  starttime;   /* +0  AAS_Time() + requested delay */
+    float  endtime;     /* +4  starttime + sound duration; sort key */
+    vec3_t origin;      /* +8  sound emission origin */
+    int    _reserved20; /* +20 always written 0 */
+    int    entnum;      /* +24 */
+    int    channel;     /* +28 */
+    int    soundindex;  /* +32 indexes aasworld.d_100669C0[] */
+    float  volume;      /* +36 passed as int, read as a float multiplier by
+                          * sub_1001D0A0's audibility formula */
+    int    unknown40;   /* +40 */
     struct aas_soundpool_s    *prev;     /* +44 on 32-bit, +48 on 64-bit */
     struct aas_soundpool_s    *next;
 } aas_soundpool_t;

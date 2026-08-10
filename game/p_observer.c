@@ -10,7 +10,7 @@
 // file was compiled in -- the public source release omitted it).  Behaviour
 // matches the disassembly at addresses 0x1007a2e7..0x1007c174 in
 // reference/gamex86.dll.  The client-facing observer surface
-// (ClientPlaceCamera, ClientCycleCamera, ClientSetCamera, DoObserver,
+// (CheckValidCamera, ClientCycleCamera, ClientSetCamera, DoObserver,
 // ClientToggleObserver / ClientToggleAutoCam / ClientToggleChaseCam /
 // ClientToggleCameraFixed / ClientToggleCameraName, ClientObserverHelp,
 // ClientObserverCmd) is reconstructed line-by-line from x86 disasm of
@@ -62,18 +62,32 @@ float AngleDifference(float ang1, float ang2)
 // ClientToggleObserver as their first action.
 //===========================================================================
 void ClientToggleObserver(edict_t *ent);
-static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles);
-static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep);
+void SetClientView(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles);
+void ChangeCameraAnglesSmooth(float *out, vec3_t target, float frac, float maxstep);
 
 //===========================================================================
-// ClientPlaceCamera                                          sub_1007b56a
+// CheckValidCamera                                          sub_1007b56a
 //
 // Snapshot the observer's own viewangles+origin into cam->clientangles/
 // cam->clientorigin while the camera is targeting the observer himself,
-// or hand the camera back to him (calling CameraPlaceAtTarget) when the
+// or hand the camera back to him (calling SetClientView) when the
 // current target is gone / no longer an observer.
 //===========================================================================
-static void ClientPlaceCamera(edict_t *ent)
+/* NAME ASSIGNED BY ELIMINATION, not by content -- weaker than the other 25
+ * names recovered from gamei386.so in the same pass, and flagged here so a
+ * later session does not read it as verified.
+ *
+ * xmatch.py found no shared string literal and no shared call target for this
+ * pair, and the two bodies differ in size by more than half (ours 163 B, real 331 B).  What
+ * it has going for it is that after the 25 content-proven renames exactly
+ * three real rows and three of ours were left, and this is one of those three.
+ *
+ * The likeliest reason the bodies diverge: gamei386.so is the AUGUST 2 1999
+ * build and gamex86.dll -- which this reconstruction is derived from -- is
+ * JULY 18, and the observer path is one of the places the two builds are known
+ * to differ.  So the NAME is probably right and the BODY is probably the older
+ * revision.  Re-check with xmatch.py before treating the diff as a defect. */
+void CheckValidCamera(edict_t *ent)
 {
 	camera_t *cam;
 
@@ -90,7 +104,7 @@ static void ClientPlaceCamera(edict_t *ent)
 	else if (!cam->ent || !cam->ent->inuse || (cam->ent->flags & FL_OBSERVER))
 	{
 		ent->client->camera.ent = ent;
-		CameraPlaceAtTarget(ent,
+		SetClientView(ent,
 			cam->clientorigin,
 			cam->clientangles,
 			/* sub_10077f7d cmdangles arg -- gclient_t resp.cmd_angles at +0xdc8;
@@ -98,14 +112,14 @@ static void ClientPlaceCamera(edict_t *ent)
 			ent->client->resp.cmd_angles);
 	} //end else if
 	/* else: current target is a live non-observer player; keep tracking it */
-} //end of the function ClientPlaceCamera
+} //end of the function CheckValidCamera
 
 //===========================================================================
 // ClientCycleCamera                                          sub_1007b652
 //
 // "cyclecam" command: walk through the clients starting at the slot
 // after the current target and lock onto the first in-use, non-observer
-// one.  Falls back to ClientToggleObserver / ClientPlaceCamera and
+// one.  Falls back to ClientToggleObserver / CheckValidCamera and
 // refuses to do anything while CAMFL_AUTOCAM is set.
 //===========================================================================
 void ClientCycleCamera(edict_t *ent)
@@ -123,7 +137,7 @@ void ClientCycleCamera(edict_t *ent)
 		return;
 	} //end if
 
-	ClientPlaceCamera(ent);
+	CheckValidCamera(ent);
 
 	idx = (ent->client->camera.ent - g_edicts) - 1;
 	for (i = 0; i < game.maxclients; i++)
@@ -145,7 +159,7 @@ void ClientCycleCamera(edict_t *ent)
 		gi.cprintf(ent, PRINT_HIGH, "no valid client found to observe\n");
 
 	if (ent->client->camera.ent == ent)
-		CameraPlaceAtTarget(ent,
+		SetClientView(ent,
 			ent->client->camera.clientorigin,
 			ent->client->camera.clientangles,
 			ent->client->resp.cmd_angles);
@@ -157,7 +171,7 @@ void ClientCycleCamera(edict_t *ent)
 // "setcam <name>" command: target an in-use client whose pers.netname
 // matches the first command argument.  Behaves like ClientCycleCamera
 // for the prelude (FL_OBSERVER auto-enter, CAMFL_AUTOCAM refusal,
-// ClientPlaceCamera snapshot).
+// CheckValidCamera snapshot).
 //===========================================================================
 void ClientSetCamera(edict_t *ent)
 {
@@ -180,7 +194,7 @@ void ClientSetCamera(edict_t *ent)
 		return;
 	} //end if
 
-	ClientPlaceCamera(ent);
+	CheckValidCamera(ent);
 	name = gi.argv(1);
 
 	for (i = 0; i < game.maxclients; i++)
@@ -198,7 +212,7 @@ void ClientSetCamera(edict_t *ent)
 		gi.cprintf(ent, PRINT_HIGH, "no valid client found with the name %s\n", name);
 
 	if (ent->client->camera.ent == ent)
-		CameraPlaceAtTarget(ent,
+		SetClientView(ent,
 			ent->client->camera.clientorigin,
 			ent->client->camera.clientangles,
 			ent->client->resp.cmd_angles);
@@ -262,7 +276,7 @@ void ClientToggleObserver(edict_t *ent)
 			VectorCopy(ent->client->v_angle, ent->client->ps.viewangles);
 		}
 		ent->client->camera.ent = ent;
-		ClientPlaceCamera(ent);
+		CheckValidCamera(ent);
 		if (ctf->value)
 			ent->client->resp.ctf_team = 0;
 		gi.bprintf(PRINT_HIGH, "%s entered observer mode\n", ent->client->pers.netname);
@@ -379,71 +393,71 @@ void ClientObserverHelp(edict_t *ent)
 } //end of the function ClientObserverHelp
 
 //===========================================================================
-// Autocam state handlers and CameraMove / CameraInputThink / CameraPlaceAtTarget
+// Autocam state handlers and Cam_UpdateView / ChangeChaseCamOffset / SetClientView
 //
 // These helpers live in the original DLL at the addresses noted below.
 // They are now fully reconstructed below; these are the dispatch-order
 // forward declarations.
 //===========================================================================
-static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a2e7 */
-static void CameraAutoCamState1(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f4d */
-static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f64 */
-static void CameraAutoCamState3(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a1d2 */
-static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd);   /* sub_10079c26 */
-static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd); /* sub_100784f9 */
-static void CameraInputThink(edict_t *ent, usercmd_t *ucmd);      /* sub_1007ace3 */
-static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles); /* sub_10078043 */
+void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a2e7 */
+void Cam_FixedThink(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f4d */
+void Cam_FlyByThink(edict_t *ent, usercmd_t *ucmd);   /* sub_10079f64 */
+void Cam_FollowThink(edict_t *ent, usercmd_t *ucmd);   /* sub_1007a1d2 */
+void Cam_DeathThink(edict_t *ent, usercmd_t *ucmd);   /* sub_10079c26 */
+void Cam_UpdateView(edict_t *ent, float speed, usercmd_t *ucmd); /* sub_100784f9 */
+void ChangeChaseCamOffset(edict_t *ent, usercmd_t *ucmd);      /* sub_1007ace3 */
+void SetClientView(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles); /* sub_10078043 */
 
 //===========================================================================
-// CameraAutoCamThink
+// Cam_Think
 //
 // Per-frame state machine for autocam mode.  Reconstructed faithfully from
 // gamex86.dll @ 0x1007abd5: a switch on cam->state that calls one of five
-// state handlers followed by a uniform CameraMove(ent, speed, ucmd) helper.
+// state handlers followed by a uniform Cam_UpdateView(ent, speed, ucmd) helper.
 // Unknown states reset cam->state to 0.
 //===========================================================================
-static void CameraAutoCamThink(edict_t *ent, usercmd_t *ucmd)
+void Cam_Think(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
 
 	cam = &ent->client->camera;
 	if (cam->state == 0)
 	{
-		CameraAutoCamState0(ent, ucmd);
-		CameraMove(ent, 1.0, ucmd);
+		Cam_IdleThink(ent, ucmd);
+		Cam_UpdateView(ent, 1.0, ucmd);
 	} //end if
 	else if (cam->state == 2)
 	{
-		CameraAutoCamState2(ent, ucmd);
-		CameraMove(ent, 0.0, ucmd);
+		Cam_FlyByThink(ent, ucmd);
+		Cam_UpdateView(ent, 0.0, ucmd);
 	} //end else if
 	else if (cam->state == 3)
 	{
-		CameraAutoCamState3(ent, ucmd);
-		CameraMove(ent, 0.0, ucmd);
+		Cam_FollowThink(ent, ucmd);
+		Cam_UpdateView(ent, 0.0, ucmd);
 	} //end else if
 	else if (cam->state == 7)
 	{
-		CameraAutoCamState7(ent, ucmd);
-		CameraMove(ent, 100.0, ucmd);
+		Cam_DeathThink(ent, ucmd);
+		Cam_UpdateView(ent, 100.0, ucmd);
 	} //end else if
 	else if (cam->state == 1)
 	{
-		CameraAutoCamState1(ent, ucmd);
-		CameraMove(ent, 0.0, ucmd);
+		Cam_FixedThink(ent, ucmd);
+		Cam_UpdateView(ent, 0.0, ucmd);
 	} //end else if
 	else
 	{
 		cam->state = 0;
 	} //end else
-} //end of the function CameraAutoCamThink
+} //end of the function Cam_Think
 
 //===========================================================================
-// CameraChaseCamThink
+// UpdateChaseCamera
 //
 // Per-frame chase-cam logic.  Reconstructed faithfully from gamex86.dll @
 // 0x1007b05d.  Steps:
-//   1. If !CAMFL_FIXED, let user input adjust the camera (CameraInputThink).
+//   1. If !CAMFL_FIXED, let user input adjust the camera (ChangeChaseCamOffset).
 //   2. Snap (CAMFL_NOSMOOTHING) or LerpAngles cam->ent_angles toward the
 //      chase target's v_angle, then refresh cam->lasttime.
 //   3. Compute a yaw-offset forward vector (with the pitch correction
@@ -455,17 +469,17 @@ static void CameraAutoCamThink(edict_t *ent, usercmd_t *ucmd)
 //      the chase target, then push the endpoint 5 units further along
 //      forward (so the camera does not clip into the wall it hit).
 //   6. Build cmdangles from ucmd->angles via SHORT2ANGLE and hand off to
-//      CameraPlaceAtTarget which writes the final angles back; copy those
+//      SetClientView which writes the final angles back; copy those
 //      into cam->angles.
 //===========================================================================
-static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
+void UpdateChaseCamera(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	vec3_t   angles, dir, horizfwd, up, forward, end, cmdangles;
 	trace_t  tr;
 
 	if (!(ent->client->camera.flags & CAMFL_FIXED))
-		CameraInputThink(ent, ucmd);
+		ChangeChaseCamOffset(ent, ucmd);
 
 	cam = &ent->client->camera;
 	if (cam->flags & CAMFL_NOSMOOTHING)
@@ -474,9 +488,9 @@ static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 	} //end if
 	else
 	{
-		/* disasm @ 0x1007b0e4: call SubLerpAngle (sub_10077e29) with
+		/* disasm @ 0x1007b0e4: call ChangeCameraAnglesSmooth (sub_10077e29) with
 		   args (cam->ent_angles, target->v_angle, level.time-lasttime, 1.0). */
-		SubLerpAngle(cam->ent_angles,
+		ChangeCameraAnglesSmooth(cam->ent_angles,
 		             cam->ent->client->v_angle,
 		             level.time - cam->lasttime,
 		             1.0f);
@@ -531,14 +545,14 @@ static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 	cmdangles[2] = SHORT2ANGLE(ucmd->angles[2]);
 
 	// Final placement -- writes resulting angles back through 'angles'.
-	CameraPlaceAtTarget(ent, end, angles, cmdangles);
+	SetClientView(ent, end, angles, cmdangles);
 
-	// cam->angles = angles  (the values written by CameraPlaceAtTarget)
+	// cam->angles = angles  (the values written by SetClientView)
 	VectorCopy(angles, cam->angles);
-} //end of the function CameraChaseCamThink
+} //end of the function UpdateChaseCamera
 
 //===========================================================================
-// CameraFixedCamThink                                        sub_1007b363
+// UpdateEyeCamera                                        sub_1007b363
 //
 // Dead code in the shipping DLL -- the byte pattern of its address
 // (63 b3 07 10) appears nowhere else in gamex86.dll, so this function is
@@ -547,9 +561,23 @@ static void CameraChaseCamThink(edict_t *ent, usercmd_t *ucmd)
 // stays unreferenced.  The shape is a "fixed chase camera" variant: it
 // snaps/lerps the cam's view to the target's v_angle, then pushes the
 // camera forward 15 units along the horizontal view vector before
-// finalising via CameraPlaceAtTarget.
+// finalising via SetClientView.
 //===========================================================================
-static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
+/* NAME ASSIGNED BY ELIMINATION, not by content -- weaker than the other 25
+ * names recovered from gamei386.so in the same pass, and flagged here so a
+ * later session does not read it as verified.
+ *
+ * xmatch.py found no shared string literal and no shared call target for this
+ * pair, and the two bodies differ in size by more than half (ours 436 B, real 603 B).  What
+ * it has going for it is that after the 25 content-proven renames exactly
+ * three real rows and three of ours were left, and this is one of those three.
+ *
+ * The likeliest reason the bodies diverge: gamei386.so is the AUGUST 2 1999
+ * build and gamex86.dll -- which this reconstruction is derived from -- is
+ * JULY 18, and the observer path is one of the places the two builds are known
+ * to differ.  So the NAME is probably right and the BODY is probably the older
+ * revision.  Re-check with xmatch.py before treating the diff as a defect. */
+void UpdateEyeCamera(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	vec3_t forward;
@@ -564,7 +592,7 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 	} //end if
 	else
 	{
-		SubLerpAngle(cam->ent_angles, cam->ent->client->v_angle,
+		ChangeCameraAnglesSmooth(cam->ent_angles, cam->ent->client->v_angle,
 		             level.time - cam->lasttime, 1.0f);
 	} //end else
 	cam->lasttime = level.time;
@@ -585,7 +613,7 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 	cam->origin[2] += forward[2];
 
 	// pre-copy cam->ent_angles into cam->angles (this is overwritten again
-	// after CameraPlaceAtTarget but the original does both writes verbatim)
+	// after SetClientView but the original does both writes verbatim)
 	cam->angles[0] = cam->ent_angles[0];
 	cam->angles[1] = cam->ent_angles[1];
 	cam->angles[2] = cam->ent_angles[2];
@@ -594,12 +622,12 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 	cmdangles[1] = SHORT2ANGLE(ucmd->angles[1]);
 	cmdangles[2] = SHORT2ANGLE(ucmd->angles[2]);
 
-	CameraPlaceAtTarget(ent, cam->origin, cam->ent_angles, cmdangles);
+	SetClientView(ent, cam->origin, cam->ent_angles, cmdangles);
 
 	cam->angles[0] = cam->ent_angles[0];
 	cam->angles[1] = cam->ent_angles[1];
 	cam->angles[2] = cam->ent_angles[2];
-} //end of the function CameraFixedCamThink
+} //end of the function UpdateEyeCamera
 
 //===========================================================================
 // NOTE: ClientSetViewAngles was declared in Mr. Elusive's original
@@ -615,17 +643,17 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 
 //===========================================================================
 // Faithful disassembly-derived reconstruction of the 5 autocam state
-// handlers + CameraMove / CameraInputThink / CameraPlaceAtTarget.
+// handlers + Cam_UpdateView / ChangeChaseCamOffset / SetClientView.
 //
 // Translated line-by-line from gamex86.dll at:
-//   sub_10078043 = CameraPlaceAtTarget   (18 lines  -> the trivial dispatch)
-//   sub_10079f4d = CameraAutoCamState1   ("fixed mode" centerprint)
-//   sub_1007a1d2 = CameraAutoCamState3   (target-tracking)
-//   sub_10079f64 = CameraAutoCamState2   (chase from a fixed distance)
-//   sub_10079c26 = CameraAutoCamState7   ("bodyque" / corpse chase)
-//   sub_1007ace3 = CameraInputThink      (m_pitch / chaseoffset twiddling)
-//   sub_100784f9 = CameraMove            (per-state move + angle blend)
-//   sub_1007a2e7 = CameraAutoCamState0   (target selection)
+//   sub_10078043 = SetClientView   (18 lines  -> the trivial dispatch)
+//   sub_10079f4d = Cam_FixedThink   ("fixed mode" centerprint)
+//   sub_1007a1d2 = Cam_FollowThink   (target-tracking)
+//   sub_10079f64 = Cam_FlyByThink   (chase from a fixed distance)
+//   sub_10079c26 = Cam_DeathThink   ("bodyque" / corpse chase)
+//   sub_1007ace3 = ChangeChaseCamOffset      (m_pitch / chaseoffset twiddling)
+//   sub_100784f9 = Cam_UpdateView            (per-state move + angle blend)
+//   sub_1007a2e7 = Cam_IdleThink   (target selection)
 //
 // Constants come from .rdata at gamex86.dll+0x92000.  Inline literals
 // are decoded as their float values for readability.
@@ -633,24 +661,24 @@ static void CameraFixedCamThink(edict_t *ent, usercmd_t *ucmd)
 // The nested helper functions (sub_10077e29, sub_10077eba, sub_10077f15,
 // sub_10077f7d, sub_1007845f, sub_100788ff, sub_1007897a, sub_10078125,
 // sub_100782ad, sub_10078a04, sub_10078bcc, sub_10079a92, sub_10079acf,
-// sub_10078c53 SubScoreCameraPos, sub_10078f4a SubCameraFindFlybyPos,
+// sub_10078c53 Cam_TryFlyByVector, sub_10078f4a Cam_GetFlyBySpot,
 // sub_10085904) are all reconstructed line-by-line from the disassembly
 // further down in this file.
 //===========================================================================
 
 // ---- Forward declarations for the nested helpers (defined at file bottom) --
-static void  SubApplyCameraOrigin   (edict_t *ent, vec3_t origin);                     /* sub_10077f15 */
-static void  SubApplyCameraAngles   (edict_t *ent, vec3_t out_angles, vec3_t cmd);     /* sub_10077f7d */
-static void  SubLerpAngle           (float *out, vec3_t target, float frac, float maxstep); /* sub_10077e29 */
-static qboolean SubCanSeePoint      (edict_t *ent, vec3_t point);                      /* sub_10078125 */
-static qboolean SubTargetVisible    (edict_t *ent, edict_t *target);                   /* sub_100782ad */
-static edict_t *SubNextClient       (edict_t *prev);                                   /* sub_1007845f */
-static void  SubAbortAutocam        (edict_t *ent, usercmd_t *ucmd);                   /* sub_100788ff */
-static void  SubOnTargetDeath       (edict_t *ent);                                    /* sub_1007897a */
-static void  SubGetTargetMuzzle     (edict_t *ent, vec3_t out);                        /* sub_10078a04 */
-static void  SubGetTargetAimEnd     (edict_t *ent, vec3_t out);                        /* sub_10078bcc */
-static void  SubAutocamSetSpot      (edict_t *target, vec3_t spot);                    /* sub_10079a92 */
-static void  SubSetAutocamTarget    (edict_t *ent, edict_t *target, usercmd_t *ucmd);  /* sub_10079acf */
+void  SetClientOrigin   (edict_t *ent, vec3_t origin);                     /* sub_10077f15 */
+void  ClientSetViewAngles   (edict_t *ent, vec3_t out_angles, vec3_t cmd);     /* sub_10077f7d */
+void  ChangeCameraAnglesSmooth           (float *out, vec3_t target, float frac, float maxstep); /* sub_10077e29 */
+qboolean Cam_SpotVisible      (edict_t *ent, vec3_t point);                      /* sub_10078125 */
+qboolean Cam_EntityVisible    (edict_t *ent, edict_t *target);                   /* sub_100782ad */
+edict_t *Cam_Cycle       (edict_t *prev);                                   /* sub_1007845f */
+void  Cam_EnterIdleMode        (edict_t *ent, usercmd_t *ucmd);                   /* sub_100788ff */
+void  Cam_EnterDeathMode       (edict_t *ent);                                    /* sub_1007897a */
+void  Cam_GetFollowSpot     (edict_t *ent, vec3_t out);                        /* sub_10078a04 */
+void  Cam_GetFollowTarget     (edict_t *ent, vec3_t out);                        /* sub_10078bcc */
+void  Cam_GetFlyByTarget      (edict_t *target, vec3_t spot);                    /* sub_10079a92 */
+void  Cam_EnterFlyByMode    (edict_t *ent, edict_t *target, usercmd_t *ucmd);  /* sub_10079acf */
 // (sub_10085904 = q_shared.c VectorCompare, declared in q_shared.h)
 
 // Mask value at gamex86.dll+0x10092 area, embedded as immediate 0x2010003 in
@@ -661,9 +689,9 @@ static void  SubSetAutocamTarget    (edict_t *ent, edict_t *target, usercmd_t *u
 #endif
 
 //===========================================================================
-// sub_1007ace3 -- CameraInputThink
+// sub_1007ace3 -- ChangeChaseCamOffset
 //===========================================================================
-static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
+void ChangeChaseCamOffset(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	cvar_t *m_pitch;
@@ -748,39 +776,53 @@ static void CameraInputThink(edict_t *ent, usercmd_t *ucmd)
 	// chaseoffset[ROLL] clamp into [-48, 48].
 	if (cam->chaseoffset[ROLL] >  48.0f) cam->chaseoffset[ROLL] =  48.0f;
 	else if (cam->chaseoffset[ROLL] < -48.0f) cam->chaseoffset[ROLL] = -48.0f;
-} //end of the function CameraInputThink
+} //end of the function ChangeChaseCamOffset
 
 //===========================================================================
-// sub_10078043 -- CameraPlaceAtTarget
+// sub_10078043 -- SetClientView
 //
 //   sub_10077f15(ent, cmdangles_arg);
 //   sub_10077f7d(ent, end_arg, out_angles_arg);
 //
 // Note: arg layout from disasm is (ent, end, out_angles, cmdangles) but the
-// helper SubApplyCameraOrigin's vec3 arg is the SECOND function arg (ebp+0xc).
-// CameraChaseCamThink calls us with: (ent, end, &out_angles, cmdangles)
+// helper SetClientOrigin's vec3 arg is the SECOND function arg (ebp+0xc).
+// UpdateChaseCamera calls us with: (ent, end, &out_angles, cmdangles)
 // and the disasm shows sub_10077f15(ent, ebp+0xc), i.e. with 'end'.
 //===========================================================================
-static void CameraPlaceAtTarget(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles)
+/* NAME ASSIGNED BY ELIMINATION, not by content -- weaker than the other 25
+ * names recovered from gamei386.so in the same pass, and flagged here so a
+ * later session does not read it as verified.
+ *
+ * xmatch.py found no shared string literal and no shared call target for this
+ * pair, and the two bodies differ in size by more than half (ours 55 B, real 199 B).  What
+ * it has going for it is that after the 25 content-proven renames exactly
+ * three real rows and three of ours were left, and this is one of those three.
+ *
+ * The likeliest reason the bodies diverge: gamei386.so is the AUGUST 2 1999
+ * build and gamex86.dll -- which this reconstruction is derived from -- is
+ * JULY 18, and the observer path is one of the places the two builds are known
+ * to differ.  So the NAME is probably right and the BODY is probably the older
+ * revision.  Re-check with xmatch.py before treating the diff as a defect. */
+void SetClientView(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles)
 {
-	SubApplyCameraOrigin(ent, end);                          // sub_10077f15
-	SubApplyCameraAngles(ent, out_angles, cmdangles);        // sub_10077f7d
-} //end of the function CameraPlaceAtTarget
+	SetClientOrigin(ent, end);                          // sub_10077f15
+	ClientSetViewAngles(ent, out_angles, cmdangles);        // sub_10077f7d
+} //end of the function SetClientView
 
 //===========================================================================
-// sub_100784f9 -- CameraMove
+// sub_100784f9 -- Cam_UpdateView
 //
 // 'speed': passed as second argument (the dispatcher passes 1.0, 0.0, 0.0,
 //          100.0, 0.0 for states 0,1,2,7,3 respectively).
 //
 // Branches:
-//   speed == 0       -> teleport: SubApplyCameraOrigin(ent, cam->dest)
+//   speed == 0       -> teleport: SetClientOrigin(ent, cam->dest)
 //   else trace from cam->ent->origin to cam->dest; if hit, snap; else
 //     compute step along the trace direction and advance.
 //   Then per state (0 / 3 / 7 / other) compute target angle vector by
-//   subtracting positions and feed into SubLerpAngle.
+//   subtracting positions and feed into ChangeCameraAnglesSmooth.
 //===========================================================================
-static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd)
+void Cam_UpdateView(edict_t *ent, float speed, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	trace_t tr;
@@ -794,7 +836,7 @@ static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd)
 	// if (speed == 0) snap to dest and skip the lerp.
 	if (speed == 0.0f)
 	{
-		SubApplyCameraOrigin(ent, cam->dest);
+		SetClientOrigin(ent, cam->dest);
 		goto angles_phase;
 	}
 
@@ -802,7 +844,7 @@ static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd)
 	              ent, OBSERVER_TRACE_MASK);
 	if (tr.fraction < 1.0)
 	{
-		SubApplyCameraOrigin(ent, cam->dest);
+		SetClientOrigin(ent, cam->dest);
 		goto angles_phase;
 	}
 
@@ -824,7 +866,7 @@ static void CameraMove(edict_t *ent, float speed, usercmd_t *ucmd)
 	move[0] += ent->s.origin[0];
 	move[1] += ent->s.origin[1];
 	move[2] += ent->s.origin[2];
-	SubApplyCameraOrigin(ent, move);
+	SetClientOrigin(ent, move);
 
 angles_phase:
 	if (cam->state == 0)
@@ -834,13 +876,13 @@ angles_phase:
 		move[1] = cam->viewtarget[1] - cam->dest[1];
 		move[2] = cam->viewtarget[2] - cam->dest[2];
 		vectoangles(move, target_ang);
-		// SubLerpAngle(cam->angles, target_ang, 0.2, level.time - lasttime)
-		SubLerpAngle(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
+		// ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2, level.time - lasttime)
+		ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
 	}
 	else if (cam->state == 3)
 	{
 		// Aim at where the target is aiming: gclient_t.v_angle (at +0xe8c).
-		SubLerpAngle(cam->angles,
+		ChangeCameraAnglesSmooth(cam->angles,
 		             cam->ent->client->v_angle,
 		             0.8f,
 		             level.time - cam->lasttime);
@@ -851,7 +893,7 @@ angles_phase:
 		move[1] = cam->ent->s.origin[1] - ent->s.origin[1];
 		move[2] = cam->ent->s.origin[2] - ent->s.origin[2];
 		vectoangles(move, target_ang);
-		SubLerpAngle(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
+		ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
 	}
 	else
 	{
@@ -866,68 +908,68 @@ angles_phase:
 	cmdangles[PITCH] = SHORT2ANGLE(ucmd->angles[PITCH]);
 	cmdangles[YAW]   = SHORT2ANGLE(ucmd->angles[YAW]);
 	cmdangles[ROLL]  = SHORT2ANGLE(ucmd->angles[ROLL]);
-	SubApplyCameraAngles(ent, cam->angles, cmdangles);
+	ClientSetViewAngles(ent, cam->angles, cmdangles);
 
 	cam->lasttime = level.time;
-} //end of the function CameraMove
+} //end of the function Cam_UpdateView
 
 //===========================================================================
-// sub_10079f4d -- CameraAutoCamState1
+// sub_10079f4d -- Cam_FixedThink
 //
 // Just centerprints "fixed mode".
 //===========================================================================
-static void CameraAutoCamState1(edict_t *ent, usercmd_t *ucmd)
+void Cam_FixedThink(edict_t *ent, usercmd_t *ucmd)
 {
 	gi.centerprintf(ent, "fixed mode");
-} //end of the function CameraAutoCamState1
+} //end of the function Cam_FixedThink
 
 //===========================================================================
-// sub_1007a1d2 -- CameraAutoCamState3
+// sub_1007a1d2 -- Cam_FollowThink
 //
 // Tracking state.  If target died, abort or transfer; otherwise verify line
 // of sight, refresh muzzle / aim-end points, and time out after delay.
 //===========================================================================
-static void CameraAutoCamState3(edict_t *ent, usercmd_t *ucmd)
+void Cam_FollowThink(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
 
 	if (cam->ent->deadflag != 0)
 	{
 		if (level.time < 31.0f)
-			SubAbortAutocam(ent, ucmd);
+			Cam_EnterIdleMode(ent, ucmd);
 		else
-			SubOnTargetDeath(ent);
+			Cam_EnterDeathMode(ent);
 		return;
 	}
 
-	if (SubTargetVisible(ent, cam->ent))
+	if (Cam_EntityVisible(ent, cam->ent))
 	{
-		SubGetTargetMuzzle(ent, cam->dest);
-		SubGetTargetAimEnd(ent, cam->viewtarget);
+		Cam_GetFollowSpot(ent, cam->dest);
+		Cam_GetFollowTarget(ent, cam->viewtarget);
 		// gi.pointcontents(&cam->dest) & 1 == 1  OR  pause_time < level.time
 		if ((gi.pointcontents(cam->dest) & 1)
 		    || cam->pause_time < level.time)
 		{
-			SubSetAutocamTarget(ent, cam->ent, ucmd);
+			Cam_EnterFlyByMode(ent, cam->ent, ucmd);
 		}
 	}
 	else
 	{
-		SubSetAutocamTarget(ent, cam->ent, ucmd);
+		Cam_EnterFlyByMode(ent, cam->ent, ucmd);
 	}
 
 	if (cam->search_time < level.time)
-		SubAbortAutocam(ent, ucmd);
-} //end of the function CameraAutoCamState3
+		Cam_EnterIdleMode(ent, ucmd);
+} //end of the function Cam_FollowThink
 
 //===========================================================================
-// sub_10079f64 -- CameraAutoCamState2
+// sub_10079f64 -- Cam_FlyByThink
 //
 // Idle-chase state.  Holds the camera at cam->dest while watching cam->ent.
 // Promotes to state 3 when the target starts shooting at us / we have a
 // good line of sight; otherwise re-targets when distance closes.
 //===========================================================================
-static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
+void Cam_FlyByThink(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
 	vec3_t dir;
@@ -937,9 +979,9 @@ static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
 	if (cam->ent->deadflag != 0)
 	{
 		if (level.time < 31.0f)
-			SubAbortAutocam(ent, ucmd);
+			Cam_EnterIdleMode(ent, ucmd);
 		else
-			SubOnTargetDeath(ent);
+			Cam_EnterDeathMode(ent);
 		return;
 	}
 
@@ -948,8 +990,8 @@ static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
 	   je skip.  Upgrade to state 3 only if standing on a non-world entity. */
 	if (cam->ent->groundentity != NULL && cam->ent->groundentity != g_edicts)
 	{
-		SubGetTargetMuzzle(ent, aimend);
-		if (SubCanSeePoint(ent, aimend))
+		Cam_GetFollowSpot(ent, aimend);
+		if (Cam_SpotVisible(ent, aimend))
 		{
 			cam->state = 3;
 			cam->pause_time = level.time + 10.0f;     // 0x10092168 = 10.0
@@ -964,14 +1006,14 @@ static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
 
 	/* disasm @ 0x1007a07a..0x1007a0a1: SetSpot if (visible && maxflybydist >
 	   dist) OR (pause_time > level.time); SetAutocamTarget otherwise. */
-	if ((SubTargetVisible(ent, cam->ent) && cam->maxflybydist > dist)
+	if ((Cam_EntityVisible(ent, cam->ent) && cam->maxflybydist > dist)
 	    || cam->pause_time > level.time)
 	{
-		SubAutocamSetSpot(cam->ent, cam->viewtarget);
+		Cam_GetFlyByTarget(cam->ent, cam->viewtarget);
 	}
 	else
 	{
-		SubSetAutocamTarget(ent, cam->ent, ucmd);
+		Cam_EnterFlyByMode(ent, cam->ent, ucmd);
 	}
 
 	dir[0] = cam->ent->s.origin[0] - ent->s.origin[0];
@@ -988,8 +1030,8 @@ static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
 
 		if (yaw_diff < 30.0f)                          // 0x1009217c = 30
 		{
-			SubGetTargetMuzzle(ent, aimend);
-			if (SubCanSeePoint(ent, aimend))
+			Cam_GetFollowSpot(ent, aimend);
+			if (Cam_SpotVisible(ent, aimend))
 			{
 				cam->state = 3;
 				cam->pause_time = level.time + 10.0f;
@@ -999,17 +1041,17 @@ static void CameraAutoCamState2(edict_t *ent, usercmd_t *ucmd)
 	}
 
 	if (cam->search_time < level.time)
-		SubAbortAutocam(ent, ucmd);
-} //end of the function CameraAutoCamState2
+		Cam_EnterIdleMode(ent, ucmd);
+} //end of the function Cam_FlyByThink
 
 //===========================================================================
-// sub_10079c26 -- CameraAutoCamState7
+// sub_10079c26 -- Cam_DeathThink
 //
 // Bodyque (corpse) tracking.  When the chase target is a corpse it links
 // to a chain via [+0x19c]; we follow that chain until it terminates or
 // the corpse settles, then back the camera off by 59 units.
 //===========================================================================
-static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
+void Cam_DeathThink(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
 	float dist;
@@ -1017,7 +1059,7 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 
 	if (cam->search_time < level.time)
 	{
-		SubAbortAutocam(ent, ucmd);
+		Cam_EnterIdleMode(ent, ucmd);
 		return;
 	}
 
@@ -1032,7 +1074,7 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 			cam->ent = cam->ent->goalentity;
 		else
 		{
-			SubAbortAutocam(ent, ucmd);
+			Cam_EnterIdleMode(ent, ucmd);
 			return;
 		}
 	}
@@ -1054,7 +1096,7 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 
 	if (level.time > cam->pause_time)
 	{
-		SubAbortAutocam(ent, ucmd);
+		Cam_EnterIdleMode(ent, ucmd);
 		return;
 	}
 
@@ -1066,14 +1108,14 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 		cam->viewtarget[2] = cam->ent->s.origin[2];
 		cam->viewtarget[2] += 8.0f;
 
-		if (!SubCanSeePoint(ent, cam->viewtarget))
+		if (!Cam_SpotVisible(ent, cam->viewtarget))
 		{
 			if (cam->ent->velocity[0] == 0.0f && cam->ent->velocity[1] == 0.0f)
 			{
-				SubAbortAutocam(ent, ucmd);
+				Cam_EnterIdleMode(ent, ucmd);
 				return;
 			}
-			SubSetAutocamTarget(ent, cam->ent, ucmd);
+			Cam_EnterFlyByMode(ent, cam->ent, ucmd);
 			cam->state = 7;
 			cam->pause_time = level.time + 2.0f;
 		}
@@ -1094,15 +1136,15 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 	cam->dest[2] = cam->dest[2] - cam->viewtarget[2];
 	VectorNormalize(cam->dest);
 	VectorMA(cam->viewtarget, 59.0f, cam->dest, cam->dest);
-} //end of the function CameraAutoCamState7
+} //end of the function Cam_DeathThink
 
 //===========================================================================
-// sub_1007a2e7 -- CameraAutoCamState0
+// sub_1007a2e7 -- Cam_IdleThink
 //
 // Target-selection pass: walks the client list and picks a new chase target
 // using one of three random strategies (highest health / highest score /
 // uniform-random).  Then either commits to the new target via
-// SubSetAutocamTarget, or -- if no different target was found -- refines
+// Cam_EnterFlyByMode, or -- if no different target was found -- refines
 // cam->viewtarget and (when search_time has elapsed) backtracks cam->dest
 // along the viewtarget->dest direction by a random distance.
 //
@@ -1112,7 +1154,7 @@ static void CameraAutoCamState7(edict_t *ent, usercmd_t *ucmd)
 // guard is always satisfied because the operand is anglemod-bounded to
 // [0,360)) -- preserved here as faithful no-ops via the same guard.
 //===========================================================================
-static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
+void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
 	edict_t  *chosen;
@@ -1155,7 +1197,7 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 	if (rnd < 1.0f)                                       // 0x10092178 = 1.0
 	{
 		// Pick best-health client.
-		it = SubNextClient(NULL);
+		it = Cam_Cycle(NULL);
 		while (it != NULL)
 		{
 			if (it != cam->lastent && it->deadflag == 0)
@@ -1167,7 +1209,7 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 					best   = h;
 				}
 			}
-			it = SubNextClient(it);
+			it = Cam_Cycle(it);
 		}
 		goto install_target;
 	}
@@ -1175,7 +1217,7 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 	if (rnd < 2.0f)                                       // 0x1009216c = 2.0
 	{
 		// Pick best-score client (negative score clamped to zero).
-		it = SubNextClient(NULL);
+		it = Cam_Cycle(NULL);
 		while (it != NULL)
 		{
 			if (it != cam->lastent && it->deadflag == 0)
@@ -1188,19 +1230,19 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 					best   = s;
 				}
 			}
-			it = SubNextClient(it);
+			it = Cam_Cycle(it);
 		}
 		goto install_target;
 	}
 
 	// Uniform random pick: count valid candidates, then pick the n-th.
 	best = 0.0f;
-	it = SubNextClient(NULL);
+	it = Cam_Cycle(NULL);
 	while (it != NULL)
 	{
 		if (it != cam->lastent && it->deadflag == 0)
 			best += 1.0f;                                 // 0x10092178 = 1.0
-		it = SubNextClient(it);
+		it = Cam_Cycle(it);
 	}
 	if (best <= 0.0f)
 		goto install_target;
@@ -1210,7 +1252,7 @@ static void CameraAutoCamState0(edict_t *ent, usercmd_t *ucmd)
 	it = NULL;
 	for (;;)
 	{
-		it = SubNextClient(it);
+		it = Cam_Cycle(it);
 		if (it == cam->lastent)         continue;
 		if (it->deadflag != 0)          continue;
 		best -= 1.0f;                                     // 0x10092178 = 1.0
@@ -1224,7 +1266,7 @@ install_target:
 	if (chosen != ent)
 	{
 		// Found a (different) target: commit and bail.
-		SubSetAutocamTarget(ent, chosen, ucmd);
+		Cam_EnterFlyByMode(ent, chosen, ucmd);
 		cam->delay       = level.time + 10.0f;            // 0x10092168 = 10
 		cam->search_time = level.time + 60.0f;            // 0x10092230 = 60
 		return;
@@ -1405,12 +1447,12 @@ install_target:
 			                 + ((float)(rand() & 0x7FFF) / 32767.0f);
 		}
 	}
-} //end of the function CameraAutoCamState0
+} //end of the function Cam_IdleThink
 
 //===========================================================================
 // Nested helper functions, reconstructed line-by-line from the gamex86.dll
 // disassembly.  All helpers (including the fourth-tier sub_10078c53
-// SubScoreCameraPos and sub_10078f4a SubCameraFindFlybyPos) are fully
+// Cam_TryFlyByVector and sub_10078f4a Cam_GetFlyBySpot) are fully
 // restored below.
 //===========================================================================
 
@@ -1419,7 +1461,7 @@ install_target:
 // way around the circle.  Both inputs are anglemod'd first.  Returns the
 // new angle, anglemod'd.
 //===========================================================================
-static float SubAngleStep(float from, float to, float maxstep)
+float ChangeAngle(float from, float to, float maxstep)
 {
 	float diff;
 
@@ -1457,7 +1499,7 @@ static float SubAngleStep(float from, float to, float maxstep)
 // degrees, yaw uses 150*frac*maxstep --- the bot can pan faster than tilt.
 // Note: also normalizes target[0] from (180,360] down to (-180,0].
 //===========================================================================
-static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
+void ChangeCameraAnglesSmooth(float *out, vec3_t target, float frac, float maxstep)
 {
 	float tmp;
 
@@ -1465,10 +1507,10 @@ static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
 		target[0] -= 360.0f;
 
 	tmp    = 100.0f * frac * maxstep;
-	out[0] = SubAngleStep(out[0], target[0], tmp);
+	out[0] = ChangeAngle(out[0], target[0], tmp);
 
 	tmp    = 150.0f * frac * maxstep;
-	out[1] = SubAngleStep(out[1], target[1], tmp);
+	out[1] = ChangeAngle(out[1], target[1], tmp);
 
 	out[2] = target[2];
 }
@@ -1476,7 +1518,7 @@ static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
 // --- sub_10077eba is reconstructed as AngleDifference() at the top of this
 // file (it is the public per gladq2_src/p_observer.h).  The earlier draft
 // duplicated it as `SubAngleDifference`; that alias has been removed and the
-// three call sites below in SubLerpAngle / SubApplyCameraAngles now call
+// three call sites below in ChangeCameraAnglesSmooth / ClientSetViewAngles now call
 // AngleDifference directly.
 //===========================================================================
 
@@ -1486,7 +1528,7 @@ static void SubLerpAngle(float *out, vec3_t target, float frac, float maxstep)
 // *8-scaled --- this is intentional, the observer's pmove is PM_FREEZE so
 // pmove.origin is never read by the engine.
 //===========================================================================
-static void SubApplyCameraOrigin(edict_t *ent, vec3_t origin)
+void SetClientOrigin(edict_t *ent, vec3_t origin)
 {
 	gclient_t *cl = ent->client;
 	cl->ps.pmove.origin[0] = (short)(int)origin[0];
@@ -1503,7 +1545,7 @@ static void SubApplyCameraOrigin(edict_t *ent, vec3_t origin)
 // Does NOT touch v_angle / ps.viewangles directly --- the engine will
 // derive viewangles = cmd + delta on the next pmove tick.
 //===========================================================================
-static void SubApplyCameraAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_angles)
+void ClientSetViewAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_angles)
 {
 	ent->client->ps.pmove.delta_angles[0] = (short)((int)(anglemod(AngleDifference(new_angles[0], cmd_angles[0])) * 65536.0f / 360.0f) & 0xffff);
 	ent->client->ps.pmove.delta_angles[1] = (short)((int)(anglemod(AngleDifference(new_angles[1], cmd_angles[1])) * 65536.0f / 360.0f) & 0xffff);
@@ -1515,7 +1557,7 @@ static void SubApplyCameraAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_ang
 // world (water boundary handled: if start/end straddle water, re-trace from
 // the water-surface hit forward with the water content bits removed).
 //===========================================================================
-static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
+qboolean Cam_SpotVisible(edict_t *ent, vec3_t point)
 {
 	vec3_t sav_origin, start, end;
 	int contmask;
@@ -1560,11 +1602,11 @@ static qboolean SubCanSeePoint(edict_t *ent, vec3_t point)
 }
 
 // --- sub_100782ad -----------------------------------------------------------
-// TargetVisible(ent, target): like SubCanSeePoint, but trace endpoint is
+// TargetVisible(ent, target): like Cam_SpotVisible, but trace endpoint is
 // target->s.origin and target itself is treated as a valid hit
 // (tr.ent == target counts as visible).
 //===========================================================================
-static qboolean SubTargetVisible(edict_t *ent, edict_t *target)
+qboolean Cam_EntityVisible(edict_t *ent, edict_t *target)
 {
 	vec3_t sav_origin, start, end;
 	edict_t *passent;
@@ -1620,7 +1662,7 @@ static qboolean SubTargetVisible(edict_t *ent, edict_t *target)
 // FL_OBSERVER (0x10000) flag.  If `prev` is NULL, start from g_edicts[1]
 // (the lea +0x458 indexes prev+1 in either case).
 //===========================================================================
-static edict_t *SubNextClient(edict_t *prev)
+edict_t *Cam_Cycle(edict_t *prev)
 {
 	int i;
 	edict_t *e;
@@ -1647,18 +1689,18 @@ static edict_t *SubNextClient(edict_t *prev)
 }
 
 // --- sub_1007806c -----------------------------------------------------------
-// SubCenterPrintScore: when the OBSERVER's camera-state flag 0x10
+// Cam_Message: when the OBSERVER's camera-state flag 0x10
 // (CAMFL_NAME == "show target name + score") is set in
 // client->camera.flags (offset client+0xf98), print the target's name
 // and current score to the observer via gi.centerprintf.  Used by
-// SubOnTargetDeath and SubSetAutocamTarget as a HUD notify.
+// Cam_EnterDeathMode and Cam_EnterFlyByMode as a HUD notify.
 //
 // Reconstructed line-by-line from gamex86.dll @ 0x1007806c.  Stack
 // frame: char score_buf[0x80] @ [ebp-0x80], char fragword[0x80] @
 // [ebp-0x100].  The CRT helpers at 0x1008721f and 0x10087010 are
 // sprintf() and strcpy() respectively.
 //===========================================================================
-static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
+void Cam_Message(edict_t *ent, edict_t *target, char *prefix)
 {
 	char fragword[0x80];                                 /* [ebp-0x100] */
 	char score_buf[0x80];                                /* [ebp-0x80]  */
@@ -1681,10 +1723,10 @@ static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 }
 
 // --- sub_1007886c -----------------------------------------------------------
-// SubCameraSnapToOrigin: snap the autocam's dest to the observer's own
+// Cam_SetAuto: snap the autocam's dest to the observer's own
 // origin, derive a viewtarget one unit forward along the current
-// cam->angles, then enter idle (state 0) via CameraMove(ent, 0, ucmd).
-// Used by SubAbortAutocam.
+// cam->angles, then enter idle (state 0) via Cam_UpdateView(ent, 0, ucmd).
+// Used by Cam_EnterIdleMode.
 //
 // Reconstructed line-by-line from gamex86.dll @ 0x1007886c.  The
 // compiler kept cam at [ebp-0x10] = &client->camera (client+0xf64) and
@@ -1692,7 +1734,7 @@ static void SubCenterPrintScore(edict_t *ent, edict_t *target, char *prefix)
 //   cam+0x04 = angles, cam+0x40 = dest, cam+0x4c = viewtarget
 //   ent+0x04 = ent->s.origin
 //===========================================================================
-static void SubCameraSnapToOrigin(edict_t *ent, usercmd_t *ucmd)
+void Cam_SetAuto(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	vec3_t forward;                                       /* [ebp-0xc..-4] */
@@ -1709,18 +1751,18 @@ static void SubCameraSnapToOrigin(edict_t *ent, usercmd_t *ucmd)
 	cam->viewtarget[1] = forward[1] + ent->s.origin[1];
 	cam->viewtarget[2] = forward[2] + ent->s.origin[2];
 
-	CameraMove(ent, 0, ucmd);
+	Cam_UpdateView(ent, 0, ucmd);
 }
 
 // --- sub_100788ff -----------------------------------------------------------
 // AbortAutocam: stop following any target, lock the current view in place,
 // hold for 2 seconds.
 //===========================================================================
-static void SubAbortAutocam(edict_t *ent, usercmd_t *ucmd)
+void Cam_EnterIdleMode(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
 
-	SubCameraSnapToOrigin(ent, ucmd);
+	Cam_SetAuto(ent, ucmd);
 
 	cam->state       = 0;
 	cam->pause_time  = level.time + 2.0f;
@@ -1735,11 +1777,11 @@ static void SubAbortAutocam(edict_t *ent, usercmd_t *ucmd)
 // OnTargetDeath: announce score, then drop into bodyque-chase (state 7)
 // for 2 seconds with a 5-second search timeout.
 //===========================================================================
-static void SubOnTargetDeath(edict_t *ent)
+void Cam_EnterDeathMode(edict_t *ent)
 {
 	camera_t *cam = &ent->client->camera;
 
-	SubCenterPrintScore(ent, cam->ent, "");
+	Cam_Message(ent, cam->ent, "");
 
 	cam->dest[0]     = ent->s.origin[0];
 	cam->dest[1]     = ent->s.origin[1];
@@ -1757,7 +1799,7 @@ static void SubOnTargetDeath(edict_t *ent)
 // snap to 70 units off the wall along the wall normal; otherwise, push 20
 // more units backward beyond the offset point.
 //===========================================================================
-static void SubGetTargetMuzzle(edict_t *ent, vec3_t out)
+void Cam_GetFollowSpot(edict_t *ent, vec3_t out)
 {
 	camera_t *cam = &ent->client->camera;
 	vec3_t angles, up, fwd, horizfwd, ofs, viewfrom, endpos;
@@ -1807,7 +1849,7 @@ static void SubGetTargetMuzzle(edict_t *ent, vec3_t out)
 // GetTargetAimEnd: 2048 units along cam->angles from cam->ent->s.origin
 // when the target is alive; just the corpse position when dead.
 //===========================================================================
-static void SubGetTargetAimEnd(edict_t *ent, vec3_t out)
+void Cam_GetFollowTarget(edict_t *ent, vec3_t out)
 {
 	camera_t *cam = &ent->client->camera;
 
@@ -1829,7 +1871,7 @@ static void SubGetTargetAimEnd(edict_t *ent, vec3_t out)
 // AutocamSetSpot: copy `src->s.origin` to `spot`, then override the Z to
 // (src->maxs[2] - 8) --- a point near the top of the entity's bounding box.
 //===========================================================================
-static void SubAutocamSetSpot(edict_t *src, vec3_t spot)
+void Cam_GetFlyByTarget(edict_t *src, vec3_t spot)
 {
 	spot[0] = src->s.origin[0];
 	spot[1] = src->s.origin[1];
@@ -1839,12 +1881,12 @@ static void SubAutocamSetSpot(edict_t *src, vec3_t spot)
 
 // --- sub_10079acf -----------------------------------------------------------
 // SetAutocamTarget: bind the camera to a new target, compute a good vantage
-// point via the flyby helper SubCameraFindFlybyPos, and either commit to
+// point via the flyby helper Cam_GetFlyBySpot, and either commit to
 // state 2 (flyby) or fall back to abort.
 //===========================================================================
-static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out_pos); /* sub_10078f4a */
+qboolean Cam_GetFlyBySpot(edict_t *ent, edict_t *target, vec3_t out_pos); /* sub_10078f4a */
 
-static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
+void Cam_EnterFlyByMode(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 {
 	camera_t *cam;
 	vec3_t   pos;
@@ -1861,19 +1903,19 @@ static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 		cam->ent = target;
 		if (cam->lastent != cam->ent)
 		{
-			SubCenterPrintScore(ent, cam->ent, "looking at");
+			Cam_Message(ent, cam->ent, "looking at");
 			cam->lastent = target;
 		}
 	}
 
-	if (!SubCameraFindFlybyPos(ent, target, pos))
+	if (!Cam_GetFlyBySpot(ent, target, pos))
 	{
-		SubAbortAutocam(ent, ucmd);
+		Cam_EnterIdleMode(ent, ucmd);
 		cam->pause_time = level.time + 2.0f;
 		return;
 	}
 
-	SubAutocamSetSpot(cam->ent, cam->viewtarget);
+	Cam_GetFlyByTarget(cam->ent, cam->viewtarget);
 
 	cam->dest[0] = pos[0];
 	cam->dest[1] = pos[1];
@@ -1893,7 +1935,7 @@ static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 	cam->maxflybydist = VectorLength(diff) * 1.5;
 	if (cam->maxflybydist < 500.0f) cam->maxflybydist = 500.0f;
 
-	CameraMove(ent, 0, ucmd);
+	Cam_UpdateView(ent, 0, ucmd);
 }
 
 // NOTE: sub_10085904 in the shipping DLL is the q_shared.c VectorCompare
@@ -1923,7 +1965,7 @@ static void SubSetAutocamTarget(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 //     returns sqrt(333 - dist).  Lower scores correspond to *larger* (but
 //     <= 50) distances from the target, so callers minimise.
 //===========================================================================
-static float SubScoreCameraPos(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
+float Cam_TryFlyByVector(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 {
 	camera_t *cam = &ent->client->camera;
 	vec3_t    mins, maxs;
@@ -2018,31 +2060,31 @@ static float SubScoreCameraPos(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 // CameraFindFlybyPos: 6-tier search for a vantage point around the current
 // camera target (cam->ent).  Each tier tries 4 candidate offset directions
 // (combinations of forward/right/up basis vectors from the camera's
-// cam->angles) and keeps the best (lowest score from SubScoreCameraPos).  If
+// cam->angles) and keeps the best (lowest score from Cam_TryFlyByVector).  If
 // any tier finds a valid candidate (best < 1000) the remaining tiers are
 // skipped.  Returns 1 and writes the chosen world position to 'out' on
 // success; returns 0 if no tier found a position.
 //
 // The 'target' arg is present in the original signature (the caller in
-// SubSetAutocamTarget passes it after assigning cam->ent = target) but is
+// Cam_EnterFlyByMode passes it after assigning cam->ent = target) but is
 // never read -- the disassembly only ever dereferences ent and the cam->ent
 // it points at.
 //
 // Side-effect to be aware of: starting at tier 3 the helper passes the
-// running forward/right basis vectors *directly* to SubScoreCameraPos, which
+// running forward/right basis vectors *directly* to Cam_TryFlyByVector, which
 // normalises and re-scales them to 700 units.  Tiers 4-5 then use those
 // post-scoring values when building their additive offsets.
 //===========================================================================
 #define TRY_CANDIDATE(ofs_expr) { \
 		ofs_expr; \
-		score = SubScoreCameraPos(ent, cand_ofs, cand_endpos); \
+		score = Cam_TryFlyByVector(ent, cand_ofs, cand_endpos); \
 		if (score < best_score) { \
 			best_score = score; \
 			VectorCopy(cand_endpos, input_angles); \
 		} \
 	}
 
-static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out)
+qboolean Cam_GetFlyBySpot(edict_t *ent, edict_t *target, vec3_t out)
 {
 	vec3_t    fwd;
 	float     best_score;
@@ -2103,9 +2145,9 @@ static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out)
 	if (best_score >= 1000.0f)
 	{
 		/* Tier 3: pure ±fwd or ±right (these calls mutate fwd/right to 700*unit) */
-		score = SubScoreCameraPos(ent, fwd,   cand_endpos);
+		score = Cam_TryFlyByVector(ent, fwd,   cand_endpos);
 		if (score < best_score) { best_score = score; VectorCopy(cand_endpos, input_angles); }
-		score = SubScoreCameraPos(ent, right, cand_endpos);
+		score = Cam_TryFlyByVector(ent, right, cand_endpos);
 		if (score < best_score) { best_score = score; VectorCopy(cand_endpos, input_angles); }
 		TRY_CANDIDATE((VectorClear(cand_ofs), VectorSubtract(cand_ofs, fwd,   cand_ofs)));
 		TRY_CANDIDATE((VectorClear(cand_ofs), VectorSubtract(cand_ofs, right, cand_ofs)));
@@ -2163,7 +2205,7 @@ static qboolean SubCameraFindFlybyPos(edict_t *ent, edict_t *target, vec3_t out)
 // Called from ClientThink per frame.  Returns 0 if the entity is not an
 // observer (caller continues normal player think).  When observing, runs
 // the autocam/chasecam jump-button retarget, dispatches to
-// CameraAutoCamThink / CameraChaseCamThink, and either zeros the usercmd
+// Cam_Think / UpdateChaseCamera, and either zeros the usercmd
 // for a spectator frame or returns 1 with PM_SPECTATOR set when the
 // camera has been handed back to the observer himself.
 //===========================================================================
@@ -2175,7 +2217,7 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 	if (!ent->client) return 0;
 
 	if (!(ent->client->camera.flags & CAMFL_AUTOCAM))
-		ClientPlaceCamera(ent);
+		CheckValidCamera(ent);
 
 	// jump button (upmove > 100) cycles the target / chase camera, with a
 	// 0.5s debounce held in cam->lastcycle so a held key doesn't tear
@@ -2186,11 +2228,11 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 		ent->client->camera.lastcycle = level.time;
 		if (ent->client->camera.flags & CAMFL_AUTOCAM)
 		{
-			next = SubNextClient(ent->client->camera.ent);
+			next = Cam_Cycle(ent->client->camera.ent);
 			if (!next || next == ent)
-				next = SubNextClient(next);
+				next = Cam_Cycle(next);
 			if (next && next != ent)
-				SubSetAutocamTarget(ent, next, ucmd);
+				Cam_EnterFlyByMode(ent, next, ucmd);
 		} //end if
 		else if (ent->client->camera.flags & CAMFL_CHASECAM)
 		{
@@ -2206,9 +2248,9 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 		// tracking some other client: drive the camera and silence input
 		ent->client->ps.pmove.pm_type = PM_DEAD;
 		if (ent->client->camera.flags & CAMFL_AUTOCAM)
-			CameraAutoCamThink(ent, ucmd);
+			Cam_Think(ent, ucmd);
 		else if (ent->client->camera.flags & CAMFL_CHASECAM)
-			CameraChaseCamThink(ent, ucmd);
+			UpdateChaseCamera(ent, ucmd);
 		ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
 		ucmd->forwardmove = 0;
 		ucmd->sidemove = 0;

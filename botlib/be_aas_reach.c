@@ -1089,13 +1089,23 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v23; // ecx
   float *v3; // esi
   float *v4; // ebp
-  /* v26..v39 are x87 80-bit FPU temporaries, and the two toolchains need
-   * different spellings for that.  MSVC6 /O2 keeps an unspilled `float` temp at
-   * full register precision, and a `long double` there would force a widening
-   * convert that blocks memory-operand fusion.  GCC with -mfpmath=sse computes
-   * float*float at 32-bit, so the native build needs `long double` plus
-   * per-operand casts to get the same wide intermediates. */
-#if defined(_MSC_VER)
+  /* v26..v39 are x87 80-bit FPU temporaries, and the spelling depends on
+   * whether the target HAS an x87 stack -- i.e. on FLT_EVAL_METHOD, not on the
+   * compiler brand.  Where float expressions are evaluated in 80-bit registers
+   * (MSVC6/x86, and any i386 gcc using the 387), a plain `float` temp already
+   * carries full register precision and a `long double` would instead force a
+   * widening convert the original never had.  Where they are not (the aarch64
+   * / x86-64 native build, gcc -mfpmath=sse), `long double` plus per-operand
+   * casts is what reproduces the same wide intermediates.
+   *
+   * Spelling this as `_MSC_VER` alone was wrong for the vintage i386 build in
+   * both directions: it is the same x87 as MSVC6's, and gcc 2.7.2.3's
+   * reg-stack pass ABORTS outright on the `long double` version of this
+   * function -- eight 80-bit temporaries live at once overflow the 8-deep x87
+   * stack it models.  That abort is what identified the predicate as wrong;
+   * the 1999 build compiled this file, so the original cannot have been
+   * `long double` here. */
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
   float v26; // st7
   float v27; // st6
   float v28; // st5
@@ -1115,7 +1125,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   long double v33; // st4
 #endif
   aas_plane_t *plane1; // eax
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
   float v36; // st7
   float v37; // st6
 #else
@@ -1123,7 +1133,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   long double v37; // st6
 #endif
   aas_plane_t *plane2; // ecx
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
   float v39; // st7
 #else
   long double v39; // st7

@@ -383,7 +383,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       VectorSubtract(v26, bs->origin, dir);
       if ( VectorLength(dir) < 70 )
       {
-        BotResetAvoidReach((_DWORD *)bs->movestate);
+        BotResetAvoidReach((_DWORD *)&bs->ms);
         v46 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
         v30 = AAS_Time();
         result = bs->teamgoal.origin;
@@ -443,7 +443,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
             bs->ltgtype = 0;
           }
 LABEL_RESET:
-          BotResetAvoidReach((_DWORD *)bs->movestate);
+          BotResetAvoidReach((_DWORD *)&bs->ms);
           return 0;
         }
         return v26;
@@ -554,7 +554,7 @@ LABEL_106:
       {
         if ( BotCTFCarryingFlag(bs) )
         {
-          BotResetAvoidReach((_DWORD *)bs->movestate);
+          BotResetAvoidReach((_DWORD *)&bs->ms);
           v47 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
           v43 = AAS_Time();
           bs->rushbaseaway_time = v43 + v47 + 5;
@@ -595,7 +595,7 @@ LABEL_55:
       else
       {
         BotResetAvoidGoals(&bs->goalstate);
-        BotResetAvoidReach((_DWORD *)bs->movestate);
+        BotResetAvoidReach((_DWORD *)&bs->ms);
       }
       v26 = (float *)BotGetTopGoal(&bs->goalstate);
     }
@@ -742,11 +742,11 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   float v3; // [esp+10h] [ebp+4h]
 
   BotRecordNodeSwitch(bs, "respawn", &byte_1006294C);
-  BotResetMoveState(bs->movestate);
+  BotResetMoveState(&bs->ms);
   BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
   BotResetAvoidGoals(&bs->goalstate);
-  BotResetAvoidReach((_DWORD *)bs->movestate);
+  BotResetAvoidReach((_DWORD *)&bs->ms);
   if ( BotChat_Death((int *)bs) )
   {
     v3 = BotChatTime(bs);
@@ -836,11 +836,11 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     return 0;
   }
   BotBattleUseItems(bs);
-  BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)ent, v8);
+  BotEntityInfo(bs, (_DWORD *)&bs->ms);
+  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)ent, v8);
   if ( v15.failure )
   {
-    BotResetAvoidReach((_DWORD *)bs->movestate);
+    BotResetAvoidReach((_DWORD *)&bs->ms);
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &v15, 1);
@@ -850,7 +850,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   else
   {
-    if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)ent, v8, (float *)(intptr_t)target) )
+    if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)ent, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
@@ -869,7 +869,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)bs->movestate);
+      BotResetLastAvoidReach((intptr_t)&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -964,11 +964,11 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     return 0;
   }
   BotBattleUseItems(bs);
-  BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  moveresult = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v8);
+  BotEntityInfo(bs, (_DWORD *)&bs->ms);
+  moveresult = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v8);
   if ( moveresult.failure )
   {
-    BotResetAvoidReach((_DWORD *)bs->movestate);
+    BotResetAvoidReach((_DWORD *)&bs->ms);
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &moveresult, 1);
@@ -997,7 +997,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     v7 = BotGetSecondGoal(&bs->goalstate);
     if ( !v7 )
       BotGetTopGoal(&bs->goalstate);
-    if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
+    if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
@@ -1017,7 +1017,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)bs->movestate);
+      BotResetLastAvoidReach((intptr_t)&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -1108,7 +1108,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)bs->movestate);
+      BotResetLastAvoidReach((intptr_t)&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -1128,18 +1128,18 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
         range = 700;
       if ( BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
       {
-        BotResetLastAvoidReach((intptr_t)bs->movestate);
+        BotResetLastAvoidReach((intptr_t)&bs->ms);
         bs->nbg_time = AAS_Time() + 5.0f;
         AIEnter_Seek_NBG(bs);
         return 0;
       }
     }
     BotBattleUseItems(bs);
-    BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    moveresult = *BotMoveToGoal(&v19, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+    BotEntityInfo(bs, (_DWORD *)&bs->ms);
+    moveresult = *BotMoveToGoal(&v19, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
     if ( moveresult.failure )
     {
-      BotResetAvoidReach((_DWORD *)bs->movestate);
+      BotResetAvoidReach((_DWORD *)&bs->ms);
       bs->ltg_time = 0.0f;
     }
     BotAIBlocked(bs, &moveresult, 1);
@@ -1161,7 +1161,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
       }
     }
-    else if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
+    else if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       vectoangles(dir, bs->ideal_viewangles);
@@ -1274,7 +1274,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     moveresult = BotAttackMove(bs, v8);
     if ( moveresult.failure )
     {
-      BotResetAvoidReach((_DWORD *)bs->movestate);
+      BotResetAvoidReach((_DWORD *)&bs->ms);
       bs->ltg_time = 0.0f;
     }
     BotAIBlocked(bs, &moveresult, 0);
@@ -1325,7 +1325,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
   {
-    BotResetLastAvoidReach((intptr_t)bs->movestate);
+    BotResetLastAvoidReach((intptr_t)&bs->ms);
     AIEnter_Battle_Fight(bs);
     return 0;
   }
@@ -1369,7 +1369,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
         BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, tfl, &goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
-    BotResetLastAvoidReach((intptr_t)bs->movestate);
+    BotResetLastAvoidReach((intptr_t)&bs->ms);
     AIEnter_Battle_NBG(bs);
     return 0;
   }
@@ -1377,11 +1377,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   {
     BotUpdateBattleInventory(bs, bs->enemy);
     BotBattleUseItems(bs);
-    BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)bs->movestate, &goal, tfl);
+    BotEntityInfo(bs, (_DWORD *)&bs->ms);
+    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)&bs->ms, &goal, tfl);
     if ( moveresult.failure )
     {
-      BotResetAvoidReach((_DWORD *)bs->movestate);
+      BotResetAvoidReach((_DWORD *)&bs->ms);
       bs->ltg_time = 0.0f;
     }
     BotAIBlocked(bs, &moveresult, 0);
@@ -1393,7 +1393,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     }
     else
     {
-      if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, &goal, tfl, (float *)(intptr_t)target) )
+      if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, &goal, tfl, (float *)(intptr_t)target) )
       {
         VectorSubtract(target, bs->origin, dir);
         vectoangles(dir, bs->ideal_viewangles);
@@ -1404,7 +1404,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       }
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
-    if ( bs->areanum == bs->lastenemyareanum )
+    if ( bs->ms.areanum == bs->lastenemyareanum )
       *(int *)&bs->chase_time = 0;
     if ( (moveresult.flags & 8) == 0 )
       BotChangeViewAngles(bs, bs->thinktime);
@@ -1494,7 +1494,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         && (bs->check_time = AAS_Time() + 1.0f,
             BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
       {
-        BotResetLastAvoidReach((intptr_t)bs->movestate);
+        BotResetLastAvoidReach((intptr_t)&bs->ms);
         bs->nbg_time = AAS_Time() + 5.0f;
         AIEnter_Battle_NBG(bs);
         return 0;
@@ -1502,11 +1502,11 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
       else
       {
         BotBattleUseItems(bs);
-        BotEntityInfo(bs, (_DWORD *)bs->movestate);
-        moveresult = *BotMoveToGoal(&v11, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2);
+        BotEntityInfo(bs, (_DWORD *)&bs->ms);
+        moveresult = *BotMoveToGoal(&v11, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
         if ( moveresult.failure )
         {
-          BotResetAvoidReach((_DWORD *)bs->movestate);
+          BotResetAvoidReach((_DWORD *)&bs->ms);
           bs->ltg_time = 0.0f;
         }
         BotAIBlocked(bs, &moveresult, 0);
@@ -1528,7 +1528,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
           }
           else
           {
-            if ( BotMovementViewTarget((bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
+            if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
             {
               VectorSubtract(target, bs->origin, dir);
               vectoangles(dir, bs->ideal_viewangles);
@@ -1631,11 +1631,11 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     return 0;
   }
   BotBattleUseItems(bs);
-  BotEntityInfo(bs, (_DWORD *)bs->movestate);
-  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)bs->movestate, (bot_goal_t *)(intptr_t)topgoal, v8);
+  BotEntityInfo(bs, (_DWORD *)&bs->ms);
+  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)topgoal, v8);
   if ( v15.failure )
   {
-    BotResetAvoidReach((_DWORD *)bs->movestate);
+    BotResetAvoidReach((_DWORD *)&bs->ms);
     bs->nbg_time = 0.0f;
   }
   BotAIBlocked(bs, &v15, 0);

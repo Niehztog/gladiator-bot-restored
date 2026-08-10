@@ -161,7 +161,7 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
   int v9; // eax
   double v10; // [esp+Ch] [ebp-8h]
 
-  bs->inventory_health = bs->snapshot.stats[1];
+  bs->inventory[INVENTORY_HEALTH] = bs->snapshot.stats[1];
   v1 = bs->snapshot.stats[9];
   if ( v1 )
   {
@@ -176,21 +176,21 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
       bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
   }
   v3 = (int)(bs->quad_endtime - AAS_Time());
-  bs->quad_seconds = v3;
+  bs->inventory[QUAD_SECONDS] = v3;
   if ( v3 <= 0 )
-    bs->quad_seconds = 0;
+    bs->inventory[QUAD_SECONDS] = 0;
   v4 = (int)(bs->invulnerability_endtime - AAS_Time());
-  bs->invuln_seconds = v4;
+  bs->inventory[INVULNERABILITY_SECONDS] = v4;
   if ( v4 <= 0 )
-    bs->invuln_seconds = 0;
+    bs->inventory[INVULNERABILITY_SECONDS] = 0;
   v5 = (int)(bs->rebreather_endtime - AAS_Time());
-  bs->rebreather_seconds = v5;
+  bs->inventory[REBREATHER_SECONDS] = v5;
   if ( v5 <= 0 )
-    bs->rebreather_seconds = 0;
+    bs->inventory[REBREATHER_SECONDS] = 0;
   v6 = (int)(bs->enviro_endtime - AAS_Time());
-  bs->enviro_seconds = v6;
+  bs->inventory[ENVIROSUIT_SECONDS] = v6;
   if ( v6 <= 0 )
-    bs->enviro_seconds = 0;
+    bs->inventory[ENVIROSUIT_SECONDS] = 0;
   v7 = bs->snapshot.stats[4];
   if ( v7 )
   {
@@ -201,13 +201,13 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
     if ( AAS_Time() - 0.9 < v10 )
     {
       v9 = bs->inventory[20];  /* inventory[20] = power shield cells */
-      bs->power_screen_active_cells = v9;
-      bs->power_shield_active_cells = v9;
+      bs->inventory[POWER_SCREEN_CELLS] = v9;
+      bs->inventory[POWER_SHIELD_CELLS] = v9;
     }
     else
     {
-      bs->power_screen_active_cells = 0;
-      bs->power_shield_active_cells = 0;
+      bs->inventory[POWER_SCREEN_CELLS] = 0;
+      bs->inventory[POWER_SHIELD_CELLS] = 0;
     }
   }
 }
@@ -225,60 +225,60 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(enemy);
   dir[0] = entinfo[4] - bs->origin[0];
   dir[1] = entinfo[5] - bs->origin[1];
-  bs->enemy_height = (int)(entinfo[6] - bs->origin[2]);
+  bs->inventory[ENEMY_HEIGHT] = (int)(entinfo[6] - bs->origin[2]);
   dir[2] = 0.0;
-  bs->enemy_horizontal_dist = (int)VectorLength(dir);
+  bs->inventory[ENEMY_HORIZONTAL_DIST] = (int)VectorLength(dir);
   v2 = (SLODWORD(entinfo[28]) >> 8) & 0xFF;
-  bs->enemy_weapon_blaster = 0;
-  bs->enemy_weapon_shotgun = 0;
+  bs->inventory[ENEMY_WEAPON_BLASTER] = 0;
+  bs->inventory[ENEMY_WEAPON_SHOTGUN] = 0;
   v3 = v2 - 1;
-  bs->enemy_weapon_supershotgun = 0;
-  bs->enemy_weapon_machinegun = 0;
-  bs->enemy_weapon_chaingun = 0;
-  bs->enemy_weapon_grenades = 0;
-  bs->enemy_weapon_grenadelauncher = 0;
-  bs->enemy_weapon_rocketlauncher = 0;
-  bs->enemy_weapon_hyperblaster = 0;
-  bs->enemy_weapon_railgun = 0;
-  bs->enemy_weapon_bfg = 0;
-  bs->enemy_weapon_phalanx = 0;
+  bs->inventory[ENEMY_WEAPON_SUPERSHOTGUN] = 0;
+  bs->inventory[ENEMY_WEAPON_MACHINEGUN] = 0;
+  bs->inventory[ENEMY_WEAPON_CHAINGUN] = 0;
+  bs->inventory[ENEMY_WEAPON_GRENADES] = 0;
+  bs->inventory[ENEMY_WEAPON_GRENADELAUNCHER] = 0;
+  bs->inventory[ENEMY_WEAPON_ROCKETLAUNCHER] = 0;
+  bs->inventory[ENEMY_WEAPON_HYPERBLASTER] = 0;
+  bs->inventory[ENEMY_WEAPON_RAILGUN] = 0;
+  bs->inventory[ENEMY_WEAPON_BFG] = 0;
+  bs->inventory[ENEMY_WEAPON_PHALANX] = 0;
   switch ( v3 )
   {
     case 0:
-      bs->enemy_weapon_blaster = 1;
+      bs->inventory[ENEMY_WEAPON_BLASTER] = 1;
       break;
     case 1:
-      bs->enemy_weapon_shotgun = 1;
+      bs->inventory[ENEMY_WEAPON_SHOTGUN] = 1;
       break;
     case 2:
-      bs->enemy_weapon_supershotgun = 1;
+      bs->inventory[ENEMY_WEAPON_SUPERSHOTGUN] = 1;
       break;
     case 3:
-      bs->enemy_weapon_machinegun = 1;
+      bs->inventory[ENEMY_WEAPON_MACHINEGUN] = 1;
       break;
     case 4:
-      bs->enemy_weapon_chaingun = 1;
+      bs->inventory[ENEMY_WEAPON_CHAINGUN] = 1;
       break;
     case 5:
-      bs->enemy_weapon_grenades = 1;
+      bs->inventory[ENEMY_WEAPON_GRENADES] = 1;
       break;
     case 6:
-      bs->enemy_weapon_grenadelauncher = 1;
+      bs->inventory[ENEMY_WEAPON_GRENADELAUNCHER] = 1;
       break;
     case 7:
-      bs->enemy_weapon_rocketlauncher = 1;
+      bs->inventory[ENEMY_WEAPON_ROCKETLAUNCHER] = 1;
       break;
     case 8:
-      bs->enemy_weapon_hyperblaster = 1;
+      bs->inventory[ENEMY_WEAPON_HYPERBLASTER] = 1;
       break;
     case 9:
-      bs->enemy_weapon_railgun = 1;
+      bs->inventory[ENEMY_WEAPON_RAILGUN] = 1;
       break;
     case 10:
-      bs->enemy_weapon_bfg = 1;
+      bs->inventory[ENEMY_WEAPON_BFG] = 1;
       break;
     case 11:
-      bs->enemy_weapon_phalanx = 1;
+      bs->inventory[ENEMY_WEAPON_PHALANX] = 1;
       break;
     default:
       break;
@@ -286,17 +286,17 @@ int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   v8 = LODWORD(entinfo[29]);
   v5 = BYTE1(entinfo[29]);
   if ( (v8 & 0x10000) != 0 )
-    bs->enemy_invulnerability = 1;
+    bs->inventory[ENEMY_INVULNERABILITY] = 1;
   else
-    bs->enemy_invulnerability = 0;
+    bs->inventory[ENEMY_INVULNERABILITY] = 0;
   if ( (v5 & 0x80) != 0 )
-    bs->enemy_quad = 1;
+    bs->inventory[ENEMY_QUAD] = 1;
   else
-    bs->enemy_quad = 0;
+    bs->inventory[ENEMY_QUAD] = 0;
   if ( (v5 & 2) != 0 )
-    bs->enemy_powerscreen = 1;
+    bs->inventory[ENEMY_POWERSCREEN] = 1;
   else
-    bs->enemy_powerscreen = 0;
+    bs->inventory[ENEMY_POWERSCREEN] = 0;
   return 1;
 }
 //----- (100214E0) --------------------------------------------------------
@@ -312,23 +312,23 @@ void __cdecl BotBattleUseItems(bot_state_t *bs)
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
     EA_UseItem(bs->client, "Silencer");
   if ( (sub_10003080(bs->eye) & 0x38) != 0
-       && !bs->rebreather_seconds
+       && !bs->inventory[REBREATHER_SECONDS]
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
     EA_UseItem(bs->client, "Rebreather");
-  if ( !bs->power_shield_active_cells && bs->inventory[6] > 0 )   /* +1752 */
+  if ( !bs->inventory[POWER_SHIELD_CELLS] && bs->inventory[6] > 0 )   /* +1752 */
     EA_UseItem(bs->client, "Power Shield");
-  if ( !bs->power_screen_active_cells && bs->inventory[5] > 0 )   /* +1748 */
+  if ( !bs->inventory[POWER_SCREEN_CELLS] && bs->inventory[5] > 0 )   /* +1748 */
     EA_UseItem(bs->client, "Power Screen");
 }
 //----- (100215E0) --------------------------------------------------------
 void __cdecl sub_100215E0(bot_state_t *bs)
 {
-  if ( !bs->quad_seconds && bs->inventory[23] > 0 )   /* +1820 quad ammo */
+  if ( !bs->inventory[QUAD_SECONDS] && bs->inventory[23] > 0 )   /* +1820 quad ammo */
   {
     EA_UseItem(bs->client, "Quad Damage");
     return;
   }
-  if ( !bs->invuln_seconds && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
+  if ( !bs->inventory[INVULNERABILITY_SECONDS] && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
     EA_UseItem(bs->client, "Invulnerability");
 }
 //----- (10021650) --------------------------------------------------------
@@ -763,15 +763,15 @@ float __cdecl BotAggression(bot_state_t *bs)
 {
   int v2; // ecx
 
-  if ( bs->invuln_seconds )
+  if ( bs->inventory[INVULNERABILITY_SECONDS] )
     return 100.0f;
-  if ( bs->enemy_invulnerability || bs->enemy_quad && !bs->quad_seconds )
+  if ( bs->inventory[ENEMY_INVULNERABILITY] || bs->inventory[ENEMY_QUAD] && !bs->inventory[QUAD_SECONDS] )
     return 0.0f;
-  if ( bs->enemy_powerscreen && (!bs->power_screen_active_cells || ((int *)bs)[452] < 50) )
+  if ( bs->inventory[ENEMY_POWERSCREEN] && (!bs->inventory[POWER_SCREEN_CELLS] || ((int *)bs)[452] < 50) )
     return 0.0f;
-  if ( bs->enemy_height > 200 )
+  if ( bs->inventory[ENEMY_HEIGHT] > 200 )
     return 0.0f;
-  v2 = bs->inventory_health;
+  v2 = bs->inventory[INVENTORY_HEALTH];
   if ( v2 < 40 || v2 < 70 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
     return 0.0f;
   if ( ((int *)bs)[449] > 0 && ((int *)bs)[452] > 50 )
@@ -824,11 +824,11 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
     return 0;
   if ( ((int *)bs)[453] < 3 )
     return 0;
-  if ( bs->quad_seconds )
+  if ( bs->inventory[QUAD_SECONDS] )
     return 0;
-  if ( !bs->invuln_seconds )
+  if ( !bs->inventory[INVULNERABILITY_SECONDS] )
   {
-    v3 = bs->inventory_health;
+    v3 = bs->inventory[INVENTORY_HEALTH];
     if ( v3 < 60 )
       return 0;
     if ( v3 < 90 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
@@ -957,8 +957,8 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
     goal.maxs[0] = 8.0f;
     goal.maxs[1] = 8.0f;
     goal.maxs[2] = 8.0f;
-    BotEntityInfo(bs, (_DWORD *)bs->movestate);
-    return *BotMoveToGoal(&moveresult, (bot_movestate_t *)bs->movestate, &goal, a3);
+    BotEntityInfo(bs, (_DWORD *)&bs->ms);
+    return *BotMoveToGoal(&moveresult, (bot_movestate_t *)&bs->ms, &goal, a3);
   }
   memset(&moveresult, 0, sizeof(moveresult));
   v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
@@ -972,7 +972,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
     croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
     if ( attack_skill >= 0.2 )
     {
-      BotEntityInfo(bs, (_DWORD *)bs->movestate);
+      BotEntityInfo(bs, (_DWORD *)&bs->ms);
       *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
       forward[0] = entinfo[4] - bs->origin[0];
       forward[1] = entinfo[5] - bs->origin[1];
@@ -1015,8 +1015,8 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
       }
       if ( attack_skill <= 0.4 )
       {
-        if ( (dist <= 180.0f || !BotMoveInDirection((bot_movestate_t *)bs->movestate, forward, 400.0f, movetype)) && dist < 100.0f )
-          BotMoveInDirection((bot_movestate_t *)bs->movestate, backward, 400.0f, movetype);
+        if ( (dist <= 180.0f || !BotMoveInDirection((bot_movestate_t *)&bs->ms, forward, 400.0f, movetype)) && dist < 100.0f )
+          BotMoveInDirection((bot_movestate_t *)&bs->ms, backward, 400.0f, movetype);
         return moveresult;
       }
       bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
@@ -1056,7 +1056,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
 LABEL_36:
         sideward[2] = v18;
 LABEL_37:
-        if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, sideward, 400.0f, movetype) )
+        if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400.0f, movetype) )
         {
           v19 = bs->flags;
           *(_DWORD *)&bs->attackstrafe_drift = 0;
@@ -1194,7 +1194,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   v1 = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
   v2 = bs->lasthealth;
   v15 = v1;
-  v3 = bs->inventory_health;
+  v3 = bs->inventory[INVENTORY_HEALTH];
   healthdecrease = v2 > v3;
   bs->lasthealth = v3;
   v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
@@ -1958,14 +1958,14 @@ LABEL_37:
       sideward[1] = -sideward[1];
       sideward[2] = -sideward[2];
     }
-    if ( !BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)sideward, 400.0f, 1) )
+    if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, (float *)(intptr_t)sideward, 400.0f, 1) )
     {
       sideward[0] = -sideward[0];
       v33 = bs->flags;   /* original reads flags mid-negation: mov eax,[esi+0xac0] at 0x10025f9b */
       sideward[1] = -sideward[1];
       sideward[2] = -sideward[2];
       bs->flags = v33 ^ 0x10;
-      BotMoveInDirection((bot_movestate_t *)bs->movestate, (float *)(intptr_t)sideward, 400.0f, 1);
+      BotMoveInDirection((bot_movestate_t *)&bs->ms, (float *)(intptr_t)sideward, 400.0f, 1);
     }
     result = BotAINode(bs);
     if ( result == AINode_Seek_NBG )
@@ -2604,7 +2604,7 @@ LABEL_32:
       if ( (match.subtype & 0x40) != 0 )
       {
         bs->teamgoal.entitynum = bs->entitynum;
-        bs->teamgoal.areanum = bs->areanum;
+        bs->teamgoal.areanum = bs->ms.areanum;
         VectorCopy(bs->origin, bs->teamgoal.origin);
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
@@ -2988,7 +2988,7 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
   bs->origin[1] = bs->snapshot.origin[1];
   bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
   v6 = (*(int *)&bs->snapshot.origin[2]);
-  memcpy(bs->inventory, bs->inventory_src, 0x400u);
+  memcpy(bs->inventory, bs->snapshot.inventory, 0x400u);
   bs->eye[1] = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
   bs->eye[2] = bs->snapshot.viewoffset[2] + *(float *)&(*(int *)&bs->snapshot.origin[2]);
   *(int *)&bs->origin[2] = v6;
