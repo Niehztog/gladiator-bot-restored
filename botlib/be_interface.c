@@ -23,6 +23,112 @@
 #include "l_log.h"
 #include "l_memory.h"
 
+/* filecrcs (name recovered from the Linux gladi386.so .dynsym, where it is a
+ * 736-byte global whose contents are byte-identical to this table) — 91 entries
+ * of { uint16 crc16, uint16 pad, uint32 flags } plus a NULL terminator.
+ * This is the config-file CRC whitelist of the integrity subsystem that also
+ * owns CRC_Block / sub_10037820 and the "You are not allowed to modify the bot
+ * characters" message, NOT the weapon table an earlier annotation guessed; the
+ * flags column (1/3/4/6/8/0x20/0x40) is an unidentified file category.
+ * sub_100377E0 scans it up to &unk_1005E958, so that symbol MUST stay
+ * immediately after this array (guaranteed by declaration order in a TU). */
+int filecrcs[] = {
+    0x0000A991, 0x00000001,
+    0x0000A757, 0x00000001,
+    0x00007267, 0x00000001,
+    0x00007A0D, 0x00000001,
+    0x0000937C, 0x00000001,
+    0x0000CF9B, 0x00000001,
+    0x0000C661, 0x00000001,
+    0x0000AAA3, 0x00000001,
+    0x00009795, 0x00000001,
+    0x00009C59, 0x00000001,
+    0x00002528, 0x00000001,
+    0x000055B2, 0x00000001,
+    0x0000879D, 0x00000001,
+    0x0000AE75, 0x00000001,
+    0x0000E512, 0x00000001,
+    0x0000218B, 0x00000001,
+    0x00008E97, 0x00000001,
+    0x00007437, 0x00000001,
+    0x00000AE2, 0x00000001,
+    0x000007C1, 0x00000001,
+    0x00005CAD, 0x00000001,
+    0x000074D6, 0x00000001,
+    0x0000694A, 0x00000001,
+    0x00000E67, 0x00000001,
+    0x0000F2C4, 0x00000001,
+    0x0000EB92, 0x00000001,
+    0x00006322, 0x00000001,
+    0x0000B8A5, 0x00000001,
+    0x0000E1CC, 0x00000001,
+    0x00004E75, 0x00000001,
+    0x00002BB0, 0x00000001,
+    0x0000C54F, 0x00000001,
+    0x0000CDD2, 0x00000001,
+    0x0000DD83, 0x00000001,
+    0x00000CA7, 0x00000001,
+    0x0000107E, 0x00000001,
+    0x00002874, 0x00000001,
+    0x0000CE27, 0x00000001,
+    0x0000DADC, 0x00000001,
+    0x000097A9, 0x00000001,
+    0x0000A84B, 0x00000001,
+    0x000036FC, 0x00000001,
+    0x000090DA, 0x00000001,
+    0x00005214, 0x00000001,
+    0x0000D714, 0x00000001,
+    0x00009384, 0x00000001,
+    0x00006490, 0x00000001,
+    0x00001617, 0x00000001,
+    0x00007113, 0x00000001,
+    0x0000CEFE, 0x00000001,
+    0x000060E6, 0x00000001,
+    0x00001F50, 0x00000001,
+    0x0000C7F8, 0x00000001,
+    0x0000568B, 0x00000001,
+    0x00007CF6, 0x00000001,
+    0x00000A17, 0x00000001,
+    0x00005491, 0x00000001,
+    0x00002920, 0x00000001,
+    0x0000C438, 0x00000001,
+    0x0000B379, 0x00000001,
+    0x00003418, 0x00000001,
+    0x0000AC0B, 0x00000006,
+    0x000035FB, 0x00000006,
+    0x00005FC8, 0x00000006,
+    0x0000A486, 0x00000006,
+    0x00009AAF, 0x00000006,
+    0x000020C2, 0x00000006,
+    0x0000FB60, 0x00000006,
+    0x00004FDE, 0x00000006,
+    0x0000F0AB, 0x00000004,
+    0x0000A9D4, 0x00000004,
+    0x0000DF88, 0x00000004,
+    0x0000E5CC, 0x00000004,
+    0x00000ED6, 0x00000004,
+    0x00008BE0, 0x00000006,
+    0x0000A236, 0x00000006,
+    0x00000BCB, 0x00000006,
+    0x0000CC7C, 0x00000006,
+    0x00003E22, 0x00000006,
+    0x00000E04, 0x00000006,
+    0x00004578, 0x00000006,
+    0x0000343F, 0x00000006,
+    0x0000FE11, 0x00000040,
+    0x00008C2E, 0x00000040,
+    0x0000C665, 0x00000040,
+    0x00008AC0, 0x00000003,
+    0x0000B1B7, 0x00000006,
+    0x00006A8E, 0x00000008,
+    0x00008DF3, 0x00000008,
+    0x0000BC7D, 0x00000008,
+    0x0000E488, 0x00000020,
+    0x00000000, 0x00000000,   /* NULL terminator (entry 91) */
+};
+/* End-of-table sentinel — must immediately follow filecrcs. */
+int unk_1005E958 = 0;
+
 /* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in
  * the 32-bit original; must be a real pointer here).  Referenced only from
  * this TU (sub_100376B0 / sub_100377E0 / sub_10037880), which is also where

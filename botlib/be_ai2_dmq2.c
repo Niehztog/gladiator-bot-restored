@@ -35,6 +35,17 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
+/* G_SetMovedir's four direction constants, 12 bytes each, in the original
+ * .data order (0x1005C56C / 0x1005C578 / 0x1005C584 / 0x1005C590) — the same
+ * order and values as game/g_utils.c:342-345, from which BotSetMovedir was
+ * copied.  Non-static in Mr. Elusive's sources, which is why all four survive
+ * by name in the Linux gladi386.so's .dynsym — each recorded there as a 12-byte
+ * OBJECT, confirming float[3] rather than three separate scalars. */
+float VEC_UP[3]       = { 0.0f, -1.0f,  0.0f };
+float MOVEDIR_UP[3]   = { 0.0f,  0.0f,  1.0f };
+float VEC_DOWN[3]     = { 0.0f, -2.0f,  0.0f };
+float MOVEDIR_DOWN[3] = { 0.0f,  0.0f, -1.0f };
+
 libvar_t *libvar_ch; /* libvar handle */
 libvar_t *libvar_teamplay; /* libvar handle */
 libvar_t *libvar_ra; /* libvar handle */

@@ -32,6 +32,19 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
+/* iteminfo_struct — descriptor at 0x1005D890 (284 B); field table at 0x1005D7B0. */
+static char *iteminfo_fields[] = {
+    FE("name",        0x000, 0x004, 0, 0x00000000),
+    FE("model",       0x0A0, 0x004, 0, 0x00000000),
+    FE("type",        0x0F4, 0x002, 0, 0x00000000),
+    FE("index",       0x0F8, 0x002, 0, 0x00000000),
+    FE("respawntime", 0x0FC, 0x003, 0, 0x00000000),
+    FE("mins",        0x100, 0x103, 3, 0x00000000),  /* vec3, flags 0x103 */
+    FE("maxs",        0x10C, 0x103, 3, 0x00000000),  /* vec3, flags 0x103 */
+    FE_END
+};
+structdef_t iteminfo_struct = { 284, iteminfo_fields };
+
 levelitem_t *freelevelitems; // 0x10064344 free-list head    (be_ai_goal.c; was dword_10064344)
 int numlevelitems;           // 0x10064354 active item count  (be_ai_goal.c; was dword_10064354)
 levelitem_t *levelitemheap;  // 0x10064358 pool base          (be_ai_goal.c; was dword_10064358)

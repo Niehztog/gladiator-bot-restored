@@ -705,4 +705,19 @@ extern bsp_link_t **dword_10069584;
 
 
 
+/* Field-table spelling for the structdef_t descriptors recovered from .data.
+ * Shared by be_aas_sound / be_ai_goal / be_ai_weap, which own one table each.
+ * A structdef is { int size; char **fields; }; each field entry is 7 (char *)
+ * slots: name, byte offset, type flags, array count, 0, default float-bits, 0. */
+/* Cast integer constant to char * for mixed pointer/int field table slots */
+#define P(x) ((char *)(uintptr_t)(x))
+
+/* One field table entry (7 slots): name, offset, flags, arrcount, 0, default, 0 */
+#define FE(name, off, flags, arr, def) \
+    (name), P(off), P(flags), P(arr), P(0), P(def), P(0)
+
+/* Null terminator entry */
+#define FE_END \
+    P(0),  P(0),   P(0),   P(0),  P(0),  P(0),  P(0)
+
 #endif /* BOTLIB_LOCAL_H */

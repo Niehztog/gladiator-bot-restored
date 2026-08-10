@@ -25,6 +25,18 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
+/* soundinfo_struct — descriptor at 0x1005C138 (176 B); field table at 0x1005C070. */
+static char *soundinfo_fields[] = {
+    FE("name",        0x00, 0x004, 0, 0x00000000),
+    FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
+    FE("duration",    0x54, 0x203, 0, 0x41200000),  /* 10.0f */
+    FE("type",        0x58, 0x002, 0, 0x00000000),
+    FE("recognition", 0x5C, 0x003, 0, 0x3F800000),  /* 1.0f */
+    FE("string",      0x60, 0x004, 0, 0x00000000),
+    FE_END
+};
+structdef_t soundinfo_struct = { 176, soundinfo_fields };
+
 //----- (1001C6F0) --------------------------------------------------------
 /* Dumps every loaded soundinfo_t to the bot debug log via the generic
  * WriteStructure pretty-printer and the soundinfo structdef at .data

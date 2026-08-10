@@ -438,7 +438,6 @@ BOTLIB_OBJS_ = \
 	l_utils.o \
 	botlib_exports.o \
 	botlib_debug.o \
-	botlib_structdefs.o \
 	q_shared.o
 
 # ----------

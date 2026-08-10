@@ -25,6 +25,53 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
+/* weaponinfo_struct — descriptor at 0x1005DFD8 (344 B); field table at 0x1005DBC8. */
+static char *weaponinfo_fields[] = {
+    FE("name",            0x004, 0x004, 0, 0x00000000),
+    FE("level",           0x0A4, 0x002, 0, 0x00000000),
+    FE("model",           0x054, 0x004, 0, 0x00000000),
+    FE("weaponindex",     0x0A8, 0x002, 0, 0x00000000),
+    FE("flags",           0x0AC, 0x002, 0, 0x00000000),
+    FE("projectile",      0x0B0, 0x004, 0, 0x00000000),
+    FE("numprojectiles",  0x100, 0x002, 0, 0x00000000),
+    FE("hspread",         0x104, 0x003, 0, 0x00000000),
+    FE("vspread",         0x108, 0x003, 0, 0x00000000),
+    FE("speed",           0x10C, 0x003, 0, 0x00000000),
+    FE("acceleration",    0x110, 0x003, 0, 0x00000000),
+    FE("recoil",          0x114, 0x103, 3, 0x00000000),  /* vec3 */
+    FE("offset",          0x120, 0x103, 3, 0x00000000),  /* vec3 */
+    FE("angleoffset",     0x12C, 0x103, 3, 0x00000000),  /* vec3 */
+    FE("extrazvelocity",  0x138, 0x003, 0, 0x00000000),
+    FE("ammoamount",      0x13C, 0x002, 0, 0x00000000),
+    FE("ammoindex",       0x140, 0x002, 0, 0x00000000),
+    FE("activate",        0x144, 0x003, 0, 0x00000000),
+    FE("reload",          0x148, 0x003, 0, 0x00000000),
+    FE("spinup",          0x14C, 0x003, 0, 0x00000000),
+    FE("spindown",        0x150, 0x003, 0, 0x00000000),
+    FE_END
+};
+structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
+
+/* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30. */
+static char *projectileinfo_fields[] = {
+    FE("name",        0x000, 0x004, 0, 0x00000000),
+    FE("model",       0x054, 0x004, 0, 0x00000000),
+    FE("flags",       0x0A0, 0x002, 0, 0x00000000),
+    FE("gravity",     0x0A4, 0x003, 0, 0x00000000),
+    FE("damage",      0x0A8, 0x002, 0, 0x00000000),
+    FE("radius",      0x0AC, 0x003, 0, 0x00000000),
+    FE("visdamage",   0x0B0, 0x002, 0, 0x00000000),
+    FE("damagetype",  0x0B4, 0x002, 0, 0x00000000),
+    FE("healthinc",   0x0B8, 0x002, 0, 0x00000000),
+    FE("push",        0x0BC, 0x003, 0, 0x00000000),
+    FE("detonation",  0x0C0, 0x003, 0, 0x00000000),
+    FE("bounce",      0x0C4, 0x003, 0, 0x00000000),
+    FE("bouncefric",  0x0C8, 0x003, 0, 0x00000000),
+    FE("bouncestop",  0x0CC, 0x003, 0, 0x00000000),
+    FE_END
+};
+structdef_t projectileinfo_struct = { 208, projectileinfo_fields };
+
 weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */
 
 //----- (10034BB0) --------------------------------------------------------
