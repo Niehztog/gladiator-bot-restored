@@ -346,19 +346,12 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
             index = ws->itemweights[i];
             if ( index >= 0 )
             {
-              /* The two builds call DIFFERENT evaluators here, and this is
-               * the only place in the tree where a build gate has to sit
-               * inside a function body rather than around a whole function.
-               * gladiator.dll calls the thin FuzzyWeight (and this row audits
-               * MATCH, 87/87, so that path must not move); gladi386.so calls
-               * F34, the fatter evaluator that walks the seperator chain
-               * itself -- read straight off the .so's own call list for this
-               * function, which contains F34 and no FuzzyWeight at all. */
-#ifndef _WIN32
-              weight = F34(ws->inventory, &ws->weightconfig->weights[index]);
-#else
+              /* Both builds call FuzzyWeight here.  They differ only in whether
+               * the compiler INLINED FuzzyWeight_r into it: gladiator.dll's
+               * FuzzyWeight is the thin 36-byte wrapper, gladi386.so's is 231
+               * bytes and 98% identical to FuzzyWeight_r itself.  Same source,
+               * different inlining -- like sub_10003420/F672. */
               weight = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[index]);
-#endif
               if ( weight > bestweight )
               {
                 bestweight = weight;
