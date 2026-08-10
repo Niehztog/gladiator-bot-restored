@@ -171,27 +171,6 @@ typedef struct chatlist_s         chatlist_t;
 typedef struct bot_chatvar_s { char *str; int len; } bot_chatvar_t;
 
 /* Export functions — defined in botlib_exports.c. */
-char *Export_BotVersion(void);
-int Export_BotSetupLibrary(void);
-int Export_BotShutdownLibrary(void);
-int Export_BotLibraryInitialized(void);
-int Export_BotLibVarSet(char *var_name, char *value);
-int Export_BotDefine(char *string);
-int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
-                      int soundindexes, char **soundindex,
-                      int imageindexes, char **imageindex);
-int Export_BotSetupClient(int client, void *settings);
-int Export_BotShutdownClient(int client);
-int Export_BotMoveClient(int oldclnum, int newclnum);
-int Export_BotClientSettings(int client, void *settings);
-int Export_BotSettings(int client, void *settings);
-int Export_BotUpdateClient(int client, void *buc);
-int Export_BotUpdateEntity(int ent, void *bue);
-int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
-                       float volume, float attenuation, float timeofs);
-int Export_BotAddPointLight(int *origin, int ent, float radius,
-                             float r, float g, float b, float time, float decay);
-int Export_Test(int parm0, char *parm1, float *parm2, float *parm3);
 
 /* Forward declarations for the functions defined below. */
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */

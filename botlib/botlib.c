@@ -13,7 +13,6 @@
 
 #include "botlib_local.h"
 #include "be_ai2_main.h"
-#include "be_ai2_main.h"
 
 float velocity[3]     = { 0.0f,  0.0f,  0.0f };   /* passed to AAS_ClientMovementHV */
 

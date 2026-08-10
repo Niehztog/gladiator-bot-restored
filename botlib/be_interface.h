@@ -13,9 +13,30 @@
 
 qboolean __cdecl BotLibSetup(const char *str);
 int BotSetupMoveAI();
+int Export_BotAddPointLight(int *origin, int ent, float radius,
+                             float r, float g, float b, float time, float decay);
+int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
+                       float volume, float attenuation, float timeofs);
+int Export_BotClientSettings(int client, void *settings);
+int Export_BotDefine(char *string);
 int Export_BotLibAI(int a1, float a2);
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message);
 int __cdecl Export_BotLibStartFrame(float time);
+int Export_BotLibVarSet(char *var_name, char *value);
+int Export_BotLibraryInitialized(void);
+int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
+                      int soundindexes, char **soundindex,
+                      int imageindexes, char **imageindex);
+int Export_BotMoveClient(int oldclnum, int newclnum);
+int Export_BotSettings(int client, void *settings);
+int Export_BotSetupClient(int client, void *settings);
+int Export_BotSetupLibrary(void);
+int Export_BotShutdownClient(int client);
+int Export_BotShutdownLibrary(void);
+int Export_BotUpdateClient(int client, void *buc);
+int Export_BotUpdateEntity(int ent, void *bue);
+char *Export_BotVersion(void);
+int Export_Test(int parm0, char *parm1, float *parm2, float *parm3);
 bot_export_t *GetBotAPI(bot_import_t *import);
 int Sys_MilliSeconds();
 qboolean __cdecl ValidClientNumber(int num, const char *str);

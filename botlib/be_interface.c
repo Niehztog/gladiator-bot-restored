@@ -16,12 +16,17 @@
  */
 
 #include "be_interface.h"
+#include "be_aas_entity.h"
+#include "be_aas_light.h"
 #include "be_aas_main.h"
+#include "be_aas_sound.h"
 #include "be_ai2_main.h"
+#include "be_ea.h"
 #include "l_crc.h"
 #include "l_libvar.h"
 #include "l_log.h"
 #include "l_memory.h"
+#include "l_precomp.h"
 
 /* filecrcs (name recovered from the Linux gladi386.so .dynsym, where it is a
  * 736-byte global whose contents are byte-identical to this table) — 91 entries
@@ -135,6 +140,11 @@ int unk_1005E958 = 0;
  * the .so puts its neighbours filecrcs and dumpcrcs. */
 struct scriptcrc_s *dword_10063F2C; // weak
 
+/* The bot_export_t wrappers below (0x100379E0..0x10038460) were held in a
+ * separate botlib_exports.c during reconstruction; every one of their
+ * addresses falls inside this TU's range, and Q3's be_interface.c holds the
+ * same wrappers next to GetBotLibAPI, so they are back where they belong. */
+
 //----- (100376B0) --------------------------------------------------------
 /* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C
  * list: on a name hit return the strcmpi result of that record, else allocate a
@@ -196,6 +206,7 @@ LABEL_14:
   v4->next = NULL;
   { (void)(result); return; }
 }
+
 //----- (100377E0) --------------------------------------------------------
 int __cdecl sub_100377E0(char *String1, __int16 a2)
 {
@@ -211,6 +222,7 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
   sub_100376B0(String1, a2);
   return 256;
 }
+
 //----- (10037820) --------------------------------------------------------
 /* CRC-hash the buffer and register the (name, crc) pair — byte-identical to
  * sub_10037850 below; /INCREMENTAL kept two compiled copies of the same
@@ -222,6 +234,7 @@ int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
   crc = CRC_Block(buf, len);
   return sub_100377E0(name, crc);
 }
+
 //----- (10037850) --------------------------------------------------------
 int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
@@ -230,6 +243,7 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
   v3 = CRC_Block(a2, a3);
   return sub_100377E0(String1, v3);
 }
+
 //----- (10037880) --------------------------------------------------------
 // Walks the dword_10063F2C scriptcrc linked
 // list and Log_Write's each entry as a C array initializer line:
@@ -244,11 +258,13 @@ void __cdecl sub_10037880(void)
   for ( p = dword_10063F2C; p; p = p->next )
     Log_Write("\t{0x%04X, 1}, //%s", (unsigned int)(unsigned __int16)p->hash, p->name);
 }
+
 //----- (100378C0) --------------------------------------------------------
 int Sys_MilliSeconds()
 {
   return clock() * 1000 / CLOCKS_PER_SEC;
 }
+
 //----- (10037900) --------------------------------------------------------
 qboolean __cdecl ValidClientNumber(int num, const char *str)
 {
@@ -257,6 +273,7 @@ qboolean __cdecl ValidClientNumber(int num, const char *str)
   botimport.Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, botstate.num_clients);
   return 0;
 }
+
 //----- (10037950) --------------------------------------------------------
 qboolean __cdecl ValidEntityNumber(int num, const char *str)
 {
@@ -265,6 +282,7 @@ qboolean __cdecl ValidEntityNumber(int num, const char *str)
   botimport.Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, botstate.num_entities);
   return 0;
 }
+
 //----- (100379A0) --------------------------------------------------------
 qboolean __cdecl BotLibSetup(const char *str)
 {
@@ -275,6 +293,14 @@ qboolean __cdecl BotLibSetup(const char *str)
   }
   return 1;
 }
+
+/* ---- SLOT 0 — BotVersion ------------------------------------------------ */
+//----- (100379E0) --------------------------------------------------------
+char *Export_BotVersion(void)
+{
+    return "BotLib v0.96";
+}
+
 //----- (10037A00) --------------------------------------------------------
 int BotSetupMoveAI()
 {
@@ -299,6 +325,170 @@ int BotSetupMoveAI()
   result = libvar_sv_maxwaterjump;
   return (intptr_t)result;
 }
+
+/* ---- SLOT 1 — BotSetupLibrary (0x10037BB0) ------------------------------ */
+//----- (10037BB0) --------------------------------------------------------
+int Export_BotSetupLibrary(void)
+{
+    if (botstate.setup) {
+        botimport.Print(3, "bot library already setup\n");
+        return 2;
+    }
+
+    Log_Open("botlib.log");
+    botimport.Print(1, "------- BotLib Initialization -------\n");
+    botimport.Print(1, "BotLib v0.96\n");
+
+    Swap_Init();
+    botstate.setup = 1;
+
+    botstate.num_clients  = (int)LibVarValue("maxclients",  "4");
+    botstate.num_entities = (int)LibVarValue("maxentities", "1024");
+
+    BotSetupMoveAI();
+
+    errno = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
+    if (errno) return errno;
+
+    errno = BotSetupLibrary();
+    if (errno) return errno;
+
+    EA_Setup();
+
+    botimport.Print(1, "-------------------------------------\n");
+    return 0;
+}
+
+/* ---- SLOT 2 — BotShutdownLibrary (0x10037CF0) --------------------------- */
+//----- (10037CF0) --------------------------------------------------------
+int Export_BotShutdownLibrary(void)
+{
+    if (!botstate.setup) {
+        botimport.Print(3, "library not setup\n");
+        return 1;
+    }
+
+    BotShutdownLibrary();
+    AAS_Shutdown();
+    EA_Shutdown();
+    Log_Close();
+    DumpMemory();
+
+    /* Three rep stos (20 / 10 / 20 dwords) over the contiguous interface
+     * blocks, then the scalar botlibsetup = 0.  sizeof keeps the clears
+     * 64-bit-correct; see botlib_state.h for the block layout. */
+    memset(&botstate,    0, sizeof(botstate));     /* block 1 @0x10064020, 20 dwords */
+    memset(&botimport,   0, sizeof(botimport));    /* block 2 @0x10063FE0, 10 dwords */
+    memset(&bot_exports, 0, sizeof(bot_exports));  /* block 3 @0x10063F80, 20 dwords */
+    botstate.setup = 0;
+
+    return 0;
+}
+
+/* ---- SLOT 3 — BotLibraryInitialized (0x10037D80); tail-jmp AAS_Initialized */
+//----- (10037D80) --------------------------------------------------------
+int Export_BotLibraryInitialized(void)
+{
+    return AAS_Initialized();
+}
+
+/* ---- SLOT 4 — BotLibVarSet (0x10037DA0).  Returns 0 unconditionally; the
+ * original has no null-check. --------------------------------------------- */
+//----- (10037DA0) --------------------------------------------------------
+int Export_BotLibVarSet(char *var_name, char *value)
+{
+    LibVarSet(var_name, value);
+    return 0;
+}
+
+/* ---- SLOT 5 — BotDefine (0x10037DD0) ----------------------------------- */
+//----- (10037DD0) --------------------------------------------------------
+int Export_BotDefine(char *string)
+{
+    if (!PC_AddGlobalDefine(string))
+        botimport.Print(3, "couldn't add define %s\n", string);
+    return 0;
+}
+
+/* ---- SLOT 6 — BotLoadMap (0x10037E10).  A NULL mapname is the unload
+ * path. ------------------------------------------------------------------- */
+//----- (10037E10) --------------------------------------------------------
+int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
+                     int soundindexes, char **soundindex,
+                     int imageindexes, char **imageindex)
+{
+    if (!BotLibSetup("BotLoadMap")) return 1;
+
+    if (!mapname) {
+        return BotLoadMap(0, modelindexes, modelindex,
+                          soundindexes, soundindex,
+                          imageindexes, imageindex);
+    }
+
+    botimport.Print(1, "------------ Map Loading ------------\n");
+
+    errno = BotLoadMap(mapname, modelindexes, modelindex,
+                       soundindexes, soundindex,
+                       imageindexes, imageindex);
+    if (errno) return errno;
+
+    sub_10029C10();
+    botimport.Print(1, "-------------------------------------\n");
+    return 0;
+}
+
+/* ---- SLOT 7 — BotSetupClient (0x10037F00) ------------------------------ */
+//----- (10037F00) --------------------------------------------------------
+int Export_BotSetupClient(int client, void *settings)
+{
+    int r;
+    if (!BotLibSetup("BotSetupClient")) return 0;
+    if (!ValidClientNumber(client, "BotSetupClient")) return 0;
+    sub_100085F0();
+    r = BotSetupClient(client, settings);
+    return r != 0;
+}
+
+/* ---- SLOT 8 — BotShutdownClient (0x10037F70) --------------------------- */
+//----- (10037F70) --------------------------------------------------------
+int Export_BotShutdownClient(int client)
+{
+    if (!BotLibSetup("BotShutdownClient")) return 1;
+    if (!ValidClientNumber(client, "BotShutdownClient")) return 3;
+    return BotShutdownClient(client);
+}
+
+/* ---- SLOT 9 — BotMoveClient (0x10037FE0) ------------------------------- */
+//----- (10037FE0) --------------------------------------------------------
+int Export_BotMoveClient(int oldclnum, int newclnum)
+{
+    if (!BotLibSetup("BotMoveClient")) return 1;
+    if (!ValidClientNumber(oldclnum, "BotMoveClient, parm0")) return 3;
+    if (!ValidClientNumber(newclnum, "BotMoveClient, parm1")) return 3;
+    return BotMoveClient(oldclnum, newclnum);
+}
+
+/* ---- SLOT 10 — BotClientSettings (0x10038070); body at 0x10029920 ------ */
+//----- (10038070) --------------------------------------------------------
+int Export_BotClientSettings(int client, void *settings)
+{
+    if (!BotLibSetup("BotClientSettings")) return 1;
+    if (!ValidClientNumber(client, "BotClientSettings")) return 3;
+    return BotClientSettings(client, settings);
+}
+
+/* ---- SLOT 11 — BotSettings (0x100380E0); body at 0x100299D0 ------------ */
+//----- (100380E0) --------------------------------------------------------
+int Export_BotSettings(int client, void *settings)
+{
+    if (!BotLibSetup("BotSettings")) return 1;
+    if (!ValidClientNumber(client, "BotSettings")) return 3;
+    return BotSettings(client, settings);
+}
+
+/* Slots 12, 17 and 18 live in botlib.c (0x10038150 / 0x10038380 /
+ * 0x100383F0). */
+
 //----- (10038150) --------------------------------------------------------
 int __cdecl Export_BotLibStartFrame(float time)
 {
@@ -307,6 +497,57 @@ int __cdecl Export_BotLibStartFrame(float time)
   *(float *)&botstate.bottime = time;
   return AAS_StartFrame(time);
 }
+
+/* ---- SLOT 13 — BotUpdateClient (0x10038190) ---------------------------- */
+//----- (10038190) --------------------------------------------------------
+int Export_BotUpdateClient(int client, void *buc)
+{
+    if (!BotLibSetup("BotUpdateClient")) return 1;
+    if (!ValidClientNumber(client, "BotUpdateClient")) return 3;
+    return BotUpdateClient(client, buc);
+}
+
+/* ---- SLOT 14 — BotUpdateEntity (0x10038200) ---------------------------- */
+//----- (10038200) --------------------------------------------------------
+int Export_BotUpdateEntity(int ent, void *bue)
+{
+    if (!BotLibSetup("BotUpdateEntity")) return 1;
+    if (!ValidEntityNumber(ent, "BotUpdateEntity")) return 4;
+    return AAS_UpdateEntity(ent, (bot_updateentity_t *)bue);
+}
+
+/* ---- SLOT 15 — BotAddSound (0x10038270).  The context string really is
+ * "BotUpdateSound".  The first six args reach sub_1001CE20 as raw 32-bit
+ * values (float bits through int slots); only timeofs is a real float. ---- */
+//----- (10038270) --------------------------------------------------------
+int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
+                       float volume, float attenuation, float timeofs)
+{
+    if (!BotLibSetup("BotUpdateSound")) return 1;
+    if (!ValidEntityNumber(ent, "BotUpdateSound")) return 4;
+    return sub_1001CE20((intptr_t)origin, ent, channel, soundindex,
+                        *(int *)&volume,
+                        *(int *)&attenuation,
+                        timeofs);
+}
+
+/* ---- SLOT 16 — BotAddPointLight (0x100382F0); floats passed as bits ---- */
+//----- (100382F0) --------------------------------------------------------
+int Export_BotAddPointLight(int *origin, int ent, float radius,
+                            float r, float g, float b,
+                            float time, float decay)
+{
+    if (!BotLibSetup("BotAddPointLight")) return 1;
+    if (!ValidEntityNumber(ent, "BotAddPointLight")) return 4;
+    /* Straight pass-through: BotAddPointLight takes floats, so the arguments
+     * are re-pushed as the dwords they already are.  The bit-punned form this
+     * replaced only worked against a hand-written `extern` in the old
+     * botlib_exports.c that declared the callee as taking ints; against the
+     * real declaration it made MSVC convert each one back (fild/fstp), which
+     * is +6 instructions the original does not have. */
+    return BotAddPointLight((vec_t *)origin, ent, radius, r, g, b, time, decay);
+}
+
 //----- (10038380) --------------------------------------------------------
 int Export_BotLibAI(int a1, float a2)
 {
@@ -316,6 +557,7 @@ int Export_BotLibAI(int a1, float a2)
     return BLERR_INVALIDCLIENTNUMBER;
   return Export_BotAIFrame(a1, a2);
 }
+
 //----- (100383F0) --------------------------------------------------------
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 {
@@ -325,6 +567,15 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
     return BLERR_INVALIDCLIENTNUMBER;
   return BotConsoleMessage(client, a2, message);
 }
+
+/* ---- SLOT 19 — Test (0x10038460); returns 0 ---------------------------- */
+//----- (10038460) --------------------------------------------------------
+int Export_Test(int parm0, char *parm1, float *parm2, float *parm3)
+{
+    (void)parm0; (void)parm1; (void)parm2; (void)parm3;
+    return 0;
+}
+
 //----- (10038480) --------------------------------------------------------
 /* The original ends with a plain `ret`, not `ret 4`, so this export is __cdecl
  * even though gladq2_src/bl_main.c declares the function pointer WINAPI.  Both
