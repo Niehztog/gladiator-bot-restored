@@ -186,14 +186,13 @@ aas_soundpool_t *sub_1001CBE0()
 }
 //----- (1001CC10) --------------------------------------------------------
 /* Push an aas_soundpool_t back onto the free-list. */
-aas_soundpool_t *sub_1001CC10(aas_soundpool_t *a1)
+void sub_1001CC10(aas_soundpool_t *a1)
 {
   if ( aasworld.d_100669C8 )
     aasworld.d_100669C8->prev = a1;
   a1->prev = NULL;
   a1->next = aasworld.d_100669C8;
   aasworld.d_100669C8 = a1;
-  return a1;
 }
 //----- (1001CC50) --------------------------------------------------------
 /* Insert into the d_100669CC/D0 sorted active list (descending by float at

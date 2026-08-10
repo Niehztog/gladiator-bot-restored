@@ -40,8 +40,8 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
 int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename);
 int __cdecl BotPopGoal(bot_goalstate_t *goalstate);
 int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal);
-int __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate);
-int __cdecl BotResetGoalState(bot_goalstate_t *goalstate);
+void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate);
+void __cdecl BotResetGoalState(bot_goalstate_t *goalstate);
 int BotSetupGoalAI();
 int BotShutdownGoalAI();
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal);

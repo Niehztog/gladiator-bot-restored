@@ -34,7 +34,7 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanu
 void AAS_InitClusterAreaCache();
 int AAS_InitPortalCache();
 void AAS_InitRouting(void);
-int AAS_InitRoutingUpdate();
+void AAS_InitRoutingUpdate(void);
 void AAS_InitTravelFlagFromType(void);
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum);
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin);

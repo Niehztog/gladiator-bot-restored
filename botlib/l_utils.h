@@ -132,6 +132,6 @@ void sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
 int __cdecl sub_100423D0(int a1, int a2);
 void __stdcall sub_100423F0(char *p);
-int __cdecl vectoangles(float *value1, float *angles);
+void __cdecl vectoangles(float *value1, float *angles);
 
 #endif /* BOTLIB_L_UTILS_H */

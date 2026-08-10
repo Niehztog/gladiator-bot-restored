@@ -1818,11 +1818,7 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
   }
 }
 //----- (10034B90) --------------------------------------------------------
-int __cdecl BotResetMoveState(void *movestate)
+void __cdecl BotResetMoveState(void *movestate)
 {
-  int result; // eax
-
-  result = 0;
   memset(movestate, 0, 0x80u);
-  return result;
 }

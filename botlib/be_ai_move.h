@@ -42,7 +42,7 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 _DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetGrapple(bot_movestate_t *ms);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
-int __cdecl BotResetMoveState(void *movestate);
+void __cdecl BotResetMoveState(void *movestate);
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type);
 bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach);
 bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_t *reach);

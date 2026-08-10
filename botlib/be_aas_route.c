@@ -287,7 +287,7 @@ int AAS_InitPortalCache()
   return (int)(intptr_t)aasworld.portalcache;
 }
 //----- (100194A0) --------------------------------------------------------
-int AAS_InitRoutingUpdate()
+void AAS_InitRoutingUpdate(void)
 {
   /* sizeof(), not the original's 40, so each slot grows with the typed
    * struct. */
@@ -296,7 +296,7 @@ int AAS_InitRoutingUpdate()
   aasworld.areaupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
   if ( aasworld.portalupdate )
     FreeMemory((int)(intptr_t)aasworld.portalupdate);
-  return (int)(intptr_t)(aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas));
+  aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
 }
 //----- (10019520) --------------------------------------------------------
 void AAS_InitRouting(void)

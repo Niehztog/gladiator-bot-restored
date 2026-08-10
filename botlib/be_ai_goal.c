@@ -328,14 +328,10 @@ char *__cdecl BotGoalName(int number)
   return &byte_1006294C;
 }
 //----- (1002F6F0) --------------------------------------------------------
-int __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
+void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
 {
-  int result; // eax
-
-  result = 0;
   memset(goalstate->avoidgoals, 0, sizeof(goalstate->avoidgoals));
   memset(goalstate->avoidgoaltimes, 0, sizeof(goalstate->avoidgoaltimes));
-  return result;
 }
 //----- (1002F730) --------------------------------------------------------
 void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate)
@@ -917,11 +913,11 @@ void __cdecl BotFreeItemWeights(bot_goalstate_t *goalstate)
     FreeMemory(BotGoalHandleP1(goalstate));
 }
 //----- (10030990) --------------------------------------------------------
-int __cdecl BotResetGoalState(bot_goalstate_t *goalstate)
+void __cdecl BotResetGoalState(bot_goalstate_t *goalstate)
 {
   memset(goalstate->goalstack, 0, sizeof(goalstate->goalstack));
   goalstate->goalstacktop = 0;
-  return BotResetAvoidGoals(goalstate);
+  BotResetAvoidGoals(goalstate);
 }
 //----- (100309D0) --------------------------------------------------------
 int BotSetupGoalAI()

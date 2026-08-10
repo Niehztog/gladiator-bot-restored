@@ -253,7 +253,7 @@ int __stdcall sub_10041760(const char *a1, int a2)
 
 #endif /* _WIN32 — UnZip windll path */
 //----- (10041790) --------------------------------------------------------
-int __cdecl vectoangles(float *value1, float *angles)
+void __cdecl vectoangles(float *value1, float *angles)
 {
   float forward;
   float yaw, pitch;
@@ -279,7 +279,6 @@ int __cdecl vectoangles(float *value1, float *angles)
   angles[0] = -pitch;
   angles[1] = yaw;
   angles[2] = 0;
-  return (int)angles;
 }
 //----- (100418D0) --------------------------------------------------------
 /* In-place path-separator normalisation.  The original folds both '/' and '\\'

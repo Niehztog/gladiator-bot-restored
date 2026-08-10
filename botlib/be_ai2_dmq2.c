@@ -337,10 +337,14 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
   if ( libvar_ctf->value == 0.0f )
     return 0;
   /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).
-   * Returns 1 (red), 2 (blue), or 0 (not carrying). */
+   * Returns 1 (red), 2 (blue), or 0 (not carrying).  Four separate `return`
+   * statements, not a ternary on the last pair: gcc cross-jumps the trailing
+   * `return 0` back onto the first one, where a ternary would pre-zero eax. */
   if ( bs->inventory[43] > 0 )
     return 1;
-  return bs->inventory[44] > 0 ? 2 : 0;
+  if ( bs->inventory[44] > 0 )
+    return 2;
+  return 0;
 }
 //----- (100216A0) --------------------------------------------------------
 BOOL __cdecl BotIsDead(bot_state_t *bs)

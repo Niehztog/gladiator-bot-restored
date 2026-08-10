@@ -92,7 +92,7 @@ aas_link_t *AAS_AllocAASLink()
   return result;
 }
 //----- (1001ADA0) --------------------------------------------------------
-aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *link)
+void __cdecl AAS_DeAllocAASLink(aas_link_t *link)
 {
   if ( aasworld.freelinks )
     aasworld.freelinks->prev_ent = link;
@@ -101,7 +101,6 @@ aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *link)
   link->prev_area = NULL;
   link->next_area = NULL;
   aasworld.freelinks = link;
-  return link;
 }
 //----- (1001ADE0) --------------------------------------------------------
 int AAS_InitAASLinkedEntities()

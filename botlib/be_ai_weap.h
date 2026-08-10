@@ -21,7 +21,7 @@ extern weaponconfig_t *weaponconfig;
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
 void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename);
-int __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate);
+void __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate);
 int BotSetupWeaponAI();
 int BotShutdownWeaponAI();
 weaponconfig_t *LoadWeaponConfig(char *filename);

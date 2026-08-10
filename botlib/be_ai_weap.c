@@ -377,21 +377,20 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
   }
 }
 //----- (10035640) --------------------------------------------------------
-int __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
+void __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
 {
   weightconfig_t *weightconfig; // esi
   int *itemweights; // ebx
 
 #if defined(__x86_64__) || defined(__aarch64__)
   /* 64-bit only: the side-band slot is NULL until BotSetupClient allocates it. */
-  if ( !weaponstate ) return 0;
+  if ( !weaponstate ) return;
 #endif
   weightconfig = weaponstate->weightconfig;
   itemweights = weaponstate->itemweights;
   memset(weaponstate, 0, sizeof(*weaponstate));
   weaponstate->weightconfig = weightconfig;
   weaponstate->itemweights = itemweights;
-  return 0;
 }
 //----- (10035680) --------------------------------------------------------
 int BotSetupWeaponAI()

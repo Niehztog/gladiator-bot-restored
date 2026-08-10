@@ -20,7 +20,7 @@ void __cdecl sub_1001C6F0(void);
 int __cdecl sub_1001C760(char *Source);
 void sub_1001CAB0();
 aas_soundpool_t *sub_1001CBE0();
-aas_soundpool_t *sub_1001CC10(aas_soundpool_t *a1);
+void sub_1001CC10(aas_soundpool_t *a1);
 void sub_1001CC50(aas_soundpool_t *a1);
 aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1);
 void sub_1001CD10(aas_soundpool_t *a1);

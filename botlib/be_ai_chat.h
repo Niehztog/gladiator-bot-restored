@@ -65,7 +65,7 @@ void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender);
 void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name);
 int BotSetupChatAI();
 void BotShutdownChatAI();
-int __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
+void __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
 int InitConsoleMessageHeap();
 BOOL __cdecl IsWhiteSpace(char c);
 char *__cdecl RandomString(const char *name);

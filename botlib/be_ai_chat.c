@@ -92,14 +92,13 @@ bot_consolemessage_t *AllocConsoleMessage()
   return result;
 }
 //----- (1002A9E0) --------------------------------------------------------
-int __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
+void __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
 {
   if ( freeconsolemessages )
     freeconsolemessages->prev = message;
   message->prev = NULL;
   message->next = freeconsolemessages;
   freeconsolemessages = message;
-  return (int)(intptr_t)message;
 }
 //----- (1002AA20) --------------------------------------------------------
 int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg)

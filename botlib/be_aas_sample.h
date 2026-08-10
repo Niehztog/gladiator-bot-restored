@@ -17,7 +17,7 @@ int __cdecl AAS_AreaCluster(int areanum);
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace);
 void *__cdecl AAS_AreaGroundFace(int areanum, void *point);
 int __cdecl AAS_AreaPresenceType(int areanum);
-aas_link_t *__cdecl AAS_DeAllocAASLink(aas_link_t *link);
+void __cdecl AAS_DeAllocAASLink(aas_link_t *link);
 void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist);
 void AAS_FreeAASLinkHeap();
 void AAS_FreeAASLinkedEntities();
