@@ -47,6 +47,15 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
+static void sub_10005640(
+        void *out,
+        float *start,
+        int *boxmins,
+        float *boxmaxs,
+        int *end,
+        int a5,
+        int contentmask);
+
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum);
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);

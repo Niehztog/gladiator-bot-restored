@@ -12,9 +12,6 @@
 #include <stddef.h>
 
 #include "gladiator.dll.h"
-#include "botlib_structs.h"
-#include "bot_state.h"
-#include "chat_state.h"
 #include "be_ea.h"
 
 /* Pointer-bearing structs grow on 64-bit hosts, so those asserts are gated to

@@ -31,11 +31,9 @@
 #include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
 #include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
 
-#include "bot_state.h"   /* bot_state_t, BOT_* offset constants (reconstructed) */
-#include "chat_state.h"  /* bot_match_t, bot_matchpiece_t etc. */
+#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
 #include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
 #include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "botlib_structs.h" /* config, parser, weight, goal and item structs */
 #include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
 #include "q2files.h"
 
@@ -47,10 +45,6 @@ typedef struct bot_character_s    bot_character_t;   /* layout defined later; ne
 typedef struct bot_weaponstate_s  bot_weaponstate_t;
 struct chatlist_s;
 typedef struct chatlist_s         chatlist_t;
-/* BotInitialChat records up to 10 (string,len) pairs for BotConstructChatMessage
- * to substitute as %v0..%v9.  The original entry is 8 bytes; widened on 64-bit
- * so the pointer survives. */
-typedef struct bot_chatvar_s { char *str; int len; } bot_chatvar_t;
 
 /* Export functions — defined in botlib_exports.c. */
 
@@ -195,18 +189,6 @@ extern bot_synonymlist_t *synonyms;
 extern int numbots;
 extern bsp_entity_t *dword_10064398;
 extern int dword_1006439C;
-/* bot_character (botlib-private):
- *   { int numcharacteristics; bot_characteristic_t pairs[N]; char strings[]; }
- * Each pair is an int[2]: a byte-sized type at +0 (padded) and the value at +4.
- * The byte field stays explicit so MSVC6 emits the same byte accesses, while
- * intptr_t keeps the value slot pointer-sized for the 64-bit port. */
-typedef struct bot_characteristic_s {
-    unsigned char type; /* 0=unset, 1=int, 2=float, 3=string */
-    intptr_t      value; /* int, float (via *(float*)&value), or char * */
-} bot_characteristic_t;
-typedef struct bot_character_s {
-    int numcharacteristics;
-} bot_character_t;
 #define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
     ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
 extern bot_state_t *botstates;
@@ -247,18 +229,6 @@ extern void **botgoalstate_p1;
 #define BotGoalHandleP1(h) (*(void **)&(h)->itemweightindex)
 #endif
 
-/* bs->weaponweights is a flattened inline `int[7]`, five slots of which hold
- * pointers.  Mirrored into this typed struct (one per bot) on 64-bit; the field
- * offsets match the original inline layout (+0 … +24). */
-typedef struct bot_weaponstate_s {
-    int               client;       /* +0   = bs->client copy */
-    int              *inventory;    /* +4   pointer into bs->inventory (item-count array; cast as int* for FuzzyWeight) */
-    weightconfig_t   *weightconfig; /* +8   = loaded weights */
-    int              *itemweights;  /* +12  = WeaponWeightIndex mapping table */
-    char             *modelname;    /* +16  = AAS_ModelFromIndex(bs->snapshot.gunindex) */
-    int               weaponindex;  /* +20  = chosen weapon index */
-    float             nextthink;    /* +24  = AAS_Time gate */
-} bot_weaponstate_t;
 #if BOTLIB_NEED_SIDEBAND
 extern bot_weaponstate_t **botweaponstates;
 #define BotWS(bs) (botweaponstates[(bs) - botstates])
@@ -281,13 +251,6 @@ extern void **botchatdumps;
 #define BotChatDumpSlot(cs_ptr) (*(chatlist_t **)&(cs_ptr)->_slot_46)
 #endif
 
-/* Side-band for the per-client console-message FIFO held inline in chatstate
- * slots [43..45] (firstmessage, lastmessage, count). */
-typedef struct chatmsg_links_s {
-    bot_consolemessage_t *first;   /* chatstate[43] @ +172 */
-    bot_consolemessage_t *last;    /* chatstate[44] @ +176 */
-    int                   count;   /* chatstate[45] @ +180 */
-} chatmsg_links_t;
 #if BOTLIB_NEED_SIDEBAND
 extern chatmsg_links_t *botchatmsglinks;
 #define BotChatMsgLinks(client) (botchatmsglinks[(client)])
@@ -345,32 +308,8 @@ extern bsp_link_t **aasentity_bsplinks;
 #endif
 
 
-/* Initial-chat dump structures.  BotLoadInitialChat packs them into one
- * contiguous heap buffer:
- *   chatlist_t   @ +0        -> types
- *   chattype_t   @ +0..+43   (name[32], numlines, firstline, next)
- *   chatline_t   @ +0..+11   (string, ltime, next)
- * followed by the inline chat strings.  The 64-bit side-band path instead
- * allocates one node per chat-type / chat-line, string inline behind it. */
-typedef struct chatline_s {
-    char              *string;       /* +0  pointer to inline string buffer */
-    float              ltime;        /* +4  last-time gate (AAS_Time) */
-    struct chatline_s *next;         /* +8  next chat-line in this type */
-#if BOTLIB_NEED_SIDEBAND
-    char               buf[1];       /* +12 inline string follows (allocated) */
-#endif
-} chatline_t;
 
-typedef struct chattype_s {
-    char               name[32];     /* +0  type tag */
-    int                numlines;     /* +32 number of chat-lines */
-    chatline_t        *firstline;    /* +36 head of chat-line list */
-    struct chattype_s *next;         /* +40 next chat-type */
-} chattype_t;
 
-typedef struct chatlist_s {
-    chattype_t        *types;        /* head of chat-type list */
-} chatlist_t;
 
 extern float flt_100643A4;
 extern bot_clientsettings_t *clientsettings;
