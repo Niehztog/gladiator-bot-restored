@@ -61,7 +61,7 @@ int Export_BotAIFrame(int a1, float a2);
 int NumBots();
 void sub_10028E80(void);  
 void sub_100292E0();
-static void sub_100293A0(bot_state_t *bs);
+void sub_100293A0(bot_state_t *bs);
 int sub_10029C10();
 
 #endif /* BOTLIB_BE_AI2_MAIN_H */

@@ -295,7 +295,7 @@ int Export_BotAIFrame(int a1, float a2)
 //   +0x1044 = chat file handle
 //   +0x1050 = weapon weights handle
 //   +0x1054 = weapon index handle
-static void sub_100293A0(bot_state_t *bs)
+void sub_100293A0(bot_state_t *bs)
 {
   botimport.Print(PRT_MESSAGE, "%6d bytes character\n",
            MemoryByteSize(BotCharacter(bs)));
