@@ -38,3 +38,6 @@ int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
 static void sub_10036EB0(int *table, const char *name, float scale);
 
 #endif /* BOTLIB_BE_AI_WEIGHT_H */
+#ifndef _WIN32
+float __cdecl F34(int *inventory, weight_t *w);
+#endif

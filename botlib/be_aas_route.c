@@ -918,4 +918,109 @@ float __cdecl AAS_RoutingTime(void)
 {
   return AAS_Time();
 } //end of the function AAS_RoutingTime
+
+/* F525 @ 0x0002727c, 57 bytes.  Appends a routing update to the FIFO that
+ * AAS_UpdateAreaRoutingCache / AAS_UpdatePortalRoutingCache drain -- Q3 botlib
+ * writes this same sequence INLINE at each of its enqueue sites (the
+ * `if (!nextupdate->inlist) { ... }` block), so there is no Q3 name to take
+ * and none is invented here: the identifier is the symbol gladi386.so ships.
+ *
+ * The field offsets settle which struct it is.  It guards on +0x1c and writes
+ * +0x20 then +0x24, which is aas_routingupdate_t's inlist / next / prev --
+ * NOT aas_routingcache_t, whose +0x1c is travelflags.
+ *
+ *   arg1 = &updateliststart (set only when the list was empty)
+ *   arg2 = &updatelistend
+ *   arg3 = the update to append
+ */
+void __cdecl F525(aas_routingupdate_t **updateliststart,
+                  aas_routingupdate_t **updatelistend,
+                  aas_routingupdate_t *update)
+{
+  if ( update->inlist )
+    return;
+  if ( *updatelistend )
+    (*updatelistend)->next = update;
+  else
+    *updateliststart = update;
+  update->prev = *updatelistend;
+  update->next = NULL;
+  *updatelistend = update;
+  update->inlist = 1;
+} //end of the function F525
+
+/* F526 @ 0x000272b8, 83 bytes.  Q3 botlib's AAS_GetAreaContentsTravelFlags,
+ * minus the DONOTENTER / NOTTEAM / BRIDGE clauses Q3 added later.  The four
+ * TFL_ values and the three AREACONTENTS_ bits are read straight out of this
+ * function: `test al,1 -> 0x10000`, `test al,4 -> 0x20000`, `test al,2 ->
+ * 0x40000`, else `0x8000`. */
+int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
+{
+  int contents;
+
+  contents = aasworld.areasettings[areanum].contents;
+  if ( contents & AREACONTENTS_WATER )
+    return TFL_WATER;
+  if ( contents & AREACONTENTS_LAVA )
+    return TFL_LAVA;
+  if ( contents & AREACONTENTS_SLIME )
+    return TFL_SLIME;
+  return TFL_AIR;
+} //end of the function AAS_GetAreaContentsTravelFlags
+
+/* F524 @ 0x000270e8, 403 bytes.  Sweeps every routing cache older than 15
+ * seconds and frees it -- the cluster-area caches first, then the per-area
+ * portal caches.  Q3 botlib has no counterpart: it evicts one cache at a time
+ * under memory pressure (AAS_FreeOldestCache) rather than sweeping on age, so
+ * there is no name to take and none is invented; the identifier is the symbol
+ * gladi386.so ships.
+ *
+ * Read out of the disassembly: cluster stride 12 (aas_cluster_t) with numareas
+ * at +0, cache prev/next at +0x20/+0x24, the threshold a QWORD 15.0 at
+ * .rodata 0x571e0, and the second loop bounded by numareas (+0x168) because
+ * portalcache is indexed by area, not by portal.  It frees through FreeMemory
+ * directly rather than through a AAS_FreeRoutingCache wrapper. */
+void __cdecl F524(void)
+{
+  int i, j;
+  aas_routingcache_t *cache, *nextcache;
+
+  for ( i = 0; i < aasworld.numclusters; i++ )
+  {
+    for ( j = 0; j < aasworld.clusters[i].numareas; j++ )
+    {
+      for ( cache = aasworld.clusterareacache[i][j]; cache; cache = nextcache )
+      {
+        nextcache = cache->next;
+        if ( cache->time < AAS_Time() - 15.0 )
+        {
+          if ( cache->prev )
+            cache->prev->next = cache->next;
+          else
+            aasworld.clusterareacache[i][j] = cache->next;
+          if ( cache->next )
+            cache->next->prev = cache->prev;
+          FreeMemory(cache);
+        }
+      }
+    }
+  }
+  for ( i = 0; i < aasworld.numareas; i++ )
+  {
+    for ( cache = aasworld.portalcache[i]; cache; cache = nextcache )
+    {
+      nextcache = cache->next;
+      if ( cache->time < AAS_Time() - 15.0 )
+      {
+        if ( cache->prev )
+          cache->prev->next = cache->next;
+        else
+          aasworld.portalcache[i] = cache->next;
+        if ( cache->next )
+          cache->next->prev = cache->prev;
+        FreeMemory(cache);
+      }
+    }
+  }
+} //end of the function F524
 #endif /* !_WIN32 -- gladi386.so-only */

@@ -41,8 +41,23 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
 aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num);
 int AAS_RoutingInfo();
 int __cdecl AAS_TravelFlagForType(int traveltype);
+/* Area contents bits and the travel flags they map to.  Both sets are read
+ * out of AAS_GetAreaContentsTravelFlags' own disassembly (gladi386.so F526);
+ * Q3 botlib has the same function with the same shape but its own values. */
+#define AREACONTENTS_WATER   0x0001
+#define AREACONTENTS_SLIME   0x0002
+#define AREACONTENTS_LAVA    0x0004
+
+#define TFL_AIR              0x8000
+#define TFL_WATER           0x10000
+#define TFL_LAVA            0x20000
+#define TFL_SLIME           0x40000
+
 #ifndef _WIN32
 float __cdecl AAS_RoutingTime(void);
+void __cdecl F525(aas_routingupdate_t **updateliststart, aas_routingupdate_t **updatelistend, aas_routingupdate_t *update);
+int __cdecl AAS_GetAreaContentsTravelFlags(int areanum);
+void __cdecl F524(void);
 int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
 #endif
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);

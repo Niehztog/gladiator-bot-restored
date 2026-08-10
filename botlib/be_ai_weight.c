@@ -819,3 +819,56 @@ void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
   for ( i = 0; i < a->numweights; ++i )
     InterbreedFuzzySeperator_r(a->weights[i].firstseperator, b->weights[i].firstseperator);
 }
+
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+/* F34 @ 0x00047ecc, 231 bytes.  A second fuzzy-weight evaluator, sitting
+ * between FuzzyWeightUndecided_r (F33) and FuzzyWeight (F35) and called by
+ * BotChooseBestFightWeapon.  It walks the seperator chain ITERATIVELY and
+ * calls FuzzyWeight_r only for the two sub-evaluations of the interpolated
+ * case, which is why the call graph shows it calling F32 without being
+ * recursive itself -- that is also what distinguishes it from F32, whose only
+ * callee is itself.  Q3 botlib has no fourth evaluator, so there is no name to
+ * take and none is invented.
+ *
+ * The blend divides two ints and only then converts, exactly as FuzzyWeight_r
+ * does (`idiv` then `fild`, not `fdiv`) -- a step function, not a smooth
+ * interpolation.  Faithful; see .claude/memory/fuzzy_weight_system.md. */
+float __cdecl F34(int *inventory, weight_t *w)
+{
+  fuzzyseperator_t *fs;
+  float w1, w2;
+  float scale;
+
+  for ( fs = w->firstseperator; ; )
+  {
+    if ( fs->value > inventory[fs->index] )
+    {
+      if ( !fs->child )
+        return fs->weight;
+      fs = fs->child;
+      continue;
+    }
+    if ( !fs->next )
+      return fs->weight;
+    if ( fs->next->value <= inventory[fs->index] )
+    {
+      fs = fs->next;
+      continue;
+    }
+    break;
+  }
+  if ( fs->child )
+    w1 = FuzzyWeight_r(inventory, fs->child);
+  else
+    w1 = fs->weight;
+  if ( fs->next->child )
+    w2 = FuzzyWeight_r(inventory, fs->next->child);
+  else
+    w2 = fs->next->weight;
+  scale = (inventory[fs->index] - fs->value) / (fs->next->value - fs->value);
+  return w1 * scale + w2 * (1 - scale);
+} //end of the function F34
+#endif /* !_WIN32 -- gladi386.so-only */

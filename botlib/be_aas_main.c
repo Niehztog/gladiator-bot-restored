@@ -643,3 +643,21 @@ int AAS_Shutdown()
   aasworld.initialized = 0;
   return botimport.Print(PRT_MESSAGE, "AAS shutdown.\n");
 }
+
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.  See the identical note
+ * in be_aas_route.c for why these are gated rather than added outright.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+/* F184 @ 0x0001b168, 6 bytes -- `mov eax,5; ret`, nothing else.  It has no
+ * callers anywhere in the image and no string, constant or call to identify
+ * it by, so there is no name to recover and none is invented: the identifier
+ * is the symbol gladi386.so ships.  It sits between AAS_Time (F183) and
+ * BotLibLoadMap (F185).  The 5 is almost certainly a presence-type or version
+ * constant, but "almost certainly" is not evidence and it is not recorded as
+ * one. */
+int __cdecl F184(void)
+{
+  return 5;
+} //end of the function F184
+#endif /* !_WIN32 -- gladi386.so-only */
