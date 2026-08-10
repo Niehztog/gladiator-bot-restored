@@ -262,9 +262,14 @@ typedef struct aas_world_s {
     struct aas_soundpool_s *d_100669D0;  /* +0x1F0 */
     struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
     struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
-    int   _pad_1FC;                 /* +0x1FC  (VA 0x100669DC) point-light pool base, kept
-                                                  so the buffer can be FreeMemory'd — unlike
-                                                  oldestcache, this never advances */
+    struct bsp_pointlight_s *pointlightheap; /* +0x1FC (VA 0x100669DC) base of the
+                                                  bsp_pointlight_t pool, kept so the buffer
+                                                  can be FreeMemory'd — unlike oldestcache,
+                                                  this never advances.  Typed rather than the
+                                                  decompiler's `int`: sub_1000D340 indexes it
+                                                  directly (aasworld.pointlightheap[i]) and
+                                                  re-reads it per statement, which is exactly
+                                                  what the .so emits. */
     struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
     struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
     int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
@@ -292,6 +297,7 @@ _Static_assert(offsetof(aas_world_t, numclusters)          == 0x198, "numcluster
 _Static_assert(offsetof(aas_world_t, numreachabilityareas) == 0x1A0, "numreachabilityareas");
 _Static_assert(offsetof(aas_world_t, linkheap)             == 0x1A8, "linkheap");
 _Static_assert(offsetof(aas_world_t, modelindex_table)     == 0x1C4, "modelindex_table");
+_Static_assert(offsetof(aas_world_t, pointlightheap)       == 0x1FC, "pointlightheap");
 _Static_assert(offsetof(aas_world_t, oldestcache)          == 0x200, "oldestcache");
 _Static_assert(offsetof(aas_world_t, travelflagfortype)    == 0x208, "travelflagfortype");
 _Static_assert(offsetof(aas_world_t, areaupdate)           == 0x288, "areaupdate");

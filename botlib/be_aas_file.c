@@ -642,12 +642,21 @@ qboolean __cdecl AAS_WriteAASFile(char *filename)
 // engine never sets up max_aaslights and never calls this init, so
 // BotAddPointLight's free-list pop in sub_1000D450 always returns
 // NULL and the point-light cache stays empty.
-static void sub_1000D340(void)
+/* Not `static`: gladi386.so exports this as one of its 809 .dynsym FUNCs, and
+ * a `static` that is never called is not merely inlined by gcc 2.7.2.3 -- it is
+ * DROPPED, so the function vanished from the ELF build entirely and audited as
+ * a missing 711-byte reconstruction.  MSVC /Od emits an unreferenced static
+ * anyway, which is why the DLL has it at 0x1000D340 and the PE audit never
+ * noticed. */
+void sub_1000D340(void)
 {
-  int max;
-  bsp_pointlight_t *pool;
-  bsp_pointlight_t *node;
+  /* `i` before `max`: gcc 2.7.2.3 gives each local its stack slot in
+   * DECLARATION order (expand_decl numbers the pseudos, reload assigns slots
+   * downward), so the order here is readable straight off the frame.  The real
+   * image keeps max at [esp+0x1c] and i at [esp+0x20]; declaring max first
+   * transposes the two and is the whole of the difference. */
   int i;
+  int max;
 
   max = (int)LibVarValue("max_aaslights", "128");
   if ( max < 0 || max > 0x10000 )
@@ -655,18 +664,15 @@ static void sub_1000D340(void)
     botimport.Print(PRT_ERROR, "max_aaslights out of range [0, 65536]");
     max = 128;
   }
-  pool = (bsp_pointlight_t *)GetMemory(max * sizeof(bsp_pointlight_t));
-  *(bsp_pointlight_t **)&aasworld._pad_1FC = pool;
-  pool[0].prev = NULL;
-  pool[0].next = &pool[1];
+  aasworld.pointlightheap = (bsp_pointlight_t *)GetMemory(max * sizeof(bsp_pointlight_t));
+  aasworld.pointlightheap[0].prev = NULL;
+  aasworld.pointlightheap[0].next = &aasworld.pointlightheap[1];
   for ( i = 1; i < max - 1; ++i )
   {
-    node = &pool[i];
-    node->prev = &pool[i - 1];
-    node->next = &pool[i + 1];
+    aasworld.pointlightheap[i].prev = &aasworld.pointlightheap[i - 1];
+    aasworld.pointlightheap[i].next = &aasworld.pointlightheap[i + 1];
   }
-  node = &pool[max - 1];
-  node->prev = &pool[max - 2];
-  node->next = NULL;
-  aasworld.oldestcache = pool;
+  aasworld.pointlightheap[max - 1].prev = &aasworld.pointlightheap[max - 2];
+  aasworld.pointlightheap[max - 1].next = NULL;
+  aasworld.oldestcache = aasworld.pointlightheap;
 }

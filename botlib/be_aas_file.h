@@ -17,6 +17,6 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount);
 void AAS_SwapAASData();
 qboolean __cdecl AAS_WriteAASFile(char *filename);
 int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t length);
-static void sub_1000D340(void);
+void sub_1000D340(void);
 
 #endif /* BOTLIB_BE_AAS_FILE_H */
