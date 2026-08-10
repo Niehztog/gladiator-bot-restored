@@ -16,6 +16,9 @@
 
 #include "botlib_local.h"
 
+char word_1005F588[] = { '\"', '\0' }; // idb
+define_t *globaldefines;
+
 /* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
  * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_ifdef(src, 8/16).
  * `directive_t` / `directives` / `dollardirectives` are the original names,

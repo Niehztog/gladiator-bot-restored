@@ -16,6 +16,10 @@
 
 #include "botlib_local.h"
 
+int dword_1006439C; // weak
+bot_state_t *botstates; // base array of maxclients bot states
+float flt_100643A4; // weak
+
 //----- (10028E80) --------------------------------------------------------
 /* Empty in the original.  BotShutdownLibrary's first teardown step; Q3 calls
  * BotShutdownChatAI here, so this may be its release-build counterpart. */

@@ -16,6 +16,13 @@
 
 #include "botlib_local.h"
 
+CHAR aWindllUnzip[] = "windll_unzip"; // idb
+HGLOBAL dword_10062968 = NULL; // idb
+HGLOBAL dword_10062970 = NULL; // idb
+HGLOBAL hMem = NULL; // idb
+int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
+HMODULE hLibModule; // idb
+
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
                 * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and
                 * no zlib); .aas files are loaded directly by BotLibLoadMap. */

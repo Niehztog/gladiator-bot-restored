@@ -16,6 +16,10 @@
 
 #include "botlib_local.h"
 
+int numdebuglines;          // 0x10066B14 (was dword_10066B14)
+int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)
+int debuglines[256];        // 0x100670C0 (was dword_100670C0)
+
 //----- (10009860) --------------------------------------------------------
 int AAS_ClearShownDebugLines()
 {

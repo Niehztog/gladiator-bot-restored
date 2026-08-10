@@ -16,6 +16,8 @@
 
 #include "botlib_local.h"
 
+ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
+
 //----- (10037090) --------------------------------------------------------
 void __cdecl EA_Say(int client, char *str)
 {

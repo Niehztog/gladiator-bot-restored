@@ -16,6 +16,13 @@
 
 #include "botlib_local.h"
 
+bot_consolemessage_t *freeconsolemessages; // 0x10064364 free-list head (be_ai_chat.c; was dword_10064364)
+bot_consolemessage_t *consolemessageheap; // pool base (initial bulk allocation)
+bot_matchtemplate_t *matchtemplates; // weak
+bot_randomlist_t *randomstrings; // weak
+bot_replychat_t *replychats; // weak
+bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
+
 //----- (1002A880) --------------------------------------------------------
 // Allocate a fixed-size freelist pool of bot_consolemessage_t and chain
 // every node by prev/next.  Original used hardcoded 168-byte stride and

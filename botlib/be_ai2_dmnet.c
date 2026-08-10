@@ -16,6 +16,9 @@
 
 #include "botlib_local.h"
 
+int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
+char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
+
 //----- (1001D2B0) --------------------------------------------------------
 void BotResetNodeSwitches()
 {

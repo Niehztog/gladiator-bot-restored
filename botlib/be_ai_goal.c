@@ -16,6 +16,12 @@
 
 #include "botlib_local.h"
 
+levelitem_t *freelevelitems; // 0x10064344 free-list head    (be_ai_goal.c; was dword_10064344)
+int numlevelitems;           // 0x10064354 active item count  (be_ai_goal.c; was dword_10064354)
+levelitem_t *levelitemheap;  // 0x10064358 pool base          (be_ai_goal.c; was dword_10064358)
+itemconfig_t *itemconfig; /* current item config (was dword_1006435C) */
+levelitem_t *levelitems;     // 0x10064360 active-list head   (be_ai_goal.c; was dword_10064360)
+
 //----- (1002ED20) --------------------------------------------------------
 itemconfig_t * LoadItemConfig(char *filename)
 {

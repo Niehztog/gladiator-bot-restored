@@ -16,6 +16,9 @@
 
 #include "botlib_local.h"
 
+int dword_1006295C = 0; // weak
+libvar_t *libvar_laserhook; /* libvar handle */
+
 //----- (10030A50) --------------------------------------------------------
 double __cdecl AngleDiff(float ang1, float ang2)
 {

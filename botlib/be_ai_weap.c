@@ -16,6 +16,8 @@
 
 #include "botlib_local.h"
 
+weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */
+
 //----- (10034BB0) --------------------------------------------------------
 weaponconfig_t * LoadWeaponConfig(char *filename)
 {

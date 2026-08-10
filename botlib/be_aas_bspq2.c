@@ -16,6 +16,52 @@
 
 #include "botlib_local.h"
 
+int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
+int nummodels;            // 0x100674C4  (was dword_100674C4)
+dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
+int visdatasize;          // 0x100674CC  (was dword_100674CC)
+char *dvisdata;           // 0x100674D0  (was dword_100674D0)
+dvis_t *dvis;             // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
+int lightdatasize;        // 0x100674D8  (was dword_100674D8)
+char *dlightdata;         // 0x100674DC  (was dword_100674DC)
+int entdatasize;          // 0x100674E0  (was dword_100674E0)
+unsigned char *dentdata;  // 0x100674E4  (was dword_100674E4; was int in 32-bit binary)
+int numleafs;             // 0x100674E8  (was dword_100674E8)
+dleaf_t *dleafs;          // 0x100674EC  (was dword_100674EC)
+dplane_t *dplanes;        // 0x100674F4  (was dword_100674F4)
+dvertex_t *dvertexes;     // 0x100674FC  (was dword_100674FC)
+dnode_t *dnodes;          // 0x10067504  (was dword_10067504)
+int numtexinfo;           // 0x10067508  (was dword_10067508)
+texinfo_t *texinfo;       // 0x1006750C  (was dword_1006750C)
+dface_t *dfaces;          // 0x10067514  (was dword_10067514)
+dedge_t *dedges;          // 0x1006751C  (was dword_1006751C)
+int numleaffaces;         // 0x10067520  (was dword_10067520)
+unsigned short *dleaffaces; // 0x10067524  (was dword_10067524)
+int numleafbrushes;       // 0x10067528  (was dword_10067528)
+unsigned short *dleafbrushes; // 0x1006752C  (was dword_1006752C)
+int numsurfedges;         // 0x10067530  (was dword_10067530)
+int *dsurfedges;          // 0x10067534  (was dword_10067534)
+int numbrushes;           // 0x10067538  (was dword_10067538)
+dbrush_t *dbrushes;       // 0x1006753C  (was dword_1006753C)
+int numbrushsides;        // 0x10067540  (was dword_10067540)
+dbrushside_t *dbrushsides; // 0x10067544  (was dword_10067544)
+darea_t *dareas;          // 0x1006754C  (was dword_1006754C)
+int numareaportals;       // 0x10067550  (was dword_10067550)
+dareaportal_t *dareaportals; // 0x10067554  (was dword_10067554)
+char *dword_10067558; // per-face {short texturemins[2]; short extents[2]} table,
+char *dword_1006755C; // pointer
+char *dword_10067560; // pointer
+char byte_10067564[8192]; // weak
+int dword_10069564; // weak
+int dword_10069568; // weak
+float flt_1006956C; // weak
+float flt_10069570; // weak
+float flt_10069574; // weak
+bsp_link_t  *dword_10069578; // bsp_linkheap (pool base)
+int          dword_1006957C; // bsp_linkheapsize (count)
+bsp_link_t  *dword_10069580; // bsp_freelinks (head of free list)
+bsp_link_t **dword_10069584; // bsp_leaflinks (per-leaf list-heads array)
+
 //----- (10003010) --------------------------------------------------------
 /* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
  * Returns bsp_trace_t BY VALUE, as both Q3 botlib and the game-side import

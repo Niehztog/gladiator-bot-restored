@@ -16,6 +16,10 @@
 
 #include "botlib_local.h"
 
+int numclusterareas;     // 0x10066730 area count — stays int (was dword_10066730)
+midrangearea_t *midrangeareas; // 0x10066740 (was dword_10066740)
+int *clusterareas;             // 0x10066744 (was dword_10066744)
+
 //----- (1001A650) --------------------------------------------------------
 int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
 {

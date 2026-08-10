@@ -16,6 +16,9 @@
 
 #include "botlib_local.h"
 
+int numportalcacheupdates; // weak
+int numareacacheupdates; // weak
+
 //----- (10018D00) --------------------------------------------------------
 /* AAS_InitTravelFlagFromType — fill the travel-type -> travel-flag table
  * (aasworld.travelflagfortype, 32 entries).  Entries [1..14] map TRAVEL_* to

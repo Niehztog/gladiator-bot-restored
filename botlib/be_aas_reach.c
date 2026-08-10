@@ -16,6 +16,25 @@
 
 #include "botlib_local.h"
 
+libvar_t *libvar_framereachability; /* cached LibVar handle (was libvar_framereachability) */
+libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabilitydelay) */
+aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
+int reach_ladder; // weak
+int reach_elevator; // weak
+intptr_t reachabilityheap; // pool base
+int reach_jump; // weak
+int reach_grapple; // weak
+int reach_waterjump; // weak
+int reach_teleport; // weak
+int reach_barrier; // weak
+int reach_swim; // weak
+int reach_equalfloor; // weak
+intptr_t nextreachability; // free-list head
+int reach_walkoffledge; // weak
+int reach_rocketjump; // weak
+int reach_step; // weak
+int reach_walk; // weak
+
 //----- (10010F60) --------------------------------------------------------
 /* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr
  * at +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original

@@ -16,6 +16,22 @@
 
 #include "botlib_local.h"
 
+libvar_t *libvar_ch; /* libvar handle */
+libvar_t *libvar_teamplay; /* libvar handle */
+libvar_t *libvar_ra; /* libvar handle */
+int dword_1006446C; // weak
+libvar_t *libvar_dmflags; /* libvar handle */
+libvar_t *libvar_nochat; /* libvar handle */
+libvar_t *libvar_fastchat; /* libvar handle */
+libvar_t *libvar_assimilation; /* libvar handle */
+int dword_10064484; // weak
+libvar_t *libvar_teamplay_shell; /* libvar handle */
+int dword_1006448C; // weak
+int dword_10064490; // weak
+int dword_10064494; // weak
+int dword_10064498; // weak
+int dword_1006449C; // weak
+
 //----- (10020ED0) --------------------------------------------------------
 _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
 {
