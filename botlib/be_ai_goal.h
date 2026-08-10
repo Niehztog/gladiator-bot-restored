@@ -11,6 +11,16 @@
 #ifndef BOTLIB_BE_AI_GOAL_H
 #define BOTLIB_BE_AI_GOAL_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern structdef_t iteminfo_struct; /* item/entity structdef — defined in botlib_structdefs.c */
+extern levelitem_t *freelevelitems;
+extern int numlevelitems;
+extern levelitem_t *levelitemheap;
+extern itemconfig_t *itemconfig;
+extern levelitem_t *levelitems;
+
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li);
 _DWORD *__cdecl AllocLevelItem(void);
 void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime);

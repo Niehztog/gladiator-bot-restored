@@ -65,6 +65,97 @@ static void sub_10005640(
         int a5,
         int contentmask);
 
+static void sub_10005640(
+        void *out,
+        float *start,
+        int *boxmins,
+        float *boxmaxs,
+        int *end,
+        int a5,
+        int contentmask);
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
+void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
+int  AAS_LoadBSPFile(char *FileName, int Offset, int Length); /* be_aas_bspq2.c 0x10007D30 */
+extern int dword_100674C0;
+/* ---------------------------------------------------------------------------
+ * Q2 BSP lump globals @ VA 0x100674C4..0x10067554.  Names and declaration order
+ * match Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.  Lumps with a real
+ * record type use their typed q2files.h pointer and are indexed as arrays; only
+ * the genuinely untyped blobs (dvisdata, dlightdata, dentdata) stay byte
+ * pointers.  The one remaining byte-view is the dmodels walk in Q2_SwapBSPFile.
+ * ------------------------------------------------------------------------- */
+extern int nummodels;
+extern dmodel_t *dmodels;
+extern int visdatasize;
+extern char *dvisdata;
+extern dvis_t *dvis;
+extern int lightdatasize;
+extern char *dlightdata;
+extern int entdatasize;
+extern unsigned char *dentdata;
+extern int numleafs;
+extern dleaf_t *dleafs;
+extern int numplanes;
+extern dplane_t *dplanes;
+extern int numvertexes;
+extern dvertex_t *dvertexes;
+extern int numnodes;
+extern dnode_t *dnodes;
+extern int numtexinfo;
+extern texinfo_t *texinfo;
+extern int numfaces;
+extern dface_t *dfaces;
+extern int numedges;
+extern dedge_t *dedges;
+extern int numleaffaces;
+extern unsigned short *dleaffaces;
+extern int numleafbrushes;
+extern unsigned short *dleafbrushes;
+extern int numsurfedges;
+extern int *dsurfedges;
+extern int numbrushes;
+extern dbrush_t *dbrushes;
+extern int numbrushsides;
+extern dbrushside_t *dbrushsides;
+extern int numareas;
+extern darea_t *dareas;
+extern int numareaportals;
+extern dareaportal_t *dareaportals;
+/* 0x10067558..0x10067560 — three Gladiator-specific AAS precompute pointers
+ * after the standard Q2 lumps; no cognate in l_bsp_q2.c, so left unnamed. */
+extern char *dword_10067558;
+                      // 8*numfaces, built by CalcSurfaceExtents (Q1 model.c cognate),
+                      // read by RecursiveLightPoint.  NOT a PVS table.
+extern char *dword_1006755C;
+extern char *dword_10067560;
+extern char byte_10067564[8192];
+extern int dword_10069564;
+extern int dword_10069568;
+extern float flt_1006956C;
+extern float flt_10069570;
+extern float flt_10069574;
+extern bsp_link_t *dword_10069578;
+extern int dword_1006957C;
+extern bsp_link_t *dword_10069580;
+extern bsp_link_t **dword_10069584;
+
+static void sub_10005640(
+        void *out,
+        float *start,
+        int *boxmins,
+        float *boxmaxs,
+        int *end,
+        int a5,
+        int contentmask);
+
+
+/* Declared but never defined -- a dead declaration from the decompilation. */
+
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum);
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);

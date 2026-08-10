@@ -11,6 +11,12 @@
 #ifndef BOTLIB_BE_AI2_DMNET_H
 #define BOTLIB_BE_AI2_DMNET_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern int numnodeswitches;
+extern char nodeswitch[7344];
+
 void __cdecl AIEnter_Battle_Chase(bot_state_t *bs);
 int __cdecl AIEnter_Battle_Fight(bot_state_t *bs);
 int __cdecl AIEnter_Battle_NBG(bot_state_t *bs);

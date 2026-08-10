@@ -11,6 +11,11 @@
 #ifndef BOTLIB_BE_AAS_CLUSTER_H
 #define BOTLIB_BE_AAS_CLUSTER_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+void AAS_InitClustering(void);                     /* be_aas_cluster.c 0x100096E0 */
+
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);
 qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas);
 void __cdecl AAS_ConnectedAreas_r(int *areanums, int numareas, int *connectedareas, int curarea);

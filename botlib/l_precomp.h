@@ -70,6 +70,21 @@ typedef struct source_s {
     struct token_s         cachedtoken;        /* +552  last-read token (memcpy'd by PC_ReadTokenHandle) */
 } source_t;                                    /* sizeof = 1624 on 32-bit */
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+/* Forward declarations for the functions defined below. */
+int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
+int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */
+int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
+int __cdecl PC_Directive_line(source_t * source); /* #line handler */
+/* `crctable` and the five CRC_* functions live in their own TU: botlib/l_crc.c
+ * (l_crc.obj, DLL 0x100385B0..0x1003874F -- see .claude/memory/tu_partition.md). */
+extern char word_1005F588[];
+extern define_t *globaldefines;
+
 void      __cdecl FreeSource(source_t *source);
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
 source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name);

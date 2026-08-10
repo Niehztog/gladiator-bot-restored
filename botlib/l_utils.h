@@ -96,6 +96,25 @@ extern LPDCL dword_1006296C;
 extern LPUSERFUNCTIONS dword_100639F0;
 #endif
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
+BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
+extern CHAR aWindllUnzip[];
+extern CHAR FileName[];
+extern _UNKNOWN unk_10061280;
+extern _UNKNOWN unk_10061298;
+extern char byte_1006294C;
+extern HGLOBAL dword_10062968;
+extern HGLOBAL dword_10062970;
+extern HGLOBAL hMem;
+/* The byte-order fn-ptr slots (0x100637CC..E0) and `bigendien` (0x10063884)
+ * live in game/q_shared.c. */
+extern HMODULE hLibModule;
+
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);
 int __stdcall sub_100415E0(int a1);
 void sub_10041600(void);

@@ -11,6 +11,15 @@
 #ifndef BOTLIB_BE_AAS_ROUTE_H
 #define BOTLIB_BE_AAS_ROUTE_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+void AAS_InitTravelFlagFromType(void); /* sub_10018D00 */
+int AAS_FreeRoutingCaches(void);  /* sub_10019550 */
+int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
+extern int numportalcacheupdates;
+extern int numareacacheupdates;
+
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end);
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum);

@@ -11,6 +11,11 @@
 #ifndef BOTLIB_BE_AI_WEIGHT_H
 #define BOTLIB_BE_AI_WEIGHT_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern __int16 word_1005E498;
+
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
 void __cdecl EvolveWeightConfig(int *config);
 int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);

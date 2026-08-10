@@ -14,9 +14,23 @@
  * split.
  */
 
-#include "botlib_local.h"
+#include "botlib_port.h"
+#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#undef VectorNegate
+#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
+#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
+#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
+#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
+#include "l_script.h"      /* token_t, script_t, punctuation_t */
+#include "l_precomp.h"     /* source_t, define_t */
+#include "l_struct.h"      /* structdef_t */
+#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
+#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
+#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
+#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
 #include "l_libvar.h"
 #include "l_memory.h"
+#include "l_utils.h"
 extern char byte_1006294C;
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
 

@@ -11,6 +11,13 @@
 #ifndef BOTLIB_BE_AAS_MAIN_H
 #define BOTLIB_BE_AAS_MAIN_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern aas_link_t **aasentity_arealinks;
+extern bsp_link_t **aasentity_bsplinks;
+extern aas_world_t aasworld;
+
 int __cdecl AAS_ContinueInit(int time);
 int AAS_Error(char *Format, ...);
 char *__cdecl AAS_ImageFromIndex(int index);

@@ -11,6 +11,11 @@
 #ifndef BOTLIB_BE_AAS_ENTITY_H
 #define BOTLIB_BE_AAS_ENTITY_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
+
 int __cdecl AAS_BestReachableArea(int * origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 int __cdecl AAS_BestReachableEntityArea(int entnum);
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);

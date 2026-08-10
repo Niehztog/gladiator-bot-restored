@@ -443,4 +443,21 @@ typedef struct {
     int  *clusters;
 } aas_reachabilityareas_t;
 
+
+/* 64-bit side-band accessors for aas_entity_t.  PORT-ONLY: they have no 1999
+ * counterpart.  They live here rather than in botlib_port.h because each
+ * wraps one specific structure above and cannot be separated from it. */
+/* Side-band for aas_entity_t's two link-list heads at +124 (areas) and +128
+ * (BSP leaves), keyed by entity index.  Allocated with aasworld.entities in
+ * sub_1000EDC0. */
+#if BOTLIB_NEED_SIDEBAND
+#define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
+#define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])
+#else
+/* 32-bit: the link-list heads are real inline pointer members at +124
+ * (area chain) and +128 (BSP-leaf chain) of the 132-byte aas_entity_t. */
+#define AAS_EntAreaLink(entnum) (aasworld.entities[(entnum)].areas)
+#define AAS_EntBspLink(entnum)  (aasworld.entities[(entnum)].leaves)
+#endif
+
 #endif /* AAS_WORLD_H */

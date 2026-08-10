@@ -41,6 +41,15 @@ typedef struct ea_state_s {
     int   flags;      /* +32 ACTION_* bitmask                       */
 } ea_state_t;         /* sizeof = 36 */
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
+void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
+extern ea_state_t *ea_controls;
+
 int __cdecl EA_Attack(int client);
 int __cdecl EA_Command(int client, char *command, ...);
 int __cdecl EA_Crouch(int client);

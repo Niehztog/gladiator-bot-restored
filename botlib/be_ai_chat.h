@@ -11,6 +11,17 @@
 #ifndef BOTLIB_BE_AI_CHAT_H
 #define BOTLIB_BE_AI_CHAT_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);  /* 0x1002ACF0 — substring search */
+extern bot_consolemessage_t *freeconsolemessages;
+extern bot_consolemessage_t *consolemessageheap;
+extern bot_matchtemplate_t *matchtemplates;
+extern bot_randomlist_t *randomstrings;
+extern bot_replychat_t *replychats;
+extern bot_synonymlist_t *synonyms;
+
 bot_consolemessage_t *AllocConsoleMessage();
 unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate);
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist);

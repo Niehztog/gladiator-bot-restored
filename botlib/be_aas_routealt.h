@@ -11,6 +11,13 @@
 #ifndef BOTLIB_BE_AAS_ROUTEALT_H
 #define BOTLIB_BE_AAS_ROUTEALT_H
 
+/* midrangearea_t: this TU's scratch record. */
+typedef struct midrangearea_s {
+  int            valid;
+  unsigned short starttime;
+  unsigned short goaltime;
+} midrangearea_t;
+
 /* Output entry for AAS_AlternativeRouteGoals (24 bytes).  Declared ahead of
  * the docblock so the ref-funcmap generator attributes 0x1001A720 to the
  * function rather than this type. */
@@ -22,6 +29,19 @@ typedef struct aas_altroutegoal_s {
   unsigned short  extra_travel_time;
   unsigned short  pad;
 } aas_altroutegoal_t;
+
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+/* be_aas_routealt.c globals (AAS_AlternativeRouteGoals /
+ * AAS_AltRoutingFloodCluster_r).  midrangeareas (8 B/area) and clusterareas
+ * (int* area-index list) are heap pointers held in 4-byte .data dwords; typed
+ * pointers here, indexed as arrays, so no side-band is needed. */
+extern int numclusterareas;
+extern midrangearea_t *midrangeareas;
+extern int *clusterareas;
 
 int __cdecl AAS_AltRoutingFloodCluster_r(int areanum);
 int __cdecl AAS_AlternativeRouteGoals(

@@ -11,6 +11,36 @@
 #ifndef BOTLIB_BE_AI2_MAIN_H
 #define BOTLIB_BE_AI2_MAIN_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+/* Callees whose definition used to precede every caller inside the monolithic
+ * botlib.c, so no prototype was ever written for them.  Once the callers moved
+ * to their own TUs the declarations became load-bearing: without one, C's
+ * default argument promotion passes Export_BotAIFrame's `float` as a `double`
+ * and its caller's codegen changes (caught as Export_BotLibAI OUR+1 by the
+ * MSVC6 oracle). */
+int  Export_BotAIFrame(int a1, float a2);          /* be_ai2_main.c   0x10029320 */
+extern int numbots;
+extern bsp_entity_t *dword_10064398;
+extern int dword_1006439C;
+extern bot_state_t *botstates;
+extern bot_character_t **botcharacters;
+extern void **botgoalstate_p0;
+extern void **botgoalstate_p1;
+extern bot_weaponstate_t **botweaponstates;
+extern void **botchatdumps;
+extern chatmsg_links_t *botchatmsglinks;
+extern ai_node_fn_t *botainodes;
+extern bot_waypoint_t **botcheckpoints;
+extern bot_waypoint_t **botpatrolpoints;
+extern bot_waypoint_t **botcurpatrolpoint;
+extern float flt_100643A4;
+/* The side-band macros above index botstates, which is DEFINED in
+ * be_ai2_main.c.  Declared here at the end, after bot_state_t exists --
+ * a macro expands at its use site, so this need only precede the caller. */
+extern bot_state_t *botstates;
+
 float __cdecl AngleDifference(float ang1, float ang2);
 float BotChangeViewAngle(float angle, float ideal_angle, float speed);
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);

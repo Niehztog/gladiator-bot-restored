@@ -11,6 +11,13 @@
 #ifndef BOTLIB_BE_AI_WEAP_H
 #define BOTLIB_BE_AI_WEAP_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern structdef_t weaponinfo_struct; /* weapon config structdef — defined in botlib_structdefs.c */
+extern structdef_t projectileinfo_struct; /* projectile config structdef — defined in botlib_structdefs.c */
+extern weaponconfig_t *weaponconfig;
+
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws);
 void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate);
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename);

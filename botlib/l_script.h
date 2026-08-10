@@ -71,6 +71,13 @@ typedef struct script_s {
  * widen — so copy/alloc sites must use sizeof(token_t), never the literal.
  * Fields up through `floatvalue` keep their original offsets. */
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern char unk_10060418[72]; /* 72-byte blob; &[3]="You are not allowed to..." — botlib_structdefs.c */
+
 BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *fp);
 void      __cdecl FreeScript(script_t *script);

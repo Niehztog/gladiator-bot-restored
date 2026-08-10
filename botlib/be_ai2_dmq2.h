@@ -11,6 +11,48 @@
 #ifndef BOTLIB_BE_AI2_DMQ2_H
 #define BOTLIB_BE_AI2_DMQ2_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int __cdecl FindClientByName(char *name);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
+/* G_SetMovedir's four direction constants, in the original declaration order;
+ * all four are defined in botlib_structdefs.c.  IDA rendered the two MOVEDIR_*
+ * vec3s as per-dword scalars (flt_1005C578/dword_1005C57C/dword_1005C580 and
+ * flt_1005C590/dword_1005C594/dword_1005C598) because VectorCopy expands to
+ * three separate moves and MSVC6 kept only the first in the FPU — a decompiler
+ * artifact, not the original shape.  The array form is proven twice over: the
+ * 1999 Linux gladi386.so's symbol table sizes each of the four at 12 bytes
+ * (`readelf -s`: "12 OBJECT GLOBAL … MOVEDIR_UP"), and BotSetMovedir stays
+ * byte-identical (125 B) under the MSVC6 oracle with float[3] + VectorCopy. */
+extern float VEC_UP[3];      /* 0x1005C56C {0,-1, 0} — defined in botlib_structdefs.c */
+extern float MOVEDIR_UP[3];  /* 0x1005C578 {0, 0, 1} — defined in botlib_structdefs.c */
+extern float VEC_DOWN[3];    /* 0x1005C584 {0,-2, 0} — defined in botlib_structdefs.c */
+extern float MOVEDIR_DOWN[3]; /* 0x1005C590 {0, 0,-1} — defined in botlib_structdefs.c */
+extern bot_clientsettings_t *clientsettings;
+extern libvar_t *libvar_ctf;
+/* CTF flag goals.  BotGetLevelItemGoal fills 48 bytes of each 56-byte
+ * bot_goal_t slot; `areanum` doubles as the "flag found" flag (0 = not yet). */
+extern bot_goal_t ctf_blueflag;
+extern bot_goal_t ctf_redflag;
+extern libvar_t *libvar_usehook;
+extern libvar_t *libvar_ch;
+extern libvar_t *libvar_teamplay;
+extern libvar_t *libvar_ra;
+extern libvar_t *libvar_runes;
+extern int dword_1006446C;
+extern libvar_t *libvar_dmflags;
+extern libvar_t *libvar_nochat;
+extern libvar_t *libvar_rocketjump;
+extern libvar_t *libvar_fastchat;
+extern libvar_t *libvar_assimilation;
+extern int dword_10064484;
+extern libvar_t *libvar_teamplay_shell;
+extern int dword_1006448C;
+extern int dword_10064490;
+extern int dword_10064494;
+extern int dword_10064498;
+extern int dword_1006449C;
+
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);
 float __cdecl BotAggression(bot_state_t *bs);

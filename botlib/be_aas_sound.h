@@ -11,6 +11,11 @@
 #ifndef BOTLIB_BE_AAS_SOUND_H
 #define BOTLIB_BE_AAS_SOUND_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern structdef_t soundinfo_struct; /* sound info structdef — defined in botlib_structdefs.c */
+
 void __cdecl sub_1001C6F0(void);
 int __cdecl sub_1001C760(char *Source);
 void sub_1001CAB0();

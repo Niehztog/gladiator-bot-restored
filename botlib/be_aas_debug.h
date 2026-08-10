@@ -11,6 +11,16 @@
 #ifndef BOTLIB_BE_AAS_DEBUG_H
 #define BOTLIB_BE_AAS_DEBUG_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+/* be_aas_debug.c debug-line state (MAX_DEBUGLINES=256): debuglines[] holds the
+ * DebugLineCreate handles passed to DebugLineShow, debuglinevisible[] the 0/1
+ * shown flag. */
+extern int numdebuglines;
+extern int debuglinevisible[256];
+extern int debuglines[256];
+
 int AAS_ClearShownDebugLines();
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color);
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor);

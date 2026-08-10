@@ -1184,3 +1184,20 @@ extern int vidref_val;
 // ==================
 
 #endif /* Q_SHARED_H */
+
+#ifdef BOTLIB
+/* Declarations for the botlib-only additions at the end of q_shared.c.
+ * Additive and guarded, per the 2026-08-10 amendment to the q_shared rule.
+ * The #undef is required: q_shared.h's own VectorNegate is a 2-arg macro,
+ * while botlib's is a 1-arg in-place function at 0x10043540. */
+#undef VectorNegate
+/* No __cdecl: that spelling comes from botlib's own headers, not this one. */
+float *VectorNegate(float *v);
+extern float flt_10062984;
+extern float flt_10062988;
+extern float flt_1006298C;
+extern float flt_1006319C;
+extern float flt_100631A0;
+extern float flt_100631A8;
+extern int dword_10063388;
+#endif /* BOTLIB */

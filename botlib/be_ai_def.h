@@ -26,6 +26,12 @@
 #ifndef BOTLIB_BE_AI_DEF_H
 #define BOTLIB_BE_AI_DEF_H
 
+/* Forward typedefs for the structures below that reference each other. */
+typedef struct bot_character_s    bot_character_t;   /* layout defined later; needed by Characteristic_* */
+typedef struct bot_weaponstate_s  bot_weaponstate_t;
+struct chatlist_s;
+typedef struct chatlist_s         chatlist_t;
+
 /* ---- from botlib_structs.h ---- */
 #define MAX_INFOSTRING   80     /* "name" / "model" field width (stride 0x50) */
 #define MAX_SHORTSTRING  80
@@ -793,5 +799,102 @@ typedef struct bot_chatvar_s { char *str; int len; } bot_chatvar_t;
 #include "be_ai2_dmq2.h"
 #include "be_ai2_main.h"
 #include "be_ea.h"
+
+
+/* 64-bit side-band accessors for the bot structures.  PORT-ONLY: they have no 1999
+ * counterpart.  They live here rather than in botlib_port.h because each
+ * wraps one specific structure above and cannot be separated from it. */
+#define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
+    ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
+
+/* Side-band tables — see the BOTLIB_NEED_SIDEBAND gate above.  Each macro must
+ * be an lvalue of the same type in both branches: backed by a parallel array on
+ * 64-bit, a direct cast of the inline int slot on 32-bit. */
+#if BOTLIB_NEED_SIDEBAND
+#define BotCharacter(bs) (botcharacters[(bs) - botstates])
+#else
+/* bs->character: the int slot at +1672 holds a bot_character_t pointer. */
+#define BotCharacter(bs) (*(bot_character_t **)&(bs)->character)
+#endif
+
+/* Side-band pointer slots in bs->goalstate: itemweightconfig (weightconfig_t*,
+ * set by BotLoadItemWeights, freed via FreeWeightConfig2) and itemweightindex
+ * (ItemWeightIndex's weight×itemconfig table, freed via FreeMemory). */
+#if BOTLIB_NEED_SIDEBAND
+#define BotGoalP0(bs) (botgoalstate_p0[(bs) - botstates])
+#define BotGoalP1(bs) (botgoalstate_p1[(bs) - botstates])
+#else
+#define BotGoalP0(bs) (*(void **)&(bs)->goalstate.itemweightconfig)
+#define BotGoalP1(bs) (*(void **)&(bs)->goalstate.itemweightindex)
+#endif
+
+/* Goalstate-handle accessors.  BotLoadItemWeights / BotFreeItemWeights take a
+ * `goalstate*` handle (= &bs->goalstate) directly, as the original call sites
+ * did.  On 64-bit these recover bs from the goalstate offset and route through
+ * the side-band arrays. */
+#if BOTLIB_NEED_SIDEBAND
+#define _GoalHandleBs(h) ((bot_state_t *)((char *)(h) - offsetof(bot_state_t, goalstate)))
+#define BotGoalHandleP0(h) (botgoalstate_p0[_GoalHandleBs(h) - botstates])
+#define BotGoalHandleP1(h) (botgoalstate_p1[_GoalHandleBs(h) - botstates])
+#else
+#define BotGoalHandleP0(h) (*(void **)&(h)->itemweightconfig)
+#define BotGoalHandleP1(h) (*(void **)&(h)->itemweightindex)
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+#define BotWS(bs) (botweaponstates[(bs) - botstates])
+#else
+/* On 32-bit the weaponstate IS the inline bs->weaponweights[7], so it is never
+ * heap-allocated — the alloc/free paths are #if-guarded out at the call sites. */
+#define BotWS(bs) ((bot_weaponstate_t *)&(bs)->weaponweights[0])
+#endif
+
+/* Side-band for the BotLoadInitialChat result at chatstate+184 (chatstate[46]).
+ * Indexed by client number, recovered from the chatstate pointer's distance
+ * from the bot_state_t base array (chatstate sits at +3980). */
+#if BOTLIB_NEED_SIDEBAND
+#define BotChatDumpSlot(cs_ptr) \
+    (botchatdumps[((char *)(cs_ptr) - (char *)botstates \
+                   - offsetof(bot_state_t, chatstate)) / sizeof(bot_state_t)])
+#else
+/* 32-bit: the pointer lives inline at chatstate +184 (_slot_46). */
+#define BotChatDumpSlot(cs_ptr) (*(chatlist_t **)&(cs_ptr)->_slot_46)
+#endif
+
+#if BOTLIB_NEED_SIDEBAND
+#define BotChatMsgLinks(client) (botchatmsglinks[(client)])
+#define BotChatMsgLinksCS(cs) \
+    (botchatmsglinks[((bot_state_t *)((char*)(cs) - offsetof(bot_state_t, chatstate))) - botstates])
+#else
+/* 32-bit: slots [43..45] (+172/+176/+180) are exactly chatmsg_links_t's 12
+ * bytes, so aliasing them as the struct yields an lvalue. */
+#define BotChatMsgLinks(client) \
+    (*(chatmsg_links_t *)&botstates[(client)].chatstate._slot_43)
+#define BotChatMsgLinksCS(cs) \
+    (*(chatmsg_links_t *)&(cs)->_slot_43)
+#endif
+
+/* Side-band for the AI node function pointer behind BotAINode(bs). */
+#if BOTLIB_NEED_SIDEBAND
+#define BotAINode(bs) (botainodes[(bs) - botstates])
+#else
+/* 32-bit: bs->ainode (int @ +1676) IS the function pointer slot. */
+#define BotAINode(bs) (*(ai_node_fn_t *)&(bs)->ainode)
+#endif
+
+/* Side-band for the three waypoint head slots at bot_state_t +4544
+ * (checkpoints), +4548 (patrolpoints) and +4552 (curpatrolpoint), indexed by
+ * (bs - botstates).  Allocated in BotSetupLibrary, freed in
+ * BotShutdownLibrary. */
+#if BOTLIB_NEED_SIDEBAND
+#define BotCheckpoints(bs)    (botcheckpoints[(bs) - botstates])
+#define BotPatrolpoints(bs)   (botpatrolpoints[(bs) - botstates])
+#define BotCurPatrolPoint(bs) (botcurpatrolpoint[(bs) - botstates])
+#else
+/* 32-bit: pointers live inline in bs->checkpoints/patrolpoints/curpatrolpoint. */
+#define BotCheckpoints(bs)    (*(bot_waypoint_t **)&(bs)->checkpoints)
+#define BotPatrolpoints(bs)   (*(bot_waypoint_t **)&(bs)->patrolpoints)
+#define BotCurPatrolPoint(bs) (*(bot_waypoint_t **)&(bs)->curpatrolpoint)
+#endif
 
 #endif /* BOTLIB_BE_AI_DEF_H */

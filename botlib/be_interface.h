@@ -88,6 +88,33 @@ extern bot_export_t      bot_exports;  /* block 3 @0x10063F80 */
 #define libvar_sv_jumpvel           botstate.libvars[14]
 #define libvar_sv_maxwaterjump      botstate.libvars[15]
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+extern int filecrcs[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
+/* NOT a variable and has no original name to recover: 0x1005E958 is exactly
+ * filecrcs + 736, i.e. the one-past-the-end address MSVC folded into the scan
+ * loop's bound as a link-time constant, and IDA had to invent a symbol for the
+ * referenced address.  Confirmed: the DLL holds only zero fill there, and the
+ * Linux .so — whose .dynsym kept every real global — has no symbol at the
+ * corresponding end-of-filecrcs offset either.  Do not chase a name for it. */
+extern int unk_1005E958;
+/* `logfile` and the seven Log_* functions live in their own TU: botlib/l_log.c
+ * (l_log.obj, DLL 0x10038BE0..0x10038F0F -- see .claude/memory/tu_partition.md). */
+/* `libvarlist` and the thirteen LibVar* functions live in their own TU:
+ * botlib/l_libvar.c (l_libvar.obj, DLL 0x10038750..0x10038BDF -- see
+ * .claude/memory/tu_partition.md). */
+extern struct scriptcrc_s *dword_10063F2C;
+/* The three interface blocks are typed aggregates in botlib_state.h so that
+ * GetBotAPI's import copy and Export_BotShutdownLibrary's clears compile back
+ * to the original rep movs / rep stos.  Storage is defined here; call sites use
+ * the botimport.* / botstate.* members directly. */
+extern botimport_block_t botimport;
+extern botstate_block_t botstate;
+extern bot_export_t bot_exports;
+
 qboolean __cdecl BotLibSetup(const char *str);
 int BotSetupMoveAI();
 int Export_BotAddPointLight(int *origin, int ent, float radius,

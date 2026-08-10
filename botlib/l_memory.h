@@ -19,6 +19,13 @@ typedef struct memoryblock_s {
   struct memoryblock_s   *next;      /* +16  sizeof = 20 on 32-bit        */
 } memoryblock_t;
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int __cdecl FreeMemory(void *ptr);  /* dummy `int` return; see definition */
+
 static memoryblock_t *BlockFromPointer(void *ptr, const char *str);
 void DumpMemory(void);
 int __cdecl FreeMemory(void *ptr);

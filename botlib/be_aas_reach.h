@@ -11,6 +11,36 @@
 #ifndef BOTLIB_BE_AAS_REACH_H
 #define BOTLIB_BE_AAS_REACH_H
 
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
+void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
+int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
+int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
+extern libvar_t *libvar_framereachability;
+extern libvar_t *libvar_reachabilitydelay;
+extern aas_reachabilitynode_t **areareachability;
+extern int reach_ladder;
+extern int reach_elevator;
+extern intptr_t reachabilityheap;
+extern int reach_jump;
+extern int reach_grapple;
+extern int reach_waterjump;
+extern int reach_teleport;
+extern int reach_barrier;
+extern int reach_swim;
+extern int reach_equalfloor;
+extern intptr_t nextreachability;
+extern int reach_walkoffledge;
+extern int reach_rocketjump;
+extern int reach_step;
+extern int reach_walk;
+
+
+
+/* Declared but never defined -- a dead declaration from the decompilation. */
+
 void *AAS_AllocReachability(void);
 int __cdecl AAS_AreaCrouch(int areanum);
 float __cdecl AAS_AreaGroundFaceArea(int areanum);

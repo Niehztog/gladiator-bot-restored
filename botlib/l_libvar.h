@@ -25,6 +25,16 @@ typedef struct libvar_s {
 /* Head of the libvar list (dword_10063F20). */
 extern libvar_t *libvarlist;
 
+
+
+/* Declarations for what this TU defines, from the retired
+ * botlib_local.h.  At the end of the file so the types above are
+ * already in scope. */
+libvar_t *__cdecl LibVar(char *var_name, char *value);            /* register/lookup libvar */
+float     __cdecl LibVarValue(char *var_name, char *value);    /* register, return value */
+void __cdecl LibVarSet(char *var_name, char *value);  /* body at ~30304 */
+char     *__cdecl LibVarString(char *var_name, char *value);   /* returns libvar->string */
+
 libvar_t *__cdecl LibVar(char *var_name, char *value);
 libvar_t *__cdecl LibVarAlloc(const char *var_name);
 int __cdecl LibVarChanged(const char *var_name);
