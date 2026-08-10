@@ -750,7 +750,7 @@ int __cdecl PC_Directive_include(source_t *source)
     {
       script = (char *)LoadScriptFile(file.path, file.fileofs, file.filelen);
       if ( script )
-        strncpy(script, path, 0x104u);
+        strncpy(script, path, MAX_PATH);
     }
   }
   if ( !script )
@@ -973,7 +973,7 @@ define_t *__cdecl PC_DefineFromString(const char *string)
 
   script = LoadScriptMemory(string, strlen(string), "*extern");
   memset(&src, 0, sizeof(src));
-  strncpy(src.filename, "*extern", 0x104u);
+  strncpy(src.filename, "*extern", MAX_PATH);
   src.scriptstack = script;
   src.definehash = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
   res = PC_Directive_define(&src);
@@ -2400,7 +2400,7 @@ void __cdecl PC_UnreadToken(source_t *source, token_t *token)
  * runs.  DEAD in Gladiator. */
 void __cdecl PC_SetIncludePath(source_t *source, char *path)
 {
-  strncpy(source->includepath, path, 0x104);
+  strncpy(source->includepath, path, MAX_PATH);
   if ( source->includepath[strlen(source->includepath) - 1] != '\\'
     && source->includepath[strlen(source->includepath) - 1] != '/' )
   {
@@ -2408,11 +2408,12 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
   }
 }
 //----- (1003DE40) --------------------------------------------------------
-/* Writes a dword to +0x208 of the source, inside source_t's reserved _pad_1
- * region, so the field has no name here.  DEAD in Gladiator. */
-void __cdecl PC_SetPunctuations(void *source, int p)
+/* Q3's PC_SetPunctuations verbatim.  The write lands at +0x208 in the DLL,
+ * which is `punctuations` once includepath is the full MAX_PATH buffer.
+ * DEAD in Gladiator. */
+void __cdecl PC_SetPunctuations(source_t *source, punctuation_t *p)
 {
-  *(int *)((char *)source + 0x208) = p;
+  source->punctuations = p;
 }
 //----- (1003DE60) --------------------------------------------------------
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
@@ -2426,7 +2427,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
   script->next = NULL;
   src = (source_t *)GetMemory(sizeof(source_t));
   memset(src, 0, sizeof(source_t));
-  strncpy(src->filename, Source, 0x104u);
+  strncpy(src->filename, Source, MAX_PATH);
   src->scriptstack  = script;
   src->tokens       = NULL;
   src->defines      = NULL;
@@ -2451,7 +2452,7 @@ source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
   script->next = NULL;
   src = (source_t *)GetMemory(sizeof(source_t));
   memset(src, 0, sizeof(source_t));
-  strncpy(src->filename, name, 0x104u);
+  strncpy(src->filename, name, MAX_PATH);
   src->scriptstack  = script;
   src->tokens       = NULL;
   src->defines      = NULL;

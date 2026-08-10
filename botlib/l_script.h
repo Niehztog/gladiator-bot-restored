@@ -11,24 +11,47 @@
 #ifndef BOTLIB_L_SCRIPT_H
 #define BOTLIB_L_SCRIPT_H
 
+/* MAX_PATH sizes script_t's and source_t's path buffers, and is the single
+ * reason the two 1999 builds disagree about those structs' sizes.
+ *   Windows: 260, <windows.h>'s value.  gladiator.dll's LoadSourceFile does
+ *            `strncpy(dst, src, 0x104)` and script_p lands at +0x108.
+ *   Linux:   144, botlib's own fallback.  gladi386.so does `strncpy(dst, src,
+ *            0x90)` at that same call site and script_p lands at +0x94.
+ * Spelled with the platform test rather than a bare #ifndef so both of OUR
+ * builds are deterministic whether or not <windows.h> is in scope.  Note
+ * be_ai_weap.c's `char path[144]` is deliberately NOT this macro: the DLL has
+ * 144 there, so that TU did not see <windows.h> even in the Windows build. */
+#ifndef MAX_PATH
+#  ifdef _WIN32
+#    define MAX_PATH 260
+#  else
+#    define MAX_PATH 144
+#  endif
+#endif
+
 /* token_t: the script token this TU produces. */
-/* token_t — script token (Q3's l_script.h::token_t with NUMBERVALUE).  Q3's
- * float floatvalue is a double here, so with its alignment pad whitespace_p
- * lands at +0x418 and next at +0x428 (Q3: +0x420). */
+/* token_t — Q3's l_script.h::token_t verbatim, `long double floatvalue` and
+ * all.  That one field is why the struct has two different sizes in the two
+ * shipped 1999 builds, with no #ifdef and no pad field in the source:
+ *   MSVC6 aliases long double to double (8 B, 8-aligned), so it inserts 4
+ *   bytes after intvalue and 4 more at the tail -> 0x430, which gladiator.dll
+ *   uses at 89 sites.
+ *   gcc i386 makes it 12 B, 4-aligned, so neither pad appears -> 0x42C, which
+ *   gladi386.so uses, and it reaches the field with `fld`/`fstp TBYTE PTR`.
+ * `whitespace_p` at +0x418 and `next` at +0x428 in BOTH, which is the
+ * invariant the asserts check. */
 typedef struct token_s {
     char string[1024];                   /* +0x000: token text (MAX_TOKEN chars)     */
     int type;                            /* +0x400: TT_STRING=1 NUMBER=3 NAME=4 PUNCT=5 */
     int subtype;                         /* +0x404: punctuation id / number subtype  */
     unsigned int intvalue;               /* +0x408: `unsigned long` in the 32-bit
                                           *         original; must stay 4 bytes    */
-    int _floatvalue_pad;                 /* +0x40C: alignment padding before double  */
-    double floatvalue;                   /* +0x410: floating-point value (8 bytes)   */
+    long double floatvalue;              /* +0x40C (gcc) / +0x410 (MSVC)             */
     char *whitespace_p;                  /* +0x418 */
     char *endwhitespace_p;
     int line;
     int linescrossed;
-    struct token_s *next;
-    int padding;
+    struct token_s *next;                /* +0x428 */
 } token_t;
 
 /* punctuation_t and script_t belong next to token_t: Q3 botlib keeps all
@@ -41,11 +64,14 @@ typedef struct punctuation_s {
     struct punctuation_s  *next;    /* +8  chain                      */
 } punctuation_t;                    /* sizeof = 12 */
 
-/* script_t — 1392-byte header followed by the file data inline.  Differs from
- * Q3: filename buffer trimmed from 1024 to 260 bytes, and the embedded token
- * is token_t (1072 B, double floatvalue) rather than Q3's float variant. */
+/* script_t — Q3's script_s with its 1024-byte filename cut to MAX_PATH, so the
+ * header is 1392 B in gladiator.dll and 1268 B in gladi386.so.  Both figures
+ * are read off LoadScriptFile's own `memset(script, 0, sizeof)`: 0x570 there,
+ * 0x4F4 here, with `buffer` at +260/+144 and `next` at +1384/+1264.  There is
+ * no trailing pad field — MSVC adds 4 bytes of tail padding on its own because
+ * the embedded token_t makes the struct 8-aligned, and gcc i386 does not. */
 typedef struct script_s {
-    char                   filename[260];      /* +0    file path (strcpy at sub_100401A0) */
+    char                   filename[MAX_PATH]; /* +0    file path (strcpy at sub_100401A0) */
     char                  *buffer;             /* +260  start of file data buffer           */
     char                  *script_p;           /* +264  current parse pointer               */
     char                  *end_p;              /* +268  one-past-end of buffer              */
@@ -59,17 +85,15 @@ typedef struct script_s {
     int                    flags;              /* +300  script flags                        */
     punctuation_t         *punctuations;       /* +304  per-script punctuation list head    */
     punctuation_t        **punctuationtable;   /* +308  perfect-hash table (FreeScript frees)*/
-    struct token_s token;            /* +312..+1383  embedded last token          */
-    struct script_s       *next;               /* +1384 next in scriptstack chain           */
-    int                    _trail;             /* +1388 trailing padding (memset clears 1392)*/
-    /* +1392 onwards: file data lives inline after the header */
-} script_t;                                    /* sizeof = 1392 (header only) */
+    struct token_s token;            /* +312 (DLL) / +196 (ELF)  embedded last token */
+    struct script_s       *next;               /* +1384 (DLL) / +1264 (ELF)                 */
+    /* file data lives inline after the header */
+} script_t;                                    /* 1392 (DLL) / 1268 (ELF), header only */
 
 
 
-/* 1072 (0x430) bytes on 32-bit, 1088 on 64-bit where the three pointers
- * widen — so copy/alloc sites must use sizeof(token_t), never the literal.
- * Fields up through `floatvalue` keep their original offsets. */
+/* Copy/alloc sites must use sizeof(token_t), never a literal: the struct is
+ * 0x430 under MSVC, 0x42C under gcc i386 and 1088 on a 64-bit host. */
 
 
 
@@ -85,7 +109,7 @@ int __cdecl GetScriptFlags(script_t *script);
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize);
 script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const char *name);
 int __cdecl NumLinesCrossed(script_t *script);
-void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue);
+void __cdecl NumberValue(char *string, int subtype, int *intvalue, long double *floatvalue);
 int __cdecl PS_CheckTokenString(script_t *script, const char *string);
 int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *out);
 void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuations);
@@ -105,7 +129,7 @@ int __cdecl PS_ReadWhiteSpace(script_t *script);
 int __cdecl PS_SkipUntilString(script_t *script, const char *string);
 void __cdecl PS_UnreadLastToken(script_t *script);
 char *__cdecl PunctuationFromNum(script_t *script, int num);
-double __cdecl ReadSignedFloat(int script);
+long double __cdecl ReadSignedFloat(int script);
 int __cdecl ReadSignedInt(int script);
 void ScriptError(int script, char *Format, ...);
 int __cdecl ScriptSkipTo(script_t *script, char *value);

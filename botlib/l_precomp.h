@@ -53,22 +53,39 @@ typedef struct operator_s {
     struct operator_s *next;
 } operator_t;
 
-/* source_t — 1624 bytes.  Q2 trims Q3's 1024-byte path buffers and adds the
- * separately-allocated 1024-byte definebuffer scratchpad at +308. */
+/* source_t — Q3's source_s with both 1024-byte path buffers cut to MAX_PATH:
+ * 1624 B in gladiator.dll, 1384 B in gladi386.so, both read off LoadSourceFile's
+ * own `GetMemory(sizeof)` / `memset(src, 0, sizeof)` (0x658 / 0x568) with
+ * `strncpy(src->filename, name, MAX_PATH)` right after.
+ *
+ * The earlier `includepath[48]` + `definebuffer` + `_pad_1[212]` was a mis-split
+ * of one `includepath[MAX_PATH]` followed by `punctuations`: PC_SetIncludePath
+ * strncpy's 0x104 bytes into the second buffer, and PC_SetPunctuations' write to
+ * "+0x208, inside the reserved region" is `source->punctuations` at +520.
+ * `definebuffer` had no users at all.
+ *
+ * ACCEPTED COST, do not "fix" by reverting: this correction costs exactly one
+ * MSVC6 row.  BotLoadCharacter goes from byte-identical to 6 differing bytes —
+ * two independent register reloads swapped, same 459 instructions and same 1406
+ * bytes.  The layout is provably untouched on that side (compile-time probes
+ * measured sizeof 1624 and cachedtoken at +552 for BOTH spellings, and
+ * be_ai_char.c never names a source_t field), so it is an MSVC6 frontend
+ * scheduling tie, not a layout error.  Bisected: token_t's `long double` and
+ * script_t's MAX_PATH are both innocent — reverting either leaves the tie in
+ * place, and reverting source_t alone restores it. */
 typedef struct source_s {
-    char                   filename[260];      /* +0    source filename                     */
-    char                   includepath[48];    /* +260  base path for #include resolution   */
-    char                  *definebuffer;       /* +308  scratch buffer (sub_1003E120)  */
-    char                   _pad_1[212];        /* +312..+523 reserved/unknown               */
-    script_t              *scriptstack;        /* +524  current script-include stack head   */
-    struct token_s *tokens;          /* +528  pushed-back token list              */
-    define_t              *defines;            /* +532  define list head (linear)           */
-    define_t             **definehash;         /* +536  define hash table (4096 B)          */
-    indent_t              *indentstack;        /* +540  conditional-compile indent stack    */
-    int                    skip;               /* +544  > 0 skipping #if/#else block        */
-    int                    _pad_after_skip;    /* +548  unused / padding                    */
-    struct token_s         cachedtoken;        /* +552  last-read token (memcpy'd by PC_ReadTokenHandle) */
-} source_t;                                    /* sizeof = 1624 on 32-bit */
+    char                   filename[MAX_PATH];    /* +0    source filename                  */
+    char                   includepath[MAX_PATH]; /* +260 (DLL) / +144 (ELF)  #include base */
+    punctuation_t         *punctuations;          /* +520 (DLL) / +288 (ELF)                */
+    script_t              *scriptstack;           /* +524 / +292  script-include stack head */
+    struct token_s        *tokens;                /* +528 / +296  pushed-back token list    */
+    define_t              *defines;               /* +532 / +300  define list head (linear) */
+    define_t             **definehash;            /* +536 / +304  define hash table (4096 B)*/
+    indent_t              *indentstack;           /* +540 / +308  #if/#else indent stack    */
+    int                    skip;                  /* +544 / +312  > 0 skipping a block      */
+    /* MSVC pads 4 bytes here to 8-align the token; gcc i386 does not. */
+    struct token_s         cachedtoken;           /* +552 / +316  last-read token           */
+} source_t;                                       /* 1624 (DLL) / 1384 (ELF) */
 
 
 
@@ -153,7 +170,7 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token);
 void __cdecl PC_RemoveAllGlobalDefines(void);
 int __cdecl PC_RemoveGlobalDefine(const char *name);
 void __cdecl PC_SetIncludePath(source_t *source, char *path);
-void __cdecl PC_SetPunctuations(void *source, int p);
+void __cdecl PC_SetPunctuations(source_t *source, punctuation_t *p);
 int __cdecl PC_SkipUntilString(source_t *source, char *string);
 int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token);
 int __cdecl PC_UnreadLastToken(source_t *source);

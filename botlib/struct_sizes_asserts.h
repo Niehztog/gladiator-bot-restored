@@ -33,7 +33,14 @@ _Static_assert(sizeof(bot_chatstate_t)     == 188,  "bot_chatstate_t size (47 in
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
 _Static_assert(sizeof(aas_header_t)        == 120,  "aas_header_t size (0x78)");
 _Static_assert(sizeof(bot_fileref_t)       == 152,  "bot_fileref_t size (38 ints)");
-_Static_assert(sizeof(token_t)             == 1072, "token_t size (0x430)");
+/* token_t has TWO right sizes on 32-bit, and both are measured.  `long double
+ * floatvalue` is 8 B/8-aligned under MSVC (pad after intvalue, pad at the tail
+ * -> 0x430, as gladiator.dll uses) and 12 B/4-aligned under gcc i386 (neither
+ * pad -> 0x42C, as gladi386.so uses).  The field offsets are the invariant. */
+_Static_assert(offsetof(token_t, whitespace_p) == 0x418, "token_t.whitespace_p offset");
+_Static_assert(offsetof(token_t, next)         == 0x428, "token_t.next offset");
+_Static_assert(sizeof(token_t) == (sizeof(long double) == 8 ? 0x430 : 0x42C),
+               "token_t size follows the compiler's long double");
 _Static_assert(sizeof(aas_world_t)         == 676,  "aas_world_t size (0x2A4)");
 
 /* -- Soundinfo / iteminfo / weaponinfo ------------------------------- */
@@ -47,8 +54,19 @@ _Static_assert(sizeof(weaponconfig_t)      == 16,   "weaponconfig_t size (header
 _Static_assert(sizeof(punctuation_t)       == 12,   "punctuation_t size");
 _Static_assert(sizeof(indent_t)            == 16,   "indent_t size");
 _Static_assert(sizeof(define_t)            == 32,   "define_t size (Q3 has same layout)");
-_Static_assert(sizeof(script_t)            == 1392, "script_t size (header only)");
-_Static_assert(sizeof(source_t)            == 1624, "source_t size");
+/* script_t/source_t are sized by MAX_PATH and by token_t, both of which differ
+ * between the two 1999 builds (1392/1624 in gladiator.dll, 1268/1384 in
+ * gladi386.so).  Assert the structure rather than a number, so the guard still
+ * bites on a reordered or retyped field under either compiler.  MSVC's own tail
+ * padding is what makes the DLL 4 bytes larger than these expressions. */
+_Static_assert(offsetof(script_t, token) == MAX_PATH + 52, "script_t.token offset");
+_Static_assert(offsetof(source_t, cachedtoken)
+               == 2 * MAX_PATH + 28 + (sizeof(long double) == 8 ? 4 : 0),
+               "source_t.cachedtoken offset");
+#if !defined(_MSC_VER)
+_Static_assert(sizeof(script_t) == MAX_PATH + 52 + sizeof(token_t) + 4, "script_t size");
+_Static_assert(sizeof(source_t) == 2 * MAX_PATH + 28 + sizeof(token_t), "source_t size");
+#endif
 
 /* -- Fuzzy logic / weights ------------------------------------------ */
 _Static_assert(sizeof(fuzzyseperator_t)    == 32,   "fuzzyseperator_t size");

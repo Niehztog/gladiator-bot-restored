@@ -407,7 +407,7 @@ int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 //----- (1003EAB0) --------------------------------------------------------
 /* Walks `string` through a plain char* cursor.  Subtype flags: 0x800 = float,
  * 0x8 = decimal, 0x100 = hex, 0x200 = octal, 0x400 = binary. */
-void __cdecl NumberValue(char *string, int subtype, int *intvalue, double *floatvalue)
+void __cdecl NumberValue(char *string, int subtype, int *intvalue, long double *floatvalue)
 {
   char *p;
   unsigned int dotfound = 0;
@@ -656,7 +656,7 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
     (script)->script_p = (intptr_t)((script)->script_p + 1);
   }
   ((char *)token)[len] = 0;
-  memcpy(&(script)->token, (void *)token, 0x430u);
+  memcpy(&(script)->token, (void *)token, sizeof(token_t));
   return 1;
 }
 //----- (1003F2D0) --------------------------------------------------------
@@ -905,9 +905,9 @@ void __cdecl StripSingleQuotes(char *string)
 // (integer variant below).  The sign is
 // constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
 // 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
-double __cdecl ReadSignedFloat(int script)
+long double __cdecl ReadSignedFloat(int script)
 {
-  double sign;
+  long double sign;
   token_t token;
 
   sign = 1.0;

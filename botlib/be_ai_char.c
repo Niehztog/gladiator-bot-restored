@@ -91,10 +91,10 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   char *strptr; // [esp+24h] [ebp-5D0h]
   bot_fileref_t file_ref;
   token_t token;
-  char Destination[260];
+  char Destination[MAX_PATH];
 
   ch = 0;
-  strncpy(Destination, charfile, 0x104u);
+  strncpy(Destination, charfile, MAX_PATH);
   if ( !sub_10041F60(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
