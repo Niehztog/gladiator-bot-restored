@@ -59,8 +59,9 @@ typedef struct aas_soundpool_s {
  * separate globals, AAS_Shutdown's `memset(&aasworld, 0, 0x2A4u)` would
  * corrupt whatever the linker placed next.  Each field carries its binary VA;
  * the legacy `aasworld_*` names are #defines in the .c file. */
+/* Tag only -- the typedef lives at the definition further down.  C89 has no
+ * repeatable typedef, and gcc 2.7.2.3 (the 1999 compiler) rejects one. */
 struct aas_entity_s;
-typedef struct aas_entity_s aas_entity_t;
 
 /* Routing structures whose pointer slots the decompiler typed as plain `int`.
  * Real pointers here, with the stride taken from sizeof() at the use sites
@@ -87,121 +88,11 @@ typedef struct aas_routingupdate_s {
     struct aas_routingupdate_s    *next;             /* +32 fifo next              */
     struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
 } aas_routingupdate_t;
-/* Forward typedefs for the AAS element types (full defs in be_aas_def.h, which
- * is included after this header) so the aas_world_t arrays below can be typed
- * element pointers rather than void*. */
-typedef struct aas_bbox_s         aas_bbox_t;
-typedef struct aas_plane_s        aas_plane_t;
-typedef struct aas_edge_s         aas_edge_t;
-typedef struct aas_face_s         aas_face_t;
-typedef struct aas_area_s         aas_area_t;
-typedef struct aas_areasettings_s aas_areasettings_t;
-typedef struct aas_reachability_s aas_reachability_t;
-typedef struct aas_node_s         aas_node_t;
-typedef struct aas_portal_s       aas_portal_t;
-typedef struct aas_cluster_s      aas_cluster_t;
-typedef struct aas_world_s {
-    int   loaded;                   /* +0x000  (VA 0x100667E0) */
-    int   initialized;              /* +0x004  (VA 0x100667E4) */
-    int   savefile;                 /* +0x008  (VA 0x100667E8) */
-    float time;                     /* +0x00C  (VA 0x100667EC, was global "aastime")    */
-    char  filename[144];            /* +0x010  (VA 0x100667F0) */
-    char  mapname[144];             /* +0x0A0  (VA 0x10066880) */
-    int   numbboxes;                /* +0x130  (VA 0x10066910) */
-    aas_bbox_t *bboxes;              /* +0x134  (VA 0x10066914, was "Buffer")            */
-    int   numvertexes;              /* +0x138 */
-    vec3_t *vertexes;               /* +0x13C  (float[3] per vertex) */
-    int   numplanes;                /* +0x140 */
-    aas_plane_t *planes;            /* +0x144 */
-    int   numedges;                 /* +0x148 */
-    aas_edge_t *edges;              /* +0x14C */
-    int   edgeindexsize;            /* +0x150 */
-    int  *edgeindex;                /* +0x154  flat int[] (edge numbers per face) */
-    int   numfaces;                 /* +0x158 */
-    aas_face_t *faces;              /* +0x15C */
-    int   faceindexsize;            /* +0x160 */
-    int  *faceindex;                /* +0x164  flat int[] (face numbers per area) */
-    int   numareas;                 /* +0x168 */
-    aas_area_t *areas;              /* +0x16C */
-    int   numareasettings;          /* +0x170 */
-    aas_areasettings_t *areasettings; /* +0x174 */
-    int   reachabilitysize;         /* +0x178 */
-    aas_reachability_t *reachability; /* +0x17C */
-    int   numnodes;                 /* +0x180 */
-    aas_node_t *nodes;              /* +0x184 */
-    int   numportals;               /* +0x188  (VA 0x10066968, was "dword_10066968")    */
-    aas_portal_t *portals;          /* +0x18C */
-    int   portalindexsize;          /* +0x190 */
-    int  *portalindex;              /* +0x194  flat int[] (portal numbers per cluster) */
-    int   numclusters;              /* +0x198  (VA 0x10066978, was "ArgList")           */
-    aas_cluster_t *clusters;        /* +0x19C */
-    int   numreachabilityareas;     /* +0x1A0  (VA 0x10066980) */
-    float reachabilitytime;         /* +0x1A4  (Q3-equivalent slot; binary leaves 4 B)  */
-    struct aas_link_s  *linkheap;   /* +0x1A8  (VA 0x10066988) */
-    int   linkheapsize;             /* +0x1AC */
-    struct aas_link_s  *freelinks;  /* +0x1B0 */
-    struct aas_link_s **arealinkedentities; /* +0x1B4 */
-    int   numentities;              /* +0x1B8 */
-    int   aas_maxclients;           /* +0x1BC */
-    aas_entity_t *entities;         /* +0x1C0  (pointer; 32-bit binary stored as int) */
-    struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
-    struct indexlist_s *soundindex_table;  /* +0x1C8 */
-    struct indexlist_s *imageindex_table;  /* +0x1CC */
-    int   indexes_loaded;           /* +0x1D0 */
-    int   numsoundinfo;             /* +0x1D4  (VA 0x100669B4) sound entry count        */
-    struct soundinfo_s *soundinfo;  /* +0x1D8  (VA 0x100669B8) soundinfo_t array (fwd-decl; full def in botlib_structs.h) */
-    int    d_100669BC;              /* +0x1DC */
-    void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
-    /* Six pointers maintaining the aas_soundpool_t node pool (see above).
-     * `int` in the original; must be real pointers or 64-bit list walks
-     * truncate. */
-    struct aas_soundpool_s *d_100669C4;  /* +0x1E4 */
-    struct aas_soundpool_s *d_100669C8;  /* +0x1E8 */
-    struct aas_soundpool_s *d_100669CC;  /* +0x1EC */
-    struct aas_soundpool_s *d_100669D0;  /* +0x1F0 */
-    struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
-    struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
-    int   _pad_1FC;                 /* +0x1FC  (VA 0x100669DC) point-light pool base, kept
-                                                  so the buffer can be FreeMemory'd — unlike
-                                                  oldestcache, this never advances */
-    struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
-    struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
-    int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
-    aas_routingupdate_t *areaupdate;     /* +0x288  (VA 0x10066A68) */
-    aas_routingupdate_t *portalupdate;   /* +0x28C */
-    int   frameroutingupdates;      /* +0x290 */
-    aas_reversedreach_t *reversedreachability; /* +0x294 */
-    unsigned short ***areatraveltimes; /* +0x298 [area][reachidx][2*linkidx] */
-    struct aas_routingcache_s ***clusterareacache; /* +0x29C [cluster][areaInCluster] */
-    struct aas_routingcache_s **portalcache;       /* +0x2A0 [area]                   */
-} aas_world_t;                      /* sizeof == 0x2A4 == 676                           */
-
-/* Offset checks vs the original binary's VA layout.  32-bit only — every
- * offset past the first pointer field shifts on 64-bit. */
-#include <stddef.h>  /* offsetof */
-#if __SIZEOF_POINTER__ == 4
-_Static_assert(sizeof(aas_world_t) == 0x2A4,                     "aas_world_t size");
-_Static_assert(offsetof(aas_world_t, loaded)               == 0x000, "loaded");
-_Static_assert(offsetof(aas_world_t, time)                 == 0x00C, "time");
-_Static_assert(offsetof(aas_world_t, filename)             == 0x010, "filename");
-_Static_assert(offsetof(aas_world_t, mapname)              == 0x0A0, "mapname");
-_Static_assert(offsetof(aas_world_t, numbboxes)            == 0x130, "numbboxes");
-_Static_assert(offsetof(aas_world_t, numportals)           == 0x188, "numportals");
-_Static_assert(offsetof(aas_world_t, numclusters)          == 0x198, "numclusters");
-_Static_assert(offsetof(aas_world_t, numreachabilityareas) == 0x1A0, "numreachabilityareas");
-_Static_assert(offsetof(aas_world_t, linkheap)             == 0x1A8, "linkheap");
-_Static_assert(offsetof(aas_world_t, modelindex_table)     == 0x1C4, "modelindex_table");
-_Static_assert(offsetof(aas_world_t, oldestcache)          == 0x200, "oldestcache");
-_Static_assert(offsetof(aas_world_t, travelflagfortype)    == 0x208, "travelflagfortype");
-_Static_assert(offsetof(aas_world_t, areaupdate)           == 0x288, "areaupdate");
-_Static_assert(offsetof(aas_world_t, portalcache)          == 0x2A0, "portalcache");
-#endif /* __SIZEOF_POINTER__ == 4 */
-
-/* Single instance defined in botlib.c. */
-extern aas_world_t aasworld;
-
-typedef float  aas_vertex_t[3];
-
+/* ---- AAS file-format element types -------------------------------------
+ * Ahead of aas_world_t because its arrays are typed as element pointers and
+ * C89 cannot forward-typedef: the old placeholder block here repeated each
+ * of these typedefs, which gcc 2.7.2.3 rejects.  Q3 botlib reaches the same
+ * layout by putting them in aasfile.h and including it first. */
 /* 32-byte presence bbox; layout as Q3 aas_bbox_t (aasfile.h). */
 typedef struct aas_bbox_s {
     int   presencetype;  /* +0  dword 0 */
@@ -310,6 +201,109 @@ typedef struct aas_cluster_s {
     int   numreachabilityareas;  /* +4  */
     int   firstportal;           /* +8  */
 } aas_cluster_t;
+
+typedef struct aas_world_s {
+    int   loaded;                   /* +0x000  (VA 0x100667E0) */
+    int   initialized;              /* +0x004  (VA 0x100667E4) */
+    int   savefile;                 /* +0x008  (VA 0x100667E8) */
+    float time;                     /* +0x00C  (VA 0x100667EC, was global "aastime")    */
+    char  filename[144];            /* +0x010  (VA 0x100667F0) */
+    char  mapname[144];             /* +0x0A0  (VA 0x10066880) */
+    int   numbboxes;                /* +0x130  (VA 0x10066910) */
+    aas_bbox_t *bboxes;              /* +0x134  (VA 0x10066914, was "Buffer")            */
+    int   numvertexes;              /* +0x138 */
+    vec3_t *vertexes;               /* +0x13C  (float[3] per vertex) */
+    int   numplanes;                /* +0x140 */
+    aas_plane_t *planes;            /* +0x144 */
+    int   numedges;                 /* +0x148 */
+    aas_edge_t *edges;              /* +0x14C */
+    int   edgeindexsize;            /* +0x150 */
+    int  *edgeindex;                /* +0x154  flat int[] (edge numbers per face) */
+    int   numfaces;                 /* +0x158 */
+    aas_face_t *faces;              /* +0x15C */
+    int   faceindexsize;            /* +0x160 */
+    int  *faceindex;                /* +0x164  flat int[] (face numbers per area) */
+    int   numareas;                 /* +0x168 */
+    aas_area_t *areas;              /* +0x16C */
+    int   numareasettings;          /* +0x170 */
+    aas_areasettings_t *areasettings; /* +0x174 */
+    int   reachabilitysize;         /* +0x178 */
+    aas_reachability_t *reachability; /* +0x17C */
+    int   numnodes;                 /* +0x180 */
+    aas_node_t *nodes;              /* +0x184 */
+    int   numportals;               /* +0x188  (VA 0x10066968, was "dword_10066968")    */
+    aas_portal_t *portals;          /* +0x18C */
+    int   portalindexsize;          /* +0x190 */
+    int  *portalindex;              /* +0x194  flat int[] (portal numbers per cluster) */
+    int   numclusters;              /* +0x198  (VA 0x10066978, was "ArgList")           */
+    aas_cluster_t *clusters;        /* +0x19C */
+    int   numreachabilityareas;     /* +0x1A0  (VA 0x10066980) */
+    float reachabilitytime;         /* +0x1A4  (Q3-equivalent slot; binary leaves 4 B)  */
+    struct aas_link_s  *linkheap;   /* +0x1A8  (VA 0x10066988) */
+    int   linkheapsize;             /* +0x1AC */
+    struct aas_link_s  *freelinks;  /* +0x1B0 */
+    struct aas_link_s **arealinkedentities; /* +0x1B4 */
+    int   numentities;              /* +0x1B8 */
+    int   aas_maxclients;           /* +0x1BC */
+    struct aas_entity_s *entities;  /* +0x1C0  (pointer; 32-bit binary stored as int) */
+    struct indexlist_s *modelindex_table;  /* +0x1C4  (VA 0x100669A4) */
+    struct indexlist_s *soundindex_table;  /* +0x1C8 */
+    struct indexlist_s *imageindex_table;  /* +0x1CC */
+    int   indexes_loaded;           /* +0x1D0 */
+    int   numsoundinfo;             /* +0x1D4  (VA 0x100669B4) sound entry count        */
+    struct soundinfo_s *soundinfo;  /* +0x1D8  (VA 0x100669B8) soundinfo_t array (fwd-decl; full def in botlib_structs.h) */
+    int    d_100669BC;              /* +0x1DC */
+    void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
+    /* Six pointers maintaining the aas_soundpool_t node pool (see above).
+     * `int` in the original; must be real pointers or 64-bit list walks
+     * truncate. */
+    struct aas_soundpool_s *d_100669C4;  /* +0x1E4 */
+    struct aas_soundpool_s *d_100669C8;  /* +0x1E8 */
+    struct aas_soundpool_s *d_100669CC;  /* +0x1EC */
+    struct aas_soundpool_s *d_100669D0;  /* +0x1F0 */
+    struct aas_soundpool_s *d_100669D4;  /* +0x1F4 */
+    struct aas_soundpool_s *d_100669D8;  /* +0x1F8 */
+    int   _pad_1FC;                 /* +0x1FC  (VA 0x100669DC) point-light pool base, kept
+                                                  so the buffer can be FreeMemory'd — unlike
+                                                  oldestcache, this never advances */
+    struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
+    struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
+    int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
+    aas_routingupdate_t *areaupdate;     /* +0x288  (VA 0x10066A68) */
+    aas_routingupdate_t *portalupdate;   /* +0x28C */
+    int   frameroutingupdates;      /* +0x290 */
+    aas_reversedreach_t *reversedreachability; /* +0x294 */
+    unsigned short ***areatraveltimes; /* +0x298 [area][reachidx][2*linkidx] */
+    struct aas_routingcache_s ***clusterareacache; /* +0x29C [cluster][areaInCluster] */
+    struct aas_routingcache_s **portalcache;       /* +0x2A0 [area]                   */
+} aas_world_t;                      /* sizeof == 0x2A4 == 676                           */
+
+/* Offset checks vs the original binary's VA layout.  32-bit only — every
+ * offset past the first pointer field shifts on 64-bit. */
+#include <stddef.h>  /* offsetof */
+#if __SIZEOF_POINTER__ == 4
+_Static_assert(sizeof(aas_world_t) == 0x2A4,                     "aas_world_t size");
+_Static_assert(offsetof(aas_world_t, loaded)               == 0x000, "loaded");
+_Static_assert(offsetof(aas_world_t, time)                 == 0x00C, "time");
+_Static_assert(offsetof(aas_world_t, filename)             == 0x010, "filename");
+_Static_assert(offsetof(aas_world_t, mapname)              == 0x0A0, "mapname");
+_Static_assert(offsetof(aas_world_t, numbboxes)            == 0x130, "numbboxes");
+_Static_assert(offsetof(aas_world_t, numportals)           == 0x188, "numportals");
+_Static_assert(offsetof(aas_world_t, numclusters)          == 0x198, "numclusters");
+_Static_assert(offsetof(aas_world_t, numreachabilityareas) == 0x1A0, "numreachabilityareas");
+_Static_assert(offsetof(aas_world_t, linkheap)             == 0x1A8, "linkheap");
+_Static_assert(offsetof(aas_world_t, modelindex_table)     == 0x1C4, "modelindex_table");
+_Static_assert(offsetof(aas_world_t, oldestcache)          == 0x200, "oldestcache");
+_Static_assert(offsetof(aas_world_t, travelflagfortype)    == 0x208, "travelflagfortype");
+_Static_assert(offsetof(aas_world_t, areaupdate)           == 0x288, "areaupdate");
+_Static_assert(offsetof(aas_world_t, portalcache)          == 0x2A0, "portalcache");
+#endif /* __SIZEOF_POINTER__ == 4 */
+
+/* Single instance defined in botlib.c. */
+extern aas_world_t aasworld;
+
+typedef float  aas_vertex_t[3];
+
 
 /* Working struct for the AAS_Optimize* family.  Typed rather than the
  * decompiler's _DWORD[15] local, whose slots truncate 64-bit pointers. */

@@ -26,11 +26,14 @@
 #ifndef BOTLIB_BE_AI_DEF_H
 #define BOTLIB_BE_AI_DEF_H
 
-/* Forward typedefs for the structures below that reference each other. */
-typedef struct bot_character_s    bot_character_t;   /* layout defined later; needed by Characteristic_* */
-typedef struct bot_weaponstate_s  bot_weaponstate_t;
+/* Forward TAG declarations for the structures below that reference each other.
+ * Tags, not typedefs: C89 forbids repeating a typedef name, and each of these
+ * is typedef'd for real at its own definition further down.  (gcc 2.7.2.3 --
+ * the compiler that built the 1999 .so -- rejects the duplicate outright, so
+ * the original source cannot have had one either.) */
+struct bot_character_s;      /* layout defined later; needed by Characteristic_* */
+struct bot_weaponstate_s;
 struct chatlist_s;
-typedef struct chatlist_s         chatlist_t;
 
 /* ---- from botlib_structs.h ---- */
 #define MAX_INFOSTRING   80     /* "name" / "model" field width (stride 0x50) */
