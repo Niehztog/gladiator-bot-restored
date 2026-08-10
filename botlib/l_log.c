@@ -14,7 +14,8 @@
  * split.
  */
 
-#include "botlib_local.h"
+#include "l_log.h"
+#include "l_libvar.h"
 typedef struct logfile_s {
     char  filename[1024];   /* 0x10063A40  (was byte_10063A40)               */
     FILE *fp;               /* 0x10063E40 */

@@ -9,12 +9,21 @@
  * F-number runs and its unscrambled data-symbol names -- is recorded in
  * .claude/memory/tu_partition.md.
  *
- * botlib_local.h carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs and every prototype), so this file compiles in
- * exactly the environment these functions had before the split.
+ * Its own interface is in the matching .h; botlib_local.h, which that header
+ * pulls in, carries the shared compilation environment (includes, CRT and
+ * POSIX shims, forward typedefs, the side-band scheme and the externs for
+ * botlib.c's remaining globals).
  */
 
-#include "botlib_local.h"
+#include "be_ai_chat.h"
+#include "be_aas_main.h"
+#include "be_ea.h"
+#include "l_libvar.h"
+#include "l_log.h"
+#include "l_memory.h"
+#include "l_precomp.h"
+#include "l_script.h"
+#include "l_utils.h"
 
 bot_consolemessage_t *freeconsolemessages; // 0x10064364 free-list head (be_ai_chat.c; was dword_10064364)
 bot_consolemessage_t *consolemessageheap; // pool base (initial bulk allocation)

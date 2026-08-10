@@ -9,12 +9,18 @@
  * F-number runs and its unscrambled data-symbol names -- is recorded in
  * .claude/memory/tu_partition.md.
  *
- * botlib_local.h carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs and every prototype), so this file compiles in
- * exactly the environment these functions had before the split.
+ * Its own interface is in the matching .h; botlib_local.h, which that header
+ * pulls in, carries the shared compilation environment (includes, CRT and
+ * POSIX shims, forward typedefs, the side-band scheme and the externs for
+ * botlib.c's remaining globals).
  */
 
-#include "botlib_local.h"
+#include "be_aas_routealt.h"
+#include "be_aas_reach.h"
+#include "be_aas_route.h"
+#include "be_aas_sample.h"
+#include "l_log.h"
+#include "l_memory.h"
 
 int numclusterareas;     // 0x10066730 area count — stays int (was dword_10066730)
 midrangearea_t *midrangeareas; // 0x10066740 (was dword_10066740)
@@ -49,17 +55,6 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
    * return value is unused. */
 }
 
-/* Output entry for AAS_AlternativeRouteGoals (24 bytes).  Declared ahead of
- * the docblock so the ref-funcmap generator attributes 0x1001A720 to the
- * function rather than this type. */
-typedef struct aas_altroutegoal_s {
-  vec3_t          origin;
-  int             areanum;
-  unsigned short  travel_to_start;
-  unsigned short  travel_to_goal;
-  unsigned short  extra_travel_time;
-  unsigned short  pad;
-} aas_altroutegoal_t;
 //----- (1001A720) --------------------------------------------------------
 /* AAS_AlternativeRouteGoals — find clusters of "midrange" route-portal areas
  * lying within a 1.5x detour budget of the direct start->goal route, and emit

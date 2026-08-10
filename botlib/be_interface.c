@@ -9,12 +9,19 @@
  * F-number runs and its unscrambled data-symbol names -- is recorded in
  * .claude/memory/tu_partition.md.
  *
- * botlib_local.h carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs and every prototype), so this file compiles in
- * exactly the environment these functions had before the split.
+ * Its own interface is in the matching .h; botlib_local.h, which that header
+ * pulls in, carries the shared compilation environment (includes, CRT and
+ * POSIX shims, forward typedefs, the side-band scheme and the externs for
+ * botlib.c's remaining globals).
  */
 
-#include "botlib_local.h"
+#include "be_interface.h"
+#include "be_aas_main.h"
+#include "be_ai2_main.h"
+#include "l_crc.h"
+#include "l_libvar.h"
+#include "l_log.h"
+#include "l_memory.h"
 
 /* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in
  * the 32-bit original; must be a real pointer here).  Referenced only from

@@ -11,7 +11,9 @@
  * side-band scheme (BOTLIB_NEED_SIDEBAND, below).
  */
 
-#include "botlib_local.h"   /* the shared environment + all prototypes; see that file */
+#include "botlib_local.h"
+#include "be_ai2_main.h"
+#include "be_ai2_main.h"
 
 
 __int16 word_1005E498 = 45; // weak

@@ -15,14 +15,7 @@
  * split.
  */
 
-#include "botlib_local.h"
-typedef struct memoryblock_s {
-  unsigned long int       id;        /* +0  MEM_ID sentinel               */
-  void                   *ptr;       /* +4  user pointer (= block + 1)    */
-  int                     size;      /* +8  total alloc incl. header      */
-  struct memoryblock_s   *prev;      /* +12                               */
-  struct memoryblock_s   *next;      /* +16  sizeof = 20 on 32-bit        */
-} memoryblock_t;
+#include "l_memory.h"
 
 #define MEM_ID 0x12345678l
 

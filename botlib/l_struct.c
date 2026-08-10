@@ -13,7 +13,9 @@
  * split.
  */
 
-#include "botlib_local.h"
+#include "l_struct.h"
+#include "l_precomp.h"
+#include "l_script.h"
 extern __int16 word_1005E498;
 
 //----- (100404B0) --------------------------------------------------------

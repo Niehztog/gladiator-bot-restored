@@ -9,12 +9,28 @@
  * F-number runs and its unscrambled data-symbol names -- is recorded in
  * .claude/memory/tu_partition.md.
  *
- * botlib_local.h carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs and every prototype), so this file compiles in
- * exactly the environment these functions had before the split.
+ * Its own interface is in the matching .h; botlib_local.h, which that header
+ * pulls in, carries the shared compilation environment (includes, CRT and
+ * POSIX shims, forward typedefs, the side-band scheme and the externs for
+ * botlib.c's remaining globals).
  */
 
-#include "botlib_local.h"
+#include "be_ai_goal.h"
+#include "be_aas_bspq2.h"
+#include "be_aas_entity.h"
+#include "be_aas_main.h"
+#include "be_aas_move.h"
+#include "be_aas_reach.h"
+#include "be_aas_route.h"
+#include "be_ai_move.h"
+#include "be_ai_weight.h"
+#include "l_libvar.h"
+#include "l_log.h"
+#include "l_memory.h"
+#include "l_precomp.h"
+#include "l_script.h"
+#include "l_struct.h"
+#include "l_utils.h"
 
 levelitem_t *freelevelitems; // 0x10064344 free-list head    (be_ai_goal.c; was dword_10064344)
 int numlevelitems;           // 0x10064354 active item count  (be_ai_goal.c; was dword_10064354)

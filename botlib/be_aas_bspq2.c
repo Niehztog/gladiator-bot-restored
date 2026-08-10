@@ -9,12 +9,20 @@
  * F-number runs and its unscrambled data-symbol names -- is recorded in
  * .claude/memory/tu_partition.md.
  *
- * botlib_local.h carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs and every prototype), so this file compiles in
- * exactly the environment these functions had before the split.
+ * Its own interface is in the matching .h; botlib_local.h, which that header
+ * pulls in, carries the shared compilation environment (includes, CRT and
+ * POSIX shims, forward typedefs, the side-band scheme and the externs for
+ * botlib.c's remaining globals).
  */
 
-#include "botlib_local.h"
+#include "be_aas_bspq2.h"
+#include "be_aas_entity.h"
+#include "be_aas_light.h"
+#include "be_aas_main.h"
+#include "be_interface.h"
+#include "l_libvar.h"
+#include "l_memory.h"
+#include "l_script.h"
 
 int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
 int nummodels;            // 0x100674C4  (was dword_100674C4)

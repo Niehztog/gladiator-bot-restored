@@ -14,7 +14,8 @@
  * split.
  */
 
-#include "botlib_local.h"
+#include "l_libvar.h"
+#include "l_memory.h"
 extern char byte_1006294C;
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
 
