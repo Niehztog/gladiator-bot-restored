@@ -99,7 +99,6 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c
 int __cdecl PC_Directive_line(source_t * source); /* #line handler */
 /* `crctable` and the five CRC_* functions live in their own TU: botlib/l_crc.c
  * (l_crc.obj, DLL 0x100385B0..0x1003874F -- see .claude/memory/tu_partition.md). */
-extern char word_1005F588[];
 extern define_t *globaldefines;
 
 void      __cdecl FreeSource(source_t *source);
@@ -179,6 +178,6 @@ void __cdecl PC_UnreadToken(source_t *source, token_t *token);
 BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token);
 int SourceError(source_t *src, char *Format, ...);
 int SourceWarning(source_t *src, char *Format, ...);
-int __cdecl UnreadSignToken(source_t *source);
+void __cdecl UnreadSignToken(source_t *source);
 
 #endif /* BOTLIB_L_PRECOMP_H */

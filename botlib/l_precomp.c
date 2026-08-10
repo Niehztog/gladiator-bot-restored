@@ -36,7 +36,6 @@
 #include "l_script.h"
 #include "l_utils.h"
 
-char word_1005F588[] = { '\"', '\0' }; // idb
 define_t *globaldefines;
 
 /* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
@@ -337,10 +336,10 @@ int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
   token->whitespace_p = NULL;
   token->endwhitespace_p = NULL;
   token->string[0] = 0;
-  strcat(token->string, word_1005F588);
+  strcat(token->string, "\"");
   for ( i = tokens; i; i = i->next )
     strncat(token->string, i->string, 1024 - strlen(token->string));
-  strncat(token->string, word_1005F588, 1024 - strlen(token->string));
+  strncat(token->string, "\"", 1024 - strlen(token->string));
   return 1;
 }
 //----- (10039B50) --------------------------------------------------------
@@ -368,22 +367,28 @@ unsigned int __cdecl PC_NameHash(const char *name)
   unsigned int v2; // ecx
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
-  /* Keep this form.  The residual against the original is cl.exe's `push edi`
-   * shrink-wrap decision — the original pushes edi only inside the name != NULL
-   * region and lets the !name path fall into the tail of the len == 0 exit.  Both
-   * alternatives (memcpy inside the `if` with one trailing return, and an
-   * `if (!name) return …;` early guard) were tried and are worse. */
+  /* ONE trailing return, and a redundant `v4 = 0` on the len == 0 arm.  The ELF
+   * dictates this literally: gladi386.so tests the clamped length and, when it
+   * is zero, jumps to a second `mov [esp+0xc],0` that falls straight into the
+   * shared hash tail — three separate paths converging on one epilogue rather
+   * than the early `return abs(v4) & 0x3FF` this used to carry.  Shape matters
+   * beyond this row because gcc inlines PC_NameHash into its seven callers. */
   if ( name )
   {
     v2 = strlen(name);
     if ( (int)v2 > 4 )
       v2 = 4;
-    else if ( !v2 )
-      return abs(v4) & 0x3FF;
-    memcpy(&v4, name, v2);
-    return abs(v4) & 0x3FF;
+    if ( v2 )
+      memcpy(&v4, name, v2);
+    else
+      v4 = 0;
   }
-  return abs(v4) & 0x3FF;
+  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: the original negates IN PLACE and
+   * re-reads the variable (`neg eax; mov [esp+0xc],eax; mov eax,[esp+0xc]`),
+   * which abs() folds away. */
+  if ( v4 < 0 )
+    v4 = -v4;
+  return v4 & 0x3FF;
 }
 //----- (10039CB0) --------------------------------------------------------
 /* Prepend `define` to its bucket in the source's definehash table, keyed by
@@ -517,7 +522,7 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       strcpy(token.string, "\"");
       strncat(token.string, curtime + 4, 7u);
       strncat(&token.string[7], curtime + 20, 4u);
-      strcat(token.string, word_1005F588);
+      strcat(token.string, "\"");
       free(curtime);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
@@ -527,7 +532,7 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       v7 = ctime(&t);
       strcpy(token.string, "\"");
       strncat(token.string, v7 + 11, 8u);
-      strcat(token.string, word_1005F588);
+      strcat(token.string, "\"");
       free(v7);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
@@ -2021,7 +2026,7 @@ int __cdecl PC_Directive_pragma(source_t *source)
   return 1;
 }
 //----- (1003CDF0) --------------------------------------------------------
-int __cdecl UnreadSignToken(source_t *source)
+void __cdecl UnreadSignToken(source_t *source)
 {
   token_t token;
 
@@ -2029,31 +2034,31 @@ int __cdecl UnreadSignToken(source_t *source)
   token.whitespace_p = source->scriptstack->script_p;
   token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
-  *(__int16 *)token.string = word_1005E498;
+  strcpy(token.string, "-");
   token.type = 5;
   token.subtype = 30;
-  return PC_UnreadSourceToken(source, &token);
+  PC_UnreadSourceToken(source, &token);
 }
 //----- (1003CE90) --------------------------------------------------------
 int __cdecl PC_Directive_eval(source_t *source)
 {
   int result; // eax
-  int v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
   token_t token;
 
   result = PC_Evaluate(source, &value, 0, 1);
   if ( !result )
     return result;
-  v2 = (int)(source)->scriptstack;
-  token.line = ((script_t *)v2)->line;
-  token.whitespace_p = ((script_t *)v2)->script_p;
-  token.endwhitespace_p = ((script_t *)v2)->script_p;
+  /* scriptstack re-read per statement, as Q3 writes it -- caching it in a local
+   * costs one register and shortens all three loads. */
+  token.line = source->scriptstack->line;
+  token.whitespace_p = source->scriptstack->script_p;
+  token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%d", abs(value));
   token.type = 3;
   token.subtype = 12296;
-  PC_UnreadSourceToken(source, token.string);
+  PC_UnreadSourceToken(source, &token);
   if ( value < 0 )
     UnreadSignToken(source);
   return 1;
@@ -2062,22 +2067,20 @@ int __cdecl PC_Directive_eval(source_t *source)
 int __cdecl PC_Directive_evalfloat(source_t *source)
 {
   int result; // eax
-  int v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token;
 
   result = PC_Evaluate(source, 0, &value, 0);
   if ( !result )
     return result;
-  v2 = (int)(source)->scriptstack;
-  token.line = ((script_t *)v2)->line;
-  token.whitespace_p = ((script_t *)v2)->script_p;
-  token.endwhitespace_p = ((script_t *)v2)->script_p;
+  token.line = source->scriptstack->line;
+  token.whitespace_p = source->scriptstack->script_p;
+  token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%1.2f", fabs(value));
   token.type = 3;
   token.subtype = 10248;
-  PC_UnreadSourceToken(source, token.string);
+  PC_UnreadSourceToken(source, &token);
   if ( value < 0.0 )
     UnreadSignToken(source);
   return 1;

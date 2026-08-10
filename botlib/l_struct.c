@@ -32,7 +32,6 @@
 #include "l_memory.h"
 #include "l_precomp.h"
 #include "l_script.h"
-extern __int16 word_1005E498;
 
 //----- (100404B0) --------------------------------------------------------
 const char **__cdecl FindField(const char **defs, const char *name)
@@ -105,7 +104,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
       SourceError(source, "expected unsigned value, found %s", token.string);
       return 0;
     }
-    if ( strcmp(token.string, (const char *)&word_1005E498) )
+    if ( strcmp(token.string, "-") )
     {
       SourceError(source, "unexpected punctuation %s", token.string);
       return 0;

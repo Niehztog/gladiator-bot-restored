@@ -37,7 +37,6 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
-__int16 word_1005E498 = 45; // weak
 
 //----- (10035700) --------------------------------------------------------
 int __cdecl ReadValue(source_t *source, float *value)
@@ -46,7 +45,7 @@ int __cdecl ReadValue(source_t *source, float *value)
 
   if ( !PC_ExpectAnyToken(source, token.string) )
     return 0;
-  if ( !strcmp(token.string, (const char *)&word_1005E498) )
+  if ( !strcmp(token.string, "-") )
   {
     SourceWarning(source, "negative value set to zero\n");
     if ( !PC_ExpectTokenType(source, 3, 0, token.string) )
