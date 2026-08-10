@@ -16,6 +16,7 @@
  */
 
 #include "be_ai2_dmnet.h"
+#include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
 #include "be_aas_main.h"
 #include "be_aas_move.h"
@@ -24,6 +25,7 @@
 #include "be_ai2_dmq2.h"
 #include "be_ai2_main.h"
 #include "be_ai_char.h"
+#include "be_ai_chat.h"
 #include "be_ai_goal.h"
 #include "be_ai_move.h"
 #include "be_ai_weap.h"

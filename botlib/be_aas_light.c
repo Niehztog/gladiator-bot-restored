@@ -16,6 +16,7 @@
  */
 
 #include "be_aas_light.h"
+#include "be_aas_bspq2.h"
 #include "be_aas_main.h"
 
 //----- (1000D450) --------------------------------------------------------

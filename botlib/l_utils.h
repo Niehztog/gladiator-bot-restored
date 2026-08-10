@@ -11,6 +11,80 @@
 
 #include "botlib_local.h"
 
+/* The Win32 UnZip windll path lives entirely in this TU, so its kernel32
+ * imports and the UNZIP32.DLL DCL/USERFUNCTIONS layouts belong here. */
+/* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than
+ * via <windows.h>, whose typedefs collide with our local ones; both Windows
+ * toolchains resolve them to the same kernel32 imports as the original.  The
+ * Linux build gates the whole unzip/zip subsystem out. */
+#ifdef _WIN32
+__declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
+__declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
+__declspec(dllimport) void * __stdcall GlobalFree(void *hMem);
+__declspec(dllimport) int    __stdcall GlobalUnlock(void *hMem);
+__declspec(dllimport) unsigned int __stdcall SearchPathA(const char *p, const char *f, const char *x, unsigned int n, char *b, char **lp);
+__declspec(dllimport) void * __stdcall LoadLibraryA(const char *f);
+__declspec(dllimport) void * __stdcall GetProcAddress(void *h, const char *name);
+__declspec(dllimport) int    __stdcall FreeLibrary(void *h);
+__declspec(dllimport) char * __stdcall lstrcpyA(char *d, const char *s);
+__declspec(dllimport) int    __stdcall lstrlenA(const char *s);
+#endif
+
+/* ------------------------------------------------------------------------
+ * Info-ZIP UnZip windll SDK structures (windll/structs.h) — the option block
+ * (DCL, 0x44 B) and callback table (USERFUNCTIONS, 0x28 B) that sub_10041240
+ * passes to UNZIP32.DLL's "windll_unzip" to extract the .aas from aasN.zip.
+ *
+ * The shipped unzip32.dll is UnZip 5.33, so the layouts follow the 5.32 SDK
+ * headers vendored at reference/unzip532/structs.h (5.51's 0x2C USERFUNCTIONS
+ * adds a 6th callback and is NOT the right shape here).
+ *
+ * Every pointer-bearing field is a 4-byte `int` slot, as in the 32-bit
+ * original, so both struct sizes stay 0x44 / 0x28 on 64-bit too; callback
+ * addresses are cast to (intptr_t) on assignment.  Windows-only — the Linux
+ * botlib has no unzip support and loads .aas files directly. */
+#ifdef _WIN32
+typedef struct {
+  int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
+  int   SpaceToUnderscore;  /* +0x04  TRUE => convert spaces to underscores  */
+  int   PromptToOverwrite;  /* +0x08  TRUE => prompt before overwriting      */
+  int   fQuiet;             /* +0x0C  0=all msgs, 1=fewer, 2=none            */
+  int   ncflag;             /* +0x10  write to stdout if TRUE                */
+  int   ntflag;             /* +0x14  test archive                          */
+  int   nvflag;             /* +0x18  verbose listing                       */
+  int   nUflag;             /* +0x1C  5.32 windll header name (5.5x renamed this slot nfflag); zero-filled, so immaterial */
+  int   nzflag;             /* +0x20  display archive comment               */
+  int   ndflag;             /* +0x24  (sub)dir recreation control            */
+  int   noflag;             /* +0x28  always overwrite if TRUE              */
+  int   naflag;             /* +0x2C  do end-of-line translation            */
+  int   nZIflag;            /* +0x30  return ZipInfo if TRUE                 */
+  int   C_flag;             /* +0x34  case-insensitive match if TRUE        */
+  int   fPrivilege;         /* +0x38  1=restore ACLs, 2=use privileges       */
+  int   lpszZipFN;          /* +0x3C  LPSTR — archive file name (4-byte slot) */
+  int   lpszExtractDir;     /* +0x40  LPSTR — extract dir    (4-byte slot)   */
+} DCL, *LPDCL;               /* sizeof == 0x44 */
+
+typedef struct {
+  int            print;                  /* +0x00 DLLPRNT*    (4-byte fn-ptr slot) */
+  int            sound;                  /* +0x04 DLLSND*                          */
+  int            replace;                /* +0x08 DLLREPLACE*                      */
+  int            password;               /* +0x0C DLLPASSWORD*                     */
+  int            SendApplicationMessage; /* +0x10 DLLMESSAGE*                      */
+  unsigned short cchComment;             /* +0x14 WORD comment length; +0x16 pad   */
+  unsigned int   TotalSizeComp;          /* +0x18 (statistics — unused here)       */
+  unsigned int   TotalSize;              /* +0x1C                                  */
+  int            CompFactor;             /* +0x20 (present in 5.32; unused here)    */
+  unsigned int   NumMembers;             /* +0x24                                  */
+} USERFUNCTIONS, *LPUSERFUNCTIONS;        /* sizeof == 0x28 */
+#endif /* _WIN32 — UnZip windll DCL/USERFUNCTIONS */
+
+/* The two locked-block handles, defined in l_utils.c; their types are just
+ * above, which is why these declarations cannot live in botlib_local.h. */
+#ifdef _WIN32
+extern LPDCL dword_1006296C;
+extern LPUSERFUNCTIONS dword_100639F0;
+#endif
+
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);
 int __stdcall sub_100415E0(int a1);
 void sub_10041600(void);

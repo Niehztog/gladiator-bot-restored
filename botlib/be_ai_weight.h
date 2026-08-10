@@ -11,13 +11,25 @@
 
 #include "botlib_local.h"
 
+void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
+void __cdecl EvolveWeightConfig(int *config);
+int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);
 void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs);
 void              __cdecl FreeWeightConfig2(weightconfig_t *config);
+double __cdecl FuzzyWeight(int *facts, weight_t *w);
+double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
+double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs);
+double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs);
+int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
+void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
 int __cdecl ReadValue(source_t *source, float *value);
 weightconfig_t   *__cdecl ReadWeightConfig(char *filename);
+void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int, int);
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs);
+int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
+static void sub_10036EB0(int *table, const char *name, float scale);
 
 #endif /* BOTLIB_BE_AI_WEIGHT_H */

@@ -15,10 +15,12 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);
 void __cdecl AAS_DecompressVis(int a1, int a2);
+int AAS_DumpBSPData();
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key);
+int AAS_LoadBSPFile(char *FileName, int Offset, int Length);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
 bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
@@ -30,7 +32,11 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);
 int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum);
 int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, float *a5, float *a6, float *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
+void CalcSurfaceExtents();
 float __cdecl FloatForKey(bsp_entity_t *ent, const char *key);
+int Q2_SwapBSPFile(void);
+int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor);
+int __cdecl sub_10003080(vec3_t point);
 void sub_100030A0();
 void __cdecl sub_100031B0(char *name);
 bsp_link_t *sub_100031F0(void);
@@ -56,5 +62,8 @@ int __cdecl sub_10005CC0(int a, int b);
 void __cdecl sub_10005CF0(int row_index, int value);
 int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount);
 void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value);
+int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
+void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
+int sub_100085F0();
 
 #endif /* BOTLIB_BE_AAS_BSPQ2_H */

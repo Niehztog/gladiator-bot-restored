@@ -1,37 +1,24 @@
 /*
- * botlib_local.h — the shared compilation environment of the reconstructed
- * Gladiator botlib: the #include set, the CRT/POSIX shims, the Win32 import
- * and UnZip-windll declarations, the forward typedefs, and the prototypes of
- * every function the library defines.
+ * botlib_local.h — the declarations shared by every botlib translation unit:
+ * the project headers, the forward typedefs, and the internal structures that
+ * more than one TU needs.  Q3 botlib's be_aas_def.h plays the same role.
  *
- * This block was botlib.c's own prologue (its lines 14..814) up to the point
- * where botlib.c started being split back into Mr. Elusive's original
- * translation units (.claude/memory/tu_partition.md).  It is lifted here
- * VERBATIM and included first by botlib.c and by every split TU, so all of
- * them compile in one identical macro/typedef/prototype environment and no
- * declaration can drift or go missing between them.
+ * The build-environment scaffolding that has no 1999 counterpart moved to
+ * botlib_port.h, included first below.  ONE port-only thing unavoidably
+ * remains here: the 64-bit side-band accessor macros (BotCharacter, BotWS,
+ * BotChatMsgLinks, AAS_EntAreaLink, ...).  Each wraps one specific structure
+ * and has to sit next to it, so they cannot be lifted out without splitting
+ * the structures they belong to.  They are all gated on BOTLIB_NEED_SIDEBAND,
+ * which botlib_port.h defines.
  *
- * TRANSITIONAL.  The 1999 sources had per-TU headers (be_aas_*.h, l_*.h etc.),
- * not one shared local header; replacing this with that structure is a later
- * step, once the .c split is finished and each TU's true interface is known.
- *
- * It carries no definitions -- only declarations, typedefs, macros and static
- * inline CRT shims -- so including it in N translation units costs nothing.
+ * Function prototypes live in the per-TU headers (be_aas_reach.h, l_script.h,
+ * ...), not here.
  */
 #ifndef BOTLIB_LOCAL_H
 #define BOTLIB_LOCAL_H
 
-#include <math.h>
-#include <stdarg.h>
-#include <stddef.h>    /* offsetof, size_t */
-#include <stdint.h>    /* intptr_t */
-#include <stdio.h>     /* file I/O, sprintf, sscanf */
-#include <string.h>    /* string and memory ops */
-#include <stdlib.h>    /* malloc, atoi, rand, abs */
-#include <ctype.h>     /* toupper */
-#include <errno.h>     /* errno */
-#include <time.h>      /* time(), ctime() */
-#include <unistd.h>    /* access(), chdir(), getcwd() */
+#include "botlib_port.h"
+
 
 /* q_shared.h first, so its qboolean/vec3_t/cplane_t/… are the canonical types.
  * It sets Q_SHARED_H, which makes botlib.h skip its own Q2-type stubs. */
@@ -52,113 +39,8 @@
 #include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
 #include "q2files.h"
 
-/* signed high-word/dword accessors */
-#define SHIDWORD(x)  (*((int *)&(x) + 1))
 
-/* Stubs for the statically-linked MSVC CRT helpers the bot code still calls. */
-static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fread(buf, sz, n, f); }
-#ifdef _WIN32
-/* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
- * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */
-static int    remove_file(const char *path) { return remove(path); }
-static int    getcwd_locked(char *buf, int size) { return getcwd(buf, size) ? 0 : -1; }
-static intptr_t SpawnProcess(int mode, char *file, char *args, char *cmd, char *addargs) { (void)mode; (void)file; (void)args; (void)cmd; (void)addargs; return -1; }
-/* _access is provided by MinGW's <io.h>; _chdir by <direct.h> — use POSIX wrappers */
-static int    _chdir(const char *path) { return chdir(path); }
-#endif /* _WIN32 */
 
-#ifndef _WIN32
-/* POSIX equivalents for the Windows CRT functions used below. */
-#include <strings.h>    /* strcasecmp */
-#define _strcmpi   strcasecmp
-#define _access    access
-typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
-#endif
-
-/* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than
- * via <windows.h>, whose typedefs collide with our local ones; both Windows
- * toolchains resolve them to the same kernel32 imports as the original.  The
- * Linux build gates the whole unzip/zip subsystem out. */
-#ifdef _WIN32
-__declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
-__declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
-__declspec(dllimport) void * __stdcall GlobalFree(void *hMem);
-__declspec(dllimport) int    __stdcall GlobalUnlock(void *hMem);
-__declspec(dllimport) unsigned int __stdcall SearchPathA(const char *p, const char *f, const char *x, unsigned int n, char *b, char **lp);
-__declspec(dllimport) void * __stdcall LoadLibraryA(const char *f);
-__declspec(dllimport) void * __stdcall GetProcAddress(void *h, const char *name);
-__declspec(dllimport) int    __stdcall FreeLibrary(void *h);
-__declspec(dllimport) char * __stdcall lstrcpyA(char *d, const char *s);
-__declspec(dllimport) int    __stdcall lstrlenA(const char *s);
-#endif
-
-/* ------------------------------------------------------------------------
- * Info-ZIP UnZip windll SDK structures (windll/structs.h) — the option block
- * (DCL, 0x44 B) and callback table (USERFUNCTIONS, 0x28 B) that sub_10041240
- * passes to UNZIP32.DLL's "windll_unzip" to extract the .aas from aasN.zip.
- *
- * The shipped unzip32.dll is UnZip 5.33, so the layouts follow the 5.32 SDK
- * headers vendored at reference/unzip532/structs.h (5.51's 0x2C USERFUNCTIONS
- * adds a 6th callback and is NOT the right shape here).
- *
- * Every pointer-bearing field is a 4-byte `int` slot, as in the 32-bit
- * original, so both struct sizes stay 0x44 / 0x28 on 64-bit too; callback
- * addresses are cast to (intptr_t) on assignment.  Windows-only — the Linux
- * botlib has no unzip support and loads .aas files directly. */
-#ifdef _WIN32
-typedef struct {
-  int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
-  int   SpaceToUnderscore;  /* +0x04  TRUE => convert spaces to underscores  */
-  int   PromptToOverwrite;  /* +0x08  TRUE => prompt before overwriting      */
-  int   fQuiet;             /* +0x0C  0=all msgs, 1=fewer, 2=none            */
-  int   ncflag;             /* +0x10  write to stdout if TRUE                */
-  int   ntflag;             /* +0x14  test archive                          */
-  int   nvflag;             /* +0x18  verbose listing                       */
-  int   nUflag;             /* +0x1C  5.32 windll header name (5.5x renamed this slot nfflag); zero-filled, so immaterial */
-  int   nzflag;             /* +0x20  display archive comment               */
-  int   ndflag;             /* +0x24  (sub)dir recreation control            */
-  int   noflag;             /* +0x28  always overwrite if TRUE              */
-  int   naflag;             /* +0x2C  do end-of-line translation            */
-  int   nZIflag;            /* +0x30  return ZipInfo if TRUE                 */
-  int   C_flag;             /* +0x34  case-insensitive match if TRUE        */
-  int   fPrivilege;         /* +0x38  1=restore ACLs, 2=use privileges       */
-  int   lpszZipFN;          /* +0x3C  LPSTR — archive file name (4-byte slot) */
-  int   lpszExtractDir;     /* +0x40  LPSTR — extract dir    (4-byte slot)   */
-} DCL, *LPDCL;               /* sizeof == 0x44 */
-
-typedef struct {
-  int            print;                  /* +0x00 DLLPRNT*    (4-byte fn-ptr slot) */
-  int            sound;                  /* +0x04 DLLSND*                          */
-  int            replace;                /* +0x08 DLLREPLACE*                      */
-  int            password;               /* +0x0C DLLPASSWORD*                     */
-  int            SendApplicationMessage; /* +0x10 DLLMESSAGE*                      */
-  unsigned short cchComment;             /* +0x14 WORD comment length; +0x16 pad   */
-  unsigned int   TotalSizeComp;          /* +0x18 (statistics — unused here)       */
-  unsigned int   TotalSize;              /* +0x1C                                  */
-  int            CompFactor;             /* +0x20 (present in 5.32; unused here)    */
-  unsigned int   NumMembers;             /* +0x24                                  */
-} USERFUNCTIONS, *LPUSERFUNCTIONS;        /* sizeof == 0x28 */
-#endif /* _WIN32 — UnZip windll DCL/USERFUNCTIONS */
-
-/* AI node function pointer type (used for BotAINode side-band table) */
-typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
-
-/* ------------------------------------------------------------------------
- * Side-band gate.
- *
- * Every "pointer slot" in bot_state_t / bot_chatstate_t / aas_entity_t is a
- * 4-byte int field holding a pointer bit-pattern.  On 64-bit those slots are
- * too narrow, so each is mirrored into a parallel heap array (the side-band)
- * reached through helper macros (BotCharacter, BotAINode, BotWS, …).
- *
- * On 32-bit the macros just reinterpret the inline int slot and the side-band
- * tables compile out entirely, reproducing the original memory image exactly.
- * Every gate in botlib.c follows this one predicate. */
-#if defined(__x86_64__) || defined(__aarch64__)
-#define BOTLIB_NEED_SIDEBAND 1
-#else
-#define BOTLIB_NEED_SIDEBAND 0
-#endif
 
 /* Forward typedefs for the prototypes below; layouts come later. */
 typedef struct bot_character_s    bot_character_t;   /* layout defined later; needed by Characteristic_* */
@@ -178,7 +60,6 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token);                      
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 */
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
-int BotSetupChatAI();
 int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
 int AAS_FreeRoutingCaches(void);  /* sub_10019550 */
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
@@ -186,70 +67,21 @@ libvar_t *__cdecl LibVar(char *var_name, char *value);            /* register/lo
 float     __cdecl LibVarValue(char *var_name, char *value);    /* register, return value */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
-int __cdecl WriteFloat(FILE *fp, float value);
-int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue);
 void __cdecl LibVarSet(char *var_name, char *value);  /* body at ~30304 */
-int __cdecl sub_10003080(vec3_t point);
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int __cdecl sub_10006100(int *a1, int a2, float *a3);
-int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor);
-void CalcSurfaceExtents();
-int Q2_SwapBSPFile(void);
-int AAS_DumpBSPData();
-void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList);
-int sub_100085F0();
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 _DWORD sub_10010FF0();
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
 int __cdecl FindClientByName(char *name);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);  /* 0x1002ACF0 — substring search */
-void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
-void __cdecl BotReplaceWeightedSynonyms(const char *string, int context);
-bot_randomlist_t *__cdecl BotLoadRandomStrings(char * filename);
-char *__cdecl RandomString(const char *name);
-void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces);
-bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken);
-void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt);
-bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char * matchfile);
-BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
-int  __cdecl BotFindMatch(char *str, bot_match_t *match, int context);
-char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
-bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist);
-void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat);
-void __cdecl BotCheckInitialChatIntegrety(struct chatlist_s *chat);
-int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring);
-void __cdecl BotFreeReplyChat(bot_replychat_t *replychat);
-bot_replychat_t *__cdecl BotLoadReplyChat(char *filename);
-void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname);
-int __cdecl BotFreeChatFile(bot_chatstate_t *chatstate);
-int __cdecl BotFreeChatState(bot_chatstate_t *cs);
-int __cdecl BotLoadChatFile(bot_chatstate_t *chatstate, char *chatfile, char *chatname);
-void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, int mcontext, bot_chatvar_t *vars, int vcontext);
-char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type);
-void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...);
-int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message);
-unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate);
-void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto);
-void BotShutdownChatAI();
-int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name);
-double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs);
-double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs);
-double __cdecl FuzzyWeight(int *facts, weight_t *w);
-double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
-void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs);
-void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
-int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
 char     *__cdecl LibVarString(char *var_name, char *value);   /* returns libvar->string */
 int __cdecl FreeMemory(void *ptr);  /* dummy `int` return; see definition */
 int __cdecl PC_ReadSourceToken(source_t *source, token_t *token); /* l_precomp.c: reads one token from source, handling pushed-back tokens */
-bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char *string);
 int __cdecl PC_Directive_line(source_t * source); /* #line handler */
-int __cdecl WriteIndent(FILE *fp, int indent);
-int __cdecl WriteStructWithIndent(FILE *fp, structdef_t * def, int structure, int indent);
-int __cdecl WriteStructure(FILE *fp, int def, int structure);
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 /* The Vector / COM_ / Q_ / byte-order / Info_ helpers live in q_shared.c and
  * are prototyped by q_shared.h above; only botlib.c-local ones are declared
@@ -319,9 +151,6 @@ extern libvar_t *libvar_reachabilitydelay;
 extern int dword_1006295C;
 extern libvar_t *libvar_laserhook;
 extern HGLOBAL dword_10062968;
-#ifdef _WIN32
-extern LPDCL dword_1006296C;
-#endif
 extern HGLOBAL dword_10062970;
 extern HGLOBAL hMem;
 extern float flt_10062984;
@@ -334,9 +163,6 @@ extern float velocity[3]; /* vec3 {0,0,0} zero vector — defined in botlib_stru
 extern int dword_10063388;
 /* The byte-order fn-ptr slots (0x100637CC..E0) and `bigendien` (0x10063884)
  * live in game/q_shared.c. */
-#ifdef _WIN32
-extern LPUSERFUNCTIONS dword_100639F0;
-#endif
 extern int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD);
 extern HMODULE hLibModule;
 extern define_t *globaldefines;
@@ -683,20 +509,9 @@ extern bsp_link_t *dword_10069580;
 extern bsp_link_t **dword_10069584;
 
 
-
-/* Field-table spelling for the structdef_t descriptors recovered from .data.
- * Shared by be_aas_sound / be_ai_goal / be_ai_weap, which own one table each.
- * A structdef is { int size; char **fields; }; each field entry is 7 (char *)
- * slots: name, byte offset, type flags, array count, 0, default float-bits, 0. */
-/* Cast integer constant to char * for mixed pointer/int field table slots */
-#define P(x) ((char *)(uintptr_t)(x))
-
-/* One field table entry (7 slots): name, offset, flags, arrcount, 0, default, 0 */
-#define FE(name, off, flags, arr, def) \
-    (name), P(off), P(flags), P(arr), P(0), P(def), P(0)
-
-/* Null terminator entry */
-#define FE_END \
-    P(0),  P(0),   P(0),   P(0),  P(0),  P(0),  P(0)
+/* The side-band macros above index botstates, which is DEFINED in
+ * be_ai2_main.c.  Declared here at the end, after bot_state_t exists --
+ * a macro expands at its use site, so this need only precede the caller. */
+extern bot_state_t *botstates;
 
 #endif /* BOTLIB_LOCAL_H */
