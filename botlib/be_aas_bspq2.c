@@ -2576,10 +2576,8 @@ int Q2_SwapBSPFile(void)
 // 1000775A: Q2_SwapBSPFile brushsides loop — the LittleShort round-trip.
 //            See note inside the function.
 //----- (10007980) --------------------------------------------------------
-int AAS_DumpBSPData()
+void AAS_DumpBSPData()
 {
-  int result; // eax
-
   bspworld.nummodels = 0;
   if ( bspworld.dmodels )
     FreeMemory(bspworld.dmodels);
@@ -2648,14 +2646,12 @@ int AAS_DumpBSPData()
   bspworld.numareas = 0;
   if ( bspworld.dareas )
     FreeMemory(bspworld.dareas);
-  result = bspworld.dareaportals;
   bspworld.dareas = 0;
   bspworld.numareaportals = 0;
   if ( bspworld.dareaportals )
-    result = FreeMemory(bspworld.dareaportals);
+    FreeMemory(bspworld.dareaportals);
   bspworld.dareaportals = 0;
   bspworld.dword_100674C0 = 0;
-  return result;
 }
 //----- (10007C40) --------------------------------------------------------
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList)

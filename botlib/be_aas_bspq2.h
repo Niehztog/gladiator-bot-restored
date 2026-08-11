@@ -214,7 +214,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);
 void __cdecl AAS_DecompressVis(int a1, int a2);
-int AAS_DumpBSPData();
+void AAS_DumpBSPData();
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
