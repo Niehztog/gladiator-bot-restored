@@ -108,20 +108,24 @@ FILE *Log_Shutdown()
 }
 
 //----- (10038D80) --------------------------------------------------------
+/* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
+ * warm fall-through and the NULL return the cold forward-`je` target -- same
+ * shared-epilogue idiom as the dead Log_WriteTimeStamped below. */
 FILE *Log_Write(char *Format, ...)
 {
-  FILE *result; // eax
   va_list va; // [esp+8h] [ebp+8h] BYREF
 
-  va_start(va, Format);
-  result = logfile.fp;
   if ( logfile.fp )
   {
+    va_start(va, Format);
     vfprintf(logfile.fp, Format, va);
     fprintf(logfile.fp, "\r\n");
     return (FILE *)fflush(logfile.fp);
   }
-  return result;
+  /* No explicit return on the !fp path: the original shares the main epilogue and
+   * leaves eax undefined, whereas an explicit `return logfile.fp` forces its own
+   * epilogue block. All call sites discard the return value as a bare statement,
+   * so the undefined value is never observed. */
 }
 
 //----- (10038DD0) --------------------------------------------------------
