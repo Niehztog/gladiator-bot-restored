@@ -278,11 +278,11 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
       control = stopspeed;
     else
       control = speed;
-    newspeed = speed - control * friction * frametime;
+    newspeed = speed - control * frametime * friction;
     if ( newspeed < 0.0f )
       newspeed = 0.0f;
-    vel[0] = newspeed / speed * vel[0];
-    vel[1] = newspeed / speed * vel[1];
+    vel[0] = vel[0] * (newspeed / speed);
+    vel[1] = vel[1] * (newspeed / speed);
   }
 }
 //----- (1000F840) --------------------------------------------------------
