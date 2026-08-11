@@ -260,7 +260,7 @@ void AAS_CreatePortals()
       portal->areanum = i;
       portal->frontcluster = 0;
       portal->backcluster = 0;
-      Log_Write("portal %d: area %d", aasworld.numportals, i);
+      Log_Write("portal %d: area %d", aasworld.numportals, portal->areanum);
       aasworld.numportals++;
     }
   }
