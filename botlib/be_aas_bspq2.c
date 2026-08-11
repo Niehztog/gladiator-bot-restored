@@ -750,8 +750,8 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   int sidenum; // [esp+20h] [ebp+0h]
   dbrush_t *v24; // [esp+24h] [ebp+4h]
 
-  v9 = 0;
   v11 = &bspworld.dleafs[leafnum];
+  v9 = 0;
   v24 = 0;
   /* Compare against the loop counter v9 (=0), not a literal 0: that is what
    * yields `cmp WORD,bp; jbe` instead of `je`.  Same skip-when-empty result. */
@@ -759,7 +759,8 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     goto fail;
   do
   {
-    v13 = &bspworld.dbrushes[bspworld.dleafbrushes[v9 + v11->firstleafbrush]];
+    int brushnum = bspworld.dleafbrushes[v9 + v11->firstleafbrush];
+    v13 = &bspworld.dbrushes[brushnum];
     if ( (v13->contents & contentmask) != 0
       && CM_TraceThroughBrush(v13, origin, angles, start, boxmins, boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
@@ -784,8 +785,8 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     trace->allsolid   = 0;
     trace->startsolid = 0;
   }
-  v16 = sidenum;
   VectorCopy(endpos, trace->endpos);
+  v16 = sidenum;
   trace->sidenum = v16;
   v17 = &bspworld.dplanes[bspworld.dbrushsides[v16].planenum];
   VectorCopy(v17->normal, trace->plane.normal);
