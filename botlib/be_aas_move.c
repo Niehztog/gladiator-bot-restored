@@ -369,6 +369,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
                              // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
                              // so only its z component is ever read.
   vec3_t left_test_vel;  // BYREF
+  vec3_t up = {0, 0, 1};
   aas_plane_t *plane; // ebp
   aas_plane_t *plane2; // eax
   float v32;
@@ -382,7 +383,6 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   int move_buf[20]; // BYREF
   aas_trace_t trace; // (plus its hidden return buffer)
   aas_trace_t steptrace; // (plus its hidden return buffer)
-  aas_trace_t gaptrace; // (plus its hidden return buffer)
 
   phys_friction = libvar_sv_friction->value;
   phys_stopspeed = libvar_sv_stopspeed->value;
@@ -490,7 +490,7 @@ LABEL_12:
         if ( !steptrace.startsolid )
         {
           plane2 = (aas_plane_t *)AAS_PlaneFromNum(steptrace.planenum);
-          if ( plane2->normal[2] > (float)phys_maxsteepness )
+          if ( DotProduct(plane2->normal, up) > (float)phys_maxsteepness )
           {
             VectorSubtract(end, steptrace.endpos, left_test_vel);
             left_test_vel[2] = 0.0f;
@@ -518,7 +518,7 @@ LABEL_12:
       old_frame_test_vel[2] = frame_test_vel[2];
       backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)plane->normal[0]));
       VectorMA(frame_test_vel, backoff_frame, plane->normal, frame_test_vel);
-      if ( plane->normal[2] > (float)phys_maxsteepness )
+      if ( DotProduct(plane->normal, up) > (float)phys_maxsteepness )
       {
         landed = 1;
         onground = 1;
@@ -627,6 +627,8 @@ LABEL_66:
     }
     else
     {
+      aas_trace_t gaptrace;
+
       if ( (stopevent & 0x40) == 0 )
         goto LABEL_84;
       /* Q3 writes this as `VectorCopy(org, start); VectorCopy(start, end);
