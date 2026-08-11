@@ -219,10 +219,10 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 //----- (10030F10) --------------------------------------------------------
 BOOL __cdecl MoverDown(aas_reachability_t* reach)
 {
-  vec3_t angles; // [esp+4h] [ebp-30h] BYREF
-  vec3_t origin; // [esp+10h] [ebp-24h] BYREF
-  vec3_t maxs; // [esp+1Ch] [ebp-18h] BYREF
-  vec3_t mins; // [esp+28h] [ebp-Ch] BYREF
+  vec3_t mins; // BYREF
+  vec3_t maxs; // BYREF
+  vec3_t origin; // BYREF
+  vec3_t angles; // BYREF
 
   angles[0] = 0;
   angles[1] = 0;
@@ -235,7 +235,9 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
     botimport.Print(PRT_MESSAGE, "no entity with model %d\n", reach->facenum);
     return 0;
   }
-  return origin[2] + maxs[2] < reach->start[2];
+  if ( origin[2] + maxs[2] < reach->start[2] )
+    return 1;
+  return 0;
 }
 //----- (10030FE0) --------------------------------------------------------
 BOOL __cdecl BotValidTravel(float *a1, int a2, aas_reachability_t *a3, int a4)
