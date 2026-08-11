@@ -734,8 +734,7 @@ int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, 
     return 0;
   }
   t = sqrt(height2fall / (0.5 * phys_gravity));
-  dir[0] = end[0] - start[0];
-  dir[1] = end[1] - start[1];
+  VectorSubtract(end, start, dir);
   *velocity = sqrt(dir[0]*dir[0] + dir[1]*dir[1]) / (t + zvel / phys_gravity);
   if ( *velocity > phys_maxvelocity )
   {
