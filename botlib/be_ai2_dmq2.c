@@ -642,8 +642,8 @@ int __cdecl BotChat_Death(int *bs)
 {
   float v1; // st7
   int v4; // eax
-  float v5; // st7
   float v6; // [esp+4h] [ebp-24h]
+  float v5; // st7
   _BYTE v7[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
@@ -683,8 +683,8 @@ BOOL __cdecl BotChat_Kill(int *bs)
   float v1; // st7
   BOOL result; // eax
   int v4; // eax
-  float v5; // st7
   float rnd; // [esp+4h] [ebp-24h]
+  float v5; // st7
   _BYTE name[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
