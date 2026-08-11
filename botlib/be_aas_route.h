@@ -32,7 +32,7 @@ int AAS_FreeRoutingCaches(void);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
 void AAS_InitClusterAreaCache();
-int AAS_InitPortalCache();
+void AAS_InitPortalCache(void);
 void AAS_InitRouting(void);
 void AAS_InitRoutingUpdate(void);
 void AAS_InitTravelFlagFromType(void);

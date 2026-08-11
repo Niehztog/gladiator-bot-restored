@@ -279,12 +279,11 @@ int AAS_FreeAllPortalCache(void)
   }
 }
 //----- (10019470) --------------------------------------------------------
-int AAS_InitPortalCache()
+void AAS_InitPortalCache(void)
 {
   /* One pointer slot per area; sized with sizeof(), not the original's 4. */
   aasworld.portalcache = (aas_routingcache_t **)GetClearedMemory(
       aasworld.numareas * (int)sizeof(aas_routingcache_t *));
-  return (int)(intptr_t)aasworld.portalcache;
 }
 //----- (100194A0) --------------------------------------------------------
 void AAS_InitRoutingUpdate(void)

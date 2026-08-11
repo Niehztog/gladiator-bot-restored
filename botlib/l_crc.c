@@ -363,13 +363,13 @@ void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 }
 
 //----- (10038620) --------------------------------------------------------
-__int16 __cdecl CRC_Value(__int16 crcvalue)
+unsigned short __cdecl CRC_Value(unsigned short crcvalue)
 {
   return crcvalue;
 }
 
 //----- (10038640) --------------------------------------------------------
-__int16 __cdecl CRC_Block(const unsigned char *data, int length)
+unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
 {
   unsigned __int16 crcvalue;
   int i, ind;

@@ -250,7 +250,7 @@ int __cdecl sub_100377E0(char *String1, __int16 a2)
  * source function. */
 int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 {
-  __int16 crc; // ax
+  unsigned short crc; // ax
 
   crc = CRC_Block(buf, len);
   return sub_100377E0(name, crc);
@@ -259,7 +259,7 @@ int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 //----- (10037850) --------------------------------------------------------
 int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
-  __int16 v3; // ax
+  unsigned short v3; // ax
 
   v3 = CRC_Block(a2, a3);
   return sub_100377E0(String1, v3);
