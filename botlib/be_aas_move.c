@@ -91,8 +91,8 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   char stopevent; // cl
   /* One vec3_t: the original passes its address to AAS_ClientMovementPrediction,
    * and three separate float locals are not guaranteed to be adjacent. */
-  vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
   vec3_t hordir; // [esp+14h] [ebp-68h] BYREF
+  vec3_t start_pos; // [esp+8h] [ebp-74h] BYREF (was v11/v12/v13)
   vec3_t cmdmove; // [esp+20h] [ebp-5Ch] BYREF
   aas_clientmove_t move; // [esp+2Ch] [ebp-50h] BYREF (coalesced with the by-value return temp)
 
@@ -277,11 +277,12 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
       control = stopspeed;
     else
       control = speed;
-    newspeed = speed - control * frametime * friction;
+    newspeed = speed - frametime * control * friction;
     if ( newspeed < 0.0f )
       newspeed = 0.0f;
-    vel[0] = vel[0] * (newspeed / speed);
-    vel[1] = vel[1] * (newspeed / speed);
+    newspeed /= speed;
+    vel[0] *= newspeed;
+    vel[1] *= newspeed;
   }
 }
 //----- (1000F840) --------------------------------------------------------
