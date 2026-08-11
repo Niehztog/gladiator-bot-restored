@@ -695,9 +695,9 @@ LABEL_88:
  * test harness. */
 void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
-  aas_clientmove_t result;   /* filled by the by-value prediction return */
   vec3_t  velocity;          /* zero vector */
   vec3_t  cmd_move;          /* desired-input vec: scaled forward + Z jump */
+  aas_clientmove_t result;   /* filled by the by-value prediction return */
 
   VectorClear(velocity);
 
