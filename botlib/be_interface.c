@@ -470,7 +470,10 @@ int Export_BotSetupClient(int client, void *settings)
     if (!ValidClientNumber(client, "BotSetupClient")) return 0;
     sub_100085F0();
     r = BotSetupClient(client, settings);
-    return r != 0;
+    if (!r) goto fail;
+    return 1;
+fail:
+    return 0;
 }
 
 /* ---- SLOT 8 — BotShutdownClient (0x10037F70) --------------------------- */
