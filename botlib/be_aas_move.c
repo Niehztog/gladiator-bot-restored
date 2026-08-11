@@ -103,7 +103,8 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   VectorNormalize(hordir);
   start_pos[0] = reach->start[0];
   start_pos[1] = reach->start[1];
-  start_pos[2] = reach->start[2] + 1.0f;
+  start_pos[2] = reach->start[2];
+  start_pos[2] += 1.0f;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
   move = AAS_ClientMovementPrediction(-1, start_pos, 2, 1, vec3_origin, cmdmove, 1, 2, 0.1f, 124, 0);
