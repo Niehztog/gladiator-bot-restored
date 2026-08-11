@@ -289,19 +289,21 @@ void __cdecl vectoangles(float *value1, float *angles)
 #  define BOTLIB_PATHSEP '/'
 #endif
 
-char __cdecl sub_100418D0(_BYTE *a1)
+void __cdecl sub_100418D0(_BYTE *a1)
 {
   _BYTE *v1; // ecx
-  char result; // al
 
   v1 = a1;
-  for ( result = *a1; result; ++v1 )
+  if ( *v1 )
   {
-    if ( result == '/' || result == '\\' )
-      *v1 = BOTLIB_PATHSEP;
-    result = v1[1];
+    do
+    {
+      if ( *v1 == '/' || *v1 == '\\' )
+        *v1 = BOTLIB_PATHSEP;
+      ++v1;
+    }
+    while ( *v1 );
   }
-  return result;
 }
 //----- (10041900) --------------------------------------------------------
 /* Genuinely void: every guard routes to the same bare epilogue and eax is never

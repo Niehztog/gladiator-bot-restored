@@ -218,16 +218,12 @@ int __cdecl AAS_AlternativeRouteGoals(
   return numaltroutegoals;
 }
 //----- (1001AB80) --------------------------------------------------------
-int sub_1001AB80()
+void sub_1001AB80()
 {
-  int *result; // eax
-
   if ( midrangeareas )
     FreeMemory(midrangeareas);
   midrangeareas = GetMemory(sizeof(midrangearea_t) * aasworld.numareas);
   if ( clusterareas )
     FreeMemory(clusterareas);
-  result = GetMemory(sizeof(int) * aasworld.numareas);
-  clusterareas = result;
-  return (intptr_t)result;
+  clusterareas = GetMemory(sizeof(int) * aasworld.numareas);
 }

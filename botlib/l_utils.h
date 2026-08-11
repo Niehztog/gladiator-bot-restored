@@ -121,7 +121,7 @@ static int sub_10041650(void);
 LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
-char __cdecl sub_100418D0(_BYTE *a1);
+void __cdecl sub_100418D0(_BYTE *a1);
 void __cdecl sub_10041900(const char *a1, int a2);
 int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *);
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4);
