@@ -1740,7 +1740,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   }
 }
 //----- (10006090) --------------------------------------------------------
-bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
+void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 {
   bsp_link_t *result; // eax
   bsp_link_t *prev;   // ecx — prev_ent in leaf chain
@@ -1766,7 +1766,6 @@ bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
     }
     while ( v3 );
   }
-  return result;
 }
 //----- (10006100) --------------------------------------------------------
 /* AAS_BoxOnPlaneSide2 (Q3 be_aas_sample.c) — classify an AABB against a BSP

@@ -528,7 +528,7 @@ int __cdecl BotResetState(bot_state_t *bs)
   BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
   BotResetAvoidGoals(&bs->goalstate);
-  return BotResetAvoidReach((int *)&bs->ms);
+  BotResetAvoidReach((int *)&bs->ms);
 }
 //----- (10029C10) --------------------------------------------------------
 int sub_10029C10()

@@ -28,7 +28,7 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum);
 void AAS_InitClustering();
 void __cdecl AAS_NumberClusterPortals(int clusternum);
 void AAS_RemoveAllPortals();
-int AAS_RemoveClusterAreas();
+void AAS_RemoveClusterAreas(void);
 int AAS_TestPortals();
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum);
 

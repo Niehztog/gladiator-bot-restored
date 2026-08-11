@@ -783,7 +783,7 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
   return sides;
 }
 //----- (1001C3F0) --------------------------------------------------------
-aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
+void __cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
 {
   aas_link_t *result; // eax
   aas_link_t *prev;   // ecx — prev_ent in area chain
@@ -809,7 +809,6 @@ aas_link_t *__cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
     }
     while ( v3 );
   }
-  return result;
 }
 //----- (1001C460) --------------------------------------------------------
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum)

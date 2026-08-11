@@ -1780,15 +1780,11 @@ LABEL_27:
   return result;
 }
 //----- (10034AF0) --------------------------------------------------------
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate)
+void __cdecl BotResetAvoidReach(_DWORD *movestate)
 {
-  _DWORD *result; // eax
-
   memset(&movestate[29], 0, sizeof(int));
   memset(&movestate[30], 0, sizeof(int));
-  result = &movestate[31];
   memset(&movestate[31], 0, sizeof(int));
-  return result;
 }
 //----- (10034B20) --------------------------------------------------------
 void __cdecl BotResetLastAvoidReach(intptr_t movestate)

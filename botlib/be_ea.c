@@ -105,11 +105,10 @@ int __cdecl EA_Command(int client, char *command, ...)
 //----- (100372C0) --------------------------------------------------------
 /* EA_Attack — set ACTION_ATTACK so the engine fires the bot's weapon next
  * frame.  As Q3's be_ea.c::EA_Attack. */
-int __cdecl EA_Attack(int client)
+void __cdecl EA_Attack(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_ATTACK;
-  return (int)ea;
 }
 //----- (100372F0) --------------------------------------------------------
 /* EA_Use — set ACTION_USE.  DEAD in Gladiator: the mod issues USE through
@@ -121,11 +120,10 @@ void __cdecl EA_Use(int client)
 }
 //----- (10037320) --------------------------------------------------------
 /* EA_Respawn — set ACTION_RESPAWN. */
-int __cdecl EA_Respawn(int client)
+void __cdecl EA_Respawn(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_RESPAWN;
-  return (int)ea;
 }
 //----- (10037350) --------------------------------------------------------
 /* EA_Jump — set ACTION_JUMP only while the EA_JUMPEDLASTFRAME latch is clear;
@@ -154,22 +152,20 @@ int __cdecl EA_DelayedJump(int client)
   return v;
 }
 //----- (100373D0) --------------------------------------------------------
-int __cdecl EA_Crouch(int client)
+void __cdecl EA_Crouch(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_CROUCH;
-  return (int)ea;
 }
 //----- (10037400) --------------------------------------------------------
 /* EA_MoveUp — set ACTION_MOVEUP, which aliases ACTION_JUMP's bit (0x008).
  * Unlike EA_Jump this is unconditional, with no EA_JUMPEDLASTFRAME gate, which
  * is what BotTravel_WaterJump needs to jump out of water regardless of the
  * jump cooldown. */
-int __cdecl EA_MoveUp(int client)
+void __cdecl EA_MoveUp(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEUP;
-  return (int)ea;
 }
 //----- (10037430) --------------------------------------------------------
 /* EA_MoveDown — set ACTION_MOVEDOWN, which aliases ACTION_CROUCH's bit (0x10),
@@ -182,11 +178,10 @@ void __cdecl EA_MoveDown(int client)
 }
 //----- (10037460) --------------------------------------------------------
 /* EA_MoveForward — set ACTION_MOVEFORWARD. */
-int __cdecl EA_MoveForward(int client)
+void __cdecl EA_MoveForward(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEFORWARD;
-  return (int)ea;
 }
 //----- (10037490) --------------------------------------------------------
 /* EA_MoveBack — set ACTION_MOVEBACK (0x40).  DEAD in Gladiator. */

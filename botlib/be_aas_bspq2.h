@@ -169,7 +169,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length);
 bsp_entity_t *AAS_ParseBSPEntities(void);
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask);
 bsp_trace_t __cdecl AAS_TraceBSPModel(int modelnum, const vec3_t modelorigin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask);
-bsp_link_t *__cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves);
+void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves);
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key);
 int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t v);
 qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2);

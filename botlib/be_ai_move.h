@@ -39,7 +39,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach);
 int __cdecl BotReachabilityArea(int *origin, int client);
 int __cdecl BotReachabilityTime(aas_reachability_t* reach);
-_DWORD *__cdecl BotResetAvoidReach(_DWORD *movestate);
+void __cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetGrapple(bot_movestate_t *ms);
 void __cdecl BotResetLastAvoidReach(intptr_t movestate);
 void __cdecl BotResetMoveState(void *movestate);

@@ -44,9 +44,9 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
 extern ea_state_t *ea_controls;
 
-int __cdecl EA_Attack(int client);
+void __cdecl EA_Attack(int client);
 int __cdecl EA_Command(int client, char *command, ...);
-int __cdecl EA_Crouch(int client);
+void __cdecl EA_Crouch(int client);
 int __cdecl EA_DelayedJump(int client);
 void __cdecl EA_DropInv(int client, char *inv);
 void __cdecl EA_DropItem(int client, char *it);
@@ -55,11 +55,11 @@ char __cdecl EA_Jump(int client);
 void __cdecl EA_Move(int client, vec3_t dir, float speed);
 void __cdecl EA_MoveBack(int client);
 void __cdecl EA_MoveDown(int client);
-int __cdecl EA_MoveForward(int client);
+void __cdecl EA_MoveForward(int client);
 void __cdecl EA_MoveLeft(int client);
 void __cdecl EA_MoveRight(int client);
-int __cdecl EA_MoveUp(int client);
-int __cdecl EA_Respawn(int client);
+void __cdecl EA_MoveUp(int client);
+void __cdecl EA_Respawn(int client);
 void __cdecl EA_Say(int client, char *str);
 void __cdecl EA_SayTeam(int client, char *str);
 int EA_Setup();

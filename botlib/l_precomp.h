@@ -106,7 +106,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize);
 source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name);
 void __cdecl PC_AddBuiltinDefines(source_t *source);
 int __cdecl PC_AddDefine(source_t *source, const char *string);
-unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash);
+void __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash);
 int __cdecl PC_AddGlobalDefine(const char *string);
 void __cdecl PC_AddGlobalDefinesToSource(source_t *source);
 int __cdecl PC_CheckTokenString(source_t *source, const char *string);

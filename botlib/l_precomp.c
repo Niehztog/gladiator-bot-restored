@@ -393,14 +393,13 @@ unsigned int __cdecl PC_NameHash(const char *name)
 //----- (10039CB0) --------------------------------------------------------
 /* Prepend `define` to its bucket in the source's definehash table, keyed by
  * PC_NameHash of the define's name. */
-unsigned int __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
+void __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
 {
-  unsigned int result;
+  unsigned int hash;
 
-  result = PC_NameHash(define->name);
-  define->hashnext = definehash[result];
-  definehash[result] = define;
-  return result;
+  hash = PC_NameHash(define->name);
+  define->hashnext = definehash[hash];
+  definehash[hash] = define;
 }
 //----- (10039CE0) --------------------------------------------------------
 /* Hash-bucket lookup of a define_t by name: `definehash` is the bucket array

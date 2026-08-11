@@ -38,25 +38,23 @@
 #include "l_memory.h"
 
 //----- (10008620) --------------------------------------------------------
-int AAS_RemoveClusterAreas()
+void AAS_RemoveClusterAreas(void)
 {
-  int result; // eax
+  int off; // eax
   int i; // ecx
 
-  result = aasworld.numareas;
   i = 1;
   if ( aasworld.numareas > 1 )
   {
-    result = 28;
+    off = 28;
     do
     {
       ++i;
-      *(_DWORD *)((char *)aasworld.areasettings + result + 12) = 0;
-      result += 28;
+      *(_DWORD *)((char *)aasworld.areasettings + off + 12) = 0;
+      off += 28;
     }
     while ( i < aasworld.numareas );
   }
-  return result;
 }
 //----- (10008660) --------------------------------------------------------
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
