@@ -57,16 +57,35 @@ _Static_assert(sizeof(define_t)            == 32,   "define_t size (Q3 has same 
 /* script_t/source_t are sized by MAX_PATH and by token_t, both of which differ
  * between the two 1999 builds (1392/1624 in gladiator.dll, 1268/1384 in
  * gladi386.so).  Assert the structure rather than a number, so the guard still
- * bites on a reordered or retyped field under either compiler.  MSVC's own tail
- * padding is what makes the DLL 4 bytes larger than these expressions. */
-_Static_assert(offsetof(script_t, token) == MAX_PATH + 52, "script_t.token offset");
-_Static_assert(offsetof(source_t, cachedtoken)
-               == 2 * MAX_PATH + 28 + (sizeof(long double) == 8 ? 4 : 0),
+ * bites on a reordered or retyped field under either compiler.
+ *
+ * Both structs embed a token_t after a field run that is only 4-aligned, so the
+ * padding in front of it — and the tail padding it forces — is whatever
+ * alignment the target gives `long double`.  That is an ABI property, not a
+ * layout property, and it has three values among our 32-bit targets:
+ *   gcc i386     12 B / 4-aligned  -> no pad; script_t 1268, source_t 1384
+ *   MSVC6 x86     8 B / 8-aligned  -> pad; script_t 1392, source_t 1624 (the DLL)
+ *   gcc ARM EABI  8 B / 8-aligned  -> pad, same as MSVC (armhf release build)
+ * So derive the padding from _Alignof(token_t) rather than hardcoding the i386
+ * SysV answer; the field ORDER stays fully guarded on every target. */
+#define BL_ALIGN_UP(off, a)  (((off) + (a) - 1) & ~((size_t)(a) - 1))
+#define BL_TOKEN_AT(off)     BL_ALIGN_UP(off, _Alignof(token_t))
+
+_Static_assert(offsetof(script_t, token) == BL_TOKEN_AT(MAX_PATH + 52),
+               "script_t.token offset");
+_Static_assert(offsetof(source_t, cachedtoken) == BL_TOKEN_AT(2 * MAX_PATH + 28),
                "source_t.cachedtoken offset");
 #if !defined(_MSC_VER)
-_Static_assert(sizeof(script_t) == MAX_PATH + 52 + sizeof(token_t) + 4, "script_t size");
-_Static_assert(sizeof(source_t) == 2 * MAX_PATH + 28 + sizeof(token_t), "source_t size");
+/* + 4 is `next`, the one field after the embedded token. */
+_Static_assert(sizeof(script_t) == BL_ALIGN_UP(BL_TOKEN_AT(MAX_PATH + 52)
+                                               + sizeof(token_t) + 4,
+                                               _Alignof(script_t)),
+               "script_t size");
+_Static_assert(sizeof(source_t) == BL_TOKEN_AT(2 * MAX_PATH + 28) + sizeof(token_t),
+               "source_t size");
 #endif
+#undef BL_TOKEN_AT
+#undef BL_ALIGN_UP
 
 /* -- Fuzzy logic / weights ------------------------------------------ */
 _Static_assert(sizeof(fuzzyseperator_t)    == 32,   "fuzzyseperator_t size");
