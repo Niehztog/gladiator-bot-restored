@@ -240,7 +240,9 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
 //----- (10030FE0) --------------------------------------------------------
 BOOL __cdecl BotValidTravel(float *a1, int a2, aas_reachability_t *a3, int a4)
 {
-  return (~a4 & AAS_TravelFlagForType(a3->traveltype)) == 0;
+  if ( (AAS_TravelFlagForType(a3->traveltype) & ~a4) != 0 )
+    return 0;
+  return 1;
 }
 //----- (10031010) --------------------------------------------------------
 void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
