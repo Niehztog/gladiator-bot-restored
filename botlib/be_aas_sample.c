@@ -159,21 +159,24 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 // at level 3 and returns 0.
 int __cdecl AAS_AreaCluster(int areanum)
 {
-  if ( areanum > 0 && areanum < aasworld.numareas )
-    return aasworld.areasettings[areanum].cluster;
-  botimport.Print(PRT_ERROR, "AAS_AreaCluster: invalid area number\n");
-  return 0;
+  if ( areanum <= 0 || areanum >= aasworld.numareas )
+  {
+    botimport.Print(PRT_ERROR, "AAS_AreaCluster: invalid area number\n");
+    return 0;
+  }
+  return aasworld.areasettings[areanum].cluster;
 }
 //----- (1001AF50) --------------------------------------------------------
 int __cdecl AAS_AreaPresenceType(int areanum)
 {
-  if ( aasworld.loaded )
+  if ( !aasworld.loaded )
+    return 0;
+  if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
-    if ( areanum > 0 && areanum < aasworld.numareas )
-      return aasworld.areasettings[areanum].presencetype;
     botimport.Print(PRT_ERROR, "AAS_AreaPresenceType: invalid area number\n");
+    return 0;
   }
-  return 0;
+  return aasworld.areasettings[areanum].presencetype;
 }
 //----- (1001AFA0) --------------------------------------------------------
 int __cdecl AAS_PointContents(vec3_t point)
