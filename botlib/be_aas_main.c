@@ -611,8 +611,8 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
 //----- (1000EDC0) --------------------------------------------------------
 int __cdecl sub_1000EDC0(int a1, int a2)
 {
-  aasworld.aas_maxclients = a2;
   aasworld.numentities = a1;
+  aasworld.aas_maxclients = a2;
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
   aasworld.entities = (aas_entity_t *)GetClearedMemory(sizeof(aas_entity_t) * a1);

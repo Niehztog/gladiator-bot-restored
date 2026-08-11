@@ -509,11 +509,10 @@ void __cdecl BotFreeWaypoints(bot_waypoint_t *wp)
 {
   bot_waypoint_t *next;
 
-  while ( wp )
+  for ( ; wp; wp = next )
   {
     next = wp->next;
     FreeMemory(wp);
-    wp = next;
   }
 }
 //----- (10021BC0) --------------------------------------------------------
@@ -804,7 +803,9 @@ BOOL __cdecl BotWantsToRetreat(int *bs)
     return 1;
   if ( bs[1065] == 4 )
     return 1;
-  return BotAggression((bot_state_t *)bs) < 50.0f;
+  if ( BotAggression((bot_state_t *)bs) < 50.0f )
+    return 1;
+  return 0;
 }
 //----- (10022930) --------------------------------------------------------
 BOOL __cdecl BotWantsToChase(int *bs)

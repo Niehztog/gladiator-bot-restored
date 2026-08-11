@@ -97,10 +97,11 @@ int numreachabilities;               /* 0x1006677C reachabilities allocated (be_
 
 void *AAS_AllocReachability(void)
 {
-  aas_reachabilitynode_t *head = (aas_reachabilitynode_t *)nextreachability;
-  if ( !head )
+  aas_reachabilitynode_t *head;
+
+  if ( !nextreachability )
     return NULL;
-  if ( !head->next )
+  if ( !((aas_reachabilitynode_t *)nextreachability)->next )
     AAS_Error("AAS_MAX_REACHABILITYSIZE");
   /* Original re-reads head here in case AAS_Error trashed eax. */
   head = (aas_reachabilitynode_t *)nextreachability;
@@ -111,10 +112,12 @@ void *AAS_AllocReachability(void)
 //----- (10011040) --------------------------------------------------------
 int __cdecl AAS_AreaReachability(int areanum)
 {
-  if ( areanum >= 0 && areanum < aasworld.numareas )
-    return aasworld.areasettings[areanum].numreachableareas;
-  AAS_Error("AAS_AreaReachability: areanum %d out of range", areanum);
-  return 0;
+  if ( areanum < 0 || areanum >= aasworld.numareas )
+  {
+    AAS_Error("AAS_AreaReachability: areanum %d out of range", areanum);
+    return 0;
+  }
+  return aasworld.areasettings[areanum].numreachableareas;
 }
 //----- (10011090) --------------------------------------------------------
 float __cdecl AAS_FaceArea(aas_face_t *face)

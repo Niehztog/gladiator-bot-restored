@@ -136,12 +136,11 @@ void ScriptError(int script, char *Format, ...)
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
+  if ( *(unsigned char *)&((script_t *)script)->flags & 1 )
+    return;
   va_start(va, Format);
-  if ( (*(unsigned char *)&((script_t *)script)->flags & 1) == 0 )
-  {
-    vsprintf(Buffer, Format, va);
-    botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
-  }
+  vsprintf(Buffer, Format, va);
+  botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
 }
 //----- (1003E340) --------------------------------------------------------
 void ScriptWarning(int script, char *Format, ...)
@@ -149,12 +148,11 @@ void ScriptWarning(int script, char *Format, ...)
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
+  if ( *(unsigned char *)&((script_t *)script)->flags & 2 )
+    return;
   va_start(va, Format);
-  if ( (*(unsigned char *)&((script_t *)script)->flags & 2) == 0 )
-  {
-    vsprintf(Buffer, Format, va);
-    botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
-  }
+  vsprintf(Buffer, Format, va);
+  botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
 }
 //----- (1003E3C0) --------------------------------------------------------
 //----- (1003E3C0) --------------------------------------------------------
@@ -1130,9 +1128,9 @@ void __cdecl ResetScript(script_t *script)
   script->script_p = script->buffer;
   script->lastscript_p = script->buffer;
   script->whitespace_p = NULL;
-  script->punctuationtable = NULL;
+  script->endwhitespace_p = NULL;
+  script->tokenavailable = 0;
   script->line = 1;
   script->lastline = 1;
-  script->tokenavailable = 0;
   memset(&script->token, 0, sizeof(token_t));
 } //end of the function ResetScript

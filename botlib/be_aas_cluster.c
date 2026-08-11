@@ -505,8 +505,8 @@ int AAS_FindPossiblePortals()
   int i; // esi
   int numpossibleportals; // edi
 
-  i = 1;
-  for ( numpossibleportals = 0; i < aasworld.numareas; ++i )
+  numpossibleportals = 0;
+  for ( i = 1; i < aasworld.numareas; ++i )
     numpossibleportals += AAS_CheckAreaForPossiblePortals(i);
   return botimport.Print(PRT_MESSAGE, "\r%6d possible portals\n", numpossibleportals);
 }

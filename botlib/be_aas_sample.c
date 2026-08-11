@@ -806,8 +806,8 @@ void __cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
   {
     do
     {
-      prev = result->prev_ent;
       v3 = result->next_area;
+      prev = result->prev_ent;
       if ( prev )
         prev->next_ent = result->next_ent;
       else

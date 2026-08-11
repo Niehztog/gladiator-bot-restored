@@ -170,7 +170,7 @@ struct scriptcrc_s *dword_10063F2C; // weak
 /* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C
  * list: on a name hit return the strcmpi result of that record, else allocate a
  * scriptcrc_t, store hash+name and insert it alphabetically. */
-void __cdecl sub_100376B0(char *String1, __int16 a2)
+void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
 {
   scriptcrc_t *v2; // esi
   scriptcrc_t *v5;
@@ -229,7 +229,7 @@ LABEL_14:
 }
 
 //----- (100377E0) --------------------------------------------------------
-int __cdecl sub_100377E0(char *String1, __int16 a2)
+int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
 {
   _WORD *v2;
 

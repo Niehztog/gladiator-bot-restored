@@ -15,7 +15,7 @@
 /* scriptcrc_t — record in the dword_10063F2C list holding a (filename,
  * CRC-hash) pair, so the engine can warn when a script's CRC changes. */
 typedef struct scriptcrc_s {
-    __int16              hash;            /* +0   CRC-16 of the file body  */
+    unsigned __int16     hash;            /* +0   CRC-16 of the file body  */
     char                 name[146];       /* +2   filename (zero-terminated) */
     struct scriptcrc_s  *next;            /* +148 on 32-bit; offset moves to +152 on 64-bit */
 } scriptcrc_t;                            /* sizeof = 152 on 32-bit, 160 on 64-bit */
@@ -145,8 +145,8 @@ bot_export_t *GetBotAPI(bot_import_t *import);
 int Sys_MilliSeconds();
 qboolean __cdecl ValidClientNumber(int num, const char *str);
 qboolean __cdecl ValidEntityNumber(int num, const char *str);
-void __cdecl sub_100376B0(char *String1, __int16);
-int __cdecl sub_100377E0(char *String1, __int16);
+void __cdecl sub_100376B0(char *String1, unsigned __int16);
+int __cdecl sub_100377E0(char *String1, unsigned __int16);
 int __cdecl sub_10037820(char *name, const unsigned char *buf, int len);
 int __cdecl sub_10037850(char *String1, const unsigned char *, int);
 void __cdecl sub_10037880(void);
