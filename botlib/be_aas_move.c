@@ -136,21 +136,23 @@ int __cdecl sub_1000F130(vec3_t origin)
 
   p[0] = origin[0];
   p[1] = origin[1];
-  p[2] = origin[2] + 48.0f;
+  p[2] = origin[2];
+  p[2] += 48.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
   p[0] += 8.0f;
   p[1] += 8.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
-  p[0] -= 16.0f;
+  p[0] += -16.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
-  p[1] -= 16.0f;
+  p[1] += -16.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
   p[0] += 16.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
   p[0] -= 8.0f;
   p[1] += 8.0f;
   p[2] -= 48.0f;
-  return ((unsigned)sub_10003080(p) >> 29) & 1;
+  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  return 0;
 }
 //----- (1000F2C0) --------------------------------------------------------
 int __cdecl AAS_AgainstLadder(vec3_t origin)
