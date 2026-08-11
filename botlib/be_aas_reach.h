@@ -72,7 +72,7 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
 int AAS_SetupReachabilityHeap();
 void AAS_ShutDownReachabilityHeap();
-int AAS_StoreReachability();
+void AAS_StoreReachability();
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2);
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);

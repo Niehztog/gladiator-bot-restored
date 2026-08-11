@@ -2824,7 +2824,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   }
 }
 //----- (100187E0) --------------------------------------------------------
-int AAS_StoreReachability()
+void AAS_StoreReachability()
 {
   int i;
   aas_areasettings_t *areasettings;
@@ -2855,7 +2855,6 @@ int AAS_StoreReachability()
     }
     aasworld.reachabilitysize += areasettings->numreachableareas;
   }
-  return aasworld.reachabilitysize;
 }
 //----- (10018920) --------------------------------------------------------
 int AAS_ContinueInitReachability(int time)

@@ -116,7 +116,7 @@ extern botstate_block_t botstate;
 extern bot_export_t bot_exports;
 
 qboolean __cdecl BotLibSetup(const char *str);
-int BotSetupMoveAI();
+void BotSetupMoveAI();
 int Export_BotAddPointLight(int *origin, int ent, float radius,
                              float r, float g, float b, float time, float decay);
 int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,

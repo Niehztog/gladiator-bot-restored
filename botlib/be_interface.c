@@ -330,10 +330,8 @@ char *Export_BotVersion(void)
 }
 
 //----- (10037A00) --------------------------------------------------------
-int BotSetupMoveAI()
+void BotSetupMoveAI()
 {
-  libvar_t *result;
-
   libvar_sv_friction = LibVar("sv_friction", (char *)"6");
   libvar_sv_stopspeed = LibVar("sv_stopspeed", (char *)"100");
   libvar_sv_gravity = LibVar("sv_gravity", (char *)"800");
@@ -350,8 +348,6 @@ int BotSetupMoveAI()
   libvar_sv_maxsteepness = LibVar("sv_maxsteepness", (char *)"0.7");
   libvar_sv_jumpvel = LibVar("sv_jumpvel", (char *)"224");
   libvar_sv_maxwaterjump = LibVar("sv_maxwaterjump", (char *)"21");
-  result = libvar_sv_maxwaterjump;
-  return (intptr_t)result;
 }
 
 /* ---- SLOT 1 — BotSetupLibrary (0x10037BB0) ------------------------------ */
