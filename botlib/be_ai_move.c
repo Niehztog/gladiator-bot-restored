@@ -350,11 +350,11 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
 //----- (10031380) --------------------------------------------------------
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 {
-  vec3_t angles; // [esp+4h] [ebp-3Ch] BYREF
-  vec3_t mins; // [esp+10h] [ebp-30h] BYREF
-  vec3_t maxs; // [esp+1Ch] [ebp-24h] BYREF
-  vec3_t mids; // [esp+28h] [ebp-18h] BYREF
-  vec3_t origin; // [esp+34h] [ebp-Ch] BYREF
+  vec3_t mins; // BYREF
+  vec3_t maxs; // BYREF
+  vec3_t origin; // BYREF
+  vec3_t mids; // BYREF
+  vec3_t angles; // BYREF
 
   angles[0] = 0;
   angles[1] = 0;
@@ -362,9 +362,7 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
   if ( reach->traveltype == 11 )
   {
     AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, (float *)origin);
-    *(float *)mids = mins[0] + maxs[0];
-    mids[1] = mins[1] + maxs[1];
-    mids[2] = mins[2] + maxs[2];
+    VectorAdd(mins, maxs, mids);
     VectorMA((float *)origin, 0.5, (float *)mids, bottomcenter);
     bottomcenter[2] = reach->start[2];
   }
@@ -465,18 +463,14 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
  * the swim path ignores `type`. */
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
-  int v3; // edx
-  int v4; // eax
   /* int[3]: the stores are raw 32-bit copies of dir's float bit patterns.  As
    * float[3] they become int->float conversions and the swim direction is
    * destroyed (0.5f becomes ~1.06e9). */
   int normdir[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  v3 = *(int *)&dir[1];
-  v4 = *(int *)&dir[2];
   normdir[0] = *(int *)&dir[0];
-  normdir[1] = v3;
-  normdir[2] = v4;
+  normdir[1] = *(int *)&dir[1];
+  normdir[2] = *(int *)&dir[2];
   VectorNormalize((float *)normdir);
   EA_Move(ms->client, (float *)normdir, speed);
   return 1;
@@ -711,10 +705,10 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
 // original DLL; Q3 cognate in be_ai_move.c.
 bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  bot_moveresult_t moveresult;
   vec3_t hordir;
   float dist;
   float speed;
+  bot_moveresult_t moveresult;
 
   BotClearMoveResult(&moveresult);
   hordir[0] = reach->end[0] - ms->origin[0];
@@ -835,9 +829,7 @@ bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachabili
   VectorCopy(dir, hordir);
   hordir[2] = 0.0;
   v4 = rand();
-  dir[2] = (2 * ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)) * 40.0
-         + dir[2]
-         + 15.0;
+  dir[2] += 15.0 + (2 * ((float)(v4 & 0x7FFF) * 0.000030518509f - 0.5)) * 40.0;
   VectorNormalize(dir);
   dist = VectorNormalize(hordir);
   EA_MoveForward(ms->client);
@@ -868,18 +860,11 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
     {
       VectorSubtract(reach->end, ms->origin, dir);
       v6 = rand();
-      dir[0] = (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5))
-             * 10.0
-             + dir[0];
+      dir[0] += (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
       v7 = rand();
-      dir[1] = (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5))
-             * 10.0
-             + dir[1];
+      dir[1] += (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
       v8 = rand();
-      dir[2] = (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5))
-             * 10.0
-             + dir[2]
-             + 70.0;
+      dir[2] += 70.0 + (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
       VectorNormalize(dir);
       EA_Move(ms->client, dir, 400.0f);
       vectoangles(dir, moveresult.ideal_viewangles);

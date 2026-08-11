@@ -86,8 +86,8 @@ int __cdecl EA_Command(int client, char *command, ...)
   int   n;
 
   args[0] = command;
-  n = 1;
   va_start(ap, command);
+  n = 1;
   while ( n < 10 )
   {
     args[n] = va_arg(ap, char *);

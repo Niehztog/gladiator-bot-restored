@@ -228,8 +228,8 @@ int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata)
   ent = &aasworld.entities[entnum].i;
   VectorCopy(ent->origin, entdata->origin);
   VectorCopy(ent->angles, entdata->angles);
-  VectorAdd(ent->mins, ent->origin, entdata->absmins);
-  VectorAdd(ent->maxs, ent->origin, entdata->absmaxs);
+  VectorAdd(ent->origin, ent->mins, entdata->absmins);
+  VectorAdd(ent->origin, ent->maxs, entdata->absmaxs);
   entdata->solid      = ent->solid;
   result = ent->modelindex - 1;
   entdata->modelnum   = result;

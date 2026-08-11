@@ -784,8 +784,8 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
       corners[0][i] = a2[i];
     }
   }
-  dist1 = corners[0][0]*a3[0] + corners[0][1]*a3[1] + corners[0][2]*a3[2] - a3[3];
-  dist2 = corners[1][0]*a3[0] + corners[1][1]*a3[1] + corners[1][2]*a3[2] - a3[3];
+  dist1 = a3[0]*corners[0][0] + a3[1]*corners[0][1] + a3[2]*corners[0][2] - a3[3];
+  dist2 = a3[0]*corners[1][0] + a3[1]*corners[1][1] + a3[2]*corners[1][2] - a3[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;
@@ -906,10 +906,8 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
  * bounding box, then link it into the AAS area tree. */
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype)
 {
-  vec3_t maxs; // [esp+0h] [ebp-30h] BYREF
-  vec3_t mins; // [esp+Ch] [ebp-24h] BYREF
-  vec3_t newabsmaxs; // [esp+18h] [ebp-18h] BYREF
-  vec3_t newabsmins; // [esp+24h] [ebp-Ch] BYREF
+  vec3_t mins, maxs; // [esp+Ch]/[esp+0h] [ebp-24h]/[ebp-30h] BYREF
+  vec3_t newabsmins, newabsmaxs; // [esp+24h]/[esp+18h] [ebp-Ch]/[ebp-18h] BYREF
 
   AAS_PresenceTypeBoundingBox(presencetype, mins, maxs);
   VectorSubtract(absmins, maxs, newabsmins);

@@ -919,7 +919,7 @@ long double __cdecl ReadSignedFloat(int script)
   {
     ScriptError(script, "expected float value, found %s\n", token.string);
   }
-  return token.floatvalue * sign;
+  return sign * token.floatvalue;
 }
 //----- (1003FEC0) --------------------------------------------------------
 // Signed integer reader: PS_ExpectAnyToken; if token == "-" set sign=-1

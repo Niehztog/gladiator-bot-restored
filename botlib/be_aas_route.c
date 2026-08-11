@@ -80,10 +80,10 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
 void AAS_CreateReversedReachability(void)
 {
   int i, n;
-  char *ptr;
-  aas_areasettings_t *settings;
-  aas_reachability_t *reach;
   aas_reversedlink_t *revlink;
+  aas_reachability_t *reach;
+  aas_areasettings_t *settings;
+  char *ptr;
 
   if ( aasworld.reversedreachability )
     FreeMemory(aasworld.reversedreachability);

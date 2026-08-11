@@ -1790,8 +1790,8 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
       corners[0][i] = absmaxs[i];
     }
   }
-  dist1 = corners[0][0] * p[0] + corners[0][1] * p[1] + corners[0][2] * p[2] - p[3];
-  dist2 = corners[1][0] * p[0] + corners[1][1] * p[1] + corners[1][2] * p[2] - p[3];
+  dist1 = p[0] * corners[0][0] + p[1] * corners[0][1] + p[2] * corners[0][2] - p[3];
+  dist2 = p[0] * corners[1][0] + p[1] * corners[1][1] + p[2] * corners[1][2] - p[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;
@@ -2070,31 +2070,19 @@ void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
   bsp_entity_t *v3; // ebp
   bsp_epair_t  *nextepair; // edi
 
-  v1 = a1;
-  if ( a1 )
+  for ( v1 = a1; v1; v1 = v3 )
   {
-    do
+    v3 = v1->next;
+    for ( epair = v1->epairs; epair; epair = nextepair )
     {
-      epair = v1->epairs;
-      v3 = v1->next;
-      if ( v1->epairs )
-      {
-        do
-        {
-          nextepair = epair->next;
-          if ( epair->key )
-            FreeMemory(epair->key);
-          if ( epair->value )
-            FreeMemory(epair->value);
-          FreeMemory(epair);
-          epair = nextepair;
-        }
-        while ( nextepair );
-      }
-      FreeMemory(v1);
-      v1 = v3;
+      nextepair = epair->next;
+      if ( epair->key )
+        FreeMemory(epair->key);
+      if ( epair->value )
+        FreeMemory(epair->value);
+      FreeMemory(epair);
     }
-    while ( v3 );
+    FreeMemory(v1);
   }
 }
 //----- (100069A0) --------------------------------------------------------
