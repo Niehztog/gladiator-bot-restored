@@ -287,12 +287,19 @@ int Sys_MilliSeconds()
 }
 
 //----- (10037900) --------------------------------------------------------
+/* Q3's form, and the two are NOT interchangeable: the guarded-Print shape puts
+ * the Print in the fall-through and the `return 1` epilogue at the cold end,
+ * which is what gladi386.so has.  The inverted `if (ok) return 1;` spelling
+ * swaps the two and, once inlined, folds the 0/1 the seven Export_* callers
+ * test -- so it cost eight rows, not one. */
 qboolean __cdecl ValidClientNumber(int num, const char *str)
 {
-  if ( num >= 0 && num <= botstate.num_clients )
-    return 1;
-  botimport.Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, botstate.num_clients);
-  return 0;
+  if ( num < 0 || num > botstate.num_clients )
+  {
+    botimport.Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, botstate.num_clients);
+    return 0;
+  }
+  return 1;
 }
 
 //----- (10037950) --------------------------------------------------------
