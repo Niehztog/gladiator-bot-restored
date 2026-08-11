@@ -15,7 +15,7 @@
  * botlib_local.h.  At the end of the file so the types above are
  * already in scope. */
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 */
-int AAS_FreeRoutingCaches(void);  /* sub_10019550 */
+void AAS_FreeRoutingCaches(void);  /* sub_10019550 */
 int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
 extern int numportalcacheupdates;
 extern int numareacacheupdates;
@@ -28,7 +28,7 @@ void AAS_CreateReversedReachability(void);
 void AAS_FreeAllClusterAreaCache(void);
 int AAS_FreeAllPortalCache(void);
 void __cdecl AAS_FreeRoutingCache(void *cache);
-int AAS_FreeRoutingCaches(void);
+void AAS_FreeRoutingCaches(void);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags);
 void AAS_InitClusterAreaCache();

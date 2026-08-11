@@ -310,11 +310,15 @@ void AAS_InitRouting(void)
 // 1000105F: thunk → 0x10018D00 = AAS_InitTravelFlagFromType
 //----- (10019550) --------------------------------------------------------
 /* AAS_FreeRoutingCaches — drop both routing caches: the cluster-area cache,
- * then a tail-call to the portal cache. */
-int AAS_FreeRoutingCaches(void)
+ * then the portal cache.  Neither call site (BotLibLoadMap's re-init path,
+ * AAS_Shutdown) uses the return value, and AAS_FreeAllPortalCache itself
+ * never returns anything meaningful (falls off the end — see its own
+ * comment), so this is void, not int; threading a fake "result" through
+ * costs an extra spill/reload the real .so never has. */
+void AAS_FreeRoutingCaches(void)
 {
   AAS_FreeAllClusterAreaCache();
-  return AAS_FreeAllPortalCache();
+  AAS_FreeAllPortalCache();
 }
 //----- (10019570) --------------------------------------------------------
 /* sub_10019570 — walk both routing caches and free every aas_routingcache_t
