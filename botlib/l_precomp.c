@@ -137,26 +137,22 @@ void __cdecl PC_PushIndent(source_t *source, int type, int skip)
   source->indentstack = ind;
 }
 //----- (10039350) --------------------------------------------------------
-indent_t *__cdecl PC_PopIndent(source_t *source, int *type, int *skip)
+void __cdecl PC_PopIndent(source_t *source, int *type, int *skip)
 {
   indent_t *ind;
 
   *type = 0;
   *skip = 0;
   ind = source->indentstack;
-  if ( ind )
-  {
-    if ( ind->script == source->scriptstack )
-    {
-      *type = ind->type;
-      *skip = ind->skip;
-      source->indentstack = source->indentstack->next;
-      source->skip       -= ind->skip;
-      /* Asm leaves FreeMemory's return value in eax — preserve that here. */
-      return (indent_t *)(uintptr_t)FreeMemory(ind);
-    }
-  }
-  return ind;
+  if ( !ind )
+    return;
+  if ( ind->script != source->scriptstack )
+    return;
+  *type = ind->type;
+  *skip = ind->skip;
+  source->indentstack = source->indentstack->next;
+  source->skip       -= ind->skip;
+  FreeMemory(ind);
 }
 //----- (100393E0) --------------------------------------------------------
 void __cdecl PC_PushScript(source_t *source, script_t *script)
@@ -2382,9 +2378,9 @@ int __cdecl PC_SkipUntilString(source_t *source, char *string)
   return 0;
 }
 //----- (1003DD40) --------------------------------------------------------
-int __cdecl PC_UnreadLastToken(source_t *source)
+void __cdecl PC_UnreadLastToken(source_t *source)
 {
-  return PC_UnreadSourceToken(source, &source->cachedtoken);
+  PC_UnreadSourceToken(source, &source->cachedtoken);
 }
 //----- (1003DD70) --------------------------------------------------------
 /* Pass-through wrapper around PC_UnreadSourceToken — the external
