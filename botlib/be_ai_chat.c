@@ -1220,11 +1220,10 @@ void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
     for ( cm = rc->firstchatmessage; cm; cm = cm->next )
       result = BotCheckChatMessageIntegrety(cm->chatmessage, result);
   }
-  while ( result )
+  for ( ; result; result = next )
   {
     next = result->next;
     FreeMemory(result);
-    result = next;
   }
 }
 //----- (1002CD60) --------------------------------------------------------
