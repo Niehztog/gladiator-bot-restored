@@ -18,7 +18,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, float * origin
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float * velocity);
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart);
 BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent);
-float __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
+double __cdecl AAS_RocketJumpZVelocity(vec3_t origin);
 BOOL __cdecl AAS_Swimming(vec3_t origin);
 void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir);
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage);

@@ -248,8 +248,11 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 //----- (1000F750) --------------------------------------------------------
 /* AAS_RocketJumpZVelocity (was sub_1000F750) — Z-velocity from self-rocketing
  * at `origin`; a one-line wrapper over AAS_WeaponJumpZVelocity with the
- * launcher's 120-unit radius damage. */
-float __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
+ * launcher's 120-unit radius damage.  `double`, not `float`: AAS_BFGJumpZVelocity
+ * immediately below is the same one-line wrapper and byte-matches with `double`,
+ * where the `float` narrowing here made gcc round-trip the callee's ST(0) return
+ * through memory (`fstp DWORD; fld DWORD`) and grow a 4-byte frame for it. */
+double __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
