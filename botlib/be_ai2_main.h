@@ -59,7 +59,6 @@ char *__cdecl ClientName(int client);
 char *__cdecl ClientSkin(int client);
 int Export_BotAIFrame(int a1, float a2);
 int NumBots();
-void BotShutdownDeathmatchAI(void);  
 void sub_100292E0();
 void sub_100293A0(bot_state_t *bs);
 int sub_10029C10();

@@ -95,6 +95,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
 int __cdecl BotSetMovedir(float *angles, float *movedir);
 void BotSetupDeathmatchAI();
+void BotShutdownDeathmatchAI(void);
 int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy);
 void __cdecl BotUpdateInventory(bot_state_t *bs);
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs);

@@ -369,24 +369,24 @@ BOOL __cdecl sub_10021710(int *a1)
 {
   if ( (a1[29] & 0x4002) != 0 )
     return 1;
-  if ( a1[3] < 1 || a1[3] > botstate.num_clients || a1[23] != 255 )
+  if ( a1[3] < 1 || a1[3] > botstate.num_clients )
     return 1;
-  if ( a1[27] < 173 || a1[27] > 197 )
-    return 0;
-  return 1;
+  if ( a1[23] != 255 )
+    return 1;
+  if ( a1[27] >= 173 && a1[27] <= 197 )
+    return 1;
+  return 0;
 }
 //----- (10021780) --------------------------------------------------------
 BOOL __cdecl EntityIsShooting(intptr_t a1)
 {
-  int v1; // eax
   aas_entityinfo_t *ent = (aas_entityinfo_t *)a1;
 
   if ( ent->modelindex != 255 )
     return 0;
-  v1 = ent->frame;
-  if ( v1 < 46 || v1 > 53 )
-    return 0;
-  return 1;
+  if ( ent->frame >= 46 && ent->frame <= 53 )
+    return 1;
+  return 0;
 }
 //----- (100217C0) --------------------------------------------------------
 char *__cdecl stristr(char *str, char *charset)
@@ -3084,3 +3084,13 @@ void BotSetupDeathmatchAI()
   }
   dword_1006446C = 1;
 }
+//----- (10028E80) --------------------------------------------------------
+/* Empty in the original.  Q3's ai_dmq3.c pairs BotShutdownDeathmatchAI right
+ * after BotSetupDeathmatchAI in the same file (it clears altroutegoals_setup
+ * there); the ELF oracle confirms the same adjacency here -- F814
+ * (BotSetupDeathmatchAI, 592 B) ends at exactly the byte F815
+ * (BotShutdownDeathmatchAI, 1 B) begins, with zero gap.  Defining it in
+ * be_ai2_main.c let gcc -O6 auto-inline the empty body away at its only call
+ * site (BotShutdownLibrary); keeping it here, where that TU cannot see the
+ * definition, forces the real out-of-line call both binaries have. */
+void BotShutdownDeathmatchAI(void) { /* empty body — original returns immediately */ }
