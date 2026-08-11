@@ -159,7 +159,7 @@ void sub_100032D0()
     bspworld.dword_1006755C = GetClearedMemory(4 * bspworld.numareaportals);
     if ( bspworld.dword_10067560 )
       FreeMemory(bspworld.dword_10067560);
-    bspworld.dword_10067560 = GetClearedMemory(4 * bspworld.numareas * bspworld.numareas);
+    bspworld.dword_10067560 = GetClearedMemory(bspworld.numareas * bspworld.numareas * 4);
   }
 }
 //----- (10003360) --------------------------------------------------------
@@ -1700,8 +1700,8 @@ void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
   {
     do
     {
-      prev = result->prev_ent;
       v3 = result->next_leaf;
+      prev = result->prev_ent;
       if ( prev )
         prev->next_ent = result->next_ent;
       else
@@ -2038,9 +2038,9 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
 {
   script_t *script; // ebp
   token_t token;
-  bsp_entity_t *entities; // edi
   bsp_entity_t *ent; // [esp+10h]
   bsp_epair_t *epair; // ebx
+  bsp_entity_t *entities; // edi
 
   script = LoadScriptMemory(bspworld.dentdata, bspworld.entdatasize, "entdata");
   SetScriptFlags(script, 12);
