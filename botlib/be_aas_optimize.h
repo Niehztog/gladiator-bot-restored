@@ -15,7 +15,7 @@ int AAS_KeepEdge(aas_edge_t *edge);
 int __cdecl AAS_KeepFace(aas_face_t *face);
 void AAS_Optimize(void);
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized);
-int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum);
+void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum);
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum);
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum);
 int __cdecl AAS_OptimizeStore(optimized_t *optimized);

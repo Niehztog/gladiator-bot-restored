@@ -140,11 +140,10 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
     return -optfacenum;
 }
 //----- (10010B40) --------------------------------------------------------
-int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
+void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
   aas_area_t *area; // edx
   aas_area_t *optarea; // ebx
-  int result; // eax
   int i; // esi
   int optfacenum; // eax
 
@@ -153,25 +152,16 @@ int __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
   memcpy(optarea, area, 0x30u);
   optarea->numfaces = 0;
   optarea->firstface = optimized->faceindexsize;
-  result = area->numfaces;
-  i = 0;
-  if ( result > 0 )
+  for ( i = 0; i < area->numfaces; ++i )
   {
-    while ( 1 )
+    optfacenum = AAS_OptimizeFace(optimized, aasworld.faceindex[area->firstface + i]);
+    if ( optfacenum )
     {
-      optfacenum = AAS_OptimizeFace(optimized, aasworld.faceindex[i + area->firstface]);
-      if ( optfacenum )
-      {
-        optimized->faceindex[optarea->numfaces + optarea->firstface] = optfacenum;
-        ++optarea->numfaces;
-        ++optimized->faceindexsize;
-      }
-      result = (intptr_t)area;
-      if ( ++i >= area->numfaces )
-        break;
+      optimized->faceindex[optarea->firstface + optarea->numfaces] = optfacenum;
+      ++optarea->numfaces;
+      ++optimized->faceindexsize;
     }
   }
-  return result;
 }
 //----- (10010C10) --------------------------------------------------------
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
