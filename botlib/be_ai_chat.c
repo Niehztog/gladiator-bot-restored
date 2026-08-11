@@ -1993,9 +1993,8 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
             botimport.Print(PRT_ERROR, "BotConstructChat: message %s variable %d out of range\n", message, num);
             return;
           }
-          if ( vars[num].str )
+          if ( (ptr = vars[num].str) != NULL )
           {
-            ptr = vars[num].str;
             for ( i = 0; i < vars[num].len; ++i )
               temp[i] = ptr[i];
             temp[i] = 0;
