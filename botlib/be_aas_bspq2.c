@@ -47,14 +47,38 @@ bspworld_t bspworld;
 //----- (10003010) --------------------------------------------------------
 /* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
  * Returns bsp_trace_t BY VALUE, as both Q3 botlib and the game-side import
- * prototype do; MSVC lowers that to a hidden caller-allocated return buffer, so
- * `return *bi_Trace(...)` is the single rep-movs copy the disasm shows. */
+ * prototype do; MSVC lowers that to a hidden caller-allocated return buffer.
+ *
+ * The Windows DLL (0x10003010, Jul 18 1999 build) and the Linux .so (F680,
+ * Aug 2 1999 build -- see .claude/memory/asm_matching_project.md) disassemble
+ * to two DIFFERENT bodies here, not just different codegen for one body:
+ *   - DLL: `return *botimport.Trace(&bsptrace, start, mins, maxs, end,
+ *     passent, contentmask);` -- a hidden-retbuf local plus a qmemcpy, exactly
+ *     matching the IDA decompilation of sub_10003010 (calls dword_10063FEC,
+ *     i.e. botimport.Trace, then `qmemcpy(a1, v7, 0x54u)`).
+ *   - .so: calls AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs,
+ *     end, passent, contentmask) DIRECTLY -- no botimport indirection, no
+ *     local trace buffer/copy at all (`sub esp,0xc` vs the DLL path's much
+ *     larger frame). modelnum 0 is the world model, and a shared {0,0,0}
+ *     local supplies both modelorigin/angles (world has no origin/rotation).
+ * Both are genuine, verified against each real disassembly -- this is the
+ * two-week source drift the memory note documents elsewhere in this file
+ * (RotatePoint, AAS_ClusterAreaNum, etc.), not a reconstruction ambiguity. */
+#ifdef _WIN32
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
   bsp_trace_t bsptrace;
 
   return *botimport.Trace(&bsptrace, start, mins, maxs, end, passent, contentmask);
 }
+#else  /* !_WIN32 -- gladi386.so calls straight into AAS_TraceBSPModel, no botimport.Trace */
+bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
+{
+  vec3_t zero_vec = { 0, 0, 0 };
+
+  return AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs, end, passent, contentmask);
+}
+#endif /* _WIN32 */
 //----- (100030A0) --------------------------------------------------------
 /* BSP-leaf link heap — the Q3 cognate is be_aas_sample.c's
  * AAS_InitAASLinkHeap / AAS_AllocAASLink / AAS_DeAllocAASLink, but those names
