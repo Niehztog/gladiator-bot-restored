@@ -128,14 +128,13 @@ void __cdecl EA_Respawn(int client)
 //----- (10037350) --------------------------------------------------------
 /* EA_Jump — set ACTION_JUMP only while the EA_JUMPEDLASTFRAME latch is clear;
  * if it is set, clear ACTION_JUMP instead so the engine sees a key release. */
-char __cdecl EA_Jump(int client)
+void __cdecl EA_Jump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   if ( ea->flags & EA_JUMPEDLASTFRAME )
     ea->flags &= ~ACTION_JUMP;
   else
     ea->flags |= ACTION_JUMP;
-  return (char)ea->flags;
 }
 //----- (10037390) --------------------------------------------------------
 /* EA_DelayedJump — set ACTION_DELAYEDJUMP (0x200), jump-latch gated like

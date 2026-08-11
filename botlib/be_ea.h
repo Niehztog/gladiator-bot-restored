@@ -51,7 +51,7 @@ int __cdecl EA_DelayedJump(int client);
 void __cdecl EA_DropInv(int client, char *inv);
 void __cdecl EA_DropItem(int client, char *it);
 void __cdecl EA_EndRegular(int client, float thinktime);
-char __cdecl EA_Jump(int client);
+void __cdecl EA_Jump(int client);
 void __cdecl EA_Move(int client, vec3_t dir, float speed);
 void __cdecl EA_MoveBack(int client);
 void __cdecl EA_MoveDown(int client);
