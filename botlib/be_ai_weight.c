@@ -101,22 +101,16 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 // own node). LIVE: paired with FreeWeightConfig2 on bot teardown.
 void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
 {
-  fuzzyseperator_t *v1; // esi
   fuzzyseperator_t *v2; // edi
 
-  v1 = fs;
   if ( fs )
   {
-    while ( 1 )
-    {
-      if ( v1->child )
-        FreeFuzzySeperators_r(v1->child);
-      v2 = v1->next;
-      FreeMemory(v1);
-      if ( !v2 )
-        break;
-      v1 = v2;
-    }
+    if ( fs->child )
+      FreeFuzzySeperators_r(fs->child);
+    v2 = fs->next;
+    FreeMemory(fs);
+    if ( v2 )
+      FreeFuzzySeperators_r(v2);
   }
 }
 //----- (100359B0) --------------------------------------------------------
@@ -423,13 +417,10 @@ qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 // Recursively serialise a decision-tree subtree as nested `switch`/`case`
 // blocks. DEAD in Gladiator (only self-recursive callers); GA-pipeline
 // counterpart of ReadFuzzySeperators_r. Live in Q3.
-qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int a2, int indent)
+qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int indent)
 {
-  fuzzyseperator_t *fs;
-
   if ( !WriteIndent(fp, indent) )
     return 0;
-  fs = (fuzzyseperator_t *)a2;
   if ( fprintf(fp, "switch(%d)\n", fs->index) < 0 )
     return 0;
   if ( !WriteIndent(fp, indent) )
@@ -458,7 +449,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int a2, int indent)
         return 0;
       if ( fprintf(fp, "{\n") < 0 )
         return 0;
-      if ( !WriteFuzzySeperators_r(fp, (int)fs->child, indent + 1) )
+      if ( !WriteFuzzySeperators_r(fp, fs->child, indent + 1) )
         return 0;
       if ( !WriteIndent(fp, indent) )
         return 0;
@@ -516,7 +507,7 @@ int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
       return 0;
     if ( w->firstseperator->index > 0 )
     {
-      if ( !WriteFuzzySeperators_r(fp, (int)w->firstseperator, 1) )
+      if ( !WriteFuzzySeperators_r(fp, w->firstseperator, 1) )
         return 0;
     }
     else

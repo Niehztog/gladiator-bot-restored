@@ -136,9 +136,9 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
   wc = (weaponconfig_t *)GetClearedMemory(sizeof(weaponconfig_t) +
                                           max_weaponinfo * sizeof(weaponinfo_t) +
                                           max_projectileinfo * sizeof(projectileinfo_t));
-  wc->numweapons      = 0;
   wc->weaponinfo      = (weaponinfo_t *)(wc + 1);
   wc->projectileinfo  = (projectileinfo_t *)(wc->weaponinfo + max_weaponinfo);
+  wc->numweapons      = 0;
   wc->numprojectiles  = 0;
   //parse the source file
   while ( PC_ReadTokenHandle(source, token.string) )

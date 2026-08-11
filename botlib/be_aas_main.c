@@ -168,8 +168,8 @@ indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
   const char *v5; // edi
 
   list = (indexlist_t *)GetClearedMemory(sizeof(indexlist_t) + numindexes * sizeof(char *));
-  list->numindexes = numindexes;
   list->indexes = (char **)(list + 1);
+  list->numindexes = numindexes;
   for ( v4 = 0; v4 < numindexes; ++v4 )
   {
     v5 = names[v4];

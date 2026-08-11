@@ -2061,8 +2061,8 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
     {
       bs->ltgtype = 5;
       v1 = AAS_Time();
-      *(int *)&bs->rushbaseaway_time = 0;
       bs->teamgoal_time = v1 + 120.0f;
+      *(int *)&bs->rushbaseaway_time = 0;
     }
   }
 }

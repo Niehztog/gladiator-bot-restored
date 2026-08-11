@@ -2467,9 +2467,9 @@ int AAS_SetWeaponJumpAreaFlags()
   const char *v2; // eax
   const char *classname; // edi
   int areanum; // eax
-  vec3_t origin; // [esp+2Ch] [ebp-24h] BYREF
-  vec3_t maxs; // [esp+38h] [ebp-18h] BYREF
-  vec3_t mins; // [esp+44h] [ebp-Ch] BYREF
+  vec3_t mins; // BYREF
+  vec3_t maxs; // BYREF
+  vec3_t origin; // BYREF
 
   /* Float literals, not the decompiler's raw ±15.0f bit patterns: as int
    * literals assigned to a float[3] they convert to ~±1.1e9, leaving the bounds

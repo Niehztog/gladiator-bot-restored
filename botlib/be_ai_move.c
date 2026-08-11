@@ -370,15 +370,15 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 //----- (10031450) --------------------------------------------------------
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
-  float startz; // [esp+10h] [ebp-64h]
   /* end/start are real vec3_t and ALL three components of each are set before
    * every AAS_TraceClientBBox / PointContents call.  Miss the end[1]/end[2]
    * stores and the trace returns a near-random dist, which BotTravel_Walk turns
    * into `speed = 2 * dist` — the bot then crawls and hitches. */
-  vec3_t end; // [esp+14h] [ebp-60h] BYREF — trace end vector
   vec3_t start; // [esp+20h] [ebp-54h] BYREF — trace start vector (was start/v14/v15)
+  vec3_t end; // [esp+14h] [ebp-60h] BYREF — trace end vector
   aas_trace_t trace; // [esp+2Ch] [ebp-48h] (was int v16[9] + char v17[36] hidden return buffer)
   float dist; // [esp+78h] [ebp+4h]
+  float startz; // [esp+10h] [ebp-64h]
 
   VectorCopy(ms->origin, start);
   VectorCopy(ms->origin, end);
@@ -1229,9 +1229,9 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
 bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t locals — see the BotTravel_Walk note. */
-  vec3_t reachdir;    // [esp+14h] [ebp-48h] BYREF (was v6[2]/v7)
-  vec3_t telegoaldir; // [esp+8h] [ebp-54h] BYREF (was v4[2]/v5)
-  vec3_t telegoal;    // [esp+20h] [ebp-3Ch] BYREF (was v8[3])
+  vec3_t telegoal;    // BYREF (was v8[3])
+  vec3_t telegoaldir; // BYREF (was v4[2]/v5)
+  vec3_t reachdir;    // BYREF (was v6[2]/v7)
   bot_moveresult_t moveresult;      // [esp+2Ch] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
