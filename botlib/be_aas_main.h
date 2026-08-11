@@ -39,7 +39,7 @@ int __cdecl IndexFromModel(char *String2);
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
 void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
-indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6);
+void __cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6);
 void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6);
 intptr_t __cdecl sub_1000E140(char *Source);
 int __cdecl sub_1000E430(char *Source);

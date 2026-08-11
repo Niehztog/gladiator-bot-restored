@@ -214,10 +214,8 @@ int __cdecl sub_1000DBD0(indexlist_t *list)
   return FreeMemory(list);
 }
 //----- (1000DC20) --------------------------------------------------------
-indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6)
+void __cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6)
 {
-  indexlist_t *result; // eax
-
   if ( aasworld.modelindex_table )
     sub_1000DBD0(aasworld.modelindex_table);
   if ( aasworld.soundindex_table )
@@ -226,10 +224,8 @@ indexlist_t *__cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, 
     sub_1000DBD0(aasworld.imageindex_table);
   aasworld.modelindex_table = sub_1000DA80(a1, a2);
   aasworld.soundindex_table = sub_1000DA80(a3, a4);
-  result = sub_1000DA80(a5, a6);
-  aasworld.imageindex_table = result;
+  aasworld.imageindex_table = sub_1000DA80(a5, a6);
   aasworld.indexes_loaded = 1;
-  return result;
 }
 //----- (1000DCC0) --------------------------------------------------------
 void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6)
