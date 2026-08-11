@@ -810,7 +810,9 @@ BOOL __cdecl BotWantsToRetreat(int *bs)
 //----- (10022930) --------------------------------------------------------
 BOOL __cdecl BotWantsToChase(int *bs)
 {
-  return BotAggression((bot_state_t *)bs) > 50.0f;
+  if ( BotAggression((bot_state_t *)bs) > 50.0f )
+    return 1;
+  return 0;
 }
 //----- (10022970) --------------------------------------------------------
 /* Always-true predicate between BotWantsToChase and
