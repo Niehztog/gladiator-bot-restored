@@ -305,10 +305,12 @@ qboolean __cdecl ValidClientNumber(int num, const char *str)
 //----- (10037950) --------------------------------------------------------
 qboolean __cdecl ValidEntityNumber(int num, const char *str)
 {
-  if ( num >= 0 && num <= botstate.num_entities )
-    return 1;
-  botimport.Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, botstate.num_entities);
-  return 0;
+  if ( num < 0 || num > botstate.num_entities )
+  {
+    botimport.Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, botstate.num_entities);
+    return 0;
+  }
+  return 1;
 }
 
 //----- (100379A0) --------------------------------------------------------
