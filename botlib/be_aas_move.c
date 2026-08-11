@@ -41,9 +41,8 @@
 BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 {
   aas_trace_t trace;
-  vec3_t end;
+  vec3_t end, up = {0, 0, 1};
   aas_plane_t *plane;
-  float steepness;
 
   VectorCopy(origin, end);
   end[2] -= 4.0f;
@@ -54,8 +53,7 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   if ( trace.fraction >= 1.0 ) return 0;
   if ( origin[2] - trace.endpos[2] > 2.0f ) return 0;
   plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
-  steepness = plane->normal[2];
-  if ( steepness < libvar_sv_maxsteepness->value ) return 0;
+  if ( DotProduct(plane->normal, up) < libvar_sv_maxsteepness->value ) return 0;
   return 1;
 }
 //----- (1000EFC0) --------------------------------------------------------
