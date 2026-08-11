@@ -81,68 +81,122 @@ void sub_10005640(
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int  AAS_LoadBSPFile(char *FileName, int Offset, int Length); /* be_aas_bspq2.c 0x10007D30 */
-extern int dword_100674C0;
-/* ---------------------------------------------------------------------------
- * Q2 BSP lump globals @ VA 0x100674C4..0x10067554.  Names and declaration order
- * match Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.  Lumps with a real
- * record type use their typed q2files.h pointer and are indexed as arrays; only
- * the genuinely untyped blobs (dvisdata, dlightdata, dentdata) stay byte
- * pointers.  The one remaining byte-view is the dmodels walk in Q2_SwapBSPFile.
- * ------------------------------------------------------------------------- */
-extern int nummodels;
-extern dmodel_t *dmodels;
-extern int visdatasize;
-extern char *dvisdata;
-extern dvis_t *dvis;
-extern int lightdatasize;
-extern char *dlightdata;
-extern int entdatasize;
-extern unsigned char *dentdata;
-extern int numleafs;
-extern dleaf_t *dleafs;
-extern int numplanes;
-extern dplane_t *dplanes;
-extern int numvertexes;
-extern dvertex_t *dvertexes;
-extern int numnodes;
-extern dnode_t *dnodes;
-extern int numtexinfo;
-extern texinfo_t *texinfo;
-extern int numfaces;
-extern dface_t *dfaces;
-extern int numedges;
-extern dedge_t *dedges;
-extern int numleaffaces;
-extern unsigned short *dleaffaces;
-extern int numleafbrushes;
-extern unsigned short *dleafbrushes;
-extern int numsurfedges;
-extern int *dsurfedges;
-extern int numbrushes;
-extern dbrush_t *dbrushes;
-extern int numbrushsides;
-extern dbrushside_t *dbrushsides;
-extern int numareas;
-extern darea_t *dareas;
-extern int numareaportals;
-extern dareaportal_t *dareaportals;
-/* 0x10067558..0x10067560 — three Gladiator-specific AAS precompute pointers
- * after the standard Q2 lumps; no cognate in l_bsp_q2.c, so left unnamed. */
-extern char *dword_10067558;
-                      // 8*numfaces, built by CalcSurfaceExtents (Q1 model.c cognate),
-                      // read by RecursiveLightPoint.  NOT a PVS table.
-extern char *dword_1006755C;
-extern char *dword_10067560;
-extern char byte_10067564[8192];
-extern int dword_10069564;
-extern int dword_10069568;
-extern float flt_1006956C;
-extern float flt_10069570;
-extern float flt_10069574;
-extern bsp_link_t *dword_10069578;
-extern int dword_1006957C;
-extern bsp_link_t *dword_10069580;
-extern bsp_link_t **dword_10069584;
+
+/* bspworld_t — the Q2 BSP/CM (collision-model) file-format data used by this
+ * TU's runtime BSP loader/queries (AAS_LoadBSPFile, CM_PointLeafnum,
+ * CM_TraceThroughLeaf, AAS_InPVS, ...): ONE contiguous 8392-byte (0x20C8)
+ * BSS struct at VA 0x100674C0..0x10069588, confirmed against the Linux
+ * gladi386.so's exported data symbol (`readelf --dyn-syms`: `10: 0005dd8c
+ * 8392 OBJECT GLOBAL DEFAULT 18 bspworld`), which also gives the real
+ * variable's name.  Reconstructed until now as 51 separate standalone
+ * globals; those tile this exact byte range with zero gaps or overlaps
+ * (verified field-by-field against the symbol's address+size), which is
+ * strong independent evidence they were always members of one struct, not
+ * one apiece.  Splitting them into separate globals changes codegen for any
+ * function that computes a struct-member offset off one base pointer: the
+ * real code emits a single-base offset access, ours emitted independent
+ * absolute addresses.  Confirmed culprit behind sub_100031B0's
+ * (dword_10069580, +0x2C0) and sub_10005CC0's (dword_10067560, +0xA0)
+ * divergences; likely explains others in this TU.
+ *
+ * Field names/order for the 37 standard Q2 BSP lumps (nummodels..
+ * dareaportals) match Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.
+ * Lumps with a real record type use their typed q2files.h pointer and are
+ * indexed as arrays; only the genuinely untyped blobs (dvisdata, dlightdata,
+ * dentdata) stay byte pointers.  The one remaining byte-view is the dmodels
+ * walk in Q2_SwapBSPFile.  Those fields keep their established names
+ * unchanged.  The remaining 14 fields have no l_bsp_q2.c cognate --
+ * Gladiator-specific runtime precompute/cache state added on top of the
+ * standard lumps -- and keep their existing decompiled dword_/byte_/flt_
+ * names (same policy be_aas_def.h's aas_world_t already uses for its own
+ * still-unclear fields, e.g. `d_100669C0`). */
+typedef struct bspworld_s {
+    int            dword_100674C0;  /* +0x000 (VA 0x100674C0) "BSP loaded" guard flag; no l_bsp_q2.c cognate */
+    int            nummodels;       /* +0x004 (VA 0x100674C4) */
+    dmodel_t      *dmodels;         /* +0x008 (VA 0x100674C8) */
+    int            visdatasize;     /* +0x00C (VA 0x100674CC) */
+    char          *dvisdata;        /* +0x010 (VA 0x100674D0) */
+    dvis_t        *dvis;            /* +0x014 (VA 0x100674D4) dvis_t* alias of dvisdata */
+    int            lightdatasize;   /* +0x018 (VA 0x100674D8) */
+    char          *dlightdata;      /* +0x01C (VA 0x100674DC) */
+    int            entdatasize;     /* +0x020 (VA 0x100674E0) */
+    unsigned char *dentdata;        /* +0x024 (VA 0x100674E4; was int in 32-bit binary) */
+    int            numleafs;        /* +0x028 (VA 0x100674E8) */
+    dleaf_t       *dleafs;          /* +0x02C (VA 0x100674EC) */
+    int            numplanes;       /* +0x030 (VA 0x100674F0) */
+    dplane_t      *dplanes;         /* +0x034 (VA 0x100674F4) */
+    int            numvertexes;     /* +0x038 (VA 0x100674F8) */
+    dvertex_t     *dvertexes;       /* +0x03C (VA 0x100674FC) */
+    int            numnodes;        /* +0x040 (VA 0x10067500) */
+    dnode_t       *dnodes;          /* +0x044 (VA 0x10067504) */
+    int            numtexinfo;      /* +0x048 (VA 0x10067508) */
+    texinfo_t     *texinfo;         /* +0x04C (VA 0x1006750C) */
+    int            numfaces;        /* +0x050 (VA 0x10067510) */
+    dface_t       *dfaces;          /* +0x054 (VA 0x10067514) */
+    int            numedges;        /* +0x058 (VA 0x10067518) */
+    dedge_t       *dedges;          /* +0x05C (VA 0x1006751C) */
+    int            numleaffaces;    /* +0x060 (VA 0x10067520) */
+    unsigned short *dleaffaces;     /* +0x064 (VA 0x10067524) */
+    int            numleafbrushes;  /* +0x068 (VA 0x10067528) */
+    unsigned short *dleafbrushes;   /* +0x06C (VA 0x1006752C) */
+    int            numsurfedges;    /* +0x070 (VA 0x10067530) */
+    int           *dsurfedges;      /* +0x074 (VA 0x10067534) */
+    int            numbrushes;      /* +0x078 (VA 0x10067538) */
+    dbrush_t      *dbrushes;        /* +0x07C (VA 0x1006753C) */
+    int            numbrushsides;   /* +0x080 (VA 0x10067540) */
+    dbrushside_t  *dbrushsides;     /* +0x084 (VA 0x10067544) */
+    int            numareas;        /* +0x088 (VA 0x10067548) */
+    darea_t       *dareas;          /* +0x08C (VA 0x1006754C) */
+    int            numareaportals;  /* +0x090 (VA 0x10067550) */
+    dareaportal_t *dareaportals;    /* +0x094 (VA 0x10067554) */
+    /* 0x098..0x0A0 -- three Gladiator-specific AAS precompute pointers after
+     * the standard Q2 lumps; no cognate in l_bsp_q2.c, so left unnamed. */
+    char *dword_10067558;  /* +0x098 (VA 0x10067558) per-face {short texturemins[2];
+                             * short extents[2]} table, 8*numfaces, built by
+                             * CalcSurfaceExtents (Q1 model.c cognate), read by
+                             * RecursiveLightPoint.  NOT a PVS table. */
+    char *dword_1006755C; /* +0x09C (VA 0x1006755C) pointer */
+    char *dword_10067560; /* +0x0A0 (VA 0x10067560) pointer */
+    char  byte_10067564[8192]; /* +0x0A4 (VA 0x10067564) AAS_DecompressVis's
+                                 * output row buffer (Q2 CM_DecompressVis's
+                                 * static `decompressed[]` cognate) */
+    int   dword_10069564;  /* +0x20A4 (VA 0x10069564) last-decompressed cluster
+                              * (AAS_DecompressVis early-out cache) */
+    int   dword_10069568;  /* +0x20A8 (VA 0x10069568) weak; written only, from
+                              * dleaf_t.area in AAS_InPVS's point-cache path */
+    float flt_1006956C;    /* +0x20AC (VA 0x1006956C) AAS_InPVS point cache x */
+    float flt_10069570;    /* +0x20B0 (VA 0x10069570) AAS_InPVS point cache y */
+    float flt_10069574;    /* +0x20B4 (VA 0x10069574) AAS_InPVS point cache z */
+    bsp_link_t  *dword_10069578; /* +0x20B8 (VA 0x10069578) bsp_linkheap (pool base) */
+    int          dword_1006957C; /* +0x20BC (VA 0x1006957C) bsp_linkheapsize (count) */
+    bsp_link_t  *dword_10069580; /* +0x20C0 (VA 0x10069580) bsp_freelinks (head of free list) */
+    bsp_link_t **dword_10069584; /* +0x20C4 (VA 0x10069584) bsp_leaflinks (per-leaf list-heads array) */
+} bspworld_t;                    /* sizeof == 0x20C8 == 8392 */
+
+/* Offset checks vs the original binary's VA layout.  32-bit only -- every
+ * offset past the first pointer field shifts on 64-bit. */
+#include <stddef.h>  /* offsetof */
+#if __SIZEOF_POINTER__ == 4
+_Static_assert(sizeof(bspworld_t) == 0x20C8,                        "bspworld_t size");
+_Static_assert(offsetof(bspworld_t, dword_100674C0) == 0x000,       "dword_100674C0");
+_Static_assert(offsetof(bspworld_t, nummodels)      == 0x004,       "nummodels");
+_Static_assert(offsetof(bspworld_t, numleafs)       == 0x028,       "numleafs");
+_Static_assert(offsetof(bspworld_t, numplanes)      == 0x030,       "numplanes");
+_Static_assert(offsetof(bspworld_t, numtexinfo)     == 0x048,       "numtexinfo");
+_Static_assert(offsetof(bspworld_t, numfaces)       == 0x050,       "numfaces");
+_Static_assert(offsetof(bspworld_t, numbrushes)     == 0x078,       "numbrushes");
+_Static_assert(offsetof(bspworld_t, numareas)       == 0x088,       "numareas");
+_Static_assert(offsetof(bspworld_t, dareaportals)   == 0x094,       "dareaportals");
+_Static_assert(offsetof(bspworld_t, dword_10067558) == 0x098,       "dword_10067558");
+_Static_assert(offsetof(bspworld_t, byte_10067564)  == 0x0A4,       "byte_10067564");
+_Static_assert(offsetof(bspworld_t, dword_10069564) == 0x20A4,      "dword_10069564");
+_Static_assert(offsetof(bspworld_t, dword_10069578) == 0x20B8,      "dword_10069578");
+_Static_assert(offsetof(bspworld_t, dword_10069584) == 0x20C4,      "dword_10069584");
+#endif /* __SIZEOF_POINTER__ == 4 */
+
+/* Single instance defined in be_aas_bspq2.c; name matches the real Linux
+ * symbol exactly. */
+extern bspworld_t bspworld;
 
 void sub_10005640(
         void *out,

@@ -39,63 +39,10 @@
 #include "l_script.h"
 #include "l_utils.h"
 
-int numplanes;            // 0x100674F0  (was dword_100674F0)
-
-int numvertexes;          // 0x100674F8  (was dword_100674F8)
-
-int numnodes;             // 0x10067500  (was dword_10067500)
-
-int numfaces;             // 0x10067510  (was dword_10067510)
-
-int numedges;             // 0x10067518  (was dword_10067518)
-
-int numareas;             // 0x10067548  (was dword_10067548)
-
-int dword_100674C0; // weak — "BSP loaded" guard flag (no l_bsp_q2.c cognate; left unnamed)
-int nummodels;            // 0x100674C4  (was dword_100674C4)
-dmodel_t *dmodels;        // 0x100674C8  (was dword_100674C8)
-int visdatasize;          // 0x100674CC  (was dword_100674CC)
-char *dvisdata;           // 0x100674D0  (was dword_100674D0)
-dvis_t *dvis;             // 0x100674D4  dvis_t* alias of dvisdata (was dword_100674D4)
-int lightdatasize;        // 0x100674D8  (was dword_100674D8)
-char *dlightdata;         // 0x100674DC  (was dword_100674DC)
-int entdatasize;          // 0x100674E0  (was dword_100674E0)
-unsigned char *dentdata;  // 0x100674E4  (was dword_100674E4; was int in 32-bit binary)
-int numleafs;             // 0x100674E8  (was dword_100674E8)
-dleaf_t *dleafs;          // 0x100674EC  (was dword_100674EC)
-dplane_t *dplanes;        // 0x100674F4  (was dword_100674F4)
-dvertex_t *dvertexes;     // 0x100674FC  (was dword_100674FC)
-dnode_t *dnodes;          // 0x10067504  (was dword_10067504)
-int numtexinfo;           // 0x10067508  (was dword_10067508)
-texinfo_t *texinfo;       // 0x1006750C  (was dword_1006750C)
-dface_t *dfaces;          // 0x10067514  (was dword_10067514)
-dedge_t *dedges;          // 0x1006751C  (was dword_1006751C)
-int numleaffaces;         // 0x10067520  (was dword_10067520)
-unsigned short *dleaffaces; // 0x10067524  (was dword_10067524)
-int numleafbrushes;       // 0x10067528  (was dword_10067528)
-unsigned short *dleafbrushes; // 0x1006752C  (was dword_1006752C)
-int numsurfedges;         // 0x10067530  (was dword_10067530)
-int *dsurfedges;          // 0x10067534  (was dword_10067534)
-int numbrushes;           // 0x10067538  (was dword_10067538)
-dbrush_t *dbrushes;       // 0x1006753C  (was dword_1006753C)
-int numbrushsides;        // 0x10067540  (was dword_10067540)
-dbrushside_t *dbrushsides; // 0x10067544  (was dword_10067544)
-darea_t *dareas;          // 0x1006754C  (was dword_1006754C)
-int numareaportals;       // 0x10067550  (was dword_10067550)
-dareaportal_t *dareaportals; // 0x10067554  (was dword_10067554)
-char *dword_10067558; // per-face {short texturemins[2]; short extents[2]} table,
-char *dword_1006755C; // pointer
-char *dword_10067560; // pointer
-char byte_10067564[8192]; // weak
-int dword_10069564; // weak
-int dword_10069568; // weak
-float flt_1006956C; // weak
-float flt_10069570; // weak
-float flt_10069574; // weak
-bsp_link_t  *dword_10069578; // bsp_linkheap (pool base)
-int          dword_1006957C; // bsp_linkheapsize (count)
-bsp_link_t  *dword_10069580; // bsp_freelinks (head of free list)
-bsp_link_t **dword_10069584; // bsp_leaflinks (per-leaf list-heads array)
+/* bspworld_t is defined in be_aas_bspq2.h (this TU's own header) -- same
+ * split as be_aas_def.h's aas_world_t: type + offset asserts in the header,
+ * single instance here.  See the header for the full discovery writeup. */
+bspworld_t bspworld;
 
 //----- (10003010) --------------------------------------------------------
 /* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
@@ -126,27 +73,27 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
 void sub_100030A0()
 {
   int i;
-  int count = dword_1006957C;
+  int count = bspworld.dword_1006957C;
 
-  if ( !dword_10069578 )
+  if ( !bspworld.dword_10069578 )
   {
     count = (intptr_t)LibVarValue("max_bsplinks", (char *)"4096");
     if ( count < 0 )
       count = 0;
-    dword_1006957C = count;
-    dword_10069578 = (bsp_link_t *)GetMemory(sizeof(bsp_link_t) * count);
+    bspworld.dword_1006957C = count;
+    bspworld.dword_10069578 = (bsp_link_t *)GetMemory(sizeof(bsp_link_t) * count);
   }
   /* Doubly-linked free list via next_ent / prev_ent slots. */
-  dword_10069578[0].prev_ent = NULL;
-  dword_10069578[0].next_ent = &dword_10069578[1];
+  bspworld.dword_10069578[0].prev_ent = NULL;
+  bspworld.dword_10069578[0].next_ent = &bspworld.dword_10069578[1];
   for ( i = 1; i < count - 1; ++i )
   {
-    dword_10069578[i].prev_ent = &dword_10069578[i - 1];
-    dword_10069578[i].next_ent = &dword_10069578[i + 1];
+    bspworld.dword_10069578[i].prev_ent = &bspworld.dword_10069578[i - 1];
+    bspworld.dword_10069578[i].next_ent = &bspworld.dword_10069578[i + 1];
   }
-  dword_10069578[count - 1].prev_ent = &dword_10069578[count - 2];
-  dword_10069578[count - 1].next_ent = NULL;
-  dword_10069580 = dword_10069578;
+  bspworld.dword_10069578[count - 1].prev_ent = &bspworld.dword_10069578[count - 2];
+  bspworld.dword_10069578[count - 1].next_ent = NULL;
+  bspworld.dword_10069580 = bspworld.dword_10069578;
 }
 //----- (100031B0) --------------------------------------------------------
 // Walks the bsp_link freelist headed at dword_10069580, chasing .next_ent and
@@ -159,7 +106,7 @@ void __cdecl sub_100031B0(char *name)
   int count;
 
   count = 0;
-  for ( node = dword_10069580; node; node = node->next_ent )
+  for ( node = bspworld.dword_10069580; node; node = node->next_ent )
     ++count;
   botimport.Print(PRT_MESSAGE, "%d free bsp links, %s\n", count, name);
 }
@@ -169,14 +116,14 @@ bsp_link_t *sub_100031F0()
   bsp_link_t *result;
   bsp_link_t *next;
 
-  result = dword_10069580;
+  result = bspworld.dword_10069580;
   if ( !result )
   {
     botimport.Print(PRT_FATAL, "empty bsp link heap\n");
     return NULL;
   }
   next = result->next_ent;
-  dword_10069580 = next;
+  bspworld.dword_10069580 = next;
   if ( next )
     next->prev_ent = NULL;
   return result;
@@ -184,35 +131,35 @@ bsp_link_t *sub_100031F0()
 //----- (10003240) --------------------------------------------------------
 void __cdecl sub_10003240(bsp_link_t *a1)
 {
-  if ( dword_10069580 )
-    dword_10069580->prev_ent = a1;
+  if ( bspworld.dword_10069580 )
+    bspworld.dword_10069580->prev_ent = a1;
   a1->prev_ent = NULL;
-  a1->next_ent = dword_10069580;
+  a1->next_ent = bspworld.dword_10069580;
   a1->prev_leaf = NULL;
   a1->next_leaf = NULL;
-  dword_10069580 = a1;
+  bspworld.dword_10069580 = a1;
 }
 //----- (10003280) --------------------------------------------------------
 void sub_10003280()  /* InitBSPLinkedEntities */
 {
-  if ( dword_100674C0 )
+  if ( bspworld.dword_100674C0 )
   {
-    if ( dword_10069584 )
-      FreeMemory(dword_10069584);
-    dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * numleafs);
+    if ( bspworld.dword_10069584 )
+      FreeMemory(bspworld.dword_10069584);
+    bspworld.dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * bspworld.numleafs);
   }
 }
 //----- (100032D0) --------------------------------------------------------
 void sub_100032D0()
 {
-  if ( dword_100674C0 )
+  if ( bspworld.dword_100674C0 )
   {
-    if ( dword_1006755C )
-      FreeMemory(dword_1006755C);
-    dword_1006755C = GetClearedMemory(4 * numareaportals);
-    if ( dword_10067560 )
-      FreeMemory(dword_10067560);
-    dword_10067560 = GetClearedMemory(4 * numareas * numareas);
+    if ( bspworld.dword_1006755C )
+      FreeMemory(bspworld.dword_1006755C);
+    bspworld.dword_1006755C = GetClearedMemory(4 * bspworld.numareaportals);
+    if ( bspworld.dword_10067560 )
+      FreeMemory(bspworld.dword_10067560);
+    bspworld.dword_10067560 = GetClearedMemory(4 * bspworld.numareas * bspworld.numareas);
   }
 }
 //----- (10003360) --------------------------------------------------------
@@ -226,26 +173,27 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
   dplane_t *plane;
   int node; // ecx
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
-  node = dmodels[modelnum].headnode;
+  node = bspworld.dmodels[modelnum].headnode;
   while ( node >= 0 )
   {
-    plane = &dplanes[dnodes[node].planenum];
+    int planenum = bspworld.dnodes[node].planenum;
+    plane = &bspworld.dplanes[planenum];
     d = DotProduct(plane->normal, point) - plane->dist;
     if ( d > 0 )
-      node = dnodes[node].children[0];
+      node = bspworld.dnodes[node].children[0];
     else
-      node = dnodes[node].children[1];
+      node = bspworld.dnodes[node].children[1];
   }
   return -1 - node;
 }
 //----- (10003420) --------------------------------------------------------
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum)
 {
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
-  return &dleafs[CM_PointLeafnum(point, modelnum)];
+  return &bspworld.dleafs[CM_PointLeafnum(point, modelnum)];
 }
 //----- (10003460) --------------------------------------------------------
 void __cdecl sub_10003460(vec3_t v, float m[3][3])
@@ -368,7 +316,7 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   vec3_t v40; // [esp+8h] [ebp-E4h] BYREF
   float v39; // [esp+10h] [ebp-DCh]
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
   AAS_EntityBSPData(entnum, &entdata);
   if ( entdata.solid != 2 && entdata.solid != 3 )
@@ -515,10 +463,10 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
   bsp_link_t *i; // esi
   int v10; // [esp+0h] [ebp-4h]
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
   v10 = 0;
-  for ( i = dword_10069584[leafnum]; i; i = i->next_ent )
+  for ( i = bspworld.dword_10069584[leafnum]; i; i = i->next_ent )
   {
     if ( i->entnum != passent )
     {
@@ -604,7 +552,7 @@ int __cdecl CM_TraceThroughBrush(
   {
     while ( 1 )
     {
-      v16 = &dplanes[dbrushsides[v11 + v14->firstside].planenum];
+      v16 = &bspworld.dplanes[bspworld.dbrushsides[v11 + v14->firstside].planenum];
       if ( v39 )
       {
         VectorCopy(v16->normal, normal);
@@ -779,7 +727,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   dbrush_t *v24; // [esp+24h] [ebp+4h]
 
   v9 = 0;
-  v11 = &dleafs[leafnum];
+  v11 = &bspworld.dleafs[leafnum];
   v24 = 0;
   /* Compare against the loop counter v9 (=0), not a literal 0: that is what
    * yields `cmp WORD,bp; jbe` instead of `je`.  Same skip-when-empty result. */
@@ -787,7 +735,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
     goto fail;
   do
   {
-    v13 = &dbrushes[dleafbrushes[v9 + v11->firstleafbrush]];
+    v13 = &bspworld.dbrushes[bspworld.dleafbrushes[v9 + v11->firstleafbrush]];
     if ( (v13->contents & contentmask) != 0
       && CM_TraceThroughBrush(v13, origin, angles, start, boxmins, boxmaxs, end, &trace->fraction, (_DWORD *)&sidenum, &v20, endpos) )
     {
@@ -815,7 +763,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   v16 = sidenum;
   VectorCopy(endpos, trace->endpos);
   trace->sidenum = v16;
-  v17 = &dplanes[dbrushsides[v16].planenum];
+  v17 = &bspworld.dplanes[bspworld.dbrushsides[v16].planenum];
   VectorCopy(v17->normal, trace->plane.normal);
   trace->plane.dist      = v17->dist;
   trace->plane.type      = v17->type;
@@ -985,7 +933,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   trace.allsolid = 0;
   trace.startsolid = 0;
   trace.fraction = 1.0f;
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return trace;
   VectorSubtract(end, start, v128);
   if ( v128[0] > v128[1] )
@@ -1004,7 +952,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v144 = 1;
     AnglesToAxis(angles, v151);
   }
-  v14 = &dmodels[modelnum];
+  v14 = &bspworld.dmodels[modelnum];
   v136[0] = v15 = v14->origin[0] + modelorigin[0];
   v136[1] = v14->origin[1] + modelorigin[1];
   v136[2] = v14->origin[2] + modelorigin[2];
@@ -1059,21 +1007,21 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           if ( v28 >= 0 )
             break;
           v29 = -1 - v28;
-          v30 = &dleafs[v29];
+          v30 = &bspworld.dleafs[v29];
           if ( v30->numleafbrushes && (contentmask & v30->contents) != 0 )
             CM_TraceThroughLeaf(v29, v136, angles, start, boxmins, boxmaxs, end, contentmask, &trace);
-          if ( dword_10069584[v29] )
+          if ( bspworld.dword_10069584[v29] )
             sub_10003BF0(v29, start, boxmins, boxmaxs, end, passent, contentmask, &trace);
         }
           VectorCopy(v25->start, v106);
-          v31 = &dnodes[v28];
+          v31 = &bspworld.dnodes[v28];
           VectorCopy(v25->end, v111);
           v127 = v25->planedist;
           *v27 = TR_ENC(v19);   /* AArch64: link slot must be offset-encoded, not raw ptr */
           v37 = v31->planenum;
           v120 = v31;
           v19 = v25;
-          v38 = &dplanes[v37];
+          v38 = &bspworld.dplanes[v37];
           if ( v144 )
           {
             VectorCopy(v38->normal, v114);
@@ -1442,10 +1390,10 @@ int __cdecl sub_100056D0(dbrush_t *a1, float *a2)
   v12 = a1->numsides;
   if ( v12 <= 0 )
     return 1;
-  i = &dbrushsides[a1->firstside];
+  i = &bspworld.dbrushsides[a1->firstside];
   for ( ; v3 < v12; ++v3, ++i )
   {
-    v5 = &dplanes[i->planenum];
+    v5 = &bspworld.dplanes[i->planenum];
     v6 = v5->type;
     if ( v6 < 3 )
     {
@@ -1480,7 +1428,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   /* one bsp_entdata_t local */
   bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
   v9 = 0;
   VectorSubtract(a1, a3, v11);
@@ -1490,17 +1438,17 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   AnglesToAxis(v12, v13);
   sub_10003460(v11, v13);
   v6 = CM_PointLeafnum(v11, a2);
-  v7 = &dleafs[v6];
+  v7 = &bspworld.dleafs[v6];
   for ( v4 = 0; v4 < v7->numleafbrushes; ++v4 )
   {
     int brushnum;
 
-    brushnum = dleafbrushes[v4 + v7->firstleafbrush];
-    v10 = &dbrushes[brushnum];
+    brushnum = bspworld.dleafbrushes[v4 + v7->firstleafbrush];
+    v10 = &bspworld.dbrushes[brushnum];
     if ( sub_100056D0(v10, v11) )
       return v10->contents;
   }
-  for ( i = dword_10069584[v6]; i; i = i->next_ent )
+  for ( i = bspworld.dword_10069584[v6]; i; i = i->next_ent )
   {
     AAS_EntityBSPData(i->entnum, &entdata);
     if ( *a1 > entdata.absmins[0]
@@ -1541,11 +1489,11 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
   char *in;
   char *out;
 
-  if ( cluster == dword_10069564 )
+  if ( cluster == bspworld.dword_10069564 )
     return;
-  in = dvisdata + dvis->bitofs[cluster][visType];
-  row = (dvis->numclusters + 7) >> 3;
-  out = byte_10067564;
+  in = bspworld.dvisdata + bspworld.dvis->bitofs[cluster][visType];
+  row = (bspworld.dvis->numclusters + 7) >> 3;
+  out = bspworld.byte_10067564;
   do
   {
     if ( *in )
@@ -1566,8 +1514,8 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
       --c;
     }
   }
-  while ( out - byte_10067564 < row );
-  dword_10069564 = cluster;
+  while ( out - bspworld.byte_10067564 < row );
+  bspworld.dword_10069564 = cluster;
 }
 //----- (10005B30) --------------------------------------------------------
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
@@ -1577,13 +1525,13 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
   __int16 v6; // cx
   dleaf_t *v7; // esi
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 1;
-  if ( !visdatasize )
+  if ( !bspworld.visdatasize )
     return 1;
-  if ( flt_1006956C == *a1 && flt_10069570 == a1[1] && flt_10069574 == a1[2] )
+  if ( bspworld.flt_1006956C == *a1 && bspworld.flt_10069570 == a1[1] && bspworld.flt_10069574 == a1[2] )
   {
-    v4 = dword_10069564;
+    v4 = bspworld.dword_10069564;
   }
   else
   {
@@ -1592,17 +1540,17 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
     if ( v6 == -1 )
       return 0;
     v4 = v6;
-    flt_1006956C = *a1;
-    flt_10069570 = a1[1];
-    flt_10069574 = a1[2];
-    dword_10069568 = v5->area;
+    bspworld.flt_1006956C = *a1;
+    bspworld.flt_10069570 = a1[1];
+    bspworld.flt_10069574 = a1[2];
+    bspworld.dword_10069568 = v5->area;
   }
   v7 = sub_10003420(a2, 0);
   if ( v7->cluster == -1 )
     return 0;
   AAS_DecompressVis(v4, a3);
   v6 = v7->cluster;
-  return ((unsigned __int8)byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
+  return ((unsigned __int8)bspworld.byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
 }
 //----- (10005C60) --------------------------------------------------------
 qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2)
@@ -1620,7 +1568,7 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
  * aasworld.clusterareacache/portalcache directly. */
 int __cdecl sub_10005CC0(int a, int b)
 {
-  return ((int **)dword_10067560)[a][b];
+  return ((int **)bspworld.dword_10067560)[a][b];
 }
 //----- (10005CF0) --------------------------------------------------------
 /* sub_10005CF0 — reach-graph propagation over the cluster-routing matrix
@@ -1652,33 +1600,33 @@ void __cdecl sub_10005CF0(int row_index, int value)
   dareaportal_t *portal;
 
   /* Phase A */
-  ((int *)dword_1006755C)[row_index] = value;
+  ((int *)bspworld.dword_1006755C)[row_index] = value;
 
   /* Phase B */
-  for (i = 0; i < numareas; i++) {
-    for (j = 0; j < numareas; j++)
-      ((int **)dword_10067560)[i][j] = 0;
-    ((int **)dword_10067560)[i][i] = 1;
+  for (i = 0; i < bspworld.numareas; i++) {
+    for (j = 0; j < bspworld.numareas; j++)
+      ((int **)bspworld.dword_10067560)[i][j] = 0;
+    ((int **)bspworld.dword_10067560)[i][i] = 1;
 
-    area = &dareas[i];
+    area = &bspworld.dareas[i];
     for (k = 0; k < area->numareaportals; k++) {
       col = area->firstareaportal + k;
-      if (((int *)dword_1006755C)[col] != 0) {
-        portal = &dareaportals[col];
-        ((int **)dword_10067560)[i][portal->otherarea] = 1;
-        ((int **)dword_10067560)[portal->otherarea][i] = 1;
+      if (((int *)bspworld.dword_1006755C)[col] != 0) {
+        portal = &bspworld.dareaportals[col];
+        ((int **)bspworld.dword_10067560)[i][portal->otherarea] = 1;
+        ((int **)bspworld.dword_10067560)[portal->otherarea][i] = 1;
       }
     }
   }
 
   /* Phase C — the faithful Mr. Elusive bug (see banner); DEAD code,
    * never executed. */
-  for (i = 0; i < numareas; i++) {
-    for (j = 0; j < numareas; j++) {
-      while (numareas > 0) {
-        if (((int **)dword_10067560)[i][j] != 0 && ((int **)dword_10067560)[j][0] != 0) {
-          ((int **)dword_10067560)[i][0] = 1;
-          ((int **)dword_10067560)[0][i] = 1;
+  for (i = 0; i < bspworld.numareas; i++) {
+    for (j = 0; j < bspworld.numareas; j++) {
+      while (bspworld.numareas > 0) {
+        if (((int **)bspworld.dword_10067560)[i][j] != 0 && ((int **)bspworld.dword_10067560)[j][0] != 0) {
+          ((int **)bspworld.dword_10067560)[i][0] = 1;
+          ((int **)bspworld.dword_10067560)[0][i] = 1;
         }
         j++;
       }
@@ -1701,19 +1649,19 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   vec3_t bb_mins, bb_maxs;   /* accumulator for the rotated bbox */
   vec3_t axis[3];            /* rotation matrix from angles                 */
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return;
-  if ( modelnum < 0 || modelnum >= nummodels )
+  if ( modelnum < 0 || modelnum >= bspworld.nummodels )
   {
-    botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, nummodels);
+    botimport.Print(PRT_FATAL, "AAS_BSPModelMinsMaxs: modelnum %d out of range [0-%d]", modelnum, bspworld.nummodels);
     if ( mins )   { VectorClear(mins); }
     if ( maxs )   { VectorClear(maxs); }
     if ( origin ) { VectorClear(origin); }
     return;
   }
 
-  VectorCopy(dmodels[modelnum].mins, local_mins);
-  VectorCopy(dmodels[modelnum].maxs, local_maxs);
+  VectorCopy(bspworld.dmodels[modelnum].mins, local_mins);
+  VectorCopy(bspworld.dmodels[modelnum].maxs, local_maxs);
 
   AnglesToAxis(angles, axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
@@ -1736,7 +1684,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   if ( maxs ) { VectorCopy(bb_maxs, maxs); }
   if ( origin )
   {
-    VectorCopy(dmodels[modelnum].origin, origin);
+    VectorCopy(bspworld.dmodels[modelnum].origin, origin);
   }
 }
 //----- (10006090) --------------------------------------------------------
@@ -1757,7 +1705,7 @@ void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
       if ( prev )
         prev->next_ent = result->next_ent;
       else
-        dword_10069584[result->leafnum] = result->next_ent;
+        bspworld.dword_10069584[result->leafnum] = result->next_ent;
       next = result->next_ent;
       if ( next )
         next->prev_ent = result->prev_ent;
@@ -1814,11 +1762,11 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   int v14; // eax
   int v15[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
-  if ( !dword_100674C0 )
+  if ( !bspworld.dword_100674C0 )
     return 0;
   link = 0;
   v6 = &v15[1];
-  v15[0] = dmodels[modelnum].headnode;
+  v15[0] = bspworld.dmodels[modelnum].headnode;
   /* while(1)+break, NOT `while (--v6 >= &v15[0])`: since v6 starts at &v15[1],
    * MSVC6 can prove that guard always holds first time and rotates the loop to
    * a bottom test.  The infinite-loop form keeps the test at the top, as in the
@@ -1843,16 +1791,16 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
       newlink->prev_ent  = 0;
       newlink->next_ent  = 0;
       link = newlink;
-      newlink->next_ent  = dword_10069584[leafnum];
-      v10 = dword_10069584[leafnum];
+      newlink->next_ent  = bspworld.dword_10069584[leafnum];
+      v10 = bspworld.dword_10069584[leafnum];
       if ( v10 )
         v10->prev_ent = newlink;
-      dword_10069584[leafnum] = newlink;
+      bspworld.dword_10069584[leafnum] = newlink;
     }
     else
     {
-      v11 = &dnodes[nodenum];
-      plane = &dplanes[v11->planenum];
+      v11 = &bspworld.dnodes[nodenum];
+      plane = &bspworld.dplanes[v11->planenum];
       v13 = plane->type;
       if ( v13 < 3 )
       {
@@ -1910,7 +1858,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
    * entry guard and lands on the shared exit, so the NULL path still calls
    * AAS_UnlinkFromBSPLeaves(NULL), which tolerates it. */
   for (link = linkhead; link && count < maxcount; link = link->next_leaf) {
-    ent_link = dword_10069584[link->leafnum];
+    ent_link = bspworld.dword_10069584[link->leafnum];
     if (!ent_link)
       continue;
     out = &list[count];
@@ -1948,7 +1896,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
              * hit is reported by BREAKing to the shared post-loop `if (brush_iter)`
              * re-check, not inline in the loop. */
             for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
-              if (dleafs[brush_iter->leafnum].numleafbrushes)
+              if (bspworld.dleafs[brush_iter->leafnum].numleafbrushes)
                 break;
             }
             if (brush_iter) {
@@ -2094,7 +2042,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   bsp_entity_t *ent; // [esp+10h]
   bsp_epair_t *epair; // ebx
 
-  script = LoadScriptMemory(dentdata, entdatasize, "entdata");
+  script = LoadScriptMemory(bspworld.dentdata, bspworld.entdatasize, "entdata");
   SetScriptFlags(script, 12);
   entities = 0;
   while ( PS_ReadToken(script, token.string) )
@@ -2199,9 +2147,9 @@ int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *li
 
   if ( nodenum < 0 )
     return 0;
-  v6 = &dnodes[nodenum];
+  v6 = &bspworld.dnodes[nodenum];
   v40 = v6;
-  v8 = &dplanes[v6->planenum];
+  v8 = &bspworld.dplanes[v6->planenum];
   v7 = v8->type;
   if ( v7 < 3 )
   {
@@ -2224,11 +2172,11 @@ int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *li
   v14 = v6->firstface;
   v39 = 0;
   v15 = v6->numfaces;
-  v45 = &dfaces[v14];
-  v16 = (__int16 *)(dword_10067558 + 8 * v14);
+  v45 = &bspworld.dfaces[v14];
+  v16 = (__int16 *)(bspworld.dword_10067558 + 8 * v14);
   for ( ; v39 < v15; ++v39, ++v45, v16 += 4 )
   {
-    v17 = &texinfo[v45->texinfo];
+    v17 = &bspworld.texinfo[v45->texinfo];
     v18 = (int)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
     v19 = (int)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
     v20 = *v16;
@@ -2260,7 +2208,7 @@ sample_lightmap:
   v29 = (v16[2] >> 4) + 1;
   v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
   v32 = 0;
-  v33 = (unsigned __int8 *)(dlightdata + v31);
+  v33 = (unsigned __int8 *)(bspworld.dlightdata + v31);
   for ( i = 0; i < 4; ++i )
   {
     if ( v45->styles[i] == 0xFF )
@@ -2290,7 +2238,7 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
    * (denormal-looking) sample values to 0. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  if ( !dword_100674C0 || !dlightdata || !RecursiveLightPoint(dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
+  if ( !bspworld.dword_100674C0 || !bspworld.dlightdata || !RecursiveLightPoint(bspworld.dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
     return 0;
   *red = v7[0];
   *green = v7[1];
@@ -2335,12 +2283,12 @@ void CalcSurfaceExtents()
   int v23[2]; // [esp+30h] [ebp-20h]
   int v24[6]; // [esp+38h] [ebp-18h]
 
-  if ( dword_10067558 )
-    FreeMemory(dword_10067558);
-  dword_10067558 = GetClearedMemory(8 * numfaces);
-  result = numfaces;
+  if ( bspworld.dword_10067558 )
+    FreeMemory(bspworld.dword_10067558);
+  bspworld.dword_10067558 = GetClearedMemory(8 * bspworld.numfaces);
+  result = bspworld.numfaces;
   i = 0;
-  if ( numfaces > 0 )
+  if ( bspworld.numfaces > 0 )
   {
     v19 = 4;
     /* ONE loop index: the ×20 byte offset the original also spills is MSVC's
@@ -2350,10 +2298,10 @@ void CalcSurfaceExtents()
       *(float *)&v23[1] = 99999.0f;
       *(float *)&v23[0] = 99999.0f;
       *(float *)&v24[1] = -99999.0f;
-      face = &dfaces[i];
+      face = &bspworld.dfaces[i];
       v2 = face->texinfo;
       *(float *)&v24[0] = -99999.0f;
-      v22 = &texinfo[v2];
+      v22 = &bspworld.texinfo[v2];
       /* ONE read, sign-extended once, hoisted ABOVE the guard.  Reading the field
        * twice (guard + body) makes the test 16-bit with a separate sign-extend;
        * folding the assignment INTO the condition also regresses. */
@@ -2363,9 +2311,9 @@ void CalcSurfaceExtents()
         /* Initialiser order is NOT a lever here — reordering to the original's own
          * dsurfedges -> dedges -> dvertexes emission order is an exact no-op.
          * The residual is a register-pressure difference, not a source shape. */
-        v3 = dedges;
-        v4 = dvertexes;
-        v5 = &dsurfedges[face->firstedge];
+        v3 = bspworld.dedges;
+        v4 = bspworld.dvertexes;
+        v5 = &bspworld.dsurfedges[face->firstedge];
         do
         {
           v6 = *v5;
@@ -2395,15 +2343,15 @@ void CalcSurfaceExtents()
         v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
         v24[k + 2] = v13;
         v15 = (__int64)ceil(*(float *)&v24[k] * 0.0625f);
-        v16 = dword_10067558;
+        v16 = bspworld.dword_10067558;
         v24[k + 4] = v15;
         ++k;
         v11 += 2;
         *(_WORD *)(v11 + v16 - 6) = v24[k + 1] * 16;
-        *(_WORD *)(v11 + dword_10067558 - 2) = (v24[k + 3] - v24[k + 1]) * 16;
+        *(_WORD *)(v11 + bspworld.dword_10067558 - 2) = (v24[k + 3] - v24[k + 1]) * 16;
       }
       result = i + 1;
-      v17 = ++i < numfaces;
+      v17 = ++i < bspworld.numfaces;
       v19 += 8;
       if ( !v17 )
         break;
@@ -2452,10 +2400,10 @@ int Q2_SwapBSPFile(void)
   int a1; // [esp+10h] dead scratch slot, never read
 
   v1 = 0;
-  for ( i = 0; i < numtexinfo; ++i )
+  for ( i = 0; i < bspworld.numtexinfo; ++i )
   {
     v2 = 8;
-    v3 = &texinfo[i];
+    v3 = &bspworld.texinfo[i];
     v4 = &v3->vecs[0][0];
     do
     {
@@ -2467,35 +2415,35 @@ int Q2_SwapBSPFile(void)
     v3->flags = LittleLong(v3->flags);
     v3->value = LittleLong(v3->value);
     v3->nexttexinfo = LittleLong(v3->nexttexinfo);
-    HIWORD(a1) = HIWORD(numtexinfo);
+    HIWORD(a1) = HIWORD(bspworld.numtexinfo);
     v1 += 76;
   }
-  v9 = (char *)dvis;
+  v9 = (char *)bspworld.dvis;
   v10 = 0;
   v11 = 0;
-  if ( dvis )
+  if ( bspworld.dvis )
   {
-    dvis->numclusters = LittleLong(dvis->numclusters);
-    v9 = (char *)dvis;
-    v11 = dvis->numclusters;
+    bspworld.dvis->numclusters = LittleLong(bspworld.dvis->numclusters);
+    v9 = (char *)bspworld.dvis;
+    v11 = bspworld.dvis->numclusters;
   }
   v13 = 0;
   if ( v11 > 0 )
   {
     while ( 1 )
     {
-      dvis->bitofs[v13][0] = LittleLong(dvis->bitofs[v13][0]);
-      dvis->bitofs[v13][1] = LittleLong(dvis->bitofs[v13][1]);
+      bspworld.dvis->bitofs[v13][0] = LittleLong(bspworld.dvis->bitofs[v13][0]);
+      bspworld.dvis->bitofs[v13][1] = LittleLong(bspworld.dvis->bitofs[v13][1]);
       ++v13;
       if ( v13 >= v11 )
         break;
-      v9 = (char *)dvis;
+      v9 = (char *)bspworld.dvis;
     }
   }
-  for ( j = 0; j < numplanes; ++j )
+  for ( j = 0; j < bspworld.numplanes; ++j )
   {
     v16 = 3;
-    v17 = &dplanes[j];
+    v17 = &bspworld.dplanes[j];
     v18 = v17->normal;
     do
     {
@@ -2506,13 +2454,13 @@ int Q2_SwapBSPFile(void)
     while ( v16 );
     v17->dist = LittleFloat(v17->dist);
     v17->type = LittleLong(v17->type);
-    HIWORD(a1) = HIWORD(numplanes);
+    HIWORD(a1) = HIWORD(bspworld.numplanes);
     v10 += 20;
   }
   v22 = 0;
-  for ( k = 0; k < numnodes; ++k )
+  for ( k = 0; k < bspworld.numnodes; ++k )
   {
-    v23 = &dnodes[k];
+    v23 = &bspworld.dnodes[k];
     v23->planenum = LittleLong(v23->planenum);
     v23->children[0] = LittleLong(v23->children[0]);
     v23->children[1] = LittleLong(v23->children[1]);
@@ -2523,13 +2471,13 @@ int Q2_SwapBSPFile(void)
     }
     v23->firstface = LittleShort(v23->firstface);
     v23->numfaces = LittleShort(v23->numfaces);
-    HIWORD(a1) = HIWORD(numnodes);
+    HIWORD(a1) = HIWORD(bspworld.numnodes);
     v22 += 28;
   }
   v37 = 0;
-  for ( m = 0; m < numleafs; ++m )
+  for ( m = 0; m < bspworld.numleafs; ++m )
   {
-    v38 = &dleafs[m];
+    v38 = &bspworld.dleafs[m];
     v38->contents = LittleLong(v38->contents);
     v38->cluster = LittleShort(v38->cluster);
     v38->area = LittleShort(v38->area);
@@ -2542,37 +2490,37 @@ int Q2_SwapBSPFile(void)
     v38->numleaffaces = LittleShort(v38->numleaffaces);
     v38->firstleafbrush = LittleShort(v38->firstleafbrush);
     v38->numleafbrushes = LittleShort(v38->numleafbrushes);
-    HIWORD(a1) = HIWORD(numleafs);
+    HIWORD(a1) = HIWORD(bspworld.numleafs);
     v37 += 28;
   }
-  for ( n = 0; n < numleafbrushes; ++n )
+  for ( n = 0; n < bspworld.numleafbrushes; ++n )
   {
-    dleafbrushes[n] = LittleShort(dleafbrushes[n]);
+    bspworld.dleafbrushes[n] = LittleShort(bspworld.dleafbrushes[n]);
   }
-  for ( ii = 0; ii < numbrushsides; ++ii )
+  for ( ii = 0; ii < bspworld.numbrushsides; ++ii )
   {
     /* The LittleShort round-trip must stay (identity on little-endian): the
      * decompiler lost the call/return chain here and wrote an uninitialised
      * temp over every brush's planenum at map-load time, which intermittently
      * drove CM_TraceThroughBrush into an out-of-range plane. */
-    dbrushsides[ii].planenum = LittleShort(dbrushsides[ii].planenum);
-    dbrushsides[ii].texinfo  = LittleShort(dbrushsides[ii].texinfo);
+    bspworld.dbrushsides[ii].planenum = LittleShort(bspworld.dbrushsides[ii].planenum);
+    bspworld.dbrushsides[ii].texinfo  = LittleShort(bspworld.dbrushsides[ii].texinfo);
   }
   v62 = 0;
-  if ( numbrushes > 0 )
+  if ( bspworld.numbrushes > 0 )
   {
     do
     {
-      dbrushes[v62].firstside = LittleLong(dbrushes[v62].firstside);
-      dbrushes[v62].numsides = LittleLong(dbrushes[v62].numsides);
-      dbrushes[v62].contents = LittleLong(dbrushes[v62].contents);
+      bspworld.dbrushes[v62].firstside = LittleLong(bspworld.dbrushes[v62].firstside);
+      bspworld.dbrushes[v62].numsides = LittleLong(bspworld.dbrushes[v62].numsides);
+      bspworld.dbrushes[v62].contents = LittleLong(bspworld.dbrushes[v62].contents);
       ++v62;
     }
-    while ( v62 < numbrushes );
+    while ( v62 < bspworld.numbrushes );
   }
-  result = nummodels;
+  result = bspworld.nummodels;
   v68 = 0;
-  if ( nummodels > 0 )
+  if ( bspworld.nummodels > 0 )
   {
     /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[v68]`
      * yields the same base+offset induction pair but swaps the SIB roles (the
@@ -2582,7 +2530,7 @@ int Q2_SwapBSPFile(void)
     v69 = 0;
     do
     {
-      v70 = (dmodel_t *)((char *)dmodels + v69);
+      v70 = (dmodel_t *)((char *)bspworld.dmodels + v69);
       v70->firstface = LittleLong(v70->firstface);
       v70->numfaces = LittleLong(v70->numfaces);
       v70->headnode = LittleLong(v70->headnode);
@@ -2592,11 +2540,11 @@ int Q2_SwapBSPFile(void)
         v70->maxs[v76] = LittleFloat(v70->maxs[v76]);
         v70->origin[v76] = LittleFloat(v70->origin[v76]);
       }
-      result = nummodels;
+      result = bspworld.nummodels;
       ++v68;
       v69 += 48;
     }
-    while ( v68 < nummodels );
+    while ( v68 < bspworld.nummodels );
   }
   return result;
 }
@@ -2607,81 +2555,81 @@ int AAS_DumpBSPData()
 {
   int result; // eax
 
-  nummodels = 0;
-  if ( dmodels )
-    FreeMemory(dmodels);
-  dmodels = 0;
-  visdatasize = 0;
-  if ( dvisdata )
-    FreeMemory(dvisdata);
-  dvisdata = 0;
-  dvis = 0;
-  lightdatasize = 0;
-  if ( dlightdata )
-    FreeMemory(dlightdata);
-  dlightdata = 0;
-  entdatasize = 0;
-  if ( dentdata )
-    FreeMemory(dentdata);
-  dentdata = 0;
-  numleafs = 0;
-  if ( dleafs )
-    FreeMemory(dleafs);
-  dleafs = 0;
-  numplanes = 0;
-  if ( dplanes )
-    FreeMemory(dplanes);
-  dplanes = 0;
-  numvertexes = 0;
-  if ( dvertexes )
-    FreeMemory(dvertexes);
-  dvertexes = 0;
-  numnodes = 0;
-  if ( dnodes )
-    FreeMemory(dnodes);
-  dnodes = 0;
-  numtexinfo = 0;
-  if ( texinfo )
-    FreeMemory(texinfo);
-  texinfo = 0;
-  numfaces = 0;
-  if ( dfaces )
-    FreeMemory(dfaces);
-  dfaces = 0;
-  numedges = 0;
-  if ( dedges )
-    FreeMemory(dedges);
-  dedges = 0;
-  numleaffaces = 0;
-  if ( dleaffaces )
-    FreeMemory(dleaffaces);
-  dleaffaces = 0;
-  numleafbrushes = 0;
-  if ( dleafbrushes )
-    FreeMemory(dleafbrushes);
-  dleafbrushes = 0;
-  numsurfedges = 0;
-  if ( dsurfedges )
-    FreeMemory(dsurfedges);
-  dsurfedges = 0;
-  numbrushes = 0;
-  if ( dbrushes )
-    FreeMemory(dbrushes);
-  dbrushes = 0;
-  numbrushsides = 0;
-  if ( dbrushsides )
-    FreeMemory(dbrushsides);
-  dbrushsides = 0;
-  numareas = 0;
-  if ( dareas )
-    FreeMemory(dareas);
-  result = dareaportals;
-  dareas = 0;
-  numareaportals = 0;
-  if ( dareaportals )
-    result = FreeMemory(dareaportals);
-  dareaportals = 0;
-  dword_100674C0 = 0;
+  bspworld.nummodels = 0;
+  if ( bspworld.dmodels )
+    FreeMemory(bspworld.dmodels);
+  bspworld.dmodels = 0;
+  bspworld.visdatasize = 0;
+  if ( bspworld.dvisdata )
+    FreeMemory(bspworld.dvisdata);
+  bspworld.dvisdata = 0;
+  bspworld.dvis = 0;
+  bspworld.lightdatasize = 0;
+  if ( bspworld.dlightdata )
+    FreeMemory(bspworld.dlightdata);
+  bspworld.dlightdata = 0;
+  bspworld.entdatasize = 0;
+  if ( bspworld.dentdata )
+    FreeMemory(bspworld.dentdata);
+  bspworld.dentdata = 0;
+  bspworld.numleafs = 0;
+  if ( bspworld.dleafs )
+    FreeMemory(bspworld.dleafs);
+  bspworld.dleafs = 0;
+  bspworld.numplanes = 0;
+  if ( bspworld.dplanes )
+    FreeMemory(bspworld.dplanes);
+  bspworld.dplanes = 0;
+  bspworld.numvertexes = 0;
+  if ( bspworld.dvertexes )
+    FreeMemory(bspworld.dvertexes);
+  bspworld.dvertexes = 0;
+  bspworld.numnodes = 0;
+  if ( bspworld.dnodes )
+    FreeMemory(bspworld.dnodes);
+  bspworld.dnodes = 0;
+  bspworld.numtexinfo = 0;
+  if ( bspworld.texinfo )
+    FreeMemory(bspworld.texinfo);
+  bspworld.texinfo = 0;
+  bspworld.numfaces = 0;
+  if ( bspworld.dfaces )
+    FreeMemory(bspworld.dfaces);
+  bspworld.dfaces = 0;
+  bspworld.numedges = 0;
+  if ( bspworld.dedges )
+    FreeMemory(bspworld.dedges);
+  bspworld.dedges = 0;
+  bspworld.numleaffaces = 0;
+  if ( bspworld.dleaffaces )
+    FreeMemory(bspworld.dleaffaces);
+  bspworld.dleaffaces = 0;
+  bspworld.numleafbrushes = 0;
+  if ( bspworld.dleafbrushes )
+    FreeMemory(bspworld.dleafbrushes);
+  bspworld.dleafbrushes = 0;
+  bspworld.numsurfedges = 0;
+  if ( bspworld.dsurfedges )
+    FreeMemory(bspworld.dsurfedges);
+  bspworld.dsurfedges = 0;
+  bspworld.numbrushes = 0;
+  if ( bspworld.dbrushes )
+    FreeMemory(bspworld.dbrushes);
+  bspworld.dbrushes = 0;
+  bspworld.numbrushsides = 0;
+  if ( bspworld.dbrushsides )
+    FreeMemory(bspworld.dbrushsides);
+  bspworld.dbrushsides = 0;
+  bspworld.numareas = 0;
+  if ( bspworld.dareas )
+    FreeMemory(bspworld.dareas);
+  result = bspworld.dareaportals;
+  bspworld.dareas = 0;
+  bspworld.numareaportals = 0;
+  if ( bspworld.dareaportals )
+    result = FreeMemory(bspworld.dareaportals);
+  bspworld.dareaportals = 0;
+  bspworld.dword_100674C0 = 0;
   return result;
 }
 //----- (10007C40) --------------------------------------------------------
@@ -2826,26 +2774,26 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   v9 = Offset + v8;
   v10 = (size_t)LittleLong(bsp_h.lumps[0].filelen);
   v11 = v10;
-  dentdata = sub_10007C40(v4, v9, v10, 1, "entity");
-  if ( !dentdata )
+  bspworld.dentdata = sub_10007C40(v4, v9, v10, 1, "entity");
+  if ( !bspworld.dentdata )
     return BLERR_CANNOTREADBSPLUMP;
-  entdatasize = v11;
+  bspworld.entdatasize = v11;
   v12 = LittleLong(bsp_h.lumps[1].fileofs);
   v13 = Offset + v12;
   v14 = (size_t)LittleLong(bsp_h.lumps[1].filelen);
   v15 = v14;
-  dplanes = sub_10007C40(v4, v13, v14, 20, "planes");
-  if ( !dplanes )
+  bspworld.dplanes = sub_10007C40(v4, v13, v14, 20, "planes");
+  if ( !bspworld.dplanes )
     return BLERR_CANNOTREADBSPLUMP;
-  numplanes = v15 / 0x14;
+  bspworld.numplanes = v15 / 0x14;
   v16 = LittleLong(bsp_h.lumps[2].fileofs);
   v17 = Offset + v16;
   v18 = (size_t)LittleLong(bsp_h.lumps[2].filelen);
   v19 = v18;
-  dvertexes = sub_10007C40(v4, v17, v18, 12, "vertexes");
-  if ( !dvertexes )
+  bspworld.dvertexes = sub_10007C40(v4, v17, v18, 12, "vertexes");
+  if ( !bspworld.dvertexes )
     return BLERR_CANNOTREADBSPLUMP;
-  numvertexes = v19 / 0xC;
+  bspworld.numvertexes = v19 / 0xC;
   v20 = LittleLong(bsp_h.lumps[3].fileofs);
   v21 = Offset + v20;
   v22 = (size_t)LittleLong(bsp_h.lumps[3].filelen);
@@ -2853,124 +2801,124 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   if ( v22 )
   {
     v24 = sub_10007C40(v4, v21, v22, 1, "visibility");
-    dvisdata = v24;
+    bspworld.dvisdata = v24;
     if ( !v24 )
       return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
-    dvisdata = 0;
+    bspworld.dvisdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNGING: bsp has no visibility data\n");
-    v24 = dvisdata;
+    v24 = bspworld.dvisdata;
   }
-  visdatasize = v23;
-  dvis = (dvis_t *)v24;
+  bspworld.visdatasize = v23;
+  bspworld.dvis = (dvis_t *)v24;
   v25 = LittleLong(bsp_h.lumps[4].fileofs);
   v26 = Offset + v25;
   v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
   v28 = v27;
-  dnodes = sub_10007C40(v4, v26, v27, 28, "nodes");
-  if ( !dnodes )
+  bspworld.dnodes = sub_10007C40(v4, v26, v27, 28, "nodes");
+  if ( !bspworld.dnodes )
     return BLERR_CANNOTREADBSPLUMP;
-  numnodes = v28 / 0x1C;
+  bspworld.numnodes = v28 / 0x1C;
   v29 = LittleLong(bsp_h.lumps[5].fileofs);
   v30 = Offset + v29;
   v31 = (size_t)LittleLong(bsp_h.lumps[5].filelen);
   v32 = v31;
-  texinfo = sub_10007C40(v4, v30, v31, 76, "texinfo");
-  if ( !texinfo )
+  bspworld.texinfo = sub_10007C40(v4, v30, v31, 76, "texinfo");
+  if ( !bspworld.texinfo )
     return BLERR_CANNOTREADBSPLUMP;
-  numtexinfo = v32 / 0x4C;
+  bspworld.numtexinfo = v32 / 0x4C;
   v33 = LittleLong(bsp_h.lumps[6].fileofs);
   v34 = Offset + v33;
   v35 = (size_t)LittleLong(bsp_h.lumps[6].filelen);
   v36 = v35;
-  dfaces = sub_10007C40(v4, v34, v35, 20, "faces");
-  if ( !dfaces )
+  bspworld.dfaces = sub_10007C40(v4, v34, v35, 20, "faces");
+  if ( !bspworld.dfaces )
     return BLERR_CANNOTREADBSPLUMP;
-  numfaces = v36 / 0x14;
+  bspworld.numfaces = v36 / 0x14;
   v37 = LittleLong(bsp_h.lumps[7].fileofs);
   v38 = Offset + v37;
   v39 = (size_t)LittleLong(bsp_h.lumps[7].filelen);
   v40 = v39;
   if ( v39 )
   {
-    dlightdata = sub_10007C40(v4, v38, v39, 1, "lightning");
-    if ( !dlightdata )
+    bspworld.dlightdata = sub_10007C40(v4, v38, v39, 1, "lightning");
+    if ( !bspworld.dlightdata )
       return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
-    dlightdata = 0;
+    bspworld.dlightdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNING: bsp has no light data\n");
   }
-  lightdatasize = v40;
+  bspworld.lightdatasize = v40;
   v41 = LittleLong(bsp_h.lumps[8].fileofs);
   v42 = Offset + v41;
   v43 = (size_t)LittleLong(bsp_h.lumps[8].filelen);
   v44 = v43;
-  dleafs = sub_10007C40(v4, v42, v43, 28, "leafs");
-  if ( !dleafs )
+  bspworld.dleafs = sub_10007C40(v4, v42, v43, 28, "leafs");
+  if ( !bspworld.dleafs )
     return BLERR_CANNOTREADBSPLUMP;
-  numleafs = v44 / 0x1C;
+  bspworld.numleafs = v44 / 0x1C;
   v45 = LittleLong(bsp_h.lumps[9].fileofs);
   v46 = Offset + v45;
   v47 = (size_t)LittleLong(bsp_h.lumps[9].filelen);
   v48 = v47;
-  dleaffaces = sub_10007C40(v4, v46, v47, 2, "leaf faces");
-  if ( !dleaffaces )
+  bspworld.dleaffaces = sub_10007C40(v4, v46, v47, 2, "leaf faces");
+  if ( !bspworld.dleaffaces )
     return BLERR_CANNOTREADBSPLUMP;
-  numleaffaces = v48 >> 1;
+  bspworld.numleaffaces = v48 >> 1;
   v49 = LittleLong(bsp_h.lumps[10].fileofs);
   v50 = Offset + v49;
   v51 = (size_t)LittleLong(bsp_h.lumps[10].filelen);
   v52 = v51;
-  dleafbrushes = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
-  if ( !dleafbrushes )
+  bspworld.dleafbrushes = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
+  if ( !bspworld.dleafbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  numleafbrushes = v52 >> 1;
+  bspworld.numleafbrushes = v52 >> 1;
   v53 = LittleLong(bsp_h.lumps[11].fileofs);
   v54 = Offset + v53;
   v55 = (size_t)LittleLong(bsp_h.lumps[11].filelen);
   v56 = v55;
-  dedges = sub_10007C40(v4, v54, v55, 4, "edges");
-  if ( !dedges )
+  bspworld.dedges = sub_10007C40(v4, v54, v55, 4, "edges");
+  if ( !bspworld.dedges )
     return BLERR_CANNOTREADBSPLUMP;
-  numedges = v56 >> 2;
+  bspworld.numedges = v56 >> 2;
   v57 = LittleLong(bsp_h.lumps[12].fileofs);
   v58 = Offset + v57;
   v59 = (size_t)LittleLong(bsp_h.lumps[12].filelen);
   v60 = v59;
-  dsurfedges = sub_10007C40(v4, v58, v59, 4, "surfedges");
-  if ( !dsurfedges )
+  bspworld.dsurfedges = sub_10007C40(v4, v58, v59, 4, "surfedges");
+  if ( !bspworld.dsurfedges )
     return BLERR_CANNOTREADBSPLUMP;
-  numsurfedges = v60 >> 2;
+  bspworld.numsurfedges = v60 >> 2;
   v61 = LittleLong(bsp_h.lumps[13].fileofs);
   v62 = Offset + v61;
   v63 = (size_t)LittleLong(bsp_h.lumps[13].filelen);
   v64 = v63;
-  dmodels = sub_10007C40(v4, v62, v63, 48, "models");
-  if ( !dmodels )
+  bspworld.dmodels = sub_10007C40(v4, v62, v63, 48, "models");
+  if ( !bspworld.dmodels )
     return BLERR_CANNOTREADBSPLUMP;
-  nummodels = v64 / 0x30;
+  bspworld.nummodels = v64 / 0x30;
   v65 = LittleLong(bsp_h.lumps[14].fileofs);
   v66 = Offset + v65;
   v67 = (size_t)LittleLong(bsp_h.lumps[14].filelen);
   v68 = v67;
-  dbrushes = sub_10007C40(v4, v66, v67, 12, "brushes");
-  if ( !dbrushes )
+  bspworld.dbrushes = sub_10007C40(v4, v66, v67, 12, "brushes");
+  if ( !bspworld.dbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  numbrushes = v68 / 0xC;
+  bspworld.numbrushes = v68 / 0xC;
   v69 = LittleLong(bsp_h.lumps[15].fileofs);
   v70 = Offset + v69;
   v71 = (size_t)LittleLong(bsp_h.lumps[15].filelen);
   v72 = v71;
-  dbrushsides = sub_10007C40(v4, v70, v71, 4, "brush sides");
-  if ( !dbrushsides )
+  bspworld.dbrushsides = sub_10007C40(v4, v70, v71, 4, "brush sides");
+  if ( !bspworld.dbrushsides )
     return BLERR_CANNOTREADBSPLUMP;
-  numbrushsides = v72 >> 2;
+  bspworld.numbrushsides = v72 >> 2;
   Q2_SwapBSPFile();
-  dword_100674C0 = 1;
+  bspworld.dword_100674C0 = 1;
   fclose(v4);
   CalcSurfaceExtents();
   sub_100030A0();
@@ -2981,7 +2929,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
 //----- (100085F0) --------------------------------------------------------
 int sub_100085F0()
 {
-  return sub_10037850(aasworld.mapname, dentdata, entdatasize);
+  return sub_10037850(aasworld.mapname, bspworld.dentdata, bspworld.entdatasize);
 }
 //----- (10003080) --- thin wrapper forwarding to bi_PointContents
 int __cdecl sub_10003080(vec3_t point)
