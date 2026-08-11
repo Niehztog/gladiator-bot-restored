@@ -2092,7 +2092,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       if ( token.type != 1 )
       {
         ScriptError(script, "invalid %s\n", token.string);
-        AAS_FreeBSPEntities(ent);
+        AAS_FreeBSPEntities(entities);
         FreeScript(script);
         return 0;
       }
@@ -2101,7 +2101,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
       strcpy(epair->key, token.string);
       if ( !PS_ExpectTokenType(script, 1, 0, &token) )
       {
-        AAS_FreeBSPEntities(ent);
+        AAS_FreeBSPEntities(entities);
         FreeScript(script);
         return 0;
       }
@@ -2112,7 +2112,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
     if ( strcmp(token.string, "}") )
     {
       ScriptError(script, "missing }\n");
-      AAS_FreeBSPEntities(ent);
+      AAS_FreeBSPEntities(entities);
       FreeScript(script);
       return 0;
     }

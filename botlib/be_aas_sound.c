@@ -240,8 +240,7 @@ aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1)
   }
   else
   {
-    result = a1->prev;
-    aasworld.d_100669D0 = result;
+    aasworld.d_100669D0 = result = a1->prev;
   }
   return result;
 }
