@@ -690,6 +690,7 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
   aas_face_t *face;
   aas_area_t *area;
   float  plane_z;
+  vec3_t up = { 0.0f, 0.0f, 1.0f };
   vec3_t dir;
 
   if ( !aasworld.loaded )
@@ -702,9 +703,16 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
     if ( !(face->faceflags & 4) )
       continue;
     plane_z = aasworld.planes[face->planenum].normal[2];
-    dir[0] = 0.0f;
-    dir[1] = 0.0f;
-    dir[2] = ( plane_z < 0.0f ) ? -1.0f : 1.0f;
+    if ( plane_z < 0.0f )
+    {
+      dir[0] = -up[0];
+      dir[1] = -up[1];
+      dir[2] = -up[2];
+    }
+    else
+    {
+      VectorCopy(up, dir);
+    }
     if ( AAS_InsideFace(face, dir, (float *)point, 0.01f) )
       return face;
   }
