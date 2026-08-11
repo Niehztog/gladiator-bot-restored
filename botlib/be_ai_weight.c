@@ -686,81 +686,54 @@ void __cdecl EvolveWeightConfig(int *config)
 // and as a primitive for crossover blending. Live in Q3.
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 {
-  fuzzyseperator_t *v3; // eax
-
-  do
+  /* Q3's body verbatim, including the recursion on `next` rather than a loop
+   * over it.  The loop form kept `scale` live in the FPU across the call, so
+   * gcc spilled it as an 80-bit `fstp TBYTE`; the real image just re-pushes the
+   * incoming 4-byte parameter slot.  `maxweight + minweight` in that order for
+   * the same reason -- gcc evaluates a binary operator left to right, so the
+   * real's `fld [+0x14]; fadd [+0x10]` names the operands and their order.
+   * Pass `scale` directly: routing it through LODWORD makes GCC insert an
+   * int->float conversion that destroys the bit pattern. */
+  if ( fs->child )
   {
-    v3 = fs->child;
-    if ( v3 )
-    {
-      /* Pass `scale` directly: it is a real float and the original just copies the
-       * 4-byte slot.  Routing it through LODWORD makes GCC insert an int->float
-       * conversion that destroys the bit pattern. */
-      ScaleFuzzySeperator_r(v3, scale);
-    }
-    else if ( fs->type == 1 )
-    {
-      float v4;
-
-      v4 = (fs->minweight + fs->maxweight) * scale;
-      fs->weight = v4;
-      if ( v4 < fs->minweight )
-      {
-        fs->weight = fs->minweight;
-      }
-      else if ( v4 > fs->maxweight )
-      {
-        fs->weight = fs->maxweight;
-      }
-    }
-    fs = fs->next;
+    ScaleFuzzySeperator_r(fs->child, scale);
   }
-  while ( fs );
+  else if ( fs->type == 1 )
+  {
+    fs->weight = (fs->maxweight + fs->minweight) * scale;
+    if ( fs->weight < fs->minweight )
+      fs->weight = fs->minweight;
+    else if ( fs->weight > fs->maxweight )
+      fs->weight = fs->maxweight;
+  }
+  if ( fs->next )
+    ScaleFuzzySeperator_r(fs->next, scale);
 }
 //----- (10036EB0) --------------------------------------------------------
-// Look up a named fuzzy-weight entry in a (count, {name, fs}[]) table and
-// rescale that subtree by a scalar clamped to [0,1].  Maps closely to a
-// GA-pipeline helper: `ScaleWeight(weightconfig, name, scale)`.  The float
-// clamp pattern (fld + fcomp 0.0f@.rdata 0x10058000 / 1.0f@0x100580c4) is
-// canonical Mr. Elusive — same idiom appears in the live fuzzy code.
-// DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk.
-// Restored dead stub:
-//   clamp [esp+0xc] (scale) into [0,1]
-//   edx = table->count; if (count <= 0) return
-//   edi = &table->entries[0]; ebp = 0
-//   for each entry { esi = entry->name; inline strcmp(arg2, esi); if equal: break }
-//   on hit: push (scale, entry->fs); call ScaleFuzzySeperator_r
-static void sub_10036EB0(int *table, const char *name, float scale)
+// Q3 be_ai_weight.c's ScaleWeight, verbatim.  The earlier reading of this as an
+// anonymous (count, {name, fs}[]) table with a hand-rolled strcmp was the
+// hand-rolled part wrong: gladi386.so's F39 CALLS strcmp, and the "table" is a
+// weightconfig_t -- numweights at +0, weights[] at +4, stride 8.
+//
+// It was also `static`, which is why the ELF audit read it as MISSING: it has no
+// callers, and gcc 2.7.2.3 does not merely inline an unreferenced static, it
+// drops it.  Same class as be_aas_file.c's max_aaslights initialiser.  The real
+// image's F39 is GLOBAL, so the linkage is matched here.
+// DEAD in Gladiator — part of the offline GA tuning pipeline.
+void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale)
 {
-  int count;
   int i;
-  const char *entry_name;
-  const char *p;
-  const char *q;
 
-  if ( scale < 0.0f )
-    scale = 0.0f;
-  else if ( scale > 1.0f )
-    scale = 1.0f;
-  count = table[0];
-  if ( count <= 0 )
-    return;
-  for ( i = 0; i < count; ++i )
+  if ( scale < 0 )
+    scale = 0;
+  else if ( scale > 1 )
+    scale = 1;
+  for ( i = 0; i < config->numweights; i++ )
   {
-    entry_name = (const char *)table[1 + i * 2];
-    p = name;
-    q = entry_name;
-    while ( *p == *q )
+    if ( !strcmp(name, config->weights[i].name) )
     {
-      if ( !*p )
-      {
-        ScaleFuzzySeperator_r(
-            (fuzzyseperator_t *)table[1 + i * 2 + 1],
-            scale);
-        return;
-      }
-      ++p;
-      ++q;
+      ScaleFuzzySeperator_r(config->weights[i].firstseperator, scale);
+      break;
     }
   }
 }

@@ -25,6 +25,7 @@ double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
 double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs);
 double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs);
 int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
+void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale);
 void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs);
@@ -34,6 +35,5 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, int, int);
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs);
 int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
-static void sub_10036EB0(int *table, const char *name, float scale);
 
 #endif /* BOTLIB_BE_AI_WEIGHT_H */
