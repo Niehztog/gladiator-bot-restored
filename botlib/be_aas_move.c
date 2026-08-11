@@ -70,13 +70,14 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
    * those two stores, garbling the test point so bi_PointContents never sees
    * water and swimming bots get stuck. */
   int testorg[3]; // [esp+0h] [ebp-Ch] BYREF
-  float z; // st7
 
-  z = origin[2];
   testorg[0] = *(int *)&origin[0];
   testorg[1] = *(int *)&origin[1];
-  *(float *)&testorg[2] = z - 2.0f;
-  return (sub_10003080((float *)testorg) & 0x38) != 0;
+  testorg[2] = *(int *)&origin[2];
+  *(float *)&testorg[2] -= 2.0f;
+  if ( sub_10003080((float *)testorg) & 0x38 )
+    return 1;
+  return 0;
 }
 //----- (1000F010) --------------------------------------------------------
 /*
