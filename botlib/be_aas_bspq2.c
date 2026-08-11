@@ -2716,7 +2716,7 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
     return 0;
   }
   v6 = GetClearedMemory(ElementSize);
-  if ( fread_locked(v6, ElementSize, 1u, Stream) != 1 )
+  if ( fread(v6, ElementSize, 1u, Stream) != 1 )
   {
     AAS_Error("can't read bsp lump %s\n", ArgList);
     FreeMemory(v6);
@@ -2814,7 +2814,7 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
     fclose(v4);
     return BLERR_CANNOTSEEKTOBSPFILE;
   }
-  if ( fread_locked(&bsp_h, 0xA0u, 1u, v4) != 1 )
+  if ( fread(&bsp_h, 0xA0u, 1u, v4) != 1 )
   {
     AAS_Error("can't read header of bsp file %s\n", FileName);
     fclose(v4);

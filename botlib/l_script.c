@@ -1047,7 +1047,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   script->line         = 1;
   script->lastline     = 1;
   SetScriptPunctuations(script, NULL);
-  if ( fread_locked(script->buffer, length, 1u, fp) != 1 )
+  if ( fread(script->buffer, length, 1u, fp) != 1 )
   {
     FreeMemory(script);
     script = NULL;

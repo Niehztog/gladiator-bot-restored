@@ -303,7 +303,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
     return 0;
   }
   buf = GetClearedMemory(ElementCount);
-  if ( fread_locked(buf, 1u, ElementCount, Stream) != ElementCount )
+  if ( fread(buf, 1u, ElementCount, Stream) != ElementCount )
   {
     AAS_Error("can't read aas lump\n");
     FreeMemory(buf);
@@ -407,7 +407,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
     fclose(fp);
     return BLERR_CANNOTSEEKTOAASFILE;
   }
-  if ( fread_locked(&aas_h, 0x78u, 1u, fp) != 1 )
+  if ( fread(&aas_h, 0x78u, 1u, fp) != 1 )
   {
     AAS_Error("can't read header of file %s\n", FileName);
     fclose(fp);

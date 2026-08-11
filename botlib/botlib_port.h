@@ -305,7 +305,6 @@ typedef float vec3_t[3];
 #define SHIDWORD(x)  (*((int *)&(x) + 1))
 
 /* Stubs for the statically-linked MSVC CRT helpers the bot code still calls. */
-static size_t fread_locked(void *buf, size_t sz, size_t n, FILE *f) { return fread(buf, sz, n, f); }
 #ifdef _WIN32
 /* Windows-only winbspc/zip subsystem (sub_1000E140/sub_1000E430, sub_10041FF0);
  * the Linux botlib has neither a process-spawn nor a chdir-for-bspc path. */

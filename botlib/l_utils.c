@@ -351,7 +351,7 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
   v4 = v3;
   if ( !v3 ) { return 0; }
   /* 12-byte PAK header: magic(4), dir_offset(4), dir_size(4). */
-  if ( fread_locked(Buffer, 1u, 0xCu, v3) != 12
+  if ( fread(Buffer, 1u, 0xCu, v3) != 12
     || Buffer[0] != 1262698832   /* "PACK" magic = 0x4B434150 */
     || fseek(v4, LittleLong(Buffer[1]), SEEK_SET) )  /* seek to directory (Buffer[1] = dir_offset) */
   {
@@ -360,7 +360,7 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
   }
   v7 = (unsigned int)LittleLong(Buffer[2]) >> 6;                    /* number of entries: dir_size / 64 */
   v8 = (char *)GetMemory(v7 << 6); /* allocate nentries*64 bytes */
-  if ( fread_locked(v8, 0x40u, v7, v4) != v7 )
+  if ( fread(v8, 0x40u, v7, v4) != v7 )
   {
     fclose(v4);
     FreeMemory(v8);
