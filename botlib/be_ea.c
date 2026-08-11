@@ -139,16 +139,13 @@ void __cdecl EA_Jump(int client)
 //----- (10037390) --------------------------------------------------------
 /* EA_DelayedJump — set ACTION_DELAYEDJUMP (0x200), jump-latch gated like
  * EA_Jump.  The `BYTE1(v) |= 2u` form is how the original writes bit 9. */
-int __cdecl EA_DelayedJump(int client)
+void __cdecl EA_DelayedJump(int client)
 {
   ea_state_t *ea = &ea_controls[client];
-  int v = ea->flags;
-  if ( v & EA_JUMPEDLASTFRAME )
-    v &= ~ACTION_DELAYEDJUMP;
+  if ( ea->flags & EA_JUMPEDLASTFRAME )
+    ea->flags &= ~ACTION_DELAYEDJUMP;
   else
-    v |= ACTION_DELAYEDJUMP;
-  ea->flags = v;
-  return v;
+    ea->flags |= ACTION_DELAYEDJUMP;
 }
 //----- (100373D0) --------------------------------------------------------
 void __cdecl EA_Crouch(int client)

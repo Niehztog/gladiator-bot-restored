@@ -47,7 +47,7 @@ extern ea_state_t *ea_controls;
 void __cdecl EA_Attack(int client);
 int __cdecl EA_Command(int client, char *command, ...);
 void __cdecl EA_Crouch(int client);
-int __cdecl EA_DelayedJump(int client);
+void __cdecl EA_DelayedJump(int client);
 void __cdecl EA_DropInv(int client, char *inv);
 void __cdecl EA_DropItem(int client, char *it);
 void __cdecl EA_EndRegular(int client, float thinktime);
