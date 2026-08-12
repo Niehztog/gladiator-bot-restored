@@ -1875,6 +1875,15 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
 //----- (1003C900) --------------------------------------------------------
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
+  /* `indent`/`defined` declared (and later assigned) ahead of the token
+   * pointers, matching Q3A's `int indent, defined = qfalse;` declared before
+   * `firsttoken`/`lasttoken` (Quake-III-Arena l_precomp.c PC_DollarEvaluate).
+   * gcc 2.7.2.3 -O6 assigns stack slots by DECLARATION order, not assignment
+   * order -- reordering only the `indent = 1;`/`firsttoken = 0;` statements
+   * without moving the declarations has no effect on the emitted slot
+   * offsets. */
+  int indent; // [esp+10h] [ebp-438h]
+  int defined; // [esp+14h] [ebp-434h]
   token_t *firsttoken; // ebp (firsttoken)
   token_t *lasttoken; // edi
   token_t *t; // eax
@@ -1882,8 +1891,6 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
   define_t *define; // eax
   token_t *v12; // eax
   token_t *nexttoken; // esi
-  int indent; // [esp+10h] [ebp-438h]
-  int defined; // [esp+14h] [ebp-434h]
   token_t token;
 
   defined = 0;
@@ -1903,8 +1910,8 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
     SourceError(source, "nothing to evaluate");
     return 0;
   }
-  firsttoken = 0;
   indent = 1;
+  firsttoken = 0;
   lasttoken = 0;
   do
   {
@@ -2358,12 +2365,11 @@ int __cdecl PC_CheckTokenString(source_t *source, const char *string)
 {
   char tok[sizeof(token_t)] __attribute__((aligned(8))); // [esp+4h] [ebp-430h] BYREF
 
-  if ( PC_ReadTokenHandle(source, tok) )
-  {
-    if ( !strcmp(tok, string) )
-      return 1;
-    PC_UnreadSourceToken(source, tok);
-  }
+  if ( !PC_ReadTokenHandle(source, tok) )
+    return 0;
+  if ( !strcmp(tok, string) )
+    return 1;
+  PC_UnreadSourceToken(source, tok);
   return 0;
 }
 //----- (1003DBE0) --------------------------------------------------------
