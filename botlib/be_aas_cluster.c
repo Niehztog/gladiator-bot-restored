@@ -312,39 +312,40 @@ int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
 {
   aas_area_t *area;
   aas_face_t *face;
-  int presencetype;
-  int i, j, nextareanum;
+  int presencetype, otherpresencetype;
+  int i, j, nextareanum, facenum;
 
   areanum[cluster++] = done;
   area = &aasworld.areas[done];
   presencetype = aasworld.areasettings[done].presencetype;
   for ( i = 0; i < area->numfaces; i++ )
   {
-    face = &aasworld.faces[abs(aasworld.faceindex[area->firstface + i])];
-    if ( (face->faceflags & 1) != 0 )
+    facenum = abs(aasworld.faceindex[area->firstface + i]);
+    face = &aasworld.faces[facenum];
+    if ( face->faceflags & 1 )
       continue;
     if ( face->frontarea != done )
       nextareanum = face->frontarea;
     else
       nextareanum = face->backarea;
-    if ( (~aasworld.areasettings[nextareanum].presencetype & presencetype) == 0
-      || (~presencetype & aasworld.areasettings[nextareanum].presencetype) != 0 )
+    otherpresencetype = aasworld.areasettings[nextareanum].presencetype;
+    if ( (presencetype & ~otherpresencetype) && !(otherpresencetype & ~presencetype) )
     {
-      continue;
+      for ( j = 0; j < cluster; j++ )
+      {
+        if ( nextareanum == areanum[j] )
+          break;
+      }
+      if ( j == cluster )
+      {
+        if ( cluster >= 128 )
+        {
+          AAS_Error("MAX_PORTALAREAS");
+          return cluster;
+        }
+        cluster = AAS_FloodAreas_r(areanum, cluster, nextareanum);
+      }
     }
-    for ( j = 0; j < cluster; j++ )
-    {
-      if ( nextareanum == areanum[j] )
-        break;
-    }
-    if ( j != cluster )
-      continue;
-    if ( cluster >= 128 )
-    {
-      AAS_Error("MAX_PORTALAREAS");
-      break;
-    }
-    cluster = AAS_FloodAreas_r(areanum, cluster, nextareanum);
   }
   return cluster;
 }

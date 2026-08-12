@@ -215,16 +215,18 @@ endif
 #                               bound equal to dest size, sprintf into a fixed
 #                               buffer with %s, returning &local.  Fixing them
 #                               would diverge from the binary.
-#   unknown-pragmas           — game/q_shared.{c,h} carry id's original MSVC
-#                               `#pragma warning(disable: ...)` / `#pragma
-#                               optimize` lines (byte-identical to
-#                               gladq2_src/q_shared.h, and still meaningful to
-#                               the MSVC6 matching oracle, which is the one
-#                               compiler that honours them). Every non-MSVC
-#                               compiler nags once per pragma per TU — ~580
-#                               lines per build, since q_shared.h is included
-#                               first by ALL modules. The source is authentic
-#                               and must not be touched, so silence it here.
+#   unknown-pragmas           — game/q_shared.{c,h} (and botlib/q_shared.c,
+#                               our own duplicate -- see build/q_shared.o
+#                               below) carry id's original MSVC `#pragma
+#                               warning(disable: ...)` / `#pragma optimize`
+#                               lines (byte-identical to gladq2_src/q_shared.h,
+#                               and still meaningful to the MSVC6 matching
+#                               oracle, which is the one compiler that
+#                               honours them). Every non-MSVC compiler nags
+#                               once per pragma per TU — ~580 lines per
+#                               build, since q_shared.h is included first by
+#                               ALL modules. The source is authentic and
+#                               must not be touched, so silence it here.
 BOTCFLAGS=-O0 \
           -Wno-int-conversion -Wno-incompatible-pointer-types \
           -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast \
@@ -362,10 +364,20 @@ build/%.o: game/%.c
 
 # Mr. Elusive's 1999 lcc.mak compiled q_shared.c to its own object file
 # (q_shared.obj) and linked it into gladiator.dll alongside the bot
-# sources.  Mirror that here: build game/q_shared.c with -DC_ONLY so its
-# MSVC __asm paths (id386 Q_ftol, BoxOnPlaneSide fast path) compile out
-# on gcc/MinGW.
-build/q_shared.o: game/q_shared.c
+# sources.  Mirror that here: build with -DC_ONLY so its MSVC __asm paths
+# (id386 Q_ftol, BoxOnPlaneSide fast path) compile out on gcc/MinGW.
+#
+# botlib/q_shared.c is our OWN duplicate of game/q_shared.c (which remains
+# the untouched, verbatim copy used by the game.dll/game.so build below).
+# The two targets' object code needs byte-identical output on completely
+# different original binaries (gladiator.dll vs game.dll) built from what
+# was, in 1999, presumably still one physical q_shared.c -- but the ELF
+# oracle proved at least one __LINE__-sensitive assert() in BoxOnPlaneSide
+# needs a different surrounding line count per target to byte-match both
+# original binaries simultaneously, which one shared file cannot express.
+# Keeping a second copy here lets botlib's copy be adjusted (formatting/
+# blank lines only, never logic) without touching game/'s.
+build/q_shared.o: botlib/q_shared.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
 	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DC_ONLY -DBOTLIB -Igame/ -o $@ $<

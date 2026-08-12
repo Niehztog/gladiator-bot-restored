@@ -94,14 +94,10 @@ float flt_100643A4; // weak
 int __cdecl ClientFromName(const char *name)
 {
   int v1;
-  bot_clientsettings_t *i;
 
-  v1 = 0;
-  if ( botstate.num_clients <= 0 )
-    return 0;
-  for ( i = clientsettings; v1 < botstate.num_clients; ++v1, ++i )
+  for ( v1 = 0; v1 < botstate.num_clients; ++v1 )
   {
-    if ( !strcmp(name, i->netname) )
+    if ( !strcmp(name, clientsettings[v1].netname) )
       return v1;
   }
   return 0;
@@ -540,8 +536,16 @@ int sub_10029C10()
   return 0;
 }
 //----- (10029C90) --------------------------------------------------------
+/* Windows genuinely writes each sub-init's return code through the CRT global
+ * `errno` (IDA: `*_errno() = v2; if (*_errno()) return *_errno();`, three
+ * separate `_errno()` calls). The Linux .so has none of that traffic at all -
+ * just a plain register test after each call - so the Linux original used a
+ * local variable here instead; this is a genuine two-week source-drift split,
+ * not a compiler tie (confirmed: a shared-body local variable achieves a full
+ * ELF byte match but regresses the PE from 63/63 insns to 37 insns). */
 int BotSetupLibrary()
 {
+#ifdef _WIN32
   srand(time(0));
   errno = BotSetupWeaponAI();
   if ( errno )
@@ -552,6 +556,20 @@ int BotSetupLibrary()
   errno = BotSetupChatAI();
   if ( errno )
     return errno;
+#else
+  int result;
+
+  srand(time(0));
+  result = BotSetupWeaponAI();
+  if ( result )
+    return result;
+  result = BotSetupGoalAI();
+  if ( result )
+    return result;
+  result = BotSetupChatAI();
+  if ( result )
+    return result;
+#endif
   botstates = (bot_state_t *)GetClearedMemory(sizeof(bot_state_t) * botstate.num_clients);
 #if BOTLIB_NEED_SIDEBAND
   botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * botstate.num_clients);

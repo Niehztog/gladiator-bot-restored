@@ -93,7 +93,7 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message);
 int __cdecl BotNumTeamMates(bot_state_t *bs);
 float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal);
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum);
-int __cdecl BotSetMovedir(float *angles, float *movedir);
+void __cdecl BotSetMovedir(float *angles, float *movedir);
 void BotSetupDeathmatchAI();
 void BotShutdownDeathmatchAI(void);
 int __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy);
@@ -113,7 +113,7 @@ void __cdecl sub_100215E0(bot_state_t *bs);
 BOOL __cdecl sub_10021710(int *a1);
 void __cdecl sub_10025070(void);
 void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2);
-float *__cdecl sub_100289A0(bot_state_t *bs, float a2);
+void __cdecl sub_100289A0(bot_state_t *bs, float a2);
 int __cdecl sub_10028A40(bot_state_t *bs, float a2);
 
 #endif /* BOTLIB_BE_AI2_DMQ2_H */

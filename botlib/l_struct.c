@@ -453,7 +453,8 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
    * `return result;` makes cl.exe canonicalise every `return 0` into one block
    * at the textual end, un-pinning the shared exit the original keeps inline at
    * the first guard. */
-  if ( !WriteIndent(fp, indent - 1) )
+  --indent;
+  if ( !WriteIndent(fp, indent) )
     return 0;
   if ( fprintf(fp, "}\r\n") < 0 )
     return 0;

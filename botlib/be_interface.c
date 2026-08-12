@@ -356,6 +356,10 @@ void BotSetupMoveAI()
 //----- (10037BB0) --------------------------------------------------------
 int Export_BotSetupLibrary(void)
 {
+#ifndef _WIN32
+    int result;
+#endif
+
     if (botstate.setup) {
         botimport.Print(3, "bot library already setup\n");
         return 2;
@@ -373,11 +377,19 @@ int Export_BotSetupLibrary(void)
 
     BotSetupMoveAI();
 
+#ifdef _WIN32
     errno = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
     if (errno) return errno;
 
     errno = BotSetupLibrary();
     if (errno) return errno;
+#else
+    result = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
+    if (result) return result;
+
+    result = BotSetupLibrary();
+    if (result) return result;
+#endif
 
     EA_Setup();
 
@@ -443,6 +455,10 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
                      int soundindexes, char **soundindex,
                      int imageindexes, char **imageindex)
 {
+#ifndef _WIN32
+    int result;
+#endif
+
     if (!BotLibSetup("BotLoadMap")) return 1;
 
     if (!mapname) {
@@ -453,10 +469,17 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
 
     botimport.Print(1, "------------ Map Loading ------------\n");
 
+#ifdef _WIN32
     errno = BotLoadMap(mapname, modelindexes, modelindex,
                        soundindexes, soundindex,
                        imageindexes, imageindex);
     if (errno) return errno;
+#else
+    result = BotLoadMap(mapname, modelindexes, modelindex,
+                       soundindexes, soundindex,
+                       imageindexes, imageindex);
+    if (result) return result;
+#endif
 
     sub_10029C10();
     botimport.Print(1, "-------------------------------------\n");

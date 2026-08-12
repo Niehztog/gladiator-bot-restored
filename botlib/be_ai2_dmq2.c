@@ -833,16 +833,15 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
     return 0;
   if ( bs->inventory[QUAD_SECONDS] )
     return 0;
-  if ( !bs->inventory[INVULNERABILITY_SECONDS] )
-  {
-    v3 = bs->inventory[INVENTORY_HEALTH];
-    if ( v3 < 60 )
-      return 0;
-    if ( v3 < 90 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
-      return 0;
-    if ( Characteristic_BFloat(BotCharacter(bs), 26, 0.0, 1.0) < 0.5 )
-      return 0;
-  }
+  if ( bs->inventory[INVULNERABILITY_SECONDS] )
+    return 1;
+  v3 = bs->inventory[INVENTORY_HEALTH];
+  if ( v3 < 60 )
+    return 0;
+  if ( v3 < 90 && ((int *)bs)[433] < 40 && ((int *)bs)[434] < 50 && ((int *)bs)[435] < 60 )
+    return 0;
+  if ( Characteristic_BFloat(BotCharacter(bs), 26, 0.0, 1.0) < 0.5 )
+    return 0;
   return 1;
 }
 //----- (10022A60) --------------------------------------------------------
@@ -1638,25 +1637,19 @@ LABEL_39:
   return 0;
 }
 //----- (10024FD0) --------------------------------------------------------
-int __cdecl BotSetMovedir(float *angles, float *movedir)
+void __cdecl BotSetMovedir(float *angles, float *movedir)
 {
   if ( VectorCompare(angles, VEC_UP) )
   {
     VectorCopy(MOVEDIR_UP, movedir);
-    return (int)(intptr_t)movedir;
   }
   else if ( VectorCompare(angles, VEC_DOWN) )
   {
     VectorCopy(MOVEDIR_DOWN, movedir);
-    return (int)(intptr_t)movedir;
   }
   else
   {
-    /* AngleVectors is void and this return value is dead (both callers ignore
-     * it), so the original just lets eax flow through from the call.  The
-     * cast-call reproduces that `call; ret` instead of keeping `dir` alive
-     * across the call at the cost of a callee-saved push. */
-    return ((int (__cdecl *)(float *, float *, void *, void *))AngleVectors)(angles, movedir, NULL, NULL);
+    AngleVectors(angles, movedir, NULL, NULL);
   }
 }
 //----- (10025070) --------------------------------------------------------
@@ -2958,7 +2951,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
         {
           v11 = Characteristic_BFloat(BotCharacter(bs), 22, 0.0, 1.0);
           v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-          if ( 1.5 / (float)(NumBots() + 1) > v13 )
+          if ( 1.5 / (NumBots() + 1) > v13 )
           {
             if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
             {
@@ -2985,7 +2978,7 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
  }
 }
 //----- (100289A0) --------------------------------------------------------
-float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
+void __cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
   bs->ltime += a2;
   bs->thinktime = a2;
@@ -2996,7 +2989,6 @@ float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
   bs->eye[1] = bs->snapshot.origin[1] + bs->snapshot.viewoffset[1];
   bs->eye[2] = bs->snapshot.origin[2] + bs->snapshot.viewoffset[2];
   memcpy(bs->inventory, bs->snapshot.inventory, 0x400u);
-  return (float *)bs;
 }
 //----- (10028A40) --------------------------------------------------------
 int __cdecl sub_10028A40(bot_state_t *bs, float a2)
@@ -3007,8 +2999,6 @@ int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 int BotDeathmatchAI(bot_state_t *bs, float thinktime)
 {
   int i; // edi
-  int result; // eax
-  float v6; // [esp+10h] [ebp+8h]
 
   sub_100289A0(bs, thinktime);
   if ( dword_1006446C && AAS_Initialized() )
@@ -3032,8 +3022,7 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
     AIEnter_Seek_LTG(bs);
   if ( AAS_Time() - 8.0f < bs->setup_time && BotChat_EnterGame(bs) )
   {
-    v6 = BotChatTime(bs);
-    bs->stand_time = AAS_Time() + v6;
+    bs->stand_time = AAS_Time() + BotChatTime(bs);
     AIEnter_Stand(bs);
   }
   BotResetNodeSwitches();
@@ -3048,10 +3037,8 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
     BotDumpAvoidGoals(&bs->goalstate);
     BotDumpNodeSwitches(bs);
   }
-  result = *(_DWORD *)bs;
   if ( *(_DWORD *)bs )
     return sub_10028A40(bs, thinktime);
-  return result;
 }
 // 10028B9E: conditional instruction was optimized away because edi.4<32
 //----- (10028C30) --------------------------------------------------------

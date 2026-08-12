@@ -2674,49 +2674,48 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 //----- (100181D0) --------------------------------------------------------
 void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
-  aas_area_t *area; // esi
   int i; // ebx
-  int face1num; // rax (was __int64 — abs32 idiom)
-  aas_face_t *face1; // edx
-  int k; // edi
   int j; // eax
-  int face2num; // rax (was __int64 — abs32 idiom)
-  int v10; // edi
-  aas_face_t *face2; // esi
+  int k; // edi
   int l; // ecx
+  int m; // ecx
+  int n; // [esp+8h] [ebp-ACh]
+  int face1num; // rax (was __int64 — abs32 idiom)
+  int face2num; // rax (was __int64 — abs32 idiom)
+  int edge1num; // [esp+18h] [ebp-9Ch]
   int edge2num; // rax (was __int64 — abs32 idiom)
   int otherareanum; // ecx
-  aas_area_t *area2; // eax
   int gap; // ebx
-  unsigned int v20; // eax
-  aas_face_t *face3; // ebp
-  int m; // ecx
+  int reachareanum; // eax
+  int v10; // edi
   int v25; // eax
-  aas_edge_t *edge; // eax
+  int v33; // edi
+  int v36; // edx
+  int v46; // [esp+24h] [ebp-90h]
+  unsigned int v20; // eax
+  float v39; // [esp+8h] [ebp-ACh]
   BOOL side; // ecx
+  aas_area_t *area; // esi
+  aas_area_t *area2; // eax
+  aas_face_t *face1; // edx
+  aas_face_t *face2; // esi
+  aas_face_t *face3; // ebp
+  aas_edge_t *edge; // eax
   aas_plane_t *plane;
   float *v29; // esi
   float *v30; // edi
-  int reachareanum; // eax
-  int v33; // edi
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v35; // esi (was int) — alias of lreach
-  int v36; // edx
-  int n; // [esp+8h] [ebp-ACh]
-  float v39; // [esp+8h] [ebp-ACh]
   /* midorigin: the edge midpoint, lifted 8 units off the floor along edgecross.
    * Must be a real vec3_t — it is passed by address to VectorScale / VectorMA /
    * AAS_TraceClientBBox and copied as the reach's `start`; split into separate
    * locals the trace fires from a garbage origin and nearly every
    * WALKOFFLEDGE candidate is silently rejected. */
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
-  int edge1num; // [esp+18h] [ebp-9Ch]
-  int v46; // [esp+24h] [ebp-90h]
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
   float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+6Ch] [ebp-48h] (was int v58[9] + char v59[36] hidden return buffer)
-
   if ( !AAS_AreaGrounded(areanum) || AAS_AreaSwim(areanum) )
     return;
   area = &aasworld.areas[areanum];

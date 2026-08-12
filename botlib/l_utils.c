@@ -499,11 +499,13 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
          a1,
          a2) )
     return 1;
-  return sub_10041BA0(
-           LibVarGetString("cddir"),
-           LibVarGetString("gamedir"),
-           a1,
-           a2) != 0;
+  if ( sub_10041BA0(
+         LibVarGetString("cddir"),
+         LibVarGetString("gamedir"),
+         a1,
+         a2) )
+    return 1;
+  return 0;
 }
 
 #ifdef _WIN32  /* ---- ZIP32 windll archive path (ZIP32.DLL): sub_10041FF0 + helpers/callbacks ----

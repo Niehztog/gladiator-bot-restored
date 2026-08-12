@@ -94,6 +94,11 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
  * A verbatim cognate name is therefore impossible, so this trio stays unnamed.
  * Do NOT "resolve" it by renaming the 0x1001ACxx family — those three really
  * are the aas_link_t functions. */
+//----- (10003080) --- thin wrapper forwarding to bi_PointContents
+int __cdecl sub_10003080(vec3_t point)
+{
+  return botimport.PointContents(point);
+}
 void sub_100030A0()
 {
   int i;
@@ -2263,7 +2268,9 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
    * (denormal-looking) sample values to 0. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
-  if ( !bspworld.dword_100674C0 || !bspworld.dlightdata || !RecursiveLightPoint(bspworld.dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
+  if ( !bspworld.dword_100674C0 )
+    return 0;
+  if ( !bspworld.dlightdata || !RecursiveLightPoint(bspworld.dmodels[0].headnode, (float *)start, (float *)end, (float *)endpos, v7) )
     return 0;
   *red = v7[0];
   *green = v7[1];
@@ -2951,11 +2958,6 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
 int sub_100085F0()
 {
   return sub_10037850(aasworld.mapname, bspworld.dentdata, bspworld.entdatasize);
-}
-//----- (10003080) --- thin wrapper forwarding to bi_PointContents
-int __cdecl sub_10003080(vec3_t point)
-{
-  return botimport.PointContents(point);
 }
 
 /* ------------------------------------------------------------------------

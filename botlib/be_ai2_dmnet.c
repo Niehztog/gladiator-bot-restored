@@ -660,21 +660,12 @@ void __cdecl AIEnter_Intermission(bot_state_t *bs)
 //----- (1001EB50) --------------------------------------------------------
 int __cdecl AINode_Intermission(bot_state_t *bs)
 {
-  float v2; // st7
-  float v4; // [esp+8h] [ebp+4h]
-
   if ( !BotIntermission(bs) )
   {
     if ( BotChat_StartLevel(bs) )
-    {
-      v4 = BotChatTime(bs);
-      v2 = AAS_Time() + v4;
-    }
+      *(float *)((char *)bs + 2812) = AAS_Time() + BotChatTime(bs);
     else
-    {
-      v2 = AAS_Time() + 2.0f;
-    }
-    *(float *)((char *)bs + 2812) = v2;
+      *(float *)((char *)bs + 2812) = AAS_Time() + 2.0f;
     AIEnter_Stand(bs);
   }
   return 1;
@@ -756,13 +747,12 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
     if ( !BotIsDead(bs) )
     {
       AIEnter_Seek_LTG(bs);
-      return 1;
     }
   }
   else if ( AAS_Time() > bs->respawnchat_time )
   {
-    v2 = bs->client;
     bs->respawn_wait = 1;
+    v2 = bs->client;
     EA_Respawn(v2);
     if ( bs->enemy )
     {

@@ -867,11 +867,15 @@ char PS_NextWhiteSpaceChar(script_t *script)
 void __cdecl StripDoubleQuotes(char *string)
 {
   /* The original uses strcpy() with OVERLAPPING src/dst — a byte copy under
-   * 32-bit MSVC, undefined with glibc's SIMD strcpy — so keep strcpy only for
-   * the oracle and memmove elsewhere.  The outer `while` (not Q3's single `if`)
-   * matches the original's loopback. */
+   * 32-bit MSVC and under the vintage i386 glibc/libc5 the 1999 Linux build
+   * shipped with, undefined with a modern glibc's SIMD strcpy — so keep
+   * strcpy only for the two vintage-i386 oracles (MSVC6 and gcc 2.7.2.3;
+   * same `__i386__ && !__SSE_MATH__` predicate as be_aas_reach.c's x87-temp
+   * gate above, for the same reason: it is FLT_EVAL_METHOD/instruction-set
+   * vintage, not compiler brand) and memmove elsewhere. The outer `while`
+   * (not Q3's single `if`) matches the original's loopback. */
   while ( *string == '"' )
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
     strcpy(string, string + 1);
 #else
     memmove(string, string + 1, strlen(string));
@@ -883,7 +887,7 @@ void __cdecl StripDoubleQuotes(char *string)
 void __cdecl StripSingleQuotes(char *string)
 {
   while ( *string == '\'' )
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
     strcpy(string, string + 1);
 #else
     memmove(string, string + 1, strlen(string));

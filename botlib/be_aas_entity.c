@@ -597,22 +597,16 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 int __cdecl AAS_NextBSPEntity(int ent)
 {
   int v1; // eax
-  int result; // eax
 
   if ( !aasworld.loaded )
     return 0;
   v1 = ent;
   if ( ent < 0 )
     v1 = -1;
-  result = v1 + 1;
-  if ( result >= aasworld.numentities )
-    return 0;
-  while ( 1 )
+  while ( ++v1 < aasworld.numentities )
   {
-    if ( aasworld.entities[result].i.valid )
-      return result;
-    ++result;
-    if ( result >= aasworld.numentities )
-      return 0;
+    if ( aasworld.entities[v1].i.valid )
+      return v1;
   }
+  return 0;
 }

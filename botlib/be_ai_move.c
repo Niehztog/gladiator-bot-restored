@@ -608,8 +608,6 @@ int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
 //----- (10031D10) --------------------------------------------------------
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult)
 {
-  int result; // eax
-  int v4; // ecx
   /* mins/maxs/end must be real vec3_t: otherwise
    * AAS_PresenceTypeBoundingBox writes mins[2]/maxs[2] into stray slots and
    * AAS_Trace reads garbage past the bounding box, blocking every movement
@@ -635,18 +633,21 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
   }
   VectorMA(ms->origin, 3.0f, dir, end);
   trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
-  result = trace.startsolid;
+  /* Q3A's cognate is void with a single combined `if (!trace.startsolid &&
+   * trace.ent != ENTITYNUM_WORLD && ...)` guard and no return statement;
+   * every call site here also discards the result, and the real disasm
+   * confirms no return value is ever materialized (both the startsolid and
+   * the !trace.ent early-outs fall straight to the epilogue with no `mov
+   * eax` at all) -- same "declared int, no return statement" bug class as
+   * AAS_PresenceTypeBoundingBox. */
   if ( !trace.startsolid )
   {
-    v4 = trace.ent;
     if ( trace.ent )
     {
-      result = (int)(intptr_t)moveresult;
       moveresult->blocked = 1;
-      moveresult->blockentity = v4;
+      moveresult->blockentity = trace.ent;
     }
   }
-  return result;
 }
 //----- (10031E20) --------------------------------------------------------
 bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)

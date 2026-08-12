@@ -95,25 +95,24 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
   bsp_pointlight_t *v8; // esi
 
   v8 = sub_1000D450();
-  if ( v8 )
-  {
-    /* Quirk preserved: the original copies the free-list entry's stale xyz back
-     * into the caller's origin buffer. */
-    VectorCopy(v8->origin, origin);
-    v8->ent       = ent;
-    v8->radius    = radius;
-    v8->color[0]  = r;
-    v8->color[1]  = g;
-    v8->color[2]  = b;
-    v8->endtime   = time;
-    v8->decay     = decay;
-    v8->starttime = AAS_Time();
-    v8->prev      = 0;
-    v8->next      = aasworld.newestcache;
-    if ( aasworld.newestcache )
-      aasworld.newestcache->prev = v8;
-    aasworld.newestcache = v8;
-  }
+  if ( !v8 )
+    return 0;
+  /* Quirk preserved: the original copies the free-list entry's stale xyz back
+   * into the caller's origin buffer. */
+  VectorCopy(v8->origin, origin);
+  v8->ent       = ent;
+  v8->radius    = radius;
+  v8->color[0]  = r;
+  v8->color[1]  = g;
+  v8->color[2]  = b;
+  v8->endtime   = time;
+  v8->decay     = decay;
+  v8->starttime = AAS_Time();
+  v8->prev      = 0;
+  v8->next      = aasworld.newestcache;
+  if ( aasworld.newestcache )
+    aasworld.newestcache->prev = v8;
+  aasworld.newestcache = v8;
   return 0;
 }
 //----- (1000D5F0) --------------------------------------------------------

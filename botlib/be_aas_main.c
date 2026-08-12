@@ -103,21 +103,11 @@ int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *
     botimport.Print(PRT_ERROR, "%s: index not setup \"%s\"\n", indexname, String2);
     return 0;
   }
-  i = 0;
-  if ( list->numindexes > 0 )
+  for ( i = 0; i < list->numindexes; i++ )
   {
-    while ( 1 )
-    {
-      v5 = list->indexes[i];
-      if ( v5 )
-      {
-        if ( !_strcmpi(v5, String2) )
-          break;
-      }
-      if ( ++i >= list->numindexes )
-        return 0;
-    }
-    return i;
+    v5 = list->indexes[i];
+    if ( v5 && !_strcmpi(v5, String2) )
+      return i;
   }
   return 0;
 }
@@ -247,7 +237,9 @@ void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a
 //----- (1000DDA0) --------------------------------------------------------
 /* AAS_PresenceTypeBoundingBox (Q3 be_aas_sample.c).  The Q2 player bbox is
  * 32x32 (-16..16), not Q3's 30x30.  Presence types here are 4=NORMAL,
- * 2=CROUCH (Q3 uses 1/2). */
+ * 2=CROUCH (Q3 uses 1/2).  Declared int (unlike Q3's void) but never
+ * returns a value; falls off the end, leaving whatever the index*12
+ * array-offset arithmetic last left in eax as the (unused) return value. */
 int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t maxs)
 {
   int    index;
@@ -256,18 +248,16 @@ int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t ma
 
   if ( presencetype == 4 )
     index = 1;
+  else if ( presencetype == 2 )
+    index = 2;
   else
   {
-    if ( presencetype != 2 )
-      botimport.Print(PRT_FATAL,
-               "AAS_PresenceTypeBoundingBox: unknown presence type\n");
+    botimport.Print(PRT_FATAL,
+             "AAS_PresenceTypeBoundingBox: unknown presence type\n");
     index = 2;
   }
   VectorCopy(boxmins[index], mins);
   VectorCopy(boxmaxs[index], maxs);
-  /* Gladiator returns the raw float bits of maxs[2] in eax (asm leaves them
-   * there as a side effect of the last store).  Q3 returns void. */
-  return *(int *)&maxs[2];
 }
 //----- (1000DEE0) --------------------------------------------------------
 int AAS_Initialized()

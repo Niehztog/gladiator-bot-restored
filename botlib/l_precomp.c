@@ -680,7 +680,7 @@ void __cdecl PC_ConvertPath(char *path)
     if ( (*ptr == '\\' || *ptr == '/') &&
          (*(ptr + 1) == '\\' || *(ptr + 1) == '/') )
     {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
       strcpy(ptr, ptr + 1);
 #else
       memmove(ptr, ptr + 1, strlen(ptr));
@@ -694,7 +694,17 @@ void __cdecl PC_ConvertPath(char *path)
   for ( ptr = path; *ptr; )
   {
     if ( *ptr == '/' || *ptr == '\\' )
+      /* Two-week source drift (see AAS_Trace in be_aas_bspq2.c for the
+       * fully-documented instance): the Windows DLL (verified via IDA,
+       * sub_1003A710) normalizes to backslash, but the real gladi386.so
+       * writes forward slash here instead -- Quake's own file/VFS layer
+       * is always '/'-separated regardless of host OS, so the Linux port
+       * of this include-path normalizer plausibly diverged on purpose. */
+#ifdef _WIN32
       *ptr = '\\';
+#else
+      *ptr = '/';
+#endif
     ptr++;
   }
 }
@@ -1058,16 +1068,16 @@ int __cdecl PC_RemoveGlobalDefine(const char *name)
 // popping the head, advancing globaldefines to head->next (define_t
 // offset +0x18 = +24, matching botlib_structs.h define_s::next), and
 // calling PC_FreeDefine on the popped node.  This is the shutdown path
-// for the preprocessor's global #define table; Q3 botlib exposes it as
+// for the preprocessor's global #define table; line-for-line Q3's
 // PC_RemoveAllGlobalDefines.
 void __cdecl PC_RemoveAllGlobalDefines(void)
 {
-  define_t *d;
+  define_t *define;
 
-  while ( (d = globaldefines) != NULL )
+  for ( define = globaldefines; define; define = globaldefines )
   {
-    globaldefines = d->next;
-    PC_FreeDefine(d);
+    globaldefines = globaldefines->next;
+    PC_FreeDefine(define);
   }
 }
 //----- (1003B560) --------------------------------------------------------
@@ -1983,14 +1993,13 @@ int __cdecl PC_Directive_elif(source_t *source)
   if ( !type || type == 2 )
   {
     SourceError(source, "misplaced #elif");
+    return 0;
   }
-  else if ( PC_Evaluate(source, &value, 0, 1) )
-  {
-    skip = value == 0;
-    PC_PushIndent(source, 4, skip);
-    return 1;
-  }
-  return 0;
+  if ( !PC_Evaluate(source, &value, 0, 1) )
+    return 0;
+  skip = value == 0;
+  PC_PushIndent(source, 4, skip);
+  return 1;
 }
 //----- (1003CCB0) --------------------------------------------------------
 int __cdecl PC_Directive_if(source_t *source)

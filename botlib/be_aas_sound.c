@@ -225,9 +225,8 @@ void sub_1001CC50(aas_soundpool_t *a1)
 }
 //----- (1001CCC0) --------------------------------------------------------
 /* Unlink from the d_100669CC/D0 sorted list. */
-aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1)
+void sub_1001CCC0(aas_soundpool_t *a1)
 {
-  aas_soundpool_t *result = a1;
   aas_soundpool_t *v2;
   aas_soundpool_t *v3;
 
@@ -238,14 +237,9 @@ aas_soundpool_t *sub_1001CCC0(aas_soundpool_t *a1)
     aasworld.d_100669CC = a1->next;
   v3 = a1->next;
   if ( v3 )
-  {
     v3->prev = a1->prev;
-  }
   else
-  {
-    aasworld.d_100669D0 = result = a1->prev;
-  }
-  return result;
+    aasworld.d_100669D0 = a1->prev;
 }
 //----- (1001CD10) --------------------------------------------------------
 /* Insert into the d_100669D4/D8 sorted active list (descending by float at
@@ -275,9 +269,8 @@ void sub_1001CD10(aas_soundpool_t *a1)
 }
 //----- (1001CD80) --------------------------------------------------------
 /* Unlink from the d_100669D4/D8 sorted list. */
-aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
+void sub_1001CD80(aas_soundpool_t *a1)
 {
-  aas_soundpool_t *result = a1;
   aas_soundpool_t *v2;
   aas_soundpool_t *v3;
 
@@ -288,15 +281,9 @@ aas_soundpool_t *sub_1001CD80(aas_soundpool_t *a1)
     aasworld.d_100669D4 = a1->next;
   v3 = a1->next;
   if ( v3 )
-  {
     v3->prev = a1->prev;
-  }
   else
-  {
-    result = a1->prev;
-    aasworld.d_100669D8 = result;
-  }
-  return result;
+    aasworld.d_100669D8 = a1->prev;
 }
 //----- (1001CDD0) --------------------------------------------------------
 /* Search the d_100669CC list for the node whose entnum and soundindex match
