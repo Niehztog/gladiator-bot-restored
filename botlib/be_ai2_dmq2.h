@@ -76,7 +76,7 @@ void BotCheckAttack(bot_state_t *bs);
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs);
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum);
 int BotDeathmatchAI(bot_state_t *bs, float a2);
-_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info);
+void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info);
 int *__cdecl BotEntityToActivate(int a1);
 int __cdecl BotFindEnemy(bot_state_t *bs);
 bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *waypoints, char *name);

@@ -93,15 +93,13 @@ int dword_10064498; // weak
 int dword_1006449C; // weak
 
 //----- (10020ED0) --------------------------------------------------------
-_DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
+void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
 {
 
-  _DWORD *result; // eax
   unsigned int v3; // edx
   unsigned int v4; // edx
   unsigned int v5; // edx
 
-  result = info;
   *info = (*(int *)&bs->snapshot.origin[0]);
   info[1] = (*(int *)&bs->snapshot.origin[1]);
   info[2] = (*(int *)&bs->snapshot.origin[2]);
@@ -133,7 +131,6 @@ _DWORD *__cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
   info[13] = *(int *)&bs->viewangles[0];
   info[14] = *(int *)&bs->viewangles[1];
   info[15] = *(int *)&bs->viewangles[2];
-  return result;
 }
 //----- (10020FE0) --------------------------------------------------------
 char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
@@ -2159,28 +2156,30 @@ float __cdecl BotGetTime(bot_match_t *match)
 {
   float v1; // st7
   float t; // [esp+0h] [ebp-18Ch]
-  char timestring[152]; // [esp+4h] [ebp-188h] BYREF
   /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t timematch; // [esp+9Ch] [ebp-F0h] BYREF
+  char timestring[152]; // [esp+4h] [ebp-188h] BYREF
 
-  if ( (match->subtype & 0x10) == 0 )
-    return 0.0f;
-  BotMatchVariable(match, 5, timestring);
-  if ( !BotFindMatch(timestring, &timematch, 8) )
-    return 0.0f;
-  BotMatchVariable(&timematch, 5, timestring);
-  if ( timematch.type == 105 )
+  if ( (match->subtype & 0x10) != 0 )
   {
-    v1 = atof(timestring) * 60.0;
-    t = v1;
+    BotMatchVariable(match, 5, timestring);
+    if ( BotFindMatch(timestring, &timematch, 8) )
+    {
+      BotMatchVariable(&timematch, 5, timestring);
+      if ( timematch.type == 105 )
+      {
+        v1 = atof(timestring) * 60.0;
+        t = v1;
+      }
+      else if ( timematch.type == 106 )
+      {
+        v1 = atof(timestring);
+        t = v1;
+      }
+      if ( t > 0.0f )
+        return AAS_Time() + t;
+    }
   }
-  else if ( timematch.type == 106 )
-  {
-    v1 = atof(timestring);
-    t = v1;
-  }
-  if ( t > 0.0f )
-    return AAS_Time() + t;
   return 0.0f;
 }
 //----- (100268D0) --------------------------------------------------------
