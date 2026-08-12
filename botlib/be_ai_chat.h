@@ -55,7 +55,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename);
 char *__cdecl BotMatchVariable(bot_match_t *match, int variable, char *buf);
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs);
 int __cdecl BotNumConsoleMessages(bot_chatstate_t *chatstate);
-int __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message);
+void __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message);
 int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg);
 void __cdecl BotReplaceSynonyms(char *string, unsigned long int context);
 void __cdecl BotReplaceWeightedSynonyms(const char *string, int context);

@@ -614,24 +614,32 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
    * AAS_PresenceTypeBoundingBox writes mins[2]/maxs[2] into stray slots and
    * AAS_Trace reads garbage past the bounding box, blocking every movement
    * with phantom collisions. */
-  vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
   vec3_t mins; // [esp+14h] [ebp-6Ch] BYREF (was _DWORD v7[2] + float v8)
+  vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
   vec3_t end;  // [esp+20h] [ebp-60h] BYREF (was float v9[3])
-  int trace[21]; // [esp+2Ch] [ebp-54h] BYREF
+  /* Q3A's evolved be_ai_move.c BotCheckBlocked (same author) declares
+   * vec3_t up = {0, 0, 1} and tests fabs(DotProduct(dir, up)) < 0.7 here;
+   * MSVC6 constant-folds the dot product down to fabs(dir[2]) since up's
+   * components are compile-time constants (PE stays byte-identical either
+   * way), but gcc 2.7.2.3 does not fold it and materializes up + the 3-term
+   * dot product, so the literal DotProduct form is required for the ELF
+   * oracle to match. */
+  vec3_t up = {0.0f, 0.0f, 1.0f};
+  bsp_trace_t trace; // [esp+2Ch] [ebp-54h] BYREF (was int trace[21])
 
   AAS_PresenceTypeBoundingBox(ms->presencetype, mins, maxs);
-  if ( fabs(dir[2]) < 0.7f )
+  if ( fabs(DotProduct(dir, up)) < 0.7f )
   {
     mins[2] = mins[2] + libvar_sv_step->value;
     maxs[2] = maxs[2] - 10.0f;
   }
   VectorMA(ms->origin, 3.0f, dir, end);
-  *(bsp_trace_t *)trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
-  result = trace[1];
-  if ( !trace[1] )
+  trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
+  result = trace.startsolid;
+  if ( !trace.startsolid )
   {
-    v4 = trace[20];
-    if ( trace[20] )
+    v4 = trace.ent;
+    if ( trace.ent )
     {
       result = (int)(intptr_t)moveresult;
       moveresult->blocked = 1;
@@ -658,7 +666,6 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
-  float v5; // st7
   /* Real vec3_t: split into separate locals, VectorNormalize / EA_Move read
    * garbage as dir[2] and the bot sends near-vertical movement, which the game
    * rejects as upmove. */
@@ -668,18 +675,17 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
   float speed; // [esp+50h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
-  dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
+  dir[2] = 0.0f;
   dist = VectorNormalize(dir);
   BotCheckBlocked(ms, dir, &moveresult);
   v4 = dist;
   if ( dist < 10.0f )
   {
-    v5 = reach->end[0] - ms->origin[0];
-    dir[2] = 0.0f;
-    dir[0] = v5;
+    dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
+    dir[2] = 0.0f;
     v4 = VectorNormalize(dir);
     dist = v4;
   }
@@ -737,9 +743,9 @@ bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  dir[2] = 0.0f;
   dir[0] = reach->end[0] - ms->origin[0];
   dir[1] = reach->end[1] - ms->origin[1];
+  dir[2] = 0.0f;
   VectorNormalize(dir);
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Crouch(ms->client);
@@ -757,9 +763,9 @@ bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachabi
   float dist; // [esp+54h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
-  dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
+  dir[2] = 0.0f;
   dist = VectorNormalize(dir);
   BotCheckBlocked(ms, dir, &moveresult);
   if ( dist < 7.0f )
@@ -788,9 +794,9 @@ bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_re
   BotClearMoveResult(&moveresult);
   if ( ms->velocity[2] < 250.0f )
   {
-    dir[2] = 0.0f;
     dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
+    dir[2] = 0.0f;
     dist = VectorNormalize(dir);
     BotCheckBlocked(ms, dir, &moveresult);
     if ( dist > 60.0f )
@@ -881,10 +887,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
 //----- (100327F0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  float *v4; // ebx
   float dist; // st7
-  float v6; // st7
-  float v7; // st7
   float speed; // [esp+10h] [ebp-4Ch] BYREF
   /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+14h] [ebp-48h] BYREF (was v10/v11/v12)
@@ -893,7 +896,6 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
   float v17; // [esp+68h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
-  v4 = reach->end;
   VectorSubtract(reach->end, ms->origin, pos);
   BotCheckBlocked(ms, pos, &moveresult);
   dir[0] = pos[0];
@@ -903,13 +905,11 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
   v17 = dist;
   if ( dist < 60.0f )
   {
-    v6 = *v4 - ms->origin[0];
-    dir[2] = 0.0f;
-    dir[0] = v6;
+    dir[0] = reach->end[0] - ms->origin[0];
     dir[1] = reach->end[1] - ms->origin[1];
+    dir[2] = 0.0f;
     VectorNormalize(dir);
-    v7 = *v4 - reach->start[0];
-    pos[0] = v7;
+    pos[0] = reach->end[0] - reach->start[0];
     pos[1] = reach->end[1] - reach->start[1];
     pos[2] = 0.0f;
     if ( (float)VectorLength(pos) < 15.0f )
@@ -921,7 +921,7 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
     }
     else
     {
-      if ( !AAS_HorizontalVelocityForJump(0.0, reach->start, v4, &speed) )
+      if ( !AAS_HorizontalVelocityForJump(0.0, reach->start, reach->end, &speed) )
         speed = 200.0f;
     }
   }
@@ -938,8 +938,8 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
 bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t locals — see the BotTravel_Walk note. */
-  vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   vec3_t pos; // [esp+14h] [ebp-3Ch] BYREF (was v7/v8/<hole>)
+  vec3_t dir; // [esp+8h] [ebp-48h] BYREF (was v4/v5/v6)
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
@@ -956,19 +956,24 @@ bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_r
 //----- (10032AE0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  float speed; // [esp+0h] [ebp-90h]
-  float dist1; // [esp+10h] [ebp-80h]  reused: loop counter dist1, then botd length (was v13)
-  float dist2; // [esp+14h] [ebp-7Ch]  reused: dist1+10 temp, then predd length dist2 (was v15)
-  /* Real vec3_t locals — see the BotTravel_Walk note. */
-  vec3_t hordir;   // [esp+18h] [ebp-78h] BYREF (was v16/v17/v18)
-  vec3_t runstart; // [esp+24h] [ebp-6Ch] BYREF (was v19/v20/<hole>)
-  vec3_t dir2; // [esp+30h] [ebp-60h] BYREF (was v21/v22/v23)
-  vec3_t dir1;  // [esp+3Ch] [ebp-54h] BYREF (was v24/v25/v26)
-  vec3_t start; // [esp+48h] [ebp-48h] BYREF
-  /* Real vec3_t, as in AAS_NearbySolidOrGap: VectorMA writes three floats here
-   * and the z-bump below has to land in the same slot. */
-  vec3_t end; // [esp+54h] [ebp-3Ch] BYREF
-  bot_moveresult_t moveresult; // [esp+60h] [ebp-30h] BYREF
+  /* speed and dist2's clamp are pure FPU-stack expressions in the real
+   * disasm — never spilled to a named slot (dist2 itself gets a transient
+   * TBYTE spill around baseline 0x10 solely for the >80 clamp compare). */
+  float speed;
+  float dist1; // baseline 0x20 — reused: loop counter, then VectorNormalize(dir1)'s length
+  float dist2; // reused: dist1+10 loop temp, then VectorNormalize(dir2)'s length (parked on the FPU stack)
+  /* Real vec3_t locals — see the BotTravel_Walk note. Declaration order here
+   * is the exact reverse of the real stack layout (runstart/end/start/dir2/
+   * dir1/hordir at baselines 0x54/0x60/0x6c/0x78/0x84/0x90): gcc 2.7.2.3
+   * allocates this block's slots in reverse declaration order (last
+   * declared gets the lowest offset), confirmed empirically. */
+  vec3_t hordir;   // baseline 0x90
+  vec3_t dir1;     // baseline 0x84
+  vec3_t dir2;     // baseline 0x78
+  vec3_t start;    // baseline 0x6c
+  vec3_t end;      // baseline 0x60 — VectorMA writes three floats then the z-bump lands in the same slot
+  vec3_t runstart; // baseline 0x54
+  bot_moveresult_t moveresult; // baseline 0x24 BYREF
 
   BotClearMoveResult(&moveresult);
   AAS_JumpReachRunStart(reach, (intptr_t)runstart);
@@ -981,8 +986,7 @@ bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t 
   VectorMA(reach->start, 80.0f, hordir, runstart);
   for ( dist1 = 0.0f; dist1 < 80.0f; dist1 = dist1 + 10.0f )
   {
-    dist2 = dist1 + 10.0f;
-    VectorMA(start, dist2, hordir, end);
+    VectorMA(start, dist1 + 10.0f, hordir, end);
     end[2] += 1.0f;
     if ( AAS_PointAreaNum(end) != ms->reachareanum )
       break;
@@ -1038,22 +1042,25 @@ bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachabil
   float dist; // [esp+58h] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
-  if ( ms->jumpreach )
-  {
-    dir[2] = 0.0f;
-    dir[0] = reach->end[0] - ms->origin[0];
-    dir[1] = reach->end[1] - ms->origin[1];
-    dist = VectorNormalize(dir);
-    reach_dir[2] = 0.0f;
-    reach_dir[0] = reach->end[0] - reach->start[0];
-    reach_dir[1] = reach->end[1] - reach->start[1];
-    VectorNormalize(reach_dir);
-    if ( ((reach_dir[2] * dir[2]) + reach_dir[1] * dir[1]) + reach_dir[0] * dir[0] >= -0.5 || dist >= 24.0f )
-    {
-      EA_Move(ms->client, dir, 800.0);
-      VectorCopy(dir, moveresult.movedir);
-    }
-  }
+  /* Real disasm has TWO separate struct-return copy-out sequences, and the
+   * `!ms->jumpreach` skip jumps to the SAME copy-out as the DotProduct/dist
+   * guard clause below (gcc cross-jumping two identical `return moveresult;`
+   * tails) — so both guards must be flattened early returns, not one
+   * wrapping `if (ms->jumpreach) { ... }` block. */
+  if ( !ms->jumpreach )
+    return moveresult;
+  dir[0] = reach->end[0] - ms->origin[0];
+  dir[1] = reach->end[1] - ms->origin[1];
+  dir[2] = 0.0f;
+  dist = VectorNormalize(dir);
+  reach_dir[0] = reach->end[0] - reach->start[0];
+  reach_dir[1] = reach->end[1] - reach->start[1];
+  reach_dir[2] = 0.0f;
+  VectorNormalize(reach_dir);
+  if ( DotProduct(dir, reach_dir) < -0.5 && dist < 24.0f )
+    return moveresult;
+  EA_Move(ms->client, dir, 800.0);
+  VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
 //----- (10032FC0) --------------------------------------------------------
@@ -1084,18 +1091,21 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
 //----- (100330E0) --------------------------------------------------------
 bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  int v4; // ecx
   /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float dist; // [esp+4Ch] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
-  v4 = ms->moveflags;
-  if ( (v4 & 0x20) == 0 )
+  /* No cached `v4 = ms->moveflags` local — real reloads ms->moveflags
+   * directly (`test BYTE PTR [edi+0x60],N`) at each use site instead of
+   * caching it in a register, so every check below reads ms->moveflags
+   * fresh (IDA invented v4 to name the ecx/edx that MSVC happens to cache
+   * it in; gcc 2.7 doesn't do that CSE unless there's a real local). */
+  if ( (ms->moveflags & 0x20) == 0 )
   {
     VectorSubtract(reach->start, ms->origin, dir);
-    if ( (v4 & 4) == 0 )
+    if ( (ms->moveflags & 4) == 0 )
       dir[2] = 0.0f;
     dist = VectorNormalize(dir);
     BotCheckBlocked(ms, dir, &moveresult);
@@ -1424,24 +1434,22 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
 {
   float dist; // st7
   float v4; // st7
-  int v6; // [esp-14h] [ebp-5Ch]
-  int v7; // [esp-Ch] [ebp-54h]
   float speed; // [esp+0h] [ebp-48h]
   /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+Ch] [ebp-3Ch] BYREF (was v9/v10/v11)
   bot_moveresult_t moveresult; // [esp+18h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  dir[2] = 0.0f;
   dir[0] = reach->start[0] - ms->origin[0];
   dir[1] = reach->start[1] - ms->origin[1];
+  dir[2] = 0.0f;
   dist = VectorNormalize(dir);
   if ( dist < 5.0f )
   {
     v4 = reach->end[0] - ms->origin[0];
-    dir[2] = 0.0f;
     dir[0] = v4;
     dir[1] = reach->end[1] - ms->origin[1];
+    dir[2] = 0.0f;
     VectorNormalize(dir);
     EA_Jump(ms->client);
     EA_Attack(ms->client);
@@ -1456,13 +1464,11 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
     EA_Move(ms->client, dir, speed);
   }
   vectoangles(dir, ms->viewangles);
-  v7 = ms->client;
   /* int bit-pattern store: the original sets pitch to 90.0f via raw bits. */
   *(int *)&ms->viewangles[0] = 1119092736;
-  EA_View(v7, ms->viewangles);
-  v6 = ms->client;
+  EA_View(ms->client, ms->viewangles);
   moveresult.flags |= 8u;
-  EA_UseItem(v6, "Rocket Launcher");
+  EA_UseItem(ms->client, "Rocket Launcher");
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
@@ -1483,15 +1489,18 @@ bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_rea
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  if ( ms->jumpreach )
-  {
-    hordir[2] = 0.0f;
-    hordir[0] = reach->end[0] - ms->origin[0];
-    hordir[1] = reach->end[1] - ms->origin[1];
-    VectorNormalize(hordir);
-    EA_Move(ms->client, hordir, 800.0);
-    VectorCopy(hordir, moveresult.movedir);
-  }
+  /* Early-return guard clause (not a wrapping `if`) — real has two separate
+   * rep-movs copy-outs (zeroed moveresult here vs. the populated one below),
+   * reached via a `jne`-past-the-early-copy-out branch, the same idiom as
+   * BotFinishTravel_Jump's outer !ms->jumpreach guard. */
+  if ( !ms->jumpreach )
+    return moveresult;
+  hordir[0] = reach->end[0] - ms->origin[0];
+  hordir[1] = reach->end[1] - ms->origin[1];
+  hordir[2] = 0.0f;
+  VectorNormalize(hordir);
+  EA_Move(ms->client, hordir, 800.0);
+  VectorCopy(hordir, moveresult.movedir);
   return moveresult;
 }
 //----- (10034170) --------------------------------------------------------
@@ -1533,9 +1542,12 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
 {
   float dist; // st7
   float speed; // st7
+  /* moveresult declared before dir — reverse-declaration-order rule (see
+   * BotTravel_Jump): real's dir sits at a LOWER stack offset than
+   * moveresult, so dir must be declared AFTER moveresult here. */
+  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
-  bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float v17; // [esp+50h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
@@ -1794,11 +1806,12 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
   if ( latesttime != 0 )
   {
     *(int *)&ms->avoidreachtimes[latest] = 0;
-    /* FAITHFUL ORIGINAL BUG — do NOT "fix": the guard reads avoidreachtries[1],
-     * ONE PAST the 1-element array, then decrements avoidreachtries[latest].
-     * Q3's cognate guards on avoidreachtries[latest].  Indexed through a decayed
-     * pointer so the out-of-bounds subscript is explicit. */
-    if ( ((int *)ms->avoidreachtries)[1] > 0 )
+    /* FAITHFUL ORIGINAL BUG — do NOT "fix": the guard reads avoidreachtries[i],
+     * where the leaked loop variable i is 1 past the 1-element array after the
+     * loop exits. Q3's cognate has the exact same idiom: "if (ms->avoidreachtries[i] > 0)
+     * ms->avoidreachtries[latest]--;" — i is used, not a literal, so the out-of-bounds
+     * subscript is a leaked-loop-variable bug, not a hardcoded one. */
+    if ( ms->avoidreachtries[i] > 0 )
       --ms->avoidreachtries[latest];
   }
 }

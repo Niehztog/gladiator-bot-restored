@@ -52,17 +52,13 @@ bsp_pointlight_t *sub_1000D450()
   return v0;
 }
 //----- (1000D4A0) --------------------------------------------------------
-bsp_pointlight_t *__cdecl sub_1000D4A0(bsp_pointlight_t *a1)
+void __cdecl sub_1000D4A0(bsp_pointlight_t *a1)
 {
-  bsp_pointlight_t *result; // eax
-
-  result = a1;
   if ( aasworld.oldestcache )
     aasworld.oldestcache->prev = a1;
   a1->prev = 0;
   a1->next = aasworld.oldestcache;
   aasworld.oldestcache = a1;
-  return result;
 }
 //----- (1000D4E0) --------------------------------------------------------
 void __cdecl sub_1000D4E0(float a1)

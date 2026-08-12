@@ -728,9 +728,6 @@ int __cdecl AINode_Stand(bot_state_t *bs)
 //----- (1001ED80) --------------------------------------------------------
 void __cdecl AIEnter_Respawn(bot_state_t *bs)
 {
-  double v2; // st7
-  float v3; // [esp+10h] [ebp+4h]
-
   BotRecordNodeSwitch(bs, "respawn", "");
   BotResetMoveState(&bs->ms);
   BotResetGoalState(&bs->goalstate);
@@ -739,14 +736,12 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   BotResetAvoidReach((_DWORD *)&bs->ms);
   if ( BotChat_Death((int *)bs) )
   {
-    v3 = BotChatTime(bs);
-    v2 = AAS_Time() + v3;
+    bs->respawnchat_time = AAS_Time() + BotChatTime(bs);
   }
   else
   {
-    v2 = AAS_Time();
+    bs->respawnchat_time = AAS_Time();
   }
-  bs->respawnchat_time = v2;
   bs->respawn_wait = 0;
   BotAINode(bs) = AINode_Respawn;
 }

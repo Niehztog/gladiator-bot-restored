@@ -1790,8 +1790,8 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   if ( !bspworld.dword_100674C0 )
     return 0;
   link = 0;
-  v6 = &v15[1];
   v15[0] = bspworld.dmodels[modelnum].headnode;
+  v6 = &v15[1];
   /* while(1)+break, NOT `while (--v6 >= &v15[0])`: since v6 starts at &v15[1],
    * MSVC6 can prove that guard always holds first time and rotates the loop to
    * a bottom test.  The infinite-loop form keeps the test at the top, as in the
@@ -1813,9 +1813,9 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
       newlink->next_leaf = link;
       if ( link )
         link->prev_leaf = newlink;
+      link = newlink;
       newlink->prev_ent  = 0;
       newlink->next_ent  = 0;
-      link = newlink;
       newlink->next_ent  = bspworld.dword_10069584[leafnum];
       v10 = bspworld.dword_10069584[leafnum];
       if ( v10 )

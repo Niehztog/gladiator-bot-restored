@@ -753,7 +753,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   return 1;
 }
 //----- (10022650) --------------------------------------------------------
-double __cdecl BotChatTime(bot_state_t *bs)
+float __cdecl BotChatTime(bot_state_t *bs)
 {
 
   int cpm; // [esp+4h] [ebp-4h]
@@ -2297,11 +2297,11 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   int result; // eax
   const char *botname; // esi (Q2 ClientName returns char*)
   float v5; // [esp+Ch] [ebp-2BCh]
-  char name[152]; // [esp+10h] [ebp-2B8h] BYREF
   char addressedto[152]; // [esp+A8h] [ebp-220h] BYREF
+  char netname[152]; // [esp+230h] [ebp-98h] BYREF
+  char name[152]; // [esp+10h] [ebp-2B8h] BYREF
   /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t addresseematch; // [esp+140h] [ebp-188h] BYREF
-  char netname[152]; // [esp+230h] [ebp-98h] BYREF
 
   BotMatchVariable(match, 0, netname);
   client = ClientFromName(netname);
@@ -2987,18 +2987,15 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 //----- (100289A0) --------------------------------------------------------
 float *__cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
-  int v6; // edx
-
   bs->ltime += a2;
   bs->thinktime = a2;
   bs->origin[0] = bs->snapshot.origin[0];
   bs->origin[1] = bs->snapshot.origin[1];
-  bs->eye[0] = bs->snapshot.viewoffset[0] + bs->snapshot.origin[0];
-  v6 = (*(int *)&bs->snapshot.origin[2]);
+  bs->origin[2] = bs->snapshot.origin[2];
+  bs->eye[0] = bs->snapshot.origin[0] + bs->snapshot.viewoffset[0];
+  bs->eye[1] = bs->snapshot.origin[1] + bs->snapshot.viewoffset[1];
+  bs->eye[2] = bs->snapshot.origin[2] + bs->snapshot.viewoffset[2];
   memcpy(bs->inventory, bs->snapshot.inventory, 0x400u);
-  bs->eye[1] = bs->snapshot.viewoffset[1] + bs->snapshot.origin[1];
-  bs->eye[2] = bs->snapshot.viewoffset[2] + *(float *)&(*(int *)&bs->snapshot.origin[2]);
-  *(int *)&bs->origin[2] = v6;
   return (float *)bs;
 }
 //----- (10028A40) --------------------------------------------------------

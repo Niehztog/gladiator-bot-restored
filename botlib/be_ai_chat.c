@@ -122,35 +122,33 @@ int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessa
   return links->count;
 }
 //----- (1002AAB0) --------------------------------------------------------
-int __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message)
+void __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message)
 {
   bot_consolemessage_t *msg;
-  chatmsg_links_t      *links;
 
   msg = AllocConsoleMessage();
   if ( !msg )
-    return botimport.Print(PRT_ERROR, "empty console message heap\n");
+  {
+    botimport.Print(PRT_ERROR, "empty console message heap\n");
+    return;
+  }
   msg->time = AAS_Time();
   msg->type = type;
   strncpy(msg->message, message, 0x96u);
-  links = &BotChatMsgLinksCS(chatstate);
   msg->next = NULL;
-  if ( links->last )
+  if ( BotChatMsgLinksCS(chatstate).last )
   {
-    links->last->next = msg;
-    msg->prev = links->last;
-    links->last = msg;
-    ++links->count;
-    return (intptr_t)chatstate;
+    BotChatMsgLinksCS(chatstate).last->next = msg;
+    msg->prev = BotChatMsgLinksCS(chatstate).last;
+    BotChatMsgLinksCS(chatstate).last = msg;
   }
   else
   {
-    links->last  = msg;
-    links->first = msg;
+    BotChatMsgLinksCS(chatstate).last  = msg;
+    BotChatMsgLinksCS(chatstate).first = msg;
     msg->prev    = NULL;
-    ++links->count;
-    return (intptr_t)chatstate;
   }
+  ++BotChatMsgLinksCS(chatstate).count;
 }
 //----- (1002AB90) --------------------------------------------------------
 bot_consolemessage_t *__cdecl BotNextConsoleMessage(bot_chatstate_t *cs)

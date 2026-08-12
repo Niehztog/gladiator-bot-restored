@@ -47,8 +47,11 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
-/* iteminfo_struct — descriptor at 0x1005D890 (284 B); field table at 0x1005D7B0. */
-static char *iteminfo_fields[] = {
+/* iteminfo_struct — descriptor at 0x1005D890 (284 B); field table at 0x1005D7B0.
+ * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
+ * `D` symbol (0005bcc8 D iteminfo_fields), which a file-static array can
+ * never be. */
+char *iteminfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x0A0, 0x004, 0, 0x00000000),
     FE("type",        0x0F4, 0x002, 0, 0x00000000),
@@ -73,9 +76,14 @@ itemconfig_t * LoadItemConfig(char *filename)
   source_t *src;
   itemconfig_t *cfg;
   iteminfo_t *item;
-  bot_fileref_t file_ref; /* original bot_fileref_t local */
-  char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
+  /* Declaration order reversed vs. stack-offset order (reverse-declaration-
+   * order rule — see BotTravel_Jump): real has file_ref at the LOWEST
+   * offset of these three, then Destination, then ArgList highest, so the
+   * source must declare them in the opposite order: ArgList first,
+   * Destination middle, file_ref last. */
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+13Ch] [ebp-430h] BYREF
+  char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
 
   max_iteminfo = (int)LibVarValue("max_iteminfo", (char *)"256");
   if ( max_iteminfo < 0 )
@@ -98,8 +106,8 @@ itemconfig_t * LoadItemConfig(char *filename)
     return 0;
   }
   cfg = (itemconfig_t *)GetClearedMemory(sizeof(itemconfig_t) + sizeof(iteminfo_t) * max_iteminfo);
-  cfg->numitems = 0;
   cfg->items    = (iteminfo_t *)(cfg + 1);
+  cfg->numitems = 0;
   /* Same shape as the sibling LoadWeaponConfig: a plain top-tested
    * `while (PC_ReadTokenHandle(...))`, every error path written out INLINE with
    * no shared label, and the unknown-definition case as the trailing `else`.
@@ -213,7 +221,6 @@ levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li)
   li->prev = 0;
   li->next = levelitems;
   levelitems = li;
-  return li;
 }
 //----- (1002F320) --------------------------------------------------------
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
@@ -229,27 +236,34 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
   next = li->next;
   if ( next )
     next->prev = li->prev;
-  return li;
 }
 //----- (1002F360) --------------------------------------------------------
 void BotInitLevelItems()
 {
-  itemconfig_t *ic; // ebx
+  /* ic declared last of the pointer/int scalars (reverse-declaration-order
+   * rule) — real has ic at a LOWER stack offset than notspawnflags_mask. */
+  int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   bsp_entity_t *v4; // ebp
+  /* `i` is ONE variable reused for both the modelindex-fixup loop and the
+   * later item-name search loop (IDA had split it into `i`/`v7` as if they
+   * were different locals with disjoint lifetimes; merging them back into
+   * a single reused counter is what makes gcc assign it edi/v4 ebp exactly
+   * like real — a plain declaration-order swap of two distinct locals had
+   * no effect on the register choice, so the two loops sharing one counter
+   * variable is the actual original shape, not just a lucky reordering). */
   int i; // edi
-  int v7; // ebp
   const char *classname; // [esp+28h] [ebp-18h]
   bsp_entity_t *ent; // [esp+2Ch] [ebp-14h]
+  itemconfig_t *ic; // ebx
   /* The item origin must be a real vec3_t — it is passed by address to
    * AAS_VectorForBSPEpairKey, AAS_DropToFloor and AAS_BestReachableArea, and
    * split into separate locals nearly every item ends up with areanum 0. */
-  int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
   InitLevelItemHeap();
-  ic = itemconfig;
   levelitems = 0;
   numlevelitems = 0;
+  ic = itemconfig;
   if ( ic )
   {
     v4 = AAS_ParseBSPEntities();
@@ -268,9 +282,9 @@ void BotInitLevelItems()
         classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
         if ( classname && (AAS_IntForBSPEpairKey(ent, "spawnflags") & notspawnflags_mask) == 0 )
         {
-          for ( v7 = 0; v7 < ic->numitems; ++v7 )
+          for ( i = 0; i < ic->numitems; ++i )
           {
-            if ( !strcmp(classname, ic->items[v7].dispname) )
+            if ( !strcmp(classname, ic->items[i].dispname) )
             {
               if ( AAS_VectorForBSPEpairKey(ent, "origin", origin) )
               {
@@ -280,14 +294,14 @@ void BotInitLevelItems()
                 li->number = ++numlevelitems;
                 li->timeout = 0.0f;
                 li->entitynum = 0;
-                if ( !AAS_DropToFloor(origin, ic->items[v7].mins, ic->items[v7].maxs) )
+                if ( !AAS_DropToFloor(origin, ic->items[i].mins, ic->items[i].maxs) )
                   botimport.Print(PRT_MESSAGE, "%s in solid at (%1.1f %1.1f %1.1f)\n", classname, origin[0], origin[1], origin[2]);
-                li->iteminfo = v7;
+                li->iteminfo = i;
                 VectorCopy(origin, li->origin);
                 li->areanum = AAS_BestReachableArea(
                                          (int *)origin,
-                                         ic->items[v7].mins,
-                                         ic->items[v7].maxs,
+                                         ic->items[i].mins,
+                                         ic->items[i].maxs,
                                          li->goalorigin);
                 AddLevelItemToList(li);
               }
@@ -298,7 +312,7 @@ void BotInitLevelItems()
               break;
             }
           }
-          if ( v7 >= ic->numitems )
+          if ( i >= ic->numitems )
             Log_Write("entity %s unkown item", classname);
         }
         ent = ent->next;

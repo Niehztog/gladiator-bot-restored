@@ -97,10 +97,15 @@ void __cdecl LibVarDeAllocAll(void)
 {
   libvar_t *v;
 
-  while ( (v = libvarlist) != NULL )
+  v = libvarlist;
+  if ( v )
   {
-    libvarlist = v->next;
-    LibVarDeAlloc(v);
+    do
+    {
+      libvarlist = libvarlist->next;
+      LibVarDeAlloc(v);
+    }
+    while ( (v = libvarlist) != NULL );
   }
   libvarlist = NULL;
 }

@@ -140,45 +140,49 @@ aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
 // and zeroes the destination vec3.
 void __cdecl AAS_EntityOrigin(int entnum, vec3_t origin)
 {
-  if ( entnum >= 0 && entnum < aasworld.numentities )
+  if ( entnum < 0 || entnum >= aasworld.numentities )
   {
-    VectorCopy(aasworld.entities[entnum].i.origin, origin);
+    botimport.Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
+    origin[2] = 0.0f;
+    origin[1] = 0.0f;
+    origin[0] = 0.0f;
     return;
   }
-  botimport.Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
-  origin[2] = 0.0f;
-  origin[1] = 0.0f;
-  origin[0] = 0.0f;
+  VectorCopy(aasworld.entities[entnum].i.origin, origin);
 }
 //----- (1000AD40) --------------------------------------------------------
 int __cdecl AAS_EntityModelindex(int entnum)
 {
-  if ( entnum >= 0 && entnum < aasworld.numentities )
-    return aasworld.entities[entnum].i.modelindex;
-  botimport.Print(PRT_FATAL, "AAS_EntityModelindex: entnum %d out of range\n", entnum);
-  return 0;
+  if ( entnum < 0 || entnum >= aasworld.numentities )
+  {
+    botimport.Print(PRT_FATAL, "AAS_EntityModelindex: entnum %d out of range\n", entnum);
+    return 0;
+  }
+  return aasworld.entities[entnum].i.modelindex;
 }
 //----- (1000AD90) --------------------------------------------------------
 int __cdecl AAS_EntityRenderFX(int entnum)
 {
-  if ( aasworld.initialized )
+  if ( !aasworld.initialized )
+    return 0;
+  if ( entnum < 0 || entnum >= aasworld.numentities )
   {
-    if ( entnum >= 0 && entnum < aasworld.numentities )
-      return aasworld.entities[entnum].i.renderfx;
     botimport.Print(PRT_FATAL, "AAS_EntityRenderFX: entnum %d out of range\n", entnum);
+    return 0;
   }
-  return 0;
+  return aasworld.entities[entnum].i.renderfx;
 }
 //----- (1000ADE0) --------------------------------------------------------
 int __cdecl AAS_EntityModelNum(int entnum)
 {
-  if ( aasworld.initialized )
+  if ( !aasworld.initialized )
+    return 0;
+  if ( entnum < 0 || entnum >= aasworld.numentities )
   {
-    if ( entnum >= 0 && entnum < aasworld.numentities )
-      return aasworld.entities[entnum].i.modelindex - 1;
     botimport.Print(PRT_FATAL, "AAS_EntityModelNum: entnum %d out of range\n", entnum);
+    return 0;
   }
-  return 0;
+  return aasworld.entities[entnum].i.modelindex - 1;
 }
 //----- (1000AE30) --------------------------------------------------------
 int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)

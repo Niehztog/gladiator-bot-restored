@@ -206,15 +206,9 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
   ea_state_t *ea = &ea_controls[client];
   VectorCopy(dir, ea->dir);
   if ( speed > 565.0f )
-  {
-    ea->speed = 565.0f;
-    return;
-  }
-  if ( speed < -565.0f )
-  {
-    ea->speed = -565.0f;
-    return;
-  }
+    speed = 565.0f;
+  else if ( speed < -565.0f )
+    speed = -565.0f;
   ea->speed = speed;
 }
 //----- (100375A0) --------------------------------------------------------

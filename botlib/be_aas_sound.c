@@ -40,8 +40,11 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
-/* soundinfo_struct — descriptor at 0x1005C138 (176 B); field table at 0x1005C070. */
-static char *soundinfo_fields[] = {
+/* soundinfo_struct — descriptor at 0x1005C138 (176 B); field table at 0x1005C070.
+ * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
+ * `D` symbol (0005bbcc D soundinfo_fields), which a file-static array can
+ * never be. */
+char *soundinfo_fields[] = {
     FE("name",        0x00, 0x004, 0, 0x00000000),
     FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
     FE("duration",    0x54, 0x203, 0, 0x41200000),  /* 10.0f */

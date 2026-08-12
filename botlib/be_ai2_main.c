@@ -109,18 +109,22 @@ int __cdecl ClientFromName(const char *name)
 //----- (10028F30) --------------------------------------------------------
 char *__cdecl ClientName(int client)
 {
-  if ( client >= 0 && client < botstate.num_clients )
-    return clientsettings[client].netname;
-  botimport.Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
-  return "";
+  if ( client < 0 || client >= botstate.num_clients )
+  {
+    botimport.Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
+    return "";
+  }
+  return clientsettings[client].netname;
 }
 //----- (10028F80) --------------------------------------------------------
 char *__cdecl ClientSkin(int client)
 {
-  if ( client >= 0 && client < botstate.num_clients )
-    return clientsettings[client].skin;
-  botimport.Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
-  return "";
+  if ( client < 0 || client >= botstate.num_clients )
+  {
+    botimport.Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
+    return "";
+  }
+  return clientsettings[client].skin;
 }
 //----- (10028FD0) --------------------------------------------------------
 int NumBots()
@@ -130,19 +134,19 @@ int NumBots()
 //----- (10028FF0) --------------------------------------------------------
 float __cdecl AngleDifference(float ang1, float ang2)
 {
-  double result; // st7
+  float diff;
 
-  result = ang1 - ang2;
+  diff = ang1 - ang2;
   if ( ang1 > ang2 )
   {
-    if ( result > 180.0 )
-      return result - 360.0;
+    if ( diff > 180.0 )
+      diff -= 360.0;
   }
-  else if ( result < -180.0 )
+  else if ( diff < -180.0 )
   {
-    return result + 360.0;
+    diff += 360.0;
   }
-  return result;
+  return diff;
 }
 //----- (10029040) --------------------------------------------------------
 float BotChangeViewAngle(float angle, float ideal_angle, float speed)
@@ -248,7 +252,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 //----- (100292E0) --------------------------------------------------------
 void sub_100292E0()
 {
-  if ( AAS_Time() > flt_100643A4 )
+  if ( flt_100643A4 < AAS_Time() )
   {
     BotUpdateEntityItems();
     flt_100643A4 = AAS_Time() + 1.0f;
@@ -257,16 +261,19 @@ void sub_100292E0()
 //----- (10029320) --------------------------------------------------------
 int Export_BotAIFrame(int a1, float a2)
 {
-  if ( AAS_Initialized() )
+  bot_state_t *bs;
+
+  if ( !AAS_Initialized() )
+    return BLERR_NOERROR;
+
+  bs = &botstates[a1];
+  if ( !bs->inuse )
   {
-    if ( !botstates[a1].inuse )
-    {
-      botimport.Print(PRT_FATAL, "client %d hasn't been setup\n", a1);
-      return BLERR_AICLIENTNOTSETUP;
-    }
-    BotDeathmatchAI(&botstates[a1], a2);
-    sub_100292E0();
+    botimport.Print(PRT_FATAL, "client %d hasn't been setup\n", a1);
+    return BLERR_AICLIENTNOTSETUP;
   }
+  BotDeathmatchAI(bs, a2);
+  sub_100292E0();
   return BLERR_NOERROR;
 }
 //----- (100293A0) --------------------------------------------------------
@@ -427,9 +434,7 @@ int __cdecl BotMoveClient(int a1, int a2)
 int __cdecl BotUpdateClient(int a1, const void *a2)
 {
   bot_state_t *v2; // eax
-  float *v4; // esi
   int v5; // edi
-  double v6; // st7
 
   v2 = &botstates[a1];
   if ( !v2->inuse )
@@ -438,18 +443,12 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     return BLERR_AIUPDATEINACTIVECLIENT;
   }
   memcpy(&v2->snapshot, a2, sizeof(v2->snapshot));
-  /* The original walks ONE pointer over viewangles and reads delta_angles at a
-   * fixed negative displacement from it (one `fld [edi-0x1050]`).  Written as
-   * the field difference so it stays a compile-time constant. */
-  v4 = v2->viewangles;
-  v5 = 3;
-  do
-  {
-    v6 = anglemod(v4[v2->snapshot.delta_angles - v2->viewangles] + *v4);
-    *v4++ = v6;
-    --v5;
-  }
-  while ( v5 );
+  /* The original computes viewangles[i] and delta_angles[i] via a shared
+   * scaled-index register per iteration (confirmed via disasm: `fld
+   * [ebp+esi*4+0x1080]` / `fld [ebp+esi*4+0x30]`, esi = 0,1,2), not a raw
+   * incrementing pointer. */
+  for ( v5 = 0; v5 < 3; v5++ )
+    v2->viewangles[v5] = anglemod(v2->viewangles[v5] + v2->snapshot.delta_angles[v5]);
   return BLERR_NOERROR;
 }
 //----- (10029920) --------------------------------------------------------

@@ -577,11 +577,13 @@ int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t l
   v5 = ftell(fp);
   lump[0] = LittleLong((int)v5);
   lump[1] = LittleLong((int)length);
-  if ( (int)length <= 0 || fwrite(data, length, 1u, fp) >= 1 )
-    return 1;
-  botimport.Print(PRT_ERROR, "error writing lump %s\n", (const char *)(intptr_t)lumpnum);
-  fclose(fp);
-  return 0;
+  if ( (int)length > 0 && fwrite(data, length, 1u, fp) < 1 )
+  {
+    botimport.Print(PRT_ERROR, "error writing lump %s\n", (const char *)(intptr_t)lumpnum);
+    fclose(fp);
+    return 0;
+  }
+  return 1;
 }
 //----- (1000CEE0) --------------------------------------------------------
 qboolean __cdecl AAS_WriteAASFile(char *filename)

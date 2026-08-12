@@ -40,21 +40,10 @@
 //----- (10008620) --------------------------------------------------------
 void AAS_RemoveClusterAreas(void)
 {
-  int off; // eax
-  int i; // ecx
+  int i;
 
-  i = 1;
-  if ( aasworld.numareas > 1 )
-  {
-    off = 28;
-    do
-    {
-      ++i;
-      *(_DWORD *)((char *)aasworld.areasettings + off + 12) = 0;
-      off += 28;
-    }
-    while ( i < aasworld.numareas );
-  }
+  for ( i = 1; i < aasworld.numareas; i++ )
+    aasworld.areasettings[i].cluster = 0;
 }
 //----- (10008660) --------------------------------------------------------
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
@@ -232,7 +221,9 @@ int AAS_FindClusters()
       cluster->numareas = 0;
       cluster->firstportal = aasworld.portalindexsize;
       cluster->numreachabilityareas = 0;
-      if ( !AAS_FloodClusterAreas_r(i, aasworld.numclusters) || !AAS_FloodClusterReachabilities(aasworld.numclusters) )
+      if ( !AAS_FloodClusterAreas_r(i, aasworld.numclusters) )
+        return 0;
+      if ( !AAS_FloodClusterReachabilities(aasworld.numclusters) )
         return 0;
       AAS_NumberClusterPortals(aasworld.numclusters);
       Log_Write("cluster %d has %d areas", aasworld.numclusters, cluster->numareas);

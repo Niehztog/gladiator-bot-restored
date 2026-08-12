@@ -76,6 +76,6 @@ void AAS_StoreReachability();
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2);
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
-int __cdecl sub_100116D0(void);
+unsigned __int16 __cdecl sub_100116D0(void);
 
 #endif /* BOTLIB_BE_AAS_REACH_H */

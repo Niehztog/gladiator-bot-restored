@@ -493,23 +493,60 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
     }
   }
 }
+#ifndef _WIN32
+/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib be_aas_route.c has this verbatim.
+ * The disassembly indexes areasettings by 28 (its sizeof) and portals by 20,
+ * takes `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
+ * clusterareanum[frontcluster != cluster] out of the portal at -cluster.
+ *
+ * Positioned here, ahead of its only in-TU caller AAS_GetAreaRoutingCache
+ * below, rather than with the rest of the .so-only block further down:
+ * gladi386.so's AAS_GetAreaRoutingCache has no `call` to this address at
+ * all -- the body is folded in -- and gcc -O6 only auto-inlines a same-TU
+ * callee whose definition it has already parsed (see BotShutdownDeathmatchAI
+ * in be_ai2_dmq2.c for the same mechanism used deliberately in reverse). */
+int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
+{
+  int side, areacluster;
+
+  areacluster = aasworld.areasettings[areanum].cluster;
+  if ( areacluster > 0 )
+    return aasworld.areasettings[areanum].clusterareanum;
+  side = aasworld.portals[-areacluster].frontcluster != cluster;
+  return aasworld.portals[-areacluster].clusterareanum[side];
+} //end of the function AAS_ClusterAreaNum
+#endif /* !_WIN32 -- gladi386.so-only, see the block further down for why */
+
 //----- (10019A90) --------------------------------------------------------
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags)
 {
   /* The per-area chain head is aasworld.clusterareacache[cluster][areaInCluster];
    * prev/next go through typed fields, not the original's +0x20/+0x24 byte
-   * accesses. */
-  aas_areasettings_t *areasettings; // ecx
+   * accesses.
+   *
+   * The clusterareanum computation itself is the same two-week source drift
+   * documented for AAS_Trace/RotatePoint in be_aas_bspq2.c: the Jul 18 DLL
+   * predates the AAS_ClusterAreaNum split above (confirmed byte-identical,
+   * 89/89, with the logic written out here), while the Aug 2 .so already
+   * calls the factored-out helper (confirmed by the total absence of a
+   * `mov`/`test`/`jle` sequence here in gladi386.so -- just a single merge
+   * point storing whatever AAS_ClusterAreaNum's two return paths left in
+   * eax, which is exactly what an inlined two-return-statement callee
+   * collapses to). */
+#ifdef _WIN32
   int areacluster; // eax
+#endif
   aas_routingcache_t *clustercache, *cache;
   int clusterareanum; // [esp+18h] [ebp+8h]
 
-  areasettings = &aasworld.areasettings[areanum];
-  areacluster = areasettings->cluster;
-  if ( areacluster > 0 )
-    clusterareanum = areasettings->clusterareanum;
-  else
-    clusterareanum = aasworld.portals[-areacluster].clusterareanum[aasworld.portals[-areacluster].frontcluster != clusternum];
+#ifdef _WIN32
+  areacluster = aasworld.areasettings[areanum].cluster;
+  clusterareanum = areacluster > 0
+      ? aasworld.areasettings[areanum].clusterareanum
+      : aasworld.portals[-areacluster].clusterareanum[aasworld.portals[-areacluster].frontcluster != clusternum];
+#else
+  clusterareanum = AAS_ClusterAreaNum(clusternum, areanum);
+#endif
   clustercache = aasworld.clusterareacache[clusternum][clusterareanum];
   cache  = clustercache;
   while ( cache && cache->travelflags != travelflags )
@@ -797,10 +834,12 @@ aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num)
 {
   aas_reachability_t reach;
 
-  if ( aasworld.initialized && num >= 0 && num <= aasworld.reachabilitysize )
-    return aasworld.reachability[num];
-  memset(&reach, 0, sizeof(reach));
-  return reach;
+  if ( !aasworld.initialized || num < 0 || num > aasworld.reachabilitysize )
+  {
+    memset(&reach, 0, sizeof(reach));
+    return reach;
+  }
+  return aasworld.reachability[num];
 }
 //----- (1001A370) --------------------------------------------------------
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
@@ -895,23 +934,12 @@ int AAS_RoutingInfo()
  * the DLL is the canonical byte-match target and code it does not contain
  * must not appear in it.  Drop the gate for any of these that later turns up
  * in the DLL.
+ *
+ * AAS_ClusterAreaNum (F508) is ALSO one of these, but lives above, ahead of
+ * AAS_GetAreaRoutingCache -- see the comment there for why its position
+ * matters and this block cannot just be moved back in one piece.
  * ------------------------------------------------------------------------ */
 #ifndef _WIN32
-
-/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib be_aas_route.c has this verbatim.
- * The disassembly indexes areasettings by 28 (its sizeof) and portals by 20,
- * takes `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
- * clusterareanum[frontcluster != cluster] out of the portal at -cluster. */
-int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
-{
-  int side, areacluster;
-
-  areacluster = aasworld.areasettings[areanum].cluster;
-  if ( areacluster > 0 )
-    return aasworld.areasettings[areanum].clusterareanum;
-  side = aasworld.portals[-areacluster].frontcluster != cluster;
-  return aasworld.portals[-areacluster].clusterareanum[side];
-} //end of the function AAS_ClusterAreaNum
 
 /* F511 @ 0x0002651c, 20 bytes -- a bare tail call to AAS_Time().  Q3 botlib
  * has it as `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`;

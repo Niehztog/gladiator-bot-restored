@@ -64,7 +64,7 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs);
 void __cdecl BotCTFSeekGoals(bot_state_t *bs);
 int __cdecl BotCTFTeam(bot_state_t *bs);
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs);
-double __cdecl BotChatTime(bot_state_t *bs);
+float __cdecl BotChatTime(bot_state_t *bs);
 int __cdecl BotChat_Death(int *bs);
 int __cdecl BotChat_EndLevel(bot_state_t *bs);
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs);

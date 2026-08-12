@@ -249,15 +249,15 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace)
 {
   aas_link_t *link; // esi
-  vec3_t boxmaxs; // [esp+4h] [ebp-6Ch] BYREF
   vec3_t boxmins; // [esp+10h] [ebp-60h] BYREF
+  vec3_t boxmaxs; // [esp+4h] [ebp-6Ch] BYREF
   bsp_trace_t bsptrace; // [esp+1Ch] [ebp-54h] BYREF
   int collision; // [esp+80h] [ebp+10h]
 
   AAS_PresenceTypeBoundingBox(presencetype, boxmins, boxmaxs);
   bsptrace.fraction = 1.0;
-  link = aasworld.arealinkedentities[areanum];
   collision = 0;
+  link = aasworld.arealinkedentities[areanum];
   /* The empty-list guard reaches the shared `return 0` tail via `goto fail`, and
    * the post-loop test is Q3's positive `if (collision)`, so the success block
    * is the warm fall-through and `return 0` the cold tail.  Inverting it moves

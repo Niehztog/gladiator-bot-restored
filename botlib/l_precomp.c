@@ -46,7 +46,15 @@ define_t *globaldefines;
  * `directive_t` / `directives` / `dollardirectives` are the original names,
  * recovered from the Linux gladi386.so .dynsym (both tables 160 B = Q3's
  * `directive_t directives[20]`), replacing the invented preproc_directive_t /
- * preproc_directives / eval_type_table. */
+ * preproc_directives / eval_type_table.  Deliberately NOT `static`: `nm -D`
+ * on gladi386.so shows both tables as exported `D` symbols
+ * (0005c6b0 D directives / 0005c750 D dollardirectives), which a file-static
+ * array can never be -- .dynsym only ever lists symbols with external
+ * linkage.  This also fixes PC_ReadDirective's codegen: gcc -fPIC addresses a
+ * non-static (potentially-interposable) global through a real GOT pointer
+ * slot (load the slot, then dereference), where a `static` array gets a
+ * direct GOT-relative address with no extra indirection -- the disassembly
+ * diff against real showed exactly that extra indirection missing. */
 //----- (1003B7B0) --------------------------------------------------------
 int __cdecl PC_Directive_ifdef(source_t *src)
 {
@@ -60,7 +68,7 @@ int __cdecl PC_Directive_ifndef(source_t *src)
 } //end of the function PC_Directive_ifndef
 
 typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
-static directive_t directives[] = {
+directive_t directives[] = {
     {"if",        PC_Directive_if},   /* 0x1003CCB0 */
     {"ifdef",     PC_Directive_ifdef},   /* 0x1003B7B0 */
     {"ifndef",    PC_Directive_ifndef},  /* 0x1003B7D0 */
@@ -83,7 +91,7 @@ int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: 
 /* dollardirectives — $-directive dispatch table at VA 0x1005F300: 2 entries +
  * NULL, walked by PC_ReadDollarDirective as a stride-2 pointer array.  Same
  * directive_t element type as `directives` above (as in Q3 l_precomp.c). */
-static directive_t dollardirectives[] = {
+directive_t dollardirectives[] = {
     {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
     {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
     {NULL, NULL}
@@ -652,11 +660,15 @@ int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define)
   token_t *firsttoken;
   token_t *lasttoken;
 
-  if ( !PC_ExpandDefine(src, define, (char **)&firsttoken, (char **)&lasttoken) || !firsttoken || !lasttoken )
+  if ( !PC_ExpandDefine(src, define, (char **)&firsttoken, (char **)&lasttoken) )
     return 0;
-  lasttoken->next = src->tokens;
-  src->tokens = firsttoken;
-  return 1;
+  if ( firsttoken && lasttoken )
+  {
+    lasttoken->next = src->tokens;
+    src->tokens = firsttoken;
+    return 1;
+  }
+  return 0;
 }
 //----- (1003A710) --------------------------------------------------------
 void __cdecl PC_ConvertPath(char *path)
@@ -2468,26 +2480,30 @@ void __cdecl FreeSource(source_t *source)
   indent_t *ind;
   int k;
 
-  while ( (s = source->scriptstack) )
+  while ( source->scriptstack )
   {
+    s = source->scriptstack;
     source->scriptstack = s->next;
     FreeScript(s);
   }
-  while ( (tok = source->tokens) )
+  while ( source->tokens )
   {
+    tok = source->tokens;
     source->tokens = tok->next;
     PC_FreeToken(tok);
   }
   for ( k = 0; k < 1024; k++ )
   {
-    while ( (d = source->definehash[k]) )
+    while ( source->definehash[k] )
     {
+      d = source->definehash[k];
       source->definehash[k] = d->hashnext;
       PC_FreeDefine(d);
     }
   }
-  while ( (ind = source->indentstack) )
+  while ( source->indentstack )
   {
+    ind = source->indentstack;
     source->indentstack = ind->next;
     FreeMemory(ind);
   }

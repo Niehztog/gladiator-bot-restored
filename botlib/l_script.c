@@ -48,7 +48,7 @@ char unk_10060418[72] = {
  * Q3 l_script.c::default_punctuations.  PS_CreatePunctuationTable walks it with
  * a 3-slot stride and fills each `next` at runtime.  String literals are const
  * while punctuation_t.p is char* — BOTCFLAGS suppresses that warning. */
-static punctuation_t default_punctuations[] = {
+punctuation_t default_punctuations[] = {
     /* multi-char — longest first */
     {">>=", 1,  NULL}, {"<<=", 2,  NULL},
     {"...", 3,  NULL}, {"##",  4,  NULL},
@@ -160,15 +160,13 @@ void ScriptWarning(int script, char *Format, ...)
 void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
 {
   if ( p )
-  {
     PS_CreatePunctuationTable(script, p);
-    script->punctuations = p;
-  }
   else
-  {
     PS_CreatePunctuationTable(script, default_punctuations);
+  if ( p )
+    script->punctuations = p;
+  else
     script->punctuations = default_punctuations;
-  }
 }
 //----- (1003E410) --------------------------------------------------------
 /* PS_ReadWhiteSpace — takes a real script_t*, so PS_ReadToken's pointer is not
@@ -829,13 +827,13 @@ int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *
   token_t token;
   if ( !PS_ReadToken(script, (char *)&token) )
     return 0;
-  if ( token.type != type || (token.subtype & subtype) != subtype )
+  if ( token.type == type && (token.subtype & subtype) == subtype )
   {
-    script->script_p = script->lastscript_p;
-    return 0;
+    memcpy(out, &token, sizeof(token_t));
+    return 1;
   }
-  memcpy(out, &token, sizeof(token_t));
-  return 1;
+  script->script_p = script->lastscript_p;
+  return 0;
 }
 //----- (1003FB50) --------------------------------------------------------
 /* Read tokens until one equals `string` (1) or the stream ends (0).  Sibling of
@@ -1081,8 +1079,8 @@ script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const c
   script->length       = length;
   script->script_p     = script->buffer;
   script->lastscript_p = script->buffer;
-  script->tokenavailable = 0;
   script->end_p        = script->buffer + length;
+  script->tokenavailable = 0;
   script->line         = 1;
   script->lastline     = 1;
   SetScriptPunctuations(script, NULL);

@@ -579,9 +579,6 @@ int BotLibLoadMap(char *Source)
 //----- (1000ECD0) --------------------------------------------------------
 int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a6, char **a7)
 {
-
-  int v8; // esi
-
   if ( !Source )
   {
     sub_1000DCC0(a2, a3, a4, a5, a6, a7);
@@ -590,8 +587,7 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   aasworld.initialized = 0;
   sub_1000DC20(a2, a3, a4, a5, a6, a7);
   AAS_FreeRoutingCaches();
-  v8 = BotLibLoadMap(Source);
-  errno = v8;
+  errno = BotLibLoadMap(Source);
   if ( errno )
   {
     aasworld.loaded = 0;

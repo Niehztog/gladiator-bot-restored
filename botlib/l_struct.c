@@ -363,7 +363,9 @@ int __cdecl WriteFloat(FILE *fp, float value)
     }
     buf[l] = 0;
   }
-  return fprintf(fp, "%s", buf) >= 0;
+  if ( fprintf(fp, "%s", buf) < 0 )
+    return 0;
+  return 1;
 }
 
 //----- (10040F20) --------------------------------------------------------

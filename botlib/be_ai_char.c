@@ -253,17 +253,17 @@ void __cdecl sub_1002A590(int a1)
 //----- (1002A5B0) --------------------------------------------------------
 int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
 {
-  if ( index >= 0 && index < character->numcharacteristics )
+  if ( index < 0 || index >= character->numcharacteristics )
   {
-    if ( !(unsigned char)BC_PAIRS(character)[index].type )
-    {
-      botimport.Print(PRT_ERROR, "characteristic %d is not initialized\n", index);
-      return 0;
-    }
-    return 1;
+    botimport.Print(PRT_ERROR, "characteristic %d does not exist\n", index);
+    return 0;
   }
-  botimport.Print(PRT_ERROR, "characteristic %d does not exist\n", index);
-  return 0;
+  if ( !(unsigned char)BC_PAIRS(character)[index].type )
+  {
+    botimport.Print(PRT_ERROR, "characteristic %d is not initialized\n", index);
+    return 0;
+  }
+  return 1;
 }
 //----- (1002A620) --------------------------------------------------------
 float __cdecl Characteristic_Float(bot_character_t *character, int index)

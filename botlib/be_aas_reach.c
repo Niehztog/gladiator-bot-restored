@@ -189,18 +189,16 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
   float total; // st7
   int i; // edi
   aas_area_t *area; // esi
-  int v4; // rax (was __int64 — abs32 idiom)
-  int v5; // edx
+  aas_face_t *face;
 
   total = 0.0f;
-  i = 0;
   area = &aasworld.areas[areanum];
-  for ( ; i < area->numfaces; i++ )
+  for ( i = 0; i < area->numfaces; i++ )
   {
-    v4 = aasworld.faceindex[i + area->firstface];
-    v5 = abs(v4);
-    if ( (aasworld.faces[v5].faceflags & 4) != 0 )
-      total = AAS_FaceArea(&aasworld.faces[v5]) + total;
+    face = &aasworld.faces[abs(aasworld.faceindex[area->firstface + i])];
+    if ( !(face->faceflags & 4) )
+      continue;
+    total += AAS_FaceArea(face);
   }
   return total;
 }
@@ -302,9 +300,9 @@ int __cdecl AAS_AreaLadder(int areanum)
 //----- (100116D0) --------------------------------------------------------
 /* Returns (int)(10 * sv_jumpvel / sv_gravity) — a crude jump/hang-time
  * estimate in tics.  DEAD in Gladiator, preserved by /INCREMENTAL. */
-int __cdecl sub_100116D0(void)
+unsigned __int16 __cdecl sub_100116D0(void)
 {
-  return (int)(libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1));
+  return libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1);
 }
 //----- (10011700) --------------------------------------------------------
 qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
@@ -327,12 +325,12 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
   int v4; // esi
   /* One vec3_t, so VectorMA's writes land in the same slot the original bumps by
    * 16.0 after the first AAS_PointAreaNum. */
-  vec3_t testpoint; // [esp+4h] [ebp-18h] BYREF
   vec3_t dir; // [esp+10h] [ebp-Ch] BYREF
+  vec3_t testpoint; // [esp+4h] [ebp-18h] BYREF
 
-  dir[2] = 0;
   dir[0] = *end - *start;
   dir[1] = end[1] - start[1];
+  dir[2] = 0;
   VectorNormalize(dir);
   VectorMA(end, 48.0f, dir, testpoint);
   if ( !AAS_PointAreaNum(testpoint) )

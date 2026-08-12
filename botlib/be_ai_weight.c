@@ -135,13 +135,13 @@ void __cdecl FreeWeightConfig2(weightconfig_t *config)
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 {
   int def; // edi
-  fuzzyseperator_t *fs; // ebp
   int newindent; // edi
   fuzzyseperator_t *v7; // eax
-  fuzzyseperator_t *firstfs; // [esp+10h] [ebp-440h]
-  fuzzyseperator_t *lastfs; // [esp+14h] [ebp-43Ch]
-  int founddefault; // [esp+18h] [ebp-438h]
-  int index; // [esp+1Ch] [ebp-434h]
+  fuzzyseperator_t *firstfs; // ebp
+  int index;
+  int founddefault;
+  fuzzyseperator_t *fs;
+  fuzzyseperator_t *lastfs;
   token_t token;
 
   founddefault = 0;
@@ -668,8 +668,13 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 void __cdecl EvolveWeightConfig(int *config)
 {
   int i;
+  int off;
+
   for ( i = 0; i < config[0]; ++i )
-    EvolveFuzzySeperator_r((fuzzyseperator_t *)((int *)(config + 2))[i * 2]);
+  {
+    off = i * 8;
+    EvolveFuzzySeperator_r((fuzzyseperator_t *)*(int *)((char *)config + off + 8));
+  }
 }
 //----- (10036E30) --------------------------------------------------------
 // Uniformly rescale all weights in a subtree by a scalar factor.

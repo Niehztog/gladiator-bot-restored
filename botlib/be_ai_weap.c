@@ -40,8 +40,11 @@
 #include "l_struct.h"
 #include "l_utils.h"
 
-/* weaponinfo_struct — descriptor at 0x1005DFD8 (344 B); field table at 0x1005DBC8. */
-static char *weaponinfo_fields[] = {
+/* weaponinfo_struct — descriptor at 0x1005DFD8 (344 B); field table at 0x1005DBC8.
+ * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
+ * `D` symbol (0005bdb0 D weaponinfo_fields), which a file-static array can
+ * never be. */
+char *weaponinfo_fields[] = {
     FE("name",            0x004, 0x004, 0, 0x00000000),
     FE("level",           0x0A4, 0x002, 0, 0x00000000),
     FE("model",           0x054, 0x004, 0, 0x00000000),
@@ -67,8 +70,11 @@ static char *weaponinfo_fields[] = {
 };
 structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
 
-/* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30. */
-static char *projectileinfo_fields[] = {
+/* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30.
+ * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
+ * `D` symbol (0005c018 D projectileinfo_fields), which a file-static array
+ * can never be. */
+char *projectileinfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x054, 0x004, 0, 0x00000000),
     FE("flags",       0x0A0, 0x002, 0, 0x00000000),
