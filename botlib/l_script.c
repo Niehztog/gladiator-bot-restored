@@ -632,7 +632,7 @@ int __cdecl PS_ReadPunctuation(script_t *script, char *token)
   return 0;
 }
 //----- (1003F230) --------------------------------------------------------
-int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
+int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
 {
   int len; // ecx
   char v3; // dl
@@ -648,11 +648,10 @@ int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token)
       ScriptError(script, "primitive token longer than MAX_TOKEN = %d", 0x400);
       return 0;
     }
-    ((char *)token)[len++] = v3;
-    (script)->script_p = (intptr_t)((script)->script_p + 1);
+    token->string[len++] = *(script)->script_p++;
   }
-  ((char *)token)[len] = 0;
-  memcpy(&(script)->token, (void *)token, sizeof(token_t));
+  token->string[len] = 0;
+  memcpy(&(script)->token, token, sizeof(token_t));
   return 1;
 }
 //----- (1003F2D0) --------------------------------------------------------
@@ -693,7 +692,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
   }
   else if ( script->flags & 0x10 )
   {
-    return PS_ReadPrimitive(script, (intptr_t)token);
+    return PS_ReadPrimitive(script, token);
   }
   else if ( (*script->script_p >= 'a' && *script->script_p <= 'z')
        || (*script->script_p >= 'A' && *script->script_p <= 'Z')

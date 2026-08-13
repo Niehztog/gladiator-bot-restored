@@ -121,7 +121,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch);
 int __cdecl PS_ReadLiteral(script_t *script, token_t *token);
 int __cdecl PS_ReadName(script_t *script, intptr_t a2);
 int __cdecl PS_ReadNumber(script_t *script, token_t *token);
-int __cdecl PS_ReadPrimitive(script_t *script, intptr_t token);
+int __cdecl PS_ReadPrimitive(script_t *script, token_t *token);
 int __cdecl PS_ReadPunctuation(script_t *script, char *token);
 int __cdecl PS_ReadString(script_t *script, token_t *token, int quote);
 int __cdecl PS_ReadToken(script_t *script, char *Destination);
