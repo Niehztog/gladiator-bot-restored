@@ -236,7 +236,7 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
       while ( *str1 && *str1 != ' ' )
         str1++;
       if ( !*str1 )
-        return 0;
+        break;
       str1++;
     }
     for ( j = 0; str2[j]; j++ )
