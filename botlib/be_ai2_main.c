@@ -377,19 +377,16 @@ int __cdecl BotSetupClient(int a1, char *Source)
 //----- (10029690) --------------------------------------------------------
 int __cdecl BotShutdownClient(int a1)
 {
-  _DWORD *v1; // esi
   bot_state_t *bs;
-  int v3; // ecx
 
   bs = &botstates[a1];
-  v1 = (_DWORD *)bs;
-  if ( !*v1 )
+  if ( !bs->inuse )
   {
     botimport.Print(PRT_ERROR, "client %d already shutdown\n", a1);
     return BLERR_AICLIENTALREADYSHUTDOWN;
   }
   if ( BotChat_ExitGame((int)(intptr_t)bs) )
-    BotEnterChat(&bs->chatstate, v1[1], 0);
+    BotEnterChat(&bs->chatstate, bs->client, 0);
   BotFreeChatState(&bs->chatstate);
   BotFreeWeaponWeights(BotWS(bs));
 #if BOTLIB_NEED_SIDEBAND
@@ -397,14 +394,13 @@ int __cdecl BotShutdownClient(int a1)
   if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
 #endif
   BotFreeItemWeights(&bs->goalstate);
-  sub_1002A590(v1[418]);
-  BotFreeWaypoints(v1[1136]);
-  v3 = v1[1137];
-  v1[1136] = 0;
-  BotFreeWaypoints(v3);
-  v1[1137] = 0;
-  memset(v1, 0, 0x11D0u);
-  *v1 = 0;
+  sub_1002A590(bs->character);
+  BotFreeWaypoints(bs->checkpoints);
+  bs->checkpoints = 0;
+  BotFreeWaypoints(bs->patrolpoints);
+  bs->patrolpoints = 0;
+  memset(bs, 0, 0x11D0u);
+  bs->inuse = 0;
   --numbots;
   return BLERR_NOERROR;
 }
