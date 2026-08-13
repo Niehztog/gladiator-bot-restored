@@ -639,36 +639,27 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   vec_t *v2;
   aas_edge_t *edge;
   aas_plane_t *plane;
-  vec3_t pointvec;
   vec3_t edgevec;
+  vec3_t pointvec;
   vec3_t sepnormal;
   aas_face_t *face;
-  float minsep;
 
   if ( !aasworld.loaded )
     return 0;
   face = &aasworld.faces[facenum];
-  i = 0;
   plane = &aasworld.planes[face->planenum];
-  if ( face->numedges > 0 )
+  for ( i = 0; i < face->numedges; i++ )
   {
-    while ( 1 )
-    {
-      edgenum = aasworld.edgeindex[i + face->firstedge];
-      edge = &aasworld.edges[abs(edgenum)];
-      firstvertex = edgenum < 0;
-      v1 = aasworld.vertexes[edge->v[firstvertex]];
-      v2 = aasworld.vertexes[edge->v[!firstvertex]];
-      VectorSubtract(v2, v1, edgevec);
-      VectorSubtract(point, v1, pointvec);
-      CrossProduct(edgevec, plane->normal, sepnormal);
-      minsep = -epsilon;
-      if ( sepnormal[2] * pointvec[2] + sepnormal[1] * pointvec[1] + sepnormal[0] * pointvec[0] < minsep )
-        break;
-      if ( ++i >= face->numedges )
-        return 1;
-    }
-    return 0;
+    edgenum = aasworld.edgeindex[face->firstedge + i];
+    edge = &aasworld.edges[abs(edgenum)];
+    firstvertex = edgenum < 0;
+    v1 = aasworld.vertexes[edge->v[firstvertex]];
+    v2 = aasworld.vertexes[edge->v[!firstvertex]];
+    VectorSubtract(v2, v1, edgevec);
+    VectorSubtract(point, v1, pointvec);
+    CrossProduct(edgevec, plane->normal, sepnormal);
+    if ( DotProduct(pointvec, sepnormal) < -epsilon )
+      return 0;
   }
   return 1;
 }
