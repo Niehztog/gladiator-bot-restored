@@ -581,7 +581,8 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
   {
     do
     {
-      if ( aasworld.entities[v6].i.valid )
+      aas_entity_t *ent = &aasworld.entities[v6];
+      if ( ent->i.valid )
       {
         if ( BotEntityVisible(a1, a2, a3, a4, v6) )
         {
