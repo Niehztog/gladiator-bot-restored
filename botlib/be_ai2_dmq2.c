@@ -410,9 +410,7 @@ char *__cdecl EasyClientName(int client, char *buf)
   char *i; // edx
   char *str1; // esi
   char *str2; // eax
-  char v7; // al
   char *ptr; // esi
-  const char *v9; // ebx
   char c; // al
   /* One 128-byte stack buffer (the original's `sub esp,0x80`). */
   char Str[128]; // [esp+8h] [ebp-80h] BYREF
@@ -432,32 +430,27 @@ char *__cdecl EasyClientName(int client, char *buf)
     else
       memmove(str2, str1 + 1, strlen(str1 + 1) + 1);
   }
-  v7 = Str[0];
   if ( (Str[0] == 109 || Str[0] == 77) && (Str[1] == 114 || Str[1] == 82) )
   {
     memmove(Str, &Str[2], strlen(&Str[2]) + 1);  /* was strcpy — UB on aarch64 */
-    v7 = Str[0];
   }
   ptr = Str;
-  if ( v7 )
+  if ( *ptr )
   {
-    v9 = &Str[1];
     do
     {
       c = *ptr;
-      if ( *ptr >= 97 && c <= 122 || c >= 48 && c <= 57 || c == 95 )
+      if ( c >= 97 && c <= 122 || c >= 48 && c <= 57 || c == 95 )
       {
         ++ptr;
-        ++v9;
       }
-      else if ( c < 65 || c > 90 )
+      else if ( c >= 65 && c <= 90 )
       {
-        memmove(ptr, v9, strlen(v9) + 1);
+        *ptr++ = c + 32;
       }
       else
       {
-        *ptr++ = c + 32;
-        ++v9;
+        memmove(ptr, ptr + 1, strlen(ptr + 1) + 1);
       }
     }
     while ( *ptr );
