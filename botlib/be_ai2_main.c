@@ -335,7 +335,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
     return 0;
   }
   memcpy(bs->settings, Source, 0x1B0u);
-  weights_handle = Characteristic_String(char_handle, 28);
+  weights_handle = Characteristic_String(BotCharacter(bs), 28);
   if ( BotLoadItemWeights(&bs->goalstate, weights_handle) )
     return 0;
   weights_handle = Characteristic_String(BotCharacter(bs), 5);
