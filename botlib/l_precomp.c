@@ -2281,66 +2281,60 @@ int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
 //----- (1003D740) --------------------------------------------------------
 int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token)
 {
-  int v4; // ebp
-  int v6; // eax
   char str[1024]; // [esp+8h] [ebp-400h] BYREF
   token_t *tok = (token_t *)token;
 
-  v4 = source;
   if ( !PC_ReadTokenHandle(source, token) )
   {
     SourceError(source, "couldn't read expected token");
     return 0;
   }
-  v6 = tok->type;
-  if ( v6 != type )
+  if ( tok->type != type )
   {
     if ( type == 1 )
       strcpy(str, "string");
-    else if ( type == 2 )
+    if ( type == 2 )
       strcpy(str, "literal");
-    else if ( type == 3 )
+    if ( type == 3 )
       strcpy(str, "number");
-    else if ( type == 4 )
+    if ( type == 4 )
       strcpy(str, "name");
-    else if ( type == 5 )
+    if ( type == 5 )
       strcpy(str, "punctuation");
     SourceError(source, "expected a %s, found %s", str, token);
     return 0;
   }
-  if ( v6 == 3 )
+  if ( tok->type == 3 )
   {
-    if ( (subtype & tok->subtype) == subtype )
-      return 1;
-    if ( (subtype & 8) != 0 )
-      strcpy(str, "decimal");
-    if ( (subtype & 0x100) != 0 )
-      strcpy(str, "hex");
-    if ( (subtype & 0x200) != 0 )
-      strcpy(str, "octal");
-    if ( (subtype & 0x400) != 0 )
-      strcpy(str, "binary");
-    if ( (subtype & 0x2000) != 0 )
+    if ( (tok->subtype & subtype) != subtype )
     {
-      strcat(str, " long");
-      v4 = source;
+      if ( (subtype & 8) != 0 )
+        strcpy(str, "decimal");
+      if ( (subtype & 0x100) != 0 )
+        strcpy(str, "hex");
+      if ( (subtype & 0x200) != 0 )
+        strcpy(str, "octal");
+      if ( (subtype & 0x400) != 0 )
+        strcpy(str, "binary");
+      if ( (subtype & 0x2000) != 0 )
+      {
+        strcat(str, " long");
+      }
+      if ( (subtype & 0x4000) != 0 )
+      {
+        strcat(str, " unsigned");
+      }
+      if ( (subtype & 0x800) != 0 )
+      {
+        strcat(str, " float");
+      }
+      if ( (subtype & 0x1000) != 0 )
+        strcat(str, " integer");
+      SourceError(source, "expected %s, found %s", str, token);
+      return 0;
     }
-    if ( (subtype & 0x4000) != 0 )
-    {
-      strcat(str, " unsigned");
-      v4 = source;
-    }
-    if ( (subtype & 0x800) != 0 )
-    {
-      strcat(str, " float");
-      v4 = source;
-    }
-    if ( (subtype & 0x1000) != 0 )
-      strcat(str, " integer");
-    SourceError(v4, "expected %s, found %s", str, token);
-    return 0;
   }
-  else if ( v6 == 5 )
+  else if ( tok->type == 5 )
   {
     if ( tok->subtype != subtype )
     {
