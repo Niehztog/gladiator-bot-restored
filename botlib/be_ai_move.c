@@ -328,27 +328,32 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
   int reachnum; // eax
   aas_reachability_t reach; // [esp+10h] [ebp-58h] BYREF
 
-  if ( !ms->lastreachnum || !goal )
-    return 0;
-  reach = AAS_ReachabilityFromNum(ms->lastreachnum);
-  reachnum = BotGetReachabilityToGoal(
-         reach.end,
-         reach.areanum,
-         ms->lastgoalareanum,
-         ms->lastareanum,
-         ms->entitynum,
-         ms->avoidreach,
-         ms->avoidreachtimes,
-         ms->avoidreachtries,
-         goal,
-         travelflags);
-  if ( !reachnum )
-    return 0;
-  reach = AAS_ReachabilityFromNum(reachnum);
-  target[0] = reach.end[0];
-  target[2] = reach.end[2] - 15.0f;
-  *(int *)&target[1] = *(int *)&reach.end[1];
-  return 1;
+  reachnum = 0;
+  if ( ms->lastreachnum && goal )
+  {
+    reach = AAS_ReachabilityFromNum(ms->lastreachnum);
+    reachnum = BotGetReachabilityToGoal(
+           reach.end,
+           reach.areanum,
+           ms->lastgoalareanum,
+           ms->lastareanum,
+           ms->entitynum,
+           ms->avoidreach,
+           ms->avoidreachtimes,
+           ms->avoidreachtries,
+           goal,
+           travelflags);
+  }
+  if ( reachnum )
+  {
+    reach = AAS_ReachabilityFromNum(reachnum);
+    target[0] = reach.end[0];
+    target[1] = reach.end[1];
+    target[2] = reach.end[2];
+    target[2] -= 15.0f;
+    return 1;
+  }
+  return 0;
 }
 //----- (10031380) --------------------------------------------------------
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
