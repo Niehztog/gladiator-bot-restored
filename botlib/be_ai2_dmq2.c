@@ -2193,14 +2193,14 @@ int __cdecl FindClientByName(char *name)
 //----- (10026990) --------------------------------------------------------
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 {
-  bot_waypoint_t *newpatrolpoints; // esi (head of new patrol list)
   int patrolflags; // edi (patrol flags accumulator)
+  bot_waypoint_t *newpatrolpoints; // esi (head of new patrol list)
   bot_waypoint_t *newwp; // eax (newly-allocated node)
   bot_waypoint_t *wp; // ecx (tail walker)
-  bot_goal_t goal; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
   char Destination[152]; // [esp+48h] [ebp-188h] BYREF
   /* One bot_match_t (240 B), filled by BotFindMatch — see chat_state.h. */
   bot_match_t keyareamatch; // [esp+E0h] [ebp-F0h] BYREF
+  bot_goal_t goal; // [esp+10h] [ebp-1C0h] BYREF — parsed goal for current keypoint name
 
   newpatrolpoints = NULL;
   patrolflags = 0;
@@ -2257,19 +2257,19 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
       break;
     }
   }
-  if ( newpatrolpoints && newpatrolpoints->next )
-  {
-    BotFreeWaypoints(BotPatrolpoints(bs));
-    bs->patrolflags = patrolflags;
-    BotPatrolpoints(bs) = newpatrolpoints;
-    BotCurPatrolPoint(bs) = newpatrolpoints;
-    return 1;
-  }
-  else
+  if ( !newpatrolpoints || !newpatrolpoints->next )
   {
     EA_SayTeam(bs->client, "I need more key points to patrol\n");
     BotFreeWaypoints(newpatrolpoints);
     return 0;
+  }
+  else
+  {
+    BotFreeWaypoints(BotPatrolpoints(bs));
+    BotPatrolpoints(bs) = newpatrolpoints;
+    BotCurPatrolPoint(bs) = newpatrolpoints;
+    bs->patrolflags = patrolflags;
+    return 1;
   }
 }
 // 10026A34: conditional instruction was optimized away because edx.4!=0
