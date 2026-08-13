@@ -575,21 +575,25 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
   int v6; // esi
   int v7; // edi
 
-  v6 = 1;
   v7 = 0;
-  for ( ; v6 <= aasworld.aas_maxclients; v6++ )
+  v6 = 1;
+  if ( v6 <= aasworld.aas_maxclients )
   {
-    if ( aasworld.entities[v6].i.valid )
+    do
     {
-      if ( BotEntityVisible(a1, a2, a3, a4, v6) )
+      if ( aasworld.entities[v6].i.valid )
       {
-        *a6 = v6;
-        ++v7;
-        a6++;
-        if ( v7 >= a5 )
-          break;
+        if ( BotEntityVisible(a1, a2, a3, a4, v6) )
+        {
+          a6[v7] = v6;
+          ++v7;
+          if ( v7 >= a5 )
+            return v7;
+        }
       }
+      ++v6;
     }
+    while ( v6 <= aasworld.aas_maxclients );
   }
   return v7;
 }
