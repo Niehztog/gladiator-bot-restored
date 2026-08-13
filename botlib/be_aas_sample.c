@@ -748,7 +748,7 @@ void *__cdecl sub_1001C210(int *gate)
   {
     facenum = aasworld.faceindex[area->firstface + i];
     face = &aasworld.faces[abs(facenum)];
-    if ( ((face->planenum ^ gate[8]) & 0xFFFFFFFE) != 0 )   /* gate->_i20 */
+    if ( (face->planenum & ~1) != (gate[8] & ~1) )   /* gate->_i20 */
       continue;
     if ( AAS_InsideFace(face, (float *)&aasworld.planes[face->planenum], (float *)(gate + 2), 0.01f) )
       return face;
