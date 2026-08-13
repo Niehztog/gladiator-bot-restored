@@ -47,19 +47,19 @@ int dword_1006295C = 0; // weak
 libvar_t *libvar_laserhook; /* libvar handle */
 
 //----- (10030A50) --------------------------------------------------------
-double __cdecl AngleDiff(float ang1, float ang2)
+float __cdecl AngleDiff(float ang1, float ang2)
 {
-  double result; // st7
+  float result; // st7
 
   result = ang1 - ang2;
   if ( ang1 > ang2 )
   {
     if ( result > 180.0 )
-      return result - 360.0;
+      result -= 360.0;
   }
   else if ( result < -180.0 )
   {
-    return result + 360.0;
+    result += 360.0;
   }
   return result;
 }

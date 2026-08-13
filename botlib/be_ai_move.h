@@ -18,7 +18,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
 extern int dword_1006295C;
 extern libvar_t *libvar_laserhook;
 
-double __cdecl AngleDiff(float ang1, float ang2);
+float __cdecl AngleDiff(float ang1, float ang2);
 void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime);
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed);
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult);
