@@ -480,37 +480,37 @@ int __cdecl BotSettings(int a1, const void *a2)
 //----- (10029A40) --------------------------------------------------------
 int __cdecl BotResetState(bot_state_t *bs)
 {
+  int inuse;
   int client;
   int entitynum;
-  int inuse;
   int character;
-  int weaponstate[7];
   char movestate[128];
+  int goalstate[243];
+  int weaponstate[7];
   bot_chatstate_t chatstate;
   char settings[432];
-  int goalstate[243];
 
   memcpy(settings, bs->settings, sizeof(settings));
+  inuse = bs->inuse;
   client = bs->client;
+  entitynum = bs->entitynum;
+  character = bs->character;
   memcpy(movestate, &bs->ms, sizeof(movestate));
   memcpy(goalstate, &bs->goalstate, sizeof(goalstate));
-  inuse = bs->inuse;
-  entitynum = bs->entitynum;
   memcpy(weaponstate, bs->weaponweights, sizeof(weaponstate));
   memcpy(&chatstate, &bs->chatstate, sizeof(chatstate));
-  character = bs->character;
   BotFreeWaypoints(BotCheckpoints(bs));
   BotFreeWaypoints(BotPatrolpoints(bs));
   memset(bs, 0, sizeof(*bs));
   memcpy(&bs->ms, movestate, sizeof(movestate));
   memcpy(&bs->goalstate, goalstate, sizeof(goalstate));
   memcpy(bs->weaponweights, weaponstate, sizeof(weaponstate));
-  bs->inuse = inuse;
   memcpy(&bs->chatstate, &chatstate, sizeof(chatstate));
-  bs->entitynum = entitynum;
   memcpy(bs->settings, settings, sizeof(settings));
-  bs->character = character;
+  bs->inuse = inuse;
   bs->client = client;
+  bs->entitynum = entitynum;
+  bs->character = character;
   BotResetMoveState((int *)&bs->ms);
   BotResetGoalState(&bs->goalstate);
   BotResetWeaponState(BotWS(bs));
