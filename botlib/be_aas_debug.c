@@ -60,28 +60,22 @@ void AAS_ClearShownDebugLines(void)
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 {
   int line; // esi
-  int v4; // eax
-  int result; // eax
 
-  line = 0;
-  while ( 1 )
+  for ( line = 0; line < 256; line++ )
   {
     if ( !debuglines[line] )
     {
       debuglines[line] = botimport.DebugLineCreate();
-      v4 = numdebuglines + 1;
       debuglinevisible[line] = 0;
-      numdebuglines = v4;
+      numdebuglines++;
     }
-    result = debuglinevisible[line];
-    if ( !result )
-      break;
-    if ( ++line >= 256 )
-      return result;
+    if ( !debuglinevisible[line] )
+    {
+      botimport.DebugLineShow(debuglines[line], start, end, color);
+      debuglinevisible[line] = 1;
+      return;
+    }
   }
-  result = botimport.DebugLineShow(debuglines[line], start, end, color);
-  debuglinevisible[line] = 1;
-  return result;
 }
 //----- (10009950) --------------------------------------------------------
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
@@ -378,17 +372,17 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   /* vec3_t locals, not separate scalars: CrossProduct / VectorNormalize /
    * VectorMA need three contiguous floats. */
   vec3_t dir;  // [esp+8h] [ebp-3Ch] BYREF
-  vec3_t up; // [esp+14h] [ebp-30h] BYREF
-  vec3_t p1; // [esp+20h] [ebp-24h] BYREF
   vec3_t cross; // [esp+2Ch] [ebp-18h] BYREF
+  vec3_t p1; // [esp+20h] [ebp-24h] BYREF
   vec3_t p2; // [esp+38h] [ebp-Ch] BYREF
+  vec3_t up; // [esp+14h] [ebp-30h] BYREF
 
   up[0] = 0.0;
   up[1] = 0.0;
   up[2] = 1.0;
   VectorSubtract(end, start, dir);
   VectorNormalize(dir);
-  dot = dir[2] * up[2] + dir[1] * up[1] + dir[0] * up[0];
+  dot = dir[0] * up[0] + dir[1] * up[1] + dir[2] * up[2];
   if ( dot > 0.99 || dot < -0.99 )
   {
     cross[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;
