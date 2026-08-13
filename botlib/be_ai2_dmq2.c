@@ -517,9 +517,9 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   vec3_t point; // [esp+4h] [ebp-90h] BYREF
   vec3_t start; // [esp+10h] [ebp-84h] BYREF
   vec3_t end;   // [esp+1Ch] [ebp-78h] BYREF
-  _DWORD maxs[3]; // [esp+28h] [ebp-6Ch] BYREF
   _DWORD mins[3]; // [esp+34h] [ebp-60h] BYREF
-  int trace[21]; // [esp+40h] [ebp-54h] BYREF
+  _DWORD maxs[3]; // [esp+28h] [ebp-6Ch] BYREF
+  bsp_trace_t trace; // [esp+40h] [ebp-54h] BYREF
 
   if ( BotIsDead(bs) )
     return 1;
@@ -540,8 +540,10 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   start[2] = start[2] + 1.0f;
   end[2] = end[2] - 100.0f;
   AAS_PresenceTypeBoundingBox(4, (float *)mins, (float *)maxs);
-  *(bsp_trace_t *)trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
-  return trace[20] == 0;
+  trace = AAS_Trace(start, (float*)mins, (float*)maxs, end, 4, bs->client);
+  if ( trace.ent != 0 )
+    return 0;
+  return 1;
 }
 //----- (10021D80) --------------------------------------------------------
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
