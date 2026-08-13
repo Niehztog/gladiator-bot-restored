@@ -472,19 +472,17 @@ bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int a
    * struct here, with the name buffer still inline right after the node so one
    * FreeMemory releases both. */
   bot_waypoint_t *wp;
+  vec3_t mins = { -8.0f, -8.0f, -8.0f };
+  vec3_t maxs = {  8.0f,  8.0f,  8.0f };
   size_t namelen = strlen(name);
 
   wp = (bot_waypoint_t *)GetMemory((unsigned)(sizeof(bot_waypoint_t) + namelen + 1));
   wp->name = (char *)(wp + 1);
   strcpy(wp->name, name);
   VectorCopy(origin, wp->goal.origin);
-  wp->goal.areanum   = areanum;
-  wp->goal.mins[0] = -8.0f;
-  wp->goal.mins[1] = -8.0f;
-  wp->goal.mins[2] = -8.0f;
-  wp->goal.maxs[0] =  8.0f;
-  wp->goal.maxs[1] =  8.0f;
-  wp->goal.maxs[2] =  8.0f;
+  VectorCopy(mins, wp->goal.mins);
+  VectorCopy(maxs, wp->goal.maxs);
+  wp->goal.areanum = areanum;
   wp->next = NULL;
   wp->prev = NULL;
   return wp;
