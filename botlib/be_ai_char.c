@@ -301,18 +301,18 @@ float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float
 //----- (1002A730) --------------------------------------------------------
 int __cdecl Characteristic_Integer(bot_character_t *character, int index)
 {
+  bot_characteristic_t *pair;
   char v2; // al
 
-  if ( CheckCharacteristicIndex(character, index) )
-  {
-    v2 = (char)BC_PAIRS(character)[index].type;
-    if ( v2 == 1 )
-      return (int)BC_PAIRS(character)[index].value;
-    else if ( v2 == 2 )
-      return (__int64)*(float *)&BC_PAIRS(character)[index].value;
-    else
-      botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
-  }
+  if ( !CheckCharacteristicIndex(character, index) )
+    return 0;
+  pair = &BC_PAIRS(character)[index];
+  v2 = (char)pair->type;
+  if ( v2 == 1 )
+    return (int)pair->value;
+  if ( v2 == 2 )
+    return (int)*(float *)&pair->value;
+  botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   return 0;
 }
 //----- (1002A7A0) --------------------------------------------------------
