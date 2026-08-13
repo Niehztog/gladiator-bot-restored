@@ -205,15 +205,20 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
   if ( !bspworld.dword_100674C0 )
     return 0;
   node = bspworld.dmodels[modelnum].headnode;
-  while ( node >= 0 )
+  if ( node >= 0 )
   {
-    int planenum = bspworld.dnodes[node].planenum;
-    plane = &bspworld.dplanes[planenum];
-    d = DotProduct(plane->normal, point) - plane->dist;
-    if ( d > 0 )
-      node = bspworld.dnodes[node].children[0];
-    else
-      node = bspworld.dnodes[node].children[1];
+    do
+    {
+      dnode_t *dn = &bspworld.dnodes[node];
+      int planenum = dn->planenum;
+      plane = &bspworld.dplanes[planenum];
+      d = DotProduct(plane->normal, point) - plane->dist;
+      if ( d > 0 )
+        node = dn->children[0];
+      else
+        node = dn->children[1];
+    }
+    while ( node >= 0 );
   }
   return -1 - node;
 }
