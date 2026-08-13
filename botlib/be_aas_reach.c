@@ -64,19 +64,39 @@ int reach_walk; // weak
  * at +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original
  * byte-offset walk (so MSVC6 still emits the +44 / stride-48 form) but derive
  * the link slot from offsetof(..,next) and store through intptr_t*, so stride,
- * link offset and pointer width are all right on either target. */
+ * link offset and pointer width are all right on either target.
+ *
+ * `nextoffset` is a genuinely separate loop-carried accumulator (not just
+ * `offset + sizeof(node)` recomputed inline) even though the two are always
+ * in lockstep: on the real Linux gladi386.so, gcc 2.7.2.3 -O6 -funroll-loops
+ * unrolls this loop 5x and keeps a distinct esi register for it (proven by
+ * matching lea/add addressing in the disassembly). Writing it as a separate
+ * C variable is required to reproduce that; MSVC6 in turn proves the split
+ * is harmless there since /O2 recognizes the redundancy and folds nextoffset
+ * back into a single register, reproducing the original non-unrolled 15-insn
+ * PE shape byte-for-byte regardless. A THIRD variable (a small 0..65535 node
+ * index decoupled from the byte offsets, needed to get gcc's unrolled loop
+ * test to match real's `ebp`-based trip count exactly) was also tried and
+ * does close the last few ELF insns, but MSVC6 recognizes that as a small
+ * fixed trip count and rewrites the loop into a countdown (`dec edx / jne`)
+ * requiring an extra callee-saved register — a genuine, unavoidable PE
+ * regression. That variable is deliberately NOT present below; the residual
+ * ELF gap (OUR-4/OUR-6, see asm_matching/gcc272 evidence) is the accepted
+ * cost of keeping the PE oracle's byte-identical match on both functions. */
 #define AAS_REACHABILITYHEAP_NODES 65536
 
 int AAS_SetupReachabilityHeap()
 {
   intptr_t result;
-  int i;
+  int offset, nextoffset;
 
   result = (intptr_t)GetClearedMemory(AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
   reachabilityheap = result;
-  for ( i = 0; i < (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t); i += (int)sizeof(aas_reachabilitynode_t) )
+  nextoffset = (int)sizeof(aas_reachabilitynode_t);
+  for ( offset = 0; offset < (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t); offset += (int)sizeof(aas_reachabilitynode_t) )
   {
-    *(intptr_t *)(i + result + offsetof(aas_reachabilitynode_t, next)) = i + result + (int)sizeof(aas_reachabilitynode_t);
+    *(intptr_t *)(offset + result + offsetof(aas_reachabilitynode_t, next)) = result + nextoffset;
+    nextoffset += (int)sizeof(aas_reachabilitynode_t);
     result = reachabilityheap;
   }
   *(intptr_t *)(reachabilityheap + (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t) + offsetof(aas_reachabilitynode_t, next)) = 0;
@@ -2953,17 +2973,17 @@ void AAS_InitReachability()
 {
   if ( aasworld.loaded )
   {
-    if ( !aasworld.reachabilitysize || (unsigned int)(int)LibVarGetValue("forcereachability") )
+    if ( aasworld.reachabilitysize && !(unsigned int)(int)LibVarGetValue("forcereachability") )
+    {
+      aasworld.numreachabilityareas = aasworld.numareas;
+    }
+    else
     {
       aasworld.savefile = 1;
       aasworld.numreachabilityareas = 1;
       AAS_SetupReachabilityHeap();
       areareachability = (aas_reachabilitynode_t **)GetClearedMemory(aasworld.numareas * sizeof(aas_reachabilitynode_t *));
       AAS_SetWeaponJumpAreaFlags();
-    }
-    else
-    {
-      aasworld.numreachabilityareas = aasworld.numareas;
     }
   }
 }
