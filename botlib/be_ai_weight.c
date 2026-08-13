@@ -273,13 +273,13 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 // weightconfig_t. LIVE: entry point for item & weapon priority data.
 weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 {
-  source_t *src;
   weightconfig_t *cfg;
   fuzzyseperator_t *sep;
-  int has_balance;
-  bot_fileref_t file_ref; /* original bot_fileref_t local */
-  char Destination[144]; // [esp+B0h] [ebp-4C0h] BYREF
   token_t token; // [esp+140h] [ebp-430h] BYREF
+  char Destination[144]; // [esp+B0h] [ebp-4C0h] BYREF
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
+  int has_balance;
+  source_t *src;
 
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, filename, 0x90u);
