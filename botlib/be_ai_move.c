@@ -1302,12 +1302,12 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 //----- (10033A70) --------------------------------------------------------
 void __cdecl BotResetGrapple(bot_movestate_t *ms)
 {
-  int v2[11]; // [esp+Ch] [ebp-2Ch] BYREF — reach buffer
+  aas_reachability_t reach;
 
-  *(aas_reachability_t *)v2 = AAS_ReachabilityFromNum(ms->lastreachnum);
+  reach = AAS_ReachabilityFromNum(ms->lastreachnum);
   /* `& 0x40` reads the integer moveflags field directly; through a float lens it
    * would be a float->byte conversion that truncates the bit to 0. */
-  if ( v2[9] != 14 && ((ms->moveflags & 0x40) != 0 || ms->grapplevisible_time != 0.0f) )
+  if ( reach.traveltype != 14 && ((ms->moveflags & 0x40) != 0 || ms->grapplevisible_time != 0.0f) )
   {
     EA_Command(ms->client, "hookoff", (char *)0);
     ms->moveflags &= 0xFFFFFFBFu;
