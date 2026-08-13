@@ -207,27 +207,24 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
   int i; // esi
   aas_face_t *face; // edi
-  int v4i;
   aas_edge_t *edge;
   float scale; // [esp+0h] [ebp-10h]
 
-  i = 0;
   face = &aasworld.faces[facenum];
   center[2] = 0.0;
   center[1] = 0.0;
   *center = 0.0;
-  for ( ; i < face->numedges; i++ )
+  for ( i = 0; i < face->numedges; i++ )
   {
-    v4i = aasworld.edgeindex[i + face->firstedge];
-    edge = &aasworld.edges[abs(v4i)];
-    *center = aasworld.vertexes[edge->v[0]][0] + *center;
-    center[1] = aasworld.vertexes[edge->v[0]][1] + center[1];
-    center[2] = aasworld.vertexes[edge->v[0]][2] + center[2];
-    *center = aasworld.vertexes[edge->v[1]][0] + *center;
-    center[1] = aasworld.vertexes[edge->v[1]][1] + center[1];
-    center[2] = aasworld.vertexes[edge->v[1]][2] + center[2];
+    edge = &aasworld.edges[abs(aasworld.edgeindex[face->firstedge + i])];
+    *center = *center + aasworld.vertexes[edge->v[0]][0];
+    center[1] = center[1] + aasworld.vertexes[edge->v[0]][1];
+    center[2] = center[2] + aasworld.vertexes[edge->v[0]][2];
+    *center = *center + aasworld.vertexes[edge->v[1]][0];
+    center[1] = center[1] + aasworld.vertexes[edge->v[1]][1];
+    center[2] = center[2] + aasworld.vertexes[edge->v[1]][2];
   }
-  scale = 0.5 / (float)face->numedges;
+  scale = 0.5 / face->numedges;
   VectorScale((float *)center, scale, (float *)center);
 }
 //----- (10011520) --------------------------------------------------------
