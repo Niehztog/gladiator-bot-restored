@@ -78,9 +78,14 @@ int sub_1001C760(char *Source)
 {
   int v2; // ebx
   source_t *v5;
-  bot_fileref_t file_ref; /* original bot_fileref_t local */
-  char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
+  /* Declaration order reversed vs. stack-offset order (reverse-declaration-
+   * order rule — see BotTravel_Jump / LoadItemConfig): real has file_ref at
+   * the LOWEST offset of these three, then Destination, then ArgList
+   * highest, so the source must declare them in the opposite order: ArgList
+   * first, Destination middle, file_ref last. */
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+138h] [ebp-430h] BYREF
+  char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
+  bot_fileref_t file_ref; /* original bot_fileref_t local */
 
   v2 = (int)LibVarValue("max_soundinfo", (char *)"256");
   if ( v2 < 0 || v2 > 0xFFFF )
@@ -133,11 +138,9 @@ int sub_1001C760(char *Source)
   }
   FreeSource(v5);
   if ( file_ref.filelen )
-  {
     botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, Source);
-    return 1;
-  }
-  botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
+  else
+    botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return 1;
 }
 //----- (1001CAB0) --------------------------------------------------------
