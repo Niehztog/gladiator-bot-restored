@@ -2014,18 +2014,18 @@ LABEL_37:
 //----- (100262C0) --------------------------------------------------------
 void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2)
 {
-  int v2[31]; // [esp+8h] [ebp-7Ch] BYREF
+  aas_entityinfo_t info; // [esp+8h] [ebp-7Ch] BYREF
 
   if ( libvar_ctf->value != 0.0f )
   {
     if ( a2->entitynum )
     {
-      *(aas_entityinfo_t *)v2 = AAS_EntityInfo(a2->entitynum);
-      if ( (v2[23] == dword_1006449C || v2[23] == dword_10064498 || v2[23] == dword_10064494 || v2[23] == dword_10064490)
-        && ((int)a1[477] > 0 && v2[23] != dword_1006449C
-         || (int)a1[478] > 0 && v2[23] != dword_10064498
-         || (int)a1[479] > 0 && v2[23] != dword_10064494
-         || (int)a1[480] > 0 && v2[23] != dword_10064494) )
+      info = AAS_EntityInfo(a2->entitynum);
+      if ( (info.modelindex == dword_1006449C || info.modelindex == dword_10064498 || info.modelindex == dword_10064494 || info.modelindex == dword_10064490)
+        && ((int)a1[477] > 0 && info.modelindex != dword_1006449C
+         || (int)a1[478] > 0 && info.modelindex != dword_10064498
+         || (int)a1[479] > 0 && info.modelindex != dword_10064494
+         || (int)a1[480] > 0 && info.modelindex != dword_10064494) )
       {
         EA_DropItem(a1[1], "tech");
       }
