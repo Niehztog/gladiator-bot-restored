@@ -121,17 +121,16 @@ aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
   if ( !aasworld.initialized )
   {
     botimport.Print(PRT_FATAL, "AAS_EntityInfo: aasworld not initialized\n");
+    memset(&entinfo, 0, sizeof(entinfo));
+    return entinfo;
   }
-  else if ( entnum >= 0 && entnum < aasworld.numentities )
-  {
-    return aasworld.entities[entnum].i;
-  }
-  else
+  if ( entnum < 0 || entnum >= aasworld.numentities )
   {
     botimport.Print(PRT_FATAL, "AAS_EntityInfo: entnum %d out of range\n", entnum);
+    memset(&entinfo, 0, sizeof(entinfo));
+    return entinfo;
   }
-  memset(&entinfo, 0, sizeof(entinfo));
-  return entinfo;
+  return aasworld.entities[entnum].i;
 }
 //----- (1000ACB0) --------------------------------------------------------
 // Bounds-checked copy of entities[entnum].origin
