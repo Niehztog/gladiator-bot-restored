@@ -253,74 +253,75 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3])
  *   R_ConcatRotations(pitch_m, yaw_m, tmp)       ; tmp  = pitch*yaw
  *   R_ConcatRotations(roll_m,  tmp,   axis_out)  ; axis = roll*tmp
  *
- * The original runs an 80-bit FPU pipe against a 64-bit DEG2RAD constant and
- * truncates only at the final fstp DWORD, so the `double` intermediates here
- * are what give bit-identical float output. */
+ * Degrees->radians uses the unfolded `angle * M_PI * 2 / 360` idiom (no
+ * grouping parens), not a precomputed DEG2RAD constant. Because `angle` is a
+ * runtime value sitting inside the left-associative parse tree, gcc cannot
+ * constant-fold `M_PI*2` at compile time; it loads PI once and keeps it
+ * resident on the x87 stack for the whole function (surviving the
+ * intervening R_ConcatRotations call via a spill/reload), duplicating it via
+ * `fld st(0)` for yaw/pitch/roll and doubling with `fadd st,st(0)` before
+ * multiplying by a separate 1/360 reciprocal constant. */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 {
-  /* DEG2RAD: the 64-bit double at .rdata 0x10058008.  Keep each
-     `angles[i]*DEG2RAD` inlined into the sin/cos calls rather than stored to a
-     named local, so MSVC6 keeps it live on the x87 stack and CSEs it between
-     the two calls instead of spilling. */
-  static const double DEG2RAD = 0.017453292519943295;
   /* Only THREE matrix buffers: `m` holds the pitch matrix for the first concat,
      then is rebuilt in place as the roll matrix for the second.  The original
      frame is exactly 3*9 floats — it reuses the buffer, no separate roll_m. */
+  float angle;
   float sp, cp;
   float sy, cy;
   float sr, cr;
   struct {
-    float yaw[3][3];
-    float m[3][3];
     float tmp[3][3];
+    float m[3][3];
+    float yaw[3][3];
   } mats;
 
-  /* Seed the constant slots first — the original interleaves these stores
-     around the trig pipeline rather than using scalar temps. */
+  /* yaw matrix (rotation around Z) — assigned row-major, immediately after the
+     trig call, with the constant cells interleaved in place rather than seeded
+     up front. */
+  angle = angles[1] * M_PI*2 / 360;
+  sy = (float)sin(angle);
+  cy = (float)cos(angle);
+  mats.yaw[0][0] = cy;
+  mats.yaw[0][1] = sy;
   mats.yaw[0][2] = 0;
+  mats.yaw[1][0] = -sy;
+  mats.yaw[1][1] = cy;
   mats.yaw[1][2] = 0;
   mats.yaw[2][0] = 0;
   mats.yaw[2][1] = 0;
   mats.yaw[2][2] = 1;
+
+  /* pitch matrix (around Y), same row-major/interleaved shape as yaw. */
+  angle = angles[0] * M_PI*2 / 360;
+  sp = (float)sin(angle);
+  cp = (float)cos(angle);
+  mats.m[0][0] = cp;
   mats.m[0][1] = 0;
+  mats.m[0][2] = -sp;
   mats.m[1][0] = 0;
   mats.m[1][1] = 1;
   mats.m[1][2] = 0;
-  mats.m[2][1] = 0;
-
-  /* yaw matrix (rotation around Z) */
-  sy = (float)sin(angles[1] * DEG2RAD);
-  cy = (float)cos(angles[1] * DEG2RAD);
-  mats.yaw[0][1] = sy;
-  mats.yaw[0][0] = cy;
-  mats.yaw[1][0] = -sy;
-  mats.yaw[1][1] = cy;
-
-  /* pitch matrix (around Y).  The original stores each trig result to a scratch
-     slot and reloads it with an integer mov — named scalar temps, unlike yaw and
-     roll, which re-read their own struct fields.  Do NOT extend the temps to
-     yaw/roll: that regresses the match. */
-  sp = (float)sin(angles[0] * DEG2RAD);
-  cp = (float)cos(angles[0] * DEG2RAD);
-  mats.m[0][0] = cp;
-  mats.m[0][2] = -sp;
-  mats.m[2][2] = cp;
   mats.m[2][0] = sp;
+  mats.m[2][1] = 0;
+  mats.m[2][2] = cp;
 
   /* tmp = pitch_m * yaw_m.  The roll angle and matrix are computed only AFTER
      this call, so the roll matrix can reuse the now-dead pitch buffer. */
   R_ConcatRotations(mats.m, mats.yaw, mats.tmp);
 
-  /* roll matrix (rotation around X), rebuilt in `m` */
+  /* roll matrix (rotation around X), rebuilt in `m`, same row-major/interleaved
+     shape as yaw and pitch. */
+  angle = angles[2] * M_PI*2 / 360;
+  sr = (float)sin(angle);
+  cr = (float)cos(angle);
   mats.m[0][0] = 1;
   mats.m[0][1] = 0;
   mats.m[0][2] = 0;
   mats.m[1][0] = 0;
-  mats.m[2][0] = 0;
-  sr = (float)sin(angles[2] * DEG2RAD);
-  cr = (float)cos(angles[2] * DEG2RAD);
-  mats.m[1][2] = sr;
   mats.m[1][1] = cr;
+  mats.m[1][2] = sr;
+  mats.m[2][0] = 0;
   mats.m[2][1] = -sr;
   mats.m[2][2] = cr;
 
