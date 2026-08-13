@@ -485,20 +485,22 @@ void __cdecl AAS_ShowReachableAreas(int areanum)
 {
   int numreach;
   int firstreach;
+  aas_areasettings_t *as;
 
   if ( areanum != showreach_lastareanum )
   {
     showreach_index = 0;
     showreach_lastareanum = areanum;
   }
-  numreach = aasworld.areasettings[areanum].numreachableareas;   /* numreachableareas */
+  as = &aasworld.areasettings[areanum];
+  numreach = as->numreachableareas;
   if ( !numreach )
     return;
   if ( showreach_index >= numreach )
     showreach_index = 0;
   if ( AAS_Time() - showreach_lasttime > 1.5 )
   {
-    firstreach = aasworld.areasettings[areanum].firstreachablearea; /* firstreachablearea */
+    firstreach = as->firstreachablearea;
     memcpy(showreach_reach,
             &aasworld.reachability[firstreach + showreach_index],
             44);
