@@ -247,10 +247,9 @@ BOOL __cdecl BotValidTravel(float *a1, int a2, aas_reachability_t *a3, int a4)
   return 1;
 }
 //----- (10031010) --------------------------------------------------------
-void __cdecl BotAddToAvoidReach(intptr_t ms_, int number, float avoidtime)
+void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime)
 {
   int i;
-  bot_movestate_t *ms = (bot_movestate_t *)ms_;
 
   for ( i = 0; i < 1; i++ )
   {
@@ -1684,7 +1683,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
         reach = AAS_ReachabilityFromNum(v12);
         v19 = (float)BotReachabilityTime(&reach);
         movestate->reachability_time = AAS_Time() + v19;
-        BotAddToAvoidReach((intptr_t)movestate, reachnum, 6.0);
+        BotAddToAvoidReach(movestate, reachnum, 6.0);
       }
 LABEL_27:
       v14 = movestate->areanum;
