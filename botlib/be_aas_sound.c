@@ -149,8 +149,8 @@ int sub_1001C760(char *Source)
  * pool base as the head. */
 void sub_1001CAB0()
 {
-  int v1;
   int i;
+  int v1;
 
   v1 = (int)LibVarValue("max_aassounds", (char *)"256");
   if ( v1 < 0 || v1 > 0x10000 )
@@ -164,13 +164,10 @@ void sub_1001CAB0()
   aasworld.d_100669C4 = (aas_soundpool_t *)GetMemory(sizeof(aas_soundpool_t) * v1);
   aasworld.d_100669C4[0].prev = NULL;
   aasworld.d_100669C4[0].next = &aasworld.d_100669C4[1];
-  if ( v1 - 1 > 1 )
+  for ( i = 1; i < v1 - 1; ++i )
   {
-    for ( i = 1; i < v1 - 1; ++i )
-    {
-      aasworld.d_100669C4[i].prev = &aasworld.d_100669C4[i - 1];
-      aasworld.d_100669C4[i].next = &aasworld.d_100669C4[i + 1];
-    }
+    aasworld.d_100669C4[i].prev = &aasworld.d_100669C4[i - 1];
+    aasworld.d_100669C4[i].next = &aasworld.d_100669C4[i + 1];
   }
   aasworld.d_100669C4[v1 - 1].prev = &aasworld.d_100669C4[v1 - 2];
   aasworld.d_100669C4[v1 - 1].next = NULL;

@@ -66,7 +66,7 @@ void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name);
 int BotSetupChatAI();
 void BotShutdownChatAI();
 void __cdecl FreeConsoleMessage(bot_consolemessage_t *message);
-int InitConsoleMessageHeap();
+void InitConsoleMessageHeap();
 BOOL __cdecl IsWhiteSpace(char c);
 char *__cdecl RandomString(const char *name);
 const char *__cdecl StringContains(const char *str1, const char *str2, int casesensitive);

@@ -53,10 +53,10 @@ bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
 // +160/+164 byte offsets; on 64-bit the nodes grow to 176 bytes and
 // prev/next move past message[148] to 160/168 — using the struct lets the
 // compiler emit the right offsets and stride for both ABIs.
-int InitConsoleMessageHeap()
+void InitConsoleMessageHeap()
 {
-  int v1;
   int i;
+  int v1;
 
   if ( consolemessageheap )
     FreeMemory(consolemessageheap);
@@ -64,18 +64,14 @@ int InitConsoleMessageHeap()
   consolemessageheap = (bot_consolemessage_t *)GetMemory(sizeof(bot_consolemessage_t) * v1);
   consolemessageheap[0].prev = NULL;
   consolemessageheap[0].next = &consolemessageheap[1];
-  if ( v1 - 1 > 1 )
+  for ( i = 1; i < v1 - 1; ++i )
   {
-    for ( i = 1; i < v1 - 1; ++i )
-    {
-      consolemessageheap[i].prev = &consolemessageheap[i - 1];
-      consolemessageheap[i].next = &consolemessageheap[i + 1];
-    }
+    consolemessageheap[i].prev = &consolemessageheap[i - 1];
+    consolemessageheap[i].next = &consolemessageheap[i + 1];
   }
   consolemessageheap[v1 - 1].prev = &consolemessageheap[v1 - 2];
   consolemessageheap[v1 - 1].next = NULL;
   freeconsolemessages = consolemessageheap;
-  return (int)(intptr_t)consolemessageheap;
 }
 //----- (1002A9A0) --------------------------------------------------------
 bot_consolemessage_t *AllocConsoleMessage()
