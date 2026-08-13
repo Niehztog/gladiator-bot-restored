@@ -128,7 +128,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
     }
     floatval = token.floatvalue;
     if ( negative )
-      floatval = -token.floatvalue;
+      floatval = -floatval;
     if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(fd, 4), floatval < v18) || floatval > fielddef_float(fd, 5)) )
     {
       SourceError(source, "float out of range [%f, %f]", v18, fielddef_float(fd, 5));
@@ -139,7 +139,7 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   }
   intval = token.intvalue;
   if ( negative )
-    intval = -token.intvalue;
+    intval = -intval;
   v8 = fielddef_flags(fd);
   if ( (v8 & 0xFF) == 1 )
   {
@@ -197,7 +197,10 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   }
   else if ( (v8 & 0xFF) == 2 )
   {
-    *(_DWORD *)p = intval;
+    if ( (v8 & 0x400) != 0 )
+      *(unsigned int *)p = (unsigned int)intval;
+    else
+      *(_DWORD *)p = intval;
     return 1;
   }
   else
