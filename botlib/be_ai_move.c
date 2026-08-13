@@ -421,13 +421,12 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 {
   int result; // eax
-  float v11; // [esp+0h] [ebp-84h]
   /* end/start are real vec3_t with all three components set before every
    * AAS_TraceClientBBox / VectorMA call. */
-  vec3_t end; // [esp+18h] [ebp-6Ch] BYREF
-  vec3_t start; // [esp+24h] [ebp-60h] BYREF
-  vec3_t hordir; // [esp+30h] [ebp-54h] BYREF
-  aas_trace_t trace; // [esp+3Ch] [ebp-48h] (was int v19[9] + char v20[36] hidden return buffer)
+  vec3_t start; // BYREF
+  vec3_t hordir; // BYREF
+  vec3_t end; // BYREF
+  aas_trace_t trace; // (was int v19[9] + char v20[36] hidden return buffer)
 
   VectorCopy(ms->origin, end);
   end[2] = end[2] + libvar_sv_maxbarrier->value;
@@ -440,16 +439,14 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
   hordir[1] = dir[1];
   hordir[2] = 0;
   VectorNormalize(hordir);
-  v11 = speed * ms->thinktime * 0.5;
-  VectorMA(ms->origin, v11, hordir, end);
+  VectorMA(ms->origin, ms->thinktime * speed * 0.5, hordir, end);
   VectorCopy(trace.endpos, start);
   end[2] = trace.endpos[2];
   trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
   if ( trace.startsolid )
     return 0;
   VectorCopy(trace.endpos, start);
-  end[0] = trace.endpos[0];
-  end[1] = trace.endpos[1];
+  VectorCopy(trace.endpos, end);
   end[2] = ms->origin[2];
   trace = AAS_TraceClientBBox(start, end, 2, ms->entitynum);
   if ( trace.startsolid )
