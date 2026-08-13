@@ -379,18 +379,16 @@ void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime
 //----- (1002F820) --------------------------------------------------------
 float __cdecl BotAvoidGoalTime(bot_goalstate_t *goalstate, int number)
 {
-  int v2; // esi
+  int i;
 
-  v2 = 0;
-  while ( 1 )
+  for ( i = 0; i < 64; i++ )
   {
-    if ( goalstate->avoidgoals[v2] == number && AAS_Time() <= goalstate->avoidgoaltimes[v2] )
-      break;
-    ++v2;
-    if ( v2 >= 64 )
-      return 0.0f;
+    if ( goalstate->avoidgoals[i] == number && goalstate->avoidgoaltimes[i] >= AAS_Time() )
+    {
+      return goalstate->avoidgoaltimes[i] - AAS_Time();
+    }
   }
-  return goalstate->avoidgoaltimes[v2] - AAS_Time();
+  return 0.0f;
 }
 //----- (1002F890) --------------------------------------------------------
 int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
@@ -553,7 +551,8 @@ int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
   if ( v2 >= 7 )
   {
     botimport.Print(PRT_ERROR, "goal heap overflow\n");
-    return ((int (__cdecl *)(bot_goalstate_t *))BotDumpGoalStack)(goalstate);
+    BotDumpGoalStack(goalstate);
+    return;
   }
   result = v2 + 1;
   goalstate->goalstacktop = result;
