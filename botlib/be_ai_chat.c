@@ -917,12 +917,12 @@ void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 {
   source_t *source;
+  token_t token;
   bot_matchtemplate_t *matches;       /* head of returned list */
   bot_matchtemplate_t *match;         /* current template */
   bot_matchtemplate_t *lastmatch;     /* last appended template */
   int context;
   bot_fileref_t file_ref;
-  token_t token;
 
   if ( !sub_10041F60(matchfile, &file_ref) )
   {
