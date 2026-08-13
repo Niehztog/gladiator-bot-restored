@@ -351,20 +351,15 @@ void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
 void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate)
 {
   int i;
-  int n;
 
-  i = 0;
-  n = 64;
-  do
+  for ( i = 0; i < 64; i++ )
   {
     if ( goalstate->avoidgoaltimes[i] >= AAS_Time() )
     {
       Log_Write("avoid goal %s, number %d for %f seconds", BotGoalName(goalstate->avoidgoals[i]),
                 goalstate->avoidgoals[i], goalstate->avoidgoaltimes[i] - AAS_Time());
     }
-    i++;
   }
-  while ( --n );
 }
 //----- (1002F7B0) --------------------------------------------------------
 void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime)
