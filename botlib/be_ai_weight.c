@@ -541,7 +541,7 @@ int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name)
 // Recursive tree walk for the discrete case: tests `facts[index]` against
 // each seperator's threshold, descends the matching branch, returns the
 // leaf weight. LIVE: core of FuzzyWeight.
-double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
+float __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
 
@@ -575,7 +575,7 @@ double __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
 // Recursive tree walk with fuzzy interpolation: when a fact straddles a
 // seperator threshold, blends the two branch weights instead of snapping.
 // LIVE: core of FuzzyWeightUndecided (used for smooth priority changes).
-double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
+float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
 
@@ -609,18 +609,18 @@ double __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 // Public entry: discrete fuzzy weight for one weight_t (one item/weapon).
 // Returns the leaf value of the decision tree given current bot facts.
 // LIVE: called by the item/weapon goal scorers every think.
-double __cdecl FuzzyWeight(int *facts, weight_t *w)
+float __cdecl FuzzyWeight(int *facts, weight_t *w)
 {
-  /* Thin wrapper over FuzzyWeight_r, which returns a double in ST(0). */
+  /* Thin wrapper over FuzzyWeight_r, which returns a float in ST(0). */
   return FuzzyWeight_r(facts, w->firstseperator);
 }
 //----- (10036CA0) --------------------------------------------------------
 // Public entry: fuzzy-interpolated weight for one weight_t. Smooth
 // variant of FuzzyWeight; avoids snap behaviour when a fact value
 // crosses a threshold. LIVE.
-double __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
+float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 {
-  /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns double). */
+  /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns float). */
   return FuzzyWeightUndecided_r(facts, w->firstseperator);
 }
 //----- (10036CD0) --------------------------------------------------------

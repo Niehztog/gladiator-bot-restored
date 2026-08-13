@@ -329,15 +329,15 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 {
   weaponconfig_t *wc; // ebp
+  float bestweight;
   weaponinfo_t *bestweaponinfo; // edi
   int i; // ebx
   int index; // eax
   float weight; // st7
-  float bestweight; // [esp+10h] [ebp-4h]
 
-  wc = weaponconfig;
   bestweight = 0.0f;
   bestweaponinfo = 0;
+  wc = weaponconfig;
   if ( weaponconfig )
   {
     if ( AAS_Time() >= ws->nextthink )
