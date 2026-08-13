@@ -141,10 +141,6 @@ FILE *Log_Write(char *Format, ...)
 FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
   va_list va;
-  int sec_total;
-  int hund;
-  int min;
-  int hour;
 
   /* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
    * warm fall-through and the NULL return the cold forward-`je` target.
@@ -152,12 +148,12 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
    * as the original does. */
   if ( logfile.fp )
   {
-    sec_total = (int)*(float *)&botstate.bottime;
-    hund      = -100 * sec_total - (int)(*(float *)&botstate.bottime * -100.0f);
-    min       = (int)(*(float *)&botstate.bottime * 0.01666666753590107f);
-    hour      = (int)(*(float *)&botstate.bottime * 0.00027777778450399637f);
     fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
-            logfile.numwrites, hour, min, sec_total, hund);
+            logfile.numwrites,
+            (int)(*(float *)&botstate.bottime * 0.00027777778450399637f),
+            (int)(*(float *)&botstate.bottime * 0.01666666753590107f),
+            (int)*(float *)&botstate.bottime,
+            (int)(100.0f * *(float *)&botstate.bottime) - 100 * (int)*(float *)&botstate.bottime);
     va_start(va, Format);
     vfprintf(logfile.fp, Format, va);
     va_end(va);
