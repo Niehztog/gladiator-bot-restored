@@ -241,26 +241,15 @@ int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata)
 //----- (1000AFD0) --------------------------------------------------------
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
-  int v3; // ecx
-  float v4; // st7
-  int v6; // ecx
-  int v7; // edx
-  int v8[3]; // [esp+Ch] [ebp-60h] BYREF
-  int v9[21]; // [esp+18h] [ebp-54h] BYREF
+  vec3_t end;
+  bsp_trace_t trace;
 
-  v3 = *(_DWORD *)&origin[1];
-  v4 = origin[2];
-  v8[0] = *(_DWORD *)&origin[0];
-  v8[1] = v3;
-  *(float *)&v8[2] = v4 - 100.0f;
-  *(bsp_trace_t *)v9 = AAS_Trace((float*)(origin), (float*)mins, (float*)maxs, (float*)(v8), 0, 3);
-  if ( v9[1] )
+  VectorCopy(origin, end);
+  end[2] -= 100.0f;
+  trace = AAS_Trace(origin, mins, maxs, end, 0, 3);
+  if ( trace.startsolid )
     return 0;
-  v6 = v9[4];
-  v7 = v9[5];
-  *(_DWORD *)&origin[0] = v9[3];
-  *(_DWORD *)&origin[1] = v6;
-  *(_DWORD *)&origin[2] = v7;
+  VectorCopy(trace.endpos, origin);
   return 1;
 }
 //----- (1000B090) --------------------------------------------------------
