@@ -22,9 +22,10 @@
  * 52-byte nodes (`52 * MAX_AAS_SOUNDS`) with prev/next at +44/+48.
  *
  * The subsystem is DEAD: nothing in botlib.c reaches the writer
- * (sub_1001CE20), so entnum/channel/unknown40 are named from field position
- * and Q2's usual S_StartSound argument order, not from a live call site.
- * `data[44]` stays as a union member for any un-migrated byte access.
+ * (sub_1001CE20), so entnum/channel are named from field position and
+ * game.h's positioned_sound() argument order, not from a live call site.
+ * attenuation (+40) is confirmed float by the real disasm (fld/fstp copy
+ * in sub_1001CE20, matching volume's own fld/fstp), not just by position.
  *
  * Six aas_world fields reference these nodes:
  *   d_100669C4 = pool base (FreeMemory'd in sub_1001CAB0)
@@ -43,9 +44,11 @@ typedef struct aas_soundpool_s {
     int    entnum;      /* +24 */
     int    channel;     /* +28 */
     int    soundindex;  /* +32 indexes aasworld.d_100669C0[] */
-    float  volume;      /* +36 passed as int, read as a float multiplier by
+    float  volume;      /* +36 read as a float multiplier by
                           * sub_1001D0A0's audibility formula */
-    int    unknown40;   /* +40 */
+    float  attenuation; /* +40 matches game.h's positioned_sound(origin, ent,
+                          * channel, soundindex, volume, attenuation, timeofs)
+                          * argument order; never read back (dead field) */
     struct aas_soundpool_s    *prev;     /* +44 on 32-bit, +48 on 64-bit */
     struct aas_soundpool_s    *next;
 } aas_soundpool_t;

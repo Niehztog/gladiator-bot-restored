@@ -26,7 +26,7 @@ void sub_1001CCC0(aas_soundpool_t *a1);
 void sub_1001CD10(aas_soundpool_t *a1);
 void sub_1001CD80(aas_soundpool_t *a1);
 void __cdecl sub_1001CDD0(int a1, int a2);
-int __cdecl sub_1001CE20(float *, int, int, int, int, int, float);
+int __cdecl sub_1001CE20(float *, int, int, int, float, float, float);
 void __cdecl sub_1001CFA0(float a1);
 int __cdecl sub_1001D040(aas_soundpool_t *p);
 int __cdecl sub_1001D070(aas_soundpool_t *p);

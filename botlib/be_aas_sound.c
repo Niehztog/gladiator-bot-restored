@@ -205,12 +205,14 @@ void sub_1001CC50(aas_soundpool_t *a1)
   aas_soundpool_t *v1;
   aas_soundpool_t *i;
 
+  i = NULL;
   v1 = aasworld.d_100669D0;
-  for ( i = NULL; v1; v1 = v1->prev )
+  while ( v1 )
   {
     if ( v1->endtime < a1->endtime )
       break;
     i = v1;
+    v1 = v1->prev;
   }
   a1->next = i;
   a1->prev = v1;
@@ -249,12 +251,14 @@ void sub_1001CD10(aas_soundpool_t *a1)
   aas_soundpool_t *v1;
   aas_soundpool_t *i;
 
+  i = NULL;
   v1 = aasworld.d_100669D8;
-  for ( i = NULL; v1; v1 = v1->prev )
+  while ( v1 )
   {
     if ( v1->starttime < a1->starttime )
       break;
     i = v1;
+    v1 = v1->prev;
   }
   a1->next = i;
   a1->prev = v1;
@@ -308,7 +312,7 @@ void __cdecl sub_1001CDD0(int a1, int a2)
   }
 }
 //----- (1001CE20) --------------------------------------------------------
-int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, float a7)
+int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, float a7)
 {
   soundinfo_t *v8; // ebx
   aas_soundpool_t *i;
@@ -326,7 +330,7 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, floa
       botimport.Print(PRT_MESSAGE, "no soundindex to soundinfo table\n");
       return 0;
     }
-    if ( a4 < aasworld.d_100669BC )
+    if ( a4 >= 0 && a4 < aasworld.d_100669BC )
     {
       v8 = (soundinfo_t *)aasworld.d_100669C0[a4];
       if ( !v8 )
@@ -348,8 +352,8 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, int a5, int a6, floa
       v10->entnum = a2;
       v10->channel = a3;
       v10->soundindex = a4;
-      *(int *)&v10->volume = a5;   /* bit-pattern store: the arg is int-declared but the field is float */
-      v10->unknown40 = a6;
+      v10->volume = a5;
+      v10->attenuation = a6;
       sub_1001CD10(v10);
     }
     return 0;

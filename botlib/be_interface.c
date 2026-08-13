@@ -569,8 +569,9 @@ int Export_BotUpdateEntity(int ent, void *bue)
 }
 
 /* ---- SLOT 15 — BotAddSound (0x10038270).  The context string really is
- * "BotUpdateSound".  The first six args reach sub_1001CE20 as raw 32-bit
- * values (float bits through int slots); only timeofs is a real float. ---- */
+ * "BotUpdateSound".  volume/attenuation/timeofs all reach sub_1001CE20 as
+ * plain floats (matches game/botlib.h's BotAddSound(vec3_t, int, int, int,
+ * float, float, float) export signature verbatim). ---- */
 //----- (10038270) --------------------------------------------------------
 int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
                        float volume, float attenuation, float timeofs)
@@ -578,8 +579,8 @@ int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
     if (!BotLibSetup("BotUpdateSound")) return 1;
     if (!ValidEntityNumber(ent, "BotUpdateSound")) return 4;
     return sub_1001CE20((intptr_t)origin, ent, channel, soundindex,
-                        *(int *)&volume,
-                        *(int *)&attenuation,
+                        volume,
+                        attenuation,
                         timeofs);
 }
 
