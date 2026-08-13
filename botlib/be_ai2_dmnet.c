@@ -60,24 +60,14 @@ void BotResetNodeSwitches()
 //----- (1001D2D0) --------------------------------------------------------
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 {
-  int i; // ebx
-  const char *v3; // edx
+  int i; // esi
+
   char Buffer[1400]; // [esp+10h] [ebp-578h] BYREF
 
   sprintf(Buffer, "%s at %1.1f switched more than %d AI nodes\n",
           (const char *)ClientName(bs->client), AAS_Time(), 50);
-  i = numnodeswitches;
-  if ( numnodeswitches > 0 )
-  {
-    v3 = (const char *)nodeswitch;
-    do
-    {
-      strcat(Buffer, v3);
-      v3 += 144;
-      --i;
-    }
-    while ( i );
-  }
+  for ( i = 0; i < numnodeswitches; i++ )
+    strcat(Buffer, &nodeswitch[144 * i]);
   return botimport.Print(PRT_FATAL, Buffer);
 }
 //----- (1001D3A0) --------------------------------------------------------
