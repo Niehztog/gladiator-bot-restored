@@ -700,9 +700,9 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
    * consume — not the dir length computed above.  Confusing the two makes speed
    * 2 * distance-to-goal instead of 2 * jump-distance, so the bot crawls toward
    * every goal and stalls as the distance approaches 0. */
-  v4 = BotGapDistance(ms, dir);
-  if ( v4 > 0.0f )
-    speed = 300.0f - (300.0f - (v4 + v4));
+  dist = BotGapDistance(ms, dir);
+  if ( dist > 0.0f )
+    speed = 300.0f - (300.0f - (dist + dist));
   else
     speed = 400.0f;
   EA_Move(ms->client, dir, speed);

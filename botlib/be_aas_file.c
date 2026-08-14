@@ -232,8 +232,6 @@ void AAS_SwapAASData()
 //----- (1000C490) --------------------------------------------------------
 void *AAS_DumpAASData()
 {
-  void *result; // eax
-
   aasworld.numvertexes = 0;
   if ( aasworld.vertexes )
     FreeMemory(aasworld.vertexes);
@@ -276,17 +274,15 @@ void *AAS_DumpAASData()
   aasworld.numportals = 0;
   if ( aasworld.portalindex )
     FreeMemory(aasworld.portalindex);
-  result = aasworld.clusters;
   aasworld.portalindex = 0;
   aasworld.portalindexsize = 0;
   if ( aasworld.clusters )
-    result = (void *)FreeMemory(aasworld.clusters);
+    FreeMemory(aasworld.clusters);
   aasworld.clusters = 0;
   aasworld.numclusters = 0;
   aasworld.loaded = 0;
   aasworld.initialized = 0;
   aasworld.savefile = 0;
-  return result;
 }
 //----- (1000C670) --------------------------------------------------------
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)

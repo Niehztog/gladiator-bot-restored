@@ -137,9 +137,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   {
     node = &aasworld.nodes[nodenum];
     plane = &aasworld.planes[node->planenum];
-    dist = point[2] * plane->normal[2];
-    dist = dist + point[1] * plane->normal[1];
-    dist = dist + point[0] * plane->normal[0] - plane->dist;
+    dist = DotProduct(point, plane->normal) - plane->dist;
     if ( dist > 0.0f )
       nodenum = node->children[0];
     else
@@ -378,7 +376,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
         trace.planenum = tstack_p->planenum;
         /* always take the plane with normal facing towards the trace start */
         plane = &aasworld.planes[trace.planenum];
-        if ( v1[2] * plane->normal[2] + v1[1] * plane->normal[1] + v1[0] * plane->normal[0] > 0.0f )
+        if ( v1[0] * plane->normal[0] + v1[1] * plane->normal[1] + v1[2] * plane->normal[2] > 0.0f )
           trace.planenum ^= 1;
         return trace;
       }
@@ -430,7 +428,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
       trace.planenum = tstack_p->planenum;
       /* always take the plane with normal facing towards the trace start */
       plane = &aasworld.planes[trace.planenum];
-      if ( v1[2] * plane->normal[2] + v1[1] * plane->normal[1] + v1[0] * plane->normal[0] > 0.0f )
+      if ( v1[0] * plane->normal[0] + v1[1] * plane->normal[1] + v1[2] * plane->normal[2] > 0.0f )
         trace.planenum ^= 1;
       return trace;
     }
