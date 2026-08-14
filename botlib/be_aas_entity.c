@@ -565,24 +565,20 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 
   v7 = 0;
   v6 = 1;
-  if ( v6 <= aasworld.aas_maxclients )
+  while ( v6 <= aasworld.aas_maxclients )
   {
-    do
+    aas_entity_t *ent = &aasworld.entities[v6];
+    if ( ent->i.valid )
     {
-      aas_entity_t *ent = &aasworld.entities[v6];
-      if ( ent->i.valid )
+      if ( BotEntityVisible(a1, a2, a3, a4, v6) )
       {
-        if ( BotEntityVisible(a1, a2, a3, a4, v6) )
-        {
-          a6[v7] = v6;
-          ++v7;
-          if ( v7 >= a5 )
-            return v7;
-        }
+        a6[v7] = v6;
+        ++v7;
+        if ( v7 >= a5 )
+          return v7;
       }
-      ++v6;
     }
-    while ( v6 <= aasworld.aas_maxclients );
+    ++v6;
   }
   return v7;
 }
@@ -591,9 +587,9 @@ int __cdecl AAS_NextBSPEntity(int ent)
 {
   int v1; // eax
 
+  v1 = ent;
   if ( !aasworld.loaded )
     return 0;
-  v1 = ent;
   if ( ent < 0 )
     v1 = -1;
   while ( ++v1 < aasworld.numentities )
