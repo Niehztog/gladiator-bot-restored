@@ -1737,17 +1737,17 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
   return (int *)list;
 #else
   source_t      *src;
-  bot_fileref_t  file_ref;
-  chatlist_t    *list;
-  chattype_t    *cur_type;
-  chatline_t    *line;
-  char          *ptr;
-  int            found;
-  int            indent;
-  int            pass;
-  int            size;
   char           buf[152];
   char           token[sizeof(token_t)];
+  int            found;
+  int            size;
+  chatline_t    *line;
+  char          *ptr;
+  int            pass;
+  int            indent;
+  chatlist_t    *list;
+  chattype_t    *cur_type;
+  bot_fileref_t  file_ref;
 
   list  = 0;
   cur_type = 0;
