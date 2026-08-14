@@ -2054,7 +2054,6 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
   int         n;
   int         pick;
   float       best_ltime;
-  float       frnd;
 
   for ( t = cs->types; t; t = t->next )
   {
@@ -2083,8 +2082,7 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
       }
       else
       {
-        frnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
-        pick = (int)(frnd * n);
+        pick = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * n);
         for ( l = t->firstline; l; l = l->next )
         {
           if ( AAS_Time() >= l->ltime )
