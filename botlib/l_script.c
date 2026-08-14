@@ -571,8 +571,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
 int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 {
   token->type = 2; /* TT_LITERAL */
-  token->string[0] = *script->script_p;
-  script->script_p++;
+  token->string[0] = *script->script_p++;
   if ( !*script->script_p )
   {
     ScriptError((int)script, "end of file before trailing \'");
@@ -585,8 +584,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
   }
   else
   {
-    token->string[1] = *script->script_p;
-    script->script_p++;
+    token->string[1] = *script->script_p++;
   }
   if ( *script->script_p != '\'' )
   {
@@ -596,8 +594,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
     if ( *script->script_p == '\'' )
       ++script->script_p;
   }
-  token->string[2] = *script->script_p;
-  script->script_p++;
+  token->string[2] = *script->script_p++;
   token->string[3] = 0;
   token->subtype = (signed char)token->string[1];
   return 1;
