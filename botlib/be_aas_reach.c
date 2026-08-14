@@ -339,7 +339,6 @@ qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
 BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 {
   int areanum; // eax
-  int v4; // esi
   /* One vec3_t, so VectorMA's writes land in the same slot the original bumps by
    * 16.0 after the first AAS_PointAreaNum. */
   vec3_t dir; // [esp+10h] [ebp-Ch] BYREF
@@ -350,16 +349,17 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
   dir[2] = 0;
   VectorNormalize(dir);
   VectorMA(end, 48.0f, dir, testpoint);
-  if ( !AAS_PointAreaNum(testpoint) )
+  areanum = AAS_PointAreaNum(testpoint);
+  if ( !areanum )
   {
     testpoint[2] = testpoint[2] + 16.0f;
-    if ( !AAS_PointAreaNum(testpoint) )
+    areanum = AAS_PointAreaNum(testpoint);
+    if ( !areanum )
       return 1;
   }
   VectorMA(end, 64.0, dir, testpoint);
   areanum = AAS_PointAreaNum(testpoint);
-  v4 = areanum;
-  return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(v4);
+  return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(areanum);
 }
 //----- (10011860) --------------------------------------------------------
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
@@ -2874,7 +2874,7 @@ void AAS_StoreReachability()
   }
 }
 //----- (10018920) --------------------------------------------------------
-int AAS_ContinueInitReachability(int time)
+int AAS_ContinueInitReachability(float time)
 {
   libvar_t *v1;
   double v2; // st7

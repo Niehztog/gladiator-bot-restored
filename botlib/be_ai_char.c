@@ -268,15 +268,17 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
 //----- (1002A620) --------------------------------------------------------
 float __cdecl Characteristic_Float(bot_character_t *character, int index)
 {
+  bot_characteristic_t *pair;
   char v2; // al
 
   if ( !CheckCharacteristicIndex(character, index) )
     return 0.0f;
-  v2 = (char)BC_PAIRS(character)[index].type;
+  pair = &BC_PAIRS(character)[index];
+  v2 = (char)pair->type;
   if ( v2 == 1 )
-    return (float)(int)BC_PAIRS(character)[index].value;
+    return (float)(int)pair->value;
   if ( v2 == 2 )
-    return *(float *)&BC_PAIRS(character)[index].value;
+    return *(float *)&pair->value;
   botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
   return 0.0f;
 }

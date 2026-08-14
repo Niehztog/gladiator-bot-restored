@@ -2144,23 +2144,21 @@ int __cdecl PC_ReadDirective(source_t *source)
 int __cdecl PC_DollarDirective_evalint(source_t *source)
 {
   int result; // eax
-  script_t *v2; // eax
   int value; // [esp+4h] [ebp-434h] BYREF
   token_t token;
 
   result = PC_DollarEvaluate(source, &value, 0, 1);
   if ( !result )
     return result;
-  v2 = source->scriptstack;
-  token.line = v2->line;
-  token.whitespace_p = v2->script_p;
-  token.endwhitespace_p = v2->script_p;
+  token.line = source->scriptstack->line;
+  token.whitespace_p = source->scriptstack->script_p;
+  token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%d", abs(value));
-  token.floatvalue = (float)value;
   token.type = 3;
   token.subtype = 12296;
   token.intvalue = value;
+  token.floatvalue = (float)value;
   PC_UnreadSourceToken(source, token.string);
   if ( value < 0 )
     UnreadSignToken(source);
@@ -2170,17 +2168,15 @@ int __cdecl PC_DollarDirective_evalint(source_t *source)
 int __cdecl PC_DollarDirective_evalfloat(source_t *source)
 {
   int result; // eax
-  script_t *v2; // eax
   double value; // [esp+Ch] [ebp-438h] BYREF
   token_t token;
 
   result = PC_DollarEvaluate(source, 0, &value, 0);
   if ( !result )
     return result;
-  v2 = source->scriptstack;
-  token.line = v2->line;
-  token.whitespace_p = v2->script_p;
-  token.endwhitespace_p = v2->script_p;
+  token.line = source->scriptstack->line;
+  token.whitespace_p = source->scriptstack->script_p;
+  token.endwhitespace_p = source->scriptstack->script_p;
   token.linescrossed = 0;
   sprintf(token.string, "%1.2f", fabs(value));
   token.type = 3;

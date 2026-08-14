@@ -18,7 +18,7 @@ extern aas_link_t **aasentity_arealinks;
 extern bsp_link_t **aasentity_bsplinks;
 extern aas_world_t aasworld;
 
-int __cdecl AAS_ContinueInit(int time);
+int __cdecl AAS_ContinueInit(float time);
 int AAS_Error(char *Format, ...);
 char *__cdecl AAS_ImageFromIndex(int index);
 int __cdecl AAS_IndexFromImage(char *String2);

@@ -726,7 +726,6 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 //----- (1003F5C0) --------------------------------------------------------
 int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token)
 {
-  int v6; // eax
   char str[1024]; // [esp+10h] [ebp-400h] BYREF
 
   if ( !PS_ReadToken(script, (char *)token) )
@@ -734,23 +733,22 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
     ScriptError(script, "couldn't read expected token");
     return 0;
   }
-  v6 = token->type;
-  if ( v6 != type )
+  if ( token->type != type )
   {
     if ( type == 1 )
       strcpy(str, "string");
-    else if ( type == 2 )
+    if ( type == 2 )
       strcpy(str, "literal");
-    else if ( type == 3 )
+    if ( type == 3 )
       strcpy(str, "number");
-    else if ( type == 4 )
+    if ( type == 4 )
       strcpy(str, "name");
-    else if ( type == 5 )
+    if ( type == 5 )
       strcpy(str, "punctuation");
     ScriptError(script, "expected a %s, found %s", str, token);
     return 0;
   }
-  if ( v6 == 3 )
+  if ( token->type == 3 )
   {
     if ( (token->subtype & subtype) != subtype )
     {
@@ -774,7 +772,7 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
       return 0;
     }
   }
-  else if ( v6 == 5 )
+  else if ( token->type == 5 )
   {
     if ( subtype < 0 )
     {

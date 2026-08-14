@@ -468,16 +468,11 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
  * the swim path ignores `type`. */
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
-  /* int[3]: the stores are raw 32-bit copies of dir's float bit patterns.  As
-   * float[3] they become int->float conversions and the swim direction is
-   * destroyed (0.5f becomes ~1.06e9). */
-  int normdir[3]; // [esp+0h] [ebp-Ch] BYREF
+  vec3_t normdir;
 
-  normdir[0] = *(int *)&dir[0];
-  normdir[1] = *(int *)&dir[1];
-  normdir[2] = *(int *)&dir[2];
-  VectorNormalize((float *)normdir);
-  EA_Move(ms->client, (float *)normdir, speed);
+  VectorCopy(dir, normdir);
+  VectorNormalize(normdir);
+  EA_Move(ms->client, normdir, speed);
   return 1;
 }
 //----- (10031940) --------------------------------------------------------
@@ -592,16 +587,16 @@ int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
   float d1y = p2[1] - p1[1];
   float d2x = p4[0] - p3[0];
   float d2y = p4[1] - p3[1];
-  float det = d2x * d1y - d2y * d1x;
+  float det = d1y * d2x - d1x * d2y;
   float c1;
   float c2;
 
   if ( det != 0.0f )
   {
-    c1 = d1x * p1[1] - d1y * p1[0];
-    c2 = d2x * p3[1] - d2y * p3[0];
-    out[0] = (int)((c2 * d1x - c1 * d2x) / det);
-    out[1] = (int)((c2 * d1y - c1 * d2y) / det);
+    c1 = p1[1] * d1x - p1[0] * d1y;
+    c2 = p3[1] * d2x - p3[0] * d2y;
+    out[0] = (int)((d1x * c2 - d2x * c1) / det);
+    out[1] = (int)((d1y * c2 - d2y * c1) / det);
     return 1;
   }
   return 0;

@@ -275,7 +275,7 @@ int __cdecl AAS_SetInitialized(void)
   return botimport.Print(PRT_MESSAGE, "AAS initialized.\n");
 }
 //----- (1000DF30) --------------------------------------------------------
-int AAS_ContinueInit(int time)
+int AAS_ContinueInit(float time)
 {
   int result; // eax
 
@@ -312,7 +312,7 @@ int AAS_StartFrame(float time)
   AAS_InvalidateEntities();
   sub_1001CFA0(time);
   sub_1000D4E0(time);
-  AAS_ContinueInit(SLODWORD(time));
+  AAS_ContinueInit(time);
   aasworld.frameroutingupdates = 0;
   if ( LibVarGetValue("showcacheupdates") != 0.0f )
   {

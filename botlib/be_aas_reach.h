@@ -14,7 +14,7 @@
 /* Declarations for what this TU defines, from the retired
  * botlib_local.h.  At the end of the file so the types above are
  * already in scope. */
-int AAS_ContinueInitReachability(int a1); // caller passes arg but function body ignores it (no ebp frame)
+int AAS_ContinueInitReachability(float a1); // caller passes arg but function body ignores it (no ebp frame)
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
@@ -50,7 +50,7 @@ int __cdecl AAS_AreaLiquid(int areanum);
 int __cdecl AAS_AreaReachability(int areanum);
 int __cdecl AAS_AreaSwim(int areanum);
 float __cdecl AAS_AreaVolume(int areanum);
-int AAS_ContinueInitReachability(int time);
+int AAS_ContinueInitReachability(float time);
 float __cdecl AAS_FaceArea(aas_face_t *face);
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center);
 int AAS_FallDamageDistance();
