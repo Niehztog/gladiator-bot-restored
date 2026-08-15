@@ -1482,17 +1482,21 @@ void BotCheckAttack(bot_state_t *bs)
                        // (non-overlapping lifetimes), not one variable reused.
   float fov; // [esp+10h] [ebp-1A4h] — visibility check distance (Q3 ai_dmq3 BotCheckAttack 'fov');
              // shares reactiontime's stack slot, see above.
+  /* Q3 ai_dmq3.c BotCheckAttack's declaration order, with mins/maxs LAST and
+   * mins before maxs: gcc 2.7 lays the frame out in reverse declaration order,
+   * and real's ELF has maxs (the {8,8,8} stores) BELOW mins (the {-8,-8,-8}
+   * stores), which only that order produces. */
   vec3_t forward; // [esp+20h] [ebp-194h] BYREF
   vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — trace start; as separate locals the
                 // y/z stores get dead-store-eliminated and VectorMA/AAS_Trace see
                 // garbage in [1]/[2]
-  vec3_t maxs; // [esp+2Ch] [ebp-188h] BYREF
-  vec3_t right; // [esp+44h] [ebp-170h] BYREF
-  vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
-  vec3_t mins; // [esp+50h] [ebp-164h] BYREF
   vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
+  vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
+  vec3_t right; // [esp+44h] [ebp-170h] BYREF
   bsp_trace_t trace; // [esp+68h] [ebp-14Ch] BYREF
   aas_entityinfo_t entinfo; // [esp+BCh] [ebp-7Ch] BYREF
+  vec3_t mins; // [esp+50h] [ebp-164h] BYREF
+  vec3_t maxs; // [esp+2Ch] [ebp-188h] BYREF
 
   /* Float literals: mins/maxs are float[3], not raw bit patterns.  No
    * `attackentity` local: real never caches bs->enemy in a register here --
