@@ -1323,7 +1323,6 @@ found:
 void BotAimAtEnemy(bot_state_t *bs)
 {
 
-  int v2; // eax
   weaponinfo_t *wi; // ebp
   float speed; // st — Q3 'speed'; register-only, never stored
   float v12; // st7
@@ -1350,13 +1349,12 @@ void BotAimAtEnemy(bot_state_t *bs)
   /* Float literals: mins/maxs are float[3], so the original's raw ±4.0f bit
    * patterns would be converted, not reinterpreted. */
   mins[0] = -4.0f;
-  v2 = bs->enemy;
   mins[1] = -4.0f;
   mins[2] = -4.0f;
   maxs[0] = 4.0f;
   maxs[1] = 4.0f;
   maxs[2] = 4.0f;
-  if ( v2 )
+  if ( bs->enemy )
   {
     /* Both Characteristic_BFloat results come back on the FPU stack; the second is
      * compared against 0.0 and clamped to 0.000099999997f when not positive. */

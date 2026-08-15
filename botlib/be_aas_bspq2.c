@@ -2756,72 +2756,9 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   FILE *v3; // eax
   FILE *v4; // esi
   int v6; // eax
+  int    ofs;
+  size_t length;
   int v7; // eax
-  int v8; // eax
-  int v9; // ebx
-  size_t v10; // eax
-  int v11; // ebp
-  int v12; // eax
-  int v13; // ebx
-  size_t v14; // eax
-  size_t v15; // ebp
-  int v16; // eax
-  int v17; // ebx
-  size_t v18; // eax
-  size_t v19; // ebp
-  int v20; // eax
-  int v21; // ebp
-  size_t v22; // eax
-  int v23; // ebx
-  char *v24; // eax
-  int v25; // eax
-  int v26; // ebp
-  size_t v27; // eax
-  size_t v28; // ebx
-  int v29; // eax
-  int v30; // ebp
-  size_t v31; // eax
-  size_t v32; // ebx
-  int v33; // eax
-  int v34; // ebx
-  size_t v35; // eax
-  size_t v36; // ebp
-  int v37; // eax
-  int v38; // ebp
-  size_t v39; // eax
-  int v40; // ebx
-  int v41; // eax
-  int v42; // ebp
-  size_t v43; // eax
-  size_t v44; // ebx
-  int v45; // eax
-  int v46; // ebp
-  size_t v47; // eax
-  size_t v48; // ebx
-  int v49; // eax
-  int v50; // ebp
-  size_t v51; // eax
-  size_t v52; // ebx
-  int v53; // eax
-  int v54; // ebp
-  size_t v55; // eax
-  size_t v56; // ebx
-  int v57; // eax
-  int v58; // ebp
-  size_t v59; // eax
-  size_t v60; // ebx
-  int v61; // eax
-  int v62; // ebx
-  size_t v63; // eax
-  size_t v64; // ebp
-  int v65; // eax
-  int v66; // ebx
-  size_t v67; // eax
-  size_t v68; // ebp
-  int v69; // eax
-  int v70; // ebx
-  size_t v71; // eax
-  size_t v72; // edi
   dBspHeader_t bsp_h; /* Q2 BSP header: ident+version+19 lumps = 0xA0 bytes */
 
   AAS_DumpBSPData();
@@ -2858,80 +2795,62 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
     fclose(v4);
     return BLERR_WRONGBSPFILEVERSION;
   }
-  v8 = LittleLong(bsp_h.lumps[0].fileofs);
-  v9 = Offset + v8;
-  v10 = (size_t)LittleLong(bsp_h.lumps[0].filelen);
-  v11 = v10;
-  bspworld.dentdata = sub_10007C40(v4, v9, v10, 1, "entity");
+  ofs = Offset + LittleLong(bsp_h.lumps[0].fileofs);
+  length = LittleLong(bsp_h.lumps[0].filelen);
+  bspworld.dentdata = sub_10007C40(v4, ofs, length, 1, "entity");
   if ( !bspworld.dentdata )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.entdatasize = v11;
-  v12 = LittleLong(bsp_h.lumps[1].fileofs);
-  v13 = Offset + v12;
-  v14 = (size_t)LittleLong(bsp_h.lumps[1].filelen);
-  v15 = v14;
-  bspworld.dplanes = sub_10007C40(v4, v13, v14, 20, "planes");
+  bspworld.entdatasize = length;
+  ofs = Offset + LittleLong(bsp_h.lumps[1].fileofs);
+  length = LittleLong(bsp_h.lumps[1].filelen);
+  bspworld.dplanes = sub_10007C40(v4, ofs, length, 20, "planes");
   if ( !bspworld.dplanes )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numplanes = v15 / 0x14;
-  v16 = LittleLong(bsp_h.lumps[2].fileofs);
-  v17 = Offset + v16;
-  v18 = (size_t)LittleLong(bsp_h.lumps[2].filelen);
-  v19 = v18;
-  bspworld.dvertexes = sub_10007C40(v4, v17, v18, 12, "vertexes");
+  bspworld.numplanes = length / 0x14;
+  ofs = Offset + LittleLong(bsp_h.lumps[2].fileofs);
+  length = LittleLong(bsp_h.lumps[2].filelen);
+  bspworld.dvertexes = sub_10007C40(v4, ofs, length, 12, "vertexes");
   if ( !bspworld.dvertexes )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numvertexes = v19 / 0xC;
-  v20 = LittleLong(bsp_h.lumps[3].fileofs);
-  v21 = Offset + v20;
-  v22 = (size_t)LittleLong(bsp_h.lumps[3].filelen);
-  v23 = v22;
-  if ( v22 )
+  bspworld.numvertexes = length / 0xC;
+  ofs = Offset + LittleLong(bsp_h.lumps[3].fileofs);
+  length = LittleLong(bsp_h.lumps[3].filelen);
+  if ( length )
   {
-    v24 = sub_10007C40(v4, v21, v22, 1, "visibility");
-    bspworld.dvisdata = v24;
-    if ( !v24 )
+    bspworld.dvisdata = sub_10007C40(v4, ofs, length, 1, "visibility");
+    if ( !bspworld.dvisdata )
       return BLERR_CANNOTREADBSPLUMP;
   }
   else
   {
     bspworld.dvisdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNGING: bsp has no visibility data\n");
-    v24 = bspworld.dvisdata;
   }
-  bspworld.visdatasize = v23;
-  bspworld.dvis = (dvis_t *)v24;
-  v25 = LittleLong(bsp_h.lumps[4].fileofs);
-  v26 = Offset + v25;
-  v27 = (size_t)LittleLong(bsp_h.lumps[4].filelen);
-  v28 = v27;
-  bspworld.dnodes = sub_10007C40(v4, v26, v27, 28, "nodes");
+  bspworld.visdatasize = length;
+  bspworld.dvis = (dvis_t *)bspworld.dvisdata;
+  ofs = Offset + LittleLong(bsp_h.lumps[4].fileofs);
+  length = LittleLong(bsp_h.lumps[4].filelen);
+  bspworld.dnodes = sub_10007C40(v4, ofs, length, 28, "nodes");
   if ( !bspworld.dnodes )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numnodes = v28 / 0x1C;
-  v29 = LittleLong(bsp_h.lumps[5].fileofs);
-  v30 = Offset + v29;
-  v31 = (size_t)LittleLong(bsp_h.lumps[5].filelen);
-  v32 = v31;
-  bspworld.texinfo = sub_10007C40(v4, v30, v31, 76, "texinfo");
+  bspworld.numnodes = length / 0x1C;
+  ofs = Offset + LittleLong(bsp_h.lumps[5].fileofs);
+  length = LittleLong(bsp_h.lumps[5].filelen);
+  bspworld.texinfo = sub_10007C40(v4, ofs, length, 76, "texinfo");
   if ( !bspworld.texinfo )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numtexinfo = v32 / 0x4C;
-  v33 = LittleLong(bsp_h.lumps[6].fileofs);
-  v34 = Offset + v33;
-  v35 = (size_t)LittleLong(bsp_h.lumps[6].filelen);
-  v36 = v35;
-  bspworld.dfaces = sub_10007C40(v4, v34, v35, 20, "faces");
+  bspworld.numtexinfo = length / 0x4C;
+  ofs = Offset + LittleLong(bsp_h.lumps[6].fileofs);
+  length = LittleLong(bsp_h.lumps[6].filelen);
+  bspworld.dfaces = sub_10007C40(v4, ofs, length, 20, "faces");
   if ( !bspworld.dfaces )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numfaces = v36 / 0x14;
-  v37 = LittleLong(bsp_h.lumps[7].fileofs);
-  v38 = Offset + v37;
-  v39 = (size_t)LittleLong(bsp_h.lumps[7].filelen);
-  v40 = v39;
-  if ( v39 )
+  bspworld.numfaces = length / 0x14;
+  ofs = Offset + LittleLong(bsp_h.lumps[7].fileofs);
+  length = LittleLong(bsp_h.lumps[7].filelen);
+  if ( length )
   {
-    bspworld.dlightdata = sub_10007C40(v4, v38, v39, 1, "lightning");
+    bspworld.dlightdata = sub_10007C40(v4, ofs, length, 1, "lightning");
     if ( !bspworld.dlightdata )
       return BLERR_CANNOTREADBSPLUMP;
   }
@@ -2940,71 +2859,55 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
     bspworld.dlightdata = 0;
     botimport.Print(PRT_MESSAGE, "WARNING: bsp has no light data\n");
   }
-  bspworld.lightdatasize = v40;
-  v41 = LittleLong(bsp_h.lumps[8].fileofs);
-  v42 = Offset + v41;
-  v43 = (size_t)LittleLong(bsp_h.lumps[8].filelen);
-  v44 = v43;
-  bspworld.dleafs = sub_10007C40(v4, v42, v43, 28, "leafs");
+  bspworld.lightdatasize = length;
+  ofs = Offset + LittleLong(bsp_h.lumps[8].fileofs);
+  length = LittleLong(bsp_h.lumps[8].filelen);
+  bspworld.dleafs = sub_10007C40(v4, ofs, length, 28, "leafs");
   if ( !bspworld.dleafs )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numleafs = v44 / 0x1C;
-  v45 = LittleLong(bsp_h.lumps[9].fileofs);
-  v46 = Offset + v45;
-  v47 = (size_t)LittleLong(bsp_h.lumps[9].filelen);
-  v48 = v47;
-  bspworld.dleaffaces = sub_10007C40(v4, v46, v47, 2, "leaf faces");
+  bspworld.numleafs = length / 0x1C;
+  ofs = Offset + LittleLong(bsp_h.lumps[9].fileofs);
+  length = LittleLong(bsp_h.lumps[9].filelen);
+  bspworld.dleaffaces = sub_10007C40(v4, ofs, length, 2, "leaf faces");
   if ( !bspworld.dleaffaces )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numleaffaces = v48 >> 1;
-  v49 = LittleLong(bsp_h.lumps[10].fileofs);
-  v50 = Offset + v49;
-  v51 = (size_t)LittleLong(bsp_h.lumps[10].filelen);
-  v52 = v51;
-  bspworld.dleafbrushes = sub_10007C40(v4, v50, v51, 2, "leaf brushes");
+  bspworld.numleaffaces = length >> 1;
+  ofs = Offset + LittleLong(bsp_h.lumps[10].fileofs);
+  length = LittleLong(bsp_h.lumps[10].filelen);
+  bspworld.dleafbrushes = sub_10007C40(v4, ofs, length, 2, "leaf brushes");
   if ( !bspworld.dleafbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numleafbrushes = v52 >> 1;
-  v53 = LittleLong(bsp_h.lumps[11].fileofs);
-  v54 = Offset + v53;
-  v55 = (size_t)LittleLong(bsp_h.lumps[11].filelen);
-  v56 = v55;
-  bspworld.dedges = sub_10007C40(v4, v54, v55, 4, "edges");
+  bspworld.numleafbrushes = length >> 1;
+  ofs = Offset + LittleLong(bsp_h.lumps[11].fileofs);
+  length = LittleLong(bsp_h.lumps[11].filelen);
+  bspworld.dedges = sub_10007C40(v4, ofs, length, 4, "edges");
   if ( !bspworld.dedges )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numedges = v56 >> 2;
-  v57 = LittleLong(bsp_h.lumps[12].fileofs);
-  v58 = Offset + v57;
-  v59 = (size_t)LittleLong(bsp_h.lumps[12].filelen);
-  v60 = v59;
-  bspworld.dsurfedges = sub_10007C40(v4, v58, v59, 4, "surfedges");
+  bspworld.numedges = length >> 2;
+  ofs = Offset + LittleLong(bsp_h.lumps[12].fileofs);
+  length = LittleLong(bsp_h.lumps[12].filelen);
+  bspworld.dsurfedges = sub_10007C40(v4, ofs, length, 4, "surfedges");
   if ( !bspworld.dsurfedges )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numsurfedges = v60 >> 2;
-  v61 = LittleLong(bsp_h.lumps[13].fileofs);
-  v62 = Offset + v61;
-  v63 = (size_t)LittleLong(bsp_h.lumps[13].filelen);
-  v64 = v63;
-  bspworld.dmodels = sub_10007C40(v4, v62, v63, 48, "models");
+  bspworld.numsurfedges = length >> 2;
+  ofs = Offset + LittleLong(bsp_h.lumps[13].fileofs);
+  length = LittleLong(bsp_h.lumps[13].filelen);
+  bspworld.dmodels = sub_10007C40(v4, ofs, length, 48, "models");
   if ( !bspworld.dmodels )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.nummodels = v64 / 0x30;
-  v65 = LittleLong(bsp_h.lumps[14].fileofs);
-  v66 = Offset + v65;
-  v67 = (size_t)LittleLong(bsp_h.lumps[14].filelen);
-  v68 = v67;
-  bspworld.dbrushes = sub_10007C40(v4, v66, v67, 12, "brushes");
+  bspworld.nummodels = length / 0x30;
+  ofs = Offset + LittleLong(bsp_h.lumps[14].fileofs);
+  length = LittleLong(bsp_h.lumps[14].filelen);
+  bspworld.dbrushes = sub_10007C40(v4, ofs, length, 12, "brushes");
   if ( !bspworld.dbrushes )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numbrushes = v68 / 0xC;
-  v69 = LittleLong(bsp_h.lumps[15].fileofs);
-  v70 = Offset + v69;
-  v71 = (size_t)LittleLong(bsp_h.lumps[15].filelen);
-  v72 = v71;
-  bspworld.dbrushsides = sub_10007C40(v4, v70, v71, 4, "brush sides");
+  bspworld.numbrushes = length / 0xC;
+  ofs = Offset + LittleLong(bsp_h.lumps[15].fileofs);
+  length = LittleLong(bsp_h.lumps[15].filelen);
+  bspworld.dbrushsides = sub_10007C40(v4, ofs, length, 4, "brush sides");
   if ( !bspworld.dbrushsides )
     return BLERR_CANNOTREADBSPLUMP;
-  bspworld.numbrushsides = v72 >> 2;
+  bspworld.numbrushsides = length >> 2;
   Q2_SwapBSPFile();
   bspworld.dword_100674C0 = 1;
   fclose(v4);
