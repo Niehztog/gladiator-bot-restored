@@ -1193,14 +1193,14 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   float v18; // [esp+0h] [ebp-7Ch]
   /* Real vec3_t locals — see the BotTravel_Walk note. */
   vec3_t final; // [esp+10h] [ebp-6Ch] BYREF (was v19/v20/v21)
-  vec3_t dir;   // [esp+1Ch] [ebp-60h] BYREF (was v22/v23/v24)
   vec3_t reachdir; // [esp+28h] [ebp-54h] BYREF (was v25/v26/v27; renamed from 'reach' to free the param name)
   vec3_t telegoaldir; // [esp+34h] [ebp-48h] BYREF (was v28/v29/v30)
+  vec3_t dir;   // [esp+1Ch] [ebp-60h] BYREF (was v22/v23/v24)
   vec3_t telegoal; // [esp+40h] [ebp-3Ch] BYREF (was v31/v32/v33)
   bot_moveresult_t moveresult; // [esp+4Ch] [ebp-30h] BYREF
   int dist1; // [esp+84h] [ebp+8h]
-  float v36; // [esp+88h] [ebp+Ch]
   float dist; // [esp+88h] [ebp+Ch]
+  float v36; // [esp+88h] [ebp+Ch]
 
   BotClearMoveResult(&moveresult);
   if ( BotOnMover(ms->origin, ms->entitynum, reach) )

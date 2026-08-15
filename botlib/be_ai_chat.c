@@ -1442,9 +1442,9 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
   bot_replychatkey_t *key;
   bot_chatmessage_t *cm;
   char *namestr;
-  bot_fileref_t file_ref;
   char chatmessagestring[152]; // BotLoadChatMessage output buffer
   token_t token;
+  bot_fileref_t file_ref;
 
   v1 = filename;
   if ( !sub_10041F60(filename, &file_ref) )
@@ -2249,8 +2249,8 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
  int num; // rax (was __int64) / edi
  float rnd;
  bot_chatmessage_t *v10; // esi
- bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
  int v14; // [esp+14h] [ebp-FCh]
+ bot_chatmessage_t *bestchatmessage; // [esp+10h] [ebp-100h]
  bot_match_t match; // [esp+20h] [ebp-F0h] BYREF
 
  memset(&match, 0, sizeof(match));
