@@ -71,17 +71,19 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
  * result is uninitialised. */
 BOOL __cdecl AAS_Swimming(vec3_t origin)
 {
-  /* int[3], not float[3]: X/Y are raw 32-bit copies of origin's float bit
-   * patterns.  As float[3] the compiler injects an int->float conversion on
-   * those two stores, garbling the test point so bi_PointContents never sees
-   * water and swimming bots get stuck. */
-  int testorg[3]; // [esp+0h] [ebp-Ch] BYREF
+  /* A real vec3_t written with VectorCopy, then bumped down by 2 — NOT an
+   * int[3] with `*(int *)&origin[i]` bit copies.  Both originals agree and each
+   * optimises the pair its own way: MSVC6 dead-store-eliminates the [2] copy
+   * and folds origin[2] straight into the `fld` (`fld [eax+8]; fsub 2.0`),
+   * gcc 2.7 keeps the copy and re-reads the slot (`mov [esp+0xc],edx; fld 2.0;
+   * fsubr [esp+0xc]`).  The int-cast form reproduces neither.  Plain float
+   * assignment injects no int->float conversion — the earlier warning here was
+   * about casting *into* a float array, which is not what VectorCopy does. */
+  vec3_t testorg; // [esp+0h] [ebp-Ch] BYREF
 
-  testorg[0] = *(int *)&origin[0];
-  testorg[1] = *(int *)&origin[1];
-  testorg[2] = *(int *)&origin[2];
-  *(float *)&testorg[2] -= 2.0f;
-  if ( sub_10003080((float *)testorg) & 0x38 )
+  VectorCopy(origin, testorg);
+  testorg[2] -= 2.0f;
+  if ( sub_10003080(testorg) & 0x38 )
     return 1;
   return 0;
 }

@@ -513,7 +513,6 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
 {
   int v5; // eax
   int presencetype; // edi
-  float v10; // st7
   int maxframes; // ebx
   float v13; // st7
   /* Real vec3_t (see the BotTravel_Walk note); named hordir, as in Q3, to free
@@ -521,7 +520,6 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
   vec3_t cmdmove; // [esp+14h] [ebp-5Ch] BYREF
   aas_clientmove_t move; // [esp+20h] [ebp-50h] BYREF (coalesced with the by-value return temp)
-  float v20; // [esp+78h] [ebp+8h]
 
   v5 = ms->moveflags;
   if ( (v5 & 2) != 0 )
@@ -546,16 +544,20 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
     VectorScale(hordir, speed, (float *)cmdmove);
     if ( (type & 4) != 0 )
     {
+      /* `maxframes` is computed inside EACH arm (Q3's shape), not via IDA's
+       * `v10`/`v20` pair with one division after the join.  This is the only
+       * form both originals agree on: with a `v20 = ms->thinktime` temp the
+       * ELF keeps the divisor on the x87 stack instead of `fdiv [edi+0x2c]`,
+       * and with the division hoisted out of the arms MSVC emits one store of
+       * the CSE temp instead of real's two.  Per-arm gives ELF MATCH and keeps
+       * the PE MATCH. */
       cmdmove[2] = libvar_sv_jumpvel->value;
-      v10 = 3.0f;
-      v20 = ms->thinktime;
+      maxframes = (int)(3.0f / ms->thinktime);
     }
     else
     {
-      v10 = 2.0f;
-      v20 = ms->thinktime;
+      maxframes = (int)(2.0f / ms->thinktime);
     }
-    maxframes = (int)(v10 / v20);
     move = AAS_ClientMovementPrediction(
                       ms->entitynum,
                       ms->origin,
@@ -565,7 +567,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
                       cmdmove,
                       maxframes,
                       maxframes,
-                      v20,
+                      ms->thinktime,
                       61,
                       0);
     if ( move.frames >= maxframes )
@@ -1324,6 +1326,11 @@ bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reach
 }
 // gladiator.dll: 100338A0..10033A07
 // gladi386.so:   00043E58..00043FE7
+/* The VectorCompare test is an if/ELSE with the `return 1` in the else arm
+ * (Q3 be_ai_move.c GrappleState), not IDA's `if (!VectorCompare(...)) return
+ * 1;` guard: real branches `je` INTO the else and keeps the distance test as
+ * the fall-through, so the `return 1` block sits after `return 2`.  ELF MATCH;
+ * PE unaffected. */
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int i; // ebx
@@ -1343,13 +1350,18 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
       continue;
     }
     entinfo = AAS_EntityInfo(i);
-    if ( !VectorCompare(entinfo.origin, entinfo.lastvisorigin) )
+    if ( VectorCompare(entinfo.origin, entinfo.lastvisorigin) )
+    {
+      v5[0] = entinfo.origin[0] - reach->end[0];
+      v5[1] = entinfo.origin[1] - reach->end[1];
+      v5[2] = entinfo.origin[2] - reach->end[2];
+      if ( (float)VectorLength(v5) < 32.0f )
+        return 2;
+    }
+    else
+    {
       return 1;
-    v5[0] = entinfo.origin[0] - reach->end[0];
-    v5[1] = entinfo.origin[1] - reach->end[1];
-    v5[2] = entinfo.origin[2] - reach->end[2];
-    if ( (float)VectorLength(v5) < 32.0f )
-      return 2;
+    }
   }
   return 0;
 }
@@ -1652,11 +1664,22 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
  * AAS reachability chain and dispatches to the right BotTravel_* builder for
  * each of the 14 travel types (Walk / Swim / Jump / Ladder / Grapple /
  * Elevator / RocketJump / WaterJump / …).
+ *
+ * Returns bot_moveresult_t BY VALUE, like every BotTravel_* builder and
+ * BotMoveInGoalArea.  IDA's `v = *BotMoveToGoal(&tmp, …)` rendering (an
+ * explicit retbuf first parameter) is its transcription of MSVC's hidden-
+ * retbuf ABI, not the original source: MSVC6 materialises the temp and the
+ * copy from a plain `v = F(…)` anyway (PE byte-IDENTICAL either way), while
+ * gcc 2.7 passes the destination straight through and emits NEITHER, which is
+ * what the Linux original does.  Converting the seven call sites removed a
+ * whole 48-byte buffer + struct copy per site: AINode_Seek_ActivateEntity and
+ * AINode_Battle_NBG went to byte-exact ELF MATCH, five more AINode_* rows and
+ * BotAttackMove improved sharply, and the PE side did not move at all.  Do
+ * NOT reintroduce the explicit-retbuf form.
  */
-bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
+bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
   int v8; // eax
-  bot_moveresult_t *result; // eax
   int reachnum; // ebp
   int v12; // eax
   int v14; // ecx
@@ -1678,9 +1701,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
   if ( !goal )
   {
     moveresult.failure = 1;
-    result = a1;
-    *a1 = moveresult;
-    return result;
+    return moveresult;
   }
   {
     movestate->moveflags &= 0xFFFFFFF3;
@@ -1697,8 +1718,7 @@ bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *m
       movestate->areanum = v8;
       if ( v8 == goal->areanum )
       {
-        *a1 = BotMoveInGoalArea(movestate, goal);
-        return a1;
+        return BotMoveInGoalArea(movestate, goal);
       }
       reachnum = movestate->lastreachnum;
       if ( reachnum )
@@ -1838,9 +1858,7 @@ LABEL_27:
   movestate->lastorigin[0] = movestate->origin[0];
   *(int *)&movestate->lastorigin[1] = v17;
   *(int *)&movestate->lastorigin[2] = v18;
-  result = a1;
-  *a1 = moveresult;
-  return result;
+  return moveresult;
 }
 // gladiator.dll: 10034AF0..10034B10
 // gladi386.so:   000459F4..00045A33

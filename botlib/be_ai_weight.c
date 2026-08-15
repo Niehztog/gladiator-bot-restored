@@ -778,7 +778,7 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *
     {
       if ( fs2->type != 1 )
         return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
-      fs1->weight = (fs2->weight + fs1->weight) * 0.5f;
+      fs1->weight = (fs1->weight + fs2->weight) * 0.5f;
     }
     fs1 = fs1->next;
     if ( !fs1 )

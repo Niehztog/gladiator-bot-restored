@@ -14,7 +14,7 @@
 /* Declarations for what this TU defines, from the retired
  * botlib_local.h.  At the end of the file so the types above are
  * already in scope. */
-bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
+bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
 
 float __cdecl AngleDiff(float ang1, float ang2);
 void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime);
@@ -32,7 +32,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir);
 int __cdecl BotGetReachabilityToGoal(float *origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, int *avoidreach, float *avoidreachtimes, int *avoidreachtries, bot_goal_t *goal, int travelflags);
 int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type);
 bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal);
-bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags);
+bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags);
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target);
 BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach);
 int __cdecl BotReachabilityArea(int *origin, int client);

@@ -908,10 +908,13 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
   n = (int)(aasworld.numareas * ((float)(rand() & 0x7FFF) * 0.000030518509f));
-  i = 0;
-  if ( aasworld.numareas <= 0 )
-    goto fail;
-  while ( 1 )
+  /* A counted `for` with the success block INSIDE the loop, and the third
+   * clause spelled `++n, ++i` — not `++i, ++n`.  The loop shape is what the
+   * ELF wants (real places the continue block cold at the end and falls
+   * through into the success path); the increment ORDER is what the PE wants
+   * (ref emits `inc ebx` for n before `inc ecx` for i, and the swapped
+   * spelling costs exactly those two bytes).  Both MATCH with this form. */
+  for ( i = 0; i < aasworld.numareas; ++n, ++i )
   {
     if ( n <= 0 )
       n = 1;
@@ -930,18 +933,15 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
         end[2] = end[2] - 300.0f;
         trace = AAS_TraceClientBBox(center, end, 4, -1);
         if ( !trace.startsolid )
-          break;
+        {
+          v8 = AAS_PointAreaNum(trace.endpos);
+          *goalareanum = v8;
+          VectorCopy(trace.endpos, goalorigin);
+          return 1;
+        }
       }
     }
-    ++n;
-    if ( ++i >= aasworld.numareas )
-      goto fail;
   }
-  v8 = AAS_PointAreaNum(trace.endpos);
-  *goalareanum = v8;
-  VectorCopy(trace.endpos, goalorigin);
-  return 1;
-fail:
   return 0;
 }
 // gladiator.dll: 1001A610..1001A63B

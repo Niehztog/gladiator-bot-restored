@@ -792,7 +792,6 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   vec3_t target;          // [esp+0x14] BYREF — predicted move target
   vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to vectoangles
   bot_moveresult_t v15;   // [esp+0x2c] BYREF — copy of BotMoveToGoal result
-  bot_moveresult_t v16;   // [esp+0x5c] BYREF — BotMoveToGoal output buffer
 
   if ( BotIsObserver(bs) )
   {
@@ -823,7 +822,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)&bs->ms);
-  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)ent, v8);
+  v15 = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)ent, v8);
   if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -898,7 +897,6 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
   vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-60h] BYREF
-  bot_moveresult_t v16; // [esp+5Ch] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -950,7 +948,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)&bs->ms);
-  moveresult = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v8);
+  moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v8);
   if ( moveresult.failure )
   {
     BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -1042,7 +1040,6 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
   vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
   bot_moveresult_t moveresult; // [esp+34h] [ebp-60h] BYREF
-  bot_moveresult_t v19; // [esp+64h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1120,7 +1117,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)&bs->ms);
-    moveresult = *BotMoveToGoal(&v19, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
+    moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
     if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -1305,11 +1302,16 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
   int tfl; // esi
-  vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
-  vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
+   * slots in REVERSE declaration order (first-declared gets the highest
+   * address), so the big struct has to come first and the bot_moveresult_t
+   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
+   * size ascending, so this reordering is PE-inert (all three AINode rows
+   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
   bot_goal_t goal; // [esp+28h] [ebp-98h] BYREF
+  vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
+  vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
   bot_moveresult_t moveresult; // [esp+60h] [ebp-60h] BYREF
-  bot_moveresult_t v14; // [esp+90h] [ebp-30h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1386,7 +1388,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     BotUpdateBattleInventory(bs, bs->enemy);
     BotBattleUseItems(bs);
     BotEntityInfo(bs, (_DWORD *)&bs->ms);
-    moveresult = *BotMoveToGoal(&v14, (bot_movestate_t *)&bs->ms, &goal, tfl);
+    moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, &goal, tfl);
     if ( moveresult.failure )
     {
       BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -1433,15 +1435,20 @@ void __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
 int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
 {
 
-  int v2; // edi
   bot_goal_t *goal; // esi (was int — holds BotLongTermGoal pointer)
+  int v2; // edi
   float v4; // st7
   float attack_skill; // captured BFloat dodge probability
-  vec3_t dir; // [esp+14h] [ebp-170h] BYREF
-  vec3_t target; // [esp+20h] [ebp-164h] BYREF
-  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
-  bot_moveresult_t v11; // [esp+5Ch] [ebp-128h] BYREF
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
+   * slots in REVERSE declaration order (first-declared gets the highest
+   * address), so the big struct has to come first and the bot_moveresult_t
+   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
+   * size ascending, so this reordering is PE-inert (all three AINode rows
+   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
   aas_entityinfo_t entinfo; // [esp+8Ch] [ebp-F8h] BYREF
+  vec3_t target; // [esp+20h] [ebp-164h] BYREF
+  vec3_t dir; // [esp+14h] [ebp-170h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1509,7 +1516,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
       {
         BotBattleUseItems(bs);
         BotEntityInfo(bs, (_DWORD *)&bs->ms);
-        moveresult = *BotMoveToGoal(&v11, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
+        moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
         if ( moveresult.failure )
         {
           BotResetAvoidReach((_DWORD *)&bs->ms);
@@ -1568,8 +1575,12 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   int v8;                 // [esp+0x10] — movement flags
   int areanum;            // esi — AAS area number of enemy origin
   bot_goal_t *topgoal;    // esi — top goal pointer
-  bot_moveresult_t v15;   // BotMoveToGoal result copy
-  bot_moveresult_t v16;   // BotMoveToGoal output buffer
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
+   * slots in REVERSE declaration order (first-declared gets the highest
+   * address), so the big struct has to come first and the bot_moveresult_t
+   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
+   * size ascending, so this reordering is PE-inert (all three AINode rows
+   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
   /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
    * assignment): the cast previously forced gcc to materialize the
    * AAS_EntityInfo() return in a hidden temp and then memcpy (rep movs, 124B)
@@ -1577,6 +1588,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
    * confirmed extra buffer/copy real does not have (real reuses the retbuf
    * pointer directly for both calls). Same fix as AINode_Battle_Fight. */
   aas_entityinfo_t entinfo; // [esp+0x4c] BYREF — copy of AAS entity info for enemy
+  bot_moveresult_t v15;   // BotMoveToGoal result copy
 
   if ( BotIsObserver(bs) )
   {
@@ -1642,7 +1654,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   }
   BotBattleUseItems(bs);
   BotEntityInfo(bs, (_DWORD *)&bs->ms);
-  v15 = *BotMoveToGoal(&v16, (bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)topgoal, v8);
+  v15 = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)topgoal, v8);
   if ( v15.failure )
   {
     BotResetAvoidReach((_DWORD *)&bs->ms);

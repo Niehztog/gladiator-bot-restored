@@ -313,7 +313,12 @@ void __cdecl BotDumpSynonymList(int *synlist)
   int  *outer;
   namelist_item_t *item;
   fp = Log_FilePointer();
-  if ( !fp || !synlist )
+  /* Only `fp` is tested here — the walk's own guard covers a NULL list.  IDA's
+   * `if (!fp || !synlist)` makes gcc load the list pointer before the Log call
+   * and then copy it into the walk register; real loads it straight into that
+   * register at the loop guard.  Same in BotDumpRandomStringList.  ELF MATCH;
+   * PE unaffected. */
+  if ( !fp )
     return;
   for ( outer = synlist; outer; outer = (int *)outer[3] )
   {
@@ -554,7 +559,7 @@ void __cdecl BotDumpRandomStringList(int *randomlist)
   bot_randomlist_t *rl;
   bot_randomstring_t *rs;
   fp = Log_FilePointer();
-  if ( !fp || !randomlist )
+  if ( !fp )
     return;
   for ( rl = (bot_randomlist_t *)randomlist; rl; rl = rl->next )
   {
@@ -1579,25 +1584,25 @@ static void BotFreeChatTree(chatlist_t *list);
 /* Pretty-print a loaded chat tree — walks chatlist_t->types and each type's
  * messages, in the same grammar BotLoadInitialChat parses just below.  DEAD in
  * Gladiator. */
+/* Both walks are counted `for` loops, not `while` loops with the advance in
+ * the body: gcc 2.7 only rotates the `for` shape into real's guard + do-while
+ * (`test edi,edi; je exit` at the top), and emits `jmp <bottom test>` for the
+ * `while` spelling.  ELF MATCH; PE unaffected. */
 void __cdecl BotDumpInitialChat(chatlist_t *chat)
 {
   chattype_t *t;
   chatline_t *msg;
   Log_Write("{");
-  t = chat->types;
-  while ( t )
+  for ( t = chat->types; t; t = t->next )
   {
     Log_Write(" type \"%s\"", t->name);
     Log_Write(" {");
     Log_Write("  numchatmessages = %d", t->numlines);
-    msg = t->firstline;
-    while ( msg )
+    for ( msg = t->firstline; msg; msg = msg->next )
     {
       Log_Write("  \"%s\"", msg->string);
-      msg = msg->next;
     }
     Log_Write(" }");
-    t = t->next;
   }
   Log_Write("}");
 }

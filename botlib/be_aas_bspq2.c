@@ -228,7 +228,17 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
       dnode_t *dn = &bspworld.dnodes[node];
       int planenum = dn->planenum;
       plane = &bspworld.dplanes[planenum];
-      d = DotProduct(plane->normal, point) - plane->dist;
+      /* `point` FIRST, not `plane->normal`: with the loop-INVARIANT operand
+       * leading, gcc 2.7 emits `fld point[i]` as its own insn and hoists all
+       * three out of the descent loop (real keeps them on the x87 stack and
+       * pops with three `fstp st(0)` at the exits); with the normal leading,
+       * the `fld` is loop-variant and the hoist never happens.  Fixed this
+       * function, its wrapper sub_10003420 and part of sub_100057A0 to a
+       * byte-exact ELF match; MSVC6 canonicalises either spelling, so the PE
+       * side is unaffected (verified MATCH before and after).  NB this is NOT
+       * the AAS_PointAreaNum dot-product conflict — there the term STAGING
+       * order is what the two compilers disagree about. */
+      d = DotProduct(point, plane->normal) - plane->dist;
       if ( d > 0 )
         node = dn->children[0];
       else

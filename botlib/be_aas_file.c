@@ -46,194 +46,127 @@
 
 // gladiator.dll: 1000BBA0..1000C2B3
 // gladi386.so:   000153B4..00016096
+/* Plain counted `for` loops over two reused counters, exactly as Q3's
+ * AAS_SwapAASData (be_aas_file.c) has them — NOT IDA's `vN = 0; if (n > 0)
+ * { do { … ++vN; } while (vN < n); }` rendering with one throwaway counter
+ * per loop.  Both parts matter on the gcc 2.7 side: the `for` shape gives
+ * real's entry guard (`mov ecx,[i]; cmp count,ecx`, reading the variable)
+ * instead of `cmp count,0`, and collapsing the 19 IDA counters to `i`/`j`
+ * frees the callee-saved register real spends on the strength-reduced byte
+ * offset (ours had spilled it into three separate frame slots).  Together:
+ * OUR-17 / 5706 differing bytes -> byte-exact ELF MATCH, frame 0x2c -> 0x1c.
+ * MSVC6 keeps everything in registers here (its whole frame is one `push
+ * ecx`), so the PE row was MATCH before and after. */
 void AAS_SwapAASData()
 {
-  int v0; // ebp
-  int v3; // esi
-  int v8; // ebx
-  int v10; // edi
-  int v11; // ebp
-  int v14; // ebx
-  int i; // esi
-  int j; // esi
-  int v21; // edi
-  int k; // esi
-  int v31; // ebp
-  int v36; // ebx
-  int v38; // edi
-  int v47; // ebp
-  int v52; // ebx
-  int v56; // edi
-  int v61; // edi
-  int m; // esi
-  int v71; // edi
+  int i, j;
 
-  v0 = 0;
-  if ( aasworld.numbboxes > 0 )
+  for ( i = 0; i < aasworld.numbboxes; ++i )
   {
-    do
+    aasworld.bboxes[i].presencetype = LittleLong(aasworld.bboxes[i].presencetype);
+    aasworld.bboxes[i].flags = LittleLong(aasworld.bboxes[i].flags);
+    for ( j = 0; j < 3; ++j )
     {
-      aasworld.bboxes[v0].presencetype = LittleLong(aasworld.bboxes[v0].presencetype);
-      aasworld.bboxes[v0].flags = LittleLong(aasworld.bboxes[v0].flags);
-      for ( v3 = 0; v3 < 3; ++v3 )
-      {
-        aasworld.bboxes[v0].mins[v3] = (float)LittleLong((int)aasworld.bboxes[v0].mins[v3]);
-        aasworld.bboxes[v0].maxs[v3] = (float)LittleLong((int)aasworld.bboxes[v0].maxs[v3]);
-      }
-      ++v0;
+      aasworld.bboxes[i].mins[j] = (float)LittleLong((int)aasworld.bboxes[i].mins[j]);
+      aasworld.bboxes[i].maxs[j] = (float)LittleLong((int)aasworld.bboxes[i].maxs[j]);
     }
-    while ( v0 < aasworld.numbboxes );
   }
-  v8 = 0;
-  if ( aasworld.numvertexes > 0 )
+  for ( i = 0; i < aasworld.numvertexes; ++i )
   {
-    do
+    for ( j = 0; j < 3; ++j )
     {
-      for ( v10 = 0; v10 < 3; ++v10 )
-      {
-        aasworld.vertexes[v8][v10] = LittleFloat(aasworld.vertexes[v8][v10]);
-      }
-      ++v8;
+      aasworld.vertexes[i][j] = LittleFloat(aasworld.vertexes[i][j]);
     }
-    while ( v8 < aasworld.numvertexes );
   }
-  v11 = 0;
-  if ( aasworld.numplanes > 0 )
+  for ( i = 0; i < aasworld.numplanes; ++i )
   {
-    do
+    for ( j = 0; j < 3; ++j )
     {
-      for ( v14 = 0; v14 < 3; ++v14 )
-      {
-        aasworld.planes[v11].normal[v14] = LittleFloat(aasworld.planes[v11].normal[v14]);
-      }
-      aasworld.planes[v11].dist = LittleFloat(aasworld.planes[v11].dist);
-      aasworld.planes[v11].type = LittleLong(aasworld.planes[v11].type);
-      ++v11;
+      aasworld.planes[i].normal[j] = LittleFloat(aasworld.planes[i].normal[j]);
     }
-    while ( v11 < aasworld.numplanes );
+    aasworld.planes[i].dist = LittleFloat(aasworld.planes[i].dist);
+    aasworld.planes[i].type = LittleLong(aasworld.planes[i].type);
   }
   for ( i = 0; i < aasworld.numedges; ++i )
   {
     aasworld.edges[i].v[0] = LittleLong(aasworld.edges[i].v[0]);
     aasworld.edges[i].v[1] = LittleLong(aasworld.edges[i].v[1]);
   }
-  for ( j = 0; j < aasworld.edgeindexsize; ++j )
+  for ( i = 0; i < aasworld.edgeindexsize; ++i )
   {
-    aasworld.edgeindex[j] = LittleLong(aasworld.edgeindex[j]);
+    aasworld.edgeindex[i] = LittleLong(aasworld.edgeindex[i]);
   }
-  v21 = 0;
-  if ( aasworld.numfaces > 0 )
+  for ( i = 0; i < aasworld.numfaces; ++i )
   {
-    do
+    aasworld.faces[i].planenum = LittleLong(aasworld.faces[i].planenum);
+    aasworld.faces[i].faceflags = LittleLong(aasworld.faces[i].faceflags);
+    aasworld.faces[i].numedges = LittleLong(aasworld.faces[i].numedges);
+    aasworld.faces[i].firstedge = LittleLong(aasworld.faces[i].firstedge);
+    aasworld.faces[i].frontarea = LittleLong(aasworld.faces[i].frontarea);
+    aasworld.faces[i].backarea = LittleLong(aasworld.faces[i].backarea);
+  }
+  for ( i = 0; i < aasworld.faceindexsize; ++i )
+  {
+    aasworld.faceindex[i] = LittleLong(aasworld.faceindex[i]);
+  }
+  for ( i = 0; i < aasworld.numareas; ++i )
+  {
+    aasworld.areas[i].areanum = LittleLong(aasworld.areas[i].areanum);
+    aasworld.areas[i].numfaces = LittleLong(aasworld.areas[i].numfaces);
+    aasworld.areas[i].firstface = LittleLong(aasworld.areas[i].firstface);
+    for ( j = 0; j < 3; ++j )
     {
-      aasworld.faces[v21].planenum = LittleLong(aasworld.faces[v21].planenum);
-      aasworld.faces[v21].faceflags = LittleLong(aasworld.faces[v21].faceflags);
-      aasworld.faces[v21].numedges = LittleLong(aasworld.faces[v21].numedges);
-      aasworld.faces[v21].firstedge = LittleLong(aasworld.faces[v21].firstedge);
-      aasworld.faces[v21].frontarea = LittleLong(aasworld.faces[v21].frontarea);
-      aasworld.faces[v21].backarea = LittleLong(aasworld.faces[v21].backarea);
-      ++v21;
+      aasworld.areas[i].mins[j] = LittleFloat(aasworld.areas[i].mins[j]);
+      aasworld.areas[i].maxs[j] = LittleFloat(aasworld.areas[i].maxs[j]);
+      aasworld.areas[i].center[j] = LittleFloat(aasworld.areas[i].center[j]);
     }
-    while ( v21 < aasworld.numfaces );
   }
-  for ( k = 0; k < aasworld.faceindexsize; ++k )
+  for ( i = 0; i < aasworld.numareasettings; ++i )
   {
-    aasworld.faceindex[k] = LittleLong(aasworld.faceindex[k]);
+    aasworld.areasettings[i].contents = LittleLong(aasworld.areasettings[i].contents);
+    aasworld.areasettings[i].areaflags = LittleLong(aasworld.areasettings[i].areaflags);
+    aasworld.areasettings[i].presencetype = LittleLong(aasworld.areasettings[i].presencetype);
+    aasworld.areasettings[i].cluster = LittleLong(aasworld.areasettings[i].cluster);
+    aasworld.areasettings[i].clusterareanum = LittleLong(aasworld.areasettings[i].clusterareanum);
+    aasworld.areasettings[i].numreachableareas = LittleLong(aasworld.areasettings[i].numreachableareas);
+    aasworld.areasettings[i].firstreachablearea = LittleLong(aasworld.areasettings[i].firstreachablearea);
   }
-  v31 = 0;
-  if ( aasworld.numareas > 0 )
+  for ( i = 0; i < aasworld.reachabilitysize; ++i )
   {
-    do
+    aasworld.reachability[i].areanum = LittleLong(aasworld.reachability[i].areanum);
+    aasworld.reachability[i].facenum = LittleLong(aasworld.reachability[i].facenum);
+    aasworld.reachability[i].edgenum = LittleLong(aasworld.reachability[i].edgenum);
+    for ( j = 0; j < 3; ++j )
     {
-      aasworld.areas[v31].areanum = LittleLong(aasworld.areas[v31].areanum);
-      aasworld.areas[v31].numfaces = LittleLong(aasworld.areas[v31].numfaces);
-      aasworld.areas[v31].firstface = LittleLong(aasworld.areas[v31].firstface);
-      for ( v36 = 0; v36 < 3; ++v36 )
-      {
-        aasworld.areas[v31].mins[v36] = LittleFloat(aasworld.areas[v31].mins[v36]);
-        aasworld.areas[v31].maxs[v36] = LittleFloat(aasworld.areas[v31].maxs[v36]);
-        aasworld.areas[v31].center[v36] = LittleFloat(aasworld.areas[v31].center[v36]);
-      }
-      ++v31;
+      aasworld.reachability[i].start[j] = LittleFloat(aasworld.reachability[i].start[j]);
+      aasworld.reachability[i].end[j] = LittleFloat(aasworld.reachability[i].end[j]);
     }
-    while ( v31 < aasworld.numareas );
+    aasworld.reachability[i].traveltype = LittleLong(aasworld.reachability[i].traveltype);
+    aasworld.reachability[i].traveltime = LittleShort(aasworld.reachability[i].traveltime);
   }
-  v38 = 0;
-  if ( aasworld.numareasettings > 0 )
+  for ( i = 0; i < aasworld.numnodes; ++i )
   {
-    do
-    {
-      aasworld.areasettings[v38].contents = LittleLong(aasworld.areasettings[v38].contents);
-      aasworld.areasettings[v38].areaflags = LittleLong(aasworld.areasettings[v38].areaflags);
-      aasworld.areasettings[v38].presencetype = LittleLong(aasworld.areasettings[v38].presencetype);
-      aasworld.areasettings[v38].cluster = LittleLong(aasworld.areasettings[v38].cluster);
-      aasworld.areasettings[v38].clusterareanum = LittleLong(aasworld.areasettings[v38].clusterareanum);
-      aasworld.areasettings[v38].numreachableareas = LittleLong(aasworld.areasettings[v38].numreachableareas);
-      aasworld.areasettings[v38].firstreachablearea = LittleLong(aasworld.areasettings[v38].firstreachablearea);
-      ++v38;
-    }
-    while ( v38 < aasworld.numareasettings );
+    aasworld.nodes[i].planenum = LittleLong(aasworld.nodes[i].planenum);
+    aasworld.nodes[i].children[0] = LittleLong(aasworld.nodes[i].children[0]);
+    aasworld.nodes[i].children[1] = LittleLong(aasworld.nodes[i].children[1]);
   }
-  v47 = 0;
-  if ( aasworld.reachabilitysize > 0 )
+  for ( i = 0; i < aasworld.numportals; ++i )
   {
-    do
-    {
-      aasworld.reachability[v47].areanum = LittleLong(aasworld.reachability[v47].areanum);
-      aasworld.reachability[v47].facenum = LittleLong(aasworld.reachability[v47].facenum);
-      aasworld.reachability[v47].edgenum = LittleLong(aasworld.reachability[v47].edgenum);
-      for ( v52 = 0; v52 < 3; ++v52 )
-      {
-        aasworld.reachability[v47].start[v52] = LittleFloat(aasworld.reachability[v47].start[v52]);
-        aasworld.reachability[v47].end[v52] = LittleFloat(aasworld.reachability[v47].end[v52]);
-      }
-      aasworld.reachability[v47].traveltype = LittleLong(aasworld.reachability[v47].traveltype);
-      aasworld.reachability[v47].traveltime = LittleShort(aasworld.reachability[v47].traveltime);
-      ++v47;
-    }
-    while ( v47 < aasworld.reachabilitysize );
+    aasworld.portals[i].areanum = LittleLong(aasworld.portals[i].areanum);
+    aasworld.portals[i].frontcluster = LittleLong(aasworld.portals[i].frontcluster);
+    aasworld.portals[i].backcluster = LittleLong(aasworld.portals[i].backcluster);
+    aasworld.portals[i].clusterareanum[0] = LittleLong(aasworld.portals[i].clusterareanum[0]);
+    aasworld.portals[i].clusterareanum[1] = LittleLong(aasworld.portals[i].clusterareanum[1]);
   }
-  v56 = 0;
-  if ( aasworld.numnodes > 0 )
+  for ( i = 0; i < aasworld.portalindexsize; ++i )
   {
-    do
-    {
-      aasworld.nodes[v56].planenum = LittleLong(aasworld.nodes[v56].planenum);
-      aasworld.nodes[v56].children[0] = LittleLong(aasworld.nodes[v56].children[0]);
-      aasworld.nodes[v56].children[1] = LittleLong(aasworld.nodes[v56].children[1]);
-      ++v56;
-    }
-    while ( v56 < aasworld.numnodes );
+    aasworld.portalindex[i] = LittleLong(aasworld.portalindex[i]);
   }
-  v61 = 0;
-  if ( aasworld.numportals > 0 )
+  for ( i = 0; i < aasworld.numclusters; ++i )
   {
-    do
-    {
-      aasworld.portals[v61].areanum = LittleLong(aasworld.portals[v61].areanum);
-      aasworld.portals[v61].frontcluster = LittleLong(aasworld.portals[v61].frontcluster);
-      aasworld.portals[v61].backcluster = LittleLong(aasworld.portals[v61].backcluster);
-      aasworld.portals[v61].clusterareanum[0] = LittleLong(aasworld.portals[v61].clusterareanum[0]);
-      aasworld.portals[v61].clusterareanum[1] = LittleLong(aasworld.portals[v61].clusterareanum[1]);
-      ++v61;
-    }
-    while ( v61 < aasworld.numportals );
-  }
-  for ( m = 0; m < aasworld.portalindexsize; ++m )
-  {
-    aasworld.portalindex[m] = LittleLong(aasworld.portalindex[m]);
-  }
-  v71 = 0;
-  if ( aasworld.numclusters > 0 )
-  {
-    do
-    {
-      aasworld.clusters[v71].numareas = LittleLong(aasworld.clusters[v71].numareas);
-      aasworld.clusters[v71].numreachabilityareas = LittleLong(aasworld.clusters[v71].numreachabilityareas);
-      aasworld.clusters[v71].firstportal = LittleLong(aasworld.clusters[v71].firstportal);
-      ++v71;
-    }
-    while ( v71 < aasworld.numclusters );
+    aasworld.clusters[i].numareas = LittleLong(aasworld.clusters[i].numareas);
+    aasworld.clusters[i].numreachabilityareas = LittleLong(aasworld.clusters[i].numreachabilityareas);
+    aasworld.clusters[i].firstportal = LittleLong(aasworld.clusters[i].firstportal);
   }
 }
 // gladiator.dll: 1000C490..1000C60F

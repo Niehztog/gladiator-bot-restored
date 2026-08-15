@@ -63,7 +63,6 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   ent->ltime = AAS_Time();
   /* remember the previous origin before it is overwritten below */
   VectorCopy(ent->origin, ent->lastvisorigin);
-  relink = 0;
   VectorCopy(state->old_origin, ent->old_origin);
   ent->solid = state->solid;
   ent->modelindex = state->modelindex;
@@ -75,6 +74,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   ent->renderfx = state->renderfx;
   ent->number = entnum;
   ent->valid = 1;
+  relink = 0;
   if ( ent->solid == 3 )                 /* SOLID_BSP */
   {
     if ( !VectorCompare(state->angles, ent->angles) )
@@ -443,7 +443,6 @@ int InFieldOfVision(float *viewangles, float fov, float *angles)
 // gladi386.so:   00014E6C..000152B1
 int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fov, int a5)
 {
-  int v5;
   int contents_mask;             // contentmask
   int eyecontents;     // PointContents(eye)
   int fromcontents;    // PointContents(viewer)
@@ -458,28 +457,32 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   vec3_t entangles;    // [ebp-108h] BYREF — was v32[3]
   bsp_trace_t trace;       // [ebp-FCh] BYREF
 
-  v5 = a5;
+  /* Q3's be_aas_entity.c order throughout: VectorAdd(mins, maxs, middle) —
+   * mins first in all three components, IDA had the first two the other way
+   * round — and VectorAdd(origin, middle, middle) below, origin first.  Both
+   * are real gcc levers (the leading operand is the one that gets the `fld`).
+   * `a5` is also used directly rather than through IDA's `v5 = a5` alias,
+   * which cost a store/reload pair through a frame slot. */
   ent = &aasworld.entities[a5].i;
-  middle[0] = ent->maxs[0] + ent->mins[0];
-  middle[1] = ent->maxs[1] + ent->mins[1];
+  middle[0] = ent->mins[0] + ent->maxs[0];
+  middle[1] = ent->mins[1] + ent->maxs[1];
   middle[2] = ent->mins[2] + ent->maxs[2];
   VectorScale((float *)middle, 0.5, (float *)middle);
-  middle[0] += ent->origin[0];
-  middle[1] += ent->origin[1];
-  middle[2] += ent->origin[2];
+  middle[0] = ent->origin[0] + middle[0];
+  middle[1] = ent->origin[1] + middle[1];
+  middle[2] = ent->origin[2] + middle[2];
   VectorSubtract(middle, ((float *)eye), dir);
   vectoangles(dir, (float *)entangles);
   if ( !InFieldOfVision(viewangles, fov, entangles) )
     return 0;
   for ( i = 0; i < 3; i++ )
   {
-    v5 = a5;
     if ( AAS_inPVS(eye, middle) )
     {
     /* default: trace from viewer (a2) to entity middle */
     contents_mask = 0x2030003;        /* CONTENTS_SOLID | CONTENTS_PLAYERCLIP (Q2 trace mask) */
     passent = viewer;
-    hitent = v5;
+    hitent = a5;
     VectorCopy(((float *)eye), start);
     VectorCopy(middle, end);
     /* Both PointContents() calls are required: without them eyecontents and
@@ -493,7 +496,7 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     {
       if ( (contents_mask & 0x38) == 0 )
       {
-        passent = v5;
+        passent = a5;
         hitent = viewer;
         /* swap: trace from entity middle to viewer instead */
         VectorCopy(middle, start);

@@ -1021,7 +1021,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
     goal.maxs[1] = 8.0f;
     goal.maxs[2] = 8.0f;
     BotEntityInfo(bs, (_DWORD *)&bs->ms);
-    return *BotMoveToGoal(&moveresult, (bot_movestate_t *)&bs->ms, &goal, a3);
+    return BotMoveToGoal((bot_movestate_t *)&bs->ms, &goal, a3);
   }
   memset(&moveresult, 0, sizeof(moveresult));
   v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;

@@ -387,7 +387,9 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
   }
   VectorMA(end, 64.0, dir, testpoint);
   areanum = AAS_PointAreaNum(testpoint);
-  return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(areanum);
+  if ( areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(areanum) )
+    return 1;
+  return 0;
 }
 // gladiator.dll: 10011860..10011A51
 // gladi386.so:   0001E4B4..0001E778
