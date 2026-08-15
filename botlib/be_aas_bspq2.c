@@ -1489,8 +1489,8 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
   dbrush_t *v10; // [esp+14h] [ebp-78h]
-  float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v12[3]; // [esp+24h] [ebp-68h] BYREF
+  float v11[3]; // [esp+18h] [ebp-74h] BYREF
   float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
   /* one bsp_entdata_t local */
   bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF

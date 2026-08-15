@@ -363,8 +363,8 @@ int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
   signed int v10; // ebx
   char *v11; // esi
   void **v12; // ebx
-  int Buffer[3]; // [esp+14h] [ebp-9Ch] BYREF
   char v16[144]; // [esp+20h] [ebp-90h] BYREF
+  int Buffer[3]; // [esp+14h] [ebp-9Ch] BYREF
 
   v3 = fopen(FileName, "rb");
   v4 = v3;
@@ -426,7 +426,6 @@ LABEL_11:
  * the bot_fileref_t out-param. */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
 {
-  char *v4; // ebp
   int v5; // esi
   int v7; // [esp+10h] [ebp-244h]
   /* `subdirs` MUST be one [3][144] array, not [2][144] plus a named third buffer:
@@ -435,6 +434,7 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
    * dead-eliminated by /O2 — the array's escaping address is what keeps it live.
    * Each buffer's init is byte[0] = '\0' plus memset of the remaining 143, which
    * is just a 144-byte zero-fill. */
+  char *v4; // ebp
   char FileName[144]; // [esp+14h] [ebp-240h] BYREF
   char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
 

@@ -327,11 +327,11 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
    * AAS_PointAreaNum / AAS_TraceClientBBox as a vec3 pointer.  Split into
    * separate locals, y/z read as garbage and every level item ends up with
    * areanum 0, so BotChooseLTGItem can never pick one. */
-  vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   int j; // [esp+1Ch] [ebp-80h]
   int i; // [esp+20h] [ebp-7Ch]
-  vec3_t end; // [esp+30h] [ebp-6Ch] BYREF
   vec3_t absmins; // [esp+3Ch] [ebp-60h] BYREF
+  vec3_t end; // [esp+30h] [ebp-6Ch] BYREF
+  vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
   vec3_t absmaxs; // [esp+48h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+54h] [ebp-48h] (was int v29[9] + char v30[36] hidden return buffer)
 
@@ -450,12 +450,12 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   int passent;             // passent
   int hitent;             // hitent
   aas_entityinfo_t *ent; // entity info (was float *v24 byte-arith)
-  vec3_t middle;       // [ebp-148h] BYREF — was v18+v19+v20 split locals
-  vec3_t end;          // [ebp-12Ch] BYREF — was v25+v26+v27 split locals
-  vec3_t start;        // [ebp-120h] BYREF — was v28+v29+v30 split locals
+  bsp_trace_t trace;       // [ebp-FCh] BYREF
   vec3_t dir;          // [ebp-114h] BYREF — was v31[3]
   vec3_t entangles;    // [ebp-108h] BYREF — was v32[3]
-  bsp_trace_t trace;       // [ebp-FCh] BYREF
+  vec3_t start;        // [ebp-120h] BYREF — was v28+v29+v30 split locals
+  vec3_t end;          // [ebp-12Ch] BYREF — was v25+v26+v27 split locals
+  vec3_t middle;       // [ebp-148h] BYREF — was v18+v19+v20 split locals
 
   /* Q3's be_aas_entity.c order throughout: VectorAdd(mins, maxs, middle) —
    * mins first in all three components, IDA had the first two the other way

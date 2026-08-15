@@ -1249,11 +1249,11 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
   float v6; // st7
   float v8; // [esp+10h] [ebp-168h]
   float v9; // [esp+14h] [ebp-164h]
+  BOOL healthdecrease; // [esp+30h] [ebp-148h]
   int v10; // [esp+18h] [ebp-160h]
   vec3_t dir; // [ebp-15Ch] BYREF — one vec3; all three components are stored
   int v14; // [esp+28h] [ebp-150h]
   int v15; // [esp+2Ch] [ebp-14Ch]
-  BOOL healthdecrease; // [esp+30h] [ebp-148h]
   vec3_t angles; // [esp+34h] [ebp-144h] BYREF
   aas_entityinfo_t entinfo; // [esp+40h] [ebp-138h] BYREF
   int v19[16]; // [esp+BCh] [ebp-BCh] BYREF

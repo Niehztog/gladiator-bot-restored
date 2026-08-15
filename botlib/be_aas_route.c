@@ -145,13 +145,13 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
  * shape, while the allocation still scales with pointer width. */
 void AAS_CalculateAreaTravelTimes(void)
 {
-  int i, l, n, size;
   int *numreachptr;
   char *ptr;
+  int i, l, n, size;
   vec3_t end;
-  aas_reversedreach_t *revreach;
   aas_reversedlink_t *revlink;
   aas_reachability_t *reach;
+  aas_reversedreach_t *revreach;
   aas_areasettings_t *settings;
 
   Sys_MilliSeconds();
@@ -408,13 +408,13 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
   aas_routingupdate_t *upd;
   aas_reversedlink_t  *link;             /* v22 */
   int                  linkidx;          /* v23 / 2 */
+  unsigned short       newtt;            /* v17 */
   int                  linknum;
-  aas_reachability_t  *reach;
   int                  destcluster;      /* v3, v16 */
   int                  destclusterareanum;
   int                  srcareanum;       /* v14 */
   int                  contents, presencemask;
-  unsigned short       newtt;            /* v17 */
+  aas_reachability_t  *reach;
   unsigned short       oldtt;            /* v19 */
 
   ++numareacacheupdates;

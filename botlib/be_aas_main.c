@@ -492,9 +492,9 @@ int BotLibLoadMap(char *Source)
   int v5; // esi  (holds sub_1000E430 result — Windows-only aasN.zip fallback)
 #endif
   int errnum; // esi
+  char aasfile[144]; // [esp+134h] [ebp-90h] BYREF
   bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
-  char aasfile[144]; // [esp+134h] [ebp-90h] BYREF
 
   strcpy(aasworld.mapname, Source);
   AAS_ResetEntityLinks();
