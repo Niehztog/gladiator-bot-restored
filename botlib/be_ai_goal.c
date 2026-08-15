@@ -748,15 +748,15 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   int weightnum; // eax
   float weight; // st7
   float v15; // st7
+  itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
   int v16; // eax
   float bestweight; // [esp+Ch] [ebp-4Ch]
-  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
-  itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
+  float avoidtime; // [esp+68h] [ebp+10h]
   int areanum; // [esp+18h] [ebp-40h]
   int t; // [esp+1Ch] [ebp-3Ch]
   bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
   int ltg_time; // [esp+60h] [ebp+8h]
-  float avoidtime; // [esp+68h] [ebp+10h]
+  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
   /* 64-bit fix: see BotChooseLTGItem — itemweightconfig/itemweightindex live in sideband. */
 #if BOTLIB_NEED_SIDEBAND
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));

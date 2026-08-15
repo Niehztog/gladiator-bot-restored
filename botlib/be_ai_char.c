@@ -91,15 +91,15 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
   bot_character_t *ch; // ebx
   int index;
   int indent;
-  source_t *source; // [esp+10h] [ebp-5E4h]
-  int numchars; // [esp+14h] [ebp-5E0h]
-  int stringbytes; // [esp+18h] [ebp-5DCh]
-  int pass; // [esp+1Ch] [ebp-5D8h]
-  int foundcharacter; // [esp+20h] [ebp-5D4h]
-  char *strptr; // [esp+24h] [ebp-5D0h]
-  bot_fileref_t file_ref;
-  token_t token;
   char Destination[MAX_PATH];
+  source_t *source; // [esp+10h] [ebp-5E4h]
+  int stringbytes; // [esp+18h] [ebp-5DCh]
+  int numchars; // [esp+14h] [ebp-5E0h]
+  int foundcharacter; // [esp+20h] [ebp-5D4h]
+  int pass; // [esp+1Ch] [ebp-5D8h]
+  char *strptr; // [esp+24h] [ebp-5D0h]
+  token_t token;
+  bot_fileref_t file_ref;
 
   ch = 0;
   strncpy(Destination, charfile, MAX_PATH);

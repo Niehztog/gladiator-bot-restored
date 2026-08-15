@@ -378,7 +378,6 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   char gap_pc; // al
   vec3_t org;            // BYREF
   vec3_t end;            // BYREF
-  float feet[3]; // BYREF
   vec3_t start;          // BYREF
   float stepend[3]; // BYREF
   vec3_t lastorg; // BYREF (Q3 be_aas_move.c's lastorg)
@@ -388,6 +387,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
                              // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
                              // so only its z component is ever read.
   vec3_t left_test_vel;  // BYREF
+  float feet[3]; // BYREF
   vec3_t up = {0, 0, 1};
   aas_plane_t *plane; // ebp
   aas_plane_t *plane2; // eax

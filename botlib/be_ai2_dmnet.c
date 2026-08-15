@@ -239,15 +239,15 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   bot_waypoint_t *v42; // eax
   float v43; // st7
   float *v44; // eax
-  int v45; // [esp+18h] [ebp-230h]
-  float v46; // [esp+18h] [ebp-230h]
-  float v47; // [esp+18h] [ebp-230h]
-  vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/vectoangles
   float croucher; // [esp+28h] [ebp-220h]
+  int v45; // [esp+18h] [ebp-230h]
+  float v47; // [esp+18h] [ebp-230h]
+  float v46; // [esp+18h] [ebp-230h]
   vec3_t target; // [esp+2Ch] [ebp-21Ch] BYREF — BotRoamGoal output position
-  aas_entityinfo_t entinfo; // [esp+38h] [ebp-210h] BYREF
+  vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/vectoangles
   char netname[128]; // [esp+B4h] [ebp-194h] BYREF
   char buf[152]; // [esp+134h] [ebp-114h] BYREF
+  aas_entityinfo_t entinfo; // [esp+38h] [ebp-210h] BYREF
 
   if ( bs->ltgtype != 1 || retreat )
   {

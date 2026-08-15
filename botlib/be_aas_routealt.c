@@ -122,8 +122,8 @@ int __cdecl AAS_AlternativeRouteGoals(
   int   nummidrangeareas;
   int   numaltroutegoals;
   int   best_area;
-  vec3_t centroid;
   vec3_t diff;
+  vec3_t centroid;
   float best_dist;
   double threshold;
   float fcount;

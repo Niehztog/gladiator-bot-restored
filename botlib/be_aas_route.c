@@ -597,14 +597,14 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
 // gladi386.so:   0002781C..00027B15
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 {
+  aas_routingcache_t *entry;
+  int i;
+  int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
+  aas_cluster_t *clust;
+  unsigned short t, v17, v18;
   /* Walks aasworld.portalupdate through the typed aas_routingupdate_t FIFO
    * rather than the original's 40-byte byte arithmetic. */
   aas_routingupdate_t *cur, *head, *tail, *upd;
-  aas_routingcache_t *entry;
-  int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
-  unsigned short t, v17, v18;
-  aas_cluster_t *clust;
-  int i;
 
   ++numportalcacheupdates;
   memset((void *)aasworld.portalupdate, 0,
@@ -736,15 +736,15 @@ __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanu
   aas_cluster_t *cluster; // ecx
   aas_portal_t *v19; // eax
   int portalnum; // esi
+  unsigned __int16 besttime; // [esp+20h] [ebp+8h]
   aas_routingcache_t *v21; // 64-bit fix (was int)
   int v22; // ecx
   int v23; // edx
   __int16 t; // cx
   unsigned __int16 v25; // si
-  aas_cluster_t *v26; // [esp+10h] [ebp-8h]
   int v27; // [esp+14h] [ebp-4h]
   aas_routingcache_t *v28; // 64-bit fix (was int)
-  unsigned __int16 besttime; // [esp+20h] [ebp+8h]
+  aas_cluster_t *v26; // [esp+10h] [ebp-8h]
 
   if ( !aasworld.initialized )
     return 0;
