@@ -256,19 +256,16 @@ void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate)
 //----- (10035340) --------------------------------------------------------
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename)
 {
-  weightconfig_t *v2; // eax
-
   BotFreeWeaponWeights(weaponstate);
-  v2 = ReadWeightConfig((char *)filename);
-  weaponstate->weightconfig = v2;
-  if ( !v2 )
+  weaponstate->weightconfig = ReadWeightConfig((char *)filename);
+  if ( !weaponstate->weightconfig )
   {
     botimport.Print(PRT_FATAL, "couldn't load weapon config %s\n", filename);
     return BLERR_CANNOTLOADWEAPONWEIGHTS;
   }
   if ( !weaponconfig )
     return BLERR_CANNOTLOADWEAPONCONFIG;
-  weaponstate->itemweights = WeaponWeightIndex(v2, weaponconfig);
+  weaponstate->itemweights = WeaponWeightIndex(weaponstate->weightconfig, weaponconfig);
   return 0;
 }
 //----- (100353C0) --------------------------------------------------------

@@ -130,7 +130,6 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   int v7; // edi
   bsp_pointlight_t *v8; // esi
   float v9; // st7
-  int i; // [esp+Ch] [ebp-10h]
   vec3_t v12; // [esp+10h] [ebp-Ch] BYREF
   /* Dedicated int locals for sub_10007150's RGB outputs, since the parameter
    * slots are intptr_t here.  32-bit keeps the original's no-init form; 64-bit
@@ -148,17 +147,16 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   else
     v7 = 255;
   v8 = aasworld.newestcache;
-  for ( i = v7; v8; v8 = v8->next )
+  for ( ; v8; v8 = v8->next )
   {
     VectorSubtract(v6, v8->origin, v12);
     v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0f )
     {
-      v7 = (__int64)((float)i + v9);
-      i = v7;
-      rs  = (__int64)((float)rs  + v8->color[0]);
-      gs  = (__int64)((float)gs  + v8->color[1]);
-      bs_ = (__int64)((float)bs_ + v8->color[2]);
+      v7 = (int)((float)v7 + v9);
+      rs  = (int)((float)rs  + v8->color[0]);
+      gs  = (int)((float)gs  + v8->color[1]);
+      bs_ = (int)((float)bs_ + v8->color[2]);
     }
   }
   if ( red )
@@ -175,12 +173,10 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
  * only the average-RGB return value is wanted. */
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue)
 {
-  /* int[3]: raw bit copies for X/Y, float bit pattern stored at [2]. */
-  int v7[3]; // [esp+0h] [ebp-18h] BYREF
+  vec3_t v7; // [esp+0h] [ebp-18h] BYREF
   char v8[12]; // [esp+Ch] [ebp-Ch] BYREF
 
-  v7[0] = *(_DWORD *)&origin[0];
-  v7[1] = *(_DWORD *)&origin[1];
-  *(float *)&v7[2] = origin[2] - 4096.0f;
+  VectorCopy(origin, v7);
+  v7[2] = origin[2] - 4096.0f;
   return AAS_BSPTraceLight((intptr_t)origin, (intptr_t)v7, (intptr_t)v8, red, green, blue);
 }

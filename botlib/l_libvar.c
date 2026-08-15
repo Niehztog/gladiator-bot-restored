@@ -145,14 +145,13 @@ float __cdecl LibVarGetValue(const char *var_name)
 libvar_t *__cdecl LibVar(char *var_name, char *value)
 {
   libvar_t *v = LibVarGet(var_name);
-  if ( !v )
-  {
-    v = LibVarAlloc(var_name);
-    v->string = (char *)GetMemory(strlen(value) + 1);
-    strcpy(v->string, value);
-    v->value = LibVarStringValue(v->string);
-    v->modified = 1;
-  }
+  if ( v )
+    return v;
+  v = LibVarAlloc(var_name);
+  v->string = (char *)GetMemory(strlen(value) + 1);
+  strcpy(v->string, value);
+  v->value = LibVarStringValue(v->string);
+  v->modified = 1;
   return v;
 }
 

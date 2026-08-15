@@ -268,9 +268,13 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
   aas_area_t *area;
   aas_face_t *face;
   aas_edge_t *edge;
+  vec3_t v9; /* write-only in original disasm — no later read; left in place */
 
-  numareaedges = 0;
   color = 0;
+  v9[0] = 0.0f;
+  v9[1] = 0.0f;
+  v9[2] = 1.0f;
+  numareaedges = 0;
   if ( areanum < 0 || areanum >= aasworld.numareas )
   {
     botimport.Print(PRT_ERROR, "area %d out of range [0, %d]\n", areanum, aasworld.numareas);
@@ -452,9 +456,9 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     dir[2] = 0.0f;
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
-    v12[2] = zvel;
     v12[0] = 0;
     v12[1] = 0;
+    v12[2] = zvel;
     AAS_ClientMovementPrediction(-1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }

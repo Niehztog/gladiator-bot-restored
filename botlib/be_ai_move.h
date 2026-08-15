@@ -15,8 +15,6 @@
  * botlib_local.h.  At the end of the file so the types above are
  * already in scope. */
 bot_moveresult_t *__cdecl BotMoveToGoal(bot_moveresult_t *a1, bot_movestate_t *movestate, bot_goal_t *goal, int travelflags); /* 0x100343A0: build bot_moveresult_t for current goal */
-extern int dword_1006295C;
-extern libvar_t *libvar_laserhook;
 
 float __cdecl AngleDiff(float ang1, float ang2);
 void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime);

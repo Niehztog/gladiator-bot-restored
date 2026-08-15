@@ -119,6 +119,7 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
                 aasworld.areasettings[areanum].cluster, areanum);
       return 0;
     }
+    return 1;
   }
   else
   {

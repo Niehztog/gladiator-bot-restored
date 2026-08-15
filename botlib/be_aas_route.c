@@ -871,7 +871,6 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin)
 {
   int n; // ebx
-  int v5; // eax
   int v8; // eax
   unsigned __int16 t; // travel time, tested as unsigned -> jbe (was &&-folded -> je)
   int i; // [esp+24h] [ebp-64h]
@@ -879,8 +878,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  n = (__int64)(aasworld.numareas * ((float)(rand() & 0x7FFF) * 0.000030518509f));
-  v5 = aasworld.numareas;
+  n = (int)(aasworld.numareas * ((float)(rand() & 0x7FFF) * 0.000030518509f));
   i = 0;
   if ( aasworld.numareas <= 0 )
     goto fail;
@@ -888,7 +886,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   {
     if ( n <= 0 )
       n = 1;
-    if ( n >= v5 )
+    if ( n >= aasworld.numareas )
       n = 1;
     if ( AAS_AreaReachability(n) )
     {
@@ -906,7 +904,6 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
           break;
       }
     }
-    v5 = aasworld.numareas;
     ++n;
     if ( ++i >= aasworld.numareas )
       goto fail;

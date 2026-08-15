@@ -43,8 +43,8 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-int dword_1006295C = 0; // weak
-libvar_t *libvar_laserhook; /* libvar handle */
+static int dword_1006295C = 0;
+static libvar_t *libvar_laserhook; /* libvar handle */
 
 //----- (10030A50) --------------------------------------------------------
 float __cdecl AngleDiff(float ang1, float ang2)
@@ -66,7 +66,6 @@ float __cdecl AngleDiff(float ang1, float ang2)
 //----- (10030AA0) --------------------------------------------------------
 int __cdecl BotReachabilityArea(int *origin, int client)
 {
-  float v4; // st7
   int v5; // eax
   int v6; // esi
   int dx; // ebp
@@ -79,12 +78,9 @@ int __cdecl BotReachabilityArea(int *origin, int client)
    * AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas, and split into
    * separate slots BotReachabilityArea always returns 0 and the bot goes
    * inert. */
-  vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
-  int v18; // [esp+28h] [ebp-8Ch]
-  int v19; // [esp+2Ch] [ebp-88h]
   vec3_t end; // [esp+30h] [ebp-84h] BYREF
-  float fdz; // [esp+3Ch] [ebp-78h]
-  float fdy; // [esp+40h] [ebp-74h]
+  vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
+  int v19; // [esp+2Ch] [ebp-88h]
   aas_trace_t trace; // [esp+44h] [ebp-70h] (was int v25[9] + char v27[36] hidden return buffer)
   int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
 
@@ -93,10 +89,12 @@ int __cdecl BotReachabilityArea(int *origin, int client)
     VectorCopy(((float *)origin), start);
     if ( v19 > 0 )
     {
-      v4 = ((float *)origin)[2];
-      end[0] = ((float *)origin)[0];
-      end[1] = ((float *)origin)[1];
-      end[2] = v4 - 800.0f;
+      /* Real disasm: a plain 3-word VectorCopy(origin,end), then a SEPARATE
+       * FPU load-constant-800.0/fsubr/fstp overwriting just end[2] -- the
+       * same "uncached copy + adjust" idiom as the grid-search loop below,
+       * not a pre-cached v4=origin[2] scalar. */
+      VectorCopy(((float *)origin), end);
+      end[2] -= 800.0f;
       trace = AAS_TraceClientBBox((float *)origin, end, 4, -1);
       if ( !trace.startsolid )
       {
@@ -112,20 +110,25 @@ int __cdecl BotReachabilityArea(int *origin, int client)
       if ( AAS_AreaReachability(v5) )
         return v6;
     }
-    for ( dz = 5; dz >= -5; dz -= 5 )
+    for ( dz = 1; dz >= -1; dz -= 1 )
     {
-      dy = 5;
-      fdz = (float)dz;
+      dy = 1;
       while ( 2 )
       {
-        dx = 5;
-        v18 = 5;
-        fdy = (float)dy;
+        dx = 1;
         do
         {
-          end[0] = fdz + start[0];
-          end[1] = fdy + start[1];
-          end[2] = (float)v18 + start[2];
+          /* Q3A BotFuzzyPointReachabilityArea (ai_move.c) has the same shape:
+           * VectorCopy(origin, end); end[0] += x*8; end[1] += y*8; end[2] += z*12;
+           * -- recomputed fresh every innermost iteration, not cached across the
+           * outer/middle loops. The real disasm confirms: a redundant
+           * VectorCopy(start, end) immediately followed by an integer
+           * multiply-by-5 (lea eax,[ecx+ecx*4]) added via fiadd, all inside the
+           * innermost loop body, with counters ranging {1,0,-1} (not {5,0,-5}). */
+          VectorCopy(start, end);
+          end[0] += (float)(dz * 5);
+          end[1] += (float)(dy * 5);
+          end[2] += (float)(dx * 5);
           /* thunk 0x10001C8F -> AAS_TraceAreas */
           v8 = AAS_TraceAreas(start, end, (int *)v26, 10);
           if ( v8 > 0 )
@@ -138,12 +141,11 @@ int __cdecl BotReachabilityArea(int *origin, int client)
                 return v26[v9];
             }
           }
-          dx -= 5;
-          v18 = dx;
+          dx -= 1;
         }
-        while ( dx >= -5 );
-        dy -= 5;
-        if ( dy >= -5 )
+        while ( dx >= -1 );
+        dy -= 1;
+        if ( dy >= -1 )
           continue;
         break;
       }
@@ -158,22 +160,23 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 {
   /* origin is a vec3 pointer and reach a reach_t pointer; as ints they truncate
    * the callers' pointers (BotTravel_Elevator passes an intptr_t reach). */
-  int v3; // ecx
   int i; // edi
   /* org/end/boxmins/boxmaxs/maxs/mins/modelorigin are all plain vec3_t — the
    * float typing is what lets cl.exe strength-reduce the compare loop and emit
-   * the per-store float immediates below. */
-  vec3_t org; // [esp+10h] [ebp-B4h] BYREF
-  vec3_t angles; // [esp+1Ch] [ebp-A8h] BYREF
-  vec3_t boxmins; // [esp+28h] [ebp-9Ch] BYREF
-  vec3_t boxmaxs; // [esp+34h] [ebp-90h] BYREF
-  vec3_t end; // [esp+40h] [ebp-84h] BYREF
-  vec3_t maxs; // [esp+4Ch] [ebp-78h] BYREF
-  vec3_t modelorigin; // [esp+58h] [ebp-6Ch] BYREF
-  vec3_t mins; // [esp+64h] [ebp-60h] BYREF
-  int trace[21]; // [esp+70h] [ebp-54h] BYREF
+   * the per-store float immediates below.  Declaration order (mins, maxs,
+   * modelorigin, org, end, angles, boxmins, boxmaxs, trace) matches the real
+   * disasm's stack offsets exactly (verified via the AAS_BSPModelMinsMaxsOrigin
+   * / AAS_Trace call-arg addresses), not source-reading order. */
+  vec3_t mins; // [esp+0xb8] BYREF
+  vec3_t maxs; // [esp+0xac] BYREF
+  vec3_t modelorigin; // [esp+0xa0] BYREF
+  vec3_t org; // [esp+0x94] BYREF
+  vec3_t end; // [esp+0x88] BYREF
+  vec3_t angles; // [esp+0x7c] BYREF
+  vec3_t boxmins; // [esp+0x70] BYREF
+  vec3_t boxmaxs; // [esp+0x64] BYREF
+  bsp_trace_t trace; // [esp+0x10] BYREF (was int trace[21])
 
-  v3 = reach->traveltype;
   /* Float lvalues, so each of these nine stores emits its own immediate — as int
    * bit patterns cl.exe would CSE the constant into a register.  The angles
    * zeroing must come FIRST, and all of these must be assignments rather than
@@ -187,32 +190,43 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   boxmaxs[0] = 16.0f;
   boxmaxs[1] = 16.0f;
   boxmaxs[2] = 8.0f;
-  if ( v3 == 11 )
+  if ( reach->traveltype != 11 )
+    return 0;
+  AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
+  /* Plain vec3_t arrays indexed by the loop counter: cl.exe /O2 then does the
+   * strength reduction itself, picking `origin` as the induction pointer and
+   * expressing maxs/mins/modelorigin as base differences, exactly as the
+   * original does.  Byte arithmetic blocks that, and writing the differences
+   * out as named locals is NOT equivalent — let the compiler derive them.
+   * Term order (modelorigin first) and operand order/polarity (origin on the
+   * left) match Q3A's cognate exactly, which is what lets gcc keep
+   * modelorigin[i] resident on the x87 stack and reuse it for both compares
+   * instead of reloading it from memory a second time. */
+  for ( i = 0; i < 2; i++ )
   {
-    AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
-    /* Plain vec3_t arrays indexed by the loop counter: cl.exe /O2 then does the
-     * strength reduction itself, picking `origin` as the induction pointer and
-     * expressing maxs/mins/modelorigin as base differences, exactly as the
-     * original does.  Byte arithmetic blocks that, and writing the differences
-     * out as named locals is NOT equivalent — let the compiler derive them. */
-    for ( i = 0; i < 2; i++ )
-    {
-      if ( maxs[i] + modelorigin[i] + 16.0f < origin[i] )
-        return 0;
-      if ( origin[i] < mins[i] + modelorigin[i] - 16.0f )
-        return 0;
-    }
-    /* Two VectorCopys from ONE source with the [2] copies forwarded into the
-     * adjustments, so the surviving integer copies fill the fld->fadd gap.  The
-     * STATEMENT ORDER is load-bearing: copy-adjust/copy-adjust (as Q3 writes it)
-     * puts the fadd after the int loads and sinks both fstps into the argument
-     * pushes; copy/copy/adjust/adjust does not. */
-    VectorCopy(origin, org);
-    org[2] += 24.0f;
-    VectorCopy(origin, end);
-    end[2] -= 48.0f;
-    *(bsp_trace_t *)trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
-    return !trace[1] && !trace[0] && trace[20] && AAS_EntityModelNum(trace[20]) == reach->facenum;
+    if ( origin[i] > modelorigin[i] + maxs[i] + 16.0f )
+      return 0;
+    if ( origin[i] < modelorigin[i] + mins[i] - 16.0f )
+      return 0;
+  }
+  /* Two VectorCopys from ONE source with the [2] copies forwarded into the
+   * adjustments, so the surviving integer copies fill the fld->fadd gap.  The
+   * STATEMENT ORDER is load-bearing: copy-adjust/copy-adjust (as Q3 writes it)
+   * puts the fadd after the int loads and sinks both fstps into the argument
+   * pushes; copy/copy/adjust/adjust does not. */
+  VectorCopy(origin, org);
+  org[2] += 24.0f;
+  VectorCopy(origin, end);
+  end[2] -= 48.0f;
+  trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
+  /* Nested-if with a single shared "return 0" fallthrough, matching Q3A's
+   * cognate exactly, rather than one chained && expression (which made gcc
+   * accumulate the boolean result in esi instead of returning at each
+   * failure point). */
+  if ( !trace.startsolid && !trace.allsolid )
+  {
+    if ( trace.ent && AAS_EntityModelNum(trace.ent) == reach->facenum )
+      return 1;
   }
   return 0;
 }
@@ -488,71 +502,71 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   vec3_t hordir; // [esp+8h] [ebp-68h] BYREF (was v14 + 8 unnamed bytes)
   vec3_t cmdmove; // [esp+14h] [ebp-5Ch] BYREF
   aas_clientmove_t move; // [esp+20h] [ebp-50h] BYREF (coalesced with the by-value return temp)
-  int v19; // [esp+74h] [ebp+4h]
   float v20; // [esp+78h] [ebp+8h]
 
   v5 = ms->moveflags;
   if ( (v5 & 2) != 0 )
   {
-    if ( !BotCheckBarrierJump(ms, dir, speed) )
+    if ( BotCheckBarrierJump(ms, dir, speed) )
+      return 1;
+    if ( (type & 2) != 0 && (type & 4) == 0 )
+      presencetype = 4;
+    else
+      presencetype = 2;
+    hordir[0] = dir[0];
+    hordir[1] = dir[1];
+    hordir[2] = 0.0f;
+    VectorNormalize(hordir);
+    if ( (type & 4) == 0 )
     {
-      if ( (type & 2) == 0 || (presencetype = 4, (type & 4) != 0) )
-        presencetype = 2;
-      hordir[0] = dir[0];
-      hordir[1] = dir[1];
-      hordir[2] = 0.0f;
-      VectorNormalize(hordir);
-      if ( (type & 4) == 0 )
+      if ( BotGapDistance(ms, hordir) > 0.0f )
       {
-        if ( BotGapDistance(ms, hordir) > 0.0f )
-        {
-          type |= 4;
-        }
+        type |= 4;
       }
-      VectorScale(hordir, speed, (float *)cmdmove);
-      v19 = type & 4;
-      if ( (type & 4) != 0 )
-      {
-        v10 = 3.0f;
-        cmdmove[2] = libvar_sv_jumpvel->value;
-        v20 = ms->thinktime;
-      }
-      else
-      {
-        v10 = 2.0f;
-        v20 = ms->thinktime;
-      }
-      maxframes = (__int64)(v10 / v20);
-      move = AAS_ClientMovementPrediction(
-                        ms->entitynum,
-                        ms->origin,
-                        presencetype,
-                        1,
-                        ms->velocity,
-                        cmdmove,
-                        maxframes,
-                        maxframes,
-                        v20,
-                        61,
-                        0);
-      if ( move.frames >= maxframes )
-        return 0;
-      if ( (move.stopevent & 0x38) != 0 )
-        return 0;
-      v13 = move.endpos[0] - ms->origin[0];
-      hordir[0] = v13;
-      hordir[2] = 0.0f;
-      hordir[1] = move.endpos[1] - ms->origin[1];
-      if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
-        return 0;
-      if ( v19 )
-        EA_Jump(ms->client);
-      if ( (type & 2) != 0 )
-        EA_Crouch(ms->client);
-      EA_Move(ms->client, hordir, speed);
     }
+    VectorScale(hordir, speed, (float *)cmdmove);
+    if ( (type & 4) != 0 )
+    {
+      cmdmove[2] = libvar_sv_jumpvel->value;
+      v10 = 3.0f;
+      v20 = ms->thinktime;
+    }
+    else
+    {
+      v10 = 2.0f;
+      v20 = ms->thinktime;
+    }
+    maxframes = (int)(v10 / v20);
+    move = AAS_ClientMovementPrediction(
+                      ms->entitynum,
+                      ms->origin,
+                      presencetype,
+                      1,
+                      ms->velocity,
+                      cmdmove,
+                      maxframes,
+                      maxframes,
+                      v20,
+                      61,
+                      0);
+    if ( move.frames >= maxframes )
+      return 0;
+    if ( (move.stopevent & 0x38) != 0 )
+      return 0;
+    v13 = move.endpos[0] - ms->origin[0];
+    hordir[0] = v13;
+    hordir[1] = move.endpos[1] - ms->origin[1];
+    hordir[2] = 0.0f;
+    if ( VectorLength(hordir) < speed * ms->thinktime * 0.5 )
+      return 0;
+    if ( type & 4 )
+      EA_Jump(ms->client);
+    if ( (type & 2) != 0 )
+      EA_Crouch(ms->client);
+    EA_Move(ms->client, hordir, speed);
+    return 1;
   }
-  else if ( (v5 & 1) != 0 && ms->velocity[2] < 50.0f )
+  if ( (v5 & 1) != 0 && ms->velocity[2] < 50.0f )
   {
     EA_Move(ms->client, dir, speed);
   }
@@ -859,26 +873,24 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   bot_moveresult_t moveresult; // [esp+20h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  if ( (ms->moveflags & 0x10) == 0 )
-  {
-    VectorCopy(ms->origin, pnt);
-    pnt[2] -= 32.0f;
-    if ( (AAS_PointContents(pnt) & 0x38) != 0 )   /* under-foot liquid check */
-    {
-      VectorSubtract(reach->end, ms->origin, dir);
-      v6 = rand();
-      dir[0] += (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
-      v7 = rand();
-      dir[1] += (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
-      v8 = rand();
-      dir[2] += 70.0 + (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
-      VectorNormalize(dir);
-      EA_Move(ms->client, dir, 400.0f);
-      vectoangles(dir, moveresult.ideal_viewangles);
-      moveresult.flags |= 1;
-      VectorCopy(dir, moveresult.movedir);
-    }
-  }
+  if ( ms->moveflags & 0x10 )
+    return moveresult;
+  VectorCopy(ms->origin, pnt);
+  pnt[2] -= 32.0f;
+  if ( !(AAS_PointContents(pnt) & 0x38) )   /* under-foot liquid check */
+    return moveresult;
+  VectorSubtract(reach->end, ms->origin, dir);
+  v6 = rand();
+  dir[0] += (2 * ((float)(v6 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
+  v7 = rand();
+  dir[1] += (2 * ((float)(v7 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
+  v8 = rand();
+  dir[2] += 70.0 + (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
+  VectorNormalize(dir);
+  EA_Move(ms->client, dir, 400.0f);
+  vectoangles(dir, moveresult.ideal_viewangles);
+  moveresult.flags |= 1;
+  VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
 //----- (100327F0) --------------------------------------------------------
@@ -1153,12 +1165,12 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   BotClearMoveResult(&moveresult);
   if ( BotOnMover(ms->origin, ms->entitynum, reach) )
   {
-    if ( (float)abs((__int64)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
+    if ( (float)abs((int)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
     {
       v4 = reach->end[0] - ms->origin[0];
-      dir[2] = 0.0f;
       dir[0] = v4;
       dir[1] = reach->end[1] - ms->origin[1];
+      dir[2] = 0.0f;
       VectorNormalize(dir);
       if ( !BotCheckBarrierJump(ms, dir, 100.0f) )
         EA_Move(ms->client, dir, 400.0f);
@@ -1168,9 +1180,9 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
     {
       MoverBottomCenter(reach, telegoal);
       v5 = telegoal[0] - ms->origin[0];
-      dir[2] = 0.0f;
       dir[0] = v5;
       dir[1] = telegoal[1] - ms->origin[1];
+      dir[2] = 0.0f;
       v6 = VectorNormalize(dir);
       if ( v6 > 5.0f )
       {
@@ -1274,19 +1286,14 @@ bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reach
 //----- (100338A0) --------------------------------------------------------
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  libvar_t *v2; // eax
   int i; // ebx
   vec3_t v5; // [esp+0h] [ebp-104h] BYREF
-  float entinfo[31]; // [esp+Ch] [ebp-F8h] BYREF
+  aas_entityinfo_t entinfo; // [esp+Ch] [ebp-F8h] BYREF
   (void)ms; /* movestate handle is unused by the entity scan */
 
-  v2 = libvar_laserhook;
   if ( !libvar_laserhook )
-  {
-    v2 = LibVar("laserhook", (char *)"0");
-    libvar_laserhook = v2;
-  }
-  if ( v2->value == 0.0f && !dword_1006295C )
+    libvar_laserhook = LibVar("laserhook", (char *)"0");
+  if ( libvar_laserhook->value == 0.0f && !dword_1006295C )
     dword_1006295C = IndexFromModel("models/weapons/grapple/hook/tris.md2");
   for ( i = AAS_NextBSPEntity(0); i; i = AAS_NextBSPEntity(i) )
   {
@@ -1295,12 +1302,12 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
     {
       continue;
     }
-    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(i);
-    if ( !VectorCompare(&entinfo[4], &entinfo[13]) )
+    entinfo = AAS_EntityInfo(i);
+    if ( !VectorCompare(entinfo.origin, entinfo.lastvisorigin) )
       return 1;
-    v5[0] = entinfo[4] - reach->end[0];
-    v5[1] = entinfo[5] - reach->end[1];
-    v5[2] = entinfo[6] - reach->end[2];
+    v5[0] = entinfo.origin[0] - reach->end[0];
+    v5[1] = entinfo.origin[1] - reach->end[1];
+    v5[2] = entinfo.origin[2] - reach->end[2];
     if ( (float)VectorLength(v5) < 32.0f )
       return 2;
   }

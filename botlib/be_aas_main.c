@@ -68,8 +68,6 @@ int AAS_Error(char *Format, ...)
 //----- (1000D830) --------------------------------------------------------
 char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index)
 {
-  char *result; // eax
-
   if ( !aasworld.indexes_loaded )
   {
     botimport.Print(PRT_ERROR, "%s: index %d not setup\n", indexname, index);
@@ -78,19 +76,17 @@ char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int 
   if ( index < 0 || index >= list->numindexes )
   {
     botimport.Print(PRT_ERROR, "%s: index %d out of range\n", indexname, index);
+    return "";
   }
-  else
+  if ( !list->indexes[index] )
   {
-    result = list->indexes[index];
-    if ( result )
-      return result;
     if ( index )
     {
       botimport.Print(PRT_ERROR, "%s: reference to unused index %d\n", indexname, index);
-      return "";
     }
+    return "";
   }
-  return "";
+  return list->indexes[index];
 }
 //----- (1000D8D0) --------------------------------------------------------
 int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *String2)

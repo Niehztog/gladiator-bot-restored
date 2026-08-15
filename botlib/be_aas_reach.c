@@ -176,6 +176,7 @@ float __cdecl AAS_AreaVolume(int areanum)
   aas_area_t *area;
   aas_face_t *face;
   aas_edge_t *edge;
+  aas_plane_t *plane;
   int i;
   int facenum;
   int edgenum;
@@ -185,19 +186,21 @@ float __cdecl AAS_AreaVolume(int areanum)
   float volume;
 
   area = &aasworld.areas[areanum];
-  volume = 0.0f;
   facenum = aasworld.faceindex[area->firstface];
-  edgenum = aasworld.edgeindex[aasworld.faces[abs(facenum)].firstedge];
+  face = &aasworld.faces[abs(facenum)];
+  edgenum = aasworld.edgeindex[face->firstedge];
   edge = &aasworld.edges[abs(edgenum)];
   VectorCopy(aasworld.vertexes[edge->v[0]], corner);
+  volume = 0.0f;
   for ( i = 0; i < area->numfaces; ++i )
   {
-    facenum = aasworld.faceindex[area->firstface + i];
-    face = &aasworld.faces[abs(facenum)];
-    d = -(corner[2] * aasworld.planes[face->planenum].normal[2]
-        + corner[1] * aasworld.planes[face->planenum].normal[1]
-        + corner[0] * aasworld.planes[face->planenum].normal[0]
-        - aasworld.planes[face->planenum].dist);
+    facenum = abs(aasworld.faceindex[area->firstface + i]);
+    face = &aasworld.faces[facenum];
+    plane = &aasworld.planes[face->planenum];
+    d = -(corner[0] * plane->normal[0]
+        + corner[1] * plane->normal[1]
+        + corner[2] * plane->normal[2]
+        - plane->dist);
     a = AAS_FaceArea(face);
     volume += d * a;
   }
@@ -447,6 +450,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   vec3_t end;
   vec3_t normal;
   vec3_t invgravity;
+  vec3_t down = { 0, 0, -1 };
   vec3_t edgevec;
   aas_area_t *area1;
   aas_area_t *area2;
@@ -476,9 +480,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   if ( area2->mins[2] > area1->maxs[2] )
     return 0;
 
-  invgravity[0] = 0.0f;
-  invgravity[1] = 0.0f;
-  invgravity[2] = -1.0f;
+  VectorCopy(down, invgravity);
   VectorNegate(invgravity);
 
   bestheight = 99999.0f;
@@ -509,8 +511,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
           side = edgenum < 0;
           edge = &aasworld.edges[abs(edgenum)];
 
-          VectorAdd(aasworld.vertexes[edge->v[1]],
-                    aasworld.vertexes[edge->v[0]], start);
+          VectorAdd(aasworld.vertexes[edge->v[0]],
+                    aasworld.vertexes[edge->v[1]], start);
           length = VectorLength(start);
           VectorScale(start, 0.5f, start);
           VectorCopy(start, end);
@@ -1608,7 +1610,6 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   int k; // eax
   int v14; // edi
   int edge1num; // ebp
-  unsigned int v16; // ecx
   int *v17; // ebx
   float face2area; // st7
   int v20; // eax
@@ -1721,11 +1722,10 @@ while ( 1 )
   l = 0;
   if ( v14 > 0 )
   {
-    v16 = abs(edge1num);
     v17 = &aasworld.edgeindex[face2->firstedge];
     while ( 1 )
     {
-      if ( v16 == abs(*v17) )
+      if ( abs(edge1num) == abs(*v17) )
         break;
       ++v17;
       if ( ++l >= v14 )
@@ -1982,9 +1982,8 @@ int AAS_Reachability_Teleport()
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
   vec3_t origin; // [ebp-84h] BYREF — teleport entrance origin (VectorForBSPEpairKey output)
   bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for AAS_FreeBSPEntities
-  const char *v27; // [esp+60h] [ebp-70h]
-  vec3_t end; // [esp+64h] [ebp-6Ch] BYREF
   vec3_t v29; // [esp+70h] [ebp-60h] BYREF
+  vec3_t end; // [esp+64h] [ebp-6Ch] BYREF
   vec3_t v30; // [esp+7Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
@@ -2003,11 +2002,16 @@ int AAS_Reachability_Teleport()
         goto cont;
       if ( !AAS_VectorForBSPEpairKey(ent, "origin", origin) )
       {
-        botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", v27);
+        /* `target` intentionally reused here: it is function-scoped (not
+         * reset per iteration), so on this early-out it still holds the
+         * PREVIOUS entity's target string (or garbage on the very first
+         * iteration). Confirmed via disasm on both oracles: there is no
+         * separate variable — this print reads target's own persistent
+         * stack slot directly, before it's reassigned below. */
+        botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", target);
         goto cont;
       }
       target = (const char *)AAS_ValueForBSPEpairKey(ent, "target");
-      v27 = target;
       if ( !target )
       {
         botimport.Print(PRT_ERROR, "teleporter at %1.0f %1.0f %1.0f without target\n", origin[0], origin[1], origin[2]);
@@ -2356,7 +2360,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   float v37;          /* vertical delta (vertex_z - grounded_z) */
   aas_trace_t trace;
   vec3_t down = { 0, 0, -1 };
-  float bsptrace[21]; /* [BYREF] */
+  bsp_trace_t bsptrace; /* [BYREF] */
 
   if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
     return 0;
@@ -2415,16 +2419,16 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
              * decompiler's `+ 20 * planenum` on a float* advanced 80 bytes per
              * plane. */
             VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
-            *(bsp_trace_t *)bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
-            if ( (LOBYTE(bsptrace[17]) & 4) == 0 && bsptrace[2] * 500.0f < 32.0f )
+            bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
+            if ( (LOBYTE(bsptrace.surface.flags) & 4) == 0 && bsptrace.fraction * 500.0f < 32.0f )
             {
               VectorSubtract(facecenter, areastart, dir);
               VectorNormalize(dir);
               VectorMA(areastart, 4.0f, dir, start);
               /* All three vmav[] slots are written here. */
-              end[0] = bsptrace[3];
-              end[1] = bsptrace[4];
-              end[2] = bsptrace[5];
+              end[0] = bsptrace.endpos[0];
+              end[1] = bsptrace.endpos[1];
+              end[2] = bsptrace.endpos[2];
               trace = AAS_TraceClientBBox(start, end, 2, -1);
               VectorSubtract(trace.endpos, facecenter, dir);
               if ( VectorLength(dir) <= 24.0f )
@@ -2452,11 +2456,11 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                     lreach->reach.start[0] = areastart[0];
                     lreach->reach.start[1] = areastart[1];
                     v13->reach.start[2] = areastart[2];
-                    v13->reach.end[0] = bsptrace[3];
-                    v13->reach.end[1] = bsptrace[4];
-                    v13->reach.end[2] = bsptrace[5];
+                    v13->reach.end[0] = bsptrace.endpos[0];
+                    v13->reach.end[1] = bsptrace.endpos[1];
+                    v13->reach.end[2] = bsptrace.endpos[2];
                     v13->reach.traveltype = 14;
-                    dir[0] = bsptrace[3] - lreach->reach.start[0];
+                    dir[0] = bsptrace.endpos[0] - lreach->reach.start[0];
                     dir[1] = v13->reach.end[1] - v13->reach.start[1];
                     dir[2] = v13->reach.end[2] - v13->reach.start[2];
                     v13->reach.traveltime = (__int64)(VectorLength(dir) * 0.25 + 500.0);

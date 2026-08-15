@@ -97,25 +97,21 @@ void __cdecl FreeConsoleMessage(bot_consolemessage_t *message)
   freeconsolemessages = message;
 }
 //----- (1002AA20) --------------------------------------------------------
-int __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg)
+void __cdecl BotRemoveConsoleMessage(bot_chatstate_t *chatstate, bot_consolemessage_t *msg)
 {
   /* The original tests `next` FIRST and `prev` second.  Swapping them leaves
    * links->first pointing at a freed message and BotCheckConsoleMessages
    * busy-loops on that node forever. */
-  chatmsg_links_t *links;
-
-  links = &BotChatMsgLinksCS(chatstate);
   if ( msg->next )
     msg->next->prev = msg->prev;
   else
-    links->last = msg->prev;
+    BotChatMsgLinksCS(chatstate).last = msg->prev;
   if ( msg->prev )
     msg->prev->next = msg->next;
   else
-    links->first = msg->next;
+    BotChatMsgLinksCS(chatstate).first = msg->next;
   FreeConsoleMessage(msg);
-  --links->count;
-  return links->count;
+  BotChatMsgLinksCS(chatstate).count--;
 }
 //----- (1002AAB0) --------------------------------------------------------
 void __cdecl BotQueueConsoleMessage(bot_chatstate_t *chatstate, int type, char *message)
@@ -715,45 +711,35 @@ void __cdecl BotDumpMatchTemplates(void *matches)
   bot_matchtemplate_t *tmpl;
   bot_matchpiece_t *piece;
   bot_matchstring_t *str;
-  int   type;
 
   log = Log_FilePointer();
   if ( !log )
     return;
-  tmpl = (bot_matchtemplate_t *)matches;
-  if ( !tmpl )
-    return;
-  while ( tmpl )
+  for ( tmpl = (bot_matchtemplate_t *)matches; tmpl; tmpl = tmpl->next )
   {
     /* Faithful original bug: only the format and FILE* are pushed, so %8d reads
      * whatever 4 bytes follow on the stack.  Do NOT add a third argument — that
      * would emit a push the original does not have. */
     fprintf(log, "%8d { ");
-    piece = tmpl->first;
-    while ( piece )
+    for ( piece = tmpl->first; piece; piece = piece->next )
     {
-      type = piece->type;
-      if ( type == 2 )
+      if ( piece->type == 2 )
       {
-        str = piece->firststring;
-        while ( str )
+        for ( str = piece->firststring; str; str = str->next )
         {
           fprintf(log, "\"%s\"", str->string);
           if ( str->next )
             fprintf(log, "|");
-          str = str->next;
         }
       }
-      else if ( type == 1 )
+      else if ( piece->type == 1 )
       {
         fprintf(log, "%d", piece->variable);
       }
       if ( piece->next )
         fprintf(log, ", ");
-      piece = piece->next;
     }
     fprintf(log, " = (%d, %d);}\n", tmpl->type, tmpl->subtype);
-    tmpl = tmpl->next;
   }
 }
 //----- (1002BFB0) --------------------------------------------------------
@@ -1289,8 +1275,6 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
  * DEAD in Gladiator — no live caller. */
 void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
 {
-
-
   FILE             *log;
   bot_replychat_t    *esi;
   bot_replychatkey_t *ebx;
@@ -1303,11 +1287,7 @@ void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
     return;
   fprintf(log, "BotDumpReplyChat:\n");
 
-  esi = replychat;
-  if (!esi)
-    return;
-
-  do {
+  for ( esi = replychat; esi; esi = esi->next ) {
     fprintf(log, "[");
 
     ebx = esi->keys;
@@ -1358,15 +1338,11 @@ void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
     }
 
     fprintf(log, "{\n");
-    chat = esi->firstchatmessage;
-    while (chat) {
+    for ( chat = esi->firstchatmessage; chat; chat = chat->next ) {
       fprintf(log, "\t\"%s\";\n", chat->chatmessage);
-      chat = chat->next;
     }
     fprintf(log, "}\n");
-
-    esi = esi->next;
-  } while (esi);
+  }
 }
 //----- (1002D1B0) --------------------------------------------------------
 // Q3 equivalent: BotFreeReplyChat.  Frees the entire reply-chat chain.

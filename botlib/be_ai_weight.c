@@ -65,9 +65,6 @@ int __cdecl ReadValue(source_t *source, float *value)
 // Part of the runtime config reader chain.
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 {
-  int *v3;
-  int v4;
-
   if ( PC_CheckTokenString(source, "balance") )
   {
     fs->type = 1;
@@ -85,16 +82,18 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
       return 0;
     if ( !PC_ExpectTokenString(source, ")") )
       return 0;
-    return PC_ExpectTokenString(source, ";") != 0;
   }
-  v3 = (int *)&fs->weight;
-  fs->type = 0;
-  if ( !ReadValue(source, &fs->weight) )
+  else
+  {
+    fs->type = 0;
+    if ( !ReadValue(source, &fs->weight) )
+      return 0;
+    fs->minweight = fs->weight;
+    fs->maxweight = fs->weight;
+  }
+  if ( !PC_ExpectTokenString(source, ";") )
     return 0;
-  v4 = *v3;
-  *(int *)&fs->minweight = v4;
-  fs->maxweight = fs->minweight;
-  return PC_ExpectTokenString(source, ";") != 0;
+  return 1;
 }
 //----- (10035960) --------------------------------------------------------
 // Recursively free a fuzzy decision-tree subtree (child + next siblings +
@@ -630,37 +629,34 @@ float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 // EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 {
-  do
+  if ( fs->child )
   {
-    if ( fs->child )
-    {
-      EvolveFuzzySeperator_r(fs->child);
-    }
-    else if ( fs->type == 1 )
-    {
-      /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.
-       * Keep the crandom() value as its own subexpression so the doubling (which
-       * MSVC strength-reduces to `fadd st(0),st`) happens BEFORE the
-       * (maxweight-minweight) multiply, as in the original. */
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
-      {
-        fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-                    * (fs->maxweight - fs->minweight);
-      }
-      else
-      {
-        fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-                    * (fs->maxweight - fs->minweight)
-                    * 0.5;
-      }
-      if ( fs->weight < fs->minweight )
-        fs->weight = fs->minweight;
-      else if ( fs->weight > fs->maxweight )
-        fs->weight = fs->maxweight;
-    }
-    fs = fs->next;
+    EvolveFuzzySeperator_r(fs->child);
   }
-  while ( fs );
+  else if ( fs->type == 1 )
+  {
+    /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.
+     * Keep the crandom() value as its own subexpression so the doubling (which
+     * MSVC strength-reduces to `fadd st(0),st`) happens BEFORE the
+     * (maxweight-minweight) multiply, as in the original. */
+    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
+    {
+      fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+                  * (fs->maxweight - fs->minweight);
+    }
+    else
+    {
+      fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+                  * (fs->maxweight - fs->minweight)
+                  * 0.5;
+    }
+    if ( fs->weight < fs->minweight )
+      fs->weight = fs->minweight;
+    else if ( fs->weight > fs->maxweight )
+      fs->weight = fs->maxweight;
+  }
+  if ( fs->next )
+    EvolveFuzzySeperator_r(fs->next);
 }
 //----- (10036DF0) --------------------------------------------------------
 /* Run EvolveFuzzySeperator_r over every weight in the config — the outer driver

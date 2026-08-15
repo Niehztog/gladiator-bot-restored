@@ -204,7 +204,7 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
 
   while ( !source->tokens )
   {
-    if ( PS_ReadToken(source->scriptstack, (char *)token) )
+    if ( PS_ReadToken(source->scriptstack, token) )
       return 1;
     if ( EndOfScript(source->scriptstack) )
     {
@@ -505,20 +505,26 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
   __time32_t t;
   token_t token __attribute__((aligned(8))); // [esp+14h] [ebp-430h] BYREF
 
-  v4 = define->builtin - 1;
   memcpy(&token, &src->cachedtoken, sizeof(token));
+  v4 = define->builtin - 1;
   switch ( v4 )
   {
     case 0:
       sprintf(token.string, "%d", src->cachedtoken.line);
+      token.intvalue = src->cachedtoken.line;
+      token.floatvalue = src->cachedtoken.line;
+      token.type = 3;
+      token.subtype = 4104;
       *a3 = (char *)&token;
       *a4 = (char *)&token;
-      return 1;
+      break;
     case 1:
       strcpy(token.string, src->scriptstack->filename);
+      token.type = 4;
+      token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
-      return 1;
+      break;
     case 2:
       t = time(0);
       curtime = ctime(&t);
@@ -527,9 +533,11 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       strncat(&token.string[7], curtime + 20, 4u);
       strcat(token.string, "\"");
       free(curtime);
+      token.type = 4;
+      token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
-      return 1;
+      break;
     case 3:
       t = time(0);
       v7 = ctime(&t);
@@ -537,14 +545,18 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
       strncat(token.string, v7 + 11, 8u);
       strcat(token.string, "\"");
       free(v7);
+      token.type = 4;
+      token.subtype = strlen(token.string);
       *a3 = (char *)&token;
       *a4 = (char *)&token;
-      return 1;
+      break;
+    case 4:
     default:
       *a3 = 0;
       *a4 = 0;
-      return 1;
+      break;
   }
+  return 1;
 }
 //----- (1003A2D0) --------------------------------------------------------
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken)
@@ -712,13 +724,18 @@ void __cdecl PC_ConvertPath(char *path)
 int __cdecl PC_Directive_include(source_t *source)
 {
   char *script;
-  char path[260]; // [esp+10h] [ebp-5CCh] BYREF
-  bot_fileref_t file;
   token_t token;
+  char path[MAX_PATH]; // [esp+10h] [ebp-5CCh] BYREF
+  bot_fileref_t file;
 
   if ( source->skip > 0 )
     return 1;
-  if ( !PC_ReadSourceToken(source, token.string) || token.linescrossed > 0 )
+  if ( !PC_ReadSourceToken(source, token.string) )
+  {
+    SourceError(source, "#include without file name");
+    return 0;
+  }
+  if ( token.linescrossed > 0 )
   {
     SourceError(source, "#include without file name");
     return 0;
@@ -747,7 +764,7 @@ int __cdecl PC_Directive_include(source_t *source)
       }
       if ( token.type == 5 && token.string[0] == 62 )
         break;
-      strncat(path, token.string, 0x104u);
+      strncat(path, token.string, MAX_PATH);
     }
     if ( token.string[0] != 62 )
       SourceWarning(source, "#include missing trailing >");

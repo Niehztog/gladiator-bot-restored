@@ -109,13 +109,15 @@ int BotGetFormationGoal(bot_state_t *bs)
   vec3_t forward;           /* [esp+0x1C] — first delta, then AngleVectors output       */
   vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
   vec3_t scaled;            /* [esp+0x38] — VectorScale(forward, 400, ...) for predict */
+  vec3_t endpos;            /* dead store of move.endpos — confirmed present in real's
+                             * disasm (a distinct 12-byte temp, never read afterward)
+                             * but has no observable effect; preserved as-is. */
   int    entnum, areanum, prevent_entnum;
-  float  z;
   /* 1. Look up target name → entnum. */
-  entnum = ClientFromName(bs->formationgoal_name) + 1;
-  entinfo = AAS_EntityInfo(entnum);
+  entnum = ClientFromName(bs->formationgoal_name);
+  entinfo = AAS_EntityInfo(entnum + 1);
   if ( !entinfo.valid )
-    goto fail;
+    return (int)(intptr_t)&bs->formationgoal;
   /* 2. Validate the entity sits in a reachable AAS area (origin @ +0x10). */
   areanum = AAS_PointAreaNum(entinfo.origin);
   if ( !areanum )
@@ -126,11 +128,14 @@ int BotGetFormationGoal(bot_state_t *bs)
   *(int *)&bs->formationgoal_origin[0] = *(int *)&entinfo.origin[0];
   *(int *)&bs->formationgoal_origin[1] = *(int *)&entinfo.origin[1];
   *(int *)&bs->formationgoal_origin[2] = *(int *)&entinfo.origin[2];
-  /* 4. Look up the second name, keeping entnum+1 for the goal.  This
-   *    AAS_EntityInfo OVERWRITES the same `entinfo` block — step 3 has already
-   *    saved the origin it needed. */
-  prevent_entnum = ClientFromName((const char *)bs->formation_teammate) + 1;
-  entinfo = AAS_EntityInfo(prevent_entnum);
+  /* 4. Look up the second name, applying the +1 at each point of use rather
+   *    than baking it into prevent_entnum: real reloads the raw value and
+   *    increments it independently both here and at the entitynum store
+   *    below (confirmed by an `inc` immediately before that store). This
+   *    AAS_EntityInfo call OVERWRITES the same `entinfo` block — step 3 has
+   *    already saved the origin it needed. */
+  prevent_entnum = ClientFromName((const char *)bs->formation_teammate);
+  entinfo = AAS_EntityInfo(prevent_entnum + 1);
   /* 5. Velocity = origin - old_origin of the second target, BOTH from the same
    *    snapshot.  The acceptance threshold 0.1 is a double. */
   if ( entinfo.valid )
@@ -163,29 +168,28 @@ int BotGetFormationGoal(bot_state_t *bs)
   move = AAS_ClientMovementPrediction(-1, start,
                                       2, 1, vec3_origin, scaled,
                                       1, 2, 0.1f, 124, 0);
-  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start position;
-   *    otherwise keep the angles vec built in step 6. */
+  VectorCopy(move.endpos, endpos);
+  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start
+   *    position (all 3 components uniformly — no separate scalar for the
+   *    Z component); otherwise keep the angles vec built in step 6, whose
+   *    [2] is already 0 from the explicit zero above. */
   if ( (move.stopevent & 0x38) != 0 )
   {
     angles[0] = start[0];
     angles[1] = start[1];
-    z = start[2];
+    angles[2] = start[2];
   }
-  else
-  {
-    z = angles[2];
-  }
+  bs->formationgoal.entitynum = prevent_entnum + 1;
   bs->formationgoal.areanum = areanum;
-  bs->formationgoal.origin[2] = z;
+  *(int *)&bs->formationgoal.origin[0] = *(int *)&angles[0];
   *(int *)&bs->formationgoal.origin[1] = *(int *)&angles[1];
-  bs->formationgoal.entitynum = prevent_entnum;
+  bs->formationgoal.origin[2] = angles[2];
   bs->formationgoal.mins[0] = -8.0f;
   bs->formationgoal.mins[1] = -8.0f;
   bs->formationgoal.mins[2] = -8.0f;
   bs->formationgoal.maxs[0] = 8.0f;
   bs->formationgoal.maxs[1] = 8.0f;
   bs->formationgoal.maxs[2] = 8.0f;
-  *(int *)&bs->formationgoal.origin[0] = *(int *)&angles[0];
 fail:
   return (int)(intptr_t)&bs->formationgoal;
 }
@@ -230,7 +234,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
   vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/vectoangles
   float croucher; // [esp+28h] [ebp-220h]
   vec3_t target; // [esp+2Ch] [ebp-21Ch] BYREF — BotRoamGoal output position
-  int entinfo[31]; // [esp+38h] [ebp-210h] BYREF
+  aas_entityinfo_t entinfo; // [esp+38h] [ebp-210h] BYREF
   char netname[128]; // [esp+B4h] [ebp-194h] BYREF
   char buf[152]; // [esp+134h] [ebp-114h] BYREF
 
@@ -250,14 +254,14 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
         BotEnterChat(&bs->chatstate, bs->client, 1);
         bs->ltgtype = 0;
       }
-      *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->teammate);
+      entinfo = AAS_EntityInfo(bs->teammate);
       if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
       {
         bs->teammatevisible_time = AAS_Time();
         v17 = bs->origin;
-        dir[0] = *(float *)&entinfo[4] - bs->origin[0];
-        dir[1] = *(float *)&entinfo[5] - bs->origin[1];
-        dir[2] = *(float *)&entinfo[6] - bs->origin[2];
+        dir[0] = entinfo.origin[0] - bs->origin[0];
+        dir[1] = entinfo.origin[1] - bs->origin[1];
+        dir[2] = entinfo.origin[2] - bs->origin[2];
         if ( VectorLength(dir) < bs->formation_dist )
         {
           v18 = AAS_Time() - 5;
@@ -304,9 +308,9 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           }
           if ( AAS_Time() - 2 < bs->arrive_time )
           {
-            dir[0] = *(float *)&entinfo[4] - *v17;
-            dir[1] = *(float *)&entinfo[5] - bs->origin[1];
-            dir[2] = *(float *)&entinfo[6] - bs->origin[2];
+            dir[0] = entinfo.origin[0] - *v17;
+            dir[1] = entinfo.origin[1] - bs->origin[1];
+            dir[2] = entinfo.origin[2] - bs->origin[2];
             vectoangles(dir, bs->ideal_viewangles);
           }
           else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
@@ -325,21 +329,21 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
           goto LABEL_RESET;
         }
       }
-      if ( entinfo[0] )
+      if ( entinfo.valid )
       {
-        v21 = AAS_PointAreaNum(&entinfo[4]);
+        v21 = AAS_PointAreaNum(entinfo.origin);
         if ( v21 )
         {
           if ( AAS_AreaReachability(v21) )
           {
-            bs->teamgoal.origin[1] = *(float *)&entinfo[5];
+            bs->teamgoal.origin[1] = entinfo.origin[1];
             bs->teamgoal.entitynum = bs->teammate;
             bs->teamgoal.mins[0] = -8.0f;
             bs->teamgoal.mins[1] = -8.0f;
             bs->teamgoal.mins[2] = -8.0f;
             bs->teamgoal.areanum = v21;
-            bs->teamgoal.origin[0] = *(float *)&entinfo[4];
-            bs->teamgoal.origin[2] = *(float *)&entinfo[6];
+            bs->teamgoal.origin[0] = entinfo.origin[0];
+            bs->teamgoal.origin[2] = entinfo.origin[2];
             bs->teamgoal.maxs[0] = 8.0f;
             bs->teamgoal.maxs[1] = 8.0f;
             bs->teamgoal.maxs[2] = 8.0f;
@@ -601,12 +605,12 @@ LABEL_55:
     bs->ltgtype = 0;
   if ( AAS_Time() - 10 > bs->teammatevisible_time )
     bs->ltgtype = 0;
-  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->teammate);
+  entinfo = AAS_EntityInfo(bs->teammate);
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
   {
-    dir[0] = *(float *)&entinfo[4] - bs->origin[0];
-    dir[1] = *(float *)&entinfo[5] - bs->origin[1];
-    dir[2] = *(float *)&entinfo[6] - bs->origin[2];
+    dir[0] = entinfo.origin[0] - bs->origin[0];
+    dir[1] = entinfo.origin[1] - bs->origin[1];
+    dir[2] = entinfo.origin[2] - bs->origin[2];
     if ( VectorLength(dir) < 100 )
       goto LABEL_RESET;
   }
@@ -615,21 +619,21 @@ LABEL_55:
     bs->teammatevisible_time = AAS_Time();
   }
   v26 = bs->teamgoal.origin;
-  if ( entinfo[0] )
+  if ( entinfo.valid )
   {
-    v7 = AAS_PointAreaNum(&entinfo[4]);
+    v7 = AAS_PointAreaNum(entinfo.origin);
     if ( v7 )
     {
       if ( AAS_AreaReachability(v7) )
       {
-        bs->teamgoal.origin[0] = *(float *)&entinfo[4];
+        bs->teamgoal.origin[0] = entinfo.origin[0];
         bs->teamgoal.entitynum = bs->teammate;
         bs->teamgoal.mins[0] = -8.0f;
         bs->teamgoal.mins[1] = -8.0f;
         bs->teamgoal.mins[2] = -8.0f;
         bs->teamgoal.areanum = v7;
-        bs->teamgoal.origin[1] = *(float *)&entinfo[5];
-        bs->teamgoal.origin[2] = *(float *)&entinfo[6];
+        bs->teamgoal.origin[1] = entinfo.origin[1];
+        bs->teamgoal.origin[2] = entinfo.origin[2];
         bs->teamgoal.maxs[0] = 8.0f;
         bs->teamgoal.maxs[1] = 8.0f;
         bs->teamgoal.maxs[2] = 8.0f;
@@ -1146,9 +1150,14 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 
   int areanum; // esi
   int v8; // edi
-  float v10; // [esp+Ch] [ebp-15Ch]
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
-  int entinfo[31]; // [esp+40h] [ebp-128h] BYREF
+  /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
+   * assignment): the cast previously forced gcc to materialize the
+   * AAS_EntityInfo() return in a hidden temp and then memcpy (rep movs, 124B)
+   * it into entinfo before passing &entinfo to sub_10021710 -- a real's-disasm-
+   * confirmed extra buffer/copy real does not have (real reuses the retbuf
+   * pointer directly for both calls). PE was already perfect either way. */
+  aas_entityinfo_t entinfo; // [esp+40h] [ebp-128h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1165,25 +1174,36 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
-  /* Inline, not a shared label: the original keeps a physical copy of
-   * `AIEnter_Seek_LTG(bs); return 0;` as this guard's fall-through PLUS one at
-   * the function tail for the two later gotos.  A single hosted label has three
-   * predecessors and no fall-through, so both copies float to the tail. */
+  /* Inline, not a shared label: MSVC6 (PE) keeps a physical copy of
+   * `AIEnter_Seek_LTG(bs); return 0;` here rather than merging it with the
+   * two later occurrences (confirmed PE-perfect, 640/640, with this exact
+   * shape). gcc 2.7.2.3's real disasm, by contrast, DOES cross-jump this
+   * check into a tail shared with the later `!BotEntityVisible && !chase`
+   * case -- tested restructuring this guard as `goto` to force that same
+   * merge on our ELF oracle (confirmed it works, insn_diffs 32->25 on gcc),
+   * but it broke the PE oracle (640/640 -> 644 bytes, 22 line diff): MSVC6
+   * does not perform the merge for the goto-rewritten source either. The two
+   * period compilers made genuinely different tail-merging decisions for
+   * whatever the true original source was; since only one botlib.c feeds
+   * both oracles, and PE-safety is the hard constraint, this stays inline. */
   if ( !bs->enemy )
   {
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710(entinfo) )
+  entinfo = AAS_EntityInfo(bs->enemy);
+  if ( sub_10021710((int *)&entinfo) )
   {
     /* Q3's shape: `if (BotChat_Kill(bs)) {stand} else {seek} return qfalse;` with
      * ONE shared return.  The original hoists the `bs` push above the branch to
      * serve both calls, which only works with both inline here. */
     if ( BotChat_Kill((int *)bs) )
     {
-      v10 = BotChatTime(bs);
-      bs->stand_time = AAS_Time() + v10;
+      /* Single expression, not `v10 = BotChatTime(bs); bs->stand_time =
+       * AAS_Time() + v10;`: real's disasm calls AAS_Time() BEFORE
+       * BotChatTime(bs) (gcc evaluates `+`'s operands right-to-left here),
+       * which only happens with both calls inlined into one expression. */
+      bs->stand_time = AAS_Time() + BotChatTime(bs);
       AIEnter_Stand(bs);
     }
     else
@@ -1194,12 +1214,12 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   }
   else
   {
-    areanum = AAS_PointAreaNum(&entinfo[4]);
+    areanum = AAS_PointAreaNum(entinfo.origin);
     if ( areanum && AAS_AreaReachability(areanum) )
     {
-      (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
-      (*(int *)&bs->lastenemyorigin[1]) = entinfo[5];
-      (*(int *)&bs->lastenemyorigin[2]) = entinfo[6];
+      (*(int *)&bs->lastenemyorigin[0]) = *(int *)&entinfo.origin[0];
+      (*(int *)&bs->lastenemyorigin[1]) = *(int *)&entinfo.origin[1];
+      (*(int *)&bs->lastenemyorigin[2]) = *(int *)&entinfo.origin[2];
       bs->lastenemyareanum = areanum;
     }
     BotUpdateBattleInventory(bs, bs->enemy);
@@ -1231,8 +1251,16 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     BotAIBlocked(bs, &moveresult, 0);
     BotAimAtEnemy(bs);
     BotCheckAttack(bs);
+    /* Two physical `return 1;`s, not one shared after the if: real's disasm
+     * has a separate "return 1" epilogue for the BotWantsToRetreat-true path
+     * (falls through after AIEnter_Battle_Retreat) vs the -false path (jumps
+     * to its own copy) rather than converging both on one tail -- this
+     * brought our insn count to an exact 297/297 match with no PE effect. */
     if ( BotWantsToRetreat((int *)bs) )
+    {
       AIEnter_Battle_Retreat(bs);
+      return 1;
+    }
     return 1;
   }
 }
@@ -1382,7 +1410,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
   bot_moveresult_t v11; // [esp+5Ch] [ebp-128h] BYREF
-  char entinfo[124]; // [esp+8Ch] [ebp-F8h] BYREF
+  aas_entityinfo_t entinfo; // [esp+8Ch] [ebp-F8h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1404,8 +1432,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     AIEnter_Seek_LTG(bs);
     return 0;
   }
-  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710(entinfo) )
+  entinfo = AAS_EntityInfo(bs->enemy);
+  if ( sub_10021710((int *)&entinfo) )
   {
     AIEnter_Seek_LTG(bs);
     return 0;
@@ -1509,7 +1537,13 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   bot_goal_t *topgoal;    // esi — top goal pointer
   bot_moveresult_t v15;   // BotMoveToGoal result copy
   bot_moveresult_t v16;   // BotMoveToGoal output buffer
-  int entinfo[31];        // [esp+0x4c] BYREF — copy of AAS entity info for enemy
+  /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
+   * assignment): the cast previously forced gcc to materialize the
+   * AAS_EntityInfo() return in a hidden temp and then memcpy (rep movs, 124B)
+   * it into entinfo before passing &entinfo to sub_10021710 -- a real's-disasm-
+   * confirmed extra buffer/copy real does not have (real reuses the retbuf
+   * pointer directly for both calls). Same fix as AINode_Battle_Fight. */
+  aas_entityinfo_t entinfo; // [esp+0x4c] BYREF — copy of AAS entity info for enemy
 
   if ( BotIsObserver(bs) )
   {
@@ -1531,8 +1565,8 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     AIEnter_Seek_NBG(bs);
     return 0;
   }
-  *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(bs->enemy);
-  if ( sub_10021710((_DWORD *)entinfo) )
+  entinfo = AAS_EntityInfo(bs->enemy);
+  if ( sub_10021710((int *)&entinfo) )
   {
     AIEnter_Seek_NBG(bs);
     return 0;
@@ -1542,12 +1576,12 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     v8 = 118718;
   if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
     v8 |= 0x1000u;
-  areanum = AAS_PointAreaNum((float *)&entinfo[4]);
+  areanum = AAS_PointAreaNum(entinfo.origin);
   if ( areanum && AAS_AreaReachability(areanum) )
   {
-    (*(int *)&bs->lastenemyorigin[0]) = entinfo[4];
-    (*(int *)&bs->lastenemyorigin[1]) = entinfo[5];
-    (*(int *)&bs->lastenemyorigin[2]) = entinfo[6];
+    (*(int *)&bs->lastenemyorigin[0]) = *(int *)&entinfo.origin[0];
+    (*(int *)&bs->lastenemyorigin[1]) = *(int *)&entinfo.origin[1];
+    (*(int *)&bs->lastenemyorigin[2]) = *(int *)&entinfo.origin[2];
     bs->lastenemyareanum = areanum;
   }
   topgoal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);

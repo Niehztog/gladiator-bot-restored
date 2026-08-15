@@ -1414,34 +1414,28 @@ static void sub_10005640(
 int __cdecl sub_100056D0(dbrush_t *a1, float *a2)
 {
   int v3; // ebx
-  dbrushside_t *i; // edi
   /* v5: same BSP-plane-pointer-truncation bug class as sub_100044F0:v14/v38.
    * Original `int v5` truncated the selected dplane_t * on aarch64. */
   dplane_t *v5;
   int v6; // edx
   float v8; // st7
-  int v12; // [esp+14h] [ebp+4h]
 
-  v3 = 0;
-  v12 = a1->numsides;
-  if ( v12 <= 0 )
-    return 1;
-  i = &bspworld.dbrushsides[a1->firstside];
-  for ( ; v3 < v12; ++v3, ++i )
+  for ( v3 = 0; v3 < a1->numsides; ++v3 )
   {
-    v5 = &bspworld.dplanes[i->planenum];
+    v5 = &bspworld.dplanes[bspworld.dbrushsides[a1->firstside + v3].planenum];
     v6 = v5->type;
     if ( v6 < 3 )
     {
       /* axial plane shortcut: signbits of normal[v6] determine sign of a2[v6].
        * Original asm uses fcomps result (C0|C3 = "<= 0") to decide negation. */
-      v8 = a2[v6];
-      if ( v5->normal[v6] <= 0.0f )
-        v8 = -v8;
+      if ( v5->normal[v6] > 0.0f )
+        v8 = a2[v6];
+      else
+        v8 = -a2[v6];
     }
     else
     {
-      v8 = v5->normal[2] * a2[2] + v5->normal[1] * a2[1] + v5->normal[0] * *a2;
+      v8 = v5->normal[0] * *a2 + v5->normal[1] * a2[1] + v5->normal[2] * a2[2];
     }
     if ( v8 - v5->dist > 0.005 )
       return 0;
@@ -1882,7 +1876,6 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
   bsp_link_t *ent_link;
   bsp_link_t *brush_links;
   bsp_link_t *brush_iter;
-  int        *out;
   int         count;
   int         j;
   int         solid;
@@ -1897,7 +1890,6 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
     ent_link = bspworld.dword_10069584[link->leafnum];
     if (!ent_link)
       continue;
-    out = &list[count];
 
     while (ent_link && count < maxcount) {
       /* Dedupe scan over the results so far.  Re-read `ent_link->entnum` at each of
@@ -1923,8 +1915,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
          && entdata.absmaxs[2] >= mins[2]) {
           solid = entdata.solid;
           if (solid == 1 || solid == 2) {
-            count++;
-            *out++ = ent_link->entnum;
+            list[count++] = ent_link->entnum;
           } else if (solid == 3) {
             /* 4th arg is entdata.modelnum, not entnum. */
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum);
@@ -1936,8 +1927,7 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
                 break;
             }
             if (brush_iter) {
-              count++;
-              *out++ = ent_link->entnum;
+              list[count++] = ent_link->entnum;
             }
             AAS_UnlinkFromBSPLeaves(brush_links);
           }
@@ -1971,15 +1961,16 @@ void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
 {
   bsp_epair_t *ep;
   int          klen;
-  int          vlen;
+  int          vlen1;
+  int          vlen2;
 
   for ( ep = *head; ep; ep = ep->next )
   {
     if ( !strcmp(ep->key, key) )
     {
       FreeMemory(ep->value);
-      vlen = strlen(value) + 1;
-      ep->value = (char *)GetMemory(vlen);
+      vlen1 = strlen(value) + 1;
+      ep->value = (char *)GetMemory(vlen1);
       strcpy(ep->value, value);
       return;
     }
@@ -1990,8 +1981,8 @@ void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
   klen = strlen(key) + 1;
   ep->key = (char *)GetMemory(klen);
   strcpy(ep->key, key);
-  vlen = strlen(value) + 1;
-  ep->value = (char *)GetMemory(vlen);
+  vlen2 = strlen(value) + 1;
+  ep->value = (char *)GetMemory(vlen2);
   strcpy(ep->value, value);
 }
 //----- (10006760) --------------------------------------------------------
@@ -2081,7 +2072,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   script = LoadScriptMemory(bspworld.dentdata, bspworld.entdatasize, "entdata");
   SetScriptFlags(script, 12);
   entities = 0;
-  while ( PS_ReadToken(script, token.string) )
+  while ( PS_ReadToken(script, &token) )
   {
     if ( strcmp(token.string, "{") )
     {
@@ -2093,7 +2084,7 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
     ent = (bsp_entity_t *)GetClearedMemory(sizeof(bsp_entity_t));
     ent->next = entities;
     entities = ent;
-    while ( PS_ReadToken(script, token.string) )
+    while ( PS_ReadToken(script, &token) )
     {
       if ( !strcmp(token.string, "}") )
         break;

@@ -222,7 +222,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   {
     /* AngleDifference's FPU return feeds straight into the int conversion and
      * abs: v5 = abs((int)AngleDifference(viewangles[i], ideal_viewangles[i])). */
-    v5 = (float)abs((__int64)AngleDifference(*(v3 - 6), *(v3 - 3)));
+    v5 = (float)abs((int)AngleDifference(*(v3 - 6), *(v3 - 3)));
     if ( v5 > *v3 )
     {
       v6 = v10 + *v3;

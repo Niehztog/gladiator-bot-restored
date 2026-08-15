@@ -422,11 +422,23 @@ void BotUpdateEntityItems(void)
   levelitem_t *li;
   int v7; // eax
   levelitem_t *v13;
-  itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
-  int v19; // [esp+10h] [ebp-108h]
+  /* IDA split this single reused MSVC stack slot into two separate-looking
+   * names (v19/modelindex at the same [esp+10h] offset). The initial
+   * `v4 = v19;` (IDA's decompile shows this exactly once, before the loop,
+   * not refreshed per-iteration) is really a read of this same
+   * not-yet-assigned slot, before the loop's first
+   * `modelindex = AAS_EntityModelindex(ent);` sets it -- declaring them as
+   * distinct locals forces gcc to allocate 2 stack slots instead of 1,
+   * growing the frame by 4 bytes. */
   int modelindex; // [esp+10h] [ebp-108h]
+  itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
   vec3_t dir; // [esp+14h] [ebp-104h] BYREF
-  float entinfo[31]; // [esp+20h] [ebp-F8h] BYREF
+  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast
+   * assignment: writing AAS_EntityInfo()'s struct-by-value return through a
+   * cast to a differently-declared object defeats gcc's return-slot
+   * forwarding, forcing a hidden temp plus an extra 124-byte rep-movs copy
+   * into entinfo (same root cause fixed in AINode_Battle_Fight). */
+  aas_entityinfo_t entinfo; // [esp+20h] [ebp-F8h] BYREF
 
   v0 = levelitems;
   if ( v0 )
@@ -446,17 +458,15 @@ void BotUpdateEntityItems(void)
   ic = itemconfig;
   if ( !itemconfig )
     return;
+  v4 = modelindex;
   ent = AAS_NextBSPEntity(0);
-  if ( !ent )
-    return;
-  v4 = v19;
-  do
+  while ( ent )
   {
     modelindex = AAS_EntityModelindex(ent);
     if ( !modelindex )
       goto LABEL_31;
-    *(aas_entityinfo_t *)entinfo = AAS_EntityInfo(ent);
-    if ( entinfo[4] != entinfo[13] || entinfo[5] != entinfo[14] || entinfo[6] != entinfo[15] )
+    entinfo = AAS_EntityInfo(ent);
+    if ( entinfo.origin[0] != entinfo.lastvisorigin[0] || entinfo.origin[1] != entinfo.lastvisorigin[1] || entinfo.origin[2] != entinfo.lastvisorigin[2] )
       goto LABEL_31;
     li = levelitems;
     if ( !li )
@@ -468,27 +478,28 @@ void BotUpdateEntityItems(void)
       v7 = li->entitynum;
       if ( !v7 )
         break;
-      if ( v7 == ent )
-      {
-        li->origin[0] = entinfo[4];
-        li->origin[1] = entinfo[5];
-        li->origin[2] = entinfo[6];
-        goto LABEL_23;
-      }
+      if ( v7 != ent )
+        goto LABEL_19;
+      li->origin[0] = entinfo.origin[0];
+      li->origin[1] = entinfo.origin[1];
+      li->origin[2] = entinfo.origin[2];
+      goto LABEL_23;
 LABEL_19:
       li = li->next;
       if ( !li )
-        goto LABEL_25;
+        goto LABEL_23;
     }
-    dir[0] = li->origin[0] - entinfo[4];
-    dir[1] = li->origin[1] - entinfo[5];
-    dir[2] = li->origin[2] - entinfo[6];
-    if ( VectorLength(dir) >= 20.0f )
-      goto LABEL_19;
-    li->origin[1] = entinfo[5];
+    dir[0] = li->origin[0] - entinfo.origin[0];
+    dir[1] = li->origin[1] - entinfo.origin[1];
+    dir[2] = li->origin[2] - entinfo.origin[2];
+    if ( 20.0f > VectorLength(dir) )
+      goto LABEL_20;
+    goto LABEL_19;
+LABEL_20:
+    li->origin[1] = entinfo.origin[1];
     li->entitynum = ent;
-    li->origin[0] = entinfo[4];
-    li->origin[2] = entinfo[6];
+    li->origin[0] = entinfo.origin[0];
+    li->origin[2] = entinfo.origin[2];
     li->areanum = AAS_BestReachableArea(
               (int *)li->origin,
               ic->items[v4].mins,
@@ -498,7 +509,6 @@ LABEL_23:
     if ( li )
       goto LABEL_31;
 LABEL_24:
-LABEL_25:
     for ( v4 = 0; v4 < ic->numitems; ++v4 )
     {
       if ( ic->items[v4].modelindex == modelindex )
@@ -509,9 +519,9 @@ LABEL_25:
     v13 = (levelitem_t *)AllocLevelItem();
     v13->entitynum = ent;
     v13->number = numlevelitems + ent;
-    v13->origin[0] = entinfo[4];
-    v13->origin[1] = entinfo[5];
-    v13->origin[2] = entinfo[6];
+    v13->origin[0] = entinfo.origin[0];
+    v13->origin[1] = entinfo.origin[1];
+    v13->origin[2] = entinfo.origin[2];
     v13->iteminfo = v4;
     v13->areanum = AAS_BestReachableArea(
                               (int *)v13->origin,
@@ -523,7 +533,6 @@ LABEL_25:
 LABEL_31:
     ent = AAS_NextBSPEntity(ent);
   }
-  while ( ent );
 }
 //----- (1002FD40) --------------------------------------------------------
 void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
@@ -627,54 +636,48 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   ic = itemconfig;
   if ( !itemconfig )
     return 0;
-  li = levelitems;
   bestweight = 0.0;
   bestitem = 0;
   memset(&goal, 0, sizeof(goal));
-  if ( li )
+  for ( li = levelitems; li; li = li->next )
   {
-    do
+    if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
     {
-      if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
+      v9 = li->areanum;
+      if ( v9 )
       {
-        v9 = li->areanum;
-        if ( v9 )
+        iteminfo = &ic->items[li->iteminfo];
+        weightnum = LTG_IWI[iteminfo->number];
+        if ( weightnum >= 0 )
         {
-          iteminfo = &ic->items[li->iteminfo];
-          weightnum = LTG_IWI[iteminfo->number];
-          if ( weightnum >= 0 )
+          weight = FuzzyWeightUndecided(inventory, &LTG_IWC->weights[weightnum]);
+          if ( weight > 0.0f )
           {
-            weight = FuzzyWeightUndecided(inventory, &LTG_IWC->weights[weightnum]);
-            if ( weight > 0.0f )
+            t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v9, travelflags);
+            if ( t > 0 )
             {
-              t = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(areanum, v9, travelflags);
-              if ( t > 0 )
+              v19 = weight;
+              v13 = v19 / ((float)t * 0.01);
+              if ( li->timeout != 0.0f )
+                v13 = v13 + 20.0f;
+              if ( v13 > bestweight )
               {
-                v19 = weight;
-                v13 = v19 / ((float)t * 0.01);
-                if ( li->timeout != 0.0f )
-                  v13 = v13 + 20.0f;
-                if ( v13 > bestweight )
-                {
-                  bestitem = li;
-                  VectorCopy(li->goalorigin, goal.origin);
-                  VectorCopy(iteminfo->mins, goal.mins);
-                  VectorCopy(iteminfo->maxs, goal.maxs);
-                  goal.areanum = v9;
-                  bestweight = v13;
-                  goal.entitynum = li->entitynum;
-                  goal.number = li->number;
-                  goal.flags = 1;
-                  goal.iteminfo = li->iteminfo;
-                }
+                bestweight = v13;
+                bestitem = li;
+                VectorCopy(li->goalorigin, goal.origin);
+                VectorCopy(iteminfo->mins, goal.mins);
+                VectorCopy(iteminfo->maxs, goal.maxs);
+                goal.areanum = v9;
+                goal.entitynum = li->entitynum;
+                goal.number = li->number;
+                goal.flags = 1;
+                goal.iteminfo = li->iteminfo;
               }
             }
           }
         }
       }
-      li = li->next;
     }
-    while ( li );
   }
   if ( !bestitem )
   {
@@ -749,11 +752,10 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
   ic = itemconfig;
   if ( !ic )
     return 0;
-  li = levelitems;
   bestweight = 0.0;
   bestitem = 0;
   memset(&goal, 0, sizeof(goal));
-  for ( ; li; li = li->next )
+  for ( li = levelitems; li; li = li->next )
   {
           if ( BotAvoidGoalTime(goalstate, li->number) <= 0.0f )
           {

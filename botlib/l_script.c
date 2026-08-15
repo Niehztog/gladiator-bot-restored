@@ -378,9 +378,8 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
   return 1;
 }
 //----- (1003E9F0) --------------------------------------------------------
-int __cdecl PS_ReadName(script_t *script, intptr_t a2)
+int __cdecl PS_ReadName(script_t *script, token_t *token)
 {
-  token_t *token = (token_t *)a2;
   int len = 0;
   char c; // al
 
@@ -403,42 +402,41 @@ int __cdecl PS_ReadName(script_t *script, intptr_t a2)
 //----- (1003EAB0) --------------------------------------------------------
 /* Walks `string` through a plain char* cursor.  Subtype flags: 0x800 = float,
  * 0x8 = decimal, 0x100 = hex, 0x200 = octal, 0x400 = binary. */
-void __cdecl NumberValue(char *string, int subtype, int *intvalue, long double *floatvalue)
+void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long double *floatvalue)
 {
-  char *p;
   unsigned int dotfound = 0;
-  char i;
 
   *intvalue = 0;
   *floatvalue = 0.0;
   if ( (subtype & 0x800) != 0 )
   {
-    for ( p = string; (i = *p) != 0; ++p )
+    while ( *string )
     {
-      if ( i == 46 )
+      if ( *string == 46 )
       {
         if ( dotfound )
           return;
         dotfound = 10;
-        ++p;
+        ++string;
       }
       if ( dotfound )
       {
-        *floatvalue = (double)((*p) - 48) / (double)dotfound + *floatvalue;
+        *floatvalue = (double)(*string - 48) / (double)dotfound + *floatvalue;
         dotfound *= 10;
       }
       else
       {
-        *floatvalue = (double)(i - 48) + *floatvalue * 10.0;
+        *floatvalue = *floatvalue * 10.0 + (long double)(*string - 48);
       }
+      ++string;
     }
-    *intvalue = (int)*floatvalue;
+    *intvalue = (unsigned int)*floatvalue;
   }
   else if ( (subtype & 8) != 0 )
   {
-    for ( p = string; *p; ++p )
-      *intvalue = *p + 10 * *intvalue - 48;
-    *floatvalue = (double)(unsigned int)*intvalue;
+    while ( *string )
+      *intvalue = *intvalue * 10 + (*string++ - 48);
+    *floatvalue = *intvalue;
   }
   else if ( (subtype & 0x100) != 0 )
   {
@@ -454,20 +452,21 @@ void __cdecl NumberValue(char *string, int subtype, int *intvalue, long double *
         *intvalue += *string - '0';
       ++string;
     }
-    *floatvalue = (double)(unsigned int)*intvalue;
+    *floatvalue = *intvalue;
   }
   else if ( (subtype & 0x200) != 0 )
   {
     ++string;
     while ( *string )
       *intvalue = (*intvalue << 3) + (*string++ - '0');
-    *floatvalue = (double)(unsigned int)*intvalue;
+    *floatvalue = *intvalue;
   }
   else if ( (subtype & 0x400) != 0 )
   {
-    for ( p = string + 2; *p; ++p )
-      *intvalue = *p + 2 * *intvalue - 48;
-    *floatvalue = (double)(unsigned int)*intvalue;
+    string += 2;
+    while ( *string )
+      *intvalue = (*intvalue << 1) + (*string++ - 48);
+    *floatvalue = *intvalue;
   }
 }
 //----- (1003ECD0) --------------------------------------------------------
@@ -559,7 +558,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     }
   }
   token->string[len] = 0;
-  NumberValue(token->string, token->subtype, (int *)&token->intvalue, &token->floatvalue);
+  NumberValue(token->string, token->subtype, &token->intvalue, &token->floatvalue);
   if ( (token->subtype & 0x800) == 0 )
     token->subtype |= 0x1000;
   return 1;
@@ -652,12 +651,15 @@ int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
   return 1;
 }
 //----- (1003F2D0) --------------------------------------------------------
-/* Q3's PS_ReadToken(script_t *, token_t *).  Only the first parameter is typed
- * so far; the body still reaches its sub-helpers through (int)script casts. */
-int __cdecl PS_ReadToken(script_t *script, char *Destination)
+/* Q3's PS_ReadToken(script_t *, token_t *): both parameters now properly
+ * typed. Previously the second parameter stayed a raw `char *Destination`
+ * with a local `token_t *token = (token_t *)Destination;` alias -- an extra
+ * stack local caching a parameter that gcc materializes as its own stack
+ * slot(s), 4 bytes bigger than real's frame and shifting every ESP-relative
+ * offset in the function. Typing the parameter directly as `token_t *token`
+ * removes the alias and matches real byte-for-byte. */
+int __cdecl PS_ReadToken(script_t *script, token_t *token)
 {
-  token_t *token = (token_t *)Destination;
-
   if ( script->tokenavailable )
   {
     script->tokenavailable = 0;
@@ -695,9 +697,9 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
        || (*script->script_p >= 'A' && *script->script_p <= 'Z')
        || *script->script_p == '_' )
   {
-    if ( !PS_ReadName(script, (intptr_t)token) ) return 0;
+    if ( !PS_ReadName(script, token) ) return 0;
   }
-  else if ( !PS_ReadPunctuation(script, Destination) )
+  else if ( !PS_ReadPunctuation(script, (char *)token) )
   {
     ScriptError((int)script, "can't read token");
     return 0;
@@ -711,7 +713,7 @@ int __cdecl PS_ReadToken(script_t *script, char *Destination)
 int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
 {
   token_t token;
-  if ( !PS_ReadToken(script, (char *)&token) )
+  if ( !PS_ReadToken(script, &token) )
   {
     ScriptError((int)script, "couldn't find expected %s", string);
     return 0;
@@ -728,7 +730,7 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
 {
   char str[1024]; // [esp+10h] [ebp-400h] BYREF
 
-  if ( !PS_ReadToken(script, (char *)token) )
+  if ( !PS_ReadToken(script, token) )
   {
     ScriptError(script, "couldn't read expected token");
     return 0;
@@ -805,7 +807,7 @@ int __cdecl PS_ExpectAnyToken(int script, int token)
 int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 {
   token_t token;
-  if ( !PS_ReadToken(script, (char *)&token) )
+  if ( !PS_ReadToken(script, &token) )
     return 0;
   if ( strcmp(token.string, string) == 0 )
     return 1;
@@ -819,7 +821,7 @@ int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *out)
 {
   token_t token;
-  if ( !PS_ReadToken(script, (char *)&token) )
+  if ( !PS_ReadToken(script, &token) )
     return 0;
   if ( token.type == type && (token.subtype & subtype) == subtype )
   {
@@ -835,7 +837,7 @@ int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *
 int __cdecl PS_SkipUntilString(script_t *script, const char *string)
 {
   token_t token;
-  while ( PS_ReadToken(script, (char *)&token) )
+  while ( PS_ReadToken(script, &token) )
   {
     if ( strcmp(token.string, string) == 0 )
       return 1;
@@ -1033,9 +1035,9 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   strcpy(script->filename, FileName);
   script->buffer       = (char *)script + sizeof(script_t);
   script->buffer[length] = 0;
+  script->length       = length;
   script->script_p     = script->buffer;
   script->lastscript_p = script->buffer;
-  script->length       = length;
   script->end_p        = script->buffer + length;
   script->tokenavailable = 0;
   script->line         = 1;

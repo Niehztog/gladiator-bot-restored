@@ -817,6 +817,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   aas_link_t *link;
   aas_link_t *next;
   aas_node_t *aasnode;
+  aas_plane_t *plane;
   int *lstack_p;
   int nodenum;
   int type;
@@ -846,14 +847,14 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
       link = AAS_AllocAASLink();
       if ( !link )
         return areas;
-      link->prev_area = NULL;
       link->entnum = entnum;
       link->areanum = -nodenum;
+      link->prev_area = NULL;
       link->next_area = areas;
       if ( areas )
         areas->prev_area = link;
-      link->prev_ent = NULL;
       areas = link;
+      link->prev_ent = NULL;
       link->next_ent = ((aas_link_t **)aasworld.arealinkedentities)[-nodenum];
       next = ((aas_link_t **)aasworld.arealinkedentities)[-nodenum];
       if ( next )
@@ -864,7 +865,8 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     if ( !nodenum )
       continue;
     aasnode = &aasworld.nodes[nodenum];
-    type = aasworld.planes[aasnode->planenum].type;
+    plane = &aasworld.planes[aasnode->planenum];
+    type = plane->type;
     if ( type < 3 )
     {
       /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined: side&1 descends front
@@ -872,16 +874,16 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
        * is the original's and matters behaviourally — inverted, a box straddling
        * the plane classifies as front-only instead of both children, so
        * straddling entities get linked into too few areas. */
-      if ( aasworld.planes[aasnode->planenum].dist <= (float)absmins[type] )
+      if ( plane->dist <= (float)absmins[type] )
         side = 1;
-      else if ( aasworld.planes[aasnode->planenum].dist >= (float)absmaxs[type] )
+      else if ( plane->dist >= (float)absmaxs[type] )
         side = 2;
       else
         side = 3;
     }
     else
     {
-      side = sub_1001C2E0(absmins, absmaxs, aasworld.planes[aasnode->planenum].normal);
+      side = sub_1001C2E0(absmins, absmaxs, plane->normal);
     }
     if ( (side & 1) != 0 )
       *lstack_p++ = aasnode->children[0];

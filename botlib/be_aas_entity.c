@@ -434,7 +434,7 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   vec3_t start;        // [ebp-120h] BYREF — was v28+v29+v30 split locals
   vec3_t dir;          // [ebp-114h] BYREF — was v31[3]
   vec3_t entangles;    // [ebp-108h] BYREF — was v32[3]
-  float trace[21];       // [ebp-FCh] BYREF — aas_trace_t result (84 bytes)
+  bsp_trace_t trace;       // [ebp-FCh] BYREF
 
   v5 = a5;
   ent = &aasworld.entities[a5].i;
@@ -479,11 +479,11 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
       }
       contents_mask ^= 0x38u;
     }
-    *(bsp_trace_t *)trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
+    trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     /* if trace hit a translucent water/slime surface, retrace through it */
-    if ( (LOBYTE(trace[19]) & 0x38) != 0 && (LOBYTE(trace[17]) & 0x30) != 0 )
-      *(bsp_trace_t *)trace = AAS_Trace((&trace[3]), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
-    if ( trace[2] >= 1.0f || LODWORD(trace[20]) == hitent )
+    if ( (LOBYTE(trace.contents) & 0x38) != 0 && (LOBYTE(trace.surface.flags) & 0x30) != 0 )
+      trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
+    if ( trace.fraction >= 1.0f || LODWORD(trace.ent) == hitent )
       return 1;
     /* try alternate z-positions: foot, then head */
     if ( !i )
