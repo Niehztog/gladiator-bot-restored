@@ -13,6 +13,12 @@
  * The include block below is botlib.c's, verbatim, so every macro and typedef
  * this file compiles against is the environment these functions had before the
  * split.
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -38,7 +44,8 @@ memoryblock_t *memory;          /* list head    @0x10063A30 */
 int            totalmemorysize; /* bytes alloc  @0x10063A1C */
 int            numblocks;       /* block count  @0x10063A2C */
 
-//----- (10038F10) --------------------------------------------------------
+// gladiator.dll: 10038F10..10038F37
+// gladi386.so:   0004AA08..0004AA3C
 void LinkMemoryBlock(memoryblock_t *block)
 {
   block->prev = NULL;
@@ -48,7 +55,8 @@ void LinkMemoryBlock(memoryblock_t *block)
   memory = block;
 }
 
-//----- (10038F50) --------------------------------------------------------
+// gladiator.dll: 10038F50..10038F7A
+// gladi386.so:   0004AA3C..0004AA76
 void UnlinkMemoryBlock(memoryblock_t *block)
 {
   if ( block->prev )
@@ -59,7 +67,8 @@ void UnlinkMemoryBlock(memoryblock_t *block)
     block->next->prev = block->prev;
 }
 
-//----- (10038F90) --------------------------------------------------------
+// gladiator.dll: 10038F90..10038FDC
+// gladi386.so:   0004AA78..0004AAEB
 void *__cdecl GetMemory(int size)
 {
   void          *ptr;
@@ -76,7 +85,8 @@ void *__cdecl GetMemory(int size)
   return block->ptr;
 }
 
-//----- (10039000) --------------------------------------------------------
+// gladiator.dll: 10039000..10039028
+// gladi386.so:   0004AAEC..0004AB6F
 void *__cdecl GetClearedMemory(unsigned int size)
 {
   void *ptr = GetMemory((int)size);
@@ -84,7 +94,8 @@ void *__cdecl GetClearedMemory(unsigned int size)
   return ptr;
 }
 
-//----- (10039040) --------------------------------------------------------
+// gladiator.dll: 10039040..1003908B
+// gladi386.so:   0004AB70..0004ABCE
 /* Q3's BlockFromPointer.  The real list-unlink helper is sub_10038F50. */
 /* Not `static`: gladi386.so exports this (it is one of the 809 .dynsym
  * FUNCs), and gcc 2.7.2.3 inlines a `static` with few call sites, which
@@ -109,7 +120,8 @@ memoryblock_t *BlockFromPointer(void *ptr, const char *str)
   return block;
 }
 
-//----- (100390B0) --------------------------------------------------------
+// gladiator.dll: 100390B0..100390F7
+// gladi386.so:   0004ABD0..0004AC82
 /* Void in Q3; the apparent `int` return is just the
  * `totalmemorysize - block->size` the epilogue leaves in eax.  The `int`
  * signature is kept so the ~25 `return FreeMemory(x);` call sites still
@@ -126,7 +138,8 @@ int __cdecl FreeMemory(void *ptr)
   }
 }
 
-//----- (10039120) --------------------------------------------------------
+// gladiator.dll: 10039120..1003913B
+// gladi386.so:   0004AC84..0004ACF6
 int __cdecl MemoryByteSize(void *ptr)
 {
   memoryblock_t *block = BlockFromPointer(ptr, "MemoryByteSize");
@@ -135,14 +148,16 @@ int __cdecl MemoryByteSize(void *ptr)
   return block->size;
 }
 
-//----- (10039150) --------------------------------------------------------
+// gladiator.dll: 10039150..1003917E
+// gladi386.so:   0004ACF8..0004AD43
 void PrintUsedMemorySize(void)
 {
   botimport.Print(PRT_MESSAGE, "total botlib memory: %d KB\n", totalmemorysize >> 10);
   botimport.Print(PRT_MESSAGE, "total memory blocks: %d\n", numblocks);
 }
 
-//----- (10039190) --------------------------------------------------------
+// gladiator.dll: 10039190..100391A6
+// gladi386.so:   0004AD44..0004ADA2
 /* Q3 name: `PrintMemoryLabels`.  Gladiator stripped the MEMDEBUG payload,
  * leaving an empty for-walk over the block list. */
 void PrintMemoryLabels(void)
@@ -153,7 +168,8 @@ void PrintMemoryLabels(void)
     ;
 }
 
-//----- (100391C0) --------------------------------------------------------
+// gladiator.dll: 100391C0..100391E9
+// gladi386.so:   0004ADA4..0004ADDA
 void DumpMemory(void)
 {
   memoryblock_t *block;

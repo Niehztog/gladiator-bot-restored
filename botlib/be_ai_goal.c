@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -69,7 +75,8 @@ levelitem_t *levelitemheap;  // 0x10064358 pool base          (be_ai_goal.c; was
 itemconfig_t *itemconfig; /* current item config (was dword_1006435C) */
 levelitem_t *levelitems;     // 0x10064360 active-list head   (be_ai_goal.c; was dword_10064360)
 
-//----- (1002ED20) --------------------------------------------------------
+// gladiator.dll: 1002ED20..1002F027
+// gladi386.so:   0003E030..0003E338
 itemconfig_t * LoadItemConfig(char *filename)
 {
   int max_iteminfo;
@@ -158,7 +165,8 @@ itemconfig_t * LoadItemConfig(char *filename)
     botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
 }
-//----- (1002F100) --------------------------------------------------------
+// gladiator.dll: 1002F100..1002F171
+// gladi386.so:   0003E338..0003E3C2
 int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
 {
   int *index; // eax / [esp+10h] [ebp+8h]
@@ -174,7 +182,8 @@ int *__cdecl ItemWeightIndex(weightconfig_t *iwc, itemconfig_t *ic)
   }
   return index;
 }
-//----- (1002F1A0) --------------------------------------------------------
+// gladiator.dll: 1002F1A0..1002F231
+// gladi386.so:   0003E3C4..0003E54B
 void InitLevelItemHeap()
 {
   int max_levelitems;
@@ -193,7 +202,8 @@ void InitLevelItemHeap()
   levelitemheap[max_levelitems - 1].next = NULL;
   freelevelitems = levelitemheap;
 }
-//----- (1002F270) --------------------------------------------------------
+// gladiator.dll: 1002F270..1002F296
+// gladi386.so:   0003E54C..0003E589
 _DWORD *__cdecl AllocLevelItem(void)
 {
   levelitem_t *result;
@@ -207,13 +217,15 @@ _DWORD *__cdecl AllocLevelItem(void)
   freelevelitems = result->next;
   return (_DWORD *)result;
 }
-//----- (1002F2B0) --------------------------------------------------------
+// gladiator.dll: 1002F2B0..1002F2C3
+// gladi386.so:   0003E58C..0003E5B2
 void __cdecl FreeLevelItem(levelitem_t *li)
 {
   li->next = freelevelitems;
   freelevelitems = li;
 }
-//----- (1002F2E0) --------------------------------------------------------
+// gladiator.dll: 1002F2E0..1002F307
+// gladi386.so:   0003E5B4..0003E5F0
 levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li)
 {
   if ( levelitems )
@@ -222,7 +234,8 @@ levelitem_t *__cdecl AddLevelItemToList(levelitem_t *li)
   li->next = levelitems;
   levelitems = li;
 }
-//----- (1002F320) --------------------------------------------------------
+// gladiator.dll: 1002F320..1002F34A
+// gladi386.so:   0003E5F0..0003E62A
 levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
 {
   levelitem_t *prev;
@@ -237,7 +250,8 @@ levelitem_t *__cdecl RemoveLevelItemFromList(levelitem_t *li)
   if ( next )
     next->prev = li->prev;
 }
-//----- (1002F360) --------------------------------------------------------
+// gladiator.dll: 1002F360..1002F5E6
+// gladi386.so:   0003E62C..0003E96E
 void BotInitLevelItems()
 {
   /* ic declared last of the pointer/int scalars (reverse-declaration-order
@@ -327,7 +341,8 @@ void BotInitLevelItems()
 done:
   ;
 }
-//----- (1002F6A0) --------------------------------------------------------
+// gladiator.dll: 1002F6A0..1002F6DA
+// gladi386.so:   0003E970..0003E9CF
 char *__cdecl BotGoalName(int number)
 {
   levelitem_t *v1;
@@ -341,13 +356,15 @@ char *__cdecl BotGoalName(int number)
   }
   return "";
 }
-//----- (1002F6F0) --------------------------------------------------------
+// gladiator.dll: 1002F6F0..1002F713
+// gladi386.so:   0003E9D0..0003EA0E
 void __cdecl BotResetAvoidGoals(bot_goalstate_t *goalstate)
 {
   memset(goalstate->avoidgoals, 0, sizeof(goalstate->avoidgoals));
   memset(goalstate->avoidgoaltimes, 0, sizeof(goalstate->avoidgoaltimes));
 }
-//----- (1002F730) --------------------------------------------------------
+// gladiator.dll: 1002F730..1002F789
+// gladi386.so:   0003EA10..0003EB46
 void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate)
 {
   int i;
@@ -361,7 +378,8 @@ void __cdecl BotDumpAvoidGoals(bot_goalstate_t *goalstate)
     }
   }
 }
-//----- (1002F7B0) --------------------------------------------------------
+// gladiator.dll: 1002F7B0..1002F7F9
+// gladi386.so:   0003EB48..0003EC11
 void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime)
 {
   int v3; // esi
@@ -376,7 +394,8 @@ void __cdecl BotAddToAvoidGoals(bot_goalstate_t *gs, int number, float avoidtime
     }
   }
 }
-//----- (1002F820) --------------------------------------------------------
+// gladiator.dll: 1002F820..1002F86F
+// gladi386.so:   0003EC14..0003ECF7
 float __cdecl BotAvoidGoalTime(bot_goalstate_t *goalstate, int number)
 {
   int i;
@@ -390,7 +409,8 @@ float __cdecl BotAvoidGoalTime(bot_goalstate_t *goalstate, int number)
   }
   return 0.0f;
 }
-//----- (1002F890) --------------------------------------------------------
+// gladiator.dll: 1002F890..1002F9C5
+// gladi386.so:   0003ECF8..0003EE40
 int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 {
   levelitem_t *li;
@@ -412,7 +432,8 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
   }
   return -1;
 }
-//----- (1002FA20) --------------------------------------------------------
+// gladiator.dll: 1002FA20..1002FC9F
+// gladi386.so:   0003EE40..0003F195
 void BotUpdateEntityItems(void)
 {
   levelitem_t *v0;
@@ -534,7 +555,8 @@ LABEL_31:
     ent = AAS_NextBSPEntity(ent);
   }
 }
-//----- (1002FD40) --------------------------------------------------------
+// gladiator.dll: 1002FD40..1002FD80
+// gladi386.so:   0003F198..0003F22F
 void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
 {
   int i; // esi
@@ -544,7 +566,8 @@ void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
     Log_Write("%d: %s", i, BotGoalName(goalstate->goalstack[i].number));
   }
 }
-//----- (1002FD90) --------------------------------------------------------
+// gladiator.dll: 1002FD90..1002FDDB
+// gladi386.so:   0003F230..0003F328
 int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
 {
   int v2; // eax
@@ -562,7 +585,8 @@ int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
   memcpy(&goalstate->goalstack[result], goal, sizeof(bot_goal_t));
   return result;
 }
-//----- (1002FE00) --------------------------------------------------------
+// gladiator.dll: 1002FE00..1002FE16
+// gladi386.so:   0003F328..0003F33E
 int __cdecl BotPopGoal(bot_goalstate_t *goalstate)
 {
   int result; // eax
@@ -572,12 +596,14 @@ int __cdecl BotPopGoal(bot_goalstate_t *goalstate)
     goalstate->goalstacktop = --result;
   return result;
 }
-//----- (1002FE30) --------------------------------------------------------
+// gladiator.dll: 1002FE30..1002FE3F
+// gladi386.so:   0003F340..0003F34F
 void __cdecl BotEmptyGoalStack(bot_goalstate_t *goalstate)
 {
   goalstate->goalstacktop = 0;
 }
-//----- (1002FE50) --------------------------------------------------------
+// gladiator.dll: 1002FE50..1002FE6D
+// gladi386.so:   0003F350..0003F36F
 void *__cdecl BotGetTopGoal(bot_goalstate_t *goalstate)
 {
   int result; // eax
@@ -587,7 +613,8 @@ void *__cdecl BotGetTopGoal(bot_goalstate_t *goalstate)
     return (void *)(intptr_t)result;
   return &goalstate->goalstack[result];
 }
-//----- (1002FE80) --------------------------------------------------------
+// gladiator.dll: 1002FE80..1002FEA0
+// gladi386.so:   0003F370..0003F38F
 void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate)
 {
   int v1; // eax
@@ -597,7 +624,8 @@ void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate)
     return 0;
   return &goalstate->goalstack[v1 - 1];
 }
-//----- (1002FEB0) --------------------------------------------------------
+// gladiator.dll: 1002FEB0..1003019A
+// gladi386.so:   0003F390..0003F7E0
 int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags)
 {
   levelitem_t *li; // esi (was v8)
@@ -709,7 +737,8 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
 }
 #undef LTG_IWC
 #undef LTG_IWI
-//----- (10030260) --------------------------------------------------------
+// gladiator.dll: 10030260..1003053B
+// gladi386.so:   0003F7E0..0003FC58
 int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
   int v9; // esi
@@ -819,7 +848,8 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
 }
 #undef NBG_IWC
 #undef NBG_IWI
-//----- (10030600) --------------------------------------------------------
+// gladiator.dll: 10030600..10030715
+// gladi386.so:   0003FC58..0003FDE2
 int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 {
   int i; // edx
@@ -850,7 +880,8 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
   }
   return 1;
 }
-//----- (10030770) --------------------------------------------------------
+// gladiator.dll: 10030770..10030873
+// gladi386.so:   0003FDE4..0003FECA
 /* BotItemGoalInVisButNotVisible — true when the goal item's bbox centre is
  * visible from the bot's eye but the goal entity is not currently being updated
  * by the engine.  `trace` and `entinfo` have non-overlapping lifetimes, so
@@ -884,7 +915,8 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
   }
   return 0;
 }
-//----- (100308D0) --------------------------------------------------------
+// gladiator.dll: 100308D0..10030921
+// gladi386.so:   0003FECC..0003FFBB
 int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename)
 {
   weightconfig_t *v2;
@@ -901,7 +933,8 @@ int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename)
   BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, itemconfig);
   return BLERR_NOERROR;
 }
-//----- (10030950) --------------------------------------------------------
+// gladiator.dll: 10030950..10030974
+// gladi386.so:   0003FFBC..0003FFF0
 void __cdecl BotFreeItemWeights(bot_goalstate_t *goalstate)
 {
   if ( BotGoalHandleP0(goalstate) )
@@ -909,14 +942,16 @@ void __cdecl BotFreeItemWeights(bot_goalstate_t *goalstate)
   if ( BotGoalHandleP1(goalstate) )
     FreeMemory(BotGoalHandleP1(goalstate));
 }
-//----- (10030990) --------------------------------------------------------
+// gladiator.dll: 10030990..100309B2
+// gladi386.so:   0003FFF0..0004004B
 void __cdecl BotResetGoalState(bot_goalstate_t *goalstate)
 {
   memset(goalstate->goalstack, 0, sizeof(goalstate->goalstack));
   goalstate->goalstacktop = 0;
   BotResetAvoidGoals(goalstate);
 }
-//----- (100309D0) --------------------------------------------------------
+// gladiator.dll: 100309D0..10030A0A
+// gladi386.so:   0004004C..000400A8
 int BotSetupGoalAI()
 {
   char *filename; // eax
@@ -930,7 +965,8 @@ int BotSetupGoalAI()
   }
   return BLERR_NOERROR;
 }
-//----- (10030A20) --------------------------------------------------------
+// gladiator.dll: 10030A20..10030A3D
+// gladi386.so:   000400A8..000400D8
 void BotShutdownGoalAI(void)
 {
   if ( itemconfig )

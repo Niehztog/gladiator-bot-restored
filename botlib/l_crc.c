@@ -12,6 +12,12 @@
  * The include block below is botlib.c's, verbatim, so every macro and typedef
  * this file compiles against is the environment these functions had before the
  * split.
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -342,7 +348,8 @@ __int16 crctable[308] =
   0
 }; // weak
 
-//----- (100385B0) --------------------------------------------------------
+// gladiator.dll: 100385B0..100385BA
+// gladi386.so:   00049CA4..00049CAE
 _WORD *__cdecl CRC_Init(_WORD *crcvalue)
 {
   _WORD *result; // eax
@@ -352,7 +359,8 @@ _WORD *__cdecl CRC_Init(_WORD *crcvalue)
   return result;
 }
 
-//----- (100385D0) --------------------------------------------------------
+// gladiator.dll: 100385D0..10038605
+// gladi386.so:   00049CB0..00049CE6
 // Standard CCITT CRC-16 single-byte update
 // against the lookup table at crctable.  Mirrors Q3 CRC_ProcessByte.
 // Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
@@ -362,13 +370,15 @@ void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 	 *crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data];
 }
 
-//----- (10038620) --------------------------------------------------------
+// gladiator.dll: 10038620..10038626
+// gladi386.so:   00049CE8..00049CEE
 unsigned short __cdecl CRC_Value(unsigned short crcvalue)
 {
   return crcvalue;
 }
 
-//----- (10038640) --------------------------------------------------------
+// gladiator.dll: 10038640..100386B7
+// gladi386.so:   00049CF0..00049E7E
 unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
 {
   unsigned __int16 crcvalue;
@@ -385,7 +395,8 @@ unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
   return CRC_Value(crcvalue);
 }
 
-//----- (100386E0) --------------------------------------------------------
+// gladiator.dll: 100386E0..1003872D
+// gladi386.so:   00049E80..00049FE5
 // Restored dead stub:
 // CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte
 // transform as CRC_ProcessByte in a tight loop and writing the result back

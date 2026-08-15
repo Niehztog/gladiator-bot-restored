@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -95,7 +101,8 @@ structdef_t projectileinfo_struct = { 208, projectileinfo_fields };
 
 weaponconfig_t *weaponconfig; /* current weapon config (was dword_10064080) */
 
-//----- (10034BB0) --------------------------------------------------------
+// gladiator.dll: 10034BB0..10035111
+// gladi386.so:   00045AA8..00046020
 weaponconfig_t * LoadWeaponConfig(char *filename)
 {
   int max_weaponinfo, max_projectileinfo;
@@ -234,7 +241,8 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
     botimport.Print(PRT_MESSAGE, "loaded %s\n", path);
   return wc;
 }
-//----- (10035280) --------------------------------------------------------
+// gladiator.dll: 10035280..100352D6
+// gladi386.so:   00046020..0004609B
 _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 {
   _DWORD *result;
@@ -245,7 +253,8 @@ _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
     result[i] = FindFuzzyWeight(wwc, wc->weaponinfo[i].name);
   return result;
 }
-//----- (10035300) --------------------------------------------------------
+// gladiator.dll: 10035300..10035325
+// gladi386.so:   0004609C..000460D1
 void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate)
 {
   if ( weaponstate->weightconfig )
@@ -253,7 +262,8 @@ void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate)
   if ( weaponstate->itemweights )
     FreeMemory(weaponstate->itemweights);
 }
-//----- (10035340) --------------------------------------------------------
+// gladiator.dll: 10035340..1003539D
+// gladi386.so:   000460D4..000461E0
 int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *filename)
 {
   BotFreeWeaponWeights(weaponstate);
@@ -268,7 +278,8 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *fil
   weaponstate->itemweights = WeaponWeightIndex(weaponstate->weightconfig, weaponconfig);
   return 0;
 }
-//----- (100353C0) --------------------------------------------------------
+// gladiator.dll: 100353C0..1003540E
+// gladi386.so:   000461E0..0004625A
 /* Case-insensitive lookup of a weapon by model name, returning its `number`,
  * or -1 if the config is unloaded, empty or has no match.  Sibling of
  * sub_10035430.  DEAD in Gladiator. */
@@ -289,7 +300,8 @@ int __cdecl sub_100353C0(const char *modelname)
   }
   return -1;
 }
-//----- (10035430) --------------------------------------------------------
+// gladiator.dll: 10035430..10035481
+// gladi386.so:   0004625C..000462DB
 /* As sub_100353C0, but returns the weapon's name, or "unknown weapon" on a
  * miss.  DEAD in Gladiator. */
 const char *__cdecl sub_10035430(const char *modelname)
@@ -310,7 +322,8 @@ const char *__cdecl sub_10035430(const char *modelname)
   }
   return default_name;
 }
-//----- (100354B0) --------------------------------------------------------
+// gladiator.dll: 100354B0..100354E1
+// gladi386.so:   000462DC..0004631C
 weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
 {
   int v1; // ecx
@@ -322,7 +335,8 @@ weaponinfo_t *__cdecl sub_100354B0(bot_weaponstate_t *ws)
     return 0;
   return &weaponconfig->weaponinfo[v1];
 }
-//----- (10035500) --------------------------------------------------------
+// gladiator.dll: 10035500..100355FE
+// gladi386.so:   0004631C..00046463
 void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
 {
   weaponconfig_t *wc; // ebp
@@ -379,7 +393,8 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
     }
   }
 }
-//----- (10035640) --------------------------------------------------------
+// gladiator.dll: 10035640..10035662
+// gladi386.so:   00046464..00046496
 void __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
 {
   weightconfig_t *weightconfig; // esi
@@ -395,7 +410,8 @@ void __cdecl BotResetWeaponState(bot_weaponstate_t *weaponstate)
   weaponstate->weightconfig = weightconfig;
   weaponstate->itemweights = itemweights;
 }
-//----- (10035680) --------------------------------------------------------
+// gladiator.dll: 10035680..100356BA
+// gladi386.so:   00046498..000464F4
 int BotSetupWeaponAI()
 {
 
@@ -410,7 +426,8 @@ int BotSetupWeaponAI()
   }
   return BLERR_NOERROR;
 }
-//----- (100356D0) --------------------------------------------------------
+// gladiator.dll: 100356D0..100356ED
+// gladi386.so:   000464F4..00046524
 void BotShutdownWeaponAI(void)
 {
   if ( weaponconfig )

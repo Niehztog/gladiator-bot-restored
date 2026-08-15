@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -166,7 +172,8 @@ struct scriptcrc_s *dword_10063F2C; // weak
  * addresses falls inside this TU's range, and Q3's be_interface.c holds the
  * same wrappers next to GetBotLibAPI, so they are back where they belong. */
 
-//----- (100376B0) --------------------------------------------------------
+// gladiator.dll: 100376B0..10037791
+// gladi386.so:   00048980..00048A76
 /* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C
  * list: on a name hit return the strcmpi result of that record, else allocate a
  * scriptcrc_t, store hash+name and insert it alphabetically. */
@@ -228,7 +235,8 @@ LABEL_14:
   { (void)(result); return; }
 }
 
-//----- (100377E0) --------------------------------------------------------
+// gladiator.dll: 100377E0..1003780C
+// gladi386.so:   00048A78..00048B74
 int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
 {
   _WORD *v2;
@@ -244,7 +252,8 @@ int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
   return 256;
 }
 
-//----- (10037820) --------------------------------------------------------
+// gladiator.dll: 10037820..1003783E
+// gladi386.so:   00048B74..00048BA7
 /* CRC-hash the buffer and register the (name, crc) pair — byte-identical to
  * sub_10037850 below; /INCREMENTAL kept two compiled copies of the same
  * source function. */
@@ -256,7 +265,8 @@ int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
   return sub_100377E0(name, crc);
 }
 
-//----- (10037850) --------------------------------------------------------
+// gladiator.dll: 10037850..1003786E
+// gladi386.so:   00048BA8..00048BDB
 int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
   unsigned short v3; // ax
@@ -265,7 +275,8 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
   return sub_100377E0(String1, v3);
 }
 
-//----- (10037880) --------------------------------------------------------
+// gladiator.dll: 10037880..100378AE
+// gladi386.so:   00048BDC..00048C1C
 // Walks the dword_10063F2C scriptcrc linked
 // list and Log_Write's each entry as a C array initializer line:
 //   \t{0x%04X, 1}, //name
@@ -280,13 +291,15 @@ void __cdecl sub_10037880(void)
     Log_Write("\t{0x%04X, 1}, //%s", (unsigned int)(unsigned __int16)p->hash, p->name);
 }
 
-//----- (100378C0) --------------------------------------------------------
+// gladiator.dll: 100378C0..100378E5
+// gladi386.so:   00048C1C..00048C38
 int Sys_MilliSeconds()
 {
   return clock() * 1000 / CLOCKS_PER_SEC;
 }
 
-//----- (10037900) --------------------------------------------------------
+// gladiator.dll: 10037900..10037932
+// gladi386.so:   00048C38..00048C90
 /* Q3's form, and the two are NOT interchangeable: the guarded-Print shape puts
  * the Print in the fall-through and the `return 1` epilogue at the cold end,
  * which is what gladi386.so has.  The inverted `if (ok) return 1;` spelling
@@ -302,7 +315,8 @@ qboolean __cdecl ValidClientNumber(int num, const char *str)
   return 1;
 }
 
-//----- (10037950) --------------------------------------------------------
+// gladiator.dll: 10037950..10037982
+// gladi386.so:   00048C90..00048CE8
 qboolean __cdecl ValidEntityNumber(int num, const char *str)
 {
   if ( num < 0 || num > botstate.num_entities )
@@ -313,7 +327,8 @@ qboolean __cdecl ValidEntityNumber(int num, const char *str)
   return 1;
 }
 
-//----- (100379A0) --------------------------------------------------------
+// gladiator.dll: 100379A0..100379C7
+// gladi386.so:   00048CE8..00048D27
 qboolean __cdecl BotLibSetup(const char *str)
 {
   if ( !botstate.setup )
@@ -325,13 +340,15 @@ qboolean __cdecl BotLibSetup(const char *str)
 }
 
 /* ---- SLOT 0 — BotVersion ------------------------------------------------ */
-//----- (100379E0) --------------------------------------------------------
+// gladiator.dll: 100379E0..100379E6
+// gladi386.so:   00048D28..00048D3D
 char *Export_BotVersion(void)
 {
     return "BotLib v0.96";
 }
 
-//----- (10037A00) --------------------------------------------------------
+// gladiator.dll: 10037A00..10037B47
+// gladi386.so:   00048D40..00048F33
 void BotSetupMoveAI()
 {
   libvar_sv_friction = LibVar("sv_friction", (char *)"6");
@@ -353,7 +370,8 @@ void BotSetupMoveAI()
 }
 
 /* ---- SLOT 1 — BotSetupLibrary (0x10037BB0) ------------------------------ */
-//----- (10037BB0) --------------------------------------------------------
+// gladiator.dll: 10037BB0..10037CA6
+// gladi386.so:   00048F34..00049066
 int Export_BotSetupLibrary(void)
 {
 #ifndef _WIN32
@@ -398,7 +416,8 @@ int Export_BotSetupLibrary(void)
 }
 
 /* ---- SLOT 2 — BotShutdownLibrary (0x10037CF0) --------------------------- */
-//----- (10037CF0) --------------------------------------------------------
+// gladiator.dll: 10037CF0..10037D56
+// gladi386.so:   00049068..000490FC
 int Export_BotShutdownLibrary(void)
 {
     if (!botstate.setup) {
@@ -424,7 +443,8 @@ int Export_BotShutdownLibrary(void)
 }
 
 /* ---- SLOT 3 — BotLibraryInitialized (0x10037D80); tail-jmp AAS_Initialized */
-//----- (10037D80) --------------------------------------------------------
+// gladiator.dll: 10037D80..10037D85
+// gladi386.so:   000490FC..00049110
 int Export_BotLibraryInitialized(void)
 {
     return AAS_Initialized();
@@ -432,7 +452,8 @@ int Export_BotLibraryInitialized(void)
 
 /* ---- SLOT 4 — BotLibVarSet (0x10037DA0).  Returns 0 unconditionally; the
  * original has no null-check. --------------------------------------------- */
-//----- (10037DA0) --------------------------------------------------------
+// gladiator.dll: 10037DA0..10037DB5
+// gladi386.so:   00049110..00049133
 int Export_BotLibVarSet(char *var_name, char *value)
 {
     LibVarSet(var_name, value);
@@ -440,7 +461,8 @@ int Export_BotLibVarSet(char *var_name, char *value)
 }
 
 /* ---- SLOT 5 — BotDefine (0x10037DD0) ----------------------------------- */
-//----- (10037DD0) --------------------------------------------------------
+// gladiator.dll: 10037DD0..10037DF7
+// gladi386.so:   00049134..00049170
 int Export_BotDefine(char *string)
 {
     if (!PC_AddGlobalDefine(string))
@@ -450,7 +472,8 @@ int Export_BotDefine(char *string)
 
 /* ---- SLOT 6 — BotLoadMap (0x10037E10).  A NULL mapname is the unload
  * path. ------------------------------------------------------------------- */
-//----- (10037E10) --------------------------------------------------------
+// gladiator.dll: 10037E10..10037EC3
+// gladi386.so:   00049170..00049255
 int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
                      int soundindexes, char **soundindex,
                      int imageindexes, char **imageindex)
@@ -487,7 +510,8 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
 }
 
 /* ---- SLOT 7 — BotSetupClient (0x10037F00) ------------------------------ */
-//----- (10037F00) --------------------------------------------------------
+// gladiator.dll: 10037F00..10037F47
+// gladi386.so:   00049258..0004930D
 int Export_BotSetupClient(int client, void *settings)
 {
     int r;
@@ -502,7 +526,8 @@ fail:
 }
 
 /* ---- SLOT 8 — BotShutdownClient (0x10037F70) --------------------------- */
-//----- (10037F70) --------------------------------------------------------
+// gladiator.dll: 10037F70..10037FB1
+// gladi386.so:   00049310..000493C0
 int Export_BotShutdownClient(int client)
 {
     if (!BotLibSetup("BotShutdownClient")) return 1;
@@ -511,7 +536,8 @@ int Export_BotShutdownClient(int client)
 }
 
 /* ---- SLOT 9 — BotMoveClient (0x10037FE0) ------------------------------- */
-//----- (10037FE0) --------------------------------------------------------
+// gladiator.dll: 10037FE0..10038044
+// gladi386.so:   000493C0..000494C5
 int Export_BotMoveClient(int oldclnum, int newclnum)
 {
     if (!BotLibSetup("BotMoveClient")) return 1;
@@ -521,7 +547,8 @@ int Export_BotMoveClient(int oldclnum, int newclnum)
 }
 
 /* ---- SLOT 10 — BotClientSettings (0x10038070); body at 0x10029920 ------ */
-//----- (10038070) --------------------------------------------------------
+// gladiator.dll: 10038070..100380B6
+// gladi386.so:   000494C8..0004957D
 int Export_BotClientSettings(int client, void *settings)
 {
     if (!BotLibSetup("BotClientSettings")) return 1;
@@ -530,7 +557,8 @@ int Export_BotClientSettings(int client, void *settings)
 }
 
 /* ---- SLOT 11 — BotSettings (0x100380E0); body at 0x100299D0 ------------ */
-//----- (100380E0) --------------------------------------------------------
+// gladiator.dll: 100380E0..10038126
+// gladi386.so:   00049580..00049635
 int Export_BotSettings(int client, void *settings)
 {
     if (!BotLibSetup("BotSettings")) return 1;
@@ -541,7 +569,8 @@ int Export_BotSettings(int client, void *settings)
 /* Slots 12, 17 and 18 live in botlib.c (0x10038150 / 0x10038380 /
  * 0x100383F0). */
 
-//----- (10038150) --------------------------------------------------------
+// gladiator.dll: 10038150..1003817C
+// gladi386.so:   00049638..0004969F
 int __cdecl Export_BotLibStartFrame(float time)
 {
   if ( !BotLibSetup("BotStartFrame") )
@@ -551,7 +580,8 @@ int __cdecl Export_BotLibStartFrame(float time)
 }
 
 /* ---- SLOT 13 — BotUpdateClient (0x10038190) ---------------------------- */
-//----- (10038190) --------------------------------------------------------
+// gladiator.dll: 10038190..100381D6
+// gladi386.so:   000496A0..00049755
 int Export_BotUpdateClient(int client, void *buc)
 {
     if (!BotLibSetup("BotUpdateClient")) return 1;
@@ -560,7 +590,8 @@ int Export_BotUpdateClient(int client, void *buc)
 }
 
 /* ---- SLOT 14 — BotUpdateEntity (0x10038200) ---------------------------- */
-//----- (10038200) --------------------------------------------------------
+// gladiator.dll: 10038200..10038246
+// gladi386.so:   00049758..0004980D
 int Export_BotUpdateEntity(int ent, void *bue)
 {
     if (!BotLibSetup("BotUpdateEntity")) return 1;
@@ -572,7 +603,8 @@ int Export_BotUpdateEntity(int ent, void *bue)
  * "BotUpdateSound".  volume/attenuation/timeofs all reach sub_1001CE20 as
  * plain floats (matches game/botlib.h's BotAddSound(vec3_t, int, int, int,
  * float, float, float) export signature verbatim). ---- */
-//----- (10038270) --------------------------------------------------------
+// gladiator.dll: 10038270..100382CF
+// gladi386.so:   00049810..000498F5
 int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
                        float volume, float attenuation, float timeofs)
 {
@@ -585,7 +617,8 @@ int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
 }
 
 /* ---- SLOT 16 — BotAddPointLight (0x100382F0); floats passed as bits ---- */
-//----- (100382F0) --------------------------------------------------------
+// gladiator.dll: 100382F0..10038354
+// gladi386.so:   000498F8..000499CD
 int Export_BotAddPointLight(int *origin, int ent, float radius,
                             float r, float g, float b,
                             float time, float decay)
@@ -601,7 +634,8 @@ int Export_BotAddPointLight(int *origin, int ent, float radius,
     return BotAddPointLight((vec_t *)origin, ent, radius, r, g, b, time, decay);
 }
 
-//----- (10038380) --------------------------------------------------------
+// gladiator.dll: 10038380..100383C6
+// gladi386.so:   000499D0..00049A84
 int Export_BotLibAI(int a1, float a2)
 {
   if ( !BotLibSetup("BotAI") )
@@ -611,7 +645,8 @@ int Export_BotLibAI(int a1, float a2)
   return Export_BotAIFrame(a1, a2);
 }
 
-//----- (100383F0) --------------------------------------------------------
+// gladiator.dll: 100383F0..1003843B
+// gladi386.so:   00049A84..00049B46
 int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 {
   if ( !BotLibSetup("BotConsoleMessage") )
@@ -622,14 +657,16 @@ int __cdecl Export_BotLibConsoleMessage(int client, int a2, char *message)
 }
 
 /* ---- SLOT 19 — Test (0x10038460); returns 0 ---------------------------- */
-//----- (10038460) --------------------------------------------------------
+// gladiator.dll: 10038460..10038463
+// gladi386.so:   00049B48..00049B4B
 int Export_Test(int parm0, char *parm1, float *parm2, float *parm3)
 {
     (void)parm0; (void)parm1; (void)parm2; (void)parm3;
     return 0;
 }
 
-//----- (10038480) --------------------------------------------------------
+// gladiator.dll: 10038480..10038562
+// gladi386.so:   00049B4C..00049CA2
 /* The original ends with a plain `ret`, not `ret 4`, so this export is __cdecl
  * even though gladq2_src/bl_main.c declares the function pointer WINAPI.  Both
  * sides are individually faithful; the mismatch is authentic. */

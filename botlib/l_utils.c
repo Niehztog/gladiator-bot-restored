@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -60,7 +66,8 @@ HMODULE hLibModule; // idb
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
                 * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and
                 * no zlib); .aas files are loaded directly by BotLibLoadMap. */
-//----- (10041240) --------------------------------------------------------
+// gladiator.dll: 10041240..1004151C
+// gladi386.so:   absent
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 {
   HGLOBAL v3; // eax
@@ -163,12 +170,14 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
 }
 // 1006296C: resolved to LPDCL dword_1006296C (UnZip windll option block)
 // 100639F0: resolved to LPUSERFUNCTIONS dword_100639F0 (UnZip windll callback table)
-//----- (100415E0) --------------------------------------------------------
+// gladiator.dll: 100415E0..100415E8
+// gladi386.so:   absent
 int __stdcall sub_100415E0(int a1)
 {
   return 1;
 }
-//----- (10041600) --------------------------------------------------------
+// gladiator.dll: 10041600..1004163A
+// gladi386.so:   absent
 /* void: ref 10041600 falls through to one bare `pop edi; pop esi; ret`. */
 void sub_10041600(void)
 {
@@ -184,7 +193,8 @@ void sub_10041600(void)
     GlobalFree(dword_10062968);
   }
 }
-//----- (10041650) --------------------------------------------------------
+// gladiator.dll: 10041650..1004166F
+// gladi386.so:   absent
 /* Cached MSVC _osplatform-style helper: 1 on Windows NT (top bit of
  * GetVersion() clear), 0 on Windows 9x.  The cache slot starts at -1.
  * DEAD in Gladiator. */
@@ -195,7 +205,8 @@ static int sub_10041650(void)
     cached = 1; /* GetVersion unavailable cross-platform; dead code anyway */
   return (int)cached;
 }
-//----- (10041680) --------------------------------------------------------
+// gladiator.dll: 10041680..1004170A
+// gladi386.so:   absent
 LPSTR __stdcall sub_10041680(
         unsigned int a1,
         unsigned int a2,
@@ -238,12 +249,14 @@ LPSTR __stdcall sub_10041680(
   return buf;
 #endif
 }
-//----- (10041740) --------------------------------------------------------
+// gladiator.dll: 10041740..10041748
+// gladi386.so:   absent
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4)
 {
   return 1;
 }
-//----- (10041760) --------------------------------------------------------
+// gladiator.dll: 10041760..10041777
+// gladi386.so:   absent
 int __stdcall sub_10041760(const char *a1, int a2)
 {
   botimport.Print(PRT_MESSAGE, a1);
@@ -251,7 +264,8 @@ int __stdcall sub_10041760(const char *a1, int a2)
 }
 
 #endif /* _WIN32 — UnZip windll path */
-//----- (10041790) --------------------------------------------------------
+// gladiator.dll: 10041790..10041883
+// gladi386.so:   00053C3C..00053D94
 void __cdecl vectoangles(float *value1, float *angles)
 {
   float forward;
@@ -279,7 +293,8 @@ void __cdecl vectoangles(float *value1, float *angles)
   angles[1] = yaw;
   angles[2] = 0;
 }
-//----- (100418D0) --------------------------------------------------------
+// gladiator.dll: 100418D0..100418EE
+// gladi386.so:   00053D94..00053DB4
 /* In-place path-separator normalisation.  The original folds both '/' and '\\'
  * to '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.
  * The _WIN32 branch is verbatim. */
@@ -305,7 +320,8 @@ void __cdecl sub_100418D0(_BYTE *a1)
     while ( *v1 );
   }
 }
-//----- (10041900) --------------------------------------------------------
+// gladiator.dll: 10041900..10041943
+// gladi386.so:   00053DB4..00053E05
 /* Genuinely void: every guard routes to the same bare epilogue and eax is never
  * set — any apparent return value is just the last compare's residue. */
 void __cdecl sub_10041900(const char *a1, int a2)
@@ -336,7 +352,8 @@ typedef struct pak_direntry_s {
     int32_t filepos;
     int32_t filelen;
 } pak_direntry_t;
-//----- (10041970) --------------------------------------------------------
+// gladiator.dll: 10041970..10041B29
+// gladi386.so:   00053E08..00054014
 int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
 {
   FILE *v3; // eax
@@ -402,7 +419,8 @@ LABEL_11:
     return 1;
   }
 }
-//----- (10041BA0) --------------------------------------------------------
+// gladiator.dll: 10041BA0..10041E9A
+// gladi386.so:   00054014..00054456
 /* Search for file `a3` under base path `a1`, first in the gamedir `Source`,
  * then "baseq2", trying both loose files and pak archives; the result goes to
  * the bot_fileref_t out-param. */
@@ -490,7 +508,8 @@ int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
   a4->filelen = 0;
   return 0;
 }
-//----- (10041F60) --------------------------------------------------------
+// gladiator.dll: 10041F60..10041FCB
+// gladi386.so:   00054458..000544E2
 BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 {
   if ( sub_10041BA0(
@@ -510,7 +529,8 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
 
 #ifdef _WIN32  /* ---- ZIP32 windll archive path (ZIP32.DLL): sub_10041FF0 + helpers/callbacks ----
                 * Windows-only, and dead even there (no live caller).  Absent on Linux. */
-//----- (10041FF0) --------------------------------------------------------
+// gladiator.dll: 10041FF0..100422BD
+// gladi386.so:   absent
 /* sub_10041FF0 — add one file to a zip archive by loading Info-ZIP's ZIP32.DLL
  * and driving its ZpInit / ZpSetOptions / ZpArchive entry points, mirroring the
  * UnZip sibling sub_10041240 above.  Off-Windows the shimmed SearchPathA
@@ -639,7 +659,8 @@ int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive)
   FreeLibrary(zip32_module);
   return rc == 0;
 }
-//----- (10042380) --------------------------------------------------------
+// gladiator.dll: 10042380..1004239D
+// gladi386.so:   absent
 /* void: ref 10042380's only exit is the shared `ret` at 1004239c. */
 void sub_10042380()
 {
@@ -650,12 +671,14 @@ void sub_10042380()
     GlobalFree(hMem);
   }
 }
-//----- (100423B0) --------------------------------------------------------
+// gladiator.dll: 100423B0..100423B8
+// gladi386.so:   absent
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4)
 {
   return 1;
 }
-//----- (100423D0) --------------------------------------------------------
+// gladiator.dll: 100423D0..100423D5
+// gladi386.so:   absent
 /* Returns its second argument unchanged — a placeholder identity passthrough.
  * DEAD in Gladiator. */
 int __cdecl sub_100423D0(int a1, int a2)
@@ -663,7 +686,8 @@ int __cdecl sub_100423D0(int a1, int a2)
   (void)a1;
   return a2;
 }
-//----- (100423F0) --------------------------------------------------------
+// gladiator.dll: 100423F0..100423FA
+// gladi386.so:   absent
 /* Writes an empty string at `p` — the ZIP32 password callback.
  * DEAD in Gladiator. */
 void __stdcall sub_100423F0(char *p)

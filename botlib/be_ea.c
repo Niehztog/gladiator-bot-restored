@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -35,27 +41,32 @@
 
 ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
 
-//----- (10037090) --------------------------------------------------------
+// gladiator.dll: 10037090..100370AB
+// gladi386.so:   0004840C..0004843C
 void __cdecl EA_Say(int client, char *str)
 {
   botimport.BotClientCommand(client, "say", str, (char *)NULL);
 }
-//----- (100370C0) --------------------------------------------------------
+// gladiator.dll: 100370C0..100370DB
+// gladi386.so:   0004843C..0004846C
 void __cdecl EA_SayTeam(int client, char *str)
 {
   botimport.BotClientCommand(client, "say_team", str, (char *)NULL);
 }
-//----- (100370F0) --------------------------------------------------------
+// gladiator.dll: 100370F0..1003710B
+// gladi386.so:   0004846C..0004849C
 void __cdecl EA_UseItem(int client, char *it)
 {
   botimport.BotClientCommand(client, "use", it, (char *)NULL);
 }
-//----- (10037120) --------------------------------------------------------
+// gladiator.dll: 10037120..1003713B
+// gladi386.so:   0004849C..000484CC
 void __cdecl EA_DropItem(int client, char *it)
 {
   botimport.BotClientCommand(client, "drop", it, (char *)NULL);
 }
-//----- (10037150) --------------------------------------------------------
+// gladiator.dll: 10037150..1003716B
+// gladi386.so:   000484CC..000484FC
 // Pushes 0, item, "invuse", client
 // then tail-calls bi_BotClientCommand.  Matches the sibling family
 // EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
@@ -63,14 +74,16 @@ void __cdecl EA_UseInv(int client, char *inv)
 {
   botimport.BotClientCommand(client, "invuse", inv, (char *)NULL);
 }
-//----- (10037180) --------------------------------------------------------
+// gladiator.dll: 10037180..1003719B
+// gladi386.so:   000484FC..0004852C
 // Mirror of EA_UseInv with the
 // "invdrop" command string (0x1005E63C).
 void __cdecl EA_DropInv(int client, char *inv)
 {
   botimport.BotClientCommand(client, "invdrop", inv, (char *)NULL);
 }
-//----- (100371B0) --------------------------------------------------------
+// gladiator.dll: 100371B0..100371EB
+// gladi386.so:   0004852C..00048584
 void __cdecl sub_100371B0(int client, int sequence)
 {
   char Buffer[128]; // [esp+0h] [ebp-80h] BYREF
@@ -78,7 +91,8 @@ void __cdecl sub_100371B0(int client, int sequence)
   sprintf(Buffer, "%d", sequence);
   botimport.BotClientCommand(client, "wave", Buffer, (char *)NULL);
 }
-//----- (10037200) --------------------------------------------------------
+// gladiator.dll: 10037200..1003728C
+// gladi386.so:   00048584..00048625
 int __cdecl EA_Command(int client, char *command, ...)
 {
   va_list ap;
@@ -102,7 +116,8 @@ int __cdecl EA_Command(int client, char *command, ...)
                               args[5], args[6], args[7], args[8], args[9], 0);
 }
 // 10037233: conditional instruction was optimized away because esi.4<A
-//----- (100372C0) --------------------------------------------------------
+// gladiator.dll: 100372C0..100372D5
+// gladi386.so:   00048628..0004864B
 /* EA_Attack — set ACTION_ATTACK so the engine fires the bot's weapon next
  * frame.  As Q3's be_ea.c::EA_Attack. */
 void __cdecl EA_Attack(int client)
@@ -110,7 +125,8 @@ void __cdecl EA_Attack(int client)
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_ATTACK;
 }
-//----- (100372F0) --------------------------------------------------------
+// gladiator.dll: 100372F0..10037305
+// gladi386.so:   0004864C..0004866F
 /* EA_Use — set ACTION_USE.  DEAD in Gladiator: the mod issues USE through
  * bi_BotClientCommand instead of the EA layer. */
 void __cdecl EA_Use(int client)
@@ -118,14 +134,16 @@ void __cdecl EA_Use(int client)
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_USE;
 }
-//----- (10037320) --------------------------------------------------------
+// gladiator.dll: 10037320..10037335
+// gladi386.so:   00048670..00048693
 /* EA_Respawn — set ACTION_RESPAWN. */
 void __cdecl EA_Respawn(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_RESPAWN;
 }
-//----- (10037350) --------------------------------------------------------
+// gladiator.dll: 10037350..10037373
+// gladi386.so:   00048694..000486CB
 /* EA_Jump — set ACTION_JUMP only while the EA_JUMPEDLASTFRAME latch is clear;
  * if it is set, clear ACTION_JUMP instead so the engine sees a key release. */
 void __cdecl EA_Jump(int client)
@@ -136,7 +154,8 @@ void __cdecl EA_Jump(int client)
   else
     ea->flags |= ACTION_JUMP;
 }
-//----- (10037390) --------------------------------------------------------
+// gladiator.dll: 10037390..100373B5
+// gladi386.so:   000486CC..00048704
 /* EA_DelayedJump — set ACTION_DELAYEDJUMP (0x200), jump-latch gated like
  * EA_Jump.  The `BYTE1(v) |= 2u` form is how the original writes bit 9. */
 void __cdecl EA_DelayedJump(int client)
@@ -147,13 +166,15 @@ void __cdecl EA_DelayedJump(int client)
   else
     ea->flags |= ACTION_DELAYEDJUMP;
 }
-//----- (100373D0) --------------------------------------------------------
+// gladiator.dll: 100373D0..100373E5
+// gladi386.so:   00048704..00048727
 void __cdecl EA_Crouch(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_CROUCH;
 }
-//----- (10037400) --------------------------------------------------------
+// gladiator.dll: 10037400..10037415
+// gladi386.so:   00048728..0004874B
 /* EA_MoveUp — set ACTION_MOVEUP, which aliases ACTION_JUMP's bit (0x008).
  * Unlike EA_Jump this is unconditional, with no EA_JUMPEDLASTFRAME gate, which
  * is what BotTravel_WaterJump needs to jump out of water regardless of the
@@ -163,7 +184,8 @@ void __cdecl EA_MoveUp(int client)
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEUP;
 }
-//----- (10037430) --------------------------------------------------------
+// gladiator.dll: 10037430..10037445
+// gladi386.so:   0004874C..0004876F
 /* EA_MoveDown — set ACTION_MOVEDOWN, which aliases ACTION_CROUCH's bit (0x10),
  * so this is bit-for-bit EA_Crouch.  DEAD in Gladiator, which always calls
  * EA_Crouch instead. */
@@ -172,35 +194,40 @@ void __cdecl EA_MoveDown(int client)
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEDOWN;
 }
-//----- (10037460) --------------------------------------------------------
+// gladiator.dll: 10037460..10037475
+// gladi386.so:   00048770..00048793
 /* EA_MoveForward — set ACTION_MOVEFORWARD. */
 void __cdecl EA_MoveForward(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEFORWARD;
 }
-//----- (10037490) --------------------------------------------------------
+// gladiator.dll: 10037490..100374A5
+// gladi386.so:   00048794..000487B7
 /* EA_MoveBack — set ACTION_MOVEBACK (0x40).  DEAD in Gladiator. */
 void __cdecl EA_MoveBack(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVEBACK;
 }
-//----- (100374C0) --------------------------------------------------------
+// gladiator.dll: 100374C0..100374DA
+// gladi386.so:   000487B8..000487DB
 /* EA_MoveLeft — set ACTION_MOVELEFT (0x80).  DEAD in Gladiator. */
 void __cdecl EA_MoveLeft(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVELEFT;
 }
-//----- (100374F0) --------------------------------------------------------
+// gladiator.dll: 100374F0..1003750A
+// gladi386.so:   000487DC..00048802
 /* EA_MoveRight — set ACTION_MOVERIGHT (0x100).  DEAD in Gladiator. */
 void __cdecl EA_MoveRight(int client)
 {
   ea_state_t *ea = &ea_controls[client];
   ea->flags |= ACTION_MOVERIGHT;
 }
-//----- (10037520) --------------------------------------------------------
+// gladiator.dll: 10037520..1003757F
+// gladi386.so:   00048804..00048878
 void __cdecl EA_Move(int client, vec3_t dir, float speed)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -211,13 +238,15 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
     speed = -565.0f;
   ea->speed = speed;
 }
-//----- (100375A0) --------------------------------------------------------
+// gladiator.dll: 100375A0..100375C6
+// gladi386.so:   00048878..000488AE
 void __cdecl EA_View(int client, vec3_t viewangles)
 {
   ea_state_t *ea = &ea_controls[client];
   VectorCopy(viewangles, ea->angles);
 }
-//----- (100375E0) --------------------------------------------------------
+// gladiator.dll: 100375E0..10037633
+// gladi386.so:   000488B0..00048929
 /* EA_EndRegular — flush this frame's accumulated EA state to the engine via the
  * BotInput callback, then clear the EA fields for the next frame.  If the jump
  * bit was set, latch EA_JUMPEDLASTFRAME so the next EA_Jump emits a key
@@ -246,13 +275,15 @@ void __cdecl EA_EndRegular(int client, float thinktime)
   if ( jumped_this_frame )
     ea->flags = EA_JUMPEDLASTFRAME;
 }
-//----- (10037660) --------------------------------------------------------
+// gladiator.dll: 10037660..1003767A
+// gladi386.so:   0004892C..0004895D
 int EA_Setup()
 {
   ea_controls = (ea_state_t *)GetClearedMemory(sizeof(ea_state_t) * botstate.num_clients);
   return (int)ea_controls;
 }
-//----- (10037690) --------------------------------------------------------
+// gladiator.dll: 10037690..1003769D
+// gladi386.so:   00048960..00048980
 void EA_Shutdown()
 {
   FreeMemory(ea_controls);

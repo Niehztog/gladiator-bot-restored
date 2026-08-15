@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -52,12 +58,14 @@
 int numnodeswitches;     // 0x100644A0 (game ai_dmnet.c; was dword_100644A0)
 char nodeswitch[7344];   // 0x10064A80 nodeswitch[MAX_NODESWITCHES+1=51][144] (ai_dmnet.c; was byte_10064A80)
 
-//----- (1001D2B0) --------------------------------------------------------
+// gladiator.dll: 1001D2B0..1001D2BB
+// gladi386.so:   00033670..0003368B
 void BotResetNodeSwitches()
 {
   numnodeswitches = 0;
 }
-//----- (1001D2D0) --------------------------------------------------------
+// gladiator.dll: 1001D2D0..1001D36B
+// gladi386.so:   0003368C..0003372B
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
 {
   int i; // esi
@@ -70,7 +78,8 @@ int __cdecl BotDumpNodeSwitches(bot_state_t *bs)
     strcat(Buffer, &nodeswitch[144 * i]);
   return botimport.Print(PRT_FATAL, Buffer);
 }
-//----- (1001D3A0) --------------------------------------------------------
+// gladiator.dll: 1001D3A0..1001D3F1
+// gladi386.so:   0003372C..0003378F
 void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str)
 {
   /* `node` is the state-name string, reused as the third %s — the original
@@ -80,7 +89,8 @@ void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *
           (const char *)ClientName(bs->client), AAS_Time(), node, str);
   numnodeswitches++;
 }
-//----- (1001D420) --------------------------------------------------------
+// gladiator.dll: 1001D420..1001D6A1
+// gladi386.so:   00033790..00033AA1
 /* BotGetFormationGoal (was sub_1001D420) — predict and return a formation
  * follow-position "goal box" for escorting bs->formation_teammate.  Named from
  * Q3's ai_main.h, whose formation_angle/dir/origin/goal fields match this
@@ -193,7 +203,8 @@ int BotGetFormationGoal(bot_state_t *bs)
 fail:
   return (int)(intptr_t)&bs->formationgoal;
 }
-//----- (1001D760) --------------------------------------------------------
+// gladiator.dll: 1001D760..1001E6EC
+// gladi386.so:   00033AA4..00034C03
 /* BotLongTermGoal — dispatch the bot's current long-term-goal state and return
  * the goal position to seek, or NULL if no goal is active.
  *
@@ -642,7 +653,8 @@ LABEL_55:
   }
   return v26;
 }
-//----- (1001EAE0) --------------------------------------------------------
+// gladiator.dll: 1001EAE0..1001EB29
+// gladi386.so:   00034C04..00034C9F
 void __cdecl AIEnter_Intermission(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "intermission", "");
@@ -651,7 +663,8 @@ void __cdecl AIEnter_Intermission(bot_state_t *bs)
     BotEnterChat(&bs->chatstate, bs->client, 0);
   BotAINode(bs) = AINode_Intermission;
 }
-//----- (1001EB50) --------------------------------------------------------
+// gladiator.dll: 1001EB50..1001EBA8
+// gladi386.so:   00034CA0..00034D19
 int __cdecl AINode_Intermission(bot_state_t *bs)
 {
   if ( !BotIntermission(bs) )
@@ -664,27 +677,31 @@ int __cdecl AINode_Intermission(bot_state_t *bs)
   }
   return 1;
 }
-//----- (1001EBD0) --------------------------------------------------------
+// gladiator.dll: 1001EBD0..1001EBFA
+// gladi386.so:   00034D1C..00034D98
 void __cdecl AIEnter_Observer(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "observer", "");
   BotResetState(bs);
   BotAINode(bs) = AINode_Observer;
 }
-//----- (1001EC10) --------------------------------------------------------
+// gladiator.dll: 1001EC10..1001EC32
+// gladi386.so:   00034D98..00034DC8
 int __cdecl AINode_Observer(bot_state_t *bs)
 {
   if ( !BotIsObserver(bs) )
     AIEnter_Stand(bs);
   return 1;
 }
-//----- (1001EC50) --------------------------------------------------------
+// gladiator.dll: 1001EC50..1001EC74
+// gladi386.so:   00034DC8..00034E3B
 void __cdecl AIEnter_Stand(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "stand", "");
   BotAINode(bs) = AINode_Stand;
 }
-//----- (1001EC90) --------------------------------------------------------
+// gladiator.dll: 1001EC90..1001ED42
+// gladi386.so:   00034E3C..00034F32
 int __cdecl AINode_Stand(bot_state_t *bs)
 {
 
@@ -710,7 +727,8 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   }
   return 1;
 }
-//----- (1001ED80) --------------------------------------------------------
+// gladiator.dll: 1001ED80..1001EE0F
+// gladi386.so:   00034F34..00035021
 void __cdecl AIEnter_Respawn(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "respawn", "");
@@ -730,7 +748,8 @@ void __cdecl AIEnter_Respawn(bot_state_t *bs)
   bs->respawn_wait = 0;
   BotAINode(bs) = AINode_Respawn;
 }
-//----- (1001EE40) --------------------------------------------------------
+// gladiator.dll: 1001EE40..1001EEC4
+// gladi386.so:   00035024..000350B5
 int __cdecl AINode_Respawn(bot_state_t *bs)
 {
 
@@ -756,13 +775,15 @@ int __cdecl AINode_Respawn(bot_state_t *bs)
   }
   return 1;
 }
-//----- (1001EF00) --------------------------------------------------------
+// gladiator.dll: 1001EF00..1001EF24
+// gladi386.so:   000350B8..0003512B
 void __cdecl AIEnter_Seek_ActivateEntity(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "activate entity", "");
   BotAINode(bs) = AINode_Seek_ActivateEntity;
 }
-//----- (1001EF40) --------------------------------------------------------
+// gladiator.dll: 1001EF40..1001F17E
+// gladi386.so:   0003512C..00035468
 int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
 {
 
@@ -842,7 +863,8 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
-//----- (1001F210) --------------------------------------------------------
+// gladiator.dll: 1001F210..1001F26B
+// gladi386.so:   00035468..00035509
 void __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
 {
   bot_goal_t *goal; // eax
@@ -860,7 +882,8 @@ void __cdecl AIEnter_Seek_NBG(bot_state_t *bs)
   }
   BotAINode(bs) = AINode_Seek_NBG;
 }
-//----- (1001F290) --------------------------------------------------------
+// gladiator.dll: 1001F290..1001F5F6
+// gladi386.so:   0003550C..000359AD
 int __cdecl AINode_Seek_NBG(bot_state_t *bs)
 {
 
@@ -988,7 +1011,8 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     BotChangeViewAngles(bs, bs->thinktime);
   return 1;
 }
-//----- (1001F6E0) --------------------------------------------------------
+// gladiator.dll: 1001F6E0..1001F73B
+// gladi386.so:   000359B0..00035A51
 void __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 {
   bot_goal_t *goal; // eax
@@ -1006,7 +1030,8 @@ void __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
   }
   BotAINode(bs) = AINode_Seek_LTG;
 }
-//----- (1001F760) --------------------------------------------------------
+// gladiator.dll: 1001F760..1001FBC5
+// gladi386.so:   00035A54..00036038
 int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 {
 
@@ -1138,13 +1163,15 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     BotChangeViewAngles(bs, bs->thinktime);
     return 1;
 }
-//----- (1001FCF0) --------------------------------------------------------
+// gladiator.dll: 1001FCF0..1001FD14
+// gladi386.so:   00036038..000360AB
 void __cdecl AIEnter_Battle_Fight(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "battle fight", "");
   BotAINode(bs) = AINode_Battle_Fight;
 }
-//----- (1001FD30) --------------------------------------------------------
+// gladiator.dll: 1001FD30..1001FFB0
+// gladi386.so:   000360AC..0003645C
 int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 {
 
@@ -1264,14 +1291,16 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     return 1;
   }
 }
-//----- (10020050) --------------------------------------------------------
+// gladiator.dll: 10020050..10020085
+// gladi386.so:   0003645C..000364E4
 void __cdecl AIEnter_Battle_Chase(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "battle chase", "");
   bs->chase_time = AAS_Time() + 10.0f;
   BotAINode(bs) = AINode_Battle_Chase;
 }
-//----- (100200A0) --------------------------------------------------------
+// gladiator.dll: 100200A0..100204A8
+// gladi386.so:   000364E4..00036A0C
 int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
@@ -1392,13 +1421,15 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     return 1;
   }
 }
-//----- (100205C0) --------------------------------------------------------
+// gladiator.dll: 100205C0..100205E4
+// gladi386.so:   00036A0C..00036A7F
 void __cdecl AIEnter_Battle_Retreat(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "battle retreat", "");
   BotAINode(bs) = AINode_Battle_Retreat;
 }
-//----- (10020600) --------------------------------------------------------
+// gladiator.dll: 10020600..100209C7
+// gladi386.so:   00036A80..00036F84
 int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
 {
 
@@ -1522,13 +1553,15 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     }
   }
 }
-//----- (10020AD0) --------------------------------------------------------
+// gladiator.dll: 10020AD0..10020AF4
+// gladi386.so:   00036F84..00036FF7
 void __cdecl AIEnter_Battle_NBG(bot_state_t *bs)
 {
   BotRecordNodeSwitch(bs, "battle NBG", "");
   BotAINode(bs) = AINode_Battle_NBG;
 }
-//----- (10020B10) --------------------------------------------------------
+// gladiator.dll: 10020B10..10020E05
+// gladi386.so:   00036FF8..00037449
 int __cdecl AINode_Battle_NBG(bot_state_t *bs)
 {
 

@@ -12,6 +12,12 @@
  * The include block below is botlib.c's, verbatim, so every macro and typedef
  * this file compiles against is the environment these functions had before the
  * split.
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -33,7 +39,8 @@
 #include "l_utils.h"
 libvar_t *libvarlist; /* head of singly-linked libvar list (was dword_10063F20) */
 
-//----- (10038750) --------------------------------------------------------
+// gladiator.dll: 10038750..100387D2
+// gladi386.so:   00049FE8..0004A07E
 float __cdecl LibVarStringValue(char *string)
 {
   int dotfound;
@@ -64,7 +71,8 @@ float __cdecl LibVarStringValue(char *string)
   return value;
 }
 
-//----- (10038810) --------------------------------------------------------
+// gladiator.dll: 10038810..10038872
+// gladi386.so:   0004A080..0004A0E0
 libvar_t *__cdecl LibVarAlloc(const char *var_name)
 {
   libvar_t *v;
@@ -78,7 +86,8 @@ libvar_t *__cdecl LibVarAlloc(const char *var_name)
   return v;
 }
 
-//----- (100388A0) --------------------------------------------------------
+// gladiator.dll: 100388A0..100388C0
+// gladi386.so:   0004A0E0..0004A10E
 void __cdecl LibVarDeAlloc(libvar_t *v)
 {
   if ( v->string )
@@ -86,7 +95,8 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
   FreeMemory(v);
 }
 
-//----- (100388D0) --------------------------------------------------------
+// gladiator.dll: 100388D0..100388FF
+// gladi386.so:   0004A110..0004A161
 // Drains the libvarlist by repeatedly popping
 // the head, advancing libvarlist to head->next (struct offset +0x14),
 // and calling LibVarDeAlloc on the popped node.  Final
@@ -110,7 +120,8 @@ void __cdecl LibVarDeAllocAll(void)
   libvarlist = NULL;
 }
 
-//----- (10038910) --------------------------------------------------------
+// gladiator.dll: 10038910..10038941
+// gladi386.so:   0004A164..0004A1A9
 libvar_t *__cdecl LibVarGet(const char *var_name)
 {
   libvar_t *v;
@@ -123,7 +134,8 @@ libvar_t *__cdecl LibVarGet(const char *var_name)
   return NULL;
 }
 
-//----- (10038960) --------------------------------------------------------
+// gladiator.dll: 10038960..1003897B
+// gladi386.so:   0004A1AC..0004A1FF
 char *__cdecl LibVarGetString(const char *var_name)
 {
   libvar_t *v = LibVarGet(var_name);
@@ -132,7 +144,8 @@ char *__cdecl LibVarGetString(const char *var_name)
   return "";
 }
 
-//----- (10038990) --------------------------------------------------------
+// gladiator.dll: 10038990..100389AC
+// gladi386.so:   0004A200..0004A24F
 float __cdecl LibVarGetValue(const char *var_name)
 {
   libvar_t *v = LibVarGet(var_name);
@@ -141,7 +154,8 @@ float __cdecl LibVarGetValue(const char *var_name)
   return 0.0f;
 }
 
-//----- (100389C0) --------------------------------------------------------
+// gladiator.dll: 100389C0..10038A31
+// gladi386.so:   0004A250..0004A3CA
 libvar_t *__cdecl LibVar(char *var_name, char *value)
 {
   libvar_t *v = LibVarGet(var_name);
@@ -155,7 +169,8 @@ libvar_t *__cdecl LibVar(char *var_name, char *value)
   return v;
 }
 
-//----- (10038A60) --------------------------------------------------------
+// gladiator.dll: 10038A60..10038A76
+// gladi386.so:   0004A3CC..0004A3F0
 char *__cdecl LibVarString(char *var_name, char *value)
 {
   /* Returns libvar->string.  Thunk 0x100013BB forwards all file-path lookups
@@ -163,14 +178,16 @@ char *__cdecl LibVarString(char *var_name, char *value)
   return LibVar(var_name, value)->string;
 }
 
-//----- (10038A90) --------------------------------------------------------
+// gladiator.dll: 10038A90..10038AA6
+// gladi386.so:   0004A3F0..0004A414
 float __cdecl LibVarValue(char *var_name, char *value)
 {
   /* Registers the libvar if missing, then returns its numeric value. */
   return LibVar(var_name, value)->value;
 }
 
-//----- (10038AC0) --------------------------------------------------------
+// gladiator.dll: 10038AC0..10038B42
+// gladi386.so:   0004A414..0004A574
 void __cdecl LibVarSet(char *var_name, char *value)
 {
   libvar_t *v = LibVarGet(var_name);
@@ -184,7 +201,8 @@ void __cdecl LibVarSet(char *var_name, char *value)
   v->modified = 1;
 }
 
-//----- (10038B80) --------------------------------------------------------
+// gladiator.dll: 10038B80..10038B98
+// gladi386.so:   0004A574..0004A5C3
 /* Q3's LibVarGetModified — the `modified` flag for the named libvar, or 0 if
  * there is no such libvar.  DEAD in Gladiator. */
 int __cdecl LibVarChanged(const char *var_name)
@@ -197,7 +215,8 @@ int __cdecl LibVarChanged(const char *var_name)
   return 0;
 }
 
-//----- (10038BB0) --------------------------------------------------------
+// gladiator.dll: 10038BB0..10038BC9
+// gladi386.so:   0004A5C4..0004A610
 /* Q3's LibVarSetNotModified — clear the `modified` flag on the named libvar,
  * a no-op if it does not exist.  DEAD in Gladiator. */
 void __cdecl LibVarSetNotModified(const char *var_name)

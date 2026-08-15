@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -40,7 +46,8 @@ int numdebuglines;          // 0x10066B14 (was dword_10066B14)
 int debuglinevisible[256];  // 0x10066CC0 (was dword_10066CC0)
 int debuglines[256];        // 0x100670C0 (was dword_100670C0)
 
-//----- (10009860) --------------------------------------------------------
+// gladiator.dll: 10009860..10009894
+// gladi386.so:   00012828..00012914
 void AAS_ClearShownDebugLines(void)
 {
   int i; // esi
@@ -56,7 +63,8 @@ void AAS_ClearShownDebugLines(void)
     }
   }
 }
-//----- (100098B0) --------------------------------------------------------
+// gladiator.dll: 100098B0..10009924
+// gladi386.so:   00012914..00012A34
 int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 {
   int line; // esi
@@ -77,7 +85,8 @@ int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
     }
   }
 }
-//----- (10009950) --------------------------------------------------------
+// gladiator.dll: 10009950..100099D2
+// gladi386.so:   00012A34..00012BE8
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 {
   int i;
@@ -97,7 +106,8 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
   }
   return result;
 }
-//----- (10009A10) --------------------------------------------------------
+// gladiator.dll: 10009A10..10009C18
+// gladi386.so:   00012BE8..00012E1F
 /* AAS_DrawPlaneCross — plane-projection debug "X" visualiser, verbatim Q3
  * be_aas_debug.c.  Builds the four corners of a 12x12 square around the hit
  * point in the two transverse axes, projects each onto the plane along axis
@@ -152,7 +162,8 @@ void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int c
   botimport.DebugLineShow(lines[0], start1, end1, color);
   botimport.DebugLineShow(lines[1], start2, end2, color);
 }
-//----- (10009CB0) --------------------------------------------------------
+// gladiator.dll: 10009CB0..10009E59
+// gladi386.so:   00012E20..0001300F
 /* AAS_ShowBoundingBox — Q3's AAS_ShowBoundingBox (be_aas_debug.c): draw the
  * AABB at `origin` with mins/maxs offsets as a wireframe cube in colour
  * 0xF2F2F0F0.  NOTE the param order is the reverse of Q3's
@@ -213,7 +224,8 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
     botimport.DebugLineShow(lines[2], bboxcorners[i], bboxcorners[4 + i], 0xF2F2F0F0);
   }
 }
-//----- (10009ED0) --------------------------------------------------------
+// gladiator.dll: 10009ED0..1000A032
+// gladi386.so:   00013010..0001335B
 /* AAS_ShowFace — draw every edge of one face as a line, cycling a 4-colour
  * debug palette (0xDCDDDEDF -> 0xF2F2F0F0 -> 0xD0D1D2D3 -> 0xF3F3F1F1),
  * then a 20-unit normal arrow from the face's first vertex in 0xF2F2F0F0.
@@ -259,7 +271,8 @@ void __cdecl AAS_ShowFace(int facenum)
   VectorMA(start, 20.0f, plane->normal, end);
   AAS_DebugLine(start, end, LINECOLOR_RED);
 }
-//----- (1000A0A0) --------------------------------------------------------
+// gladiator.dll: 1000A0A0..1000A2DA
+// gladi386.so:   0001335C..00013683
 void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
 {
   int areaedges[256];
@@ -339,7 +352,8 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
   }
 }
 // 1000A228: conditional instruction was optimized away because esi.4<100
-//----- (1000A370) --------------------------------------------------------
+// gladiator.dll: 1000A370..1000A3DA
+// gladi386.so:   00013684..0001380D
 /* AAS_DrawCross (was sub_1000A370) — a 3D cross at `origin`: three line
  * segments, one per axis, each spanning [origin-size, origin+size]. */
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
@@ -356,7 +370,8 @@ void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
     AAS_DebugLine(start, end, color);
   }
 }
-//----- (1000A400) --------------------------------------------------------
+// gladiator.dll: 1000A400..1000A401
+// gladi386.so:   00013810..00013811
 /* AAS_PrintTravelType — pretty-prints a TRAVEL_* type, but compiled out to a
  * bare `ret` in this build (presumably a debug #ifdef that was off).  The
  * empty body must stay: AAS_ShowReachableAreas still calls it through the
@@ -365,7 +380,8 @@ void __cdecl AAS_PrintTravelType(int traveltype)
 {
   (void)traveltype;
 }
-//----- (1000A420) --------------------------------------------------------
+// gladiator.dll: 1000A420..1000A572
+// gladi386.so:   00013814..00013AF4
 /* AAS_DrawArrow (was sub_1000A420) — an arrow from `start` to `end`: a shaft
  * in `linecolor` plus two arrowhead strokes in `arrowcolor`.  The head offset
  * is normalize(end-start) crossed with the up vector, falling back to (1,0,0)
@@ -406,7 +422,8 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   AAS_DebugLine(p1, end, arrowcolor);
   AAS_DebugLine(p2, end, arrowcolor);
 }
-//----- (1000A5E0) --------------------------------------------------------
+// gladiator.dll: 1000A5E0..1000A791
+// gladi386.so:   00013AF4..00013E73
 /*
  * AAS_ShowReachability (was sub_1000A5E0) — debug visualisation of one
  * aas_reachability_t, matching Q3's AAS_ShowReachability: an ShowArea +
@@ -462,7 +479,8 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     AAS_ClientMovementPrediction(-1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
-//----- (1000A810) --------------------------------------------------------
+// gladiator.dll: 1000A810..1000A8D4
+// gladi386.so:   00013E74..00013F57
 /*
  * AAS_ShowReachableAreas — walks one area's reachability list, one entry per
  * call and throttled to 1.5 s per advance, printing each travel type and

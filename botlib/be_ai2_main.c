@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -90,7 +96,8 @@ int dword_1006439C; // weak
 bot_state_t *botstates; // base array of maxclients bot states
 float flt_100643A4; // weak
 
-//----- (10028EA0) --------------------------------------------------------
+// gladiator.dll: 10028EA0..10028F01
+// gladi386.so:   0003744C..000374A9
 int __cdecl ClientFromName(const char *name)
 {
   int v1;
@@ -102,7 +109,8 @@ int __cdecl ClientFromName(const char *name)
   }
   return 0;
 }
-//----- (10028F30) --------------------------------------------------------
+// gladiator.dll: 10028F30..10028F66
+// gladi386.so:   000374AC..000374FC
 char *__cdecl ClientName(int client)
 {
   if ( client < 0 || client >= botstate.num_clients )
@@ -112,7 +120,8 @@ char *__cdecl ClientName(int client)
   }
   return clientsettings[client].netname;
 }
-//----- (10028F80) --------------------------------------------------------
+// gladiator.dll: 10028F80..10028FB8
+// gladi386.so:   000374FC..0003754F
 char *__cdecl ClientSkin(int client)
 {
   if ( client < 0 || client >= botstate.num_clients )
@@ -122,12 +131,14 @@ char *__cdecl ClientSkin(int client)
   }
   return clientsettings[client].skin;
 }
-//----- (10028FD0) --------------------------------------------------------
+// gladiator.dll: 10028FD0..10028FD6
+// gladi386.so:   00037550..00037567
 int NumBots()
 {
   return numbots;
 }
-//----- (10028FF0) --------------------------------------------------------
+// gladiator.dll: 10028FF0..1002902F
+// gladi386.so:   00037568..000375FB
 float __cdecl AngleDifference(float ang1, float ang2)
 {
   float diff;
@@ -144,7 +155,8 @@ float __cdecl AngleDifference(float ang1, float ang2)
   }
   return diff;
 }
-//----- (10029040) --------------------------------------------------------
+// gladiator.dll: 10029040..10029109
+// gladi386.so:   000375FC..00037714
 float BotChangeViewAngle(float angle, float ideal_angle, float speed)
 {
   float move;
@@ -176,7 +188,8 @@ float BotChangeViewAngle(float angle, float ideal_angle, float speed)
   }
   return anglemod(angle + move);
 }
-//----- (10029150) --------------------------------------------------------
+// gladiator.dll: 10029150..10029289
+// gladi386.so:   00037714..000379F3
 /* All nine callers push (bs, thinktime), but the body reads bs->thinktime
  * straight from the struct instead of the parameter — probably declared for API
  * symmetry with Q3.  `thinktime` is deliberately unused. */
@@ -245,7 +258,8 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   while ( v4 );
   EA_View(bs->client, bs->viewangles);
 }
-//----- (100292E0) --------------------------------------------------------
+// gladiator.dll: 100292E0..10029309
+// gladi386.so:   000379F4..00037A34
 void sub_100292E0()
 {
   if ( flt_100643A4 < AAS_Time() )
@@ -254,7 +268,8 @@ void sub_100292E0()
     flt_100643A4 = AAS_Time() + 1.0f;
   }
 }
-//----- (10029320) --------------------------------------------------------
+// gladiator.dll: 10029320..10029375
+// gladi386.so:   00037A34..00037AD6
 int Export_BotAIFrame(int a1, float a2)
 {
   bot_state_t *bs;
@@ -272,7 +287,8 @@ int Export_BotAIFrame(int a1, float a2)
   sub_100292E0();
   return BLERR_NOERROR;
 }
-//----- (100293A0) --------------------------------------------------------
+// gladiator.dll: 100293A0..1002944E
+// gladi386.so:   00037AD8..00037BA5
 // Per-bot memory-usage dumper: reports the byte size of every allocation
 // the bot owns (character / item weights / item index / weapon weights /
 // weapon index / chat file), then calls PrintUsedMemorySize for the
@@ -310,7 +326,8 @@ void sub_100293A0(bot_state_t *bs)
            MemoryByteSize(BotChatDumpSlot(&bs->chatstate)));
   PrintUsedMemorySize();
 }
-//----- (10029480) --------------------------------------------------------
+// gladiator.dll: 10029480..10029614
+// gladi386.so:   00037BA8..00037DD1
 int __cdecl BotSetupClient(int a1, char *Source)
 {
   bot_state_t *bs;
@@ -374,7 +391,8 @@ int __cdecl BotSetupClient(int a1, char *Source)
   ++numbots;
   return 1;
 }
-//----- (10029690) --------------------------------------------------------
+// gladiator.dll: 10029690..10029767
+// gladi386.so:   00037DD4..00037ECA
 int __cdecl BotShutdownClient(int a1)
 {
   bot_state_t *bs;
@@ -404,7 +422,8 @@ int __cdecl BotShutdownClient(int a1)
   --numbots;
   return BLERR_NOERROR;
 }
-//----- (100297B0) --------------------------------------------------------
+// gladiator.dll: 100297B0..10029842
+// gladi386.so:   00037ECC..00037F9D
 int __cdecl BotMoveClient(int a1, int a2)
 {
   if ( !botstates[a1].inuse )
@@ -422,7 +441,8 @@ int __cdecl BotMoveClient(int a1, int a2)
   botstates[a1].inuse = 0;
   return BLERR_NOERROR;
 }
-//----- (10029880) --------------------------------------------------------
+// gladiator.dll: 10029880..100298F1
+// gladi386.so:   00037FA0..0003807E
 int __cdecl BotUpdateClient(int a1, const void *a2)
 {
   bot_state_t *v2; // eax
@@ -443,13 +463,15 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     v2->viewangles[v5] = anglemod(v2->viewangles[v5] + v2->snapshot.delta_angles[v5]);
   return BLERR_NOERROR;
 }
-//----- (10029920) --------------------------------------------------------
+// gladiator.dll: 10029920..10029943
+// gladi386.so:   00038080..000380B5
 int __cdecl BotClientSettings(int a1, const void *a2)
 {
   memcpy(&clientsettings[a1], a2, sizeof(bot_clientsettings_t));
   return 0;
 }
-//----- (10029960) --------------------------------------------------------
+// gladiator.dll: 10029960..100299B0
+// gladi386.so:   000380B8..00038126
 int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
 {
   bot_state_t *v3; // eax
@@ -463,7 +485,8 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   BotQueueConsoleMessage(&v3->chatstate, a2, Source);
   return BLERR_NOERROR;
 }
-//----- (100299D0) --------------------------------------------------------
+// gladiator.dll: 100299D0..10029A1D
+// gladi386.so:   00038128..00038190
 int __cdecl BotSettings(int a1, const void *a2)
 {
   bot_state_t *v2; // eax
@@ -477,7 +500,8 @@ int __cdecl BotSettings(int a1, const void *a2)
   memcpy(v2->settings, a2, sizeof(v2->settings));
   return BLERR_NOERROR;
 }
-//----- (10029A40) --------------------------------------------------------
+// gladiator.dll: 10029A40..10029BA2
+// gladi386.so:   00038190..000383DD
 int __cdecl BotResetState(bot_state_t *bs)
 {
   int inuse;
@@ -517,7 +541,8 @@ int __cdecl BotResetState(bot_state_t *bs)
   BotResetAvoidGoals(&bs->goalstate);
   BotResetAvoidReach((int *)&bs->ms);
 }
-//----- (10029C10) --------------------------------------------------------
+// gladiator.dll: 10029C10..10029C6B
+// gladi386.so:   000383E0..00038459
 int sub_10029C10()
 {
   int i;
@@ -531,7 +556,8 @@ int sub_10029C10()
   BotSetupDeathmatchAI();
   return 0;
 }
-//----- (10029C90) --------------------------------------------------------
+// gladiator.dll: 10029C90..10029D59
+// gladi386.so:   0003845C..00038523
 /* Windows genuinely writes each sub-init's return code through the CRT global
  * `errno` (IDA: `*_errno() = v2; if (*_errno()) return *_errno();`, three
  * separate `_errno()` calls). The Linux .so has none of that traffic at all -
@@ -583,7 +609,8 @@ int BotSetupLibrary()
   dword_1006439C = (int)LibVarValue("gametype", (char *)"0");
   return BLERR_NOERROR;
 }
-//----- (10029DA0) --------------------------------------------------------
+// gladiator.dll: 10029DA0..10029DED
+// gladi386.so:   00038524..00038589
 void BotShutdownLibrary(void)
 {
   BotShutdownDeathmatchAI();

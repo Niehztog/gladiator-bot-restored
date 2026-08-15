@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -38,7 +44,8 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-//----- (1000BBA0) --------------------------------------------------------
+// gladiator.dll: 1000BBA0..1000C2B3
+// gladi386.so:   000153B4..00016096
 void AAS_SwapAASData()
 {
   int v0; // ebp
@@ -229,7 +236,8 @@ void AAS_SwapAASData()
     while ( v71 < aasworld.numclusters );
   }
 }
-//----- (1000C490) --------------------------------------------------------
+// gladiator.dll: 1000C490..1000C60F
+// gladi386.so:   00016098..00016379
 void *AAS_DumpAASData()
 {
   aasworld.numvertexes = 0;
@@ -284,7 +292,8 @@ void *AAS_DumpAASData()
   aasworld.initialized = 0;
   aasworld.savefile = 0;
 }
-//----- (1000C670) --------------------------------------------------------
+// gladiator.dll: 1000C670..1000C6FA
+// gladi386.so:   0001637C..0001641F
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
 {
   void *buf; // edi
@@ -309,7 +318,8 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
   }
   return buf;
 }
-//----- (1000C730) --------------------------------------------------------
+// gladiator.dll: 1000C730..1000CCC7
+// gladi386.so:   00016420..00017158
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
 {
   FILE *v2; // eax
@@ -563,7 +573,8 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   fclose(fp);
   return BLERR_NOERROR;
 }
-//----- (1000CE40) --------------------------------------------------------
+// gladiator.dll: 1000CE40..1000CEB3
+// gladi386.so:   00017158..000171E6
 int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t length)
 {
   long v5;
@@ -581,7 +592,8 @@ int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t l
   }
   return 1;
 }
-//----- (1000CEE0) --------------------------------------------------------
+// gladiator.dll: 1000CEE0..1000D252
+// gladi386.so:   000171E8..000179E4
 qboolean __cdecl AAS_WriteAASFile(char *filename)
 {
   FILE *v3; // eax
@@ -629,7 +641,8 @@ qboolean __cdecl AAS_WriteAASFile(char *filename)
   fclose(fp);
   return 1;
 }
-//----- (1000D340) --------------------------------------------------------
+// gladiator.dll: 1000D340..1000D409
+// gladi386.so:   000179E4..00017CAB
 // AAS_InitBSPPointLights — allocate and freelist-initialise the
 // bsp_pointlight_t pool used by BotAddPointLight (0x1000D550) and
 // AAS_BSPTraceLight (0x1000D5F0).  Pool size = max_aaslights * 52

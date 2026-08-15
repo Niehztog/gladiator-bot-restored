@@ -12,6 +12,12 @@
  * The include block below is botlib.c's, verbatim, so every macro and typedef
  * this file compiles against is the environment these functions had before the
  * split.
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -39,7 +45,8 @@ typedef struct logfile_s {
 } logfile_t;
 logfile_t logfile;
 
-//----- (10038BE0) --------------------------------------------------------
+// gladiator.dll: 10038BE0..10038CA3
+// gladi386.so:   0004A610..0004A712
 /* One parameter, the filename — the libvar value the function fcomps at entry
  * is read internally, not passed in. */
 void Log_Open(char *filename)
@@ -70,7 +77,8 @@ void Log_Open(char *filename)
   }
 }
 
-//----- (10038CF0) --------------------------------------------------------
+// gladiator.dll: 10038CF0..10038D3C
+// gladi386.so:   0004A714..0004A790
 /* Close logfile.fp, clear it on success and print the close message (or an
  * error if fclose fails).  Live: Log_Shutdown@0x10038D60 is the guard wrapper
  * that tail-jumps here. */
@@ -94,7 +102,8 @@ int __cdecl Log_Close(void)
   return result;
 }
 
-//----- (10038D60) --------------------------------------------------------
+// gladiator.dll: 10038D60..10038D6F
+// gladi386.so:   0004A790..0004A80C
 /* `if (logfile.fp) Log_Close();` — the guarded wrapper, tail-jumping to
  * Log_Close, not a duplicate of it. */
 FILE *Log_Shutdown()
@@ -107,7 +116,8 @@ FILE *Log_Shutdown()
   return result;
 }
 
-//----- (10038D80) --------------------------------------------------------
+// gladiator.dll: 10038D80..10038DB9
+// gladi386.so:   0004A80C..0004A85F
 /* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
  * warm fall-through and the NULL return the cold forward-`je` target -- same
  * shared-epilogue idiom as the dead Log_WriteTimeStamped below. */
@@ -128,7 +138,8 @@ FILE *Log_Write(char *Format, ...)
    * so the undefined value is never observed. */
 }
 
-//----- (10038DD0) --------------------------------------------------------
+// gladiator.dll: 10038DD0..10038E8C
+// gladi386.so:   0004A860..0004A9C1
 /* An older, more elaborate Log_Write that prefixes each line with a counter
  * and an uptime timestamp, preserved alongside the live minimal
  * Log_Write@10038D80.
@@ -167,13 +178,15 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
    * observed. */
 }
 
-//----- (10038EC0) --------------------------------------------------------
+// gladiator.dll: 10038EC0..10038EC6
+// gladi386.so:   0004A9C4..0004A9DF
 FILE *Log_FilePointer()
 {
   return logfile.fp;
 }
 
-//----- (10038EE0) --------------------------------------------------------
+// gladiator.dll: 10038EE0..10038EF1
+// gladi386.so:   0004A9E0..0004AA08
 void Log_Flush()
 {
   if ( logfile.fp )

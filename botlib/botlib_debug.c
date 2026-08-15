@@ -4,6 +4,10 @@
  * DllMain opens gladiator_debug.log (falling back to C:\) and installs an
  * SEH filter that dumps the faulting address, registers and stack.  Inert on
  * POSIX.
+ *
+ * Not part of the reconstruction: none of this is in either 1999 binary, so no
+ * function here carries the `// gladiator.dll:` / `// gladi386.so:` address
+ * annotation the recovered TUs do.
  */
 
 #include <stdio.h>

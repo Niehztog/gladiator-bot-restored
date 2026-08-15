@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -46,7 +52,8 @@
 static int dword_1006295C = 0;
 static libvar_t *libvar_laserhook; /* libvar handle */
 
-//----- (10030A50) --------------------------------------------------------
+// gladiator.dll: 10030A50..10030A8F
+// gladi386.so:   000400D8..0004016B
 float __cdecl AngleDiff(float ang1, float ang2)
 {
   float result; // st7
@@ -63,7 +70,8 @@ float __cdecl AngleDiff(float ang1, float ang2)
   }
   return result;
 }
-//----- (10030AA0) --------------------------------------------------------
+// gladiator.dll: 10030AA0..10030C79
+// gladi386.so:   0004016C..00040409
 int __cdecl BotReachabilityArea(int *origin, int client)
 {
   int v5; // eax
@@ -155,7 +163,8 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   }
   return v12;
 }
-//----- (10030D00) --------------------------------------------------------
+// gladiator.dll: 10030D00..10030E9A
+// gladi386.so:   0004040C..000405F1
 BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
 {
   /* origin is a vec3 pointer and reach a reach_t pointer; as ints they truncate
@@ -230,7 +239,8 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   }
   return 0;
 }
-//----- (10030F10) --------------------------------------------------------
+// gladiator.dll: 10030F10..10030FA1
+// gladi386.so:   000405F4..000406A6
 BOOL __cdecl MoverDown(aas_reachability_t* reach)
 {
   vec3_t mins; // BYREF
@@ -253,14 +263,16 @@ BOOL __cdecl MoverDown(aas_reachability_t* reach)
     return 1;
   return 0;
 }
-//----- (10030FE0) --------------------------------------------------------
+// gladiator.dll: 10030FE0..10030FFE
+// gladi386.so:   000406A8..000406DD
 BOOL __cdecl BotValidTravel(float *a1, int a2, aas_reachability_t *a3, int a4)
 {
   if ( (AAS_TravelFlagForType(a3->traveltype) & ~a4) != 0 )
     return 0;
   return 1;
 }
-//----- (10031010) --------------------------------------------------------
+// gladiator.dll: 10031010..100310AE
+// gladi386.so:   000406E0..00040779
 void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime)
 {
   int i;
@@ -288,7 +300,8 @@ void __cdecl BotAddToAvoidReach(bot_movestate_t *ms, int number, float avoidtime
     }
   }
 }
-//----- (100310E0) --------------------------------------------------------
+// gladiator.dll: 100310E0..10031215
+// gladi386.so:   0004077C..00040898
 int __cdecl BotGetReachabilityToGoal(float *origin, int areanum, int entnum, int lastgoalareanum, int lastareanum, int *avoidreach, float *avoidreachtimes, int *avoidreachtries, bot_goal_t *goal, int travelflags)
 {
   int reachnum; // ebp
@@ -336,7 +349,8 @@ int __cdecl BotGetReachabilityToGoal(float *origin, int areanum, int entnum, int
   }
   return bestreachnum;
 }
-//----- (10031270) --------------------------------------------------------
+// gladiator.dll: 10031270..10031331
+// gladi386.so:   00040898..00040A7E
 int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int travelflags, float *target)
 {
   int reachnum; // eax
@@ -369,7 +383,8 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
   }
   return 0;
 }
-//----- (10031380) --------------------------------------------------------
+// gladiator.dll: 10031380..10031412
+// gladi386.so:   00040A80..00040B1C
 void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 {
   vec3_t mins; // BYREF
@@ -389,7 +404,8 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
     bottomcenter[2] = reach->start[2];
   }
 }
-//----- (10031450) --------------------------------------------------------
+// gladiator.dll: 10031450..100315D5
+// gladi386.so:   00040B1C..00040CA9
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
   /* end/start are real vec3_t and ALL three components of each are set before
@@ -431,7 +447,8 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
   }
   return 0.0f;
 }
-//----- (10031650) --------------------------------------------------------
+// gladiator.dll: 10031650..1003184F
+// gladi386.so:   00040CAC..00040EAA
 int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 {
   int result; // eax
@@ -475,7 +492,8 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
   ms->moveflags |= 1u;
   return result;
 }
-//----- (100318D0) --------------------------------------------------------
+// gladiator.dll: 100318D0..10031917
+// gladi386.so:   00040EAC..00040F06
 /* `type` is declared but unused — the original BotMoveInDirection pushes the
  * same 4 args (ms, dir, speed, type) to BOTH the swim and walk branches and
  * shares the arg-push, so this __cdecl callee must accept 4 args even though
@@ -489,7 +507,8 @@ int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int
   EA_Move(ms->client, normdir, speed);
   return 1;
 }
-//----- (10031940) --------------------------------------------------------
+// gladiator.dll: 10031940..10031B4A
+// gladi386.so:   00040F08..00041140
 int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
   int v5; // eax
@@ -572,7 +591,8 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
   }
   return 1;
 }
-//----- (10031BE0) --------------------------------------------------------
+// gladiator.dll: 10031BE0..10031C16
+// gladi386.so:   00041140..000411C2
 /* BotMoveInDirection (was sub_10031BE0) — the public movement dispatcher:
  * route (ms, dir, speed, type) to BotSwimInDirection when the bot's origin is
  * in liquid, else to BotWalkInDirection.  The original pushes the four args
@@ -585,7 +605,8 @@ int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float spe
   else
     return BotWalkInDirection(movestate, dir, speed, type);
 }
-//----- (10031C30) --------------------------------------------------------
+// gladiator.dll: 10031C30..10031CDD
+// gladi386.so:   000411C4..000412BC
 // 2D line-line intersection (infinite lines through {p1,p2} and {p3,p4}).
 // Returns 0 if the lines are parallel (det == 0); otherwise writes the
 // truncated intersection-point coords (via _ftol, i.e. C casts to int)
@@ -615,7 +636,8 @@ int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
   }
   return 0;
 }
-//----- (10031D10) --------------------------------------------------------
+// gladiator.dll: 10031D10..10031DD4
+// gladi386.so:   000412BC..000413E4
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult)
 {
   /* mins/maxs/end must be real vec3_t: otherwise
@@ -659,7 +681,8 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
     }
   }
 }
-//----- (10031E20) --------------------------------------------------------
+// gladiator.dll: 10031E20..10031E38
+// gladi386.so:   000413E4..00041412
 bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 {
   bot_moveresult_t *result; // eax
@@ -673,7 +696,8 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
   moveresult->flags = 0;
   return result;
 }
-//----- (10031E50) --------------------------------------------------------
+// gladiator.dll: 10031E50..10031F8A
+// gladi386.so:   00041414..000416F0
 bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
@@ -718,7 +742,8 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10031FE0) --------------------------------------------------------
+// gladiator.dll: 10031FE0..1003208A
+// gladi386.so:   000416F0..000417D7
 // 2D-direction "finish travel walk" helper.  Q3's sibling is
 // BotFinishTravel_Walk: walk straight to reach->end with speed capped
 // at 100 units before the preserved `400 - (400 - 3*dist)` form.
@@ -746,7 +771,8 @@ bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachabil
   VectorCopy(hordir, moveresult.movedir);
   return moveresult;
 }
-//----- (100320C0) --------------------------------------------------------
+// gladiator.dll: 100320C0..1003215C
+// gladi386.so:   000417D8..000419EC
 bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t — see the BotTravel_Walk note. */
@@ -764,7 +790,8 @@ bot_moveresult_t __cdecl BotTravel_Crouch(bot_movestate_t *ms, aas_reachability_
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032190) --------------------------------------------------------
+// gladiator.dll: 10032190..10032275
+// gladi386.so:   000419EC..00041C56
 bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float speed; // [esp+0h] [ebp-48h]
@@ -793,7 +820,8 @@ bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachabi
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (100322C0) --------------------------------------------------------
+// gladiator.dll: 100322C0..1003239D
+// gladi386.so:   00041C58..00041EB6
 bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v5; // [esp+0h] [ebp-48h]
@@ -818,7 +846,8 @@ bot_moveresult_t __cdecl BotFinishTravel_BarrierJump(bot_movestate_t *ms, aas_re
   }
   return moveresult;
 }
-//----- (100323E0) --------------------------------------------------------
+// gladiator.dll: 100323E0..1003248E
+// gladi386.so:   00041EB8..000420DD
 bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t — see the BotTravel_Walk note. */
@@ -835,7 +864,8 @@ bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t 
   moveresult.flags |= 2;
   return moveresult;
 }
-//----- (100324C0) --------------------------------------------------------
+// gladiator.dll: 100324C0..100325CA
+// gladi386.so:   000420E0..0004222C
 bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v4; // eax
@@ -861,7 +891,8 @@ bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachabili
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032620) --------------------------------------------------------
+// gladiator.dll: 10032620..1003278A
+// gladi386.so:   0004222C..000423F3
 bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v6; // eax
@@ -893,7 +924,8 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (100327F0) --------------------------------------------------------
+// gladiator.dll: 100327F0..10032989
+// gladi386.so:   000423F4..00042870
 bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float dist; // st7
@@ -943,7 +975,8 @@ bot_moveresult_t __cdecl BotTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachab
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032A00) --------------------------------------------------------
+// gladiator.dll: 10032A00..10032AAD
+// gladi386.so:   00042870..00042A9D
 bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t locals — see the BotTravel_Walk note. */
@@ -962,7 +995,8 @@ bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_r
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032AE0) --------------------------------------------------------
+// gladiator.dll: 10032AE0..10032DBB
+// gladi386.so:   00042AA0..00042E4B
 bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* speed and dist2's clamp are pure FPU-stack expressions in the real
@@ -1041,7 +1075,8 @@ bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t 
   VectorCopy(hordir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032E80) --------------------------------------------------------
+// gladiator.dll: 10032E80..10032F78
+// gladi386.so:   00042E4C..00042F9A
 bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t locals — see the BotTravel_Walk note. */
@@ -1072,7 +1107,8 @@ bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachabil
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10032FC0) --------------------------------------------------------
+// gladiator.dll: 10032FC0..1003309A
+// gladi386.so:   00042F9C..000430D2
 bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t — see the BotTravel_Walk note. */
@@ -1107,7 +1143,8 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (100330E0) --------------------------------------------------------
+// gladiator.dll: 100330E0..100331C8
+// gladi386.so:   000430D4..0004332D
 bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t — see the BotTravel_Walk note. */
@@ -1138,7 +1175,8 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
   }
   return moveresult;
 }
-//----- (10033210) --------------------------------------------------------
+// gladiator.dll: 10033210..1003366E
+// gladi386.so:   00043330..00043CB7
 bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
@@ -1258,7 +1296,8 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
   }
   return moveresult;
 }
-//----- (10033790) --------------------------------------------------------
+// gladiator.dll: 10033790..10033857
+// gladi386.so:   00043CB8..00043E56
 bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t locals — see the BotTravel_Walk note. */
@@ -1283,7 +1322,8 @@ bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reach
   }
   return moveresult;
 }
-//----- (100338A0) --------------------------------------------------------
+// gladiator.dll: 100338A0..10033A07
+// gladi386.so:   00043E58..00043FE7
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int i; // ebx
@@ -1313,7 +1353,8 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
   }
   return 0;
 }
-//----- (10033A70) --------------------------------------------------------
+// gladiator.dll: 10033A70..10033ADE
+// gladi386.so:   00043FE8..00044052
 void __cdecl BotResetGrapple(bot_movestate_t *ms)
 {
   aas_reachability_t reach;
@@ -1328,7 +1369,8 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
     ms->grapplevisible_time = 0.0f;
   }
 }
-//----- (10033B00) --------------------------------------------------------
+// gladiator.dll: 10033B00..10033DF5
+// gladi386.so:   00044054..00044611
 bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int v3; // eax
@@ -1443,7 +1485,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
     ms->reachability_time = 0;
   return moveresult;
 }
-//----- (10033EC0) --------------------------------------------------------
+// gladiator.dll: 10033EC0..1003400A
+// gladi386.so:   00044614..00044796
 bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float dist; // st7
@@ -1486,7 +1529,8 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
 }
-//----- (10034070) --------------------------------------------------------
+// gladiator.dll: 10034070..10034099
+// gladi386.so:   00044798..000447E5
 /* `bot_moveresult_t r; BotClearMoveResult(&r); *out = r;` — returning `out`,
  * which the original keeps in eax across the copy.  DEAD in Gladiator. */
 void *__cdecl sub_10034070(void *out)
@@ -1495,7 +1539,8 @@ void *__cdecl sub_10034070(void *out)
   BotClearMoveResult(&moveresult);
   return memcpy(out, &moveresult, 48);
 }
-//----- (100340B0) --------------------------------------------------------
+// gladiator.dll: 100340B0..1003413D
+// gladi386.so:   000447E8..000448B9
 bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   /* Real vec3_t — see the BotTravel_Walk note. */
@@ -1517,7 +1562,8 @@ bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_rea
   VectorCopy(hordir, moveresult.movedir);
   return moveresult;
 }
-//----- (10034170) --------------------------------------------------------
+// gladiator.dll: 10034170..100341AF
+// gladi386.so:   000448BC..0004495C
 int __cdecl BotReachabilityTime(aas_reachability_t* reach)
 {
   switch ( reach->traveltype )
@@ -1551,7 +1597,8 @@ int __cdecl BotReachabilityTime(aas_reachability_t* reach)
       return 8;
   }
 }
-//----- (10034210) --------------------------------------------------------
+// gladiator.dll: 10034210..1003434A
+// gladi386.so:   0004495C..00044C23
 bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal)
 {
   float dist; // st7
@@ -1598,7 +1645,8 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
   VectorCopy(ms->origin, ms->lastorigin);
   return moveresult;
 }
-//----- (100343A0) --------------------------------------------------------
+// gladiator.dll: 100343A0..100348FB
+// gladi386.so:   00044C24..000459F4
 /* BotMoveToGoal — build a bot_moveresult_t into the output buffer from the
  * movement state, goal and AAS travel flags, returning that buffer.  Walks the
  * AAS reachability chain and dispatches to the right BotTravel_* builder for
@@ -1794,14 +1842,16 @@ LABEL_27:
   *a1 = moveresult;
   return result;
 }
-//----- (10034AF0) --------------------------------------------------------
+// gladiator.dll: 10034AF0..10034B10
+// gladi386.so:   000459F4..00045A33
 void __cdecl BotResetAvoidReach(_DWORD *movestate)
 {
   memset(&movestate[29], 0, sizeof(int));
   memset(&movestate[30], 0, sizeof(int));
   memset(&movestate[31], 0, sizeof(int));
 }
-//----- (10034B20) --------------------------------------------------------
+// gladiator.dll: 10034B20..10034B6B
+// gladi386.so:   00045A34..00045A83
 void __cdecl BotResetLastAvoidReach(intptr_t movestate)
 {
   bot_movestate_t *ms = (bot_movestate_t *)movestate;
@@ -1829,7 +1879,8 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
       --ms->avoidreachtries[latest];
   }
 }
-//----- (10034B90) --------------------------------------------------------
+// gladiator.dll: 10034B90..10034BA0
+// gladi386.so:   00045A84..00045AA7
 void __cdecl BotResetMoveState(void *movestate)
 {
   memset(movestate, 0, 0x80u);

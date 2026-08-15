@@ -11,6 +11,12 @@
  * The include block below is botlib.c's, verbatim, so every macro and typedef
  * this file compiles against is the environment these functions had before the
  * split.
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -33,7 +39,8 @@
 #include "l_precomp.h"
 #include "l_script.h"
 
-//----- (100404B0) --------------------------------------------------------
+// gladiator.dll: 100404B0..1004051A
+// gladi386.so:   00052E9C..00052EE2
 const char **__cdecl FindField(const char **defs, const char *name)
 {
   const char **v2;
@@ -72,7 +79,8 @@ typedef struct fielddef_s {
     structdef_t *substruct;      /* slot 6 */
 } fielddef_t;
 
-//----- (10040540) --------------------------------------------------------
+// gladiator.dll: 10040540..100408AD
+// gladi386.so:   00052EE4..000532DD
 /* Test `(v8 & 0xFF)` directly at each site rather than caching it in a `type`
  * local, and keep the intmin/intmax clamp as Q3-style ternaries: the recomputed
  * mask is what blocks jump-threading and reproduces the original's repeated
@@ -212,7 +220,8 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
   return 1;
 }
 
-//----- (10040990) --------------------------------------------------------
+// gladiator.dll: 10040990..10040A14
+// gladi386.so:   000532E0..0005336C
 int __cdecl ReadChar(source_t *source, char **fd, float *p)
 {
   int result; // eax
@@ -235,7 +244,8 @@ int __cdecl ReadChar(source_t *source, char **fd, float *p)
   return 1;
 }
 
-//----- (10040A50) --------------------------------------------------------
+// gladiator.dll: 10040A50..10040AAA
+// gladi386.so:   0005336C..000533D8
 int __cdecl ReadString(source_t *source, char **fd, char *p)
 {
   char Source[sizeof(token_t)] __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
@@ -248,7 +258,8 @@ int __cdecl ReadString(source_t *source, char **fd, char *p)
   return 1;
 }
 
-//----- (10040AD0) --------------------------------------------------------
+// gladiator.dll: 10040AD0..10040D81
+// gladi386.so:   000533D8..00053764
 int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
 {
   token_t token;
@@ -337,7 +348,8 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
   return 1;
 }
 
-//----- (10040E30) --------------------------------------------------------
+// gladiator.dll: 10040E30..10040E67
+// gladi386.so:   00053764..000537AC
 int __cdecl WriteIndent(FILE *fp, int indent)
 {
   while ( indent-- > 0 )
@@ -348,7 +360,8 @@ int __cdecl WriteIndent(FILE *fp, int indent)
   return 1;
 }
 
-//----- (10040E80) --------------------------------------------------------
+// gladiator.dll: 10040E80..10040EFE
+// gladi386.so:   000537AC..00053860
 int __cdecl WriteFloat(FILE *fp, float value)
 {
   char buf[128];
@@ -371,7 +384,8 @@ int __cdecl WriteFloat(FILE *fp, float value)
   return 1;
 }
 
-//----- (10040F20) --------------------------------------------------------
+// gladiator.dll: 10040F20..1004114B
+// gladi386.so:   00053860..00053C11
 int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int indent)
 {
   int i; // ebp (strength-reduced to a byte offset)
@@ -464,7 +478,8 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
   return 1;
 }
 
-//----- (10041210) --------------------------------------------------------
+// gladiator.dll: 10041210..1004122A
+// gladi386.so:   00053C14..00053C3C
 int __cdecl WriteStructure(FILE *fp, int def, int structure)
 {
   /* Thin entry point: WriteStructWithIndent with indent = 0. */

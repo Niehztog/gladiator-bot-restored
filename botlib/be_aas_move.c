@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -37,7 +43,8 @@
 #include "be_interface.h"
 #include "l_memory.h"
 
-//----- (1000EEB0) --------------------------------------------------------
+// gladiator.dll: 1000EEB0..1000EF7B
+// gladi386.so:   0001B6DC..0001B7F5
 BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 {
   aas_trace_t trace;
@@ -56,7 +63,8 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
   if ( DotProduct(plane->normal, up) < libvar_sv_maxsteepness->value ) return 0;
   return 1;
 }
-//----- (1000EFC0) --------------------------------------------------------
+// gladiator.dll: 1000EFC0..1000EFF7
+// gladi386.so:   0001B7F8..0001B852
 /* Tests whether a point 2 units below `origin` is in liquid
  * (LAVA|SLIME|WATER = 0x38).  BotMoveInDirection uses it to pick a swim/jump
  * movement style.  The bi_PointContents call is required — without it the
@@ -77,7 +85,8 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
     return 1;
   return 0;
 }
-//----- (1000F010) --------------------------------------------------------
+// gladiator.dll: 1000F010..1000F0EA
+// gladi386.so:   0001B854..0001B938
 /*
  * AAS_JumpReachRunStart (was sub_1000F010) — the run-up start position for a
  * TRAVEL_JUMP reachability: predict movement back from reach->start along the
@@ -114,7 +123,8 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
     VectorCopy(start_pos, runstart_vec);
   }
 }
-//----- (1000F130) --------------------------------------------------------
+// gladiator.dll: 1000F130..1000F269
+// gladi386.so:   0001B938..0001BA6B
 // Probes the engine's PointContents() at six positions around a 3D
 // origin, looking for the high-bit-29 content flag (0x20000000 —
 // Gladiator's "do-not-enter / bot-area-block" overlay).  The probes
@@ -154,7 +164,8 @@ int __cdecl sub_1000F130(vec3_t origin)
   if ( sub_10003080(p) & 0x20000000 ) return 1;
   return 0;
 }
-//----- (1000F2C0) --------------------------------------------------------
+// gladiator.dll: 1000F2C0..1000F453
+// gladi386.so:   0001BA6C..0001BC41
 int __cdecl AAS_AgainstLadder(vec3_t origin)
 {
   int areanum; // eax
@@ -207,7 +218,8 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
   }
   return 0;
 }
-//----- (1000F4D0) --------------------------------------------------------
+// gladiator.dll: 1000F4D0..1000F6C8
+// gladi386.so:   0001BC44..0001BF3E
 double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
   vec3_t kvel, v, start, end, forward, right, viewangles, dir;
@@ -247,7 +259,8 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
   VectorScale(dir, 1600.0 * (float)knockback / mass, kvel);
   return kvel[2] + libvar_sv_jumpvel->value;
 }
-//----- (1000F750) --------------------------------------------------------
+// gladiator.dll: 1000F750..1000F763
+// gladi386.so:   0001BF40..0001BF61
 /* AAS_RocketJumpZVelocity (was sub_1000F750) — Z-velocity from self-rocketing
  * at `origin`; a one-line wrapper over AAS_WeaponJumpZVelocity with the
  * launcher's 120-unit radius damage.  `double`, not `float`: AAS_BFGJumpZVelocity
@@ -258,12 +271,14 @@ double __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
-//----- (1000F780) --------------------------------------------------------
+// gladiator.dll: 1000F780..1000F793
+// gladi386.so:   0001BF64..0001BF85
 double __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
-//----- (1000F7B0) --------------------------------------------------------
+// gladiator.dll: 1000F7B0..1000F81A
+// gladi386.so:   0001BF88..0001C00C
 void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, float frametime)
 {
   float speed; // st5
@@ -285,7 +300,8 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
     vel[1] *= newspeed;
   }
 }
-//----- (1000F840) --------------------------------------------------------
+// gladiator.dll: 1000F840..100103AA
+// gladi386.so:   0001C00C..0001D122
 /*
  * AAS_ClientMovementPrediction — predict client movement up to `maxframes`
  * ahead.  This is the OLDER form; it diverges from Q3 by design — do NOT
@@ -684,7 +700,8 @@ LABEL_86:
 LABEL_88:
   return *(aas_clientmove_t *)move_buf;
 }
-//----- (10010690) --------------------------------------------------------
+// gladiator.dll: 10010690..1001074D
+// gladi386.so:   0001D124..0001D222
 /* AAS_TestMovementPrediction — movement-prediction debug helper: flatten the
  * direction's Z unless swimming, normalize it, scale to 400 u/s, force a
  * +Z=224 jump impulse, clear the debug lines, then run one
@@ -717,7 +734,8 @@ void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
   if (result.stopevent & 0x02)
     botimport.Print(PRT_MESSAGE, "leave ground\n");
 }
-//----- (10010780) --------------------------------------------------------
+// gladiator.dll: 10010780..1001082B
+// gladi386.so:   0001D224..0001D313
 int __cdecl AAS_HorizontalVelocityForJump(float zvel, vec3_t start, vec3_t end, float *velocity)
 {
   float phys_gravity, phys_maxvelocity;

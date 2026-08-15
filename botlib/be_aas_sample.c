@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -36,7 +42,8 @@
 #include "l_libvar.h"
 #include "l_memory.h"
 
-//----- (1001AC00) --------------------------------------------------------
+// gladiator.dll: 1001AC00..1001ACC2
+// gladi386.so:   00028A34..00028CEE
 void AAS_InitAASLinkHeap()
 {
   aas_link_t *heap;
@@ -65,7 +72,8 @@ void AAS_InitAASLinkHeap()
   aasworld.linkheap[count - 1].next_ent = NULL;
   aasworld.freelinks = aasworld.linkheap;
 }
-//----- (1001AD10) --------------------------------------------------------
+// gladiator.dll: 1001AD10..1001AD33
+// gladi386.so:   00028CF0..00028D38
 void AAS_FreeAASLinkHeap()
 {
   if ( aasworld.linkheap )
@@ -73,7 +81,8 @@ void AAS_FreeAASLinkHeap()
   aasworld.linkheap = NULL;
   aasworld.linkheapsize = 0;
 }
-//----- (1001AD50) --------------------------------------------------------
+// gladiator.dll: 1001AD50..1001AD81
+// gladi386.so:   00028D38..00028D86
 aas_link_t *AAS_AllocAASLink()
 {
   aas_link_t *result;
@@ -91,7 +100,8 @@ aas_link_t *AAS_AllocAASLink()
     next->prev_ent = NULL;
   return result;
 }
-//----- (1001ADA0) --------------------------------------------------------
+// gladiator.dll: 1001ADA0..1001ADCB
+// gladi386.so:   00028D88..00028DD8
 void __cdecl AAS_DeAllocAASLink(aas_link_t *link)
 {
   if ( aasworld.freelinks )
@@ -102,7 +112,8 @@ void __cdecl AAS_DeAllocAASLink(aas_link_t *link)
   link->next_area = NULL;
   aasworld.freelinks = link;
 }
-//----- (1001ADE0) --------------------------------------------------------
+// gladiator.dll: 1001ADE0..1001AE16
+// gladi386.so:   00028DD8..00028E2B
 void AAS_InitAASLinkedEntities(void)
 {
   if ( aasworld.loaded )
@@ -112,14 +123,16 @@ void AAS_InitAASLinkedEntities(void)
     aasworld.arealinkedentities = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * aasworld.numareas);
   }
 }
-//----- (1001AE30) --------------------------------------------------------
+// gladiator.dll: 1001AE30..1001AE4D
+// gladi386.so:   00028E2C..00028E64
 void AAS_FreeAASLinkedEntities()
 {
   if ( aasworld.arealinkedentities )
     FreeMemory(aasworld.arealinkedentities);
   aasworld.arealinkedentities = NULL;
 }
-//----- (1001AE60) --------------------------------------------------------
+// gladiator.dll: 1001AE60..1001AEDE
+// gladi386.so:   00028E64..00028F11
 int __cdecl AAS_PointAreaNum(vec3_t point)
 {
   int nodenum; // eax
@@ -148,7 +161,8 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
     return 0;
   return -nodenum;
 }
-//----- (1001AF00) --------------------------------------------------------
+// gladiator.dll: 1001AF00..1001AF37
+// gladi386.so:   00028F14..00028F68
 // Returns aasworld.areasettings[areanum].cluster
 // (struct offset +0xC into the 28-byte aas_areasettings_t).  No
 // aasworld.loaded guard (unlike AAS_AreaPresenceType — this variant just
@@ -164,7 +178,8 @@ int __cdecl AAS_AreaCluster(int areanum)
   }
   return aasworld.areasettings[areanum].cluster;
 }
-//----- (1001AF50) --------------------------------------------------------
+// gladiator.dll: 1001AF50..1001AF90
+// gladi386.so:   00028F68..00028FC4
 int __cdecl AAS_AreaPresenceType(int areanum)
 {
   if ( !aasworld.loaded )
@@ -176,7 +191,8 @@ int __cdecl AAS_AreaPresenceType(int areanum)
   }
   return aasworld.areasettings[areanum].presencetype;
 }
-//----- (1001AFA0) --------------------------------------------------------
+// gladiator.dll: 1001AFA0..1001AFD7
+// gladi386.so:   00028FC4..0002907B
 int __cdecl AAS_PointContents(vec3_t point)
 {
   int areanum; // eax
@@ -188,7 +204,8 @@ int __cdecl AAS_PointContents(vec3_t point)
     return 1;
   return aasworld.areasettings[areanum].presencetype;
 }
-//----- (1001AFF0) --------------------------------------------------------
+// gladiator.dll: 1001AFF0..1001B0F0
+// gladi386.so:   0002907C..00029278
 // Signed support-distance of an AABB along a 3D direction.  Builds a
 // per-axis support point from {mins, maxs} keyed on sign(normal[i])
 // with a +/-0.001 deadband (.rdata QWORD doubles 0x10058230 = +0.001,
@@ -243,7 +260,8 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
        + support[1] * normal_local[1]
        + support[2] * normal_local[2];
 }
-//----- (1001B130) --------------------------------------------------------
+// gladiator.dll: 1001B130..1001B214
+// gladi386.so:   00029278..0002936A
 qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, int presencetype, int passent, aas_trace_t *trace)
 {
   aas_link_t *link; // esi
@@ -284,7 +302,8 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
 fail:
   return 0;
 }
-//----- (1001B260) --------------------------------------------------------
+// gladiator.dll: 1001B260..1001B86F
+// gladi386.so:   0002936C..00029C32
 /* AAS_TraceClientBBox — sweep a presence-typed bbox along a line and return
  * the first AAS-leaf hit (fraction=1.0 if the trace clears the BSP).  The BSP
  * traversal stack is aas_tracestack_t frames walked by one tstack_p, as in Q3.
@@ -497,7 +516,8 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
     }
   }
 }
-//----- (1001BA00) --------------------------------------------------------
+// gladiator.dll: 1001BA00..1001BC88
+// gladi386.so:   00029C34..00029F40
 /* AAS_TraceAreas — recursive subdivision of the line by the BSP tree,
  * collecting all areas the line passes through (up to maxareas).
  *
@@ -595,7 +615,8 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
     }
   }
 }
-//----- (1001BD40) --------------------------------------------------------
+// gladiator.dll: 1001BD40..1001BE98
+// gladi386.so:   00029F40..0002A0FD
 // Four args (face, pnormal, point, epsilon) with an inlined CrossProduct +
 // DotProduct loop, matching Q3's AAS_InsideFace (be_aas_route.c); the callers'
 // `add esp,0x10` cleanup confirms the count.
@@ -627,7 +648,8 @@ qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, 
   }
   return 1;
 }
-//----- (1001BF00) --------------------------------------------------------
+// gladiator.dll: 1001BF00..1001C045
+// gladi386.so:   0002A100..0002A249
 qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 {
   int i;
@@ -661,7 +683,8 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
   }
   return 1;
 }
-//----- (1001C0B0) --------------------------------------------------------
+// gladiator.dll: 1001C0B0..1001C17E
+// gladi386.so:   0002A24C..0002A37E
 // Scans an area's face list for the first face whose faceflags byte
 // (offset +4) has bit 0x04 set, and that survives a predicate-call
 // into AAS_InsideFace with a +Z or -Z unit vector (chosen by the sign
@@ -707,7 +730,8 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
   }
   return 0;
 }
-//----- (1001C1C0) --------------------------------------------------------
+// gladiator.dll: 1001C1C0..1001C1F9
+// gladi386.so:   0002A380..0002A3D2
 /* Copies a face's BSP plane (normal + dist) into the caller's buffers.
  * DEAD in Gladiator — live code walks aasworld.planes/faces directly. */
 void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
@@ -720,7 +744,8 @@ void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
   VectorCopy(plane, normal);
   *dist     = plane[3];
 }
-//----- (1001C210) --------------------------------------------------------
+// gladiator.dll: 1001C210..1001C2A8
+// gladi386.so:   0002A3D4..0002A4CE
 // Sibling of sub_1001C0B0 — same face-scan skeleton, but driven from
 // a caller-supplied struct (arg1) instead of a bare areanum.  Guard:
 // arg1->_i0 must be 0; areanum is read from arg1->_i18.  For each
@@ -753,7 +778,8 @@ void *__cdecl sub_1001C210(int *gate)
   }
   return 0;
 }
-//----- (1001C2E0) --------------------------------------------------------
+// gladiator.dll: 1001C2E0..1001C3A5
+// gladi386.so:   0002A4D0..0002A5D8
 int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
 {
   int   i, sides;
@@ -782,7 +808,8 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
     sides |= 2;
   return sides;
 }
-//----- (1001C3F0) --------------------------------------------------------
+// gladiator.dll: 1001C3F0..1001C43A
+// gladi386.so:   0002A5D8..0002A66D
 void __cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
 {
   aas_link_t *result; // eax
@@ -810,7 +837,8 @@ void __cdecl AAS_UnlinkFromAreas(aas_link_t *areas)
     while ( v3 );
   }
 }
-//----- (1001C460) --------------------------------------------------------
+// gladiator.dll: 1001C460..1001C5BA
+// gladi386.so:   0002A670..0002A99F
 aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum)
 {
   aas_link_t *areas;
@@ -892,7 +920,8 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   }
   return areas;
 }
-//----- (1001C620) --------------------------------------------------------
+// gladiator.dll: 1001C620..1001C697
+// gladi386.so:   0002A9A0..0002AA2E
 /* AAS_LinkEntityClientBBox — adjust the entity bbox by the presence-type
  * bounding box, then link it into the AAS area tree. */
 aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int entnum, int presencetype)
@@ -905,7 +934,8 @@ aas_link_t *__cdecl AAS_LinkEntityClientBBox(vec3_t absmins, vec3_t absmaxs, int
   VectorSubtract(absmaxs, mins, newabsmaxs);
   return AAS_AASLinkEntity(newabsmins, newabsmaxs, entnum);
 }
-//----- (1001C6C0) --------------------------------------------------------
+// gladiator.dll: 1001C6C0..1001C6DD
+// gladi386.so:   0002AA30..0002AA60
 char *__cdecl AAS_PlaneFromNum(int planenum)
 {
   if ( !aasworld.loaded )

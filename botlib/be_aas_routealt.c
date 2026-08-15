@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -43,7 +49,8 @@ int numclusterareas;     // 0x10066730 area count — stays int (was dword_10066
 midrangearea_t *midrangeareas; // 0x10066740 (was dword_10066740)
 int *clusterareas;             // 0x10066744 (was dword_10066744)
 
-//----- (1001A650) --------------------------------------------------------
+// gladiator.dll: 1001A650..1001A6E8
+// gladi386.so:   000282E0..00028392
 int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
 {
   int i;
@@ -72,7 +79,8 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
    * return value is unused. */
 }
 
-//----- (1001A720) --------------------------------------------------------
+// gladiator.dll: 1001A720..1001AA98
+// gladi386.so:   00028394..000289B4
 /* AAS_AlternativeRouteGoals — find clusters of "midrange" route-portal areas
  * lying within a 1.5x detour budget of the direct start->goal route, and emit
  * one alternative-route goal per cluster.
@@ -217,7 +225,8 @@ int __cdecl AAS_AlternativeRouteGoals(
   botimport.Print(PRT_MESSAGE, "%d alternative route goals\n", numaltroutegoals);
   return numaltroutegoals;
 }
-//----- (1001AB80) --------------------------------------------------------
+// gladiator.dll: 1001AB80..1001ABDA
+// gladi386.so:   000289B4..00028A33
 void sub_1001AB80()
 {
   if ( midrangeareas )

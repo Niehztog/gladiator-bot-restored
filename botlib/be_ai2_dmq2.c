@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -92,7 +98,8 @@ int dword_10064494; // weak
 int dword_10064498; // weak
 int dword_1006449C; // weak
 
-//----- (10020ED0) --------------------------------------------------------
+// gladiator.dll: 10020ED0..10020F9F
+// gladi386.so:   0002BA08..0002BAD3
 void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
 {
 
@@ -132,7 +139,8 @@ void __cdecl BotEntityInfo(bot_state_t *bs, _DWORD *info)
   info[14] = *(int *)&bs->viewangles[1];
   info[15] = *(int *)&bs->viewangles[2];
 }
-//----- (10020FE0) --------------------------------------------------------
+// gladiator.dll: 10020FE0..10021008
+// gladi386.so:   0002BAD4..0002BB0A
 char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
 {
 
@@ -144,7 +152,8 @@ char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
   ws->modelname = result;
   return result;
 }
-//----- (10021020) --------------------------------------------------------
+// gladiator.dll: 10021020..1002120B
+// gladi386.so:   0002BB0C..0002BD98
 void __cdecl BotUpdateInventory(bot_state_t *bs)
 {
   __int16 v1; // ax
@@ -208,7 +217,8 @@ void __cdecl BotUpdateInventory(bot_state_t *bs)
     }
   }
 }
-//----- (10021290) --------------------------------------------------------
+// gladiator.dll: 10021290..10021427
+// gladi386.so:   0002BD98..0002C01B
 void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
 {
 
@@ -322,14 +332,16 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   }
   bs->inventory[ENEMY_POWERSCREEN] = 0;
 }
-//----- (100214E0) --------------------------------------------------------
+// gladiator.dll: 100214E0..100214EC
+// gladi386.so:   0002C01C..0002C028
 /* Returns the signed 16-bit snapshot.stats[16].  DEAD in Gladiator, so no call
  * site confirms the parameter type; bot_state_t * matches both neighbours. */
 int __cdecl sub_100214E0(bot_state_t *p)
 {
   return p->snapshot.stats[16];
 }
-//----- (10021500) --------------------------------------------------------
+// gladiator.dll: 10021500..100215A4
+// gladi386.so:   0002C028..0002C0DB
 void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
@@ -343,7 +355,8 @@ void __cdecl BotBattleUseItems(bot_state_t *bs)
   if ( !bs->inventory[POWER_SCREEN_CELLS] && bs->inventory[5] > 0 )   /* +1748 */
     EA_UseItem(bs->client, "Power Screen");
 }
-//----- (100215E0) --------------------------------------------------------
+// gladiator.dll: 100215E0..10021630
+// gladi386.so:   0002C0DC..0002C13B
 void __cdecl sub_100215E0(bot_state_t *bs)
 {
   if ( !bs->inventory[QUAD_SECONDS] && bs->inventory[23] > 0 )   /* +1820 quad ammo */
@@ -354,7 +367,8 @@ void __cdecl sub_100215E0(bot_state_t *bs)
   if ( !bs->inventory[INVULNERABILITY_SECONDS] && bs->inventory[24] > 0 ) /* +1824 invuln ammo */
     EA_UseItem(bs->client, "Invulnerability");
 }
-//----- (10021650) --------------------------------------------------------
+// gladiator.dll: 10021650..10021690
+// gladi386.so:   0002C13C..0002C18C
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
 {
   if ( libvar_ctf->value == 0.0f )
@@ -369,7 +383,8 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
     return 2;
   return 0;
 }
-//----- (100216A0) --------------------------------------------------------
+// gladiator.dll: 100216A0..100216BA
+// gladi386.so:   0002C18C..0002C1A2
 BOOL __cdecl BotIsDead(bot_state_t *bs)
 {
   int v1; // eax
@@ -377,17 +392,20 @@ BOOL __cdecl BotIsDead(bot_state_t *bs)
   v1 = bs->snapshot.pm_type;
   return v1 == 2 || v1 == 3;
 }
-//----- (100216D0) --------------------------------------------------------
+// gladiator.dll: 100216D0..100216DE
+// gladi386.so:   0002C1A4..0002C1B5
 BOOL __cdecl BotIsObserver(bot_state_t *bs)
 {
   return bs->snapshot.pm_type == 1;
 }
-//----- (100216F0) --------------------------------------------------------
+// gladiator.dll: 100216F0..100216FE
+// gladi386.so:   0002C1B8..0002C1C9
 BOOL __cdecl BotIntermission(bot_state_t *bs)
 {
   return bs->snapshot.pm_type == 4;
 }
-//----- (10021710) --------------------------------------------------------
+// gladiator.dll: 10021710..10021752
+// gladi386.so:   0002C1CC..0002C223
 BOOL __cdecl sub_10021710(int *a1)
 {
   if ( (a1[29] & 0x4002) != 0 )
@@ -400,7 +418,8 @@ BOOL __cdecl sub_10021710(int *a1)
     return 1;
   return 0;
 }
-//----- (10021780) --------------------------------------------------------
+// gladiator.dll: 10021780..100217A3
+// gladi386.so:   0002C224..0002C245
 BOOL __cdecl EntityIsShooting(intptr_t a1)
 {
   aas_entityinfo_t *ent = (aas_entityinfo_t *)a1;
@@ -411,7 +430,8 @@ BOOL __cdecl EntityIsShooting(intptr_t a1)
     return 1;
   return 0;
 }
-//----- (100217C0) --------------------------------------------------------
+// gladiator.dll: 100217C0..10021836
+// gladi386.so:   0002C248..0002C2DB
 char *__cdecl stristr(char *str, char *charset)
 {
   int i;
@@ -429,7 +449,8 @@ char *__cdecl stristr(char *str, char *charset)
   }
   return 0;
 }
-//----- (10021860) --------------------------------------------------------
+// gladiator.dll: 10021860..10021A12
+// gladi386.so:   0002C2DC..0002C4AA
 char *__cdecl EasyClientName(int client, char *buf)
 {
   int ci; // eax (strength-reduced walk-pointer over Str)
@@ -484,7 +505,8 @@ char *__cdecl EasyClientName(int client, char *buf)
   strcpy(buf, Str);
   return buf;
 }
-//----- (10021A90) --------------------------------------------------------
+// gladiator.dll: 10021A90..10021B1A
+// gladi386.so:   0002C4AC..0002C57E
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum)
 {
   /* The original allocates strlen(name)+1+68 with a hand-laid header; a real
@@ -506,7 +528,8 @@ bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int a
   wp->prev = NULL;
   return wp;
 }
-//----- (10021B50) --------------------------------------------------------
+// gladiator.dll: 10021B50..10021B7F
+// gladi386.so:   0002C580..0002C5C1
 bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *waypoints, char *name)
 {
   bot_waypoint_t *wp;
@@ -518,7 +541,8 @@ bot_waypoint_t *__cdecl BotFindWayPoint(bot_waypoint_t *waypoints, char *name)
   }
   return NULL;
 }
-//----- (10021B90) --------------------------------------------------------
+// gladiator.dll: 10021B90..10021BAD
+// gladi386.so:   0002C5C4..0002C5F1
 void __cdecl BotFreeWaypoints(bot_waypoint_t *wp)
 {
   bot_waypoint_t *next;
@@ -529,7 +553,8 @@ void __cdecl BotFreeWaypoints(bot_waypoint_t *wp)
     FreeMemory(wp);
   }
 }
-//----- (10021BC0) --------------------------------------------------------
+// gladiator.dll: 10021BC0..10021D13
+// gladi386.so:   0002C5F4..0002C79E
 BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
 {
 
@@ -571,7 +596,8 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 0;
   return 1;
 }
-//----- (10021D80) --------------------------------------------------------
+// gladiator.dll: 10021D80..10021E44
+// gladi386.so:   0002C7A0..0002C888
 BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
 {
 
@@ -596,7 +622,8 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
                  (char *)0);
   return 1;
 }
-//----- (10021E90) --------------------------------------------------------
+// gladiator.dll: 10021E90..10021F42
+// gladi386.so:   0002C888..0002C958
 int __cdecl BotChat_ExitGame(bot_state_t *bs)
 {
 
@@ -615,7 +642,8 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
                  (char *)0);
   return 1;
 }
-//----- (10021F80) --------------------------------------------------------
+// gladiator.dll: 10021F80..10022032
+// gladi386.so:   0002C958..0002CA28
 int __cdecl BotChat_StartLevel(bot_state_t *bs)
 {
 
@@ -634,7 +662,8 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
                  EasyClientName(bs->client, name), (char *)0);
   return 1;
 }
-//----- (10022070) --------------------------------------------------------
+// gladiator.dll: 10022070..10022122
+// gladi386.so:   0002CA28..0002CAF8
 int __cdecl BotChat_EndLevel(bot_state_t *bs)
 {
 
@@ -653,7 +682,8 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
                  (char *)0);
   return 1;
 }
-//----- (10022160) --------------------------------------------------------
+// gladiator.dll: 10022160..1002228C
+// gladi386.so:   0002CAF8..0002CC50
 int __cdecl BotChat_Death(int *bs)
 {
   float v1; // st7
@@ -693,7 +723,8 @@ int __cdecl BotChat_Death(int *bs)
   }
   return 1;
 }
-//----- (100222E0) --------------------------------------------------------
+// gladiator.dll: 100222E0..1002241E
+// gladi386.so:   0002CC50..0002CDB8
 BOOL __cdecl BotChat_Kill(int *bs)
 {
   float v1; // st7
@@ -737,7 +768,8 @@ BOOL __cdecl BotChat_Kill(int *bs)
   }
   return 1;
 }
-//----- (10022470) --------------------------------------------------------
+// gladiator.dll: 10022470..100225EE
+// gladi386.so:   0002CDB8..0002CF54
 int __cdecl BotChat_Random(bot_state_t *bs)
 {
 
@@ -768,7 +800,8 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   BotInitialChat(&bs->chatstate, "random_insult", (char *)0);
   return 1;
 }
-//----- (10022650) --------------------------------------------------------
+// gladiator.dll: 10022650..10022693
+// gladi386.so:   0002CF54..0002CFA7
 float __cdecl BotChatTime(bot_state_t *bs)
 {
 
@@ -777,7 +810,8 @@ float __cdecl BotChatTime(bot_state_t *bs)
   cpm = Characteristic_BInteger(BotCharacter(bs), 14, 1, 4000);
   return (int)BotChatLength(&bs->chatstate) * 30.0f / cpm;
 }
-//----- (100226C0) --------------------------------------------------------
+// gladiator.dll: 100226C0..10022849
+// gladi386.so:   0002CFA8..0002D0F4
 float __cdecl BotAggression(bot_state_t *bs)
 {
   int v2; // ecx
@@ -813,7 +847,8 @@ float __cdecl BotAggression(bot_state_t *bs)
     return 100.0f;
   return 0.0f;
 }
-//----- (100228C0) --------------------------------------------------------
+// gladiator.dll: 100228C0..1002290A
+// gladi386.so:   0002D0F4..0002D173
 BOOL __cdecl BotWantsToRetreat(int *bs)
 {
   if ( BotCTFCarryingFlag(bs) )
@@ -824,14 +859,16 @@ BOOL __cdecl BotWantsToRetreat(int *bs)
     return 1;
   return 0;
 }
-//----- (10022930) --------------------------------------------------------
+// gladiator.dll: 10022930..10022953
+// gladi386.so:   0002D174..0002D1AF
 BOOL __cdecl BotWantsToChase(int *bs)
 {
   if ( BotAggression((bot_state_t *)bs) > 50.0f )
     return 1;
   return 0;
 }
-//----- (10022970) --------------------------------------------------------
+// gladiator.dll: 10022970..10022976
+// gladi386.so:   0002D1B0..0002D1B6
 /* Always-true predicate between BotWantsToChase and
  * BotCanAndWantsToRocketJump — probably a feature toggle that ended up
  * hard-coded.  DEAD in Gladiator. */
@@ -839,7 +876,8 @@ int __cdecl BotWantsToHelp(bot_state_t *bs)
 {
   return 1;
 }
-//----- (10022990) --------------------------------------------------------
+// gladiator.dll: 10022990..10022A23
+// gladi386.so:   0002D1B8..0002D259
 BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
 {
   int v3;
@@ -861,7 +899,8 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
     return 0;
   return 1;
 }
-//----- (10022A60) --------------------------------------------------------
+// gladiator.dll: 10022A60..10022D42
+// gladi386.so:   0002D25C..0002D5C1
 float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
 {
   int *v2; // ebp
@@ -943,7 +982,8 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
   goal[2] = endpos[2];
   return result;
 }
-//----- (10022E10) --------------------------------------------------------
+// gladiator.dll: 10022E10..100233A0
+// gladi386.so:   0002D5C4..0002DE0C
 bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
 {
   float v10; // st7
@@ -1101,7 +1141,8 @@ LABEL_35:
   }
   return moveresult;
 }
-//----- (10023510) --------------------------------------------------------
+// gladiator.dll: 10023510..10023533
+// gladi386.so:   0002DE0C..0002DE4B
 int __cdecl BotCTFTeam(bot_state_t *bs)
 {
   const char *v1; // eax
@@ -1111,7 +1152,8 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
     return 1;
   return 2;
 }
-//----- (10023550) --------------------------------------------------------
+// gladiator.dll: 10023550..1002382D
+// gladi386.so:   0002DE4C..0002E15D
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
 {
   int v2; // ebx
@@ -1177,7 +1219,8 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
   }
   return 0;
 }
-//----- (100238F0) --------------------------------------------------------
+// gladiator.dll: 100238F0..10023949
+// gladi386.so:   0002E160..0002E1DD
 int __cdecl BotNumTeamMates(bot_state_t *bs)
 {
   int numplayers; // ebp
@@ -1194,7 +1237,8 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
   }
   return numplayers;
 }
-//----- (10023970) --------------------------------------------------------
+// gladiator.dll: 10023970..10023C30
+// gladi386.so:   0002E1E0..0002E558
 int __cdecl BotFindEnemy(bot_state_t *bs)
 {
 
@@ -1274,7 +1318,8 @@ found:
   }
   return 0;
 }
-//----- (10023CE0) --------------------------------------------------------
+// gladiator.dll: 10023CE0..100243C4
+// gladi386.so:   0002E558..0002EDBF
 void BotAimAtEnemy(bot_state_t *bs)
 {
 
@@ -1423,7 +1468,8 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
   }
 }
-//----- (10024590) --------------------------------------------------------
+// gladiator.dll: 10024590..10024915
+// gladi386.so:   0002EDC0..0002F17E
 void BotCheckAttack(bot_state_t *bs)
 {
 
@@ -1513,7 +1559,8 @@ void BotCheckAttack(bot_state_t *bs)
     }
   }
 }
-//----- (10024A10) --------------------------------------------------------
+// gladiator.dll: 10024A10..10024E9D
+// gladi386.so:   0002F180..0002F53D
 int *__cdecl BotEntityToActivate(int a1)
 {
   char *v1; // eax
@@ -1658,7 +1705,8 @@ LABEL_39:
   botimport.Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
   return 0;
 }
-//----- (10024FD0) --------------------------------------------------------
+// gladiator.dll: 10024FD0..1002504D
+// gladi386.so:   0002F540..0002F5E2
 void __cdecl BotSetMovedir(float *angles, float *movedir)
 {
   if ( VectorCompare(angles, VEC_UP) )
@@ -1674,7 +1722,8 @@ void __cdecl BotSetMovedir(float *angles, float *movedir)
     AngleVectors(angles, movedir, NULL, NULL);
   }
 }
-//----- (10025070) --------------------------------------------------------
+// gladiator.dll: 10025070..1002545E
+// gladi386.so:   0002F5E4..0002FBCD
 /* Debug visualiser for func_button entities: walk the BSP entity list, filter
  * by classname == "func_button", read the brush's model AABB plus the
  * "angle"/"health" keys, and draw permanent debug crosses — one at the shoot
@@ -1802,7 +1851,8 @@ void __cdecl sub_10025070(void)
   }
   while ( ent );
 }
-//----- (10025560) --------------------------------------------------------
+// gladiator.dll: 10025560..1002600F
+// gladi386.so:   0002FBD0..000308CB
 /* Genuinely void, as in Q3: each exit path just leaves whatever is in eax and
  * every caller ignores it. */
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate)
@@ -2045,7 +2095,8 @@ LABEL_37:
   }
   return;
 }
-//----- (100262C0) --------------------------------------------------------
+// gladiator.dll: 100262C0..1002638D
+// gladi386.so:   000308CC..000309C2
 void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2)
 {
   aas_entityinfo_t info; // [esp+8h] [ebp-7Ch] BYREF
@@ -2066,7 +2117,8 @@ void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2)
     }
   }
 }
-//----- (100263D0) --------------------------------------------------------
+// gladiator.dll: 100263D0..10026414
+// gladi386.so:   000309C4..00030A41
 void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
 {
 
@@ -2083,7 +2135,8 @@ void __cdecl BotCTFRetreatGoals(bot_state_t *bs)
     }
   }
 }
-//----- (10026440) --------------------------------------------------------
+// gladiator.dll: 10026440..10026604
+// gladi386.so:   00030A44..00030CBF
 void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 {
 
@@ -2129,14 +2182,16 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     }
   }
 }
-//----- (10026690) --------------------------------------------------------
+// gladiator.dll: 10026690..100266D6
+// gladi386.so:   00030CC0..00030D42
 BOOL TeamPlayIsOn()
 {
   return ((int)libvar_dmflags->value & 0xC0) != 0
       || libvar_ctf->value != 0.0f
       || libvar_teamplay->value != 0.0f;
 }
-//----- (10026700) --------------------------------------------------------
+// gladiator.dll: 10026700..10026746
+// gladi386.so:   00030D44..00030D92
 BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
 {
   int i;
@@ -2156,7 +2211,8 @@ BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
   return 0;
 }
 // 10026728: conditional instruction was optimized away because eax.4<1
-//----- (10026770) --------------------------------------------------------
+// gladiator.dll: 10026770..100267BF
+// gladi386.so:   00030D94..00030E29
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal)
 {
   int cp; // eax
@@ -2171,7 +2227,8 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *g
   }
   return 0;
 }
-//----- (100267E0) --------------------------------------------------------
+// gladiator.dll: 100267E0..1002689B
+// gladi386.so:   00030E2C..00030EF0
 float __cdecl BotGetTime(bot_match_t *match)
 {
   float v1; // st7
@@ -2202,7 +2259,8 @@ float __cdecl BotGetTime(bot_match_t *match)
   }
   return 0.0f;
 }
-//----- (100268D0) --------------------------------------------------------
+// gladiator.dll: 100268D0..10026953
+// gladi386.so:   00030EF0..00031037
 int __cdecl FindClientByName(char *name)
 {
   int i;
@@ -2219,7 +2277,8 @@ int __cdecl FindClientByName(char *name)
   }
   return -1;
 }
-//----- (10026990) --------------------------------------------------------
+// gladiator.dll: 10026990..10026B5F
+// gladi386.so:   00031038..0003139B
 int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
 {
   int patrolflags; // edi (patrol flags accumulator)
@@ -2302,7 +2361,8 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
   }
 }
 // 10026A34: conditional instruction was optimized away because edx.4!=0
-//----- (10026BE0) --------------------------------------------------------
+// gladiator.dll: 10026BE0..10026DBC
+// gladi386.so:   0003139C..000315C2
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 {
   int client; // eax
@@ -2361,7 +2421,8 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   }
   return 1;
 }
-//----- (10026E40) --------------------------------------------------------
+// gladiator.dll: 10026E40..10026ED9
+// gladi386.so:   000315C4..000316B2
 // BotGPSToPosition — the Q3 cognate; this source form compiles to the ref DLL
 // at 0x10026E40 here.
 // DEAD in Gladiator — /INCREMENTAL.
@@ -2404,7 +2465,8 @@ int __cdecl BotGPSToPosition(char *buf, float *position)
   }
   return 1;
 }
-//----- (10026F10) --------------------------------------------------------
+// gladiator.dll: 10026F10..10028198
+// gladi386.so:   000316B4..00032D6B
 int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
 {
   int v3; // eax
@@ -2908,7 +2970,8 @@ LABEL_32:
 #undef v58
 #undef v59
 #undef v60
-//----- (10028650) --------------------------------------------------------
+// gladiator.dll: 10028650..100288E8
+// gladi386.so:   00032D6C..000330B5
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 {
   bot_chatstate_t *v2; // ebp
@@ -2996,7 +3059,8 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
    BotRemoveConsoleMessage(v2, v3);
  }
 }
-//----- (100289A0) --------------------------------------------------------
+// gladiator.dll: 100289A0..10028A15
+// gladi386.so:   000330B8..0003312C
 void __cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
   bs->ltime += a2;
@@ -3009,12 +3073,14 @@ void __cdecl sub_100289A0(bot_state_t *bs, float a2)
   bs->eye[2] = bs->snapshot.origin[2] + bs->snapshot.viewoffset[2];
   memcpy(bs->inventory, bs->snapshot.inventory, 0x400u);
 }
-//----- (10028A40) --------------------------------------------------------
+// gladiator.dll: 10028A40..10028A56
+// gladi386.so:   0003312C..00033150
 int __cdecl sub_10028A40(bot_state_t *bs, float a2)
 {
   return ((int (__cdecl *)(int, float))EA_EndRegular)(bs->client, a2);
 }
-//----- (10028A70) --------------------------------------------------------
+// gladiator.dll: 10028A70..10028BCF
+// gladi386.so:   00033150..0003341C
 int BotDeathmatchAI(bot_state_t *bs, float thinktime)
 {
   int i; // edi
@@ -3060,7 +3126,8 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
     return sub_10028A40(bs, thinktime);
 }
 // 10028B9E: conditional instruction was optimized away because edi.4<32
-//----- (10028C30) --------------------------------------------------------
+// gladiator.dll: 10028C30..10028DF7
+// gladi386.so:   0003341C..0003366C
 void BotSetupDeathmatchAI()
 {
   libvar_dmflags = LibVar("dmflags", (char *)"0");
@@ -3090,7 +3157,8 @@ void BotSetupDeathmatchAI()
   }
   dword_1006446C = 1;
 }
-//----- (10028E80) --------------------------------------------------------
+// gladiator.dll: 10028E80..10028E81
+// gladi386.so:   0003366C..0003366D
 /* Empty in the original.  Q3's ai_dmq3.c pairs BotShutdownDeathmatchAI right
  * after BotSetupDeathmatchAI in the same file (it clears altroutegoals_setup
  * there); the ELF oracle confirms the same adjacency here -- F814

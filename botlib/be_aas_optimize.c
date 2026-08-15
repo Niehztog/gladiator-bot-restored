@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -35,13 +41,15 @@
 #include "be_interface.h"
 #include "l_memory.h"
 
-//----- (10010860) --------------------------------------------------------
+// gladiator.dll: 10010860..10010866
+// gladi386.so:   0001D314..0001D31A
 int AAS_KeepEdge(aas_edge_t *edge)
 {
   (void)edge;
   return 1;
 }
-//----- (10010880) --------------------------------------------------------
+// gladiator.dll: 10010880..1001098D
+// gladi386.so:   0001D31C..0001D4A4
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
 {
   int i, optedgenum;
@@ -86,7 +94,8 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
   else
     return -optedgenum;
 }
-//----- (100109E0) --------------------------------------------------------
+// gladiator.dll: 100109E0..100109EE
+// gladi386.so:   0001D4A4..0001D4B7
 int __cdecl AAS_KeepFace(aas_face_t *face)
 {
   if ( !(face->faceflags & 2) )
@@ -94,7 +103,8 @@ int __cdecl AAS_KeepFace(aas_face_t *face)
   else
     return 1;
 }
-//----- (10010A00) --------------------------------------------------------
+// gladiator.dll: 10010A00..10010AF4
+// gladi386.so:   0001D4B8..0001D611
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
 {
   int i;
@@ -139,7 +149,8 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   else
     return -optfacenum;
 }
-//----- (10010B40) --------------------------------------------------------
+// gladiator.dll: 10010B40..10010BD2
+// gladi386.so:   0001D614..0001D6D0
 void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
 {
   aas_area_t *area; // edx
@@ -163,7 +174,8 @@ void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
     }
   }
 }
-//----- (10010C10) --------------------------------------------------------
+// gladiator.dll: 10010C10..10010D01
+// gladi386.so:   0001D6D0..0001D813
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
 {
   void *result; // eax
@@ -186,7 +198,8 @@ int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
   optimized->faceremap = (int *)result;
   return (intptr_t)result;
 }
-//----- (10010D50) --------------------------------------------------------
+// gladiator.dll: 10010D50..10010E48
+// gladi386.so:   0001D814..0001D990
 int __cdecl AAS_OptimizeStore(optimized_t *optimized)
 {
   if ( aasworld.vertexes )
@@ -217,7 +230,8 @@ int __cdecl AAS_OptimizeStore(optimized_t *optimized)
   FreeMemory(optimized->edgeremap);
   return FreeMemory(optimized->faceremap);
 }
-//----- (10010E90) --------------------------------------------------------
+// gladiator.dll: 10010E90..10010F2B
+// gladi386.so:   0001D990..0001DAFA
 void AAS_Optimize()
 {
   int i; // esi

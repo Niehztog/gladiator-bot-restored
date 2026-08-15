@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -55,7 +61,8 @@ bsp_link_t **aasentity_bsplinks;
 
 aas_world_t aasworld;
 
-//----- (1000D7E0) --------------------------------------------------------
+// gladiator.dll: 1000D7E0..1000D811
+// gladi386.so:   000181F8..00018240
 int AAS_Error(char *Format, ...)
 {
   char Buffer[1024]; // [esp+0h] [ebp-400h] BYREF
@@ -65,7 +72,8 @@ int AAS_Error(char *Format, ...)
   vsprintf(Buffer, Format, va);
   return botimport.Print(PRT_FATAL, Buffer);
 }
-//----- (1000D830) --------------------------------------------------------
+// gladiator.dll: 1000D830..1000D8AF
+// gladi386.so:   00018240..000182D7
 char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index)
 {
   if ( !aasworld.indexes_loaded )
@@ -88,7 +96,8 @@ char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int 
   }
   return list->indexes[index];
 }
-//----- (1000D8D0) --------------------------------------------------------
+// gladiator.dll: 1000D8D0..1000D936
+// gladi386.so:   000182D8..00018358
 int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *String2)
 {
   int i; // esi
@@ -107,25 +116,29 @@ int __cdecl AAS_IndexFromString(const char *indexname, indexlist_t *list, char *
   }
   return 0;
 }
-//----- (1000D960) --------------------------------------------------------
+// gladiator.dll: 1000D960..1000D97A
+// gladi386.so:   00018358..000183F3
 char *__cdecl AAS_ModelFromIndex(int index)
 {
   return AAS_StringFromIndex("ModelFromIndex", aasworld.modelindex_table, index);
 }
-//----- (1000D990) --------------------------------------------------------
+// gladiator.dll: 1000D990..1000D9AA
+// gladi386.so:   000183F4..00018478
 int __cdecl IndexFromModel(char *String2)
 {
   return AAS_IndexFromString("IndexFromModel", aasworld.modelindex_table,
                              String2);
 }
-//----- (1000D9C0) --------------------------------------------------------
+// gladiator.dll: 1000D9C0..1000D9DA
+// gladi386.so:   00018478..00018513
 // Pushes "SoundFromIndex" + aasworld.soundindex_table,
 // tail-calls AAS_StringFromIndex thunk at 0x10001E01 -> 0x1000D830.
 char *__cdecl AAS_SoundFromIndex(int index)
 {
   return AAS_StringFromIndex("SoundFromIndex", aasworld.soundindex_table, index);
 }
-//----- (1000D9F0) --------------------------------------------------------
+// gladiator.dll: 1000D9F0..1000DA0A
+// gladi386.so:   00018514..00018598
 // Mirror of IndexFromModel against the
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromSound(char *String2)
@@ -133,12 +146,14 @@ int __cdecl AAS_IndexFromSound(char *String2)
   return AAS_IndexFromString("IndexFromSound", aasworld.soundindex_table,
                              String2);
 }
-//----- (1000DA20) --------------------------------------------------------
+// gladiator.dll: 1000DA20..1000DA3A
+// gladi386.so:   00018598..00018633
 char *__cdecl AAS_ImageFromIndex(int index)
 {
   return AAS_StringFromIndex("ImageFromIndex", aasworld.imageindex_table, index);
 }
-//----- (1000DA50) --------------------------------------------------------
+// gladiator.dll: 1000DA50..1000DA6A
+// gladi386.so:   00018634..000186B8
 // Mirror of IndexFromModel against the
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromImage(char *String2)
@@ -146,7 +161,8 @@ int __cdecl AAS_IndexFromImage(char *String2)
   return AAS_IndexFromString("IndexFromImage", aasworld.imageindex_table,
                              String2);
 }
-//----- (1000DA80) --------------------------------------------------------
+// gladiator.dll: 1000DA80..1000DB06
+// gladi386.so:   000186B8..00018A1E
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
 {
   indexlist_t *list; // ebp
@@ -167,7 +183,8 @@ indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names)
   }
   return list;
 }
-//----- (1000DB40) --------------------------------------------------------
+// gladiator.dll: 1000DB40..1000DBB0
+// gladi386.so:   00018A20..00018BCE
 void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names)
 {
   int i; // ebx
@@ -187,7 +204,8 @@ void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names)
   }
   { (void)(numindexes); return; }
 }
-//----- (1000DBD0) --------------------------------------------------------
+// gladiator.dll: 1000DBD0..1000DC03
+// gladi386.so:   00018BD0..00018C11
 int __cdecl sub_1000DBD0(indexlist_t *list)
 {
   int i; // esi
@@ -199,7 +217,8 @@ int __cdecl sub_1000DBD0(indexlist_t *list)
   }
   return FreeMemory(list);
 }
-//----- (1000DC20) --------------------------------------------------------
+// gladiator.dll: 1000DC20..1000DCA0
+// gladi386.so:   00018C14..000199D5
 void __cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a6)
 {
   if ( aasworld.modelindex_table )
@@ -213,7 +232,8 @@ void __cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a
   aasworld.imageindex_table = sub_1000DA80(a5, a6);
   aasworld.indexes_loaded = 1;
 }
-//----- (1000DCC0) --------------------------------------------------------
+// gladiator.dll: 1000DCC0..1000DD6E
+// gladi386.so:   000199D8..0001AE25
 void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6)
 {
   if ( aasworld.modelindex_table )
@@ -230,7 +250,8 @@ void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a
     aasworld.imageindex_table = sub_1000DA80(a5, a6);
   aasworld.indexes_loaded = 1;
 }
-//----- (1000DDA0) --------------------------------------------------------
+// gladiator.dll: 1000DDA0..1000DE97
+// gladi386.so:   0001AE28..0001AEE1
 /* AAS_PresenceTypeBoundingBox (Q3 be_aas_sample.c).  The Q2 player bbox is
  * 32x32 (-16..16), not Q3's 30x30.  Presence types here are 4=NORMAL,
  * 2=CROUCH (Q3 uses 1/2).  Declared int (unlike Q3's void) but never
@@ -255,12 +276,14 @@ int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t ma
   VectorCopy(boxmins[index], mins);
   VectorCopy(boxmaxs[index], maxs);
 }
-//----- (1000DEE0) --------------------------------------------------------
+// gladiator.dll: 1000DEE0..1000DEE6
+// gladi386.so:   0001AEE4..0001AEFC
 int AAS_Initialized()
 {
   return aasworld.initialized;
 }
-//----- (1000DF00) --------------------------------------------------------
+// gladiator.dll: 1000DF00..1000DF1B
+// gladi386.so:   0001AEFC..0001AF2F
 // Sets aasworld.initialized = 1, then prints "AAS initialized." at level 1.
 // Q3 be_aas_main.c AAS_SetInitialized: sets aasworld.initialized and prints
 // "AAS initialized.\n". Called from AAS_ContinueInit's tail (see 1000DF30).
@@ -270,7 +293,8 @@ int __cdecl AAS_SetInitialized(void)
   aasworld.initialized = 1;
   return botimport.Print(PRT_MESSAGE, "AAS initialized.\n");
 }
-//----- (1000DF30) --------------------------------------------------------
+// gladiator.dll: 1000DF30..1000DFD4
+// gladi386.so:   0001AF30..0001B057
 int AAS_ContinueInit(float time)
 {
   int result; // eax
@@ -301,7 +325,8 @@ int AAS_ContinueInit(float time)
   }
   return result;
 }
-//----- (1000E010) --------------------------------------------------------
+// gladiator.dll: 1000E010..1000E0D6
+// gladi386.so:   0001B058..0001B150
 int AAS_StartFrame(float time)
 {
   aasworld.time = time;
@@ -327,7 +352,8 @@ int AAS_StartFrame(float time)
   }
   return 0;
 }
-//----- (1000E120) --------------------------------------------------------
+// gladiator.dll: 1000E120..1000E127
+// gladi386.so:   0001B150..0001B168
 float AAS_Time()
 {
   return aasworld.time;
@@ -336,7 +362,8 @@ float AAS_Time()
 #ifdef _WIN32  /* ---- winbspc spawn (sub_1000E140) + aasN.zip search (sub_1000E430): Windows-only ----
                 * The Linux botlib has neither: BotLibLoadMap loads .aas directly and, on
                 * failure, just reports "no AAS file available" (see its #else give-up path). */
-//----- (1000E140) --------------------------------------------------------
+// gladiator.dll: 1000E140..1000E38A
+// gladi386.so:   absent
 intptr_t __cdecl sub_1000E140(char *Source)
 {
   intptr_t result; // eax
@@ -367,7 +394,8 @@ intptr_t __cdecl sub_1000E140(char *Source)
     return botimport.Print(PRT_ERROR, "can't execute WinBSPC\n");
   return result;
 }
-//----- (1000E430) --------------------------------------------------------
+// gladiator.dll: 1000E430..1000E79C
+// gladi386.so:   absent
 int __cdecl sub_1000E430(char *Source)
 {
   const char *v1; // esi
@@ -454,7 +482,8 @@ int __cdecl sub_1000E430(char *Source)
 }
 
 #endif /* _WIN32 — winbspc spawn + aasN.zip search */
-//----- (1000E880) --------------------------------------------------------
+// gladiator.dll: 1000E880..1000EBE2
+// gladi386.so:   0001B170..0001B531
 int BotLibLoadMap(char *Source)
 {
   int v2; // esi
@@ -562,7 +591,8 @@ int BotLibLoadMap(char *Source)
     return BLERR_NOBSPFILE;
   }
 }
-//----- (1000ECD0) --------------------------------------------------------
+// gladiator.dll: 1000ECD0..1000ED81
+// gladi386.so:   0001B534..0001B5EB
 int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a6, char **a7)
 {
   if ( !Source )
@@ -586,7 +616,8 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   sub_1001AB80();
   return BLERR_NOERROR;
 }
-//----- (1000EDC0) --------------------------------------------------------
+// gladiator.dll: 1000EDC0..1000EE0C
+// gladi386.so:   0001B5EC..0001B663
 int __cdecl sub_1000EDC0(int a1, int a2)
 {
   aasworld.numentities = a1;
@@ -606,7 +637,8 @@ int __cdecl sub_1000EDC0(int a1, int a2)
   AAS_InvalidateEntities();
   return 0;
 }
-//----- (1000EE30) --------------------------------------------------------
+// gladiator.dll: 1000EE30..1000EE81
+// gladi386.so:   0001B664..0001B6DC
 int AAS_Shutdown()
 {
   AAS_FreeRoutingCaches();

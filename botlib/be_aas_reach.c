@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -59,7 +65,8 @@ int reach_rocketjump; // weak
 int reach_step; // weak
 int reach_walk; // weak
 
-//----- (10010F60) --------------------------------------------------------
+// gladiator.dll: 10010F60..10010FA3
+// gladi386.so:   0001DAFC..0001DBC0
 /* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr
  * at +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original
  * byte-offset walk (so MSVC6 still emits the +44 / stride-48 form) but derive
@@ -103,12 +110,14 @@ int AAS_SetupReachabilityHeap()
   nextreachability = reachabilityheap;
   return result;
 }
-//----- (10010FD0) --------------------------------------------------------
+// gladiator.dll: 10010FD0..10010FDD
+// gladi386.so:   0001DBC0..0001DBE0
 void AAS_ShutDownReachabilityHeap()
 {
   FreeMemory((void *)reachabilityheap);
 }
-//----- (10010FF0) --------------------------------------------------------
+// gladiator.dll: 10010FF0..1001102A
+// gladi386.so:   0001DBE0..0001DC2E
 /* AAS_AllocReachability — pop a node off the reach free chain, raising
  * AAS_MAX_REACHABILITYSIZE when the successor is NULL, and bump
  * numreachabilities.  Note this is a DIFFERENT free list from the entity-link
@@ -129,7 +138,8 @@ void *AAS_AllocReachability(void)
   ++numreachabilities;
   return head;
 }
-//----- (10011040) --------------------------------------------------------
+// gladiator.dll: 10011040..10011075
+// gladi386.so:   0001DC30..0001DC7C
 int __cdecl AAS_AreaReachability(int areanum)
 {
   if ( areanum < 0 || areanum >= aasworld.numareas )
@@ -139,7 +149,8 @@ int __cdecl AAS_AreaReachability(int areanum)
   }
   return aasworld.areasettings[areanum].numreachableareas;
 }
-//----- (10011090) --------------------------------------------------------
+// gladiator.dll: 10011090..100111D0
+// gladi386.so:   0001DC7C..0001DE37
 float __cdecl AAS_FaceArea(aas_face_t *face)
 {
   int i;
@@ -170,7 +181,8 @@ float __cdecl AAS_FaceArea(aas_face_t *face)
   }
   return total;
 }
-//----- (10011220) --------------------------------------------------------
+// gladiator.dll: 10011220..10011319
+// gladi386.so:   0001DE38..0001DF70
 float __cdecl AAS_AreaVolume(int areanum)
 {
   aas_area_t *area;
@@ -206,7 +218,8 @@ float __cdecl AAS_AreaVolume(int areanum)
   }
   return volume * 0.33333334f;
 }
-//----- (10011360) --------------------------------------------------------
+// gladiator.dll: 10011360..100113CE
+// gladi386.so:   0001DF70..0001DFF0
 float __cdecl AAS_AreaGroundFaceArea(int areanum)
 {
   float total; // st7
@@ -225,7 +238,8 @@ float __cdecl AAS_AreaGroundFaceArea(int areanum)
   }
   return total;
 }
-//----- (100113F0) --------------------------------------------------------
+// gladiator.dll: 100113F0..100114D7
+// gladi386.so:   0001DFF0..0001E12B
 void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
 {
   int i; // esi
@@ -250,7 +264,8 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
   scale = 0.5 / face->numedges;
   VectorScale((float *)center, scale, (float *)center);
 }
-//----- (10011520) --------------------------------------------------------
+// gladiator.dll: 10011520..10011546
+// gladi386.so:   0001E12C..0001E18E
 int AAS_FallDamageDistance()
 {
   float maxzvelocity, gravity, t;
@@ -260,7 +275,8 @@ int AAS_FallDamageDistance()
   t = maxzvelocity / gravity;
   return 0.5 * gravity * t * t;
 }
-//----- (10011560) --------------------------------------------------------
+// gladiator.dll: 10011560..1001157F
+// gladi386.so:   0001E190..0001E1CD
 float __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
 {
   float phys_gravity;
@@ -268,7 +284,8 @@ float __cdecl AAS_MaxJumpHeight(float phys_jumpvel)
   phys_gravity = libvar_sv_gravity->value;
   return 0.5 * phys_gravity * (phys_jumpvel / phys_gravity) * (phys_jumpvel / phys_gravity);
 }
-//----- (10011590) --------------------------------------------------------
+// gladiator.dll: 10011590..100115BC
+// gladi386.so:   0001E1D0..0001E223
 float __cdecl AAS_MaxJumpDistance(float phys_jumpvel)
 {
   float phys_gravity, phys_maxvelocity, t;
@@ -278,7 +295,8 @@ float __cdecl AAS_MaxJumpDistance(float phys_jumpvel)
   t = sqrt(450.0 / (0.5 * phys_gravity));
   return phys_maxvelocity * (t + phys_jumpvel / phys_gravity);
 }
-//----- (100115D0) --------------------------------------------------------
+// gladiator.dll: 100115D0..100115F2
+// gladi386.so:   0001E224..0001E25B
 int __cdecl AAS_AreaCrouch(int areanum)
 {
   if ( !(aasworld.areasettings[areanum].presencetype & 2) )
@@ -286,7 +304,8 @@ int __cdecl AAS_AreaCrouch(int areanum)
   else
     return 0;
 }
-//----- (10011610) --------------------------------------------------------
+// gladiator.dll: 10011610..1001162F
+// gladi386.so:   0001E25C..0001E293
 int __cdecl AAS_AreaSwim(int areanum)
 {
   /* Keep the if/else 0-or-1 form (Q3's `if (areaflags & AREA_LIQUID)`): MSVC's
@@ -297,7 +316,8 @@ int __cdecl AAS_AreaSwim(int areanum)
   else
     return 0;
 }
-//----- (10011640) --------------------------------------------------------
+// gladiator.dll: 10011640..1001165F
+// gladi386.so:   0001E294..0001E2CB
 /* Q3's AAS_AreaLiquid — a byte-identical duplicate of AAS_AreaSwim above, as
  * in be_aas_reach.c, where both share the same AREA_LIQUID body. */
 int __cdecl AAS_AreaLiquid(int areanum)
@@ -307,24 +327,28 @@ int __cdecl AAS_AreaLiquid(int areanum)
   else
     return 0;
 }
-//----- (10011670) --------------------------------------------------------
+// gladiator.dll: 10011670..1001168B
+// gladi386.so:   0001E2CC..0001E2FA
 int __cdecl AAS_AreaGrounded(int areanum)
 {
   return aasworld.areasettings[areanum].areaflags & 1;
 }
-//----- (100116A0) --------------------------------------------------------
+// gladiator.dll: 100116A0..100116BB
+// gladi386.so:   0001E2FC..0001E32A
 int __cdecl AAS_AreaLadder(int areanum)
 {
   return aasworld.areasettings[areanum].areaflags & 2;
 }
-//----- (100116D0) --------------------------------------------------------
+// gladiator.dll: 100116D0..100116EE
+// gladi386.so:   0001E32C..0001E37E
 /* Returns (int)(10 * sv_jumpvel / sv_gravity) — a crude jump/hang-time
  * estimate in tics.  DEAD in Gladiator, preserved by /INCREMENTAL. */
 unsigned __int16 __cdecl sub_100116D0(void)
 {
   return libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1);
 }
-//----- (10011700) --------------------------------------------------------
+// gladiator.dll: 10011700..10011729
+// gladi386.so:   0001E380..0001E3BB
 qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
 {
   aas_reachabilitynode_t *r;
@@ -338,7 +362,8 @@ qboolean __cdecl AAS_ReachabilityExists(int area1num, int area2num)
   }
   return 0;
 }
-//----- (10011740) --------------------------------------------------------
+// gladiator.dll: 10011740..10011814
+// gladi386.so:   0001E3BC..0001E4B3
 BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
 {
   int areanum; // eax
@@ -364,7 +389,8 @@ BOOL __cdecl AAS_NearbySolidOrGap(vec3_t start, vec3_t end)
   areanum = AAS_PointAreaNum(testpoint);
   return areanum && !AAS_AreaSwim(areanum) && !AAS_AreaGrounded(areanum);
 }
-//----- (10011860) --------------------------------------------------------
+// gladiator.dll: 10011860..10011A51
+// gladi386.so:   0001E4B4..0001E778
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
 {
   int i;
@@ -432,7 +458,8 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
   }
   return 0;
 }
-//----- (10011AE0) --------------------------------------------------------
+// gladiator.dll: 10011AE0..10012081
+// gladi386.so:   0001E778..0001EF99
 int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
 {
   int i;
@@ -575,7 +602,8 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
   ++reach_equalfloor;
   return 1;
 }
-//----- (10012200) --------------------------------------------------------
+// gladiator.dll: 10012200..1001367A
+// gladi386.so:   0001EF9C..00020BB5
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num)
 {
   aas_area_t *area1; // ebp
@@ -1056,7 +1084,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   }
   return 0;
 }
-//----- (10013BA0) --------------------------------------------------------
+// gladiator.dll: 10013BA0..10013BD5
+// gladi386.so:   00020BB8..00020BFE
 /* Euclidean distance |v2 - v1|: a tail-call to VectorLength, returning what
  * it leaves on ST(0).  Not void — the decompiler read it that way because the
  * body looks like a fire-and-forget call. */
@@ -1067,7 +1096,8 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
   VectorSubtract(v2, v1, dir);
   return VectorLength(dir);
 }
-//----- (10013BF0) --------------------------------------------------------
+// gladiator.dll: 10013BF0..10013C46
+// gladi386.so:   00020C00..00020C67
 /* Returns 1 iff (v - v1) . (v - v2) <= 0, i.e. v lies within the segment
  * [v1,v2] (endpoints included).  AAS_Reachability_Jump uses it to decide
  * whether a projected vertex lands inside the OTHER edge, so the projection's
@@ -1081,13 +1111,15 @@ int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
   VectorSubtract(v, v2, ac);
   return DotProduct(ab, ac) <= 0.0f;
 }
-//----- (10013C70) --------------------------------------------------------
+// gladiator.dll: 10013C70..10013CA4
+// gladi386.so:   00020C68..00020CAA
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle)
 {
   VectorAdd(v1, v2, middle);
   VectorScale((float *)middle, 0.5, (float *)middle);
 }
-//----- (10013CC0) --------------------------------------------------------
+// gladiator.dll: 10013CC0..10014AC7
+// gladi386.so:   00020CAC..0002243A
 int AAS_Reachability_Jump(int area1num, int area2num)
 {
   aas_area_t *area1; // ebx — a real pointer, not a float-typed slot holding its bits
@@ -1584,7 +1616,8 @@ LABEL_62:
   }
   return 0;
 }
-//----- (10014E60) --------------------------------------------------------
+// gladiator.dll: 10014E60..100158FD
+// gladi386.so:   0002243C..00023415
 /* AAS_Reachability_Ladder
  *
  * DELIBERATE DEVIATION: the six reach.facenum writes here store abs() of the
@@ -1962,7 +1995,8 @@ area2 = (aas_area_t *)v85;
   }
   return 0;
 }
-//----- (10015BB0) --------------------------------------------------------
+// gladiator.dll: 10015BB0..10015FCC
+// gladi386.so:   00023418..000238CD
 int AAS_Reachability_Teleport()
 {
   bsp_entity_t *v0; // eax — entity list head
@@ -2097,7 +2131,8 @@ cont:
   }
   return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
-//----- (100160E0) --------------------------------------------------------
+// gladiator.dll: 100160E0..1001696B
+// gladi386.so:   000238D0..0002454E
 void AAS_Reachability_Elevator()
 {
   bsp_entity_t *v0; // edi
@@ -2335,7 +2370,8 @@ LABEL_53:
 // 1001650B: conditional instruction was optimized away because esi.4<10
 // 10016781: conditional instruction was optimized away because ebp.4<10
 // 10016851: conditional instruction was optimized away because ecx.4<3
-//----- (10016BA0) --------------------------------------------------------
+// gladiator.dll: 10016BA0..100171BC
+// gladi386.so:   00024550..00024DE6
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
   aas_area_t *area2; // ebp
@@ -2478,7 +2514,8 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   }
   return 0;
 }
-//----- (10017350) --------------------------------------------------------
+// gladiator.dll: 10017350..10017ABC
+// gladi386.so:   00024DE8..000251E4
 int AAS_SetWeaponJumpAreaFlags()
 {
   bsp_entity_t *v0; // ebx — entity list head
@@ -2556,7 +2593,8 @@ int AAS_SetWeaponJumpAreaFlags()
   }
   return ((int (__cdecl *)(bsp_entity_t *))AAS_FreeBSPEntities)(v0);
 }
-//----- (10017CA0) --------------------------------------------------------
+// gladiator.dll: 10017CA0..100180B1
+// gladi386.so:   000251E4..00025707
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
 {
   aas_area_t *area2; // ebx
@@ -2692,7 +2730,8 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   ++reach_rocketjump;
   return 1;
 }
-//----- (100181D0) --------------------------------------------------------
+// gladiator.dll: 100181D0..1001869C
+// gladi386.so:   00025708..00025D6C
 void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
 {
   int i; // ebx
@@ -2844,7 +2883,8 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
     }
   }
 }
-//----- (100187E0) --------------------------------------------------------
+// gladiator.dll: 100187E0..100188D1
+// gladi386.so:   00025D6C..00025EA2
 void AAS_StoreReachability()
 {
   int i;
@@ -2877,7 +2917,8 @@ void AAS_StoreReachability()
     aasworld.reachabilitysize += areasettings->numreachableareas;
   }
 }
-//----- (10018920) --------------------------------------------------------
+// gladiator.dll: 10018920..10018BB2
+// gladi386.so:   00025EA4..00026229
 int AAS_ContinueInitReachability(float time)
 {
   libvar_t *v1;
@@ -2972,7 +3013,8 @@ int AAS_ContinueInitReachability(float time)
   }
   return 1;
 }
-//----- (10018C70) --------------------------------------------------------
+// gladiator.dll: 10018C70..10018CD7
+// gladi386.so:   0002622C..0002639C
 void AAS_InitReachability()
 {
   if ( aasworld.loaded )

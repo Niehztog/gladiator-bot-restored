@@ -13,6 +13,12 @@
  * pulls in, carries the shared compilation environment (includes, CRT and
  * POSIX shims, forward typedefs, the side-band scheme and the externs for
  * botlib.c's remaining globals).
+ *
+ * Every function below carries a two-line address annotation: its extent in the
+ * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
+ * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
+ * the Linux image has no counterpart.  CLAUDE.md, "Function address
+ * annotations", records how both ranges are derived.
  */
 
 #include "botlib_port.h"
@@ -44,7 +50,8 @@
  * single instance here.  See the header for the full discovery writeup. */
 bspworld_t bspworld;
 
-//----- (10003010) --------------------------------------------------------
+// gladiator.dll: 10003010..10003056
+// gladi386.so:   0000D0CC..0000D136
 /* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
  * Returns bsp_trace_t BY VALUE, as both Q3 botlib and the game-side import
  * prototype do; MSVC lowers that to a hidden caller-allocated return buffer.
@@ -79,7 +86,6 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
   return AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs, end, passent, contentmask);
 }
 #endif /* _WIN32 */
-//----- (100030A0) --------------------------------------------------------
 /* BSP-leaf link heap — the Q3 cognate is be_aas_sample.c's
  * AAS_InitAASLinkHeap / AAS_AllocAASLink / AAS_DeAllocAASLink, but those names
  * are already taken here by the genuine AAS-area link heap at 0x1001AC00 /
@@ -94,11 +100,15 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
  * A verbatim cognate name is therefore impossible, so this trio stays unnamed.
  * Do NOT "resolve" it by renaming the 0x1001ACxx family — those three really
  * are the aas_link_t functions. */
-//----- (10003080) --- thin wrapper forwarding to bi_PointContents
+// gladiator.dll: 10003080..1000308F
+// gladi386.so:   0000A444..0000A466
+// thin wrapper forwarding to bi_PointContents
 int __cdecl sub_10003080(vec3_t point)
 {
   return botimport.PointContents(point);
 }
+// gladiator.dll: 100030A0..10003162
+// gladi386.so:   0000A468..0000A722
 void sub_100030A0()
 {
   int i;
@@ -124,7 +134,8 @@ void sub_100030A0()
   bspworld.dword_10069578[count - 1].next_ent = NULL;
   bspworld.dword_10069580 = bspworld.dword_10069578;
 }
-//----- (100031B0) --------------------------------------------------------
+// gladiator.dll: 100031B0..100031DA
+// gladi386.so:   0000A724..0000A76B
 // Walks the bsp_link freelist headed at dword_10069580, chasing .next_ent and
 // counting nodes; then
 // prints "%d free bsp links, %s\n" at level 1 with (count, caller_name).
@@ -139,7 +150,8 @@ void __cdecl sub_100031B0(char *name)
     ++count;
   botimport.Print(PRT_MESSAGE, "%d free bsp links, %s\n", count, name);
 }
-//----- (100031F0) --------------------------------------------------------
+// gladiator.dll: 100031F0..10003221
+// gladi386.so:   0000A76C..0000A7BA
 bsp_link_t *sub_100031F0()
 {
   bsp_link_t *result;
@@ -157,7 +169,8 @@ bsp_link_t *sub_100031F0()
     next->prev_ent = NULL;
   return result;
 }
-//----- (10003240) --------------------------------------------------------
+// gladiator.dll: 10003240..1000326B
+// gladi386.so:   0000A3F8..0000A442
 void __cdecl sub_10003240(bsp_link_t *a1)
 {
   if ( bspworld.dword_10069580 )
@@ -168,7 +181,8 @@ void __cdecl sub_10003240(bsp_link_t *a1)
   a1->next_leaf = NULL;
   bspworld.dword_10069580 = a1;
 }
-//----- (10003280) --------------------------------------------------------
+// gladiator.dll: 10003280..100032B6
+// gladi386.so:   0000A80C..0000A85C
 void sub_10003280()  /* InitBSPLinkedEntities */
 {
   if ( bspworld.dword_100674C0 )
@@ -178,7 +192,8 @@ void sub_10003280()  /* InitBSPLinkedEntities */
     bspworld.dword_10069584 = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * bspworld.numleafs);
   }
 }
-//----- (100032D0) --------------------------------------------------------
+// gladiator.dll: 100032D0..10003333
+// gladi386.so:   0000A85C..0000A8F3
 void sub_100032D0()
 {
   if ( bspworld.dword_100674C0 )
@@ -191,7 +206,8 @@ void sub_100032D0()
     bspworld.dword_10067560 = GetClearedMemory(bspworld.numareas * bspworld.numareas * 4);
   }
 }
-//----- (10003360) --------------------------------------------------------
+// gladiator.dll: 10003360..100033E5
+// gladi386.so:   0000A8F4..0000A990
 /* Named from the Q3 engine cognate CM_PointLeafnum_r (qcommon/cm_test.c), same
  * recursive descent over a runtime-loaded node/plane array.  Q3 hardcodes the
  * world model's root; Gladiator takes an explicit modelnum and starts from
@@ -222,14 +238,16 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
   }
   return -1 - node;
 }
-//----- (10003420) --------------------------------------------------------
+// gladiator.dll: 10003420..10003450
+// gladi386.so:   0000A990..0000AA3F
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum)
 {
   if ( !bspworld.dword_100674C0 )
     return 0;
   return &bspworld.dleafs[CM_PointLeafnum(point, modelnum)];
 }
-//----- (10003460) --------------------------------------------------------
+// gladiator.dll: 10003460..100034AF
+// gladi386.so:   0000A7BC..0000A80C
 void __cdecl sub_10003460(vec3_t v, float m[3][3])
 {
   float x, y, z;
@@ -242,7 +260,8 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3])
   v[1] = x * m[1][0] + y * m[1][1] + z * m[1][2];
   v[2] = x * m[2][0] + y * m[2][1] + z * m[2][2];
 }
-//----- (100034D0) --------------------------------------------------------
+// gladiator.dll: 100034D0..10003616
+// gladi386.so:   0000AAB4..0000AC61
 /* AnglesToAxis — build a 3x3 row-major rotation matrix from Q3-style
  * angles[PITCH=0, YAW=1, ROLL=2]: output = roll_m * pitch_m * yaw_m, i.e. a
  * column vector is yawed, then pitched, then rolled.
@@ -328,7 +347,8 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
   /* output = roll_m * tmp */
   R_ConcatRotations(mats.m, mats.tmp, axis);
 }
-//----- (10003680) --------------------------------------------------------
+// gladiator.dll: 10003680..10003AC7
+// gladi386.so:   0000AC64..0000B34F
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v7; // edi
@@ -492,7 +512,8 @@ LABEL_40:
   return 0;
 }
 // 100037F3: conditional instruction was optimized away because edx.4<3
-//----- (10003BF0) --------------------------------------------------------
+// gladiator.dll: 10003BF0..10003C69
+// gladi386.so:   0000B350..0000B3CE
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace)
 {
   bsp_link_t *i; // esi
@@ -511,7 +532,8 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
   }
   return v10;
 }
-//----- (10003C90) --------------------------------------------------------
+// gladiator.dll: 10003C90..100041BC
+// gladi386.so:   0000B3D0..0000BA06
 /* Named from the Q3 engine cognate CM_TraceThroughBrush (qcommon/cm_trace.c):
  * iterate a brush's sides, expand each plane by the trace box, track the
  * enter/leave fraction along start->end.  No capsule/sphere collision — Q3
@@ -742,7 +764,8 @@ LABEL_30:
   }
   return 0;
 }
-//----- (10004310) --------------------------------------------------------
+// gladiator.dll: 10004310..1000448D
+// gladi386.so:   0000BA08..0000BBBA
 /* Named from the Q3 engine cognate CM_TraceThroughLeaf (qcommon/cm_trace.c):
  * walk leafbrushes[firstleafbrush+k], skip content-mask mismatches, dispatch
  * the rest to CM_TraceThroughBrush.  No patch/curve surfaces in Q2, so Q3's
@@ -829,7 +852,8 @@ typedef struct bsp_model_plane_sidecache_s {
 
 _Static_assert(sizeof(bsp_model_tracestack_t) == 40, "bsp_model_tracestack_t size");
 _Static_assert(sizeof(bsp_model_plane_sidecache_t) == 24, "bsp_model_plane_sidecache_t size");
-//----- (100044F0) --------------------------------------------------------
+// gladiator.dll: 100044F0..100052B4
+// gladi386.so:   0000BBBC..0000D0C9
 /* AAS_TraceBSPModel (sub_100044F0) — sweep a box from start to end through BSP
  * model `modelnum` at `modelorigin`/`angles`.  Gladiator's own Q2-era
  * BSP-model collision (Q3 delegates BSP traces to the engine); self-named by
@@ -1376,7 +1400,8 @@ LABEL_125:
   botimport.Print(PRT_ERROR, "AAS_TraceBSPModel: out of trace lines\n");
   return trace;
 }
-//----- (10005640) --------------------------------------------------------
+// gladiator.dll: 10005640..100056AC
+// gladi386.so:   absent
 // Thin wrapper around sub_100044F0 (AAS_TraceClientBBox-style 10-arg trace)
 // that supplies three zero locals as the entity-origin / mins / maxs slots
 // (forwarding the real start/boxmins/boxmaxs/end/a9/contentmask), then
@@ -1410,7 +1435,8 @@ static void sub_10005640(
   *(bsp_trace_t *)out = AAS_TraceBSPModel(0, zero_vec, zero_vec,
                                           start, (float *)boxmins, boxmaxs, (float *)end, a5, contentmask);
 }
-//----- (100056D0) --------------------------------------------------------
+// gladiator.dll: 100056D0..10005767
+// gladi386.so:   0000D138..0000D1F6
 int __cdecl sub_100056D0(dbrush_t *a1, float *a2)
 {
   int v3; // ebx
@@ -1442,7 +1468,8 @@ int __cdecl sub_100056D0(dbrush_t *a1, float *a2)
   }
   return 1;
 }
-//----- (100057A0) --------------------------------------------------------
+// gladiator.dll: 100057A0..10005983
+// gladi386.so:   0000D1F8..0000D5AC
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
 {
   int v4; // edi
@@ -1500,7 +1527,8 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   }
   return v9;
 }
-//----- (10005A10) --------------------------------------------------------
+// gladiator.dll: 10005A10..10005A45
+// gladi386.so:   0000D5AC..0000D5EE
 /* Point-only flavour of sub_100057A0: the caller's vec3 as origin with
  * zero mins/maxs, i.e. a degenerate point box.  DEAD in Gladiator. */
 int __cdecl sub_10005A10(float *origin)
@@ -1511,7 +1539,8 @@ int __cdecl sub_10005A10(float *origin)
   zero_vec[2] = 0.0f;
   return sub_100057A0(origin, 0, zero_vec, zero_vec);
 }
-//----- (10005A60) --------------------------------------------------------
+// gladiator.dll: 10005A60..10005B00
+// gladi386.so:   0000D5F0..0000D6E1
 void __cdecl AAS_DecompressVis(int cluster, int visType)
 {
   int c;
@@ -1547,7 +1576,8 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
   while ( out - bspworld.byte_10067564 < row );
   bspworld.dword_10069564 = cluster;
 }
-//----- (10005B30) --------------------------------------------------------
+// gladiator.dll: 10005B30..10005C1C
+// gladi386.so:   0000D6E4..0000D8EB
 BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
 {
   int v4; // edi
@@ -1582,17 +1612,20 @@ BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
   v6 = v7->cluster;
   return ((unsigned __int8)bspworld.byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
 }
-//----- (10005C60) --------------------------------------------------------
+// gladiator.dll: 10005C60..10005C75
+// gladi386.so:   0000D8EC..0000D90F
 qboolean __cdecl AAS_inPVS(vec3_t p1, vec3_t p2)
 {
   return AAS_InPVS(p1, p2, 0);
 }
-//----- (10005C90) --------------------------------------------------------
+// gladiator.dll: 10005C90..10005CA5
+// gladi386.so:   0000D910..0000D933
 BOOL __cdecl sub_10005C90(float *a1, float *a2)
 {
   return AAS_InPVS(a1, a2, 1);
 }
-//----- (10005CC0) --------------------------------------------------------
+// gladiator.dll: 10005CC0..10005CD5
+// gladi386.so:   0000D934..0000D95D
 /* Double-indirect lookup into the cluster-routing pointer table.  DEAD in
  * Gladiator — the live routing accessors index
  * aasworld.clusterareacache/portalcache directly. */
@@ -1600,7 +1633,8 @@ int __cdecl sub_10005CC0(int a, int b)
 {
   return ((int **)bspworld.dword_10067560)[a][b];
 }
-//----- (10005CF0) --------------------------------------------------------
+// gladiator.dll: 10005CF0..10005E10
+// gladi386.so:   0000D960..0000DAF5
 /* sub_10005CF0 — reach-graph propagation over the cluster-routing matrix
  * (dword_10067560, an int[N] row-pointer table followed by N int[N] rows) and
  * the 1-D flag row dword_1006755C (int[numareaportals]).  Three phases:
@@ -1663,7 +1697,8 @@ void __cdecl sub_10005CF0(int row_index, int value)
     }
   }
 }
-//----- (10005E60) --------------------------------------------------------
+// gladiator.dll: 10005E60..1000601A
+// gladi386.so:   0000DAF8..0000DDA6
 /* AAS_BSPModelMinsMaxsOrigin — return the rotated AABB of a Q2 BSP inline model.
  * Mirrors Q3 botlib's `AAS_BSPModelMinsMaxsOrigin` (be_aas_bspq3.c) but with
  * the rotation work done locally instead of delegating to a botimport callback.
@@ -1717,7 +1752,8 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
     VectorCopy(bspworld.dmodels[modelnum].origin, origin);
   }
 }
-//----- (10006090) --------------------------------------------------------
+// gladiator.dll: 10006090..100060DA
+// gladi386.so:   0000DDA8..0000DE3D
 void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 {
   bsp_link_t *result; // eax
@@ -1745,7 +1781,8 @@ void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
     while ( v3 );
   }
 }
-//----- (10006100) --------------------------------------------------------
+// gladiator.dll: 10006100..100061C5
+// gladi386.so:   0000DE40..0000DF48
 /* AAS_BoxOnPlaneSide2 (Q3 be_aas_sample.c) — classify an AABB against a BSP
  * splitting plane, returning 1/2/3 for front/back/spanning by iterating the
  * three components and picking the corner matching each normal's sign. */
@@ -1777,7 +1814,8 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
     sides |= 2;
   return sides;
 }
-//----- (10006210) --------------------------------------------------------
+// gladiator.dll: 10006210..1000636D
+// gladi386.so:   0000DF48..0000E26F
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum)
 {
   bsp_link_t *link; // edi
@@ -1853,7 +1891,8 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   }
   return link;
 }
-//----- (100063D0) --------------------------------------------------------
+// gladiator.dll: 100063D0..10006588
+// gladi386.so:   0000E270..0000E563
 /* sub_100063D0 — `AAS_EntitiesInBox(mins, maxs, list, maxcount)`: write up to
  * `maxcount` entnums of the world entities overlapping [mins,maxs] into list[]
  * and return the count.
@@ -1940,7 +1979,8 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
   AAS_UnlinkFromBSPLeaves(linkhead);
   return count;
 }
-//----- (10006600) --------------------------------------------------------
+// gladiator.dll: 10006600..10006702
+// gladi386.so:   0000E564..0000E653
 // Set/update a BSP epair in an entity's epair list — the writing
 // counterpart of AAS_ValueForBSPEpairKey at 10006760.  Walks the
 // singly-linked bsp_epair_t chain rooted at *head; on a key-hit
@@ -1985,7 +2025,8 @@ void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
   ep->value = (char *)GetMemory(vlen2);
   strcpy(ep->value, value);
 }
-//----- (10006760) --------------------------------------------------------
+// gladiator.dll: 10006760..100067BD
+// gladi386.so:   0000E654..0000E699
 char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
   bsp_epair_t *ep;
@@ -1997,7 +2038,8 @@ char *__cdecl AAS_ValueForBSPEpairKey(bsp_entity_t *ent, const char *key)
   }
   return 0;
 }
-//----- (100067E0) --------------------------------------------------------
+// gladiator.dll: 100067E0..1000686E
+// gladi386.so:   0000E69C..0000E76A
 int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t v)
 {
   char *value; // eax
@@ -2017,7 +2059,8 @@ int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t 
   v[2] = v3;
   return 1;
 }
-//----- (100068A0) --------------------------------------------------------
+// gladiator.dll: 100068A0..100068C5
+// gladi386.so:   0000E76C..0000E7D9
 float __cdecl FloatForKey(bsp_entity_t *ent, const char *key)
 {
   const char *value; // eax
@@ -2027,7 +2070,8 @@ float __cdecl FloatForKey(bsp_entity_t *ent, const char *key)
     return 0.0f;
   return atof(value);
 }
-//----- (100068E0) --------------------------------------------------------
+// gladiator.dll: 100068E0..10006901
+// gladi386.so:   0000E7DC..0000E83A
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
   const char *value; // eax
@@ -2037,7 +2081,8 @@ int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key)
     return (int)value;
   return atoi(value);
 }
-//----- (10006920) --------------------------------------------------------
+// gladiator.dll: 10006920..1000697A
+// gladi386.so:   0000E83C..0000E8B2
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
 {
   bsp_entity_t *v1; // ebx
@@ -2060,7 +2105,8 @@ void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1)
     FreeMemory(v1);
   }
 }
-//----- (100069A0) --------------------------------------------------------
+// gladiator.dll: 100069A0..10006C59
+// gladi386.so:   0000E8B4..0000EC80
 bsp_entity_t *AAS_ParseBSPEntities(void)
 {
   script_t *script; // ebp
@@ -2123,7 +2169,8 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
   return entities;
 }
 // 10001C30: thunk -> 0x1003F5C0 = PS_ExpectTokenType (script-level expect)
-//----- (10006D10) --------------------------------------------------------
+// gladiator.dll: 10006D10..1000706B
+// gladi386.so:   0000EC80..0000F0A1
 /* RecursiveLightPoint — Quake 1's `WinQuake/gl_rlight.c` (the GL variant, the
  * one that also exports the impact point as `lightspot`), with Q1 `world.c`'s
  * SV_RecursiveHullCheck head grafted on: `if (num < 0) return`, node/plane
@@ -2252,7 +2299,8 @@ sample_lightmap:
   VectorCopy(mid, lightspot);
   return 1;
 }
-//----- (10007150) --------------------------------------------------------
+// gladiator.dll: 10007150..100071BC
+// gladi386.so:   0000F0A4..0000F125
 /* Static-light helper for AAS_BSPTraceLight (sub_1000D5F0): traces model 0 via
  * RecursiveLightPoint, returning the endpos plus the surface RGB in
  * red/green/blue.  Q3 stubs the whole BSPTraceLight feature, so there is no
@@ -2274,7 +2322,8 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
   *blue = v7[2];
   return 1;
 }
-//----- (100071E0) --------------------------------------------------------
+// gladiator.dll: 100071E0..100073D3
+// gladi386.so:   0000F128..0000F4CF
 /* CalcSurfaceExtents — Quake 1 `WinQuake/model.c`, walking the BSP file lumps
  * (dfaces/dsurfedges/dedges/dvertexes/texinfo) instead of a loaded model_t and
  * writing an 8-byte {short texturemins[2]; short extents[2]} record per face
@@ -2388,7 +2437,8 @@ void CalcSurfaceExtents()
   }
   { (void)(result); return; }
 }
-//----- (10007460) --------------------------------------------------------
+// gladiator.dll: 10007460..1000786F
+// gladi386.so:   0000F4D0..0000FC69
 /* No parameters: the `a1` the decompiler shows is a phantom __fastcall arg —
  * the prologue's `push ecx` only reserves a local slot and the incoming ecx is
  * overwritten before any read, while the sole caller sets up no ecx at all.
@@ -2579,7 +2629,8 @@ int Q2_SwapBSPFile(void)
 }
 // 1000775A: Q2_SwapBSPFile brushsides loop — the LittleShort round-trip.
 //            See note inside the function.
-//----- (10007980) --------------------------------------------------------
+// gladiator.dll: 10007980..10007BAD
+// gladi386.so:   0000FC6C..0001000F
 void AAS_DumpBSPData()
 {
   bspworld.nummodels = 0;
@@ -2657,7 +2708,8 @@ void AAS_DumpBSPData()
   bspworld.dareaportals = 0;
   bspworld.dword_100674C0 = 0;
 }
-//----- (10007C40) --------------------------------------------------------
+// gladiator.dll: 10007C40..10007CFD
+// gladi386.so:   00010010..000100EE
 void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4, char *ArgList)
 {
   void *v6; // esi
@@ -2687,7 +2739,8 @@ void *__cdecl sub_10007C40(FILE *Stream, int Offset, size_t ElementSize, int a4,
   }
   return v6;
 }
-//----- (10007D30) --------------------------------------------------------
+// gladiator.dll: 10007D30..10008422
+// gladi386.so:   000100F0..000111BF
 int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
 {
   FILE *v3; // eax
@@ -2951,7 +3004,8 @@ int AAS_LoadBSPFile(char *FileName, int Offset, int Length)
   sub_100032D0();
   return BLERR_NOERROR;
 }
-//----- (100085F0) --------------------------------------------------------
+// gladiator.dll: 100085F0..1000860B
+// gladi386.so:   000111C0..000111F1
 int sub_100085F0()
 {
   return sub_10037850(aasworld.mapname, bspworld.dentdata, bspworld.entdatasize);
