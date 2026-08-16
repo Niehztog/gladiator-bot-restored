@@ -501,18 +501,14 @@ void BotUpdateEntityItems(void)
         break;
       if ( v7 != ent )
         goto LABEL_19;
-      li->origin[0] = entinfo.origin[0];
-      li->origin[1] = entinfo.origin[1];
-      li->origin[2] = entinfo.origin[2];
+      VectorCopy(entinfo.origin, li->origin);
       goto LABEL_23;
 LABEL_19:
       li = li->next;
       if ( !li )
         goto LABEL_23;
     }
-    dir[0] = li->origin[0] - entinfo.origin[0];
-    dir[1] = li->origin[1] - entinfo.origin[1];
-    dir[2] = li->origin[2] - entinfo.origin[2];
+    VectorSubtract(li->origin, entinfo.origin, dir);
     if ( 20.0f > VectorLength(dir) )
       goto LABEL_20;
     goto LABEL_19;
@@ -540,9 +536,7 @@ LABEL_24:
     v13 = (levelitem_t *)AllocLevelItem();
     v13->entitynum = ent;
     v13->number = numlevelitems + ent;
-    v13->origin[0] = entinfo.origin[0];
-    v13->origin[1] = entinfo.origin[1];
-    v13->origin[2] = entinfo.origin[2];
+    VectorCopy(entinfo.origin, v13->origin);
     v13->iteminfo = v4;
     v13->areanum = AAS_BestReachableArea(
                               (int *)v13->origin,

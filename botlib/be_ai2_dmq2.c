@@ -231,14 +231,7 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   aas_entityinfo_t entinfo; // [esp+14h] [ebp-7Ch] BYREF
 
   entinfo = AAS_EntityInfo(enemy);
-  dir[0] = entinfo.origin[0] - bs->origin[0];
-  dir[1] = entinfo.origin[1] - bs->origin[1];
-  /* dir[2] holds the raw z-diff FIRST (real's `fst` keeps it on the FPU
-   * stack for the immediately-following int conversion, reusing dir[2]'s
-   * stack slot), then gets reset to 0.0 for the horizontal-only
-   * VectorLength() below -- not `(int)(entinfo.origin[2] - bs->origin[2])`
-   * computed directly into ENEMY_HEIGHT with dir[2] zeroed separately. */
-  dir[2] = entinfo.origin[2] - bs->origin[2];
+  VectorSubtract(entinfo.origin, bs->origin, dir);
   bs->inventory[ENEMY_HEIGHT] = (int)dir[2];
   dir[2] = 0.0;
   bs->inventory[ENEMY_HORIZONTAL_DIST] = (int)VectorLength(dir);
@@ -977,9 +970,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
   }
   while ( i < 10.0f );
   result = goal;
-  *goal = endpos[0];
-  goal[1] = endpos[1];
-  goal[2] = endpos[2];
+  VectorCopy(endpos, goal);
   return result;
 }
 // gladiator.dll: 10022E10..100233A0
@@ -1037,9 +1028,7 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
     {
       BotEntityInfo(bs, (_DWORD *)&bs->ms);
       entinfo = AAS_EntityInfo(bs->enemy);
-      forward[0] = entinfo.origin[0] - bs->origin[0];
-      forward[1] = entinfo.origin[1] - bs->origin[1];
-      forward[2] = entinfo.origin[2] - bs->origin[2];
+      VectorSubtract(entinfo.origin, bs->origin, forward);
       dist = VectorLength(forward);
       VectorNormalize(forward);
       backward[0] = -forward[0];
@@ -1270,9 +1259,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
     entinfo = AAS_EntityInfo(v19[v10]);
     if ( !sub_10021710((int *)&entinfo) && entinfo.number != bs->entitynum )
     {
-      dir[0] = entinfo.origin[0] - bs->origin[0];
-      dir[1] = entinfo.origin[1] - bs->origin[1];
-      dir[2] = entinfo.origin[2] - bs->origin[2];
+      VectorSubtract(entinfo.origin, bs->origin, dir);
       v8 = VectorLength(dir);
       if ( v15 || v8 <= 900.0f )
       {
@@ -1297,9 +1284,7 @@ int __cdecl BotFindEnemy(bot_state_t *bs)
               goto found;
             if ( EntityIsShooting((intptr_t)&entinfo) )
               goto found;
-            dir[0] = bs->origin[0] - entinfo.origin[0];
-            dir[1] = bs->origin[1] - entinfo.origin[1];
-            dir[2] = bs->origin[2] - entinfo.origin[2];
+            VectorSubtract(bs->origin, entinfo.origin, dir);
             vectoangles(dir, (float *)angles);
             if ( InFieldOfVision(entinfo.angles, 160.0f, angles) )
               goto found;
@@ -1381,9 +1366,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     if ( wi->speed != 0.0f && aim_skill > 0.4 )
     {
       /* All three components are stored (three fld/fsub/fstp triples). */
-      dir[0] = entinfo.origin[0] - bs->origin[0];
-      dir[1] = entinfo.origin[1] - bs->origin[1];
-      dir[2] = entinfo.origin[2] - bs->origin[2];
+      VectorSubtract(entinfo.origin, bs->origin, dir);
       dist = VectorLength(dir);
       dir[2] = 0.0f;
       dir[0] = entinfo.origin[0] - entinfo.lastvisorigin[0];
@@ -1393,9 +1376,7 @@ void BotAimAtEnemy(bot_state_t *bs)
     }
     if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > entinfo.origin[2] )
     {
-      end[0] = entinfo.origin[0];
-      end[1] = entinfo.origin[1];
-      end[2] = entinfo.origin[2];
+      VectorCopy(entinfo.origin, end);
       end[2] -= 64.0f;
       trace = AAS_Trace(entinfo.origin, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), entinfo.number, 100663299);
       VectorCopy(bestorigin, groundtarget);
@@ -1411,9 +1392,7 @@ void BotAimAtEnemy(bot_state_t *bs)
         if ( VectorLength(dir) < 60.0f )
         {
           /* All three components are stored. */
-          dir[0] = trace.endpos[0] - start[0];
-          dir[1] = trace.endpos[1] - start[1];
-          dir[2] = trace.endpos[2] - start[2];
+          VectorSubtract(trace.endpos, start, dir);
           if ( VectorLength(dir) > 150.0f )
           {
             trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), entinfo.origin, entinfo.number, 100663299);
@@ -1778,9 +1757,7 @@ void __cdecl sub_10025070(void)
       if ( !modelnum )
         modelnum = atoi(model_str + 1);
 
-      l.angles[2] = 0.0f;
-      l.angles[1] = 0.0f;
-      l.angles[0] = 0.0f;
+      VectorClear(l.angles);
       AAS_BSPModelMinsMaxsOrigin(modelnum - 1, l.angles, l.mins, l.maxs, NULL);
 
       FloatForKey(ent, "lip");
@@ -2813,9 +2790,7 @@ LABEL_32:
       if ( !TeamPlayIsOn() )
         return 1;
       BotMatchVariable(&match, 4, Buffer);
-      origin[2] = 0.0;
-      origin[1] = 0.0;
-      origin[0] = 0.0;
+      VectorClear(origin);
       sscanf(Buffer, "%f %f %f", &origin[0], &origin[1], &origin[2]);
       origin[2] = origin[2] + 0.5;
       v41 = AAS_PointAreaNum(origin);
@@ -3067,12 +3042,8 @@ void __cdecl sub_100289A0(bot_state_t *bs, float a2)
 {
   bs->ltime += a2;
   bs->thinktime = a2;
-  bs->origin[0] = bs->snapshot.origin[0];
-  bs->origin[1] = bs->snapshot.origin[1];
-  bs->origin[2] = bs->snapshot.origin[2];
-  bs->eye[0] = bs->snapshot.origin[0] + bs->snapshot.viewoffset[0];
-  bs->eye[1] = bs->snapshot.origin[1] + bs->snapshot.viewoffset[1];
-  bs->eye[2] = bs->snapshot.origin[2] + bs->snapshot.viewoffset[2];
+  VectorCopy(bs->snapshot.origin, bs->origin);
+  VectorAdd(bs->snapshot.origin, bs->snapshot.viewoffset, bs->eye);
   memcpy(bs->inventory, bs->snapshot.inventory, 0x400u);
 }
 // gladiator.dll: 10028A40..10028A56

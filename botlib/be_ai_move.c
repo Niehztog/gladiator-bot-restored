@@ -375,9 +375,7 @@ int __cdecl BotMovementViewTarget(bot_movestate_t *ms, bot_goal_t *goal, int tra
   if ( reachnum )
   {
     reach = AAS_ReachabilityFromNum(reachnum);
-    target[0] = reach.end[0];
-    target[1] = reach.end[1];
-    target[2] = reach.end[2];
+    VectorCopy(reach.end, target);
     target[2] -= 15.0f;
     return 1;
   }
@@ -1352,9 +1350,7 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
     entinfo = AAS_EntityInfo(i);
     if ( VectorCompare(entinfo.origin, entinfo.lastvisorigin) )
     {
-      v5[0] = entinfo.origin[0] - reach->end[0];
-      v5[1] = entinfo.origin[1] - reach->end[1];
-      v5[2] = entinfo.origin[2] - reach->end[2];
+      VectorSubtract(entinfo.origin, reach->end, v5);
       if ( (float)VectorLength(v5) < 32.0f )
         return 2;
     }

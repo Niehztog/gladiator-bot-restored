@@ -402,7 +402,7 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   up[2] = 1.0;
   VectorSubtract(end, start, dir);
   VectorNormalize(dir);
-  dot = dir[0] * up[0] + dir[1] * up[1] + dir[2] * up[2];
+  dot = DotProduct(dir, up);
   if ( dot > 0.99 || dot < -0.99 )
   {
     cross[0] = 1.0f;   /* 1065353216 = 0x3F800000 = 1.0f as bit-pattern;

@@ -1823,8 +1823,8 @@ int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
       corners[0][i] = absmaxs[i];
     }
   }
-  dist1 = p[0] * corners[0][0] + p[1] * corners[0][1] + p[2] * corners[0][2] - p[3];
-  dist2 = p[0] * corners[1][0] + p[1] * corners[1][1] + p[2] * corners[1][2] - p[3];
+  dist1 = DotProduct(p, corners[0]) - p[3];
+  dist2 = DotProduct(p, corners[1]) - p[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;

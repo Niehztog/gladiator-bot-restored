@@ -185,9 +185,7 @@ int BotGetFormationGoal(bot_state_t *bs)
    *    [2] is already 0 from the explicit zero above. */
   if ( (move.stopevent & 0x38) != 0 )
   {
-    angles[0] = start[0];
-    angles[1] = start[1];
-    angles[2] = start[2];
+    VectorCopy(start, angles);
   }
   bs->formationgoal.entitynum = prevent_entnum + 1;
   bs->formationgoal.areanum = areanum;
@@ -270,9 +268,7 @@ float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
       {
         bs->teammatevisible_time = AAS_Time();
         v17 = bs->origin;
-        dir[0] = entinfo.origin[0] - bs->origin[0];
-        dir[1] = entinfo.origin[1] - bs->origin[1];
-        dir[2] = entinfo.origin[2] - bs->origin[2];
+        VectorSubtract(entinfo.origin, bs->origin, dir);
         if ( VectorLength(dir) < bs->formation_dist )
         {
           v18 = AAS_Time() - 5;
@@ -619,9 +615,7 @@ LABEL_55:
   entinfo = AAS_EntityInfo(bs->teammate);
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
   {
-    dir[0] = entinfo.origin[0] - bs->origin[0];
-    dir[1] = entinfo.origin[1] - bs->origin[1];
-    dir[2] = entinfo.origin[2] - bs->origin[2];
+    VectorSubtract(entinfo.origin, bs->origin, dir);
     if ( VectorLength(dir) < 100 )
       goto LABEL_RESET;
   }

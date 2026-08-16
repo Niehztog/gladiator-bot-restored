@@ -256,9 +256,7 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
    * void/eax — NOT VectorNormalize, which would leave a float on ST0 and force
    * an `fstp st(0)` the original never emits). */
   VectorNegate(normal_local);
-  return support[0] * normal_local[0]
-       + support[1] * normal_local[1]
-       + support[2] * normal_local[2];
+  return DotProduct(support, normal_local);
 }
 // gladiator.dll: 1001B130..1001B214
 // gladi386.so:   00029278..0002936A
@@ -395,7 +393,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
         trace.planenum = tstack_p->planenum;
         /* always take the plane with normal facing towards the trace start */
         plane = &aasworld.planes[trace.planenum];
-        if ( v1[0] * plane->normal[0] + v1[1] * plane->normal[1] + v1[2] * plane->normal[2] > 0.0f )
+        if ( DotProduct(v1, plane->normal) > 0.0f )
           trace.planenum ^= 1;
         return trace;
       }
@@ -447,7 +445,7 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
       trace.planenum = tstack_p->planenum;
       /* always take the plane with normal facing towards the trace start */
       plane = &aasworld.planes[trace.planenum];
-      if ( v1[0] * plane->normal[0] + v1[1] * plane->normal[1] + v1[2] * plane->normal[2] > 0.0f )
+      if ( DotProduct(v1, plane->normal) > 0.0f )
         trace.planenum ^= 1;
       return trace;
     }
@@ -799,8 +797,8 @@ int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
       corners[0][i] = a2[i];
     }
   }
-  dist1 = a3[0]*corners[0][0] + a3[1]*corners[0][1] + a3[2]*corners[0][2] - a3[3];
-  dist2 = a3[0]*corners[1][0] + a3[1]*corners[1][1] + a3[2]*corners[1][2] - a3[3];
+  dist1 = DotProduct(a3, corners[0]) - a3[3];
+  dist2 = DotProduct(a3, corners[1]) - a3[3];
   sides = 0;
   if ( dist1 >= 0.0f )
     sides = 1;

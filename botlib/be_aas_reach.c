@@ -209,10 +209,8 @@ float __cdecl AAS_AreaVolume(int areanum)
     facenum = abs(aasworld.faceindex[area->firstface + i]);
     face = &aasworld.faces[facenum];
     plane = &aasworld.planes[face->planenum];
-    d = -(corner[0] * plane->normal[0]
-        + corner[1] * plane->normal[1]
-        + corner[2] * plane->normal[2]
-        - plane->dist);
+    d = -(DotProduct(corner, plane->normal)
+          - plane->dist);
     a = AAS_FaceArea(face);
     volume += d * a;
   }
@@ -248,18 +246,12 @@ void __cdecl AAS_FaceCenter(int facenum, vec3_t center)
   float scale; // [esp+0h] [ebp-10h]
 
   face = &aasworld.faces[facenum];
-  center[2] = 0.0;
-  center[1] = 0.0;
-  *center = 0.0;
+  VectorClear(center);
   for ( i = 0; i < face->numedges; i++ )
   {
     edge = &aasworld.edges[abs(aasworld.edgeindex[face->firstedge + i])];
-    *center = *center + aasworld.vertexes[edge->v[0]][0];
-    center[1] = center[1] + aasworld.vertexes[edge->v[0]][1];
-    center[2] = center[2] + aasworld.vertexes[edge->v[0]][2];
-    *center = *center + aasworld.vertexes[edge->v[1]][0];
-    center[1] = center[1] + aasworld.vertexes[edge->v[1]][1];
-    center[2] = center[2] + aasworld.vertexes[edge->v[1]][2];
+    VectorAdd(center, aasworld.vertexes[edge->v[0]], center);
+    VectorAdd(center, aasworld.vertexes[edge->v[1]], center);
   }
   scale = 0.5 / face->numedges;
   VectorScale((float *)center, scale, (float *)center);
@@ -2476,9 +2468,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
               VectorNormalize(dir);
               VectorMA(areastart, 4.0f, dir, start);
               /* All three vmav[] slots are written here. */
-              end[0] = bsptrace.endpos[0];
-              end[1] = bsptrace.endpos[1];
-              end[2] = bsptrace.endpos[2];
+              VectorCopy(bsptrace.endpos, end);
               trace = AAS_TraceClientBBox(start, end, 2, -1);
               VectorSubtract(trace.endpos, facecenter, dir);
               if ( VectorLength(dir) <= 24.0f )
@@ -2506,9 +2496,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
                     lreach->reach.start[0] = areastart[0];
                     lreach->reach.start[1] = areastart[1];
                     v13->reach.start[2] = areastart[2];
-                    v13->reach.end[0] = bsptrace.endpos[0];
-                    v13->reach.end[1] = bsptrace.endpos[1];
-                    v13->reach.end[2] = bsptrace.endpos[2];
+                    VectorCopy(bsptrace.endpos, v13->reach.end);
                     v13->reach.traveltype = 14;
                     dir[0] = bsptrace.endpos[0] - lreach->reach.start[0];
                     dir[1] = v13->reach.end[1] - v13->reach.start[1];

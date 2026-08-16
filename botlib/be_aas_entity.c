@@ -151,9 +151,7 @@ void __cdecl AAS_EntityOrigin(int entnum, vec3_t origin)
   if ( entnum < 0 || entnum >= aasworld.numentities )
   {
     botimport.Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", entnum);
-    origin[2] = 0.0f;
-    origin[1] = 0.0f;
-    origin[0] = 0.0f;
+    VectorClear(origin);
     return;
   }
   VectorCopy(aasworld.entities[entnum].i.origin, origin);
@@ -464,13 +462,9 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
    * `a5` is also used directly rather than through IDA's `v5 = a5` alias,
    * which cost a store/reload pair through a frame slot. */
   ent = &aasworld.entities[a5].i;
-  middle[0] = ent->mins[0] + ent->maxs[0];
-  middle[1] = ent->mins[1] + ent->maxs[1];
-  middle[2] = ent->mins[2] + ent->maxs[2];
+  VectorAdd(ent->mins, ent->maxs, middle);
   VectorScale((float *)middle, 0.5, (float *)middle);
-  middle[0] = ent->origin[0] + middle[0];
-  middle[1] = ent->origin[1] + middle[1];
-  middle[2] = ent->origin[2] + middle[2];
+  VectorAdd(ent->origin, middle, middle);
   VectorSubtract(middle, ((float *)eye), dir);
   vectoangles(dir, (float *)entangles);
   if ( !InFieldOfVision(viewangles, fov, entangles) )

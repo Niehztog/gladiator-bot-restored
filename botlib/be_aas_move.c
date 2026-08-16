@@ -111,9 +111,7 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
   hordir[1] = reach->start[1] - reach->end[1];
   hordir[2] = 0;
   VectorNormalize(hordir);
-  start_pos[0] = reach->start[0];
-  start_pos[1] = reach->start[1];
-  start_pos[2] = reach->start[2];
+  VectorCopy(reach->start, start_pos);
   start_pos[2] += 1.0f;
   runstart_vec = (float *)runstart;
   VectorScale((float *)hordir, 400.0f, (float *)cmdmove);
@@ -146,9 +144,7 @@ int __cdecl sub_1000F130(vec3_t origin)
 {
   vec3_t p;
 
-  p[0] = origin[0];
-  p[1] = origin[1];
-  p[2] = origin[2];
+  VectorCopy(origin, p);
   p[2] += 48.0f;
   if ( sub_10003080(p) & 0x20000000 ) return 1;
   p[0] += 8.0f;
