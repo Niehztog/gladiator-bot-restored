@@ -31,29 +31,40 @@
 bspworld_t bspworld;
 
 // gladiator.dll: 10003010..10003056
-// gladi386.so:   0000D0CC..0000D136
+// gladi386.so:   0000A3F8..0000A442
 /* Returns bsp_trace_t BY VALUE; MSVC lowers that to a hidden caller-allocated
  * return buffer.
  *
- * The two 1999 images have genuinely DIFFERENT bodies here, not just different
- * codegen: the DLL calls botimport.Trace through a hidden retbuf local, the .so
- * calls AAS_TraceBSPModel directly on model 0 with a shared {0,0,0} local for
- * modelorigin/angles.  Both verified against their own disassembly. */
-#ifdef _WIN32
+ * THE ENGINE TRACE, on both platforms.  It used to be `#ifdef _WIN32`-split,
+ * with this body on Windows and a direct `AAS_TraceBSPModel(0, ...)` body on
+ * Linux, on the reading that "the two 1999 images have genuinely different
+ * bodies here".  That reading was WRONG, and the correction is worth
+ * understanding because it was invisible to both audits (they mask call
+ * displacements):
+ *
+ *   - gladi386.so has BOTH bodies.  F663 (0xa3f8, 74 B) is this one -- it
+ *     loads a GOT slot that `.rel.got` names `botimport` and calls
+ *     `[edi+0xc]` -- and ALL 30 of the .so's trace call sites go to it.
+ *   - F680 (0xd0cc, 106 B) is the direct-AAS_TraceBSPModel body, and it is
+ *     called by NOBODY.  We already had it, as sub_10005640 below, which the
+ *     DLL likewise keeps uncalled at 0x10005640.
+ *
+ * So the Linux build was routing every bot trace into the world BSP model
+ * alone, where the 1999 build went through the engine and therefore saw
+ * entities and movers.  That is a behavioural divergence, not only a byte
+ * one.  (x87cmp/soannotate/contentsweep, 2026-08-16.) */
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
+#if defined(__x86_64__) || defined(__aarch64__)
+  /* 64-bit only: the retbuf is a hidden register there, so the game side
+   * hands us one explicitly.  See botimport_block_t's Trace member. */
   bsp_trace_t bsptrace;
 
   return *botimport.Trace(&bsptrace, start, mins, maxs, end, passent, contentmask);
+#else
+  return botimport.Trace(start, mins, maxs, end, passent, contentmask);
+#endif
 }
-#else  /* !_WIN32 -- gladi386.so calls straight into AAS_TraceBSPModel, no botimport.Trace */
-bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
-{
-  vec3_t zero_vec = { 0, 0, 0 };
-
-  return AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs, end, passent, contentmask);
-}
-#endif /* _WIN32 */
 /* BSP-leaf link heap.  Gladiator carries TWO link families and this is the
  * BSP-leaf one; the AAS-area trio at 0x1001AC00/0x1001AD50/0x1001ADA0 already
  * owns the Q3 cognate names (AAS_InitAASLinkHeap etc.).  They are distinguished
@@ -210,19 +221,34 @@ dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum)
   return &bspworld.dleafs[CM_PointLeafnum(point, modelnum)];
 }
 // gladiator.dll: 10003460..100034AF
-// gladi386.so:   0000A7BC..0000A80C
-void __cdecl sub_10003460(vec3_t v, float m[3][3])
+// gladi386.so:   0000AA40..0000AAB1
+/* `RotatePoint(vec3_t point, float m[3][3])`, declared in Q3's bspc/l_math.h --
+ * Mr Elusive's own name, not an invention.
+ *
+ * This USED to be two functions: `sub_10003460` here, written with scalar
+ * x/y/z temporaries, and a second `#ifndef _WIN32`-gated `RotatePoint` at the
+ * end of the file carrying the Q3 spelling.  They are one function.  The
+ * duplicate was created because the ELF funcmap had F668 (0xa7bc, 80 B) paired
+ * with sub_10003460 -- a pairing its own override row already flagged WEAK for
+ * "19 real insns vs 33 ours" -- when F668 is actually a linked-list prepend on
+ * `bspworld` (+0x20c0), i.e. sub_10003240.  The real RotatePoint is F673
+ * (0xaa40, 113 B), which sits between F672=sub_10003420 and F674=AnglesToAxis
+ * exactly as 0x10003460 sits between 0x10003420 and 0x100034D0 in the DLL.
+ *
+ * The `vec3_t tvec` + DotProduct spelling is the one that matters: it is
+ * byte-identical to F673 on the ELF, where the scalar form is not.  MSVC6 /O2
+ * compiles the two spellings BYTE-IDENTICALLY (probe_cl.sh, 32 insns each), so
+ * there is no two-oracle conflict here -- the PE keeps its MATCH either way.
+ * (2026-08-16.) */
+void __cdecl RotatePoint(vec3_t point, float matrix[3][3])
 {
-  float x, y, z;
+  vec3_t tvec;
 
-  x = v[0];
-  y = v[1];
-  z = v[2];
-
-  v[0] = x * m[0][0] + y * m[0][1] + z * m[0][2];
-  v[1] = x * m[1][0] + y * m[1][1] + z * m[1][2];
-  v[2] = x * m[2][0] + y * m[2][1] + z * m[2][2];
-}
+  VectorCopy(point, tvec);
+  point[0] = DotProduct(matrix[0], tvec);
+  point[1] = DotProduct(matrix[1], tvec);
+  point[2] = DotProduct(matrix[2], tvec);
+} //end of the function RotatePoint
 // gladiator.dll: 100034D0..10003616
 // gladi386.so:   0000AAB4..0000AC61
 /* Build a 3x3 row-major rotation matrix from angles[PITCH,YAW,ROLL]:
@@ -524,7 +550,7 @@ int __cdecl CM_TraceThroughBrush(
   float v43; // [esp+28h] [ebp-64h]
   vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
   vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
-  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (sub_10003460 input/output)
+  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (RotatePoint input/output)
   vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
   float v59[3][3]; // [esp+68h] [ebp-24h] BYREF
 
@@ -557,7 +583,7 @@ int __cdecl CM_TraceThroughBrush(
       if ( v39 )
       {
         VectorCopy(v16->normal, normal);
-        sub_10003460(normal, v59);
+        RotatePoint(normal, v59);
         v12 = a2;
         v17 = 4;
       }
@@ -1016,7 +1042,7 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
           if ( v144 )
           {
             VectorCopy(v38->normal, v114);
-            sub_10003460(v114, v151);
+            RotatePoint(v114, v151);
             v31 = v120;
             v39 = 4;
           }
@@ -1332,28 +1358,32 @@ LABEL_125:
   return trace;
 }
 // gladiator.dll: 10005640..100056AC
-// gladi386.so:   absent
-// Thin wrapper around sub_100044F0 supplying three zero locals as the
-// entity-origin / mins / maxs slots, then memcpy'ing the 84-byte trace result
-// into the caller's buffer.  The two "mins/maxs" pointers are identical and the
-// entity-origin slot is uninitialised — both are in the original dead code.
-// DEAD in Gladiator; preserved only by the /INCREMENTAL thunk.
-static void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask)
+// gladi386.so:   0000D0CC..0000D136
+// Thin wrapper around AAS_TraceBSPModel supplying two zero vec3 locals as the
+// entity-origin / angles slots, i.e. "AAS_Trace, but straight into world model
+// 0 with no engine call".  DEAD in Gladiator: no caller in EITHER image.  The
+// DLL keeps it through its /INCREMENTAL thunk; the .so exports it as F680,
+// which is why it must NOT be `static` -- both compilers would strip a static
+// function with no callers, and F680's 106 bytes are exactly this body.
+//
+// IDA rendered the hidden struct-return buffer as an explicit leading
+// `void *out` parameter and the tail as `*out = AAS_TraceBSPModel(...)`.  That
+// is the sret artifact, not the source: gcc will not forward a caller's buffer
+// through a pointer PARAMETER (it cannot prove it does not alias the args), so
+// the cast form costs an 84-byte temp plus a `rep movs` -- frame 0x60 against
+// real's 0xc, OUR+4.  Returning bsp_trace_t BY VALUE, exactly like AAS_Trace,
+// is what forwards it.  (2026-08-16; the F680/F663 mix-up is written up on
+// AAS_Trace's own banner above.)
+bsp_trace_t __cdecl sub_10005640(vec3_t start, vec3_t boxmins, vec3_t boxmaxs,
+                                 vec3_t end, int passent, int contentmask)
 {
   vec3_t zero_vec;
 
   zero_vec[0] = 0.0f;
   zero_vec[1] = 0.0f;
   zero_vec[2] = 0.0f;
-  *(bsp_trace_t *)out = AAS_TraceBSPModel(0, zero_vec, zero_vec,
-                                          start, (float *)boxmins, boxmaxs, (float *)end, a5, contentmask);
+  return AAS_TraceBSPModel(0, zero_vec, zero_vec,
+                           start, boxmins, boxmaxs, end, passent, contentmask);
 }
 // gladiator.dll: 100056D0..10005767
 // gladi386.so:   0000D138..0000D1F6
@@ -1413,7 +1443,7 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   v12[1] = -a4[1];
   v12[2] = -a4[2];
   AnglesToAxis(v12, v13);
-  sub_10003460(v11, v13);
+  RotatePoint(v11, v13);
   v6 = CM_PointLeafnum(v11, a2);
   v7 = &bspworld.dleafs[v6];
   for ( v4 = 0; v4 < v7->numleafbrushes; ++v4 )
@@ -1643,7 +1673,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   ClearBounds(bb_mins, bb_maxs);
 
   /* Rotate all 8 AABB corners through `axis`.  `corner` must stay an array:
-   * sub_10003460 reads it as a vec3_t. */
+   * RotatePoint reads it as a vec3_t. */
   for ( i = 0; i < 8; ++i )
   {
     /* Keep `(i < 4)` with mins in the THEN arm: the inverted
@@ -1651,7 +1681,7 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
     corner[0] = (i < 4)          ? local_mins[0] : local_maxs[0];
     corner[1] = (i & 1)          ? local_mins[1] : local_maxs[1];
     corner[2] = (i < 2 || i > 6) ? local_mins[2] : local_maxs[2];
-    sub_10003460(corner, (float *)axis);
+    RotatePoint(corner, (float *)axis);
     AddPointToBounds(corner, bb_mins, bb_maxs);
   }
 
@@ -2805,16 +2835,4 @@ int sub_100085F0()
  * ------------------------------------------------------------------------ */
 #ifndef _WIN32
 
-/* F673 @ 0x0000aa40, 113 bytes.  `RotatePoint(vec3_t point, float m[3][3])`,
- * declared in Q3's bspc/l_math.h.  The disassembly copies the point to three
- * stack slots first, which is what the source's own `vec3_t tmp` does. */
-void __cdecl RotatePoint(vec3_t point, float matrix[3][3])
-{
-  vec3_t tvec;
-
-  VectorCopy(point, tvec);
-  point[0] = DotProduct(matrix[0], tvec);
-  point[1] = DotProduct(matrix[1], tvec);
-  point[2] = DotProduct(matrix[2], tvec);
-} //end of the function RotatePoint
 #endif /* !_WIN32 -- gladi386.so-only */

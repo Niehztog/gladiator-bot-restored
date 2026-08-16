@@ -30,13 +30,36 @@ typedef struct scriptcrc_s {
  * includers pull it in first. */
 
 /* ---- block 2: engine import callbacks (botimport, @0x10063FE0) -----------
- * 10 function pointers; note Trace's explicit-retbuf ABI and Print's int return. */
+ * 10 function pointers; note Print's int return.
+ *
+ * `Trace` returns bsp_trace_t BY VALUE, which is what `gladq2_src/bl_main.c`'s
+ * BotLibImport_Trace is declared as.  On 32-bit that is not a choice between
+ * two ABIs -- it IS the retbuf ABI, just spelled in C: both compilers pass a
+ * hidden buffer pointer as the first argument and return it in eax.  Measured
+ * (probe_cl.sh, 2026-08-16): MSVC6 /O2 compiles `return f(a..)` from the
+ * by-value declaration and `return *f(&local, a..)` from an explicit-retbuf
+ * one to BYTE-IDENTICAL code, and that code is gladiator.dll's AAS_Trace at
+ * 0x10003010 instruction for instruction.  gcc 2.7.2.3 is NOT indifferent: it
+ * forwards the caller's own retbuf for the by-value form (74 B, = F663) and
+ * materialises a local plus a `rep movs` for the explicit one (+7 insns).
+ * So by-value is the spelling that reproduces both originals.
+ *
+ * 64-bit is the exception and needs the explicit form: aarch64/x86-64 pass the
+ * struct-return buffer in a hidden register (x8 / rax), not as a visible
+ * argument, so the game side hands us one explicitly instead --
+ * `game/bl_main.c` has the matching 64-bit BotLibImport_Trace.  Do not
+ * "simplify" the two branches together. */
 typedef struct botimport_block_s {
     void  (__cdecl *BotInput)(int, ea_state_t *);
     int   (__cdecl *BotClientCommand)(int client, char *str, ...);
     int   (*Print)(_DWORD, const char *, ...);
+#if defined(__x86_64__) || defined(__aarch64__)
     bsp_trace_t *(__cdecl *Trace)(bsp_trace_t *retbuf, vec3_t start, vec3_t mins,
                                   vec3_t maxs, vec3_t end, int passent, int contentmask);
+#else
+    bsp_trace_t (__cdecl *Trace)(vec3_t start, vec3_t mins, vec3_t maxs,
+                                 vec3_t end, int passent, int contentmask);
+#endif
     int   (__cdecl *PointContents)(float *point);
     void *(__cdecl *GetMemory)(int);
     void  (__cdecl *FreeMemory)(void *);

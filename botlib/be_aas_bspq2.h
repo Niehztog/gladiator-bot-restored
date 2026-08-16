@@ -3,69 +3,6 @@
 #ifndef BOTLIB_BE_AAS_BSPQ2_H
 #define BOTLIB_BE_AAS_BSPQ2_H
 
-static void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
@@ -178,15 +115,6 @@ _Static_assert(offsetof(bspworld_t, dword_10069584) == 0x20C4,      "dword_10069
  * symbol exactly. */
 extern bspworld_t bspworld;
 
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
-
 
 /* Declared but never defined -- a dead declaration from the decompilation. */
 
@@ -223,16 +151,13 @@ void __cdecl sub_10003240(bsp_link_t *a1);
 void sub_10003280();
 void sub_100032D0();
 dleaf_t *__cdecl sub_10003420(const vec3_t point, int modelnum);
-void __cdecl sub_10003460(vec3_t v, float m[3][3]);
+void __cdecl RotatePoint(vec3_t point, float matrix[3][3]);
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace);
-void sub_10005640(
-        void *out,
-        float *start,
-        int *boxmins,
-        float *boxmaxs,
-        int *end,
-        int a5,
-        int contentmask);
+/* NOT static: the real gladi386.so exports it as F680 (0xd0cc, 106 B) and
+ * the DLL keeps it at 0x10005640 through its /INCREMENTAL thunk.  It has no
+ * caller in either image, so `static` would let both compilers strip it. */
+bsp_trace_t __cdecl sub_10005640(vec3_t start, vec3_t boxmins, vec3_t boxmaxs,
+                                 vec3_t end, int passent, int contentmask);
 int __cdecl sub_100056D0(dbrush_t *a1, float *a2);
 int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4);
 int __cdecl sub_10005A10(float *origin);

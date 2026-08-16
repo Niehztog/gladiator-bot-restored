@@ -274,35 +274,35 @@ int __cdecl AAS_SetInitialized(void)
 }
 // gladiator.dll: 1000DF30..1000DFD4
 // gladi386.so:   0001AF30..0001B057
-int AAS_ContinueInit(float time)
+/* void, and three guard clauses -- NOT IDA's `int` with a `result` alias and
+ * nested ifs.  Real sets no return value on ANY path: all three early exits
+ * jump to one shared `pop ebx; pop esi; add esp,8; ret` with eax untouched,
+ * and the inlined AAS_SetInitialized tail falls into the same block.  The one
+ * caller (AAS_StartFrame, below) discards the value.  IDA's `result =
+ * aasworld.loaded;` also forces a LOAD where real compares in memory
+ * (`cmp [eax],0x0`), which is 2 of the 7 instructions this cost; the surplus
+ * exit block is the other 5.  (2026-08-16; both are catalogued classes --
+ * invented non-void return, and the IDA `result` alias.) */
+void AAS_ContinueInit(float time)
 {
-  int result; // eax
-
-  result = aasworld.loaded;
-  if ( aasworld.loaded )
+  if ( !aasworld.loaded )
+    return;
+  if ( aasworld.initialized )
+    return;
+  if ( AAS_ContinueInitReachability(time) )
+    return;
+  AAS_InitClustering();
+  if ( aasworld.savefile || (unsigned int)(int)LibVarGetValue("forcewrite") )
   {
-    result = aasworld.initialized;
-    if ( !aasworld.initialized )
-    {
-      result = AAS_ContinueInitReachability(time);
-      if ( !result )
-      {
-        AAS_InitClustering();
-        if ( aasworld.savefile || (unsigned int)(int)LibVarGetValue("forcewrite") )
-        {
-          if ( !(unsigned int)(int)LibVarGetValue("nooptimize") )
-            AAS_Optimize();
-          if ( AAS_WriteAASFile(aasworld.filename) )
-            botimport.Print(PRT_MESSAGE, "%s written succesfully\n", aasworld.filename);
-          else
-            botimport.Print(PRT_ERROR, "couldn't write %s\n", aasworld.filename);
-        }
-        AAS_InitRouting();
-        return AAS_SetInitialized();
-      }
-    }
+    if ( !(unsigned int)(int)LibVarGetValue("nooptimize") )
+      AAS_Optimize();
+    if ( AAS_WriteAASFile(aasworld.filename) )
+      botimport.Print(PRT_MESSAGE, "%s written succesfully\n", aasworld.filename);
+    else
+      botimport.Print(PRT_ERROR, "couldn't write %s\n", aasworld.filename);
   }
-  return result;
+  AAS_InitRouting();
+  AAS_SetInitialized();
 }
 // gladiator.dll: 1000E010..1000E0D6
 // gladi386.so:   0001B058..0001B150
