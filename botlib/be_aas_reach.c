@@ -624,6 +624,10 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int j; // ebp
   int edge2num; // rax — int + abs()
   aas_edge_t *edge2; // ecx
+  /* Q3 declares this; IDA lost it because both compilers CSE'd the subscript
+   * into an address they already had.  Restoring it stops gcc272 re-evaluating
+   * `planes[planenum ^ !faceside1]` once per dot-product term. */
+  aas_plane_t *plane;
   /* The original keeps these on the x87 stack at 80-bit, so they are long
    * double with explicit operand casts in the chain expressions. */
   float v25; // st7
@@ -631,11 +635,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float v28; // st7
   float dist1; // st7
   aas_reachabilitynode_t *v44; // eax
-  aas_reachabilitynode_t *v45; // esi
   int v46; // ecx
   aas_reachabilitynode_t *v50; // esi
   aas_reachabilitynode_t *v54; // eax
-  aas_reachabilitynode_t *v55; // esi
   aas_reachabilitynode_t *v56; // esi
   char *v57; // eax
   int v58; // edx
@@ -732,11 +734,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
           v126 = groundface1;
+          /* Comma expression, not a hoisted statement: both originals compute
+           * the plane address only after `area1swim` short-circuits, so the
+           * assignment has to stay inside the `&&`. */
           if ( (groundface1->faceflags & 4) != 0
             || area1swim
-            && up[2] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[2]
-             + up[1] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[1]
-             + up[0] * aasworld.planes[groundface1->planenum ^ (!faceside1)].normal[0] >= 0.7 )
+            && (plane = &aasworld.planes[groundface1->planenum ^ (!faceside1)],
+                DotProduct(plane->normal, up)) >= 0.7 )
           {
             for ( k = 0; k < groundface1->numedges; ++k )
             {
@@ -943,7 +947,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
         if ( ground_foundreach && ground_bestdist >= 0.0f && ground_bestdist < (float)libvar_sv_step->value )
         {
           v44 = AAS_AllocReachability();
-          v45 = v44;
           if ( !v44 )
             return 0;
           v46 = ground_bestarea2groundedgenum;
@@ -951,19 +954,19 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           v44->reach.facenum = 0;
           v44->reach.edgenum = v46;
           VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v44->reach.start);
-          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v45->reach.end);
-          v45->reach.traveltype = 2;
-          v45->reach.traveltime = 1;
+          VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v44->reach.end);
+          v44->reach.traveltype = 2;
+          v44->reach.traveltime = 1;
           if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
-            v45->reach.traveltime += 300;
-          v45->next = areareachability[area1num];
-          areareachability[area1num] = v45;
-          if ( !AAS_NearbySolidOrGap(v45->reach.start, v45->reach.end) )
-            v45->reach.traveltime += 400;
+            v44->reach.traveltime += 300;
+          v44->next = areareachability[area1num];
+          areareachability[area1num] = v44;
+          if ( !AAS_NearbySolidOrGap(v44->reach.start, v44->reach.end) )
+            v44->reach.traveltime += 400;
           /* The thunk at 0x10001be0 goes to the ground-face area sum, NOT to
            * AAS_AreaReachability. */
-          if ( AAS_AreaGroundFaceArea(v45->reach.areanum) < 500.0f )
-            v45->reach.traveltime += 400;
+          if ( AAS_AreaGroundFaceArea(v44->reach.areanum) < 500.0f )
+            v44->reach.traveltime += 400;
           ++reach_step;
           return 1;
         }
@@ -1005,18 +1008,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
               if ( !AAS_AreaCrouch(area1num) && !AAS_AreaCrouch(area2num) )
               {
                 v54 = AAS_AllocReachability();
-                v55 = v54;
                 if ( !v54 )
                   return 0;
                 v54->reach.edgenum = ground_bestarea2groundedgenum;
                 v54->reach.areanum = area2num;
                 v54->reach.facenum = 0;
                 VectorMA(ground_beststart, 0.1f, (float *)ground_bestnormal, v54->reach.start);
-                VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v55->reach.end);
-                v55->reach.traveltype = 4;
-                v55->reach.traveltime = 400;
-                v55->next = areareachability[area1num];
-                areareachability[area1num] = v55;
+                VectorMA(ground_bestend, 5.0f, (float *)ground_bestnormal, v54->reach.end);
+                v54->reach.traveltype = 4;
+                v54->reach.traveltime = 400;
+                v54->next = areareachability[area1num];
+                areareachability[area1num] = v54;
                 ++reach_barrier;
                 return 1;
               }
