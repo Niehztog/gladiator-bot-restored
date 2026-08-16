@@ -1357,16 +1357,20 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
   int ArgListg; // [esp+34h] [ebp+8h]
   int ArgListh; // [esp+34h] [ebp+8h]
 
+  /* Q3 `l_precomp.c:1691-1707`'s initialiser order, and its two chained
+   * assignments.  Not cosmetic: at /O2 MSVC assigns a spilled scalar's frame
+   * slot by the order its value is first materialised, so this block is what
+   * fixes the 5-slot permutation this row's `frame_slotmap.py` shows (its
+   * frame SIZE already matches ref exactly).  Real's first store is to
+   * `parentheses`, then `error` -- Q3's order, not IDA's. */
   brace = 0;
-  lastwasvalue = 0;
-  v7 = 0;
-  lastvalue = 0;
   parentheses = 0;
   error = 0;
+  lastwasvalue = 0;
   negativevalue = 0;
-  lastoperator = 0;
-  firstoperator = 0;
-  firstvalue = 0;
+  v7 = 0;
+  firstoperator = lastoperator = 0;
+  firstvalue = lastvalue = 0;
   if ( intvalue )
     *intvalue = 0;
   if ( floatvalue )
