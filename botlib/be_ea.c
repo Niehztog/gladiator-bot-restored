@@ -21,7 +21,7 @@
 #include "be_interface.h"
 #include "l_memory.h"
 
-ea_state_t *ea_controls; /* per-client EA state array, sized 36 * maxclients */
+ea_state_t *botinputs; /* per-client EA state array, sized 36 * maxclients */
 
 // gladiator.dll: 10037090..100370AB
 // gladi386.so:   0004840C..0004843C
@@ -102,7 +102,7 @@ int __cdecl EA_Command(int client, char *command, ...)
  * frame.  As Q3's be_ea.c::EA_Attack. */
 void __cdecl EA_Attack(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_ATTACK;
 }
 // gladiator.dll: 100372F0..10037305
@@ -111,7 +111,7 @@ void __cdecl EA_Attack(int client)
  * bi_BotClientCommand instead of the EA layer. */
 void __cdecl EA_Use(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_USE;
 }
 // gladiator.dll: 10037320..10037335
@@ -119,7 +119,7 @@ void __cdecl EA_Use(int client)
 /* EA_Respawn — set ACTION_RESPAWN. */
 void __cdecl EA_Respawn(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_RESPAWN;
 }
 // gladiator.dll: 10037350..10037373
@@ -128,7 +128,7 @@ void __cdecl EA_Respawn(int client)
  * if it is set, clear ACTION_JUMP instead so the engine sees a key release. */
 void __cdecl EA_Jump(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   if ( ea->flags & EA_JUMPEDLASTFRAME )
     ea->flags &= ~ACTION_JUMP;
   else
@@ -140,7 +140,7 @@ void __cdecl EA_Jump(int client)
  * EA_Jump.  The `BYTE1(v) |= 2u` form is how the original writes bit 9. */
 void __cdecl EA_DelayedJump(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   if ( ea->flags & EA_JUMPEDLASTFRAME )
     ea->flags &= ~ACTION_DELAYEDJUMP;
   else
@@ -150,7 +150,7 @@ void __cdecl EA_DelayedJump(int client)
 // gladi386.so:   00048704..00048727
 void __cdecl EA_Crouch(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_CROUCH;
 }
 // gladiator.dll: 10037400..10037415
@@ -160,7 +160,7 @@ void __cdecl EA_Crouch(int client)
  * needs to jump out of water regardless of the jump cooldown. */
 void __cdecl EA_MoveUp(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVEUP;
 }
 // gladiator.dll: 10037430..10037445
@@ -169,7 +169,7 @@ void __cdecl EA_MoveUp(int client)
  * bit-for-bit EA_Crouch.  DEAD in Gladiator, which always calls EA_Crouch instead. */
 void __cdecl EA_MoveDown(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVEDOWN;
 }
 // gladiator.dll: 10037460..10037475
@@ -177,7 +177,7 @@ void __cdecl EA_MoveDown(int client)
 /* EA_MoveForward — set ACTION_MOVEFORWARD. */
 void __cdecl EA_MoveForward(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVEFORWARD;
 }
 // gladiator.dll: 10037490..100374A5
@@ -185,7 +185,7 @@ void __cdecl EA_MoveForward(int client)
 /* EA_MoveBack — set ACTION_MOVEBACK (0x40).  DEAD in Gladiator. */
 void __cdecl EA_MoveBack(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVEBACK;
 }
 // gladiator.dll: 100374C0..100374DA
@@ -193,7 +193,7 @@ void __cdecl EA_MoveBack(int client)
 /* EA_MoveLeft — set ACTION_MOVELEFT (0x80).  DEAD in Gladiator. */
 void __cdecl EA_MoveLeft(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVELEFT;
 }
 // gladiator.dll: 100374F0..1003750A
@@ -201,14 +201,14 @@ void __cdecl EA_MoveLeft(int client)
 /* EA_MoveRight — set ACTION_MOVERIGHT (0x100).  DEAD in Gladiator. */
 void __cdecl EA_MoveRight(int client)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   ea->flags |= ACTION_MOVERIGHT;
 }
 // gladiator.dll: 10037520..1003757F
 // gladi386.so:   00048804..00048878
 void __cdecl EA_Move(int client, vec3_t dir, float speed)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   VectorCopy(dir, ea->dir);
   if ( speed > 565.0f )
     speed = 565.0f;
@@ -220,7 +220,7 @@ void __cdecl EA_Move(int client, vec3_t dir, float speed)
 // gladi386.so:   00048878..000488AE
 void __cdecl EA_View(int client, vec3_t viewangles)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   VectorCopy(viewangles, ea->angles);
 }
 // gladiator.dll: 100375E0..10037633
@@ -235,7 +235,7 @@ void __cdecl EA_View(int client, vec3_t viewangles)
  * truncates the float to 0, giving ucmd.msec = 0 and a bot frozen at spawn. */
 void __cdecl EA_EndRegular(int client, float thinktime)
 {
-  ea_state_t *ea = &ea_controls[client];
+  ea_state_t *ea = &botinputs[client];
   qboolean jumped_this_frame;
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
@@ -256,12 +256,12 @@ void __cdecl EA_EndRegular(int client, float thinktime)
 // gladi386.so:   0004892C..0004895D
 int EA_Setup()
 {
-  ea_controls = (ea_state_t *)GetClearedMemory(sizeof(ea_state_t) * botstate.num_clients);
-  return (int)ea_controls;
+  botinputs = (ea_state_t *)GetClearedMemory(sizeof(ea_state_t) * botlibglobals.num_clients);
+  return (int)botinputs;
 }
 // gladiator.dll: 10037690..1003769D
 // gladi386.so:   00048960..00048980
 void EA_Shutdown()
 {
-  FreeMemory(ea_controls);
+  FreeMemory(botinputs);
 }

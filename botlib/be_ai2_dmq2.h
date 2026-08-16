@@ -19,29 +19,29 @@ extern float MOVEDIR_UP[3];  /* 0x1005C578 {0, 0, 1} — defined in botlib_struc
 extern float VEC_DOWN[3];    /* 0x1005C584 {0,-2, 0} — defined in botlib_structdefs.c */
 extern float MOVEDIR_DOWN[3]; /* 0x1005C590 {0, 0,-1} — defined in botlib_structdefs.c */
 extern bot_clientsettings_t *clientsettings;
-extern libvar_t *libvar_ctf;
+extern libvar_t *ctf;
 /* CTF flag goals.  BotGetLevelItemGoal fills 48 bytes of each 56-byte
  * bot_goal_t slot; `areanum` doubles as the "flag found" flag (0 = not yet). */
-extern bot_goal_t ctf_blueflag;
-extern bot_goal_t ctf_redflag;
-extern libvar_t *libvar_usehook;
-extern libvar_t *libvar_ch;
-extern libvar_t *libvar_teamplay;
-extern libvar_t *libvar_ra;
-extern libvar_t *libvar_runes;
-extern int dword_1006446C;
-extern libvar_t *libvar_dmflags;
-extern libvar_t *libvar_nochat;
-extern libvar_t *libvar_rocketjump;
-extern libvar_t *libvar_fastchat;
-extern libvar_t *libvar_assimilation;
-extern int dword_10064484;
-extern libvar_t *libvar_teamplay_shell;
-extern int dword_1006448C;
-extern int dword_10064490;
-extern int dword_10064494;
-extern int dword_10064498;
-extern int dword_1006449C;
+extern bot_goal_t ctf_flag2;
+extern bot_goal_t ctf_flag1;
+extern libvar_t *usehook;
+extern libvar_t *ch;
+extern libvar_t *teamplay;
+extern libvar_t *ra;
+extern libvar_t *techs;
+extern int mapchange;
+extern libvar_t *dmflags;
+extern libvar_t *nochat;
+extern libvar_t *rocketjump;
+extern libvar_t *fastchat;
+extern libvar_t *assimilation;
+extern int modelindex3_flag1;
+extern libvar_t *teamplay_shell;
+extern int modelindex3_flag2;
+extern int modelindex_tech4;
+extern int modelindex_tech3;
+extern int modelindex_tech2;
+extern int modelindex_tech1;
 
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate);
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match);

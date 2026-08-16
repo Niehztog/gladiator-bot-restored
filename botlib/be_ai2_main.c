@@ -34,7 +34,7 @@
 
 int numbots; /* active-bot count, ++/-- in BotSetupClient/BotShutdownClient, returned by
                 NumBots(); name recovered from the tourney-2.5 Linux gladi386.so .dynsym */
-bsp_entity_t *dword_10064398; // BSP entity list head (parsed by AAS_ParseBSPEntities)
+bsp_entity_t *entities; // BSP entity list head (parsed by AAS_ParseBSPEntities)
 
 #if BOTLIB_NEED_SIDEBAND
 bot_character_t **botcharacters;
@@ -74,9 +74,9 @@ bot_waypoint_t **botcurpatrolpoint;
 #else
 #endif
 
-int dword_1006439C; // weak
+int gametype; // weak
 bot_state_t *botstates; // base array of maxclients bot states
-float flt_100643A4; // weak
+float regularupdate_time; // weak
 
 // gladiator.dll: 10028EA0..10028F01
 // gladi386.so:   0003744C..000374A9
@@ -84,7 +84,7 @@ int __cdecl ClientFromName(const char *name)
 {
   int v1;
 
-  for ( v1 = 0; v1 < botstate.num_clients; ++v1 )
+  for ( v1 = 0; v1 < botlibglobals.num_clients; ++v1 )
   {
     if ( !strcmp(name, clientsettings[v1].netname) )
       return v1;
@@ -95,7 +95,7 @@ int __cdecl ClientFromName(const char *name)
 // gladi386.so:   000374AC..000374FC
 char *__cdecl ClientName(int client)
 {
-  if ( client < 0 || client >= botstate.num_clients )
+  if ( client < 0 || client >= botlibglobals.num_clients )
   {
     botimport.Print(PRT_WARNING, "ClientName: client %d out of range\n", client);
     return "";
@@ -106,7 +106,7 @@ char *__cdecl ClientName(int client)
 // gladi386.so:   000374FC..0003754F
 char *__cdecl ClientSkin(int client)
 {
-  if ( client < 0 || client >= botstate.num_clients )
+  if ( client < 0 || client >= botlibglobals.num_clients )
   {
     botimport.Print(PRT_WARNING, "ClientSkin: client %d out of range\n", client);
     return "";
@@ -243,10 +243,10 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 // gladi386.so:   000379F4..00037A34
 void sub_100292E0()
 {
-  if ( flt_100643A4 < AAS_Time() )
+  if ( regularupdate_time < AAS_Time() )
   {
     BotUpdateEntityItems();
-    flt_100643A4 = AAS_Time() + 1.0f;
+    regularupdate_time = AAS_Time() + 1.0f;
   }
 }
 // gladiator.dll: 10029320..10029375
@@ -519,12 +519,12 @@ int sub_10029C10()
 {
   int i;
 
-  for ( i = 0; i < botstate.num_clients; i++ )
+  for ( i = 0; i < botlibglobals.num_clients; i++ )
     BotResetState(&botstates[i]);
   BotInitLevelItems();
-  if ( dword_10064398 )
-    AAS_FreeBSPEntities(dword_10064398);
-  dword_10064398 = AAS_ParseBSPEntities();
+  if ( entities )
+    AAS_FreeBSPEntities(entities);
+  entities = AAS_ParseBSPEntities();
   BotSetupDeathmatchAI();
   return 0;
 }
@@ -563,21 +563,21 @@ int BotSetupLibrary()
   if ( result )
     return result;
 #endif
-  botstates = (bot_state_t *)GetClearedMemory(sizeof(bot_state_t) * botstate.num_clients);
+  botstates = (bot_state_t *)GetClearedMemory(sizeof(bot_state_t) * botlibglobals.num_clients);
 #if BOTLIB_NEED_SIDEBAND
-  botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * botstate.num_clients);
-  botgoalstate_p0 = (void **)GetClearedMemory(sizeof(void *) * botstate.num_clients);
-  botgoalstate_p1 = (void **)GetClearedMemory(sizeof(void *) * botstate.num_clients);
-  botweaponstates = (bot_weaponstate_t **)GetClearedMemory(sizeof(void *) * botstate.num_clients);
-  botchatdumps = (void **)GetClearedMemory(sizeof(void *) * botstate.num_clients);
-  botchatmsglinks = (chatmsg_links_t *)GetClearedMemory(sizeof(chatmsg_links_t) * botstate.num_clients);
-  botainodes = (ai_node_fn_t *)GetClearedMemory(sizeof(ai_node_fn_t) * botstate.num_clients);
-  botcheckpoints    = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botstate.num_clients);
-  botpatrolpoints   = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botstate.num_clients);
-  botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botstate.num_clients);
+  botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * botlibglobals.num_clients);
+  botgoalstate_p0 = (void **)GetClearedMemory(sizeof(void *) * botlibglobals.num_clients);
+  botgoalstate_p1 = (void **)GetClearedMemory(sizeof(void *) * botlibglobals.num_clients);
+  botweaponstates = (bot_weaponstate_t **)GetClearedMemory(sizeof(void *) * botlibglobals.num_clients);
+  botchatdumps = (void **)GetClearedMemory(sizeof(void *) * botlibglobals.num_clients);
+  botchatmsglinks = (chatmsg_links_t *)GetClearedMemory(sizeof(chatmsg_links_t) * botlibglobals.num_clients);
+  botainodes = (ai_node_fn_t *)GetClearedMemory(sizeof(ai_node_fn_t) * botlibglobals.num_clients);
+  botcheckpoints    = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botlibglobals.num_clients);
+  botpatrolpoints   = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botlibglobals.num_clients);
+  botcurpatrolpoint = (bot_waypoint_t **)GetClearedMemory(sizeof(bot_waypoint_t *) * botlibglobals.num_clients);
 #endif
-  clientsettings = GetClearedMemory(sizeof(bot_clientsettings_t) * botstate.num_clients);
-  dword_1006439C = (int)LibVarValue("gametype", (char *)"0");
+  clientsettings = GetClearedMemory(sizeof(bot_clientsettings_t) * botlibglobals.num_clients);
+  gametype = (int)LibVarValue("gametype", (char *)"0");
   return BLERR_NOERROR;
 }
 // gladiator.dll: 10029DA0..10029DED

@@ -10,8 +10,8 @@
  * MSVC6 oracle). */
 int  Export_BotAIFrame(int a1, float a2);          /* be_ai2_main.c   0x10029320 */
 extern int numbots;
-extern bsp_entity_t *dword_10064398;
-extern int dword_1006439C;
+extern bsp_entity_t *entities;
+extern int gametype;
 extern bot_state_t *botstates;
 extern bot_character_t **botcharacters;
 extern void **botgoalstate_p0;
@@ -23,7 +23,7 @@ extern ai_node_fn_t *botainodes;
 extern bot_waypoint_t **botcheckpoints;
 extern bot_waypoint_t **botpatrolpoints;
 extern bot_waypoint_t **botcurpatrolpoint;
-extern float flt_100643A4;
+extern float regularupdate_time;
 /* The side-band macros above index botstates, which is DEFINED in
  * be_ai2_main.c.  Declared here at the end, after bot_state_t exists --
  * a macro expands at its use site, so this need only precede the caller. */

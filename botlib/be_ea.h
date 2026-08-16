@@ -30,7 +30,7 @@ typedef struct ea_state_s {
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 void __cdecl EA_Move(int client, vec3_t dir, float speed); /* EA_Move impl */
 void __cdecl EA_View(int client, vec3_t viewangles); /* EA_View impl */
-extern ea_state_t *ea_controls;
+extern ea_state_t *botinputs;
 
 void __cdecl EA_Attack(int client);
 int __cdecl EA_Command(int client, char *command, ...);

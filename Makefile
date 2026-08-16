@@ -452,6 +452,7 @@ BOTLIB_OBJS_ = \
 	be_ai_char.o \
 	be_ai_chat.o \
 	be_ai_goal.o \
+	be_ai_load.o \
 	be_ai_move.o \
 	be_ai_weap.o \
 	be_ai_weight.o \

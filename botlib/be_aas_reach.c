@@ -28,8 +28,18 @@
 #include "l_log.h"
 #include "l_memory.h"
 
-libvar_t *libvar_framereachability; /* cached LibVar handle (was libvar_framereachability) */
-libvar_t *libvar_reachabilitydelay; /* cached LibVar handle (was libvar_reachabilitydelay) */
+/* STATIC, and the two names were swapped.  Real reaches both of these GOTOFF
+ * (0x5d558 / 0x5d55c, past the end of the GOT and inside .bss) with no
+ * `R_386_GLOB_DAT` and no .dynsym entry, which is what a file-static looks
+ * like under -fPIC; ours exported them, which is a 2-instruction different
+ * access form -- the same class as game/'s LEGACY_STATIC case.  The two names
+ * were also swapped against the cvars they cache: the variable called
+ * `...reachabilitydelay` held LibVar("framereachability") and was used as the
+ * per-cycle AREA COUNT, while `...framereachability` held
+ * LibVar("reachability_delay") and was used as the millisecond budget.  Names
+ * exchanged; behaviour unchanged.  (globwiring.py, 2026-08-16.) */
+static libvar_t *libvar_framereachability;  /* LibVar("framereachability", "20") */
+static libvar_t *libvar_reachabilitydelay;  /* LibVar("reachability_delay", "100") */
 aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
 int reach_ladder; // weak
 int reach_elevator; // weak
@@ -46,6 +56,19 @@ int reach_walkoffledge; // weak
 int reach_rocketjump; // weak
 int reach_step; // weak
 int reach_walk; // weak
+/* The four reachability-type counters Gladiator never increments.  Recovered
+ * from gladi386.so's .dynsym, which exports all four as 4-byte .bss OBJECTs
+ * (reach_rampjump @0x60918, reach_bfgjump @0x6091c, reach_doublejump
+ * @0x60920, reach_strafejump @0x60930) interleaved with the ones above.  They
+ * have NO reference anywhere in the real image either -- the generators for
+ * those four travel types are the Q3-era ones Gladiator does not have -- so
+ * only the name, size and neighbourhood are evidence; the `int` type is by
+ * analogy with the eleven siblings, every one of which is a counter here.
+ * (globwiring.py / dataaudit.py, 2026-08-16.) */
+int reach_rampjump;    // weak -- unreferenced in BOTH images
+int reach_bfgjump;     // weak -- unreferenced in BOTH images
+int reach_doublejump;  // weak -- unreferenced in BOTH images
+int reach_strafejump;  // weak -- unreferenced in BOTH images
 
 // gladiator.dll: 10010F60..10010FA3
 // gladi386.so:   0001DAFC..0001DBC0
@@ -95,7 +118,7 @@ void AAS_ShutDownReachabilityHeap()
 /* Pop a node off the reach free chain, raising AAS_MAX_REACHABILITYSIZE when the
  * successor is NULL.  A DIFFERENT free list from the entity-link one at
  * aasworld.freelinks (16-byte stride, link at +8). */
-int numreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
+int numlreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
 
 void *AAS_AllocReachability(void)
 {
@@ -108,7 +131,7 @@ void *AAS_AllocReachability(void)
   /* Original re-reads head here in case AAS_Error trashed eax. */
   head = (aas_reachabilitynode_t *)nextreachability;
   nextreachability = (intptr_t)head->next;
-  ++numreachabilities;
+  ++numlreachabilities;
   return head;
 }
 // gladiator.dll: 10011040..10011075
@@ -2884,23 +2907,23 @@ int AAS_ContinueInitReachability(float time)
     return 0;
   if ( aasworld.numreachabilityareas >= aasworld.numareas )
     return 0;
-  v1 = libvar_reachabilitydelay;
-  if ( !libvar_reachabilitydelay )
+  v1 = libvar_framereachability;
+  if ( !libvar_framereachability )
   {
     v1 = LibVar("framereachability", (char *)"20");
-    libvar_reachabilitydelay = v1;
+    libvar_framereachability = v1;
     if ( v1->value <= 0.0f )
     {
       v1->value = 15.0f;
-      v1 = libvar_reachabilitydelay;
+      v1 = libvar_framereachability;
     }
   }
   v2 = v1->value;
   todo = aasworld.numreachabilityareas + (__int64)v2;
-  if ( !libvar_framereachability )
+  if ( !libvar_reachabilitydelay )
   {
     v4 = LibVar("reachability_delay", (char *)"100");
-    libvar_framereachability = v4;
+    libvar_reachabilitydelay = v4;
     if ( v4->value <= 0.0f )
       v4->value = 200.0f;
   }
@@ -2931,7 +2954,7 @@ int AAS_ContinueInitReachability(float time)
         AAS_Reachability_WeaponJump(i, j);
       }
     }
-    if ( Sys_MilliSeconds() - start_time > (int)(__int64)libvar_framereachability->value )
+    if ( Sys_MilliSeconds() - start_time > (int)(__int64)libvar_reachabilitydelay->value )
       break;
   }
   if ( aasworld.numreachabilityareas >= aasworld.numareas )
@@ -2947,9 +2970,9 @@ int AAS_ContinueInitReachability(float time)
   }
   else
   {
-    if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_reachabilitydelay->value) <= 1 )
+    if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_framereachability->value) <= 1 )
       botimport.Print(PRT_MESSAGE, "calculating reachability...\n");
-    if ( (int)(aasworld.numreachabilityareas + (__int64)libvar_reachabilitydelay->value) >= aasworld.numareas )
+    if ( (int)(aasworld.numreachabilityareas + (__int64)libvar_framereachability->value) >= aasworld.numareas )
     {
       botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100);
       botimport.Print(PRT_MESSAGE, "\nplease wait while storing reachability...\n");

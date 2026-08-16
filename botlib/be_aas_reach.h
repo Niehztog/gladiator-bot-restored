@@ -8,8 +8,10 @@ int AAS_ContinueInitReachability(float a1); // caller passes arg but function bo
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */
 int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
-extern libvar_t *libvar_framereachability;
-extern libvar_t *libvar_reachabilitydelay;
+/* libvar_framereachability / libvar_reachabilitydelay are file-STATIC in
+ * be_aas_reach.c -- real reaches both GOTOFF with no .dynsym entry -- and
+ * nothing outside that TU names them, so they are deliberately not declared
+ * here.  (2026-08-16.) */
 extern aas_reachabilitynode_t **areareachability;
 extern int reach_ladder;
 extern int reach_elevator;

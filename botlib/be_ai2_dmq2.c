@@ -39,17 +39,17 @@
 #include "l_utils.h"
 
 bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B */
-libvar_t *libvar_ctf; /* libvar handle */
+libvar_t *ctf; /* libvar handle */
 
-bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
+bot_goal_t ctf_flag2; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
 
-bot_goal_t ctf_redflag;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
+bot_goal_t ctf_flag1;  /* 0x10064420 red flag goal  (ai_dmq3.c; was unk_10064420) */
 
-libvar_t *libvar_usehook; /* libvar handle */
+libvar_t *usehook; /* libvar handle */
 
-libvar_t *libvar_runes; /* libvar handle */
+libvar_t *techs; /* libvar handle */
 
-libvar_t *libvar_rocketjump; /* libvar handle */
+libvar_t *rocketjump; /* libvar handle */
 
 /* G_SetMovedir's four direction constants, 12 bytes each, in the original .data
  * order — the same order and values as game/g_utils.c:342-345, from which
@@ -61,21 +61,21 @@ float MOVEDIR_UP[3]   = { 0.0f,  0.0f,  1.0f };
 float VEC_DOWN[3]     = { 0.0f, -2.0f,  0.0f };
 float MOVEDIR_DOWN[3] = { 0.0f,  0.0f, -1.0f };
 
-libvar_t *libvar_ch; /* libvar handle */
-libvar_t *libvar_teamplay; /* libvar handle */
-libvar_t *libvar_ra; /* libvar handle */
-int dword_1006446C; // weak
-libvar_t *libvar_dmflags; /* libvar handle */
-libvar_t *libvar_nochat; /* libvar handle */
-libvar_t *libvar_fastchat; /* libvar handle */
-libvar_t *libvar_assimilation; /* libvar handle */
-int dword_10064484; // weak
-libvar_t *libvar_teamplay_shell; /* libvar handle */
-int dword_1006448C; // weak
-int dword_10064490; // weak
-int dword_10064494; // weak
-int dword_10064498; // weak
-int dword_1006449C; // weak
+libvar_t *ch; /* libvar handle */
+libvar_t *teamplay; /* libvar handle */
+libvar_t *ra; /* libvar handle */
+int mapchange; // weak
+libvar_t *dmflags; /* libvar handle */
+libvar_t *nochat; /* libvar handle */
+libvar_t *fastchat; /* libvar handle */
+libvar_t *assimilation; /* libvar handle */
+int modelindex3_flag1; // weak
+libvar_t *teamplay_shell; /* libvar handle */
+int modelindex3_flag2; // weak
+int modelindex_tech4; // weak
+int modelindex_tech3; // weak
+int modelindex_tech2; // weak
+int modelindex_tech1; // weak
 
 // gladiator.dll: 10020ED0..10020F9F
 // gladi386.so:   0002BA08..0002BAD3
@@ -334,7 +334,7 @@ void __cdecl sub_100215E0(bot_state_t *bs)
 // gladi386.so:   0002C13C..0002C18C
 int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
 {
-  if ( libvar_ctf->value == 0.0f )
+  if ( ctf->value == 0.0f )
     return 0;
   /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).  Returns
    * 1 (red), 2 (blue), or 0.  Four separate `return` statements, not a ternary on the
@@ -373,7 +373,7 @@ BOOL __cdecl sub_10021710(int *a1)
 {
   if ( (a1[29] & 0x4002) != 0 )
     return 1;
-  if ( a1[3] < 1 || a1[3] > botstate.num_clients )
+  if ( a1[3] < 1 || a1[3] > botlibglobals.num_clients )
     return 1;
   if ( a1[23] != 255 )
     return 1;
@@ -569,11 +569,11 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
   float rnd; // [esp+4h] [ebp-24h]
   char name[32]; // [esp+8h] [ebp-20h] BYREF
 
-  v1 = libvar_nochat->value;
+  v1 = nochat->value;
   if ( v1 != 0.0f )
     return 0;
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
@@ -593,10 +593,10 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
   float rnd; // [esp+4h] [ebp-24h]
   char name[32]; // [esp+8h] [ebp-20h] BYREF
 
-  if ( libvar_nochat->value != 0.0f )
+  if ( nochat->value != 0.0f )
     return 0;
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
@@ -613,10 +613,10 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
   float rnd; // [esp+4h] [ebp-24h]
   char name[32]; // [esp+8h] [ebp-20h] BYREF
 
-  if ( libvar_nochat->value != 0.0f )
+  if ( nochat->value != 0.0f )
     return 0;
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
@@ -633,10 +633,10 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
   float rnd; // [esp+4h] [ebp-24h]
   char name[32]; // [esp+8h] [ebp-20h] BYREF
 
-  if ( libvar_nochat->value != 0.0f )
+  if ( nochat->value != 0.0f )
     return 0;
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
@@ -656,11 +656,11 @@ int __cdecl BotChat_Death(int *bs)
   _BYTE v7[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
-  v1 = libvar_nochat->value;
+  v1 = nochat->value;
   if ( v1 != 0.0f )
     return 0;
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 20, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
       return 0;
@@ -698,11 +698,11 @@ BOOL __cdecl BotChat_Kill(int *bs)
   _BYTE name[32]; // [esp+8h] [ebp-20h] BYREF
   float v8; // [esp+2Ch] [ebp+4h]
 
-  v1 = libvar_nochat->value;
+  v1 = nochat->value;
   if ( v1 != 0.0f )
     return 0;
   rnd = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 19, 0.0, 1.0);
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
       return 0;
@@ -739,7 +739,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   float v1; // st7
   float rnd; // [esp+4h] [ebp-4h]
 
-  v1 = libvar_nochat->value;
+  v1 = nochat->value;
   if ( v1 != 0.0f )
     return 0;
   if ( bs->ltgtype == 1 || bs->ltgtype == 2 || bs->ltgtype == 5 )
@@ -748,7 +748,7 @@ int __cdecl BotChat_Random(bot_state_t *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
   if ( (float)(rand() & 0x7FFF) * 0.000030518509f > bs->thinktime * 0.1 )
     return 0;
-  if ( libvar_fastchat->value == 0.0f )
+  if ( fastchat->value == 0.0f )
   {
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
       return 0;
@@ -1133,12 +1133,12 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
   v2 = v21.number;
   if ( v21.number )
   {
-    if ( libvar_teamplay_shell->value != 0.0f )
+    if ( teamplay_shell->value != 0.0f )
     {
       v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
       return ((LOWORD(v20.renderfx) ^ LOWORD(v21.renderfx)) & 0x1C00) == 0;
     }
-    if ( libvar_ch->value != 0.0f )
+    if ( ch->value != 0.0f )
     {
       v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
       if ( v20.modelindex3 != v21.modelindex3 )
@@ -1146,13 +1146,13 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
     }
     else
     {
-      if ( libvar_teamplay->value != 0.0f )
+      if ( teamplay->value != 0.0f )
       {
         return _strcmpi((const char *)ClientSkin(bs->client),
                         (const char *)ClientSkin(v21.number - 1)) == 0;
       }
-      v5 = (__int64)libvar_dmflags->value;
-      if ( (v5 & 0x40) != 0 || libvar_ctf->value != 0.0f )
+      v5 = (__int64)dmflags->value;
+      if ( (v5 & 0x40) != 0 || ctf->value != 0.0f )
       {
         v14 = strchr((const char *)ClientSkin(bs->client), 47);
         if ( !v14 )
@@ -1188,7 +1188,7 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
   int i; // esi
 
   numplayers = 0;
-  for ( i = 0; i < botstate.num_clients; i++ )
+  for ( i = 0; i < botlibglobals.num_clients; i++ )
   {
     if ( strlen(clientsettings[i].netname) )
     {
@@ -1482,7 +1482,7 @@ void BotCheckAttack(bot_state_t *bs)
           VectorMA(start, -12.0, forward, start);
           trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(end), bs->entitynum, 100663299);
           if ( trace.ent == bs->enemy
-            || (trace.ent <= 0 || trace.ent > botstate.num_clients || !BotSameTeam(bs, trace.ent))
+            || (trace.ent <= 0 || trace.ent > botlibglobals.num_clients || !BotSameTeam(bs, trace.ent))
             && ((v6 = wi->proj, (v6->damagetype & 2) == 0)
              || trace.fraction * 1000.0f >= v6->radius
              || (points = ((double)v6->damage - trace.fraction * 500.0) * 0.5, points <= 0)) )
@@ -1536,7 +1536,7 @@ int *__cdecl BotEntityToActivate(int a1)
 
   v18 = AAS_EntityInfo(a1);
   v1 = AAS_ModelFromIndex(v18.modelindex);
-  v2 = dword_10064398;
+  v2 = entities;
   v3 = v1;
   if ( !v2 )
     goto LABEL_5;
@@ -1582,7 +1582,7 @@ LABEL_5:
   if ( !v16[0] )
     return 0;
   v14 = 0;
-  v17[0] = dword_10064398;
+  v17[0] = entities;
   v10 = v17;
   v11 = v16;
   while ( 1 )
@@ -1648,7 +1648,7 @@ LABEL_38:
         ++v11;
         ++v10;
         *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
-        *v10 = dword_10064398;
+        *v10 = entities;
         goto LABEL_38;
       }
   botimport.Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
@@ -1708,7 +1708,7 @@ void __cdecl sub_10025070(void)
   } l;
 
   drawn = 0;
-  ent   = dword_10064398;
+  ent   = entities;
   if ( !ent )
     return;
 
@@ -2058,16 +2058,16 @@ void __cdecl sub_100262C0(_DWORD *a1, bot_goal_t *a2)
 {
   aas_entityinfo_t info; // [esp+8h] [ebp-7Ch] BYREF
 
-  if ( libvar_ctf->value != 0.0f )
+  if ( ctf->value != 0.0f )
   {
     if ( a2->entitynum )
     {
       info = AAS_EntityInfo(a2->entitynum);
-      if ( (info.modelindex == dword_1006449C || info.modelindex == dword_10064498 || info.modelindex == dword_10064494 || info.modelindex == dword_10064490)
-        && ((int)a1[477] > 0 && info.modelindex != dword_1006449C
-         || (int)a1[478] > 0 && info.modelindex != dword_10064498
-         || (int)a1[479] > 0 && info.modelindex != dword_10064494
-         || (int)a1[480] > 0 && info.modelindex != dword_10064494) )
+      if ( (info.modelindex == modelindex_tech1 || info.modelindex == modelindex_tech2 || info.modelindex == modelindex_tech3 || info.modelindex == modelindex_tech4)
+        && ((int)a1[477] > 0 && info.modelindex != modelindex_tech1
+         || (int)a1[478] > 0 && info.modelindex != modelindex_tech2
+         || (int)a1[479] > 0 && info.modelindex != modelindex_tech3
+         || (int)a1[480] > 0 && info.modelindex != modelindex_tech3) )
       {
         EA_DropItem(a1[1], "tech");
       }
@@ -2116,17 +2116,17 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     {
       bs->teammessage_time = AAS_Time() + 2 * ((float)(rand() & 0x7FFF) * 0.000030518509f);
       v5 = (rand() & 0x7FFF) * 0.0000305185f;
-      if ( v5 < 0.33f && ctf_redflag.areanum && ctf_blueflag.areanum )
+      if ( v5 < 0.33f && ctf_flag1.areanum && ctf_flag2.areanum )
       {
         bs->ltgtype = 4;
         bs->teamgoal_time = AAS_Time() + 180.0f;
       }
-      else if ( v5 < 0.66 && ctf_redflag.areanum && ctf_blueflag.areanum )
+      else if ( v5 < 0.66 && ctf_flag1.areanum && ctf_flag2.areanum )
       {
         if ( BotCTFTeam(bs) == 1 )
-          memcpy(&bs->teamgoal, &ctf_redflag, 0x38u);
+          memcpy(&bs->teamgoal, &ctf_flag1, 0x38u);
         else
-          memcpy(&bs->teamgoal, &ctf_blueflag, 0x38u);
+          memcpy(&bs->teamgoal, &ctf_flag2, 0x38u);
         bs->ltgtype = 3;
         bs->teamgoal_time = AAS_Time() + 120.0f;
         *(int *)&bs->defendaway_time = 0;
@@ -2143,9 +2143,9 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
 // gladi386.so:   00030CC0..00030D42
 BOOL TeamPlayIsOn()
 {
-  return ((int)libvar_dmflags->value & 0xC0) != 0
-      || libvar_ctf->value != 0.0f
-      || libvar_teamplay->value != 0.0f;
+  return ((int)dmflags->value & 0xC0) != 0
+      || ctf->value != 0.0f
+      || teamplay->value != 0.0f;
 }
 // gladiator.dll: 10026700..10026746
 // gladi386.so:   00030D44..00030D92
@@ -2221,12 +2221,12 @@ int __cdecl FindClientByName(char *name)
 {
   int i;
 
-  for ( i = 0; i < botstate.num_clients; i++ )
+  for ( i = 0; i < botlibglobals.num_clients; i++ )
   {
     if ( !_strcmpi(clientsettings[i].netname, name) )
       return i;
   }
-  for ( i = 0; i < botstate.num_clients; i++ )
+  for ( i = 0; i < botlibglobals.num_clients; i++ )
   {
     if ( stristr(clientsettings[i].netname, name) )
       return i;
@@ -2720,7 +2720,7 @@ LABEL_32:
       bs->teamgoal_time = v34 + 300;
       return 1;
     case 7:
-      if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
+      if ( ctf->value == 0.0f || !ctf_flag1.areanum || !ctf_flag2.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v35 = rand();
       v59 = (float)(v35 & 0x7FFF) * 0.000030518509f;
@@ -2731,7 +2731,7 @@ LABEL_32:
       bs->teamgoal_time = v37 + 180;
       return 1;
     case 6:
-      if ( libvar_ctf->value == 0.0f || !ctf_redflag.areanum || !ctf_blueflag.areanum || !BotAddressedToBot(bs, &match) )
+      if ( ctf->value == 0.0f || !ctf_flag1.areanum || !ctf_flag2.areanum || !BotAddressedToBot(bs, &match) )
         return 1;
       v38 = rand();
       v60 = (float)(v38 & 0x7FFF) * 0.000030518509f;
@@ -2972,12 +2972,12 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
     }
     UnifyWhiteSpaces(v3->message);
     context = 3;
-    if ( libvar_ctf->value != 0.0f )
+    if ( ctf->value != 0.0f )
       context = BotCTFTeam(bs) == 1 ? 7 : 11;
     BotReplaceSynonyms(v3->message, context);
     if ( !BotMatchMessage(bs, v3->message) && v3->type == 1 )
     {
-      v7 = libvar_nochat->value;
+      v7 = nochat->value;
       if ( v7 == 0.0f && BotAINode(bs) != AINode_Stand )
       {
         if ( BotValidChatPosition(bs) )
@@ -3033,8 +3033,8 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
   int i; // edi
 
   sub_100289A0(bs, thinktime);
-  if ( dword_1006446C && AAS_Initialized() )
-    dword_1006446C = 0;
+  if ( mapchange && AAS_Initialized() )
+    mapchange = 0;
   if ( bs->inuse_marker )
   {
     char *characteristic_string;
@@ -3076,32 +3076,32 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
 // gladi386.so:   0003341C..0003366C
 void BotSetupDeathmatchAI()
 {
-  libvar_dmflags = LibVar("dmflags", (char *)"0");
-  libvar_ctf = LibVar("ctf", (char *)"0");
-  libvar_ch = LibVar("ch", (char *)"0");
-  libvar_ra = LibVar("ra", (char *)"0");
-  libvar_fastchat = LibVar("fastchat", (char *)"0");
-  libvar_nochat = LibVar("nochat", (char *)"0");
-  libvar_teamplay = LibVar("teamplay", (char *)"0");
-  libvar_usehook = LibVar("usehook", (char *)"0");
-  libvar_rocketjump = LibVar("rocketjump", (char *)"1");
-  libvar_runes = LibVar("runes", (char *)"0");
-  libvar_teamplay_shell = LibVar("teamplay_shell", (char *)"0");
-  libvar_assimilation = LibVar("assimilation", (char *)"0");
-  if ( libvar_ctf->value != 0.0f )
+  dmflags = LibVar("dmflags", (char *)"0");
+  ctf = LibVar("ctf", (char *)"0");
+  ch = LibVar("ch", (char *)"0");
+  ra = LibVar("ra", (char *)"0");
+  fastchat = LibVar("fastchat", (char *)"0");
+  nochat = LibVar("nochat", (char *)"0");
+  teamplay = LibVar("teamplay", (char *)"0");
+  usehook = LibVar("usehook", (char *)"0");
+  rocketjump = LibVar("rocketjump", (char *)"1");
+  techs = LibVar("runes", (char *)"0");
+  teamplay_shell = LibVar("teamplay_shell", (char *)"0");
+  assimilation = LibVar("assimilation", (char *)"0");
+  if ( ctf->value != 0.0f )
   {
-    if ( BotGetLevelItemGoal(-1, "Red Flag", &ctf_redflag) < 0 )
+    if ( BotGetLevelItemGoal(-1, "Red Flag", &ctf_flag1) < 0 )
       botimport.Print(PRT_WARNING, "CTF without Red Flag\n");
-    if ( BotGetLevelItemGoal(-1, "Blue Flag", &ctf_blueflag) < 0 )
+    if ( BotGetLevelItemGoal(-1, "Blue Flag", &ctf_flag2) < 0 )
       botimport.Print(PRT_WARNING, "CTF without Blue Flag\n");
-    dword_10064484 = IndexFromModel("players/male/flag1.md2");
-    dword_1006448C = IndexFromModel("players/male/flag2.md2");
-    dword_1006449C = IndexFromModel("models/ctf/resistance/tris.md2");
-    dword_10064498 = IndexFromModel("models/ctf/strength/tris.md2");
-    dword_10064494 = IndexFromModel("models/ctf/haste/tris.md2");
-    dword_10064490 = IndexFromModel("models/ctf/regeneration/tris.md2");
+    modelindex3_flag1 = IndexFromModel("players/male/flag1.md2");
+    modelindex3_flag2 = IndexFromModel("players/male/flag2.md2");
+    modelindex_tech1 = IndexFromModel("models/ctf/resistance/tris.md2");
+    modelindex_tech2 = IndexFromModel("models/ctf/strength/tris.md2");
+    modelindex_tech3 = IndexFromModel("models/ctf/haste/tris.md2");
+    modelindex_tech4 = IndexFromModel("models/ctf/regeneration/tris.md2");
   }
-  dword_1006446C = 1;
+  mapchange = 1;
 }
 // gladiator.dll: 10028E80..10028E81
 // gladi386.so:   0003366C..0003366D

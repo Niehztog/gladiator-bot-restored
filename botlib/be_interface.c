@@ -33,9 +33,9 @@
 
 botimport_block_t botimport;   /* block 2 @0x10063FE0 — engine import callbacks */
 
-botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + libvars */
+botstate_block_t  botlibglobals;    /* block 1 @0x10064020 — setup flag + counts + libvars */
 
-bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
+bot_export_t      botexport; /* block 3 @0x10063F80 — exported API table */
 
 /* filecrcs (name from gladi386.so's .dynsym, where it is a 736-byte global whose
  * contents are byte-identical to this table) — 91 entries of { uint16 crc16, uint16
@@ -144,7 +144,14 @@ int unk_1005E958 = 0;
 /* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in the 32-bit
  * original; must be a real pointer here).  Referenced only from this TU, which is
  * also where the .so puts its neighbours filecrcs and dumpcrcs. */
-struct scriptcrc_s *dword_10063F2C; // weak
+struct scriptcrc_s *dumpcrcs; // weak
+
+/* num_demobots -- recovered from gladi386.so's .dynsym (4-byte .bss OBJECT at
+ * 0x6295c, between `dumpcrcs` and `botlibglobals`, both of which this TU owns).
+ * Unreferenced in the real image as well as here: the demo-bot path it counted
+ * is not in the shipped build.  Name, size and TU are evidence; the `int` type
+ * is from the name.  (dataaudit.py, 2026-08-16.) */
+int num_demobots;   // weak -- unreferenced in BOTH images
 
 /* The bot_export_t wrappers below (0x100379E0..0x10038460) all fall inside this TU's
  * range, and Q3's be_interface.c holds the same wrappers next to GetBotLibAPI. */
@@ -165,7 +172,7 @@ void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
   /* Get-or-insert: walk the sorted list, break on a name match, then let ONE shared
    * `if (v2) return;` distinguish match from exhaustion.  An inline early-return drops
    * that shared re-check. */
-  for ( v2 = dword_10063F2C; v2; v2 = v2->next )
+  for ( v2 = dumpcrcs; v2; v2 = v2->next )
   {
     if ( !_strcmpi(String1, v2->name) )
       break;
@@ -177,7 +184,7 @@ void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
   strcpy(v4->name, String1);
   result = 0;
   v6 = NULL;
-  v5 = dword_10063F2C;
+  v5 = dumpcrcs;
   if ( v5 )
   {
     while ( 1 )
@@ -200,13 +207,13 @@ void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
     if ( v6 )
       v6->next = v4;
     else
-      dword_10063F2C = v4;
+      dumpcrcs = v4;
     { (void)(result); return; }
   }
   else
   {
 LABEL_14:
-    dword_10063F2C = v4;
+    dumpcrcs = v4;
   }
   v4->next = NULL;
   { (void)(result); return; }
@@ -262,7 +269,7 @@ void __cdecl sub_10037880(void)
 {
   scriptcrc_t *p;
 
-  for ( p = dword_10063F2C; p; p = p->next )
+  for ( p = dumpcrcs; p; p = p->next )
     Log_Write("\t{0x%04X, 1}, //%s", (unsigned int)(unsigned __int16)p->hash, p->name);
 }
 
@@ -281,9 +288,9 @@ int Sys_MilliSeconds()
  * inlined, folds the 0/1 the seven Export_* callers test. */
 qboolean __cdecl ValidClientNumber(int num, const char *str)
 {
-  if ( num < 0 || num > botstate.num_clients )
+  if ( num < 0 || num > botlibglobals.num_clients )
   {
-    botimport.Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, botstate.num_clients);
+    botimport.Print(PRT_ERROR, "%s: invalid client number %d, [0, %d]\n", str, num, botlibglobals.num_clients);
     return 0;
   }
   return 1;
@@ -293,9 +300,9 @@ qboolean __cdecl ValidClientNumber(int num, const char *str)
 // gladi386.so:   00048C90..00048CE8
 qboolean __cdecl ValidEntityNumber(int num, const char *str)
 {
-  if ( num < 0 || num > botstate.num_entities )
+  if ( num < 0 || num > botlibglobals.num_entities )
   {
-    botimport.Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, botstate.num_entities);
+    botimport.Print(PRT_ERROR, "%s: invalid entity number %d, [0, %d]\n", str, num, botlibglobals.num_entities);
     return 0;
   }
   return 1;
@@ -305,7 +312,7 @@ qboolean __cdecl ValidEntityNumber(int num, const char *str)
 // gladi386.so:   00048CE8..00048D27
 qboolean __cdecl BotLibSetup(const char *str)
 {
-  if ( !botstate.setup )
+  if ( !botlibglobals.setup )
   {
     botimport.Print(PRT_ERROR, "%s: bot library used before being setup\n", str);
     return 0;
@@ -352,7 +359,7 @@ int Export_BotSetupLibrary(void)
     int result;
 #endif
 
-    if (botstate.setup) {
+    if (botlibglobals.setup) {
         botimport.Print(3, "bot library already setup\n");
         return 2;
     }
@@ -362,21 +369,21 @@ int Export_BotSetupLibrary(void)
     botimport.Print(1, "BotLib v0.96\n");
 
     Swap_Init();
-    botstate.setup = 1;
+    botlibglobals.setup = 1;
 
-    botstate.num_clients  = (int)LibVarValue("maxclients",  "4");
-    botstate.num_entities = (int)LibVarValue("maxentities", "1024");
+    botlibglobals.num_clients  = (int)LibVarValue("maxclients",  "4");
+    botlibglobals.num_entities = (int)LibVarValue("maxentities", "1024");
 
     BotSetupMoveAI();
 
 #ifdef _WIN32
-    errno = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
+    errno = sub_1000EDC0(botlibglobals.num_entities, botlibglobals.num_clients);
     if (errno) return errno;
 
     errno = BotSetupLibrary();
     if (errno) return errno;
 #else
-    result = sub_1000EDC0(botstate.num_entities, botstate.num_clients);
+    result = sub_1000EDC0(botlibglobals.num_entities, botlibglobals.num_clients);
     if (result) return result;
 
     result = BotSetupLibrary();
@@ -394,7 +401,7 @@ int Export_BotSetupLibrary(void)
 // gladi386.so:   00049068..000490FC
 int Export_BotShutdownLibrary(void)
 {
-    if (!botstate.setup) {
+    if (!botlibglobals.setup) {
         botimport.Print(3, "bot library already shutdown\n");
         return 1;
     }
@@ -408,10 +415,10 @@ int Export_BotShutdownLibrary(void)
     /* Three rep stos (20 / 10 / 20 dwords) over the contiguous interface blocks, then
      * the scalar botlibsetup = 0.  sizeof keeps the clears 64-bit-correct; see
      * botlib_state.h for the block layout. */
-    memset(&botstate,    0, sizeof(botstate));     /* block 1 @0x10064020, 20 dwords */
+    memset(&botlibglobals,    0, sizeof(botlibglobals));     /* block 1 @0x10064020, 20 dwords */
     memset(&botimport,   0, sizeof(botimport));    /* block 2 @0x10063FE0, 10 dwords */
-    memset(&bot_exports, 0, sizeof(bot_exports));  /* block 3 @0x10063F80, 20 dwords */
-    botstate.setup = 0;
+    memset(&botexport, 0, sizeof(botexport));  /* block 3 @0x10063F80, 20 dwords */
+    botlibglobals.setup = 0;
 
     return 0;
 }
@@ -549,7 +556,7 @@ int __cdecl Export_BotLibStartFrame(float time)
 {
   if ( !BotLibSetup("BotStartFrame") )
     return 1;
-  *(float *)&botstate.bottime = time;
+  *(float *)&botlibglobals.bottime = time;
   return AAS_StartFrame(time);
 }
 
@@ -649,27 +656,27 @@ bot_export_t *GetBotAPI(bot_import_t *import)
    * DllMain, where the original had it. */
   memcpy(&botimport, import, sizeof(botimport));
 
-  bot_exports.BotVersion           = Export_BotVersion;
-  bot_exports.BotSetupLibrary      = Export_BotSetupLibrary;
-  bot_exports.BotShutdownLibrary   = Export_BotShutdownLibrary;
-  bot_exports.BotLibraryInitialized = Export_BotLibraryInitialized;
-  bot_exports.BotLibVarSet         = Export_BotLibVarSet;
-  bot_exports.BotDefine            = Export_BotDefine;
-  bot_exports.BotLoadMap           = (void *)Export_BotLoadMap;
-  bot_exports.BotSetupClient       = (void *)Export_BotSetupClient;
-  bot_exports.BotShutdownClient    = Export_BotShutdownClient;
-  bot_exports.BotMoveClient        = Export_BotMoveClient;
-  bot_exports.BotClientSettings    = (void *)Export_BotClientSettings;
-  bot_exports.BotSettings          = (void *)Export_BotSettings;
-  bot_exports.BotStartFrame        = Export_BotLibStartFrame;
-  bot_exports.BotUpdateClient      = (void *)Export_BotUpdateClient;
-  bot_exports.BotUpdateEntity      = (void *)Export_BotUpdateEntity;
-  bot_exports.BotAddSound          = (void *)Export_BotAddSound;
-  bot_exports.BotAddPointLight     = (void *)Export_BotAddPointLight;
-  bot_exports.BotAI                = Export_BotLibAI;
-  bot_exports.BotConsoleMessage    = Export_BotLibConsoleMessage;
-  bot_exports.Test                 = (void *)Export_Test;
-  return &bot_exports;
+  botexport.BotVersion           = Export_BotVersion;
+  botexport.BotSetupLibrary      = Export_BotSetupLibrary;
+  botexport.BotShutdownLibrary   = Export_BotShutdownLibrary;
+  botexport.BotLibraryInitialized = Export_BotLibraryInitialized;
+  botexport.BotLibVarSet         = Export_BotLibVarSet;
+  botexport.BotDefine            = Export_BotDefine;
+  botexport.BotLoadMap           = (void *)Export_BotLoadMap;
+  botexport.BotSetupClient       = (void *)Export_BotSetupClient;
+  botexport.BotShutdownClient    = Export_BotShutdownClient;
+  botexport.BotMoveClient        = Export_BotMoveClient;
+  botexport.BotClientSettings    = (void *)Export_BotClientSettings;
+  botexport.BotSettings          = (void *)Export_BotSettings;
+  botexport.BotStartFrame        = Export_BotLibStartFrame;
+  botexport.BotUpdateClient      = (void *)Export_BotUpdateClient;
+  botexport.BotUpdateEntity      = (void *)Export_BotUpdateEntity;
+  botexport.BotAddSound          = (void *)Export_BotAddSound;
+  botexport.BotAddPointLight     = (void *)Export_BotAddPointLight;
+  botexport.BotAI                = Export_BotLibAI;
+  botexport.BotConsoleMessage    = Export_BotLibConsoleMessage;
+  botexport.Test                 = (void *)Export_Test;
+  return &botexport;
 }
 
 

@@ -500,10 +500,10 @@ LABEL_106:
         switch ( BotCTFTeam(bs) )
         {
           case 1:
-            v26 = ctf_blueflag.origin;
+            v26 = ctf_flag2.origin;
             break;
           default:
-            v26 = ctf_redflag.origin;
+            v26 = ctf_flag1.origin;
             break;
         }
         if ( BotTouchingGoal(bs->origin, v26) )
@@ -520,10 +520,10 @@ LABEL_106:
       switch ( BotCTFTeam(bs) )
       {
         case 1:
-          v26 = ctf_redflag.origin;
+          v26 = ctf_flag1.origin;
           break;
         default:
-          v26 = ctf_blueflag.origin;
+          v26 = ctf_flag2.origin;
           break;
       }
       if ( AAS_Time() > bs->teamgoal_time )
@@ -550,7 +550,7 @@ LABEL_55:
     {
       if ( BotTouchingGoal(bs->origin, v44) )
       {
-        if ( libvar_runes->value != 0.0f )
+        if ( techs->value != 0.0f )
           sub_100262C0((_DWORD *)bs, v26);   /* named `bs`, not `a1`: that alias collides with the global `char a1[2]` */
         bs->ltg_time = 0.0f;
       }
@@ -780,7 +780,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
     v8 = 118718;
   bs->enemy = 0;
   ent = bs->activategoal.origin;
@@ -885,9 +885,9 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+  if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v8 |= 0x1000;
   }
@@ -898,7 +898,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   {
     if ( BotTouchingGoal(bs->origin, (float *)v3) )
     {
-      if ( libvar_runes->value != 0.0f )
+      if ( techs->value != 0.0f )
         sub_100262C0((_DWORD *)bs, goal);
       bs->nbg_time = 0.0f;
     }
@@ -1035,11 +1035,11 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     return 0;
   }
   v2 = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
   {
     v2 = 118718;
   }
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+  if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
   {
     v2 |= 0x1000u;
   }
@@ -1066,7 +1066,7 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     return 0;
   }
-  if ( libvar_ctf->value != 0.0f )
+  if ( ctf->value != 0.0f )
     BotCTFSeekGoals(bs);
     goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
     if ( goal )
@@ -1223,9 +1223,9 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
       return 0;
     }
     v8 = 102334;
-    if ( libvar_usehook->value != 0.0f )
+    if ( usehook->value != 0.0f )
       v8 = 118718;
-    if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+    if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
       v8 |= 0x1000u;
     sub_10020FE0(bs, BotWS(bs));
     BotChooseBestFightWeapon(BotWS(bs));
@@ -1313,9 +1313,9 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
     return 0;
   }
   tfl = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
     tfl = 118718;
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+  if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
     tfl |= 0x1000u;
   goal.entitynum = bs->enemy;
   goal.areanum = bs->lastenemyareanum;
@@ -1436,7 +1436,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
     return 0;
   }
   v2 = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
     v2 |= 0x4000;
   BotUpdateBattleInventory(bs, bs->enemy);
   if ( BotWantsToChase((int *)bs) )
@@ -1452,7 +1452,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
       AIEnter_Seek_LTG(bs);
       return 0;
     }
-    if ( libvar_ctf->value != 0.0f )
+    if ( ctf->value != 0.0f )
       BotCTFRetreatGoals(bs);
     goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 1);
     if ( !goal )
@@ -1568,9 +1568,9 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
     return 0;
   }
   v8 = 102334;
-  if ( libvar_usehook->value != 0.0f )
+  if ( usehook->value != 0.0f )
     v8 = 118718;
-  if ( libvar_rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
+  if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
     v8 |= 0x1000u;
   areanum = AAS_PointAreaNum(entinfo.origin);
   if ( areanum && AAS_AreaReachability(areanum) )
@@ -1585,7 +1585,7 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   {
     if ( BotTouchingGoal(bs->origin, (float *)topgoal) )
     {
-      if ( libvar_runes->value != 0.0f )
+      if ( techs->value != 0.0f )
         sub_100262C0((_DWORD *)bs, topgoal);
       bs->nbg_time = 0.0f;
     }

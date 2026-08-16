@@ -80,26 +80,26 @@ typedef struct botstate_block_s {
 } botstate_block_t;
 
 extern botimport_block_t botimport;
-extern botstate_block_t  botstate;
-extern bot_export_t      bot_exports;  /* block 3 @0x10063F80 */
+extern botstate_block_t  botlibglobals;
+extern bot_export_t      botexport;  /* block 3 @0x10063F80 */
 
 /* ---- libvar handle aliases (for brevity at call sites) ------------------ */
-#define libvar_sv_friction          botstate.libvars[0]
-#define libvar_sv_stopspeed         botstate.libvars[1]
-#define libvar_sv_gravity           botstate.libvars[2]
-#define libvar_sv_waterfriction     botstate.libvars[3]
-#define libvar_sv_watergravity      botstate.libvars[4]
-#define libvar_sv_maxvelocity       botstate.libvars[5]
-#define libvar_sv_maxwalkvelocity   botstate.libvars[6]
-#define libvar_sv_maxcrouchvelocity botstate.libvars[7]
-#define libvar_sv_maxswimvelocity   botstate.libvars[8]
-#define libvar_sv_maxaccelerate     botstate.libvars[9]
-#define libvar_sv_airaccelerate     botstate.libvars[10]
-#define libvar_sv_step              botstate.libvars[11]
-#define libvar_sv_maxbarrier        botstate.libvars[12]
-#define libvar_sv_maxsteepness      botstate.libvars[13]
-#define libvar_sv_jumpvel           botstate.libvars[14]
-#define libvar_sv_maxwaterjump      botstate.libvars[15]
+#define libvar_sv_friction          botlibglobals.libvars[0]
+#define libvar_sv_stopspeed         botlibglobals.libvars[1]
+#define libvar_sv_gravity           botlibglobals.libvars[2]
+#define libvar_sv_waterfriction     botlibglobals.libvars[3]
+#define libvar_sv_watergravity      botlibglobals.libvars[4]
+#define libvar_sv_maxvelocity       botlibglobals.libvars[5]
+#define libvar_sv_maxwalkvelocity   botlibglobals.libvars[6]
+#define libvar_sv_maxcrouchvelocity botlibglobals.libvars[7]
+#define libvar_sv_maxswimvelocity   botlibglobals.libvars[8]
+#define libvar_sv_maxaccelerate     botlibglobals.libvars[9]
+#define libvar_sv_airaccelerate     botlibglobals.libvars[10]
+#define libvar_sv_step              botlibglobals.libvars[11]
+#define libvar_sv_maxbarrier        botlibglobals.libvars[12]
+#define libvar_sv_maxsteepness      botlibglobals.libvars[13]
+#define libvar_sv_jumpvel           botlibglobals.libvars[14]
+#define libvar_sv_maxwaterjump      botlibglobals.libvars[15]
 
 
 
@@ -115,13 +115,13 @@ extern int unk_1005E958;
  * (l_log.obj, DLL 0x10038BE0..0x10038F0F -- see .claude/memory/tu_partition.md). */
 /* `libvarlist` and the thirteen LibVar* functions live in their own TU:
  * botlib/l_libvar.c (DLL 0x10038750..0x10038BDF). */
-extern struct scriptcrc_s *dword_10063F2C;
+extern struct scriptcrc_s *dumpcrcs;
 /* The three interface blocks are typed aggregates so that GetBotAPI's import copy and
  * Export_BotShutdownLibrary's clears compile back to the original rep movs / rep stos.
  * Storage is defined here; call sites use the botimport.* / botstate.* members. */
 extern botimport_block_t botimport;
-extern botstate_block_t botstate;
-extern bot_export_t bot_exports;
+extern botstate_block_t botlibglobals;
+extern bot_export_t botexport;
 
 qboolean __cdecl BotLibSetup(const char *str);
 void BotSetupMoveAI();

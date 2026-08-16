@@ -139,10 +139,10 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
   {
     fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
             logfile.numwrites,
-            (int)(*(float *)&botstate.bottime * 0.00027777778450399637f),
-            (int)(*(float *)&botstate.bottime * 0.01666666753590107f),
-            (int)*(float *)&botstate.bottime,
-            (int)(100.0f * *(float *)&botstate.bottime) - 100 * (int)*(float *)&botstate.bottime);
+            (int)(*(float *)&botlibglobals.bottime * 0.00027777778450399637f),
+            (int)(*(float *)&botlibglobals.bottime * 0.01666666753590107f),
+            (int)*(float *)&botlibglobals.bottime,
+            (int)(100.0f * *(float *)&botlibglobals.bottime) - 100 * (int)*(float *)&botlibglobals.bottime);
     va_start(va, Format);
     vfprintf(logfile.fp, Format, va);
     va_end(va);
