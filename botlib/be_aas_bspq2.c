@@ -1012,7 +1012,15 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v12 = v128[1] > v128[2] ? 1 : 2;
   v13 = v128[v12];
   v126 = v12;
-  v135 = v13 > 0;
+  /* Explicit if/else, not the decompiler's `v135 = v13 > 0`: gcc272 emits one
+   * byte less and 4 fewer instruction diffs for this form, and MSVC6 folds all
+   * three spellings (`v = c`, if/else, and 1-default-plus-conditional-0) to
+   * byte-identical PE code, so the ELF measurement breaks an otherwise even
+   * tie.  Do not "simplify" back to the assignment. */
+  if ( v13 > 0 )
+    v135 = 1;
+  else
+    v135 = 0;
   if ( angles[0] == 0 && angles[1] == 0 && angles[2] == 0 )
   {
     v144 = 0;
