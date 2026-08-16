@@ -1170,7 +1170,7 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_
           }
           break;
         default:
-          botimport.Print(PRT_FATAL, "PC_HashString: message \"%s\" invalid escape char\n", message);
+          botimport.Print(PRT_FATAL, "BotCheckChatMessageIntegrety: message \"%s\" invalid escape char\n", message);
           break;
       }
     }

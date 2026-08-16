@@ -395,14 +395,14 @@ int Export_BotSetupLibrary(void)
 int Export_BotShutdownLibrary(void)
 {
     if (!botstate.setup) {
-        botimport.Print(3, "library not setup\n");
+        botimport.Print(3, "bot library already shutdown\n");
         return 1;
     }
 
     BotShutdownLibrary();
     AAS_Shutdown();
     EA_Shutdown();
-    Log_Close();
+    Log_Shutdown();
     DumpMemory();
 
     /* Three rep stos (20 / 10 / 20 dwords) over the contiguous interface blocks, then
