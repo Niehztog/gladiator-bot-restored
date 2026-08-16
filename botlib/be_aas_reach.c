@@ -686,17 +686,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t edgev1; // canonical Q3 edge endpoint locals
   vec3_t edgev2;
   vec3_t edgev3;
-  vec3_t edgev4;
-  vec3_t tmpv;
-  vec3_t p1area1;
-  vec3_t p2area1;
-  vec3_t p1area2;
   vec3_t p2area2;
   /* vec3_t: VectorMA's destination and the AAS_PointAreaNum trace point — the z
    * decrement below has to land in the same slot. */
-  vec3_t testpoint; // [esp+170h] [ebp-60h] BYREF — was int testpoint[2] + float v142
   float edgevec[3]; // [esp+17Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
+  vec3_t p1area1;
+  vec3_t edgev4;
+  vec3_t testpoint; // [esp+170h] [ebp-60h] BYREF — was int testpoint[2] + float v142
+  vec3_t p1area2;
+  vec3_t p2area1;
+  vec3_t tmpv;
 
   up[0] = 0.0f;
   up[1] = 0.0f;
@@ -1134,7 +1134,6 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v13; // eax
   int j; // ebp
   __int64 face2num; // rax
-  aas_face_t *face2; // ecx
   int edge1num; // edx
   __int64 edge2num; // rax
   aas_edge_t *edge2; // ecx
@@ -1143,6 +1142,7 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   int v23; // ecx
   float *v3; // esi
   float *v4; // ebp
+  aas_face_t *face2; // ecx
   /* v26..v39 are x87 80-bit FPU temporaries, and the spelling depends on
    * whether the target HAS an x87 stack -- i.e. on FLT_EVAL_METHOD, not on the
    * compiler brand.  Where float expressions are evaluated in 80-bit registers
@@ -1697,15 +1697,15 @@ int AAS_Reachability_Ladder(int area1num, int area2num)
   aas_area_t *v94; // [esp+80h] [ebp-98h]
   float face1area; // [esp+88h] [ebp-90h]
   float bestface1area; // [esp+90h] [ebp-88h]
-  vec3_t start; // [esp+94h] [ebp-84h] BYREF — v99[2]+v100 collapsed
-  int face2num; // [esp+A0h] [ebp-78h]
+  vec3_t dir; // [esp+B8h] [ebp-60h] BYREF — v106
+  vec3_t end; // [esp+C4h] [ebp-54h] BYREF — v107
   int face1num; // [esp+A4h] [ebp-74h]
   float maxjumpheight; // [esp+A8h] [ebp-70h]
   float phys_jumpvel;
-  vec3_t sharededgevec; // [esp+ACh] [ebp-6Ch] BYREF — v104[2]+v105 collapsed
-  vec3_t dir; // [esp+B8h] [ebp-60h] BYREF — v106
-  vec3_t end; // [esp+C4h] [ebp-54h] BYREF — v107
+  vec3_t start; // [esp+94h] [ebp-84h] BYREF — v99[2]+v100 collapsed
+  int face2num; // [esp+A0h] [ebp-78h]
   aas_trace_t trace; // [esp+D0h] [ebp-48h] (was int v108[9] + char v109[36] hidden return buffer)
+  vec3_t sharededgevec; // [esp+ACh] [ebp-6Ch] BYREF — v104[2]+v105 collapsed
 
   if ( AAS_AreaLadder(area1num) )
   {
@@ -2172,16 +2172,16 @@ void AAS_Reachability_Elevator()
   vec3_t toporg;        /* was v57/v58/v59 — VectorMA midpoint output (top) */
   vec3_t btmorg;        /* was v61/v62/v63 — VectorMA midpoint output (bottom) */
   vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
-  float start[3];         /* [BYREF] */
   float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
+  float start[3];         /* [BYREF] */
   float end[3];         /* [BYREF] */
   /* Candidate-probe offset tables — plain floats, read by indexed loops. */
-  float xvals[8];
-  float yvals[8];
-  float yvals_top[8];
   float xvals_top[10];
-  float v75;
+  float yvals[8];
   aas_trace_t trace;
+  float yvals_top[8];
+  float v75;
+  float xvals[8];
 
   angles[0] = 0;
   angles[1] = 0;
@@ -2617,15 +2617,15 @@ int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num)
   vec3_t centerorg;     /* was v20/v21/v22 — area center origin */
   int v23;
   float speed;
+  vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
   float hordist;
-  vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
-  vec3_t dir; /* [BYREF] */
   vec3_t velocity; /* [BYREF] */
   vec3_t end; /* [BYREF] */
-  vec3_t predictpos;    /* was v31[2]+v32 — VectorMA output (predicted landing) */
+  vec3_t dir; /* [BYREF] */
   vec3_t cmdmove; /* [BYREF] */
-  aas_trace_t trace;
   aas_clientmove_t move; /* [BYREF] */
+  vec3_t facecenter;    /* was v25/v26/v27 — face-center from AAS_FaceCenter */
+  aas_trace_t trace;
 
   if ( !AAS_AreaGrounded(area1num) || AAS_AreaSwim(area1num) ) return 0;
   if ( !AAS_AreaGrounded(area2num) ) return 0;
@@ -2773,10 +2773,10 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
    * AAS_TraceClientBBox and copied as the reach's `start`; split into separate
    * locals the trace fires from a garbage origin and nearly every
    * WALKOFFLEDGE candidate is silently rejected. */
-  vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
-  float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
+  vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   float dir[3]; // [esp+60h] [ebp-54h] BYREF
+  float sharededgevec[3]; // [esp+54h] [ebp-60h] BYREF
   aas_trace_t trace; // [esp+6Ch] [ebp-48h] (was int v58[9] + char v59[36] hidden return buffer)
   if ( !AAS_AreaGrounded(areanum) || AAS_AreaSwim(areanum) )
     return;

@@ -913,11 +913,11 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
   int v18; // [esp+0h] [ebp-148h]
   float v19; // [esp+0h] [ebp-148h]
   int v20; // [esp+18h] [ebp-130h]
-  vec3_t endpos; // [esp+1Ch] [ebp-12Ch] BYREF — randomized trace endpoint, refined to predicted path destination
   float v24; // [esp+28h] [ebp-120h]
   float rnd; // [esp+2Ch] [ebp-11Ch]
   float i; // [esp+30h] [ebp-118h]
   vec3_t dir; // [esp+34h] [ebp-114h] BYREF — direction vector (endpos - origin) for VectorNormalize/Scale
+  vec3_t endpos; // [esp+1Ch] [ebp-12Ch] BYREF — randomized trace endpoint, refined to predicted path destination
   vec3_t belowbestorg; // [esp+40h] [ebp-108h] BYREF
   bsp_trace_t trace; // [esp+4Ch] [ebp-FCh] BYREF
 
@@ -994,15 +994,15 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   int i; // esi
   float v18; // st7
   int v19; // edx
+  float dist; // [esp+24h] [ebp-120h]
+  float attack_skill; // [esp+28h] [ebp-11Ch]
   float jumper; // [esp+10h] [ebp-134h]
   /* vec3_t: passed by address to CrossProduct / VectorNormalize /
    * VectorLength / BotMoveInDirection, all of which read three floats. */
-  vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
-  float croucher; // [esp+20h] [ebp-124h]
-  float dist; // [esp+24h] [ebp-120h]
-  float attack_skill; // [esp+28h] [ebp-11Ch]
   vec3_t forward; // [esp+2Ch] [ebp-118h] BYREF
   vec3_t backward; // [esp+3Ch] [ebp-108h] BYREF
+  vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
+  float croucher; // [esp+20h] [ebp-124h]
   vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
   vec3_t up = { 0, 0, 1.0f }; // [esp+54h] [ebp-F0h] BYREF
   bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
@@ -1336,15 +1336,15 @@ void BotAimAtEnemy(bot_state_t *bs)
   float aim_skill; // [esp+20h] [ebp-1A8h]
   float v28; // [esp+20h] [ebp-1A8h]
   vec3_t dir; // [ebp-1A4h] BYREF — one vec3; all three components are stored
-  vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF
   float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
-  vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF
-  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
   vec3_t end; // [esp+58h] [ebp-170h] BYREF
+  vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF
+  vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF
   vec3_t mins; // [esp+64h] [ebp-164h] BYREF
-  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
-  bsp_trace_t trace; // [esp+7Ch] [ebp-14Ch] BYREF
+  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
   aas_entityinfo_t entinfo; // [esp+D0h] [ebp-F8h] BYREF
+  bsp_trace_t trace; // [esp+7Ch] [ebp-14Ch] BYREF
+  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
 
   /* Float literals: mins/maxs are float[3], so the original's raw ±4.0f bit
    * patterns would be converted, not reinterpreted. */
@@ -1485,12 +1485,12 @@ void BotCheckAttack(bot_state_t *bs)
    * and real's ELF has maxs (the {8,8,8} stores) BELOW mins (the {-8,-8,-8}
    * stores), which only that order produces. */
   vec3_t forward; // [esp+20h] [ebp-194h] BYREF
+  vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
   vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — trace start; as separate locals the
                 // y/z stores get dead-store-eliminated and VectorMA/AAS_Trace see
                 // garbage in [1]/[2]
-  vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
-  vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
   vec3_t right; // [esp+44h] [ebp-170h] BYREF
+  vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
   bsp_trace_t trace; // [esp+68h] [ebp-14Ch] BYREF
   aas_entityinfo_t entinfo; // [esp+BCh] [ebp-7Ch] BYREF
   vec3_t mins; // [esp+50h] [ebp-164h] BYREF
@@ -1574,15 +1574,15 @@ int *__cdecl BotEntityToActivate(int a1)
   int v7; // esi
   const char *v8; // eax
   const char *v9; // eax
-  bsp_entity_t **v10; // ebx — pointer into stack-resident heads array
   const char **v11; // ebp
+  bsp_entity_t **v10; // ebx — pointer into stack-resident heads array
   const char *v12; // eax
   const char *v13; // eax
   int v14; // [esp+10h] [ebp-D4h]
   const char *v15; // [esp+14h] [ebp-D0h]
   const char *v16[10]; // [esp+18h] [ebp-CCh] BYREF — targetname stack
-  bsp_entity_t *v17[10]; // [esp+40h] [ebp-A4h] BYREF — heads stack walked via v10
   aas_entityinfo_t v18; // [esp+68h] [ebp-7Ch] BYREF
+  bsp_entity_t *v17[10]; // [esp+40h] [ebp-A4h] BYREF — heads stack walked via v10
 
   v18 = AAS_EntityInfo(a1);
   v1 = AAS_ModelFromIndex(v18.modelindex);
@@ -1884,15 +1884,15 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
   vec3_t v56_vec; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
   vec3_t v59_vec; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
   vec3_t sideward; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
+  aas_entityinfo_t v77; // [esp+F8h] [ebp-7Ch] BYREF
+  aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
+  vec3_t up; // [esp+B0h] [ebp-C4h] BYREF
+  vec3_t v75; // [esp+E0h] [ebp-94h] BYREF
+  vec3_t hordir; // [esp+A4h] [ebp-D0h] BYREF
   float v65; // [esp+88h] [ebp-ECh]
   vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF
-  vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
-  vec3_t hordir; // [esp+A4h] [ebp-D0h] BYREF
-  vec3_t up; // [esp+B0h] [ebp-C4h] BYREF
-  aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
-  vec3_t v75; // [esp+E0h] [ebp-94h] BYREF
   vec3_t v76; // [esp+ECh] [ebp-88h] BYREF
-  aas_entityinfo_t v77; // [esp+F8h] [ebp-7Ch] BYREF
+  vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
 
   up[0] = 0;
   up[1] = 0;
@@ -2983,10 +2983,10 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
   int context; // ecx
   float v7; // st7
   char *v8; // eax
-  char *botname; // [esp+10h] [ebp-14h]
   float v11; // [esp+14h] [ebp-10h]
-  float v12; // [esp+18h] [ebp-Ch]
+  char *botname; // [esp+10h] [ebp-14h]
   double v13; // [esp+1Ch] [ebp-8h]
+  float v12; // [esp+18h] [ebp-Ch]
   float v14; // [esp+28h] [ebp+4h]
 
   botname = ClientName(bs->client);
