@@ -895,7 +895,10 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
     {
       v6 = rand();
       v24 = -1.0;
-      if ( (float)(v6 & 0x7FFF) * 0.000030518509f >= 0.5 )
+      /* `>`, not `>=`: gcc 2.7.2.3 emits `and ah,0x5; je` for `a > b` and
+       * `and ah,0x45; je` for `a >= b`, and real has the 0x5 form at both
+       * of these sites (x87cmp.py, 2026-08-16). */
+      if ( (float)(v6 & 0x7FFF) * 0.000030518509f > 0.5 )
         v24 = 1.0;
       v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
       endpos[0] = v19 * v24 * 700.0f + endpos[0] + 50.0f;
@@ -904,7 +907,7 @@ float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
     {
       v7 = rand();
       v24 = -1.0;
-      if ( (float)(v7 & 0x7FFF) * 0.000030518509f >= 0.5 )
+      if ( (float)(v7 & 0x7FFF) * 0.000030518509f > 0.5 )   /* `>` -- see above */
         v24 = 1.0;
       v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
       endpos[1] = v19 * v24 * 700.0f + endpos[1] + 50.0f;
@@ -1761,10 +1764,14 @@ void __cdecl sub_10025070(void)
         {
           float side;
 
-          if ( *(float *)((char *)l.movedir + offset) < 0.0f )
-            side = *(float *)((char *)l.bboxmaxs + offset);
-          else
+          /* `> 0.0f` with the arms this way round — same correction as
+           * BotAIBlocked's identical loop; real emits gcc's `a > b` shape
+           * (`and ah,0x5; je`) at all three unrolled copies, IDA's `<` gives
+           * `and ah,0x45; dec ah; cmp ah,0x40` (x87cmp.py, 2026-08-16). */
+          if ( *(float *)((char *)l.movedir + offset) > 0.0f )
             side = *(float *)((char *)l.bboxmins + offset);
+          else
+            side = *(float *)((char *)l.bboxmaxs + offset);
           accum += fabs(*(float *)((char *)l.movedir + offset)) * fabs(side);
           offset += 4;
         }
@@ -1904,10 +1911,15 @@ void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int act
     v9 = v65;
     for ( i = 0; i < 3; ++i )
     {
-      if ( v50[i] < 0.0f )
-        v11 = v75[i];
-      else
+      /* `> 0.0f` with the arms this way round, NOT IDA's `< 0.0f` with them
+       * swapped: real emits `and ah,0x5; je` at all three unrolled copies,
+       * which is gcc 2.7.2.3's `a > b`, where IDA's `<` compiles to
+       * `and ah,0x45; dec ah; cmp ah,0x40` (x87cmp.py, 2026-08-16).  The two
+       * forms differ only at exactly 0.0. */
+      if ( v50[i] > 0.0f )
         v11 = v76[i];
+      else
+        v11 = v75[i];
       v9 = fabs(v11) * fabs(v50[i]) + v9;
     }
     VectorMA(v59_vec, -v9, v50, v38_vec);

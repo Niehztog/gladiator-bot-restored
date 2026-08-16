@@ -282,7 +282,7 @@ float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float
   float result; // st7 — returns float (disasm loads fld DWORD / fcom DWORD,
                 // not the double-promotion sequence); Q3's is float too.
 
-  if ( min > (float)max )
+  if ( min > max )
   {
     botimport.Print(PRT_ERROR, "cannot bound characteristic %d between %f and %f\n", index, min, max);
     return 0.0f;
