@@ -677,7 +677,19 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
   float ground_bestlength; // [esp+110h] [ebp-C0h]
   float water_bestlength; // [esp+114h] [ebp-BCh]
-  aas_face_t *v126; // [esp+118h] [ebp-B8h]
+  /* NOTHING at [esp+118h]: IDA's `aas_face_t *v126` there was MSVC's SPILL SLOT
+   * for `groundface1`, not a source variable — Q3 declares no such local, and
+   * carrying it made our frame 4 bytes too big in BOTH originals
+   * (`sub esp,0x1c4` vs the DLL's `0x1c0`, `0x1f8` vs the .so's `0x1f4`).
+   * Dropping it — with its `v126 = groundface1;` save, the far
+   * `v126->faceflags` read and the dead `groundface1 = v126;` restore — makes
+   * both frame sizes exact and takes the ELF row from OUR+1/11827b to
+   * OUR-4/10189b.  DO NOT REINTRODUCE IT: the PE's differing-line count goes
+   * UP (350 -> 482, 7502 -> 8144 bytes) because MSVC6 then permutes the frame
+   * differently, but instruction parity is untouched at 1237/1237 and that
+   * permutation is unreachable from C — see [[msvc6_intractables]]'s fourth
+   * and fifth declaration-order negatives, both measured on this function.
+   * This is a deliberate fidelity-over-byte-metric deviation. */
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
@@ -733,7 +745,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           groundface1num = aasworld.faceindex[i + area1->firstface];
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
-          v126 = groundface1;
           /* Comma expression, not a hoisted statement: both originals compute
            * the plane address only after `area1swim` short-circuits, so the
            * assignment has to stay inside the `&&`. */
@@ -898,7 +909,7 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                               }
                               VectorSubtract(p2area2, p1area2, dir);
                               length = VectorLength(dir);
-                              if ( (v126->faceflags & 4) != 0 )
+                              if ( (groundface1->faceflags & 4) != 0 )
                               {
                                 if ( dist < ground_bestdist || ground_bestdist + 1.0f > dist && length > (float)ground_bestlength )
                                 {
@@ -939,7 +950,6 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
                     ++v18;
                   }
                   while ( v18 < area2->numfaces );
-                  groundface1 = v126;
                 }
             }
           }
