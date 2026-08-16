@@ -35,6 +35,34 @@
 #endif
 #endif
 
+/* LEGACY_STATIC -- `static` under the 1999 compiler, nothing under a modern one.
+ *
+ * The shipped source declares `jacket_armor_index`, `combat_armor_index`,
+ * `body_armor_index` (g_items.c) and `is_quad` (p_weapon.c) `extern` in THIS
+ * header and then defines them `static` in their .c.  C99 6.2.2p7 makes that
+ * undefined behaviour and modern gcc rejects it outright ("static declaration
+ * of 'x' follows non-static declaration"), which is why an earlier commit
+ * simply dropped the `static`.
+ *
+ * That drop is not free: the real gamei386.so has BOTH properties, and
+ * `probe_snippet.sh` shows gcc 2.7.2.3 gives you both from the original
+ * spelling and neither from a plain `static` --
+ *
+ *     extern + static  ->  GOT-indirect access, LOCAL symbol   (== real)
+ *     plain static     ->  GOTOFF access,       LOCAL symbol
+ *     plain global     ->  GOT-indirect access, GLOBAL symbol
+ *
+ * -- and the access form is worth 21 audited rows (ArmorIndex, Pickup_Armor,
+ * SetItemNames and every weapon-fire function that reads `is_quad`).  Measured
+ * both ways: plain `static` costs game MATCH 1954 -> 1933.  So keep the
+ * `extern`s below and spell the definitions LEGACY_STATIC, which reproduces
+ * the original exactly under the oracle and still compiles everywhere else. */
+#if defined(__GNUC__) && __GNUC__ < 3
+#define LEGACY_STATIC	static
+#else
+#define LEGACY_STATIC
+#endif
+
 #include "q_shared.h"
 
 // define GAME_INCLUDE so that game.h does not define the

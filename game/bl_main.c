@@ -862,14 +862,18 @@ bsp_trace_t BotLibImport_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 	trace_t trace;
 	edict_t *p;
 
+	//and another dirty LCC warning prevention
 	memset(&trace, 0, sizeof(trace_t));
+	//just for the errors
 	memset(&bsptrace, 0, sizeof(bsp_trace_t));
+	//check for valid passent entity number
 	if (passent < 0 || passent >= game.maxentities)
 	{
 		gi.dprintf("BotLibTrace: invalid passent\n");
 		return bsptrace;
-	}
+	} //end if
 	p = DF_NUMBERENT(passent);
+	//
 	trace = gi.trace(start, mins, maxs, end, p, contentmask);
 	memcpy(bsptrace.surface.name, trace.surface->name, 16);
 	bsptrace.surface.flags = trace.surface->flags;
@@ -881,10 +885,12 @@ bsp_trace_t BotLibImport_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 	bsptrace.ent = DF_ENTNUMBER(trace.ent);
 	bsptrace.contents = trace.contents;
 	memcpy(&bsptrace.plane, &trace.plane, sizeof(cplane_t));
-	return bsptrace;
-}
+#ifdef __LCC__ //Riv++ Prevent dll from crashing, heh... Some issues remain though
+  gi.dprintf("");
 #endif
-//end of the function BotLibImport_Trace
+	return bsptrace;
+} //end of the function BotLibImport_Trace
+#endif
 
 //==========================================================================
 //
