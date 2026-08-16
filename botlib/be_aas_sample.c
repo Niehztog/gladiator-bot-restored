@@ -1,40 +1,22 @@
 /*
  * be_aas_sample.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1001AC00..0x1001C6C0; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1001AC00..0x1001C6C0.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_sample.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -163,12 +145,11 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
 }
 // gladiator.dll: 1001AF00..1001AF37
 // gladi386.so:   00028F14..00028F68
-// Returns aasworld.areasettings[areanum].cluster
-// (struct offset +0xC into the 28-byte aas_areasettings_t).  No
-// aasworld.loaded guard (unlike AAS_AreaPresenceType — this variant just
-// trusts the bounds-check).  Uses `areanum > 0` (not `>= 0`) so area 0 is
-// treated as OOR.  On OOR prints "AAS_AreaCluster: invalid area number\n"
-// at level 3 and returns 0.
+// Returns aasworld.areasettings[areanum].cluster (struct offset +0xC into the
+// 28-byte aas_areasettings_t).  No aasworld.loaded guard, unlike
+// AAS_AreaPresenceType.  Uses `areanum > 0` (not `>= 0`) so area 0 is treated as
+// OOR; on OOR prints "AAS_AreaCluster: invalid area number\n" at level 3 and
+// returns 0.
 int __cdecl AAS_AreaCluster(int areanum)
 {
   if ( areanum <= 0 || areanum >= aasworld.numareas )
@@ -206,21 +187,15 @@ int __cdecl AAS_PointContents(vec3_t point)
 }
 // gladiator.dll: 1001AFF0..1001B0F0
 // gladi386.so:   0002907C..00029278
-// Signed support-distance of an AABB along a 3D direction.  Builds a
-// per-axis support point from {mins, maxs} keyed on sign(normal[i])
-// with a +/-0.001 deadband (.rdata QWORD doubles 0x10058230 = +0.001,
-// 0x10058220 = -0.001 — `near` and `far` switch when normal[i] lands
-// inside that band, the component is forced to 0), then returns
-// dot(support, normalize(normal)).  The `sign_select` flag (arg4)
-// toggles which AABB end maps to "positive normal":
-//   sign_select != 0 → far  side : normal[i] > 0 picks maxs[i]
-//                                  normal[i] < 0 picks mins[i]
-//   sign_select == 0 → near side : normal[i] > 0 picks mins[i]
-//                                  normal[i] < 0 picks maxs[i]
-// VectorNormalize is run on a *local copy* of the normal (see esp+0x10
-// memcpy then push+call), so the caller's vector survives unchanged
-// even though the assembly does an in-place normalize.  DEAD in
-// Gladiator — /INCREMENTAL.
+// Signed support-distance of an AABB along a 3D direction.  Builds a per-axis
+// support point from {mins, maxs} keyed on sign(normal[i]) with a +/-0.001
+// deadband (`near` and `far` switch when normal[i] lands inside that band, and the
+// component is forced to 0), then returns dot(support, normalize(normal)).  The
+// `sign_select` flag (arg4) toggles which AABB end maps to "positive normal":
+//   sign_select != 0 -> far  side : normal[i] > 0 picks maxs[i], < 0 picks mins[i]
+//   sign_select == 0 -> near side : normal[i] > 0 picks mins[i], < 0 picks maxs[i]
+// VectorNormalize runs on a *local copy* of the normal, so the caller's vector
+// survives unchanged.  DEAD in Gladiator — /INCREMENTAL.
 double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
 {
   vec3_t support;
@@ -253,8 +228,8 @@ double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_se
   }
   VectorCopy(normal, normal_local);
   /* The original negates the normal in place (call 0x1000147E = VectorNegate,
-   * void/eax — NOT VectorNormalize, which would leave a float on ST0 and force
-   * an `fstp st(0)` the original never emits). */
+   * void/eax — NOT VectorNormalize, which would leave a float on ST0 and force an
+   * `fstp st(0)` the original never emits). */
   VectorNegate(normal_local);
   return DotProduct(support, normal_local);
 }
@@ -272,10 +247,10 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   bsptrace.fraction = 1.0;
   collision = 0;
   link = aasworld.arealinkedentities[areanum];
-  /* The empty-list guard reaches the shared `return 0` tail via `goto fail`, and
-   * the post-loop test is Q3's positive `if (collision)`, so the success block
-   * is the warm fall-through and `return 0` the cold tail.  Inverting it moves
-   * the success block cold. */
+  /* The empty-list guard reaches the shared `return 0` tail via `goto fail`, and the
+   * post-loop test is Q3's positive `if (collision)`, so the success block is the warm
+   * fall-through and `return 0` the cold tail.  Inverting it moves the success block
+   * cold. */
   if ( !link )
     goto fail;
   do
@@ -302,9 +277,9 @@ fail:
 }
 // gladiator.dll: 1001B260..1001B86F
 // gladi386.so:   0002936C..00029C32
-/* AAS_TraceClientBBox — sweep a presence-typed bbox along a line and return
- * the first AAS-leaf hit (fraction=1.0 if the trace clears the BSP).  The BSP
- * traversal stack is aas_tracestack_t frames walked by one tstack_p, as in Q3.
+/* Sweep a presence-typed bbox along a line and return the first AAS-leaf hit
+ * (fraction=1.0 if the trace clears the BSP).  The BSP traversal stack is
+ * aas_tracestack_t frames walked by one tstack_p, as in Q3.
  *
  * Differences from Q3, all faithful to the original:
  *   - ON_EPSILON is 0.0005 (Q3's pre-bk010221 value).
@@ -319,9 +294,9 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
 {
   int side, nodenum, tmpplanenum;
   float front, back, frac;
-  /* Function-scoped as in Q3: v1 = trace direction, v2 = traversed segment.
-   * The startsolid arms have NO VectorClear(v1), so the later plane-facing test
-   * reads a stale v1 — an authentic original bug; Q3 added the clear. */
+  /* Function-scoped as in Q3: v1 = trace direction, v2 = traversed segment.  The
+   * startsolid arms have NO VectorClear(v1), so the later plane-facing test reads a
+   * stale v1 — an authentic original bug; Q3 added the clear. */
   vec3_t cur_start, cur_end, cur_mid, v1, v2;
   aas_tracestack_t tracestack[64];
   aas_tracestack_t *tstack_p;
@@ -516,12 +491,10 @@ aas_trace_t __cdecl AAS_TraceClientBBox(vec3_t start, vec3_t end,
 }
 // gladiator.dll: 1001BA00..1001BC88
 // gladi386.so:   00029C34..00029F40
-/* AAS_TraceAreas — recursive subdivision of the line by the BSP tree,
- * collecting all areas the line passes through (up to maxareas).
- *
- * Faithful restoration matching Q3 botlib AAS_TraceAreas (be_aas_sample.c:725).
- * The Gladiator version is simpler: 4 args (no separate `points` output),
- * uses a 64-frame stack, and no TRACEPLANE_EPSILON adjustment in the split.
+/* Recursive subdivision of the line by the BSP tree, collecting all areas the line
+ * passes through (up to maxareas).  Matches Q3's AAS_TraceAreas, but simpler: 4 args
+ * (no separate `points` output), a 64-frame stack, and no TRACEPLANE_EPSILON
+ * adjustment in the split.
  *
  * a1 = start (vec3*), a2 = end (vec3*), a3 = areas[] output, a4 = maxareas. */
 int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
@@ -616,11 +589,9 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // gladiator.dll: 1001BD40..1001BE98
 // gladi386.so:   00029F40..0002A0FD
 // Four args (face, pnormal, point, epsilon) with an inlined CrossProduct +
-// DotProduct loop, matching Q3's AAS_InsideFace (be_aas_route.c); the callers'
-// `add esp,0x10` cleanup confirms the count.
-// confirms the 4-dword stack-arg layout.
-// DEAD in Gladiator — only reachable via /INCREMENTAL thunks
-// (0x1000119f → 1001BD40) from sub_1001C0B0 and sub_1001C210.
+// DotProduct loop, matching Q3's AAS_InsideFace; the callers' `add esp,0x10`
+// cleanup confirms the count.  DEAD in Gladiator — only reachable via
+// /INCREMENTAL thunks from sub_1001C0B0 and sub_1001C210.
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon)
 {
   int i, firstvertex, edgenum;
@@ -683,16 +654,13 @@ qboolean __cdecl AAS_PointInsideFace(int facenum, vec3_t point, float epsilon)
 }
 // gladiator.dll: 1001C0B0..1001C17E
 // gladi386.so:   0002A24C..0002A37E
-// Scans an area's face list for the first face whose faceflags byte
-// (offset +4) has bit 0x04 set, and that survives a predicate-call
-// into AAS_InsideFace with a +Z or -Z unit vector (chosen by the sign
-// of the face plane's z-component) and a 0.01f epsilon.  Returns
-// the matching face pointer or NULL.  aasworld globals consulted:
-// areas (0x1006694c, stride 48 — numfaces at +4, firstface at +8),
-// faceindex (0x10066944), faces pool (0x1006693c, stride 24 —
-// planenum at +0, faceflags at +4), planes pool (0x10066924,
-// stride 20 — normal at +0..+8, dist at +12, signbits at +16).
-// DEAD in Gladiator — /INCREMENTAL.
+// Scan an area's face list for the first face whose faceflags byte (offset +4) has
+// bit 0x04 set and that survives a predicate call into AAS_InsideFace with a +Z or
+// -Z unit vector (chosen by the sign of the face plane's z-component) and a 0.01f
+// epsilon.  Returns the matching face pointer or NULL.  aasworld globals: areas
+// (stride 48 — numfaces at +4, firstface at +8), faceindex, faces pool (stride 24 —
+// planenum at +0, faceflags at +4), planes pool (stride 20 — normal at +0..+8, dist
+// at +12, signbits at +16).  DEAD in Gladiator — /INCREMENTAL.
 void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
 {
   int    i;
@@ -744,15 +712,12 @@ void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
 }
 // gladiator.dll: 1001C210..1001C2A8
 // gladi386.so:   0002A3D4..0002A4CE
-// Sibling of sub_1001C0B0 — same face-scan skeleton, but driven from
-// a caller-supplied struct (arg1) instead of a bare areanum.  Guard:
-// arg1->_i0 must be 0; areanum is read from arg1->_i18.  For each
-// face the test is planenum XOR arg1->_i20 masked with 0xFFFFFFFE
-// — i.e. "equal except possibly the low bit" (matches the two
-// orientations of a single BSP plane).  On match, calls
-// AAS_InsideFace(face, &aasworld.planes[planenum*20], (char*)arg1 + 8,
-// 0.01f); a non-zero return promotes the face pointer to the result.
-// DEAD in Gladiator — /INCREMENTAL.
+// Sibling of sub_1001C0B0 — same face-scan skeleton, but driven from a
+// caller-supplied struct (arg1) instead of a bare areanum.  Guard: arg1->_i0 must be
+// 0; areanum is read from arg1->_i18.  For each face the test is planenum XOR
+// arg1->_i20 masked with 0xFFFFFFFE, i.e. "equal except possibly the low bit" (the
+// two orientations of one BSP plane).  On match, calls AAS_InsideFace(face,
+// &aasworld.planes[planenum*20], (char*)arg1 + 8, 0.01f).  DEAD — /INCREMENTAL.
 void *__cdecl sub_1001C210(int *gate)
 {
   int    i;
@@ -848,10 +813,10 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   int nodenum;
   int type;
   int side;
-  /* The BSP traversal queue is 256 bytes = 64 int slots in the original frame.
-   * Sized any smaller (as the decompiler had it), pushing both children of a
-   * node runs off the array into adjacent locals and corrupts the traversal,
-   * which leaves nearly every level item with goal_areanum 0. */
+  /* The BSP traversal queue is 256 bytes = 64 int slots in the original frame.  Sized
+   * any smaller, pushing both children of a node runs off the array into adjacent
+   * locals and corrupts the traversal, leaving nearly every level item with
+   * goal_areanum 0. */
   int linkstack[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !aasworld.loaded )
@@ -896,10 +861,9 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     if ( type < 3 )
     {
       /* Axial fast-path of AAS_BoxOnPlaneSide2, inlined: side&1 descends front
-       * child[0], side&2 descends back child[1].  The comparison polarity below
-       * is the original's and matters behaviourally — inverted, a box straddling
-       * the plane classifies as front-only instead of both children, so
-       * straddling entities get linked into too few areas. */
+       * child[0], side&2 descends back child[1].  The comparison polarity below is the
+       * original's and matters behaviourally — inverted, a box straddling the plane
+       * classifies as front-only instead of both children. */
       if ( plane->dist <= (float)absmins[type] )
         side = 1;
       else if ( plane->dist >= (float)absmaxs[type] )

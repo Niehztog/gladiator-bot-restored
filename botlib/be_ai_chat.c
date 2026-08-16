@@ -1,40 +1,22 @@
 /*
  * be_ai_chat.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1002A880..0x1002EC80; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1002A880..0x1002EC80.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai_chat.h"
 #include "be_aas_main.h"
 #include "be_ea.h"
@@ -55,11 +37,10 @@ bot_synonymlist_t *synonyms; /* synonyms head, set by BotLoadSynonyms */
 
 // gladiator.dll: 1002A880..1002A95A
 // gladi386.so:   00038EC8..00039148
-// Allocate a fixed-size freelist pool of bot_consolemessage_t and chain
-// every node by prev/next.  Original used hardcoded 168-byte stride and
-// +160/+164 byte offsets; on 64-bit the nodes grow to 176 bytes and
-// prev/next move past message[148] to 160/168 — using the struct lets the
-// compiler emit the right offsets and stride for both ABIs.
+// Allocate a fixed-size freelist pool of bot_consolemessage_t and chain every
+// node by prev/next.  Struct-typed rather than the original's hardcoded
+// 168-byte stride and +160/+164 offsets, so the right stride and offsets are
+// emitted under both ABIs.
 void InitConsoleMessageHeap()
 {
   int i;
@@ -294,12 +275,10 @@ if ( !str2 )
 str = (char *)StringContainsWord(str + strlen(replacement), synonym, 0);
   }
 }
-// 1002AF99: conditional instruction was optimized away because edx.4!=0
 // gladiator.dll: 1002B070..1002B0ED
 // gladi386.so:   00039C60..00039CF5
-/* Print each synonym list as `<key> : [("name", weight), ...]`.  Companion to
- * the named-list dumper at 1002B900, whose inner records are %s-only.
- * DEAD in Gladiator. */
+/* Print each synonym list as `<key> : [("name", weight), ...]`.  Companion to the
+ * named-list dumper at 1002B900, whose inner records are %s-only.  DEAD. */
 void __cdecl BotDumpSynonymList(int *synlist)
 {
   /* Inner item struct: { char *name; float val; struct item *next; } stride 12.
@@ -314,10 +293,9 @@ void __cdecl BotDumpSynonymList(int *synlist)
   namelist_item_t *item;
   fp = Log_FilePointer();
   /* Only `fp` is tested here — the walk's own guard covers a NULL list.  IDA's
-   * `if (!fp || !synlist)` makes gcc load the list pointer before the Log call
-   * and then copy it into the walk register; real loads it straight into that
-   * register at the loop guard.  Same in BotDumpRandomStringList.  ELF MATCH;
-   * PE unaffected. */
+   * `if (!fp || !synlist)` makes gcc load the list pointer before the Log call and
+   * then copy it into the walk register; the original loads it straight into that
+   * register at the loop guard.  Same in BotDumpRandomStringList. */
   if ( !fp )
     return;
   for ( outer = synlist; outer; outer = (int *)outer[3] )
@@ -334,19 +312,19 @@ void __cdecl BotDumpSynonymList(int *synlist)
 }
 // gladiator.dll: 1002B110..1002B655
 // gladi386.so:   00039CF8..0003A23A
-/* The syn.c synonym-config loader: a two-pass parser where pass 0 sums the
- * required scratch-buffer size and pass 1 allocates it and fills it with packed
- * bot_synonymlist_t / bot_synonym_t records.  Sizes come from sizeof() and
- * writes go through struct fields, since the original's +16 / +13 literal
- * strides only hold on 32-bit. */
+/* The syn.c synonym-config loader: a two-pass parser where pass 0 sums the required
+ * scratch-buffer size and pass 1 allocates it and fills it with packed
+ * bot_synonymlist_t / bot_synonym_t records.  Sizes come from sizeof() and writes go
+ * through struct fields, since the original's +16 / +13 literal strides only hold on
+ * 32-bit. */
 bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
 {
   int pass, size, level, numsynonyms;   
   int context;
   int contextstack[32];                 /* 128 bytes = 32 ints */
-  /* Deliberately UNinitialised, as in the original (Q3 later added `= NULL` to
-   * hush compilers): the pass-0 read is dead, since `if (pass && size)` gates
-   * the only real assignment. */
+  /* Deliberately UNinitialised, as in the original (Q3 later added `= NULL` to hush
+   * compilers): the pass-0 read is dead, since `if (pass && size)` gates the only
+   * real assignment. */
   char *ptr;                            /* scratch buffer / advancing cursor */
   source_t *src;
   token_t token;
@@ -549,10 +527,9 @@ void __cdecl BotReplaceWeightedSynonyms(const char *string, int context)
 }
 // gladiator.dll: 1002B900..1002B96D
 // gladi386.so:   0003A330..0003A3B7
-/* Print each random-string list as `<name> = {"a", "b"}`.  Note the closing
- * "}\n" is emitted by the LAST inner item, so an empty inner list leaves the
- * block unterminated — an abandoned helper with no Q3 counterpart.  Sibling of
- * BotDumpSynonymList.  DEAD in Gladiator. */
+/* Print each random-string list as `<name> = {"a", "b"}`.  The closing "}\n" is
+ * emitted by the LAST inner item, so an empty inner list leaves the block
+ * unterminated — an abandoned helper with no Q3 counterpart.  DEAD. */
 void __cdecl BotDumpRandomStringList(int *randomlist)
 {
   FILE *fp;
@@ -576,14 +553,12 @@ void __cdecl BotDumpRandomStringList(int *randomlist)
 }
 // gladiator.dll: 1002B990..1002BCE3
 // gladi386.so:   0003A3B8..0003A782
-// Q3 equivalent: BotLoadRandomStrings (be_ai_chat.c).  Two-pass loader:
-// pass 0 counts the required scratch-buffer size, pass 1 allocates a single
-// GetClearedMemory() block and populates it as a packed sequence of
-// bot_randomlist_t / bot_randomstring_t records, each immediately followed
-// by its inline string.  Sizes come from sizeof() rather than the original's
-// hardcoded +16/+8/+12 strides, which only hold while the pointer fields
-// from 4 to 8 bytes; we use sizeof() instead so the same source builds
-// correctly under both ABIs.
+// Q3 equivalent: BotLoadRandomStrings.  Two-pass loader: pass 0 counts the
+// required scratch-buffer size, pass 1 allocates a single GetClearedMemory()
+// block and populates it as a packed sequence of bot_randomlist_t /
+// bot_randomstring_t records, each immediately followed by its inline string.
+// Sizes come from sizeof() rather than the original's hardcoded +16/+8/+12
+// strides, which only hold on 32-bit.
 bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 {
   int pass, size;
@@ -600,9 +575,9 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
     return NULL;
   }
 
-  /* ptr and random are deliberately left uninitialised, as in the original: ptr
-   * is read only under the `pass && size` guard and random is written before
-   * read on pass 1.  Only size and randomlist (the returned head) are zeroed. */
+  /* ptr and random are deliberately left uninitialised, as in the original: ptr is
+   * read only under the `pass && size` guard and random is written before read on
+   * pass 1.  Only size and randomlist (the returned head) are zeroed. */
   size = 0;
   randomlist = NULL;
   for ( pass = 0; pass < 2; ++pass )
@@ -646,11 +621,10 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
         FreeSource(source);
         return NULL;
       }
-      /* Each element is a SINGLE quoted string, comma-separated and
-       * brace-terminated, read with PC_ExpectTokenType(TT_STRING) +
-       * StripDoubleQuotes — NOT Q3's BotLoadChatMessage, which would treat the
-       * commas as message-piece separators, concatenate the whole list and then
-       * fail at '}'. */
+      /* Each element is a SINGLE quoted string, comma-separated and brace-terminated,
+       * read with PC_ExpectTokenType(TT_STRING) + StripDoubleQuotes — NOT Q3's
+       * BotLoadChatMessage, which would treat the commas as message-piece separators
+       * and then fail at '}'. */
       while ( PC_ExpectTokenType(source, 1, 0, token.string) )
       {
         StripDoubleQuotes(token.string);
@@ -685,9 +659,8 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
 }
 // gladiator.dll: 1002BDD0..1002BE63
 // gladi386.so:   0003A784..0003A820
-// Q3 equivalent: RandomString.  Walks the bot_randomlist_t chain looking
-// for a name match, then picks one of its bot_randomstring_t entries
-// pseudo-randomly weighted by numstrings.
+// Q3 equivalent: RandomString.  Walks the bot_randomlist_t chain for a name match,
+// then picks one of its bot_randomstring_t entries weighted by numstrings.
 char *__cdecl RandomString(const char *name)
 {
   bot_randomlist_t *list;
@@ -710,30 +683,22 @@ char *__cdecl RandomString(const char *name)
   }
   return NULL;
 }
-// 1002BE4C: conditional instruction was optimized away because ecx.4!=0
 // gladiator.dll: 1002BEA0..1002BF6C
 // gladi386.so:   0003A820..0003A91D
-// Dumps a chain of bot_matchtemplate_t records to the active log
-// stream (Log_FilePointer()).  For each template node the printed
-// form is the original Mr. Elusive notation:
+// Dump a chain of bot_matchtemplate_t to Log_FilePointer() in Mr. Elusive's own
+// notation:
 //
 //   %8d { <pieces> = (type, sub);}\n
 //
-// where <pieces> walks the template's bot_matchpiece_t list and per
-// piece emits either a "|"-joined run of "\"%s\"" strings (type 2,
-// matchstring chain at +0x04) or a bare "%d" variable index (type 1,
-// integer at +0x08), with ", " separating successive pieces.
+// where <pieces> walks the template's bot_matchpiece_t list and per piece emits
+// either a "|"-joined run of "\"%s\"" strings (type 2, matchstring chain at
+// +0x04) or a bare "%d" variable index (type 1, integer at +0x08), with ", "
+// separating successive pieces.
 //
-// Format strings: 0x1005D384="%8d { ", 0x1005D33C="\"%s\"",
-// 0x1005D380="|", 0x1005D37C="%d", 0x1005D368=" = (%d, %d);}\n",
-// 0x1005D280=", ".
-//
-// Mr. Elusive bug preserved verbatim: the leading "%8d { " fprintf
-// call at 1002BEC7 pushes only the format string and the FILE*; no
-// integer argument is supplied, so the %8d consumes whatever the
-// next stack slot happens to hold.  Replicated with an explicit
-// "garbage" int local so the call site retains the same arity as
-// the original — and the same UB on the value.
+// Faithful Mr. Elusive bug: the leading "%8d { " fprintf pushes only the format
+// string and the FILE*, so the %8d consumes whatever the next stack slot holds.
+// Replicated with an explicit "garbage" int local so the call site keeps the same
+// arity — and the same UB on the value.
 //
 // DEAD in Gladiator — /INCREMENTAL.
 void __cdecl BotDumpMatchTemplates(void *matches)
@@ -798,11 +763,9 @@ void __cdecl BotFreeMatchPieces(bot_matchpiece_t *matchpieces)
 }
 // gladiator.dll: 1002C020..1002C30E
 // gladi386.so:   0003A970..0003ADDB
-// Q3 equivalent: ReadFuzzySeparators (be_ai_chat.c).  Parses a single match
-// pattern body (list of pieces separated by ',' or '|') into a chain of
-// bot_matchpiece_t, allocated with sizeof() rather than the original's
-// literal 16 and int-stride indexing, which only hold while
-// firststring/next pointers grow from 4 to 8 bytes.
+// Q3 equivalent: ReadFuzzySeparators.  Parses a single match pattern body (pieces
+// separated by ',' or '|') into a chain of bot_matchpiece_t, allocated with
+// sizeof() rather than the original's literal 16 and int-stride indexing.
 bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endtoken)
 {
   int lastwasvariable;
@@ -926,11 +889,9 @@ void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 }
 // gladiator.dll: 1002C410..1002C722
 // gladi386.so:   0003AE58..0003B342
-// Q3 equivalent: BotLoadMatchTemplates (be_ai_chat.c).  Parses match.c into
-// a linked list of bot_matchtemplate_t.
-// fields of bot_matchtemplate_t live past padding.  Rewritten to use the
-// proper struct types so allocation size, field offsets and pointer width
-// are correct under both 32-bit and 64-bit ABIs.
+// Q3 equivalent: BotLoadMatchTemplates.  Parses match.c into a linked list of
+// bot_matchtemplate_t, using the proper struct types so allocation size, field
+// offsets and pointer width are correct under both ABIs.
 bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
 {
   source_t *source;
@@ -1037,9 +998,9 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
     {
       if ( mp->type == MT_STRING )
       {
-        /* Walk the alternative-string list for any contained in the remaining
-         * text.  An empty firststring means "match anywhere" — fall through with
-         * newstrptr unchanged. */
+        /* Walk the alternative-string list for any contained in the remaining text.
+         * An empty firststring means "match anywhere" — fall through with newstrptr
+         * unchanged. */
         ms = mp->firststring;
         if ( ms )
         {
@@ -1093,12 +1054,10 @@ BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
   }
   return 0;
 }
-// 1002C8BB: conditional instruction was optimized away because ebx.4<0
 // gladiator.dll: 1002C930..1002C9E9
 // gladi386.so:   0003B640..0003B785
-/* Walks the chat-pattern template list (head at matchtemplates), filtered by
- * the `context` bitmask, running StringsMatch on each and filling match->type
- * and match->subtype from the template that hits. */
+/* Walk the chat-pattern template list, filtered by the `context` bitmask, running
+ * StringsMatch on each and filling match->type and match->subtype from the hit. */
 int __cdecl BotFindMatch(char *str, bot_match_t *match, int context)
 {
   bot_matchtemplate_t *ms;
@@ -1170,10 +1129,9 @@ bot_stringlist_t *__cdecl BotFindStringInList(bot_stringlist_t *list, const char
  * list of undefined variable nodes (accumulating into a2); returns updated list. */
 bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_stringlist_t *stringlist)
 {
-  /* Q3's structure (while + switch over the escape char), reading the message
-   * pointer as `char` so MSVC emits `mov al`/`cmp al` rather than an
-   * int-promoted `movsx`.  The strings and the node-alloc block are Gladiator's
-   * own, not Q3's message text. */
+  /* Q3's structure (while + switch over the escape char), reading the message pointer
+   * as `char` so MSVC emits `mov al`/`cmp al` rather than an int-promoted `movsx`.
+   * The strings and the node-alloc block are Gladiator's own. */
   int i;
   const char *msgptr;
   bot_stringlist_t *node;
@@ -1225,11 +1183,10 @@ bot_stringlist_t *__cdecl BotCheckChatMessageIntegrety(const char *message, bot_
 }
 // gladiator.dll: 1002CCF0..1002CD36
 // gladi386.so:   0003BA48..0003BA9E
-// Q3 equivalent: BotCheckReplyChatIntegrity (be_ai_chat.c).  Walks every
-// chat message in the reply-chat chain and collects offenders into a
-// pointer linked list (each node = { void *something; void *next; }).
-// We keep the offender-list cleanup as raw _DWORD chain (it's an opaque
-// transient allocation) but retype the outer replychat walk.
+// Q3 equivalent: BotCheckReplyChatIntegrity.  Walks every chat message in the
+// reply-chat chain and collects offenders into a pointer linked list (each node =
+// { void *something; void *next; }).  The offender list stays a raw _DWORD chain —
+// it is an opaque transient allocation.
 void __cdecl BotCheckReplyChatIntegrety(bot_replychat_t *replychat)
 {
   bot_replychat_t *rc;
@@ -1311,12 +1268,9 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
 }
 // gladiator.dll: 1002CF40..1002D124
 // gladi386.so:   0003BC34..0003BE25
-/* BotDumpReplyChat — dump each bot_replychat_t as
- * `[<LHS>] = <weight>\n{\n\t"chat";\n…}\n`, the same weight-config syntax
- * sub_1002E5D0 emits, with that function's LHS flag cascade duplicated inline
- * rather than shared, then each entry's own quoted-chat list.
- *
- * DEAD in Gladiator — no live caller. */
+/* Dump each bot_replychat_t as `[<LHS>] = <weight>\n{\n\t"chat";\n…}\n`, the same
+ * weight-config syntax sub_1002E5D0 emits, with that function's LHS flag cascade
+ * duplicated inline rather than shared.  DEAD. */
 void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
 {
   FILE             *log;
@@ -1427,12 +1381,10 @@ void __cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 }
 // gladiator.dll: 1002D270..1002D6B8
 // gladi386.so:   0003BED0..0003C7BB
-// Q3 equivalent: BotLoadReplyChat (be_ai_chat.c).  Loads rchat.c into a
-// linked list of bot_replychat_t.  Typed pointers here, not the original's
-// int slots and int-stride indexing, which
-// truncates on 64-bit because every chain link doubles in width.
-// Rewritten with proper struct types so each allocation and field write
-// has the correct size and offset under both 32-bit and 64-bit ABIs.
+// Q3 equivalent: BotLoadReplyChat.  Loads rchat.c into a linked list of
+// bot_replychat_t.  Typed pointers here, not the original's int slots and
+// int-stride indexing, which truncate on 64-bit because every chain link doubles
+// in width.
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
 {
   char *v1;
@@ -1582,12 +1534,10 @@ static void BotFreeChatTree(chatlist_t *list);
 // gladiator.dll: 1002D7E0..1002D861
 // gladi386.so:   0003C7BC..0003C85A
 /* Pretty-print a loaded chat tree — walks chatlist_t->types and each type's
- * messages, in the same grammar BotLoadInitialChat parses just below.  DEAD in
- * Gladiator. */
-/* Both walks are counted `for` loops, not `while` loops with the advance in
- * the body: gcc 2.7 only rotates the `for` shape into real's guard + do-while
- * (`test edi,edi; je exit` at the top), and emits `jmp <bottom test>` for the
- * `while` spelling.  ELF MATCH; PE unaffected. */
+ * messages, in the same grammar BotLoadInitialChat parses below.  DEAD. */
+/* Both walks are counted `for` loops, not `while` loops with the advance in the
+ * body: gcc 2.7 only rotates the `for` shape into the original's guard + do-while,
+ * and emits `jmp <bottom test>` for the `while` spelling. */
 void __cdecl BotDumpInitialChat(chatlist_t *chat)
 {
   chattype_t *t;
@@ -1611,9 +1561,9 @@ void __cdecl BotDumpInitialChat(chatlist_t *chat)
 void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
 {
 #if BOTLIB_NEED_SIDEBAND
-  /* One struct per chat-type and per chat-line, chained with real pointers,
-   * rather than the original's single contiguous buffer of 4-byte slots.
-   * Behaviour and parser-token sequence are unchanged. */
+  /* One struct per chat-type and per chat-line, chained with real pointers, rather
+   * than the original's single contiguous buffer of 4-byte slots.  Behaviour and
+   * parser-token sequence are unchanged. */
   source_t      *src;
   chatlist_t    *list;
   chattype_t    *cur_type;
@@ -1960,10 +1910,9 @@ int __cdecl BotFreeChatState(bot_chatstate_t *cs)
   bot_consolemessage_t *msg;
 
   BotFreeChatFile(cs);
-  /* The chatstate pointer is the only argument, as in the original — the
-   * per-client message list lives inline at chatstate +0xac/+0xb0/+0xb4 on
-   * 32-bit, and BotChatMsgLinksCS derives the client index from `cs` for the
-   * 64-bit side-band. */
+  /* The chatstate pointer is the only argument, as in the original — the per-client
+   * message list lives inline at chatstate +0xac/+0xb0/+0xb4 on 32-bit, and
+   * BotChatMsgLinksCS derives the client index from `cs` for the 64-bit side-band. */
   for ( msg = BotNextConsoleMessage(cs); msg; msg = BotNextConsoleMessage(cs) )
     BotRemoveConsoleMessage(cs, msg);
 }
@@ -2074,8 +2023,8 @@ void __cdecl BotConstructChatMessage(bot_chatstate_t *cs, const char *message, i
 // gladiator.dll: 1002E3B0..1002E4B3
 // gladi386.so:   0003D470..0003D5C9
 /* Pick a chat line from the initial-chat list for the named chat type (e.g.
- * "enter_game"), returning its chat-string pointer.  `cs` is the head slot
- * stored at chatstate+184. */
+ * "enter_game"), returning its chat-string pointer.  `cs` is the head slot stored at
+ * chatstate+184. */
 char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
 {
   chattype_t *t;
@@ -2167,14 +2116,12 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
 // gladiator.dll: 1002E5D0..1002E752
 // gladi386.so:   0003D694..0003D87F
 /* Fuzzy-weight LHS / condition dumper: walk a chain of reply-chat key nodes and
- * pretty-print the pattern as `[...] = <weight>\n{\n`, the standard weight-config
- * syntax.  Per-node flags select prefix and body:
+ * pretty-print the pattern as `[...] = <weight>\n{\n`.  Per-node flags select prefix
+ * and body:
  *   0x01 "&"        0x02 "!"        0x04 "name"     0x08 "\"<string>\""
  *   0x10 "(<inner>, …)" — each inner is "\"%s\"" for type 2, else "%d"
  *   0x20 "female"   0x40 "male"     0x80 "it"
- * Nodes are joined with ", ".
- *
- * DEAD in Gladiator — no live caller. */
+ * Nodes are joined with ", ".  DEAD. */
 void __cdecl sub_1002E5D0(bot_replychat_t *arg)
 {
   bot_replychatkey_t *edi;
@@ -2351,7 +2298,6 @@ LABEL_34:
  }
  return 0;
 }
-// 1002E95D: conditional instruction was optimized away because esi.4!=0
 // gladiator.dll: 1002EA50..1002EA66
 // gladi386.so:   0003DCB0..0003DCC9
 unsigned int __cdecl BotChatLength(bot_chatstate_t *chatstate)
@@ -2375,10 +2321,9 @@ void __cdecl BotEnterChat(bot_chatstate_t *chatstate, int clientto, int sendto)
 }
 // gladiator.dll: 1002EAF0..1002EB1B
 // gladi386.so:   0003DD38..0003DD63
-/* BotSetChatGender (Q3 be_ai_chat.c) — the switch is value-for-value Q3's
- * (1 = female, 2 = male, default genderless) writing chatstate.gender.  No
- * `client` argument: Gladiator's chatstate has no such field.
- * DEAD in Gladiator. */
+/* Q3's BotSetChatGender — the switch is value-for-value Q3's (1 = female, 2 = male,
+ * default genderless) writing chatstate.gender.  No `client` argument: Gladiator's
+ * chatstate has no such field.  DEAD. */
 void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 {
   switch ( gender )
@@ -2390,10 +2335,9 @@ void __cdecl BotSetChatGender(bot_chatstate_t *chatstate, int gender)
 }
 // gladiator.dll: 1002EB30..1002EB5B
 // gladi386.so:   0003DD64..0003DD98
-/* BotSetChatName (Q3 be_ai_chat.c) — memset 15 bytes of chatstate.name[16],
- * then strncpy with a 15-byte limit.  Unlike Q3, name[15] is left as-is (the
- * memset covers only name[0..14]) and there is no `client` argument.
- * DEAD in Gladiator. */
+/* Q3's BotSetChatName — memset 15 bytes of chatstate.name[16], then strncpy with a
+ * 15-byte limit.  Unlike Q3, name[15] is left as-is and there is no `client`
+ * argument.  DEAD. */
 void __cdecl BotSetChatName(bot_chatstate_t *chatstate, const char *name)
 {
   memset(chatstate->name, 0, 15);

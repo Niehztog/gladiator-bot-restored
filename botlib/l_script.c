@@ -1,40 +1,22 @@
 /*
  * l_script.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1003E120..0x10040470; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1003E120..0x10040470.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_script.h"
 #include "be_interface.h"
 #include "l_libvar.h"
@@ -50,10 +32,10 @@ char unk_10060418[72] = {
     0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E, 0x2E, 0x00,
 };
 
-/* The punctuation_t[] array at VA 0x1005FE00 (52 entries + NULL), identical to
- * Q3 l_script.c::default_punctuations.  PS_CreatePunctuationTable walks it with
- * a 3-slot stride and fills each `next` at runtime.  String literals are const
- * while punctuation_t.p is char* — BOTCFLAGS suppresses that warning. */
+/* The punctuation_t[] array at VA 0x1005FE00 (52 entries + NULL), identical to Q3's
+ * default_punctuations.  PS_CreatePunctuationTable walks it with a 3-slot stride and
+ * fills each `next` at runtime.  String literals are const while punctuation_t.p is
+ * char* — BOTCFLAGS suppresses that warning. */
 punctuation_t default_punctuations[] = {
     /* multi-char — longest first */
     {">>=", 1,  NULL}, {"<<=", 2,  NULL},
@@ -122,12 +104,11 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
     }
   }
 }
-// 1003E1C8: conditional instruction was optimized away because edx.4!=0
 // gladiator.dll: 1003E250..1003E291
 // gladi386.so:   00050F18..00050F60
-/* Linear scan of script->punctuations (a contiguous array terminated by a NULL
- * `p`) for the record whose .n matches, returning its string or the original's
- * typo'd "unkown punctuation" default.  DEAD in Gladiator. */
+/* Linear scan of script->punctuations (a contiguous array terminated by a NULL `p`)
+ * for the record whose .n matches, returning its string or the original's typo'd
+ * "unkown punctuation" default.  DEAD in Gladiator. */
 char *__cdecl PunctuationFromNum(script_t *script, int num)
 {
   int i;
@@ -579,7 +560,6 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     token->subtype |= 0x1000;
   return 1;
 }
-// 1003ED96: conditional instruction was optimized away because dl.1==30
 // gladiator.dll: 1003F020..1003F112
 // gladi386.so:   00051BB0..00051CA9
 /* Q3's PS_ReadCharacterLiteral — read a 'x' or '\\n'-style character constant
@@ -618,9 +598,9 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
 // gladiator.dll: 1003F160..1003F1FD
 // gladi386.so:   00051CAC..00051D6A
 /* Try to read a punctuation token at the script's current position.
- * NB the table index `*script->script_p` is a SIGNED char on purpose — the
- * original sign-extends it.  Q3 later changed this to unsigned; do NOT "fix"
- * the -Wchar-subscripts warning here. */
+ * NB the table index `*script->script_p` is a SIGNED char on purpose — the original
+ * sign-extends it.  Q3 later changed this to unsigned; do NOT "fix" the
+ * -Wchar-subscripts warning here. */
 int __cdecl PS_ReadPunctuation(script_t *script, char *token)
 {
   punctuation_t *punc;
@@ -671,13 +651,10 @@ int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
 }
 // gladiator.dll: 1003F2D0..1003F45F
 // gladi386.so:   00051DE4..000521D7
-/* Q3's PS_ReadToken(script_t *, token_t *): both parameters now properly
- * typed. Previously the second parameter stayed a raw `char *Destination`
- * with a local `token_t *token = (token_t *)Destination;` alias -- an extra
- * stack local caching a parameter that gcc materializes as its own stack
- * slot(s), 4 bytes bigger than real's frame and shifting every ESP-relative
- * offset in the function. Typing the parameter directly as `token_t *token`
- * removes the alias and matches real byte-for-byte. */
+/* Q3's PS_ReadToken(script_t *, token_t *), both parameters properly typed.  A raw
+ * `char *Destination` with a local `token_t *token` alias is an extra stack local
+ * caching a parameter, which gcc materialises as its own slot — 4 bytes bigger than
+ * the original's frame, shifting every ESP-relative offset in the function. */
 int __cdecl PS_ReadToken(script_t *script, token_t *token)
 {
   if ( script->tokenavailable )
@@ -826,8 +803,7 @@ int __cdecl PS_ExpectAnyToken(int script, int token)
 // gladiator.dll: 1003F9F0..1003FA73
 // gladi386.so:   00052570..000525EC
 /* Peek the next token: 1 if its string matches, else rewind script_p from
- * lastscript_p and return 0.  Sibling of PS_CheckTokenType.
- * DEAD in Gladiator. */
+ * lastscript_p and return 0.  Sibling of PS_CheckTokenType.  DEAD in Gladiator. */
 int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 {
   token_t token;
@@ -840,9 +816,9 @@ int __cdecl PS_CheckTokenString(script_t *script, const char *string)
 }
 // gladiator.dll: 1003FAB0..1003FB2D
 // gladi386.so:   000525EC..00052689
-/* Peek the next token: on (type == expected && (subtype & mask) == mask) copy
- * it out and return 1, else rewind script_p and return 0.  Sibling of
- * PS_ExpectTokenType.  DEAD in Gladiator. */
+/* Peek the next token: on (type == expected && (subtype & mask) == mask) copy it out
+ * and return 1, else rewind script_p and return 0.  Sibling of PS_ExpectTokenType.
+ * DEAD in Gladiator. */
 int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *out)
 {
   token_t token;
@@ -891,14 +867,13 @@ char PS_NextWhiteSpaceChar(script_t *script)
 // gladi386.so:   0005274C..000527C9
 void __cdecl StripDoubleQuotes(char *string)
 {
-  /* The original uses strcpy() with OVERLAPPING src/dst — a byte copy under
-   * 32-bit MSVC and under the vintage i386 glibc/libc5 the 1999 Linux build
-   * shipped with, undefined with a modern glibc's SIMD strcpy — so keep
-   * strcpy only for the two vintage-i386 oracles (MSVC6 and gcc 2.7.2.3;
-   * same `__i386__ && !__SSE_MATH__` predicate as be_aas_reach.c's x87-temp
-   * gate above, for the same reason: it is FLT_EVAL_METHOD/instruction-set
-   * vintage, not compiler brand) and memmove elsewhere. The outer `while`
-   * (not Q3's single `if`) matches the original's loopback. */
+  /* The original uses strcpy() with OVERLAPPING src/dst — a byte copy under 32-bit
+   * MSVC and under the vintage i386 glibc/libc5 the 1999 Linux build shipped with,
+   * undefined with a modern glibc's SIMD strcpy — so keep strcpy only for the two
+   * vintage-i386 oracles (same `__i386__ && !__SSE_MATH__` predicate as
+   * be_aas_reach.c's x87-temp gate, and for the same reason: it is instruction-set
+   * vintage, not compiler brand) and memmove elsewhere.  The outer `while` (not Q3's
+   * single `if`) matches the original's loopback. */
   while ( *string == '"' )
 #if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
     strcpy(string, string + 1);
@@ -923,15 +898,12 @@ void __cdecl StripSingleQuotes(char *string)
 }
 // gladiator.dll: 1003FDD0..1003FE8A
 // gladi386.so:   0005284C..0005292A
-// Signed float reader: PS_ExpectAnyToken; if token == "-" set sign=-1.0
-// and read another token (PS_ExpectTokenType with type=TT_NUMBER, mask=0);
-// else require token.type == TT_NUMBER, ScriptError'ing on mismatch
-// with .rdata 0x100603c8 "expected float value, found %s\n".  Returns
-// token.floatvalue * sign as a double.
-// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedInt
-// (integer variant below).  The sign is
-// constructed as a double via two int half-writes (0|0x3ff00000 for +1.0,
-// 0|0xbff00000 for -1.0), exactly as the MSVC frontend would emit.
+// Signed float reader: PS_ExpectAnyToken; if token == "-" set sign=-1.0 and read
+// another token (PS_ExpectTokenType with type=TT_NUMBER, mask=0); else require
+// token.type == TT_NUMBER, ScriptError'ing with "expected float value, found %s\n".
+// Returns token.floatvalue * sign as a double.  The sign is constructed as a double
+// via two int half-writes (0|0x3ff00000 for +1.0, 0|0xbff00000 for -1.0), exactly as
+// the MSVC frontend would emit.  DEAD in Gladiator — /INCREMENTAL.
 long double __cdecl ReadSignedFloat(int script)
 {
   long double sign;
@@ -952,14 +924,11 @@ long double __cdecl ReadSignedFloat(int script)
 }
 // gladiator.dll: 1003FEC0..1003FF77
 // gladi386.so:   0005292C..000529F6
-// Signed integer reader: PS_ExpectAnyToken; if token == "-" set sign=-1
-// and read another token (PS_ExpectTokenType with type=TT_NUMBER,
-// mask=0x1000); else require token.type == TT_NUMBER and reject the
-// float subtype (0x800), ScriptError'ing on mismatch with .rdata
-// 0x100603f0 "expected integer value, found %s\n".  Returns
-// token.intvalue * sign as int.
-// DEAD in Gladiator — preserved by /INCREMENTAL.  Sibling of ReadSignedFloat
-// (float variant above).
+// Signed integer reader: PS_ExpectAnyToken; if token == "-" set sign=-1 and read
+// another token (PS_ExpectTokenType with type=TT_NUMBER, mask=0x1000); else require
+// token.type == TT_NUMBER and reject the float subtype (0x800), ScriptError'ing with
+// "expected integer value, found %s\n".  Returns token.intvalue * sign as int.
+// DEAD in Gladiator — /INCREMENTAL.
 int __cdecl ReadSignedInt(int script)
 {
   int sign;
@@ -1009,11 +978,11 @@ int __cdecl NumLinesCrossed(script_t *script)
 // gladiator.dll: 100400C0..1004012E
 // gladi386.so:   00052AB8..00052B3C
 /* Character-level companion to the token-based PS_SkipUntilString: scan the raw
- * script stream, skipping whitespace between probes, for an occurrence of
- * `value` anchored on its first byte.  No Q3 counterpart.
+ * script stream, skipping whitespace between probes, for an occurrence of `value`
+ * anchored on its first byte.  No Q3 counterpart.
  *
- * Keep the single `while (PS_ReadWhiteSpace(...))`, which lets MSVC rotate the
- * loop as the original does; a leading guard plus while(1) emits an extra jmp.
+ * Keep the single `while (PS_ReadWhiteSpace(...))`, which lets MSVC rotate the loop as
+ * the original does; a leading guard plus while(1) emits an extra jmp.
  *
  * DEAD in Gladiator. */
 int __cdecl ScriptSkipTo(script_t *script, char *value)
@@ -1051,9 +1020,9 @@ int __cdecl FileLength(FILE *fp)
 }
 // gladiator.dll: 100401A0..10040320
 // gladi386.so:   00052B80..00052D97
-/* Raw script file loader: create a script_t (1392-byte header + file data) in
- * one allocation.  Does NOT set up a source_t or scriptstack — LoadSourceFile
- * does that around this. */
+/* Raw script file loader: create a script_t (1392-byte header + file data) in one
+ * allocation.  Does NOT set up a source_t or scriptstack — LoadSourceFile does that
+ * around this. */
 script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
 {
   FILE *fp;
@@ -1136,24 +1105,20 @@ void __cdecl FreeScript(script_t *script)
   FreeMemory(script);
 }
 
-/* The nine structure read/write functions live in their own TU:
- * botlib/l_struct.c (l_struct.obj, DLL 0x100404B0..0x1004123F -- see
- * .claude/memory/tu_partition.md). */
+/* The nine structure read/write functions live in their own TU: botlib/l_struct.c
+ * (DLL 0x100404B0..0x1004123F). */
 
-/* Both of the following ARE in gladiator.dll -- verified by disassembling the
- * spans our funcmap left unclaimed in l_script's range: 0x1003FC30 is the
- * `rep movsd` + `tokenavailable = 1` of PS_UnreadToken and 0x1003FFF0 is
- * ResetScript's seven field writes plus `rep stos`.  They were briefly gated
- * `#ifndef _WIN32` on the mistaken assumption that anything the ELF audit
- * reported MISSING was Linux-only; the ELF audit says nothing about the DLL,
- * and the check that does is "is there unclaimed .text in this TU's range". */
+/* Both of the following ARE in gladiator.dll — 0x1003FC30 is the `rep movsd` +
+ * `tokenavailable = 1` of PS_UnreadToken and 0x1003FFF0 is ResetScript's seven field
+ * writes plus `rep stos`.  The ELF audit says nothing about the DLL; the check that
+ * does is "is there unclaimed .text in this TU's range". */
 
 // gladiator.dll: 1003FC30..1003FC54
 // gladi386.so:   00052700..00052725
-/* F379 @ 0x00052700 (37 B ELF) / 0x1003FC30 (DLL).  Q3 botlib l_script.c has
- * this verbatim.  The two builds copy a different count -- 0x10b dwords in the
- * ELF against 0x10c in the DLL -- because sizeof(token_t) differs by 4 between
- * them; both are `sizeof(token_t)` in source. */
+/* F379 @ 0x00052700 (37 B ELF) / 0x1003FC30 (DLL).  Q3 has this verbatim.  The two
+ * builds copy a different count — 0x10b dwords in the ELF against 0x10c in the DLL —
+ * because sizeof(token_t) differs by 4 between them; both are `sizeof(token_t)` in
+ * source. */
 void __cdecl PS_UnreadToken(script_t *script, token_t *token)
 {
   memcpy(&script->token, token, sizeof(token_t));

@@ -1,19 +1,9 @@
-/*
- * be_aas_reach.h — interface of be_aas_reach.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_aas_reach.h — interface of be_aas_reach.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_AAS_REACH_H
 #define BOTLIB_BE_AAS_REACH_H
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 int AAS_ContinueInitReachability(float a1); // caller passes arg but function body ignores it (no ebp frame)
 void *AAS_AllocReachability(void);  /* sub_10010FF0 — pop AAS-link from free chain */
 int __cdecl AAS_AreaSwim(int areanum); /* AAS_AreaSwim impl */

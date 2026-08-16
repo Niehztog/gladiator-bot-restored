@@ -1,40 +1,22 @@
 /*
  * be_interface.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x100376B0..0x10038480; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x100376B0..0x10038480.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_interface.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -55,15 +37,13 @@ botstate_block_t  botstate;    /* block 1 @0x10064020 — setup flag + counts + 
 
 bot_export_t      bot_exports; /* block 3 @0x10063F80 — exported API table */
 
-/* filecrcs (name recovered from the Linux gladi386.so .dynsym, where it is a
- * 736-byte global whose contents are byte-identical to this table) — 91 entries
- * of { uint16 crc16, uint16 pad, uint32 flags } plus a NULL terminator.
- * This is the config-file CRC whitelist of the integrity subsystem that also
- * owns CRC_Block / sub_10037820 and the "You are not allowed to modify the bot
- * characters" message, NOT the weapon table an earlier annotation guessed; the
- * flags column (1/3/4/6/8/0x20/0x40) is an unidentified file category.
- * sub_100377E0 scans it up to &unk_1005E958, so that symbol MUST stay
- * immediately after this array (guaranteed by declaration order in a TU). */
+/* filecrcs (name from gladi386.so's .dynsym, where it is a 736-byte global whose
+ * contents are byte-identical to this table) — 91 entries of { uint16 crc16, uint16
+ * pad, uint32 flags } plus a NULL terminator.  This is the config-file CRC whitelist
+ * of the integrity subsystem that also owns CRC_Block / sub_10037820 and the "You are
+ * not allowed to modify the bot characters" message; the flags column
+ * (1/3/4/6/8/0x20/0x40) is an unidentified file category.  sub_100377E0 scans it up
+ * to &unk_1005E958, so that symbol MUST stay immediately after this array. */
 int filecrcs[] = {
     0x0000A991, 0x00000001,
     0x0000A757, 0x00000001,
@@ -161,22 +141,19 @@ int filecrcs[] = {
 /* End-of-table sentinel — must immediately follow filecrcs. */
 int unk_1005E958 = 0;
 
-/* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in
- * the 32-bit original; must be a real pointer here).  Referenced only from
- * this TU (sub_100376B0 / sub_100377E0 / sub_10037880), which is also where
- * the .so puts its neighbours filecrcs and dumpcrcs. */
+/* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in the 32-bit
+ * original; must be a real pointer here).  Referenced only from this TU, which is
+ * also where the .so puts its neighbours filecrcs and dumpcrcs. */
 struct scriptcrc_s *dword_10063F2C; // weak
 
-/* The bot_export_t wrappers below (0x100379E0..0x10038460) were held in a
- * separate botlib_exports.c during reconstruction; every one of their
- * addresses falls inside this TU's range, and Q3's be_interface.c holds the
- * same wrappers next to GetBotLibAPI, so they are back where they belong. */
+/* The bot_export_t wrappers below (0x100379E0..0x10038460) all fall inside this TU's
+ * range, and Q3's be_interface.c holds the same wrappers next to GetBotLibAPI. */
 
 // gladiator.dll: 100376B0..10037791
 // gladi386.so:   00048980..00048A76
-/* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C
- * list: on a name hit return the strcmpi result of that record, else allocate a
- * scriptcrc_t, store hash+name and insert it alphabetically. */
+/* Register or look up a (filename, CRC) pair in the sorted dword_10063F2C list: on a
+ * name hit return the strcmpi result of that record, else allocate a scriptcrc_t,
+ * store hash+name and insert it alphabetically. */
 void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
 {
   scriptcrc_t *v2; // esi
@@ -185,9 +162,9 @@ void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
   scriptcrc_t *v4; // ebx (new record)
   int result;
 
-  /* Get-or-insert: walk the sorted list, break on a name match, then let ONE
-   * shared `if (v2) return;` distinguish match from exhaustion.  An inline
-   * early-return drops that shared re-check. */
+  /* Get-or-insert: walk the sorted list, break on a name match, then let ONE shared
+   * `if (v2) return;` distinguish match from exhaustion.  An inline early-return drops
+   * that shared re-check. */
   for ( v2 = dword_10063F2C; v2; v2 = v2->next )
   {
     if ( !_strcmpi(String1, v2->name) )
@@ -255,8 +232,8 @@ int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
 // gladiator.dll: 10037820..1003783E
 // gladi386.so:   00048B74..00048BA7
 /* CRC-hash the buffer and register the (name, crc) pair — byte-identical to
- * sub_10037850 below; /INCREMENTAL kept two compiled copies of the same
- * source function. */
+ * sub_10037850 below; /INCREMENTAL kept two compiled copies of the same source
+ * function. */
 int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 {
   unsigned short crc; // ax
@@ -277,12 +254,10 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 
 // gladiator.dll: 10037880..100378AE
 // gladi386.so:   00048BDC..00048C1C
-// Walks the dword_10063F2C scriptcrc linked
-// list and Log_Write's each entry as a C array initializer line:
-//   \t{0x%04X, 1}, //name
-// Format string at 0x1005E9EC, next-pointer at scriptcrc_t offset +0x94
-// (+148 on the 32-bit binary).  This was a dev tool for dumping the
-// known-CRC table to be pasted into a config; dead in the shipped DLL.
+// Walk the dword_10063F2C scriptcrc list and Log_Write each entry as a C array
+// initializer line:  \t{0x%04X, 1}, //name
+// Format string at 0x1005E9EC, next-pointer at scriptcrc_t offset +0x94.  A dev tool
+// for dumping the known-CRC table into a config; dead in the shipped DLL.
 void __cdecl sub_10037880(void)
 {
   scriptcrc_t *p;
@@ -300,11 +275,10 @@ int Sys_MilliSeconds()
 
 // gladiator.dll: 10037900..10037932
 // gladi386.so:   00048C38..00048C90
-/* Q3's form, and the two are NOT interchangeable: the guarded-Print shape puts
- * the Print in the fall-through and the `return 1` epilogue at the cold end,
- * which is what gladi386.so has.  The inverted `if (ok) return 1;` spelling
- * swaps the two and, once inlined, folds the 0/1 the seven Export_* callers
- * test -- so it cost eight rows, not one. */
+/* Q3's form, and the two are NOT interchangeable: the guarded-Print shape puts the
+ * Print in the fall-through and the `return 1` epilogue at the cold end, which is what
+ * gladi386.so has.  The inverted `if (ok) return 1;` spelling swaps the two and, once
+ * inlined, folds the 0/1 the seven Export_* callers test. */
 qboolean __cdecl ValidClientNumber(int num, const char *str)
 {
   if ( num < 0 || num > botstate.num_clients )
@@ -431,9 +405,9 @@ int Export_BotShutdownLibrary(void)
     Log_Close();
     DumpMemory();
 
-    /* Three rep stos (20 / 10 / 20 dwords) over the contiguous interface
-     * blocks, then the scalar botlibsetup = 0.  sizeof keeps the clears
-     * 64-bit-correct; see botlib_state.h for the block layout. */
+    /* Three rep stos (20 / 10 / 20 dwords) over the contiguous interface blocks, then
+     * the scalar botlibsetup = 0.  sizeof keeps the clears 64-bit-correct; see
+     * botlib_state.h for the block layout. */
     memset(&botstate,    0, sizeof(botstate));     /* block 1 @0x10064020, 20 dwords */
     memset(&botimport,   0, sizeof(botimport));    /* block 2 @0x10063FE0, 10 dwords */
     memset(&bot_exports, 0, sizeof(bot_exports));  /* block 3 @0x10063F80, 20 dwords */
@@ -600,9 +574,8 @@ int Export_BotUpdateEntity(int ent, void *bue)
 }
 
 /* ---- SLOT 15 — BotAddSound (0x10038270).  The context string really is
- * "BotUpdateSound".  volume/attenuation/timeofs all reach sub_1001CE20 as
- * plain floats (matches game/botlib.h's BotAddSound(vec3_t, int, int, int,
- * float, float, float) export signature verbatim). ---- */
+ * "BotUpdateSound".  volume/attenuation/timeofs all reach sub_1001CE20 as plain
+ * floats, matching game/botlib.h's export signature verbatim. ---- */
 // gladiator.dll: 10038270..100382CF
 // gladi386.so:   00049810..000498F5
 int Export_BotAddSound(int *origin, int ent, int channel, int soundindex,
@@ -625,12 +598,10 @@ int Export_BotAddPointLight(int *origin, int ent, float radius,
 {
     if (!BotLibSetup("BotAddPointLight")) return 1;
     if (!ValidEntityNumber(ent, "BotAddPointLight")) return 4;
-    /* Straight pass-through: BotAddPointLight takes floats, so the arguments
-     * are re-pushed as the dwords they already are.  The bit-punned form this
-     * replaced only worked against a hand-written `extern` in the old
-     * botlib_exports.c that declared the callee as taking ints; against the
-     * real declaration it made MSVC convert each one back (fild/fstp), which
-     * is +6 instructions the original does not have. */
+    /* Straight pass-through: BotAddPointLight takes floats, so the arguments are
+     * re-pushed as the dwords they already are.  A bit-punned form only works against
+     * an `extern` declaring the callee as taking ints; against the real declaration it
+     * makes MSVC convert each one back (fild/fstp), +6 instructions. */
     return BotAddPointLight((vec_t *)origin, ent, radius, r, g, b, time, decay);
 }
 
@@ -667,15 +638,15 @@ int Export_Test(int parm0, char *parm1, float *parm2, float *parm3)
 
 // gladiator.dll: 10038480..10038562
 // gladi386.so:   00049B4C..00049CA2
-/* The original ends with a plain `ret`, not `ret 4`, so this export is __cdecl
- * even though gladq2_src/bl_main.c declares the function pointer WINAPI.  Both
- * sides are individually faithful; the mismatch is authentic. */
+/* The original ends with a plain `ret`, not `ret 4`, so this export is __cdecl even
+ * though gladq2_src/bl_main.c declares the function pointer WINAPI.  Both sides are
+ * individually faithful; the mismatch is authentic. */
 bot_export_t *GetBotAPI(bot_import_t *import)
 {
-  /* One shot: botimport_block_t is exactly the 10 import callbacks, so this is
-   * the original's `rep movs` of 10 dwords, and sizeof keeps it 64-bit-correct.
-   * GetBotAPI makes no other call — the SEH crash-handler install belongs in
-   * botlib_debug.c's DllMain, where the original had it. */
+  /* One shot: botimport_block_t is exactly the 10 import callbacks, so this is the
+   * original's `rep movs` of 10 dwords, and sizeof keeps it 64-bit-correct.  GetBotAPI
+   * makes no other call — the SEH crash-handler install belongs in botlib_debug.c's
+   * DllMain, where the original had it. */
   memcpy(&botimport, import, sizeof(botimport));
 
   bot_exports.BotVersion           = Export_BotVersion;
@@ -702,6 +673,5 @@ bot_export_t *GetBotAPI(bot_import_t *import)
 }
 
 
-/* `memory`/`totalmemorysize`/`numblocks` and the ten memory-tracker functions
- * live in their own TU: botlib/l_memory.c (l_memory.obj, DLL
- * 0x10038F10..0x100391FF -- see .claude/memory/tu_partition.md). */
+/* `memory`/`totalmemorysize`/`numblocks` and the ten memory-tracker functions live in
+ * their own TU: botlib/l_memory.c (DLL 0x10038F10..0x100391FF). */

@@ -1,40 +1,22 @@
 /*
  * be_ai_weight.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10035700..0x10037020; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10035700..0x10037020.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai_weight.h"
 #include "be_interface.h"
 #include "l_memory.h"
@@ -68,9 +50,8 @@ int __cdecl ReadValue(source_t *source, float *value)
 }
 // gladiator.dll: 10035820..1003591D
 // gladi386.so:   000465F4..000469D9
-// Parse one `weight`/`minweight`/`maxweight` clause from a bot's _i.c/_w.c
-// file into a fuzzyseperator_t leaf. LIVE: called during config load.
-// Part of the runtime config reader chain.
+// Parse one `weight`/`minweight`/`maxweight` clause from a bot's _i.c/_w.c file
+// into a fuzzyseperator_t leaf.  LIVE.
 int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
 {
   if ( PC_CheckTokenString(source, "balance") )
@@ -139,9 +120,9 @@ void __cdecl FreeWeightConfig2(weightconfig_t *config)
 }
 // gladiator.dll: 10035A20..10035E78
 // gladi386.so:   00046AC0..0004707D
-// Recursive parser for one decision-tree subtree: reads `switch`/`case`
-// blocks from the config and builds linked fuzzyseperator_t nodes
-// (child = yes-branch, next = sibling case). LIVE.
+// Recursive parser for one decision-tree subtree: reads `switch`/`case` blocks from
+// the config and builds linked fuzzyseperator_t nodes (child = yes-branch, next =
+// sibling case).  LIVE.
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 {
   int def; // edi
@@ -279,9 +260,8 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
 }
 // gladiator.dll: 10035FA0..10036437
 // gladi386.so:   00047080..00047800
-// Top-level loader: opens a bot's _i.c (items) or _w.c (weapons) config,
-// parses each `weight "name" { ... }` block, returns a populated
-// weightconfig_t. LIVE: entry point for item & weapon priority data.
+// Top-level loader: opens a bot's _i.c (items) or _w.c (weapons) config, parses each
+// `weight "name" { ... }` block, returns a populated weightconfig_t.  LIVE.
 weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 {
   weightconfig_t *cfg;
@@ -401,10 +381,9 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 }
 // gladiator.dll: 10036570..10036646
 // gladi386.so:   00047800..000478E2
-// Serialise one leaf weight (constant or min/max fuzzy range) back to a
-// config file. DEAD in Gladiator (no callers); part of the GA-tuning
-// pipeline that writes evolved weights back to bots/*_i.c / *_w.c.
-// Live in Q3 via WriteWeightConfig wrapper.
+// Serialise one leaf weight (constant or min/max fuzzy range) back to a config file.
+// DEAD in Gladiator; part of the GA-tuning pipeline that writes evolved weights back
+// to bots/*_i.c / *_w.c.  Live in Q3 via WriteWeightConfig.
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 {
   if ( fs->type == 1 )
@@ -427,9 +406,8 @@ qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
 }
 // gladiator.dll: 10036690..10036839
 // gladi386.so:   000478E4..00047A73
-// Recursively serialise a decision-tree subtree as nested `switch`/`case`
-// blocks. DEAD in Gladiator (only self-recursive callers); GA-pipeline
-// counterpart of ReadFuzzySeperators_r. Live in Q3.
+// Recursively serialise a decision-tree subtree as nested `switch`/`case` blocks.
+// DEAD in Gladiator; GA-pipeline counterpart of ReadFuzzySeperators_r.
 qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int indent)
 {
   if ( !WriteIndent(fp, indent) )
@@ -492,16 +470,13 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int inde
 }
 // gladiator.dll: 100368B0..10036978
 // gladi386.so:   00047A74..00047B7A
-// WriteWeightConfig: serialise a weightconfig_t back to disk as a
-// weights-file ('wb' fopen mode, .rdata 0x1005b32c).  For each weight
-// entry write a banner via fprintf(fp, '\nweight "%s"\n', name),
-// then '{\n', then the body — recursive WriteFuzzySeperators_r(fp,
-// fs, indent=1) when fs->type > 0, else WriteIndent(fp, 1) followed
-// by WriteFuzzyWeight(fp, fs) for a leaf — and close with
-// '} //end itemweight\n' (.rdata 0x1005e5cc).  Returns 1 on success,
-// 0 on any fopen/fprintf/recursion failure (note: failure path does
-// not close fp — minor leak in the dead code, preserved).  DEAD in
-// Gladiator — /INCREMENTAL; live in Q3 as WriteWeightConfig.
+// Serialise a weightconfig_t back to disk as a weights file ('wb' fopen mode).  For
+// each weight entry write a banner via fprintf(fp, '\nweight "%s"\n', name), then
+// '{\n', then the body — recursive WriteFuzzySeperators_r(fp, fs, indent=1) when
+// fs->type > 0, else WriteIndent(fp, 1) followed by WriteFuzzyWeight(fp, fs) for a
+// leaf — and close with '} //end itemweight\n'.  Returns 1 on success, 0 on any
+// fopen/fprintf/recursion failure; the failure path does not close fp, a faithful
+// leak in dead code.  DEAD in Gladiator — /INCREMENTAL.
 
 int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
 {
@@ -554,9 +529,9 @@ int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name)
 }
 // gladiator.dll: 10036A40..10036ADE
 // gladi386.so:   00047BD0..00047CB3
-// Recursive tree walk for the discrete case: tests `facts[index]` against
-// each seperator's threshold, descends the matching branch, returns the
-// leaf weight. LIVE: core of FuzzyWeight.
+// Recursive tree walk for the discrete case: tests `facts[index]` against each
+// seperator's threshold, descends the matching branch, returns the leaf weight.
+// LIVE: core of FuzzyWeight.
 float __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
@@ -589,9 +564,9 @@ float __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
 }
 // gladiator.dll: 10036B10..10036C19
 // gladi386.so:   00047CB4..00047ECB
-// Recursive tree walk with fuzzy interpolation: when a fact straddles a
-// seperator threshold, blends the two branch weights instead of snapping.
-// LIVE: core of FuzzyWeightUndecided (used for smooth priority changes).
+// Recursive tree walk with fuzzy interpolation: when a fact straddles a seperator
+// threshold, blends the two branch weights instead of snapping.  LIVE: core of
+// FuzzyWeightUndecided.
 float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 {
   float scale, w1, w2;
@@ -624,9 +599,8 @@ float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
 }
 // gladiator.dll: 10036C70..10036C86
 // gladi386.so:   00047ECC..00047FB3
-// Public entry: discrete fuzzy weight for one weight_t (one item/weapon).
-// Returns the leaf value of the decision tree given current bot facts.
-// LIVE: called by the item/weapon goal scorers every think.
+// Public entry: discrete fuzzy weight for one weight_t.  Returns the leaf value of
+// the decision tree given current bot facts.  LIVE.
 float __cdecl FuzzyWeight(int *facts, weight_t *w)
 {
   /* Thin wrapper over FuzzyWeight_r, which returns a float in ST(0). */
@@ -634,9 +608,8 @@ float __cdecl FuzzyWeight(int *facts, weight_t *w)
 }
 // gladiator.dll: 10036CA0..10036CB6
 // gladi386.so:   00047FB4..00047FD8
-// Public entry: fuzzy-interpolated weight for one weight_t. Smooth
-// variant of FuzzyWeight; avoids snap behaviour when a fact value
-// crosses a threshold. LIVE.
+// Public entry: fuzzy-interpolated weight for one weight_t.  Smooth variant of
+// FuzzyWeight.  LIVE.
 float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 {
   /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns float). */
@@ -644,10 +617,8 @@ float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
 }
 // gladiator.dll: 10036CD0..10036DAC
 // gladi386.so:   00047FD8..000480E4
-// GA mutation operator: walks a tree and randomly perturbs seperator
-// thresholds and leaf weights. DEAD in Gladiator (no callers); intended
-// for offline auto-tuning of bot personalities. Live in Q3 via
-// EvolveWeightConfig -> BotMutateGoalFuzzyLogic.
+// GA mutation operator: walks a tree and randomly perturbs seperator thresholds and
+// leaf weights.  DEAD in Gladiator; offline auto-tuning of bot personalities.
 void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
 {
   if ( fs->child )
@@ -656,10 +627,10 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
   }
   else if ( fs->type == 1 )
   {
-    /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.
-     * Keep the crandom() value as its own subexpression so the doubling (which
-     * MSVC strength-reduces to `fadd st(0),st`) happens BEFORE the
-     * (maxweight-minweight) multiply, as in the original. */
+    /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.  Keep the
+     * crandom() value as its own subexpression so the doubling (which MSVC
+     * strength-reduces to `fadd st(0),st`) happens BEFORE the (maxweight-minweight)
+     * multiply, as in the original. */
     if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
     {
       fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
@@ -696,19 +667,17 @@ void __cdecl EvolveWeightConfig(int *config)
 }
 // gladiator.dll: 10036E30..10036E8E
 // gladi386.so:   00048120..0004819D
-// Uniformly rescale all weights in a subtree by a scalar factor.
-// DEAD in Gladiator. Used by the GA pipeline to normalise mutated trees
-// and as a primitive for crossover blending. Live in Q3.
+// Uniformly rescale all weights in a subtree by a scalar factor.  DEAD in Gladiator;
+// the GA pipeline uses it to normalise mutated trees and as a crossover primitive.
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 {
-  /* Q3's body verbatim, including the recursion on `next` rather than a loop
-   * over it.  The loop form kept `scale` live in the FPU across the call, so
-   * gcc spilled it as an 80-bit `fstp TBYTE`; the real image just re-pushes the
-   * incoming 4-byte parameter slot.  `maxweight + minweight` in that order for
-   * the same reason -- gcc evaluates a binary operator left to right, so the
-   * real's `fld [+0x14]; fadd [+0x10]` names the operands and their order.
-   * Pass `scale` directly: routing it through LODWORD makes GCC insert an
-   * int->float conversion that destroys the bit pattern. */
+  /* Q3's body verbatim, including the recursion on `next` rather than a loop over it.
+   * The loop form keeps `scale` live in the FPU across the call, so gcc spills it as
+   * an 80-bit `fstp TBYTE`; the original just re-pushes the incoming 4-byte parameter
+   * slot.  `maxweight + minweight` in that order for the same reason — gcc evaluates a
+   * binary operator left to right, and the original's `fld [+0x14]; fadd [+0x10]` names
+   * the operands and their order.  Pass `scale` directly: routing it through LODWORD
+   * makes gcc insert an int->float conversion that destroys the bit pattern. */
   if ( fs->child )
   {
     ScaleFuzzySeperator_r(fs->child, scale);
@@ -726,14 +695,12 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
 }
 // gladiator.dll: 10036EB0..10036F52
 // gladi386.so:   000481A0..000482A8
-// Q3 be_ai_weight.c's ScaleWeight, verbatim.  The earlier reading of this as an
-// anonymous (count, {name, fs}[]) table with a hand-rolled strcmp was the
-// hand-rolled part wrong: gladi386.so's F39 CALLS strcmp, and the "table" is a
-// weightconfig_t -- numweights at +0, weights[] at +4, stride 8.
+// Q3's ScaleWeight, verbatim.  The "table" is a weightconfig_t — numweights at +0,
+// weights[] at +4, stride 8 — and gladi386.so's F39 CALLS strcmp rather than
+// hand-rolling it.
 //
-// It was also `static`, which is why the ELF audit read it as MISSING: it has no
-// callers, and gcc 2.7.2.3 does not merely inline an unreferenced static, it
-// drops it.  Same class as be_aas_file.c's max_aaslights initialiser.  The real
+// It must NOT be `static`: it has no callers, and gcc 2.7.2.3 does not merely inline
+// an unreferenced static, it drops it (the ELF audit then reads MISSING).  The real
 // image's F39 is GLOBAL, so the linkage is matched here.
 // DEAD in Gladiator — part of the offline GA tuning pipeline.
 void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale)
@@ -755,10 +722,8 @@ void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale)
 }
 // gladiator.dll: 10036F90..10036FF9
 // gladi386.so:   000482A8..0004832F
-// GA crossover operator: blends two parent trees into a child tree by
-// recursively averaging seperator thresholds and leaf weights.
-// DEAD in Gladiator. Live in Q3 via InterbreedingGoalFuzzyLogic.
-// Together with Evolve* and Write* forms the offline bot-tuning pipeline.
+// GA crossover operator: blends two parent trees into a child tree by recursively
+// averaging seperator thresholds and leaf weights.  DEAD in Gladiator.
 int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2)
 {
   int result; // eax
@@ -791,12 +756,11 @@ int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *
 }
 // gladiator.dll: 10037020..10037070
 // gladi386.so:   00048330..00048409
-// Top-level pair-wise interbreed of two
-// weightconfig_t's.  Bails with "can't merge weight configs\n" if the
-// configs' numweights disagree; otherwise calls InterbreedFuzzySeperator_r
-// on every (a->weights[i].firstseperator, b->weights[i].firstseperator)
-// pair.  This is the public entry to the GA crossover used by the offline
-// bot-tuning pipeline — dead in Gladiator (live in Q3 InterbreedGoalFuzzyLogic).
+// Top-level pair-wise interbreed of two weightconfig_t's.  Bails with "can't merge
+// weight configs\n" if the configs' numweights disagree; otherwise calls
+// InterbreedFuzzySeperator_r on every
+// (a->weights[i].firstseperator, b->weights[i].firstseperator) pair.  The public
+// entry to the GA crossover.  DEAD in Gladiator.
 void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b)
 {
   int i;

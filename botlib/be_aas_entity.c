@@ -1,40 +1,22 @@
 /*
  * be_aas_entity.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1000A920..0x1000BB30; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1000A920..0x1000BB30.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_entity.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -118,10 +100,9 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
 }
 // gladiator.dll: 1000ABE0..1000AC71
 // gladi386.so:   0001419C..00014262
-/* AAS_EntityInfo — the AAS info snapshot for an engine entity, returned BY
- * VALUE through MSVC's hidden-retbuf ABI: aasworld.entities[entnum].i on the
- * valid path, a zeroed local on the error paths.  Q3 instead takes an output
- * pointer, so `entnum` is the only explicit parameter here. */
+/* The AAS info snapshot for an engine entity, returned BY VALUE through MSVC's
+ * hidden-retbuf ABI: aasworld.entities[entnum].i on the valid path, a zeroed local on
+ * the error paths.  Q3 instead takes an output pointer. */
 aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
 {
   aas_entityinfo_t entinfo; // [esp+8h] [ebp-7Ch] BYREF
@@ -142,10 +123,9 @@ aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
 }
 // gladiator.dll: 1000ACB0..1000AD1F
 // gladi386.so:   00014264..000142F4
-// Bounds-checked copy of entities[entnum].origin
-// (struct offsets +0x10..+0x18) into the caller-provided vec3 out.  On OOR
-// prints via bi_Print(PRT_FATAL, "AAS_EntityOrigin: entnum %d out of range\n", ...)
-// and zeroes the destination vec3.
+// Bounds-checked copy of entities[entnum].origin (struct offsets +0x10..+0x18) into
+// the caller-provided vec3 out.  On OOR prints
+// "AAS_EntityOrigin: entnum %d out of range\n" and zeroes the destination.
 void __cdecl AAS_EntityOrigin(int entnum, vec3_t origin)
 {
   if ( entnum < 0 || entnum >= aasworld.numentities )
@@ -213,12 +193,10 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
 }
 // gladiator.dll: 1000AEA0..1000AF06
 // gladi386.so:   00014498..0001451E
-// Returns the bbox of entities[entnum] via two vec3 out-params (mins from
-// struct offsets +0x40..+0x48, maxs from +0x4C..+0x54).  Guards on
-// aasworld.initialized then bounds-checks entnum; on OOR prints via
-// bi_Print(PRT_FATAL, "AAS_EntitySize: entnum %d out of range\n", entnum) and
-// returns *without* writing to mins/maxs (matches the original — the
-// disasm has no clear path on the OOR exit).
+// Returns the bbox of entities[entnum] via two vec3 out-params (mins from +0x40..+0x48,
+// maxs from +0x4C..+0x54).  Guards on aasworld.initialized then bounds-checks entnum;
+// on OOR prints "AAS_EntitySize: entnum %d out of range\n" and returns *without*
+// writing to mins/maxs — the disasm has no clear path on the OOR exit.
 void __cdecl AAS_EntitySize(int entnum, vec3_t mins, vec3_t maxs)
 {
   aas_entityinfo_t *ent;
@@ -322,9 +300,9 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
   float *v13; // ecx
   aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
   /* Must be one vec3_t, not three floats: the original passes its address to
-   * AAS_PointAreaNum / AAS_TraceClientBBox as a vec3 pointer.  Split into
-   * separate locals, y/z read as garbage and every level item ends up with
-   * areanum 0, so BotChooseLTGItem can never pick one. */
+   * AAS_PointAreaNum / AAS_TraceClientBBox as a vec3 pointer.  Split into separate
+   * locals, y/z read as garbage and every level item ends up with areanum 0, so
+   * BotChooseLTGItem can never pick one. */
   int j; // [esp+1Ch] [ebp-80h]
   int i; // [esp+20h] [ebp-7Ch]
   vec3_t absmins; // [esp+3Ch] [ebp-60h] BYREF
@@ -455,12 +433,11 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   vec3_t end;          // [ebp-12Ch] BYREF — was v25+v26+v27 split locals
   vec3_t middle;       // [ebp-148h] BYREF — was v18+v19+v20 split locals
 
-  /* Q3's be_aas_entity.c order throughout: VectorAdd(mins, maxs, middle) —
-   * mins first in all three components, IDA had the first two the other way
-   * round — and VectorAdd(origin, middle, middle) below, origin first.  Both
-   * are real gcc levers (the leading operand is the one that gets the `fld`).
-   * `a5` is also used directly rather than through IDA's `v5 = a5` alias,
-   * which cost a store/reload pair through a frame slot. */
+  /* Q3's be_aas_entity.c order throughout: VectorAdd(mins, maxs, middle) — mins first
+   * in all three components — and VectorAdd(origin, middle, middle) below, origin
+   * first.  Both are real gcc levers: the leading operand is the one that gets the
+   * `fld`.  `a5` is used directly rather than through IDA's `v5 = a5` alias, which cost
+   * a store/reload pair through a frame slot. */
   ent = &aasworld.entities[a5].i;
   VectorAdd(ent->mins, ent->maxs, middle);
   VectorScale((float *)middle, 0.5, (float *)middle);
@@ -480,8 +457,8 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     VectorCopy(((float *)eye), start);
     VectorCopy(middle, end);
     /* Both PointContents() calls are required: without them eyecontents and
-     * fromcontents stay uninitialised, the trace direction never swaps when one
-     * endpoint is underwater, and visibility across water surfaces fails. */
+     * fromcontents stay uninitialised, the trace direction never swaps when one endpoint
+     * is underwater, and visibility across water surfaces fails. */
     eyecontents = sub_10003080((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
@@ -515,19 +492,14 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
 }
 // gladiator.dll: 1000B1F0..1000B2BE
 // gladi386.so:   000147D8..000148EB
-// FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities)
-// for the entry whose 4-byte field at +0x5C equals target and whose
-// origin is within 40 units of the caller's reference point in both
-// the x and y axes (integer-truncated abs(dx) < 40 && abs(dy) < 40).
-// Of all candidates passing the gate, return the index whose 3D
-// straight-line distance to ref is smallest (initial best = 99999.0,
-// .rdata literal 0x47C34F80).  Result index lives in eax; best
-// distance is dropped on return.  When numentities <= 0 the function
-// short-circuits to eax = 0 without touching arg1.
-// Stride 132 (=sizeof(aas_entity_t)); field +0x10 = origin xyz, +0x5C
-// = classnum/spawnflags-style key (matches the disasm).  Distance via
-// VectorLength thunk @0x10001D75 → VectorLength@10043500.  DEAD in
-// Gladiator — /INCREMENTAL.
+// FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities) for the entry
+// whose 4-byte field at +0x5C equals target and whose origin is within 40 units of the
+// caller's reference point in both x and y (integer-truncated abs(dx) < 40 &&
+// abs(dy) < 40).  Of the candidates passing the gate, return the index whose 3D
+// distance to ref is smallest (initial best = 99999.0).  The best distance is dropped
+// on return.  When numentities <= 0 it short-circuits to 0 without touching arg1.
+// Stride 132 (=sizeof(aas_entity_t)); +0x10 = origin xyz, +0x5C = the classnum key.
+// DEAD in Gladiator — /INCREMENTAL.
 int __cdecl sub_1000B1F0(float *ref, int target)
 {
   int i;
@@ -539,9 +511,9 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 
   best_index = 0;
   best_dist  = 99999.0f;
-  /* No explicit `if (numentities <= 0) return` guard: the loop's own entry test
-   * covers it and the single tail returns 0, sharing one epilogue between the
-   * empty and normal exits as the original does. */
+  /* No explicit `if (numentities <= 0) return` guard: the loop's own entry test covers
+   * it and the single tail returns 0, sharing one epilogue between the empty and normal
+   * exits as the original does. */
   for ( i = 0; i < aasworld.numentities; i++ )
   {
     ent = &aasworld.entities[i].i;
@@ -563,9 +535,8 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 }
 // gladiator.dll: 1000B1B0..1000B1D2
 // gladi386.so:   0001475C..000147D8
-/* Thin wrapper handing aasworld.entities[entnum].areas (the entity's
- * aas_link_t chain head at +0x7c) to AAS_BestReachableLinkArea.
- * DEAD in Gladiator — preserved by /INCREMENTAL. */
+/* Thin wrapper handing aasworld.entities[entnum].areas (the entity's aas_link_t chain
+ * head at +0x7c) to AAS_BestReachableLinkArea.  DEAD — /INCREMENTAL. */
 int __cdecl AAS_BestReachableEntityArea(int entnum)
 {
 #if BOTLIB_NEED_SIDEBAND

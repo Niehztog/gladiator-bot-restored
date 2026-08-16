@@ -1,40 +1,22 @@
 /*
  * be_aas_bspq2.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10003010..0x100085F0; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10003010..0x100085F0.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
 #include "be_aas_light.h"
@@ -45,32 +27,18 @@
 #include "l_script.h"
 #include "l_utils.h"
 
-/* bspworld_t is defined in be_aas_bspq2.h (this TU's own header) -- same
- * split as be_aas_def.h's aas_world_t: type + offset asserts in the header,
- * single instance here.  See the header for the full discovery writeup. */
+/* Type + offset asserts live in be_aas_bspq2.h, the single instance here. */
 bspworld_t bspworld;
 
 // gladiator.dll: 10003010..10003056
 // gladi386.so:   0000D0CC..0000D136
-/* AAS_Trace — sweep an optionally bbox-bounded line through the BSP world.
- * Returns bsp_trace_t BY VALUE, as both Q3 botlib and the game-side import
- * prototype do; MSVC lowers that to a hidden caller-allocated return buffer.
+/* Returns bsp_trace_t BY VALUE; MSVC lowers that to a hidden caller-allocated
+ * return buffer.
  *
- * The Windows DLL (0x10003010, Jul 18 1999 build) and the Linux .so (F680,
- * Aug 2 1999 build -- see .claude/memory/asm_matching_project.md) disassemble
- * to two DIFFERENT bodies here, not just different codegen for one body:
- *   - DLL: `return *botimport.Trace(&bsptrace, start, mins, maxs, end,
- *     passent, contentmask);` -- a hidden-retbuf local plus a qmemcpy, exactly
- *     matching the IDA decompilation of sub_10003010 (calls dword_10063FEC,
- *     i.e. botimport.Trace, then `qmemcpy(a1, v7, 0x54u)`).
- *   - .so: calls AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs,
- *     end, passent, contentmask) DIRECTLY -- no botimport indirection, no
- *     local trace buffer/copy at all (`sub esp,0xc` vs the DLL path's much
- *     larger frame). modelnum 0 is the world model, and a shared {0,0,0}
- *     local supplies both modelorigin/angles (world has no origin/rotation).
- * Both are genuine, verified against each real disassembly -- this is the
- * two-week source drift the memory note documents elsewhere in this file
- * (RotatePoint, AAS_ClusterAreaNum, etc.), not a reconstruction ambiguity. */
+ * The two 1999 images have genuinely DIFFERENT bodies here, not just different
+ * codegen: the DLL calls botimport.Trace through a hidden retbuf local, the .so
+ * calls AAS_TraceBSPModel directly on model 0 with a shared {0,0,0} local for
+ * modelorigin/angles.  Both verified against their own disassembly. */
 #ifdef _WIN32
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
@@ -86,20 +54,13 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
   return AAS_TraceBSPModel(0, zero_vec, zero_vec, start, mins, maxs, end, passent, contentmask);
 }
 #endif /* _WIN32 */
-/* BSP-leaf link heap — the Q3 cognate is be_aas_sample.c's
- * AAS_InitAASLinkHeap / AAS_AllocAASLink / AAS_DeAllocAASLink, but those names
- * are already taken here by the genuine AAS-area link heap at 0x1001AC00 /
- * 0x1001AD50 / 0x1001ADA0.  Gladiator carries BOTH families, distinguished at
- * every site:
- *      AAS-area (named)                 BSP-leaf (this trio)
- *      LibVarValue("max_aaslinks")      LibVarValue("max_bsplinks")
- *      "empty aas link heap\n"          "empty bsp link heap\n"
- *      link->prev_area / next_area      link->prev_leaf / next_leaf
- *      aasworld.linkheap/freelinks      dword_10069578 / dword_10069580
- *
- * A verbatim cognate name is therefore impossible, so this trio stays unnamed.
- * Do NOT "resolve" it by renaming the 0x1001ACxx family — those three really
- * are the aas_link_t functions. */
+/* BSP-leaf link heap.  Gladiator carries TWO link families and this is the
+ * BSP-leaf one; the AAS-area trio at 0x1001AC00/0x1001AD50/0x1001ADA0 already
+ * owns the Q3 cognate names (AAS_InitAASLinkHeap etc.).  They are distinguished
+ * at every site: "max_bsplinks" vs "max_aaslinks", "empty bsp link heap" vs
+ * "empty aas link heap", link->prev_leaf vs link->prev_area.  A verbatim
+ * cognate name is impossible, so this trio stays unnamed — do NOT resolve it by
+ * renaming the 0x1001ACxx family. */
 // gladiator.dll: 10003080..1000308F
 // gladi386.so:   0000A444..0000A466
 // thin wrapper forwarding to bi_PointContents
@@ -136,10 +97,8 @@ void sub_100030A0()
 }
 // gladiator.dll: 100031B0..100031DA
 // gladi386.so:   0000A724..0000A76B
-// Walks the bsp_link freelist headed at dword_10069580, chasing .next_ent and
-// counting nodes; then
-// prints "%d free bsp links, %s\n" at level 1 with (count, caller_name).
-// A heap-diagnostic helper for verbose-mode reporting.  DEAD in Gladiator.
+// Walks the bsp_link freelist headed at dword_10069580 and prints
+// "%d free bsp links, %s\n".  DEAD in Gladiator.
 void __cdecl sub_100031B0(char *name)
 {
   bsp_link_t *node;
@@ -208,10 +167,9 @@ void sub_100032D0()
 }
 // gladiator.dll: 10003360..100033E5
 // gladi386.so:   0000A8F4..0000A990
-/* Named from the Q3 engine cognate CM_PointLeafnum_r (qcommon/cm_test.c), same
- * recursive descent over a runtime-loaded node/plane array.  Q3 hardcodes the
- * world model's root; Gladiator takes an explicit modelnum and starts from
- * dmodels[modelnum].headnode, so inline sub-models (doors, plats) work too. */
+/* Q3 engine cognate CM_PointLeafnum_r (qcommon/cm_test.c).  Q3 hardcodes the
+ * world model's root; this takes an explicit modelnum and starts from
+ * dmodels[modelnum].headnode, so inline sub-models work too. */
 int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
 {
   vec_t d;
@@ -230,14 +188,9 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum)
       plane = &bspworld.dplanes[planenum];
       /* `point` FIRST, not `plane->normal`: with the loop-INVARIANT operand
        * leading, gcc 2.7 emits `fld point[i]` as its own insn and hoists all
-       * three out of the descent loop (real keeps them on the x87 stack and
-       * pops with three `fstp st(0)` at the exits); with the normal leading,
-       * the `fld` is loop-variant and the hoist never happens.  Fixed this
-       * function, its wrapper sub_10003420 and part of sub_100057A0 to a
-       * byte-exact ELF match; MSVC6 canonicalises either spelling, so the PE
-       * side is unaffected (verified MATCH before and after).  NB this is NOT
-       * the AAS_PointAreaNum dot-product conflict — there the term STAGING
-       * order is what the two compilers disagree about. */
+       * three out of the descent loop.  MSVC6 canonicalises either spelling.
+       * NB not the AAS_PointAreaNum dot-product conflict — that one is about
+       * term STAGING order. */
       d = DotProduct(point, plane->normal) - plane->dist;
       if ( d > 0 )
         node = dn->children[0];
@@ -272,29 +225,21 @@ void __cdecl sub_10003460(vec3_t v, float m[3][3])
 }
 // gladiator.dll: 100034D0..10003616
 // gladi386.so:   0000AAB4..0000AC61
-/* AnglesToAxis — build a 3x3 row-major rotation matrix from Q3-style
- * angles[PITCH=0, YAW=1, ROLL=2]: output = roll_m * pitch_m * yaw_m, i.e. a
- * column vector is yawed, then pitched, then rolled.
+/* Build a 3x3 row-major rotation matrix from angles[PITCH,YAW,ROLL]:
+ * output = roll_m * pitch_m * yaw_m.
  *
  *   yaw_m   = [[ cy, sy,0],[-sy,cy,0],[0,0,1]]   ; around Z
  *   pitch_m = [[ cp, 0,-sp],[0, 1,0],[sp,0,cp]]  ; around Y
  *   roll_m  = [[ 1, 0, 0],[0,cr,sr],[0,-sr,cr]]  ; around X
- *   R_ConcatRotations(pitch_m, yaw_m, tmp)       ; tmp  = pitch*yaw
- *   R_ConcatRotations(roll_m,  tmp,   axis_out)  ; axis = roll*tmp
  *
- * Degrees->radians uses the unfolded `angle * M_PI * 2 / 360` idiom (no
- * grouping parens), not a precomputed DEG2RAD constant. Because `angle` is a
- * runtime value sitting inside the left-associative parse tree, gcc cannot
- * constant-fold `M_PI*2` at compile time; it loads PI once and keeps it
- * resident on the x87 stack for the whole function (surviving the
- * intervening R_ConcatRotations call via a spill/reload), duplicating it via
- * `fld st(0)` for yaw/pitch/roll and doubling with `fadd st,st(0)` before
- * multiplying by a separate 1/360 reciprocal constant. */
+ * Degrees->radians uses the unfolded `angle * M_PI * 2 / 360` idiom with no
+ * grouping parens: `angle` is a runtime value inside the left-associative parse
+ * tree, so gcc cannot constant-fold M_PI*2 and keeps PI resident on the x87
+ * stack for the whole function. */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 {
   /* Only THREE matrix buffers: `m` holds the pitch matrix for the first concat,
-     then is rebuilt in place as the roll matrix for the second.  The original
-     frame is exactly 3*9 floats — it reuses the buffer, no separate roll_m. */
+     then is rebuilt in place as the roll matrix for the second. */
   float angle;
   float sp, cp;
   float sy, cy;
@@ -305,9 +250,7 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
     float yaw[3][3];
   } mats;
 
-  /* yaw matrix (rotation around Z) — assigned row-major, immediately after the
-     trig call, with the constant cells interleaved in place rather than seeded
-     up front. */
+  /* Row-major, constant cells interleaved in place rather than seeded up front. */
   angle = angles[1] * M_PI*2 / 360;
   sy = (float)sin(angle);
   cy = (float)cos(angle);
@@ -411,9 +354,9 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
     return 0;
   if ( entdata.solid == 2 )
   {
-    /* The 0.5 constant is a DOUBLE (fadd QWORD 0.5), and both operands are indexed
-     * off `start` reusing the offsets CSE'd from the first bounds loop — so keep the
-     * pure-index form, not a walking pointer, and keep 0.5 not 0.5f. */
+    /* 0.5 is a DOUBLE (fadd QWORD 0.5) and both operands are indexed off `start`,
+     * reusing the offsets CSE'd from the first bounds loop.  Keep the pure-index
+     * form and keep 0.5, not 0.5f. */
     for ( v12 = 0; v12 < 3; ++v12 )
     {
       if ( start[v12] <= v41[v12] + 0.5 )
@@ -421,9 +364,8 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       if ( start[v12] >= v44[v12] - 0.5 )
         break;
     }
-    /* Relational, not equality: the original's post-loop test is `cmp edx,3; jl`,
-     * kept only for the two break predecessors.  `== 3` emits `jne` and drops the
-     * skip-jump.  The FIRST bounds loop above really does use `!= 3`. */
+    /* Relational, not equality: `cmp edx,3; jl`.  `== 3` emits `jne` and drops the
+     * skip-jump.  The FIRST bounds loop above does use `!= 3`. */
     if ( v12 >= 3 )
     {
       trace->ent = entnum;
@@ -432,10 +374,8 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
       trace->fraction = 0.0f;
       trace->contents = 0;
       trace->sidenum = -1;
-      /* Keep the memset: the original materialises the plane's base into its own
-       * register with a fresh zero (an inlined 20-byte memset).  Five scalar
-       * `planeints[i] = 0` stores would instead fold the base into the addressing
-       * mode and share the zero already live for fraction/contents. */
+      /* Keep the memset (an inlined 20-byte one): five scalar `planeints[i] = 0`
+       * stores would fold the base into the addressing mode instead. */
       memset(&trace->plane, 0, sizeof(trace->plane));
       VectorCopy(start, trace->endpos);
       return 1;
@@ -491,10 +431,8 @@ LABEL_40:
       else
         trace->exp_dist = -boxmins[v15];
     }
-    /* Plain indexed form: cl.exe strength-reduces it to ONE induction pointer
-     * (start) plus a base difference for v40, and counts down from 3.  IDA's
-     * `++v29; … *(v29 - 1)` walk instead pre-biases the pointer, costing a
-     * `lea eax,[edx-0x4]` the original does not have. */
+    /* Plain indexed form: cl.exe strength-reduces it to ONE induction pointer plus
+     * a base difference.  A pre-biased pointer walk costs a `lea eax,[edx-0x4]`. */
     for ( v31 = 0; v31 < 3; ++v31 )
       trace->endpos[v31] = v39 * v40[v31] + start[v31];
     trace->plane.normal[(v15 + 1) % 3] = 0.0f;
@@ -521,7 +459,6 @@ LABEL_40:
   }
   return 0;
 }
-// 100037F3: conditional instruction was optimized away because edx.4<3
 // gladiator.dll: 10003BF0..10003C69
 // gladi386.so:   0000B350..0000B3CE
 int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int passent, int contentmask, bsp_trace_t *trace)
@@ -544,10 +481,9 @@ int __cdecl sub_10003BF0(int leafnum, vec3_t start, vec3_t boxmins, vec3_t boxma
 }
 // gladiator.dll: 10003C90..100041BC
 // gladi386.so:   0000B3D0..0000BA06
-/* Named from the Q3 engine cognate CM_TraceThroughBrush (qcommon/cm_trace.c):
- * iterate a brush's sides, expand each plane by the trace box, track the
- * enter/leave fraction along start->end.  No capsule/sphere collision — Q3
- * added that later.  Called from CM_TraceThroughLeaf. */
+/* Q3 engine cognate CM_TraceThroughBrush (qcommon/cm_trace.c): iterate a brush's
+ * sides, expand each plane by the trace box, track the enter/leave fraction.  No
+ * capsule/sphere collision — Q3 added that later. */
 int __cdecl CM_TraceThroughBrush(
         dbrush_t *a1,
         float *a2,
@@ -604,9 +540,7 @@ int __cdecl CM_TraceThroughBrush(
   v12 = a2;
   if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
     v40 = 1;
-  /* One shared zero, hoisted here with the other zero initialisers: the two
-   * `v11 = 0` copies the decompiler shows inside the angles test are the
-   * compiler sinking a single zero register into both arms. */
+  /* One shared zero, hoisted here with the other zero initialisers. */
   v11 = 0;
   v13 = a4;
   v14 = a1;
@@ -692,11 +626,10 @@ LABEL_30:
       {
         if ( a5 && a6 )
         {
-          /* Per component, select a5 or a6 by the sign of normal[i] into vec[i].
-           * Test positively (the a5 arm is inline), and use two assignment
-           * STATEMENTS rather than a ternary — the original copies the selected
-           * component with integer movs, whereas a float-valued ternary would
-           * route it through the x87 stack. */
+          /* Per component, select a5 or a6 by the sign of normal[i].  Test
+           * positively (the a5 arm is inline) and use two assignment STATEMENTS,
+           * not a ternary — a float-valued ternary routes the copy through the
+           * x87 stack where the original uses integer movs. */
           {
             int _k;
             for (_k = 0; _k < 3; _k++)
@@ -766,9 +699,8 @@ LABEL_30:
     *a8 = v31;
     *a9 = v42;
     *a10 = v43;
-    /* ONE grouped vec3 copy: the float shuttles and interleaved store the
-     * decompiler shows are MSVC's load-ahead schedule.  The original copies [1]
-     * and [2] with integer movs, which a float-typed local would prevent. */
+    /* ONE grouped vec3 copy.  [1] and [2] are copied with integer movs, which a
+     * float-typed local would prevent. */
     VectorCopy(startp, a11);
     return 1;
   }
@@ -776,10 +708,8 @@ LABEL_30:
 }
 // gladiator.dll: 10004310..1000448D
 // gladi386.so:   0000BA08..0000BBBA
-/* Named from the Q3 engine cognate CM_TraceThroughLeaf (qcommon/cm_trace.c):
- * walk leafbrushes[firstleafbrush+k], skip content-mask mismatches, dispatch
- * the rest to CM_TraceThroughBrush.  No patch/curve surfaces in Q2, so Q3's
- * second leafsurfaces loop is absent. */
+/* Q3 engine cognate CM_TraceThroughLeaf (qcommon/cm_trace.c).  No patch/curve
+ * surfaces in Q2, so Q3's second leafsurfaces loop is absent. */
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
   int v9; // ebp
@@ -814,8 +744,7 @@ int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_
   }
   while ( v9 < v11->numleafbrushes );
   /* `if (v24)` rather than `if (!v24) goto fail`, so the fill code is the warm
-   * fall-through and the shared return-0 stays a cold tail block reached by
-   * je/jbe from both guards. */
+   * fall-through and the shared return-0 stays a cold tail block. */
   if ( v24 )
   {
   if ( endpos[0] == start[0] && endpos[1] == start[1] && endpos[2] == start[2] )
@@ -864,17 +793,14 @@ _Static_assert(sizeof(bsp_model_tracestack_t) == 40, "bsp_model_tracestack_t siz
 _Static_assert(sizeof(bsp_model_plane_sidecache_t) == 24, "bsp_model_plane_sidecache_t size");
 // gladiator.dll: 100044F0..100052B4
 // gladi386.so:   0000BBBC..0000D0C9
-/* AAS_TraceBSPModel (sub_100044F0) — sweep a box from start to end through BSP
- * model `modelnum` at `modelorigin`/`angles`.  Gladiator's own Q2-era
- * BSP-model collision (Q3 delegates BSP traces to the engine); self-named by
- * its "AAS_TraceBSPModel: out of trace lines" error below.
+/* Sweep a box from start to end through BSP model `modelnum` at
+ * `modelorigin`/`angles` — Gladiator's own Q2-era BSP-model collision (Q3
+ * delegates BSP traces to the engine).
  *
  * Two original stack aggregates: a 40-byte trace-stack frame
  * {start,end,nodenum,planenum,planedist,next} and a 24-byte
- * {int sideflags[4], float offsets[2]} side-cache block.
- *
- * Returns bsp_trace_t by value through MSVC's hidden-retbuf ABI: the body fills
- * the local `trace` and each return copies it into the caller's buffer. */
+ * {int sideflags[4], float offsets[2]} side-cache block.  Returns bsp_trace_t by
+ * value through MSVC's hidden-retbuf ABI. */
 bsp_trace_t __cdecl AAS_TraceBSPModel(
         int modelnum,
         const vec3_t modelorigin,
@@ -893,9 +819,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v15; // st7
   bsp_model_tracestack_t *v16; // eax
   int v17; // edx
-  /* v19, v56, v100: pointers into trace_stack (its free/active lists).  The
-   * link slots inside trace_stack stay 4 bytes wide, but on 64-bit they hold
-   * encoded byte offsets rather than raw pointers — see TR_ENC/TR_DEC below. */
+  /* v19, v56, v100: pointers into trace_stack.  The link slots stay 4 bytes wide,
+   * but on 64-bit they hold encoded byte offsets — see TR_ENC/TR_DEC below. */
   bsp_model_tracestack_t *v19;
   bsp_model_tracestack_t *v24; // ebx
   bsp_model_tracestack_t *v25; // esi
@@ -920,10 +845,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   BOOL v51; // eax
   int v53; // ecx
   int v54; // eax
-  /* side_a/side_b: the 0/1 "which side of the plane" selectors, plain ints with
-   * no FPU traffic.  Routing them through float locals (as the decompiler did)
-   * costs a real fld/fstp per read.  side_a covers the no-box split, side_b the
-   * box split; v109's genuine float distance value is a separate thing. */
+  /* side_a/side_b: the 0/1 "which side of the plane" selectors, plain ints with no
+   * FPU traffic.  Float locals here cost a real fld/fstp per read.  v109's genuine
+   * float distance value is a separate thing. */
   int side_a;
   int side_b;
   bsp_model_tracestack_t *v56; // eax — one temp shared by all three disjoint fresh-node sites
@@ -961,12 +885,10 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v126; // [esp+60h] [ebp-14F8h]
   float v127; // [esp+64h] [ebp-14F4h]
   vec3_t v128; // [esp+68h] [ebp-14F0h] BYREF — overall trace delta
-  /* The 24-byte side-cache block.  These MUST stay two separate scalar floats,
-   * not a `float[2]` or one struct, and the indexed reads must stay byte-offset
-   * expressions: an array forces MSVC to keep the pair addressable as a unit,
-   * while two scalars let it coalesce them, which is what the original does.
-   * The `*(&v133 + v121)` walks are therefore the original's own addressing, not
-   * a decompiler artifact — do not "fix" them. */
+  /* The 24-byte side-cache block.  These MUST stay two separate scalar floats and
+   * the indexed reads must stay byte-offset expressions: an array forces MSVC to
+   * keep the pair addressable as a unit, while two scalars let it coalesce them.
+   * The `*(&v133 + v121)` walks are the original's addressing — do not "fix". */
   int plane_sideflags[4];
   float v133;
   float v134;
@@ -983,13 +905,10 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
   /* 128 contiguous 40-byte trace frames; v153 aliases trace_stack[0].next. */
   bsp_model_tracestack_t trace_stack[128];   // [esp+158h] [ebp-13A0h] BYREF
-  /* The trace-stack lists keep their "next pointer" in 4-byte int slots (+36 of
-   * each frame, plus trace_stack[0].next as the free-list head).  On 32-bit a
-   * pointer fits, so TR_ENC/TR_DEC are the identity — plain lea/mov, exactly as
-   * the disasm shows.  On 64-bit each link becomes a byte offset into
-   * trace_stack, stored as offset+1 so 0 stays NULL.
-   * MSVC6 does not define __SIZEOF_POINTER__, hence the `!defined` clause —
-   * a bare `== 4` would route the oracle to the 64-bit branch. */
+  /* The trace-stack lists keep their next-pointer in 4-byte int slots.  On 32-bit
+   * a pointer fits and TR_ENC/TR_DEC are the identity; on 64-bit each link becomes
+   * a byte offset into trace_stack, stored as offset+1 so 0 stays NULL.
+   * MSVC6 does not define __SIZEOF_POINTER__, hence the `!defined` clause. */
 #if !defined(__SIZEOF_POINTER__) || __SIZEOF_POINTER__ == 4
   #define TR_ENC(p) ((int)(intptr_t)(p))
   #define TR_DEC(i) ((bsp_model_tracestack_t *)(intptr_t)(i))
@@ -1012,11 +931,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
     v12 = v128[1] > v128[2] ? 1 : 2;
   v13 = v128[v12];
   v126 = v12;
-  /* Explicit if/else, not the decompiler's `v135 = v13 > 0`: gcc272 emits one
-   * byte less and 4 fewer instruction diffs for this form, and MSVC6 folds all
-   * three spellings (`v = c`, if/else, and 1-default-plus-conditional-0) to
-   * byte-identical PE code, so the ELF measurement breaks an otherwise even
-   * tie.  Do not "simplify" back to the assignment. */
+  /* Explicit if/else, not `v135 = v13 > 0`: gcc272 emits one byte less and 4 fewer
+   * instruction diffs, and MSVC6 folds all three spellings identically.  Do not
+   * "simplify" back to the assignment. */
   if ( v13 > 0 )
     v135 = 1;
   else
@@ -1046,11 +963,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   }
   while ( v17 );
   trace_stack[127].next = 0;
-  /* A dead-in-practice NULL check on &trace_stack[0] that the 1998 compiler
-   * still emitted (the decompiler elided it).  v16 is otherwise dead, so it
-   * holds the fresh base address, matching the original's fresh `lea` rather
-   * than reusing the loop's advanced pointer.  Do not fold this into v24's own
-   * definition — tried, and it regresses. */
+  /* A dead-in-practice NULL check on &trace_stack[0] that the 1998 compiler still
+   * emitted.  v16 holds the fresh base address, matching the original's fresh `lea`
+   * rather than the loop's advanced pointer.  Do not fold into v24's definition. */
   v16 = trace_stack;
   if ( !v16 )
     goto LABEL_125;
@@ -1064,11 +979,9 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   v24 = trace_stack;
   while ( 1 )
   {
-    /* ONE merged node loop with the BOX path as the warm fall-through — the
-     * decompiler's nested-loop rendering is an artifact (all its exits and both
-     * back-edges land in the same two places).  The box arm must be the `if`
-     * body and the no-box arm the `else`: that is what places the whole no-box
-     * arm cold, each exit jumping back to the trace-stack pop. */
+    /* ONE merged node loop with the BOX path as the warm fall-through.  The box arm
+     * must be the `if` body and the no-box arm the `else`: that is what places the
+     * whole no-box arm cold, each exit jumping back to the trace-stack pop. */
       while ( 1 )
       {
         while ( 1 )
@@ -1420,22 +1333,11 @@ LABEL_125:
 }
 // gladiator.dll: 10005640..100056AC
 // gladi386.so:   absent
-// Thin wrapper around sub_100044F0 (AAS_TraceClientBBox-style 10-arg trace)
-// that supplies three zero locals as the entity-origin / mins / maxs slots
-// (forwarding the real start/boxmins/boxmaxs/end/a9/contentmask), then
-// memcpy's the 84-byte trace result into the caller-supplied output buffer.
-// DEAD in Gladiator — no live caller; only reachable via the MSVC
-// /INCREMENTAL thunk that preserved this entry point in the linker output.
-// Restored dead stub:
-//   sub esp,0x60 ; reserve trace-local frame
-//   push 10 args (3 stack-local ptrs + zero int + 6 forwarded caller args)
-//   call sub_100044F0
-//   rep movsd 21 dwords (=0x54) from returned ptr into [esp+0x94]=arg0=out
-// Note: the two "mins/maxs" slot pointers passed to sub_100044F0 are
-// identical (both point to the same 3-dword zero local at esp_entry-0x60),
-// and the entity-origin slot points at an uninitialized stack location at
-// esp_entry-0x54 — both are decompiler-visible artifacts of the original
-// dead code, not introduced by reconstruction.
+// Thin wrapper around sub_100044F0 supplying three zero locals as the
+// entity-origin / mins / maxs slots, then memcpy'ing the 84-byte trace result
+// into the caller's buffer.  The two "mins/maxs" pointers are identical and the
+// entity-origin slot is uninitialised — both are in the original dead code.
+// DEAD in Gladiator; preserved only by the /INCREMENTAL thunk.
 static void sub_10005640(
         void *out,
         float *start,
@@ -1645,17 +1547,16 @@ BOOL __cdecl sub_10005C90(float *a1, float *a2)
 // gladiator.dll: 10005CC0..10005CD5
 // gladi386.so:   0000D934..0000D95D
 /* Double-indirect lookup into the cluster-routing pointer table.  DEAD in
- * Gladiator — the live routing accessors index
- * aasworld.clusterareacache/portalcache directly. */
+ * Gladiator — the live accessors index aasworld.clusterareacache directly. */
 int __cdecl sub_10005CC0(int a, int b)
 {
   return ((int **)bspworld.dword_10067560)[a][b];
 }
 // gladiator.dll: 10005CF0..10005E10
 // gladi386.so:   0000D960..0000DAF5
-/* sub_10005CF0 — reach-graph propagation over the cluster-routing matrix
- * (dword_10067560, an int[N] row-pointer table followed by N int[N] rows) and
- * the 1-D flag row dword_1006755C (int[numareaportals]).  Three phases:
+/* Reach-graph propagation over the cluster-routing matrix (dword_10067560, an
+ * int[N] row-pointer table followed by N int[N] rows) and the 1-D flag row
+ * dword_1006755C.  Three phases:
  *
  *   A: flag_row[row_index] = value;
  *   B: for each area i, clear matrix[i][*], set the diagonal, and for every
@@ -1663,18 +1564,14 @@ int __cdecl sub_10005CC0(int a, int b)
  *      matrix[link][i];
  *   C: the nested walk below.
  *
- * Phase C carries a genuine Mr. Elusive bug — its innermost `while (numareas >
+ * Phase C carries a faithful Mr. Elusive bug: its innermost `while (numareas >
  * 0)` tests a value the loop never changes, so it spins forever walking j off
- * the end of the matrix.  Almost certainly why the call site was excised before
- * ship.  Transcribed faithfully: it is unreachable, and the byte-match needs
- * the unbounded shape.
+ * the end of the matrix.  The byte-match needs the unbounded shape.
  *
  * Do NOT cache the globals in locals: the original re-reads numareas / dareas /
- * dareaportals / both matrix pointers at each use, because the matrix stores
- * force MSVC to reload them.
+ * dareaportals / both matrix pointers at each use.
  *
- * DEAD in Gladiator — a deferred matrix-maintenance helper dropped before
- * release. */
+ * DEAD in Gladiator. */
 void __cdecl sub_10005CF0(int row_index, int value)
 {
   int i, j, k, col;
@@ -1717,13 +1614,9 @@ void __cdecl sub_10005CF0(int row_index, int value)
 }
 // gladiator.dll: 10005E60..1000601A
 // gladi386.so:   0000DAF8..0000DDA6
-/* AAS_BSPModelMinsMaxsOrigin — return the rotated AABB of a Q2 BSP inline model.
- * Mirrors Q3 botlib's `AAS_BSPModelMinsMaxsOrigin` (be_aas_bspq3.c) but with
- * the rotation work done locally instead of delegating to a botimport callback.
- *
- * Each Q2 dmodel_t entry is 48 bytes: mins[3], maxs[3], origin[3], headnode,
- * firstface, numfaces.  `dmodels` is the model array, `nummodels`
- * the count, `dword_100674C0` the loaded flag. */
+/* Rotated AABB of a Q2 BSP inline model.  Q3's cognate delegates the rotation to
+ * a botimport callback; this does it locally.  Each Q2 dmodel_t entry is 48
+ * bytes: mins[3], maxs[3], origin[3], headnode, firstface, numfaces. */
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
   int    i;
@@ -1749,9 +1642,8 @@ void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins
   AnglesToAxis(angles, axis);   /* build 3x3 row-major rotation matrix */
   ClearBounds(bb_mins, bb_maxs);
 
-  /* Rotate all 8 AABB corners through `axis` and accumulate into
-   * bb_mins/bb_maxs.  `corner` must stay an array: sub_10003460 reads it as a
-   * vec3_t, and separate float locals are not guaranteed to be adjacent. */
+  /* Rotate all 8 AABB corners through `axis`.  `corner` must stay an array:
+   * sub_10003460 reads it as a vec3_t. */
   for ( i = 0; i < 8; ++i )
   {
     /* Keep `(i < 4)` with mins in the THEN arm: the inverted
@@ -1801,9 +1693,8 @@ void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 }
 // gladiator.dll: 10006100..100061C5
 // gladi386.so:   0000DE40..0000DF48
-/* AAS_BoxOnPlaneSide2 (Q3 be_aas_sample.c) — classify an AABB against a BSP
- * splitting plane, returning 1/2/3 for front/back/spanning by iterating the
- * three components and picking the corner matching each normal's sign. */
+/* Classify an AABB against a BSP splitting plane, returning 1/2/3 for
+ * front/back/spanning (Q3 be_aas_sample.c). */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
 {
   int    i, sides;
@@ -1853,10 +1744,9 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   link = 0;
   v15[0] = bspworld.dmodels[modelnum].headnode;
   v6 = &v15[1];
-  /* while(1)+break, NOT `while (--v6 >= &v15[0])`: since v6 starts at &v15[1],
-   * MSVC6 can prove that guard always holds first time and rotates the loop to
-   * a bottom test.  The infinite-loop form keeps the test at the top, as in the
-   * original — do not "simplify" it back. */
+  /* while(1)+break, NOT `while (--v6 >= &v15[0])`: v6 starts at &v15[1], so MSVC6
+   * can prove that guard holds first time and rotates to a bottom test.  The
+   * infinite-loop form keeps the test at the top — do not "simplify". */
   while ( 1 )
   {
     if ( --v6 < &v15[0] )
@@ -1911,21 +1801,17 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
 }
 // gladiator.dll: 100063D0..10006588
 // gladi386.so:   0000E270..0000E563
-/* sub_100063D0 — `AAS_EntitiesInBox(mins, maxs, list, maxcount)`: write up to
- * `maxcount` entnums of the world entities overlapping [mins,maxs] into list[]
- * and return the count.
+/* AAS_EntitiesInBox(mins, maxs, list, maxcount): write up to `maxcount` entnums
+ * of the world entities overlapping [mins,maxs] into list[] and return the count.
  *
  * AAS_BSPLinkEntity builds a transient bsp_link_t chain, one node per leaf the
- * box touches.  For each such leaf, its own entity-link chain (heads array
- * bsp_leaf_entlinks[leafnum]) is walked, duplicates are skipped by a linear
- * scan of the results so far, and each candidate's AAS_EntityBSPData bbox is
- * overlap-tested.  On a hit, SOLID_BBOX/SOLID_TRIGGER entities are added
- * directly; a SOLID_BSP movable brush is re-linked by its own modelnum and
- * added only if one of ITS leaves carries an AAS area marker
- * (dleafs[leafnum].area).  Every chain is released with
- * AAS_UnlinkFromBSPLeaves, NULL included — there is no guard.
+ * box touches.  Each such leaf's entity-link chain is walked, duplicates skipped
+ * by a linear scan, and each candidate's bbox overlap-tested.  SOLID_BBOX and
+ * SOLID_TRIGGER are added directly; a SOLID_BSP movable brush is re-linked by
+ * its own modelnum and added only if one of ITS leaves carries an AAS area
+ * marker.  Every chain is released with AAS_UnlinkFromBSPLeaves, NULL included.
  *
- * DEAD in Gladiator — no live caller. */
+ * DEAD in Gladiator. */
 int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 {
   bsp_link_t *linkhead;
@@ -1940,8 +1826,8 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 
   count = 0;
   linkhead = AAS_BSPLinkEntity(mins, maxs, 0, 0);
-  /* NO early `if (!linkhead) return 0;` — the original's test is this loop's own
-   * entry guard and lands on the shared exit, so the NULL path still calls
+  /* NO early `if (!linkhead) return 0;` — the original's test is this loop's entry
+   * guard and lands on the shared exit, so the NULL path still calls
    * AAS_UnlinkFromBSPLeaves(NULL), which tolerates it. */
   for (link = linkhead; link && count < maxcount; link = link->next_leaf) {
     ent_link = bspworld.dword_10069584[link->leafnum];
@@ -1960,10 +1846,8 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
         AAS_EntityBSPData(ent_link->entnum, &entdata);
 
         /* All six bounds are the correct ones.  The two textually identical
-         * `fld [esp+0x3c]` instructions in the original read DIFFERENT fields:
-         * the first runs while esp is still 8 lower (the AAS_EntityBSPData args
-         * are popped only afterwards) so it is absmins[0], the second is
-         * absmins[2]. */
+         * `fld [esp+0x3c]` in the original read DIFFERENT fields: the first runs
+         * while esp is still 8 lower, so it is absmins[0], the second absmins[2]. */
         if (entdata.absmins[0] <= maxs[0]
          && entdata.absmaxs[0] >= mins[0]
          && entdata.absmins[1] <= maxs[1]
@@ -1976,9 +1860,8 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
           } else if (solid == 3) {
             /* 4th arg is entdata.modelnum, not entnum. */
             brush_links = AAS_BSPLinkEntity(mins, maxs, 0, entdata.modelnum);
-            /* No `if (brush_links)` guard either — the NULL case unlinks NULL.  And the
-             * hit is reported by BREAKing to the shared post-loop `if (brush_iter)`
-             * re-check, not inline in the loop. */
+            /* No `if (brush_links)` guard either — the NULL case unlinks NULL.  The
+             * hit is reported by BREAKing to the shared post-loop re-check. */
             for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
               if (bspworld.dleafs[brush_iter->leafnum].numleafbrushes)
                 break;
@@ -1999,22 +1882,14 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
 }
 // gladiator.dll: 10006600..10006702
 // gladi386.so:   0000E564..0000E653
-// Set/update a BSP epair in an entity's epair list — the writing
-// counterpart of AAS_ValueForBSPEpairKey at 10006760.  Walks the
-// singly-linked bsp_epair_t chain rooted at *head; on a key-hit
-// frees the old value and replaces it with GetMemory(strlen(value)+1)
-// + memcpy; on a miss prepends a freshly-cleared 12-byte epair with
-// both fields freshly-allocated.  The original .text inlines the
-// strcmp/strlen/memcpy as repe scas / rep movs sequences (see
-// 10006615..10006637 for the strcmp, 1000666a/10006681 for the
-// scas-derived strlen, and 10006690..10006699 for the dword+byte rep
-// movs) — written here as the equivalent strdup-style idiom that
-// MSVC inlined from <string.h>.
-// Allocator thunks: 0x10001479 → GetClearedMemory, 0x10001AB4 →
-// GetMemory, 0x1000180C → FreeMemory.
-// DEAD in Gladiator — the engine builds its BSP entity dict from the
-// .bsp lump and never patches entries post-load; preserved by
-// /INCREMENTAL.
+// Set/update a BSP epair in an entity's epair list — the writing counterpart of
+// AAS_ValueForBSPEpairKey.  On a key-hit frees the old value and replaces it; on
+// a miss prepends a freshly-cleared 12-byte epair.  The original inlines the
+// strcmp/strlen/memcpy as repe scas / rep movs; written here as the equivalent
+// strdup-style idiom MSVC inlined from <string.h>.
+// Allocator thunks: 0x10001479 -> GetClearedMemory, 0x10001AB4 -> GetMemory,
+// 0x1000180C -> FreeMemory.
+// DEAD in Gladiator; preserved by /INCREMENTAL.
 void __cdecl sub_10006600(bsp_epair_t **head, char *key, char *value)
 {
   bsp_epair_t *ep;
@@ -2189,12 +2064,10 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
 // 10001C30: thunk -> 0x1003F5C0 = PS_ExpectTokenType (script-level expect)
 // gladiator.dll: 10006D10..1000706B
 // gladi386.so:   0000EC80..0000F0A1
-/* RecursiveLightPoint — Quake 1's `WinQuake/gl_rlight.c` (the GL variant, the
- * one that also exports the impact point as `lightspot`), with Q1 `world.c`'s
- * SV_RecursiveHullCheck head grafted on: `if (num < 0) return`, node/plane
- * fetched from the dnodes/dplanes lumps, plus an axial fast path Q1 itself
- * never added.  Algorithm is Q1, data layout is Q2 (the BSP file structs come
- * from the Q2 tools source).
+/* Quake 1's `WinQuake/gl_rlight.c` RecursiveLightPoint (the GL variant, which
+ * also exports the impact point), with Q1 `world.c`'s SV_RecursiveHullCheck head
+ * grafted on, plus an axial fast path Q1 never had.  Algorithm is Q1, data
+ * layout is Q2.
  *
  * Deliberate deviations from Q1 — do NOT "restore" them:
  *   - returns 0/1 rather than -1/0..255, and drops Q1's redundant second
@@ -2202,10 +2075,9 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
  *   - drops Q1's `surf->flags & SURF_DRAWTILED` skip
  *   - `mid[i] = (end[i]-start[i])*frac + start[i]`, not Q1's
  *     `start[i] + (end[i]-start[i])*frac`
- *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB
- *     read (Q2 lightdata is RGB), taking the styles loop with it.
- * Reads the per-face {texturemins[2], extents[2]} table that
- * CalcSurfaceExtents (0x100071E0) builds. */
+ *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB read.
+ * Reads the per-face {texturemins[2], extents[2]} table CalcSurfaceExtents
+ * builds. */
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor)
 {
   dnode_t *v6; // esi
@@ -2319,16 +2191,14 @@ sample_lightmap:
 }
 // gladiator.dll: 10007150..100071BC
 // gladi386.so:   0000F0A4..0000F125
-/* Static-light helper for AAS_BSPTraceLight (sub_1000D5F0): traces model 0 via
- * RecursiveLightPoint, returning the endpos plus the surface RGB in
- * red/green/blue.  Q3 stubs the whole BSPTraceLight feature, so there is no
- * cognate name — kept under its address. */
+/* Static-light helper for AAS_BSPTraceLight: traces model 0 via
+ * RecursiveLightPoint, returning endpos plus the surface RGB.  Q3 stubs the whole
+ * BSPTraceLight feature, so there is no cognate name. */
 int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *red, _DWORD *green, _DWORD *blue)
 {
-  /* int[3], not float[3]: RecursiveLightPoint writes the RGB lightmap samples
-   * here as ints and the original copies them out with plain movs.  Typed as
-   * float, the copy becomes a float->int conversion that truncates the small
-   * (denormal-looking) sample values to 0. */
+  /* int[3], not float[3]: RecursiveLightPoint writes the RGB samples as ints and
+   * the original copies them out with plain movs.  Typed float, the copy becomes a
+   * float->int conversion that truncates the denormal-looking samples to 0. */
   int v7[3]; // [esp+0h] [ebp-Ch] BYREF
 
   if ( !bspworld.dword_100674C0 )
@@ -2342,11 +2212,10 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
 }
 // gladiator.dll: 100071E0..100073D3
 // gladi386.so:   0000F128..0000F4CF
-/* CalcSurfaceExtents — Quake 1 `WinQuake/model.c`, walking the BSP file lumps
- * (dfaces/dsurfedges/dedges/dvertexes/texinfo) instead of a loaded model_t and
- * writing an 8-byte {short texturemins[2]; short extents[2]} record per face
- * into the dword_10067558 side table, since botlib has no msurface_t to hang
- * them off.  Consumed by RecursiveLightPoint (0x10006D10).
+/* Quake 1 `WinQuake/model.c` CalcSurfaceExtents, walking the BSP file lumps
+ * instead of a loaded model_t and writing an 8-byte {short texturemins[2]; short
+ * extents[2]} record per face into the dword_10067558 side table.  Consumed by
+ * RecursiveLightPoint.
  *
  * Deliberate deviations from Q1 — do NOT restore:
  *   - mins init is 99999.0f, not id's 999999 (maxs is -99999.0f as in Q1)
@@ -2399,14 +2268,13 @@ void CalcSurfaceExtents()
       *(float *)&v24[0] = -99999.0f;
       v22 = &bspworld.texinfo[v2];
       /* ONE read, sign-extended once, hoisted ABOVE the guard.  Reading the field
-       * twice (guard + body) makes the test 16-bit with a separate sign-extend;
-       * folding the assignment INTO the condition also regresses. */
+       * twice makes the test 16-bit with a separate sign-extend; folding the
+       * assignment INTO the condition also regresses. */
       v20 = face->numedges;
       if ( v20 > 0 )
       {
-        /* Initialiser order is NOT a lever here — reordering to the original's own
-         * dsurfedges -> dedges -> dvertexes emission order is an exact no-op.
-         * The residual is a register-pressure difference, not a source shape. */
+        /* Initialiser order is NOT a lever here — the residual is register
+         * pressure, not a source shape. */
         v3 = bspworld.dedges;
         v4 = bspworld.dvertexes;
         v5 = &bspworld.dsurfedges[face->firstedge];
@@ -2457,12 +2325,10 @@ void CalcSurfaceExtents()
 }
 // gladiator.dll: 10007460..1000786F
 // gladi386.so:   0000F4D0..0000FC69
-/* No parameters: the `a1` the decompiler shows is a phantom __fastcall arg —
- * the prologue's `push ecx` only reserves a local slot and the incoming ecx is
- * overwritten before any read, while the sole caller sets up no ecx at all.
- *
- * Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c; same lump walk,
- * minus bspc's `todisk` reverse direction, which a load-only DLL never needs. */
+/* No parameters: the `a1` the decompiler shows is a phantom __fastcall arg — the
+ * prologue's `push ecx` only reserves a local slot, and the sole caller sets up
+ * no ecx at all.  Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c,
+ * minus bspc's `todisk` reverse direction. */
 int Q2_SwapBSPFile(void)
 {
   int v1; // ebp
@@ -2596,10 +2462,9 @@ int Q2_SwapBSPFile(void)
   }
   for ( ii = 0; ii < bspworld.numbrushsides; ++ii )
   {
-    /* The LittleShort round-trip must stay (identity on little-endian): the
-     * decompiler lost the call/return chain here and wrote an uninitialised
-     * temp over every brush's planenum at map-load time, which intermittently
-     * drove CM_TraceThroughBrush into an out-of-range plane. */
+    /* The LittleShort round-trip must stay (identity on little-endian): without it
+     * an uninitialised temp lands on every brush's planenum at map-load time and
+     * intermittently drives CM_TraceThroughBrush into an out-of-range plane. */
     bspworld.dbrushsides[ii].planenum = LittleShort(bspworld.dbrushsides[ii].planenum);
     bspworld.dbrushsides[ii].texinfo  = LittleShort(bspworld.dbrushsides[ii].texinfo);
   }
@@ -2620,10 +2485,8 @@ int Q2_SwapBSPFile(void)
   if ( bspworld.nummodels > 0 )
   {
     /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[v68]`
-     * yields the same base+offset induction pair but swaps the SIB roles (the
-     * original keeps dmodels as the base and the x48 offset as the index),
-     * which costs this function its byte-match for a pure encoding tie.  The
-     * field reads below are typed either way. */
+     * yields the same base+offset induction pair but swaps the SIB roles, costing
+     * this function its byte-match for a pure encoding tie. */
     v69 = 0;
     do
     {
@@ -2935,19 +2798,16 @@ int sub_100085F0()
 /* ------------------------------------------------------------------------
  * Present in gladi386.so, ABSENT from gladiator.dll.
  *
- * The `.so` is the August 2 1999 build and the DLL this reconstruction is
- * derived from is July 18, so the Linux image carries functions the Windows
- * one does not.  They are gated rather than added unconditionally, because
- * the DLL is the canonical byte-match target and code it does not contain
- * must not appear in it.  Drop the gate for any of these that later turns up
- * in the DLL.
+ * The .so is the Aug 2 1999 build, the DLL Jul 18, so the Linux image carries
+ * functions the Windows one does not.  Gated rather than added unconditionally,
+ * because the DLL is the canonical byte-match target and code it does not
+ * contain must not appear in it.  Drop the gate for any that later turns up.
  * ------------------------------------------------------------------------ */
 #ifndef _WIN32
 
 /* F673 @ 0x0000aa40, 113 bytes.  `RotatePoint(vec3_t point, float m[3][3])`,
- * declared in Q3's bspc/l_math.h and sitting immediately before AnglesToAxis
- * (F674) here too.  The disassembly copies the point to three stack slots
- * first, which is what the source's own `vec3_t tmp` does. */
+ * declared in Q3's bspc/l_math.h.  The disassembly copies the point to three
+ * stack slots first, which is what the source's own `vec3_t tmp` does. */
 void __cdecl RotatePoint(vec3_t point, float matrix[3][3])
 {
   vec3_t tvec;

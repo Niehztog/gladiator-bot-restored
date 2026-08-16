@@ -1,36 +1,25 @@
 /*
- * be_ai_def.h — the bot-AI internal definitions: the structures the be_ai_*,
- * be_ai2_* and be_ea translation units are built on, plus a roll-up of their
- * interfaces.  The exact counterpart of be_aas_def.h, built on the same two
- * conventions Q3 botlib uses:
+ * be_ai_def.h — the bot-AI internal definitions: the structures the be_ai_*, be_ai2_*
+ * and be_ea translation units are built on, plus a roll-up of their interfaces.  The
+ * exact counterpart of be_aas_def.h, built on the same two conventions Q3 botlib uses:
  *
  *   - a `*_def.h` holds one subsystem's shared types and then #includes that
- *     subsystem's per-TU prototype headers (Q3's be_aas_def.h does precisely
- *     this for its twelve be_aas_*.h);
- *   - types shared by several botlib TUs but never seen by the game module
- *     stay inside botlib/ (Q3 keeps weightconfig_t in botlib/be_ai_weight.h
- *     for exactly that reason).
+ *     subsystem's per-TU prototype headers;
+ *   - types shared by several botlib TUs but never seen by the game module stay inside
+ *     botlib/ (Q3 keeps weightconfig_t in botlib/be_ai_weight.h for that reason).
  *
- * Q3 has no be_ai_def.h because its bot AI lives in the GAME module, so
- * bot_goal_t / bot_match_t / bot_moveresult_t are public API in code/game/.
- * Gladiator's bot AI is inside botlib -- be_ai2_dmq2.c and friends are lcc.mak
- * objects -- and game.dll sees only game/botlib.h, so the same types are
- * internal here and belong on this side of the line.
- *
- * The three sections below are the reconstruction-era botlib_structs.h,
- * chat_state.h and bot_state.h, verbatim and in the order the preprocessor
- * already resolved them (bot_state.h included the other two).  Splitting them
- * further by subsystem is a separate step: their types cross-reference, so it
- * is a type-graph reordering, not a move.
+ * Q3 has no be_ai_def.h because its bot AI lives in the GAME module, so bot_goal_t /
+ * bot_match_t / bot_moveresult_t are public API in code/game/.  Gladiator's bot AI is
+ * inside botlib and game.dll sees only game/botlib.h, so the same types are internal
+ * here and belong on this side of the line.
  */
 #ifndef BOTLIB_BE_AI_DEF_H
 #define BOTLIB_BE_AI_DEF_H
 
-/* Forward TAG declarations for the structures below that reference each other.
- * Tags, not typedefs: C89 forbids repeating a typedef name, and each of these
- * is typedef'd for real at its own definition further down.  (gcc 2.7.2.3 --
- * the compiler that built the 1999 .so -- rejects the duplicate outright, so
- * the original source cannot have had one either.) */
+/* Forward TAG declarations for the structures below that reference each other.  Tags,
+ * not typedefs: C89 forbids repeating a typedef name, and gcc 2.7.2.3 — the compiler
+ * that built the 1999 .so — rejects the duplicate outright, so the original source
+ * cannot have had one either. */
 struct bot_character_s;      /* layout defined later; needed by Characteristic_* */
 struct bot_weaponstate_s;
 struct chatlist_s;
@@ -389,9 +378,8 @@ typedef struct bot_match_s {
  * and are routed through the side-band arrays (`botchatdumps`,
  * `botchatmsglinks`); they stay 4-byte ints to preserve the 188-byte size. */
 typedef struct bot_chatstate_s {
-    /* No anonymous overlay: gcc 2.7.2.3 discards one (see bot_state_t).
-     * The `int _slots[47]` byte view it used to carry had no users; the
-     * 188-byte size is asserted below instead. */
+    /* No anonymous overlay: gcc 2.7.2.3 discards one (see bot_state_t).  The 188-byte
+     * size is asserted below instead. */
     int  gender;                         /* +0   0=neutral, 1=female, 2=male; set by
                                           * BotSetupClient from Characteristic_String(…, 3) */
     char name[16];                       /* +4   chat name; BotSetChatName memsets 15 and
@@ -510,9 +498,9 @@ typedef struct bot_goalstate_s {
 
 /* Named team-waypoint list node, heap-allocated by BotCreateWayPoint as
  * `sizeof(bot_waypoint_t) + strlen(name) + 1` (the original allocated
- * strlen(name)+1+68); the inline name buffer follows at `(char *)(node + 1)`.
- * The three bot_state_t head slots at +4544/+4548/+4552 are side-banded
- * through botcheckpoints/botpatrolpoints/botcurpatrolpoint in botlib.c. */
+ * strlen(name)+1+68); the inline name buffer follows at `(char *)(node + 1)`.  The
+ * three bot_state_t head slots at +4544/+4548/+4552 are side-banded through
+ * botcheckpoints/botpatrolpoints/botcurpatrolpoint. */
 typedef struct bot_waypoint_s {
     char                   *name;   /* points to inline name buffer right after struct */
     bot_goal_t              goal;   /* origin/areanum/mins/maxs/...; passed as bot_goal_t* */
@@ -531,8 +519,6 @@ typedef struct bot_waypoint_s {
  * quantities at exactly 200 and 201.  Q3 kept the slot numbers when the code
  * moved to the game module.
  *
- * Until 2026-08-10 these were spelled as named fields in an anonymous struct
- * overlaid on the array, which gcc 2.7.2.3 cannot express (see bot_state_t).
  * Index = (binary offset - 1728) / 4. */
 #define INVENTORY_HEALTH                41   /* +1892  ps.stats[STAT_HEALTH] snapshot */
 
@@ -569,16 +555,12 @@ typedef struct bot_state_s {
     /* gcc 2.7.2.3 -- the compiler that built the 1999 .so -- has no anonymous
      * struct/union members: it parses them, warns "unnamed struct/union that
      * defines no instances", and DISCARDS them.  So the original cannot have
-     * had the overlays this struct carried until 2026-08-10.  Where a byte
-     * view had no users it is simply gone; where both views were live the
-     * typed one is kept and the callers were moved onto it. */
+     * had a byte-view overlay on this struct. */
     int    inuse;                 /* +0    */
     int    client;                /* +4    */
     int    entitynum;             /* +8    */
     /* +12..+1239 (1228 B): the bot_updateclient_t snapshot, written wholesale
-     * every frame via the BotUpdateClient import (slot 13).  Until 2026-08-10
-     * this also carried an anonymous alias struct naming the same bytes
-     * (bs->pm_type, bs->ps_origin, …); the callers now go through the member. */
+     * every frame via the BotUpdateClient import (slot 13). */
     bot_updateclient_t snapshot;
     char   settings[432];         /* +1240..+1671 bot_clientsettings_t */
     int    character;             /* +1672 */

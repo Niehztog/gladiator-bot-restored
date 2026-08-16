@@ -1,40 +1,22 @@
 /*
  * be_aas_file.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1000BBA0..0x1000D340; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1000BBA0..0x1000D340.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_file.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_light.h"
@@ -46,17 +28,13 @@
 
 // gladiator.dll: 1000BBA0..1000C2B3
 // gladi386.so:   000153B4..00016096
-/* Plain counted `for` loops over two reused counters, exactly as Q3's
- * AAS_SwapAASData (be_aas_file.c) has them — NOT IDA's `vN = 0; if (n > 0)
- * { do { … ++vN; } while (vN < n); }` rendering with one throwaway counter
- * per loop.  Both parts matter on the gcc 2.7 side: the `for` shape gives
- * real's entry guard (`mov ecx,[i]; cmp count,ecx`, reading the variable)
- * instead of `cmp count,0`, and collapsing the 19 IDA counters to `i`/`j`
- * frees the callee-saved register real spends on the strength-reduced byte
- * offset (ours had spilled it into three separate frame slots).  Together:
- * OUR-17 / 5706 differing bytes -> byte-exact ELF MATCH, frame 0x2c -> 0x1c.
- * MSVC6 keeps everything in registers here (its whole frame is one `push
- * ecx`), so the PE row was MATCH before and after. */
+/* Plain counted `for` loops over two reused counters, exactly as Q3's AAS_SwapAASData
+ * has them — NOT IDA's `vN = 0; if (n > 0) { do { … ++vN; } while (vN < n); }` rendering
+ * with one throwaway counter per loop.  Both parts matter on the gcc 2.7 side: the `for`
+ * shape gives the original's entry guard (`mov ecx,[i]; cmp count,ecx`, reading the
+ * variable) instead of `cmp count,0`, and collapsing the 19 IDA counters to `i`/`j` frees
+ * the callee-saved register the original spends on the strength-reduced byte offset.
+ * MSVC6 keeps everything in registers here, so the PE row is unaffected. */
 void AAS_SwapAASData()
 {
   int i, j;
@@ -576,29 +554,22 @@ qboolean __cdecl AAS_WriteAASFile(char *filename)
 }
 // gladiator.dll: 1000D340..1000D409
 // gladi386.so:   000179E4..00017CAB
-// AAS_InitBSPPointLights — allocate and freelist-initialise the
-// bsp_pointlight_t pool used by BotAddPointLight (0x1000D550) and
-// AAS_BSPTraceLight (0x1000D5F0).  Pool size = max_aaslights * 52
-// bytes; default 128 lights.  After init the entire pool is chained
-// via .next/.prev into aasworld.oldestcache (free pool), and the
-// pool base is stashed in aasworld._pad_1FC for later FreeMemory.
-// DEAD in Gladiator — preserved by /INCREMENTAL: in stock builds the
-// engine never sets up max_aaslights and never calls this init, so
-// BotAddPointLight's free-list pop in sub_1000D450 always returns
-// NULL and the point-light cache stays empty.
-/* Not `static`: gladi386.so exports this as one of its 809 .dynsym FUNCs, and
- * a `static` that is never called is not merely inlined by gcc 2.7.2.3 -- it is
- * DROPPED, so the function vanished from the ELF build entirely and audited as
- * a missing 711-byte reconstruction.  MSVC /Od emits an unreferenced static
- * anyway, which is why the DLL has it at 0x1000D340 and the PE audit never
- * noticed. */
+// Allocate and freelist-initialise the bsp_pointlight_t pool used by BotAddPointLight
+// and AAS_BSPTraceLight.  Pool size = max_aaslights * 52 bytes; default 128 lights.
+// After init the entire pool is chained via .next/.prev into aasworld.oldestcache (free
+// pool), and the pool base is stashed in aasworld._pad_1FC for later FreeMemory.
+// DEAD in Gladiator — /INCREMENTAL: in stock builds the engine never sets up
+// max_aaslights and never calls this init, so BotAddPointLight's free-list pop always
+// returns NULL and the point-light cache stays empty.
+/* Not `static`: gladi386.so exports this as one of its 809 .dynsym FUNCs, and a `static`
+ * that is never called is not merely inlined by gcc 2.7.2.3 — it is DROPPED, so the
+ * function vanishes from the ELF build entirely.  MSVC /Od emits an unreferenced static
+ * anyway, which is why the DLL has it at 0x1000D340. */
 void sub_1000D340(void)
 {
-  /* `i` before `max`: gcc 2.7.2.3 gives each local its stack slot in
-   * DECLARATION order (expand_decl numbers the pseudos, reload assigns slots
-   * downward), so the order here is readable straight off the frame.  The real
-   * image keeps max at [esp+0x1c] and i at [esp+0x20]; declaring max first
-   * transposes the two and is the whole of the difference. */
+  /* `i` before `max`: gcc 2.7.2.3 gives each local its stack slot in DECLARATION order,
+   * so the order here is readable straight off the frame.  The real image keeps max at
+   * [esp+0x1c] and i at [esp+0x20]; declaring max first transposes the two. */
   int i;
   int max;
 

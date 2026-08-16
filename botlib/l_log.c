@@ -1,39 +1,22 @@
 /*
  * l_log.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10038BE0..0x10038F0F (seven functions) and it owns the `logfile` state
- * block; both facts are recovered in .claude/memory/tu_partition.md (the Linux
- * .so's .dynsym keeps `logfile` under its real name and sizes it 1032 B, and
- * this TU's F-number run there holds exactly seven functions).
- *
- * The include block below is botlib.c's, verbatim, so every macro and typedef
- * this file compiles against is the environment these functions had before the
- * split.
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10038BE0..0x10038F0F.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_log.h"
 #include "be_interface.h"
 #include "l_libvar.h"
@@ -79,9 +62,8 @@ void Log_Open(char *filename)
 
 // gladiator.dll: 10038CF0..10038D3C
 // gladi386.so:   0004A714..0004A790
-/* Close logfile.fp, clear it on success and print the close message (or an
- * error if fclose fails).  Live: Log_Shutdown@0x10038D60 is the guard wrapper
- * that tail-jumps here. */
+/* Close logfile.fp, clear it on success and print the close message (or an error if
+ * fclose fails).  Log_Shutdown@0x10038D60 is the guard wrapper that tail-jumps here. */
 int __cdecl Log_Close(void)
 {
   int result; // eax
@@ -118,9 +100,8 @@ FILE *Log_Shutdown()
 
 // gladiator.dll: 10038D80..10038DB9
 // gladi386.so:   0004A80C..0004A85F
-/* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
- * warm fall-through and the NULL return the cold forward-`je` target -- same
- * shared-epilogue idiom as the dead Log_WriteTimeStamped below. */
+/* `if (fp) { body } return fp;`, not an inline early-return, so the body is the warm
+ * fall-through and the NULL return the cold forward-`je` target. */
 FILE *Log_Write(char *Format, ...)
 {
   va_list va; // [esp+8h] [ebp+8h] BYREF
@@ -132,20 +113,18 @@ FILE *Log_Write(char *Format, ...)
     fprintf(logfile.fp, "\r\n");
     return (FILE *)fflush(logfile.fp);
   }
-  /* No explicit return on the !fp path: the original shares the main epilogue and
-   * leaves eax undefined, whereas an explicit `return logfile.fp` forces its own
-   * epilogue block. All call sites discard the return value as a bare statement,
-   * so the undefined value is never observed. */
+  /* No explicit return on the !fp path: the original shares the main epilogue and leaves
+   * eax undefined, whereas an explicit `return logfile.fp` forces its own epilogue block.
+   * All call sites discard the return value, so the undefined value is never observed. */
 }
 
 // gladiator.dll: 10038DD0..10038E8C
 // gladi386.so:   0004A860..0004A9C1
-/* An older, more elaborate Log_Write that prefixes each line with a counter
- * and an uptime timestamp, preserved alongside the live minimal
- * Log_Write@10038D80.
+/* An older, more elaborate Log_Write that prefixes each line with a counter and an
+ * uptime timestamp, preserved alongside the live minimal Log_Write@10038D80.
  *
- * Faithful original bug: the 4th %02d field is fed the TOTAL uptime seconds
- * rather than seconds-within-minute, so timestamps past 60 s read oddly.
+ * Faithful original bug: the 4th %02d field is fed the TOTAL uptime seconds rather than
+ * seconds-within-minute, so timestamps past 60 s read oddly.
  *
  * DEAD in Gladiator.
  */
@@ -153,10 +132,9 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
 {
   va_list va;
 
-  /* `if (fp) { body } return fp;`, not an inline early-return, so the body is the
-   * warm fall-through and the NULL return the cold forward-`je` target.
-   * numwrites++ follows the "\r\n" fprintf, interleaving with the fflush setup
-   * as the original does. */
+  /* `if (fp) { body } return fp;`, not an inline early-return, so the body is the warm
+   * fall-through and the NULL return the cold forward-`je` target.  numwrites++ follows
+   * the "\r\n" fprintf, interleaving with the fflush setup as the original does. */
   if ( logfile.fp )
   {
     fprintf(logfile.fp, "%d   %02d:%02d:%02d:%02d   ",
@@ -172,10 +150,8 @@ FILE *__cdecl Log_WriteTimeStamped(const char *Format, ...)
     logfile.numwrites++;
     return (FILE *)fflush(logfile.fp);
   }
-  /* No explicit return on the !fp path: the original shares the main epilogue and
-   * leaves eax undefined, whereas an explicit `return logfile.fp` forces its own
-   * epilogue block.  The function is dead, so the undefined value is never
-   * observed. */
+  /* No explicit return on the !fp path — see Log_Write.  The function is dead, so the
+   * undefined value is never observed. */
 }
 
 // gladiator.dll: 10038EC0..10038EC6

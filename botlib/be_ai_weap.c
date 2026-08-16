@@ -1,40 +1,22 @@
 /*
  * be_ai_weap.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10034BB0..0x100356D0; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10034BB0..0x100356D0.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai_weap.h"
 #include "be_aas_main.h"
 #include "be_ai_weight.h"
@@ -47,9 +29,8 @@
 #include "l_utils.h"
 
 /* weaponinfo_struct — descriptor at 0x1005DFD8 (344 B); field table at 0x1005DBC8.
- * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
- * `D` symbol (0005bdb0 D weaponinfo_fields), which a file-static array can
- * never be. */
+ * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
+ * (0005bdb0 D weaponinfo_fields), which a file-static array can never be. */
 char *weaponinfo_fields[] = {
     FE("name",            0x004, 0x004, 0, 0x00000000),
     FE("level",           0x0A4, 0x002, 0, 0x00000000),
@@ -77,9 +58,8 @@ char *weaponinfo_fields[] = {
 structdef_t weaponinfo_struct = { 344, weaponinfo_fields };
 
 /* projectileinfo_struct — descriptor at 0x1005DFE0 (208 B); field table at 0x1005DE30.
- * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
- * `D` symbol (0005c018 D projectileinfo_fields), which a file-static array
- * can never be. */
+ * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
+ * (0005c018 D projectileinfo_fields), which a file-static array can never be. */
 char *projectileinfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x054, 0x004, 0, 0x00000000),
@@ -115,9 +95,8 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
    * described by a (path, offset, length) triple rather than a bare name. */
   bot_fileref_t file_ref;
 
-  /* Thunk 0x10001AAF -> LibVarValue, which returns the float value in ST(0) —
-   * not LibVar, whose libvar_t* would be used as a count by the allocation
-   * below. */
+  /* Thunk 0x10001AAF -> LibVarValue, which returns the float value in ST(0) — not
+   * LibVar, whose libvar_t* would be used as a count by the allocation below. */
   max_weaponinfo = (int)LibVarValue("max_weaponinfo", "32");
   if ( max_weaponinfo < 0 )
   {
@@ -280,9 +259,8 @@ int __cdecl BotLoadWeaponWeights(bot_weaponstate_t *weaponstate, const char *fil
 }
 // gladiator.dll: 100353C0..1003540E
 // gladi386.so:   000461E0..0004625A
-/* Case-insensitive lookup of a weapon by model name, returning its `number`,
- * or -1 if the config is unloaded, empty or has no match.  Sibling of
- * sub_10035430.  DEAD in Gladiator. */
+/* Case-insensitive lookup of a weapon by model name, returning its `number`, or -1 if
+ * the config is unloaded, empty or has no match.  Sibling of sub_10035430.  DEAD. */
 int __cdecl sub_100353C0(const char *modelname)
 {
   weaponconfig_t *cfg;
@@ -363,11 +341,10 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
             index = ws->itemweights[i];
             if ( index >= 0 )
             {
-              /* Both builds call FuzzyWeight here.  They differ only in whether
-               * the compiler INLINED FuzzyWeight_r into it: gladiator.dll's
-               * FuzzyWeight is the thin 36-byte wrapper, gladi386.so's is 231
-               * bytes and 98% identical to FuzzyWeight_r itself.  Same source,
-               * different inlining -- like sub_10003420/F672. */
+              /* Both builds call FuzzyWeight here.  They differ only in whether the
+               * compiler INLINED FuzzyWeight_r into it: gladiator.dll's FuzzyWeight is
+               * the thin 36-byte wrapper, gladi386.so's is 231 bytes and 98% identical
+               * to FuzzyWeight_r itself.  Same source, different inlining. */
               weight = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[index]);
               if ( weight > bestweight )
               {

@@ -1,19 +1,9 @@
-/*
- * be_aas_cluster.h — interface of be_aas_cluster.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_aas_cluster.h — interface of be_aas_cluster.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_AAS_CLUSTER_H
 #define BOTLIB_BE_AAS_CLUSTER_H
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 void AAS_InitClustering(void);                     /* be_aas_cluster.c 0x100096E0 */
 
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum);

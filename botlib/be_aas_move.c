@@ -1,40 +1,22 @@
 /*
  * be_aas_move.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1000EEB0..0x10010780; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1000EEB0..0x10010780.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_move.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_debug.h"
@@ -65,20 +47,16 @@ BOOL __cdecl AAS_OnGround(vec3_t origin, int presencetype, int passent)
 }
 // gladiator.dll: 1000EFC0..1000EFF7
 // gladi386.so:   0001B7F8..0001B852
-/* Tests whether a point 2 units below `origin` is in liquid
- * (LAVA|SLIME|WATER = 0x38).  BotMoveInDirection uses it to pick a swim/jump
- * movement style.  The bi_PointContents call is required — without it the
- * result is uninitialised. */
+/* Tests whether a point 2 units below `origin` is in liquid (LAVA|SLIME|WATER =
+ * 0x38).  BotMoveInDirection uses it to pick a swim/jump movement style.  The
+ * bi_PointContents call is required — without it the result is uninitialised. */
 BOOL __cdecl AAS_Swimming(vec3_t origin)
 {
-  /* A real vec3_t written with VectorCopy, then bumped down by 2 — NOT an
-   * int[3] with `*(int *)&origin[i]` bit copies.  Both originals agree and each
-   * optimises the pair its own way: MSVC6 dead-store-eliminates the [2] copy
-   * and folds origin[2] straight into the `fld` (`fld [eax+8]; fsub 2.0`),
-   * gcc 2.7 keeps the copy and re-reads the slot (`mov [esp+0xc],edx; fld 2.0;
-   * fsubr [esp+0xc]`).  The int-cast form reproduces neither.  Plain float
-   * assignment injects no int->float conversion — the earlier warning here was
-   * about casting *into* a float array, which is not what VectorCopy does. */
+  /* A real vec3_t written with VectorCopy, then bumped down by 2 — NOT an int[3] with
+   * `*(int *)&origin[i]` bit copies.  Both originals agree and each optimises the pair
+   * its own way: MSVC6 dead-store-eliminates the [2] copy and folds origin[2] straight
+   * into the `fld`, gcc 2.7 keeps the copy and re-reads the slot.  The int-cast form
+   * reproduces neither. */
   vec3_t testorg; // [esp+0h] [ebp-Ch] BYREF
 
   VectorCopy(origin, testorg);
@@ -90,11 +68,10 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 // gladiator.dll: 1000F010..1000F0EA
 // gladi386.so:   0001B854..0001B938
 /*
- * AAS_JumpReachRunStart (was sub_1000F010) — the run-up start position for a
- * TRAVEL_JUMP reachability: predict movement back from reach->start along the
- * horizontal (start - end) direction at speed 400 and write the predicted
- * endpos into `runstart`, falling back to `start` if the prediction hits
- * liquid or a ground-damage drop (mask 0x38 here; Q3 uses 0x3C).
+ * The run-up start position for a TRAVEL_JUMP reachability: predict movement back
+ * from reach->start along the horizontal (start - end) direction at speed 400 and
+ * write the predicted endpos into `runstart`, falling back to `start` if the
+ * prediction hits liquid or a ground-damage drop (mask 0x38 here; Q3 uses 0x3C).
  */
 void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 {
@@ -125,20 +102,18 @@ void __cdecl AAS_JumpReachRunStart(aas_reachability_t* reach, intptr_t runstart)
 }
 // gladiator.dll: 1000F130..1000F269
 // gladi386.so:   0001B938..0001BA6B
-// Probes the engine's PointContents() at six positions around a 3D
-// origin, looking for the high-bit-29 content flag (0x20000000 —
-// Gladiator's "do-not-enter / bot-area-block" overlay).  The probes
-// trace a 16x16 box at the eye-height offset (+48 on Z) plus the
-// floor point itself:
+// Probe the engine's PointContents() at six positions around a 3D origin, looking
+// for content flag 0x20000000 (Gladiator's "do-not-enter / bot-area-block" overlay).
+// The probes trace a 16x16 box at the eye-height offset (+48 on Z) plus the floor
+// point itself:
 //   (x,   y,   z+48)
 //   (x+8, y+8, z+48)
 //   (x-8, y+8, z+48)
 //   (x-8, y-8, z+48)
 //   (x+8, y-8, z+48)
 //   (x,   y,   z)
-// The first five take the early-exit "return 1" path on a hit; the
-// floor probe returns the bit as 0/1 directly via shr 29 / and 1.
-// Constants from .rdata 0x100580dc/e0/e4 = 16.0f / 8.0f / 48.0f.
+// The first five take the early-exit "return 1" path on a hit; the floor probe
+// returns the bit as 0/1 directly via shr 29 / and 1.
 // DEAD in Gladiator — /INCREMENTAL.
 int __cdecl sub_1000F130(vec3_t origin)
 {
@@ -259,12 +234,11 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 }
 // gladiator.dll: 1000F750..1000F763
 // gladi386.so:   0001BF40..0001BF61
-/* AAS_RocketJumpZVelocity (was sub_1000F750) — Z-velocity from self-rocketing
- * at `origin`; a one-line wrapper over AAS_WeaponJumpZVelocity with the
- * launcher's 120-unit radius damage.  `double`, not `float`: AAS_BFGJumpZVelocity
- * immediately below is the same one-line wrapper and byte-matches with `double`,
- * where the `float` narrowing here made gcc round-trip the callee's ST(0) return
- * through memory (`fstp DWORD; fld DWORD`) and grow a 4-byte frame for it. */
+/* Z-velocity from self-rocketing at `origin`; a one-line wrapper over
+ * AAS_WeaponJumpZVelocity with the launcher's 120-unit radius damage.  `double`, not
+ * `float`: AAS_BFGJumpZVelocity below is the same one-line wrapper and byte-matches
+ * with `double`, where a `float` narrowing makes gcc round-trip the callee's ST(0)
+ * return through memory and grow a 4-byte frame for it. */
 double __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
@@ -301,19 +275,18 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
 // gladiator.dll: 1000F840..100103AA
 // gladi386.so:   0001C00C..0001D122
 /*
- * AAS_ClientMovementPrediction — predict client movement up to `maxframes`
- * ahead.  This is the OLDER form; it diverges from Q3 by design — do NOT
- * "upgrade" it to the Q3 algorithm:
+ * Predict client movement up to `maxframes` ahead.  This is the OLDER form; it
+ * diverges from Q3 by design — do NOT "upgrade" it to the Q3 algorithm:
  *   - physics come from the libvar_sv_* handles, not an aassettings struct;
- *   - acceleration is the inline per-axis velchange/clamp loop below, which Q3
- *     later replaced with AAS_Accelerate + wishdir/wishspeed;
+ *   - acceleration is the inline per-axis velchange/clamp loop below, which Q3 later
+ *     replaced with AAS_Accelerate + wishdir/wishspeed;
  *   - maxwalk/crouch/swim velocities are pre-scaled by frametime here;
  *   - the only stop-events are SE_HITGROUND(1) / SE_LEAVEGROUND(2) /
- *     SE_ENTER{LAVA,SLIME,WATER} / SE_HITGROUNDDAMAGE(0x20) / SE_GAP(0x40) —
- *     no SE_ENTERAREA, jumppad, teleporter or SE_HITBOUNDINGBOX, hence no
- *     mins/maxs/stopareanum params and no AAS_TraceAreas scan.
- * The result is built in the move_buf[] scratch and copied to `move` at the
- * tail.  Names and types follow Q3's for readability only.
+ *     SE_ENTER{LAVA,SLIME,WATER} / SE_HITGROUNDDAMAGE(0x20) / SE_GAP(0x40) — no
+ *     SE_ENTERAREA, jumppad, teleporter or SE_HITBOUNDINGBOX, hence no mins/maxs/
+ *     stopareanum params and no AAS_TraceAreas scan.
+ * The result is built in the move_buf[] scratch and copied to `move` at the tail.
+ * Names and types follow Q3's for readability only.
  */
 aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
         int entnum,           // a2
@@ -355,9 +328,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   int n;
   int i;           // per-axis accel loop index (Q3 be_aas_move.c:620 fossil)
   int j;           // trace-loop safety counter (Q3 be_aas_move.c:648/876). Plain int;
-                   // in ref it loses the ebx contest to presencetype and spills into
-                   // the compiler temp region ([esp+0x2c], shared with the QWORD
-                   // gravity CSE at 1000f9e5 -- proof this was never a declared float)
+                   // loses the ebx contest to presencetype and spills into the compiler
+                   // temp region ([esp+0x2c], shared with the QWORD gravity CSE) — proof
+                   // this was never a declared float
   int pc; // eax
   int ax; // eax
   int crouch; // edi
@@ -367,10 +340,9 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   BOOL swimming; // esi
   int v57;               // swimming flag during the frame loop; the same slot carries
                          // point-contents (pc) on the landing/liquid path — ONE variable,
-                         // matching the original's merged slot.
-                         // The slot has exactly these two non-overlapping roles --
-                         // the apparent extra touches nearby are push-depth-shifted reads of
-                         // start[2]/&start/&left_test_vel, not this slot. Do not re-chase.
+                         // matching the original's merged slot, with exactly these two
+                         // non-overlapping roles.  The apparent extra touches nearby are
+                         // push-depth-shifted reads of start[2]/&start/&left_test_vel.
   char gap_pc; // al
   vec3_t org;            // BYREF
   vec3_t end;            // BYREF
@@ -379,9 +351,8 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   vec3_t lastorg; // BYREF (Q3 be_aas_move.c's lastorg)
   vec3_t frame_test_vel; // BYREF
   vec3_t old_frame_test_vel; // Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
-                             // ref allocates the full 3-float slot but only [2] is ever stored
-                             // (1000fe8d) or read (1000fee4/fefc/ff1f); [0]/[1] are dead padding,
-                             // so only its z component is ever read.
+                             // the original allocates the full 3-float slot but only [2] is
+                             // ever stored or read; [0]/[1] are dead padding
   vec3_t left_test_vel;  // BYREF
   float feet[3]; // BYREF
   vec3_t up = {0, 0, 1};
@@ -389,12 +360,12 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
   aas_plane_t *plane2; // eax
   float v32;
   float v33;
-  /* aas_clientmove_t scratch, copied to `move` at the tail.  Stays a raw int[20]
-   * — do NOT retype to Q3's struct, whose layout differs (no `endarea`, and an
-   * int `endcontents` where this has a float).  dword index:
-   *   [0..2]=endpos [3..5]=velocity [6..14]=trace [15]=presencetype
-   *   [16]=stopevent [17]=float@0x44 (4.0f bits, or (float)pc on the liquid
-   *   path) [18]=time (n*frametime) [19]=frames (n). */
+  /* aas_clientmove_t scratch, copied to `move` at the tail.  Stays a raw int[20] — do
+   * NOT retype to Q3's struct, whose layout differs (no `endarea`, and an int
+   * `endcontents` where this has a float).  dword index:
+   *   [0..2]=endpos [3..5]=velocity [6..14]=trace [15]=presencetype [16]=stopevent
+   *   [17]=float@0x44 (4.0f bits, or (float)pc on the liquid path)
+   *   [18]=time (n*frametime) [19]=frames (n). */
   int move_buf[20]; // BYREF
   aas_trace_t trace; // (plus its hidden return buffer)
   aas_trace_t steptrace; // (plus its hidden return buffer)
@@ -582,10 +553,10 @@ LABEL_66:
       pc = sub_10003080((float *)feet);   
       event = 0;
       v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
-      // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3 be_aas_move.c:888):
-      //   CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10) -> SE_ENTERSLIME(8).
-      //   NB CONTENTS_WATER(0x20) also maps to bit 8 here, not SE_ENTERWATER(4) —
-      //   faithful to the original DLL; Q3 later split water out to SE_ENTERWATER.
+      // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3
+      // be_aas_move.c:888): CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10)
+      // -> SE_ENTERSLIME(8).  NB CONTENTS_WATER(0x20) also maps to bit 8 here, not
+      // SE_ENTERWATER(4) — faithful to the original DLL; Q3 later split water out.
       if ( (pc & 8) != 0 )
         event = 16;
       if ( (pc & 0x10) != 0 )
@@ -647,10 +618,9 @@ LABEL_66:
       if ( (stopevent & 0x40) == 0 )
         goto LABEL_84;
       /* Q3 writes this as `VectorCopy(org, start); VectorCopy(start, end);
-       * end[2] -= 48 + phys_maxbarrier;`, and the dead `end[2] = org[2];` below is
-       * that second copy's third component.  The interleave here is faithful, not
-       * a decompiler scramble — both grouped forms were tried and regress.  Keep
-       * the element order. */
+       * end[2] -= 48 + phys_maxbarrier;`, and the dead `end[2] = org[2];` below is that
+       * second copy's third component.  The interleave here is faithful, not a
+       * decompiler scramble — both grouped forms regress.  Keep the element order. */
       start[0] = org[0];
       end[0] = org[0];
       start[1] = org[1];
@@ -700,15 +670,13 @@ LABEL_88:
 }
 // gladiator.dll: 10010690..1001074D
 // gladi386.so:   0001D124..0001D222
-/* AAS_TestMovementPrediction — movement-prediction debug helper: flatten the
- * direction's Z unless swimming, normalize it, scale to 400 u/s, force a
- * +Z=224 jump impulse, clear the debug lines, then run one
- * AAS_ClientMovementPrediction of 13 frames at 0.1 s (presence=NORMAL,
- * onground, stopevent, visualize) and print "leave ground" if the result
- * flags set bit 0x02.
+/* Movement-prediction debug helper: flatten the direction's Z unless swimming,
+ * normalize it, scale to 400 u/s, force a +Z=224 jump impulse, clear the debug lines,
+ * then run one AAS_ClientMovementPrediction of 13 frames at 0.1 s (presence=NORMAL,
+ * onground, stopevent, visualize) and print "leave ground" if the result flags set
+ * bit 0x02.
  *
- * DEAD — nothing references it; almost certainly a leftover development
- * test harness. */
+ * DEAD — almost certainly a leftover development test harness. */
 void AAS_TestMovementPrediction(int entnum, vec3_t origin, vec3_t dir)
 {
   vec3_t  velocity;          /* zero vector */

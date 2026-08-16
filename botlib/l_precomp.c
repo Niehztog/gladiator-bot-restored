@@ -1,40 +1,22 @@
 /*
  * l_precomp.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10039200..0x1003E000; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10039200..0x1003E000.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_precomp.h"
 #include "be_ai_weight.h"
 #include "be_interface.h"
@@ -44,23 +26,19 @@
 
 define_t *globaldefines;
 
-/* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array
- * in .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_if_def(src,
- * INDENT_IFDEF/INDENT_IFNDEF) -- Q3 botlib has exactly this trio and the same
- * INDENT_* values, and gladi386.so exports all three (F243/F244/F245), so the
- * two wrappers are the original's own functions and not reconstruction glue.
- * `directive_t` / `directives` / `dollardirectives` are the original names,
- * recovered from the Linux gladi386.so .dynsym (both tables 160 B = Q3's
- * `directive_t directives[20]`), replacing the invented preproc_directive_t /
- * preproc_directives / eval_type_table.  Deliberately NOT `static`: `nm -D`
- * on gladi386.so shows both tables as exported `D` symbols
- * (0005c6b0 D directives / 0005c750 D dollardirectives), which a file-static
- * array can never be -- .dynsym only ever lists symbols with external
- * linkage.  This also fixes PC_ReadDirective's codegen: gcc -fPIC addresses a
- * non-static (potentially-interposable) global through a real GOT pointer
- * slot (load the slot, then dereference), where a `static` array gets a
- * direct GOT-relative address with no extra indirection -- the disassembly
- * diff against real showed exactly that extra indirection missing. */
+/* Preprocessor directive table at VA 0x1005F260 — a {char*, int(*)(int)} array in
+ * .data.  #ifdef/#ifndef are 1-arg wrappers over PC_Directive_if_def(src,
+ * INDENT_IFDEF/INDENT_IFNDEF); Q3 has exactly this trio and the same INDENT_*
+ * values, and gladi386.so exports all three, so the wrappers are the original's own
+ * functions.  `directive_t` / `directives` / `dollardirectives` are the original
+ * names, from gladi386.so's .dynsym (both tables 160 B = Q3's `directive_t
+ * directives[20]`).
+ *
+ * Deliberately NOT `static`: .dynsym lists both tables as exported `D` symbols,
+ * which a file-static array can never be.  That also drives PC_ReadDirective's
+ * codegen — gcc -fPIC addresses a non-static (potentially-interposable) global
+ * through a real GOT pointer slot, where a `static` array gets a direct GOT-relative
+ * address with no extra indirection. */
 // gladiator.dll: 1003B7B0..1003B7C0
 // gladi386.so:   0004DCE0..0004DCFE
 int __cdecl PC_Directive_ifdef(source_t *src)
@@ -96,9 +74,9 @@ directive_t directives[] = {
 /* Preserved as aliases so existing PC_ReadDirective code referencing &off_1005F260 still compiles. */
 char *off_1005F260 = "if"; // the table's first name field; see directives
 int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: first handler
-/* dollardirectives — $-directive dispatch table at VA 0x1005F300: 2 entries +
- * NULL, walked by PC_ReadDollarDirective as a stride-2 pointer array.  Same
- * directive_t element type as `directives` above (as in Q3 l_precomp.c). */
+/* $-directive dispatch table at VA 0x1005F300: 2 entries + NULL, walked by
+ * PC_ReadDollarDirective as a stride-2 pointer array.  Same directive_t element type
+ * as `directives` above. */
 directive_t dollardirectives[] = {
     {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
     {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
@@ -348,7 +326,6 @@ int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **par
   }
   return 1;
 }
-// 10039776: conditional instruction was optimized away because ecx.4==0
 // gladiator.dll: 10039A70..10039B1E
 // gladi386.so:   0004B524..0004B5EF
 int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
@@ -393,11 +370,10 @@ unsigned int __cdecl PC_NameHash(const char *name)
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
   /* ONE trailing return, and a redundant `v4 = 0` on the len == 0 arm.  The ELF
-   * dictates this literally: gladi386.so tests the clamped length and, when it
-   * is zero, jumps to a second `mov [esp+0xc],0` that falls straight into the
-   * shared hash tail — three separate paths converging on one epilogue rather
-   * than the early `return abs(v4) & 0x3FF` this used to carry.  Shape matters
-   * beyond this row because gcc inlines PC_NameHash into its seven callers. */
+   * dictates this literally: gladi386.so tests the clamped length and, when zero,
+   * jumps to a second `mov [esp+0xc],0` that falls straight into the shared hash tail
+   * — three paths converging on one epilogue.  Shape matters beyond this row because
+   * gcc inlines PC_NameHash into its seven callers. */
   if ( name )
   {
     v2 = strlen(name);
@@ -408,9 +384,9 @@ unsigned int __cdecl PC_NameHash(const char *name)
     else
       v4 = 0;
   }
-  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: the original negates IN PLACE and
-   * re-reads the variable (`neg eax; mov [esp+0xc],eax; mov eax,[esp+0xc]`),
-   * which abs() folds away. */
+  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: the original negates IN PLACE and re-reads
+   * the variable (`neg eax; mov [esp+0xc],eax; mov eax,[esp+0xc]`), which abs() folds
+   * away. */
   if ( v4 < 0 )
     v4 = -v4;
   return v4 & 0x3FF;
@@ -493,10 +469,9 @@ void __cdecl PC_FreeDefine(define_t *define)
 }
 // gladiator.dll: 10039EE0..10039FB4
 // gladi386.so:   0004B920..0004BA58
-/* Q3's PC_AddBuiltinDefines — walk a local {name, value} table of __LINE__,
- * __FILE__, __DATE__, __TIME__ and add each to source->definehash as a
- * built-in define, with the name stored inline after the struct.
- * DEAD in Gladiator. */
+/* Q3's PC_AddBuiltinDefines — walk a local {name, value} table of __LINE__, __FILE__,
+ * __DATE__, __TIME__ and add each to source->definehash as a built-in define, with
+ * the name stored inline after the struct.  DEAD in Gladiator. */
 void __cdecl PC_AddBuiltinDefines(source_t *source)
 {
   struct {
@@ -694,7 +669,6 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
   }
   return 1;
 }
-// 1003A4E6: conditional instruction was optimized away because eax.4==0
 // gladiator.dll: 1003A690..1003A6E2
 // gladi386.so:   0004C240..0004C2B4
 int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define)
@@ -737,12 +711,9 @@ void __cdecl PC_ConvertPath(char *path)
   for ( ptr = path; *ptr; )
   {
     if ( *ptr == '/' || *ptr == '\\' )
-      /* Two-week source drift (see AAS_Trace in be_aas_bspq2.c for the
-       * fully-documented instance): the Windows DLL (verified via IDA,
-       * sub_1003A710) normalizes to backslash, but the real gladi386.so
-       * writes forward slash here instead -- Quake's own file/VFS layer
-       * is always '/'-separated regardless of host OS, so the Linux port
-       * of this include-path normalizer plausibly diverged on purpose. */
+      /* Two-week source drift (see AAS_Trace in be_aas_bspq2.c): the Windows DLL
+       * normalizes to backslash, but gladi386.so writes forward slash here — Quake's
+       * own file/VFS layer is always '/'-separated regardless of host OS. */
 #ifdef _WIN32
       *ptr = '\\';
 #else
@@ -921,9 +892,9 @@ int __cdecl PC_Directive_undef(source_t *source)
 }
 // gladiator.dll: 1003ADE0..1003B20A
 // gladi386.so:   0004CB30..0004D4DC
-/* Struct-field access throughout rather than the original's literal offsets, so
- * this stays correct as define_t grows 32 -> 56 bytes and token_t 1072 -> 1088
- * on 64-bit.  Variable names follow Q3's PC_Directive_define. */
+/* Struct-field access throughout rather than the original's literal offsets, so this
+ * stays correct as define_t grows 32 -> 56 bytes and token_t 1072 -> 1088 on 64-bit.
+ * Variable names follow Q3's PC_Directive_define. */
 int __cdecl PC_Directive_define(source_t *source)
 {
   token_t token;
@@ -1034,9 +1005,9 @@ int __cdecl PC_Directive_define(source_t *source)
 }
 // gladiator.dll: 1003B320..1003B41F
 // gladi386.so:   0004D4DC..0004D633
-/* Allocate a stub source_t on the stack, parse `string` through
- * PC_Directive_define, copy out the single resulting define from the local
- * definehash, free the scratch buffers and return it. */
+/* Allocate a stub source_t on the stack, parse `string` through PC_Directive_define,
+ * copy out the single resulting define from the local definehash, free the scratch
+ * buffers and return it. */
 define_t *__cdecl PC_DefineFromString(const char *string)
 {
   script_t *script;
@@ -1077,8 +1048,7 @@ define_t *__cdecl PC_DefineFromString(const char *string)
 // gladiator.dll: 1003B460..1003B48C
 // gladi386.so:   0004D634..0004D6EE
 /* Q3's PC_AddDefine — parse `string` into a fresh define_t and link it into
- * source->definehash; 1 on success, 0 if parsing failed.
- * DEAD in Gladiator. */
+ * source->definehash; 1 on success, 0 if parsing failed.  DEAD in Gladiator. */
 int __cdecl PC_AddDefine(source_t *source, const char *string)
 {
   define_t *def;
@@ -1122,11 +1092,9 @@ int __cdecl PC_RemoveGlobalDefine(const char *name)
 }
 // gladiator.dll: 1003B520..1003B545
 // gladi386.so:   0004D7C4..0004D836
-// Drains the globaldefines list by repeatedly
-// popping the head, advancing globaldefines to head->next (define_t
-// offset +0x18 = +24, matching botlib_structs.h define_s::next), and
-// calling PC_FreeDefine on the popped node.  This is the shutdown path
-// for the preprocessor's global #define table; line-for-line Q3's
+// Drain the globaldefines list by repeatedly popping the head, advancing
+// globaldefines to head->next, and calling PC_FreeDefine on the popped node — the
+// shutdown path for the preprocessor's global #define table.  Line-for-line Q3's
 // PC_RemoveAllGlobalDefines.
 void __cdecl PC_RemoveAllGlobalDefines(void)
 {
@@ -1614,8 +1582,8 @@ LABEL_88:
       switch ( o->op )
       {
         /* Case bodies in the ORIGINAL source order, matching Q3's PC_EvaluateTokens:
-         * LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB, AND, OR, GEQ, LEQ, EQ,
-         * UNEQ, GREATER, LESS, RSHIFT, LSHIFT, BIN_AND, BIN_OR, BIN_XOR, COLON,
+         * LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB, AND, OR, GEQ, LEQ, EQ, UNEQ,
+         * GREATER, LESS, RSHIFT, LSHIFT, BIN_AND, BIN_OR, BIN_XOR, COLON,
          * QUESTIONMARK.  MSVC6 emits case bodies in source order, so sorting them
          * numerically relocates every block and both jump tables. */
         case 36:
@@ -1942,13 +1910,10 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
 // gladi386.so:   0004F040..0004F3CD
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
-  /* `indent`/`defined` declared (and later assigned) ahead of the token
-   * pointers, matching Q3A's `int indent, defined = qfalse;` declared before
-   * `firsttoken`/`lasttoken` (Quake-III-Arena l_precomp.c PC_DollarEvaluate).
-   * gcc 2.7.2.3 -O6 assigns stack slots by DECLARATION order, not assignment
-   * order -- reordering only the `indent = 1;`/`firsttoken = 0;` statements
-   * without moving the declarations has no effect on the emitted slot
-   * offsets. */
+  /* `indent`/`defined` declared (and later assigned) ahead of the token pointers,
+   * matching Q3's `int indent, defined = qfalse;` before `firsttoken`/`lasttoken`.
+   * gcc 2.7.2.3 -O6 assigns stack slots by DECLARATION order, not assignment order —
+   * moving only the statements has no effect on the emitted slot offsets. */
   int indent; // [esp+10h] [ebp-438h]
   int defined; // [esp+14h] [ebp-434h]
   token_t *firsttoken; // ebp (firsttoken)
@@ -2205,8 +2170,8 @@ int __cdecl PC_ReadDirective(source_t *source)
   if ( token.type == 4 )
   {
     /* Indexed scan, as Q3 writes it: the index is reused at the call site
-     * (`directives[i].func`), so MSVC keeps both the strength-reduced name
-     * pointer and the counter. */
+     * (`directives[i].func`), so MSVC keeps both the strength-reduced name pointer and
+     * the counter. */
     for ( i = 0; directives[i].name; i++ )
     {
       if ( !strcmp(directives[i].name, token.string) )
@@ -2336,7 +2301,6 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
     return 1;
   }
 }
-// 1003D5BA: conditional instruction was optimized away because eax.4==5
 // gladiator.dll: 1003D650..1003D701
 // gladi386.so:   000502B0..00050344
 int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
@@ -2448,9 +2412,8 @@ int __cdecl PC_CheckTokenString(source_t *source, const char *string)
 }
 // gladiator.dll: 1003DBE0..1003DC5F
 // gladi386.so:   000506BC..00050786
-/* Read one token and keep it only if its type matches and every bit of
- * `subtype` is set in the token's subtype; otherwise unread it and fail.
- * DEAD in Gladiator. */
+/* Read one token and keep it only if its type matches and every bit of `subtype` is
+ * set in the token's subtype; otherwise unread it and fail.  DEAD in Gladiator. */
 int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *token)
 {
   token_t Buffer __attribute__((aligned(8))); // [esp+0h] [ebp-430h] BYREF
@@ -2488,19 +2451,17 @@ void __cdecl PC_UnreadLastToken(source_t *source)
 }
 // gladiator.dll: 1003DD70..1003DD83
 // gladi386.so:   00050848..00050898
-/* Pass-through wrapper around PC_UnreadSourceToken — the external
- * PC_UnreadToken entry point paralleling PC_UnreadLastToken.
- * DEAD in Gladiator. */
+/* Pass-through wrapper around PC_UnreadSourceToken — the external PC_UnreadToken
+ * entry point paralleling PC_UnreadLastToken.  DEAD in Gladiator. */
 void __cdecl PC_UnreadToken(source_t *source, token_t *token)
 {
   PC_UnreadSourceToken(source, token);
 }
 // gladiator.dll: 1003DDA0..1003DE1A
 // gladi386.so:   00050898..0005091E
-/* Copy `path` into source->includepath and ensure it ends with a separator.
- * The fixed 0x104-byte memcpy (rather than strncpy) is verbatim from the
- * original — it reads past the source string's NUL, but the function never
- * runs.  DEAD in Gladiator. */
+/* Copy `path` into source->includepath and ensure it ends with a separator.  The
+ * fixed 0x104-byte memcpy (rather than strncpy) is verbatim from the original — it
+ * reads past the source string's NUL, but the function never runs.  DEAD. */
 void __cdecl PC_SetIncludePath(source_t *source, char *path)
 {
   strncpy(source->includepath, path, MAX_PATH);
@@ -2512,9 +2473,8 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
 }
 // gladiator.dll: 1003DE40..1003DE4F
 // gladi386.so:   00050920..0005092F
-/* Q3's PC_SetPunctuations verbatim.  The write lands at +0x208 in the DLL,
- * which is `punctuations` once includepath is the full MAX_PATH buffer.
- * DEAD in Gladiator. */
+/* Q3's PC_SetPunctuations verbatim.  The write lands at +0x208 in the DLL, which is
+ * `punctuations` once includepath is the full MAX_PATH buffer.  DEAD. */
 void __cdecl PC_SetPunctuations(source_t *source, punctuation_t *p)
 {
   source->punctuations = p;
@@ -2545,8 +2505,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
 // gladiator.dll: 1003DF30..1003DFC3
 // gladi386.so:   00050AB4..00050C38
 /* The memory-buffer twin of LoadSourceFile above: same structure, but wraps an
- * already-in-memory script buffer via LoadScriptMemory.
- * DEAD in Gladiator. */
+ * already-in-memory script buffer via LoadScriptMemory.  DEAD in Gladiator. */
 source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
 {
   script_t *script;

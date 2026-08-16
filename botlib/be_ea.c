@@ -1,40 +1,22 @@
 /*
  * be_ea.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10037090..0x10037690; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10037090..0x10037690.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ea.h"
 #include "be_interface.h"
 #include "l_memory.h"
@@ -67,9 +49,8 @@ void __cdecl EA_DropItem(int client, char *it)
 }
 // gladiator.dll: 10037150..1003716B
 // gladi386.so:   000484CC..000484FC
-// Pushes 0, item, "invuse", client
-// then tail-calls bi_BotClientCommand.  Matches the sibling family
-// EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
+// Pushes 0, item, "invuse", client then tail-calls bi_BotClientCommand.  Matches the
+// sibling family EA_Say/EA_SayTeam/EA_UseItem/EA_DropItem exactly.
 void __cdecl EA_UseInv(int client, char *inv)
 {
   botimport.BotClientCommand(client, "invuse", inv, (char *)NULL);
@@ -115,7 +96,6 @@ int __cdecl EA_Command(int client, char *command, ...)
   return botimport.BotClientCommand(client, args[0], args[1], args[2], args[3], args[4],
                               args[5], args[6], args[7], args[8], args[9], 0);
 }
-// 10037233: conditional instruction was optimized away because esi.4<A
 // gladiator.dll: 100372C0..100372D5
 // gladi386.so:   00048628..0004864B
 /* EA_Attack — set ACTION_ATTACK so the engine fires the bot's weapon next
@@ -175,10 +155,9 @@ void __cdecl EA_Crouch(int client)
 }
 // gladiator.dll: 10037400..10037415
 // gladi386.so:   00048728..0004874B
-/* EA_MoveUp — set ACTION_MOVEUP, which aliases ACTION_JUMP's bit (0x008).
- * Unlike EA_Jump this is unconditional, with no EA_JUMPEDLASTFRAME gate, which
- * is what BotTravel_WaterJump needs to jump out of water regardless of the
- * jump cooldown. */
+/* Set ACTION_MOVEUP, which aliases ACTION_JUMP's bit (0x008).  Unlike EA_Jump this is
+ * unconditional, with no EA_JUMPEDLASTFRAME gate, which is what BotTravel_WaterJump
+ * needs to jump out of water regardless of the jump cooldown. */
 void __cdecl EA_MoveUp(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -186,9 +165,8 @@ void __cdecl EA_MoveUp(int client)
 }
 // gladiator.dll: 10037430..10037445
 // gladi386.so:   0004874C..0004876F
-/* EA_MoveDown — set ACTION_MOVEDOWN, which aliases ACTION_CROUCH's bit (0x10),
- * so this is bit-for-bit EA_Crouch.  DEAD in Gladiator, which always calls
- * EA_Crouch instead. */
+/* Set ACTION_MOVEDOWN, which aliases ACTION_CROUCH's bit (0x10), so this is
+ * bit-for-bit EA_Crouch.  DEAD in Gladiator, which always calls EA_Crouch instead. */
 void __cdecl EA_MoveDown(int client)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -247,15 +225,14 @@ void __cdecl EA_View(int client, vec3_t viewangles)
 }
 // gladiator.dll: 100375E0..10037633
 // gladi386.so:   000488B0..00048929
-/* EA_EndRegular — flush this frame's accumulated EA state to the engine via the
- * BotInput callback, then clear the EA fields for the next frame.  If the jump
- * bit was set, latch EA_JUMPEDLASTFRAME so the next EA_Jump emits a key
- * release — the same press/release pattern Q3 uses.
+/* Flush this frame's accumulated EA state to the engine via the BotInput callback, then
+ * clear the EA fields for the next frame.  If the jump bit was set, latch
+ * EA_JUMPEDLASTFRAME so the next EA_Jump emits a key release — the same press/release
+ * pattern Q3 uses.
  *
- * The second parameter is `float thinktime`, NOT an int: ea_state_t matches the
- * engine's bot_input_t only with thinktime@0, and on aarch64 an int declaration
- * silently truncates the float to 0, giving ucmd.msec = 0 and a bot frozen at
- * spawn. */
+ * The second parameter is `float thinktime`, NOT an int: ea_state_t matches the engine's
+ * bot_input_t only with thinktime@0, and on aarch64 an int declaration silently
+ * truncates the float to 0, giving ucmd.msec = 0 and a bot frozen at spawn. */
 void __cdecl EA_EndRegular(int client, float thinktime)
 {
   ea_state_t *ea = &ea_controls[client];
@@ -263,10 +240,10 @@ void __cdecl EA_EndRegular(int client, float thinktime)
   ea->flags &= ~EA_JUMPEDLASTFRAME;  /* original: `and cl, 0x7F` — clear bit 7 in low byte, preserve upper bits */
   ea->thinktime = thinktime;
   botimport.BotInput(client, ea);
-  /* Clear the non-flag fields FIRST, so MSVC6 materialises the shared zero
-   * before the `ea->flags & ACTION_JUMP` mask: the mask then sets the ZF the
-   * trailing `if` consumes, and these stores preserve it.  Masking first forces
-   * a flag-safe `mov eax,0` plus a second zero for the return. */
+  /* Clear the non-flag fields FIRST, so MSVC6 materialises the shared zero before the
+   * `ea->flags & ACTION_JUMP` mask: the mask then sets the ZF the trailing `if`
+   * consumes, and these stores preserve it.  Masking first forces a flag-safe
+   * `mov eax,0` plus a second zero for the return. */
   ea->thinktime = 0.0f;
   ea->dir[0] = ea->dir[1] = ea->dir[2] = 0.0f;
   ea->speed    = 0.0f;

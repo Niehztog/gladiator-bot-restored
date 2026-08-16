@@ -1,40 +1,22 @@
 /*
  * be_ai_move.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10030A50..0x10034B90; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10030A50..0x10034B90.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai_move.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -87,8 +69,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   int dz; // [esp+18h] [ebp-9Ch]
   /* start/end must be real vec3_t locals: both are passed by address to
    * AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas, and split into
-   * separate slots BotReachabilityArea always returns 0 and the bot goes
-   * inert. */
+   * separate slots BotReachabilityArea always returns 0 and the bot goes inert. */
   int dy; // [esp+14h] [ebp-A0h]
   int v12; // [esp+10h] [ebp-A4h]
 
@@ -97,10 +78,9 @@ int __cdecl BotReachabilityArea(int *origin, int client)
     VectorCopy(((float *)origin), start);
     if ( v19 > 0 )
     {
-      /* Real disasm: a plain 3-word VectorCopy(origin,end), then a SEPARATE
-       * FPU load-constant-800.0/fsubr/fstp overwriting just end[2] -- the
-       * same "uncached copy + adjust" idiom as the grid-search loop below,
-       * not a pre-cached v4=origin[2] scalar. */
+      /* A plain 3-word VectorCopy(origin,end), then a SEPARATE fld 800.0/fsubr/fstp
+       * overwriting just end[2] — the same "uncached copy + adjust" idiom as the
+       * grid-search loop below, not a pre-cached v4=origin[2] scalar. */
       VectorCopy(((float *)origin), end);
       end[2] -= 800.0f;
       trace = AAS_TraceClientBBox((float *)origin, end, 4, -1);
@@ -126,13 +106,9 @@ int __cdecl BotReachabilityArea(int *origin, int client)
         dx = 1;
         do
         {
-          /* Q3A BotFuzzyPointReachabilityArea (ai_move.c) has the same shape:
-           * VectorCopy(origin, end); end[0] += x*8; end[1] += y*8; end[2] += z*12;
-           * -- recomputed fresh every innermost iteration, not cached across the
-           * outer/middle loops. The real disasm confirms: a redundant
-           * VectorCopy(start, end) immediately followed by an integer
-           * multiply-by-5 (lea eax,[ecx+ecx*4]) added via fiadd, all inside the
-           * innermost loop body, with counters ranging {1,0,-1} (not {5,0,-5}). */
+          /* Q3's BotFuzzyPointReachabilityArea has the same shape: the copy and the
+           * three adjustments are recomputed fresh every innermost iteration, not
+           * cached across the outer loops.  Counters range {1,0,-1}, not {5,0,-5}. */
           VectorCopy(start, end);
           end[0] += (float)(dz * 5);
           end[1] += (float)(dy * 5);
@@ -170,12 +146,10 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   /* origin is a vec3 pointer and reach a reach_t pointer; as ints they truncate
    * the callers' pointers (BotTravel_Elevator passes an intptr_t reach). */
   int i; // edi
-  /* org/end/boxmins/boxmaxs/maxs/mins/modelorigin are all plain vec3_t — the
-   * float typing is what lets cl.exe strength-reduce the compare loop and emit
-   * the per-store float immediates below.  Declaration order (mins, maxs,
-   * modelorigin, org, end, angles, boxmins, boxmaxs, trace) matches the real
-   * disasm's stack offsets exactly (verified via the AAS_BSPModelMinsMaxsOrigin
-   * / AAS_Trace call-arg addresses), not source-reading order. */
+  /* org/end/boxmins/boxmaxs/maxs/mins/modelorigin are all plain vec3_t — the float
+   * typing is what lets cl.exe strength-reduce the compare loop and emit the
+   * per-store float immediates below.  Declaration order matches the disasm's stack
+   * offsets, not source-reading order. */
   vec3_t mins; // [esp+0xb8] BYREF
   vec3_t maxs; // [esp+0xac] BYREF
   vec3_t modelorigin; // [esp+0xa0] BYREF
@@ -186,10 +160,9 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   vec3_t boxmaxs; // [esp+0x64] BYREF
   bsp_trace_t trace; // [esp+0x10] BYREF (was int trace[21])
 
-  /* Float lvalues, so each of these nine stores emits its own immediate — as int
-   * bit patterns cl.exe would CSE the constant into a register.  The angles
-   * zeroing must come FIRST, and all of these must be assignments rather than
-   * declaration initialisers. */
+  /* Float lvalues, so each of these nine stores emits its own immediate — as int bit
+   * patterns cl.exe would CSE the constant into a register.  The angles zeroing must
+   * come FIRST, and all of these must be assignments, not declaration initialisers. */
   angles[0] = 0.0f;
   angles[1] = 0.0f;
   angles[2] = 0.0f;
@@ -204,13 +177,11 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   AAS_BSPModelMinsMaxsOrigin(reach->facenum, angles, mins, maxs, modelorigin);
   /* Plain vec3_t arrays indexed by the loop counter: cl.exe /O2 then does the
    * strength reduction itself, picking `origin` as the induction pointer and
-   * expressing maxs/mins/modelorigin as base differences, exactly as the
-   * original does.  Byte arithmetic blocks that, and writing the differences
-   * out as named locals is NOT equivalent — let the compiler derive them.
-   * Term order (modelorigin first) and operand order/polarity (origin on the
-   * left) match Q3A's cognate exactly, which is what lets gcc keep
-   * modelorigin[i] resident on the x87 stack and reuse it for both compares
-   * instead of reloading it from memory a second time. */
+   * expressing maxs/mins/modelorigin as base differences.  Byte arithmetic blocks
+   * that, and writing the differences out as named locals is NOT equivalent.
+   * Term order (modelorigin first) and operand polarity (origin left) match Q3,
+   * which is what lets gcc keep modelorigin[i] on the x87 stack across both
+   * compares instead of reloading it. */
   for ( i = 0; i < 2; i++ )
   {
     if ( origin[i] > modelorigin[i] + maxs[i] + 16.0f )
@@ -220,18 +191,16 @@ BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
   }
   /* Two VectorCopys from ONE source with the [2] copies forwarded into the
    * adjustments, so the surviving integer copies fill the fld->fadd gap.  The
-   * STATEMENT ORDER is load-bearing: copy-adjust/copy-adjust (as Q3 writes it)
-   * puts the fadd after the int loads and sinks both fstps into the argument
-   * pushes; copy/copy/adjust/adjust does not. */
+   * STATEMENT ORDER is load-bearing: copy-adjust/copy-adjust (Q3's form) sinks both
+   * fstps into the argument pushes; copy/copy/adjust/adjust does not. */
   VectorCopy(origin, org);
   org[2] += 24.0f;
   VectorCopy(origin, end);
   end[2] -= 48.0f;
   trace = AAS_Trace(org, boxmins, boxmaxs, end, entnum, 33619971);
-  /* Nested-if with a single shared "return 0" fallthrough, matching Q3A's
-   * cognate exactly, rather than one chained && expression (which made gcc
-   * accumulate the boolean result in esi instead of returning at each
-   * failure point). */
+  /* Nested-if with a single shared "return 0" fallthrough, matching Q3, rather than
+   * one chained && expression — that makes gcc accumulate the boolean in esi instead
+   * of returning at each failure point. */
   if ( !trace.startsolid && !trace.allsolid )
   {
     if ( trace.ent && AAS_EntityModelNum(trace.ent) == reach->facenum )
@@ -406,10 +375,10 @@ void __cdecl MoverBottomCenter(aas_reachability_t *reach, vec3_t bottomcenter)
 // gladi386.so:   00040B1C..00040CA9
 float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 {
-  /* end/start are real vec3_t and ALL three components of each are set before
-   * every AAS_TraceClientBBox / PointContents call.  Miss the end[1]/end[2]
-   * stores and the trace returns a near-random dist, which BotTravel_Walk turns
-   * into `speed = 2 * dist` — the bot then crawls and hitches. */
+  /* end/start are real vec3_t and ALL three components of each are set before every
+   * AAS_TraceClientBBox / PointContents call.  Miss the end[1]/end[2] stores and the
+   * trace returns a near-random dist, which BotTravel_Walk turns into
+   * `speed = 2 * dist` — the bot then crawls and hitches. */
   vec3_t start; // [esp+20h] [ebp-54h] BYREF — trace start vector (was start/v14/v15)
   vec3_t end; // [esp+14h] [ebp-60h] BYREF — trace end vector
   aas_trace_t trace; // [esp+2Ch] [ebp-48h] (was int v16[9] + char v17[36] hidden return buffer)
@@ -492,10 +461,9 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 }
 // gladiator.dll: 100318D0..10031917
 // gladi386.so:   00040EAC..00040F06
-/* `type` is declared but unused — the original BotMoveInDirection pushes the
- * same 4 args (ms, dir, speed, type) to BOTH the swim and walk branches and
- * shares the arg-push, so this __cdecl callee must accept 4 args even though
- * the swim path ignores `type`. */
+/* `type` is declared but unused — the original BotMoveInDirection pushes the same
+ * 4 args to BOTH the swim and walk branches and shares the arg-push, so this
+ * __cdecl callee must accept 4 args even though the swim path ignores `type`. */
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
 {
   vec3_t normdir;
@@ -542,13 +510,11 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
     VectorScale(hordir, speed, (float *)cmdmove);
     if ( (type & 4) != 0 )
     {
-      /* `maxframes` is computed inside EACH arm (Q3's shape), not via IDA's
-       * `v10`/`v20` pair with one division after the join.  This is the only
-       * form both originals agree on: with a `v20 = ms->thinktime` temp the
-       * ELF keeps the divisor on the x87 stack instead of `fdiv [edi+0x2c]`,
-       * and with the division hoisted out of the arms MSVC emits one store of
-       * the CSE temp instead of real's two.  Per-arm gives ELF MATCH and keeps
-       * the PE MATCH. */
+      /* `maxframes` is computed inside EACH arm (Q3's shape), not once after the
+       * join.  This is the only form both originals agree on: with a
+       * `v20 = ms->thinktime` temp the ELF keeps the divisor on the x87 stack
+       * instead of `fdiv [edi+0x2c]`, and with the division hoisted out MSVC emits
+       * one store of the CSE temp instead of the original's two. */
       cmdmove[2] = libvar_sv_jumpvel->value;
       maxframes = (int)(3.0f / ms->thinktime);
     }
@@ -593,11 +559,10 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
 }
 // gladiator.dll: 10031BE0..10031C16
 // gladi386.so:   00041140..000411C2
-/* BotMoveInDirection (was sub_10031BE0) — the public movement dispatcher:
- * route (ms, dir, speed, type) to BotSwimInDirection when the bot's origin is
- * in liquid, else to BotWalkInDirection.  The original pushes the four args
- * once and `je`s to pick the target, so BotSwimInDirection is a 4-arg callee
- * too even though it ignores `type`. */
+/* Public movement dispatcher: route (ms, dir, speed, type) to BotSwimInDirection
+ * when the bot's origin is in liquid, else to BotWalkInDirection.  The original
+ * pushes the four args once and `je`s to pick the target, so BotSwimInDirection is
+ * a 4-arg callee too even though it ignores `type`. */
 int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type)
 {
   if ( AAS_Swimming(movestate->origin) )
@@ -608,14 +573,11 @@ int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float spe
 // gladiator.dll: 10031C30..10031CDD
 // gladi386.so:   000411C4..000412BC
 // 2D line-line intersection (infinite lines through {p1,p2} and {p3,p4}).
-// Returns 0 if the lines are parallel (det == 0); otherwise writes the
-// truncated intersection-point coords (via _ftol, i.e. C casts to int)
-// to out[0]/out[1] and returns 1.  Derived directly from the FPU
-// sequence at 10031C30 — det = (p2.x-p1.x)*(p4.y-p3.y) -
-// (p2.y-p1.y)*(p4.x-p3.x), the two side-crosses c1 / c2 are formed
-// against p1 and p3 respectively, and the result is the rational
-// formula (c2*d1 - c1*d2)/det per coordinate.  DEAD in Gladiator —
-// /INCREMENTAL.
+// Returns 0 if the lines are parallel (det == 0); otherwise writes the truncated
+// intersection coords to out[0]/out[1] and returns 1.
+// det = (p2.x-p1.x)*(p4.y-p3.y) - (p2.y-p1.y)*(p4.x-p3.x); the two side-crosses
+// c1/c2 are formed against p1 and p3; the result is (c2*d1 - c1*d2)/det per
+// coordinate.  DEAD in Gladiator — /INCREMENTAL.
 int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
 {
   float d1x = p2[0] - p1[0];
@@ -640,20 +602,16 @@ int __cdecl Intersection(float *p1, float *p2, float *p3, float *p4, float *out)
 // gladi386.so:   000412BC..000413E4
 int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *moveresult)
 {
-  /* mins/maxs/end must be real vec3_t: otherwise
-   * AAS_PresenceTypeBoundingBox writes mins[2]/maxs[2] into stray slots and
-   * AAS_Trace reads garbage past the bounding box, blocking every movement
-   * with phantom collisions. */
+  /* mins/maxs/end must be real vec3_t: otherwise AAS_PresenceTypeBoundingBox writes
+   * mins[2]/maxs[2] into stray slots and AAS_Trace reads garbage past the bounding
+   * box, blocking every movement with phantom collisions. */
   vec3_t mins; // [esp+14h] [ebp-6Ch] BYREF (was _DWORD v7[2] + float v8)
   vec3_t maxs; // [esp+8h] [ebp-78h] BYREF (was _DWORD v5[2] + float v6)
   vec3_t end;  // [esp+20h] [ebp-60h] BYREF (was float v9[3])
-  /* Q3A's evolved be_ai_move.c BotCheckBlocked (same author) declares
-   * vec3_t up = {0, 0, 1} and tests fabs(DotProduct(dir, up)) < 0.7 here;
-   * MSVC6 constant-folds the dot product down to fabs(dir[2]) since up's
-   * components are compile-time constants (PE stays byte-identical either
-   * way), but gcc 2.7.2.3 does not fold it and materializes up + the 3-term
-   * dot product, so the literal DotProduct form is required for the ELF
-   * oracle to match. */
+  /* Q3's BotCheckBlocked declares vec3_t up = {0,0,1} and tests
+   * fabs(DotProduct(dir, up)) < 0.7.  MSVC6 constant-folds that to fabs(dir[2]) (PE
+   * byte-identical either way), but gcc 2.7.2.3 does not fold it and materialises up
+   * plus the 3-term dot product, so the literal DotProduct form is required for ELF. */
   vec3_t up = {0.0f, 0.0f, 1.0f};
   bsp_trace_t trace; // [esp+2Ch] [ebp-54h] BYREF (was int trace[21])
 
@@ -665,12 +623,9 @@ int __cdecl BotCheckBlocked(bot_movestate_t *ms, float *dir, bot_moveresult_t *m
   }
   VectorMA(ms->origin, 3.0f, dir, end);
   trace = AAS_Trace(ms->origin, mins, maxs, end, ms->entitynum, 33619971);
-  /* Q3A's cognate is void with a single combined `if (!trace.startsolid &&
-   * trace.ent != ENTITYNUM_WORLD && ...)` guard and no return statement;
-   * every call site here also discards the result, and the real disasm
-   * confirms no return value is ever materialized (both the startsolid and
-   * the !trace.ent early-outs fall straight to the epilogue with no `mov
-   * eax` at all) -- same "declared int, no return statement" bug class as
+  /* Q3's cognate is void with a single combined guard and no return statement; every
+   * call site here discards the result, and the disasm materialises no return value
+   * on either early-out — the same "declared int, no return statement" class as
    * AAS_PresenceTypeBoundingBox. */
   if ( !trace.startsolid )
   {
@@ -701,9 +656,8 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
 bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   float v4; // st7
-  /* Real vec3_t: split into separate locals, VectorNormalize / EA_Move read
-   * garbage as dir[2] and the bot sends near-vertical movement, which the game
-   * rejects as upmove. */
+  /* Real vec3_t: split into separate locals, VectorNormalize / EA_Move read garbage
+   * as dir[2] and the bot sends near-vertical movement, which the game rejects. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   float dist; // [esp+50h] [ebp+Ch]
@@ -731,8 +685,7 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
   }
   /* BotGapDistance's FPU return is what the 0.0 compare and the doubling below
    * consume — not the dir length computed above.  Confusing the two makes speed
-   * 2 * distance-to-goal instead of 2 * jump-distance, so the bot crawls toward
-   * every goal and stalls as the distance approaches 0. */
+   * 2 * distance-to-goal instead of 2 * jump-distance. */
   dist = BotGapDistance(ms, dir);
   if ( dist > 0.0f )
     speed = 300.0f - (300.0f - (dist + dist));
@@ -744,11 +697,9 @@ bot_moveresult_t __cdecl BotTravel_Walk(bot_movestate_t *ms, aas_reachability_t 
 }
 // gladiator.dll: 10031FE0..1003208A
 // gladi386.so:   000416F0..000417D7
-// 2D-direction "finish travel walk" helper.  Q3's sibling is
-// BotFinishTravel_Walk: walk straight to reach->end with speed capped
-// at 100 units before the preserved `400 - (400 - 3*dist)` form.
-// DEAD in Gladiator — only kept because /INCREMENTAL left it in the
-// original DLL; Q3 cognate in be_ai_move.c.
+// 2D-direction "finish travel walk" helper (Q3's BotFinishTravel_Walk): walk
+// straight to reach->end with speed capped at 100 before the preserved
+// `400 - (400 - 3*dist)` form.  DEAD in Gladiator — /INCREMENTAL.
 bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   vec3_t hordir;
@@ -763,9 +714,8 @@ bot_moveresult_t __cdecl BotFinishTravel_Walk(bot_movestate_t *ms, aas_reachabil
   dist = VectorNormalize(hordir);
   if ( dist > 100.0f )
     dist = 100.0f;
-  /* Faithful original oddity: algebraically this is just 3*dist, but the
-   * original emits the nested subtraction as two consecutive fsubr, so keep the
-   * literal form. */
+  /* Faithful oddity: algebraically just 3*dist, but the original emits the nested
+   * subtraction as two consecutive fsubr, so keep the literal form. */
   speed = 400.0f - (400.0f - 3.0f * dist);
   EA_Move(ms->client, hordir, speed);
   VectorCopy(hordir, moveresult.movedir);
@@ -999,17 +949,14 @@ bot_moveresult_t __cdecl BotFinishTravel_WalkOffLedge(bot_movestate_t *ms, aas_r
 // gladi386.so:   00042AA0..00042E4B
 bot_moveresult_t __cdecl BotTravel_Jump(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  /* speed and dist2's clamp are pure FPU-stack expressions in the real
-   * disasm — never spilled to a named slot (dist2 itself gets a transient
-   * TBYTE spill around baseline 0x10 solely for the >80 clamp compare). */
+  /* speed and dist2's clamp are pure FPU-stack expressions — never spilled to a named
+   * slot (dist2 gets a transient TBYTE spill solely for the >80 clamp compare). */
   float speed;
   float dist1; // baseline 0x20 — reused: loop counter, then VectorNormalize(dir1)'s length
   float dist2; // reused: dist1+10 loop temp, then VectorNormalize(dir2)'s length (parked on the FPU stack)
-  /* Real vec3_t locals — see the BotTravel_Walk note. Declaration order here
-   * is the exact reverse of the real stack layout (runstart/end/start/dir2/
-   * dir1/hordir at baselines 0x54/0x60/0x6c/0x78/0x84/0x90): gcc 2.7.2.3
-   * allocates this block's slots in reverse declaration order (last
-   * declared gets the lowest offset), confirmed empirically. */
+  /* Real vec3_t locals — see the BotTravel_Walk note.  Declaration order here is the
+   * exact reverse of the stack layout: gcc 2.7.2.3 allocates this block's slots in
+   * reverse declaration order (last declared gets the lowest offset). */
   vec3_t hordir;   // baseline 0x90
   vec3_t dir1;     // baseline 0x84
   vec3_t dir2;     // baseline 0x78
@@ -1086,11 +1033,10 @@ bot_moveresult_t __cdecl BotFinishTravel_Jump(bot_movestate_t *ms, aas_reachabil
   float dist; // [esp+58h] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
-  /* Real disasm has TWO separate struct-return copy-out sequences, and the
-   * `!ms->jumpreach` skip jumps to the SAME copy-out as the DotProduct/dist
-   * guard clause below (gcc cross-jumping two identical `return moveresult;`
-   * tails) — so both guards must be flattened early returns, not one
-   * wrapping `if (ms->jumpreach) { ... }` block. */
+  /* Two separate struct-return copy-out sequences, and the `!ms->jumpreach` skip
+   * jumps to the SAME copy-out as the DotProduct/dist guard below (gcc cross-jumping
+   * two identical `return moveresult;` tails) — so both guards must be flattened
+   * early returns, not one wrapping `if (ms->jumpreach) { ... }` block. */
   if ( !ms->jumpreach )
     return moveresult;
   dir[0] = reach->end[0] - ms->origin[0];
@@ -1115,12 +1061,9 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   vec3_t viewdir; // [esp+14h] [ebp-48h] BYREF
   vec3_t origin; // [esp+20h] [ebp-3Ch] BYREF
-  /* Dead local, never read after init -- Q3's be_ai_move.c:2000 still
-   * declares+initializes it (`vec3_t up = {0, 0, 1};`) immediately after
-   * origin, though the one use is commented out there. Real disasm proves
-   * Gladiator still emitted its store (an extra (0,0,1.0) stack triple,
-   * ordered right after origin's zero-init), so it hadn't been fully
-   * deadcoded yet in 1999. */
+  /* Dead local, never read after init — Q3 still declares and initialises it
+   * (`vec3_t up = {0, 0, 1};`) with its one use commented out, and the disasm proves
+   * Gladiator still emitted the store, so it had not been fully deadcoded in 1999. */
   vec3_t up;
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
 
@@ -1153,11 +1096,10 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
   float dist; // [esp+4Ch] [ebp+8h]
 
   BotClearMoveResult(&moveresult);
-  /* No cached `v4 = ms->moveflags` local — real reloads ms->moveflags
-   * directly (`test BYTE PTR [edi+0x60],N`) at each use site instead of
-   * caching it in a register, so every check below reads ms->moveflags
-   * fresh (IDA invented v4 to name the ecx/edx that MSVC happens to cache
-   * it in; gcc 2.7 doesn't do that CSE unless there's a real local). */
+  /* No cached `v4 = ms->moveflags` local — the original reloads it directly
+   * (`test BYTE PTR [edi+0x60],N`) at each use site.  IDA invented v4 to name the
+   * register MSVC happens to cache it in; gcc 2.7 does not do that CSE without a
+   * real local. */
   if ( (ms->moveflags & 0x20) == 0 )
   {
     VectorSubtract(reach->start, ms->origin, dir);
@@ -1324,11 +1266,10 @@ bot_moveresult_t __cdecl BotFinishTravel_Elevator(bot_movestate_t *ms, aas_reach
 }
 // gladiator.dll: 100338A0..10033A07
 // gladi386.so:   00043E58..00043FE7
-/* The VectorCompare test is an if/ELSE with the `return 1` in the else arm
- * (Q3 be_ai_move.c GrappleState), not IDA's `if (!VectorCompare(...)) return
- * 1;` guard: real branches `je` INTO the else and keeps the distance test as
- * the fall-through, so the `return 1` block sits after `return 2`.  ELF MATCH;
- * PE unaffected. */
+/* The VectorCompare test is an if/ELSE with the `return 1` in the else arm (Q3's
+ * GrappleState), not IDA's `if (!VectorCompare(...)) return 1;` guard: the original
+ * branches `je` INTO the else and keeps the distance test as the fall-through, so
+ * the `return 1` block sits after `return 2`. */
 int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
 {
   int i; // ebx
@@ -1435,9 +1376,8 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
         { return moveresult; }
       }
     }
-    /* POSITIVE guard, as Q3 writes it (`if (grapplevisible_time < AAS_Time() -
-     * 0.4) { hookoff; …; return; }`), leaving the shared
-     * `lastgrappledist = dist` as the fall-through. */
+    /* POSITIVE guard, as Q3 writes it, leaving the shared `lastgrappledist = dist`
+     * as the fall-through. */
     v17 = ms->grapplevisible_time;
     if ( AAS_Time() - 0.4 > v17 )
     {
@@ -1460,10 +1400,9 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   v26 = VectorNormalize(dir);
   vectoangles(viewdir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
-  /* The fabs applies to AngleDiff's FPU return, not to the length computed
-   * above: the gate is "yaw/pitch aligned to within 2 degrees".  Bound to the
-   * length instead, a far hookable surface keeps the bot in the walk-toward
-   * branch forever and the hookon command never fires. */
+  /* The fabs applies to AngleDiff's FPU return, not to the length computed above:
+   * the gate is "yaw/pitch aligned to within 2 degrees".  Bound to the length
+   * instead, a far hookable surface never fires the hookon command. */
   if ( v26 >= 5.0f
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], ms->viewangles[0])), v13 >= 2.0)
     || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
@@ -1556,10 +1495,9 @@ bot_moveresult_t __cdecl BotFinishTravel_WeaponJump(bot_movestate_t *ms, aas_rea
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
 
   BotClearMoveResult(&moveresult);
-  /* Early-return guard clause (not a wrapping `if`) — real has two separate
-   * rep-movs copy-outs (zeroed moveresult here vs. the populated one below),
-   * reached via a `jne`-past-the-early-copy-out branch, the same idiom as
-   * BotFinishTravel_Jump's outer !ms->jumpreach guard. */
+  /* Early-return guard clause, not a wrapping `if` — there are two separate rep-movs
+   * copy-outs (zeroed moveresult here vs. the populated one below), reached via a
+   * `jne`-past-the-early-copy-out branch. */
   if ( !ms->jumpreach )
     return moveresult;
   hordir[0] = reach->end[0] - ms->origin[0];
@@ -1612,8 +1550,7 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
   float dist; // st7
   float speed; // st7
   /* moveresult declared before dir — reverse-declaration-order rule (see
-   * BotTravel_Jump): real's dir sits at a LOWER stack offset than
-   * moveresult, so dir must be declared AFTER moveresult here. */
+   * BotTravel_Jump): the original's dir sits at a LOWER stack offset. */
   bot_moveresult_t moveresult; // [esp+14h] [ebp-30h] BYREF
   /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-3Ch] BYREF (was v13/v14/v15)
@@ -1655,23 +1592,16 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
 }
 // gladiator.dll: 100343A0..100348FB
 // gladi386.so:   00044C24..000459F4
-/* BotMoveToGoal — build a bot_moveresult_t into the output buffer from the
- * movement state, goal and AAS travel flags, returning that buffer.  Walks the
- * AAS reachability chain and dispatches to the right BotTravel_* builder for
- * each of the 14 travel types (Walk / Swim / Jump / Ladder / Grapple /
- * Elevator / RocketJump / WaterJump / …).
+/* Build a bot_moveresult_t from the movement state, goal and AAS travel flags.
+ * Walks the AAS reachability chain and dispatches to the right BotTravel_* builder
+ * for each of the 14 travel types.
  *
- * Returns bot_moveresult_t BY VALUE, like every BotTravel_* builder and
- * BotMoveInGoalArea.  IDA's `v = *BotMoveToGoal(&tmp, …)` rendering (an
- * explicit retbuf first parameter) is its transcription of MSVC's hidden-
- * retbuf ABI, not the original source: MSVC6 materialises the temp and the
- * copy from a plain `v = F(…)` anyway (PE byte-IDENTICAL either way), while
- * gcc 2.7 passes the destination straight through and emits NEITHER, which is
- * what the Linux original does.  Converting the seven call sites removed a
- * whole 48-byte buffer + struct copy per site: AINode_Seek_ActivateEntity and
- * AINode_Battle_NBG went to byte-exact ELF MATCH, five more AINode_* rows and
- * BotAttackMove improved sharply, and the PE side did not move at all.  Do
- * NOT reintroduce the explicit-retbuf form.
+ * Returns bot_moveresult_t BY VALUE, like every BotTravel_* builder.  IDA's
+ * `v = *BotMoveToGoal(&tmp, …)` rendering (an explicit retbuf first parameter) is
+ * its transcription of MSVC's hidden-retbuf ABI, not the original source: MSVC6
+ * materialises the temp and the copy from a plain `v = F(…)` anyway, while gcc 2.7
+ * passes the destination straight through and emits NEITHER, which is what the Linux
+ * original does.  Do NOT reintroduce the explicit-retbuf form.
  */
 bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *goal, int travelflags)
 {
@@ -1686,11 +1616,10 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
   aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF
   aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
-  /* lastreach never escapes, so MSVC6 coalesces the hidden struct-return temp of
-   * its by-value AAS_ReachabilityFromNum() assignment with the slot itself, and
-   * reuses the same hole for the sequential BotMoveInGoalArea / BotTravel_*
-   * return temps.  Those per-arm temps are compiler-managed — the original
-   * source declares none of them. */
+  /* lastreach never escapes, so MSVC6 coalesces the hidden struct-return temp of its
+   * by-value AAS_ReachabilityFromNum() assignment with the slot itself, and reuses
+   * the same hole for the sequential BotTravel_* return temps.  Those per-arm temps
+   * are compiler-managed — the original source declares none of them. */
 
   BotClearMoveResult(&moveresult);
   BotResetGrapple(movestate);
@@ -1884,11 +1813,10 @@ void __cdecl BotResetLastAvoidReach(intptr_t movestate)
   if ( latesttime != 0 )
   {
     *(int *)&ms->avoidreachtimes[latest] = 0;
-    /* FAITHFUL ORIGINAL BUG — do NOT "fix": the guard reads avoidreachtries[i],
-     * where the leaked loop variable i is 1 past the 1-element array after the
-     * loop exits. Q3's cognate has the exact same idiom: "if (ms->avoidreachtries[i] > 0)
-     * ms->avoidreachtries[latest]--;" — i is used, not a literal, so the out-of-bounds
-     * subscript is a leaked-loop-variable bug, not a hardcoded one. */
+    /* FAITHFUL ORIGINAL BUG — do NOT "fix": the guard reads avoidreachtries[i], where
+     * the leaked loop variable i is 1 past the 1-element array after the loop exits.
+     * Q3's cognate has the same idiom, so the out-of-bounds subscript is a leaked-loop
+     * -variable bug, not a hardcoded one. */
     if ( ms->avoidreachtries[i] > 0 )
       --ms->avoidreachtries[latest];
   }

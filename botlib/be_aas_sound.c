@@ -1,40 +1,22 @@
 /*
  * be_aas_sound.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1001C6F0..0x1001D290; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1001C6F0..0x1001D290.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_sound.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -47,9 +29,8 @@
 #include "l_utils.h"
 
 /* soundinfo_struct — descriptor at 0x1005C138 (176 B); field table at 0x1005C070.
- * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
- * `D` symbol (0005bbcc D soundinfo_fields), which a file-static array can
- * never be. */
+ * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
+ * (0005bbcc D soundinfo_fields), which a file-static array can never be. */
 char *soundinfo_fields[] = {
     FE("name",        0x00, 0x004, 0, 0x00000000),
     FE("volume",      0x50, 0x203, 0, 0x42A00000),  /* 80.0f */
@@ -63,10 +44,9 @@ structdef_t soundinfo_struct = { 176, soundinfo_fields };
 
 // gladiator.dll: 1001C6F0..1001C738
 // gladi386.so:   0002AA60..0002AACC
-/* Dumps every loaded soundinfo_t to the bot debug log via the generic
- * WriteStructure pretty-printer and the soundinfo structdef at .data
- * 0x1005C138.  Companion to Q3's AAS_DumpAreas / AAS_DumpReachabilities.
- * DEAD in Gladiator. */
+/* Dumps every loaded soundinfo_t to the bot debug log via the generic WriteStructure
+ * pretty-printer and the soundinfo structdef at .data 0x1005C138.  Companion to Q3's
+ * AAS_DumpAreas / AAS_DumpReachabilities.  DEAD in Gladiator. */
 void __cdecl sub_1001C6F0(void)
 {
   int   i;
@@ -86,11 +66,9 @@ int sub_1001C760(char *Source)
 {
   int v2; // ebx
   source_t *v5;
-  /* Declaration order reversed vs. stack-offset order (reverse-declaration-
-   * order rule — see BotTravel_Jump / LoadItemConfig): real has file_ref at
-   * the LOWEST offset of these three, then Destination, then ArgList
-   * highest, so the source must declare them in the opposite order: ArgList
-   * first, Destination middle, file_ref last. */
+  /* Declaration order reversed vs. stack-offset order (reverse-declaration-order rule —
+   * see BotTravel_Jump / LoadItemConfig): the original has file_ref at the LOWEST offset
+   * of these three, then Destination, then ArgList highest. */
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+138h] [ebp-430h] BYREF
   char Destination[144]; // [esp+A8h] [ebp-4C0h] BYREF
   bot_fileref_t file_ref; /* original bot_fileref_t local */
@@ -153,9 +131,8 @@ int sub_1001C760(char *Source)
 }
 // gladiator.dll: 1001CAB0..1001CB9A
 // gladi386.so:   0002AD70..0002B041
-/* Initialise the aas-sound node free pool: clamp the cvar, allocate
- * max_aas_sounds nodes and thread them into a doubly-linked free list with the
- * pool base as the head. */
+/* Initialise the aas-sound node free pool: clamp the cvar, allocate max_aas_sounds
+ * nodes and thread them into a doubly-linked free list with the pool base as head. */
 void sub_1001CAB0()
 {
   int i;
@@ -306,9 +283,9 @@ void sub_1001CD80(aas_soundpool_t *a1)
 }
 // gladiator.dll: 1001CDD0..1001CE07
 // gladi386.so:   0002B250..0002B30A
-/* Search the d_100669CC list for the node whose entnum and soundindex match
- * a1/a2, then unlink and free it.  Genuinely void — neither exit sets a return
- * value, and all three callers ignore it. */
+/* Search the d_100669CC list for the node whose entnum and soundindex match a1/a2, then
+ * unlink and free it.  Genuinely void — neither exit sets a return value, and all three
+ * callers ignore it. */
 void __cdecl sub_1001CDD0(int a1, int a2)
 {
   aas_soundpool_t *v2;
@@ -378,9 +355,9 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, 
 }
 // gladiator.dll: 1001CFA0..1001D011
 // gladi386.so:   0002B594..0002B7BC
-/* Time-tick: expire nodes whose +4 float (end-time) is past, and promote
- * nodes from the d_100669D4/D8 list to the d_100669CC/D0 list when their
- * +0 float (start-time) has elapsed.  Original gladiator at 0x1001CFA0. */
+/* Time-tick: expire nodes whose +4 float (end-time) is past, and promote nodes from the
+ * d_100669D4/D8 list to the d_100669CC/D0 list when their +0 float (start-time) has
+ * elapsed. */
 void __cdecl sub_1001CFA0(float a1)
 {
   aas_soundpool_t *v1;
@@ -435,17 +412,14 @@ int __cdecl sub_1001D070(aas_soundpool_t *p)
 // gladi386.so:   0002B810..0002B8A1
 // Inverse-square sound audibility on a moving source.  Args:
 //   arg1 (edi) — listener origin (vec3 at +0)
-//   arg2 (esi) — sound emitter: an aas_soundpool_t node (see its struct
-//                doc comment in gladiator.dll.h for the full field map)
-// Walks aasworld.d_100669C0[emitter->soundindex] to obtain the per-sound
-// soundinfo_t whose ->volume holds the sound's range/strength constant.
-// First gates on AAS_InPVS(listener, &emitter->origin, default-flags)
-// via thunk @0x10001fc8 → sub_10005C90: returns 0.0f (.rdata
-// 0x10058000) when the emitter isn't in PVS or the soundindex maps
-// to a NULL soundinfo.  Otherwise returns
+//   arg2 (esi) — sound emitter: an aas_soundpool_t node
+// Walks aasworld.d_100669C0[emitter->soundindex] to obtain the per-sound soundinfo_t
+// whose ->volume holds the sound's range/strength constant.  First gates on
+// AAS_InPVS(listener, &emitter->origin, default-flags): returns 0.0f when the emitter
+// is not in PVS or the soundindex maps to a NULL soundinfo.  Otherwise returns
 //   (soundinfo->volume * emitter->volume) / dot(delta, delta)
-// where delta = emitter->origin - listener.  DEAD in Gladiator —
-// /INCREMENTAL; the live sound code uses a per-cluster path instead.
+// where delta = emitter->origin - listener.
+// DEAD in Gladiator — /INCREMENTAL; the live sound code uses a per-cluster path.
 
 float __cdecl sub_1001D0A0(float *listener, aas_soundpool_t *emitter)
 {

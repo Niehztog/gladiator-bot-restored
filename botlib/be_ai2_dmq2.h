@@ -1,19 +1,9 @@
-/*
- * be_ai2_dmq2.h — interface of be_ai2_dmq2.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_ai2_dmq2.h — interface of be_ai2_dmq2.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_AI2_DMQ2_H
 #define BOTLIB_BE_AI2_DMQ2_H
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl FindClientByName(char *name);  /* 1-arg roster substring search (sub_100268D0); was incorrectly 3-arg */
 /* G_SetMovedir's four direction constants, in the original declaration order;
  * all four are defined in botlib_structdefs.c.  IDA rendered the two MOVEDIR_*

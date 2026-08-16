@@ -1,16 +1,11 @@
 /*
- * be_aas_def.h — the AAS internal definitions: the world structures the
- * be_aas_*.c files (and be_interface.c) are built on.  Mr. Elusive's own name
- * for this header — Q3 botlib ships be_aas_def.h holding exactly this subject
- * matter, included by its twelve be_aas_*.c plus be_interface.c.  Was
- * aas_world.h until 2026-08-10.
- */
-/*
- * be_aas_def.h — AAS (Area Awareness System) world element types.
+ * be_aas_def.h — AAS (Area Awareness System) internal definitions: the world
+ * structures the be_aas_*.c files and be_interface.c are built on.  Mr. Elusive's
+ * own name for this header; Q3 botlib ships be_aas_def.h holding exactly this
+ * subject matter.
  *
- * The original DLL links the fields of Q3's single `aasworld` (aas_t,
- * be_aas_def.h) as individually-named globals (`aasworld_*`); the
- * reconstruction collects them into `aas_world_t` in gladiator.dll.h.
+ * The original DLL links the fields of Q3's single `aasworld` as individually-named
+ * globals (`aasworld_*`); the reconstruction collects them into `aas_world_t`.
  */
 
 #ifndef AAS_WORLD_H
@@ -18,14 +13,12 @@
 
 /* The AAS internal structures and the aasworld instance, from the
  * IDA-emitted gladiator.dll.h.  This is what be_aas_def.h is for. */
-/* aas_soundpool_t — node of the AAS active-sound pool, a packed array of
- * 52-byte nodes (`52 * MAX_AAS_SOUNDS`) with prev/next at +44/+48.
+/* aas_soundpool_t — node of the AAS active-sound pool, a packed array of 52-byte
+ * nodes (`52 * MAX_AAS_SOUNDS`) with prev/next at +44/+48.
  *
- * The subsystem is DEAD: nothing in botlib.c reaches the writer
- * (sub_1001CE20), so entnum/channel are named from field position and
- * game.h's positioned_sound() argument order, not from a live call site.
- * attenuation (+40) is confirmed float by the real disasm (fld/fstp copy
- * in sub_1001CE20, matching volume's own fld/fstp), not just by position.
+ * The subsystem is DEAD: nothing reaches the writer (sub_1001CE20), so entnum/channel
+ * are named from field position and game.h's positioned_sound() argument order, not
+ * from a live call site.  attenuation (+40) is confirmed float by the disasm.
  *
  * Six aas_world fields reference these nodes:
  *   d_100669C4 = pool base (FreeMemory'd in sub_1001CAB0)
@@ -33,10 +26,9 @@
  *   d_100669CC/D0 = head/tail of the endtime-sorted active list
  *   d_100669D4/D8 = head/tail of the starttime-sorted active list */
 typedef struct aas_soundpool_s {
-    /* The 1999 Linux build was gcc 2.7.2.3, which has no anonymous
-     * struct/union members -- so the original cannot have had the
-     * `union { char data[44]; struct {...}; }` overlay this carried until
-     * 2026-08-10.  The byte view had no users; the fields are the record. */
+    /* The 1999 Linux build was gcc 2.7.2.3, which has no anonymous struct/union
+     * members, so the original cannot have had a `union { char data[44]; struct
+     * {...}; }` overlay.  The fields are the record. */
     float  starttime;   /* +0  AAS_Time() + requested delay */
     float  endtime;     /* +4  starttime + sound duration; sort key */
     vec3_t origin;      /* +8  sound emission origin */
@@ -46,9 +38,9 @@ typedef struct aas_soundpool_s {
     int    soundindex;  /* +32 indexes aasworld.d_100669C0[] */
     float  volume;      /* +36 read as a float multiplier by
                           * sub_1001D0A0's audibility formula */
-    float  attenuation; /* +40 matches game.h's positioned_sound(origin, ent,
-                          * channel, soundindex, volume, attenuation, timeofs)
-                          * argument order; never read back (dead field) */
+    float  attenuation; /* +40 matches game.h's positioned_sound(origin, ent, channel,
+                          * soundindex, volume, attenuation, timeofs) argument order;
+                          * never read back (dead field) */
     struct aas_soundpool_s    *prev;     /* +44 on 32-bit, +48 on 64-bit */
     struct aas_soundpool_s    *next;
 } aas_soundpool_t;
@@ -56,18 +48,18 @@ typedef struct aas_soundpool_s {
 /* bot_import_t, bot_export_t — defined in game/botlib.h (properly typed).
  * Include game/botlib.h before this header to get these definitions. */
 
-/* aas_world_t — Area Awareness System global state: one contiguous 676-byte
- * (0x2A4) BSS struct at VA 0x100667E0.  It must stay one aggregate — as
- * separate globals, AAS_Shutdown's `memset(&aasworld, 0, 0x2A4u)` would
- * corrupt whatever the linker placed next.  Each field carries its binary VA;
- * the legacy `aasworld_*` names are #defines in the .c file. */
+/* aas_world_t — Area Awareness System global state: one contiguous 676-byte (0x2A4)
+ * BSS struct at VA 0x100667E0.  It must stay one aggregate — as separate globals,
+ * AAS_Shutdown's `memset(&aasworld, 0, 0x2A4u)` would corrupt whatever the linker
+ * placed next.  Each field carries its binary VA; the legacy `aasworld_*` names are
+ * #defines in the .c file. */
 /* Tag only -- the typedef lives at the definition further down.  C89 has no
  * repeatable typedef, and gcc 2.7.2.3 (the 1999 compiler) rejects one. */
 struct aas_entity_s;
 
-/* Routing structures whose pointer slots the decompiler typed as plain `int`.
- * Real pointers here, with the stride taken from sizeof() at the use sites
- * rather than the 32-bit binary's hard-coded 40 / 8 / 12. */
+/* Routing structures whose pointer slots the decompiler typed as plain `int`.  Real
+ * pointers here, with the stride taken from sizeof() at the use sites rather than the
+ * 32-bit binary's hard-coded 40 / 8 / 12. */
 typedef struct aas_reversedlink_s {
     int                         linknum;     /* +0  reachability index        */
     int                         areanum;     /* +4  source area for the link  */
@@ -91,10 +83,9 @@ typedef struct aas_routingupdate_s {
     struct aas_routingupdate_s    *prev;             /* +36 fifo prev              */
 } aas_routingupdate_t;
 /* ---- AAS file-format element types -------------------------------------
- * Ahead of aas_world_t because its arrays are typed as element pointers and
- * C89 cannot forward-typedef: the old placeholder block here repeated each
- * of these typedefs, which gcc 2.7.2.3 rejects.  Q3 botlib reaches the same
- * layout by putting them in aasfile.h and including it first. */
+ * Ahead of aas_world_t because its arrays are typed as element pointers and C89 cannot
+ * forward-typedef.  Q3 botlib reaches the same layout by putting them in aasfile.h and
+ * including it first. */
 /* 32-byte presence bbox; layout as Q3 aas_bbox_t (aasfile.h). */
 typedef struct aas_bbox_s {
     int   presencetype;  /* +0  dword 0 */
@@ -147,10 +138,10 @@ typedef struct aas_reachability_s {
     short traveltime;    /* +40                                      */
 } aas_reachability_t;    /* 44 bytes (stride = 44)                   */
 
-/* Free-list node used by AAS_SetupReachabilityHeap / AAS_AllocReachability.
- * 48-byte stride on 32-bit; the allocator uses sizeof() so a widened `next`
- * still sizes the pool correctly.  Payload stays at +0 — consumers cast the
- * popped void* straight to int* / aas_reachability_t*. */
+/* Free-list node used by AAS_SetupReachabilityHeap / AAS_AllocReachability.  48-byte
+ * stride on 32-bit; the allocator uses sizeof() so a widened `next` still sizes the
+ * pool correctly.  Payload stays at +0 — consumers cast the popped void* straight to
+ * int* / aas_reachability_t*. */
 typedef struct aas_reachabilitynode_s {
     aas_reachability_t              reach;     /* +0   payload */
     struct aas_reachabilitynode_s  *next;      /* +44 on 32-bit, +48 on 64-bit (padding) */
@@ -184,9 +175,9 @@ typedef struct aas_trace_s {
     int   planenum;     /* number of the plane that was hit */
 } aas_trace_t;
 
-/* Movement-prediction result — Gladiator's older 80-byte layout: no
- * 'endarea', and a float at +0x44 where Q3 carries int endcontents.
- * AAS_ClientMovementPrediction returns it BY VALUE (hidden-pointer ABI). */
+/* Movement-prediction result — Gladiator's older 80-byte layout: no 'endarea', and a
+ * float at +0x44 where Q3 carries int endcontents.  AAS_ClientMovementPrediction
+ * returns it BY VALUE (hidden-pointer ABI). */
 typedef struct aas_clientmove_s {
     float endpos[3];       /* +0x00 position at the end of movement prediction */
     float velocity[3];     /* +0x0C velocity at the end */
@@ -256,9 +247,8 @@ typedef struct aas_world_s {
     struct soundinfo_s *soundinfo;  /* +0x1D8  (VA 0x100669B8) soundinfo_t array (fwd-decl; full def in botlib_structs.h) */
     int    d_100669BC;              /* +0x1DC */
     void **d_100669C0;              /* +0x1E0  per-soundindex pointers into soundinfo[] */
-    /* Six pointers maintaining the aas_soundpool_t node pool (see above).
-     * `int` in the original; must be real pointers or 64-bit list walks
-     * truncate. */
+    /* Six pointers maintaining the aas_soundpool_t node pool (see above).  `int` in the
+     * original; must be real pointers or 64-bit list walks truncate. */
     struct aas_soundpool_s *d_100669C4;  /* +0x1E4 */
     struct aas_soundpool_s *d_100669C8;  /* +0x1E8 */
     struct aas_soundpool_s *d_100669CC;  /* +0x1EC */
@@ -270,9 +260,8 @@ typedef struct aas_world_s {
                                                   can be FreeMemory'd — unlike oldestcache,
                                                   this never advances.  Typed rather than the
                                                   decompiler's `int`: sub_1000D340 indexes it
-                                                  directly (aasworld.pointlightheap[i]) and
-                                                  re-reads it per statement, which is exactly
-                                                  what the .so emits. */
+                                                  directly and re-reads it per statement,
+                                                  which is what the .so emits. */
     struct bsp_pointlight_s *oldestcache;  /* +0x200  (VA 0x100669E0) — point-light free pool head */
     struct bsp_pointlight_s *newestcache;  /* +0x204                  — point-light live list head */
     int   travelflagfortype[32];    /* +0x208  (VA 0x100669E8, 128 bytes)               */
@@ -287,7 +276,7 @@ typedef struct aas_world_s {
 
 /* Offset checks vs the original binary's VA layout.  32-bit only — every
  * offset past the first pointer field shifts on 64-bit. */
-#include <stddef.h>  /* offsetof */
+#include <stddef.h>
 #if __SIZEOF_POINTER__ == 4
 _Static_assert(sizeof(aas_world_t) == 0x2A4,                     "aas_world_t size");
 _Static_assert(offsetof(aas_world_t, loaded)               == 0x000, "loaded");
@@ -344,12 +333,12 @@ typedef struct aas_link_s {
 
 struct bsp_link_s;   /* full definition in botlib_structs.h */
 
-/* aas_entityinfo_t — per-frame snapshot of one engine entity, the "info" half
- * of aas_entity_t.  Filled by AAS_UpdateEntity() from bot_updateentity_t
- * (game/botlib.h); AAS_EntityInfo() hands back a copy of this block.
+/* aas_entityinfo_t — per-frame snapshot of one engine entity, the "info" half of
+ * aas_entity_t.  Filled by AAS_UpdateEntity() from bot_updateentity_t; AAS_EntityInfo()
+ * hands back a copy of this block.
  *
- * The Q2 flavour of Q3's aas_entityinfo_t: no player-model fields, instead
- * the Q2 entity_state_t members (modelindex2..4, skinnum, effects, renderfx). */
+ * The Q2 flavour of Q3's aas_entityinfo_t: no player-model fields, instead the Q2
+ * entity_state_t members (modelindex2..4, skinnum, effects, renderfx). */
 typedef struct aas_entityinfo_s {
     int    valid;          /* +0    true if updated this frame             */
     float  ltime;          /* +4    local time of last update              */
@@ -374,11 +363,11 @@ typedef struct aas_entityinfo_s {
 
 /* aas_entity_t — element type of aasworld.entities[], 132 bytes.
  *
- * The two link heads are 4-byte pointer slots in the 32-bit original.  On
- * 64-bit they degrade to inert placeholders (keeping sizeof at 132 so the
- * entities[] stride stays ABI-correct) and the real heads live in the
- * side-band arrays aasentity_arealinks[]/aasentity_bsplinks[].  ALWAYS go
- * through AAS_EntAreaLink()/AAS_EntBspLink(), never these fields. */
+ * The two link heads are 4-byte pointer slots in the 32-bit original.  On 64-bit they
+ * degrade to inert placeholders (keeping sizeof at 132 so the entities[] stride stays
+ * ABI-correct) and the real heads live in the side-band arrays
+ * aasentity_arealinks[]/aasentity_bsplinks[].  ALWAYS go through
+ * AAS_EntAreaLink()/AAS_EntBspLink(), never these fields. */
 typedef struct aas_entity_s {
     aas_entityinfo_t   i;          /* +0    entity info snapshot           */
 #if __SIZEOF_POINTER__ == 4
@@ -401,10 +390,9 @@ _Static_assert(offsetof(aas_entityinfo_t, modelindex)    == 92,  "ent.modelindex
 _Static_assert(offsetof(aas_entityinfo_t, renderfx)      == 120, "ent.renderfx");
 
 typedef struct aas_routingcache_s {
-    /* 44-byte header on 32-bit + trailing unsigned short
-     * traveltimes[numareas].  On 64-bit the header grows to 56; the
-     * trailing array is reached via (cache + 1) and AAS_AllocRoutingCache
-     * uses sizeof(), so it lands correctly for either word size. */
+    /* 44-byte header on 32-bit + trailing unsigned short traveltimes[numareas].  On
+     * 64-bit the header grows to 56; the trailing array is reached via (cache + 1) and
+     * AAS_AllocRoutingCache uses sizeof(), so it lands correctly either way. */
     float time;                          /* +0    last-used timestamp */
     int   cluster;                       /* +4    source cluster      */
     int   areanum;                       /* +8    source area in cluster */
@@ -417,13 +405,11 @@ typedef struct aas_routingcache_s {
 } aas_routingcache_t;
 
 /* bsp_pointlight_t — Q2-specific dynamic point-light cache entry used by
- * BotAddPointLight / AAS_BSPTraceLight (Q3 stubs the whole subsystem).
- * Live list head is aasworld.newestcache, free pool aasworld.oldestcache.
- * 52 bytes on 32-bit.
+ * BotAddPointLight / AAS_BSPTraceLight (Q3 stubs the whole subsystem).  Live list head
+ * is aasworld.newestcache, free pool aasworld.oldestcache.  52 bytes on 32-bit.
  *
- * Dormant at runtime: the engine never calls Export_BotAddPointLight in
- * deathmatch, so the free pool is never seeded and the first allocation
- * logs "Warning: empty list". */
+ * Dormant at runtime: the engine never calls Export_BotAddPointLight in deathmatch, so
+ * the free pool is never seeded and the first allocation logs "Warning: empty list". */
 typedef struct bsp_pointlight_s {
     float origin[3];                     /* +0   */
     int   ent;                           /* +12  owning entity */
@@ -446,12 +432,10 @@ typedef struct {
 } aas_reachabilityareas_t;
 
 
-/* 64-bit side-band accessors for aas_entity_t.  PORT-ONLY: they have no 1999
- * counterpart.  They live here rather than in botlib_port.h because each
- * wraps one specific structure above and cannot be separated from it. */
-/* Side-band for aas_entity_t's two link-list heads at +124 (areas) and +128
- * (BSP leaves), keyed by entity index.  Allocated with aasworld.entities in
- * sub_1000EDC0. */
+/* 64-bit side-band accessors for aas_entity_t.  PORT-ONLY: no 1999 counterpart.  They
+ * live here rather than in botlib_port.h because each wraps one specific structure
+ * above.  This one covers the two link-list heads at +124 (areas) and +128 (BSP
+ * leaves), keyed by entity index, allocated with aasworld.entities in sub_1000EDC0. */
 #if BOTLIB_NEED_SIDEBAND
 #define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
 #define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])

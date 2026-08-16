@@ -1,40 +1,22 @@
 /*
  * be_aas_main.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1000D7E0..0x1000EE30; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1000D7E0..0x1000EE30.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_main.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_cluster.h"
@@ -252,11 +234,10 @@ void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a
 }
 // gladiator.dll: 1000DDA0..1000DE97
 // gladi386.so:   0001AE28..0001AEE1
-/* AAS_PresenceTypeBoundingBox (Q3 be_aas_sample.c).  The Q2 player bbox is
- * 32x32 (-16..16), not Q3's 30x30.  Presence types here are 4=NORMAL,
- * 2=CROUCH (Q3 uses 1/2).  Declared int (unlike Q3's void) but never
- * returns a value; falls off the end, leaving whatever the index*12
- * array-offset arithmetic last left in eax as the (unused) return value. */
+/* Q3's AAS_PresenceTypeBoundingBox.  The Q2 player bbox is 32x32 (-16..16), not Q3's
+ * 30x30, and presence types here are 4=NORMAL, 2=CROUCH (Q3 uses 1/2).  Declared int
+ * (unlike Q3's void) but never returns a value; it falls off the end, leaving whatever
+ * the index*12 array-offset arithmetic last left in eax. */
 int __cdecl AAS_PresenceTypeBoundingBox(int presencetype, vec3_t mins, vec3_t maxs)
 {
   int    index;
@@ -284,10 +265,8 @@ int AAS_Initialized()
 }
 // gladiator.dll: 1000DF00..1000DF1B
 // gladi386.so:   0001AEFC..0001AF2F
-// Sets aasworld.initialized = 1, then prints "AAS initialized." at level 1.
-// Q3 be_aas_main.c AAS_SetInitialized: sets aasworld.initialized and prints
-// "AAS initialized.\n". Called from AAS_ContinueInit's tail (see 1000DF30).
-// Returns bi_Print's value (Q3 declares it void).
+// Sets aasworld.initialized = 1, then prints "AAS initialized." at level 1.  Called
+// from AAS_ContinueInit's tail.  Returns bi_Print's value; Q3 declares it void.
 int __cdecl AAS_SetInitialized(void)
 {
   aasworld.initialized = 1;
@@ -359,9 +338,9 @@ float AAS_Time()
   return aasworld.time;
 }
 
-#ifdef _WIN32  /* ---- winbspc spawn (sub_1000E140) + aasN.zip search (sub_1000E430): Windows-only ----
+#ifdef _WIN32  /* ---- winbspc spawn + aasN.zip search: Windows-only ----
                 * The Linux botlib has neither: BotLibLoadMap loads .aas directly and, on
-                * failure, just reports "no AAS file available" (see its #else give-up path). */
+                * failure, just reports "no AAS file available". */
 // gladiator.dll: 1000E140..1000E38A
 // gladi386.so:   absent
 intptr_t __cdecl sub_1000E140(char *Source)
@@ -409,11 +388,11 @@ int __cdecl sub_1000E430(char *Source)
   char Destination[144]; // [esp+10h] [ebp-360h] BYREF
   char ArgList[144]; // [esp+A0h] [ebp-2D0h] BYREF
   char Path[144]; // [esp+130h] [ebp-240h] BYREF
-  /* The three search-dir buffers are ONE contiguous char[3][144] array, walked
-   * by a char* stepping 144.  All three rows are zero-inited even though only
-   * dirs[0] (gamedir) and dirs[1] ("baseq2") are ever populated or searched.
-   * It MUST be a real array, not three named locals: the escaping address is
-   * what keeps /O2 from dead-eliminating the unused dirs[2]. */
+  /* The three search-dir buffers are ONE contiguous char[3][144] array, walked by a
+   * char* stepping 144.  All three rows are zero-inited even though only dirs[0]
+   * (gamedir) and dirs[1] ("baseq2") are ever populated or searched.  It MUST be a real
+   * array, not three named locals: the escaping address is what keeps /O2 from
+   * dead-eliminating the unused dirs[2]. */
   char dirs[3][144]; // [esp+1C0h] [ebp-1B0h] BYREF
 
   strcpy(dirs[0], "");
@@ -558,10 +537,9 @@ int BotLibLoadMap(char *Source)
               Source);
           }
 #else
-          /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll
-           * and no winbspc spawn, so it never tries the aasN.zip fallback — it sets
-           * errno=5 and the autolaunchbspc branch only reports that BSPC is a Win32
-           * program. */
+          /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll and
+           * no winbspc spawn, so it never tries the aasN.zip fallback — it sets errno=5 and
+           * the autolaunchbspc branch only reports that BSPC is a Win32 program. */
           errno = 5;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
             botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
@@ -655,17 +633,14 @@ int AAS_Shutdown()
 }
 
 /* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.  See the identical note
- * in be_aas_route.c for why these are gated rather than added outright.
+ * Present in gladi386.so, ABSENT from gladiator.dll.  See the identical note in
+ * be_aas_route.c for why these are gated rather than added outright.
  * ------------------------------------------------------------------------ */
 #ifndef _WIN32
-/* F184 @ 0x0001b168, 6 bytes -- `mov eax,5; ret`, nothing else.  It has no
- * callers anywhere in the image and no string, constant or call to identify
- * it by, so there is no name to recover and none is invented: the identifier
- * is the symbol gladi386.so ships.  It sits between AAS_Time (F183) and
- * BotLibLoadMap (F185).  The 5 is almost certainly a presence-type or version
- * constant, but "almost certainly" is not evidence and it is not recorded as
- * one. */
+/* F184 @ 0x0001b168, 6 bytes — `mov eax,5; ret`, nothing else.  No callers anywhere in
+ * the image and no string, constant or call to identify it by, so there is no name to
+ * recover and none is invented: the identifier is the symbol gladi386.so ships.  It
+ * sits between AAS_Time (F183) and BotLibLoadMap (F185). */
 int __cdecl F184(void)
 {
   return 5;

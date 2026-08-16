@@ -1,40 +1,22 @@
 /*
  * be_ai_goal.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1002ED20..0x10030A20; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1002ED20..0x10030A20.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai_goal.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -54,9 +36,8 @@
 #include "l_utils.h"
 
 /* iteminfo_struct — descriptor at 0x1005D890 (284 B); field table at 0x1005D7B0.
- * Deliberately NOT `static`: `nm -D` on gladi386.so shows it as an exported
- * `D` symbol (0005bcc8 D iteminfo_fields), which a file-static array can
- * never be. */
+ * Deliberately NOT `static`: gladi386.so exports it as a `D` symbol
+ * (0005bcc8 D iteminfo_fields), which a file-static array can never be. */
 char *iteminfo_fields[] = {
     FE("name",        0x000, 0x004, 0, 0x00000000),
     FE("model",       0x0A0, 0x004, 0, 0x00000000),
@@ -83,11 +64,10 @@ itemconfig_t * LoadItemConfig(char *filename)
   source_t *src;
   itemconfig_t *cfg;
   iteminfo_t *item;
-  /* Declaration order reversed vs. stack-offset order (reverse-declaration-
-   * order rule — see BotTravel_Jump): real has file_ref at the LOWEST
-   * offset of these three, then Destination, then ArgList highest, so the
-   * source must declare them in the opposite order: ArgList first,
-   * Destination middle, file_ref last. */
+  /* Declaration order reversed vs. stack-offset order (reverse-declaration-order rule
+   * — see BotTravel_Jump): the original has file_ref at the LOWEST offset of these
+   * three, then Destination, then ArgList highest, so the source must declare them in
+   * the opposite order. */
   char ArgList[sizeof(token_t)] __attribute__((aligned(8))); // [esp+13Ch] [ebp-430h] BYREF
   char Destination[144]; // [esp+ACh] [ebp-4C0h] BYREF
   bot_fileref_t file_ref; /* original bot_fileref_t local */
@@ -116,9 +96,9 @@ itemconfig_t * LoadItemConfig(char *filename)
   cfg->items    = (iteminfo_t *)(cfg + 1);
   cfg->numitems = 0;
   /* Same shape as the sibling LoadWeaponConfig: a plain top-tested
-   * `while (PC_ReadTokenHandle(...))`, every error path written out INLINE with
-   * no shared label, and the unknown-definition case as the trailing `else`.
-   * An `if(read){ do{…}while(read); }` form makes MSVC6 peel the strcmp. */
+   * `while (PC_ReadTokenHandle(...))`, every error path written out INLINE with no
+   * shared label, and the unknown-definition case as the trailing `else`.  An
+   * `if(read){ do{…}while(read); }` form makes MSVC6 peel the strcmp. */
   while ( PC_ReadTokenHandle(src, ArgList) )
   {
     if ( !strcmp(ArgList, "iteminfo") )
@@ -193,10 +173,10 @@ void InitLevelItemHeap()
     FreeMemory(levelitemheap);
   max_levelitems = (int)LibVarValue("max_levelitems", (char *)"512");
   levelitemheap = (levelitem_t *)GetMemory(sizeof(levelitem_t) * max_levelitems);
-  /* ONE textual tail: MSVC6 /O2 duplicates it so the loop-skipped path can reuse
-   * the still-live GetMemory result while the post-loop path reloads the global.
-   * Writing both tails out explicitly makes them identical and they get
-   * tail-merged back into one. */
+  /* ONE textual tail: MSVC6 /O2 duplicates it so the loop-skipped path can reuse the
+   * still-live GetMemory result while the post-loop path reloads the global.  Writing
+   * both tails out explicitly makes them identical and they get tail-merged back into
+   * one. */
   for ( i = 0; i < max_levelitems - 2; ++i )
     levelitemheap[i].next = &levelitemheap[i + 1];
   levelitemheap[max_levelitems - 1].next = NULL;
@@ -258,20 +238,19 @@ void BotInitLevelItems()
    * rule) — real has ic at a LOWER stack offset than notspawnflags_mask. */
   int notspawnflags_mask; // [esp+18h] (LibVar("notspawnflags","2048") return value)
   bsp_entity_t *v4; // ebp
-  /* `i` is ONE variable reused for both the modelindex-fixup loop and the
-   * later item-name search loop (IDA had split it into `i`/`v7` as if they
-   * were different locals with disjoint lifetimes; merging them back into
-   * a single reused counter is what makes gcc assign it edi/v4 ebp exactly
-   * like real — a plain declaration-order swap of two distinct locals had
-   * no effect on the register choice, so the two loops sharing one counter
-   * variable is the actual original shape, not just a lucky reordering). */
+  /* `i` is ONE variable reused for both the modelindex-fixup loop and the later
+   * item-name search loop.  IDA split it into `i`/`v7` as if they were different
+   * locals with disjoint lifetimes; merging them back is what makes gcc assign it
+   * edi/v4 ebp exactly like the original.  A plain declaration-order swap of two
+   * distinct locals has no effect on the register choice, so one shared counter is the
+   * actual original shape. */
   int i; // edi
   const char *classname; // [esp+28h] [ebp-18h]
   bsp_entity_t *ent; // [esp+2Ch] [ebp-14h]
   itemconfig_t *ic; // ebx
   /* The item origin must be a real vec3_t — it is passed by address to
-   * AAS_VectorForBSPEpairKey, AAS_DropToFloor and AAS_BestReachableArea, and
-   * split into separate locals nearly every item ends up with areanum 0. */
+   * AAS_VectorForBSPEpairKey, AAS_DropToFloor and AAS_BestReachableArea, and split into
+   * separate locals nearly every item ends up with areanum 0. */
   vec3_t origin; // [esp+34h] [ebp-Ch] BYREF (was v12+v13+v14)
 
   InitLevelItemHeap();
@@ -335,9 +314,8 @@ void BotInitLevelItems()
     }
     botimport.Print(PRT_MESSAGE, "found %d level items\n", numlevelitems);
   }
-  // Single shared exit: the function is void, so the !itemconfig, alloc-fail and
-  // normal paths all fall into ONE epilogue.  A return value would give each
-  // `return` its own epilogue.
+  // Single shared exit: the function is void, so the !itemconfig, alloc-fail and normal
+  // paths all fall into ONE epilogue.  A return value would give each `return` its own.
 done:
   ;
 }
@@ -443,22 +421,18 @@ void BotUpdateEntityItems(void)
   levelitem_t *li;
   int v7; // eax
   levelitem_t *v13;
-  /* IDA split this single reused MSVC stack slot into two separate-looking
-   * names (v19/modelindex at the same [esp+10h] offset). The initial
-   * `v4 = v19;` (IDA's decompile shows this exactly once, before the loop,
-   * not refreshed per-iteration) is really a read of this same
-   * not-yet-assigned slot, before the loop's first
-   * `modelindex = AAS_EntityModelindex(ent);` sets it -- declaring them as
-   * distinct locals forces gcc to allocate 2 stack slots instead of 1,
-   * growing the frame by 4 bytes. */
+  /* IDA split one reused MSVC stack slot into two separate-looking names (v19 and
+   * modelindex at the same [esp+10h] offset).  The initial `v4 = v19;` before the loop
+   * is really a read of this same not-yet-assigned slot, before the loop's first
+   * `modelindex = AAS_EntityModelindex(ent);` sets it — declaring them as distinct
+   * locals forces gcc to allocate 2 stack slots instead of 1. */
   int modelindex; // [esp+10h] [ebp-108h]
   itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
   vec3_t dir; // [esp+14h] [ebp-104h] BYREF
-  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast
-   * assignment: writing AAS_EntityInfo()'s struct-by-value return through a
-   * cast to a differently-declared object defeats gcc's return-slot
-   * forwarding, forcing a hidden temp plus an extra 124-byte rep-movs copy
-   * into entinfo (same root cause fixed in AINode_Battle_Fight). */
+  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast assignment:
+   * writing AAS_EntityInfo()'s struct-by-value return through a cast to a
+   * differently-declared object defeats gcc's return-slot forwarding, forcing a hidden
+   * temp plus an extra 124-byte rep-movs copy. */
   aas_entityinfo_t entinfo; // [esp+20h] [ebp-F8h] BYREF
 
   v0 = levelitems;
@@ -808,9 +782,9 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                         if ( v16 <= ltg_time )
                         {
                           /* The two scalar stores are NOT interleaved into the vec copy in
-                           * the source — the original's interleaved emission is
-                           * MSVC6 filling load-ahead bubbles, since both read the
-                           * same `li`/`weight` the copy uses. */
+                           * the source — the interleaved emission is MSVC6 filling
+                           * load-ahead bubbles, since both read the same `li`/`weight`
+                           * the copy uses. */
                           bestweight = weight;
                           bestitem = li;
                           VectorCopy(li->goalorigin, goal.origin);
@@ -875,10 +849,9 @@ int __cdecl BotTouchingGoal(vec3_t origin, float *goal)
 }
 // gladiator.dll: 10030770..10030873
 // gladi386.so:   0003FDE4..0003FECA
-/* BotItemGoalInVisButNotVisible — true when the goal item's bbox centre is
- * visible from the bot's eye but the goal entity is not currently being updated
- * by the engine.  `trace` and `entinfo` have non-overlapping lifetimes, so
- * MSVC6 coalesces them into one stack slot, reused after the fraction test.
+/* True when the goal item's bbox centre is visible from the bot's eye but the goal
+ * entity is not currently being updated by the engine.  `trace` and `entinfo` have
+ * non-overlapping lifetimes, so MSVC6 coalesces them into one stack slot.
  *
  * Three divergences from Q3, all faithful to the binary:
  *   - `entitynum <= 0` returns 1, where Q3 returns qfalse;

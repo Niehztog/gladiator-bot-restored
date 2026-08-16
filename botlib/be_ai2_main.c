@@ -1,40 +1,22 @@
 /*
  * be_ai2_main.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10028E80..0x10029DA0; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10028E80..0x10029DA0.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai2_main.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -190,9 +172,9 @@ float BotChangeViewAngle(float angle, float ideal_angle, float speed)
 }
 // gladiator.dll: 10029150..10029289
 // gladi386.so:   00037714..000379F3
-/* All nine callers push (bs, thinktime), but the body reads bs->thinktime
- * straight from the struct instead of the parameter — probably declared for API
- * symmetry with Q3.  `thinktime` is deliberately unused. */
+/* All nine callers push (bs, thinktime), but the body reads bs->thinktime straight from
+ * the struct instead of the parameter — probably declared for API symmetry with Q3.
+ * `thinktime` is deliberately unused. */
 int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
   float v2; // st7 (was double)
@@ -213,10 +195,9 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   }
   if ( bs->enemy )
   {
-    /* Both Characteristic_BFloat results come back on the FPU stack: #9 into v10,
-     * and #10 stays in ST(0) until the post-merge `v2 * bs->thinktime` consumes
-     * it — recaptured into v2 here, which the else-branch overwrites with
-     * 150.0f. */
+    /* Both Characteristic_BFloat results come back on the FPU stack: #9 into v10, and #10
+     * stays in ST(0) until the post-merge `v2 * bs->thinktime` consumes it — recaptured
+     * into v2 here, which the else-branch overwrites with 150.0f. */
     v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800.0f);
     v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800.0f);
   }
@@ -289,23 +270,15 @@ int Export_BotAIFrame(int a1, float a2)
 }
 // gladiator.dll: 100293A0..1002944E
 // gladi386.so:   00037AD8..00037BA5
-// Per-bot memory-usage dumper: reports the byte size of every allocation
-// the bot owns (character / item weights / item index / weapon weights /
-// weapon index / chat file), then calls PrintUsedMemorySize for the
-// totals.  Format strings live at .rdata 0x1005cda8..0x1005ce38.
-// DEAD in Gladiator — preserved only by the MSVC /INCREMENTAL thunk
-// (no live caller; debug-only telemetry sibling of the dump helpers at
-// 10029E10/1002B070/1002B900).
-// Restored dead stub:
-//   for each field: push *(int *)(bs+ofs); call MemoryByteSize@10039120;
-//   push ret, push fmt, push 1; call bi_Print@ds:0x10063fe8
-//   end: call PrintUsedMemorySize@10039150
+// Per-bot memory-usage dumper: reports the byte size of every allocation the bot owns
+// (character / item weights / item index / weapon weights / weapon index / chat file),
+// then calls PrintUsedMemorySize for the totals.
+// DEAD in Gladiator — /INCREMENTAL; debug-only telemetry.
 // Field offsets, raw: the bot_state_t labels in this region (chatstate /
 // weaponweights) do not match these handle slots one-to-one:
 //   +0x688  = character handle
-//   +0xbc0  = item weights handle (== goalstate.itemweightconfig; read via
-//             BotGoalP0 below since on 64-bit the real pointer lives in the
-//             sideband array, not inline at this offset)
+//   +0xbc0  = item weights handle (== goalstate.itemweightconfig; read via BotGoalP0
+//             below, since on 64-bit the real pointer lives in the sideband array)
 //   +0xbc4  = item index handle (== goalstate.itemweightindex; BotGoalP1)
 //   +0x1044 = chat file handle
 //   +0x1050 = weapon weights handle
@@ -455,10 +428,9 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     return BLERR_AIUPDATEINACTIVECLIENT;
   }
   memcpy(&v2->snapshot, a2, sizeof(v2->snapshot));
-  /* The original computes viewangles[i] and delta_angles[i] via a shared
-   * scaled-index register per iteration (confirmed via disasm: `fld
-   * [ebp+esi*4+0x1080]` / `fld [ebp+esi*4+0x30]`, esi = 0,1,2), not a raw
-   * incrementing pointer. */
+  /* The original computes viewangles[i] and delta_angles[i] via a shared scaled-index
+   * register per iteration (`fld [ebp+esi*4+0x1080]` / `fld [ebp+esi*4+0x30]`, esi =
+   * 0,1,2), not a raw incrementing pointer. */
   for ( v5 = 0; v5 < 3; v5++ )
     v2->viewangles[v5] = anglemod(v2->viewangles[v5] + v2->snapshot.delta_angles[v5]);
   return BLERR_NOERROR;
@@ -558,13 +530,12 @@ int sub_10029C10()
 }
 // gladiator.dll: 10029C90..10029D59
 // gladi386.so:   0003845C..00038523
-/* Windows genuinely writes each sub-init's return code through the CRT global
- * `errno` (IDA: `*_errno() = v2; if (*_errno()) return *_errno();`, three
- * separate `_errno()` calls). The Linux .so has none of that traffic at all -
- * just a plain register test after each call - so the Linux original used a
- * local variable here instead; this is a genuine two-week source-drift split,
- * not a compiler tie (confirmed: a shared-body local variable achieves a full
- * ELF byte match but regresses the PE from 63/63 insns to 37 insns). */
+/* Windows genuinely writes each sub-init's return code through the CRT global `errno`
+ * (three separate `_errno()` calls).  The Linux .so has none of that traffic — just a
+ * plain register test after each call — so the Linux original used a local variable
+ * here instead.  A genuine two-week source-drift split, not a compiler tie: a
+ * shared-body local achieves a full ELF byte match but regresses the PE from 63 insns
+ * to 37. */
 int BotSetupLibrary()
 {
 #ifdef _WIN32

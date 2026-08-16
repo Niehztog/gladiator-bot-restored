@@ -1,39 +1,22 @@
 /*
  * l_libvar.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10038750..0x10038BDF (thirteen functions) and it owns the `libvarlist`
- * head pointer; both facts are recovered in .claude/memory/tu_partition.md
- * (the Linux .so's .dynsym keeps `libvarlist` under its real name, and this
- * TU's F-number run there holds exactly thirteen functions).
- *
- * The include block below is botlib.c's, verbatim, so every macro and typedef
- * this file compiles against is the environment these functions had before the
- * split.
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10038750..0x10038BDF.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_libvar.h"
 #include "l_memory.h"
 #include "l_utils.h"
@@ -97,12 +80,10 @@ void __cdecl LibVarDeAlloc(libvar_t *v)
 
 // gladiator.dll: 100388D0..100388FF
 // gladi386.so:   0004A110..0004A161
-// Drains the libvarlist by repeatedly popping
-// the head, advancing libvarlist to head->next (struct offset +0x14),
-// and calling LibVarDeAlloc on the popped node.  Final
-// libvarlist = NULL is redundant after the loop but is present in the
-// disasm (a literal "mov DWORD PTR ds:0x10063F20, 0").  This is the
-// shutdown path that Q3 botlib exposes as LibVarDeAllocAll.
+// Drain the libvarlist by repeatedly popping the head, advancing libvarlist to
+// head->next (struct offset +0x14), and calling LibVarDeAlloc on the popped node.  The
+// final libvarlist = NULL is redundant after the loop but is present in the disasm.
+// Q3 botlib exposes this as LibVarDeAllocAll.
 void __cdecl LibVarDeAllocAll(void)
 {
   libvar_t *v;

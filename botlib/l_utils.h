@@ -1,20 +1,12 @@
-/*
- * l_utils.h — interface of l_utils.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* l_utils.h — interface of l_utils.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_L_UTILS_H
 #define BOTLIB_L_UTILS_H
 
 /* bot_fileref_t: the pak/file reference this TU's search path builds. */
-/* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.
- * Q2-specific (Q3's transparent VFS handles paks internally).  The
- * decompilations show it as "int Offset[38]" or as three separate locals. */
+/* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.  Q2-specific
+ * (Q3's transparent VFS handles paks internally).  The decompilations show it as
+ * "int Offset[38]" or as three separate locals. */
 typedef struct bot_fileref_s {
     int  fileofs;              /* file offset within pak  (0 = file is directly on disk)  */
     int  filelen;              /* file length within pak  (0 = read whole file from disk)  */
@@ -24,10 +16,10 @@ typedef struct bot_fileref_s {
 
 /* The Win32 UnZip windll path lives entirely in this TU, so its kernel32
  * imports and the UNZIP32.DLL DCL/USERFUNCTIONS layouts belong here. */
-/* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than
- * via <windows.h>, whose typedefs collide with our local ones; both Windows
- * toolchains resolve them to the same kernel32 imports as the original.  The
- * Linux build gates the whole unzip/zip subsystem out. */
+/* Win32 imports for the UnZip/ZIP32 windll path.  Declared by hand rather than via
+ * <windows.h>, whose typedefs collide with our local ones; both Windows toolchains
+ * resolve them to the same kernel32 imports as the original.  The Linux build gates the
+ * whole unzip/zip subsystem out. */
 #ifdef _WIN32
 __declspec(dllimport) void * __stdcall GlobalAlloc(unsigned int uFlags, unsigned int dwBytes);
 __declspec(dllimport) void * __stdcall GlobalLock(void *hMem);
@@ -42,18 +34,17 @@ __declspec(dllimport) int    __stdcall lstrlenA(const char *s);
 #endif
 
 /* ------------------------------------------------------------------------
- * Info-ZIP UnZip windll SDK structures (windll/structs.h) — the option block
- * (DCL, 0x44 B) and callback table (USERFUNCTIONS, 0x28 B) that sub_10041240
- * passes to UNZIP32.DLL's "windll_unzip" to extract the .aas from aasN.zip.
+ * Info-ZIP UnZip windll SDK structures (windll/structs.h) — the option block (DCL,
+ * 0x44 B) and callback table (USERFUNCTIONS, 0x28 B) that sub_10041240 passes to
+ * UNZIP32.DLL's "windll_unzip" to extract the .aas from aasN.zip.
  *
- * The shipped unzip32.dll is UnZip 5.33, so the layouts follow the 5.32 SDK
- * headers vendored at reference/unzip532/structs.h (5.51's 0x2C USERFUNCTIONS
- * adds a 6th callback and is NOT the right shape here).
+ * The shipped unzip32.dll is UnZip 5.33, so the layouts follow the 5.32 SDK headers
+ * vendored at reference/unzip532/structs.h (5.51's 0x2C USERFUNCTIONS adds a 6th
+ * callback and is NOT the right shape here).
  *
- * Every pointer-bearing field is a 4-byte `int` slot, as in the 32-bit
- * original, so both struct sizes stay 0x44 / 0x28 on 64-bit too; callback
- * addresses are cast to (intptr_t) on assignment.  Windows-only — the Linux
- * botlib has no unzip support and loads .aas files directly. */
+ * Every pointer-bearing field is a 4-byte `int` slot, as in the 32-bit original, so both
+ * struct sizes stay 0x44 / 0x28 on 64-bit too; callback addresses are cast to
+ * (intptr_t) on assignment.  Windows-only. */
 #ifdef _WIN32
 typedef struct {
   int   ExtractOnlyNewer;   /* +0x00  TRUE => "update" without overwriting   */
@@ -98,9 +89,7 @@ extern LPUSERFUNCTIONS dword_100639F0;
 
 
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 extern CHAR aWindllUnzip[];

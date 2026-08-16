@@ -1,13 +1,5 @@
-/*
- * be_aas_bspq2.h — interface of be_aas_bspq2.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_aas_bspq2.h — interface of be_aas_bspq2.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_AAS_BSPQ2_H
 #define BOTLIB_BE_AAS_BSPQ2_H
 
@@ -75,41 +67,29 @@ void sub_10005640(
         int contentmask);
 
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int  AAS_LoadBSPFile(char *FileName, int Offset, int Length); /* be_aas_bspq2.c 0x10007D30 */
 
-/* bspworld_t — the Q2 BSP/CM (collision-model) file-format data used by this
- * TU's runtime BSP loader/queries (AAS_LoadBSPFile, CM_PointLeafnum,
- * CM_TraceThroughLeaf, AAS_InPVS, ...): ONE contiguous 8392-byte (0x20C8)
- * BSS struct at VA 0x100674C0..0x10069588, confirmed against the Linux
- * gladi386.so's exported data symbol (`readelf --dyn-syms`: `10: 0005dd8c
- * 8392 OBJECT GLOBAL DEFAULT 18 bspworld`), which also gives the real
- * variable's name.  Reconstructed until now as 51 separate standalone
- * globals; those tile this exact byte range with zero gaps or overlaps
- * (verified field-by-field against the symbol's address+size), which is
- * strong independent evidence they were always members of one struct, not
- * one apiece.  Splitting them into separate globals changes codegen for any
- * function that computes a struct-member offset off one base pointer: the
- * real code emits a single-base offset access, ours emitted independent
- * absolute addresses.  Confirmed culprit behind sub_100031B0's
- * (dword_10069580, +0x2C0) and sub_10005CC0's (dword_10067560, +0xA0)
- * divergences; likely explains others in this TU.
+/* bspworld_t — the Q2 BSP/CM (collision-model) file-format data used by this TU's
+ * runtime BSP loader/queries (AAS_LoadBSPFile, CM_PointLeafnum, CM_TraceThroughLeaf,
+ * AAS_InPVS, …): ONE contiguous 8392-byte (0x20C8) BSS struct at
+ * VA 0x100674C0..0x10069588, confirmed against gladi386.so's exported data symbol
+ * (`0005dd8c 8392 OBJECT GLOBAL DEFAULT 18 bspworld`), which also gives the name.
  *
- * Field names/order for the 37 standard Q2 BSP lumps (nummodels..
- * dareaportals) match Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.
- * Lumps with a real record type use their typed q2files.h pointer and are
- * indexed as arrays; only the genuinely untyped blobs (dvisdata, dlightdata,
- * dentdata) stay byte pointers.  The one remaining byte-view is the dmodels
- * walk in Q2_SwapBSPFile.  Those fields keep their established names
- * unchanged.  The remaining 14 fields have no l_bsp_q2.c cognate --
- * Gladiator-specific runtime precompute/cache state added on top of the
- * standard lumps -- and keep their existing decompiled dword_/byte_/flt_
- * names (same policy be_aas_def.h's aas_world_t already uses for its own
- * still-unclear fields, e.g. `d_100669C0`). */
+ * It must stay ONE struct: splitting it into separate globals changes codegen for any
+ * function that computes a member offset off one base pointer — the original emits a
+ * single-base offset access where separate globals emit independent absolute
+ * addresses.
+ *
+ * Field names/order for the 37 standard Q2 BSP lumps (nummodels..dareaportals) match
+ * Mr. Elusive's own Q2 BSP loader bspc/l_bsp_q2.c 1:1.  Lumps with a real record type
+ * use their typed q2files.h pointer and are indexed as arrays; only the genuinely
+ * untyped blobs (dvisdata, dlightdata, dentdata) stay byte pointers.  The one remaining
+ * byte-view is the dmodels walk in Q2_SwapBSPFile.  The other 14 fields have no
+ * l_bsp_q2.c cognate — Gladiator-specific runtime precompute/cache state — and keep
+ * their decompiled dword_/byte_/flt_ names. */
 typedef struct bspworld_s {
     int            dword_100674C0;  /* +0x000 (VA 0x100674C0) "BSP loaded" guard flag; no l_bsp_q2.c cognate */
     int            nummodels;       /* +0x004 (VA 0x100674C4) */
@@ -153,13 +133,13 @@ typedef struct bspworld_s {
      * the standard Q2 lumps; no cognate in l_bsp_q2.c, so left unnamed. */
     char *dword_10067558;  /* +0x098 (VA 0x10067558) per-face {short texturemins[2];
                              * short extents[2]} table, 8*numfaces, built by
-                             * CalcSurfaceExtents (Q1 model.c cognate), read by
-                             * RecursiveLightPoint.  NOT a PVS table. */
+                             * CalcSurfaceExtents, read by RecursiveLightPoint.
+                             * NOT a PVS table. */
     char *dword_1006755C; /* +0x09C (VA 0x1006755C) pointer */
     char *dword_10067560; /* +0x0A0 (VA 0x10067560) pointer */
-    char  byte_10067564[8192]; /* +0x0A4 (VA 0x10067564) AAS_DecompressVis's
-                                 * output row buffer (Q2 CM_DecompressVis's
-                                 * static `decompressed[]` cognate) */
+    char  byte_10067564[8192]; /* +0x0A4 (VA 0x10067564) AAS_DecompressVis's output row
+                                 * buffer (Q2 CM_DecompressVis's static `decompressed[]`
+                                 * cognate) */
     int   dword_10069564;  /* +0x20A4 (VA 0x10069564) last-decompressed cluster
                               * (AAS_DecompressVis early-out cache) */
     int   dword_10069568;  /* +0x20A8 (VA 0x10069568) weak; written only, from
@@ -175,7 +155,7 @@ typedef struct bspworld_s {
 
 /* Offset checks vs the original binary's VA layout.  32-bit only -- every
  * offset past the first pointer field shifts on 64-bit. */
-#include <stddef.h>  /* offsetof */
+#include <stddef.h>
 #if __SIZEOF_POINTER__ == 4
 _Static_assert(sizeof(bspworld_t) == 0x20C8,                        "bspworld_t size");
 _Static_assert(offsetof(bspworld_t, dword_100674C0) == 0x000,       "dword_100674C0");

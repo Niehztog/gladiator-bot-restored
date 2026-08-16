@@ -34,9 +34,9 @@ _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
 _Static_assert(sizeof(aas_header_t)        == 120,  "aas_header_t size (0x78)");
 _Static_assert(sizeof(bot_fileref_t)       == 152,  "bot_fileref_t size (38 ints)");
 /* token_t has TWO right sizes on 32-bit, and both are measured.  `long double
- * floatvalue` is 8 B/8-aligned under MSVC (pad after intvalue, pad at the tail
- * -> 0x430, as gladiator.dll uses) and 12 B/4-aligned under gcc i386 (neither
- * pad -> 0x42C, as gladi386.so uses).  The field offsets are the invariant. */
+ * floatvalue` is 8 B/8-aligned under MSVC (pad after intvalue, pad at the tail ->
+ * 0x430, as gladiator.dll uses) and 12 B/4-aligned under gcc i386 (neither pad ->
+ * 0x42C, as gladi386.so uses).  The field offsets are the invariant. */
 _Static_assert(offsetof(token_t, whitespace_p) == 0x418, "token_t.whitespace_p offset");
 _Static_assert(offsetof(token_t, next)         == 0x428, "token_t.next offset");
 _Static_assert(sizeof(token_t) == (sizeof(long double) == 8 ? 0x430 : 0x42C),
@@ -54,20 +54,20 @@ _Static_assert(sizeof(weaponconfig_t)      == 16,   "weaponconfig_t size (header
 _Static_assert(sizeof(punctuation_t)       == 12,   "punctuation_t size");
 _Static_assert(sizeof(indent_t)            == 16,   "indent_t size");
 _Static_assert(sizeof(define_t)            == 32,   "define_t size (Q3 has same layout)");
-/* script_t/source_t are sized by MAX_PATH and by token_t, both of which differ
- * between the two 1999 builds (1392/1624 in gladiator.dll, 1268/1384 in
- * gladi386.so).  Assert the structure rather than a number, so the guard still
- * bites on a reordered or retyped field under either compiler.
+/* script_t/source_t are sized by MAX_PATH and by token_t, both of which differ between
+ * the two 1999 builds (1392/1624 in gladiator.dll, 1268/1384 in gladi386.so).  Assert
+ * the structure rather than a number, so the guard still bites on a reordered or
+ * retyped field under either compiler.
  *
- * Both structs embed a token_t after a field run that is only 4-aligned, so the
- * padding in front of it — and the tail padding it forces — is whatever
- * alignment the target gives `long double`.  That is an ABI property, not a
- * layout property, and it has three values among our 32-bit targets:
+ * Both structs embed a token_t after a field run that is only 4-aligned, so the padding
+ * in front of it — and the tail padding it forces — is whatever alignment the target
+ * gives `long double`.  That is an ABI property, not a layout property, and it has
+ * three values among our 32-bit targets:
  *   gcc i386     12 B / 4-aligned  -> no pad; script_t 1268, source_t 1384
  *   MSVC6 x86     8 B / 8-aligned  -> pad; script_t 1392, source_t 1624 (the DLL)
  *   gcc ARM EABI  8 B / 8-aligned  -> pad, same as MSVC (armhf release build)
- * So derive the padding from _Alignof(token_t) rather than hardcoding the i386
- * SysV answer; the field ORDER stays fully guarded on every target. */
+ * So derive the padding from _Alignof(token_t) rather than hardcoding the i386 SysV
+ * answer; the field ORDER stays fully guarded on every target. */
 #define BL_ALIGN_UP(off, a)  (((off) + (a) - 1) & ~((size_t)(a) - 1))
 #define BL_TOKEN_AT(off)     BL_ALIGN_UP(off, _Alignof(token_t))
 

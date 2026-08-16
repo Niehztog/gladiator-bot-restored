@@ -24,10 +24,10 @@ void botlib_log(const char *fmt, ...)
 #ifdef _WIN32
 #include <windows.h>
 
-/* The log is opened in DllMain because fopen() can fail at crash time on a
- * corrupted heap, but nothing is written until a crash actually fires — so a
- * clean run leaves a 0-byte file, which DLL_PROCESS_DETACH then unlinks.
- * Non-zero size is therefore itself the crash indicator. */
+/* The log is opened in DllMain because fopen() can fail at crash time on a corrupted
+ * heap, but nothing is written until a crash actually fires — so a clean run leaves a
+ * 0-byte file, which DLL_PROCESS_DETACH then unlinks.  Non-zero size is therefore
+ * itself the crash indicator. */
 static FILE *g_log = NULL;
 static char  g_log_path[MAX_PATH] = {0};
 static int   g_log_dirty = 0;   /* set to 1 the moment we write anything */
@@ -120,9 +120,8 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         fprintf(g_log, "CRASH: exception 0x%08X at 0x%08X\n",
                 (unsigned)code, (unsigned)(intptr_t)addr);
 
-        /* VirtualQuery's allocation base for the crash address IS the
-         * HMODULE of the containing image, so this names whichever module
-         * actually holds EIP — not just gladiator.dll. */
+        /* VirtualQuery's allocation base for the crash address IS the HMODULE of the
+         * containing image, so this names whichever module actually holds EIP. */
         MEMORY_BASIC_INFORMATION mbi;
         HMODULE eip_mod = NULL;
         char eip_modpath[MAX_PATH] = {0};
@@ -186,9 +185,8 @@ static LONG WINAPI gladiator_exception_filter(EXCEPTION_POINTERS *ep)
         uintptr_t *bp = (uintptr_t *)(uintptr_t)ctx->Ebp;
 #endif
 
-        /* 64 entries from ESP — enough to reach the return address past the
-         * local frame.  Slots pointing into an image get a module!RVA
-         * annotation so the call chain needs no manual map lookups. */
+        /* 64 entries from ESP — enough to reach the return address past the local frame.
+         * Slots pointing into an image get a module!RVA annotation. */
         fprintf(g_log, "  Stack (ESP-relative):\n");
         for (int i = 0; i < 64; i++) {
             if (IsBadReadPtr(sp + i, sizeof(*sp)))

@@ -1,8 +1,7 @@
 /*
  * aasfile.h — the on-disk AAS file format: the lump directory and the file
  * header.  Q3 botlib ships an aasfile.h holding exactly this, which is why the
- * name is his and not ours; the structures come from the IDA-emitted
- * gladiator.dll.h (2026-08-10).
+ * name is his and not ours.
  */
 #ifndef BOTLIB_AASFILE_H
 #define BOTLIB_AASFILE_H

@@ -1,29 +1,25 @@
 /*
- * botlib_port.h — the parts of the build environment that have NO counterpart
- * in Mr. Elusive's 1999 sources.
+ * botlib_port.h — the parts of the build environment that have NO counterpart in
+ * Mr. Elusive's 1999 sources.  Everything here exists only because we compile 32-bit
+ * MSVC6 source for a 64-bit, POSIX toolchain, and is kept apart from the
+ * reconstruction so the line between "restored" and "scaffolding" stays visible:
  *
- * Everything here exists only because we compile 32-bit MSVC6 source for a
- * 64-bit, POSIX toolchain.  It is kept apart from the reconstruction so the
- * line between "restored" and "scaffolding" is visible at a glance:
- *
- *   - the system #include set (the original .c files each included what they
- *     needed; we cannot know which, so one common set stands in)
+ *   - the system #include set (the original .c files each included what they needed;
+ *     we cannot know which, so one common set stands in)
  *   - shims for MSVC CRT names that POSIX spells differently
  *   - SHIDWORD, an IDA spelling for the high dword of a 64-bit value
- *   - the 64-bit side-band GATE.  Its per-struct accessor macros unavoidably
- *     live next to the structures they wrap, in botlib_local.h.
- *   - P()/FE()/FE_END, our spelling of the structdef field tables recovered
- *     from .data
+ *   - the 64-bit side-band GATE (its per-struct accessor macros unavoidably live next
+ *     to the structures they wrap)
+ *   - P()/FE()/FE_END, our spelling of the structdef field tables recovered from .data
  *
  * Nothing in this file corresponds to anything in the shipped DLL.
  */
 #ifndef BOTLIB_PORT_H
 #define BOTLIB_PORT_H
 
-/* The IDA/Win32 spellings below guard on Q_SHARED_H and BOTLIB_H (vec3_t and
- * qboolean are defined by whichever of the two got there first), so those
- * headers have to be in scope before them -- gladiator.dll.h, where this
- * block came from, was always included after both. */
+/* The IDA/Win32 spellings below guard on Q_SHARED_H and BOTLIB_H (vec3_t and qboolean
+ * are defined by whichever of the two got there first), so those headers have to be in
+ * scope before them. */
 #include "../game/q_shared.h"
 /* q_shared.h's VectorNegate is a 2-arg macro; botlib has a 1-arg in-place
  * VectorNegate() at 0x10043540.  Drop the macro so the function stays callable. */
@@ -37,7 +33,7 @@
 */
 
 
-#include <stddef.h>   /* wchar_t, offsetof, size_t */
+#include <stddef.h>
 
 #ifndef _MSC_VER
 
@@ -50,9 +46,9 @@
 
 /* _iobuf/FILE are provided by <stdio.h> which must be included before this header. */
 
-/* MSVC calling conventions — no-ops on non-Windows targets.  On MinGW these
- * are built-in GCC keywords: do NOT redefine them, or the attribute is
- * silently discarded and GetBotAPI breaks (game.dll calls it __stdcall). */
+/* MSVC calling conventions — no-ops on non-Windows targets.  On MinGW these are
+ * built-in GCC keywords: do NOT redefine them, or the attribute is silently discarded
+ * and GetBotAPI breaks (game.dll calls it __stdcall). */
 #if !defined(_MSC_VER) && !defined(_WIN32)
 #ifndef __cdecl
 #define __cdecl
@@ -290,15 +286,15 @@ typedef float vec3_t[3];
 
 #include <math.h>
 #include <stdarg.h>
-#include <stddef.h>    /* offsetof, size_t */
-#include <stdint.h>    /* intptr_t */
-#include <stdio.h>     /* file I/O, sprintf, sscanf */
-#include <string.h>    /* string and memory ops */
-#include <stdlib.h>    /* malloc, atoi, rand, abs */
-#include <ctype.h>     /* toupper */
-#include <errno.h>     /* errno */
-#include <time.h>      /* time(), ctime() */
-#include <unistd.h>    /* access(), chdir(), getcwd() */
+#include <stddef.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <errno.h>
+#include <time.h>
+#include <unistd.h>
 
 
 /* signed high-word/dword accessors */
@@ -317,30 +313,29 @@ static int    _chdir(const char *path) { return chdir(path); }
 
 #ifndef _WIN32
 /* POSIX equivalents for the Windows CRT functions used below. */
-#include <strings.h>    /* strcasecmp */
+#include <strings.h>
 #define _strcmpi   strcasecmp
 #define _access    access
 typedef int __time32_t;   /* Windows 32-bit time type; int is 32-bit on all targets */
 #endif
 
-/* AI node function pointer type (used for BotAINode side-band table).
- * bot_state_s is only completed later, by be_ai_def.h; forward-declare it at
- * file scope so the tag in the prototype below refers to that same struct
- * rather than to a fresh one scoped to the parameter list. */
+/* AI node function pointer type (used for the BotAINode side-band table).  bot_state_s
+ * is only completed later, by be_ai_def.h; forward-declare it at file scope so the tag
+ * in the prototype below refers to that same struct rather than a fresh one scoped to
+ * the parameter list. */
 struct bot_state_s;
 typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 
 /* ------------------------------------------------------------------------
  * Side-band gate.
  *
- * Every "pointer slot" in bot_state_t / bot_chatstate_t / aas_entity_t is a
- * 4-byte int field holding a pointer bit-pattern.  On 64-bit those slots are
- * too narrow, so each is mirrored into a parallel heap array (the side-band)
- * reached through helper macros (BotCharacter, BotAINode, BotWS, …).
+ * Every "pointer slot" in bot_state_t / bot_chatstate_t / aas_entity_t is a 4-byte int
+ * field holding a pointer bit-pattern.  On 64-bit those slots are too narrow, so each
+ * is mirrored into a parallel heap array (the side-band) reached through helper macros
+ * (BotCharacter, BotAINode, BotWS, …).
  *
- * On 32-bit the macros just reinterpret the inline int slot and the side-band
- * tables compile out entirely, reproducing the original memory image exactly.
- * Every gate in botlib.c follows this one predicate. */
+ * On 32-bit the macros just reinterpret the inline int slot and the side-band tables
+ * compile out entirely, reproducing the original memory image exactly. */
 #if defined(__x86_64__) || defined(__aarch64__)
 #define BOTLIB_NEED_SIDEBAND 1
 #else
@@ -348,10 +343,10 @@ typedef int (*ai_node_fn_t)(struct bot_state_s *bs);
 #endif
 
 
-/* Field-table spelling for the structdef_t descriptors recovered from .data.
- * Shared by be_aas_sound / be_ai_goal / be_ai_weap, which own one table each.
- * A structdef is { int size; char **fields; }; each field entry is 7 (char *)
- * slots: name, byte offset, type flags, array count, 0, default float-bits, 0. */
+/* Field-table spelling for the structdef_t descriptors recovered from .data.  Shared by
+ * be_aas_sound / be_ai_goal / be_ai_weap, which own one table each.  A structdef is
+ * { int size; char **fields; }; each field entry is 7 (char *) slots: name, byte
+ * offset, type flags, array count, 0, default float-bits, 0. */
 /* Cast integer constant to char * for mixed pointer/int field table slots */
 #define P(x) ((char *)(uintptr_t)(x))
 

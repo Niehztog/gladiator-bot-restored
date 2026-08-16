@@ -1,13 +1,5 @@
-/*
- * be_interface.h — interface of be_interface.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_interface.h — interface of be_interface.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_INTERFACE_H
 #define BOTLIB_BE_INTERFACE_H
 
@@ -20,27 +12,25 @@ typedef struct scriptcrc_s {
     struct scriptcrc_s  *next;            /* +148 on 32-bit; offset moves to +152 on 64-bit */
 } scriptcrc_t;                            /* sizeof = 152 on 32-bit, 160 on 64-bit */
 
-/* botimport / botstate / bot_exports and the libvar handle macros -- this TU defines all of them, and Q3's own be_interface.h declares the same set. Was botlib_state.h until 2026-08-10. */
-/* botlib_state.h — the three contiguous .data/.bss blocks that GetBotAPI
- * (@0x10038480) and Export_BotShutdownLibrary (@0x10037CF0) address as whole
- * aggregates via rep movs / rep stos:
+/* botimport / botstate / bot_exports and the libvar handle macros -- this TU defines all of them, and Q3's own be_interface.h declares the same set. */
+/* The three contiguous .data/.bss blocks that GetBotAPI (@0x10038480) and
+ * Export_BotShutdownLibrary (@0x10037CF0) address as whole aggregates via
+ * rep movs / rep stos:
  *
  *   block 3  bot_exports @0x10063F80  20 dwords  bot_export_t (the API table)
  *   block 2  botimport   @0x10063FE0  10 dwords  engine import callbacks
  *   block 1  botstate    @0x10064020  20 dwords  setup flag + counts + libvars
  *
- * Keeping them as aggregates (rather than the decompiler's scattered
- * dword_/bi_ symbols) is what makes those bulk copies/clears compile back to
- * rep movs / rep stos, and is 64-bit-correct since they are sizeof-based.
- * Call sites use botimport.* / botstate.* members directly.
+ * Keeping them as aggregates (rather than the decompiler's scattered dword_/bi_
+ * symbols) is what makes those bulk copies/clears compile back to rep movs /
+ * rep stos, and is 64-bit-correct since they are sizeof-based.  Call sites use
+ * botimport.* / botstate.* members directly.
  *
- * Shared by botlib.c (which defines the storage) and botlib_exports.c.
  * ../game/botlib.h has no include guard and is NOT re-included here — both
  * includers pull it in first. */
 
 /* ---- block 2: engine import callbacks (botimport, @0x10063FE0) -----------
- * 10 function pointers; note Trace's explicit-retbuf ABI and Print's int
- * return. */
+ * 10 function pointers; note Trace's explicit-retbuf ABI and Print's int return. */
 typedef struct botimport_block_s {
     void  (__cdecl *BotInput)(int, ea_state_t *);
     int   (__cdecl *BotClientCommand)(int client, char *str, ...);
@@ -56,8 +46,8 @@ typedef struct botimport_block_s {
 } botimport_block_t;
 
 /* ---- block 1: interface state (botstate, @0x10064020) --------------------
- * setup flag + entity/client counts + bottime + the 16 movement libvar
- * handles, in original memory order (4 ints then 16 pointers = 20 dwords). */
+ * setup flag + entity/client counts + bottime + the 16 movement libvar handles, in
+ * original memory order (4 ints then 16 pointers = 20 dwords). */
 typedef struct botstate_block_s {
     int       setup;        /* botlibsetup    @0x10064020 */
     int       num_entities; /* maxentities    @0x10064024 */
@@ -90,27 +80,22 @@ extern bot_export_t      bot_exports;  /* block 3 @0x10063F80 */
 
 
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 extern int filecrcs[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
 /* NOT a variable and has no original name to recover: 0x1005E958 is exactly
- * filecrcs + 736, i.e. the one-past-the-end address MSVC folded into the scan
- * loop's bound as a link-time constant, and IDA had to invent a symbol for the
- * referenced address.  Confirmed: the DLL holds only zero fill there, and the
- * Linux .so — whose .dynsym kept every real global — has no symbol at the
- * corresponding end-of-filecrcs offset either.  Do not chase a name for it. */
+ * filecrcs + 736, i.e. the one-past-the-end address MSVC folded into the scan loop's
+ * bound as a link-time constant, and IDA had to invent a symbol for it.  The DLL holds
+ * only zero fill there, and the Linux .so — whose .dynsym kept every real global — has
+ * no symbol at the corresponding offset either.  Do not chase a name for it. */
 extern int unk_1005E958;
 /* `logfile` and the seven Log_* functions live in their own TU: botlib/l_log.c
  * (l_log.obj, DLL 0x10038BE0..0x10038F0F -- see .claude/memory/tu_partition.md). */
 /* `libvarlist` and the thirteen LibVar* functions live in their own TU:
- * botlib/l_libvar.c (l_libvar.obj, DLL 0x10038750..0x10038BDF -- see
- * .claude/memory/tu_partition.md). */
+ * botlib/l_libvar.c (DLL 0x10038750..0x10038BDF). */
 extern struct scriptcrc_s *dword_10063F2C;
-/* The three interface blocks are typed aggregates in botlib_state.h so that
- * GetBotAPI's import copy and Export_BotShutdownLibrary's clears compile back
- * to the original rep movs / rep stos.  Storage is defined here; call sites use
- * the botimport.* / botstate.* members directly. */
+/* The three interface blocks are typed aggregates so that GetBotAPI's import copy and
+ * Export_BotShutdownLibrary's clears compile back to the original rep movs / rep stos.
+ * Storage is defined here; call sites use the botimport.* / botstate.* members. */
 extern botimport_block_t botimport;
 extern botstate_block_t botstate;
 extern bot_export_t bot_exports;

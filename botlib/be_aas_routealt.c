@@ -1,40 +1,22 @@
 /*
  * be_aas_routealt.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1001A650..0x1001AB80; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1001A650..0x1001AB80.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_routealt.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -81,31 +63,28 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum)
 
 // gladiator.dll: 1001A720..1001AA98
 // gladi386.so:   00028394..000289B4
-/* AAS_AlternativeRouteGoals — find clusters of "midrange" route-portal areas
- * lying within a 1.5x detour budget of the direct start->goal route, and emit
- * one alternative-route goal per cluster.
+/* Find clusters of "midrange" route-portal areas lying within a 1.5x detour budget of
+ * the direct start->goal route, and emit one alternative-route goal per cluster.
  *
- *   1) Resolve start/goal to areas, and take the baseline travel time between
- *      them.
- *   2) Mark each area whose contents carry AREACONTENTS_ROUTEPORTAL (0x20) and
- *      which has reachabilities, if travel(start->a) and travel(a->goal) are
- *      both within 1.5x the baseline, recording both times.
- *   3) Flood-fill each marked area's connected cluster via face neighbours,
- *      take the cluster centroid, pick the member area whose center is closest
- *      to it, and emit one aas_altroutegoal_t for it — origin, areanum, the
- *      two travel times, and (start+goal) - baseline as the extra travel.
- *      Stop at maxaltroutegoals.
+ *   1) Resolve start/goal to areas, and take the baseline travel time between them.
+ *   2) Mark each area whose contents carry AREACONTENTS_ROUTEPORTAL (0x20) and which has
+ *      reachabilities, if travel(start->a) and travel(a->goal) are both within 1.5x the
+ *      baseline, recording both times.
+ *   3) Flood-fill each marked area's connected cluster via face neighbours, take the
+ *      cluster centroid, pick the member area whose center is closest to it, and emit one
+ *      aas_altroutegoal_t for it — origin, areanum, the two travel times, and
+ *      (start+goal) - baseline as the extra travel.  Stop at maxaltroutegoals.
  *
- * Quirk preserved: the per-iteration Log_Write prints the match counter BEFORE
- * it is incremented, so the printed number lags by one.
+ * Faithful quirk: the per-iteration Log_Write prints the match counter BEFORE it is
+ * incremented, so the printed number lags by one.
  *
  * Do NOT cache aasworld.areasettings/areas or midrangeareas/clusterareas in
- * function-lifetime locals: the original re-derives each from its global at
- * every use, which is what MSVC6's aliasing model produces once the accesses
- * go through the plain indexed form Q3 itself uses.
+ * function-lifetime locals: the original re-derives each from its global at every use,
+ * which is what MSVC6's aliasing model produces once the accesses go through the plain
+ * indexed form Q3 itself uses.
  *
- * DEAD in Gladiator — no .text caller.  Q3's version adds a `type`
- * discriminator and takes explicit start/goal areanums.
+ * DEAD in Gladiator.  Q3's version adds a `type` discriminator and takes explicit
+ * start/goal areanums.
  */
 int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
@@ -145,7 +124,7 @@ int __cdecl AAS_AlternativeRouteGoals(
 
   /* Phase 1: mark candidate route-portal areas within 1.5x baseline.  No explicit
    * numareas>1 wrapper: the for-loop entry guard already emits the single
-   * `cmp numareas,1; jle` the original has (an outer `if` duplicated it). */
+   * `cmp numareas,1; jle` the original has. */
   for ( areanum = 1; areanum < aasworld.numareas; areanum++ )
   {
     if ( (aasworld.areasettings[areanum].contents & 0x20)

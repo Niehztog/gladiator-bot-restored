@@ -1,39 +1,22 @@
 /*
  * l_crc.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x100385B0..0x1003874F (five functions) and it owns the `crctable`
- * lookup table; both facts are recovered in .claude/memory/tu_partition.md
- * (the Linux .so's .dynsym keeps `crctable` under its real name, and this
- * TU's F-number run there holds exactly five functions).
- *
- * The include block below is botlib.c's, verbatim, so every macro and typedef
- * this file compiles against is the environment these functions had before the
- * split.
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x100385B0..0x1003874F.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_crc.h"
 #include "l_memory.h"
 __int16 crctable[308] =
@@ -361,10 +344,9 @@ _WORD *__cdecl CRC_Init(_WORD *crcvalue)
 
 // gladiator.dll: 100385D0..10038605
 // gladi386.so:   00049CB0..00049CE6
-// Standard CCITT CRC-16 single-byte update
-// against the lookup table at crctable.  Mirrors Q3 CRC_ProcessByte.
-// Dead in Gladiator (CRC_Block at 10038640 inlines the same step), but
-// preserved by the linker.
+// Standard CCITT CRC-16 single-byte update against the lookup table at crctable.
+// Mirrors Q3's CRC_ProcessByte.  DEAD in Gladiator (CRC_Block at 10038640 inlines the
+// same step), but preserved by the linker.
 void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 {
 	 *crcvalue = (*crcvalue << 8) ^ crctable[(*crcvalue >> 8) ^ data];
@@ -397,14 +379,11 @@ unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
 
 // gladiator.dll: 100386E0..1003872D
 // gladi386.so:   00049E80..00049FE5
-// Restored dead stub:
-// CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte
-// transform as CRC_ProcessByte in a tight loop and writing the result back
-// through `crc`.  Mirrors Q3 CRC_ProcessByteString — dead in Gladiator (the
-// equivalent loop is inlined in CRC_Block at 10038640).  Note the disasm
-// scans the data buffer using `[eax+ebp*1]` with eax=loop-counter and
-// ebp=base — the classic index/base swap, equivalent to
-// data[i] for i in [0..len).
+// CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte transform
+// as CRC_ProcessByte in a tight loop and writing the result back through `crc`.  Mirrors
+// Q3's CRC_ProcessByteString.  DEAD in Gladiator (the equivalent loop is inlined in
+// CRC_Block).  The disasm scans the buffer using `[eax+ebp*1]` with eax=loop-counter and
+// ebp=base — the classic index/base swap, equivalent to data[i] for i in [0..len).
 void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
 {
   int i;

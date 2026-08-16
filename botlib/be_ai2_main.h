@@ -1,22 +1,10 @@
-/*
- * be_ai2_main.h — interface of be_ai2_main.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* be_ai2_main.h — interface of be_ai2_main.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_BE_AI2_MAIN_H
 #define BOTLIB_BE_AI2_MAIN_H
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
-/* Callees whose definition used to precede every caller inside the monolithic
- * botlib.c, so no prototype was ever written for them.  Once the callers moved
- * to their own TUs the declarations became load-bearing: without one, C's
+/* Declarations for what this TU defines — last, so the types above are in scope. */
+/* These declarations are load-bearing: without one, C's
  * default argument promotion passes Export_BotAIFrame's `float` as a `double`
  * and its caller's codegen changes (caught as Export_BotLibAI OUR+1 by the
  * MSVC6 oracle). */

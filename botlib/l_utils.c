@@ -1,40 +1,22 @@
 /*
  * l_utils.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10041240..0x100423F0; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10041240..0x100423F0.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_utils.h"
 #include "be_interface.h"
 #include "l_libvar.h"
@@ -63,7 +45,7 @@ HGLOBAL hMem = NULL; // idb
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
 
-#ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL): sub_10041240 + its callbacks/helpers ----
+#ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL) ----
                 * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and
                 * no zlib); .aas files are loaded directly by BotLibLoadMap. */
 // gladiator.dll: 10041240..1004151C
@@ -195,9 +177,8 @@ void sub_10041600(void)
 }
 // gladiator.dll: 10041650..1004166F
 // gladi386.so:   absent
-/* Cached MSVC _osplatform-style helper: 1 on Windows NT (top bit of
- * GetVersion() clear), 0 on Windows 9x.  The cache slot starts at -1.
- * DEAD in Gladiator. */
+/* Cached MSVC _osplatform-style helper: 1 on Windows NT (top bit of GetVersion()
+ * clear), 0 on Windows 9x.  The cache slot starts at -1.  DEAD in Gladiator. */
 static int sub_10041650(void)
 {
   static unsigned int cached = 0xFFFFFFFFu;
@@ -295,9 +276,9 @@ void __cdecl vectoangles(float *value1, float *angles)
 }
 // gladiator.dll: 100418D0..100418EE
 // gladi386.so:   00053D94..00053DB4
-/* In-place path-separator normalisation.  The original folds both '/' and '\\'
- * to '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.
- * The _WIN32 branch is verbatim. */
+/* In-place path-separator normalisation.  The original folds both '/' and '\\' to
+ * '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.  The
+ * _WIN32 branch is verbatim. */
 #ifdef _WIN32
 #  define BOTLIB_PATHSEP '\\'
 #else
@@ -344,9 +325,8 @@ void __cdecl sub_10041900(const char *a1, int a2)
   }
 }
 
-/* PAK directory entry — 64 bytes on either word width.  Declared above the
- * docblock so the ref-funcmap generator attributes the address to the
- * function. */
+/* PAK directory entry — 64 bytes on either word width.  Declared above the docblock so
+ * the ref-funcmap generator attributes the address to the function. */
 typedef struct pak_direntry_s {
     char    name[56];
     int32_t filepos;
@@ -409,9 +389,9 @@ LABEL_11:
         goto LABEL_11;
     }
     strcpy(a3->path, FileName);
-    /* This lone goto is load-bearing: the shared FreeMemory/return-0 tail plus the
-     * v8 stack spill (edi is the strcpy rep-movs scratch) is only reproduced by
-     * this form — every structured equivalent makes MSVC6 cache v8 in edi. */
+    /* This lone goto is load-bearing: the shared FreeMemory/return-0 tail plus the v8
+     * stack spill (edi is the strcpy rep-movs scratch) is only reproduced by this form —
+     * every structured equivalent makes MSVC6 cache v8 in edi. */
     a3->fileofs = LittleLong(((pak_direntry_t *)v8)[v10].filepos);
     a3->filelen = LittleLong(((pak_direntry_t *)v8)[v10].filelen);
     (void)v12;
@@ -421,19 +401,18 @@ LABEL_11:
 }
 // gladiator.dll: 10041BA0..10041E9A
 // gladi386.so:   00054014..00054456
-/* Search for file `a3` under base path `a1`, first in the gamedir `Source`,
- * then "baseq2", trying both loose files and pak archives; the result goes to
- * the bot_fileref_t out-param. */
+/* Search for file `a3` under base path `a1`, first in the gamedir `Source`, then
+ * "baseq2", trying both loose files and pak archives; the result goes to the
+ * bot_fileref_t out-param. */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
 {
   int v5; // esi
   int v7; // [esp+10h] [ebp-244h]
-  /* `subdirs` MUST be one [3][144] array, not [2][144] plus a named third buffer:
-   * the loop walks a char* across all three rows, but only rows 0 (subdir) and 1
-   * ("baseq2") are populated and searched, so a separately-named row 2 gets
-   * dead-eliminated by /O2 — the array's escaping address is what keeps it live.
-   * Each buffer's init is byte[0] = '\0' plus memset of the remaining 143, which
-   * is just a 144-byte zero-fill. */
+  /* `subdirs` MUST be one [3][144] array, not [2][144] plus a named third buffer: the
+   * loop walks a char* across all three rows, but only rows 0 (subdir) and 1 ("baseq2")
+   * are populated and searched, so a separately-named row 2 gets dead-eliminated by /O2
+   * — the array's escaping address is what keeps it live.  Each buffer's init is
+   * byte[0] = '\0' plus memset of the remaining 143, i.e. a 144-byte zero-fill. */
   char *v4; // ebp
   char FileName[144]; // [esp+14h] [ebp-240h] BYREF
   char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
@@ -531,15 +510,14 @@ BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
                 * Windows-only, and dead even there (no live caller).  Absent on Linux. */
 // gladiator.dll: 10041FF0..100422BD
 // gladi386.so:   absent
-/* sub_10041FF0 — add one file to a zip archive by loading Info-ZIP's ZIP32.DLL
- * and driving its ZpInit / ZpSetOptions / ZpArchive entry points, mirroring the
- * UnZip sibling sub_10041240 above.  Off-Windows the shimmed SearchPathA
- * returns 0, so the body bails before touching any DLL.
+/* Add one file to a zip archive by loading Info-ZIP's ZIP32.DLL and driving its
+ * ZpInit / ZpSetOptions / ZpArchive entry points, mirroring the UnZip sibling
+ * sub_10041240 above.  Off-Windows the shimmed SearchPathA returns 0, so the body
+ * bails before touching any DLL.
  *
- * ZPOPT (248 bytes) and ZCL (12 bytes) are passed BY VALUE, with pointer fields
- * as 4-byte int slots so the byte image is width-independent.  Field names are
- * offset-derived; only the two TRUE flags and the embedded getcwd buffer carry
- * meaning here.
+ * ZPOPT (248 bytes) and ZCL (12 bytes) are passed BY VALUE, with pointer fields as
+ * 4-byte int slots so the byte image is width-independent.  Field names are
+ * offset-derived; only the two TRUE flags and the embedded getcwd buffer carry meaning.
  *
  * DEAD in Gladiator — its only caller was an unreachable debug menu entry. */
 typedef struct {

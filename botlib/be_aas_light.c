@@ -1,40 +1,22 @@
 /*
  * be_aas_light.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1000D450..0x1000D770; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1000D450..0x1000D770.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_light.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -107,8 +89,8 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
   v8 = sub_1000D450();
   if ( !v8 )
     return 0;
-  /* Quirk preserved: the original copies the free-list entry's stale xyz back
-   * into the caller's origin buffer. */
+  /* Faithful quirk: copies the free-list entry's stale xyz back into the
+   * caller's origin buffer. */
   VectorCopy(v8->origin, origin);
   v8->ent       = ent;
   v8->radius    = radius;
@@ -127,14 +109,8 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
 }
 // gladiator.dll: 1000D5F0..1000D718
 // gladi386.so:   00017EC0..00018046
-/* AAS_BSPTraceLight — trace (start..end) through the BSP, returning the
- * lightmap RGB at the impact point in *red/*green/*blue and the position in
- * *endpos.  After the static trace it walks the BotAddPointLight cache
- * (aasworld.newestcache), adding each light whose radius exceeds its distance
- * to endpos.  Returns (R+G+B)/3 plus accumulated radius slack — the "how lit
- * is this point" scalar callers like BotEntityVisible use.
- *
- * Q3 stubs this out in be_aas_bspq3.c; this Q2 implementation is the original. */
+/* Lightmap RGB at the impact point of (start..end), plus the BotAddPointLight
+ * cache contribution.  Returns (R+G+B)/3 plus accumulated radius slack. */
 int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue)
 {
   float *v6; // ebx
@@ -142,10 +118,8 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   bsp_pointlight_t *v8; // esi
   float v9; // st7
   vec3_t v12; // [esp+10h] [ebp-Ch] BYREF
-  /* Dedicated int locals for sub_10007150's RGB outputs, since the parameter
-   * slots are intptr_t here.  32-bit keeps the original's no-init form; 64-bit
-   * zero-inits, because sub_10007150 leaves them unwritten when there is no BSP
-   * light data. */
+  /* 32-bit keeps the original's no-init form; 64-bit must zero-init because
+   * sub_10007150 leaves these unwritten when there is no BSP light data. */
 #if BOTLIB_NEED_SIDEBAND
   int rs = 0, gs = 0, bs_ = 0;
 #else
@@ -180,9 +154,8 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
 }
 // gladiator.dll: 1000D770..1000D7B4
 // gladi386.so:   00018048..000181F8
-/* AAS_PointLight — lightmap intensity at `origin`, from an AAS_BSPTraceLight
- * 4096 units straight down.  The three channel out-pointers may be NULL when
- * only the average-RGB return value is wanted. */
+/* Lightmap intensity at `origin`, traced 4096 units straight down.  The channel
+ * out-pointers may be NULL. */
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue)
 {
   vec3_t v7; // [esp+0h] [ebp-18h] BYREF

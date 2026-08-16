@@ -1,40 +1,22 @@
 /*
  * be_aas_debug.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10009860..0x1000A810; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10009860..0x1000A810.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_debug.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_main.h"
@@ -108,14 +90,13 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
 }
 // gladiator.dll: 10009A10..10009C18
 // gladi386.so:   00012BE8..00012E1F
-/* AAS_DrawPlaneCross — plane-projection debug "X" visualiser, verbatim Q3
- * be_aas_debug.c.  Builds the four corners of a 12x12 square around the hit
- * point in the two transverse axes, projects each onto the plane along axis
- * n0 = type%3, then draws the two diagonals through botimport.DebugLineShow
- * with line-IDs from the shared debuglines pool.
+/* Plane-projection debug "X" visualiser, verbatim Q3 be_aas_debug.c.  Builds the four
+ * corners of a 12x12 square around the hit point in the two transverse axes, projects
+ * each onto the plane along axis n0 = type%3, then draws the two diagonals through
+ * botimport.DebugLineShow.
  *
- * DEAD in shipped Gladiator (no .text caller), preserved by /INCREMENTAL.
- * Must keep external linkage: cl /O2 would drop an unreferenced static. */
+ * DEAD in shipped Gladiator, preserved by /INCREMENTAL.  Must keep external linkage:
+ * cl /O2 would drop an unreferenced static. */
 void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int color)
 {
   int    n0, n1, n2, j, line, lines[2];
@@ -164,25 +145,21 @@ void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int c
 }
 // gladiator.dll: 10009CB0..10009E59
 // gladi386.so:   00012E20..0001300F
-/* AAS_ShowBoundingBox — Q3's AAS_ShowBoundingBox (be_aas_debug.c): draw the
- * AABB at `origin` with mins/maxs offsets as a wireframe cube in colour
- * 0xF2F2F0F0.  NOTE the param order is the reverse of Q3's
- * (origin, mins, maxs) — the .text takes the 2nd param as the TOP corners and
- * the 3rd as the bottom — and is kept as-is to stay byte-faithful.
+/* Draw the AABB at `origin` with mins/maxs offsets as a wireframe cube in colour
+ * 0xF2F2F0F0.  NOTE the param order is the reverse of Q3's (origin, mins, maxs) — the
+ * .text takes the 2nd param as the TOP corners and the 3rd as the bottom — and is kept
+ * as-is to stay byte-faithful.
  *
  *   bottom_corners[4], z = origin.z + mins.z:  SW, SE, NE, NW
- *   top_corners[4],    z = origin.z + maxs.z:  memcpy of bottom, then a
- *     4x stride-12 fst loop patches each copy's third float.
+ *   top_corners[4],    z = origin.z + maxs.z:  memcpy of bottom, then a 4x stride-12
+ *     fst loop patches each copy's third float.
  *
- * Per iteration i in [1..4] it draws bot[i-1]->bot[i&3], top[i-1]->top[i&3]
- * and bot[i-1]->top[i-1], covering all 12 edges — but only THREE line IDs are
- * held across them, so which 3 edges are actually on screen cycles.  Almost
- * certainly a development-time "flicker the bbox" visualisation.
+ * Per iteration i in [1..4] it draws bot[i-1]->bot[i&3], top[i-1]->top[i&3] and
+ * bot[i-1]->top[i-1], covering all 12 edges — but only THREE line IDs are held across
+ * them, so which 3 edges are on screen cycles.  The line-ID allocation up front inlines
+ * a private copy of AAS_DebugLine's slot scan over debuglines[0..255].
  *
- * The line-ID allocation up front inlines a private copy of AAS_DebugLine's
- * slot scan over debuglines[0..255].
- *
- * DEAD in Gladiator — no live caller.  Preserved by /INCREMENTAL. */
+ * DEAD in Gladiator.  Preserved by /INCREMENTAL. */
 void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 {
   vec3_t bboxcorners[8];
@@ -226,16 +203,15 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
 }
 // gladiator.dll: 10009ED0..1000A032
 // gladi386.so:   00013010..0001335B
-/* AAS_ShowFace — draw every edge of one face as a line, cycling a 4-colour
- * debug palette (0xDCDDDEDF -> 0xF2F2F0F0 -> 0xD0D1D2D3 -> 0xF3F3F1F1),
- * then a 20-unit normal arrow from the face's first vertex in 0xF2F2F0F0.
- * Sibling of AAS_ShowArea@1000A0A0, but takes a face index directly.
+/* Draw every edge of one face as a line, cycling a 4-colour debug palette
+ * (0xDCDDDEDF -> 0xF2F2F0F0 -> 0xD0D1D2D3 -> 0xF3F3F1F1), then a 20-unit normal arrow
+ * from the face's first vertex in 0xF2F2F0F0.  Sibling of AAS_ShowArea@1000A0A0, but
+ * takes a face index directly.
  *
- * The original's colour cycle is a sub/neg/sbb/and/add bit-twiddle in the
- * fall-through branch; the algebra reduces exactly to the 4-entry table and
- * modulo step used here.
+ * The original's colour cycle is a sub/neg/sbb/and/add bit-twiddle in the fall-through
+ * branch; the algebra reduces exactly to the 4-entry table and modulo step used here.
  *
- * DEAD in shipped Gladiator — no .text caller. */
+ * DEAD in shipped Gladiator. */
 void __cdecl AAS_ShowFace(int facenum)
 {
   int i, color, edgenum;
@@ -351,10 +327,9 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
     debuglinevisible[line] = 1;
   }
 }
-// 1000A228: conditional instruction was optimized away because esi.4<100
 // gladiator.dll: 1000A370..1000A3DA
 // gladi386.so:   00013684..0001380D
-/* AAS_DrawCross (was sub_1000A370) — a 3D cross at `origin`: three line
+/* AAS_DrawCross — a 3D cross at `origin`: three line
  * segments, one per axis, each spanning [origin-size, origin+size]. */
 void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 {
@@ -372,20 +347,18 @@ void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
 }
 // gladiator.dll: 1000A400..1000A401
 // gladi386.so:   00013810..00013811
-/* AAS_PrintTravelType — pretty-prints a TRAVEL_* type, but compiled out to a
- * bare `ret` in this build (presumably a debug #ifdef that was off).  The
- * empty body must stay: AAS_ShowReachableAreas still calls it through the
- * thunk at 0x10001F7D. */
+/* Pretty-prints a TRAVEL_* type, but compiled out to a bare `ret` in this build
+ * (presumably a debug #ifdef that was off).  The empty body must stay:
+ * AAS_ShowReachableAreas still calls it through the thunk at 0x10001F7D. */
 void __cdecl AAS_PrintTravelType(int traveltype)
 {
   (void)traveltype;
 }
 // gladiator.dll: 1000A420..1000A572
 // gladi386.so:   00013814..00013AF4
-/* AAS_DrawArrow (was sub_1000A420) — an arrow from `start` to `end`: a shaft
- * in `linecolor` plus two arrowhead strokes in `arrowcolor`.  The head offset
- * is normalize(end-start) crossed with the up vector, falling back to (1,0,0)
- * when |dot| > 0.99. */
+/* An arrow from `start` to `end`: a shaft in `linecolor` plus two arrowhead strokes in
+ * `arrowcolor`.  The head offset is normalize(end-start) crossed with the up vector,
+ * falling back to (1,0,0) when |dot| > 0.99. */
 void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcolor)
 {
   double dot; // st7
@@ -425,16 +398,15 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
 // gladiator.dll: 1000A5E0..1000A791
 // gladi386.so:   00013AF4..00013E73
 /*
- * AAS_ShowReachability (was sub_1000A5E0) — debug visualisation of one
- * aas_reachability_t, matching Q3's AAS_ShowReachability: an ShowArea +
- * DrawArrow header, then a switch on traveltype running
+ * Debug visualisation of one aas_reachability_t, matching Q3's AAS_ShowReachability:
+ * a ShowArea + DrawArrow header, then a switch on traveltype running
  * HorizontalVelocityForJump + ClientMovement prediction per branch, with a
  * TRAVEL_JUMP-only DrawCross from JumpReachRunStart.
  *
- * Appears dead to static analysis: its only xref is the thunk at 0x1000160e,
- * called only from AAS_ShowReachableAreas (0x1000A810), whose own thunk has no
- * callers either — the whole debug family is reached through a string-keyed
- * console dispatcher the decompilers do not resolve.
+ * Appears dead to static analysis: its only xref is the thunk at 0x1000160e, called
+ * only from AAS_ShowReachableAreas, whose own thunk has no callers either — the whole
+ * debug family is reached through a string-keyed console dispatcher the decompilers do
+ * not resolve.
  */
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 {
@@ -482,10 +454,9 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 // gladiator.dll: 1000A810..1000A8D4
 // gladi386.so:   00013E74..00013F57
 /*
- * AAS_ShowReachableAreas — walks one area's reachability list, one entry per
- * call and throttled to 1.5 s per advance, printing each travel type and
- * handing the reach to AAS_ShowReachability.  Matches Q3's version in
- * be_aas_debug.c: same control flow, same statics, same throttle.
+ * Walk one area's reachability list, one entry per call and throttled to 1.5 s per
+ * advance, printing each travel type and handing the reach to AAS_ShowReachability.
+ * Matches Q3's version: same control flow, same statics, same throttle.
  *
  * Statics in the original DLL: reach @0x10062908 (44 B), lasttime @0x10062934,
  * lastareanum @0x10062938, index @0x1006293c.

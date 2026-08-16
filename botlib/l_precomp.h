@@ -1,13 +1,5 @@
-/*
- * l_precomp.h — interface of l_precomp.c, one of the original Gladiator Bot v0.96
- * translation units (Mr. Elusive, 1999); see .claude/memory/tu_partition.md.
- *
- * Includes nothing, exactly as Q3 botlib's own be_aas_reach.h / l_libvar.h /
- * be_interface.h do: the .c establishes the environment (botlib_local.h) first,
- * then pulls in the interfaces it calls into.  A per-TU header that included
- * the shared header instead would form a cycle with it, because the shared
- * header needs types these files declare against.
- */
+/* l_precomp.h — interface of l_precomp.c, an original Gladiator Bot v0.96
+ * translation unit (Mr. Elusive, 1999). */
 #ifndef BOTLIB_L_PRECOMP_H
 #define BOTLIB_L_PRECOMP_H
 
@@ -32,9 +24,9 @@ typedef struct define_s {
     struct define_s       *hashnext;/* +28                                        */
 } define_t;                         /* sizeof = 32 */
 
-/* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.
- * Q3's l_precomp.c shape but with `double floatvalue`.  Allocate with
- * sizeof() — the original's fixed 32/24 bytes only hold on 32-bit. */
+/* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.  Q3's
+ * l_precomp.c shape but with `double floatvalue`.  Allocate with sizeof() — the
+ * original's fixed 32/24 bytes only hold on 32-bit. */
 typedef struct value_s {
     int intvalue;                /* +0  */
     int _pad0;                   /* +4  alignment for double */
@@ -53,26 +45,20 @@ typedef struct operator_s {
     struct operator_s *next;
 } operator_t;
 
-/* source_t — Q3's source_s with both 1024-byte path buffers cut to MAX_PATH:
- * 1624 B in gladiator.dll, 1384 B in gladi386.so, both read off LoadSourceFile's
- * own `GetMemory(sizeof)` / `memset(src, 0, sizeof)` (0x658 / 0x568) with
- * `strncpy(src->filename, name, MAX_PATH)` right after.
+/* source_t — Q3's source_s with both 1024-byte path buffers cut to MAX_PATH: 1624 B in
+ * gladiator.dll, 1384 B in gladi386.so, both read off LoadSourceFile's own
+ * `GetMemory(sizeof)` / `memset(src, 0, sizeof)` (0x658 / 0x568) with
+ * `strncpy(src->filename, name, MAX_PATH)` right after.  `includepath[MAX_PATH]` is
+ * followed by `punctuations`: PC_SetIncludePath strncpy's 0x104 bytes into the second
+ * buffer, and PC_SetPunctuations' write at +0x208 is `source->punctuations` at +520.
  *
- * The earlier `includepath[48]` + `definebuffer` + `_pad_1[212]` was a mis-split
- * of one `includepath[MAX_PATH]` followed by `punctuations`: PC_SetIncludePath
- * strncpy's 0x104 bytes into the second buffer, and PC_SetPunctuations' write to
- * "+0x208, inside the reserved region" is `source->punctuations` at +520.
- * `definebuffer` had no users at all.
- *
- * ACCEPTED COST, do not "fix" by reverting: this correction costs exactly one
- * MSVC6 row.  BotLoadCharacter goes from byte-identical to 6 differing bytes —
- * two independent register reloads swapped, same 459 instructions and same 1406
- * bytes.  The layout is provably untouched on that side (compile-time probes
- * measured sizeof 1624 and cachedtoken at +552 for BOTH spellings, and
- * be_ai_char.c never names a source_t field), so it is an MSVC6 frontend
- * scheduling tie, not a layout error.  Bisected: token_t's `long double` and
- * script_t's MAX_PATH are both innocent — reverting either leaves the tie in
- * place, and reverting source_t alone restores it. */
+ * ACCEPTED COST, do not "fix" by reverting: this layout costs exactly one MSVC6 row.
+ * BotLoadCharacter goes from byte-identical to 6 differing bytes — two independent
+ * register reloads swapped, same 459 instructions and same 1406 bytes.  The layout is
+ * provably untouched on that side (compile-time probes measure sizeof 1624 and
+ * cachedtoken at +552 for BOTH spellings, and be_ai_char.c never names a source_t
+ * field), so it is an MSVC6 frontend scheduling tie, not a layout error.  token_t's
+ * `long double` and script_t's MAX_PATH are both innocent. */
 typedef struct source_s {
     char                   filename[MAX_PATH];    /* +0    source filename                  */
     char                   includepath[MAX_PATH]; /* +260 (DLL) / +144 (ELF)  #include base */
@@ -89,9 +75,7 @@ typedef struct source_s {
 
 
 
-/* Declarations for what this TU defines, from the retired
- * botlib_local.h.  At the end of the file so the types above are
- * already in scope. */
+/* Declarations for what this TU defines — last, so the types above are in scope. */
 /* Forward declarations for the functions defined below. */
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer); /* l_precomp.c: evaluates #if expression tokens */
 int __cdecl PC_ReadLine(source_t *source, token_t *token);                       /* 2-param line reader */

@@ -1,40 +1,22 @@
 /*
  * be_aas_reach.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10010F60..0x10018C70; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10010F60..0x10018C70.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_aas_reach.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -67,29 +49,21 @@ int reach_walk; // weak
 
 // gladiator.dll: 10010F60..10010FA3
 // gladi386.so:   0001DAFC..0001DBC0
-/* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr
- * at +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original
- * byte-offset walk (so MSVC6 still emits the +44 / stride-48 form) but derive
- * the link slot from offsetof(..,next) and store through intptr_t*, so stride,
- * link offset and pointer width are all right on either target.
+/* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr at
+ * +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original byte-offset
+ * walk (so MSVC6 still emits the +44 / stride-48 form) but derive the link slot
+ * from offsetof(..,next) and store through intptr_t*.
  *
- * `nextoffset` is a genuinely separate loop-carried accumulator (not just
- * `offset + sizeof(node)` recomputed inline) even though the two are always
- * in lockstep: on the real Linux gladi386.so, gcc 2.7.2.3 -O6 -funroll-loops
- * unrolls this loop 5x and keeps a distinct esi register for it (proven by
- * matching lea/add addressing in the disassembly). Writing it as a separate
- * C variable is required to reproduce that; MSVC6 in turn proves the split
- * is harmless there since /O2 recognizes the redundancy and folds nextoffset
- * back into a single register, reproducing the original non-unrolled 15-insn
- * PE shape byte-for-byte regardless. A THIRD variable (a small 0..65535 node
- * index decoupled from the byte offsets, needed to get gcc's unrolled loop
- * test to match real's `ebp`-based trip count exactly) was also tried and
- * does close the last few ELF insns, but MSVC6 recognizes that as a small
- * fixed trip count and rewrites the loop into a countdown (`dec edx / jne`)
- * requiring an extra callee-saved register — a genuine, unavoidable PE
- * regression. That variable is deliberately NOT present below; the residual
- * ELF gap (OUR-4/OUR-6, see asm_matching/gcc272 evidence) is the accepted
- * cost of keeping the PE oracle's byte-identical match on both functions. */
+ * `nextoffset` must stay a genuinely separate loop-carried accumulator even
+ * though it moves in lockstep with `offset`: gcc 2.7.2.3 -O6 -funroll-loops
+ * unrolls this 5x and keeps a distinct register for it, and MSVC6 /O2 folds the
+ * redundancy back out, so the split is free on PE and required on ELF.
+ *
+ * Do NOT add a third variable (a 0..65535 node index decoupled from the byte
+ * offsets).  It closes the last few ELF insns, but MSVC6 then recognises a small
+ * fixed trip count and rewrites the loop into a countdown needing an extra
+ * callee-saved register — an unavoidable PE regression.  The residual ELF gap is
+ * the accepted cost. */
 #define AAS_REACHABILITYHEAP_NODES 65536
 
 int AAS_SetupReachabilityHeap()
@@ -118,10 +92,9 @@ void AAS_ShutDownReachabilityHeap()
 }
 // gladiator.dll: 10010FF0..1001102A
 // gladi386.so:   0001DBE0..0001DC2E
-/* AAS_AllocReachability — pop a node off the reach free chain, raising
- * AAS_MAX_REACHABILITYSIZE when the successor is NULL, and bump
- * numreachabilities.  Note this is a DIFFERENT free list from the entity-link
- * one at aasworld.freelinks (16-byte stride, link at +8). */
+/* Pop a node off the reach free chain, raising AAS_MAX_REACHABILITYSIZE when the
+ * successor is NULL.  A DIFFERENT free list from the entity-link one at
+ * aasworld.freelinks (16-byte stride, link at +8). */
 int numreachabilities;               /* 0x1006677C reachabilities allocated (be_aas_reach.c; was dword_1006677C) */
 
 void *AAS_AllocReachability(void)
@@ -301,8 +274,8 @@ int __cdecl AAS_AreaCrouch(int areanum)
 int __cdecl AAS_AreaSwim(int areanum)
 {
   /* Keep the if/else 0-or-1 form (Q3's `if (areaflags & AREA_LIQUID)`): MSVC's
-   * bit-test idiom emits a byte-narrowed test, whereas an arithmetic
-   * `(x&4)>>2` gets reassociated to `(x>>2)&1` on a full DWORD load. */
+   * bit-test idiom emits a byte-narrowed test, whereas an arithmetic `(x&4)>>2`
+   * gets reassociated to `(x>>2)&1` on a full DWORD load. */
   if ( aasworld.areasettings[areanum].areaflags & 4 )
     return 1;
   else
@@ -616,8 +589,8 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   int j; // ebp
   int edge2num; // rax — int + abs()
   aas_edge_t *edge2; // ecx
-  /* Q3 declares this; IDA lost it because both compilers CSE'd the subscript
-   * into an address they already had.  Restoring it stops gcc272 re-evaluating
+  /* Q3 declares this; IDA lost it because both compilers CSE'd the subscript into
+   * an address they already had.  Restoring it stops gcc272 re-evaluating
    * `planes[planenum ^ !faceside1]` once per dot-product term. */
   aas_plane_t *plane;
   /* The original keeps these on the x87 stack at 80-bit, so they are long
@@ -670,18 +643,13 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   float ground_bestlength; // [esp+110h] [ebp-C0h]
   float water_bestlength; // [esp+114h] [ebp-BCh]
   /* NOTHING at [esp+118h]: IDA's `aas_face_t *v126` there was MSVC's SPILL SLOT
-   * for `groundface1`, not a source variable — Q3 declares no such local, and
-   * carrying it made our frame 4 bytes too big in BOTH originals
-   * (`sub esp,0x1c4` vs the DLL's `0x1c0`, `0x1f8` vs the .so's `0x1f4`).
-   * Dropping it — with its `v126 = groundface1;` save, the far
-   * `v126->faceflags` read and the dead `groundface1 = v126;` restore — makes
-   * both frame sizes exact and takes the ELF row from OUR+1/11827b to
-   * OUR-4/10189b.  DO NOT REINTRODUCE IT: the PE's differing-line count goes
-   * UP (350 -> 482, 7502 -> 8144 bytes) because MSVC6 then permutes the frame
-   * differently, but instruction parity is untouched at 1237/1237 and that
-   * permutation is unreachable from C — see [[msvc6_intractables]]'s fourth
-   * and fifth declaration-order negatives, both measured on this function.
-   * This is a deliberate fidelity-over-byte-metric deviation. */
+   * for `groundface1`, not a source variable.  Q3 declares no such local, and
+   * carrying it made our frame 4 bytes too big in BOTH originals.  Dropping it
+   * makes both frame sizes exact (PE 0x1c0, ELF 0x1f4).
+   * DO NOT REINTRODUCE IT.  The PE's differing-line count goes UP because MSVC6
+   * then permutes the frame differently, but instruction parity is untouched at
+   * 1237/1237 and that permutation is unreachable from C.  A deliberate
+   * fidelity-over-byte-metric deviation. */
   int faceside1; // [esp+120h] [ebp-B0h]
   vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   int area1swim; // [esp+13Ch] [ebp-94h]
@@ -737,9 +705,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
           groundface1num = aasworld.faceindex[i + area1->firstface];
           faceside1 = groundface1num < 0;
           groundface1 = &aasworld.faces[abs(groundface1num)];
-          /* Comma expression, not a hoisted statement: both originals compute
-           * the plane address only after `area1swim` short-circuits, so the
-           * assignment has to stay inside the `&&`. */
+          /* Comma expression, not a hoisted statement: both originals compute the
+           * plane address only after `area1swim` short-circuits, so the assignment
+           * has to stay inside the `&&`. */
           if ( (groundface1->faceflags & 4) != 0
             || area1swim
             && (plane = &aasworld.planes[groundface1->planenum ^ (!faceside1)],
@@ -1092,9 +1060,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
 }
 // gladiator.dll: 10013BA0..10013BD5
 // gladi386.so:   00020BB8..00020BFE
-/* Euclidean distance |v2 - v1|: a tail-call to VectorLength, returning what
- * it leaves on ST(0).  Not void — the decompiler read it that way because the
- * body looks like a fire-and-forget call. */
+/* Euclidean distance |v2 - v1|: a tail-call to VectorLength, returning what it
+ * leaves on ST(0).  Not void — the decompiler read it that way because the body
+ * looks like a fire-and-forget call. */
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 {
   vec3_t dir; // [esp+0h] [ebp-Ch] BYREF
@@ -1104,11 +1072,9 @@ float __cdecl VectorDistance(vec3_t v1, vec3_t v2)
 }
 // gladiator.dll: 10013BF0..10013C46
 // gladi386.so:   00020C00..00020C67
-/* Returns 1 iff (v - v1) . (v - v2) <= 0, i.e. v lies within the segment
- * [v1,v2] (endpoints included).  AAS_Reachability_Jump uses it to decide
- * whether a projected vertex lands inside the OTHER edge, so the projection's
- * distance counts toward the area-pair connection metric; its four call sites
- * pass (projection, edge_v0, edge_v1). */
+/* Returns 1 iff (v - v1) . (v - v2) <= 0, i.e. v lies within the segment [v1,v2],
+ * endpoints included.  AAS_Reachability_Jump uses it to decide whether a
+ * projected vertex lands inside the OTHER edge. */
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2)
 {
   float ab[3], ac[3];
@@ -1147,22 +1113,18 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   float *v3; // esi
   float *v4; // ebp
   aas_face_t *face2; // ecx
-  /* v26..v39 are x87 80-bit FPU temporaries, and the spelling depends on
-   * whether the target HAS an x87 stack -- i.e. on FLT_EVAL_METHOD, not on the
-   * compiler brand.  Where float expressions are evaluated in 80-bit registers
-   * (MSVC6/x86, and any i386 gcc using the 387), a plain `float` temp already
-   * carries full register precision and a `long double` would instead force a
-   * widening convert the original never had.  Where they are not (the aarch64
-   * / x86-64 native build, gcc -mfpmath=sse), `long double` plus per-operand
-   * casts is what reproduces the same wide intermediates.
+  /* v26..v39 are x87 80-bit FPU temporaries, and the spelling depends on whether
+   * the target HAS an x87 stack — i.e. on FLT_EVAL_METHOD, not on the compiler
+   * brand.  Where float expressions are evaluated in 80-bit registers (MSVC6/x86
+   * and any i386 gcc using the 387), a plain `float` temp already carries full
+   * register precision and `long double` would force a widening convert the
+   * original never had.  Where they are not (aarch64 / x86-64, gcc -mfpmath=sse),
+   * `long double` plus per-operand casts reproduces the wide intermediates.
    *
-   * Spelling this as `_MSC_VER` alone was wrong for the vintage i386 build in
-   * both directions: it is the same x87 as MSVC6's, and gcc 2.7.2.3's
-   * reg-stack pass ABORTS outright on the `long double` version of this
-   * function -- eight 80-bit temporaries live at once overflow the 8-deep x87
-   * stack it models.  That abort is what identified the predicate as wrong;
-   * the 1999 build compiled this file, so the original cannot have been
-   * `long double` here. */
+   * `_MSC_VER` alone is the wrong predicate: gcc 2.7.2.3's reg-stack pass ABORTS
+   * on the `long double` version here — eight 80-bit temporaries live at once
+   * overflow the 8-deep x87 stack it models — and the 1999 build compiled this
+   * file, so the original cannot have been `long double`. */
 #if defined(_MSC_VER) || (defined(__i386__) && !defined(__SSE_MATH__))
   float v26; // st7
   float v27; // st6
@@ -1214,10 +1176,9 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   vec3_t teststart; // [esp+48h..0x53] [ebp-184h..-17Ch] BYREF — trace start
   int maxjumpheight; // [esp+5Ch] [ebp-170h]
   float speed; // [esp+60h] [ebp-16Ch] BYREF
-  /* The four edge-projection results used to pick the best face pair.  All must
-   * be vec3_t: VectorDistance / VectorMiddle / VectorBetweenVectors read three
-   * components, and garbage Y/Z corrupts the candidate selection so every reach
-   * ends up WALKOFFLEDGE and JUMP is never produced at all. */
+  /* The four edge-projection results used to pick the best face pair.  All must be
+   * vec3_t: VectorDistance / VectorMiddle / VectorBetweenVectors read three
+   * components, and garbage Y/Z makes every reach WALKOFFLEDGE. */
   vec3_t v70_vec; // [esp+64h..6Ch] [ebp-168h..-160h] BYREF — v70/v71/v72 collapsed (edge2 proj A)
   vec3_t v73_vec; // [esp+70h..78h] [ebp-15Ch..-154h] BYREF — v73/v74/v75 collapsed (edge1 proj B)
   vec3_t v76_vec; // [esp+7Ch..84h] [ebp-150h..-148h] BYREF — v76/v77/v78 collapsed (edge2 proj B)
@@ -1242,9 +1203,8 @@ int AAS_Reachability_Jump(int area1num, int area2num)
   {
     area1 = &aasworld.areas[area1num];
     area2 = &aasworld.areas[area2num];
-    /* AAS_MaxJumpDistance / AAS_MaxJumpHeight return their values on the FPU
-     * stack; the decompiler dropped both, substituting the area number and
-     * breaking the jump-distance/height checks for barrier-jump generation. */
+    /* AAS_MaxJumpDistance / AAS_MaxJumpHeight return their values on the FPU stack;
+     * the decompiler dropped both, substituting the area number. */
     phys_jumpvel = libvar_sv_jumpvel->value;
     maxjumpdistance = (float)AAS_MaxJumpDistance(phys_jumpvel);
     *(float *)&maxjumpheight = (float)AAS_MaxJumpHeight(phys_jumpvel);
@@ -1552,8 +1512,7 @@ LABEL_62:
                   VectorScale(dir, speed, cmdmove);
                   /* The cmdmove[2] override is required: without a Z impulse for
                    * traveltype 5, every JUMP candidate's landing point misses
-                   * area2num in the probe loop and no JUMP reach is ever
-                   * produced. */
+                   * area2num and no JUMP reach is produced. */
                   cmdmove[2] = (traveltype == 5) ? libvar_sv_jumpvel->value : 0.0f;
                   move2 = AAS_ClientMovementPrediction(
                                     -1,
@@ -1569,13 +1528,11 @@ LABEL_62:
                                     0);
                   if ( move2.frames < 30 && (move2.stopevent & 0x38) == 0 )
                   {
-                    /* Probe loop: pull the candidate test-point back along the
-                     * trace direction at scale 0, -8, -16, -24, -32 and accept
-                     * the first scale that lands in area2num.  The counter must
-                     * be a plain int, as in the original asm — smuggling it
-                     * through a float slot (as the decompiler did) loses the
-                     * bit pattern to x87 qNaN canonicalisation, so only the
-                     * scale=0 iteration ever works and JUMP reaches vanish. */
+                    /* Probe loop: pull the candidate test-point back along the trace
+                     * direction at scale 0, -8, -16, -24, -32 and accept the first
+                     * that lands in area2num.  The counter must be a plain int —
+                     * through a float slot the bit pattern is lost to x87 qNaN
+                     * canonicalisation and only scale=0 ever works. */
                     int probe_scale;
                     v46 = 0;
                     probe_scale = 0;
@@ -1624,15 +1581,12 @@ LABEL_62:
 }
 // gladiator.dll: 10014E60..100158FD
 // gladi386.so:   0002243C..00023415
-/* AAS_Reachability_Ladder
- *
- * DELIBERATE DEVIATION: the six reach.facenum writes here store abs() of the
- * faceindex value.  The original stored it raw and signed (the sign encodes
- * face orientation, used locally for plane-flip selection), and AAS_Optimize
- * then did a signed [base+idx*4] lookup — producing garbage face numbers on
- * every ladder reach in the optimized .aas, and an unmapped read under MinGW.
- * Downstream code only ever needs the magnitude, and Q3's later AAS_Optimize
- * abs()es defensively for the same reason.
+/* DELIBERATE DEVIATION: the six reach.facenum writes here store abs() of the
+ * faceindex value.  The original stored it raw and signed (the sign encodes face
+ * orientation for plane-flip selection) and AAS_Optimize then did a signed
+ * [base+idx*4] lookup, producing garbage face numbers on every ladder reach in
+ * the optimized .aas and an unmapped read under MinGW.  Downstream only needs the
+ * magnitude, and Q3's later AAS_Optimize abs()es defensively for the same reason.
  */
 int AAS_Reachability_Ladder(int area1num, int area2num)
 {
@@ -2036,18 +1990,16 @@ int AAS_Reachability_Teleport()
     {
       classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
       /* Flat early-out guards with `continue`, not nested if/else: nesting lets
-       * cl.exe cross-jump-merge the error-print cold blocks, whereas the
-       * original keeps each Print inline. */
+       * cl.exe cross-jump-merge the error-print cold blocks, whereas the original
+       * keeps each Print inline. */
       if ( !classname || strcmp(classname, "misc_teleporter") )
         goto cont;
       if ( !AAS_VectorForBSPEpairKey(ent, "origin", origin) )
       {
-        /* `target` intentionally reused here: it is function-scoped (not
-         * reset per iteration), so on this early-out it still holds the
-         * PREVIOUS entity's target string (or garbage on the very first
-         * iteration). Confirmed via disasm on both oracles: there is no
-         * separate variable — this print reads target's own persistent
-         * stack slot directly, before it's reassigned below. */
+        /* `target` intentionally reused: it is function-scoped, so on this
+         * early-out it still holds the PREVIOUS entity's target string (or garbage
+         * on the first iteration).  Both oracles confirm there is no separate
+         * variable — this print reads target's own stack slot. */
         botimport.Print(PRT_ERROR, "teleporter (%s) without origin\n", target);
         goto cont;
       }
@@ -2159,8 +2111,8 @@ void AAS_Reachability_Elevator()
   float v25; // st7 (was double)
   float v26; // st7 (was double)
   /* Contiguous vec3_t arrays: BSPModelMinsMaxs writes 12 bytes to each of
-   * mins/maxs/origin, and every other vec3 trio passed by address here
-   * (point/dir/sumvec/…) has the same requirement. */
+   * mins/maxs/origin, and every other vec3 trio passed by address here has the
+   * same requirement. */
   vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
   float v33;            /* lip value ("lip" epair, defaults to 8.0) */
   vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
@@ -2373,9 +2325,6 @@ LABEL_53:
   }
   AAS_FreeBSPEntities(v0);
 }
-// 1001650B: conditional instruction was optimized away because esi.4<10
-// 10016781: conditional instruction was optimized away because ebp.4<10
-// 10016851: conditional instruction was optimized away because ecx.4<3
 // gladiator.dll: 10016BA0..100171BC
 // gladi386.so:   00024550..00024DE6
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
@@ -2458,8 +2407,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
           {
             VectorCopy(facecenter, start);
             /* Indexed access: aas_plane_t is 20 BYTES (normal[3] + dist + type), so the
-             * decompiler's `+ 20 * planenum` on a float* advanced 80 bytes per
-             * plane. */
+             * decompiler's `+ 20 * planenum` on a float* advanced 80 bytes per plane. */
             VectorMA(facecenter, -500.0f, aasworld.planes[face2->planenum].normal, end);
             bsptrace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), 0, 100663299);
             if ( (LOBYTE(bsptrace.surface.flags) & 4) == 0 && bsptrace.fraction * 500.0f < 32.0f )
@@ -2529,9 +2477,9 @@ int AAS_SetWeaponJumpAreaFlags()
   vec3_t maxs; // BYREF
   vec3_t origin; // BYREF
 
-  /* Float literals, not the decompiler's raw ±15.0f bit patterns: as int
-   * literals assigned to a float[3] they convert to ~±1.1e9, leaving the bounds
-   * effectively unbounded so AAS_BestReachableArea flags the wrong areas. */
+  /* Float literals, not the decompiler's raw ±15.0f bit patterns: as int literals
+   * assigned to a float[3] they convert to ~±1.1e9, leaving the bounds effectively
+   * unbounded so AAS_BestReachableArea flags the wrong areas. */
   mins[0] = -15.0f;
   mins[1] = -15.0f;
   mins[2] = -15.0f;
@@ -2770,9 +2718,7 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
   aas_reachabilitynode_t *v35; // esi (was int) — alias of lreach
   /* midorigin: the edge midpoint, lifted 8 units off the floor along edgecross.
    * Must be a real vec3_t — it is passed by address to VectorScale / VectorMA /
-   * AAS_TraceClientBBox and copied as the reach's `start`; split into separate
-   * locals the trace fires from a garbage origin and nearly every
-   * WALKOFFLEDGE candidate is silently rejected. */
+   * AAS_TraceClientBBox and copied as the reach's `start`. */
   float testend[3]; // [esp+48h] [ebp-6Ch] BYREF
   vec3_t midorigin; // [esp+Ch..14h] [ebp-A8h..-A0h] BYREF — v40/v41/v42 collapsed
   float dir[3]; // [esp+60h] [ebp-54h] BYREF

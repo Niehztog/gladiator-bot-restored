@@ -1,40 +1,22 @@
 /*
  * be_ai2_dmnet.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x1001D2B0..0x10020B10; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x1001D2B0..0x10020B10.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai2_dmnet.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_entity.h"
@@ -91,22 +73,21 @@ void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *
 }
 // gladiator.dll: 1001D420..1001D6A1
 // gladi386.so:   00033790..00033AA1
-/* BotGetFormationGoal (was sub_1001D420) — predict and return a formation
- * follow-position "goal box" for escorting bs->formation_teammate.  Named from
- * Q3's ai_main.h, whose formation_angle/dir/origin/goal fields match this
- * function's writes field-for-field even though nothing else in the Q3 tree
- * ever touches them; this is likely the only logic that populated them.
+/* Predict and return a formation follow-position "goal box" for escorting
+ * bs->formation_teammate.  Named from Q3's ai_main.h, whose
+ * formation_angle/dir/origin/goal fields match this function's writes
+ * field-for-field even though nothing else in the Q3 tree touches them.
  *
  * It looks up two names via ClientFromName + AAS_EntityInfo, then:
  *   - validates the first target's origin (AAS_PointAreaNum +
  *     AAS_AreaReachability) and saves it as the predict start;
- *   - takes (origin - old_origin) of the SECOND target's snapshot as a
- *     per-frame velocity, storing it when |v| > 0.1;
+ *   - takes (origin - old_origin) of the SECOND target's snapshot as a per-frame
+ *     velocity, storing it when |v| > 0.1;
  *   - converts that to angles, biases the yaw by formationgoal_yawbias, zeroes
  *     pitch and roll, and predicts 0.1 s of motion from saved_origin + (0,0,1);
- *   - on a water/slime/lava stop (mask 0x38) writes the START position into
- *     the goal origin, otherwise leaves the (0, anglemod(yaw+bias), 0) angles
- *     there; then fills areanum, ±8 mins/maxs and entitynum.
+ *   - on a water/slime/lava stop (mask 0x38) writes the START position into the
+ *     goal origin, otherwise leaves the (0, anglemod(yaw+bias), 0) angles there;
+ *     then fills areanum, ±8 mins/maxs and entitynum.
  *
  * DEAD in shipped Gladiator.  Must NOT be static: /O2 would dead-strip it,
  * whereas /INCREMENTAL kept it in the original. */
@@ -117,9 +98,8 @@ int BotGetFormationGoal(bot_state_t *bs)
   vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
   vec3_t scaled;            /* [esp+0x38] — VectorScale(forward, 400, ...) for predict */
   vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
-  vec3_t endpos;            /* dead store of move.endpos — confirmed present in real's
-                             * disasm (a distinct 12-byte temp, never read afterward)
-                             * but has no observable effect; preserved as-is. */
+  vec3_t endpos;            /* dead store of move.endpos — a distinct 12-byte temp,
+                             * never read afterward.  Present in the original. */
   aas_clientmove_t move;    /* prediction result; MSVC6 coalesces this slot with its own
                              * by-value return temp and with both AAS_EntityInfo temps */
   int    entnum, areanum, prevent_entnum;
@@ -138,11 +118,10 @@ int BotGetFormationGoal(bot_state_t *bs)
   *(int *)&bs->formationgoal_origin[0] = *(int *)&entinfo.origin[0];
   *(int *)&bs->formationgoal_origin[1] = *(int *)&entinfo.origin[1];
   *(int *)&bs->formationgoal_origin[2] = *(int *)&entinfo.origin[2];
-  /* 4. Look up the second name, applying the +1 at each point of use rather
-   *    than baking it into prevent_entnum: real reloads the raw value and
-   *    increments it independently both here and at the entitynum store
-   *    below (confirmed by an `inc` immediately before that store). This
-   *    AAS_EntityInfo call OVERWRITES the same `entinfo` block — step 3 has
+  /* 4. Look up the second name, applying the +1 at each point of use rather than
+   *    baking it into prevent_entnum: the original reloads the raw value and
+   *    increments it independently both here and at the entitynum store below.
+   *    This AAS_EntityInfo call OVERWRITES the same `entinfo` block — step 3 has
    *    already saved the origin it needed. */
   prevent_entnum = ClientFromName((const char *)bs->formation_teammate);
   entinfo = AAS_EntityInfo(prevent_entnum + 1);
@@ -158,15 +137,14 @@ int BotGetFormationGoal(bot_state_t *bs)
       *(int *)&bs->formationgoal_dir[2] = *(int *)&forward[2];
     }
   }
-  /* 6. Velocity to angles: bias the yaw and wrap with anglemod, zero pitch and
-   *    roll.  The explicit angles[2] = 0 is redundant after vectoangles but is
-   *    in the original — preserved. */
+  /* 6. Velocity to angles: bias the yaw and wrap with anglemod, zero pitch and roll.
+   *    The explicit angles[2] = 0 is redundant after vectoangles but is in the
+   *    original. */
   vectoangles(bs->formationgoal_dir, angles);
   angles[0] = 0.0f;
   angles[1] = anglemod(angles[1] + bs->formationgoal_yawbias);
-  /* 7. start = saved_origin + (0,0,1); scaled = AngleVectors(angles) * 400.
-   *    The first two start components are int bit-copies, the third a
-   *    float add. */
+  /* 7. start = saved_origin + (0,0,1); scaled = AngleVectors(angles) * 400.  The
+   *    first two start components are int bit-copies, the third a float add. */
   angles[2] = 0.0f;
   AngleVectors(angles, forward, NULL, NULL);
   *(int *)&start[0] = *(int *)&bs->formationgoal_origin[0];
@@ -179,10 +157,9 @@ int BotGetFormationGoal(bot_state_t *bs)
                                       2, 1, vec3_origin, scaled,
                                       1, 2, 0.1f, 124, 0);
   VectorCopy(move.endpos, endpos);
-  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start
-   *    position (all 3 components uniformly — no separate scalar for the
-   *    Z component); otherwise keep the angles vec built in step 6, whose
-   *    [2] is already 0 from the explicit zero above. */
+  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start position (all 3
+   *    components uniformly — no separate scalar for Z); otherwise keep the angles
+   *    vec built in step 6, whose [2] is already 0. */
   if ( (move.stopevent & 0x38) != 0 )
   {
     VectorCopy(start, angles);
@@ -203,8 +180,8 @@ fail:
 }
 // gladiator.dll: 1001D760..1001E6EC
 // gladi386.so:   00033AA4..00034C03
-/* BotLongTermGoal — dispatch the bot's current long-term-goal state and return
- * the goal position to seek, or NULL if no goal is active.
+/* Dispatch the bot's current long-term-goal state and return the goal position to
+ * seek, or NULL if no goal is active.
  *
  *     tfl = travel flags (TFL_* mask in the low 17 bits)
  * retreat = 0 for full LTG processing (from AINode_Seek_LTG), 1 to only check
@@ -215,8 +192,8 @@ fail:
  *   3 = defend a goal item                 4 = CTF goal (returns the flag base)
  *   6 = camp at goal                       7 = patrol checkpoints
  *
- * Q3's BotLongTermGoal fills a bot_goal_t out-param instead of returning a
- * pointer into bs. */
+ * Q3's BotLongTermGoal fills a bot_goal_t out-param instead of returning a pointer
+ * into bs. */
 float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
 {
   int v7; // eax
@@ -1170,12 +1147,10 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   int v8; // edi
   aas_entityinfo_t entinfo; // [esp+40h] [ebp-128h] BYREF
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
-  /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
-   * assignment): the cast previously forced gcc to materialize the
-   * AAS_EntityInfo() return in a hidden temp and then memcpy (rep movs, 124B)
-   * it into entinfo before passing &entinfo to sub_10021710 -- a real's-disasm-
-   * confirmed extra buffer/copy real does not have (real reuses the retbuf
-   * pointer directly for both calls). PE was already perfect either way. */
+  /* Properly-typed, not `int entinfo[31]` + a type-punning cast on the assignment:
+   * the cast forces gcc to materialize AAS_EntityInfo()'s return in a hidden temp and
+   * then rep-movs 124 B into entinfo, an extra buffer/copy the original does not have
+   * (it reuses the retbuf pointer directly for both calls). */
 
   if ( BotIsObserver(bs) )
   {
@@ -1192,18 +1167,14 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     AIEnter_Respawn(bs);
     return 0;
   }
-  /* Inline, not a shared label: MSVC6 (PE) keeps a physical copy of
-   * `AIEnter_Seek_LTG(bs); return 0;` here rather than merging it with the
-   * two later occurrences (confirmed PE-perfect, 640/640, with this exact
-   * shape). gcc 2.7.2.3's real disasm, by contrast, DOES cross-jump this
-   * check into a tail shared with the later `!BotEntityVisible && !chase`
-   * case -- tested restructuring this guard as `goto` to force that same
-   * merge on our ELF oracle (confirmed it works, insn_diffs 32->25 on gcc),
-   * but it broke the PE oracle (640/640 -> 644 bytes, 22 line diff): MSVC6
-   * does not perform the merge for the goto-rewritten source either. The two
-   * period compilers made genuinely different tail-merging decisions for
-   * whatever the true original source was; since only one botlib.c feeds
-   * both oracles, and PE-safety is the hard constraint, this stays inline. */
+  /* Inline, not a shared label: MSVC6 keeps a physical copy of
+   * `AIEnter_Seek_LTG(bs); return 0;` here rather than merging it with the two later
+   * occurrences.  gcc 2.7.2.3 DOES cross-jump this into a tail shared with the later
+   * `!BotEntityVisible && !chase` case, and a `goto` rewrite reproduces that on ELF —
+   * but it breaks the PE oracle, because MSVC6 does not perform the merge for the
+   * goto-rewritten source either.  The two period compilers made genuinely different
+   * tail-merging decisions; one source feeds both oracles and PE-safety is the hard
+   * constraint, so this stays inline. */
   if ( !bs->enemy )
   {
     AIEnter_Seek_LTG(bs);
@@ -1212,15 +1183,15 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
   entinfo = AAS_EntityInfo(bs->enemy);
   if ( sub_10021710((int *)&entinfo) )
   {
-    /* Q3's shape: `if (BotChat_Kill(bs)) {stand} else {seek} return qfalse;` with
-     * ONE shared return.  The original hoists the `bs` push above the branch to
-     * serve both calls, which only works with both inline here. */
+    /* Q3's shape: `if (BotChat_Kill(bs)) {stand} else {seek} return qfalse;` with ONE
+     * shared return.  The original hoists the `bs` push above the branch to serve both
+     * calls, which only works with both inline here. */
     if ( BotChat_Kill((int *)bs) )
     {
-      /* Single expression, not `v10 = BotChatTime(bs); bs->stand_time =
-       * AAS_Time() + v10;`: real's disasm calls AAS_Time() BEFORE
-       * BotChatTime(bs) (gcc evaluates `+`'s operands right-to-left here),
-       * which only happens with both calls inlined into one expression. */
+      /* Single expression, not `v10 = BotChatTime(bs); bs->stand_time = AAS_Time() +
+       * v10;`: the original calls AAS_Time() BEFORE BotChatTime(bs) (gcc evaluates
+       * `+`'s operands right-to-left here), which only happens with both calls inlined
+       * into one expression. */
       bs->stand_time = AAS_Time() + BotChatTime(bs);
       AIEnter_Stand(bs);
     }
@@ -1269,11 +1240,10 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     BotAIBlocked(bs, &moveresult, 0);
     BotAimAtEnemy(bs);
     BotCheckAttack(bs);
-    /* Two physical `return 1;`s, not one shared after the if: real's disasm
-     * has a separate "return 1" epilogue for the BotWantsToRetreat-true path
-     * (falls through after AIEnter_Battle_Retreat) vs the -false path (jumps
-     * to its own copy) rather than converging both on one tail -- this
-     * brought our insn count to an exact 297/297 match with no PE effect. */
+    /* Two physical `return 1;`s, not one shared after the if: the original has a
+     * separate "return 1" epilogue for the BotWantsToRetreat-true path (falling
+     * through after AIEnter_Battle_Retreat) vs the -false path (jumping to its own
+     * copy), rather than converging both on one tail. */
     if ( BotWantsToRetreat((int *)bs) )
     {
       AIEnter_Battle_Retreat(bs);
@@ -1296,12 +1266,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
 {
 
   int tfl; // esi
-  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
-   * slots in REVERSE declaration order (first-declared gets the highest
-   * address), so the big struct has to come first and the bot_moveresult_t
-   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
-   * size ascending, so this reordering is PE-inert (all three AINode rows
-   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack slots in
+   * REVERSE declaration order (first-declared gets the highest address), so the big
+   * struct has to come first and the bot_moveresult_t last to reproduce the Linux
+   * original's frame.  MSVC6 sorts its frame by size ascending, so this is PE-inert.
+   * Do not "tidy" it back. */
   bot_goal_t goal; // [esp+28h] [ebp-98h] BYREF
   vec3_t target; // [esp+1Ch] [ebp-A4h] BYREF
   vec3_t dir; // [esp+10h] [ebp-B0h] BYREF
@@ -1433,12 +1402,8 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
   int v2; // edi
   float v4; // st7
   float attack_skill; // captured BFloat dodge probability
-  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
-   * slots in REVERSE declaration order (first-declared gets the highest
-   * address), so the big struct has to come first and the bot_moveresult_t
-   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
-   * size ascending, so this reordering is PE-inert (all three AINode rows
-   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever — see AINode_Seek_LTG.
+   * Do not "tidy" it back. */
   aas_entityinfo_t entinfo; // [esp+8Ch] [ebp-F8h] BYREF
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
@@ -1569,18 +1534,10 @@ int __cdecl AINode_Battle_NBG(bot_state_t *bs)
   int v8;                 // [esp+0x10] — movement flags
   int areanum;            // esi — AAS area number of enemy origin
   bot_goal_t *topgoal;    // esi — top goal pointer
-  /* Declaration ORDER is a gcc-2.7-only frame-layout lever: it assigns stack
-   * slots in REVERSE declaration order (first-declared gets the highest
-   * address), so the big struct has to come first and the bot_moveresult_t
-   * last to reproduce the Linux original's frame.  MSVC6 sorts its frame by
-   * size ascending, so this reordering is PE-inert (all three AINode rows
-   * below were re-checked MATCH before and after).  Do not "tidy" it back. */
-  /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
-   * assignment): the cast previously forced gcc to materialize the
-   * AAS_EntityInfo() return in a hidden temp and then memcpy (rep movs, 124B)
-   * it into entinfo before passing &entinfo to sub_10021710 -- a real's-disasm-
-   * confirmed extra buffer/copy real does not have (real reuses the retbuf
-   * pointer directly for both calls). Same fix as AINode_Battle_Fight. */
+  /* Declaration ORDER is a gcc-2.7-only frame-layout lever — see AINode_Seek_LTG.
+   * Do not "tidy" it back. */
+  /* Properly-typed, not `int entinfo[31]` + a type-punning cast — see
+   * AINode_Battle_Fight. */
   aas_entityinfo_t entinfo; // [esp+0x4c] BYREF — copy of AAS entity info for enemy
   bot_moveresult_t v15;   // BotMoveToGoal result copy
 

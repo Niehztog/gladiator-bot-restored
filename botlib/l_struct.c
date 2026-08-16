@@ -1,38 +1,22 @@
 /*
  * l_struct.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x100404B0..0x1004123F (nine functions) and it owns no globals -- see
- * .claude/memory/tu_partition.md, where the Linux .so's F-number run for this
- * TU likewise holds exactly nine functions and references no named global.
- *
- * The include block below is botlib.c's, verbatim, so every macro and typedef
- * this file compiles against is the environment these functions had before the
- * split.
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x100404B0..0x1004123F.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_struct.h"
 #include "be_ai_weight.h"
 #include "l_memory.h"
@@ -56,19 +40,17 @@ const char **__cdecl FindField(const char **defs, const char *name)
   return 0;
 }
 
-/* Field-table slot helpers.  Field tables are char *[7] entries addressed by
- * slot index rather than byte offset, so they work on both word widths:
+/* Field-table slot helpers.  Field tables are char *[7] entries addressed by slot index
+ * rather than byte offset, so they work on both word widths:
  *   [0] name  [1] offset  [2] type|flags  [3] arr
- *   [4] minrange (float bits)  [5] maxrange (float bits)
- *   [6] substruct (structdef_t *) */
+ *   [4] minrange (float bits)  [5] maxrange (float bits)  [6] substruct (structdef_t *) */
 static inline int fielddef_flags(char **f) { return (int)(intptr_t)f[2]; }
 static inline float fielddef_float(char **f, int slot) {
     return *(float *)&f[slot];   /* direct low-32 read (LE-safe); matches ref's fld [ebp+off] */
 }
 
-/* fielddef_t — Q3's l_struct.h field descriptor, overlaid on the char *[7]
- * entries.  Members are pointer-sized so the struct lines up with the slots on
- * either word width. */
+/* fielddef_t — Q3's l_struct.h field descriptor, overlaid on the char *[7] entries.
+ * Members are pointer-sized so the struct lines up with the slots on either width. */
 typedef struct fielddef_s {
     const char *name;            /* slot 0 */
     intptr_t    offset;          /* slot 1 */
@@ -81,15 +63,13 @@ typedef struct fielddef_s {
 
 // gladiator.dll: 10040540..100408AD
 // gladi386.so:   00052EE4..000532DD
-/* Test `(v8 & 0xFF)` directly at each site rather than caching it in a `type`
- * local, and keep the intmin/intmax clamp as Q3-style ternaries: the recomputed
- * mask is what blocks jump-threading and reproduces the original's repeated
- * `and edi,0xff` dispatch.
+/* Test `(v8 & 0xFF)` directly at each site rather than caching it in a `type` local, and
+ * keep the intmin/intmax clamp as Q3-style ternaries: the recomputed mask is what blocks
+ * jump-threading and reproduces the original's repeated `and edi,0xff` dispatch.
  *
- * The residual is four float comparisons that compile to fld/fcompp here where
- * the original has a single memory-operand fcom.  Caching the
- * fielddef_float(fd,4)/(fd,5) results into named locals to match was tried and
- * regresses badly — do not re-attempt without a new idea. */
+ * The residual is four float comparisons that compile to fld/fcompp here where the
+ * original has a single memory-operand fcom.  Caching the fielddef_float(fd,4)/(fd,5)
+ * results into named locals regresses badly — do not re-attempt without a new idea. */
 int __cdecl ReadNumber(source_t *source, char **fd, float *p)
 {
   int negative; // esi
@@ -464,12 +444,11 @@ int __cdecl WriteStructWithIndent(FILE *fp, structdef_t *def, int structure, int
     if ( fprintf(fp, "\r\n") < 0 )
       return 0;
   }
-  /* A plain `return 0` guard, not `result = WriteIndent(...); … return result;`:
-   * the original's tail exit has no `xor eax,eax` because the fall-through
-   * already proves eax == 0 from WriteIndent's return.  A trailing
-   * `return result;` makes cl.exe canonicalise every `return 0` into one block
-   * at the textual end, un-pinning the shared exit the original keeps inline at
-   * the first guard. */
+  /* A plain `return 0` guard, not `result = WriteIndent(...); … return result;`: the
+   * original's tail exit has no `xor eax,eax` because the fall-through already proves
+   * eax == 0 from WriteIndent's return.  A trailing `return result;` makes cl.exe
+   * canonicalise every `return 0` into one block at the textual end, un-pinning the
+   * shared exit the original keeps inline at the first guard. */
   --indent;
   if ( !WriteIndent(fp, indent) )
     return 0;

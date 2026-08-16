@@ -1,40 +1,22 @@
 /*
  * be_ai2_dmq2.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10020ED0..0x10028C30; the boundary evidence -- per-object .text and
- * .data link order in the DLL, cross-checked against the Linux gladi386.so's
- * F-number runs and its unscrambled data-symbol names -- is recorded in
- * .claude/memory/tu_partition.md.
- *
- * Its own interface is in the matching .h; botlib_local.h, which that header
- * pulls in, carries the shared compilation environment (includes, CRT and
- * POSIX shims, forward typedefs, the side-band scheme and the externs for
- * botlib.c's remaining globals).
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10020ED0..0x10028C30.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "be_ai2_dmq2.h"
 #include "be_aas_bspq2.h"
 #include "be_aas_debug.h"
@@ -56,9 +38,7 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B; name recovered
-                                          from the tourney-2.5 Linux gladi386.so .dynsym (unstripped
-                                          data symbols) */
+bot_clientsettings_t *clientsettings; /* per-client {netname[16], skin[128]} = 144 B */
 libvar_t *libvar_ctf; /* libvar handle */
 
 bot_goal_t ctf_blueflag; /* 0x100643E0 blue flag goal (ai_dmq3.c; was unk_100643E0) */
@@ -71,12 +51,11 @@ libvar_t *libvar_runes; /* libvar handle */
 
 libvar_t *libvar_rocketjump; /* libvar handle */
 
-/* G_SetMovedir's four direction constants, 12 bytes each, in the original
- * .data order (0x1005C56C / 0x1005C578 / 0x1005C584 / 0x1005C590) — the same
- * order and values as game/g_utils.c:342-345, from which BotSetMovedir was
- * copied.  Non-static in Mr. Elusive's sources, which is why all four survive
- * by name in the Linux gladi386.so's .dynsym — each recorded there as a 12-byte
- * OBJECT, confirming float[3] rather than three separate scalars. */
+/* G_SetMovedir's four direction constants, 12 bytes each, in the original .data
+ * order — the same order and values as game/g_utils.c:342-345, from which
+ * BotSetMovedir was copied.  Non-static in Mr. Elusive's sources, so all four
+ * survive by name in gladi386.so's .dynsym, each a 12-byte OBJECT, confirming
+ * float[3] rather than three separate scalars. */
 float VEC_UP[3]       = { 0.0f, -1.0f,  0.0f };
 float MOVEDIR_UP[3]   = { 0.0f,  0.0f,  1.0f };
 float VEC_DOWN[3]     = { 0.0f, -2.0f,  0.0f };
@@ -223,11 +202,10 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
 {
 
   vec3_t dir; // [esp+8h] [ebp-88h] BYREF
-  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast
-   * assignment: writing AAS_EntityInfo()'s struct-by-value return through a
-   * cast to a differently-declared object defeats gcc's return-slot
-   * forwarding, forcing a hidden temp plus an extra 124-byte rep-movs copy
-   * into entinfo (same root cause fixed in AINode_Battle_Fight). */
+  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast assignment:
+   * writing AAS_EntityInfo()'s struct-by-value return through a cast to a
+   * differently-declared object defeats gcc's return-slot forwarding, forcing a
+   * hidden temp plus an extra 124-byte rep-movs copy. */
   aas_entityinfo_t entinfo; // [esp+14h] [ebp-7Ch] BYREF
 
   entinfo = AAS_EntityInfo(enemy);
@@ -247,12 +225,9 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
   bs->inventory[ENEMY_WEAPON_RAILGUN] = 0;
   bs->inventory[ENEMY_WEAPON_BFG] = 0;
   bs->inventory[ENEMY_WEAPON_PHALANX] = 0;
-  /* Not `v2 = (...); ...(2 zero-writes)...; v3 = v2 - 1; switch(v3)`: real's
-   * disasm computes the weapon index in one shot right before the switch
-   * dispatch (movzx+lea immediately preceding `cmp edx,0xb`), not split
-   * across/interleaved with the zero-writes above -- v2/v3 were unused
-   * elsewhere, so folding them into the switch expression directly lets gcc
-   * schedule the computation where real has it. */
+  /* Not `v2 = (...); ...; v3 = v2 - 1; switch(v3)`: the original computes the weapon
+   * index in one shot right before the switch dispatch (movzx+lea immediately
+   * preceding `cmp edx,0xb`), not interleaved with the zero-writes above. */
   switch ( ((entinfo.skinnum >> 8) & 0xFF) - 1 )
   {
     case 0:
@@ -294,12 +269,10 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
     default:
       break;
   }
-  /* Not `v8 = entinfo.effects; v5 = BYTE1(entinfo.effects);` caching the
-   * value in registers for reuse: real re-reads `entinfo.effects` from
-   * memory independently for each bit test, at whatever sub-width best
-   * fits that specific mask (BYTE at +2 for 0x10000, a WORD sign-test at
-   * +0 for 0x8000, BYTE at +1 for 0x200) -- three separate full-width
-   * source expressions, not one cached local reused across tests. */
+  /* Not `v8 = entinfo.effects; v5 = BYTE1(entinfo.effects);`: the original re-reads
+   * `entinfo.effects` from memory independently for each bit test, at whatever
+   * sub-width fits that mask (BYTE at +2 for 0x10000, a WORD sign-test at +0 for
+   * 0x8000, BYTE at +1 for 0x200) — three separate full-width source expressions. */
   if ( (entinfo.effects & 0x10000) != 0 )
     bs->inventory[ENEMY_INVULNERABILITY] = 1;
   else
@@ -308,16 +281,13 @@ void __cdecl BotUpdateBattleInventory(bot_state_t *bs, int enemy)
     bs->inventory[ENEMY_QUAD] = 1;
   else
     bs->inventory[ENEMY_QUAD] = 0;
-  /* void, not `int` returning 1: real's disasm never sets eax=1 anywhere in
-   * this function (the switch dispatch is the last eax write, its leftover
-   * jump-table address just falls through to `ret` unused) and the sole
-   * caller (BotUpdateBattleInventory(bs, ...);) always discards the result
-   * -- the previously-decompiled `int`/`return 1` was a misread of MSVC6's
-   * unrelated eax=1/ecx=0 register-caching for the many `=1`/`=0` inventory
-   * writes above, which happens to leave eax=1 at the tail by coincidence,
-   * not because the source asked for a return value. Two physical
-   * "falls straight to its own epilogue" tails below (not one shared one)
-   * matches real's separate copies for the POWERSCREEN true/false paths. */
+  /* void, not `int` returning 1: the disasm never sets eax=1 anywhere (the switch
+   * dispatch is the last eax write and its leftover jump-table address falls through
+   * to `ret` unused) and the sole caller discards the result.  The `int`/`return 1`
+   * reading was MSVC6's unrelated eax=1/ecx=0 register-caching for the inventory
+   * writes above, which happens to leave eax=1 at the tail.  Two physical
+   * fall-to-own-epilogue tails below, not one shared one, matches the original's
+   * separate copies for the POWERSCREEN true/false paths. */
   if ( (entinfo.effects & 0x200) != 0 )
   {
     bs->inventory[ENEMY_POWERSCREEN] = 1;
@@ -366,10 +336,10 @@ int __cdecl BotCTFCarryingFlag(bot_state_t *bs)
 {
   if ( libvar_ctf->value == 0.0f )
     return 0;
-  /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).
-   * Returns 1 (red), 2 (blue), or 0 (not carrying).  Four separate `return`
-   * statements, not a ternary on the last pair: gcc cross-jumps the trailing
-   * `return 0` back onto the first one, where a ternary would pre-zero eax. */
+  /* inventory[43]=RED FLAG, inventory[44]=BLUE FLAG (Q2 CTF item indices).  Returns
+   * 1 (red), 2 (blue), or 0.  Four separate `return` statements, not a ternary on the
+   * last pair: gcc cross-jumps the trailing `return 0` back onto the first one, where
+   * a ternary would pre-zero eax. */
   if ( bs->inventory[43] > 0 )
     return 1;
   if ( bs->inventory[44] > 0 )
@@ -502,9 +472,9 @@ char *__cdecl EasyClientName(int client, char *buf)
 // gladi386.so:   0002C4AC..0002C57E
 bot_waypoint_t *__cdecl BotCreateWayPoint(const char *name, vec3_t origin, int areanum)
 {
-  /* The original allocates strlen(name)+1+68 with a hand-laid header; a real
-   * struct here, with the name buffer still inline right after the node so one
-   * FreeMemory releases both. */
+  /* The original allocates strlen(name)+1+68 with a hand-laid header; a real struct
+   * here, with the name buffer still inline right after the node so one FreeMemory
+   * releases both. */
   bot_waypoint_t *wp;
   vec3_t mins = { -8.0f, -8.0f, -8.0f };
   vec3_t maxs = {  8.0f,  8.0f,  8.0f };
@@ -554,10 +524,10 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
   char v4; // al
   char v7; // al
   /* Real vec3_t, written with Q3's exact statements
-   * (`VectorCopy(bs->origin, X); X[2] += K;`): MSVC6 forwards the [2] copy into
-   * the arithmetic and interleaves the two surviving integer copies between the
-   * fld and the fadd.  Copying start and end from the SAME source is what
-   * produces the original's register reuse. */
+   * (`VectorCopy(bs->origin, X); X[2] += K;`): MSVC6 forwards the [2] copy into the
+   * arithmetic and interleaves the two surviving integer copies between the fld and
+   * the fadd.  Copying start and end from the SAME source produces the original's
+   * register reuse. */
   vec3_t point; // [esp+4h] [ebp-90h] BYREF
   vec3_t start; // [esp+10h] [ebp-84h] BYREF
   vec3_t end;   // [esp+1Ch] [ebp-78h] BYREF
@@ -862,9 +832,8 @@ BOOL __cdecl BotWantsToChase(int *bs)
 }
 // gladiator.dll: 10022970..10022976
 // gladi386.so:   0002D1B0..0002D1B6
-/* Always-true predicate between BotWantsToChase and
- * BotCanAndWantsToRocketJump — probably a feature toggle that ended up
- * hard-coded.  DEAD in Gladiator. */
+/* Always-true predicate between BotWantsToChase and BotCanAndWantsToRocketJump —
+ * probably a feature toggle that ended up hard-coded.  DEAD. */
 int __cdecl BotWantsToHelp(bot_state_t *bs)
 {
   return 1;
@@ -1016,9 +985,9 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   }
   memset(&moveresult, 0, sizeof(moveresult));
   v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-  /* Each Characteristic_BFloat result must be captured from the FPU return, as
-   * the four `fstp [esp+…]` stores in the original do — otherwise every
-   * probability gate below degenerates to `random <= random`. */
+  /* Each Characteristic_BFloat result must be captured from the FPU return, as the
+   * four `fstp [esp+…]` stores in the original do — otherwise every probability gate
+   * below degenerates to `random <= random`. */
   if ( Characteristic_BFloat(BotCharacter(bs), 48, 0.0f, 1.0f) <= v10 )
   {
     attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
@@ -1454,15 +1423,14 @@ void BotCheckAttack(bot_state_t *bs)
   projectileinfo_t *v6; // ecx
   float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
   float reactiontime; // [esp+10h] [ebp-1A4h] — Characteristic_BFloat/AAS_Time splash-attack
-                       // timer (Q3 ai_dmq3 BotCheckAttack 'reactiontime'); IDA shows this and
-                       // the fov local below as SEPARATE variables sharing one stack slot
+                       // timer (Q3 ai_dmq3 BotCheckAttack 'reactiontime'); this and the
+                       // fov local below are SEPARATE variables sharing one stack slot
                        // (non-overlapping lifetimes), not one variable reused.
   float fov; // [esp+10h] [ebp-1A4h] — visibility check distance (Q3 ai_dmq3 BotCheckAttack 'fov');
              // shares reactiontime's stack slot, see above.
-  /* Q3 ai_dmq3.c BotCheckAttack's declaration order, with mins/maxs LAST and
-   * mins before maxs: gcc 2.7 lays the frame out in reverse declaration order,
-   * and real's ELF has maxs (the {8,8,8} stores) BELOW mins (the {-8,-8,-8}
-   * stores), which only that order produces. */
+  /* Q3 BotCheckAttack's declaration order, with mins/maxs LAST and mins before maxs:
+   * gcc 2.7 lays the frame out in reverse declaration order, and the ELF original has
+   * maxs BELOW mins, which only that order produces. */
   vec3_t forward; // [esp+20h] [ebp-194h] BYREF
   vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
   vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — trace start; as separate locals the
@@ -1475,9 +1443,9 @@ void BotCheckAttack(bot_state_t *bs)
   vec3_t mins; // [esp+50h] [ebp-164h] BYREF
   vec3_t maxs; // [esp+2Ch] [ebp-188h] BYREF
 
-  /* Float literals: mins/maxs are float[3], not raw bit patterns.  No
-   * `attackentity` local: real never caches bs->enemy in a register here --
-   * it's a direct `cmp [bs+enemy],0` right after the mins/maxs stores. */
+  /* Float literals: mins/maxs are float[3], not raw bit patterns.  No `attackentity`
+   * local: the original never caches bs->enemy here — it is a direct
+   * `cmp [bs+enemy],0` right after the mins/maxs stores. */
   mins[0] = -8.0f;
   mins[1] = -8.0f;
   mins[2] = -8.0f;
@@ -1705,16 +1673,14 @@ void __cdecl BotSetMovedir(float *angles, float *movedir)
 }
 // gladiator.dll: 10025070..1002545E
 // gladi386.so:   0002F5E4..0002FBCD
-/* Debug visualiser for func_button entities: walk the BSP entity list, filter
- * by classname == "func_button", read the brush's model AABB plus the
- * "angle"/"health" keys, and draw permanent debug crosses — one at the shoot
- * point for shootable buttons (health != 0), three for touch/use buttons
- * (the bot's standing position plus two corner markers).  Capped at the first
- * 6 matching buttons.
+/* Debug visualiser for func_button entities: walk the BSP entity list, filter by
+ * classname == "func_button", read the brush's model AABB plus the "angle"/"health"
+ * keys, and draw permanent debug crosses — one at the shoot point for shootable
+ * buttons, three for touch/use buttons.  Capped at the first 6 matches.
  *
- * Quirks preserved: FloatForKey(ent, "lip") is called and its result
- * discarded, and BSPModelMinsMaxs is called with zero-initialised `angles`, so
- * the bbox is the model's local-space AABB rather than a world-rotated one. */
+ * Faithful quirks: FloatForKey(ent, "lip") is called and discarded, and
+ * BSPModelMinsMaxs is called with zero-initialised `angles`, so the bbox is the
+ * model's local-space AABB rather than a world-rotated one. */
 void __cdecl sub_10025070(void)
 {
   bsp_entity_t *ent;
@@ -1746,9 +1712,9 @@ void __cdecl sub_10025070(void)
   do
   {
     /* Do NOT remove the two (const char *) casts below, even though they trip
-     * -Wdiscarded-qualifiers and are codegen-neutral here: dropping them
-     * perturbs MSVC6's whole-TU scheduler enough to flip a tie-break in
-     * PC_ReadDefineParms and cost that function its byte-match. */
+     * -Wdiscarded-qualifiers and are codegen-neutral here: dropping them perturbs
+     * MSVC6's whole-TU scheduler enough to flip a tie-break in PC_ReadDefineParms and
+     * cost that function its byte-match. */
     classname = (const char *)AAS_ValueForBSPEpairKey(ent, "classname");
     if ( !strcmp(classname, "func_button") )
     {
@@ -1787,8 +1753,8 @@ void __cdecl sub_10025070(void)
         AAS_PresenceTypeBoundingBox(4, l.bboxmins, l.bboxmaxs);
         /* BYTE-OFFSET walk, not `for (i = 0; i < 3; i++)`: the original shares one
          * esp-relative index across all three arrays, whereas the indexed form
-         * strength-reduces to a walking pointer plus a separate counter.  This is
-         * the original's own addressing — do not "fix" it. */
+         * strength-reduces to a walking pointer plus a separate counter.  This is the
+         * original's own addressing — do not "fix" it. */
         offset = 0;
         accum = l.dist;
         do
@@ -2189,7 +2155,6 @@ BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
   while ( i > 0 );
   return 0;
 }
-// 10026728: conditional instruction was optimized away because eax.4<1
 // gladiator.dll: 10026770..100267BF
 // gladi386.so:   00030D94..00030E29
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal)
@@ -2339,7 +2304,6 @@ int __cdecl BotGetPatrolWaypoints(bot_state_t *bs, bot_match_t *match)
     return 1;
   }
 }
-// 10026A34: conditional instruction was optimized away because edx.4!=0
 // gladiator.dll: 10026BE0..10026DBC
 // gladi386.so:   0003139C..000315C2
 int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
@@ -2402,9 +2366,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
 }
 // gladiator.dll: 10026E40..10026ED9
 // gladi386.so:   000315C4..000316B2
-// BotGPSToPosition — the Q3 cognate; this source form compiles to the ref DLL
-// at 0x10026E40 here.
-// DEAD in Gladiator — /INCREMENTAL.
+// Q3's BotGPSToPosition.  DEAD in Gladiator — /INCREMENTAL.
 int __cdecl BotGPSToPosition(char *buf, float *position)
 {
   int i;
@@ -2491,9 +2453,9 @@ int __cdecl BotMatchMessage(bot_state_t *bs, char *message)
   float v59;
   float v60;
   vec3_t origin; // [esp+2Ch] [ebp-5C0h] BYREF — checkpoint origin parsed from chat (sscanf input to AAS_PointAreaNum)
-  /* The full 240-byte bot_match_t (chat_state.h), including the variables[]
-   * capture array, so the BotFindMatch / StringsMatch / BotMatchVariable
-   * interfaces type-check. */
+  /* The full 240-byte bot_match_t (chat_state.h), including the variables[] capture
+   * array, so the BotFindMatch / StringsMatch / BotMatchVariable interfaces
+   * type-check. */
   bot_match_t match; // [esp+38h] [ebp-5B4h] -- the entire match struct
   char Destination[152]; // [esp+128h] [ebp-4C4h] BYREF
   aas_entityinfo_t entinfo; // [esp+1C0h] [ebp-42Ch] BYREF
@@ -2978,9 +2940,9 @@ void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
     {
       v4 = strstr(v3->message, ":");
       /* POSITIVE guard, so the body stays the warm fall-through.  The negative
-       * `if (!v4) { remove; continue; }` form makes the remove block the
-       * fall-through, which also lets cl.exe cross-jump it into the strncmp
-       * path's identical block; the original keeps the two separate. */
+       * `if (!v4) { remove; continue; }` form makes the remove block the fall-through,
+       * which also lets cl.exe cross-jump it into the strncmp path's identical block;
+       * the original keeps the two separate. */
       if ( v4 )
       {
         v5 = v4 - (char *)v3;
@@ -3098,7 +3060,6 @@ int BotDeathmatchAI(bot_state_t *bs, float thinktime)
   if ( *(_DWORD *)bs )
     return sub_10028A40(bs, thinktime);
 }
-// 10028B9E: conditional instruction was optimized away because edi.4<32
 // gladiator.dll: 10028C30..10028DF7
 // gladi386.so:   0003341C..0003366C
 void BotSetupDeathmatchAI()
@@ -3132,12 +3093,10 @@ void BotSetupDeathmatchAI()
 }
 // gladiator.dll: 10028E80..10028E81
 // gladi386.so:   0003366C..0003366D
-/* Empty in the original.  Q3's ai_dmq3.c pairs BotShutdownDeathmatchAI right
- * after BotSetupDeathmatchAI in the same file (it clears altroutegoals_setup
- * there); the ELF oracle confirms the same adjacency here -- F814
- * (BotSetupDeathmatchAI, 592 B) ends at exactly the byte F815
- * (BotShutdownDeathmatchAI, 1 B) begins, with zero gap.  Defining it in
- * be_ai2_main.c let gcc -O6 auto-inline the empty body away at its only call
- * site (BotShutdownLibrary); keeping it here, where that TU cannot see the
- * definition, forces the real out-of-line call both binaries have. */
+/* Empty in the original.  Q3 pairs BotShutdownDeathmatchAI right after
+ * BotSetupDeathmatchAI in the same file, and the ELF oracle confirms the same
+ * adjacency here (F814 ends exactly where the 1-byte F815 begins).  Defining it in
+ * be_ai2_main.c lets gcc -O6 auto-inline the empty body away at its only call site;
+ * keeping it here, where that TU cannot see the definition, forces the real
+ * out-of-line call both binaries have. */
 void BotShutdownDeathmatchAI(void) { /* empty body — original returns immediately */ }

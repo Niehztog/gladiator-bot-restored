@@ -1,40 +1,22 @@
 /*
  * l_memory.c — Gladiator Bot v0.96 botlib (Mr. Elusive, 1999), reconstructed
- * from the Windows gladiator.dll.
- *
- * One of the original translation units listed in lcc.mak / linux-i386.mak,
- * carved back out of the monolithic botlib.c.  Its extent in the shipped DLL
- * is 0x10038F10..0x100391FF (ten functions) and it owns `memory`,
- * `totalmemorysize` and `numblocks`; both facts are recovered in
- * .claude/memory/tu_partition.md (the Linux .so's .dynsym keeps all three
- * under their real names, and this TU's F-number run there holds exactly ten
- * functions).
- *
- * The include block below is botlib.c's, verbatim, so every macro and typedef
- * this file compiles against is the environment these functions had before the
- * split.
- *
- * Every function below carries a two-line address annotation: its extent in the
- * 1999 Windows `gladiator.dll` (PE32) and in the 1999 Linux `gladi386.so`
- * (ELF32, glibc build), each start..end with the end exclusive.  `absent` means
- * the Linux image has no counterpart.  CLAUDE.md, "Function address
- * annotations", records how both ranges are derived.
+ * from the Windows gladiator.dll.  DLL extent 0x10038F10..0x100391FF.
  */
 
 #include "botlib_port.h"
-#include "l_libvar.h"      /* libvar_t: 24-byte botlib cvar (reconstructed) */
+#include "l_libvar.h"
 #undef VectorNegate
-#include "be_ea.h"    /* ea_state_t: 36-byte per-client EA struct (reconstructed) */
-#include "q2files.h"       /* Q2 BSP file format (+ the BSP header) */
-#include "aasfile.h"       /* AAS file format: aas_lump_t, aas_header_t */
-#include "be_aas_def.h"   /* aas_t, aas_area_t etc. (reconstructed from aasworld_* globals) */
-#include "l_script.h"      /* token_t, script_t, punctuation_t */
-#include "l_precomp.h"     /* source_t, define_t */
-#include "l_struct.h"      /* structdef_t */
-#include "l_utils.h"       /* bot_fileref_t + the Win32 UnZip declarations */
-#include "be_ai_def.h"     /* the bot-AI structures and interfaces */
-#include "be_interface.h"   /* botimport / botstate / bot_exports + libvar aliases */
-#include "struct_sizes_asserts.h" /* compile-time struct-layout guard */
+#include "be_ea.h"
+#include "q2files.h"
+#include "aasfile.h"
+#include "be_aas_def.h"
+#include "l_script.h"
+#include "l_precomp.h"
+#include "l_struct.h"
+#include "l_utils.h"
+#include "be_ai_def.h"
+#include "be_interface.h"
+#include "struct_sizes_asserts.h"
 #include "l_memory.h"
 #include "be_interface.h"
 
@@ -97,9 +79,9 @@ void *__cdecl GetClearedMemory(unsigned int size)
 // gladiator.dll: 10039040..1003908B
 // gladi386.so:   0004AB70..0004ABCE
 /* Q3's BlockFromPointer.  The real list-unlink helper is sub_10038F50. */
-/* Not `static`: gladi386.so exports this (it is one of the 809 .dynsym
- * FUNCs), and gcc 2.7.2.3 inlines a `static` with few call sites, which
- * both loses the symbol the audit needs and is the wrong linkage. */
+/* Not `static`: gladi386.so exports this (one of the 809 .dynsym FUNCs), and gcc 2.7.2.3
+ * inlines a `static` with few call sites, which both loses the symbol the audit needs
+ * and is the wrong linkage. */
 memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 {
   memoryblock_t *block;
@@ -122,10 +104,9 @@ memoryblock_t *BlockFromPointer(void *ptr, const char *str)
 
 // gladiator.dll: 100390B0..100390F7
 // gladi386.so:   0004ABD0..0004AC82
-/* Void in Q3; the apparent `int` return is just the
- * `totalmemorysize - block->size` the epilogue leaves in eax.  The `int`
- * signature is kept so the ~25 `return FreeMemory(x);` call sites still
- * compile, and goes away as each of those is audited. */
+/* Void in Q3; the apparent `int` return is just the `totalmemorysize - block->size` the
+ * epilogue leaves in eax.  The `int` signature is kept so the ~25
+ * `return FreeMemory(x);` call sites still compile. */
 int __cdecl FreeMemory(void *ptr)
 {
   memoryblock_t *block = BlockFromPointer(ptr, "FreeMemory");
