@@ -54,7 +54,10 @@ int __cdecl PC_Directive_ifndef(source_t *src)
 } //end of the function PC_Directive_ifndef
 
 typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
-directive_t directives[] = {
+/* [20], not []: gladi386.so's .dynsym gives `directives` st_size 160 = 20*8,
+ * and Q3 `l_precomp.c:2490` declares exactly `directive_t directives[20]` with
+ * only 15 initialisers.  Found by dataaudit.py 2026-08-16 (we had 120 B). */
+directive_t directives[20] = {
     {"if",        PC_Directive_if},   /* 0x1003CCB0 */
     {"ifdef",     PC_Directive_ifdef},   /* 0x1003B7B0 */
     {"ifndef",    PC_Directive_ifndef},  /* 0x1003B7D0 */
@@ -77,7 +80,10 @@ int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: 
 /* $-directive dispatch table at VA 0x1005F300: 2 entries + NULL, walked by
  * PC_ReadDollarDirective as a stride-2 pointer array.  Same directive_t element type
  * as `directives` above. */
-directive_t dollardirectives[] = {
+/* [20] for the same reason as `directives` above — st_size 160 = 20*8, and
+ * Q3 `l_precomp.c:2603` is `directive_t dollardirectives[20]` with three
+ * initialisers.  We had 24 B. */
+directive_t dollardirectives[20] = {
     {"evalint",   PC_DollarDirective_evalint},   /* 0x100011D6 thunk → PC_DollarDirective_evalint */
     {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
     {NULL, NULL}
@@ -160,7 +166,14 @@ void __cdecl PC_PushScript(source_t *source, script_t *script)
 
   for ( s = source->scriptstack; s; s = s->next )
   {
-    if ( !Q_stricmp(s->filename, script->filename) )
+    /* `stricmp`, NOT `Q_stricmp`: the .so calls `strcasecmp` here and the DLL
+     * calls the MSVC CRT `_stricmp` (0x10045cb0, reached directly at
+     * 0x100393f7 -- not through an /INCREMENTAL thunk, so it is CRT, not bot
+     * code).  Both 1999 makefiles carry `BASE_CFLAGS=-Dstricmp=strcasecmp`,
+     * which only makes sense if the source spells it `stricmp`.  The other
+     * five botlib call sites really are `Q_stricmp` -- contentsweep confirms
+     * their rows' tokens match.  (contentseq, 2026-08-16) */
+    if ( !stricmp(s->filename, script->filename) )
     {
       SourceError(source, "%s recursively included", script->filename);
       return;

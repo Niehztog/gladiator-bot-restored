@@ -351,10 +351,17 @@ botlib:
 release/gladiator.so : CFLAGS += -fPIC
 endif
 
+# -Dstricmp=strcasecmp is BASE_CFLAGS from botlib/linux-i386.mak verbatim (the
+# game makefile carries the same line, which is why build/game/%.o below already
+# has it).  It is load-bearing, not decoration: PC_PushScript spells its compare
+# `stricmp`, which is what the MSVC build resolves to the CRT `_stricmp` and
+# what the 1999 Linux build resolved to `strcasecmp` -- both confirmed against
+# the original binaries.  The gcc272 oracle carries the same define in
+# oracle_env.sh's CPPDEFS.
 build/%.o: botlib/%.c
 	@echo "===> CC $<"
 	${Q}mkdir -p $(@D)
-	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -DBOTLIB -DC_ONLY -o $@ $<
+	${Q}$(CC) -c $(CFLAGS) $(BOTCFLAGS) -Dstricmp=strcasecmp -DBOTLIB -DC_ONLY -o $@ $<
 
 
 build/%.o: game/%.c

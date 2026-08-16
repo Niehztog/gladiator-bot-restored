@@ -19,7 +19,16 @@
 #include "struct_sizes_asserts.h"
 #include "l_crc.h"
 #include "l_memory.h"
-__int16 crctable[308] =
+/* 257 `unsigned short` entries, exactly as Q3 `l_crc.c:50`
+ * (`unsigned short crctable[257]`): 256 CRC-CCITT table values plus one
+ * trailing 0.  The size is not a guess -- `crctable` keeps its real name in
+ * gladi386.so's .dynsym and its st_size there is 514 = 257*2 (dataaudit.py,
+ * 2026-08-16).  IDA had carried 308 entries; the 51 surplus zeros were
+ * .data padding it swept in, and nothing indexes past 255 (the index is
+ * `(crc >> 8) ^ byte`).  Signed `__int16` rather than `unsigned short` only
+ * so the literals below can stay in IDA's signed spelling; the bits are the
+ * same either way. */
+__int16 crctable[257] =
 {
   0,
   4129,
@@ -277,57 +286,6 @@ __int16 crctable[308] =
   16050,
   3793,
   7920,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
   0
 }; // weak
 

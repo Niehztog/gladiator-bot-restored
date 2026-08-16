@@ -381,7 +381,9 @@ LABEL_11:
     while ( 1 )
     {
       sub_100418D0(v11);
-      if ( !Q_stricmp(v11, v16) )
+      /* `Q_strcasecmp`, not `Q_stricmp` — the real .so calls the former here
+       * (contentseq, 2026-08-16).  They are distinct functions in q_shared.c. */
+      if ( !Q_strcasecmp(v11, v16) )
         break;
       ++v10;
       v11 += 64;
