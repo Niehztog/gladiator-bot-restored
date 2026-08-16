@@ -113,15 +113,15 @@ void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *
 int BotGetFormationGoal(bot_state_t *bs)
 {
   aas_entityinfo_t entinfo; /* [esp+0x44] — entityinfo copy; reused for both lookups */
-  aas_clientmove_t move;    /* prediction result; MSVC6 coalesces this slot with its own
-                             * by-value return temp and with both AAS_EntityInfo temps */
-  vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
   vec3_t forward;           /* [esp+0x1C] — first delta, then AngleVectors output       */
-  vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
+  vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
   vec3_t scaled;            /* [esp+0x38] — VectorScale(forward, 400, ...) for predict */
+  vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
   vec3_t endpos;            /* dead store of move.endpos — confirmed present in real's
                              * disasm (a distinct 12-byte temp, never read afterward)
                              * but has no observable effect; preserved as-is. */
+  aas_clientmove_t move;    /* prediction result; MSVC6 coalesces this slot with its own
+                             * by-value return temp and with both AAS_EntityInfo temps */
   int    entnum, areanum, prevent_entnum;
   /* 1. Look up target name → entnum. */
   entnum = ClientFromName(bs->formationgoal_name);
@@ -1032,9 +1032,9 @@ void __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 // gladi386.so:   00035A54..00036038
 int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 {
+  bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
 
   int v2; // edi
-  bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
   int range; // [esp+0h] — the outgoing float arg slot; original int local (Q3 ai_dmnet.c AINode_Seek_LTG shape)
   float v9; // [esp+14h] [ebp-80h]
   vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
@@ -1174,6 +1174,7 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
 
   int areanum; // esi
   int v8; // edi
+  aas_entityinfo_t entinfo; // [esp+40h] [ebp-128h] BYREF
   bot_moveresult_t moveresult; // [esp+10h] [ebp-158h] BYREF (was int[12]; BotAttackMove result copy)
   /* Properly-typed (not `int entinfo[31]` + a type-punning cast on the
    * assignment): the cast previously forced gcc to materialize the
@@ -1181,7 +1182,6 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
    * it into entinfo before passing &entinfo to sub_10021710 -- a real's-disasm-
    * confirmed extra buffer/copy real does not have (real reuses the retbuf
    * pointer directly for both calls). PE was already perfect either way. */
-  aas_entityinfo_t entinfo; // [esp+40h] [ebp-128h] BYREF
 
   if ( BotIsObserver(bs) )
   {
@@ -1446,9 +1446,9 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
    * size ascending, so this reordering is PE-inert (all three AINode rows
    * below were re-checked MATCH before and after).  Do not "tidy" it back. */
   aas_entityinfo_t entinfo; // [esp+8Ch] [ebp-F8h] BYREF
+  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
   vec3_t target; // [esp+20h] [ebp-164h] BYREF
   vec3_t dir; // [esp+14h] [ebp-170h] BYREF
-  bot_moveresult_t moveresult; // [esp+2Ch] [ebp-158h] BYREF
 
   if ( BotIsObserver(bs) )
   {

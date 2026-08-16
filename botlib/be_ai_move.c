@@ -78,19 +78,19 @@ int __cdecl BotReachabilityArea(int *origin, int client)
   int v6; // esi
   int dx; // ebp
   int v8; // edi
+  int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
+  vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
+  vec3_t end; // [esp+30h] [ebp-84h] BYREF
+  aas_trace_t trace; // [esp+44h] [ebp-70h] (was int v25[9] + char v27[36] hidden return buffer)
+  int v19; // [esp+2Ch] [ebp-88h]
   int v9; // esi
-  int v12; // [esp+10h] [ebp-A4h]
-  int dy; // [esp+14h] [ebp-A0h]
   int dz; // [esp+18h] [ebp-9Ch]
   /* start/end must be real vec3_t locals: both are passed by address to
    * AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas, and split into
    * separate slots BotReachabilityArea always returns 0 and the bot goes
    * inert. */
-  vec3_t end; // [esp+30h] [ebp-84h] BYREF
-  vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
-  int v19; // [esp+2Ch] [ebp-88h]
-  aas_trace_t trace; // [esp+44h] [ebp-70h] (was int v25[9] + char v27[36] hidden return buffer)
-  int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
+  int dy; // [esp+14h] [ebp-A0h]
+  int v12; // [esp+10h] [ebp-A4h]
 
   for ( v19 = 0; v19 < 2; v19++ )
   {
@@ -1392,16 +1392,16 @@ bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability
   char v11; // cl
   long double v13; // st7
   int areanum; // eax
-  double v17; // [esp+Ch] [ebp-54h]
-  /* Real vec3_t — see the BotTravel_Walk note.  org[0] lives only on the x87
-   * stack. */
-  vec3_t org; // [esp+14h] [ebp-4Ch] BYREF (was v18/v19)
-  vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
   vec3_t viewdir; // [esp+24h] [ebp-3Ch] BYREF
   bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
   float dist; // [esp+6Ch] [ebp+Ch]
   float v26; // [esp+6Ch] [ebp+Ch]
   float speed; // [esp+6Ch] [ebp+Ch]
+  double v17; // [esp+Ch] [ebp-54h]
+  /* Real vec3_t — see the BotTravel_Walk note.  org[0] lives only on the x87
+   * stack. */
+  vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
+  vec3_t org; // [esp+14h] [ebp-4Ch] BYREF (was v18/v19)
 
   BotClearMoveResult(&moveresult);
   v3 = ms->moveflags;
@@ -1688,13 +1688,13 @@ bot_moveresult_t __cdecl BotMoveToGoal(bot_movestate_t *movestate, bot_goal_t *g
   int v18; // edx
   float v19; // [esp+10h] [ebp-2A0h]
   aas_reachability_t reach; // [esp+14h] [ebp-29Ch] BYREF
+  aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
   bot_moveresult_t moveresult; // [esp+40h] [ebp-270h] BYREF (was v21 — result accumulator)
   /* lastreach never escapes, so MSVC6 coalesces the hidden struct-return temp of
    * its by-value AAS_ReachabilityFromNum() assignment with the slot itself, and
    * reuses the same hole for the sequential BotMoveInGoalArea / BotTravel_*
    * return temps.  Those per-arm temps are compiler-managed — the original
    * source declares none of them. */
-  aas_reachability_t lastreach; // [esp+70h] [ebp-240h] BYREF
 
   BotClearMoveResult(&moveresult);
   BotResetGrapple(movestate);

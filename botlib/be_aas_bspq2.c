@@ -373,12 +373,12 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float v25; // st6
   int v31; // esi
   float v35; // st7
-  bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
-  bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
   vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
   vec3_t v44; /* was v44,v44[1],v44[2]: vec3_t local bbox min2 */
   vec3_t v41; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
   vec3_t v40; // [esp+8h] [ebp-E4h] BYREF
+  bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
+  bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
   float v39; // [esp+10h] [ebp-DCh]
 
   if ( !bspworld.dword_100674C0 )
@@ -581,15 +581,15 @@ int __cdecl CM_TraceThroughBrush(
   float v37; // [esp+14h] [ebp-78h]
   float v38; // [esp+18h] [ebp-74h]
   int v39; // [esp+1Ch] [ebp-70h]
-  int v40; // [esp+20h] [ebp-6Ch]
-  float v41; // [esp+20h] [ebp-6Ch]
-  int v42; // [esp+24h] [ebp-68h]
-  float v43; // [esp+28h] [ebp-64h]
-  vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
-  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (sub_10003460 input/output)
   vec3_t endp; // [esp+44h] [ebp-48h] — clipped end point
+  int v42; // [esp+24h] [ebp-68h]
+  float v41; // [esp+20h] [ebp-6Ch]
+  int v40; // [esp+20h] [ebp-6Ch]
+  float v43; // [esp+28h] [ebp-64h]
   vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
   vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
+  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (sub_10003460 input/output)
+  vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
   float v59[3][3]; // [esp+68h] [ebp-24h] BYREF
 
   if ( *a3 == 0.0f && a3[1] == 0.0f && a3[2] == 0.0f )
@@ -977,8 +977,8 @@ bsp_trace_t __cdecl AAS_TraceBSPModel(
   int v144; // [esp+B0h] [ebp-14A8h]
   float v145[2]; // [esp+B4h] [ebp-14A4h]
   float v147[2]; // [esp+C0h] [ebp-1498h]
-  float v148[3]; // [esp+C8h] [ebp-1490h] BYREF
   float v149[3]; // [esp+D4h] [ebp-1484h] BYREF
+  float v148[3]; // [esp+C8h] [ebp-1490h] BYREF
   bsp_trace_t trace; // [esp+E0h] [ebp-1478h] BYREF
   float v151[3][3]; // [esp+134h] [ebp-1424h] BYREF
   /* 128 contiguous 40-byte trace frames; v153 aliases trace_stack[0].next. */
@@ -2219,15 +2219,15 @@ int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *li
   int v29; // ebx
   int v30; // ebp
   int v31; // ecx
+  qboolean side;
   int v32; // edx
   unsigned __int8 *v33; // ecx
   int v35; // eax
   int v39; // [esp+10h] [ebp-14h]
   dnode_t *v40; // [esp+14h] [ebp-10h]
   vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive RecursiveLightPoint
-  dface_t *v45; // [esp+2Ch] [ebp+8h]
   int i; // [esp+30h] [ebp+Ch]
-  qboolean side;
+  dface_t *v45; // [esp+2Ch] [ebp+8h]
 
   if ( nodenum < 0 )
     return 0;

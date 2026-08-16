@@ -1022,9 +1022,9 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
  * match->variables[].  Q3 cognate: be_ai_chat.c StringsMatch. */
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 {
-  bot_matchpiece_t  *mp;
   bot_matchstring_t *ms;
   char              *strptr, *newstrptr;
+  bot_matchpiece_t  *mp;
   int                lastvariable;
 
   lastvariable = -1;
