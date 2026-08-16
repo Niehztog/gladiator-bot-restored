@@ -568,7 +568,7 @@ void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
 }
 // gladiator.dll: 1002FD90..1002FDDB
 // gladi386.so:   0003F230..0003F328
-int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
+void __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
 {
   int v2; // eax
   int result; // eax
@@ -583,7 +583,6 @@ int __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
   result = v2 + 1;
   goalstate->goalstacktop = result;
   memcpy(&goalstate->goalstack[result], goal, sizeof(bot_goal_t));
-  return result;
 }
 // gladiator.dll: 1002FE00..1002FE16
 // gladi386.so:   0003F328..0003F33E

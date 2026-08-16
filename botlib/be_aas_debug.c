@@ -65,7 +65,7 @@ void AAS_ClearShownDebugLines(void)
 }
 // gladiator.dll: 100098B0..10009924
 // gladi386.so:   00012914..00012A34
-int __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
+void __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
 {
   int line; // esi
 
