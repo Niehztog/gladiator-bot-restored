@@ -2131,11 +2131,16 @@ cont:
 // gladi386.so:   000238D0..0002454E
 void AAS_Reachability_Elevator()
 {
-  bsp_entity_t *v0; // edi
-  bsp_entity_t *ent; // ebp — current entity walk
+  /* Declaration order of the SCALARS is independent of the by-reference block
+   * below: gcc 2.7 fills the address-taken group and the spilled-scalar group
+   * separately, each top-down in its own declaration order, so interleaving does
+   * not matter and only the order among scalars sets the spill slots.  The order
+   * here is the one the reference .so's spill slots record. */
+  int modelnum; // eax
+  int i;
+  int k;
   const char *classname; // eax
   char *model; // eax — AAS_ValueForBSPEpairKey return
-  int modelnum; // eax
   int v10; // ebx
   int area1num; // edi
   int v12; // esi
@@ -2148,34 +2153,53 @@ void AAS_Reachability_Elevator()
   int v24; // rax (was __int64)
   float v25; // st7 (was double)
   float v26; // st7 (was double)
+  float height;
+  float speed;
+  bsp_entity_t *v0; // edi
+  bsp_entity_t *ent; // ebp — current entity walk
   /* Contiguous vec3_t arrays: BSPModelMinsMaxs writes 12 bytes to each of
    * mins/maxs/origin, and every other vec3 trio passed by address here has the
    * same requirement. */
-  vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
-  float v33;            /* lip value ("lip" epair, defaults to 8.0) */
+  /* Declaration order of the by-reference vec3s is recovered from the reference
+   * .so's frame: gcc 2.7 fills the address-taken group top-down in declaration
+   * order, and matching each side's per-member REFERENCE-COUNT triples pairs them
+   * without needing an instruction-level diff (see regionfp.py).  The first four
+   * come out as mins, maxs, origin, angles -- which is Q3's own order in
+   * be_aas_reach.c's AAS_Reachability_Elevator, independent corroboration that
+   * the frame really does record declaration order. */
   vec3_t mins;          /* was v34/v35/v36 — BSPModelMinsMaxs mins out */
-  vec3_t sumvec;        /* was v37/v38 (+missing v39) — mins+maxs sum for VectorMA */
-  vec3_t testpt;        /* was v40/v41/v42 — point for AAS_PointAreaNum */
-  float height;
-  vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
-  vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
-  int i;
-  float speed;
+  vec3_t maxs;          /* was v30/v31/v32 — BSPModelMinsMaxs maxs out */
   vec3_t origin;        /* was v53/v54/v55 — BSPModelMinsMaxs origin out */
-  int k;
+  float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
+  /* `pos1` is a WHOLE vec3, not the single float IDA saw.  Q3 does
+   * `VectorCopy(origin, pos1)` and then only ever reads `pos1[2]`, so the
+   * decompiler kept the one live component and dropped the array -- but the
+   * reference .so allocates all 12 bytes and references them 2 / 1 / 1 (one
+   * store each from the VectorCopy, plus the one read of [2]), which is exactly
+   * this shape.  Restoring it is what makes our address-taken group 332 bytes
+   * like ref's instead of 320. */
+  vec3_t pos1;          /* was v75 — top position; only [2] is ever read */
+  vec3_t extent;        /* was v64[2]+v65 — Q3's `pos2`, the bottom position */
+  vec3_t sumvec;        /* was v37/v38 (+missing v39) — mins+maxs sum for VectorMA */
   vec3_t toporg;        /* was v57/v58/v59 — VectorMA midpoint output (top) */
   vec3_t btmorg;        /* was v61/v62/v63 — VectorMA midpoint output (bottom) */
-  vec3_t extent;        /* was v64[2]+v65 — VectorMA veca input */
-  float angles[3];         /* [BYREF] — angles to BSPModelMinsMaxs */
+  vec3_t testpt;        /* was v40/v41/v42 — point for AAS_PointAreaNum */
+  vec3_t samplept;      /* was v47/v48/v49 — per-iteration sample point */
   float start[3];         /* [BYREF] */
   float end[3];         /* [BYREF] */
-  /* Candidate-probe offset tables — plain floats, read by indexed loops. */
-  float xvals_top[10];
-  float yvals[8];
-  aas_trace_t trace;
-  float yvals_top[8];
-  float v75;
+  vec3_t dirvec;        /* was v44/v45/v46 — VectorNormalize input/output */
+  float v33;            /* lip value ("lip" epair, defaults to 8.0) */
+  /* Candidate-probe offset tables — plain floats, read by indexed loops.  Q3
+   * declares them `vec_t xvals[8], yvals[8], xvals_top[8], yvals_top[8];` on one
+   * line with `aas_trace_t trace` last, and the reference .so agrees: 128 bytes
+   * of tables (four eights, not a ten and three eights) sitting directly above a
+   * 36-byte trace at the bottom of the address-taken group.  The `< 9` probe loop
+   * guards its ninth iteration with `if (v10 < 8)`, so nothing reads past [7]. */
   float xvals[8];
+  float yvals[8];
+  float xvals_top[8];
+  float yvals_top[8];
+  aas_trace_t trace;
 
   angles[0] = 0;
   angles[1] = 0;
@@ -2201,7 +2225,7 @@ void AAS_Reachability_Elevator()
       continue;
     }
     AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
-    v75 = origin[2];
+    VectorCopy(origin, pos1);
     VectorCopy(origin, extent);
     v33 = FloatForKey(ent, "lip");
     if ( v33 == 0 )
@@ -2215,7 +2239,7 @@ void AAS_Reachability_Elevator()
     extent[2] = extent[2] - height;
     VectorAdd(maxs, mins, sumvec);
     VectorMA(extent, 0.5f, sumvec, toporg);
-    toporg[2] = maxs[2] - (v75 - extent[2]) + 2.0f;
+    toporg[2] = maxs[2] - (pos1[2] - extent[2]) + 2.0f;
     VectorAdd(maxs, mins, sumvec);
     VectorMA(extent, 0.5f, sumvec, btmorg);
     btmorg[2] = maxs[2] + 2.0f;
@@ -2337,18 +2361,28 @@ void AAS_Reachability_Elevator()
               if ( v20 )
               {
                 v20->reach.areanum = area2num;
-                v23 = height;
                 v20->reach.facenum = modelnum;
-                v24 = (int)v23;
-                v25 = height * 100.0f;
-                lreach->reach.edgenum = v24;
+                /* `(int)height` straight into the field, and the `* 100 / speed`
+                 * AFTER it: IDA's v23/v24/v25 are per-use SSA temporaries, and
+                 * keeping them makes gcc bounce the FP-to-int through a stack
+                 * slot (`sub esp,4; fist [esp]; pop edx; ... mov [esi+8],edx`)
+                 * and hoist the multiply above it.  The reference stores directly
+                 * with `fist DWORD PTR [esi+0x8]`, which is Q3's
+                 * `lreach->edgenum = (int) height;` form. */
+                lreach->reach.edgenum = (int)height;
                 VectorCopy(dirvec, lreach->reach.start);
-                v26 = v25 / speed;
                 VectorCopy(samplept, lreach->reach.end);
                 lreach->reach.traveltype = 11;
+                v26 = height * 100.0f / speed;
                 lreach->reach.traveltime = (__int64)v26;
                 if ( !(unsigned __int16)(__int64)v26 )
                   lreach->reach.traveltime = 50;
+                /* Q3's `n = 9999;` -- "don't go any further to the outside", a
+                 * sentinel that ends the enclosing 3-iteration loop.  It really is
+                 * an assignment in the original, not a `break`: the reference .so
+                 * emits the store.  Q3 keeps it after the list-link statements;
+                 * measured either way, the position is byte-neutral here, so this
+                 * keeps IDA's. */
                 i = 9999;
                 lreach->next = areareachability[area1num];
                 areareachability[area1num] = lreach;
