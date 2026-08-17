@@ -968,9 +968,15 @@ bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
   float croucher; // [esp+20h] [ebp-124h]
   vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
   vec3_t up = { 0, 0, 1.0f }; // [esp+54h] [ebp-F0h] BYREF
-  bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
-  bot_moveresult_t moveresult; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
+  /* entinfo / moveresult / goal in THAT order, which is the reverse of IDA's:
+   * the reference .so puts entinfo directly under the five vec3s (its `origin`
+   * field at +0x10 pins it, referenced 1 1 1) with `goal` at the bottom of the
+   * address-taken group, and gcc 2.7 fills that group top-down in declaration
+   * order.  The DLL cannot show this -- MSVC6 /O2 orders slots by first
+   * reference -- so the ELF frame is the only record of it. */
   aas_entityinfo_t entinfo; // [esp+C8h] [ebp-7Ch] BYREF
+  bot_moveresult_t moveresult; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
+  bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
 
   if ( AAS_Time() < bs->attackchase_time )
   {

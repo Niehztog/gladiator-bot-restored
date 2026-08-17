@@ -342,10 +342,14 @@ qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, v
   float v25; // st6
   int v31; // esi
   float v35; // st7
-  vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
   vec3_t v44; /* was v44,v44[1],v44[2]: vec3_t local bbox min2 */
   vec3_t v41; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
   vec3_t v40; // [esp+8h] [ebp-E4h] BYREF
+  /* `clipend` is declared AFTER the three bbox vec3s, not before them: the
+   * reference .so puts v44/v41/v40 at the very top of the frame (0x0ac..0x0cf,
+   * referenced 2 2 2 2 2 2 1 1 3) with an unreferenced 12-byte hole below them,
+   * and gcc 2.7 fills the address-taken group top-down in declaration order. */
+  vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
   bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
   bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
   float v39; // [esp+10h] [ebp-DCh]
