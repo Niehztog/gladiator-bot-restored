@@ -204,6 +204,7 @@ int __cdecl AAS_AlternativeRouteGoals(
   botimport.Print(PRT_MESSAGE, "%d alternative route goals\n", numaltroutegoals);
   return numaltroutegoals;
 }
+
 // gladiator.dll: 1001AB80..1001ABDA
 // gladi386.so:   000289B4..00028A33
 void sub_1001AB80()

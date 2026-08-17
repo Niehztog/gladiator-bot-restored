@@ -98,6 +98,7 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   }
   return 0;
 }
+
 // gladiator.dll: 1000ABE0..1000AC71
 // gladi386.so:   0001419C..00014262
 /* The AAS info snapshot for an engine entity, returned BY VALUE through MSVC's
@@ -121,6 +122,7 @@ aas_entityinfo_t __cdecl AAS_EntityInfo(int entnum)
   }
   return aasworld.entities[entnum].i;
 }
+
 // gladiator.dll: 1000ACB0..1000AD1F
 // gladi386.so:   00014264..000142F4
 // Bounds-checked copy of entities[entnum].origin (struct offsets +0x10..+0x18) into
@@ -136,6 +138,7 @@ void __cdecl AAS_EntityOrigin(int entnum, vec3_t origin)
   }
   VectorCopy(aasworld.entities[entnum].i.origin, origin);
 }
+
 // gladiator.dll: 1000AD40..1000AD76
 // gladi386.so:   000142F4..0001434A
 int __cdecl AAS_EntityModelindex(int entnum)
@@ -147,6 +150,7 @@ int __cdecl AAS_EntityModelindex(int entnum)
   }
   return aasworld.entities[entnum].i.modelindex;
 }
+
 // gladiator.dll: 1000AD90..1000ADCF
 // gladi386.so:   0001434C..000143AE
 int __cdecl AAS_EntityRenderFX(int entnum)
@@ -160,6 +164,7 @@ int __cdecl AAS_EntityRenderFX(int entnum)
   }
   return aasworld.entities[entnum].i.renderfx;
 }
+
 // gladiator.dll: 1000ADE0..1000AE20
 // gladi386.so:   000143B0..00014410
 int __cdecl AAS_EntityModelNum(int entnum)
@@ -173,6 +178,7 @@ int __cdecl AAS_EntityModelNum(int entnum)
   }
   return aasworld.entities[entnum].i.modelindex - 1;
 }
+
 // gladiator.dll: 1000AE30..1000AE7B
 // gladi386.so:   00014410..00014495
 int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
@@ -191,6 +197,7 @@ int __cdecl AAS_OriginOfMoverWithModelNum(int modelnum, vec3_t origin)
   }
   return 0;
 }
+
 // gladiator.dll: 1000AEA0..1000AF06
 // gladi386.so:   00014498..0001451E
 // Returns the bbox of entities[entnum] via two vec3 out-params (mins from +0x40..+0x48,
@@ -212,6 +219,7 @@ void __cdecl AAS_EntitySize(int entnum, vec3_t mins, vec3_t maxs)
   VectorCopy(ent->mins, mins);
   VectorCopy(ent->maxs, maxs);
 }
+
 // gladiator.dll: 1000AF30..1000AFAF
 // gladi386.so:   00014520..000145B3
 int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata)
@@ -229,6 +237,7 @@ int __cdecl AAS_EntityBSPData(int entnum, bsp_entdata_t *entdata)
   entdata->modelnum   = result;
   return result;
 }
+
 // gladiator.dll: 1000AFD0..1000B053
 // gladi386.so:   000145B4..00014649
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
@@ -244,6 +253,7 @@ int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs)
   VectorCopy(trace.endpos, origin);
   return 1;
 }
+
 // gladiator.dll: 1000B090..1000B0C9
 // gladi386.so:   0001464C..000146A3
 void AAS_ResetEntityLinks()
@@ -259,6 +269,7 @@ void AAS_ResetEntityLinks()
   }
   /* No return value: Q3's AAS_ResetEntityLinks is void. */
 }
+
 // gladiator.dll: 1000B0E0..1000B119
 // gladi386.so:   000146A4..000146F3
 void __cdecl AAS_InvalidateEntities()
@@ -270,6 +281,7 @@ void __cdecl AAS_InvalidateEntities()
     aasworld.entities[i].i.number = i;
   }
 }
+
 // gladiator.dll: 1000B130..1000B18B
 // gladi386.so:   000146F4..0001475C
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
@@ -288,6 +300,7 @@ int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
   }
   return 0;
 }
+
 // gladiator.dll: 1000B300..1000B585
 // gladi386.so:   000148EC..00014CBC
 int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
@@ -377,6 +390,7 @@ int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t 
     return result;
   }
 }
+
 // gladiator.dll: 1000B640..1000B703
 // gladi386.so:   00014CBC..00014E69
 int InFieldOfVision(float *viewangles, float fov, float *angles)
@@ -415,6 +429,7 @@ int InFieldOfVision(float *viewangles, float fov, float *angles)
   }
   return 1;
 }
+
 // gladiator.dll: 1000B750..1000B9E2
 // gladi386.so:   00014E6C..000152B1
 int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fov, int a5)
@@ -497,6 +512,7 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   }
   return 0;
 }
+
 // gladiator.dll: 1000B1F0..1000B2BE
 // gladi386.so:   000147D8..000148EB
 // FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities) for the entry
@@ -540,6 +556,7 @@ int __cdecl sub_1000B1F0(float *ref, int target)
   }
   return best_index;
 }
+
 // gladiator.dll: 1000B1B0..1000B1D2
 // gladi386.so:   0001475C..000147D8
 /* Thin wrapper handing aasworld.entities[entnum].areas (the entity's aas_link_t chain
@@ -556,6 +573,7 @@ int __cdecl AAS_BestReachableEntityArea(int entnum)
   return AAS_BestReachableLinkArea(ent->areas);
 #endif
 }
+
 // gladiator.dll: 1000BAA0..1000BB0E
 // gladi386.so:   000152B4..00015340
 int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6)
@@ -582,6 +600,7 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
   }
   return v7;
 }
+
 // gladiator.dll: 1000BB30..1000BB74
 // gladi386.so:   00015340..000153B2
 int __cdecl AAS_NextBSPEntity(int ent)

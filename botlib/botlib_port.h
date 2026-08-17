@@ -21,8 +21,10 @@
  * are defined by whichever of the two got there first), so those headers have to be in
  * scope before them. */
 #include "../game/q_shared.h"
-/* q_shared.h's VectorNegate is a 2-arg macro; botlib has a 1-arg in-place
- * VectorNegate() at 0x10043540.  Drop the macro so the function stays callable. */
+/* q_shared.h's VectorNegate is a 2-arg macro; this reconstruction also has a
+ * 1-arg in-place VectorNegate() function.  Drop the macro so it stays callable.
+ * That function is a misnamed duplicate of VectorInverse (0x10043540) and is in
+ * neither original -- see the note at its definition in q_shared.c. */
 #undef VectorNegate
 #include "../game/botlib.h"
 

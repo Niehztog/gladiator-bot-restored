@@ -52,6 +52,7 @@ void AAS_InitTravelFlagFromType(void)
   aasworld.travelflagfortype[13] = 0x2000;     /* TFL_BFGJUMP         */
   aasworld.travelflagfortype[14] = 0x4000;     /* TFL_GRAPPLEHOOK     */
 }
+
 // gladiator.dll: 10018DC0..10018DD8
 // gladi386.so:   000264F0..0002651C
 int __cdecl AAS_TravelFlagForType(int traveltype)
@@ -61,6 +62,7 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
   else
     return aasworld.travelflagfortype[traveltype];
 }
+
 // gladiator.dll: 10018DF0..10018EFC
 // gladi386.so:   00026530..000266B3
 /* One contiguous blob of `numareas` reversed-reach heads followed by
@@ -98,6 +100,7 @@ void AAS_CreateReversedReachability(void)
     }
   }
 }
+
 // gladiator.dll: 10018F50..10018FD3
 // gladi386.so:   000266B4..00026760
 unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
@@ -119,6 +122,7 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
     intdist = 1;
   return intdist;
 }
+
 // gladiator.dll: 10019010..100191BF
 // gladi386.so:   00026760..00026AC3
 /* One contiguous blob, areatraveltimes[area][reachidx][linkidx] -> unsigned short,
@@ -179,6 +183,7 @@ void AAS_CalculateAreaTravelTimes(void)
     }
   }
 }
+
 // gladiator.dll: 10019230..10019242
 // gladi386.so:   00026AC4..00026AE7
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes)
@@ -188,12 +193,14 @@ aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes)
    * array (reached via &cache[1]) correct on both ABIs. */
   return (aas_routingcache_t *)GetClearedMemory(2 * numtraveltimes + (int)sizeof(aas_routingcache_t) + 4);
 }
+
 // gladiator.dll: 10019260..1001926C
 // gladi386.so:   00026AE8..00026B04
 void __cdecl AAS_FreeRoutingCache(void *cache)
 {
   FreeMemory(cache);
 }
+
 // gladiator.dll: 10019280..10019320
 // gladi386.so:   00026B04..00026BDC
 void AAS_FreeAllClusterAreaCache(void)
@@ -220,6 +227,7 @@ void AAS_FreeAllClusterAreaCache(void)
   FreeMemory(aasworld.clusterareacache);
   aasworld.clusterareacache = NULL;
 }
+
 // gladiator.dll: 10019350..100193BC
 // gladi386.so:   00026BDC..00026C81
 /* One head row of `aas_routingcache_t **` per cluster, followed by
@@ -244,6 +252,7 @@ void AAS_InitClusterAreaCache(void)
     ptr += aasworld.clusters[i].numareas * sizeof(aas_routingcache_t *);
   }
 }
+
 // gladiator.dll: 100193E0..10019448
 // gladi386.so:   00026C84..00026D19
 /* AAS_FreeAllPortalCache — release every per-area portal cache chain, then the
@@ -274,6 +283,7 @@ int AAS_FreeAllPortalCache(void)
     aasworld.portalcache = NULL;
   }
 }
+
 // gladiator.dll: 10019470..1001948B
 // gladi386.so:   00026D1C..00026D51
 void AAS_InitPortalCache(void)
@@ -282,6 +292,7 @@ void AAS_InitPortalCache(void)
   aasworld.portalcache = (aas_routingcache_t **)GetClearedMemory(
       aasworld.numareas * (int)sizeof(aas_routingcache_t *));
 }
+
 // gladiator.dll: 100194A0..100194F7
 // gladi386.so:   00026D54..00026DE3
 void AAS_InitRoutingUpdate(void)
@@ -295,6 +306,7 @@ void AAS_InitRoutingUpdate(void)
     FreeMemory((int)(intptr_t)aasworld.portalupdate);
   aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
 }
+
 // gladiator.dll: 10019520..1001953E
 // gladi386.so:   00026DE4..00026F86
 void AAS_InitRouting(void)
@@ -306,6 +318,7 @@ void AAS_InitRouting(void)
   AAS_InitPortalCache();
   AAS_CalculateAreaTravelTimes();
 }
+
 // 1000105F: thunk → 0x10018D00 = AAS_InitTravelFlagFromType
 // gladiator.dll: 10019550..1001955A
 // gladi386.so:   00026F88..000270E5
@@ -318,6 +331,7 @@ void AAS_FreeRoutingCaches(void)
   AAS_FreeAllClusterAreaCache();
   AAS_FreeAllPortalCache();
 }
+
 // gladiator.dll: 10019570..100196AF
 // gladi386.so:   absent
 /* Walk both routing caches and free every aas_routingcache_t whose .time is older
@@ -371,6 +385,7 @@ static void sub_10019570(void)
     }
   }
 }
+
 // gladiator.dll: 10019700..100199C3
 // gladi386.so:   0002730C..000276C3
 /* The routing-update FIFO is walked through typed aas_routingupdate_t fields
@@ -492,6 +507,7 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
     }
   }
 }
+
 #ifndef _WIN32
 /* F508 @ 0x0002639c, 100 bytes.  Q3 botlib has this verbatim.  The disassembly
  * indexes areasettings by 28 (its sizeof) and portals by 20, takes
@@ -502,6 +518,8 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
  * than with the rest of the .so-only block below: gladi386.so's
  * AAS_GetAreaRoutingCache has no `call` to this address at all — the body is folded
  * in — and gcc -O6 only auto-inlines a same-TU callee it has already parsed. */
+// gladiator.dll: absent
+// gladi386.so:   0002639C..00026400
 int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
 {
   int side, areacluster;
@@ -512,6 +530,7 @@ int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
   side = aasworld.portals[-areacluster].frontcluster != cluster;
   return aasworld.portals[-areacluster].clusterareanum[side];
 } //end of the function AAS_ClusterAreaNum
+
 #endif /* !_WIN32 -- gladi386.so-only, see the block further down for why */
 
 // gladiator.dll: 10019A90..10019BA7
@@ -562,6 +581,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
   cache->time = AAS_Time();
   return cache;
 }
+
 // gladiator.dll: 10019C00..10019E13
 // gladi386.so:   0002781C..00027B15
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
@@ -653,6 +673,7 @@ void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
   }
   { (void)(0); return; }
 }
+
 // gladiator.dll: 10019EB0..10019F6F
 // gladi386.so:   00027B18..00027C09
 aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanum, int travelflags)
@@ -685,6 +706,7 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanu
   cache->time = AAS_Time();
   return cache;
 }
+
 // gladiator.dll: 10019FA0..1001A229
 // gladi386.so:   00027C0C..00027F8E
 __int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum)
@@ -819,6 +841,7 @@ portalpath:
   }
   return besttime;
 }
+
 // gladiator.dll: 1001A2E0..1001A343
 // gladi386.so:   00027F90..00028005
 /* Reachability record `num`, returned BY VALUE through MSVC's hidden-retbuf ABI (as
@@ -835,6 +858,7 @@ aas_reachability_t __cdecl AAS_ReachabilityFromNum(int num)
   }
   return aasworld.reachability[num];
 }
+
 // gladiator.dll: 1001A370..1001A3E6
 // gladi386.so:   00028008..000280B1
 int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
@@ -862,6 +886,7 @@ int __cdecl AAS_NextAreaReachability(int areanum, int reachnum)
     return 0;
   return reachnum;
 }
+
 // gladiator.dll: 1001A410..1001A595
 // gladi386.so:   000280B4..00028295
 int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum, vec3_t goalorigin)
@@ -909,6 +934,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   }
   return 0;
 }
+
 // gladiator.dll: 1001A610..1001A63B
 // gladi386.so:   00028298..000282E0
 int AAS_RoutingInfo()
@@ -934,6 +960,8 @@ int AAS_RoutingInfo()
  * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
  * line, which is what `__inline` compiles to under a compiler that ignores the
  * hint. */
+// gladiator.dll: absent
+// gladi386.so:   0002651C..00026530
 float __cdecl AAS_RoutingTime(void)
 {
   return AAS_Time();
@@ -952,6 +980,8 @@ float __cdecl AAS_RoutingTime(void)
  *   arg2 = &updatelistend
  *   arg3 = the update to append
  */
+// gladiator.dll: absent
+// gladi386.so:   0002727C..000272B5
 void __cdecl F525(aas_routingupdate_t **updateliststart,
                   aas_routingupdate_t **updatelistend,
                   aas_routingupdate_t *update)
@@ -972,6 +1002,8 @@ void __cdecl F525(aas_routingupdate_t **updateliststart,
  * DONOTENTER / NOTTEAM / BRIDGE clauses Q3 added later.  The four TFL_ values and
  * three AREACONTENTS_ bits come straight out of this function: `test al,1 ->
  * 0x10000`, `test al,4 -> 0x20000`, `test al,2 -> 0x40000`, else `0x8000`. */
+// gladiator.dll: absent
+// gladi386.so:   000272B8..0002730B
 int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
 {
   int contents;
@@ -995,6 +1027,8 @@ int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
  * prev/next at +0x20/+0x24, the threshold a QWORD 15.0 at .rodata 0x571e0, and the
  * second loop bounded by numareas because portalcache is indexed by area, not by
  * portal.  It frees through FreeMemory directly, not through a wrapper. */
+// gladiator.dll: absent
+// gladi386.so:   000270E8..0002727B
 void __cdecl F524(void)
 {
   int i, j;

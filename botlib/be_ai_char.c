@@ -66,6 +66,7 @@ void __cdecl BotDumpCharacter(bot_character_t *ch)
   }
   Log_Write("}");
 }
+
 // gladiator.dll: 10029EB0..1002A42E
 // gladi386.so:   00038630..00038B2E
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
@@ -235,12 +236,14 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
     botimport.Print(PRT_MESSAGE, "loaded %s from %s\n", a2, Destination);
   return ch;
 }
+
 // gladiator.dll: 1002A590..1002A59C
 // gladi386.so:   00038B30..00038B4C
 void __cdecl sub_1002A590(int a1)
 {
   FreeMemory(a1);
 }
+
 // gladiator.dll: 1002A5B0..1002A5F6
 // gladi386.so:   00038B4C..00038BA7
 int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
@@ -257,6 +260,7 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
   }
   return 1;
 }
+
 // gladiator.dll: 1002A620..1002A66C
 // gladi386.so:   00038BA8..00038C50
 float __cdecl Characteristic_Float(bot_character_t *character, int index)
@@ -275,6 +279,7 @@ float __cdecl Characteristic_Float(bot_character_t *character, int index)
   botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
   return 0.0f;
 }
+
 // gladiator.dll: 1002A690..1002A705
 // gladi386.so:   00038C50..00038CEC
 float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float min, float max)
@@ -294,6 +299,7 @@ float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float
     return max;
   return result;
 }
+
 // gladiator.dll: 1002A730..1002A77D
 // gladi386.so:   00038CEC..00038DC6
 int __cdecl Characteristic_Integer(bot_character_t *character, int index)
@@ -312,6 +318,7 @@ int __cdecl Characteristic_Integer(bot_character_t *character, int index)
   botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   return 0;
 }
+
 // gladiator.dll: 1002A7A0..1002A7EE
 // gladi386.so:   00038DC8..00038E2A
 int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int min, int max)
@@ -330,6 +337,7 @@ int __cdecl Characteristic_BInteger(bot_character_t *character, int index, int m
     return max;
   return result;
 }
+
 // gladiator.dll: 1002A810..1002A854
 // gladi386.so:   00038E2C..00038EC8
 char *__cdecl Characteristic_String(bot_character_t *character, int index)

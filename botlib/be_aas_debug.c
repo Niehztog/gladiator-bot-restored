@@ -45,6 +45,7 @@ void AAS_ClearShownDebugLines(void)
     }
   }
 }
+
 // gladiator.dll: 100098B0..10009924
 // gladi386.so:   00012914..00012A34
 void __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
@@ -67,6 +68,7 @@ void __cdecl AAS_DebugLine(vec3_t start, vec3_t end, int color)
     }
   }
 }
+
 // gladiator.dll: 10009950..100099D2
 // gladi386.so:   00012A34..00012BE8
 int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
@@ -88,6 +90,7 @@ int __cdecl AAS_DrawPermanentCross(vec3_t origin, float size, int color)
   }
   return result;
 }
+
 // gladiator.dll: 10009A10..10009C18
 // gladi386.so:   00012BE8..00012E1F
 /* Plane-projection debug "X" visualiser, verbatim Q3 be_aas_debug.c.  Builds the four
@@ -143,6 +146,7 @@ void AAS_DrawPlaneCross(vec3_t point, vec3_t normal, float dist, int type, int c
   botimport.DebugLineShow(lines[0], start1, end1, color);
   botimport.DebugLineShow(lines[1], start2, end2, color);
 }
+
 // gladiator.dll: 10009CB0..10009E59
 // gladi386.so:   00012E20..0001300F
 /* Draw the AABB at `origin` with mins/maxs offsets as a wireframe cube in colour
@@ -201,6 +205,7 @@ void __cdecl AAS_ShowBoundingBox(vec3_t origin, vec3_t mins, vec3_t maxs)
     botimport.DebugLineShow(lines[2], bboxcorners[i], bboxcorners[4 + i], 0xF2F2F0F0);
   }
 }
+
 // gladiator.dll: 10009ED0..1000A032
 // gladi386.so:   00013010..0001335B
 /* Draw every edge of one face as a line, cycling a 4-colour debug palette
@@ -247,6 +252,7 @@ void __cdecl AAS_ShowFace(int facenum)
   VectorMA(start, 20.0f, plane->normal, end);
   AAS_DebugLine(start, end, LINECOLOR_RED);
 }
+
 // gladiator.dll: 1000A0A0..1000A2DA
 // gladi386.so:   0001335C..00013683
 void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
@@ -327,6 +333,7 @@ void __cdecl AAS_ShowArea(int areanum, int groundfacesonly)
     debuglinevisible[line] = 1;
   }
 }
+
 // gladiator.dll: 1000A370..1000A3DA
 // gladi386.so:   00013684..0001380D
 /* AAS_DrawCross — a 3D cross at `origin`: three line
@@ -345,6 +352,7 @@ void __cdecl AAS_DrawCross(vec3_t origin, float size, int color)
     AAS_DebugLine(start, end, color);
   }
 }
+
 // gladiator.dll: 1000A400..1000A401
 // gladi386.so:   00013810..00013811
 /* Pretty-prints a TRAVEL_* type, but compiled out to a bare `ret` in this build
@@ -354,6 +362,7 @@ void __cdecl AAS_PrintTravelType(int traveltype)
 {
   (void)traveltype;
 }
+
 // gladiator.dll: 1000A420..1000A572
 // gladi386.so:   00013814..00013AF4
 /* An arrow from `start` to `end`: a shaft in `linecolor` plus two arrowhead strokes in
@@ -395,6 +404,7 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
   AAS_DebugLine(p1, end, arrowcolor);
   AAS_DebugLine(p2, end, arrowcolor);
 }
+
 // gladiator.dll: 1000A5E0..1000A791
 // gladi386.so:   00013AF4..00013E73
 /*
@@ -451,8 +461,6 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     AAS_ClientMovementPrediction(-1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
-// gladiator.dll: 1000A810..1000A8D4
-// gladi386.so:   00013E74..00013F57
 /*
  * Walk one area's reachability list, one entry per call and throttled to 1.5 s per
  * advance, printing each travel type and handing the reach to AAS_ShowReachability.
@@ -468,6 +476,8 @@ static int   showreach_lastareanum;
 static int   showreach_index;
 static float showreach_lasttime;
 
+// gladiator.dll: 1000A810..1000A8D4
+// gladi386.so:   00013E74..00013F57
 void __cdecl AAS_ShowReachableAreas(int areanum)
 {
   int numreach;

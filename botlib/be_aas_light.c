@@ -40,6 +40,7 @@ bsp_pointlight_t *sub_1000D450()
     botimport.Print(PRT_MESSAGE, "WARNING: empty light heap\n");
   return v0;
 }
+
 // gladiator.dll: 1000D4A0..1000D4C7
 // gladi386.so:   00017D00..00017D42
 void __cdecl sub_1000D4A0(bsp_pointlight_t *a1)
@@ -50,6 +51,7 @@ void __cdecl sub_1000D4A0(bsp_pointlight_t *a1)
   a1->next = aasworld.oldestcache;
   aasworld.oldestcache = a1;
 }
+
 // gladiator.dll: 1000D4E0..1000D52E
 // gladi386.so:   00017D44..00017DE0
 void __cdecl sub_1000D4E0(float a1)
@@ -80,6 +82,7 @@ void __cdecl sub_1000D4E0(float a1)
     while ( v2 );
   }
 }
+
 // gladiator.dll: 1000D550..1000D5CE
 // gladi386.so:   00017DE0..00017EBF
 int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, float g, float b, float time, float decay)
@@ -107,6 +110,7 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
   aasworld.newestcache = v8;
   return 0;
 }
+
 // gladiator.dll: 1000D5F0..1000D718
 // gladi386.so:   00017EC0..00018046
 /* Lightmap RGB at the impact point of (start..end), plus the BotAddPointLight
@@ -152,6 +156,7 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
     *blue = bs_;
   return v7;
 }
+
 // gladiator.dll: 1000D770..1000D7B4
 // gladi386.so:   00018048..000181F8
 /* Lightmap intensity at `origin`, traced 4096 units straight down.  The channel

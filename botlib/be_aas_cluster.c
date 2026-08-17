@@ -34,6 +34,7 @@ void AAS_RemoveClusterAreas(void)
   for ( i = 1; i < aasworld.numareas; i++ )
     aasworld.areasettings[i].cluster = 0;
 }
+
 // gladiator.dll: 10008660..10008781
 // gladi386.so:   00011240..000113C1
 int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
@@ -84,6 +85,7 @@ int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
   ++cluster->numreachabilityareas;
   return 1;
 }
+
 // gladiator.dll: 100087E0..10008968
 // gladi386.so:   000113C4..000115F4
 int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
@@ -145,6 +147,7 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
   }
   return 1;
 }
+
 // gladiator.dll: 100089E0..10008A8A
 // gladi386.so:   000115F4..000116F2
 int __cdecl AAS_FloodClusterReachabilities(int clusternum)
@@ -175,6 +178,7 @@ int __cdecl AAS_FloodClusterReachabilities(int clusternum)
   }
   return 1;
 }
+
 // gladiator.dll: 10008AC0..10008B16
 // gladi386.so:   000116F4..00011762
 void __cdecl AAS_NumberClusterPortals(int clusternum)
@@ -195,6 +199,7 @@ void __cdecl AAS_NumberClusterPortals(int clusternum)
       portal->clusterareanum[1] = cluster->numareas++;
   }
 }
+
 // gladiator.dll: 10008B40..10008C35
 // gladi386.so:   00011764..00011932
 int AAS_FindClusters()
@@ -227,6 +232,7 @@ int AAS_FindClusters()
   }
   return 1;
 }
+
 // gladiator.dll: 10008C80..10008D06
 // gladi386.so:   00011934..000119E2
 void AAS_CreatePortals()
@@ -252,6 +258,7 @@ void AAS_CreatePortals()
     }
   }
 }
+
 // gladiator.dll: 10008D40..10008DEE
 // gladi386.so:   000119E4..00011AD5
 void __cdecl AAS_ConnectedAreas_r(int *areanums, int numareas, int *connectedareas, int curarea)
@@ -284,6 +291,7 @@ void __cdecl AAS_ConnectedAreas_r(int *areanums, int numareas, int *connectedare
     AAS_ConnectedAreas_r(areanums, numareas, connectedareas, j);
   }
 }
+
 // gladiator.dll: 10008E20..10008E8B
 // gladi386.so:   00011AD8..00011C1C
 qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas)
@@ -304,6 +312,7 @@ qboolean __cdecl AAS_ConnectedAreas(_DWORD *areanums, int numareas)
   }
   return 1;
 }
+
 // gladiator.dll: 10008EB0..10008FAF
 // gladi386.so:   00011C1C..00011D7C
 int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
@@ -347,6 +356,7 @@ int __cdecl AAS_FloodAreas_r(int *areanum, int cluster, int done)
   }
   return cluster;
 }
+
 // gladiator.dll: 10008FF0..1000944F
 // gladi386.so:   00011D7C..000123E3
 int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
@@ -490,6 +500,7 @@ int __cdecl AAS_CheckAreaForPossiblePortals(int areanum)
   }
   return numareas;
 }
+
 // gladiator.dll: 10009570..100095AB
 // gladi386.so:   000123E4..00012432
 int AAS_FindPossiblePortals()
@@ -502,6 +513,7 @@ int AAS_FindPossiblePortals()
     numpossibleportals += AAS_CheckAreaForPossiblePortals(i);
   return botimport.Print(PRT_MESSAGE, "\r%6d possible portals\n", numpossibleportals);
 }
+
 // gladiator.dll: 100095C0..100095F5
 // gladi386.so:   00012434..0001247A
 void AAS_RemoveAllPortals()
@@ -513,6 +525,7 @@ void AAS_RemoveAllPortals()
     aasworld.areasettings[i].contents &= ~8u;
   }
 }
+
 // gladiator.dll: 10009610..100096A5
 // gladi386.so:   0001247C..00012520
 int AAS_TestPortals()
@@ -538,6 +551,7 @@ int AAS_TestPortals()
   }
   return 1;
 }
+
 // gladiator.dll: 100096E0..10009804
 // gladi386.so:   00012520..00012827
 void AAS_InitClustering()

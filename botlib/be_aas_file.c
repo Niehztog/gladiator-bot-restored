@@ -147,6 +147,7 @@ void AAS_SwapAASData()
     aasworld.clusters[i].firstportal = LittleLong(aasworld.clusters[i].firstportal);
   }
 }
+
 // gladiator.dll: 1000C490..1000C60F
 // gladi386.so:   00016098..00016379
 void *AAS_DumpAASData()
@@ -203,6 +204,7 @@ void *AAS_DumpAASData()
   aasworld.initialized = 0;
   aasworld.savefile = 0;
 }
+
 // gladiator.dll: 1000C670..1000C6FA
 // gladi386.so:   0001637C..0001641F
 void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
@@ -229,6 +231,7 @@ void *__cdecl AAS_LoadAASLump(FILE *Stream, int Offset, size_t ElementCount)
   }
   return buf;
 }
+
 // gladiator.dll: 1000C730..1000CCC7
 // gladi386.so:   00016420..00017158
 int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
@@ -484,6 +487,7 @@ int __cdecl AAS_LoadAASFile(char *FileName, int Offset, int Length)
   fclose(fp);
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 1000CE40..1000CEB3
 // gladi386.so:   00017158..000171E6
 int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t length)
@@ -503,6 +507,7 @@ int __cdecl AAS_WriteAASLump(FILE *fp, int *h, int lumpnum, void *data, size_t l
   }
   return 1;
 }
+
 // gladiator.dll: 1000CEE0..1000D252
 // gladi386.so:   000171E8..000179E4
 qboolean __cdecl AAS_WriteAASFile(char *filename)
@@ -552,6 +557,7 @@ qboolean __cdecl AAS_WriteAASFile(char *filename)
   fclose(fp);
   return 1;
 }
+
 // gladiator.dll: 1000D340..1000D409
 // gladi386.so:   000179E4..00017CAB
 // Allocate and freelist-initialise the bsp_pointlight_t pool used by BotAddPointLight

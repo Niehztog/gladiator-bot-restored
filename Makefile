@@ -299,7 +299,10 @@ endif
 #
 # Each scanner exits non-zero on a hit, so any new bug-class regression
 # fails the umbrella.  `check_struct_sizes.py` similarly fails if a
-# documented `/* sizeof = N */` comment loses its matching assert.
+# documented `/* sizeof = N */` comment loses its matching assert, and
+# `check_docblocks.py` if a function loses its `// gladiator.dll:` /
+# `// gladi386.so:` address annotation, if a recorded range stops agreeing
+# with the reference images, or if two functions end up claiming one range.
 
 verify scan:
 	@echo "===> tools/scan_plane_stride.py"
@@ -318,6 +321,8 @@ verify scan:
 	-${Q}python3 tools/scan_fpu_temp_saturation.py
 	@echo "===> tools/scan_aarch64_ptr_trunc.py (skips when release/gladiator.so absent)"
 	${Q}python3 tools/scan_aarch64_ptr_trunc.py
+	@echo "===> tools/check_docblocks.py --verify-ranges"
+	${Q}python3 tools/check_docblocks.py --verify-ranges
 	@echo "===> tools/check_struct_sizes.py"
 	${Q}python3 tools/check_struct_sizes.py
 	@echo "===> verify OK"

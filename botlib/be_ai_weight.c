@@ -48,6 +48,7 @@ int __cdecl ReadValue(source_t *source, float *value)
   *value = (float)token.floatvalue;
   return 1;
 }
+
 // gladiator.dll: 10035820..1003591D
 // gladi386.so:   000465F4..000469D9
 // Parse one `weight`/`minweight`/`maxweight` clause from a bot's _i.c/_w.c file
@@ -84,6 +85,7 @@ int __cdecl ReadFuzzyWeight(source_t *source, fuzzyseperator_t *fs)
     return 0;
   return 1;
 }
+
 // gladiator.dll: 10035960..10035991
 // gladi386.so:   000469DC..00046A20
 // Recursively free a fuzzy decision-tree subtree (child + next siblings +
@@ -102,6 +104,7 @@ void __cdecl FreeFuzzySeperators_r(fuzzyseperator_t *fs)
       FreeFuzzySeperators_r(v2);
   }
 }
+
 // gladiator.dll: 100359B0..100359F3
 // gladi386.so:   00046A20..00046ABE
 // Free a full weightconfig_t (all weight_t entries + their trees + name
@@ -118,6 +121,7 @@ void __cdecl FreeWeightConfig2(weightconfig_t *config)
   }
   FreeMemory(config);
 }
+
 // gladiator.dll: 10035A20..10035E78
 // gladi386.so:   00046AC0..0004707D
 // Recursive parser for one decision-tree subtree: reads `switch`/`case` blocks from
@@ -258,6 +262,7 @@ fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source)
   }
   return firstfs;
 }
+
 // gladiator.dll: 10035FA0..10036437
 // gladi386.so:   00047080..00047800
 // Top-level loader: opens a bot's _i.c (items) or _w.c (weapons) config, parses each
@@ -379,6 +384,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
    botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return cfg;
 }
+
 // gladiator.dll: 10036570..10036646
 // gladi386.so:   00047800..000478E2
 // Serialise one leaf weight (constant or min/max fuzzy range) back to a config file.
@@ -404,6 +410,7 @@ qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t *fs)
   }
   return 1;
 }
+
 // gladiator.dll: 10036690..10036839
 // gladi386.so:   000478E4..00047A73
 // Recursively serialise a decision-tree subtree as nested `switch`/`case` blocks.
@@ -468,6 +475,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int inde
     return 0;
   return 1;
 }
+
 // gladiator.dll: 100368B0..10036978
 // gladi386.so:   00047A74..00047B7A
 // Serialise a weightconfig_t back to disk as a weights file ('wb' fopen mode).  For
@@ -512,6 +520,7 @@ int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
   fclose(fp);
   return 1;
 }
+
 // gladiator.dll: 100369C0..10036A1D
 // gladi386.so:   00047B7C..00047BCF
 // Linear lookup of a weight_t* in a weightconfig_t by item/weapon name.
@@ -527,6 +536,7 @@ int __cdecl FindFuzzyWeight(weightconfig_t *wc, const char *name)
   }
   return -1;
 }
+
 // gladiator.dll: 10036A40..10036ADE
 // gladi386.so:   00047BD0..00047CB3
 // Recursive tree walk for the discrete case: tests `facts[index]` against each
@@ -562,6 +572,7 @@ float __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs)
   }
   return fs->weight;
 }
+
 // gladiator.dll: 10036B10..10036C19
 // gladi386.so:   00047CB4..00047ECB
 // Recursive tree walk with fuzzy interpolation: when a fact straddles a seperator
@@ -597,6 +608,7 @@ float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
   }
   return fs->weight;
 }
+
 // gladiator.dll: 10036C70..10036C86
 // gladi386.so:   00047ECC..00047FB3
 // Public entry: discrete fuzzy weight for one weight_t.  Returns the leaf value of
@@ -606,6 +618,7 @@ float __cdecl FuzzyWeight(int *facts, weight_t *w)
   /* Thin wrapper over FuzzyWeight_r, which returns a float in ST(0). */
   return FuzzyWeight_r(facts, w->firstseperator);
 }
+
 // gladiator.dll: 10036CA0..10036CB6
 // gladi386.so:   00047FB4..00047FD8
 // Public entry: fuzzy-interpolated weight for one weight_t.  Smooth variant of
@@ -615,6 +628,7 @@ float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w)
   /* Binary at 0x10036CA0 is a thin wrapper around FuzzyWeightUndecided_r (returns float). */
   return FuzzyWeightUndecided_r(facts, w->firstseperator);
 }
+
 // gladiator.dll: 10036CD0..10036DAC
 // gladi386.so:   00047FD8..000480E4
 // GA mutation operator: walks a tree and randomly perturbs seperator thresholds and
@@ -650,6 +664,7 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
   if ( fs->next )
     EvolveFuzzySeperator_r(fs->next);
 }
+
 // gladiator.dll: 10036DF0..10036E1A
 // gladi386.so:   000480E4..0004811F
 /* Run EvolveFuzzySeperator_r over every weight in the config — the outer driver
@@ -665,6 +680,7 @@ void __cdecl EvolveWeightConfig(int *config)
     EvolveFuzzySeperator_r((fuzzyseperator_t *)*(int *)((char *)config + off + 8));
   }
 }
+
 // gladiator.dll: 10036E30..10036E8E
 // gladi386.so:   00048120..0004819D
 // Uniformly rescale all weights in a subtree by a scalar factor.  DEAD in Gladiator;
@@ -693,6 +709,7 @@ void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale)
   if ( fs->next )
     ScaleFuzzySeperator_r(fs->next, scale);
 }
+
 // gladiator.dll: 10036EB0..10036F52
 // gladi386.so:   000481A0..000482A8
 // Q3's ScaleWeight, verbatim.  The "table" is a weightconfig_t — numweights at +0,
@@ -720,6 +737,7 @@ void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale)
     }
   }
 }
+
 // gladiator.dll: 10036F90..10036FF9
 // gladi386.so:   000482A8..0004832F
 // GA crossover operator: blends two parent trees into a child tree by recursively
@@ -773,6 +791,7 @@ void __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t 
     InterbreedFuzzySeperator_r(next, 0);
   }
 }
+
 // gladiator.dll: 10037020..10037070
 // gladi386.so:   00048330..00048409
 // Top-level pair-wise interbreed of two weightconfig_t's.  Bails with "can't merge

@@ -108,6 +108,7 @@ int SourceError(source_t *src, char *Format, ...)
            src->scriptstack->line,
            Buffer);
 }
+
 // gladiator.dll: 10039270..100392BB
 // gladi386.so:   0004AE44..0004AEAA
 int SourceWarning(source_t *src, char *Format, ...)
@@ -125,6 +126,7 @@ int SourceWarning(source_t *src, char *Format, ...)
            src->scriptstack->line,
            Buffer);
 }
+
 // gladiator.dll: 100392E0..1003932B
 // gladi386.so:   0004AEAC..0004AF06
 void __cdecl PC_PushIndent(source_t *source, int type, int skip)
@@ -139,6 +141,7 @@ void __cdecl PC_PushIndent(source_t *source, int type, int skip)
   ind->next   = source->indentstack;
   source->indentstack = ind;
 }
+
 // gladiator.dll: 10039350..100393B8
 // gladi386.so:   0004AF08..0004AF76
 void __cdecl PC_PopIndent(source_t *source, int *type, int *skip)
@@ -158,6 +161,7 @@ void __cdecl PC_PopIndent(source_t *source, int *type, int *skip)
   source->skip       -= ind->skip;
   FreeMemory(ind);
 }
+
 // gladiator.dll: 100393E0..10039436
 // gladi386.so:   0004AF78..0004AFE1
 void __cdecl PC_PushScript(source_t *source, script_t *script)
@@ -182,6 +186,7 @@ void __cdecl PC_PushScript(source_t *source, script_t *script)
   script->next = source->scriptstack;
   source->scriptstack = script;
 }
+
 // gladiator.dll: 10039460..10039489
 // gladi386.so:   0004AFE4..0004B01C
 /* Duplicate a token_t.  Clear `next` through the struct member — its offset
@@ -195,12 +200,14 @@ token_t *__cdecl PC_CopyToken(const token_t *token)
   result->next = NULL;
   return result;
 }
+
 // gladiator.dll: 100394A0..100394AC
 // gladi386.so:   0004B01C..0004B038
 void __cdecl PC_FreeToken(token_t *token)
 {
   FreeMemory(token);
 }
+
 // gladiator.dll: 100394C0..100395AE
 // gladi386.so:   0004B038..0004B18C
 int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
@@ -234,6 +241,7 @@ int __cdecl PC_ReadSourceToken(source_t *source, token_t *token)
   PC_FreeToken(t);
   return 1;
 }
+
 // gladiator.dll: 100395F0..10039619
 // gladi386.so:   0004B18C..0004B1E1
 int __cdecl PC_UnreadSourceToken(source_t *source, const void *token)
@@ -245,6 +253,7 @@ int __cdecl PC_UnreadSourceToken(source_t *source, const void *token)
   source->tokens = copy;
   return 1;
 }
+
 // gladiator.dll: 10039630..10039990
 // gladi386.so:   0004B1E4..0004B524
 /* Read the actual argument list passed to a function-style macro at a call
@@ -339,6 +348,7 @@ int __cdecl PC_ReadDefineParms(source_t *source, define_t *define, token_t **par
   }
   return 1;
 }
+
 // gladiator.dll: 10039A70..10039B1E
 // gladi386.so:   0004B524..0004B5EF
 int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
@@ -355,6 +365,7 @@ int __cdecl PC_StringizeTokens(token_t *tokens, token_t *token)
   strncat(token->string, "\"", 1024 - strlen(token->string));
   return 1;
 }
+
 // gladiator.dll: 10039B50..10039BF9
 // gladi386.so:   0004B5F0..0004B66A
 int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
@@ -375,6 +386,7 @@ int __cdecl PC_MergeTokens(token_t *t1, token_t *t2)
   }
   return 0;
 }
+
 // gladiator.dll: 10039C30..10039C8F
 // gladi386.so:   0004B66C..0004B6E6
 unsigned int __cdecl PC_NameHash(const char *name)
@@ -406,6 +418,7 @@ unsigned int __cdecl PC_NameHash(const char *name)
     v4 = -v4;
   return v4 & 0x3FF;
 }
+
 // gladiator.dll: 10039CB0..10039CCF
 // gladi386.so:   0004B6E8..0004B775
 /* Prepend `define` to its bucket in the source's definehash table, keyed by
@@ -418,6 +431,7 @@ void __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
   define->hashnext = definehash[hash];
   definehash[hash] = define;
 }
+
 // gladiator.dll: 10039CE0..10039D46
 // gladi386.so:   0004B778..0004B829
 /* Hash-bucket lookup of a define_t by name: `definehash` is the bucket array
@@ -433,6 +447,7 @@ define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
   }
   return NULL;
 }
+
 // gladiator.dll: 10039D70..10039DCC
 // gladi386.so:   0004B82C..0004B86D
 /* Linear search of a define_t list.  The only caller is
@@ -448,6 +463,7 @@ int __cdecl PC_FindDefine(define_t *defines, const char *name)
   }
   return 0;
 }
+
 // gladiator.dll: 10039DF0..10039E50
 // gladi386.so:   0004B870..0004B8C1
 int __cdecl PC_FindDefineParm(define_t *define, const char *name)
@@ -464,6 +480,7 @@ int __cdecl PC_FindDefineParm(define_t *define, const char *name)
   }
   return -1;
 }
+
 // gladiator.dll: 10039E70..10039EBA
 // gladi386.so:   0004B8C4..0004B91E
 void __cdecl PC_FreeDefine(define_t *define)
@@ -482,6 +499,7 @@ void __cdecl PC_FreeDefine(define_t *define)
   }
   FreeMemory(define);
 }
+
 // gladiator.dll: 10039EE0..10039FB4
 // gladi386.so:   0004B920..0004BA58
 /* Q3's PC_AddBuiltinDefines — walk a local {name, value} table of __LINE__, __FILE__,
@@ -513,6 +531,7 @@ void __cdecl PC_AddBuiltinDefines(source_t *source)
   PC_AddDefineToHash(def, source->definehash);
   }
 }
+
 // gladiator.dll: 1003A000..1003A240
 // gladi386.so:   0004BA58..0004BCB2
 int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, char **a4)
@@ -576,6 +595,7 @@ int __cdecl PC_ExpandBuiltinDefine(source_t *src, define_t *define, char **a3, c
   }
   return 1;
 }
+
 // gladiator.dll: 1003A2D0..1003A5C4
 // gladi386.so:   0004BCB4..0004C23E
 int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, char **lasttoken)
@@ -684,6 +704,7 @@ int __cdecl PC_ExpandDefine(source_t *src, define_t *define, char **firsttoken, 
   }
   return 1;
 }
+
 // gladiator.dll: 1003A690..1003A6E2
 // gladi386.so:   0004C240..0004C2B4
 int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define)
@@ -701,6 +722,7 @@ int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define)
   }
   return 0;
 }
+
 // gladiator.dll: 1003A710..1003A77E
 // gladi386.so:   0004C2B4..0004C31C
 void __cdecl PC_ConvertPath(char *path)
@@ -737,6 +759,7 @@ void __cdecl PC_ConvertPath(char *path)
     ptr++;
   }
 }
+
 // gladiator.dll: 1003A7A0..1003AA5D
 // gladi386.so:   0004C31C..0004C77E
 int __cdecl PC_Directive_include(source_t *source)
@@ -817,6 +840,7 @@ int __cdecl PC_Directive_include(source_t *source)
   PC_PushScript(source, script);
   return 1;
 }
+
 // gladiator.dll: 1003AB10..1003AB9D
 // gladi386.so:   0004C780..0004C82C
 /* Read tokens, skipping line-continuation backslashes; stop and unread once the
@@ -840,6 +864,7 @@ int __cdecl PC_ReadLine(source_t *source, token_t *token)
   while ( !strcmp(token->string, "\\") );
   return 1;
 }
+
 // gladiator.dll: 1003ABD0..1003ABEA
 // gladi386.so:   0004C82C..0004C849
 /* Returns (token->endwhitespace_p > token->whitespace_p). */
@@ -850,6 +875,7 @@ BOOL __cdecl PC_WhiteSpaceBeforeToken(token_t *token)
   diff = token->endwhitespace_p - token->whitespace_p;
   return diff > 0;
 }
+
 // gladiator.dll: 1003AC00..1003AC19
 // gladi386.so:   0004C84C..0004C86F
 /* Zeroes whitespace_p, endwhitespace_p and linescrossed. */
@@ -860,6 +886,7 @@ token_t *__cdecl PC_ClearTokenWhiteSpace(token_t *token)
   token->linescrossed = 0;
   return token;
 }
+
 // gladiator.dll: 1003AC30..1003AD7D
 // gladi386.so:   0004C870..0004CB2D
 int __cdecl PC_Directive_undef(source_t *source)
@@ -905,6 +932,7 @@ int __cdecl PC_Directive_undef(source_t *source)
   }
   return 1;
 }
+
 // gladiator.dll: 1003ADE0..1003B20A
 // gladi386.so:   0004CB30..0004D4DC
 /* Struct-field access throughout rather than the original's literal offsets, so this
@@ -1018,6 +1046,7 @@ int __cdecl PC_Directive_define(source_t *source)
   }
   return 1;
 }
+
 // gladiator.dll: 1003B320..1003B41F
 // gladi386.so:   0004D4DC..0004D633
 /* Allocate a stub source_t on the stack, parse `string` through PC_Directive_define,
@@ -1063,6 +1092,7 @@ define_t *__cdecl PC_DefineFromString(const char *string)
     PC_FreeDefine(def);
   return NULL;
 }
+
 // gladiator.dll: 1003B460..1003B48C
 // gladi386.so:   0004D634..0004D6EE
 /* Q3's PC_AddDefine — parse `string` into a fresh define_t and link it into
@@ -1077,6 +1107,7 @@ int __cdecl PC_AddDefine(source_t *source, const char *string)
   PC_AddDefineToHash(def, source->definehash);
   return 1;
 }
+
 // gladiator.dll: 1003B4A0..1003B4C6
 // gladi386.so:   0004D6F0..0004D730
 /* Prepend a parsed define onto the file-static `globaldefines` list. */
@@ -1091,6 +1122,7 @@ int __cdecl PC_AddGlobalDefine(const char *string)
   globaldefines = define;
   return 1;
 }
+
 // gladiator.dll: 1003B4E0..1003B50A
 // gladi386.so:   0004D730..0004D7C2
 /* Remove a #define from globaldefines by name; line-for-line Q3's
@@ -1108,6 +1140,7 @@ int __cdecl PC_RemoveGlobalDefine(const char *name)
   }
   return 0;
 }
+
 // gladiator.dll: 1003B520..1003B545
 // gladi386.so:   0004D7C4..0004D836
 // Drain the globaldefines list by repeatedly popping the head, advancing
@@ -1124,6 +1157,7 @@ void __cdecl PC_RemoveAllGlobalDefines(void)
     PC_FreeDefine(define);
   }
 }
+
 // gladiator.dll: 1003B560..1003B63A
 // gladi386.so:   0004D838..0004D9D7
 /* Deep-copy a define_t: one allocation of sizeof(define_t) + strlen(name) + 1,
@@ -1173,6 +1207,7 @@ define_t *__cdecl PC_CopyDefine(define_t *define)
   }
   return def;
 }
+
 // gladiator.dll: 1003B680..1003B6B0
 // gladi386.so:   0004D9D8..0004DA9C
 /* Copy every entry of `globaldefines` into the source's definehash table via
@@ -1188,6 +1223,7 @@ void __cdecl PC_AddGlobalDefinesToSource(source_t *source)
     PC_AddDefineToHash(copy, source->definehash);
   }
 }
+
 // gladiator.dll: 1003B6C0..1003B774
 // gladi386.so:   0004DA9C..0004DCDF
 int __cdecl PC_Directive_if_def(source_t *src, int type)
@@ -1212,6 +1248,7 @@ int __cdecl PC_Directive_if_def(source_t *src, int type)
   PC_PushIndent(src, type, skip);
   return 1;
 }
+
 // gladiator.dll: 1003B7F0..1003B85B
 // gladi386.so:   0004DD20..0004DE0F
 int __cdecl PC_Directive_else(source_t *source)
@@ -1233,6 +1270,7 @@ int __cdecl PC_Directive_else(source_t *source)
   PC_PushIndent(source, 2, skip == 0);
   return 1;
 }
+
 // gladiator.dll: 1003B880..1003B8BC
 // gladi386.so:   0004DE10..0004DEA3
 int __cdecl PC_Directive_endif(source_t *source)
@@ -1248,6 +1286,7 @@ int __cdecl PC_Directive_endif(source_t *source)
   }
   return 1;
 }
+
 // gladiator.dll: 1003B8D0..1003B998
 // gladi386.so:   0004DEA4..0004DFCC
 int __cdecl PC_OperatorPriority(int op)
@@ -1308,6 +1347,7 @@ int __cdecl PC_OperatorPriority(int op)
   }
   return result;
 }
+
 // gladiator.dll: 1003B9E0..1003C307
 // gladi386.so:   0004DFCC..0004EC03
 int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, double *floatvalue, int integer)
@@ -1830,6 +1870,7 @@ LABEL_165:
     *floatvalue = 0;
   return 0;
 }
+
 // gladiator.dll: 1003C650..1003C861
 // gladi386.so:   0004EC04..0004F03D
 int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
@@ -1928,6 +1969,7 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
   }
   return 1;
 }
+
 // gladiator.dll: 1003C900..1003CB6E
 // gladi386.so:   0004F040..0004F3CD
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
@@ -2043,6 +2085,7 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
   }
   return 1;
 }
+
 // gladiator.dll: 1003CC10..1003CC88
 // gladi386.so:   0004F3D0..0004F4D9
 int __cdecl PC_Directive_elif(source_t *source)
@@ -2063,6 +2106,7 @@ int __cdecl PC_Directive_elif(source_t *source)
   PC_PushIndent(source, 4, skip);
   return 1;
 }
+
 // gladiator.dll: 1003CCB0..1003CCEB
 // gladi386.so:   0004F4DC..0004F565
 int __cdecl PC_Directive_if(source_t *source)
@@ -2074,6 +2118,7 @@ int __cdecl PC_Directive_if(source_t *source)
   PC_PushIndent(source, 1, value == 0);
   return 1;
 }
+
 // gladiator.dll: 1003CD00..1003CD15
 // gladi386.so:   0004F568..0004F58D
 /* As Q3's PC_Directive_line: report "#line directive not supported" through the
@@ -2083,6 +2128,7 @@ int __cdecl PC_Directive_line(source_t *source)
   SourceError(source, "#line directive not supported");
   return 0;
 }
+
 // gladiator.dll: 1003CD30..1003CD6F
 // gladi386.so:   0004F590..0004F5DE
 int __cdecl PC_Directive_error(source_t *source)
@@ -2094,6 +2140,7 @@ int __cdecl PC_Directive_error(source_t *source)
   SourceError(source, "#error directive: %s", token.string);
   return 0;
 }
+
 // gladiator.dll: 1003CD80..1003CDCA
 // gladi386.so:   0004F5E0..0004F6AC
 int __cdecl PC_Directive_pragma(source_t *source)
@@ -2107,6 +2154,7 @@ int __cdecl PC_Directive_pragma(source_t *source)
     ;
   return 1;
 }
+
 // gladiator.dll: 1003CDF0..1003CE69
 // gladi386.so:   0004F6AC..0004F778
 void __cdecl UnreadSignToken(source_t *source)
@@ -2122,6 +2170,7 @@ void __cdecl UnreadSignToken(source_t *source)
   token.subtype = 30;
   PC_UnreadSourceToken(source, &token);
 }
+
 // gladiator.dll: 1003CE90..1003CF4F
 // gladi386.so:   0004F778..0004F92D
 int __cdecl PC_Directive_eval(source_t *source)
@@ -2147,6 +2196,7 @@ int __cdecl PC_Directive_eval(source_t *source)
     UnreadSignToken(source);
   return 1;
 }
+
 // gladiator.dll: 1003CF80..1003D04A
 // gladi386.so:   0004F930..0004FAF1
 int __cdecl PC_Directive_evalfloat(source_t *source)
@@ -2170,6 +2220,7 @@ int __cdecl PC_Directive_evalfloat(source_t *source)
     UnreadSignToken(source);
   return 1;
 }
+
 // gladiator.dll: 1003D090..1003D18B
 // gladi386.so:   0004FAF4..0004FC02
 int __cdecl PC_ReadDirective(source_t *source)
@@ -2203,6 +2254,7 @@ int __cdecl PC_ReadDirective(source_t *source)
   SourceError(source, "unknown precompiler directive %s", token.string);
   return 0;
 }
+
 // gladiator.dll: 1003D1D0..1003D2A5
 // gladi386.so:   0004FC04..0004FDD5
 int __cdecl PC_DollarDirective_evalint(source_t *source)
@@ -2228,6 +2280,7 @@ int __cdecl PC_DollarDirective_evalint(source_t *source)
     UnreadSignToken(source);
   return 1;
 }
+
 // gladiator.dll: 1003D2F0..1003D3D3
 // gladi386.so:   0004FDD8..0004FFDD
 int __cdecl PC_DollarDirective_evalfloat(source_t *source)
@@ -2253,6 +2306,7 @@ int __cdecl PC_DollarDirective_evalfloat(source_t *source)
     UnreadSignToken(source);
   return 1;
 }
+
 // gladiator.dll: 1003D420..1003D526
 // gladi386.so:   0004FFE0..00050127
 int __cdecl PC_ReadDollarDirective(source_t *source)
@@ -2283,6 +2337,7 @@ int __cdecl PC_ReadDollarDirective(source_t *source)
   SourceError(source, "unknown precompiler directive %s", token.string);
   return 0;
 }
+
 // gladiator.dll: 1003D580..1003D61B
 // gladi386.so:   00050128..000502AD
 /* Uses the source_t->skip and ->definehash fields rather than the original's
@@ -2323,6 +2378,7 @@ int __cdecl PC_ReadTokenHandle(source_t *source, _DWORD *pc_token)
     return 1;
   }
 }
+
 // gladiator.dll: 1003D650..1003D701
 // gladi386.so:   000502B0..00050344
 int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
@@ -2341,6 +2397,7 @@ int __cdecl PC_ExpectTokenString(source_t *source, const char *string)
   }
   return 1;
 }
+
 // gladiator.dll: 1003D740..1003DA19
 // gladi386.so:   00050344..000505D4
 int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token)
@@ -2408,6 +2465,7 @@ int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t
   }
   return 1;
 }
+
 // gladiator.dll: 1003DAE0..1003DB10
 // gladi386.so:   000505D4..00050618
 int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token)
@@ -2419,6 +2477,7 @@ int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token)
   }
   return 1;
 }
+
 // gladiator.dll: 1003DB20..1003DBA5
 // gladi386.so:   00050618..000506BC
 int __cdecl PC_CheckTokenString(source_t *source, const char *string)
@@ -2432,6 +2491,7 @@ int __cdecl PC_CheckTokenString(source_t *source, const char *string)
   PC_UnreadSourceToken(source, tok);
   return 0;
 }
+
 // gladiator.dll: 1003DBE0..1003DC5F
 // gladi386.so:   000506BC..00050786
 /* Read one token and keep it only if its type matches and every bit of `subtype` is
@@ -2450,6 +2510,7 @@ int __cdecl PC_CheckTokenType(source_t *source, int type, int subtype, token_t *
   PC_UnreadSourceToken(source, &Buffer);
   return 0;
 }
+
 // gladiator.dll: 1003DC80..1003DD10
 // gladi386.so:   00050788..000507EA
 /* Read tokens until one equals `string` (1) or the stream ends (0).
@@ -2465,12 +2526,14 @@ int __cdecl PC_SkipUntilString(source_t *source, char *string)
   }
   return 0;
 }
+
 // gladiator.dll: 1003DD40..1003DD55
 // gladi386.so:   000507EC..00050846
 void __cdecl PC_UnreadLastToken(source_t *source)
 {
   PC_UnreadSourceToken(source, &source->cachedtoken);
 }
+
 // gladiator.dll: 1003DD70..1003DD83
 // gladi386.so:   00050848..00050898
 /* Pass-through wrapper around PC_UnreadSourceToken — the external PC_UnreadToken
@@ -2479,6 +2542,7 @@ void __cdecl PC_UnreadToken(source_t *source, token_t *token)
 {
   PC_UnreadSourceToken(source, token);
 }
+
 // gladiator.dll: 1003DDA0..1003DE1A
 // gladi386.so:   00050898..0005091E
 /* Copy `path` into source->includepath and ensure it ends with a separator.  The
@@ -2493,6 +2557,7 @@ void __cdecl PC_SetIncludePath(source_t *source, char *path)
     strcat(source->includepath, "\\");
   }
 }
+
 // gladiator.dll: 1003DE40..1003DE4F
 // gladi386.so:   00050920..0005092F
 /* Q3's PC_SetPunctuations verbatim.  The write lands at +0x208 in the DLL, which is
@@ -2501,6 +2566,7 @@ void __cdecl PC_SetPunctuations(source_t *source, punctuation_t *p)
 {
   source->punctuations = p;
 }
+
 // gladiator.dll: 1003DE60..1003DEF3
 // gladi386.so:   00050930..00050AB4
 source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
@@ -2524,6 +2590,7 @@ source_t *__cdecl LoadSourceFile(char *Source, int Offset, size_t ElementSize)
   PC_AddGlobalDefinesToSource(src);
   return src;
 }
+
 // gladiator.dll: 1003DF30..1003DFC3
 // gladi386.so:   00050AB4..00050C38
 /* The memory-buffer twin of LoadSourceFile above: same structure, but wraps an
@@ -2549,6 +2616,7 @@ source_t *__cdecl LoadSourceMemory(char *ptr, int length, char *name)
   PC_AddGlobalDefinesToSource(src);
   return src;
 }
+
 // gladiator.dll: 1003E000..1003E0D8
 // gladi386.so:   00050C38..00050DE9
 void __cdecl FreeSource(source_t *source)

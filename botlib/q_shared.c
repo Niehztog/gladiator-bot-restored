@@ -10,6 +10,8 @@ vec3_t vec3_origin = {0,0,0};
 #pragma optimize( "", off )
 #endif
 
+// gladiator.dll: 10042430..10042626
+// gladi386.so:   000544E8..00054717
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees )
 {
 	float	m[3][3];
@@ -71,6 +73,8 @@ void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, 
 
 
 
+// gladiator.dll: 100426B0..100427F9
+// gladi386.so:   00054718..0005488F
 void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 {
 	float		angle;
@@ -107,7 +111,8 @@ void AngleVectors (vec3_t angles, vec3_t forward, vec3_t right, vec3_t up)
 	}
 }
 
-
+// gladiator.dll: 10042860..100428E9
+// gladi386.so:   00054890..00054906
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
 	float d;
@@ -130,6 +135,8 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 /*
 ** assumes "src" is normalized
 */
+// gladiator.dll: 10042920..1004299E
+// gladi386.so:   00054908..00054A24
 void PerpendicularVector( vec3_t dst, const vec3_t src )
 {
 	int	pos;
@@ -162,13 +169,13 @@ void PerpendicularVector( vec3_t dst, const vec3_t src )
 	VectorNormalize( dst );
 }
 
-
-
 /*
 ================
 R_ConcatRotations
 ================
 */
+// gladiator.dll: 100429C0..10042AA7
+// gladi386.so:   00054A24..00054B0B
 void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -191,12 +198,13 @@ void R_ConcatRotations (float in1[3][3], float in2[3][3], float out[3][3])
 				in1[2][2] * in2[2][2];
 }
 
-
 /*
 ================
 R_ConcatTransforms
 ================
 */
+// gladiator.dll: 10042AF0..10042C2A
+// gladi386.so:   00054B0C..00054C46
 void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 {
 	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
@@ -225,10 +233,11 @@ void R_ConcatTransforms (float in1[3][4], float in2[3][4], float out[3][4])
 				in1[2][2] * in2[2][3] + in1[2][3];
 }
 
-
 //============================================================================
 
 
+// gladiator.dll: 10042C80..10042C92
+// gladi386.so:   00054C48..00054C5E
 float Q_fabs (float f)
 {
 #if 0
@@ -244,6 +253,8 @@ float Q_fabs (float f)
 
 #if defined _M_IX86 && !defined C_ONLY
 #pragma warning (disable:4035)
+// gladiator.dll: 10042CB0..10042CC0
+// gladi386.so:   absent
 __declspec( naked ) long Q_ftol( float f )
 {
 	static int tmp;
@@ -252,6 +263,7 @@ __declspec( naked ) long Q_ftol( float f )
 	__asm mov eax, tmp
 	__asm ret
 }
+
 #pragma warning (default:4035)
 #endif
 
@@ -261,6 +273,8 @@ LerpAngle
 
 ===============
 */
+// gladiator.dll: 10042CD0..10042D13
+// gladi386.so:   00054C60..00054CC2
 float LerpAngle (float a2, float a1, float frac)
 {
 	if (a1 - a2 > 180)
@@ -270,7 +284,8 @@ float LerpAngle (float a2, float a1, float frac)
 	return a2 + frac * (a1 - a2);
 }
 
-
+// gladiator.dll: 10042D40..10042D63
+// gladi386.so:   00054CC4..00054D1E
 float	anglemod(float a)
 {
 #if 0
@@ -288,6 +303,8 @@ float	anglemod(float a)
 
 
 // this is the slow, general version
+// gladiator.dll: 10042D80..10042E45
+// gladi386.so:   00054D20..00054E28
 int BoxOnPlaneSide2 (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	int		i;
@@ -334,6 +351,8 @@ Returns 1, 2, or 1 + 2
  * blank lines below restores the byte-exact __LINE__ values; the actual
  * lost Linux-specific content these lines represent is unknown. */
 #if !id386 || defined __linux__ 
+// gladiator.dll: absent
+// gladi386.so:   00054E28..00055066
 int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	float	dist1, dist2;
@@ -386,6 +405,11 @@ dist2 = p->normal[0]*emaxs[0] + p->normal[1]*emaxs[1] + p->normal[2]*emaxs[2];
 		break;
 	default:
 		dist1 = dist2 = 0;		// shut up compiler
+/* #line: pins the two asserts below to the line numbers gladi386.so's
+ * __LINE__ constants encode (389 and 399) -- see the note above the #if.
+ * Without it, every comment line added earlier in this file shifts them and
+ * BoxOnPlaneSide stops byte-matching on the gcc 2.7.2.3 oracle. */
+#line 389
 		assert( 0 );
 		break;
 	}
@@ -400,9 +424,12 @@ dist2 = p->normal[0]*emaxs[0] + p->normal[1]*emaxs[1] + p->normal[2]*emaxs[2];
 
 	return sides;
 }
+
 #else
 #pragma warning( disable: 4035 )
 
+// gladiator.dll: 10042E90..1004310D
+// gladi386.so:   absent
 __declspec( naked ) int BoxOnPlaneSide (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 {
 	static int bops_initialized;
@@ -632,15 +659,20 @@ Lerror:
 		int 3
 	}
 }
+
 #pragma warning( default: 4035 )
 #endif
 
+// gladiator.dll: 100431B0..100431D3
+// gladi386.so:   00055068..0005509F
 void ClearBounds (vec3_t mins, vec3_t maxs)
 {
 	mins[0] = mins[1] = mins[2] = 99999;
 	maxs[0] = maxs[1] = maxs[2] = -99999;
 }
 
+// gladiator.dll: 100431F0..1004322F
+// gladi386.so:   000550A0..00055120
 void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
 {
 	int		i;
@@ -656,7 +688,8 @@ void AddPointToBounds (vec3_t v, vec3_t mins, vec3_t maxs)
 	}
 }
 
-
+// gladiator.dll: 10043240..10043276
+// gladi386.so:   00055120..00055166
 int VectorCompare (vec3_t v1, vec3_t v2)
 {
 	if (v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2])
@@ -665,7 +698,8 @@ int VectorCompare (vec3_t v1, vec3_t v2)
 	return 1;
 }
 
-
+// gladiator.dll: 10043290..100432DE
+// gladi386.so:   00055168..000551B3
 vec_t VectorNormalize (vec3_t v)
 {
 	float	length, ilength;
@@ -685,6 +719,8 @@ vec_t VectorNormalize (vec3_t v)
 
 }
 
+// gladiator.dll: 10043300..10043352
+// gladi386.so:   000551B4..00055203
 vec_t VectorNormalize2 (vec3_t v, vec3_t out)
 {
 	float	length, ilength;
@@ -704,6 +740,8 @@ vec_t VectorNormalize2 (vec3_t v, vec3_t out)
 
 }
 
+// gladiator.dll: 10043380..100433B1
+// gladi386.so:   00055204..00055231
 void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 {
 	vecc[0] = veca[0] + scale*vecb[0];
@@ -711,12 +749,15 @@ void VectorMA (vec3_t veca, float scale, vec3_t vecb, vec3_t vecc)
 	vecc[2] = veca[2] + scale*vecb[2];
 }
 
-
+// gladiator.dll: 100433D0..100433ED
+// gladi386.so:   00055234..00055251
 vec_t _DotProduct (vec3_t v1, vec3_t v2)
 {
 	return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
 }
 
+// gladiator.dll: 10043400..10043425
+// gladi386.so:   00055254..00055279
 void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]-vecb[0];
@@ -724,6 +765,8 @@ void _VectorSubtract (vec3_t veca, vec3_t vecb, vec3_t out)
 	out[2] = veca[2]-vecb[2];
 }
 
+// gladiator.dll: 10043440..10043465
+// gladi386.so:   0005527C..000552A1
 void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
 {
 	out[0] = veca[0]+vecb[0];
@@ -731,6 +774,8 @@ void _VectorAdd (vec3_t veca, vec3_t vecb, vec3_t out)
 	out[2] = veca[2]+vecb[2];
 }
 
+// gladiator.dll: 10043480..10043499
+// gladi386.so:   000552A4..000552BD
 void _VectorCopy (vec3_t in, vec3_t out)
 {
 	out[0] = in[0];
@@ -738,6 +783,8 @@ void _VectorCopy (vec3_t in, vec3_t out)
 	out[2] = in[2];
 }
 
+// gladiator.dll: 100434B0..100434EB
+// gladi386.so:   000552C0..000552FB
 void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 {
 	cross[0] = v1[1]*v2[2] - v1[2]*v2[1];
@@ -747,6 +794,8 @@ void CrossProduct (vec3_t v1, vec3_t v2, vec3_t cross)
 
 double sqrt(double x);
 
+// gladiator.dll: 10043500..10043522
+// gladi386.so:   000552FC..00055325
 vec_t VectorLength(vec3_t v)
 {
 	int		i;
@@ -760,6 +809,8 @@ vec_t VectorLength(vec3_t v)
 	return length;
 }
 
+// gladiator.dll: 10043540..1004355B
+// gladi386.so:   00055328..00055343
 void VectorInverse (vec3_t v)
 {
 	v[0] = -v[0];
@@ -767,6 +818,8 @@ void VectorInverse (vec3_t v)
 	v[2] = -v[2];
 }
 
+// gladiator.dll: 10043570..10043595
+// gladi386.so:   00055344..00055365
 void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 {
 	out[0] = in[0]*scale;
@@ -774,7 +827,8 @@ void VectorScale (vec3_t in, vec_t scale, vec3_t out)
 	out[2] = in[2]*scale;
 }
 
-
+// gladiator.dll: 100435B0..100435C0
+// gladi386.so:   00055368..00055377
 int Q_log2(int val)
 {
 	int answer=0;
@@ -783,8 +837,6 @@ int Q_log2(int val)
 	return answer;
 }
 
-
-
 //====================================================================================
 
 /*
@@ -792,6 +844,8 @@ int Q_log2(int val)
 COM_SkipPath
 ============
 */
+// gladiator.dll: 100435D0..100435ED
+// gladi386.so:   00055378..00055395
 char *COM_SkipPath (char *pathname)
 {
 	char	*last;
@@ -811,6 +865,8 @@ char *COM_SkipPath (char *pathname)
 COM_StripExtension
 ============
 */
+// gladiator.dll: 10043600..10043629
+// gladi386.so:   00055398..000553BB
 void COM_StripExtension (char *in, char *out)
 {
 	while (*in && *in != '.')
@@ -823,6 +879,8 @@ void COM_StripExtension (char *in, char *out)
 COM_FileExtension
 ============
 */
+// gladiator.dll: 10043640..10043685
+// gladi386.so:   000553BC..00055410
 char *COM_FileExtension (char *in)
 {
 	static char exten[8];
@@ -844,6 +902,8 @@ char *COM_FileExtension (char *in)
 COM_FileBase
 ============
 */
+// gladiator.dll: 100436B0..10043712
+// gladi386.so:   00055410..00055488
 void COM_FileBase (char *in, char *out)
 {
 	char *s, *s2;
@@ -873,6 +933,8 @@ COM_FilePath
 Returns the path up to, but not including the last /
 ============
 */
+// gladiator.dll: 10043740..1004377E
+// gladi386.so:   00055488..000554DA
 void COM_FilePath (char *in, char *out)
 {
 	char *s;
@@ -886,12 +948,13 @@ void COM_FilePath (char *in, char *out)
 	out[s-in] = 0;
 }
 
-
 /*
 ==================
 COM_DefaultExtension
 ==================
 */
+// gladiator.dll: 10043790..100437EF
+// gladi386.so:   000554DC..00055532
 void COM_DefaultExtension (char *path, char *extension)
 {
 	char    *src;
@@ -930,13 +993,32 @@ int		(*_LittleLong) (int l);
 float	(*_BigFloat) (float l);
 float	(*_LittleFloat) (float l);
 
+// gladiator.dll: 10043810..1004381F
+// gladi386.so:   00055534..00055557
 short	BigShort(short l){return _BigShort(l);}
+
+// gladiator.dll: 10043830..1004383F
+// gladi386.so:   00055558..0005557B
 short	LittleShort(short l) {return _LittleShort(l);}
+
+// gladiator.dll: 10043850..1004385F
+// gladi386.so:   0005557C..0005559D
 int		BigLong (int l) {return _BigLong(l);}
+
+// gladiator.dll: 10043870..1004387F
+// gladi386.so:   000555A0..000555C1
 int		LittleLong (int l) {return _LittleLong(l);}
+
+// gladiator.dll: 10043890..1004389D
+// gladi386.so:   000555C4..000555E5
 float	BigFloat (float l) {return _BigFloat(l);}
+
+// gladiator.dll: 100438B0..100438BD
+// gladi386.so:   000555E8..00055609
 float	LittleFloat (float l) {return _LittleFloat(l);}
 
+// gladiator.dll: 100438D0..100438EA
+// gladi386.so:   0005560C..00055626
 short   ShortSwap (short l)
 {
 	byte    b1,b2;
@@ -947,11 +1029,15 @@ short   ShortSwap (short l)
 	return (b1<<8) + b2;
 }
 
+// gladiator.dll: 10043900..10043906
+// gladi386.so:   00055628..0005562E
 short	ShortNoSwap (short l)
 {
 	return l;
 }
 
+// gladiator.dll: 10043920..1004395A
+// gladi386.so:   00055630..0005566D
 int    LongSwap (int l)
 {
 	byte    b1,b2,b3,b4;
@@ -964,11 +1050,15 @@ int    LongSwap (int l)
 	return ((int)b1<<24) + ((int)b2<<16) + ((int)b3<<8) + b4;
 }
 
+// gladiator.dll: 10043970..10043975
+// gladi386.so:   00055670..00055675
 int	LongNoSwap (int l)
 {
 	return l;
 }
 
+// gladiator.dll: 10043990..100439B7
+// gladi386.so:   00055678..000556B7
 float FloatSwap (float f)
 {
 	union
@@ -986,6 +1076,8 @@ float FloatSwap (float f)
 	return dat2.f;
 }
 
+// gladiator.dll: 100439D0..100439D5
+// gladi386.so:   000556B8..000556BD
 float FloatNoSwap (float f)
 {
 	return f;
@@ -996,6 +1088,8 @@ float FloatNoSwap (float f)
 Swap_Init
 ================
 */
+// gladiator.dll: 100439F0..10043A8E
+// gladi386.so:   000556C0..000557B9
 void Swap_Init (void)
 {
 	byte	swaptest[2] = {1,0};
@@ -1024,8 +1118,6 @@ void Swap_Init (void)
 
 }
 
-
-
 /*
 ============
 va
@@ -1035,6 +1127,8 @@ varargs versions of all text functions.
 FIXME: make this buffer size safe someday
 ============
 */
+// gladiator.dll: 10043AC0..10043ADD
+// gladi386.so:   000557BC..000557E8
 char	*va(char *format, ...)
 {
 	va_list		argptr;
@@ -1057,6 +1151,8 @@ COM_Parse
 Parse a token out of a string
 ==============
 */
+// gladiator.dll: 10043AF0..10043B9C
+// gladi386.so:   000557E8..000558BC
 char *COM_Parse (char **data_p)
 {
 	int		c;
@@ -1146,6 +1242,8 @@ Com_PageInMemory
 */
 int	paged_total;
 
+// gladiator.dll: 10043BD0..10043BFC
+// gladi386.so:   000558BC..00055982
 void Com_PageInMemory (byte *buffer, int size)
 {
 	int		i;
@@ -1153,8 +1251,6 @@ void Com_PageInMemory (byte *buffer, int size)
 	for (i=size-1 ; i>0 ; i-=4096)
 		paged_total += buffer[i];
 }
-
-
 
 /*
 ============================================================================
@@ -1165,6 +1261,8 @@ void Com_PageInMemory (byte *buffer, int size)
 */
 
 // FIXME: replace all Q_stricmp with Q_strcasecmp
+// gladiator.dll: 10043C10..10043C23
+// gladi386.so:   00055984..000559A5
 int Q_stricmp (char *s1, char *s2)
 {
 #if defined(WIN32)
@@ -1174,7 +1272,8 @@ int Q_stricmp (char *s1, char *s2)
 #endif
 }
 
-
+// gladiator.dll: 10043C40..10043CA0
+// gladi386.so:   000559A8..00055A02
 int Q_strncasecmp (char *s1, char *s2, int n)
 {
 	int		c1, c2;
@@ -1201,13 +1300,15 @@ int Q_strncasecmp (char *s1, char *s2, int n)
 	return 0;		// strings are equal
 }
 
+// gladiator.dll: 10043CC0..10043CD8
+// gladi386.so:   00055A04..00055A5E
 int Q_strcasecmp (char *s1, char *s2)
 {
 	return Q_strncasecmp (s1, s2, 99999);
 }
 
-
-
+// gladiator.dll: 10043CF0..10043D51
+// gladi386.so:   00055A60..00055ACF
 void Com_sprintf (char *dest, int size, char *fmt, ...)
 {
 	int		len;
@@ -1238,6 +1339,8 @@ Searches the string for the given
 key and returns the associated value, or an empty string.
 ===============
 */
+// gladiator.dll: 10043D80..10043E5E
+// gladi386.so:   00055AD0..00055B9C
 char *Info_ValueForKey (char *s, char *key)
 {
 	char	pkey[512];
@@ -1280,6 +1383,8 @@ char *Info_ValueForKey (char *s, char *key)
 	}
 }
 
+// gladiator.dll: 10043EA0..10043F7D
+// gladi386.so:   00055B9C..00055C50
 void Info_RemoveKey (char *s, char *key)
 {
 	char	*start;
@@ -1329,7 +1434,6 @@ void Info_RemoveKey (char *s, char *key)
 
 }
 
-
 /*
 ==================
 Info_Validate
@@ -1338,6 +1442,8 @@ Some characters are illegal in info strings because they
 can mess up the server's parsing
 ==================
 */
+// gladiator.dll: 10043FC0..10043FF0
+// gladi386.so:   00055C50..00055C9D
 qboolean Info_Validate (char *s)
 {
 	if (strstr (s, "\""))
@@ -1347,6 +1453,8 @@ qboolean Info_Validate (char *s)
 	return true;
 }
 
+// gladiator.dll: 10044000..100441C9
+// gladi386.so:   00055CA0..00055F49
 void Info_SetValueForKey (char *s, char *key, char *value)
 {
 	char	newi[MAX_INFO_STRING], *v;
@@ -1412,9 +1520,25 @@ void Info_SetValueForKey (char *s, char *key, char *value)
  *
  * These objects live in q_shared.obj in the shipped gladiator.dll -- the DLL's
  * own code proves it: the six floats below are referenced ONLY from within
- * q_shared's .text range (0x100426B0..), and VectorNegate/Com_Printf sit at
- * 0x10043540 / 0x10042410, inside it.  They were parked in botlib.c only
- * because this file was previously off-limits to any edit at all.
+ * q_shared's .text range (0x100426B0..), and the in-place vector negate the
+ * botlib calls through thunk 0x1000147E (0x10043540) plus Com_Printf
+ * (0x10042410) sit inside it.  They were parked in botlib.c only because this
+ * file was previously off-limits to any edit at all.
+ *
+ * The 58 preserved functions above now carry the same `// gladiator.dll:` /
+ * `// gladi386.so:` docblocks as the reconstructed TUs.  Their addresses are
+ * content-proven, not guessed — every function of the MSVC6 oracle build was
+ * masked-content compared against every pad-delimited slot of q_shared.obj's
+ * extent 0x10042410..0x10044244, and all 58 matched uniquely in monotone source
+ * order (see [[q_shared_rules]]).
+ *
+ * ONE HAZARD when editing anything above: the `assert()`s in BoxOnPlaneSide
+ * embed `__LINE__`, and gladi386.so's constants are 389 and 399.  A `#line`
+ * directive immediately above the first assert now pins both, so comment lines
+ * may be added earlier in the file without moving them — but do not insert or
+ * remove lines BETWEEN the two asserts, and keep that `#line` adjacent to the
+ * first one.  Before the pin existed, adding docblocks here silently broke that
+ * function's byte-exact ELF MATCH.
  * ------------------------------------------------------------------------ */
 
 /* FPU scratch/constants in q_shared's .data and .bss, each referenced only
@@ -1437,12 +1561,32 @@ float flt_100631A8;         /* 0x100631A8 */
 int   dword_10063388;       /* 0x10063388 */
 #endif
 
-/* VectorNegate @0x10043540 — a 1-arg in-place negate.  q_shared.h has only a
- * 2-arg VectorNegate macro, which every botlib TU #undefs so this stays
- * callable; Q2's stock q_shared.c has no such function. */
+/* A 1-arg in-place negate, kept callable by #undef'ing q_shared.h's 2-arg
+ * VectorNegate macro in every botlib TU.
+ *
+ * ABSENT FROM BOTH ORIGINALS, and the name is wrong: this is a duplicate of
+ * VectorInverse above.  The function the botlib actually calls (thunk
+ * 0x1000147E -> 0x10043540, from be_aas_sample.c and be_aas_reach.c) is
+ * VectorInverse, proven four ways: 1999 `gladq2_src/q_shared.h` declares
+ * `void VectorInverse(vec3_t)` as the only 1-arg negate -- VectorNegate is a
+ * 2-arg MACRO there, so a 1-arg call cannot reach it; 0x10043540 sits between
+ * VectorLength (0x10043500) and VectorScale (0x10043570), exactly where
+ * gladq2_src/q_shared.c:756 defines VectorInverse; gladi386.so has the same
+ * function in the same relative position and no VectorNegate symbol at all;
+ * and q_shared.obj's 58 DLL slots are each claimed by exactly one of our
+ * functions, so it cannot be both (an added VectorNegate would have made 59 --
+ * with /INCREMENTAL there is no /OPT:REF to drop the unreferenced one).
+ *
+ * So this body is surplus: our q_shared.obj carries one function the original
+ * does not.  The faithful fix is to drop it and point the two call sites at
+ * VectorInverse; left in place for now because removing a function shifts
+ * every later address in q_shared.obj.  (Content alignment of the whole
+ * q_shared.obj region, 2026-08-17.) */
 #undef VectorNegate
 /* No __cdecl here: that spelling comes from botlib's gladiator.dll.h,
  * which this file does not include, and it is MSVC's default anyway. */
+// gladiator.dll: absent
+// gladi386.so:   absent
 float *VectorNegate(float *v)
 {
   float *result; // eax
@@ -1456,5 +1600,7 @@ float *VectorNegate(float *v)
 
 /* Com_Printf @0x10042410 — a single-byte `ret` in the original, so the
  * Com_sprintf / Info_* diagnostics below silently drop.  Keep the empty body. */
+// gladiator.dll: 10042410..10042411
+// gladi386.so:   000544E4..000544E5
 void Com_Printf(char *msg, ...) { (void)msg; }
 #endif /* BOTLIB */

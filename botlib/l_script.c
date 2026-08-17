@@ -110,6 +110,7 @@ void __cdecl PS_CreatePunctuationTable(script_t *script, punctuation_t *punctuat
     }
   }
 }
+
 // gladiator.dll: 1003E250..1003E291
 // gladi386.so:   00050F18..00050F60
 /* Linear scan of script->punctuations (a contiguous array terminated by a NULL `p`)
@@ -125,6 +126,7 @@ char *__cdecl PunctuationFromNum(script_t *script, int num)
   }
   return "unkown punctuation";
 }
+
 // gladiator.dll: 1003E2C0..1003E316
 // gladi386.so:   00050F60..00050FC9
 void ScriptError(int script, char *Format, ...)
@@ -138,6 +140,7 @@ void ScriptError(int script, char *Format, ...)
   vsprintf(Buffer, Format, va);
   botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
 }
+
 // gladiator.dll: 1003E340..1003E396
 // gladi386.so:   00050FCC..00051035
 void ScriptWarning(int script, char *Format, ...)
@@ -151,6 +154,7 @@ void ScriptWarning(int script, char *Format, ...)
   vsprintf(Buffer, Format, va);
   botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
 }
+
 // gladiator.dll: 1003E3C0..1003E3FF
 // gladi386.so:   00051038..00051088
 /* Install the given punctuation list, or the default table when NULL. */
@@ -165,6 +169,7 @@ void __cdecl SetScriptPunctuations(script_t *script, punctuation_t *p)
   else
     script->punctuations = default_punctuations;
 }
+
 // gladiator.dll: 1003E410..1003E4D1
 // gladi386.so:   00051088..00051197
 /* PS_ReadWhiteSpace — takes a real script_t*, so PS_ReadToken's pointer is not
@@ -216,6 +221,7 @@ int __cdecl PS_ReadWhiteSpace(script_t *script)
   }
   return 1;
 }
+
 // gladiator.dll: 1003E520..1003E757
 // gladi386.so:   00051198..0005148F
 int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
@@ -304,6 +310,7 @@ int __cdecl PS_ReadEscapeCharacter(script_t *script, _BYTE *ch)
   *ch = c;
   return 1;
 }
+
 // gladiator.dll: 1003E7F0..1003E97E
 // gladi386.so:   00051490..00051667
 int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
@@ -377,6 +384,7 @@ int __cdecl PS_ReadString(script_t *script, token_t *token, int quote)
   token->subtype = len;
   return 1;
 }
+
 // gladiator.dll: 1003E9F0..1003EA7E
 // gladi386.so:   00051668..000516FC
 int __cdecl PS_ReadName(script_t *script, token_t *token)
@@ -400,6 +408,7 @@ int __cdecl PS_ReadName(script_t *script, token_t *token)
   token->subtype = len;
   return 1;
 }
+
 // gladiator.dll: 1003EAB0..1003EC5F
 // gladi386.so:   000516FC..000518DE
 /* Walks `string` through a plain char* cursor.  Subtype flags: 0x800 = float,
@@ -471,6 +480,7 @@ void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long
     *floatvalue = *intvalue;
   }
 }
+
 // gladiator.dll: 1003ECD0..1003EF6E
 // gladi386.so:   000518E0..00051BAE
 int __cdecl PS_ReadNumber(script_t *script, token_t *token)
@@ -566,6 +576,7 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
     token->subtype |= 0x1000;
   return 1;
 }
+
 // gladiator.dll: 1003F020..1003F112
 // gladi386.so:   00051BB0..00051CA9
 /* Q3's PS_ReadCharacterLiteral — read a 'x' or '\\n'-style character constant
@@ -601,6 +612,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
   token->subtype = (signed char)token->string[1];
   return 1;
 }
+
 // gladiator.dll: 1003F160..1003F1FD
 // gladi386.so:   00051CAC..00051D6A
 /* Try to read a punctuation token at the script's current position.
@@ -631,6 +643,7 @@ int __cdecl PS_ReadPunctuation(script_t *script, char *token)
   }
   return 0;
 }
+
 // gladiator.dll: 1003F230..1003F2A2
 // gladi386.so:   00051D6C..00051DE4
 int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
@@ -655,6 +668,7 @@ int __cdecl PS_ReadPrimitive(script_t *script, token_t *token)
   memcpy(&(script)->token, token, sizeof(token_t));
   return 1;
 }
+
 // gladiator.dll: 1003F2D0..1003F45F
 // gladi386.so:   00051DE4..000521D7
 /* Q3's PS_ReadToken(script_t *, token_t *), both parameters properly typed.  A raw
@@ -710,6 +724,7 @@ int __cdecl PS_ReadToken(script_t *script, token_t *token)
   memcpy(&script->token, token, sizeof(token_t));
   return 1;
 }
+
 // gladiator.dll: 1003F4D0..1003F581
 // gladi386.so:   000521D8..0005226C
 /* Read the next token and ScriptError unless its string equals `string`.
@@ -729,6 +744,7 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
   }
   return 1;
 }
+
 // gladiator.dll: 1003F5C0..1003F8DF
 // gladi386.so:   0005226C..0005252C
 int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t *token)
@@ -795,6 +811,7 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
   }
   return 1;
 }
+
 // gladiator.dll: 1003F9B0..1003F9E0
 // gladi386.so:   0005252C..00052570
 int __cdecl PS_ExpectAnyToken(int script, int token)
@@ -806,6 +823,7 @@ int __cdecl PS_ExpectAnyToken(int script, int token)
   }
   return 1;
 }
+
 // gladiator.dll: 1003F9F0..1003FA73
 // gladi386.so:   00052570..000525EC
 /* Peek the next token: 1 if its string matches, else rewind script_p from
@@ -820,6 +838,7 @@ int __cdecl PS_CheckTokenString(script_t *script, const char *string)
   script->script_p = script->lastscript_p;
   return 0;
 }
+
 // gladiator.dll: 1003FAB0..1003FB2D
 // gladi386.so:   000525EC..00052689
 /* Peek the next token: on (type == expected && (subtype & mask) == mask) copy it out
@@ -838,6 +857,7 @@ int __cdecl PS_CheckTokenType(script_t *script, int type, int subtype, token_t *
   script->script_p = script->lastscript_p;
   return 0;
 }
+
 // gladiator.dll: 1003FB50..1003FBE0
 // gladi386.so:   0005268C..000526EE
 /* Read tokens until one equals `string` (1) or the stream ends (0).  Sibling of
@@ -852,6 +872,7 @@ int __cdecl PS_SkipUntilString(script_t *script, const char *string)
   }
   return 0;
 }
+
 // gladiator.dll: 1003FC10..1003FC1F
 // gladi386.so:   000526F0..000526FF
 /* Sets script->tokenavailable = 1.  DEAD in Gladiator. */
@@ -859,6 +880,7 @@ void __cdecl PS_UnreadLastToken(script_t *script)
 {
   script->tokenavailable = 1;
 }
+
 // gladiator.dll: 1003FC70..1003FC91
 // gladi386.so:   00052728..0005274A
 /* getc over the script's whitespace span: read one byte, advance the cursor,
@@ -869,6 +891,7 @@ char PS_NextWhiteSpaceChar(script_t *script)
     return *script->whitespace_p++;
   return 0;
 }
+
 // gladiator.dll: 1003FCB0..1003FD1B
 // gladi386.so:   0005274C..000527C9
 void __cdecl StripDoubleQuotes(char *string)
@@ -889,6 +912,7 @@ void __cdecl StripDoubleQuotes(char *string)
   while ( string[strlen(string) - 1] == '"' )
     string[strlen(string) - 1] = '\0';
 }
+
 // gladiator.dll: 1003FD40..1003FDAB
 // gladi386.so:   000527CC..00052849
 void __cdecl StripSingleQuotes(char *string)
@@ -902,6 +926,7 @@ void __cdecl StripSingleQuotes(char *string)
   while ( string[strlen(string) - 1] == '\'' )
     string[strlen(string) - 1] = '\0';
 }
+
 // gladiator.dll: 1003FDD0..1003FE8A
 // gladi386.so:   0005284C..0005292A
 // Signed float reader: PS_ExpectAnyToken; if token == "-" set sign=-1.0 and read
@@ -928,6 +953,7 @@ long double __cdecl ReadSignedFloat(int script)
   }
   return sign * token.floatvalue;
 }
+
 // gladiator.dll: 1003FEC0..1003FF77
 // gladi386.so:   0005292C..000529F6
 // Signed integer reader: PS_ExpectAnyToken; if token == "-" set sign=-1 and read
@@ -953,12 +979,14 @@ int __cdecl ReadSignedInt(int script)
   }
   return (int)token.intvalue * sign;
 }
+
 // gladiator.dll: 1003FFB0..1003FFBF
 // gladi386.so:   000529F8..00052A07
 void __cdecl SetScriptFlags(script_t *script, int flags)
 {
   script->flags = flags;
 }
+
 // gladiator.dll: 1003FFD0..1003FFDB
 // gladi386.so:   00052A08..00052A13
 /* Returns script->flags.  DEAD in Gladiator — the live API uses the dedicated
@@ -967,6 +995,7 @@ int __cdecl GetScriptFlags(script_t *script)
 {
   return script->flags;
 }
+
 // gladiator.dll: 10040060..10040076
 // gladi386.so:   00052A88..00052AA1
 /* Q3 l_script.c:1242: int EndOfScript(script_t *script). */
@@ -974,6 +1003,7 @@ BOOL __cdecl EndOfScript(script_t *script)
 {
   return script->script_p >= script->end_p;
 }
+
 // gladiator.dll: 10040090..100400A3
 // gladi386.so:   00052AA4..00052AB7
 /* Returns script->line - script->lastline.  DEAD in Gladiator. */
@@ -981,6 +1011,7 @@ int __cdecl NumLinesCrossed(script_t *script)
 {
   return script->line - script->lastline;
 }
+
 // gladiator.dll: 100400C0..1004012E
 // gladi386.so:   00052AB8..00052B3C
 /* Character-level companion to the token-based PS_SkipUntilString: scan the raw
@@ -1011,6 +1042,7 @@ int __cdecl ScriptSkipTo(script_t *script, char *value)
     script->script_p++;
   } while(1);
 }
+
 // gladiator.dll: 10040150..10040183
 // gladi386.so:   00052B3C..00052B7D
 int __cdecl FileLength(FILE *fp)
@@ -1024,6 +1056,7 @@ int __cdecl FileLength(FILE *fp)
   fseek(fp, v1, 0);
   return v2;
 }
+
 // gladiator.dll: 100401A0..10040320
 // gladi386.so:   00052B80..00052D97
 /* Raw script file loader: create a script_t (1392-byte header + file data) in one
@@ -1080,6 +1113,7 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   }
   return script;
 }
+
 // gladiator.dll: 10040380..10040437
 // gladi386.so:   00052D98..00052E67
 script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const char *name)
@@ -1102,6 +1136,7 @@ script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const c
   memcpy(script->buffer, ptr, length);
   return script;
 }
+
 // gladiator.dll: 10040470..10040493
 // gladi386.so:   00052E68..00052E99
 void __cdecl FreeScript(script_t *script)

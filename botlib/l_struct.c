@@ -44,7 +44,12 @@ const char **__cdecl FindField(const char **defs, const char *name)
  * rather than byte offset, so they work on both word widths:
  *   [0] name  [1] offset  [2] type|flags  [3] arr
  *   [4] minrange (float bits)  [5] maxrange (float bits)  [6] substruct (structdef_t *) */
+// gladiator.dll: absent
+// gladi386.so:   absent
 static inline int fielddef_flags(char **f) { return (int)(intptr_t)f[2]; }
+
+// gladiator.dll: absent
+// gladi386.so:   absent
 static inline float fielddef_float(char **f, int slot) {
     return *(float *)&f[slot];   /* direct low-32 read (LE-safe); matches ref's fld [ebp+off] */
 }

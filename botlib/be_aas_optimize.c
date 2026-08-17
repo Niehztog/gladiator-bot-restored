@@ -30,6 +30,7 @@ int AAS_KeepEdge(aas_edge_t *edge)
   (void)edge;
   return 1;
 }
+
 // gladiator.dll: 10010880..1001098D
 // gladi386.so:   0001D31C..0001D4A4
 int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
@@ -76,6 +77,7 @@ int __cdecl AAS_OptimizeEdge(optimized_t *optimized, int edgenum)
   else
     return -optedgenum;
 }
+
 // gladiator.dll: 100109E0..100109EE
 // gladi386.so:   0001D4A4..0001D4B7
 int __cdecl AAS_KeepFace(aas_face_t *face)
@@ -85,6 +87,7 @@ int __cdecl AAS_KeepFace(aas_face_t *face)
   else
     return 1;
 }
+
 // gladiator.dll: 10010A00..10010AF4
 // gladi386.so:   0001D4B8..0001D611
 int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
@@ -131,6 +134,7 @@ int __cdecl AAS_OptimizeFace(optimized_t *optimized, int facenum)
   else
     return -optfacenum;
 }
+
 // gladiator.dll: 10010B40..10010BD2
 // gladi386.so:   0001D614..0001D6D0
 void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
@@ -156,6 +160,7 @@ void __cdecl AAS_OptimizeArea(optimized_t *optimized, int areanum)
     }
   }
 }
+
 // gladiator.dll: 10010C10..10010D01
 // gladi386.so:   0001D6D0..0001D813
 int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
@@ -180,6 +185,7 @@ int __cdecl AAS_OptimizeAlloc(optimized_t *optimized)
   optimized->faceremap = (int *)result;
   return (intptr_t)result;
 }
+
 // gladiator.dll: 10010D50..10010E48
 // gladi386.so:   0001D814..0001D990
 int __cdecl AAS_OptimizeStore(optimized_t *optimized)
@@ -212,6 +218,7 @@ int __cdecl AAS_OptimizeStore(optimized_t *optimized)
   FreeMemory(optimized->edgeremap);
   return FreeMemory(optimized->faceremap);
 }
+
 // gladiator.dll: 10010E90..10010F2B
 // gladi386.so:   0001D990..0001DAFA
 void AAS_Optimize()

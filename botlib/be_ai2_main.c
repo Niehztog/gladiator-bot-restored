@@ -91,6 +91,7 @@ int __cdecl ClientFromName(const char *name)
   }
   return 0;
 }
+
 // gladiator.dll: 10028F30..10028F66
 // gladi386.so:   000374AC..000374FC
 char *__cdecl ClientName(int client)
@@ -102,6 +103,7 @@ char *__cdecl ClientName(int client)
   }
   return clientsettings[client].netname;
 }
+
 // gladiator.dll: 10028F80..10028FB8
 // gladi386.so:   000374FC..0003754F
 char *__cdecl ClientSkin(int client)
@@ -113,12 +115,14 @@ char *__cdecl ClientSkin(int client)
   }
   return clientsettings[client].skin;
 }
+
 // gladiator.dll: 10028FD0..10028FD6
 // gladi386.so:   00037550..00037567
 int NumBots()
 {
   return numbots;
 }
+
 // gladiator.dll: 10028FF0..1002902F
 // gladi386.so:   00037568..000375FB
 float __cdecl AngleDifference(float ang1, float ang2)
@@ -137,6 +141,7 @@ float __cdecl AngleDifference(float ang1, float ang2)
   }
   return diff;
 }
+
 // gladiator.dll: 10029040..10029109
 // gladi386.so:   000375FC..00037714
 float BotChangeViewAngle(float angle, float ideal_angle, float speed)
@@ -170,6 +175,7 @@ float BotChangeViewAngle(float angle, float ideal_angle, float speed)
   }
   return anglemod(angle + move);
 }
+
 // gladiator.dll: 10029150..10029289
 // gladi386.so:   00037714..000379F3
 /* All nine callers push (bs, thinktime), but the body reads bs->thinktime straight from
@@ -239,6 +245,7 @@ int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
   while ( v4 );
   EA_View(bs->client, bs->viewangles);
 }
+
 // gladiator.dll: 100292E0..10029309
 // gladi386.so:   000379F4..00037A34
 void sub_100292E0()
@@ -249,6 +256,7 @@ void sub_100292E0()
     regularupdate_time = AAS_Time() + 1.0f;
   }
 }
+
 // gladiator.dll: 10029320..10029375
 // gladi386.so:   00037A34..00037AD6
 int Export_BotAIFrame(int a1, float a2)
@@ -268,6 +276,7 @@ int Export_BotAIFrame(int a1, float a2)
   sub_100292E0();
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 100293A0..1002944E
 // gladi386.so:   00037AD8..00037BA5
 // Per-bot memory-usage dumper: reports the byte size of every allocation the bot owns
@@ -299,6 +308,7 @@ void sub_100293A0(bot_state_t *bs)
            MemoryByteSize(BotChatDumpSlot(&bs->chatstate)));
   PrintUsedMemorySize();
 }
+
 // gladiator.dll: 10029480..10029614
 // gladi386.so:   00037BA8..00037DD1
 int __cdecl BotSetupClient(int a1, char *Source)
@@ -364,6 +374,7 @@ int __cdecl BotSetupClient(int a1, char *Source)
   ++numbots;
   return 1;
 }
+
 // gladiator.dll: 10029690..10029767
 // gladi386.so:   00037DD4..00037ECA
 int __cdecl BotShutdownClient(int a1)
@@ -395,6 +406,7 @@ int __cdecl BotShutdownClient(int a1)
   --numbots;
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 100297B0..10029842
 // gladi386.so:   00037ECC..00037F9D
 int __cdecl BotMoveClient(int a1, int a2)
@@ -414,6 +426,7 @@ int __cdecl BotMoveClient(int a1, int a2)
   botstates[a1].inuse = 0;
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 10029880..100298F1
 // gladi386.so:   00037FA0..0003807E
 int __cdecl BotUpdateClient(int a1, const void *a2)
@@ -435,6 +448,7 @@ int __cdecl BotUpdateClient(int a1, const void *a2)
     v2->viewangles[v5] = anglemod(v2->viewangles[v5] + v2->snapshot.delta_angles[v5]);
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 10029920..10029943
 // gladi386.so:   00038080..000380B5
 int __cdecl BotClientSettings(int a1, const void *a2)
@@ -442,6 +456,7 @@ int __cdecl BotClientSettings(int a1, const void *a2)
   memcpy(&clientsettings[a1], a2, sizeof(bot_clientsettings_t));
   return 0;
 }
+
 // gladiator.dll: 10029960..100299B0
 // gladi386.so:   000380B8..00038126
 int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
@@ -457,6 +472,7 @@ int __cdecl BotConsoleMessage(int a1, int a2, char *Source)
   BotQueueConsoleMessage(&v3->chatstate, a2, Source);
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 100299D0..10029A1D
 // gladi386.so:   00038128..00038190
 int __cdecl BotSettings(int a1, const void *a2)
@@ -472,6 +488,7 @@ int __cdecl BotSettings(int a1, const void *a2)
   memcpy(v2->settings, a2, sizeof(v2->settings));
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 10029A40..10029BA2
 // gladi386.so:   00038190..000383DD
 int __cdecl BotResetState(bot_state_t *bs)
@@ -513,6 +530,7 @@ int __cdecl BotResetState(bot_state_t *bs)
   BotResetAvoidGoals(&bs->goalstate);
   BotResetAvoidReach((int *)&bs->ms);
 }
+
 // gladiator.dll: 10029C10..10029C6B
 // gladi386.so:   000383E0..00038459
 int sub_10029C10()
@@ -528,6 +546,7 @@ int sub_10029C10()
   BotSetupDeathmatchAI();
   return 0;
 }
+
 // gladiator.dll: 10029C90..10029D59
 // gladi386.so:   0003845C..00038523
 /* Windows genuinely writes each sub-init's return code through the CRT global `errno`
@@ -580,6 +599,7 @@ int BotSetupLibrary()
   gametype = (int)LibVarValue("gametype", (char *)"0");
   return BLERR_NOERROR;
 }
+
 // gladiator.dll: 10029DA0..10029DED
 // gladi386.so:   00038524..00038589
 void BotShutdownLibrary(void)

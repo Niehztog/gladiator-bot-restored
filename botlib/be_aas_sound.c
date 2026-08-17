@@ -60,6 +60,7 @@ void __cdecl sub_1001C6F0(void)
     Log_Flush();
   }
 }
+
 // gladiator.dll: 1001C760..1001CA00
 // gladi386.so:   0002AACC..0002AD6F
 int sub_1001C760(char *Source)
@@ -129,6 +130,7 @@ int sub_1001C760(char *Source)
     botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
   return 1;
 }
+
 // gladiator.dll: 1001CAB0..1001CB9A
 // gladi386.so:   0002AD70..0002B041
 /* Initialise the aas-sound node free pool: clamp the cvar, allocate max_aas_sounds
@@ -160,6 +162,7 @@ void sub_1001CAB0()
   aasworld.d_100669C8 = aasworld.d_100669C4;
   { (void)((int)(intptr_t)aasworld.d_100669C4); return; }
 }
+
 // gladiator.dll: 1001CBE0..1001CBFE
 // gladi386.so:   0002B044..0002B077
 /* Pop next free aas_soundpool_t off the free-list. */
@@ -174,6 +177,7 @@ aas_soundpool_t *sub_1001CBE0()
   }
   return result;
 }
+
 // gladiator.dll: 1001CC10..1001CC37
 // gladi386.so:   0002B078..0002B0BA
 /* Push an aas_soundpool_t back onto the free-list. */
@@ -185,6 +189,7 @@ void sub_1001CC10(aas_soundpool_t *a1)
   a1->next = aasworld.d_100669C8;
   aasworld.d_100669C8 = a1;
 }
+
 // gladiator.dll: 1001CC50..1001CC9D
 // gladi386.so:   0002B0BC..0002B134
 /* Insert into the d_100669CC/D0 sorted active list (descending by float at
@@ -214,6 +219,7 @@ void sub_1001CC50(aas_soundpool_t *a1)
   else
     aasworld.d_100669CC = a1;
 }
+
 // gladiator.dll: 1001CCC0..1001CCF3
 // gladi386.so:   0002B134..0002B185
 /* Unlink from the d_100669CC/D0 sorted list. */
@@ -233,6 +239,7 @@ void sub_1001CCC0(aas_soundpool_t *a1)
   else
     aasworld.d_100669D0 = a1->prev;
 }
+
 // gladiator.dll: 1001CD10..1001CD5B
 // gladi386.so:   0002B188..0002B1FC
 /* Insert into the d_100669D4/D8 sorted active list (descending by float at
@@ -262,6 +269,7 @@ void sub_1001CD10(aas_soundpool_t *a1)
   else
     aasworld.d_100669D4 = a1;
 }
+
 // gladiator.dll: 1001CD80..1001CDB3
 // gladi386.so:   0002B1FC..0002B24D
 /* Unlink from the d_100669D4/D8 sorted list. */
@@ -281,6 +289,7 @@ void sub_1001CD80(aas_soundpool_t *a1)
   else
     aasworld.d_100669D8 = a1->prev;
 }
+
 // gladiator.dll: 1001CDD0..1001CE07
 // gladi386.so:   0002B250..0002B30A
 /* Search the d_100669CC list for the node whose entnum and soundindex match a1/a2, then
@@ -304,6 +313,7 @@ void __cdecl sub_1001CDD0(int a1, int a2)
     }
   }
 }
+
 // gladiator.dll: 1001CE20..1001CF47
 // gladi386.so:   0002B30C..0002B593
 int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, float a7)
@@ -353,6 +363,7 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, 
     return 0;
   }
 }
+
 // gladiator.dll: 1001CFA0..1001D011
 // gladi386.so:   0002B594..0002B7BC
 /* Time-tick: expire nodes whose +4 float (end-time) is past, and promote nodes from the
@@ -390,6 +401,7 @@ void __cdecl sub_1001CFA0(float a1)
     while ( v4 );
   }
 }
+
 // gladiator.dll: 1001D040..1001D052
 // gladi386.so:   0002B7BC..0002B7E6
 /* Sound-pool list cursor: the active list head for a NULL argument, else the
@@ -400,6 +412,7 @@ int __cdecl sub_1001D040(aas_soundpool_t *p)
     return (int)(intptr_t)aasworld.d_100669CC;
   return (int)(intptr_t)p->next;
 }
+
 // gladiator.dll: 1001D070..1001D081
 // gladi386.so:   0002B7E8..0002B80D
 /* Returns aasworld.d_100669C0[node->soundindex] — the sound's payload
@@ -408,6 +421,7 @@ int __cdecl sub_1001D070(aas_soundpool_t *p)
 {
   return (int)(intptr_t)aasworld.d_100669C0[p->soundindex];
 }
+
 // gladiator.dll: 1001D0A0..1001D112
 // gladi386.so:   0002B810..0002B8A1
 // Inverse-square sound audibility on a moving source.  Args:
@@ -439,6 +453,7 @@ float __cdecl sub_1001D0A0(float *listener, aas_soundpool_t *emitter)
   return (info->volume * emitter->volume)
        / (dx*dx + dy*dy + dz*dz);
 }
+
 // gladiator.dll: 1001D140..1001D21D
 // gladi386.so:   0002B8A4..0002B9D2
 void sub_1001D140()
@@ -466,6 +481,7 @@ void sub_1001D140()
   }
   aasworld.d_100669BC = aasworld.soundindex_table->numindexes;
 }
+
 // gladiator.dll: 1001D260..1001D27E
 // gladi386.so:   0002B9D4..0002BA04
 int sub_1001D260()
@@ -476,6 +492,7 @@ int sub_1001D260()
   v1 = LibVarString("soundconfig", (char *)"sounds.c");
   return sub_1001C760(v1);
 }
+
 // gladiator.dll: 1001D290..1001D291
 // gladi386.so:   0002BA04..0002BA05
 /* Empty in the original — an AAS_Shutdown post-cleanup step, called after
