@@ -1649,11 +1649,11 @@ void __cdecl sub_10005CF0(int row_index, int value)
  * bytes: mins[3], maxs[3], origin[3], headnode, firstface, numfaces. */
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin)
 {
-  int    i;
-  vec3_t local_mins, local_maxs;
-  vec3_t corner;
-  vec3_t bb_mins, bb_maxs;   /* accumulator for the rotated bbox */
   vec3_t axis[3];            /* rotation matrix from angles                 */
+  vec3_t corner;
+  vec3_t local_mins, local_maxs;
+  vec3_t bb_mins, bb_maxs;   /* accumulator for the rotated bbox */
+  int    i;
 
   if ( !bspworld.dword_100674C0 )
     return;
@@ -1893,7 +1893,11 @@ int __cdecl sub_100063D0(vec3_t mins, vec3_t maxs, int *list, int maxcount)
             /* No `if (brush_links)` guard either — the NULL case unlinks NULL.  The
              * hit is reported by BREAKing to the shared post-loop re-check. */
             for (brush_iter = brush_links; brush_iter; brush_iter = brush_iter->next_leaf) {
-              if (bspworld.dleafs[brush_iter->leafnum].numleafbrushes)
+              /* Through a `dleaf_t *`, not a subscript: the original folds the
+               * scaled index and the lump base into ONE address (`add eax,[ecx+0x2c]`)
+               * where the subscript form keeps two registers and a SIB. */
+              dleaf_t *leaf = &bspworld.dleafs[brush_iter->leafnum];
+              if (leaf->numleafbrushes)
                 break;
             }
             if (brush_iter) {
