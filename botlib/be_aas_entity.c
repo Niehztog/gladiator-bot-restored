@@ -588,6 +588,11 @@ int __cdecl AAS_NextBSPEntity(int ent)
 {
   int v1; // eax
 
+  /* The `v1 = ent` copy goes BEFORE the loaded check: gcc272 hoists the parameter
+   * load above the guard and only matches this order.  IRRECONCILABLE with the DLL,
+   * which reads `[esp+0x8]` only after `test eax,eax; je` -- moving it down takes the
+   * ELF row from MATCH to ICM/55b and only reshuffles the PE's 104 bytes.
+   * Measured 2026-08-17; do not re-try. */
   v1 = ent;
   if ( !aasworld.loaded )
     return 0;

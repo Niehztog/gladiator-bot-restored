@@ -2060,6 +2060,10 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
       }
       else
       {
+        /* `A * C * n`, in that order: the DLL reassociates it to `fild; fimul n;
+         * fmul C` no matter how it is parenthesised, and forcing `n * (A * C)`
+         * only costs the ELF its MATCH (measured 2026-08-17).  The DLL's 19-byte
+         * residual is that reassociation and is not source-reachable. */
         pick = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * n);
         for ( l = t->firstline; l; l = l->next )
         {

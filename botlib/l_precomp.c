@@ -397,9 +397,11 @@ unsigned int __cdecl PC_NameHash(const char *name)
     else
       v4 = 0;
   }
-  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: the original negates IN PLACE and re-reads
+  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: gladi386.so negates IN PLACE and re-reads
    * the variable (`neg eax; mov [esp+0xc],eax; mov eax,[esp+0xc]`), which abs() folds
-   * away. */
+   * away.  IRRECONCILABLE with the DLL, which wants abs()'s branchless
+   * `cdq; xor eax,edx; sub eax,edx` at BOTH exits: measured 2026-08-17, abs() takes
+   * the ELF row from MATCH to OUR-2/38b.  The ELF MATCH wins; do not re-try. */
   if ( v4 < 0 )
     v4 = -v4;
   return v4 & 0x3FF;
