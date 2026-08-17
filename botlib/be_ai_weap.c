@@ -333,38 +333,37 @@ void __cdecl BotChooseBestFightWeapon(bot_weaponstate_t *ws)
     {
       if ( ws->weightconfig )
       {
-        i = 0;
-        if ( wc->numweapons > 0 )
+        /* Q3's counted `for`, not IDA's rendering of the rotated loop: the
+         * original's entry guard jumps to the `bestweaponinfo` test, so that
+         * test sits AFTER the loop rather than nested inside a `numweapons > 0`
+         * arm (it is unreachable-equivalent either way — the loop cannot set
+         * bestweaponinfo when it does not run). */
+        for ( i = 0; i < wc->numweapons; i++ )
         {
-          do
+          index = ws->itemweights[i];
+          if ( index >= 0 )
           {
-            index = ws->itemweights[i];
-            if ( index >= 0 )
+            /* Both builds call FuzzyWeight here.  They differ only in whether the
+             * compiler INLINED FuzzyWeight_r into it: gladiator.dll's FuzzyWeight is
+             * the thin 36-byte wrapper, gladi386.so's is 231 bytes and 98% identical
+             * to FuzzyWeight_r itself.  Same source, different inlining. */
+            weight = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[index]);
+            if ( weight > bestweight )
             {
-              /* Both builds call FuzzyWeight here.  They differ only in whether the
-               * compiler INLINED FuzzyWeight_r into it: gladiator.dll's FuzzyWeight is
-               * the thin 36-byte wrapper, gladi386.so's is 231 bytes and 98% identical
-               * to FuzzyWeight_r itself.  Same source, different inlining. */
-              weight = FuzzyWeight(ws->inventory, &ws->weightconfig->weights[index]);
-              if ( weight > bestweight )
-              {
-                bestweight = weight;
-                bestweaponinfo = &wc->weaponinfo[i];
-              }
+              bestweight = weight;
+              bestweaponinfo = &wc->weaponinfo[i];
             }
-            ++i;
           }
-          while ( i < wc->numweapons );
-          if ( bestweaponinfo )
+        }
+        if ( bestweaponinfo )
+        {
+          if ( Q_stricmp(bestweaponinfo->model, ws->modelname) )
           {
-            if ( Q_stricmp(bestweaponinfo->model, ws->modelname) )
-            {
-              EA_UseItem(ws->client, bestweaponinfo->name);
-              ws->nextthink = AAS_Time() + wc->weaponinfo[bestweaponinfo->number].activate + 3.0f;
-            }
-            ws->modelname = bestweaponinfo->model;
-            ws->weaponindex = bestweaponinfo->number;
+            EA_UseItem(ws->client, bestweaponinfo->name);
+            ws->nextthink = AAS_Time() + wc->weaponinfo[bestweaponinfo->number].activate + 3.0f;
           }
+          ws->modelname = bestweaponinfo->model;
+          ws->weaponindex = bestweaponinfo->number;
         }
       }
     }

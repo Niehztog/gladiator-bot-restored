@@ -1381,8 +1381,15 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       *(int *)&bs->chase_time = 0;
     if ( (moveresult.flags & 8) == 0 )
       BotChangeViewAngles(bs, bs->thinktime);
+    /* The retreat arm has its own `return 1`, so the original emits the exit
+     * epilogue twice.  Collapsing it to a bare `if (…) AIEnter_Battle_Retreat(bs);`
+     * costs those 8 instructions on the ELF; the DLL cross-jumps them and cannot
+     * see the difference. */
     if ( BotWantsToRetreat((int *)bs) )
+    {
       AIEnter_Battle_Retreat(bs);
+      return 1;
+    }
     return 1;
   }
 }

@@ -565,32 +565,37 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
     }
   }
 
-  if ( !foundreach )
-    return 0;
+  /* Q3's `if (foundreach) { … return qtrue; } return qfalse;` — the trailing
+   * `return 0` is its own exit block in the original.  Written as the negative
+   * guard `if (!foundreach) return 0;` gcc cross-jumps that exit into the
+   * `!lreach` one and the function comes out 7 instructions short. */
+  if ( foundreach )
+  {
+    lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
+    if ( !lreach )
+      return 0;
 
-  lreach = (aas_reachabilitynode_t *)AAS_AllocReachability();
-  if ( !lreach )
-    return 0;
+    lreach->reach.areanum = lr.reach.areanum;
+    lreach->reach.facenum = lr.reach.facenum;
+    lreach->reach.edgenum = lr.reach.edgenum;
+    VectorCopy(lr.reach.start, lreach->reach.start);
+    VectorCopy(lr.reach.end, lreach->reach.end);
+    lreach->reach.traveltype = lr.reach.traveltype;
+    lreach->reach.traveltime = lr.reach.traveltime;
+    lreach->next = areareachability[area1num];
+    areareachability[area1num] = lreach;
 
-  lreach->reach.areanum = lr.reach.areanum;
-  lreach->reach.facenum = lr.reach.facenum;
-  lreach->reach.edgenum = lr.reach.edgenum;
-  VectorCopy(lr.reach.start, lreach->reach.start);
-  VectorCopy(lr.reach.end, lreach->reach.end);
-  lreach->reach.traveltype = lr.reach.traveltype;
-  lreach->reach.traveltime = lr.reach.traveltime;
-  lreach->next = areareachability[area1num];
-  areareachability[area1num] = lreach;
+    if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
+      lreach->reach.traveltime += 300;
+    if ( !AAS_NearbySolidOrGap(lreach->reach.start, lreach->reach.end) )
+      lreach->reach.traveltime += 100;
+    if ( AAS_AreaGroundFaceArea(lreach->reach.areanum) < 500.0f )
+      lreach->reach.traveltime += 100;
 
-  if ( !AAS_AreaCrouch(area1num) && AAS_AreaCrouch(area2num) )
-    lreach->reach.traveltime += 300;
-  if ( !AAS_NearbySolidOrGap(lreach->reach.start, lreach->reach.end) )
-    lreach->reach.traveltime += 100;
-  if ( AAS_AreaGroundFaceArea(lreach->reach.areanum) < 500.0f )
-    lreach->reach.traveltime += 100;
-
-  ++reach_equalfloor;
-  return 1;
+    ++reach_equalfloor;
+    return 1;
+  }
+  return 0;
 }
 // gladiator.dll: 10012200..1001367A
 // gladi386.so:   0001EF9C..00020BB5
