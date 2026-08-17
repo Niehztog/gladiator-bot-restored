@@ -481,6 +481,26 @@ int __cdecl sub_1000E430(char *Source)
 }
 
 #endif /* _WIN32 — winbspc spawn + aasN.zip search */
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.  See the identical note in
+ * be_aas_route.c for why these are gated rather than added outright.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+/* F184 @ 0x0001b168, 6 bytes — `mov eax,5; ret`, nothing else.  No callers anywhere in
+ * the image and no string, constant or call to identify it by, so there is no name to
+ * recover and none is invented: the identifier is the symbol gladi386.so ships.  It
+ * sits between AAS_Time (F183) and BotLibLoadMap (F185) — and it is placed there,
+ * not at the end of the TU, because gladi386.so's address order records the
+ * original definition order. */
+// gladiator.dll: absent
+// gladi386.so:   0001B168..0001B16E
+int __cdecl F184(void)
+{
+  return 5;
+} //end of the function F184
+
+#endif /* !_WIN32 -- gladi386.so-only */
+
 // gladiator.dll: 1000E880..1000EBE2
 // gladi386.so:   0001B170..0001B531
 int BotLibLoadMap(char *Source)
@@ -654,20 +674,3 @@ int AAS_Shutdown()
   aasworld.initialized = 0;
   return botimport.Print(PRT_MESSAGE, "AAS shutdown.\n");
 }
-
-/* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.  See the identical note in
- * be_aas_route.c for why these are gated rather than added outright.
- * ------------------------------------------------------------------------ */
-#ifndef _WIN32
-/* F184 @ 0x0001b168, 6 bytes — `mov eax,5; ret`, nothing else.  No callers anywhere in
- * the image and no string, constant or call to identify it by, so there is no name to
- * recover and none is invented: the identifier is the symbol gladi386.so ships.  It
- * sits between AAS_Time (F183) and BotLibLoadMap (F185). */
-// gladiator.dll: absent
-// gladi386.so:   0001B168..0001B16E
-int __cdecl F184(void)
-{
-  return 5;
-} //end of the function F184
-#endif /* !_WIN32 -- gladi386.so-only */

@@ -29,6 +29,43 @@
 int numportalcacheupdates; // weak
 int numareacacheupdates; // weak
 
+/* ------------------------------------------------------------------------
+ * Present in gladi386.so, ABSENT from gladiator.dll.
+ *
+ * The .so is the Aug 2 1999 build, the DLL Jul 18, so the Linux image carries
+ * functions the Windows one does not.  Gated rather than added unconditionally,
+ * because the DLL is the canonical byte-match target and code it does not contain
+ * must not appear in it.  Drop the gate for any that later turns up.
+ *
+ * Each sits at the position gladi386.so's address order records for it, because
+ * gcc 2.7 auto-inlines only a same-TU callee it has already parsed.
+ * ------------------------------------------------------------------------ */
+#ifndef _WIN32
+/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib has this verbatim.  The disassembly
+ * indexes areasettings by 28 (its sizeof) and portals by 20, takes
+ * `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
+ * clusterareanum[frontcluster != cluster] out of the portal at -cluster.
+ *
+ * FIRST in the TU, which is where gladi386.so's address order puts it (0x2639c,
+ * ahead of AAS_InitTravelFlagFromType at 0x26400): gcc -O6 auto-inlines only a
+ * same-TU callee it has already parsed, and every in-TU caller — including
+ * AAS_GetAreaRoutingCache, whose real body has no `call` to this address at all —
+ * follows it. */
+// gladiator.dll: absent
+// gladi386.so:   0002639C..00026400
+int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
+{
+  int side, areacluster;
+
+  areacluster = aasworld.areasettings[areanum].cluster;
+  if ( areacluster > 0 )
+    return aasworld.areasettings[areanum].clusterareanum;
+  side = aasworld.portals[-areacluster].frontcluster != cluster;
+  return aasworld.portals[-areacluster].clusterareanum[side];
+} //end of the function AAS_ClusterAreaNum
+
+#endif /* !_WIN32 -- gladi386.so-only */
+
 // gladiator.dll: 10018D00..10018D8D
 // gladi386.so:   00026400..000264EF
 /* Fill the travel-type -> travel-flag table (aasworld.travelflagfortype, 32
@@ -200,6 +237,20 @@ void __cdecl AAS_FreeRoutingCache(void *cache)
 {
   FreeMemory(cache);
 }
+
+#ifndef _WIN32
+/* F511 @ 0x0002651c, 20 bytes — a bare tail call to AAS_Time().  Q3 has it as
+ * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
+ * line, which is what `__inline` compiles to under a compiler that ignores the
+ * hint. */
+// gladiator.dll: absent
+// gladi386.so:   0002651C..00026530
+float __cdecl AAS_RoutingTime(void)
+{
+  return AAS_Time();
+} //end of the function AAS_RoutingTime
+
+#endif /* !_WIN32 -- gladi386.so-only */
 
 // gladiator.dll: 10019280..10019320
 // gladi386.so:   00026B04..00026BDC
@@ -386,6 +437,115 @@ static void sub_10019570(void)
   }
 }
 
+#ifndef _WIN32
+/* F524 @ 0x000270e8, 403 bytes.  Sweeps every routing cache older than 15 seconds
+ * and frees it — cluster-area caches first, then the per-area portal caches.  Q3 has
+ * no counterpart (it evicts one cache at a time under memory pressure), so there is
+ * no name to take; the identifier is the symbol gladi386.so ships.
+ *
+ * From the disassembly: cluster stride 12 (aas_cluster_t) with numareas at +0, cache
+ * prev/next at +0x20/+0x24, the threshold a QWORD 15.0 at .rodata 0x571e0, and the
+ * second loop bounded by numareas because portalcache is indexed by area, not by
+ * portal.  It frees through FreeMemory directly, not through a wrapper. */
+// gladiator.dll: absent
+// gladi386.so:   000270E8..0002727B
+void __cdecl F524(void)
+{
+  int i, j;
+  aas_routingcache_t *cache, *nextcache;
+
+  for ( i = 0; i < aasworld.numclusters; i++ )
+  {
+    for ( j = 0; j < aasworld.clusters[i].numareas; j++ )
+    {
+      for ( cache = aasworld.clusterareacache[i][j]; cache; cache = nextcache )
+      {
+        nextcache = cache->next;
+        if ( cache->time < AAS_Time() - 15.0 )
+        {
+          if ( cache->prev )
+            cache->prev->next = cache->next;
+          else
+            aasworld.clusterareacache[i][j] = cache->next;
+          if ( cache->next )
+            cache->next->prev = cache->prev;
+          FreeMemory(cache);
+        }
+      }
+    }
+  }
+  for ( i = 0; i < aasworld.numareas; i++ )
+  {
+    for ( cache = aasworld.portalcache[i]; cache; cache = nextcache )
+    {
+      nextcache = cache->next;
+      if ( cache->time < AAS_Time() - 15.0 )
+      {
+        if ( cache->prev )
+          cache->prev->next = cache->next;
+        else
+          aasworld.portalcache[i] = cache->next;
+        if ( cache->next )
+          cache->next->prev = cache->prev;
+        FreeMemory(cache);
+      }
+    }
+  }
+} //end of the function F524
+
+/* F525 @ 0x0002727c, 57 bytes.  Appends a routing update to the FIFO that
+ * AAS_UpdateAreaRoutingCache / AAS_UpdatePortalRoutingCache drain.  Q3 writes this
+ * same sequence INLINE at each enqueue site, so there is no Q3 name to take; the
+ * identifier is the symbol gladi386.so ships.
+ *
+ * The field offsets settle which struct it is: it guards on +0x1c and writes +0x20
+ * then +0x24, which is aas_routingupdate_t's inlist / next / prev — NOT
+ * aas_routingcache_t, whose +0x1c is travelflags.
+ *
+ *   arg1 = &updateliststart (set only when the list was empty)
+ *   arg2 = &updatelistend
+ *   arg3 = the update to append
+ */
+// gladiator.dll: absent
+// gladi386.so:   0002727C..000272B5
+void __cdecl F525(aas_routingupdate_t **updateliststart,
+                  aas_routingupdate_t **updatelistend,
+                  aas_routingupdate_t *update)
+{
+  if ( update->inlist )
+    return;
+  if ( *updatelistend )
+    (*updatelistend)->next = update;
+  else
+    *updateliststart = update;
+  update->prev = *updatelistend;
+  update->next = NULL;
+  *updatelistend = update;
+  update->inlist = 1;
+} //end of the function F525
+
+/* F526 @ 0x000272b8, 83 bytes.  Q3's AAS_GetAreaContentsTravelFlags, minus the
+ * DONOTENTER / NOTTEAM / BRIDGE clauses Q3 added later.  The four TFL_ values and
+ * three AREACONTENTS_ bits come straight out of this function: `test al,1 ->
+ * 0x10000`, `test al,4 -> 0x20000`, `test al,2 -> 0x40000`, else `0x8000`. */
+// gladiator.dll: absent
+// gladi386.so:   000272B8..0002730B
+int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
+{
+  int contents;
+
+  contents = aasworld.areasettings[areanum].contents;
+  if ( contents & AREACONTENTS_WATER )
+    return TFL_WATER;
+  if ( contents & AREACONTENTS_LAVA )
+    return TFL_LAVA;
+  if ( contents & AREACONTENTS_SLIME )
+    return TFL_SLIME;
+  return TFL_AIR;
+} //end of the function AAS_GetAreaContentsTravelFlags
+
+#endif /* !_WIN32 -- gladi386.so-only */
+
 // gladiator.dll: 10019700..100199C3
 // gladi386.so:   0002730C..000276C3
 /* The routing-update FIFO is walked through typed aas_routingupdate_t fields
@@ -507,31 +667,6 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
     }
   }
 }
-
-#ifndef _WIN32
-/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib has this verbatim.  The disassembly
- * indexes areasettings by 28 (its sizeof) and portals by 20, takes
- * `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
- * clusterareanum[frontcluster != cluster] out of the portal at -cluster.
- *
- * Positioned here, ahead of its only in-TU caller AAS_GetAreaRoutingCache, rather
- * than with the rest of the .so-only block below: gladi386.so's
- * AAS_GetAreaRoutingCache has no `call` to this address at all — the body is folded
- * in — and gcc -O6 only auto-inlines a same-TU callee it has already parsed. */
-// gladiator.dll: absent
-// gladi386.so:   0002639C..00026400
-int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
-{
-  int side, areacluster;
-
-  areacluster = aasworld.areasettings[areanum].cluster;
-  if ( areacluster > 0 )
-    return aasworld.areasettings[areanum].clusterareanum;
-  side = aasworld.portals[-areacluster].frontcluster != cluster;
-  return aasworld.portals[-areacluster].clusterareanum[side];
-} //end of the function AAS_ClusterAreaNum
-
-#endif /* !_WIN32 -- gladi386.so-only, see the block further down for why */
 
 // gladiator.dll: 10019A90..10019BA7
 // gladi386.so:   000276C4..0002781C
@@ -943,133 +1078,3 @@ int AAS_RoutingInfo()
   return botimport.Print(PRT_MESSAGE, "%d portal cache updates\n", numportalcacheupdates);
 }
 
-/* ------------------------------------------------------------------------
- * Present in gladi386.so, ABSENT from gladiator.dll.
- *
- * The .so is the Aug 2 1999 build, the DLL Jul 18, so the Linux image carries
- * functions the Windows one does not.  Gated rather than added unconditionally,
- * because the DLL is the canonical byte-match target and code it does not contain
- * must not appear in it.  Drop the gate for any that later turns up.
- *
- * AAS_ClusterAreaNum (F508) is ALSO one of these but lives above, ahead of
- * AAS_GetAreaRoutingCache — see the comment there for why its position matters.
- * ------------------------------------------------------------------------ */
-#ifndef _WIN32
-
-/* F511 @ 0x0002651c, 20 bytes — a bare tail call to AAS_Time().  Q3 has it as
- * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
- * line, which is what `__inline` compiles to under a compiler that ignores the
- * hint. */
-// gladiator.dll: absent
-// gladi386.so:   0002651C..00026530
-float __cdecl AAS_RoutingTime(void)
-{
-  return AAS_Time();
-} //end of the function AAS_RoutingTime
-
-/* F525 @ 0x0002727c, 57 bytes.  Appends a routing update to the FIFO that
- * AAS_UpdateAreaRoutingCache / AAS_UpdatePortalRoutingCache drain.  Q3 writes this
- * same sequence INLINE at each enqueue site, so there is no Q3 name to take; the
- * identifier is the symbol gladi386.so ships.
- *
- * The field offsets settle which struct it is: it guards on +0x1c and writes +0x20
- * then +0x24, which is aas_routingupdate_t's inlist / next / prev — NOT
- * aas_routingcache_t, whose +0x1c is travelflags.
- *
- *   arg1 = &updateliststart (set only when the list was empty)
- *   arg2 = &updatelistend
- *   arg3 = the update to append
- */
-// gladiator.dll: absent
-// gladi386.so:   0002727C..000272B5
-void __cdecl F525(aas_routingupdate_t **updateliststart,
-                  aas_routingupdate_t **updatelistend,
-                  aas_routingupdate_t *update)
-{
-  if ( update->inlist )
-    return;
-  if ( *updatelistend )
-    (*updatelistend)->next = update;
-  else
-    *updateliststart = update;
-  update->prev = *updatelistend;
-  update->next = NULL;
-  *updatelistend = update;
-  update->inlist = 1;
-} //end of the function F525
-
-/* F526 @ 0x000272b8, 83 bytes.  Q3's AAS_GetAreaContentsTravelFlags, minus the
- * DONOTENTER / NOTTEAM / BRIDGE clauses Q3 added later.  The four TFL_ values and
- * three AREACONTENTS_ bits come straight out of this function: `test al,1 ->
- * 0x10000`, `test al,4 -> 0x20000`, `test al,2 -> 0x40000`, else `0x8000`. */
-// gladiator.dll: absent
-// gladi386.so:   000272B8..0002730B
-int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
-{
-  int contents;
-
-  contents = aasworld.areasettings[areanum].contents;
-  if ( contents & AREACONTENTS_WATER )
-    return TFL_WATER;
-  if ( contents & AREACONTENTS_LAVA )
-    return TFL_LAVA;
-  if ( contents & AREACONTENTS_SLIME )
-    return TFL_SLIME;
-  return TFL_AIR;
-} //end of the function AAS_GetAreaContentsTravelFlags
-
-/* F524 @ 0x000270e8, 403 bytes.  Sweeps every routing cache older than 15 seconds
- * and frees it — cluster-area caches first, then the per-area portal caches.  Q3 has
- * no counterpart (it evicts one cache at a time under memory pressure), so there is
- * no name to take; the identifier is the symbol gladi386.so ships.
- *
- * From the disassembly: cluster stride 12 (aas_cluster_t) with numareas at +0, cache
- * prev/next at +0x20/+0x24, the threshold a QWORD 15.0 at .rodata 0x571e0, and the
- * second loop bounded by numareas because portalcache is indexed by area, not by
- * portal.  It frees through FreeMemory directly, not through a wrapper. */
-// gladiator.dll: absent
-// gladi386.so:   000270E8..0002727B
-void __cdecl F524(void)
-{
-  int i, j;
-  aas_routingcache_t *cache, *nextcache;
-
-  for ( i = 0; i < aasworld.numclusters; i++ )
-  {
-    for ( j = 0; j < aasworld.clusters[i].numareas; j++ )
-    {
-      for ( cache = aasworld.clusterareacache[i][j]; cache; cache = nextcache )
-      {
-        nextcache = cache->next;
-        if ( cache->time < AAS_Time() - 15.0 )
-        {
-          if ( cache->prev )
-            cache->prev->next = cache->next;
-          else
-            aasworld.clusterareacache[i][j] = cache->next;
-          if ( cache->next )
-            cache->next->prev = cache->prev;
-          FreeMemory(cache);
-        }
-      }
-    }
-  }
-  for ( i = 0; i < aasworld.numareas; i++ )
-  {
-    for ( cache = aasworld.portalcache[i]; cache; cache = nextcache )
-    {
-      nextcache = cache->next;
-      if ( cache->time < AAS_Time() - 15.0 )
-      {
-        if ( cache->prev )
-          cache->prev->next = cache->next;
-        else
-          aasworld.portalcache[i] = cache->next;
-        if ( cache->next )
-          cache->next->prev = cache->prev;
-        FreeMemory(cache);
-      }
-    }
-  }
-} //end of the function F524
-#endif /* !_WIN32 -- gladi386.so-only */

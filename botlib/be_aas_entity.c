@@ -301,6 +301,67 @@ int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas)
   return 0;
 }
 
+// gladiator.dll: 1000B1B0..1000B1D2
+// gladi386.so:   0001475C..000147D8
+/* Thin wrapper handing aasworld.entities[entnum].areas (the entity's aas_link_t chain
+ * head at +0x7c) to AAS_BestReachableLinkArea.  DEAD — /INCREMENTAL. */
+int __cdecl AAS_BestReachableEntityArea(int entnum)
+{
+#if BOTLIB_NEED_SIDEBAND
+  aas_link_t *links = AAS_EntAreaLink(entnum);
+  return AAS_BestReachableLinkArea(links);
+#else
+  aas_entity_t *ent;
+
+  ent = &aasworld.entities[entnum];
+  return AAS_BestReachableLinkArea(ent->areas);
+#endif
+}
+
+// gladiator.dll: 1000B1F0..1000B2BE
+// gladi386.so:   000147D8..000148EB
+// FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities) for the entry
+// whose 4-byte field at +0x5C equals target and whose origin is within 40 units of the
+// caller's reference point in both x and y (integer-truncated abs(dx) < 40 &&
+// abs(dy) < 40).  Of the candidates passing the gate, return the index whose 3D
+// distance to ref is smallest (initial best = 99999.0).  The best distance is dropped
+// on return.  When numentities <= 0 it short-circuits to 0 without touching arg1.
+// Stride 132 (=sizeof(aas_entity_t)); +0x10 = origin xyz, +0x5C = the classnum key.
+// DEAD in Gladiator — /INCREMENTAL.
+int __cdecl sub_1000B1F0(float *ref, int target)
+{
+  int i;
+  int best_index;
+  float best_dist;
+  aas_entityinfo_t *ent;
+  vec3_t delta;
+  float d;
+
+  best_index = 0;
+  best_dist  = 99999.0f;
+  /* No explicit `if (numentities <= 0) return` guard: the loop's own entry test covers
+   * it and the single tail returns 0, sharing one epilogue between the empty and normal
+   * exits as the original does. */
+  for ( i = 0; i < aasworld.numentities; i++ )
+  {
+    ent = &aasworld.entities[i].i;
+    if ( ent->modelindex != target )
+      continue;
+    VectorSubtract(ent->origin, ref, delta);
+    if ( abs((int)delta[0]) >= 40 )
+      continue;
+    if ( abs((int)delta[1]) >= 40 )
+      continue;
+    d = VectorLength(delta);
+    if ( d < best_dist )
+    {
+      best_dist  = (float)d;
+      best_index = i;
+    }
+  }
+  return best_index;
+}
+
 // gladiator.dll: 1000B300..1000B585
 // gladi386.so:   000148EC..00014CBC
 int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
@@ -511,67 +572,6 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     }
   }
   return 0;
-}
-
-// gladiator.dll: 1000B1F0..1000B2BE
-// gladi386.so:   000147D8..000148EB
-// FindNearestEntity-by-classnum: scan aasworld.entities[0..numentities) for the entry
-// whose 4-byte field at +0x5C equals target and whose origin is within 40 units of the
-// caller's reference point in both x and y (integer-truncated abs(dx) < 40 &&
-// abs(dy) < 40).  Of the candidates passing the gate, return the index whose 3D
-// distance to ref is smallest (initial best = 99999.0).  The best distance is dropped
-// on return.  When numentities <= 0 it short-circuits to 0 without touching arg1.
-// Stride 132 (=sizeof(aas_entity_t)); +0x10 = origin xyz, +0x5C = the classnum key.
-// DEAD in Gladiator — /INCREMENTAL.
-int __cdecl sub_1000B1F0(float *ref, int target)
-{
-  int i;
-  int best_index;
-  float best_dist;
-  aas_entityinfo_t *ent;
-  vec3_t delta;
-  float d;
-
-  best_index = 0;
-  best_dist  = 99999.0f;
-  /* No explicit `if (numentities <= 0) return` guard: the loop's own entry test covers
-   * it and the single tail returns 0, sharing one epilogue between the empty and normal
-   * exits as the original does. */
-  for ( i = 0; i < aasworld.numentities; i++ )
-  {
-    ent = &aasworld.entities[i].i;
-    if ( ent->modelindex != target )
-      continue;
-    VectorSubtract(ent->origin, ref, delta);
-    if ( abs((int)delta[0]) >= 40 )
-      continue;
-    if ( abs((int)delta[1]) >= 40 )
-      continue;
-    d = VectorLength(delta);
-    if ( d < best_dist )
-    {
-      best_dist  = (float)d;
-      best_index = i;
-    }
-  }
-  return best_index;
-}
-
-// gladiator.dll: 1000B1B0..1000B1D2
-// gladi386.so:   0001475C..000147D8
-/* Thin wrapper handing aasworld.entities[entnum].areas (the entity's aas_link_t chain
- * head at +0x7c) to AAS_BestReachableLinkArea.  DEAD — /INCREMENTAL. */
-int __cdecl AAS_BestReachableEntityArea(int entnum)
-{
-#if BOTLIB_NEED_SIDEBAND
-  aas_link_t *links = AAS_EntAreaLink(entnum);
-  return AAS_BestReachableLinkArea(links);
-#else
-  aas_entity_t *ent;
-
-  ent = &aasworld.entities[entnum];
-  return AAS_BestReachableLinkArea(ent->areas);
-#endif
 }
 
 // gladiator.dll: 1000BAA0..1000BB0E

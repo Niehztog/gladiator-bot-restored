@@ -690,13 +690,41 @@ typedef int _bot_state_t_size_check[sizeof(bot_state_t) == BOT_STATE_SIZE ? 1 : 
  * Each pair is an int[2]: a byte-sized type at +0 (padded) and the value at +4.
  * The byte field stays explicit so MSVC6 emits the same byte accesses, while
  * intptr_t keeps the value slot pointer-sized for the 64-bit port. */
+/* Q3 be_ai_char.c:56 declares `union cvalue` with exactly these three members in
+ * this order, and the reference `.so` needs the union rather than one wide slot
+ * read through casts: reading the float arm as `value._float` keeps gcc 2.7's
+ * CSE of the scaled index alive into the third branch (`fld [eax+edi+8]`), where
+ * `*(float *)&value` breaks it and recomputes the address.  It also decides the
+ * register roles -- type byte in dl, index*8 in eax, as in the original.
+ * Measured with scripts/probe_snippet.sh, 2026-08-18.
+ *
+ * `char *string` keeps the union pointer-sized, so the 64-bit port's 16-byte
+ * pair with value at +8 is unchanged from the old `intptr_t` slot. */
+union cvalue {
+    int    integer;
+    float  _float;
+    char  *string;
+};
+
 typedef struct bot_characteristic_s {
     unsigned char type; /* 0=unset, 1=int, 2=float, 3=string */
-    intptr_t      value; /* int, float (via *(float*)&value), or char * */
+    union cvalue  value;
 } bot_characteristic_t;
 
+/* The trailing pair array is a REAL member, exactly as Q3's bot_character_t
+ * declares `bot_characteristic_t c[1]`, not a pointer synthesised from the
+ * struct's end.  gcc 2.7 compiles the two differently and the reference `.so`
+ * has the member form: `ch->c[index]` makes it CSE the scaled index into a
+ * register (`lea eax,[esi*8+0]` then `[eax+edi+4]` / `[eax+edi+8]`), where a
+ * cast-past-the-struct pointer folds the base in and emits `[edi+esi*8+4]`.
+ * Measured with scripts/probe_snippet.sh, 2026-08-18.
+ *
+ * Its offset is unchanged from the old cast: 4 on a 32-bit ABI, and 8 on
+ * 64-bit, where intptr_t forces 8-alignment on the array -- which is exactly
+ * what the old `(sizeof(bot_character_t) + 7) & ~7` computed. */
 typedef struct bot_character_s {
     int numcharacteristics;
+    bot_characteristic_t c[1];
 } bot_character_t;
 
 /* bs->weaponweights is a flattened inline `int[7]`, five slots of which hold
@@ -770,8 +798,7 @@ typedef struct bot_chatvar_s { char *str; int len; } bot_chatvar_t;
 /* 64-bit side-band accessors for the bot structures.  PORT-ONLY: they have no 1999
  * counterpart.  They live here rather than in botlib_port.h because each
  * wraps one specific structure above and cannot be separated from it. */
-#define BC_PAIRS(bc) ((bot_characteristic_t *)((char *)(bc) + \
-    ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))))
+#define BC_PAIRS(bc) ((bc)->c)
 
 /* Side-band tables — see the BOTLIB_NEED_SIDEBAND gate above.  Each macro must
  * be an lvalue of the same type in both branches: backed by a parallel array on

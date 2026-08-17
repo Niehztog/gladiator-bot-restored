@@ -150,12 +150,12 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
               {
                 if ( (token.subtype & 0x800) != 0 )
                 {
-                  *(float *)&BC_PAIRS(ch)[index].value = token.floatvalue;
+                  BC_PAIRS(ch)[index].value._float = token.floatvalue;
                   BC_PAIRS(ch)[index].type = 2;
                 }
                 else
                 {
-                  BC_PAIRS(ch)[index].value = (intptr_t)token.intvalue;
+                  BC_PAIRS(ch)[index].value.integer = token.intvalue;
                   BC_PAIRS(ch)[index].type = 1;
                 }
               }
@@ -174,7 +174,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
               if ( pass )
               {
                 strcpy(strptr, token.string);
-                BC_PAIRS(ch)[index].value = (intptr_t)strptr;
+                BC_PAIRS(ch)[index].value.string = strptr;
                 BC_PAIRS(ch)[index].type = 3;
                 strptr += strlen(token.string) + 1;
               }
@@ -224,8 +224,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
       ch = (bot_character_t *)GetClearedMemory(
         stringbytes
         + sizeof(bot_characteristic_t) * numchars
-        + ((sizeof(bot_character_t) + sizeof(intptr_t) - 1) & ~(sizeof(intptr_t) - 1))
-        + sizeof(bot_characteristic_t));
+        + sizeof(bot_character_t));
       ch->numcharacteristics = numchars;
       strptr = (char *)&BC_PAIRS(ch)[numchars + 1];
     }
@@ -265,17 +264,20 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
 // gladi386.so:   00038BA8..00038C50
 float __cdecl Characteristic_Float(bot_character_t *character, int index)
 {
-  bot_characteristic_t *pair;
   char v2; // al
 
   if ( !CheckCharacteristicIndex(character, index) )
     return 0.0f;
-  pair = &BC_PAIRS(character)[index];
-  v2 = (char)pair->type;
+  /* Subscripted per use, NOT hoisted into a `pair` pointer: gcc 2.7 CSEs only
+   * the `index * 8` and re-adds the base register in each addressing mode
+   * (`lea eax,[esi*8+0]` then `[eax+edi+4]` / `[eax+edi+8]`), where a pointer
+   * temp folds the base into the lea and loses 5 bytes.  Same for
+   * Characteristic_Integer below. */
+  v2 = (char)BC_PAIRS(character)[index].type;
   if ( v2 == 1 )
-    return (float)(int)pair->value;
+    return (float)BC_PAIRS(character)[index].value.integer;
   if ( v2 == 2 )
-    return *(float *)&pair->value;
+    return BC_PAIRS(character)[index].value._float;
   botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
   return 0.0f;
 }
@@ -304,17 +306,15 @@ float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float
 // gladi386.so:   00038CEC..00038DC6
 int __cdecl Characteristic_Integer(bot_character_t *character, int index)
 {
-  bot_characteristic_t *pair;
   char v2; // al
 
   if ( !CheckCharacteristicIndex(character, index) )
     return 0;
-  pair = &BC_PAIRS(character)[index];
-  v2 = (char)pair->type;
+  v2 = (char)BC_PAIRS(character)[index].type;
   if ( v2 == 1 )
-    return (int)pair->value;
+    return BC_PAIRS(character)[index].value.integer;
   if ( v2 == 2 )
-    return (int)*(float *)&pair->value;
+    return (int)BC_PAIRS(character)[index].value._float;
   botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
   return 0;
 }
@@ -345,7 +345,7 @@ char *__cdecl Characteristic_String(bot_character_t *character, int index)
   if ( !CheckCharacteristicIndex(character, index) )
     return "";
   if ( (unsigned char)BC_PAIRS(character)[index].type == 3 )
-    return (char *)BC_PAIRS(character)[index].value;
+    return BC_PAIRS(character)[index].value.string;
   botimport.Print(PRT_ERROR, "characteristic %d is not a string\n", index);
   return 0;
 }

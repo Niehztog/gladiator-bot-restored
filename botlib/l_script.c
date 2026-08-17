@@ -881,6 +881,18 @@ void __cdecl PS_UnreadLastToken(script_t *script)
   script->tokenavailable = 1;
 }
 
+// gladiator.dll: 1003FC30..1003FC54
+// gladi386.so:   00052700..00052725
+/* F379 @ 0x00052700 (37 B ELF) / 0x1003FC30 (DLL).  Q3 has this verbatim.  The two
+ * builds copy a different count — 0x10b dwords in the ELF against 0x10c in the DLL —
+ * because sizeof(token_t) differs by 4 between them; both are `sizeof(token_t)` in
+ * source. */
+void __cdecl PS_UnreadToken(script_t *script, token_t *token)
+{
+  memcpy(&script->token, token, sizeof(token_t));
+  script->tokenavailable = 1;
+} //end of the function PS_UnreadToken
+
 // gladiator.dll: 1003FC70..1003FC91
 // gladi386.so:   00052728..0005274A
 /* getc over the script's whitespace span: read one byte, advance the cursor,
@@ -995,6 +1007,22 @@ int __cdecl GetScriptFlags(script_t *script)
 {
   return script->flags;
 }
+
+// gladiator.dll: 1003FFF0..1004003D
+// gladi386.so:   00052A14..00052A86
+/* F387 @ 0x00052a14 (114 B ELF) / 0x1003FFF0 (DLL).  Q3 botlib l_script.c,
+ * field for field. */
+void __cdecl ResetScript(script_t *script)
+{
+  script->script_p = script->buffer;
+  script->lastscript_p = script->buffer;
+  script->whitespace_p = NULL;
+  script->endwhitespace_p = NULL;
+  script->tokenavailable = 0;
+  script->line = 1;
+  script->lastline = 1;
+  memset(&script->token, 0, sizeof(token_t));
+} //end of the function ResetScript
 
 // gladiator.dll: 10040060..10040076
 // gladi386.so:   00052A88..00052AA1
@@ -1148,36 +1176,3 @@ void __cdecl FreeScript(script_t *script)
 
 /* The nine structure read/write functions live in their own TU: botlib/l_struct.c
  * (DLL 0x100404B0..0x1004123F). */
-
-/* Both of the following ARE in gladiator.dll — 0x1003FC30 is the `rep movsd` +
- * `tokenavailable = 1` of PS_UnreadToken and 0x1003FFF0 is ResetScript's seven field
- * writes plus `rep stos`.  The ELF audit says nothing about the DLL; the check that
- * does is "is there unclaimed .text in this TU's range". */
-
-// gladiator.dll: 1003FC30..1003FC54
-// gladi386.so:   00052700..00052725
-/* F379 @ 0x00052700 (37 B ELF) / 0x1003FC30 (DLL).  Q3 has this verbatim.  The two
- * builds copy a different count — 0x10b dwords in the ELF against 0x10c in the DLL —
- * because sizeof(token_t) differs by 4 between them; both are `sizeof(token_t)` in
- * source. */
-void __cdecl PS_UnreadToken(script_t *script, token_t *token)
-{
-  memcpy(&script->token, token, sizeof(token_t));
-  script->tokenavailable = 1;
-} //end of the function PS_UnreadToken
-
-// gladiator.dll: 1003FFF0..1004003D
-// gladi386.so:   00052A14..00052A86
-/* F387 @ 0x00052a14 (114 B ELF) / 0x1003FFF0 (DLL).  Q3 botlib l_script.c,
- * field for field. */
-void __cdecl ResetScript(script_t *script)
-{
-  script->script_p = script->buffer;
-  script->lastscript_p = script->buffer;
-  script->whitespace_p = NULL;
-  script->endwhitespace_p = NULL;
-  script->tokenavailable = 0;
-  script->line = 1;
-  script->lastline = 1;
-  memset(&script->token, 0, sizeof(token_t));
-} //end of the function ResetScript

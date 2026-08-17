@@ -1559,7 +1559,10 @@ void ClientSetViewAngles(edict_t *ent, vec3_t new_angles, vec3_t cmd_angles)
 //===========================================================================
 qboolean Cam_SpotVisible(edict_t *ent, vec3_t point)
 {
-	vec3_t sav_origin, start, end;
+	/* start, end, sav_origin -- the order gamei386.so's frame records (slotmap
+	   pairs ref 0x68/0x5c/0x50 to start/end/sav_origin).  Cam_EntityVisible
+	   below has the same triple in the same order. */
+	vec3_t start, end, sav_origin;
 	int contmask;
 	trace_t tr;
 
@@ -1608,7 +1611,7 @@ qboolean Cam_SpotVisible(edict_t *ent, vec3_t point)
 //===========================================================================
 qboolean Cam_EntityVisible(edict_t *ent, edict_t *target)
 {
-	vec3_t sav_origin, start, end;
+	vec3_t start, end, sav_origin;
 	edict_t *passent;
 	edict_t *targent;
 	int contmask;
@@ -1702,8 +1705,14 @@ edict_t *Cam_Cycle(edict_t *prev)
 //===========================================================================
 void Cam_Message(edict_t *ent, edict_t *target, char *prefix)
 {
-	char fragword[0x80];                                 /* [ebp-0x100] */
+	/* Declaration order is recorded twice over: MSVC /Od lays the first-declared
+	   local closest to ebp, so the original's -0x80 / -0x100 pair puts score_buf
+	   first; and gcc 2.7 fills its address-taken group top-down in declaration
+	   order, which gamei386.so confirms (fragword at 0x10/0x14, score_buf at
+	   0x90).  Reversing these two was worth 16 insn_diffs here and 16 more in
+	   Cam_EnterDeathMode, which inlines this function. */
 	char score_buf[0x80];                                /* [ebp-0x80]  */
+	char fragword[0x80];                                 /* [ebp-0x100] */
 
 	if (!(ent->client->camera.flags & CAMFL_NAME))      /* +0xf98 */
 		return;
@@ -1889,8 +1898,8 @@ qboolean Cam_GetFlyBySpot(edict_t *ent, edict_t *target, vec3_t out_pos); /* sub
 void Cam_EnterFlyByMode(edict_t *ent, edict_t *target, usercmd_t *ucmd)
 {
 	camera_t *cam;
+	vec3_t   diff;              /* declared before pos -- gamei386.so's frame */
 	vec3_t   pos;
-	vec3_t   diff;
 
 	cam = &ent->client->camera;
 
@@ -2086,15 +2095,20 @@ float Cam_TryFlyByVector(edict_t *ent, vec3_t ofs, vec3_t out_endpos)
 
 qboolean Cam_GetFlyBySpot(edict_t *ent, edict_t *target, vec3_t out)
 {
-	vec3_t    fwd;
+	/* vec3 order recovered from gamei386.so's frame: gcc 2.7 fills the
+	   address-taken group top-down in declaration order, and slotmap.py pairs
+	   ref 0x50/0x44/0x38/0x2c/0x20/0x14 to cand_ofs/cand_endpos/input_angles/
+	   fwd/right/up -- i.e. the two candidate vectors first, then the angles and
+	   the three axes in AngleVectors' own argument order. */
+	vec3_t    cand_ofs;
 	float     best_score;
 	camera_t *cam;
-	vec3_t    right;
+	vec3_t    cand_endpos;
 	float     score;
 	vec3_t    input_angles;     /* doubles as input_angles slot */
-	vec3_t    cand_endpos;
+	vec3_t    fwd;
+	vec3_t    right;
 	vec3_t    up;
-	vec3_t    cand_ofs;
 
 	(void)target;   /* unused in the original */
 
