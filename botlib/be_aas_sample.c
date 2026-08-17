@@ -246,23 +246,20 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
   AAS_PresenceTypeBoundingBox(presencetype, boxmins, boxmaxs);
   bsptrace.fraction = 1.0;
   collision = 0;
-  link = aasworld.arealinkedentities[areanum];
-  /* The empty-list guard reaches the shared `return 0` tail via `goto fail`, and the
-   * post-loop test is Q3's positive `if (collision)`, so the success block is the warm
-   * fall-through and `return 0` the cold tail.  Inverting it moves the success block
-   * cold. */
-  if ( !link )
-    goto fail;
-  do
+  /* Q3's plain `for` walk.  gcc rotates it, so the empty-list guard lands on the
+   * post-loop `collision` test — an explicit `if (!link) goto fail;` instead lets
+   * it thread straight to `return 0`, which is what the reconstruction used to
+   * have.  Both originals disagree with that: the DLL merges the two tails anyway,
+   * and gcc keeps the test.  Keep the positive `if (collision)` — the negative
+   * guard is canonicalised back to this by gcc and never reaches the DLL. */
+  for ( link = aasworld.arealinkedentities[areanum]; link; link = link->next_ent )
   {
     if ( link->entnum != passent )
     {
       if ( AAS_EntityCollision(link->entnum, start, boxmins, boxmaxs, end, 33619971, &bsptrace) )
         collision = 1;
     }
-    link = link->next_ent;
   }
-  while ( link );
   if ( collision )
   {
     trace->startsolid = bsptrace.startsolid;
@@ -272,7 +269,6 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
     trace->planenum = 0;
     return 1;
   }
-fail:
   return 0;
 }
 // gladiator.dll: 1001B260..1001B86F
