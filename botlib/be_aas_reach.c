@@ -2237,10 +2237,10 @@ void AAS_Reachability_Elevator()
     if ( speed == 0 )
       speed = 200.0f;
     extent[2] = extent[2] - height;
-    VectorAdd(maxs, mins, sumvec);
+    VectorAdd(mins, maxs, sumvec);
     VectorMA(extent, 0.5f, sumvec, toporg);
     toporg[2] = maxs[2] - (pos1[2] - extent[2]) + 2.0f;
-    VectorAdd(maxs, mins, sumvec);
+    VectorAdd(mins, maxs, sumvec);
     VectorMA(extent, 0.5f, sumvec, btmorg);
     btmorg[2] = maxs[2] + 2.0f;
     for ( i = 0; i < 3; ++i )
@@ -2248,7 +2248,7 @@ void AAS_Reachability_Elevator()
       mins[i] -= 1.0f;
       maxs[i] += 1.0f;
     }
-    VectorAdd(maxs, mins, sumvec);
+    VectorAdd(mins, maxs, sumvec);
     VectorScale(sumvec, 0.5f, sumvec);
     xvals[0] = mins[0];
     xvals[1] = sumvec[0];
