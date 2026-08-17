@@ -478,7 +478,14 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     trace = AAS_Trace((float*)(start), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
     /* if trace hit a translucent water/slime surface, retrace through it */
     if ( (LOBYTE(trace.contents) & 0x38) != 0 && (LOBYTE(trace.surface.flags) & 0x30) != 0 )
-      trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask & 0xFFFFFFC7);
+    {
+      /* Compound assignment, not `AAS_Trace(…, contents_mask & 0xFFFFFFC7)`: the
+       * original clears the liquid bits IN PLACE (`and esi,0xffffffc7`).  Masking
+       * into a temporary instead lets gcc narrow it to `and al,0xc7` on a copy,
+       * because 0xFFFFFFC7 only touches the low byte. */
+      contents_mask &= 0xFFFFFFC7;
+      trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), passent, contents_mask);
+    }
     if ( trace.fraction >= 1.0f || LODWORD(trace.ent) == hitent )
       return 1;
     /* try alternate z-positions: foot, then head */

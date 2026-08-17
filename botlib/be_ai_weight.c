@@ -724,35 +724,54 @@ void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale)
 // gladi386.so:   000482A8..0004832F
 // GA crossover operator: blends two parent trees into a child tree by recursively
 // averaging seperator thresholds and leaf weights.  DEAD in Gladiator.
-int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2)
+void __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2)
 {
-  int result; // eax
-  fuzzyseperator_t *v5; // eax
+  fuzzyseperator_t *child; // eax
+  fuzzyseperator_t *next;  // esi/eax
 
-  while ( 1 )
+  /* void, as in Q3: every exit in both originals is a bare epilogue with nothing
+   * written to eax, and the child recursion's result is discarded.
+   *
+   * Two authentic original bugs, both visible in the disassembly and NOT to be
+   * "fixed": the child recursion passes fs2->child as BOTH arguments
+   * (`push eax; push eax`), and the `next` guard tests the WRONG sense --
+   * fs2->next != 0 is the error, fs2->next == 0 recurses with a NULL fs2
+   * (`push 0x0; push eax`).  Q3 has `(fs1->child, fs2->child)` and the opposite
+   * polarity in both places.
+   *
+   * The `next` step is a real recursive CALL.  MSVC6 turns it back into
+   * `fs2 = 0; goto top` itself (gladiator.dll 0x10036fe1), which is what IDA
+   * showed and what the reconstruction used to transcribe -- but writing that
+   * loop by hand costs the whole call block on the gcc side. */
+  if ( fs1->child )
   {
-    result = (int)fs1->child;
-    if ( result )
+    child = fs2->child;
+    if ( !child )
     {
-      v5 = fs2->child;
-      if ( !v5 )
-        return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
-      result = InterbreedFuzzySeperator_r(v5, fs2->child);
+      botimport.Print(PRT_ERROR, "can't merge weight configs\n");
+      return;
     }
-    else if ( fs1->type == 1 )
-    {
-      if ( fs2->type != 1 )
-        return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
-      fs1->weight = (fs1->weight + fs2->weight) * 0.5f;
-    }
-    fs1 = fs1->next;
-    if ( !fs1 )
-      return result;
-    if ( fs2->next )
-      break;
-    fs2 = 0;
+    InterbreedFuzzySeperator_r(child, fs2->child);
   }
-  return botimport.Print(PRT_ERROR, "can't merge weight configs\n");
+  else if ( fs1->type == 1 )
+  {
+    if ( fs2->type != 1 )
+    {
+      botimport.Print(PRT_ERROR, "can't merge weight configs\n");
+      return;
+    }
+    fs1->weight = (fs1->weight + fs2->weight) * 0.5f;
+  }
+  next = fs1->next;
+  if ( next )
+  {
+    if ( fs2->next )
+    {
+      botimport.Print(PRT_ERROR, "can't merge weight configs\n");
+      return;
+    }
+    InterbreedFuzzySeperator_r(next, 0);
+  }
 }
 // gladiator.dll: 10037020..10037070
 // gladi386.so:   00048330..00048409

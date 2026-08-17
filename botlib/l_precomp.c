@@ -1036,9 +1036,12 @@ define_t *__cdecl PC_DefineFromString(const char *string)
   src.scriptstack = script;
   src.definehash = (define_t **)GetClearedMemory(1024 * sizeof(define_t *));
   res = PC_Directive_define(&src);
+  /* Q3 advances through `src.tokens` itself, not through the `t` copy: the
+   * original re-reads the field for the `->next` even though `t` holds the same
+   * pointer in a live register. */
   for ( t = src.tokens; src.tokens; t = src.tokens )
   {
-    src.tokens = t->next;
+    src.tokens = src.tokens->next;
     PC_FreeToken(t);
   }
   def = NULL;

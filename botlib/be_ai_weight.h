@@ -14,7 +14,7 @@ float __cdecl FuzzyWeight(int *facts, weight_t *w);
 float __cdecl FuzzyWeightUndecided(int *facts, weight_t *w);
 float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs);
 float __cdecl FuzzyWeight_r(int *inventory, fuzzyseperator_t *fs);
-int __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
+void __cdecl InterbreedFuzzySeperator_r(fuzzyseperator_t *fs1, fuzzyseperator_t *fs2);
 void __cdecl ScaleWeight(weightconfig_t *config, char *name, float scale);
 void __cdecl InterbreedWeightConfigs(weightconfig_t *a, weightconfig_t *b);
 fuzzyseperator_t *__cdecl ReadFuzzySeperators_r(source_t *source);
