@@ -26,11 +26,24 @@
 #else
 /* MSVC CRT compat shims for Linux */
 #define _isnan(x) isnan(x)
+/* min/max are NOT shimmed under the 1999 compiler.  MSVC gets them as macros
+ * from <windows.h>/<stdlib.h>, but the Linux build had no declaration at all, so
+ * every `min (a, b)` compiled to a call to an implicitly-declared `int min()`
+ * with both arguments default-promoted to double -- `nm -D --undefined-only
+ * gamei386.so` shows `U min`, `U max`, `U _isnan`, and that is why the oracle
+ * channel needs libgladshim.so to load the original at all.  Truncating a float
+ * result through the int return is an authentic Linux-only original bug.
+ * Defining the macros here reproduces the DLL but costs the .so six audited rows
+ * (widow2_die, ThrowWidowGibReal, ai_run_slide, WidowCalcSlots,
+ * T_RadiusNukeDamage, SP_monster_carrier), so gate them on the compiler the same
+ * way LEGACY_STATIC below does. */
+#if !(defined(__GNUC__) && __GNUC__ < 3)
 #ifndef min
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 #ifndef max
 #define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
 #endif
 #endif
 #endif
