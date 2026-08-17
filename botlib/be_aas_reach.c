@@ -1811,13 +1811,16 @@ area2 = (aas_area_t *)v85;
             VectorNormalize(dir);
             VectorMA(area1point, -32.0, dir, area1point);
             VectorMA(area2point, 32.0, dir, area2point);
-            v66 = (float)abs((int)plane1->normal[2]) < 0.1;
-            ladderface2vertical = (float)abs((int)plane2->normal[2]) < 0.1;
+            /* No `(float)` cast around abs(): the original folds `n < 0.1` on a
+   * non-negative int into `test edx,edx`, so it never converts back to float.
+   * The cast forced a `fild` plus a real x87 compare at all four sites. */
+  v66 = abs((int)plane1->normal[2]) < 0.1;
+            ladderface2vertical = abs((int)plane2->normal[2]) < 0.1;
             if ( v66 )
             {
               if ( ladderface2vertical
                 && plane2->normal[0] * plane1->normal[0] + plane2->normal[2] * plane1->normal[2] + plane2->normal[1] * plane1->normal[1] > 0.7
-                && (float)abs((int)sharededgevec[2]) < 0.7 )
+                && abs((int)sharededgevec[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 if ( v32 )
@@ -1927,7 +1930,7 @@ area2 = (aas_area_t *)v85;
                     if ( (v58->faceflags & 2) != 0 )
                     {
                       plane2 = &aasworld.planes[v58->planenum];
-                      if ( (float)abs((int)plane2->normal[2]) < 0.1 )
+                      if ( abs((int)plane2->normal[2]) < 0.1 )
                         break;
                     }
                     ++v54;
