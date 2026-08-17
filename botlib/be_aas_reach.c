@@ -2089,8 +2089,11 @@ int AAS_Reachability_Teleport()
       maxs[1] = 8.0;
       maxs[2] = 24.0;
       AAS_PresenceTypeBoundingBox(4, v29, v30);
-      VectorAdd(mins, origin, mins);
-      VectorAdd(maxs, origin, maxs);
+      /* `origin` is the FIRST argument: it is the operand that stays on the x87 stack
+       * (`fld [origin]; fld st(0); fadd [mins]`) and is reused for the maxs add.  With
+       * mins/maxs first gcc reloads them and adds st(1) instead. */
+      VectorAdd(origin, mins, mins);
+      VectorAdd(origin, maxs, maxs);
       VectorSubtract(mins, v30, mins);
       VectorSubtract(maxs, v29, maxs);
       areas = AAS_AASLinkEntity(mins, maxs, -1);
@@ -2364,29 +2367,34 @@ LABEL_53:
 // gladi386.so:   00024550..00024DE6
 int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
 {
+  int i; // eax
   aas_area_t *area2; // ebp
   aas_area_t *area1; // ecx
-  int v4; 
+  int v4;
   int face2num; // ebp
-  int i; // eax
   aas_face_t *face2; // esi
   float *v; // rax (was __int64) — pointer to vertex (float[3])
   float hordist; // st7 (was double)
   int areanum; // edi
   aas_reachabilitynode_t *lreach; // eax
   aas_reachabilitynode_t *v13; // esi (was int) — alias of lreach (aas_reachability_t *)
-  /* Contiguous vec3_t arrays: VectorLength, VectorNormalize and AAS_Trace all
-   * read three floats from the pointers passed in. */
-  vec3_t dir;       /* was v21/v22/v23 — vertex - origin delta vec */
-  vec3_t start;   /* was v24/v25/v26 — center origin (trace start) */
-  vec3_t areastart;    /* was v27/v28/v29 — origin dropped onto floor */
-  vec3_t end;        /* VectorMA output */
-  vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
   float v36;          /* VectorLength horizontal-distance result */
   float v37;          /* vertical delta (vertex_z - grounded_z) */
-  aas_trace_t trace;
-  vec3_t down = { 0, 0, -1 };
+  /* Contiguous vec3_t arrays: VectorLength, VectorNormalize and AAS_Trace all
+   * read three floats from the pointers passed in.  The order below is the
+   * original declaration order, recovered from the reference .so's frame (gcc
+   * 2.7 lays the address-taken group out top-down in declaration order): the
+   * two trace structs first, then Q3's own vec3 list `areastart, facecenter,
+   * start, end, dir, down`.  IDA cannot see this -- MSVC /O2 assigns slots in
+   * first-reference order, so the DLL carries no declaration-order signal. */
   bsp_trace_t bsptrace; /* [BYREF] */
+  aas_trace_t trace;
+  vec3_t areastart;    /* was v27/v28/v29 — origin dropped onto floor */
+  vec3_t facecenter;      /* was v33/v34/v35 — face center from AAS_FaceCenter */
+  vec3_t start;   /* was v24/v25/v26 — center origin (trace start) */
+  vec3_t end;        /* VectorMA output */
+  vec3_t dir;       /* was v21/v22/v23 — vertex - origin delta vec */
+  vec3_t down = { 0, 0, -1 };
 
   if ( !AAS_AreaGrounded(area1num) && !AAS_AreaSwim(area1num) )
     return 0;

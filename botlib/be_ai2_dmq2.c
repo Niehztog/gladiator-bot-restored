@@ -1283,25 +1283,27 @@ void BotAimAtEnemy(bot_state_t *bs)
   weaponinfo_t *wi; // ebp
   float speed; // st — Q3 'speed'; register-only, never stored
   float v12; // st7
-  int v13; // ax
-  int v14; // ax
-  int v15; // ax
   int i; // edi
-  int v18; // ax
-  int v19; // ax
   float dist; // [esp+1Ch] [ebp-1ACh]
   float aim_skill; // [esp+20h] [ebp-1A8h]
-  float v28; // [esp+20h] [ebp-1A8h]
-  vec3_t dir; // [ebp-1A4h] BYREF — one vec3; all three components are stored
   float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
-  vec3_t end; // [esp+58h] [ebp-170h] BYREF
+  float v28; // [esp+20h] [ebp-1A8h]
+  /* Declaration order of the by-reference locals is Q3's own order in
+   * ai_dmq3.c's BotAimAtEnemy -- `vec3_t dir, bestorigin, end, start,
+   * groundtarget, ...;` then `mins`/`maxs`, then `entinfo` and `trace`.  It is
+   * recoverable because gcc 2.7 lays the address-taken group out top-down in
+   * declaration order, and the reference .so's slot order matches Q3's list
+   * exactly.  IDA's emission order is unrelated (MSVC /O2 assigns slots in
+   * first-reference order, which makes the DLL blind to this). */
+  vec3_t dir; // [ebp-1A4h] BYREF — one vec3; all three components are stored
   vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF
+  vec3_t end; // [esp+58h] [ebp-170h] BYREF
+  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
   vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF
   vec3_t mins; // [esp+64h] [ebp-164h] BYREF
-  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
+  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
   aas_entityinfo_t entinfo; // [esp+D0h] [ebp-F8h] BYREF
   bsp_trace_t trace; // [esp+7Ch] [ebp-14Ch] BYREF
-  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
 
   /* Float literals: mins/maxs are float[3], so the original's raw ±4.0f bit
    * patterns would be converted, not reinterpreted. */
@@ -1377,16 +1379,13 @@ void BotAimAtEnemy(bot_state_t *bs)
       }
     }
     v28 = 1.0f - aim_accuracy;
-    v13 = rand();
-    bestorigin[0] = (2 * ((float)(v13 & 0x7FFF) * 0.000030518509f - 0.5))
+    bestorigin[0] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
                    * v28
                    * 20.0
                    + bestorigin[0];
-    v14 = rand();
-    bestorigin[1] = (2 * ((float)(v14 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 20.0
+    bestorigin[1] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 20.0
         + bestorigin[1];
-    v15 = rand();
-    bestorigin[2] = (2 * ((float)(v15 & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 10.0
+    bestorigin[2] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 10.0
         + bestorigin[2];
     /* All three components are stored. */
     VectorSubtract(bestorigin, bs->eye, dir);
@@ -1397,14 +1396,12 @@ void BotAimAtEnemy(bot_state_t *bs)
         dir[i] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 0.3;
     }
     vectoangles(dir, bs->ideal_viewangles);
-    v18 = rand();
-    bs->ideal_viewangles[0] += (2 * ((float)(v18 & 0x7FFF) * 0.000030518509f - 0.5))
+    bs->ideal_viewangles[0] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
         * (wi->vspread
          * 6.0f)
         * v28;
     bs->ideal_viewangles[0] = anglemod(bs->ideal_viewangles[0]);
-    v19 = rand();
-    bs->ideal_viewangles[1] += (2 * ((float)(v19 & 0x7FFF) * 0.000030518509f - 0.5))
+    bs->ideal_viewangles[1] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
         * (wi->hspread
          * 6.0f)
         * v28;

@@ -1714,14 +1714,18 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
   BotCheckInitialChatIntegrety(list);
   return (int *)list;
 #else
-  source_t      *src;
+  /* `pass` first and `src` where `pass` used to be: the reference .so puts
+   * `src` two spill slots lower than `pass`, which is only reachable by
+   * swapping their declarations (gcc 2.7 fills the spilled-scalar group
+   * top-down in declaration order).  Takes this row to a full MATCH. */
+  int            pass;
   char           buf[152];
   char           token[sizeof(token_t)];
   int            found;
   int            size;
   chatline_t    *line;
   char          *ptr;
-  int            pass;
+  source_t      *src;
   int            indent;
   chatlist_t    *list;
   chattype_t    *cur_type;

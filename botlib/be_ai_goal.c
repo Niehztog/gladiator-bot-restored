@@ -595,20 +595,24 @@ void *__cdecl BotGetSecondGoal(bot_goalstate_t *goalstate)
 // gladi386.so:   0003F390..0003F7E0
 int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags)
 {
+  /* Spill-slot order, measured with slotmap.py --refs: gcc 2.7 assigns the spill slots
+   * of register-candidate scalars in DECLARATION order, and the ELF original has them
+   * areanum > bestweight > avoidtime > ic > li > bestitem.  The rest never leave
+   * registers, so their position is inert; `goal` is the only address-taken local. */
+  int areanum; // [esp+14h] [ebp-44h]
+  float bestweight; // [esp+60h] [ebp+8h]
+  float avoidtime; // [esp+68h] [ebp+10h]
+  itemconfig_t *ic; // [esp+18h] [ebp-40h]  - 64-bit fix (was int)
   levelitem_t *li; // esi (was v8)
+  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
   int v9; // ebx
   iteminfo_t *iteminfo; // edi (was _DWORD *) - 64-bit fix
   int weightnum; // eax
   float weight; // st7 (was double)
   float v13; // st7 (was double)
-  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
-  int areanum; // [esp+14h] [ebp-44h]
-  itemconfig_t *ic; // [esp+18h] [ebp-40h]  - 64-bit fix (was int)
   int t; // [esp+1Ch] [ebp-3Ch]
-  bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
   float v19; // [esp+5Ch] [ebp+4h]
-  float bestweight; // [esp+60h] [ebp+8h]
-  float avoidtime; // [esp+68h] [ebp+10h]
+  bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
   /* 64-bit fix: see BotChooseNBGItem — itemweightconfig/itemweightindex live in sideband. */
 #if BOTLIB_NEED_SIDEBAND
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));
@@ -708,22 +712,27 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
 // gladi386.so:   0003F7E0..0003FC58
 int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *inventory, int travelflags, bot_goal_t *ltg, float maxtime)
 {
-  int v9; // esi
+  /* Spill-slot order, measured with slotmap.py --refs: gcc 2.7 assigns the spill slots
+   * of register-candidate scalars in DECLARATION order, and the ELF original has them
+   * areanum > ltg_time > bestweight > avoidtime > ic > li > bestitem.  The remaining
+   * locals never leave registers, so their position is inert; `goal` is in the
+   * address-taken group and is the only member of it. */
+  int areanum; // [esp+18h] [ebp-40h]
+  int ltg_time; // [esp+60h] [ebp+8h]
+  float bestweight; // [esp+Ch] [ebp-4Ch]
+  float avoidtime; // [esp+68h] [ebp+10h]
+  itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
   levelitem_t *li; // esi (was v10)
+  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
+  int v9; // esi
   int v11; // ebx
   iteminfo_t *iteminfo; // edi (was _DWORD *) - 64-bit fix
   int weightnum; // eax
   float weight; // st7
   float v15; // st7
-  itemconfig_t *ic; // 64-bit fix - typed copy of itemconfig
   int v16; // eax
-  float bestweight; // [esp+Ch] [ebp-4Ch]
-  float avoidtime; // [esp+68h] [ebp+10h]
-  int areanum; // [esp+18h] [ebp-40h]
   int t; // [esp+1Ch] [ebp-3Ch]
   bot_goal_t goal; // [esp+20h] [ebp-38h] BYREF
-  int ltg_time; // [esp+60h] [ebp+8h]
-  levelitem_t *bestitem; // [esp+10h] [ebp-48h]
   /* 64-bit fix: see BotChooseLTGItem — itemweightconfig/itemweightindex live in sideband. */
 #if BOTLIB_NEED_SIDEBAND
   bot_state_t *bs = (bot_state_t *)((char *)goalstate - offsetof(bot_state_t, goalstate));

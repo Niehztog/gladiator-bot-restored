@@ -1429,11 +1429,18 @@ int __cdecl sub_100057A0(float *a1, int a2, float *a3, float *a4)
   bsp_link_t *i; // ebp
   int v9; // [esp+10h] [ebp-7Ch]
   dbrush_t *v10; // [esp+14h] [ebp-78h]
-  float v12[3]; // [esp+24h] [ebp-68h] BYREF
-  float v11[3]; // [esp+18h] [ebp-74h] BYREF
+  /* Declaration order of the four by-reference locals is recovered from the
+   * reference .so: gcc 2.7 fills the address-taken frame group top-down in
+   * declaration order, and gladi386.so's group is v13 / entdata / v11 / v12 --
+   * exactly the reverse of IDA's emission order.  The DLL cannot show this
+   * (MSVC6 /O2 assigns slots in first-reference order), so the ELF is the only
+   * channel that records it; restoring it takes this row to a full MATCH on
+   * gladi386.so at zero cost on the DLL. */
   float v13[3][3]; // [esp+30h] [ebp-5Ch] BYREF
   /* one bsp_entdata_t local */
   bsp_entdata_t entdata; // [esp+54h] [ebp-38h] BYREF
+  float v11[3]; // [esp+18h] [ebp-74h] BYREF
+  float v12[3]; // [esp+24h] [ebp-68h] BYREF
 
   if ( !bspworld.dword_100674C0 )
     return 0;
