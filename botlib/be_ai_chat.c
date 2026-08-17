@@ -983,10 +983,14 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
  * match->variables[].  Q3 cognate: be_ai_chat.c StringsMatch. */
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 {
-  bot_matchstring_t *ms;
+  /* `lastvariable` first and `ms` last: gcc 2.7 assigns these four spill slots in
+   * declaration order and the ELF original has lastvariable in the HIGHEST
+   * (`mov [esp+0x3c],0xffffffff`), ms in the lowest.  Worth 42 -> 20 insn_diffs;
+   * what is left is a block-placement difference, not a slot one. */
+  int                lastvariable;
   char              *strptr, *newstrptr;
   bot_matchpiece_t  *mp;
-  int                lastvariable;
+  bot_matchstring_t *ms;
 
   lastvariable = -1;
   strptr       = match->string;

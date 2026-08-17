@@ -1422,24 +1422,28 @@ void BotAimAtEnemy(bot_state_t *bs)
 void BotCheckAttack(bot_state_t *bs)
 {
 
-  weaponinfo_t *wi; // ebx
-  projectileinfo_t *v6; // ecx
-  float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
+  /* reactiontime/fov are declared BEFORE the pointers: MSVC6 coalesces the two into
+   * one slot (their lifetimes do not overlap, which is why IDA shows both at
+   * [esp+10h]), gcc 2.7 gives them one spill slot too -- and the ELF original puts
+   * that slot ABOVE `wi`'s, which only this declaration order produces. */
   float reactiontime; // [esp+10h] [ebp-1A4h] — Characteristic_BFloat/AAS_Time splash-attack
                        // timer (Q3 ai_dmq3 BotCheckAttack 'reactiontime'); this and the
                        // fov local below are SEPARATE variables sharing one stack slot
                        // (non-overlapping lifetimes), not one variable reused.
   float fov; // [esp+10h] [ebp-1A4h] — visibility check distance (Q3 ai_dmq3 BotCheckAttack 'fov');
              // shares reactiontime's stack slot, see above.
+  weaponinfo_t *wi; // ebx
+  projectileinfo_t *v6; // ecx
+  float points; // st — register-only (Q3 ai_dmq3 BotCheckAttack 'points')
   /* Q3 BotCheckAttack's declaration order, with mins/maxs LAST and mins before maxs:
    * gcc 2.7 lays the frame out in reverse declaration order, and the ELF original has
    * maxs BELOW mins, which only that order produces. */
   vec3_t forward; // [esp+20h] [ebp-194h] BYREF
-  vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
+  vec3_t right; // [esp+44h] [ebp-170h] BYREF
   vec3_t start; // [esp+14h] [ebp-1A0h] BYREF — trace start; as separate locals the
                 // y/z stores get dead-store-eliminated and VectorMA/AAS_Trace see
                 // garbage in [1]/[2]
-  vec3_t right; // [esp+44h] [ebp-170h] BYREF
+  vec3_t end; // [esp+5Ch] [ebp-158h] BYREF
   vec3_t dir; // [esp+38h] [ebp-17Ch] BYREF
   bsp_trace_t trace; // [esp+68h] [ebp-14Ch] BYREF
   aas_entityinfo_t entinfo; // [esp+BCh] [ebp-7Ch] BYREF

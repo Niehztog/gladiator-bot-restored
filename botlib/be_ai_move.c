@@ -58,7 +58,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
 {
   int v5; // eax
   int v6; // esi
-  int dx; // ebp
+  int v12; // [esp+10h] [ebp-A4h]
   int v8; // edi
   int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
   vec3_t start; // [esp+1Ch] [ebp-98h] BYREF
@@ -71,7 +71,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
    * AAS_PointAreaNum / AAS_TraceClientBBox / AAS_TraceAreas, and split into
    * separate slots BotReachabilityArea always returns 0 and the bot goes inert. */
   int dy; // [esp+14h] [ebp-A0h]
-  int v12; // [esp+10h] [ebp-A4h]
+  int dx; // ebp
 
   for ( v19 = 0; v19 < 2; v19++ )
   {

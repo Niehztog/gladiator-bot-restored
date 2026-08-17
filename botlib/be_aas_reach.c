@@ -2002,13 +2002,17 @@ int AAS_Reachability_Teleport()
   aas_link_t *i; // edi
   int area1num; // esi
   aas_reachabilitynode_t *lreach; // eax
-  vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
+  /* vec3 order is the ELF original's frame layout, not IDA's listing order: gcc 2.7
+   * fills the address-taken group top-down in DECLARATION order, and declprobe.py
+   * measured ours as maxs > destorigin > mins > origin > v29 > end > v30 while
+   * slotmap.py wants origin where maxs is and end where v29 is. */
+  vec3_t origin; // [ebp-84h] BYREF — teleport entrance origin (VectorForBSPEpairKey output)
   vec3_t destorigin; // [ebp-9Ch] BYREF — teleport destination origin (VectorForBSPEpairKey output)
   vec3_t mins; // [ebp-90h] BYREF — entrance bbox lower bound (UpdateEntityLinks)
-  vec3_t origin; // [ebp-84h] BYREF — teleport entrance origin (VectorForBSPEpairKey output)
+  vec3_t maxs; // [ebp-A8h] BYREF — entrance bbox upper bound (UpdateEntityLinks)
   bsp_entity_t *v26; // [esp+5Ch] [ebp-74h] — list head saved for AAS_FreeBSPEntities
-  vec3_t v29; // [esp+70h] [ebp-60h] BYREF
   vec3_t end; // [esp+64h] [ebp-6Ch] BYREF
+  vec3_t v29; // [esp+70h] [ebp-60h] BYREF
   vec3_t v30; // [esp+7Ch] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+88h] [ebp-48h] (was int v31[9] + char v32[36] hidden return buffer)
 
