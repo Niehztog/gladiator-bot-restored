@@ -2847,10 +2847,14 @@ void __cdecl AAS_Reachability_WalkOffLedge(int areanum)
           VectorCopy(midorigin, lreach->reach.start);
           VectorCopy(trace.endpos, lreach->reach.end);
           lreach->reach.traveltype = 7;
-          if ( AAS_AreaSwim(v33) || (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 >= v39) )
-            v35->reach.traveltime = 100;
-          else
+          /* Q3's polarity (`if (!AAS_AreaSwim(a) && falldelta > threshold) penalise`,
+           * be_aas_reach.c:4285): the fall test is a STRICT `<` on the threshold, which
+           * is the operator gladi386.so's `and ah,0x45; dec ah; cmp ah,0x40; jb` encodes.
+           * IDA's `>=` with the arms swapped is the negation and emits `and ah,0x45; je`. */
+          if ( !AAS_AreaSwim(v33) && (v39 = midorigin[2] - trace.endpos[2], v46 = AAS_FallDamageDistance(), (float)v46 < v39) )
             v35->reach.traveltime = 3000;
+          else
+            v35->reach.traveltime = 100;
           v35->next = areareachability[areanum];
           areareachability[areanum] = v35;
           ++reach_walkoffledge;
@@ -2897,11 +2901,8 @@ void AAS_StoreReachability()
 // gladi386.so:   00025EA4..00026229
 int AAS_ContinueInitReachability(float time)
 {
-  libvar_t *v1;
-  double v2; // st7
   int todo; // ebx
   libvar_t *v4;
-  int v5; // eax
   int i; // esi
   int start_time; // ebp
   int j; // edi
@@ -2912,19 +2913,21 @@ int AAS_ContinueInitReachability(float time)
     return 0;
   if ( aasworld.numreachabilityareas >= aasworld.numareas )
     return 0;
-  v1 = libvar_framereachability;
+  /* Through the global, not IDA's `v1`/`v2` aliases: the original re-reads
+   * libvar_framereachability for the `->value` load (`mov eax,[GOT]; fld
+   * [eax+0x10]`), and the `double v2` copy is what makes our frame 0x14 against
+   * real's 0x10. */
   if ( !libvar_framereachability )
   {
-    v1 = LibVar("framereachability", (char *)"20");
-    libvar_framereachability = v1;
-    if ( v1->value <= 0.0f )
-    {
-      v1->value = 15.0f;
-      v1 = libvar_framereachability;
-    }
+    libvar_framereachability = LibVar("framereachability", (char *)"20");
+    if ( libvar_framereachability->value <= 0.0f )
+      libvar_framereachability->value = 15.0f;
   }
-  v2 = v1->value;
-  todo = aasworld.numreachabilityareas + (__int64)v2;
+  /* `(int)`, not IDA's `(__int64)`: gladi386.so does the 32-bit `fistp DWORD PTR
+   * [esp]` round-to-zero sequence here, and the 64-bit cast costs an 8-byte temp
+   * (frame 0x14 vs real's 0x10) plus the QWORD store.  `todo` is an int anyway;
+   * MSVC's __ftol leaves the value in eax either way, which is why IDA wrote 64. */
+  todo = aasworld.numreachabilityareas + (int)libvar_framereachability->value;
   if ( !libvar_reachabilitydelay )
   {
     v4 = LibVar("reachability_delay", (char *)"100");
@@ -2932,9 +2935,9 @@ int AAS_ContinueInitReachability(float time)
     if ( v4->value <= 0.0f )
       v4->value = 200.0f;
   }
-  v5 = Sys_MilliSeconds();
+  start_time = Sys_MilliSeconds();
   i = aasworld.numreachabilityareas;
-  for ( start_time = v5; i < aasworld.numareas; ++i )
+  for ( ; i < aasworld.numareas; ++i )
   {
     if ( i >= todo )
       break;
@@ -2959,7 +2962,7 @@ int AAS_ContinueInitReachability(float time)
         AAS_Reachability_WeaponJump(i, j);
       }
     }
-    if ( Sys_MilliSeconds() - start_time > (int)(__int64)libvar_reachabilitydelay->value )
+    if ( Sys_MilliSeconds() - start_time > (int)libvar_reachabilitydelay->value )
       break;
   }
   if ( aasworld.numreachabilityareas >= aasworld.numareas )

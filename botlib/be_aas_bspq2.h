@@ -141,7 +141,7 @@ int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, 
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 void CalcSurfaceExtents();
 float __cdecl FloatForKey(bsp_entity_t *ent, const char *key);
-int Q2_SwapBSPFile(void);
+void Q2_SwapBSPFile(void);
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor);
 int __cdecl sub_10003080(vec3_t point);
 void sub_100030A0();

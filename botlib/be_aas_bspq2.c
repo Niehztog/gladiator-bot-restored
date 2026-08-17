@@ -2255,7 +2255,6 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
  *     whatever the source order. */
 void CalcSurfaceExtents()
 {
-  int result; // eax
   int v2; // eax
   dedge_t *v3; // edi
   dvertex_t *v4; // ebx
@@ -2268,8 +2267,9 @@ void CalcSurfaceExtents()
   int k; // esi
   int v13; // eax
   int v15; // eax
-  char *v16; // ecx
+  int result; // eax
   qboolean v17; // cc
+  char *v16; // ecx
   dface_t *face; // eax
   int i; // [esp+1Ch] [ebp-34h]
   int v19; // [esp+20h] [ebp-30h]
@@ -2287,9 +2287,21 @@ void CalcSurfaceExtents()
   {
     v19 = 4;
     /* ONE loop index: the ×20 byte offset the original also spills is MSVC's
-     * strength-reduced temp for `dfaces[i]`, not a second source variable. */
+     * strength-reduced temp for `dfaces[i]`, not a second source variable.
+     * Do NOT convert this to a counted `for` and drop `result`: the ELF gains
+     * one insn_diff, and MSVC6 then re-permutes the frame (`v19` moves from
+     * [esp+0x14] to [esp+0x10]) and reorders an fld/fmul pair, costing 14 bytes
+     * on the DLL.  Measured 2026-08-17. */
     for ( i = 0; ; )
     {
+      /* SEVENTH irreconcilable gcc272-vs-MSVC6 conflict.  The DLL emits four
+       * separate `mov DWORD PTR [esp+N],0x47c34f80` integer-immediate stores with
+       * the `movsx …[+0xa]` face read WEDGED between the third and fourth
+       * (0x10007248..0x1000726c) -- exactly the form below.  gladi386.so instead
+       * materialises the constant once on the x87 stack and stores it twice
+       * (`fld; fst; fstp`), which is Q1's chained `mins[0] = mins[1] = 99999;`.
+       * Writing the chain gains ~4 ELF insn_diffs and costs the DLL 7 bytes.
+       * The DLL is the canonical target: keep the four stores and the interleave. */
       *(float *)&v23[1] = 99999.0f;
       *(float *)&v23[0] = 99999.0f;
       *(float *)&v24[1] = -99999.0f;
@@ -2358,17 +2370,27 @@ void CalcSurfaceExtents()
 /* No parameters: the `a1` the decompiler shows is a phantom __fastcall arg — the
  * prologue's `push ecx` only reserves a local slot, and the sole caller sets up
  * no ecx at all.  Named from its cognate Q2_SwapBSPFile in bspc/l_bsp_q2.c,
- * minus bspc's `todisk` reverse direction. */
-int Q2_SwapBSPFile(void)
+ * minus bspc's `todisk` reverse direction.
+ *
+ * void, like bspc's: gladi386.so's epilogue is a bare `pop/pop/pop/pop; add esp,8;
+ * ret` with nothing written to eax, and IDA's `result = bspworld.nummodels` inside
+ * the models loop is what lets gcc hoist `nummodels` out of the loop guard -- the
+ * original re-reads it from memory on every iteration, as aliasing requires. */
+void Q2_SwapBSPFile(void)
 {
+  /* ONE counter for all four lump loops.  IDA lists i/j/k/m at the same
+   * [esp+10h] because MSVC6 coalesced them; gcc 2.7 does NOT coalesce, so every
+   * extra name is another frame slot -- the original gets by on TWO (frame 0x8:
+   * this counter plus the vis cluster count).  Declared FIRST because gcc 2.7
+   * lays the frame out in REVERSE declaration order and the original keeps the
+   * counter in the HIGHER of its two slots. */
+  int i;
   int v1; // ebp
   int v2; // ebx
   texinfo_t *v3; // esi
   float *v4; // edi
-  char *v9; // eax
   int v10; // ebp
   int v11; // edi
-  int v13; // esi
   int v16; // ebx
   dplane_t *v17; // esi
   float *v18; // edi
@@ -2378,19 +2400,9 @@ int Q2_SwapBSPFile(void)
   int v37; // ebp
   dleaf_t *v38; // esi
   int v45; // ebx
-  int n; // esi
-  int ii; // esi
-  int v62; // edi
-  int result; // eax
-  int v68; // ebp
   int v69; // ebx
   dmodel_t *v70; // esi
   int v76; // edi
-  int i; // [esp+10h] [ebp-4h]
-  int j; // [esp+10h] [ebp-4h]
-  int k; // [esp+10h] [ebp-4h]
-  int m; // [esp+10h] [ebp-4h]
-  int a1; // [esp+10h] dead scratch slot, never read
 
   v1 = 0;
   for ( i = 0; i < bspworld.numtexinfo; ++i )
@@ -2408,35 +2420,28 @@ int Q2_SwapBSPFile(void)
     v3->flags = LittleLong(v3->flags);
     v3->value = LittleLong(v3->value);
     v3->nexttexinfo = LittleLong(v3->nexttexinfo);
-    HIWORD(a1) = HIWORD(bspworld.numtexinfo);
     v1 += 76;
   }
-  v9 = (char *)bspworld.dvis;
   v10 = 0;
   v11 = 0;
   if ( bspworld.dvis )
   {
     bspworld.dvis->numclusters = LittleLong(bspworld.dvis->numclusters);
-    v9 = (char *)bspworld.dvis;
     v11 = bspworld.dvis->numclusters;
   }
-  v13 = 0;
-  if ( v11 > 0 )
+  /* bspc's plain `for (i = 0; i < j; i++)` (l_bsp_q2.c), NOT IDA's `while (1)` with
+   * a mid-loop break and a trailing reload of `dvis`: the write-only `char *v9` was
+   * IDA's name for that reload, and the break shape stops gcc's -funroll-loops from
+   * unrolling this loop 4x with runtime preconditioning the way the original does. */
+  for ( i = 0; i < v11; i++ )
   {
-    while ( 1 )
-    {
-      bspworld.dvis->bitofs[v13][0] = LittleLong(bspworld.dvis->bitofs[v13][0]);
-      bspworld.dvis->bitofs[v13][1] = LittleLong(bspworld.dvis->bitofs[v13][1]);
-      ++v13;
-      if ( v13 >= v11 )
-        break;
-      v9 = (char *)bspworld.dvis;
-    }
+    bspworld.dvis->bitofs[i][0] = LittleLong(bspworld.dvis->bitofs[i][0]);
+    bspworld.dvis->bitofs[i][1] = LittleLong(bspworld.dvis->bitofs[i][1]);
   }
-  for ( j = 0; j < bspworld.numplanes; ++j )
+  for ( i = 0; i < bspworld.numplanes; ++i )
   {
     v16 = 3;
-    v17 = &bspworld.dplanes[j];
+    v17 = &bspworld.dplanes[i];
     v18 = v17->normal;
     do
     {
@@ -2447,13 +2452,12 @@ int Q2_SwapBSPFile(void)
     while ( v16 );
     v17->dist = LittleFloat(v17->dist);
     v17->type = LittleLong(v17->type);
-    HIWORD(a1) = HIWORD(bspworld.numplanes);
     v10 += 20;
   }
   v22 = 0;
-  for ( k = 0; k < bspworld.numnodes; ++k )
+  for ( i = 0; i < bspworld.numnodes; ++i )
   {
-    v23 = &bspworld.dnodes[k];
+    v23 = &bspworld.dnodes[i];
     v23->planenum = LittleLong(v23->planenum);
     v23->children[0] = LittleLong(v23->children[0]);
     v23->children[1] = LittleLong(v23->children[1]);
@@ -2464,13 +2468,12 @@ int Q2_SwapBSPFile(void)
     }
     v23->firstface = LittleShort(v23->firstface);
     v23->numfaces = LittleShort(v23->numfaces);
-    HIWORD(a1) = HIWORD(bspworld.numnodes);
     v22 += 28;
   }
   v37 = 0;
-  for ( m = 0; m < bspworld.numleafs; ++m )
+  for ( i = 0; i < bspworld.numleafs; ++i )
   {
-    v38 = &bspworld.dleafs[m];
+    v38 = &bspworld.dleafs[i];
     v38->contents = LittleLong(v38->contents);
     v38->cluster = LittleShort(v38->cluster);
     v38->area = LittleShort(v38->area);
@@ -2483,40 +2486,37 @@ int Q2_SwapBSPFile(void)
     v38->numleaffaces = LittleShort(v38->numleaffaces);
     v38->firstleafbrush = LittleShort(v38->firstleafbrush);
     v38->numleafbrushes = LittleShort(v38->numleafbrushes);
-    HIWORD(a1) = HIWORD(bspworld.numleafs);
     v37 += 28;
   }
-  for ( n = 0; n < bspworld.numleafbrushes; ++n )
+  for ( i = 0; i < bspworld.numleafbrushes; ++i )
   {
-    bspworld.dleafbrushes[n] = LittleShort(bspworld.dleafbrushes[n]);
+    bspworld.dleafbrushes[i] = LittleShort(bspworld.dleafbrushes[i]);
   }
-  for ( ii = 0; ii < bspworld.numbrushsides; ++ii )
+  for ( i = 0; i < bspworld.numbrushsides; ++i )
   {
     /* The LittleShort round-trip must stay (identity on little-endian): without it
      * an uninitialised temp lands on every brush's planenum at map-load time and
      * intermittently drives CM_TraceThroughBrush into an out-of-range plane. */
-    bspworld.dbrushsides[ii].planenum = LittleShort(bspworld.dbrushsides[ii].planenum);
-    bspworld.dbrushsides[ii].texinfo  = LittleShort(bspworld.dbrushsides[ii].texinfo);
+    bspworld.dbrushsides[i].planenum = LittleShort(bspworld.dbrushsides[i].planenum);
+    bspworld.dbrushsides[i].texinfo  = LittleShort(bspworld.dbrushsides[i].texinfo);
   }
-  v62 = 0;
-  if ( bspworld.numbrushes > 0 )
+  for ( i = 0; i < bspworld.numbrushes; ++i )
   {
-    do
-    {
-      bspworld.dbrushes[v62].firstside = LittleLong(bspworld.dbrushes[v62].firstside);
-      bspworld.dbrushes[v62].numsides = LittleLong(bspworld.dbrushes[v62].numsides);
-      bspworld.dbrushes[v62].contents = LittleLong(bspworld.dbrushes[v62].contents);
-      ++v62;
-    }
-    while ( v62 < bspworld.numbrushes );
+    bspworld.dbrushes[i].firstside = LittleLong(bspworld.dbrushes[i].firstside);
+    bspworld.dbrushes[i].numsides = LittleLong(bspworld.dbrushes[i].numsides);
+    bspworld.dbrushes[i].contents = LittleLong(bspworld.dbrushes[i].contents);
   }
-  result = bspworld.nummodels;
-  v68 = 0;
+  /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[i]`
+   * yields the same base+offset induction pair but swaps the SIB roles, costing
+   * this function its byte-match for a pure encoding tie.
+   * This loop keeps IDA's guard-plus-do/while shape while the three above are
+   * counted `for`s: the DLL emits `xor ebp,ebp; test eax,eax; jle …; xor ebx,ebx`,
+   * i.e. `v69 = 0` INSIDE the guard, which a counted `for` cannot express without
+   * an outer `if` that costs MSVC6 two extra instructions.  Measured 2026-08-17:
+   * counted-for OUR+0/21b, counted-for-in-an-if OUR+2/234b, this form MATCH. */
+  i = 0;
   if ( bspworld.nummodels > 0 )
   {
-    /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[v68]`
-     * yields the same base+offset induction pair but swaps the SIB roles, costing
-     * this function its byte-match for a pure encoding tie. */
     v69 = 0;
     do
     {
@@ -2530,13 +2530,11 @@ int Q2_SwapBSPFile(void)
         v70->maxs[v76] = LittleFloat(v70->maxs[v76]);
         v70->origin[v76] = LittleFloat(v70->origin[v76]);
       }
-      result = bspworld.nummodels;
-      ++v68;
+      ++i;
       v69 += 48;
     }
-    while ( v68 < bspworld.nummodels );
+    while ( i < bspworld.nummodels );
   }
-  return result;
 }
 // 1000775A: Q2_SwapBSPFile brushsides loop — the LittleShort round-trip.
 //            See note inside the function.
