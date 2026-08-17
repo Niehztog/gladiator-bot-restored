@@ -1060,19 +1060,17 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
   /* Real vec3_t — see the BotTravel_Walk note. */
   vec3_t dir; // [esp+8h] [ebp-54h] BYREF (was v5/v6/v7)
   vec3_t viewdir; // [esp+14h] [ebp-48h] BYREF
-  vec3_t origin; // [esp+20h] [ebp-3Ch] BYREF
+  /* Q3's INITIALISED declarations, not six assignment statements: gcc 2.7's
+   * inliner budgets by parsed statement count, and the six extra statements are
+   * what push this function over the threshold so BotMoveToGoal calls it instead
+   * of inlining it the way the original does. */
+  vec3_t origin = { 0, 0, 0 }; // [esp+20h] [ebp-3Ch] BYREF
   /* Dead local, never read after init — Q3 still declares and initialises it
-   * (`vec3_t up = {0, 0, 1};`) with its one use commented out, and the disasm proves
-   * Gladiator still emitted the store, so it had not been fully deadcoded in 1999. */
-  vec3_t up;
+   * with its one use commented out, and the disasm proves Gladiator still emitted
+   * the store, so it had not been fully deadcoded in 1999. */
+  vec3_t up = { 0, 0, 1 };
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-30h] BYREF
 
-  origin[0] = 0.0f;
-  origin[1] = 0.0f;
-  origin[2] = 0.0f;
-  up[0] = 0.0f;
-  up[1] = 0.0f;
-  up[2] = 1.0f;
   BotClearMoveResult(&moveresult);
   VectorSubtract(reach->end, ms->origin, dir);
   VectorNormalize(dir);

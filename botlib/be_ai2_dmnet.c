@@ -684,10 +684,14 @@ int __cdecl AINode_Stand(bot_state_t *bs)
   BotChangeViewAngles(bs, bs->thinktime);
   if ( AAS_Time() > bs->stand_time )
   {
+    /* The squatt arm has its own `return 1`, which is what makes it the warm
+     * fall-through and the chat arm the cold block below; letting it fall through
+     * to the shared tail inverts both, and with it the `!= 0.0f` compare shape. */
     if ( LibVarGetValue("__squatt") != 0.0f )
     {
       EA_Say(bs->client, "I never hacked your brain...\n");
       EA_Command(bs->client, "removebot", ClientName(bs->client), (void *)0);
+      return 1;
     }
     else
     {
