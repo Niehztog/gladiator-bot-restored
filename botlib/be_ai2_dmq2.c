@@ -1151,7 +1151,7 @@ BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
         return _strcmpi((const char *)ClientSkin(bs->client),
                         (const char *)ClientSkin(v21.number - 1)) == 0;
       }
-      v5 = (__int64)dmflags->value;
+      v5 = (int)dmflags->value;
       if ( (v5 & 0x40) != 0 || ctf->value != 0.0f )
       {
         v14 = strchr((const char *)ClientSkin(bs->client), 47);

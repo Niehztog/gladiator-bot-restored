@@ -2346,9 +2346,9 @@ void CalcSurfaceExtents()
       v11 = v19;
       for ( k = 0; k < 2; )
       {
-        v13 = (__int64)floor(*(float *)&v23[k] * 0.0625f);
+        v13 = (int)floor(*(float *)&v23[k] * 0.0625f);
         v24[k + 2] = v13;
-        v15 = (__int64)ceil(*(float *)&v24[k] * 0.0625f);
+        v15 = (int)ceil(*(float *)&v24[k] * 0.0625f);
         v16 = bspworld.dword_10067558;
         v24[k + 4] = v15;
         ++k;

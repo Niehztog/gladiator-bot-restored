@@ -2283,7 +2283,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
      if ( v10 )
      {
        bestchatmessage = v10;
-       v14 = (__int64)rchat->priority;
+       v14 = (int)rchat->priority;
      }
    }
 LABEL_34:

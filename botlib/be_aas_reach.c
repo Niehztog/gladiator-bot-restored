@@ -1811,13 +1811,13 @@ area2 = (aas_area_t *)v85;
             VectorNormalize(dir);
             VectorMA(area1point, -32.0, dir, area1point);
             VectorMA(area2point, 32.0, dir, area2point);
-            v66 = (float)abs((__int64)plane1->normal[2]) < 0.1;
-            ladderface2vertical = (float)abs((__int64)plane2->normal[2]) < 0.1;
+            v66 = (float)abs((int)plane1->normal[2]) < 0.1;
+            ladderface2vertical = (float)abs((int)plane2->normal[2]) < 0.1;
             if ( v66 )
             {
               if ( ladderface2vertical
                 && plane2->normal[0] * plane1->normal[0] + plane2->normal[2] * plane1->normal[2] + plane2->normal[1] * plane1->normal[1] > 0.7
-                && (float)abs((__int64)sharededgevec[2]) < 0.7 )
+                && (float)abs((int)sharededgevec[2]) < 0.7 )
               {
                 v32 = AAS_AllocReachability();
                 if ( v32 )
@@ -1927,7 +1927,7 @@ area2 = (aas_area_t *)v85;
                     if ( (v58->faceflags & 2) != 0 )
                     {
                       plane2 = &aasworld.planes[v58->planenum];
-                      if ( (float)abs((__int64)plane2->normal[2]) < 0.1 )
+                      if ( (float)abs((int)plane2->normal[2]) < 0.1 )
                         break;
                     }
                     ++v54;
@@ -2978,9 +2978,9 @@ int AAS_ContinueInitReachability(float time)
   }
   else
   {
-    if ( (int)(aasworld.numreachabilityareas - (__int64)libvar_framereachability->value) <= 1 )
+    if ( aasworld.numreachabilityareas - (int)libvar_framereachability->value <= 1 )
       botimport.Print(PRT_MESSAGE, "calculating reachability...\n");
-    if ( (int)(aasworld.numreachabilityareas + (__int64)libvar_framereachability->value) >= aasworld.numareas )
+    if ( aasworld.numreachabilityareas + (int)libvar_framereachability->value >= aasworld.numareas )
     {
       botimport.Print(PRT_MESSAGE, "\r%6d%%%%", 100);
       botimport.Print(PRT_MESSAGE, "\nplease wait while storing reachability...\n");
