@@ -92,6 +92,10 @@ extern LPUSERFUNCTIONS dword_100639F0;
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
+/* The UnZip windll state is defined inside `#ifdef _WIN32` in l_utils.c and
+ * does not exist in the Linux image at all -- gate the declarations to match,
+ * so a Linux TU cannot accidentally reference one. */
+#ifdef _WIN32
 extern CHAR aWindllUnzip[];
 extern CHAR FileName[];
 extern _UNKNOWN unk_10061280;
@@ -99,9 +103,10 @@ extern _UNKNOWN unk_10061298;
 extern HGLOBAL dword_10062968;
 extern HGLOBAL dword_10062970;
 extern HGLOBAL hMem;
+extern HMODULE hLibModule;
+#endif
 /* The byte-order fn-ptr slots (0x100637CC..E0) and `bigendien` (0x10063884)
  * live in game/q_shared.c. */
-extern HMODULE hLibModule;
 
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);
 int __stdcall sub_100415E0(int a1);

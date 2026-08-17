@@ -42,8 +42,9 @@ bot_export_t      botexport; /* block 3 @0x10063F80 — exported API table */
  * pad, uint32 flags } plus a NULL terminator.  This is the config-file CRC whitelist
  * of the integrity subsystem that also owns CRC_Block / sub_10037820 and the "You are
  * not allowed to modify the bot characters" message; the flags column
- * (1/3/4/6/8/0x20/0x40) is an unidentified file category.  sub_100377E0 scans it up
- * to &unk_1005E958, so that symbol MUST stay immediately after this array. */
+ * (1/3/4/6/8/0x20/0x40) is an unidentified file category.  sub_100377E0 scans
+ * all 92 entries; the end bound is `&filecrcs[184]` (184 ints = 736 bytes),
+ * which is the address IDA had invented the symbol `unk_1005E958` for. */
 int filecrcs[] = {
     0x0000A991, 0x00000001,
     0x0000A757, 0x00000001,
@@ -138,9 +139,6 @@ int filecrcs[] = {
     0x0000E488, 0x00000020,
     0x00000000, 0x00000000,   /* NULL terminator (entry 91) */
 };
-/* End-of-table sentinel — must immediately follow filecrcs. */
-int unk_1005E958 = 0;
-
 /* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in the 32-bit
  * original; must be a real pointer here).  Referenced only from this TU, which is
  * also where the .so puts its neighbours filecrcs and dumpcrcs. */
@@ -225,8 +223,15 @@ int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
 {
   _WORD *v2;
 
+  /* `&filecrcs[184]` -- 184 ints = the 736-byte table's end.  IDA called that
+   * address `unk_1005E958` and this file declared a 4-byte object there to
+   * make the comparison compile; gladi386.so has no such symbol, and the
+   * address is simply one past the array.  The DLL compares against the
+   * absolute constant 0x1005E958 either way; gcc strength-reduces the same
+   * source into a counted 92-iteration loop, which is what real does.
+   * (2026-08-17.) */
   v2 = &filecrcs;
-  while ( (int)v2 < (int)&unk_1005E958 )
+  while ( (int)v2 < (int)&filecrcs[184] )
   {
     if ( (_WORD)a2 == *v2 )
       break;

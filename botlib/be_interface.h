@@ -110,7 +110,6 @@ extern int filecrcs[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined
  * bound as a link-time constant, and IDA had to invent a symbol for it.  The DLL holds
  * only zero fill there, and the Linux .so — whose .dynsym kept every real global — has
  * no symbol at the corresponding offset either.  Do not chase a name for it. */
-extern int unk_1005E958;
 /* `logfile` and the seven Log_* functions live in their own TU: botlib/l_log.c
  * (l_log.obj, DLL 0x10038BE0..0x10038F0F -- see .claude/memory/tu_partition.md). */
 /* `libvarlist` and the thirteen LibVar* functions live in their own TU:

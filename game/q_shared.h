@@ -1193,6 +1193,8 @@ extern int vidref_val;
 #undef VectorNegate
 /* No __cdecl: that spelling comes from botlib's own headers, not this one. */
 float *VectorNegate(float *v);
+/* Windows-gated to match their definitions -- see the note in q_shared.c. */
+#ifdef _WIN32
 extern float flt_10062984;
 extern float flt_10062988;
 extern float flt_1006298C;
@@ -1200,4 +1202,5 @@ extern float flt_1006319C;
 extern float flt_100631A0;
 extern float flt_100631A8;
 extern int dword_10063388;
+#endif
 #endif /* BOTLIB */

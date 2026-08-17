@@ -74,9 +74,10 @@ directive_t directives[20] = {
     {"evalfloat", PC_Directive_evalfloat},         /* 0x1003CF80 */
     {NULL, NULL}
 };
-/* Preserved as aliases so existing PC_ReadDirective code referencing &off_1005F260 still compiles. */
-char *off_1005F260 = "if"; // the table's first name field; see directives
-int (__cdecl *off_1005F264)(intptr_t) = &PC_Directive_if; // weak — original: first handler
+/* IDA named the table's first two FIELDS as if they were separate objects
+ * (`off_1005F260` = directives[0].name, `off_1005F264` = directives[0].handler).
+ * They are not: gladi386.so has no such symbols, and nothing here referenced
+ * the aliases once `directives` itself was recovered.  Removed 2026-08-17. */
 /* $-directive dispatch table at VA 0x1005F300: 2 entries + NULL, walked by
  * PC_ReadDollarDirective as a stride-2 pointer array.  Same directive_t element type
  * as `directives` above. */
@@ -88,8 +89,7 @@ directive_t dollardirectives[20] = {
     {"evalfloat", PC_DollarDirective_evalfloat},        /* 0x10001B0E thunk → PC_DollarDirective_evalfloat     */
     {NULL, NULL}
 };
-char *off_1005F300 = "evalint";                        /* alias: first name field  */
-int (__cdecl *off_1005F304)(intptr_t) = &PC_DollarDirective_evalint; /* alias: first handler     */
+/* Same IDA field-as-object artifact as off_1005F260/64 above; removed. */
 
 // gladiator.dll: 10039200..1003924B
 // gladi386.so:   0004ADDC..0004AE42

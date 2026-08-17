@@ -23,20 +23,27 @@
 #include "l_log.h"
 #include "l_memory.h"
 
+/* ---- UnZip/ZIP32 windll state — WINDOWS ONLY -----------------------------
+ * All of it belongs inside the same `#ifdef _WIN32` as the code that uses it
+ * (below, and the ZIP32 block further down).  It used to sit outside the gate,
+ * so the Linux build emitted nine globals it never references -- which is
+ * exactly what `dataaudit.py`'s EXPORTED-but-not-in-real check reports, and
+ * the arithmetic is unambiguous: our `.data` was 148 B larger than
+ * gladi386.so's and our surplus `.data` globals totalled 141 B, while real has
+ * 2 B of unnamed `.data` in the whole image and therefore no room for them as
+ * statics either.  gladi386.so has no unzip support at all (it imports no
+ * dlopen and no zlib); .aas files are loaded directly by BotLibLoadMap.
+ * (2026-08-17.) */
+#ifdef _WIN32
 CHAR FileName[] = "UNZIP32.DLL"; // idb
 
 _UNKNOWN unk_10061280; // weak
 
 _UNKNOWN unk_10061298; // weak
 
-
-#ifdef _WIN32
 LPDCL dword_1006296C = NULL; /* locked DCL option block — UnZip windll, Windows-only */
-#endif
 
-#ifdef _WIN32
 LPUSERFUNCTIONS dword_100639F0; /* locked USERFUNCTIONS callback table — UnZip windll, Windows-only */
-#endif
 
 CHAR aWindllUnzip[] = "windll_unzip"; // idb
 HGLOBAL dword_10062968 = NULL; // idb
@@ -44,6 +51,7 @@ HGLOBAL dword_10062970 = NULL; // idb
 HGLOBAL hMem = NULL; // idb
 int (__stdcall *windll_unzip)(_DWORD, _DWORD, _DWORD, _DWORD, _DWORD, _DWORD); // weak
 HMODULE hLibModule; // idb
+#endif /* _WIN32 — UnZip/ZIP32 windll state */
 
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL) ----
                 * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and

@@ -1418,7 +1418,16 @@ void Info_SetValueForKey (char *s, char *key, char *value)
  * ------------------------------------------------------------------------ */
 
 /* FPU scratch/constants in q_shared's .data and .bss, each referenced only
- * from q_shared's own code (6, 6, 6 / 6, 5, 6 references respectively). */
+ * from q_shared's own code in the DLL (6, 6, 6 / 6, 5, 6 references
+ * respectively) -- and by nothing at all in this reconstruction yet.
+ *
+ * WINDOWS-GATED, because gladi386.so has no room for them: its `.data` carries
+ * 2 bytes of unnamed space in the whole image and its `.bss` statics account
+ * for their own extent, so these seven cannot be present there as globals OR
+ * as statics.  They are DLL-only evidence, kept so the address attribution is
+ * not lost; drop the gate for any that a Linux code site is later found to
+ * use.  (dataaudit.py's EXPORTED-but-not-in-real check, 2026-08-17.) */
+#ifdef _WIN32
 float flt_10062984 = 0.0;   /* 0x10062984 */
 float flt_10062988 = 0.0;   /* 0x10062988 */
 float flt_1006298C = 0.0;   /* 0x1006298C */
@@ -1426,6 +1435,7 @@ float flt_1006319C;         /* 0x1006319C */
 float flt_100631A0;         /* 0x100631A0 */
 float flt_100631A8;         /* 0x100631A8 */
 int   dword_10063388;       /* 0x10063388 */
+#endif
 
 /* VectorNegate @0x10043540 — a 1-arg in-place negate.  q_shared.h has only a
  * 2-arg VectorNegate macro, which every botlib TU #undefs so this stays

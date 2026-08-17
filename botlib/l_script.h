@@ -88,7 +88,8 @@ typedef struct script_s {
 
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
-extern char unk_10060418[72]; /* 72-byte blob; &[3]="You are not allowed to..." — botlib_structdefs.c */
+/* The 72-byte "not allowed to modify" blob is `static const` in l_script.c --
+ * .rodata, no symbol, as in the original.  Not declared here. */
 
 BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *fp);

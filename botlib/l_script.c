@@ -23,8 +23,14 @@
 #include "l_memory.h"
 #include "l_utils.h"
 
-/* unk_10060418 — 72-byte blob; &[3] is the "You are not allowed to…" text. */
-char unk_10060418[72] = {
+/* 72-byte read-only blob whose &[3] is the "You are not allowed to…" text.
+ * `static const`, so it lands in .rodata with no symbol -- which is where the
+ * original keeps it: gladi386.so reaches it with `lea eax,[ebx-0x23e8]`
+ * (.rodata 0x5a6a0, three NULs then the message, immediately after the "rb"
+ * fopen mode string at 0x5a69d), not with a GOT load.  Ours had it as a
+ * writable exported `char[]` in .data, which is one of the surplus globals
+ * dataaudit.py's EXPORTED-but-not-in-real check reports.  (2026-08-17.) */
+static const char unk_10060418[72] = {
     0x00, 0x00, 0x00, 0x59, 0x6F, 0x75, 0x20, 0x61, 0x72, 0x65, 0x20, 0x6E, 0x6F, 0x74, 0x20, 0x61,
     0x6C, 0x6C, 0x6F, 0x77, 0x65, 0x64, 0x20, 0x74, 0x6F, 0x0A, 0x6D, 0x6F, 0x64, 0x69, 0x66, 0x79,
     0x20, 0x74, 0x68, 0x65, 0x20, 0x62, 0x6F, 0x74, 0x20, 0x63, 0x68, 0x61, 0x72, 0x61, 0x63, 0x74,
