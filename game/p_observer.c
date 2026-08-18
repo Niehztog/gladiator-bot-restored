@@ -376,7 +376,7 @@ edict_t *Cam_Cycle(edict_t *prev)
 		{
 			if (!(e->flags & FL_OBSERVER))
 			{
-				if (Q_stricmp(e->classname, "player") == 0)
+				if (stricmp(e->classname, "player") == 0)
 					return e;
 			}
 		}
@@ -417,11 +417,15 @@ void SetClientView(edict_t *ent, vec3_t end, vec3_t out_angles, vec3_t cmdangles
 void Cam_UpdateView(edict_t *ent, float speed, usercmd_t *ucmd)
 {
 	camera_t *cam;
-	trace_t tr;
+	/* move, target_ang, cmdangles, then tr LAST -- the only layout that fits
+	   gamei386.so's frame: move's 7/8/10 at 0x70..0x78, target_ang[0] alone at
+	   0x64, cmdangles' 2/1/1 at 0x58..0x60, and the 56-byte trace filling
+	   0x20..0x57 with its two references at 0x20 and 0x28. */
 	vec3_t move;
 	vec3_t target_ang;
-	float dist, dt, time_to_close;
 	vec3_t cmdangles;
+	float dist, dt, time_to_close;
+	trace_t tr;
 
 	cam = &ent->client->camera;
 
@@ -432,7 +436,9 @@ void Cam_UpdateView(edict_t *ent, float speed, usercmd_t *ucmd)
 		goto angles_phase;
 	}
 
-	tr = gi.trace(ent->s.origin, vec3_origin, vec3_origin, cam->dest,
+	/* NULL mins/maxs -- ref pushes two immediate zeroes, not the address of
+	   vec3_origin, and every other trace in this file passes NULL. */
+	tr = gi.trace(ent->s.origin, NULL, NULL, cam->dest,
 	              ent, OBSERVER_TRACE_MASK);
 	if (tr.fraction < 1.0)
 	{
@@ -448,7 +454,9 @@ void Cam_UpdateView(edict_t *ent, float speed, usercmd_t *ucmd)
 	dt = level.time - cam->lasttime;
 	if (dist < 0.0f)
 		speed = -speed;
-	time_to_close = (float)acos((double)(dist / speed));
+	/* sqrt, not acos: the reference expands it inline as `fdivr; fsqrt` (gcc 2.7
+	   treats sqrt() as a builtin) and calls nothing.  Behavioural. */
+	time_to_close = (float)sqrt((double)(dist / speed));
 	if (dt < time_to_close)
 	{
 		// clamp move scale = (2.0 * time_to_close - dt) * speed * dt
@@ -469,15 +477,15 @@ angles_phase:
 		move[2] = cam->viewtarget[2] - cam->dest[2];
 		vectoangles(move, target_ang);
 		// ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2, level.time - lasttime)
-		ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
+		ChangeCameraAnglesSmooth(cam->angles, target_ang, level.time - cam->lasttime, 0.2f);
 	}
 	else if (cam->state == 3)
 	{
 		// Aim at where the target is aiming: gclient_t.v_angle (at +0xe8c).
 		ChangeCameraAnglesSmooth(cam->angles,
 		             cam->ent->client->v_angle,
-		             0.8f,
-		             level.time - cam->lasttime);
+		             level.time - cam->lasttime,
+		             0.8f);
 	}
 	else if (cam->state == 7)
 	{
@@ -485,7 +493,7 @@ angles_phase:
 		move[1] = cam->ent->s.origin[1] - ent->s.origin[1];
 		move[2] = cam->ent->s.origin[2] - ent->s.origin[2];
 		vectoangles(move, target_ang);
-		ChangeCameraAnglesSmooth(cam->angles, target_ang, 0.2f, level.time - cam->lasttime);
+		ChangeCameraAnglesSmooth(cam->angles, target_ang, level.time - cam->lasttime, 0.2f);
 	}
 	else
 	{
@@ -1729,7 +1737,10 @@ void ChangeChaseCamOffset(edict_t *ent, usercmd_t *ucmd)
 void UpdateChaseCamera(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam;
-	vec3_t   angles, dir, horizfwd, up, forward, end, cmdangles;
+	/* angles, up, horizfwd, forward, dir, end, cmdangles -- slotmap pairs ref
+	   0xa0/0x94/0x88/0x7c/0x70/0x64/0x58 to exactly that sequence; dir, up and
+	   forward were permuted among themselves. */
+	vec3_t   angles, up, horizfwd, forward, dir, end, cmdangles;
 	trace_t  tr;
 
 	if (!(ent->client->camera.flags & CAMFL_FIXED))
@@ -1851,9 +1862,14 @@ void UpdateEyeCamera(edict_t *ent, usercmd_t *ucmd)
 	} //end else
 	cam->lasttime = level.time;
 
-	cam->origin[0] = cam->chaseoffset[0] + cam->ent->s.origin[0];
-	cam->origin[1] = cam->chaseoffset[1] + cam->ent->s.origin[1];
-	cam->origin[2] = cam->chaseoffset[2] + cam->ent->s.origin[2];
+	/* The target's EYE position, not cam->chaseoffset: ref loads cam->ent into
+	   edx, cam->ent->client into eax and reads [eax+0x28] -- player_state_t's
+	   viewoffset (pmove_state_t is 0x1c, viewangles 0x1c, viewoffset 0x28) --
+	   then adds cam->ent->s.origin.  Cam_GetFollowSpot already has this idiom.
+	   Behavioural: we were adding the chase-cam offset to the eye camera. */
+	cam->origin[0] = cam->ent->client->ps.viewoffset[0] + cam->ent->s.origin[0];
+	cam->origin[1] = cam->ent->client->ps.viewoffset[1] + cam->ent->s.origin[1];
+	cam->origin[2] = cam->ent->client->ps.viewoffset[2] + cam->ent->s.origin[2];
 
 	AngleVectors(cam->ent_angles, forward, NULL, NULL);
 	forward[2] = 0;
@@ -2019,7 +2035,7 @@ void ClientSetCamera(edict_t *ent)
 	{
 		cand = g_edicts + 1 + i;
 		if (!cand->inuse) continue;
-		if (!Q_stricmp(cand->client->pers.netname, name))
+		if (!stricmp(cand->client->pers.netname, name))
 		{
 			ent->client->camera.ent = cand;
 			break;
@@ -2317,14 +2333,14 @@ void ClientObserverHelp(edict_t *ent)
 //===========================================================================
 qboolean ClientObserverCmd(char *cmd, edict_t *ent)
 {
-	if (!Q_stricmp(cmd, "observer"))          ClientToggleObserver(ent);
-	else if (!Q_stricmp(cmd, "autocam"))      ClientToggleAutoCam(ent);
-	else if (!Q_stricmp(cmd, "chasecam"))     ClientToggleChaseCam(ent);
-	else if (!Q_stricmp(cmd, "cyclecam"))     ClientCycleCamera(ent);
-	else if (!Q_stricmp(cmd, "setcam"))       ClientSetCamera(ent);
-	else if (!Q_stricmp(cmd, "camfixed"))     ClientToggleCameraFixed(ent);
-	else if (!Q_stricmp(cmd, "camname"))      ClientToggleCameraName(ent);
-	else if (!Q_stricmp(cmd, "observerhelp")) ClientObserverHelp(ent);
+	if (!stricmp(cmd, "observer"))          ClientToggleObserver(ent);
+	else if (!stricmp(cmd, "autocam"))      ClientToggleAutoCam(ent);
+	else if (!stricmp(cmd, "chasecam"))     ClientToggleChaseCam(ent);
+	else if (!stricmp(cmd, "cyclecam"))     ClientCycleCamera(ent);
+	else if (!stricmp(cmd, "setcam"))       ClientSetCamera(ent);
+	else if (!stricmp(cmd, "camfixed"))     ClientToggleCameraFixed(ent);
+	else if (!stricmp(cmd, "camname"))      ClientToggleCameraName(ent);
+	else if (!stricmp(cmd, "observerhelp")) ClientObserverHelp(ent);
 	else return false;
 	return true;
 } //end of the function ClientObserverCmd
