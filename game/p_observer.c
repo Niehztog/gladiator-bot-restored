@@ -1286,26 +1286,31 @@ void Cam_FollowThink(edict_t *ent, usercmd_t *ucmd)
 //===========================================================================
 void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 {
-	camera_t *cam = &ent->client->camera;
-	edict_t  *chosen;
-	edict_t  *it;
+	/* Group-2 order paired slot-by-slot against gamei386.so by what each slot is
+	   USED for, not by guessing: ref 0x28 takes the -1.0f init (best), 0x24 the
+	   anglemod argument and the two subtractions (yaw_random), 0x20 the lone
+	   `mov ...,0x0` (yaw_to_target), 0x1c the early pointer stores (chosen), and
+	   0x18 is the most-referenced pointer (cam).  Descending offsets are the
+	   declaration order, so cam comes LAST here. */
 	float     best;
-	float     rnd;
 	float     yaw_random;   /* also the anglemod'ed value: our `yaw_anglemod`
 	                        * was a second name for this slot, and was READ
-	                        * UNINITIALISED.  The reference has one slot here,
-	                        * referenced 9 times; we had 2 + 7. */
+	                        * UNINITIALISED. */
 	float     yaw_to_target;
+	edict_t  *chosen;
+	edict_t  *it;
+	float     rnd;
+	camera_t *cam = &ent->client->camera;
 	/* angles, fwd, delta, diff -- gamei386.so's group-1 reference counts are
 	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to exactly this
 	   order; fwd and delta were the wrong way round. */
 	/* angles, diff, delta, fwd -- gamei386.so's group-1 counts are
 	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to angles / diff /
 	   delta / fwd. */
+	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
 	vec3_t    angles;       // [-0x70..-0x68]: random angles → fwd*2000 → block-1 scratch
 	                        // (overwritten in block 1 with delta+cam->dest; block 2 reads
 	                        // whichever value it currently holds)
-	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
 	vec3_t    delta;        // [-0x64..-0x5c]: pos diff → vectoangles result → trace target
 	                        // → trace endpoint.  Both blocks pass &delta to gi.trace.
 	vec3_t    out_ang;      // vectoangles destination; declared HERE, not in the
@@ -1388,7 +1393,10 @@ void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 	if (best <= 0.0f)
 		goto install_target;
 
-	best = (float)(rand() & 0x7FFF) / 32767.0f * best;
+	/* Grouped `(best / 32767) * rand`, and the rand result stays an INT:
+	   ref is `fld <1/32767>; fmul best; and eax,0x7fff; push eax; fimul [esp]`,
+	   so the reciprocal multiplies `best` before the integer is folded in. */
+	best = best / 32767.0f * (rand() & 0x7FFF);
 
 	it = NULL;
 	for (;;)
@@ -1417,7 +1425,7 @@ install_target:
 	// toward cam->viewtarget through walls/glass; the trace endpoint
 	// becomes the new viewtarget.
 	cam->ent = ent;
-	tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
+	tr = gi.trace(cam->dest, NULL, NULL,
 	              cam->viewtarget, ent, OBSERVER_TRACE_MASK);
 	cam->viewtarget[0] = tr.endpos[0];
 	cam->viewtarget[1] = tr.endpos[1];
@@ -1428,9 +1436,16 @@ install_target:
 	   ours had nine, the extra one referenced exactly twice -- assigned once and
 	   read once, which is all this variable ever was. */
 	angles[PITCH] = (float)(rand() & 0x7FFF) / 32767.0f * 40.0f - 20.0f;
-	yaw_random  = (float)(rand() & 0x7FFF) / 32767.0f * 360.0f;
-	angles[YAW]   = yaw_random;
+	/* Chained with angles[YAW] INNERMOST: ref stores it first and keeps the
+	   value on the x87 stack (`fst [esp+0xa8]`), sets angles[ROLL], and only
+	   then pops into yaw_random.  Assigning yaw_random first instead makes gcc
+	   reload the slot and copy it as an integer dword. */
+	angles[YAW]   = (float)(rand() & 0x7FFF) / 32767.0f * 360.0f;
 	angles[ROLL]  = 0.0f;
+	/* Read back rather than chained: ref keeps the value on the x87 stack across
+	   the integer store to angles[ROLL] and pops it here
+	   (`fst [esp+0xa8]; mov [esp+0xac],0x0; fstp yaw_random`). */
+	yaw_random    = angles[YAW];
 
 	// If cam->dest already equals ent->s.origin, yaw_to_target stays 0;
 	// otherwise compute yaw from cam->dest toward ent.
@@ -1479,10 +1494,11 @@ install_target:
 	   disasm @ 0x1007a7c2 (lea eax,[ebp-0x64]; push eax) exactly. */
 	if (fabs((double)anglemod(yaw_random - yaw_to_target)) > 60.0)
 	{
-		angles[0] = delta[0] + cam->dest[0];
-		angles[1] = delta[1] + cam->dest[1];
-		angles[2] = delta[2] + cam->dest[2];
-		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
+		/* cam->dest first: ref is `fld [ecx+0x40]; fadd [esp+0x7c]`. */
+		angles[0] = cam->dest[0] + delta[0];
+		angles[1] = cam->dest[1] + delta[1];
+		angles[2] = cam->dest[2] + delta[2];
+		tr = gi.trace(cam->dest, NULL, NULL,
 		              delta, ent, OBSERVER_TRACE_MASK);
 		delta[0] = tr.endpos[0];
 		delta[1] = tr.endpos[1];
@@ -1507,13 +1523,17 @@ install_target:
 	   `angles` here holds either fwd*2000 (if block 1's guard failed) or
 	   delta_old + cam->dest (if block 1 ran) -- block 1's side-effect is
 	   load-bearing for this trace target. */
-	yaw_random = anglemod(yaw_random + 180.0f);       // 0x100922f0 = 180
+	/* Two statements: ref stores the sum back into yaw_random and then pushes
+	   that slot (`fstp [esp+0x24]; push [esp+0x24]`), where a single nested call
+	   pushes the rvalue straight off the x87 stack. */
+	yaw_random = yaw_random + 180.0f;                 // 0x100922f0 = 180
+	yaw_random = anglemod(yaw_random);
 	if (fabs((double)anglemod(yaw_random - yaw_to_target)) > 60.0)
 	{
 		delta[0] = cam->dest[0] - angles[0];
 		delta[1] = cam->dest[1] - angles[1];
 		delta[2] = cam->dest[2] - angles[2];
-		tr = gi.trace(cam->dest, vec3_origin, vec3_origin,
+		tr = gi.trace(cam->dest, NULL, NULL,
 		              delta, ent, OBSERVER_TRACE_MASK);
 		delta[0] = tr.endpos[0];
 		delta[1] = tr.endpos[1];
@@ -1563,7 +1583,7 @@ install_target:
 		diff[1] += cam->viewtarget[1];
 		diff[2] += cam->viewtarget[2];
 
-		tr = gi.trace(ent->s.origin, vec3_origin, vec3_origin,
+		tr = gi.trace(ent->s.origin, NULL, NULL,
 		              diff, ent, OBSERVER_TRACE_MASK);
 
 		if (tr.fraction >= 1.0f)                          // 0x10092178 = 1.0
@@ -1804,6 +1824,9 @@ void UpdateChaseCamera(edict_t *ent, usercmd_t *ucmd)
 	end[2] = cam->origin[2] + dir[2];
 
 	// Trace from cam->origin to end, ignoring the chase target itself.
+	/* vec3_origin here, NOT NULL: this one trace really does pass the address of
+	   the zero vector -- swapping it for NULL takes this row off MATCH.  The
+	   other four traces in this file push two immediate zeroes. */
 	tr = gi.trace(cam->origin, vec3_origin, vec3_origin, end, cam->ent, MASK_OPAQUE);
 
 	// Push the endpoint 5 units further along the (re-normalised)
