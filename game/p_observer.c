@@ -1291,9 +1291,10 @@ void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 	edict_t  *it;
 	float     best;
 	float     rnd;
-	float     angle_pitch;
-	float     yaw_random;
-	float     yaw_anglemod;
+	float     yaw_random;   /* also the anglemod'ed value: our `yaw_anglemod`
+	                        * was a second name for this slot, and was READ
+	                        * UNINITIALISED.  The reference has one slot here,
+	                        * referenced 9 times; we had 2 + 7. */
 	float     yaw_to_target;
 	/* angles, fwd, delta, diff -- gamei386.so's group-1 reference counts are
 	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to exactly this
@@ -1307,6 +1308,10 @@ void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
 	vec3_t    delta;        // [-0x64..-0x5c]: pos diff → vectoangles result → trace target
 	                        // → trace endpoint.  Both blocks pass &delta to gi.trace.
+	vec3_t    out_ang;      // vectoangles destination; declared HERE, not in the
+	                        // inner block -- it is the fourth vec3 of the
+	                        // reference's group-1 run (the `1 2 2` after delta's
+	                        // `8 8 11`), which an inner-block local cannot be.
 	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
 	trace_t   tr;
 
@@ -1419,18 +1424,18 @@ install_target:
 	cam->viewtarget[2] = tr.endpos[2];
 
 	// Random pitch in [-20,+20] and random yaw in [0,360).
-	angle_pitch = (float)(rand() & 0x7FFF) / 32767.0f * 40.0f - 20.0f;
+	/* No `angle_pitch` temp: the reference's group-2 block has eight slots and
+	   ours had nine, the extra one referenced exactly twice -- assigned once and
+	   read once, which is all this variable ever was. */
+	angles[PITCH] = (float)(rand() & 0x7FFF) / 32767.0f * 40.0f - 20.0f;
 	yaw_random  = (float)(rand() & 0x7FFF) / 32767.0f * 360.0f;
-	angles[PITCH] = angle_pitch;
 	angles[YAW]   = yaw_random;
 	angles[ROLL]  = 0.0f;
-	yaw_anglemod  = yaw_random;          // saved into [-0x74] before AngleVectors
 
 	// If cam->dest already equals ent->s.origin, yaw_to_target stays 0;
 	// otherwise compute yaw from cam->dest toward ent.
 	if (VectorCompare(&ent->s.origin[0], cam->dest) == 0)
 	{
-		vec3_t out_ang;
 		delta[0] = ent->s.origin[0] - cam->dest[0];
 		delta[1] = ent->s.origin[1] - cam->dest[1];
 		delta[2] = ent->s.origin[2] - cam->dest[2];
@@ -1445,7 +1450,7 @@ install_target:
 		yaw_to_target = 0.0f;
 	}
 
-	yaw_anglemod = anglemod(yaw_anglemod);
+	yaw_random = anglemod(yaw_random);
 
 	// Convert the random pitch/yaw to a forward vector scaled by 2000.
 	AngleVectors(angles, fwd, NULL, NULL);
@@ -1459,7 +1464,7 @@ install_target:
 
 	/* --- First trace candidate -------------------------------------------
 	   disasm @ 0x1007a771..0x1007a78f computes
-	     fabs(anglemod(yaw_anglemod - yaw_to_target)) > 60.0
+	     fabs(anglemod(yaw_random - yaw_to_target)) > 60.0
 	   (call 0x10087ba7 is _CIfabs -- the function clears the sign bit at
 	   0x10087c3f -- *not* sqrt as earlier drafts assumed; the block is
 	   therefore LIVE for most yaw deltas, not dead.  Constant at
@@ -1472,7 +1477,7 @@ install_target:
 	   The first trace itself targets &delta (still the vectoangles
 	   output at this point, treated as raw coordinates) -- this matches
 	   disasm @ 0x1007a7c2 (lea eax,[ebp-0x64]; push eax) exactly. */
-	if (fabs((double)anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
+	if (fabs((double)anglemod(yaw_random - yaw_to_target)) > 60.0)
 	{
 		angles[0] = delta[0] + cam->dest[0];
 		angles[1] = delta[1] + cam->dest[1];
@@ -1502,8 +1507,8 @@ install_target:
 	   `angles` here holds either fwd*2000 (if block 1's guard failed) or
 	   delta_old + cam->dest (if block 1 ran) -- block 1's side-effect is
 	   load-bearing for this trace target. */
-	yaw_anglemod = anglemod(yaw_anglemod + 180.0f);       // 0x100922f0 = 180
-	if (fabs((double)anglemod(yaw_anglemod - yaw_to_target)) > 60.0)
+	yaw_random = anglemod(yaw_random + 180.0f);       // 0x100922f0 = 180
+	if (fabs((double)anglemod(yaw_random - yaw_to_target)) > 60.0)
 	{
 		delta[0] = cam->dest[0] - angles[0];
 		delta[1] = cam->dest[1] - angles[1];
