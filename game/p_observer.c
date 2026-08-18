@@ -2076,7 +2076,9 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 	// 0.5s debounce held in cam->lastcycle so a held key doesn't tear
 	// through the client list in one frame (qword 0.5 at gamex86.dll
 	// 0x10092138, fsub'd from level.time at sub_1007b926+0x6f)
-	if (ucmd->upmove > 100 && level.time - 0.5 > ent->client->camera.lastcycle)
+	/* lastcycle on the LEFT: ref materialises `ent->client` before the FP
+	   subtraction, which is the evaluation order for the left-hand operand. */
+	if (ucmd->upmove > 100 && ent->client->camera.lastcycle < level.time - 0.5)
 	{
 		ent->client->camera.lastcycle = level.time;
 		if (ent->client->camera.flags & CAMFL_AUTOCAM)
@@ -2095,8 +2097,19 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 
 	ent->client->ps.gunindex = 0;
 
-	if ((ent->client->camera.flags & (CAMFL_AUTOCAM | CAMFL_CHASECAM)) &&
-	    !(ent->client->camera.ent == ent && (ent->client->camera.flags & CAMFL_CHASECAM)))
+	/* The SPECTATOR arm is the fallthrough in both originals -- ref's last test
+	   is `je` into `movetype=1; pm_type=1; buttons &= ~3; return 1` -- so the
+	   condition is written the other way round and the two arms are swapped. */
+	if (!(ent->client->camera.flags & (CAMFL_AUTOCAM | CAMFL_CHASECAM)) ||
+	    (ent->client->camera.ent == ent && (ent->client->camera.flags & CAMFL_CHASECAM)))
+	{
+		// plain spectator (no autocam/chasecam, or chasecam targeting self)
+		ent->movetype = MOVETYPE_NOCLIP;
+		ent->client->ps.pmove.pm_type = PM_SPECTATOR;
+		ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
+		return 1;
+	} //end if
+	else
 	{
 		// tracking some other client: drive the camera and silence input
 		ent->client->ps.pmove.pm_type = PM_DEAD;
@@ -2109,14 +2122,6 @@ int DoObserver(edict_t *ent, usercmd_t *ucmd)
 		ucmd->sidemove = 0;
 		ucmd->upmove = 0;
 		ent->client->ps.pmove.gravity = 0;
-		return 1;
-	} //end if
-	else
-	{
-		// plain spectator (no autocam/chasecam, or chasecam targeting self)
-		ent->movetype = MOVETYPE_NOCLIP;
-		ent->client->ps.pmove.pm_type = PM_SPECTATOR;
-		ucmd->buttons &= ~(BUTTON_ATTACK | BUTTON_USE);
 		return 1;
 	} //end else
 } //end of the function DoObserver
@@ -2173,11 +2178,11 @@ void ClientToggleObserver(edict_t *ent)
 		ent->health = 100;
 		ent->client->ps.stats[STAT_HEALTH] = ent->health;
 		ent->svflags |= SVF_NOCLIENT;
-		if (ent->deadflag)
-		{
-			ent->deadflag = DEAD_NO;
-			VectorCopy(ent->client->v_angle, ent->client->ps.viewangles);
-		}
+		/* No deadflag/viewangles fixup here: neither original has it.  The .so
+		   never touches edict+0x1ec or client+0xe8c in this function, and
+		   gamex86.dll's 0x1007bb4c body (161 lines, four compares) references
+		   neither offset either.  It was invented -- p_observer.c has no shipped
+		   source counterpart, so everything in it is reconstruction. */
 		ent->client->camera.ent = ent;
 		CheckValidCamera(ent);
 		if (ctf->value)
