@@ -71,16 +71,24 @@ void __cdecl BotDumpCharacter(bot_character_t *ch)
 // gladi386.so:   00038630..00038B2E
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 {
-  bot_character_t *ch; // ebx
-  int index;
+  /* Scalar order from gladi386.so's frame (slotmap.py): gcc 2.7 fills the
+   * spilled-scalar group top-down in declaration order.  This order takes the
+   * row from 150 to 130 insn_diffs (2390 -> 1126 B); the residual is a 4-byte
+   * offset between the two blocks (ref's spans 0x10..0x30, ours 0x14..0x34, and
+   * each side has one never-referenced slot -- ref's at the TOP of the block,
+   * ours at the bottom), so ref appears to declare one more register-only
+   * scalar ahead of these.  Pairing by vote cannot resolve that on its own; it
+   * needs declprobe.py. */
   int indent;
   char Destination[MAX_PATH];
   source_t *source; // [esp+10h] [ebp-5E4h]
   int stringbytes; // [esp+18h] [ebp-5DCh]
   int numchars; // [esp+14h] [ebp-5E0h]
-  int foundcharacter; // [esp+20h] [ebp-5D4h]
+  int index;
+  bot_character_t *ch; // ebx
   int pass; // [esp+1Ch] [ebp-5D8h]
   char *strptr; // [esp+24h] [ebp-5D0h]
+  int foundcharacter; // [esp+20h] [ebp-5D4h]
   token_t token;
   bot_fileref_t file_ref;
 

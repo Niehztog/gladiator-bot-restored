@@ -624,17 +624,17 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   aas_area_t *area1; // ebp
   int v3; // eax
   int v4; // edx
-  int groundface1num; // eax
+  int i; // [esp+F4h] [ebp-DCh]
   aas_face_t *groundface1; // ebp
-  int edge1num; // eax
-  int side1; // edi
+  int j; // ebp
+  int k; // [esp+ECh] [ebp-E4h]
   int v13; // esi
   aas_edge_t *edge1; // ecx
   int v18; // ebx
   aas_area_t *v19; // eax — base pointer alias of area2 (was int, must hold 64-bit ptr)
   int v20; // rax — int + abs(); see asm_matching/idioms
   aas_face_t *groundface2; // edi
-  int j; // ebp
+  int edge1num; // eax
   int edge2num; // rax — int + abs()
   aas_edge_t *edge2; // ecx
   /* Q3 declares this; IDA lost it because both compilers CSE'd the subscript into
@@ -644,9 +644,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   /* The original keeps these on the x87 stack at 80-bit, so they are long
    * double with explicit operand casts in the chain expressions. */
   float v25; // st7
-  float ortdot; // st7
+  int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
   float v28; // st7
-  float dist1; // st7
+  int ground_foundreach; // [esp+E8h] [ebp-E8h]
   aas_reachabilitynode_t *v44; // eax
   int v46; // ecx
   aas_reachabilitynode_t *v50; // esi
@@ -654,42 +654,9 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
   aas_reachabilitynode_t *v56; // esi
   char *v57; // eax
   int v58; // edx
-  float x2; // [esp+10h] [ebp-1C0h]
-  float dist2; // [esp+10h] [ebp-1C0h]
-  float x1; // [esp+14h] [ebp-1BCh]
-  float x3; // [esp+18h] [ebp-1B8h]
-  float x4; // [esp+1Ch] [ebp-1B4h]
-  float ground_bestdist; // [esp+20h] [ebp-1B0h]
-  float dist; // [esp+24h] [ebp-1ACh]
-  float v66; // [esp+28h] [ebp-1A8h]
-  float length; // [esp+28h] [ebp-1A8h]
-  float y3; // [esp+5Ch] [ebp-174h]
-  float y1; // [esp+60h] [ebp-170h]
-  float y4; // [esp+64h] [ebp-16Ch]
-  float y2; // [esp+80h] [ebp-150h]
-  /* vec3_t: passed by reference to VectorScale, which writes 3 floats. */
-  vec3_t start; // [esp+84h] [ebp-14Ch] BYREF — was start/v92/v93 int triplet
-  /* Same root cause as start/v92/v93 — VectorScale destination. */
-  vec3_t end; // [esp+90h] [ebp-140h] BYREF — was end/v95/v96 int triplet
-  /* vec3_t: CrossProduct writes 3 contiguous floats here. */
-  vec3_t ort; // [esp+9Ch] [ebp-134h] BYREF
-  float water_bestdist; // [esp+A8h] [ebp-128h]
-  /* vec3_t: CrossProduct's destination. */
-  vec3_t normal; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
-  /* vec3_t: VectorMA's destination. */
-  vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
-  int ground_bestarea2groundedgenum; // [esp+DCh] [ebp-F4h]
-  int v114; // [esp+E0h] [ebp-F0h]
-  aas_area_t *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
-  int ground_foundreach; // [esp+E8h] [ebp-E8h]
-  int k; // [esp+ECh] [ebp-E4h]
   int water_foundreach; // [esp+F0h] [ebp-E0h]
-  int i; // [esp+F4h] [ebp-DCh]
-  float ground_bestnormal[3]; // [esp+F8h] [ebp-D8h] BYREF
-  /* vec3_t: VectorMA's destination. */
-  vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
-  float ground_bestlength; // [esp+110h] [ebp-C0h]
-  float water_bestlength; // [esp+114h] [ebp-BCh]
+  int side1; // edi
+  int area1swim; // [esp+13Ch] [ebp-94h]
   /* NOTHING at [esp+118h]: IDA's `aas_face_t *v126` there was MSVC's SPILL SLOT
    * for `groundface1`, not a source variable.  Q3 declares no such local, and
    * carrying it made our frame 4 bytes too big in BOTH originals.  Dropping it
@@ -699,26 +666,59 @@ int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, i
    * 1237/1237 and that permutation is unreachable from C.  A deliberate
    * fidelity-over-byte-metric deviation. */
   int faceside1; // [esp+120h] [ebp-B0h]
-  vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
-  int area1swim; // [esp+13Ch] [ebp-94h]
-  vec3_t water_beststart; // [esp+140h..148h] [ebp-90h..-88h] — one contiguous vec3, as Q3 declares it
-  float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
-  float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
-  float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
+  int groundface1num; // eax
+  float dist; // [esp+24h] [ebp-1ACh]
+  float dist1; // st7
+  float v66; // [esp+28h] [ebp-1A8h]
+  float dist2; // [esp+10h] [ebp-1C0h]
+  float ortdot; // st7
+  float x1; // [esp+14h] [ebp-1BCh]
+  float x2; // [esp+10h] [ebp-1C0h]
+  float x3; // [esp+18h] [ebp-1B8h]
   vec3_t edgev1; // canonical Q3 edge endpoint locals
   vec3_t edgev2;
   vec3_t edgev3;
+  float x4; // [esp+1Ch] [ebp-1B4h]
+  vec3_t edgev4;
+  vec3_t tmpv;
+  float y1; // [esp+60h] [ebp-170h]
+  int v114; // [esp+E0h] [ebp-F0h]
+  aas_area_t *area2; // [esp+E4h] [ebp-ECh] — second area's char* base (was int — truncates ptr)
+  float y2; // [esp+80h] [ebp-150h]
+  float y3; // [esp+5Ch] [ebp-174h]
+  float y4; // [esp+64h] [ebp-16Ch]
+  float length; // [esp+28h] [ebp-1A8h]
+  vec3_t p1area1;
+  vec3_t p1area2;
+  float ground_bestlength; // [esp+110h] [ebp-C0h]
+  float water_bestlength; // [esp+114h] [ebp-BCh]
+  float ground_bestdist; // [esp+20h] [ebp-1B0h]
+  vec3_t p2area1;
+  float water_bestdist; // [esp+A8h] [ebp-128h]
   vec3_t p2area2;
+  /* vec3_t: CrossProduct's destination. */
+  vec3_t normal; // [esp+ACh] [ebp-124h] BYREF — was v101/v102/v103 mixed triplet
+  /* vec3_t: CrossProduct writes 3 contiguous floats here. */
+  vec3_t ort; // [esp+9Ch] [ebp-134h] BYREF
   /* vec3_t: VectorMA's destination and the AAS_PointAreaNum trace point — the z
    * decrement below has to land in the same slot. */
   float edgevec[3]; // [esp+17Ch] [ebp-54h] BYREF
-  aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
-  vec3_t p1area1;
-  vec3_t edgev4;
+  /* vec3_t: passed by reference to VectorScale, which writes 3 floats. */
+  vec3_t start; // [esp+84h] [ebp-14Ch] BYREF — was start/v92/v93 int triplet
+  /* Same root cause as start/v92/v93 — VectorScale destination. */
+  vec3_t end; // [esp+90h] [ebp-140h] BYREF — was end/v95/v96 int triplet
+  float dir[3]; // [esp+164h] [ebp-6Ch] BYREF
+  /* vec3_t: VectorMA's destination. */
+  vec3_t ground_beststart; // [esp+104h] [ebp-CCh] BYREF — was ground_beststart/v122/v123 mixed triplet
+  /* vec3_t: VectorMA's destination. */
+  vec3_t ground_bestend; // [esp+D0h] [ebp-100h] BYREF — was ground_bestend/v111/v112 mixed triplet
+  float ground_bestnormal[3]; // [esp+F8h] [ebp-D8h] BYREF
+  vec3_t water_beststart; // [esp+140h..148h] [ebp-90h..-88h] — one contiguous vec3, as Q3 declares it
+  float water_bestend[3]; // [esp+14Ch] [ebp-84h] BYREF
+  float water_bestnormal[3]; // [esp+158h] [ebp-78h] BYREF
+  vec3_t up; // [esp+130h] [ebp-A0h] BYREF — world up axis (0,0,1) for CrossProduct
   vec3_t testpoint; // [esp+170h] [ebp-60h] BYREF — was int testpoint[2] + float v142
-  vec3_t p1area2;
-  vec3_t p2area1;
-  vec3_t tmpv;
+  aas_trace_t trace; // [esp+188h] [ebp-48h] (was int v144[9] + char v145[36] hidden return buffer)
 
   up[0] = 0.0f;
   up[1] = 0.0f;
