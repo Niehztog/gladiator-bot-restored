@@ -275,7 +275,11 @@ qboolean Cam_SpotVisible(edict_t *ent, vec3_t point)
 
 	if (tr.contents & MASK_WATER)
 	{
-		if (tr.surface == NULL || !(tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
+		/* No `!`: the original re-traces when the surface IS translucent (or when
+		   there is no surface at all).  `je bd6b9` on the null test jumps INTO this
+		   block and `je bd6d9` on the flags test jumps PAST it, so the condition is
+		   `surface == NULL || (flags & TRANS)`.  Behavioural, not just a byte diff. */
+		if (tr.surface == NULL || (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
 		{
 			contmask &= ~MASK_WATER;
 			tr = gi.trace(tr.endpos, NULL, NULL, end, ent, contmask);
@@ -330,7 +334,11 @@ qboolean Cam_EntityVisible(edict_t *ent, edict_t *target)
 
 	if (tr.contents & MASK_WATER)
 	{
-		if (tr.surface == NULL || !(tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
+		/* No `!`: the original re-traces when the surface IS translucent (or when
+		   there is no surface at all).  `je bd6b9` on the null test jumps INTO this
+		   block and `je bd6d9` on the flags test jumps PAST it, so the condition is
+		   `surface == NULL || (flags & TRANS)`.  Behavioural, not just a byte diff. */
+		if (tr.surface == NULL || (tr.surface->flags & (SURF_TRANS33|SURF_TRANS66)))
 		{
 			contmask &= ~MASK_WATER;
 			tr = gi.trace(tr.endpos, NULL, NULL, end, passent, contmask);
