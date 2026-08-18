@@ -665,7 +665,9 @@ void Cam_GetFollowSpot(edict_t *ent, vec3_t out)
 	AngleVectors(angles, NULL, NULL, up);
 
 	/* zero pitch, anglemod yaw, then forward from flat angles */
-	angles[1] = anglemod(angles[1] + 0.0f);
+	/* No `+ 0.0f` -- an IDA artifact.  Ref just pushes the dword and calls:
+	   `mov eax,[esp+0x70]; push eax; call anglemod`. */
+	angles[1] = anglemod(angles[1]);
 	angles[0] = 0.0f;
 	AngleVectors(angles, fwd, NULL, NULL);
 
