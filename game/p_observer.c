@@ -139,10 +139,13 @@ float AngleDifference(float ang1, float ang2)
 //===========================================================================
 void SetClientOrigin(edict_t *ent, vec3_t origin)
 {
-	gclient_t *cl = ent->client;
-	cl->ps.pmove.origin[0] = (short)(int)origin[0];
-	cl->ps.pmove.origin[1] = (short)(int)origin[1];
-	cl->ps.pmove.origin[2] = (short)(int)origin[2];
+	/* `ent->client` re-read per store, not hoisted into a local: each store
+	   through the pointer may alias it, so the reference reloads `[ecx+0x54]`
+	   every time.  A local forces gcc to keep it in a spill slot instead, which
+	   is where our extra 4 frame bytes came from. */
+	ent->client->ps.pmove.origin[0] = (short)origin[0];
+	ent->client->ps.pmove.origin[1] = (short)origin[1];
+	ent->client->ps.pmove.origin[2] = (short)origin[2];
 	ent->s.origin[0] = origin[0];
 	ent->s.origin[1] = origin[1];
 	ent->s.origin[2] = origin[2];
