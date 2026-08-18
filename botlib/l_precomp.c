@@ -39,20 +39,6 @@ define_t *globaldefines;
  * codegen — gcc -fPIC addresses a non-static (potentially-interposable) global
  * through a real GOT pointer slot, where a `static` array gets a direct GOT-relative
  * address with no extra indirection. */
-// gladiator.dll: 1003B7B0..1003B7C0
-// gladi386.so:   0004DCE0..0004DCFE
-int __cdecl PC_Directive_ifdef(source_t *src)
-{
-  return PC_Directive_if_def(src, INDENT_IFDEF);
-} //end of the function PC_Directive_ifdef
-
-// gladiator.dll: 1003B7D0..1003B7E0
-// gladi386.so:   0004DD00..0004DD1E
-int __cdecl PC_Directive_ifndef(source_t *src)
-{
-  return PC_Directive_if_def(src, INDENT_IFNDEF);
-} //end of the function PC_Directive_ifndef
-
 typedef struct { const char *name; int (__cdecl *handler)(intptr_t); } directive_t;
 /* [20], not []: gladi386.so's .dynsym gives `directives` st_size 160 = 20*8,
  * and Q3 `l_precomp.c:2490` declares exactly `directive_t directives[20]` with
@@ -1248,6 +1234,20 @@ int __cdecl PC_Directive_if_def(source_t *src, int type)
   PC_PushIndent(src, type, skip);
   return 1;
 }
+
+// gladiator.dll: 1003B7B0..1003B7C0
+// gladi386.so:   0004DCE0..0004DCFE
+int __cdecl PC_Directive_ifdef(source_t *src)
+{
+  return PC_Directive_if_def(src, INDENT_IFDEF);
+} //end of the function PC_Directive_ifdef
+
+// gladiator.dll: 1003B7D0..1003B7E0
+// gladi386.so:   0004DD00..0004DD1E
+int __cdecl PC_Directive_ifndef(source_t *src)
+{
+  return PC_Directive_if_def(src, INDENT_IFNDEF);
+} //end of the function PC_Directive_ifndef
 
 // gladiator.dll: 1003B7F0..1003B85B
 // gladi386.so:   0004DD20..0004DE0F

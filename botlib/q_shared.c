@@ -6,6 +6,12 @@ vec3_t vec3_origin = {0,0,0};
 
 //============================================================================
 
+/* Com_Printf @0x10042410 — a single-byte `ret` in the original, so the
+ * Com_sprintf / Info_* diagnostics below silently drop.  Keep the empty body. */
+// gladiator.dll: 10042410..10042411
+// gladi386.so:   000544E4..000544E5
+void Com_Printf(char *msg, ...) { (void)msg; }
+
 #ifdef _WIN32
 #pragma optimize( "", off )
 #endif
@@ -1598,9 +1604,4 @@ float *VectorNegate(float *v)
   return result;
 }
 
-/* Com_Printf @0x10042410 — a single-byte `ret` in the original, so the
- * Com_sprintf / Info_* diagnostics below silently drop.  Keep the empty body. */
-// gladiator.dll: 10042410..10042411
-// gladi386.so:   000544E4..000544E5
-void Com_Printf(char *msg, ...) { (void)msg; }
 #endif /* BOTLIB */

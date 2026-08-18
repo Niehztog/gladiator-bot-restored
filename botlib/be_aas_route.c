@@ -100,6 +100,20 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
     return aasworld.travelflagfortype[traveltype];
 }
 
+#ifndef _WIN32
+/* F511 @ 0x0002651c, 20 bytes — a bare tail call to AAS_Time().  Q3 has it as
+ * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
+ * line, which is what `__inline` compiles to under a compiler that ignores the
+ * hint. */
+// gladiator.dll: absent
+// gladi386.so:   0002651C..00026530
+float __cdecl AAS_RoutingTime(void)
+{
+  return AAS_Time();
+} //end of the function AAS_RoutingTime
+
+#endif /* !_WIN32 -- gladi386.so-only */
+
 // gladiator.dll: 10018DF0..10018EFC
 // gladi386.so:   00026530..000266B3
 /* One contiguous blob of `numareas` reversed-reach heads followed by
@@ -237,20 +251,6 @@ void __cdecl AAS_FreeRoutingCache(void *cache)
 {
   FreeMemory(cache);
 }
-
-#ifndef _WIN32
-/* F511 @ 0x0002651c, 20 bytes — a bare tail call to AAS_Time().  Q3 has it as
- * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
- * line, which is what `__inline` compiles to under a compiler that ignores the
- * hint. */
-// gladiator.dll: absent
-// gladi386.so:   0002651C..00026530
-float __cdecl AAS_RoutingTime(void)
-{
-  return AAS_Time();
-} //end of the function AAS_RoutingTime
-
-#endif /* !_WIN32 -- gladi386.so-only */
 
 // gladiator.dll: 10019280..10019320
 // gladi386.so:   00026B04..00026BDC
