@@ -631,7 +631,10 @@ void Cam_EnterDeathMode(edict_t *ent)
 void Cam_GetFollowSpot(edict_t *ent, vec3_t out)
 {
 	camera_t *cam = &ent->client->camera;
-	vec3_t angles, up, fwd, horizfwd, ofs, viewfrom, endpos;
+	/* Order recovered from gamei386.so's frame (slotmap.py pairs ref
+	   0x98/0x8c/0x80/0x74/0x68/0x5c/0x50 to viewfrom/endpos/up/horizfwd/ofs/
+	   angles/fwd). */
+	vec3_t viewfrom, endpos, up, horizfwd, ofs, angles, fwd;
 	trace_t tr;
 
 	/* copy cam->angles into local; first AngleVectors uses unmodified */
@@ -1124,8 +1127,10 @@ void Cam_FixedThink(edict_t *ent, usercmd_t *ucmd)
 void Cam_FlyByThink(edict_t *ent, usercmd_t *ucmd)
 {
 	camera_t *cam = &ent->client->camera;
-	vec3_t dir;
+	/* aimend before dir: gamei386.so puts the three-times-referenced vector at
+	   0x24 and the other at 0x30, i.e. the reverse of what we had. */
 	vec3_t aimend;
+	vec3_t dir;
 	float dist, yaw_diff;
 
 	if (cam->ent->deadflag != 0)
@@ -1269,12 +1274,15 @@ void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 	float     yaw_random;
 	float     yaw_anglemod;
 	float     yaw_to_target;
+	/* angles, fwd, delta, diff -- gamei386.so's group-1 reference counts are
+	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to exactly this
+	   order; fwd and delta were the wrong way round. */
 	vec3_t    angles;       // [-0x70..-0x68]: random angles → fwd*2000 → block-1 scratch
 	                        // (overwritten in block 1 with delta+cam->dest; block 2 reads
 	                        // whichever value it currently holds)
+	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
 	vec3_t    delta;        // [-0x64..-0x5c]: pos diff → vectoangles result → trace target
 	                        // → trace endpoint.  Both blocks pass &delta to gi.trace.
-	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
 	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
 	trace_t   tr;
 
