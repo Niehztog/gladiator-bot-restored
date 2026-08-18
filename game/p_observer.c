@@ -1298,13 +1298,16 @@ void Cam_IdleThink(edict_t *ent, usercmd_t *ucmd)
 	/* angles, fwd, delta, diff -- gamei386.so's group-1 reference counts are
 	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to exactly this
 	   order; fwd and delta were the wrong way round. */
+	/* angles, diff, delta, fwd -- gamei386.so's group-1 counts are
+	   3 3 5 | 7 7 9 | 8 8 11 | 1 2 2 top-down, which pairs to angles / diff /
+	   delta / fwd. */
 	vec3_t    angles;       // [-0x70..-0x68]: random angles → fwd*2000 → block-1 scratch
 	                        // (overwritten in block 1 with delta+cam->dest; block 2 reads
 	                        // whichever value it currently holds)
-	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
+	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
 	vec3_t    delta;        // [-0x64..-0x5c]: pos diff → vectoangles result → trace target
 	                        // → trace endpoint.  Both blocks pass &delta to gi.trace.
-	vec3_t    diff;         // [-0x90..-0x88]: scratch for VectorLength
+	vec3_t    fwd;          // [-0xc..0x0]: AngleVectors output
 	trace_t   tr;
 
 	// ent->client->camera
