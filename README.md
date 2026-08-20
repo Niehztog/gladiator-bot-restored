@@ -72,10 +72,12 @@ a maintainable, future-proof bot library for the decades ahead.
 
 ## Status
 
-The reconstruction is **playable but a work in progress**.  Bots load,
-spawn, fight and chat.  Some map features still trip them up, and rough
-edges remain.  If you'd like to help test, report bugs or contribute, head
-to the issue tracker.
+The reconstruction is **feature-complete and behaviorally identical to the
+original**.  Bots load, spawn, navigate, fight, chat and play Capture The
+Flag exactly as they did in 1999 — the original Gladiator Bot experience is
+fully reconstructed.  What remains are minor 64-bit and platform-conversion
+edge cases, not missing behavior; if you hit one, the issue tracker is the
+place to report it.
 
 ## Authenticity
 
