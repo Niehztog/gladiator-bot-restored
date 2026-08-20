@@ -105,9 +105,8 @@ independent oracles:
   missing here either.
 
 Each remaining gap is a concrete, measurable target, not a guess — the
-counts above come straight from `asm_matching/msvc6/evidence/dll_audit.tsv`
-and `asm_matching/gcc272/evidence/botlib_so_audit.tsv` (one row per
-routine), so they only move when the source actually does.
+counts above come from a per-routine audit against both oracles, so they
+only move when the source actually does.
 
 ## A note on "version 0.96"
 
