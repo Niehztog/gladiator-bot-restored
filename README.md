@@ -25,6 +25,15 @@ function by function, line by line.  Once complete, the Gladiator Bot will
 be open, modifiable and portable — playable on Linux, macOS and modern
 Windows for as long as people want to play Quake II.
 
+The guiding rule is **reconstruct, don't invent**. Every function is
+recovered from a disassembly of the real `gladiator.dll`, cross-checked
+against several independent decompilations and against the Quake III Arena
+bot source Mr. Elusive wrote next — the direct descendant of this same
+code — and accepted only once it compiles back down to the *same machine
+code* as the original (see [Authenticity](#authenticity) below). Original
+bugs are preserved rather than fixed, and nothing is guessed when the
+disassembly can answer instead.
+
 > **Sister project:** If you're after a more advanced bot, see
 > **[q3a_bot_backport_for_q2](https://github.com/Niehztog/q3a_bot_backport_for_q2)**
 > — a Quake II adaptation of the Quake III Arena bot, the evolved successor to
@@ -68,23 +77,35 @@ spawn, fight and chat.  Some map features still trip them up, and rough
 edges remain.  If you'd like to help test, report bugs or contribute, head
 to the issue tracker.
 
-## How close are we to the original?
+## Authenticity
 
-To measure progress objectively we run an *oracle check*: we recompile our
-reconstructed C source with the same 1999-era Microsoft Visual C++ 6
-compiler that built the original `gladiator.dll`, and then compare the
-resulting machine code against the bytes inside the real 1999 DLL — one
-small routine at a time.
+Progress isn't self-reported: every reconstructed function is rebuilt with
+the same compiler the original release used, then checked
+instruction-for-instruction against the shipped 1999 binary. Mr. Elusive
+shipped **two** independent v0.96 builds (see below), so there are two
+independent oracles:
 
-**Of the 787 routines in the original Gladiator Bot DLL, 591 (about
-75 %) currently come out byte-for-byte identical to Mr. Elusive's
-original.**
+- **Windows** — the primary target. `gladiator.dll` is rebuilt with
+  **Microsoft Visual C++ 6.0** (the original 1998 RTM release, identified
+  from the DLL's own PE Rich header — not a later service pack, which
+  measurably changes the generated code). Of **817** routines, **779
+  (95%)** come out byte-identical machine code. The rest differ only in
+  register allocation, FPU instruction scheduling, or which of two equally
+  valid code layouts the compiler picked. **Nothing missing, nothing
+  invented.**
+- **Linux** — a second, independent channel. `gladi386.so` is rebuilt with
+  **gcc 2.7.2.3**, the compiler id Software's own Linux tools used in 1999.
+  Of **810** routines, **718 (89%)** are byte-identical, and another 13
+  assemble to the exact same instruction sequence, just packed into
+  different bytes (register allocation again). The remaining 79 are off
+  by a small instruction-count delta — a handful of extra or reordered
+  instructions from compiler scheduling, not missing logic. Nothing
+  missing here either.
 
-The remaining 196 are close but not yet exact: most of them are off by
-just a handful of CPU instructions — usually a tiny source-level detail
-we haven't pinned down yet — and **none are missing** (every routine in
-the original is paired with one in our reconstruction). Each remaining
-gap is a concrete, measurable target for further work.
+Each remaining gap is a concrete, measurable target, not a guess — the
+counts above come straight from `asm_matching/msvc6/evidence/dll_audit.tsv`
+and `asm_matching/gcc272/evidence/botlib_so_audit.tsv` (one row per
+routine), so they only move when the source actually does.
 
 ## A note on "version 0.96"
 
@@ -125,4 +146,10 @@ A substantial portion of the Gladiator Bot technology and codebase was later inc
 Based on the significant code lineage between the original Gladiator Bot and the later GPLv2-released Quake III Arena bot code, this reconstruction project is distributed under the GPL. Our intention is to preserve, study, and continue the development of this historically important software within the open-source community and in a manner consistent with the later GPLv2 release of related code.
 
 This project does not claim ownership of the original work. If additional information regarding copyright ownership, licensing history, or rights transfers becomes available, the project's licensing and distribution terms may be reviewed and updated accordingly.
+
+## Related projects
+
+- **[Q2GladBot-Recon](https://github.com/themuffinator/Q2GladBot-Recon)** —
+  an independent effort to reconstruct the Gladiator Bot, working toward the
+  same goal from a different starting point.
 
