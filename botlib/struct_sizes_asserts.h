@@ -23,7 +23,20 @@
 #define _Static_assert(cond, msg) /* skipped under MSVC < 14.0 */
 #endif
 
+/* The two structs the engine and the botlib exchange by value.  Both are
+ * pointer-free, so the sizes are the originals' on every target: 0x4CC is the
+ * `rep movs ecx=0x133` in BotUpdateClient @0x100298BE, and 84 is bsp_trace_t
+ * with the 1999 4-byte qboolean.  They are asserted here because a host
+ * engine's q_shared.h can redefine both out from under ../game/botlib.h --
+ * a C `bool` qboolean shrinks bsp_trace_t to 80 (fraction lands on endpos[0]),
+ * and a MAX_STATS of 64 grows bot_updateclient_t to 1292 (inventory shifts by
+ * 16 slots).  Neither is diagnosable at runtime, so fail the build instead. */
 _Static_assert(sizeof(bot_updateclient_t) == 0x4CC, "bot_updateclient_t must remain 0x4CC bytes");
+_Static_assert(MAX_STATS == 32, "MAX_STATS must remain the 1999 Q2 value");
+_Static_assert(sizeof(qboolean) == 4, "qboolean must remain 4 bytes wide");
+_Static_assert(sizeof(bsp_trace_t) == 84, "bsp_trace_t must remain 84 bytes");
+_Static_assert(offsetof(bsp_trace_t, fraction) == 8, "bsp_trace_t.fraction offset");
+_Static_assert(offsetof(bsp_trace_t, endpos) == 12, "bsp_trace_t.endpos offset");
 /* The next three are pointer-free, so they hold on 64-bit too. */
 _Static_assert(sizeof(bot_moveresult_t)    == 48,   "bot_moveresult_t size (0x30, Q3 minus weapon field)");
 _Static_assert(sizeof(bot_movestate_t)     == 128,  "bot_movestate_t size (bs+2880..+3007 inline block)");

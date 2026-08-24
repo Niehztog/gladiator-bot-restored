@@ -351,10 +351,10 @@ void AAS_InitRoutingUpdate(void)
   /* sizeof(), not the original's 40, so each slot grows with the typed
    * struct. */
   if ( aasworld.areaupdate )
-    FreeMemory((int)(intptr_t)aasworld.areaupdate);
+    FreeMemory(aasworld.areaupdate);
   aasworld.areaupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
   if ( aasworld.portalupdate )
-    FreeMemory((int)(intptr_t)aasworld.portalupdate);
+    FreeMemory(aasworld.portalupdate);
   aasworld.portalupdate = (aas_routingupdate_t *)GetClearedMemory(sizeof(aas_routingupdate_t) * aasworld.numareas);
 }
 

@@ -239,7 +239,7 @@ _DWORD *__cdecl WeaponWeightIndex(weightconfig_t *wwc, weaponconfig_t *wc)
 void __cdecl BotFreeWeaponWeights(bot_weaponstate_t *weaponstate)
 {
   if ( weaponstate->weightconfig )
-    FreeWeightConfig2((int)(intptr_t)weaponstate->weightconfig);
+    FreeWeightConfig2(weaponstate->weightconfig);
   if ( weaponstate->itemweights )
     FreeMemory(weaponstate->itemweights);
 }

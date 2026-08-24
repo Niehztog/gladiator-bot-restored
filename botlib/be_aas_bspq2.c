@@ -55,15 +55,7 @@ bspworld_t bspworld;
  * one.  (x87cmp/soannotate/contentsweep, 2026-08-16.) */
 bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
-#if defined(__x86_64__) || defined(__aarch64__)
-  /* 64-bit only: the retbuf is a hidden register there, so the game side
-   * hands us one explicitly.  See botimport_block_t's Trace member. */
-  bsp_trace_t bsptrace;
-
-  return *botimport.Trace(&bsptrace, start, mins, maxs, end, passent, contentmask);
-#else
   return botimport.Trace(start, mins, maxs, end, passent, contentmask);
-#endif
 }
 
 /* BSP-leaf link heap.  Gladiator carries TWO link families and this is the

@@ -133,7 +133,7 @@ int __cdecl PC_ExpandDefineIntoSource(source_t *src, define_t *define);
 int __cdecl PC_ExpectAnyToken(source_t *source, intptr_t token);
 int __cdecl PC_ExpectTokenString(source_t *source, const char *string);
 int __cdecl PC_ExpectTokenType(source_t *source, int type, int subtype, intptr_t token);
-int __cdecl PC_FindDefine(define_t *defines, const char *name);
+define_t *__cdecl PC_FindDefine(define_t *defines, const char *name);
 int __cdecl PC_FindDefineParm(define_t *define, const char *name);
 define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name);
 void __cdecl PC_FreeDefine(define_t *define);

@@ -826,36 +826,6 @@ void BotLibImport_FreeMemory(void *ptr)
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-#if defined(__x86_64__) || defined(__aarch64__)
-/* On 64-bit the botlib uses Win32/MSVC sret: retbuf arrives in x0 as the
- * first visible argument.  Return void* (= retbuf) so the caller can copy. */
-void *BotLibImport_Trace(bsp_trace_t *retbuf, vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
-{
-	trace_t trace;
-	edict_t *p;
-
-	memset(&trace, 0, sizeof(trace_t));
-	memset(retbuf, 0, sizeof(bsp_trace_t));
-	if (passent < 0 || passent >= game.maxentities)
-	{
-		gi.dprintf("BotLibTrace: invalid passent\n");
-		return retbuf;
-	}
-	p = DF_NUMBERENT(passent);
-	trace = gi.trace(start, mins, maxs, end, p, contentmask);
-	memcpy(retbuf->surface.name, trace.surface->name, 16);
-	retbuf->surface.flags = trace.surface->flags;
-	retbuf->surface.value = trace.surface->value;
-	retbuf->allsolid = trace.allsolid;
-	retbuf->startsolid = trace.startsolid;
-	retbuf->fraction = trace.fraction;
-	VectorCopy(trace.endpos, retbuf->endpos);
-	retbuf->ent = DF_ENTNUMBER(trace.ent);
-	retbuf->contents = trace.contents;
-	memcpy(&retbuf->plane, &trace.plane, sizeof(cplane_t));
-	return retbuf;
-}
-#else
 bsp_trace_t BotLibImport_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end, int passent, int contentmask)
 {
 	bsp_trace_t bsptrace;
@@ -890,7 +860,6 @@ bsp_trace_t BotLibImport_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t en
 #endif
 	return bsptrace;
 } //end of the function BotLibImport_Trace
-#endif
 
 //==========================================================================
 //

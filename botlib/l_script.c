@@ -129,30 +129,30 @@ char *__cdecl PunctuationFromNum(script_t *script, int num)
 
 // gladiator.dll: 1003E2C0..1003E316
 // gladi386.so:   00050F60..00050FC9
-void ScriptError(int script, char *Format, ...)
+void ScriptError(script_t *script, char *Format, ...)
 {
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
-  if ( *(unsigned char *)&((script_t *)script)->flags & 1 )
+  if ( *(unsigned char *)&script->flags & 1 )
     return;
   va_start(va, Format);
   vsprintf(Buffer, Format, va);
-  botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
+  botimport.Print(PRT_ERROR, "file %s, line %d: %s\n", script->filename, script->line, Buffer);
 }
 
 // gladiator.dll: 1003E340..1003E396
 // gladi386.so:   00050FCC..00051035
-void ScriptWarning(int script, char *Format, ...)
+void ScriptWarning(script_t *script, char *Format, ...)
 {
   char Buffer[1024]; // [esp+4h] [ebp-400h] BYREF
   va_list va; // [esp+410h] [ebp+Ch] BYREF
 
-  if ( *(unsigned char *)&((script_t *)script)->flags & 2 )
+  if ( *(unsigned char *)&script->flags & 2 )
     return;
   va_start(va, Format);
   vsprintf(Buffer, Format, va);
-  botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", (const char *)script, ((script_t *)script)->line, Buffer);
+  botimport.Print(PRT_WARNING, "file %s, line %d: %s\n", script->filename, script->line, Buffer);
 }
 
 // gladiator.dll: 1003E3C0..1003E3FF
@@ -587,7 +587,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
   token->string[0] = *script->script_p++;
   if ( !*script->script_p )
   {
-    ScriptError((int)script, "end of file before trailing \'");
+    ScriptError(script, "end of file before trailing \'");
     return 0;
   }
   if ( *script->script_p == '\\' )
@@ -601,7 +601,7 @@ int __cdecl PS_ReadLiteral(script_t *script, token_t *token)
   }
   if ( *script->script_p != '\'' )
   {
-    ScriptWarning((int)script, "too many characters in literal, ignored");
+    ScriptWarning(script, "too many characters in literal, ignored");
     while ( *script->script_p && *script->script_p != '\'' && *script->script_p != '\n' )
       ++script->script_p;
     if ( *script->script_p == '\'' )
@@ -718,7 +718,7 @@ int __cdecl PS_ReadToken(script_t *script, token_t *token)
   }
   else if ( !PS_ReadPunctuation(script, (char *)token) )
   {
-    ScriptError((int)script, "can't read token");
+    ScriptError(script, "can't read token");
     return 0;
   }
   memcpy(&script->token, token, sizeof(token_t));
@@ -734,12 +734,12 @@ int __cdecl PS_ExpectTokenString(script_t *script, const char *string)
   token_t token;
   if ( !PS_ReadToken(script, &token) )
   {
-    ScriptError((int)script, "couldn't find expected %s", string);
+    ScriptError(script, "couldn't find expected %s", string);
     return 0;
   }
   if ( strcmp(token.string, string) != 0 )
   {
-    ScriptError((int)script, "expected %s, found %s", string, token.string);
+    ScriptError(script, "expected %s, found %s", string, token.string);
     return 0;
   }
   return 1;
@@ -814,7 +814,7 @@ int __cdecl PS_ExpectTokenType(script_t *script, int type, int subtype, token_t 
 
 // gladiator.dll: 1003F9B0..1003F9E0
 // gladi386.so:   0005252C..00052570
-int __cdecl PS_ExpectAnyToken(int script, int token)
+int __cdecl PS_ExpectAnyToken(script_t *script, token_t *token)
 {
   if ( !PS_ReadToken(script, token) )
   {
@@ -947,13 +947,13 @@ void __cdecl StripSingleQuotes(char *string)
 // Returns token.floatvalue * sign as a double.  The sign is constructed as a double
 // via two int half-writes (0|0x3ff00000 for +1.0, 0|0xbff00000 for -1.0), exactly as
 // the MSVC frontend would emit.  DEAD in Gladiator — /INCREMENTAL.
-long double __cdecl ReadSignedFloat(int script)
+long double __cdecl ReadSignedFloat(script_t *script)
 {
   long double sign;
   token_t token;
 
   sign = 1.0;
-  PS_ExpectAnyToken(script, (int)&token);
+  PS_ExpectAnyToken(script, &token);
   if ( !strcmp(token.string, "-") )
   {
     sign = -1.0;
@@ -973,13 +973,13 @@ long double __cdecl ReadSignedFloat(int script)
 // token.type == TT_NUMBER and reject the float subtype (0x800), ScriptError'ing with
 // "expected integer value, found %s\n".  Returns token.intvalue * sign as int.
 // DEAD in Gladiator — /INCREMENTAL.
-int __cdecl ReadSignedInt(int script)
+int __cdecl ReadSignedInt(script_t *script)
 {
   int sign;
   token_t token;
 
   sign = 1;
-  PS_ExpectAnyToken(script, (int)&token);
+  PS_ExpectAnyToken(script, &token);
   if ( !strcmp(token.string, "-") )
   {
     sign = -1;

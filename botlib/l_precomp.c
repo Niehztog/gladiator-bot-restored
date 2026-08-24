@@ -438,14 +438,14 @@ define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
 // gladi386.so:   0004B82C..0004B86D
 /* Linear search of a define_t list.  The only caller is
  * PC_RemoveGlobalDefine, walking globaldefines. */
-int __cdecl PC_FindDefine(define_t *defines, const char *name)
+define_t *__cdecl PC_FindDefine(define_t *defines, const char *name)
 {
   define_t *v2;
 
   for ( v2 = defines; v2; v2 = v2->next )
   {
     if ( !strcmp(v2->name, name) )
-      return (intptr_t)v2;
+      return v2;
   }
   return 0;
 }
@@ -1115,13 +1115,12 @@ int __cdecl PC_AddGlobalDefine(const char *string)
  * PC_RemoveGlobalDefine.  No reachable caller — only its own unused thunk. */
 int __cdecl PC_RemoveGlobalDefine(const char *name)
 {
-  int define;
+  define_t *define;
 
-  /* PC_FindDefine still takes int; the cast documents the truncation. */
-  define = PC_FindDefine((int)globaldefines, name);
+  define = PC_FindDefine(globaldefines, name);
   if ( define )
   {
-    PC_FreeDefine((define_t *)define);
+    PC_FreeDefine(define);
     return 1;
   }
   return 0;

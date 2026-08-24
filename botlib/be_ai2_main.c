@@ -387,7 +387,7 @@ int __cdecl BotShutdownClient(int a1)
     botimport.Print(PRT_ERROR, "client %d already shutdown\n", a1);
     return BLERR_AICLIENTALREADYSHUTDOWN;
   }
-  if ( BotChat_ExitGame((int)(intptr_t)bs) )
+  if ( BotChat_ExitGame(bs) )
     BotEnterChat(&bs->chatstate, bs->client, 0);
   BotFreeChatState(&bs->chatstate);
   BotFreeWeaponWeights(BotWS(bs));
@@ -397,10 +397,10 @@ int __cdecl BotShutdownClient(int a1)
 #endif
   BotFreeItemWeights(&bs->goalstate);
   sub_1002A590(bs->character);
-  BotFreeWaypoints(bs->checkpoints);
-  bs->checkpoints = 0;
-  BotFreeWaypoints(bs->patrolpoints);
-  bs->patrolpoints = 0;
+  BotFreeWaypoints(BotCheckpoints(bs));
+  BotCheckpoints(bs) = 0;
+  BotFreeWaypoints(BotPatrolpoints(bs));
+  BotPatrolpoints(bs) = 0;
   memset(bs, 0, 0x11D0u);
   bs->inuse = 0;
   --numbots;
@@ -514,6 +514,12 @@ int __cdecl BotResetState(bot_state_t *bs)
   memcpy(&chatstate, &bs->chatstate, sizeof(chatstate));
   BotFreeWaypoints(BotCheckpoints(bs));
   BotFreeWaypoints(BotPatrolpoints(bs));
+#if BOTLIB_NEED_SIDEBAND
+  /* 64-bit only: the memset below clears the inline slots, but the real heads
+   * live outside bs and would stay dangling.  Same shape as BotWS above. */
+  BotCheckpoints(bs) = 0;
+  BotPatrolpoints(bs) = 0;
+#endif
   memset(bs, 0, sizeof(*bs));
   memcpy(&bs->ms, movestate, sizeof(movestate));
   memcpy(&bs->goalstate, goalstate, sizeof(goalstate));

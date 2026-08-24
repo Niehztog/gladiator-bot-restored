@@ -2231,7 +2231,7 @@ int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *g
 
   if ( BotGetItemTeamGoal(goalname, goal) )
     return 1;
-  cp = BotFindWayPoint(bs->checkpoints, goalname);
+  cp = BotFindWayPoint(BotCheckpoints(bs), goalname);
   if ( cp )
   {
     memcpy((void *)goal, (const void *)(cp + 4), 0x38u);

@@ -44,22 +44,21 @@ typedef struct scriptcrc_s {
  * materialises a local plus a `rep movs` for the explicit one (+7 insns).
  * So by-value is the spelling that reproduces both originals.
  *
- * 64-bit is the exception and needs the explicit form: aarch64/x86-64 pass the
- * struct-return buffer in a hidden register (x8 / rax), not as a visible
- * argument, so the game side hands us one explicitly instead --
- * `game/bl_main.c` has the matching 64-bit BotLibImport_Trace.  Do not
- * "simplify" the two branches together. */
+ * By-value is also the only spelling that keeps this mirror ABI-compatible
+ * with the published interface: `../game/botlib.h`'s bot_import_t declares
+ * Trace by value on every target.  This header used to carry a 64-bit-only
+ * explicit-retbuf variant (with a matching one in `game/bl_main.c`), which
+ * disagreed with that declaration -- on aarch64 AAPCS64 the hidden buffer
+ * travels in x8, NOT in x0, so the two forms are not interchangeable and an
+ * engine built against the published header got zeroed traces from every
+ * call.  Let each compiler lower the struct return itself on both sides of
+ * the boundary; do not reintroduce a per-arch branch here. */
 typedef struct botimport_block_s {
     void  (__cdecl *BotInput)(int, ea_state_t *);
     int   (__cdecl *BotClientCommand)(int client, char *str, ...);
     int   (*Print)(_DWORD, const char *, ...);
-#if defined(__x86_64__) || defined(__aarch64__)
-    bsp_trace_t *(__cdecl *Trace)(bsp_trace_t *retbuf, vec3_t start, vec3_t mins,
-                                  vec3_t maxs, vec3_t end, int passent, int contentmask);
-#else
     bsp_trace_t (__cdecl *Trace)(vec3_t start, vec3_t mins, vec3_t maxs,
                                  vec3_t end, int passent, int contentmask);
-#endif
     int   (__cdecl *PointContents)(float *point);
     void *(__cdecl *GetMemory)(int);
     void  (__cdecl *FreeMemory)(void *);
