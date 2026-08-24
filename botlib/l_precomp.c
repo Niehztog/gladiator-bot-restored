@@ -1431,7 +1431,6 @@ int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, 
       case 4:
         if ( lastwasvalue || v7 )
         {
-LABEL_71:
           SourceError(source, "syntax error in #if/#elif");
           goto LABEL_76;
         }

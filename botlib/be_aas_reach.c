@@ -2176,9 +2176,6 @@ void AAS_Reachability_Elevator()
   int p; // ecx
   aas_reachabilitynode_t *v20; // eax
   aas_reachabilitynode_t *lreach; // esi
-  float v23; // st7 (was double)
-  int v24; // rax (was __int64)
-  float v25; // st7 (was double)
   float v26; // st7 (was double)
   float height;
   float speed;
@@ -2389,13 +2386,6 @@ void AAS_Reachability_Elevator()
               {
                 v20->reach.areanum = area2num;
                 v20->reach.facenum = modelnum;
-                /* `(int)height` straight into the field, and the `* 100 / speed`
-                 * AFTER it: IDA's v23/v24/v25 are per-use SSA temporaries, and
-                 * keeping them makes gcc bounce the FP-to-int through a stack
-                 * slot (`sub esp,4; fist [esp]; pop edx; ... mov [esi+8],edx`)
-                 * and hoist the multiply above it.  The reference stores directly
-                 * with `fist DWORD PTR [esi+0x8]`, which is Q3's
-                 * `lreach->edgenum = (int) height;` form. */
                 lreach->reach.edgenum = (int)height;
                 VectorCopy(dirvec, lreach->reach.start);
                 VectorCopy(samplept, lreach->reach.end);
