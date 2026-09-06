@@ -680,7 +680,9 @@ typedef struct bot_state_s {
     int    patrolpoints;          /* +4548 LEGACY slot; real ptr in BotPatrolpoints(bs) */
     int    curpatrolpoint;        /* +4552 LEGACY slot; real ptr in BotCurPatrolPoint(bs) */
     int    patrolflags;           /* +4556 patrol direction/reverse flags */
-} bot_state_t;
+} bot_state_t;               /* sizeof = 4560 (BOT_STATE_SIZE; same on 32- and
+                              * 64-bit -- every pointer-width field is a legacy
+                              * int slot with its real value in the side-band) */
 
 typedef int _bot_state_t_size_check[sizeof(bot_state_t) == BOT_STATE_SIZE ? 1 : -1];
 

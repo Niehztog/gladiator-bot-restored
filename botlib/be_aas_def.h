@@ -359,7 +359,7 @@ typedef struct aas_entityinfo_s {
     int    skinnum;        /* +112  skin number (carried, not set by Update)*/
     int    effects;        /* +116  special effects                       */
     int    renderfx;       /* +120  render fx flags                       */
-} aas_entityinfo_t;        /* 124 bytes (0x7C) */
+} aas_entityinfo_t;        /* sizeof = 124 = 0x7C (same on 32- and 64-bit) */
 
 /* aas_entity_t — element type of aasworld.entities[], 132 bytes.
  *
@@ -377,7 +377,10 @@ typedef struct aas_entity_s {
     int                areas;      /* +124  inert; real head in side-band  */
     int                leaves;     /* +128  inert; real head in side-band  */
 #endif
-} aas_entity_t;                    /* 132 bytes */
+} aas_entity_t;                    /* sizeof = 132 (same on 32- and 64-bit:
+                                    * the two link heads are inert int
+                                    * placeholders there, real heads in the
+                                    * side-band -- see be_aas_def.h above) */
 
 _Static_assert(sizeof(aas_entityinfo_t)                  == 124, "aas_entityinfo_t size");
 _Static_assert(sizeof(aas_entity_t)                      == 132, "aas_entity_t size");
