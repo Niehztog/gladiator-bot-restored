@@ -90,6 +90,14 @@ typedef struct bspworld_s {
     bsp_link_t **dword_10069584; /* +0x20C4 (VA 0x10069584) bsp_leaflinks (per-leaf list-heads array) */
 } bspworld_t;                    /* sizeof == 0x20C8 == 8392 */
 
+/* 32-bit only: bspworld_t is a block of real BSP-lump pointers (dmodel_t *,
+ * char *, ...), so it is 8392 only where a pointer is 4 bytes.  This assert
+ * lives here rather than in struct_sizes_asserts.h because the type is local
+ * to this TU's header and is not in scope for that file's other includers. */
+#if INTPTR_MAX == INT32_MAX
+_Static_assert(sizeof(bspworld_t)          == 8392, "bspworld_t size (0x20C8 on 32-bit)");
+#endif
+
 /* Offset checks vs the original binary's VA layout.  32-bit only -- every
  * offset past the first pointer field shifts on 64-bit. */
 #include <stddef.h>

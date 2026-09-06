@@ -41,6 +41,11 @@ _Static_assert(offsetof(bsp_trace_t, endpos) == 12, "bsp_trace_t.endpos offset")
 _Static_assert(sizeof(bot_moveresult_t)    == 48,   "bot_moveresult_t size (0x30, Q3 minus weapon field)");
 _Static_assert(sizeof(bot_movestate_t)     == 128,  "bot_movestate_t size (bs+2880..+3007 inline block)");
 _Static_assert(sizeof(bot_chatstate_t)     == 188,  "bot_chatstate_t size (47 ints, bs+3980 inline block)");
+/* Pointer-free too: aas_settings_t is all floats, and bot_goalstate_t is ints,
+ * floats and an embedded bot_goal_t[8] (itself pointer-free -- its two
+ * "pointer" members are declared int and hold bit-patterns, see BotGoalP0). */
+_Static_assert(sizeof(aas_settings_t)      == 148,  "aas_settings_t size (documentation-only; Gladiator uses libvar_sv_* cvars)");
+_Static_assert(sizeof(bot_goalstate_t)     == 972,  "bot_goalstate_t size (bs+3008 inline block)");
 
 #if INTPTR_MAX == INT32_MAX
 _Static_assert(sizeof(dBspHeader_t)        == 160,  "dBspHeader_t size (0xA0)");
@@ -133,6 +138,8 @@ _Static_assert(sizeof(scriptcrc_t)         == 152,  "scriptcrc_t size (152 on 32
 /* -- Bot state ------------------------------------------------------- */
 _Static_assert(sizeof(ea_state_t)          == 36,   "ea_state_t size");
 _Static_assert(sizeof(bot_state_t)         == 4560, "bot_state_t size (BOT_STATE_SIZE)");
+/* bspworld_t's assert lives next to its type in be_aas_bspq2.h: it is declared
+ * in that TU's own header, which most includers of this file never see. */
 #endif  /* INTPTR_MAX == INT32_MAX */
 
 #endif /* BOTLIB_STRUCT_SIZES_ASSERTS_H */
