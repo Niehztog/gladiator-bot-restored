@@ -143,7 +143,7 @@ int __cdecl BotReachabilityArea(int *origin, int client)
 
 // gladiator.dll: 10030D00..10030E9A
 // gladi386.so:   0004040C..000405F1
-BOOL __cdecl BotOnMover(float *origin, int entnum, aas_reachability_t* reach)
+BOOL __cdecl BotOnMover(vec3_t origin, int entnum, aas_reachability_t* reach)
 {
   /* origin is a vec3 pointer and reach a reach_t pointer; as ints they truncate
    * the callers' pointers (BotTravel_Elevator passes an intptr_t reach). */
@@ -426,7 +426,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
 
 // gladiator.dll: 10031650..1003184F
 // gladi386.so:   00040CAC..00040EAA
-int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
+int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, vec3_t dir, float speed)
 {
   int result; // eax
   /* end/start are real vec3_t with all three components set before every
@@ -475,7 +475,7 @@ int __cdecl BotCheckBarrierJump(bot_movestate_t *ms, float *dir, float speed)
 /* `type` is declared but unused — the original BotMoveInDirection pushes the same
  * 4 args to BOTH the swim and walk branches and shares the arg-push, so this
  * __cdecl callee must accept 4 args even though the swim path ignores `type`. */
-int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
+int __cdecl BotSwimInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 {
   vec3_t normdir;
 
@@ -487,7 +487,7 @@ int __cdecl BotSwimInDirection(bot_movestate_t *ms, float *dir, float speed, int
 
 // gladiator.dll: 10031940..10031B4A
 // gladi386.so:   00040F08..00041140
-int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int type)
+int __cdecl BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 {
   int v5; // eax
   int presencetype; // edi
@@ -576,7 +576,7 @@ int __cdecl BotWalkInDirection(bot_movestate_t *ms, float *dir, float speed, int
  * when the bot's origin is in liquid, else to BotWalkInDirection.  The original
  * pushes the four args once and `je`s to pick the target, so BotSwimInDirection is
  * a 4-arg callee too even though it ignores `type`. */
-int __cdecl BotMoveInDirection(bot_movestate_t *movestate, float *dir, float speed, int type)
+int __cdecl BotMoveInDirection(bot_movestate_t *movestate, vec3_t dir, float speed, int type)
 {
   if ( AAS_Swimming(movestate->origin) )
     return BotSwimInDirection(movestate, dir, speed, type);

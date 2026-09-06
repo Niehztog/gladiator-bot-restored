@@ -24,6 +24,6 @@ weightconfig_t   *__cdecl ReadWeightConfig(char *filename);
 void __cdecl ScaleFuzzySeperator_r(fuzzyseperator_t *fs, float scale);
 qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int indent);
 qboolean __cdecl WriteFuzzyWeight(FILE *fp, fuzzyseperator_t * fs);
-int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
+qboolean __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config);
 
 #endif /* BOTLIB_BE_AI_WEIGHT_H */

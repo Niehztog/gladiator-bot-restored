@@ -10,7 +10,7 @@ qboolean __cdecl AAS_AreaEntityCollision(int areanum, char *start, vec3_t end, i
 void *__cdecl AAS_AreaGroundFace(int areanum, void *point);
 int __cdecl AAS_AreaPresenceType(int areanum);
 void __cdecl AAS_DeAllocAASLink(aas_link_t *link);
-void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist);
+void __cdecl AAS_FacePlane(int facenum, vec3_t normal, float *dist);
 void AAS_FreeAASLinkHeap();
 void AAS_FreeAASLinkedEntities();
 void AAS_InitAASLinkHeap();

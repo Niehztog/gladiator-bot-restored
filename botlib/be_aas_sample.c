@@ -713,7 +713,7 @@ void *__cdecl AAS_AreaGroundFace(int areanum, void *point)
 // gladi386.so:   0002A380..0002A3D2
 /* Copies a face's BSP plane (normal + dist) into the caller's buffers.
  * DEAD in Gladiator — live code walks aasworld.planes/faces directly. */
-void __cdecl AAS_FacePlane(int facenum, float *normal, float *dist)
+void __cdecl AAS_FacePlane(int facenum, vec3_t normal, float *dist)
 {
   int    plane_idx;
   float *plane;

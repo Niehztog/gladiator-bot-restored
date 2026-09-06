@@ -486,7 +486,7 @@ qboolean __cdecl WriteFuzzySeperators_r(FILE *fp, fuzzyseperator_t *fs, int inde
 // fopen/fprintf/recursion failure; the failure path does not close fp, a faithful
 // leak in dead code.  DEAD in Gladiator — /INCREMENTAL.
 
-int __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
+qboolean __cdecl WriteWeightConfig(const char *filename, weightconfig_t *config)
 {
   FILE *fp;
   int i;
