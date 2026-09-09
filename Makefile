@@ -298,7 +298,12 @@ endif
 #   make scan    — alias for verify (legacy name)
 #
 # Each scanner exits non-zero on a hit, so any new bug-class regression
-# fails the umbrella.  `check_struct_sizes.py` similarly fails if a
+# fails the umbrella.  The two aarch64 truncation scanners are deliberately
+# a pair and neither subsumes the other: `..._ptr_trunc` catches the CALLEE
+# half of the int-as-pointer class (a function doing 32-bit arithmetic on an
+# `int` param that carries a pointer), `..._call_trunc` the CALLER half (a
+# pointer narrowed to `int` at a call whose callee takes a real pointer).
+# `check_struct_sizes.py` similarly fails if a
 # documented `/* sizeof = N */` comment loses its matching assert, and
 # `check_docblocks.py` if a function loses its `// gladiator.dll:` /
 # `// gladi386.so:` address annotation, if a recorded range stops agreeing
@@ -321,6 +326,8 @@ verify scan:
 	-${Q}python3 tools/scan_fpu_temp_saturation.py
 	@echo "===> tools/scan_aarch64_ptr_trunc.py (skips when release/gladiator.so absent)"
 	${Q}python3 tools/scan_aarch64_ptr_trunc.py
+	@echo "===> tools/scan_aarch64_call_trunc.py (skips when release/gladiator.so absent)"
+	${Q}python3 tools/scan_aarch64_call_trunc.py
 	@echo "===> tools/check_docblocks.py --verify-ranges"
 	${Q}python3 tools/check_docblocks.py --verify-ranges
 	@echo "===> tools/check_struct_sizes.py"
