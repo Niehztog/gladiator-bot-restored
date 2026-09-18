@@ -256,15 +256,25 @@ jobs:
           # GitHub appends --generate-notes output to a supplied body, so the build-flag
           # note leads and the auto changelog follows.
           cat > notes.md <<'NOTES'
-          Built with `GLAD_SERVERFIX=1`: these binaries carry the deliberate fixes for
-          bugs that are present in the 1999 originals but fatal on a live server -- the
-          `AAS_AASLinkEntity` linkstack overflow, the `CTFGrapplePull` stale grapple
-          pointer, `BotUpdateEntityItems`' stale item index and `PS_ReadNumber`'s
-          suffix-guard asymmetry. Each is listed, with the disassembly evidence for what
-          the original does instead, in `.claude/memory/serverfix_deviations.md`.
+          Built with `GLAD_SERVERFIX=1`. This project reconstructs Gladiator Bot v0.96
+          from the 1999 binaries, so its default build reproduces the originals *with
+          their bugs*. Four of those bugs are fatal or wrong on a live server, and a
+          release is for playing, so these binaries fix them:
 
-          A plain `make` builds the reconstruction itself, bugs included. That is what
-          the ASM-matching oracles measure, and it is the default for a reason.
+          - `AAS_AASLinkEntity` overflowed a fixed 64-entry BSP traversal stack and
+            smashed its own frame on densely subdivided custom maps. Now sized and
+            bounds-checked as Quake III does it.
+          - `G_FreeEdict` left a client's CTF grapple pointer dangling when a mover
+            crushed the grapple in flight, crashing on the next frame's pull.
+          - `BotUpdateEntityItems` re-linked a level item using a stale index, so a bot
+            navigated to an item using some other item's bounding box.
+          - `PS_ReadNumber` applied its `l`/`u` numeric-suffix guard asymmetrically, a
+            C operator-precedence slip in the original.
+
+          Each fix is Quake III's own later correction of the same code — Mr. Elusive
+          wrote both bot libraries — rather than anything invented here. Every
+          deviation sits behind one build flag with the 1999 behaviour preserved beside
+          it, so `make` still builds the faithful reconstruction.
           NOTES
           gh release create "${{ github.ref_name }}" \
             $files \
