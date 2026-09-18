@@ -833,7 +833,23 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
   /* The BSP traversal queue is 256 bytes = 64 int slots in the original frame.  Sized
    * any smaller, pushing both children of a node runs off the array into adjacent
    * locals and corrupts the traversal, leaving nearly every level item with
-   * goal_areanum 0. */
+   * goal_areanum 0.
+   *
+   * 64 is also the original's OVERFLOW bug, and it is reproduced deliberately: there
+   * is no upper-bound check on lstack_p anywhere in this loop, in either 1999 binary.
+   * The DLL frame is `sub esp,0x100` with linkstack at [esp+10h] after four pushes,
+   * and gladi386.so's is `sub esp,0x128` with it at [esp+38h] after four pushes — in
+   * both, linkstack[0] sits exactly 0x100 below the return address, so linkstack[64]
+   * IS the return-address slot.  The only compare against the pointer is the
+   * underflow test (DLL 1001C4AC, ELF 2A6DF); both push sites just store and add 4.
+   * Q3 fixed this twice over in be_aas_sample.c: linkstack[128], plus an explicit
+   * `if (lstack_p >= &linkstack[127]) { PRT_ERROR "AAS_LinkEntity: stack overflow";
+   * break; }` after each push.  Adding either here would be a deviation — see
+   * .claude/memory/known_outstanding_bugs.md, "AAS_AASLinkEntity linkstack overflow".
+   *
+   * Dense custom maps do exceed 64 (chaves needs up to 79; all 44 stock/RA2 maps
+   * peak at 40).  Q3 also added a duplicate-leaf check this function lacks, so a
+   * single entity can burn far more of the max_aaslinks heap than Q3 would. */
   int linkstack[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
 
   if ( !aasworld.loaded )
