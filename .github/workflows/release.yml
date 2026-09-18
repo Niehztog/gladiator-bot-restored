@@ -56,10 +56,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y make zip gcc ${{ matrix.toolchain }}
 
+      # GLAD_SERVERFIX=1: released binaries are for people who want to PLAY, so they
+      # get the deviations (see CLAUDE.md).  The repo default stays 0 -- that build is
+      # the reconstruction, bugs included, and is what the ASM-matching oracles measure.
       - name: Build
         run: |
           make clean
           make \
+            GLAD_SERVERFIX=1 \
             CC=${{ matrix.cc }} \
             YQ2_ARCH=${{ matrix.yq2arch }} \
             CFLAGS="${{ matrix.archflags }} -Wall -pipe -fomit-frame-pointer" \
@@ -127,11 +131,12 @@ jobs:
             ${{ matrix.prefix }}-gcc
             make
 
+      # GLAD_SERVERFIX=1 -- see the Linux job.
       - name: Build
         shell: msys2 {0}
         run: |
           make clean
-          make
+          make GLAD_SERVERFIX=1
 
       - name: Create package
         shell: pwsh
@@ -185,10 +190,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # GLAD_SERVERFIX=1 -- see the Linux job.
       - name: Build
         run: |
           make clean
-          make
+          make GLAD_SERVERFIX=1
 
       - name: Create package
         run: |
@@ -247,7 +253,21 @@ jobs:
           files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
           echo "Release assets:"
           echo "$files"
+          # GitHub appends --generate-notes output to a supplied body, so the build-flag
+          # note leads and the auto changelog follows.
+          cat > notes.md <<'NOTES'
+          Built with `GLAD_SERVERFIX=1`: these binaries carry the deliberate fixes for
+          bugs that are present in the 1999 originals but fatal on a live server -- the
+          `AAS_AASLinkEntity` linkstack overflow, the `CTFGrapplePull` stale grapple
+          pointer, `BotUpdateEntityItems`' stale item index and `PS_ReadNumber`'s
+          suffix-guard asymmetry. Each is listed, with the disassembly evidence for what
+          the original does instead, in `.claude/memory/serverfix_deviations.md`.
+
+          A plain `make` builds the reconstruction itself, bugs included. That is what
+          the ASM-matching oracles measure, and it is the default for a reason.
+          NOTES
           gh release create "${{ github.ref_name }}" \
             $files \
             --title "Gladiator ${{ github.ref_name }}" \
+            --notes-file notes.md \
             --generate-notes
