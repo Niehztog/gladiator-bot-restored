@@ -165,6 +165,27 @@ endif
 
 # ----------
 
+# GLAD_SERVERFIX -- the deviation gate.
+#
+# main is a RECONSTRUCTION: the default build must reproduce the 1999 binaries,
+# bugs included, or the two ASM-matching oracles and the byte metric stop
+# meaning anything.  Some of those original bugs are nonetheless fatal on a
+# live server (AAS_AASLinkEntity smashes its own frame on densely subdivided
+# custom maps; CTFGrapplePull dereferences a stale grapple pointer).
+#
+# `make GLAD_SERVERFIX=1` builds those fixes in.  Default 0 -- and an
+# *undefined* GLAD_SERVERFIX also evaluates to 0 under `#if`, which is what
+# keeps the oracle toolchains (they compile the TUs with their own command
+# lines and never pass this) on the faithful arm by construction.
+#
+# Every gated site carries a `GLAD_SERVERFIX(<id>)` tag and an entry in
+# .claude/memory/serverfix_deviations.md; tools/check_deviations.py gates that
+# from `make verify`, so a deviation cannot land on main untagged.
+GLAD_SERVERFIX ?= 0
+override CFLAGS += -DGLAD_SERVERFIX=$(GLAD_SERVERFIX)
+
+# ----------
+
 # Defines the operating system and architecture
 override CFLAGS += -DYQ2OSTYPE=\"$(YQ2_OSTYPE)\" -DYQ2ARCH=\"$(YQ2_ARCH)\"
 
@@ -297,6 +318,11 @@ endif
 #
 #   make scan    — alias for verify (legacy name)
 #
+# `check_deviations.py` is the one that keeps main faithful: every
+# `#if GLAD_SERVERFIX` site must be tagged and listed in the ledger, every
+# ledger entry must still exist in the source, and the gate may not appear in
+# a file the project forbids editing.
+#
 # Each scanner exits non-zero on a hit, so any new bug-class regression
 # fails the umbrella.  The two aarch64 truncation scanners are deliberately
 # a pair and neither subsumes the other: `..._ptr_trunc` catches the CALLEE
@@ -332,6 +358,8 @@ verify scan:
 	${Q}python3 tools/check_docblocks.py --verify-ranges
 	@echo "===> tools/check_struct_sizes.py"
 	${Q}python3 tools/check_struct_sizes.py
+	@echo "===> tools/check_deviations.py"
+	${Q}python3 tools/check_deviations.py
 	@echo "===> verify OK"
 
 # ----------

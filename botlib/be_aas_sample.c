@@ -844,13 +844,23 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
    * underflow test (DLL 1001C4AC, ELF 2A6DF); both push sites just store and add 4.
    * Q3 fixed this twice over in be_aas_sample.c: linkstack[128], plus an explicit
    * `if (lstack_p >= &linkstack[127]) { PRT_ERROR "AAS_LinkEntity: stack overflow";
-   * break; }` after each push.  Adding either here would be a deviation — see
-   * .claude/memory/known_outstanding_bugs.md, "AAS_AASLinkEntity linkstack overflow".
+   * break; }` after each push.  Either is a deviation, so both live behind
+   * GLAD_SERVERFIX below — see .claude/memory/known_outstanding_bugs.md,
+   * "AAS_AASLinkEntity linkstack overflow".
    *
    * Dense custom maps do exceed 64 (chaves needs up to 79; all 44 stock/RA2 maps
    * peak at 40).  Q3 also added a duplicate-leaf check this function lacks, so a
-   * single entity can burn far more of the max_aaslinks heap than Q3 would. */
+   * single entity can burn far more of the max_aaslinks heap than Q3 would.
+   *
+   * GLAD_SERVERFIX(aas-linkstack-overflow) builds Q3's fix instead: its array size
+   * AND its post-push guards, both, because either alone is insufficient — 128 only
+   * moves the cliff, and the guard alone silently truncates the area link on the 7%
+   * of chaves positions that need more than 64. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-linkstack-overflow) */
+  int linkstack[128]; // Q3's size
+#else
   int linkstack[64]; // [esp+10h] [ebp-100h] BYREF — stack-based BSP traversal queue
+#endif
 
   if ( !aasworld.loaded )
   {
@@ -910,8 +920,22 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     }
     if ( (side & 1) != 0 )
       *lstack_p++ = aasnode->children[0];
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-linkstack-overflow) */
+    if ( lstack_p >= &linkstack[127] )
+    {
+      botimport.Print(PRT_ERROR, "AAS_LinkEntity: stack overflow\n");
+      break;
+    }
+#endif
     if ( (side & 2) != 0 )
       *lstack_p++ = aasnode->children[1];
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-linkstack-overflow) */
+    if ( lstack_p >= &linkstack[127] )
+    {
+      botimport.Print(PRT_ERROR, "AAS_LinkEntity: stack overflow\n");
+      break;
+    }
+#endif
   }
   return areas;
 }

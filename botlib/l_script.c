@@ -559,12 +559,27 @@ int __cdecl PS_ReadNumber(script_t *script, token_t *token)
   for ( i = 0; i < 2; i++ )
   {
     c = *script->script_p;
+    /* Faithful precedence bug: C binds && tighter than ||, so lowercase 'l'/'u'
+     * are consumed unguarded while only 'L'/'U' test the already-set flag.  The
+     * asymmetry is in both 1999 binaries (the 'l' path at 1003eed4 jumps straight
+     * to the consume-and-set block; the 'L' path at 1003ed9..1003eee4 inserts the
+     * test first; same shape for 'u' at 1003eeeb vs 'U' at 1003eef2..1003eefb).
+     * Q3's l_script.c:709 parenthesises it; GLAD_SERVERFIX(script-lu-suffix-guard)
+     * builds that form. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(script-lu-suffix-guard) */
+    if ( (c == 108 || c == 76) && (token->subtype & 0x2000) == 0 )
+#else
     if ( c == 108 || c == 76 && (token->subtype & 0x2000) == 0 )
+#endif
     {
       script->script_p++;
       token->subtype |= 0x2000;
     }
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(script-lu-suffix-guard) */
+    else if ( (c == 117 || c == 85) && (token->subtype & 0x4800) == 0 )
+#else
     else if ( c == 117 || c == 85 && (token->subtype & 0x4800) == 0 )
+#endif
     {
       script->script_p++;
       token->subtype |= 0x4000;

@@ -1819,8 +1819,20 @@ area2 = (aas_area_t *)v85;
         {
           if ( ladderface2 )
           {
-            absladderface1num = abs(ladderface1num);
-            absladderface2num = abs(ladderface2num);
+            /* DO-NOT-REVERT: the original stores the facenum SIGNED — the sign
+             * encodes face orientation and every consumer abs()es it itself, so
+             * abs()ing at the store destroyed a real bit.  Proven twice over: the
+             * six stores at 1001531e/100153a5/10015443/100154dd/100157db/10015861
+             * use the raw value, and scan_mnemonic_delta.sh shows ref emits no
+             * abs-of-a-facenum idiom at all (ref cdq=11, all 11 accounted for
+             * elsewhere).  Q3 be_aas_reach.c likewise assigns it unaltered.
+             * Costs this row OUR+3/4092b -> OUR-7/4479b; fidelity outranks the
+             * byte metric ([[fidelity_first_principle]]).  The alias locals stay:
+             * gcc coalesces them away, and the direct rewrite measured within one
+             * byte of this form.  Residual lead: ref has 7 instructions we do not
+             * (ref mov=307 our=302, xor=25/24, jmp=4/3). */
+            absladderface1num = ladderface1num;
+            absladderface2num = ladderface2num;
             v21 = abs(sharededgenum);
             sharededge = &aasworld.edges[v21];
             firstv = sharededgenum < 0;

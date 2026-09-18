@@ -571,8 +571,12 @@ void G_FreeEdict (edict_t *ed)
 	 * going through CTFResetGrapple, leaving owner->client->ctf_grapple
 	 * pointing at the about-to-be-zeroed edict.  Next frame's
 	 * CTFGrapplePull would then deref a NULL self->owner and crash.
-	 * Unfaithful to the 1999 binary, kept as a defensive fix. */
+	 * Unfaithful to the 1999 binary -- present in the ORIGINAL game.dll and in
+	 * Yamagi too, so it is a real 1999 defect rather than a reconstruction one.
+	 * It was this project's one ad-hoc sanctioned deviation; it is now gated
+	 * like every other one. */
 #ifdef ZOID
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(ctf-grapple-stale-pointer) */
 	if (ctf->value
 	    && ed && ed->classname && strcmp(ed->classname, "grapple") == 0
 	    && ed->owner && ed->owner->client
@@ -581,6 +585,7 @@ void G_FreeEdict (edict_t *ed)
 		ed->owner->client->ctf_grapple = NULL;
 		ed->owner->client->ctf_grapplestate = CTF_GRAPPLE_STATE_FLY;
 	}
+#endif /* GLAD_SERVERFIX */
 #endif //ZOID
 
 	gi.unlinkentity (ed);		// unlink from world

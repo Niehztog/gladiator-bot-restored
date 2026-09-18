@@ -505,10 +505,19 @@ LABEL_20:
     li->entitynum = ent;
     li->origin[0] = entinfo.origin[0];
     li->origin[2] = entinfo.origin[2];
+    /* v4 is stale here — the 1999 original's own bug, disasm-confirmed (the model
+     * check loads li->iteminfo into eax @1002fb20, but the call passes ebx
+     * @1002fbd2).  Q3 fixed it to ic->iteminfo[li->iteminfo]; that is what
+     * GLAD_SERVERFIX(bot-item-stale-iteminfo) builds. */
     li->areanum = AAS_BestReachableArea(
               (int *)li->origin,
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(bot-item-stale-iteminfo) */
+              ic->items[li->iteminfo].mins,
+              ic->items[li->iteminfo].maxs,
+#else
               ic->items[v4].mins,
               ic->items[v4].maxs,
+#endif
               li->goalorigin);
 LABEL_23:
     if ( li )
