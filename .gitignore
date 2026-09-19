@@ -43,3 +43,8 @@ tools/cocci_campaigns/inline_strings.cocci
 tools/cocci_campaigns/inline_strings_decls.txt
 tools/cocci_campaigns/inline_strings_map.tsv
 tools/cocci_campaigns/eax_candidates.json
+
+# Core dumps kept for analysis (crash/README.md explains provenance).
+# The matching .so/engine binaries beside them are already covered by *.so above.
+crash/core.*
+crash/q2proded

@@ -577,7 +577,31 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 
   cur              = &aasworld.areaupdate[areacache->areanum];
   cur->areanum         = areacache->areanum;
+  /* areatraveltimes[a][r][l] is "time to cross area a from the end of reachability r
+   * to the start of its l'th reversed link".  For the START area there is no entering
+   * reachability — the bot is already at areacache->origin — so the row is meaningless;
+   * the original picks row 0 and does not check that row 0 exists.  An area with
+   * numreachableareas == 0 gets a zero-length row array out of
+   * AAS_CalculateAreaTravelTimes, so `[0]` reads one word past the blob, and if that
+   * word happens to be 0 the loop below dereferences NULL.
+   *
+   * That is not hypothetical: it is the 2026-09-19 xatrix SIGSEGV (crash/README.md).
+   * On marics102_bspk1 area 2391 is the last area, is the only one with no
+   * reachabilities but incoming links, and areatraveltimes[2391] lands exactly on the
+   * blob end — so `[0]` read the 0 past it and the first of its 145 reversed links
+   * faulted at `movzx eax,WORD PTR [eax]`.
+   *
+   * Q3 fixed this in be_aas_route.c by giving the start node a zeroed
+   * `unsigned short startareatraveltimes[128]` instead, which is also the right
+   * answer numerically: the start area costs nothing to cross.  We take the zero but
+   * not the array — Q3's fixed 128 is itself indexed by the reversed-link counter, and
+   * this very map would over-read it by 17 — so the start row is NULL here and the sum
+   * below folds the zero in.  GLAD_SERVERFIX(route-start-areatraveltimes). */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(route-start-areatraveltimes) */
+  cur->areatraveltimes = NULL;   /* Q3's zeroed startareatraveltimes[], without the array */
+#else
   cur->areatraveltimes = aasworld.areatraveltimes[areacache->areanum][0];
+#endif
   cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
 
   destcluster = aasworld.areasettings[areacache->areanum].cluster;
@@ -626,9 +650,16 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
           destcluster = aasworld.areasettings[srcareanum].cluster;
           if ( destcluster <= 0 || destcluster == areacache->cluster )
           {
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(route-start-areatraveltimes) */
+            /* NULL is the start node's zero row — see the assignment above. */
+            newtt = cur->tmptraveltime
+                  + reach->traveltime
+                  + (cur->areatraveltimes ? cur->areatraveltimes[linkidx] : 0);
+#else
             newtt = cur->tmptraveltime
                   + reach->traveltime
                   + cur->areatraveltimes[linkidx];
+#endif
             if ( destcluster > 0 )
             {
               destclusterareanum = aasworld.areasettings[srcareanum].clusterareanum;
