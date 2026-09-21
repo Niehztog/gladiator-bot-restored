@@ -553,6 +553,28 @@ void T_Damage (edict_t *targ, edict_t *inflictor, edict_t *attacker, vec3_t dir,
 	if (!targ->takedamage)
 		return;
 
+	/* NULL-attacker normalisation.  No door path ever assigns ->activator, so a
+	 * blocked func_door reverses and fires its targets with that zero:
+	 * door_blocked -> door_go_up(ent, ent->activator) -> G_UseTargets ->
+	 * target_explosion_explode -> T_RadiusDamage -> here, attacker == NULL.
+	 * Nothing below tests it first.  The surprise-damage `attacker->client`
+	 * survives only because DAMAGE_RADIUS short-circuits ahead of it on that one
+	 * path; CTFApplyStrength, CheckTeamDamage, CTFCheckHurtCarrier, the CTF and
+	 * Arena armor/health tests, Killed's coop score and M_ReactToDamage's first
+	 * line all read it outright.  Normalise once here rather than guarding each
+	 * read: the number of reads grows with every feature added to T_Damage, the
+	 * boundary does not.  world is &g_edicts[0] and its client is NULL, so every
+	 * downstream `attacker->client` test still answers what the missing attacker
+	 * meant -- and ClientObituary already compares attacker against world for
+	 * exactly this case.  This is Q3's own later fix: its G_Damage does
+	 * `if (!attacker) attacker = &g_entities[ENTITYNUM_WORLD];` in the same
+	 * place (q3 g_combat.c:855).  Present in the original game.dll/gamei386.so,
+	 * hence gated; see .claude/memory/serverfix_deviations.md. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-attacker-damage-path) */
+	if (!attacker)
+		attacker = world;
+#endif /* GLAD_SERVERFIX */
+
 #ifdef ROGUE
 	sphere_notified = false;		// PGM
 #endif //ROGUE

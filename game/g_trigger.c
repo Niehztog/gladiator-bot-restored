@@ -224,6 +224,12 @@ void trigger_key_use (edict_t *self, edict_t *other, edict_t *activator)
 
 	if (!self->item)
 		return;
+	/* Same NULL activator, same blocked-door producer: a door whose target
+	 * names this trigger_key.  No activator means no inventory to check. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-activator-use-callbacks) */
+	if (!activator)
+		return;
+#endif /* GLAD_SERVERFIX */
 	if (!activator->client)
 		return;
 

@@ -732,6 +732,19 @@ void monster_use (edict_t *self, edict_t *other, edict_t *activator)
 		return;
 	if (self->health <= 0)
 		return;
+	/* A blocked func_door fires its targets with ent->activator, which no door
+	 * path ever assigns, so a door whose target names a monster arrives here
+	 * with activator == NULL and the FL_NOTARGET read below faults.  Same class
+	 * and same producer as GLAD_SERVERFIX(null-activator-usetargets), one step
+	 * further down G_UseTargets' fire-targets loop.  Returning is what no
+	 * activator means: there is nobody to get angry at, and carrying the NULL on
+	 * would only move the fault to `self->enemy = activator` and FoundTarget's
+	 * `self->enemy->client`.  Present in the original game.dll/gamei386.so,
+	 * hence gated; see .claude/memory/serverfix_deviations.md. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-activator-use-callbacks) */
+	if (!activator)
+		return;
+#endif /* GLAD_SERVERFIX */
 	if (activator->flags & FL_NOTARGET)
 		return;
 	if (!(activator->client) && !(activator->monsterinfo.aiflags & AI_GOOD_GUY))
@@ -795,7 +808,14 @@ void monster_triggered_spawn_use (edict_t *self, edict_t *other, edict_t *activa
 	// we have a one frame delay here so we don't telefrag the guy who activated us
 	self->think = monster_triggered_spawn;
 	self->nextthink = level.time + FRAMETIME;
+	/* Same NULL activator, same blocked-door producer, here on a door whose
+	 * target names a trigger-spawned monster.  The spawn is already queued
+	 * above, so only the enemy latch needs the guard. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-activator-use-callbacks) */
+	if (activator && activator->client)
+#else
 	if (activator->client)
+#endif /* GLAD_SERVERFIX */
 		self->enemy = activator;
 	self->use = monster_use;
 }
@@ -1092,7 +1112,14 @@ void stationarymonster_triggered_spawn_use (edict_t *self, edict_t *other, edict
 	// we have a one frame delay here so we don't telefrag the guy who activated us
 	self->think = stationarymonster_triggered_spawn;
 	self->nextthink = level.time + FRAMETIME;
+	/* Same NULL activator, same blocked-door producer, here on a door whose
+	 * target names a trigger-spawned monster.  The spawn is already queued
+	 * above, so only the enemy latch needs the guard. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-activator-use-callbacks) */
+	if (activator && activator->client)
+#else
 	if (activator->client)
+#endif /* GLAD_SERVERFIX */
 		self->enemy = activator;
 	self->use = monster_use;
 }

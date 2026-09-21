@@ -230,7 +230,19 @@ void G_UseTargets (edict_t *ent, edict_t *activator)
 //
 // print the message
 //
+	/* G_UseTargets knows the activator can be NULL -- the delay arm above
+	 * prints "Think_Delay with no activator" for exactly that -- and then
+	 * dereferences it unguarded eleven lines later.  A blocked func_door fires
+	 * its targets with ent->activator, which no door path ever assigns, so a
+	 * door carrying a `message` faults here before the damage path is even
+	 * reached.  Upstream of T_Damage, so the boundary there cannot cover it.
+	 * NULL means "no activator", i.e. nobody to print to.  Present in the
+	 * original game.dll/gamei386.so, hence gated. */
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(null-activator-usetargets) */
+	if ((ent->message) && activator && !(activator->svflags & SVF_MONSTER))
+#else
 	if ((ent->message) && !(activator->svflags & SVF_MONSTER))
+#endif /* GLAD_SERVERFIX */
 	{
 		gi.centerprintf (activator, "%s", ent->message);
 		if (ent->noise_index)
