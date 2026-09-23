@@ -4,6 +4,7 @@
  */
 
 #include "botlib_port.h"
+#include <errno.h>  /* the .so's AAS_LoadFiles calls __errno_location; see botlib_port.h */
 #include "l_libvar.h"
 #undef VectorNegate
 #include "be_ea.h"
@@ -110,10 +111,12 @@ char *__cdecl AAS_ModelFromIndex(int index)
 
 // gladiator.dll: 1000D990..1000D9AA
 // gladi386.so:   000183F4..00018478
-int __cdecl IndexFromModel(char *String2)
+/* Q3 be_aas_main.c's AAS_IndexFromModel -- Q3 passes the same "IndexFromModel"
+ * label (the string is in both originals; keep it). */
+int __cdecl AAS_IndexFromModel(char *modelname)
 {
   return AAS_IndexFromString("IndexFromModel", aasworld.modelindex_table,
-                             String2);
+                             modelname);
 }
 
 // gladiator.dll: 1000D9C0..1000D9DA
@@ -127,7 +130,7 @@ char *__cdecl AAS_SoundFromIndex(int index)
 
 // gladiator.dll: 1000D9F0..1000DA0A
 // gladi386.so:   00018514..00018598
-// Mirror of IndexFromModel against the
+// Mirror of AAS_IndexFromModel against the
 // soundindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromSound(char *String2)
 {
@@ -144,7 +147,7 @@ char *__cdecl AAS_ImageFromIndex(int index)
 
 // gladiator.dll: 1000DA50..1000DA6A
 // gladi386.so:   00018634..000186B8
-// Mirror of IndexFromModel against the
+// Mirror of AAS_IndexFromModel against the
 // imageindex_table; tail-calls AAS_IndexFromString thunk at 0x100012C1.
 int __cdecl AAS_IndexFromImage(char *String2)
 {
@@ -358,7 +361,7 @@ float AAS_Time()
 }
 
 #ifdef _WIN32  /* ---- winbspc spawn + aasN.zip search: Windows-only ----
-                * The Linux botlib has neither: BotLibLoadMap loads .aas directly and, on
+                * The Linux botlib has neither: AAS_LoadFiles loads .aas directly and, on
                 * failure, just reports "no AAS file available". */
 // gladiator.dll: 1000E140..1000E38A
 // gladi386.so:   absent
@@ -373,15 +376,15 @@ intptr_t __cdecl sub_1000E140(char *Source)
   strncpy(Destination, Source, 0x90u);
   strncat(Destination, ".bsp", 144 - strlen(Destination));
   strncpy(FileName, (const char *)LibVarGetString("basedir"), 0x90u);
-  sub_10041900(FileName, 144 - strlen(FileName));
+  AppendPathSeperator(FileName, 144 - strlen(FileName));
   strncat(FileName, (const char *)LibVarGetString("gamedir"), 144 - strlen(FileName));
-  sub_10041900(FileName, 144 - strlen(FileName));
+  AppendPathSeperator(FileName, 144 - strlen(FileName));
   strncpy(Arguments, FileName, 0x90u);
   strncat(FileName, "maps", 144 - strlen(FileName));
   if ( _access(FileName, 4) )
     FileName[strlen(FileName) - 4] = 0;  /* maps dir not accessible: strip the "maps" just appended */
   else
-    sub_10041900(FileName, 144 - strlen(FileName));
+    AppendPathSeperator(FileName, 144 - strlen(FileName));
   strncat(FileName, Source, 144 - strlen(FileName));
   strncat(FileName, ".aas", 144 - strlen(FileName));
   strncat(Arguments, "winbspc.exe", 144 - strlen(Arguments));
@@ -428,12 +431,12 @@ int __cdecl sub_1000E430(char *Source)
   if ( v1 && strlen(v1) )
   {
     strncat(Destination, v1, 0x90u);
-    sub_10041900(Destination, 144);
+    AppendPathSeperator(Destination, 144);
   }
   if ( v2 && strlen(v2) )
   {
     strncat(Destination, v2, 144 - strlen(Destination));
-    sub_10041900(Destination, 144);
+    AppendPathSeperator(Destination, 144);
   }
   getcwd_locked((int)Path, 144);
   _chdir(Destination);
@@ -449,11 +452,11 @@ int __cdecl sub_1000E430(char *Source)
     for ( i = 0; i < 10; ++i )
     {
       strcpy(Destination, "..");
-      sub_10041900(Destination, 144);
+      AppendPathSeperator(Destination, 144);
       if ( strlen(v4) )
       {
         strncat(Destination, v4, 144 - strlen(Destination));
-        sub_10041900(Destination, 144);
+        AppendPathSeperator(Destination, 144);
       }
       sprintf(&Destination[strlen(Destination)], "aas%d.zip", i);
       if ( !_access(Destination, 4) )
@@ -489,7 +492,7 @@ int __cdecl sub_1000E430(char *Source)
 /* F184 @ 0x0001b168, 6 bytes — `mov eax,5; ret`, nothing else.  No callers anywhere in
  * the image and no string, constant or call to identify it by, so there is no name to
  * recover and none is invented: the identifier is the symbol gladi386.so ships.  It
- * sits between AAS_Time (F183) and BotLibLoadMap (F185) — and it is placed there,
+ * sits between AAS_Time (F183) and AAS_LoadFiles (F185) — and it is placed there,
  * not at the end of the TU, because gladi386.so's address order records the
  * original definition order. */
 // gladiator.dll: absent
@@ -503,7 +506,10 @@ int __cdecl F184(void)
 
 // gladiator.dll: 1000E880..1000EBE2
 // gladi386.so:   0001B170..0001B531
-int BotLibLoadMap(char *Source)
+/* Q3 be_aas_main.c's AAS_LoadFiles: record the map name, reset the entity links,
+ * load the BSP, then the AAS, and print "loaded ...".  Gladiator adds the pak
+ * search and the Win32 aasN.zip / winbspc fallbacks. */
+int AAS_LoadFiles(char *mapname)
 {
   int v2; // esi
   int v4; // esi
@@ -515,13 +521,13 @@ int BotLibLoadMap(char *Source)
   bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF
   char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
 
-  strcpy(aasworld.mapname, Source);
+  strcpy(aasworld.mapname, mapname);
   AAS_ResetEntityLinks();
   memset(&v7, 0, sizeof(v7));
   strncpy(Destination, "maps\\", 0x90u);
-  strncat(Destination, Source, 144 - strlen(Destination));
+  strncat(Destination, mapname, 144 - strlen(Destination));
   strncat(Destination, ".bsp", 144 - strlen(Destination));
-  if ( sub_10041F60(Destination, &v7) )
+  if ( FindQuakeFile(Destination, &v7) )
   {
     v2 = AAS_LoadBSPFile(v7.path, v7.fileofs, v7.filelen);
     errno = v2;
@@ -543,20 +549,20 @@ int BotLibLoadMap(char *Source)
           strncpy(aasfile, "maps\\", 0x90u);
         else
           strncpy(aasfile, "", 0x90u);
-        strncat(aasfile, Source, 144 - strlen(aasfile));
+        strncat(aasfile, mapname, 144 - strlen(aasfile));
         strncat(aasfile, ".aas", 144 - strlen(aasfile));
-        if ( sub_10041F60(aasfile, &v7) )
+        if ( FindQuakeFile(aasfile, &v7) )
           break;
         if ( ++v4 >= 2 )
         {
 #ifdef _WIN32
-          v5 = sub_1000E430(Source);
+          v5 = sub_1000E430(mapname);
           errno = v5;
           if ( !errno )
             return BLERR_NOERROR;
           if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
           {
-            sub_1000E140(Source);
+            sub_1000E140(mapname);
             botimport.Print(
               5,
               "\n"
@@ -572,9 +578,9 @@ int BotLibLoadMap(char *Source)
               "to free up processing power for the\n"
               "tool which creates the AAS file.\n"
               "\n",
-              Source,
-              Source,
-              Source);
+              mapname,
+              mapname,
+              mapname);
           }
 #else
           /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll and
@@ -612,9 +618,13 @@ int BotLibLoadMap(char *Source)
 
 // gladiator.dll: 1000ECD0..1000ED81
 // gladi386.so:   0001B534..0001B5EB
-int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a6, char **a7)
+/* Q3 be_aas_main.c's AAS_LoadMap, step for step: a NULL map name only refreshes the
+ * string indexes, otherwise clear `initialized`, free the routing caches,
+ * AAS_LoadFiles, then the link heap, linked entities, reachability and alternative
+ * routing.  Gladiator's extra arguments are the model/sound/image index tables. */
+int __cdecl AAS_LoadMap(char *mapname, int a2, char **a3, int a4, char **a5, int a6, char **a7)
 {
-  if ( !Source )
+  if ( !mapname )
   {
     sub_1000DCC0(a2, a3, a4, a5, a6, a7);
     return BLERR_NOERROR;
@@ -622,7 +632,7 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   aasworld.initialized = 0;
   sub_1000DC20(a2, a3, a4, a5, a6, a7);
   AAS_FreeRoutingCaches();
-  errno = BotLibLoadMap(Source);
+  errno = AAS_LoadFiles(mapname);
   if ( errno )
   {
     aasworld.loaded = 0;
@@ -632,26 +642,31 @@ int __cdecl BotLoadMap(char *Source, int a2, char **a3, int a4, char **a5, int a
   AAS_InitAASLinkedEntities();
   AAS_InitReachability();
   sub_1001D140();
-  sub_1001AB80();
+  AAS_InitAlternativeRouting();
   return BLERR_NOERROR;
 }
 
 // gladiator.dll: 1000EDC0..1000EE0C
 // gladi386.so:   0001B5EC..0001B663
-int __cdecl sub_1000EDC0(int a1, int a2)
+/* Q3 be_aas_main.c's AAS_Setup: size and clear the entity array, invalidate every
+ * entity, return BLERR_NOERROR -- called from the library setup right after the
+ * maxclients/maxentities libvars are read, with `if (err) return err`, exactly Q3's
+ * call site.  Gladiator takes the two counts as arguments (Q3 reads the libvars
+ * itself) and also initialises the sound pool. */
+int __cdecl AAS_Setup(int maxentities, int maxclients)
 {
-  aasworld.numentities = a1;
-  aasworld.aas_maxclients = a2;
+  aasworld.numentities = maxentities;
+  aasworld.aas_maxclients = maxclients;
   if ( aasworld.entities )
     FreeMemory(aasworld.entities);
-  aasworld.entities = (aas_entity_t *)GetClearedMemory(sizeof(aas_entity_t) * a1);
+  aasworld.entities = (aas_entity_t *)GetClearedMemory(sizeof(aas_entity_t) * maxentities);
 #if BOTLIB_NEED_SIDEBAND
   if ( aasentity_arealinks )
     FreeMemory(aasentity_arealinks);
-  aasentity_arealinks = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * a1);
+  aasentity_arealinks = (aas_link_t **)GetClearedMemory(sizeof(aas_link_t *) * maxentities);
   if ( aasentity_bsplinks )
     FreeMemory(aasentity_bsplinks);
-  aasentity_bsplinks = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * a1);
+  aasentity_bsplinks = (bsp_link_t **)GetClearedMemory(sizeof(bsp_link_t *) * maxentities);
 #endif
   sub_1001D260();
   AAS_InvalidateEntities();

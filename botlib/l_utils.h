@@ -3,8 +3,19 @@
 #ifndef BOTLIB_L_UTILS_H
 #define BOTLIB_L_UTILS_H
 
+/* Q2/Q3's random()/crandom(), verbatim (Q2 g_local.h, Q3 q_shared.h).  The botlib
+ * compiles against Q2's q_shared.h, which has neither, so it carried its own.  IDA
+ * renders every use as `(float)(rand() & 0x7FFF) * 0.000030518509f` because both
+ * compilers fold the division into a reciprocal multiply (cl.exe /O2; gcc 2.7 under
+ * -ffast-math), but the macro's PARENTHESES are not neutral for cl.exe: an FP
+ * paren group blocks reassociation, and BotChooseInitialChatMessage's
+ * `random() * n` byte-matches the DLL only with them.  Must follow the system
+ * headers (glibc declares a random(void) function). */
+#define random()	((rand () & 0x7fff) / ((float)0x7fff))
+#define crandom()	(2.0 * (random() - 0.5))
+
 /* bot_fileref_t: the pak/file reference this TU's search path builds. */
-/* bot_fileref_t — file location returned by sub_10041F60 / sub_10041BA0.  Q2-specific
+/* bot_fileref_t — file location returned by FindQuakeFile / FindQuakeFile2.  Q2-specific
  * (Q3's transparent VFS handles paks internally).  The decompilations show it as
  * "int Offset[38]" or as three separate locals. */
 typedef struct bot_fileref_s {
@@ -90,7 +101,7 @@ extern LPUSERFUNCTIONS dword_100639F0;
 
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
-int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4); /* search basePath+subdir+paks for file */
+int __cdecl FindQuakeFile2(char *basedir, char *gamedir, char *filename, bot_fileref_t *file); /* search basePath+subdir+paks for file */
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
 /* The UnZip windll state is defined inside `#ifdef _WIN32` in l_utils.c and
  * does not exist in the Linux image at all -- gate the declarations to match,
@@ -115,16 +126,16 @@ static int sub_10041650(void);
 LPSTR __stdcall sub_10041680(unsigned int a1, unsigned int a2, unsigned __int16 a3, int a4, int a5, int a6, int a7, int a8, int a9, int a10, int a11, int a12, int a13);
 int __stdcall sub_10041740(int a1, int a2, int a3, int a4);
 int __stdcall sub_10041760(const char *a1, int a2);
-void __cdecl sub_100418D0(_BYTE *a1);
-void __cdecl sub_10041900(const char *a1, int a2);
-int __cdecl sub_10041970(char *FileName, const char *, bot_fileref_t *);
-int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4);
-BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2);
+void __cdecl ConvertPath(char *path);
+void __cdecl AppendPathSeperator(char *path, int length);
+int __cdecl FindFileInPak(char *pakfile, const char *filename, bot_fileref_t *file);
+int __cdecl FindQuakeFile2(char *basedir, char *gamedir, char *filename, bot_fileref_t *file);
+BOOL __cdecl FindQuakeFile(char *filename, bot_fileref_t *file);
 int __cdecl sub_10041FF0(const char *zipfile, const char *file_to_archive);
 void sub_10042380();
 int __stdcall sub_100423B0(int a1, int a2, int a3, int a4);
 int __cdecl sub_100423D0(int a1, int a2);
 void __stdcall sub_100423F0(char *p);
-void __cdecl vectoangles(float *value1, float *angles);
+void __cdecl Vector2Angles(float *value1, float *angles);
 
 #endif /* BOTLIB_L_UTILS_H */

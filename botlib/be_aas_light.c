@@ -115,9 +115,8 @@ int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, floa
 // gladi386.so:   00017EC0..00018046
 /* Lightmap RGB at the impact point of (start..end), plus the BotAddPointLight
  * cache contribution.  Returns (R+G+B)/3 plus accumulated radius slack. */
-int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue)
+int __cdecl AAS_BSPTraceLight(vec3_t start, vec3_t end, vec3_t endpos, int *red, int *green, int *blue)
 {
-  float *v6; // ebx
   int v7; // edi
   bsp_pointlight_t *v8; // esi
   float v9; // st7
@@ -130,15 +129,14 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
   int rs, gs, bs_;
 #endif
 
-  v6 = (float *)endpos;
-  if ( sub_10007150(start, end, endpos, (_DWORD *)&rs, (_DWORD *)&gs, (_DWORD *)&bs_) )
+  if ( sub_10007150((intptr_t)start, (intptr_t)end, (intptr_t)endpos, (_DWORD *)&rs, (_DWORD *)&gs, (_DWORD *)&bs_) )
     v7 = (rs + gs + bs_) / 3;
   else
     v7 = 255;
   v8 = aasworld.newestcache;
   for ( ; v8; v8 = v8->next )
   {
-    VectorSubtract(v6, v8->origin, v12);
+    VectorSubtract(endpos, v8->origin, v12);
     v9 = v8->radius - VectorLength(v12);
     if ( v9 > 0.0f )
     {
@@ -163,10 +161,9 @@ int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int
  * out-pointers may be NULL. */
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue)
 {
-  vec3_t v7; // [esp+0h] [ebp-18h] BYREF
-  char v8[12]; // [esp+Ch] [ebp-Ch] BYREF
+  vec3_t end, endpos;
 
-  VectorCopy(origin, v7);
-  v7[2] = origin[2] - 4096.0f;
-  return AAS_BSPTraceLight((intptr_t)origin, (intptr_t)v7, (intptr_t)v8, red, green, blue);
+  VectorCopy(origin, end);
+  end[2] = origin[2] - 4096.0f;
+  return AAS_BSPTraceLight(origin, end, endpos, red, green, blue);
 }

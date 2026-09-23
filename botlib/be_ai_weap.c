@@ -113,7 +113,7 @@ weaponconfig_t * LoadWeaponConfig(char *filename)
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(path, filename, 144u);
-  if ( !sub_10041F60(path, &file_ref) )
+  if ( !FindQuakeFile(path, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", path);
     return 0;

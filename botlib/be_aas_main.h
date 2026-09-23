@@ -23,9 +23,9 @@ char *__cdecl AAS_SoundFromIndex(int index);
 int __cdecl AAS_StartFrame(float time);
 char *__cdecl AAS_StringFromIndex(const char *indexname, indexlist_t *list, int index);
 float AAS_Time();
-int __cdecl BotLibLoadMap(char *Source);
-int __cdecl BotLoadMap(char *Source, int, char **, int, char **, int, char **);
-int __cdecl IndexFromModel(char *String2);
+int __cdecl AAS_LoadFiles(char *mapname);
+int __cdecl AAS_LoadMap(char *mapname, int, char **, int, char **, int, char **);
+int __cdecl AAS_IndexFromModel(char *modelname);
 indexlist_t *__cdecl sub_1000DA80(int numindexes, char **names);
 void __cdecl sub_1000DB40(indexlist_t *list, int numindexes, char **names);
 int __cdecl sub_1000DBD0(indexlist_t *list);
@@ -33,6 +33,6 @@ void __cdecl sub_1000DC20(int a1, char **a2, int a3, char **a4, int a5, char **a
 void __cdecl sub_1000DCC0(int a1, char **a2, int a3, char **a4, int a5, char **a6);
 intptr_t __cdecl sub_1000E140(char *Source);
 int __cdecl sub_1000E430(char *Source);
-int __cdecl sub_1000EDC0(int a1, int a2);
+int __cdecl AAS_Setup(int maxentities, int maxclients);
 
 #endif /* BOTLIB_BE_AAS_MAIN_H */

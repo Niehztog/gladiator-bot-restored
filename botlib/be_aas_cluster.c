@@ -90,22 +90,20 @@ int __cdecl AAS_UpdatePortal(int areanum, int clusternum)
 // gladi386.so:   000113C4..000115F4
 int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
 {
-  int i; // ebp
-  aas_area_t *area; // esi
-  int facenum; // rax
-  int v10; // eax
-  aas_face_t *face; // ecx
-  int v12; // ecx
-  int v14; // esi
-  int v15; // eax
+  aas_area_t *area;
+  aas_face_t *face;
+  int facenum, i;
 
+  //
   if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
     AAS_Error("AAS_FloodClusterAreas_r: areanum out of range");
     return 0;
   }
+  //if the area is already part of a cluster
   if ( aasworld.areasettings[areanum].cluster > 0 )
   {
+    //there's a reachability going from one cluster to another only in one direction
     if ( aasworld.areasettings[areanum].cluster != clusternum )
     {
       Log_Write("cluster %d touched cluster %d at area %d", clusternum,
@@ -114,36 +112,43 @@ int __cdecl AAS_FloodClusterAreas_r(int areanum, int clusternum)
     }
     return 1;
   }
-  else
+  //don't add the cluster portal areas to the clusters
+  if ( aasworld.areasettings[areanum].contents & 8 )
   {
-    if ( (aasworld.areasettings[areanum].contents & 8) != 0 )
-      return AAS_UpdatePortal(areanum, clusternum);
+    return AAS_UpdatePortal(areanum, clusternum);
+  }
+  //set the area cluster number
   aasworld.areasettings[areanum].cluster = clusternum;
-  aasworld.areasettings[areanum].clusterareanum = (aasworld.clusters[clusternum].numareas)++;
+  aasworld.areasettings[areanum].clusterareanum =
+        aasworld.clusters[clusternum].numareas;
+  //the cluster has an extra area
+  aasworld.clusters[clusternum].numareas++;
+
   area = &aasworld.areas[areanum];
+  //use area faces to flood into adjacent areas
   for ( i = 0; i < area->numfaces; i++ )
   {
-    facenum = aasworld.faceindex[i + area->firstface];
-    facenum = abs(facenum);
-    v10 = aasworld.faces[facenum].frontarea;
+    facenum = abs(aasworld.faceindex[area->firstface + i]);
     face = &aasworld.faces[facenum];
-    if ( v10 == areanum )
+    if ( face->frontarea == areanum )
     {
-      v12 = face->backarea;
-      if ( v12 && !AAS_FloodClusterAreas_r(v12, clusternum) )
-        return 0;
+      if ( face->backarea ) if ( !AAS_FloodClusterAreas_r(face->backarea, clusternum) ) return 0;
     }
-    else if ( v10 && !AAS_FloodClusterAreas_r(v10, clusternum) )
+    else
     {
-      return 0;
+      if ( face->frontarea ) if ( !AAS_FloodClusterAreas_r(face->frontarea, clusternum) ) return 0;
     }
   }
-  for ( v14 = 0; v14 < aasworld.areasettings[areanum].numreachableareas; v14++ )
+  //use the reachabilities to flood into other areas
+  for ( i = 0; i < aasworld.areasettings[areanum].numreachableareas; i++ )
   {
-    v15 = aasworld.reachability[v14 + aasworld.areasettings[areanum].firstreachablearea].areanum;
-    if ( v15 && !AAS_FloodClusterAreas_r(v15, clusternum) )
-      return 0;
-  }
+    if ( !aasworld.reachability[
+            aasworld.areasettings[areanum].firstreachablearea + i].areanum )
+    {
+      continue;
+    }
+    if ( !AAS_FloodClusterAreas_r(aasworld.reachability[
+            aasworld.areasettings[areanum].firstreachablearea + i].areanum, clusternum) ) return 0;
   }
   return 1;
 }

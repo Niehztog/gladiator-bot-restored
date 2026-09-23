@@ -43,7 +43,7 @@ static libvar_t *libvar_reachabilitydelay;  /* LibVar("reachability_delay", "100
 aas_reachabilitynode_t **areareachability;   /* per-area linked-list-head array */
 int reach_ladder; // weak
 int reach_elevator; // weak
-intptr_t reachabilityheap; // pool base
+aas_reachabilitynode_t *reachabilityheap; // pool base
 int reach_jump; // weak
 int reach_grapple; // weak
 int reach_waterjump; // weak
@@ -51,7 +51,7 @@ int reach_teleport; // weak
 int reach_barrier; // weak
 int reach_swim; // weak
 int reach_equalfloor; // weak
-intptr_t nextreachability; // free-list head
+aas_reachabilitynode_t *nextreachability; // free-list head
 int reach_walkoffledge; // weak
 int reach_rocketjump; // weak
 int reach_step; // weak
@@ -72,47 +72,32 @@ int reach_strafejump;  // weak -- unreferenced in BOTH images
 
 // gladiator.dll: 10010F60..10010FA3
 // gladi386.so:   0001DAFC..0001DBC0
-/* The reach free-list is 65536 fixed-size nodes: 48 B each with the next-ptr at
- * +44 on 32-bit, 56 B with it at +48 on 64-bit.  Keep the original byte-offset
- * walk (so MSVC6 still emits the +44 / stride-48 form) but derive the link slot
- * from offsetof(..,next) and store through intptr_t*.
- *
- * `nextoffset` must stay a genuinely separate loop-carried accumulator even
- * though it moves in lockstep with `offset`: gcc 2.7.2.3 -O6 -funroll-loops
- * unrolls this 5x and keeps a distinct register for it, and MSVC6 /O2 folds the
- * redundancy back out, so the split is free on PE and required on ELF.
- *
- * Do NOT add a third variable (a 0..65535 node index decoupled from the byte
- * offsets).  It closes the last few ELF insns, but MSVC6 then recognises a small
- * fixed trip count and rewrites the loop into a countdown needing an extra
- * callee-saved register — an unavoidable PE regression.  The residual ELF gap is
- * the accepted cost. */
+/* The reach free-list: 65536 fixed-size nodes, 48 B each with the next-ptr at
+ * +44 on 32-bit (56 B / +48 on 64-bit).  Q3's AAS_SetupReachabilityHeap
+ * verbatim over typed pointers -- gcc 2.7.2.3 -O6 -funroll-loops unrolls the
+ * loop 5x around the i counter, and MSVC6 /O2 eliminates the counter into the
+ * byte offset, which is exactly the pair of reference loops. */
 #define AAS_REACHABILITYHEAP_NODES 65536
 
-int AAS_SetupReachabilityHeap()
+void AAS_SetupReachabilityHeap(void)
 {
-  intptr_t result;
-  int offset, nextoffset;
+  int i;
 
-  result = (intptr_t)GetClearedMemory(AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
-  reachabilityheap = result;
-  nextoffset = (int)sizeof(aas_reachabilitynode_t);
-  for ( offset = 0; offset < (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t); offset += (int)sizeof(aas_reachabilitynode_t) )
+  reachabilityheap = (aas_reachabilitynode_t *) GetClearedMemory(
+            AAS_REACHABILITYHEAP_NODES * sizeof(aas_reachabilitynode_t));
+  for ( i = 0; i < AAS_REACHABILITYHEAP_NODES - 1; i++ )
   {
-    *(intptr_t *)(offset + result + offsetof(aas_reachabilitynode_t, next)) = result + nextoffset;
-    nextoffset += (int)sizeof(aas_reachabilitynode_t);
-    result = reachabilityheap;
+    reachabilityheap[i].next = &reachabilityheap[i+1];
   }
-  *(intptr_t *)(reachabilityheap + (AAS_REACHABILITYHEAP_NODES - 1) * (int)sizeof(aas_reachabilitynode_t) + offsetof(aas_reachabilitynode_t, next)) = 0;
+  reachabilityheap[AAS_REACHABILITYHEAP_NODES - 1].next = NULL;
   nextreachability = reachabilityheap;
-  return result;
 }
 
 // gladiator.dll: 10010FD0..10010FDD
 // gladi386.so:   0001DBC0..0001DBE0
 void AAS_ShutDownReachabilityHeap()
 {
-  FreeMemory((void *)reachabilityheap);
+  FreeMemory(reachabilityheap);
 }
 /* Pop a node off the reach free chain, raising AAS_MAX_REACHABILITYSIZE when the
  * successor is NULL.  A DIFFERENT free list from the entity-link one at
@@ -127,11 +112,11 @@ void *AAS_AllocReachability(void)
 
   if ( !nextreachability )
     return NULL;
-  if ( !((aas_reachabilitynode_t *)nextreachability)->next )
+  if ( !nextreachability->next )
     AAS_Error("AAS_MAX_REACHABILITYSIZE");
   /* Original re-reads head here in case AAS_Error trashed eax. */
-  head = (aas_reachabilitynode_t *)nextreachability;
-  nextreachability = (intptr_t)head->next;
+  head = nextreachability;
+  nextreachability = head->next;
   ++numlreachabilities;
   return head;
 }
@@ -344,9 +329,10 @@ int __cdecl AAS_AreaLadder(int areanum)
 
 // gladiator.dll: 100116D0..100116EE
 // gladi386.so:   0001E32C..0001E37E
-/* Returns (int)(10 * sv_jumpvel / sv_gravity) — a crude jump/hang-time
- * estimate in tics.  DEAD in Gladiator, preserved by /INCREMENTAL. */
-unsigned __int16 __cdecl sub_100116D0(void)
+/* Q3 be_aas_reach.c's AAS_BarrierJumpTravelTime -- jumpvel / (gravity * 0.1), with
+ * Gladiator's sv_ libvars where Q3 has aassettings -- in the same slot, right before
+ * AAS_ReachabilityExists.  DEAD in Gladiator, preserved by /INCREMENTAL. */
+unsigned __int16 __cdecl AAS_BarrierJumpTravelTime(void)
 {
   return libvar_sv_jumpvel->value / (libvar_sv_gravity->value * 0.1);
 }
@@ -438,7 +424,7 @@ int __cdecl AAS_Reachability_Swim(int area1num, int area2num)
       if ( face1num == face2num )
       {
         AAS_FaceCenter(face1num, start);
-        if ( sub_10003080(start) & 0x38 )   /* water-edge contents check */
+        if ( AAS_PointContents(start) & 0x38 )   /* water-edge contents check */
         {
           face1 = &aasworld.faces[face1num];
           areasettings = &aasworld.areasettings[area1num];
@@ -517,7 +503,7 @@ int __cdecl AAS_Reachability_EqualFloorHeight(int area1num, int area2num)
     return 0;
 
   VectorCopy(down, invgravity);
-  VectorNegate(invgravity);
+  VectorInverse(invgravity);
 
   bestheight = 99999.0f;
   bestlength = 0.0f;
@@ -2263,13 +2249,13 @@ void AAS_Reachability_Elevator()
     AAS_BSPModelMinsMaxsOrigin(modelnum, angles, mins, maxs, origin);
     VectorCopy(origin, pos1);
     VectorCopy(origin, extent);
-    v33 = FloatForKey(ent, "lip");
+    v33 = AAS_FloatForBSPEpairKey(ent, "lip");
     if ( v33 == 0 )
       v33 = 8.0f;
-    height = FloatForKey(ent, "height");
+    height = AAS_FloatForBSPEpairKey(ent, "height");
     if ( height == 0 )
       height = maxs[2] - mins[2] - v33;
-    speed = FloatForKey(ent, "speed");
+    speed = AAS_FloatForBSPEpairKey(ent, "speed");
     if ( speed == 0 )
       speed = 200.0f;
     extent[2] = extent[2] - height;
@@ -2485,7 +2471,7 @@ int __cdecl AAS_Reachability_Grapple(int area1num, int area2num)
   }
   else
   {
-    v4 = sub_10003080((float *)start);   /* swim-area liquid check */
+    v4 = AAS_PointContents((float *)start);   /* swim-area liquid check */
     if ( (v4 & 0x38) == 0 )
       return 0;
   }

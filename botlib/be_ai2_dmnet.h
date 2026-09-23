@@ -31,7 +31,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs);
 int __cdecl AINode_Stand(bot_state_t *bs);
 int __cdecl BotDumpNodeSwitches(bot_state_t *bs);
 int BotGetFormationGoal(bot_state_t *bs);
-float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat);
+bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat);
 void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *str);
 void BotResetNodeSwitches();
 

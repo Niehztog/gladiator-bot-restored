@@ -414,7 +414,7 @@ float __cdecl BotGapDistance(bot_movestate_t *ms, float *dir)
         VectorCopy(trace.endpos, end);
         end[2] -= 20.0f;
         /* barrier-jump under-water check */
-        if ( (sub_10003080((float *)end) & 0x20) != 0 )
+        if ( (AAS_PointContents((float *)end) & 0x20) != 0 )
           break;
         return dist;
       }
@@ -832,7 +832,7 @@ bot_moveresult_t __cdecl BotTravel_Swim(bot_movestate_t *ms, aas_reachability_t 
   BotCheckBlocked(ms, dir, &moveresult);
   EA_Move(ms->client, dir, 400.0);
   VectorCopy(dir, moveresult.movedir);
-  vectoangles(dir, moveresult.ideal_viewangles);
+  Vector2Angles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 2;
   return moveresult;
 }
@@ -859,7 +859,7 @@ bot_moveresult_t __cdecl BotTravel_WaterJump(bot_movestate_t *ms, aas_reachabili
   EA_MoveForward(ms->client);
   if ( dist < 40.0f )
     EA_MoveUp(ms->client);
-  vectoangles(dir, moveresult.ideal_viewangles);
+  Vector2Angles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
@@ -882,6 +882,10 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
     return moveresult;
   VectorCopy(ms->origin, pnt);
   pnt[2] -= 32.0f;
+  /* The BSP contents wrapper (0x10003080), not the AAS presence-type lookup: the DLL
+   * calls it through thunk 0x10001CEE at 0x1003265F, the .so as F664.  The presence
+   * type never has a 0x38 liquid bit, so calling that one made every water-jump
+   * finish bail out here. */
   if ( !(AAS_PointContents(pnt) & 0x38) )   /* under-foot liquid check */
     return moveresult;
   VectorSubtract(reach->end, ms->origin, dir);
@@ -893,7 +897,7 @@ bot_moveresult_t __cdecl BotFinishTravel_WaterJump(bot_movestate_t *ms, aas_reac
   dir[2] += 70.0 + (2 * ((float)(v8 & 0x7FFF) * 0.000030518509f - 0.5)) * 10.0;
   VectorNormalize(dir);
   EA_Move(ms->client, dir, 400.0f);
-  vectoangles(dir, moveresult.ideal_viewangles);
+  Vector2Angles(dir, moveresult.ideal_viewangles);
   moveresult.flags |= 1;
   VectorCopy(dir, moveresult.movedir);
   return moveresult;
@@ -1106,7 +1110,7 @@ bot_moveresult_t __cdecl BotTravel_Ladder(bot_movestate_t *ms, aas_reachability_
   viewdir[0] = dir[0];
   viewdir[1] = dir[1];
   viewdir[2] = dir[2] * 3.0f;
-  vectoangles(viewdir, moveresult.ideal_viewangles);
+  Vector2Angles(viewdir, moveresult.ideal_viewangles);
   EA_Move(ms->client, origin, 0.0);
   EA_MoveForward(ms->client);
   moveresult.flags |= 1;
@@ -1311,7 +1315,7 @@ int __cdecl GrappleState(bot_movestate_t *ms, aas_reachability_t *reach)
   if ( !libvar_laserhook )
     libvar_laserhook = LibVar("laserhook", (char *)"0");
   if ( libvar_laserhook->value == 0.0f && !dword_1006295C )
-    dword_1006295C = IndexFromModel("models/weapons/grapple/hook/tris.md2");
+    dword_1006295C = AAS_IndexFromModel("models/weapons/grapple/hook/tris.md2");
   for ( i = AAS_NextBSPEntity(0); i; i = AAS_NextBSPEntity(i) )
   {
     if ( (libvar_laserhook->value != 0.0f || AAS_EntityModelindex(i) != dword_1006295C)
@@ -1355,115 +1359,85 @@ void __cdecl BotResetGrapple(bot_movestate_t *ms)
 // gladi386.so:   00044054..00044611
 bot_moveresult_t __cdecl BotTravel_Grapple(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  int v3; // eax
-  int v4; // eax
-  int state; // ebx
-  double v10; // st7
-  char v11; // cl
-  long double v13; // st7
-  int areanum; // eax
-  vec3_t viewdir; // [esp+24h] [ebp-3Ch] BYREF
-  bot_moveresult_t moveresult; // [esp+30h] [ebp-30h] BYREF
-  float dist; // [esp+6Ch] [ebp+Ch]
-  float v26; // [esp+6Ch] [ebp+Ch]
-  float speed; // [esp+6Ch] [ebp+Ch]
-  double v17; // [esp+Ch] [ebp-54h]
-  /* Real vec3_t — see the BotTravel_Walk note.  org[0] lives only on the x87
-   * stack. */
-  vec3_t dir; // [esp+18h] [ebp-48h] BYREF (was v20/v21/v22)
-  vec3_t org; // [esp+14h] [ebp-4Ch] BYREF (was v18/v19)
+  bot_moveresult_t result;
+  float dist, speed;
+  vec3_t dir, viewdir, org;
+  int state, areanum;
 
-  BotClearMoveResult(&moveresult);
-  v3 = ms->moveflags;
-  if ( (v3 & 0x80u) != 0 )
+  BotClearMoveResult(&result);
+  if ( ms->moveflags & 0x80 )
   {
     EA_Command(ms->client, "hookoff", (char *)0);
-    v4 = ms->moveflags;
-    v4 &= ~0x40u;
-    ms->moveflags = v4;
-    { return moveresult; }
+    ms->moveflags &= ~0x40;
+    return result;
   }
-  if ( (v3 & 0x40) != 0 )
+  if ( ms->moveflags & 0x40 )
   {
     state = GrappleState(ms, reach);
     VectorSubtract(reach->end, ms->origin, dir);
-    dir[2] = 0.0f;
+    dir[2] = 0;
     dist = VectorLength(dir);
-    if ( state )
+    if ( state && dist < 48 )
     {
-      if ( dist < 48.0f )
+      if ( ms->lastgrappledist - dist < 1 )
       {
-        if ( ms->lastgrappledist - dist < 1.0f )
-        {
-          EA_Command(ms->client, "hookoff", (char *)0);
-          ms->reachability_time = 0;
-          ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
-        }
-        ms->lastgrappledist = dist;
-        { return moveresult; }
-      }
-      if ( state != 2 || ms->lastgrappledist - 2.0f >= dist )
-      {
-        ms->grapplevisible_time = AAS_Time();
-        ms->lastgrappledist = dist;
-        { return moveresult; }
+        EA_Command(ms->client, "hookoff", (char *)0);
+        ms->moveflags &= ~0x40;
+        ms->moveflags |= 0x80;
+        ms->reachability_time = 0;
       }
     }
-    /* POSITIVE guard, as Q3 writes it, leaving the shared `lastgrappledist = dist`
-     * as the fall-through. */
-    v17 = ms->grapplevisible_time;
-    if ( AAS_Time() - 0.4 > v17 )
+    else if ( !state || (state == 2 && dist > ms->lastgrappledist - 2) )
     {
-      EA_Command(ms->client, "hookoff", (char *)0);
-      ms->moveflags = ms->moveflags & 0xFFFFFFBF | 0x80;
-      ms->reachability_time = 0;
-      { return moveresult; }
+      if ( ms->grapplevisible_time < AAS_Time() - 0.4 )
+      {
+        EA_Command(ms->client, "hookoff", (char *)0);
+        ms->moveflags &= ~0x40;
+        ms->moveflags |= 0x80;
+        ms->reachability_time = 0;
+        return result;
+      }
+    }
+    else
+    {
+      ms->grapplevisible_time = AAS_Time();
     }
     ms->lastgrappledist = dist;
-    { return moveresult; }
-  }
-  v10 = AAS_Time();
-  v11 = ms->moveflags;
-  ms->grapplevisible_time = v10;
-  VectorSubtract(reach->start, ms->origin, dir);
-  if ( (v11 & 4) == 0 )
-    dir[2] = 0.0f;
-  VectorAdd(ms->viewoffset, ms->origin, org);
-  VectorSubtract(reach->end, org, viewdir);
-  v26 = VectorNormalize(dir);
-  vectoangles(viewdir, moveresult.ideal_viewangles);
-  moveresult.flags |= 1;
-  /* The fabs applies to AngleDiff's FPU return, not to the length computed above:
-   * the gate is "yaw/pitch aligned to within 2 degrees".  Bound to the length
-   * instead, a far hookable surface never fires the hookon command. */
-  if ( v26 >= 5.0f
-    || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[0], ms->viewangles[0])), v13 >= 2.0)
-    || (v13 = fabs(AngleDiff(moveresult.ideal_viewangles[1], ms->viewangles[1])), v13 >= 2.0) )
-  {
-    /* Q3's polarity: the `dist < 70` ARITHMETIC arm is the warm fall-through, not
-     * the `speed = 400` constant store. */
-    if ( v26 < 70.0f )
-      speed = 300.0f - (300.0f - v26 * 4.0f);
-    else
-      speed = 400.0f;
-    BotCheckBlocked(ms, dir, &moveresult);
-    EA_Move(ms->client, dir, speed);
-    VectorCopy(dir, moveresult.movedir);
   }
   else
   {
-    EA_Command(ms->client, "hookon", (char *)0);
-    /* int bit-pattern store: the original writes raw float bits (~956415.0f) into
-     * lastgrappledist, so go through the int lens rather than converting. */
-    *(int *)&ms->lastgrappledist = 1232348144;
-    ms->moveflags |= 0x40;
+    ms->grapplevisible_time = AAS_Time();
+    VectorSubtract(reach->start, ms->origin, dir);
+    if ( !(ms->moveflags & 4) )
+      dir[2] = 0;
+    VectorAdd(ms->origin, ms->viewoffset, org);
+    VectorSubtract(reach->end, org, viewdir);
+    dist = VectorNormalize(dir);
+    Vector2Angles(viewdir, result.ideal_viewangles);
+    result.flags |= 1;
+    if ( dist < 5 &&
+         fabs(AngleDiff(result.ideal_viewangles[0], ms->viewangles[0])) < 2 &&
+         fabs(AngleDiff(result.ideal_viewangles[1], ms->viewangles[1])) < 2 )
+    {
+      EA_Command(ms->client, "hookon", (char *)0);
+      ms->moveflags |= 0x40;
+      ms->lastgrappledist = 999999;
+    }
+    else
+    {
+      if ( dist < 70 )
+        speed = 300 - (300 - 4 * dist);
+      else
+        speed = 400;
+      BotCheckBlocked(ms, dir, &result);
+      EA_Move(ms->client, dir, speed);
+      VectorCopy(dir, result.movedir);
+    }
+    areanum = AAS_PointAreaNum(ms->origin);
+    if ( areanum && areanum != ms->reachareanum )
+      ms->reachability_time = 0;
   }
-  areanum = AAS_PointAreaNum(ms->origin);
-  /* Inline, as Q3 writes it — not a backward goto into the earlier hookoff tail,
-   * which would give that tail a second, far predecessor. */
-  if ( areanum && areanum != ms->reachareanum )
-    ms->reachability_time = 0;
-  return moveresult;
+  return result;
 }
 
 // gladiator.dll: 10033EC0..1003400A
@@ -1501,7 +1475,7 @@ bot_moveresult_t __cdecl BotTravel_RocketJump(bot_movestate_t *ms, aas_reachabil
     speed = 400.0f - (400.0f - dist * 5.0f);
     EA_Move(ms->client, dir, speed);
   }
-  vectoangles(dir, ms->viewangles);
+  Vector2Angles(dir, ms->viewangles);
   /* int bit-pattern store: the original sets pitch to 90.0f via raw bits. */
   *(int *)&ms->viewangles[0] = 1119092736;
   EA_View(ms->client, ms->viewangles);
@@ -1619,7 +1593,7 @@ bot_moveresult_t __cdecl BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal
   VectorCopy(dir, moveresult.movedir);
   if ( (ms->moveflags & 4) != 0 )
   {
-    vectoangles(dir, moveresult.ideal_viewangles);
+    Vector2Angles(dir, moveresult.ideal_viewangles);
     moveresult.flags |= 2;
   }
   ms->lastreachnum = 0;
@@ -1836,9 +1810,8 @@ void __cdecl BotResetAvoidReach(_DWORD *movestate)
 
 // gladiator.dll: 10034B20..10034B6B
 // gladi386.so:   00045A34..00045A83
-void __cdecl BotResetLastAvoidReach(intptr_t movestate)
+void __cdecl BotResetLastAvoidReach(bot_movestate_t *ms)
 {
-  bot_movestate_t *ms = (bot_movestate_t *)movestate;
   int i, latest;
   float latesttime;
 

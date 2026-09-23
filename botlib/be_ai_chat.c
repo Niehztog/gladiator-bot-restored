@@ -345,7 +345,7 @@ bot_synonymlist_t *__cdecl BotLoadSynonyms(char *filename)
   bot_synonym_t *synonym, *lastsynonym;
   bot_fileref_t file_ref;
 
-  if ( !sub_10041F60(filename, &file_ref) )
+  if ( !FindQuakeFile(filename, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
     return 0;
@@ -586,7 +586,7 @@ bot_randomlist_t *__cdecl BotLoadRandomStrings(char *filename)
   bot_randomstring_t *randomstring;
   bot_fileref_t file_ref;
 
-  if ( !sub_10041F60(filename, &file_ref) )
+  if ( !FindQuakeFile(filename, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
     return NULL;
@@ -689,7 +689,7 @@ char *__cdecl RandomString(const char *name)
   {
     if ( !strcmp(list->string, name) )
     {
-      n = (int)(((float)(rand() & 0x7FFF) * 0.000030518509f) * (float)list->numstrings);
+      n = (int)(random() * (float)list->numstrings);
       for ( rs = list->firstrandomstring; rs; rs = rs->next )
       {
         if ( --n < 0 )
@@ -899,14 +899,13 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
 // gladi386.so:   0003ADDC..0003AE58
 void __cdecl BotFreeMatchTemplates(bot_matchtemplate_t *mt)
 {
-  bot_matchtemplate_t *m;
-  bot_matchtemplate_t *next;
+  bot_matchtemplate_t *nextmt;
 
-  for ( m = mt; m; m = next )
+  for ( ; mt; mt = nextmt )
   {
-    next = m->next;
-    BotFreeMatchPieces(m->first);
-    FreeMemory(m);
+    nextmt = mt->next;
+    BotFreeMatchPieces(mt->first);
+    FreeMemory(mt);
   }
 }
 
@@ -925,7 +924,7 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
   int context;
   bot_fileref_t file_ref;
 
-  if ( !sub_10041F60(matchfile, &file_ref) )
+  if ( !FindQuakeFile(matchfile, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", matchfile);
     return NULL;
@@ -1007,73 +1006,42 @@ bot_matchtemplate_t *__cdecl BotLoadMatchTemplates(char *matchfile)
  * match->variables[].  Q3 cognate: be_ai_chat.c StringsMatch. */
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match)
 {
-  /* `lastvariable` first and `ms` last: gcc 2.7 assigns these four spill slots in
-   * declaration order and the ELF original has lastvariable in the HIGHEST
-   * (`mov [esp+0x3c],0xffffffff`), ms in the lowest.  Worth 42 -> 20 insn_diffs;
-   * what is left is a block-placement difference, not a slot one. */
-  int                lastvariable;
-  char              *strptr, *newstrptr;
-  bot_matchpiece_t  *mp;
+  int lastvariable;
+  char *strptr, *newstrptr;
+  bot_matchpiece_t *mp;
   bot_matchstring_t *ms;
 
   lastvariable = -1;
-  strptr       = match->string;
-  mp           = pieces;
-  if ( mp )
+  strptr = match->string;
+  for ( mp = pieces; mp; mp = mp->next )
   {
-    newstrptr = match->string;
-    do
+    if ( mp->type == MT_STRING )
     {
-      if ( mp->type == MT_STRING )
+      for ( ms = mp->firststring; ms; ms = ms->next )
       {
-        /* Walk the alternative-string list for any contained in the remaining text.
-         * An empty firststring means "match anywhere" — fall through with newstrptr
-         * unchanged. */
-        ms = mp->firststring;
-        if ( ms )
-        {
-          while ( 1 )
-          {
-            /* Thunk 0x1000119A -> StringContains, which returns a pointer into the
-             * haystack, or NULL. */
-            newstrptr = (char *)StringContains(strptr, ms->string, 0);
-            if ( newstrptr )
-              break;
-            ms = ms->next;
-            if ( !ms )
-              return 0;
-          }
-        }
-        else if ( !newstrptr )
-        {
-          return 0;
-        }
-
-        if ( lastvariable >= 0 )
-        {
-          match->variables[lastvariable].length = newstrptr - match->variables[lastvariable].ptr;
-          lastvariable = -1;
-        }
-        else if ( newstrptr != strptr )
-        {
-          return 0;
-        }
-
-        /* Advance strptr past the matched substring, unconditionally as the original
-         * does — it does not re-guard mp->firststring / ms->string, which are never
-         * NULL for a real MT_STRING piece, and guarding costs three branches. */
-        strptr = newstrptr + strlen(ms->string);
+        newstrptr = (char *)StringContains(strptr, ms->string, 0);
+        if ( newstrptr )
+          break;
       }
-      else if ( mp->type == MT_VARIABLE )
+      if ( !newstrptr )
+        return 0;
+      if ( lastvariable >= 0 )
       {
-        match->variables[mp->variable].ptr = strptr;
-        lastvariable = mp->variable;
+        match->variables[lastvariable].length = newstrptr - match->variables[lastvariable].ptr;
+        lastvariable = -1;
       }
-      mp = mp->next;
+      else if ( newstrptr != strptr )
+      {
+        return 0;
+      }
+      strptr = newstrptr + strlen(ms->string);
     }
-    while ( mp );
+    else if ( mp->type == MT_VARIABLE )
+    {
+      match->variables[mp->variable].ptr = strptr;
+      lastvariable = mp->variable;
+    }
   }
-
   if ( !mp && (lastvariable >= 0 || !strlen(strptr)) )
   {
     if ( lastvariable >= 0 )
@@ -1305,7 +1273,7 @@ int __cdecl BotLoadChatMessage(source_t *source, char *chatmessagestring)
 // gladiator.dll: 1002CF40..1002D124
 // gladi386.so:   0003BC34..0003BE25
 /* Dump each bot_replychat_t as `[<LHS>] = <weight>\n{\n\t"chat";\n…}\n`, the same
- * weight-config syntax sub_1002E5D0 emits, with that function's LHS flag cascade
+ * weight-config syntax BotPrintReplyChatKeys emits, with that function's LHS flag cascade
  * duplicated inline rather than shared.  DEAD. */
 void __cdecl BotDumpReplyChat(bot_replychat_t *replychat)
 {
@@ -1437,7 +1405,7 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
   bot_fileref_t file_ref;
 
   v1 = filename;
-  if ( !sub_10041F60(filename, &file_ref) )
+  if ( !FindQuakeFile(filename, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
     return NULL;
@@ -1612,7 +1580,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
   int            found;
   int            indent;
 
-  if ( !sub_10041F60(chatfile, &file_ref) )
+  if ( !FindQuakeFile(chatfile, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
@@ -1768,7 +1736,7 @@ void *__cdecl BotLoadInitialChat(char *chatfile, char *chatname)
 
   list  = 0;
   cur_type = 0;
-  if ( !sub_10041F60(chatfile, &file_ref) )
+  if ( !FindQuakeFile(chatfile, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", chatfile);
     return 0;
@@ -2110,11 +2078,10 @@ char *__cdecl BotChooseInitialChatMessage(chatlist_t *cs, char *type)
       }
       else
       {
-        /* `A * C * n`, in that order: the DLL reassociates it to `fild; fimul n;
-         * fmul C` no matter how it is parenthesised, and forcing `n * (A * C)`
-         * only costs the ELF its MATCH (measured 2026-08-17).  The DLL's 19-byte
-         * residual is that reassociation and is not source-reachable. */
-        pick = (int)((float)(rand() & 0x7FFF) * 0.000030518509f * n);
+        /* Q3's `n = random() * numchatmessages;`.  The macro's outer parentheses
+         * are load-bearing for cl.exe: without them it reassociates the product to
+         * `fild; fimul n; fmul C`, where the DLL keeps `fild; fmul C; fimul n`. */
+        pick = (int)(random() * n);
         for ( l = t->firstline; l; l = l->next )
         {
           if ( AAS_Time() >= l->ltime )
@@ -2177,8 +2144,10 @@ void __cdecl BotInitialChat(bot_chatstate_t *cs, char *type, ...)
  *   0x01 "&"        0x02 "!"        0x04 "name"     0x08 "\"<string>\""
  *   0x10 "(<inner>, …)" — each inner is "\"%s\"" for type 2, else "%d"
  *   0x20 "female"   0x40 "male"     0x80 "it"
- * Nodes are joined with ", ".  DEAD. */
-void __cdecl sub_1002E5D0(bot_replychat_t *arg)
+ * Nodes are joined with ", ".  Q3 be_ai_chat.c's BotPrintReplyChatKeys, every
+ * literal of the cascade included, in its Q3 slot between BotInitialChat and
+ * BotReplyChat.  (An older banner here called it a fuzzy-weight dumper.)  DEAD. */
+void __cdecl BotPrintReplyChatKeys(bot_replychat_t *arg)
 {
   bot_replychatkey_t *edi;
   bot_matchpiece_t   *esi;
@@ -2329,7 +2298,7 @@ int __cdecl BotReplyChat(bot_chatstate_t *cs, const char *message)
      /* Two statements, not one expression: the original multiplies by the
         0.000030518509f constant BEFORE the v15 factor, and only a sequence point
         after the const-scaled value reproduces that order. */
-     rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
+     rnd = random();
      num = (int)(rnd * (float)numchatmessages);
      for ( v10 = rchat->firstchatmessage; v10; v10 = v10->next )
      {

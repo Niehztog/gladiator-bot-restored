@@ -40,7 +40,7 @@ bot_export_t      botexport; /* block 3 @0x10063F80 — exported API table */
 /* filecrcs (name from gladi386.so's .dynsym, where it is a 736-byte global whose
  * contents are byte-identical to this table) — 91 entries of { uint16 crc16, uint16
  * pad, uint32 flags } plus a NULL terminator.  This is the config-file CRC whitelist
- * of the integrity subsystem that also owns CRC_Block / sub_10037820 and the "You are
+ * of the integrity subsystem that also owns CRC_ProcessString / sub_10037820 and the "You are
  * not allowed to modify the bot characters" message; the flags column
  * (1/3/4/6/8/0x20/0x40) is an unidentified file category.  sub_100377E0 scans
  * all 92 entries; the end bound is `&filecrcs[184]` (184 ints = 736 bytes),
@@ -250,7 +250,7 @@ int __cdecl sub_10037820(char *name, const unsigned char *buf, int len)
 {
   unsigned short crc; // ax
 
-  crc = CRC_Block(buf, len);
+  crc = CRC_ProcessString(buf, len);
   return sub_100377E0(name, crc);
 }
 
@@ -260,7 +260,7 @@ int __cdecl sub_10037850(char *String1, const unsigned char *a2, int a3)
 {
   unsigned short v3; // ax
 
-  v3 = CRC_Block(a2, a3);
+  v3 = CRC_ProcessString(a2, a3);
   return sub_100377E0(String1, v3);
 }
 
@@ -360,9 +360,9 @@ void BotSetupMoveAI()
 // gladi386.so:   00048F34..00049066
 int Export_BotSetupLibrary(void)
 {
-#ifndef _WIN32
-    int result;
-#endif
+    /* A local named `errno` (Q3: `errnum`): a CRT call per use in the DLL, a register
+     * in the .so -- see BotSetupLibrary in be_ai2_main.c and botlib_port.h. */
+    int errno;
 
     if (botlibglobals.setup) {
         botimport.Print(3, "bot library already setup\n");
@@ -381,19 +381,11 @@ int Export_BotSetupLibrary(void)
 
     BotSetupMoveAI();
 
-#ifdef _WIN32
-    errno = sub_1000EDC0(botlibglobals.num_entities, botlibglobals.num_clients);
+    errno = AAS_Setup(botlibglobals.num_entities, botlibglobals.num_clients);
     if (errno) return errno;
 
     errno = BotSetupLibrary();
     if (errno) return errno;
-#else
-    result = sub_1000EDC0(botlibglobals.num_entities, botlibglobals.num_clients);
-    if (result) return result;
-
-    result = BotSetupLibrary();
-    if (result) return result;
-#endif
 
     EA_Setup();
 
@@ -464,31 +456,22 @@ int Export_BotLoadMap(char *mapname, int modelindexes, char **modelindex,
                      int soundindexes, char **soundindex,
                      int imageindexes, char **imageindex)
 {
-#ifndef _WIN32
-    int result;
-#endif
+    int errno;  /* see Export_BotSetupLibrary */
 
     if (!BotLibSetup("BotLoadMap")) return 1;
 
     if (!mapname) {
-        return BotLoadMap(0, modelindexes, modelindex,
+        return AAS_LoadMap(0, modelindexes, modelindex,
                           soundindexes, soundindex,
                           imageindexes, imageindex);
     }
 
     botimport.Print(1, "------------ Map Loading ------------\n");
 
-#ifdef _WIN32
-    errno = BotLoadMap(mapname, modelindexes, modelindex,
+    errno = AAS_LoadMap(mapname, modelindexes, modelindex,
                        soundindexes, soundindex,
                        imageindexes, imageindex);
     if (errno) return errno;
-#else
-    result = BotLoadMap(mapname, modelindexes, modelindex,
-                       soundindexes, soundindex,
-                       imageindexes, imageindex);
-    if (result) return result;
-#endif
 
     sub_10029C10();
     botimport.Print(1, "-------------------------------------\n");

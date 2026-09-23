@@ -62,7 +62,7 @@ BOOL __cdecl AAS_Swimming(vec3_t origin)
 
   VectorCopy(origin, testorg);
   testorg[2] -= 2.0f;
-  if ( sub_10003080(testorg) & 0x38 )
+  if ( AAS_PointContents(testorg) & 0x38 )
     return 1;
   return 0;
 }
@@ -124,20 +124,20 @@ int __cdecl sub_1000F130(vec3_t origin)
 
   VectorCopy(origin, p);
   p[2] += 48.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   p[0] += 8.0f;
   p[1] += 8.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   p[0] += -16.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   p[1] += -16.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   p[0] += 16.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   p[0] -= 8.0f;
   p[1] += 8.0f;
   p[2] -= 48.0f;
-  if ( sub_10003080(p) & 0x20000000 ) return 1;
+  if ( AAS_PointContents(p) & 0x20000000 ) return 1;
   return 0;
 }
 
@@ -456,7 +456,7 @@ aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
       presencetype = 4;
       goto LABEL_12;
     }
-    if ( presencetype == 4 && (AAS_PointContents((float *)org) & 2) != 0 )
+    if ( presencetype == 4 && (AAS_PointPresenceType((float *)org) & 2) != 0 )
       presencetype = 2;
 LABEL_12:
     VectorCopy(org, lastorg);
@@ -559,7 +559,7 @@ LABEL_66:
     {
       VectorCopy(org, feet);
       feet[2] = feet[2] - 22.0f;
-      pc = sub_10003080((float *)feet);   
+      pc = AAS_PointContents((float *)feet);   
       event = 0;
       v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
       // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3
@@ -642,7 +642,7 @@ LABEL_66:
         goto LABEL_84;
       if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
         goto LABEL_84;
-      gap_pc = sub_10003080((float *)end);   /* barrier-water check */
+      gap_pc = AAS_PointContents((float *)end);   /* barrier-water check */
       if ( (gap_pc & 0x20) != 0 )
         goto LABEL_84;
       move_buf[1] = *(int *)&lastorg[1];

@@ -37,6 +37,6 @@ int __cdecl AAS_AltRoutingFloodCluster_r(int areanum);
 int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
     aas_altroutegoal_t *altroutegoals, int maxaltroutegoals);
-void sub_1001AB80();
+void AAS_InitAlternativeRouting();
 
 #endif /* BOTLIB_BE_AAS_ROUTEALT_H */

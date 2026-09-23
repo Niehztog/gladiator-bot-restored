@@ -1584,9 +1584,9 @@ int   dword_10063388;       /* 0x10063388 */
  * with /INCREMENTAL there is no /OPT:REF to drop the unreferenced one).
  *
  * So this body is surplus: our q_shared.obj carries one function the original
- * does not.  The faithful fix is to drop it and point the two call sites at
- * VectorInverse; left in place for now because removing a function shifts
- * every later address in q_shared.obj.  (Content alignment of the whole
+ * does not.  Both call sites now call VectorInverse (2026-09); the body stays
+ * only because removing a function shifts every later address in
+ * q_shared.obj, and nothing calls it any more.  (Content alignment of the whole
  * q_shared.obj region, 2026-08-17.) */
 #undef VectorNegate
 /* No __cdecl here: that spelling comes from botlib's gladiator.dll.h,

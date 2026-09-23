@@ -137,64 +137,51 @@ char *__cdecl sub_10020FE0(bot_state_t *bs, bot_weaponstate_t *ws)
 // gladi386.so:   0002BB0C..0002BD98
 void __cdecl BotUpdateInventory(bot_state_t *bs)
 {
-  __int16 v1; // ax
-  char *v2; // edi
-  int v3; // eax
-  int v4; // eax
-  int v5; // eax
-  int v6; // eax
-  __int16 v7; // ax
-  char *v8; // eax
-  int v9; // eax
-  double v10; // [esp+Ch] [ebp-8h]
+  int *inventory;
+  short *stats;
+  char *name;
 
-  bs->inventory[INVENTORY_HEALTH] = bs->snapshot.stats[1];
-  v1 = bs->snapshot.stats[9];
-  if ( v1 )
+  inventory = bs->inventory;
+  stats = bs->snapshot.stats;
+  inventory[INVENTORY_HEALTH] = stats[1];
+  if ( stats[9] )
   {
-    v2 = AAS_ImageFromIndex(v1);
-    if ( !_strcmpi(v2, "p_quad") )
-      bs->quad_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, "p_invulnerability") )
-      bs->invulnerability_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, "p_rebreather") )
-      bs->rebreather_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
-    else if ( !_strcmpi(v2, "p_envirosuit") )
-      bs->enviro_endtime = AAS_Time() + (float)bs->snapshot.stats[10];
+    name = AAS_ImageFromIndex(stats[9]);
+    if ( !_strcmpi(name, "p_quad") )
+      bs->quad_endtime = AAS_Time() + (float)stats[10];
+    else if ( !_strcmpi(name, "p_invulnerability") )
+      bs->invulnerability_endtime = AAS_Time() + (float)stats[10];
+    else if ( !_strcmpi(name, "p_rebreather") )
+      bs->rebreather_endtime = AAS_Time() + (float)stats[10];
+    else if ( !_strcmpi(name, "p_envirosuit") )
+      bs->enviro_endtime = AAS_Time() + (float)stats[10];
   }
-  v3 = (int)(bs->quad_endtime - AAS_Time());
-  bs->inventory[QUAD_SECONDS] = v3;
-  if ( v3 <= 0 )
-    bs->inventory[QUAD_SECONDS] = 0;
-  v4 = (int)(bs->invulnerability_endtime - AAS_Time());
-  bs->inventory[INVULNERABILITY_SECONDS] = v4;
-  if ( v4 <= 0 )
-    bs->inventory[INVULNERABILITY_SECONDS] = 0;
-  v5 = (int)(bs->rebreather_endtime - AAS_Time());
-  bs->inventory[REBREATHER_SECONDS] = v5;
-  if ( v5 <= 0 )
-    bs->inventory[REBREATHER_SECONDS] = 0;
-  v6 = (int)(bs->enviro_endtime - AAS_Time());
-  bs->inventory[ENVIROSUIT_SECONDS] = v6;
-  if ( v6 <= 0 )
-    bs->inventory[ENVIROSUIT_SECONDS] = 0;
-  v7 = bs->snapshot.stats[4];
-  if ( v7 )
+  inventory[QUAD_SECONDS] = bs->quad_endtime - AAS_Time();
+  if ( inventory[QUAD_SECONDS] <= 0 )
+    inventory[QUAD_SECONDS] = 0;
+  inventory[INVULNERABILITY_SECONDS] = bs->invulnerability_endtime - AAS_Time();
+  if ( inventory[INVULNERABILITY_SECONDS] <= 0 )
+    inventory[INVULNERABILITY_SECONDS] = 0;
+  inventory[REBREATHER_SECONDS] = bs->rebreather_endtime - AAS_Time();
+  if ( inventory[REBREATHER_SECONDS] <= 0 )
+    inventory[REBREATHER_SECONDS] = 0;
+  inventory[ENVIROSUIT_SECONDS] = bs->enviro_endtime - AAS_Time();
+  if ( inventory[ENVIROSUIT_SECONDS] <= 0 )
+    inventory[ENVIROSUIT_SECONDS] = 0;
+  if ( stats[4] )
   {
-    v8 = AAS_ImageFromIndex(v7);
-    if ( !_strcmpi(v8, "i_powershield") )
+    name = AAS_ImageFromIndex(stats[4]);
+    if ( !_strcmpi(name, "i_powershield") )
       bs->powerscreen_seen_time = AAS_Time();
-    v10 = bs->powerscreen_seen_time;
-    if ( AAS_Time() - 0.9 < v10 )
+    if ( bs->powerscreen_seen_time > AAS_Time() - 0.9 )
     {
-      v9 = bs->inventory[20];  /* inventory[20] = power shield cells */
-      bs->inventory[POWER_SCREEN_CELLS] = v9;
-      bs->inventory[POWER_SHIELD_CELLS] = v9;
+      inventory[POWER_SCREEN_CELLS] = inventory[20];  /* inventory[20] = power shield cells */
+      inventory[POWER_SHIELD_CELLS] = inventory[20];
     }
     else
     {
-      bs->inventory[POWER_SCREEN_CELLS] = 0;
-      bs->inventory[POWER_SHIELD_CELLS] = 0;
+      inventory[POWER_SCREEN_CELLS] = 0;
+      inventory[POWER_SHIELD_CELLS] = 0;
     }
   }
 }
@@ -314,7 +301,7 @@ void __cdecl BotBattleUseItems(bot_state_t *bs)
 {
   if ( bs->inventory[25] > 0 )                     /* +1828 silencer ammo */
     EA_UseItem(bs->client, "Silencer");
-  if ( (sub_10003080(bs->eye) & 0x38) != 0
+  if ( (AAS_PointContents(bs->eye) & 0x38) != 0
        && !bs->inventory[REBREATHER_SECONDS]
        && bs->inventory[26] > 0 )                  /* +1832 rebreather charges */
     EA_UseItem(bs->client, "Rebreather");
@@ -384,13 +371,15 @@ BOOL __cdecl sub_10021710(int *a1)
 {
   if ( (a1[29] & 0x4002) != 0 )
     return 1;
-  if ( a1[3] < 1 || a1[3] > botlibglobals.num_clients )
-    return 1;
-  if ( a1[23] != 255 )
-    return 1;
-  if ( a1[27] >= 173 && a1[27] <= 197 )
-    return 1;
-  return 0;
+  if ( a1[3] >= 1 && a1[3] <= botlibglobals.num_clients )
+  {
+    if ( a1[23] != 255 )
+      return 1;
+    if ( a1[27] >= 173 && a1[27] <= 197 )
+      return 1;
+    return 0;
+  }
+  return 1;
 }
 
 // gladiator.dll: 10021780..100217A3
@@ -559,12 +548,12 @@ BOOL __cdecl BotValidChatPosition(bot_state_t *bs)
     return 0;
   VectorCopy(bs->origin, point);
   point[2] = point[2] - 24.0f;
-  v4 = (char)sub_10003080(point);
+  v4 = (char)AAS_PointContents(point);
   if ( (v4 & 0x18) != 0 )           /* CONTENTS_LAVA(8) | CONTENTS_SLIME(16) */
     return 0;
   VectorCopy(bs->origin, point);
   point[2] = point[2] + 32.0f;
-  v7 = (char)sub_10003080(point);
+  v7 = (char)AAS_PointContents(point);
   if ( (v7 & 0x38) != 0 )           /* CONTENTS_LAVA(8) | SLIME(16) | WATER(32) */
     return 0;
   VectorCopy(bs->origin, start);
@@ -594,7 +583,7 @@ BOOL __cdecl BotChat_EnterGame(bot_state_t *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
+    if ( random() > rnd )
       return 0;
   }
   result = BotValidChatPosition(bs);
@@ -618,7 +607,7 @@ int __cdecl BotChat_ExitGame(bot_state_t *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 18, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
+    if ( random() > rnd )
       return 0;
   }
   BotInitialChat(&bs->chatstate, "exit_game", EasyClientName(bs->client, name),
@@ -639,7 +628,7 @@ int __cdecl BotChat_StartLevel(bot_state_t *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
+    if ( random() > rnd )
       return 0;
   }
   BotInitialChat(&bs->chatstate, "start_level",
@@ -660,7 +649,7 @@ int __cdecl BotChat_EndLevel(bot_state_t *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 17, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
+    if ( random() > rnd )
       return 0;
   }
   BotInitialChat(&bs->chatstate, "end_level", EasyClientName(bs->client, name),
@@ -685,7 +674,7 @@ int __cdecl BotChat_Death(int *bs)
   v6 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 20, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > v6 )
+    if ( random() > v6 )
       return 0;
   }
   v4 = bs[1049];
@@ -699,7 +688,7 @@ int __cdecl BotChat_Death(int *bs)
   }
   else
   {
-    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    v5 = random();
     /* Characteristic 15 is the praise-vs-insult probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
@@ -728,7 +717,7 @@ BOOL __cdecl BotChat_Kill(int *bs)
   rnd = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 19, 0.0, 1.0);
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd )
+    if ( random() > rnd )
       return 0;
   }
   result = BotValidChatPosition((bot_state_t *)bs);
@@ -745,7 +734,7 @@ BOOL __cdecl BotChat_Kill(int *bs)
   }
   else
   {
-    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    v5 = random();
     /* Characteristic 15 is the praise-vs-insult probability. */
     v8 = (float)Characteristic_BFloat(BotCharacter((bot_state_t *)bs), 15, 0.0, 1.0);
     if ( v5 < v8 )
@@ -771,16 +760,16 @@ int __cdecl BotChat_Random(bot_state_t *bs)
     return 0;
   /* Characteristic 21 is the random-chat probability. */
   rnd = (float)Characteristic_BFloat(BotCharacter(bs), 21, 0.0f, 1.0f);
-  if ( (float)(rand() & 0x7FFF) * 0.000030518509f > bs->thinktime * 0.1 )
+  if ( random() > bs->thinktime * 0.1 )
     return 0;
   if ( fastchat->value == 0.0f )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f > rnd || (float)(rand() & 0x7FFF) * 0.000030518509f > 0.25 )
+    if ( random() > rnd || random() > 0.25 )
       return 0;
   }
   if ( !BotValidChatPosition(bs) )
     return 0;
-  if ( (float)(rand() & 0x7FFF) * 0.000030518509f < Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f) )
+  if ( random() < Characteristic_BFloat(BotCharacter(bs), 16, 0.0f, 1.0f) )
   {
     BotInitialChat(&bs->chatstate, "random_misc", (char *)0);
     return 1;
@@ -895,249 +884,166 @@ BOOL BotCanAndWantsToRocketJump(bot_state_t *bs)
 
 // gladiator.dll: 10022A60..10022D42
 // gladi386.so:   0002D25C..0002D5C1
-float *__cdecl BotRoamGoal(bot_state_t *bs, float *goal)
+void __cdecl BotRoamGoal(bot_state_t *bs, vec3_t goal)
 {
-  int *v2; // ebp
-  int v6; // ax
-  int v7; // ax
-  float len; // st7
-  char pc; // al
-  float *result; // eax
-  int v17; // [esp-Ch] [ebp-154h]
-  int v18; // [esp+0h] [ebp-148h]
-  float v19; // [esp+0h] [ebp-148h]
-  int v20; // [esp+18h] [ebp-130h]
-  float v24; // [esp+28h] [ebp-120h]
-  float rnd; // [esp+2Ch] [ebp-11Ch]
-  float i; // [esp+30h] [ebp-118h]
-  vec3_t dir; // [esp+34h] [ebp-114h] BYREF — direction vector (endpos - origin) for VectorNormalize/Scale
-  vec3_t endpos; // [esp+1Ch] [ebp-12Ch] BYREF — randomized trace endpoint, refined to predicted path destination
-  vec3_t belowbestorg; // [esp+40h] [ebp-108h] BYREF
-  bsp_trace_t trace; // [esp+4Ch] [ebp-FCh] BYREF
+  int pc;
+  float len, rnd, sign, i;
+  vec3_t dir, bestorg, belowbestorg;
+  bsp_trace_t trace;
 
-  i = 0.0;
-  v2 = (int *)bs->origin;
-  do
+  for ( i = 0; i < 10; i++ )
   {
-    *(_DWORD *)&endpos[0] = *v2;
-    *(_DWORD *)&endpos[1] = *(int *)&bs->origin[1];
-    *(_DWORD *)&endpos[2] = *(int *)&bs->origin[2];
-    rnd = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    VectorCopy(bs->origin, bestorg);
+    rnd = random();
     if ( rnd < 0.8 )
     {
-      v6 = rand();
-      v24 = -1.0;
-      /* `>`, not `>=`: gcc 2.7.2.3 emits `and ah,0x5; je` for `a > b` and
-       * `and ah,0x45; je` for `a >= b`, and real has the 0x5 form at both
-       * of these sites (x87cmp.py, 2026-08-16). */
-      if ( (float)(v6 & 0x7FFF) * 0.000030518509f > 0.5 )
-        v24 = 1.0;
-      v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-      endpos[0] = v19 * v24 * 700.0f + endpos[0] + 50.0f;
+      if ( random() < 0.5 ) sign = -1;
+      else sign = 1;
+      bestorg[0] += sign * 700 * random() + 50;
     }
     if ( rnd > 0.2 )
     {
-      v7 = rand();
-      v24 = -1.0;
-      if ( (float)(v7 & 0x7FFF) * 0.000030518509f > 0.5 )   /* `>` -- see above */
-        v24 = 1.0;
-      v19 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-      endpos[1] = v19 * v24 * 700.0f + endpos[1] + 50.0f;
+      if ( random() < 0.5 ) sign = -1;
+      else sign = 1;
+      bestorg[1] += sign * 700 * random() + 50;
     }
-    v20 = rand() & 0x7FFF;
-    v18 = bs->entitynum;
-    v19 = (float)v20 * 0.000030518509f;
-    endpos[2] = v19 * 144.0f - 96.0f - 1.0f + endpos[2];
-    trace = AAS_Trace((float*)(v2), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(endpos), v18, 3);
-    VectorSubtract(endpos, bs->origin, dir);
+    bestorg[2] += random() * 144 - 96 - 1;
+    trace = AAS_Trace(bs->origin, NULL, NULL, bestorg, bs->entitynum, 3);
+    VectorSubtract(bestorg, bs->origin, dir);
     len = VectorNormalize(dir);
-    if ( len > 100.0f )
+    if ( len > 100 )
     {
-      v19 = trace.fraction * len - 40.0f;
-      VectorScale((float *)dir, v19, (float *)dir);
-      v17 = bs->entitynum;
-      endpos[0] = dir[0] + *(float *)v2;
-      endpos[1] = dir[1] + bs->origin[1];
-      endpos[2] = dir[2] + bs->origin[2];
-      VectorCopy(endpos, belowbestorg);
-      belowbestorg[2] = belowbestorg[2] - 800.0f;
-      trace = AAS_Trace((float*)(endpos), (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(belowbestorg), v17, 3);
+      VectorScale(dir, len * trace.fraction - 40, dir);
+      VectorAdd(bs->origin, dir, bestorg);
+      VectorCopy(bestorg, belowbestorg);
+      belowbestorg[2] -= 800;
+      trace = AAS_Trace(bestorg, NULL, NULL, belowbestorg, bs->entitynum, 3);
       if ( !trace.startsolid )
       {
-        trace.endpos[2] = trace.endpos[2] + 1.0f;
-        pc = sub_10003080(trace.endpos);   /* trace-endpoint lava/slime check */
-        if ( (pc & 0x18) == 0 )
-          break;
+        trace.endpos[2]++;
+        pc = AAS_PointContents(trace.endpos);
+        if ( !(pc & 0x18) )
+        {
+          VectorCopy(bestorg, goal);
+          return;
+        }
       }
     }
-    i = i + 1.0f;
   }
-  while ( i < 10.0f );
-  result = goal;
-  VectorCopy(endpos, goal);
-  return result;
+  VectorCopy(bestorg, goal);
 }
 
 // gladiator.dll: 10022E10..100233A0
 // gladi386.so:   0002D5C4..0002DE0C
-bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int a3)
+bot_moveresult_t __cdecl BotAttackMove(bot_state_t *bs, int tfl)
 {
-  float v10; // st7
-  float jitter;
-  int movetype; // edi
-  float strafechange_time; // st7
-  int v16; // eax
-  int i; // esi
-  float v18; // st7
-  int v19; // edx
-  float dist; // [esp+24h] [ebp-120h]
-  float attack_skill; // [esp+28h] [ebp-11Ch]
-  float jumper; // [esp+10h] [ebp-134h]
-  /* vec3_t: passed by address to CrossProduct / VectorNormalize /
-   * VectorLength / BotMoveInDirection, all of which read three floats. */
-  vec3_t forward; // [esp+2Ch] [ebp-118h] BYREF
-  vec3_t backward; // [esp+3Ch] [ebp-108h] BYREF
-  vec3_t sideward; // [esp+14h] [ebp-130h] BYREF
-  float croucher; // [esp+20h] [ebp-124h]
-  vec3_t hordir; // [esp+48h] [ebp-FCh] BYREF
-  vec3_t up = { 0, 0, 1.0f }; // [esp+54h] [ebp-F0h] BYREF
-  /* entinfo / moveresult / goal in THAT order, which is the reverse of IDA's:
-   * the reference .so puts entinfo directly under the five vec3s (its `origin`
-   * field at +0x10 pins it, referenced 1 1 1) with `goal` at the bottom of the
-   * address-taken group, and gcc 2.7 fills that group top-down in declaration
-   * order.  The DLL cannot show this -- MSVC6 /O2 orders slots by first
-   * reference -- so the ELF frame is the only record of it. */
-  aas_entityinfo_t entinfo; // [esp+C8h] [ebp-7Ch] BYREF
-  bot_moveresult_t moveresult; // [esp+98h] [ebp-ACh] BYREF (was int[12]; the move-result output buffer)
-  bot_goal_t goal; // [esp+60h] [ebp-E4h] BYREF (was float[14]; the in-line chase goal)
+  int movetype, i;
+  float attack_skill, jumper, croucher, dist, strafechange_time;
+  vec3_t forward, backward, sideward, hordir, up = {0, 0, 1};
+  aas_entityinfo_t entinfo;
+  bot_moveresult_t moveresult;
+  bot_goal_t goal;
 
-  if ( AAS_Time() < bs->attackchase_time )
+  if ( bs->attackchase_time > AAS_Time() )
   {
     goal.entitynum = bs->enemy;
     goal.areanum = bs->lastenemyareanum;
     VectorCopy(bs->lastenemyorigin, goal.origin);
-    goal.mins[0] = -8.0f;
-    goal.mins[1] = -8.0f;
-    goal.mins[2] = -8.0f;
-    goal.maxs[0] = 8.0f;
-    goal.maxs[1] = 8.0f;
-    goal.maxs[2] = 8.0f;
+    VectorSet(goal.mins, -8, -8, -8);
+    VectorSet(goal.maxs, 8, 8, 8);
     BotEntityInfo(bs, (_DWORD *)&bs->ms);
-    return BotMoveToGoal((bot_movestate_t *)&bs->ms, &goal, a3);
+    return BotMoveToGoal((bot_movestate_t *)&bs->ms, &goal, tfl);
   }
-  memset(&moveresult, 0, sizeof(moveresult));
-  v10 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-  /* Each Characteristic_BFloat result must be captured from the FPU return, as the
-   * four `fstp [esp+…]` stores in the original do — otherwise every probability gate
-   * below degenerates to `random <= random`. */
-  if ( Characteristic_BFloat(BotCharacter(bs), 48, 0.0f, 1.0f) <= v10 )
+  memset(&moveresult, 0, sizeof(bot_moveresult_t));
+  if ( random() < Characteristic_BFloat(BotCharacter(bs), 48, 0, 1) )
+    return moveresult;
+  attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0, 1);
+  jumper = Characteristic_BFloat(BotCharacter(bs), 25, 0, 1);
+  croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0, 1);
+  if ( attack_skill < 0.2 )
+    return moveresult;
+  BotEntityInfo(bs, (_DWORD *)&bs->ms);
+  entinfo = AAS_EntityInfo(bs->enemy);
+  VectorSubtract(entinfo.origin, bs->origin, forward);
+  dist = VectorLength(forward);
+  VectorNormalize(forward);
+  backward[0] = -forward[0];
+  backward[1] = -forward[1];
+  backward[2] = -forward[2];
+  movetype = 1;
+  if ( bs->attackcrouch_time < AAS_Time() - 1 )
   {
-    attack_skill = Characteristic_BFloat(BotCharacter(bs), 4, 0.0f, 1.0f);
-    jumper = Characteristic_BFloat(BotCharacter(bs), 25, 0.0f, 1.0f);
-    croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0.0f, 1.0f);
-    if ( attack_skill >= 0.2 )
+    if ( random() < jumper )
+      movetype = 4;
+    else if ( bs->attackcrouch_time < AAS_Time() - 1 && random() < croucher )
+      bs->attackcrouch_time = AAS_Time() + croucher * 5;
+  }
+  if ( bs->attackcrouch_time > AAS_Time() )
+    movetype = 2;
+  if ( movetype == 4 )
+  {
+    if ( bs->flags & 4 )
     {
-      BotEntityInfo(bs, (_DWORD *)&bs->ms);
-      entinfo = AAS_EntityInfo(bs->enemy);
-      VectorSubtract(entinfo.origin, bs->origin, forward);
-      dist = VectorLength(forward);
-      VectorNormalize(forward);
-      backward[0] = -forward[0];
-      backward[1] = -forward[1];
-      backward[2] = -forward[2];
+      bs->flags &= ~4;
       movetype = 1;
-      if ( AAS_Time() - 1.0f > bs->attackcrouch_time )
-      {
-        if ( (float)(rand() & 0x7FFF) * 0.000030518509f < jumper )
-        {
-          movetype = 4;
-        }
-        else if ( AAS_Time() - 1.0f > bs->attackcrouch_time && (float)(rand() & 0x7FFF) * 0.000030518509f < croucher )
-        {
-          bs->attackcrouch_time = AAS_Time() + croucher * 5.0f;
-        }
-      }
-      if ( AAS_Time() < bs->attackcrouch_time )
-      {
-        movetype = 2;
-      }
-      else
-      {
-        if ( movetype == 4 )
-        {
-          if ( (bs->flags & 4) != 0 )
-          {
-            bs->flags &= 0xFFFFFFFB;
-            movetype = 1;
-          }
-          else
-          {
-            bs->flags |= 4;
-          }
-        }
-      }
-      if ( attack_skill <= 0.4 )
-      {
-        if ( (dist <= 180.0f || !BotMoveInDirection((bot_movestate_t *)&bs->ms, forward, 400.0f, movetype)) && dist < 100.0f )
-          BotMoveInDirection((bot_movestate_t *)&bs->ms, backward, 400.0f, movetype);
-        return moveresult;
-      }
-      bs->attackstrafe_drift = bs->attackstrafe_drift + 0.1;
-      strafechange_time = (1.0f - attack_skill) * 0.2 + 0.4;
-      if ( attack_skill > 0.7 )
-      {
-        jitter = (float)(rand() & 0x7FFF) * 0.000030518509f - 0.5;
-        strafechange_time += (jitter + jitter) * 0.1;
-      }
-      if ( strafechange_time < bs->attackstrafe_drift && (float)(rand() & 0x7FFF) * 0.000030518509f > 0.935 )
-      {
-        v16 = bs->flags;
-        *(_DWORD *)&bs->attackstrafe_drift = 0;
-        bs->flags = v16 ^ 1;
-      }
-      i = 0;
-      while ( 1 )
-      {
-        hordir[0] = forward[0];
-        hordir[1] = forward[1];
-        hordir[2] = 0;
-        VectorNormalize(hordir);
-        CrossProduct(hordir, up, sideward);
-        if ( (*(unsigned char *)&bs->flags & 1) != 0 )
-        {
-          sideward[0] = -sideward[0];
-          sideward[1] = -sideward[1];
-          sideward[2] = -sideward[2];
-        }
-        if ( (float)(rand() & 0x7FFF) * 0.000030518509f > 0.9 )
-          goto LABEL_35;
-        if ( dist <= 180.0f )
-          break;
-        sideward[0] = sideward[0] + forward[0];
-        sideward[1] = sideward[1] + forward[1];
-        v18 = sideward[2] + forward[2];
-LABEL_36:
-        sideward[2] = v18;
-LABEL_37:
-        if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400.0f, movetype) )
-        {
-          v19 = bs->flags;
-          *(_DWORD *)&bs->attackstrafe_drift = 0;
-          bs->flags = v19 ^ 1;
-          ++i;
-          if ( i < 2 )
-            continue;
-        }
-        return moveresult;
-      }
-      if ( dist >= 100.0f )
-        goto LABEL_37;
-LABEL_35:
-      sideward[0] = sideward[0] + backward[0];
-      sideward[1] = sideward[1] + backward[1];
-      v18 = sideward[2] + backward[2];
-      goto LABEL_36;
     }
+    else
+      bs->flags |= 4;
+  }
+  if ( attack_skill <= 0.4 )
+  {
+    if ( dist > 180 )
+    {
+      if ( BotMoveInDirection((bot_movestate_t *)&bs->ms, forward, 400, movetype) )
+        return moveresult;
+    }
+    if ( dist < 100 )
+    {
+      if ( BotMoveInDirection((bot_movestate_t *)&bs->ms, backward, 400, movetype) )
+        return moveresult;
+    }
+    return moveresult;
+  }
+  bs->attackstrafe_drift += 0.1;
+  strafechange_time = 0.4 + (1 - attack_skill) * 0.2;
+  if ( attack_skill > 0.7 )
+    strafechange_time += crandom() * 0.1;
+  if ( bs->attackstrafe_drift > strafechange_time )
+  {
+    if ( random() > 0.935 )
+    {
+      bs->flags ^= 1;
+      bs->attackstrafe_drift = 0;
+    }
+  }
+  for ( i = 0; i < 2; i++ )
+  {
+    hordir[0] = forward[0];
+    hordir[1] = forward[1];
+    hordir[2] = 0;
+    VectorNormalize(hordir);
+    CrossProduct(hordir, up, sideward);
+    if ( bs->flags & 1 )
+    {
+      sideward[0] = -sideward[0];
+      sideward[1] = -sideward[1];
+      sideward[2] = -sideward[2];
+    }
+    if ( random() > 0.9 )
+    {
+      VectorAdd(sideward, backward, sideward);
+    }
+    else
+    {
+      if ( dist > 180 )
+        VectorAdd(sideward, forward, sideward);
+      else if ( dist < 100 )
+        VectorAdd(sideward, backward, sideward);
+    }
+    if ( BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, movetype) )
+      return moveresult;
+    bs->flags ^= 1;
+    bs->attackstrafe_drift = 0;
   }
   return moveresult;
 }
@@ -1158,65 +1064,58 @@ int __cdecl BotCTFTeam(bot_state_t *bs)
 // gladi386.so:   0002DE4C..0002E15D
 BOOL __cdecl BotSameTeam(bot_state_t *bs, int entnum)
 {
-  int v2; // ebx
-  int v5; // ecx
-  char *v7; // esi
-  int v8; // ebx
-  char *v10; // esi
-  unsigned int v11; // ecx
-  char *v14; // edi
-  char *v16; // eax
-  unsigned int MaxCount; // [esp+10h] [ebp-FCh]
-  aas_entityinfo_t v20; // [esp+14h] [ebp-F8h] BYREF
-  aas_entityinfo_t v21; // [esp+90h] [ebp-7Ch] BYREF
+  aas_entityinfo_t entinfo;
+  aas_entityinfo_t botinfo;
+  char *team1, *team2;
+  unsigned int len1, len2;
 
-  v21 = AAS_EntityInfo(entnum);
-  v2 = v21.number;
-  if ( v21.number )
+  entinfo = AAS_EntityInfo(entnum);
+  if ( !entinfo.number )
+    return 0;
+  if ( teamplay_shell->value != 0.0f )
   {
-    if ( teamplay_shell->value != 0.0f )
-    {
-      v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
-      return ((LOWORD(v20.renderfx) ^ LOWORD(v21.renderfx)) & 0x1C00) == 0;
-    }
-    if ( ch->value != 0.0f )
-    {
-      v20 = AAS_EntityInfo(*(_DWORD *)((char *)bs + 8));
-      if ( v20.modelindex3 != v21.modelindex3 )
-        return 1;
-    }
+    botinfo = AAS_EntityInfo(bs->entitynum);
+    return (botinfo.renderfx & 0x1C00) == (entinfo.renderfx & 0x1C00);
+  }
+  if ( ch->value != 0.0f )
+  {
+    botinfo = AAS_EntityInfo(bs->entitynum);
+    if ( botinfo.modelindex3 != entinfo.modelindex3 )
+      return 1;
+  }
+  else if ( teamplay->value != 0.0f )
+  {
+    if ( !_strcmpi(ClientSkin(bs->client), ClientSkin(entinfo.number - 1)) )
+      return 1;
+    return 0;
+  }
+  else if ( ((int)dmflags->value & 0x40) || ctf->value != 0.0f )
+  {
+    team1 = strchr(ClientSkin(bs->client), '/');
+    if ( !team1 )
+      team1 = ClientSkin(bs->client);
+    team2 = strchr(ClientSkin(entinfo.number - 1), '/');
+    if ( !team2 )
+      team2 = ClientSkin(entinfo.number - 1);
+    if ( !_strcmpi(team1, team2) )
+      return 1;
+  }
+  else if ( (int)dmflags->value & 0x80 )
+  {
+    team1 = strchr(ClientSkin(bs->client), '/');
+    if ( team1 )
+      len1 = team1 - ClientSkin(bs->client);
     else
+      len1 = strlen(ClientSkin(bs->client));
+    team2 = strchr(ClientSkin(entinfo.number - 1), '/');
+    if ( team2 )
+      len2 = team2 - ClientSkin(entinfo.number - 1);
+    else
+      len2 = strlen(ClientSkin(entinfo.number - 1));
+    if ( len1 == len2 )
     {
-      if ( teamplay->value != 0.0f )
-      {
-        return _strcmpi((const char *)ClientSkin(bs->client),
-                        (const char *)ClientSkin(v21.number - 1)) == 0;
-      }
-      v5 = (int)dmflags->value;
-      if ( (v5 & 0x40) != 0 || ctf->value != 0.0f )
-      {
-        v14 = strchr((const char *)ClientSkin(bs->client), 47);
-        if ( !v14 )
-          v14 = ClientSkin(bs->client);
-        v16 = strchr((const char *)ClientSkin(v2 - 1), 47);
-        if ( !v16 )
-          v16 = ClientSkin(v2 - 1);
-        if ( !_strcmpi(v14, v16) )
-          return 1;
-      }
-      else if ( (v5 & 0x80) != 0 )
-      {
-        v7 = strchr((const char *)ClientSkin(bs->client), 47);
-        MaxCount = v7 ? (unsigned int)(v7 - (const char *)ClientSkin(bs->client)) : strlen((const char *)ClientSkin(bs->client));
-        v8 = v2 - 1;
-        v10 = strchr((const char *)ClientSkin(v8), 47);
-        v11 = v10 ? (unsigned int)(v10 - (const char *)ClientSkin(v8)) : strlen((const char *)ClientSkin(v8));
-        if ( MaxCount == v11 )
-        {
-          if ( !strncmp((const char *)ClientSkin(bs->client), (const char *)ClientSkin(v8), MaxCount) )
-            return 1;
-        }
-      }
+      if ( !strncmp(ClientSkin(bs->client), ClientSkin(entinfo.number - 1), len1) )
+        return 1;
     }
   }
   return 0;
@@ -1245,73 +1144,61 @@ int __cdecl BotNumTeamMates(bot_state_t *bs)
 // gladi386.so:   0002E1E0..0002E558
 int __cdecl BotFindEnemy(bot_state_t *bs)
 {
+  int i, numents, alertness, healthdecrease;
+  float dist, fov;
+  int ents[16];
+  aas_entityinfo_t entinfo;
+  vec3_t dir, angles;
 
-  int v1; // eax
-  int v2; // edi
-  int v3; // eax
-  BOOL v5; // esi
-  float v6; // st7
-  float v8; // [esp+10h] [ebp-168h]
-  float v9; // [esp+14h] [ebp-164h]
-  BOOL healthdecrease; // [esp+30h] [ebp-148h]
-  int v10; // [esp+18h] [ebp-160h]
-  vec3_t dir; // [ebp-15Ch] BYREF — one vec3; all three components are stored
-  int v14; // [esp+28h] [ebp-150h]
-  int v15; // [esp+2Ch] [ebp-14Ch]
-  vec3_t angles; // [esp+34h] [ebp-144h] BYREF
-  aas_entityinfo_t entinfo; // [esp+40h] [ebp-138h] BYREF
-  int v19[16]; // [esp+BCh] [ebp-BCh] BYREF
-
-  v1 = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
-  v2 = bs->lasthealth;
-  v15 = v1;
-  v3 = bs->inventory[INVENTORY_HEALTH];
-  healthdecrease = v2 > v3;
-  bs->lasthealth = v3;
-  v14 = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360.0f, 16, v19);
-  for ( v10 = 0; v10 < v14; ++v10 )
+  alertness = Characteristic_BInteger(BotCharacter(bs), 45, 0, 1);
+  //check if the health decreased
+  healthdecrease = bs->lasthealth > bs->inventory[INVENTORY_HEALTH];
+  //remember the current health value
+  bs->lasthealth = bs->inventory[INVENTORY_HEALTH];
+  numents = sub_1000BAA0(bs->entitynum, bs->eye, bs->viewangles, 360, 16, ents);
+  for ( i = 0; i < numents; i++ )
   {
-    entinfo = AAS_EntityInfo(v19[v10]);
-    if ( !sub_10021710((int *)&entinfo) && entinfo.number != bs->entitynum )
+    entinfo = AAS_EntityInfo(ents[i]);
+    //if the enemy isn't dead and the enemy isn't the bot self
+    if ( sub_10021710((int *)&entinfo) || entinfo.number == bs->entitynum )
+      continue;
+    //calculate the distance towards the enemy
+    VectorSubtract(entinfo.origin, bs->origin, dir);
+    dist = VectorLength(dir);
+    if ( !alertness && dist > 900 )
+      continue;
+    //if the bot's health decreased
+    if ( healthdecrease )
+      fov = 360;
+    else
+      fov = 360 - (270 - (dist > 810 ? 810 : dist) / 3);
+    Vector2Angles(dir, angles);
+    if ( !InFieldOfVision(bs->viewangles, fov, angles) )
+      continue;
+    //if on the same team
+    if ( BotSameTeam(bs, ents[i]) )
+      continue;
+    if ( !healthdecrease || dist > 300 )
     {
-      VectorSubtract(entinfo.origin, bs->origin, dir);
-      v8 = VectorLength(dir);
-      if ( v15 || v8 <= 900.0f )
+      if ( AAS_PointLight(entinfo.origin, 0, 0, 0) < 5 )
+        continue;
+      if ( dist > 300 && !EntityIsShooting((intptr_t)&entinfo) )
       {
-        v5 = healthdecrease;
-        if ( healthdecrease )
+        //check if we can avoid this enemy
+        VectorSubtract(bs->origin, entinfo.origin, dir);
+        Vector2Angles(dir, angles);
+        //if the bot isn't in the fov of the enemy
+        if ( !InFieldOfVision(entinfo.angles, 160, angles) )
         {
-          v9 = 360.0f;
-        }
-        else
-        {
-          v6 = v8 > 810.0f ? 810.0f : v8;
-          v9 = 360.0f - (270.0f - v6 * 0.33333334f);
-        }
-        vectoangles(dir, (float *)angles);
-        if ( InFieldOfVision(bs->viewangles, v9, angles) && !BotSameTeam(bs, v19[v10]) )
-        {
-          if ( v5 && v8 <= 300.0f )
-            goto found;
-          if ( AAS_PointLight(entinfo.origin, 0, 0, 0) >= 5 )
-          {
-            if ( v8 <= 300.0f )
-              goto found;
-            if ( EntityIsShooting((intptr_t)&entinfo) )
-              goto found;
-            VectorSubtract(bs->origin, entinfo.origin, dir);
-            vectoangles(dir, (float *)angles);
-            if ( InFieldOfVision(entinfo.angles, 160.0f, angles) )
-              goto found;
-            BotUpdateBattleInventory(bs, v19[v10]);
-            if ( !BotWantsToRetreat((int *)bs) )
-              goto found;
-          }
+          //update some stuff for this enemy
+          BotUpdateBattleInventory(bs, ents[i]);
+          //if the bot doesn't really want to fight
+          if ( BotWantsToRetreat((int *)bs) )
+            continue;
         }
       }
     }
-    continue;
-found:
+    //found an enemy
     bs->enemy = entinfo.number;
     bs->enemysight_time = AAS_Time();
     return 1;
@@ -1323,136 +1210,131 @@ found:
 // gladi386.so:   0002E558..0002EDBF
 void BotAimAtEnemy(bot_state_t *bs)
 {
-
-  weaponinfo_t *wi; // ebp
-  float speed; // st — Q3 'speed'; register-only, never stored
-  float v12; // st7
-  int i; // edi
-  float dist; // [esp+1Ch] [ebp-1ACh]
-  float aim_skill; // [esp+20h] [ebp-1A8h]
-  float aim_accuracy; // [esp+3Ch] [ebp-18Ch]
-  float v28; // [esp+20h] [ebp-1A8h]
+  int i;
+  float dist, aim_skill, aim_accuracy, speed;
   /* Declaration order of the by-reference locals is Q3's own order in
    * ai_dmq3.c's BotAimAtEnemy -- `vec3_t dir, bestorigin, end, start,
    * groundtarget, ...;` then `mins`/`maxs`, then `entinfo` and `trace`.  It is
    * recoverable because gcc 2.7 lays the address-taken group out top-down in
    * declaration order, and the reference .so's slot order matches Q3's list
-   * exactly.  IDA's emission order is unrelated (MSVC /O2 assigns slots in
-   * first-reference order, which makes the DLL blind to this). */
-  vec3_t dir; // [ebp-1A4h] BYREF — one vec3; all three components are stored
-  vec3_t bestorigin; // [esp+30h] [ebp-198h] BYREF
-  vec3_t end; // [esp+58h] [ebp-170h] BYREF
-  vec3_t start; // [esp+4Ch] [ebp-17Ch] BYREF
-  vec3_t groundtarget; // [esp+40h] [ebp-188h] BYREF
-  vec3_t mins; // [esp+64h] [ebp-164h] BYREF
-  vec3_t maxs; // [esp+70h] [ebp-158h] BYREF
-  aas_entityinfo_t entinfo; // [esp+D0h] [ebp-F8h] BYREF
-  bsp_trace_t trace; // [esp+7Ch] [ebp-14Ch] BYREF
+   * exactly.  The float spill slots (dist, aim_skill, aim_accuracy) follow the
+   * same rule.  MSVC /O2 assigns slots in first-reference order, which makes
+   * the DLL blind to this. */
+  vec3_t dir, bestorigin, end, start, groundtarget;
+  vec3_t mins = {-4, -4, -4}, maxs = {4, 4, 4};
+  weaponinfo_t *wi;
+  aas_entityinfo_t entinfo;
+  bsp_trace_t trace;
 
-  /* Float literals: mins/maxs are float[3], so the original's raw ±4.0f bit
-   * patterns would be converted, not reinterpreted. */
-  mins[0] = -4.0f;
-  mins[1] = -4.0f;
-  mins[2] = -4.0f;
-  maxs[0] = 4.0f;
-  maxs[1] = 4.0f;
-  maxs[2] = 4.0f;
   if ( bs->enemy )
   {
-    /* Both Characteristic_BFloat results come back on the FPU stack; the second is
-     * compared against 0.0 and clamped to 0.000099999997f when not positive. */
-    aim_skill = (float)Characteristic_BFloat(BotCharacter(bs), 7, 0.0, 1.0);
-    aim_accuracy = (float)Characteristic_BFloat(BotCharacter(bs), 8, 0.0, 1.0);
-    if ( aim_accuracy <= 0.0f )
-      aim_accuracy = 0.000099999997f;
+    aim_skill = Characteristic_BFloat(BotCharacter(bs), 7, 0, 1);
+    aim_accuracy = Characteristic_BFloat(BotCharacter(bs), 8, 0, 1);
+    //
+    if ( aim_accuracy <= 0 )
+      aim_accuracy = 0.0001f;
+    //get the weapon information
     wi = sub_100354B0(BotWS(bs));
     if ( !_strcmpi(wi->name, "Rocket Launcher") )
       aim_accuracy = sqrt(aim_accuracy);
+    //get the enemy entity information
     entinfo = AAS_EntityInfo(bs->enemy);
-    bestorigin[0] = entinfo.origin[0];
-    bestorigin[1] = entinfo.origin[1];
-    start[0] = bs->origin[0];
-    start[1] = bs->origin[1];
-    bestorigin[2] = entinfo.origin[2];
-    start[2] = bs->origin[2];
-    bestorigin[2] += 8.0f;
+    //the bot's aim point
+    VectorCopy(entinfo.origin, bestorigin);
+    bestorigin[2] += 8;
+    //get the start point shooting from
+    //NOTE: the x and y projectile start offsets are ignored
+    VectorCopy(bs->origin, start);
     start[2] += bs->snapshot.viewoffset[2];
     start[2] += wi->offset[2];
-    trace = AAS_Trace(start, (float*)mins, (float*)maxs, (float*)(bestorigin), bs->entitynum, 100663299);
-    if ( trace.fraction <= 1.0f && trace.ent != entinfo.number )
-      bestorigin[2] += 16.0f;
-    if ( wi->speed != 0.0f && aim_skill > 0.4 )
+    //
+    trace = AAS_Trace(start, mins, maxs, bestorigin, bs->entitynum, 100663299);
+    //if the enemy is NOT hit
+    if ( trace.fraction <= 1 && trace.ent != entinfo.number )
+      bestorigin[2] += 16;
+    //if the weapon has a speed and the bot is skilled enough
+    if ( wi->speed && aim_skill > 0.4 )
     {
-      /* All three components are stored (three fld/fsub/fstp triples). */
+      //direction towards the enemy
       VectorSubtract(entinfo.origin, bs->origin, dir);
+      //distance towards the enemy
       dist = VectorLength(dir);
-      dir[2] = 0.0f;
+      //direction the enemy is moving in
       dir[0] = entinfo.origin[0] - entinfo.lastvisorigin[0];
       dir[1] = entinfo.origin[1] - entinfo.lastvisorigin[1];
+      dir[2] = 0;
+      //
       speed = VectorNormalize(dir) / entinfo.update_time;
+      //best spot to aim at
       VectorMA(entinfo.origin, (dist / wi->speed) * speed, dir, bestorigin);
     }
-    if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) != 0 && bs->origin[2] + 16.0f > entinfo.origin[2] )
+    //if the projectile does radial damage
+    if ( aim_skill > 0.6 && (wi->proj->damagetype & 2) )
     {
-      VectorCopy(entinfo.origin, end);
-      end[2] -= 64.0f;
-      trace = AAS_Trace(entinfo.origin, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(end), entinfo.number, 100663299);
-      VectorCopy(bestorigin, groundtarget);
-      groundtarget[2] = trace.startsolid ? entinfo.origin[2] - 16.0f : trace.endpos[2] - 8.0f;
-      trace = AAS_Trace(start, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), (float*)(groundtarget), bs->entitynum, 100663299);
-      v12 = trace.endpos[2] - groundtarget[2];
-      if ( fabs(v12) < 50.0 )
+      //if the enemy isn't standing significantly higher than the bot
+      if ( entinfo.origin[2] < bs->origin[2] + 16 )
       {
-        /* All three components are stored. */
-        dir[0] = trace.endpos[0] - groundtarget[0];
-        dir[1] = trace.endpos[1] - groundtarget[1];
-        dir[2] = v12;
-        if ( VectorLength(dir) < 60.0f )
+        //try to aim at the ground in front of the enemy
+        VectorCopy(entinfo.origin, end);
+        end[2] -= 64;
+        trace = AAS_Trace(entinfo.origin, NULL, NULL, end, entinfo.number, 100663299);
+        //
+        VectorCopy(bestorigin, groundtarget);
+        if ( trace.startsolid )
+          groundtarget[2] = entinfo.origin[2] - 16;
+        else
+          groundtarget[2] = trace.endpos[2] - 8;
+        //trace a line from projectile start to ground target
+        trace = AAS_Trace(start, NULL, NULL, groundtarget, bs->entitynum, 100663299);
+        //if hitpoint is not vertically too far from the ground target
+        if ( fabs(trace.endpos[2] - groundtarget[2]) < 50 )
         {
-          /* All three components are stored. */
-          VectorSubtract(trace.endpos, start, dir);
-          if ( VectorLength(dir) > 150.0f )
+          VectorSubtract(trace.endpos, groundtarget, dir);
+          //if the hitpoint is near enough the ground target
+          if ( VectorLength(dir) < 60 )
           {
-            trace = AAS_Trace(trace.endpos, (float*)(uintptr_t)(0), (float*)(uintptr_t)(0), entinfo.origin, entinfo.number, 100663299);
-            if ( trace.fraction >= 1.0f )
+            VectorSubtract(trace.endpos, start, dir);
+            //if the hitpoint is far enough from the bot
+            if ( VectorLength(dir) > 150 )
             {
-              VectorCopy(groundtarget, bestorigin);
+              //check if the bot is visible from the ground target
+              trace = AAS_Trace(trace.endpos, NULL, NULL, entinfo.origin, entinfo.number, 100663299);
+              if ( trace.fraction >= 1 )
+                VectorCopy(groundtarget, bestorigin);
             }
           }
         }
       }
     }
-    v28 = 1.0f - aim_accuracy;
-    bestorigin[0] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-                   * v28
-                   * 20.0
-                   + bestorigin[0];
-    bestorigin[1] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 20.0
-        + bestorigin[1];
-    bestorigin[2] = (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 10.0
-        + bestorigin[2];
-    /* All three components are stored. */
+    /* Q3's own phrasing, and it is load-bearing for the ELF: under
+     * -ffast-math gcc 2.7's fold() rewrites `(C * crandom()) * x` into
+     * `crandom() * (x * C)`, which is exactly the reference's evaluation
+     * order, and CSEs the inline `(1 - aim_accuracy)` into the double spill
+     * slot the reference has.  cl.exe reaches the DLL's `crandom() * x * C`
+     * from the same text. */
+    bestorigin[0] += 20 * crandom() * (1 - aim_accuracy);
+    bestorigin[1] += 20 * crandom() * (1 - aim_accuracy);
+    bestorigin[2] += 10 * crandom() * (1 - aim_accuracy);
+    //get aim direction
     VectorSubtract(bestorigin, bs->eye, dir);
+    //add some random stuff to the aim direction
     if ( !_strcmpi(wi->name, "Railgun") )
     {
       VectorNormalize(dir);
       for ( i = 0; i < 3; i++ )
-        dir[i] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5)) * v28 * 0.3;
+        dir[i] += 0.3 * crandom() * (1 - aim_accuracy);
     }
-    vectoangles(dir, bs->ideal_viewangles);
-    bs->ideal_viewangles[0] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-        * (wi->vspread
-         * 6.0f)
-        * v28;
+    //set the ideal view angles
+    Vector2Angles(dir, bs->ideal_viewangles);
+    //take the weapon spread into account for lower skilled bots
+    bs->ideal_viewangles[0] += 6 * wi->vspread * crandom() * (1 - aim_accuracy);
     bs->ideal_viewangles[0] = anglemod(bs->ideal_viewangles[0]);
-    bs->ideal_viewangles[1] += (2 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
-        * (wi->hspread
-         * 6.0f)
-        * v28;
+    bs->ideal_viewangles[1] += 6 * wi->hspread * crandom() * (1 - aim_accuracy);
     bs->ideal_viewangles[1] = anglemod(bs->ideal_viewangles[1]);
     BotChangeViewAngles(bs, bs->thinktime);
     if ( aim_accuracy > 0.8 )
     {
+      //set the view angles directly
       VectorCopy(bs->ideal_viewangles, bs->viewangles);
       EA_View(bs->client, bs->viewangles);
     }
@@ -1560,149 +1442,100 @@ void BotCheckAttack(bot_state_t *bs)
 
 // gladiator.dll: 10024A10..10024E9D
 // gladi386.so:   0002F180..0002F53D
-int *__cdecl BotEntityToActivate(int a1)
+bsp_entity_t *__cdecl BotEntityToActivate(int entitynum)
 {
-  char *v1; // eax
-  bsp_entity_t *v2; // edi — current entity walk
-  const char *v3; // ebp
-  const char *v4; // eax
-  const char *v5; // eax
-  const char *v6; // ebx
-  int v7; // esi
-  const char *v8; // eax
-  const char *v9; // eax
-  const char **v11; // ebp
-  bsp_entity_t **v10; // ebx — pointer into stack-resident heads array
-  const char *v12; // eax
-  const char *v13; // eax
-  int v14; // [esp+10h] [ebp-D4h]
-  const char *v15; // [esp+14h] [ebp-D0h]
-  const char *v16[10]; // [esp+18h] [ebp-CCh] BYREF — targetname stack
-  aas_entityinfo_t v18; // [esp+68h] [ebp-7Ch] BYREF
-  bsp_entity_t *v17[10]; // [esp+40h] [ebp-A4h] BYREF — heads stack walked via v10
+  int i;
+  char *model, *tmpmodel, *classname, *target, *targetname[10];
+  bsp_entity_t *ent, *cur_entities[10];
+  aas_entityinfo_t entinfo;
 
-  v18 = AAS_EntityInfo(a1);
-  v1 = AAS_ModelFromIndex(v18.modelindex);
-  v2 = entities;
-  v3 = v1;
-  if ( !v2 )
-    goto LABEL_5;
-  while ( 1 )
+  entinfo = AAS_EntityInfo(entitynum);
+  model = AAS_ModelFromIndex(entinfo.modelindex);
+  for ( ent = entities; ent; ent = ent->next )
   {
-    v4 = (const char *)AAS_ValueForBSPEpairKey(v2, "model");
-    if ( v4 )
+    tmpmodel = AAS_ValueForBSPEpairKey(ent, "model");
+    if ( !tmpmodel )
+      continue;
+    if ( !strcmp(model, tmpmodel) )
+      break;
+  }
+  if ( !ent )
+  {
+    botimport.Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", model);
+    return NULL;
+  }
+  classname = AAS_ValueForBSPEpairKey(ent, "classname");
+  if ( !classname )
+  {
+    botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with model %s has no classname\n", model);
+    return NULL;
+  }
+  if ( !strcmp(classname, "func_door_secret") )
+  {
+    targetname[0] = AAS_ValueForBSPEpairKey(ent, "targetname");
+    target = AAS_ValueForBSPEpairKey(ent, "spawnflags");
+    if ( !targetname[0] || (atoi(target) & 1) )
+      return ent;
+  }
+  if ( !strcmp(classname, "func_door") )
+  {
+    if ( AAS_FloatForBSPEpairKey(ent, "health") )
+      return ent;
+  }
+  targetname[0] = AAS_ValueForBSPEpairKey(ent, "targetname");
+  if ( !targetname[0] )
+    return NULL;
+  cur_entities[0] = entities;
+  for ( i = 0; i >= 0 && i < 10; )
+  {
+    for ( ent = cur_entities[i]; ent; ent = ent->next )
     {
-      if ( !strcmp(v3, v4) )
+      target = AAS_ValueForBSPEpairKey(ent, "target");
+      if ( !target )
+        continue;
+      if ( !strcmp(targetname[i], target) )
+      {
+        cur_entities[i] = ent->next;
         break;
+      }
     }
-    v2 = v2->next;
-    if ( !v2 )
+    if ( !ent )
     {
-      botimport.Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", v3);
-      return 0;
+      botimport.Print(PRT_ERROR, "BotEntityToActivate: no entity with target \"%s\"\n", targetname[i]);
+      i--;
+      continue;
     }
-  }
-  if ( !v2 )
-  {
-LABEL_5:
-    botimport.Print(PRT_ERROR, "BotEntityToActivate: no entity found with model %s\n", v3);
-    return 0;
-  }
-  v5 = (const char *)AAS_ValueForBSPEpairKey(v2, "classname");
-  v6 = v5;
-  v15 = v5;
-  if ( !v5 )
-  {
-    botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with model %s has no classname\n", v3);
-    return 0;
-  }
-  if ( !strcmp(v5, "func_door_secret") )
-  {
-    v7 = AAS_ValueForBSPEpairKey(v2, "targetname");
-    v8 = (const char *)AAS_ValueForBSPEpairKey(v2, "spawnflags");
-    if ( !v7 || (atoi(v8) & 1) != 0 )
-      return (int *)v2;
-  }
-  if ( !strcmp(v6, "func_door") && FloatForKey(v2, "health") != 0.0f )
-    return (int *)v2;
-  v16[0] = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
-  if ( !v16[0] )
-    return 0;
-  v14 = 0;
-  v17[0] = entities;
-  v10 = v17;
-  v11 = v16;
-  while ( 1 )
-  {
-    if ( v14 >= 10 )
-      goto LABEL_39;
-    v2 = *v10;
-    if ( *v10 )
+    classname = AAS_ValueForBSPEpairKey(ent, "classname");
+    if ( !classname )
     {
-      while ( 1 )
-      {
-        v12 = (const char *)AAS_ValueForBSPEpairKey(v2, "target");
-        if ( v12 )
-        {
-          if ( !strcmp(*v11, v12) )
-            break;
-        }
-        v2 = v2->next;
-        if ( v2 )
-          continue;
-        goto LABEL_26;
-      }
-      *v10 = v2->next;
-      if ( v2 )
-        break;
+      botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", targetname[i]);
+      return NULL;
     }
-LABEL_26:
-    v9 = *v11;
-    botimport.Print(PRT_ERROR, "BotEntityToActivate: no entity with target \"%s\"\n", v9);
-    --v14;
-    --v11;
-    --v10;
-LABEL_38:
-    if ( v14 < 0 )
-      goto LABEL_39;
+    if ( !strcmp(classname, "trigger_counter") || !strcmp(classname, "trigger_relay") )
+    {
+      if ( i >= 9 )
+      {
+        botimport.Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", i);
+        return NULL;
+      }
+      targetname[++i] = AAS_ValueForBSPEpairKey(ent, "targetname");
+      cur_entities[i] = entities;
+      continue;
+    }
+    if ( !strcmp(classname, "func_button") )
+      return ent;
+    if ( !strcmp(classname, "trigger_multiple") )
+      return ent;
+    if ( !strcmp(classname, "trigger_once") )
+      return ent;
+    if ( !strcmp(classname, "func_door_rotating") )
+      return ent;
+    if ( !strcmp(classname, "trigger_key") )
+      return NULL;
+    i--;
   }
-  v13 = (const char *)AAS_ValueForBSPEpairKey(v2, "classname");
-      v15 = v13;
-      if ( !v13 )
-      {
-        botimport.Print(PRT_ERROR, "BotEntityToActivate: entity with target \"%s\" has no classname\n", v16[v14]);
-        return 0;
-      }
-      if ( strcmp(v13, "trigger_counter") && strcmp(v15, "trigger_relay") )
-      {
-        if ( !strcmp(v15, "func_button")
-            || !strcmp(v15, "trigger_multiple")
-            || !strcmp(v15, "trigger_once")
-            || !strcmp(v15, "func_door_rotating") )
-        {
-          return (int *)v2;
-        }
-        if ( !strcmp(v15, "trigger_key") )
-          return 0;
-        --v14;
-        --v11;
-        --v10;
-        goto LABEL_38;
-      }
-      if ( v14 < 9 )
-      {
-        ++v14;
-        ++v11;
-        ++v10;
-        *v11 = (const char *)AAS_ValueForBSPEpairKey(v2, "targetname");
-        *v10 = entities;
-        goto LABEL_38;
-      }
-  botimport.Print(PRT_ERROR, "BotEntityToActivate: stacked up more than %d trigger_counter or trigger_relay\n", v14);
-  return 0;
-LABEL_39:
-  botimport.Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", v15);
-  return 0;
+  botimport.Print(PRT_ERROR, "BotEntityToActivate: unkown activator with classname \"%s\"\n", classname);
+  return NULL;
 }
 
 // gladiator.dll: 10024FD0..1002504D
@@ -1730,9 +1563,12 @@ void __cdecl BotSetMovedir(float *angles, float *movedir)
  * keys, and draw permanent debug crosses — one at the shoot point for shootable
  * buttons, three for touch/use buttons.  Capped at the first 6 matches.
  *
- * Faithful quirks: FloatForKey(ent, "lip") is called and discarded, and
- * BSPModelMinsMaxs is called with zero-initialised `angles`, so the bbox is the
- * model's local-space AABB rather than a world-rotated one. */
+ * The body is Q3 BotFuncButtonActivateGoal's, statement for statement: `lip` is read
+ * and defaulted but never used (the .so keeps a dead `fld 0.0; fstp st(0)` from the
+ * `if (!lip)` test), and BSPModelMinsMaxs is called with zero-initialised `angles`,
+ * so the bbox is the model's local-space AABB rather than a world-rotated one.
+ * The vec3 declaration order is the .so's frame read top-down (gcc 2.7 lays out
+ * address-taken locals in declaration order); cl.exe is indifferent to it. */
 void __cdecl sub_10025070(void)
 {
   bsp_entity_t *ent;
@@ -1740,21 +1576,20 @@ void __cdecl sub_10025070(void)
   char *classname;
   char *model_str;
   int modelnum;
-  struct {
-    vec3_t origin;
-    vec3_t mins;
-    vec3_t maxs;
-    vec3_t start;
-    vec3_t goalorigin;
-    vec3_t movedir;
-    float dist;
-    vec3_t angles;
-    vec3_t size;
-    vec3_t end;
-    vec3_t bboxmins;
-    vec3_t bboxmaxs;
-    aas_trace_t trace;
-  } l;
+  vec3_t mins;
+  vec3_t maxs;
+  vec3_t size;
+  vec3_t origin;
+  vec3_t angles;
+  vec3_t movedir;
+  vec3_t goalorigin;
+  vec3_t start;
+  vec3_t end;
+  vec3_t bboxmins;
+  vec3_t bboxmaxs;
+  aas_trace_t trace;
+  float dist;
+  float lip;
 
   drawn = 0;
   ent   = entities;
@@ -1771,78 +1606,57 @@ void __cdecl sub_10025070(void)
     if ( !strcmp(classname, "func_button") )
     {
       model_str = (const char *)AAS_ValueForBSPEpairKey(ent, "model");
-      modelnum  = IndexFromModel(model_str);
+      modelnum  = AAS_IndexFromModel(model_str);
       if ( !modelnum )
         modelnum = atoi(model_str + 1);
 
-      VectorClear(l.angles);
-      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, l.angles, l.mins, l.maxs, NULL);
+      VectorClear(angles);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
 
-      FloatForKey(ent, "lip");
-      l.angles[0] = 0.0f;
-      l.angles[1] = FloatForKey(ent, "angle");
-      l.angles[2] = 0.0f;
-      BotSetMovedir(l.angles, l.movedir);
+      lip = AAS_FloatForBSPEpairKey(ent, "lip");
+      if (!lip) lip = 4;
+      VectorSet(angles, 0, AAS_FloatForBSPEpairKey(ent, "angle"), 0);
+      BotSetMovedir(angles, movedir);
 
-      VectorSubtract(l.maxs, l.mins, l.size);
-      VectorAdd(l.mins, l.maxs, l.origin);
-      VectorScale(l.origin, 0.5f, l.origin);
-      l.dist = fabs(l.movedir[2]) * l.size[2]
-             + fabs(l.movedir[1]) * l.size[1]
-             + fabs(l.movedir[0]) * l.size[0];
-      l.dist *= 0.5;
+      VectorSubtract(maxs, mins, size);
+      VectorAdd(mins, maxs, origin);
+      VectorScale(origin, 0.5f, origin);
+      dist = fabs(movedir[0]) * size[0] + fabs(movedir[1]) * size[1] + fabs(movedir[2]) * size[2];
+      dist *= 0.5;
 
-      if ( FloatForKey(ent, "health") )
+      if ( AAS_FloatForBSPEpairKey(ent, "health") )
       {
-        VectorMA(l.origin, -l.dist, l.movedir, l.goalorigin);
-        AAS_DrawPermanentCross(l.goalorigin, 4.0f, (int)0xf3f3f1f1);
+        VectorMA(origin, -dist, movedir, goalorigin);
+        AAS_DrawPermanentCross(goalorigin, 4.0f, (int)0xf3f3f1f1);
       }
       else
       {
-        float accum;
-        int offset;
+        int i;
 
-        AAS_PresenceTypeBoundingBox(4, l.bboxmins, l.bboxmaxs);
-        /* BYTE-OFFSET walk, not `for (i = 0; i < 3; i++)`: the original shares one
-         * esp-relative index across all three arrays, whereas the indexed form
-         * strength-reduces to a walking pointer plus a separate counter.  This is the
-         * original's own addressing — do not "fix" it. */
-        offset = 0;
-        accum = l.dist;
-        do
+        AAS_PresenceTypeBoundingBox(4, bboxmins, bboxmaxs);
+        for (i = 0; i < 3; i++)
         {
-          float side;
-
-          /* `> 0.0f` with the arms this way round — same correction as
-           * BotAIBlocked's identical loop; real emits gcc's `a > b` shape
-           * (`and ah,0x5; je`) at all three unrolled copies, IDA's `<` gives
-           * `and ah,0x45; dec ah; cmp ah,0x40` (x87cmp.py, 2026-08-16). */
-          if ( *(float *)((char *)l.movedir + offset) > 0.0f )
-            side = *(float *)((char *)l.bboxmins + offset);
-          else
-            side = *(float *)((char *)l.bboxmaxs + offset);
-          accum += fabs(*(float *)((char *)l.movedir + offset)) * fabs(side);
-          offset += 4;
+          if (movedir[i] < 0) dist += fabs(movedir[i]) * fabs(bboxmaxs[i]);
+          else dist += fabs(movedir[i]) * fabs(bboxmins[i]);
         }
-        while ( offset < 12 );
-        VectorMA(l.origin, -accum, l.movedir, l.goalorigin);
+        VectorMA(origin, -dist, movedir, goalorigin);
 
-        VectorCopy(l.goalorigin, l.start);
-        l.start[2] += 24.0f;
-        VectorSet(l.end, l.start[0], l.start[1], l.start[2] - 100.0f);
-        l.trace = AAS_TraceClientBBox(l.start, l.end, 4, -1);
-        if ( !l.trace.startsolid )
-          VectorCopy(l.trace.endpos, l.goalorigin);
-        AAS_DrawPermanentCross(l.goalorigin, 4.0f, (int)0xdcdddedf);
+        VectorCopy(goalorigin, start);
+        start[2] += 24.0f;
+        VectorSet(end, start[0], start[1], start[2] - 100.0f);
+        trace = AAS_TraceClientBBox(start, end, 4, -1);
+        if ( !trace.startsolid )
+          VectorCopy(trace.endpos, goalorigin);
+        AAS_DrawPermanentCross(goalorigin, 4.0f, (int)0xdcdddedf);
 
-        VectorSubtract(l.mins, l.origin, l.mins);
-        VectorSubtract(l.maxs, l.origin, l.maxs);
+        VectorSubtract(mins, origin, mins);
+        VectorSubtract(maxs, origin, maxs);
 
-        VectorAdd(l.origin, l.mins, l.start);
-        AAS_DrawPermanentCross(l.start, 4.0f, (int)0xf3f3f1f1);
+        VectorAdd(mins, origin, start);
+        AAS_DrawPermanentCross(start, 4.0f, (int)0xf3f3f1f1);
 
-        VectorAdd(l.origin, l.maxs, l.start);
-        AAS_DrawPermanentCross(l.start, 4.0f, (int)0xf3f3f1f1);
+        VectorAdd(maxs, origin, start);
+        AAS_DrawPermanentCross(start, 4.0f, (int)0xf3f3f1f1);
       }
 
       if ( ++drawn > 5 )
@@ -1859,248 +1673,172 @@ void __cdecl sub_10025070(void)
  * every caller ignores it. */
 void __cdecl BotAIBlocked(bot_state_t *bs, bot_moveresult_t *moveresult, int activate)
 {
-  ai_node_fn_t result; // eax
-  int modelnum;
-  int *v5; // eax
-  int *v6; // ebp
-  const char *v7; // edi
-  char *v8; // eax
-  long double v9; // st7
-  int i; // ecx
-  long double v11; // st6
-  bot_state_t *v13; // esi (originally `int v13 = a1` where `a1` aliased a global char[] - decompiler artifact; real value is bs)
-  int v16; // eax
-  int v18; // ecx
-  char *v20; // esi
-  int v21; // eax
-  char *v28; // eax
-  int v33; // eax
-  vec3_t v38_vec; // [esp+1Ch..24h] [ebp-158h..150h] BYREF (was v38/v39/v40 vec3 split)
-  vec3_t v41_vec; // [esp+28h..30h] [ebp-14Ch..144h] BYREF (was v41/v42/v43 vec3 split)
-  vec3_t v44_vec; // [esp+34h..3Ch] [ebp-140h..138h] BYREF (was v44/v45/v46 vec3 split)
-  vec3_t v47_vec; // [esp+40h..48h] [ebp-134h..12Ch] BYREF (was v47/v48/v49 vec3 split)
-  vec3_t v50; /* was v50,v51,v52 — vec3_t for activated area check */
-  vec3_t v53_vec; // [esp+58h..60h] [ebp-11Ch..114h] BYREF
-  vec3_t v56_vec; // [esp+64h..6Ch] [ebp-110h..108h] BYREF (was v56/v57/v58; AAS_BSPModelMinsMaxsOrigin origin)
-  vec3_t v59_vec; // [esp+70h..78h] [ebp-104h..FCh] BYREF (was v59/v60/v61 vec3 split)
-  vec3_t sideward; // [esp+7Ch..84h] [ebp-F8h..F0h] BYREF (was v62 int + v63/v64 float — vec3 split for CrossProduct/BotMoveInDirection)
-  aas_entityinfo_t v77; // [esp+F8h] [ebp-7Ch] BYREF
-  aas_trace_t trace; // [esp+BCh] [ebp-B8h] (was int v74[9])
-  vec3_t up; // [esp+B0h] [ebp-C4h] BYREF
-  vec3_t v75; // [esp+E0h] [ebp-94h] BYREF
-  vec3_t hordir; // [esp+A4h] [ebp-D0h] BYREF
-  float v65; // [esp+88h] [ebp-ECh]
-  vec3_t v66_vec; // [esp+8Ch..94h] [ebp-E8h..E0h] BYREF
-  vec3_t v76; // [esp+ECh] [ebp-88h] BYREF
-  vec3_t v69_vec; // [esp+98h..A0h] [ebp-DCh..D4h] (was v69/v70/v71 vec3 split)
+  int i, modelnum;
+  char *classname, *model;
+  float dist, lip;
+  bsp_entity_t *ent;
+  vec3_t mins, maxs, triggerorigin, start, end, angles, movedir, hordir, sideward;
+  vec3_t size, origin, goalorigin, bboxmins, bboxmaxs;
+  vec3_t up = {0, 0, 1};
+  vec3_t extramins = {-5, -5, -5}, extramaxs = {5, 5, 5};
+  aas_entityinfo_t entinfo;
+  aas_trace_t trace;
+  bsp_trace_t bsptrace;  /* Q3's declaration, unused here; gcc 2.7 still gives it its frame slot */
 
-  up[0] = 0;
-  up[1] = 0;
-  up[2] = 1.0f;   /* 1065353216 bit-pattern of 1.0f; v73 is float[3] */
   if ( !moveresult->blocked )
     return;
-  v77 = AAS_EntityInfo(moveresult->blockentity);
-  if ( v77.solid != 3 || !activate )
-    goto LABEL_37;
-  v5 = BotEntityToActivate(v77.number);
-  v6 = v5;
-  if ( !v5 )
-    v7 = "";
-  else
-    v7 = (const char *)AAS_ValueForBSPEpairKey(v5, "classname");
-  if ( !strcmp(v7, "func_door_secret") || !strcmp(v7, "func_door") )
+  entinfo = AAS_EntityInfo(moveresult->blockentity);
+  if ( entinfo.solid == 3 && activate )
   {
-    v28 = AAS_ValueForBSPEpairKey(v6, "model");
-    modelnum = IndexFromModel(v28);
-    if ( modelnum )
+    ent = BotEntityToActivate(entinfo.number);
+    if ( !ent )
+      classname = "";
+    else
+      classname = AAS_ValueForBSPEpairKey(ent, "classname");
+    if ( !strcmp(classname, "func_door_secret") || !strcmp(classname, "func_door") )
     {
-      VectorClear(v56_vec);
-      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, v56_vec, v44_vec, v41_vec, NULL);
-      VectorAdd(v44_vec, v41_vec, v38_vec);
-      VectorScale(v38_vec, 0.5f, v38_vec);
-      VectorSubtract(v38_vec, bs->origin, v50);
-      vectoangles(v50, moveresult->ideal_viewangles);
+      model = AAS_ValueForBSPEpairKey(ent, "model");
+      modelnum = AAS_IndexFromModel(model);
+      if ( !modelnum )
+        return;
+      VectorClear(angles);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
+      VectorAdd(maxs, mins, goalorigin);
+      VectorScale(goalorigin, 0.5, goalorigin);
+      VectorSubtract(goalorigin, bs->origin, movedir);
+      Vector2Angles(movedir, moveresult->ideal_viewangles);
       moveresult->flags |= 1;
       EA_UseItem(bs->client, "Blaster");
       EA_Attack(bs->client);
       return;
     }
-    return;
-  }
-  if ( !strcmp(v7, "func_button") )
-  {
-    v8 = AAS_ValueForBSPEpairKey(v6, "model");
-    modelnum = IndexFromModel(v8);
-    if ( !modelnum )
-      return;
-    VectorClear(v56_vec);
-    AAS_BSPModelMinsMaxsOrigin(modelnum - 1, v56_vec, v44_vec, v41_vec, NULL);
-    FloatForKey(v6, "lip");
+    if ( !strcmp(classname, "func_button") )
     {
-      vec3_t angles;
-      angles[0] = 0;
-      angles[1] = FloatForKey(v6, "angle");
-      angles[2] = 0;
-      BotSetMovedir(angles, v50);
-    }
-    VectorSubtract(v41_vec, v44_vec, v69_vec);
-    VectorAdd(v44_vec, v41_vec, v59_vec);
-    VectorScale(v59_vec, 0.5f, v59_vec);
-    v65 = (fabs(v50[2]) * v69_vec[2] + fabs(v50[1]) * v69_vec[1] + fabs(v50[0]) * v69_vec[0]) * 0.5f;
-    if ( FloatForKey(v6, "health") != 0.0f )
-    {
-      VectorMA(v59_vec, -v65, v50, v38_vec);
-      VectorSubtract(v38_vec, bs->origin, v50);
-      vectoangles(v50, moveresult->ideal_viewangles);
-      moveresult->flags |= 1;
-      EA_UseItem(bs->client, "Blaster");
-      EA_Attack(bs->client);
-      return;
-    }
-    AAS_PresenceTypeBoundingBox(4, v76, v75);
-    v9 = v65;
-    for ( i = 0; i < 3; ++i )
-    {
-      /* `> 0.0f` with the arms this way round, NOT IDA's `< 0.0f` with them
-       * swapped: real emits `and ah,0x5; je` at all three unrolled copies,
-       * which is gcc 2.7.2.3's `a > b`, where IDA's `<` compiles to
-       * `and ah,0x45; dec ah; cmp ah,0x40` (x87cmp.py, 2026-08-16).  The two
-       * forms differ only at exactly 0.0. */
-      if ( v50[i] > 0.0f )
-        v11 = v76[i];
-      else
-        v11 = v75[i];
-      v9 = fabs(v11) * fabs(v50[i]) + v9;
-    }
-    VectorMA(v59_vec, -v9, v50, v38_vec);
-    v53_vec[0] = v38_vec[0];
-    v53_vec[1] = v38_vec[1]; /* all three start components are written */
-    v53_vec[2] = v38_vec[2] + 24.0f;
-    v66_vec[0] = v38_vec[0];
-    v66_vec[1] = v38_vec[1]; /* all three end components are written */
-    v66_vec[2] = v53_vec[2] - 100.0f; /* end.z is written here too */
-    trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
-    if ( !trace.startsolid )
-    {
-      VectorCopy(trace.endpos, v38_vec);
-    }
-    v13 = bs;
-    VectorCopy(v59_vec, bs->activategoal.origin);
-    v16 = AAS_PointAreaNum(v38_vec);
-    v18 = v77.number;
-    bs->activategoal.areanum = v16;
-    bs->activategoal.entitynum = v18;
-    bs->activategoal.number = 0;
-    bs->activategoal.flags = 0;
-    bs->activategoal.mins[0] = v44_vec[0] - v59_vec[0] - 5.0f;
-    bs->activategoal.mins[1] = v44_vec[1] - v59_vec[1] - 5.0f;
-    bs->activategoal.mins[2] = v44_vec[2] - v59_vec[2] - 5.0f;
-    bs->activategoal.maxs[0] = v41_vec[0] - v59_vec[0] + 5.0f;
-    bs->activategoal.maxs[1] = v41_vec[1] - v59_vec[1] + 5.0f;
-    bs->activategoal.maxs[2] = v41_vec[2] - v59_vec[2] + 5.0f;
-    bs->activategoal_time = AAS_Time() + 10.0f;
-    if ( !AAS_AreaReachability(bs->activategoal.areanum) )
-    {
-      result = BotAINode(bs);
-      if ( result == AINode_Seek_NBG )
+      model = AAS_ValueForBSPEpairKey(ent, "model");
+      modelnum = AAS_IndexFromModel(model);
+      if ( !modelnum )
+        return;
+      VectorClear(angles);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
+      lip = AAS_FloatForBSPEpairKey(ent, "lip");
+      if (!lip) lip = 4;
+      VectorSet(angles, 0, AAS_FloatForBSPEpairKey(ent, "angle"), 0);
+      BotSetMovedir(angles, movedir);
+      VectorSubtract(maxs, mins, size);
+      VectorAdd(mins, maxs, origin);
+      VectorScale(origin, 0.5, origin);
+      dist = fabs(movedir[0]) * size[0] + fabs(movedir[1]) * size[1] + fabs(movedir[2]) * size[2];
+      dist *= 0.5;
+      if ( AAS_FloatForBSPEpairKey(ent, "health") )
       {
-        bs->nbg_time = 0.0f;
+        VectorMA(origin, -dist, movedir, goalorigin);
+        VectorSubtract(goalorigin, bs->origin, movedir);
+        Vector2Angles(movedir, moveresult->ideal_viewangles);
+        moveresult->flags |= 1;
+        EA_UseItem(bs->client, "Blaster");
+        EA_Attack(bs->client);
         return;
       }
-      if ( result == AINode_Seek_LTG )
-        v13->ltg_time = 0.0f;
-      return;
-    }
-    AIEnter_Seek_ActivateEntity(v13);
-    return;
-  }
-  if ( strcmp(v7, "trigger_multiple") && strcmp(v7, "trigger_once") )
-  {
-LABEL_37:
-    hordir[0] = moveresult->movedir[0];   /* raw float copy — original mov [esp+0x98],[ebx+0x18] at 0x10025e6e */
-    hordir[1] = moveresult->movedir[1];   /* raw float copy — original mov [esp+0xa0],[ebx+0x1c] */
-    hordir[2] = 0;
-    VectorNormalize(hordir);
-    VectorCopy(bs->origin, v53_vec);
-    v53_vec[2] = v53_vec[2] + libvar_sv_step->value;
-    VectorMA(v53_vec, 5.0f, hordir, v66_vec);
-    v44_vec[0] = -16.0f;
-    v44_vec[1] = -16.0f;
-    v44_vec[2] = -24.0f;
-    v41_vec[0] = 16.0f;
-    v41_vec[1] = 16.0f;
-    v41_vec[2] = 4.0f;
-    CrossProduct(hordir, up, sideward);
-    if ( (*(unsigned char *)&bs->flags & 0x10) != 0 )
-    {
-      sideward[0] = -sideward[0];
-      sideward[1] = -sideward[1];
-      sideward[2] = -sideward[2];
-    }
-    if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, (float *)(intptr_t)sideward, 400.0f, 1) )
-    {
-      sideward[0] = -sideward[0];
-      v33 = bs->flags;   /* original reads flags mid-negation: mov eax,[esi+0xac0] at 0x10025f9b */
-      sideward[1] = -sideward[1];
-      sideward[2] = -sideward[2];
-      bs->flags = v33 ^ 0x10;
-      BotMoveInDirection((bot_movestate_t *)&bs->ms, (float *)(intptr_t)sideward, 400.0f, 1);
-    }
-    result = BotAINode(bs);
-    if ( result == AINode_Seek_NBG )
-    {
-      bs->nbg_time = 0.0f;
-    }
-    else if ( result == AINode_Seek_LTG )
-    {
-      bs->ltg_time = 0.0f;
-    }
-    return;
-  }
-  v20 = AAS_ValueForBSPEpairKey(v6, "model");
-  v21 = IndexFromModel(v20);
-  if ( !v21 )
-    v21 = atoi(v20 + 1);
-  VectorClear(v56_vec);
-  AAS_BSPModelMinsMaxsOrigin(v21 - 1, v56_vec, v44_vec, v41_vec, NULL);
-  VectorAdd(v44_vec, v41_vec, v47_vec);
-  VectorScale(v47_vec, 0.5f, v47_vec);
-  v53_vec[0] = v47_vec[0];
-  v53_vec[1] = v47_vec[1]; /* all three start components are written */
-  v53_vec[2] = v41_vec[2] + 24.0f;
-  v66_vec[0] = v47_vec[0];
-  v66_vec[1] = v47_vec[1]; /* all three end components are written */
-  v66_vec[2] = v53_vec[2] - 100.0f; /* end.z is written here too */
-  /* thunk 0x10001861 -> AAS_TraceClientBBox */
-  trace = AAS_TraceClientBBox(v53_vec, v66_vec, 4, -1);
-  if ( !trace.startsolid )
-  {
-    v13 = bs;
-    VectorCopy(trace.endpos, v38_vec);
-    VectorCopy(v47_vec, bs->activategoal.origin);
-    bs->activategoal.areanum = AAS_PointAreaNum(v38_vec);
-    bs->activategoal.entitynum = v77.number;
-    bs->activategoal.number = 0;
-    bs->activategoal.flags = 0;
-    VectorSubtract(v44_vec, v47_vec, bs->activategoal.mins);
-    VectorSubtract(v41_vec, v47_vec, bs->activategoal.maxs);
-    bs->activategoal_time = AAS_Time() + 10.0f;
-    if ( !AAS_AreaReachability(bs->activategoal.areanum) )
-    {
-      result = BotAINode(bs);
-      if ( result == AINode_Seek_NBG )
+      AAS_PresenceTypeBoundingBox(4, bboxmins, bboxmaxs);
+      for (i = 0; i < 3; i++)
       {
-        bs->nbg_time = 0.0f;
+        if (movedir[i] < 0) dist += fabs(movedir[i]) * fabs(bboxmaxs[i]);
+        else dist += fabs(movedir[i]) * fabs(bboxmins[i]);
+      }
+      VectorMA(origin, -dist, movedir, goalorigin);
+      VectorCopy(goalorigin, start);
+      start[2] += 24;
+      VectorSet(end, start[0], start[1], start[2] - 100);
+      trace = AAS_TraceClientBBox(start, end, 4, -1);
+      if ( !trace.startsolid )
+        VectorCopy(trace.endpos, goalorigin);
+      VectorCopy(origin, bs->activategoal.origin);
+      bs->activategoal.areanum = AAS_PointAreaNum(goalorigin);
+      VectorSubtract(mins, origin, bs->activategoal.mins);
+      VectorSubtract(maxs, origin, bs->activategoal.maxs);
+      VectorAdd(bs->activategoal.mins, extramins, bs->activategoal.mins);
+      VectorAdd(bs->activategoal.maxs, extramaxs, bs->activategoal.maxs);
+      bs->activategoal.entitynum = entinfo.number;
+      bs->activategoal.number = 0;
+      bs->activategoal.flags = 0;
+      bs->activategoal_time = AAS_Time() + 10;
+      if ( !AAS_AreaReachability(bs->activategoal.areanum) )
+      {
+        if ( BotAINode(bs) == AINode_Seek_NBG )
+          bs->nbg_time = 0;
+        else if ( BotAINode(bs) == AINode_Seek_LTG )
+          bs->ltg_time = 0;
         return;
       }
-      if ( result == AINode_Seek_LTG )
-        v13->ltg_time = 0.0f;
+      AIEnter_Seek_ActivateEntity(bs);
       return;
     }
-    AIEnter_Seek_ActivateEntity(v13);
-    return;
+    if ( !strcmp(classname, "trigger_multiple") || !strcmp(classname, "trigger_once") )
+    {
+      model = AAS_ValueForBSPEpairKey(ent, "model");
+      modelnum = AAS_IndexFromModel(model);
+      if ( !modelnum )
+        modelnum = atoi(model + 1);
+      VectorClear(angles);
+      AAS_BSPModelMinsMaxsOrigin(modelnum - 1, angles, mins, maxs, NULL);
+      VectorAdd(mins, maxs, triggerorigin);
+      VectorScale(triggerorigin, 0.5, triggerorigin);
+      VectorCopy(triggerorigin, start);
+      start[2] = maxs[2] + 24;
+      VectorSet(end, start[0], start[1], start[2] - 100);
+      trace = AAS_TraceClientBBox(start, end, 4, -1);
+      if ( !trace.startsolid )
+      {
+        VectorCopy(trace.endpos, goalorigin);
+        VectorCopy(triggerorigin, bs->activategoal.origin);
+        bs->activategoal.areanum = AAS_PointAreaNum(goalorigin);
+        VectorSubtract(mins, triggerorigin, bs->activategoal.mins);
+        VectorSubtract(maxs, triggerorigin, bs->activategoal.maxs);
+        bs->activategoal.entitynum = entinfo.number;
+        bs->activategoal.number = 0;
+        bs->activategoal.flags = 0;
+        bs->activategoal_time = AAS_Time() + 10;
+        if ( !AAS_AreaReachability(bs->activategoal.areanum) )
+        {
+          if ( BotAINode(bs) == AINode_Seek_NBG )
+            bs->nbg_time = 0;
+          else if ( BotAINode(bs) == AINode_Seek_LTG )
+            bs->ltg_time = 0;
+          return;
+        }
+        AIEnter_Seek_ActivateEntity(bs);
+      }
+      return;
+    }
   }
-  return;
+  hordir[0] = moveresult->movedir[0];
+  hordir[1] = moveresult->movedir[1];
+  hordir[2] = 0;
+  VectorNormalize(hordir);
+  VectorCopy(bs->origin, start);
+  start[2] += libvar_sv_step->value;
+  VectorMA(start, 5, hordir, end);
+  VectorSet(mins, -16, -16, -24);
+  VectorSet(maxs, 16, 16, 4);
+  CrossProduct(hordir, up, sideward);
+  if ( bs->flags & 0x10 )
+  {
+    sideward[0] = -sideward[0];
+    sideward[1] = -sideward[1];
+    sideward[2] = -sideward[2];
+  }
+  if ( !BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, 1) )
+  {
+    bs->flags ^= 0x10;
+    sideward[0] = -sideward[0];
+    sideward[1] = -sideward[1];
+    sideward[2] = -sideward[2];
+    BotMoveInDirection((bot_movestate_t *)&bs->ms, sideward, 400, 1);
+  }
+  if ( BotAINode(bs) == AINode_Seek_NBG )
+    bs->nbg_time = 0;
+  else if ( BotAINode(bs) == AINode_Seek_LTG )
+    bs->ltg_time = 0;
 }
 
 // gladiator.dll: 100262C0..1002638D
@@ -2167,7 +1905,7 @@ void __cdecl BotCTFSeekGoals(bot_state_t *bs)
     v3 = bs->ltgtype;
     if ( v3 != 1 && v3 != 2 && v3 != 3 && v3 != 4 && v3 != 5 && v3 != 6 && v3 != 7 && BotAggression(bs) >= 50.0f )
     {
-      bs->teammessage_time = AAS_Time() + 2 * ((float)(rand() & 0x7FFF) * 0.000030518509f);
+      bs->teammessage_time = AAS_Time() + 2 * random();
       v5 = (rand() & 0x7FFF) * 0.0000305185f;
       if ( v5 < 0.33f && ctf_flag1.areanum && ctf_flag2.areanum )
       {
@@ -2430,7 +2168,7 @@ int __cdecl BotAddressedToBot(bot_state_t *bs, bot_match_t *match)
   }
   else
   {
-    v5 = (float)(rand() & 0x7FFF) * 0.000030518509f;
+    v5 = random();
     if ( 1.0f / (float)(BotNumTeamMates(bs) - 1) < v5 )
       return 0;
   }
@@ -2988,90 +2726,69 @@ LABEL_32:
 // gladi386.so:   00032D6C..000330B5
 void __cdecl BotCheckConsoleMessages(bot_state_t *bs)
 {
-  bot_chatstate_t *v2; // ebp
-  bot_consolemessage_t *v3;
-  char *v4; // eax
-  ptrdiff_t v5; // length in message
-  int context; // ecx
-  float v7; // st7
-  char *v8; // eax
-  float v11; // [esp+14h] [ebp-10h]
-  char *botname; // [esp+10h] [ebp-14h]
-  double v13; // [esp+1Ch] [ebp-8h]
-  float v12; // [esp+18h] [ebp-Ch]
-  float v14; // [esp+28h] [ebp+4h]
+  char *botname, *ptr;
+  float chat_reply;
+  int context;
+  bot_consolemessage_t *m;
 
   botname = ClientName(bs->client);
-  v2 = &bs->chatstate;
-  while ( (v3 = BotNextConsoleMessage(v2)) != NULL )
+  for ( m = BotNextConsoleMessage(&bs->chatstate); m; m = BotNextConsoleMessage(&bs->chatstate) )
   {
-    if ( BotNumConsoleMessages(v2) < 10 && v3->type == 1 )
+    if ( BotNumConsoleMessages(&bs->chatstate) < 10 )
     {
-      v12 = AAS_Time();
-      if ( v12 - ((float)(rand() & 0x7FFF) * 0.000030518509f + 1.0f) < v3->time )
+      if ( m->type == 1 && m->time > AAS_Time() - (1 + random()) )
         return;
     }
-    if ( v3->type == 1 )
+    if ( m->type == 1 )
     {
-      v4 = strstr(v3->message, ":");
-      /* POSITIVE guard, so the body stays the warm fall-through.  The negative
-       * `if (!v4) { remove; continue; }` form makes the remove block the fall-through,
-       * which also lets cl.exe cross-jump it into the strncmp path's identical block;
-       * the original keeps the two separate. */
-      if ( v4 )
+      ptr = strstr(m->message, ":");
+      if ( ptr )
       {
-        v5 = v4 - (char *)v3;
-        if ( !strncmp(v3->message, botname, v5 - 8) || !strncmp(v3->message + 1, botname, v5 - 10) )
+        if ( !strncmp(m->message, botname, ptr - m->message) || !strncmp(m->message + 1, botname, ptr - m->message - 2) )
         {
-          BotRemoveConsoleMessage(v2, v3);
+          BotRemoveConsoleMessage(&bs->chatstate, m);
           continue;
         }
       }
       else
       {
-        BotRemoveConsoleMessage(v2, v3);
+        BotRemoveConsoleMessage(&bs->chatstate, m);
         continue;
       }
     }
-    UnifyWhiteSpaces(v3->message);
+    UnifyWhiteSpaces(m->message);
     context = 3;
-    if ( ctf->value != 0.0f )
+    if ( ctf->value )
       context = BotCTFTeam(bs) == 1 ? 7 : 11;
-    BotReplaceSynonyms(v3->message, context);
-    if ( !BotMatchMessage(bs, v3->message) && v3->type == 1 )
+    BotReplaceSynonyms(m->message, context);
+    if ( !BotMatchMessage(bs, m->message) )
     {
-      v7 = nochat->value;
-      if ( v7 == 0.0f && BotAINode(bs) != AINode_Stand )
+      if ( m->type == 1 && !nochat->value )
       {
-        if ( BotValidChatPosition(bs) )
+        if ( BotAINode(bs) != AINode_Stand && BotValidChatPosition(bs) )
         {
-          v11 = Characteristic_BFloat(BotCharacter(bs), 22, 0.0, 1.0);
-          v13 = (float)(rand() & 0x7FFF) * 0.000030518509f;
-          if ( 1.5 / (NumBots() + 1) > v13 )
+          chat_reply = Characteristic_BFloat(BotCharacter(bs), 22, 0, 1);
+          if ( random() < 1.5 / (NumBots() + 1) && random() < chat_reply )
           {
-            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < v11 )
+            ptr = strstr(m->message, ":");
+            if ( ptr )
             {
-              v8 = strstr(v3->message, ":");
-              if ( v8 )
+              memmove(m->message, ptr + 1, strlen(ptr + 1) + 1);
+              UnifyWhiteSpaces(m->message);
+              if ( BotReplyChat(&bs->chatstate, m->message) )
               {
-                memmove(v3->message, v8 + 1, strlen(v8 + 1) + 1);
-                UnifyWhiteSpaces(v3->message);
-                if ( BotReplyChat(v2, v3->message) )
-                {
-                  BotRemoveConsoleMessage(v2, v3);
-                  v14 = BotChatTime(bs);
-                  bs->stand_time = AAS_Time() + v14;
-                  AIEnter_Stand(bs);
-                  return;
-                }
+                BotRemoveConsoleMessage(&bs->chatstate, m);
+                bs->stand_time = AAS_Time() + BotChatTime(bs);
+                AIEnter_Stand(bs);
+                return;
               }
             }
           }
-       }
-     }
-   }
-   BotRemoveConsoleMessage(v2, v3);
- }
+        }
+      }
+    }
+    BotRemoveConsoleMessage(&bs->chatstate, m);
+  }
 }
 
 // gladiator.dll: 100289A0..10028A15
@@ -3161,12 +2878,12 @@ void BotSetupDeathmatchAI()
       botimport.Print(PRT_WARNING, "CTF without Red Flag\n");
     if ( BotGetLevelItemGoal(-1, "Blue Flag", &ctf_flag2) < 0 )
       botimport.Print(PRT_WARNING, "CTF without Blue Flag\n");
-    modelindex3_flag1 = IndexFromModel("players/male/flag1.md2");
-    modelindex3_flag2 = IndexFromModel("players/male/flag2.md2");
-    modelindex_tech1 = IndexFromModel("models/ctf/resistance/tris.md2");
-    modelindex_tech2 = IndexFromModel("models/ctf/strength/tris.md2");
-    modelindex_tech3 = IndexFromModel("models/ctf/haste/tris.md2");
-    modelindex_tech4 = IndexFromModel("models/ctf/regeneration/tris.md2");
+    modelindex3_flag1 = AAS_IndexFromModel("players/male/flag1.md2");
+    modelindex3_flag2 = AAS_IndexFromModel("players/male/flag2.md2");
+    modelindex_tech1 = AAS_IndexFromModel("models/ctf/resistance/tris.md2");
+    modelindex_tech2 = AAS_IndexFromModel("models/ctf/strength/tris.md2");
+    modelindex_tech3 = AAS_IndexFromModel("models/ctf/haste/tris.md2");
+    modelindex_tech4 = AAS_IndexFromModel("models/ctf/regeneration/tris.md2");
   }
   mapchange = 1;
 }

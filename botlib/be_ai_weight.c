@@ -279,7 +279,7 @@ weightconfig_t *__cdecl ReadWeightConfig(char *filename)
 
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, filename, 0x90u);
-  if ( !sub_10041F60(Destination, &file_ref) )
+  if ( !FindQuakeFile(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
@@ -587,7 +587,7 @@ float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
     if ( fs->child )
       return FuzzyWeightUndecided_r(inventory, fs->child);
     else
-      return fs->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->maxweight - fs->minweight);
+      return fs->minweight + random() * (fs->maxweight - fs->minweight);
   }
   else if ( fs->next )
   {
@@ -596,11 +596,11 @@ float __cdecl FuzzyWeightUndecided_r(int *inventory, fuzzyseperator_t *fs)
       if ( fs->child )
         w1 = FuzzyWeightUndecided_r(inventory, fs->child);
       else
-        w1 = fs->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->maxweight - fs->minweight);
+        w1 = fs->minweight + random() * (fs->maxweight - fs->minweight);
       if ( fs->next->child )
         w2 = FuzzyWeight_r(inventory, fs->next->child);
       else
-        w2 = fs->next->minweight + ((rand() & 0x7FFF) * 0.000030518509f) * (fs->next->maxweight - fs->next->minweight);
+        w2 = fs->next->minweight + random() * (fs->next->maxweight - fs->next->minweight);
       scale = (inventory[fs->index] - fs->value) / (fs->next->value - fs->value);
       return scale * w1 + (1.0f - scale) * w2;
     }
@@ -641,18 +641,16 @@ void __cdecl EvolveFuzzySeperator_r(fuzzyseperator_t *fs)
   }
   else if ( fs->type == 1 )
   {
-    /* crandom() = 2.0 * (random() - 0.5), with random() = (rand()&0x7FFF)*c.  Keep the
-     * crandom() value as its own subexpression so the doubling (which MSVC
-     * strength-reduces to `fadd st(0),st`) happens BEFORE the (maxweight-minweight)
-     * multiply, as in the original. */
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.01 )
+    /* crandom() is its own paren group, so the doubling (which MSVC strength-reduces
+     * to `fadd st(0),st`) happens BEFORE the (maxweight-minweight) multiply. */
+    if ( random() < 0.01 )
     {
-      fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+      fs->weight += crandom()
                   * (fs->maxweight - fs->minweight);
     }
     else
     {
-      fs->weight += (2.0 * ((float)(rand() & 0x7FFF) * 0.000030518509f - 0.5))
+      fs->weight += crandom()
                   * (fs->maxweight - fs->minweight)
                   * 0.5;
     }

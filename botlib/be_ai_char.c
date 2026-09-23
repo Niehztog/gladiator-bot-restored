@@ -32,37 +32,17 @@
  * 1002B900.  DEAD in Gladiator. */
 void __cdecl BotDumpCharacter(bot_character_t *ch)
 {
-  int   i;
-  char *p;
+  int i;
+
   Log_Write("{");
-  i = 0;
-  if ( ch->numcharacteristics > 0 )
+  for ( i = 0; i < ch->numcharacteristics; i++ )
   {
-    /* The walk is biased to the VALUE field, reading the type at [edi-4], which is what
-     * makes three of the four accesses short `[edi]` forms; a struct-pointer walk over
-     * p->type / p->value biases to the pair base instead and costs ~124 bytes.  Bias and
-     * stride come from the struct, not literals — bot_characteristic_t is 16 bytes on
-     * 64-bit. */
-    p = (char *)&BC_PAIRS(ch)[0].value;
-    do
+    switch ( BC_PAIRS(ch)[i].type )
     {
-      int type = (signed char)p[-(int)offsetof(bot_characteristic_t, value)];
-      switch ( type )
-      {
-        case 1:
-          Log_Write(" %4d %d", i, *(int *)p);
-          break;
-        case 2:
-          Log_Write(" %4d %f", i, *(float *)p);
-          break;
-        case 3:
-          Log_Write(" %4d %s", i, *(char **)p);
-          break;
-      }
-      ++i;
-      p += sizeof(bot_characteristic_t);
+      case 1: Log_Write(" %4d %d", i, BC_PAIRS(ch)[i].value.integer); break;
+      case 2: Log_Write(" %4d %f", i, BC_PAIRS(ch)[i].value._float); break;
+      case 3: Log_Write(" %4d %s", i, BC_PAIRS(ch)[i].value.string); break;
     }
-    while ( i < ch->numcharacteristics );
   }
   Log_Write("}");
 }
@@ -94,7 +74,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 
   ch = 0;
   strncpy(Destination, charfile, MAX_PATH);
-  if ( !sub_10041F60(Destination, &file_ref) )
+  if ( !FindQuakeFile(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;

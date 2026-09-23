@@ -32,28 +32,28 @@ int numareacacheupdates; // weak
 /* ------------------------------------------------------------------------
  * Present in gladi386.so, ABSENT from gladiator.dll.
  *
- * The .so is the Aug 2 1999 build, the DLL Jul 18, so the Linux image carries
- * functions the Windows one does not.  Gated rather than added unconditionally,
- * because the DLL is the canonical byte-match target and code it does not contain
- * must not appear in it.  Drop the gate for any that later turns up.
+ * Two different reasons produce that.  Where Q3 declares the helper `__inline`
+ * (AAS_ClusterAreaNum, AAS_GetAreaContentsTravelFlags) the source is the same in
+ * both originals: cl.exe /O2 (/Ob1) expands every call and /OPT:REF discards the
+ * unreferenced COMDAT, while gcc 2.7.2.3 expands the calls AND emits the external
+ * definition.  Those are written as Q3 has them and called normally -- one text
+ * reproduces both images.  The rest are gated below as .so-only (the .so is the
+ * Aug 2 1999 build, the DLL Jul 18) until they pass the same test.
  *
  * Each sits at the position gladi386.so's address order records for it, because
  * gcc 2.7 auto-inlines only a same-TU callee it has already parsed.
  * ------------------------------------------------------------------------ */
-#ifndef _WIN32
-/* F508 @ 0x0002639c, 100 bytes.  Q3 botlib has this verbatim.  The disassembly
- * indexes areasettings by 28 (its sizeof) and portals by 20, takes
+/* F508 @ 0x0002639c, 100 bytes: Q3's `__inline int AAS_ClusterAreaNum`, verbatim.
+ * The disassembly indexes areasettings by 28 (its sizeof) and portals by 20, takes
  * `clusterareanum` at +0x10 when cluster > 0, and otherwise selects
  * clusterareanum[frontcluster != cluster] out of the portal at -cluster.
  *
  * FIRST in the TU, which is where gladi386.so's address order puts it (0x2639c,
- * ahead of AAS_InitTravelFlagFromType at 0x26400): gcc -O6 auto-inlines only a
- * same-TU callee it has already parsed, and every in-TU caller — including
- * AAS_GetAreaRoutingCache, whose real body has no `call` to this address at all —
- * follows it. */
+ * ahead of AAS_InitTravelFlagFromType at 0x26400): gcc inlines only a same-TU
+ * callee it has already parsed, and every in-TU caller follows it. */
 // gladiator.dll: absent
 // gladi386.so:   0002639C..00026400
-int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
+__inline int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
 {
   int side, areacluster;
 
@@ -63,8 +63,6 @@ int __cdecl AAS_ClusterAreaNum(int cluster, int areanum)
   side = aasworld.portals[-areacluster].frontcluster != cluster;
   return aasworld.portals[-areacluster].clusterareanum[side];
 } //end of the function AAS_ClusterAreaNum
-
-#endif /* !_WIN32 -- gladi386.so-only */
 
 // gladiator.dll: 10018D00..10018D8D
 // gladi386.so:   00026400..000264EF
@@ -180,55 +178,57 @@ unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end)
  * built with a single advancing pointer as in the original — keep that shape. */
 void AAS_CalculateAreaTravelTimes(void)
 {
-  int *numreachptr;
-  char *ptr;
   int i, l, n, size;
+  char *ptr;
   vec3_t end;
+  aas_reversedreach_t *revreach;
   aas_reversedlink_t *revlink;
   aas_reachability_t *reach;
-  aas_reversedreach_t *revreach;
   aas_areasettings_t *settings;
 
   Sys_MilliSeconds();
-  if ( aasworld.areatraveltimes )
-    FreeMemory(aasworld.areatraveltimes);
-
-  size = aasworld.numareas * (int)sizeof(unsigned short **);
-  if ( aasworld.numareas > 0 )
-  {
-    revreach = aasworld.reversedreachability;
-    numreachptr = &((aas_areasettings_t *)aasworld.areasettings)->numreachableareas;
-    i = aasworld.numareas;
-    do
-    {
-      l = *numreachptr;
-      size += l * (int)sizeof(unsigned short *);
-      if ( l > 0 )
-        size += l * revreach->numlinks * (int)sizeof(unsigned short);
-      ++revreach;
-      numreachptr += 7;
-      --i;
-    }
-    while ( i );
-  }
-
-  ptr = (char *)GetClearedMemory(size);
-  aasworld.areatraveltimes = (unsigned short ***)ptr;
-  ptr += aasworld.numareas * sizeof(unsigned short **);
-  for ( i = 0; i < aasworld.numareas; ++i )
+  //if there are still area travel times, free the memory
+  if ( aasworld.areatraveltimes ) FreeMemory(aasworld.areatraveltimes);
+  //get the total size of all the area travel times
+  size = aasworld.numareas * sizeof(unsigned short **);
+  for ( i = 0; i < aasworld.numareas; i++ )
   {
     revreach = &aasworld.reversedreachability[i];
-    settings = &((aas_areasettings_t *)aasworld.areasettings)[i];
-    aasworld.areatraveltimes[i] = (unsigned short **)ptr;
+    //settings of the area
+    settings = &aasworld.areasettings[i];
+    //
+    size += settings->numreachableareas * sizeof(unsigned short *);
+    /* An inner loop, not Q3's single multiply: gcc 2.7 unrolls it 4x in the .so,
+     * and cl.exe collapses it into the guarded `n * numlinks * 2` the DLL has. */
+    for ( l = 0; l < settings->numreachableareas; l++ )
+      size += revreach->numlinks * sizeof(unsigned short);
+  }
+  //allocate memory for the area travel times
+  ptr = (char *) GetClearedMemory(size);
+  aasworld.areatraveltimes = (unsigned short ***) ptr;
+  ptr += aasworld.numareas * sizeof(unsigned short **);
+  //calcluate the travel times for all the areas
+  for ( i = 0; i < aasworld.numareas; i++ )
+  {
+    //reversed reachabilities of this area
+    revreach = &aasworld.reversedreachability[i];
+    //settings of the area
+    settings = &aasworld.areasettings[i];
+    //
+    aasworld.areatraveltimes[i] = (unsigned short **) ptr;
     ptr += settings->numreachableareas * sizeof(unsigned short *);
-    for ( l = 0; l < settings->numreachableareas; ++l )
+    //
+    for ( l = 0; l < settings->numreachableareas; l++ )
     {
-      aasworld.areatraveltimes[i][l] = (unsigned short *)ptr;
+      aasworld.areatraveltimes[i][l] = (unsigned short *) ptr;
       ptr += revreach->numlinks * sizeof(unsigned short);
-      reach = &((aas_reachability_t *)aasworld.reachability)[settings->firstreachablearea + l];
-      for ( n = 0, revlink = revreach->first; revlink; revlink = revlink->next, ++n )
+      //reachability link
+      reach = &aasworld.reachability[settings->firstreachablearea + l];
+      //
+      for ( n = 0, revlink = revreach->first; revlink; revlink = revlink->next, n++ )
       {
-        VectorCopy(((aas_reachability_t *)aasworld.reachability)[revlink->linknum].end, end);
+        VectorCopy(aasworld.reachability[revlink->linknum].end, end);
+        //
         aasworld.areatraveltimes[i][l][n] = AAS_AreaTravelTime(i, reach->start, end);
       }
     }
@@ -524,13 +524,20 @@ void __cdecl F525(aas_routingupdate_t **updateliststart,
   update->inlist = 1;
 } //end of the function F525
 
+#endif /* !_WIN32 -- gladi386.so-only */
+
 /* F526 @ 0x000272b8, 83 bytes.  Q3's AAS_GetAreaContentsTravelFlags, minus the
  * DONOTENTER / NOTTEAM / BRIDGE clauses Q3 added later.  The four TFL_ values and
  * three AREACONTENTS_ bits come straight out of this function: `test al,1 ->
- * 0x10000`, `test al,4 -> 0x20000`, `test al,2 -> 0x40000`, else `0x8000`. */
+ * 0x10000`, `test al,4 -> 0x20000`, `test al,2 -> 0x40000`, else `0x8000`.
+ *
+ * Q3 1.32 calls it once, to fill a per-area table; Gladiator calls it straight from
+ * AAS_UpdateAreaRoutingCache's inner loop.  It has to be `__inline` here: the DLL has
+ * no body for it and expands it in place, and cl.exe /O2 (/Ob1) expands nothing that
+ * is not marked inline -- with the keyword both routing loops byte-match. */
 // gladiator.dll: absent
 // gladi386.so:   000272B8..0002730B
-int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
+__inline int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
 {
   int contents;
 
@@ -544,39 +551,29 @@ int __cdecl AAS_GetAreaContentsTravelFlags(int areanum)
   return TFL_AIR;
 } //end of the function AAS_GetAreaContentsTravelFlags
 
-#endif /* !_WIN32 -- gladi386.so-only */
-
 // gladiator.dll: 10019700..100199C3
 // gladi386.so:   0002730C..000276C3
 /* The routing-update FIFO is walked through typed aas_routingupdate_t fields
  * rather than the original's byte arithmetic on int-typed globals. */
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
 {
-  /* 64-bit fix: was `int a1_` cast to pointer — truncated on aarch64. */
-  int                  travelmask;       /* v26 */
-  aas_routingupdate_t *cur;              /* v25 */
-  aas_routingupdate_t *tail;             /* v21 */
-  aas_routingupdate_t *head;             /* v24 */
-  aas_routingupdate_t *upd;
-  aas_reversedlink_t  *link;             /* v22 */
-  int                  linkidx;          /* v23 / 2 */
-  unsigned short       newtt;            /* v17 */
-  int                  linknum;
-  int                  destcluster;      /* v3, v16 */
-  int                  destclusterareanum;
-  int                  srcareanum;       /* v14 */
-  int                  contents, presencemask;
-  aas_reachability_t  *reach;
-  unsigned short       oldtt;            /* v19 */
+  int i, nextareanum, cluster, badtravelflags, clusterareanum, linknum;
+  unsigned short int t;
+  aas_routingupdate_t *updateliststart, *updatelistend, *curupdate, *nextupdate;
+  aas_reachability_t *reach;
+  aas_reversedreach_t *revreach;
+  aas_reversedlink_t *revlink;
 
-  ++numareacacheupdates;
-  ++aasworld.frameroutingupdates;
-  memset((void *)aasworld.areaupdate, 0, sizeof(aas_routingupdate_t) * aasworld.numareas);
-
-  travelmask        = ~areacache->travelflags;
-
-  cur              = &aasworld.areaupdate[areacache->areanum];
-  cur->areanum         = areacache->areanum;
+  numareacacheupdates++;
+  //
+  aasworld.frameroutingupdates++;
+  //clear the routing update fields
+  memset(aasworld.areaupdate, 0, aasworld.numareas * sizeof(aas_routingupdate_t));
+  //
+  badtravelflags = ~areacache->travelflags;
+  //
+  curupdate = &aasworld.areaupdate[areacache->areanum];
+  curupdate->areanum = areacache->areanum;
   /* areatraveltimes[a][r][l] is "time to cross area a from the end of reachability r
    * to the start of its l'th reversed link".  For the START area there is no entering
    * reachability — the bot is already at areacache->origin — so the row is meaningless;
@@ -598,103 +595,80 @@ void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache)
    * this very map would over-read it by 17 — so the start row is NULL here and the sum
    * below folds the zero in.  GLAD_SERVERFIX(route-start-areatraveltimes). */
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(route-start-areatraveltimes) */
-  cur->areatraveltimes = NULL;   /* Q3's zeroed startareatraveltimes[], without the array */
+  curupdate->areatraveltimes = NULL;   /* Q3's zeroed startareatraveltimes[], without the array */
 #else
-  cur->areatraveltimes = aasworld.areatraveltimes[areacache->areanum][0];
+  curupdate->areatraveltimes = aasworld.areatraveltimes[areacache->areanum][0];
 #endif
-  cur->tmptraveltime   = (unsigned short)(__int64)areacache->starttraveltime;
-
-  destcluster = aasworld.areasettings[areacache->areanum].cluster;
-  if ( destcluster > 0 )
+  curupdate->tmptraveltime = areacache->starttraveltime;
+  //
+  clusterareanum = AAS_ClusterAreaNum(areacache->cluster, areacache->areanum);
+  ((unsigned short *)(areacache + 1))[clusterareanum] = areacache->starttraveltime;
+  //put the area to start with in the current read list
+  curupdate->next = NULL;
+  curupdate->prev = NULL;
+  updateliststart = curupdate;
+  updatelistend = curupdate;
+  //while there are updates in the current list
+  while ( updateliststart )
   {
-    destclusterareanum = aasworld.areasettings[areacache->areanum].clusterareanum;
-  }
-  else
-  {
-    destclusterareanum = ((aas_portal_t *)aasworld.portals)[-destcluster].clusterareanum
-                            [((aas_portal_t *)aasworld.portals)[-destcluster].frontcluster != areacache->cluster];
-  }
-  ((unsigned short *)(areacache + 1))[destclusterareanum] = (unsigned short)(__int64)areacache->starttraveltime;
-
-  cur->next = NULL;
-  cur->prev = NULL;
-  head      = cur;
-  tail      = cur;
-
-  while ( head )
-  {
-    cur  = head;
-    if ( cur->next )
-      cur->next->prev = NULL;
-    else
-      tail = NULL;
-    head = cur->next;
-    cur->inlist = 0;
-
-    link = aasworld.reversedreachability[cur->areanum].first;
-    linkidx = 0;
-    while ( link )
+    curupdate = updateliststart;
+    //
+    if ( curupdate->next ) curupdate->next->prev = NULL;
+    else updatelistend = NULL;
+    updateliststart = curupdate->next;
+    //
+    curupdate->inlist = 0;
+    //check all reversed reachability links
+    revreach = &aasworld.reversedreachability[curupdate->areanum];
+    //
+    for ( i = 0, revlink = revreach->first; revlink; revlink = revlink->next, i++ )
     {
-      linknum = link->linknum;
+      linknum = revlink->linknum;
       reach = &aasworld.reachability[linknum];
-      if ( (travelmask & aasworld.travelflagfortype[reach->traveltype]) == 0 )
-      {
-        contents = aasworld.areasettings[reach->areanum].contents;
-        if ( contents & 1 )      presencemask = 0x10000;
-        else if ( contents & 4 ) presencemask = 0x20000;
-        else if ( contents & 2 ) presencemask = 0x40000;
-        else                     presencemask = 0x8000;
-        if ( (presencemask & travelmask) == 0 )
-        {
-          srcareanum  = link->areanum;
-          destcluster = aasworld.areasettings[srcareanum].cluster;
-          if ( destcluster <= 0 || destcluster == areacache->cluster )
-          {
+      //if there is used an undesired travel type
+      if ( aasworld.travelflagfortype[reach->traveltype] & badtravelflags ) continue;
+      //if the next area has a not allowed travel flag
+      if ( AAS_GetAreaContentsTravelFlags(reach->areanum) & badtravelflags ) continue;
+      //number of the area the reversed reachability leads to
+      nextareanum = revlink->areanum;
+      //get the cluster number of the area
+      cluster = aasworld.areasettings[nextareanum].cluster;
+      //don't leave the cluster
+      if ( cluster > 0 && cluster != areacache->cluster ) continue;
+      //time already travelled plus the traveltime through
+      //the current area plus the travel time from the reachability
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(route-start-areatraveltimes) */
-            /* NULL is the start node's zero row — see the assignment above. */
-            newtt = cur->tmptraveltime
-                  + reach->traveltime
-                  + (cur->areatraveltimes ? cur->areatraveltimes[linkidx] : 0);
+      /* NULL is the start node's zero row — see the assignment above. */
+      t = curupdate->tmptraveltime +
+            (curupdate->areatraveltimes ? curupdate->areatraveltimes[i] : 0) +
+              reach->traveltime;
 #else
-            newtt = cur->tmptraveltime
-                  + reach->traveltime
-                  + cur->areatraveltimes[linkidx];
+      t = curupdate->tmptraveltime +
+            curupdate->areatraveltimes[i] +
+              reach->traveltime;
 #endif
-            if ( destcluster > 0 )
-            {
-              destclusterareanum = aasworld.areasettings[srcareanum].clusterareanum;
-            }
-            else
-            {
-              destclusterareanum = ((aas_portal_t *)aasworld.portals)[-destcluster].clusterareanum
-                                      [((aas_portal_t *)aasworld.portals)[-destcluster].frontcluster != areacache->cluster];
-            }
-            oldtt = ((unsigned short *)(areacache + 1))[destclusterareanum];
-            if ( !oldtt || oldtt > newtt )
-            {
-              ((unsigned short *)(areacache + 1))[destclusterareanum] = newtt;
-              upd = &aasworld.areaupdate[srcareanum];
-              upd->areanum         = srcareanum;
-              upd->tmptraveltime   = newtt;
-              upd->areatraveltimes = aasworld.areatraveltimes[srcareanum]
-                                       [linknum - aasworld.areasettings[srcareanum].firstreachablearea];
-              if ( !upd->inlist )
-              {
-                upd->next = NULL;
-                upd->prev = tail;
-                if ( tail )
-                  tail->next = upd;
-                else
-                  head = upd;
-                tail = upd;
-                upd->inlist = 1;
-              }
-            }
-          }
+      //get the number of the area in the cluster
+      clusterareanum = AAS_ClusterAreaNum(areacache->cluster, nextareanum);
+      //
+      if ( !((unsigned short *)(areacache + 1))[clusterareanum] ||
+            ((unsigned short *)(areacache + 1))[clusterareanum] > t )
+      {
+        ((unsigned short *)(areacache + 1))[clusterareanum] = t;
+        nextupdate = &aasworld.areaupdate[nextareanum];
+        nextupdate->areanum = nextareanum;
+        nextupdate->tmptraveltime = t;
+        nextupdate->areatraveltimes = aasworld.areatraveltimes[nextareanum][linknum -
+                          aasworld.areasettings[nextareanum].firstreachablearea];
+        if ( !nextupdate->inlist )
+        {
+          nextupdate->next = NULL;
+          nextupdate->prev = updatelistend;
+          if ( updatelistend ) updatelistend->next = nextupdate;
+          else updateliststart = nextupdate;
+          updatelistend = nextupdate;
+          nextupdate->inlist = 1;
         }
       }
-      link = link->next;
-      ++linkidx;
     }
   }
 }
@@ -706,24 +680,14 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
   /* The per-area chain head is aasworld.clusterareacache[cluster][areaInCluster];
    * prev/next go through typed fields, not the original's +0x20/+0x24 byte accesses.
    *
-   * The clusterareanum computation is the same two-week source drift documented for
-   * AAS_Trace in be_aas_bspq2.c: the Jul 18 DLL predates the AAS_ClusterAreaNum
-   * split above (byte-identical with the logic written out here), while the Aug 2
-   * .so already calls the factored-out helper. */
-#ifdef _WIN32
-  int areacluster; // eax
-#endif
+   * AAS_ClusterAreaNum is Q3's `__inline` helper in BOTH originals, not a Jul-to-Aug
+   * source drift: MSVC6 /O2 (/Ob1) expands `__inline` and /OPT:REF drops the unused
+   * COMDAT, so the DLL has no body for it; gcc 2.7.2.3 expands it too but still emits
+   * the external copy, which is the .so's F508.  One call reproduces both images. */
   aas_routingcache_t *clustercache, *cache;
   int clusterareanum; // [esp+18h] [ebp+8h]
 
-#ifdef _WIN32
-  areacluster = aasworld.areasettings[areanum].cluster;
-  clusterareanum = areacluster > 0
-      ? aasworld.areasettings[areanum].clusterareanum
-      : aasworld.portals[-areacluster].clusterareanum[aasworld.portals[-areacluster].frontcluster != clusternum];
-#else
   clusterareanum = AAS_ClusterAreaNum(clusternum, areanum);
-#endif
   clustercache = aasworld.clusterareacache[clusternum][clusterareanum];
   cache  = clustercache;
   while ( cache && cache->travelflags != travelflags )
@@ -1065,7 +1029,7 @@ int __cdecl AAS_RandomGoalArea(int areanum, int travelflags, _DWORD *goalareanum
   vec3_t end; // [esp+34h] [ebp-54h] BYREF
   aas_trace_t trace; // [esp+40h] [ebp-48h] (was int v17[9] + char v18[36] hidden return buffer)
 
-  n = (int)(aasworld.numareas * ((float)(rand() & 0x7FFF) * 0.000030518509f));
+  n = (int)(aasworld.numareas * random());
   /* A counted `for` with the success block INSIDE the loop, and the third clause
    * spelled `++n, ++i` — not `++i, ++n`.  The loop shape is what the ELF wants (the
    * continue block sits cold at the end, falling through into the success path); the

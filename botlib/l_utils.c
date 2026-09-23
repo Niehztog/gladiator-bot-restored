@@ -32,7 +32,7 @@
  * gladi386.so's and our surplus `.data` globals totalled 141 B, while real has
  * 2 B of unnamed `.data` in the whole image and therefore no room for them as
  * statics either.  gladi386.so has no unzip support at all (it imports no
- * dlopen and no zlib); .aas files are loaded directly by BotLibLoadMap.
+ * dlopen and no zlib); .aas files are loaded directly by AAS_LoadFiles.
  * (2026-08-17.) */
 #ifdef _WIN32
 CHAR FileName[] = "UNZIP32.DLL"; // idb
@@ -55,7 +55,7 @@ HMODULE hLibModule; // idb
 
 #ifdef _WIN32  /* ---- UnZip windll path (UNZIP32.DLL) ----
                 * Windows-only.  Linux gladi386.so has no unzip support (imports no dlopen and
-                * no zlib); .aas files are loaded directly by BotLibLoadMap. */
+                * no zlib); .aas files are loaded directly by AAS_LoadFiles. */
 // gladiator.dll: 10041240..1004151C
 // gladi386.so:   absent
 BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
@@ -261,7 +261,10 @@ int __stdcall sub_10041760(const char *a1, int a2)
 #endif /* _WIN32 — UnZip windll path */
 // gladiator.dll: 10041790..10041883
 // gladi386.so:   00053C3C..00053D94
-void __cdecl vectoangles(float *value1, float *angles)
+/* Q3 bspc/l_utils.c's `#ifdef BOTLIB` Vector2Angles: the (int) truncation of both
+ * angles and the value1[0]/value1[1] zero test are that variant's, not the game-side
+ * vectoangles'.  First of the l_utils.c family, as in Q3. */
+void __cdecl Vector2Angles(float *value1, float *angles)
 {
   float forward;
   float yaw, pitch;
@@ -289,57 +292,46 @@ void __cdecl vectoangles(float *value1, float *angles)
   angles[2] = 0;
 }
 
-// gladiator.dll: 100418D0..100418EE
-// gladi386.so:   00053D94..00053DB4
-/* In-place path-separator normalisation.  The original folds both '/' and '\\' to
- * '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.  The
- * _WIN32 branch is verbatim. */
+/* The path separator ConvertPath folds to.  The original folds both '/' and '\\'
+ * to '\\'; POSIX must fold to '/' instead, or access()/fopen() reject the path.
+ * The _WIN32 branch is verbatim.  Defined ABOVE the docblock: gen_ref_funcmap.sh
+ * takes the first non-comment line after a docblock as the definition, and an
+ * #ifdef there silently dropped this function from the DLL audit. */
 #ifdef _WIN32
 #  define BOTLIB_PATHSEP '\\'
 #else
 #  define BOTLIB_PATHSEP '/'
 #endif
 
-void __cdecl sub_100418D0(_BYTE *a1)
+// gladiator.dll: 100418D0..100418EE
+// gladi386.so:   00053D94..00053DB4
+/* In-place path-separator normalisation.  Named from two independent sources that
+ * carry this exact body: Q3 bspc/l_utils.c and the 1999 Gladiator game source's
+ * own game/bl_botcfg.c.  Byte-identical in both originals as written. */
+void __cdecl ConvertPath(char *path)
 {
-  _BYTE *v1; // ecx
-
-  v1 = a1;
-  if ( *v1 )
+  while ( *path )
   {
-    do
-    {
-      if ( *v1 == '/' || *v1 == '\\' )
-        *v1 = BOTLIB_PATHSEP;
-      ++v1;
-    }
-    while ( *v1 );
+    if ( *path == '/' || *path == '\\' ) *path = BOTLIB_PATHSEP;
+    path++;
   }
 }
 
 // gladiator.dll: 10041900..10041943
 // gladi386.so:   00053DB4..00053E05
-/* Genuinely void: every guard routes to the same bare epilogue and eax is never
- * set — any apparent return value is just the last compare's residue. */
-void __cdecl sub_10041900(const char *a1, int a2)
+/* Q3 bspc/l_utils.c and the 1999 game/bl_botcfg.c both carry this body under this
+ * name, "Seperator" spelling and the "AppenPathSeperator" end comment included.
+ * Genuinely void: every guard routes to the same bare epilogue. */
+void __cdecl AppendPathSeperator(char *path, int length)
 {
-  char result; // al
-  unsigned int v4; // esi
+  int pathlen = strlen(path);
 
-  v4 = strlen(a1);
-  if ( strlen(a1) )
+  if ( strlen(path) && length-pathlen > 1 && path[pathlen-1] != '/' && path[pathlen-1] != '\\' )
   {
-    if ( a2 - (int)v4 > 1 )
-    {
-      result = a1[v4 - 1];
-      if ( result != '/' && result != '\\' )
-      {
-        ((char *)a1)[v4] = BOTLIB_PATHSEP;
-        ((char *)a1)[v4 + 1] = 0;
-      }
-    }
+    path[pathlen] = BOTLIB_PATHSEP;
+    path[pathlen+1] = '\0';
   }
-}
+} //end of the function AppenPathSeperator
 
 /* PAK directory entry — 64 bytes on either word width.  Declared above the docblock so
  * the ref-funcmap generator attributes the address to the function. */
@@ -350,181 +342,146 @@ typedef struct pak_direntry_s {
 } pak_direntry_t;
 // gladiator.dll: 10041970..10041B29
 // gladi386.so:   00053E08..00054014
-int __cdecl sub_10041970(char *FileName, const char *a2, bot_fileref_t *a3)
+/* Q3 bspc/l_utils.c's FindFileInPak, verbatim (kept there under `#if 0`, i.e. the
+ * botlib code bspc inherited).  Byte-identical in both originals as written. */
+int __cdecl FindFileInPak(char *pakfile, const char *filename, bot_fileref_t *file)
 {
-  FILE *v3; // eax
-  FILE *v4; // esi
-  signed int v7; // ebp
-  char *v8; // edi
-  signed int v10; // ebx
-  char *v11; // esi
-  void **v12; // ebx
-  char v16[144]; // [esp+20h] [ebp-90h] BYREF
-  int Buffer[3]; // [esp+14h] [ebp-9Ch] BYREF
+  FILE *fp;
+  dpackheader_t packheader;
+  dpackfile_t *packfiles;
+  int numdirs, i;
+  char path[144];
 
-  v3 = fopen(FileName, "rb");
-  v4 = v3;
-  if ( !v3 ) { return 0; }
-  /* 12-byte PAK header: magic(4), dir_offset(4), dir_size(4). */
-  if ( fread(Buffer, 1u, 0xCu, v3) != 12
-    || Buffer[0] != 1262698832   /* "PACK" magic = 0x4B434150 */
-    || fseek(v4, LittleLong(Buffer[1]), SEEK_SET) )  /* seek to directory (Buffer[1] = dir_offset) */
+  //open the pak file
+  fp = fopen(pakfile, "rb");
+  if ( !fp )
   {
-    fclose(v4);
     return 0;
   }
-  v7 = (unsigned int)LittleLong(Buffer[2]) >> 6;                    /* number of entries: dir_size / 64 */
-  v8 = (char *)GetMemory(v7 << 6); /* allocate nentries*64 bytes */
-  if ( fread(v8, 0x40u, v7, v4) != v7 )
+  //read pak header, check for valid pak id and seek to the dir entries
+  if ( (fread(&packheader, 1, sizeof(dpackheader_t), fp) != sizeof(dpackheader_t))
+    || (packheader.ident != IDPAKHEADER)
+    || (fseek(fp, LittleLong(packheader.dirofs), SEEK_SET)) )
   {
-    fclose(v4);
-    FreeMemory(v8);
+    fclose(fp);
     return 0;
   }
-  fclose(v4);
-  strcpy(v16, a2);
-  sub_100418D0(v16);
-  v10 = 0;
-  if ( v7 <= 0 )
+  //number of dir entries in the pak file
+  numdirs = LittleLong(packheader.dirlen) / sizeof(dpackfile_t);
+  packfiles = (dpackfile_t *) GetMemory(numdirs * sizeof(dpackfile_t));
+  //read the dir entry
+  if ( fread(packfiles, sizeof(dpackfile_t), numdirs, fp) != numdirs )
   {
-LABEL_11:
-    FreeMemory(v8);
+    fclose(fp);
+    FreeMemory(packfiles);
     return 0;
   }
-  else
+  fclose(fp);
+  //
+  strcpy(path, filename);
+  ConvertPath(path);
+  //find the dir entry in the pak file
+  for ( i = 0; i < numdirs; i++ )
   {
-    v11 = v8;
-    while ( 1 )
+    //convert the dir entry name
+    ConvertPath(packfiles[i].name);
+    //compare the dir entry name with the filename
+    /* `Q_strcasecmp`, not `Q_stricmp` -- the real .so calls the former here
+     * (contentseq, 2026-08-16).  They are distinct functions in q_shared.c. */
+    if ( Q_strcasecmp(packfiles[i].name, path) == 0 )
     {
-      sub_100418D0(v11);
-      /* `Q_strcasecmp`, not `Q_stricmp` — the real .so calls the former here
-       * (contentseq, 2026-08-16).  They are distinct functions in q_shared.c. */
-      if ( !Q_strcasecmp(v11, v16) )
-        break;
-      ++v10;
-      v11 += 64;
-      if ( v10 >= v7 )
-        goto LABEL_11;
+      strcpy(file->path, pakfile);
+      file->fileofs = LittleLong(packfiles[i].filepos);
+      file->filelen = LittleLong(packfiles[i].filelen);
+      FreeMemory(packfiles);
+      return 1;
     }
-    strcpy(a3->path, FileName);
-    /* This lone goto is load-bearing: the shared FreeMemory/return-0 tail plus the v8
-     * stack spill (edi is the strcpy rep-movs scratch) is only reproduced by this form —
-     * every structured equivalent makes MSVC6 cache v8 in edi. */
-    a3->fileofs = LittleLong(((pak_direntry_t *)v8)[v10].filepos);
-    a3->filelen = LittleLong(((pak_direntry_t *)v8)[v10].filelen);
-    (void)v12;
-    FreeMemory(v8);
-    return 1;
   }
+  FreeMemory(packfiles);
+  return 0;
 }
 
 // gladiator.dll: 10041BA0..10041E9A
 // gladi386.so:   00054014..00054456
-/* Search for file `a3` under base path `a1`, first in the gamedir `Source`, then
- * "baseq2", trying both loose files and pak archives; the result goes to the
- * bot_fileref_t out-param. */
-int __cdecl sub_10041BA0(char *a1, char *Source, char *a3, bot_fileref_t *a4)
+/* Q3 bspc/l_utils.c's FindQuakeFile2, verbatim -- down to the `"pak%d.pak\0"`
+ * literal, whose doubled NUL gladi386.so's .rodata still shows (gcc 2.7 does not
+ * pad strings; the DLL's padding hides it).  Byte-identical in both originals. */
+int __cdecl FindQuakeFile2(char *basedir, char *gamedir, char *filename, bot_fileref_t *file)
 {
-  int v5; // esi
-  int v7; // [esp+10h] [ebp-244h]
-  /* `subdirs` MUST be one [3][144] array, not [2][144] plus a named third buffer: the
-   * loop walks a char* across all three rows, but only rows 0 (subdir) and 1 ("baseq2")
-   * are populated and searched, so a separately-named row 2 gets dead-eliminated by /O2
-   * — the array's escaping address is what keeps it live.  Each buffer's init is
-   * byte[0] = '\0' plus memset of the remaining 143, i.e. a 144-byte zero-fill. */
-  char *v4; // ebp
-  char FileName[144]; // [esp+14h] [ebp-240h] BYREF
-  char subdirs[3][144]; // [esp+A4h] [ebp-1A0h] BYREF — was subdirs[2][144] + v17_buf
+  int dir, i;
+  //NOTE: 3 is necessary (LCC bug???)
+  char gamedirs[3][144] = {"","",""};
+  char filedir[144] = "";
 
-  strcpy(subdirs[0], "");
-  strcpy(FileName, "");
-  memset(&subdirs[0][1], 0, 143);
-  strcpy(subdirs[1], "");
-  memset(&subdirs[1][1], 0, 143);
-  strcpy(subdirs[2], "");
-  memset(&subdirs[2][1], 0, 143);
-  memset(&FileName[1], 0, 143);
-  if ( Source )
-    strncpy(subdirs[0], Source, 0x90u);
-  strncpy(subdirs[1], "baseq2", 0x90u);
-  v7 = 0;
-  v4 = subdirs[0];
-  do
+  //
+  if ( gamedir ) strncpy(gamedirs[0], gamedir, 144);
+  strncpy(gamedirs[1], "baseq2", 144);
+  //
+  //find the file in the two game directories
+  for ( dir = 0; dir < 2; dir++ )
   {
-    FileName[0] = 0;
-    if ( a1 && strlen(a1) )
+    //check if the file is in a directory
+    filedir[0] = 0;
+    if ( basedir && strlen(basedir) )
     {
-      strncpy(FileName, a1, 0x90u);
-      sub_10041900(FileName, 144);
+      strncpy(filedir, basedir, 144);
+      AppendPathSeperator(filedir, 144);
     }
-    if ( strlen(v4) )
+    if ( strlen(gamedirs[dir]) )
     {
-      strncat(FileName, v4, 144 - strlen(FileName));
-      sub_10041900(FileName, 144);
+      strncat(filedir, gamedirs[dir], 144 - strlen(filedir));
+      AppendPathSeperator(filedir, 144);
     }
-    strncat(FileName, a3, 144 - strlen(FileName));
-    sub_100418D0(FileName);
-    Log_Write("accessing %s", FileName);
-    if ( _access(FileName, 4) )
+    strncat(filedir, filename, 144 - strlen(filedir));
+    ConvertPath(filedir);
+    Log_Write("accessing %s", filedir);
+    if ( !_access(filedir, 0x04) )
     {
-      v5 = 0;
-      while ( 1 )
-      {
-        FileName[0] = 0;
-        if ( a1 && strlen(a1) )
-        {
-          strncpy(FileName, a1, 0x90u);
-          sub_10041900(FileName, 144);
-        }
-        if ( strlen(v4) )
-        {
-          strncat(FileName, v4, 144 - strlen(FileName));
-          sub_10041900(FileName, 144);
-        }
-        sprintf(&FileName[strlen(FileName)], "pak%d.pak", v5);
-        if ( !_access(FileName, 4) )
-        {
-          Log_Write("searching %s in %s", a3, FileName); /* "searching %s in %s": file, pak */
-          if ( sub_10041970(FileName, a3, a4) )
-            return 1;
-        }
-        if ( ++v5 >= 10 )
-          break;
-      }
-      v4 += 144;  /* step from subdirs[0] to subdirs[1]; array guarantees 144-byte stride */
-    }
-    else
-    {
-      strcpy(a4->path, FileName);
-      a4->filelen = 0;
-      a4->fileofs = 0;
+      strcpy(file->path, filedir);
+      file->filelen = 0;
+      file->fileofs = 0;
       return 1;
     }
+    //check if the file is in a pak?.pak
+    for ( i = 0; i < 10; i++ )
+    {
+      filedir[0] = 0;
+      if ( basedir && strlen(basedir) )
+      {
+        strncpy(filedir, basedir, 144);
+        AppendPathSeperator(filedir, 144);
+      }
+      if ( strlen(gamedirs[dir]) )
+      {
+        strncat(filedir, gamedirs[dir], 144 - strlen(filedir));
+        AppendPathSeperator(filedir, 144);
+      }
+      sprintf(&filedir[strlen(filedir)], "pak%d.pak\0", i);
+      if ( !_access(filedir, 0x04) )
+      {
+        Log_Write("searching %s in %s", filename, filedir);
+        if ( FindFileInPak(filedir, filename, file) ) return 1;
+      }
+    }
   }
-  while ( ++v7 < 2 );
-  a4->fileofs = 0;
-  a4->filelen = 0;
+  file->fileofs = 0;
+  file->filelen = 0;
   return 0;
 }
 
 // gladiator.dll: 10041F60..10041FCB
 // gladi386.so:   00054458..000544E2
-BOOL __cdecl sub_10041F60(char *a1, bot_fileref_t *a2)
+/* Q3 bspc/l_utils.c's BOTLIB FindQuakeFile: FindQuakeFile2 over the "basedir" and
+ * "gamedir" libvars.  Gladiator then retries with "cddir" as the base, a fallback
+ * Q3 dropped along with the CD-install layout. */
+BOOL __cdecl FindQuakeFile(char *filename, bot_fileref_t *file)
 {
-  if ( sub_10041BA0(
-         LibVarGetString("basedir"),
-         LibVarGetString("gamedir"),
-         a1,
-         a2) )
+  if ( FindQuakeFile2(LibVarGetString("basedir"), LibVarGetString("gamedir"), filename, file) )
     return 1;
-  if ( sub_10041BA0(
-         LibVarGetString("cddir"),
-         LibVarGetString("gamedir"),
-         a1,
-         a2) )
+  if ( FindQuakeFile2(LibVarGetString("cddir"), LibVarGetString("gamedir"), filename, file) )
     return 1;
   return 0;
-}
+} //end of the function FindQuakeFile
 
 #ifdef _WIN32  /* ---- ZIP32 windll archive path (ZIP32.DLL): sub_10041FF0 + helpers/callbacks ----
                 * Windows-only, and dead even there (no live caller).  Absent on Linux. */

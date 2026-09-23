@@ -31,7 +31,7 @@ extern bot_state_t *botstates;
 
 float __cdecl AngleDifference(float ang1, float ang2);
 float BotChangeViewAngle(float angle, float ideal_angle, float speed);
-int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);
+void __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime);
 int __cdecl BotClientSettings(int a1, const void *a2);
 int __cdecl BotConsoleMessage(int, int, char *Source);
 int __cdecl BotMoveClient(int a1, int a2);

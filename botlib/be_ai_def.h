@@ -43,7 +43,7 @@ typedef struct iteminfo_s {
     char    name[80];        /* +0x000 — item config name (e.g. "Shotgun")    */
     char    dispname[80];    /* +0x050 — spawn classname for BSP matching (set by LoadItemConfig) */
     char    model[80];       /* +0x0A0 — model path                           */
-    int     modelindex;      /* +0x0F0 — engine model index, = IndexFromModel(model); filled by BotInitLevelItems */
+    int     modelindex;      /* +0x0F0 — engine model index, = AAS_IndexFromModel(model); filled by BotInitLevelItems */
     int     type;            /* +0x0F4 — item-type bitfield                   */
     int     index;           /* +0x0F8 — item index in inventory              */
     float   respawntime;     /* +0x0FC — respawn delay in seconds             */
@@ -647,7 +647,7 @@ typedef struct bot_state_s {
                                    * the "viewer angles" argument to BotEntityVisible /
                                    * InFieldOfVision, overwritten with ideal_viewangles before
                                    * EA_View. */
-    vec3_t ideal_viewangles;      /* +4236..+4247 vectoangles dst; copied into the EA_View arg */
+    vec3_t ideal_viewangles;      /* +4236..+4247 Vector2Angles dst; copied into the EA_View arg */
     vec3_t viewanglespeed;        /* +4248..+4259 per-axis view-angle change rate, clamped toward
                                    * ideal_viewangles each frame in BotChangeViewAngles */
     int    ltgtype;               /* +4260 */
@@ -709,7 +709,7 @@ union cvalue {
 };
 
 typedef struct bot_characteristic_s {
-    unsigned char type; /* 0=unset, 1=int, 2=float, 3=string */
+    char          type; /* 0=unset, 1=int, 2=float, 3=string (Q3: plain char) */
     union cvalue  value;
 } bot_characteristic_t;
 

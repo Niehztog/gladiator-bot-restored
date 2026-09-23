@@ -15,7 +15,7 @@ int __cdecl AAS_AreaGrounded(int areanum); /* AAS_AreaGrounded impl */
 extern aas_reachabilitynode_t **areareachability;
 extern int reach_ladder;
 extern int reach_elevator;
-extern intptr_t reachabilityheap;
+extern aas_reachabilitynode_t *reachabilityheap;
 extern int reach_jump;
 extern int reach_grapple;
 extern int reach_waterjump;
@@ -23,7 +23,7 @@ extern int reach_teleport;
 extern int reach_barrier;
 extern int reach_swim;
 extern int reach_equalfloor;
-extern intptr_t nextreachability;
+extern aas_reachabilitynode_t *nextreachability;
 extern int reach_walkoffledge;
 extern int reach_rocketjump;
 extern int reach_step;
@@ -62,12 +62,12 @@ int AAS_Reachability_Teleport();
 void __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();
-int AAS_SetupReachabilityHeap();
+void AAS_SetupReachabilityHeap(void);
 void AAS_ShutDownReachabilityHeap();
 void AAS_StoreReachability();
 int __cdecl VectorBetweenVectors(vec3_t v, vec3_t v1, vec3_t v2);
 float __cdecl VectorDistance(vec3_t v1, vec3_t v2);
 void __cdecl VectorMiddle(vec3_t v1, vec3_t v2, vec3_t middle);
-unsigned __int16 __cdecl sub_100116D0(void);
+unsigned __int16 __cdecl AAS_BarrierJumpTravelTime(void);
 
 #endif /* BOTLIB_BE_AAS_REACH_H */

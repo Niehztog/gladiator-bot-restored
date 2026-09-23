@@ -29,7 +29,7 @@ int __cdecl BotReachabilityArea(int *origin, int client);
 int __cdecl BotReachabilityTime(aas_reachability_t* reach);
 void __cdecl BotResetAvoidReach(_DWORD *movestate);
 void __cdecl BotResetGrapple(bot_movestate_t *ms);
-void __cdecl BotResetLastAvoidReach(intptr_t movestate);
+void __cdecl BotResetLastAvoidReach(bot_movestate_t *ms);
 void __cdecl BotResetMoveState(void *movestate);
 int __cdecl BotSwimInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type);
 bot_moveresult_t __cdecl BotTravel_BarrierJump(bot_movestate_t *ms, aas_reachability_t *reach);

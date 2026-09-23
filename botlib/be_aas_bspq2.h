@@ -5,7 +5,7 @@
 
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
-int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);  /* Q3 canonical name */
+int __cdecl sub_10006100(vec3_t absmins, vec3_t absmaxs, float *p);  /* BSP-plane twin of AAS_BoxOnPlaneSide2 */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3]);  // 0x100034D0; was sub_100034D0 (originally also mislabeled sub_100423B0)
 int  AAS_LoadBSPFile(char *FileName, int Offset, int Length); /* be_aas_bspq2.c 0x10007D30 */
 
@@ -74,7 +74,7 @@ typedef struct bspworld_s {
                              * NOT a PVS table. */
     char *dword_1006755C; /* +0x09C (VA 0x1006755C) pointer */
     char *dword_10067560; /* +0x0A0 (VA 0x10067560) pointer */
-    char  byte_10067564[8192]; /* +0x0A4 (VA 0x10067564) AAS_DecompressVis's output row
+    unsigned char byte_10067564[8192]; /* +0x0A4 (VA 0x10067564) AAS_DecompressVis's output row
                                  * buffer (Q2 CM_DecompressVis's static `decompressed[]`
                                  * cognate) */
     int   dword_10069564;  /* +0x20A4 (VA 0x10069564) last-decompressed cluster
@@ -128,12 +128,12 @@ extern bspworld_t bspworld;
 
 bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum, int modelnum);
 void __cdecl AAS_BSPModelMinsMaxsOrigin(int modelnum, vec3_t angles, vec3_t mins, vec3_t maxs, vec3_t origin);
-int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p);
+int __cdecl sub_10006100(vec3_t absmins, vec3_t absmaxs, float *p);
 void __cdecl AAS_DecompressVis(int a1, int a2);
 void AAS_DumpBSPData();
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 void __cdecl AAS_FreeBSPEntities(bsp_entity_t *a1);
-BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3);
+BOOL __cdecl AAS_InPVS(float *p1, float *p2, int type);
 int __cdecl AAS_IntForBSPEpairKey(bsp_entity_t *ent, const char *key);
 int AAS_LoadBSPFile(char *FileName, int Offset, int Length);
 bsp_entity_t *AAS_ParseBSPEntities(void);
@@ -148,10 +148,10 @@ int __cdecl CM_PointLeafnum(const vec3_t point, int modelnum);
 int __cdecl CM_TraceThroughBrush(dbrush_t *a1, float *a2, float *a3, float *a4, float *a5, float *a6, float *a7, float *a8, _DWORD *a9, float *a10, float *a11);
 int __cdecl CM_TraceThroughLeaf(int leafnum, vec3_t origin, vec3_t angles, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace);
 void CalcSurfaceExtents();
-float __cdecl FloatForKey(bsp_entity_t *ent, const char *key);
+float __cdecl AAS_FloatForBSPEpairKey(bsp_entity_t *ent, const char *key);
 void Q2_SwapBSPFile(void);
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor);
-int __cdecl sub_10003080(vec3_t point);
+int __cdecl AAS_PointContents(vec3_t point);
 void sub_100030A0();
 void __cdecl sub_100031B0(char *name);
 bsp_link_t *sub_100031F0(void);

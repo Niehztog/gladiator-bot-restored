@@ -81,7 +81,7 @@ itemconfig_t * LoadItemConfig(char *filename)
   }
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, filename, 0x90u);
-  if ( !sub_10041F60(Destination, &file_ref) )
+  if ( !FindQuakeFile(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
@@ -270,7 +270,7 @@ void BotInitLevelItems()
     notspawnflags_mask = (int)LibVarValue("notspawnflags", (char *)"2048");
     for ( i = 0; i < ic->numitems; ++i )
     {
-      ic->items[i].modelindex = IndexFromModel(ic->items[i].model);
+      ic->items[i].modelindex = AAS_IndexFromModel(ic->items[i].model);
       if ( !ic->items[i].modelindex )
         Log_Write("item %s has modelindex 0", ic->items[i].dispname);
     }
@@ -299,7 +299,7 @@ void BotInitLevelItems()
                 li->iteminfo = i;
                 VectorCopy(origin, li->origin);
                 li->areanum = AAS_BestReachableArea(
-                                         (int *)origin,
+                                         origin,
                                          ic->items[i].mins,
                                          ic->items[i].maxs,
                                          li->goalorigin);
@@ -428,122 +428,91 @@ int __cdecl BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 // gladi386.so:   0003EE40..0003F195
 void BotUpdateEntityItems(void)
 {
-  levelitem_t *v0;
-  levelitem_t *nextli;
-  int ent; // ebp
-  int v4; // ebx
-  levelitem_t *li;
-  int v7; // eax
-  levelitem_t *v13;
-  /* IDA split one reused MSVC stack slot into two separate-looking names (v19 and
-   * modelindex at the same [esp+10h] offset).  The initial `v4 = v19;` before the loop
-   * is really a read of this same not-yet-assigned slot, before the loop's first
-   * `modelindex = AAS_EntityModelindex(ent);` sets it — declaring them as distinct
-   * locals forces gcc to allocate 2 stack slots instead of 1. */
-  int modelindex; // [esp+10h] [ebp-108h]
-  itemconfig_t *ic; // [esp+Ch] [ebp-10Ch]
-  vec3_t dir; // [esp+14h] [ebp-104h] BYREF
-  /* Properly-typed struct, not `float entinfo[31]` + a type-punned cast assignment:
-   * writing AAS_EntityInfo()'s struct-by-value return through a cast to a
-   * differently-declared object defeats gcc's return-slot forwarding, forcing a hidden
-   * temp plus an extra 124-byte rep-movs copy. */
-  aas_entityinfo_t entinfo; // [esp+20h] [ebp-F8h] BYREF
+  int ent, i, modelindex;
+  vec3_t dir;
+  levelitem_t *li, *nextli;
+  aas_entityinfo_t entinfo;
+  itemconfig_t *ic;
 
-  v0 = levelitems;
-  if ( v0 )
+  for ( li = levelitems; li; li = nextli )
   {
-    do
+    nextli = li->next;
+    if ( li->timeout )
     {
-      nextli = v0->next;
-      if ( v0->timeout != 0.0f && AAS_Time() > v0->timeout )
+      if ( li->timeout < AAS_Time() )
       {
-        RemoveLevelItemFromList(v0);
-        FreeLevelItem(v0);
+        RemoveLevelItemFromList(li);
+        FreeLevelItem(li);
       }
-      v0 = nextli;
     }
-    while ( nextli );
   }
   ic = itemconfig;
   if ( !itemconfig )
     return;
-  v4 = modelindex;
-  ent = AAS_NextBSPEntity(0);
-  while ( ent )
+  for ( ent = AAS_NextBSPEntity(0); ent; ent = AAS_NextBSPEntity(ent) )
   {
     modelindex = AAS_EntityModelindex(ent);
     if ( !modelindex )
-      goto LABEL_31;
+      continue;
     entinfo = AAS_EntityInfo(ent);
-    if ( entinfo.origin[0] != entinfo.lastvisorigin[0] || entinfo.origin[1] != entinfo.lastvisorigin[1] || entinfo.origin[2] != entinfo.lastvisorigin[2] )
-      goto LABEL_31;
-    li = levelitems;
-    if ( !li )
-      goto LABEL_24;
-    while ( 1 )
+    if ( entinfo.origin[0] != entinfo.lastvisorigin[0] ||
+         entinfo.origin[1] != entinfo.lastvisorigin[1] ||
+         entinfo.origin[2] != entinfo.lastvisorigin[2] )
+      continue;
+    for ( li = levelitems; li; li = li->next )
     {
-      if ( ic->items[li->iteminfo].modelindex != modelindex )
-        goto LABEL_19;
-      v7 = li->entitynum;
-      if ( !v7 )
-        break;
-      if ( v7 != ent )
-        goto LABEL_19;
-      VectorCopy(entinfo.origin, li->origin);
-      goto LABEL_23;
-LABEL_19:
-      li = li->next;
-      if ( !li )
-        goto LABEL_23;
-    }
-    VectorSubtract(li->origin, entinfo.origin, dir);
-    if ( 20.0f > VectorLength(dir) )
-      goto LABEL_20;
-    goto LABEL_19;
-LABEL_20:
-    li->origin[1] = entinfo.origin[1];
-    li->entitynum = ent;
-    li->origin[0] = entinfo.origin[0];
-    li->origin[2] = entinfo.origin[2];
-    /* v4 is stale here — the 1999 original's own bug, disasm-confirmed (the model
-     * check loads li->iteminfo into eax @1002fb20, but the call passes ebx
-     * @1002fbd2).  Q3 fixed it to ic->iteminfo[li->iteminfo]; that is what
-     * GLAD_SERVERFIX(bot-item-stale-iteminfo) builds. */
-    li->areanum = AAS_BestReachableArea(
-              (int *)li->origin,
+      if ( ic->items[li->iteminfo].modelindex == modelindex )
+      {
+        if ( li->entitynum )
+        {
+          if ( li->entitynum == ent )
+          {
+            VectorCopy(entinfo.origin, li->origin);
+            break;
+          }
+        }
+        else
+        {
+          VectorSubtract(li->origin, entinfo.origin, dir);
+          if ( VectorLength(dir) < 20 )
+          {
+            li->entitynum = ent;
+            VectorCopy(entinfo.origin, li->origin);
+            /* `i` is stale here -- the 1999 original's own bug, disasm-confirmed (the
+             * model check loads li->iteminfo into eax @1002fb20, but the call passes
+             * ebx @1002fbd2): Q3 fixed it to ic->iteminfo[li->iteminfo], which is what
+             * GLAD_SERVERFIX(bot-item-stale-iteminfo) builds. */
+            li->areanum = AAS_BestReachableArea(li->origin,
 #if GLAD_SERVERFIX /* GLAD_SERVERFIX(bot-item-stale-iteminfo) */
-              ic->items[li->iteminfo].mins,
-              ic->items[li->iteminfo].maxs,
+                                                ic->items[li->iteminfo].mins,
+                                                ic->items[li->iteminfo].maxs,
 #else
-              ic->items[v4].mins,
-              ic->items[v4].maxs,
+                                                ic->items[i].mins,
+                                                ic->items[i].maxs,
 #endif
-              li->goalorigin);
-LABEL_23:
+                                                li->goalorigin);
+            break;
+          }
+        }
+      }
+    }
     if ( li )
-      goto LABEL_31;
-LABEL_24:
-    for ( v4 = 0; v4 < ic->numitems; ++v4 )
+      continue;
+    for ( i = 0; i < ic->numitems; i++ )
     {
-      if ( ic->items[v4].modelindex == modelindex )
+      if ( ic->items[i].modelindex == modelindex )
         break;
     }
-    if ( v4 >= ic->numitems )
-      goto LABEL_31;
-    v13 = (levelitem_t *)AllocLevelItem();
-    v13->entitynum = ent;
-    v13->number = numlevelitems + ent;
-    VectorCopy(entinfo.origin, v13->origin);
-    v13->iteminfo = v4;
-    v13->areanum = AAS_BestReachableArea(
-                              (int *)v13->origin,
-                              ic->items[v4].mins,
-                              ic->items[v4].maxs,
-                              v13->goalorigin);
-    v13->timeout = AAS_Time() + 30.0f;
-    AddLevelItemToList(v13);
-LABEL_31:
-    ent = AAS_NextBSPEntity(ent);
+    if ( i >= ic->numitems )
+      continue;
+    li = (levelitem_t *)AllocLevelItem();
+    li->entitynum = ent;
+    li->number = numlevelitems + ent;
+    li->iteminfo = i;
+    VectorCopy(entinfo.origin, li->origin);
+    li->areanum = AAS_BestReachableArea(li->origin, ic->items[i].mins, ic->items[i].maxs, li->goalorigin);
+    li->timeout = AAS_Time() + 30;
+    AddLevelItemToList(li);
   }
 }
 
@@ -561,21 +530,16 @@ void __cdecl BotDumpGoalStack(bot_goalstate_t *goalstate)
 
 // gladiator.dll: 1002FD90..1002FDDB
 // gladi386.so:   0003F230..0003F328
-void __cdecl BotPushGoal(bot_goalstate_t *goalstate, const void *goal)
+void __cdecl BotPushGoal(bot_goalstate_t *gs, const void *goal)
 {
-  int v2; // eax
-  int result; // eax
-
-  v2 = goalstate->goalstacktop;
-  if ( v2 >= 7 )
+  if ( gs->goalstacktop >= 7 )
   {
     botimport.Print(PRT_ERROR, "goal heap overflow\n");
-    BotDumpGoalStack(goalstate);
+    BotDumpGoalStack(gs);
     return;
   }
-  result = v2 + 1;
-  goalstate->goalstacktop = result;
-  memcpy(&goalstate->goalstack[result], goal, sizeof(bot_goal_t));
+  gs->goalstacktop++;
+  memcpy(&gs->goalstack[gs->goalstacktop], goal, sizeof(bot_goal_t));
 }
 
 // gladiator.dll: 1002FE00..1002FE16
@@ -692,7 +656,6 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
               if ( v13 > bestweight )
               {
                 bestweight = v13;
-                bestitem = li;
                 VectorCopy(li->goalorigin, goal.origin);
                 VectorCopy(iteminfo->mins, goal.mins);
                 VectorCopy(iteminfo->maxs, goal.maxs);
@@ -701,6 +664,7 @@ int __cdecl BotChooseLTGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                 goal.number = li->number;
                 goal.flags = 1;
                 goal.iteminfo = li->iteminfo;
+                bestitem = li;
               }
             }
           }
@@ -784,7 +748,9 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
     return 0;
   if ( !AAS_AreaReachability(areanum) )
     return 0;
-  ltg_time = ltg ? (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags) : 99999;
+  //get the long term goal travel time
+  if ( ltg ) ltg_time = (unsigned __int16)AAS_AreaTravelTimeToGoalArea(v9, ltg->areanum, travelflags);
+  else ltg_time = 99999;
   ic = itemconfig;
   if ( !ic )
     return 0;
@@ -826,7 +792,6 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                            * load-ahead bubbles, since both read the same `li`/`weight`
                            * the copy uses. */
                           bestweight = weight;
-                          bestitem = li;
                           VectorCopy(li->goalorigin, goal.origin);
                           VectorCopy(iteminfo->mins, goal.mins);
                           VectorCopy(iteminfo->maxs, goal.maxs);
@@ -835,6 +800,7 @@ int __cdecl BotChooseNBGItem(bot_goalstate_t *goalstate, vec3_t origin, char *in
                           goal.number = li->number;
                           goal.flags = 1;
                           goal.iteminfo = li->iteminfo;
+                          bestitem = li;
                         }
                       }
                     }
@@ -928,18 +894,19 @@ BOOL __cdecl BotItemGoalInVisButNotVisible(int viewer, vec3_t eye, vec3_t viewan
 // gladi386.so:   0003FECC..0003FFBB
 int __cdecl BotLoadItemWeights(bot_goalstate_t *goalstate, char *filename)
 {
-  weightconfig_t *v2;
-
-  v2 = ReadWeightConfig(filename);
-  BotGoalHandleP0(goalstate) = v2;
-  if ( !v2 )
+  //load the weight configuration
+  BotGoalHandleP0(goalstate) = ReadWeightConfig(filename);
+  if ( !BotGoalHandleP0(goalstate) )
   {
     botimport.Print(PRT_FATAL, "couldn't load weights\n");
     return BLERR_CANNOTLOADITEMWEIGHTS;
   }
+  //if there's no item configuration
   if ( !itemconfig )
     return BLERR_CANNOTLOADITEMWEIGHTS;
-  BotGoalHandleP1(goalstate) = ItemWeightIndex(v2, itemconfig);
+  //create the item weight index
+  BotGoalHandleP1(goalstate) = ItemWeightIndex(BotGoalHandleP0(goalstate), itemconfig);
+  //everything went ok
   return BLERR_NOERROR;
 }
 

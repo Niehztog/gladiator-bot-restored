@@ -6,7 +6,7 @@
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);  // 5-param: matches call sites
 
-int __cdecl AAS_BestReachableArea(int * origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
+int __cdecl AAS_BestReachableArea(vec3_t origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 int __cdecl AAS_BestReachableEntityArea(int entnum);
 int __cdecl AAS_BestReachableLinkArea(aas_link_t *areas);
 int __cdecl AAS_DropToFloor(vec3_t origin, vec3_t mins, vec3_t maxs);
@@ -24,7 +24,7 @@ void AAS_ResetEntityLinks();
 int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state);
 int __cdecl BotEntityVisible(int, float *, float *, float, int);
 int InFieldOfVision(float *, float, float *);
-int __cdecl sub_1000B1F0(float *ref, int target);
+int __cdecl AAS_NearestEntity(float *ref, int target);
 int __cdecl sub_1000BAA0(int, float *, float *, float, int, int *);
 
 #endif /* BOTLIB_BE_AAS_ENTITY_H */

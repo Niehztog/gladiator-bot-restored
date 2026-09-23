@@ -438,7 +438,7 @@ typedef struct {
 /* 64-bit side-band accessors for aas_entity_t.  PORT-ONLY: no 1999 counterpart.  They
  * live here rather than in botlib_port.h because each wraps one specific structure
  * above.  This one covers the two link-list heads at +124 (areas) and +128 (BSP
- * leaves), keyed by entity index, allocated with aasworld.entities in sub_1000EDC0. */
+ * leaves), keyed by entity index, allocated with aasworld.entities in AAS_Setup. */
 #if BOTLIB_NEED_SIDEBAND
 #define AAS_EntAreaLink(entnum) (aasentity_arealinks[(entnum)])
 #define AAS_EntBspLink(entnum)  (aasentity_bsplinks[(entnum)])

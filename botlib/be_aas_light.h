@@ -3,7 +3,7 @@
 #ifndef BOTLIB_BE_AAS_LIGHT_H
 #define BOTLIB_BE_AAS_LIGHT_H
 
-int __cdecl AAS_BSPTraceLight(intptr_t start, intptr_t end, intptr_t endpos, int *red, int *green, int *blue);
+int __cdecl AAS_BSPTraceLight(vec3_t start, vec3_t end, vec3_t endpos, int *red, int *green, int *blue);
 int __cdecl AAS_PointLight(float *origin, int *red, int *green, int *blue);
 int __cdecl BotAddPointLight(vec3_t origin, int ent, float radius, float r, float g, float b, float time, float decay);
 bsp_pointlight_t *sub_1000D450();

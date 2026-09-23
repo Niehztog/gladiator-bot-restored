@@ -303,7 +303,7 @@ _WORD *__cdecl CRC_Init(_WORD *crcvalue)
 // gladiator.dll: 100385D0..10038605
 // gladi386.so:   00049CB0..00049CE6
 // Standard CCITT CRC-16 single-byte update against the lookup table at crctable.
-// Mirrors Q3's CRC_ProcessByte.  DEAD in Gladiator (CRC_Block at 10038640 inlines the
+// Mirrors Q3's CRC_ProcessByte.  DEAD in Gladiator (CRC_ProcessString at 10038640 inlines the
 // same step), but preserved by the linker.
 void __cdecl CRC_ProcessByte(unsigned short *crcvalue, byte data)
 {
@@ -319,7 +319,10 @@ unsigned short __cdecl CRC_Value(unsigned short crcvalue)
 
 // gladiator.dll: 10038640..100386B7
 // gladi386.so:   00049CF0..00049E7E
-unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
+/* Q3 botlib l_crc.c's CRC_ProcessString, verbatim: the `ind < 0 || ind > 256` guard
+ * and the closing CRC_Value() are Q3 botlib's; Q1/Q2's CRC_Block has neither, which is
+ * why the old name (matched by name against the Q1/Q2 corpora) was wrong. */
+unsigned short __cdecl CRC_ProcessString(const unsigned char *data, int length)
 {
   unsigned __int16 crcvalue;
   int i, ind;
@@ -338,11 +341,12 @@ unsigned short __cdecl CRC_Block(const unsigned char *data, int length)
 // gladiator.dll: 100386E0..1003872D
 // gladi386.so:   00049E80..00049FE5
 // CRC-16 multi-byte update over `data[0..len-1]`, applying the same per-byte transform
-// as CRC_ProcessByte in a tight loop and writing the result back through `crc`.  Mirrors
-// Q3's CRC_ProcessByteString.  DEAD in Gladiator (the equivalent loop is inlined in
-// CRC_Block).  The disasm scans the buffer using `[eax+ebp*1]` with eax=loop-counter and
+// as CRC_ProcessByte in a tight loop and writing the result back through `crc`.  Q3
+// l_crc.c's CRC_ContinueProcessString, verbatim, last in the TU as in Q3 (an older
+// banner cited a nonexistent "CRC_ProcessByteString").  DEAD in Gladiator (the
+// equivalent loop is inlined in CRC_ProcessString).  The disasm scans the buffer using `[eax+ebp*1]` with eax=loop-counter and
 // ebp=base — the classic index/base swap, equivalent to data[i] for i in [0..len).
-void __cdecl sub_100386E0(unsigned __int16 *crc, char *data, int len)
+void __cdecl CRC_ContinueProcessString(unsigned __int16 *crc, char *data, int len)
 {
   int i;
 

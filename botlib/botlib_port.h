@@ -294,7 +294,11 @@ typedef float vec3_t[3];
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <errno.h>
+/* NOT <errno.h>: it is part of the codegen.  be_ai2_main.c's BotSetupLibrary keeps its
+ * status in a local named `errno`.  MSVC's <stdlib.h> defines errno as (*_errno()), so
+ * in the DLL that local becomes a block-scope _errno() declaration and every use a CRT
+ * call; glibc's <stdlib.h> defines nothing, so in the .so it is a plain register.
+ * be_aas_main.c, whose .so calls __errno_location, includes <errno.h> itself. */
 #include <time.h>
 #include <unistd.h>
 

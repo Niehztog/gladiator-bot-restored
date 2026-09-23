@@ -90,22 +90,11 @@ int __cdecl AAS_AlternativeRouteGoals(
     vec3_t start, vec3_t goal, int travelflags,
     aas_altroutegoal_t *altroutegoals, int maxaltroutegoals)
 {
-  int   startareanum;
-  int   goalareanum;
-  short baseline_travel;
-  short travel_to_start;
-  short travel_to_goal;
-  int   areanum;
-  int   ebp_area;
-  int   i;
-  int   nummidrangeareas;
-  int   numaltroutegoals;
-  int   best_area;
-  vec3_t diff;
-  vec3_t centroid;
-  float best_dist;
-  double threshold;
-  float fcount;
+  int i, j, startareanum, goalareanum, bestareanum;
+  int numaltroutegoals, nummidrangeareas;
+  unsigned short starttime, goaltime, goaltraveltime;
+  float dist, bestdist;
+  vec3_t mid, dir;
 
   startareanum = AAS_PointAreaNum(start);
   if ( !startareanum )
@@ -113,101 +102,94 @@ int __cdecl AAS_AlternativeRouteGoals(
   goalareanum = AAS_PointAreaNum(goal);
   if ( !goalareanum )
     return 0;
-
-  baseline_travel = AAS_AreaTravelTimeToGoalArea(
-      startareanum, goalareanum, travelflags);
-
-  /* Zero candidate flag table: 8 bytes per area. */
-  memset((void *)midrangeareas, 0, aasworld.numareas * sizeof(midrangearea_t));
-  nummidrangeareas = 0;
+  //travel time towards the goal area
+  goaltraveltime = AAS_AreaTravelTimeToGoalArea(startareanum, goalareanum, travelflags);
+  //clear the midrange areas
+  memset(midrangeareas, 0, aasworld.numareas * sizeof(midrangearea_t));
   numaltroutegoals = 0;
-
-  /* Phase 1: mark candidate route-portal areas within 1.5x baseline.  No explicit
-   * numareas>1 wrapper: the for-loop entry guard already emits the single
-   * `cmp numareas,1; jle` the original has. */
-  for ( areanum = 1; areanum < aasworld.numareas; areanum++ )
+  //
+  nummidrangeareas = 0;
+  //
+  for ( i = 1; i < aasworld.numareas; i++ )
   {
-    if ( (aasworld.areasettings[areanum].contents & 0x20)
-      && AAS_AreaReachability(areanum) )
-    {
-      travel_to_start = AAS_AreaTravelTimeToGoalArea(
-          startareanum, areanum, travelflags);
-      if ( travel_to_start )
-      {
-        threshold = (float)(unsigned short)baseline_travel * 1.5;
-        if ( (float)(unsigned short)travel_to_start <= threshold )
-        {
-          travel_to_goal = AAS_AreaTravelTimeToGoalArea(
-              areanum, goalareanum, travelflags);
-          if ( travel_to_goal
-            && (float)(unsigned short)travel_to_goal <= threshold )
-          {
-            midrangeareas[areanum].valid     = 1;
-            midrangeareas[areanum].starttime = travel_to_start;
-            midrangeareas[areanum].goaltime  = travel_to_goal;
-            /* Log_Write("%d midrange area %d", count_pre_inc, areanum) */
-            Log_Write("%d midrange area %d", nummidrangeareas, areanum);
-            nummidrangeareas++;
-          }
-        }
-      }
-    }
-  }
-
-  /* Phase 2: flood-fill each remaining candidate cluster and emit
-   * one alt-route goal per cluster (centroid → nearest member). */
-  for ( ebp_area = 1; ebp_area < aasworld.numareas; ebp_area++ )
-  {
-    if ( !midrangeareas[ebp_area].valid )
+    //
+    if ( !(aasworld.areasettings[i].contents & 0x20) )
       continue;
-
+    //if the area has no reachabilities
+    if ( !AAS_AreaReachability(i) )
+      continue;
+    //tavel time from the area to the start area
+    starttime = AAS_AreaTravelTimeToGoalArea(startareanum, i, travelflags);
+    if ( !starttime )
+      continue;
+    //if the travel time from the start to the area is greater than the shortest goal travel time
+    if ( starttime > 1.5 * goaltraveltime )
+      continue;
+    //travel time from the area to the goal area
+    goaltime = AAS_AreaTravelTimeToGoalArea(i, goalareanum, travelflags);
+    if ( !goaltime )
+      continue;
+    //if the travel time from the area to the goal is greater than the shortest goal travel time
+    if ( goaltime > 1.5 * goaltraveltime )
+      continue;
+    //this is a mid range area
+    midrangeareas[i].valid = 1;
+    midrangeareas[i].starttime = starttime;
+    midrangeareas[i].goaltime = goaltime;
+    Log_Write("%d midrange area %d", nummidrangeareas, i);
+    nummidrangeareas++;
+  }
+  //
+  for ( i = 1; i < aasworld.numareas; i++ )
+  {
+    if ( !midrangeareas[i].valid )
+      continue;
+    //get the areas in one cluster
     numclusterareas = 0;
-    AAS_AltRoutingFloodCluster_r(ebp_area);          /* fills clusterareas[0..N-1] */
-
-    VectorClear(centroid);
-    for ( i = 0; i < numclusterareas; i++ )
+    AAS_AltRoutingFloodCluster_r(i);
+    //now we've got a cluster with areas through which an alternative route could go
+    //get the 'center' of the cluster
+    VectorClear(mid);
+    for ( j = 0; j < numclusterareas; j++ )
     {
-      centroid[0] += aasworld.areas[clusterareas[i]].center[0];
-      centroid[1] += aasworld.areas[clusterareas[i]].center[1];
-      centroid[2] += aasworld.areas[clusterareas[i]].center[2];
+      VectorAdd(mid, aasworld.areas[clusterareas[j]].center, mid);
     }
-    fcount = (float)(1.0 / (float)numclusterareas);
-    VectorScale(centroid, fcount, centroid);
-
-    best_dist = 999999.0f;            /* 0x497423F0 */
-    best_area = 0;
-    for ( i = 0; i < numclusterareas; i++ )
+    VectorScale(mid, 1.0 / numclusterareas, mid);
+    //get the area closest to the center of the cluster
+    bestdist = 999999;
+    bestareanum = 0;
+    for ( j = 0; j < numclusterareas; j++ )
     {
-      float d;
-      VectorSubtract(centroid, aasworld.areas[clusterareas[i]].center, diff);
-      d = VectorLength(diff);
-      if ( d < best_dist )
+      VectorSubtract(mid, aasworld.areas[clusterareas[j]].center, dir);
+      dist = VectorLength(dir);
+      if ( dist < bestdist )
       {
-        best_dist = d;
-        best_area = clusterareas[i];
+        bestdist = dist;
+        bestareanum = clusterareas[j];
       }
     }
-
-    VectorCopy(aasworld.areas[best_area].center, altroutegoals[numaltroutegoals].origin);
-    altroutegoals[numaltroutegoals].areanum         = best_area;
-    altroutegoals[numaltroutegoals].travel_to_start = midrangeareas[best_area].starttime;
-    altroutegoals[numaltroutegoals].travel_to_goal  = midrangeareas[best_area].goaltime;
+    //now we've got an area for an alternative route
+    VectorCopy(aasworld.areas[bestareanum].center, altroutegoals[numaltroutegoals].origin);
+    altroutegoals[numaltroutegoals].areanum = bestareanum;
+    altroutegoals[numaltroutegoals].travel_to_start = midrangeareas[bestareanum].starttime;
+    altroutegoals[numaltroutegoals].travel_to_goal = midrangeareas[bestareanum].goaltime;
     altroutegoals[numaltroutegoals].extra_travel_time =
-        midrangeareas[best_area].starttime
-      + midrangeareas[best_area].goaltime
-      - baseline_travel;
+          (midrangeareas[bestareanum].starttime + midrangeareas[bestareanum].goaltime) -
+                goaltraveltime;
     numaltroutegoals++;
+    //don't return more than the maximum alternative route goals
     if ( numaltroutegoals >= maxaltroutegoals )
       break;
   }
-
   botimport.Print(PRT_MESSAGE, "%d alternative route goals\n", numaltroutegoals);
   return numaltroutegoals;
 }
 
 // gladiator.dll: 1001AB80..1001ABDA
 // gladi386.so:   000289B4..00028A33
-void sub_1001AB80()
+/* Q3 be_aas_routealt.c's AAS_InitAlternativeRouting (its ENABLE_ALTROUTING body),
+ * called last in the map-load path exactly where Q3's AAS_LoadMap calls it. */
+void AAS_InitAlternativeRouting()
 {
   if ( midrangeareas )
     FreeMemory(midrangeareas);

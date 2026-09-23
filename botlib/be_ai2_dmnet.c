@@ -141,9 +141,9 @@ int BotGetFormationGoal(bot_state_t *bs)
     }
   }
   /* 6. Velocity to angles: bias the yaw and wrap with anglemod, zero pitch and roll.
-   *    The explicit angles[2] = 0 is redundant after vectoangles but is in the
+   *    The explicit angles[2] = 0 is redundant after Vector2Angles but is in the
    *    original. */
-  vectoangles(bs->formationgoal_dir, angles);
+  Vector2Angles(bs->formationgoal_dir, angles);
   angles[0] = 0.0f;
   angles[1] = anglemod(angles[1] + bs->formationgoal_yawbias);
   /* 7. start = saved_origin + (0,0,1); scaled = AngleVectors(angles) * 400.  The
@@ -196,378 +196,343 @@ fail:
  *   3 = defend a goal item                 4 = CTF goal (returns the flag base)
  *   6 = camp at goal                       7 = patrol checkpoints
  *
- * Q3's BotLongTermGoal fills a bot_goal_t out-param instead of returning a pointer
- * into bs. */
-float *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
+ * Q3's BotGetLongTermGoal fills a bot_goal_t out-param instead of returning a pointer
+ * into bs; the blocks are otherwise Q3's, in Q3's order, with its declaration list.
+ * They form ONE if/else-if chain ending in a single `return goal;`: the .so jumps from
+ * every block to that one epilogue (the defend and rush-base blocks carry their
+ * pending BotResetAvoidReach argument pop into it), which per-block returns do not
+ * reproduce. */
+bot_goal_t *__cdecl BotLongTermGoal(bot_state_t *bs, int tfl, int retreat)
 {
-  int v7; // eax
-  float *result; // eax
-  float *v17; // edi
-  float v18; // st7
-  int v20; // rax (was __int64)
-  int v21; // eax
-  float *v26; // esi
-  float v30; // st7
-  float v34; // st7
-  bot_waypoint_t *i; // edx
-  bot_waypoint_t *v37; // eax
-  int v38; // eax
-  bot_waypoint_t *v39; // ecx
-  bot_waypoint_t *v40; // edx
-  bot_waypoint_t *v41; // edx
-  bot_waypoint_t *v42; // eax
-  float v43; // st7
-  float *v44; // eax
-  float croucher; // [esp+28h] [ebp-220h]
-  int v45; // [esp+18h] [ebp-230h]
-  float v47; // [esp+18h] [ebp-230h]
-  float v46; // [esp+18h] [ebp-230h]
-  vec3_t target; // [esp+2Ch] [ebp-21Ch] BYREF — BotRoamGoal output position
-  vec3_t dir; // [esp+1Ch] [ebp-22Ch] BYREF — direction vector (target - bot.origin) for VectorLength/vectoangles
-  char netname[128]; // [esp+B4h] [ebp-194h] BYREF
-  char buf[152]; // [esp+134h] [ebp-114h] BYREF
-  aas_entityinfo_t entinfo; // [esp+38h] [ebp-210h] BYREF
+  vec3_t target, dir;
+  char netname[128];
+  char buf[152];
+  int areanum;
+  float croucher;
+  aas_entityinfo_t entinfo;
+  bot_waypoint_t *wp;
+  bot_goal_t *goal;
 
-  if ( bs->ltgtype != 1 || retreat )
+  if ( bs->ltgtype == 1 && !retreat )
   {
-    if ( bs->ltgtype == 2 && !retreat )
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
     {
-      if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-      {
-        BotInitialChat(&bs->chatstate, "accompany_start", EasyClientName(bs->teammate - 1, netname), (char *)0);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
-        bs->teammessage_time = 0.0f;
-      }
-      if ( AAS_Time() > bs->teamgoal_time )
-      {
-        BotInitialChat(&bs->chatstate, "accompany_stop", EasyClientName(bs->teammate - 1, netname), (char *)0);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
-        bs->ltgtype = 0;
-      }
-      entinfo = AAS_EntityInfo(bs->teammate);
-      if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
-      {
-        bs->teammatevisible_time = AAS_Time();
-        v17 = bs->origin;
-        VectorSubtract(entinfo.origin, bs->origin, dir);
-        if ( VectorLength(dir) < bs->formation_dist )
-        {
-          v18 = AAS_Time() - 5;
-          if ( v18 > bs->attackcrouch_time )
-          {
-            /* The BFloat result feeds both the rand check and the *15.0 jump-time
-             * factor below. */
-            croucher = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < croucher * bs->thinktime )
-              bs->attackcrouch_time = AAS_Time() + croucher * 15 + 5;
-          }
-          if ( AAS_Swimming(bs->origin) )
-            bs->attackcrouch_time = AAS_Time() - 1;
-          if ( AAS_Time() - 2 > bs->arrive_time )
-          {
-            if ( bs->arrive_time == 0 )
-            {
-              sub_100371B0(bs->client, 1);
-              BotInitialChat(&bs->chatstate, "accompany_arrive", EasyClientName(bs->teammate - 1, netname), (char *)0);
-              BotEnterChat(&bs->chatstate, bs->client, 1);
-              bs->arrive_time = AAS_Time();
-            }
-            else if ( AAS_Time() < bs->attackcrouch_time )
-            {
-              EA_Crouch(bs->client);
-            }
-            else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.3 )
-            {
-              v45 = rand() & 0x7FFF;
-              v20 = (int)floor((float)v45 * 0.000030518509f * 2.9);
-              switch ( v20 )
-              {
-                case 0:
-                  sub_100371B0(bs->client, 0);
-                  break;
-                case 1:
-                  sub_100371B0(bs->client, 2);
-                  break;
-                default:
-                  sub_100371B0(bs->client, 3);
-                  break;
-              }
-            }
-          }
-          if ( AAS_Time() - 2 < bs->arrive_time )
-          {
-            dir[0] = entinfo.origin[0] - *v17;
-            dir[1] = entinfo.origin[1] - bs->origin[1];
-            dir[2] = entinfo.origin[2] - bs->origin[2];
-            vectoangles(dir, bs->ideal_viewangles);
-          }
-          else if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
-          {
-            BotRoamGoal(bs, target);
-            dir[0] = target[0] - *v17;
-            dir[1] = target[1] - bs->origin[1];
-            dir[2] = target[2] - bs->origin[2];
-            vectoangles(dir, bs->ideal_viewangles);
-          }
-          else
-          {
-            goto LABEL_RESET;
-          }
-          bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-          goto LABEL_RESET;
-        }
-      }
-      if ( entinfo.valid )
-      {
-        v21 = AAS_PointAreaNum(entinfo.origin);
-        if ( v21 )
-        {
-          if ( AAS_AreaReachability(v21) )
-          {
-            bs->teamgoal.origin[1] = entinfo.origin[1];
-            bs->teamgoal.entitynum = bs->teammate;
-            bs->teamgoal.mins[0] = -8.0f;
-            bs->teamgoal.mins[1] = -8.0f;
-            bs->teamgoal.mins[2] = -8.0f;
-            bs->teamgoal.areanum = v21;
-            bs->teamgoal.origin[0] = entinfo.origin[0];
-            bs->teamgoal.origin[2] = entinfo.origin[2];
-            bs->teamgoal.maxs[0] = 8.0f;
-            bs->teamgoal.maxs[1] = 8.0f;
-            bs->teamgoal.maxs[2] = 8.0f;
-          }
-        }
-      }
-      v26 = bs->teamgoal.origin;
-      if ( AAS_Time() - 60 > bs->teammatevisible_time )
-      {
-        BotInitialChat(&bs->chatstate, "accompany_cannotfind", EasyClientName(bs->teammate - 1, netname), (char *)0);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
-        goto LABEL_55;
-      }
-      return v26;
+      BotInitialChat(&bs->chatstate, "help_start", EasyClientName(bs->teammate - 1, netname), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
     }
-    if ( bs->ltgtype == 3 && AAS_Time() > bs->defendaway_time && !retreat )
+    if ( bs->teamgoal_time < AAS_Time() )
+      bs->ltgtype = 0;
+    if ( bs->teammatevisible_time < AAS_Time() - 10 )
+      bs->ltgtype = 0;
+    entinfo = AAS_EntityInfo(bs->teammate);
+    if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->teammate) )
     {
-      if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-      {
-        BotInitialChat(&bs->chatstate, "defend_start", BotGoalName(bs->teamgoal.number), (char *)0);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
-        bs->teammessage_time = 0.0f;
-      }
-      v26 = bs->teamgoal.origin;
-      if ( AAS_Time() > bs->teamgoal_time )
-      {
-        BotInitialChat(&bs->chatstate, "defend_stop", BotGoalName(bs->teamgoal.number), (char *)0);
-        BotEnterChat(&bs->chatstate, bs->client, 1);
-        bs->ltgtype = 0;
-      }
-      VectorSubtract(v26, bs->origin, dir);
-      if ( VectorLength(dir) < 70 )
+      VectorSubtract(entinfo.origin, bs->origin, dir);
+      if ( VectorLength(dir) < 100 )
       {
         BotResetAvoidReach((_DWORD *)&bs->ms);
-        v46 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
-        v30 = AAS_Time();
-        result = bs->teamgoal.origin;
-        bs->defendaway_time = v30 + v46 + 5;
-        return result;
-      }
-      return v26;
-    }
-
-    if ( bs->ltgtype == 6 )
-    {
-        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-        {
-          BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, netname), (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          bs->teammessage_time = 0.0f;
-        }
-        v26 = bs->teamgoal.origin;
-        if ( AAS_Time() > bs->teamgoal_time )
-        {
-          BotInitialChat(&bs->chatstate, "camp_stop", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          bs->ltgtype = 0;
-        }
-        VectorSubtract(v26, bs->origin, dir);
-        if ( VectorLength(dir) < 40 )
-        {
-          if ( bs->arrive_time == 0 )
-          {
-            BotInitialChat(&bs->chatstate, "camp_arrive", EasyClientName(bs->teammate - 1, netname), (char *)0);
-            BotEnterChat(&bs->chatstate, bs->client, 1);
-            bs->arrive_time = AAS_Time();
-          }
-          if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
-          {
-            BotRoamGoal(bs, target);   /* named `bs`, not `a1`: that alias collides with the global `char a1[2]` */
-            VectorSubtract(target, bs->origin, dir);
-            vectoangles(dir, bs->ideal_viewangles);
-            bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-          }
-          v34 = AAS_Time() - 5;
-          if ( v34 > bs->attackcrouch_time )
-          {
-            /* Same squat-jump pattern as the BFloat use above. */
-            croucher = (float)Characteristic_BFloat(BotCharacter(bs), 24, 0.0, 1.0);
-            if ( (float)(rand() & 0x7FFF) * 0.000030518509f < croucher * bs->thinktime )
-              bs->attackcrouch_time = AAS_Time() + croucher * 15 + 5;
-          }
-          if ( AAS_Time() < bs->attackcrouch_time )
-            EA_Crouch(bs->client);
-          if ( AAS_Swimming(bs->origin) )
-            bs->attackcrouch_time = AAS_Time() - 1;
-          if ( (sub_10003080((float *)bs->eye) & 0x38) != 0 )
-          {
-            BotInitialChat(&bs->chatstate, "camp_stop", (char *)0);
-            BotEnterChat(&bs->chatstate, bs->client, 1);
-            bs->ltgtype = 0;
-          }
-LABEL_RESET:
-          BotResetAvoidReach((_DWORD *)&bs->ms);
-          return 0;
-        }
-        return v26;
-    }
-    if ( bs->ltgtype == 7 )
-    {
-        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-        {
-          strcpy(buf, "");
-          for ( i = BotPatrolpoints(bs); i; i = i->next )
-          {
-            strcat(buf, i->name);
-            if ( i->next )
-              strcat(buf, " to ");
-          }
-          BotInitialChat(&bs->chatstate, "patrol_start", buf, (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          bs->teammessage_time = 0.0f;
-        }
-        v37 = BotCurPatrolPoint(bs);
-        if ( !v37 )
-        {
-          bs->ltgtype = 0;
-          return 0;
-        }
-        if ( !BotTouchingGoal(bs->origin, &v37->goal) )
-          goto LABEL_106;
-        v38 = bs->patrolflags;
-        v39 = BotCurPatrolPoint(bs);
-        if ( (v38 & 4) != 0 )
-        {
-          v40 = v39->prev;
-          if ( v40 )
-          {
-            BotCurPatrolPoint(bs) = v40;
-LABEL_106:
-            if ( AAS_Time() > bs->teamgoal_time )
-            {
-              BotInitialChat(&bs->chatstate, "patrol_stop", (char *)0);
-              BotEnterChat(&bs->chatstate, bs->client, 1);
-              bs->ltgtype = 0;
-            }
-            v42 = BotCurPatrolPoint(bs);
-            if ( !v42 )
-            {
-              bs->ltgtype = 0;
-              return 0;
-            }
-            return v42->goal.origin;
-          }
-          v38 &= 0xFFFFFFFB;
-          BotCurPatrolPoint(bs) = v39->next;
-        }
-        else
-        {
-          v41 = v39->next;
-          if ( v41 )
-          {
-            BotCurPatrolPoint(bs) = v41;
-            goto LABEL_106;
-          }
-          v38 |= 4;
-          BotCurPatrolPoint(bs) = v39->prev;
-        }
-        bs->patrolflags = v38;
-        goto LABEL_106;
-    }
-    if ( bs->ltgtype == 4 )
-    {
-        if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-        {
-          BotInitialChat(&bs->chatstate, "captureflag_start", (char *)0);
-          BotEnterChat(&bs->chatstate, bs->client, 1);
-          bs->teammessage_time = 0.0f;
-        }
-        switch ( BotCTFTeam(bs) )
-        {
-          case 1:
-            v26 = ctf_flag2.origin;
-            break;
-          default:
-            v26 = ctf_flag1.origin;
-            break;
-        }
-        if ( BotTouchingGoal(bs->origin, v26) )
-          bs->ltgtype = 0;
-        if ( AAS_Time() > bs->teamgoal_time )
-        {
-          bs->ltgtype = 0;
-          return v26;
-        }
-        return v26;
-    }
-    if ( bs->ltgtype == 5 && AAS_Time() > bs->rushbaseaway_time )
-    {
-      switch ( BotCTFTeam(bs) )
-      {
-        case 1:
-          v26 = ctf_flag1.origin;
-          break;
-        default:
-          v26 = ctf_flag2.origin;
-          break;
-      }
-      if ( AAS_Time() > bs->teamgoal_time )
-        bs->ltgtype = 0;
-      if ( BotTouchingGoal(bs->origin, v26) )
-      {
-        if ( BotCTFCarryingFlag(bs) )
-        {
-          BotResetAvoidReach((_DWORD *)&bs->ms);
-          v47 = ((float)(rand() & 0x7FFF) * 0.000030518509f) * 10;
-          v43 = AAS_Time();
-          bs->rushbaseaway_time = v43 + v47 + 5;
-          return v26;
-        }
-LABEL_55:
-        bs->ltgtype = 0;
-        return v26;
-      }
-      return v26;
-    }
-    v44 = (float *)BotGetTopGoal(&bs->goalstate);
-    v26 = v44;
-    if ( v44 )
-    {
-      if ( BotTouchingGoal(bs->origin, v44) )
-      {
-        if ( techs->value != 0.0f )
-          sub_100262C0((_DWORD *)bs, v26);   /* named `bs`, not `a1`: that alias collides with the global `char a1[2]` */
-        bs->ltg_time = 0.0f;
-      }
-      else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, (bot_goal_t *)v26) )
-      {
-        bs->ltg_time = 0.0f;
+        return NULL;
       }
     }
     else
     {
-      bs->ltg_time = 0.0f;
+      bs->teammatevisible_time = AAS_Time();
     }
-    if ( AAS_Time() > bs->ltg_time )
+    if ( entinfo.valid )
+    {
+      areanum = AAS_PointAreaNum(entinfo.origin);
+      if ( areanum && AAS_AreaReachability(areanum) )
+      {
+        bs->teamgoal.entitynum = bs->teammate;
+        bs->teamgoal.areanum = areanum;
+        VectorCopy(entinfo.origin, bs->teamgoal.origin);
+        VectorSet(bs->teamgoal.mins, -8, -8, -8);
+        VectorSet(bs->teamgoal.maxs, 8, 8, 8);
+      }
+    }
+    goal = &bs->teamgoal;
+  }
+  else if ( bs->ltgtype == 2 && !retreat )
+  {
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "accompany_start", EasyClientName(bs->teammate - 1, netname), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
+    }
+    if ( bs->teamgoal_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "accompany_stop", EasyClientName(bs->teammate - 1, netname), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->ltgtype = 0;
+    }
+    entinfo = AAS_EntityInfo(bs->teammate);
+    if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->teammate) )
+    {
+      bs->teammatevisible_time = AAS_Time();
+      VectorSubtract(entinfo.origin, bs->origin, dir);
+      if ( VectorLength(dir) < bs->formation_dist )
+      {
+        if ( bs->attackcrouch_time < AAS_Time() - 5 )
+        {
+          croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0, 1);
+          if ( random() < bs->thinktime * croucher )
+            bs->attackcrouch_time = AAS_Time() + 5 + croucher * 15;
+        }
+        if ( AAS_Swimming(bs->origin) )
+          bs->attackcrouch_time = AAS_Time() - 1;
+        if ( bs->arrive_time < AAS_Time() - 2 )
+        {
+          if ( !bs->arrive_time )
+          {
+            sub_100371B0(bs->client, 1);
+            BotInitialChat(&bs->chatstate, "accompany_arrive", EasyClientName(bs->teammate - 1, netname), NULL);
+            BotEnterChat(&bs->chatstate, bs->client, 1);
+            bs->arrive_time = AAS_Time();
+          }
+          else if ( bs->attackcrouch_time > AAS_Time() )
+          {
+            EA_Crouch(bs->client);
+          }
+          else if ( random() < bs->thinktime * 0.3 )
+          {
+            switch ( (int)floor(random() * 2.9) )
+            {
+              case 0: sub_100371B0(bs->client, 0); break;
+              case 1: sub_100371B0(bs->client, 2); break;
+              default: sub_100371B0(bs->client, 3); break;
+            }
+          }
+        }
+        if ( bs->arrive_time > AAS_Time() - 2 )
+        {
+          VectorSubtract(entinfo.origin, bs->origin, dir);
+          Vector2Angles(dir, bs->ideal_viewangles);
+          bs->ideal_viewangles[2] *= 0.5;
+        }
+        else if ( random() < bs->thinktime * 0.8 )
+        {
+          BotRoamGoal(bs, target);
+          VectorSubtract(target, bs->origin, dir);
+          Vector2Angles(dir, bs->ideal_viewangles);
+          bs->ideal_viewangles[2] *= 0.5;
+        }
+        BotResetAvoidReach((_DWORD *)&bs->ms);
+        return NULL;
+      }
+    }
+    if ( entinfo.valid )
+    {
+      areanum = AAS_PointAreaNum(entinfo.origin);
+      if ( areanum && AAS_AreaReachability(areanum) )
+      {
+        bs->teamgoal.entitynum = bs->teammate;
+        bs->teamgoal.areanum = areanum;
+        VectorCopy(entinfo.origin, bs->teamgoal.origin);
+        VectorSet(bs->teamgoal.mins, -8, -8, -8);
+        VectorSet(bs->teamgoal.maxs, 8, 8, 8);
+      }
+    }
+    goal = &bs->teamgoal;
+    if ( bs->teammatevisible_time < AAS_Time() - 60 )
+    {
+      BotInitialChat(&bs->chatstate, "accompany_cannotfind", EasyClientName(bs->teammate - 1, netname), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->ltgtype = 0;
+    }
+  }
+  else if ( bs->ltgtype == 3 && bs->defendaway_time < AAS_Time() && !retreat )
+  {
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "defend_start", BotGoalName(bs->teamgoal.number), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
+    }
+    goal = &bs->teamgoal;
+    if ( bs->teamgoal_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "defend_stop", BotGoalName(bs->teamgoal.number), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->ltgtype = 0;
+    }
+    VectorSubtract(goal->origin, bs->origin, dir);
+    if ( VectorLength(dir) < 70 )
+    {
+      BotResetAvoidReach((_DWORD *)&bs->ms);
+      bs->defendaway_time = AAS_Time() + 5 + 10 * random();
+    }
+  }
+  else if ( bs->ltgtype == 6 )
+  {
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "camp_start", EasyClientName(bs->teammate - 1, netname), NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
+    }
+    goal = &bs->teamgoal;
+    if ( bs->teamgoal_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "camp_stop", NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->ltgtype = 0;
+    }
+    VectorSubtract(goal->origin, bs->origin, dir);
+    if ( VectorLength(dir) < 40 )
+    {
+      if ( !bs->arrive_time )
+      {
+        BotInitialChat(&bs->chatstate, "camp_arrive", EasyClientName(bs->teammate - 1, netname), NULL);
+        BotEnterChat(&bs->chatstate, bs->client, 1);
+        bs->arrive_time = AAS_Time();
+      }
+      if ( random() < bs->thinktime * 0.8 )
+      {
+        BotRoamGoal(bs, target);
+        VectorSubtract(target, bs->origin, dir);
+        Vector2Angles(dir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] *= 0.5;
+      }
+      if ( bs->attackcrouch_time < AAS_Time() - 5 )
+      {
+        croucher = Characteristic_BFloat(BotCharacter(bs), 24, 0, 1);
+        if ( random() < bs->thinktime * croucher )
+          bs->attackcrouch_time = AAS_Time() + 5 + croucher * 15;
+      }
+      if ( bs->attackcrouch_time > AAS_Time() )
+        EA_Crouch(bs->client);
+      if ( AAS_Swimming(bs->origin) )
+        bs->attackcrouch_time = AAS_Time() - 1;
+      if ( AAS_PointContents(bs->eye) & 0x38 )
+      {
+        BotInitialChat(&bs->chatstate, "camp_stop", NULL);
+        BotEnterChat(&bs->chatstate, bs->client, 1);
+        bs->ltgtype = 0;
+      }
+      BotResetAvoidReach((_DWORD *)&bs->ms);
+      return NULL;
+    }
+  }
+  else if ( bs->ltgtype == 7 )
+  {
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
+    {
+      strcpy(buf, "");
+      for ( wp = BotPatrolpoints(bs); wp; wp = wp->next )
+      {
+        strcat(buf, wp->name);
+        if ( wp->next )
+          strcat(buf, " to ");
+      }
+      BotInitialChat(&bs->chatstate, "patrol_start", buf, NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
+    }
+    if ( !BotCurPatrolPoint(bs) )
+    {
+      bs->ltgtype = 0;
+      return NULL;
+    }
+    if ( BotTouchingGoal(bs->origin, (float *)&BotCurPatrolPoint(bs)->goal) )
+    {
+      if ( bs->patrolflags & 4 )
+      {
+        if ( BotCurPatrolPoint(bs)->prev )
+        {
+          BotCurPatrolPoint(bs) = BotCurPatrolPoint(bs)->prev;
+        }
+        else
+        {
+          BotCurPatrolPoint(bs) = BotCurPatrolPoint(bs)->next;
+          bs->patrolflags &= ~4;
+        }
+      }
+      else
+      {
+        if ( BotCurPatrolPoint(bs)->next )
+        {
+          BotCurPatrolPoint(bs) = BotCurPatrolPoint(bs)->next;
+        }
+        else
+        {
+          BotCurPatrolPoint(bs) = BotCurPatrolPoint(bs)->prev;
+          bs->patrolflags |= 4;
+        }
+      }
+    }
+    if ( bs->teamgoal_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "patrol_stop", NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->ltgtype = 0;
+    }
+    if ( !BotCurPatrolPoint(bs) )
+    {
+      bs->ltgtype = 0;
+      return NULL;
+    }
+    goal = &BotCurPatrolPoint(bs)->goal;
+  }
+  else if ( bs->ltgtype == 4 )
+  {
+    if ( bs->teammessage_time && bs->teammessage_time < AAS_Time() )
+    {
+      BotInitialChat(&bs->chatstate, "captureflag_start", NULL);
+      BotEnterChat(&bs->chatstate, bs->client, 1);
+      bs->teammessage_time = 0;
+    }
+    switch ( BotCTFTeam(bs) )
+    {
+      case 1: goal = &ctf_flag2; break;
+      default: goal = &ctf_flag1; break;
+    }
+    if ( BotTouchingGoal(bs->origin, (float *)goal) )
+      bs->ltgtype = 0;
+    if ( bs->teamgoal_time < AAS_Time() )
+      bs->ltgtype = 0;
+  }
+  else if ( bs->ltgtype == 5 && bs->rushbaseaway_time < AAS_Time() )
+  {
+    switch ( BotCTFTeam(bs) )
+    {
+      case 1: goal = &ctf_flag1; break;
+      default: goal = &ctf_flag2; break;
+    }
+    if ( bs->teamgoal_time < AAS_Time() )
+      bs->ltgtype = 0;
+    if ( BotTouchingGoal(bs->origin, (float *)goal) )
+    {
+      if ( BotCTFCarryingFlag(bs) )
+      {
+        BotResetAvoidReach((_DWORD *)&bs->ms);
+        bs->rushbaseaway_time = AAS_Time() + 5 + 10 * random();
+      }
+      else
+      {
+        bs->ltgtype = 0;
+      }
+    }
+  }
+  else
+  {
+    goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
+    if ( !goal )
+    {
+      bs->ltg_time = 0;
+    }
+    else if ( BotTouchingGoal(bs->origin, (float *)goal) )
+    {
+      if ( techs->value )
+        sub_100262C0((_DWORD *)bs, goal);
+      bs->ltg_time = 0;
+    }
+    else if ( BotItemGoalInVisButNotVisible(bs->entitynum, bs->eye, bs->viewangles, goal) )
+    {
+      bs->ltg_time = 0;
+    }
+    if ( bs->ltg_time < AAS_Time() )
     {
       BotPopGoal(&bs->goalstate);
       if ( BotChooseLTGItem(&bs->goalstate, bs->origin, bs->inventory, tfl) )
@@ -579,54 +544,10 @@ LABEL_55:
         BotResetAvoidGoals(&bs->goalstate);
         BotResetAvoidReach((_DWORD *)&bs->ms);
       }
-      v26 = (float *)BotGetTopGoal(&bs->goalstate);
-    }
-    return v26;
-  }
-  if ( bs->teammessage_time != 0 && AAS_Time() > bs->teammessage_time )
-  {
-    BotInitialChat(&bs->chatstate, "help_start", EasyClientName(bs->teammate - 1, netname), (char *)0);
-    BotEnterChat(&bs->chatstate, bs->client, 1);
-    bs->teammessage_time = 0.0f;
-  }
-  if ( AAS_Time() > bs->teamgoal_time )
-    bs->ltgtype = 0;
-  if ( AAS_Time() - 10 > bs->teammatevisible_time )
-    bs->ltgtype = 0;
-  entinfo = AAS_EntityInfo(bs->teammate);
-  if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->teammate) )
-  {
-    VectorSubtract(entinfo.origin, bs->origin, dir);
-    if ( VectorLength(dir) < 100 )
-      goto LABEL_RESET;
-  }
-  else
-  {
-    bs->teammatevisible_time = AAS_Time();
-  }
-  v26 = bs->teamgoal.origin;
-  if ( entinfo.valid )
-  {
-    v7 = AAS_PointAreaNum(entinfo.origin);
-    if ( v7 )
-    {
-      if ( AAS_AreaReachability(v7) )
-      {
-        bs->teamgoal.origin[0] = entinfo.origin[0];
-        bs->teamgoal.entitynum = bs->teammate;
-        bs->teamgoal.mins[0] = -8.0f;
-        bs->teamgoal.mins[1] = -8.0f;
-        bs->teamgoal.mins[2] = -8.0f;
-        bs->teamgoal.areanum = v7;
-        bs->teamgoal.origin[1] = entinfo.origin[1];
-        bs->teamgoal.origin[2] = entinfo.origin[2];
-        bs->teamgoal.maxs[0] = 8.0f;
-        bs->teamgoal.maxs[1] = 8.0f;
-        bs->teamgoal.maxs[2] = 8.0f;
-      }
+      goal = (bot_goal_t *)BotGetTopGoal(&bs->goalstate);
     }
   }
-  return v26;
+  return goal;
 }
 
 // gladiator.dll: 1001EAE0..1001EB29
@@ -779,7 +700,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
   float *ent;             // esi — &bs->activategoal.origin[0] (embedded activate-goal struct)
   int v8;                 // [esp+0xc] — movement flags
   vec3_t target;          // [esp+0x14] BYREF — predicted move target
-  vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to vectoangles
+  vec3_t dir;              // [esp+0x20] BYREF — target - origin, fed to Vector2Angles
   bot_moveresult_t v15;   // [esp+0x2c] BYREF — copy of BotMoveToGoal result
 
   if ( BotIsObserver(bs) )
@@ -827,11 +748,11 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)ent, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
-      vectoangles(dir, bs->ideal_viewangles);
+      Vector2Angles(dir, bs->ideal_viewangles);
     }
     else
     {
-      vectoangles(v15.movedir, bs->ideal_viewangles);
+      Vector2Angles(v15.movedir, bs->ideal_viewangles);
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
   }
@@ -843,7 +764,7 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)&bs->ms);
+      BotResetLastAvoidReach(&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -881,12 +802,10 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
    * throughout, with no FPU traffic. */
   void *v3; // eax
   void *goal; // esi
-  int v5; // edx
-  int v6; // eax
   void *v7; // edi
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
-  vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to vectoangles
+  vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to Vector2Angles
   bot_moveresult_t moveresult; // [esp+2Ch] [ebp-60h] BYREF
 
   if ( BotIsObserver(bs) )
@@ -948,21 +867,17 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   BotAIBlocked(bs, &moveresult, 1);
   if ( (moveresult.flags & 3) != 0 )
   {
-  v5 = LODWORD(moveresult.ideal_viewangles[1]);
-  v6 = LODWORD(moveresult.ideal_viewangles[2]);
-  *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
-  *(int *)&bs->ideal_viewangles[1] = v5;
-  *(int *)&bs->ideal_viewangles[2] = v6;
+    VectorCopy(moveresult.ideal_viewangles, bs->ideal_viewangles);
   }
   else if ( (moveresult.flags & 4) != 0 )
   {
     /* rand() side first, as in the original, so the double product
      * (thinktime*0.8) is not spilled to a QWORD slot across the call. */
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
+    if ( random() < bs->thinktime * 0.8 )
     {
     BotRoamGoal(bs, target);   /* aarch64: was `a1` — see note in BotLongTermGoal */
     VectorSubtract(target, bs->origin, dir);
-    vectoangles(dir, bs->ideal_viewangles);
+    Vector2Angles(dir, bs->ideal_viewangles);
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
   }
@@ -974,14 +889,11 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
-      vectoangles(dir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
+      Vector2Angles(dir, bs->ideal_viewangles);
     }
     else
-    {
-      vectoangles(moveresult.movedir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-    }
+      Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+    bs->ideal_viewangles[2] *= 0.5;
   }
   if ( BotFindEnemy(bs) )
   {
@@ -991,7 +903,7 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)&bs->ms);
+      BotResetLastAvoidReach(&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
     }
@@ -1025,14 +937,10 @@ void __cdecl AIEnter_Seek_LTG(bot_state_t *bs)
 // gladi386.so:   00035A54..00036038
 int __cdecl AINode_Seek_LTG(bot_state_t *bs)
 {
-  bot_goal_t *goal; // 64-bit fix (was int) - BotLongTermGoal returns goal pointer
-
-  int v2; // edi
-  int range; // [esp+0h] — the outgoing float arg slot; original int local (Q3 ai_dmnet.c AINode_Seek_LTG shape)
-  float v9; // [esp+14h] [ebp-80h]
-  vec3_t target; // [esp+18h] [ebp-7Ch] BYREF — predicted/move target position
-  vec3_t dir; // [esp+24h] [ebp-70h] BYREF — target - bot origin, fed to vectoangles
-  bot_moveresult_t moveresult; // [esp+34h] [ebp-60h] BYREF
+  bot_goal_t *goal;
+  vec3_t target, dir;
+  bot_moveresult_t moveresult;
+  int range, tfl;
 
   if ( BotIsObserver(bs) )
   {
@@ -1051,107 +959,103 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
   }
   if ( BotChat_Random(bs) )
   {
-    v9 = BotChatTime(bs);
-    bs->stand_time = AAS_Time() + v9;
+    bs->stand_time = AAS_Time() + BotChatTime(bs);
     AIEnter_Stand(bs);
     return 0;
   }
-  v2 = 102334;
-  if ( usehook->value != 0.0f )
-  {
-    v2 = 118718;
-  }
-  if ( rocketjump->value != 0.0f && BotCanAndWantsToRocketJump(bs) )
-  {
-    v2 |= 0x1000u;
-  }
+  tfl = 102334;
+  if ( usehook->value )
+    tfl |= 0x4000;
+  if ( rocketjump->value && BotCanAndWantsToRocketJump(bs) )
+    tfl |= 0x1000;
   bs->enemy = 0;
-  if ( AAS_Time() - 5.0f < bs->killedenemy_time
-    && (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime )
+  if ( bs->killedenemy_time > AAS_Time() - 5 )
   {
-    if ( (float)(rand() & 0x7FFF) * 0.000030518509f < 0.5 )
-      sub_100371B0(bs->client, 0);
-    else
-      sub_100371B0(bs->client, 2);
+    if ( random() < bs->thinktime )
+    {
+      if ( random() < 0.5 )
+        sub_100371B0(bs->client, 0);
+      else
+        sub_100371B0(bs->client, 2);
+    }
   }
   if ( BotFindEnemy(bs) )
   {
     if ( BotWantsToRetreat((int *)bs) )
     {
       AIEnter_Battle_Retreat(bs);
+      return 0;
     }
     else
     {
-      BotResetLastAvoidReach((intptr_t)&bs->ms);
+      BotResetLastAvoidReach(&bs->ms);
       BotEmptyGoalStack(&bs->goalstate);
       AIEnter_Battle_Fight(bs);
+      return 0;
     }
-    return 0;
   }
-  if ( ctf->value != 0.0f )
+  if ( ctf->value )
     BotCTFSeekGoals(bs);
-    goal = (bot_goal_t *)BotLongTermGoal(bs, v2, 0);
-    if ( goal )
-    {
-    if ( AAS_Time() > bs->check_time )
-    {
-      bs->check_time = AAS_Time() + 0.5;
-      if ( bs->ltgtype == 3 ) /* LTG_DEFENDKEYAREA */
-        range = 1500;
-      else
-        range = 700;
-      if ( BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, range) )
-      {
-        BotResetLastAvoidReach((intptr_t)&bs->ms);
-        bs->nbg_time = AAS_Time() + 5.0f;
-        AIEnter_Seek_NBG(bs);
-        return 0;
-      }
-    }
-    BotBattleUseItems(bs);
-    BotEntityInfo(bs, (_DWORD *)&bs->ms);
-    moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2);
-    if ( moveresult.failure )
-    {
-      BotResetAvoidReach((_DWORD *)&bs->ms);
-      bs->ltg_time = 0.0f;
-    }
-    BotAIBlocked(bs, &moveresult, 1);
-    if ( (moveresult.flags & 3) != 0 )
-    {
-      *(int *)&bs->ideal_viewangles[0] = LODWORD(moveresult.ideal_viewangles[0]);
-      *(int *)&bs->ideal_viewangles[1] = LODWORD(moveresult.ideal_viewangles[1]);
-      *(int *)&bs->ideal_viewangles[2] = LODWORD(moveresult.ideal_viewangles[2]);
-    }
-    else
-    {
-    if ( (moveresult.flags & 4) != 0 )
-    {
-      if ( (float)(rand() & 0x7FFF) * 0.000030518509f < bs->thinktime * 0.8 )
-      {
-      BotRoamGoal(bs, target);
-      VectorSubtract(target, bs->origin, dir);
-      vectoangles(dir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-      }
-    }
-    else if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
-    {
-      VectorSubtract(target, bs->origin, dir);
-      vectoangles(dir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-    }
-    else
-    {
-      vectoangles(moveresult.movedir, bs->ideal_viewangles);
-      bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
-    }
-    }
-    if ( (moveresult.flags & 8) != 0 )
-      return 1;
-    }
+  goal = (bot_goal_t *)BotLongTermGoal(bs, tfl, 0);
+  if ( !goal )
+  {
     BotChangeViewAngles(bs, bs->thinktime);
     return 1;
+  }
+  if ( bs->check_time < AAS_Time() )
+  {
+    bs->check_time = AAS_Time() + 0.5;
+    if ( bs->ltgtype == 3 )
+      range = 1500;
+    else
+      range = 700;
+    if ( BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, tfl, goal, range) )
+    {
+      BotResetLastAvoidReach(&bs->ms);
+      bs->nbg_time = AAS_Time() + 5;
+      AIEnter_Seek_NBG(bs);
+      return 0;
+    }
+  }
+  BotBattleUseItems(bs);
+  BotEntityInfo(bs, (_DWORD *)&bs->ms);
+  moveresult = BotMoveToGoal((bot_movestate_t *)&bs->ms, goal, tfl);
+  if ( moveresult.failure )
+  {
+    BotResetAvoidReach((_DWORD *)&bs->ms);
+    bs->ltg_time = 0;
+  }
+  BotAIBlocked(bs, &moveresult, 1);
+  if ( moveresult.flags & 3 )
+  {
+    VectorCopy(moveresult.ideal_viewangles, bs->ideal_viewangles);
+  }
+  else if ( moveresult.flags & 4 )
+  {
+    if ( random() < bs->thinktime * 0.8 )
+    {
+      BotRoamGoal(bs, target);
+      VectorSubtract(target, bs->origin, dir);
+      Vector2Angles(dir, bs->ideal_viewangles);
+      bs->ideal_viewangles[2] *= 0.5;
+    }
+  }
+  else
+  {
+    if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, goal, tfl, target) )
+    {
+      VectorSubtract(target, bs->origin, dir);
+      Vector2Angles(dir, bs->ideal_viewangles);
+    }
+    else
+    {
+      Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+    }
+    bs->ideal_viewangles[2] *= 0.5;
+  }
+  if ( !(moveresult.flags & 8) )
+    BotChangeViewAngles(bs, bs->thinktime);
+  return 1;
 }
 
 // gladiator.dll: 1001FCF0..1001FD14
@@ -1324,7 +1228,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
   }
   if ( BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
   {
-    BotResetLastAvoidReach((intptr_t)&bs->ms);
+    BotResetLastAvoidReach(&bs->ms);
     AIEnter_Battle_Fight(bs);
     return 0;
   }
@@ -1368,7 +1272,7 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
         BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, tfl, &goal, 500.0)) )
   {
     bs->nbg_time = AAS_Time() + 5.0f;
-    BotResetLastAvoidReach((intptr_t)&bs->ms);
+    BotResetLastAvoidReach(&bs->ms);
     AIEnter_Battle_NBG(bs);
     return 0;
   }
@@ -1395,11 +1299,11 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, &goal, tfl, (float *)(intptr_t)target) )
       {
         VectorSubtract(target, bs->origin, dir);
-        vectoangles(dir, bs->ideal_viewangles);
+        Vector2Angles(dir, bs->ideal_viewangles);
       }
       else
       {
-        vectoangles(moveresult.movedir, bs->ideal_viewangles);
+        Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
       }
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
@@ -1501,7 +1405,7 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
         && (bs->check_time = AAS_Time() + 1.0f,
             BotChooseNBGItem(&bs->goalstate, bs->origin, bs->inventory, v2, goal, 500.0)) )
       {
-        BotResetLastAvoidReach((intptr_t)&bs->ms);
+        BotResetLastAvoidReach(&bs->ms);
         bs->nbg_time = AAS_Time() + 5.0f;
         AIEnter_Battle_NBG(bs);
         return 0;
@@ -1538,11 +1442,11 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
             if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v2, (float *)(intptr_t)target) )
             {
               VectorSubtract(target, bs->origin, dir);
-              vectoangles(dir, bs->ideal_viewangles);
+              Vector2Angles(dir, bs->ideal_viewangles);
             }
             else
             {
-              vectoangles(moveresult.movedir, bs->ideal_viewangles);
+              Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
             }
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
             BotChangeViewAngles(bs, bs->thinktime);

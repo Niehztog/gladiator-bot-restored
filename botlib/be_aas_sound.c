@@ -86,7 +86,7 @@ int sub_1001C760(char *Source)
   aasworld.soundinfo = (soundinfo_t *)GetClearedMemory(sizeof(soundinfo_t) * v2);
   memset(&file_ref, 0, sizeof(file_ref));
   strncpy(Destination, Source, 0x90u);
-  if ( !sub_10041F60(Destination, &file_ref) )
+  if ( !FindQuakeFile(Destination, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", Destination);
     return 0;
@@ -437,21 +437,18 @@ int __cdecl sub_1001D070(aas_soundpool_t *p)
 
 float __cdecl sub_1001D0A0(float *listener, aas_soundpool_t *emitter)
 {
-  float *eorigin;
   soundinfo_t *info;
-  float dx, dy, dz;
+  vec3_t dir;
+  float dist;
 
-  eorigin = emitter->origin;
-  if ( !sub_10005C90(listener, eorigin) )
+  if ( !sub_10005C90(listener, emitter->origin) )
     return 0.0f;
   info = (soundinfo_t *)aasworld.d_100669C0[emitter->soundindex];
   if ( !info )
     return 0.0f;
-  dx = eorigin[0] - listener[0];
-  dy = emitter->origin[1] - listener[1];
-  dz = emitter->origin[2] - listener[2];
-  return (info->volume * emitter->volume)
-       / (dx*dx + dy*dy + dz*dz);
+  VectorSubtract(emitter->origin, listener, dir);
+  dist = DotProduct(dir, dir);
+  return emitter->volume * info->volume / dist;
 }
 
 // gladiator.dll: 1001D140..1001D21D

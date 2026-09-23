@@ -64,6 +64,6 @@ const char *__cdecl StringContainsWord(const char *str1, const char *str2, int c
 void __cdecl StringReplaceWords(const char *string, const char *synonym, const char *replacement);
 BOOL __cdecl StringsMatch(bot_matchpiece_t *pieces, bot_match_t *match);
 void __cdecl UnifyWhiteSpaces(void *string);
-void __cdecl sub_1002E5D0(bot_replychat_t *arg);
+void __cdecl BotPrintReplyChatKeys(bot_replychat_t *arg);
 
 #endif /* BOTLIB_BE_AI_CHAT_H */

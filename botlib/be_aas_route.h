@@ -43,12 +43,16 @@ int __cdecl AAS_TravelFlagForType(int traveltype);
 #define TFL_LAVA            0x20000
 #define TFL_SLIME           0x40000
 
+/* Q3's `__inline` helpers.  Declared WITHOUT the keyword on every platform: under C99
+ * inline rules that is what makes the __inline definition in be_aas_route.c an external
+ * definition too, i.e. the gnu89/MSVC6 semantics both 1999 compilers had.  Hide these
+ * prototypes and a -std=gnu99 build that declines to inline a call has no body to link. */
+int __cdecl AAS_GetAreaContentsTravelFlags(int areanum);
+int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
 #ifndef _WIN32
 float __cdecl AAS_RoutingTime(void);
 void __cdecl F525(aas_routingupdate_t **updateliststart, aas_routingupdate_t **updatelistend, aas_routingupdate_t *update);
-int __cdecl AAS_GetAreaContentsTravelFlags(int areanum);
 void __cdecl F524(void);
-int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
 #endif
 void __cdecl AAS_UpdateAreaRoutingCache(aas_routingcache_t *areacache);
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache);

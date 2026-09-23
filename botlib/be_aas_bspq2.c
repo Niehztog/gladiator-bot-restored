@@ -67,8 +67,9 @@ bsp_trace_t __cdecl AAS_Trace(vec3_t start, vec3_t mins, vec3_t maxs, vec3_t end
  * renaming the 0x1001ACxx family. */
 // gladiator.dll: 10003080..1000308F
 // gladi386.so:   0000A444..0000A466
-// thin wrapper forwarding to bi_PointContents
-int __cdecl sub_10003080(vec3_t point)
+/* Q3 be_aas_bspq3.c's AAS_PointContents: `return botimport.PointContents(point);`.
+ * All 20 of the original's contents queries go through it (codegen_levers.md). */
+int __cdecl AAS_PointContents(vec3_t point)
 {
   return botimport.PointContents(point);
 }
@@ -267,67 +268,67 @@ void __cdecl RotatePoint(vec3_t point, float matrix[3][3])
  * stack for the whole function. */
 void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 {
-  /* Only THREE matrix buffers: `m` holds the pitch matrix for the first concat,
-     then is rebuilt in place as the roll matrix for the second. */
+  /* Only THREE matrix buffers: the roll matrix is rebuilt in `yaw`, which is dead
+     after the first concat.  Both originals say so -- the DLL and the .so each pass
+     the yaw buffer as the second R_ConcatRotations' first argument -- and the .so's
+     frame (yaw highest, then pitch, then tmp) records this declaration order. */
   float angle;
   float sp, cp;
   float sy, cy;
   float sr, cr;
-  struct {
-    float tmp[3][3];
-    float m[3][3];
-    float yaw[3][3];
-  } mats;
+  float yaw[3][3];
+  float pitch[3][3];
+  float tmp[3][3];
 
   /* Row-major, constant cells interleaved in place rather than seeded up front. */
   angle = angles[1] * M_PI*2 / 360;
   sy = (float)sin(angle);
   cy = (float)cos(angle);
-  mats.yaw[0][0] = cy;
-  mats.yaw[0][1] = sy;
-  mats.yaw[0][2] = 0;
-  mats.yaw[1][0] = -sy;
-  mats.yaw[1][1] = cy;
-  mats.yaw[1][2] = 0;
-  mats.yaw[2][0] = 0;
-  mats.yaw[2][1] = 0;
-  mats.yaw[2][2] = 1;
+  yaw[0][0] = cy;
+  yaw[0][1] = sy;
+  yaw[0][2] = 0;
+  yaw[1][0] = -sy;
+  yaw[1][1] = cy;
+  yaw[1][2] = 0;
+  yaw[2][0] = 0;
+  yaw[2][1] = 0;
+  yaw[2][2] = 1;
 
   /* pitch matrix (around Y), same row-major/interleaved shape as yaw. */
   angle = angles[0] * M_PI*2 / 360;
   sp = (float)sin(angle);
   cp = (float)cos(angle);
-  mats.m[0][0] = cp;
-  mats.m[0][1] = 0;
-  mats.m[0][2] = -sp;
-  mats.m[1][0] = 0;
-  mats.m[1][1] = 1;
-  mats.m[1][2] = 0;
-  mats.m[2][0] = sp;
-  mats.m[2][1] = 0;
-  mats.m[2][2] = cp;
+  pitch[0][0] = cp;
+  pitch[0][1] = 0;
+  pitch[0][2] = -sp;
+  pitch[1][0] = 0;
+  pitch[1][1] = 1;
+  pitch[1][2] = 0;
+  pitch[2][0] = sp;
+  pitch[2][1] = 0;
+  pitch[2][2] = cp;
 
   /* tmp = pitch_m * yaw_m.  The roll angle and matrix are computed only AFTER
-     this call, so the roll matrix can reuse the now-dead pitch buffer. */
-  R_ConcatRotations(mats.m, mats.yaw, mats.tmp);
+     this call, so the roll matrix can reuse the now-dead yaw buffer. */
+  R_ConcatRotations(pitch, yaw, tmp);
 
-  /* roll matrix (rotation around X), rebuilt in `m`, same row-major/interleaved
+  /* roll matrix (rotation around X), rebuilt in `yaw`, same row-major/interleaved
      shape as yaw and pitch. */
   angle = angles[2] * M_PI*2 / 360;
   sr = (float)sin(angle);
   cr = (float)cos(angle);
-  mats.m[0][0] = 1;
-  mats.m[0][1] = 0;
-  mats.m[0][2] = 0;
-  mats.m[1][0] = 0;
-  mats.m[1][1] = cr;
-  mats.m[1][2] = sr;
-  mats.m[2][0] = 0;
-  mats.m[2][1] = -sr;
-  mats.m[2][2] = cr;
+  yaw[0][0] = 1;
+  yaw[0][1] = 0;
+  yaw[0][2] = 0;
+  yaw[1][0] = 0;
+  yaw[1][1] = cr;
+  yaw[1][2] = sr;
+  yaw[2][0] = 0;
+  yaw[2][1] = -sr;
+  yaw[2][2] = cr;
 
   /* output = roll_m * tmp */
-  R_ConcatRotations(mats.m, mats.tmp, axis);
+  R_ConcatRotations(yaw, tmp, axis);
 }
 
 // gladiator.dll: 10003680..10003AC7
@@ -1519,7 +1520,7 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
   int c;
   int row;
   char *in;
-  char *out;
+  unsigned char *out;   /* byte, like Q1's decompressed[]: AAS_InPVS reads it zero-extended */
 
   if ( cluster == bspworld.dword_10069564 )
     return;
@@ -1552,39 +1553,40 @@ void __cdecl AAS_DecompressVis(int cluster, int visType)
 
 // gladiator.dll: 10005B30..10005C1C
 // gladi386.so:   0000D6E4..0000D8EB
-BOOL __cdecl AAS_InPVS(float *a1, float *a2, int a3)
+BOOL __cdecl AAS_InPVS(float *p1, float *p2, int type)
 {
-  int v4; // edi
-  dleaf_t *v5; // eax
-  __int16 v6; // cx
-  dleaf_t *v7; // esi
+  int cluster;
+  dleaf_t *leaf1, *leaf2;
 
   if ( !bspworld.dword_100674C0 )
     return 1;
   if ( !bspworld.visdatasize )
     return 1;
-  if ( bspworld.flt_1006956C == *a1 && bspworld.flt_10069570 == a1[1] && bspworld.flt_10069574 == a1[2] )
+  if ( bspworld.flt_1006956C == p1[0] && bspworld.flt_10069570 == p1[1] && bspworld.flt_10069574 == p1[2] )
   {
-    v4 = bspworld.dword_10069564;
+    cluster = bspworld.dword_10069564;
   }
   else
   {
-    v5 = sub_10003420(a1, 0);
-    v6 = v5->cluster;
-    if ( v6 == -1 )
+    leaf1 = sub_10003420(p1, 0);
+    if ( leaf1->cluster == -1 )
       return 0;
-    v4 = v6;
-    bspworld.flt_1006956C = *a1;
-    bspworld.flt_10069570 = a1[1];
-    bspworld.flt_10069574 = a1[2];
-    bspworld.dword_10069568 = v5->area;
+    cluster = leaf1->cluster;
+    bspworld.flt_1006956C = p1[0];
+    bspworld.flt_10069570 = p1[1];
+    bspworld.flt_10069574 = p1[2];
+    bspworld.dword_10069568 = leaf1->area;
   }
-  v7 = sub_10003420(a2, 0);
-  if ( v7->cluster == -1 )
+  leaf2 = sub_10003420(p2, 0);
+  if ( leaf2->cluster == -1 )
     return 0;
-  AAS_DecompressVis(v4, a3);
-  v6 = v7->cluster;
-  return ((unsigned __int8)bspworld.byte_10067564[v6 >> 3] & (unsigned __int8)(1 << (v6 & 7))) != 0;
+  AAS_DecompressVis(cluster, type);
+  cluster = leaf2->cluster;
+  /* Negative test, positive fall-through: gcc 2.7 then shares the top `return 1`
+   * block as the .so does (cl.exe if-converts either spelling identically). */
+  if ( !(bspworld.byte_10067564[cluster >> 3] & (1 << (cluster & 7))) )
+    return 0;
+  return 1;
 }
 
 // gladiator.dll: 10005C60..10005C75
@@ -1755,8 +1757,12 @@ void __cdecl AAS_UnlinkFromBSPLeaves(bsp_link_t *leaves)
 // gladiator.dll: 10006100..100061C5
 // gladi386.so:   0000DE40..0000DF48
 /* Classify an AABB against a BSP splitting plane, returning 1/2/3 for
- * front/back/spanning (Q3 be_aas_sample.c). */
-int __cdecl AAS_BoxOnPlaneSide2(vec3_t absmins, vec3_t absmaxs, float *p)
+ * front/back/spanning.  The BSP-plane TWIN of Q3's AAS_BoxOnPlaneSide2: Q3 keeps
+ * that name in be_aas_sample.c on the AAS-plane copy at 0x1001C2E0, whose only
+ * caller is AAS_AASLinkEntity exactly as in Q3.  This one serves AAS_BSPLinkEntity,
+ * which Q3 stubs, so its own name is not recoverable -- it stays sub_ like the
+ * BSP-leaf link-heap twins (see naming.md). */
+int __cdecl sub_10006100(vec3_t absmins, vec3_t absmaxs, float *p)
 {
   int    i, sides;
   vec3_t corners[2];
@@ -1851,7 +1857,7 @@ bsp_link_t *__cdecl AAS_BSPLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
       }
       else
       {
-        v14 = AAS_BoxOnPlaneSide2(absmins, absmaxs, (float *)plane);
+        v14 = sub_10006100(absmins, absmaxs, (float *)plane);
       }
       if ( (v14 & 1) != 0 )
         *v6++ = v11->children[0];
@@ -2025,7 +2031,10 @@ int __cdecl AAS_VectorForBSPEpairKey(bsp_entity_t *ent, const char *key, vec3_t 
 
 // gladiator.dll: 100068A0..100068C5
 // gladi386.so:   0000E76C..0000E7D9
-float __cdecl FloatForKey(bsp_entity_t *ent, const char *key)
+/* Third of Q3's AAS_{Value,Vector,Float,Int}ForBSPEpairKey family, in Q3's order.
+ * Like its siblings it still returns the value directly; Q3 later moved every
+ * member to an out-parameter plus a success flag. */
+float __cdecl AAS_FloatForBSPEpairKey(bsp_entity_t *ent, const char *key)
 {
   const char *value; // eax
 

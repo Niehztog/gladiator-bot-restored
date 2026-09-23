@@ -181,68 +181,42 @@ float BotChangeViewAngle(float angle, float ideal_angle, float speed)
 /* All nine callers push (bs, thinktime), but the body reads bs->thinktime straight from
  * the struct instead of the parameter — probably declared for API symmetry with Q3.
  * `thinktime` is deliberately unused. */
-int __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
+void __cdecl BotChangeViewAngles(bot_state_t *bs, float thinktime)
 {
-  float v2; // st7 (was double)
-  float *v3; // esi
-  int v4; // ebx
-  float v5; // st7 (was double)
-  float v6; // st6 (was double)
-  float v7; // st6 (was double)
-  float v9; // [esp+10h] [ebp-4h]
-  float v10; // [esp+18h] [ebp+4h] — reused in place for v10*thinktime
+  float diff, factor, maxchange;
+  int i;
 
-  (void)thinktime;
-  v2 = bs->ideal_viewangles[0];
-  if ( v2 > 180.0f )
-  {
-    v2 = bs->ideal_viewangles[0] - 360.0f;
-    bs->ideal_viewangles[0] = v2;
-  }
+  if ( bs->ideal_viewangles[0] > 180 )
+    bs->ideal_viewangles[0] -= 360;
   if ( bs->enemy )
   {
-    /* Both Characteristic_BFloat results come back on the FPU stack: #9 into v10, and #10
-     * stays in ST(0) until the post-merge `v2 * bs->thinktime` consumes it — recaptured
-     * into v2 here, which the else-branch overwrites with 150.0f. */
-    v10 = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800.0f);
-    v2  = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800.0f);
+    factor = Characteristic_BFloat(BotCharacter(bs), 9, 0.1f, 1800);
+    maxchange = Characteristic_BFloat(BotCharacter(bs), 10, 0.1f, 1800);
   }
   else
   {
-    v10 = 100.0f;
-    v2 = 150.0f;
+    factor = 100;
+    maxchange = 150;
   }
-  v3 = bs->viewanglespeed;  /* One walk over three parallel vec3s: *v3 is viewanglespeed[i],
-                              * v3-6 is viewangles[i] and v3-3 ideal_viewangles[i], all
-                              * advanced in lockstep. */
-  v4 = 2;
-  v10 = v10 * bs->thinktime;
-  v9 = v2 * bs->thinktime;
-  do
+  factor *= bs->thinktime;
+  maxchange *= bs->thinktime;
+  for ( i = 0; i < 2; i++ )
   {
-    /* AngleDifference's FPU return feeds straight into the int conversion and
-     * abs: v5 = abs((int)AngleDifference(viewangles[i], ideal_viewangles[i])). */
-    v5 = (float)abs((int)AngleDifference(*(v3 - 6), *(v3 - 3)));
-    if ( v5 > *v3 )
+    diff = abs(AngleDifference(bs->viewangles[i], bs->ideal_viewangles[i]));
+    if ( diff > bs->viewanglespeed[i] )
     {
-      v6 = v10 + *v3;
-      *v3 = v6;
-      if ( v6 > v5 )
-        *v3 = v5;
+      bs->viewanglespeed[i] += factor;
+      if ( bs->viewanglespeed[i] > diff )
+        bs->viewanglespeed[i] = diff;
     }
-    else if ( v5 < *v3 )
+    else if ( diff < bs->viewanglespeed[i] )
     {
-      v7 = *v3 - v9;
-      *v3 = v7;
-      if ( v7 < v5 )
-        *v3 = v5;
+      bs->viewanglespeed[i] -= maxchange;
+      if ( bs->viewanglespeed[i] < diff )
+        bs->viewanglespeed[i] = diff;
     }
-    v5 = BotChangeViewAngle(*(v3 - 6), *(v3 - 3), *v3);
-    *(v3 - 6) = v5;
-    ++v3;
-    --v4;
+    bs->viewangles[i] = BotChangeViewAngle(bs->viewangles[i], bs->ideal_viewangles[i], bs->viewanglespeed[i]);
   }
-  while ( v4 );
   EA_View(bs->client, bs->viewangles);
 }
 
@@ -315,10 +289,8 @@ int __cdecl BotSetupClient(int a1, char *Source)
 {
   bot_state_t *bs;
   bot_character_t *char_handle;
-  char *weights_handle;
-  char *chat_path;
-  char *chat_arg;
-  _DWORD *chat_state_ptr;
+  char *filename;
+  char *name;
   char gender;
 
   bs = &botstates[a1];
@@ -335,37 +307,40 @@ int __cdecl BotSetupClient(int a1, char *Source)
     return 0;
   }
   memcpy(bs->settings, Source, 0x1B0u);
-  weights_handle = Characteristic_String(BotCharacter(bs), 28);
-  if ( BotLoadItemWeights(&bs->goalstate, weights_handle) )
+  //load the item weights
+  filename = Characteristic_String(BotCharacter(bs), 28);
+  if ( BotLoadItemWeights(&bs->goalstate, filename) )
     return 0;
-  weights_handle = Characteristic_String(BotCharacter(bs), 5);
+  //load the weapon weights
+  filename = Characteristic_String(BotCharacter(bs), 5);
 #if BOTLIB_NEED_SIDEBAND
   /* On 32-bit BotWS(bs) already aliases &bs->weaponweights[0], so no separate
    * allocation happens — exactly as in the original. */
   if ( !BotWS(bs) )
     BotWS(bs) = (bot_weaponstate_t *)GetClearedMemory(sizeof(bot_weaponstate_t));
 #endif
-  if ( BotLoadWeaponWeights(BotWS(bs), weights_handle) )
+  if ( BotLoadWeaponWeights(BotWS(bs), filename) )
   {
     BotFreeItemWeights(&bs->goalstate);
     return 0;
   }
-  chat_path = Characteristic_String(BotCharacter(bs), 12);
-  chat_arg = Characteristic_String(BotCharacter(bs), 13);
-  chat_state_ptr = (_DWORD *)&bs->chatstate;
-  if ( BotLoadChatFile(&bs->chatstate, chat_path, chat_arg) )
+  //load the chat file
+  filename = Characteristic_String(BotCharacter(bs), 12);
+  name = Characteristic_String(BotCharacter(bs), 13);
+  if ( BotLoadChatFile(&bs->chatstate, filename, name) )
   {
     BotFreeItemWeights(&bs->goalstate);
     BotFreeWeaponWeights(BotWS(bs));
     return 0;
   }
   gender = *(_BYTE *)Characteristic_String(BotCharacter(bs), 3);
-  if ( gender == 102 || gender == 70 )
-    *chat_state_ptr = 1;
-  else if ( gender == 109 || gender == 77 )
-    *chat_state_ptr = 2;
+  //set the chat gender
+  if ( gender == 'f' || gender == 'F' )
+    bs->chatstate.gender = 1;
+  else if ( gender == 'm' || gender == 'M' )
+    bs->chatstate.gender = 2;
   else
-    *chat_state_ptr = 0;
+    bs->chatstate.gender = 0;
   bs->inuse = 1;
   bs->client = a1;
   bs->entitynum = a1 + 1;
@@ -555,15 +530,16 @@ int sub_10029C10()
 
 // gladiator.dll: 10029C90..10029D59
 // gladi386.so:   0003845C..00038523
-/* Windows genuinely writes each sub-init's return code through the CRT global `errno`
- * (three separate `_errno()` calls).  The Linux .so has none of that traffic — just a
- * plain register test after each call — so the Linux original used a local variable
- * here instead.  A genuine two-week source-drift split, not a compiler tie: a
- * shared-body local achieves a full ELF byte match but regresses the PE from 63 insns
- * to 37. */
+/* ONE source for both originals.  The status local is named `errno` (Q3's
+ * Export_BotLibSetup later calls it `errnum`).  MSVC's <stdlib.h> defines errno as
+ * (*_errno()), so in the DLL the declaration becomes a block-scope `int (*_errno())`
+ * and each use a CRT call -- the three `_errno()` sequences.  glibc's <stdlib.h>
+ * defines nothing, and this TU never included <errno.h> (see botlib_port.h), so in
+ * the .so it is an ordinary register local.  Not a Jul-to-Aug source drift. */
 int BotSetupLibrary()
 {
-#ifdef _WIN32
+  int errno;
+
   srand(time(0));
   errno = BotSetupWeaponAI();
   if ( errno )
@@ -574,20 +550,6 @@ int BotSetupLibrary()
   errno = BotSetupChatAI();
   if ( errno )
     return errno;
-#else
-  int result;
-
-  srand(time(0));
-  result = BotSetupWeaponAI();
-  if ( result )
-    return result;
-  result = BotSetupGoalAI();
-  if ( result )
-    return result;
-  result = BotSetupChatAI();
-  if ( result )
-    return result;
-#endif
   botstates = (bot_state_t *)GetClearedMemory(sizeof(bot_state_t) * botlibglobals.num_clients);
 #if BOTLIB_NEED_SIDEBAND
   botcharacters = (bot_character_t **)GetClearedMemory(sizeof(bot_character_t *) * botlibglobals.num_clients);

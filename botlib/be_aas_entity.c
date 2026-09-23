@@ -56,28 +56,38 @@ int __cdecl AAS_UpdateEntity(int entnum, bot_updateentity_t *state)
   ent->renderfx = state->renderfx;
   ent->number = entnum;
   ent->valid = 1;
+  //absolute mins and maxs
   relink = 0;
+  //if the bsp model has changed
   if ( ent->solid == 3 )                 /* SOLID_BSP */
   {
+    //if the angles of the model changed
     if ( !VectorCompare(state->angles, ent->angles) )
     {
-      relink = 1;
       VectorCopy(state->angles, ent->angles);
+      relink = 1;
     }
+    //get the mins and maxs of the model
     AAS_BSPModelMinsMaxsOrigin(ent->modelindex - 1, ent->angles, ent->mins, ent->maxs, NULL);
   }
-  else if ( ent->solid == 2             /* SOLID_BBOX */
-            && (!VectorCompare(state->mins, ent->mins) || !VectorCompare(state->maxs, ent->maxs)) )
+  else if ( ent->solid == 2 )            /* SOLID_BBOX */
   {
-    relink = 1;
-    VectorCopy(state->mins, ent->mins);
-    VectorCopy(state->maxs, ent->maxs);
+    //if the bounding box size changed
+    if ( !VectorCompare(state->mins, ent->mins) ||
+         !VectorCompare(state->maxs, ent->maxs) )
+    {
+      VectorCopy(state->mins, ent->mins);
+      VectorCopy(state->maxs, ent->maxs);
+      relink = 1;
+    }
   }
+  //if the origin changed
   if ( !VectorCompare(state->origin, ent->origin) )
   {
     VectorCopy(state->origin, ent->origin);
     relink = 1;
   }
+  //if the entity should be relinked
   if ( relink && entnum > 0 )
   {
     VectorAdd(ent->mins, ent->origin, absmins);
@@ -327,8 +337,10 @@ int __cdecl AAS_BestReachableEntityArea(int entnum)
 // distance to ref is smallest (initial best = 99999.0).  The best distance is dropped
 // on return.  When numentities <= 0 it short-circuits to 0 without touching arg1.
 // Stride 132 (=sizeof(aas_entity_t)); +0x10 = origin xyz, +0x5C = the classnum key.
+// Q3 be_aas_entity.c's AAS_NearestEntity: same 99999 start, modelindex match and
+// abs(dx) < 40 && abs(dy) < 40 gate, then the VectorLength minimum.
 // DEAD in Gladiator — /INCREMENTAL.
-int __cdecl sub_1000B1F0(float *ref, int target)
+int __cdecl AAS_NearestEntity(float *ref, int target)
 {
   int i;
   int best_index;
@@ -364,92 +376,77 @@ int __cdecl sub_1000B1F0(float *ref, int target)
 
 // gladiator.dll: 1000B300..1000B585
 // gladi386.so:   000148EC..00014CBC
-int __cdecl AAS_BestReachableArea(int *origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
+int __cdecl AAS_BestReachableArea(vec3_t origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin)
 {
-  int result; // eax
-  int areanum; // ebp
-  int k; // edi
-  int l; // esi
-  float v12; // st7
-  float *v13; // ecx
-  aas_link_t *areas; // esi - holds aas_link_t* from AAS_AASLinkEntity; was int, truncated on aarch64 → AAS_BestReachableLinkArea+0x3c SIGSEGV walking corrupted list
-  /* Must be one vec3_t, not three floats: the original passes its address to
-   * AAS_PointAreaNum / AAS_TraceClientBBox as a vec3 pointer.  Split into separate
-   * locals, y/z read as garbage and every level item ends up with areanum 0, so
-   * BotChooseLTGItem can never pick one. */
-  int j; // [esp+1Ch] [ebp-80h]
-  int i; // [esp+20h] [ebp-7Ch]
-  vec3_t absmins; // [esp+3Ch] [ebp-60h] BYREF
-  vec3_t end; // [esp+30h] [ebp-6Ch] BYREF
-  vec3_t start; // [esp+10h] [ebp-8Ch] BYREF (was v18+v19+v20)
-  vec3_t absmaxs; // [esp+48h] [ebp-54h] BYREF
-  aas_trace_t trace; // [esp+54h] [ebp-48h] (was int v29[9] + char v30[36] hidden return buffer)
+  int areanum, i, j, k, l;
+  /* aas_link_t*, never an int: truncated on aarch64 it SIGSEGVs in
+   * AAS_BestReachableLinkArea walking a corrupted list. */
+  aas_link_t *areas;
+  vec3_t absmins, absmaxs;
+  vec3_t start, end;
+  aas_trace_t trace;
 
   if ( !aasworld.loaded )
   {
     botimport.Print(PRT_ERROR, "AAS_BestReachableArea: aas not loaded\n");
     return 0;
   }
+  //find a point in an area
+  VectorCopy(origin, start);
+  areanum = AAS_PointAreaNum(start);
+  //while no area found fudge around a little
+  for ( i = 0; i < 5 && !areanum; i++ )
   {
-    VectorCopy(((float *)origin), start);
-    areanum = AAS_PointAreaNum(start);
-    for ( i = 0; i < 5 && !areanum; ++i )
+    for ( j = 0; j < 5 && !areanum; j++ )
     {
-      for ( j = 0; j < 5 && !areanum; ++j )
+      for ( k = -1; k <= 1 && !areanum; k++ )
       {
-        for ( k = -1; k <= 1 && !areanum; ++k )
+        for ( l = -1; l <= 1 && !areanum; l++ )
         {
-          for ( l = -1; l <= 1 && !areanum; ++l )
-          {
-            VectorCopy(((float *)origin), start);
-            start[0] = (float)j * 4.0f * (float)k + start[0];
-            start[1] = (float)j * 4.0f * (float)l + start[1];
-            start[2] = (float)i * 4.0f + start[2];
-            areanum = AAS_PointAreaNum(start);
-          }
+          VectorCopy(origin, start);
+          start[0] += (float) j * 4 * k;
+          start[1] += (float) j * 4 * l;
+          start[2] += (float) i * 4;
+          areanum = AAS_PointAreaNum(start);
         }
       }
     }
-    if ( areanum )
+  }
+  //if an area was found
+  if ( areanum )
+  {
+    //drop client bbox down and try again
+    VectorCopy(start, end);
+    start[2] += 0.25;
+    end[2] -= 50;
+    trace = AAS_TraceClientBBox(start, end, 4, -1);
+    if ( !trace.startsolid )
     {
-      v12 = start[2];
-      *(float *)end = start[0];
-      end[1] = start[1];
-      start[2] = start[2] + 0.25;
-      end[2] = v12 - 50.0f;
-      trace = AAS_TraceClientBBox(start, (float *)end, 4, -1);
-      if ( !trace.startsolid )
-      {
-        result = AAS_PointAreaNum(trace.endpos);
-        v13 = goalorigin;
-        VectorCopy(trace.endpos, goalorigin);
-        if ( result )
-          return result;
-      }
-      else
-      {
-        VectorCopy(start, goalorigin);
-        return areanum;
-      }
+      areanum = AAS_PointAreaNum(trace.endpos);
+      VectorCopy(trace.endpos, goalorigin);
+      if ( areanum ) return areanum;
     }
     else
     {
-      v13 = goalorigin;
+      VectorCopy(start, goalorigin);
+      return areanum;
     }
-    *(int *)&v13[0] = *origin;
-    *(int *)&v13[1] = origin[1];
-    *(int *)&v13[2] = origin[2];
-    absmins[0] = *(float *)origin + *mins;
-    absmins[1] = mins[1] + *((float *)origin + 1);
-    absmins[2] = mins[2] + *((float *)origin + 2);
-    absmaxs[0] = *(float *)origin + *maxs;
-    absmaxs[1] = maxs[1] + *((float *)origin + 1);
-    absmaxs[2] = maxs[2] + *((float *)origin + 2);
-    areas = AAS_AASLinkEntity(absmins, absmaxs, -1);
-    result = AAS_BestReachableLinkArea(areas);
-    AAS_UnlinkFromAreas(areas);
-    return result;
   }
+  //
+  //NOTE: the goal origin does not have to be in the goal area
+  // because the bot will have to move towards the item origin anyway
+  VectorCopy(origin, goalorigin);
+  //
+  VectorAdd(origin, mins, absmins);
+  VectorAdd(origin, maxs, absmaxs);
+  //link an invalid (-1) entity
+  areas = AAS_AASLinkEntity(absmins, absmaxs, -1);
+  //get the reachable link area
+  areanum = AAS_BestReachableLinkArea(areas);
+  //unlink the invalid entity
+  AAS_UnlinkFromAreas(areas);
+  //
+  return areanum;
 }
 
 // gladiator.dll: 1000B640..1000B703
@@ -519,7 +516,7 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
   VectorScale((float *)middle, 0.5, (float *)middle);
   VectorAdd(ent->origin, middle, middle);
   VectorSubtract(middle, ((float *)eye), dir);
-  vectoangles(dir, (float *)entangles);
+  Vector2Angles(dir, (float *)entangles);
   if ( !InFieldOfVision(viewangles, fov, entangles) )
     return 0;
   for ( i = 0; i < 3; i++ )
@@ -535,10 +532,10 @@ int __cdecl BotEntityVisible(int viewer, float *eye, float *viewangles, float fo
     /* Both PointContents() calls are required: without them eyecontents and
      * fromcontents stay uninitialised, the trace direction never swaps when one endpoint
      * is underwater, and visibility across water surfaces fails. */
-    eyecontents = sub_10003080((float *)middle);
+    eyecontents = AAS_PointContents((float *)middle);
     if ( (eyecontents & 0x38) != 0 )
       contents_mask = 0x203003B;      /* | CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER */
-    fromcontents = sub_10003080(eye);
+    fromcontents = AAS_PointContents(eye);
     if ( (fromcontents & 0x38) != 0 )
     {
       if ( (contents_mask & 0x38) == 0 )

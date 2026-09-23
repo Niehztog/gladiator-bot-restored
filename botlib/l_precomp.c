@@ -811,7 +811,7 @@ int __cdecl PC_Directive_include(source_t *source)
   if ( !script )
   {
     memset(&file, 0, sizeof(file));
-    if ( sub_10041F60(path, &file) )
+    if ( FindQuakeFile(path, &file) )
     {
       script = (char *)LoadScriptFile(file.path, file.fileofs, file.filelen);
       if ( script )

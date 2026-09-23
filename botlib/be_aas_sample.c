@@ -138,7 +138,7 @@ int __cdecl AAS_PointAreaNum(vec3_t point)
   {
     node = &aasworld.nodes[nodenum];
     plane = &aasworld.planes[node->planenum];
-    dist = DotProduct(point, plane->normal) - plane->dist;
+    dist = (point[0]*plane->normal[0]) + (point[1]*plane->normal[1]) + (point[2]*plane->normal[2]) - plane->dist;
     if ( dist > 0.0f )
       nodenum = node->children[0];
     else
@@ -183,7 +183,12 @@ int __cdecl AAS_AreaPresenceType(int areanum)
 
 // gladiator.dll: 1001AFA0..1001AFD7
 // gladi386.so:   00028FC4..0002907B
-int __cdecl AAS_PointContents(vec3_t point)
+/* Q3 be_aas_sample.c's AAS_PointPresenceType, verbatim (1 = PRESENCE_NONE), in its
+ * Q3 slot after AAS_AreaPresenceType.  Its one caller is the crouch test in
+ * AAS_ClientMovementPrediction.  It used to carry the name AAS_PointContents, which
+ * belongs to the botimport wrapper at 0x10003080 -- and one call site had followed
+ * the name to the wrong function (BotFinishTravel_WaterJump). */
+int __cdecl AAS_PointPresenceType(vec3_t point)
 {
   int areanum; // eax
 
@@ -197,51 +202,46 @@ int __cdecl AAS_PointContents(vec3_t point)
 
 // gladiator.dll: 1001AFF0..1001B0F0
 // gladi386.so:   0002907C..00029278
-// Signed support-distance of an AABB along a 3D direction.  Builds a per-axis
-// support point from {mins, maxs} keyed on sign(normal[i]) with a +/-0.001
-// deadband (`near` and `far` switch when normal[i] lands inside that band, and the
-// component is forced to 0), then returns dot(support, normalize(normal)).  The
-// `sign_select` flag (arg4) toggles which AABB end maps to "positive normal":
-//   sign_select != 0 -> far  side : normal[i] > 0 picks maxs[i], < 0 picks mins[i]
-//   sign_select == 0 -> near side : normal[i] > 0 picks mins[i], < 0 picks maxs[i]
-// VectorNormalize runs on a *local copy* of the normal, so the caller's vector
-// survives unchanged.  DEAD in Gladiator — /INCREMENTAL.
-double __cdecl sub_1001AFF0(float *normal, float *mins, float *maxs, int sign_select)
+// Q3 be_aas_sample.c's AAS_BoxOriginDistanceFromPlane: pick the box corner that
+// touches a plane first (side selects maxs-vs-mins per normal component, with the
+// +/-0.001 BBOX_NORMAL_EPSILON deadband), then return its dot product with the
+// negated normal on a local copy.  Q3's text verbatim, including the call to
+// VectorInverse -- the function the DLL really calls here (thunk 0x1000147E ->
+// 0x10043540), not the tree's surplus 1-arg VectorNegate.  Same slot as in Q3,
+// right before AAS_AreaEntityCollision.  DEAD in Gladiator -- kept only by
+// /INCREMENTAL.
+float __cdecl AAS_BoxOriginDistanceFromPlane(vec3_t normal, vec3_t mins, vec3_t maxs, int side)
 {
-  vec3_t support;
-  vec3_t normal_local;
+  vec3_t v1, v2;
   int i;
 
-  if ( sign_select )
+  //swap maxs and mins when on the other side of the plane
+  if ( side )
   {
+    //get a point of the box that would be one of the first
+    //to collide with the plane
     for ( i = 0; i < 3; i++ )
     {
-      if ( (float)normal[i] > 0.001 )
-        support[i] = maxs[i];
-      else if ( (float)normal[i] < -0.001 )
-        support[i] = mins[i];
-      else
-        support[i] = 0.0f;
+      if ( normal[i] > 0.001 ) v1[i] = maxs[i];
+      else if ( normal[i] < -0.001 ) v1[i] = mins[i];
+      else v1[i] = 0;
     }
   }
   else
   {
+    //get a point of the box that would be one of the first
+    //to collide with the plane
     for ( i = 0; i < 3; i++ )
     {
-      if ( (float)normal[i] > 0.001 )
-        support[i] = mins[i];
-      else if ( (float)normal[i] < -0.001 )
-        support[i] = maxs[i];
-      else
-        support[i] = 0.0f;
+      if ( normal[i] > 0.001 ) v1[i] = mins[i];
+      else if ( normal[i] < -0.001 ) v1[i] = maxs[i];
+      else v1[i] = 0;
     }
   }
-  VectorCopy(normal, normal_local);
-  /* The original negates the normal in place (call 0x1000147E = VectorNegate,
-   * void/eax — NOT VectorNormalize, which would leave a float on ST0 and force an
-   * `fstp st(0)` the original never emits). */
-  VectorNegate(normal_local);
-  return DotProduct(support, normal_local);
+  //
+  VectorCopy(normal, v2);
+  VectorInverse(v2);
+  return DotProduct(v1, v2);
 }
 
 // gladiator.dll: 1001B130..1001B214
@@ -601,7 +601,7 @@ int __cdecl AAS_TraceAreas(float *start, float *end, int *areas, int maxareas)
 // Four args (face, pnormal, point, epsilon) with an inlined CrossProduct +
 // DotProduct loop, matching Q3's AAS_InsideFace; the callers' `add esp,0x10`
 // cleanup confirms the count.  DEAD in Gladiator — only reachable via
-// /INCREMENTAL thunks from sub_1001C0B0 and sub_1001C210.
+// /INCREMENTAL thunks from sub_1001C0B0 and AAS_TraceEndFace.
 qboolean __cdecl AAS_InsideFace(aas_face_t *face, vec3_t pnormal, vec3_t point, float epsilon)
 {
   int i, firstvertex, edgenum;
@@ -726,39 +726,46 @@ void __cdecl AAS_FacePlane(int facenum, vec3_t normal, float *dist)
 
 // gladiator.dll: 1001C210..1001C2A8
 // gladi386.so:   0002A3D4..0002A4CE
-// Sibling of sub_1001C0B0 — same face-scan skeleton, but driven from a
-// caller-supplied struct (arg1) instead of a bare areanum.  Guard: arg1->_i0 must be
-// 0; areanum is read from arg1->_i18.  For each face the test is planenum XOR
-// arg1->_i20 masked with 0xFFFFFFFE, i.e. "equal except possibly the low bit" (the
-// two orientations of one BSP plane).  On match, calls AAS_InsideFace(face,
-// &aasworld.planes[planenum*20], (char*)arg1 + 8, 0.01f).  DEAD — /INCREMENTAL.
-void *__cdecl sub_1001C210(int *gate)
+// Q3 be_aas_sample.c's AAS_TraceEndFace, line for line, plus a leading
+// `aasworld.loaded` guard: skip a startsolid trace (+0), scan the faces of
+// trace->lastarea (+0x18) for one in the end plane ((planenum & ~1) against +0x20)
+// and return it if AAS_InsideFace(face, plane, trace->endpos (+8), 0.01f).  Q3's
+// text verbatim, down to the never-assigned `firstface` it returns: that variable
+// and the wrapping `if` are what reproduce the .so's register allocation.
+// DEAD -- kept only by /INCREMENTAL.
+aas_face_t *__cdecl AAS_TraceEndFace(aas_trace_t *trace)
 {
-  int    i;
-  int    facenum;
-  aas_face_t  *face;
-  aas_area_t  *area;
+  int i, facenum;
+  aas_area_t *area;
+  aas_face_t *face, *firstface = NULL;
 
   if ( !aasworld.loaded )
-    return 0;
-  if ( gate[0] != 0 )
-    return 0;
-  area = &aasworld.areas[gate[6]];                    /* gate->_i18 */
+    return NULL;
+  //if started in solid no face was hit
+  if ( trace->startsolid )
+    return NULL;
+  //trace->lastarea is the last area the trace was in
+  area = &aasworld.areas[trace->lastarea];
+  //check which face the trace.endpos was in
   for ( i = 0; i < area->numfaces; i++ )
   {
     facenum = aasworld.faceindex[area->firstface + i];
     face = &aasworld.faces[abs(facenum)];
-    if ( (face->planenum & ~1) != (gate[8] & ~1) )   /* gate->_i20 */
-      continue;
-    if ( AAS_InsideFace(face, (float *)&aasworld.planes[face->planenum], (float *)(gate + 2), 0.01f) )
-      return face;
+    //if the face is in the same plane as the trace end point
+    if ( (face->planenum & ~1) == (trace->planenum & ~1) )
+    {
+      if ( AAS_InsideFace(face, (float *)&aasworld.planes[face->planenum], trace->endpos, 0.01f) )
+        return face;
+    }
   }
-  return 0;
+  return firstface;
 }
 
 // gladiator.dll: 1001C2E0..1001C3A5
 // gladi386.so:   0002A4D0..0002A5D8
-int __cdecl sub_1001C2E0(float *a1, float *a2, float *a3)
+/* Q3 be_aas_sample.c's AAS_BoxOnPlaneSide2, verbatim; its only caller is
+ * AAS_AASLinkEntity, as in Q3.  The BSP-plane twin is sub_10006100. */
+int __cdecl AAS_BoxOnPlaneSide2(float *a1, float *a2, float *a3)
 {
   int   i, sides;
   vec3_t corners[2]; /* [0]=closer to plane normal, [1]=farther */
@@ -916,7 +923,7 @@ aas_link_t *__cdecl AAS_AASLinkEntity(vec3_t absmins, vec3_t absmaxs, int entnum
     }
     else
     {
-      side = sub_1001C2E0(absmins, absmaxs, plane->normal);
+      side = AAS_BoxOnPlaneSide2(absmins, absmaxs, plane->normal);
     }
     if ( (side & 1) != 0 )
       *lstack_p++ = aasnode->children[0];
