@@ -317,6 +317,12 @@ jobs:
             `trigger_key_use` read the same missing activator when such a door targets
             a monster or a key trigger. Now checked; a monster spawned this way simply
             starts without an enemy. <!-- fix: null-activator-use-callbacks -->
+          - Bots could snap their view to a random direction when a move found no route
+            or when they left the ground in their goal area. `BotClearMoveResult` never
+            cleared the move's direction and view angles, and five AI nodes aimed with
+            whatever memory was left there. Both are now cleared. A bot with nowhere to
+            move looks around, as Quake III's long-term-goal node does, and a bot swimming
+            to a teleporter or elevator faces the way it swims. <!-- fix: moveresult-uninit-vectors -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

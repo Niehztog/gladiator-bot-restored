@@ -754,7 +754,22 @@ int __cdecl AINode_Seek_ActivateEntity(bot_state_t *bs)
     }
     else
     {
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+      /* Q3's AINode_Seek_LTG fallback: a zero movedir (no movement this frame, now
+       * that BotClearMoveResult zeroes it) must not aim straight down, so roam the
+       * view instead.  DotProduct(v, v) is Q3's VectorLengthSquared. */
+      if ( DotProduct(v15.movedir, v15.movedir) )
+        Vector2Angles(v15.movedir, bs->ideal_viewangles);
+      else if ( random() < bs->thinktime * 0.8 )
+      {
+        BotRoamGoal(bs, target);
+        VectorSubtract(target, bs->origin, dir);
+        Vector2Angles(dir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] *= 0.5;
+      }
+#else
       Vector2Angles(v15.movedir, bs->ideal_viewangles);
+#endif
     }
     bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
   }
@@ -896,7 +911,22 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
       Vector2Angles(dir, bs->ideal_viewangles);
     }
     else
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+    {
+      /* Q3's AINode_Seek_LTG fallback -- see AINode_Seek_ActivateEntity. */
+      if ( DotProduct(moveresult.movedir, moveresult.movedir) )
+        Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+      else if ( random() < bs->thinktime * 0.8 )
+      {
+        BotRoamGoal(bs, target);
+        VectorSubtract(target, bs->origin, dir);
+        Vector2Angles(dir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] *= 0.5;
+      }
+    }
+#else
       Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+#endif
     bs->ideal_viewangles[2] *= 0.5;
   }
   if ( BotFindEnemy(bs) )
@@ -1053,7 +1083,20 @@ int __cdecl AINode_Seek_LTG(bot_state_t *bs)
     }
     else
     {
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+      /* Q3's own fallback for this node -- see AINode_Seek_ActivateEntity. */
+      if ( DotProduct(moveresult.movedir, moveresult.movedir) )
+        Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+      else if ( random() < bs->thinktime * 0.8 )
+      {
+        BotRoamGoal(bs, target);
+        VectorSubtract(target, bs->origin, dir);
+        Vector2Angles(dir, bs->ideal_viewangles);
+        bs->ideal_viewangles[2] *= 0.5;
+      }
+#else
       Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+#endif
     }
     bs->ideal_viewangles[2] *= 0.5;
   }
@@ -1311,7 +1354,20 @@ int __cdecl AINode_Battle_Chase(bot_state_t *bs)
       }
       else
       {
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+        /* Q3's AINode_Seek_LTG fallback -- see AINode_Seek_ActivateEntity. */
+        if ( DotProduct(moveresult.movedir, moveresult.movedir) )
+          Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+        else if ( random() < bs->thinktime * 0.8 )
+        {
+          BotRoamGoal(bs, target);
+          VectorSubtract(target, bs->origin, dir);
+          Vector2Angles(dir, bs->ideal_viewangles);
+          bs->ideal_viewangles[2] *= 0.5;
+        }
+#else
         Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+#endif
       }
       bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
     }
@@ -1454,7 +1510,20 @@ int __cdecl AINode_Battle_Retreat(bot_state_t *bs)
             }
             else
             {
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+              /* Q3's AINode_Seek_LTG fallback -- see AINode_Seek_ActivateEntity. */
+              if ( DotProduct(moveresult.movedir, moveresult.movedir) )
+                Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+              else if ( random() < bs->thinktime * 0.8 )
+              {
+                BotRoamGoal(bs, target);
+                VectorSubtract(target, bs->origin, dir);
+                Vector2Angles(dir, bs->ideal_viewangles);
+                bs->ideal_viewangles[2] *= 0.5;
+              }
+#else
               Vector2Angles(moveresult.movedir, bs->ideal_viewangles);
+#endif
             }
             bs->ideal_viewangles[2] = bs->ideal_viewangles[2] * 0.5;
             BotChangeViewAngles(bs, bs->thinktime);

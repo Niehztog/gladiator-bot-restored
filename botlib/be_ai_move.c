@@ -667,6 +667,13 @@ bot_moveresult_t *__cdecl BotClearMoveResult(bot_moveresult_t *moveresult)
   moveresult->blockentity = 0;
   moveresult->traveltype = 0;
   moveresult->flags = 0;
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+  /* The 1999 clear stops at flags, and every builder and BotMoveToGoal copy all 48
+   * bytes out, so each path that writes neither vector hands the AI nodes stack
+   * garbage to aim with.  Zero them once here, where every result starts. */
+  VectorClear(moveresult->movedir);
+  VectorClear(moveresult->ideal_viewangles);
+#endif
   return result;
 }
 
@@ -1145,8 +1152,17 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
       EA_Move(ms->client, dir, 200.0);
     else
       EA_Move(ms->client, dir, 400.0);
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+    /* The swim view promises ideal_viewangles; set them as BotMoveInGoalArea does. */
+    if ( (ms->moveflags & 4) != 0 )
+    {
+      Vector2Angles(dir, moveresult.ideal_viewangles);
+      moveresult.flags |= 2;
+    }
+#else
     if ( (ms->moveflags & 4) != 0 )
       moveresult.flags |= 2;
+#endif
     VectorCopy(dir, moveresult.movedir);
   }
   return moveresult;
@@ -1218,7 +1234,15 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
         if ( speed > 5 ) EA_Move(ms->client, dir, speed);
       }
       VectorCopy(dir, result.movedir);
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+      if ( ms->moveflags & 4 )
+      {
+        Vector2Angles(dir, result.ideal_viewangles);
+        result.flags |= 2;
+      }
+#else
       if ( ms->moveflags & 4 ) result.flags |= 2;
+#endif
       /* this isn't a failure... just wait till the elevator comes down */
       result.type = 1;
       result.flags |= 4;
@@ -1249,7 +1273,15 @@ bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachabilit
       EA_Move(ms->client, dir, speed);
     }
     VectorCopy(dir, result.movedir);
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(moveresult-uninit-vectors) */
+    if ( ms->moveflags & 4 )
+    {
+      Vector2Angles(dir, result.ideal_viewangles);
+      result.flags |= 2;
+    }
+#else
     if ( ms->moveflags & 4 ) result.flags |= 2;
+#endif
   }
   return result;
 }
