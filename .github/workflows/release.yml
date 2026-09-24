@@ -249,35 +249,83 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
         run: |
           files=$(find artifacts -type f \( -name '*.tar.gz' -o -name '*.zip' \))
           echo "Release assets:"
           echo "$files"
-          # GitHub appends --generate-notes output to a supplied body, so the build-flag
-          # note leads and the auto changelog follows.
-          cat > notes.md <<'NOTES'
+
+          # The per-release part is the ANNOTATED tag's message: what changed since the
+          # previous release, written when the release is cut, as the body of the
+          # "What's new" section (the heading is added here).  It is read through the
+          # API, not from a checkout, because actions/checkout rewrites a tag it fetches
+          # into a lightweight one.  A lightweight tag has no message, and publishing
+          # without one would silently repeat the previous release's text, so it stops
+          # the release instead; the builds stay available as artifacts.  Create tags as
+          #   git tag -a --cleanup=verbatim -F whatsnew.md vX.Y.Z <commit>
+          # (git's default cleanup would delete any line starting with '#').
+          ref=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object.type + " " + .object.sha')
+          if [ "${ref%% *}" != "tag" ]; then
+            echo "::error::$TAG is a lightweight tag. The release notes come from an annotated tag's message: git tag -a --cleanup=verbatim -F whatsnew.md $TAG <commit>"
+            exit 1
+          fi
+          gh api "repos/$GH_REPO/git/tags/${ref##* }" --jq .message \
+            | sed '/^-----BEGIN PGP SIGNATURE-----$/,$d' > whatsnew.md
+          if ! grep -q '[^[:space:]]' whatsnew.md; then
+            echo "::error::$TAG has an empty tag message."
+            exit 1
+          fi
+          {
+            printf "## What's new in %s\n\n" "$TAG"
+            cat whatsnew.md
+            printf '\n'
+          } > notes.md
+
+          # What every release carries: the build flag and the fixes it builds in.  Each
+          # bullet ends in a hidden `<!-- fix: <id> -->` marker that
+          # tools/check_deviations.py matches against the GLAD_SERVERFIX(<id>) tags in
+          # the source, so a deviation added without a bullet here fails `make verify`.
+          # GitHub appends the --generate-notes output (the compare link) after the body.
+          cat >> notes.md <<'NOTES'
+          ## About these binaries
+
           Built with `GLAD_SERVERFIX=1`. This project reconstructs Gladiator Bot v0.96
           from the 1999 binaries, so its default build reproduces the originals *with
-          their bugs*. Four of those bugs are fatal or wrong on a live server, and a
-          release is for playing, so these binaries fix them:
+          their bugs*. The ones below are fatal or wrong on a live server, and a release
+          is for playing, so these binaries fix them:
 
           - `AAS_AASLinkEntity` overflowed a fixed 64-entry BSP traversal stack and
             smashed its own frame on densely subdivided custom maps. Now sized and
-            bounds-checked as Quake III does it.
-          - `G_FreeEdict` left a client's CTF grapple pointer dangling when a mover
-            crushed the grapple in flight, crashing on the next frame's pull.
+            bounds-checked as Quake III does it. <!-- fix: aas-linkstack-overflow -->
+          - `AAS_UpdateAreaRoutingCache` read one entry past its travel-time table
+            for an area with no reachabilities of its own, crashing on maps that have
+            such an area. The start area now adds zero travel time, as in Quake III. <!-- fix: route-start-areatraveltimes -->
           - `BotUpdateEntityItems` re-linked a level item using a stale index, so a bot
-            navigated to an item using some other item's bounding box.
+            navigated to an item using some other item's bounding box. <!-- fix: bot-item-stale-iteminfo -->
           - `PS_ReadNumber` applied its `l`/`u` numeric-suffix guard asymmetrically, a
-            C operator-precedence slip in the original.
+            C operator-precedence slip in the original. <!-- fix: script-lu-suffix-guard -->
+          - `G_FreeEdict` left a client's CTF grapple pointer dangling when a mover
+            crushed the grapple in flight, crashing on the next frame's pull. <!-- fix: ctf-grapple-stale-pointer -->
+          - `T_Damage` used a missing attacker unchecked. A blocked `func_door`
+            reverses and fires its targets with no activator, so a `target_explosion`
+            (or a damaging `target_splash`) it set off crashed the damage code. A
+            missing attacker is now the world, which is Quake III's own fix. <!-- fix: null-attacker-damage-path -->
+          - `G_UseTargets` warned about that missing activator for delayed targets,
+            then read it anyway to print the door's `message`, crashing on any such
+            door that carries one. Now checked. <!-- fix: null-activator-usetargets -->
+          - `monster_use`, the two trigger-spawned monster callbacks and
+            `trigger_key_use` read the same missing activator when such a door targets
+            a monster or a key trigger. Now checked; a monster spawned this way simply
+            starts without an enemy. <!-- fix: null-activator-use-callbacks -->
 
-          Each fix is Quake III's own later correction of the same code — Mr. Elusive
-          wrote both bot libraries — rather than anything invented here. Every
-          deviation sits behind one build flag with the 1999 behaviour preserved beside
-          it, so `make` still builds the faithful reconstruction.
+          Where Quake III later fixed the same code, the fix is its own correction —
+          Mr. Elusive wrote both bot libraries — and where it has no counterpart, the
+          fix is the smallest change that stops the fault; nothing else is invented
+          here. Every deviation sits behind one build flag with the 1999 behaviour
+          preserved beside it, so `make` still builds the faithful reconstruction.
           NOTES
-          gh release create "${{ github.ref_name }}" \
+          gh release create "$TAG" \
             $files \
-            --title "Gladiator ${{ github.ref_name }}" \
+            --title "Gladiator $TAG" \
             --notes-file notes.md \
             --generate-notes
