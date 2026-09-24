@@ -1090,10 +1090,9 @@ int __cdecl FileLength(FILE *fp)
 /* Raw script file loader: create a script_t (1392-byte header + file data) in one
  * allocation.  Does NOT set up a source_t or scriptstack — LoadSourceFile does that
  * around this. */
-script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
+script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t length)
 {
   FILE *fp;
-  size_t length;
   script_t *script;
 
   fp = fopen(FileName, "rb");
@@ -1101,8 +1100,10 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
     return NULL;
   if ( Offset )
     fseek(fp, Offset, 0);
-  length = ElementSize;
-  if ( !ElementSize )
+  /* the PARAMETER, mutated in place (IDA's shadow `length = ElementSize` was
+   * its view of that): gladi386.so copies it into edi at entry, which gcc 2.7
+   * does only for a parameter the function assigns to. */
+  if ( !length )
     length = FileLength(fp) - Offset;
   script = (script_t *)GetClearedMemory(length + sizeof(script_t) + 1);
   memset(script, 0, sizeof(script_t));
@@ -1124,18 +1125,22 @@ script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize)
   }
   fclose(fp);
   {
-    /* An initialised automatic array: the DLL copies the 72-byte literal (three
-     * NULs, the text, its NUL) with `rep movsd` from the compiler's own
-     * initializer and zero-fills the other 72 -- byte-exact only in this form.
-     * The .so copies a zero-padded 144-byte initializer in one block instead (a
-     * brace list gives that, and costs the DLL 160 lines), so the two revisions
-     * spelled this differently. */
-    char buf[144] = "\0\0\0You are not allowed to\nmodify the bot characters in\nin this version.";
+    /* An initialised automatic array, printed from +3 past three leading NULs
+     * (AINode_Stand's "I never hacked your brain" uses the same trick).  Wrapped
+     * one level deeper, [1][144], because the two 1999 compilers expand the
+     * initializer differently only for an AGGREGATE: cl.exe copies the 72-byte
+     * literal with `rep movsd` and zero-fills the other 72 whichever way it is
+     * written, while gcc 2.7 copies a zero-padded 144-byte template in one
+     * block for an aggregate but copies-then-clears for a plain `char buf[144]
+     * = "..."`.  ([2][72] and a one-member struct measure the same on both.)
+     * The earlier reading, that the two revisions spelled this differently,
+     * only knew the plain-array and char-brace-list forms. */
+    char buf[1][144] = {"\0\0\0You are not allowed to\nmodify the bot characters in\nin this version."};
 
     if ( !sub_10037850(FileName, script->buffer, script->length) )
     {
       LibVar("__squatt", "1");
-      botimport.Print(PRT_EXIT, &buf[3]);
+      botimport.Print(PRT_EXIT, &buf[0][3]);
     }
   }
   return script;

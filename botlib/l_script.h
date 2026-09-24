@@ -95,7 +95,7 @@ BOOL __cdecl EndOfScript(script_t *script);
 int __cdecl FileLength(FILE *fp);
 void      __cdecl FreeScript(script_t *script);
 int __cdecl GetScriptFlags(script_t *script);
-script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t ElementSize);
+script_t *__cdecl LoadScriptFile(char *FileName, int Offset, size_t length);
 script_t *__cdecl LoadScriptMemory(const void *ptr, unsigned int length, const char *name);
 int __cdecl NumLinesCrossed(script_t *script);
 void __cdecl NumberValue(char *string, int subtype, unsigned int *intvalue, long double *floatvalue);

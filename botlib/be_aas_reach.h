@@ -58,7 +58,7 @@ int AAS_Reachability_Jump(int area1num, int area2num);
 int AAS_Reachability_Ladder(int area1num, int area2num);
 int __cdecl AAS_Reachability_Step_Barrier_WaterJump_WalkOffLedge(int area1num, int area2num);
 int __cdecl AAS_Reachability_Swim(int area1num, int area2num);
-int AAS_Reachability_Teleport();
+void AAS_Reachability_Teleport(void);
 void __cdecl AAS_Reachability_WalkOffLedge(int areanum);
 int __cdecl AAS_Reachability_WeaponJump(int area1num, int area2num);
 int AAS_SetWeaponJumpAreaFlags();

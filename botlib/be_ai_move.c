@@ -58,7 +58,6 @@ float __cdecl AngleDiff(float ang1, float ang2)
 int __cdecl BotReachabilityArea(int *origin, int client)
 {
   int v5; // eax
-  int v6; // esi
   int v12; // [esp+10h] [ebp-A4h]
   int v8; // edi
   int v26[10]; // [esp+68h] [ebp-4Ch] BYREF
@@ -92,12 +91,11 @@ int __cdecl BotReachabilityArea(int *origin, int client)
     }
     v12 = 0;
     v5 = AAS_PointAreaNum(start);
-    v6 = v5;
     if ( v5 )
     {
       v12 = v5;
       if ( AAS_AreaReachability(v5) )
-        return v6;
+        return v5;
     }
     for ( dz = 1; dz >= -1; dz -= 1 )
     {
@@ -135,8 +133,12 @@ int __cdecl BotReachabilityArea(int *origin, int client)
         break;
       }
     }
+    /* A second textual `return v12`, not `break`: gladi386.so's `je` for this
+     * test lands on the EARLIER return block (gcc cross-jumps identical returns
+     * onto the first occurrence), which a `break` to the trailing return cannot
+     * produce.  cl.exe emits the same code for both spellings. */
     if ( !client )
-      break;
+      return v12;
   }
   return v12;
 }
@@ -1154,122 +1156,102 @@ bot_moveresult_t __cdecl BotTravel_Teleport(bot_movestate_t *ms, aas_reachabilit
 // gladi386.so:   00043330..00043CB7
 bot_moveresult_t __cdecl BotTravel_Elevator(bot_movestate_t *ms, aas_reachability_t *reach)
 {
-  float v4; // st7
-  float v5; // st7
-  float v6; // st7
-  char v7; // al
-  char v9; // al
-  char v11; // al
-  float dist2; // st7
-  char v14; // al
-  float v17; // [esp+0h] [ebp-7Ch]
-  float v18; // [esp+0h] [ebp-7Ch]
-  /* Real vec3_t locals — see the BotTravel_Walk note. */
-  vec3_t final; // [esp+10h] [ebp-6Ch] BYREF (was v19/v20/v21)
-  vec3_t reachdir; // [esp+28h] [ebp-54h] BYREF (was v25/v26/v27; renamed from 'reach' to free the param name)
-  vec3_t telegoaldir; // [esp+34h] [ebp-48h] BYREF (was v28/v29/v30)
-  vec3_t dir;   // [esp+1Ch] [ebp-60h] BYREF (was v22/v23/v24)
-  vec3_t telegoal; // [esp+40h] [ebp-3Ch] BYREF (was v31/v32/v33)
-  bot_moveresult_t moveresult; // [esp+4Ch] [ebp-30h] BYREF
-  int dist1; // [esp+84h] [ebp+8h]
-  float dist; // [esp+88h] [ebp+Ch]
-  float v36; // [esp+88h] [ebp+Ch]
+  /* Q3's text and declarations, less the "very near the reachability end"
+   * block Q3 added later and with Gladiator's constants (5 for Q3's 10) and
+   * three-argument BotCheckBlocked.  IDA's version -- split speed temps, dist1
+   * punned through a parameter slot, one vector doing Q3's `hordir` and `dir`
+   * jobs -- matched the DLL only; this matches both. */
+  vec3_t dir, dir1, dir2, hordir, bottomcenter;
+  float dist, dist1, dist2, speed;
+  bot_moveresult_t result;
 
-  BotClearMoveResult(&moveresult);
+  BotClearMoveResult(&result);
+  /* if standing on the plat */
   if ( BotOnMover(ms->origin, ms->entitynum, reach) )
   {
+    /* if vertically not too far from the end point */
     if ( (float)abs((int)(ms->origin[2] - reach->end[2])) < libvar_sv_maxbarrier->value )
     {
-      v4 = reach->end[0] - ms->origin[0];
-      dir[0] = v4;
-      dir[1] = reach->end[1] - ms->origin[1];
-      dir[2] = 0.0f;
-      VectorNormalize(dir);
-      if ( !BotCheckBarrierJump(ms, dir, 100.0f) )
-        EA_Move(ms->client, dir, 400.0f);
-      VectorCopy(dir, moveresult.movedir);
+      /* move to the end point */
+      VectorSubtract(reach->end, ms->origin, hordir);
+      hordir[2] = 0;
+      VectorNormalize(hordir);
+      if ( !BotCheckBarrierJump(ms, hordir, 100) )
+      {
+        EA_Move(ms->client, hordir, 400);
+      }
+      VectorCopy(hordir, result.movedir);
     }
+    /* if not really close to the center of the elevator */
     else
     {
-      MoverBottomCenter(reach, telegoal);
-      v5 = telegoal[0] - ms->origin[0];
-      dir[0] = v5;
-      dir[1] = telegoal[1] - ms->origin[1];
-      dir[2] = 0.0f;
-      v6 = VectorNormalize(dir);
-      if ( v6 > 5.0f )
+      MoverBottomCenter(reach, bottomcenter);
+      VectorSubtract(bottomcenter, ms->origin, hordir);
+      hordir[2] = 0;
+      dist = VectorNormalize(hordir);
+      if ( dist > 5 )
       {
-        if ( v6 > 100.0f )
-          v6 = 100.0f;
-        v17 = 400.0f - (400.0f - v6 * 4.0f);
-        EA_Move(ms->client, dir, v17);
-        VectorCopy(dir, moveresult.movedir);
+        /* move to the center of the plat */
+        if ( dist > 100 ) dist = 100;
+        speed = 400 - (400 - 4 * dist);
+        EA_Move(ms->client, hordir, speed);
+        VectorCopy(hordir, result.movedir);
       }
     }
   }
   else
   {
-    v7 = ms->moveflags;
-    VectorSubtract(reach->start, ms->origin, reachdir);
-    if ( (v7 & 4) == 0 )
-      reachdir[2] = 0.0f;
-    *(float *)&dist1 = VectorNormalize(reachdir);
+    /* get direction and distance to reachability start */
+    VectorSubtract(reach->start, ms->origin, dir1);
+    if ( !(ms->moveflags & 4) ) dir1[2] = 0;
+    dist1 = VectorNormalize(dir1);
+    /* if the elevator isn't down */
     if ( !MoverDown(reach) )
     {
-      dist = *(float *)&dist1;
-      VectorCopy(reachdir, final);
-      BotCheckBlocked(ms, final, &moveresult);
-      if ( dist > 60.0f )
-        dist = 60.0f;
-      v36 = 360.0f - (360.0f - dist * 6.0f);
-      if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) && v36 > 5.0f )
-        EA_Move(ms->client, final, v36);
-      VectorCopy(final, moveresult.movedir);
-      v9 = ms->moveflags;
-      if ( (v9 & 4) != 0 )
+      dist = dist1;
+      VectorCopy(dir1, dir);
+      BotCheckBlocked(ms, dir, &result);
+      if ( dist > 60 ) dist = 60;
+      speed = 360 - (360 - 6 * dist);
+      if ( !(ms->moveflags & 4) && !BotCheckBarrierJump(ms, dir, 50) )
       {
-        moveresult.flags |= 2;
+        if ( speed > 5 ) EA_Move(ms->client, dir, speed);
       }
-      moveresult.type = 1;
-      moveresult.flags |= 4u;
-      return moveresult;
+      VectorCopy(dir, result.movedir);
+      if ( ms->moveflags & 4 ) result.flags |= 2;
+      /* this isn't a failure... just wait till the elevator comes down */
+      result.type = 1;
+      result.flags |= 4;
+      return result;
     }
-    MoverBottomCenter(reach, telegoal);
-    v11 = ms->moveflags;
-    VectorSubtract(telegoal, ms->origin, telegoaldir);
-    if ( (v11 & 4) == 0 )
-      telegoaldir[2] = 0.0f;
-    dist2 = VectorNormalize(telegoaldir);
-    if ( *(float *)&dist1 < 20.0f
-      || dist2 < *(float *)&dist1
-      || telegoaldir[2] * reachdir[2] + telegoaldir[1] * reachdir[1] + telegoaldir[0] * reachdir[0] < 0.0f )
+    /* get direction and distance to elevator bottom center */
+    MoverBottomCenter(reach, bottomcenter);
+    VectorSubtract(bottomcenter, ms->origin, dir2);
+    if ( !(ms->moveflags & 4) ) dir2[2] = 0;
+    dist2 = VectorNormalize(dir2);
+    /* if very close to the reachability start or closer to the elevator
+     * center or between reachability start and elevator center */
+    if ( dist1 < 20 || dist2 < dist1 || DotProduct(dir1, dir2) < 0 )
     {
       dist = dist2;
-      VectorCopy(telegoaldir, final);
+      VectorCopy(dir2, dir);
     }
-    else
+    else /* closer to the reachability start */
     {
-      dist = *(float *)&dist1;
-      VectorCopy(reachdir, final);
+      dist = dist1;
+      VectorCopy(dir1, dir);
     }
-    BotCheckBlocked(ms, final, &moveresult);
-    if ( dist > 60.0f )
-      dist = 60.0f;
-    if ( (ms->moveflags & 4) == 0 && !BotCheckBarrierJump(ms, final, 50.0f) )
+    BotCheckBlocked(ms, dir, &result);
+    if ( dist > 60 ) dist = 60;
+    speed = 400 - (400 - 6 * dist);
+    if ( !(ms->moveflags & 4) && !BotCheckBarrierJump(ms, dir, 50) )
     {
-      v18 = 400.0f - (400.0f - dist * 6.0f);
-      EA_Move(ms->client, final, v18);
+      EA_Move(ms->client, dir, speed);
     }
-    moveresult.movedir[0] = final[0];
-    v14 = ms->moveflags;
-    moveresult.movedir[1] = final[1];
-    moveresult.movedir[2] = final[2];
-    if ( (v14 & 4) != 0 )
-    {
-      moveresult.flags |= 2;
-    }
+    VectorCopy(dir, result.movedir);
+    if ( ms->moveflags & 4 ) result.flags |= 2;
   }
-  return moveresult;
+  return result;
 }
 
 // gladiator.dll: 10033790..10033857

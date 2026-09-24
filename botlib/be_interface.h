@@ -103,7 +103,14 @@ extern bot_export_t      botexport;  /* block 3 @0x10063F80 */
 
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
-extern int filecrcs[]; /* CRC16 weapon table (92 entries × 8 bytes) — defined in botlib_structdefs.c */
+/* filecrcs: the config-file CRC whitelist, 92 entries of { crc16, flags }.  A
+ * typed array rather than IDA's int pairs: sub_100377E0's scan needs it (see
+ * there). */
+typedef struct filecrc_s {
+    unsigned short crc;
+    int flags;
+} filecrc_t;
+extern filecrc_t filecrcs[];
 /* NOT a variable and has no original name to recover: 0x1005E958 is exactly
  * filecrcs + 736, i.e. the one-past-the-end address MSVC folded into the scan loop's
  * bound as a link-time constant, and IDA had to invent a symbol for it.  The DLL holds

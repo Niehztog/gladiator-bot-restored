@@ -420,17 +420,17 @@ void __cdecl AAS_DrawArrow(vec3_t start, vec3_t end, int linecolor, int arrowcol
  */
 void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
 {
-  int traveltype; // eax
-  float speed; // [esp+Ch] [ebp-7Ch] BYREF
-  float zvel; // [esp+10h] [ebp-78h]
-  vec3_t dir; // [esp+14h] [ebp-74h] BYREF (12 B / vec3)
-  vec3_t cmdmove; // [esp+20h] [ebp-68h] BYREF
-  vec3_t v12; // [esp+2Ch] [ebp-5Ch] BYREF
+  /* Q3's declaration list, and Q3's `move` receiving both predictions: with
+   * the results discarded gcc 2.7 lays the frame out differently (1469
+   * differing bytes against gladi386.so); cl.exe is indifferent.  The last 51
+   * bytes were AAS_RocketJumpZVelocity's return type -- see there. */
+  vec3_t dir, cmdmove, velocity;
+  float speed, zvel;
+  aas_clientmove_t move;
 
   AAS_ShowArea(reach->areanum, 1);
   AAS_DrawArrow(reach->start, reach->end, -202116623, -589439265);
-  traveltype = reach->traveltype;
-  if ( traveltype == 5 || traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
+  if ( reach->traveltype == 5 || reach->traveltype == 7 ) /* TRAVEL_JUMP || TRAVEL_WALKOFFLEDGE */
   {
     AAS_HorizontalVelocityForJump(libvar_sv_jumpvel->value, reach->start, reach->end, &speed);
     dir[0] = reach->end[0] - reach->start[0];
@@ -439,14 +439,14 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
     cmdmove[2] = libvar_sv_jumpvel->value;
-    AAS_ClientMovementPrediction(-1, reach->start, 2, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
+    move = AAS_ClientMovementPrediction(-1, reach->start, 2, 1, vec3_origin, cmdmove, 3, 30, 0.1, 61, 1);
     if ( reach->traveltype == 5 ) /* TRAVEL_JUMP only */
     {
       AAS_JumpReachRunStart((intptr_t)reach, (intptr_t)dir);
       AAS_DrawCross(dir, 4.0, -202116623); /* LINECOLOR_BLUE = -202116623 (0xF3F3F3F1) */
     }
   }
-  else if ( traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
+  else if ( reach->traveltype == 12 ) /* TRAVEL_ROCKETJUMP */
   {
     zvel = AAS_RocketJumpZVelocity(reach->start); /* AAS_RocketJumpZVelocity(reach->start) → Z-velocity */
     AAS_HorizontalVelocityForJump(zvel, reach->start, reach->end, &speed);
@@ -455,10 +455,10 @@ void __cdecl AAS_ShowReachability(aas_reachability_t *reach)
     dir[2] = 0.0f;
     VectorNormalize(dir);
     VectorScale(dir, speed, (float *)cmdmove);
-    v12[0] = 0;
-    v12[1] = 0;
-    v12[2] = zvel;
-    AAS_ClientMovementPrediction(-1, reach->start, 2, 1, v12, cmdmove, 3, 30, 0.1, 61, 1);
+    velocity[0] = 0;
+    velocity[1] = 0;
+    velocity[2] = zvel;
+    move = AAS_ClientMovementPrediction(-1, reach->start, 2, 1, velocity, cmdmove, 3, 30, 0.1, 61, 1);
   }
 }
 /*

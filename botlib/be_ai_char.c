@@ -52,23 +52,21 @@ void __cdecl BotDumpCharacter(bot_character_t *ch)
 bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 {
   /* Scalar order from gladi386.so's frame (slotmap.py): gcc 2.7 fills the
-   * spilled-scalar group top-down in declaration order.  This order takes the
-   * row from 150 to 130 insn_diffs (2390 -> 1126 B); the residual is a 4-byte
-   * offset between the two blocks (ref's spans 0x10..0x30, ours 0x14..0x34, and
-   * each side has one never-referenced slot -- ref's at the TOP of the block,
-   * ours at the bottom), so ref appears to declare one more register-only
-   * scalar ahead of these.  Pairing by vote cannot resolve that on its own; it
-   * needs declprobe.py. */
+   * spilled-scalar group top-down in declaration order -- strptr at the top,
+   * then stringbytes, numchars, foundcharacter, pass, and source just above
+   * ch.  An adjacent-swap hill-climb cannot get there (every single step on
+   * the way regresses); moving strptr and source directly does.  cl.exe is
+   * inert to all of it. */
   int indent;
   char Destination[MAX_PATH];
-  source_t *source; // [esp+10h] [ebp-5E4h]
+  char *strptr; // [esp+24h] [ebp-5D0h]
   int stringbytes; // [esp+18h] [ebp-5DCh]
   int numchars; // [esp+14h] [ebp-5E0h]
   int index;
-  bot_character_t *ch; // ebx
-  int pass; // [esp+1Ch] [ebp-5D8h]
-  char *strptr; // [esp+24h] [ebp-5D0h]
   int foundcharacter; // [esp+20h] [ebp-5D4h]
+  int pass; // [esp+1Ch] [ebp-5D8h]
+  source_t *source; // [esp+10h] [ebp-5E4h]
+  bot_character_t *ch; // ebx
   token_t token;
   bot_fileref_t file_ref;
 
@@ -148,16 +146,11 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
                 }
               }
             }
-            else
+            /* Q3's `else if (TT_STRING) ... else error` order, not IDA's
+             * error-test-first: gladi386.so places the error block after the
+             * string arm (130 -> 68 insn diffs on its own). */
+            else if ( token.type == 1 )
             {
-              if ( token.type != 1 )
-              {
-                SourceError(source,
-                            "expected integer, float or string, found %s\n",
-                            token.string);
-                FreeSource(source);
-                return 0;
-              }
               StripDoubleQuotes(token.string);
               if ( pass )
               {
@@ -171,12 +164,20 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
                 stringbytes += strlen(token.string) + 1;
               }
             }
+            else
+            {
+              SourceError(source,
+                          "expected integer, float or string, found %s\n",
+                          token.string);
+              FreeSource(source);
+              return 0;
+            }
           }
         }
         else
         {
           indent = 1;
-          while ( 1 )
+          while ( indent )
           {
             if ( !PC_ExpectAnyToken(source, token.string) )
             {
@@ -184,11 +185,9 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
               return 0;
             }
             if ( !strcmp(token.string, "{") )
-              ++indent;
+              indent++;
             else if ( !strcmp(token.string, "}") )
-              --indent;
-            if ( !indent )
-              break;
+              indent--;
           }
         }
       }
@@ -213,8 +212,8 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
         stringbytes
         + sizeof(bot_characteristic_t) * numchars
         + sizeof(bot_character_t));
-      ch->numcharacteristics = numchars;
       strptr = (char *)&BC_PAIRS(ch)[numchars + 1];
+      ch->numcharacteristics = numchars;
     }
   }
   if ( file_ref.filelen )
@@ -250,24 +249,34 @@ int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index)
 
 // gladiator.dll: 1002A620..1002A66C
 // gladi386.so:   00038BA8..00038C50
+/* Q3's text: the type re-read per test, and the trailing `return 0;` that Q3
+ * later commented out still live.  Neither changes this function's code, but
+ * both count against gcc 2.7's inlining limit, which is measured on the
+ * callee's PRE-optimisation RTL (8 * (8 + nargs) = 80 insns here): with them
+ * the body is 82 insns and Characteristic_BFloat CALLS it, as gladi386.so
+ * does; with IDA's cached `char` type and no dead return it is 74 and gets
+ * inlined -- which alone was BFloat's OUR+47.  (Measured with cc1 -dr.)
+ * Characteristic_Integer below is the same, for BInteger's OUR+68. */
 float __cdecl Characteristic_Float(bot_character_t *character, int index)
 {
-  char v2; // al
-
-  if ( !CheckCharacteristicIndex(character, index) )
-    return 0.0f;
-  /* Subscripted per use, NOT hoisted into a `pair` pointer: gcc 2.7 CSEs only
-   * the `index * 8` and re-adds the base register in each addressing mode
-   * (`lea eax,[esi*8+0]` then `[eax+edi+4]` / `[eax+edi+8]`), where a pointer
-   * temp folds the base into the lea and loses 5 bytes.  Same for
-   * Characteristic_Integer below. */
-  v2 = (char)BC_PAIRS(character)[index].type;
-  if ( v2 == 1 )
-    return (float)BC_PAIRS(character)[index].value.integer;
-  if ( v2 == 2 )
+  if ( !CheckCharacteristicIndex(character, index) ) return 0;
+  /* an integer will be converted to a float */
+  if ( BC_PAIRS(character)[index].type == 1 )
+  {
+    return (float) BC_PAIRS(character)[index].value.integer;
+  }
+  /* floats are just returned */
+  else if ( BC_PAIRS(character)[index].type == 2 )
+  {
     return BC_PAIRS(character)[index].value._float;
-  botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
-  return 0.0f;
+  }
+  /* cannot convert a string pointer to a float */
+  else
+  {
+    botimport.Print(PRT_ERROR, "characteristic %d is not a float\n", index);
+    return 0;
+  }
+  return 0;
 }
 
 // gladiator.dll: 1002A690..1002A705
@@ -294,16 +303,22 @@ float __cdecl Characteristic_BFloat(bot_character_t *character, int index, float
 // gladi386.so:   00038CEC..00038DC6
 int __cdecl Characteristic_Integer(bot_character_t *character, int index)
 {
-  char v2; // al
-
-  if ( !CheckCharacteristicIndex(character, index) )
-    return 0;
-  v2 = (char)BC_PAIRS(character)[index].type;
-  if ( v2 == 1 )
+  if ( !CheckCharacteristicIndex(character, index) ) return 0;
+  /* an integer will just be returned */
+  if ( BC_PAIRS(character)[index].type == 1 )
+  {
     return BC_PAIRS(character)[index].value.integer;
-  if ( v2 == 2 )
-    return (int)BC_PAIRS(character)[index].value._float;
-  botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
+  }
+  /* floats are casted to integers */
+  else if ( BC_PAIRS(character)[index].type == 2 )
+  {
+    return (int) BC_PAIRS(character)[index].value._float;
+  }
+  else
+  {
+    botimport.Print(PRT_ERROR, "characteristic %d is not a integer\n", index);
+    return 0;
+  }
   return 0;
 }
 

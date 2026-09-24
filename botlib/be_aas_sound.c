@@ -193,31 +193,38 @@ void sub_1001CC10(aas_soundpool_t *a1)
 // gladiator.dll: 1001CC50..1001CC9D
 // gladi386.so:   0002B0BC..0002B134
 /* Insert into the d_100669CC/D0 sorted active list (descending by float at
- * payload offset +4).  Original gladiator at 0x1001CC50. */
+ * payload offset +4).  Original gladiator at 0x1001CC50.
+ *
+ * The link-and-return sits INSIDE the walk, not after a `break`: gladi386.so
+ * lays it out as the fall-through of the compare with the `i = v1; v1 =
+ * v1->prev` step behind it, reloads a1->endtime every pass and never rotates
+ * the loop -- none of which any break-out spelling produces (five measured,
+ * all identical).  cl.exe emits the same code either way.  sub_1001CD10 is
+ * the same function over the start-time list. */
 void sub_1001CC50(aas_soundpool_t *a1)
 {
   aas_soundpool_t *v1;
   aas_soundpool_t *i;
 
   i = NULL;
-  v1 = aasworld.d_100669D0;
-  while ( v1 )
+  for ( v1 = aasworld.d_100669D0; ; v1 = v1->prev )
   {
-    if ( v1->endtime < a1->endtime )
-      break;
+    if ( !v1 || v1->endtime < a1->endtime )
+    {
+      a1->next = i;
+      a1->prev = v1;
+      if ( i )
+        i->prev = a1;
+      else
+        aasworld.d_100669D0 = a1;
+      if ( v1 )
+        v1->next = a1;
+      else
+        aasworld.d_100669CC = a1;
+      return;
+    }
     i = v1;
-    v1 = v1->prev;
   }
-  a1->next = i;
-  a1->prev = v1;
-  if ( i )
-    i->prev = a1;
-  else
-    aasworld.d_100669D0 = a1;
-  if ( v1 )
-    v1->next = a1;
-  else
-    aasworld.d_100669CC = a1;
 }
 
 // gladiator.dll: 1001CCC0..1001CCF3
@@ -250,24 +257,24 @@ void sub_1001CD10(aas_soundpool_t *a1)
   aas_soundpool_t *i;
 
   i = NULL;
-  v1 = aasworld.d_100669D8;
-  while ( v1 )
+  for ( v1 = aasworld.d_100669D8; ; v1 = v1->prev )
   {
-    if ( v1->starttime < a1->starttime )
-      break;
+    if ( !v1 || v1->starttime < a1->starttime )
+    {
+      a1->next = i;
+      a1->prev = v1;
+      if ( i )
+        i->prev = a1;
+      else
+        aasworld.d_100669D8 = a1;
+      if ( v1 )
+        v1->next = a1;
+      else
+        aasworld.d_100669D4 = a1;
+      return;
+    }
     i = v1;
-    v1 = v1->prev;
   }
-  a1->next = i;
-  a1->prev = v1;
-  if ( i )
-    i->prev = a1;
-  else
-    aasworld.d_100669D8 = a1;
-  if ( v1 )
-    v1->next = a1;
-  else
-    aasworld.d_100669D4 = a1;
 }
 
 // gladiator.dll: 1001CD80..1001CDB3
@@ -320,48 +327,53 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, 
 {
   soundinfo_t *v8; // ebx
   aas_soundpool_t *i;
-  aas_soundpool_t *v10;
 
   if ( a4 < 0 || a4 >= aasworld.soundindex_table->numindexes )
   {
     botimport.Print(PRT_FATAL, "sound index %d out of range [0, %d]\n", a4, aasworld.soundindex_table->numindexes);
     return BLERR_INVALIDSOUNDINDEX;
   }
-  else
+  if ( !aasworld.d_100669C0 )
   {
-    if ( !aasworld.d_100669C0 )
-    {
-      botimport.Print(PRT_MESSAGE, "no soundindex to soundinfo table\n");
-      return 0;
-    }
-    if ( a4 >= 0 && a4 < aasworld.d_100669BC )
-    {
-      v8 = (soundinfo_t *)aasworld.d_100669C0[a4];
-      if ( !v8 )
-        return 0;
-      for ( i = aasworld.d_100669CC; i; i = i->next )
-        ;
-      if ( a7 == 0.0f )
-        sub_1001CDD0(a2, a4);
-      v10 = sub_1001CBE0();
-      if ( !v10 )
-      {
-        botimport.Print(PRT_ERROR, "empty sound heap\n");
-        return 0;
-      }
-      v10->starttime = AAS_Time() + a7;
-      v10->endtime = AAS_Time() + v8->duration + a7;
-      VectorCopy(a1, v10->origin);
-      v10->_reserved20 = 0;
-      v10->entnum = a2;
-      v10->channel = a3;
-      v10->soundindex = a4;
-      v10->volume = a5;
-      v10->attenuation = a6;
-      sub_1001CD10(v10);
-    }
+    botimport.Print(PRT_MESSAGE, "no soundindex to soundinfo table\n");
     return 0;
   }
+  /* Flat negative guards, no `else` around the rest: gcc makes each THEN
+   * the fall-through, so gladi386.so's inline `return 0` (with the `!v8`
+   * one cross-jumped onto it) proves this guard is an early return.  IDA's
+   * `else { ... }` wrapper was what made cl.exe cross-jump that return
+   * backward onto the no-soundindex tail; flat, it joins the final
+   * `return 0` as the DLL does. */
+  if ( a4 < 0 || a4 >= aasworld.d_100669BC )
+    return 0;
+  v8 = (soundinfo_t *)aasworld.d_100669C0[a4];
+  if ( !v8 )
+    return 0;
+  /* a dead walk to the list end, and then the SAME `i` for the new node:
+   * gladi386.so keeps both in esi */
+  for ( i = aasworld.d_100669CC; i; i = i->next )
+    ;
+  if ( a7 == 0.0f )
+    sub_1001CDD0(a2, a4);
+  i = sub_1001CBE0();
+  if ( !i )
+  {
+    botimport.Print(PRT_ERROR, "empty sound heap\n");
+    return 0;
+  }
+  i->starttime = AAS_Time() + a7;
+  /* start + duration, in the .so's evaluation order; cl.exe reassociates
+   * the three-term sum either way */
+  i->endtime = AAS_Time() + a7 + v8->duration;
+  VectorCopy(a1, i->origin);
+  i->_reserved20 = 0;
+  i->entnum = a2;
+  i->channel = a3;
+  i->soundindex = a4;
+  i->volume = a5;
+  i->attenuation = a6;
+  sub_1001CD10(i);
+  return 0;
 }
 
 // gladiator.dll: 1001CFA0..1001D011
@@ -371,34 +383,26 @@ int __cdecl sub_1001CE20(float *a1, int a2, int a3, int a4, float a5, float a6, 
  * elapsed. */
 void __cdecl sub_1001CFA0(float a1)
 {
+  /* ONE cursor/next pair for both walks (IDA had four names): gladi386.so
+   * keeps them in esi/ebp through both loops. */
   aas_soundpool_t *v1;
   aas_soundpool_t *v2;
-  aas_soundpool_t *v3;
-  aas_soundpool_t *v4;
 
-  v1 = aasworld.d_100669CC;
-  while ( v1 && v1->endtime <= a1 )
+  for ( v1 = aasworld.d_100669CC; v1 && v1->endtime <= a1; v1 = v2 )
   {
     v2 = v1->next;
     sub_1001CCC0(v1);
     sub_1001CC10(v1);
-    v1 = v2;
   }
-  v3 = aasworld.d_100669D4;
-  if ( v3 )
+  for ( v1 = aasworld.d_100669D4; v1; v1 = v2 )
   {
-    do
+    v2 = v1->next;
+    if ( v1->starttime < a1 )
     {
-      v4 = v3->next;
-      if ( v3->starttime < a1 )
-      {
-        sub_1001CD80(v3);
-        sub_1001CDD0(v3->entnum, v3->soundindex);
-        sub_1001CC50(v3);
-      }
-      v3 = v4;
+      sub_1001CD80(v1);
+      sub_1001CDD0(v1->entnum, v1->soundindex);
+      sub_1001CC50(v1);
     }
-    while ( v4 );
   }
 }
 

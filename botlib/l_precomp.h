@@ -25,16 +25,18 @@ typedef struct define_s {
 } define_t;                         /* sizeof = 32 */
 
 /* PC_EvaluateTokens / PC_DollarEvaluate value- and operator-cell lists.  Q3's
- * l_precomp.c shape but with `double floatvalue`.  Allocate with sizeof() — the
- * original's fixed 32/24 bytes only hold on 32-bit. */
+ * l_precomp.c value_s, with `int` for Q3's `signed long int` (the same type on
+ * both 1999 targets, and what the int* result parameters want on LP64).
+ * NO explicit pad after intvalue: each ABI aligns the double itself, and the
+ * two originals disagree -- gladiator.dll allocates 0x20 (MSVC aligns double
+ * to 8, so floatvalue at +8 and a tail pad) while gladi386.so allocates 0x18
+ * (i386 SysV aligns it to 4, floatvalue at +4).  A hand-written `_pad0` got
+ * the DLL right and made the .so's cell 28 bytes.  Allocate with sizeof(). */
 typedef struct value_s {
-    int intvalue;                /* +0  */
-    int _pad0;                   /* +4  alignment for double */
-    double floatvalue;           /* +8  */
-    int parentheses;             /* +16 */
-    /* Compiler auto-pads 4 bytes here on 64-bit ABIs to align prev/next. */
-    struct value_s *prev;        /* +20 on 32-bit, +24 on 64-bit */
-    struct value_s *next;        /* +24 on 32-bit, +32 on 64-bit */
+    int intvalue;
+    double floatvalue;
+    int parentheses;
+    struct value_s *prev, *next;
 } value_t;
 
 typedef struct operator_s {

@@ -43,101 +43,100 @@ bot_export_t      botexport; /* block 3 @0x10063F80 — exported API table */
  * of the integrity subsystem that also owns CRC_ProcessString / sub_10037820 and the "You are
  * not allowed to modify the bot characters" message; the flags column
  * (1/3/4/6/8/0x20/0x40) is an unidentified file category.  sub_100377E0 scans
- * all 92 entries; the end bound is `&filecrcs[184]` (184 ints = 736 bytes),
- * which is the address IDA had invented the symbol `unk_1005E958` for. */
-int filecrcs[] = {
-    0x0000A991, 0x00000001,
-    0x0000A757, 0x00000001,
-    0x00007267, 0x00000001,
-    0x00007A0D, 0x00000001,
-    0x0000937C, 0x00000001,
-    0x0000CF9B, 0x00000001,
-    0x0000C661, 0x00000001,
-    0x0000AAA3, 0x00000001,
-    0x00009795, 0x00000001,
-    0x00009C59, 0x00000001,
-    0x00002528, 0x00000001,
-    0x000055B2, 0x00000001,
-    0x0000879D, 0x00000001,
-    0x0000AE75, 0x00000001,
-    0x0000E512, 0x00000001,
-    0x0000218B, 0x00000001,
-    0x00008E97, 0x00000001,
-    0x00007437, 0x00000001,
-    0x00000AE2, 0x00000001,
-    0x000007C1, 0x00000001,
-    0x00005CAD, 0x00000001,
-    0x000074D6, 0x00000001,
-    0x0000694A, 0x00000001,
-    0x00000E67, 0x00000001,
-    0x0000F2C4, 0x00000001,
-    0x0000EB92, 0x00000001,
-    0x00006322, 0x00000001,
-    0x0000B8A5, 0x00000001,
-    0x0000E1CC, 0x00000001,
-    0x00004E75, 0x00000001,
-    0x00002BB0, 0x00000001,
-    0x0000C54F, 0x00000001,
-    0x0000CDD2, 0x00000001,
-    0x0000DD83, 0x00000001,
-    0x00000CA7, 0x00000001,
-    0x0000107E, 0x00000001,
-    0x00002874, 0x00000001,
-    0x0000CE27, 0x00000001,
-    0x0000DADC, 0x00000001,
-    0x000097A9, 0x00000001,
-    0x0000A84B, 0x00000001,
-    0x000036FC, 0x00000001,
-    0x000090DA, 0x00000001,
-    0x00005214, 0x00000001,
-    0x0000D714, 0x00000001,
-    0x00009384, 0x00000001,
-    0x00006490, 0x00000001,
-    0x00001617, 0x00000001,
-    0x00007113, 0x00000001,
-    0x0000CEFE, 0x00000001,
-    0x000060E6, 0x00000001,
-    0x00001F50, 0x00000001,
-    0x0000C7F8, 0x00000001,
-    0x0000568B, 0x00000001,
-    0x00007CF6, 0x00000001,
-    0x00000A17, 0x00000001,
-    0x00005491, 0x00000001,
-    0x00002920, 0x00000001,
-    0x0000C438, 0x00000001,
-    0x0000B379, 0x00000001,
-    0x00003418, 0x00000001,
-    0x0000AC0B, 0x00000006,
-    0x000035FB, 0x00000006,
-    0x00005FC8, 0x00000006,
-    0x0000A486, 0x00000006,
-    0x00009AAF, 0x00000006,
-    0x000020C2, 0x00000006,
-    0x0000FB60, 0x00000006,
-    0x00004FDE, 0x00000006,
-    0x0000F0AB, 0x00000004,
-    0x0000A9D4, 0x00000004,
-    0x0000DF88, 0x00000004,
-    0x0000E5CC, 0x00000004,
-    0x00000ED6, 0x00000004,
-    0x00008BE0, 0x00000006,
-    0x0000A236, 0x00000006,
-    0x00000BCB, 0x00000006,
-    0x0000CC7C, 0x00000006,
-    0x00003E22, 0x00000006,
-    0x00000E04, 0x00000006,
-    0x00004578, 0x00000006,
-    0x0000343F, 0x00000006,
-    0x0000FE11, 0x00000040,
-    0x00008C2E, 0x00000040,
-    0x0000C665, 0x00000040,
-    0x00008AC0, 0x00000003,
-    0x0000B1B7, 0x00000006,
-    0x00006A8E, 0x00000008,
-    0x00008DF3, 0x00000008,
-    0x0000BC7D, 0x00000008,
-    0x0000E488, 0x00000020,
-    0x00000000, 0x00000000,   /* NULL terminator (entry 91) */
+ * all 92 entries by index. */
+filecrc_t filecrcs[] = {
+    { 0xA991, 0x1 },
+    { 0xA757, 0x1 },
+    { 0x7267, 0x1 },
+    { 0x7A0D, 0x1 },
+    { 0x937C, 0x1 },
+    { 0xCF9B, 0x1 },
+    { 0xC661, 0x1 },
+    { 0xAAA3, 0x1 },
+    { 0x9795, 0x1 },
+    { 0x9C59, 0x1 },
+    { 0x2528, 0x1 },
+    { 0x55B2, 0x1 },
+    { 0x879D, 0x1 },
+    { 0xAE75, 0x1 },
+    { 0xE512, 0x1 },
+    { 0x218B, 0x1 },
+    { 0x8E97, 0x1 },
+    { 0x7437, 0x1 },
+    { 0x0AE2, 0x1 },
+    { 0x07C1, 0x1 },
+    { 0x5CAD, 0x1 },
+    { 0x74D6, 0x1 },
+    { 0x694A, 0x1 },
+    { 0x0E67, 0x1 },
+    { 0xF2C4, 0x1 },
+    { 0xEB92, 0x1 },
+    { 0x6322, 0x1 },
+    { 0xB8A5, 0x1 },
+    { 0xE1CC, 0x1 },
+    { 0x4E75, 0x1 },
+    { 0x2BB0, 0x1 },
+    { 0xC54F, 0x1 },
+    { 0xCDD2, 0x1 },
+    { 0xDD83, 0x1 },
+    { 0x0CA7, 0x1 },
+    { 0x107E, 0x1 },
+    { 0x2874, 0x1 },
+    { 0xCE27, 0x1 },
+    { 0xDADC, 0x1 },
+    { 0x97A9, 0x1 },
+    { 0xA84B, 0x1 },
+    { 0x36FC, 0x1 },
+    { 0x90DA, 0x1 },
+    { 0x5214, 0x1 },
+    { 0xD714, 0x1 },
+    { 0x9384, 0x1 },
+    { 0x6490, 0x1 },
+    { 0x1617, 0x1 },
+    { 0x7113, 0x1 },
+    { 0xCEFE, 0x1 },
+    { 0x60E6, 0x1 },
+    { 0x1F50, 0x1 },
+    { 0xC7F8, 0x1 },
+    { 0x568B, 0x1 },
+    { 0x7CF6, 0x1 },
+    { 0x0A17, 0x1 },
+    { 0x5491, 0x1 },
+    { 0x2920, 0x1 },
+    { 0xC438, 0x1 },
+    { 0xB379, 0x1 },
+    { 0x3418, 0x1 },
+    { 0xAC0B, 0x6 },
+    { 0x35FB, 0x6 },
+    { 0x5FC8, 0x6 },
+    { 0xA486, 0x6 },
+    { 0x9AAF, 0x6 },
+    { 0x20C2, 0x6 },
+    { 0xFB60, 0x6 },
+    { 0x4FDE, 0x6 },
+    { 0xF0AB, 0x4 },
+    { 0xA9D4, 0x4 },
+    { 0xDF88, 0x4 },
+    { 0xE5CC, 0x4 },
+    { 0x0ED6, 0x4 },
+    { 0x8BE0, 0x6 },
+    { 0xA236, 0x6 },
+    { 0x0BCB, 0x6 },
+    { 0xCC7C, 0x6 },
+    { 0x3E22, 0x6 },
+    { 0x0E04, 0x6 },
+    { 0x4578, 0x6 },
+    { 0x343F, 0x6 },
+    { 0xFE11, 0x40 },
+    { 0x8C2E, 0x40 },
+    { 0xC665, 0x40 },
+    { 0x8AC0, 0x3 },
+    { 0xB1B7, 0x6 },
+    { 0x6A8E, 0x8 },
+    { 0x8DF3, 0x8 },
+    { 0xBC7D, 0x8 },
+    { 0xE488, 0x20 },
+    { 0x0000, 0x0 },   /* NULL terminator (entry 91) */
 };
 /* dword_10063F2C — head of the filename-sorted scriptcrc_t list (an int in the 32-bit
  * original; must be a real pointer here).  Referenced only from this TU, which is
@@ -161,15 +160,14 @@ int num_demobots;   // weak -- unreferenced in BOTH images
  * store hash+name and insert it alphabetically. */
 void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
 {
+  /* The sorted insert does its link-and-return INSIDE the second walk, and the
+   * append-at-end after it -- gladi386.so's layout (the `prev = cur` step sits
+   * behind the insert block); IDA's goto web matched the DLL only.  Same shape
+   * as be_aas_sound.c's sub_1001CC50. */
   scriptcrc_t *v2; // esi
-  scriptcrc_t *v5;
   scriptcrc_t *v6; // edi (prev)
   scriptcrc_t *v4; // ebx (new record)
-  int result;
 
-  /* Get-or-insert: walk the sorted list, break on a name match, then let ONE shared
-   * `if (v2) return;` distinguish match from exhaustion.  An inline early-return drops
-   * that shared re-check. */
   for ( v2 = dumpcrcs; v2; v2 = v2->next )
   {
     if ( !_strcmpi(String1, v2->name) )
@@ -180,62 +178,47 @@ void __cdecl sub_100376B0(char *String1, unsigned __int16 a2)
   v4 = (scriptcrc_t *)GetClearedMemory(sizeof(scriptcrc_t));
   v4->hash = a2;
   strcpy(v4->name, String1);
-  result = 0;
   v6 = NULL;
-  v5 = dumpcrcs;
-  if ( v5 )
+  for ( v2 = dumpcrcs; v2; v2 = v2->next )
   {
-    while ( 1 )
+    if ( _strcmpi(v4->name, v2->name) < 0 )
     {
-      result = _strcmpi(v4->name, v5->name);
-      if ( result < 0 )
-        break;
-      v6 = v5;
-      v5 = v5->next;
-      if ( !v5 )
-      {
-        if ( !v6 )
-          goto LABEL_14;
+      v4->next = v2;
+      if ( v6 )
         v6->next = v4;
-        v4->next = NULL;
-        { (void)(result); return; }
-      }
+      else
+        dumpcrcs = v4;
+      return;
     }
-    v4->next = v5;
-    if ( v6 )
-      v6->next = v4;
-    else
-      dumpcrcs = v4;
-    { (void)(result); return; }
+    v6 = v2;
   }
+  if ( v6 )
+    v6->next = v4;
   else
-  {
-LABEL_14:
     dumpcrcs = v4;
-  }
   v4->next = NULL;
-  { (void)(result); return; }
 }
 
 // gladiator.dll: 100377E0..1003780C
 // gladi386.so:   00048A78..00048B74
 int __cdecl sub_100377E0(char *String1, unsigned __int16 a2)
 {
-  _WORD *v2;
+  /* An indexed scan over the TYPED table with the count in its own local:
+   * gladi386.so compares the counter against 92 held in a register
+   * (`mov esi,0x5c ... cmp ecx,esi; jl`), which a literal or a bare sizeof
+   * bound does not give (those compare against an immediate, the sizeof one
+   * unsigned), and cl.exe reduces the same loop to the DLL's pointer walk
+   * against the table's end address -- which IDA had rendered literally, with
+   * an invented `unk_1005E958` for that address.  `a2 == ...`, not the other
+   * way round: cl.exe keeps the textual operand order (`cmp cx,[eax]`).  The
+   * result is unused; this build records every CRC it sees. */
+  int i, numcrcs;
 
-  /* `&filecrcs[184]` -- 184 ints = the 736-byte table's end.  IDA called that
-   * address `unk_1005E958` and this file declared a 4-byte object there to
-   * make the comparison compile; gladi386.so has no such symbol, and the
-   * address is simply one past the array.  The DLL compares against the
-   * absolute constant 0x1005E958 either way; gcc strength-reduces the same
-   * source into a counted 92-iteration loop, which is what real does.
-   * (2026-08-17.) */
-  v2 = &filecrcs;
-  while ( (int)v2 < (int)&filecrcs[184] )
+  numcrcs = sizeof(filecrcs) / sizeof(filecrcs[0]);
+  for ( i = 0; i < numcrcs; i++ )
   {
-    if ( (_WORD)a2 == *v2 )
+    if ( a2 == filecrcs[i].crc )
       break;
-    v2 += 4;
   }
   sub_100376B0(String1, a2);
   return 256;

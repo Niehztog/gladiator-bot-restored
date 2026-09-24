@@ -806,33 +806,34 @@ bot_matchpiece_t *__cdecl BotLoadMatchPieces(source_t *source, const char *endto
   {
     if ( token.type == 3 && (token.subtype & 0x1000) != 0 )
     {
-      if ( token.intvalue < 0xA )
-      {
-        if ( lastwasvariable )
-        {
-          SourceError(source, "not allowed to have adjacent variables\n");
-          FreeSource(source);
-          BotFreeMatchPieces(firstpiece);
-          return NULL;
-        }
-        lastwasvariable = 1;
-        matchpiece = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
-        matchpiece->type = MT_VARIABLE;
-        matchpiece->variable = token.intvalue;
-        matchpiece->next = NULL;
-        if ( lastpiece )
-          lastpiece->next = matchpiece;
-        else
-          firstpiece = matchpiece;
-        lastpiece = matchpiece;
-      }
-      else
+      /* Q3's range guard, `< 0 ||` included (always false on the unsigned
+       * intvalue, and folded away), with the error block first: gladi386.so
+       * has it as the fall-through; cl.exe emits the same code as for the
+       * nested positive form the DLL was reconstructed with. */
+      if ( token.intvalue < 0 || token.intvalue >= 10 )
       {
         SourceError(source, "can't have more than %d match variables\n", 10);
         FreeSource(source);
         BotFreeMatchPieces(firstpiece);
         return NULL;
       }
+      if ( lastwasvariable )
+      {
+        SourceError(source, "not allowed to have adjacent variables\n");
+        FreeSource(source);
+        BotFreeMatchPieces(firstpiece);
+        return NULL;
+      }
+      lastwasvariable = 1;
+      matchpiece = (bot_matchpiece_t *)GetMemory(sizeof(bot_matchpiece_t));
+      matchpiece->type = MT_VARIABLE;
+      matchpiece->variable = token.intvalue;
+      matchpiece->next = NULL;
+      if ( lastpiece )
+        lastpiece->next = matchpiece;
+      else
+        firstpiece = matchpiece;
+      lastpiece = matchpiece;
     }
     else if ( token.type == 1 )
     {
@@ -1393,18 +1394,15 @@ void __cdecl BotFreeReplyChat(bot_replychat_t *replychat)
 // in width.
 bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
 {
-  char *v1;
   source_t *source;
   bot_replychat_t *replyhead;
   bot_replychat_t *rc;
   bot_replychatkey_t *key;
   bot_chatmessage_t *cm;
-  char *namestr;
   char chatmessagestring[152]; // BotLoadChatMessage output buffer
   token_t token;
   bot_fileref_t file_ref;
 
-  v1 = filename;
   if ( !FindQuakeFile(filename, &file_ref) )
   {
     botimport.Print(PRT_ERROR, "couldn't find %s\n", filename);
@@ -1478,9 +1476,8 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
           return NULL;
         }
         StripDoubleQuotes(token.string);
-        namestr = (char *)GetClearedMemory(strlen(token.string) + 1);
-        key->string = namestr;
-        strcpy(namestr, token.string);
+        key->string = (char *)GetClearedMemory(strlen(token.string) + 1);
+        strcpy(key->string, token.string);
       }
       PC_CheckTokenString(source, ",");
     }
@@ -1501,33 +1498,35 @@ bot_replychat_t *__cdecl BotLoadReplyChat(char *filename)
       return NULL;
     }
     rc->numchatmessages = 0;
-    if ( !PC_CheckTokenString(source, "}") )
+    /* Q3's `while (!PC_CheckTokenString(source, "}"))`, not IDA's rotated
+     * `if (!check) while (1) { ...; if (check) break; }`: with it the .so's
+     * control flow matches block for block.  What is left is register allocation
+     * in the five inlined BotFreeReplyChat copies (9 insns each: the .so keeps
+     * nextkey in ebp and caller-saves rc in eax) and a frame four spill slots
+     * smaller; the declaration order of both functions is inert.  IDA's
+     * `v1 = filename` alias is gone -- the .so reads the parameter slot directly. */
+    while ( !PC_CheckTokenString(source, "}") )
     {
-      while ( 1 )
+      if ( !BotLoadChatMessage(source, chatmessagestring) )
       {
-        if ( !BotLoadChatMessage(source, chatmessagestring) )
-        {
-          BotFreeReplyChat(replyhead);
-          FreeSource(source);
-          return NULL;
-        }
-        cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(chatmessagestring) + 1);
-        cm->chatmessage = (char *)(cm + 1);
-        strcpy(cm->chatmessage, chatmessagestring);
-        cm->time = -40.0f;
-        cm->next = rc->firstchatmessage;
-        rc->firstchatmessage = cm;
-        rc->numchatmessages++;
-        if ( PC_CheckTokenString(source, "}") )
-          break;
+        BotFreeReplyChat(replyhead);
+        FreeSource(source);
+        return NULL;
       }
+      cm = (bot_chatmessage_t *)GetClearedMemory(sizeof(bot_chatmessage_t) + strlen(chatmessagestring) + 1);
+      cm->chatmessage = (char *)(cm + 1);
+      strcpy(cm->chatmessage, chatmessagestring);
+      cm->time = -40.0f;
+      cm->next = rc->firstchatmessage;
+      rc->firstchatmessage = cm;
+      rc->numchatmessages++;
     }
   }
   FreeSource(source);
   if ( file_ref.filelen )
-    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, v1);
+    botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, filename);
   else
-    botimport.Print(PRT_MESSAGE, "loaded %s\n", v1);
+    botimport.Print(PRT_MESSAGE, "loaded %s\n", filename);
   BotCheckReplyChatIntegrety(replyhead);
   if ( !replyhead )
     botimport.Print(PRT_MESSAGE, "no rchats\n");

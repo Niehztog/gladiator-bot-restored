@@ -335,163 +335,126 @@ void __cdecl AnglesToAxis(const vec3_t angles, float axis[3][3])
 // gladi386.so:   0000AC64..0000B34F
 qboolean __cdecl AAS_EntityCollision(int entnum, vec3_t start, vec3_t boxmins, vec3_t boxmaxs, vec3_t end, int contentmask, bsp_trace_t *trace)
 {
-  int v7; // edi
-  int v12; // edx
-  int v15; // ecx
-  float v16; // st7
-  float v17; // st6
-  int v18; // edi
-  int v19; // edx
-  float v20; // st6
-  int v24; // edx
-  float v25; // st6
-  int v31; // esi
-  float v35; // st7
-  vec3_t v44; /* was v44,v44[1],v44[2]: vec3_t local bbox min2 */
-  vec3_t v41; /* was v41,v41[1],v41[2]: vec3_t local bbox min1 */
-  vec3_t v40; // [esp+8h] [ebp-E4h] BYREF
-  /* `clipend` is declared AFTER the three bbox vec3s, not before them: the
-   * reference .so puts v44/v41/v40 at the very top of the frame (0x0ac..0x0cf,
-   * referenced 2 2 2 2 2 2 1 1 3) with an unreferenced 12-byte hole below them,
-   * and gcc 2.7 fills the address-taken group top-down in declaration order. */
-  vec3_t clipend; // [esp+14h] [ebp-D8h] BYREF — temporary intersection point
-  bsp_trace_t modeltrace; // [esp+38h] [ebp-B4h] BYREF
-  bsp_entdata_t entdata; // [esp+8Ch] [ebp-60h] BYREF
-  float v39; // [esp+10h] [ebp-DCh]
+  /* The box test is Q3's AAS_ClipToBBox, same text and names, inline for SOLID_BBOX
+   * entities, with the SOLID_BSP model trace nested under the same hit test.  The
+   * .so orders the trace-field stores startsolid, allsolid, fraction, ..., ent.
+   * IDA's version (a while(1) axis loop, absmins/absmaxs declared the other way
+   * round) cost ELF OUR-68 and PE 148 lines; this matches the DLL.  The .so is still
+   * OUR+15: reload spills `trace` out of edi to serve the spilled-parameter init
+   * insns because its pseudo has one reference fewer than `start` (36 vs 37 uses,
+   * order_regs_for_reload), where the original evidently had the reverse. */
+  int i, j, side;
+  float front, back, frac, planedist;
+  vec3_t absmins, absmaxs, dir;
+  vec3_t mid;
+  bsp_trace_t enttrace;
+  bsp_entdata_t entdata;
 
   if ( !bspworld.dword_100674C0 )
     return 0;
   AAS_EntityBSPData(entnum, &entdata);
   if ( entdata.solid != 2 && entdata.solid != 3 )
     return 0;
-  if ( boxmaxs )
+  if ( boxmaxs ) VectorSubtract(entdata.absmins, boxmaxs, absmins);
+  else VectorCopy(entdata.absmins, absmins);
+  if ( boxmins ) VectorSubtract(entdata.absmaxs, boxmins, absmaxs);
+  else VectorCopy(entdata.absmaxs, absmaxs);
+  for (i = 0; i < 3; i++)
   {
-    VectorSubtract(entdata.absmins, boxmaxs, v41);
-  }
-  else
-  {
-    VectorCopy(entdata.absmins, v41);
-  }
-  if ( boxmins )
-  {
-    VectorSubtract(entdata.absmaxs, boxmins, v44);
-  }
-  else
-  {
-    VectorCopy(entdata.absmaxs, v44);
-  }
-  for (v7 = 0; v7 < 3; v7++)
-  {
-      if (start[v7] < v41[v7] && end[v7] < v41[v7]) break;
-      if (start[v7] > v44[v7] && end[v7] > v44[v7]) break;
-  }
-  if ( v7 != 3 )
-    return 0;
+    if (start[i] < absmins[i] && end[i] < absmins[i]) break;
+    if (start[i] > absmaxs[i] && end[i] > absmaxs[i]) break;
+  } //end for
+  if (i != 3) return 0;
   if ( entdata.solid == 2 )
   {
-    /* 0.5 is a DOUBLE (fadd QWORD 0.5) and both operands are indexed off `start`,
-     * reusing the offsets CSE'd from the first bounds loop.  Keep the pure-index
-     * form and keep 0.5, not 0.5f. */
-    for ( v12 = 0; v12 < 3; ++v12 )
+    /* 0.5 is a DOUBLE (fadd QWORD 0.5).  Keep 0.5, not 0.5f. */
+    for (i = 0; i < 3; i++)
     {
-      if ( start[v12] <= v41[v12] + 0.5 )
-        break;
-      if ( start[v12] >= v44[v12] - 0.5 )
-        break;
-    }
+      if (start[i] <= absmins[i] + 0.5) break;
+      if (start[i] >= absmaxs[i] - 0.5) break;
+    } //end for
     /* Relational, not equality: `cmp edx,3; jl`.  `== 3` emits `jne` and drops the
      * skip-jump.  The FIRST bounds loop above does use `!= 3`. */
-    if ( v12 >= 3 )
+    if (i >= 3)
     {
-      trace->ent = entnum;
       trace->startsolid = 1;
       trace->allsolid = 1;
       trace->fraction = 0.0f;
       trace->contents = 0;
       trace->sidenum = -1;
+      trace->ent = entnum;
       /* Keep the memset (an inlined 20-byte one): five scalar `planeints[i] = 0`
        * stores would fold the base into the addressing mode instead. */
       memset(&trace->plane, 0, sizeof(trace->plane));
       VectorCopy(start, trace->endpos);
       return 1;
-    }
-  }
-  v15 = 0;
-  VectorSubtract(end, start, v40);
-  while ( 1 )
+    } //end if
+  } //end if
+  //check bounding box collision
+  VectorSubtract(end, start, dir);
+  for (i = 0; i < 3; i++)
   {
-    if ( v40[v15] > 0.0f )
-      v16 = v41[v15];
-    else
-      v16 = v44[v15];
-    v17 = start[v15] - v16;
-    /* ONE `v15 + 1`, and the advance is `v15 = v18` — not `++v15`, which would
-     * carry v15 and v15+1 as two parallel induction variables. */
-    v18 = v15 + 1;
-    v19 = v18;
-    v39 = v17 / (v17 - (end[v15] - v16));
-    if ( v15 > 1 )
-      v19 = 0;
-    v20 = v39 * v40[v19] + start[v19];
-    clipend[v19] = v20;
-    if ( v41[v19] < v20 && v20 < v44[v19] )
+    //get plane to test collision with for the current axis direction
+    if (dir[i] > 0) planedist = absmins[i];
+    else planedist = absmaxs[i];
+    //calculate collision fraction
+    front = start[i] - planedist;
+    back = end[i] - planedist;
+    frac = front / (front-back);
+    //check if between bounding planes of next axis
+    side = i + 1;
+    if (side > 2) side = 0;
+    mid[side] = start[side] + dir[side] * frac;
+    if (mid[side] > absmins[side] && mid[side] < absmaxs[side])
     {
-      v24 = v19 + 1;
-      if ( v24 > 2 )
-        v24 = 0;
-      v25 = v39 * v40[v24] + start[v24];
-      clipend[v24] = v25;
-      if ( v41[v24] < v25 && v25 < v44[v24] )
+      //check if between bounding planes of next axis
+      side++;
+      if (side > 2) side = 0;
+      mid[side] = start[side] + dir[side] * frac;
+      if (mid[side] > absmins[side] && mid[side] < absmaxs[side])
+      {
+        mid[i] = planedist;
         break;
-    }
-    v15 = v18;
-    if ( v15 >= 3 )
-      goto LABEL_40;
-  }
-  clipend[v15] = v16;
-LABEL_40:
-  if ( v15 == 3 || v39 >= trace->fraction )
-    return 0;
-  if ( entdata.solid == 2 )
+      } //end if
+    } //end if
+  } //end for
+  //if there was a collision
+  if (i != 3 && frac < trace->fraction)
   {
-    trace->fraction = v39;
-    trace->sidenum = -1;
-    trace->startsolid = 0;
-    trace->allsolid = 0;
-    trace->ent = entnum;
-    if ( boxmins && boxmaxs )
+    if ( entdata.solid == 2 )
     {
-      if ( v40[v15] > 0.0f )
-        trace->exp_dist = boxmaxs[v15];
-      else
-        trace->exp_dist = -boxmins[v15];
-    }
-    /* Plain indexed form: cl.exe strength-reduces it to ONE induction pointer plus
-     * a base difference.  A pre-biased pointer walk costs a `lea eax,[edx-0x4]`. */
-    for ( v31 = 0; v31 < 3; ++v31 )
-      trace->endpos[v31] = v39 * v40[v31] + start[v31];
-    trace->plane.normal[(v15 + 1) % 3] = 0.0f;
-    trace->plane.normal[(v15 + 2) % 3] = 0.0f;
-    if ( v40[v15] > 0.0f )
-      trace->plane.normal[v15] = -1.0f;
-    else
-      trace->plane.normal[v15] = 1.0f;
-    v35 = trace->endpos[v15];
-    if ( v40[v15] > 0.0f )
-      v35 = -v35;
-    trace->plane.type = (byte)v15;
-    trace->plane.dist = v35 - trace->exp_dist;
-    return 1;
-  }
-  if ( entdata.solid == 3 )
-  {
-    modeltrace = AAS_TraceBSPModel(entdata.modelnum, entdata.origin, entdata.angles, start, boxmins, boxmaxs, end, 0, contentmask);
-    if ( modeltrace.fraction < trace->fraction )
-    {
-      memcpy(trace, &modeltrace, sizeof(modeltrace));
+      trace->startsolid = 0;
+      trace->allsolid = 0;
+      trace->fraction = frac;
+      trace->sidenum = -1;
+      trace->ent = entnum;
+      if ( boxmins && boxmaxs )
+      {
+        if (dir[i] > 0) trace->exp_dist = boxmaxs[i];
+        else trace->exp_dist = -boxmins[i];
+      } //end if
+      //trace endpos
+      for (j = 0; j < 3; j++) trace->endpos[j] = start[j] + dir[j] * frac;
+      trace->plane.normal[(i + 1) % 3] = 0;
+      trace->plane.normal[(i + 2) % 3] = 0;
+      if (dir[i] > 0) trace->plane.normal[i] = -1;
+      else trace->plane.normal[i] = 1;
+      if (dir[i] > 0) planedist = -trace->endpos[i];
+      else planedist = trace->endpos[i];
+      trace->plane.dist = planedist - trace->exp_dist;
+      trace->plane.type = i;
       return 1;
-    }
-  }
+    } //end if
+    if ( entdata.solid == 3 )
+    {
+      enttrace = AAS_TraceBSPModel(entdata.modelnum, entdata.origin, entdata.angles, start, boxmins, boxmaxs, end, 0, contentmask);
+      if ( enttrace.fraction < trace->fraction )
+      {
+        memcpy(trace, &enttrace, sizeof(enttrace));
+        return 1;
+      } //end if
+    } //end if
+  } //end if
   return 0;
 }
 
@@ -534,11 +497,13 @@ int __cdecl CM_TraceThroughBrush(
         float *a10,
         float *a11)
 {
+  float v59[3][3]; // [esp+68h] [ebp-24h] BYREF
+  vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
+  vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
+  vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
+  vec3_t endp; // [esp+44h] [ebp-48h] — clipped end point
+  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (RotatePoint input/output)
   int v11; // edi
-  float *v12; // edx
-  float *v13; // eax
-  dbrush_t *v14; // ebx
-  float *v15; // ecx
   /* v16: BSP plane pointer — an `int` would truncate dplanes on 64-bit. */
   dplane_t *v16;
   int v17; // ecx
@@ -554,48 +519,34 @@ int __cdecl CM_TraceThroughBrush(
   float v37; // [esp+14h] [ebp-78h]
   float v38; // [esp+18h] [ebp-74h]
   int v39; // [esp+1Ch] [ebp-70h]
-  vec3_t endp; // [esp+44h] [ebp-48h] — clipped end point
   int v42; // [esp+24h] [ebp-68h]
   float v41; // [esp+20h] [ebp-6Ch]
   int v40; // [esp+20h] [ebp-6Ch]
   float v43; // [esp+28h] [ebp-64h]
-  vec3_t dir; // [esp+50h] [ebp-3Ch] BYREF — clipped-distance vec (VectorLength input)
-  vec3_t vec; // [esp+5Ch] [ebp-30h] BYREF — line vec (VectorLength input)
-  vec3_t normal; // [esp+38h] [ebp-54h] BYREF — plane normal (RotatePoint input/output)
-  vec3_t startp; // [esp+2Ch] [ebp-60h] — clipped start point
-  float v59[3][3]; // [esp+68h] [ebp-24h] BYREF
 
-  if ( *a3 == 0.0f && a3[1] == 0.0f && a3[2] == 0.0f )
-  {
-    v39 = 0;
-  }
-  else
-  {
-    v39 = 1;
+  /* Truth-value assignments: gcc 2.7 expands `x = a || b || c` as "clear x,
+   * test, set 1" -- the .so's store-before-test -- while cl.exe sinks the 0
+   * into the last test exactly as it does for Q3's if/else `rotated`.  The
+   * if/else costs the .so, `x = 0; if (...) x = 1;` costs the DLL. */
+  v39 = a3[0] || a3[1] || a3[2];
+  if ( v39 )
     AnglesToAxis(a3, v59);
-  }
-  v12 = a2;
-  if ( *a2 != 0.0f || a2[1] != 0.0f || (v40 = 0, a2[2] != 0.0f) )
-    v40 = 1;
+  v40 = a2[0] || a2[1] || a2[2];
   /* One shared zero, hoisted here with the other zero initialisers. */
   v11 = 0;
-  v13 = a4;
-  v14 = a1;
   v42 = 0;
   v36 = 0;
   VectorCopy(a4, startp);
-  v15 = a7;
   VectorCopy(a7, endp);
   if ( a1->numsides > 0 )
   {
     while ( 1 )
     {
-      v16 = &bspworld.dplanes[bspworld.dbrushsides[v11 + v14->firstside].planenum];
+      v16 = &bspworld.dplanes[bspworld.dbrushsides[v11 + a1->firstside].planenum];
       if ( v39 )
       {
         VectorCopy(v16->normal, normal);
         RotatePoint(normal, v59);
-        v12 = a2;
         v17 = 4;
       }
       else
@@ -608,14 +559,14 @@ int __cdecl CM_TraceThroughBrush(
         if ( v17 < 3 )
         {
           if ( normal[v17] > 0.0f )
-            v18 = v12[v17] + v16->dist;
+            v18 = a2[v17] + v16->dist;
           else
-            v18 = v16->dist - v12[v17];
+            v18 = v16->dist - a2[v17];
           v38 = v18;
         }
         else
         {
-          v38 = normal[2] * v12[2] + normal[1] * v12[1] + normal[0] * *v12 + v16->dist;
+          v38 = DotProduct(a2, normal) + v16->dist;
         }
       }
       else
@@ -632,17 +583,14 @@ int __cdecl CM_TraceThroughBrush(
              * `<=0` arm the cold jump target.  Inverting it swaps the blocks. */
             if ( normal[v17] > 0.0f )
             {
-              v12 = a2;
               v19 = -a5[v17];
             }
             else
             {
               v19 = a6[v17];
-              v12 = a2;
             }
             goto LABEL_30;
           }
-          v12 = a2;
         }
         v19 = 0.0;
 LABEL_30:
@@ -681,17 +629,17 @@ LABEL_30:
           dir[1] = -normal[1];
           dir[2] = -normal[2];
           v11 = v36;
-          v14 = a1;
-          v12 = a2;
-          v19 = vec[2] * dir[2] + vec[1] * dir[1] + vec[0] * dir[0];
+          v19 = DotProduct(vec, dir);
         }
         else
         {
           v19 = 0.0;
         }
         v20 = v19 + v38;
-        v35 = normal[2] * startp[2] + normal[1] * startp[1] + normal[0] * startp[0] - v20;
-        v25 = normal[2] * endp[2] + normal[1] * endp[1] + normal[0] * endp[0];
+        /* DotProduct, as Q3's d1/d2: the [2]-first spelling IDA shows is only
+         * cl.exe's evaluation order, which the macro gives it anyway. */
+        v35 = DotProduct(startp, normal) - v20;
+        v25 = DotProduct(endp, normal);
       }
       v37 = v25 - v20;
       if ( v35 > -0.005 && v37 > -0.005 )
@@ -701,7 +649,7 @@ LABEL_30:
         if ( v35 > -0.005 )
         {
           v43 = v19;
-          v42 = v11 + v14->firstside;
+          v42 = v11 + a1->firstside;
         }
         if ( v35 > 0.005 )
         {
@@ -719,16 +667,14 @@ LABEL_30:
         }
       }
       v36 = ++v11;
-      if ( v11 >= v14->numsides )
+      if ( v11 >= a1->numsides )
       {
-        v15 = a7;
-        v13 = a4;
         break;
       }
     }
   }
-  VectorSubtract(v15, v13, vec);
-  VectorSubtract(startp, v13, dir);
+  VectorSubtract(a7, a4, vec);
+  VectorSubtract(startp, a4, dir);
   v41 = VectorLength(dir);
   v31 = v41 / VectorLength(vec);
   if ( v31 < *a8 )
@@ -1624,9 +1570,10 @@ int __cdecl sub_10005CC0(int a, int b)
  *      matrix[link][i];
  *   C: the nested walk below.
  *
- * Phase C carries a faithful Mr. Elusive bug: its innermost `while (numareas >
- * 0)` tests a value the loop never changes, so it spins forever walking j off
- * the end of the matrix.  The byte-match needs the unbounded shape.
+ * Phase C carries a faithful Mr. Elusive bug: its innermost loop is
+ * `for (k = 0; k < numareas; j++)` -- k never advances, so it spins forever
+ * walking j off the end of the matrix.  The byte-match needs the unbounded
+ * shape.  Phase B's two inner loops share j (one register in the .so).
  *
  * Do NOT cache the globals in locals: the original re-reads numareas / dareas /
  * dareaportals / both matrix pointers at each use.
@@ -1648,8 +1595,8 @@ void __cdecl sub_10005CF0(int row_index, int value)
     ((int **)bspworld.dword_10067560)[i][i] = 1;
 
     area = &bspworld.dareas[i];
-    for (k = 0; k < area->numareaportals; k++) {
-      col = area->firstareaportal + k;
+    for (j = 0; j < area->numareaportals; j++) {
+      col = area->firstareaportal + j;
       if (((int *)bspworld.dword_1006755C)[col] != 0) {
         portal = &bspworld.dareaportals[col];
         ((int **)bspworld.dword_10067560)[i][portal->otherarea] = 1;
@@ -1659,15 +1606,16 @@ void __cdecl sub_10005CF0(int row_index, int value)
   }
 
   /* Phase C — the faithful Mr. Elusive bug (see banner); DEAD code,
-   * never executed. */
+   * never executed.  The innermost loop steps j, not k: gladi386.so keeps k
+   * in its own register and indexes the matrix with it, which the frozen-k
+   * `while (numareas > 0)` IDA shows cannot give. */
   for (i = 0; i < bspworld.numareas; i++) {
     for (j = 0; j < bspworld.numareas; j++) {
-      while (bspworld.numareas > 0) {
-        if (((int **)bspworld.dword_10067560)[i][j] != 0 && ((int **)bspworld.dword_10067560)[j][0] != 0) {
-          ((int **)bspworld.dword_10067560)[i][0] = 1;
-          ((int **)bspworld.dword_10067560)[0][i] = 1;
+      for (k = 0; k < bspworld.numareas; j++) {
+        if (((int **)bspworld.dword_10067560)[i][j] != 0 && ((int **)bspworld.dword_10067560)[j][k] != 0) {
+          ((int **)bspworld.dword_10067560)[i][k] = 1;
+          ((int **)bspworld.dword_10067560)[k][i] = 1;
         }
-        j++;
       }
     }
   }
@@ -2153,125 +2101,116 @@ bsp_entity_t *AAS_ParseBSPEntities(void)
  * grafted on, plus an axial fast path Q1 never had.  Algorithm is Q1, data
  * layout is Q2.
  *
- * Deliberate deviations from Q1 — do NOT "restore" them:
+ * Q1's text otherwise.  Deliberate deviations from Q1 -- do NOT "restore" them:
  *   - returns 0/1 rather than -1/0..255, and drops Q1's redundant second
  *     `if ((back<0)==side) return -1;`
  *   - drops Q1's `surf->flags & SURF_DRAWTILED` skip
- *   - `mid[i] = (end[i]-start[i])*frac + start[i]`, not Q1's
- *     `start[i] + (end[i]-start[i])*frac`
- *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB read.
+ *   - `side == (back < 0)`, operands the other way round from Q1 (cl.exe keeps a
+ *     comparison's textual order), and the lightofs read once into a local
+ *   - Q1's single-channel `r += *lightmap * scale` becomes a 3-channel RGB read at
+ *     the fixed style value 264, and the sample offset is ds * width + dt, the
+ *     transpose of Q1's dt * width + ds.
  * Reads the per-face {texturemins[2], extents[2]} table CalcSurfaceExtents
- * builds. */
+ * builds.  Residual: a register tie in the face loop (the .so keeps `t` in ebp and
+ * spills the strength-reduced &surf->lightofs; declaration order moves it only
+ * partly). */
 int __cdecl RecursiveLightPoint(int nodenum, float *start, float *end, float *lightspot, int *pointcolor)
 {
-  dnode_t *v6; // esi
-  int v7; // edx
-  dplane_t *v8; // eax
-  float v10; // st7
-  float v11; // st6
-  int v14; // eax
-  int v15; // ebx
-  __int16 *v16; // edi
-  texinfo_t *v17; // esi
-  int v18; // ebp
-  int v19; // eax
-  int v20; // ecx
-  int v21; // eax
-  int v22; // ecx
-  int v24; // esi
-  int v25; // edx
-  int v29; // ebx
-  int v30; // ebp
-  int v31; // ecx
-  qboolean side;
-  int v32; // edx
-  unsigned __int8 *v33; // ecx
-  int v35; // eax
-  int v39; // [esp+10h] [ebp-14h]
-  dnode_t *v40; // [esp+14h] [ebp-10h]
-  vec3_t mid; // [esp+18h] [ebp-Ch] BYREF — intersection on splitting plane, passed to recursive RecursiveLightPoint
-  int i; // [esp+30h] [ebp+Ch]
-  dface_t *v45; // [esp+2Ch] [ebp+8h]
+  float front, back, frac;
+  dnode_t *node;
+  int side;
+  dplane_t *plane;
+  vec3_t mid;
+  short *extents;
+  dface_t *surf;
+  int s, t, ds, dt;
+  int i;
+  texinfo_t *tex;
+  byte *lightmap;
+  int maps, r, g, b;
+  int lightofs;
 
-  if ( nodenum < 0 )
-    return 0;
-  v6 = &bspworld.dnodes[nodenum];
-  v40 = v6;
-  v8 = &bspworld.dplanes[v6->planenum];
-  v7 = v8->type;
-  if ( v7 < 3 )
+  if (nodenum < 0)
+    return 0;    // didn't hit anything
+
+  node = &bspworld.dnodes[nodenum];
+  plane = &bspworld.dplanes[node->planenum];
+  if (plane->type < 3)
   {
-    v10 = start[v7] - v8->dist;
-    v11 = end[v7] - v8->dist;
+    front = start[plane->type] - plane->dist;
+    back = end[plane->type] - plane->dist;
   }
   else
   {
-    v10 = *start * v8->normal[0] + start[1] * v8->normal[1] + start[2] * v8->normal[2] - v8->dist;
-    v11 = *end * v8->normal[0] + end[1] * v8->normal[1] + end[2] * v8->normal[2] - v8->dist;
+    front = DotProduct(start, plane->normal) - plane->dist;
+    back = DotProduct(end, plane->normal) - plane->dist;
   }
-  side = v10 < 0.0f;
-  if ( side == (v11 < 0.0f) )
-    return RecursiveLightPoint(v6->children[side], start, end, lightspot, pointcolor);
-  mid[0] = (*end - *start) * (v10 / (v10 - v11)) + *start;
-  mid[1] = (end[1] - start[1]) * (v10 / (v10 - v11)) + start[1];
-  mid[2] = (end[2] - start[2]) * (v10 / (v10 - v11)) + start[2];
-  if ( RecursiveLightPoint(v6->children[side], start, mid, lightspot, pointcolor) )
-    return 1;
-  v14 = v6->firstface;
-  v39 = 0;
-  v15 = v6->numfaces;
-  v45 = &bspworld.dfaces[v14];
-  v16 = (__int16 *)(bspworld.dword_10067558 + 8 * v14);
-  for ( ; v39 < v15; ++v39, ++v45, v16 += 4 )
+  side = front < 0;
+
+  if (side == (back < 0))
+    return RecursiveLightPoint(node->children[side], start, end, lightspot, pointcolor);
+
+  frac = front / (front-back);
+  mid[0] = start[0] + (end[0] - start[0])*frac;
+  mid[1] = start[1] + (end[1] - start[1])*frac;
+  mid[2] = start[2] + (end[2] - start[2])*frac;
+
+  // go down front side
+  if (RecursiveLightPoint(node->children[side], start, mid, lightspot, pointcolor))
+    return 1;    // hit something
+
+  // check for impact on this node
+  surf = &bspworld.dfaces[node->firstface];
+  extents = (short *)(bspworld.dword_10067558 + 8 * node->firstface);
+  for (i = 0; i < node->numfaces; i++, surf++, extents += 4)
   {
-    v17 = &bspworld.texinfo[v45->texinfo];
-    v18 = (int)(mid[2] * v17->vecs[0][2] + mid[1] * v17->vecs[0][1] + mid[0] * v17->vecs[0][0] + v17->vecs[0][3]);
-    v19 = (int)(mid[2] * v17->vecs[1][2] + mid[1] * v17->vecs[1][1] + mid[0] * v17->vecs[1][0] + v17->vecs[1][3]);
-    v20 = *v16;
-    if ( v18 < v20 )
+    tex = &bspworld.texinfo[surf->texinfo];
+
+    s = DotProduct(mid, tex->vecs[0]) + tex->vecs[0][3];
+    t = DotProduct(mid, tex->vecs[1]) + tex->vecs[1][3];
+
+    if (s < extents[0] || t < extents[1])
       continue;
-    if ( v19 < v16[1] )
+
+    ds = s - extents[0];
+    dt = t - extents[1];
+
+    if (ds > extents[2] || dt > extents[3])
       continue;
-    v21 = v19 - v16[1];
-    v22 = v18 - v20;
-    if ( v22 > v16[2] )
-      continue;
-    if ( v21 <= v16[3] )
-      goto sample_lightmap;
-  }
-  v6 = v40;
-  return RecursiveLightPoint(v6->children[!side], mid, end, lightspot, pointcolor);
-sample_lightmap:
-  v25 = v45->lightofs;
-  if ( v25 < 0 )
-  {
-    *pointcolor = 0;
-    pointcolor[1] = 0;
-    pointcolor[2] = 0;
+
+    lightofs = surf->lightofs;
+    if (lightofs < 0)
+    {
+      pointcolor[0] = 0;
+      pointcolor[1] = 0;
+      pointcolor[2] = 0;
+      VectorCopy(mid, lightspot);
+      return 1;
+    }
+
+    ds >>= 4;
+    dt >>= 4;
+
+    lightmap = bspworld.dlightdata + lightofs;
+    r = g = b = 0;
+    lightmap += 3 * (ds * ((extents[2]>>4)+1) + dt);
+
+    for (maps = 0; maps < 4 && surf->styles[maps] != 255; maps++)
+    {
+      r += lightmap[0] * 264;
+      g += lightmap[1] * 264;
+      b += lightmap[2] * 264;
+      lightmap += 3 * ((extents[2]>>4)+1) * ((extents[3]>>4)+1);
+    }
+    pointcolor[0] = r >> 8;
+    pointcolor[1] = g >> 8;
+    pointcolor[2] = b >> 8;
     VectorCopy(mid, lightspot);
     return 1;
   }
-  v24 = 0;
-  v30 = 0;
-  v29 = (v16[2] >> 4) + 1;
-  v31 = v25 + 2 * ((v21 >> 4) + v29 * (v22 >> 4)) + (v21 >> 4) + v29 * (v22 >> 4);
-  v32 = 0;
-  v33 = (unsigned __int8 *)(bspworld.dlightdata + v31);
-  for ( i = 0; i < 4; ++i )
-  {
-    if ( v45->styles[i] == 0xFF )
-      break;
-    v32 += 264 * *v33;
-    v24 += 264 * v33[1];
-    v30 += 264 * v33[2];
-    v35 = ((v16[2] >> 4) + 1) * ((v16[3] >> 4) + 1);
-    v33 += 2 * v35 + v35;
-  }
-  *pointcolor = v32 >> 8;
-  pointcolor[1] = v24 >> 8;
-  pointcolor[2] = v30 >> 8;
-  VectorCopy(mid, lightspot);
-  return 1;
+
+  // go down back side
+  return RecursiveLightPoint(node->children[!side], mid, end, lightspot, pointcolor);
 }
 
 // gladiator.dll: 10007150..100071BC
@@ -2311,115 +2250,53 @@ int __cdecl sub_10007150(intptr_t start, intptr_t end, intptr_t endpos, _DWORD *
  *     whatever the source order. */
 void CalcSurfaceExtents()
 {
-  int v2; // eax
-  dedge_t *v3; // edi
-  dvertex_t *v4; // ebx
-  int *v5; // ebp
-  int v6; // ecx
-  int v7; // eax
-  int j; // edx
-  float v10; // st7
-  int v11; // edi
-  int k; // esi
-  int v13; // eax
-  int v15; // eax
-  int result; // eax
-  qboolean v17; // cc
-  char *v16; // ecx
-  dface_t *face; // eax
-  int i; // [esp+1Ch] [ebp-34h]
-  int v19; // [esp+20h] [ebp-30h]
-  int v20; // [esp+24h] [ebp-2Ch]
-  texinfo_t *v22; // [esp+2Ch] [ebp-24h]
-  int v23[2]; // [esp+30h] [ebp-20h]
-  int v24[6]; // [esp+38h] [ebp-18h]
+  float mins[2], maxs[2], val;
+  int i, j, e, n;
+  dvertex_t *v;
+  texinfo_t *tex;
+  int bmins[2], bmaxs[2];
+  dface_t *face;
 
-  if ( bspworld.dword_10067558 )
-    FreeMemory(bspworld.dword_10067558);
+  if (bspworld.dword_10067558) FreeMemory(bspworld.dword_10067558);
   bspworld.dword_10067558 = GetClearedMemory(8 * bspworld.numfaces);
-  result = bspworld.numfaces;
-  i = 0;
-  if ( bspworld.numfaces > 0 )
+  for (n = 0; n < bspworld.numfaces; n++)
   {
-    v19 = 4;
-    /* ONE loop index: the ×20 byte offset the original also spills is MSVC's
-     * strength-reduced temp for `dfaces[i]`, not a second source variable.
-     * Do NOT convert this to a counted `for` and drop `result`: the ELF gains
-     * one insn_diff, and MSVC6 then re-permutes the frame (`v19` moves from
-     * [esp+0x14] to [esp+0x10]) and reorders an fld/fmul pair, costing 14 bytes
-     * on the DLL.  Measured 2026-08-17. */
-    for ( i = 0; ; )
+    face = &bspworld.dfaces[n];
+    mins[0] = mins[1] = 99999;
+    maxs[0] = maxs[1] = -99999;
+
+    tex = &bspworld.texinfo[face->texinfo];
+
+    for (i = 0; i < face->numedges; i++)
     {
-      /* SEVENTH irreconcilable gcc272-vs-MSVC6 conflict.  The DLL emits four
-       * separate `mov DWORD PTR [esp+N],0x47c34f80` integer-immediate stores with
-       * the `movsx …[+0xa]` face read WEDGED between the third and fourth
-       * (0x10007248..0x1000726c) -- exactly the form below.  gladi386.so instead
-       * materialises the constant once on the x87 stack and stores it twice
-       * (`fld; fst; fstp`), which is Q1's chained `mins[0] = mins[1] = 99999;`.
-       * Writing the chain gains ~4 ELF insn_diffs and costs the DLL 7 bytes.
-       * The DLL is the canonical target: keep the four stores and the interleave. */
-      *(float *)&v23[1] = 99999.0f;
-      *(float *)&v23[0] = 99999.0f;
-      *(float *)&v24[1] = -99999.0f;
-      face = &bspworld.dfaces[i];
-      v2 = face->texinfo;
-      *(float *)&v24[0] = -99999.0f;
-      v22 = &bspworld.texinfo[v2];
-      /* ONE read, sign-extended once, hoisted ABOVE the guard.  Reading the field
-       * twice makes the test 16-bit with a separate sign-extend; folding the
-       * assignment INTO the condition also regresses. */
-      v20 = face->numedges;
-      if ( v20 > 0 )
+      e = bspworld.dsurfedges[face->firstedge + i];
+      if (e >= 0)
+        v = &bspworld.dvertexes[bspworld.dedges[e].v[0]];
+      else
+        v = &bspworld.dvertexes[bspworld.dedges[-e].v[1]];
+
+      for (j = 0; j < 2; j++)
       {
-        /* Initialiser order is NOT a lever here — the residual is register
-         * pressure, not a source shape. */
-        v3 = bspworld.dedges;
-        v4 = bspworld.dvertexes;
-        v5 = &bspworld.dsurfedges[face->firstedge];
-        do
-        {
-          v6 = *v5;
-          if ( v6 >= 0 )
-            v7 = v3[v6].v[0];
-          else
-            v7 = v3[-v6].v[1];
-          for ( j = 0; j < 2; ++j )
-          {
-            v10 = v22->vecs[j][2] * v4[v7].point[2]
-                + v22->vecs[j][0] * v4[v7].point[0]
-                + v22->vecs[j][1] * v4[v7].point[1]
-                + v22->vecs[j][3];
-            if ( v10 < *(float *)&v23[j] )
-              *(float *)&v23[j] = v10;
-            if ( v10 > *(float *)&v24[j] )
-              *(float *)&v24[j] = v10;
-          }
-          ++v5;
-          --v20;
-        }
-        while ( v20 );
+        val = v->point[0] * tex->vecs[j][0] +
+          v->point[1] * tex->vecs[j][1] +
+          v->point[2] * tex->vecs[j][2] +
+          tex->vecs[j][3];
+        if (val < mins[j])
+          mins[j] = val;
+        if (val > maxs[j])
+          maxs[j] = val;
       }
-      v11 = v19;
-      for ( k = 0; k < 2; )
-      {
-        v13 = (int)floor(*(float *)&v23[k] * 0.0625f);
-        v24[k + 2] = v13;
-        v15 = (int)ceil(*(float *)&v24[k] * 0.0625f);
-        v16 = bspworld.dword_10067558;
-        v24[k + 4] = v15;
-        ++k;
-        v11 += 2;
-        *(_WORD *)(v11 + v16 - 6) = v24[k + 1] * 16;
-        *(_WORD *)(v11 + bspworld.dword_10067558 - 2) = (v24[k + 3] - v24[k + 1]) * 16;
-      }
-      result = i + 1;
-      v17 = ++i < bspworld.numfaces;
-      v19 += 8;
-      if ( !v17 )
-        break;
+    }
+
+    for (i = 0; i < 2; i++)
+    {
+      bmins[i] = floor(mins[i]/16);
+      bmaxs[i] = ceil(maxs[i]/16);
+
+      ((short *)(bspworld.dword_10067558 + 8 * n))[i] = bmins[i] * 16;
+      ((short *)(bspworld.dword_10067558 + 8 * n))[2 + i] = (bmaxs[i] - bmins[i]) * 16;
     }
   }
-  { (void)(result); return; }
 }
 
 // gladiator.dll: 10007460..1000786F
@@ -2442,26 +2319,20 @@ void Q2_SwapBSPFile(void)
    * lays the frame out in REVERSE declaration order and the original keeps the
    * counter in the HIGHER of its two slots. */
   int i;
-  int v1; // ebp
   int v2; // ebx
   texinfo_t *v3; // esi
   float *v4; // edi
-  int v10; // ebp
   int v11; // edi
   int v16; // ebx
   dplane_t *v17; // esi
   float *v18; // edi
-  int v22; // ebp
   dnode_t *v23; // esi
   int v30; // ebx
-  int v37; // ebp
   dleaf_t *v38; // esi
   int v45; // ebx
-  int v69; // ebx
   dmodel_t *v70; // esi
   int v76; // edi
 
-  v1 = 0;
   for ( i = 0; i < bspworld.numtexinfo; ++i )
   {
     v2 = 8;
@@ -2477,9 +2348,7 @@ void Q2_SwapBSPFile(void)
     v3->flags = LittleLong(v3->flags);
     v3->value = LittleLong(v3->value);
     v3->nexttexinfo = LittleLong(v3->nexttexinfo);
-    v1 += 76;
   }
-  v10 = 0;
   v11 = 0;
   if ( bspworld.dvis )
   {
@@ -2509,9 +2378,7 @@ void Q2_SwapBSPFile(void)
     while ( v16 );
     v17->dist = LittleFloat(v17->dist);
     v17->type = LittleLong(v17->type);
-    v10 += 20;
   }
-  v22 = 0;
   for ( i = 0; i < bspworld.numnodes; ++i )
   {
     v23 = &bspworld.dnodes[i];
@@ -2525,9 +2392,7 @@ void Q2_SwapBSPFile(void)
     }
     v23->firstface = LittleShort(v23->firstface);
     v23->numfaces = LittleShort(v23->numfaces);
-    v22 += 28;
   }
-  v37 = 0;
   for ( i = 0; i < bspworld.numleafs; ++i )
   {
     v38 = &bspworld.dleafs[i];
@@ -2543,7 +2408,6 @@ void Q2_SwapBSPFile(void)
     v38->numleaffaces = LittleShort(v38->numleaffaces);
     v38->firstleafbrush = LittleShort(v38->firstleafbrush);
     v38->numleafbrushes = LittleShort(v38->numleafbrushes);
-    v37 += 28;
   }
   for ( i = 0; i < bspworld.numleafbrushes; ++i )
   {
@@ -2563,34 +2427,23 @@ void Q2_SwapBSPFile(void)
     bspworld.dbrushes[i].numsides = LittleLong(bspworld.dbrushes[i].numsides);
     bspworld.dbrushes[i].contents = LittleLong(bspworld.dbrushes[i].contents);
   }
-  /* The ONE sanctioned byte-view left on a BSP lump.  A typed `&dmodels[i]`
-   * yields the same base+offset induction pair but swaps the SIB roles, costing
-   * this function its byte-match for a pure encoding tie.
-   * This loop keeps IDA's guard-plus-do/while shape while the three above are
-   * counted `for`s: the DLL emits `xor ebp,ebp; test eax,eax; jle …; xor ebx,ebx`,
-   * i.e. `v69 = 0` INSIDE the guard, which a counted `for` cannot express without
-   * an outer `if` that costs MSVC6 two extra instructions.  Measured 2026-08-17:
-   * counted-for OUR+0/21b, counted-for-in-an-if OUR+2/234b, this form MATCH. */
-  i = 0;
-  if ( bspworld.nummodels > 0 )
+  /* bspc's counted `for` over a typed `&dmodels[i]` (l_bsp_q2.c).  gladi386.so
+   * says so directly: its entry test compares nummodels against the counter's
+   * slot, which only gcc's own rotation of a counted `for` produces (IDA's
+   * guard-plus-do/while compared against 0).  cl.exe emits the same code for
+   * both. */
+  for ( i = 0; i < bspworld.nummodels; i++ )
   {
-    v69 = 0;
-    do
+    v70 = &bspworld.dmodels[i];
+    v70->firstface = LittleLong(v70->firstface);
+    v70->numfaces = LittleLong(v70->numfaces);
+    v70->headnode = LittleLong(v70->headnode);
+    for ( v76 = 0; v76 < 3; v76++ )
     {
-      v70 = (dmodel_t *)((char *)bspworld.dmodels + v69);
-      v70->firstface = LittleLong(v70->firstface);
-      v70->numfaces = LittleLong(v70->numfaces);
-      v70->headnode = LittleLong(v70->headnode);
-      for ( v76 = 0; v76 < 3; ++v76 )
-      {
-        v70->mins[v76] = LittleFloat(v70->mins[v76]);
-        v70->maxs[v76] = LittleFloat(v70->maxs[v76]);
-        v70->origin[v76] = LittleFloat(v70->origin[v76]);
-      }
-      ++i;
-      v69 += 48;
+      v70->mins[v76] = LittleFloat(v70->mins[v76]);
+      v70->maxs[v76] = LittleFloat(v70->maxs[v76]);
+      v70->origin[v76] = LittleFloat(v70->origin[v76]);
     }
-    while ( i < bspworld.nummodels );
   }
 }
 

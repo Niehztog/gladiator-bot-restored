@@ -135,7 +135,8 @@ typedef struct aas_reachability_s {
     float start[3];      /* +12 start origin                         */
     float end[3];        /* +24 end origin                           */
     int   traveltype;    /* +36                                      */
-    short traveltime;    /* +40                                      */
+    unsigned short traveltime; /* +40  Q3's type: the .so converts every double
+                                * store through the unsigned fistp QWORD path */
 } aas_reachability_t;    /* 44 bytes (stride = 44)                   */
 
 /* Free-list node used by AAS_SetupReachabilityHeap / AAS_AllocReachability.  48-byte

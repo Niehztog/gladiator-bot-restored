@@ -380,11 +380,17 @@ unsigned int __cdecl PC_NameHash(const char *name)
   unsigned int v2; // ecx
   int v4 = 0; // [esp+4h] [ebp-4h] BYREF
 
-  /* ONE trailing return, and a redundant `v4 = 0` on the len == 0 arm.  The ELF
-   * dictates this literally: gladi386.so tests the clamped length and, when zero,
-   * jumps to a second `mov [esp+0xc],0` that falls straight into the shared hash tail
-   * — three paths converging on one epilogue.  Shape matters beyond this row because
-   * gcc inlines PC_NameHash into its seven callers. */
+  /* A redundant `v4 = 0` on the len == 0 arm, and the abs() INSIDE the
+   * `if (name)` block.  Both 1999 images skip the abs on the NULL-name path --
+   * the DLL's `je` lands on the trailing `and eax,0x3ff`, the .so's on the
+   * final reload -- so it was never the function's last statement.  Written
+   * there, the one source gives each compiler its own original: cl.exe /O2
+   * expands abs() to `cdq; xor eax,edx; sub eax,edx` and duplicates it into
+   * both length arms, while gcc 2.7 expands it to `test; jge; neg` and, v4
+   * being address-taken, stores the result back and re-reads it for the mask.
+   * (The previous `if (v4 < 0) v4 = -v4;` after the block matched the .so
+   * only; `abs()` after the block matched neither.)  gcc inlines PC_NameHash
+   * into seven callers, so its shape decides those rows too. */
   if ( name )
   {
     v2 = strlen(name);
@@ -394,14 +400,8 @@ unsigned int __cdecl PC_NameHash(const char *name)
       memcpy(&v4, name, v2);
     else
       v4 = 0;
+    v4 = abs(v4);
   }
-  /* `if (v4 < 0) v4 = -v4;`, not `abs(v4)`: gladi386.so negates IN PLACE and re-reads
-   * the variable (`neg eax; mov [esp+0xc],eax; mov eax,[esp+0xc]`), which abs() folds
-   * away.  IRRECONCILABLE with the DLL, which wants abs()'s branchless
-   * `cdq; xor eax,edx; sub eax,edx` at BOTH exits: measured 2026-08-17, abs() takes
-   * the ELF row from MATCH to OUR-2/38b.  The ELF MATCH wins; do not re-try. */
-  if ( v4 < 0 )
-    v4 = -v4;
   return v4 & 0x3FF;
 }
 
@@ -424,12 +424,14 @@ void __cdecl PC_AddDefineToHash(define_t *define, define_t **definehash)
  * indexed by PC_NameHash, each bucket chained via define_t.hashnext. */
 define_t *__cdecl PC_FindHashedDefine(define_t **definehash, const char *name)
 {
-  define_t *v2;
+  define_t *d;
+  int hash;
 
-  for ( v2 = definehash[PC_NameHash(name)]; v2; v2 = v2->hashnext )
+  hash = PC_NameHash(name);
+  for ( d = definehash[hash]; d; d = d->hashnext )
   {
-    if ( !strcmp(v2->name, name) )
-      return v2;
+    if ( !strcmp(d->name, name) )
+      return d;
   }
   return NULL;
 }
@@ -1290,582 +1292,426 @@ int __cdecl PC_Directive_endif(source_t *source)
 // gladi386.so:   0004DEA4..0004DFCC
 int __cdecl PC_OperatorPriority(int op)
 {
-  int result; // eax
-
   switch ( op )
   {
-    case 5:
-      result = 7;
-      break;
-    case 6:
-      result = 6;
-      break;
-    case 9:
-    case 10:
-      result = 11;
-      break;
-    case 7:
-    case 8:
-    case 37:
-    case 38:
-      result = 12;
-      break;
-    case 21:
-    case 22:
-      result = 13;
-      break;
-    case 26:
-    case 27:
-    case 28:
-      result = 15;
-      break;
-    case 29:
-    case 30:
-      result = 14;
-      break;
-    case 32:
-      result = 10;
-      break;
-    case 33:
-      result = 8;
-      break;
-    case 34:
-      result = 9;
-      break;
-    case 35:
-    case 36:
-      result = 16;
-      break;
-    case 42:
-    case 43:
-      result = 5;
-      break;
-    default:
-      result = 0;
-      break;
+    case 5: return 7;     /* P_LOGIC_AND */
+    case 6: return 6;     /* P_LOGIC_OR */
+    case 7: return 12;    /* P_LOGIC_GEQ */
+    case 8: return 12;    /* P_LOGIC_LEQ */
+    case 9: return 11;    /* P_LOGIC_EQ */
+    case 10: return 11;   /* P_LOGIC_UNEQ */
+
+    case 36: return 16;   /* P_LOGIC_NOT */
+    case 37: return 12;   /* P_LOGIC_GREATER */
+    case 38: return 12;   /* P_LOGIC_LESS */
+
+    case 21: return 13;   /* P_RSHIFT */
+    case 22: return 13;   /* P_LSHIFT */
+
+    case 26: return 15;   /* P_MUL */
+    case 27: return 15;   /* P_DIV */
+    case 28: return 15;   /* P_MOD */
+    case 29: return 14;   /* P_ADD */
+    case 30: return 14;   /* P_SUB */
+
+    case 32: return 10;   /* P_BIN_AND */
+    case 33: return 8;    /* P_BIN_OR */
+    case 34: return 9;    /* P_BIN_XOR */
+    case 35: return 16;   /* P_BIN_NOT */
+
+    case 42: return 5;    /* P_COLON */
+    case 43: return 5;    /* P_QUESTIONMARK */
   }
-  return result;
+  return 0;
 }
 
 // gladiator.dll: 1003B9E0..1003C307
 // gladi386.so:   0004DFCC..0004EC03
 int __cdecl PC_EvaluateTokens(source_t *source, token_t *tokens, int *intvalue, double *floatvalue, int integer)
 {
-  int brace; // ebx
-  int lastwasvalue; // ecx
-  int v7; // edx
-  value_t *lastvalue;
+  operator_t *o, *firstoperator, *lastoperator;
+  value_t *v, *firstvalue, *lastvalue, *v1, *v2;
   token_t *t;
-  int v10; // eax
-  operator_t *v11;
-  value_t *v12;
-  value_t *v13;
-  int gotquestmarkvalue; // ebp
-  int questmarkintvalue; // ebx
-  operator_t *v16;
-  value_t *v;
-  operator_t *o;
-  operator_t *v19;
-  int v20; // ecx
-  int v21; // edx
-  value_t *v2;
-  double v24; // st7
-  double v25; // st7
-  BOOL v26; // eax
-  double v27; // st7
-  BOOL v28; // eax
-  double v29; // st7
-  double v30; // st7
-  double v31; // st7
-  double v32; // st7
-  double v33; // st7
-  double v34; // st7
-  double v35; // st7
-  int v36; // eax
-  operator_t *v41;
-  value_t *v42;
-  value_t *v43;
-  int error; // [esp+10h] [ebp-1Ch]
-  int parentheses; // [esp+14h] [ebp-18h]
-  operator_t *firstoperator;
-  value_t *firstvalue;
-  int negativevalue; // [esp+20h] [ebp-Ch]
-  operator_t *lastoperator;
-  double questmarkfloatvalue; // [esp+24h] [ebp-8h]
-  int ArgLista; // [esp+34h] [ebp+8h]
-  int ArgListb; // [esp+34h] [ebp+8h]
-  int ArgListc; // [esp+34h] [ebp+8h]
-  int ArgListd; // [esp+34h] [ebp+8h]
-  int ArgListe; // [esp+34h] [ebp+8h]
-  int ArgListf; // [esp+34h] [ebp+8h]
-  int ArgListg; // [esp+34h] [ebp+8h]
-  int ArgListh; // [esp+34h] [ebp+8h]
+  int brace = 0;
+  int parentheses = 0;
+  int error = 0;
+  int lastwasvalue = 0;
+  int negativevalue = 0;
+  int questmarkintvalue = 0;
+  double questmarkfloatvalue = 0;
+  int gotquestmarkvalue = 0;
 
-  /* Q3 `l_precomp.c:1691-1707`'s initialiser order, and its two chained
-   * assignments.  Not cosmetic: at /O2 MSVC assigns a spilled scalar's frame
-   * slot by the order its value is first materialised, so this block is what
-   * fixes the 5-slot permutation this row's `frame_slotmap.py` shows (its
-   * frame SIZE already matches ref exactly).  Real's first store is to
-   * `parentheses`, then `error` -- Q3's order, not IDA's. */
-  brace = 0;
-  parentheses = 0;
-  error = 0;
-  lastwasvalue = 0;
-  negativevalue = 0;
-  v7 = 0;
-  firstoperator = lastoperator = 0;
-  firstvalue = lastvalue = 0;
-  if ( intvalue )
-    *intvalue = 0;
-  if ( floatvalue )
-  {
-    *floatvalue = 0;
-  }
-  t = tokens;
-  if ( !tokens )
-    goto LABEL_73;
-  while ( 1 )
+  firstoperator = lastoperator = NULL;
+  firstvalue = lastvalue = NULL;
+  if ( intvalue ) *intvalue = 0;
+  if ( floatvalue ) *floatvalue = 0;
+  for ( t = tokens; t; t = t->next )
   {
     switch ( t->type )
     {
-      case 4:
-        if ( lastwasvalue || v7 )
+      case 4:   /* TT_NAME */
+      {
+        if ( lastwasvalue || negativevalue )
         {
           SourceError(source, "syntax error in #if/#elif");
-          goto LABEL_76;
+          error = 1;
+          break;
         }
-        if ( strcmp((const char *)t, "defined") )
+        if ( strcmp(t->string, "defined") )
         {
-          SourceError(source, "undefined name %s in #if/#elif", t);
-          goto LABEL_76;
+          SourceError(source, "undefined name %s in #if/#elif", t->string);
+          error = 1;
+          break;
         }
         t = t->next;
-        if ( !strcmp((const char *)t, "(") )
+        if ( !strcmp(t->string, "(") )
         {
-          t = t->next;
           brace = 1;
+          t = t->next;
         }
         if ( !t || t->type != 4 )
         {
           SourceError(source, "defined without name in #if/#elif");
-          goto LABEL_76;
+          error = 1;
+          break;
         }
-        v12 = GetClearedMemory(sizeof(value_t));
-        if ( PC_FindHashedDefine(source->definehash, (const char *)t) )
+        v = (value_t *) GetClearedMemory(sizeof(value_t));
+        if ( PC_FindHashedDefine(source->definehash, t->string) )
         {
-                    v12->intvalue = 1;
-          v12->floatvalue = 1.0;
+          v->intvalue = 1;
+          v->floatvalue = 1;
         }
         else
         {
-                    v12->intvalue = 0;
-          v12->floatvalue = 0.0;
+          v->intvalue = 0;
+          v->floatvalue = 0;
         }
-        v12->next = 0;
-        v12->parentheses = parentheses;
-        v12->prev = lastvalue;
-        if ( lastvalue )
-          lastvalue->next = v12;
-        else
-          firstvalue = v12;
-        lastvalue = v12;
+        v->parentheses = parentheses;
+        v->next = NULL;
+        v->prev = lastvalue;
+        if ( lastvalue ) lastvalue->next = v;
+        else firstvalue = v;
+        lastvalue = v;
         if ( brace )
         {
           t = t->next;
-          if ( !t || strcmp((const char *)t, ")") )
+          if ( !t || strcmp(t->string, ")") )
           {
             SourceError(source, "defined without ) in #if/#elif");
-            goto LABEL_76;
+            error = 1;
+            break;
           }
         }
         brace = 0;
+        /* defined() creates a value */
         lastwasvalue = 1;
         break;
-      case 3:
+      }
+      case 3:   /* TT_NUMBER */
+      {
         if ( lastwasvalue )
         {
           SourceError(source, "syntax error in #if/#elif");
-          goto LABEL_76;
+          error = 1;
+          break;
         }
-        v13 = GetClearedMemory(sizeof(value_t));
+        v = (value_t *) GetClearedMemory(sizeof(value_t));
         if ( negativevalue )
         {
-          v13->intvalue = -(int)t->intvalue;
-          v13->floatvalue = -t->floatvalue;
+          v->intvalue = - (signed int) t->intvalue;
+          v->floatvalue = - t->floatvalue;
         }
         else
         {
-          v13->intvalue = (int)t->intvalue;
-          v13->floatvalue = t->floatvalue;
+          v->intvalue = t->intvalue;
+          v->floatvalue = t->floatvalue;
         }
-        v13->parentheses = parentheses;
-        v13->next = 0;
-        v13->prev = lastvalue;
-        if ( lastvalue )
-          lastvalue->next = v13;
-        else
-          firstvalue = v13;
-        lastvalue = v13;
+        v->parentheses = parentheses;
+        v->next = NULL;
+        v->prev = lastvalue;
+        if ( lastvalue ) lastvalue->next = v;
+        else firstvalue = v;
+        lastvalue = v;
+        /* last token was a value */
         lastwasvalue = 1;
         negativevalue = 0;
         break;
-      case 5:
-        if ( v7 )
+      }
+      case 5:   /* TT_PUNCTUATION */
+      {
+        if ( negativevalue )
         {
           SourceError(source, "misplaced minus sign in #if/#elif");
-          goto LABEL_76;
+          error = 1;
+          break;
         }
-        v10 = t->subtype;
-        if ( v10 == 44 )
+        if ( t->subtype == 44 )         /* P_PARENTHESESOPEN */
         {
-          ++parentheses;
+          parentheses++;
+          break;
         }
-        else if ( v10 == 45 )
+        else if ( t->subtype == 45 )    /* P_PARENTHESESCLOSE */
         {
-          if ( --parentheses < 0 )
+          parentheses--;
+          if ( parentheses < 0 )
           {
             SourceError(source, "too many ) in #if/#elsif");
-            goto LABEL_76;
+            error = 1;
           }
+          break;
+        }
+        /* check for invalid operators on floating point values */
+        if ( !integer )
+        {
+          if ( t->subtype == 35 || t->subtype == 28 ||
+               t->subtype == 21 || t->subtype == 22 ||
+               t->subtype == 32 || t->subtype == 33 ||
+               t->subtype == 34 )
+          {
+            SourceError(source, "illigal operator %s on floating point operands\n", t->string);
+            error = 1;
+            break;
+          }
+        }
+        switch ( t->subtype )
+        {
+          case 36:  /* P_LOGIC_NOT */
+          case 35:  /* P_BIN_NOT */
+          {
+            if ( lastwasvalue )
+            {
+              SourceError(source, "! or ~ after value in #if/#elif");
+              error = 1;
+              break;
+            }
+            break;
+          }
+          case 30:  /* P_SUB */
+          {
+            if ( !lastwasvalue )
+            {
+              negativevalue = 1;
+              break;
+            }
+          }
+          case 26:  /* P_MUL */
+          case 27:  /* P_DIV */
+          case 28:  /* P_MOD */
+          case 29:  /* P_ADD */
+
+          case 5:   /* P_LOGIC_AND */
+          case 6:   /* P_LOGIC_OR */
+          case 7:   /* P_LOGIC_GEQ */
+          case 8:   /* P_LOGIC_LEQ */
+          case 9:   /* P_LOGIC_EQ */
+          case 10:  /* P_LOGIC_UNEQ */
+
+          case 37:  /* P_LOGIC_GREATER */
+          case 38:  /* P_LOGIC_LESS */
+
+          case 21:  /* P_RSHIFT */
+          case 22:  /* P_LSHIFT */
+
+          case 32:  /* P_BIN_AND */
+          case 33:  /* P_BIN_OR */
+          case 34:  /* P_BIN_XOR */
+
+          case 42:  /* P_COLON */
+          case 43:  /* P_QUESTIONMARK */
+          {
+            if ( !lastwasvalue )
+            {
+              SourceError(source, "operator %s after operator in #if/#elif", t->string);
+              error = 1;
+              break;
+            }
+            break;
+          }
+          default:
+          {
+            SourceError(source, "invalid operator %s in #if/#elif", t->string);
+            error = 1;
+            break;
+          }
+        }
+        if ( !error && !negativevalue )
+        {
+          o = (operator_t *) GetClearedMemory(sizeof(operator_t));
+          o->op = t->subtype;
+          o->priority = PC_OperatorPriority(t->subtype);
+          o->parentheses = parentheses;
+          o->next = NULL;
+          o->prev = lastoperator;
+          if ( lastoperator ) lastoperator->next = o;
+          else firstoperator = o;
+          lastoperator = o;
+          lastwasvalue = 0;
+        }
+        break;
+      }
+      default:
+      {
+        SourceError(source, "unknown %s in #if/#elif", t->string);
+        error = 1;
+        break;
+      }
+    }
+    if ( error ) break;
+  }
+  if ( !error )
+  {
+    if ( !lastwasvalue )
+    {
+      SourceError(source, "trailing operator in #if/#elif");
+      error = 1;
+    }
+    else if ( parentheses )
+    {
+      SourceError(source, "too many ( in #if/#elif");
+      error = 1;
+    }
+  }
+  gotquestmarkvalue = 0;
+  questmarkintvalue = 0;
+  questmarkfloatvalue = 0;
+  /* while there are operators */
+  while ( !error && firstoperator )
+  {
+    v = firstvalue;
+    for ( o = firstoperator; o->next; o = o->next )
+    {
+      /* if the current operator is nested deeper in parentheses
+       * than the next operator */
+      if ( o->parentheses > o->next->parentheses ) break;
+      /* if the current and next operator are nested equally deep in parentheses */
+      if ( o->parentheses == o->next->parentheses )
+      {
+        /* if the priority of the current operator is equal or higher
+         * than the priority of the next operator */
+        if ( o->priority >= o->next->priority ) break;
+      }
+      /* if the arity of the operator isn't equal to 1 */
+      if ( o->op != 36 && o->op != 35 ) v = v->next;
+      /* if there's no value or no next value */
+      if ( !v )
+      {
+        SourceError(source, "mising values in #if/#elif");
+        error = 1;
+        break;
+      }
+    }
+    if ( error ) break;
+    v1 = v;
+    v2 = v->next;
+    switch ( o->op )
+    {
+      case 36: v1->intvalue = !v1->intvalue;
+               v1->floatvalue = !v1->floatvalue; break;
+      case 35: v1->intvalue = ~v1->intvalue;
+               break;
+      case 26: v1->intvalue *= v2->intvalue;
+               v1->floatvalue *= v2->floatvalue; break;
+      case 27: v1->intvalue /= v2->intvalue;
+               v1->floatvalue /= v2->floatvalue; break;
+      case 28: v1->intvalue %= v2->intvalue; break;
+      case 29: v1->intvalue += v2->intvalue;
+               v1->floatvalue += v2->floatvalue; break;
+      case 30: v1->intvalue -= v2->intvalue;
+               v1->floatvalue -= v2->floatvalue; break;
+      case 5:  v1->intvalue = v1->intvalue && v2->intvalue;
+               v1->floatvalue = v1->floatvalue && v2->floatvalue; break;
+      case 6:  v1->intvalue = v1->intvalue || v2->intvalue;
+               v1->floatvalue = v1->floatvalue || v2->floatvalue; break;
+      case 7:  v1->intvalue = v1->intvalue >= v2->intvalue;
+               v1->floatvalue = v1->floatvalue >= v2->floatvalue; break;
+      case 8:  v1->intvalue = v1->intvalue <= v2->intvalue;
+               v1->floatvalue = v1->floatvalue <= v2->floatvalue; break;
+      case 9:  v1->intvalue = v1->intvalue == v2->intvalue;
+               v1->floatvalue = v1->floatvalue == v2->floatvalue; break;
+      case 10: v1->intvalue = v1->intvalue != v2->intvalue;
+               v1->floatvalue = v1->floatvalue != v2->floatvalue; break;
+      case 37: v1->intvalue = v1->intvalue > v2->intvalue;
+               v1->floatvalue = v1->floatvalue > v2->floatvalue; break;
+      case 38: v1->intvalue = v1->intvalue < v2->intvalue;
+               v1->floatvalue = v1->floatvalue < v2->floatvalue; break;
+      case 21: v1->intvalue >>= v2->intvalue;
+               break;
+      case 22: v1->intvalue <<= v2->intvalue;
+               break;
+      case 32: v1->intvalue &= v2->intvalue;
+               break;
+      case 33: v1->intvalue |= v2->intvalue;
+               break;
+      case 34: v1->intvalue ^= v2->intvalue;
+               break;
+      case 42:  /* P_COLON */
+      {
+        if ( !gotquestmarkvalue )
+        {
+          SourceError(source, ": without ? in #if/#elif");
+          error = 1;
+          break;
+        }
+        if ( integer )
+        {
+          if ( !questmarkintvalue ) v1->intvalue = v2->intvalue;
         }
         else
         {
-          if ( !integer && (v10 == 35 || v10 == 28 || v10 == 21 || v10 == 22 || v10 == 32 || v10 == 33 || v10 == 34) )
-          {
-            SourceError(source,
-                        "illigal operator %s on floating point operands\n",
-                        t);
-            goto LABEL_76;
-          }
-          switch ( v10 )
-          {
-            case 35:
-            case 36:
-              if ( lastwasvalue )
-              {
-                SourceError(source, "! or ~ after value in #if/#elif");
-                goto LABEL_76;
-              }
-              goto LABEL_29;
-            case 30:
-              if ( !lastwasvalue )
-                negativevalue = 1;
-              goto LABEL_29;
-            case 5:
-            case 6:
-            case 7:
-            case 8:
-            case 9:
-            case 10:
-            case 21:
-            case 22:
-            case 26:
-            case 27:
-            case 28:
-            case 29:
-            case 32:
-            case 33:
-            case 34:
-            case 37:
-            case 38:
-            case 42:
-            case 43:
-              if ( lastwasvalue )
-                goto LABEL_29;
-              SourceError(source, "operator %s after operator in #if/#elif", t);
-              goto LABEL_76;
-LABEL_29:
-              if ( !negativevalue )
-              {
-                v11 = GetClearedMemory(sizeof(operator_t));
-                v11->op = t->subtype;
-                v11->priority = PC_OperatorPriority(t->subtype);
-                v11->parentheses = parentheses;
-                v11->next = 0;
-                v11->prev = lastoperator;
-                if ( lastoperator )
-                  lastoperator->next = v11;
-                else
-                  firstoperator = v11;
-                lastoperator = v11;
-                lastwasvalue = 0;
-              }
-              break;
-            default:
-              SourceError(source, "invalid operator %s in #if/#elif", t);
-              goto LABEL_76;
-          }
+          if ( !questmarkfloatvalue ) v1->floatvalue = v2->floatvalue;
         }
+        gotquestmarkvalue = 0;
         break;
-      default:
-        SourceError(source, "unknown %s in #if/#elif", t);
-        goto LABEL_76;
-    }
-    t = t->next;
-    if ( !t )
-      break;
-    v7 = negativevalue;
-  }
-  /* Negative guard: the "trailing operator" arm is the warm fall-through and the
-   * lastwasvalue arm the jump target. */
-  if ( !lastwasvalue )
-  {
-LABEL_73:
-    SourceError(source, "trailing operator in #if/#elif");
-  }
-  else
-  {
-    if ( !parentheses )
-      goto LABEL_77;
-    SourceError(source, "too many ( in #if/#elif");
-  }
-LABEL_76:
-  error = 1;
-LABEL_77:
-  gotquestmarkvalue = 0;
-  questmarkintvalue = 0;
-  questmarkfloatvalue = 0.0;
-  if ( !error )
-  {
-    while ( 1 )
-    {
-      v16 = firstoperator;
-      if ( !firstoperator )
-        goto LABEL_165;
-      v = firstvalue;
-      o = firstoperator;
-      v19 = firstoperator->next;
-      if ( v19 )
-        break;
-LABEL_88:
-      v2 = v->next;
-      switch ( o->op )
+      }
+      case 43:  /* P_QUESTIONMARK */
       {
-        /* Case bodies in the ORIGINAL source order, matching Q3's PC_EvaluateTokens:
-         * LOGIC_NOT, BIN_NOT, MUL, DIV, MOD, ADD, SUB, AND, OR, GEQ, LEQ, EQ, UNEQ,
-         * GREATER, LESS, RSHIFT, LSHIFT, BIN_AND, BIN_OR, BIN_XOR, COLON,
-         * QUESTIONMARK.  MSVC6 emits case bodies in source order, so sorting them
-         * numerically relocates every block and both jump tables. */
-        case 36:
-          v->intvalue = !v->intvalue;
-          v->floatvalue = !v->floatvalue;
-          goto LABEL_144;
-        case 35:
-          v->intvalue = ~v->intvalue;
-          goto LABEL_144;
-        case 26:
-          v->intvalue *= v2->intvalue;
-          v->floatvalue = v2->floatvalue * v->floatvalue;
-          goto LABEL_144;
-        case 27:
-          v24 = v->floatvalue;
-          v->intvalue /= v2->intvalue;
-          v->floatvalue = v24 / v2->floatvalue;
-          goto LABEL_144;
-        case 28:
-          v->intvalue %= v2->intvalue;
-          goto LABEL_144;
-        case 29:
-          v->intvalue += v2->intvalue;
-          v->floatvalue = v2->floatvalue + v->floatvalue;
-          goto LABEL_144;
-        case 30:
-          v25 = v->floatvalue;
-          v->intvalue -= v2->intvalue;
-          v->floatvalue = v25 - v2->floatvalue;
-          goto LABEL_144;
-        case 5:
-          v26 = v->intvalue && v2->intvalue;
-          v27 = v->floatvalue;
-          v->intvalue = v26;
-          if ( v27 == 0.0 || (ArgLista = 1, v2->floatvalue == 0.0) )
-            ArgLista = 0;
-          v->floatvalue = (float)ArgLista;
-          goto LABEL_144;
-        case 6:
-          v28 = v->intvalue || v2->intvalue;
-          v29 = v->floatvalue;
-          v->intvalue = v28;
-          if ( v29 != 0.0 || (ArgListb = 0, v2->floatvalue != 0.0) )
-            ArgListb = 1;
-          v->floatvalue = (float)ArgListb;
-          goto LABEL_144;
-        case 7:
-          ArgListc = 1;
-          v30 = v->floatvalue;
-          v->intvalue = v->intvalue >= v2->intvalue;
-          if ( v30 < v2->floatvalue )
-            ArgListc = 0;
-          v->floatvalue = (float)ArgListc;
-          goto LABEL_144;
-        case 8:
-          ArgListd = 1;
-          v31 = v->floatvalue;
-          v->intvalue = v->intvalue <= v2->intvalue;
-          if ( v31 > v2->floatvalue )
-            ArgListd = 0;
-          v->floatvalue = (float)ArgListd;
-          goto LABEL_144;
-        case 9:
-          ArgListe = 1;
-          v32 = v->floatvalue;
-          v->intvalue = v->intvalue == v2->intvalue;
-          if ( v32 != v2->floatvalue )
-            ArgListe = 0;
-          v->floatvalue = (float)ArgListe;
-          goto LABEL_144;
-        case 10:
-          ArgListf = 1;
-          v33 = v->floatvalue;
-          v->intvalue = v->intvalue != v2->intvalue;
-          if ( v33 == v2->floatvalue )
-            ArgListf = 0;
-          v->floatvalue = (float)ArgListf;
-          goto LABEL_144;
-        case 37:
-          ArgListg = 1;
-          v34 = v->floatvalue;
-          v->intvalue = v->intvalue > v2->intvalue;
-          if ( v34 <= v2->floatvalue )
-            ArgListg = 0;
-          v->floatvalue = (float)ArgListg;
-          goto LABEL_144;
-        case 38:
-          ArgListh = 1;
-          v35 = v->floatvalue;
-          v->intvalue = v->intvalue < v2->intvalue;
-          if ( v35 >= v2->floatvalue )
-            ArgListh = 0;
-          v->floatvalue = (float)ArgListh;
-          goto LABEL_144;
-        case 21:
-          v->intvalue >>= v2->intvalue;
-          goto LABEL_144;
-        case 22:
-          v->intvalue <<= v2->intvalue;
-          goto LABEL_144;
-        case 32:
-          v->intvalue &= v2->intvalue;
-          goto LABEL_144;
-        case 33:
-          v->intvalue |= v2->intvalue;
-          goto LABEL_144;
-        case 34:
-          v->intvalue ^= v2->intvalue;
-          goto LABEL_144;
-        case 42:
-          if ( !gotquestmarkvalue )
-          {
-            SourceError(source, ": without ? in #if/#elif");
-            goto LABEL_163;
-          }
-          if ( integer )
-          {
-            if ( !questmarkintvalue )
-            {
-              gotquestmarkvalue = 0;
-              v->intvalue = v2->intvalue;
-              goto LABEL_144;
-            }
-          }
-          else if ( questmarkfloatvalue == 0.0 )
-          {
-            v->floatvalue = v2->floatvalue;
-          }
-          gotquestmarkvalue = 0;
-          goto LABEL_144;
-        case 43:
-          if ( gotquestmarkvalue )
-          {
-            SourceError(source, "? after ? in #if/#elif");
-            goto LABEL_163;
-          }
-          questmarkintvalue = v->intvalue;
-          questmarkfloatvalue = v->floatvalue;
-          gotquestmarkvalue = 1;
-LABEL_144:
-          v36 = o->op;
-          if ( o->op != 36 && v36 != 35 )
-          {
-            if ( v36 != 43 )
-              v = v->next;
-            if ( v->prev )
-              v->prev->next = v->next;
-            else
-              firstvalue = v->next;
-            if ( v->next )
-              v->next->prev = v->prev;
-            FreeMemory(v);
-          }
-          if ( o->prev )
-            o->prev->next = o->next;
-          else
-            firstoperator = o->next;
-          if ( o->next )
-            o->next->prev = o->prev;
-          FreeMemory(o);
+        if ( gotquestmarkvalue )
+        {
+          SourceError(source, "? after ? in #if/#elif");
+          error = 1;
           break;
-        default:
-          goto LABEL_144;
+        }
+        questmarkintvalue = v1->intvalue;
+        questmarkfloatvalue = v1->floatvalue;
+        gotquestmarkvalue = 1;
+        break;
       }
     }
-    while ( 1 )
+    if ( error ) break;
+    /* if not an operator with arity 1 */
+    if ( o->op != 36 && o->op != 35 )
     {
-      v20 = o->parentheses;
-      v21 = v19->parentheses;
-      if ( v20 > v21 || v20 == v21 && o->priority >= v19->priority )
-        goto LABEL_88;
-      if ( o->op != 36 && o->op != 35 )
-        v = v->next;
-      if ( !v )
-        break;
-      o = v19;
-      v19 = v19->next;
-      if ( !v19 )
-        goto LABEL_88;
+      /* remove the second value if not question mark operator */
+      if ( o->op != 43 ) v = v->next;
+      if ( v->prev ) v->prev->next = v->next;
+      else firstvalue = v->next;
+      if ( v->next ) v->next->prev = v->prev;
+      FreeMemory(v);
     }
-    SourceError(source, "mising values in #if/#elif");
-LABEL_163:
-    error = 1;
+    /* remove the operator */
+    if ( o->prev ) o->prev->next = o->next;
+    else firstoperator = o->next;
+    if ( o->next ) o->next->prev = o->prev;
+    FreeMemory(o);
   }
-  v16 = firstoperator;
-LABEL_165:
   if ( firstvalue )
   {
-    if ( intvalue )
-      *intvalue = firstvalue->intvalue;
-    if ( floatvalue )
-    {
-      *floatvalue = firstvalue->floatvalue;
-    }
+    if ( intvalue ) *intvalue = firstvalue->intvalue;
+    if ( floatvalue ) *floatvalue = firstvalue->floatvalue;
   }
-  if ( v16 )
+  for ( o = firstoperator; o; o = lastoperator )
   {
-    do
-    {
-      v41 = v16->next;
-      FreeMemory(v16);
-      v16 = v41;
-    }
-    while ( v41 );
+    lastoperator = o->next;
+    FreeMemory(o);
   }
-  v42 = firstvalue;
-  if ( firstvalue )
+  for ( v = firstvalue; v; v = lastvalue )
   {
-    do
-    {
-      v43 = v42->next;
-      FreeMemory(v42);
-      v42 = v43;
-    }
-    while ( v43 );
+    lastvalue = v->next;
+    FreeMemory(v);
   }
-  if ( !error )
-    return 1;
-  if ( intvalue )
-    *intvalue = 0;
-  if ( floatvalue )
-    *floatvalue = 0;
+  if ( !error ) return 1;
+  if ( intvalue ) *intvalue = 0;
+  if ( floatvalue ) *floatvalue = 0;
   return 0;
 }
 
@@ -1873,23 +1719,13 @@ LABEL_165:
 // gladi386.so:   0004EC04..0004F03D
 int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
-  token_t *firsttoken;
-  token_t *lasttoken;
-  token_t *t;
-  token_t *v9;
+  token_t token, *firsttoken, *lasttoken;
+  token_t *t, *nexttoken;
   define_t *define;
-  token_t *v11;
-  token_t *nexttoken;
-  int defined;
-  token_t token;
+  int defined = 0;
 
-  defined = 0;
-  if ( intvalue )
-    *intvalue = 0;
-  if ( floatvalue )
-  {
-    *floatvalue = 0;
-  }
+  if ( intvalue ) *intvalue = 0;
+  if ( floatvalue ) *floatvalue = 0;
   if ( !PC_ReadLine(source, &token) )
   {
     SourceError(source, "no value after #if/#elif");
@@ -1906,22 +1742,18 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
         defined = 0;
         t = PC_CopyToken(&token);
         t->next = NULL;
-        if ( lasttoken )
-          lasttoken->next = t;
-        else
-          firsttoken = t;
+        if ( lasttoken ) lasttoken->next = t;
+        else firsttoken = t;
         lasttoken = t;
       }
       else if ( !strcmp(token.string, "defined") )
       {
         defined = 1;
-        v9 = PC_CopyToken(&token);
-        v9->next = NULL;
-        if ( lasttoken )
-          lasttoken->next = v9;
-        else
-          firsttoken = v9;
-        lasttoken = v9;
+        t = PC_CopyToken(&token);
+        t->next = NULL;
+        if ( lasttoken ) lasttoken->next = t;
+        else firsttoken = t;
+        lasttoken = t;
       }
       else
       {
@@ -1931,18 +1763,15 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
           SourceError(source, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(source, define) )
-          return 0;
+        if ( !PC_ExpandDefineIntoSource(source, define) ) return 0;
       }
     }
     else if ( token.type == 3 || token.type == 5 )
     {
       t = PC_CopyToken(&token);
       t->next = NULL;
-      if ( lasttoken )
-        lasttoken->next = t;
-      else
-        firsttoken = t;
+      if ( lasttoken ) lasttoken->next = t;
+      else firsttoken = t;
       lasttoken = t;
     }
     else
@@ -1950,20 +1779,12 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
       SourceError(source, "can't evaluate %s", token.string);
       return 0;
     }
-  }
-  while ( PC_ReadLine(source, &token) );
-  if ( !PC_EvaluateTokens(source, (intptr_t)firsttoken, (_DWORD *)intvalue, (_DWORD *)floatvalue, integer) )
-    return 0;
-  v11 = firsttoken;
-  if ( firsttoken )
+  } while ( PC_ReadLine(source, &token) );
+  if ( !PC_EvaluateTokens(source, firsttoken, intvalue, floatvalue, integer) ) return 0;
+  for ( t = firsttoken; t; t = nexttoken )
   {
-    do
-    {
-      nexttoken = v11->next;
-      PC_FreeToken(v11);
-      v11 = nexttoken;
-    }
-    while ( nexttoken );
+    nexttoken = t->next;
+    PC_FreeToken(t);
   }
   return 1;
 }
@@ -1972,28 +1793,13 @@ int __cdecl PC_Evaluate(source_t *source, int *intvalue, double *floatvalue, int
 // gladi386.so:   0004F040..0004F3CD
 int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalue, int integer)
 {
-  /* `indent`/`defined` declared (and later assigned) ahead of the token pointers,
-   * matching Q3's `int indent, defined = qfalse;` before `firsttoken`/`lasttoken`.
-   * gcc 2.7.2.3 -O6 assigns stack slots by DECLARATION order, not assignment order —
-   * moving only the statements has no effect on the emitted slot offsets. */
-  int indent; // [esp+10h] [ebp-438h]
-  int defined; // [esp+14h] [ebp-434h]
-  token_t *firsttoken; // ebp (firsttoken)
-  token_t *lasttoken; // edi
-  token_t *t; // eax
-  token_t *v9; // eax
-  define_t *define; // eax
-  token_t *v12; // eax
-  token_t *nexttoken; // esi
-  token_t token;
+  int indent, defined = 0;
+  token_t token, *firsttoken, *lasttoken;
+  token_t *t, *nexttoken;
+  define_t *define;
 
-  defined = 0;
-  if ( intvalue )
-    *intvalue = 0;
-  if ( floatvalue )
-  {
-    *floatvalue = 0;
-  }
+  if ( intvalue ) *intvalue = 0;
+  if ( floatvalue ) *floatvalue = 0;
   if ( !PC_ReadSourceToken(source, &token) )
   {
     SourceError(source, "no leading ( after $evalint/$evalfloat");
@@ -2005,8 +1811,8 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
     return 0;
   }
   indent = 1;
-  firsttoken = 0;
-  lasttoken = 0;
+  firsttoken = NULL;
+  lasttoken = NULL;
   do
   {
     if ( token.type == 4 )
@@ -2015,23 +1821,19 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
       {
         defined = 0;
         t = PC_CopyToken(&token);
-        t->next = 0;
-        if ( lasttoken )
-          lasttoken->next = t;
-        else
-          firsttoken = t;
+        t->next = NULL;
+        if ( lasttoken ) lasttoken->next = t;
+        else firsttoken = t;
         lasttoken = t;
       }
       else if ( !strcmp(token.string, "defined") )
       {
         defined = 1;
-        v9 = PC_CopyToken(&token);
-        v9->next = 0;
-        if ( lasttoken )
-          lasttoken->next = v9;
-        else
-          firsttoken = v9;
-        lasttoken = v9;
+        t = PC_CopyToken(&token);
+        t->next = NULL;
+        if ( lasttoken ) lasttoken->next = t;
+        else firsttoken = t;
+        lasttoken = t;
       }
       else
       {
@@ -2041,24 +1843,18 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
           SourceError(source, "can't evaluate %s, not defined", token.string);
           return 0;
         }
-        if ( !PC_ExpandDefineIntoSource(source, define) )
-          return 0;
+        if ( !PC_ExpandDefineIntoSource(source, define) ) return 0;
       }
     }
     else if ( token.type == 3 || token.type == 5 )
     {
-      if ( token.string[0] == 40 )
-        ++indent;
-      else if ( token.string[0] == 41 )
-        --indent;
-      if ( indent <= 0 )
-        break;
+      if ( *token.string == '(' ) indent++;
+      else if ( *token.string == ')' ) indent--;
+      if ( indent <= 0 ) break;
       t = PC_CopyToken(&token);
-      t->next = 0;
-      if ( lasttoken )
-        lasttoken->next = t;
-      else
-        firsttoken = t;
+      t->next = NULL;
+      if ( lasttoken ) lasttoken->next = t;
+      else firsttoken = t;
       lasttoken = t;
     }
     else
@@ -2066,20 +1862,12 @@ int __cdecl PC_DollarEvaluate(source_t *source, int *intvalue, double *floatvalu
       SourceError(source, "can't evaluate %s", token.string);
       return 0;
     }
-  }
-  while ( PC_ReadSourceToken(source, &token) );
-  if ( !PC_EvaluateTokens(source, firsttoken, intvalue, floatvalue, integer) )
-    return 0;
-  v12 = firsttoken;
-  if ( firsttoken )
+  } while ( PC_ReadSourceToken(source, &token) );
+  if ( !PC_EvaluateTokens(source, firsttoken, intvalue, floatvalue, integer) ) return 0;
+  for ( t = firsttoken; t; t = nexttoken )
   {
-    do
-    {
-      nexttoken = v12->next;
-      PC_FreeToken(v12);
-      v12 = nexttoken;
-    }
-    while ( nexttoken );
+    nexttoken = t->next;
+    PC_FreeToken(t);
   }
   return 1;
 }

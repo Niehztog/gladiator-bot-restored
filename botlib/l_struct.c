@@ -25,147 +25,103 @@
 
 // gladiator.dll: 100404B0..1004051A
 // gladi386.so:   00052E9C..00052EE2
-const char **__cdecl FindField(const char **defs, const char *name)
+/* Q3's loop over the TYPED descriptor array, verbatim.  Each compiler
+ * strength-reduces it its own way: cl.exe walks a pointer but keeps `i` alive
+ * to rebuild `&defs[i]` as defs + 28*i on the hit path (the DLL's
+ * `lea eax,[ebp*8]; sub eax,ebp`), gcc drops `i` and returns the pointer.
+ * IDA's char** walk plus a counter matched the DLL only; `defs[i]` with
+ * `i += 7` on the char** view, the .so only. */
+fielddef_t *__cdecl FindField(fielddef_t *defs, const char *name)
 {
-  const char **v2;
   int i;
 
-  i = 0;
-  for ( v2 = defs; *v2; v2 += 7 )
+  for ( i = 0; defs[i].name; i++ )
   {
-    if ( !strcmp(*v2, name) )
-      return &defs[7 * i];
-    ++i;
+    if ( !strcmp(defs[i].name, name) ) return &defs[i];
   }
-  return 0;
+  return NULL;
 }
-
-/* Field-table slot helpers.  Field tables are char *[7] entries addressed by slot index
- * rather than byte offset, so they work on both word widths:
- *   [0] name  [1] offset  [2] type|flags  [3] arr
- *   [4] minrange (float bits)  [5] maxrange (float bits)  [6] substruct (structdef_t *) */
-// gladiator.dll: absent
-// gladi386.so:   absent
-static inline int fielddef_flags(char **f) { return (int)(intptr_t)f[2]; }
-
-// gladiator.dll: absent
-// gladi386.so:   absent
-static inline float fielddef_float(char **f, int slot) {
-    return *(float *)&f[slot];   /* direct low-32 read (LE-safe); matches ref's fld [ebp+off] */
-}
-
-/* fielddef_t — Q3's l_struct.h field descriptor, overlaid on the char *[7] entries.
- * Members are pointer-sized so the struct lines up with the slots on either width. */
-typedef struct fielddef_s {
-    const char *name;            /* slot 0 */
-    intptr_t    offset;          /* slot 1 */
-    intptr_t    type;            /* slot 2 — low byte FT_*, 0x100 = FT_ARRAY */
-    intptr_t    maxarray;        /* slot 3 */
-    intptr_t    floatmin;        /* slot 4 — float bits */
-    intptr_t    floatmax;        /* slot 5 — float bits */
-    structdef_t *substruct;      /* slot 6 */
-} fielddef_t;
 
 // gladiator.dll: 10040540..100408AD
 // gladi386.so:   00052EE4..000532DD
-/* Test `(v8 & 0xFF)` directly at each site rather than caching it in a `type` local, and
- * keep the intmin/intmax clamp as Q3-style ternaries: the recomputed mask is what blocks
- * jump-threading and reproduces the original's repeated `and edi,0xff` dispatch.
- *
- * The residual is four float comparisons that compile to fld/fcompp here where the
- * original has a single memory-operand fcom.  Caching the fielddef_float(fd,4)/(fd,5)
- * results into named locals regresses badly — do not re-attempt without a new idea. */
-int __cdecl ReadNumber(source_t *source, char **fd, float *p)
+/* Q3's text over Q3's typed descriptor -- `fd->type` read at every test (the
+ * .so reloads it each time; IDA had cached one `v8`), `fd->floatmin` /
+ * `fd->floatmax` as real float members (cl.exe compares them with a
+ * memory-operand fcom; the old cast accessors gave fld/fcompp), Q3's
+ * Maximum/Minimum -- but WITHOUT Q3's `intmin = 0, intmax = 0` initialisers,
+ * which the DLL does not have (they cost it a 148-line register cascade). */
+int __cdecl ReadNumber(source_t *source, fielddef_t *fd, float *p)
 {
-  int negative; // esi
-  int v5; // eax
-  double floatval; // st7
-  int intval; // ebx
-  int v8; // ecx
-  int intmin; // esi
-  int intmax; // rax
-  float v18; // [esp+28h] [ebp-438h]
   token_t token;
+  int negative = 0;
+  int intval, intmin, intmax;
+  double floatval;
 
-  negative = 0;
-  if ( !PC_ExpectAnyToken(source, token.string) )
-    return 0;
+  if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
+  /* check for minus sign */
   if ( token.type == 5 )
   {
-    if ( (fielddef_flags(fd) & 0x400) != 0 )
+    if ( fd->type & 0x400 )
     {
       SourceError(source, "expected unsigned value, found %s", token.string);
       return 0;
     }
+    /* if not a minus sign */
     if ( strcmp(token.string, "-") )
     {
       SourceError(source, "unexpected punctuation %s", token.string);
       return 0;
     }
     negative = 1;
-    if ( !PC_ExpectAnyToken(source, token.string) )
-      return 0;
+    /* read the number */
+    if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
   }
+  /* check if it is a number */
   if ( token.type != 3 )
   {
     SourceError(source, "expected number, found %s", token.string);
     return 0;
   }
-  if ( (token.subtype & 0x800) != 0 )
+  /* check for a float value */
+  if ( token.subtype & 0x800 )
   {
-    v5 = fielddef_flags(fd);
-    if ( (_BYTE)v5 != 3 )
+    if ( (fd->type & 0xFF) != 3 )
     {
       SourceError(source, "unexpected float");
       return 0;
     }
     floatval = token.floatvalue;
-    if ( negative )
-      floatval = -floatval;
-    if ( (v5 & 0x200) != 0 && ((v18 = fielddef_float(fd, 4), floatval < v18) || floatval > fielddef_float(fd, 5)) )
+    if ( negative ) floatval = -floatval;
+    if ( fd->type & 0x200 )
     {
-      SourceError(source, "float out of range [%f, %f]", v18, fielddef_float(fd, 5));
-      return 0;
+      if ( floatval < fd->floatmin || floatval > fd->floatmax )
+      {
+        SourceError(source, "float out of range [%f, %f]", fd->floatmin, fd->floatmax);
+        return 0;
+      }
     }
-    *p = floatval;
+    *(float *) p = (float) floatval;
     return 1;
   }
   intval = token.intvalue;
-  if ( negative )
-    intval = -intval;
-  v8 = fielddef_flags(fd);
-  if ( (v8 & 0xFF) == 1 )
+  if ( negative ) intval = -intval;
+  /* check bounds */
+  if ( (fd->type & 0xFF) == 1 )
   {
-    if ( (v8 & 0x400) != 0 )
-    {
-      intmin = 0;
-      intmax = 255;
-    }
-    else
-    {
-      intmin = -128;
-      intmax = 127;
-    }
+    if ( fd->type & 0x400 ) {intmin = 0; intmax = 255;}
+    else {intmin = -128; intmax = 127;}
   }
-  if ( (v8 & 0xFF) == 2 )
+  if ( (fd->type & 0xFF) == 2 )
   {
-    if ( (v8 & 0x400) != 0 )
-    {
-      intmin = 0;
-      intmax = 0xFFFF;
-    }
-    else
-    {
-      intmin = -32768;
-      intmax = 0x7FFF;
-    }
+    if ( fd->type & 0x400 ) {intmin = 0; intmax = 65535;}
+    else {intmin = -32768; intmax = 32767;}
   }
-  if ( (v8 & 0xFF) == 1 || (v8 & 0xFF) == 2 )
+  if ( (fd->type & 0xFF) == 1 || (fd->type & 0xFF) == 2 )
   {
-    if ( (v8 & 0x200) != 0 )
+    if ( fd->type & 0x200 )
     {
-      intmin = intmin > *(float *)&fd[4] ? intmin : *(float *)&fd[4];
-      intmax = intmax < *(float *)&fd[5] ? intmax : *(float *)&fd[5];
+      intmin = Maximum(intmin, fd->floatmin);
+      intmax = Minimum(intmax, fd->floatmax);
     }
     if ( intval < intmin || intval > intmax )
     {
@@ -173,48 +129,43 @@ int __cdecl ReadNumber(source_t *source, char **fd, float *p)
       return 0;
     }
   }
-  else if ( (v8 & 0xFF) == 3 )
+  else if ( (fd->type & 0xFF) == 3 )
   {
-    if ( (v8 & 0x200) != 0 )
+    if ( fd->type & 0x200 )
     {
-      if ( (float)intval < *(float *)&fd[4] || (float)intval > *(float *)&fd[5] )
+      if ( intval < fd->floatmin || intval > fd->floatmax )
       {
-        SourceError(source, "value %d out of range [%f, %f]", intval, *(float *)&fd[4], *(float *)&fd[5]);
+        SourceError(source, "value %d out of range [%f, %f]", intval, fd->floatmin, fd->floatmax);
         return 0;
       }
     }
   }
-  if ( (v8 & 0xFF) == 1 )
+  /* store the value */
+  if ( (fd->type & 0xFF) == 1 )
   {
-    *(_BYTE *)p = intval;
+    if ( fd->type & 0x400 ) *(unsigned char *) p = (unsigned char) intval;
+    else *(char *) p = (char) intval;
   }
-  else if ( (v8 & 0xFF) == 2 )
+  else if ( (fd->type & 0xFF) == 2 )
   {
-    if ( (v8 & 0x400) != 0 )
-      *(unsigned int *)p = (unsigned int)intval;
-    else
-      *(_DWORD *)p = intval;
-    return 1;
+    if ( fd->type & 0x400 ) *(unsigned int *) p = (unsigned int) intval;
+    else *(int *) p = (int) intval;
   }
-  else
+  else if ( (fd->type & 0xFF) == 3 )
   {
-    if ( (v8 & 0xFF) == 3 )
-      *p = (float)intval;
-    return 1;
+    *(float *) p = (float) intval;
   }
   return 1;
 }
 
 // gladiator.dll: 10040990..10040A14
 // gladi386.so:   000532E0..0005336C
-int __cdecl ReadChar(source_t *source, char **fd, float *p)
+int __cdecl ReadChar(source_t *source, fielddef_t *fd, float *p)
 {
-  int result; // eax
   token_t token;
 
-  result = PC_ExpectAnyToken(source, token.string);
-  if ( !result )
-    return result;
+  if ( !PC_ExpectAnyToken(source, token.string) ) return 0;
+  /* take literals into account */
   if ( token.type == 2 )
   {
     StripSingleQuotes(token.string);
@@ -260,7 +211,7 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
       return 0;
     if ( !strcmp(token.string, "}") )
       break;
-    fd = (fielddef_t *)FindField(def->fields, token.string);
+    fd = FindField((fielddef_t *)def->fields, token.string);
     if ( !fd )
     {
       SourceError(source, "unknown structure field %s", token.string);
@@ -287,17 +238,17 @@ int __cdecl ReadStructure(source_t *source, structdef_t *def, char *structure)
       switch ( fd->type & 0xFF )
       {
         case 1:
-          if ( !ReadChar(source, (char **)fd, (float *)p) )
+          if ( !ReadChar(source, fd, (float *)p) )
             return 0;
           p += sizeof(char);
           break;
         case 2:
-          if ( !ReadNumber(source, (char **)fd, (float *)p) )
+          if ( !ReadNumber(source, fd, (float *)p) )
             return 0;
           p += sizeof(int);
           break;
         case 3:
-          if ( !ReadNumber(source, (char **)fd, (float *)p) )
+          if ( !ReadNumber(source, fd, (float *)p) )
             return 0;
           p += sizeof(float);
           break;

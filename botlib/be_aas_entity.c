@@ -602,22 +602,18 @@ int __cdecl sub_1000BAA0(int a1, float *a2, float *a3, float a4, int a5, int *a6
 // gladi386.so:   00015340..000153B2
 int __cdecl AAS_NextBSPEntity(int ent)
 {
-  int v1; // eax
+  /* Q3's AAS_NextEntity text: the PARAMETER itself is clamped and advanced.
+   * That one form is what both images show -- gcc copies an assigned-to
+   * parameter into a register at entry (the .so's load above the loaded test),
+   * cl.exe keeps it in its stack slot and reads it after the test.  IDA's
+   * separate `v1 = ent` copy had to be placed before or after the test, which
+   * matched one image each. */
+  if ( !aasworld.loaded ) return 0;
 
-  /* The `v1 = ent` copy goes BEFORE the loaded check: gcc272 hoists the parameter
-   * load above the guard and only matches this order.  IRRECONCILABLE with the DLL,
-   * which reads `[esp+0x8]` only after `test eax,eax; je` -- moving it down takes the
-   * ELF row from MATCH to ICM/55b and only reshuffles the PE's 104 bytes.
-   * Measured 2026-08-17; do not re-try. */
-  v1 = ent;
-  if ( !aasworld.loaded )
-    return 0;
-  if ( ent < 0 )
-    v1 = -1;
-  while ( ++v1 < aasworld.numentities )
+  if ( ent < 0 ) ent = -1;
+  while ( ++ent < aasworld.numentities )
   {
-    if ( aasworld.entities[v1].i.valid )
-      return v1;
+    if ( aasworld.entities[ent].i.valid ) return ent;
   }
   return 0;
 }

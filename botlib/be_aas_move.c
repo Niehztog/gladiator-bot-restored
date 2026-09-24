@@ -198,7 +198,7 @@ int __cdecl AAS_AgainstLadder(vec3_t origin)
 
 // gladiator.dll: 1000F4D0..1000F6C8
 // gladi386.so:   0001BC44..0001BF3E
-double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
+float __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 {
   vec3_t kvel, v, start, end, forward, right, viewangles, dir;
   float mass, knockback, points;
@@ -241,18 +241,20 @@ double __cdecl AAS_WeaponJumpZVelocity(vec3_t origin, float radiusdamage)
 // gladiator.dll: 1000F750..1000F763
 // gladi386.so:   0001BF40..0001BF61
 /* Z-velocity from self-rocketing at `origin`; a one-line wrapper over
- * AAS_WeaponJumpZVelocity with the launcher's 120-unit radius damage.  `double`, not
- * `float`: AAS_BFGJumpZVelocity below is the same one-line wrapper and byte-matches
- * with `double`, where a `float` narrowing makes gcc round-trip the callee's ST(0)
- * return through memory and grow a 4-byte frame for it. */
-double __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
+ * AAS_WeaponJumpZVelocity with the launcher's 120-unit radius damage.  All three are
+ * Q3's `float`.  A lone `float` wrapper over a `double` callee made gcc round-trip
+ * ST(0) through memory, which is why they were once `double`; but `double` returns
+ * make every caller's `float zvel = ...` a float_truncate with its own stack temp,
+ * which in AAS_Reachability_WeaponJump and AAS_ShowReachability sat ahead of an
+ * address-taken local and shifted it 4 bytes in the .so's frame. */
+float __cdecl AAS_RocketJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
 
 // gladiator.dll: 1000F780..1000F793
 // gladi386.so:   0001BF64..0001BF85
-double __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
+float __cdecl AAS_BFGJumpZVelocity(vec3_t origin)
 {
   return AAS_WeaponJumpZVelocity(origin, 120.0);
 }
@@ -284,398 +286,336 @@ void __cdecl AAS_ApplyFriction(vec3_t vel, float friction, float stopspeed, floa
 // gladiator.dll: 1000F840..100103AA
 // gladi386.so:   0001C00C..0001D122
 /*
- * Predict client movement up to `maxframes` ahead.  This is the OLDER form; it
- * diverges from Q3 by design — do NOT "upgrade" it to the Q3 algorithm:
+ * Predict client movement up to `maxframes` ahead.  This is the OLDER form of Q3's
+ * function; do NOT "upgrade" it to Q3's algorithm:
  *   - physics come from the libvar_sv_* handles, not an aassettings struct;
- *   - acceleration is the inline per-axis velchange/clamp loop below, which Q3 later
- *     replaced with AAS_Accelerate + wishdir/wishspeed;
- *   - maxwalk/crouch/swim velocities are pre-scaled by frametime here;
+ *   - acceleration is the per-axis velchange/clamp loop Q3 later replaced with
+ *     AAS_Accelerate (Q3 keeps a later version of it commented out), clamping the new
+ *     velocity alone where Q3's comment also tests the old one;
+ *   - maxwalk/crouch/swim velocities and the acceleration are pre-scaled by frametime;
  *   - the only stop-events are SE_HITGROUND(1) / SE_LEAVEGROUND(2) /
- *     SE_ENTER{LAVA,SLIME,WATER} / SE_HITGROUNDDAMAGE(0x20) / SE_GAP(0x40) — no
- *     SE_ENTERAREA, jumppad, teleporter or SE_HITBOUNDINGBOX, hence no mins/maxs/
- *     stopareanum params and no AAS_TraceAreas scan.
- * The result is built in the move_buf[] scratch and copied to `move` at the tail.
- * Names and types follow Q3's for readability only.
+ *     SE_ENTER{LAVA,SLIME}(0x10/8) / SE_HITGROUNDDAMAGE(0x20) / SE_GAP(0x40), there is
+ *     no endarea, and the velocity is returned unscaled.
+ * Q3's text and declarations otherwise, with the result built in a local `move` returned
+ * by value; every exit's shared tail is gcc's cross-jump, not a goto.
  */
-aas_clientmove_t __cdecl AAS_ClientMovementPrediction(
-        int entnum,           // a2
-        float *origin,        // a3: vec3_t start origin
-        int presencetype,     // a4
-        int onground,         // a5
-        float *velocity,      // a6: vec3_t initial velocity
-        float *cmdmove,       // a7: vec3_t client command movement
-        int cmdframes,        // a8: number of frames cmdmove is valid for
-        int maxframes,        // a9: maximum frames to predict
-        float frametime,      // a10
-        int stopevent,        // a11: SE_* stop-event mask
-        int visualize)        // a12: draw AAS debug lines
+aas_clientmove_t __cdecl AAS_ClientMovementPrediction(int entnum, vec3_t origin,
+        int presencetype, int onground, vec3_t velocity, vec3_t cmdmove,
+        int cmdframes, int maxframes, float frametime, int stopevent, int visualize)
 {
-  // Declaration order follows the author's own Q3 be_aas_move.c: floats, then
-  // the int cluster (n, i, j, pc, ...), then vectors, then planes/traces.
-  float phys_friction;
-  float phys_stopspeed;
-  float phys_gravity;
-  float phys_waterfriction;
+  float phys_friction, phys_stopspeed, phys_gravity, phys_waterfriction;
   float phys_watergravity;
-  float phys_maxwalkvelocity;
-  float phys_maxcrouchvelocity;
-  float phys_maxswimvelocity;
   float phys_maxacceleration;
-  float phys_maxstep;
-  float phys_maxsteepness;
-  float phys_jumpvel;
-  float friction;
-  float gravity; // float, NOT long double (Q3 be_aas_move.c declares it float)
-  float delta; // NOT long double: keeps the fall-damage chain's fmul/fcomp on DWORD operands
-  float damage; // st7
-  float maxvel;
-  float velchange; // float, NOT long double: long double compares suppress the
-                   // memory-operand fcom forms the original uses
-  float newvel;    // ditto; ref round-trips it through the temp region (1000fb56/fb5c)
-  float backoff_left; // [esp+0h] [ebp-1F8h]
-  float backoff_frame; // [esp+0h] [ebp-1F8h]
-  int n;
-  int i;           // per-axis accel loop index (Q3 be_aas_move.c:620 fossil)
-  int j;           // trace-loop safety counter (Q3 be_aas_move.c:648/876). Plain int;
-                   // loses the ebx contest to presencetype and spills into the compiler
-                   // temp region ([esp+0x2c], shared with the QWORD gravity CSE) — proof
-                   // this was never a declared float
-  int pc; // eax
-  int ax; // eax
-  int crouch; // edi
-  int event; // ecx
-  int jump_frame;
-  int landed; // ecx
-  BOOL swimming; // esi
-  int v57;               // swimming flag during the frame loop; the same slot carries
-                         // point-contents (pc) on the landing/liquid path — ONE variable,
-                         // matching the original's merged slot, with exactly these two
-                         // non-overlapping roles.  The apparent extra touches nearby are
-                         // push-depth-shifted reads of start[2]/&start/&left_test_vel.
-  char gap_pc; // al
-  vec3_t org;            // BYREF
-  vec3_t end;            // BYREF
-  vec3_t start;          // BYREF
-  float stepend[3]; // BYREF
-  vec3_t lastorg; // BYREF (Q3 be_aas_move.c's lastorg)
-  vec3_t frame_test_vel; // BYREF
-  vec3_t old_frame_test_vel; // Q3 be_aas_move.c:525 vec3_t old_frame_test_vel) --
-                             // the original allocates the full 3-float slot but only [2] is
-                             // ever stored or read; [0]/[1] are dead padding
-  vec3_t left_test_vel;  // BYREF
-  float feet[3]; // BYREF
+  float phys_maxwalkvelocity, phys_maxcrouchvelocity, phys_maxswimvelocity;
+  float phys_maxstep, phys_maxsteepness, phys_jumpvel, friction;
+  float gravity, delta, maxvel;
+  float velchange, newvel;
+  int n, i, j, pc, step, swimming, ax, crouch, event, jump_frame;
+  vec3_t org, end, feet, start, stepend, lastorg;
+  vec3_t frame_test_vel, old_frame_test_vel, left_test_vel;
   vec3_t up = {0, 0, 1};
-  aas_plane_t *plane; // ebp
-  aas_plane_t *plane2; // eax
-  float v32;
-  float v33;
-  /* aas_clientmove_t scratch, copied to `move` at the tail.  Stays a raw int[20] — do
-   * NOT retype to Q3's struct, whose layout differs (no `endarea`, and an int
-   * `endcontents` where this has a float).  dword index:
-   *   [0..2]=endpos [3..5]=velocity [6..14]=trace [15]=presencetype [16]=stopevent
-   *   [17]=float@0x44 (4.0f bits, or (float)pc on the liquid path)
-   *   [18]=time (n*frametime) [19]=frames (n). */
-  int move_buf[20]; // BYREF
-  aas_trace_t trace; // (plus its hidden return buffer)
-  aas_trace_t steptrace; // (plus its hidden return buffer)
+  aas_plane_t *plane, *plane2;
+  aas_trace_t trace, steptrace;
+  aas_clientmove_t move;
 
   phys_friction = libvar_sv_friction->value;
   phys_stopspeed = libvar_sv_stopspeed->value;
   phys_gravity = libvar_sv_gravity->value;
   phys_waterfriction = libvar_sv_waterfriction->value;
   phys_watergravity = libvar_sv_watergravity->value;
-  phys_maxwalkvelocity = frametime * libvar_sv_maxwalkvelocity->value;
-  phys_maxcrouchvelocity = frametime * libvar_sv_maxcrouchvelocity->value;
-  phys_maxswimvelocity = frametime * libvar_sv_maxswimvelocity->value;
-  phys_maxacceleration = frametime * libvar_sv_maxaccelerate->value;
+  phys_maxwalkvelocity = libvar_sv_maxwalkvelocity->value * frametime;
+  phys_maxcrouchvelocity = libvar_sv_maxcrouchvelocity->value * frametime;
+  phys_maxswimvelocity = libvar_sv_maxswimvelocity->value * frametime;
+  phys_maxacceleration = libvar_sv_maxaccelerate->value * frametime;
   phys_maxstep = libvar_sv_step->value;
   phys_maxsteepness = libvar_sv_maxsteepness->value;
-  phys_jumpvel = frametime * libvar_sv_jumpvel->value;
-  memset(move_buf, 0, sizeof(move_buf));
-  memset(&trace, 0, sizeof(trace));
+  phys_jumpvel = libvar_sv_jumpvel->value * frametime;
+  //
+  memset(&move, 0, sizeof(aas_clientmove_t));
+  memset(&trace, 0, sizeof(aas_trace_t));
+  //start at the current origin
   VectorCopy(origin, org);
   org[2] += 0.25;
+  //velocity to test for the first frame
   VectorScale(velocity, frametime, frame_test_vel);
+  //
   jump_frame = -1;
-  for ( n = 0; n < maxframes; n++ )
+  //predict a maximum of 'maxframes' ahead
+  for (n = 0; n < maxframes; n++)
   {
     swimming = AAS_Swimming(org);
-    v57 = swimming;
+    //get gravity depending on swimming or not
     gravity = swimming ? phys_watergravity : phys_gravity;
-    frame_test_vel[2] = frame_test_vel[2] - gravity * frametime * 0.1;
-    if ( onground || swimming )
+    //apply gravity at the START of the frame
+    frame_test_vel[2] = frame_test_vel[2] - (gravity * 0.1 * frametime);
+    //if on the ground or swimming
+    if (onground || swimming)
     {
       friction = swimming ? phys_friction : phys_waterfriction;
-      VectorScale(frame_test_vel, 10.0f, frame_test_vel);
+      //apply friction
+      VectorScale(frame_test_vel, 10, frame_test_vel);
       AAS_ApplyFriction(frame_test_vel, friction, phys_stopspeed, frametime);
-      VectorScale(frame_test_vel, 0.1f, frame_test_vel);
-    }
+      VectorScale(frame_test_vel, 0.1, frame_test_vel);
+    } //end if
     crouch = 0;
-    if ( n < cmdframes )
+    //apply command movement
+    if (n < cmdframes)
     {
-      maxvel = phys_maxwalkvelocity;
       ax = 0;
-      if ( onground )
+      maxvel = phys_maxwalkvelocity;
+      if (onground)
       {
-        if ( cmdmove[2] < -300.0f )
+        if (cmdmove[2] < -300)
         {
-          maxvel = phys_maxcrouchvelocity;
           crouch = 1;
-        }
-        if ( !swimming && cmdmove[2] > 1.0f )
+          maxvel = phys_maxcrouchvelocity;
+        } //end if
+        //if not swimming and upmove is positive then jump
+        if (!swimming && cmdmove[2] > 1)
         {
+          //jump velocity minus the gravity for one frame + 5 for safety
+          frame_test_vel[2] = phys_jumpvel - (gravity * 0.1 * frametime) + 5;
           jump_frame = n;
-          frame_test_vel[2] = (float)((float)phys_jumpvel - gravity * (float)frametime * 0.1 + 5.0f);
-        }
+        } //end if
         ax = 2;
-      }
-      if ( swimming )
+      } //end if
+      if (swimming)
       {
         maxvel = phys_maxswimvelocity;
         ax = 3;
-      }
-      if ( swimming || ax > 0 )
+      } //end if
+      for (i = 0; i < ax; i++)
       {
-        for ( i = 0; i < ax; i++ )
-        {
-          velchange = frametime * cmdmove[i] - frame_test_vel[i];
-          if ( velchange > phys_maxacceleration )
-            velchange = phys_maxacceleration;
-          else if ( velchange < -phys_maxacceleration )
-            velchange = -phys_maxacceleration;
-          frame_test_vel[i] = newvel = velchange + frame_test_vel[i];
-          if ( newvel > maxvel )
-            frame_test_vel[i] = maxvel;
-          else if ( newvel < -maxvel )
-            frame_test_vel[i] = -maxvel;
-        }
-      }
-    }
-    if ( crouch )
+        velchange = (cmdmove[i] * frametime) - frame_test_vel[i];
+        if (velchange > phys_maxacceleration) velchange = phys_maxacceleration;
+        else if (velchange < -phys_maxacceleration) velchange = -phys_maxacceleration;
+        newvel = frame_test_vel[i] + velchange;
+        frame_test_vel[i] = newvel;
+        /* The clamp tests the stored velocity: cl.exe then reloads newvel from its
+         * home after the store, as the DLL does (testing `newvel` keeps it on the
+         * x87 stack).  Q3's later version also tests the old velocity. */
+        if (frame_test_vel[i] > maxvel) frame_test_vel[i] = maxvel;
+        else if (frame_test_vel[i] < -maxvel) frame_test_vel[i] = -maxvel;
+      } //end for
+    } //end if
+    if (crouch)
     {
       presencetype = 4;
-      goto LABEL_12;
-    }
-    if ( presencetype == 4 && (AAS_PointPresenceType((float *)org) & 2) != 0 )
-      presencetype = 2;
-LABEL_12:
+    } //end if
+    else if (presencetype == 4)
+    {
+      if (AAS_PointPresenceType(org) & 2)
+      {
+        presencetype = 2;
+      } //end if
+    } //end else
+    //save the current origin
     VectorCopy(org, lastorg);
+    //move linear during one frame
     VectorCopy(frame_test_vel, left_test_vel);
     j = 0;
     do
     {
-      VectorAdd(left_test_vel, org, end);
+      VectorAdd(org, left_test_vel, end);
+      //trace a bounding box
       trace = AAS_TraceClientBBox(org, end, presencetype, entnum);
-      if ( visualize )
+      //
+      if (visualize)
       {
-        if ( trace.startsolid )
-          botimport.Print(PRT_MESSAGE, "PredictMovement: start solid\n");
+        if (trace.startsolid) botimport.Print(PRT_MESSAGE, "PredictMovement: start solid\n");
         AAS_DebugLine(org, trace.endpos, -218959632);
-      }
+      } //end if
+      //move the entity to the trace end point
       VectorCopy(trace.endpos, org);
-      if ( trace.fraction >= 1.0 )
-        goto LABEL_66;
-      plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
-      if ( plane->normal[2] == 0.0f && (jump_frame < 0 || n - jump_frame > 2) )
+      //if there was a collision
+      if (trace.fraction < 1.0)
       {
-        VectorMA(org, -0.25f, plane->normal, start);
-        VectorCopy(start, stepend);
-        start[2] = start[2] + phys_maxstep;
-        steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
-        if ( !steptrace.startsolid )
+        //get the plane the bounding box collided with
+        plane = (aas_plane_t *)AAS_PlaneFromNum(trace.planenum);
+        //assume there's no step
+        step = 0;
+        //if it is a vertical plane and the bot didn't jump recently
+        if (plane->normal[2] == 0 && (jump_frame < 0 || n - jump_frame > 2))
         {
-          plane2 = (aas_plane_t *)AAS_PlaneFromNum(steptrace.planenum);
-          if ( DotProduct(plane2->normal, up) > (float)phys_maxsteepness )
+          //check for a step
+          VectorMA(org, -0.25, plane->normal, start);
+          VectorCopy(start, stepend);
+          start[2] += phys_maxstep;
+          steptrace = AAS_TraceClientBBox(start, stepend, presencetype, entnum);
+          //
+          if (!steptrace.startsolid)
           {
-            VectorSubtract(end, steptrace.endpos, left_test_vel);
-            left_test_vel[2] = 0.0f;
-            frame_test_vel[2] = 0.0f;
-            if ( visualize )
+            plane2 = (aas_plane_t *)AAS_PlaneFromNum(steptrace.planenum);
+            if (DotProduct(plane2->normal, up) > phys_maxsteepness)
             {
-              if ( steptrace.endpos[2] - org[2] > 0.125 )
+              VectorSubtract(end, steptrace.endpos, left_test_vel);
+              left_test_vel[2] = 0;
+              frame_test_vel[2] = 0;
+              if (visualize)
               {
-                VectorCopy(org, start);
-                start[2] = steptrace.endpos[2];
-                AAS_DebugLine(org, start, -202116623);
-              }
-            }
-            org[2] = steptrace.endpos[2];
-            goto LABEL_66;
-          }
-        }
-      }
-      v32 = (float)left_test_vel[1] * (float)plane->normal[1];
-      v33 = (float)left_test_vel[2] * (float)plane->normal[2];
-      backoff_left = (float)(-(v32 + v33 + (float)left_test_vel[0] * (float)plane->normal[0]));
-      VectorMA(left_test_vel, backoff_left, plane->normal, left_test_vel);
-      v32 = (float)frame_test_vel[1] * (float)plane->normal[1];
-      v33 = (float)frame_test_vel[2] * (float)plane->normal[2];
-      old_frame_test_vel[2] = frame_test_vel[2];
-      backoff_frame = (float)(-(v32 + v33 + (float)frame_test_vel[0] * (float)plane->normal[0]));
-      VectorMA(frame_test_vel, backoff_frame, plane->normal, frame_test_vel);
-      if ( DotProduct(plane->normal, up) > (float)phys_maxsteepness )
-      {
-        landed = 1;
-        onground = 1;
-      }
-      else
-      {
-        landed = onground;
-      }
-      if ( (stopevent & 0x20) == 0 )    // !SE_HITGROUNDDAMAGE
-        goto LABEL_66;
-      // Q3 be_aas_move.c's landing-damage delta:
-      if ( old_frame_test_vel[2] < 0.0f && (float)frame_test_vel[2] > (float)old_frame_test_vel[2] && !landed )
-        delta = (float)old_frame_test_vel[2];                              // still falling
-      else if ( landed )
-        delta = (float)frame_test_vel[2] - (float)old_frame_test_vel[2];   // landed this frame
-      else
-        goto LABEL_66;                                        // neither -> no fall damage
-      if ( delta != 0.0f )
-      {
-        delta = delta * 10.0f;
-        damage = delta * delta * 0.0001;
-        if ( !v57 && damage > 30.0f )
+                if (steptrace.endpos[2] - org[2] > 0.125)
+                {
+                  VectorCopy(org, start);
+                  start[2] = steptrace.endpos[2];
+                  AAS_DebugLine(org, start, -202116623);
+                } //end if
+              } //end if
+              org[2] = steptrace.endpos[2];
+              step = 1;
+            } //end if
+          } //end if
+        } //end if
+        //
+        if (!step)
         {
-          move_buf[0] = *(int *)&org[0];
-          move_buf[1] = *(int *)&org[1];
-          move_buf[2] = *(int *)&org[2];
-          move_buf[3] = *(int *)&frame_test_vel[0];
-          *(float *)&move_buf[4] = frame_test_vel[1];
-          move_buf[5] = *(int *)&frame_test_vel[2];
-          memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-          move_buf[16] = 32;
-          goto LABEL_86;
-        }
-      }
-LABEL_66:
-      if ( ++j > 20 )
-        return *(aas_clientmove_t *)move_buf;
-    }
-    while ( trace.fraction < 1.0 );
-    // Q3 be_aas_move.c:880 — probe the feet only when descending; the onground
-    // check below then runs unconditionally.
-    if ( frame_test_vel[2] <= 0.0f )
+          //velocity left to test for this frame is the projection
+          //of the current test velocity into the hit plane
+          VectorMA(left_test_vel, -DotProduct(left_test_vel, plane->normal),
+                    plane->normal, left_test_vel);
+          //store the old velocity for landing check
+          VectorCopy(frame_test_vel, old_frame_test_vel);
+          //test velocity for the next frame is the projection
+          //of the velocity of the current frame into the hit plane
+          VectorMA(frame_test_vel, -DotProduct(frame_test_vel, plane->normal),
+                    plane->normal, frame_test_vel);
+          //check for a landing on an almost horizontal floor
+          if (DotProduct(plane->normal, up) > phys_maxsteepness)
+          {
+            onground = 1;
+          } //end if
+          if (stopevent & 0x20)
+          {
+            delta = 0;
+            if (old_frame_test_vel[2] < 0 &&
+                frame_test_vel[2] > old_frame_test_vel[2] &&
+                !onground)
+            {
+              delta = old_frame_test_vel[2];
+            } //end if
+            else if (onground)
+            {
+              delta = frame_test_vel[2] - old_frame_test_vel[2];
+            } //end else
+            if (delta)
+            {
+              delta = delta * 10;
+              delta = delta * delta * 0.0001;
+              if (swimming) delta = 0;
+              if (delta > 30)
+              {
+                VectorCopy(org, move.endpos);
+                VectorCopy(frame_test_vel, move.velocity);
+                move.trace = trace;
+                move.stopevent = 0x20;
+                move.presencetype = presencetype;
+                move.endcontents = 4;
+                move.time = n * frametime;
+                move.frames = n;
+                return move;
+              } //end if
+            } //end if
+          } //end if
+        } //end if
+      } //end if
+      //extra check to prevent endless loop
+      if (++j > 20) return move;
+    //while there is a plane hit
+    } while(trace.fraction < 1.0);
+    //if going down
+    if (frame_test_vel[2] <= 0)
     {
+      //check for a liquid at the feet of the bot
       VectorCopy(org, feet);
-      feet[2] = feet[2] - 22.0f;
-      pc = AAS_PointContents((float *)feet);   
+      feet[2] -= 22;
+      pc = AAS_PointContents(feet);
+      //get event from pc
       event = 0;
-      v57 = pc;   // slot reused: the 'swimming' (v57) slot now carries point-contents pc
-      // assemble SE_ENTER* from the Q2 contents bits at the feet (cf. Q3
-      // be_aas_move.c:888): CONTENTS_LAVA(8) -> SE_ENTERLAVA(16); CONTENTS_SLIME(0x10)
-      // -> SE_ENTERSLIME(8).  NB CONTENTS_WATER(0x20) also maps to bit 8 here, not
-      // SE_ENTERWATER(4) — faithful to the original DLL; Q3 later split water out.
-      if ( (pc & 8) != 0 )
-        event = 16;
-      if ( (pc & 0x10) != 0 )
-        event |= 8u;
-      if ( (pc & 0x20) != 0 )
-        event |= 8u;
-      if ( (event & stopevent) != 0 )
+      if (pc & 8) event |= 0x10;
+      if (pc & 0x10) event |= 8;
+      if (pc & 0x20) event |= 8;
+      //if in lava or slime
+      if (event & stopevent)
       {
-        move_buf[0] = *(int *)&org[0];
-        move_buf[1] = *(int *)&org[1];
-        *(float *)&move_buf[17] = (float)v57;
-        move_buf[2] = *(int *)&org[2];
-        move_buf[16] = stopevent & event;
-        move_buf[3] = *(int *)&frame_test_vel[0];
-        *(float *)&move_buf[4] = frame_test_vel[1];
-        move_buf[5] = *(int *)&frame_test_vel[2];
-        move_buf[15] = presencetype;
-        *(float *)&move_buf[18] = (float)n * frametime;
-        move_buf[19] = n;
-        goto LABEL_88;
-      }
-    }
+        VectorCopy(org, move.endpos);
+        VectorCopy(frame_test_vel, move.velocity);
+        move.stopevent = event & stopevent;
+        move.presencetype = presencetype;
+        move.endcontents = pc;
+        move.time = n * frametime;
+        move.frames = n;
+        return move;
+      } //end if
+    } //end if
+    //
     onground = AAS_OnGround(org, presencetype, entnum);
-    if ( onground )
+    //if onground and on the ground for at least one whole frame
+    if (onground)
     {
-      if ( (stopevent & 1) != 0 )
+      if (stopevent & 1)
       {
-        move_buf[0] = *(int *)&org[0];
-        move_buf[1] = *(int *)&org[1];
-        move_buf[2] = *(int *)&org[2];
-        move_buf[3] = *(int *)&frame_test_vel[0];
-        *(float *)&move_buf[4] = frame_test_vel[1];
-        move_buf[5] = *(int *)&frame_test_vel[2];
-        memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-        move_buf[16] = 1;
-        goto LABEL_86;
-      }
-    }
-    else if ( (stopevent & 2) != 0 )
+        VectorCopy(org, move.endpos);
+        VectorCopy(frame_test_vel, move.velocity);
+        move.trace = trace;
+        move.stopevent = 1;
+        move.presencetype = presencetype;
+        move.endcontents = 4;
+        move.time = n * frametime;
+        move.frames = n;
+        return move;
+      } //end if
+    } //end if
+    else if (stopevent & 2)
     {
-      move_buf[2] = *(int *)&org[2];
-      move_buf[0] = *(int *)&org[0];
-      move_buf[1] = *(int *)&org[1];
-      move_buf[5] = *(int *)&frame_test_vel[2];
-      move_buf[3] = *(int *)&frame_test_vel[0];
-      *(float *)&move_buf[4] = frame_test_vel[1];
-      memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-      move_buf[16] = 2;
-      move_buf[15] = presencetype;
-      move_buf[17] = 1082130432;
-      move_buf[19] = n;
-      *(float *)&move_buf[18] = (float)n * frametime;
-      goto LABEL_88;
-    }
-    else
+      VectorCopy(org, move.endpos);
+      VectorCopy(frame_test_vel, move.velocity);
+      move.trace = trace;
+      move.stopevent = 2;
+      move.presencetype = presencetype;
+      move.endcontents = 4;
+      move.time = n * frametime;
+      move.frames = n;
+      return move;
+    } //end else if
+    else if (stopevent & 0x40)
     {
       aas_trace_t gaptrace;
 
-      if ( (stopevent & 0x40) == 0 )
-        goto LABEL_84;
-      /* Q3 writes this as `VectorCopy(org, start); VectorCopy(start, end);
-       * end[2] -= 48 + phys_maxbarrier;`, and the dead `end[2] = org[2];` below is that
-       * second copy's third component.  The interleave here is faithful, not a
-       * decompiler scramble — both grouped forms regress.  Keep the element order. */
-      start[0] = org[0];
-      end[0] = org[0];
-      start[1] = org[1];
-      start[2] = org[2];
-      end[1] = org[1];
-      end[2] = org[2];
-      end[2] = org[2] - (libvar_sv_maxbarrier->value + 48.0f);
+      VectorCopy(org, start);
+      VectorCopy(start, end);
+      end[2] -= 48 + libvar_sv_maxbarrier->value;
       gaptrace = AAS_TraceClientBBox(start, end, 4, -1);
-      if ( gaptrace.startsolid )
-        goto LABEL_84;
-      if ( org[2] - libvar_sv_step->value - 1.0f <= gaptrace.endpos[2] )
-        goto LABEL_84;
-      gap_pc = AAS_PointContents((float *)end);   /* barrier-water check */
-      if ( (gap_pc & 0x20) != 0 )
-        goto LABEL_84;
-      move_buf[1] = *(int *)&lastorg[1];
-      move_buf[0] = *(int *)&lastorg[0];
-      move_buf[2] = *(int *)&lastorg[2];
-      *(float *)&move_buf[4] = frame_test_vel[1];
-      move_buf[3] = *(int *)&frame_test_vel[0];
-      move_buf[5] = *(int *)&frame_test_vel[2];
-      memcpy(&move_buf[6], &trace, sizeof(aas_trace_t));
-      move_buf[16] = 64;
-      move_buf[15] = presencetype;
-      move_buf[17] = 1082130432;
-      move_buf[19] = n;
-      *(float *)&move_buf[18] = (float)n * frametime;
-      goto LABEL_88;
-    }
-LABEL_84:
-    ;
-  }
-  move_buf[0] = *(int *)&org[0];
-  move_buf[1] = *(int *)&org[1];
-  move_buf[2] = *(int *)&org[2];
-  move_buf[3] = *(int *)&frame_test_vel[0];
-  *(float *)&move_buf[4] = frame_test_vel[1];
-  move_buf[5] = *(int *)&frame_test_vel[2];
-  move_buf[16] = 0;
-LABEL_86:
-  move_buf[15] = presencetype;
-  move_buf[17] = 1082130432;
-  move_buf[19] = n;
-  *(float *)&move_buf[18] = (float)n * frametime;
-LABEL_88:
-  return *(aas_clientmove_t *)move_buf;
+      //if solid is found the bot cannot walk any further and will not fall into a gap
+      if (!gaptrace.startsolid)
+      {
+        //if it is a gap (lower than one step height)
+        if (gaptrace.endpos[2] < org[2] - libvar_sv_step->value - 1)
+        {
+          if (!(AAS_PointContents(end) & 0x20))
+          {
+            VectorCopy(lastorg, move.endpos);
+            VectorCopy(frame_test_vel, move.velocity);
+            move.trace = trace;
+            move.stopevent = 0x40;
+            move.presencetype = presencetype;
+            move.endcontents = 4;
+            move.time = n * frametime;
+            move.frames = n;
+            return move;
+          } //end if
+        } //end if
+      } //end if
+    } //end else if
+  } //end for
+  //
+  VectorCopy(org, move.endpos);
+  VectorCopy(frame_test_vel, move.velocity);
+  move.stopevent = 0;
+  move.presencetype = presencetype;
+  move.endcontents = 4;
+  move.time = n * frametime;
+  move.frames = n;
+  //
+  return move;
 }
 
 // gladiator.dll: 10010690..1001074D

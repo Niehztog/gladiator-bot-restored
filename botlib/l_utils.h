@@ -14,6 +14,10 @@
 #define random()	((rand () & 0x7fff) / ((float)0x7fff))
 #define crandom()	(2.0 * (random() - 0.5))
 
+/* Q3's l_utils.h bound helpers (ReadNumber's intmin/intmax clamp). */
+#define Maximum(x,y)			(x > y ? x : y)
+#define Minimum(x,y)			(x < y ? x : y)
+
 /* bot_fileref_t: the pak/file reference this TU's search path builds. */
 /* bot_fileref_t — file location returned by FindQuakeFile / FindQuakeFile2.  Q2-specific
  * (Q3's transparent VFS handles paks internally).  The decompilations show it as

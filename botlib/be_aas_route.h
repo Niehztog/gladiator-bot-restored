@@ -6,17 +6,17 @@
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 void AAS_InitTravelFlagFromType(void); /* sub_10018D00 */
 void AAS_FreeRoutingCaches(void);  /* sub_10019550 */
-int AAS_FreeAllPortalCache(void); /* sub_100193E0 */
+void AAS_FreeAllPortalCache(void); /* sub_100193E0 */
 extern int numportalcacheupdates;
 extern int numareacacheupdates;
 
 aas_routingcache_t *__cdecl AAS_AllocRoutingCache(int numtraveltimes);
 unsigned short __cdecl AAS_AreaTravelTime(int areanum, float *start, float *end);
-__int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum);
+unsigned short __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int goalareanum, int travelflags);
 void AAS_CalculateAreaTravelTimes(void);
 void AAS_CreateReversedReachability(void);
 void AAS_FreeAllClusterAreaCache(void);
-int AAS_FreeAllPortalCache(void);
+void AAS_FreeAllPortalCache(void);
 void __cdecl AAS_FreeRoutingCache(void *cache);
 void AAS_FreeRoutingCaches(void);
 aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum, int travelflags);
@@ -49,8 +49,8 @@ int __cdecl AAS_TravelFlagForType(int traveltype);
  * prototypes and a -std=gnu99 build that declines to inline a call has no body to link. */
 int __cdecl AAS_GetAreaContentsTravelFlags(int areanum);
 int __cdecl AAS_ClusterAreaNum(int cluster, int areanum);
-#ifndef _WIN32
 float __cdecl AAS_RoutingTime(void);
+#ifndef _WIN32
 void __cdecl F525(aas_routingupdate_t **updateliststart, aas_routingupdate_t **updatelistend, aas_routingupdate_t *update);
 void __cdecl F524(void);
 #endif

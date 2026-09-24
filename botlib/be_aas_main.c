@@ -511,109 +511,100 @@ int __cdecl F184(void)
  * search and the Win32 aasN.zip / winbspc fallbacks. */
 int AAS_LoadFiles(char *mapname)
 {
-  int v2; // esi
-  int v4; // esi
-#ifdef _WIN32
-  int v5; // esi  (holds sub_1000E430 result — Windows-only aasN.zip fallback)
-#endif
-  int errnum; // esi
-  char aasfile[144]; // [esp+134h] [ebp-90h] BYREF
-  bot_fileref_t v7; // [esp+Ch] [ebp-1B8h] BYREF
-  char Destination[144]; // [esp+A4h] [ebp-120h] BYREF
+  /* Shape read off gladi386.so, and cl.exe produces its own original from it
+   * too: the bsp lookup is an if/else whose error arm returns, with the rest
+   * AFTER it (not nested in the success arm), and the aas search does its
+   * load-and-return INSIDE the `for`, the give-up path after the loop (IDA's
+   * `break` out of a while(1) plus the load afterwards matched neither image
+   * -- the .so at OUR-30, the DLL at 522 bytes).  Declaration order is the
+   * .so's frame: aasfile, bspfile, then the file ref. */
+  int i;
+  char aasfile[144];
+  char bspfile[144];
+  bot_fileref_t file_ref;
 
   strcpy(aasworld.mapname, mapname);
   AAS_ResetEntityLinks();
-  memset(&v7, 0, sizeof(v7));
-  strncpy(Destination, "maps\\", 0x90u);
-  strncat(Destination, mapname, 144 - strlen(Destination));
-  strncat(Destination, ".bsp", 144 - strlen(Destination));
-  if ( FindQuakeFile(Destination, &v7) )
+  memset(&file_ref, 0, sizeof(file_ref));
+  strncpy(bspfile, "maps\\", 0x90u);
+  strncat(bspfile, mapname, 144 - strlen(bspfile));
+  strncat(bspfile, ".bsp", 144 - strlen(bspfile));
+  if ( FindQuakeFile(bspfile, &file_ref) )
   {
-    v2 = AAS_LoadBSPFile(v7.path, v7.fileofs, v7.filelen);
-    errno = v2;
+    errno = AAS_LoadBSPFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
     if ( errno )
-    {
       return errno;
-    }
+    if ( file_ref.filelen )
+      botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, bspfile);
     else
-    {
-      if ( v7.filelen )
-        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, Destination);
-      else
-        botimport.Print(PRT_MESSAGE, "loaded %s\n", Destination);
-      memset(&v7, 0, sizeof(v7));
-      v4 = 0;
-      while ( 1 )
-      {
-        if ( v4 )
-          strncpy(aasfile, "maps\\", 0x90u);
-        else
-          strncpy(aasfile, "", 0x90u);
-        strncat(aasfile, mapname, 144 - strlen(aasfile));
-        strncat(aasfile, ".aas", 144 - strlen(aasfile));
-        if ( FindQuakeFile(aasfile, &v7) )
-          break;
-        if ( ++v4 >= 2 )
-        {
-#ifdef _WIN32
-          v5 = sub_1000E430(mapname);
-          errno = v5;
-          if ( !errno )
-            return BLERR_NOERROR;
-          if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
-          {
-            sub_1000E140(mapname);
-            botimport.Print(
-              5,
-              "\n"
-              "creating AAS for %s...\n"
-              "\n"
-              "This may take several minutes\n"
-              "\n"
-              "You cannot play the map %s with\n"
-              "bots before AAS (%s.aas) has been\n"
-              "created.\n"
-              "\n"
-              "You probably want to close Quake2 now\n"
-              "to free up processing power for the\n"
-              "tool which creates the AAS file.\n"
-              "\n",
-              mapname,
-              mapname,
-              mapname);
-          }
-#else
-          /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll and
-           * no winbspc spawn, so it never tries the aasN.zip fallback — it sets errno=5 and
-           * the autolaunchbspc branch only reports that BSPC is a Win32 program. */
-          errno = 5;
-          if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
-            botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
-#endif
-          botimport.Print(PRT_FATAL, "no AAS file available\n");
-          return BLERR_NOAASFILE;
-        }
-      }
-      errnum = AAS_LoadAASFile(v7.path, v7.fileofs, v7.filelen);
-      errno = errnum;
-      if ( errno )
-        return errno;
-      if ( v7.fileofs )
-        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", v7.path, aasfile);
-      else
-        botimport.Print(PRT_MESSAGE, "loaded %s\n", v7.path);
-      if ( v7.fileofs )
-        strncpy(aasworld.filename, aasfile, 0x90u);
-      else
-        strncpy(aasworld.filename, v7.path, 0x90u);
-      return BLERR_NOERROR;
-    }
+      botimport.Print(PRT_MESSAGE, "loaded %s\n", bspfile);
   }
   else
   {
-    botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", Destination);
+    botimport.Print(PRT_FATAL, "couldn't find the bsp file %s\n", bspfile);
     return BLERR_NOBSPFILE;
   }
+  memset(&file_ref, 0, sizeof(file_ref));
+  for ( i = 0; i < 2; i++ )
+  {
+    if ( i )
+      strncpy(aasfile, "maps\\", 0x90u);
+    else
+      strncpy(aasfile, "", 0x90u);
+    strncat(aasfile, mapname, 144 - strlen(aasfile));
+    strncat(aasfile, ".aas", 144 - strlen(aasfile));
+    if ( FindQuakeFile(aasfile, &file_ref) )
+    {
+      errno = AAS_LoadAASFile(file_ref.path, file_ref.fileofs, file_ref.filelen);
+      if ( errno )
+        return errno;
+      if ( file_ref.fileofs )
+        botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", file_ref.path, aasfile);
+      else
+        botimport.Print(PRT_MESSAGE, "loaded %s\n", file_ref.path);
+      if ( file_ref.fileofs )
+        strncpy(aasworld.filename, aasfile, 0x90u);
+      else
+        strncpy(aasworld.filename, file_ref.path, 0x90u);
+      return BLERR_NOERROR;
+    }
+  }
+#ifdef _WIN32
+  errno = sub_1000E430(mapname);
+  if ( !errno )
+    return BLERR_NOERROR;
+  if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
+  {
+    sub_1000E140(mapname);
+    botimport.Print(
+      5,
+      "\n"
+      "creating AAS for %s...\n"
+      "\n"
+      "This may take several minutes\n"
+      "\n"
+      "You cannot play the map %s with\n"
+      "bots before AAS (%s.aas) has been\n"
+      "created.\n"
+      "\n"
+      "You probably want to close Quake2 now\n"
+      "to free up processing power for the\n"
+      "tool which creates the AAS file.\n"
+      "\n",
+      mapname,
+      mapname,
+      mapname);
+  }
+#else
+  /* Faithful Linux give-up path: the Linux botlib has no UNZIP32/ZIP32 windll and
+   * no winbspc spawn, so it never tries the aasN.zip fallback -- it sets errno=5 and
+   * the autolaunchbspc branch only reports that BSPC is a Win32 program. */
+  errno = 5;
+  if ( LibVarValue("autolaunchbspc", (char *)"0") != 0 )
+    botimport.Print(PRT_MESSAGE, "the BSPC tool is a Win32 program\n");
+#endif
+  botimport.Print(PRT_FATAL, "no AAS file available\n");
+  return BLERR_NOAASFILE;
 }
 
 // gladiator.dll: 1000ECD0..1000ED81

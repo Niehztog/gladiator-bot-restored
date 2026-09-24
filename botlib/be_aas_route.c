@@ -98,19 +98,19 @@ int __cdecl AAS_TravelFlagForType(int traveltype)
     return aasworld.travelflagfortype[traveltype];
 }
 
-#ifndef _WIN32
-/* F511 @ 0x0002651c, 20 bytes — a bare tail call to AAS_Time().  Q3 has it as
- * `__inline float AAS_RoutingTime(void) { return AAS_Time(); }`; here it is out of
- * line, which is what `__inline` compiles to under a compiler that ignores the
- * hint. */
+/* F511 @ 0x0002651c, 20 bytes: Q3's `__inline float AAS_RoutingTime(void)`,
+ * verbatim, and like AAS_ClusterAreaNum present in the .so, absent from the DLL
+ * (cl.exe expands every call, gcc expands them AND emits the definition).  The
+ * routing caches stamp their access time through it, as in Q3: the inlined
+ * call is what takes AAS_GetPortalRoutingCache's pre-optimisation RTL past
+ * gcc's inline limit, so AAS_AreaTravelTimeToGoalArea calls it instead of
+ * inlining it -- as gladi386.so does. */
 // gladiator.dll: absent
 // gladi386.so:   0002651C..00026530
-float __cdecl AAS_RoutingTime(void)
+__inline float __cdecl AAS_RoutingTime(void)
 {
   return AAS_Time();
 } //end of the function AAS_RoutingTime
-
-#endif /* !_WIN32 -- gladi386.so-only */
 
 // gladiator.dll: 10018DF0..10018EFC
 // gladi386.so:   00026530..000266B3
@@ -308,17 +308,15 @@ void AAS_InitClusterAreaCache(void)
 // gladi386.so:   00026C84..00026D19
 /* AAS_FreeAllPortalCache — release every per-area portal cache chain, then the
  * top-level array. */
-int AAS_FreeAllPortalCache(void)
+void AAS_FreeAllPortalCache(void)
 {
   /* Typed array indexing and a typed `next` field, so the chain walk is
    * pointer-width-correct. */
   int i;
   aas_routingcache_t *entry, *next;
 
-  /* `if (portalcache) { ... }` with no return statement — the original is
-   * effectively void, both paths falling into one shared `ret`.  An early
-   * `if (!portalcache) return 0;` would invert the branch and add an
-   * `xor eax,eax`.  Same idiom as FreeMemory. */
+  /* `if (portalcache) { ... }`, void as Q3 declares it: both paths fall into one
+   * shared `ret`.  Same idiom as FreeMemory. */
   if ( aasworld.portalcache )
   {
     for ( i = 0; i < aasworld.numareas; ++i )
@@ -708,7 +706,7 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
     aasworld.clusterareacache[clusternum][clusterareanum] = cache;
     AAS_UpdateAreaRoutingCache(cache);
   }
-  cache->time = AAS_Time();
+  cache->time = AAS_RoutingTime();
   return cache;
 }
 
@@ -716,92 +714,94 @@ aas_routingcache_t *__cdecl AAS_GetAreaRoutingCache(int clusternum, int areanum,
 // gladi386.so:   0002781C..00027B15
 void __cdecl AAS_UpdatePortalRoutingCache(aas_routingcache_t *portalcache)
 {
-  aas_routingcache_t *entry;
-  int i;
-  int clusternum, v7, portalnum, v11, v14, clusterareanum, v20;
-  aas_cluster_t *clust;
-  unsigned short t, v17, v18;
-  /* Walks aasworld.portalupdate through the typed aas_routingupdate_t FIFO
-   * rather than the original's 40-byte byte arithmetic. */
-  aas_routingupdate_t *cur, *head, *tail, *upd;
+  /* Q3's text with Gladiator's older details: the memset Q3 later commented out,
+   * update entries indexed by area rather than portal, no portalmaxtraveltimes and no
+   * clusterareanum range test.  The cluster's second field is the portal count the
+   * loop runs over.  IDA's version (inline ClusterAreaNum, v-number temporaries)
+   * cost ELF 237 insn-diffs and PE 106 lines; this matches both. */
+  int i, portalnum, clusterareanum, clusternum;
+  unsigned short int t;
+  aas_portal_t *portal;
+  aas_cluster_t *cluster;
+  aas_routingcache_t *cache;
+  aas_routingupdate_t *updateliststart, *updatelistend, *curupdate, *nextupdate;
 
-  ++numportalcacheupdates;
-  memset((void *)aasworld.portalupdate, 0,
-         sizeof(aas_routingupdate_t) * aasworld.numareas);
-
-  cur = &aasworld.portalupdate[portalcache->areanum];
-  cur->cluster       = portalcache->cluster;
-  cur->areanum       = portalcache->areanum;
-  cur->tmptraveltime = (unsigned short)(__int64)portalcache->starttraveltime;
-  clusternum = ((aas_areasettings_t *)aasworld.areasettings)[portalcache->areanum].cluster;
-  if ( clusternum < 0 )
-    ((unsigned short *)(portalcache + 1))[-clusternum] = (unsigned short)(__int64)portalcache->starttraveltime;
-  cur->next   = NULL;
-  cur->prev   = NULL;
-  head = cur;
-  tail = cur;
-
-  while ( tail )
+  numportalcacheupdates++;
+  //clear the routing update fields
+  memset(aasworld.portalupdate, 0, aasworld.numareas * sizeof(aas_routingupdate_t));
+  //
+  curupdate = &aasworld.portalupdate[portalcache->areanum];
+  curupdate->cluster = portalcache->cluster;
+  curupdate->areanum = portalcache->areanum;
+  curupdate->tmptraveltime = portalcache->starttraveltime;
+  //if the start area is a cluster portal, store the travel time for that portal
+  clusternum = aasworld.areasettings[portalcache->areanum].cluster;
+  if (clusternum < 0)
   {
-    cur = tail;
-    upd = cur->next;
-    if ( upd )
-      upd->prev = NULL;
-    else
-      head = NULL;
-    v7 = cur->cluster;
-    tail = cur->next;
-    cur->inlist = 0;
-    clust = &((aas_cluster_t *)aasworld.clusters)[v7];
-    entry = AAS_GetAreaRoutingCache(v7, cur->areanum, portalcache->travelflags);
-
-    for ( i = 0; i < clust->numreachabilityareas; ++i )
+    ((unsigned short *)(portalcache + 1))[-clusternum] = portalcache->starttraveltime;
+  } //end if
+  //put the area to start with in the current read list
+  curupdate->next = NULL;
+  curupdate->prev = NULL;
+  updateliststart = curupdate;
+  updatelistend = curupdate;
+  //while there are updates in the current list
+  while (updateliststart)
+  {
+    curupdate = updateliststart;
+    //remove the current update from the list
+    if (curupdate->next) curupdate->next->prev = NULL;
+    else updatelistend = NULL;
+    updateliststart = curupdate->next;
+    //current update is removed from the list
+    curupdate->inlist = 0;
+    //
+    cluster = &aasworld.clusters[curupdate->cluster];
+    //
+    cache = AAS_GetAreaRoutingCache(curupdate->cluster,
+                curupdate->areanum, portalcache->travelflags);
+    //take all portals of the cluster
+    for (i = 0; i < cluster->numreachabilityareas; i++)
     {
-      portalnum = aasworld.portalindex[clust->firstportal + i];
-      v11 = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
-      if ( v11 != cur->areanum )
+      portalnum = aasworld.portalindex[cluster->firstportal + i];
+      portal = &aasworld.portals[portalnum];
+      //if this is the portal of the current update continue
+      if (portal->areanum == curupdate->areanum) continue;
+      //
+      clusterareanum = AAS_ClusterAreaNum(curupdate->cluster, portal->areanum);
+      //
+      t = ((unsigned short *)(cache + 1))[clusterareanum];
+      if (!t) continue;
+      t += curupdate->tmptraveltime;
+      //
+      if (!((unsigned short *)(portalcache + 1))[portalnum] ||
+          ((unsigned short *)(portalcache + 1))[portalnum] > t)
       {
-        v14 = ((aas_areasettings_t *)aasworld.areasettings)[v11].cluster;
-        if ( v14 > 0 )
+        ((unsigned short *)(portalcache + 1))[portalnum] = t;
+        nextupdate = &aasworld.portalupdate[portal->areanum];
+        if (portal->frontcluster == curupdate->cluster)
         {
-          clusterareanum = ((aas_areasettings_t *)aasworld.areasettings)[v11].clusterareanum;
-        }
+          nextupdate->cluster = portal->backcluster;
+        } //end if
         else
         {
-          clusterareanum = ((aas_portal_t *)aasworld.portals)[-v14].clusterareanum[((aas_portal_t *)aasworld.portals)[-v14].frontcluster != cur->cluster];
-        }
-        t = ((unsigned short *)(entry + 1))[clusterareanum];
-        if ( t )
+          nextupdate->cluster = portal->frontcluster;
+        } //end else
+        nextupdate->areanum = portal->areanum;
+        //add travel time through the actual portal area for the next update
+        nextupdate->tmptraveltime = t;
+        if (!nextupdate->inlist)
         {
-          v17 = cur->tmptraveltime + t;
-          v18 = ((unsigned short *)(portalcache + 1))[portalnum];
-          if ( !v18 || v18 > v17 )
-          {
-            ((unsigned short *)(portalcache + 1))[portalnum] = v17;
-            upd = &aasworld.portalupdate[((aas_portal_t *)aasworld.portals)[portalnum].areanum];
-            v20 = ((aas_portal_t *)aasworld.portals)[portalnum].frontcluster;
-            if ( v20 == cur->cluster )
-              v20 = ((aas_portal_t *)aasworld.portals)[portalnum].backcluster;
-            upd->cluster = v20;
-            upd->areanum = ((aas_portal_t *)aasworld.portals)[portalnum].areanum;
-            upd->tmptraveltime = v17;
-            if ( !upd->inlist )
-            {
-              upd->next = NULL;
-              upd->prev = head;
-              if ( head )
-                head->next = upd;
-              else
-                tail = upd;
-              head = upd;
-              upd->inlist = 1;
-            }
-          }
-        }
-      }
-    }
-  }
-  { (void)(0); return; }
+          nextupdate->next = NULL;
+          nextupdate->prev = updatelistend;
+          if (updatelistend) updatelistend->next = nextupdate;
+          else updateliststart = nextupdate;
+          updatelistend = nextupdate;
+          nextupdate->inlist = 1;
+        } //end if
+      } //end if
+    } //end for
+  } //end while
 }
 
 // gladiator.dll: 10019EB0..10019F6F
@@ -833,140 +833,114 @@ aas_routingcache_t *__cdecl AAS_GetPortalRoutingCache(int clusternum, int areanu
     aasworld.portalcache[areanum] = cache;
     AAS_UpdatePortalRoutingCache(cache);
   }
-  cache->time = AAS_Time();
+  cache->time = AAS_RoutingTime();
   return cache;
 }
 
 // gladiator.dll: 10019FA0..1001A229
 // gladi386.so:   00027C0C..00027F8E
-__int16 __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int a2, int goalareanum)
+/* Q3's AAS_AreaRouteToGoalArea text (whose 1999 ancestor this is), with the
+ * travel time returned instead of stored, no origin, and Gladiator's frame-update
+ * limit still live.  `unsigned short`: every caller zero-extends the result, and
+ * the .so zero-extends it on the way out.  IDA's aliases and goto (and its
+ * hand-inlined AAS_ClusterAreaNum) matched neither image; with Q3's text and
+ * AAS_RoutingTime inlined into the cache lookups it matches both. */
+unsigned short __cdecl AAS_AreaTravelTimeToGoalArea(int areanum, int goalareanum, int travelflags)
 {
-  __int16 result; // ax
-  int clusternum; // edi
-  int v7; // esi
-  int v9; // eax
-  aas_portal_t *v10; // ecx
-  aas_portal_t *v11; // ecx
-  aas_routingcache_t *v12; // 64-bit fix (was int)
-  int v13; // edx
-  int v14; // ebp
-  aas_routingcache_t *portalcache; // 64-bit fix (was int)
-  int v16; // edx
-  aas_routingcache_t *v17; // 64-bit fix (was int)
-  aas_cluster_t *cluster; // ecx
-  aas_portal_t *v19; // eax
-  int portalnum; // esi
-  unsigned __int16 besttime; // [esp+20h] [ebp+8h]
-  aas_routingcache_t *v21; // 64-bit fix (was int)
-  int v22; // ecx
-  int v23; // edx
-  __int16 t; // cx
-  unsigned __int16 v25; // si
-  int v27; // [esp+14h] [ebp-4h]
-  aas_routingcache_t *v28; // 64-bit fix (was int)
-  aas_cluster_t *v26; // [esp+10h] [ebp-8h]
+  int clusternum, goalclusternum, portalnum, i, clusterareanum;
+  unsigned short int t, besttime;
+  aas_portal_t *portal;
+  aas_cluster_t *cluster;
+  aas_routingcache_t *areacache, *portalcache;
 
-  if ( !aasworld.initialized )
-    return 0;
-  if ( areanum == a2 )
-    return 1;
+  if ( !aasworld.initialized ) return 0;
+
+  if ( areanum == goalareanum ) return 1;
   if ( areanum <= 0 || areanum >= aasworld.numareas )
   {
     botimport.Print(PRT_ERROR, "AAS_AreaTravelTimeToGoalArea: areanum %d out of range\n", areanum);
     return 0;
   }
-  if ( a2 <= 0 || a2 >= aasworld.numareas )
+  if ( goalareanum <= 0 || goalareanum >= aasworld.numareas )
   {
-    botimport.Print(PRT_ERROR, "AAS_AreaTravelTimeToGoalArea: goalareanum %d out of range\n", a2);
+    botimport.Print(PRT_ERROR, "AAS_AreaTravelTimeToGoalArea: goalareanum %d out of range\n", goalareanum);
     return 0;
   }
-  if ( aasworld.frameroutingupdates > 10 )
-    return 0;
+  /* NOTE: the number of routing updates is limited per frame */
+  if ( aasworld.frameroutingupdates > 10 ) return 0;
   clusternum = aasworld.areasettings[areanum].cluster;
-  v9 = aasworld.areasettings[a2].cluster;
-  v7 = clusternum;
-  if ( clusternum < 0 && v9 > 0 )
+  goalclusternum = aasworld.areasettings[goalareanum].cluster;
+  /* check if the area is a portal of the goal area cluster */
+  if ( clusternum < 0 && goalclusternum > 0 )
   {
-    v10 = &aasworld.portals[-clusternum];
-    if ( v10->frontcluster == v9 || v10->backcluster == v9 )
-      v7 = v9;
-  }
-  else
-  {
-    if ( clusternum <= 0 )
-      goto portalpath;
-    if ( v9 < 0 )
+    portal = &aasworld.portals[-clusternum];
+    if ( portal->frontcluster == goalclusternum ||
+         portal->backcluster == goalclusternum )
     {
-      v11 = &aasworld.portals[-v9];
-      if ( v11->frontcluster == clusternum || v11->backcluster == clusternum )
-        v9 = clusternum;
+      clusternum = goalclusternum;
     }
   }
-  if ( v7 > 0 && v9 > 0 && v7 == v9 )
+  /* check if the goalarea is a portal of the area cluster */
+  else if ( clusternum > 0 && goalclusternum < 0 )
   {
-    v12 = AAS_GetAreaRoutingCache(v7, a2, goalareanum);
-    clusternum = aasworld.areasettings[areanum].cluster;
-    if ( clusternum <= 0 )
+    portal = &aasworld.portals[-goalclusternum];
+    if ( portal->frontcluster == clusternum ||
+         portal->backcluster == clusternum )
     {
-      v13 = aasworld.portals[-clusternum].clusterareanum[aasworld.portals[-clusternum].frontcluster != v7];
+      goalclusternum = clusternum;
     }
-    else
-    {
-      v13 = aasworld.areasettings[areanum].clusterareanum;
-    }
-    /* `(cache + 1)`, not the original's hard-coded `+ 40`: the header grows on
-     * 64-bit, where that offset lands inside the `next` pointer. */
-    result = ((unsigned short *)(v12 + 1))[v13];
-    if ( result )
-      return result;
   }
-portalpath:
-  v14 = aasworld.areasettings[a2].cluster;
-  if ( v14 < 0 )
-    v14 = aasworld.portals[-v14].frontcluster;
-  portalcache = AAS_GetPortalRoutingCache(v14, a2, goalareanum);
-  v16 = 0;
-  v17 = portalcache;
-  v28 = portalcache;
+  /* if both areas are in the same cluster */
+  if ( clusternum > 0 && goalclusternum > 0 && clusternum == goalclusternum )
+  {
+    areacache = AAS_GetAreaRoutingCache(clusternum, goalareanum, travelflags);
+    /* the number of the area in the cluster */
+    clusterareanum = AAS_ClusterAreaNum(clusternum, areanum);
+    /* if it is possible to travel to the goal area through this cluster */
+    if ( ((unsigned short *)(areacache + 1))[clusterareanum] != 0 )
+    {
+      return ((unsigned short *)(areacache + 1))[clusterareanum];
+    }
+  }
+  clusternum = aasworld.areasettings[areanum].cluster;
+  goalclusternum = aasworld.areasettings[goalareanum].cluster;
+  /* if the goal area is a portal */
+  if ( goalclusternum < 0 )
+  {
+    /* just assume the goal area is part of the front cluster */
+    portal = &aasworld.portals[-goalclusternum];
+    goalclusternum = portal->frontcluster;
+  }
+  /* get the portal routing cache */
+  portalcache = AAS_GetPortalRoutingCache(goalclusternum, goalareanum, travelflags);
+  /* if the area is a cluster portal, read directly from the portal cache */
   if ( clusternum < 0 )
-    return ((unsigned short *)(portalcache + 1))[-clusternum];   /* 64-bit fix: was `+ 2*(20-v6)` */
-  besttime = 0;
-  v27 = 0;
-  cluster = &aasworld.clusters[clusternum];
-  v26 = cluster;
-  if ( cluster->numreachabilityareas > 0 )
   {
-    v19 = aasworld.portals;
-    while ( 1 )
+    return ((unsigned short *)(portalcache + 1))[-clusternum];
+  }
+  besttime = 0;
+  /* the cluster the area is in */
+  cluster = &aasworld.clusters[clusternum];
+  /* find the portal of the area cluster leading towards the goal area */
+  for ( i = 0; i < cluster->numreachabilityareas; i++ )
+  {
+    portalnum = aasworld.portalindex[cluster->firstportal + i];
+    /* if the goal area isn't reachable from the portal */
+    if ( !((unsigned short *)(portalcache + 1))[portalnum] ) continue;
+    portal = aasworld.portals + portalnum;
+    /* get the cache of the portal area */
+    areacache = AAS_GetAreaRoutingCache(clusternum, portal->areanum, travelflags);
+    /* current area inside the current cluster */
+    clusterareanum = AAS_ClusterAreaNum(clusternum, areanum);
+    /* if the portal is NOT reachable from this area */
+    if ( !((unsigned short *)(areacache + 1))[clusterareanum] ) continue;
+    /* total travel time is the travel time the portal area is from
+     * the goal area plus the travel time towards the portal area */
+    t = ((unsigned short *)(portalcache + 1))[portalnum] + ((unsigned short *)(areacache + 1))[clusterareanum];
+    /* if the time is better than the one already found */
+    if ( !besttime || t < besttime )
     {
-      portalnum = aasworld.portalindex[v16 + cluster->firstportal];
-      if ( ((unsigned short *)(v17 + 1))[portalnum] )   /* 64-bit fix: was `+ 2*v20 + 40` */
-      {
-        v21 = AAS_GetAreaRoutingCache(clusternum, v19[portalnum].areanum, goalareanum);
-        v19 = aasworld.portals;
-        v22 = aasworld.areasettings[areanum].cluster;
-        if ( v22 <= 0 )
-        {
-          v19 = aasworld.portals;
-          v23 = aasworld.portals[-v22].clusterareanum[aasworld.portals[-v22].frontcluster != clusternum];
-        }
-        else
-        {
-          v23 = aasworld.areasettings[areanum].clusterareanum;
-        }
-        t = ((unsigned short *)(v21 + 1))[v23];   /* 64-bit fix: was `+ 2*v23 + 40` */
-        if ( t )
-        {
-          v25 = t + ((unsigned short *)(v28 + 1))[portalnum];   /* 64-bit fix: was `+ 2*v20 + 40` */
-          if ( !besttime || v25 < besttime )
-            besttime = v25;
-        }
-        cluster = v26;
-      }
-      v16 = ++v27;
-      if ( v27 >= cluster->numreachabilityareas )
-        break;
-      v17 = v28;
+      besttime = t;
     }
   }
   return besttime;

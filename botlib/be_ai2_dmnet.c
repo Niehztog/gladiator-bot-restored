@@ -88,97 +88,90 @@ void __cdecl BotRecordNodeSwitch(bot_state_t *bs, const char *node, const char *
  *     velocity, storing it when |v| > 0.1;
  *   - converts that to angles, biases the yaw by formationgoal_yawbias, zeroes
  *     pitch and roll, and predicts 0.1 s of motion from saved_origin + (0,0,1);
- *   - on a water/slime/lava stop (mask 0x38) writes the START position into the
- *     goal origin, otherwise leaves the (0, anglemod(yaw+bias), 0) angles there;
- *     then fills areanum, ±8 mins/maxs and entitynum.
+ *   - on a water/slime/lava stop (mask 0x38) copies the START position into
+ *     `goalorigin`, then fills entitynum, areanum, origin (from goalorigin) and
+ *     the +-8 mins/maxs.
+ *
+ * `goalorigin` is written on the stop path ONLY and read unconditionally -- an
+ * original bug (it reads as if an `else VectorCopy(move.endpos, goalorigin)` was
+ * meant, and `endpos` is dead).  The two 1999 compilers make it visible
+ * differently, which is what pins the source: gcc 2.7 gives it its own frame
+ * slot (0x8c, never written on the fall-through path), while MSVC6 /O2
+ * coalesces it onto `angles`, whose live range has ended -- so the DLL reads
+ * the (0, yaw, 0) angles there.  The IDA-derived reconstruction had written the
+ * DLL's coalesced reading literally (VectorCopy(start, angles)); that matched
+ * the DLL and cost the .so a 12-byte frame and 88 instruction diffs.
+ *
+ * ONE `client` variable holds both ClientFromName results: the .so keeps it in
+ * one spilled slot (0x14) for both lookups and re-reads it for entitynum.  The
+ * two early returns and the `||` guard are the one textual shape both oracles
+ * accept: gcc merges the second return into the first, MSVC6 sinks both into
+ * one block behind the success return.  (Nested ifs, or `goto fail`, match the
+ * DLL only; three separate `if ... return` statements match the .so only.)
  *
  * DEAD in shipped Gladiator.  Must NOT be static: /O2 would dead-strip it,
  * whereas /INCREMENTAL kept it in the original. */
 int BotGetFormationGoal(bot_state_t *bs)
 {
-  aas_entityinfo_t entinfo; /* [esp+0x44] — entityinfo copy; reused for both lookups */
-  vec3_t forward;           /* [esp+0x1C] — first delta, then AngleVectors output       */
-  vec3_t angles;            /* [esp+0x10] — built (0, anglemod(yaw+bias), 0)           */
-  vec3_t scaled;            /* [esp+0x38] — VectorScale(forward, 400, ...) for predict */
-  vec3_t start;             /* [esp+0x28] — saved_origin + (0,0,1) for prediction      */
-  vec3_t endpos;            /* dead store of move.endpos — a distinct 12-byte temp,
-                             * never read afterward.  Present in the original. */
-  aas_clientmove_t move;    /* prediction result; MSVC6 coalesces this slot with its own
-                             * by-value return temp and with both AAS_EntityInfo temps */
-  int    entnum, areanum, prevent_entnum;
-  /* 1. Look up target name → entnum. */
-  entnum = ClientFromName(bs->formationgoal_name);
-  entinfo = AAS_EntityInfo(entnum + 1);
+  aas_entityinfo_t entinfo;
+  vec3_t dir;
+  vec3_t angles;
+  vec3_t goalorigin;
+  vec3_t endpos;
+  vec3_t start;
+  vec3_t velocity;
+  aas_clientmove_t move;
+  int    client, areanum;
+
+  client = ClientFromName(bs->formationgoal_name);
+  entinfo = AAS_EntityInfo(client + 1);
   if ( !entinfo.valid )
     return (int)(intptr_t)&bs->formationgoal;
-  /* 2. Validate the entity sits in a reachable AAS area (origin @ +0x10). */
   areanum = AAS_PointAreaNum(entinfo.origin);
-  if ( !areanum )
-    goto fail;
-  if ( !AAS_AreaReachability(areanum) )
-    goto fail;
-  /* 3. Save current target origin to bs+0x1144..0x114C. */
-  *(int *)&bs->formationgoal_origin[0] = *(int *)&entinfo.origin[0];
-  *(int *)&bs->formationgoal_origin[1] = *(int *)&entinfo.origin[1];
-  *(int *)&bs->formationgoal_origin[2] = *(int *)&entinfo.origin[2];
-  /* 4. Look up the second name, applying the +1 at each point of use rather than
-   *    baking it into prevent_entnum: the original reloads the raw value and
-   *    increments it independently both here and at the entitynum store below.
-   *    This AAS_EntityInfo call OVERWRITES the same `entinfo` block — step 3 has
-   *    already saved the origin it needed. */
-  prevent_entnum = ClientFromName((const char *)bs->formation_teammate);
-  entinfo = AAS_EntityInfo(prevent_entnum + 1);
-  /* 5. Velocity = origin - old_origin of the second target, BOTH from the same
-   *    snapshot.  The acceptance threshold 0.1 is a double. */
+  if ( !areanum || !AAS_AreaReachability(areanum) )
+    return (int)(intptr_t)&bs->formationgoal;
+  VectorCopy(entinfo.origin, bs->formationgoal_origin);
+  /* the second lookup overwrites the same `entinfo` -- the origin it needed
+   * is already saved */
+  client = ClientFromName((const char *)bs->formation_teammate);
+  entinfo = AAS_EntityInfo(client + 1);
   if ( entinfo.valid )
   {
-    VectorSubtract(entinfo.origin, entinfo.old_origin, forward);
-    if ( VectorLength(forward) > 0.1 )
-    {
-      *(int *)&bs->formationgoal_dir[0] = *(int *)&forward[0];
-      *(int *)&bs->formationgoal_dir[1] = *(int *)&forward[1];
-      *(int *)&bs->formationgoal_dir[2] = *(int *)&forward[2];
-    }
+    VectorSubtract(entinfo.origin, entinfo.old_origin, dir);
+    if ( VectorLength(dir) > 0.1 )
+      VectorCopy(dir, bs->formationgoal_dir);
   }
-  /* 6. Velocity to angles: bias the yaw and wrap with anglemod, zero pitch and roll.
-   *    The explicit angles[2] = 0 is redundant after Vector2Angles but is in the
-   *    original. */
+  /* The explicit angles[2] = 0 is redundant after Vector2Angles but is in the
+   * original. */
   Vector2Angles(bs->formationgoal_dir, angles);
   angles[0] = 0.0f;
   angles[1] = anglemod(angles[1] + bs->formationgoal_yawbias);
-  /* 7. start = saved_origin + (0,0,1); scaled = AngleVectors(angles) * 400.  The
-   *    first two start components are int bit-copies, the third a float add. */
   angles[2] = 0.0f;
-  AngleVectors(angles, forward, NULL, NULL);
-  *(int *)&start[0] = *(int *)&bs->formationgoal_origin[0];
-  *(int *)&start[1] = *(int *)&bs->formationgoal_origin[1];
-  start[2] = bs->formationgoal_origin[2] + 1.0f;
-  VectorScale(forward, 400.0f, scaled);
-  /* 8. Predict 0.1 s of motion from start at velocity `scaled`; stopevent mask
-   *    0x7C catches HITGROUND/HITWATER/HITLAVA/HITSLIME. */
+  AngleVectors(angles, dir, NULL, NULL);
+  /* A real copy plus `+=`: MSVC6 forwards formationgoal_origin[2] straight into
+   * the fadd, gcc keeps the copy and re-reads it -- each one's original from one
+   * text (the int bit-copy form matched the DLL only). */
+  VectorCopy(bs->formationgoal_origin, start);
+  start[2] += 1;
+  VectorScale(dir, 400.0f, velocity);
+  /* 0.1 s of motion; stopevent 0x7C = HITGROUND|HITWATER|HITSLIME|HITLAVA */
   move = AAS_ClientMovementPrediction(-1, start,
-                                      2, 1, vec3_origin, scaled,
+                                      2, 1, vec3_origin, velocity,
                                       1, 2, 0.1f, 124, 0);
   VectorCopy(move.endpos, endpos);
-  /* 9. On a water/slime/lava stop (mask 0x38) fall back to the start position (all 3
-   *    components uniformly — no separate scalar for Z); otherwise keep the angles
-   *    vec built in step 6, whose [2] is already 0. */
   if ( (move.stopevent & 0x38) != 0 )
   {
-    VectorCopy(start, angles);
+    VectorCopy(start, goalorigin);
   }
-  bs->formationgoal.entitynum = prevent_entnum + 1;
+  bs->formationgoal.entitynum = client + 1;
   bs->formationgoal.areanum = areanum;
-  *(int *)&bs->formationgoal.origin[0] = *(int *)&angles[0];
-  *(int *)&bs->formationgoal.origin[1] = *(int *)&angles[1];
-  bs->formationgoal.origin[2] = angles[2];
+  VectorCopy(goalorigin, bs->formationgoal.origin);
   bs->formationgoal.mins[0] = -8.0f;
   bs->formationgoal.mins[1] = -8.0f;
   bs->formationgoal.mins[2] = -8.0f;
   bs->formationgoal.maxs[0] = 8.0f;
   bs->formationgoal.maxs[1] = 8.0f;
   bs->formationgoal.maxs[2] = 8.0f;
-fail:
   return (int)(intptr_t)&bs->formationgoal;
 }
 
@@ -606,6 +599,15 @@ void __cdecl AIEnter_Stand(bot_state_t *bs)
 // gladi386.so:   00034E3C..00034F32
 int __cdecl AINode_Stand(bot_state_t *bs)
 {
+  /* The anti-tamper message (LoadScriptFile's CRC check sets __squatt) is
+   * stored with three leading NULs and printed from +3, like LoadScriptFile's
+   * own "\0\0\0You are not allowed..." -- the DLL pushes literal+3 (the
+   * literal itself 4-aligned at 0x1005c4b0).  A two-element pointer ARRAY,
+   * not a plain literal: gladi386.so holds it in the esi:edi pair, zeroing the
+   * pair as one 8-byte object (`mov esi,0; mov edi,0` -- gcc's movdi, never
+   * an xor) and then storing both halves, "" included, even though only [1]
+   * is read.  cl.exe folds the whole array away. */
+  char *msg[2] = {"", "\0\0\0I never hacked your brain...\n"};
 
   if ( BotFindEnemy(bs) )
   {
@@ -620,7 +622,7 @@ int __cdecl AINode_Stand(bot_state_t *bs)
      * to the shared tail inverts both, and with it the `!= 0.0f` compare shape. */
     if ( LibVarGetValue("__squatt") != 0.0f )
     {
-      EA_Say(bs->client, "I never hacked your brain...\n");
+      EA_Say(bs->client, msg[1] + 3);
       EA_Command(bs->client, "removebot", ClientName(bs->client), (void *)0);
       return 1;
     }
@@ -802,7 +804,6 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
    * throughout, with no FPU traffic. */
   void *v3; // eax
   void *goal; // esi
-  void *v7; // edi
   int v8; // [esp+10h] [ebp-7Ch]
   vec3_t target; // [esp+14h] [ebp-78h] BYREF — predicted/move target position
   vec3_t dir; // [esp+20h] [ebp-6Ch] BYREF — target - bot origin, fed to Vector2Angles
@@ -883,10 +884,13 @@ int __cdecl AINode_Seek_NBG(bot_state_t *bs)
   }
   else
   {
-    v7 = BotGetSecondGoal(&bs->goalstate);
-    if ( !v7 )
+    /* the same `goal` again, as Q3's one bot_goal_t: gladi386.so keeps both
+     * goal pointers in edi.  The BotGetTopGoal result is discarded in both
+     * 1999 images -- an original bug (Q3's by-reference API cannot have it). */
+    goal = BotGetSecondGoal(&bs->goalstate);
+    if ( !goal )
       BotGetTopGoal(&bs->goalstate);
-    if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)v7, v8, (float *)(intptr_t)target) )
+    if ( BotMovementViewTarget((bot_movestate_t *)&bs->ms, (bot_goal_t *)(intptr_t)goal, v8, (float *)(intptr_t)target) )
     {
       VectorSubtract(target, bs->origin, dir);
       Vector2Angles(dir, bs->ideal_viewangles);
@@ -1096,13 +1100,11 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     return 0;
   }
   /* Inline, not a shared label: MSVC6 keeps a physical copy of
-   * `AIEnter_Seek_LTG(bs); return 0;` here rather than merging it with the two later
-   * occurrences.  gcc 2.7.2.3 DOES cross-jump this into a tail shared with the later
-   * `!BotEntityVisible && !chase` case, and a `goto` rewrite reproduces that on ELF —
-   * but it breaks the PE oracle, because MSVC6 does not perform the merge for the
-   * goto-rewritten source either.  The two period compilers made genuinely different
-   * tail-merging decisions; one source feeds both oracles and PE-safety is the hard
-   * constraint, so this stays inline. */
+   * `AIEnter_Seek_LTG(bs); return 0;` here.  gcc 2.7.2.3 cross-jumps it onto the
+   * textually identical `else { AIEnter_Seek_LTG(bs); return 0; }` arm of the
+   * `!BotEntityVisible` test below -- which it can only do because that arm is
+   * written with its OWN return, as in Q3.  (The earlier reading, that the two
+   * compilers disagree here, came from a shared `return 0` after that if/else.) */
   if ( !bs->enemy )
   {
     AIEnter_Seek_LTG(bs);
@@ -1141,14 +1143,20 @@ int __cdecl AINode_Battle_Fight(bot_state_t *bs)
     }
     BotUpdateBattleInventory(bs, bs->enemy);
     /* Q3's order: test not-visible FIRST and early-out to the chase/seek branch,
-       leaving the attack pipeline as the fall-through. */
+       leaving the attack pipeline as the fall-through; and Q3's return in EACH arm
+       (see the `!bs->enemy` note above). */
     if ( !BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360.0, bs->enemy) )
     {
       if ( BotWantsToChase((int *)bs) )
+      {
         AIEnter_Battle_Chase(bs);
+        return 0;
+      }
       else
+      {
         AIEnter_Seek_LTG(bs);
-      return 0;
+        return 0;
+      }
     }
     v8 = 102334;
     if ( usehook->value != 0.0f )
