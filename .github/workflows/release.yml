@@ -323,6 +323,10 @@ jobs:
             whatever memory was left there. Both are now cleared. A bot with nowhere to
             move looks around, as Quake III's long-term-goal node does, and a bot swimming
             to a teleporter or elevator faces the way it swims. <!-- fix: moveresult-uninit-vectors -->
+          - On Windows, a map whose bot navigation file came from an `aasN.zip` archive
+            but failed to load left the whole game running in the mod's folder, so the
+            next map's files could no longer be found. The working folder is now put
+            back first. <!-- fix: aaszip-cwd-leak -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

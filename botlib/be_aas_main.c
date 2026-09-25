@@ -467,7 +467,17 @@ int __cdecl sub_1000E430(char *Source)
           v7 = AAS_LoadAASFile(ArgList, 0, 0);
           errno = v7;
           if ( errno )
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aaszip-cwd-leak) */
+          {
+            /* The 1999 exit skips the _chdir(Path) both other exits make, leaving the
+             * whole process in basedir\gamedir.  Restore it first; return the saved
+             * status, since a failing _chdir would overwrite errno. */
+            _chdir(Path);
+            return v7;
+          }
+#else
             return errno;
+#endif
           remove_file(ArgList);
           botimport.Print(PRT_MESSAGE, "loaded %s\\%s\n", Destination, ArgList);
           Log_Write("found %s in %s", ArgList, Destination); /* "found %s in %s" */
