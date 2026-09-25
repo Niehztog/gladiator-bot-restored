@@ -403,6 +403,14 @@ int __cdecl BotMoveClient(int a1, int a2)
   memcpy(&botstates[a2], &botstates[a1], sizeof(bot_state_t));
   memset(&botstates[a1], 0, sizeof(bot_state_t));
   botstates[a1].inuse = 0;
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(bot-move-stale-clientnum) */
+  /* The copy keeps the old slot's client and entity numbers, so the moved bot would
+   * go on submitting its input for the slot it left (EA_EndRegular(bs->client)) and
+   * take that slot's entity for itself.  Renumber it as BotSetupClient numbers a new
+   * bot; the movestate and weapon state copy both from here every frame. */
+  botstates[a2].client = a2;
+  botstates[a2].entitynum = a2 + 1;
+#endif
 #if BOTLIB_NEED_SIDEBAND
   /* 64-bit only.  On 32-bit every pointer below is an inline slot, so the memcpy
    * moved it and the memset cleared the source.  Here each one lives in a per-client

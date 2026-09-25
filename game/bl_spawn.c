@@ -249,7 +249,17 @@ qboolean BotMoveToFreeClientEdict(edict_t *bot)
 	//if there isn't a free client edict available
 	if (!newcl) return false;
 	//copy the bot to the new client edict
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(bot-move-edict-copy) */
+	//unlink the bot first: the copy would otherwise duplicate the engine's area
+	//links, and clearing the old edict below would zero a node its lists still use
+	gi.unlinkentity(bot);
 	memcpy(newcl, bot, sizeof(edict_t));
+	//the copy overwrote the new edict's own gclient_t pointer with the old slot's
+	newcl->client = &game.clients[newcl-g_edicts-1];
+	gi.linkentity(newcl);
+#else
+	memcpy(newcl, bot, sizeof(edict_t));
+#endif
 	//copy the contents of the g_client_t structure
 	memcpy(newcl->client, bot->client, sizeof(gclient_t));
 	//copy bot state

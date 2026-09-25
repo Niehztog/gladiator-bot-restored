@@ -327,6 +327,15 @@ jobs:
             but failed to load left the whole game running in the mod's folder, so the
             next map's files could no longer be found. The working folder is now put
             back first. <!-- fix: aaszip-cwd-leak -->
+          - When a player joined into a client slot a bot was using, the game moved the
+            bot to a free slot by copying its entity without taking it out of the world
+            first. That corrupted the server's entity lists and crashed it moments later,
+            and the moved bot also ended up sharing the new player's client data. The bot
+            is now moved the way Quake II moves any entity, and keeps its own client
+            data. <!-- fix: bot-move-edict-copy -->
+          - A bot moved that way also kept its old slot number in the bot library, so its
+            movement went to the slot it had left and it stood still from then on. It
+            now takes its new slot's number. <!-- fix: bot-move-stale-clientnum -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the
