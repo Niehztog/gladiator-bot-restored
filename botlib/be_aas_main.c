@@ -438,7 +438,7 @@ int __cdecl sub_1000E430(char *Source)
     strncat(Destination, v2, 144 - strlen(Destination));
     AppendPathSeperator(Destination, 144);
   }
-  getcwd_locked((int)Path, 144);
+  getcwd_locked(Path, 144);
   _chdir(Destination);
   if ( v2 )
     strncpy(dirs[0], v2, 0x90u);
@@ -462,7 +462,7 @@ int __cdecl sub_1000E430(char *Source)
       if ( !_access(Destination, 4) )
       {
         Log_Write("searching %s in %s", ArgList, Destination); /* "searching %s in %s" */
-        if ( sub_10041240((int)Destination, ArgList, 0) )
+        if ( sub_10041240(Destination, ArgList, 0) )
         {
           v7 = AAS_LoadAASFile(ArgList, 0, 0);
           errno = v7;

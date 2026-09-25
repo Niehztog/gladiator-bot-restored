@@ -106,7 +106,7 @@ extern LPUSERFUNCTIONS dword_100639F0;
 
 /* Declarations for what this TU defines — last, so the types above are in scope. */
 int __cdecl FindQuakeFile2(char *basedir, char *gamedir, char *filename, bot_fileref_t *file); /* search basePath+subdir+paks for file */
-BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);  /* stub: no ZIP support */
+BOOL __cdecl sub_10041240(char *a1, const char *a2, int a3);  /* stub: no ZIP support */
 /* The UnZip windll state is defined inside `#ifdef _WIN32` in l_utils.c and
  * does not exist in the Linux image at all -- gate the declarations to match,
  * so a Linux TU cannot accidentally reference one. */
@@ -123,7 +123,7 @@ extern HMODULE hLibModule;
 /* The byte-order fn-ptr slots (0x100637CC..E0) and `bigendien` (0x10063884)
  * live in game/q_shared.c. */
 
-BOOL __cdecl sub_10041240(int a1, const char *a2, int a3);
+BOOL __cdecl sub_10041240(char *a1, const char *a2, int a3);
 int __stdcall sub_100415E0(int a1);
 void sub_10041600(void);
 static int sub_10041650(void);

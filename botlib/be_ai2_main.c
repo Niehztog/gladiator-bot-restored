@@ -371,7 +371,11 @@ int __cdecl BotShutdownClient(int a1)
   if ( BotWS(bs) ) { FreeMemory(BotWS(bs)); BotWS(bs) = 0; }
 #endif
   BotFreeItemWeights(&bs->goalstate);
-  sub_1002A590(bs->character);
+  sub_1002A590(BotCharacter(bs));
+#if BOTLIB_NEED_SIDEBAND
+  /* 64-bit only: on 32-bit the character is the inline slot the memset below clears. */
+  BotCharacter(bs) = 0;
+#endif
   BotFreeWaypoints(BotCheckpoints(bs));
   BotCheckpoints(bs) = 0;
   BotFreeWaypoints(BotPatrolpoints(bs));
@@ -399,6 +403,39 @@ int __cdecl BotMoveClient(int a1, int a2)
   memcpy(&botstates[a2], &botstates[a1], sizeof(bot_state_t));
   memset(&botstates[a1], 0, sizeof(bot_state_t));
   botstates[a1].inuse = 0;
+#if BOTLIB_NEED_SIDEBAND
+  /* 64-bit only.  On 32-bit every pointer below is an inline slot, so the memcpy
+   * moved it and the memset cleared the source.  Here each one lives in a per-client
+   * side-band array that neither can reach, so move it and clear the source the way
+   * the memset would.  Without the move the bot runs with no character; without the
+   * clear, the next bot set up in slot a1 reuses this one's weapon state (see
+   * BotSetupClient) and the two free it twice. */
+  {
+    bot_state_t *from = &botstates[a1];
+    bot_state_t *to = &botstates[a2];
+
+    BotCharacter(to) = BotCharacter(from);
+    BotCharacter(from) = 0;
+    BotGoalP0(to) = BotGoalP0(from);
+    BotGoalP0(from) = 0;
+    BotGoalP1(to) = BotGoalP1(from);
+    BotGoalP1(from) = 0;
+    BotWS(to) = BotWS(from);
+    BotWS(from) = 0;
+    BotChatDumpSlot(&to->chatstate) = BotChatDumpSlot(&from->chatstate);
+    BotChatDumpSlot(&from->chatstate) = 0;
+    BotChatMsgLinks(a2) = BotChatMsgLinks(a1);
+    memset(&BotChatMsgLinks(a1), 0, sizeof(chatmsg_links_t));
+    BotAINode(to) = BotAINode(from);
+    BotAINode(from) = 0;
+    BotCheckpoints(to) = BotCheckpoints(from);
+    BotCheckpoints(from) = 0;
+    BotPatrolpoints(to) = BotPatrolpoints(from);
+    BotPatrolpoints(from) = 0;
+    BotCurPatrolPoint(to) = BotCurPatrolPoint(from);
+    BotCurPatrolPoint(from) = 0;
+  }
+#endif
   return BLERR_NOERROR;
 }
 

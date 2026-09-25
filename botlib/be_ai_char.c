@@ -225,7 +225,7 @@ bot_character_t *__cdecl BotLoadCharacter(char *charfile, const char *a2)
 
 // gladiator.dll: 1002A590..1002A59C
 // gladi386.so:   00038B30..00038B4C
-void __cdecl sub_1002A590(int a1)
+void __cdecl sub_1002A590(bot_character_t *a1)
 {
   FreeMemory(a1);
 }

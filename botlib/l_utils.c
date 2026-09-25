@@ -58,7 +58,7 @@ HMODULE hLibModule; // idb
                 * no zlib); .aas files are loaded directly by AAS_LoadFiles. */
 // gladiator.dll: 10041240..1004151C
 // gladi386.so:   absent
-BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
+BOOL __cdecl sub_10041240(char *a1, const char *a2, int a3)
 {
   HGLOBAL v3; // eax
   HGLOBAL v5; // eax
@@ -125,7 +125,7 @@ BOOL __cdecl sub_10041240(int a1, const char *a2, int a3)
   dword_1006296C->ndflag = 0;
   dword_1006296C->noflag = 1;
   dword_1006296C->naflag = 0;
-  dword_1006296C->lpszZipFN = a1;
+  dword_1006296C->lpszZipFN = (intptr_t)a1;
   dword_1006296C->lpszExtractDir = a3;
   dword_1006296C->C_flag = 1;
   v8 = GlobalAlloc(2u, 0x28u);

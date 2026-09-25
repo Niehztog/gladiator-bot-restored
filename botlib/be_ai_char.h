@@ -11,6 +11,6 @@ float __cdecl Characteristic_Float(bot_character_t * character, int index);
 int __cdecl Characteristic_Integer(bot_character_t * character, int index);
 char *__cdecl Characteristic_String(bot_character_t *character, int index);
 int __cdecl CheckCharacteristicIndex(bot_character_t *character, int index);
-void __cdecl sub_1002A590(int a1);
+void __cdecl sub_1002A590(bot_character_t *a1);
 
 #endif /* BOTLIB_BE_AI_CHAR_H */

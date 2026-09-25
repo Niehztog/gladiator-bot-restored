@@ -1969,14 +1969,14 @@ BOOL __cdecl BotGetItemTeamGoal(char *goalname, bot_goal_t *goal)
 // gladi386.so:   00030D94..00030E29
 int __cdecl BotGetMessageTeamGoal(bot_state_t *bs, char *goalname, bot_goal_t *goal)
 {
-  int cp; // eax
+  bot_waypoint_t *cp; // eax
 
   if ( BotGetItemTeamGoal(goalname, goal) )
     return 1;
   cp = BotFindWayPoint(BotCheckpoints(bs), goalname);
   if ( cp )
   {
-    memcpy((void *)goal, (const void *)(cp + 4), 0x38u);
+    memcpy(goal, &cp->goal, sizeof(bot_goal_t));
     return 1;
   }
   return 0;
