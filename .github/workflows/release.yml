@@ -337,6 +337,13 @@ jobs:
           - A bot moved that way also kept its old slot number in the bot library, so its
             movement went to the slot it had left and it stood still from then on. It
             now takes its new slot's number. <!-- fix: bot-move-stale-clientnum -->
+          - `AAS_Optimize` compacts a map's bot navigation data before it is saved. For a
+            ladder face shared by two areas, which is common on Rocket Arena 2 maps, it
+            looked the face up at a negative table position and so read memory in front
+            of the table. That could crash the server while it built navigation for a map
+            that had none yet, and otherwise saved garbage into the map's `.aas` file. The
+            lookup now uses the face number without its sign and puts the sign back
+            afterwards, as Quake III does. <!-- fix: aas-optimize-signed-facenum -->
 
           Where Quake III later fixed the same code, the fix is its own correction —
           Mr. Elusive wrote both bot libraries — and where it has no counterpart, the

@@ -229,10 +229,27 @@ void AAS_Optimize()
   AAS_OptimizeAlloc(&optimized);
   for ( i = 1; i < aasworld.numareas; ++i )
     AAS_OptimizeArea(&optimized, i);
+  /* Faithful out-of-bounds read: both 1999 binaries index faceremap with the raw
+   * facenum (DLL 10010EF2, ELF 1DAB1), but AAS_Reachability_Ladder stores the
+   * area's faceindex entry signed, negative for a face the area sees from its back.
+   * Such a link reads before the array, and the optimized .aas saves whatever was
+   * there.  GLAD_SERVERFIX(aas-optimize-signed-facenum) builds Q3's remap, which
+   * indexes with abs() and restores the sign. */
   for ( i = 0; i < aasworld.reachabilitysize; ++i )
   {
     if ( aasworld.reachability[i].traveltype != 11 )
+#if GLAD_SERVERFIX /* GLAD_SERVERFIX(aas-optimize-signed-facenum) */
+    {
+      int sign;
+
+      sign = aasworld.reachability[i].facenum;
+      aasworld.reachability[i].facenum = optimized.faceremap[abs(aasworld.reachability[i].facenum)];
+      if ( sign < 0 )
+        aasworld.reachability[i].facenum = -aasworld.reachability[i].facenum;
+    }
+#else
       aasworld.reachability[i].facenum = optimized.faceremap[aasworld.reachability[i].facenum];
+#endif
   }
   AAS_OptimizeStore(&optimized);
   botimport.Print(PRT_MESSAGE, "AAS data optimized.\n");
